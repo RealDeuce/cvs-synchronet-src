@@ -19,7 +19,7 @@
 #include "window.h"
 #include "term.h"
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", NULL};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -184,14 +184,14 @@ void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int
 	if(bbsname != NULL)
 		strcpy(entry->name,bbsname);
 	iniReadString(listfile,bbsname,"Address","",entry->addr);
-	entry->port=iniReadShortInt(listfile,bbsname,"Port",513);
+	entry->conn_type=iniReadEnum(listfile,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
+	entry->port=iniReadShortInt(listfile,bbsname,"Port",conn_ports[entry->conn_type]);
 	entry->added=iniReadDateTime(listfile,bbsname,"Added",0);
 	entry->connected=iniReadDateTime(listfile,bbsname,"LastConnected",0);
 	entry->calls=iniReadInteger(listfile,bbsname,"TotalCalls",0);
 	iniReadString(listfile,bbsname,"UserName","",entry->user);
 	iniReadString(listfile,bbsname,"Password","",entry->password);
 	iniReadString(listfile,bbsname,"SystemPassword","",entry->syspass);
-	entry->conn_type=iniReadEnum(listfile,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
 	dumb=iniReadBool(listfile,bbsname,"BeDumb",0);
 	if(dumb)
 		entry->conn_type=CONN_TYPE_RAW;
@@ -210,6 +210,7 @@ void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int
 	entry->music=iniReadInteger(listfile,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
 	iniReadString(listfile,bbsname,"Font","Codepage 437 English",entry->font);
 	entry->type=type;
+	entry->id=id;
 }
 
 /*
@@ -331,14 +332,14 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 				break;
 			case 2:
 				i=item->port;
-				sprintf(str,"%hu",item->port?item->port:513);
+				sprintf(str,"%hu",item->port);
 				uifc.helpbuf=	"`Port`\n\n"
 								"Enter the port which the BBS is listening to on the remote system\n"
 								"Telnet is generally port 23 and RLogin is generally 513\n";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Port",str,5,K_EDIT|K_NUMBER);
 				j=atoi(str);
 				if(j<1 || j>65535)
-					j=513;
+					j=conn_ports[item->conn_type];
 				item->port=j;
 				iniSetShortInt(&inifile,itemname,"Port",item->port,&ini_style);
 				if(i!=j)
@@ -376,6 +377,14 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 				uifc.list(WIN_SAV,0,0,0,&(item->conn_type),NULL,"Connection Type",&(conn_types[1]));
 				item->conn_type++;
 				iniSetEnum(&inifile,itemname,"ConnectionType",conn_types,item->conn_type,&ini_style);
+
+				/* Set the port too */
+				j=conn_ports[item->conn_type];
+				if(j<1 || j>65535)
+					j=item->port;
+				item->port=j;
+				iniSetShortInt(&inifile,itemname,"Port",item->port,&ini_style);
+
 				changed=1;
 				break;
 			case 7:
@@ -388,6 +397,25 @@ int edit_list(struct bbslist *item,char *listpath,int isdefault)
 								"Select the screen size for this connection\n";
 				uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),NULL,"Screen Mode",screen_modes);
 				iniSetEnum(&inifile,itemname,"ScreenMode",screen_modes,item->screen_mode,&ini_style);
+				if(item->screen_mode == SCREEN_MODE_C64) {
+					strcpy(item->font,font_names[33]);
+					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
+					item->nostatus = 1;
+					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
+				}
+				if(item->screen_mode == SCREEN_MODE_C128_40
+						|| item->screen_mode == SCREEN_MODE_C128_80) {
+					strcpy(item->font,font_names[35]);
+					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
+					item->nostatus = 1;
+					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
+				}
+				if(item->screen_mode == SCREEN_MODE_ATARI) {
+					strcpy(item->font,font_names[36]);
+					iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
+					item->nostatus = 1;
+					iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
+				}
 				changed=1;
 				break;
 			case 9:
@@ -556,8 +584,8 @@ void change_settings(void)
 	char	inipath[MAX_PATH+1];
 	FILE	*inifile;
 	str_list_t	inicontents;
-	char	opts[4][80];
-	char	*opt[4];
+	char	opts[6][80];
+	char	*opt[6];
 	int		i,j;
 	char	str[64];
 	int	cur=0;
@@ -571,14 +599,16 @@ void change_settings(void)
 		inicontents=strListInit();
 	}
 
-	for(i=0; i<4; i++)
+	for(i=0; i<6; i++)
 		opt[i]=opts[i];
 
-	opts[3][0]=0;
+	opts[5][0]=0;
 	for(;;) {
 		sprintf(opts[0],"Confirm Program Exit    %s",settings.confirm_close?"Yes":"No");
 		sprintf(opts[1],"Startup Video Mode      %s",screen_modes[settings.startup_mode]);
 		sprintf(opts[2],"Scrollback Buffer Lines %d",settings.backlines);
+		sprintf(opts[3],"Modem Device            %s",settings.mdm.device_name);
+		sprintf(opts[4],"Modem Init String       %s",settings.mdm.init_string);
 		switch(uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&cur,NULL,"Program Settings",opt)) {
 			case -1:
 				goto write_ini;
@@ -588,7 +618,6 @@ void change_settings(void)
 				break;
 			case 1:
 				j=settings.startup_mode;
-				i=0;
 				switch(i=uifc.list(WIN_SAV,0,0,0,&j,NULL,"Startup Video Mode",screen_modes)) {
 					case -1:
 						continue;
@@ -620,6 +649,33 @@ void change_settings(void)
 						}
 					}
 				}
+				break;
+			case 3:
+				uifc.helpbuf=	"`Modem Device`\n\n"
+#ifdef _WIN32
+								"Enter the modem device name (ie: COM1).";
+#else
+								"Enter the modem device name (ie: /dev/ttyd0).";
+#endif
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Device",settings.mdm.device_name,LIST_NAME_MAX,K_EDIT);
+				iniSetString(&inicontents,"SyncTERM","ModemDevice",settings.mdm.device_name,&ini_style);
+				break;
+			case 4:
+				uifc.helpbuf=	"`Modem Init String`\n\n"
+								"Your modem init string goes here.\n"
+								"For reference, here are the expected settings and USR inits\n\n"
+								"State                      USR Init\n"
+								"------------------------------------\n"
+								"Echo on                    E1\n"
+								"Verbal result codes        Q0V1\n"
+								"Include connection speed   &X4\n"
+								"Normal CD Handling         &C1\n"
+								"Locked speed               &B1\n"
+								"Normal DTR                 &D2\n"
+								"CTS/RTS Flow Control       &H1&R2\n"
+								"Disable Software Flow      &I0\n";
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Init String",settings.mdm.init_string,LIST_NAME_MAX,K_EDIT);
+				iniSetString(&inicontents,"SyncTERM","ModemInit",settings.mdm.init_string,&ini_style);
 				break;
 		}
 	}
@@ -726,14 +782,16 @@ struct bbslist *show_bbslist(int mode)
 							at_settings=!at_settings;
 							break;
 						case -7:		/* CTRL-E */
-							i=list[opt]->id;
-							if(edit_list(list[opt],listpath,FALSE)) {
-								sort_list(list);
-								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
-									if(list[j]->id==i)
-										opt=j;
+							if(list[opt]) {
+								i=list[opt]->id;
+								if(edit_list(list[opt],listpath,FALSE)) {
+									sort_list(list);
+									for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
+										if(list[j]->id==i)
+											opt=j;
+									}
+									oldopt=-1;
 								}
-								oldopt=-1;
 							}
 							break;
 						case -6:		/* CTRL-D */
@@ -776,6 +834,7 @@ struct bbslist *show_bbslist(int mode)
 							list[listcount]=list[listcount-1];
 							list[listcount-1]=(struct bbslist *)malloc(sizeof(struct bbslist));
 							memcpy(list[listcount-1],&defaults,sizeof(struct bbslist));
+							list[listcount-1]->id=listcount-1;
 							uifc.changes=0;
 							uifc.helpbuf=	"`BBS Name`\n\n"
 											"Enter the BBS name as it is to appear in the list.";
@@ -964,10 +1023,22 @@ struct bbslist *show_bbslist(int mode)
 									case SCREEN_MODE_80X60:
 										textmode(C80X60);
 										break;
+									case SCREEN_MODE_C64:
+										textmode(C64_40X25);
+										break;
+									case SCREEN_MODE_C128_40:
+										textmode(C128_40X25);
+										break;
+									case SCREEN_MODE_C128_80:
+										textmode(C128_80X25);
+										break;
+									case SCREEN_MODE_ATARI:
+										textmode(ATARI_40X24);
+										break;
 								}
 								init_uifc(TRUE, TRUE);
 							}
-							val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
+							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 								|WIN_T2B|WIN_IMM|WIN_INACT
 								,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 						}
