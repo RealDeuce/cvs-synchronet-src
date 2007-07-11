@@ -12,7 +12,6 @@ user_t	user;
 GladeXML *xml;
 int		totalusers=0;
 int		current_user=0;
-char	glade_path[MAX_PATH+1];
 
 /* Refreshes global variables... ie: Number of users */
 int refresh_globals(void)
@@ -67,7 +66,6 @@ int refresh_globals(void)
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cExternalEditor), "Internal Editor");
 	for(i=0; i<cfg.total_xedits; i++)
 		gtk_combo_box_append_text(GTK_COMBO_BOX(cExternalEditor), cfg.xedit[i]->name);
-	gtk_combo_box_append_text(GTK_COMBO_BOX(cDefaultDownloadProtocol), "Not Specified");
 	for(i=0; i<cfg.total_prots; i++)
 		gtk_combo_box_append_text(GTK_COMBO_BOX(cDefaultDownloadProtocol), cfg.prot[i]->name);
 	for(i=0; i<cfg.total_fcomps; i++)
@@ -125,37 +123,16 @@ int read_config(void)
 }
 
 int main(int argc, char *argv[]) {
-
     gtk_init(&argc, &argv);
     glade_init();
 
     /* load the interface */
-	strcpy(glade_path, argv[0]);
-	strcpy(getfname(glade_path), "gtkuseredit.glade");
-    xml = glade_xml_new(glade_path, "MainWindow", NULL);
+    xml = glade_xml_new("gtkuseredit.glade", NULL, NULL);
     /* connect the signals in the interface */
     glade_xml_signal_autoconnect(xml);
 	/* Set up the global config stuff. */
 	if(read_config())
 		return(1);
-
-	if(argc>1) {
-		if(atoi(argv[1]))
-			update_current_user(atoi(argv[1]));
-		else {
-			unsigned int	nu;
-			nu=matchuser(&cfg, argv[1], TRUE);
-			if(nu)
-				update_current_user(nu);
-			else {
-				GladeXML        *cxml;
-				cxml = glade_xml_new(glade_path, "NotFoundWindow", NULL);
-				glade_xml_signal_autoconnect(cxml);
-				gtk_window_present(GTK_WINDOW(glade_xml_get_widget(cxml, "NotFoundWindow")));
-			}
-		}
-	}
-
     /* start the event loop */
     gtk_main();
     return 0;
