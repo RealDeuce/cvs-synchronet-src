@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.27 2006/08/23 01:39:37 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.29 2007/07/11 00:29:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -127,8 +127,10 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 	if(console&CON_RAW_IN)	 /* ignore ctrl-key commands if in raw mode */
 		return(ch);
 
+#if 0	/* experimental removal to fix Tracker1's pause module problem with down-arrow */
 	if(ch==LF)				/* ignore LF's if not in raw mode */
 		return(0);
+#endif
 
 	/* Global hot key event */
 	for(i=0;i<cfg.total_hotkeys;i++)
@@ -219,7 +221,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			SAVELINE;
 			attr(LIGHTGRAY);
 			now=time(NULL);
-			bprintf(text[TiLogon],timestr(&logontime));
+			bprintf(text[TiLogon],time32str(&logontime));
 			bprintf(text[TiNow],timestr(&now));
 			bprintf(text[TiTimeon]
 				,sectostr(now-logontime,tmp));
