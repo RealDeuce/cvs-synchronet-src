@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.88 2007/07/27 02:02:04 deuce Exp $ */
+/* $Id: ciolib.c,v 1.85 2007/07/08 10:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_insline(void);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt);
 CIOLIBEXPORT void CIOLIBCALL ciolib_copytext(const char *text, size_t buflen);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
 
 #define CIOLIB_INIT()		{ if(initialized != 1) initciolib(CIOLIB_MODE_AUTO); }
 
@@ -146,7 +145,6 @@ int try_sdl_init(int mode)
 		cio_api.setfont=sdl_setfont;
 		cio_api.getfont=sdl_getfont;
 		cio_api.loadfont=sdl_loadfont;
-		cio_api.get_window_info=sdl_get_window_info;
 		return(1);
 	}
 	return(0);
@@ -181,7 +179,6 @@ int try_x_init(int mode)
 		cio_api.setfont=x_setfont;
 		cio_api.getfont=x_getfont;
 		cio_api.loadfont=x_loadfont;
-		cio_api.get_window_info=x_get_window_info;
 		return(1);
 	}
 	return(0);
@@ -801,12 +798,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 #ifdef _MSC_VER
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
-
-#ifdef __BORLANDC__
-	argptr2=argptr;
-#else
 	va_copy(argptr2, argptr);
-#endif
     ret=vsnprintf(NULL,0,fmat,argptr);
 	if(ret<0)
 		return(EOF);
@@ -816,9 +808,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	ret=vsprintf(str,fmat,argptr2);
 #endif
     va_end(argptr);
-#ifndef _MSC_VER
     va_end(argptr2);
-#endif
 	if(ret>=0)
 		ciolib_cputs(str);
 	else
@@ -1037,13 +1027,4 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename)
 		return(cio_api.loadfont(filename));
 	else
 		return(-1);
-}
-
-CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos)
-{
-	CIOLIB_INIT();
-	
-	if(cio_api.get_window_info!=NULL)
-		return(cio_api.get_window_info(width,height,xpos,ypos));
-	return(-1);
 }
