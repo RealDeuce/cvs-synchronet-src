@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.202 2007/07/11 01:23:27 deuce Exp $
+# $Id: GNUmakefile,v 1.203 2007/07/11 01:31:45 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -118,9 +118,9 @@ ifdef SBBSDIR
  endif
 else
  ifeq ($(os),sunos)
-  LD_RUN_PATH	:=	$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR):/opt/sfw/gcc-3/lib
+  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR):/opt/sfw/gcc-3/lib
  else
-  LD_RUN_PATH	:=	$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR)
+  LD_RUN_PATH	:=	$(PWD)/$(LIBODIR):$(JSLIBDIR):$(NSPRDIR):$(CRYPTLIBDIR)
  endif
 endif
 export LD_RUN_PATH
