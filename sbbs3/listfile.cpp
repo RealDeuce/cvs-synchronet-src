@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.47 2007/07/10 21:17:40 deuce Exp $ */
+/* $Id: listfile.cpp,v 1.48 2007/07/11 00:33:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1061,7 +1061,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 					if(sys_status&SS_ABORT)
 						break;
 					putfiledat(&cfg,&f);
-					inputnstime(&f.dateuled);
+					inputnstime32(&f.dateuled);
 					update_uldate(&cfg, &f);
 					break;
 				case 'F':   /* delete file only */

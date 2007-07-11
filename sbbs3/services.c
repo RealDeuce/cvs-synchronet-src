@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.200 2007/07/07 20:36:09 deuce Exp $ */
+/* $Id: services.c,v 1.201 2007/07/10 23:32:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1570,7 +1570,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.200 $", "%*s %s", revision);
+	sscanf("$Revision: 1.201 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1833,7 +1833,6 @@ void DLLCALL services_thread(void* arg)
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
-			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
@@ -1853,10 +1852,6 @@ void DLLCALL services_thread(void* arg)
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 						break;
 					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 						startup->recycle_now=FALSE;
