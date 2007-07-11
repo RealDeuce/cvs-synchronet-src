@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.71 2006/08/14 22:51:12 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.73 2007/02/26 09:30:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,8 +248,10 @@ char* DLLCALL strtok_r(char *str, const char *delim, char **last)
     while(*str && strchr(delim, *str))
         ++str;
 
-    if(!*str)          /* no more tokens */
+    if(!*str) {         /* no more tokens */
+		*last = str;
         return NULL;
+	}
 
     token = str;
 
@@ -414,7 +416,7 @@ char* DLLCALL os_cmdshell(void)
 {
 	char*	shell=getenv(OS_CMD_SHELL_ENV_VAR);
 
-#if !defined(__unix__)
+#if defined(__unix__)
 	if(shell==NULL)
 #ifdef _PATH_BSHELL
 		shell=_PATH_BSHELL;
