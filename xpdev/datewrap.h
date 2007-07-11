@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.h,v 1.18 2008/01/21 07:27:31 deuce Exp $ */
+/* $Id: datewrap.h,v 1.17 2005/09/28 02:09:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,8 +79,8 @@ xpTimeZone_t	xpTimeZone_local(void);
 /* Decimal-coded ISO-8601 date/time functions */
 /**********************************************/
 
-typedef uint32_t	isoDate_t;	/* CCYYMMDD (decimal) */
-typedef uint32_t	isoTime_t;	/* HHMMSS   (decimal) */
+typedef ulong	isoDate_t;	/* CCYYMMDD (decimal) */
+typedef ulong	isoTime_t;	/* HHMMSS   (decimal) */
 
 #define			isoDate_create(year,mon,day)	(((year)*10000)+((mon)*100)+(day))
 #define			isoTime_create(hour,min,sec)	(((hour)*10000)+((min)*100)+((unsigned)sec))
