@@ -1,4 +1,4 @@
-/* $Id: ssh.c,v 1.4 2007/07/12 23:46:25 deuce Exp $ */
+/* $Id: ssh.c,v 1.3 2007/06/05 21:17:35 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -47,7 +47,7 @@ void ssh_input_thread(void *args)
 				char	str[2048];
 				int		err_len;
 
-				if(status==CRYPT_ERROR_COMPLETE || status == CRYPT_ERROR_READ) {	/* connection closed */
+				if(status==CRYPT_ERROR_COMPLETE) {	/* connection closed */
 					ssh_active=FALSE;
 					break;
 				}
