@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.39 2006/04/28 21:13:57 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.40 2007/07/08 20:23:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,7 +184,7 @@ void updatestats(ulong size)
 {
     char	str[MAX_PATH+1];
     int		file;
-	ulong	l;
+	uint32_t	l;
 
 	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
 	if((file=nopen(str,O_RDWR|O_BINARY))==-1) {
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.39 $", "%*s %s", revision);
+	sscanf("$Revision: 1.40 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
