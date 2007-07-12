@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.308 2006/05/10 21:50:03 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.319 2007/07/10 23:32:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -34,18 +34,6 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
-
-/* Platform-specific headers */
-#ifdef _WIN32
-
-	#include <share.h>		/* SH_DENYNO */
-	#include <direct.h>		/* _mkdir/rmdir() */
-	#include <process.h>	/* _beginthread */
-	#include <windows.h>	/* required for mmsystem.h */
-	#include <mmsystem.h>	/* SND_ASYNC */
-
-#endif
-
 
 /* ANSI C Library headers */
 #include <stdio.h>
@@ -113,6 +101,7 @@ static str_list_t shutdown_semfiles;
 	#define SOCKET_DEBUG_FILEXFER	(1<<7)	/* 0x80 */
 #endif
 
+char* genvpath(int lib, int dir, char* str);
 
 typedef struct {
 	SOCKET			socket;
@@ -635,6 +624,10 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 	JSObject*	dir_array=NULL;
 	JSScript*	js_script=NULL;
 	JSString*	js_str;
+	long double		start=xp_timer();
+
+	lprintf(LOG_DEBUG,"%04d JavaScript: Generating HTML Index for %s"
+		,sock, genvpath(lib,dir,str));
 
 	JS_SetContextPrivate(js_cx, fp);
 
@@ -789,24 +782,24 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						break;
 
 					p=aliasline;	/* alias pointer */
-					while(*p && *p<=' ') p++;
+					SKIP_WHITESPACE(p);
 
 					if(*p==';')	/* comment */
 						continue;
 
 					tp=p;		/* terminator pointer */
-					while(*tp && *tp>' ') tp++;
+					FIND_WHITESPACE(tp);
 					if(*tp) *tp=0;
 
 					np=tp+1;	/* filename pointer */
-					while(*np && *np<=' ') np++;
+					SKIP_WHITESPACE(np);
 
 					tp=np;		/* terminator pointer */
-					while(*tp && *tp>' ') tp++;
+					FIND_WHITESPACE(tp);
 					if(*tp) *tp=0;
 
 					dp=tp+1;	/* description pointer */
-					while(*dp && *dp<=' ') dp++;
+					SKIP_WHITESPACE(dp);
 					truncsp(dp);
 
 					if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
@@ -980,6 +973,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
+		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
+			,sock,spath,xp_timer()-start);
+
 	} while(0);
 
 
@@ -1044,7 +1040,7 @@ BOOL upload_stats(ulong bytes)
 {
 	char	str[MAX_PATH+1];
 	int		file;
-	ulong	val;
+	uint32_t	val;
 
 	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
 	if((file=nopen(str,O_RDWR))==-1) 
@@ -1067,7 +1063,7 @@ BOOL download_stats(ulong bytes)
 {
 	char	str[MAX_PATH+1];
 	int		file;
-	ulong	val;
+	uint32_t	val;
 
 	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
 	if((file=nopen(str,O_RDWR))==-1) 
@@ -1518,6 +1514,9 @@ static void send_thread(void* arg)
 			if(getfileixb(&scfg,&f)==TRUE && getfiledat(&scfg,&f)==TRUE) {
 				f.timesdled++;
 				putfiledat(&scfg,&f);
+				f.datedled=time(NULL);
+				putfileixb(&scfg,&f);
+
 				lprintf(LOG_INFO,"%04d %s downloaded: %s (%lu times total)"
 					,xfer.ctrl_sock
 					,xfer.user->alias
@@ -1559,8 +1558,6 @@ static void send_thread(void* arg)
 					}
 				}
 			}
-			/* Need to update datedled in index */
-
 			if(!xfer.tmpfile && !xfer.delfile && !(scfg.dir[f.dir]->misc&DIR_NOSTAT))
 				download_stats(total);
 		}	
@@ -2111,7 +2108,10 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 
 	if(lib<0) { /* root */
 		tp=strchr(p,'/');
-		if(tp) *tp=0;
+		if(tp)
+			*(tp++)=0;
+		else
+			tp=p+strlen(p);
 		for(lib=0;lib<scfg.total_libs;lib++) {
 			if(!chk_ar(&scfg,scfg.lib[lib]->ar,user))
 				continue;
@@ -2124,12 +2124,13 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 		}
 		*curlib=lib;
 
-		if(tp==NULL) {
+		if(*(tp)==0) {
 			*curdir=-1;
+			*pp+=tp-path;	/* skip "lib" or "lib/" */
 			return;
 		}
 
-		p=tp+1;
+		p=tp;
 	}
 
 	tp=strchr(p,'/');
@@ -2149,8 +2150,10 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 			break;
 	}
 
-	if(dir>=scfg.total_dirs)  /* not found */
+	if(dir>=scfg.total_dirs) {  /* not found */
+		*pp+=p-path;			/* skip /lib/filespec */
 		return;
+	}
 
 	*curdir=dir;
 
@@ -2190,22 +2193,22 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
 			break;
 
 		p=line;	/* alias */
-		while(*p && *p<=' ') p++;
+		SKIP_WHITESPACE(p);
 		if(*p==';')	/* comment */
 			continue;
 
 		tp=p;		/* terminator */
-		while(*tp && *tp>' ') tp++;
+		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
 
 		if(stricmp(p,alias))	/* Not a match */
 			continue;
 
 		p=tp+1;		/* filename */
-		while(*p && *p<=' ') p++;
+		SKIP_WHITESPACE(p);
 
 		tp=p;		/* terminator */
-		while(*tp && *tp>' ') tp++;
+		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
 
 		if(!strnicmp(p,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
@@ -2254,7 +2257,7 @@ char* root_dir(char* path)
 	return(root);
 }
 
-char* vpath(int lib, int dir, char* str)
+char* genvpath(int lib, int dir, char* str)
 {
 	strcpy(str,"/");
 	if(lib<0)
@@ -2319,6 +2322,7 @@ static void ctrl_thread(void* arg)
 	char*		np;
 	char*		tp;
 	char*		dp;
+	char*		filespec;
 	char*		mode="active";
 	char		password[64];
 	char		fname[MAX_PATH+1];
@@ -2385,6 +2389,7 @@ static void ctrl_thread(void* arg)
 	time_t		now;
 	time_t		logintime=0;
 	time_t		lastactive;
+	time_t		file_date;
 	file_t		f;
 	glob_t		g;
 	node_t		node;
@@ -2594,7 +2599,7 @@ static void ctrl_thread(void* arg)
 			sysop=FALSE;
 			user.number=0;
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			truncsp(p);
 			SAFECOPY(user.alias,p);
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
@@ -2610,7 +2615,7 @@ static void ctrl_thread(void* arg)
 		if(!strnicmp(cmd, "PASS ",5) && user.alias[0]) {
 			user.number=0;
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			SAFECOPY(password,p);
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
@@ -2809,7 +2814,7 @@ static void ctrl_thread(void* arg)
 		}
 		if(!strnicmp(cmd,"SITE EXEC ",10) && sysop) {
 			p=cmd+10;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 #ifdef __unix__
 			fp=popen(p,"r");
 			if(fp==NULL)
@@ -2846,7 +2851,7 @@ static void ctrl_thread(void* arg)
 				ftp_close_socket(&pasv_sock,__LINE__);
 
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			sscanf(p,"%ld,%ld,%ld,%ld,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
 			data_addr.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
 			data_addr.sin_port=(u_short)((p1<<8)|p2);
@@ -2965,7 +2970,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "ALLO",4)) {
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(*p)
 				l=atol(p);	
 			else
@@ -2983,7 +2988,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "REST",4)) {
 			p=cmd+4;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(*p)
 				filepos=atol(p);
 			else
@@ -2995,7 +3000,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "MODE ",5)) {
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(toupper(*p)!='S')
 				sockprintf(sock,"504 Only STREAM mode supported.");
 			else
@@ -3005,7 +3010,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "STRU ",5)) {
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(toupper(*p)!='F')
 				sockprintf(sock,"504 Only FILE structure supported.");
 			else
@@ -3033,7 +3038,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd,"SMNT ",5) && sysop && !(startup->options&FTP_OPT_NO_LOCAL_FSYS)) {
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(!stricmp(p,BBS_FSYS_DIR)) 
 				local_fsys=FALSE;
 			else {
@@ -3074,16 +3079,20 @@ static void ctrl_thread(void* arg)
 					detail=FALSE;
 
 				p=cmd+4;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 
 				if(*p=='-') {	/* -Letc */
-					while(*p && *p>' ') p++;
-					while(*p && *p<=' ') p++;
+					FIND_WHITESPACE(p);
+					SKIP_WHITESPACE(p);
 				}
 
-				SAFEPRINTF2(path,"%s%s",local_dir, *p ? p : "*");
+				filespec=p;
+				if(*filespec==0)
+					filespec="*";
+
+				SAFEPRINTF2(path,"%s%s",local_dir, filespec);
 				lprintf(LOG_INFO,"%04d %s listing: %s in %s mode", sock, user.alias, path, mode);
-				sockprintf(sock, "150 Directory of %s%s", local_dir, p);
+				sockprintf(sock, "150 Directory of %s%s", local_dir, filespec);
 
 				now=time(NULL);
 				if(localtime_r(&now,&cur_tm)==NULL) 
@@ -3127,7 +3136,7 @@ static void ctrl_thread(void* arg)
 					p=cmd+4;
 				else
 					p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				tp=p;
 				if(*tp=='/' || *tp=='\\') /* /local: and /bbs: are valid */
 					tp++;
@@ -3182,7 +3191,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "MKD ", 4) || !strnicmp(cmd,"XMKD",4)) {
 				p=cmd+4;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				if(*p=='/')	/* absolute */
 					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
@@ -3201,7 +3210,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "RMD ", 4) || !strnicmp(cmd,"XRMD",4)) {
 				p=cmd+4;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				if(*p=='/')	/* absolute */
 					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
@@ -3220,7 +3229,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "RNFR ",5)) {
 				p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				if(*p=='/')	/* absolute */
 					SAFEPRINTF2(ren_from,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
@@ -3236,7 +3245,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "RNTO ",5)) {
 				p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				if(*p=='/')	/* absolute */
 					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
@@ -3257,7 +3266,7 @@ static void ctrl_thread(void* arg)
 			if(!strnicmp(cmd, "RETR ", 5) || !strnicmp(cmd,"SIZE ",5) 
 				|| !strnicmp(cmd, "MDTM ",5) || !strnicmp(cmd, "DELE ",5)) {
 				p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 
 				if(!strnicmp(p,LOCAL_FSYS_DIR,strlen(LOCAL_FSYS_DIR))) 
 					p+=strlen(LOCAL_FSYS_DIR);	/* already mounted */
@@ -3310,7 +3319,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "STOR ", 5) || !strnicmp(cmd, "APPE ", 5)) {
 				p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 
 				if(!strnicmp(p,LOCAL_FSYS_DIR,strlen(LOCAL_FSYS_DIR))) 
 					p+=strlen(LOCAL_FSYS_DIR);	/* already mounted */
@@ -3349,14 +3358,17 @@ static void ctrl_thread(void* arg)
 
 			/* path specified? */
 			p=cmd+4;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(*p=='-') {	/* -Letc */
-				while(*p && *p>' ') p++;
-				while(*p && *p<=' ') p++;
+				FIND_WHITESPACE(p);
+				SKIP_WHITESPACE(p);
 			}
 
 			parsepath(&p,&user,&lib,&dir);
+			filespec=p;
+			if(*filespec==0)
+				filespec="*";
 
 			if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
@@ -3374,7 +3386,7 @@ static void ctrl_thread(void* arg)
 
 			/* ASCII Index File */
 			if(startup->options&FTP_OPT_INDEX_FILE && startup->index_file_name[0]
-				&& (!stricmp(p,startup->index_file_name) || *p==0 || *p=='*')) {
+				&& wildmatchi(startup->index_file_name, filespec, FALSE)) {
 				if(detail)
 					fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 						,NAME_LEN
@@ -3389,7 +3401,7 @@ static void ctrl_thread(void* arg)
 			} 
 			/* HTML Index File */
 			if(startup->options&FTP_OPT_HTML_INDEX_FILE && startup->html_index_file[0]
-				&& (!stricmp(p,startup->html_index_file) || *p==0 || *p=='*')) {
+				&& wildmatchi(startup->html_index_file, filespec, FALSE)) {
 				if(detail)
 					fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 						,NAME_LEN
@@ -3407,26 +3419,29 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_INFO,"%04d %s listing: root in %s mode",sock,user.alias, mode);
 
 				/* QWK Packet */
-				if(startup->options&FTP_OPT_ALLOW_QWK/* && fexist(qwkfile)*/) {
-					if(detail) {
-						if(fexistcase(qwkfile)) {
-							t=fdate(qwkfile);
-							l=flength(qwkfile);
-						} else {
-							t=time(NULL);
-							l=10240;
-						};
-						if(localtime_r(&t,&tm)==NULL) 
-							memset(&tm,0,sizeof(tm));
-						fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s.qwk\r\n"
-							,NAME_LEN
-							,scfg.sys_id
-							,scfg.sys_id
-							,l
-							,ftp_mon[tm.tm_mon],tm.tm_mday,tm.tm_hour,tm.tm_min
-							,scfg.sys_id);
-					} else
-						fprintf(fp,"%s.qwk\r\n",scfg.sys_id);
+				if(startup->options&FTP_OPT_ALLOW_QWK) {
+					SAFEPRINTF(str,"%s.qwk",scfg.sys_id);
+					if(wildmatchi(str, filespec, FALSE)) {
+						if(detail) {
+							if(fexistcase(qwkfile)) {
+								t=fdate(qwkfile);
+								l=flength(qwkfile);
+							} else {
+								t=time(NULL);
+								l=10240;
+							};
+							if(localtime_r(&t,&tm)==NULL) 
+								memset(&tm,0,sizeof(tm));
+							fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
+								,NAME_LEN
+								,scfg.sys_id
+								,scfg.sys_id
+								,l
+								,ftp_mon[tm.tm_mon],tm.tm_mday,tm.tm_hour,tm.tm_min
+								,str);
+						} else
+							fprintf(fp,"%s\r\n",str);
+					}
 				} 
 
 				/* File Aliases */
@@ -3440,33 +3455,38 @@ static void ctrl_thread(void* arg)
 						alias_dir=FALSE;
 
 						p=aliasline;		/* alias pointer */
-						while(*p && *p<=' ') p++;
+						SKIP_WHITESPACE(p);
 
 						if(*p==';')	/* comment */
 							continue;
 
 						tp=p;		/* terminator pointer */
-						while(*tp && *tp>' ') tp++;
+						FIND_WHITESPACE(tp);
 						if(*tp) *tp=0;
 
 						np=tp+1;	/* filename pointer */
-						while(*np && *np<=' ') np++;
+						SKIP_WHITESPACE(np);
 
 						tp=np;		/* terminator pointer */
-						while(*tp && *tp>' ') tp++;
+						FIND_WHITESPACE(tp);
 						if(*tp) *tp=0;
 
 						dp=tp+1;	/* description pointer */
-						while(*dp && *dp<=' ') dp++;
+						SKIP_WHITESPACE(dp);
 						truncsp(dp);
 
 						if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
 							continue;
 
+						if(!wildmatchi(p, filespec, FALSE))
+							continue;
+
 						/* Virtual Path? */
 						if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
-							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user))<0)
+							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user))<0) {
+								lprintf(LOG_WARNING,"0000 !Invalid virtual path (%s) for %s",np,user.alias);
 								continue; /* No access or invalid virtual path */
+							}
 							tp=strrchr(np,'/');
 							if(tp==NULL) 
 								continue;
@@ -3479,8 +3499,10 @@ static void ctrl_thread(void* arg)
 								alias_dir=TRUE;
 						}
 
-						if(!alias_dir && !fexist(np))
+						if(!alias_dir && !fexist(np)) {
+							lprintf(LOG_WARNING,"0000 !Missing aliased file (%s) for %s",np,user.alias);
 							continue;
+						}
 
 						if(detail) {
 
@@ -3517,6 +3539,8 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_libs;i++) {
 					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
 						continue;
+					if(!wildmatchi(scfg.lib[i]->sname, filespec, FALSE))
+						continue;
 					if(detail)
 						fprintf(fp,"dr-xr-xr-x   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 							,NAME_LEN
@@ -3537,6 +3561,8 @@ static void ctrl_thread(void* arg)
 					if(i!=scfg.sysop_dir && i!=scfg.upload_dir 
 						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user))
 						continue;
+					if(!wildmatchi(scfg.dir[i]->code_suffix, filespec, FALSE))
+						continue;
 					if(detail)
 						fprintf(fp,"drwxrwxrwx   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 							,NAME_LEN
@@ -3552,7 +3578,7 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode"
 					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
-				SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,*p ? p : "*");
+				SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,filespec);
 				glob(path,0,NULL,&g);
 				for(i=0;i<(int)g.gl_pathc;i++) {
 					if(isdir(g.gl_pathv[i]))
@@ -3618,6 +3644,7 @@ static void ctrl_thread(void* arg)
 			getdate=FALSE;
 			getsize=FALSE;
 			delecmd=FALSE;
+			file_date=0;
 			if(!strnicmp(cmd,"SIZE ",5))
 				getsize=TRUE;
 			else if(!strnicmp(cmd,"MDTM ",5))
@@ -3638,7 +3665,7 @@ static void ctrl_thread(void* arg)
 			dir=curdir;
 
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(!strnicmp(p,BBS_FSYS_DIR,strlen(BBS_FSYS_DIR))) 
 				p+=strlen(BBS_FSYS_DIR);	/* already mounted */
@@ -3738,214 +3765,228 @@ static void ctrl_thread(void* arg)
 					filepos=0;
 					continue;
 				}
-				if(!getsize && !getdate)
-					lprintf(LOG_INFO,"%04d %s downloading index for %s in %s mode"
-						,sock,user.alias,vpath(lib,dir,str)
-						,mode);
 				success=TRUE;
-				credits=FALSE;
-				tmpfile=TRUE;
-				delfile=TRUE;
-				fprintf(fp,"%-*s File/Folder Descriptions\r\n"
-					,INDEX_FNAME_LEN,startup->index_file_name);
-				if(startup->options&FTP_OPT_HTML_INDEX_FILE)
-					fprintf(fp,"%-*s File/Folder Descriptions (HTML)\r\n"
-						,INDEX_FNAME_LEN,startup->html_index_file);
-				if(lib<0) {
-
-					/* File Aliases */
-					sprintf(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
-					if((alias_fp=fopen(aliasfile,"r"))!=NULL) {
-
-						while(!feof(alias_fp)) {
-							if(!fgets(aliasline,sizeof(aliasline),alias_fp))
-								break;
-
-							p=aliasline;	/* alias pointer */
-							while(*p && *p<=' ') p++;
-
-							if(*p==';')	/* comment */
-								continue;
-
-							tp=p;		/* terminator pointer */
-							while(*tp && *tp>' ') tp++;
-							if(*tp) *tp=0;
-
-							np=tp+1;	/* filename pointer */
-							while(*np && *np<=' ') np++;
-
-							np++;		/* description pointer */
-							while(*np && *np>' ') np++;
-
-							while(*np && *np<' ') np++;
-
-							truncsp(np);
-
-							fprintf(fp,"%-*s %s\r\n",INDEX_FNAME_LEN,p,np);
-						}
-
-						fclose(alias_fp);
-					}
-
-					/* QWK Packet */
-					if(startup->options&FTP_OPT_ALLOW_QWK /* && fexist(qwkfile) */) {
-						sprintf(str,"%s.qwk",scfg.sys_id);
-						fprintf(fp,"%-*s QWK Message Packet\r\n"
-							,INDEX_FNAME_LEN,str);
-					}
-
-					/* Library Folders */
-					for(i=0;i<scfg.total_libs;i++) {
-						if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
-							continue;
-						fprintf(fp,"%-*s %s\r\n"
-							,INDEX_FNAME_LEN,scfg.lib[i]->sname,scfg.lib[i]->lname);
-					}
-				} else if(dir<0) {
-					for(i=0;i<scfg.total_dirs;i++) {
-						if(scfg.dir[i]->lib!=lib)
-							continue;
-						if(i!=scfg.sysop_dir && i!=scfg.upload_dir
-							&& !chk_ar(&scfg,scfg.dir[i]->ar,&user))
-							continue;
-						fprintf(fp,"%-*s %s\r\n"
-							,INDEX_FNAME_LEN,scfg.dir[i]->code_suffix,scfg.dir[i]->lname);
-					}
-				} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user)){
-					sprintf(cmd,"%s*",scfg.dir[dir]->path);
-					glob(cmd,0,NULL,&g);
-					for(i=0;i<(int)g.gl_pathc;i++) {
-						if(isdir(g.gl_pathv[i]))
-							continue;
-#ifdef _WIN32
-						GetShortPathName(g.gl_pathv[i], str, sizeof(str));
-#else
-						SAFECOPY(str,g.gl_pathv[i]);
-#endif
-						padfname(getfname(str),f.name);
-						f.dir=dir;
-						if(getfileixb(&scfg,&f)) {
-							f.size=flength(g.gl_pathv[i]);
-							getfiledat(&scfg,&f);
-							fprintf(fp,"%-*s %s\r\n",INDEX_FNAME_LEN
-								,getfname(g.gl_pathv[i]),f.desc);
-						}
-					}
-					globfree(&g);
+				if(getsize) {
+					sockprintf(sock, "500 Size not available for dynamically generated files");
+					continue;
 				}
-				fclose(fp);
+				else if(getdate)
+					file_date=time(NULL);
+				else {
+					lprintf(LOG_INFO,"%04d %s downloading index for %s in %s mode"
+						,sock,user.alias,genvpath(lib,dir,str)
+						,mode);
+					credits=FALSE;
+					tmpfile=TRUE;
+					delfile=TRUE;
+					fprintf(fp,"%-*s File/Folder Descriptions\r\n"
+						,INDEX_FNAME_LEN,startup->index_file_name);
+					if(startup->options&FTP_OPT_HTML_INDEX_FILE)
+						fprintf(fp,"%-*s File/Folder Descriptions (HTML)\r\n"
+							,INDEX_FNAME_LEN,startup->html_index_file);
+					if(lib<0) {
+
+						/* File Aliases */
+						sprintf(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
+						if((alias_fp=fopen(aliasfile,"r"))!=NULL) {
+
+							while(!feof(alias_fp)) {
+								if(!fgets(aliasline,sizeof(aliasline),alias_fp))
+									break;
+
+								p=aliasline;	/* alias pointer */
+								SKIP_WHITESPACE(p);
+
+								if(*p==';')	/* comment */
+									continue;
+
+								tp=p;		/* terminator pointer */
+								FIND_WHITESPACE(tp);
+								if(*tp) *tp=0;
+
+								np=tp+1;	/* filename pointer */
+								SKIP_WHITESPACE(np);
+
+								np++;		/* description pointer */
+								FIND_WHITESPACE(np);
+
+								while(*np && *np<' ') np++;
+
+								truncsp(np);
+
+								fprintf(fp,"%-*s %s\r\n",INDEX_FNAME_LEN,p,np);
+							}
+
+							fclose(alias_fp);
+						}
+
+						/* QWK Packet */
+						if(startup->options&FTP_OPT_ALLOW_QWK /* && fexist(qwkfile) */) {
+							sprintf(str,"%s.qwk",scfg.sys_id);
+							fprintf(fp,"%-*s QWK Message Packet\r\n"
+								,INDEX_FNAME_LEN,str);
+						}
+
+						/* Library Folders */
+						for(i=0;i<scfg.total_libs;i++) {
+							if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
+								continue;
+							fprintf(fp,"%-*s %s\r\n"
+								,INDEX_FNAME_LEN,scfg.lib[i]->sname,scfg.lib[i]->lname);
+						}
+					} else if(dir<0) {
+						for(i=0;i<scfg.total_dirs;i++) {
+							if(scfg.dir[i]->lib!=lib)
+								continue;
+							if(i!=scfg.sysop_dir && i!=scfg.upload_dir
+								&& !chk_ar(&scfg,scfg.dir[i]->ar,&user))
+								continue;
+							fprintf(fp,"%-*s %s\r\n"
+								,INDEX_FNAME_LEN,scfg.dir[i]->code_suffix,scfg.dir[i]->lname);
+						}
+					} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user)){
+						sprintf(cmd,"%s*",scfg.dir[dir]->path);
+						glob(cmd,0,NULL,&g);
+						for(i=0;i<(int)g.gl_pathc;i++) {
+							if(isdir(g.gl_pathv[i]))
+								continue;
+	#ifdef _WIN32
+							GetShortPathName(g.gl_pathv[i], str, sizeof(str));
+	#else
+							SAFECOPY(str,g.gl_pathv[i]);
+	#endif
+							padfname(getfname(str),f.name);
+							f.dir=dir;
+							if(getfileixb(&scfg,&f)) {
+								f.size=flength(g.gl_pathv[i]);
+								getfiledat(&scfg,&f);
+								fprintf(fp,"%-*s %s\r\n",INDEX_FNAME_LEN
+									,getfname(g.gl_pathv[i]),f.desc);
+							}
+						}
+						globfree(&g);
+					}
+					fclose(fp);
+				}
 			/* HTML Index File */
 			} else if(startup->options&FTP_OPT_HTML_INDEX_FILE 
 				&& (!stricmp(p,startup->html_index_file) 
 				|| !strnicmp(p,html_index_ext,strlen(html_index_ext)))
 				&& !delecmd) {
-#ifdef JAVASCRIPT
-				if(startup->options&FTP_OPT_NO_JAVASCRIPT) {
-					lprintf(LOG_ERR,"%04d !JavaScript disabled, cannot generate %s",sock,fname);
-					sockprintf(sock, "451 JavaScript disabled");
-					filepos=0;
+				success=TRUE;
+				if(getsize) {
+					sockprintf(sock, "500 Size not available for dynamically generated files");
 					continue;
 				}
-				if(js_runtime == NULL) {
-					lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
-						,sock,startup->js.max_bytes);
-
-					if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL) {
-						lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
-						sockprintf(sock,"451 Error creating JavaScript runtime");
+				else if(getdate)
+					file_date=time(NULL);
+				else {
+#ifdef JAVASCRIPT
+					if(startup->options&FTP_OPT_NO_JAVASCRIPT) {
+						lprintf(LOG_ERR,"%04d !JavaScript disabled, cannot generate %s",sock,fname);
+						sockprintf(sock, "451 JavaScript disabled");
 						filepos=0;
 						continue;
 					}
-				}
+					if(js_runtime == NULL) {
+						lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
+							,sock,startup->js.max_bytes);
 
-				if(js_cx==NULL) {	/* Context not yet created, create it now */
-					if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp))==NULL)) {
-						lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
-						sockprintf(sock,"451 Error initializing JavaScript context");
-						filepos=0;
-						continue;
+						if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL) {
+							lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
+							sockprintf(sock,"451 Error creating JavaScript runtime");
+							filepos=0;
+							continue;
+						}
 					}
-					if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
-						lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user class",sock);
 
-					if(js_CreateFileClass(js_cx, js_glob)==NULL) 
-						lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file class",sock);
+					if(js_cx==NULL) {	/* Context not yet created, create it now */
+						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp))==NULL)) {
+							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
+							sockprintf(sock,"451 Error initializing JavaScript context");
+							filepos=0;
+							continue;
+						}
+						if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user class",sock);
 
-					if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", user.number)==NULL) 
-						lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
+						if(js_CreateFileClass(js_cx, js_glob)==NULL) 
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file class",sock);
 
-					if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
-						lprintf(LOG_ERR,"%04d !JavaScript ERROR creating client object",sock);
+						if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", user.number)==NULL) 
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
-					if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user
-						,startup->html_index_file)==NULL) 
-						lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file area object",sock);
-				}
+						if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating client object",sock);
 
-				if((js_str=JS_NewStringCopyZ(js_cx, "name"))!=NULL) {
-					js_val=STRING_TO_JSVAL(js_str);
-					JS_SetProperty(js_cx, js_ftp, "sort", &js_val);
-				}
-				js_val=BOOLEAN_TO_JSVAL(FALSE);
-				JS_SetProperty(js_cx, js_ftp, "reverse", &js_val);
+						if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user
+							,startup->html_index_file)==NULL) 
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file area object",sock);
+					}
 
-				if(!strnicmp(p,html_index_ext,strlen(html_index_ext))) {
-					p+=strlen(html_index_ext);
-					tp=strrchr(p,'$');
-					if(tp!=NULL)
-						*tp=0;
-					if(!strnicmp(p,"ext=",4)) {
-						p+=4;
-						if(!strcmp(p,"on"))
-							user.misc|=EXTDESC;
-						else
-							user.misc&=~EXTDESC;
-						if(!(user.rest&FLAG('G')))
-							putuserrec(&scfg,user.number,U_MISC,8,ultoa(user.misc,str,16));
-					} 
-					else if(!strnicmp(p,"sort=",5)) {
-						p+=5;
-						tp=strchr(p,'&');
-						if(tp!=NULL) {
+					if((js_str=JS_NewStringCopyZ(js_cx, "name"))!=NULL) {
+						js_val=STRING_TO_JSVAL(js_str);
+						JS_SetProperty(js_cx, js_ftp, "sort", &js_val);
+					}
+					js_val=BOOLEAN_TO_JSVAL(FALSE);
+					JS_SetProperty(js_cx, js_ftp, "reverse", &js_val);
+
+					if(!strnicmp(p,html_index_ext,strlen(html_index_ext))) {
+						p+=strlen(html_index_ext);
+						tp=strrchr(p,'$');
+						if(tp!=NULL)
 							*tp=0;
-							tp++;
-							if(!stricmp(tp,"reverse")) {
-								js_val=BOOLEAN_TO_JSVAL(TRUE);
-								JS_SetProperty(js_cx, js_ftp, "reverse", &js_val);
+						if(!strnicmp(p,"ext=",4)) {
+							p+=4;
+							if(!strcmp(p,"on"))
+								user.misc|=EXTDESC;
+							else
+								user.misc&=~EXTDESC;
+							if(!(user.rest&FLAG('G')))
+								putuserrec(&scfg,user.number,U_MISC,8,ultoa(user.misc,str,16));
+						} 
+						else if(!strnicmp(p,"sort=",5)) {
+							p+=5;
+							tp=strchr(p,'&');
+							if(tp!=NULL) {
+								*tp=0;
+								tp++;
+								if(!stricmp(tp,"reverse")) {
+									js_val=BOOLEAN_TO_JSVAL(TRUE);
+									JS_SetProperty(js_cx, js_ftp, "reverse", &js_val);
+								}
+							}
+							if((js_str=JS_NewStringCopyZ(js_cx, p))!=NULL) {
+								js_val=STRING_TO_JSVAL(js_str);
+								JS_SetProperty(js_cx, js_ftp, "sort", &js_val);
 							}
 						}
-						if((js_str=JS_NewStringCopyZ(js_cx, p))!=NULL) {
-							js_val=STRING_TO_JSVAL(js_str);
-							JS_SetProperty(js_cx, js_ftp, "sort", &js_val);
-						}
 					}
-				}
 
-				js_val=BOOLEAN_TO_JSVAL(INT_TO_BOOL(user.misc&EXTDESC));
-				JS_SetProperty(js_cx, js_ftp, "extended_descriptions", &js_val);
+					js_val=BOOLEAN_TO_JSVAL(INT_TO_BOOL(user.misc&EXTDESC));
+					JS_SetProperty(js_cx, js_ftp, "extended_descriptions", &js_val);
 
 #endif
-				if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
-					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
-					sockprintf(sock, "451 Insufficient system storage");
-					filepos=0;
-					continue;
-				}
-				if(!getsize && !getdate)
+					if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
+						lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
+						sockprintf(sock, "451 Insufficient system storage");
+						filepos=0;
+						continue;
+					}
 					lprintf(LOG_INFO,"%04d %s downloading HTML index for %s in %s mode"
-						,sock,user.alias,vpath(lib,dir,str)
+						,sock,user.alias,genvpath(lib,dir,str)
 						,mode);
-				success=TRUE;
-				credits=FALSE;
-				tmpfile=TRUE;
-				delfile=TRUE;
+					credits=FALSE;
+					tmpfile=TRUE;
+					delfile=TRUE;
 #ifdef JAVASCRIPT
-				js_val=INT_TO_JSVAL(timeleft);
-				if(!JS_SetProperty(js_cx, js_ftp, "time_left", &js_val))
-					lprintf(LOG_ERR,"%04d !JavaScript ERROR setting user.time_left",sock);
-				js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user);
+					js_val=INT_TO_JSVAL(timeleft);
+					if(!JS_SetProperty(js_cx, js_ftp, "time_left", &js_val))
+						lprintf(LOG_ERR,"%04d !JavaScript ERROR setting user.time_left",sock);
+					js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user);
 #endif
-				fclose(fp);
+					fclose(fp);
+				}
 			} else if(dir>=0) {
 
 				if(!chk_ar(&scfg,scfg.dir[dir]->ar,&user)) {
@@ -3992,7 +4033,7 @@ static void ctrl_thread(void* arg)
 				if(!filedat && !(startup->options&FTP_OPT_DIR_FILES)) {
 					sockprintf(sock,"550 File not found: %s",p);
 					lprintf(LOG_WARNING,"%04d !%s file (%s%s) not in database for %.4s command"
-						,sock,user.alias,vpath(lib,dir,str),p,cmd);
+						,sock,user.alias,genvpath(lib,dir,str),p,cmd);
 					filepos=0;
 					continue;
 				}
@@ -4039,11 +4080,12 @@ static void ctrl_thread(void* arg)
 			socket_debug[sock]|=SOCKET_DEBUG_DOWNLOAD;
 #endif
 
-			if(getsize && success) 
-				sockprintf(sock,"213 %lu",flength(fname));
+			if(getsize && success)
+				sockprintf(sock,"213 %lu", flength(fname));
 			else if(getdate && success) {
-				t=fdate(fname);
-				if(gmtime_r(&t,&tm)==NULL)	/* specifically use GMT/UTC representation */
+				if(file_date==0)
+					file_date = fdate(fname);
+				if(gmtime_r(&file_date,&tm)==NULL)	/* specifically use GMT/UTC representation */
 					memset(&tm,0,sizeof(tm));
 				sockprintf(sock,"213 %u%02u%02u%02u%02u%02u"
 					,1900+tm.tm_year,tm.tm_mon+1,tm.tm_mday
@@ -4068,7 +4110,7 @@ static void ctrl_thread(void* arg)
 			else {
 				sockprintf(sock,"550 File not found: %s",p);
 				lprintf(LOG_WARNING,"%04d !%s file (%s%s) not found for %.4s command"
-					,sock,user.alias,vpath(lib,dir,str),p,cmd);
+					,sock,user.alias,genvpath(lib,dir,str),p,cmd);
 			}
 			filepos=0;
 #if defined(SOCKET_DEBUG_DOWNLOAD)
@@ -4085,7 +4127,7 @@ static void ctrl_thread(void* arg)
 			}
 
 			p=cmd+4;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(*p==0) 
 				sockprintf(sock,"501 No file description given.");
@@ -4114,7 +4156,7 @@ static void ctrl_thread(void* arg)
 			dir=curdir;
 			p=cmd+5;
 
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(!strnicmp(p,BBS_FSYS_DIR,strlen(BBS_FSYS_DIR))) 
 				p+=strlen(BBS_FSYS_DIR);	/* already mounted */
@@ -4234,7 +4276,7 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_INFO,"%04d %s uploading: %s to %s (%s) in %s mode"
 					,sock,user.alias
 					,p						/* filename */
-					,vpath(lib,dir,str)		/* virtual path */
+					,genvpath(lib,dir,str)	/* virtual path */
 					,scfg.dir[dir]->path	/* actual path */
 					,mode);
 			}
@@ -4264,7 +4306,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "CWD ", 4) || !strnicmp(cmd,"XCWD ",5)) {
 			p=cmd+4;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(!strnicmp(p,BBS_FSYS_DIR,strlen(BBS_FSYS_DIR))) 
 				p+=strlen(BBS_FSYS_DIR);	/* already mounted */
@@ -4524,7 +4566,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.308 $", "%*s %s", revision);
+	sscanf("$Revision: 1.319 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4565,7 +4607,8 @@ void DLLCALL ftp_server(void* arg)
 	startup=(ftp_startup_t*)arg;
 
 #ifdef _THREAD_SUID_BROKEN
-	startup->seteuid(TRUE);
+	if(thread_suid_broken)
+		startup->seteuid(TRUE);
 #endif
 
     if(startup==NULL) {
@@ -4745,12 +4788,16 @@ void DLLCALL ftp_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->port);
 
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
 		result=retry_bind(server_socket, (struct sockaddr *) &server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"FTP Server",lprintf);
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
 		if(result!=0) {
 			lprintf(LOG_ERR,"%04d %s", server_socket, BIND_FAILURE_HELP);
 			cleanup(1,__LINE__);
@@ -4773,7 +4820,6 @@ void DLLCALL ftp_server(void* arg)
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
-			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
@@ -4791,10 +4837,6 @@ void DLLCALL ftp_server(void* arg)
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 						break;
 					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 						startup->recycle_now=FALSE;
@@ -4822,7 +4864,7 @@ void DLLCALL ftp_server(void* arg)
 				if(i==0)
 					continue;
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"%04d FTP Server listening interrupted", server_socket);
+					lprintf(LOG_DEBUG,"%04d FTP Server listening interrupted", server_socket);
 				else if(ERROR_VALUE == ENOTSOCK)
             		lprintf(LOG_NOTICE,"%04d FTP Server socket closed", server_socket);
 				else
