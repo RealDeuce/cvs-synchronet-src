@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.480 2007/07/10 21:38:25 deuce Exp $ */
+/* $Id: main.cpp,v 1.484 2007/07/11 04:50:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,7 @@
 time_t	uptime=0;
 DWORD	served=0;
 
-static	ulong node_threads_running=0;
+static	DWORD node_threads_running=0;
 static	ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
@@ -1912,12 +1912,15 @@ void event_thread(void* arg)
 	int			offset;
 	bool		check_semaphores;
 	bool		packed_rep;
-	uint32_t	l;
+	ulong	l;
+	/* TODO: This is a silly hack... */
+	uint32_t	l32;
 	time_t		now;
 	time_t		start;
 	time_t		lastsemchk=0;
 	time_t		lastnodechk=0;
 	time32_t	lastprepack=0;
+	time_t		tmptime;
 	node_t		node;
 	glob_t		g;
 	sbbs_t*		sbbs = (sbbs_t*) arg;
@@ -1946,13 +1949,13 @@ void event_thread(void* arg)
 	else {
 		for(i=0;i<sbbs->cfg.total_events;i++) {
 			sbbs->cfg.event[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
+			if(filelength(file)<(long)(sizeof(time32_t)*(i+1))) {
 				eprintf(LOG_WARNING,"Initializing last run time for event: %s"
 					,sbbs->cfg.event[i]->code);
 				write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
 			} else {
 				if(read(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last))!=sizeof(sbbs->cfg.event[i]->last))
-					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
+					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time32_t));
 			}
 			/* Event always runs after initialization? */
 			if(sbbs->cfg.event[i]->misc&EVENT_INIT)
@@ -1970,7 +1973,7 @@ void event_thread(void* arg)
 	else {
 		for(i=0;i<sbbs->cfg.total_qhubs;i++) {
 			sbbs->cfg.qhub[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
+			if(filelength(file)<(long)(sizeof(time32_t)*(i+1))) {
 				eprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
 					,sbbs->cfg.qhub[i]->id);
 				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
@@ -1989,7 +1992,7 @@ void event_thread(void* arg)
 	else {
 		for(i=0;i<sbbs->cfg.total_phubs;i++) {
 			sbbs->cfg.phub[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
+			if(filelength(file)<(long)(sizeof(time32_t)*(i+1)))
 				write(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last));
 			else
 				read(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last)); 
@@ -2248,7 +2251,8 @@ void event_thread(void* arg)
 			}
 
 			/* Qnet call out based on time */
-			if(localtime_r(&sbbs->cfg.qhub[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.qhub[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
 				|| ((sbbs->cfg.qhub[i]->freq
@@ -2282,8 +2286,10 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L)
-								write(file,&l,4);		/* initialize ptrs to null */
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
+								l32=l;
+								write(file,&l32,4);		/* initialize ptrs to null */
+							}
 							lseek(file
 								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long)
 								,SEEK_SET);
@@ -2300,7 +2306,7 @@ void event_thread(void* arg)
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
 					break; 
 				}
-				lseek(file,sizeof(time_t)*i,SEEK_SET);
+				lseek(file,sizeof(time32_t)*i,SEEK_SET);
 				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
 				close(file);
 
@@ -2325,7 +2331,8 @@ void event_thread(void* arg)
 				|| sbbs->cfg.phub[i]->node>last_node)
 				continue;
 			/* PostLink call out based on time */
-			if(localtime_r(&sbbs->cfg.phub[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.phub[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.phub[i]->last==-1
 				|| (((sbbs->cfg.phub[i]->freq								/* or frequency */
@@ -2341,7 +2348,7 @@ void event_thread(void* arg)
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
 					break; 
 				}
-				lseek(file,sizeof(time_t)*i,SEEK_SET);
+				lseek(file,sizeof(time32_t)*i,SEEK_SET);
 				write(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last));
 				close(file);
 
@@ -2373,7 +2380,8 @@ void event_thread(void* arg)
 				&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 				continue;	// ignore non-exclusive events for other instances
 
-			if(localtime_r(&sbbs->cfg.event[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.event[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.event[i]->last==-1 ||
 				(((sbbs->cfg.event[i]->freq 
@@ -2393,7 +2401,7 @@ void event_thread(void* arg)
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
 						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
 							,sbbs->cfg.event[i]->code
-							,timestr(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
+							,time32str(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
@@ -4504,7 +4512,7 @@ NO_SSH:
 	for(i=first_node;i<=last_node;i++) {
 		sbbs->getnodedat(i,&node,1);
 		node.status=NODE_WFC;
-		node.misc&=NODE_EVENT;
+		node.misc&=NODE_EVENT;	/* Note: Turns-off NODE_RRUN flag (and others) */
 		node.action=0;
 		sbbs->putnodedat(i,&node);
 	}
@@ -4549,10 +4557,9 @@ NO_SSH:
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
-	if(!initialized) {
-		semfile_list_check(&initialized,recycle_semfiles);
+	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
-	}
+	semfile_list_check(&initialized,recycle_semfiles);
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
@@ -4629,10 +4636,6 @@ NO_SSH:
 						,telnet_socket,p);
 					break;
 				}
-#if 0	/* unused */
-				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-					startup->recycle_now=TRUE;
-#endif
 				if(startup->recycle_now==TRUE) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore signaled",telnet_socket);
 					startup->recycle_now=FALSE;
