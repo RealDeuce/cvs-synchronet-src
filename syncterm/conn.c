@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.31 2007/06/01 11:59:14 deuce Exp $ */
+/* $Id: conn.c,v 1.32 2007/07/11 18:48:11 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -347,7 +347,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	if(!(*p))
 		neta=inet_addr(bbs->addr);
 	else {
-		uifc.pop("Lookup up host");
+		uifc.pop("Looking up host");
 		if((ent=gethostbyname(bbs->addr))==NULL) {
 			char str[LIST_ADDR_MAX+17];
 
