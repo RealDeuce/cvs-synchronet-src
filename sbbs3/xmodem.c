@@ -2,13 +2,13 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.35 2008/02/09 22:46:25 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.26 2006/02/24 09:50:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -153,12 +153,12 @@ int xmodem_cancel(xmodem_t* xm)
 /****************************************************************************/
 int xmodem_get_block(xmodem_t* xm, uchar* block, unsigned expected_block_num)
 {
-	uchar		block_num;				/* Block number received in header	*/
-	uchar		block_inv;
-	uchar		chksum,calc_chksum;
-	int			i,eot=0,can=0;
-	uint		b,errors;
-	uint16_t	crc,calc_crc;
+	uchar	block_num;					/* Block number received in header	*/
+	uchar	block_inv;
+	uchar	chksum,calc_chksum;
+	int		i,eot=0,can=0;
+	uint	b,errors;
+	ushort	crc,calc_crc;
 
 	for(errors=0;errors<=xm->max_errors && is_connected(xm);errors++) {
 
@@ -169,10 +169,10 @@ int xmodem_get_block(xmodem_t* xm, uchar* block, unsigned expected_block_num)
 			can=0;
 		switch(i) {
 			case SOH: /* 128 byte blocks */
-				xm->block_size=XMODEM_MIN_BLOCK_SIZE;
+				xm->block_size=128;
 				break;
 			case STX: /* 1024 byte blocks */
-				xm->block_size=XMODEM_MAX_BLOCK_SIZE;
+				xm->block_size=1024;
 				break;
 			case EOT:
 				lprintf(xm,LOG_DEBUG,"EOT");
@@ -231,30 +231,27 @@ int xmodem_get_block(xmodem_t* xm, uchar* block, unsigned expected_block_num)
 			break; 
 		}
 
-		if((*xm->mode)&CRC) {
-			if(crc!=calc_crc) {
-				lprintf(xm,LOG_WARNING,"Block %u: CRC ERROR", block_num); 
-				break;
-			}
-		}
-		else	/* CHKSUM */
-		{
-			if(chksum!=calc_chksum) {
-				lprintf(xm,LOG_WARNING,"Block %u: CHECKSUM ERROR", block_num); 
-				break;
-			}
-		}
-
 		if(block_num!=(uchar)(expected_block_num&0xff)) {
 			lprintf(xm,LOG_WARNING,"Block number error (%u received, expected %u)"
 				,block_num,expected_block_num&0xff);
-			if(expected_block_num==0 && block_num==1)
-				return(NOT_YMODEM);
 			if(expected_block_num && block_num==(uchar)((expected_block_num-1)&0xff))
 				continue;	/* silently discard repeated packets (ymodem.doc 7.3.2) */
 			break; 
 		}
 
+		if((*xm->mode)&CRC) {
+			if(crc!=calc_crc) {
+				lprintf(xm,LOG_WARNING,"Block %u: CRC ERROR", expected_block_num); 
+				break;
+			}
+		}
+		else	/* CHKSUM */
+		{	
+			if(chksum!=calc_chksum) {
+				lprintf(xm,LOG_WARNING,"Block %u: CHECKSUM ERROR", expected_block_num); 
+				break;
+			}
+		}
 		return(0);	/* Success */
 	}
 
@@ -266,12 +263,12 @@ int xmodem_get_block(xmodem_t* xm, uchar* block, unsigned expected_block_num)
 /*****************/
 int xmodem_put_block(xmodem_t* xm, uchar* block, unsigned block_size, unsigned block_num)
 {
-	int			result;
-	uchar		ch,chksum;
-    uint		i;
-	uint16_t	crc;
+	int		result;
+	uchar	ch,chksum;
+    uint	i;
+	ushort	crc;
 
-	if(block_size==XMODEM_MIN_BLOCK_SIZE)
+	if(block_size==128)
 		result=putcom(SOH);
 	else			/* 1024 */
 		result=putcom(STX);
@@ -424,14 +421,13 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 {
 	BOOL		success=FALSE;
 	ulong		sent_bytes=0;
-	char		block[XMODEM_MAX_BLOCK_SIZE];
+	char		block[1024];
 	size_t		block_len;
 	unsigned	block_num;
 	size_t		i;
 	size_t		rd;
 	time_t		startfile;
 	struct		stat st;
-	BOOL		sent_header=FALSE;
 
 	if(sent!=NULL)	
 		*sent=0;
@@ -456,7 +452,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 
 			memset(block,0,sizeof(block));
 			SAFECOPY(block,getfname(fname));
-			i=sprintf(block+strlen(block)+1,"%lu %lo 0 0 %d %u"
+			i=sprintf(block+strlen(block)+1,"%lu %lo 0 0 %d %ld"
 				,(ulong)st.st_size
 				,st.st_mtime
 				,xm->total_files-xm->sent_files
@@ -466,11 +462,9 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			
 			block_len=strlen(block)+1+i;
 			for(xm->errors=0;xm->errors<=xm->max_errors && !is_cancelled(xm) && is_connected(xm);xm->errors++) {
-				xmodem_put_block(xm, block, block_len <=XMODEM_MIN_BLOCK_SIZE ? XMODEM_MIN_BLOCK_SIZE:XMODEM_MAX_BLOCK_SIZE, 0  /* block_num */);
-				if(xmodem_get_ack(xm,1,0)) {
-					sent_header=TRUE;
+				xmodem_put_block(xm, block, block_len <=128 ? 128:1024, 0  /* block_num */);
+				if(xmodem_get_ack(xm,1,0))
 					break; 
-				}
 			}
 			if(xm->errors>=xm->max_errors || is_cancelled(xm)) {
 				lprintf(xm,LOG_ERR,"Failed to send header block");
@@ -491,20 +485,10 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			&& is_connected(xm)) {
 			fseek(fp,sent_bytes,SEEK_SET);
 			memset(block,CPMEOF,xm->block_size);
-			if(!sent_header) {
-				if(xm->block_size>XMODEM_MIN_BLOCK_SIZE) {
-					if((long)(sent_bytes+xm->block_size) > st.st_size) {
-						if((long)(sent_bytes+xm->block_size-XMODEM_MIN_BLOCK_SIZE) >= st.st_size) {
-							lprintf(xm,LOG_INFO,"Falling back to 128 byte blocks for end of file");
-							xm->block_size=XMODEM_MIN_BLOCK_SIZE;
-						}
-					}
-				}
-			}
 			if((rd=fread(block,1,xm->block_size,fp))!=xm->block_size 
-				&& (long)(sent_bytes + rd) != st.st_size) {
+				&& (long)(block_num*xm->block_size) < st.st_size) {
 				lprintf(xm,LOG_ERR,"READ ERROR %d instead of %d at offset %lu"
-					,rd,xm->block_size,sent_bytes);
+					,rd,xm->block_size,(block_num-1)*(long)xm->block_size);
 				xm->errors++;
 				continue;
 			}
@@ -515,10 +499,6 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 				xm->errors++;
 				lprintf(xm,LOG_WARNING,"Error #%d at offset %ld"
 					,xm->errors,ftell(fp)-xm->block_size);
-				if(xm->errors==3 && block_num==1 && xm->block_size>XMODEM_MIN_BLOCK_SIZE) {
-					lprintf(xm,LOG_NOTICE,"Falling back to 128 byte blocks");
-					xm->block_size=XMODEM_MIN_BLOCK_SIZE;
-				}
 			} else {
 				block_num++; 
 				sent_bytes+=rd;
@@ -554,7 +534,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.35 $", "%*s %s", buf);
+	sscanf("$Revision: 1.26 $", "%*s %s", buf);
 
 	return(buf);
 }
@@ -575,7 +555,7 @@ void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 	xm->byte_timeout=3;			/* seconds */
 	xm->ack_timeout=10;			/* seconds */
 
-	xm->block_size=XMODEM_MAX_BLOCK_SIZE;
+	xm->block_size=1024;
 	xm->max_errors=9;
 	xm->g_delay=1;
 
