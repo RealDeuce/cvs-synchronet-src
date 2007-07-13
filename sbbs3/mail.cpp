@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.19 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: mail.cpp,v 1.20 2007/07/10 23:50:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,7 +151,8 @@ void sbbs_t::telluser(smbmsg_t* msg)
 void sbbs_t::delallmail(uint usernumber)
 {
 	int 	i;
-	long	l,msgs,deleted=0;
+	long	l,deleted=0;
+	int32_t	msgs;
 	mail_t	*mail;
 	smbmsg_t msg;
 
