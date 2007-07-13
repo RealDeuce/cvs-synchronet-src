@@ -1,4 +1,4 @@
-/* $Id: console.h,v 1.12 2007/07/27 02:02:04 deuce Exp $ */
+/* $Id: console.h,v 1.11 2005/11/19 07:52:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,11 +77,6 @@ extern int FH,FW;
 extern int x_nextchar;
 
 extern int console_new_mode;
-
-extern int x11_window_xpos;
-extern int x11_window_ypos;
-extern int x11_window_width;
-extern int x11_window_height;
 
 int init_window();
 int video_init();
