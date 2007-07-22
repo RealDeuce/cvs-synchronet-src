@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.17 2007/08/12 19:24:08 deuce Exp $ */
+/* $Id: smbtxt.c,v 1.16 2007/07/10 22:20:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 				return(buf);
 			}
 			smb_fread(smb,lzhbuf,length,smb->sdt_fp);
-			lzhlen=*(int32_t*)lzhbuf;
+			lzhlen=*(long*)lzhbuf;
 			if((p=(char*)realloc(buf,l+lzhlen+3L))==NULL) {
 				sprintf(smb->last_error
 					,"realloc failure of %ld bytes for text buffer"
