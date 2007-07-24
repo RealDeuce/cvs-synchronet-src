@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.103 2007/12/13 02:06:18 deuce Exp $ */
+/* $Id: cterm.c,v 1.101 2007/06/29 05:33:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1185,7 +1185,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.103 $";
+	char	*revision="$Revision: 1.101 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1219,8 +1219,7 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 		memset(cterm.scrollback,0,cterm.width*2*cterm.backlines);
 	textattr(cterm.attr);
 	_setcursortype(_NORMALCURSOR);
-	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
-		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
+	window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	clearscreen(cterm.attr);
 	gotoxy(1,1);
 	strcpy(cterm.DA,"\x1b[=67;84;101;114;109;");
@@ -1327,11 +1326,11 @@ void ctputs(char *buf)
 				if(cy==cterm.height
 						&& cx==cterm.width) {
 					char ch;
-					ch=*(p+1);
-					*(p+1)=0;
+					ch=*p;
+					*p=0;
 					cputs(outp);
-					*(p+1)=ch;
-					outp=p+1;
+					*p=ch;
+					outp=p;
 					scrollup();
 					cx=1;
 					gotoxy(cx,cy);
@@ -1369,8 +1368,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	if(retbuf!=NULL)
 		retbuf[0]=0;
 	gettextinfo(&ti);
-	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
-		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
+	window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	gotoxy(cterm.xpos,cterm.ypos);
 	textattr(cterm.attr);
 	ch[1]=0;
@@ -1965,8 +1963,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	cterm.xpos=wherex();
 	cterm.ypos=wherey();
 #if 0
-	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
-		window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
+	window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
 	gotoxy(ti.curx,ti.cury);
 	textattr(ti.attribute);
 #endif
