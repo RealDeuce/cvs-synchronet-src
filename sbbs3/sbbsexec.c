@@ -2,7 +2,7 @@
 
 /* Synchronet Windows NT/2000 VDD for FOSSIL and DOS I/O Interrupts */
 
-/* $Id: sbbsexec.c,v 1.36 2006/06/26 23:12:59 rswindell Exp $ */
+/* $Id: sbbsexec.c,v 1.39 2007/03/11 01:49:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,6 @@ HANDLE		hungup_event=NULL;
 HANDLE		interrupt_event=NULL;
 HANDLE		rdslot=INVALID_HANDLE_VALUE;
 HANDLE		wrslot=INVALID_HANDLE_VALUE;
-HANDLE		vdd_handle;
 RingBuf		rdbuf;
 str_list_t	ini;
 char		ini_fname[MAX_PATH+1];
@@ -233,10 +232,13 @@ void _cdecl input_thread(void* arg)
 			continue;
 		}
 		RingBufWrite(&rdbuf,buf,count);
-		/* Set the "Data ready" bit in the LSR */
-		uart_lsr_reg |= UART_LSR_DATA_READY;
 
-		assert_interrupt(UART_IER_RX_DATA); /* assert rx data interrupt */
+		if(virtualize_uart) {
+			/* Set the "Data ready" bit in the LSR */
+			uart_lsr_reg |= UART_LSR_DATA_READY;
+
+			assert_interrupt(UART_IER_RX_DATA); /* assert rx data interrupt */
+		}
 	}
 }
 
@@ -461,12 +463,14 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 	retval=0;
 	node_num=getBH();
 
-	lprintf(LOG_DEBUG,"VDD_OP: %d (arg=%X)", getBL(),getCX());
+	lprintf(LOG_DEBUG,"VDD_OP: (handle=%d) %d (arg=%X)", getAX(),getBL(),getCX());
 	vdd_calls++;
 
 	switch(getBL()) {
 
 		case VDD_OPEN:
+
+			sscanf("$Revision: 1.39 $", "%*s %s", revision);
 
 			lprintf(LOG_INFO,"Synchronet Virtual Device Driver, rev %s %s %s"
 				,revision, __DATE__, __TIME__);
@@ -545,7 +549,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 				PortRange.First=uart_io_base;
 				PortRange.Last=uart_io_base + UART_IO_RANGE;
 
-				VDDInstallIOHook(vdd_handle, 1, &PortRange, &IOHandlers);
+				VDDInstallIOHook((HANDLE)getAX(), 1, &PortRange, &IOHandlers);
 
 				interrupt_event=CreateEvent(NULL,FALSE,FALSE,NULL);
 				InitializeCriticalSection(&interrupt_mutex);
@@ -570,7 +574,7 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 
 			if(virtualize_uart) {
 				lprintf(LOG_INFO,"Uninstalling Virtualizaed UART IO Hook");
-				VDDDeInstallIOHook(vdd_handle, 1, &PortRange);
+				VDDDeInstallIOHook((HANDLE)getAX(), 1, &PortRange);
 			}
 
 			CloseHandle(rdslot);
@@ -580,7 +584,10 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			if(hangup_event!=NULL)
 				CloseHandle(hangup_event);
 
+#if 0	/* This isn't strictly necessary... 
+		   and possibly the cause of a NULL dereference in the input_thread */
 			RingBufDispose(&rdbuf);
+#endif
 			status_poll=0;
 			retval=0;
 
@@ -775,14 +782,4 @@ __declspec(dllexport) void __cdecl VDDDispatch(void)
 			break;
 	}
 	setAX((WORD)retval);
-}
-
-__declspec(dllexport) BOOL __cdecl VDDInitialize(IN PVOID hVDD, IN ULONG Reason, 
-IN PCONTEXT Context OPTIONAL)
-{
-	sscanf("$Revision: 1.36 $", "%*s %s", revision);
-
-	vdd_handle=hVDD;
-
-    return TRUE;
 }
