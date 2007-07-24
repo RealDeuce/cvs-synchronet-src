@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.85 2007/07/08 10:20:16 deuce Exp $ */
+/* $Id: ciolib.c,v 1.87 2007/07/12 23:10:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -798,7 +798,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 #ifdef _MSC_VER
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
+
+#ifdef __BORLANDC__
+	argptr2=argptr;
+#else
 	va_copy(argptr2, argptr);
+#endif
     ret=vsnprintf(NULL,0,fmat,argptr);
 	if(ret<0)
 		return(EOF);
@@ -808,7 +813,9 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	ret=vsprintf(str,fmat,argptr2);
 #endif
     va_end(argptr);
+#ifndef _MSC_VER
     va_end(argptr2);
+#endif
 	if(ret>=0)
 		ciolib_cputs(str);
 	else
