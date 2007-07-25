@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.105 2007/07/26 00:00:30 rswindell Exp $ */
+/* $Id: userdat.c,v 1.104 2007/07/25 23:09:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2468,12 +2468,10 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 
 	now=time(NULL);
 
-	if(user->exempt&FLAG('T')) {	/* Time online exemption */
-		timeleft=cfg->level_timepercall[user->level];
-		if(timeleft<10)             /* never get below 10 minutes for exempt users */
-			timeleft=10; 
-		timeleft*=60;				/* convert to seconds */
-	}
+	if(user->exempt&FLAG('T')) {   /* Time online exemption */
+		timeleft=cfg->level_timepercall[user->level]*60;
+		if(timeleft<10)             /* never get below 10 for exempt users */
+			timeleft=10; }
 	else {
 		tleft=(((long)cfg->level_timeperday[user->level]-user->ttoday)
 			+user->textra)*60L;
@@ -2485,8 +2483,7 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 		if(tleft>0x7fffL)
 			timeleft=0x7fff;
 		else
-			timeleft=tleft; 
-	}
+			timeleft=tleft; }
 
 	return(timeleft);
 }
