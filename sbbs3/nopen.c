@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.22 2007/05/11 01:35:34 rswindell Exp $ */
+/* $Id: nopen.c,v 1.23 2007/07/11 00:01:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,9 +111,11 @@ FILE* fnopen(int* fd, const char* str, int access)
 BOOL ftouch(const char* fname)
 {
 	int file;
+	struct utimbuf ut;
 
 	/* update the time stamp */
-	if(utime(fname, /* use current date/time: */NULL)==0)
+	ut.actime = ut.modtime = time(NULL);
+	if(utime(fname, &ut)==0)
 		return(TRUE);
 
 	/* create the file */

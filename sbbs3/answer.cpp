@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.57 2007/05/09 22:00:59 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.58 2007/07/13 08:40:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -417,8 +417,6 @@ bool sbbs_t::answer()
 
 	if(!useron.number)
 		hangup();
-	if(!online) 
-		return(false); 
 
 	/* Save the IP to the user's note */
 	if(cid[0]) {
@@ -432,10 +430,14 @@ bool sbbs_t::answer()
 		putuserrec(&cfg,useron.number,U_COMP,LEN_COMP,useron.comp);
 	}
 
+	if(!online) 
+		return(false); 
+
 	if(!(sys_status&SS_USERON)) {
 		errormsg(WHERE,ERR_CHK,"User not logged on",0);
 		hangup();
-		return(false); }
+		return(false); 
+	}
 
 	return(true);
 }
