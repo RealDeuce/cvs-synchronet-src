@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.26 2005/11/29 01:18:55 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.30 2007/07/11 01:12:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -127,8 +127,10 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 	if(console&CON_RAW_IN)	 /* ignore ctrl-key commands if in raw mode */
 		return(ch);
 
+#if 0	/* experimental removal to fix Tracker1's pause module problem with down-arrow */
 	if(ch==LF)				/* ignore LF's if not in raw mode */
 		return(0);
+#endif
 
 	/* Global hot key event */
 	for(i=0;i<cfg.total_hotkeys;i++)
@@ -260,7 +262,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			}
 			i=j=0;
 			autoterm|=ANSI; 			/* <ESC>[x means they have ANSI */
-			if(!(useron.misc&ANSI) && useron.misc&AUTOTERM && sys_status&SS_USERON
+			if(sys_status&SS_USERON && useron.misc&AUTOTERM && !(useron.misc&ANSI)
 				&& useron.number) {
 				useron.misc|=ANSI;
 				putuserrec(&cfg,useron.number,U_MISC,8,ultoa(useron.misc,str,16)); 
