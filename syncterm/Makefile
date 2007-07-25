@@ -1,13 +1,12 @@
 SRC_ROOT	= ..
 !include ${SRC_ROOT}\build\Common.bmake
 
-CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3;../smblib
+CFLAGS	=	$(CFLAGS) $(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I..\sbbs3;..\smblib;..\..\include\cryptlib;..\comio
 LDFLAGS	=	$(LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
-!ifdef CHANNEL_CLIPPY
-CFLAGS	=	$(CFLAGS) -DPCM
-!endif
 
-.path.c = .;../sbbs3;../smblib;../uifc
+.path.c = .;..\sbbs3;..\smblib;..\uifc;..\comio
+
+OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)comio_win32$(OFILE)
 
 $(SYNCTERM): $(OBJS)
 	@echo Linking $@
