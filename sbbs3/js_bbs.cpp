@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.105 2007/07/28 06:32:51 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.103 2007/07/25 08:16:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,7 +281,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			val=sbbs->online;
 			break;
 		case BBS_PROP_TIMELEFT:
-			val=sbbs->gettimeleft(false);
+			val=sbbs->timeleft;
 			break;
 		case BBS_PROP_EVENT_TIME:
 			val=sbbs->event_time;
@@ -1248,47 +1248,20 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	char		str[128];
 	sbbs_t*		sbbs;
-	char	str[128],str2[128],*p;
-	char	*instr;
-	int		disp_len;
-	bool	padded_left=false;
-	bool	padded_right=false;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	instr = strdup(JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
-	if(instr==NULL)
-		return(JS_FALSE);
+	char* p = JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
 
-	disp_len=strlen(instr);
-	if((p=strstr(instr,"-L"))!=NULL)
-		padded_left=true;
-	else if((p=strstr(instr,"-R"))!=NULL)
-		padded_right=true;
-	if(p!=NULL) {
-		if(*(p+2) && isdigit(*(p+2)))
-			disp_len=atoi(p+2);
-		*p=0;
-	}
+	p=sbbs->atcode(p,str,sizeof(str));
 
-	if(disp_len >= sizeof(str))
-		disp_len=sizeof(str)-1;
-
-	p=sbbs->atcode(instr,str2,sizeof(str2));
-	free(instr);
 	if(p==NULL)
 		*rval = JSVAL_NULL;
 	else {
-		if(padded_left)
-			sprintf(str,"%-*.*s",disp_len,disp_len,p);
-		else if(padded_right)
-			sprintf(str,"%*.*s",disp_len,disp_len,p);
-		else
-			SAFECOPY(str,p);
-
-		JSString* js_str = JS_NewStringCopyZ(cx, str);
+		JSString* js_str = JS_NewStringCopyZ(cx, p);
 		if(js_str==NULL)
 			return(JS_FALSE);
 		*rval = STRING_TO_JSVAL(js_str);
@@ -2629,7 +2602,8 @@ js_get_time_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	*rval = INT_TO_JSVAL(sbbs->gettimeleft());
+	sbbs->gettimeleft();
+	*rval = INT_TO_JSVAL(sbbs->timeleft);
 	return(JS_TRUE);
 }
 
@@ -2991,8 +2965,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},
 	{"get_time_left",	js_get_time_left,	0,	JSTYPE_NUMBER,	JSDOCSTR("")
-	,JSDOCSTR("check the user's available remaining time online and return the value, in seconds<br>"
-	"This method will inform (and disconnect) the user when they are out of time")
+	,JSDOCSTR("check the user's time left and return the value, in seconds")
 	,31401
 	},
 	{0}
