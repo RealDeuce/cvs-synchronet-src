@@ -19,7 +19,8 @@ else
   OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
   OBJS	+=      $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
   ifeq ($(os),darwin)
-   OBJS 	+=      $(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
+   MTOBJS	+=      $(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
+   OBJS 	+=      $(OBJODIR)$(DIRSEP)SDLMain$(OFILE)
   endif
  endif
 endif
@@ -55,10 +56,3 @@ $(CIOLIB-MT_SHLIB_BUILD): $(MTOBJODIR)$(DIRSEP)console$(OFILE).dynamic $(MTOBJOD
 endif
 	@echo Creating $@
 	$(QUIET)$(MKSHLIB) $(LDFLAGS) $(OBJS) $(SHLIBOPTS) -o $@
-
-ifeq ($(os),darwin)
-$(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE): SDLMain.m
-	@echo $(COMPILE_MSG) $<
-	$(QUIET)$(CC) $(MT_CFLAGS) $(CCFLAGS) -o $@ -c $<
-endif
-

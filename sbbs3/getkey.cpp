@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.38 2007/07/27 11:12:13 deuce Exp $ */
+/* $Id: getkey.cpp,v 1.34 2006/01/30 22:52:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -238,7 +238,9 @@ char sbbs_t::getkey(long mode)
 			return(ch); 
 		}
 		if(sys_status&SS_USERON && !(sys_status&SS_LCHAT)) gettimeleft();
-		else if(online && now-answertime>SEC_LOGON && !(sys_status&SS_LCHAT)) {
+		else if(online &&
+			((cfg.node_dollars_per_call && now-answertime>SEC_BILLING)
+			|| (now-answertime>SEC_LOGON && !(sys_status&SS_LCHAT)))) {
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			console|=(CON_R_ECHO|CON_L_ECHO);
 			bputs(text[TakenTooLongToLogon]);
@@ -321,14 +323,14 @@ void sbbs_t::mnemonics(char *str)
 	l=0L;
 	while(str[l]) {
 		if(str[l]=='~' && str[l+1]!=0) {
-			if(!term_supports(ANSI))
+			if(!(useron.misc&ANSI))
 				outchar('(');
 			l++;
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnehigh]);
 			outchar(str[l]);
 			l++;
-			if(!term_supports(ANSI))
+			if(!(useron.misc&ANSI))
 				outchar(')');
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnelow]); 
@@ -507,6 +509,7 @@ void sbbs_t::pause()
     int		i,j;
 	long	l=K_UPPER;
 
+	RIOSYNC(0);
 	if(sys_status&SS_ABORT)
 		return;
 	lncntr=0;
@@ -514,7 +517,7 @@ void sbbs_t::pause()
 		rioctl(IOFI);
 	bputs(text[Pause]);
 	j=bstrlen(text[Pause]);
-	if(sys_status&SS_USERON && !(useron.misc&(HTML|WIP|NOPAUSESPIN))
+	if(sys_status&SS_USERON && !(useron.misc&(WIP|NOPAUSESPIN))
 		&& !(cfg.node_misc&NM_NOPAUSESPIN))
 		l|=K_SPIN;
 	ch=getkey(l);
