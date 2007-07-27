@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.47 2007/07/31 21:42:40 deuce Exp $ */
+/* $Id: ciolib.h,v 1.45 2007/07/27 02:02:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,8 +200,6 @@ struct text_info {
 	unsigned char cury;           /* y-coordinate in current window */
 };
 
-extern struct text_info cio_textinfo;
-
 typedef struct {
 	int		mode;
 	int		mouse;
@@ -313,7 +311,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
-CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -368,7 +365,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define getfont()				ciolib_getfont()
 	#define loadfont(a)				ciolib_loadfont(a)
 	#define get_window_info(a,b,c,d)	ciolib_get_window_info(a,b,c,d)
-	#define beep()				ciolib_beep()
 #endif
 
 #ifdef WITH_SDL
