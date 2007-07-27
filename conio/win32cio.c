@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.74 2007/07/31 12:02:14 deuce Exp $ */
+/* $Id: win32cio.c,v 1.70 2005/10/27 22:46:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,9 +34,6 @@
 #include <windows.h>	/* INPUT_RECORD, etc. */
 #include <genwrap.h>
 #include <stdio.h>		/* stdin */
-#if defined(_WIN32)
- #include <malloc.h>	/* alloca() on Win32 */
-#endif
 
 #if (defined CIOLIB_IMPORTS)
  #undef CIOLIB_IMPORTS
@@ -49,6 +46,8 @@
 #include "keys.h"
 #include "vidmodes.h"
 #include "win32cio.h"
+
+const int 	cio_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 
 struct keyvals {
 	int	VirtualKeyCode
@@ -152,22 +151,14 @@ const struct keyvals keyval[] =
 	{0, 0, 0, 0, 0}	/** END **/
 };
 
-/* Mouse related stuff */
 static int domouse=1;
 static DWORD last_state=0;
 static int LastX=-1, LastY=-1;
+static int xpos=1;
+static int ypos=1;
 
+static int currattr=7;
 static int modeidx=3;
-
-#if defined(_DEBUG)
-static void dputs(const char* str)
-{
-	char msg[1024];
-
-	SAFEPRINTF(msg,"%s\r\n",str);
-	OutputDebugString(msg);
-}
-#endif
 
 static void dprintf(const char* fmt, ...)
 {
@@ -179,11 +170,11 @@ static void dprintf(const char* fmt, ...)
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
-    dputs(sbuf);
+    OutputDebugString(sbuf);
 #endif /* _DEBUG */
 }
 
-static WORD DOStoWinAttr(int newattr)
+WORD DOStoWinAttr(int newattr)
 {
 	WORD ret=0;
 
@@ -206,7 +197,7 @@ static WORD DOStoWinAttr(int newattr)
 	return(ret);
 }
 
-static unsigned char WintoDOSAttr(WORD newattr)
+unsigned char WintoDOSAttr(WORD newattr)
 {
 	unsigned char ret=0;
 
@@ -229,7 +220,7 @@ static unsigned char WintoDOSAttr(WORD newattr)
 	return(ret);
 }
 
-static int win32_getchcode(WORD code, DWORD state)
+int win32_getchcode(WORD code, DWORD state)
 {
 	int i;
 
@@ -253,7 +244,7 @@ static int win32_getchcode(WORD code, DWORD state)
 	return(0);
 }
 
-static int win32_keyboardio(int isgetch)
+int win32_keyboardio(int isgetch)
 {
 	INPUT_RECORD input;
 	DWORD num=0;
@@ -378,6 +369,16 @@ int win32_getch(void)
 	int ret=win32_keyboardio(TRUE);
 	dprintf("win32_getch = 0x%02X (%u)", (BYTE)ret, (BYTE)ret);
 	return(ret);
+}
+
+int win32_getche(void)
+{
+	int ch;
+
+	ch=win32_getch();
+	if(ch)
+		putch(ch);
+	return(ch);
 }
 
 #ifndef ENABLE_EXTENDED_FLAGS
@@ -529,18 +530,6 @@ void win32_textmode(int mode)
 		SetConsoleWindowInfo(h,TRUE,&rc);
 		SetConsoleScreenBufferSize(h,sz);
 	}
-
-	cio_textinfo.attribute=7;
-	cio_textinfo.normattr=7;
-	cio_textinfo.currmode=vparams[modeisx].mode;
-	cio_textinfo.screenheightsz.Y;
-	cio_textinfo.screenwidth=sz.X;
-	cio_textinfo.curx=1;
-	cio_textinfo.cury=1;
-	cio_textinfo.winleft=1;
-	cio_textinfo.wintop=1;
-	cio_textinfo.winright=cio_textinfo.screenwidth;
-	cio_textinfo.winbottom=cio_textinfo.screenheight;
 }
 
 int win32_gettext(int left, int top, int right, int bottom, void* buf)
@@ -563,7 +552,7 @@ int win32_gettext(int left, int top, int right, int bottom, void* buf)
 	reg.Right=right-1;
 	reg.Top=top-1;
 	reg.Bottom=bottom-1;
-	ci=(CHAR_INFO *)alloca(sizeof(CHAR_INFO)*(bs.X*bs.Y));
+	ci=(CHAR_INFO *)malloc(sizeof(CHAR_INFO)*(bs.X*bs.Y));
 	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		ReadConsoleOutput(h,ci,bs,bc,&reg);
 	for(y=0;y<=(bottom-top);y++) {
@@ -572,7 +561,18 @@ int win32_gettext(int left, int top, int right, int bottom, void* buf)
 			bu[(((y*bs.X)+x)*2)+1]=WintoDOSAttr(ci[(y*bs.X)+x].Attributes);
 		}
 	}
+	free(ci);
 	return 1;
+}
+
+void win32_gettextinfo(struct text_info* info)
+{
+	info->currmode=vparams[modeidx].mode;
+	info->curx=xpos;
+	info->cury=ypos;
+	info->attribute=currattr;
+	info->screenheight=vparams[modeidx].rows;
+	info->screenwidth=vparams[modeidx].cols;
 }
 
 void win32_gotoxy(int x, int y)
@@ -580,12 +580,29 @@ void win32_gotoxy(int x, int y)
 	COORD	cp;
 	HANDLE	h;
 
-	cio_terminfo.curx=x;
-	cio_terminfo.cury=y;
+	xpos=x;
+	ypos=y;
 	cp.X=x-1;
 	cp.Y=y-1;
 	if(!hold_update && (h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleCursorPosition(h,cp);
+}
+
+void win32_highvideo(void)
+{
+	win32_textattr(currattr|0x08);
+}
+
+
+void win32_lowvideo(void)
+{
+	win32_textattr(currattr&0xf8);
+}
+
+
+void win32_normvideo(void)
+{
+	win32_textattr(7);
 }
 
 int win32_puttext(int left, int top, int right, int bottom, void* buf)
@@ -608,7 +625,7 @@ int win32_puttext(int left, int top, int right, int bottom, void* buf)
 	reg.Right=right-1;
 	reg.Top=top-1;
 	reg.Bottom=bottom-1;
-	ci=(CHAR_INFO *)alloca(sizeof(CHAR_INFO)*(bs.X*bs.Y));
+	ci=(CHAR_INFO *)malloc(sizeof(CHAR_INFO)*(bs.X*bs.Y));
 	for(y=0;y<bs.Y;y++) {
 		for(x=0;x<bs.X;x++) {
 			ci[(y*bs.X)+x].Char.AsciiChar=bu[((y*bs.X)+x)*2];
@@ -617,7 +634,26 @@ int win32_puttext(int left, int top, int right, int bottom, void* buf)
 	}
 	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		WriteConsoleOutput(h,ci,bs,bc,&reg);
+	free(ci);
 	return 1;
+}
+
+void win32_textattr(int newattr)
+{
+	/* SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),DOStoWinAttr(newattr)); */
+	currattr=newattr;
+}
+
+
+void win32_textbackground(int newcolor)
+{
+	win32_textattr((currattr&0x0f)|((newcolor&0xf0)<<4));
+}
+
+
+void win32_textcolor(int newcolor)
+{
+	win32_textattr((currattr&0xf0)|((newcolor&0x0f)<<4));
 }
 
 void win32_setcursortype(int type)
@@ -643,6 +679,84 @@ void win32_setcursortype(int type)
 	}
 	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleCursorInfo(h,&ci);
+}
+
+int win32_wherex(void)
+{
+	return(xpos);
+}
+
+int win32_wherey(void)
+{
+	return(ypos);
+}
+
+int win32_putch(int ch)
+{
+	struct text_info ti;
+	unsigned char buf[2];
+	int i;
+
+	buf[0]=ch;
+	buf[1]=currattr;
+
+	switch(ch) {
+		case '\r':
+			gotoxy(1,wherey());
+			break;
+		case '\n':
+			gettextinfo(&ti);
+			if(ti.cury==ti.winbottom-ti.wintop+1)
+				wscroll();
+			else
+				gotoxy(ti.curx,ti.cury+1);
+			break;
+		case '\b':
+			gettextinfo(&ti);
+			if(ti.curx>1) {
+				buf[0]=' ';
+				gotoxy(ti.curx-1,ti.cury);
+				puttext(ti.winleft+ti.curx-2, ti.wintop+ti.cury-1,ti.winleft+ti.curx-2, ti.wintop+ti.cury-1,buf);
+			}
+			break;
+		case 7:		/* Bell */
+			MessageBeep(MB_OK);
+			break;
+		case '\t':
+			for(i=0;i<10;i++) {
+				if(cio_tabs[i]>wherex()) {
+					while(wherex()<cio_tabs[i]) {
+						putch(' ');
+					}
+					break;
+				}
+			}
+			if(i==10) {
+				putch('\r');
+				putch('\n');
+			}
+			break;
+		default:
+			gettextinfo(&ti);
+			if(ti.cury==ti.winbottom-ti.wintop+1
+					&& ti.curx==ti.winright-ti.winleft+1) {
+				puttext(ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,buf);
+				wscroll();
+				gotoxy(1,ti.cury);
+			}
+			else {
+				if(ti.curx==ti.winright-ti.winleft+1) {
+					puttext(ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,buf);
+					gotoxy(1,ti.cury+1);
+				}
+				else {
+					puttext(ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,ti.winleft+ti.curx-1, ti.wintop+ti.cury-1,buf);
+					gotoxy(ti.curx+1,ti.cury);
+				}
+			}
+			break;
+	}
+	return(ch);
 }
 
 void win32_settitle(const char *title)
@@ -692,4 +806,9 @@ char *win32_getcliptext(void)
 	CloseClipboard();
 	
 	return(ret);
+}
+
+void win32_delay(long msec)
+{
+	SLEEP(msec);
 }
