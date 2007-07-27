@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.106 2008/02/11 09:07:16 deuce Exp $ */
+/* $Id: js_file.c,v 1.99 2006/07/21 04:26:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,7 +59,6 @@ typedef struct
 	BOOL	uuencoded;
 	BOOL	b64encoded;
 	BOOL	network_byte_order;
-	BOOL	pipe;		/* Opened with popen() use pclose() to close */
 
 } private_t;
 
@@ -182,53 +181,6 @@ js_open(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static JSBool
-js_popen(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		mode="r+";	/* default mode */
-	uintN		i;
-	jsint		bufsize=2*1024;
-	JSString*	str;
-	private_t*	p;
-
-	*rval = JSVAL_FALSE;
-
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
-
-	if(p->fp!=NULL)  
-		return(JS_TRUE);
-
-	for(i=0;i<argc;i++) {
-		if(JSVAL_IS_STRING(argv[i])) {	/* mode */
-			if((str = JS_ValueToString(cx, argv[i]))==NULL) {
-				JS_ReportError(cx,"Invalid mode specified: %s",str);
-				return(JS_TRUE);
-			}
-			mode=JS_GetStringBytes(str);
-		}
-		else if(JSVAL_IS_NUMBER(argv[i])) {	/* bufsize */
-			if(!JS_ValueToInt32(cx,argv[i],&bufsize))
-				return(JS_FALSE);
-		}
-	}
-	SAFECOPY(p->mode,mode);
-
-	p->fp=popen(p->name,p->mode);
-	if(p->fp!=NULL) {
-		p->pipe=TRUE;
-		*rval = JSVAL_TRUE;
-		dbprintf(FALSE, p, "popened: %s",p->name);
-		if(!bufsize)
-			setvbuf(p->fp,NULL,_IONBF,0);	/* no buffering */
-		else
-			setvbuf(p->fp,NULL,_IOFBF,bufsize);
-	}
-
-	return(JS_TRUE);
-}
 
 static JSBool
 js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -243,12 +195,7 @@ js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-#ifdef __unix__
-	if(p->pipe)
-		pclose(p->fp);
-	else
-#endif
-		fclose(p->fp);
+	fclose(p->fp);
 
 	dbprintf(FALSE, p, "closed");
 
@@ -390,17 +337,11 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	BYTE		*b;
-	WORD		*w;
-	DWORD		*l;
+	BYTE		b;
+	WORD		w;
+	DWORD		l;
 	size_t		size=sizeof(DWORD);
 	private_t*	p;
-	size_t		count=1;
-	size_t		retlen;
-	void		*buffer=NULL;
-	size_t		i;
-    JSObject*	array;
-    jsval       v;
 
 	*rval = INT_TO_JSVAL(-1);
 
@@ -415,65 +356,29 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],(int32*)&size))
 			return(JS_FALSE);
-		if(argc>1) {
-			if(!JS_ValueToInt32(cx,argv[1],(int32*)&count))
-				return(JS_FALSE);
-		}
 	}
 
-	if(size != sizeof(BYTE) && size != sizeof(WORD) && size != sizeof(DWORD)) {
-		/* unknown size */
-		dbprintf(TRUE, p, "unsupported binary read size: %d",size);
-		return(JS_TRUE);
-	}
-
-	buffer=malloc(size*count);
-	if(buffer==NULL) {
-		dbprintf(TRUE, p, "malloc failure of %u bytes", size*count);
-		return(JS_FALSE);
-	}
-	b=buffer;
-	w=buffer;
-	l=buffer;
-	retlen=fread(buffer, size, count, p->fp);
-	if(count==1) {
-		if(retlen==1) {
-			switch(size) {
-				case sizeof(BYTE):
-					*rval = INT_TO_JSVAL(*b);
-					break;
-				case sizeof(WORD):
-					*rval = INT_TO_JSVAL(*w);
-					break;
-				case sizeof(DWORD):
-					JS_NewNumberValue(cx,*l,rval);
-					break;
+	switch(size) {
+		case sizeof(BYTE):
+			if(fread(&b,1,size,p->fp)==size)
+				*rval = INT_TO_JSVAL(b);
+			break;
+		case sizeof(WORD):
+			if(fread(&w,1,size,p->fp)==size) {
+				if(p->network_byte_order)
+					w=ntohs(w);
+				*rval = INT_TO_JSVAL(w);
 			}
-		}
-	}
-	else {
-    	array = JS_NewArrayObject(cx, 0, NULL);
-
-		for(i=0; i<retlen; i++) {
-			switch(size) {
-				case sizeof(BYTE):
-					v = INT_TO_JSVAL(*(b++));
-					break;
-				case sizeof(WORD):
-					v = INT_TO_JSVAL(*(w++));
-					break;
-				case sizeof(DWORD):
-					JS_NewNumberValue(cx,*(l++),&v);
-					break;
+			break;
+		case sizeof(DWORD):
+			if(fread(&l,1,size,p->fp)==size) {
+				if(p->network_byte_order)
+					l=ntohl(l);
+				JS_NewNumberValue(cx,l,rval);
 			}
-        	if(!JS_SetElement(cx, array, i, &v))
-				goto end;
-		}
-    	*rval = OBJECT_TO_JSVAL(array);
+			break;
 	}
-
-end:
-	free(buffer);
+		
 	return(JS_TRUE);
 }
 
@@ -1115,17 +1020,13 @@ js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	BYTE		*b;
-	WORD		*w;
-	DWORD		*l;
+	BYTE		b;
+	WORD		w;
+	DWORD		l;
+	int32		val=0;
 	size_t		wr=0;
 	size_t		size=sizeof(DWORD);
-	size_t		count=1;
-	void		*buffer;
 	private_t*	p;
-    JSObject*	array=NULL;
-    jsval       elemval;
-	jsdouble	val=0;
 
 	*rval = JSVAL_FALSE;
 
@@ -1137,73 +1038,38 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(JSVAL_IS_OBJECT(argv[0])) {
-		array = JSVAL_TO_OBJECT(argv[0]);
-		if(JS_IsArrayObject(cx, array)) {
-		    if(!JS_GetArrayLength(cx, array, &count))
-				return(JS_TRUE);
-		}
-		else
-			array=NULL;
-	}
-	if(array==NULL) {
-		if(!JS_ValueToNumber(cx,argv[0],&val))
-			return(JS_FALSE);
-	}
+	if(!JS_ValueToInt32(cx,argv[0],&val))
+		return(JS_FALSE);
 	if(argc>1) {
 		if(!JS_ValueToInt32(cx,argv[1],(int32*)&size))
 			return(JS_FALSE);
 	}
-	if(size != sizeof(BYTE) && size != sizeof(WORD) && size != sizeof(DWORD)) {
-		dbprintf(TRUE, p, "unsupported binary write size: %d",size);
-		return(JS_TRUE);
-	}
-	buffer=malloc(size*count);
-	if(buffer==NULL) {
-		dbprintf(TRUE, p, "malloc failure of %u bytes", size*count);
-		return(JS_FALSE);
-	}
-	b=buffer;
-	w=buffer;
-	l=buffer;
-	if(array==NULL) {
-		switch(size) {
-			case sizeof(BYTE):
-				*b=(BYTE)val;
-				break;
-			case sizeof(WORD):
-				*w=(WORD)val;
-				break;
-			case sizeof(DWORD):
-				*l=(DWORD)val;
-				break;
-		}
-	}
-	else {
-		for(wr=0; wr<count; wr++) {
-	        if(!JS_GetElement(cx, array, wr, &elemval))
-				goto end;
-			if(!JS_ValueToNumber(cx,elemval,&val))
-				goto end;
-			switch(size) {
-				case sizeof(BYTE):
-					*(b++)=(BYTE)val;
-					break;
-				case sizeof(WORD):
-					*(w++)=(WORD)val;
-					break;
-				case sizeof(DWORD):
-					*(l++)=val;
-					break;
-			}
-		}
-	}
-	wr=fwrite(buffer,size,count,p->fp);
-	if(wr==count)
-		*rval=JSVAL_TRUE;
 
-end:
-	free(buffer);
+	switch(size) {
+		case sizeof(BYTE):
+			b = (BYTE)val;
+			wr=fwrite(&b,1,size,p->fp);
+			break;
+		case sizeof(WORD):
+			w = (WORD)val;
+			if(p->network_byte_order)
+				w=htons(w);
+			wr=fwrite(&w,1,size,p->fp);
+			break;
+		case sizeof(DWORD):
+			l = val;
+			if(p->network_byte_order)
+				l=htonl(l);
+			wr=fwrite(&l,1,size,p->fp);
+			break;
+		default:	
+			/* unknown size */
+			dbprintf(TRUE, p, "unsupported binary write size: %d",size);
+			break;
+	}
+	if(wr==size)
+		*rval = JSVAL_TRUE;
+		
 	return(JS_TRUE);
 }
 
@@ -1819,16 +1685,6 @@ static jsSyncMethodSpec js_file_functions[] = {
 		)
 	,310
 	},		
-	{"popen",			js_popen,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[mode=<tt>\"r+\"</tt>] [,buffer_length]")
-	,JSDOCSTR("open pipe to command, <i>buffer_length</i> defaults to 2048 bytes, "
-		"mode (default: <tt>'r+'</tt>) specifies the type of access requested for the file, as follows:<br>"
-		"<tt>r&nbsp</tt> read the programs stdout;<br>"
-		"<tt>w&nbsp</tt> write to the programs stdin<br>"
-		"<tt>r+</tt> open for both reading stdout and writing stdin<br>"
-		"(<b>only functional on UNIX systems</b>)"
-		)
-	,315
-	},		
 	{"close",			js_close,			0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("close file")
 	,310
@@ -1873,9 +1729,8 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("read a line-feed terminated string, <i>maxlen</i> defaults to 512 characters")
 	,310
 	},		
-	{"readBin",			js_readbin,			0,	JSTYPE_NUMBER,	JSDOCSTR("[bytes=<tt>4</tt> [,count=<tt>1</tt>]")
-	,JSDOCSTR("read one or more binary integers from the file, default number of <i>bytes</i> is 4 (32-bits). "
-			  "if count is not equal to 1, an array is returned (even if no integers were read)")
+	{"readBin",			js_readbin,			0,	JSTYPE_NUMBER,	JSDOCSTR("[bytes=<tt>4</tt>]")
+	,JSDOCSTR("read a binary integer from the file, default number of <i>bytes</i> is 4 (32-bits)")
 	,310
 	},
 	{"readAll",			js_readall,			0,	JSTYPE_ARRAY,	JSDOCSTR("[maxlen=<tt>512</tt>]")
@@ -1890,9 +1745,8 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("write a line-feed terminated string to the file")
 	,310
 	},
-	{"writeBin",		js_writebin,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("value(s) [,bytes=<tt>4</tt>]")
-	,JSDOCSTR("write one or more binary integers to the file, default number of <i>bytes</i> is 4 (32-bits)."
-			  "If value is an array, writes the entire array to the file.")
+	{"writeBin",		js_writebin,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("value [,bytes=<tt>4</tt>]")
+	,JSDOCSTR("write a binary integer to the file, default number of <i>bytes</i> is 4 (32-bits)")
 	,310
 	},
 	{"writeAll",		js_writeall,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("array lines")
@@ -1986,21 +1840,6 @@ static void js_finalize_file(JSContext *cx, JSObject *obj)
 	JS_SetPrivate(cx, obj, NULL);
 }
 
-static JSBool js_file_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, js_file_properties, js_file_functions, NULL, 0));
-}
-
-static JSBool js_file_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_file_resolve(cx, obj, JSVAL_NULL));
-}
-
 static JSClass js_file_class = {
      "File"					/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
@@ -2008,8 +1847,8 @@ static JSClass js_file_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_file_get			/* getProperty	*/
 	,js_file_set			/* setProperty	*/
-	,js_file_enumerate		/* enumerate	*/
-	,js_file_resolve		/* resolve		*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,js_finalize_file		/* finalize		*/
 };
@@ -2038,6 +1877,16 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
+		return(JS_FALSE);
+	}
+
+	if(!js_DefineSyncProperties(cx, obj, js_file_properties)) {
+		dbprintf(TRUE, p, "js_DefineSyncProperties failed");
+		return(JS_FALSE);
+	}
+
+	if(!js_DefineSyncMethods(cx, obj, js_file_functions, FALSE)) {
+		dbprintf(TRUE, p, "js_DefineSyncMethods failed");
 		return(JS_FALSE);
 	}
 
@@ -2102,6 +1951,12 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(obj==NULL)
+		return(NULL);
+
+	if(!js_DefineSyncProperties(cx, obj, js_file_properties))
+		return(NULL);
+
+	if (!js_DefineSyncMethods(cx, obj, js_file_functions, FALSE)) 
 		return(NULL);
 
 	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL)
