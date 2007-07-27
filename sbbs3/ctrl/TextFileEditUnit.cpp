@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TextFileEditUnit.cpp,v 1.5 2008/02/12 09:00:49 rswindell Exp $ */
+/* $Id: TextFileEditUnit.cpp,v 1.4 2003/05/15 02:46:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -65,11 +65,9 @@ void __fastcall TTextFileEditForm::FormShow(TObject *Sender)
         ReplacePopupMenuItem->Enabled=false;
     }
     Caption=Caption+AnsiString(" - ")+Filename;
-    Screen->Cursor=crHourGlass;
     try {
         Memo->Lines->LoadFromFile(Filename);
     } catch(...) { }
-    Screen->Cursor=crDefault;
     ActiveControl=Memo;
     Memo->SelStart=0;
 }
