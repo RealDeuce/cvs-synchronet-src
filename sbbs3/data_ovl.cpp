@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.11 2004/12/17 07:08:53 deuce Exp $ */
+/* $Id: data_ovl.cpp,v 1.12 2007/07/10 22:02:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,10 +106,12 @@ void sbbs_t::putmsgptrs()
 extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan)
 {
 	char	str[256];
-	ushort	idx,scancfg;
+	ushort	idx;
+	uint16_t scancfg;
 	uint	i,j;
 	int 	file;
-	ulong	l=0L,length;
+	ulong	length;
+	uint32_t	l=0L;
 
 	if(!usernumber)
 		return(FALSE);

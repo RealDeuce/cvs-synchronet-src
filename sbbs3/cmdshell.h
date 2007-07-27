@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module constants and structure definitions */
 
-/* $Id: cmdshell.h,v 1.7 2003/10/09 17:27:05 deuce Exp $ */
+/* $Id: cmdshell.h,v 1.9 2007/07/10 23:16:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -653,7 +653,7 @@ typedef struct {					/* Command shell image */
 	
 	FILE	*file[MAX_FOPENS];		/* Each file ptr */
 	int		socket[MAX_SOCKETS];	/* Open socket descriptors */
-	long	socket_error;			/* Last socket error */
+	int32_t	socket_error;			/* Last socket error */
 
 	uint	str_vars,				/* Total number of string variables */
 			int_vars,				/* Total number of integer variables */
@@ -663,13 +663,13 @@ typedef struct {					/* Command shell image */
 			loops,					/* Nested loop depth (loops on stack) */
 			cmdrets;				/* Command returns on stack */
 
-	long	retval, 				/* Return value */
-			misc,					/* Misc bits */
-			ftp_mode,				/* FTP operation mode */
-			switch_val, 			/* Current switch value */
+	int32_t	ftp_mode,				/* FTP operation mode */
 			*int_var,				/* Integer variables */
 			*str_var_name,			/* String variable names (CRC-32) */
 			*int_var_name;			/* Integer variable names (CRC-32) */
+	long	retval, 				/* Return value */
+			misc,					/* Misc bits */
+			switch_val; 			/* Current switch value */
 
 	long	length; 				/* Length of image */
 
