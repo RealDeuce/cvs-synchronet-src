@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.170 2007/07/27 03:32:48 deuce Exp $ */
+/* $Id: term.c,v 1.171 2007/07/27 04:21:49 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1227,6 +1227,7 @@ BOOL doterm(struct bbslist *bbs)
 							if(inch == htmldetect[0]) {
 								htmldet[0]=inch;
 								htmldet[1]=0;
+								continue;
 							}
 						}
 						else {
