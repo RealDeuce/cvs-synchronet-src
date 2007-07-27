@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.21 2007/08/05 08:06:32 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.20 2007/05/11 09:02:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,7 +89,6 @@ ulong	com_baudrate=0;
 BOOL	dcd_ignore=FALSE;
 int		dcd_timeout=10;	/* seconds */
 ulong	dtr_delay=100;	/* milliseconds */
-int		hangup_attempts=10;
 
 BOOL	terminated=FALSE;
 BOOL	terminate_after_one_call=FALSE;
@@ -1257,29 +1256,24 @@ BOOL handle_call(void)
 BOOL hangup_call(COM_HANDLE com_handle)
 {
 	time_t start;
-	int		attempt;
 
 	if((comGetModemStatus(com_handle)&COM_DCD)==0)	/* DCD already low */
 		return TRUE;
 
 	lprintf(LOG_DEBUG,"Waiting for transmit buffer to empty");
 	SLEEP(dtr_delay);
-	for(attempt=0; attempt<hangup_attempts; attempt++) {
-		lprintf(LOG_INFO,"Dropping DTR (attempt #%d)", attempt+1);
-		if(!comLowerDTR(com_handle)) {
-			lprintf(LOG_ERR,"ERROR %u lowering DTR", COM_ERROR);
-			continue;
-		}
-		lprintf(LOG_INFO,"Waiting for loss of Carrier Detect (DCD)");
-		start=time(NULL);
-		while(time(NULL)-start <= dcd_timeout) {
-			if((comGetModemStatus(com_handle)&COM_DCD)==0)
-				return TRUE;
-			SLEEP(1000); 
-		}
-		lprintf(LOG_ERR,"TIMEOUT waiting for DCD to drop (attempt #%d of %d)"
-			, attempt+1, hangup_attempts);
+	lprintf(LOG_INFO,"Dropping DTR");
+	if(!comLowerDTR(com_handle))
+		return FALSE;
+
+	lprintf(LOG_INFO,"Waiting for loss of Carrier Detect (DCD)");
+	start=time(NULL);
+	while(time(NULL)-start <= dcd_timeout) {
+		if((comGetModemStatus(com_handle)&COM_DCD) == 0)
+			return TRUE;
+		SLEEP(1000); 
 	}
+	lprintf(LOG_ERR,"TIMEOUT waiting for DCD to drop");
 
 	return FALSE;
 }
@@ -1324,7 +1318,6 @@ void parse_ini_file(const char* ini_fname)
 	iniGetExistingString(list, section, "Device", NULL, com_dev);
 	com_baudrate    = iniGetLongInt(list, section, "BaudRate", com_baudrate);
 	com_hangup	    = iniGetBool(list, section, "Hangup", com_hangup);
-	hangup_attempts = iniGetInteger(list, section, "HangupAttempts", hangup_attempts);
 	dcd_timeout     = iniGetInteger(list, section, "DCDTimeout", dcd_timeout);
 	dcd_ignore      = iniGetBool(list, section, "IgnoreDCD", dcd_ignore);
 	dtr_delay		= iniGetLongInt(list, section, "DTRDelay", dtr_delay);
@@ -1527,7 +1520,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.21 $", "%*s %s", revision);
+	sscanf("$Revision: 1.20 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
