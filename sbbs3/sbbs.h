@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.305 2007/07/11 01:07:38 deuce Exp $ */
+/* $Id: sbbs.h,v 1.306 2007/07/25 23:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -434,7 +434,7 @@ public:
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del);
-	void	gettimeleft(void);
+	ulong	gettimeleft(bool handle_out_of_time=true);
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
@@ -904,6 +904,9 @@ extern "C" {
 										,char* host, char* ip_addr, char* to, char* from);
 
 	DLLEXPORT char *	DLLCALL remove_ctrl_a(char* instr, char* outstr);
+
+	/* data.cpp */
+	DLLEXPORT time_t	DLLCALL getnextevent(scfg_t* cfg, event_t* event);
 
 	/* data_ovl.cpp */
 	DLLEXPORT BOOL		DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
