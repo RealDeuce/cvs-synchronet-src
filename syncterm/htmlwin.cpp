@@ -1,4 +1,10 @@
-/* Copyright (C), 2007 by Stephen Hurd */
+//
+// file name: hworld.cpp
+//
+//   purpose: wxWidgets "Hello world"
+//
+
+// For compilers that support precompilation, includes "wx/wx.h".
 
 #undef _DEBUG
 
@@ -22,15 +28,19 @@ static sem_t		state_changed;
 static pthread_mutex_t	update_mutex;
 
 static wxString	update_str;
+
 enum update_type {
 	 HTML_WIN_UPDATE_NONE
 	,HTML_WIN_UPDATE_ADD
 	,HTML_WIN_UPDATE_REPLACE
 };
+
 static enum update_type		update_type=HTML_WIN_UPDATE_NONE;
 
 static wxFrame		*frame;
 static wxHtmlWindow *htmlWindow;
+static wxTimer		*update_timer;
+static wxTimer		*state_timer;
 
 static int			window_width=640;
 static int			window_height=400;
@@ -43,11 +53,84 @@ static bool			html_thread_running=false;
 
 enum html_window_state {
 	 HTML_WIN_STATE_RAISED
-	,HTML_WIN_STATE_LOWERED
 	,HTML_WIN_STATE_ICONIZED
 	,HTML_WIN_STATE_HIDDEN
 };
+
 static enum html_window_state	html_window_requested_state=HTML_WIN_STATE_RAISED;
+
+class MyUpdateTimer: public wxTimer
+{
+protected:
+	void Notify(void);
+};
+
+void MyUpdateTimer::Notify(void)
+{
+	int width,height,xpos,ypos;
+
+	pthread_mutex_lock(&update_mutex);
+	switch(update_type) {
+		case HTML_WIN_UPDATE_REPLACE:
+			frame->Show();
+			frame->Raise();
+			frame->GetPosition(&xpos, &ypos);
+			frame->GetSize(&width, &height);
+			if(xpos != window_xpos 
+					|| ypos != window_ypos
+					|| width != window_width
+					|| height != window_height)
+				frame->SetSize(window_xpos, window_ypos, window_width, window_height, wxSIZE_AUTO);
+			htmlWindow->SetPage(update_str);
+			htmlWindow->Raise();
+			htmlWindow->SetFocus();
+			sem_post(&shown);
+			break;
+		case HTML_WIN_UPDATE_ADD:
+			htmlWindow->AppendToPage(update_str);
+			sem_post(&shown);
+			break;
+	}
+	update_str=wxT("");
+	update_type=HTML_WIN_UPDATE_NONE;
+	pthread_mutex_unlock(&update_mutex);
+}
+
+class MyStateTimer: public wxTimer
+{
+protected:
+	void Notify(void);
+};
+
+void MyStateTimer::Notify(void)
+{
+	if(wxTheApp) {
+		switch(html_window_requested_state) {
+			case HTML_WIN_STATE_RAISED:
+				if(!frame->IsShown())
+					frame->Show();
+				if(frame->IsIconized())
+					frame->Iconize(false);
+				frame->Raise();
+				htmlWindow->Raise();
+				htmlWindow->SetFocus();
+				break;
+			case HTML_WIN_STATE_ICONIZED:
+				if(!frame->IsShown())
+					frame->Show();
+				frame->Lower();
+				if(!frame->IsIconized())
+					frame->Iconize(true);
+				break;
+			case HTML_WIN_STATE_HIDDEN:
+				frame->Lower();
+				if(frame->IsShown())
+					frame->Show(false);
+				break;
+		}
+	}
+	sem_post(&state_changed);
+}
 
 class MyHTML: public wxHtmlWindow
 {
@@ -59,9 +142,6 @@ public:
 protected:
 	wxHtmlOpeningStatus OnOpeningURL(wxHtmlURLType type,const wxString& url, wxString *redirect) const;
 	void MyHTML::OnKeyDown(wxKeyEvent& event);
-	void MyHTML::OnUpdate(wxCommandEvent &event);
-	void MyHTML::OnState(wxCommandEvent &event);
-	void MyHTML::UnHide(void);
 
 	DECLARE_EVENT_TABLE()
 };
@@ -130,102 +210,12 @@ void MyHTML::OnKeyDown(wxKeyEvent& event)
 	event.Skip();
 }
 
-void MyHTML::OnUpdate(wxCommandEvent &event)
-{
-	pthread_mutex_lock(&update_mutex);
-	switch(update_type) {
-		case HTML_WIN_UPDATE_REPLACE:
-			frame->Show();
-			frame->Raise();
-			htmlWindow->SetPage(update_str);
-			htmlWindow->Raise();
-			htmlWindow->SetFocus();
-			sem_post(&shown);
-			break;
-		case HTML_WIN_UPDATE_ADD:
-			htmlWindow->AppendToPage(update_str);
-			sem_post(&shown);
-			break;
-	}
-	update_str=wxT("");
-	update_type=HTML_WIN_UPDATE_NONE;
-	pthread_mutex_unlock(&update_mutex);
-}
-
-void MyHTML::UnHide(void)
-{
-	int width,height,xpos,ypos;
-
-	if(!frame->IsShown()) {
-		frame->GetPosition(&xpos, &ypos);
-		frame->GetSize(&width, &height);
-		if(xpos != window_xpos 
-				|| ypos != window_ypos
-				|| width != window_width
-				|| height != window_height)
-			frame->SetSize(window_xpos, window_ypos, window_width, window_height, wxSIZE_AUTO);
-		frame->Show(true);
-	}
-}
-
-void MyHTML::OnState(wxCommandEvent &event)
-{
-	if(wxTheApp) {
-		switch(html_window_requested_state) {
-			case HTML_WIN_STATE_RAISED:
-				UnHide();
-				if(frame->IsIconized())
-					frame->Iconize(false);
-#ifdef _WIN32
-				frame->Hide();
-#endif
-				frame->Show();
-				frame->Raise();
-				htmlWindow->Show();
-				htmlWindow->Raise();
-				htmlWindow->SetFocus();
-				break;
-			case HTML_WIN_STATE_LOWERED:
-				UnHide();
-				if(frame->IsIconized())
-					frame->Iconize(false);
-				frame->Lower();
-				break;
-			case HTML_WIN_STATE_ICONIZED:
-				UnHide();
-				frame->Lower();
-				if(!frame->IsIconized())
-					frame->Iconize(true);
-				break;
-			case HTML_WIN_STATE_HIDDEN:
-				frame->Lower();
-				if(frame->IsShown())
-					frame->Show(false);
-				break;
-		}
-	}
-	sem_post(&state_changed);
-}
-
 #define HTML_ID		wxID_HIGHEST
-
-DECLARE_EVENT_TYPE(update_event, -1)
-DECLARE_EVENT_TYPE(state_event, -1)
-DEFINE_EVENT_TYPE(update_event)
-DEFINE_EVENT_TYPE(state_event)
 
 BEGIN_EVENT_TABLE(MyHTML, wxHtmlWindow)
   EVT_KEY_DOWN(MyHTML::OnKeyDown)
   EVT_HTML_LINK_CLICKED(HTML_ID, MyHTML::Clicked)
-  EVT_COMMAND(HTML_ID, update_event, MyHTML::OnUpdate)
-  EVT_COMMAND(HTML_ID, state_event, MyHTML::OnState)
 END_EVENT_TABLE()
-
-void send_html_event(int evt)
-{
-	wxCommandEvent event( evt, HTML_ID );
-	htmlWindow->GetEventHandler()->AddPendingEvent( event );
-}
 
 class MyFrame: public wxFrame
 {
@@ -264,14 +254,20 @@ bool MyApp::OnInit()
 			, wxT("SyncTERM HTML")
 			, wxPoint(window_xpos,window_ypos)
 			, wxSize(window_width,window_height)
-			, wxMINIMIZE_BOX | wxRESIZE_BORDER | wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU /* wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCLIP_CHILDREN */
+			, wxCLOSE_BOX | wxMINIMIZE_BOX | wxCAPTION | wxCLIP_CHILDREN
 	);
-	htmlWindow = new MyHTML(frame, HTML_ID);
-	htmlWindow->SetRelatedFrame(frame,wxT("SyncTERM HTML : %s"));
 	wxFileSystem::AddHandler(new wxInternetFSHandler);
 	wxInitAllImageHandlers();
-    frame->Show();
-    SetTopWindow( frame );
+	htmlWindow = new MyHTML(frame, HTML_ID);
+	htmlWindow->SetRelatedFrame(frame,wxT("SyncTERM HTML : %s"));
+    //frame->Show();
+	//htmlWindow->Raise();
+	//htmlWindow->SetFocus();
+	//frame->Iconize();
+    //SetTopWindow( frame );
+	update_timer = new MyUpdateTimer();
+	state_timer = new MyStateTimer();
+	state_timer->Start(1, true);
 	sem_post(&appstarted);
     return true;
 }
@@ -322,41 +318,32 @@ extern "C" {
 	void hide_html(void)
 	{
 		html_window_requested_state=HTML_WIN_STATE_HIDDEN;
-		send_html_event(state_event);
+		state_timer->Start(1, true);
 		sem_wait(&state_changed);
 	}
 
 	void iconize_html(void)
 	{
 		html_window_requested_state=HTML_WIN_STATE_ICONIZED;
-		send_html_event(state_event);
+		state_timer->Start(1, true);
 		sem_wait(&state_changed);
 	}
 
 	void raise_html(void)
 	{
 		html_window_requested_state=HTML_WIN_STATE_RAISED;
-		send_html_event(state_event);
+		state_timer->Start(1, true);
 		sem_wait(&state_changed);
 	}
 	
-	void lower_html(void)
-	{
-		html_window_requested_state=HTML_WIN_STATE_LOWERED;
-		send_html_event(state_event);
-		sem_wait(&state_changed);
-	}
-
 	void html_commit(void)
 	{
 		pthread_mutex_lock(&update_mutex);
 		if(update_type!=HTML_WIN_UPDATE_NONE) {
-			send_html_event(update_event);
-			pthread_mutex_unlock(&update_mutex);
-			sem_wait(&shown);
+			update_timer->Start(1, true);
 		}
-		else
-			pthread_mutex_unlock(&update_mutex);
+		pthread_mutex_unlock(&update_mutex);
+		sem_wait(&shown);
 	}
 
 	void add_html(const char *buf)
@@ -376,7 +363,7 @@ extern "C" {
 		str[1]=0;
 		add_html(str);
 	}
-
+	
 	void show_html(const char *page)
 	{
 		if(wxTheApp) {
