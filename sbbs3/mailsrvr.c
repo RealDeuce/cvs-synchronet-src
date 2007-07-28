@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.418 2007/07/10 23:54:47 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.419 2007/07/22 08:01:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3727,7 +3727,7 @@ static void sendmail_thread(void* arg)
 							,TIMEOUT_THREAD_WAIT/2))!=0) {
 							remove_msg_intransit(&smb,&msg);
 							lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
-								,i,p,startup->dns_server);
+								,i,p,dns_server);
 							SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
 							bounce(&smb,&msg,err,FALSE);
 							continue;
@@ -4060,7 +4060,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.418 $", "%*s %s", revision);
+	sscanf("$Revision: 1.419 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
