@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.139 2007/08/12 19:24:08 deuce Exp $ */
+/* $Id: smblib.c,v 1.138 2007/07/10 22:20:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -771,10 +771,10 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 			msg->expiration=*(time_t*)hfield_dat;
 			break;
 		case SMB_PRIORITY:
-			msg->priority=*(uint32_t*)hfield_dat;
+			msg->priority=*(ulong*)hfield_dat;
 			break;
 		case SMB_COST:
-			msg->cost=*(uint32_t*)hfield_dat;
+			msg->cost=*(ulong*)hfield_dat;
 			break;
 		case RFC822MSGID:
 			msg->id=(char*)hfield_dat;
@@ -1275,8 +1275,7 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 	int		wr;
 	long	length;
 	long	newlen;
-	ulong	l;
-	uint32_t *buf;
+	ulong	l,*buf;
 	time_t	start=0;
 
 	if(!smb->status.max_crcs)
@@ -1305,7 +1304,7 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 	}
 
 	length=filelength(file);
-	if(length<0L || length%sizeof(uint32_t)) {
+	if(length<0L || length%sizeof(long)) {
 		close(file);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"invalid file length: %ld", length);
@@ -1313,7 +1312,7 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 	}
 
 	if(length!=0) {
-		if((buf=(uint32_t*)malloc(length))==NULL) {
+		if((buf=(ulong*)malloc(length))==NULL) {
 			close(file);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"malloc failure of %ld bytes"
@@ -1330,10 +1329,10 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 			return(SMB_ERR_READ);
 		}
 
-		for(l=0;l<length/sizeof(int32_t);l++)
+		for(l=0;l<length/sizeof(long);l++)
 			if(crc==buf[l])
 				break;
-		if(l<length/sizeof(int32_t)) {					/* Dupe CRC found */
+		if(l<length/sizeof(long)) {					/* Dupe CRC found */
 			close(file);
 			free(buf);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
@@ -1341,8 +1340,8 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 			return(SMB_DUPE_MSG);
 		} 
 
-		if(length>=(long)(smb->status.max_crcs*sizeof(int32_t))) {
-			newlen=(smb->status.max_crcs-1)*sizeof(int32_t);
+		if(length>=(long)(smb->status.max_crcs*sizeof(long))) {
+			newlen=(smb->status.max_crcs-1)*sizeof(long);
 			chsize(file,0);	/* truncate it */
 			lseek(file,0L,SEEK_SET);
 			write(file,buf+(length-newlen),newlen); 
