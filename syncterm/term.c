@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.182 2007/07/29 02:37:11 deuce Exp $ */
+/* $Id: term.c,v 1.175 2007/07/28 11:18:34 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1291,11 +1291,9 @@ BOOL doterm(struct bbslist *bbs)
 #ifdef WITH_WXWIDGETS
 						if(html_mode==HTML_MODE_READING) {
 							if(inch==2) {
+								html_mode=HTML_MODE_RAISED;
 								html_startx=wherex();
 								html_starty=wherey();
-								html_commit();
-								raise_html();
-								html_mode=HTML_MODE_RAISED;
 							}
 							else {
 								add_html_char(inch);
@@ -1318,22 +1316,19 @@ BOOL doterm(struct bbslist *bbs)
 								if(j==sizeof(htmldetect)-1) {
 									if(!strcmp(htmldet, htmldetect)) {
 										if(html_supported==HTML_SUPPORT_UNKNOWN) {
-											int width,height,xpos,ypos;
-											html_addr=bbs->addr;
-
-											get_window_info(&width, &height, &xpos, &ypos);
-											if(!run_html(width, height, xpos, ypos, html_send, html_urlredirect))
+											if(!run_html())
 												html_supported=HTML_SUPPORTED;
 											else
 												html_supported=HTML_NOTSUPPORTED;
 										}
-										if(html_supported==HTML_SUPPORTED) {
+										if(html_supported==HTML_SUPPORTED)
 											conn_send(htmlresponse, sizeof(htmlresponse)-1, 0);
-											hide_html();
-										}
 									}
 									else {
-										show_html("");
+										int width,height,xpos,ypos;
+										get_window_info(&width, &height, &xpos, &ypos);
+										html_addr=bbs->addr;
+										show_html(width, height, xpos, ypos, html_send, html_urlredirect, "");
 										html_mode=HTML_MODE_READING;
 									}
 									htmldet[0]=0;
