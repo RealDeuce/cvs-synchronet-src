@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.23 2007/09/11 01:12:52 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.20 2007/05/11 09:02:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,7 +89,6 @@ ulong	com_baudrate=0;
 BOOL	dcd_ignore=FALSE;
 int		dcd_timeout=10;	/* seconds */
 ulong	dtr_delay=100;	/* milliseconds */
-int		hangup_attempts=10;
 
 BOOL	terminated=FALSE;
 BOOL	terminate_after_one_call=FALSE;
@@ -611,22 +610,14 @@ static BOOL winsock_startup(void)
 BOOL modem_send(COM_HANDLE com_handle, const char* str)
 {
 	const char* p;
-	char		ch;
 
 	lprintf(LOG_INFO,"Modem Command: %s", str);
 	for(p=str; *p; p++) {
-		ch=*p;
-		if(ch=='~') {
+		if(*p=='~') {
 			SLEEP(MDM_TILDE_DELAY);
 			continue;
 		}
-		if(ch=='^' && *(p+1)) {	/* Support ^X for control characters embedded in modem command strings */
-			p++;
-			ch=*p;
-			if(ch!='^' && ch>='@')	/* ^^ to send an '^' char to the modem */
-				ch-='@';
-		}
-		if(!comWriteByte(com_handle,ch))
+		if(!comWriteByte(com_handle,*p))
 			return FALSE;
 	}
 	SLEEP(100);
@@ -683,8 +674,7 @@ BOOL modem_command(COM_HANDLE com_handle, const char* cmd)
 	char resp[128];
 
 	if(!modem_send(com_handle, cmd)) {
-		lprintf(LOG_ERR,"ERROR %u sending modem command (%s)"
-			,COM_ERROR_VALUE, cmd);
+		lprintf(LOG_ERR,"ERROR %u sending modem command", COM_ERROR_VALUE);
 		return FALSE;
 	}
 
@@ -751,7 +741,6 @@ BOOL wait_for_call(COM_HANDLE com_handle)
 	char*		p;
 	BOOL		result=TRUE;
 	DWORD		events=0;
-	int			mdm_status;
 
 	ZERO_VAR(cid_name);
 	ZERO_VAR(cid_number);
@@ -816,10 +805,7 @@ BOOL wait_for_call(COM_HANDLE com_handle)
 			}
 			continue;	/* don't check DCD until we've received all the modem msgs */
 		}
-		if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR)
-			lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
-				,COM_ERROR_VALUE, __LINE__);
-		else if(mdm_status&COM_DCD)
+		if(comGetModemStatus(com_handle)&COM_DCD)
 			break;
 	}
 
@@ -1192,7 +1178,6 @@ BOOL handle_call(void)
 	int			result;
 	int			rd;
 	int			wr;
-	int			mdm_status;
 	fd_set		socket_set;
 	struct		timeval tv = {0, 0};
 
@@ -1213,16 +1198,9 @@ BOOL handle_call(void)
 
 	while(!terminated) {
 
-		if(!dcd_ignore) {
-			if((mdm_status = comGetModemStatus(com_handle)) == COM_ERROR) {
-				lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
-					,COM_ERROR_VALUE, __LINE__);
-				break;
-			}
-			if((mdm_status&COM_DCD) == 0) {
-				lprintf(LOG_WARNING,"Loss of Carrier Detect (DCD) detected");
-				break;
-			}
+		if(!dcd_ignore && (comGetModemStatus(com_handle)&COM_DCD) == 0) {
+			lprintf(LOG_WARNING,"Loss of Carrier Detect (DCD) detected");
+			break;
 		}
 #if 0
 		if(comReadByte(com_handle, &ch)) {
@@ -1277,41 +1255,25 @@ BOOL handle_call(void)
 /****************************************************************************/
 BOOL hangup_call(COM_HANDLE com_handle)
 {
-	time_t	start;
-	int		attempt;
-	int		mdm_status;
+	time_t start;
 
-	if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR) {
-		lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
-			,COM_ERROR_VALUE, __LINE__);
-		return TRUE;
-	}
-	if((mdm_status&COM_DCD)==0)	/* DCD already low */
+	if((comGetModemStatus(com_handle)&COM_DCD)==0)	/* DCD already low */
 		return TRUE;
 
 	lprintf(LOG_DEBUG,"Waiting for transmit buffer to empty");
 	SLEEP(dtr_delay);
-	for(attempt=0; attempt<hangup_attempts; attempt++) {
-		lprintf(LOG_INFO,"Dropping DTR (attempt #%d)", attempt+1);
-		if(!comLowerDTR(com_handle)) {
-			lprintf(LOG_ERR,"ERROR %u lowering DTR", COM_ERROR);
-			continue;
-		}
-		lprintf(LOG_DEBUG,"Waiting for loss of Carrier Detect (DCD)");
-		start=time(NULL);
-		while(time(NULL)-start <= dcd_timeout) {
-			if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR) {
-				lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
-					,COM_ERROR_VALUE, __LINE__);
-				return TRUE;
-			}
-			if((mdm_status&COM_DCD)==0)
-				return TRUE;
-			SLEEP(1000); 
-		}
-		lprintf(LOG_ERR,"TIMEOUT waiting for DCD to drop (attempt #%d of %d)"
-			, attempt+1, hangup_attempts);
+	lprintf(LOG_INFO,"Dropping DTR");
+	if(!comLowerDTR(com_handle))
+		return FALSE;
+
+	lprintf(LOG_INFO,"Waiting for loss of Carrier Detect (DCD)");
+	start=time(NULL);
+	while(time(NULL)-start <= dcd_timeout) {
+		if((comGetModemStatus(com_handle)&COM_DCD) == 0)
+			return TRUE;
+		SLEEP(1000); 
 	}
+	lprintf(LOG_ERR,"TIMEOUT waiting for DCD to drop");
 
 	return FALSE;
 }
@@ -1356,7 +1318,6 @@ void parse_ini_file(const char* ini_fname)
 	iniGetExistingString(list, section, "Device", NULL, com_dev);
 	com_baudrate    = iniGetLongInt(list, section, "BaudRate", com_baudrate);
 	com_hangup	    = iniGetBool(list, section, "Hangup", com_hangup);
-	hangup_attempts = iniGetInteger(list, section, "HangupAttempts", hangup_attempts);
 	dcd_timeout     = iniGetInteger(list, section, "DCDTimeout", dcd_timeout);
 	dcd_ignore      = iniGetBool(list, section, "IgnoreDCD", dcd_ignore);
 	dtr_delay		= iniGetLongInt(list, section, "DTRDelay", dtr_delay);
@@ -1559,7 +1520,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.23 $", "%*s %s", revision);
+	sscanf("$Revision: 1.20 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
