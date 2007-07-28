@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.71 2007/06/21 03:33:19 deuce Exp $ */
+/* $Id: console.c,v 1.73 2007/07/27 02:10:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,6 +182,11 @@ GC cgc;
 int xfd;
 char window_title[81];
 char window_name[81];
+
+int x11_window_xpos=-1;
+int x11_window_ypos=-1;
+int x11_window_width=-1;
+int x11_window_height=-1;
 
 /* X functions */
 struct x11 {
@@ -631,6 +636,10 @@ video_event(XEvent *ev)
 				int r;
 
 				oldFS=FontScale;
+				x11_window_xpos=ev->xconfigure.x-ev->xconfigure.border_width;
+				x11_window_ypos=ev->xconfigure.y-ev->xconfigure.border_width;
+				x11_window_width=ev->xconfigure.width+ev->xconfigure.border_width*2;
+				x11_window_height=ev->xconfigure.height+ev->xconfigure.border_width*2;
 				if((ev->xconfigure.width == FW * DpyCols + 4)
 						&& (ev->xconfigure.height == FH * (DpyRows+1) + 4))
 					break;
