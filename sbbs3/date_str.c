@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.23 2007/07/11 00:42:15 deuce Exp $ */
+/* $Id: date_str.c,v 1.24 2007/07/11 00:43:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -154,7 +154,7 @@ char* DLLCALL time32str(scfg_t *cfg, time32_t *intime, char *str)
 {
 	time_t	tmptime=*intime;
 
-	return(timestr(cfg,&tmptime,str);
+	return(timestr(cfg,&tmptime,str));
 }
 
 char* DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str)
