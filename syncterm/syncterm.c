@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.107 2007/07/06 02:49:20 deuce Exp $ */
+/* $Id: syncterm.c,v 1.108 2007/07/28 11:18:34 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -795,6 +795,15 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			backslash(fn);
 			strncat(fn,"syncterm.lst",fnlen);
 			break;
+		case SYNCTERM_PATH_CACHE:
+			backslash(fn);
+			strncat(fn,"cache",fnlen);
+			backslash(fn);
+			if(!isdir(fn)) {
+				if(MKDIR(fn))
+					fn[0]=0;
+			}
+			break;
 	}
 #else
 	char	*home;
@@ -803,9 +812,13 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	if(inpath==NULL)
 		home=getenv("HOME");
 	if(home==NULL || strlen(home) > MAX_PATH-32) {	/* $HOME just too damn big */
-		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
+		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH || type==SYNCTERM_PATH_CACHE) {
 			getcwd(fn, fnlen);
 			backslash(fn);
+			if(type==SYNCTERM_PATH_CACHE) {
+				strcat(fn,"cache");
+				backslash(fn);
+			}
 			return(fn);
 		}
 		SAFECOPY(oldlst,"syncterm.lst");
@@ -849,6 +862,14 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			break;
 		case SYNCTERM_PATH_LIST:
 			strncat(fn,"syncterm.lst",fnlen);
+			break;
+		case SYNCTERM_PATH_CACHE:
+			strncat(fn,"cache",fnlen);
+			backslash(fn);
+			if(!isdir(fn)) {
+				if(MKDIR(fn))
+					fn[0]=0;
+			}
 			break;
 	}
 #endif
