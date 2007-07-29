@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.69 2006/08/24 00:17:25 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.70 2006/08/24 00:20:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -631,10 +631,6 @@ int DLLCALL getfattr(const char* filename)
 
 	return(st.st_mode);
 #endif
-}
-
-static ulong delfiles_dirs(char *inpath, char *spec, int dirs)
-{
 }
 
 #ifdef __unix__
