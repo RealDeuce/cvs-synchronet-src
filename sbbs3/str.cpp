@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.55 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: str.cpp,v 1.59 2007/07/11 00:31:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -560,6 +560,16 @@ size_t sbbs_t::gettmplt(char *strout,char *templt, long mode)
 /* Accepts a user's input to change a new-scan time pointer                  */
 /* Returns 0 if input was aborted or invalid, 1 if complete					 */
 /*****************************************************************************/
+bool sbbs_t::inputnstime32(time32_t *dt)
+{
+	bool retval;
+	time_t	tmptime=*dt;
+
+	retval=inputnstime(&tmptime);
+	*dt=tmptime;
+	return(retval);
+}
+
 bool sbbs_t::inputnstime(time_t *dt)
 {
 	int hour;
@@ -676,10 +686,14 @@ bool sbbs_t::inputnstime(time_t *dt)
 /*****************************************************************************/
 /* Checks a password for uniqueness and validity                              */
 /*****************************************************************************/
-bool sbbs_t::chkpass(char *pass, user_t* user, bool unique)
+bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 {
 	char c,d,first[128],last[128],sysop[41],sysname[41],*p;
 	char alias[LEN_ALIAS+1], name[LEN_NAME+1], handle[LEN_HANDLE+1];
+	char pass[LEN_PASS+1];
+
+	SAFECOPY(pass,passwd);
+	strupr(pass);
 
 	if(strlen(pass)<4) {
 		bputs(text[PasswordTooShort]);
@@ -711,23 +725,23 @@ bool sbbs_t::chkpass(char *pass, user_t* user, bool unique)
 		bputs(text[PasswordObvious]);
 		return(0); 
 	}
-	strcpy(name,user->name);
+	SAFECOPY(name,user->name);
 	strupr(name);
-	strcpy(alias,user->alias);
+	SAFECOPY(alias,user->alias);
 	strupr(alias);
-	strcpy(first,alias);
+	SAFECOPY(first,alias);
 	p=strchr(first,' ');
 	if(p) {
 		*p=0;
-		strcpy(last,p+1); 
+		SAFECOPY(last,p+1); 
 	}
 	else
 		last[0]=0;
-	strcpy(handle,user->handle);
+	SAFECOPY(handle,user->handle);
 	strupr(handle);
-	strcpy(sysop,cfg.sys_op);
+	SAFECOPY(sysop,cfg.sys_op);
 	strupr(sysop);
-	strcpy(sysname,cfg.sys_name);
+	SAFECOPY(sysname,cfg.sys_name);
 	strupr(sysname);
 	if((unique && user->pass[0]
 			&& (strstr(pass,user->pass) || strstr(user->pass,pass)))
@@ -820,6 +834,12 @@ bool sbbs_t::trashcan(char *insearchof, char *name)
 		}
 	}
 	return(result);
+}
+
+char* sbbs_t::time32str(time32_t *intime)
+{
+	time_t intime32=*intime;
+	return(::timestr(&cfg,&intime32,timestr_output));
 }
 
 char* sbbs_t::timestr(time_t *intime)
