@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.179 2007/07/29 01:13:05 deuce Exp $ */
+/* $Id: term.c,v 1.180 2007/07/29 01:19:40 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1291,10 +1291,11 @@ BOOL doterm(struct bbslist *bbs)
 #ifdef WITH_WXWIDGETS
 						if(html_mode==HTML_MODE_READING) {
 							if(inch==2) {
-								html_mode=HTML_MODE_RAISED;
 								html_startx=wherex();
 								html_starty=wherey();
 								html_commit();
+								raise_html()
+								html_mode=HTML_MODE_RAISED;
 							}
 							else {
 								add_html_char(inch);
