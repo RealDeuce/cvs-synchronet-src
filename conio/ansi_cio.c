@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.70 2008/02/06 03:44:43 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.64 2007/06/29 05:45:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,23 +56,29 @@
 
 int	CIOLIB_ANSI_TIMEOUT=500;
 
-static sem_t	got_key;
-static sem_t	got_input;
-static sem_t	used_input;
-static sem_t	goahead;
-static sem_t	need_key;
+sem_t	got_key;
+sem_t	got_input;
+sem_t	used_input;
+sem_t	goahead;
+sem_t	need_key;
 static BOOL	sent_ga=FALSE;
-static int ansix=1;
-static int ansiy=1;
+WORD	ansi_curr_attr=0x07<<8;
 
-static int ansi_got_row=0;
-static int doorway_enabled=0;
+int ansi_rows=-1;
+int ansi_cols=80;
+int ansi_got_row=0;
+int ansi_got_col=0;
+int ansi_esc_delay=25;
+int doorway_enabled=0;
 
+const int 	ansi_tabs[10]={9,17,25,33,41,49,57,65,73,80};
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
 static WORD		ansi_inch;
 static unsigned char		ansi_raw_inch;
-static WORD	*ansivmem;
-static int		force_move=1;
+WORD	*ansivmem;
+int		ansi_row=0;
+int		ansi_col=0;
+int		force_move=1;
 
 /* Control sequence table definitions. */
 typedef struct
@@ -101,10 +107,8 @@ typedef struct
 #define ANSI_KEY_PGDN	0x51<<8
 #define ANSI_KEY_INSERT	0x52<<8
 #define ANSI_KEY_DELETE	0x53<<8
-#define ANSI_KEY_F11	0x85<<8
-#define ANSI_KEY_F12	0x86<<8
 
-static tODKeySequence ODaKeySequences[] =
+tODKeySequence ODaKeySequences[] =
 {
    /* VT-52 control sequences. */
    {"\033A", ANSI_KEY_UP},
@@ -138,19 +142,11 @@ static tODKeySequence ODaKeySequences[] =
    {"\033OS", ANSI_KEY_F4},
 
    /* VT-220/VT-320 specific control sequences. */
-   {"\033[1~",  ANSI_KEY_HOME}, /* Windows XP terminal.exe.  Is actually FIND */
-   {"\033[2~",  ANSI_KEY_INSERT},
-   {"\033[3~",  ANSI_KEY_DELETE},
-   {"\033[4~",  ANSI_KEY_END},  /* Windows XP terminal.exe.  Is actually SELECT */
-   {"\033[5~",  ANSI_KEY_PGUP},
-   {"\033[6~",  ANSI_KEY_PGDN},
    {"\033[17~", ANSI_KEY_F6},
    {"\033[18~", ANSI_KEY_F7},
    {"\033[19~", ANSI_KEY_F8},
    {"\033[20~", ANSI_KEY_F9},
    {"\033[21~", ANSI_KEY_F10},
-   {"\033[23~", ANSI_KEY_F11},
-   {"\033[24~", ANSI_KEY_F12},
 
    /* ANSI-specific control sequences. */
    {"\033[L", ANSI_KEY_HOME},
@@ -162,12 +158,6 @@ static tODKeySequence ODaKeySequences[] =
    {"\033Or", ANSI_KEY_F8},
    {"\033Op", ANSI_KEY_F9},
 
-   /* ECMA 048-specific control sequences. */
-   {"\033[V", ANSI_KEY_PGUP},
-   {"\033[U", ANSI_KEY_PGDN},
-   {"\033[@", ANSI_KEY_INSERT},
-   
-   
    /* PROCOMM-specific control sequences (non-keypad alternatives). */
    {"\033OA", ANSI_KEY_UP},
    {"\033OB", ANSI_KEY_DOWN},
@@ -181,7 +171,7 @@ static tODKeySequence ODaKeySequences[] =
 };
 
 #ifdef NEEDS_CFMAKERAW
-static void
+void
 cfmakeraw(struct termios *t)
 {
 	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
@@ -194,19 +184,19 @@ cfmakeraw(struct termios *t)
 
 /* Do NOT call this to output to the last column of the last row. */
 /* ONLY call this for chars which will move the cursor */
-static void ansi_sendch(char ch)
+void ansi_sendch(char ch)
 {
 	if(!ch)
 		ch=' ';
-	ansix++;
-	if(ansix>cio_textinfo.screenwidth) {
+	ansi_col++;
+	if(ansi_col>=ansi_cols) {
 		/* Column 80 sux0rz */
 		force_move=1;
-		ansix=1;
-		ansiy++;
-		if(ansiy>cio_textinfo.screenheight) {
-			ansix=cio_textinfo.screenwidth;
-			ansiy=cio_textinfo.screenheight;
+		ansi_col=0;
+		ansi_row++;
+		if(ansi_row>=ansi_rows) {
+			ansi_col=ansi_cols-1;
+			ansi_row=ansi_rows-1;
 		}
 	}
 	if(doorway_enabled && ch < ' ')
@@ -217,132 +207,13 @@ static void ansi_sendch(char ch)
 		force_move=1;
 }
 
-static void ansi_sendstr(char *str,int len)
+void ansi_sendstr(char *str,int len)
 {
 	if(len==-1)
 		len=strlen(str);
-	if(len)
+	if(len) {
 		fwrite(str,len,1,stdout);
-}
-
-static void ansi_gotoxy_abs(int x, int y)
-{
-	char str[16];
-
-	str[0]=0;
-	if(x < 1
-		|| x > cio_textinfo.screenwidth
-		|| y < 1
-		|| y > cio_textinfo.screenheight)
-		return;
-
-	/* ToDo optimizations: use tabs for horizontal movement to tabstops */
-
-	/* Movement forced... always send position code */
-	if(force_move) {
-		sprintf(str,"\033[%d;%dH",y,x);
-		ansi_sendstr(str,-1);
-		force_move=0;
-		ansiy=y;
-		ansix=x;
-		return;
 	}
-
-	/* Moving to col 1 (and not already there)... use \r */
-	if(x==1 && ansix>1) {
-		ansi_sendstr("\r",1);
-		ansix=1;
-	}
-
-	/* Do we even NEED to move? */
-	if(x==ansix && y==ansiy)
-		return;
-
-	/* If we're already on the correct column */
-	if(x==ansix) {
-		/* Do we need to move up? */
-		if(y<ansiy) {
-			if(y==ansiy-1)
-				/* Only up one */
-				strcpy(str,"\033[A");
-			else
-				sprintf(str,"\033[%dA",ansiy-y);
-			ansi_sendstr(str,-1);
-			ansiy=y;
-			return;
-		}
-
-		/* We must have to move down then. */
-		/* Only one, use a newline */
-		if(y-ansiy < 4)
-			ansi_sendstr("\n\n\n",y-ansiy);
-		else {
-			sprintf(str,"\033[%dB",y-ansiy);
-			ansi_sendstr(str,-1);
-		}
-		ansiy=y;
-		return;
-	}
-
-	/* Ok, we need to change the column then... is the row right though? */
-	if(y==ansiy) {
-		/* Do we need to move left then? */
-		if(x<ansix) {
-			if(x==ansix-1)
-				strcpy(str,"\033[D");
-			else
-				sprintf(str,"\033[%dD",ansix-x);
-			ansi_sendstr(str,-1);
-			ansix=x;
-			return;
-		}
-
-		/* Must need to move right then */
-#if 1
-		/* Check if we can use spaces */
-		if(x-ansix < 5) {
-			int i,j;
-			j=1;
-			/* If all the intervening cells are spaces with the current background, we're good */
-			for(i=0; i<x-ansix; i++) {
-				if((ansivmem[(y-1)*cio_textinfo.screenwidth+ansix-1+i] & 0xff) != ' '/* && (ansivmem[(ansiy-1)*cio_textinfo.screenwidth+ansix-1+i]) & 0xff != 0*/) {
-					j=0;
-					break;
-				}
-				if((ansivmem[(y-1)*cio_textinfo.screenwidth+ansix-1+i] & 0x7000) != ((cio_textinfo.attribute<<8) & 0x7000)) {
-					j=0;
-					break;
-				}
-			}
-			if(j) {
-				ansi_sendstr("    ",x-ansix);
-				ansix=x;
-				return;
-			}
-		}
-#endif
-		if(x==ansix+1)
-			strcpy(str,"\033[C");
-		else
-			sprintf(str,"\033[%dC",x-ansix);
-		ansi_sendstr(str,-1);
-		ansix=x;
-		return;
-	}
-
-	/* Changing the row and the column... better use a fill movement then. */
-	sprintf(str,"\033[%d;%dH",y,x);
-	ansi_sendstr(str,-1);
-	ansiy=y;
-	ansix=x;
-	return;
-}
-
-void ansi_gotoxy(int x, int y)
-{
-	ansi_gotoxy_abs(x+cio_textinfo.winleft-1,y+cio_textinfo.wintop-1);
-	cio_textinfo.curx=x;
-	cio_textinfo.cury=y;
 }
 
 int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
@@ -371,7 +242,6 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 		return(0);
 
 	/* Check if this actually does anything */
-	/* TODO: This assumes a little-endian system!  Ack! */
 	if(sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
 			&& memcmp(buf,ansivmem,ti.screenwidth*ti.screenheight*2)==0)
 		return(1);
@@ -400,8 +270,8 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 		textattr(*(out+1));
 		/* Many terminals make ESC[2J home the cursor */
 		ansi_sendstr("\033[2J\033[1;1H",-1);
-		ansix=1;
-		ansiy=1;
+		ansi_col=0;
+		ansi_row=0;
 		memcpy(ansivmem,out,ti.screenwidth*ti.screenheight*2);
 		i=1;
 	}
@@ -410,12 +280,12 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 	if((!i) && sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight-1
 			&& memcmp(buf,ansivmem,ti.screenwidth*(ti.screenheight-1)*2)==0) {
 		/* We need to get to the bottom line... */
-		if(ansiy < ti.screenheight) {
-			if(ansiy > ti.screenheight-4) {
-				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansiy-2);
+		if(ansi_row < ti.screenheight-1) {
+			if(ansi_row > ti.screenheight-5) {
+				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansi_row-1);
 			}
 			else {
-				sprintf(str,"\033[%dB",ti.screenheight-ansiy-2);
+				sprintf(str,"\033[%dB",ti.screenheight-ansi_row-1);
 				ansi_sendstr(str,-1);
 			}
 		}
@@ -431,13 +301,13 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 	if((!i) && sx==1 && sy==1 && ex==ti.screenwidth && ey==ti.screenheight
 			&& memcmp(buf,ansivmem+ti.screenwidth,ti.screenwidth*(ti.screenheight-1)*2)==0) {
 		/* We need to get to the bottom line... */
-		if(ansiy < ti.screenheight) {
-			if(ansiy > ti.screenheight-4) {
-				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansiy-2);
+		if(ansi_row < ti.screenheight-1) {
+			if(ansi_row > ti.screenheight-5) {
+				ansi_sendstr("\n\n\n\n\n",ti.screenheight-ansi_row-1);
 			}
 			else {
 				char str[6];
-				sprintf(str,"\033[%dB",ti.screenheight-ansiy-2);
+				sprintf(str,"\033[%dB",ti.screenheight-ansi_row-1);
 				ansi_sendstr(str,-1);
 			}
 		}
@@ -468,21 +338,21 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 					if(out[(cx-x)*2+1] != out[cx*2+1])
 						break;
 					/* Finally, if this isn't what's on screen, increment i */
-					if((ansivmem[y*cio_textinfo.screenwidth+cx] & 0xff) != 0 && (ansivmem[y*cio_textinfo.screenwidth+cx] & 0xff) != ' ')
+					if((ansivmem[y*ansi_cols+cx] & 0xff) != 0 && (ansivmem[y*ansi_cols+cx] & 0xff) != ' ')
 						i++;
-					else if(ansivmem[y*cio_textinfo.screenwidth+cx] >> 8 != out[(cx-x)*2+1])
+					else if(ansivmem[y*ansi_cols+cx] >> 8 != out[(cx-x)*2+1])
 						i++;
 				}
 				if(cx==ti.screenwidth)
 					j=1;
 
 				if(j && i>3) {
-					ansi_gotoxy_abs(x+1,y+1);
+					ansi_gotoxy(x+1,y+1);
 					textattr(*(out+1));
 					ansi_sendstr("\033[K",-1);
 					for(cx=x; cx<ex; cx++) {
-						ansivmem[y*cio_textinfo.screenwidth+cx]=*(out++);
-						ansivmem[y*cio_textinfo.screenwidth+cx]|=(*(out++))<<8;
+						ansivmem[y*ansi_cols+cx]=*(out++);
+						ansivmem[y*ansi_cols+cx]|=(*(out++))<<8;
 					}
 					break;
 				}
@@ -492,11 +362,11 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 				if(sch==0)
 					sch=' ';
 				sch |= (*(out++))<<8;
-				if(ansivmem[y*cio_textinfo.screenwidth+x]==sch)
+				if(ansivmem[y*ansi_cols+x]==sch)
 					continue;
-				ansivmem[y*cio_textinfo.screenwidth+x]=sch;
-				ansi_gotoxy_abs(x+1,y+1);
-				if(y>=cio_textinfo.screenheight-1 && x>=cio_textinfo.screenwidth-1)
+				ansivmem[y*ansi_cols+x]=sch;
+				ansi_gotoxy(x+1,y+1);
+				if(y>=ansi_rows-1 && x>=ansi_cols-1)
 					continue;
 				if(attrib!=sch>>8) {
 					textattr(sch>>8);
@@ -540,7 +410,7 @@ int ansi_gettext(int sx, int sy, int ex, int ey, void* buf)
 	out=fill;
 	for(y=sy-1;y<ey;y++) {
 		for(x=sx-1;x<ex;x++) {
-			sch=ansivmem[y*cio_textinfo.screenwidth+x];
+			sch=ansivmem[y*ansi_cols+x];
 			*(out++)=sch & 0xff;
 			*(out++)=sch >> 8;
 		}
@@ -558,7 +428,7 @@ void ansi_textattr(int attr)
 	int oa;
 
 	str[0]=0;
-	if(cio_textinfo.attribute==attr)
+	if(ansi_curr_attr==attr<<8)
 		return;
 
 	bl=attr&0x80;
@@ -566,13 +436,13 @@ void ansi_textattr(int attr)
 	fg=attr&0x07;
 	br=attr&0x08;
 
-	oa=cio_textinfo.attribute;
+	oa=ansi_curr_attr>>8;
 	obl=oa&0x80;
 	obg=(oa>>4)&0x7;
 	ofg=oa&0x07;
 	obr=oa&0x08;
 
-	cio_textinfo.attribute=attr;
+	ansi_curr_attr=attr<<8;
 
 	strcpy(str,"\033[");
 	if(obl!=bl) {
@@ -612,7 +482,6 @@ void ansi_textattr(int attr)
 		sprintf(str+strlen(str),"4%d;",ansi_colours[bg]);
 	str[strlen(str)-1]='m';
 	ansi_sendstr(str,-1);
-	cio_textinfo.attribute=attr;
 }
 
 #if defined(__BORLANDC__)
@@ -632,7 +501,7 @@ static void ansi_keyparse(void *par)
 
 	seq[0]=0;
 	for(;;) {
-		if(ansi_got_row)
+		if(ansi_rows != -1)
 			sem_wait(&goahead);
 		if(timedout || unknown) {
 			for(p=seq;*p;p++) {
@@ -710,15 +579,8 @@ static void ansi_keyparse(void *par)
 						if(strspn(seq,"\033[0123456789;R")==strlen(seq)) {
 							p=seq+2;
 							i=strtol(p,&p,10);
-							if(i>cio_textinfo.screenheight) {
-								cio_textinfo.screenheight=i;
-								if(*p==';') {
-									i=strtol(p+1, NULL, 10);
-									if(i>cio_textinfo.screenwidth)
-										cio_textinfo.screenwidth=i;
-								}
-								ansi_got_row=cio_textinfo.screenheight;;
-							}
+							if(i>ansi_rows)
+								ansi_rows=i;
 						}
 						unknown=0;
 					}
@@ -794,6 +656,219 @@ int ansi_kbhit(void)
 	return(sval);
 }
 
+void ansi_delay(long msec)
+{
+	SLEEP(msec);
+}
+
+int ansi_wherey(void)
+{
+	return(ansi_row+1);
+}
+
+int ansi_wherex(void)
+{
+	return(ansi_col+1);
+}
+
+/* Put the character _c on the screen at the current cursor position. 
+ * The special characters return, linefeed, bell, and backspace are handled
+ * properly, as is line wrap and scrolling. The cursor position is updated. 
+ */
+int ansi_putch(int ch)
+{
+	struct text_info ti;
+	int i;
+	unsigned char buf[2];
+
+	buf[0]=ch;
+	buf[1]=ansi_curr_attr>>8;
+
+	gettextinfo(&ti);
+	puttext_can_move=1;
+
+	switch(ch) {
+		case '\r':
+			gotoxy(1,wherey());
+			break;
+		case '\n':
+			if(wherey()==ti.winbottom-ti.wintop+1)
+				wscroll();
+			else
+				gotoxy(wherex(),wherey()+1);
+			break;
+		case '\b':
+			if(ansi_col>ti.winleft-1) {
+				buf[0]=' ';
+				gotoxy(wherex()-1,wherey());
+				puttext(ansi_col+1,ansi_row+1,ansi_col+1,ansi_row+1,buf);
+			}
+			break;
+		case 7:		/* Bell */
+			ansi_sendstr("\007",1);
+			break;
+		case '\t':
+			for(i=0;i<10;i++) {
+				if(ansi_tabs[i]>ansi_col+1) {
+					while(ansi_col+1<ansi_tabs[i]) {
+						putch(' ');
+					}
+					break;
+				}
+			}
+			if(i==10) {
+				putch('\r');
+				putch('\n');
+			}
+			break;
+		default:
+			if(wherey()==ti.winbottom-ti.wintop+1
+					&& wherex()==ti.winright-ti.winleft+1) {
+				gotoxy(1,wherey());
+				puttext(ansi_col+1,ansi_row+1,ansi_col+1,ansi_row+1,buf);
+				wscroll();
+			}
+			else {
+				if(wherex()==ti.winright-ti.winleft+1) {
+					gotoxy(1,ti.cury+1);
+					puttext(ansi_col+1,ansi_row+1,ansi_col+1,ansi_row+1,buf);
+				}
+				else {
+					puttext(ansi_col+1,ansi_row+1,ansi_col+1,ansi_row+1,buf);
+					gotoxy(ti.curx+1,ti.cury);
+				}
+			}
+			break;
+	}
+
+	puttext_can_move=0;
+	return(ch);
+}
+
+void ansi_gotoxy(int x, int y)
+{
+	char str[16];
+
+	str[0]=0;
+	if(x < 1
+		|| x > ansi_cols
+		|| y < 1
+		|| y > ansi_rows)
+		return;
+
+	/* ToDo optimizations: use tabs for horizontal movement to tabstops */
+
+	/* Movement forced... always send position code */
+	if(force_move) {
+		sprintf(str,"\033[%d;%dH",y,x);
+		ansi_sendstr(str,-1);
+		force_move=0;
+		ansi_row=y-1;
+		ansi_col=x-1;
+		return;
+	}
+
+	/* Moving to col 1 (and not already there)... use \r */
+	if(x==1 && ansi_col) {
+		ansi_sendstr("\r",1);
+		ansi_col=0;
+	}
+
+	/* Do we even NEED to move? */
+	if(x==ansi_col+1 && y==ansi_row+1)
+		return;
+
+	/* If we're already on the correct column */
+	if(x==ansi_col+1) {
+		/* Do we need to move up? */
+		if(y<ansi_row+1) {
+			if(y==ansi_row)
+				/* Only up one */
+				strcpy(str,"\033[A");
+			else
+				sprintf(str,"\033[%dA",ansi_row+1-y);
+			ansi_sendstr(str,-1);
+			ansi_row=y-1;
+			return;
+		}
+
+		/* We must have to move down then. */
+		/* Only one, use a newline */
+		if(y==ansi_row+2)
+			strcpy(str,"\n");
+		else
+			sprintf(str,"\033[%dB",y-ansi_row-1);
+		ansi_sendstr(str,-1);
+		ansi_row=y-1;
+		return;
+	}
+
+	/* Ok, we need to change the column then... is the row right though? */
+	if(y==ansi_row+1) {
+		/* Do we need to move left then? */
+		if(x<ansi_col+1) {
+			if(x==ansi_col)
+				strcpy(str,"\033[D");
+			else
+				sprintf(str,"\033[%dD",ansi_col+1-x);
+			ansi_sendstr(str,-1);
+			ansi_col=x-1;
+			return;
+		}
+
+		/* Must need to move right then */
+#if 1
+		/* Check if we can use spaces */
+		/* ansi_col... 0-based current position */
+		/* x... 1-based desired position */
+		if(x-ansi_col-1 < 5) {
+			int i,j;
+			j=1;
+			/* If all the intervening cells are spaces with the current background, we're good */
+			for(i=0; i<x-ansi_col-1; i++) {
+				if((ansivmem[y*ansi_cols+ansi_col+i] & 0xff) != ' ' && (ansivmem[y*ansi_cols+ansi_col+i]) & 0xff != 0) {
+					j=0;
+					break;
+				}
+				if((ansivmem[y*ansi_cols+ansi_col+i] & 0x7000) != (ansi_curr_attr & 0x7000)) {
+					j=0;
+					break;
+				}
+			}
+			if(j) {
+				ansi_sendstr("    ",x-ansi_col-1);
+				ansi_col=x-1;
+				return;
+			}
+		}
+#endif
+		if(x==ansi_col+2)
+			strcpy(str,"\033[C");
+		else
+			sprintf(str,"\033[%dC",x-ansi_col-1);
+		ansi_sendstr(str,-1);
+		ansi_col=x-1;
+		return;
+	}
+
+	/* Changing the row and the column... better use a fill movement then. */
+	sprintf(str,"\033[%d;%dH",y,x);
+	ansi_sendstr(str,-1);
+	ansi_row=y-1;
+	ansi_col=x-1;
+	return;
+}
+
+void ansi_gettextinfo(struct text_info *info)
+{
+	info->currmode=3;
+	info->screenheight=ansi_rows;
+	info->screenwidth=ansi_cols;
+	info->curx=ansi_wherex();
+	info->cury=ansi_wherey();
+	info->attribute=ansi_curr_attr>>8;
+}
+
 void ansi_setcursortype(int type)
 {
 	switch(type) {
@@ -820,9 +895,19 @@ int ansi_getch(void)
 	return(ch);
 }
 
+int ansi_getche(void)
+{
+	int ch;
+
+	ch=ansi_getch();
+	if(ch)
+		putch(ch);
+	return(ch);
+}
+
 int ansi_beep(void)
 {
-	ansi_sendstr("\7",1);
+	putch(7);
 	return(0);
 }
 
@@ -831,17 +916,6 @@ int ansi_beep(void)
 #endif
 void ansi_textmode(int mode)
 {
-	cio_textinfo.winleft=1;
-	cio_textinfo.wintop=1;
-	cio_textinfo.winright=cio_textinfo.screenwidth;
-	cio_textinfo.winbottom=cio_textinfo.screenheight;
-	cio_textinfo.attribute=7;
-	cio_textinfo.normattr=7;
-	cio_textinfo.currmode=COLOR_MODE;
-	cio_textinfo.curx=1;
-	cio_textinfo.cury=1;
-	ansix=1;
-	ansiy=1;
 }
 
 #ifdef __unix__
@@ -864,12 +938,9 @@ void ansi_fixterm(void)
 int ansi_initciolib(long inmode)
 {
 	int i;
-	char *init="\033[s\033[99B\033[99B\033[99B_\033[99C\033[99C\033[99C_\033[6n\033[u\033[0m_\033[2J\033[H";
+	char *init="\033[s\033[99B_\033[6n\033[u\033[0m_\033[2J\033[H";
 	time_t start;
 
-	ansi_textmode(1);
-	cio_textinfo.screenheight=24;
-	cio_textinfo.screenwidth=80;
 #ifdef _WIN32
 	if(isatty(fileno(stdin))) {
 		if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0))
@@ -908,15 +979,12 @@ int ansi_initciolib(long inmode)
 	ansi_sendstr(init,-1);
 	_beginthread(ansi_keythread,1024,NULL);
 	start=time(NULL);
-	while(time(NULL)-start < 5 && !ansi_got_row)
+	while(time(NULL)-start < 5 && ansi_rows==-1)
 		SLEEP(1);
-	if(!ansi_got_row) {
-		cio_textinfo.screenheight=24;
-		cio_textinfo.screenwidth=80;
-		ansi_got_row=24;
-	}
-	ansivmem=(WORD *)malloc(cio_textinfo.screenheight*cio_textinfo.screenwidth*sizeof(WORD));
-	for(i=0;i<cio_textinfo.screenheight*cio_textinfo.screenwidth;i++)
+	if(ansi_rows==-1)
+		ansi_rows=24;
+	ansivmem=(WORD *)malloc(ansi_rows*ansi_cols*sizeof(WORD));
+	for(i=0;i<ansi_rows*ansi_cols;i++)
 		ansivmem[i]=0x0720;
 	/* drain all the semaphores */
 	sem_reset(&got_key);
