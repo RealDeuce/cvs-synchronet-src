@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #ifndef _HTMLWIN_H_
 #define _HTMLWIN_H_
 

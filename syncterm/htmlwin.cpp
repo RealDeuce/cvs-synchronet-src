@@ -1,4 +1,10 @@
-/* Copyright (C), 2007 by Stephen Hurd */
+//
+// file name: hworld.cpp
+//
+//   purpose: wxWidgets "Hello world"
+//
+
+// For compilers that support precompilation, includes "wx/wx.h".
 
 #undef _DEBUG
 
@@ -264,7 +270,7 @@ bool MyApp::OnInit()
 			, wxT("SyncTERM HTML")
 			, wxPoint(window_xpos,window_ypos)
 			, wxSize(window_width,window_height)
-			, wxMINIMIZE_BOX | wxRESIZE_BORDER | wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU /* wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCLIP_CHILDREN */
+			, wxMINIMIZE_BOX | wxRESIZE_BORDER | wxCAPTION | wxCLOSE_BOX /* wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCLIP_CHILDREN */
 	);
 	htmlWindow = new MyHTML(frame, HTML_ID);
 	htmlWindow->SetRelatedFrame(frame,wxT("SyncTERM HTML : %s"));
