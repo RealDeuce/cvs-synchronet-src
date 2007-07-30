@@ -47,6 +47,7 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->SemPost=SDL_SemPost;
 	sdlf->EventState=SDL_EventState;
 	sdlf->CreateRGBSurface=SDL_CreateRGBSurface;
+	sdlf->CreateRGBSurfaceFrom=SDL_CreateRGBSurfaceFrom;
 	sdlf->FillRect=SDL_FillRect;
 	sdlf->SetColors=SDL_SetColors;
 	sdlf->BlitSurface=SDL_UpperBlit;
@@ -61,6 +62,7 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->SetVideoMode=SDL_SetVideoMode;
 	sdlf->FreeSurface=SDL_FreeSurface;
 	sdlf->WM_SetCaption=SDL_WM_SetCaption;
+	sdlf->WM_SetIcon=SDL_WM_SetIcon;
 	sdlf->ShowCursor=SDL_ShowCursor;
 	sdlf->WasInit=SDL_WasInit;
 	sdlf->EnableUNICODE=SDL_EnableUNICODE;
@@ -138,6 +140,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
+	if((sdlf->CreateRGBSurfaceFrom=GetProcAddress(sdl_dll, "SDL_CreateRGBSurfaceFrom"))==NULL) {
+		FreeLibrary(sdl_dll);
+		return(-1);
+	}
 	if((sdlf->FillRect=GetProcAddress(sdl_dll, "SDL_FillRect"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
@@ -191,6 +197,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->WM_SetCaption=GetProcAddress(sdl_dll, "SDL_WM_SetCaption"))==NULL) {
+		FreeLibrary(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->WM_SetIcon=GetProcAddress(sdl_dll, "SDL_WM_SetIcon"))==NULL) {
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
@@ -307,6 +317,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		dlclose(sdl_dll);
 		return(-1);
 	}
+	if((sdlf->CreateRGBSurfaceFrom=dlsym(sdl_dll, "SDL_CreateRGBSurfaceFrom"))==NULL) {
+		dlclose(sdl_dll);
+		return(-1);
+	}
 	if((sdlf->FillRect=dlsym(sdl_dll, "SDL_FillRect"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
@@ -360,6 +374,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->WM_SetCaption=dlsym(sdl_dll, "SDL_WM_SetCaption"))==NULL) {
+		dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->WM_SetIcon=dlsym(sdl_dll, "SDL_WM_SetIcon"))==NULL) {
 		dlclose(sdl_dll);
 		return(-1);
 	}
@@ -490,11 +508,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 	SDL_Thread	*main_thread;
 	int		main_ret;
 	int		use_sdl_video=FALSE;
-#ifdef _WIN32
-	HMODULE 	ciolib_dll;
-#else
-	void	*mainexe;
-#endif
 
 	ma.argc=argc;
 	ma.argv=argv;
@@ -504,20 +517,9 @@ int SDL_main_env(int argc, char **argv, char **env)
 #endif
 
 	if(sdl.gotfuncs) {
-#ifdef _WIN32
-		/*
-		 * Run-time detection of SDL-capable conio library
-		 * ToDo: This probobly won't work if ciolib is a DLL
-		 */
-		if(GetProcAddress(GetModuleHandle(NULL),"sdl_video_event_thread"))
-			use_sdl_video=TRUE;
-		else {
-			if((ciolib_dll=GetModuleHandle("ciolib_mt"))!=NULL) {
-				if(GetProcAddress(ciolib_dll,"sdl_video_event_thread"))
-					use_sdl_video=TRUE;
-			}
-		}
+		use_sdl_video=TRUE;
 
+#ifdef _WIN32
 		/* Fail to windib (ie: No mouse attached) */
 		if(sdl.Init(SDL_INIT_VIDEO)) {
 			if(getenv("SDL_VIDEODRIVER")==NULL) {
@@ -534,17 +536,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 			sdl_initialized=TRUE;
 		}
 #else
-		/*
-		 * Run-time detection of SDL-capable conio library
-		 */
-
-		mainexe=dlopen(NULL,RTLD_NOW);
-		if(mainexe) {
-			if(dlsym(mainexe, "sdl_video_event_thread"))
-				use_sdl_video=TRUE;
-			dlclose(mainexe);
-		}
-
 		/*
 		 * On Linux, SDL doesn't properly detect availability of the
 		 * framebuffer apparently.  This results in remote connections

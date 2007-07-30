@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.197 2006/08/29 03:42:11 deuce Exp $ */
+/* $Id: services.c,v 1.202 2007/07/25 23:46:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,16 +36,6 @@
  ****************************************************************************/
 
 /* Platform-specific headers */
-#ifdef _WIN32
-
-	#include <io.h>			/* open/close */
-	#include <share.h>		/* share open flags */
-	#include <process.h>	/* _beginthread */
-	#include <windows.h>	/* required for mmsystem.h */
-	#include <mmsystem.h>	/* SND_ASYNC */
-
-#endif
-
 #ifdef __unix__
 	#include <sys/param.h>	/* BSD? */
 #endif
@@ -1580,7 +1570,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.197 $", "%*s %s", revision);
+	sscanf("$Revision: 1.202 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1782,12 +1772,16 @@ void DLLCALL services_thread(void* arg)
 			addr.sin_family = AF_INET;
 			addr.sin_port   = htons(service[i].port);
 
-			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
+			if(service[i].port < IPPORT_RESERVED) {
+				if(startup->seteuid!=NULL)
+					startup->seteuid(FALSE);
+			}
 			result=retry_bind(socket, (struct sockaddr *) &addr, sizeof(addr)
 				,startup->bind_retry_count, startup->bind_retry_delay, service[i].protocol, lprintf);
-			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
+			if(service[i].port < IPPORT_RESERVED) {
+				if(startup->seteuid!=NULL)
+					startup->seteuid(TRUE);
+			}
 			if(result!=0) {
 				lprintf(LOG_ERR,"%04d %s",socket,BIND_FAILURE_HELP);
 				close_socket(socket);
@@ -1816,6 +1810,7 @@ void DLLCALL services_thread(void* arg)
 			cleanup(1);
 			return;
 		}
+		lprintf(LOG_INFO,"0000 %u service sockets bound", total_sockets);
 
 		/* Setup static service threads */
 		for(i=0;i<(int)services;i++) {
@@ -1839,7 +1834,6 @@ void DLLCALL services_thread(void* arg)
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
-			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
@@ -1859,10 +1853,6 @@ void DLLCALL services_thread(void* arg)
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 						break;
 					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 						startup->recycle_now=FALSE;
@@ -1905,7 +1895,7 @@ void DLLCALL services_thread(void* arg)
 					continue;
 
 				if(ERROR_VALUE==EINTR)
-					lprintf(LOG_NOTICE,"0000 Services listening interrupted");
+					lprintf(LOG_DEBUG,"0000 Services listening interrupted");
 				else if(ERROR_VALUE == ENOTSOCK)
             		lprintf(LOG_NOTICE,"0000 Services sockets closed");
 				else
