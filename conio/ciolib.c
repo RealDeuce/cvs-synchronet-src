@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.88 2007/07/27 02:02:04 deuce Exp $ */
+/* $Id: ciolib.c,v 1.89 2007/07/30 06:27:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1045,5 +1045,15 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int 
 	
 	if(cio_api.get_window_info!=NULL)
 		return(cio_api.get_window_info(width,height,xpos,ypos));
+	else {
+		if(width)
+			*width=-1;
+		if(height)
+			*height=-1;
+		if(xpos)
+			*xpos=-1;
+		if(ypos)
+			*ypos=-1;
+	}
 	return(-1);
 }
