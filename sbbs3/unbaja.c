@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.32 2006/08/24 23:59:07 deuce Exp $ */
+/* $Id: unbaja.c,v 1.35 2007/07/10 20:03:26 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -184,14 +184,17 @@ unsigned long *brute_crc_buf=NULL;
 size_t brute_len=0;
 char **bruted=NULL;
 size_t bruted_len=0;
+char **badbruted=NULL;
+size_t badbruted_len=0;
 
-void add_bruted(long name, char *val)
+void add_bruted(unsigned long name, char good, char *val, int save)
 {
 	char **new_bruted;
 	char *p;
+	FILE	*cache;
 
 	bruted_len++;
-	p=(char *)malloc(strlen(val)+5);
+	p=(char *)malloc(strlen(val)+6);
 	if(p==NULL)
 		return;
 	new_bruted=realloc(bruted, sizeof(char *)*bruted_len);
@@ -200,9 +203,30 @@ void add_bruted(long name, char *val)
 		return;
 	}
 	*(long *)p=name;
-	strcpy(p+4,val);
+	p[4]=good;
+	strcpy(p+5,val);
 	new_bruted[bruted_len-1]=p;
 	bruted=new_bruted;
+	if(*val && save) {
+		cache=fopen("unbaja.brute","a");
+		if(cache!=NULL) {
+			fprintf(cache,"%08x,%hhd,%s\n",name,good,val);
+			fclose(cache);
+		}
+	}
+}
+
+int check_bruted(long name,char *val)
+{
+	int i;
+
+	for(i=0; i<bruted_len; i++) {
+		if(*(long *)bruted[i]==name) {
+			if(!strcmp(val,bruted[i]+5))
+				return(*(bruted[i]+4));
+		}
+	}
+	return(2);
 }
 
 char *find_bruted(long name)
@@ -210,8 +234,8 @@ char *find_bruted(long name)
 	int i;
 
 	for(i=0; i<bruted_len; i++) {
-		if(*(long *)bruted[i]==name)
-			return(bruted[i]+4);
+		if(*(long *)bruted[i]==name && *(bruted[i]+4))
+			return(bruted[i]+5);
 	}
 	return(NULL);
 }
@@ -236,7 +260,7 @@ char* bruteforce(unsigned long name)
 	memset(brute_crc_buf,0,brute_len*sizeof(long));
 	printf("Brute forcing var_%08x\n",name);
 	this_crc=crc32(brute_buf,0);
-	while(this_crc!=name) {
+	for(;;) {
 		pos=brute_buf+l;
 		if(pos>brute_buf) {
 			pos--;
@@ -259,7 +283,7 @@ char* bruteforce(unsigned long name)
 			/* This the max? */
 			if(l==brute_len) {
 				printf("\r%s Not found.\n",brute_buf);
-				add_bruted(name,"");
+				add_bruted(name,1,"",0);
 				return(NULL);
 			}
 			/* Set string to '_' with one extra at end */
@@ -278,12 +302,24 @@ char* bruteforce(unsigned long name)
 
 LOOP_END:
 		this_crc=~(brute_crc_buf[l-1]);
+		if(this_crc==name) {
+			switch(check_bruted(name,brute_buf)) {
+				case 0:
+					break;
+				case 2:
+					add_bruted(name,1,brute_buf,1);
+				case 1:
+					goto BRUTE_DONE;
+			}
+			if(check_bruted(name,brute_buf))
+				break;
+		}
 		if(!((++counter)%10000))
 			printf("\r%s ",brute_buf);
 	}
 
+BRUTE_DONE:
 	printf("\r%s Found!\n",brute_buf);
-	add_bruted(name,brute_buf);
 	return(brute_buf);
 }
 
@@ -318,7 +354,7 @@ char *getvar(long name)
 
 void write_var(FILE *bin, char *src)
 {
-	long lng;
+	int32_t lng;
 
 	fread(&lng, 1, 4, bin);
 	sprintf(strchr(src,0),"%s ",getvar(lng));
@@ -345,7 +381,7 @@ void write_cstr(FILE *bin, char *src)
 
 void write_lng(FILE *bin, char *src)
 {
-	long lng;
+	int32_t lng;
 
 	fread(&lng,4,1,bin);
 	sprintf(strchr(src,0),"%ld ",lng);
@@ -353,7 +389,7 @@ void write_lng(FILE *bin, char *src)
 
 void write_short(FILE *bin, char *src)
 {
-	short sht;
+	int16_t sht;
 
 	fread(&sht,2,1,bin);
 	sprintf(strchr(src,0),"%d ",sht);
@@ -361,7 +397,7 @@ void write_short(FILE *bin, char *src)
 
 void write_ushort(FILE *bin, char *src)
 {
-	ushort sht;
+	uint16_t sht;
 
 	fread(&sht,2,1,bin);
 	sprintf(strchr(src,0),"%d ",sht);
@@ -1274,10 +1310,10 @@ void decompile(FILE *bin, FILE *srcfile)
 	char	ch;
 	uchar	uch;
 	ushort	ush;
-	long	lng;
-	long	lng2;
+	int32_t	lng;
+	int32_t	lng2;
 	int		usevar=FALSE;
-	long	var=0;
+	uint32_t	var=0;
 	char	buf[80];
 	char	*p;
 	char	src[2048];
@@ -2278,8 +2314,11 @@ int main(int argc, char **argv)
 	char 	newname[MAX_PATH+1];
 	char	*p;
 	char	revision[16];
+	FILE	*cache;
+	char	cache_line[1024];
+	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.32 $", "%*s %s", revision);
+	sscanf("$Revision: 1.35 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
@@ -2295,6 +2334,22 @@ int main(int argc, char **argv)
 				if(!brute_crc_buf) {
 					free(brute_buf);
 					brute_len=0;
+				}
+				if((cache=fopen("unbaja.brute","r"))!=NULL) {
+					while(fgets(cache_line,sizeof(cache_line),cache)) {
+						truncnl(cache_line);
+						crc=strtok(cache_line,",");
+						if(crc!=NULL) {
+							good=strtok(NULL,",");
+							if(good!=NULL) {
+								str=strtok(NULL,",");
+								if(str!=NULL) {
+									add_bruted(strtoul(crc,NULL,16),strtoul(good,NULL,10),str,0);
+								}
+							}
+						}
+					}
+					fclose(cache);
 				}
 			}
 			printf("Will brute-force up to %d chars\n",brute_len);
