@@ -1,4 +1,4 @@
-/* $Id: telnet_io.c,v 1.19 2006/03/20 23:46:19 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.20 2007/03/03 12:24:05 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +12,7 @@
 #include "bbslist.h"
 #include "conn.h"
 #include "uifcinit.h"
+#include "conn_telnet.h"
 
 #define TELNET_TERM_MAXLEN	40
 
@@ -49,7 +50,7 @@ void putcom(BYTE* buf, size_t len)
 		p+=sprintf(p,"%02X ", buf[i]);
 
 	lprintf(LOG_DEBUG,"TX: %s", str);
-	send(conn_socket, buf, len, 0);
+	send(telnet_sock, buf, len, 0);
 }
 
 static void send_telnet_cmd(uchar cmd, uchar opt)
