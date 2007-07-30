@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.26 2006/05/18 04:09:35 deuce Exp $ */
+/* $Id: filewrap.h,v 1.25 2005/11/08 07:45:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,7 +144,7 @@ extern "C" {
 #endif
 
 #if !defined(__BORLANDC__) && defined(__unix__)
-	DLLEXPORT int	DLLCALL sopen(const char* fn, int sh_access, int share, ...);
+	DLLEXPORT int	DLLCALL sopen(const char* fn, int access, int share, ...);
 	DLLEXPORT long	DLLCALL filelength(int fd);
 #endif
 
