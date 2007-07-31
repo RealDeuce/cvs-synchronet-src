@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.45 2007/07/27 02:02:04 deuce Exp $ */
+/* $Id: ciolib.h,v 1.46 2007/07/31 12:02:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,6 +199,8 @@ struct text_info {
 	unsigned char curx;           /* x-coordinate in current window */
 	unsigned char cury;           /* y-coordinate in current window */
 };
+
+extern struct text_info cio_textinfo;
 
 typedef struct {
 	int		mode;
