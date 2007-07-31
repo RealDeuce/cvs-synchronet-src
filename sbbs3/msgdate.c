@@ -2,13 +2,13 @@
 
 /* Synchronet RFC822 message date/time string conversion routines */
 
-/* $Id: msgdate.c,v 1.2 2006/04/05 09:11:31 rswindell Exp $ */
+/* $Id: msgdate.c,v 1.1 2003/08/30 05:51:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -167,7 +167,6 @@ when_t DLLCALL rfc822date(char* date)
 			when.zone=(short)EST;
 	}
 
-	tm.tm_isdst=-1;	/* Don't adjust for daylight-savings-time */
 	when.time=mktime(&tm);
 
 	return(when);
