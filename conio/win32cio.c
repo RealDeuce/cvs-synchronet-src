@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.76 2007/08/13 05:24:58 deuce Exp $ */
+/* $Id: win32cio.c,v 1.74 2007/07/31 12:02:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -532,8 +532,8 @@ void win32_textmode(int mode)
 
 	cio_textinfo.attribute=7;
 	cio_textinfo.normattr=7;
-	cio_textinfo.currmode=vparams[modeidx].mode;
-	cio_textinfo.screenheight=sz.Y;
+	cio_textinfo.currmode=vparams[modeisx].mode;
+	cio_textinfo.screenheightsz.Y;
 	cio_textinfo.screenwidth=sz.X;
 	cio_textinfo.curx=1;
 	cio_textinfo.cury=1;
@@ -580,10 +580,10 @@ void win32_gotoxy(int x, int y)
 	COORD	cp;
 	HANDLE	h;
 
-	cio_textinfo.curx=x;
-	cio_textinfo.cury=y;
-	cp.X=cio_textinfo.winleft-x;
-	cp.Y=cio_textinfo.wintop-y;
+	cio_terminfo.curx=x;
+	cio_terminfo.cury=y;
+	cp.X=x-1;
+	cp.Y=y-1;
 	if(!hold_update && (h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleCursorPosition(h,cp);
 }

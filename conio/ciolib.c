@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.92 2007/08/02 22:11:59 deuce Exp $ */
+/* $Id: ciolib.c,v 1.90 2007/07/31 12:02:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,7 +163,6 @@ int try_x_init(int mode)
 		cio_api.setfont=x_setfont;
 		cio_api.getfont=x_getfont;
 		cio_api.loadfont=x_loadfont;
-		cio_api.beep=x_beep;
 
 		cio_api.kbhit=x_kbhit;
 		cio_api.getch=x_getch;
@@ -219,7 +218,6 @@ int try_ansi_init(int mode)
 		cio_api.getch=ansi_getch;
 		cio_api.textmode=ansi_textmode;
 		cio_api.ESCDELAY=&CIOLIB_ANSI_TIMEOUT;
-		cio_api.beep=ansi_beep;
 		return(1);
 	}
 	return(0);
@@ -1025,9 +1023,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
 	unsigned char a1=a;
 	unsigned char buf[2];
 	int i;
-	int old_puttext_can_move=puttext_can_move;
-
 	CIOLIB_INIT();
+	int old_puttext_can_move=puttext_can_move;
 
 	if(cio_api.putch)
 		return(cio_api.putch(a1));
@@ -1246,7 +1243,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int 
 }
 
 /* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void)
+CIOLIBEXPORT int ciolib_beep(void)
 {
 	if(cio_api.beep)
 		return(cio_api.beep());

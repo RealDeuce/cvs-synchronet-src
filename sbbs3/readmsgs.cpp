@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.36 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: readmsgs.cpp,v 1.34 2007/07/10 23:50:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,9 +119,9 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 	/* fixed fields */
 	bprintf("%-16.16s %s %s\r\n","when_written"	
-		,timestr(msg->hdr.when_written.time), smb_zonestr(msg->hdr.when_written.zone,NULL));
+		,timestr((time_t *)&msg->hdr.when_written.time), smb_zonestr(msg->hdr.when_written.zone,NULL));
 	bprintf("%-16.16s %s %s\r\n","when_imported"	
-		,timestr(msg->hdr.when_imported.time), smb_zonestr(msg->hdr.when_imported.zone,NULL));
+		,timestr((time_t *)&msg->hdr.when_imported.time), smb_zonestr(msg->hdr.when_imported.zone,NULL));
 	bprintf("%-16.16s %04Xh\r\n","type"				,msg->hdr.type);
 	bprintf("%-16.16s %04Xh\r\n","version"			,msg->hdr.version);
 	bprintf("%-16.16s %04Xh\r\n","attr"				,msg->hdr.attr);
@@ -143,12 +143,12 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	if(msg->hdr.times_downloaded)
 		bprintf("%-16.16s %lu\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
 	if(msg->hdr.last_downloaded)
-		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr(msg->hdr.last_downloaded));
+		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr((time_t*)&msg->hdr.last_downloaded));
 
 	/* convenience integers */
 	if(msg->expiration)
 		bprintf("%-16.16s %s\r\n"	,"expiration"	
-			,timestr(msg->expiration));
+			,timestr((time_t *)&msg->expiration));
 	if(msg->priority)
 		bprintf("%-16.16s %lu\r\n"	,"priority"			,msg->priority);
 	if(msg->cost)
@@ -813,7 +813,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 					break;
 				sprintf(str2,text[Regarding]
 					,msg.subj
-					,timestr(msg.hdr.when_written.time));
+					,timestr((time_t *)&msg.hdr.when_written.time));
 				if(msg.from_net.addr==NULL)
 					strcpy(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO)

@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.106 2007/08/14 00:37:01 deuce Exp $ */
+/* $Id: userdat.c,v 1.105 2007/07/26 00:00:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2446,7 +2446,7 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
     	return(FALSE);
 
     fprintf(fp,"\n; %s %s by %s on %s\n"
-    	,prot,reason,username,timestr(cfg,now,tstr));
+    	,prot,reason,username,timestr(cfg,&now,tstr));
 
 	if(host!=NULL)
 		fprintf(fp,"; Hostname: %s\n",host);

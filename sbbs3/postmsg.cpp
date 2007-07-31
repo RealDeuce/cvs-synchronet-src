@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.74 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: postmsg.cpp,v 1.72 2007/07/13 21:29:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,7 +86,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			SAFECOPY(touser,from);
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
 		sprintf(top,text[RegardingByToOn],title,from,remsg->to
-			,timestr(remsg->hdr.when_written.time)
+			,timestr((time_t *)&remsg->hdr.when_written.time)
 			,smb_zonestr(remsg->hdr.when_written.zone,NULL)); 
 	} else {
 		title[0]=0;
