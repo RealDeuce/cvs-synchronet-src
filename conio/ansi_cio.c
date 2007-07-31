@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.69 2008/01/23 05:45:18 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.65 2007/07/31 12:02:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,6 +66,7 @@ static int ansix=1;
 static int ansiy=1;
 
 static int ansi_got_row=0;
+static int ansi_got_col=0;
 static int doorway_enabled=0;
 
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
@@ -101,8 +102,6 @@ typedef struct
 #define ANSI_KEY_PGDN	0x51<<8
 #define ANSI_KEY_INSERT	0x52<<8
 #define ANSI_KEY_DELETE	0x53<<8
-#define ANSI_KEY_F11	0x85<<8
-#define ANSI_KEY_F12	0x86<<8
 
 static tODKeySequence ODaKeySequences[] =
 {
@@ -138,19 +137,11 @@ static tODKeySequence ODaKeySequences[] =
    {"\033OS", ANSI_KEY_F4},
 
    /* VT-220/VT-320 specific control sequences. */
-   {"\033[1~",  ANSI_KEY_HOME}, /* Windows XP terminal.exe.  Is actually FIND */
-   {"\033[2~",  ANSI_KEY_INSERT},
-   {"\033[3~",  ANSI_KEY_DELETE},
-   {"\033[4~",  ANSI_KEY_END},  /* Windows XP terminal.exe.  Is actually SELECT */
-   {"\033[5~",  ANSI_KEY_PGUP},
-   {"\033[6~",  ANSI_KEY_PGDN},
    {"\033[17~", ANSI_KEY_F6},
    {"\033[18~", ANSI_KEY_F7},
    {"\033[19~", ANSI_KEY_F8},
    {"\033[20~", ANSI_KEY_F9},
    {"\033[21~", ANSI_KEY_F10},
-   {"\033[23~", ANSI_KEY_F11},
-   {"\033[24~", ANSI_KEY_F12},
 
    /* ANSI-specific control sequences. */
    {"\033[L", ANSI_KEY_HOME},
@@ -299,7 +290,7 @@ static void ansi_gotoxy_abs(int x, int y)
 			j=1;
 			/* If all the intervening cells are spaces with the current background, we're good */
 			for(i=0; i<x-ansix; i++) {
-				if((ansivmem[(y-1)*cio_textinfo.screenwidth+ansix-1+i] & 0xff) != ' '/* && (ansivmem[(ansiy-1)*cio_textinfo.screenwidth+ansix-1+i]) & 0xff != 0*/) {
+				if((ansivmem[(ansiy-1)*cio_textinfo.screenwidth+ansix-1+i] & 0xff) != ' '/* && (ansivmem[(ansiy-1)*cio_textinfo.screenwidth+ansix-1+i]) & 0xff != 0*/) {
 					j=0;
 					break;
 				}
@@ -706,12 +697,7 @@ static void ansi_keyparse(void *par)
 							i=strtol(p,&p,10);
 							if(i>cio_textinfo.screenheight) {
 								cio_textinfo.screenheight=i;
-								if(*p==';') {
-									i=strtol(p+1, NULL, 10);
-									if(i>cio_textinfo.screenwidth)
-										cio_textinfo.screenwidth=i;
-								}
-								ansi_got_row=cio_textinfo.screenheight;;
+								ansi_got_row=i;
 							}
 						}
 						unknown=0;
@@ -825,6 +811,7 @@ int ansi_beep(void)
 #endif
 void ansi_textmode(int mode)
 {
+	cio_textinfo.screenwidth=80;
 	cio_textinfo.winleft=1;
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
@@ -858,7 +845,7 @@ void ansi_fixterm(void)
 int ansi_initciolib(long inmode)
 {
 	int i;
-	char *init="\033[s\033[99B\033[99B\033[99B_\033[99C\033[99C\033[99C_\033[6n\033[u\033[0m_\033[2J\033[H";
+	char *init="\033[s\033[99B_\033[6n\033[u\033[0m_\033[2J\033[H";
 	time_t start;
 
 	ansi_textmode(1);
@@ -906,7 +893,6 @@ int ansi_initciolib(long inmode)
 		SLEEP(1);
 	if(!ansi_got_row) {
 		cio_textinfo.screenheight=24;
-		cio_textinfo.screenwidth=80;
 		ansi_got_row=24;
 	}
 	ansivmem=(WORD *)malloc(cio_textinfo.screenheight*cio_textinfo.screenwidth*sizeof(WORD));
