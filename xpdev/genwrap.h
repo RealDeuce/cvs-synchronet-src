@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.91 2008/02/23 10:57:55 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.88 2007/07/11 05:55:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -40,7 +40,6 @@
 
 #include <stdio.h>		/* sprintf */
 #include <string.h>		/* strerror() */
-#include <time.h>		/* clock_t */
 #include "gen_defs.h"	/* ulong */
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
 
@@ -161,14 +160,9 @@ extern "C" {
 /* String Functionss */
 /*********************/
 
-#ifndef USE_SNPRINTF
-	#define snprintf		safe_snprintf
-#endif
+#define snprintf	safe_snprintf
 
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(__DMC__)
-#if !defined(snprintf)
-	#define snprintf		_snprintf
-#endif
 	#define vsnprintf		_vsnprintf
 #endif
 
@@ -190,8 +184,6 @@ extern "C" {
 	#endif
 #endif
 
-/* Skip white-space chars at beginning of string */
-DLLEXPORT char*		DLLCALL skipsp(char* str);
 /* Truncate white-space chars off end of string */
 DLLEXPORT char*		DLLCALL truncsp(char* str);
 /* Truncate white-space chars off end of every \n-terminated line in string */
@@ -290,9 +282,24 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #endif
 
 /* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
+
 #if !defined(__unix__)	
 
+	#include <time.h>		/* time_t, etc. */
+
+	DLLEXPORT struct tm*    DLLCALL		gmtime_r(const time_t* t, struct tm* tm);
+	DLLEXPORT struct tm*    DLLCALL		localtime_r(const time_t* t, struct tm* tm);
+	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf);
+	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf);
 	DLLEXPORT char*			DLLCALL		strtok_r(char *str, const char *delim, char **last);
+
+#endif
+
+#if defined(__solaris__)
+	#define CTIME_R(x,y)	ctime_r(x,y)
+	/* #define CTIME_R(x,y)	ctime_r(x,y,sizeof y) */
+#else
+	#define CTIME_R(x,y)	ctime_r(x,y)
 #endif
 
 /* Mimic the Borland randomize() and random() CRTL functions */
