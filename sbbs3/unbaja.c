@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.39 2007/08/12 19:36:48 deuce Exp $ */
+/* $Id: unbaja.c,v 1.35 2007/07/10 20:03:26 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -180,7 +180,7 @@ struct var_table_t {
 const char *char_table="________________________________________________123456789!_______BCDEFGHIJKLMNOPQRSTUVWXYZ0____A________________________________________________________________________________________________________________________________________________________________";
 const char *first_char_table="_________________________________________________________________BCDEFGHIJKLMNOPQRSTUVWXYZ!____A________________________________________________________________________________________________________________________________________________________________";
 unsigned char *brute_buf=NULL;
-uint32_t *brute_crc_buf=NULL;
+unsigned long *brute_crc_buf=NULL;
 size_t brute_len=0;
 char **bruted=NULL;
 size_t bruted_len=0;
@@ -202,7 +202,7 @@ void add_bruted(unsigned long name, char good, char *val, int save)
 		free(p);
 		return;
 	}
-	*(int32_t *)p=name;
+	*(long *)p=name;
 	p[4]=good;
 	strcpy(p+5,val);
 	new_bruted[bruted_len-1]=p;
@@ -221,7 +221,7 @@ int check_bruted(long name,char *val)
 	int i;
 
 	for(i=0; i<bruted_len; i++) {
-		if(*(int32_t *)bruted[i]==name) {
+		if(*(long *)bruted[i]==name) {
 			if(!strcmp(val,bruted[i]+5))
 				return(*(bruted[i]+4));
 		}
@@ -234,7 +234,7 @@ char *find_bruted(long name)
 	int i;
 
 	for(i=0; i<bruted_len; i++) {
-		if(*(int32_t *)bruted[i]==name && *(bruted[i]+4))
+		if(*(long *)bruted[i]==name && *(bruted[i]+4))
 			return(bruted[i]+5);
 	}
 	return(NULL);
@@ -242,7 +242,7 @@ char *find_bruted(long name)
 
 char* bruteforce(unsigned long name)
 {
-	uint32_t	this_crc=0;
+	long	this_crc=0;
 	char	*ret;
 	int	counter=0;
 	unsigned char	*pos;
@@ -257,9 +257,9 @@ char* bruteforce(unsigned long name)
 		return(ret);
 	}
 	memset(brute_buf,0,brute_len+1);
-	memset(brute_crc_buf,0,brute_len*sizeof(int32_t));
+	memset(brute_crc_buf,0,brute_len*sizeof(long));
 	printf("Brute forcing var_%08x\n",name);
-	this_crc=crc32((char *)brute_buf,0);
+	this_crc=crc32(brute_buf,0);
 	for(;;) {
 		pos=brute_buf+l;
 		if(pos>brute_buf) {
@@ -325,8 +325,8 @@ BRUTE_DONE:
 
 /* comparison function for var_table */
 static int vt_compare(const void *key, const void *table) {
-	if (*(uint32_t *)key == (*(struct var_table_t *)table).crc) return 0;
-	if (*(uint32_t *)key < (*(struct var_table_t *)table).crc) return -1;
+	if (*(unsigned long *)key == (*(struct var_table_t *)table).crc) return 0;
+	if (*(unsigned long *)key < (*(struct var_table_t *)table).crc) return -1;
 	return 1;
 }
 
@@ -2318,7 +2318,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.39 $", "%*s %s", revision);
+	sscanf("$Revision: 1.35 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
@@ -2330,7 +2330,7 @@ int main(int argc, char **argv)
 				brute_buf=(char *)malloc(brute_len+1);
 				if(!brute_buf)
 					brute_len=0;
-				brute_crc_buf=(uint32_t *)malloc(brute_len*sizeof(uint32_t));
+				brute_crc_buf=(unsigned long *)malloc(brute_len*sizeof(unsigned long));
 				if(!brute_crc_buf) {
 					free(brute_buf);
 					brute_len=0;

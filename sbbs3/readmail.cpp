@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.41 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: readmail.cpp,v 1.39 2006/11/02 00:19:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -384,7 +384,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					sprintf(str2,text[Regarding],msg.subj);
 				else						/* Reply to other */
 					sprintf(str2,text[RegardingByOn],msg.subj,msg.from
-						,timestr(msg.hdr.when_written.time));
+						,timestr((time_t *)&msg.hdr.when_written.time));
 
 				p=strrchr(str,'@');
 				if(p) { 							/* name @addr */
