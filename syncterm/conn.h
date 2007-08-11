@@ -1,4 +1,4 @@
-/* $Id: conn.h,v 1.13 2007/06/01 11:59:14 deuce Exp $ */
+/* $Id: conn.h,v 1.14 2007/07/28 06:31:01 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -45,6 +45,7 @@ struct conn_buffer {
 	size_t			bufsize;
 	size_t			buftop;
 	size_t			bufbot;
+	int				isempty;
 	pthread_mutex_t	mutex;
 	sem_t			in_sem;
 	sem_t			out_sem;
