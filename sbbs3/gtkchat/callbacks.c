@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-#include <gdk/gdkkeysyms.h>
 
 #include "chatfuncs.h"
 #include "callbacks.h"
@@ -102,11 +101,11 @@ on_LocalText_key_press_event           (GtkWidget       *widget,
 	int		inbytes;
 	int		outbytes;
 
-	if(event->keyval==GDK_BackSpace || event->keyval==GDK_Delete) {
+	if(event->keyval=='\b' || event->keyval==127) {
 		GtkTextIter		start;
 		GtkTextIter		end;
 
-		chat_write_byte('\b');
+		chat_write_byte(event->keyval);
 		gtk_text_buffer_get_iter_at_mark(
 				 gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget))
 				,&start
@@ -125,7 +124,6 @@ on_LocalText_key_press_event           (GtkWidget       *widget,
 	if(event->keyval >= 32 && event->keyval < 127) {
 		instr[1]=0;
 		instr[0]=event->keyval;
-		chat_write_byte(event->keyval);
 		outstr=g_convert(instr, 1, "UTF-8", "CP437", &inbytes, &outbytes, NULL);
 		gtk_text_buffer_insert_at_cursor(
 				 gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget))
@@ -134,19 +132,6 @@ on_LocalText_key_press_event           (GtkWidget       *widget,
 		);
 		g_free(outstr);
 	}
-	if(event->keyval == GDK_Return || event->keyval == GDK_KP_Enter) {
-		instr[1]=0;
-		instr[0]='\n';
-		chat_write_byte('\r');
-		outstr=g_convert(instr, 1, "UTF-8", "CP437", &inbytes, &outbytes, NULL);
-		gtk_text_buffer_insert_at_cursor(
-				 gtk_text_view_get_buffer(GTK_TEXT_VIEW(widget))
-				,outstr
-				,1
-		);
-		g_free(outstr);
-	}
-	
 	return FALSE;
 }
 
