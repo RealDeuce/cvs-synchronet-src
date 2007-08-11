@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.30 2005/09/30 09:12:37 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.31 2007/07/10 23:50:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -372,7 +372,7 @@ time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 /* Returns the total number of msgs in the sub-board and sets 'ptr' to the  */
 /* number of the last message in the sub (0) if no messages.				*/
 /****************************************************************************/
-ulong sbbs_t::getlastmsg(uint subnum, ulong *ptr, time_t *t)
+ulong sbbs_t::getlastmsg(uint subnum, uint32_t *ptr, time_t *t)
 {
 	int 		i;
 	ulong		total;
