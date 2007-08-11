@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.41 2007/08/11 11:17:55 deuce Exp $ */
+/* $Id: execmisc.cpp,v 1.42 2007/08/11 11:25:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1004,6 +1004,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					errormsg(WHERE,ERR_CHK,"var sub-instruction",*(csi->ip-1));
 					return(0); }
 
+		/* TODO: Not even vaugely 64-bit happy */
 		case CS_FIO_FUNCTION:
 			switch(*(csi->ip++)) {	/* sub-op-code stored as next byte */
 				case FIO_OPEN:
