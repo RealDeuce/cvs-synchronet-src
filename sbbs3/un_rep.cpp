@@ -2,13 +2,13 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.38 2008/02/23 11:08:33 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.36 2006/01/31 02:51:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,9 +45,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 {
 	char	str[MAX_PATH+1],fname[MAX_PATH+1]
 			,*AttemptedToUploadREPpacket="Attempted to upload REP packet";
-	char	rep_fname[MAX_PATH+1];
-	char	msg_fname[MAX_PATH+1];
-	char	hdrs_fname[MAX_PATH+1];
 	char 	tmp[512];
 	char	from[26];
 	char	to[26];
@@ -60,19 +57,18 @@ bool sbbs_t::unpack_rep(char* repfile)
 	ulong	ex;
 	node_t	node;
 	FILE*	rep;
-	FILE*	hdrs=NULL;
 	DIR*	dir;
 	DIRENT*	dirent;
 	BOOL	twit_list;
 
-	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
+	sprintf(fname,"%stwitlist.cfg",cfg.ctrl_dir);
 	twit_list=fexist(fname);
 
 	if(repfile!=NULL)
-		SAFECOPY(rep_fname,repfile);
+		strcpy(str,repfile);
 	else
-		SAFEPRINTF2(rep_fname,"%s%s.rep",cfg.temp_dir,cfg.sys_id);
-	if(!fexistcase(rep_fname)) {
+		sprintf(str,"%s%s.rep",cfg.temp_dir,cfg.sys_id);
+	if(!fexistcase(str)) {
 		bputs(text[QWKReplyNotReceived]);
 		logline("U!",AttemptedToUploadREPpacket);
 		logline(nulstr,"REP file not received");
@@ -86,40 +82,27 @@ bool sbbs_t::unpack_rep(char* repfile)
 	ex=EX_OUTL|EX_OUTR;
 	if(online!=ON_REMOTE)
 		ex|=EX_OFFLINE;
-	i=external(cmdstr(cfg.fextr[k]->cmd,rep_fname,ALLFILES,NULL),ex);
+	i=external(cmdstr(cfg.fextr[k]->cmd,str,ALLFILES,NULL),ex);
 	if(i) {
 		bputs(text[QWKExtractionFailed]);
 		logline("U!",AttemptedToUploadREPpacket);
 		logline(nulstr,"Extraction failed");
 		return(false); 
 	}
-	SAFEPRINTF(hdrs_fname,"%sHEADERS.DAT",cfg.temp_dir);
-	if(fexistcase(hdrs_fname)) {
-		/* If we receive a headers.dat from a QWKnet node, we know the hubs supports it */
-		/* So turn on headers.dat in subsequent .QWK files */
-		if(!(useron.qwk&QWK_HEADERS)) {
-			useron.qwk|=QWK_HEADERS;
-			putuserrec(&cfg,useron.number,U_QWK,8,ultoa(useron.qwk,str,16));
-		}
-		if((hdrs=fopen(hdrs_fname,"r")) == NULL)
-			errormsg(WHERE,ERR_OPEN,hdrs_fname,0);
-	}
-	SAFEPRINTF2(msg_fname,"%s%s.msg",cfg.temp_dir,cfg.sys_id);
-	if(!fexistcase(msg_fname)) {
+	sprintf(str,"%s%s.msg",cfg.temp_dir,cfg.sys_id);
+	if(!fexistcase(str)) {
 		bputs(text[QWKReplyNotReceived]);
 		logline("U!",AttemptedToUploadREPpacket);
 		logline(nulstr,"MSG file not received");
 		return(false); 
 	}
-	if((rep=fnopen(&file,msg_fname,O_RDONLY))==NULL) {
-		errormsg(WHERE,ERR_OPEN,msg_fname,O_RDONLY);
+	if((rep=fnopen(&file,str,O_RDONLY))==NULL) {
+		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 		return(false); 
 	}
 	size=filelength(file);
 	fread(block,QWK_BLOCK_LEN,1,rep);
 	if(strnicmp((char *)block,cfg.sys_id,strlen(cfg.sys_id))) {
-		if(hdrs!=NULL)
-			fclose(hdrs);
 		fclose(rep);
 		bputs(text[QWKReplyNotReceived]);
 		logline("U!",AttemptedToUploadREPpacket);
@@ -140,17 +123,19 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 		lncntr=0;					/* defeat pause */
 		if(fseek(rep,l,SEEK_SET)!=0) {
-			errormsg(WHERE,ERR_SEEK,msg_fname,l);
+			sprintf(str,"%s.msg", cfg.sys_id);
+			errormsg(WHERE,ERR_SEEK,str,l);
 			break;
 		}
 		if(fread(block,1,QWK_BLOCK_LEN,rep)!=QWK_BLOCK_LEN) {
-			errormsg(WHERE,ERR_READ,msg_fname,ftell(rep));
+			sprintf(str,"%s.msg", cfg.sys_id);
+			errormsg(WHERE,ERR_READ,str,ftell(rep));
 			break;
 		}
 		sprintf(tmp,"%.6s",block+116);
 		i=atoi(tmp);  /* i = number of blocks */
 		if(i<2) {
-			SAFEPRINTF3(str,"%s blocks (read '%s' at offset %ld)", msg_fname, tmp, l);
+			sprintf(str,"%s.msg blocks (read '%s' at offset %ld)", cfg.sys_id, tmp, l);
 			errormsg(WHERE,ERR_CHK,str,i);
 			i=1;
 			continue; 
@@ -203,7 +188,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				continue; 
 			}
 
-			SAFEPRINTF(smb.file,"%smail",cfg.data_dir);
+			sprintf(smb.file,"%smail",cfg.data_dir);
 			smb.retry_time=cfg.smb_retry_time;
 
 			if(lastsub!=INVALID_SUB) {
@@ -224,20 +209,20 @@ bool sbbs_t::unpack_rep(char* repfile)
 				smb.status.attr=SMB_EMAIL;
 				if((k=smb_create(&smb))!=0) {
 					smb_close(&smb);
-					errormsg(WHERE,ERR_CREATE,smb.file,k,smb.last_error);
+					errormsg(WHERE,ERR_CREATE,smb.file,k);
 					continue; 
 				} 
 			}
 
 			if((k=smb_locksmbhdr(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_LOCK,smb.file,k,smb.last_error);
+				errormsg(WHERE,ERR_LOCK,smb.file,k);
 				continue; 
 			}
 
 			if((k=smb_getstatus(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_READ,smb.file,k,smb.last_error);
+				errormsg(WHERE,ERR_READ,smb.file,k);
 				continue; 
 			}
 
@@ -265,7 +250,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			putuserrec(&cfg,useron.number,U_ETODAY,5
 				,ultoa(useron.etoday,tmp,10));
 			bprintf(text[Emailed],username(&cfg,j,tmp),j);
-			SAFEPRINTF3(str,"%s sent e-mail to %s #%d"
+			sprintf(str,"%s sent e-mail to %s #%d"
 				,useron.alias,username(&cfg,j,tmp),j);
 			logline("E+",str);
 			if(useron.rest&FLAG('Q')) {
@@ -273,20 +258,20 @@ bool sbbs_t::unpack_rep(char* repfile)
 				truncsp(tmp); 
 			}
 			else
-				SAFECOPY(tmp,useron.alias);
+				strcpy(tmp,useron.alias);
 			for(k=1;k<=cfg.sys_nodes;k++) { /* Tell user, if online */
 				getnodedat(k,&node,0);
 				if(node.useron==j && !(node.misc&NODE_POFF)
 					&& (node.status==NODE_INUSE
 					|| node.status==NODE_QUIET)) {
-					SAFEPRINTF2(str,text[EmailNodeMsg]
+					sprintf(str,text[EmailNodeMsg]
 						,cfg.node_num,tmp);
 					putnmsg(&cfg,k,str);
 					break; 
 				} 
 			}
 			if(k>cfg.sys_nodes) {
-				SAFEPRINTF(str,text[UserSentYouMail],tmp);
+				sprintf(str,text[UserSentYouMail],tmp);
 				putsmsg(&cfg,j,str); 
 			} 
 		}    /* end of email */
@@ -316,7 +301,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				k--;	/* k is sub */
 				if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf) {
 					bprintf(text[QWKInvalidConferenceN],n);
-					SAFEPRINTF2(str,"%s: Invalid conference number %lu",useron.alias,n);
+					sprintf(str,"%s: Invalid conference number %lu",useron.alias,n);
 					logline("P!",str);
 					continue; 
 				} 
@@ -402,14 +387,14 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			/* TWIT FILTER */
 			if(twit_list) {
-				SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
+				sprintf(fname,"%stwitlist.cfg",cfg.ctrl_dir);
 				sprintf(from,"%25.25s",block+46);	/* From user */
 				truncsp(from);
 				sprintf(to,"%25.25s",block+21);		/* To user */
 				truncsp(to);
 
 				if(findstr(from,fname) || findstr(to,fname)) {
-					SAFEPRINTF4(str,"Filtering post from %s to %s on %s %s"
+					sprintf(str,"Filtering post from %s to %s on %s %s"
 						,from
 						,to
 						,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
@@ -422,7 +407,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				if(lastsub!=INVALID_SUB)
 					smb_close(&smb);
 				lastsub=INVALID_SUB;
-				SAFEPRINTF2(smb.file,"%s%s",cfg.sub[n]->data_dir,cfg.sub[n]->code);
+				sprintf(smb.file,"%s%s",cfg.sub[n]->data_dir,cfg.sub[n]->code);
 				smb.retry_time=cfg.smb_retry_time;
 				smb.subnum=n;
 				if((j=smb_open(&smb))!=0) {
@@ -438,7 +423,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 					if((j=smb_create(&smb))!=0) {
 						smb_close(&smb);
 						lastsub=INVALID_SUB;
-						errormsg(WHERE,ERR_CREATE,smb.file,j,smb.last_error);
+						errormsg(WHERE,ERR_CREATE,smb.file,j);
 						continue; 
 					} 
 				}
@@ -446,13 +431,13 @@ bool sbbs_t::unpack_rep(char* repfile)
 				if((j=smb_locksmbhdr(&smb))!=0) {
 					smb_close(&smb);
 					lastsub=INVALID_SUB;
-					errormsg(WHERE,ERR_LOCK,smb.file,j,smb.last_error);
+					errormsg(WHERE,ERR_LOCK,smb.file,j);
 					continue; 
 				}
 				if((j=smb_getstatus(&smb))!=0) {
 					smb_close(&smb);
 					lastsub=INVALID_SUB;
-					errormsg(WHERE,ERR_READ,smb.file,j,smb.last_error);
+					errormsg(WHERE,ERR_READ,smb.file,j);
 					continue; 
 				}
 				smb_unlocksmbhdr(&smb);
@@ -466,7 +451,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			user_posted_msg(&cfg, &useron, 1);
 			bprintf(text[Posted],cfg.grp[cfg.sub[n]->grp]->sname
 				,cfg.sub[n]->lname);
-			SAFEPRINTF3(str,"%s posted on %s %s"
+			sprintf(str,"%s posted on %s %s"
 				,useron.alias,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
 			signal_sub_sem(&cfg,n);
 			logline("P+",str); 
@@ -479,41 +464,39 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 	if(lastsub!=INVALID_SUB)
 		smb_close(&smb);
-	if(hdrs!=NULL)
-		fclose(hdrs);
 	fclose(rep);
 
 	if(useron.rest&FLAG('Q')) {             /* QWK Net Node */
-		if(fexistcase(msg_fname))
-			remove(msg_fname);
-		if(fexistcase(rep_fname))
-			remove(rep_fname);
-		if(fexistcase(hdrs_fname))
-			remove(hdrs_fname);
-		SAFEPRINTF(fname,"%sATTXREF.DAT",cfg.temp_dir);
-		if(fexistcase(fname))
-			remove(fname);
+		sprintf(str,"%s%s.msg",cfg.temp_dir,cfg.sys_id);
+		if(fexistcase(str))
+			remove(str);
+		sprintf(str,"%s%s.rep",cfg.temp_dir,cfg.sys_id);
+		if(fexistcase(str))
+			remove(str);
+		sprintf(str,"%sATTXREF.DAT",cfg.temp_dir);
+		if(fexistcase(str))
+			remove(str);
 
 		dir=opendir(cfg.temp_dir);
 		while(dir!=NULL && (dirent=readdir(dir))!=NULL) {				/* Extra files */
 			// Move files
-			SAFEPRINTF2(str,"%s%s",cfg.temp_dir,dirent->d_name);
+			sprintf(str,"%s%s",cfg.temp_dir,dirent->d_name);
 			if(isdir(str))
 				continue;
 
 			// Create directory if necessary
-			SAFEPRINTF2(inbox,"%sqnet/%s.in",cfg.data_dir,useron.alias);
+			sprintf(inbox,"%sqnet/%s.in",cfg.data_dir,useron.alias);
 			MKDIR(inbox); 
 
-			SAFEPRINTF2(fname,"%s/%s",inbox,dirent->d_name);
+			sprintf(fname,"%s/%s",inbox,dirent->d_name);
 			mv(str,fname,1);
-			SAFEPRINTF2(str,text[ReceivedFileViaQWK],dirent->d_name,useron.alias);
+			sprintf(str,text[ReceivedFileViaQWK],dirent->d_name,useron.alias);
 			putsmsg(&cfg,1,str);
 		} 
 		if(dir!=NULL)
 			closedir(dir);
-		SAFEPRINTF(fname,"%sqnet-rep.now",cfg.data_dir);
-		ftouch(fname);
+		sprintf(str,"%sqnet-rep.now",cfg.data_dir);
+		ftouch(str);
 	}
 
 	bputs(text[QWKUnpacked]);
