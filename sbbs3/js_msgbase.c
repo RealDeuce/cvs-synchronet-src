@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.125 2006/06/15 03:20:36 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.127 2007/07/10 23:22:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -535,7 +535,7 @@ BOOL DLLCALL js_ParseMsgHeaderObject(JSContext* cx, JSObject* obj, smbmsg_t* msg
 	return(TRUE);
 }
 
-static BOOL msg_offset_by_id(private_t* p, char* id, long* offset)
+static BOOL msg_offset_by_id(private_t* p, char* id, int32_t* offset)
 {
 	smbmsg_t msg;
 
@@ -1839,8 +1839,15 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 		}
 		if(p->smb.subnum<scfg->total_subs) {
 			cfgobj=JS_NewObject(cx,NULL,NULL,obj);
+
+#ifdef BUILD_JSDOCS	
+			/* needed for property description alignment */
 			JS_DefineProperty(cx,cfgobj,"index",JSVAL_VOID
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+			JS_DefineProperty(cx,cfgobj,"grp_index",JSVAL_VOID
+				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+#endif
+
 			js_CreateMsgAreaProperties(cx, scfg, cfgobj, p->smb.subnum);
 #ifdef BUILD_JSDOCS
 			js_DescribeSyncObject(cx,cfgobj
