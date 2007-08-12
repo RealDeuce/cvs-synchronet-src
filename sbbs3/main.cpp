@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.490 2008/01/11 08:45:52 deuce Exp $ */
+/* $Id: main.cpp,v 1.485 2007/08/11 11:17:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -500,30 +500,6 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
-/*
- * Always resolve all here since
- * 1) We'll always be enumerating anyways
- * 2) The speed penalty won't be seen in production code anyways
- */
-JSBool
-DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
-{
-	JSBool	ret=JS_TRUE;
-
-	if(props)
-		if(!js_DefineSyncProperties(cx, obj, props))
-			ret=JS_FALSE;
-		
-	if(funcs)
-		if(!js_DefineSyncMethods(cx, obj, funcs))
-			ret=JS_FALSE;
-
-	if(consts)
-		if(!js_DefineConstIntegers(JSContext* cx, JSObject* obj, consts, flags)
-
-	return(ret);
-}
-
 #else // NON-JSDOCS
 
 JSBool
@@ -551,51 +527,6 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
-JSBool
-DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
-{
-	uint i;
-	jsval	val;
-
-	if(props) {
-		for(i=0;props[i].name;i++) {
-			if(name==NULL || strcmp(name, props[i].name)==0) {
-				if(!JS_DefinePropertyWithTinyId(cx, obj, 
-						props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
-					return(JS_FALSE);
-				if(name)
-					return(JS_TRUE);
-			}
-		}
-	}
-	if(funcs) {
-		for(i=0;funcs[i].name;i++) {
-			if(name==NULL || strcmp(name, funcs[i].name)==0) {
-				if(!JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0))
-					return(JS_FALSE);
-				if(name)
-					return(JS_TRUE);
-			}
-		}
-	}
-	if(consts) {
-		for(i=0;consts[i].name;i++) {
-			if(name==NULL || strcmp(name, consts[i].name)==0) {
-	        	if(!JS_NewNumberValue(cx, consts[i].val, &val))
-					return(JS_FALSE);
-
-				if(!JS_DefineProperty(cx, obj, consts[i].name, val ,NULL, NULL, flags))
-					return(JS_FALSE);
-
-				if(name)
-					return(JS_TRUE);
-			}
-		}
-	}
-
-	return(JS_TRUE);
-}
-
 #endif
 
 /* This is a stream-lined version of JS_DefineConstDoubles */
@@ -612,7 +543,7 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 		if(!JS_DefineProperty(cx, obj, ints[i].name, val ,NULL, NULL, flags))
 			return(JS_FALSE);
 	}
-
+		
 	return(JS_TRUE);
 }
 
@@ -2470,7 +2401,7 @@ void event_thread(void* arg)
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
 						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
 							,sbbs->cfg.event[i]->code
-							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
+							,time32str(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
@@ -3251,7 +3182,7 @@ int sbbs_t::nopen(char *str, int access)
     else share=SH_DENYRW;
 	if(!(access&O_TEXT))
 		access|=O_BINARY;
-    while(((file=sopen(str,access,share,DEFFILEMODE))==-1)
+    while(((file=sopen(str,access,share,S_IREAD|S_IWRITE))==-1)
         && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
 	    mswait(100);
     if(count>(LOOP_NOPEN/2) && count<=LOOP_NOPEN) {
@@ -4338,7 +4269,7 @@ void DLLCALL bbs_thread(void* arg)
 			md(scfg.node_path[i-1]);
 		SAFEPRINTF(str,"%sdsts.dab",i ? scfg.node_path[i-1] : scfg.ctrl_dir);
 		if(flength(str)<DSTSDABLEN) {
-			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, DEFFILEMODE))==-1) {
+			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, S_IREAD|S_IWRITE))==-1) {
 				lprintf(LOG_ERR,"!ERROR %d creating %s",errno, str);
 				cleanup(1);
 				return; 
