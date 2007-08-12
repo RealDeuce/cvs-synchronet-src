@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.141 2007/11/21 00:59:23 rswindell Exp $ */
+/* $Id: smblib.c,v 1.139 2007/08/12 19:24:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -768,7 +768,7 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 			msg->summary=(char*)hfield_dat;
 			break;
 		case SMB_EXPIRATION:
-			msg->expiration=*(uint32_t*)hfield_dat;
+			msg->expiration=*(time_t*)hfield_dat;
 			break;
 		case SMB_PRIORITY:
 			msg->priority=*(uint32_t*)hfield_dat;
@@ -1400,7 +1400,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 
 	/* This is *not* a dupe-check */
 	if(!(msg->flags&MSG_FLAG_HASHED) /* not already hashed */
-		&& (i=smb_hashmsg(smb,msg,/* text: */NULL,/* update? */TRUE))!=SMB_SUCCESS) {
+		&& (i=smb_hashmsg(smb,msg,NULL,/* update? */TRUE))!=SMB_SUCCESS) {
 		smb_unlocksmbhdr(smb);
 		return(i);	/* error updating hash table */
 	}
