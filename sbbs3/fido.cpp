@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.42 2007/08/19 06:26:22 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.41 2007/07/10 21:14:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -308,7 +308,6 @@ bool sbbs_t::netmail(char *into, char *title, long mode)
 	read(file,buf,length);
 	close(file);
 
-	md(cfg.netmail_dir);
 	cc_sent=0;
 	while(1) {
 		for(i=1;i;i++) {
@@ -837,7 +836,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 	SAFECOPY(hdr.subj,p);
 
-	md(cfg.netmail_dir);
 	for(i=1;i;i++) {
 		sprintf(str,"%s%u.msg", cfg.netmail_dir,i);
 		if(!fexistcase(str))

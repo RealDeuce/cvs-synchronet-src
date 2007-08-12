@@ -2,7 +2,7 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.14 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: scansubs.cpp,v 1.13 2007/07/10 23:50:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,7 +247,7 @@ void sbbs_t::new_scan_ptr_cfg()
 				if(t>(long)l)
 					l=t;
 				bprintf(text[SubPtrLstFmt],j+1,cfg.sub[usrsub[i][j]]->lname
-					,timestr(t),nulstr); }
+					,timestr(&t),nulstr); }
 			SYNC;
 			mnemonics(text[WhichOrAll]);
 			s=getkeys("AQ",usrsubs[i]);
