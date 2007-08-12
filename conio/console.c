@@ -56,7 +56,7 @@
  *
  */ 
 
-/* $Id: console.c,v 1.68 2006/05/08 18:25:34 deuce Exp $ */
+/* $Id: console.c,v 1.74 2007/07/31 12:02:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ int InitCE;
 int FW, FH;
 int FontScale=1;
 #define MAX_SCALE	2
-WORD DpyCols;
+WORD DpyCols=80;		/* Initialize this so init_mode() is happy */
 BYTE DpyRows;
 BYTE *palette;
 BYTE CursStart;
@@ -182,6 +182,11 @@ GC cgc;
 int xfd;
 char window_title[81];
 char window_name[81];
+
+int x11_window_xpos=-1;
+int x11_window_ypos=-1;
+int x11_window_width=-1;
+int x11_window_height=-1;
 
 /* X functions */
 struct x11 {
@@ -631,6 +636,10 @@ video_event(XEvent *ev)
 				int r;
 
 				oldFS=FontScale;
+				x11_window_xpos=ev->xconfigure.x-ev->xconfigure.border_width;
+				x11_window_ypos=ev->xconfigure.y-ev->xconfigure.border_width;
+				x11_window_width=ev->xconfigure.width+ev->xconfigure.border_width*2;
+				x11_window_height=ev->xconfigure.height+ev->xconfigure.border_width*2;
 				if((ev->xconfigure.width == FW * DpyCols + 4)
 						&& (ev->xconfigure.height == FH * (DpyRows+1) + 4))
 					break;
@@ -1478,9 +1487,9 @@ update_pixels()
     for (i = 0; i < 16; i++) {
 		XColor color;
 
-	    color.red   = dac_default16[palette[i]].red << 10;
-	    color.green = dac_default16[palette[i]].green << 10;
-	    color.blue  = dac_default16[palette[i]].blue << 10;
+	    color.red   = dac_default[palette[i]].red << 8;
+	    color.green = dac_default[palette[i]].green << 8;
+	    color.blue  = dac_default[palette[i]].blue << 8;
 		if (x11.XAllocColor(dpy, DefaultColormap(dpy, DefaultScreen(dpy)), &color)) {
 		    pixels[i] = color.pixel;
 		} else if (i < 7)
@@ -1496,6 +1505,7 @@ init_mode(int mode)
     struct video_params vmode;
     int idx;			/* Index into vmode */
     int i;
+    WORD oldcols = DpyCols;
 
     idx = find_vmode(mode);
     if (idx == -1) {
@@ -1513,6 +1523,19 @@ init_mode(int mode)
 	InitCE = CursEnd;
 
     vmem = (WORD *)realloc(vmem,vmode.cols*vmode.rows*sizeof(WORD));
+	/* Deal with 40 col doubling */
+	if(oldcols != DpyCols) {
+		if(oldcols == 40)
+			FontScale /= 2;
+		if(DpyCols == 40)
+			FontScale *= 2;
+	}
+
+	if(FontScale > MAX_SCALE)
+		FontScale = MAX_SCALE;
+
+	if(FontScale < 1)
+		FontScale = 1;
 
     /* Point 'palette[]' to the Attribute Controller space. We will only use
        the first 16 slots. */
@@ -1538,6 +1561,19 @@ init_mode(int mode)
 
 	CurrMode=mode;
 	console_new_mode=NO_NEW_MODE;
+
+	cio_textinfo.attribute=7;
+	cio_textinfo.normattr=7;
+	cio_textinfo.currmode=mode;
+	cio_textinfo.screenheight=DpyRows+1;
+	cio_textinfo.screenwidth=DpyCols;
+	cio_textinfo.curx=1;
+	cio_textinfo.cury=1;
+	cio_textinfo.winleft=1;
+	cio_textinfo.wintop=1;
+	cio_textinfo.winright=cio_textinfo.screenwidth;
+	cio_textinfo.winbottom=cio_textinfo.screenheight;
+
 	sem_post(&console_mode_changed);
     return(0);
 }
@@ -1771,6 +1807,7 @@ console_init()
 
 	_beginthread(video_async_event,1<<16,NULL);
 	_beginthread(mouse_event,1<<16,NULL);
+
 	return(0);
 }
 
