@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.204 2007/08/13 22:44:47 deuce Exp $
+# $Id: GNUmakefile,v 1.203 2007/07/11 01:31:45 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -102,7 +102,7 @@ CFLAGS	+=	$(JS_CFLAGS)
 LDFLAGS	+=	$(JS_LDFLAGS)
 
 ifndef CRYPTLIBDIR
- CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(machine).release
+ CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(os).release
 endif
 LDFLAGS	+=	-L$(CRYPTLIBDIR)
 
