@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.203 2007/08/13 02:24:42 rswindell Exp $ */
+/* $Id: services.c,v 1.204 2007/08/13 02:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1501,6 +1501,8 @@ static service_t* read_services_ini(service_t* service, DWORD* services)
 			serv.port=(ushort)strtol(p,NULL,0);
 		else {
 			struct servent* servent = getservbyname(p,serv.options&SERVICE_OPT_UDP ? "udp":"tcp");
+			if(servent==NULL)
+				servent = getservbyname(p,serv.options&SERVICE_OPT_UDP ? "tcp":"udp");
 			if(servent!=NULL)
 				serv.port = ntohs(servent->s_port);
 		}
@@ -1584,7 +1586,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.203 $", "%*s %s", revision);
+	sscanf("$Revision: 1.204 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
