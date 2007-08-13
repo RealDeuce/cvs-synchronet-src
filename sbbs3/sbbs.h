@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.312 2008/02/23 11:08:33 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.306 2007/07/25 23:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -123,6 +123,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include "startup.h"
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
+#ifdef SBBS	
+	#include "text.h"
+#endif
 
 /* xpdev */
 #ifndef LINK_LIST_THREADSAFE
@@ -132,11 +135,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "semfile.h"
 #include "dirwrap.h"
 #include "filewrap.h"
-#include "datewrap.h"
 #include "sockwrap.h"
 #include "link_list.h"
 #include "msg_queue.h"
-#include "xpdatetime.h"
 
 #include "smblib.h"
 #include "ars_defs.h"
@@ -151,7 +152,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "crc32.h"
 #include "telnet.h"
 #include "nopen.h"
-#include "text.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -438,7 +438,8 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	timestr(time_t intime);
+	char*	time32str(time32_t *intime);
+	char*	timestr(time_t *intime);
     char	timestr_output[60];
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, char *tmplt, long mode);
@@ -522,7 +523,7 @@ public:
 	/* getstr.cpp */
 	size_t	getstr_offset;
 	size_t	getstr(char *str, size_t length, long mode);
-	long	getnum(ulong max, ulong dflt=0);
+	long	getnum(ulong max);
 	void	insert_indicator(void);
 
 	/* getkey.cpp */
@@ -732,7 +733,7 @@ public:
 	bool	unpack_rep(char* repfile=NULL);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf, FILE* hdrs_dat);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf);
 
 	/* qwktomsg.cpp */
 	bool	qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
@@ -868,7 +869,8 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
+	DLLEXPORT char *	DLLCALL time32str(scfg_t* cfg, time32_t *intime, char* str);
+	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
 
@@ -970,7 +972,6 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char*);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec*, BOOL append);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncProperties(JSContext* cx, JSObject* obj, jsSyncPropertySpec*);
-	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);

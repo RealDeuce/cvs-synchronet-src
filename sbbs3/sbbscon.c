@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.224 2008/02/23 22:35:09 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.217 2006/09/20 21:30:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -57,10 +57,6 @@
 #include "threadwrap.h"	/* pthread_mutex_t */
 
 #ifdef __unix__
-
-#ifdef USE_LINUX_CAPS
-#include <sys/capability.h>
-#endif
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -126,27 +122,6 @@ char				log_ident[128];
 BOOL				std_facilities=FALSE;
 FILE *				pidf;
 char				pid_fname[MAX_PATH+1];
-BOOL                capabilities_set=FALSE;
-
-#ifdef USE_LINUX_CAPS
-/*
- * If the value of PR_SET_KEEPCAPS is not in <sys/prctl.h>, define it
- * here.  This allows setuid() to work on systems running a new enough
- * kernel but with /usr/include/linux pointing to "standard" kernel
- * headers.
- */
-#ifndef PR_SET_KEEPCAPS
-#define PR_SET_KEEPCAPS 8
-#endif
-
-#ifndef SYS_capset
-#ifndef __NR_capset
-#include <asm/unistd.h> /* Slackware 4.0 needs this. */
-#endif
-#define SYS_capset __NR_capset
-#endif
-#endif /* USE_LINUX_CAPS */
-
 #endif
 
 static const char* prompt;
@@ -173,6 +148,7 @@ static const char* usage  = "\nusage: %s [[setting] [...]] [path/ini_file]\n"
 #ifdef __unix__
 							"\tnd         do not read run as daemon - overrides .ini file\n"
 #endif
+							"\tlt         use local timezone (do not force UTC/GMT)\n"
 							"\tdefaults   show default settings and options\n"
 							"\n"
 							;
@@ -288,11 +264,8 @@ static BOOL do_seteuid(BOOL to_new)
 {
 	BOOL	result=FALSE;
 
-    if(capabilities_set)
-	    return(TRUE);		/* do nothing */
-  
-    if(new_uid_name[0]==0)	/* not set? */
-	    return(TRUE);		/* do nothing */
+	if(new_uid_name[0]==0)	/* not set? */
+		return(TRUE);		/* do nothing */
 
 	if(old_uid==new_uid && old_gid==new_gid)
 		return(TRUE);		/* do nothing */
@@ -383,120 +356,6 @@ BOOL do_setuid(BOOL force)
 
 	return(result);
 }
-
-int change_user(void)
-{
-    if(!do_setuid(FALSE)) {
-        /* actually try to change the uid of this process */
-        lputs(LOG_ERR,"!Setting new user_id failed!  (Does the user exist?)");
-        return(-1);
-	} else {
-        char str[256];
-        struct passwd *pwent;
-        
-        pwent=getpwnam(new_uid_name);
-        if(pwent != NULL) {
-            char	uenv[128];
-            char	henv[MAX_PATH+6];
-            sprintf(uenv,"USER=%s",pwent->pw_name);
-            putenv(uenv);
-            sprintf(henv,"HOME=%s",pwent->pw_dir);
-            putenv(henv);
-        }
-        if(new_gid_name[0]) {
-            char	genv[128];
-            sprintf(genv,"GROUP=%s",new_gid_name);
-            putenv(genv);
-        }
-        lprintf(LOG_INFO,"Successfully changed user_id to %s", new_uid_name);
-    }
-	return(0);
-}
-
-#ifdef USE_LINUX_CAPS
-/**********************************************************
-* Set system capabilities on Linux.  Allows non root user
-* to make calls to bind
-* **********************************************************/
-void whoami(void)
-{
-    uid_t a, b, c;
-    getresuid(&a, &b, &c);
-    lprintf(LOG_DEBUG,"Current uids: ruid - %d, euid - %d, suid - %d", a, b, c);
-    getresgid(&a, &b, &c);
-    lprintf(LOG_DEBUG,"Current gids: rgid - %d, egid - %d, sgid - %d", a, b, c);
-}
-
-void list_caps(void)
-{
-    cap_t caps = cap_get_proc();
-    ssize_t y = 0;
-    lprintf(LOG_DEBUG, "The process %d was given capabilities %s", (int) getpid(), cap_to_text(caps, &y));
-    fflush(0);
-    cap_free(caps);
-}
-
-static int linux_keepcaps(void)
-{
-	char strbuf[100];
-	/*
-	 * Ask the kernel to allow us to keep our capabilities after we
-	 * setuid().
-	 */
-	if (prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0) < 0) {
-		if (errno != EINVAL) {
-			lputs(LOG_ERR,"linux_keepcaps FAILED");
-			lputs(LOG_ERR,strerror(errno));
-		}
-        return(-1);
-	}
-    return(0);
-}
-
-static int linux_setcaps(unsigned int caps)
-{
-    struct __user_cap_header_struct caphead;
-    struct __user_cap_data_struct cap;
-    
-    memset(&caphead, 0, sizeof(caphead));
-    caphead.version = _LINUX_CAPABILITY_VERSION;
-    caphead.pid = 0;
-    memset(&cap, 0, sizeof(cap));
-    cap.effective = caps;
-    cap.permitted = caps;
-    cap.inheritable = 0;
-    return(syscall(SYS_capset, &caphead, &cap));
-}
-
-static int linux_initialprivs(void)
-{
-    unsigned int caps;
-
-    caps = 0;
-    caps |= (1 << CAP_NET_BIND_SERVICE);
-    caps |= (1 << CAP_SETUID);
-    caps |= (1 << CAP_SETGID);
-    caps |= (1 << CAP_DAC_READ_SEARCH);
-    caps |= (1 << CAP_SYS_RESOURCE);
-    printf("Setting initial privileges\n");
-    return(linux_setcaps(caps));
-}
-
-static int linux_minprivs(void)
-{
-    unsigned int caps;
-
-    caps = 0;
-    caps |= (1 << CAP_NET_BIND_SERVICE);
-    caps |= (1 << CAP_SYS_RESOURCE);
-    printf("Setting minimum privileges\n");
-    return(linux_setcaps(caps));
-}
-/**********************************************************
-* End capabilities section
-* **********************************************************/
-#endif /* USE_LINUX_CAPS */
-
 #endif   /* __unix__ */
 
 #ifdef _WINSOCKAPI_
@@ -640,12 +499,12 @@ static void bbs_started(void* p)
 {
 	bbs_running=TRUE;
 	bbs_stopped=FALSE;
-    #ifdef _THREAD_SUID_BROKEN
-        if(thread_suid_broken) {
-            do_seteuid(FALSE);
-            do_setuid(FALSE);
-        }
-    #endif
+	#ifdef _THREAD_SUID_BROKEN
+		if(thread_suid_broken) {
+	    	do_seteuid(FALSE);
+	    	do_setuid(FALSE);
+		}
+	#endif
 }
 
 static void bbs_terminated(void* p, int code)
@@ -1658,6 +1517,19 @@ int main(int argc, char** argv)
 						return(1);
 				}
 				break;
+			case 'L':	/* Local */
+				switch(toupper(*(arg++))) {
+					case 'T': /* timezone */
+						bbs_startup.options		|=BBS_OPT_LOCAL_TIMEZONE;
+						ftp_startup.options		|=BBS_OPT_LOCAL_TIMEZONE;
+						mail_startup.options	|=BBS_OPT_LOCAL_TIMEZONE;
+						services_startup.options|=BBS_OPT_LOCAL_TIMEZONE;
+						break;
+					default:
+						show_usage(argv[0]);
+						return(1);
+				}
+				break;
 
 			default:
 				show_usage(argv[0]);
@@ -1763,42 +1635,7 @@ int main(int argc, char** argv)
 #if defined(_WIN32)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
 #elif defined(__unix__)
-
-#ifdef USE_LINUX_CAPS /* set capabilities and change user before we start threads */
-    whoami();
-    list_caps();
-    if(linux_initialprivs() < 0) {
-        lputs(LOG_ERR,"linux_initialprivs() FAILED");
-        /* assuming if we pass here the module is loaded so no further module messages are needed */
-        lputs(LOG_ERR,"Verify the following kernel module is loaded [See insmod(8)]: capability");
-		lputs(LOG_ERR,strerror(errno));
-    }
-	else {
-    	list_caps();
-    	if(linux_keepcaps() < 0) {
-			lputs(LOG_ERR,"linux_keepcaps() FAILED");
-			lputs(LOG_ERR,strerror(errno));
-    	}
-		else {
-    		if(change_user() < 0) {
-				lputs(LOG_ERR,"change_user() FAILED");
-			}
-			else {
-    			if(linux_minprivs() < 0) {
-					lputs(LOG_ERR,"linux_minprivs() FAILED");
-					lputs(LOG_ERR,strerror(errno));
-    			}
-				else {
-					capabilities_set=TRUE;
-				}
-			}
-		}
-	}
-    whoami();
-    list_caps();
-#endif /* USE_LINUX_CAPS */
-    
-    /* Set up blocked signals */
+	/* Set up blocked signals */
 	sigemptyset(&sigs);
 	sigaddset(&sigs,SIGINT);
 	sigaddset(&sigs,SIGQUIT);
@@ -1811,36 +1648,34 @@ int main(int argc, char** argv)
     signal(SIGPIPE, SIG_IGN);       /* Ignore "Broken Pipe" signal (Also used for broken socket etc.) */
     signal(SIGALRM, SIG_IGN);       /* Ignore "Alarm" signal */
 	_beginthread((void(*)(void*))handle_sigs,0,NULL);
-    if(!capabilities_set) { /* capabilities were NOT set, fallback to original handling of thread options */
-    	if(new_uid_name[0]!=0) {        /*  check the user arg, if we have uid 0 */
-    		/* Can't recycle servers (re-bind ports) as non-root user */
-    		/* If DONT_BLAME_SYNCHRONET is set, keeps root credentials laying around */
+	if(new_uid_name[0]!=0) {        /*  check the user arg, if we have uid 0 */
+		/* Can't recycle servers (re-bind ports) as non-root user */
+		/* If DONT_BLAME_SYNCHRONET is set, keeps root credentials laying around */
 #if !defined(DONT_BLAME_SYNCHRONET)
-    		if(!thread_suid_broken) {
-     			if(bbs_startup.telnet_port < IPPORT_RESERVED
-    				|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
-    					&& bbs_startup.rlogin_port < IPPORT_RESERVED)
+		if(!thread_suid_broken) {
+ 			if(bbs_startup.telnet_port < IPPORT_RESERVED
+				|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
+					&& bbs_startup.rlogin_port < IPPORT_RESERVED)
 #ifdef USE_CRYPTLIB
-    				|| (bbs_startup.options & BBS_OPT_ALLOW_SSH
-    					&& bbs_startup.ssh_port < IPPORT_RESERVED)
+				|| (bbs_startup.options & BBS_OPT_ALLOW_SSH
+					&& bbs_startup.ssh_port < IPPORT_RESERVED)
 #endif
-    				)
-    				bbs_startup.options|=BBS_OPT_NO_RECYCLE;
-    			if(ftp_startup.port < IPPORT_RESERVED)
-    				ftp_startup.options|=FTP_OPT_NO_RECYCLE;
-    			if(web_startup.port < IPPORT_RESERVED)
-    				web_startup.options|=BBS_OPT_NO_RECYCLE;
-    			if((mail_startup.options & MAIL_OPT_ALLOW_POP3
-    				&& mail_startup.pop3_port < IPPORT_RESERVED)
-    				|| mail_startup.smtp_port < IPPORT_RESERVED)
-    				mail_startup.options|=MAIL_OPT_NO_RECYCLE;
-    			/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
-    			services_startup.options|=BBS_OPT_NO_RECYCLE;
-    		}
-#endif /* !defined(DONT_BLAME_SYNCHRONET) */
-    	}
-    } /* end if(!capabilities_set) */    
-#endif /* defined(__unix__) */
+				)
+				bbs_startup.options|=BBS_OPT_NO_RECYCLE;
+			if(ftp_startup.port < IPPORT_RESERVED)
+				ftp_startup.options|=FTP_OPT_NO_RECYCLE;
+			if(web_startup.port < IPPORT_RESERVED)
+				web_startup.options|=BBS_OPT_NO_RECYCLE;
+			if((mail_startup.options & MAIL_OPT_ALLOW_POP3
+				&& mail_startup.pop3_port < IPPORT_RESERVED)
+				|| mail_startup.smtp_port < IPPORT_RESERVED)
+				mail_startup.options|=MAIL_OPT_NO_RECYCLE;
+			/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
+			services_startup.options|=BBS_OPT_NO_RECYCLE;
+		}
+#endif
+	}
+#endif
 
 	if(run_bbs)
 		_beginthread((void(*)(void*))bbs_thread,0,&bbs_startup);
@@ -1862,48 +1697,69 @@ int main(int argc, char** argv)
 #endif
 
 #ifdef __unix__
-    if(getuid() && !capabilities_set)  { /*  are we running as a normal user?  */
-    	lprintf(LOG_WARNING
-    		,"!Started as non-root user.  Cannot bind() to ports below %u.", IPPORT_RESERVED);
-    }
-    else if(new_uid_name[0]==0)   /*  check the user arg, if we have uid 0 */
-    	lputs(LOG_WARNING,"WARNING: No user account specified, running as root.");
+	if(getuid())  { /*  are we running as a normal user?  */
+		lprintf(LOG_WARNING
+			,"!Started as non-root user.  Cannot bind() to ports below %u.", IPPORT_RESERVED);
+	}
 	
-    else 
-    {
-    	lputs(LOG_INFO,"Waiting for child threads to bind ports...");
-	   	while((run_bbs && !(bbs_running || bbs_stopped)) 
-			|| (run_ftp && !(ftp_running || ftp_stopped)) 
-			|| (run_web && !(web_running || web_stopped)) 
-			|| (run_mail && !(mail_running || mail_stopped)) 
-			|| (run_services && !(services_running || services_stopped)))  {
-	    	mswait(1000);
-		    if(run_bbs && !(bbs_running || bbs_stopped))
-			    lputs(LOG_INFO,"Waiting for BBS thread");
-		    if(run_web && !(web_running || web_stopped))
-			    lputs(LOG_INFO,"Waiting for Web thread");
-		    if(run_ftp && !(ftp_running || ftp_stopped))
-			    lputs(LOG_INFO,"Waiting for FTP thread");
-		    if(run_mail && !(mail_running || mail_stopped))
-			    lputs(LOG_INFO,"Waiting for Mail thread");
-		    if(run_services && !(services_running || services_stopped))
-			    lputs(LOG_INFO,"Waiting for Services thread");
-	    }
+	else if(new_uid_name[0]==0)   /*  check the user arg, if we have uid 0 */
+		lputs(LOG_WARNING,"WARNING: No user account specified, running as root.");
+	
+	else 
+	{
+		lputs(LOG_INFO,"Waiting for child threads to bind ports...");
+		while((run_bbs && !(bbs_running || bbs_stopped)) 
+				|| (run_ftp && !(ftp_running || ftp_stopped)) 
+				|| (run_web && !(web_running || web_stopped)) 
+				|| (run_mail && !(mail_running || mail_stopped)) 
+				|| (run_services && !(services_running || services_stopped)))  {
+			mswait(1000);
+			if(run_bbs && !(bbs_running || bbs_stopped))
+				lputs(LOG_INFO,"Waiting for BBS thread");
+			if(run_web && !(web_running || web_stopped))
+				lputs(LOG_INFO,"Waiting for Web thread");
+			if(run_ftp && !(ftp_running || ftp_stopped))
+				lputs(LOG_INFO,"Waiting for FTP thread");
+			if(run_mail && !(mail_running || mail_stopped))
+				lputs(LOG_INFO,"Waiting for Mail thread");
+			if(run_services && !(services_running || services_stopped))
+				lputs(LOG_INFO,"Waiting for Services thread");
+		}
 
-        if(!capabilities_set) { /* if using capabilities user should already have changed */
-            if(change_user() < 0)
-		        lputs(LOG_ERR,"change_user FAILED");
-        }
+		if(!do_setuid(FALSE))
+				/* actually try to change the uid of this process */
+			lputs(LOG_ERR,"!Setting new user_id failed!  (Does the user exist?)");
+	
+		else {
+			char str[256];
+			struct passwd *pwent;
+
+			pwent=getpwnam(new_uid_name);
+			if(pwent != NULL) {
+				char	uenv[128];
+				char	henv[MAX_PATH+6];
+				sprintf(uenv,"USER=%s",pwent->pw_name);
+				putenv(uenv);
+				sprintf(henv,"HOME=%s",pwent->pw_dir);
+				putenv(henv);
+			}
+			if(new_gid_name[0]) {
+				char	genv[128];
+				sprintf(genv,"GROUP=%s",new_gid_name);
+				putenv(genv);
+			}
+			lprintf(LOG_INFO,"Successfully changed user_id to %s", new_uid_name);
+		}
 	}
 
-    if(!isatty(fileno(stdin)))  			/* redirected */
-	   	while(1)
-	    	select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
+	if(!isatty(fileno(stdin)))  			/* redirected */
+		while(1)
+			select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
 	else 								/* interactive */
 #endif
 	{
-	    prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu] (?=Help): ";
-	    lputs(LOG_INFO,NULL);	/* display prompt */
+		prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu] (?=Help): ";
+		lputs(LOG_INFO,NULL);	/* display prompt */
 
 		while(!terminated) {
 #ifdef __unix__
@@ -1931,17 +1787,8 @@ int main(int argc, char** argv)
 			printf("%c\n",ch);
 			switch(ch) {
 				case 'q':
-                    /* default to no, prevent accidental quit */
-                    printf("Confirm quit [y/N]: ");
-                    fflush(stdout);
-                    switch (toupper(getch())) {
-                        case 'Y':
-                            terminated = TRUE;
-                            break;
-                        default:
-                            break;
-                    }
-                     break;
+					terminated=TRUE;
+					break;
 				case 'w':	/* who's online */
 					printf("\nNodes in use:\n");
 				case 'n':	/* nodelist */
@@ -1956,9 +1803,6 @@ int main(int argc, char** argv)
 				case 'l':	/* lock node */
 				case 'd':	/* down node */
 				case 'i':	/* interrupt node */
-#ifdef __unix__
-					_echo_on(); /* turn on echoing so user can see what they type */
-#endif
 					printf("\nNode number: ");
 					if((n=atoi(fgets(str,sizeof(str),stdin)))<1)
 						break;
@@ -1981,16 +1825,12 @@ int main(int argc, char** argv)
 					}
 					putnodedat(&scfg,n,&node,file);
 					printnodedat(&scfg,n,&node);
-#ifdef __unix__
-	                _echo_off(); /* turn off echoing - failsafe */
-#endif
 					break;
 				case 'r':	/* recycle */
 				case 's':	/* shutdown */
 				case 't':	/* terminate */
-					printf("BBS, FTP, Web, Mail, Services, All, or [Cancel] ? ");
-					fflush(stdout);
-                    switch(toupper(getch())) {
+					printf("BBS, FTP, Web, Mail, Services, or [All] ? ");
+					switch(toupper(getch())) {
 						case 'B':
 							printf("BBS\n");
 							if(ch=='t')
@@ -2036,7 +1876,7 @@ int main(int argc, char** argv)
 							else
 								services_startup.recycle_now=TRUE;
 							break;
-						case 'A':
+						default:
 							printf("All\n");
 							if(ch=='t')
 								terminate();
@@ -2055,23 +1895,14 @@ int main(int argc, char** argv)
 								services_startup.recycle_now=TRUE;							
 							}
 							break;
-						case 'C':
-						default:
-                            break;
 					}
 					break;
 				case '!':	/* execute */
-#ifdef __unix__
-                    _echo_on(); /* turn on echoing so user can see what they type */
-#endif
 					printf("Command line: ");
 					fgets(str,sizeof(str),stdin);
 					system(str);
-#ifdef __unix__
-	                _echo_off(); /* turn off echoing - failsafe */
-#endif
 					break;
-                case '?': /* only print help if user requests it */
+				default:
 					printf("\nSynchronet Console Version %s%c Help\n\n",VERSION,REVISION);
 					printf("q   = quit\n");
 					printf("n   = node list\n");
@@ -2083,14 +1914,11 @@ int main(int argc, char** argv)
 					printf("s   = shutdown servers (when not in use)\n");
 					printf("t   = terminate servers (immediately)\n");
 					printf("!   = execute external command\n");
-					printf("?   = print this help information\n");
 #if 0	/* to do */	
 					printf("c#  = chat with node #\n");
 					printf("s#  = spy on node #\n");
 #endif
 					break;
-				default:
-                    break;    
 			}
 			lputs(LOG_INFO,"");	/* redisplay prompt */
 		}
