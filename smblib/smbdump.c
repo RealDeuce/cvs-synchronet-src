@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.9 2007/08/15 01:44:36 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.8 2007/08/13 22:12:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		,ctime(&tt)	
 		,smb_tzutc(msg->hdr.when_written.zone)/60
 		,abs(smb_tzutc(msg->hdr.when_written.zone)%60));
-	tt=msg->hdr.when_imported.time;
+	tt-msg->hdr.when_imported.time;
 	fprintf(fp,"%-20.20s %.24s  UTC%+d:%02d\n"	,"when_imported"	
 		,ctime(&tt)	
 		,smb_tzutc(msg->hdr.when_imported.zone)/60

@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.42 2007/08/23 07:53:46 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.40 2007/08/13 23:27:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -168,12 +168,12 @@ void sbbs_t::readmail(uint usernumber, int which)
 		msg.idx.subj=mail[smb.curmsg].subj;
 
 		if((i=smb_locksmbhdr(&smb))!=0) {
-			errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
+			errormsg(WHERE,ERR_LOCK,smb.file,i);
 			break; }
 
 		if((i=smb_getstatus(&smb))!=0) {
 			smb_unlocksmbhdr(&smb);
-			errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
+			errormsg(WHERE,ERR_READ,smb.file,i);
 			break; }
 		smb_unlocksmbhdr(&smb);
 
@@ -313,7 +313,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 						msg.hdr.attr|=MSG_READ;
 						msg.idx.attr=msg.hdr.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); }
 					smb_unlocksmbhdr(&smb); }
 				if(!msg.total_hfields) {				/* unsuccessful reload */
@@ -384,7 +384,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					sprintf(str2,text[Regarding],msg.subj);
 				else						/* Reply to other */
 					sprintf(str2,text[RegardingByOn],msg.subj,msg.from
-						,timestr(msg.hdr.when_written.time));
+						,time32str((time32_t *)&msg.hdr.when_written.time));
 
 				p=strrchr(str,'@');
 				if(p) { 							/* name @addr */
@@ -411,7 +411,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 							msg.hdr.attr|=MSG_REPLIED;
 							msg.idx.attr=msg.hdr.attr;
 							if((i=smb_putmsg(&smb,&msg))!=0)
-								errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+								errormsg(WHERE,ERR_WRITE,smb.file,i);
 							smb_unlockmsghdr(&smb,&msg); 
 						}
 						smb_unlocksmbhdr(&smb);
@@ -438,7 +438,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 						msg.idx.attr=msg.hdr.attr;
 		//				  mail[smb.curmsg].attr=msg.hdr.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); 
 					}
 					smb_unlocksmbhdr(&smb);
@@ -474,7 +474,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 						msg.idx.attr=msg.hdr.attr;
 		//				  mail[smb.curmsg].attr=msg.hdr.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); 
 					}
 					smb_unlocksmbhdr(&smb);
@@ -542,7 +542,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					if(loadmsg(&msg,msg.idx.number)) {
 						msg.hdr.attr=msg.idx.attr=(ushort)i;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); 
 					}
 					smb_unlocksmbhdr(&smb);
@@ -715,7 +715,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	if(cfg.sys_misc&SM_DELEMAIL) {
 		if((i=smb_locksmbhdr(&smb))!=0) 			/* Lock the base, so nobody */
-			errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);	/* messes with the index */
+			errormsg(WHERE,ERR_LOCK,smb.file,i);	/* messes with the index */
 		else
 			delmail(usernumber,which); }
 

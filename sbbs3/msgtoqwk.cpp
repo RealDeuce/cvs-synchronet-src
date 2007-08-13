@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.26 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.25 2007/08/13 23:27:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,7 +163,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 			p=(char *)msg->hfield_dat[i];
 		if(msg->hfield[i].type==FORWARDED && p) {
 			sprintf(str,"Forwarded from %s on %s%c",p
-				,timestr(*(time32_t *)msg->hfield_dat[i])
+				,time32str((time32_t *)msg->hfield_dat[i])
 				,QWK_NEWLINE);
 			fwrite(str,strlen(str),1,qwk_fp);
 			size+=strlen(str); 

@@ -2,13 +2,13 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.50 2008/02/03 00:36:59 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.47 2007/08/13 23:27:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -308,7 +308,7 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"EVENT")) {
 		if(event_time==0)
 			return("<none>");
-		return(timestr(event_time));
+		return(timestr(&event_time));
 	}
 
 	/* LASTCALL */
@@ -439,7 +439,7 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 
 	if(!strcmp(sp,"LASTON"))
-		return(timestr(useron.laston));
+		return(timestr(&useron.laston));
 
 	if(!strcmp(sp,"LASTDATEON"))
 		return(unixtodstr(&cfg,useron.laston,str));
@@ -508,7 +508,7 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(unixtodstr(&cfg,ns_time,str));
 
 	if(!strcmp(sp,"NEWFILETIME"))
-		return(timestr(ns_time));
+		return(timestr(&ns_time));
 
 	/* MAXDL */
 
@@ -589,15 +589,6 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strncmp(sp,"EXEC:",5)) {
 		exec_bin(sp+5,&main_csi);
-		return(nulstr);
-	}
-
-	if(!strncmp(sp,"EXEC_XTRN:",10)) {
-		for(i=0;i<cfg.total_xtrns;i++)
-			if(!stricmp(cfg.xtrn[i]->code,sp+10))
-				break;
-		if(i<cfg.total_xtrns)
-			exec_xtrn(i);
 		return(nulstr);
 	}
 
@@ -970,7 +961,7 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
 		return(current_msg->subj==NULL ? nulstr : current_msg->subj);
 	if(!strcmp(sp,"MSG_DATE") && current_msg!=NULL)
-		return(timestr(current_msg->hdr.when_written.time));
+		return(time32str((time32_t *)&current_msg->hdr.when_written.time));
 	if(!strcmp(sp,"MSG_TIMEZONE") && current_msg!=NULL)
 		return(smb_zonestr(current_msg->hdr.when_written.zone,NULL));
 	if(!strcmp(sp,"MSG_ATTR") && current_msg!=NULL) {
