@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.178 2007/07/28 23:05:39 deuce Exp $ */
+/* $Id: term.c,v 1.182 2007/07/29 02:37:11 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1291,10 +1291,11 @@ BOOL doterm(struct bbslist *bbs)
 #ifdef WITH_WXWIDGETS
 						if(html_mode==HTML_MODE_READING) {
 							if(inch==2) {
-								html_mode=HTML_MODE_RAISED;
 								html_startx=wherex();
 								html_starty=wherey();
 								html_commit();
+								raise_html();
+								html_mode=HTML_MODE_RAISED;
 							}
 							else {
 								add_html_char(inch);
@@ -1326,8 +1327,10 @@ BOOL doterm(struct bbslist *bbs)
 											else
 												html_supported=HTML_NOTSUPPORTED;
 										}
-										if(html_supported==HTML_SUPPORTED)
+										if(html_supported==HTML_SUPPORTED) {
 											conn_send(htmlresponse, sizeof(htmlresponse)-1, 0);
+											hide_html();
+										}
 									}
 									else {
 										show_html("");
