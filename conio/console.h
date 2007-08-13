@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.15 2007/07/31 12:02:14 deuce Exp $ */
+/* $Id: console.h,v 1.12 2007/07/27 02:02:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,39 +31,71 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifdef __unix__
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
-#endif
 
-#include "ciolib.h"
-#include "console.h"
+#ifndef _CONSOLE_H_
+#define _CONSOLE_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int x_puttext(int sx, int sy, int ex, int ey, void *fill);
-int x_gettext(int sx, int sy, int ex, int ey, void *fill);
-int x_kbhit(void);
-void x_gotoxy(int x, int y);
-void x_initciolib(long inmode);
-void x_setcursortype(int type);
-int x_getch(void);
-int x_beep(void);
-void x_textmode(int mode);
-void x_setname(const char *name);
-void x_settitle(const char *title);
-void x_copytext(const char *text, size_t buflen);
-char *x_getcliptext(void);
-int x_setfont(int font, int force);
-int x_getfont(void);
-int x_loadfont(char *filename);
-int x_get_window_info(int *width, int *height, int *xpos, int *ypos);
-#ifdef __cplusplus
-}
-#endif
+#include <sys/param.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/user.h>
+
+#include <gen_defs.h>
+#include <semwrap.h>
+
+#include "vidmodes.h"
+
+extern sem_t	console_mode_changed;
+extern sem_t	copybuf_set;
+extern sem_t	pastebuf_request;
+extern sem_t	pastebuf_set;
+extern sem_t	font_set;
+extern int		new_font;
+extern int		font_force;
+extern int		setfont_return;
+extern pthread_mutex_t	copybuf_mutex;
+extern char *copybuf;
+extern char *pastebuf;
+
+extern int CurrMode;
+
+extern int InitCS;
+extern int InitCE;
+
+extern WORD *vmem;
+
+extern BYTE CursRow;
+extern BYTE CursCol;
+extern BYTE CursStart;
+extern BYTE CursEnd;
+
+extern WORD DpyCols;
+extern BYTE DpyRows;
+
+extern int FH,FW;
+
+extern int x_nextchar;
+
+extern int console_new_mode;
+
+extern int x11_window_xpos;
+extern int x11_window_ypos;
+extern int x11_window_width;
+extern int x11_window_height;
+
+int init_window();
+int video_init();
+int init_mode(int mode);
+int tty_read(int flag);
+int tty_peek(int flag);
+int tty_kbhit(void);
+void tty_beep(void);
+void x_win_title(const char *title);
+int console_init(void);
+int x_load_font(const char *filename);
+
+#define	TTYF_BLOCK	0x00000008
+#define	TTYF_POLL	0x00000010
+#define NO_NEW_MODE -999
 
 #endif
