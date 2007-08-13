@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.46 2008/02/23 22:35:09 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.45 2006/09/15 21:12:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,10 +116,11 @@ static struct init_field ftp_init_fields[] = {
 #define FTP_OPT_NO_HOST_LOOKUP		(1<<11)
 #define FTP_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define FTP_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
+#define FTP_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT */
 #define FTP_OPT_MUTE				(1<<31)
 
 /* ftp_startup_t.options bits that require re-init/recycle when changed */
-#define FTP_INIT_OPTS	(0)
+#define FTP_INIT_OPTS	(FTP_OPT_LOCAL_TIMEZONE)
 
 #if defined(STARTUP_INI_BITDESC_TABLES)
 static ini_bitdesc_t ftp_options[] = {
@@ -137,6 +138,7 @@ static ini_bitdesc_t ftp_options[] = {
 	{ FTP_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ FTP_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ FTP_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
+	{ FTP_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ FTP_OPT_MUTE					,"MUTE"					},
 	/* terminator */										
 	{ 0 							,NULL					}
