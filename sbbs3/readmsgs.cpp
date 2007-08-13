@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.33 2006/02/02 08:35:14 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.35 2007/08/13 23:27:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,9 +119,9 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 	/* fixed fields */
 	bprintf("%-16.16s %s %s\r\n","when_written"	
-		,timestr((time_t *)&msg->hdr.when_written.time), smb_zonestr(msg->hdr.when_written.zone,NULL));
+		,time32str((time32_t *)&msg->hdr.when_written.time), smb_zonestr(msg->hdr.when_written.zone,NULL));
 	bprintf("%-16.16s %s %s\r\n","when_imported"	
-		,timestr((time_t *)&msg->hdr.when_imported.time), smb_zonestr(msg->hdr.when_imported.zone,NULL));
+		,time32str((time32_t *)&msg->hdr.when_imported.time), smb_zonestr(msg->hdr.when_imported.zone,NULL));
 	bprintf("%-16.16s %04Xh\r\n","type"				,msg->hdr.type);
 	bprintf("%-16.16s %04Xh\r\n","version"			,msg->hdr.version);
 	bprintf("%-16.16s %04Xh\r\n","attr"				,msg->hdr.attr);
@@ -143,12 +143,12 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	if(msg->hdr.times_downloaded)
 		bprintf("%-16.16s %lu\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
 	if(msg->hdr.last_downloaded)
-		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr((time_t*)&msg->hdr.last_downloaded));
+		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,time32str((time32_t *)&msg->hdr.last_downloaded));
 
 	/* convenience integers */
 	if(msg->expiration)
 		bprintf("%-16.16s %s\r\n"	,"expiration"	
-			,timestr((time_t *)&msg->expiration));
+			,time32str((time32_t *)&msg->expiration));
 	if(msg->priority)
 		bprintf("%-16.16s %lu\r\n"	,"priority"			,msg->priority);
 	if(msg->cost)
@@ -165,7 +165,7 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 /****************************************************************************/
 /****************************************************************************/
-post_t * sbbs_t::loadposts(long *posts, uint subnum, ulong ptr, long mode)
+post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode)
 {
 	char name[128];
 	ushort aliascrc,namecrc,sysop;
@@ -344,7 +344,8 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 	uint 	usub,ugrp,reads=0;
 	uint	lp=0;
 	long	org_mode=mode;
-	ulong	msgs,last,l;
+	ulong	msgs,l;
+	uint32_t last;
 	post_t	*post;
 	smbmsg_t	msg;
 
@@ -812,7 +813,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 					break;
 				sprintf(str2,text[Regarding]
 					,msg.subj
-					,timestr((time_t *)&msg.hdr.when_written.time));
+					,time32str((time32_t *)&msg.hdr.when_written.time));
 				if(msg.from_net.addr==NULL)
 					strcpy(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO)
@@ -1116,7 +1117,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 long sbbs_t::listsub(uint subnum, long mode, long start, char* search)
 {
 	int 	i;
-	long	posts;
+	int32_t	posts;
 	long	displayed;
 	post_t	*post;
 
