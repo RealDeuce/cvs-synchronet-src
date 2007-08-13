@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.49 2007/08/25 08:08:03 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.45 2005/09/20 03:39:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -801,11 +801,8 @@ void sbbs_t::privchat(bool local)
 	if(!online || sys_status&SS_ABORT)
 		return;
 
-	if(((sys_status&SS_USERON && useron.chat&CHAT_SPLITP) || !(sys_status&SS_USERON))
-		&& term_supports(ANSI) && rows>=24)
+	if(useron.chat&CHAT_SPLITP && useron.misc&ANSI && rows>=24)
 		sys_status|=SS_SPLITP;
-	else
-		sys_status&=~SS_SPLITP;
 	/*
 	if(!(useron.misc&EXPERT))
 		menu("privchat");
@@ -819,7 +816,7 @@ void sbbs_t::privchat(bool local)
 	}
 
 	sprintf(outpath,"%schat.dab",cfg.node_dir);
-	if((out=sopen(outpath,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,DEFFILEMODE))==-1) {
+	if((out=sopen(outpath,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,S_IREAD|S_IWRITE))==-1) {
 		errormsg(WHERE,ERR_OPEN,outpath,O_RDWR|O_DENYNONE|O_CREAT);
 		return; 
 	}
@@ -830,7 +827,7 @@ void sbbs_t::privchat(bool local)
 		sprintf(inpath,"%schat.dab",cfg.node_path[n-1]);
 	if(!fexist(inpath))		/* Wait while it's created for the first time */
 		mswait(2000);
-	if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,DEFFILEMODE))==-1) {
+	if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,S_IREAD|S_IWRITE))==-1) {
 		close(out);
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE|O_CREAT);
 		return; }
@@ -895,6 +892,7 @@ void sbbs_t::privchat(bool local)
 		local_y=14; }
 
 	while(online && (local || !(sys_status&SS_ABORT))) {
+//		RIOSYNC(0);
 		lncntr=0;
 		if(sys_status&SS_SPLITP)
 			lbuflen=0;
@@ -1315,7 +1313,7 @@ void sbbs_t::nodemsg()
 					,username(&cfg,usernumber,tmp),usernumber);
 				sprintf(buf,text[TelegramFmt]
 					,thisnode.misc&NODE_ANON ? text[UNKNOWN_USER] : useron.alias
-					,timestr(now));
+					,timestr(&now));
 				i=0;
 				logbuf[0]=0;
 				while(online && i<5) {

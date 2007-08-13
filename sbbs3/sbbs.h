@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.308 2007/08/15 01:56:11 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.306 2007/07/25 23:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,6 +123,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include "startup.h"
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
+#ifdef SBBS	
+	#include "text.h"
+#endif
 
 /* xpdev */
 #ifndef LINK_LIST_THREADSAFE
@@ -149,7 +152,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "crc32.h"
 #include "telnet.h"
 #include "nopen.h"
-#include "text.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -436,7 +438,8 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	timestr(time_t intime);
+	char*	time32str(time32_t *intime);
+	char*	timestr(time_t *intime);
     char	timestr_output[60];
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, char *tmplt, long mode);
@@ -866,7 +869,8 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
+	DLLEXPORT char *	DLLCALL time32str(scfg_t* cfg, time32_t *intime, char* str);
+	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
 

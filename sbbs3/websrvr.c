@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.461 2007/08/13 23:27:50 deuce Exp $ */
+/* $Id: websrvr.c,v 1.460 2007/07/10 23:57:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3518,7 +3518,6 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	JSBool	b;
 	struct tm tm;
 	http_session_t* session;
-	time_t	tt;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -3537,8 +3536,7 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	header+=sprintf(header,"%s",p);
 	if(argc>2) {
 		JS_ValueToInt32(cx,argv[2],&i);
-		tt=i;
-		if(i && gmtime_r(&tt,&tm)!=NULL)
+		if(i && gmtime_r((time_t *)&i,&tm)!=NULL)
 			header += strftime(header,50,"; expires=%a, %d-%b-%Y %H:%M:%S GMT",&tm);
 	}
 	if(argc>3) {
@@ -4609,7 +4607,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.461 $", "%*s %s", revision);
+	sscanf("$Revision: 1.460 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
