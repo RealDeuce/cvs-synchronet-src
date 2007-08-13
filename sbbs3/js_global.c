@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.209 2006/09/09 02:16:31 rswindell Exp $ */
+/* $Id: js_global.c,v 1.212 2007/07/11 00:01:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -2573,8 +2573,7 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*			fname;
 	int32			actime;
 	int32			modtime;
-	struct utimbuf	tbuf;
-	struct utimbuf*	t=NULL;
+	struct utimbuf	ut;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -2584,17 +2583,18 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((fname=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
+	/* use current time as default */
+	ut.actime = ut.modtime = time(NULL);
+
 	if(argc>1) {
-		memset(&tbuf,0,sizeof(tbuf));
-		actime=modtime=time(NULL);
+		actime=modtime=ut.actime;
 		JS_ValueToInt32(cx,argv[1],&actime);
 		JS_ValueToInt32(cx,argv[2],&modtime);
-		tbuf.actime=actime;
-		tbuf.modtime=modtime;
-		t=&tbuf;
+		ut.actime=actime;
+		ut.modtime=modtime;
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(utime(fname,t)==0);
+	*rval = BOOLEAN_TO_JSVAL(utime(fname,&ut)==0);
 
 	return(JS_TRUE);
 }
@@ -2855,18 +2855,18 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		}
     }
 
-	if(select(maxsock+1,rd_set,wr_set,NULL,&tv)<0)
-		lprintf(LOG_DEBUG,"Error in socket_select()  %s (%d)",strerror(errno),errno);
+	if(select(maxsock+1,rd_set,wr_set,NULL,&tv) >= 0) {
 
-	for(i=0;i<limit;i++) {
-		if(index[i]!=INVALID_SOCKET && FD_ISSET(index[i],&socket_set)) {
-			val=INT_TO_JSVAL(i);
-   			if(!JS_SetElement(cx, rarray, len++, &val))
-				break;
+		for(i=0;i<limit;i++) {
+			if(index[i]!=INVALID_SOCKET && FD_ISSET(index[i],&socket_set)) {
+				val=INT_TO_JSVAL(i);
+   				if(!JS_SetElement(cx, rarray, len++, &val))
+					break;
+			}
 		}
-	}
 
-    *rval = OBJECT_TO_JSVAL(rarray);
+		*rval = OBJECT_TO_JSVAL(rarray);
+	}
 
     return(JS_TRUE);
 }
@@ -3140,8 +3140,8 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("expand line-feeds (LF) to carriage-return/line-feeds (CRLF), returns modified string")
 	,310
 	},
-	{"wildmatch",		js_wildmatch,		2,	JSTYPE_BOOLEAN, JSDOCSTR("[case_sensitive=<tt>false</tt>,] string [,pattern=<tt>"*"</tt>] [,path=<tt>false</tt>]")
-	,JSDOCSTR("returns <tt>true</tt> if the <i>string</i> matches the wildcard <i>pattern</i> (wildcard supported are '*' and '?'), "
+	{"wildmatch",		js_wildmatch,		2,	JSTYPE_BOOLEAN, JSDOCSTR("[case_sensitive=<tt>false</tt>,] string [,pattern=<tt>'*'</tt>] [,path=<tt>false</tt>]")
+	,JSDOCSTR("returns <tt>true</tt> if the <i>string</i> matches the wildcard <i>pattern</i> (wildcards supported are '*' and '?'), "
 	"if <i>path</i> is <tt>true</tt>, '*' will not match path delimeter characters (e.g. '/')")
 	,314
 	},
@@ -3257,7 +3257,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"socket_select",	js_socket_select,	0,	JSTYPE_ARRAY,	JSDOCSTR("[array of socket objects or descriptors] [,timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
 	,JSDOCSTR("checks an array of socket objects or descriptors for read or write ability (default is <i>read</i>), "
 		"default timeout value is 0.0 seconds (immediate timeout), "
-		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing")
+		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing, or <i>null</i> on error")
 	,311
 	},
 	{"mkdir",			js_mkdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
