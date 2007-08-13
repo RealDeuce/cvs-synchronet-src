@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.205 2007/08/31 18:40:34 deuce Exp $
+# $Id: GNUmakefile,v 1.204 2007/08/13 22:44:47 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -52,10 +52,6 @@ ifdef DONT_BLAME_SYNCHRONET
 endif
 
 # JS and NSPR setup stuff...
-ifeq ($(shell nspr-config --version > /dev/null 2>&1 && echo YES),YES)
- NSPRDIR ?= $(shell nspr-config --libdir)
- NSPRINCLUDE ?= $(shell nspr-config --includedir)
-endif
 
 ifeq ($(os),sunos)
  ifeq ($(shell test -f /usr/sfw/lib/mozilla/libmozjs.so && echo "yes"),yes)
