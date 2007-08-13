@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.487 2007/08/25 08:08:03 rswindell Exp $ */
+/* $Id: main.cpp,v 1.485 2007/08/11 11:17:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2401,7 +2401,7 @@ void event_thread(void* arg)
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
 						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
 							,sbbs->cfg.event[i]->code
-							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
+							,time32str(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
@@ -3182,7 +3182,7 @@ int sbbs_t::nopen(char *str, int access)
     else share=SH_DENYRW;
 	if(!(access&O_TEXT))
 		access|=O_BINARY;
-    while(((file=sopen(str,access,share,DEFFILEMODE))==-1)
+    while(((file=sopen(str,access,share,S_IREAD|S_IWRITE))==-1)
         && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
 	    mswait(100);
     if(count>(LOOP_NOPEN/2) && count<=LOOP_NOPEN) {
@@ -4269,7 +4269,7 @@ void DLLCALL bbs_thread(void* arg)
 			md(scfg.node_path[i-1]);
 		SAFEPRINTF(str,"%sdsts.dab",i ? scfg.node_path[i-1] : scfg.ctrl_dir);
 		if(flength(str)<DSTSDABLEN) {
-			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, DEFFILEMODE))==-1) {
+			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, S_IREAD|S_IWRITE))==-1) {
 				lprintf(LOG_ERR,"!ERROR %d creating %s",errno, str);
 				cleanup(1);
 				return; 
