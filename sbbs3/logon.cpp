@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.48 2008/01/27 01:27:02 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.46 2007/07/11 00:35:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -461,7 +461,7 @@ bool sbbs_t::logon()
 			,totallogons,useron.alias
 			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.note
 			,tm.tm_hour,tm.tm_min
-			,connection,useron.ltoday > 999 ? 999 : useron.ltoday);
+			,connection,useron.ltoday);
 		write(file,str,strlen(str));
 		close(file); 
 	}
@@ -494,7 +494,7 @@ bool sbbs_t::logon()
 	}
 
 	if(sys_status&SS_EVENT)
-		bprintf(text[ReducedTime],timestr(event_time));
+		bprintf(text[ReducedTime],timestr(&event_time));
 	getnodedat(cfg.node_num,&thisnode,1);
 	thisnode.misc&=~(NODE_AOFF|NODE_POFF);
 	if(useron.chat&CHAT_NOACT)
@@ -604,7 +604,7 @@ ulong sbbs_t::logonstats()
 	if((tm.tm_mday>update_tm.tm_mday && tm.tm_mon==update_tm.tm_mon)
 		|| tm.tm_mon>update_tm.tm_mon || tm.tm_year>update_tm.tm_year) {
 
-		sprintf(str,"New Day - Prev: %s ",timestr(update_t));
+		sprintf(str,"New Day - Prev: %s ",timestr(&update_t));
 		logentry("!=",str);
 
 		sys_status|=SS_DAILY;       /* New Day !!! */
