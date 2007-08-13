@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.58 2006/02/08 07:51:09 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.71 2007/08/12 06:19:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,9 +51,12 @@
 
 	#if defined(BSD)
 		#include <sys/mount.h>
+	#endif
 	#if defined(__FreeBSD__)
 		#include <sys/kbio.h>
 	#endif
+	#if defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 300000000 /* NetBSD 3.0 */)
+		#include <sys/statvfs.h>
 	#endif
 
 	#include <sys/ioctl.h>	/* ioctl */
@@ -147,7 +150,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 /* This code _may_ work on other DOS-based platforms (e.g. OS/2)			*/
 /****************************************************************************/
 #if !defined(__unix__)
-static int glob_compare( const void *arg1, const void *arg2 )
+static int _cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
    return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
@@ -418,6 +421,21 @@ long DLLCALL flength(const char *filename)
 #endif
 }
 
+
+/****************************************************************************/
+/* Checks the file system for the existence of one or more files.			*/
+/* Returns TRUE if it exists, FALSE if it doesn't.                          */
+/* 'filespec' may *NOT* contain wildcards!									*/
+/****************************************************************************/
+static BOOL fnameexist(const char *filename)
+{
+	if(access(filename,0)==-1)
+		return(FALSE);
+	if(!isdir(filename))
+		return(TRUE);
+	return(FALSE);
+}
+
 /****************************************************************************/
 /* Checks the file system for the existence of one or more files.			*/
 /* Returns TRUE if it exists, FALSE if it doesn't.                          */
@@ -430,8 +448,8 @@ BOOL DLLCALL fexist(const char *filespec)
 	long	handle;
 	struct _finddata_t f;
 
-	if(access(filespec,0)==-1 && !strchr(filespec,'*') && !strchr(filespec,'?'))
-		return(FALSE);
+	if(!strchr(filespec,'*') && !strchr(filespec,'?'))
+		return(fnameexist(filespec));
 
 	if((handle=_findfirst((char*)filespec,&f))==-1)
 		return(FALSE);
@@ -450,8 +468,8 @@ BOOL DLLCALL fexist(const char *filespec)
 	glob_t g;
     int c;
 
-	if(access(filespec,0)==-1 && !strchr(filespec,'*') && !strchr(filespec,'?'))
-		return(FALSE);
+	if(!strchr(filespec,'*') && !strchr(filespec,'?'))
+		return(fnameexist(filespec));
 
     /* start the search */
     glob(filespec, GLOB_MARK | GLOB_NOSORT, NULL, &g);
@@ -513,6 +531,9 @@ BOOL DLLCALL fexistcase(char *path)
 	int  i;
 	glob_t	glb;
 	
+	if(!strchr(path,'*') && !strchr(path,'?') && fnameexist(path))
+		return(TRUE);
+
 	SAFECOPY(globme,path);
 	p=getfname(globme);
 	SAFECOPY(fname,p);
@@ -612,6 +633,33 @@ int DLLCALL getfattr(const char* filename)
 #endif
 }
 
+#ifdef __unix__
+int removecase(char *path)
+{
+	char inpath[MAX_PATH+1];
+	char fname[MAX_PATH*4+1];
+	char tmp[5];
+	char *p;
+	int  i;
+
+	if(strchr(path,'?') || strchr(path,'*'))
+		return(-1);
+	SAFECOPY(inpath,path);
+	p=getfname(inpath);
+	fname[0]=0;
+	for(i=0;p[i];i++)  {
+		if(isalpha(p[i]))
+			sprintf(tmp,"[%c%c]",toupper(p[i]),tolower(p[i]));
+		else
+			sprintf(tmp,"%c",p[i]);
+		strncat(fname,tmp,MAX_PATH*4);
+	}
+	*p=0;
+
+	return(delfiles(inpath,fname)?-1:0);
+}
+#endif
+
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
 /****************************************************************************/
@@ -623,7 +671,7 @@ ulong DLLCALL delfiles(char *inpath, char *spec)
 	glob_t	g;
 
 	lastch=*lastchar(inpath);
-	if(!IS_PATH_DELIM(lastch))
+	if(!IS_PATH_DELIM(lastch) && lastch)
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
 		strcpy(path,inpath);
@@ -659,8 +707,8 @@ static int bit_num(ulong val)
 }
 #endif
 
-/* Unit should be a power-of-2 (e.g. 1024 to report kilobytes) */
-ulong DLLCALL getfreediskspace(const char* path, ulong unit)
+/* Unit should be a power-of-2 (e.g. 1024 to report kilobytes) or 1 (to report bytes) */
+static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 {
 #if defined(_WIN32)
 	char			root[16];
@@ -686,20 +734,23 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 			NULL))		/* receives the free bytes on disk */
 			return(0);
 
+		if(freespace)
+			size=avail;
+
 		if(unit>1)
-			avail.QuadPart=Int64ShrlMod32(avail.QuadPart,bit_num(unit));
+			size.QuadPart=Int64ShrlMod32(size.QuadPart,bit_num(unit));
 
 #if defined(_ANONYMOUS_STRUCT)
-		if(avail.HighPart)
+		if(size.HighPart)
 #else
-		if(avail.u.HighPart)
+		if(size.u.HighPart)
 #endif
 			return(0xffffffff);	/* 4GB max */
 
 #if defined(_ANONYMOUS_STRUCT)
-		return(avail.LowPart);
+		return(size.LowPart);
 #else
-		return(avail.u.LowPart);
+		return(size.u.LowPart);
 #endif
 	}
 
@@ -714,33 +765,47 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 		))
 		return(0);
 
+	if(freespace)
+		TotalNumberOfClusters = NumberOfFreeClusters;
 	if(unit>1)
-		NumberOfFreeClusters/=unit;
-	return(NumberOfFreeClusters*SectorsPerCluster*BytesPerSector);
+		TotalNumberOfClusters/=unit;
+	return(TotalNumberOfClusters*SectorsPerCluster*BytesPerSector);
 
 
-/* statfs is also used under FreeBSD */
-#elif defined(__GLIBC__) || defined(BSD)
-
-	struct statfs fs;
-
-    if (statfs(path, &fs) < 0)
-    	return 0;
-
-	if(unit>1)
-		fs.f_bavail/=unit;
-    return fs.f_bsize * fs.f_bavail;
-    
-#elif defined(__solaris__)
+#elif defined(__solaris__) || (defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 300000000 /* NetBSD 3.0 */))
 
 	struct statvfs fs;
+	unsigned long blocks;
 
     if (statvfs(path, &fs) < 0)
     	return 0;
 
+	if(freespace)
+		blocks=fs.f_bavail;
+	else
+		blocks=fs.f_blocks;
+
 	if(unit>1)
-		fs.f_bavail/=unit;
-    return fs.f_bsize * fs.f_bavail;
+		blocks/=unit;
+    return fs.f_bsize * blocks;
+    
+/* statfs is also used under FreeBSD (Though it *supports* statvfs() now too) */
+#elif defined(__GLIBC__) || defined(BSD)
+
+	struct statfs fs;
+	unsigned long blocks;
+
+    if (statfs(path, &fs) < 0)
+    	return 0;
+
+	if(freespace)
+		blocks=fs.f_bavail;
+	else
+		blocks=fs.f_blocks;
+
+	if(unit>1)
+		blocks/=unit;
+    return fs.f_bsize * blocks;
     
 #else
 
@@ -748,6 +813,16 @@ ulong DLLCALL getfreediskspace(const char* path, ulong unit)
 	return(0);
 
 #endif
+}
+
+ulong DLLCALL getfreediskspace(const char* path, ulong unit)
+{
+	return getdiskspace(path, unit, /* freespace? */TRUE);
+}
+
+ulong DLLCALL getdisksize(const char* path, ulong unit)
+{
+	return getdiskspace(path, unit, /* freespace? */FALSE);
 }
 
 /****************************************************************************/
@@ -864,10 +939,12 @@ BOOL DLLCALL isfullpath(const char* filename)
 /* Matches file name against filespec										*/
 /* Optionally not allowing * to match PATH_DELIM (for paths)				*/
 /****************************************************************************/
+
 BOOL DLLCALL wildmatch(const char *fname, const char *spec, BOOL path)
 {
 	char *specp;
 	char *fnamep;
+	char *wildend;
 
 	specp=(char *)spec;
 	fnamep=(char *)fname;
@@ -884,10 +961,21 @@ BOOL DLLCALL wildmatch(const char *fname, const char *spec, BOOL path)
 			case '*':
 				while(*specp=='*')
 					specp++;
-				for(;*fnamep!=*specp && *fnamep;fnamep++) {
-					if(path && IS_PATH_DELIM(*fnamep))
-						return(FALSE);
+				if(path) {
+					for(wildend=fnamep; *wildend; wildend++) {
+						if(IS_PATH_DELIM(*wildend)) {
+							wildend--;
+							break;
+						}
+					}
 				}
+				else
+					wildend=strchr(fnamep, 0);
+				for(;wildend >= fnamep;wildend--) {
+					if(wildmatch(wildend, specp, path))
+						return(TRUE);
+				}
+				return(FALSE);
 			default:
 				if(*specp != *fnamep)
 					return(FALSE);
