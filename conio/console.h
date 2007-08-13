@@ -1,8 +1,4 @@
-/* conwrap.h */
-
-/* Cross-platform local console I/O wrapppers */
-
-/* $Id: conwrap.h,v 1.4 2004/07/20 23:19:43 rswindell Exp $ */
+/* $Id: console.h,v 1.12 2007/07/27 02:02:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,18 +31,71 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _CONWRAP_H
-#define _CONWRAP_H
 
-#if defined(__unix__)
+#ifndef _CONSOLE_H_
+#define _CONSOLE_H_
 
-	int kbhit(void);
-	int getch(void);
+#include <sys/param.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/user.h>
 
-#else	/* DOS-Based */
+#include <gen_defs.h>
+#include <semwrap.h>
 
-	#include <conio.h>
+#include "vidmodes.h"
+
+extern sem_t	console_mode_changed;
+extern sem_t	copybuf_set;
+extern sem_t	pastebuf_request;
+extern sem_t	pastebuf_set;
+extern sem_t	font_set;
+extern int		new_font;
+extern int		font_force;
+extern int		setfont_return;
+extern pthread_mutex_t	copybuf_mutex;
+extern char *copybuf;
+extern char *pastebuf;
+
+extern int CurrMode;
+
+extern int InitCS;
+extern int InitCE;
+
+extern WORD *vmem;
+
+extern BYTE CursRow;
+extern BYTE CursCol;
+extern BYTE CursStart;
+extern BYTE CursEnd;
+
+extern WORD DpyCols;
+extern BYTE DpyRows;
+
+extern int FH,FW;
+
+extern int x_nextchar;
+
+extern int console_new_mode;
+
+extern int x11_window_xpos;
+extern int x11_window_ypos;
+extern int x11_window_width;
+extern int x11_window_height;
+
+int init_window();
+int video_init();
+int init_mode(int mode);
+int tty_read(int flag);
+int tty_peek(int flag);
+int tty_kbhit(void);
+void tty_beep(void);
+void x_win_title(const char *title);
+int console_init(void);
+int x_load_font(const char *filename);
+
+#define	TTYF_BLOCK	0x00000008
+#define	TTYF_POLL	0x00000010
+#define NO_NEW_MODE -999
 
 #endif
-
-#endif	/* _CONWRAP_H */
