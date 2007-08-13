@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.93 2007/08/25 05:29:22 deuce Exp $ */
+/* $Id: ciolib.c,v 1.92 2007/08/02 22:11:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,6 @@
  #undef getch
 #endif
 
-#include "bitmap_con.h"
 #include "ansi_cio.h"
 
 CIOLIBEXPORT cioapi_t	cio_api;
@@ -121,15 +120,11 @@ int try_sdl_init(int mode)
 {
 	if(!sdl_initciolib(mode)) {
 		cio_api.mouse=1;
-		cio_api.puttext=bitmap_puttext;
-		cio_api.gettext=bitmap_gettext;
-		cio_api.gotoxy=bitmap_gotoxy;
-		cio_api.setcursortype=bitmap_setcursortype;
-		cio_api.setfont=bitmap_setfont;
-		cio_api.getfont=bitmap_getfont;
-		cio_api.loadfont=bitmap_loadfont;
-
+		cio_api.puttext=sdl_puttext;
+		cio_api.gettext=sdl_gettext;
 		cio_api.kbhit=sdl_kbhit;
+		cio_api.gotoxy=sdl_gotoxy;
+		cio_api.setcursortype=sdl_setcursortype;
 		cio_api.getch=sdl_getch;
 		cio_api.textmode=sdl_textmode;
 		cio_api.showmouse=sdl_showmouse;
@@ -144,6 +139,9 @@ int try_sdl_init(int mode)
 		cio_api.copytext=sdl_copytext;
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
+		cio_api.setfont=sdl_setfont;
+		cio_api.getfont=sdl_getfont;
+		cio_api.loadfont=sdl_loadfont;
 		cio_api.get_window_info=sdl_get_window_info;
 		return(1);
 	}
@@ -155,16 +153,16 @@ int try_sdl_init(int mode)
  #ifndef NO_X
 int try_x_init(int mode)
 {
-	if(!x_init()) {
+	if(!console_init()) {
 		cio_api.mode=CIOLIB_MODE_X;
 		cio_api.mouse=1;
-		cio_api.puttext=bitmap_puttext;
-		cio_api.gettext=bitmap_gettext;
-		cio_api.gotoxy=bitmap_gotoxy;
-		cio_api.setcursortype=bitmap_setcursortype;
-		cio_api.setfont=bitmap_setfont;
-		cio_api.getfont=bitmap_getfont;
-		cio_api.loadfont=bitmap_loadfont;
+		cio_api.puttext=x_puttext;
+		cio_api.gettext=x_gettext;
+		cio_api.gotoxy=x_gotoxy;
+		cio_api.setcursortype=x_setcursortype;
+		cio_api.setfont=x_setfont;
+		cio_api.getfont=x_getfont;
+		cio_api.loadfont=x_loadfont;
 		cio_api.beep=x_beep;
 
 		cio_api.kbhit=x_kbhit;
@@ -596,8 +594,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gettextinfo(struct text_info *info)
                                			 BW40, BW80, C40, C80, or C4350 */
 		info->screenheight=cio_textinfo.screenheight;   /* text screen's height */
 		info->screenwidth=cio_textinfo.screenwidth;    /* text screen's width */
-		info->curx=cio_textinfo.curx;           /* x-coordinate in current window */
-		info->cury=cio_textinfo.cury;           /* y-coordinate in current window */
+		info->curx=cio_textinfo.curx-cio_textinfo.winleft+1;           /* x-coordinate in current window */
+		info->cury=cio_textinfo.cury-cio_textinfo.wintop+1;           /* y-coordinate in current window */
 	}
 }
 
@@ -776,7 +774,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
 		cio_api.clrscr();
 		return;
 	}
-
+	
 	width=cio_textinfo.winright-cio_textinfo.winleft+1;
 	height=cio_textinfo.winbottom-cio_textinfo.wintop+1;
 	buf=(unsigned char *)alloca(width*height*2);
