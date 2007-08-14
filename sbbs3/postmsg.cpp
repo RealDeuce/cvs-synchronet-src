@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.77 2008/02/25 08:25:29 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.74 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,7 +71,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	ulong	length,offset,crc=0xffffffff;
 	FILE*	instream;
 	smbmsg_t msg;
-	uint	reason;
 
 	if(remsg) {
 		sprintf(title,"%.*s",LEN_TITLE,remsg->subj);
@@ -97,9 +96,22 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	}
 
 	/* Security checks */
-	if(!can_user_post(&cfg,subnum,&useron,&reason)) {
-		bputs(text[reason]);
-		return false;
+	if(!chk_ar(cfg.sub[subnum]->post_ar,&useron)) {
+		bputs(text[CantPostOnSub]);
+		return(false); 
+	}
+	if(useron.rest&FLAG('P')) {
+		bputs(text[R_Post]);
+		return(false); 
+	}
+	if((cfg.sub[subnum]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET))
+		&& (useron.rest&FLAG('N'))) {
+		bputs(text[CantPostOnSub]);
+		return(false); 
+	}
+	if(useron.ptoday>=cfg.level_postsperday[useron.level]) {
+		bputs(text[TooManyPostsToday]);
+		return(false); 
 	}
 
 	bprintf(text[Posting],cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
@@ -304,12 +316,12 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	smb_hfield_str(&msg,FIDOPID,program_id(pid));
 
 	/* Generate default (RFC822) message-id (always) */
-	get_msgid(&cfg,subnum,&msg,msg_id,sizeof(msg_id));
+	SAFECOPY(msg_id,get_msgid(&cfg,subnum,&msg));
 	smb_hfield_str(&msg,RFC822MSGID,msg_id);
 
 	/* Generate FTN (FTS-9) MSGID */
 	if(cfg.sub[subnum]->misc&SUB_FIDO) {
-		ftn_msgid(cfg.sub[subnum],&msg,msg_id,sizeof(msg_id));
+		SAFECOPY(msg_id,ftn_msgid(cfg.sub[subnum],&msg));
 		smb_hfield_str(&msg,FIDOMSGID,msg_id);
 	}
 	if(remsg) {
@@ -402,8 +414,7 @@ extern "C" void DLLCALL signal_sub_sem(scfg_t* cfg, uint subnum)
 
 extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 {
-	int		i;
-	char	port[16];
+	int i;
 
 	if(client==NULL)
 		return(-1);
@@ -414,8 +425,7 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 		return(i);
 	if((i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
 		return(i);
-	SAFEPRINTF(port,"%u",client->port);
-	return smb_hfield_str(msg,SENDERPORT,port);
+	return smb_hfield(msg,SENDERPORT,sizeof(client->port),&client->port);
 }
 
 extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, char* msgbuf)
@@ -506,14 +516,14 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
  
  	/* Generate RFC-822 Message-id  */
  	if(msg->id==NULL) {
- 		get_msgid(cfg,smb->subnum,msg,msg_id,sizeof(msg_id));
+ 		SAFECOPY(msg_id,get_msgid(cfg,smb->subnum,msg));
  		smb_hfield_str(msg,RFC822MSGID,msg_id);
  	}
  
  	/* Generate FidoNet MSGID (for FidoNet sub-boards) */
  	if(smb->subnum!=INVALID_SUB && cfg->sub[smb->subnum]->misc&SUB_FIDO 
 		&& msg->ftn_msgid==NULL) {
- 		ftn_msgid(cfg->sub[smb->subnum],msg,msg_id,sizeof(msg_id));
+ 		SAFECOPY(msg_id,ftn_msgid(cfg->sub[smb->subnum],msg));
  		smb_hfield_str(msg,FIDOMSGID,msg_id);
  	}
 
