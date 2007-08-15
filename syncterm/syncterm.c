@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.108 2007/07/28 11:18:34 deuce Exp $ */
+/* $Id: syncterm.c,v 1.109 2007/08/03 06:14:05 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -679,7 +679,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+9;
 	}
-	else if(!strnicmp("ssh://",url,9)) {
+	else if(!strnicmp("ssh://",url,6)) {
 		bbs->conn_type=CONN_TYPE_SSH;
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
