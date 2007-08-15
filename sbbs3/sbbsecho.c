@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.193 2007/08/19 06:26:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.192 2007/08/13 23:27:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -434,7 +434,6 @@ int create_netmail(char *to, char *subject, char *body, faddr_t dest, BOOL file_
 			if(i<cfg.nodecfgs)
 				attr=cfg.nodecfg[i].attr; } }
 
-	MKDIR(scfg.netmail_dir);
 	do {
 		for(i=startmsg;i;i++) {
 			sprintf(fname,"%s%u.msg",scfg.netmail_dir,i);
@@ -3909,7 +3908,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.193 $", "%*s %s", revision);
+	sscanf("$Revision: 1.192 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
