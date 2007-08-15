@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.306 2007/07/25 23:19:02 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.307 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -438,8 +438,7 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	time32str(time32_t *intime);
-	char*	timestr(time_t *intime);
+	char*	timestr(time_t intime);
     char	timestr_output[60];
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, char *tmplt, long mode);
@@ -869,8 +868,7 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL time32str(scfg_t* cfg, time32_t *intime, char* str);
-	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t *intime, char* str);
+	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
 

@@ -1,4 +1,4 @@
-/* $Id: curs_cio.h,v 1.13 2007/07/31 12:02:14 deuce Exp $ */
+/* $Id: curs_cio.h,v 1.14 2007/08/02 22:11:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,7 @@
 #endif
 
 #include "ciolib.h"
+#undef beep
 #undef getch
 #undef ungetch
 #undef getmouse
