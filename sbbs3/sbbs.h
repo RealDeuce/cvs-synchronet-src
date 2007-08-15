@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.308 2007/08/15 01:56:11 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.307 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,6 +123,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include "startup.h"
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
+#ifdef SBBS	
+	#include "text.h"
+#endif
 
 /* xpdev */
 #ifndef LINK_LIST_THREADSAFE
@@ -149,7 +152,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "crc32.h"
 #include "telnet.h"
 #include "nopen.h"
-#include "text.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
