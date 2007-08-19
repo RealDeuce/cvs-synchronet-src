@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.44 2008/02/25 08:16:50 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.41 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -168,12 +168,12 @@ void sbbs_t::readmail(uint usernumber, int which)
 		msg.idx.subj=mail[smb.curmsg].subj;
 
 		if((i=smb_locksmbhdr(&smb))!=0) {
-			errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
+			errormsg(WHERE,ERR_LOCK,smb.file,i);
 			break; }
 
 		if((i=smb_getstatus(&smb))!=0) {
 			smb_unlocksmbhdr(&smb);
-			errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
+			errormsg(WHERE,ERR_READ,smb.file,i);
 			break; }
 		smb_unlocksmbhdr(&smb);
 
@@ -313,7 +313,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 						msg.hdr.attr|=MSG_READ;
 						msg.idx.attr=msg.hdr.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); }
 					smb_unlocksmbhdr(&smb); }
 				if(!msg.total_hfields) {				/* unsuccessful reload */
@@ -364,7 +364,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				else if(msg.from_net.type==NET_FIDO) 	/* FidoNet type */
 					SAFEPRINTF2(str,"%s@%s",msg.from
 						,smb_faddrtoa((faddr_t *)msg.from_net.addr,tmp));
-				else if(msg.from_net.type==NET_INTERNET || strchr((char*)msg.from_net.addr,'@')!=NULL) {
+				else if(msg.from_net.type==NET_INTERNET) {
 					if(msg.replyto_net.type==NET_INTERNET)
 						SAFECOPY(str,(char *)msg.replyto_net.addr);
 					else
@@ -411,14 +411,14 @@ void sbbs_t::readmail(uint usernumber, int which)
 							msg.hdr.attr|=MSG_REPLIED;
 							msg.idx.attr=msg.hdr.attr;
 							if((i=smb_putmsg(&smb,&msg))!=0)
-								errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+								errormsg(WHERE,ERR_WRITE,smb.file,i);
 							smb_unlockmsghdr(&smb,&msg); 
 						}
 						smb_unlocksmbhdr(&smb);
 					}
 				}
 
-				if(msg.hdr.attr&MSG_DELETE || noyes(str2)) {
+				if(msg.hdr.attr&MSG_DELETE || !yesno(str2)) {
 					if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 					else done=1;
 					break;	}
@@ -438,7 +438,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 						msg.idx.attr=msg.hdr.attr;
 		//				  mail[smb.curmsg].attr=msg.hdr.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); 
 					}
 					smb_unlocksmbhdr(&smb);
@@ -474,7 +474,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 						msg.idx.attr=msg.hdr.attr;
 		//				  mail[smb.curmsg].attr=msg.hdr.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); 
 					}
 					smb_unlocksmbhdr(&smb);
@@ -542,7 +542,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					if(loadmsg(&msg,msg.idx.number)) {
 						msg.hdr.attr=msg.idx.attr=(ushort)i;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							errormsg(WHERE,ERR_WRITE,smb.file,i);
 						smb_unlockmsghdr(&smb,&msg); 
 					}
 					smb_unlocksmbhdr(&smb);
@@ -715,7 +715,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	if(cfg.sys_misc&SM_DELEMAIL) {
 		if((i=smb_locksmbhdr(&smb))!=0) 			/* Lock the base, so nobody */
-			errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);	/* messes with the index */
+			errormsg(WHERE,ERR_LOCK,smb.file,i);	/* messes with the index */
 		else
 			delmail(usernumber,which); }
 
