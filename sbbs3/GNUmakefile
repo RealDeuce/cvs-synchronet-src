@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.206 2007/09/17 17:29:30 rswindell Exp $
+# $Id: GNUmakefile,v 1.204 2007/08/13 22:44:47 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -47,23 +47,11 @@ ifdef USE_DOSEMU
  CFLAGS += -DUSE_DOSEMU
 endif
 
-ifdef USE_LINUX_CAPS
- CFLAGS += -DUSE_LINUX_CAPS
- ifdef DEBUG_LINUX_CAPS
-  CFLAGS += -DDEBUG_LINUX_CAPS
- endif
-endif
-
-
 ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
 endif
 
 # JS and NSPR setup stuff...
-ifeq ($(shell nspr-config --version > /dev/null 2>&1 && echo YES),YES)
- NSPRDIR ?= $(shell nspr-config --libdir)
- NSPRINCLUDE ?= $(shell nspr-config --includedir)
-endif
 
 ifeq ($(os),sunos)
  ifeq ($(shell test -f /usr/sfw/lib/mozilla/libmozjs.so && echo "yes"),yes)
@@ -108,10 +96,6 @@ JS_LDFLAGS += -L$(JSLIBDIR) -l$(JSLIB)
 #The following is needed for nspr support on Linux
 ifeq ($(os),linux)
  JS_LDFLAGS	+=	-ldl
-  #Needed for linux kernel capabilities
-  ifdef USE_LINUX_CAPS
-   JS_LDFLAGS += -lcap
-  endif
 endif
 JS_LDFLAGS	+=	-L/usr/local/lib -L$(NSPRDIR) -lnspr4
 CFLAGS	+=	$(JS_CFLAGS)
