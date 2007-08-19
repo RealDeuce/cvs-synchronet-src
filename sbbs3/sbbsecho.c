@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.194 2008/02/25 08:25:29 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.192 2007/08/13 23:27:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -434,7 +434,6 @@ int create_netmail(char *to, char *subject, char *body, faddr_t dest, BOOL file_
 			if(i<cfg.nodecfgs)
 				attr=cfg.nodecfg[i].attr; } }
 
-	MKDIR(scfg.netmail_dir);
 	do {
 		for(i=startmsg;i;i++) {
 			sprintf(fname,"%s%u.msg",scfg.netmail_dir,i);
@@ -2517,7 +2516,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		msg.idx.number=smbfile->status.last_msg+1;		/* needed for MSG-ID generation */
 
 		/* Generate default (RFC822) message-id (always) */
-		get_msgid(&scfg,subnum,&msg,msg_id,sizeof(msg_id));
+		SAFECOPY(msg_id,get_msgid(&scfg,subnum,&msg));
 		smb_hfield_str(&msg,RFC822MSGID,msg_id);
 	}
 	if(smbfile->status.max_crcs==0)
@@ -3499,7 +3498,6 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 void export_echomail(char *sub_code,faddr_t addr)
 {
 	char	str[1025],tear,cr;
-	char	msgid[256];
 	char*	buf=NULL;
 	char*	minus;
 	uchar*	fmsgbuf=NULL;
@@ -3689,7 +3687,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					f+=sprintf(fmsgbuf+f,"\1FLAGS %.256s\r", msg.ftn_flags);
 
 				f+=sprintf(fmsgbuf+f,"\1MSGID: %.256s\r"
-					,ftn_msgid(scfg.sub[i],&msg,msgid,sizeof(msgid)));
+					,ftn_msgid(scfg.sub[i],&msg));
 
 				if(msg.ftn_reply!=NULL)			/* use original REPLYID */
 					f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
@@ -3703,7 +3701,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 						smb_getmsghdr(&smb[cur_smb],&orig_msg);
 						smb_unlockmsghdr(&smb[cur_smb],&orig_msg);
 						f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r"
-							,ftn_msgid(scfg.sub[i],&orig_msg,msgid,sizeof(msgid)));	
+							,ftn_msgid(scfg.sub[i],&orig_msg));	
 					}
 				}
 				if(msg.ftn_pid!=NULL)	/* use original PID */
@@ -3910,7 +3908,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.194 $", "%*s %s", revision);
+	sscanf("$Revision: 1.192 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
