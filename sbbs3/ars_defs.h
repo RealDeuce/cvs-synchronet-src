@@ -2,13 +2,13 @@
 
 /* Synchronet Access Requirement Strings (ARS) constants */
 
-/* $Id: ars_defs.h,v 1.7 2007/09/23 18:28:16 rswindell Exp $ */
+/* $Id: ars_defs.h,v 1.6 2006/12/29 09:00:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -114,10 +114,6 @@ enum {                              /* Access requirement binaries */
 	,AR_ACTIVE
 	,AR_INACTIVE
 	,AR_DELETED
-	,AR_ULS
-	,AR_ULB
-	,AR_DLS
-	,AR_DLB
     };
 
 #endif		/* Don't add anything after this line */
