@@ -50,23 +50,15 @@ ifeq ($(os),sunos)    # Solaris
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 
-ifeq ($(os),linux)
- ifeq ($(shell uname -m),x86_64)
-  LDFLAGS += -ldl
- endif
-endif
-
 ifdef USE_GUTS
  CFLAGS +=	-I../guts -DGUTS_BUILTIN
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
 endif
 
 PREFIX	?= /usr/local
-SYSTEM_LIST_DIR ?= ${PREFIX}/etc
 DESKTOPDIR ?= $(PREFIX)/share/applications
 
 CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
-CFLAGS	+=	-DSYSTEM_LIST_DIR=\"${SYSTEM_LIST_DIR}\"
 ifeq ($(PREFIX),/usr)
  MANPREFIX ?= /usr/share
 else
