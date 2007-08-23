@@ -2,13 +2,13 @@
 
 /* Synchronet RFC822 message date/time string conversion routines */
 
-/* $Id: msgdate.c,v 1.1 2003/08/30 05:51:29 rswindell Exp $ */
+/* $Id: msgdate.c,v 1.3 2007/08/13 22:12:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,14 +45,16 @@ char* DLLCALL msgdate(when_t when, char* buf)
 	struct tm	tm;
 	char		plus='+';
 	short		tz;
+	time_t		tt;
 	
 	tz=smb_tzutc(when.zone);
 	if(tz<0) {
 		plus='-';
 		tz=-tz;
 	}
-	
-	if(localtime_r((const time_t*)&when.time,&tm)==NULL)
+
+	tt=when.time;
+	if(localtime_r(&tt,&tm)==NULL)
 		memset(&tm,0,sizeof(tm));
 	sprintf(buf,"%s, %d %s %d %02d:%02d:%02d %c%02u%02u"
 		,wday[tm.tm_wday]
@@ -167,6 +169,7 @@ when_t DLLCALL rfc822date(char* date)
 			when.zone=(short)EST;
 	}
 
+	tm.tm_isdst=-1;	/* Don't adjust for daylight-savings-time */
 	when.time=mktime(&tm);
 
 	return(when);
