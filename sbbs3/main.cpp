@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.485 2007/08/11 11:17:55 deuce Exp $ */
+/* $Id: main.cpp,v 1.486 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2401,7 +2401,7 @@ void event_thread(void* arg)
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
 						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
 							,sbbs->cfg.event[i]->code
-							,time32str(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
+							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
