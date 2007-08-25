@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.53 2007/09/09 19:28:07 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.52 2007/07/13 08:39:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,7 +403,7 @@ BOOL sbbs_t::newuser()
 			bprintf(text[NewUserPasswordVerify]);
 			console|=CON_R_ECHOX;
 			str[0]=0;
-			getstr(str,LEN_PASS*2,K_UPPER);
+			getstr(str,LEN_PASS,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(!strcmp(str,useron.pass)) break;
 			if(cfg.sys_misc&SM_ECHO_PW) 

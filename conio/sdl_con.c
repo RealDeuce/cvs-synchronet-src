@@ -484,14 +484,10 @@ int sdl_init(int mode)
 #endif
 #if !defined(NO_X) && defined(__unix__)
 	#if defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
-		dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL);
+		if((dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL))!=NULL) {
 	#else
-		if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
-			if((dl=dlopen("libX11.so.7",RTLD_LAZY))==NULL)
-				if((dl=dlopen("libX11.so.6",RTLD_LAZY))==NULL)
-					dl=dlopen("libX11.so.5",RTLD_LAZY);
+		if((dl=dlopen("libX11.so",RTLD_LAZY))!=NULL) {
 	#endif
-		if(dl!=NULL) {
 			sdl_x11available=TRUE;
 			if(sdl_x11available && (sdl_x11.XFree=dlsym(dl,"XFree"))==NULL) {
 				dlclose(dl);
@@ -1127,8 +1123,6 @@ int sdl_video_event_thread(void *data)
 								sdl_exitcode=1;
 								sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff);
 							}
-							else
-								pthread_mutex_unlock(&vstatlock);
 						}
 						break;
 					case SDL_VIDEOEXPOSE:
@@ -1150,16 +1144,11 @@ int sdl_video_event_thread(void *data)
 
 									for(y=0; y<rect->height; y++) {
 										for(x=0; x<rect->width; x++) {
-											int dac_entry;
-											r.w=vstat.scaling;
-											r.h=vstat.scaling;
-											dac_entry=rect->data[y*rect->width+x];
 											r.x=x*vstat.scaling;
 											r.y=y*vstat.scaling;
-											sdl.FillRect(new_rect, &r, sdl.MapRGB(new_rect->format
-												, dac_default[dac_entry].red
-												, dac_default[dac_entry].green
-												, dac_default[dac_entry].blue));
+											r.w=vstat.scaling;
+											r.h=vstat.scaling;
+											sdl.FillRect(new_rect, &r, rect->data[y*rect->width+x]);
 										}
 									}
 									r.x=0;
@@ -1244,8 +1233,6 @@ int sdl_video_event_thread(void *data)
 									sdl_exitcode=1;
 									sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff);
 								}
-								else
-									pthread_mutex_unlock(&vstatlock);
 								free(ev.user.data1);
 								free(ev.user.data2);
 								break;

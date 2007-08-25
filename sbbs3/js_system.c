@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.109 2007/09/22 08:33:36 rswindell Exp $ */
+/* $Id: js_system.c,v 1.108 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1412,8 +1412,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	},		
 	{"newuser",			js_new_user,		1,	JSTYPE_ALIAS },
 	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias")
-	,JSDOCSTR("creates a new user record, returns a new <a href=#User>User</a> object representing the new user account, on success.<br>"
-	"returns an numeric error code on failure")
+	,JSDOCSTR("creates a new user record, returns a new <a href=#User>User</a> object representing the new user account")
 	,310
 	},
 	{"exec",			js_exec,			1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
