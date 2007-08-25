@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.47 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.48 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1315,7 +1315,7 @@ void sbbs_t::nodemsg()
 					,username(&cfg,usernumber,tmp),usernumber);
 				sprintf(buf,text[TelegramFmt]
 					,thisnode.misc&NODE_ANON ? text[UNKNOWN_USER] : useron.alias
-					,timestr(&now));
+					,timestr(now));
 				i=0;
 				logbuf[0]=0;
 				while(online && i<5) {
