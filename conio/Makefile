@@ -8,7 +8,7 @@
 # usage: make															#
 #########################################################################
 
-# $Id: Makefile,v 1.23 2007/09/19 18:54:12 deuce Exp $
+# $Id: Makefile,v 1.22 2007/05/31 19:28:12 deuce Exp $
 
 # To build a DLL, use "make [OPTIONS] DLLIBS=1 dl-mtlib"
 # You *MUST* do a clean between a static and dynamic lib on Win32!
@@ -27,12 +27,7 @@ OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
 OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
 OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
 OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
-NEED_BITMAP	= 1
 !endif
-!endif
-
-!ifdef NEED_BITMAP
-OBJS		= $(OBJS) $(MTOBJODIR)$(DIRSEP)bitmap_con$(OFILE)
 !endif
 
 #The following is necessary only when DLL-exporting wrapper functions
