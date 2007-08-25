@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.419 2007/07/22 08:01:40 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.423 2007/08/25 08:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,7 @@ static char* ok_rsp		=	"250 OK";
 static char* auth_ok	=	"235 User Authenticated";
 static char* sys_error	=	"421 System error";
 static char* sys_unavail=	"421 System unavailable, try again later";
+static char* insuf_stor =	"452 Insufficient system storage";
 static char* badarg_rsp =	"501 Bad argument";
 static char* badseq_rsp	=	"503 Bad sequence of commands";
 static char* badauth_rsp=	"535 Authentication failure";
@@ -1353,7 +1354,7 @@ static void signal_smtp_sem(void)
 	if(scfg.smtpmail_sem[0]==0) 
 		return; /* do nothing */
 
-	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC,S_IREAD|S_IWRITE))!=-1)
+	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC,DEFFILEMODE))!=-1)
 		close(file);
 }
 
@@ -2165,14 +2166,14 @@ static void smtp_thread(void* arg)
 					if((telegram_buf=(char*)malloc(length+strlen(str)+1))==NULL) {
 						lprintf(LOG_CRIT,"%04d !SMTP ERROR allocating %lu bytes of memory for telegram from %s"
 							,socket,length+strlen(str)+1,sender_addr);
-						sockprintf(socket, "452 Insufficient system storage");
+						sockprintf(socket, insuf_stor);
 						continue; 
 					}
 					strcpy(telegram_buf,str);	/* can't use SAFECOPY here */
 					if(fread(telegram_buf+strlen(str),1,length,msgtxt)!=length) {
 						lprintf(LOG_ERR,"%04d !SMTP ERROR reading %lu bytes from telegram file"
 							,socket,length);
-						sockprintf(socket, "452 Insufficient system storage");
+						sockprintf(socket, insuf_stor);
 						free(telegram_buf);
 						continue; 
 					}
@@ -2302,7 +2303,7 @@ static void smtp_thread(void* arg)
 				/* Parse message header here */
 				hfield_type=UNKNOWN;
 				smb_error=SMB_SUCCESS; /* no SMB error */
-				errmsg="452 Insufficient system storage";
+				errmsg=insuf_stor;
 				while(!feof(msgtxt)) {
 					if(!fgets(buf,sizeof(buf),msgtxt))
 						break;
@@ -2441,7 +2442,7 @@ static void smtp_thread(void* arg)
 				if((msgbuf=(char*)malloc(length+1))==NULL) {
 					lprintf(LOG_CRIT,"%04d !SMTP ERROR allocating %d bytes of memory"
 						,socket,length+1);
-					sockprintf(socket, "452 Insufficient system storage");
+					sockprintf(socket, insuf_stor);
 					subnum=INVALID_SUB;
 					continue;
 				}
@@ -2451,14 +2452,14 @@ static void smtp_thread(void* arg)
 				/* Do external JavaScript processing here? */
 
 				if(subnum!=INVALID_SUB) {	/* Message Base */
+					uint reason;
 					if(relay_user.number==0)
 						memset(&relay_user,0,sizeof(relay_user));
 
-					if(!chk_ar(&scfg,scfg.grp[scfg.sub[subnum]->grp]->ar, &relay_user)
-						|| !chk_ar(&scfg,scfg.sub[subnum]->ar, &relay_user)
-						|| !chk_ar(&scfg,scfg.sub[subnum]->post_ar, &relay_user)) {
-						lprintf(LOG_WARNING,"%04d !SMTP %s has insufficient access to post on %s"
-							,socket, sender_addr, scfg.sub[subnum]->sname);
+					if(!can_user_post(&scfg,subnum,&relay_user,&reason)) {
+						lprintf(LOG_WARNING,"%04d !SMTP %s (user #u) cannot post on %s (reason: %u)"
+							,socket, sender_addr, relay_user.number
+							,scfg.sub[subnum]->sname, reason);
 						sockprintf(socket,"550 Insufficient access");
 						subnum=INVALID_SUB;
 						continue;
@@ -2565,7 +2566,7 @@ static void smtp_thread(void* arg)
 						safe_snprintf(str,sizeof(str)
 							,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you e-mail from: "
 							"\1h%s\1n\r\n"
-							,timestr(&scfg,(time_t*)&newmsg.hdr.when_imported.time,tmp)
+							,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 							,sender,sender_addr);
 						if(!newmsg.idx.to) {	/* Forwarding */
 							strcat(str,"\1mand it was automatically forwarded to: \1h");
@@ -2578,7 +2579,7 @@ static void smtp_thread(void* arg)
 				iniFreeStringList(sec_list);
 				if(rcpt_count<1) {
 					smb_freemsg_dfields(&smb,&msg,SMB_ALL_REFS);
-					sockprintf(socket, "452 Insufficient system storage");
+					sockprintf(socket, insuf_stor);
 				}
 				else {
 					if(rcpt_count>1)
@@ -3296,7 +3297,7 @@ static void smtp_thread(void* arg)
 			if((msgtxt=fopen(msgtxt_fname,"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !SMTP ERROR %d opening %s"
 					,socket, errno, msgtxt_fname);
-				sockprintf(socket, "452 Insufficient system storage");
+				sockprintf(socket, insuf_stor);
 				continue;
 			}
 			/* These vars are potentially over-written by parsing an RFC822 header */
@@ -4060,7 +4061,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.419 $", "%*s %s", revision);
+	sscanf("$Revision: 1.423 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

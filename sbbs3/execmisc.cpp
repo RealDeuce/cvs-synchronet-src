@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.44 2007/08/12 19:45:51 deuce Exp $ */
+/* $Id: execmisc.cpp,v 1.48 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 	struct	dirent *de;
     struct  tm tm;
 	FILE*	fp;
+	DIR*	dp;
 
 	switch(*(csi->ip++)) {
 		case CS_VAR_INSTRUCTION:
@@ -517,7 +518,9 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					lp=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 					if(pp && lp) {
-						if(localtime_r((time_t *)lp,&tm)!=NULL) {
+						time_t	tt;
+						tt=*lp;
+						if(localtime_r(&tt,&tm)!=NULL) {
 							strftime(buf,128,str,&tm);
 							*pp=copystrvar(csi,*pp,buf); 
 						} 
@@ -529,7 +532,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					lp=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4; /* Skip int variable name */
 					if(pp && lp) {
-						strcpy(str,timestr((time_t *)lp));
+						strcpy(str,timestr(*lp));
 						*pp=copystrvar(csi,*pp,str); }
 					return(0);
 				case DATE_STR:
@@ -1005,7 +1008,6 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					errormsg(WHERE,ERR_CHK,"var sub-instruction",*(csi->ip-1));
 					return(0); }
 
-		/* TODO: Not even vaugely 64-bit happy */
 		case CS_FIO_FUNCTION:
 			switch(*(csi->ip++)) {	/* sub-op-code stored as next byte */
 				case FIO_OPEN:
@@ -1038,9 +1040,9 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 						if(w&0x400) i|=O_EXCL;
 						if(w&0x800) i|=O_APPEND;
 						fp=fnopen((int *)&j,str,i);
-						if(fp) {
+						if(fp!=NULL) {
 							for(i=0;i<csi->files;i++)
-								if(!csi->file[i])
+								if(csi->file[i]==NULL)
 									break;
 							csi->file[i]=fp;
 							if(i==csi->files)
@@ -1056,6 +1058,8 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					if(lp && (uint)*lp<csi->files) {
 						csi->logic=fclose(csi->file[*lp]);
 						csi->file[*lp]=NULL; 
+						if((uint)*lp==(csi->files-1))
+							csi->files--;
 					}
 					else
 						csi->logic=LOGIC_FALSE;
@@ -1185,7 +1189,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->ip+=4;
 					lp2=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
-					if(lp1 && (uint)*lp<csi->files && lp2)
+					if(lp1 && (uint)*lp1<csi->files && lp2)
 						*lp2=filelength(fileno(csi->file[*lp1]));
 					return(0);
 				case FIO_GET_TIME:
@@ -1193,7 +1197,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->ip+=4;
 					lp2=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
-					if(lp1 && (uint)*lp<csi->files && lp2) 
+					if(lp1 && (uint)*lp1<csi->files && lp2) 
 						*lp2=filetime(fileno(csi->file[*lp1]));
 					return(0);
 				case FIO_SET_TIME:
@@ -1202,7 +1206,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					lp2=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 	#if 0 /* ftime */
-					if(lp1 && (uint)*lp<csi->files && lp2) {
+					if(lp1 && (uint)*lp1<csi->files && lp2) {
 						ft=unixtoftime(*lp2);
 						setftime(fileno(csi->file[*lp1),&ft); }
 	#endif
@@ -1220,7 +1224,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->ip+=4;
 					lp2=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
-					if(lp1 && (uint)*lp<csi->files && lp2)
+					if(lp1 && (uint)*lp1<csi->files && lp2)
 						*lp2=ftell(csi->file[*lp1]);
 					return(0);
 				case FIO_SEEK:
@@ -1240,7 +1244,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 						l=*lp2; }
 					i=*(short *)csi->ip;
 					csi->ip+=2;
-					if(lp1 && (uint)*lp<csi->files)
+					if(lp1 && (uint)*lp1<csi->files)
 						if(fseek(csi->file[*lp1],l,i)!=-1)
 							csi->logic=LOGIC_TRUE;
 					return(0);
@@ -1279,7 +1283,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 							return(0);
 						l=*lp2; 
 					}
-					if(lp1 && (uint)*lp<csi->files) {
+					if(lp1 && (uint)*lp1<csi->files) {
 						fflush(csi->file[*lp1]);
 						csi->logic=!unlock(fileno(csi->file[*lp1]),ftell(csi->file[*lp1]),l); 
 					}
@@ -1298,14 +1302,14 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 						if(!lp2)
 							return(0);
 						l=*lp2; }
-					if(lp1 && (uint)*lp<csi->files)
+					if(lp1 && (uint)*lp1<csi->files)
 						csi->logic=chsize(fileno(csi->file[*lp1]),l);
 					return(0);
 				case FIO_PRINTF:
 					lp1=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 					p=format_string(this, csi);
-					if(lp1 && (uint)*lp<csi->files) {
+					if(lp1 && (uint)*lp1<csi->files) {
 						cmdstr(p,path,csi->str,str);
 						fwrite(str,1,strlen(str),csi->file[*lp1]); 
 					}
@@ -1382,11 +1386,21 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					pp=getstrvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 					csi->logic=LOGIC_FALSE;
+					if(csi->dirs>=MAX_OPENDIRS)
+						return(0);
 					if(pp && *pp && lp) {
-						/* 64-bit dirty */
-						*lp=(long)opendir((char *)*pp);
-						if(*lp)
-							csi->logic=LOGIC_TRUE; }
+						dp=opendir((char *)*pp);
+						if(dp!=NULL) {
+							for(i=0;i<csi->dirs;i++)
+								if(csi->dir[i]==NULL)
+									break;
+							csi->dir[i]=dp;
+							if(i==csi->dirs)
+								csi->dirs++;
+							*lp = i;	/* store the csi->file index, not the DIR* */
+							csi->logic=LOGIC_TRUE; 
+						}
+					}
 					return(0);
 				case READ_DIR:
 					lp=getintvar(csi,*(int32_t *)csi->ip);
@@ -1394,36 +1408,39 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					pp=getstrvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 					csi->logic=LOGIC_FALSE;
-					if(pp && lp) {
-						/* 64-bit dirty */
-						de=readdir((DIR *)(*lp));
+					if(pp && lp && (uint)*lp<csi->dirs) {
+						de=readdir(csi->dir[*lp]);
 						if(de!=NULL) {
 							csi->logic=LOGIC_TRUE;
-							*pp=copystrvar(csi,*pp,de->d_name); } }
+							*pp=copystrvar(csi,*pp,de->d_name); 
+						} 
+					}
 					return(0);
 				case REWIND_DIR:
 					lp=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
-					if(lp) {
-						/* 64-bit dirty */
-						rewinddir((DIR *)(*lp));
-						csi->logic=LOGIC_TRUE; }
-					else
+					if(lp && (uint)*lp<csi->dirs) {
+						rewinddir(csi->dir[*lp]);
+						csi->logic=LOGIC_TRUE; 
+					} else
 						csi->logic=LOGIC_FALSE;
 					return(0);
 				case CLOSE_DIR:
 					lp=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
-					/* 64-bit dirty */
-					if(lp && closedir((DIR *)(*lp))==0)
+					if(lp && (uint)*lp<csi->dirs && closedir(csi->dir[*lp])==0) {
 						csi->logic=LOGIC_TRUE;
-					else
+						csi->dir[*lp]=NULL;
+						if((uint)*lp==(csi->dirs-1))
+							csi->dirs--;
+					} else
 						csi->logic=LOGIC_FALSE;
 					return(0);
 
 				default:
 					errormsg(WHERE,ERR_CHK,"fio sub-instruction",*(csi->ip-1));
-					return(0); }
+					return(0); 
+			}
 
 		case CS_NET_FUNCTION:
 			return(exec_net(csi));

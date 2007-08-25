@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.22 2007/07/25 23:19:02 rswindell Exp $ */
+/* $Id: data.cpp,v 1.23 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,7 +213,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 			timeleft=event_time-now; 
 		if(!(sys_status&SS_EVENT)) {
 			lprintf(LOG_NOTICE,"Node %d Time reduced (to %s) due to upcoming event (%s) on %s"
-				,cfg.node_num,sectostr(timeleft,tmp),event_code,timestr(&event_time));
+				,cfg.node_num,sectostr(timeleft,tmp),event_code,timestr(event_time));
 			sys_status|=SS_EVENT;
 		}
 	}
@@ -234,7 +234,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 			logline(nulstr,"Ran out of time");
 			SAVELINE;
 			if(sys_status&SS_EVENT)
-				bprintf(text[ReducedTime],timestr(&event_time));
+				bprintf(text[ReducedTime],timestr(event_time));
 			bputs(text[TimesUp]);
 			if(!(sys_status&(SS_EVENT|SS_USERON)) && useron.cdt>=100L*1024L
 				&& !(cfg.sys_misc&SM_NOCDTCVT)) {
