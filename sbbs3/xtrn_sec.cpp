@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.64 2008/02/10 02:20:46 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.60 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -372,7 +372,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.level						/* User main level */
 			,useron.level						/* User transfer level */
 			,useron.birth						/* User birthday */
-			,useron.sex ? useron.sex : '?'		/* User sex (M/F) */
+			,useron.sex 						/* User sex (M/F) */
 			,useron.number						/* User number */
 			,useron.phone); 					/* User phone number */
 		lfexpand(str,misc);
@@ -468,7 +468,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.name						/* User real name */
 			,nulstr 							/* User call sign */
 			,getage(&cfg,useron.birth)			/* User age */
-			,useron.sex ? useron.sex : '?');	/* User sex (M/F) */
+			,useron.sex);						/* User sex (M/F) */
 		strupr(str);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -1313,11 +1313,10 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"%d\n%d\n%u\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
+		sprintf(str,"%d\n%d\n38400\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
 			"%d\n%d\n"
 			,misc&IO_INTS ? 0 /* Local */ : 2 /* Telnet */
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
-			,dte_rate
 			,VERSION_NOTICE,REVISION
 			,useron.number
 			,useron.name
@@ -1685,7 +1684,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	else
 		SAFECOPY(name,useron.alias);
 
-	gettimeleft(cfg.xtrn[xtrnnum]->misc&XTRN_CHKTIME ? true:false);
+	gettimeleft();
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
 	if(cfg.xtrn[xtrnnum]->maxtime && tleft>(cfg.xtrn[xtrnnum]->maxtime*60))
 		tleft=(cfg.xtrn[xtrnnum]->maxtime*60);
@@ -1760,7 +1759,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		}
 		getnodedat(cfg.node_num,&thisnode,0);
 		now=time(NULL);
-		sprintf(str,hungupstr,useron.alias,thisnode.aux ? cfg.xtrn[thisnode.aux-1]->name : "External Program"
+		sprintf(str,hungupstr,useron.alias,cfg.xtrn[thisnode.aux-1]->name
 			,timestr(now));
 		write(file,str,strlen(str));
 		close(file); 
