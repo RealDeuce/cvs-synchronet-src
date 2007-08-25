@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.22 2007/07/11 00:28:37 deuce Exp $ */
+/* $Id: file.cpp,v 1.23 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,9 +71,9 @@ void sbbs_t::fileinfo(file_t* f)
 	bprintf(text[FiDescription],f->desc);
 	bprintf(text[FiUploadedBy],f->misc&FM_ANON ? text[UNKNOWN_USER] : f->uler);
 	if(f->date)
-		bprintf(text[FiFileDate],time32str(&f->date));
-	bprintf(text[FiDateUled],time32str(&f->dateuled));
-	bprintf(text[FiDateDled],f->datedled ? time32str(&f->datedled) : "Never");
+		bprintf(text[FiFileDate],timestr(f->date));
+	bprintf(text[FiDateUled],timestr(f->dateuled));
+	bprintf(text[FiDateDled],f->datedled ? timestr(f->datedled) : "Never");
 	bprintf(text[FiTimesDled],f->timesdled);
 	if(f->size!=-1L)
 		bprintf(text[FiTransferTime],sectostr(f->timetodl,tmp));

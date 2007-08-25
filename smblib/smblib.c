@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.139 2007/08/12 19:24:08 deuce Exp $ */
+/* $Id: smblib.c,v 1.140 2007/08/13 22:12:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -768,7 +768,7 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 			msg->summary=(char*)hfield_dat;
 			break;
 		case SMB_EXPIRATION:
-			msg->expiration=*(time_t*)hfield_dat;
+			msg->expiration=*(uint32_t*)hfield_dat;
 			break;
 		case SMB_PRIORITY:
 			msg->priority=*(uint32_t*)hfield_dat;

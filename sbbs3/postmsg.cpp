@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.72 2007/07/13 21:29:33 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.75 2007/08/14 06:23:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,6 +71,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	ulong	length,offset,crc=0xffffffff;
 	FILE*	instream;
 	smbmsg_t msg;
+	uint	reason;
 
 	if(remsg) {
 		sprintf(title,"%.*s",LEN_TITLE,remsg->subj);
@@ -86,7 +87,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			SAFECOPY(touser,from);
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
 		sprintf(top,text[RegardingByToOn],title,from,remsg->to
-			,timestr((time_t *)&remsg->hdr.when_written.time)
+			,timestr(remsg->hdr.when_written.time)
 			,smb_zonestr(remsg->hdr.when_written.zone,NULL)); 
 	} else {
 		title[0]=0;
@@ -96,22 +97,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	}
 
 	/* Security checks */
-	if(!chk_ar(cfg.sub[subnum]->post_ar,&useron)) {
-		bputs(text[CantPostOnSub]);
-		return(false); 
-	}
-	if(useron.rest&FLAG('P')) {
-		bputs(text[R_Post]);
-		return(false); 
-	}
-	if((cfg.sub[subnum]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET))
-		&& (useron.rest&FLAG('N'))) {
-		bputs(text[CantPostOnSub]);
-		return(false); 
-	}
-	if(useron.ptoday>=cfg.level_postsperday[useron.level]) {
-		bputs(text[TooManyPostsToday]);
-		return(false); 
+	if(!can_user_post(&cfg,subnum,&useron,&reason)) {
+		bputs(text[reason]);
+		return false;
 	}
 
 	bprintf(text[Posting],cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
