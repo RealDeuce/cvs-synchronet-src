@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.97 2007/11/21 01:02:08 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.96 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -626,7 +626,7 @@ void dump_hashes(void)
 		printf("%-10s: %s\n",		"Source",	smb_hashsourcetype(hash.source));
 		printf("%-10s: %lu\n",		"Length",	hash.length);
 		printf("%-10s: %s\n",		"Time",		my_timestr(hash.time));
-		printf("%-10s: %02x\n",		"Flags",	hash.flags);
+		printf("%-10s: %x\n",		"Flags",	hash.flags);
 		if(hash.flags&SMB_HASH_CRC16)
 			printf("%-10s: %04x\n",	"CRC-16",	hash.crc16);
 		if(hash.flags&SMB_HASH_CRC32)
@@ -1475,7 +1475,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.97 $", "%*s %s", revision);
+	sscanf("$Revision: 1.96 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
