@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.26 2007/09/30 06:02:29 deuce Exp $ */
+/* $Id: x_cio.c,v 1.24 2007/08/25 05:29:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -161,7 +161,7 @@ int x_init(void)
 	void *dl;
 
 	/* Ensure we haven't already initialized */
-	if(x11_initialized)
+	if(initialized)
 		return(0);
 
 	/* Set up the pipe for local events */
@@ -220,9 +220,6 @@ int x_init(void)
 	if((dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL))==NULL)
 #else
 	if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
-	if((dl=dlopen("libX11.so.7",RTLD_LAZY))==NULL)
-	if((dl=dlopen("libX11.so.6",RTLD_LAZY))==NULL)
-	if((dl=dlopen("libX11.so.5",RTLD_LAZY))==NULL)
 #endif
 		return(-1);
 	if((x11.XChangeGC=dlsym(dl,"XChangeGC"))==NULL) {
@@ -407,7 +404,7 @@ int x_init(void)
 
 	_beginthread(x11_event_thread,1<<16,NULL);
 	sem_wait(&init_complete);
-	if(!x11_initialized) {
+	if(!initialized) {
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		sem_destroy(&init_complete);
@@ -423,7 +420,7 @@ void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_DRAWRECT;
-	if(x11_initialized) {
+	if(initialized) {
 		ev.data.rect.x=xoffset;
 		ev.data.rect.y=yoffset;
 		ev.data.rect.width=width;
