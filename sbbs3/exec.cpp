@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.70 2008/01/07 08:10:59 deuce Exp $ */
+/* $Id: exec.cpp,v 1.67 2007/08/13 03:37:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -550,7 +550,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 
 static const char* js_ext(const char* fname)
 {
-	if(getfext(fname)==NULL)
+	if(strchr(fname,'.')==NULL)
 		return(".js");
 	return("");
 }
@@ -583,9 +583,9 @@ long sbbs_t::js_execfile(const char *cmd)
 	fname=cmdline;
 
 	if(strcspn(fname,"/\\")==strlen(fname)) {
-		SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
+		sprintf(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
 		if(cfg.mods_dir[0]==0 || !fexistcase(path))
-			SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
+			sprintf(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
 	} else
 		SAFECOPY(path,fname);
 
@@ -643,7 +643,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_ReportPendingException(js_cx);	/* Added Dec-4-2005, rswindell */
 
-	js_EvalOnExit(js_cx, js_scope, &js_branch);
+	js_EvalOnExit(js_cx, js_glob, &js_branch);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
@@ -685,26 +685,25 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 	if((p=getfext(mod))!=NULL && stricmp(p,".js")==0)
 		return(js_execfile(cmdline));
 	if(cfg.mods_dir[0]) {
-		SAFEPRINTF2(str,"%s%s.js",cfg.mods_dir,mod);
+		sprintf(str,"%s%s.js",cfg.mods_dir,mod);
 		if(fexistcase(str)) 
 			return(js_execfile(cmdline));
 	}
+	sprintf(str,"%s%s.js",cfg.exec_dir,mod);
+	if(fexistcase(str)) 
+		return(js_execfile(cmdline));
 #endif
+
+	memcpy(&bin,csi,sizeof(csi_t));
+	clearvars(&bin);
 
 	SAFECOPY(modname,mod);
 	if(!strchr(modname,'.'))
 		strcat(modname,".bin");
 
-	SAFEPRINTF2(str,"%s%s",cfg.mods_dir,modname);
+	sprintf(str,"%s%s",cfg.mods_dir,modname);
 	if(cfg.mods_dir[0]==0 || !fexistcase(str)) {
-
-#ifdef JAVASCRIPT
-		SAFEPRINTF2(str,"%s%s.js",cfg.exec_dir,mod);
-		if(fexistcase(str)) 
-			return(js_execfile(cmdline));
-#endif
-
-		SAFEPRINTF2(str,"%s%s",cfg.exec_dir,modname);
+		sprintf(str,"%s%s",cfg.exec_dir,modname);
 		fexistcase(str);
 	}
 	if((file=nopen(str,O_RDONLY))==-1) {
@@ -712,8 +711,6 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 		return(-1); 
 	}
 
-	memcpy(&bin,csi,sizeof(csi_t));
-	clearvars(&bin);
 	bin.length=filelength(file);
 	if((bin.cs=(uchar *)malloc(bin.length))==NULL) {
 		close(file);
@@ -1094,7 +1091,7 @@ int sbbs_t::exec(csi_t *csi)
 								if(text[i]!=nulstr)
 									free(text[i]);
 								text[i]=text_sav[i]; }
-						SAFEPRINTF2(str,"%s%s.dat"
+						sprintf(str,"%s%s.dat"
 							,cfg.ctrl_dir,cmdstr((char*)csi->ip,path,csi->str,(char*)buf));
 						if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
