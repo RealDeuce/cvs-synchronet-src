@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.445 2006/09/14 20:38:29 deuce Exp $ */
+/* $Id: websrvr.c,v 1.461 2007/08/13 23:27:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,7 +94,7 @@ enum {
 static scfg_t	scfg;
 static BOOL		scfg_reloaded=TRUE;
 static BOOL		http_logging_thread_running=FALSE;
-static ulong	active_clients=0;
+static DWORD	active_clients=0;
 static ulong	sockets=0;
 static BOOL		terminate_server=FALSE;
 static BOOL		terminate_http_logging_thread=FALSE;
@@ -2672,7 +2672,7 @@ static str_list_t get_cgi_env(http_session_t *session)
 				,add_list[i], prepend, value, append);
 			strListPush(&env_list,env_str);
 		}
-		iniFreeStringList(&add_list);
+		iniFreeStringList(add_list);
 	}
 
 	fclose(fp);
@@ -3518,6 +3518,7 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	JSBool	b;
 	struct tm tm;
 	http_session_t* session;
+	time_t	tt;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -3536,7 +3537,8 @@ js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	header+=sprintf(header,"%s",p);
 	if(argc>2) {
 		JS_ValueToInt32(cx,argv[2],&i);
-		if(i && gmtime_r((time_t *)&i,&tm)!=NULL)
+		tt=i;
+		if(i && gmtime_r(&tt,&tm)!=NULL)
 			header += strftime(header,50,"; expires=%a, %d-%b-%Y %H:%M:%S GMT",&tm);
 	}
 	if(argc>3) {
@@ -4217,7 +4219,12 @@ void http_output_thread(void *arg)
 	unsigned mss=OUTBUF_LEN;
 
 	obuf=&(session->outbuf);
-	pthread_mutex_init(&session->outbuf_write,NULL);
+	/* Destroyed at end of function */
+	if((i=pthread_mutex_init(&session->outbuf_write,NULL))!=0) {
+		lprintf(LOG_DEBUG,"Error %d initializing outbuf mutex",i);
+		close_socket(&session->socket);
+		return;
+	}
 	session->outbuf_write_initialized=1;
 
 #ifdef TCP_MAXSEG
@@ -4308,6 +4315,11 @@ void http_output_thread(void *arg)
 		pthread_mutex_unlock(&session->outbuf_write);
     }
 	thread_down();
+	/* Ensure outbuf isn't currently being drained */
+	pthread_mutex_lock(&session->outbuf_write);
+	session->outbuf_write_initialized=0;
+	pthread_mutex_unlock(&session->outbuf_write);
+	pthread_mutex_destroy(&session->outbuf_write);
 	sem_post(&session->output_thread_terminated);
 }
 
@@ -4331,8 +4343,11 @@ void http_session_thread(void* arg)
 	FREE_AND_NULL(arg);
 
 	socket=session.socket;
+	if(socket==INVALID_SOCKET) {
+		session_threads--;
+		return;
+	}
 	lprintf(LOG_DEBUG,"%04d Session thread started", session.socket);
-	session_threads++;
 
 	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
 		lprintf(LOG_DEBUG,"%04d !!! DANGER WILL ROBINSON, DANGER !!!", session.socket);
@@ -4355,6 +4370,7 @@ void http_session_thread(void* arg)
 		return;
 	}
 
+	/* Destroyed in this block (before all returns) */
 	sem_init(&session.output_thread_terminated,0,0);
 	_beginthread(http_output_thread, 0, &session);
 
@@ -4379,11 +4395,11 @@ void http_session_thread(void* arg)
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", session.socket, host->h_aliases[i]);
 		if(trashcan(&scfg,host_name,"host")) {
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			close_socket(&session.socket);
 			sem_wait(&session.output_thread_terminated);
+			sem_destroy(&session.output_thread_terminated);
 			RingBufDispose(&session.outbuf);
-			pthread_mutex_destroy(&session.outbuf_write);
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			thread_down();
 			session_threads--;
 			return;
@@ -4392,11 +4408,11 @@ void http_session_thread(void* arg)
 
 	/* host_ip wasn't defined in http_session_thread */
 	if(trashcan(&scfg,session.host_ip,"ip")) {
+		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		close_socket(&session.socket);
 		sem_wait(&session.output_thread_terminated);
+		sem_destroy(&session.output_thread_terminated);
 		RingBufDispose(&session.outbuf);
-		pthread_mutex_destroy(&session.outbuf_write);
-		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		thread_down();
 		session_threads--;
 		return;
@@ -4526,7 +4542,6 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
-	pthread_mutex_destroy(&session.outbuf_write);
 
 	active_clients--;
 	update_clients();
@@ -4551,12 +4566,12 @@ void DLLCALL web_terminate(void)
 
 static void cleanup(int code)
 {
-	free_cfg(&scfg);
-
 	while(session_threads) {
 		lprintf(LOG_INFO,"#### Web Server waiting on %d active session threads",session_threads);
 		SLEEP(1000);
 	}
+	free_cfg(&scfg);
+
 	listFree(&log_list);
 
 	mime_types=iniFreeNamedStringList(mime_types);
@@ -4594,7 +4609,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.445 $", "%*s %s", revision);
+	sscanf("$Revision: 1.461 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4636,7 +4651,11 @@ void http_logging_thread(void* arg)
 		char	timestr[128];
 		char	sizestr[100];
 
-		listSemWait(&log_list);
+		if(!listSemTryWait(&log_list)) {
+			if(logfile!=NULL)
+				fflush(logfile);
+			listSemWait(&log_list);
+		}
 
 		ld=listShiftNode(&log_list);
 		/*
@@ -4685,7 +4704,6 @@ void http_logging_thread(void* arg)
 						,ld->size?sizestr:"-"
 						,ld->referrer?(ld->referrer[0]?ld->referrer:"-"):"-"
 						,ld->agent?(ld->agent[0]?ld->agent:"-"):"-");
-				fflush(logfile);
 				unlock(fileno(logfile),0,1);
 			}
 		}
@@ -4924,12 +4942,16 @@ void DLLCALL web_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->port);
 
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
 		result = retry_bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"Web Server",lprintf);
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
 		if(result != 0) {
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
@@ -5043,8 +5065,10 @@ void DLLCALL web_server(void* arg)
 				}
 				memset(session, 0, sizeof(http_session_t));
    				session->socket=INVALID_SOCKET;
+				/* Destroyed in http_session_thread */
 				pthread_mutex_init(&session->struct_filled,NULL);
 				pthread_mutex_lock(&session->struct_filled);
+				session_threads++;
 				_beginthread(http_session_thread, 0, session);
 			}
 
