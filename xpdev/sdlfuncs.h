@@ -51,7 +51,6 @@ struct sdlfuncs {
 	void (*UnlockAudio)(void);
 	void (*PauseAudio)(int pause_on);
 	SDL_audiostatus (*GetAudioStatus)(void);
-	Uint32	(*MapRGB)	(SDL_PixelFormat *fmt, Uint8 r, Uint8 g, Uint8 b);
 	int	gotfuncs;
 };
 

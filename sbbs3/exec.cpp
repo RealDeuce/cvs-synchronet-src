@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.69 2007/09/14 19:25:55 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.68 2007/09/07 19:44:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -550,7 +550,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 
 static const char* js_ext(const char* fname)
 {
-	if(getfext(fname)==NULL)
+	if(strchr(fname,'.')==NULL)
 		return(".js");
 	return("");
 }
