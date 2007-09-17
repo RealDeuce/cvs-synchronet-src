@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.66 2007/07/30 05:45:35 deuce Exp $
+# $Id: Common.gmake,v 1.67 2007/09/17 17:25:08 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -284,8 +284,10 @@ endif
 
 # PThread-specific flags
 ifeq ($(os),linux)    # Linux
- ifndef THREADS_ACTUALLY_WORK
-  CFLAGS    += -D_THREAD_SUID_BROKEN
+ ifndef USE_LINUX_CAPS 
+  ifndef THREADS_ACTUALLY_WORK 
+   CFLAGS    += -D_THREAD_SUID_BROKEN
+  endif
  endif
 endif
 MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
