@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.211 2007/10/15 08:06:00 deuce Exp $
+# $Id: GNUmakefile,v 1.205 2007/08/31 18:40:34 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -49,13 +49,6 @@ endif
 
 ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
-endif
-
-ifeq ($(os),linux)
- ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
-  CFLAGS += -DUSE_LINUX_CAPS
-  SBBS_LIBS += -lcap
- endif
 endif
 
 # JS and NSPR setup stuff...
@@ -136,7 +129,7 @@ else
 endif
 export LD_RUN_PATH
 
-CON_LIBS	+= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
+CON_LIBS	:= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
  MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
