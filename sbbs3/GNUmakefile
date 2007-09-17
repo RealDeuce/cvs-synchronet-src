@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.208 2007/10/02 19:40:48 deuce Exp $
+# $Id: GNUmakefile,v 1.205 2007/08/31 18:40:34 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -49,13 +49,6 @@ endif
 
 ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
-endif
-
-ifeq ($(os),linux)
- ifeq ($(shell test -f /usr/include/linux/capability.h && echo "yes"),yes)
-  CFLAGS += -DUSE_LINUX_CAPS
-  CON_LIBS += -lcap
- endif
 endif
 
 # JS and NSPR setup stuff...
