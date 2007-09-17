@@ -97,7 +97,7 @@ extern int x11_window_xpos;
 extern int x11_window_ypos;
 extern int x11_window_width;
 extern int x11_window_height;
-extern int x11_initialized;
+extern int initialized;
 
 void x11_event_thread(void *args);
 

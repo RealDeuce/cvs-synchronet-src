@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.185 2007/10/04 01:03:37 deuce Exp $ */
+/* $Id: term.c,v 1.182 2007/07/29 02:37:11 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1404,10 +1404,9 @@ BOOL doterm(struct bbslist *bbs)
 				break;
 			}
 		}
-		hold_update=FALSE;
+		hold_update=oldmc;
 		if(updated && sleep)
 			gotoxy(wherex(), wherey());
-		hold_update=TRUE;
 
 		/* Get local input */
 		while(kbhit()) {
@@ -1530,7 +1529,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							conn_close();
 							hidemouse();
-							hold_update=oldmc;
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
@@ -1566,7 +1564,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							conn_close();
 							hidemouse();
-							hold_update=oldmc;
 							return(FALSE);
 						case 3:
 							begin_upload(bbs, FALSE);
@@ -1599,7 +1596,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							conn_close();
 							hidemouse();
-							hold_update=oldmc;
 							return(TRUE);
 					}
 					showmouse();
@@ -1879,7 +1875,6 @@ BOOL doterm(struct bbslist *bbs)
 	}
 /*
 	hidemouse();
-	hold_update=oldmc;
 	return(FALSE);
  */
 }
