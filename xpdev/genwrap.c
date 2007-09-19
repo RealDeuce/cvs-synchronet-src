@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.76 2008/02/23 10:57:55 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.73 2007/02/26 09:30:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -428,6 +428,60 @@ char* DLLCALL os_cmdshell(void)
 	return(shell);
 }
 
+#if !defined(__unix__)
+
+/****************************************************************************/
+/* Win32 implementations of the recursive (thread-safe) versions of std C	*/
+/* time functions (gmtime, localtime, ctime, and asctime) used in Unix.		*/
+/* The native Win32 versions of these functions are already thread-safe.	*/
+/****************************************************************************/
+
+struct tm* DLLCALL gmtime_r(const time_t* t, struct tm* tm)
+{
+	struct tm* tmp = gmtime(t);
+
+	if(tmp==NULL)
+		return(NULL);
+
+	*tm = *tmp;
+	return(tm);
+}
+
+struct tm* DLLCALL localtime_r(const time_t* t, struct tm* tm)
+{
+	struct tm* tmp = localtime(t);
+
+	if(tmp==NULL)
+		return(NULL);
+
+	*tm = *tmp;
+	return(tm);
+}
+
+char* DLLCALL ctime_r(const time_t *t, char *buf)
+{
+	char* p = ctime(t);
+
+	if(p==NULL)
+		return(NULL);
+
+	strcpy(buf,p);
+	return(buf);
+}
+
+char* DLLCALL asctime_r(const struct tm *tm, char *buf)
+{
+	char* p = asctime(tm);
+
+	if(p==NULL)
+		return(NULL);
+
+	strcpy(buf,p);
+	return(buf);
+}
+
+#endif	/* !defined(__unix__) */
+
 /****************************************************************/
 /* Microsoft (DOS/Win32) real-time system clock implementation.	*/
 /****************************************************************/
@@ -444,28 +498,18 @@ clock_t DLLCALL msclock(void)
 #endif
 
 /****************************************************************************/
-/* Skips all white-space chars at beginning of 'str'						*/
-/****************************************************************************/
-char* DLLCALL skipsp(char* str)
-{
-	SKIP_WHITESPACE(str);
-	return(str);
-}
-
-/****************************************************************************/
 /* Truncates all white-space chars off end of 'str'	(needed by STRERRROR)	*/
 /****************************************************************************/
 char* DLLCALL truncsp(char* str)
 {
 	size_t i,len;
 
-	if(str!=NULL) {
-		i=len=strlen(str);
-		while(i && isspace(str[i-1])) 
-			i--;
-		if(i!=len)
-			str[i]=0;	/* truncate */
-	}
+	i=len=strlen(str);
+	while(i && (str[i-1]==' ' || str[i-1]=='\t' || str[i-1]=='\r' || str[i-1]=='\n')) 
+		i--;
+	if(i!=len)
+		str[i]=0;	/* truncate */
+
 	return(str);
 }
 
@@ -501,13 +545,12 @@ char* DLLCALL truncnl(char* str)
 {
 	size_t i,len;
 
-	if(str!=NULL) {
-		i=len=strlen(str);
-		while(i && (str[i-1]=='\r' || str[i-1]=='\n')) 
-			i--;
-		if(i!=len)
-			str[i]=0;	/* truncate */
-	}
+	i=len=strlen(str);
+	while(i && (str[i-1]=='\r' || str[i-1]=='\n')) 
+		i--;
+	if(i!=len)
+		str[i]=0;	/* truncate */
+
 	return(str);
 }
 
