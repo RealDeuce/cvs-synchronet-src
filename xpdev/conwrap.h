@@ -2,7 +2,7 @@
 
 /* Cross-platform local console I/O wrapppers */
 
-/* $Id: conwrap.h,v 1.4 2004/07/20 23:19:43 rswindell Exp $ */
+/* $Id: conwrap.h,v 1.5 2007/09/17 17:23:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,8 +40,11 @@
 
 #if defined(__unix__)
 
-	int kbhit(void);
-	int getch(void);
+    void _termios_reset(void);
+    void _echo_on(void);
+    void _echo_off(void);
+    int kbhit(void);
+    int getch(void);
 
 #else	/* DOS-Based */
 
