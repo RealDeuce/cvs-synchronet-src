@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.12 2008/02/21 09:53:04 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.11 2006/04/25 02:26:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -45,58 +45,57 @@ char* SMBCALL smb_hfieldtype(ushort type)
 	static char str[8];
 
 	switch(type) {
-		case SENDER:			return("Sender");				/* RFC-compliant */
+		case SENDER:			return("Sender");
 		case SENDERAGENT:		return("SenderAgent");
 		case SENDERNETTYPE:		return("SenderNetType");
 		case SENDERNETADDR:		return("SenderNetAddr");
 		case SENDEREXT:			return("SenderExt");
-		case SENDERORG:			return("Organization");			/* RFC-compliant */
+		case SENDERORG:			return("SenderOrg");
 		case SENDERIPADDR:		return("SenderIpAddr");
 		case SENDERHOSTNAME:	return("SenderHostName");
 		case SENDERPROTOCOL:	return("SenderProtocol");
 		case SENDERPORT:		return("SenderPort");
 
-		case REPLYTO:			return("Reply-To");				/* RFC-compliant */
-		case REPLYTOAGENT:		return("Reply-ToAgent");
-		case REPLYTONETTYPE:	return("Reply-ToNetType");
-		case REPLYTONETADDR:	return("Reply-ToNetAddr");
-		case REPLYTOEXT:		return("Reply-ToExt");
+		case REPLYTO:			return("ReplyTo");
+		case REPLYTOAGENT:		return("ReplyToAgent");
+		case REPLYTONETTYPE:	return("ReplyToNetType");
+		case REPLYTONETADDR:	return("ReplyToNetAddr");
+		case REPLYTOEXT:		return("ReplyToExt");
 								
-		case RECIPIENT:			return("To");					/* RFC-compliant */
-		case RECIPIENTAGENT:	return("ToAgent");
-		case RECIPIENTNETTYPE:	return("ToNetType");
-		case RECIPIENTNETADDR:	return("ToNetAddr");
-		case RECIPIENTEXT:		return("ToExt");
+		case RECIPIENT:			return("Recipient");
+		case RECIPIENTAGENT:	return("RecipientAgent");
+		case RECIPIENTNETTYPE:	return("RecipientNetType");
+		case RECIPIENTNETADDR:	return("RecipientNetAddr");
+		case RECIPIENTEXT:		return("RecipientExt");
 
-		case SUBJECT:			return("Subject");				/* RFC-compliant */
+		case SUBJECT:			return("Subject");
 		case SMB_SUMMARY:		return("Summary");
-		case SMB_COMMENT:		return("Comment");				/* RFC-compliant */
-		case SMB_CARBONCOPY:	return("CC");					/* RFC-compliant */
+		case SMB_COMMENT:		return("Comment");
+		case SMB_CARBONCOPY:	return("CarbonCopy");
 		case SMB_GROUP:			return("Group");
 		case SMB_EXPIRATION:	return("Expiration");
 		case SMB_PRIORITY:		return("Priority");
 		case SMB_COST:			return("Cost");
 
-		/* All X-FTN-* are RFC-compliant */
-		case FIDOCTRL:			return("X-FTN-Kludge");
-		case FIDOAREA:			return("X-FTN-AREA");
-		case FIDOSEENBY:		return("X-FTN-SEEN-BY");
-		case FIDOPATH:			return("X-FTN-PATH");
-		case FIDOMSGID:			return("X-FTN-MSGID");
-		case FIDOREPLYID:		return("X-FTN-REPLY");
-		case FIDOPID:			return("X-FTN-PID");
-		case FIDOFLAGS:			return("X-FTN-Flags");
-		case FIDOTID:			return("X-FTN-TID");
+		case FIDOCTRL:			return("FidoCtrl");
+		case FIDOAREA:			return("FidoArea");
+		case FIDOSEENBY:		return("FidoSeenBy");
+		case FIDOPATH:			return("FidoPath");
+		case FIDOMSGID:			return("FidoMsgID");
+		case FIDOREPLYID:		return("FidoReplyID");
+		case FIDOPID:			return("FidoPID");
+		case FIDOFLAGS:			return("FidoFlags");
+		case FIDOTID:			return("FidoTID");
 
 		case RFC822HEADER:		return("RFC822Header");
-		case RFC822MSGID:		return("Message-ID");			/* RFC-compliant */
-		case RFC822REPLYID:		return("In-Reply-To");			/* RFC-compliant */
+		case RFC822MSGID:		return("RFC822MsgID");
+		case RFC822REPLYID:		return("RFC822ReplyID");
 		case RFC822TO:			return("RFC822To");
 		case RFC822FROM:		return("RFC822From");
 		case RFC822REPLYTO:		return("RFC822ReplyTo");
 
-		case USENETPATH:		return("Path");					/* RFC-compliant */
-		case USENETNEWSGROUPS:	return("Newsgroups");			/* RFC-compliant */
+		case USENETPATH:		return("UsenetPath");
+		case USENETNEWSGROUPS:	return("UsenetNewsgroups");
 
 		case SMTPCOMMAND:		return("SMTPCommand");
 		case SMTPREVERSEPATH:	return("SMTPReversePath");
@@ -295,16 +294,8 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 /****************************************************************************/
 char* SMBCALL smb_netaddr(net_t* net)
 {
-	return(smb_netaddrstr(net, NULL));
-}
-
-/****************************************************************************/
-/* Copies ASCIIZ representation of network address (net_t) into buf			*/
-/****************************************************************************/
-char* SMBCALL smb_netaddrstr(net_t* net, char* fidoaddr_buf)
-{
 	if(net->type==NET_FIDO)
-		return(smb_faddrtoa((fidoaddr_t*)net->addr,fidoaddr_buf));
+		return(smb_faddrtoa((fidoaddr_t*)net->addr,NULL));
 	return(net->addr);
 }
 
