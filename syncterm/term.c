@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.186 2007/10/04 02:40:10 deuce Exp $ */
+/* $Id: term.c,v 1.182 2007/07/29 02:37:11 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -142,7 +142,7 @@ void update_status(struct bbslist *bbs, int speed)
 	char nbuf[LIST_NAME_MAX+10+11+1];	/* Room for "Name (Logging) (115300)" and terminator */
 						/* SAFE and Logging should me be possible. */
 	int oldscroll;
-	int olddmc=hold_update;
+	int olddmc;
 	struct	text_info txtinfo;
 	int now;
 	static int lastupd=0;
@@ -157,6 +157,7 @@ void update_status(struct bbslist *bbs, int speed)
 	timeon=now - bbs->connected;
     gettextinfo(&txtinfo);
 	oldscroll=_wscroll;
+	olddmc=hold_update;
 	hold_update=TRUE;
 	textattr(YELLOW|(BLUE<<4));
 	/* Move to status line thinger */
@@ -191,8 +192,8 @@ void update_status(struct bbslist *bbs, int speed)
 	_wscroll=oldscroll;
 	textattr(txtinfo.attribute);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
-	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
+	gotoxy(txtinfo.curx,txtinfo.cury);
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -310,13 +311,14 @@ void zmodem_progress(void* cbdata, ulong current_pos)
 	long		t;
 	time_t		now;
 	static time_t last_progress;
-	int			old_hold=hold_update;
+	int			old_hold;
 	zmodem_t*	zm=(zmodem_t*)cbdata;
 
 	zmodem_check_abort(cbdata);
 
 	now=time(NULL);
 	if(now-last_progress>0 || current_pos >= zm->current_file_size) {
+		old_hold = hold_update;
 		hold_update = TRUE;
 		window(((trans_ti.screenwidth-TRANSFER_WIN_WIDTH)/2)+2
 				, ((trans_ti.screenheight-TRANSFER_WIN_HEIGHT)/2)+1
@@ -1402,11 +1404,9 @@ BOOL doterm(struct bbslist *bbs)
 				break;
 			}
 		}
-		if(updated && sleep) {
-			hold_update=FALSE;
+		hold_update=oldmc;
+		if(updated && sleep)
 			gotoxy(wherex(), wherey());
-			hold_update=TRUE;
-		}
 
 		/* Get local input */
 		while(kbhit()) {
@@ -1529,7 +1529,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							conn_close();
 							hidemouse();
-							hold_update=oldmc;
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
@@ -1565,7 +1564,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							conn_close();
 							hidemouse();
-							hold_update=oldmc;
 							return(FALSE);
 						case 3:
 							begin_upload(bbs, FALSE);
@@ -1598,7 +1596,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_end();
 							conn_close();
 							hidemouse();
-							hold_update=oldmc;
 							return(TRUE);
 					}
 					showmouse();
@@ -1878,7 +1875,6 @@ BOOL doterm(struct bbslist *bbs)
 	}
 /*
 	hidemouse();
-	hold_update=oldmc;
 	return(FALSE);
  */
 }

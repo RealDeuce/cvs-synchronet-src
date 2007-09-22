@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.34 2007/09/30 07:31:15 deuce Exp $ */
+/* $Id: conn.c,v 1.33 2007/07/28 06:31:01 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -25,9 +25,9 @@ char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem"
 ,"Shell"
 #endif
 ,NULL};
-int conn_ports[]={0,513,23,0,22,0
+int conn_ports[]={0,513,23,0,22
 #ifdef __unix__
-,65535
+,0
 #endif
 ,0};
 
