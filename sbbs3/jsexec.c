@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.108 2006/07/13 02:14:54 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.110 2007/08/25 08:30:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,7 +47,7 @@
 
 #include "sbbs.h"
 
-#define DEFAULT_LOG_MASK	0xff	/* Display all LOG levels */
+#define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
 
 JSRuntime*	js_runtime;
@@ -70,7 +70,7 @@ BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
 BOOL		recycled;
-DWORD		log_mask=DEFAULT_LOG_MASK;
+int			log_level=DEFAULT_LOG_LEVEL;
 int  		err_level=DEFAULT_ERR_LOG_LVL;
 pthread_mutex_t output_mutex;
 #if defined(__unix__)
@@ -112,7 +112,8 @@ void usage(FILE* fp)
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
-		"\t-L<mask>       set log level mask (default=0x%x)\n"
+		"\t-u<mask>       set file creation permissions mask (in octal)\n"
+		"\t-L<level>      set log level (default=%u)\n"
 		"\t-E<level>      set error log level threshold (default=%d)\n"
 		"\t-f             use non-buffered stream for console messages\n"
 		"\t-a             append instead of overwriting message output files\n"
@@ -131,7 +132,7 @@ void usage(FILE* fp)
 		,JAVASCRIPT_BRANCH_LIMIT
 		,JAVASCRIPT_YIELD_INTERVAL
 		,JAVASCRIPT_GC_INTERVAL
-		,DEFAULT_LOG_MASK
+		,DEFAULT_LOG_LEVEL
 		,DEFAULT_ERR_LOG_LVL
 		,_PATH_DEVNULL
 		,_PATH_DEVNULL
@@ -165,7 +166,7 @@ int lprintf(int level, char *fmt, ...)
 	char sbuf[1024];
 	int ret=0;
 
-	if(!(log_mask&(1<<level)))
+	if(level > log_level)
 		return(0);
 
     va_start(argptr,fmt);
@@ -810,7 +811,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.108 $", "%*s %s", revision);
+	sscanf("$Revision: 1.110 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -859,9 +860,13 @@ int main(int argc, char **argv, char** environ)
 					else
 						host_name=p;
 					break;
+				case 'u':
+					if(*p==0) p=argv[++argn];
+					umask(strtol(p,NULL,8));
+					break;
 				case 'L':
 					if(*p==0) p=argv[++argn];
-					log_mask=strtol(p,NULL,0);
+					log_level=strtol(p,NULL,0);
 					break;
 				case 'E':
 					if(*p==0) p=argv[++argn];
