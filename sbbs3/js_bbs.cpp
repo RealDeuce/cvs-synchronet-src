@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.100 2006/09/07 00:28:43 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.106 2007/09/22 08:34:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,6 +47,7 @@ enum {
 	,BBS_PROP_STARTUP_OPT
 	,BBS_PROP_ANSWER_TIME
 	,BBS_PROP_LOGON_TIME
+	,BBS_PROP_START_TIME
 	,BBS_PROP_NS_TIME
 	,BBS_PROP_LAST_NS_TIME
 	,BBS_PROP_ONLINE
@@ -82,6 +83,7 @@ enum {
 
 	,BBS_PROP_CONNECTION		/* READ ONLY */
 	,BBS_PROP_RLOGIN_NAME
+	,BBS_PROP_RLOGIN_PASS
 	,BBS_PROP_CLIENT_NAME
 
 	,BBS_PROP_ALTUL
@@ -144,13 +146,14 @@ enum {
 	static char* bbs_prop_desc[] = {
 	 "system status bitfield (see <tt>SS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"startup options bitfield (see <tt>BBS_OPT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
-	,"answer time, in time_t format"
-	,"logon time, in time_t format"
-	,"curren file new-scan time, in time_t format"
-	,"previous file new-scan time, in time_t format"
+	,"answer time, in <i>time_t</i> format"
+	,"logon time, in <i>time_t</i> format"
+	,"time from which user's time left is calculated, in <i>time_t</i> format"
+	,"current file new-scan time, in <i>time_t</i> format"
+	,"previous file new-scan time, in <i>time_t</i> format"
 	,"online (see <tt>ON_*</tt> in <tt>sbbsdefs.js</tt> for valid values)"
 	,"time left (in seconds)"
-	,"time of next exclusive event (in time_t format), or 0 if none"
+	,"time of next exclusive event (in <i>time_t</i> format), or 0 if none"
 	,"internal code of next exclusive event"
 
 	,"current node number"
@@ -180,7 +183,8 @@ enum {
 	,"current file directory internal code"
 
 	,"remote connection type"
-	,"rlogin name"
+	,"login name given during RLogin negotiation"
+	,"password specified during RLogin negotiation"
 	,"client name"
 
 	,"current alternate upload path number"
@@ -266,6 +270,9 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case BBS_PROP_LOGON_TIME:
 			val=sbbs->logontime;
 			break;
+		case BBS_PROP_START_TIME:
+			val=sbbs->starttime;
+			break;
 		case BBS_PROP_NS_TIME:
 			val=sbbs->ns_time;
 			break;
@@ -276,7 +283,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			val=sbbs->online;
 			break;
 		case BBS_PROP_TIMELEFT:
-			val=sbbs->timeleft;
+			val=sbbs->gettimeleft(false);
 			break;
 		case BBS_PROP_EVENT_TIME:
 			val=sbbs->event_time;
@@ -365,6 +372,9 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case BBS_PROP_RLOGIN_NAME:
 			p=sbbs->rlogin_name;
+			break;
+		case BBS_PROP_RLOGIN_PASS:
+			p=sbbs->rlogin_pass;
 			break;
 		case BBS_PROP_CLIENT_NAME:
 			p=sbbs->client_name;
@@ -649,6 +659,9 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case BBS_PROP_LOGON_TIME:
 			sbbs->logontime=val;
 			break;
+		case BBS_PROP_START_TIME:
+			sbbs->starttime=val;
+			break;
 		case BBS_PROP_NS_TIME:
 			sbbs->ns_time=val;
 			break;
@@ -764,6 +777,9 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case BBS_PROP_RLOGIN_NAME:
 			SAFECOPY(sbbs->rlogin_name,p);
 			break;
+		case BBS_PROP_RLOGIN_PASS:
+			SAFECOPY(sbbs->rlogin_pass,p);
+			break;
 		case BBS_PROP_CLIENT_NAME:
 			SAFECOPY(sbbs->client_name,p);
 			break;
@@ -802,6 +818,7 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"startup_options"	,BBS_PROP_STARTUP_OPT	,JSPROP_ENUMERATE	,310},
 	{	"answer_time"		,BBS_PROP_ANSWER_TIME	,JSPROP_ENUMERATE	,310},
 	{	"logon_time"		,BBS_PROP_LOGON_TIME	,JSPROP_ENUMERATE	,310},
+	{	"start_time"		,BBS_PROP_START_TIME	,JSPROP_ENUMERATE	,314},
 	{	"new_file_time"		,BBS_PROP_NS_TIME		,JSPROP_ENUMERATE	,310},
 	{	"last_new_file_time",BBS_PROP_LAST_NS_TIME	,JSPROP_ENUMERATE	,310},
 	{	"online"			,BBS_PROP_ONLINE		,JSPROP_ENUMERATE	,310},
@@ -833,6 +850,7 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"curdir_code"		,BBS_PROP_CURDIR_CODE	,JSPROP_ENUMERATE	,314},
 	{	"connection"		,BBS_PROP_CONNECTION	,PROP_READONLY		,310},
 	{	"rlogin_name"		,BBS_PROP_RLOGIN_NAME	,JSPROP_ENUMERATE	,310},
+	{	"rlogin_password"	,BBS_PROP_RLOGIN_PASS	,JSPROP_ENUMERATE	,315},
 	{	"client_name"		,BBS_PROP_CLIENT_NAME	,JSPROP_ENUMERATE	,310},
 	{	"alt_ul_dir"		,BBS_PROP_ALTUL			,JSPROP_ENUMERATE	,310},
 	{	"errorlevel"		,BBS_PROP_ERRORLEVEL	,PROP_READONLY		,312},
@@ -1239,20 +1257,47 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char		str[128];
 	sbbs_t*		sbbs;
+	char	str[128],str2[128],*p;
+	char	*instr;
+	int		disp_len;
+	bool	padded_left=false;
+	bool	padded_right=false;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	char* p = JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+	instr = strdup(JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
+	if(instr==NULL)
+		return(JS_FALSE);
 
-	p=sbbs->atcode(p,str);
+	disp_len=strlen(instr);
+	if((p=strstr(instr,"-L"))!=NULL)
+		padded_left=true;
+	else if((p=strstr(instr,"-R"))!=NULL)
+		padded_right=true;
+	if(p!=NULL) {
+		if(*(p+2) && isdigit(*(p+2)))
+			disp_len=atoi(p+2);
+		*p=0;
+	}
 
+	if(disp_len >= sizeof(str))
+		disp_len=sizeof(str)-1;
+
+	p=sbbs->atcode(instr,str2,sizeof(str2));
+	free(instr);
 	if(p==NULL)
 		*rval = JSVAL_NULL;
 	else {
-		JSString* js_str = JS_NewStringCopyZ(cx, p);
+		if(padded_left)
+			sprintf(str,"%-*.*s",disp_len,disp_len,p);
+		else if(padded_right)
+			sprintf(str,"%*.*s",disp_len,disp_len,p);
+		else
+			SAFECOPY(str,p);
+
+		JSString* js_str = JS_NewStringCopyZ(cx, str);
 		if(js_str==NULL)
 			return(JS_FALSE);
 		*rval = STRING_TO_JSVAL(js_str);
@@ -2585,6 +2630,18 @@ js_select_editor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	return(JS_TRUE);
 }
 
+static JSBool
+js_get_time_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	sbbs_t*		sbbs;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	*rval = INT_TO_JSVAL(sbbs->gettimeleft());
+	return(JS_TRUE);
+}
+
 static jsSyncMethodSpec js_bbs_functions[] = {
 	{"atcode",			js_atcode,			1,	JSTYPE_STRING,	JSDOCSTR("code_string")
 	,JSDOCSTR("returns @-code value, specified <i>code</i> string does not include @ character delimiters")
@@ -2931,7 +2988,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	{"get_newscantime",	js_getnstime,		1,	JSTYPE_NUMBER,	JSDOCSTR("time=<i>current</i>")
-	,JSDOCSTR("confirm or change a new-scan time, returns the new new-scan time value (time_t format)")
+	,JSDOCSTR("confirm or change a new-scan time, returns the new new-scan time value (<i>time_t</i> format)")
 	,310
 	},		
 	{"select_shell",	js_select_shell,	0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
@@ -2941,6 +2998,11 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	{"select_editor",	js_select_editor,	0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
 	,JSDOCSTR("prompt user to select a new external message editor")
 	,310
+	},
+	{"get_time_left",	js_get_time_left,	0,	JSTYPE_NUMBER,	JSDOCSTR("")
+	,JSDOCSTR("check the user's available remaining time online and return the value, in seconds<br>"
+	"This method will inform (and disconnect) the user when they are out of time")
+	,31401
 	},
 	{0}
 };
