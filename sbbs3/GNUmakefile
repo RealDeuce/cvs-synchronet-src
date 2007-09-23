@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.211 2007/10/15 08:06:00 deuce Exp $
+# $Id: GNUmakefile,v 1.206 2007/09/17 17:29:30 rswindell Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -47,15 +47,16 @@ ifdef USE_DOSEMU
  CFLAGS += -DUSE_DOSEMU
 endif
 
-ifdef DONT_BLAME_SYNCHRONET
- CFLAGS += -DDONT_BLAME_SYNCHRONET
+ifdef USE_LINUX_CAPS
+ CFLAGS += -DUSE_LINUX_CAPS
+ ifdef DEBUG_LINUX_CAPS
+  CFLAGS += -DDEBUG_LINUX_CAPS
+ endif
 endif
 
-ifeq ($(os),linux)
- ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
-  CFLAGS += -DUSE_LINUX_CAPS
-  SBBS_LIBS += -lcap
- endif
+
+ifdef DONT_BLAME_SYNCHRONET
+ CFLAGS += -DDONT_BLAME_SYNCHRONET
 endif
 
 # JS and NSPR setup stuff...
@@ -107,6 +108,10 @@ JS_LDFLAGS += -L$(JSLIBDIR) -l$(JSLIB)
 #The following is needed for nspr support on Linux
 ifeq ($(os),linux)
  JS_LDFLAGS	+=	-ldl
+  #Needed for linux kernel capabilities
+  ifdef USE_LINUX_CAPS
+   JS_LDFLAGS += -lcap
+  endif
 endif
 JS_LDFLAGS	+=	-L/usr/local/lib -L$(NSPRDIR) -lnspr4
 CFLAGS	+=	$(JS_CFLAGS)
@@ -136,7 +141,7 @@ else
 endif
 export LD_RUN_PATH
 
-CON_LIBS	+= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
+CON_LIBS	:= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
  MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
