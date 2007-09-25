@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.218 2007/09/17 17:29:30 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.219 2007/09/25 20:28:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1862,7 +1862,7 @@ int main(int argc, char** argv)
 #endif /* !defined(DONT_BLAME_SYNCHRONET) */
 	}
 #endif /* !defined(USE_LINUX_CAPS) */    
-#endif
+#endif /* defined(__unix__) */
 
 	if(run_bbs)
 		_beginthread((void(*)(void*))bbs_thread,0,&bbs_startup);
