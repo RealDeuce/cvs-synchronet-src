@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.35 2006/02/28 00:47:34 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.36 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -409,10 +409,10 @@ int sbbs_t::exec_function(csi_t *csi)
 			bputs(" for files ");
 			if(*(csi->ip-1)==CS_FILE_FIND_OLD_UPLOADS) {
 				l=FI_OLDUL;
-				bprintf("uploaded before %s\r\n",timestr(&ns_time)); }
+				bprintf("uploaded before %s\r\n",timestr(ns_time)); }
 			else if(*(csi->ip-1)==CS_FILE_FIND_OLD) { /* go by download date */
 				l=FI_OLD;
-				bprintf("not downloaded since %s\r\n",timestr(&ns_time)); }
+				bprintf("not downloaded since %s\r\n",timestr(ns_time)); }
 			else if(*(csi->ip-1)==CS_FILE_FIND_OFFLINE) {
 				l=FI_OFFLINE;
 				bputs("not online...\r\n"); }
