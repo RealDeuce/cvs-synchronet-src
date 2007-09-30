@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.25 2007/09/19 19:01:54 deuce Exp $ */
+/* $Id: x_cio.c,v 1.26 2007/09/30 06:02:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,6 +220,9 @@ int x_init(void)
 	if((dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL))==NULL)
 #else
 	if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
+	if((dl=dlopen("libX11.so.7",RTLD_LAZY))==NULL)
+	if((dl=dlopen("libX11.so.6",RTLD_LAZY))==NULL)
+	if((dl=dlopen("libX11.so.5",RTLD_LAZY))==NULL)
 #endif
 		return(-1);
 	if((x11.XChangeGC=dlsym(dl,"XChangeGC"))==NULL) {
