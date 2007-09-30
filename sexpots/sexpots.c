@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.22 2007/08/11 18:03:35 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.23 2007/09/11 01:12:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -611,14 +611,22 @@ static BOOL winsock_startup(void)
 BOOL modem_send(COM_HANDLE com_handle, const char* str)
 {
 	const char* p;
+	char		ch;
 
 	lprintf(LOG_INFO,"Modem Command: %s", str);
 	for(p=str; *p; p++) {
-		if(*p=='~') {
+		ch=*p;
+		if(ch=='~') {
 			SLEEP(MDM_TILDE_DELAY);
 			continue;
 		}
-		if(!comWriteByte(com_handle,*p))
+		if(ch=='^' && *(p+1)) {	/* Support ^X for control characters embedded in modem command strings */
+			p++;
+			ch=*p;
+			if(ch!='^' && ch>='@')	/* ^^ to send an '^' char to the modem */
+				ch-='@';
+		}
+		if(!comWriteByte(com_handle,ch))
 			return FALSE;
 	}
 	SLEEP(100);
@@ -1551,7 +1559,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.22 $", "%*s %s", revision);
+	sscanf("$Revision: 1.23 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
