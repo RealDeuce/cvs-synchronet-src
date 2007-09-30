@@ -66,7 +66,6 @@ int	sdl_init_good=0;
 SDL_mutex *sdl_keylock;
 SDL_sem *sdl_key_pending;
 static unsigned int sdl_pending_mousekeys=0;
-Uint32	sdl_dac_default[sizeof(dac_default)/sizeof(struct dac_colors)];
 
 struct sdl_keyvals {
 	int	keysym
@@ -186,7 +185,7 @@ const struct sdl_keyvals sdl_keyval[] =
 	{SDLK_LEFTBRACKET, '[', '{', 0x1b, 0x1a00},
 	{SDLK_RIGHTBRACKET, ']', '}', 0x1d, 0x1b00},
 	{SDLK_SEMICOLON, ';', ':', 0, 0x2700},
-	{SDLK_QUOTE, '\'', '"', 0, 0x2800},
+	{SDLK_BACKSLASH, '\'', '"', 0, 0x2800},
 	{SDLK_COMMA, ',', '<', 0, 0x3300},
 	{SDLK_PERIOD, '.', '>', 0, 0x3400},
 	{SDLK_BACKQUOTE, '`', '~', 0, 0x2900},
@@ -485,14 +484,10 @@ int sdl_init(int mode)
 #endif
 #if !defined(NO_X) && defined(__unix__)
 	#if defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
-		dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL);
+		if((dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL))!=NULL) {
 	#else
-		if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
-			if((dl=dlopen("libX11.so.7",RTLD_LAZY))==NULL)
-				if((dl=dlopen("libX11.so.6",RTLD_LAZY))==NULL)
-					dl=dlopen("libX11.so.5",RTLD_LAZY);
+		if((dl=dlopen("libX11.so",RTLD_LAZY))!=NULL) {
 	#endif
-		if(dl!=NULL) {
 			sdl_x11available=TRUE;
 			if(sdl_x11available && (sdl_x11.XFree=dlsym(dl,"XFree"))==NULL) {
 				dlclose(dl);
@@ -657,21 +652,17 @@ int sdl_setup_colours(SDL_Surface *surf)
 	SDL_Color	co[sizeof(dac_default)/sizeof(struct dac_colors)];
 
 	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-		co[i].r=dac_default[i].red;
-		co[i].g=dac_default[i].green;
-		co[i].b=dac_default[i].blue;
+		co[i].r=dac_default[vstat.palette[i]].red;
+		co[i].g=dac_default[vstat.palette[i]].green;
+		co[i].b=dac_default[vstat.palette[i]].blue;
 	}
 	sdl.SetColors(surf, co, 0, sizeof(dac_default)/sizeof(struct dac_colors));
-
-	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-		sdl_dac_default[i]=sdl.MapRGB(win->format, co[i].r, co[i].g, co[i].b);
-	}
 	return(ret);
 }
 
 unsigned int cp437_convert(unsigned int unicode)
 {
-	if(unicode < 0x80)
+	if(unicode <= 0x80)
 		return(unicode);
 	switch(unicode) {
 		case 0x00c7:
@@ -947,7 +938,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 	}
 #endif
 
-	if((!unicode) || (keysym > SDLK_FIRST && keysym < SDLK_LAST) || (mod & (KMOD_META|KMOD_ALT))) {
+	if((!unicode) || (mod & (KMOD_META|KMOD_ALT))) {
 		for(i=0;sdl_keyval[i].keysym;i++) {
 			if(sdl_keyval[i].keysym==keysym) {
 				if(mod & KMOD_CTRL)
@@ -1003,27 +994,21 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 				}
 
 				/* "Extended" syms are always right */
-				if(!(mod & (KMOD_META|KMOD_ALT)))	/* Was !unicode */
+				if(!unicode)
 					return(expect);
-				if(sdl_keyval[i].key > 255)			/* Extended regular key */
+				if(sdl_keyval[i].key > 255)
 					return(expect);
-				if(keysym <= 127 && !(mod & (KMOD_META|KMOD_ALT)))					/* The keyboard syms have been cleverly chosen to map to ASCII */
-					return(keysym);
 				/*
 				 * If we don't know that this key should
 				 * return the unicode translation, then
 				 * we're not right and this is prolly
 				 * an AltGr sequence.
 				 */
-				/* if(unicode==expect) */
-				return(sdl_keyval[i].alt);
-				/* return(0x0001ffff); */
+				if(unicode==expect)
+					return(sdl_keyval[i].alt);
+				return(0x0001ffff);
 			}
 		}
-		if(unicode)
-			return(cp437_convert(unicode));
-		if(keysym < 0x80 && !(mod & KMOD_META|KMOD_ALT|KMOD_CTRL|KMOD_SHIFT))
-			return(keysym);
 		return(0x0001ffff);
 	}
 	return(cp437_convert(unicode));
@@ -1042,7 +1027,6 @@ int sdl_mouse_thread(void *data)
 int sdl_video_event_thread(void *data)
 {
 	SDL_Event	ev;
-	SDL_Surface	*tmp_rect=NULL;
 
 	if(!init_sdl_video()) {
 		while(1) {
@@ -1104,7 +1088,7 @@ int sdl_video_event_thread(void *data)
 									 vstat.charwidth*vstat.cols*vstat.scaling
 									,vstat.charheight*vstat.rows*vstat.scaling
 									,8
-									,SDL_HWSURFACE|SDL_FULLSCREEN|SDL_ANYFORMAT
+									,SDL_SWSURFACE|SDL_FULLSCREEN|SDL_ANYFORMAT
 								);
 							}
 							else
@@ -1112,7 +1096,7 @@ int sdl_video_event_thread(void *data)
 									 vstat.charwidth*vstat.cols*vstat.scaling
 									,vstat.charheight*vstat.rows*vstat.scaling
 									,8
-									,SDL_HWSURFACE|SDL_RESIZABLE|SDL_ANYFORMAT
+									,SDL_SWSURFACE|SDL_RESIZABLE|SDL_ANYFORMAT
 								);
 							if(win!=NULL) {
 	#if (defined(__MACH__) && defined(__APPLE__))
@@ -1124,18 +1108,13 @@ int sdl_video_event_thread(void *data)
 	#endif
 								if(new_rect)
 									sdl.FreeSurface(new_rect);
-								new_rect=NULL;
-								tmp_rect=sdl.CreateRGBSurface(SDL_HWSURFACE
+								new_rect=sdl.CreateRGBSurface(SDL_SWSURFACE
 										, vstat.charwidth*vstat.cols*vstat.scaling
 										, vstat.charheight*vstat.rows*vstat.scaling
 										, 8, 0, 0, 0, 0);
-								if(tmp_rect) {
-									new_rect=sdl.DisplayFormat(tmp_rect);
-									sdl.FreeSurface(tmp_rect);
-								}
 								pthread_mutex_unlock(&vstatlock);
-						    	sdl_setup_colours(new_rect);
 						    	sdl_setup_colours(win);
+						    	sdl_setup_colours(new_rect);
 								send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
 							}
 							else if(sdl_init_good) {
@@ -1163,29 +1142,29 @@ int sdl_video_event_thread(void *data)
 									struct update_rect *rect=(struct update_rect *)ev.user.data1;
 									SDL_Rect r;
 									SDL_Rect dst;
-									int x,y,offset;
-#ifndef DOUBLE_BUFFER
-									for(y=0; y<rect->height; y++) {
-										offset=y*rect->width;
-										for(x=0; x<rect->width; x++) {
-											r.w=vstat.scaling;
-											r.h=vstat.scaling;
-											r.x=(rect->x+x)*vstat.scaling;
-											r.y=(rect->y+y)*vstat.scaling;
-											sdl.FillRect(win, &r, sdl_dac_default[rect->data[offset++]]);
-										}
-									}
-									sdl.UpdateRect(win,rect->x*vstat.scaling,rect->y*vstat.scaling,rect->width*vstat.scaling,rect->height*vstat.scaling);
-#else
+									int x,y;
+
 									for(y=0; y<rect->height; y++) {
 										for(x=0; x<rect->width; x++) {
 											int dac_entry;
 											r.w=vstat.scaling;
 											r.h=vstat.scaling;
 											dac_entry=rect->data[y*rect->width+x];
+#ifdef OFFSCREEN_FILL
 											r.x=x*vstat.scaling;
 											r.y=y*vstat.scaling;
-											sdl.FillRect(new_rect, &r, sdl_dac_default[dac_entry]);
+											sdl.FillRect(new_rect, &r, sdl.MapRGB(new_rect->format
+												, dac_default[dac_entry].red
+												, dac_default[dac_entry].green
+												, dac_default[dac_entry].blue));
+#else
+											r.x=(x+rect->x)*vstat.scaling;
+											r.y=(y+rect->y)*vstat.scaling;
+											sdl.FillRect(win, &r, sdl.MapRGB(win->format
+												, dac_default[dac_entry].red
+												, dac_default[dac_entry].green
+												, dac_default[dac_entry].blue));
+#endif
 										}
 									}
 									r.x=0;
@@ -1196,9 +1175,10 @@ int sdl_video_event_thread(void *data)
 									dst.y=rect->y*vstat.scaling;
 									dst.w=rect->width*vstat.scaling;
 									dst.h=rect->height*vstat.scaling;
+#ifdef OFFSCREEN_FILL
 									sdl.BlitSurface(new_rect, &r, win, &dst);
-									sdl.UpdateRects(win,1,&dst);
 #endif
+									sdl.UpdateRects(win,1,&dst);
 									free(rect->data);
 									free(rect);
 									break;
@@ -1234,14 +1214,14 @@ int sdl_video_event_thread(void *data)
 										 vstat.charwidth*vstat.cols*vstat.scaling
 										,vstat.charheight*vstat.rows*vstat.scaling
 										,8
-										,SDL_HWSURFACE|SDL_FULLSCREEN|SDL_ANYFORMAT
+										,SDL_SWSURFACE|SDL_FULLSCREEN|SDL_ANYFORMAT
 									);
 								else
 									win=sdl.SetVideoMode(
 										 vstat.charwidth*vstat.cols*vstat.scaling
 										,vstat.charheight*vstat.rows*vstat.scaling
 										,8
-										,SDL_HWSURFACE|SDL_RESIZABLE|SDL_ANYFORMAT
+										,SDL_SWSURFACE|SDL_RESIZABLE|SDL_ANYFORMAT
 									);
 								if(win!=NULL) {
 	#if (defined(__MACH__) && defined(__APPLE__))
@@ -1256,18 +1236,13 @@ int sdl_video_event_thread(void *data)
 										vstat.scaling=1;
 									if(new_rect)
 										sdl.FreeSurface(new_rect);
-									new_rect=NULL;
-									tmp_rect=sdl.CreateRGBSurface(SDL_HWSURFACE
+									new_rect=sdl.CreateRGBSurface(SDL_SWSURFACE
 											, vstat.charwidth*vstat.cols*vstat.scaling
 											, vstat.charheight*vstat.rows*vstat.scaling
 											, 8, 0, 0, 0, 0);
-									if(tmp_rect) {
-										new_rect=sdl.DisplayFormat(tmp_rect);
-										sdl.FreeSurface(tmp_rect);
-									}
 									pthread_mutex_unlock(&vstatlock);
-						    		sdl_setup_colours(new_rect);
 						    		sdl_setup_colours(win);
+						    		sdl_setup_colours(new_rect);
 									send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
 								}
 								else if(sdl_init_good) {

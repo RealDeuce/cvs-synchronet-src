@@ -271,20 +271,8 @@ static void resize_window()
 static int init_mode(int mode)
 {
     int i;
-    int oldcols=vstat.cols;
 
 	bitmap_init_mode(mode, &bitmap_width, &bitmap_height);
-
-	/* Deal with 40 col doubling */
-	if(oldcols != vstat.cols) {
-		if(oldcols == 40)
-			vstat.scaling /= 2;
-		if(vstat.cols == 40)
-			vstat.scaling *= 2;
-	}
-
-	if(vstat.scaling < 1)
-		vstat.scaling = 1;
 
     /* Resize window if necessary. */
     resize_window();
@@ -421,16 +409,11 @@ static int x11_event(XEvent *ev)
         case NoExpose:
                 break;
         case GraphicsExpose:
-			send_rectangle(ev->xgraphicsexpose.x/vstat.scaling
-					,ev->xgraphicsexpose.y/vstat.scaling
-					,ev->xgraphicsexpose.width/vstat.scaling+(ev->xgraphicsexpose.width%vstat.scaling?1:0)
-					,ev->xgraphicsexpose.height/vstat.scaling,TRUE+(ev->xgraphicsexpose.height%vstat.scaling?1:0));
+			send_rectangle(ev->xgraphicsexpose.x/vstat.scaling,ev->xgraphicsexpose.y/vstat.scaling
+					,ev->xgraphicsexpose.width/vstat.scaling,ev->xgraphicsexpose.height/vstat.scaling,TRUE);
 			break;
         case Expose:
-			send_rectangle(ev->xexpose.x/vstat.scaling
-					,ev->xexpose.y/vstat.scaling
-					,ev->xgraphicsexpose.width/vstat.scaling+(ev->xgraphicsexpose.width%vstat.scaling?1:0)
-					,ev->xgraphicsexpose.height/vstat.scaling,TRUE+(ev->xgraphicsexpose.height%vstat.scaling?1:0));
+			send_rectangle(ev->xexpose.x/vstat.scaling,ev->xexpose.y/vstat.scaling,ev->xexpose.width/vstat.scaling,ev->xexpose.height/vstat.scaling,TRUE);
 			break;
 
 		/* Copy/Paste events */
