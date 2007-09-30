@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.4 2007/09/27 01:31:39 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.5 2007/09/30 02:07:06 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -361,6 +361,7 @@ int bitmap_setfont(int font, int force)
 			free(pold);
 		}
 	}
+	bitmap_loadfont(NULL);
 	return(0);
 }
 
