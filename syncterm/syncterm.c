@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.109 2007/08/03 06:14:05 deuce Exp $ */
+/* $Id: syncterm.c,v 1.110 2007/09/30 06:31:28 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -28,7 +28,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.0"
+char* syncterm_version = "SyncTERM 0.9.1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif

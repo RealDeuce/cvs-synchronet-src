@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.107 2007/08/14 06:23:47 rswindell Exp $ */
+/* $Id: userdat.c,v 1.108 2007/09/23 18:28:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1671,6 +1671,34 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 					else
 						result=!not;
 				}
+				break;
+			case AR_ULS:
+				if((equal && user->uls!=i) || (!equal && user->uls<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_ULB:
+				if((equal && user->ulb!=i) || (!equal && user->ulb<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_DLS:
+				if((equal && user->dls!=i) || (!equal && user->dls<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_DLB:
+				if((equal && user->dlb!=i) || (!equal && user->dlb<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
 				break;
 			case AR_FLAG1:
 				if(user==NULL
