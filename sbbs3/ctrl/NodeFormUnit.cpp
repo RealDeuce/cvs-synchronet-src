@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.27 2006/09/24 19:45:17 deuce Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.28 2006/09/24 19:56:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,8 +34,8 @@
  ****************************************************************************/
 
 //---------------------------------------------------------------------------
-#include <vcl.h>
 #include "sbbs.h"
+#include <vcl.h>
 #pragma hdrstop
 #include <io.h>
 #include <stdio.h>
