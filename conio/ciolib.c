@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.95 2007/10/11 08:27:46 deuce Exp $ */
+/* $Id: ciolib.c,v 1.93 2007/08/25 05:29:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -666,6 +666,9 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_wherey(void)
 /* **MUST** be implemented */
 CIOLIBEXPORT void CIOLIBCALL ciolib_gotoxy(int x, int y)
 {
+	int nx;
+	int ny;
+
 	CIOLIB_INIT();
 
 	if(		x < 1
@@ -736,6 +739,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 	unsigned char *buf;
 	int i;
 	int width,height;
+	struct text_info ti;
 
 	CIOLIB_INIT();
 	
@@ -836,16 +840,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	CIOLIB_INIT();
 
     va_start(argptr,fmat);
-
-#ifdef HAVE_VASPRINTF
-	ret=vasprintf(&str, fmat, argptr);
-	if(ret>=0)
-		ciolib_cputs(str);
-	else
-		ret=EOF;
-	free(str);
-#else
-
 #ifdef _MSC_VER
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
@@ -871,9 +865,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 		ciolib_cputs(str);
 	else
 		ret=EOF;
-
-#endif
-
     return(ret);
 }
 

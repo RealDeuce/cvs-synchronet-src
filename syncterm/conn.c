@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.35 2007/10/11 08:26:14 deuce Exp $ */
+/* $Id: conn.c,v 1.33 2007/07/28 06:31:01 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -25,9 +25,9 @@ char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem"
 ,"Shell"
 #endif
 ,NULL};
-int conn_ports[]={0,513,23,0,22,0
+int conn_ports[]={0,513,23,0,22
 #ifdef __unix__
-,65535
+,0
 #endif
 ,0};
 
@@ -124,6 +124,7 @@ size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outl
 size_t conn_buf_get(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen)
 {
 	size_t ret;
+	size_t loop;
 	size_t atstart;
 
 	atstart=conn_buf_bytes(buf);
@@ -147,6 +148,7 @@ size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t
 {
 	size_t write_bytes;
 	size_t chunk;
+	size_t loop;
 
 	write_bytes=conn_buf_free(buf);
 	if(write_bytes > outlen)
@@ -177,6 +179,7 @@ size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long 
 	long double now;
 	long double end;
 	size_t found;
+	size_t loop;
 	unsigned long timeleft;
 	int retnow=0;
 	sem_t	*sem;
