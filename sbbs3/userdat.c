@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.108 2007/09/23 18:28:16 rswindell Exp $ */
+/* $Id: userdat.c,v 1.109 2007/09/30 22:30:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1679,8 +1679,15 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 					result=!not;
 				(*ptrptr)++;
 				break;
-			case AR_ULB:
-				if((equal && user->ulb!=i) || (!equal && user->ulb<i))
+			case AR_ULK:
+				if((equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_ULM:
+				if((equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
 					result=not;
 				else
 					result=!not;
@@ -1693,8 +1700,15 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 					result=!not;
 				(*ptrptr)++;
 				break;
-			case AR_DLB:
-				if((equal && user->dlb!=i) || (!equal && user->dlb<i))
+			case AR_DLK:
+				if((equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_DLM:
+				if((equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
 					result=not;
 				else
 					result=!not;
