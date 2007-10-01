@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.111 2007/10/01 20:40:25 deuce Exp $ */
+/* $Id: syncterm.c,v 1.112 2007/10/01 21:55:17 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -1086,6 +1086,10 @@ int main(int argc, char **argv)
 			bbs->connected=time(NULL);
 			bbs->calls++;
 			if(bbs->id != -1) {
+				if(bbs->type==SYSTEM_BBSLIST) {
+					bbs->type=USER_BBSLIST;
+					add_bbs(listpath, bbs);
+				}
 				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
