@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.93 2005/09/29 01:01:36 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.96 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -510,13 +510,13 @@ char *binstr(uchar *buf, ushort length)
 /* Generates a 24 character ASCII string that represents the time_t pointer */
 /* Used as a replacement for ctime()                                        */
 /****************************************************************************/
-char *my_timestr(time_t *intime)
+char *my_timestr(time_t intime)
 {
     static char str[256];
     char mer[3],hour;
     struct tm *gm;
 
-	gm=localtime(intime);
+	gm=localtime(&intime);
 	if(gm==NULL) {
 		strcpy(str,"Invalid Time");
 		return(str); 
@@ -559,7 +559,7 @@ void dumpindex(ulong start, ulong count)
 
 		printf("%4lu %04hX %04hX %04Xh %04Xh %06X %s\n"
 			,idx.number,idx.from,idx.to,idx.subj,idx.attr
-			,idx.offset,my_timestr((time_t*)&idx.time));
+			,idx.offset,my_timestr(idx.time));
 		l++; 
 	}
 }
@@ -625,7 +625,7 @@ void dump_hashes(void)
 		printf("%-10s: %lu\n",		"Number",	hash.number);
 		printf("%-10s: %s\n",		"Source",	smb_hashsourcetype(hash.source));
 		printf("%-10s: %lu\n",		"Length",	hash.length);
-		printf("%-10s: %s\n",		"Time",		my_timestr((time_t*)&hash.time));
+		printf("%-10s: %s\n",		"Time",		my_timestr(hash.time));
 		printf("%-10s: %x\n",		"Flags",	hash.flags);
 		if(hash.flags&SMB_HASH_CRC16)
 			printf("%-10s: %04x\n",	"CRC-16",	hash.crc16);
@@ -910,6 +910,7 @@ void packmsgs(ulong packable)
 		fseek(smb.sda_fp,0L,SEEK_SET);
 		for(l=m=0;l<length;l+=2) {
 			printf("\r%2lu%%  ",l ? (long)(100.0/((float)length/l)) : 0);
+			/* TODO: Only works on LE (size mismatch) */
 			i=0;
 			if(!fread(&i,2,1,smb.sda_fp))
 				break;
@@ -1336,7 +1337,7 @@ void readmsgs(ulong start)
 			if(msg.from_net.type)
 				printf(" (%s)",smb_netaddr(&msg.from_net));
 			printf("\nDate : %.24s %s"
-				,my_timestr((time_t*)&msg.hdr.when_written.time)
+				,my_timestr(msg.hdr.when_written.time)
 				,smb_zonestr(msg.hdr.when_written.zone,NULL));
 
 			printf("\n\n");
@@ -1474,7 +1475,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.93 $", "%*s %s", revision);
+	sscanf("$Revision: 1.96 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
