@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.113 2007/10/02 01:24:26 deuce Exp $ */
+/* $Id: syncterm.c,v 1.111 2007/10/01 20:40:25 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -694,13 +694,11 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
-#ifdef __unix__
 	else if(!strnicmp("shell:",url,6)) {
 		bbs->conn_type=CONN_TYPE_SHELL;
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
-#endif
 	/* ToDo: RFC2806 */
 	/* Remove trailing / (Win32 adds one 'cause it hates me) */
 	p2=strchr(p1,'/');
@@ -1088,10 +1086,6 @@ int main(int argc, char **argv)
 			bbs->connected=time(NULL);
 			bbs->calls++;
 			if(bbs->id != -1) {
-				if(bbs->type==SYSTEM_BBSLIST) {
-					bbs->type=USER_BBSLIST;
-					add_bbs(listpath, bbs);
-				}
 				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
