@@ -164,11 +164,10 @@ void sort_list(struct bbslist **list, int *listcount)  {
 			}
 			if(cmp==0) {
 				/* Duplicate.  Remove the one from system BBS list */
-				tmp=list[i];
+				free(list[i]);
 				for(j=i;list[j]!=NULL && list[j]->name[0];j++) {
 					list[j]=list[j+1];
 				}
-				free(tmp);
 				for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 					list[j]->id=j;
 				}
@@ -196,7 +195,7 @@ void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int
 
 	get_syncterm_filename(home, sizeof(home), SYNCTERM_DEFAULT_TRANSFER_PATH, FALSE);
 	if(bbsname != NULL)
-		SAFECOPY(entry->name,bbsname);
+		strcpy(entry->name,bbsname);
 	iniReadString(listfile,bbsname,"Address","",entry->addr);
 	entry->conn_type=iniReadEnum(listfile,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
 	entry->port=iniReadShortInt(listfile,bbsname,"Port",conn_ports[entry->conn_type]);
@@ -912,12 +911,6 @@ struct bbslist *show_bbslist(int mode)
 												"SyncTERM is currently running in safe mode.  This means you cannot remove from the\n"
 												"BBS list.";
 								uifc.msg("Cannot edit list in safe mode");
-								break;
-							}
-							if(list[opt]->type==SYSTEM_BBSLIST) {
-								uifc.helpbuf=	"`Cannot delete from system list`\n\n"
-												"This BBS was loaded from the system-wide list and cannot be deleted.";
-								uifc.msg("Cannot delete system list entries");
 								break;
 							}
 							sprintf(str,"Delete %s?",list[opt]->name);

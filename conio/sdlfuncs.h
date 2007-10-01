@@ -26,7 +26,6 @@ struct sdlfuncs {
 	int	(*BlitSurface)	(SDL_Surface *src, SDL_Rect *srcrect,
 								SDL_Surface *dst, SDL_Rect *dstrect);
 	void	(*UpdateRects)	(SDL_Surface *screen, int numrects, SDL_Rect *rects);
-	void	(*UpdateRect)	(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h);
 	SDL_sem *(*SDL_CreateSemaphore)	(Uint32 initial_value);
 	void (*SDL_DestroySemaphore)	(SDL_sem *semaphore);
 	SDL_mutex	*(*SDL_CreateMutex)	(void);
@@ -53,10 +52,6 @@ struct sdlfuncs {
 	void (*PauseAudio)(int pause_on);
 	SDL_audiostatus (*GetAudioStatus)(void);
 	Uint32	(*MapRGB)	(SDL_PixelFormat *fmt, Uint8 r, Uint8 g, Uint8 b);
-	int	(*LockSurface)	(SDL_Surface *surface);
-	void (*UnlockSurface)	(SDL_Surface *surface);
-	SDL_Surface	*(*DisplayFormat)(SDL_Surface *surf);
-	int	(*Flip)	(SDL_Surface *surface);
 	int	gotfuncs;
 };
 
