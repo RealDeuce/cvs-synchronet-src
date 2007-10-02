@@ -7,7 +7,6 @@
 extern struct video_stats vstat;
 extern pthread_mutex_t vstatlock;
 extern sem_t	drawn_sem;
-extern int force_redraws;
 
 int bitmap_gettext(int sx, int sy, int ex, int ey, void *fill);
 int bitmap_puttext(int sx, int sy, int ex, int ey, void *fill);
@@ -19,10 +18,6 @@ int bitmap_loadfont(char *filename);
 
 void send_rectangle(int xoffset, int yoffset, int width, int height, int force);
 int bitmap_init_mode(int mode, int *width, int *height);
-int bitmap_init(void (*drawrect_cb) (int xpos, int ypos, int width, int height, unsigned char *data)
-				,void (*flush) (void));
-int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy);
-void bitmap_clreol(void);
-void bitmap_clrscr(void);
+int bitmap_init(void	(*drawrect_cb)		(int xpos, int ypos, int width, int height, unsigned char *data));
 
 #endif
