@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.451 2006/09/25 06:11:03 deuce Exp $ */
+/* $Id: main.cpp,v 1.487 2007/08/25 08:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -67,10 +67,16 @@
 
 #endif // _WIN32
 
+#ifdef USE_CRYPTLIB
+	#define SSH_END()	if(ssh)	cryptDestroySession(sbbs->ssh_session);
+#else
+	#define	SSH_END()
+#endif
+
 time_t	uptime=0;
 DWORD	served=0;
 
-static	ulong node_threads_running=0;
+static	DWORD node_threads_running=0;
 static	ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
@@ -334,6 +340,9 @@ DLLCALL js_DescribeSyncObject(JSContext* cx, JSObject* obj, const char* str, int
 	if(js_str==NULL)
 		return(JS_FALSE);
 
+	if(ver < 10000)		/* auto convert 313 to 31300 */
+		ver*=100;
+
 	return(JS_DefineProperty(cx,obj,"_description"
 			,STRING_TO_JSVAL(js_str),NULL,NULL,JSPROP_READONLY)
 		&& JS_DefineProperty(cx,obj,"_ver"
@@ -369,11 +378,10 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
-	"null",
-	"xml object",
 	"array",
 	"alias",
-	"undefined"
+	"undefined",
+	"null"
 };
 
 JSBool
@@ -858,12 +866,12 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
     }
 
 	if(report->filename)
-		sprintf(file," %s",report->filename);
+		SAFEPRINTF(file," %s",report->filename);
 	else
 		file[0]=0;
 
 	if(report->lineno)
-		sprintf(line," line %d",report->lineno);
+		SAFEPRINTF(line," line %d",report->lineno);
 	else
 		line[0]=0;
 
@@ -888,9 +896,9 @@ bool sbbs_t::js_init(ulong* stack_frame)
 	char		node[128];
 
     if(cfg.node_num)
-    	sprintf(node,"Node %d",cfg.node_num);
+    	SAFEPRINTF(node,"Node %d",cfg.node_num);
     else
-    	strcpy(node,client_name);
+    	SAFECOPY(node,client_name);
 
 	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
@@ -1046,6 +1054,13 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE 
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
+
+					if(startup->options&BBS_OPT_DEBUG_TELNET)
+						lprintf(LOG_DEBUG,"Node %d %s Telnet sub-negotiation command: %s"
+	                		,sbbs->cfg.node_num
+							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+							,telnet_opt_desc(option));
+
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
@@ -1063,6 +1078,17 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,speed);
+						sbbs->cur_rate=atoi(speed);
+						sbbs->cur_cps=sbbs->cur_rate/10;
+
+					} else if(option==TELNET_SEND_LOCATION) {
+						safe_snprintf(sbbs->telnet_location
+							,sizeof(sbbs->telnet_location)
+							,"%.*s",(int)sbbs->telnet_cmdlen-5,sbbs->telnet_cmd+3);
+						lprintf(LOG_DEBUG,"Node %d %s telnet location: %s"
+	                		,sbbs->cfg.node_num
+							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+							,sbbs->telnet_location);
 
 					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						long cols = (sbbs->telnet_cmd[3]<<8) | sbbs->telnet_cmd[4];
@@ -1118,6 +1144,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								case TELNET_TERM_SPEED:
 								case TELNET_SUP_GA:
 								case TELNET_NEGOTIATE_WINDOW_SIZE:
+								case TELNET_SEND_LOCATION:
 									sbbs->telnet_remote_option[option]=command;
 									sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
 									break;
@@ -1346,10 +1373,24 @@ void input_thread(void *arg)
 
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode && sock==sbbs->client_socket) {
-			if(!cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))
-				rd=-1;
-			else
+			int err;
+			if(!cryptStatusOK((err=cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))) {
+				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
+					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+				if(err==CRYPT_ERROR_TIMEOUT)
+					continue;
+				/* Handle the SSH error here... */
+				lprintf(LOG_ERR,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
+				break;
+			}
+			else {
+				if(!i) {
+					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
+						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+					continue;
+				}
 				rd=i;
+			}
 		}
 		else
 #endif
@@ -1439,7 +1480,7 @@ void input_thread(void *arg)
 //		if(wr>100)
 //			mswait(500);	// Throttle sender
 	}
-	sbbs->online=0;
+	sbbs->online=FALSE;
 	sbbs->sys_status|=SS_ABORT;	/* as though Ctrl-C were hit */
 
     sbbs->input_thread_running = false;
@@ -1456,7 +1497,7 @@ void input_thread(void *arg)
 
 #ifdef USE_CRYPTLIB
 /*
- * This thread copies anything recieved from the client to the passthru_socket
+ * This thread copies anything received from the client to the passthru_socket
  * It can only do that when the input thread is locked.
  * Luckily, the input thread is currently locked exactly when we want it to be.
  * Since the passthru socket is 8-bit clean and does NOT use a protocol,
@@ -1467,10 +1508,8 @@ void input_thread(void *arg)
 void passthru_output_thread(void* arg)
 {
 	fd_set	socket_set;
-	fd_set	w_set;
 	sbbs_t	*sbbs = (sbbs_t*) arg;
 	struct	timeval	tv;
-	char	ch;
 	int		i;
 	BYTE	inbuf[4000];
    	BYTE	telbuf[sizeof(inbuf)];
@@ -1480,9 +1519,13 @@ void passthru_output_thread(void* arg)
 
 	thread_up(FALSE /* setuid */);
 
+    sbbs->passthru_output_thread_running = true;
+
 	while(sbbs->client_socket!=INVALID_SOCKET && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
-		while(!sbbs->input_thread_mutex_locked)
+		if(!sbbs->input_thread_mutex_locked) {
 			SLEEP(1);
+			continue;
+		}
 		
 		FD_ZERO(&socket_set);
 		FD_SET(sbbs->client_socket,&socket_set);
@@ -1522,9 +1565,12 @@ void passthru_output_thread(void* arg)
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
 			if(!cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))
-				rd=-1;
-			else
+				rd=0;
+			else {
+				if(!i)
+					continue;
 				rd=i;
+			}
 		}
 		else
 #endif
@@ -1548,7 +1594,7 @@ void passthru_output_thread(void* arg)
 
 		if(rd == 0)
 		{
-			lprintf(LOG_NOTICE,"Node %d disconnected", sbbs->cfg.node_num);
+			lprintf(LOG_NOTICE,"Node %d passthru input socket disconnected", sbbs->cfg.node_num);
 			break;
 		}
 
@@ -1564,8 +1610,10 @@ void passthru_output_thread(void* arg)
 		/*
 		 * TODO: This should check for writability etc.
 		 */
-		sendsocket(sbbs->passthru_socket, wrbuf, wr);
+		sendsocket(sbbs->passthru_socket, (char*)wrbuf, wr);
 	}
+
+	sbbs->passthru_output_thread_running = false;
 }
 
 /*
@@ -1581,6 +1629,8 @@ void passthru_input_thread(void* arg)
 	int		i;
 
 	thread_up(FALSE /* setuid */);
+
+	sbbs->passthru_input_thread_running = true;
 
 	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
 		tv.tv_sec=1;
@@ -1614,7 +1664,7 @@ void passthru_input_thread(void* arg)
 		if(!RingBufFree(&sbbs->outbuf))
 			continue;
 
-    	i = recv(sbbs->passthru_socket, &ch, 1, 0);
+    	i = recv(sbbs->passthru_socket, (char*)(&ch), 1, 0);
 
 		if(i == SOCKET_ERROR)
 		{
@@ -1648,6 +1698,8 @@ void passthru_input_thread(void* arg)
 		sbbs->passthru_socket=INVALID_SOCKET;
 	}
 	thread_down();
+
+	sbbs->passthru_input_thread_running = false;
 }
 #endif
 
@@ -1671,9 +1723,9 @@ void output_thread(void* arg)
 	thread_up(TRUE /* setuid */);
 
     if(sbbs->cfg.node_num)
-    	sprintf(node,"Node %d",sbbs->cfg.node_num);
+    	SAFEPRINTF(node,"Node %d",sbbs->cfg.node_num);
     else
-    	strcpy(node,sbbs->client_name);
+    	SAFECOPY(node,sbbs->client_name);
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG,"%s output thread started",node);
 #endif
@@ -1775,10 +1827,16 @@ void output_thread(void* arg)
 			continue;
 		}
 
-#if USE_CRYPTLIB
+#ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
-			if(!cryptStatusOK(cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))
+			int err;
+			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
+				/* Handle the SSH error here... */
+				lprintf(LOG_ERR,"!%s: ERROR %d sending on Cryptlib session", node, err);
 				i=-1;
+				sbbs->online=FALSE;
+				i=buftop-bufbot;	// Pretend we sent it all
+			}
 			else
 				cryptFlushData(sbbs->ssh_session);
 		}
@@ -1795,7 +1853,7 @@ void output_thread(void* arg)
 			else
 				lprintf(LOG_WARNING,"!%s: ERROR %d sending on socket %d"
                 	,node, ERROR_VALUE, sbbs->client_socket);
-			sbbs->online=0;
+			sbbs->online=FALSE;
 			/* was break; on 4/7/00 */
 			i=buftop-bufbot;	// Pretend we sent it all
 		}
@@ -1854,12 +1912,15 @@ void event_thread(void* arg)
 	int			offset;
 	bool		check_semaphores;
 	bool		packed_rep;
-	ulong		l;
+	ulong	l;
+	/* TODO: This is a silly hack... */
+	uint32_t	l32;
 	time_t		now;
 	time_t		start;
 	time_t		lastsemchk=0;
 	time_t		lastnodechk=0;
-	time_t		lastprepack=0;
+	time32_t	lastprepack=0;
+	time_t		tmptime;
 	node_t		node;
 	glob_t		g;
 	sbbs_t*		sbbs = (sbbs_t*) arg;
@@ -1882,59 +1943,59 @@ void event_thread(void* arg)
 #endif
 
 	// Read TIME.DAB
-	sprintf(str,"%stime.dab",sbbs->cfg.ctrl_dir);
+	SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 	if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1)
 		sbbs->errormsg(WHERE,ERR_OPEN,str,0);
 	else {
 		for(i=0;i<sbbs->cfg.total_events;i++) {
 			sbbs->cfg.event[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
+			if(filelength(file)<(long)(sizeof(time32_t)*(i+1))) {
 				eprintf(LOG_WARNING,"Initializing last run time for event: %s"
 					,sbbs->cfg.event[i]->code);
-				write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
+				write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
 			} else {
-				if(read(file,&sbbs->cfg.event[i]->last,sizeof(time_t))!=sizeof(time_t))
-					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
+				if(read(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last))!=sizeof(sbbs->cfg.event[i]->last))
+					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time32_t));
 			}
 			/* Event always runs after initialization? */
 			if(sbbs->cfg.event[i]->misc&EVENT_INIT)
 				sbbs->cfg.event[i]->last=-1;
 		}
 		lastprepack=0;
-		read(file,&lastprepack,sizeof(time_t));	/* expected to fail first time */
+		read(file,&lastprepack,sizeof(lastprepack));	/* expected to fail first time */
 		close(file);
 	}
 
 	// Read QNET.DAB
-	sprintf(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
+	SAFEPRINTF(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
 	if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1)
 		sbbs->errormsg(WHERE,ERR_OPEN,str,0);
 	else {
 		for(i=0;i<sbbs->cfg.total_qhubs;i++) {
 			sbbs->cfg.qhub[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1))) {
+			if(filelength(file)<(long)(sizeof(time32_t)*(i+1))) {
 				eprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
 					,sbbs->cfg.qhub[i]->id);
-				write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
+				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
 			} else {
-				if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t))!=sizeof(time_t))
-					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(time_t));
+				if(read(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last))!=sizeof(sbbs->cfg.qhub[i]->last))
+					sbbs->errormsg(WHERE,ERR_READ,str,sizeof(sbbs->cfg.qhub[i]->last));
 			}
 		}
 		close(file);
 	}
 
 	// Read PNET.DAB
-	sprintf(str,"%spnet.dab",sbbs->cfg.ctrl_dir);
+	SAFEPRINTF(str,"%spnet.dab",sbbs->cfg.ctrl_dir);
 	if((file=sbbs->nopen(str,O_RDWR|O_CREAT))==-1)
 		sbbs->errormsg(WHERE,ERR_OPEN,str,0);
 	else {
 		for(i=0;i<sbbs->cfg.total_phubs;i++) {
 			sbbs->cfg.phub[i]->last=0;
-			if(filelength(file)<(long)(sizeof(time_t)*(i+1)))
-				write(file,&sbbs->cfg.phub[i]->last,sizeof(time_t));
+			if(filelength(file)<(long)(sizeof(time32_t)*(i+1)))
+				write(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last));
 			else
-				read(file,&sbbs->cfg.phub[i]->last,sizeof(time_t)); 
+				read(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last)); 
 		}
 		close(file);
 	}
@@ -1955,12 +2016,12 @@ void event_thread(void* arg)
 		} else
 			check_semaphores=false;
 
-		sbbs->online=0;	/* reset this from ON_LOCAL */
+		sbbs->online=FALSE;	/* reset this from ON_LOCAL */
 
 		/* QWK events */
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
 			/* Import any REP files that have magically appeared (via FTP perhaps) */
-			sprintf(str,"%sfile/",sbbs->cfg.data_dir);
+			SAFEPRINTF(str,"%sfile/",sbbs->cfg.data_dir);
 			offset=strlen(str);
 			strcat(str,"*.rep");
 			glob(str,0,NULL,&g);
@@ -1968,7 +2029,7 @@ void event_thread(void* arg)
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
-					sprintf(semfile,"%s.lock",g.gl_pathv[i]);
+					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
 					if(!fmutex(semfile,startup->host_name,24*60*60))
 						continue;
 					sbbs->online=ON_LOCAL;
@@ -1986,13 +2047,13 @@ void event_thread(void* arg)
 			globfree(&g);
 
 			/* Create any QWK files that have magically appeared (via FTP perhaps) */
-			sprintf(str,"%spack*.now",sbbs->cfg.data_dir);
+			SAFEPRINTF(str,"%spack*.now",sbbs->cfg.data_dir);
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
 				eprintf(LOG_DEBUG,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
-				sprintf(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
+				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,24*60*60)) {
 					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
 					continue;
@@ -2007,10 +2068,10 @@ void event_thread(void* arg)
 					sbbs->batdn_total=0;
 
 					sbbs->last_ns_time=sbbs->ns_time=sbbs->useron.ns_time;
-					sprintf(bat_list,"%sfile/%04u.dwn",sbbs->cfg.data_dir,sbbs->useron.number);
+					SAFEPRINTF2(bat_list,"%sfile/%04u.dwn",sbbs->cfg.data_dir,sbbs->useron.number);
 					sbbs->batch_add_list(bat_list);
 
-					sprintf(str,"%sfile%c%04u.qwk"
+					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
 						eprintf(LOG_INFO,"Packing completed");
@@ -2020,7 +2081,7 @@ void event_thread(void* arg)
 					} else
 						eprintf(LOG_INFO,"No packet created (no new messages)");
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);
-					sbbs->online=0;
+					sbbs->online=FALSE;
 				}
 				remove(g.gl_pathv[i]);
 				remove(semfile);
@@ -2028,14 +2089,14 @@ void event_thread(void* arg)
 			globfree(&g);
 
 			/* Create (pre-pack) QWK files for users configured as such */
-			sprintf(semfile,"%sprepack.now",sbbs->cfg.data_dir);
+			SAFEPRINTF(semfile,"%sprepack.now",sbbs->cfg.data_dir);
 			if(sbbs->cfg.preqwk_ar[0] 
 				&& (fexistcase(semfile) || (now-lastprepack)/60>(60*24))) {
 				j=lastuser(&sbbs->cfg);
 				eprintf(LOG_INFO,"Pre-packing QWK Message packets...");
 				for(i=1;i<=j;i++) {
 
-					sprintf(str,"%5u of %-5u",i,j);
+					SAFEPRINTF2(str,"%5u of %-5u",i,j);
 					//status(str);
 					sbbs->useron.number=i;
 					getuserdat(&sbbs->cfg,&sbbs->useron);
@@ -2058,24 +2119,24 @@ void event_thread(void* arg)
 						sbbs->getmsgptrs();
 						sbbs->getusrsubs();
 						sbbs->batdn_total=0;
-						sprintf(str,"%sfile%c%04u.qwk"
+						SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 							,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 						if(sbbs->pack_qwk(str,&l,true /* pre-pack */)) {
 							sbbs->qwk_success(l,0,1);
 							sbbs->putmsgptrs(); 
 						}
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
-						sbbs->online=0;
+						sbbs->online=FALSE;
 					} 
 				}
 				lastprepack=now;
-				sprintf(str,"%stime.dab",sbbs->cfg.ctrl_dir);
+				SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
 					break; 
 				}
 				lseek(file,(long)sbbs->cfg.total_events*4L,SEEK_SET);
-				write(file,&lastprepack,sizeof(time_t));
+				write(file,&lastprepack,sizeof(lastprepack));
 				close(file);
 
 				remove(semfile);
@@ -2084,6 +2145,13 @@ void event_thread(void* arg)
 		}
 
 		if(check_semaphores) {
+
+			/* Run daily maintenance? */
+			sbbs->cfg.node_num=0;
+			sbbs->logonstats();
+			if(sbbs->sys_status&SS_DAILY)
+				sbbs->daily_maint();
+
 			/* Node Daily Events */
 			for(i=first_node;i<=last_node;i++) {
 				// Node Daily Event
@@ -2120,7 +2188,7 @@ void event_thread(void* arg)
 					continue;
 				if(sbbs->cfg.qhub[i]->last==-1) // already signaled
 					continue;
-				sprintf(str,"%sqnet/%s.now",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
+				SAFEPRINTF2(str,"%sqnet/%s.now",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				if(fexistcase(str)) {
 					strcpy(str,sbbs->cfg.qhub[i]->id);
 					eprintf(LOG_INFO,"Semaphore signaled for QWK Network Hub: %s",strupr(str));
@@ -2138,7 +2206,7 @@ void event_thread(void* arg)
 					continue;
 				if(sbbs->cfg.event[i]->last==-1) // already signaled
 					continue;
-				sprintf(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
+				SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 				if(fexistcase(str)) {
 					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf(LOG_INFO,"Semaphore signaled for Timed Event: %s",strupr(str));
@@ -2155,34 +2223,36 @@ void event_thread(void* arg)
 
 			if(check_semaphores) {
 				// See if any packets have come in
-				for(j=0;j<101;j++) {
-					sprintf(str,"%s%s.q%c%c",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id
-						,j>10 ? ((j-1)/10)+'0' : 'w'
-						,j ? ((j-1)%10)+'0' : 'k');
-					if(fexistcase(str) && flength(str)>0) {	/* silently ignore 0-byte QWK packets */
+				SAFEPRINTF2(str,"%s%s.q??",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
+				glob(str,GLOB_NOSORT,NULL,&g);
+				for(j=0;j<(int)g.gl_pathc;j++) {
+					SAFECOPY(str,g.gl_pathv[j]);
+					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
 						if(sbbs->unpack_qwk(str,i)==false) {
 							char newname[MAX_PATH+1];
-							sprintf(newname,"%s.%lx.bad",str,(long)now);
+							SAFEPRINTF2(newname,"%s.%lx.bad",str,(long)now);
 							remove(newname);
 							if(rename(str,newname)==0) {
 								char logmsg[MAX_PATH*3];
-								sprintf(logmsg,"%s renamed to %s",str,newname);
+								SAFEPRINTF2(logmsg,"%s renamed to %s",str,newname);
 								sbbs->logline("Q!",logmsg);
 							}
 						}
 						sbbs->console&=~CON_L_ECHO;
-						sbbs->online=0;
+						sbbs->online=FALSE;
 						remove(str);
 					} 
 				}
+				globfree(&g);
 			}
 
 			/* Qnet call out based on time */
-			if(localtime_r(&sbbs->cfg.qhub[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.qhub[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
 				|| ((sbbs->cfg.qhub[i]->freq
@@ -2191,18 +2261,18 @@ void event_thread(void* arg)
 						&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
 						&& sbbs->cfg.qhub[i]->days&(1<<now_tm.tm_wday))) {
-				sprintf(str,"%sqnet/%s.now"
+				SAFEPRINTF2(str,"%sqnet/%s.now"
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				if(fexistcase(str))
 					remove(str);					/* Remove semaphore file */
-				sprintf(str,"%sqnet/%s.ptr"
+				SAFEPRINTF2(str,"%sqnet/%s.ptr"
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				file=sbbs->nopen(str,O_RDONLY);
 				for(j=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
 					if(file!=-1) {
-						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long),SEEK_SET);
-						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(long)); 
+						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t),SEEK_SET);
+						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
 					}
 				}
 				if(file!=-1)
@@ -2216,12 +2286,14 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L)
-								write(file,&l,4);		/* initialize ptrs to null */
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
+								l32=l;
+								write(file,&l32,4);		/* initialize ptrs to null */
+							}
 							lseek(file
-								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long)
+								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t)
 								,SEEK_SET);
-							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(long)); 
+							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
 						}
 						close(file); 
 					} 
@@ -2229,13 +2301,13 @@ void event_thread(void* arg)
 				delfiles(sbbs->cfg.temp_dir,ALLFILES);
 
 				sbbs->cfg.qhub[i]->last=time(NULL);
-				sprintf(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
+				SAFEPRINTF(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
 					break; 
 				}
-				lseek(file,sizeof(time_t)*i,SEEK_SET);
-				write(file,&sbbs->cfg.qhub[i]->last,sizeof(time_t));
+				lseek(file,sizeof(time32_t)*i,SEEK_SET);
+				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
 				close(file);
 
 				if(sbbs->cfg.qhub[i]->call[0]) {
@@ -2259,7 +2331,8 @@ void event_thread(void* arg)
 				|| sbbs->cfg.phub[i]->node>last_node)
 				continue;
 			/* PostLink call out based on time */
-			if(localtime_r(&sbbs->cfg.phub[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.phub[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.phub[i]->last==-1
 				|| (((sbbs->cfg.phub[i]->freq								/* or frequency */
@@ -2270,13 +2343,13 @@ void event_thread(void* arg)
 				&& sbbs->cfg.phub[i]->days&(1<<now_tm.tm_wday))) {
 
 				sbbs->cfg.phub[i]->last=time(NULL);
-				sprintf(str,"%spnet.dab",sbbs->cfg.ctrl_dir);
+				SAFEPRINTF(str,"%spnet.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
 					break; 
 				}
-				lseek(file,sizeof(time_t)*i,SEEK_SET);
-				write(file,&sbbs->cfg.phub[i]->last,sizeof(time_t));
+				lseek(file,sizeof(time32_t)*i,SEEK_SET);
+				write(file,&sbbs->cfg.phub[i]->last,sizeof(sbbs->cfg.phub[i]->last));
 				close(file);
 
 				if(sbbs->cfg.phub[i]->call[0]) {
@@ -2307,7 +2380,8 @@ void event_thread(void* arg)
 				&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 				continue;	// ignore non-exclusive events for other instances
 
-			if(localtime_r(&sbbs->cfg.event[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.event[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.event[i]->last==-1 ||
 				(((sbbs->cfg.event[i]->freq 
@@ -2327,7 +2401,7 @@ void event_thread(void* arg)
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
 						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
 							,sbbs->cfg.event[i]->code
-							,timestr(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
+							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
@@ -2346,14 +2420,14 @@ void event_thread(void* arg)
 							}
 
 							lastnodechk=now;
-							sprintf(str,"%stime.dab",sbbs->cfg.ctrl_dir);
+							SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 							if((file=sbbs->nopen(str,O_RDONLY))==-1) {
 								sbbs->errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 								sbbs->cfg.event[i]->last=now;
 								continue; 
 							}
 							lseek(file,(long)i*4L,SEEK_SET);
-							read(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
+							read(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
 							close(file);
 							if(now-sbbs->cfg.event[i]->last<(60*60))	/* event is done */
 								break; 
@@ -2362,7 +2436,7 @@ void event_thread(void* arg)
 								break;
 							}
 						}
-						sprintf(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
+						SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 						if(fexistcase(str))
 							remove(str);
 						sbbs->cfg.event[i]->last=now;
@@ -2439,7 +2513,7 @@ void event_thread(void* arg)
 						sbbs->cfg.node_num=1;
 					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 				
-					sprintf(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
+					SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 					if(fexistcase(str))
 						remove(str);
 					if(sbbs->cfg.event[i]->misc&EVENT_EXCL) {
@@ -2462,13 +2536,13 @@ void event_thread(void* arg)
 						,ex_mode
 						,sbbs->cfg.event[i]->dir);
 					sbbs->cfg.event[i]->last=time(NULL);
-					sprintf(str,"%stime.dab",sbbs->cfg.ctrl_dir);
+					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 					if((file=sbbs->nopen(str,O_WRONLY))==-1) {
 						sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
 						break; 
 					}
 					lseek(file,(long)i*4L,SEEK_SET);
-					write(file,&sbbs->cfg.event[i]->last,sizeof(time_t));
+					write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
 					close(file);
 
 					if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
@@ -2503,9 +2577,9 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	uint	i;
 
     if(node_num)
-    	sprintf(nodestr,"Node %d",node_num);
+    	SAFEPRINTF(nodestr,"Node %d",node_num);
     else
-    	strcpy(nodestr,name);
+    	SAFECOPY(nodestr,name);
 
 	lprintf(LOG_DEBUG,"%s constructor using socket %d (settings=%lx)"
 		,nodestr, sd, global_cfg->node_misc);
@@ -2552,6 +2626,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	client_socket_dup=INVALID_SOCKET;
 	client_ident[0]=0;
 
+	telnet_location[0]=0;
 	terminal[0]=0;
 	rlogin_name[0]=0;
 	rlogin_pass[0]=0;
@@ -2560,6 +2635,8 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 
 #ifdef USE_CRYPTLIB
 	ssh_mode=false;
+    passthru_input_thread_running = false;
+    passthru_output_thread_running = false;
 #endif
 
 	rio_abortable=false;
@@ -2579,7 +2656,8 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 	uselect_total = 0;
 	lbuflen = 0;
 	keybufbot=keybuftop=0;	/* initialize [unget]keybuf pointers */
-	connection="Telnet";
+	SAFECOPY(connection,"Telnet");
+	node_connection=NODE_CONNECTION_TELNET;
 
 	ZERO_VAR(telnet_local_option);
 	ZERO_VAR(telnet_remote_option);
@@ -2713,7 +2791,7 @@ bool sbbs_t::init()
 	md(cfg.temp_dir);
 
 	/* Shared NODE files */
-	sprintf(str,"%s%s",cfg.ctrl_dir,"node.dab");
+	SAFEPRINTF2(str,"%s%s",cfg.ctrl_dir,"node.dab");
 	if((nodefile=nopen(str,O_DENYNONE|O_RDWR|O_CREAT))==-1) {
 		errormsg(WHERE, ERR_OPEN, str, cfg.node_num);
 		return(false); 
@@ -2745,7 +2823,7 @@ bool sbbs_t::init()
 	}
 
 	if(cfg.node_num) {
-		sprintf(str,"%snode.log",cfg.node_dir);
+		SAFEPRINTF(str,"%snode.log",cfg.node_dir);
 		if((logfile_fp=fopen(str,"a+b"))==NULL) {
 			errormsg(WHERE, ERR_OPEN, str, 0);
 			lprintf(LOG_ERR,"Perhaps this node is already running");
@@ -2954,9 +3032,9 @@ sbbs_t::~sbbs_t()
 	char node[32];
 
     if(cfg.node_num)
-    	sprintf(node,"Node %d", cfg.node_num);
+    	SAFEPRINTF(node,"Node %d", cfg.node_num);
     else
-    	strcpy(node,client_name);
+    	SAFECOPY(node,client_name);
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG,"%s destructor begin", node);
 #endif
@@ -3104,16 +3182,16 @@ int sbbs_t::nopen(char *str, int access)
     else share=SH_DENYRW;
 	if(!(access&O_TEXT))
 		access|=O_BINARY;
-    while(((file=sopen(str,access,share,S_IREAD|S_IWRITE))==-1)
+    while(((file=sopen(str,access,share,DEFFILEMODE))==-1)
         && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
 	    mswait(100);
     if(count>(LOOP_NOPEN/2) && count<=LOOP_NOPEN) {
-        sprintf(logstr,"NOPEN COLLISION - File: \"%s\" Count: %d"
+        SAFEPRINTF2(logstr,"NOPEN COLLISION - File: \"%s\" Count: %d"
             ,str,count);
         logline("!!",logstr); 
 	}
     if(file==-1 && (errno==EACCES || errno==EAGAIN)) {
-        sprintf(logstr,"NOPEN ACCESS DENIED - File: \"%s\" errno: %d"
+        SAFEPRINTF2(logstr,"NOPEN ACCESS DENIED - File: \"%s\" errno: %d"
 			,str,errno);
 		logline("!!",logstr);
 		bputs("\7\r\nNOPEN: ACCESS DENIED\r\n\7");
@@ -3130,7 +3208,7 @@ void sbbs_t::spymsg(char* msg)
 		return;
 
 	addr.s_addr=client_addr;
-	sprintf(str,"\r\n\r\n*** Spy Message ***\r\nNode %d: %s [%s]\r\n*** %s ***\r\n\r\n"
+	SAFEPRINTF4(str,"\r\n\r\n*** Spy Message ***\r\nNode %d: %s [%s]\r\n*** %s ***\r\n\r\n"
 		,cfg.node_num,client_name,inet_ntoa(addr),msg);
 	if(startup->node_spybuf!=NULL 
 		&& startup->node_spybuf[cfg.node_num-1]!=NULL) {
@@ -3269,7 +3347,7 @@ void sbbs_t::hangup(void)
 		client_socket=INVALID_SOCKET;
 	}
 	sem_post(&outbuf.sem);
-	online=0;
+	online=FALSE;
 }
 
 int sbbs_t::incom(unsigned long timeout)
@@ -3442,7 +3520,7 @@ void sbbs_t::catsyslog(int crash)
 	struct tm tm;
 
 	if(logfile_fp==NULL) {
-		sprintf(str,"%snode.log",cfg.node_dir);
+		SAFEPRINTF(str,"%snode.log",cfg.node_dir);
 		if((logfile_fp=fopen(str,"rb"))==NULL) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 			return; 
@@ -3462,7 +3540,7 @@ void sbbs_t::catsyslog(int crash)
 		}
 		now=time(NULL);
 		localtime_r(&now,&tm);
-		sprintf(str,"%slogs/%2.2d%2.2d%2.2d.log",cfg.logs_dir,tm.tm_mon+1,tm.tm_mday
+		SAFEPRINTF4(str,"%slogs/%2.2d%2.2d%2.2d.log",cfg.logs_dir,tm.tm_mon+1,tm.tm_mday
 			,TM_YEAR(tm.tm_year));
 		if((file=nopen(str,O_WRONLY|O_APPEND|O_CREAT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_APPEND|O_CREAT);
@@ -3478,7 +3556,7 @@ void sbbs_t::catsyslog(int crash)
 		close(file);
 		if(crash) {
 			for(i=0;i<2;i++) {
-				sprintf(str,"%scrash.log",i ? cfg.logs_dir : cfg.node_dir);
+				SAFEPRINTF(str,"%scrash.log",i ? cfg.logs_dir : cfg.node_dir);
 				if((file=nopen(str,O_WRONLY|O_APPEND|O_CREAT))==-1) {
 					errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_APPEND|O_CREAT);
 					free((char *)buf);
@@ -3498,7 +3576,7 @@ void sbbs_t::catsyslog(int crash)
 
 	fclose(logfile_fp);
 
-	sprintf(str,"%snode.log",cfg.node_dir);
+	SAFEPRINTF(str,"%snode.log",cfg.node_dir);
 	if((logfile_fp=fopen(str,"w+b"))==NULL) /* Truncate NODE.LOG */
 		errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_TRUNC);
 }
@@ -3514,7 +3592,7 @@ void sbbs_t::logoffstats()
 		return;
 	
 	for(i=0;i<2;i++) {
-		sprintf(str,"%sdsts.dab",i ? cfg.ctrl_dir : cfg.node_dir);
+		SAFEPRINTF(str,"%sdsts.dab",i ? cfg.ctrl_dir : cfg.node_dir);
 		if((file=nopen(str,O_RDWR))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 			return; 
@@ -3550,15 +3628,9 @@ void node_thread(void* arg)
 {
 	ulong			stack_frame;
 	char			str[128];
-	char			uname[LEN_ALIAS+1];
 	int				file;
-	uint			i;
-	uint			usernum;
-	uint			lastusernum;
 	uint			curshell=0;
-	time_t			now;
 	node_t			node;
-	user_t			user;
 	sbbs_t*			sbbs = (sbbs_t*) arg;
 
 	update_clients();
@@ -3588,10 +3660,10 @@ void node_thread(void* arg)
 			if(!sbbs->main_csi.cs || curshell!=sbbs->useron.shell) {
 				if(sbbs->useron.shell>=sbbs->cfg.total_shells)
 					sbbs->useron.shell=0;
-				sprintf(str,"%s%s.bin",sbbs->cfg.mods_dir
+				SAFEPRINTF2(str,"%s%s.bin",sbbs->cfg.mods_dir
 					,sbbs->cfg.shell[sbbs->useron.shell]->code);
 				if(sbbs->cfg.mods_dir[0]==0 || !fexistcase(str))
-					sprintf(str,"%s%s.bin",sbbs->cfg.exec_dir
+					SAFEPRINTF2(str,"%s%s.bin",sbbs->cfg.exec_dir
 						,sbbs->cfg.shell[sbbs->useron.shell]->code);
 				if((file=sbbs->nopen(str,O_RDONLY))==-1) {
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
@@ -3643,158 +3715,7 @@ void node_thread(void* arg)
 	sbbs->logoffstats();	/* Updates both system and node dsts.dab files */
 
 	if(sbbs->sys_status&SS_DAILY) {	// New day, run daily events/maintenance
-
-		now=time(NULL);
-
-		sbbs->getnodedat(sbbs->cfg.node_num,&node,1);
-		node.status=NODE_EVENT_RUNNING;
-		sbbs->putnodedat(sbbs->cfg.node_num,&node);
-
-		sbbs->logentry("!:","Ran system daily maintenance");
-
-		if(sbbs->cfg.user_backup_level) {
-			lprintf(LOG_INFO,"Node %d Backing-up user data..."
-				,sbbs->cfg.node_num);
-			sprintf(str,"%suser/user.dat",sbbs->cfg.data_dir);
-			backup(str,sbbs->cfg.user_backup_level,FALSE);
-			sprintf(str,"%suser/name.dat",sbbs->cfg.data_dir);
-			backup(str,sbbs->cfg.user_backup_level,FALSE);
-		}
-
-		if(sbbs->cfg.mail_backup_level) {
-			lprintf(LOG_INFO,"Node %d Backing-up mail data..."
-				,sbbs->cfg.node_num);
-			sprintf(str,"%smail.shd",sbbs->cfg.data_dir);
-			backup(str,sbbs->cfg.mail_backup_level,FALSE);
-			sprintf(str,"%smail.sha",sbbs->cfg.data_dir);
-			backup(str,sbbs->cfg.mail_backup_level,FALSE);
-			sprintf(str,"%smail.sdt",sbbs->cfg.data_dir);
-			backup(str,sbbs->cfg.mail_backup_level,FALSE);
-			sprintf(str,"%smail.sda",sbbs->cfg.data_dir);
-			backup(str,sbbs->cfg.mail_backup_level,FALSE);
-			sprintf(str,"%smail.sid",sbbs->cfg.data_dir);
-			backup(str,sbbs->cfg.mail_backup_level,FALSE);
-			sprintf(str,"%smail.sch",sbbs->cfg.data_dir);
-			backup(str,sbbs->cfg.mail_backup_level,FALSE);
-		}
-
-		lprintf(LOG_INFO,"Node %d Checking for inactive/expired user records..."
-			,sbbs->cfg.node_num);
-		lastusernum=lastuser(&sbbs->cfg);
-		for(usernum=1;usernum<=lastusernum;usernum++) {
-
-			sprintf(str,"%5u of %-5u",usernum,lastusernum);
-			status(str);
-			user.number=usernum;
-			if((i=getuserdat(&sbbs->cfg,&user))!=0) {
-				sprintf(str,"user record %u",usernum);
-				sbbs->errormsg(WHERE,ERR_READ,str,i);
-				continue;
-			}
-
-			/***********************************************/
-			/* Fix name (name.dat and user.dat) mismatches */
-			/***********************************************/
-			username(&sbbs->cfg,user.number,uname);
-			if(user.misc&DELETED) {
-				if(strcmp(uname,"DELETED USER"))
-					putusername(&sbbs->cfg,user.number,nulstr);
-				continue; 
-			}
-
-			if(strcmp(user.alias,uname))
-				putusername(&sbbs->cfg,user.number,user.alias);
-
-			if(user.number==1)
-				continue;	/* skip expiration/inactivity checks for user #1 */
-
-			if(!(user.misc&(DELETED|INACTIVE))
-				&& user.expire && (ulong)user.expire<=(ulong)now) {
-				putsmsg(&sbbs->cfg,user.number,sbbs->text[AccountHasExpired]);
-				sprintf(str,"%s #%u Expired",user.alias,user.number);
-				sbbs->logentry("!%",str);
-				if(sbbs->cfg.level_misc[user.level]&LEVEL_EXPTOVAL
-					&& sbbs->cfg.level_expireto[user.level]<10) {
-					user.flags1=sbbs->cfg.val_flags1[sbbs->cfg.level_expireto[user.level]];
-					user.flags2=sbbs->cfg.val_flags2[sbbs->cfg.level_expireto[user.level]];
-					user.flags3=sbbs->cfg.val_flags3[sbbs->cfg.level_expireto[user.level]];
-					user.flags4=sbbs->cfg.val_flags4[sbbs->cfg.level_expireto[user.level]];
-					user.exempt=sbbs->cfg.val_exempt[sbbs->cfg.level_expireto[user.level]];
-					user.rest=sbbs->cfg.val_rest[sbbs->cfg.level_expireto[user.level]];
-					if(sbbs->cfg.val_expire[sbbs->cfg.level_expireto[user.level]])
-						user.expire=now
-							+(sbbs->cfg.val_expire[sbbs->cfg.level_expireto[user.level]]*24*60*60);
-					else
-						user.expire=0;
-					user.level=sbbs->cfg.val_level[sbbs->cfg.level_expireto[user.level]]; 
-				}
-				else {
-					if(sbbs->cfg.level_misc[user.level]&LEVEL_EXPTOLVL)
-						user.level=sbbs->cfg.level_expireto[user.level];
-					else
-						user.level=sbbs->cfg.expired_level;
-					user.flags1&=~sbbs->cfg.expired_flags1; /* expired status */
-					user.flags2&=~sbbs->cfg.expired_flags2; /* expired status */
-					user.flags3&=~sbbs->cfg.expired_flags3; /* expired status */
-					user.flags4&=~sbbs->cfg.expired_flags4; /* expired status */
-					user.exempt&=~sbbs->cfg.expired_exempt;
-					user.rest|=sbbs->cfg.expired_rest;
-					user.expire=0; 
-				}
-				putuserrec(&sbbs->cfg,user.number,U_LEVEL,2,ultoa(user.level,str,10));
-				putuserrec(&sbbs->cfg,user.number,U_FLAGS1,8,ultoa(user.flags1,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_FLAGS2,8,ultoa(user.flags2,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_FLAGS3,8,ultoa(user.flags3,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_FLAGS4,8,ultoa(user.flags4,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_EXPIRE,8,ultoa(user.expire,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_EXEMPT,8,ultoa(user.exempt,str,16));
-				putuserrec(&sbbs->cfg,user.number,U_REST,8,ultoa(user.rest,str,16));
-				if(sbbs->cfg.expire_mod[0]) {
-					sbbs->useron=user;
-					sbbs->online=ON_LOCAL;
-					sbbs->exec_bin(sbbs->cfg.expire_mod,&sbbs->main_csi);
-					sbbs->online=0; 
-				}
-			}
-
-			/***********************************************************/
-			/* Auto deletion based on expiration date or days inactive */
-			/***********************************************************/
-			if(!(user.exempt&FLAG('P'))     /* Not a permanent account */
-				&& !(user.misc&(DELETED|INACTIVE))	 /* alive */
-				&& (sbbs->cfg.sys_autodel && (now-user.laston)/(long)(24L*60L*60L)
-				> sbbs->cfg.sys_autodel)) {			/* Inactive too long */
-				sprintf(str,"Auto-Deleted %s #%u",user.alias,user.number);
-				sbbs->logentry("!*",str);
-				sbbs->delallmail(user.number);
-				putusername(&sbbs->cfg,user.number,nulstr);
-				putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
-			}
-		}
-
-		lprintf(LOG_INFO,"Node %d Purging deleted/expired e-mail",sbbs->cfg.node_num);
-		sprintf(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
-		sbbs->smb.retry_time=sbbs->cfg.smb_retry_time;
-		sbbs->smb.subnum=INVALID_SUB;
-		if((i=smb_open(&sbbs->smb))!=0)
-			sbbs->errormsg(WHERE,ERR_OPEN,sbbs->smb.file,i,sbbs->smb.last_error);
-		else {
-			if(filelength(fileno(sbbs->smb.shd_fp))>0) {
-				if((i=smb_locksmbhdr(&sbbs->smb))!=0)
-					sbbs->errormsg(WHERE,ERR_LOCK,sbbs->smb.file,i,sbbs->smb.last_error);
-				else
-					sbbs->delmail(0,MAIL_ALL);
-			}
-			smb_close(&sbbs->smb); 
-		}
-
-		sbbs->sys_status&=~SS_DAILY;
-		if(sbbs->cfg.sys_daily[0]) {
-//			status("Running system daily event");
-			sbbs->logentry("!:","Ran system daily event");
-			sbbs->external(sbbs->cmdstr(sbbs->cfg.sys_daily,nulstr,nulstr,NULL)
-				,EX_OFFLINE); 
-		}
+		sbbs->daily_maint();
 	}
 
 #if 0	/* this is handled in the event_thread now */
@@ -3817,7 +3738,11 @@ void node_thread(void* arg)
 #endif
 
     // Wait for all node threads to terminate
-	if(sbbs->input_thread_running || sbbs->output_thread_running) {
+	if(sbbs->input_thread_running || sbbs->output_thread_running
+#ifdef USE_CRYPTLIB
+		|| sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running
+#endif
+		) {
 		lprintf(LOG_INFO,"Node %d Waiting for %s to terminate..."
 			,sbbs->cfg.node_num
 			,(sbbs->input_thread_running && sbbs->output_thread_running) ?
@@ -3825,7 +3750,11 @@ void node_thread(void* arg)
 				? "input thread" : "output thread");
 		time_t start=time(NULL);
 		while(sbbs->input_thread_running
-    		|| sbbs->output_thread_running) {
+    		|| sbbs->output_thread_running
+#ifdef USE_CRYPTLIB
+			|| sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running
+#endif
+			) {
 			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
 				lprintf(LOG_NOTICE,"Node %d !TIMEOUT waiting for %s to terminate"
 					, sbbs->cfg.node_num
@@ -3864,6 +3793,166 @@ void node_thread(void* arg)
 
 	update_clients();
 	thread_down();
+}
+
+void sbbs_t::daily_maint(void)
+{
+	char			str[128];
+	char			uname[LEN_ALIAS+1];
+	uint			i;
+	uint			usernum;
+	uint			lastusernum;
+	node_t			node;
+	user_t			user;
+
+	now=time(NULL);
+
+	sbbs->getnodedat(sbbs->cfg.node_num,&node,1);
+	node.status=NODE_EVENT_RUNNING;
+	sbbs->putnodedat(sbbs->cfg.node_num,&node);
+
+	sbbs->logentry("!:","Ran system daily maintenance");
+
+	if(sbbs->cfg.user_backup_level) {
+		lputs(LOG_INFO,"Backing-up user data...");
+		SAFEPRINTF(str,"%suser/user.dat",sbbs->cfg.data_dir);
+		backup(str,sbbs->cfg.user_backup_level,FALSE);
+		SAFEPRINTF(str,"%suser/name.dat",sbbs->cfg.data_dir);
+		backup(str,sbbs->cfg.user_backup_level,FALSE);
+	}
+
+	if(sbbs->cfg.mail_backup_level) {
+		lputs(LOG_INFO,"Backing-up mail data...");
+		SAFEPRINTF(str,"%smail.shd",sbbs->cfg.data_dir);
+		backup(str,sbbs->cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sha",sbbs->cfg.data_dir);
+		backup(str,sbbs->cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sdt",sbbs->cfg.data_dir);
+		backup(str,sbbs->cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sda",sbbs->cfg.data_dir);
+		backup(str,sbbs->cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sid",sbbs->cfg.data_dir);
+		backup(str,sbbs->cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sch",sbbs->cfg.data_dir);
+		backup(str,sbbs->cfg.mail_backup_level,FALSE);
+	}
+
+	lputs(LOG_INFO,"Checking for inactive/expired user records...");
+	lastusernum=lastuser(&sbbs->cfg);
+	for(usernum=1;usernum<=lastusernum;usernum++) {
+
+		SAFEPRINTF2(str,"%5u of %-5u",usernum,lastusernum);
+		status(str);
+		user.number=usernum;
+		if((i=getuserdat(&sbbs->cfg,&user))!=0) {
+			SAFEPRINTF(str,"user record %u",usernum);
+			sbbs->errormsg(WHERE,ERR_READ,str,i);
+			continue;
+		}
+
+		/***********************************************/
+		/* Fix name (name.dat and user.dat) mismatches */
+		/***********************************************/
+		username(&sbbs->cfg,user.number,uname);
+		if(user.misc&DELETED) {
+			if(strcmp(uname,"DELETED USER"))
+				putusername(&sbbs->cfg,user.number,nulstr);
+			continue; 
+		}
+
+		if(strcmp(user.alias,uname))
+			putusername(&sbbs->cfg,user.number,user.alias);
+
+		if(user.number==1)
+			continue;	/* skip expiration/inactivity checks for user #1 */
+
+		if(!(user.misc&(DELETED|INACTIVE))
+			&& user.expire && (ulong)user.expire<=(ulong)now) {
+			putsmsg(&sbbs->cfg,user.number,sbbs->text[AccountHasExpired]);
+			SAFEPRINTF2(str,"%s #%u Expired",user.alias,user.number);
+			sbbs->logentry("!%",str);
+			if(sbbs->cfg.level_misc[user.level]&LEVEL_EXPTOVAL
+				&& sbbs->cfg.level_expireto[user.level]<10) {
+				user.flags1=sbbs->cfg.val_flags1[sbbs->cfg.level_expireto[user.level]];
+				user.flags2=sbbs->cfg.val_flags2[sbbs->cfg.level_expireto[user.level]];
+				user.flags3=sbbs->cfg.val_flags3[sbbs->cfg.level_expireto[user.level]];
+				user.flags4=sbbs->cfg.val_flags4[sbbs->cfg.level_expireto[user.level]];
+				user.exempt=sbbs->cfg.val_exempt[sbbs->cfg.level_expireto[user.level]];
+				user.rest=sbbs->cfg.val_rest[sbbs->cfg.level_expireto[user.level]];
+				if(sbbs->cfg.val_expire[sbbs->cfg.level_expireto[user.level]])
+					user.expire=now
+						+(sbbs->cfg.val_expire[sbbs->cfg.level_expireto[user.level]]*24*60*60);
+				else
+					user.expire=0;
+				user.level=sbbs->cfg.val_level[sbbs->cfg.level_expireto[user.level]]; 
+			}
+			else {
+				if(sbbs->cfg.level_misc[user.level]&LEVEL_EXPTOLVL)
+					user.level=sbbs->cfg.level_expireto[user.level];
+				else
+					user.level=sbbs->cfg.expired_level;
+				user.flags1&=~sbbs->cfg.expired_flags1; /* expired status */
+				user.flags2&=~sbbs->cfg.expired_flags2; /* expired status */
+				user.flags3&=~sbbs->cfg.expired_flags3; /* expired status */
+				user.flags4&=~sbbs->cfg.expired_flags4; /* expired status */
+				user.exempt&=~sbbs->cfg.expired_exempt;
+				user.rest|=sbbs->cfg.expired_rest;
+				user.expire=0; 
+			}
+			putuserrec(&sbbs->cfg,user.number,U_LEVEL,2,ultoa(user.level,str,10));
+			putuserrec(&sbbs->cfg,user.number,U_FLAGS1,8,ultoa(user.flags1,str,16));
+			putuserrec(&sbbs->cfg,user.number,U_FLAGS2,8,ultoa(user.flags2,str,16));
+			putuserrec(&sbbs->cfg,user.number,U_FLAGS3,8,ultoa(user.flags3,str,16));
+			putuserrec(&sbbs->cfg,user.number,U_FLAGS4,8,ultoa(user.flags4,str,16));
+			putuserrec(&sbbs->cfg,user.number,U_EXPIRE,8,ultoa(user.expire,str,16));
+			putuserrec(&sbbs->cfg,user.number,U_EXEMPT,8,ultoa(user.exempt,str,16));
+			putuserrec(&sbbs->cfg,user.number,U_REST,8,ultoa(user.rest,str,16));
+			if(sbbs->cfg.expire_mod[0]) {
+				sbbs->useron=user;
+				sbbs->online=ON_LOCAL;
+				sbbs->exec_bin(sbbs->cfg.expire_mod,&sbbs->main_csi);
+				sbbs->online=FALSE; 
+			}
+		}
+
+		/***********************************************************/
+		/* Auto deletion based on expiration date or days inactive */
+		/***********************************************************/
+		if(!(user.exempt&FLAG('P'))     /* Not a permanent account */
+			&& !(user.misc&(DELETED|INACTIVE))	 /* alive */
+			&& (sbbs->cfg.sys_autodel && (now-user.laston)/(long)(24L*60L*60L)
+			> sbbs->cfg.sys_autodel)) {			/* Inactive too long */
+			SAFEPRINTF2(str,"Auto-Deleted %s #%u",user.alias,user.number);
+			sbbs->logentry("!*",str);
+			sbbs->delallmail(user.number);
+			putusername(&sbbs->cfg,user.number,nulstr);
+			putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
+		}
+	}
+
+	lputs(LOG_INFO,"Purging deleted/expired e-mail");
+	SAFEPRINTF(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
+	sbbs->smb.retry_time=sbbs->cfg.smb_retry_time;
+	sbbs->smb.subnum=INVALID_SUB;
+	if((i=smb_open(&sbbs->smb))!=0)
+		sbbs->errormsg(WHERE,ERR_OPEN,sbbs->smb.file,i,sbbs->smb.last_error);
+	else {
+		if(filelength(fileno(sbbs->smb.shd_fp))>0) {
+			if((i=smb_locksmbhdr(&sbbs->smb))!=0)
+				sbbs->errormsg(WHERE,ERR_LOCK,sbbs->smb.file,i,sbbs->smb.last_error);
+			else
+				sbbs->delmail(0,MAIL_ALL);
+		}
+		smb_close(&sbbs->smb); 
+	}
+
+	sbbs->sys_status&=~SS_DAILY;
+	if(sbbs->cfg.sys_daily[0]) {
+//			status("Running system daily event");
+		sbbs->logentry("!:","Ran system daily event");
+		sbbs->external(sbbs->cmdstr(sbbs->cfg.sys_daily,nulstr,nulstr,NULL)
+			,EX_OFFLINE); 
+	}
 }
 
 time_t checktime(void)
@@ -4013,7 +4102,6 @@ void DLLCALL bbs_thread(void* arg)
 #endif
 #ifdef USE_CRYPTLIB
 	CRYPT_CONTEXT	ssh_context;
-	SOCKET			passthru[2];
 #endif
 
     if(startup==NULL) {
@@ -4179,9 +4267,9 @@ void DLLCALL bbs_thread(void* arg)
 	for(i=0;i<=scfg.sys_nodes;i++) {
 		if(i)
 			md(scfg.node_path[i-1]);
-		sprintf(str,"%sdsts.dab",i ? scfg.node_path[i-1] : scfg.ctrl_dir);
+		SAFEPRINTF(str,"%sdsts.dab",i ? scfg.node_path[i-1] : scfg.ctrl_dir);
 		if(flength(str)<DSTSDABLEN) {
-			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, S_IREAD|S_IWRITE))==-1) {
+			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, DEFFILEMODE))==-1) {
 				lprintf(LOG_ERR,"!ERROR %d creating %s",errno, str);
 				cleanup(1);
 				return; 
@@ -4227,12 +4315,16 @@ void DLLCALL bbs_thread(void* arg)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port   = htons(startup->telnet_port);
 
-	if(startup->seteuid!=NULL)
-		startup->seteuid(FALSE);
+	if(startup->telnet_port < IPPORT_RESERVED) {
+		if(startup->seteuid!=NULL)
+			startup->seteuid(FALSE);
+	}
     result = retry_bind(telnet_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 		,startup->bind_retry_count,startup->bind_retry_delay,"Telnet Server",lprintf);
-	if(startup->seteuid!=NULL)
-		startup->seteuid(TRUE);
+	if(startup->telnet_port < IPPORT_RESERVED) {
+		if(startup->seteuid!=NULL)
+			startup->seteuid(TRUE);
+	}
 	if(result != 0) {
 		lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 		cleanup(1);
@@ -4271,12 +4363,16 @@ void DLLCALL bbs_thread(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->rlogin_port);
 
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
+		if(startup->rlogin_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
 		result = retry_bind(rlogin_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"RLogin Server",lprintf);
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
+		if(startup->rlogin_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
 		if(result != 0) {
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
@@ -4305,7 +4401,7 @@ void DLLCALL bbs_thread(void* arg)
 		cryptInit();
 		cryptAddRandom(NULL,CRYPT_RANDOM_SLOWPOLL);
 		/* Get the private key... first try loading it from a file... */
-		sprintf(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
+		SAFEPRINTF2(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
 		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
 			if(cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass)))
 				loaded_key=true;
@@ -4359,12 +4455,16 @@ void DLLCALL bbs_thread(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->ssh_port);
 
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
+		if(startup->ssh_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
 		result = retry_bind(ssh_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"SSH Server",lprintf);
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
+		if(startup->ssh_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
 		if(result != 0) {
 			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
@@ -4412,7 +4512,7 @@ NO_SSH:
 	for(i=first_node;i<=last_node;i++) {
 		sbbs->getnodedat(i,&node,1);
 		node.status=NODE_WFC;
-		node.misc&=NODE_EVENT;
+		node.misc&=NODE_EVENT;	/* Note: Turns-off NODE_RRUN flag (and others) */
 		node.action=0;
 		sbbs->putnodedat(i,&node);
 	}
@@ -4422,7 +4522,7 @@ NO_SSH:
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(_MSC_VER)
 	
-	sprintf(str,"%sDEBUG.LOG",scfg.logs_dir);
+	SAFEPRINTF(str,"%sDEBUG.LOG",scfg.logs_dir);
 	if((debug_log=CreateFile(
 		str,				// pointer to name of the file
 		GENERIC_READ|GENERIC_WRITE,
@@ -4457,10 +4557,9 @@ NO_SSH:
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
-	if(!initialized) {
-		semfile_list_check(&initialized,recycle_semfiles);
+	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
-	}
+	semfile_list_check(&initialized,recycle_semfiles);
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
@@ -4513,32 +4612,30 @@ NO_SSH:
 
 	while(!terminate_server) {
 
-		if(node_threads_running==0) {	/* check for re-run flags */
-			bool rerun=false;
-			for(i=first_node;i<=last_node;i++) {
-				if(sbbs->getnodedat(i,&node,0)!=0)
-					continue;
-				if(node.misc&NODE_RRUN) {
-					sbbs->getnodedat(i,&node,1);
-					if(!rerun)
-						lprintf(LOG_INFO,"Node %d flagged for re-run",i);
-					rerun=true;
-					node.misc&=~NODE_RRUN;
-					sbbs->putnodedat(i,&node);
-				}
-			}
-			if(rerun)
-				break;
+		if(node_threads_running==0) {	/* check for re-run flags and recycle/shutdown sem files */
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
+
+				bool rerun=false;
+				for(i=first_node;i<=last_node;i++) {
+					if(sbbs->getnodedat(i,&node,0)!=0)
+						continue;
+					if(node.misc&NODE_RRUN) {
+						sbbs->getnodedat(i,&node,1);
+						if(!rerun)
+							lprintf(LOG_INFO,"Node %d flagged for re-run",i);
+						rerun=true;
+						node.misc&=~NODE_RRUN;
+						sbbs->putnodedat(i,&node);
+					}
+				}
+				if(rerun)
+					break;
+
 				if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
 						,telnet_socket,p);
 					break;
 				}
-#if 0	/* unused */
-				if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-					startup->recycle_now=TRUE;
-#endif
 				if(startup->recycle_now==TRUE) {
 					lprintf(LOG_INFO,"%04d Recycle semaphore signaled",telnet_socket);
 					startup->recycle_now=FALSE;
@@ -4557,8 +4654,10 @@ NO_SSH:
 			}
 		}
 
-
-    	sbbs->online=0;
+    	sbbs->online=FALSE;
+#ifdef USE_CRYPTLIB
+		sbbs->ssh_mode=false;
+#endif
 
 		/* now wait for connection */
 
@@ -4638,39 +4737,9 @@ NO_SSH:
 #ifdef USE_CRYPTLIB
 		} else if(ssh_socket!=INVALID_SOCKET 
 			&& FD_ISSET(ssh_socket,&socket_set)) {
+
 			client_socket = accept_socket(ssh_socket, (struct sockaddr *)&client_addr
 	        	,&client_addr_len);
-			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
-				lprintf(LOG_ERR,"Cryptlib error %d creating session",i);
-				close_socket(client_socket);
-				continue;
-			}
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
-				lprintf(LOG_ERR,"Cryptlib error %d setting private key",i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			/* Accept any credentials */
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
-				lprintf(LOG_ERR,"Cryptlib error %d setting AUTHRESPONSE",i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
-				lprintf(LOG_ERR,"Cryptlib error %d setting socket",i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
-				lprintf(LOG_ERR,"Cryptlib error %d setting session active",i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 			ssh = true;
 			is_client=TRUE;
 			sbbs->ssh_mode=true;
@@ -4708,7 +4777,7 @@ NO_SSH:
 					else  {
 						lprintf(LOG_ERR,"!Spy socket %s (%d) connected",uspy_addr.sun_path,new_socket);
 						uspy_socket[i-1]=new_socket;
-						sprintf(str,"Spy connection established to node %d\r\n",i);
+						SAFEPRINTF(str,"Spy connection established to node %d\r\n",i);
 						send(uspy_socket[i-1],str,strlen(str),0);
 					}
 				}
@@ -4718,8 +4787,10 @@ NO_SSH:
 #endif
 		}
 
-		if(!is_client)
+		if(!is_client) {
+			/* Do not need to close_socket(client_socket) here */
 			continue;
+		}
 
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
@@ -4733,6 +4804,7 @@ NO_SSH:
 			if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
 				break;
 #endif
+			SSH_END();
 			continue;
 		}
 		char host_ip[32];
@@ -4740,12 +4812,7 @@ NO_SSH:
 		strcpy(host_ip,inet_ntoa(client_addr.sin_addr));
 
 		if(trashcan(&scfg,host_ip,"ip-silent")) {
-#ifdef USE_CRYPTLIB
-			if(ssh) {
-				cryptDestroySession(sbbs->ssh_session);
-				sbbs->ssh_mode=false;
-			}
-#endif
+			SSH_END();
 			close_socket(client_socket);
 			continue;
 		}
@@ -4764,20 +4831,51 @@ NO_SSH:
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
+		/* Do SSH stuff here */
+
+		if(ssh) {
+			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
+				lprintf(LOG_ERR,"%04d Cryptlib error %d creating session", client_socket, i);
+				close_socket(client_socket);
+				continue;
+			}
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
+				lprintf(LOG_ERR,"%04d Cryptlib error %d setting private key",client_socket, i);
+				cryptDestroySession(sbbs->ssh_session);
+				close_socket(client_socket);
+				continue;
+			}
+			/* Accept any credentials */
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
+				lprintf(LOG_ERR,"%04d Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
+				cryptDestroySession(sbbs->ssh_session);
+				close_socket(client_socket);
+				continue;
+			}
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
+				lprintf(LOG_ERR,"%04d Cryptlib error %d setting socket",client_socket, i);
+				cryptDestroySession(sbbs->ssh_session);
+				close_socket(client_socket);
+				continue;
+			}
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
+				lprintf(LOG_ERR,"%04d Cryptlib error %d setting session active",client_socket, i);
+				cryptDestroySession(sbbs->ssh_session);
+				close_socket(client_socket);
+				continue;
+			}
+			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
+		}
+
    		sbbs->client_socket=client_socket;	// required for output to the user
         sbbs->online=ON_REMOTE;
 
 		if(sbbs->trashcan(host_ip,"ip")) {
-#ifdef USE_CRYPTLIB
-			if(ssh) {
-				cryptDestroySession(sbbs->ssh_session);
-				sbbs->ssh_mode=false;
-			}
-#endif
+			SSH_END();
 			close_socket(client_socket);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can"
 				,client_socket);
-			sprintf(logstr, "Blocked IP: %s",host_ip);
+			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
 			sbbs->syslog("@!",logstr);
 			continue;
 		}
@@ -4812,15 +4910,10 @@ NO_SSH:
 		}
 
 		if(sbbs->trashcan(host_name,"host")) {
-#ifdef USE_CRYPTLIB
-			if(ssh) {
-				cryptDestroySession(sbbs->ssh_session);
-				sbbs->ssh_mode=false;
-			}
-#endif
+			SSH_END();
 			close_socket(client_socket);
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can",client_socket);
-			sprintf(logstr, "Blocked Hostname: %s",host_name);
+			SAFEPRINTF(logstr, "Blocked Hostname: %s",host_name);
 			sbbs->syslog("@!",logstr);
 			continue;
 		}
@@ -4828,13 +4921,16 @@ NO_SSH:
 		identity=NULL;
 		if(startup->options&BBS_OPT_GET_IDENT) {
 			sbbs->bprintf("Resolving identity...");
-			identify(&client_addr, startup->telnet_port, str, sizeof(str)-1,0);
-			identity=strrchr(str,':');
-			if(identity!=NULL) {
-				identity++;	/* skip colon */
-				while(*identity && *identity<=' ') /* point to user name */
-					identity++;
-				lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
+			/* ToDo: Make ident timeout configurable */
+			if(identify(&client_addr, startup->telnet_port, str, sizeof(str)-1, /* timeout: */1)) {
+				lprintf(LOG_DEBUG,"%04d Ident Response: %s",client_socket, str);
+				identity=strrchr(str,':');
+				if(identity!=NULL) {
+					identity++;	/* skip colon */
+					SKIP_WHITESPACE(identity);
+					if(*identity)
+						lprintf(LOG_INFO,"%04d Identity: %s",client_socket, identity);
+				}
 			}
 			sbbs->putcom(crlf);
 		}
@@ -4867,7 +4963,7 @@ NO_SSH:
 
 		if(i>last_node) {
 			lprintf(LOG_WARNING,"%04d !No nodes available for login.",client_socket);
-			sprintf(str,"%snonodes.txt",scfg.text_dir);
+			SAFEPRINTF(str,"%snonodes.txt",scfg.text_dir);
 			if(fexist(str))
 				sbbs->printfile(str,P_NOABORT);
 			else {
@@ -4876,12 +4972,7 @@ NO_SSH:
 			}
 			mswait(3000);
 			client_off(client_socket);
-#ifdef USE_CRYPTLIB
-			if(ssh) {
-				cryptDestroySession(sbbs->ssh_session);
-				sbbs->ssh_mode=false;
-			}
-#endif
+			SSH_END();
 			close_socket(client_socket);
 			continue;
 		}
@@ -4907,7 +4998,7 @@ NO_SSH:
 		if(new_node->init()==false) {
 			lprintf(LOG_INFO,"%04d !Node %d Initialization failure"
 				,client_socket,new_node->cfg.node_num);
-			sprintf(str,"%snonodes.txt",scfg.text_dir);
+			SAFEPRINTF(str,"%snonodes.txt",scfg.text_dir);
 			if(fexist(str))
 				sbbs->printfile(str,P_NOABORT);
 			else 
@@ -4919,18 +5010,14 @@ NO_SSH:
 			delete new_node;
 			node_socket[i-1]=INVALID_SOCKET;
 			client_off(client_socket);
-#ifdef USE_CRYPTLIB
-			if(ssh) {
-				cryptDestroySession(sbbs->ssh_session);
-				sbbs->ssh_mode=false;
-			}
-#endif
+			SSH_END();
 			close_socket(client_socket);
 			continue;
 		}
 
 		if(rlogin==true) {
-			new_node->connection="RLogin";
+			SAFECOPY(new_node->connection,"RLogin");
+			new_node->node_connection=NODE_CONNECTION_RLOGIN;
 			new_node->sys_status|=SS_RLOGIN;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // RLogin does not use Telnet commands
 		}
@@ -5020,10 +5107,16 @@ NO_SSH:
 			_beginthread(passthru_input_thread, 0, new_node);
 
 NO_PASSTHRU:
-			new_node->connection="SSH";
+			SAFECOPY(new_node->connection,"SSH");
+			new_node->node_connection=NODE_CONNECTION_SSH;
 			new_node->sys_status|=SS_SSH;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
+			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
+			while(RingBufFull(&sbbs->outbuf))
+				SLEEP(1);
+			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
+			sbbs->ssh_mode=false;
 		}
 #endif
 
