@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.79 2007/10/11 08:28:24 deuce Exp $ */
+/* $Id: win32cio.c,v 1.76 2007/08/13 05:24:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -533,8 +533,8 @@ void win32_textmode(int mode)
 	cio_textinfo.attribute=7;
 	cio_textinfo.normattr=7;
 	cio_textinfo.currmode=vparams[modeidx].mode;
-	cio_textinfo.screenheight=(unsigned char)sz.Y;
-	cio_textinfo.screenwidth=(unsigned char)sz.X;
+	cio_textinfo.screenheight=sz.Y;
+	cio_textinfo.screenwidth=sz.X;
 	cio_textinfo.curx=1;
 	cio_textinfo.cury=1;
 	cio_textinfo.winleft=1;
@@ -579,20 +579,13 @@ void win32_gotoxy(int x, int y)
 {
 	COORD	cp;
 	HANDLE	h;
-	static int curx=-1;
-	static int cury=-1;
 
 	cio_textinfo.curx=x;
 	cio_textinfo.cury=y;
-	cp.X=cio_textinfo.winleft+x-2;
-	cp.Y=cio_textinfo.wintop+y-2;
-	if(cp.X != curx || cp.Y != cury) {
-		if(!hold_update && (h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE) {
-			SetConsoleCursorPosition(h,cp);
-			curx=cp.X;
-			cury=cp.Y;
-		}
-	}
+	cp.X=cio_textinfo.winleft-x;
+	cp.Y=cio_textinfo.wintop-y;
+	if(!hold_update && (h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleCursorPosition(h,cp);
 }
 
 int win32_puttext(int left, int top, int right, int bottom, void* buf)
