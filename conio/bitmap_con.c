@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.6 2007/10/02 01:21:28 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.7 2007/10/02 08:27:44 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -550,6 +550,9 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 		return(-1);
 
 	if(!vstat.vmem)
+		return(-1);
+
+	if(!font)
 		return(-1);
 
 	sch=vstat.vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)];
