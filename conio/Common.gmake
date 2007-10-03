@@ -3,24 +3,6 @@
 #else
 # CIOLIB-MT_LIBS		+=	$(UL_PRE)ncurses$(UL_SUF)
 #endif
-
-# OSs with vasprintf...
-ifeq ($(os),darwin)
- CFLAGS += -DHAVE_VASPRINTF
-endif
-ifeq ($(os),linux)
- CFLAGS += -DHAVE_VASPRINTF
-endif
-ifeq ($(os),freebsd)
- CFLAGS += -DHAVE_VASPRINTF
-endif
-ifeq ($(os),netbsd)
- CFLAGS += -DHAVE_VASPRINTF
-endif
-ifeq ($(os),openbsd)
- CFLAGS += -DHAVE_VASPRINTF
-endif
-
 ifdef USE_SYSTEM_CURSES
  CIOLIB-MT_LIBS		+=	$(UL_PRE)curses$(UL_SUF)
 else
