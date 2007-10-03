@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #ifndef _WIN32
  #include <dlfcn.h>
 #endif
@@ -12,7 +10,7 @@ int crypt_loaded=0;
 
 int init_crypt(void)
 {
-#ifdef STATIC_CRYPTLIB
+#ifdef STATIC_LINK
 	cl.PopData=cryptPopData;
 	cl.PushData=cryptPushData;
 	cl.FlushData=cryptFlushData;
