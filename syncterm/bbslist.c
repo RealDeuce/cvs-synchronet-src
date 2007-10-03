@@ -168,7 +168,7 @@ void sort_list(struct bbslist **list, int *listcount)  {
 				for(j=i;list[j]!=NULL && list[j]->name[0];j++) {
 					list[j]=list[j+1];
 				}
-				free(tmp);
+				FREE_AND_NULL(tmp);
 				for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 					list[j]->id=j;
 				}
