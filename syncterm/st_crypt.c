@@ -10,7 +10,7 @@ int crypt_loaded=0;
 
 int init_crypt(void)
 {
-#ifdef STATIC_CRYPTLIB
+#ifdef STATIC_LINK
 	cl.PopData=cryptPopData;
 	cl.PushData=cryptPushData;
 	cl.FlushData=cryptFlushData;

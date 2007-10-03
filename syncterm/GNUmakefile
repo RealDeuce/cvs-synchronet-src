@@ -50,17 +50,10 @@ ifeq ($(os),sunos)    # Solaris
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 
-ifdef STATIC_CRYPTLIB
- CFLAGS += -DSTATIC_CRYPTLIB
- LDFLAGS += -lz
- EXTRA_LIBS += $(SRC_ROOT)/../lib/cryptlib/$(machine).release/libcl.a
-endif
-
 ifeq ($(os),darwin)
  ifeq ($(shell uname -r),6.8)
-  EXTRA_LIBS += /usr/local/lib/libdl.a
+  LDFLAGS += -ldl
  endif
- STATIC_CRYPTLIB ?= 1
 endif
 
 ifeq ($(os),linux)
@@ -112,7 +105,7 @@ endif
 
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS) $(EXTRA_LIBS)
+	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS)
 
 syncterm.1.gz: syncterm.man
 	gzip < syncterm.man > syncterm.1.gz
