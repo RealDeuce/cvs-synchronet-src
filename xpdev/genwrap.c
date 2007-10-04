@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.72 2006/08/26 18:45:48 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.74 2007/09/22 20:57:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -416,7 +416,7 @@ char* DLLCALL os_cmdshell(void)
 {
 	char*	shell=getenv(OS_CMD_SHELL_ENV_VAR);
 
-#if !defined(__unix__)
+#if defined(__unix__)
 	if(shell==NULL)
 #ifdef _PATH_BSHELL
 		shell=_PATH_BSHELL;
@@ -498,6 +498,15 @@ clock_t DLLCALL msclock(void)
 #endif
 
 /****************************************************************************/
+/* Skips all white-space chars at beginning of 'str'						*/
+/****************************************************************************/
+char* DLLCALL skipsp(char* str)
+{
+	SKIP_WHITESPACE(str);
+	return(str);
+}
+
+/****************************************************************************/
 /* Truncates all white-space chars off end of 'str'	(needed by STRERRROR)	*/
 /****************************************************************************/
 char* DLLCALL truncsp(char* str)
@@ -505,7 +514,7 @@ char* DLLCALL truncsp(char* str)
 	size_t i,len;
 
 	i=len=strlen(str);
-	while(i && (str[i-1]==' ' || str[i-1]=='\t' || str[i-1]=='\r' || str[i-1]=='\n')) 
+	while(i && isspace(str[i-1])) 
 		i--;
 	if(i!=len)
 		str[i]=0;	/* truncate */
