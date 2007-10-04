@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.12 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: ansiterm.cpp,v 1.11 2006/08/23 01:33:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@
 /* high intensity colors, or background/forground cobinations don't work.   */
 /* A call to attr is more appropriate, being it is intelligent				*/
 /****************************************************************************/
-const char *sbbs_t::ansi(int atr)
+char *sbbs_t::ansi(int atr)
 {
 
 	switch(atr) {
