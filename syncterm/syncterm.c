@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.114 2007/10/21 02:29:19 deuce Exp $ */
+/* $Id: syncterm.c,v 1.113 2007/10/02 01:24:26 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -968,9 +968,6 @@ int main(int argc, char **argv)
 							break;
 						case 'S':
 							ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
-							break;
-						case 'O':
-							ciolib_mode=CIOLIB_MODE_SDL_YUV;
 							break;
 						default:
 							goto USAGE;
