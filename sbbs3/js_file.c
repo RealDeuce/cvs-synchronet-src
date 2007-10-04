@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.93 2006/02/01 04:13:47 rswindell Exp $ */
+/* $Id: js_file.c,v 1.101 2007/09/29 09:28:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,6 +59,7 @@ typedef struct
 	BOOL	uuencoded;
 	BOOL	b64encoded;
 	BOOL	network_byte_order;
+	BOOL	pipe;		/* Opened with popen() use pclose() to close */
 
 } private_t;
 
@@ -181,6 +182,53 @@ js_open(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static JSBool
+js_popen(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		mode="r+";	/* default mode */
+	uintN		i;
+	jsint		bufsize=2*1024;
+	JSString*	str;
+	private_t*	p;
+
+	*rval = JSVAL_FALSE;
+
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
+
+	if(p->fp!=NULL)  
+		return(JS_TRUE);
+
+	for(i=0;i<argc;i++) {
+		if(JSVAL_IS_STRING(argv[i])) {	/* mode */
+			if((str = JS_ValueToString(cx, argv[i]))==NULL) {
+				JS_ReportError(cx,"Invalid mode specified: %s",str);
+				return(JS_TRUE);
+			}
+			mode=JS_GetStringBytes(str);
+		}
+		else if(JSVAL_IS_NUMBER(argv[i])) {	/* bufsize */
+			if(!JS_ValueToInt32(cx,argv[i],&bufsize))
+				return(JS_FALSE);
+		}
+	}
+	SAFECOPY(p->mode,mode);
+
+	p->fp=popen(p->name,p->mode);
+	if(p->fp!=NULL) {
+		p->pipe=TRUE;
+		*rval = JSVAL_TRUE;
+		dbprintf(FALSE, p, "popened: %s",p->name);
+		if(!bufsize)
+			setvbuf(p->fp,NULL,_IONBF,0);	/* no buffering */
+		else
+			setvbuf(p->fp,NULL,_IOFBF,bufsize);
+	}
+
+	return(JS_TRUE);
+}
 
 static JSBool
 js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -195,7 +243,12 @@ js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	fclose(p->fp);
+#ifdef __unix__
+	if(p->pipe)
+		pclose(p->fp);
+	else
+#endif
+		fclose(p->fp);
 
 	dbprintf(FALSE, p, "closed");
 
@@ -257,8 +310,10 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(p->uuencoded || p->b64encoded || p->yencoded) {
 		uulen=len*2;
-		if((uubuf=malloc(uulen))==NULL)
+		if((uubuf=malloc(uulen))==NULL) {
+			free(buf);
 			return(JS_TRUE);
+		}
 		if(p->uuencoded)
 			uulen=uuencode(uubuf,uulen,buf,len);
 		else if(p->yencoded)
@@ -269,12 +324,12 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			free(buf);
 			buf=uubuf;
 			len=uulen;
-		} else
+		}
+		else
 			free(uubuf);
 	}
 
 	str = JS_NewStringCopyN(cx, buf, len);
-
 	free(buf);
 
 	if(str==NULL)
@@ -311,7 +366,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 	}
 
-	if((buf=malloc(len))==NULL)
+	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
 
 	if(fgets(buf,len,p->fp)!=NULL) {
@@ -328,8 +383,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((js_str=JS_NewStringCopyZ(cx,buf))!=NULL)	/* exception here Feb-12-2005 */
 			*rval = STRING_TO_JSVAL(js_str);			/* _CrtDbgBreak from _heap_alloc_dbg */
 	}
-
-	free(buf);
 
 	return(JS_TRUE);
 }
@@ -403,7 +456,7 @@ js_readall(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     array = JS_NewArrayObject(cx, 0, NULL);
 
     while(!feof(p->fp)) {
-		js_readln(cx, obj, 0, NULL, &line); 
+		js_readln(cx, obj, argc, argv, &line);
 		if(line==JSVAL_NULL)
 			break;
         if(!JS_SetElement(cx, array, len++, &line))
@@ -953,8 +1006,10 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	tlen=len;
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&tlen))
+		if(!JS_ValueToInt32(cx,argv[1],(int32*)&tlen)) {
+			FREE_AND_NULL(uubuf);
 			return(JS_FALSE);
+		}
 		if(len>tlen)
 			len=tlen;
 	}
@@ -963,6 +1018,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(tlen>len) {
 			len=tlen-len;
 			if((cp=malloc(len))==NULL) {
+				FREE_AND_NULL(uubuf);
 				dbprintf(TRUE, p, "malloc failure of %u bytes", len);
 				return(JS_TRUE);
 			}
@@ -974,10 +1030,9 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		*rval = JSVAL_TRUE;
 	} else 
 		dbprintf(TRUE, p, "write of %u bytes failed",len);
-		
-	if(uubuf!=NULL)
-		free(uubuf);
 
+	FREE_AND_NULL(uubuf);
+		
 	return(JS_TRUE);
 }
 
@@ -1683,6 +1738,16 @@ static jsSyncMethodSpec js_file_functions[] = {
 		)
 	,310
 	},		
+	{"popen",			js_popen,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[mode=<tt>\"r+\"</tt>] [,buffer_length]")
+	,JSDOCSTR("open pipe to command, <i>buffer_length</i> defaults to 2048 bytes, "
+		"mode (default: <tt>'r+'</tt>) specifies the type of access requested for the file, as follows:<br>"
+		"<tt>r&nbsp</tt> read the programs stdout;<br>"
+		"<tt>w&nbsp</tt> write to the programs stdin<br>"
+		"<tt>r+</tt> open for both reading stdout and writing stdin<br>"
+		"(<b>only functional on UNIX systems</b>)"
+		)
+	,315
+	},		
 	{"close",			js_close,			0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("close file")
 	,310
@@ -1708,7 +1773,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	{"truncate",		js_truncate,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("[length=<tt>0</tt>]")
 	,JSDOCSTR("changes the file <i>length</i> (default: 0) and repositions the file pointer "
 	"(<i>position</i>) to the new end-of-file")
-	,31301
+	,314
 	},
 	{"lock",			js_lock,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("[offset=<tt>0</tt>] [,length=<i>file_length</i>-<i>offset</i>]")
 	,JSDOCSTR("lock file record for exclusive access (file must be opened <i>shareable</i>)")
@@ -1731,8 +1796,8 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("read a binary integer from the file, default number of <i>bytes</i> is 4 (32-bits)")
 	,310
 	},
-	{"readAll",			js_readall,			0,	JSTYPE_ARRAY,	JSDOCSTR("")
-	,JSDOCSTR("read all lines into an array of strings")
+	{"readAll",			js_readall,			0,	JSTYPE_ARRAY,	JSDOCSTR("[maxlen=<tt>512</tt>]")
+	,JSDOCSTR("read all lines into an array of strings, <i>maxlen</i> defaults to 512 characters")
 	,310
 	},
 	{"write",			js_write,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("text [,length=<i>text_length</i>]")
@@ -1810,11 +1875,11 @@ static jsSyncMethodSpec js_file_functions[] = {
 	},
 	{"iniRemoveKey",	js_iniRemoveKey,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key")
 	,JSDOCSTR("remove specified <i>key</i> from specified <i>section</i> in <tt>.ini</tt> file.")
-	,31301
+	,314
 	},
 	{"iniRemoveSection",js_iniRemoveSection,1,	JSTYPE_BOOLEAN,	JSDOCSTR("section")
 	,JSDOCSTR("remove specified <i>section</i> from <tt>.ini</tt> file.")
-	,31301
+	,314
 	},
 	{0}
 };
