@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.206 2007/09/17 17:29:30 rswindell Exp $
+# $Id: GNUmakefile,v 1.208 2007/10/02 19:40:48 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -47,16 +47,15 @@ ifdef USE_DOSEMU
  CFLAGS += -DUSE_DOSEMU
 endif
 
-ifdef USE_LINUX_CAPS
- CFLAGS += -DUSE_LINUX_CAPS
- ifdef DEBUG_LINUX_CAPS
-  CFLAGS += -DDEBUG_LINUX_CAPS
- endif
-endif
-
-
 ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
+endif
+
+ifeq ($(os),linux)
+ ifeq ($(shell test -f /usr/include/linux/capability.h && echo "yes"),yes)
+  CFLAGS += -DUSE_LINUX_CAPS
+  CON_LIBS += -lcap
+ endif
 endif
 
 # JS and NSPR setup stuff...
@@ -108,10 +107,6 @@ JS_LDFLAGS += -L$(JSLIBDIR) -l$(JSLIB)
 #The following is needed for nspr support on Linux
 ifeq ($(os),linux)
  JS_LDFLAGS	+=	-ldl
-  #Needed for linux kernel capabilities
-  ifdef USE_LINUX_CAPS
-   JS_LDFLAGS += -lcap
-  endif
 endif
 JS_LDFLAGS	+=	-L/usr/local/lib -L$(NSPRDIR) -lnspr4
 CFLAGS	+=	$(JS_CFLAGS)
