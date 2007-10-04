@@ -1,4 +1,4 @@
-/* $Id: qwknodes.c,v 1.16 2005/12/04 20:41:51 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.17 2007/07/08 21:05:34 deuce Exp $ */
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
@@ -97,7 +97,7 @@ void bail(int code)
 char *loadmsgtail(smbmsg_t msg)
 {
 	char	*buf=NULL;
-	ushort	xlat;
+	uint16_t	xlat;
 	int 	i;
 	long	l=0,length;
 
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	char		*ctrl_dir;
 	char		revision[16];
 
-	sscanf("$Revision: 1.16 $", "%*s %s", revision);
+	sscanf("$Revision: 1.17 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List Generator v%s-%s\n"
 		,revision, PLATFORM_DESC);
