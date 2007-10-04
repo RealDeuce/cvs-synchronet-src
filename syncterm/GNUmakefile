@@ -50,6 +50,18 @@ ifeq ($(os),sunos)    # Solaris
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 
+ifeq ($(os),darwin)
+ ifeq ($(shell uname -r),6.8)
+  LDFLAGS += -ldl
+ endif
+endif
+
+ifeq ($(os),linux)
+ ifeq ($(shell uname -m),x86_64)
+  LDFLAGS += -ldl
+ endif
+endif
+
 ifdef USE_GUTS
  CFLAGS +=	-I../guts -DGUTS_BUILTIN
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
@@ -59,10 +71,13 @@ PREFIX	?= /usr/local
 DESKTOPDIR ?= $(PREFIX)/share/applications
 
 CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
+CFLAGS	+=	-DSYSTEM_LIST_DIR=\"${SYSTEM_LIST_DIR}\"
 ifeq ($(PREFIX),/usr)
  MANPREFIX ?= /usr/share
+ SYSTEM_LIST_DIR ?= /etc
 else
  MANPREFIX ?= $(PREFIX)
+ SYSTEM_LIST_DIR ?= ${PREFIX}/etc
 endif
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib -I../comio
@@ -70,14 +85,20 @@ LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
 
 vpath %.c ../sbbs3 ../smblib ../uifc ../guts ../comio
 
-INSTALL_EXE	?=	install
+ifdef DEBUG
+ INSTALL_EXE	?=	install
+else
+ INSTALL_EXE	?=	install -s
+endif
 INSTALL_DATA	?=	install -m 0444
 
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
 ifndef bcc
  ifneq ($(os),sunos)
-  LDFLAGS   +=  -lutil
+  ifneq ($(os),darwin)
+   LDFLAGS   +=  -lutil
+  endif
  endif
 endif
 
