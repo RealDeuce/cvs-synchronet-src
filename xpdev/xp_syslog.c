@@ -9,6 +9,7 @@
 
 static SOCKET syslog_sock=INVALID_SOCKET;
 static char log_host[1025]=
+static int log_opts=LOG_CONS;
 #ifdef __unix__
 "";
 #else
@@ -62,17 +63,20 @@ void xp_openlog(const char *ident, int logopt, int facility)
 	syslog_sock=socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if(syslog_sock==INVALID_SOCKET)
 		return;
-	/*
-	 * If the bind() fails, that's OK... we're just trying to set the source port to
-	 * 514 here as reccomended by the RFC.  This isn't REQUIRED though.
-	 */
-	bind(syslog_sock, (struct sockaddr *)&syslog_addr, sizeof(syslog_addr));
+	if(bind(syslog_sock, (struct sockaddr *)&syslog_addr, sizeof(syslog_addr))) {
+		syslog_addr.sin_port=0;
+		if(bind(syslog_sock, (struct sockaddr *)&syslog_addr, sizeof(syslog_addr)))
+			return;
+	}
 	syslog_addr.sin_addr.s_addr=resolve_ip(log_host);
+	syslog_addr.sin_port=htons(SYSLOG_PORT);
 	if(connect(syslog_sock, (struct sockaddr *)&syslog_addr, sizeof(syslog_addr))) {
 		closesocket(syslog_sock);
 		syslog_sock=INVALID_SOCKET;
 		return;
 	}
+
+	log_opts=logopt;
 
 	SAFECOPY(syslog_tag, ident);
 }
@@ -96,7 +100,7 @@ void xp_vsyslog(int priority, const char *message, va_list va)
 #endif
 
 	/* Ensure we can even send this thing */
-	if(syslog_sock==INVALID_SOCKET)
+	if(syslog_sock==INVALID_SOCKET && !(log_opts & LOG_CONS) && !(log_opts & LOG_PERROR))
 		return;
 
 	/* Check for valid priority */
@@ -139,7 +143,14 @@ void xp_vsyslog(int priority, const char *message, va_list va)
 		else if(*p>126)
 			*p=' ';
 	}
-	sendsocket(syslog_sock, msg_to_send, strlen(msg_to_send));
+	if(syslog_sock!=INVALID_SOCKET)
+		sendsocket(syslog_sock, msg_to_send, strlen(msg_to_send));
+	else if(log_opts & LOG_CONS)
+		puts(msg_to_send);
+	if(log_opts & LOG_PERROR) {
+		fputs(stderr,msg_to_send);
+		fputs(stderr,"\n");
+	}
 }
 
 void xp_syslog(int priority, const char *message, ...)
