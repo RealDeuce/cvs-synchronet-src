@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.121 2006/12/27 06:29:32 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.122 2006/12/31 11:16:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -292,12 +292,10 @@ void sbbs_read_ini(
 		bbs->rlogin_port
 			=iniGetShortInt(list,section,"RLoginPort",513);
 
-#ifdef USE_CRYPTLIB
 		bbs->ssh_interface
 			=iniGetIpAddress(list,section,"SSHInterface",global->interface_addr);
 		bbs->ssh_port
 			=iniGetShortInt(list,section,"SSHPort",22);
-#endif
 
 		bbs->first_node
 			=iniGetShortInt(list,section,"FirstNode",1);
@@ -738,14 +736,12 @@ BOOL sbbs_write_ini(
 		if(!iniSetShortInt(lp,section,"RLoginPort",bbs->rlogin_port,&style))
 			break;
 
-#ifdef USE_CRYPTLIB
 		if(bbs->ssh_interface==global->interface_addr)
 			iniRemoveValue(lp,section,"SSHInterface");
 		else if(!iniSetIpAddress(lp,section,"SSHInterface",bbs->ssh_interface,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"SSHPort",bbs->ssh_port,&style))
 			break;
-#endif
 
 		if(!iniSetShortInt(lp,section,"FirstNode",bbs->first_node,&style))
 			break;
