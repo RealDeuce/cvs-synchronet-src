@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.189 2007/10/11 11:55:09 deuce Exp $ */
+/* $Id: term.c,v 1.185 2007/10/04 01:03:37 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -142,7 +142,7 @@ void update_status(struct bbslist *bbs, int speed)
 	char nbuf[LIST_NAME_MAX+10+11+1];	/* Room for "Name (Logging) (115300)" and terminator */
 						/* SAFE and Logging should me be possible. */
 	int oldscroll;
-	int olddmc=hold_update;
+	int olddmc;
 	struct	text_info txtinfo;
 	int now;
 	static int lastupd=0;
@@ -157,6 +157,7 @@ void update_status(struct bbslist *bbs, int speed)
 	timeon=now - bbs->connected;
     gettextinfo(&txtinfo);
 	oldscroll=_wscroll;
+	olddmc=hold_update;
 	hold_update=TRUE;
 	textattr(YELLOW|(BLUE<<4));
 	/* Move to status line thinger */
@@ -191,8 +192,8 @@ void update_status(struct bbslist *bbs, int speed)
 	_wscroll=oldscroll;
 	textattr(txtinfo.attribute);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
-	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
+	gotoxy(txtinfo.curx,txtinfo.cury);
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -310,13 +311,14 @@ void zmodem_progress(void* cbdata, ulong current_pos)
 	long		t;
 	time_t		now;
 	static time_t last_progress;
-	int			old_hold=hold_update;
+	int			old_hold;
 	zmodem_t*	zm=(zmodem_t*)cbdata;
 
 	zmodem_check_abort(cbdata);
 
 	now=time(NULL);
 	if(now-last_progress>0 || current_pos >= zm->current_file_size) {
+		old_hold = hold_update;
 		hold_update = TRUE;
 		window(((trans_ti.screenwidth-TRANSFER_WIN_WIDTH)/2)+2
 				, ((trans_ti.screenheight-TRANSFER_WIN_HEIGHT)/2)+1
@@ -401,7 +403,7 @@ static int recv_byte(void* unused, unsigned timeout /* seconds */)
 #endif
 BOOL data_waiting(void* unused, unsigned timeout)
 {
-	return(conn_data_waiting()!=0);
+	return(conn_data_waiting());
 }
 
 void draw_transfer_window(char* title)
@@ -1180,8 +1182,8 @@ BOOL doterm(struct bbslist *bbs)
 	int	oldmc;
 	int	updated=FALSE;
 	BOOL	sleep;
+	BOOL	rd;
 	int 	emulation=CTERM_EMULATION_ANSI_BBS;
-	size_t	remain;
 
 	speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
@@ -1228,7 +1230,7 @@ BOOL doterm(struct bbslist *bbs)
 
 		if(!term.nostatus)
 			update_status(bbs, speed);
-		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
+		while(conn_data_waiting() || !conn_connected()) {
 			if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
 				/* Get remote input */
 				inch=recv_byte(NULL, 0);
@@ -1272,10 +1274,8 @@ BOOL doterm(struct bbslist *bbs)
 							if(inch == gutsinit[j]) {
 								gutsbuf[j]=inch;
 								gutsbuf[++j]=0;
-								if(j==sizeof(gutsinit)) { /* Have full sequence */
+								if(j==sizeof(gutsinit)) /* Have full sequence */
 									guts_transfer(bbs);
-									remain=0;
-								}
 							}
 							else {
 								gutsbuf[j++]=inch;
@@ -1369,7 +1369,6 @@ BOOL doterm(struct bbslist *bbs)
 									else
 										begin_upload(bbs, TRUE);
 									zrqbuf[0]=0;
-									remain=0;
 								}
 							}
 							else {	/* Not a real zrqinit */
@@ -1405,11 +1404,10 @@ BOOL doterm(struct bbslist *bbs)
 				break;
 			}
 		}
-		if(updated && sleep) {
-			hold_update=FALSE;
+		hold_update=FALSE;
+		if(updated && sleep)
 			gotoxy(wherex(), wherey());
-			hold_update=TRUE;
-		}
+		hold_update=TRUE;
 
 		/* Get local input */
 		while(kbhit()) {
@@ -1657,16 +1655,29 @@ BOOL doterm(struct bbslist *bbs)
 						ch[0]=127;
 						conn_send(ch,1,0);
 						break;
-					case 96:	/* No backtick */
-						break;
 					default:
 						if(key<256) {
 							/* ASCII Translation */
 							if(key<32) {
 								break;
 							}
-							else if(key<123) {
+							else if(key<65) {
 								ch[0]=key;
+								conn_send(ch,1,0);
+							}
+							else if(key<91) {
+								ch[0]=tolower(key);
+								conn_send(ch,1,0);
+							}
+							else if(key<96) {
+								ch[0]=key;
+								conn_send(ch,1,0);
+							}
+							else if(key==96) {
+								break;
+							}
+							else if(key<123) {
+								ch[0]=toupper(key);
 								conn_send(ch,1,0);
 							}
 						}
