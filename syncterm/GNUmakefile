@@ -50,17 +50,17 @@ ifeq ($(os),sunos)    # Solaris
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 
-ifdef STATIC_CRYPTLIB
- CFLAGS += -DSTATIC_CRYPTLIB
- LDFLAGS += -lz
- EXTRA_LIBS += $(SRC_ROOT)/../lib/cryptlib/$(machine).release/libcl.a
-endif
-
 ifeq ($(os),darwin)
  ifeq ($(shell uname -r),6.8)
-  EXTRA_LIBS += /usr/local/lib/libdl.a
+  LDFLAGS += -ldl
  endif
  STATIC_CRYPTLIB ?= 1
+endif
+
+ifdef STATIC_CRYPTLIB
+ CFLAGS += -DSTATIC_CRYPTLIB
+ LDFLAGS += -lcl -lz
+ LDFLAGS += -L$(SRC_ROOT)/../lib/cryptlib/$(machine).release
 endif
 
 ifeq ($(os),linux)
@@ -78,6 +78,7 @@ PREFIX	?= /usr/local
 DESKTOPDIR ?= $(PREFIX)/share/applications
 
 CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
+CFLAGS	+=	-DSYSTEM_LIST_DIR=\"${SYSTEM_LIST_DIR}\"
 ifeq ($(PREFIX),/usr)
  MANPREFIX ?= /usr/share
  SYSTEM_LIST_DIR ?= /etc
@@ -85,7 +86,6 @@ else
  MANPREFIX ?= $(PREFIX)
  SYSTEM_LIST_DIR ?= ${PREFIX}/etc
 endif
-CFLAGS	+=	-DSYSTEM_LIST_DIR=\"${SYSTEM_LIST_DIR}\"
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib -I../comio
 LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
@@ -112,21 +112,7 @@ endif
 
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS) $(EXTRA_LIBS)
-ifeq ($(os),darwin)
-	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app
-	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents
-	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/MacOS
-	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/Resources
-	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/Frameworks
-	${QUIET}echo "APPL????" > $(EXEODIR)/SyncTERM.app/Contents/PkgInfo
-	${QUIET}${INSTALL_EXE} ${SYNCTERM} ${EXEODIR}/SyncTERM.app/Contents/MacOS
-	${QUIET}${INSTALL_DATA} Info.plist ${EXEODIR}/SyncTERM.app/Contents
-	${QUIET}${INSTALL_DATA} SyncTERM.icns ${EXEODIR}/SyncTERM.app/Contents/Resources
-	-${QUIET}rm -rf ${EXEODIR}/SyncTERM.app/Contents/Frameworks/SDL.framework
-	${QUIET}cp -R ${SDL_FRAMEWORK_PATH}/SDL.framework ${EXEODIR}/SyncTERM.app/Contents/Frameworks
-	${QUIET}rm -rf ${EXEODIR}/SyncTERM.app/Contents/Frameworks/SDL.framework/Headers/*
-endif
+	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS)
 
 syncterm.1.gz: syncterm.man
 	gzip < syncterm.man > syncterm.1.gz

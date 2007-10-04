@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.43 2007/10/21 04:09:07 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.42 2007/07/10 21:51:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,7 +139,7 @@ enum {
 	#endif
 #endif
 
-#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)
+#if !defined(HAS_INTTYPES_H)
 
 typedef char	int8_t;
 typedef short	int16_t;

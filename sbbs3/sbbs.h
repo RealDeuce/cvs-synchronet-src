@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.313 2008/02/25 08:25:29 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.308 2007/08/15 01:56:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -132,11 +132,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "semfile.h"
 #include "dirwrap.h"
 #include "filewrap.h"
-#include "datewrap.h"
 #include "sockwrap.h"
 #include "link_list.h"
 #include "msg_queue.h"
-#include "xpdatetime.h"
 
 #include "smblib.h"
 #include "ars_defs.h"
@@ -522,7 +520,7 @@ public:
 	/* getstr.cpp */
 	size_t	getstr_offset;
 	size_t	getstr(char *str, size_t length, long mode);
-	long	getnum(ulong max, ulong dflt=0);
+	long	getnum(ulong max);
 	void	insert_indicator(void);
 
 	/* getkey.cpp */
@@ -732,12 +730,11 @@ public:
 	bool	unpack_rep(char* repfile=NULL);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf, FILE* hdrs_dat);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf);
 
 	/* qwktomsg.cpp */
-	void	qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers);
-	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, uint subnum
-				,uint touser, smbmsg_t* msg);
+	bool	qwktomsg(FILE *qwk_fp, char *hdrblk, char fromhub, uint subnum
+				,uint touser);
 
 	/* fido.cpp */
 	bool	netmail(char *into, char *subj, long mode);
@@ -847,11 +844,8 @@ extern "C" {
 	/* str_util.c */
 	DLLEXPORT char *	DLLCALL truncstr(char* str, const char* set);
 	DLLEXPORT char *	DLLCALL ascii_str(uchar* str);
-	DLLEXPORT BOOL		DLLCALL findstr(const char *insearch, const char *fname);
-	DLLEXPORT BOOL		DLLCALL findstr_in_list(const char* insearchof, str_list_t list);
-	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, const char *insearch, const char *name);
-	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
-	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
+	DLLEXPORT BOOL		DLLCALL findstr(char *insearch, char *fname);
+	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, char *insearch, char *name);
 	DLLEXPORT char *	DLLCALL strip_exascii(char *str);
 	DLLEXPORT char *	DLLCALL prep_file_desc(char *str);
 	DLLEXPORT char *	DLLCALL strip_ctrl(char *str);
@@ -862,8 +856,8 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL rot13(char* str);
 
 	/* msg_id.c */
-	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
-	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg);
+	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg);
 
 
 	/* date_str.c */
@@ -974,7 +968,6 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char*);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec*, BOOL append);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncProperties(JSContext* cx, JSObject* obj, jsSyncPropertySpec*);
-	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
