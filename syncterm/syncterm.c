@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.117 2007/10/21 08:56:55 deuce Exp $ */
+/* $Id: syncterm.c,v 1.113 2007/10/02 01:24:26 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -647,73 +647,6 @@ static const struct {
   "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
 };
 
-char *output_types[]={
-	 "Autodetect"
-#ifdef __unix__
-		" (SDL, X11, Curses)"
-#elif defined(_WIN32)
-		" (SDL, Console, ANSI)"
-#endif
-#ifdef __unix__
-	,"Curses"
-	,"Curses on cp437 Device"
-#endif
-	,"ANSI"
-#if defined(__unix__) && !defined(NO_X)
-	,"X11"
-#endif
-#ifdef _WIN32
-	,"Win32 Console"
-#endif
-	,"SDL"
-	,"SDL Fullscreen"
-	,"SDL Overlay"
-	,"SDL Overlay Fullscreen"
-,NULL};
-int output_map[]={
-	 CIOLIB_MODE_AUTO
-#ifdef __unix__
-	,CIOLIB_MODE_CURSES
-	,CIOLIB_MODE_CURSES_IBM
-#endif
-	,CIOLIB_MODE_ANSI
-#if defined(__unix__) && !defined(NO_X)
-	,CIOLIB_MODE_X
-#endif
-#ifdef _WIN32
-	,CIOLIB_MODE_CONIO
-#endif
-	,CIOLIB_MODE_SDL
-	,CIOLIB_MODE_SDL_FULLSCREEN
-	,CIOLIB_MODE_SDL_YUV
-	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
-,0};
-char *output_descrs[]={
-	 "Autodetect"
-	,"Curses"
-	,"Curses on cp437 Device"
-	,"ANSI"
-	,"X11"
-	,"Win32 Console"
-	,"SDL"
-	,"SDL Fullscreen"
-	,"SDL Overlay"
-	,"SDL Overlay Fullscreen"
-,NULL};
-
-char *output_enum[]={
-	 "Autodetect"
-	,"Curses"
-	,"Curses437"
-	,"ANSI"
-	,"X11"
-	,"WinConsole"
-	,"SDL"
-	,"SDLFullscreen"
-	,"SDLOverlay"
-	,"SDLOverlayFullscreen"
-,NULL};
-
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
@@ -967,7 +900,6 @@ void load_settings(struct syncterm_settings *set)
 	inifile=fopen(inipath,"r");
 	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
 	set->startup_mode=iniReadInteger(inifile,"SyncTERM","VideoMode",FALSE);
-	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 
 	/* Modem settings */
@@ -989,7 +921,7 @@ int main(int argc, char **argv)
 	/* Command-line parsing vars */
 	char	url[MAX_PATH+1];
 	int		i;
-	int	ciolib_mode;
+	int	ciolib_mode=CIOLIB_MODE_AUTO;
 	str_list_t	inifile;
 	FILE *listfile;
 	char	listpath[MAX_PATH+1];
@@ -1004,10 +936,6 @@ int main(int argc, char **argv)
 	uifc.size=sizeof(uifc);
 	uifc.esc_delay=25;
 	url[0]=0;
-
-	load_settings(&settings);
-	ciolib_mode=settings.output_mode;
-
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
 #ifndef __unix__
@@ -1041,9 +969,6 @@ int main(int argc, char **argv)
 						case 'S':
 							ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
 							break;
-						case 'O':
-							ciolib_mode=CIOLIB_MODE_SDL_YUV;
-							break;
 						default:
 							goto USAGE;
 					}
@@ -1070,6 +995,8 @@ int main(int argc, char **argv)
         else
 			SAFECOPY(url,argv[i]);
     }
+
+	load_settings(&settings);
 
 	if(initciolib(ciolib_mode))
 		return(1);
@@ -1277,7 +1204,6 @@ int main(int argc, char **argv)
         "-e# =  set escape delay to #msec\n"
 		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
 		"       S = FullScreen SDL mode\n"
-		"       O = SDL overlay mode (hardware scaling)\n"
 #ifdef __unix__
 		"       X = X11 mode\n"
 		"       C = Curses mode\n"
