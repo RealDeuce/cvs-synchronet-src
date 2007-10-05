@@ -2,13 +2,13 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.38 2006/02/03 03:47:10 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.40 2007/08/25 08:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,13 +47,13 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 
 	sprintf(fname,"%shack.log",cfg->logs_dir);
 
-	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,S_IREAD|S_IWRITE))==-1)
+	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,DEFFILEMODE))==-1)
 		return(FALSE);
 
 	sprintf(hdr,"SUSPECTED %s HACK ATTEMPT from %s on %.24s\r\nUsing port %u at %s [%s]\r\nDetails: "
 		,prot
 		,user
-		,timestr(cfg,&now,tstr)
+		,timestr(cfg,now,tstr)
 		,addr->sin_port
 		,host
 		,inet_ntoa(addr->sin_addr)
@@ -80,7 +80,7 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 
 	sprintf(fname,"%sspam.log",cfg->logs_dir);
 
-	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,S_IREAD|S_IWRITE))==-1)
+	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,DEFFILEMODE))==-1)
 		return(FALSE);
 
 	if(to==NULL)
@@ -94,7 +94,7 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 	sprintf(hdr,"SUSPECTED %s SPAM %s on %.24s\r\nHost: %s [%s]\r\nFrom: %.128s %s\r\nReason: "
 		,prot
 		,action
-		,timestr(cfg,&now,tstr)
+		,timestr(cfg,now,tstr)
 		,host
 		,ip_addr
 		,from
@@ -115,7 +115,7 @@ void sbbs_t::logentry(char *code, char *entry)
 	char str[512];
 
 	now=time(NULL);
-	sprintf(str,"Node %2d  %s\r\n   %s",cfg.node_num,timestr(&now),entry);
+	sprintf(str,"Node %2d  %s\r\n   %s",cfg.node_num,timestr(now),entry);
 	logline(code,str);
 }
 
@@ -366,7 +366,7 @@ void sbbs_t::errorlog(char *text)
 		errorlog_inside=0;
 		return; }
 	sprintf(hdr,"%s Node %2d: %s #%d"
-		,timestr(&now),cfg.node_num,useron.alias,useron.number);
+		,timestr(now),cfg.node_num,useron.alias,useron.number);
 	write(file,hdr,strlen(hdr));
 	write(file,crlf,2);
 	write(file,text,strlen(text));
