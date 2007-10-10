@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.3 2007/09/27 01:21:29 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.7 2007/10/02 08:27:44 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -361,6 +361,7 @@ int bitmap_setfont(int font, int force)
 			free(pold);
 		}
 	}
+	bitmap_loadfont(NULL);
 	return(0);
 }
 
@@ -490,7 +491,6 @@ static void bitmap_draw_cursor(void)
 	int width;
 
 	if(vstat.blink && !hold_update) {
-		pthread_mutex_lock(&vstatlock);
 		if(vstat.curs_start<=vstat.curs_end) {
 			xoffset=(cio_textinfo.curx+cio_textinfo.winleft-2)*vstat.charwidth;
 			yoffset=(cio_textinfo.cury+cio_textinfo.wintop-2)*vstat.charheight;
@@ -498,7 +498,6 @@ static void bitmap_draw_cursor(void)
 			start=vstat.curs_start;
 			end=vstat.curs_end;
 			width=vstat.charwidth;
-			pthread_mutex_unlock(&vstatlock);
 
 			pthread_mutex_lock(&screenlock);
 			for(y=start; y<=end; y++) {
@@ -509,8 +508,6 @@ static void bitmap_draw_cursor(void)
 			pthread_mutex_unlock(&screenlock);
 			send_rectangle(xoffset, yoffset+vstat.curs_start, vstat.charwidth, vstat.curs_end-vstat.curs_start+1,FALSE);
 		}
-		else
-			pthread_mutex_unlock(&vstatlock);
 	}
 }
 
@@ -555,9 +552,15 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 	if(!vstat.vmem)
 		return(-1);
 
+	if(!font)
+		return(-1);
+
 	sch=vstat.vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)];
 	bg=(sch&0x7000)>>12;
-	fg=(sch&0x0f00)>>8;
+	if(sch&0x8000 && vstat.blink)
+		fg=bg;
+	else
+		fg=(sch&0x0f00)>>8;
 	fontoffset=(sch&0xff)*vstat.charheight;
 
 	pthread_mutex_lock(&screenlock);
