@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.62 2006/06/06 17:17:18 rswindell Exp $ */
+/* $Id: js_user.c,v 1.64 2007/09/22 07:29:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -124,6 +124,7 @@ enum {
 	,USER_PROP_POSTSPERDAY
 	,USER_PROP_FREECDTPERDAY
 	,USER_PROP_CACHED
+	,USER_PROP_IS_SYSOP
 };
 
 static void js_getuserdat(private_t* p)
@@ -376,6 +377,10 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = BOOLEAN_TO_JSVAL(p->cached);
 			return(JS_TRUE);	/* intentional early return */
 
+		case USER_PROP_IS_SYSOP:
+			*vp = BOOLEAN_TO_JSVAL(p->user.level >= SYSOP_LEVEL);
+			return(JS_TRUE);	/* intentional early return */
+
 		default:	
 			/* This must not set vp in order for child objects to work (stats and security) */
 			return(JS_TRUE);
@@ -617,6 +622,7 @@ static jsSyncPropertySpec js_user_properties[] = {
 	{	"download_protocol"	,USER_PROP_PROT		 	,USER_PROP_FLAGS,		310},
 	{	"logontime"			,USER_PROP_LOGONTIME 	,USER_PROP_FLAGS,		310},
 	{	"cached"			,USER_PROP_CACHED		,USER_PROP_FLAGS,		314},
+	{	"is_sysop"			,USER_PROP_IS_SYSOP		,JSPROP_ENUMERATE|JSPROP_READONLY,	315},
 	{0}
 };
 
@@ -657,6 +663,7 @@ static char* user_prop_desc[] = {
 	,"file transfer protocol (command key)"
 	,"logon time (time_t format)"
 	,"record is currently cached in memory"
+	,"user has a System Operator's security level"
 	,NULL
 };
 #endif
@@ -954,6 +961,26 @@ js_adjust_minutes(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	return JS_TRUE;
 }
 
+static JSBool
+js_get_time_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	private_t*	p;
+	int32	start_time=0;
+
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
+		return JS_FALSE;
+
+	if(argc)
+		JS_ValueToInt32(cx, argv[0], &start_time);
+
+	js_getuserdat(p);
+
+	*rval = INT_TO_JSVAL(gettimeleft(p->cfg, &p->user, (time_t)start_time));
+
+	return JS_TRUE;
+}
+
+
 static jsSyncMethodSpec js_user_functions[] = {
 	{"compare_ars",		js_chk_ar,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string ars")
 	,JSDOCSTR("Verify user meets access requirements string")
@@ -982,7 +1009,13 @@ static jsSyncMethodSpec js_user_functions[] = {
 	{"downloaded_file",	js_downloaded_file,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("[bytes] [,files]")
 	,JSDOCSTR("Adjust user's files/bytes-downloaded statistics")
 	,314
-	},		
+	},
+	{"get_time_left",	js_get_time_left,	1,	JSTYPE_NUMBER,	JSDOCSTR("start_time")
+	,JSDOCSTR("Returns the user's available remaining time online, in seconds,<br>"
+	"based on the passed <i>start_time</i> value (in time_t format)<br>"
+	"Note: this method does not account for pending forced timed events")
+	,31401
+	},
 	{0}
 };
 
