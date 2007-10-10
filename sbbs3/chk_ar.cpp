@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.17 2007/09/23 18:28:16 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.18 2007/09/30 22:30:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -456,8 +456,15 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 					result=!_not;
 				(*ptrptr)++;
 				break;
-			case AR_ULB:
-				if((equal && user->ulb!=i) || (!equal && user->ulb<i))
+			case AR_ULK:
+				if((equal && (user->ulb/1024)!=i) || (!equal && (user->ulb/1024)<i))
+					result=_not;
+				else
+					result=!_not;
+				(*ptrptr)++;
+				break;
+			case AR_ULM:
+				if((equal && (user->ulb/(1024*1024))!=i) || (!equal && (user->ulb/(1024*1024))<i))
 					result=_not;
 				else
 					result=!_not;
@@ -470,8 +477,15 @@ bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 					result=!_not;
 				(*ptrptr)++;
 				break;
-			case AR_DLB:
-				if((equal && user->dlb!=i) || (!equal && user->dlb<i))
+			case AR_DLK:
+				if((equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
+					result=_not;
+				else
+					result=!_not;
+				(*ptrptr)++;
+				break;
+			case AR_DLM:
+				if((equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
 					result=_not;
 				else
 					result=!_not;
