@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.211 2007/10/15 08:06:00 deuce Exp $
+# $Id: GNUmakefile,v 1.210 2007/10/05 06:53:29 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -54,7 +54,7 @@ endif
 ifeq ($(os),linux)
  ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
   CFLAGS += -DUSE_LINUX_CAPS
-  SBBS_LIBS += -lcap
+  CON_LIBS += -lcap
  endif
 endif
 
