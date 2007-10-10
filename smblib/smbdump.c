@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.7 2005/10/19 18:24:45 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.9 2007/08/15 01:44:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,6 +66,7 @@ static char *binstr(uchar *buf, ushort length)
 void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 {
 	int i;
+	time_t	tt;
 
 	fprintf(fp,"%-20.20s %ld\n"		,"number"			,msg->hdr.number);
 
@@ -100,17 +101,21 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		fprintf(fp,"%-20.20s %s\n"	,"summary"			,msg->summary);
 
 	/* convenience integers */
-	if(msg->expiration)
+	if(msg->expiration) {
+		tt=msg->expiration;
 		fprintf(fp,"%-20.20s %.24s\n","expiration"	
-			,ctime((time_t *)&msg->expiration));
+			,ctime(&tt));
+	}
 
 	/* fixed header fields */
+	tt=msg->hdr.when_written.time;
 	fprintf(fp,"%-20.20s %.24s  UTC%+d:%02d\n"	,"when_written"	
-		,ctime((time_t *)&msg->hdr.when_written.time)	
+		,ctime(&tt)	
 		,smb_tzutc(msg->hdr.when_written.zone)/60
 		,abs(smb_tzutc(msg->hdr.when_written.zone)%60));
+	tt=msg->hdr.when_imported.time;
 	fprintf(fp,"%-20.20s %.24s  UTC%+d:%02d\n"	,"when_imported"	
-		,ctime((time_t *)&msg->hdr.when_imported.time)	
+		,ctime(&tt)	
 		,smb_tzutc(msg->hdr.when_imported.zone)/60
 		,abs(smb_tzutc(msg->hdr.when_imported.zone)%60));
 	fprintf(fp,"%-20.20s %04Xh\n"	,"type"				,msg->hdr.type);
@@ -130,8 +135,10 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		fprintf(fp,"%-20.20s %hu\n"	,"delivery_attempts",msg->hdr.delivery_attempts);
 	if(msg->hdr.times_downloaded)
 		fprintf(fp,"%-20.20s %lu\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
-	if(msg->hdr.last_downloaded)
-		fprintf(fp,"%-20.20s %.24s\n"	,"last_downloaded"	,ctime((time_t*)&msg->hdr.last_downloaded));
+	if(msg->hdr.last_downloaded) {
+		tt=msg->hdr.last_downloaded;
+		fprintf(fp,"%-20.20s %.24s\n"	,"last_downloaded"	,ctime(&tt));
+	}
 
 	fprintf(fp,"%-20.20s %06lXh\n"	,"header offset"	,msg->idx.offset);
 	fprintf(fp,"%-20.20s %u\n"		,"header length"	,msg->hdr.length);
