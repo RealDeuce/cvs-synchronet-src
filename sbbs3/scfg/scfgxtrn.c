@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.39 2007/06/29 05:30:49 deuce Exp $ */
+/* $Id: scfgxtrn.c,v 1.40 2007/09/30 22:22:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1419,7 +1419,7 @@ online program (e.g. Free Time), set this option to Yes.
 /*
 Monitor Time Left:
 
-If you want Synchronet to monitor the user's time left onlnie while this
+If you want Synchronet to monitor the user's time left online while this
 program runs (and disconnect the user if their time runs out), set this
 option to Yes.
 */
