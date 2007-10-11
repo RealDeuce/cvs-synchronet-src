@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.34 2007/09/30 07:31:15 deuce Exp $ */
+/* $Id: conn.c,v 1.36 2007/10/11 11:55:09 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -124,7 +124,6 @@ size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outl
 size_t conn_buf_get(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen)
 {
 	size_t ret;
-	size_t loop;
 	size_t atstart;
 
 	atstart=conn_buf_bytes(buf);
@@ -148,7 +147,6 @@ size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t
 {
 	size_t write_bytes;
 	size_t chunk;
-	size_t loop;
 
 	write_bytes=conn_buf_free(buf);
 	if(write_bytes > outlen)
@@ -179,7 +177,6 @@ size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long 
 	long double now;
 	long double end;
 	size_t found;
-	size_t loop;
 	unsigned long timeleft;
 	int retnow=0;
 	sem_t	*sem;
@@ -326,16 +323,14 @@ int conn_connect(struct bbslist *bbs)
 	return(conn_api.terminate);
 }
 
-BOOL conn_data_waiting(void)
+size_t conn_data_waiting(void)
 {
 	size_t found;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
 	found=conn_buf_bytes(&conn_inbuf);
 	pthread_mutex_unlock(&(conn_inbuf.mutex));
-	if(found)
-		return(TRUE);
-	return(FALSE);
+	return(found);
 }
 
 int conn_close(void)
