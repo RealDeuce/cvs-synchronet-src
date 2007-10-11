@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.50 2006/12/29 19:08:59 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.53 2007/09/09 19:28:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,7 +80,7 @@ BOOL sbbs_t::newuser()
 	}
 	getnodedat(cfg.node_num,&thisnode,1);
 	thisnode.status=NODE_NEWUSER;
-	thisnode.connection=0xffff;
+	thisnode.connection=node_connection;
 	putnodedat(cfg.node_num,&thisnode);
 	memset(&useron,0,sizeof(user_t));	  /* Initialize user info to null */
 	if(cfg.new_pass[0] && online==ON_REMOTE) {
@@ -113,7 +113,8 @@ BOOL sbbs_t::newuser()
 		useron.expire=0;
 	useron.sex=' ';
 	useron.prot=cfg.new_prot;
-	SAFECOPY(useron.note,cid);		/* Caller ID if supported, NULL otherwise */
+	SAFECOPY(useron.comp,client_name);	/* hostname or CID name */
+	SAFECOPY(useron.note,cid);			/* IP address or CID number */
 	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true))!=0) {	/* Duplicate IP address */
 		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
@@ -402,7 +403,7 @@ BOOL sbbs_t::newuser()
 			bprintf(text[NewUserPasswordVerify]);
 			console|=CON_R_ECHOX;
 			str[0]=0;
-			getstr(str,LEN_PASS,K_UPPER);
+			getstr(str,LEN_PASS*2,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(!strcmp(str,useron.pass)) break;
 			if(cfg.sys_misc&SM_ECHO_PW) 
