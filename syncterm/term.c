@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.190 2007/10/21 15:12:35 deuce Exp $ */
+/* $Id: term.c,v 1.188 2007/10/11 08:26:14 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -401,7 +401,7 @@ static int recv_byte(void* unused, unsigned timeout /* seconds */)
 #endif
 BOOL data_waiting(void* unused, unsigned timeout)
 {
-	return(conn_data_waiting()!=0);
+	return(conn_data_waiting());
 }
 
 void draw_transfer_window(char* title)
@@ -568,7 +568,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		zmodem_upload(bbs, fp, path);
 	else {
 		i=0;
-		uifc.helpbuf="Select Transfer Type";
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Transfer Type",opts)) {
 			case 0:
 				zmodem_upload(bbs, fp, path);
@@ -1182,7 +1181,6 @@ BOOL doterm(struct bbslist *bbs)
 	int	updated=FALSE;
 	BOOL	sleep;
 	int 	emulation=CTERM_EMULATION_ANSI_BBS;
-	size_t	remain;
 
 	speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
@@ -1229,7 +1227,7 @@ BOOL doterm(struct bbslist *bbs)
 
 		if(!term.nostatus)
 			update_status(bbs, speed);
-		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
+		while(conn_data_waiting() || !conn_connected()) {
 			if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
 				/* Get remote input */
 				inch=recv_byte(NULL, 0);
@@ -1273,10 +1271,8 @@ BOOL doterm(struct bbslist *bbs)
 							if(inch == gutsinit[j]) {
 								gutsbuf[j]=inch;
 								gutsbuf[++j]=0;
-								if(j==sizeof(gutsinit)) { /* Have full sequence */
+								if(j==sizeof(gutsinit)) /* Have full sequence */
 									guts_transfer(bbs);
-									remain=0;
-								}
 							}
 							else {
 								gutsbuf[j++]=inch;
@@ -1370,7 +1366,6 @@ BOOL doterm(struct bbslist *bbs)
 									else
 										begin_upload(bbs, TRUE);
 									zrqbuf[0]=0;
-									remain=0;
 								}
 							}
 							else {	/* Not a real zrqinit */
@@ -1519,7 +1514,6 @@ BOOL doterm(struct bbslist *bbs)
 						gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						i=0;
 						init_uifc(FALSE, FALSE);
-						uifc.helpbuf="Selecting Yes closes the connection\n";
 						if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Disconnect... Are you sure?",opts)==0) {
 #ifdef WITH_WXWIDGETS
 							if(html_mode != HTML_MODE_HIDDEN) {
