@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.18 2006/06/28 22:50:27 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.17 2006/02/01 04:13:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,6 +196,7 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((v=msgQueuePeek(q, timeout))!=NULL) {
 		js_decode_value(cx, obj, v, rval, /* peek */TRUE);
+		free(v);
 	}
 
 	return(JS_TRUE);
