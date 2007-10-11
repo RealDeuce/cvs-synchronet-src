@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications I/O Library Functions for *nix */
 
-/* $Id: comio_nix.c,v 1.9 2008/01/20 22:52:24 deuce Exp $ */
+/* $Id: comio_nix.c,v 1.8 2007/05/23 07:00:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@ char* comVersion(char* str, size_t len)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.9 $", "%*s %s", revision);
+	sscanf("$Revision: 1.8 $", "%*s %s", revision);
 
 	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
 	return str;
@@ -168,7 +168,7 @@ BOOL comWriteByte(COM_HANDLE handle, BYTE ch)
 
 int comWriteBuf(COM_HANDLE handle, const BYTE* buf, size_t buflen)
 {
-	return write(handle, buf, buflen);
+	return write(handle, &buf, buflen);
 }
 
 /*
