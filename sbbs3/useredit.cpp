@@ -2,13 +2,13 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.34 2004/12/01 03:07:32 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.35 2006/05/03 00:26:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -961,8 +961,6 @@ void sbbs_t::maindflts(user_t* user)
 				if(!noyes(text[NewPasswordQ])) {
 					bputs(text[CurrentPassword]);
 					console|=CON_R_ECHOX;
-					if(!(cfg.sys_misc&SM_ECHO_PW))
-						console|=CON_L_ECHOX;
 					ch=getstr(str,LEN_PASS,K_UPPER);
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
 					if(strcmp(str,user->pass)) {
@@ -979,8 +977,6 @@ void sbbs_t::maindflts(user_t* user)
 						break; }
 					bputs(text[VerifyPassword]);
 					console|=CON_R_ECHOX;
-					if(!(cfg.sys_misc&SM_ECHO_PW))
-						console|=CON_L_ECHOX;
 					getstr(tmp,LEN_PASS*2,K_UPPER);
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
 					if(strcmp(str,tmp)) {
