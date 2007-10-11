@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: term.h,v 1.15 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: term.h,v 1.14 2005/11/28 16:57:12 deuce Exp $ */
 
 #ifndef _TERM_H_
 #define _TERM_H_
