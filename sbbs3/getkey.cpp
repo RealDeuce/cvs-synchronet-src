@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.37 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.38 2007/07/27 11:12:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -514,7 +514,7 @@ void sbbs_t::pause()
 		rioctl(IOFI);
 	bputs(text[Pause]);
 	j=bstrlen(text[Pause]);
-	if(sys_status&SS_USERON && !(useron.misc&(WIP|NOPAUSESPIN))
+	if(sys_status&SS_USERON && !(useron.misc&(HTML|WIP|NOPAUSESPIN))
 		&& !(cfg.node_misc&NM_NOPAUSESPIN))
 		l|=K_SPIN;
 	ch=getkey(l);
