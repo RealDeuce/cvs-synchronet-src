@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #ifndef _SYNCTERM_FONTS_H
 #define _SYNCTERM_FONTS_H
 
