@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.111 2008/02/23 03:08:00 deuce Exp $ */
+/* $Id: userdat.c,v 1.109 2007/09/30 22:30:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1150,17 +1150,6 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	if(!VALID_CFG(cfg) || usernumber<1)
 		return(NULL);
 
-	for(i=1;i<=cfg->sys_nodes;i++) {	/* clear msg waiting flag */
-		getnodedat(cfg,i,&node,NULL);
-		if(node.useron==usernumber
-			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
-			&& node.misc&NODE_MSGW) {
-			getnodedat(cfg,i,&node,&file);
-			node.misc&=~NODE_MSGW;
-			putnodedat(cfg,i,&node,file); 
-		} 
-	}
-
 	sprintf(str,"%smsgs/%4.4u.msg",cfg->data_dir,usernumber);
 	if(flength(str)<1L)
 		return(NULL);
@@ -1179,6 +1168,17 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	chsize(file,0L);
 	close(file);
 	buf[length]=0;
+
+	for(i=1;i<=cfg->sys_nodes;i++) {	/* clear msg waiting flag */
+		getnodedat(cfg,i,&node,NULL);
+		if(node.useron==usernumber
+			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
+			&& node.misc&NODE_MSGW) {
+			getnodedat(cfg,i,&node,&file);
+			node.misc&=~NODE_MSGW;
+			putnodedat(cfg,i,&node,file); 
+		} 
+	}
 
 	return(buf);	/* caller must free */
 }
@@ -2570,23 +2570,3 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 
 	return(timeleft);
 }
-
-/*************************************************************************/
-/* Check a supplied name/alias and see if it's valid by our standards.   */
-/*************************************************************************/
-BOOL DLLCALL check_name(scfg_t* cfg, char* name)
-{
-	char	tmp[512];
-
-	if (   name[0] <= ' '
-		|| !isalpha(name[0])
-		|| !stricmp(name,cfg->sys_id)
-		|| strchr(name,0xff)
-		|| matchuser(cfg,name,TRUE /* sysop_alias */)
-		|| trashcan(cfg,name,"name")
-		|| alias(cfg,name,tmp)!=name
- 	   )
- 		return FALSE;
- 	return TRUE;
-} 
-
