@@ -168,7 +168,7 @@ void sort_list(struct bbslist **list, int *listcount)  {
 				for(j=i;list[j]!=NULL && list[j]->name[0];j++) {
 					list[j]=list[j+1];
 				}
-				FREE_AND_NULL(tmp);
+				free(tmp);
 				for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 					list[j]->id=j;
 				}
@@ -912,6 +912,12 @@ struct bbslist *show_bbslist(int mode)
 												"SyncTERM is currently running in safe mode.  This means you cannot remove from the\n"
 												"BBS list.";
 								uifc.msg("Cannot edit list in safe mode");
+								break;
+							}
+							if(list[opt]->type==SYSTEM_BBSLIST) {
+								uifc.helpbuf=	"`Cannot delete from system list`\n\n"
+												"This BBS was loaded from the system-wide list and cannot be deleted.";
+								uifc.msg("Cannot delete system list entries");
 								break;
 							}
 							sprintf(str,"Delete %s?",list[opt]->name);
