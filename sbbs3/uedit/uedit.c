@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.45 2006/12/22 22:09:14 deuce Exp $ */
+/* $Id: uedit.c,v 1.46 2007/08/11 01:16:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1666,7 +1666,7 @@ int edit_user(scfg_t *cfg, int usernum)
 void free_opts(char **opt)
 {
 	int i;
-	for(i=0; i<(MAX_OPTS+1); i++)
+	for(i=0; i<(MAX_OPTS+1) && opt[i]!=NULL; i++)
 		FREE_AND_NULL(opt[i]);
 	free(opt);
 }
@@ -1901,7 +1901,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.45 $", "%*s %s", revision);
+	sscanf("$Revision: 1.46 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
