@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.15 2007/10/23 19:53:37 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.11 2007/10/15 00:30:30 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -42,7 +42,6 @@ pthread_mutex_t		vstatlock;
 pthread_mutex_t		screenlock;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font;
-int force_redraws=0;
 
 struct rectangle {
 	int x;
@@ -69,10 +68,7 @@ static void blinker_thread(void *data)
 				vstat.blink=TRUE;
 			count=0;
 		}
-		if(force_redraws)
-			update_rect(0,0,0,0,force_redraws--,TRUE);
-		else
-			update_rect(0,0,0,0,FALSE,TRUE);
+		update_rect(0,0,0,0,FALSE,TRUE);
 		pthread_mutex_unlock(&vstatlock);
 		callbacks.flush();
 	}
@@ -390,17 +386,21 @@ int bitmap_loadfont(char *filename)
 	unsigned int fontsize;
 	int fw;
 	int fh;
-	int i;
+	int	ch;
+	int x;
+	int y;
+	int charrow;
+	int charcol;
 	FILE	*fontfile;
 
 	if(current_font==-99 || current_font>(sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)-2)) {
-		for(i=0; conio_fontdata[i].desc != NULL; i++) {
-			if(!strcmp(conio_fontdata[i].desc, "Codepage 437 English")) {
-				current_font=i;
+		for(x=0; conio_fontdata[x].desc != NULL; x++) {
+			if(!strcmp(conio_fontdata[x].desc, "Codepage 437 English")) {
+				current_font=x;
 				break;
 			}
 		}
-		if(conio_fontdata[i].desc==NULL)
+		if(conio_fontdata[x].desc==NULL)
 			current_font=0;
 	}
 	if(current_font==-1)
