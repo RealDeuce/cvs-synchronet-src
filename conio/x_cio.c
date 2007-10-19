@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.26 2007/09/30 06:02:29 deuce Exp $ */
+/* $Id: x_cio.c,v 1.27 2007/10/11 10:45:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -431,4 +431,13 @@ void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 		ev.data.rect.data=data;
 		while(write(local_pipe[1], &ev, sizeof(ev))==-1);
 	}
+}
+
+void x11_flush(void)
+{
+	struct x11_local_event ev;
+
+	ev.type=X11_LOCAL_FLUSH;
+	if(x11_initialized)
+		while(write(local_pipe[1], &ev, sizeof(ev))==-1);
 }

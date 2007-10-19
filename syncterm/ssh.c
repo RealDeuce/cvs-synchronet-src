@@ -1,4 +1,4 @@
-/* $Id: ssh.c,v 1.4 2007/07/12 23:46:25 deuce Exp $ */
+/* $Id: ssh.c,v 1.5 2007/10/11 08:26:14 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -74,11 +74,9 @@ void ssh_input_thread(void *args)
 
 void ssh_output_thread(void *args)
 {
-	fd_set	wds;
 	int		wr;
 	int		ret;
 	size_t	sent;
-	size_t	send;
 	int		status;
 
 	conn_api.output_thread_running=1;
