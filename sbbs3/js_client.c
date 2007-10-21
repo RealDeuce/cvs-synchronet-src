@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.17 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: js_client.c,v 1.15 2005/12/13 02:24:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,7 +70,7 @@ static JSBool js_client_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 static JSBool js_client_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	const char*	p=NULL;
+	char*		p=NULL;
 	ulong		val=0;
     jsint       tiny;
 	JSString*	js_str;
@@ -127,21 +127,6 @@ static jsSyncPropertySpec js_client_properties[] = {
 	{0}
 };
 
-static JSBool js_client_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, js_client_properties, NULL, NULL, 0));
-}
-
-static JSBool js_client_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_client_resolve(cx, obj, JSVAL_NULL));
-}
-
 static JSClass js_client_class = {
      "Client"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
@@ -149,8 +134,8 @@ static JSClass js_client_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_client_get			/* getProperty	*/
 	,js_client_set			/* setProperty	*/
-	,js_client_enumerate	/* enumerate	*/
-	,js_client_resolve		/* resolve		*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub		/* finalize		*/
 };
@@ -167,6 +152,8 @@ JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
 		return(NULL);
 
 	JS_SetPrivate(cx, obj, client);	/* Store a pointer to client_t */
+
+	js_DefineSyncProperties(cx, obj, js_client_properties);
 
 	js_CreateSocketObject(cx, obj, "socket", sock);
 

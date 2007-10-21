@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: telnet_io.h,v 1.6 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: telnet_io.h,v 1.5 2006/03/20 23:46:19 rswindell Exp $ */
 
 #ifndef _TELNET_IO_H_
 #define _TELNET_IO_H_
