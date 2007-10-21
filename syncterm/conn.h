@@ -1,4 +1,4 @@
-/* $Id: conn.h,v 1.14 2007/07/28 06:31:01 deuce Exp $ */
+/* $Id: conn.h,v 1.15 2007/10/11 11:55:09 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -60,7 +60,7 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout);
 int conn_connect(struct bbslist *bbs);
 int conn_close(void);
 BOOL conn_connected(void);
-BOOL conn_data_waiting(void);
+size_t conn_data_waiting(void);
 void conn_binary_mode_on(void);
 void conn_binary_mode_off(void);
 

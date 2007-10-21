@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.94 2007/10/03 22:40:19 deuce Exp $ */
+/* $Id: ciolib.c,v 1.96 2007/10/21 02:28:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -320,6 +320,8 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 		case CIOLIB_MODE_SDL:
 		case CIOLIB_MODE_SDL_FULLSCREEN:
+		case CIOLIB_MODE_SDL_YUV:
+		case CIOLIB_MODE_SDL_YUV_FULLSCREEN:
 			try_sdl_init(mode);
 			break;
 #endif
@@ -666,9 +668,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_wherey(void)
 /* **MUST** be implemented */
 CIOLIBEXPORT void CIOLIBCALL ciolib_gotoxy(int x, int y)
 {
-	int nx;
-	int ny;
-
 	CIOLIB_INIT();
 
 	if(		x < 1
@@ -739,7 +738,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 	unsigned char *buf;
 	int i;
 	int width,height;
-	struct text_info ti;
 
 	CIOLIB_INIT();
 	
