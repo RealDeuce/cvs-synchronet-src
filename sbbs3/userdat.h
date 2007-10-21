@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.33 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: userdat.h,v 1.31 2007/08/14 06:23:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,7 +100,7 @@ DLLEXPORT uint	DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, ui
 DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t* cfg, uchar* str, user_t* user); /* checks access requirements */
 
 DLLEXPORT int	DLLCALL getuserrec(scfg_t*, int usernumber, int start, int length, char *str);
-DLLEXPORT int	DLLCALL putuserrec(scfg_t*, int usernumber, int start, uint length, const char *str);
+DLLEXPORT int	DLLCALL putuserrec(scfg_t*, int usernumber, int start, uint length, char *str);
 DLLEXPORT ulong	DLLCALL adjustuserrec(scfg_t*, int usernumber, int start, int length, long adj);
 DLLEXPORT BOOL	DLLCALL logoutuserdat(scfg_t*, user_t*, time_t now, time_t logontime);
 DLLEXPORT void	DLLCALL resetdailyuserdat(scfg_t*, user_t*);
@@ -119,8 +119,6 @@ DLLEXPORT BOOL	DLLCALL user_adjust_credits(scfg_t* cfg, user_t* user, long amoun
 DLLEXPORT BOOL	DLLCALL user_adjust_minutes(scfg_t* cfg, user_t* user, long amount);
 
 DLLEXPORT time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime);
-
-DLLEXPORT BOOL DLLCALL check_name(scfg_t* cfg, char* name);
 
 #ifdef __cplusplus
 }
