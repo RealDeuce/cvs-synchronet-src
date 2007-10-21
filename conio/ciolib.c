@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.97 2007/10/23 00:21:41 deuce Exp $ */
+/* $Id: ciolib.c,v 1.96 2007/10/21 02:28:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -285,10 +285,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 	switch(mode) {
 		case CIOLIB_MODE_AUTO:
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-#if (defined(__MACH__) && defined(__APPLE__))
-			if(!try_sdl_init(CIOLIB_MODE_SDL_YUV))
-#endif
-			if(!try_sdl_init(CIOLIB_MODE_SDL))
+			if(!try_sdl_init(mode))
 #endif
 #ifdef _WIN32
 				if(!try_conio_init(mode))
