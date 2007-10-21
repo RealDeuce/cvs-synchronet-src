@@ -1,4 +1,4 @@
-/* $Id: conn_pty.c,v 1.4 2007/10/22 03:49:01 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.3 2007/10/19 02:01:54 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -334,7 +334,6 @@ void pty_output_thread(void *args)
 		if(waitpid(child_pid, &status, WNOHANG))
 			break;
 		pthread_mutex_lock(&(conn_outbuf.mutex));
-		ret=0;
 		wr=conn_buf_wait_bytes(&conn_outbuf, 1, 100);
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
