@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.12 2007/10/21 03:07:56 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.13 2007/10/21 06:21:53 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -69,7 +69,10 @@ static void blinker_thread(void *data)
 				vstat.blink=TRUE;
 			count=0;
 		}
-		update_rect(0,0,0,0,force_redraws--,TRUE);
+		if(force_redraw)
+			update_rect(0,0,0,0,force_redraws--,TRUE);
+		else
+			update_rect(0,0,0,0,FALSE,TRUE);
 		pthread_mutex_unlock(&vstatlock);
 		callbacks.flush();
 	}
