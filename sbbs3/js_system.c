@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.110 2007/10/24 07:41:46 cyan Exp $ */
+/* $Id: js_system.c,v 1.109 2007/09/22 08:33:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1335,21 +1335,7 @@ js_chksyspass(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	return(JS_TRUE);
 }
 
-static JSBool 
-js_chkname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*	str;
-	scfg_t*	cfg;
 
-	str = JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
-
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(check_name(cfg,str));
-
-	return(JS_TRUE);
-}
 
 static jsSyncMethodSpec js_system_functions[] = {
 	{"username",		js_username,		1,	JSTYPE_STRING,	JSDOCSTR("number")
@@ -1442,10 +1428,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 	{"check_syspass",	js_chksyspass,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("password")
 	,JSDOCSTR("compares the supplied <i>password</i> against the system password and return's <i>true</i> if it matches")
 	,311
-	},
-	{"check_name",		js_chkname,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("name/alias")
-	,JSDOCSTR("check the provided name/alias string, returns <i>true</i> if it is valid")
-	,315
 	},
 	{0}
 };

@@ -1,4 +1,4 @@
-/* $Id: rlogin.c,v 1.28 2007/10/22 03:49:01 deuce Exp $ */
+/* $Id: rlogin.c,v 1.26 2007/10/19 02:01:54 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -68,7 +68,6 @@ void rlogin_output_thread(void *args)
 	conn_api.output_thread_running=1;
 	while(sock != INVALID_SOCKET && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
-		ret=0;
 		wr=conn_buf_wait_bytes(&conn_outbuf, 1, 100);
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
@@ -139,7 +138,7 @@ int rlogin_connect(struct bbslist *bbs)
 	}
 	conn_api.rd_buf_size=BUFFER_SIZE;
 	if(!(conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		FREE_AND_NULL(conn_api.rd_buf);
+		free(conn_api.rd_buf);
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
 		return(-1);
