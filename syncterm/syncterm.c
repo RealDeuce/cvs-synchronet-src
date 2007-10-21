@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.123 2007/10/23 21:11:55 deuce Exp $ */
+/* $Id: syncterm.c,v 1.119 2007/10/21 18:13:45 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -966,14 +966,10 @@ void load_settings(struct syncterm_settings *set)
 {
 	FILE	*inifile;
 	char	inipath[MAX_PATH+1];
-	int		i=0;
-	str_list_t	sortby;
-	char	*order;
 
 	get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
 	inifile=fopen(inipath,"r");
 	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
-	set->prompt_save=iniReadBool(inifile,"SyncTERM","PromptSave",TRUE);
 	set->startup_mode=iniReadInteger(inifile,"SyncTERM","VideoMode",FALSE);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
@@ -981,14 +977,6 @@ void load_settings(struct syncterm_settings *set)
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F", set->mdm.init_string);
 	iniReadString(inifile, "SyncTERM", "ModemDevice", DEFAULT_MODEM_DEV, set->mdm.device_name);
-
-	/* Sort order */
-	sortby=iniReadStringList(inifile, "SyncTERM", "SortOrder", ",", "5,1");
-	while((order=strListRemove(&sortby,0))!=NULL) {
-		sortorder[i++]=atoi(order);
-	}
-	strListFree(&sortby);
-
 	if(inifile)
 		fclose(inifile);
 }
@@ -1060,26 +1048,10 @@ int main(int argc, char **argv)
 							ciolib_mode=CIOLIB_MODE_CONIO;
 							break;
 						case 'S':
-							switch(toupper(argv[i][3])) {
-								case 0:
-								case 'F':
-									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
-									break;
-								case 'W':
-									ciolib_mode=CIOLIB_MODE_SDL;
-									break;
-							}
+							ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
 							break;
 						case 'O':
-							switch(toupper(argv[i][3])) {
-								case 0:
-								case 'W':
-									ciolib_mode=CIOLIB_MODE_SDL_YUV;
-									break;
-								case 'F':
-									ciolib_mode=CIOLIB_MODE_SDL_YUV_FULLSCREEN;
-									break;
-							}
+							ciolib_mode=CIOLIB_MODE_SDL_YUV;
 							break;
 						default:
 							goto USAGE;
@@ -1178,12 +1150,9 @@ int main(int argc, char **argv)
 		if((listfile=fopen(listpath,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
 		else {
-			str_list_t	inilines;
-			inilines=iniReadFile(listfile);
-			fclose(listfile);
-			read_item(inilines, bbs, NULL, 0, USER_BBSLIST);
+			read_item(listfile, bbs, NULL, 0, USER_BBSLIST);
 			parse_url(url, bbs, conn_type, FALSE);
-			strListFree(&inilines);
+			fclose(listfile);
 		}
 		if(bbs->port==0)
 			goto USAGE;
@@ -1214,7 +1183,7 @@ int main(int argc, char **argv)
 						iniWriteFile(listfile,inifile);
 						fclose(listfile);
 					}
-					strListFree(&inifile);
+					strListFreeStrings(inifile);
 				}
 			}
 			uifcbail();
@@ -1283,27 +1252,22 @@ int main(int argc, char **argv)
 		}
 		if(exit_now || url[0]) {
 			if(bbs != NULL && bbs->id==-1) {
-				if(!safe_mode) {
-					if(settings.prompt_save) {
-						char	*YesNo[3]={"Yes","No",""};
-						/* Started from the command-line with a URL */
-						init_uifc(TRUE, TRUE);
-						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
-							case 0:	/* Yes */
-								edit_list(NULL, bbs,listpath,FALSE);
-								add_bbs(listpath,bbs);
-								break;
-							default: /* ESC/No */
-								break;
-						}
-					}
+				char	*YesNo[3]={"Yes","No",""};
+				/* Started from the command-line with a URL */
+				init_uifc(TRUE, TRUE);
+				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
+					case 0:	/* Yes */
+						add_bbs(listpath,bbs);
+						break;
+					default: /* ESC/No */
+						break;
 				}
 				free(bbs);
 			}
 			bbs=NULL;
-			break;
 		}
-		bbs=NULL;
+		else
+			bbs=NULL;
 	}
 	uifcbail();
 #ifdef _WINSOCKAPI_
@@ -1320,8 +1284,8 @@ int main(int argc, char **argv)
         "\n\noptions:\n\n"
         "-e# =  set escape delay to #msec\n"
 		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
-		"       S[W|F] = SDL surface mode W for windowed and F for fullscreen\n"
-		"       O[W|F] = SDL overlay mode (hardware scaled)\n"
+		"       S = FullScreen SDL mode\n"
+		"       O = SDL overlay mode (hardware scaling)\n"
 #ifdef __unix__
 		"       X = X11 mode\n"
 		"       C = Curses mode\n"

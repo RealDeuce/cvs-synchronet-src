@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.182 2007/10/28 04:22:04 deuce Exp $ */
+/* $Id: uifc32.c,v 1.179 2007/10/10 02:43:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -504,7 +504,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	char	*title=NULL;
 	int	a,b,c,longopt;
 	int	optheight=0;
-	int gotkey;
 	uchar	hclr,lclr,bclr,cclr,lbclr;
 
 	hclr=api->hclr;
@@ -963,10 +962,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	#endif
 		if(api->timedisplay != NULL)
 			api->timedisplay(/* force? */FALSE);
-		gotkey=0;
+		i=0;
 		if(kbwait()) {
-			gotkey=inkey();
-			if(gotkey==CIO_KEY_MOUSE) {
+			i=inkey();
+			if(i==CIO_KEY_MOUSE) {
 				if((i=uifc_getmouse(&mevnt))==0) {
 					/* Clicked in menu */
 					if(mevnt.startx>=s_left+left+lbrdrwidth+2
@@ -1021,13 +1020,13 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					else if(mevnt.startx==s_left+left+lbrdrwidth
 							&& mevnt.starty==s_top+top+tbrdrwidth
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-						gotkey=CIO_KEY_PPAGE;
+						i=CIO_KEY_PPAGE;
 					}
 					/* Clicked Scroll Down */
 					else if(mevnt.startx==s_left+left+lbrdrwidth
 							&& mevnt.starty==(s_top+top+height)-bbrdrwidth-1
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-						gotkey=CIO_KEY_NPAGE;
+						i=CIO_KEY_NPAGE;
 					}
 					/* Clicked Outside of Window */
 					else if((mevnt.startx<s_left+left
@@ -1038,58 +1037,58 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							|| mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
 						if(mode&WIN_UNGETMOUSE) {
 							ungetmouse(&mevnt);
-							gotkey=CIO_KEY_MOUSE;
+							i=CIO_KEY_MOUSE;
 						}
 						else {
-							gotkey=ESC;
+							i=ESC;
 						}
 					}
 				}
 			}
 			/* For compatibility with terminals lacking special keys */
-			switch(gotkey) {
+			switch(i) {
 				case '\b':
-					gotkey=ESC;
+					i=ESC;
 					break;
 				case '+':
-					gotkey=CIO_KEY_IC;	/* insert */
+					i=CIO_KEY_IC;	/* insert */
 					break;
 				case '-':
 				case DEL:
-					gotkey=CIO_KEY_DC;	/* delete */
+					i=CIO_KEY_DC;	/* delete */
 					break;
 				case CTRL_B:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_HOME;
+						i=CIO_KEY_HOME;
 					break;
 				case CTRL_E:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_END;
+						i=CIO_KEY_END;
 					break;
 				case CTRL_U:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_PPAGE;
+						i=CIO_KEY_PPAGE;
 					break;
 				case CTRL_D:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_NPAGE;
+						i=CIO_KEY_NPAGE;
 					break;
 				case CTRL_Z:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_F(1);	/* help */
+						i=CIO_KEY_F(1);	/* help */
 					break;
 				case CTRL_C:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_F(5);	/* copy */
+						i=CIO_KEY_F(5);	/* copy */
 					break;
 				case CTRL_V:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_F(6);	/* paste */
+						i=CIO_KEY_F(6);	/* paste */
 					break;
 			}
-			if(gotkey>255) {
+			if(i>255) {
 				s=0;
-				switch(gotkey) {
+				switch(i) {
 					/* ToDo extended keys */
 					case CIO_KEY_HOME:	/* home */
 						if(!opts)
@@ -1457,14 +1456,14 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						break;
 					default:
 						if(mode&WIN_EXTKEYS)
-							return(-2-gotkey);
+							return(-2-i);
 						break;
 				} 
 			}
 			else {
-				gotkey&=0xff;
-				if(isalnum(gotkey) && opts>1 && option[0][0]) {
-					search[s]=gotkey;
+				i&=0xff;
+				if(isalnum(i) && opts>1 && option[0][0]) {
+					search[s]=i;
 					search[s+1]=0;
 					for(j=(*cur)+1,a=b=0;a<2;j++) {   /* a = search count */
 						if(j==opts) {					/* j = option count */
@@ -1484,7 +1483,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(option[j]!=NULL
 							&& strlen(option[j])>(size_t)b
 							&& ((!a && s && !strnicmp(option[j]+b,search,s+1))
-							|| ((a || !s) && toupper(option[j][b])==toupper(gotkey)))) {
+							|| ((a || !s) && toupper(option[j][b])==toupper(i)))) {
 							if(a) s=0;
 							else s++;
 							if(y+(j-(*cur))+2>height+top) {
@@ -1557,7 +1556,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						s=0;
 				}
 				else
-					switch(gotkey) {
+					switch(i) {
 						case CR:
 							if(!opts)
 								break;
@@ -1607,7 +1606,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							return(-1);
 						default:
 							if(mode&WIN_EXTKEYS)
-								return(-2-gotkey);
+								return(-2-i);
 				}
 			}
 		}
@@ -1617,7 +1616,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			save_menu_cur=*cur;
 			save_menu_bar=*bar;
 			save_menu_opts=opts;
-			return(-2-gotkey);
+			return(-2-i);
 		}
 	}
 }
@@ -2187,7 +2186,7 @@ static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
 /****************************************************************************/
 void bottomline(int line)
 {
-	int i=1;
+	int i=0;
 
 	uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"    ");
 	i+=4;
