@@ -88,7 +88,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->FreeYUVOverlay=SDL_FreeYUVOverlay;
 	sdlf->LockYUVOverlay=SDL_LockYUVOverlay;
 	sdlf->UnlockYUVOverlay=SDL_UnlockYUVOverlay;
-	sdlf->GetVideoInfo=SDL_GetVideoInfo;
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
 	return(0);
@@ -316,10 +315,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->GetVideoInfo=(void *)GetProcAddress(sdl_dll, "SDL_GetVideoInfo"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
 
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
@@ -542,10 +537,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->GetVideoInfo=dlsym(sdl_dll, "SDL_GetVideoInfo"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
 	return(0);
@@ -615,7 +606,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 	SDL_Thread	*main_thread;
 	int		main_ret;
 	int		use_sdl_video=FALSE;
-	char		*driver_env=NULL;
 
 	ma.argc=argc;
 	ma.argv=argv;
@@ -630,8 +620,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 #ifdef _WIN32
 		/* Fail to windib (ie: No mouse attached) */
 		if(sdl.Init(SDL_INIT_VIDEO)) {
-			driver_env=getenv("SDL_VIDEODRIVER");
-			if(driver_env==NULL || strcmp(driver_env,"windib")) {
+			if(getenv("SDL_VIDEODRIVER")==NULL) {
 				putenv("SDL_VIDEODRIVER=windib");
 				WinExec(GetCommandLine(), SW_SHOWDEFAULT);
 				return(0);
@@ -676,13 +665,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 				sdl_video_initialized=FALSE;
 			}
 			else {
-				const SDL_VideoInfo *initial=sdl.GetVideoInfo();
-
-				/* Save initial video mode */
-				if(initial)
-					sdl.initial_videoinfo=*initial;
-				else
-					memset(&sdl.initial_videoinfo, 0, sizeof(sdl.initial_videoinfo));
 				sdl_video_initialized=TRUE;
 			}
 		}

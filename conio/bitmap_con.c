@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.16 2007/10/24 00:14:19 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.11 2007/10/15 00:30:30 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -42,7 +42,6 @@ pthread_mutex_t		vstatlock;
 pthread_mutex_t		screenlock;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font;
-int force_redraws=0;
 
 struct rectangle {
 	int x;
@@ -69,10 +68,7 @@ static void blinker_thread(void *data)
 				vstat.blink=TRUE;
 			count=0;
 		}
-		if(force_redraws)
-			update_rect(0,0,0,0,force_redraws--,TRUE);
-		else
-			update_rect(0,0,0,0,FALSE,TRUE);
+		update_rect(0,0,0,0,FALSE,TRUE);
 		pthread_mutex_unlock(&vstatlock);
 		callbacks.flush();
 	}
@@ -159,8 +155,15 @@ int bitmap_init_mode(int mode, int *width, int *height)
 	screen=newscreen;
 	memset(screen,vstat.palette[0],screenwidth*screenheight);
 	pthread_mutex_unlock(&screenlock);
+	/* TODO: Re-enable this
+	send_rectangle(0,0,screenwidth,screenheight,TRUE);
+	*/
 	pthread_mutex_unlock(&vstatlock);
 	bitmap_loadfont(NULL);
+	/* TODO: Remove this next line */
+	pthread_mutex_lock(&vstatlock);
+	update_rect(1,1,cio_textinfo.screenwidth,cio_textinfo.screenheight,TRUE,TRUE);
+	pthread_mutex_unlock(&vstatlock);
 
 	cio_textinfo.attribute=7;
 	cio_textinfo.normattr=7;
@@ -383,17 +386,21 @@ int bitmap_loadfont(char *filename)
 	unsigned int fontsize;
 	int fw;
 	int fh;
-	int i;
+	int	ch;
+	int x;
+	int y;
+	int charrow;
+	int charcol;
 	FILE	*fontfile;
 
 	if(current_font==-99 || current_font>(sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)-2)) {
-		for(i=0; conio_fontdata[i].desc != NULL; i++) {
-			if(!strcmp(conio_fontdata[i].desc, "Codepage 437 English")) {
-				current_font=i;
+		for(x=0; conio_fontdata[x].desc != NULL; x++) {
+			if(!strcmp(conio_fontdata[x].desc, "Codepage 437 English")) {
+				current_font=x;
 				break;
 			}
 		}
-		if(conio_fontdata[i].desc==NULL)
+		if(conio_fontdata[x].desc==NULL)
 			current_font=0;
 	}
 	if(current_font==-1)
@@ -477,7 +484,6 @@ int bitmap_loadfont(char *filename)
 		}
 	}
 
-	force_redraws++;
 	pthread_mutex_unlock(&vstatlock);
     return(0);
 }
@@ -596,6 +602,7 @@ static int update_rect(int sx, int sy, int width, int height, int force, int cal
 	int this_rect_used=0;
 	struct rectangle last_rect;
 	int last_rect_used=0;
+	int	sent=FALSE;
 
 	if(sx==0 && sy==0 && width==0 && height==0)
 		fullredraw=1;
@@ -642,6 +649,7 @@ static int update_rect(int sx, int sy, int width, int height, int force, int cal
 					) {
 				last_vmem[pos] = vstat.vmem[pos];
 				bitmap_draw_one_char(sx+x,sy+y);
+				sent=TRUE;
 
 				if(calls_send) {
 					if(lastcharupdated) {
