@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.101 2007/03/03 12:28:12 deuce Exp $ */
+/* $Id: syncterm.c,v 1.114 2007/10/21 02:29:19 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -28,11 +28,20 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.8.1"
+char* syncterm_version = "SyncTERM 0.9.1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
 	;
+
+/* Default modem device */
+#if defined(__APPLE__) && defined(__MACH__)
+/* Mac OS X */
+#define DEFAULT_MODEM_DEV	"/dev/tty.modem"
+#else
+/* FreeBSD */
+#define DEFAULT_MODEM_DEV	"/dev/ttyd0"
+#endif
 
 char *inpath=NULL;
 int default_font=0;
@@ -670,7 +679,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+9;
 	}
-	else if(!strnicmp("ssh://",url,9)) {
+	else if(!strnicmp("ssh://",url,6)) {
 		bbs->conn_type=CONN_TYPE_SSH;
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
@@ -680,6 +689,19 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+9;
 	}
+	else if(!strnicmp("raw://",url,6)) {
+		bbs->conn_type=CONN_TYPE_TELNET;
+		bbs->port=conn_ports[bbs->conn_type];
+		p1=url+6;
+	}
+#ifdef __unix__
+	else if(!strnicmp("shell:",url,6)) {
+		bbs->conn_type=CONN_TYPE_SHELL;
+		bbs->port=conn_ports[bbs->conn_type];
+		p1=url+6;
+	}
+#endif
+	/* ToDo: RFC2806 */
 	/* Remove trailing / (Win32 adds one 'cause it hates me) */
 	p2=strchr(p1,'/');
 	if(p2!=NULL)
@@ -785,6 +807,15 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			backslash(fn);
 			strncat(fn,"syncterm.lst",fnlen);
 			break;
+		case SYNCTERM_PATH_CACHE:
+			backslash(fn);
+			strncat(fn,"cache",fnlen);
+			backslash(fn);
+			if(!isdir(fn)) {
+				if(MKDIR(fn))
+					fn[0]=0;
+			}
+			break;
 	}
 #else
 	char	*home;
@@ -793,9 +824,13 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	if(inpath==NULL)
 		home=getenv("HOME");
 	if(home==NULL || strlen(home) > MAX_PATH-32) {	/* $HOME just too damn big */
-		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
+		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH || type==SYNCTERM_PATH_CACHE) {
 			getcwd(fn, fnlen);
 			backslash(fn);
+			if(type==SYNCTERM_PATH_CACHE) {
+				strcat(fn,"cache");
+				backslash(fn);
+			}
 			return(fn);
 		}
 		SAFECOPY(oldlst,"syncterm.lst");
@@ -818,10 +853,9 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	}
 
 	if(shared) {
-#ifdef PREFIX
-		strcpy(fn,PREFIX);
+#ifdef SYSTEM_LIST_DIR
+		strcpy(fn,SYSTEM_LIST_DIR);
 		backslash(fn);
-		strcat(fn,"etc/");
 #else
 		strcpy(fn,"/usr/local/etc/");
 #endif
@@ -839,6 +873,14 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			break;
 		case SYNCTERM_PATH_LIST:
 			strncat(fn,"syncterm.lst",fnlen);
+			break;
+		case SYNCTERM_PATH_CACHE:
+			strncat(fn,"cache",fnlen);
+			backslash(fn);
+			if(!isdir(fn)) {
+				if(MKDIR(fn))
+					fn[0]=0;
+			}
 			break;
 	}
 #endif
@@ -859,6 +901,10 @@ void load_settings(struct syncterm_settings *set)
 	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
 	set->startup_mode=iniReadInteger(inifile,"SyncTERM","VideoMode",FALSE);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
+
+	/* Modem settings */
+	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F", set->mdm.init_string);
+	iniReadString(inifile, "SyncTERM", "ModemDevice", DEFAULT_MODEM_DEV, set->mdm.device_name);
 	if(inifile)
 		fclose(inifile);
 }
@@ -923,6 +969,9 @@ int main(int argc, char **argv)
 						case 'S':
 							ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
 							break;
+						case 'O':
+							ciolib_mode=CIOLIB_MODE_SDL_YUV;
+							break;
 						default:
 							goto USAGE;
 					}
@@ -971,6 +1020,18 @@ int main(int argc, char **argv)
 				break;
 			case SCREEN_MODE_80X60:
 				textmode(C80X60);
+				break;
+			case SCREEN_MODE_C64:
+				textmode(C64_40X25);
+				break;
+			case SCREEN_MODE_C128_40:
+				textmode(C128_40X25);
+				break;
+			case SCREEN_MODE_C128_80:
+				textmode(C128_80X25);
+				break;
+			case SCREEN_MODE_ATARI:
+				textmode(ATARI_40X24);
 				break;
 		}
 	}
@@ -1030,6 +1091,10 @@ int main(int argc, char **argv)
 			bbs->connected=time(NULL);
 			bbs->calls++;
 			if(bbs->id != -1) {
+				if(bbs->type==SYSTEM_BBSLIST) {
+					bbs->type=USER_BBSLIST;
+					add_bbs(listpath, bbs);
+				}
 				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
@@ -1043,8 +1108,6 @@ int main(int argc, char **argv)
 				}
 			}
 			uifcbail();
-			load_font_files();
-			setfont(find_font_id(bbs->font),TRUE);
 			switch(bbs->screen_mode) {
 				case SCREEN_MODE_80X25:
 					textmode(C80);
@@ -1061,7 +1124,21 @@ int main(int argc, char **argv)
 				case SCREEN_MODE_80X60:
 					textmode(C80X60);
 					break;
+				case SCREEN_MODE_C64:
+					textmode(C64_40X25);
+					break;
+				case SCREEN_MODE_C128_40:
+					textmode(C128_40X25);
+					break;
+				case SCREEN_MODE_C128_80:
+					textmode(C128_80X25);
+					break;
+				case SCREEN_MODE_ATARI:
+					textmode(ATARI_40X24);
+					break;
 			}
+			load_font_files();
+			setfont(find_font_id(bbs->font),TRUE);
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
@@ -1144,11 +1221,20 @@ int main(int argc, char **argv)
 		"-h  =  use SSH mode if URL does not include the scheme\n"
 		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
 		"\n"
-		"URL format is: [(rlogin|telnet|ssh)://][user[:password]@]domainname[:port]\n"
+		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
+		"raw:// URLs MUST include a port.\n"
+#ifdef __unix__
+		"shell:command URLs are also supported.\n"
+#endif
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
 		"          telnet://deuce@nix.synchro.net\n"
 		"          nix.synchro.net\n"
-		"          telnet://nix.synchro.net\n\nPress any key to exit..."
+		"          telnet://nix.synchro.net\n"
+		"          raw://nix.synchro.net:23\n"
+#ifdef __unix__
+		"          shell:/usr/bin/sh\n"
+#endif
+		"\nPress any key to exit..."
         );
 	getch();
 	return(0);
