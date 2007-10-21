@@ -2,13 +2,13 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.30 2006/05/08 17:02:29 deuce Exp $ */
+/* $Id: un_qwk.cpp,v 1.32 2007/08/23 07:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -78,8 +78,8 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	}
 	sprintf(str,"%sMESSAGES.DAT",cfg.temp_dir);
 	if(!fexistcase(str)) {
-		sprintf(str,"%s doesn't contain MESSAGES.DAT (%s)",packet,str);
-		errorlog(str);
+		SAFEPRINTF2(tmp,"%s doesn't contain MESSAGES.DAT (%s)",packet,str);
+		errorlog(tmp);
 		return(false); 
 	}
 	if((qwk=fnopen(&file,str,O_RDONLY))==NULL) {
@@ -164,20 +164,20 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				smb.status.attr=SMB_EMAIL;
 				if((k=smb_create(&smb))!=0) {
 					smb_close(&smb);
-					errormsg(WHERE,ERR_CREATE,smb.file,k);
+					errormsg(WHERE,ERR_CREATE,smb.file,k,smb.last_error);
 					smb_stack(&smb,SMB_STACK_POP);
 					continue; 
 				} 
 			}
 			if((k=smb_locksmbhdr(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_LOCK,smb.file,k);
+				errormsg(WHERE,ERR_LOCK,smb.file,k,smb.last_error);
 				smb_stack(&smb,SMB_STACK_POP);
 				continue; 
 			}
 			if((k=smb_getstatus(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_READ,smb.file,k);
+				errormsg(WHERE,ERR_READ,smb.file,k,smb.last_error);
 				smb_stack(&smb,SMB_STACK_POP);
 				continue; 
 			}
@@ -254,18 +254,18 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				smb.status.attr=cfg.sub[j]->misc&SUB_HYPER ? SMB_HYPERALLOC :0;
 				if((k=smb_create(&smb))!=0) {
 					smb_close(&smb);
-					errormsg(WHERE,ERR_CREATE,smb.file,k);
+					errormsg(WHERE,ERR_CREATE,smb.file,k,smb.last_error);
 					continue; 
 				} 
 			}
 			if((k=smb_locksmbhdr(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_LOCK,smb.file,k);
+				errormsg(WHERE,ERR_LOCK,smb.file,k,smb.last_error);
 				continue; 
 			}
 			if((k=smb_getstatus(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_READ,smb.file,k);
+				errormsg(WHERE,ERR_READ,smb.file,k,smb.last_error);
 				continue; 
 			}
 			smb_unlocksmbhdr(&smb);

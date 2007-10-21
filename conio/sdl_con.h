@@ -15,21 +15,15 @@ int sdl_screen_redraw(void);
 /* High-level stuff */
 int sdl_puttext(int sx, int sy, int ex, int ey, void *fill);
 int sdl_gettext(int sx, int sy, int ex, int ey, void *fill);
-void sdl_textattr(int attr);
 int sdl_kbhit(void);
 void sdl_delay(long msec);
-int sdl_wherey(void);
-int sdl_wherex(void);
-int sdl_putch(int ch);
 void sdl_gotoxy(int x, int y);
 int sdl_initciolib(long inmode);
-void sdl_gettextinfo(struct text_info *info);
 void sdl_setcursortype(int type);
 int sdl_getch(void);
-int sdl_getche(void);
-int sdl_beep(void);
 void sdl_textmode(int mode);
 void sdl_setname(const char *name);
+void sdl_seticon(const void *, unsigned long size);
 void sdl_settitle(const char *title);
 int sdl_hidemouse(void);
 int sdl_showmouse(void);
@@ -39,6 +33,7 @@ int sdl_setfont(int font, int force);
 int sdl_getfont(void);
 int sdl_loadfont(char *filename);
 int sdl_video_event_thread(void *data);
+int sdl_get_window_info(int *width, int *height, int *xpos, int *ypos);
 #ifdef __cplusplus
 }
 #endif
