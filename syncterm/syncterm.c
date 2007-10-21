@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.115 2007/10/21 05:41:18 deuce Exp $ */
+/* $Id: syncterm.c,v 1.116 2007/10/21 06:26:16 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -1277,6 +1277,7 @@ int main(int argc, char **argv)
         "-e# =  set escape delay to #msec\n"
 		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
 		"       S = FullScreen SDL mode\n"
+		"       O = SDL overlay mode (hardware scaling)\n"
 #ifdef __unix__
 		"       X = X11 mode\n"
 		"       C = Curses mode\n"
