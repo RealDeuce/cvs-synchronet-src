@@ -1,4 +1,4 @@
-/* $Id: conn_telnet.c,v 1.3 2007/05/29 06:58:35 deuce Exp $ */
+/* $Id: conn_telnet.c,v 1.5 2007/10/21 18:27:48 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -31,7 +31,16 @@ void telnet_input_thread(void *args)
 	while(telnet_sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(telnet_sock, &rds);
+#ifdef __linux__
+		{
+			struct timeval tv;
+			tv.tv_sec=0;
+			tv.tv_usec=500000;
+			rd=select(telnet_sock+1, &rds, NULL, NULL, &tv);
+		}
+#else
 		rd=select(telnet_sock+1, &rds, NULL, NULL, NULL);
+#endif
 		if(rd==-1) {
 			if(errno==EBADF)
 				break;
@@ -79,7 +88,16 @@ void telnet_output_thread(void *args)
 			while(sent < wr) {
 				FD_ZERO(&wds);
 				FD_SET(telnet_sock, &wds);
+#ifdef __linux__
+				{
+					struct timeval tv;
+					tv.tv_sec=0;
+					tv.tv_usec=500000;
+					ret=select(telnet_sock+1, NULL, &wds, NULL, &tv);
+				}
+#else
 				ret=select(telnet_sock+1, NULL, &wds, NULL, NULL);
+#endif
 				if(ret==-1) {
 					if(errno==EBADF)
 						break;
@@ -124,9 +142,9 @@ int telnet_connect(struct bbslist *bbs)
 	conn_api.rd_buf_size=BUFFER_SIZE;
 	conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE);
 	if(!conn_api.wr_buf) {
+		FREE_AND_NULL(conn_api.rd_buf);
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
-		free(conn_api.wr_buf);
 		return(-1);
 	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
