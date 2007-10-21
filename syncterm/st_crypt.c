@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #ifndef _WIN32
  #include <dlfcn.h>
 #endif
@@ -7,22 +5,8 @@
 
 #include "st_crypt.h"
 
-int crypt_loaded=0;
-
-#ifdef WITHOUT_CRYPTLIB
-
-int init_crypt()
-{
-	return(-1);
-}
-
-void exit_crypt()
-{
-}
-
-#else
-
 struct crypt_funcs cl;
+int crypt_loaded=0;
 
 int init_crypt(void)
 {
@@ -173,5 +157,3 @@ void exit_crypt(void)
 	if(crypt_loaded)
 		cl.End();
 }
-
-#endif
