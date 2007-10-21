@@ -615,7 +615,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 	SDL_Thread	*main_thread;
 	int		main_ret;
 	int		use_sdl_video=FALSE;
-	char		*driver_env=NULL;
 
 	ma.argc=argc;
 	ma.argv=argv;
@@ -630,8 +629,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 #ifdef _WIN32
 		/* Fail to windib (ie: No mouse attached) */
 		if(sdl.Init(SDL_INIT_VIDEO)) {
-			driver_env=getenv("SDL_VIDEODRIVER");
-			if(driver_env==NULL || strcmp(driver_env,"windib")) {
+			if(getenv("SDL_VIDEODRIVER")==NULL) {
 				putenv("SDL_VIDEODRIVER=windib");
 				WinExec(GetCommandLine(), SW_SHOWDEFAULT);
 				return(0);
