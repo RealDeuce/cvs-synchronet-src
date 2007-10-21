@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.42 2005/09/20 03:39:52 deuce Exp $ */
+/* $Id: qwk.cpp,v 1.44 2007/07/10 23:50:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,10 +63,9 @@ bool route_circ(char *via, char *id)
 {
 	char str[256],*p,*sp;
 
-	strcpy(str,via);
+	SAFECOPY(str,via);
 	p=str;
-	while(*p && *p<=' ')
-		p++;
+	SKIP_WHITESPACE(p);
 	while(*p) {
 		sp=strchr(p,'/');
 		if(sp) *sp=0;
@@ -74,7 +73,8 @@ bool route_circ(char *via, char *id)
 			return(true);
 		if(!sp)
 			break;
-		p=sp+1; }
+		p=sp+1; 
+	}
 	return(false);
 }
 
@@ -300,7 +300,8 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 {
 	char	str[MAX_PATH+1];
 	int 	i;
-	long	l,msgs,deleted=0;
+	long	l,deleted=0;
+	int32_t	msgs;
 	mail_t	*mail;
 	smbmsg_t msg;
 
@@ -773,7 +774,7 @@ void sbbs_t::qwk_sec()
 void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 {
 	long	l;
-	ulong	last;
+	uint32_t	last;
 
 	if(buf[2]=='/' && buf[5]=='/') {    /* date specified */
 		l=dstrtounix(&cfg,buf);
