@@ -1,4 +1,4 @@
-/* $Id: conn_telnet.c,v 1.1 2007/03/03 12:24:05 deuce Exp $ */
+/* $Id: conn_telnet.c,v 1.4 2007/10/19 02:01:54 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -15,11 +15,14 @@
 
 SOCKET telnet_sock=INVALID_SOCKET;
 
+#ifdef __BORLANDC__
+#pragma argsused
+#endif
 void telnet_input_thread(void *args)
 {
 	fd_set	rds;
 	int		rd;
-	size_t	buffered;
+	int	buffered;
 	size_t	buffer;
 	char	rbuf[BUFFER_SIZE];
 	char	*buf;
@@ -28,14 +31,23 @@ void telnet_input_thread(void *args)
 	while(telnet_sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(telnet_sock, &rds);
+#ifdef __linux__
+		{
+			struct timeval tv;
+			tv.tv_sec=0;
+			tv.tv_usec=500000;
+			rd=select(telnet_sock+1, &rds, NULL, NULL, &tv);
+		}
+#else
 		rd=select(telnet_sock+1, &rds, NULL, NULL, NULL);
+#endif
 		if(rd==-1) {
 			if(errno==EBADF)
 				break;
 			rd=0;
 		}
 		if(rd==1) {
-			rd=recv(telnet_sock, conn_api.rd_buf, conn_api.rd_buf_size, MSG_DONTWAIT);
+			rd=recv(telnet_sock, conn_api.rd_buf, conn_api.rd_buf_size, 0);
 			if(rd <= 0)
 				break;
 		}
@@ -52,13 +64,15 @@ void telnet_input_thread(void *args)
 	conn_api.input_thread_running=0;
 }
 
+#ifdef __BORLANDC__
+#pragma argsused
+#endif
 void telnet_output_thread(void *args)
 {
 	fd_set	wds;
-	int		wr;
+	size_t		wr;
 	int		ret;
 	size_t	sent;
-	size_t	send;
 	char	ebuf[BUFFER_SIZE*2];
 	char	*buf;
 
@@ -74,7 +88,16 @@ void telnet_output_thread(void *args)
 			while(sent < wr) {
 				FD_ZERO(&wds);
 				FD_SET(telnet_sock, &wds);
+#ifdef __linux__
+				{
+					struct timeval tv;
+					tv.tv_sec=0;
+					tv.tv_usec=500000;
+					ret=select(telnet_sock+1, NULL, &wds, NULL, &tv);
+				}
+#else
 				ret=select(telnet_sock+1, NULL, &wds, NULL, NULL);
+#endif
 				if(ret==-1) {
 					if(errno==EBADF)
 						break;
@@ -104,11 +127,26 @@ int telnet_connect(struct bbslist *bbs)
 	if(telnet_sock==INVALID_SOCKET)
 		return(-1);
 
-	create_conn_buf(&conn_inbuf, BUFFER_SIZE);
-	create_conn_buf(&conn_outbuf, BUFFER_SIZE);
+	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE))
+		return(-1);
+	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
+		destroy_conn_buf(&conn_inbuf);
+		return(-1);
+	}
 	conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE);
+	if(!conn_api.rd_buf) {
+		destroy_conn_buf(&conn_inbuf);
+		destroy_conn_buf(&conn_outbuf);
+		return(-1);
+	}
 	conn_api.rd_buf_size=BUFFER_SIZE;
 	conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE);
+	if(!conn_api.wr_buf) {
+		destroy_conn_buf(&conn_inbuf);
+		destroy_conn_buf(&conn_outbuf);
+		free(conn_api.wr_buf);
+		return(-1);
+	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
 
 	memset(telnet_local_option,0,sizeof(telnet_local_option));

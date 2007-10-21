@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.27 2007/03/03 12:24:05 deuce Exp $ */
+/* $Id: conn.c,v 1.36 2007/10/11 11:55:09 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -13,11 +13,23 @@
 #include "rlogin.h"
 #include "raw.h"
 #include "ssh.h"
+#include "modem.h"
+#ifdef __unix__
+#include "conn_pty.h"
+#endif
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH",NULL};
-int conn_ports[]={0,513,23,0,22};
+char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem"
+#ifdef __unix__
+,"Shell"
+#endif
+,NULL};
+int conn_ports[]={0,513,23,0,22,0
+#ifdef __unix__
+,65535
+#endif
+,0};
 
 struct conn_buffer conn_inbuf;
 struct conn_buffer conn_outbuf;
@@ -31,29 +43,33 @@ struct conn_buffer *create_conn_buf(struct conn_buffer *buf, size_t size)
 	buf->bufsize=size;
 	buf->buftop=0;
 	buf->bufbot=0;
+	buf->isempty=1;
 	if(pthread_mutex_init(&(buf->mutex), NULL)) {
-		free(buf->buf);
+		FREE_AND_NULL(buf->buf);
 		return(NULL);
 	}
 	if(sem_init(&(buf->in_sem), 0, 0)) {
-		free(buf->buf);
+		FREE_AND_NULL(buf->buf);
 		pthread_mutex_destroy(&(buf->mutex));
 		return(NULL);
 	}
 	if(sem_init(&(buf->out_sem), 0, 0)) {
-		free(buf->buf);
+		FREE_AND_NULL(buf->buf);
 		pthread_mutex_destroy(&(buf->mutex));
 		sem_destroy(&(buf->in_sem));
 		return(NULL);
 	}
+	return(buf);
 }
 
 void destroy_conn_buf(struct conn_buffer *buf)
 {
-	FREE_AND_NULL(buf->buf);
-	while(pthread_mutex_destroy(&(buf->mutex)));
-	while(sem_destroy(&(buf->in_sem)));
-	while(sem_destroy(&(buf->out_sem)));
+	if(buf->buf != NULL) {
+		free(buf->buf);
+		while(pthread_mutex_destroy(&(buf->mutex)));
+		while(sem_destroy(&(buf->in_sem)));
+		while(sem_destroy(&(buf->out_sem)));
+	}
 }
 
 /*
@@ -62,16 +78,17 @@ void destroy_conn_buf(struct conn_buffer *buf)
  */
 size_t conn_buf_bytes(struct conn_buffer *buf)
 {
-	if(buf->buftop >= buf->bufbot)
-		return(buf->buftop-buf->bufbot);
-	return(buf->bufsize-buf->bufbot + buf->buftop);
+	if(buf->isempty)
+		return(0);
+
+	if(buf->buftop > buf->bufbot)
+		return(buf->buftop - buf->bufbot);
+	return(buf->bufsize - buf->bufbot + buf->buftop);
 }
 
 size_t conn_buf_free(struct conn_buffer *buf)
 {
-	if(buf->buftop >= buf->bufbot)
-		return(buf->bufsize-buf->buftop-buf->bufbot);
-	return(buf->bufbot - buf->buftop);
+	return(buf->bufsize - conn_buf_bytes(buf));
 }
 
 /*
@@ -87,11 +104,12 @@ size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outl
 	copy_bytes=conn_buf_bytes(buf);
 	if(copy_bytes > outlen)
 		copy_bytes=outlen;
-	chunk=buf->bufsize-buf->bufbot;
+	chunk=buf->bufsize - buf->bufbot;
 	if(chunk > copy_bytes)
 		chunk=copy_bytes;
 
-	memcpy(outbuf, buf->buf+buf->bufbot, chunk);
+	if(chunk)
+		memcpy(outbuf, buf->buf+buf->bufbot, chunk);
 	if(chunk < copy_bytes)
 		memcpy(outbuf+chunk, buf->buf, copy_bytes-chunk);
 
@@ -106,13 +124,18 @@ size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outl
 size_t conn_buf_get(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen)
 {
 	size_t ret;
-	size_t loop;
+	size_t atstart;
 
+	atstart=conn_buf_bytes(buf);
 	ret=conn_buf_peek(buf, outbuf, outlen);
-	buf->bufbot+=ret;
-	if(buf->bufbot >= buf->bufsize)
-		buf->bufbot -= buf->bufsize;
-	sem_post(&(buf->out_sem));
+	if(ret) {
+		buf->bufbot+=ret;
+		if(buf->bufbot >= buf->bufsize)
+			buf->bufbot -= buf->bufsize;
+		if(ret==atstart)
+			buf->isempty=1;
+		sem_post(&(buf->out_sem));
+	}
 	return(ret);
 }
 
@@ -124,21 +147,24 @@ size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t
 {
 	size_t write_bytes;
 	size_t chunk;
-	size_t loop;
 
-	write_bytes=buf->bufsize-conn_buf_bytes(buf);
+	write_bytes=conn_buf_free(buf);
 	if(write_bytes > outlen)
 		write_bytes = outlen;
-	chunk=buf->bufsize-buf->buftop;
-	if(chunk > write_bytes)
-		chunk=write_bytes;
-	memcpy(buf->buf+buf->buftop, outbuf, chunk);
-	if(chunk < write_bytes)
-		memcpy(buf->buf, outbuf+chunk, write_bytes-chunk);
-	buf->buftop+=write_bytes;
-	if(buf->buftop >= buf->bufsize)
-		buf->buftop -= buf->bufsize;
-	sem_post(&(buf->in_sem));
+	if(write_bytes) {
+		chunk=buf->bufsize - buf->buftop;
+		if(chunk > write_bytes)
+			chunk=write_bytes;
+		if(chunk)
+			memcpy(buf->buf+buf->buftop, outbuf, chunk);
+		if(chunk < write_bytes)
+			memcpy(buf->buf, outbuf+chunk, write_bytes-chunk);
+		buf->buftop+=write_bytes;
+		if(buf->buftop >= buf->bufsize)
+			buf->buftop -= buf->bufsize;
+		buf->isempty=0;
+		sem_post(&(buf->in_sem));
+	}
 	return(write_bytes);
 }
 
@@ -151,12 +177,11 @@ size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long 
 	long double now;
 	long double end;
 	size_t found;
-	size_t loop;
 	unsigned long timeleft;
 	int retnow=0;
 	sem_t	*sem;
 	size_t (*cond)(struct conn_buffer *buf);
-	
+
 	if(free) {
 		sem=&(buf->out_sem);
 		cond=conn_buf_free;
@@ -273,31 +298,46 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
 			break;
+		case CONN_TYPE_MODEM:
+			conn_api.connect=modem_connect;
+			conn_api.close=modem_close;
+			break;
+#ifdef __unix__
+		case CONN_TYPE_SHELL:
+			conn_api.connect=pty_connect;
+			conn_api.close=pty_close;
+			break;
+#endif
 	}
 	if(conn_api.connect) {
-		conn_api.connect(bbs);
-		while(conn_api.terminate == 0 && (conn_api.input_thread_running == 0 || conn_api.output_thread_running == 0))
-			SLEEP(1);
+		if(conn_api.connect(bbs)) {
+			conn_api.terminate = 1;
+			while(conn_api.input_thread_running || conn_api.output_thread_running)
+				SLEEP(1);
+		}
+		else {
+			while(conn_api.terminate == 0 && (conn_api.input_thread_running == 0 || conn_api.output_thread_running == 0))
+				SLEEP(1);
+		}
 	}
 	return(conn_api.terminate);
 }
 
-BOOL conn_data_waiting(void)
+size_t conn_data_waiting(void)
 {
 	size_t found;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
 	found=conn_buf_bytes(&conn_inbuf);
 	pthread_mutex_unlock(&(conn_inbuf.mutex));
-	if(found)
-		return(TRUE);
-	return(FALSE);
+	return(found);
 }
 
 int conn_close(void)
 {
 	if(conn_api.close)
 		return(conn_api.close());
+	return(0);
 }
 
 int conn_socket_connect(struct bbslist *bbs)
@@ -315,7 +355,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	if(!(*p))
 		neta=inet_addr(bbs->addr);
 	else {
-		uifc.pop("Lookup up host");
+		uifc.pop("Looking up host");
 		if((ent=gethostbyname(bbs->addr))==NULL) {
 			char str[LIST_ADDR_MAX+17];
 
