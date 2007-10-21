@@ -1,4 +1,4 @@
-/* $Id: conn_telnet.c,v 1.6 2007/10/22 03:49:01 deuce Exp $ */
+/* $Id: conn_telnet.c,v 1.5 2007/10/21 18:27:48 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -79,7 +79,6 @@ void telnet_output_thread(void *args)
 	conn_api.output_thread_running=1;
 	while(telnet_sock != INVALID_SOCKET && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
-		ret=0;
 		wr=conn_buf_wait_bytes(&conn_outbuf, 1, 100);
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);

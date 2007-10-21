@@ -1,4 +1,4 @@
-/* $Id: conn.h,v 1.17 2007/10/23 20:02:03 deuce Exp $ */
+/* $Id: conn.h,v 1.16 2007/10/21 18:27:48 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -9,7 +9,7 @@
 #include "bbslist.h"
 
 extern char *conn_types[];
-extern short unsigned int conn_ports[];
+extern int conn_ports[];
 
 enum {
 	 CONN_TYPE_UNKNOWN

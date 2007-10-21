@@ -19,161 +19,6 @@
 #include "window.h"
 #include "term.h"
 
-struct sort_order_info {
-	char		*name;
-	int			flags;
-	size_t		offset;
-	int			length;
-};
-
-#define SORT_ORDER_REVERSED		(1<<0)
-#define SORT_ORDER_STRING		(1<<1)
-
-struct sort_order_info sort_order[] = {
-	 {
-		 NULL
-		,0
-		,0
-		,0
-	}
-	,{
-		 "BBS Name"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, name)
-		,sizeof(((struct bbslist *)NULL)->name)
-	}
-	,{
-		 "Date Added"
-		,SORT_ORDER_REVERSED
-		,offsetof(struct bbslist, added)
-		,sizeof(((struct bbslist *)NULL)->added)
-	}
-	,{
-		 "Date Last Connected"
-		,SORT_ORDER_REVERSED
-		,offsetof(struct bbslist, connected)
-		,sizeof(((struct bbslist *)NULL)->connected)
-	}
-	,{
-		 "Total Calls"
-		,SORT_ORDER_REVERSED
-		,offsetof(struct bbslist, calls)
-		,sizeof(((struct bbslist *)NULL)->calls)
-	}
-	,{
-		 "Dialing List"
-		,0
-		,offsetof(struct bbslist, type)
-		,sizeof(((struct bbslist *)NULL)->type)
-	}
-	,{
-		 "Address"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, addr)
-		,sizeof(((struct bbslist *)NULL)->addr)
-	}
-	,{
-		 "Port"
-		,0
-		,offsetof(struct bbslist, port)
-		,sizeof(((struct bbslist *)NULL)->port)
-	}
-	,{
-		 "Username"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, user)
-		,sizeof(((struct bbslist *)NULL)->user)
-	}
-	,{
-		 "Password"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, password)
-		,sizeof(((struct bbslist *)NULL)->password)
-	}
-	,{
-		 "System Password"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, syspass)
-		,sizeof(((struct bbslist *)NULL)->syspass)
-	}
-	,{
-		 "Connection Type"
-		,0
-		,offsetof(struct bbslist, conn_type)
-		,sizeof(((struct bbslist *)NULL)->conn_type)
-	}
-	,{
-		 "Reversed"
-		,0
-		,offsetof(struct bbslist, reversed)
-		,sizeof(((struct bbslist *)NULL)->reversed)
-	}
-	,{
-		 "Screen Mode"
-		,0
-		,offsetof(struct bbslist, screen_mode)
-		,sizeof(((struct bbslist *)NULL)->screen_mode)
-	}
-	,{
-		 "Status Line Visibility"
-		,0
-		,offsetof(struct bbslist, nostatus)
-		,sizeof(((struct bbslist *)NULL)->nostatus)
-	}
-	,{
-		 "Download Directory"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, dldir)
-		,sizeof(((struct bbslist *)NULL)->dldir)
-	}
-	,{
-		 "Upload Directory"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, uldir)
-		,sizeof(((struct bbslist *)NULL)->uldir)
-	}
-	,{
-		 "Log File"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, logfile)
-		,sizeof(((struct bbslist *)NULL)->logfile)
-	}
-	,{
-		 "Transfer Log Level"
-		,0
-		,offsetof(struct bbslist, xfer_loglevel)
-		,sizeof(((struct bbslist *)NULL)->xfer_loglevel)
-	}
-	,{
-		 "BPS Rate"
-		,0
-		,offsetof(struct bbslist, bpsrate)
-		,sizeof(((struct bbslist *)NULL)->bpsrate)
-	}
-	,{
-		 "ANSI Music"
-		,0
-		,offsetof(struct bbslist, music)
-		,sizeof(((struct bbslist *)NULL)->music)
-	}
-	,{
-		 "Font"
-		,SORT_ORDER_STRING
-		,offsetof(struct bbslist, font)
-		,sizeof(((struct bbslist *)NULL)->font)
-	}
-	,{
-		 NULL
-		,0
-		,0
-		,0
-	}
-};
-
-int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
-
-char *sort_orders[]={"BBS Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
-
 char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
@@ -303,66 +148,7 @@ int get_next_rate(int curr_rate) {
 	return(rates[i]);
 }
 
-int is_sorting(int chk)
-{
-	int i;
-
-	for(i=0; i<sizeof(sort_order)/sizeof(struct sort_order_info); i++)
-		if((abs(sortorder[i]))==chk)
-			return(1);
-	return(0);
-}
-
-int intbufcmp(const void *a, const void *b, size_t size)
-{
-#ifdef __BIG_ENDIAN__
-	return(memcmp(a,b,size));
-#else
-	int i;
-	int ret;
-	const unsigned char *ac=(const unsigned char *)a;
-	const unsigned char *bc=(const unsigned char *)b;
-
-	for(i=size-1; i>=0; i--) {
-		if(ac[i]!=bc[i])
-			return(ac[i]-bc[i]);
-	}
-	return(0);
-#endif
-}
-
-int listcmp(const void *aptr, const void *bptr)
-{
-	const char *a=*(void **)(aptr);
-	const char *b=*(void **)(bptr);
-	int i;
-	int item;
-	int reverse;
-	int ret=0;
-
-	for(i=0; i<sizeof(sort_order)/sizeof(struct sort_order_info); i++) {
-		item=abs(sortorder[i]);
-		reverse=(sortorder[i]<0?1:0)^((sort_order[item].flags&SORT_ORDER_REVERSED)?1:0);
-		if(sort_order[item].name) {
-			if(sort_order[item].flags & SORT_ORDER_STRING)
-				ret=stricmp(a+sort_order[item].offset,b+sort_order[item].offset);
-			else
-				ret=memcmp(a+sort_order[item].offset,b+sort_order[item].offset,sort_order[item].length);
-			if(ret) {
-				if(reverse)
-					ret=0-ret;
-				return(ret);
-			}
-		}
-		else {
-			return(ret);
-		}
-	}
-	return(0);
-}
-
 void sort_list(struct bbslist **list, int *listcount)  {
-#if 0
 	struct bbslist *tmp;
 	unsigned int	i,j,swapped=1;
 
@@ -393,129 +179,6 @@ void sort_list(struct bbslist **list, int *listcount)  {
 			}
 		}
 	}
-#else
-	qsort(list, *listcount, sizeof(struct bbslist *), listcmp);
-#endif
-}
-
-void write_sortorder(void)
-{
-	char	inipath[MAX_PATH+1];
-	FILE	*inifile;
-	str_list_t	inicontents;
-	str_list_t	sortorders;
-	char	str[64];
-	int		i;
-
-	sortorders=strListInit();
-	for(i=0;sort_order[abs(sortorder[i])].name!=NULL;i++) {
-		sprintf(str,"%d",sortorder[i]);
-		strListPush(&sortorders, str);
-	}
-
-	get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
-	if((inifile=fopen(inipath,"r"))!=NULL) {
-		inicontents=iniReadFile(inifile);
-		fclose(inifile);
-	}
-	else {
-		inicontents=strListInit();
-	}
-
-	iniSetStringList(&inicontents, "SyncTERM", "SortOrder", ",", sortorders, &ini_style);
-	if((inifile=fopen(inipath,"w"))!=NULL) {
-		iniWriteFile(inifile,inicontents);
-		fclose(inifile);
-	}
-	strListFree(&sortorders);
-	strListFree(&inicontents);
-}
-
-void edit_sorting(struct bbslist **list, int *listcount)
-{
-	char	opt[sizeof(sort_order)/sizeof(struct sort_order_info)][80];
-	char	*opts[sizeof(sort_order)/sizeof(struct sort_order_info)+1];
-	char	sopt[sizeof(sort_order)/sizeof(struct sort_order_info)][80];
-	char	*sopts[sizeof(sort_order)/sizeof(struct sort_order_info)+1];
-	int		changed=0;
-	int		curr=0,bar=0;
-	int		scurr=0,sbar=0;
-	int		ret,sret;
-	int		i,j;
-
-	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info)+1;i++)
-		opts[i]=opt[i];
-	opts[i]=NULL;
-	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info)+1;i++)
-		sopts[i]=sopt[i];
-	sopts[i]=NULL;
-
-	for(;;) {
-		/* Build ordered list of sort order */
-		for(i=0; i<sizeof(sort_order)/sizeof(struct sort_order_info); i++) {
-			if(sort_order[abs(sortorder[i])].name) {
-				SAFECOPY(opt[i], sort_order[abs(sortorder[i])].name);
-				if((sortorder[i]<0?1:0) ^ ((sort_order[abs(sortorder[i])].flags&SORT_ORDER_REVERSED)?1:0))
-					strcat(opt[i]," (reversed)");
-			}
-			else
-				opt[i][0]=0;
-		}
-		uifc.helpbuf=	"`Sort Order`\n\n"
-						"Move the highlight bar to the position you would like\n"
-						"to add a new ordering before and press ~INSERT~.  Choose\n"
-						"a field from the list and it will be inserted.\n\n"
-						"To remove a sort order, use ~DELETE~.\n\n"
-						"To reverse a sort order, highlight it and press enter";
-		ret=uifc.list(WIN_XTR|WIN_DEL|WIN_INS|WIN_INSACT|WIN_ACT|WIN_SAV
-					,0,0,0,&curr,&bar,"Sort Order",opts);
-		if(ret==-1)
-			break;
-		if(ret & MSK_INS) {		/* Insert sorting */
-			j=0;
-			for(i=0; i<sizeof(sort_order)/sizeof(struct sort_order_info); i++) {
-				if(!is_sorting(i) && sort_order[i].name) {
-					SAFECOPY(sopt[j], sort_order[i].name);
-					j++;
-				}
-			}
-			if(j==0) {
-				uifc.helpbuf=	"All sort orders are present in the list.";
-				uifc.msg("No more sort orders.");
-			}
-			else {
-				sopt[j][0]=0;
-				uifc.helpbuf=	"Select a sort order to add and press enter";
-				sret=uifc.list(WIN_SAV|WIN_BOT|WIN_RHT
-							,0,0,0,&scurr,&sbar,"Sort Field",sopts);
-				if(sret>=0) {
-					/* Insert into array */
-					memmove(&(sortorder[ret&MSK_OFF])+1,&(sortorder[(ret&MSK_OFF)]),sizeof(sortorder)-sizeof(sortorder[0])*((ret&MSK_OFF)+1));
-					j=0;
-					for(i=0; i<sizeof(sort_order)/sizeof(struct sort_order_info); i++) {
-						if(!is_sorting(i) && sort_order[i].name) {
-							if(j==sret) {
-								sortorder[ret&MSK_OFF]=i;
-								break;
-							}
-							j++;
-						}
-					}
-					changed=1;
-				}
-			}
-		}
-		else if(ret & MSK_DEL) {		/* Delete criteria */
-			memmove(&(sortorder[ret&MSK_OFF]),&(sortorder[(ret&MSK_OFF)])+1,sizeof(sortorder)-sizeof(sortorder[0])*((ret&MSK_OFF)+1));
-		}
-		else {
-			sortorder[ret&MSK_OFF]=0-sortorder[ret&MSK_OFF];
-		}
-	}
-
-	/* Write back to the .ini file */
-	write_sortorder();
-	sort_list(list, listcount);
 }
 
 void free_list(struct bbslist **list, int listcount)
@@ -527,95 +190,42 @@ void free_list(struct bbslist **list, int listcount)
 	}
 }
 
-void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id, int type)
+void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int type)
 {
-	BOOL		dumb;
-	char		home[MAX_PATH+1];
-	str_list_t	section;
+	BOOL	dumb;
+	char	home[MAX_PATH+1];
 
 	get_syncterm_filename(home, sizeof(home), SYNCTERM_DEFAULT_TRANSFER_PATH, FALSE);
-	if(bbsname != NULL) {
-#if 0
-		switch(type) {
-			case USER_BBSLIST:
-				SAFECOPY(entry->name,bbsname);
-				break;
-			case SYSTEM_BBSLIST:
-				sprintf(entry->name,"[%.*s]",sizeof(entry->name)-3,bbsname);
-				break;
-		}
-#else
+	if(bbsname != NULL)
 		SAFECOPY(entry->name,bbsname);
-#endif
-	}
-	section=iniGetSection(listfile,bbsname);
-	iniGetString(section,bbsname,"Address","",entry->addr);
-	entry->conn_type=iniGetEnum(section,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
-	entry->port=iniGetShortInt(section,bbsname,"Port",conn_ports[entry->conn_type]);
-	entry->added=iniGetDateTime(section,bbsname,"Added",0);
-	entry->connected=iniGetDateTime(section,bbsname,"LastConnected",0);
-	entry->calls=iniGetInteger(section,bbsname,"TotalCalls",0);
-	iniGetString(section,bbsname,"UserName","",entry->user);
-	iniGetString(section,bbsname,"Password","",entry->password);
-	iniGetString(section,bbsname,"SystemPassword","",entry->syspass);
-	dumb=iniGetBool(section,bbsname,"BeDumb",0);
+	iniReadString(listfile,bbsname,"Address","",entry->addr);
+	entry->conn_type=iniReadEnum(listfile,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
+	entry->port=iniReadShortInt(listfile,bbsname,"Port",conn_ports[entry->conn_type]);
+	entry->added=iniReadDateTime(listfile,bbsname,"Added",0);
+	entry->connected=iniReadDateTime(listfile,bbsname,"LastConnected",0);
+	entry->calls=iniReadInteger(listfile,bbsname,"TotalCalls",0);
+	iniReadString(listfile,bbsname,"UserName","",entry->user);
+	iniReadString(listfile,bbsname,"Password","",entry->password);
+	iniReadString(listfile,bbsname,"SystemPassword","",entry->syspass);
+	dumb=iniReadBool(listfile,bbsname,"BeDumb",0);
 	if(dumb)
 		entry->conn_type=CONN_TYPE_RAW;
-	entry->reversed=iniGetBool(section,bbsname,"Reversed",0);
-	entry->screen_mode=iniGetEnum(section,bbsname,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
-	entry->nostatus=iniGetBool(section,bbsname,"NoStatus",0);
-	iniGetString(section,bbsname,"DownloadPath",home,entry->dldir);
-	iniGetString(section,bbsname,"UploadPath",home,entry->uldir);
+	entry->reversed=iniReadBool(listfile,bbsname,"Reversed",0);
+	entry->screen_mode=iniReadEnum(listfile,bbsname,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
+	entry->nostatus=iniReadBool(listfile,bbsname,"NoStatus",0);
+	iniReadString(listfile,bbsname,"DownloadPath",home,entry->dldir);
+	iniReadString(listfile,bbsname,"UploadPath",home,entry->uldir);
 
 	/* Log Stuff */
-	iniGetString(section,bbsname,"LogFile","",entry->logfile);
-	entry->xfer_loglevel=iniGetEnum(section,bbsname,"TransferLogLevel",log_levels,LOG_INFO);
-	entry->telnet_loglevel=iniGetEnum(section,bbsname,"TelnetLogLevel",log_levels,LOG_INFO);
+	iniReadString(listfile,bbsname,"LogFile","",entry->logfile);
+	entry->xfer_loglevel=iniReadEnum(listfile,bbsname,"TransferLogLevel",log_levels,LOG_INFO);
+	entry->telnet_loglevel=iniReadEnum(listfile,bbsname,"TelnetLogLevel",log_levels,LOG_INFO);
 
-	entry->bpsrate=iniGetInteger(section,bbsname,"BPSRate",0);
-	entry->music=iniGetInteger(section,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
-	iniGetString(section,bbsname,"Font","Codepage 437 English",entry->font);
+	entry->bpsrate=iniReadInteger(listfile,bbsname,"BPSRate",0);
+	entry->music=iniReadInteger(listfile,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
+	iniReadString(listfile,bbsname,"Font","Codepage 437 English",entry->font);
 	entry->type=type;
 	entry->id=id;
-
-	strListFree(&section);
-}
-
-/*
- * Checks if bbsname already is listed in list
- * setting *pos to the position if not NULL.
- * optionally only if the entry is a user list
- * entry
- */
-int list_name_check(struct bbslist **list, char *bbsname, int *pos, int useronly)
-{
-	int i;
-
-	if(list==NULL) {
-		char	listpath[MAX_PATH+1];
-		FILE	*listfile;
-		str_list_t	inifile;
-
-		get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
-		if((listfile=fopen(listpath,"r"))!=NULL) {
-			inifile=iniReadFile(listfile);
-			i=iniSectionExists(inifile, bbsname);
-			strListFree(&inifile);
-			fclose(listfile);
-			return(i);
-		}
-		return(0);
-	}
-	for(i=0; list[i]!=NULL; i++) {
-		if(useronly && list[i]->type != USER_BBSLIST)
-			continue;
-		if(strcmp(list[i]->name,bbsname)==0) {
-			if(pos)
-				*pos=i;
-			return(1);
-		}
-	}
-	return(0);
 }
 
 /*
@@ -627,31 +237,23 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 	FILE	*listfile;
 	char	*bbsname;
 	str_list_t	bbses;
-	str_list_t	inilines;
 
 	if((listfile=fopen(listpath,"r"))!=NULL) {
-		inilines=iniReadFile(listfile);
-		fclose(listfile);
 		if(defaults != NULL)
-			read_item(inilines,defaults,NULL,-1,type);
-		bbses=iniGetSectionList(inilines,NULL);
-		while((bbsname=strListRemove(&bbses,0))!=NULL) {
-			if(!list_name_check(list, bbsname, NULL, FALSE)) {
-				if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL) {
-					free(bbsname);
-					break;
-				}
-				read_item(inilines,list[*i],bbsname,*i,type);
-				(*i)++;
-			}
-			free(bbsname);
+			read_item(listfile,defaults,NULL,-1,type);
+		bbses=iniReadSectionList(listfile,NULL);
+		while((bbsname=strListPop(&bbses))!=NULL) {
+			if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL)
+				break;
+			read_item(listfile,list[*i],bbsname,*i,type);
+			(*i)++;
 		}
-		strListFree(&bbses);
-		strListFree(&inilines);
+		fclose(listfile);
+		strListFreeStrings(bbses);
 	}
 	else {
 		if(defaults != NULL && type==USER_BBSLIST)
-			read_item(NULL,defaults,NULL,-1,type);
+			read_item(listfile,defaults,NULL,-1,type);
 	}
 
 #if 0	/* This isn't necessary (NULL is a sufficient) */
@@ -660,7 +262,7 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 #endif
 }
 
-int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault)
+int edit_list(struct bbslist *item,char *listpath,int isdefault)
 {
 	char	opt[18][80];	/* <- Beware of magic number! */
 	char	*opts[19];		/* <- Beware of magic number! */
@@ -746,23 +348,14 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 						fclose(listfile);
 					}
 				}
-				strListFree(&inifile);
+				strListFreeStrings(inifile);
 				return(changed);
 			case 0:
 				uifc.helpbuf=	"`BBS Name`\n\n"
 								"Enter the BBS name as it is to appear in the list.";
 				strcpy(tmp,itemname);
 				uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",itemname,LIST_NAME_MAX,K_EDIT);
-				if(strcmp(tmp,itemname) && list_name_check(list, itemname, NULL, FALSE)) {
-					uifc.helpbuf=	"`BBS Already Exists`\n\n"
-									"A BBS with that name already exists in the list.\n"
-									"Please choose a unique BBS name.\n";
-					uifc.msg("BBS Already Exists!");
-					strcpy(itemname,tmp);
-				}
-				else {
-					iniRenameSection(&inifile,tmp,itemname);
-				}
+				iniRenameSection(&inifile,tmp,itemname);
 				break;
 			case 1:
 				uifc.helpbuf=	"`Address`\n\n"
@@ -1031,7 +624,7 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 		iniWriteFile(listfile,inifile);
 		fclose(listfile);
 	}
-	strListFree(&inifile);
+	strListFreeStrings(inifile);
 }
 
 void del_bbs(char *listpath, struct bbslist *bbs)
@@ -1049,7 +642,7 @@ void del_bbs(char *listpath, struct bbslist *bbs)
 			iniWriteFile(listfile,inifile);
 			fclose(listfile);
 		}
-		strListFree(&inifile);
+		strListFreeStrings(inifile);
 	}
 }
 
@@ -1059,7 +652,7 @@ void change_settings(void)
 	FILE	*inifile;
 	str_list_t	inicontents;
 	char	opts[7][80];
-	char	*opt[8];
+	char	*opt[7];
 	int		i,j;
 	char	str[64];
 	int	cur=0;
@@ -1075,15 +668,12 @@ void change_settings(void)
 
 	for(i=0; i<7; i++)
 		opt[i]=opts[i];
-	opt[7]=NULL;
 
+	opts[6][0]=0;
 	for(;;) {
-
 		uifc.helpbuf=	"`Program Settings Menu`\n\n"
 						"~ Confirm Program Exit ~\n"
 						"        Prompt the user before exiting.\n\n"
-						"~ Prompt to Save ~\n"
-						"        Prompt to save new URIs on before exiting\n\n"
 						"~ Startup Video Mode ~\n"
 						"        Set the initial video screen size.\n\n"
 						"~ Output Mode ~\n"
@@ -1091,16 +681,15 @@ void change_settings(void)
 						"~ Scrollback Buffer Lines ~\n"
 						"        The number of lines in the scrollback buffer.\n\n"
 						"~ Modem Device ~\n"
-						"        The device name of the modem.\n\n"
+						"        The device name of the modem.\n\n";
 						"~ Modem Init String ~\n"
 						"        An init string to use for the modem.\n\n";
 		sprintf(opts[0],"Confirm Program Exit    %s",settings.confirm_close?"Yes":"No");
-		sprintf(opts[1],"Prompt to Save          %s",settings.prompt_save?"Yes":"No");
-		sprintf(opts[2],"Startup Video Mode      %s",screen_modes[settings.startup_mode]);
-		sprintf(opts[3],"Output Mode             %s",output_descrs[settings.output_mode]);
-		sprintf(opts[4],"Scrollback Buffer Lines %d",settings.backlines);
-		sprintf(opts[5],"Modem Device            %s",settings.mdm.device_name);
-		sprintf(opts[6],"Modem Init String       %s",settings.mdm.init_string);
+		sprintf(opts[1],"Startup Video Mode      %s",screen_modes[settings.startup_mode]);
+		sprintf(opts[2],"Output Mode             %s",output_descrs[settings.output_mode]);
+		sprintf(opts[3],"Scrollback Buffer Lines %d",settings.backlines);
+		sprintf(opts[4],"Modem Device            %s",settings.mdm.device_name);
+		sprintf(opts[5],"Modem Init String       %s",settings.mdm.init_string);
 		switch(uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&cur,NULL,"Program Settings",opt)) {
 			case -1:
 				goto write_ini;
@@ -1109,10 +698,6 @@ void change_settings(void)
 				iniSetBool(&inicontents,"SyncTERM","ConfirmClose",settings.confirm_close,&ini_style);
 				break;
 			case 1:
-				settings.prompt_save=!settings.prompt_save;
-				iniSetBool(&inicontents,"SyncTERM","PromptSave",settings.prompt_save,&ini_style);
-				break;
-			case 2:
 				j=settings.startup_mode;
 				uifc.helpbuf=	"`Startup Video Mode`\n\n"
 								"Select the screen size for at startup\n";
@@ -1125,7 +710,7 @@ void change_settings(void)
 						break;
 				}
 				break;
-			case 3:
+			case 2:
 				for(j=0;output_types[j]!=NULL;j++)
 					if(output_map[j]==settings.output_mode)
 						break;
@@ -1197,9 +782,9 @@ void change_settings(void)
 						break;
 				}
 				break;
-			case 4:
+			case 3:
 				uifc.helpbuf="`Scrollback Buffer Lines`\n\n"
-							 "        The number of lines in the scrollback buffer.\n"
+							 "        The number of lines in the scrollback buffer.\n";
 							 "        This value MUST be greater than zero\n";
 				sprintf(str,"%d",settings.backlines);
 				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Scrollback Lines",str,9,K_NUMBER|K_EDIT)!=-1) {
@@ -1227,7 +812,7 @@ void change_settings(void)
 					}
 				}
 				break;
-			case 5:
+			case 4:
 				uifc.helpbuf=	"`Modem Device`\n\n"
 #ifdef _WIN32
 								"Enter the modem device name (ie: COM1).";
@@ -1237,7 +822,7 @@ void change_settings(void)
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Device",settings.mdm.device_name,LIST_NAME_MAX,K_EDIT)>=0)
 					iniSetString(&inicontents,"SyncTERM","ModemDevice",settings.mdm.device_name,&ini_style);
 				break;
-			case 6:
+			case 5:
 				uifc.helpbuf=	"`Modem Init String`\n\n"
 								"Your modem init string goes here.\n"
 								"For reference, here are the expected settings and USR inits\n\n"
@@ -1330,7 +915,6 @@ struct bbslist *show_bbslist(int mode)
 								"Commands:\n\n"
 								"~ CTRL-D ~ Quick-dial a URL\n"
 								"~ CTRL-E ~ to edit the selected entry\n"
-								"~ CTRL-S ~ to modify the sort order\n"
 								" ~ ENTER ~ to dial the selected entry";
 				if(opt != oldopt) {
 					if(list[opt]!=NULL && list[opt]->name[0]) {
@@ -1346,15 +930,12 @@ struct bbslist *show_bbslist(int mode)
 				oldopt=opt;
 				val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 					|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE
-					|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
+					|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 					,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 				if(val==listcount)
 					val=listcount|MSK_INS;
 				if(val<0) {
 					switch(val) {
-						case -2-0x13:	/* CTRL-S - Sort */
-							edit_sorting(list,&listcount);
-							break;
 						case -2-0x3000:	/* ALT-B - Scrollback */
 							viewofflinescroll();
 							break;
@@ -1365,14 +946,14 @@ struct bbslist *show_bbslist(int mode)
 						case -2-0x4d00:	/* Right Arrow */
 						case -11:		/* TAB */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_T2B|WIN_IMM|WIN_INACT|WIN_HLP
+								|WIN_T2B|WIN_IMM|WIN_INACT
 								,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 							at_settings=!at_settings;
 							break;
 						case -7:		/* CTRL-E */
 							if(list[opt]) {
 								i=list[opt]->id;
-								if(edit_list(list, list[opt],listpath,FALSE)) {
+								if(edit_list(list[opt],listpath,FALSE)) {
 									load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
 									for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 										if(list[j]->id==i)
@@ -1402,8 +983,6 @@ struct bbslist *show_bbslist(int mode)
 					}
 				}
 				else if(val&MSK_ON) {
-					char tmp[LIST_NAME_MAX+1];
-				
 					switch(val&MSK_ON) {
 						case MSK_INS:
 							if(listcount>=MAX_OPTS) {
@@ -1420,32 +999,22 @@ struct bbslist *show_bbslist(int mode)
 								uifc.msg("Cannot edit list in safe mode");
 								break;
 							}
-							tmp[0]=0;
-							uifc.changes=0;
-							uifc.helpbuf=	"`BBS Name`\n\n"
-											"Enter the BBS name as it is to appear in the list.";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",tmp,LIST_NAME_MAX,K_EDIT);
-							if(!uifc.changes)
-								break;
-							if(list_name_check(list, tmp, NULL, FALSE)) {
-								uifc.helpbuf=	"`BBS Already Exists`\n\n"
-												"A BBS with that name already exists in the list.\n"
-												"Please choose a unique BBS name.\n";
-								uifc.msg("BBS Already Exists!");
-								break;
-							}
 							listcount++;
 							list[listcount]=list[listcount-1];
 							list[listcount-1]=(struct bbslist *)malloc(sizeof(struct bbslist));
 							memcpy(list[listcount-1],&defaults,sizeof(struct bbslist));
 							list[listcount-1]->id=listcount-1;
-							strcpy(list[listcount-1]->name,tmp);
-							uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",list[listcount-1]->name,LIST_NAME_MAX,K_EDIT);
 							uifc.changes=0;
-							uifc.helpbuf=	"`Address`\n\n"
-											"Enter the domain name of the system to connect to ie:\n"
-											"nix.synchro.net";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Address",list[listcount-1]->addr,LIST_ADDR_MAX,K_EDIT);
+							uifc.helpbuf=	"`BBS Name`\n\n"
+											"Enter the BBS name as it is to appear in the list.";
+							uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",list[listcount-1]->name,LIST_NAME_MAX,K_EDIT);
+							if(uifc.changes) {
+								uifc.changes=0;
+								uifc.helpbuf=	"`Address`\n\n"
+												"Enter the domain name of the system to connect to ie:\n"
+												"nix.synchro.net";
+								uifc.input(WIN_MID|WIN_SAV,0,0,"Address",list[listcount-1]->addr,LIST_ADDR_MAX,K_EDIT);
+							}
 							if(!uifc.changes) {
 								FREE_AND_NULL(list[listcount-1]);
 								list[listcount-1]=list[listcount];
@@ -1507,7 +1076,7 @@ struct bbslist *show_bbslist(int mode)
 								break;
 							}
 							i=list[opt]->id;
-							if(edit_list(list, list[opt],listpath,FALSE)) {
+							if(edit_list(list[opt],listpath,FALSE)) {
 								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
 								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 									if(list[j]->id==i)
@@ -1528,7 +1097,7 @@ struct bbslist *show_bbslist(int mode)
 							break;
 						}
 						i=list[opt]->id;
-						if(edit_list(list, list[opt],listpath,FALSE)) {
+						if(edit_list(list[opt],listpath,FALSE)) {
 							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
 							for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
 								if(list[j]->id==i)
@@ -1583,7 +1152,7 @@ struct bbslist *show_bbslist(int mode)
 						free_list(&list[0],listcount);
 						return(NULL);
 					case 0:			/* Edit default connection settings */
-						edit_list(NULL, &defaults,listpath,TRUE);
+						edit_list(&defaults,listpath,TRUE);
 						break;
 					case 1:			/* Mouse Actions setup */
 						uifc.helpbuf=	"Mouse actions are not yet user conifurable."
@@ -1649,7 +1218,7 @@ struct bbslist *show_bbslist(int mode)
 								init_uifc(TRUE, TRUE);
 							}
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_T2B|WIN_IMM|WIN_INACT|WIN_HLP
+								|WIN_T2B|WIN_IMM|WIN_INACT
 								,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 						}
 						break;
