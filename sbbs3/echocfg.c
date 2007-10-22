@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.19 2007/01/07 20:23:11 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.20 2007/01/09 17:35:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1145,7 +1145,7 @@ int main(int argc, char **argv)
 				i=uifc.list(WIN_MID,0,0,0,&i,0,"Save Config File",opt);
 				if(i==-1) break;
 				if(i) {uifc.bail(); exit(0);}
-				if((stream=fnopen(NULL,cfg.cfgfile,O_CREAT|O_TRUNC|O_WRONLY))==NULL) {
+				if((stream=fnopen(NULL,cfg.cfgfile,O_CREAT|O_TRUNC|O_WRONLY|O_TEXT))==NULL) {
 					uifc.bail();
 					printf("Error %d opening %s\n",errno,cfg.cfgfile);
 					exit(1); 
