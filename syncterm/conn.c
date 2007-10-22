@@ -1,4 +1,4 @@
-/* $Id: conn.c,v 1.44 2007/10/22 17:40:36 deuce Exp $ */
+/* $Id: conn.c,v 1.45 2007/10/22 20:28:27 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -400,7 +400,10 @@ int conn_socket_connect(struct bbslist *bbs)
 			case EINPROGRESS:
 			case EINTR:
 			case EAGAIN:
+
+#if (!defined(EAGAIN) && defined(EWOULDBLOCK)) && (EAGAIN!=EWOULDBLOCK)
 			case EWOULDBLOCK:
+#endif
 				break;
 			default:
 				failcode=FAILURE_CONNECT_ERROR;
