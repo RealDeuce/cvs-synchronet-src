@@ -14,6 +14,6 @@ void global(void);
 void SetPage(void);
 void UndoLast(void);
 void selectdrawmode(void);
-int exitprg(void);
+void exitprg(void);
 
 #endif
