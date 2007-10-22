@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.31 2007/05/27 06:30:19 deuce Exp $ */
+/* $Id: bbslist.h,v 1.32 2007/10/22 19:07:52 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -43,6 +43,7 @@ enum {
 	,SCREEN_MODE_TERMINATOR
 };
 
+/* NOTE: changing this may require updating sort_order in bbslist.c */
 struct bbslist {
 	char			name[LIST_NAME_MAX+1];
 	char			addr[LIST_ADDR_MAX+1];

@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.95 2007/10/11 08:27:46 deuce Exp $ */
+/* $Id: ciolib.c,v 1.96 2007/10/21 02:28:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -320,6 +320,8 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 		case CIOLIB_MODE_SDL:
 		case CIOLIB_MODE_SDL_FULLSCREEN:
+		case CIOLIB_MODE_SDL_YUV:
+		case CIOLIB_MODE_SDL_YUV_FULLSCREEN:
 			try_sdl_init(mode);
 			break;
 #endif

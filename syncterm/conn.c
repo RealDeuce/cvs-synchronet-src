@@ -1,6 +1,8 @@
-/* $Id: conn.c,v 1.35 2007/10/11 08:26:14 deuce Exp $ */
+/* $Id: conn.c,v 1.44 2007/10/22 17:40:36 deuce Exp $ */
 
 #include <stdlib.h>
+
+#include "ciolib.h"
 
 #include "gen_defs.h"
 #include "genwrap.h"
@@ -65,7 +67,7 @@ struct conn_buffer *create_conn_buf(struct conn_buffer *buf, size_t size)
 void destroy_conn_buf(struct conn_buffer *buf)
 {
 	if(buf->buf != NULL) {
-		free(buf->buf);
+		FREE_AND_NULL(buf->buf);
 		while(pthread_mutex_destroy(&(buf->mutex)));
 		while(sem_destroy(&(buf->in_sem)));
 		while(sem_destroy(&(buf->out_sem)));
@@ -172,7 +174,7 @@ size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t
  * Waits up to timeout milliseconds for bcount bytes to be available/free
  * in the buffer.
  */
-size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long timeout, int free)
+size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long timeout, int do_free)
 {
 	long double now;
 	long double end;
@@ -182,7 +184,7 @@ size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long 
 	sem_t	*sem;
 	size_t (*cond)(struct conn_buffer *buf);
 
-	if(free) {
+	if(do_free) {
 		sem=&(buf->out_sem);
 		cond=conn_buf_free;
 	}
@@ -323,16 +325,14 @@ int conn_connect(struct bbslist *bbs)
 	return(conn_api.terminate);
 }
 
-BOOL conn_data_waiting(void)
+size_t conn_data_waiting(void)
 {
 	size_t found;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
 	found=conn_buf_bytes(&conn_inbuf);
 	pthread_mutex_unlock(&(conn_inbuf.mutex));
-	if(found)
-		return(TRUE);
-	return(FALSE);
+	return(found);
 }
 
 int conn_close(void)
@@ -342,6 +342,14 @@ int conn_close(void)
 	return(0);
 }
 
+enum failure_reason {
+	 FAILURE_RESOLVE
+	,FAILURE_CANT_CREATE
+	,FAILURE_CONNECT_ERROR
+	,FAILURE_ABORTED
+	,FAILURE_GENERAL
+};
+
 int conn_socket_connect(struct bbslist *bbs)
 {
 	SOCKET	sock;
@@ -349,6 +357,10 @@ int conn_socket_connect(struct bbslist *bbs)
 	SOCKADDR_IN	saddr;
 	char	*p;
 	unsigned int	neta;
+	int		nonblock;
+	struct timeval tv;
+	fd_set	wfd;
+	int		failcode;
 
 	for(p=bbs->addr;*p;p++)
 		if(*p!='.' && !isdigit(*p))
@@ -359,16 +371,8 @@ int conn_socket_connect(struct bbslist *bbs)
 	else {
 		uifc.pop("Looking up host");
 		if((ent=gethostbyname(bbs->addr))==NULL) {
-			char str[LIST_ADDR_MAX+17];
-
-			uifc.pop(NULL);
-			sprintf(str,"Cannot resolve %s!",bbs->addr);
-			uifcmsg(str,	"`Cannot Resolve Host`\n\n"
-							"The system is unable to resolve the hostname... double check the spelling.\n"
-							"If it's not an issue with your DNS settings, the issue is probobly\n"
-							"with the DNS settings of the system you are trying to contact.");
-			conn_api.terminate=-1;
-			return(INVALID_SOCKET);
+			failcode=FAILURE_RESOLVE;
+			goto connect_failed;
 		}
 		neta=*((unsigned int*)ent->h_addr_list[0]);
 		uifc.pop(NULL);
@@ -377,31 +381,107 @@ int conn_socket_connect(struct bbslist *bbs)
 
 	sock=socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
 	if(sock==INVALID_SOCKET) {
-		uifc.pop(NULL);
-		uifcmsg("Cannot create socket!",	"`Unable to create socket`\n\n"
-											"Your system is either dangerously low on resources, or there"
-											"is a problem with your TCP/IP stack.");
-		conn_api.terminate=-1;
-		return(INVALID_SOCKET);
+		failcode=FAILURE_CANT_CREATE;
+		goto connect_failed;
 	}
 	memset(&saddr,0,sizeof(saddr));
 	saddr.sin_addr.s_addr = neta;
 	saddr.sin_family = AF_INET;
 	saddr.sin_port   = htons((WORD)bbs->port);
 
+	/* Set to non-blocking for the connect */
+	nonblock=-1;
+	ioctlsocket(sock, FIONBIO, &nonblock);
+	/* Drain the input buffer to avoid accidental cancel */
+	while(kbhit())
+		getch();
 	if(connect(sock, (struct sockaddr *)&saddr, sizeof(saddr))) {
-		char str[LIST_ADDR_MAX+20];
+		switch(ERROR_VALUE) {
+			case EINPROGRESS:
+			case EINTR:
+			case EAGAIN:
+			case EWOULDBLOCK:
+				break;
+			default:
+				failcode=FAILURE_CONNECT_ERROR;
+				goto connect_failed;
+		}
+	}
+	else
+		goto connected;
+	for(;;) {
+		tv.tv_sec=1;
+		tv.tv_usec=0;
 
-		conn_close();
+		FD_ZERO(&wfd);
+		FD_SET(sock, &wfd);
+		switch(select(sock+1, NULL, &wfd, NULL, &tv)) {
+			case 0:
+				if(kbhit()) {
+					failcode=FAILURE_ABORTED;
+					goto connect_failed;
+				}
+				break;
+			case -1:
+				failcode=FAILURE_GENERAL;
+				goto connect_failed;
+			case 1:
+				goto connected;
+			default:
+				break;
+		}
+	}
+connected:
+	nonblock=0;
+	ioctlsocket(sock, FIONBIO, &nonblock);
+	if(!socket_check(sock, NULL, NULL, 0))
+		goto connect_failed;
+
+	uifc.pop(NULL);
+	return(sock);
+
+connect_failed:
+	{
+		char str[LIST_ADDR_MAX+40];
+
 		uifc.pop(NULL);
-		sprintf(str,"Cannot connect to %s!",bbs->addr);
-		uifcmsg(str,	"`Unable to connect`\n\n"
-						"Cannot connect to the remote system... it is down or unreachable.");
 		conn_api.terminate=-1;
+		switch(failcode) {
+			case FAILURE_RESOLVE:
+				sprintf(str,"Cannot resolve %s!",bbs->addr);
+				uifcmsg(str,	"`Cannot Resolve Host`\n\n"
+								"The system is unable to resolve the hostname... double check the spelling.\n"
+								"If it's not an issue with your DNS settings, the issue is probobly\n"
+								"with the DNS settings of the system you are trying to contact.");
+				break;
+			case FAILURE_CANT_CREATE:
+				sprintf(str,"Cannot create socket (%d)!",ERROR_VALUE);
+				uifcmsg(str,
+								"`Unable to create socket`\n\n"
+								"Your system is either dangerously low on resources, or there\n"
+								"is a problem with your TCP/IP stack.");
+				break;
+			case FAILURE_CONNECT_ERROR:
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
+								,"`The connect call returned an error`\n\n"
+								 "The call to connect() returned an unexpected error code.");
+				break;
+			case FAILURE_ABORTED:
+				uifcmsg("Connection Aborted.",	"`Connection Aborted`\n\n"
+								"Connection to the remote system aborted by keystroke.");
+				break;
+			case FAILURE_GENERAL:
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
+								,"`SyncTERM failed to connect`\n\n"
+								 "The call to select() returned an unexpected error code.");
+				break;
+		}
+		conn_close();
+		closesocket(sock);
 		return(INVALID_SOCKET);
 	}
-
-	return(sock);
 }
 
 void conn_binary_mode_on(void)
