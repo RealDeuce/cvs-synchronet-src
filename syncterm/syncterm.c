@@ -1,4 +1,4 @@
-/* $Id: syncterm.c,v 1.120 2007/10/23 00:23:55 deuce Exp $ */
+/* $Id: syncterm.c,v 1.121 2007/10/23 01:15:10 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -1279,9 +1279,9 @@ int main(int argc, char **argv)
 				free(bbs);
 			}
 			bbs=NULL;
+			break;
 		}
-		else
-			bbs=NULL;
+		bbs=NULL;
 	}
 	uifcbail();
 #ifdef _WINSOCKAPI_
