@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.179 2007/10/10 02:43:14 deuce Exp $ */
+/* $Id: uifc32.c,v 1.180 2007/10/21 22:50:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2186,7 +2186,7 @@ static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
 /****************************************************************************/
 void bottomline(int line)
 {
-	int i=0;
+	int i=1;
 
 	uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"    ");
 	i+=4;
