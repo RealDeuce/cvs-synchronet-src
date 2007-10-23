@@ -2,7 +2,7 @@
 
 /* CCITT 16-bit CRC table and calculation function */
 
-/* $Id: crc16.c,v 1.6 2008/06/04 04:39:44 deuce Exp $ */
+/* $Id: crc16.c,v 1.5 2007/07/11 05:24:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ uint16_t crc16tbl[] = {
 0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
 };
 
-uint16_t crc16(const char* data, unsigned long len)
+uint16_t crc16(char* data, unsigned long len)
 {
 	uint16_t crc = 0;
 	unsigned long l;
