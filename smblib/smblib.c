@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.143 2008/03/02 23:15:43 rswindell Exp $ */
+/* $Id: smblib.c,v 1.140 2007/08/13 22:12:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -53,7 +53,7 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.50"      /* SMB library version */
+#define SMBLIB_VERSION		"2.43"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
@@ -703,11 +703,8 @@ ulong SMBCALL smb_getmsgtxtlen(smbmsg_t* msg)
 static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_dat)
 {
 	switch(hfield_type) {	/* convenience variables */
-		case AUTHOR:
-			msg->from=(char*)hfield_dat;
-			break; 
 		case SENDER:
-			if(msg->from==NULL || *(msg->from)==0) {
+			if(!msg->from) {
 				msg->from=(char*)hfield_dat;
 				break; 
 			}
@@ -733,15 +730,6 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 		case SENDERNETADDR:
 			if(!msg->forwarded)
 				msg->from_net.addr=(char*)hfield_dat;
-			break;
-		case SENDERIPADDR:
-			msg->from_ip=(char*)hfield_dat;
-			break;
-		case SENDERHOSTNAME:
-			msg->from_host=(char*)hfield_dat;
-			break;
-		case SENDERPROTOCOL:
-			msg->from_prot=(char*)hfield_dat;
 			break;
 		case REPLYTO:
 			msg->replyto=(char*)hfield_dat;
@@ -829,9 +817,6 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->from=NULL;
 	msg->from_ext=NULL;
 	msg->from_org=NULL;
-	msg->from_ip=NULL;
-	msg->from_host=NULL;
-	msg->from_prot=NULL;
 	memset(&msg->from_net,0,sizeof(net_t));
 
 	msg->replyto=NULL;
@@ -1415,7 +1400,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 
 	/* This is *not* a dupe-check */
 	if(!(msg->flags&MSG_FLAG_HASHED) /* not already hashed */
-		&& (i=smb_hashmsg(smb,msg,/* text: */NULL,/* update? */TRUE))!=SMB_SUCCESS) {
+		&& (i=smb_hashmsg(smb,msg,NULL,/* update? */TRUE))!=SMB_SUCCESS) {
 		smb_unlocksmbhdr(smb);
 		return(i);	/* error updating hash table */
 	}
