@@ -74,11 +74,12 @@ void save_font_files(struct font_files *fonts)
 		fclose(inifile);
 	}
 	else {
+		uifc.helpbuf="There was an error writing the INI file.\nCheck permissions and try again.\n";
 		uifc.msg("Cannot write to the .ini file!");
 	}
 
-	strListFreeStrings(fontnames);
-	strListFreeStrings(ini_file);
+	strListFree(&fontnames);
+	strListFree(&ini_file);
 }
 
 struct font_files *read_font_files(int *count)
@@ -117,7 +118,7 @@ struct font_files *read_font_files(int *count)
 			ret[*count-1].path8x16=strdup(fontpath);
 	}
 	fclose(inifile);
-	strListFreeStrings(fonts);
+	strListFree(&fonts);
 	return(ret);
 }
 
@@ -264,6 +265,7 @@ void font_management(void)
 			}
 			if(i&MSK_INS) {
 				str[0]=0;
+				uifc.helpbuf="Enter the name of the font as you want it to appear\nin menus.";
 				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,0)==-1)
 					break;
 				count++;
@@ -283,6 +285,7 @@ void font_management(void)
 			}
 			for(i=0; i<5; i++)
 				opt[i]=opts[i];
+			uifc.helpbuf="Font Details\n";
 			sprintf(opts[0],"Name: %.50s",fonts[cur].name?fonts[cur].name:"<undefined>");
 			sprintf(opts[1],"8x8   %.50s",fonts[cur].path8x8?fonts[cur].path8x8:"<undefined>");
 			sprintf(opts[2],"8x14  %.50s",fonts[cur].path8x14?fonts[cur].path8x14:"<undefined>");
@@ -294,7 +297,8 @@ void font_management(void)
 			switch(i) {
 				case 0:
 					SAFECOPY(str,fonts[cur].name);
-					free(fonts[cur].name);
+					FREE_AND_NULL(fonts[cur].name);
+					uifc.helpbuf="Enter the name of the font as you want it to appear\nin menus.";
 					uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,K_EDIT);
 					fonts[cur].name=strdup(str);
 					show_filepick=0;
@@ -327,13 +331,14 @@ void font_management(void)
 				gettextinfo(&ti);
 				savbuf=(char *)alloca((ti.screenheight-2)*ti.screenwidth*2);
 				if(savbuf==NULL) {
+					uifc.helpbuf="malloc() has failed.  Available Memory is dangerously low.";
 					uifc.msg("malloc() failure.");
 					continue;
 				}
 				gettext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
 				result=filepick(&uifc, str, &fpick, ".", fontmask, UIFC_FP_ALLOWENTRY);
 				if(result!=-1 && fpick.files>0) {
-					free(*path);
+					FREE_AND_NULL(*path);
 					*(path)=strdup(fpick.selected[0]);
 				}
 				filepick_free(&fpick);

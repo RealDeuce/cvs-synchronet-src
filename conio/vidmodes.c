@@ -1,4 +1,4 @@
-/* $Id: vidmodes.c,v 1.9 2007/10/10 02:35:02 deuce Exp $ */
+/* $Id: vidmodes.c,v 1.10 2007/10/15 00:31:11 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -126,7 +126,7 @@ struct dac_colors dac_default[34] = {
 	{0x95, 0x95, 0x95},
 	/* Atari Colours */
 	/* BG, FG */
-	{0, 81, 129}, {96, 183, 231}
+	{0, 81, 129}, {96, 183, 231},
 };
 
 int find_vmode(int mode)

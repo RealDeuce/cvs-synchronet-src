@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.10 2007/10/11 11:32:22 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.14 2007/10/21 06:22:36 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -42,6 +42,7 @@ pthread_mutex_t		vstatlock;
 pthread_mutex_t		screenlock;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font;
+int force_redraws=0;
 
 struct rectangle {
 	int x;
@@ -60,16 +61,19 @@ static void blinker_thread(void *data)
 	while(1) {
 		SLEEP(10);
 		count++;
+		pthread_mutex_lock(&vstatlock);
 		if(count==50) {
-			pthread_mutex_lock(&vstatlock);
 			if(vstat.blink)
 				vstat.blink=FALSE;
 			else
 				vstat.blink=TRUE;
-			update_rect(0,0,0,0,FALSE,TRUE);
-			pthread_mutex_unlock(&vstatlock);
 			count=0;
 		}
+		if(force_redraws)
+			update_rect(0,0,0,0,force_redraws--,TRUE);
+		else
+			update_rect(0,0,0,0,FALSE,TRUE);
+		pthread_mutex_unlock(&vstatlock);
 		callbacks.flush();
 	}
 }
@@ -215,7 +219,6 @@ int bitmap_puttext(int sx, int sy, int ex, int ey, void *fill)
 			vstat.vmem[y*cio_textinfo.screenwidth+x]=sch;
 		}
 	}
-	update_rect(sx,sy,ex-sx+1,ey-sy+1,FALSE,TRUE);
 	pthread_mutex_unlock(&vstatlock);
 	return(1);
 }
@@ -740,9 +743,6 @@ static int update_rect(int sx, int sy, int width, int height, int force, int cal
 
 	if(redraw_cursor)
 		bitmap_draw_cursor(FALSE);
-
-//	if(sent && callbacks.flush)
-//		callbacks.flush();
 
 	return(0);
 }

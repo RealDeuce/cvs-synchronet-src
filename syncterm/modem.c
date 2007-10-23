@@ -1,4 +1,4 @@
-/* $Id: modem.c,v 1.8 2007/07/06 02:36:33 deuce Exp $ */
+/* $Id: modem.c,v 1.9 2007/10/21 18:27:48 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -210,7 +210,7 @@ int modem_connect(struct bbslist *bbs)
 		modem_close();
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
-		free(conn_api.rd_buf);
+		FREE_AND_NULL(conn_api.rd_buf);
 		return(-1);
 	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
