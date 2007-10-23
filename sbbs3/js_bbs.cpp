@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.108 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.106 2007/09/22 08:34:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,8 +246,8 @@ enum {
 
 static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	const char*	p=NULL;
-	const char*	nulstr="";
+	char*		p=NULL;
+	char*		nulstr="";
 	ulong		val=0;
     jsint       tiny;
 	sbbs_t*		sbbs;
@@ -1263,7 +1263,6 @@ js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int		disp_len;
 	bool	padded_left=false;
 	bool	padded_right=false;
-	const char *cp;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -1286,17 +1285,17 @@ js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(disp_len >= sizeof(str))
 		disp_len=sizeof(str)-1;
 
-	cp=sbbs->atcode(instr,str2,sizeof(str2));
+	p=sbbs->atcode(instr,str2,sizeof(str2));
 	free(instr);
-	if(cp==NULL)
+	if(p==NULL)
 		*rval = JSVAL_NULL;
 	else {
 		if(padded_left)
-			sprintf(str,"%-*.*s",disp_len,disp_len,cp);
+			sprintf(str,"%-*.*s",disp_len,disp_len,p);
 		else if(padded_right)
-			sprintf(str,"%*.*s",disp_len,disp_len,cp);
+			sprintf(str,"%*.*s",disp_len,disp_len,p);
 		else
-			SAFECOPY(str,cp);
+			SAFECOPY(str,p);
 
 		JSString* js_str = JS_NewStringCopyZ(cx, str);
 		if(js_str==NULL)
@@ -1932,8 +1931,8 @@ js_email(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32		usernumber=1;
 	long		mode=WM_EMAIL;
-	const char*	top="";
-	const char*	subj="";
+	char*		top="";
+	char*		subj="";
 	JSString*	js_top=NULL;
 	JSString*	js_subj=NULL;
 	sbbs_t*		sbbs;
@@ -1964,7 +1963,7 @@ static JSBool
 js_netmail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	long		mode=0;
-	const char*	subj="";
+	char*		subj="";
 	JSString*	js_to;
 	JSString*	js_subj=NULL;
 	sbbs_t*		sbbs;
@@ -2260,8 +2259,8 @@ static JSBool
 js_cmdstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	const char*	fpath="";
-	const char*	fspec="";
+	char*		fpath="";
+	char*		fspec="";
 	JSString*	js_str;
 	sbbs_t*		sbbs;
 
@@ -2319,7 +2318,7 @@ static JSBool
 js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	long		mode=0;
-	const char*	fspec=ALLFILES;
+	char*		fspec=ALLFILES;
 	char		buf[MAX_PATH+1];
 	uint		dirnum;
     JSString*	js_str;
@@ -2356,7 +2355,7 @@ static JSBool
 js_listfileinfo(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	long		mode=FI_INFO;
-	const char*	fspec=ALLFILES;
+	char*		fspec=ALLFILES;
 	char		buf[MAX_PATH+1];
 	uint		dirnum;
     JSString*	js_str;
@@ -2527,7 +2526,7 @@ js_scandirs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_scanposts(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	const char*	find="";
+	char*		find="";
 	long		mode=0;
 	uint		subnum;
 	sbbs_t*		sbbs;
@@ -2559,7 +2558,7 @@ js_scanposts(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_listmsgs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	const char*	find="";
+	char*		find="";
 	long		mode=0;
 	long		start=0;
 	uint		subnum;
@@ -3008,20 +3007,6 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	{0}
 };
 
-static JSBool js_bbs_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, js_bbs_properties, js_bbs_functions, NULL, 0));
-}
-
-static JSBool js_bbs_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_bbs_resolve(cx, obj, JSVAL_NULL));
-}
 
 static JSClass js_bbs_class = {
      "BBS"					/* name			*/
@@ -3030,8 +3015,8 @@ static JSClass js_bbs_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_bbs_get				/* getProperty	*/
 	,js_bbs_set				/* setProperty	*/
-	,js_bbs_enumerate		/* enumerate	*/
-	,js_bbs_resolve			/* resolve		*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub		/* finalize		*/
 };
@@ -3045,6 +3030,12 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(obj==NULL)
+		return(NULL);
+
+	if(!js_DefineSyncProperties(cx, obj, js_bbs_properties))
+		return(NULL);
+
+	if (!js_DefineSyncMethods(cx, obj, js_bbs_functions, FALSE)) 
 		return(NULL);
 
 	if((mods=JS_DefineObject(cx, obj, "mods", NULL, NULL ,JSPROP_ENUMERATE))==NULL)
