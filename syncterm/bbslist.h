@@ -1,4 +1,4 @@
-/* $Id: bbslist.h,v 1.31 2007/05/27 06:30:19 deuce Exp $ */
+/* $Id: bbslist.h,v 1.33 2007/10/23 00:23:55 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -43,6 +43,7 @@ enum {
 	,SCREEN_MODE_TERMINATOR
 };
 
+/* NOTE: changing this may require updating sort_order in bbslist.c */
 struct bbslist {
 	char			name[LIST_NAME_MAX+1];
 	char			addr[LIST_ADDR_MAX+1];
@@ -73,8 +74,9 @@ struct bbslist *show_bbslist(int mode);
 extern char *log_levels[];
 extern char *rate_names[];
 extern int rates[];
+extern int sortorder[];
 extern ini_style_t ini_style;
-void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int type);
+void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id, int type);
 void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, int *i, int type);
 void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
