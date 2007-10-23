@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.11 2007/10/15 00:30:30 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.14 2007/10/21 06:22:36 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -42,6 +42,7 @@ pthread_mutex_t		vstatlock;
 pthread_mutex_t		screenlock;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font;
+int force_redraws=0;
 
 struct rectangle {
 	int x;
@@ -68,7 +69,10 @@ static void blinker_thread(void *data)
 				vstat.blink=TRUE;
 			count=0;
 		}
-		update_rect(0,0,0,0,FALSE,TRUE);
+		if(force_redraws)
+			update_rect(0,0,0,0,force_redraws--,TRUE);
+		else
+			update_rect(0,0,0,0,FALSE,TRUE);
 		pthread_mutex_unlock(&vstatlock);
 		callbacks.flush();
 	}
