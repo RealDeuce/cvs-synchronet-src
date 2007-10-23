@@ -2,13 +2,13 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.26 2006/05/18 04:09:35 deuce Exp $ */
+/* $Id: filewrap.h,v 1.27 2007/08/25 08:06:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -109,6 +109,11 @@
 			#define SH_COMPAT			0
 		#endif
 	#endif
+
+	#ifndef DEFFILEMODE
+	#define DELFILEMODE			(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+	#endif
+
 	#define chsize(fd,size)		ftruncate(fd,size)
 	#define tell(fd)			lseek(fd,0,SEEK_CUR)
 	#define eof(fd)				(tell(fd)==filelength(fd))
@@ -117,6 +122,10 @@
 
 	#include <share.h>			/* SH_DENY */
 
+#endif
+
+#ifndef DEFFILEMODE
+#define DEFFILEMODE			(S_IREAD|S_IWRITE)
 #endif
 
 /* Standard file descriptors.  */
