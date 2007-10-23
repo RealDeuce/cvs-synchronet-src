@@ -164,10 +164,6 @@ SOURCE=.\window.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\sbbs3\xmodem.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\xpdev\xpbeep.c
 # End Source File
 # Begin Source File
