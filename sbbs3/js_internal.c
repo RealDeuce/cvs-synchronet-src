@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.35 2007/10/28 20:21:46 deuce Exp $ */
+/* $Id: js_internal.c,v 1.34 2006/12/27 23:25:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -409,7 +409,6 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 			JS_ExecuteScript(cx, obj, script, &rval);
 			JS_DestroyScript(cx, script);
 		}
-		free(p);
 	}
 
 	strListFree(&branch->exit_func);
