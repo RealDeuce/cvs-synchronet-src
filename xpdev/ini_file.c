@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.103 2007/10/26 08:33:14 deuce Exp $ */
+/* $Id: ini_file.c,v 1.101 2007/06/17 03:11:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -291,29 +291,6 @@ BOOL iniSectionExists(str_list_t list, const char* section)
 
 	i=find_section_index(list,section);
 	return(list[i]!=NULL);
-}
-
-str_list_t	iniGetSection(str_list_t list, const char *section)
-{
-	size_t		i;
-	str_list_t	retval=strListInit();
-	char		*p;
-
-	if(section==ROOT_SECTION)
-		i=0;
-	else
-		i=find_section_index(list,section);
-	if(list[i]!=NULL) {
-		strListPush(&retval, list[i]);
-		for(i++;list[i]!=NULL;i++) {
-			p=list[i];
-			SKIP_WHITESPACE(p);
-			if(*p==INI_OPEN_SECTION_CHAR)
-				break;
-			strListPush(&retval, list[i]);
-		}
-	}
-	return(retval);
 }
 
 BOOL iniKeyExists(str_list_t list, const char* section, const char* key)

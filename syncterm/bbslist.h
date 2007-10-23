@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: bbslist.h,v 1.35 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: bbslist.h,v 1.33 2007/10/23 00:23:55 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -82,7 +80,6 @@ void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id
 void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, int *i, int type);
 void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
-int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault);
 int  get_rate_num(int rate);
 
 #endif
