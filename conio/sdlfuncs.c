@@ -89,7 +89,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	sdlf->LockYUVOverlay=SDL_LockYUVOverlay;
 	sdlf->UnlockYUVOverlay=SDL_UnlockYUVOverlay;
 	sdlf->GetVideoInfo=SDL_GetVideoInfo;
-	sdlf->Linked_Version=SDL_Linked_Version;
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
 	return(0);
@@ -321,10 +320,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		FreeLibrary(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->Linked_Version=(void *)GetProcAddress(sdl_dll, "SDL_Linked_Version"))==NULL) {
-		FreeLibrary(sdl_dll);
-		return(-1);
-	}
 
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
@@ -551,10 +546,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->Linked_Version=dlsym(sdl_dll, "SDL_Linked_Version"))==NULL) {
-		dlclose(sdl_dll);
-		return(-1);
-	}
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
 	return(0);
@@ -639,7 +630,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 #ifdef _WIN32
 		/* Fail to windib (ie: No mouse attached) */
 		if(sdl.Init(SDL_INIT_VIDEO)) {
-			driver_env=getenv("SDL_VIDEODRIVER");
+			driver_env=getenv("SDL_VIDEODRIVER")==NULL)
 			if(driver_env==NULL || strcmp(driver_env,"windib")) {
 				putenv("SDL_VIDEODRIVER=windib");
 				WinExec(GetCommandLine(), SW_SHOWDEFAULT);
@@ -661,7 +652,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 		 * This ugly hack attempts to prevent this... of course, remote X11
 		 * connections must still be allowed.
 		 */
-		if((!use_sdl_video) || ((getenv("REMOTEHOST")!=NULL || getenv("SSH_CLIENT")!=NULL) && getenv("DISPLAY")==NULL)) {
+		if((!use_sdl_video) || (getenv("REMOTEHOST")!=NULL && getenv("DISPLAY")==NULL)) {
 			/* Sure ,we can't use video, but audio is still valid! */
 			if(sdl.Init(0)==0)
 				sdl_initialized=TRUE;
