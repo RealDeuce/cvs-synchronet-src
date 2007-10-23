@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: conn_pty.c,v 1.5 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.4 2007/10/22 03:49:01 deuce Exp $ */
 
 #ifdef __unix__
 
