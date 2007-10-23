@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.105 2007/11/28 03:41:04 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.101 2007/06/17 03:11:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -291,31 +291,6 @@ BOOL iniSectionExists(str_list_t list, const char* section)
 
 	i=find_section_index(list,section);
 	return(list[i]!=NULL);
-}
-
-str_list_t	iniGetSection(str_list_t list, const char *section)
-{
-	size_t		i;
-	str_list_t	retval=strListInit();
-	char		*p;
-
-	if(list==NULL)
-		return(retval);
-	if(section==ROOT_SECTION)
-		i=0;
-	else
-		i=find_section_index(list,section);
-	if(list[i]!=NULL) {
-		strListPush(&retval, list[i]);
-		for(i++;list[i]!=NULL;i++) {
-			p=list[i];
-			SKIP_WHITESPACE(p);
-			if(*p==INI_OPEN_SECTION_CHAR)
-				break;
-			strListPush(&retval, list[i]);
-		}
-	}
-	return(retval);
 }
 
 BOOL iniKeyExists(str_list_t list, const char* section, const char* key)
@@ -1523,36 +1498,6 @@ static unsigned parseEnum(const char* value, str_list_t names)
 	return(strtoul(value,NULL,0));
 }
 
-static unsigned* parseEnumList(const char* values, const char* sep, str_list_t names)
-{
-	char*		vals;
-	str_list_t	list;
-	unsigned*	enum_list;
-	size_t		i,count;
-
-	if(values==NULL)
-		return NULL;
-
-	if((vals=strdup(values)) == NULL)
-		return NULL;
-
-	list=splitList(vals, sep);
-
-	free(vals);
-
-	if((count=strListCount(list)) < 1)
-		return NULL;
-
-	if((enum_list=(unsigned *)malloc(count*sizeof(unsigned)))!=NULL) {
-		for(i=0;i<count;i++)
-			enum_list[i]=parseEnum(list[i], names);
-	}
-
-	strListFree(&list);
-
-	return enum_list;
-}
-
 unsigned iniReadEnum(FILE* fp, const char* section, const char* key, str_list_t names, unsigned deflt)
 {
 	char	buf[INI_MAX_VALUE_LEN];
@@ -1567,19 +1512,6 @@ unsigned iniReadEnum(FILE* fp, const char* section, const char* key, str_list_t 
 	return(parseEnum(value,names));
 }
 
-unsigned* iniReadEnumList(FILE* fp, const char* section, const char* key
-						 ,str_list_t names
-						 ,const char* sep, const char* deflt)
-{
-	char*		value;
-	char		buf[INI_MAX_VALUE_LEN];
-
-	if((value=read_value(fp,section,key,buf))==NULL || *value==0 /* blank */)
-		value=(char*)deflt;
-
-	return(parseEnumList(value, sep, names));
-}
-
 unsigned iniGetEnum(str_list_t list, const char* section, const char* key, str_list_t names, unsigned deflt)
 {
 	char	value[INI_MAX_VALUE_LEN];
@@ -1590,21 +1522,6 @@ unsigned iniGetEnum(str_list_t list, const char* section, const char* key, str_l
 		return(deflt);
 
 	return(parseEnum(value,names));
-}
-
-unsigned* iniGetEnumList(str_list_t list, const char* section, const char* key
-						 ,str_list_t names, const char* sep, const char* deflt)
-{
-	char		value[INI_MAX_VALUE_LEN];
-
-	get_value(list, section, key, value);
-
-	if(*value==0 /* blank value or missing key */) {
-		if(deflt==NULL)
-			return(NULL);
-		SAFECOPY(value,deflt);
-	}
-	return(parseEnumList(value, sep, names));
 }
 
 static long parseNamedInt(const char* value, named_long_t* names)
