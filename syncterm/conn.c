@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: conn.c,v 1.48 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: conn.c,v 1.47 2007/10/23 20:02:03 deuce Exp $ */
 
 #include <stdlib.h>
 
