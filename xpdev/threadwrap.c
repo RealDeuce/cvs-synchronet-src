@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.22 2005/10/21 00:04:19 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.25 2007/10/24 06:56:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,6 @@ ulong _beginthread(void( *start_address )( void * )
 	size_t		default_stack;
 
 	pthread_attr_init(&attr);     /* initialize attribute structure */
-
 	/* set thread attributes to PTHREAD_CREATE_DETACHED which will ensure
 	   that thread resources are freed on exit() */
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
@@ -71,8 +70,8 @@ ulong _beginthread(void( *start_address )( void * )
 	/* Default stack size in BSD is too small for JS stuff */
 	/* Force to at least 256k */
 #define XPDEV_MIN_THREAD_STACK_SIZE	(256*1024)
-	if(stack_size==0 && pthread_attr_getstacksize(&attr, &default_stack)==0
-		&& default_stack < XPDEV_MIN_THREAD_STACK_SIZE)
+	if(stack_size==0 && pthread_attr_getstacksize(&attr, &default_stack)==0 
+			&& default_stack < XPDEV_MIN_THREAD_STACK_SIZE)
 		stack_size=XPDEV_MIN_THREAD_STACK_SIZE;
 
 	if(stack_size!=0)
@@ -87,8 +86,10 @@ ulong _beginthread(void( *start_address )( void * )
 		/* POSIX defines this arg as "void *(*start_address)" */
 		,(void * (*)(void *)) start_address
 		,arglist)==0)
+		pthread_attr_destroy(&attr);
 		return((int) thread /* thread handle */);
 
+	pthread_attr_destroy(&attr);
 	return(-1);	/* error */
 }
 #else
