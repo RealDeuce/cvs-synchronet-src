@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.24 2007/10/24 06:55:43 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.25 2007/10/24 06:56:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,8 +76,6 @@ ulong _beginthread(void( *start_address )( void * )
 
 	if(stack_size!=0)
 		pthread_attr_setstacksize(&attr, stack_size);
-	else
-		pthread_attr_setstacksize(&attr, default_stack);
 
 	if(pthread_create(&thread
 #if defined(__BORLANDC__) /* a (hopefully temporary) work-around */
