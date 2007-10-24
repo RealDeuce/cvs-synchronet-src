@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.124 2007/11/30 08:57:17 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.123 2007/10/15 07:35:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -576,8 +576,6 @@ void sbbs_read_ini(
 			,iniGetString(list,section,"ErrorDirectory",WEB_DEFAULT_ERROR_DIR,value));
 		SAFECOPY(web->cgi_dir
 			,iniGetString(list,section,"CGIDirectory",WEB_DEFAULT_CGI_DIR,value));
-		SAFECOPY(web->default_auth_list
-			,iniGetString(list,section,"Authentication",WEB_DEFAULT_AUTH_LIST,value));
 		SAFECOPY(web->logfile_base
 			,iniGetString(list,section,"HttpLogFile",nulstr,value));
 
@@ -1091,8 +1089,6 @@ BOOL sbbs_write_ini(
 		if(!iniSetString(lp,section,"ErrorDirectory",web->error_dir,&style))
 			break;
 		if(!iniSetString(lp,section,"CGIDirectory",web->cgi_dir,&style))
-			break;
-		if(!iniSetString(lp,section,"Authentication",web->default_auth_list,&style))
 			break;
 		if(!iniSetString(lp,section,"HttpLogFile",web->logfile_base,&style))
 			break;
