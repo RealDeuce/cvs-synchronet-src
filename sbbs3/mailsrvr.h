@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.65 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: mailsrvr.h,v 1.61 2006/12/27 06:00:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -46,7 +46,6 @@ typedef struct {
 	DWORD	size;				/* sizeof(mail_startup_t) */
 	WORD	smtp_port;
 	WORD	pop3_port;
-	WORD	submission_port;
 	WORD	max_clients;
 	WORD	max_inactivity;
 	WORD	max_delivery_attempts;
@@ -62,8 +61,8 @@ typedef struct {
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int, const char*);
-	void	(*status)(void*, const char*);
+	int 	(*lputs)(void*, int, char*);
+	void	(*status)(void*, char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
@@ -128,7 +127,6 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_ALLOW_RX_BY_NUMBER		(1<<7)	/* Receive mail sent to user # */
 #define MAIL_OPT_NO_NOTIFY				(1<<8)	/* Don't notify local recipients */
 #define MAIL_OPT_ALLOW_SYSOP_ALIASES	(1<<9)	/* Receive mail sent to built-in sysop aliases (i.e. "sysop" and "postmaster") */ 
-#define MAIL_OPT_USE_SUBMISSION_PORT	(1<<10)	/* Listen on the "MSA" service port for mail submissions */
 #define MAIL_OPT_NO_HOST_LOOKUP			(1<<11)	/* Don't look-up hostnames */
 #define MAIL_OPT_USE_TCP_DNS			(1<<12)	/* Use TCP vs UDP for DNS req */
 #define MAIL_OPT_NO_SENDMAIL			(1<<13)	/* Don't run SendMail thread */
@@ -144,14 +142,14 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_RELAY_AUTH_PLAIN		(1<<23)
 #define MAIL_OPT_RELAY_AUTH_LOGIN		(1<<24)
 #define MAIL_OPT_RELAY_AUTH_CRAM_MD5	(1<<25)
-#define MAIL_OPT_NO_AUTO_EXEMPT			(1<<26)	/* Do not auto DNSBL-exempt recipient e-mail addresses */
 #define MAIL_OPT_NO_RECYCLE				(1<<27)	/* Disable recycling of server		*/
+#define MAIL_OPT_LOCAL_TIMEZONE			(1<<30)	/* Don't force UTC/GMT */
 #define MAIL_OPT_MUTE					(1<<31)
 
 #define MAIL_OPT_RELAY_AUTH_MASK		(MAIL_OPT_RELAY_AUTH_PLAIN|MAIL_OPT_RELAY_AUTH_LOGIN|MAIL_OPT_RELAY_AUTH_CRAM_MD5)
 
 /* mail_startup_t.options bits that require re-init/recycle when changed */
-#define MAIL_INIT_OPTS	(MAIL_OPT_ALLOW_POP3|MAIL_OPT_NO_SENDMAIL)
+#define MAIL_INIT_OPTS	(MAIL_OPT_ALLOW_POP3|MAIL_OPT_NO_SENDMAIL|MAIL_OPT_LOCAL_TIMEZONE)
 
 #if defined(STARTUP_INI_BITDESC_TABLES)
 static ini_bitdesc_t mail_options[] = {
@@ -165,7 +163,6 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_DEBUG_POP3			,"DEBUG_POP3"			},
 	{ MAIL_OPT_ALLOW_RX_BY_NUMBER	,"ALLOW_RX_BY_NUMBER"	},
 	{ MAIL_OPT_ALLOW_SYSOP_ALIASES	,"ALLOW_SYSOP_ALIASES"	},
-	{ MAIL_OPT_USE_SUBMISSION_PORT	,"USE_SUBMISSION_PORT"	},
 	{ MAIL_OPT_NO_NOTIFY			,"NO_NOTIFY"			},
 	{ MAIL_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ MAIL_OPT_USE_TCP_DNS			,"USE_TCP_DNS"			},
@@ -182,8 +179,8 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_AUTH_PLAIN		,"RELAY_AUTH_PLAIN"		},
 	{ MAIL_OPT_RELAY_AUTH_LOGIN		,"RELAY_AUTH_LOGIN"		},
 	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
-	{ MAIL_OPT_NO_AUTO_EXEMPT		,"NO_AUTO_EXEMPT"		},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
+	{ MAIL_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
 	/* terminator */
 	{ 0 							,NULL					}
