@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.221 2008/11/16 03:33:27 deuce Exp $ */
+/* $Id: js_global.c,v 1.214 2007/09/22 21:02:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,7 +31,7 @@
  *																			*
  * You are encouraged to submit any modifications (preferably in Unix diff	*
  * format) via e-mail to mods@synchro.net									*
- *												
+ *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
@@ -50,11 +50,6 @@
 #define MAX_ANSI_PARAMS	8
 
 #ifdef JAVASCRIPT
-
-typedef struct {
-	scfg_t				*cfg;
-	jsSyncMethodSpec	*methods;
-} private_t;
 
 /* Global Object Properites */
 enum {
@@ -88,12 +83,12 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 #define GLOBOBJ_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_SHARED
 
-static jsSyncPropertySpec js_global_properties[] = {
-/*		 name,			tinyid,					flags,			ver */
+static struct JSPropertySpec js_global_properties[] = {
+/*		 name,		tinyid,				flags */
 
-	{	"errno"			,GLOB_PROP_ERRNO		,GLOBOBJ_FLAGS, 310 },
-	{	"errno_str"		,GLOB_PROP_ERRNO_STR	,GLOBOBJ_FLAGS, 310 },
-	{	"socket_errno"	,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS, 310 },
+	{	"errno"			,GLOB_PROP_ERRNO		,GLOBOBJ_FLAGS },
+	{	"errno_str"		,GLOB_PROP_ERRNO_STR	,GLOBOBJ_FLAGS },
+	{	"socket_errno"	,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS },
 	{0}
 };
 
@@ -218,7 +213,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	uintN		argn=0;
     const char*	filename;
     JSScript*	script;
-	private_t*	p;
+	scfg_t*		cfg;
 	jsval		val;
 	JSObject*	js_argv;
 	JSObject*	exec_obj;
@@ -229,7 +224,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval=JSVAL_VOID;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	exec_obj=JS_GetScopeChain(cx);
@@ -262,7 +257,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 
 		if((bg->obj=js_CreateCommonObjects(bg->cx
-				,p->cfg			/* common config */
+				,cfg			/* common config */
 				,NULL			/* node-specific config */
 				,NULL			/* additional global methods */
 				,0				/* uptime */
@@ -333,9 +328,9 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(isfullpath(filename))
 		strcpy(path,filename);
 	else {
-		sprintf(path,"%s%s",p->cfg->mods_dir,filename);
-		if(p->cfg->mods_dir[0]==0 || !fexistcase(path))
-			sprintf(path,"%s%s",p->cfg->exec_dir,filename);
+		sprintf(path,"%s%s",cfg->mods_dir,filename);
+		if(cfg->mods_dir[0]==0 || !fexistcase(path))
+			sprintf(path,"%s%s",cfg->exec_dir,filename);
 	}
 
 	JS_ClearPendingException(exec_cx);
@@ -788,35 +783,6 @@ static void outbuf_append(char **outbuf, char **outp, char *append, int len, int
 	return;
 }
 
-static int compare_prefix(char *old_prefix, int old_prefix_bytes, char *new_prefix, int new_prefix_bytes)
-{
-	int i;
-
-	if(new_prefix_bytes != old_prefix_bytes) {
-		if(new_prefix_bytes < old_prefix_bytes) {
-			if(memcmp(old_prefix, new_prefix, new_prefix_bytes)!=0)
-				return(-1);
-			for(i=new_prefix_bytes; i<old_prefix_bytes; i++) {
-				if(!isspace(old_prefix[i]))
-					return(-1);
-			}
-		}
-		else {
-			if(memcmp(old_prefix, new_prefix, old_prefix_bytes)!=0)
-				return(-1);
-			for(i=old_prefix_bytes; i<new_prefix_bytes; i++) {
-				if(!isspace(new_prefix[i]))
-					return(-1);
-			}
-		}
-		return(0);
-	}
-	if(memcmp(old_prefix,new_prefix,new_prefix_bytes)!=0)
-		return(-1);
-
-	return(0);
-}
-
 static JSBool
 js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -859,14 +825,12 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
 		handle_quotes=JSVAL_TO_BOOLEAN(argv[3]);
 
-	if((linebuf=(char*)malloc((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
+	if((linebuf=(char*)alloca((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
 		return(JS_FALSE);
 
 	if(handle_quotes) {
-		if((prefix=(char *)malloc((len*2)+2))==NULL) { /* room for ^A codes ToDo: This isn't actually "enough" room */
-			free(linebuf);
+		if((prefix=(char *)alloca((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
 			return(JS_FALSE);
-		}
 		prefix[0]=0;
 	}
 
@@ -918,7 +882,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					ocol=1;
 				}
 				/* If there's a new prefix, it is a hardcr */
-				else if(compare_prefix(prefix, old_prefix_bytes, inbuf+i+1-prefix_bytes, prefix_bytes)!=0) {
+				else if(prefix_bytes != old_prefix_bytes || (memcmp(prefix,inbuf+i+1-prefix_bytes,prefix_bytes))) {
 					if(prefix_len>len/3*2) {
 						/* This prefix is insane (more than 2/3rds of the new width) hack it down to size */
 						/* Since we're hacking it, we will always end up with a hardcr on this line. */
@@ -940,7 +904,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					ocol=prefix_len+1;
 					old_prefix_bytes=prefix_bytes;
 				}
-				else if(isspace(inbuf[i+1]) && inbuf[i+1] != '\n' && inbuf[i+1] != '\r') {	/* Next line starts with whitespace.  This is a "hard" CR. */
+				else if(isspace(inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
 					linebuf[l++]='\r';
 					linebuf[l++]='\n';
 					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
@@ -1031,7 +995,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					}
 					t=l+1;									/* Store start position of next line */
 					/* Move to start of whitespace */
-					while(l>0 && isspace(linebuf[l]))
+					while(l>0 && isspace(l))
 						l--;
 					outbuf_append(&outbuf, &outp, linebuf, l+1, &outbuf_size);
 					outbuf_append(&outbuf, &outp, "\r\n", 2, &outbuf_size);
@@ -1044,9 +1008,9 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					for(ocol=prefix_len+1,t=prefix_bytes; t<l; t++) {
 						switch(linebuf[t]) {
 							case '\x01':	/* CTRL-A */
-								t++;
-								if(linebuf[t]!='\x01')
+								if(linebuf[t+1]!='\x01')
 									break;
+								t++;
 								/* Fall-through */
 							default:
 								ocol++;
@@ -1072,9 +1036,6 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	js_str = JS_NewStringCopyZ(cx, outbuf);
 	free(outbuf);
-	free(linebuf);
-	if(prefix)
-		free(prefix);
 	if(js_str==NULL)
 		return(JS_FALSE);
 
@@ -1402,7 +1363,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	struct		tm tm;
 	time_t		now;
 	BOOL		nodisplay=FALSE;
-	private_t*	p;
+	scfg_t*		cfg;
 	uchar   	attr_stack[64]; /* Saved attributes (stack) */
 	int     	attr_sp=0;                /* Attribute stack pointer */
 	ulong		clear_screen=0;
@@ -1412,7 +1373,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
 		return(JS_FALSE);
 
 	if((inbuf=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
@@ -1888,7 +1849,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 
 					case 'D':
 						now=time(NULL);
-						j+=sprintf(outbuf+j,"%s",unixtodstr(p->cfg,now,tmp1));
+						j+=sprintf(outbuf+j,"%s",unixtodstr(cfg,now,tmp1));
 						break;
 					case 'T':
 						now=time(NULL);
@@ -2358,29 +2319,6 @@ js_backslash(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	
 	SAFECOPY(path,str);
 	backslash(path);
-
-	if((js_str = JS_NewStringCopyZ(cx, path))==NULL)
-		return(JS_FALSE);
-
-	*rval = STRING_TO_JSVAL(js_str);
-	return(JS_TRUE);
-}
-
-static JSBool
-js_fullpath(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char		path[MAX_PATH+1];
-	char*		str;
-	JSString*	js_str;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
-		return(JS_FALSE);
-
-	SAFECOPY(path,str);
-	_fullpath(path, str, sizeof(path));
 
 	if((js_str = JS_NewStringCopyZ(cx, path))==NULL)
 		return(JS_FALSE);
@@ -3001,21 +2939,6 @@ js_mkdir(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_mkpath(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		p;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
-		return(JS_FALSE);
-
-	*rval = BOOLEAN_TO_JSVAL(mkpath(p)==0);
-	return(JS_TRUE);
-}
-
-static JSBool
 js_rmdir(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
@@ -3171,6 +3094,19 @@ js_flags_str(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 	
+static JSClass js_global_class = {
+     "Global"				/* name			*/
+    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+	,JS_PropertyStub		/* addProperty	*/
+	,JS_PropertyStub		/* delProperty	*/
+	,js_system_get			/* getProperty	*/
+	,JS_PropertyStub		/* setProperty	*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
+	,JS_ConvertStub			/* convert		*/
+	,JS_FinalizeStub		/* finalize		*/
+};
+
 static jsSyncMethodSpec js_global_functions[] = {
 	{"exit",			js_exit,			0,	JSTYPE_VOID,	"[exit_code]"
 	,JSDOCSTR("stop script execution, "
@@ -3269,10 +3205,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("returns directory path with trailing (platform-specific) path delimeter "
 		"(i.e. \"slash\" or \"backslash\")")
 	,312
-	},
-	{"fullpath",		js_fullpath,		1,	JSTYPE_STRING,	JSDOCSTR("path")
-	,JSDOCSTR("Creates an absolute or full path name for the specified relative path name.")
-	,315
 	},
 	{"file_getname",	js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
 	,JSDOCSTR("returns filename portion of passed path string")
@@ -3393,10 +3325,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"mkdir",			js_mkdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
 	,JSDOCSTR("make a directory")
 	,310
-	},		
-	{"mkpath",			js_mkpath,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
-	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories)")
-	,315
 	},		
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
 	,JSDOCSTR("remove a directory")
@@ -3565,82 +3493,35 @@ static jsConstIntSpec js_global_const_ints[] = {
 	{0}
 };
 
-static void js_global_finalize(JSContext *cx, JSObject *obj)
-{
-	private_t* p;
-
-	p=(private_t*)JS_GetPrivate(cx,obj);
-
-	if(p!=NULL)
-		free(p);
-
-	p=NULL;
-	JS_SetPrivate(cx,obj,p);
-}
-
-static JSBool js_global_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*		name=NULL;
-	private_t*	p;
-	JSBool		ret=JS_TRUE;
-
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_FALSE);
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	if(p->methods) {
-		if(js_SyncResolve(cx, obj, name, NULL, p->methods, NULL, 0)==JS_FALSE)
-			ret=JS_FALSE;
-	}
-	if(js_SyncResolve(cx, obj, name, js_global_properties, js_global_functions, js_global_const_ints, 0)==JS_FALSE)
-		ret=JS_FALSE;
-	return(ret);
-}
-
-static JSBool js_global_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_global_resolve(cx, obj, JSVAL_NULL));
-}
-
-static JSClass js_global_class = {
-     "Global"				/* name			*/
-    ,JSCLASS_HAS_PRIVATE	/* flags		*/
-	,JS_PropertyStub		/* addProperty	*/
-	,JS_PropertyStub		/* delProperty	*/
-	,js_system_get			/* getProperty	*/
-	,JS_PropertyStub		/* setProperty	*/
-	,js_global_enumerate	/* enumerate	*/
-	,js_global_resolve		/* resolve		*/
-	,JS_ConvertStub			/* convert		*/
-	,js_global_finalize		/* finalize		*/
-};
-
 JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods)
 {
 	JSObject*	glob;
-	private_t*	p;
-
-	if((p = (private_t*)malloc(sizeof(private_t)))==NULL)
-		return(NULL);
-
-	p->cfg = cfg;
-	p->methods = methods;
 
 	if((glob = JS_NewObject(cx, &js_global_class, NULL, NULL)) ==NULL)
 		return(NULL);
 
-	if(!JS_SetPrivate(cx, glob, p))	/* Store a pointer to scfg_t and the new methods */
+	if (!JS_InitStandardClasses(cx, glob))
 		return(NULL);
 
-	if (!JS_InitStandardClasses(cx, glob))
+	if(methods!=NULL && !js_DefineSyncMethods(cx, glob, methods, TRUE)) 
+		return(NULL);
+
+	if(!js_DefineSyncMethods(cx, glob, js_global_functions, TRUE)) 
+		return(NULL);
+
+	if(!JS_DefineProperties(cx, glob, js_global_properties))
+		return(NULL);
+
+	if(!JS_SetPrivate(cx, glob, cfg))	/* Store a pointer to scfg_t */
 		return(NULL);
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,glob
 		,"Top-level functions and properties (common to all servers and services)",310);
 #endif
+
+	if(!js_DefineConstIntegers(cx, glob, js_global_const_ints, JSPROP_READONLY))
+		return(NULL);
 
 	return(glob);
 }

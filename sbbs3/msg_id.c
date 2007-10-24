@@ -2,13 +2,13 @@
 
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.4 2008/02/25 08:25:29 rswindell Exp $ */
+/* $Id: msg_id.c,v 1.3 2005/10/02 23:49:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,14 +59,14 @@ static ulong msgid_serialno(smbmsg_t* msg)
 /****************************************************************************/
 /* Returns a FidoNet (FTS-9) message-ID										*/
 /****************************************************************************/
-char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg, char* msgid, size_t maxlen)
+char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg)
 {
-	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0) {
-		strncpy(msgid,msg->ftn_msgid,maxlen);
-		return(msg->ftn_msgid);
-	}
+	static char msgid[256];
 
-	safe_snprintf(msgid,maxlen
+	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0)
+		return(msg->ftn_msgid);
+
+	snprintf(msgid,sizeof(msgid)
 		,"%lu.%s@%s %08lx"
 		,msg_number(msg)
 		,sub->code
@@ -80,40 +80,26 @@ char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg, char* msgid, size_t maxlen)
 /****************************************************************************/
 /* Return a general purpose (RFC-822) message-ID							*/
 /****************************************************************************/
-char* DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, size_t maxlen)
+char* DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg)
 {
-	char*	host;
+	static char msgid[256];
 
-	if(msg->id!=NULL && *msg->id!=0) {
-		strncpy(msgid,msg->id,maxlen);
+	if(msg->id!=NULL && *msg->id!=0)
 		return(msg->id);
-	}
-
-	/* Try *really* hard to get a hostname from the configuration data */
-	host=cfg->sys_inetaddr;
-	if(!host[0]) {
-		host=cfg->sys_id;
-		if(!host[0]) {
-			host=cfg->sys_name;
-			if(!host[0]) {
-				host=cfg->sys_op;
-			}
-		}
-	}
 
 	if(subnum>=cfg->total_subs)
-		safe_snprintf(msgid,maxlen
+		snprintf(msgid,sizeof(msgid)
 			,"<%08lX.%lu@%s>"
 			,msg_time(msg)
 			,msg_number(msg)
-			,host);
+			,cfg->sys_inetaddr);
 	else
-		safe_snprintf(msgid,maxlen
+		snprintf(msgid,sizeof(msgid)
 			,"<%08lX.%lu.%s@%s>"
 			,msg_time(msg)
 			,msg_number(msg)
 			,cfg->sub[subnum]->code
-			,host);
+			,cfg->sys_inetaddr);
 
 	return(msgid);
 }
