@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.33 2007/10/28 20:08:46 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.32 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,30 +133,28 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 #endif
 
 	/* Global hot key event */
-	if(sys_status&SS_USERON) {
-		for(i=0;i<cfg.total_hotkeys;i++)
-			if(cfg.hotkey[i]->key==ch)
-				break;
-		if(i<cfg.total_hotkeys) {
-			if(hotkey_inside>1)	/* only allow so much recursion */
-				return(0);
-			hotkey_inside++;
-			if(mode&K_SPIN)
-				bputs("\b ");
-			if(!(sys_status&SS_SPLITP)) {
-				SAVELINE;
-				attr(LIGHTGRAY);
-				CRLF; 
-			}
-			external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
-			if(!(sys_status&SS_SPLITP)) {
-				CRLF;
-				RESTORELINE; 
-			}
-			lncntr=0;
-			hotkey_inside--;
+	for(i=0;i<cfg.total_hotkeys;i++)
+		if(cfg.hotkey[i]->key==ch)
+			break;
+	if(i<cfg.total_hotkeys) {
+		if(hotkey_inside>1)	/* only allow so much recursion */
 			return(0);
+		hotkey_inside++;
+		if(mode&K_SPIN)
+			bputs("\b ");
+		if(!(sys_status&SS_SPLITP)) {
+			SAVELINE;
+			attr(LIGHTGRAY);
+			CRLF; 
 		}
+		external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
+		if(!(sys_status&SS_SPLITP)) {
+			CRLF;
+			RESTORELINE; 
+		}
+		lncntr=0;
+		hotkey_inside--;
+		return(0);
 	}
 
 	switch(ch) {
