@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: menu.c,v 1.41 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: menu.c,v 1.40 2007/10/21 18:27:48 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
