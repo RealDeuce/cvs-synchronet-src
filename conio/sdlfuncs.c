@@ -615,6 +615,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 	SDL_Thread	*main_thread;
 	int		main_ret;
 	int		use_sdl_video=FALSE;
+	char		*driver_env=NULL;
 
 	ma.argc=argc;
 	ma.argv=argv;
@@ -629,7 +630,8 @@ int SDL_main_env(int argc, char **argv, char **env)
 #ifdef _WIN32
 		/* Fail to windib (ie: No mouse attached) */
 		if(sdl.Init(SDL_INIT_VIDEO)) {
-			if(getenv("SDL_VIDEODRIVER")==NULL) {
+			driver_env=getenv("SDL_VIDEODRIVER");
+			if(driver_env==NULL || strcmp(driver_env,"windib")) {
 				putenv("SDL_VIDEODRIVER=windib");
 				WinExec(GetCommandLine(), SW_SHOWDEFAULT);
 				return(0);
@@ -639,13 +641,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 				sdl_initialized=TRUE;
 		}
 		else {
-			const SDL_VideoInfo *initial=sdl.GetVideoInfo();
-
-			/* Save initial video mode */
-			if(initial)
-				sdl.initial_videoinfo=*initial;
-			else
-				memset(&sdl.initial_videoinfo, 0, sizeof(sdl.initial_videoinfo));
 			sdl_video_initialized=TRUE;
 			sdl_initialized=TRUE;
 		}
@@ -681,6 +676,13 @@ int SDL_main_env(int argc, char **argv, char **env)
 				sdl_video_initialized=FALSE;
 			}
 			else {
+				const SDL_VideoInfo *initial=sdl.GetVideoInfo();
+
+				/* Save initial video mode */
+				if(initial)
+					sdl.initial_videoinfo=*initial;
+				else
+					memset(&sdl.initial_videoinfo, 0, sizeof(sdl.initial_videoinfo));
 				sdl_video_initialized=TRUE;
 			}
 		}
