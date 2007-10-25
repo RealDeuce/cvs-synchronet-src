@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.99 2007/05/09 21:25:48 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.102 2007/10/25 07:31:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -291,6 +291,29 @@ BOOL iniSectionExists(str_list_t list, const char* section)
 
 	i=find_section_index(list,section);
 	return(list[i]!=NULL);
+}
+
+str_list_t	iniGetSection(str_list_t list, const char *section)
+{
+	size_t		i;
+	str_list_t	retval=strListInit();
+	char		*p;
+
+	if(section==ROOT_SECTION)
+		i=0;
+	else
+		i=find_section_index(list,section);
+	if(list[i]!=NULL) {
+		strListPush(&retval, list[i]);
+		for(i++;list[i]!=NULL;i++) {
+			p=list[i];
+			SKIP_WHITESPACE(p);
+			if(*p=='[')
+				break;
+			strListPush(&retval, list[i]);
+		}
+	}
+	return(retval);
 }
 
 BOOL iniKeyExists(str_list_t list, const char* section, const char* key)
@@ -655,7 +678,7 @@ static char* default_value(const char* deflt, char* value)
 	if(deflt!=NULL && deflt!=value)
 		sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,deflt);
 
-	return(deflt);
+	return((char*)deflt);
 }
 
 char* iniReadString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
@@ -689,20 +712,10 @@ char* iniReadExistingString(FILE* fp, const char* section, const char* key, cons
 
 char* iniGetExistingString(str_list_t list, const char* section, const char* key, const char* deflt, char* value)
 {
-	size_t	i;
-
-	if(list==NULL)
+	if(!iniKeyExists(list, section, key))
 		return(NULL);
 
-	i=get_value(list, section, key, value);
-
-	if(list[i]==NULL || *(list[i])==INI_OPEN_SECTION_CHAR)	/* missing key */
-		return(NULL);
-
-	if(*value==0 /* blank value  */)
-		return default_value(deflt,value);
-
-	return(value);
+	return iniGetString(list, section, key, deflt, value);
 }
 
 static str_list_t splitList(char* list, const char* sep)
