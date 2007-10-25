@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.499 2008/11/28 22:30:48 rswindell Exp $ */
+/* $Id: main.cpp,v 1.487 2007/08/25 08:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,6 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
-#include "netwrap.h"
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -108,7 +107,7 @@ extern "C" {
 
 static bbs_startup_t* startup=NULL;
 
-static void status(const char* str)
+static void status(char* str)
 {
 	if(startup!=NULL && startup->status!=NULL)
 	    startup->status(startup->cbdata,str);
@@ -147,7 +146,7 @@ static void thread_down()
 		startup->thread_up(startup->cbdata,FALSE,FALSE);
 }
 
-int lputs(int level, const char* str)
+int lputs(int level, char* str)
 {
 	if(startup==NULL || startup->lputs==NULL || str==NULL)
     	return(0);
@@ -155,7 +154,7 @@ int lputs(int level, const char* str)
     return(startup->lputs(startup->cbdata,level,str));
 }
 
-int lprintf(int level, const char *fmt, ...)
+int lprintf(int level, char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -167,7 +166,7 @@ int lprintf(int level, const char *fmt, ...)
     return(lputs(level,sbuf));
 }
 
-int eprintf(int level, const char *fmt, ...)
+int eprintf(int level, char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -501,34 +500,6 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
-/*
- * Always resolve all here since
- * 1) We'll always be enumerating anyways
- * 2) The speed penalty won't be seen in production code anyways
- */
-JSBool
-DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
-{
-	JSBool	ret=JS_TRUE;
-
-	if(props) {
-		if(!js_DefineSyncProperties(cx, obj, props))
-			ret=JS_FALSE;
-	}
-		
-	if(funcs) {
-		if(!js_DefineSyncMethods(cx, obj, funcs, 0))
-			ret=JS_FALSE;
-	}
-
-	if(consts) {
-		if(!js_DefineConstIntegers(cx, obj, consts, flags))
-			ret=JS_FALSE;
-	}
-
-	return(ret);
-}
-
 #else // NON-JSDOCS
 
 JSBool
@@ -556,51 +527,6 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
-JSBool
-DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
-{
-	uint i;
-	jsval	val;
-
-	if(props) {
-		for(i=0;props[i].name;i++) {
-			if(name==NULL || strcmp(name, props[i].name)==0) {
-				if(!JS_DefinePropertyWithTinyId(cx, obj, 
-						props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
-					return(JS_FALSE);
-				if(name)
-					return(JS_TRUE);
-			}
-		}
-	}
-	if(funcs) {
-		for(i=0;funcs[i].name;i++) {
-			if(name==NULL || strcmp(name, funcs[i].name)==0) {
-				if(!JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0))
-					return(JS_FALSE);
-				if(name)
-					return(JS_TRUE);
-			}
-		}
-	}
-	if(consts) {
-		for(i=0;consts[i].name;i++) {
-			if(name==NULL || strcmp(name, consts[i].name)==0) {
-	        	if(!JS_NewNumberValue(cx, consts[i].val, &val))
-					return(JS_FALSE);
-
-				if(!JS_DefineProperty(cx, obj, consts[i].name, val ,NULL, NULL, flags))
-					return(JS_FALSE);
-
-				if(name)
-					return(JS_TRUE);
-			}
-		}
-	}
-
-	return(JS_TRUE);
-}
-
 #endif
 
 /* This is a stream-lined version of JS_DefineConstDoubles */
@@ -617,7 +543,7 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 		if(!JS_DefineProperty(cx, obj, ints[i].name, val ,NULL, NULL, flags))
 			return(JS_FALSE);
 	}
-
+		
 	return(JS_TRUE);
 }
 
@@ -1130,7 +1056,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 
 					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s telnet sub-negotiation command: %s"
+						lprintf(LOG_DEBUG,"Node %d %s Telnet sub-negotiation command: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,telnet_opt_desc(option));
@@ -1154,24 +1080,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,speed);
 						sbbs->cur_rate=atoi(speed);
 						sbbs->cur_cps=sbbs->cur_rate/10;
-#if 0
-					} else if(option==TELNET_NEW_ENVIRON
-						&& sbbs->telnet_cmd[3]==TELNET_ENVIRON_IS) {
-						BYTE*	p;
-						BYTE*   end=sbbs->telnet_cmd+(sbbs->telnet_cmdlen-2);
-						for(p=sbbs->telnet_cmd+4; p < end; ) {
-							if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR) {
-								p++;
-								lprintf(LOG_DEBUG,"Node %d %s telnet environment var/val: %.*s"
-	                				,sbbs->cfg.node_num
-									,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-									,end-p
-									,p);
-								p+=strlen((char*)p);
-							} else
-								p++;
-						}
-#endif
+
 					} else if(option==TELNET_SEND_LOCATION) {
 						safe_snprintf(sbbs->telnet_location
 							,sizeof(sbbs->telnet_location)
@@ -1270,20 +1179,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								,TELNET_IAC,TELNET_SE);
 							sbbs->putcom(buf,6);
 						}
-#if 0
-						else if(command==TELNET_WILL && option==TELNET_NEW_ENVIRON) {
-							if(startup->options&BBS_OPT_DEBUG_TELNET)
-								lprintf(LOG_DEBUG,"Node %d requesting USER environment variable value"
-									,sbbs->cfg.node_num);
-
-							char	buf[64];
-							int len=sprintf(buf,"%c%c%c%c%cUSER%c%c"
-								,TELNET_IAC,TELNET_SB
-								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND,TELNET_ENVIRON_VAR
-								,TELNET_IAC,TELNET_SE);
-							sbbs->putcom(buf,len);
-						}
-#endif
 					}
 				}
 
@@ -2135,15 +2030,12 @@ void event_thread(void* arg)
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
-					if(!fmutex(semfile,startup->host_name,24*60*60)) {
-						eprintf(LOG_DEBUG,"%s exists (unpack in process?)", semfile);
+					if(!fmutex(semfile,startup->host_name,24*60*60))
 						continue;
-					}
 					sbbs->online=ON_LOCAL;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
 					sbbs->unpack_rep(g.gl_pathv[i]);
-					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
 					
@@ -2163,13 +2055,14 @@ void event_thread(void* arg)
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,24*60*60)) {
-					eprintf(LOG_DEBUG,"%s exists (pack in process?)", semfile);
+					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
 					continue;
 				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
 					sbbs->online=ON_LOCAL;
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->getmsgptrs();
 					sbbs->getusrsubs();
 					sbbs->batdn_total=0;
@@ -2222,6 +2115,7 @@ void event_thread(void* arg)
 							continue;
 						eprintf(LOG_INFO,"Pre-packing QWK for %s",sbbs->useron.alias);
 						sbbs->online=ON_LOCAL;
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->getmsgptrs();
 						sbbs->getusrsubs();
 						sbbs->batdn_total=0;
@@ -2335,6 +2229,7 @@ void event_thread(void* arg)
 					SAFECOPY(str,g.gl_pathv[j]);
 					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
 						if(sbbs->unpack_qwk(str,i)==false) {
@@ -2347,7 +2242,6 @@ void event_thread(void* arg)
 								sbbs->logline("Q!",logmsg);
 							}
 						}
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 						remove(str);
@@ -2675,7 +2569,7 @@ void event_thread(void* arg)
 
 
 //****************************************************************************
-sbbs_t::sbbs_t(ushort node_num, DWORD addr, const char* name, SOCKET sd,
+sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
 			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
 	char	nodestr[32];
@@ -3305,7 +3199,7 @@ int sbbs_t::nopen(char *str, int access)
     return(file);
 }
 
-void sbbs_t::spymsg(const char* msg)
+void sbbs_t::spymsg(char* msg)
 {
 	char str[512];
 	struct in_addr addr;
@@ -3484,7 +3378,7 @@ int sbbs_t::outcom(uchar ch)
 	return(0);
 }
 
-void sbbs_t::putcom(const char *str, int len)
+void sbbs_t::putcom(char *str, int len)
 {
 	int i;
 
@@ -4061,6 +3955,16 @@ void sbbs_t::daily_maint(void)
 	}
 }
 
+time_t checktime(void)
+{
+	struct tm tm;
+
+    memset(&tm,0,sizeof(tm));
+    tm.tm_year=94;
+    tm.tm_mday=1;
+    return(mktime(&tm)-0x2D24BD00L);
+}
+
 const char* DLLCALL js_ver(void)
 {
 #ifdef JAVASCRIPT
@@ -4169,7 +4073,7 @@ static void cleanup(int code)
 
 void DLLCALL bbs_thread(void* arg)
 {
-	const char*		host_name;
+	char*			host_name;
 	char*			identity;
 	char*			p;
     char			str[MAX_PATH+1];
@@ -4312,7 +4216,7 @@ void DLLCALL bbs_thread(void* arg)
 
 	t=time(NULL);
 	lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-		,ctime_r(&t,str),startup->options);
+		,CTIME_R(&t,str),startup->options);
 
 	if(chdir(startup->ctrl_dir)!=0)
 		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
@@ -4333,8 +4237,16 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->host_name[0]==0)
 		SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-	if((t=checktime())!=0) {   /* Check binary time */
-		lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+	if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
+		if(putenv("TZ=UTC0"))
+			lprintf(LOG_ERR,"!putenv() FAILED");
+		tzset();
+
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+			cleanup(1);
+			return;
+		}
 	}
 
 	if(uptime==0)
@@ -4644,8 +4556,6 @@ NO_SSH:
 	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
-	semfile_list_add(&recycle_semfiles,str);
-	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
@@ -5133,7 +5043,7 @@ NO_SSH:
 			/*****************************/
     		memset(&tmp_addr, 0, sizeof(tmp_addr));
 
-			tmp_addr.sin_addr.s_addr = htonl(IPv4_LOCALHOST);
+			tmp_addr.sin_addr.s_addr = htonl(0x7f000001U);
     		tmp_addr.sin_family = AF_INET;
     		tmp_addr.sin_port   = 0;
 
