@@ -377,7 +377,7 @@ selectdrawmode(void)
 	}
 }
 
-int 
+void 
 exitprg(void)
 {
 	struct			text_info	ti;
@@ -393,7 +393,6 @@ exitprg(void)
 		clrscr();
 		gotoxy(1, 1);
 		printf("Thanx 4 using this syncdraw\n");
-		return(-1);
+		exit(1);
 	}
-	return(0);
 }
