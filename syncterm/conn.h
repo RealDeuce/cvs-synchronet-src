@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: conn.h,v 1.18 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: conn.h,v 1.17 2007/10/23 20:02:03 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
