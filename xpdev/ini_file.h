@@ -2,7 +2,7 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.37 2007/05/09 21:25:48 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.38 2007/10/25 07:31:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,6 +158,7 @@ double		iniGetNamedFloat(str_list_t, const char* section, const char* key
 					,named_double_t*, double deflt);
 ulong		iniGetBitField(str_list_t, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
+str_list_t	iniGetSection(str_list_t, const char *section);
 #define		iniGetLogLevel(l,s,k,d) iniGetEnum(l,s,k,iniLogLevelStringList(),d)
 
 #if !defined(NO_SOCKET_SUPPORT)
