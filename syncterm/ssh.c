@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: ssh.c,v 1.8 2008/01/19 21:08:44 deuce Exp $ */
+/* $Id: ssh.c,v 1.6 2007/10/21 18:13:45 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -121,7 +119,6 @@ int ssh_connect(struct bbslist *bbs)
 	int off=1;
 	int status;
 	char password[MAX_PASSWD_LEN+1];
-	char username[MAX_USER_LEN+1];
 
 	init_uifc(TRUE, TRUE);
 
@@ -161,16 +158,11 @@ int ssh_connect(struct bbslist *bbs)
 	setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, ( char * )&off, sizeof ( off ) );
 
 	SAFECOPY(password,bbs->password);
-	SAFECOPY(username,bbs->user);
 
 	uifc.pop(NULL);
-
-	if(!username[0])
-		uifcinput("UserID",MAX_USER_LEN,username,0,"No stored UserID.");
-
 	uifc.pop("Setting Username");
 	/* Add username/password */
-	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, username, strlen(username));
+	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, bbs->user, strlen(bbs->user));
 	if(cryptStatusError(status)) {
 		char	str[1024];
 		sprintf(str,"Error %d setting username",status);
