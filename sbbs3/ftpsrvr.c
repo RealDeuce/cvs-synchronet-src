@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.315 2007/04/11 00:13:36 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.320 2007/07/25 23:09:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -782,24 +782,24 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						break;
 
 					p=aliasline;	/* alias pointer */
-					while(*p && *p<=' ') p++;
+					SKIP_WHITESPACE(p);
 
 					if(*p==';')	/* comment */
 						continue;
 
 					tp=p;		/* terminator pointer */
-					while(*tp && *tp>' ') tp++;
+					FIND_WHITESPACE(tp);
 					if(*tp) *tp=0;
 
 					np=tp+1;	/* filename pointer */
-					while(*np && *np<=' ') np++;
+					SKIP_WHITESPACE(np);
 
 					tp=np;		/* terminator pointer */
-					while(*tp && *tp>' ') tp++;
+					FIND_WHITESPACE(tp);
 					if(*tp) *tp=0;
 
 					dp=tp+1;	/* description pointer */
-					while(*dp && *dp<=' ') dp++;
+					SKIP_WHITESPACE(dp);
 					truncsp(dp);
 
 					if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
@@ -997,35 +997,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 #endif	/* ifdef JAVASCRIPT */
 
-
-time_t gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
-{
-	time_t	now;
-    long    tleft;
-	time_t	timeleft;
-
-	now=time(NULL);
-
-	if(user->exempt&FLAG('T')) {   /* Time online exemption */
-		timeleft=cfg->level_timepercall[user->level]*60;
-		if(timeleft<10)             /* never get below 10 for exempt users */
-			timeleft=10; }
-	else {
-		tleft=(((long)cfg->level_timeperday[user->level]-user->ttoday)
-			+user->textra)*60L;
-		if(tleft<0) tleft=0;
-		if(tleft>cfg->level_timepercall[user->level]*60)
-			tleft=cfg->level_timepercall[user->level]*60;
-		tleft+=user->min*60L;
-		tleft-=now-starttime;
-		if(tleft>0x7fffL)
-			timeleft=0x7fff;
-		else
-			timeleft=tleft; }
-
-	return(timeleft);
-}
-
 static time_t checktime(void)
 {
 	struct tm tm;
@@ -1040,7 +1011,7 @@ BOOL upload_stats(ulong bytes)
 {
 	char	str[MAX_PATH+1];
 	int		file;
-	ulong	val;
+	uint32_t	val;
 
 	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
 	if((file=nopen(str,O_RDWR))==-1) 
@@ -1063,7 +1034,7 @@ BOOL download_stats(ulong bytes)
 {
 	char	str[MAX_PATH+1];
 	int		file;
-	ulong	val;
+	uint32_t	val;
 
 	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
 	if((file=nopen(str,O_RDWR))==-1) 
@@ -2108,7 +2079,10 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 
 	if(lib<0) { /* root */
 		tp=strchr(p,'/');
-		if(tp) *tp=0;
+		if(tp)
+			*(tp++)=0;
+		else
+			tp=p+strlen(p);
 		for(lib=0;lib<scfg.total_libs;lib++) {
 			if(!chk_ar(&scfg,scfg.lib[lib]->ar,user))
 				continue;
@@ -2121,12 +2095,13 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 		}
 		*curlib=lib;
 
-		if(tp==NULL) {
+		if(*(tp)==0) {
 			*curdir=-1;
+			*pp+=tp-path;	/* skip "lib" or "lib/" */
 			return;
 		}
 
-		p=tp+1;
+		p=tp;
 	}
 
 	tp=strchr(p,'/');
@@ -2146,8 +2121,10 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 			break;
 	}
 
-	if(dir>=scfg.total_dirs)  /* not found */
+	if(dir>=scfg.total_dirs) {  /* not found */
+		*pp+=p-path;			/* skip /lib/filespec */
 		return;
+	}
 
 	*curdir=dir;
 
@@ -2187,22 +2164,22 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
 			break;
 
 		p=line;	/* alias */
-		while(*p && *p<=' ') p++;
+		SKIP_WHITESPACE(p);
 		if(*p==';')	/* comment */
 			continue;
 
 		tp=p;		/* terminator */
-		while(*tp && *tp>' ') tp++;
+		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
 
 		if(stricmp(p,alias))	/* Not a match */
 			continue;
 
 		p=tp+1;		/* filename */
-		while(*p && *p<=' ') p++;
+		SKIP_WHITESPACE(p);
 
 		tp=p;		/* terminator */
-		while(*tp && *tp>' ') tp++;
+		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
 
 		if(!strnicmp(p,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
@@ -2316,6 +2293,7 @@ static void ctrl_thread(void* arg)
 	char*		np;
 	char*		tp;
 	char*		dp;
+	char*		filespec;
 	char*		mode="active";
 	char		password[64];
 	char		fname[MAX_PATH+1];
@@ -2592,7 +2570,7 @@ static void ctrl_thread(void* arg)
 			sysop=FALSE;
 			user.number=0;
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			truncsp(p);
 			SAFECOPY(user.alias,p);
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
@@ -2608,7 +2586,7 @@ static void ctrl_thread(void* arg)
 		if(!strnicmp(cmd, "PASS ",5) && user.alias[0]) {
 			user.number=0;
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			SAFECOPY(password,p);
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
@@ -2807,7 +2785,7 @@ static void ctrl_thread(void* arg)
 		}
 		if(!strnicmp(cmd,"SITE EXEC ",10) && sysop) {
 			p=cmd+10;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 #ifdef __unix__
 			fp=popen(p,"r");
 			if(fp==NULL)
@@ -2844,7 +2822,7 @@ static void ctrl_thread(void* arg)
 				ftp_close_socket(&pasv_sock,__LINE__);
 
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			sscanf(p,"%ld,%ld,%ld,%ld,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
 			data_addr.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
 			data_addr.sin_port=(u_short)((p1<<8)|p2);
@@ -2963,7 +2941,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "ALLO",4)) {
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(*p)
 				l=atol(p);	
 			else
@@ -2981,7 +2959,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "REST",4)) {
 			p=cmd+4;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(*p)
 				filepos=atol(p);
 			else
@@ -2993,7 +2971,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "MODE ",5)) {
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(toupper(*p)!='S')
 				sockprintf(sock,"504 Only STREAM mode supported.");
 			else
@@ -3003,7 +2981,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "STRU ",5)) {
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(toupper(*p)!='F')
 				sockprintf(sock,"504 Only FILE structure supported.");
 			else
@@ -3031,7 +3009,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd,"SMNT ",5) && sysop && !(startup->options&FTP_OPT_NO_LOCAL_FSYS)) {
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 			if(!stricmp(p,BBS_FSYS_DIR)) 
 				local_fsys=FALSE;
 			else {
@@ -3072,16 +3050,20 @@ static void ctrl_thread(void* arg)
 					detail=FALSE;
 
 				p=cmd+4;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 
 				if(*p=='-') {	/* -Letc */
-					while(*p && *p>' ') p++;
-					while(*p && *p<=' ') p++;
+					FIND_WHITESPACE(p);
+					SKIP_WHITESPACE(p);
 				}
 
-				SAFEPRINTF2(path,"%s%s",local_dir, *p ? p : "*");
+				filespec=p;
+				if(*filespec==0)
+					filespec="*";
+
+				SAFEPRINTF2(path,"%s%s",local_dir, filespec);
 				lprintf(LOG_INFO,"%04d %s listing: %s in %s mode", sock, user.alias, path, mode);
-				sockprintf(sock, "150 Directory of %s%s", local_dir, p);
+				sockprintf(sock, "150 Directory of %s%s", local_dir, filespec);
 
 				now=time(NULL);
 				if(localtime_r(&now,&cur_tm)==NULL) 
@@ -3125,7 +3107,7 @@ static void ctrl_thread(void* arg)
 					p=cmd+4;
 				else
 					p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				tp=p;
 				if(*tp=='/' || *tp=='\\') /* /local: and /bbs: are valid */
 					tp++;
@@ -3180,7 +3162,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "MKD ", 4) || !strnicmp(cmd,"XMKD",4)) {
 				p=cmd+4;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				if(*p=='/')	/* absolute */
 					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
@@ -3199,7 +3181,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "RMD ", 4) || !strnicmp(cmd,"XRMD",4)) {
 				p=cmd+4;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				if(*p=='/')	/* absolute */
 					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
@@ -3218,7 +3200,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "RNFR ",5)) {
 				p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				if(*p=='/')	/* absolute */
 					SAFEPRINTF2(ren_from,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
@@ -3234,7 +3216,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "RNTO ",5)) {
 				p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 				if(*p=='/')	/* absolute */
 					SAFEPRINTF2(fname,"%s%s",root_dir(local_dir),p+1);
 				else		/* relative */
@@ -3255,7 +3237,7 @@ static void ctrl_thread(void* arg)
 			if(!strnicmp(cmd, "RETR ", 5) || !strnicmp(cmd,"SIZE ",5) 
 				|| !strnicmp(cmd, "MDTM ",5) || !strnicmp(cmd, "DELE ",5)) {
 				p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 
 				if(!strnicmp(p,LOCAL_FSYS_DIR,strlen(LOCAL_FSYS_DIR))) 
 					p+=strlen(LOCAL_FSYS_DIR);	/* already mounted */
@@ -3308,7 +3290,7 @@ static void ctrl_thread(void* arg)
 
 			if(!strnicmp(cmd, "STOR ", 5) || !strnicmp(cmd, "APPE ", 5)) {
 				p=cmd+5;
-				while(*p && *p<=' ') p++;
+				SKIP_WHITESPACE(p);
 
 				if(!strnicmp(p,LOCAL_FSYS_DIR,strlen(LOCAL_FSYS_DIR))) 
 					p+=strlen(LOCAL_FSYS_DIR);	/* already mounted */
@@ -3347,14 +3329,17 @@ static void ctrl_thread(void* arg)
 
 			/* path specified? */
 			p=cmd+4;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(*p=='-') {	/* -Letc */
-				while(*p && *p>' ') p++;
-				while(*p && *p<=' ') p++;
+				FIND_WHITESPACE(p);
+				SKIP_WHITESPACE(p);
 			}
 
 			parsepath(&p,&user,&lib,&dir);
+			filespec=p;
+			if(*filespec==0)
+				filespec="*";
 
 			if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
@@ -3372,7 +3357,7 @@ static void ctrl_thread(void* arg)
 
 			/* ASCII Index File */
 			if(startup->options&FTP_OPT_INDEX_FILE && startup->index_file_name[0]
-				&& (*p==0 || wildmatchi(startup->index_file_name, p, FALSE))) {
+				&& wildmatchi(startup->index_file_name, filespec, FALSE)) {
 				if(detail)
 					fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 						,NAME_LEN
@@ -3387,7 +3372,7 @@ static void ctrl_thread(void* arg)
 			} 
 			/* HTML Index File */
 			if(startup->options&FTP_OPT_HTML_INDEX_FILE && startup->html_index_file[0]
-				&& (*p==0 || wildmatchi(startup->html_index_file, p, FALSE))) {
+				&& wildmatchi(startup->html_index_file, filespec, FALSE)) {
 				if(detail)
 					fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 						,NAME_LEN
@@ -3405,26 +3390,29 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_INFO,"%04d %s listing: root in %s mode",sock,user.alias, mode);
 
 				/* QWK Packet */
-				if(startup->options&FTP_OPT_ALLOW_QWK/* && fexist(qwkfile)*/) {
-					if(detail) {
-						if(fexistcase(qwkfile)) {
-							t=fdate(qwkfile);
-							l=flength(qwkfile);
-						} else {
-							t=time(NULL);
-							l=10240;
-						};
-						if(localtime_r(&t,&tm)==NULL) 
-							memset(&tm,0,sizeof(tm));
-						fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s.qwk\r\n"
-							,NAME_LEN
-							,scfg.sys_id
-							,scfg.sys_id
-							,l
-							,ftp_mon[tm.tm_mon],tm.tm_mday,tm.tm_hour,tm.tm_min
-							,scfg.sys_id);
-					} else
-						fprintf(fp,"%s.qwk\r\n",scfg.sys_id);
+				if(startup->options&FTP_OPT_ALLOW_QWK) {
+					SAFEPRINTF(str,"%s.qwk",scfg.sys_id);
+					if(wildmatchi(str, filespec, FALSE)) {
+						if(detail) {
+							if(fexistcase(qwkfile)) {
+								t=fdate(qwkfile);
+								l=flength(qwkfile);
+							} else {
+								t=time(NULL);
+								l=10240;
+							};
+							if(localtime_r(&t,&tm)==NULL) 
+								memset(&tm,0,sizeof(tm));
+							fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
+								,NAME_LEN
+								,scfg.sys_id
+								,scfg.sys_id
+								,l
+								,ftp_mon[tm.tm_mon],tm.tm_mday,tm.tm_hour,tm.tm_min
+								,str);
+						} else
+							fprintf(fp,"%s\r\n",str);
+					}
 				} 
 
 				/* File Aliases */
@@ -3438,33 +3426,38 @@ static void ctrl_thread(void* arg)
 						alias_dir=FALSE;
 
 						p=aliasline;		/* alias pointer */
-						while(*p && *p<=' ') p++;
+						SKIP_WHITESPACE(p);
 
 						if(*p==';')	/* comment */
 							continue;
 
 						tp=p;		/* terminator pointer */
-						while(*tp && *tp>' ') tp++;
+						FIND_WHITESPACE(tp);
 						if(*tp) *tp=0;
 
 						np=tp+1;	/* filename pointer */
-						while(*np && *np<=' ') np++;
+						SKIP_WHITESPACE(np);
 
 						tp=np;		/* terminator pointer */
-						while(*tp && *tp>' ') tp++;
+						FIND_WHITESPACE(tp);
 						if(*tp) *tp=0;
 
 						dp=tp+1;	/* description pointer */
-						while(*dp && *dp<=' ') dp++;
+						SKIP_WHITESPACE(dp);
 						truncsp(dp);
 
 						if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
 							continue;
 
+						if(!wildmatchi(p, filespec, FALSE))
+							continue;
+
 						/* Virtual Path? */
 						if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
-							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user))<0)
+							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user))<0) {
+								lprintf(LOG_WARNING,"0000 !Invalid virtual path (%s) for %s",np,user.alias);
 								continue; /* No access or invalid virtual path */
+							}
 							tp=strrchr(np,'/');
 							if(tp==NULL) 
 								continue;
@@ -3477,8 +3470,10 @@ static void ctrl_thread(void* arg)
 								alias_dir=TRUE;
 						}
 
-						if(!alias_dir && !fexist(np))
+						if(!alias_dir && !fexist(np)) {
+							lprintf(LOG_WARNING,"0000 !Missing aliased file (%s) for %s",np,user.alias);
 							continue;
+						}
 
 						if(detail) {
 
@@ -3515,6 +3510,8 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_libs;i++) {
 					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
 						continue;
+					if(!wildmatchi(scfg.lib[i]->sname, filespec, FALSE))
+						continue;
 					if(detail)
 						fprintf(fp,"dr-xr-xr-x   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 							,NAME_LEN
@@ -3535,6 +3532,8 @@ static void ctrl_thread(void* arg)
 					if(i!=scfg.sysop_dir && i!=scfg.upload_dir 
 						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user))
 						continue;
+					if(!wildmatchi(scfg.dir[i]->code_suffix, filespec, FALSE))
+						continue;
 					if(detail)
 						fprintf(fp,"drwxrwxrwx   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 							,NAME_LEN
@@ -3550,7 +3549,7 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode"
 					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
-				SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,*p ? p : "*");
+				SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,filespec);
 				glob(path,0,NULL,&g);
 				for(i=0;i<(int)g.gl_pathc;i++) {
 					if(isdir(g.gl_pathv[i]))
@@ -3637,7 +3636,7 @@ static void ctrl_thread(void* arg)
 			dir=curdir;
 
 			p=cmd+5;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(!strnicmp(p,BBS_FSYS_DIR,strlen(BBS_FSYS_DIR))) 
 				p+=strlen(BBS_FSYS_DIR);	/* already mounted */
@@ -3767,20 +3766,20 @@ static void ctrl_thread(void* arg)
 									break;
 
 								p=aliasline;	/* alias pointer */
-								while(*p && *p<=' ') p++;
+								SKIP_WHITESPACE(p);
 
 								if(*p==';')	/* comment */
 									continue;
 
 								tp=p;		/* terminator pointer */
-								while(*tp && *tp>' ') tp++;
+								FIND_WHITESPACE(tp);
 								if(*tp) *tp=0;
 
 								np=tp+1;	/* filename pointer */
-								while(*np && *np<=' ') np++;
+								SKIP_WHITESPACE(np);
 
 								np++;		/* description pointer */
-								while(*np && *np>' ') np++;
+								FIND_WHITESPACE(np);
 
 								while(*np && *np<' ') np++;
 
@@ -4099,7 +4098,7 @@ static void ctrl_thread(void* arg)
 			}
 
 			p=cmd+4;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(*p==0) 
 				sockprintf(sock,"501 No file description given.");
@@ -4128,7 +4127,7 @@ static void ctrl_thread(void* arg)
 			dir=curdir;
 			p=cmd+5;
 
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(!strnicmp(p,BBS_FSYS_DIR,strlen(BBS_FSYS_DIR))) 
 				p+=strlen(BBS_FSYS_DIR);	/* already mounted */
@@ -4278,7 +4277,7 @@ static void ctrl_thread(void* arg)
 
 		if(!strnicmp(cmd, "CWD ", 4) || !strnicmp(cmd,"XCWD ",5)) {
 			p=cmd+4;
-			while(*p && *p<=' ') p++;
+			SKIP_WHITESPACE(p);
 
 			if(!strnicmp(p,BBS_FSYS_DIR,strlen(BBS_FSYS_DIR))) 
 				p+=strlen(BBS_FSYS_DIR);	/* already mounted */
@@ -4538,7 +4537,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.315 $", "%*s %s", revision);
+	sscanf("$Revision: 1.320 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4760,12 +4759,16 @@ void DLLCALL ftp_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->port);
 
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
 		result=retry_bind(server_socket, (struct sockaddr *) &server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"FTP Server",lprintf);
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
 		if(result!=0) {
 			lprintf(LOG_ERR,"%04d %s", server_socket, BIND_FAILURE_HELP);
 			cleanup(1,__LINE__);
@@ -4788,7 +4791,6 @@ void DLLCALL ftp_server(void* arg)
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
-			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
@@ -4806,10 +4808,6 @@ void DLLCALL ftp_server(void* arg)
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
 						break;
 					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_NOTICE,"0000 Recycle semaphore signaled");
 						startup->recycle_now=FALSE;
