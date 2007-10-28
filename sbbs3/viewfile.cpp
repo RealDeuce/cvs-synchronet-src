@@ -2,13 +2,13 @@
 
 /* Synchronet file contents display routines */
 
-/* $Id: viewfile.cpp,v 1.6 2008/02/14 08:17:29 rswindell Exp $ */
+/* $Id: viewfile.cpp,v 1.5 2003/07/26 03:59:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -110,31 +110,28 @@ void sbbs_t::viewfiles(uint dirnum, char *fspec)
 /****************************************************************************/
 void sbbs_t::viewfilecontents(file_t* f)
 {
-	char	cmd[128];
-	char	path[MAX_PATH+1];
-	char* 	ext;
+	char	str[128],cmd[128];
+	char 	tmp[512];
 	int		i;
 
-	getfilepath(&cfg, f, path);
-
 	if(f->size<=0L) {
-		bprintf(text[FileDoesNotExist],path);
-		return; 
-	}
-	if((ext=getfext(path))!=NULL) {
-		ext++;
-		for(i=0;i<cfg.total_fviews;i++) {
-			if(!stricmp(ext,cfg.fview[i]->ext)
-				&& chk_ar(cfg.fview[i]->ar,&useron)) {
-				strcpy(cmd,cfg.fview[i]->cmd);
-				break; 
-			} 
-		}
-	}
-	if(ext==NULL || i==cfg.total_fviews)
-		bprintf(text[NonviewableFile],ext);
+		bputs(text[FileNotThere]);
+		return; }
+
+	sprintf(str,"%s%s",f->altpath > 0 && f->altpath<=cfg.altpaths
+		? cfg.altpath[f->altpath-1] : cfg.dir[f->dir]->path
+		,unpadfname(f->name,tmp));
+	strcpy(tmp,f->name);
+	truncsp(tmp);
+	for(i=0;i<cfg.total_fviews;i++) {
+		if(!stricmp(tmp+9,cfg.fview[i]->ext)
+			&& chk_ar(cfg.fview[i]->ar,&useron)) {
+			strcpy(cmd,cfg.fview[i]->cmd);
+			break; } }
+	if(i==cfg.total_fviews)
+		bprintf(text[NonviewableFile],tmp+9);
 	else
-		if((i=external(cmdstr(cmd,path,path,NULL)
+		if((i=external(cmdstr(cmd,str,str,NULL)
 			,EX_OUTL|EX_OUTR|EX_INR))!=0)
-			errormsg(WHERE,ERR_EXEC,cmdstr(cmd,path,path,NULL),i);
+			errormsg(WHERE,ERR_EXEC,cmdstr(cmd,str,str,NULL),i);
 }
