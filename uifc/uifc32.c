@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.191 2008/02/29 07:35:24 deuce Exp $ */
+/* $Id: uifc32.c,v 1.181 2007/10/28 00:55:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,7 +237,7 @@ int uifcini32(uifcapi_t* uifcapi)
             || txtinfo.currmode==MONO43 || txtinfo.currmode==BW40X43 || txtinfo.currmode==BW80X43
             || txtinfo.currmode==MONO50 || txtinfo.currmode==BW40X50 || txtinfo.currmode==BW80X50
             || txtinfo.currmode==MONO60 || txtinfo.currmode==BW40X60 || txtinfo.currmode==BW80X60
-			|| txtinfo.currmode==ATARI_40X24 || txtinfo.currmode==ATARI_80X25))
+			|| txtinfo.currmode==ATARI_40X24))
 	{
         api->bclr=BLACK;
         api->hclr=WHITE;
@@ -288,11 +288,10 @@ int uifcini32(uifcapi_t* uifcapi)
 	if(cio_api.ESCDELAY)
 		*(cio_api.ESCDELAY)=api->esc_delay;
 
+	api->initialized=TRUE;
+
 	for(i=0; i<MAX_BUFS; i++)
 		sav[i].buf=NULL;
-	api->savnum=0;
-
-	api->initialized=TRUE;
 
     return(0);
 }
@@ -342,9 +341,9 @@ void docopy(void)
 							for(x=startx-1;x<endx;x++) {
 								int pos=y*api->scrn_width+x;
 								if((sbuffer[pos*2+1]&0x70)!=0x10)
-									sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x10;
+									sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x10;
 								else
-									sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x60;
+									sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x60;
 								if(((sbuffer[pos*2+1]&0x70)>>4) == (sbuffer[pos*2+1]&0x0F)) {
 									sbuffer[pos*2+1]|=0x08;
 								}
@@ -360,9 +359,7 @@ void docopy(void)
 							for(x=startx-1;x<endx;x++) {
 								copybuf[outpos++]=screen[(y*api->scrn_width+x)*2];
 							}
-							#ifdef _WIN32
-								copybuf[outpos++]='\r';
-							#endif
+							copybuf[outpos++]='\r';
 							copybuf[outpos++]='\n';
 						}
 						copybuf[outpos]=0;
@@ -411,8 +408,6 @@ static int uifc_getmouse(struct mouse_event *mevent)
 
 void uifcbail(void)
 {
-	int i;
-
 	_setcursortype(_NORMALCURSOR);
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
@@ -421,8 +416,6 @@ void uifcbail(void)
 	FREE_AND_NULL(tmp_buffer);
 	FREE_AND_NULL(tmp_buffer2);
 	api->initialized=FALSE;
-	for(i=0; i< MAX_BUFS; i++)
-		FREE_AND_NULL(sav[i].buf);
 }
 
 /****************************************************************************/
@@ -971,15 +964,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(api->timedisplay != NULL)
 			api->timedisplay(/* force? */FALSE);
 		gotkey=0;
-		if(kbwait() || (mode&(WIN_POP|WIN_SEL))) {
-			if(mode&WIN_POP)
-				gotkey=ESC;
-			else if(mode&WIN_SEL)
-				gotkey=CR;
-			else
-				gotkey=inkey();
+		if(kbwait()) {
+			gotkey=inkey();
 			if(gotkey==CIO_KEY_MOUSE) {
-				if((gotkey=uifc_getmouse(&mevnt))==0) {
+				if((i=uifc_getmouse(&mevnt))==0) {
 					/* Clicked in menu */
 					if(mevnt.startx>=s_left+left+lbrdrwidth+2
 							&& mevnt.startx<=s_left+left+width-rbrdrwidth-1
@@ -1218,12 +1206,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						y=top+tbrdrwidth;
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+tbrdrwidth);
 						textattr(lclr|(bclr<<4));
-						if(*cur)  /* Scroll mode */
+						if(*cur && opts>height-tbrdrwidth)  /* Scroll mode */
 							putch(30);	   /* put the up arrow */
 						else
 							putch(' ');    /* delete the up arrow */
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+height-bbrdrwidth-1);
-						if(opts >= height-tbrdrwidth && *cur + height - vbrdrsize < opts)
+						if(opts > height-tbrdrwidth && *cur + height - vbrdrsize < opts)
 							putch(31);	   /* put the down arrow */
 						else
 							putch(' ');    /* delete the down arrow */
@@ -1496,7 +1484,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(option[j]!=NULL
 							&& strlen(option[j])>(size_t)b
 							&& ((!a && s && !strnicmp(option[j]+b,search,s+1))
-							|| ((a || !s) && toupper(option[j][b])==toupper(gotkey)))) {
+							|| ((a || !s) && toupper(option[j][b])==toupper(i)))) {
 							if(a) s=0;
 							else s++;
 							if(y+(j-(*cur))+2>height+top) {
@@ -2575,7 +2563,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			textbuf[i]=hbuf[j];
 			textbuf[i+1]=inverse ? (api->bclr|(api->cclr<<4))
 				: high ? (api->hclr|(api->bclr<<4)) : (api->lclr|(api->bclr<<4));
-			if(((i+2)%((width-2-pad-pad)*2)==0 && (hbuf[j+1]==LF)) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
+			if((i+2)%((width-2-pad-pad)*2)==0 && (hbuf[j+1]==LF) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
 				i-=2;
 		}
 		else
@@ -2621,9 +2609,6 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 							p=p+(width-2-pad-pad)*2*(height-5);
 							continue;
 						}
-						/* Non-click events (drag, move, multiclick, etc) */
-						else if(mevnt.event!=CIOLIB_BUTTON_CLICK(CIOLIB_BUTTON_NUMBER(mevnt.event)))
-							continue;
 						i=1;
 					}
 					continue;
