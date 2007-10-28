@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.87 2008/10/04 23:07:12 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.77 2006/12/28 22:25:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -83,14 +83,13 @@
 /***************/
 long	mode=0;							/* Program mode 					*/
 long	zmode=0L;						/* Zmodem mode						*/
-uchar	block[XMODEM_MAX_BLOCK_SIZE];					/* Block buffer 					*/
+uchar	block[1024];					/* Block buffer 					*/
 ulong	block_num;						/* Block number 					*/
 char*	dszlog;
 BOOL	dszlog_path=TRUE;				/* Log complete path to filename	*/
 BOOL	dszlog_short=FALSE;				/* Log Micros~1 short filename		*/
 BOOL	dszlog_quotes=FALSE;			/* Quote filenames in DSZLOG		*/
 int		log_level=LOG_INFO;
-BOOL	use_syslog=FALSE;
 
 xmodem_t xm;
 zmodem_t zm;
@@ -108,6 +107,7 @@ BOOL	telnet=TRUE;
 BOOL	stdio=FALSE;
 struct termios origterm;
 #endif
+BOOL	aborted=FALSE;
 BOOL	terminate=FALSE;
 BOOL	debug_tx=FALSE;
 BOOL	debug_rx=FALSE;
@@ -164,7 +164,6 @@ static BOOL winsock_startup(void)
 static int lputs(void* unused, int level, const char* str)
 {
 	FILE*	fp=statfp;
-	int		ret;
 
 #if defined(_WIN32) && defined(_DEBUG)
 	if(log_level==LOG_DEBUG)
@@ -182,24 +181,9 @@ static int lputs(void* unused, int level, const char* str)
 		newline=TRUE;
 	}
 	if(level<LOG_NOTICE)
-		ret=fprintf(fp,"!%s\n",str);
+		return fprintf(fp,"!%s\n",str);
 	else
-		ret=fprintf(fp,"%s\n",str);
-
-#if defined(__unix__)
-	if(use_syslog) {
-		char*	msg;
-		char*	p;
-		if((msg=strdup(str))!=NULL) {
-			REPLACE_CHARS(msg,'\r',' ',p);
-			REPLACE_CHARS(msg,'\n',' ',p);
-			syslog(level,"%s",msg);
-			free(msg);
-		}
-	}
-#endif
-
-	return ret;
+		return fprintf(fp,"%s\n",str);
 }
 
 static int lprintf(int level, const char *fmt, ...)
@@ -219,7 +203,7 @@ void break_handler(int type)
 	lprintf(LOG_NOTICE,"-> Aborted Locally (signal: %d)",type);
 
 	/* Flag to indicate local (as opposed to remote) abort */
-	zm.local_abort=TRUE;
+	aborted=TRUE;
 
 	/* Stop any transfers in progress immediately */
 	xm.cancelled=TRUE;	
@@ -364,8 +348,8 @@ int recv_byte(void* unused, unsigned timeout)
 #endif
 			FD_SET(sock,&socket_set);
 		if((t=end-msclock())<0) t=0;
-		tv.tv_sec=t/((unsigned)MSCLOCKS_PER_SEC);
-		tv.tv_usec=(t%((unsigned)MSCLOCKS_PER_SEC))*1000;
+		tv.tv_sec=t/MSCLOCKS_PER_SEC;
+		tv.tv_usec=0;
 
 		if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 			if(i==SOCKET_ERROR) {
@@ -654,15 +638,14 @@ BOOL data_waiting(void* unused, unsigned timeout)
 }
 
 /****************************************************************************/
-/* Returns the total number of blocks required to send the file				*/
+/* Returns the number of blocks required to send len bytes					*/
 /****************************************************************************/
-unsigned num_blocks(unsigned block_num, ulong offset, ulong len, unsigned block_size)
+unsigned num_blocks(ulong len, unsigned block_size)
 {
 	ulong blocks;
-	ulong remain = len - offset;
 
-	blocks=block_num + (remain/block_size);
-	if(remain%block_size)
+	blocks=len/block_size;
+	if(len%block_size)
 		blocks++;
 	return(blocks);
 }
@@ -699,7 +682,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 		l-=t;				/* now, it's est time left */
 		if(l<0) l=0;
 		if(mode&SEND) {
-			total_blocks=num_blocks(block_num,offset,fsize,xm.block_size);
+			total_blocks=num_blocks(fsize,xm.block_size);
 			fprintf(statfp,"\rBlock (%lu%s): %lu/%lu  Byte: %lu  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
@@ -749,7 +732,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
  * show the progress of the transfer like this:
  * zmtx: sending file "garbage" 4096 bytes ( 20%)
  */
-void zmodem_progress(void* cbdata, uint32_t current_pos)
+void zmodem_progress(void* cbdata, ulong current_pos)
 {
 	unsigned	cps;
 	long		l;
@@ -790,20 +773,20 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 
 static int send_files(char** fname, uint fnames)
 {
-	char		path[MAX_PATH+1];
-	int			i;
-	uint		errors;
-	uint		fnum;
-	uint		cps;
-	glob_t		g;
-	int			gi;
-	BOOL		success=TRUE;
-	long		fsize;
-	ulong		sent_bytes;
-	uint32_t	total_bytes=0;
-	time_t		t,startfile;
-	time_t		startall;
-	FILE*		fp;
+	char	path[MAX_PATH+1];
+	int		i;
+	uint	errors;
+	uint	fnum;
+	uint	cps;
+	glob_t	g;
+	int		gi;
+	BOOL	success=TRUE;
+	long	fsize;
+	ulong	sent_bytes;
+	ulong	total_bytes=0;
+	time_t	t,startfile;
+	time_t	startall;
+	FILE*	fp;
 
 	startall=time(NULL);
 
@@ -861,12 +844,12 @@ static int send_files(char** fname, uint fnames)
 			success=FALSE;
 			startfile=time(NULL);
 
-			lprintf(LOG_INFO,"Sending %s (%lu KB) via %cMODEM"
+			lprintf(LOG_INFO,"Sending %s (%lu KB) via %s"
 				,path,fsize/1024
-				,mode&XMODEM ? 'X' : mode&YMODEM ? 'Y' : 'Z');
+				,mode&XMODEM ? "Xmodem" : mode&YMODEM ? "Ymodem" : "Zmodem");
 
 			if(mode&ZMODEM)
-					success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, (uint32_t*)&sent_bytes);
+					success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, &sent_bytes);
 			else	/* X/Ymodem */
 					success=xmodem_send_file(&xm, path, fp, &startfile, &sent_bytes);
 
@@ -890,7 +873,7 @@ static int send_files(char** fname, uint fnames)
 						,(xm.total_bytes-xm.sent_bytes)/1024
 						);
 			} else
-				lprintf(LOG_WARNING,"File Transfer %s", zm.local_abort ? "Aborted" : "Failure");
+				lprintf(LOG_WARNING,"File Transfer %s", aborted ? "Aborted" : "Failure");
 
 			/* DSZLOG entry */
 			if(logfp) {
@@ -911,7 +894,7 @@ static int send_files(char** fname, uint fnames)
 			}
 			total_bytes += sent_bytes;
 
-			if(zm.local_abort) {
+			if(aborted) {
 				xm.cancelled=FALSE;
 				xmodem_cancel(&xm);
 				break;
@@ -941,11 +924,11 @@ static int send_files(char** fname, uint fnames)
 
 		if(xmodem_get_mode(&xm)) {
 
-			lprintf(LOG_INFO,"Sending YMODEM termination block");
+			lprintf(LOG_INFO,"Sending Ymodem termination block");
 
-			memset(block,0,XMODEM_MIN_BLOCK_SIZE);	/* send short block for terminator */
-			xmodem_put_block(&xm, block, XMODEM_MIN_BLOCK_SIZE /* block_size */, 0 /* block_num */);
-			if(xmodem_get_ack(&xm, /* tries: */6, /* block_num: */0) != ACK) {
+			memset(block,0,128);	/* send short block for terminator */
+			xmodem_put_block(&xm, block, 128 /* block_size */, 0 /* block_num */);
+			if(!xmodem_get_ack(&xm,6,0)) {
 				lprintf(LOG_WARNING,"Failed to receive ACK after terminating block"); 
 			} 
 		}
@@ -994,25 +977,23 @@ static int receive_files(char** fname_list, int fnames)
 
 		else {
 			if(mode&YMODEM) {
-				lprintf(LOG_INFO,"Fetching YMODEM header block");
+				lprintf(LOG_INFO,"Fetching Ymodem header block");
 				for(errors=0;errors<=xm.max_errors && !xm.cancelled;errors++) {
+					if(errors>(xm.max_errors/2) && mode&CRC && !(mode&GMODE))
+						mode&=~CRC;
 					xmodem_put_nak(&xm, /* expected_block: */ 0);
-					if(xmodem_get_block(&xm, block, /* expected_block: */ 0) == SUCCESS) {
+					if(xmodem_get_block(&xm, block, /* expected_block: */ 0) == 0) {
 						send_byte(NULL,ACK,10);
 						break; 
 					} 
-					if(errors+1>xm.max_errors/3 && mode&CRC && !(mode&GMODE)) {
-						lprintf(LOG_NOTICE,"Falling back to 8-bit Checksum mode");
-						mode&=~CRC;
-					}
 				}
-				if(errors>xm.max_errors || xm.cancelled) {
-					lprintf(LOG_ERR,"Error fetching YMODEM header block");
+				if(errors>=xm.max_errors || xm.cancelled) {
+					lprintf(LOG_ERR,"Error fetching Ymodem header block");
 					xmodem_cancel(&xm);
 					return(1); 
 				}
 				if(!block[0]) {
-					lprintf(LOG_INFO,"Received YMODEM termination block");
+					lprintf(LOG_INFO,"Received Ymodem termination block");
 					return(0); 
 				}
 				file_bytes=ftime=total_files=total_bytes=0;
@@ -1024,11 +1005,11 @@ static int receive_files(char** fname_list, int fnames)
 					,&total_files			/* remaining files to be sent */
 					,&total_bytes			/* remaining bytes to be sent */
 					);
-				lprintf(LOG_DEBUG,"YMODEM header (%u fields): %s", i, block+strlen(block)+1);
+				lprintf(LOG_DEBUG,"Ymodem header (%u fields): %s", i, block+strlen(block)+1);
 				SAFECOPY(fname,block);
 
 			} else {	/* Zmodem */
-				lprintf(LOG_INFO,"Waiting for ZMODEM sender...");
+				lprintf(LOG_INFO,"Waiting for Zmodem sender...");
 
 				i=zmodem_recv_init(&zm);
 
@@ -1124,15 +1105,14 @@ static int receive_files(char** fname_list, int fnames)
 		}
 
 		if(mode&XMODEM)
-			lprintf(LOG_INFO,"Receiving %s via XMODEM%s %s"
+			lprintf(LOG_INFO,"Receiving %s via Xmodem %s"
 				,str
-				,mode&GMODE ? "-G" : ""
 				,mode&CRC ? "CRC-16":"Checksum");
 		else
 			lprintf(LOG_INFO,"Receiving %s (%lu KB) via %s %s"
 				,str
 				,file_bytes/1024
-				,mode&YMODEM ? mode&GMODE ? "YMODEM-G" : "YMODEM" :"ZMODEM"
+				,mode&YMODEM ? mode&GMODE ? "Ymodem-G" : "Ymodem" :"Zmodem"
 				,mode&ZMODEM ? "" : (mode&CRC ? "CRC-16" : "Checksum"));
 
 		startfile=time(NULL);
@@ -1158,7 +1138,7 @@ static int receive_files(char** fname_list, int fnames)
 				xmodem_progress(NULL,block_num,ftell(fp),file_bytes,startfile);
 				i=xmodem_get_block(&xm, block, block_num); 	
 
-				if(i!=SUCCESS) {
+				if(i!=0) {
 					if(i==EOT)	{		/* end of transfer */
 						success=TRUE;
 						xmodem_put_ack(&xm);
@@ -1172,23 +1152,20 @@ static int receive_files(char** fname_list, int fnames)
 					if(mode&GMODE)
 						return(-1);
 
-					if(++errors>xm.max_errors) {
+					if(++errors>=xm.max_errors) {
 						lprintf(LOG_ERR,"Too many errors (%u)",errors);
 						xmodem_cancel(&xm);
 						break;
 					}
-					if(i!=NOT_XMODEM 
-						&& block_num==1 && errors>xm.max_errors/3 && mode&CRC && !(mode&GMODE)) {
-						lprintf(LOG_NOTICE,"Falling back to 8-bit Checksum mode (error=%d)", i);
+					if(block_num==1 && errors>(xm.max_errors/2) && mode&CRC && !(mode&GMODE))
 						mode&=~CRC;
-					}
 					xmodem_put_nak(&xm, block_num);
 					continue;
 				}
 				if(!(mode&GMODE))
 					send_byte(NULL,ACK,10);
-				if(file_bytes_left<=0L)  { /* No more bytes to receive */
-					lprintf(LOG_WARNING,"Sender attempted to send more bytes than were specified in header");
+				if(file_bytes_left<=0L)  { /* No more bytes to send */
+					lprintf(LOG_WARNING,"Attempt to send more byte specified in header");
 					break; 
 				}
 				wr=xm.block_size;
@@ -1220,7 +1197,7 @@ static int receive_files(char** fname_list, int fnames)
 			lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
 				,t/60,t%60,file_bytes/t);	
 		else
-			lprintf(LOG_ERR,"File Transfer %s", zm.local_abort ? "Aborted":"Failure");
+			lprintf(LOG_ERR,"File Transfer %s", aborted ? "Aborted":"Failure");
 
 		if(!(mode&XMODEM) && ftime)
 			setfdate(str,ftime); 
@@ -1241,7 +1218,7 @@ static int receive_files(char** fname_list, int fnames)
 			fflush(logfp);
 		}
 
-		if(zm.local_abort) {
+		if(aborted) {
 			lprintf(LOG_DEBUG,"Locally aborted, sending cancel to remote");
 			if(mode&ZMODEM)
 				zmodem_abort_receive(&zm);
@@ -1287,12 +1264,9 @@ static const char* usage=
 	"socket = TCP socket descriptor\n"
 #endif
 	"\n"
-	"opts   = -y  allow overwriting of existing files when receiving\n"
+	"opts   = -y  to overwrite files when receiving\n"
 	"         -o  disable Zmodem CRC-32 mode (use CRC-16)\n"
 	"         -s  disable Zmodem streaming (Slow Zmodem)\n"
-	"         -k  enable X/Ymodem-1K send mode\n"
-    "         -c  enable Xmodem-CRC receive mode\n"
-	"         -g  enable X/Ymodem-G receive mode (no error recovery)\n"
 	"         -2  set maximum Zmodem block size to 2K\n"
 	"         -4  set maximum Zmodem block size to 4K\n"
 	"         -8  set maximum Zmodem block size to 8K (ZedZap)\n"
@@ -1301,11 +1275,11 @@ static const char* usage=
 	"         -rlogin or -ssh or -raw to disable Telnet mode\n"
 	"\n"
 	"cmd    = v  to display detailed version information\n"
-	"         sx to send Xmodem     rx to receive Xmodem\n"
-	"         sX to send Xmodem-1K  rc to receive Xmodem-CRC\n"
-	"         sy to send Ymodem     ry to receive Ymodem\n"
-	"         sY to send Ymodem-1K  rg to receive Ymodem-G\n"
-	"         sz to send Zmodem     rz to receive Zmodem\n"
+	"         sx to send Xmodem     rx to recv Xmodem\n"
+	"         sX to send Xmodem-1K  rc to recv Xmodem-CRC\n"
+	"         sy to send Ymodem     ry to recv Ymodem\n"
+	"         sY to send Ymodem-1K  rg to recv Ymodem-G\n"
+	"         sz to send Zmodem     rz to recv Zmodem\n"
 	"\n"
 	"file   = filename to send or receive\n"
 	"path   = directory to receive files into\n"
@@ -1340,9 +1314,9 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.87 $", "%*s %s", revision);
+	sscanf("$Revision: 1.77 $", "%*s %s", revision);
 
-	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
+	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
 		,revision
 		,PLATFORM_DESC
@@ -1376,7 +1350,6 @@ int main(int argc, char **argv)
 	pause_on_abend			=iniReadBool(fp,ROOT_SECTION,"PauseOnAbend",FALSE);
 
 	log_level				=iniReadLogLevel(fp,ROOT_SECTION,"LogLevel",log_level);
-	use_syslog				=iniReadBool(fp,ROOT_SECTION,"SysLog",use_syslog);
 
 	outbuf.highwater_mark	=iniReadInteger(fp,ROOT_SECTION,"OutbufHighwaterMark",1100);
 	outbuf_drain_timeout	=iniReadInteger(fp,ROOT_SECTION,"OutbufDrainTimeout",10);
@@ -1391,14 +1364,9 @@ int main(int argc, char **argv)
 	xm.recv_timeout			=iniReadInteger(fp,"Xmodem","RecvTimeout",xm.recv_timeout);	/* seconds */
 	xm.byte_timeout			=iniReadInteger(fp,"Xmodem","ByteTimeout",xm.byte_timeout);	/* seconds */
 	xm.ack_timeout			=iniReadInteger(fp,"Xmodem","AckTimeout",xm.ack_timeout);	/* seconds */
-	xm.block_size			=iniReadInteger(fp,"Xmodem","BlockSize",xm.block_size);			/* 128 or 1024 */
-	xm.max_block_size		=iniReadInteger(fp,"Xmodem","MaxBlockSize",xm.max_block_size);	/* 128 or 1024 */
+	xm.block_size			=iniReadInteger(fp,"Xmodem","BlockSize",xm.block_size);		/* 128 or 1024 */
 	xm.max_errors			=iniReadInteger(fp,"Xmodem","MaxErrors",xm.max_errors);
 	xm.g_delay				=iniReadInteger(fp,"Xmodem","G_Delay",xm.g_delay);
-	xm.crc_mode_supported	=iniReadBool(fp,"Xmodem","SendCRC",xm.crc_mode_supported);
-	xm.g_mode_supported		=iniReadBool(fp,"Xmodem","SendG",xm.g_mode_supported);
-
-	xm.fallback_to_xmodem	=iniReadInteger(fp,"Ymodem","FallbackToXmodem", xm.fallback_to_xmodem);
 
 	zm.init_timeout			=iniReadInteger(fp,"Zmodem","InitTimeout",zm.init_timeout);	/* seconds */
 	zm.send_timeout			=iniReadInteger(fp,"Zmodem","SendTimeout",zm.send_timeout);	/* seconds */
@@ -1466,19 +1434,16 @@ int main(int argc, char **argv)
 						mode|=XMODEM|CRC;
 						break;
 					case 'x':
-						xm.block_size=XMODEM_MIN_BLOCK_SIZE;
+						xm.block_size=128;
 					case 'X':
 						mode|=XMODEM;
 						break;
 					case 'b':	/* sz/rz compatible */
 					case 'B':
 					case 'y':
-						xm.block_size=XMODEM_MIN_BLOCK_SIZE;
+						xm.block_size=128;
 					case 'Y':
 						mode|=(YMODEM|CRC);
-						break;
-					case 'k':	/* Ymodem-Checksum for debug/test purposes only */
-						mode|=YMODEM;
 						break;
 					case 'g':
 					case 'G':
@@ -1525,17 +1490,13 @@ int main(int argc, char **argv)
 					log_level=LOG_DEBUG;
 					continue;
 				}
-				if(stricmp(arg,"syslog")==0) {
-					use_syslog=TRUE;
-					continue;
-				}
 				if(stricmp(arg,"quotes")==0) {
 					dszlog_quotes=TRUE;
 					continue;
 				}
 				switch(toupper(*arg)) {
 					case 'K':	/* sz/rz compatible */
-						xm.block_size=XMODEM_MAX_BLOCK_SIZE;
+						xm.block_size=1024;
 						break;
 					case 'C':	/* sz/rz compatible */
 						mode|=CRC;
@@ -1555,8 +1516,8 @@ int main(int argc, char **argv)
 					case 'S':	/* disable Zmodem streaming */
 						zm.no_streaming=TRUE;
 						break;
-					case 'G':	/* Ymodem-G or Xmodem-G (a.k.a. Qmodem-G) */
-						mode|=(GMODE|CRC);
+					case 'G':	/* Ymodem-G */
+						mode|=GMODE;
 						break;
 					case 'Y':
 						mode|=OVERWRITE;
