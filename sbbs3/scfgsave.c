@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.48 2006/08/23 22:34:32 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.50 2007/07/10 19:51:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,7 +180,7 @@ BOOL DLLCALL write_node_cfg(scfg_t* cfg, int backup_level)
 {
 	char	str[MAX_PATH+1];
 	int 	i,file;
-	ushort	n;
+	uint16_t	n;
 	FILE	*stream;
 
 	if(cfg->prepped)
@@ -278,7 +278,8 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 {
 	char	str[MAX_PATH+1],c=0;
 	int 	file;
-	ushort	i,j,n;
+	ushort	i,j;
+	uint16_t n;
 	FILE	*stream;
 
 	if(cfg->prepped)
@@ -435,8 +436,8 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	char	str[MAX_PATH+1],c;
 	char	dir[LEN_DIR+1]="";
 	int 	i,j,k,file;
-	ushort	n;
-	long	l;
+	uint16_t	n;
+	int32_t	l;
 	FILE	*stream;
 	smb_t	smb;
 
@@ -719,8 +720,8 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 	char	str[MAX_PATH+1],cmd[LEN_CMD+1],c;
 	char	path[MAX_PATH+1];
 	int 	i,j,k,file;
-	ushort	n;
-	long	l=0;
+	uint16_t	n;
+	int32_t	l=0;
 	FILE	*stream;
 
 	if(cfg->prepped)
@@ -956,7 +957,7 @@ BOOL DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level)
 {
 	char	str[MAX_PATH+1];
 	int 	i,j,file;
-	ushort	n;
+	uint16_t	n;
 	FILE	*stream;
 
 	if(cfg->prepped)
@@ -1031,7 +1032,7 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 {
 	uchar	str[MAX_PATH+1],c;
 	int 	i,j,sec,file;
-	ushort	n;
+	uint16_t	n;
 	FILE	*stream;
 
 	if(cfg->prepped)
