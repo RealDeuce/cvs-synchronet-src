@@ -1,4 +1,4 @@
-/* $Id: term.c,v 1.190 2007/10/21 15:12:35 deuce Exp $ */
+/* $Id: term.c,v 1.191 2007/10/28 04:40:32 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1275,7 +1275,7 @@ BOOL doterm(struct bbslist *bbs)
 								gutsbuf[++j]=0;
 								if(j==sizeof(gutsinit)) { /* Have full sequence */
 									guts_transfer(bbs);
-									remain=0;
+									remain=1;
 								}
 							}
 							else {
@@ -1370,7 +1370,7 @@ BOOL doterm(struct bbslist *bbs)
 									else
 										begin_upload(bbs, TRUE);
 									zrqbuf[0]=0;
-									remain=0;
+									remain=1;
 								}
 							}
 							else {	/* Not a real zrqinit */
