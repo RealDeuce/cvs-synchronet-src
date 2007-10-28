@@ -78,8 +78,8 @@ void save_font_files(struct font_files *fonts)
 		uifc.msg("Cannot write to the .ini file!");
 	}
 
-	strListFreeStrings(fontnames);
-	strListFreeStrings(ini_file);
+	strListFree(&fontnames);
+	strListFree(&ini_file);
 }
 
 struct font_files *read_font_files(int *count)
@@ -118,7 +118,7 @@ struct font_files *read_font_files(int *count)
 			ret[*count-1].path8x16=strdup(fontpath);
 	}
 	fclose(inifile);
-	strListFreeStrings(fonts);
+	strListFree(&fonts);
 	return(ret);
 }
 
@@ -297,7 +297,7 @@ void font_management(void)
 			switch(i) {
 				case 0:
 					SAFECOPY(str,fonts[cur].name);
-					free(fonts[cur].name);
+					FREE_AND_NULL(fonts[cur].name);
 					uifc.helpbuf="Enter the name of the font as you want it to appear\nin menus.";
 					uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,K_EDIT);
 					fonts[cur].name=strdup(str);
@@ -338,7 +338,7 @@ void font_management(void)
 				gettext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
 				result=filepick(&uifc, str, &fpick, ".", fontmask, UIFC_FP_ALLOWENTRY);
 				if(result!=-1 && fpick.files>0) {
-					free(*path);
+					FREE_AND_NULL(*path);
 					*(path)=strdup(fpick.selected[0]);
 				}
 				filepick_free(&fpick);
