@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #include <stdio.h>
 #include <string.h>
 
@@ -58,7 +56,6 @@ void save_font_files(struct font_files *fonts)
 	/* TODO: Remove all sections... we don't *NEED* to do this */
 	while((fontid=strListPop(&fontnames))!=NULL) {
 		iniRemoveSection(&ini_file, fontid);
-		free(fontid);
 	}
 
 	if(fonts != NULL) {
@@ -102,15 +99,12 @@ struct font_files *read_font_files(int *count)
 	}
 	fonts=iniReadSectionList(inifile, "Font:");
 	while((fontid=strListPop(&fonts))!=NULL) {
-		if(!fontid[5]) {
-			free(fontid);
+		if(!fontid[5])
 			continue;
-		}
 		(*count)++;
 		tmp=(struct font_files *)realloc(ret, sizeof(struct font_files)*(*count+1));
 		if(tmp==NULL) {
 			count--;
-			free(fontid);
 			continue;
 		}
 		ret=tmp;
@@ -122,7 +116,6 @@ struct font_files *read_font_files(int *count)
 			ret[*count-1].path8x14=strdup(fontpath);
 		if((ret[*count-1].path8x16=iniReadString(inifile,fontid,"Path8x16",NULL,fontpath))!=NULL)
 			ret[*count-1].path8x16=strdup(fontpath);
-		free(fontid);
 	}
 	fclose(inifile);
 	strListFree(&fonts);

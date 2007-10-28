@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -349,7 +347,7 @@ int listcmp(const void *aptr, const void *bptr)
 			if(sort_order[item].flags & SORT_ORDER_STRING)
 				ret=stricmp(a+sort_order[item].offset,b+sort_order[item].offset);
 			else
-				ret=intbufcmp(a+sort_order[item].offset,b+sort_order[item].offset,sort_order[item].length);
+				ret=memcmp(a+sort_order[item].offset,b+sort_order[item].offset,sort_order[item].length);
 			if(ret) {
 				if(reverse)
 					ret=0-ret;
@@ -639,14 +637,11 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 		bbses=iniGetSectionList(inilines,NULL);
 		while((bbsname=strListRemove(&bbses,0))!=NULL) {
 			if(!list_name_check(list, bbsname, NULL, FALSE)) {
-				if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL) {
-					free(bbsname);
+				if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL)
 					break;
-				}
 				read_item(inilines,list[*i],bbsname,*i,type);
 				(*i)++;
 			}
-			free(bbsname);
 		}
 		strListFree(&bbses);
 		strListFree(&inilines);
