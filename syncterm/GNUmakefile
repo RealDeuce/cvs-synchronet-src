@@ -3,15 +3,6 @@ include ${SRC_ROOT}/build/Common.gmake
 
 CFLAGS	+=	-I/usr/local/include	# cryptlib.h lives here by default
 CFLAGS	+=	-I../../include/cryptlib	# cryptlib.h lives here in CVS
-ifndef WITH_OOII
- CFLAGS	+= -DWITHOUT_OOII=1
-else
- OBJS += $(MTOBJODIR)$(DIRSEP)ooii$(OFILE)
- OBJS += $(MTOBJODIR)$(DIRSEP)ooii_logons$(OFILE)
- OBJS += $(MTOBJODIR)$(DIRSEP)ooii_cmenus$(OFILE)
- OBJS += $(MTOBJODIR)$(DIRSEP)ooii_bmenus$(OFILE)
- OBJS += $(MTOBJODIR)$(DIRSEP)ooii_sounds$(OFILE)
-endif
 
 ifdef USE_WXWIDGETS
 
@@ -57,12 +48,6 @@ endif
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lnsl -lrt -lcurses -ldl
  CFLAGS	+=	-DNEED_CFMAKERAW
-endif
-
-ifdef WITHOUT_CRYPTLIB
- CFLAGS += -DWITHOUT_CRYPTLIB
-else
- OBJS += $(MTOBJODIR)$(DIRSEP)ssh$(OFILE)
 endif
 
 ifdef STATIC_CRYPTLIB
@@ -138,8 +123,7 @@ ifeq ($(os),darwin)
 	${QUIET}${INSTALL_EXE} ${SYNCTERM} ${EXEODIR}/SyncTERM.app/Contents/MacOS
 	${QUIET}${INSTALL_DATA} Info.plist ${EXEODIR}/SyncTERM.app/Contents
 	${QUIET}${INSTALL_DATA} SyncTERM.icns ${EXEODIR}/SyncTERM.app/Contents/Resources
-	-${QUIET}rm -rf ${EXEODIR}/SyncTERM.app/Contents/Frameworks/SDL.framework
-	${QUIET}cp -R ${SDL_FRAMEWORK_PATH}/SDL.framework ${EXEODIR}/SyncTERM.app/Contents/Frameworks
+	${QUIET}cp -R /Library/Frameworks/SDL.framework ${EXEODIR}/SyncTERM.app/Contents/Frameworks
 	${QUIET}rm -rf ${EXEODIR}/SyncTERM.app/Contents/Frameworks/SDL.framework/Headers/*
 endif
 
