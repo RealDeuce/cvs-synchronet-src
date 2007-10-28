@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.151 2008/01/06 07:34:30 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.150 2007/07/10 20:18:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,16 +50,16 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.15"  /* Version: Major.minor  */
-#define REVISION	'a'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31500	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31500 + (tolower(REVISION)-'a'))
+#define VERSION 	"3.14"  /* Version: Major.minor  */
+#define REVISION	'b'     /* Revision: lowercase letter */
+#define VERSION_NUM	(31400	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31400 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2008 Rob Swindell"
-#define COPYRIGHT_CRC		0x2AF13941
+#define COPYRIGHT_NOTICE	"Copyright 2006 Rob Swindell"
+#define COPYRIGHT_CRC		0xE16A6CC1
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -814,12 +814,11 @@ enum {							/* Values of mode for userlist function     */
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
 #define WHERE       	__LINE__,__FILE__
-#define SAVELINE		{ if(slcnt<SAVE_LINES) { \
-							slatr[slcnt]=latr; \
+#define SAVELINE		{ slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \
 							sprintf(slbuf[slcnt],"%.*s",lbuflen,lbuf); \
-							slcnt++; \
-							lbuflen=0; } }
+							if(slcnt<SAVE_LINES) slcnt++; \
+							lbuflen=0; }
 #define RESTORELINE 	{ lbuflen=0; if(slcnt) --slcnt; \
 							attr(slatr[slcnt]); \
 							rputs(slbuf[slcnt]); \

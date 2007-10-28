@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: bbslist.h,v 1.35 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: bbslist.h,v 1.34 2007/10/23 20:02:02 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
