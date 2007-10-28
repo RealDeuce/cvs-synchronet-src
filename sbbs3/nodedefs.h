@@ -2,7 +2,7 @@
 
 /* Synchronet node information structure and constant definitions */
 
-/* $Id: nodedefs.h,v 1.17 2008/01/06 21:41:23 deuce Exp $ */
+/* $Id: nodedefs.h,v 1.15 2007/07/08 21:01:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
