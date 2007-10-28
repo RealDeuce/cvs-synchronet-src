@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: term.c,v 1.192 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: term.c,v 1.191 2007/10/28 04:40:32 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>

@@ -1,5 +1,3 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
 #include <stdio.h>
 #include <string.h>
 

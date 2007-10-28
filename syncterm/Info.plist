@@ -9,7 +9,7 @@
 	<string>syncterm</string>
 
 	<key>CFBundleIconFile</key>
-	<string>SyncTERM</string>
+	<string>SyncTERM.icns</string>
 
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
@@ -82,10 +82,7 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 
-	<key>NSApplicationIcon</key>
-	<string>SyncTERM</string>
-
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright 2007, Stephen Hurd.</string>
+	<string>&copy; 2007, Stephen Hurd.</string>
 </dict>
 </plist>

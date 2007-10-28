@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: syncterm.c,v 1.125 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: syncterm.c,v 1.124 2007/10/28 20:24:36 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
