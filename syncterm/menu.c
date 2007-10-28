@@ -1,6 +1,4 @@
-/* Copyright (C), 2007 by Stephen Hurd */
-
-/* $Id: menu.c,v 1.46 2008/09/21 20:49:16 deuce Exp $ */
+/* $Id: menu.c,v 1.40 2007/10/21 18:27:48 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -127,7 +125,7 @@ void viewscroll(void)
 	}
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
 	gotoxy(x,y);
-	free(scrollback);
+	FREE_AND_NULL(scrollback);
 	return;
 }
 
@@ -145,11 +143,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						,"ANSI Music Control (Alt-M)"
 						,"Font Control (Alt-F)"
 						,"Toggle Doorway Mode"
-#ifndef WITHOUT_OOII
-						,"Toggle Operation Overkill ][ Mode"
-#endif
 						,"Exit (Alt-X)"
-						,"Edit Dialing Directory (ALT-E)"
 						,""};
 	int		opt=0;
 	int		i,j;
@@ -170,21 +164,20 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	for(ret=0;!ret;) {
 		init_uifc(FALSE, !(bbs->nostatus));
 		uifc.helpbuf=	"`Online Menu`\n\n"
-						"`Scrollback`     Allows to you to view the scrollback buffer\n"
-						"`Disconnect`     Disconnects the current connection\n"
-						"`Send Login`     Sends the username and password pair separated by CR\n"
-						"`Upload`         Initiates a file upload (ZMODEM or ASCII)\n"
-						"`Download`       Initiates a file download (ZMODEM)\n"
-						"`Log Level`      Changes the minimum log level for ZMODEM information\n"
-						"`Output Rate`    Changes the speed characters are output to the screen\n"
-						"`Capture`        Enables/Disables screen capture\n"
-						"`ANSI Music`     Enables/Disables ANSI Music\n"
-						"`Font`           Changes the current font (when supported)\n"
-						"`Doorway Mode`   Toggles the current DoorWay (keyboard input) setting\n"
-#ifndef WITHOUT_OOII
-						"`Operation Overkill ][ Mode`   Toggles the current Operation Overkill ][ setting\n"
-#endif
-						"`Exit`           Disconnects and closes Syncterm";
+						"~ Scrollback ~          allows to you to view the scrollback buffer\n"
+						"~ Disconnect ~          disconnects the current session and returns to the\n"
+						"                      dialing list\n"
+						"~ Send Login ~          Sends the configured user and password pair separated\n"
+						"                      by a \\r\n"
+						"~ Upload ~              Initiates a ZModem upload\n"
+						"~ Download ~            Initiates a ZModem download\n"
+						"~ Change Output Rate ~  Changes the speed charaters are output to the screen\n"
+						"~ Change Log Level ~    Changes the minimum log leve for ZModem information\n"
+						"~ Capture Control ~     Enables/Disables screen capture\n"
+						"~ ANSI Music Control ~  Enables/Disables ANSI Music\n"
+						"~ Font Control ~        Changes the current font\n"
+						"~ Toggle Doorway Mode ~ Toggle the current DoorWay setting\n"
+						"~ Exit ~                Disconnects and closes the Syncterm";
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
 		switch(i) {
 			case -1:	/* Cancel */
@@ -212,10 +205,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				}
 				break;
 			case 5:		/* Output rate */
-				if(bbs->conn_type==CONN_TYPE_MODEM || bbs->conn_type==CONN_TYPE_SERIAL)
-					uifcmsg("Not supported for this connection type"
-						,"Cannot change the display rate for Modem/Serial connections.");
-				else if(speed != NULL) {
+				if(speed != NULL) {
 					j=get_rate_num(*speed);
 					uifc.helpbuf="`Output Rate`\n\n"
 							"The output rate is the rate in emulated \"bits per second\" to draw incoming\n"
