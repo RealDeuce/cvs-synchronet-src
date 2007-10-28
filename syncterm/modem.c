@@ -1,4 +1,4 @@
-/* $Id: modem.c,v 1.4 2007/05/23 07:07:47 deuce Exp $ */
+/* $Id: modem.c,v 1.9 2007/10/21 18:27:48 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -12,7 +12,7 @@
 #include "conn.h"
 #include "uifcinit.h"
 
-static COM_HANDLE com=INVALID_SOCKET;
+static COM_HANDLE com=COM_HANDLE_INVALID;
 
 #ifdef __BORLANDC__
 #pragma argsused
@@ -26,10 +26,6 @@ void modem_input_thread(void *args)
 	conn_api.input_thread_running=1;
 	while(com != COM_HANDLE_INVALID && !conn_api.terminate) {
 		rd=comReadBuf(com, conn_api.rd_buf, conn_api.rd_buf_size, NULL, 100);
-		if(rd <= 0) {
-			if(comGetModemStatus(com)&COM_DCD == 0)
-				break;
-		}
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -37,6 +33,8 @@ void modem_input_thread(void *args)
 			buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
 			pthread_mutex_unlock(&(conn_inbuf.mutex));
 		}
+		if(comGetModemStatus(com)&COM_DCD == 0)
+			break;
 	}
 	conn_api.input_thread_running=0;
 }
@@ -136,29 +134,20 @@ int modem_connect(struct bbslist *bbs)
 	comWriteString(com, "\r");
 
 	/* Wait for "OK" */
-	if(modem_response(respbuf, sizeof(respbuf), 5)) {
-		modem_close();
-		uifc.pop(NULL);
-		uifcmsg("Modem Not Responding",	"`Modem Not Responding`\n\n"
-						"The modem did not respond to the initializtion string\n"
-						"Check your init string and phone number.\n");
-		conn_api.terminate=-1;
-		return(-1);
+	while(1) {
+		if(modem_response(respbuf, sizeof(respbuf), 5)) {
+			modem_close();
+			uifc.pop(NULL);
+			uifcmsg("Modem Not Responding",	"`Modem Not Responding`\n\n"
+							"The modem did not respond to the initializtion string\n"
+							"Check your init string and phone number.\n");
+			conn_api.terminate=-1;
+			return(-1);
+		}
+		if(strstr(respbuf, settings.mdm.init_string))	/* Echo is on */
+			continue;
+		break;
 	}
-uifc.pop(NULL);
-uifc.pop(respbuf);
-	if(strstr(respbuf, settings.mdm.init_string))
-	if(modem_response(respbuf, sizeof(respbuf), 5)) {
-		modem_close();
-		uifc.pop(NULL);
-		uifcmsg("Modem Not Responding",	"`Modem Not Responding`\n\n"
-						"The modem did not respond to the initializtion string\n"
-						"Check your init string and phone number.\n");
-		conn_api.terminate=-1;
-		return(-1);
-	}
-uifc.pop(NULL);
-uifc.pop(respbuf);
 
 	if(!strstr(respbuf, "OK")) {
 		modem_close();
@@ -174,28 +163,22 @@ uifc.pop(respbuf);
 	comWriteString(com, "ATDT");
 	comWriteString(com, bbs->addr);
 	comWriteString(com, "\r");
-	
+
 	/* Wait for "CONNECT" */
-	if(modem_response(respbuf, sizeof(respbuf), 30)) {
-		modem_close();
-		uifc.pop(NULL);
-		uifcmsg("No Answer",	"`No Answer`\n\n"
-						"The modem did not connect withing 30 seconds.\n");
-		conn_api.terminate=-1;
-		return(-1);
+	while(1) {
+		if(modem_response(respbuf, sizeof(respbuf), 30)) {
+			modem_close();
+			uifc.pop(NULL);
+			uifcmsg("No Answer",	"`No Answer`\n\n"
+							"The modem did not connect within 30 seconds.\n");
+			conn_api.terminate=-1;
+			return(-1);
+		}
+		if(strstr(respbuf, bbs->addr))	/* Dial command echoed */
+			continue;
+		break;
 	}
-uifc.pop(NULL);
-uifc.pop(respbuf);
-	if(modem_response(respbuf, sizeof(respbuf), 30)) {
-		modem_close();
-		uifc.pop(NULL);
-		uifcmsg("No Answer",	"`No Answer`\n\n"
-						"The modem did not connect withing 30 seconds.\n");
-		conn_api.terminate=-1;
-		return(-1);
-	}
-uifc.pop(NULL);
-uifc.pop(respbuf);
+
 	if(!strstr(respbuf, "CONNECT")) {
 		modem_close();
 		uifc.pop(NULL);
@@ -207,11 +190,29 @@ uifc.pop(respbuf);
 
 	uifc.pop(NULL);
 
-	create_conn_buf(&conn_inbuf, BUFFER_SIZE);
-	create_conn_buf(&conn_outbuf, BUFFER_SIZE);
-	conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE);
+	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE)) {
+		modem_close();
+		return(-1);
+	}
+	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
+		modem_close();
+		destroy_conn_buf(&conn_inbuf);
+		return(-1);
+	}
+	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
+		modem_close();
+		destroy_conn_buf(&conn_inbuf);
+		destroy_conn_buf(&conn_outbuf);
+		return(-1);
+	}
 	conn_api.rd_buf_size=BUFFER_SIZE;
-	conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE);
+	if(!(conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
+		modem_close();
+		destroy_conn_buf(&conn_inbuf);
+		destroy_conn_buf(&conn_outbuf);
+		FREE_AND_NULL(conn_api.rd_buf);
+		return(-1);
+	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
 
 	_beginthread(modem_output_thread, 0, NULL);
