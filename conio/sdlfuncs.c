@@ -624,9 +624,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 	SDL_Thread	*main_thread;
 	int		main_ret;
 	int		use_sdl_video=FALSE;
-#ifdef _WIN32
 	char		*driver_env=NULL;
-#endif
 
 	ma.argc=argc;
 	ma.argv=argv;
