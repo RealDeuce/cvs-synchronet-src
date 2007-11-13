@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.430 2008/01/08 03:54:49 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.423 2007/08/25 08:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 /* ANSI C Library headers */
-#include <limits.h>			/* UINT_MAX */
 #include <stdio.h>
 #include <stdlib.h>			/* ltoa in GNU C lib */
 #include <stdarg.h>			/* va_list */
@@ -55,7 +54,6 @@
 #include "base64.h"
 #include "ini_file.h"
 #include "netwrap.h"	/* getNameServerList() */
-#include "xpendian.h"
 
 /* Constants */
 #define FORWARD			"forward:"
@@ -84,7 +82,6 @@ static char* badrsp_err	=	"%s replied with:\r\n\"%s\"\r\n"
 static mail_startup_t* startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
-static SOCKET	submission_socket=INVALID_SOCKET;
 static SOCKET	pop3_socket=INVALID_SOCKET;
 static DWORD	active_clients=0;
 static int		active_sendmail=0;
@@ -1837,60 +1834,6 @@ static void parse_mail_address(char* p
 	truncsp(name);
 }
 
-static BOOL checktag(scfg_t *scfg, char *tag, uint usernum)
-{
-	char	fname[MAX_PATH+1];
-
-	if(tag==NULL)
-		return(FALSE);
-	sprintf(fname,"%suser/%04d.smtptags",scfg->data_dir,usernum);
-	return(findstr(tag, fname));
-}
-
-static BOOL smtp_splittag(char *in, char **name, char **tag)
-{
-	char	*last;
-
-	if(in==NULL)
-		return(FALSE);
-
-	*name=strtok_r(in, "#", &last);
-	if(*name) {
-		*tag=strtok_r(NULL, "", &last);
-		return(TRUE);
-	}
-	return(FALSE);
-}
-
-static uint smtp_matchuser(scfg_t *scfg, char *str, BOOL aliases, BOOL datdupe)
-{
-	char	*user=strdup(str);
-	char	*name;
-	char	*tag=NULL;
-	uint	usernum=0;
-
-	if(!user)
-		return(0);
-
-	if(!smtp_splittag(user, &name, &tag))
-		goto end;
-
-	if(datdupe)
-		usernum=userdatdupe(scfg, 0, U_NAME, LEN_NAME, name, FALSE);
-	else
-		usernum=matchuser(scfg, name, aliases);
-
-	if(!usernum)
-		goto end;
-
-	if(checktag(scfg, tag, usernum))
-		usernum=UINT_MAX;
-
-end:
-	free(user);
-	return(usernum);
-}
-
 static void smtp_thread(void* arg)
 {
 	int			i,j;
@@ -2034,8 +1977,8 @@ static void smtp_thread(void* arg)
 
 	SAFECOPY(host_ip,inet_ntoa(smtp.client_addr.sin_addr));
 
-	lprintf(LOG_INFO,"%04d SMTP Connection accepted on port %u from: %s port %u"
-		,socket, BE_INT16(server_addr.sin_port), host_ip, ntohs(smtp.client_addr.sin_port));
+	lprintf(LOG_INFO,"%04d SMTP Connection accepted from: %s port %u"
+		, socket, host_ip, ntohs(smtp.client_addr.sin_port));
 
 	if(startup->options&MAIL_OPT_NO_HOST_LOOKUP)
 		host=NULL;
@@ -2128,8 +2071,8 @@ static void smtp_thread(void* arg)
 
 	srand(time(NULL) ^ (DWORD)GetCurrentThreadId());	/* seed random number generator */
 	rand();	/* throw-away first result */
-	SAFEPRINTF4(session_id,"%x%x%x%lx",getpid(),socket,rand(),clock());
-	SAFEPRINTF2(msgtxt_fname,"%sSBBS_SMTP.%s.msg", scfg.temp_dir, session_id);
+	SAFEPRINTF3(session_id,"%x%x%lx",socket,rand(),clock());
+
 	SAFEPRINTF2(rcptlst_fname,"%sSBBS_SMTP.%s.lst", scfg.temp_dir, session_id);
 	rcptlst=fopen(rcptlst_fname,"w+");
 	if(rcptlst==NULL) {
@@ -3237,7 +3180,7 @@ static void smtp_thread(void* arg)
 				p=str;
 			} else {
 				/* RX by "user alias", "user.alias" or "user_alias" */
-				usernum=smtp_matchuser(&scfg,p,startup->options&MAIL_OPT_ALLOW_SYSOP_ALIASES,FALSE);	
+				usernum=matchuser(&scfg,p,startup->options&MAIL_OPT_ALLOW_SYSOP_ALIASES);	
 
 				if(!usernum) { /* RX by "real name", "real.name", or "sysop.alias" */
 					
@@ -3250,10 +3193,10 @@ static void smtp_thread(void* arg)
 						usernum=1;			/* RX by "sysop.alias" */
 
 					if(!usernum && scfg.msg_misc&MM_REALNAME)	/* RX by "real name" */
-						usernum=smtp_matchuser(&scfg, p, FALSE, TRUE);	
+						usernum=userdatdupe(&scfg, 0, U_NAME, LEN_NAME, p, FALSE);
 
 					if(!usernum && scfg.msg_misc&MM_REALNAME)	/* RX by "real.name" */
-						usernum=smtp_matchuser(&scfg, rcpt_name, FALSE, TRUE);	
+						usernum=userdatdupe(&scfg, 0, U_NAME, LEN_NAME, rcpt_name, FALSE);
 				}
 			}
 			if(!usernum && startup->default_user[0]) {
@@ -3266,11 +3209,6 @@ static void smtp_thread(void* arg)
 						,socket,startup->default_user);
 			}
 
-			if(usernum==UINT_MAX) {
-				lprintf(LOG_INFO,"%04d SMTP Blocked tag: %s", socket, buf+8);
-				sockprintf(socket, "550 Unknown User:%s", buf+8);
-				continue;
-			}
 			if(!usernum) {
 				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER:%s", socket, buf+8);
 				sockprintf(socket, "550 Unknown User:%s", buf+8);
@@ -3352,8 +3290,10 @@ static void smtp_thread(void* arg)
 			}
 			if(msgtxt!=NULL) {
 				fclose(msgtxt), msgtxt=NULL;
+				if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
+					unlink(msgtxt_fname);
 			}
-			remove(msgtxt_fname);
+			SAFEPRINTF2(msgtxt_fname,"%sSBBS_SMTP.%s.msg", scfg.temp_dir, session_id);
 			if((msgtxt=fopen(msgtxt_fname,"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !SMTP ERROR %d opening %s"
 					,socket, errno, msgtxt_fname);
@@ -3393,13 +3333,15 @@ static void smtp_thread(void* arg)
 	/* Free up resources here */
 	smb_freemsgmem(&msg);
 
-	if(msgtxt!=NULL)
+	if(msgtxt!=NULL) {
 		fclose(msgtxt);
-	if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
-		remove(msgtxt_fname);
-	if(rcptlst!=NULL)
+		if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
+			unlink(msgtxt_fname);
+	}
+	if(rcptlst!=NULL) {
 		fclose(rcptlst);
-	remove(rcptlst_fname);
+		unlink(rcptlst_fname);
+	}
 	if(spy!=NULL)
 		fclose(spy);
 
@@ -4091,11 +4033,6 @@ static void cleanup(int code)
 		server_socket=INVALID_SOCKET;
 	}
 
-	if(submission_socket!=INVALID_SOCKET) {
-		mail_close_socket(submission_socket);
-		submission_socket=INVALID_SOCKET;
-	}
-
 	if(pop3_socket!=INVALID_SOCKET) {
 		mail_close_socket(pop3_socket);
 		pop3_socket=INVALID_SOCKET;
@@ -4124,7 +4061,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.430 $", "%*s %s", revision);
+	sscanf("$Revision: 1.423 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4191,7 +4128,6 @@ void DLLCALL mail_server(void* arg)
 
 	/* Setup intelligent defaults */
 	if(startup->relay_port==0)				startup->relay_port=IPPORT_SMTP;
-	if(startup->submission_port==0)			startup->submission_port=IPPORT_SUBMISSION;
 	if(startup->smtp_port==0)				startup->smtp_port=IPPORT_SMTP;
 	if(startup->pop3_port==0)				startup->pop3_port=IPPORT_POP3;
 	if(startup->rescan_frequency==0)		startup->rescan_frequency=3600;	/* 60 minutes */
@@ -4366,63 +4302,13 @@ void DLLCALL mail_server(void* arg)
 		lprintf(LOG_DEBUG,"%04d SMTP socket bound to port %u"
 			,server_socket, startup->smtp_port);
 
-		result = listen(server_socket, 1);
+		result = listen (server_socket, 1);
 
 		if(result != 0) {
 			lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on socket"
 				,server_socket, result, ERROR_VALUE);
 			cleanup(1);
 			return;
-		}
-
-		if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT) {
-
-			submission_socket = mail_open_socket(SOCK_STREAM,"submission");
-
-			if(submission_socket == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"!ERROR %d opening socket", ERROR_VALUE);
-				cleanup(1);
-				return;
-			}
-
-			lprintf(LOG_DEBUG,"%04d SUBMISSION socket opened",submission_socket);
-
-			/*****************************/
-			/* Listen for incoming calls */
-			/*****************************/
-			memset(&server_addr, 0, sizeof(server_addr));
-
-			server_addr.sin_addr.s_addr = htonl(startup->interface_addr);
-			server_addr.sin_family = AF_INET;
-			server_addr.sin_port   = htons(startup->submission_port);
-
-			if(startup->submission_port < IPPORT_RESERVED) {
-				if(startup->seteuid!=NULL)
-					startup->seteuid(FALSE);
-			}
-			result = retry_bind(submission_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
-				,startup->bind_retry_count,startup->bind_retry_delay,"SMTP Submission Agent",lprintf);
-			if(startup->submission_port < IPPORT_RESERVED) {
-				if(startup->seteuid!=NULL)
-					startup->seteuid(TRUE);
-			}
-			if(result != 0) {
-				lprintf(LOG_ERR,"%04d %s",submission_socket, BIND_FAILURE_HELP);
-				cleanup(1);
-				return;
-			}
-
-			lprintf(LOG_DEBUG,"%04d SUBMISSION socket bound to port %u"
-				,submission_socket, startup->submission_port);
-
-			result = listen(submission_socket, 1);
-
-			if(result != 0) {
-				lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on socket"
-					,submission_socket, result, ERROR_VALUE);
-				cleanup(1);
-				return;
-			}
 		}
 
 		if(startup->options&MAIL_OPT_ALLOW_POP3) {
@@ -4467,7 +4353,7 @@ void DLLCALL mail_server(void* arg)
 			lprintf(LOG_DEBUG,"%04d POP3 socket bound to port %u"
 				,pop3_socket, startup->pop3_port);
 
-			result = listen(pop3_socket, 1);
+			result = listen (pop3_socket, 1);
 
 			if(result != 0) {
 				lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on POP3 socket"
@@ -4536,12 +4422,6 @@ void DLLCALL mail_server(void* arg)
 				if(pop3_socket+1>high_socket_set)
 					high_socket_set=pop3_socket+1;
 			}
-			if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT 
-				&& submission_socket!=INVALID_SOCKET) {
-				FD_SET(submission_socket,&socket_set);
-				if(submission_socket+1>high_socket_set)
-					high_socket_set=submission_socket+1;
-			}
 
 			tv.tv_sec=startup->sem_chk_freq;
 			tv.tv_usec=0;
@@ -4559,14 +4439,10 @@ void DLLCALL mail_server(void* arg)
 			}
 
 			if(server_socket!=INVALID_SOCKET && !terminate_server
-				&& (FD_ISSET(server_socket,&socket_set) 
-					|| (startup->options&MAIL_OPT_USE_SUBMISSION_PORT
-						&& FD_ISSET(submission_socket,&socket_set)))) {
+				&& FD_ISSET(server_socket,&socket_set)) {
 
 				client_addr_len = sizeof(client_addr);
-				client_socket = accept(
-					FD_ISSET(server_socket,&socket_set) ? server_socket:submission_socket
-					,(struct sockaddr *)&client_addr
+				client_socket = accept(server_socket, (struct sockaddr *)&client_addr
         			,&client_addr_len);
 
 				if(client_socket == INVALID_SOCKET)
@@ -4579,8 +4455,7 @@ void DLLCALL mail_server(void* arg)
 					}
 #endif
 					lprintf(LOG_WARNING,"%04d SMTP !ERROR %d accepting connection"
-						,FD_ISSET(server_socket,&socket_set) ? server_socket:submission_socket
-						,ERROR_VALUE);
+						,server_socket, ERROR_VALUE);
 #ifdef _WIN32
 					if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
 						break;
@@ -4623,7 +4498,7 @@ void DLLCALL mail_server(void* arg)
 
 				smtp->socket=client_socket;
 				smtp->client_addr=client_addr;
-				_beginthread(smtp_thread, 0, smtp);
+				_beginthread (smtp_thread, 0, smtp);
 				served++;
 			}
 
@@ -4692,7 +4567,7 @@ void DLLCALL mail_server(void* arg)
 				pop3->socket=client_socket;
 				pop3->client_addr=client_addr;
 
-				_beginthread(pop3_thread, 0, pop3);
+				_beginthread (pop3_thread, 0, pop3);
 				served++;
 			}
 		}
