@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.43 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: fido.cpp,v 1.42 2007/08/19 06:26:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,7 @@ bool sbbs_t::lookup_netuser(char *into)
 /****************************************************************************/
 /* Send FidoNet/QWK/Internet NetMail from BBS								*/
 /****************************************************************************/
-bool sbbs_t::netmail(const char *into, const char *title, long mode)
+bool sbbs_t::netmail(char *into, char *title, long mode)
 {
 	char	str[256],subj[128],to[256],fname[128],*buf,*p,ch;
 	char 	tmp[512];
