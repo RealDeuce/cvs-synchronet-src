@@ -1,4 +1,6 @@
-/* $Id: rlogin.c,v 1.28 2007/10/22 03:49:01 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: rlogin.c,v 1.29 2007/11/13 01:37:56 deuce Exp $ */
 
 #include <stdlib.h>
 
