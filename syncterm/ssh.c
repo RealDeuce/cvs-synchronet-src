@@ -1,4 +1,6 @@
-/* $Id: ssh.c,v 1.6 2007/10/21 18:13:45 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: ssh.c,v 1.7 2007/11/13 01:37:56 deuce Exp $ */
 
 #include <stdlib.h>
 
