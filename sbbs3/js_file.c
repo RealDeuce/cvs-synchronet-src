@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.102 2008/01/11 09:07:22 deuce Exp $ */
+/* $Id: js_file.c,v 1.101 2007/09/29 09:28:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1903,21 +1903,6 @@ static void js_finalize_file(JSContext *cx, JSObject *obj)
 	JS_SetPrivate(cx, obj, NULL);
 }
 
-static JSBool js_file_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, js_file_properties, js_file_functions, NULL, 0));
-}
-
-static JSBool js_file_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_file_resolve(cx, obj, JSVAL_NULL));
-}
-
 static JSClass js_file_class = {
      "File"					/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
@@ -1925,8 +1910,8 @@ static JSClass js_file_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_file_get			/* getProperty	*/
 	,js_file_set			/* setProperty	*/
-	,js_file_enumerate		/* enumerate	*/
-	,js_file_resolve		/* resolve		*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,js_finalize_file		/* finalize		*/
 };
@@ -1955,6 +1940,16 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
+		return(JS_FALSE);
+	}
+
+	if(!js_DefineSyncProperties(cx, obj, js_file_properties)) {
+		dbprintf(TRUE, p, "js_DefineSyncProperties failed");
+		return(JS_FALSE);
+	}
+
+	if(!js_DefineSyncMethods(cx, obj, js_file_functions, FALSE)) {
+		dbprintf(TRUE, p, "js_DefineSyncMethods failed");
 		return(JS_FALSE);
 	}
 
@@ -2019,6 +2014,12 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(obj==NULL)
+		return(NULL);
+
+	if(!js_DefineSyncProperties(cx, obj, js_file_properties))
+		return(NULL);
+
+	if (!js_DefineSyncMethods(cx, obj, js_file_functions, FALSE)) 
 		return(NULL);
 
 	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL)
