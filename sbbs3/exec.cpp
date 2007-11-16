@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.70 2008/01/07 08:10:59 deuce Exp $ */
+/* $Id: exec.cpp,v 1.69 2007/09/14 19:25:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -643,7 +643,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_ReportPendingException(js_cx);	/* Added Dec-4-2005, rswindell */
 
-	js_EvalOnExit(js_cx, js_scope, &js_branch);
+	js_EvalOnExit(js_cx, js_glob, &js_branch);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
