@@ -2,7 +2,7 @@
 
 /* DOS's kbhit and getch functions for Unix - Casey Martin 2000 */
 
-/* $Id: conwrap.c,v 1.12 2005/04/29 22:41:55 deuce Exp $ */
+/* $Id: conwrap.c,v 1.13 2007/09/17 17:23:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,6 +107,19 @@ void _termios_setup(void)
     signal(SIGCONT, _sighandler_cont);
 }
 
+void _echo_on(void)
+{
+	tcgetattr(STDIN_FILENO, &current);
+    current.c_lflag |= ECHO;         /* turn on echoing */
+	tcsetattr(STDIN_FILENO, TCSANOW, &current);
+}
+
+void _echo_off(void)
+{
+	tcgetattr(STDIN_FILENO, &current);
+    current.c_lflag &= ~ECHO;         /* turn off echoing */
+	tcsetattr(STDIN_FILENO, TCSANOW, &current);
+}
 
 int kbhit(void)
 {
