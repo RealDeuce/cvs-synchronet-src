@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.489 2008/12/09 03:41:07 deuce Exp $ */
+/* $Id: websrvr.c,v 1.462 2007/11/21 08:51:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,14 +38,14 @@
 /*
  * General notes: (ToDo stuff)
  *
+ * Should support RFC2617 Digest auth.
+ *
  * Support the ident protocol... the standard log format supports it.
  *
  * Add in support to pass connections through to a different webserver...
  *      probobly in access.ars... with like a simplified mod_rewrite.
  *      This would allow people to run apache and Synchronet as the same site.
  */
-
-//#define ONE_JS_RUNTIME
 
 /* Headers for CGI stuff */
 #if defined(__unix__)
@@ -60,14 +60,11 @@
 
 #undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
-#include "sbbsdefs.h"
 #include "sockwrap.h"		/* sendfilesocket() */
 #include "threadwrap.h"
 #include "semwrap.h"
 #include "websrvr.h"
 #include "base64.h"
-#include "md5.h"
-#include "js_rtpool.h"
 
 static const char*	server_name="Synchronet Web Server";
 static const char*	newline="\r\n";
@@ -103,14 +100,12 @@ static BOOL		terminate_server=FALSE;
 static BOOL		terminate_http_logging_thread=FALSE;
 static uint		thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
-static SOCKET	server_socket6=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
 static char		temp_dir[MAX_PATH+1];
 static char		cgi_dir[MAX_PATH+1];
 static char		cgi_env_ini[MAX_PATH+1];
-static char		default_auth_list[MAX_PATH+1];
 static time_t	uptime=0;
 static DWORD	served=0;
 static web_startup_t* startup=NULL;
@@ -138,47 +133,6 @@ struct log_data {
 	struct tm completed;
 };
 
-enum auth_type {
-	 AUTHENTICATION_UNKNOWN
-	,AUTHENTICATION_BASIC
-	,AUTHENTICATION_DIGEST
-};
-
-char *auth_type_names[4] = {
-	 "Unknown"
-	,"Basic"
-	,"Digest"
-	,NULL
-};
-
-enum algorithm {
-	 ALGORITHM_UNKNOWN
-	,ALGORITHM_MD5
-	,ALGORITHM_MD5_SESS
-};
-
-enum qop_option {
-	 QOP_NONE
-	,QOP_AUTH
-	,QOP_AUTH_INT
-	,QOP_UNKNOWN
-};
-
-typedef struct {
-	enum auth_type	type;
-	char			username[(LEN_ALIAS > LEN_NAME ? LEN_ALIAS : LEN_NAME)+1];
-	char			password[LEN_PASS+1];
-	char			*digest_uri;
-	char			*realm;
-	char			*nonce;
-	enum algorithm	algorithm;
-	enum qop_option	qop_value;
-	char			*cnonce;
-	char			*nonce_count;
-	unsigned char	digest[16];		/* MD5 digest */
-	BOOL			stale;
-} authentication_request_t;
-
 typedef struct  {
 	int			method;
 	char		virtual_path[MAX_PATH+1];
@@ -187,7 +141,7 @@ typedef struct  {
 	time_t		if_modified_since;
 	BOOL		keep_alive;
 	char		ars[256];
-	authentication_request_t	auth;
+	char    	auth[128];				/* UserID:Password */
 	char		host[128];				/* The requested host. (as used for self-referencing URLs) */
 	char		vhost[128];				/* The requested host. (virtual host) */
 	int			send_location;
@@ -224,16 +178,12 @@ typedef struct  {
 	/* webconfig.ini overrides */
 	char	*error_dir;
 	char	*cgi_dir;
-	char	*auth_list;
 	char	*realm;
-	char	*digest_realm;
 } http_request_t;
 
 typedef struct  {
 	SOCKET			socket;
 	SOCKADDR_IN		addr;
-	SOCKET			socket6;
-	SOCKADDR_IN		addr6;
 	http_request_t	req;
 	char			host_ip[64];
 	char			host_name[128];	/* Resolved remote host */
@@ -479,7 +429,7 @@ time_gm(struct tm *tm)
         return (t < 0 ? (time_t) -1 : t);
 }
 
-static int lprintf(int level, const char *fmt, ...)
+static int lprintf(int level, char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -884,17 +834,7 @@ static void close_request(http_session_t * session)
 	FREE_AND_NULL(session->req.post_data);
 	FREE_AND_NULL(session->req.error_dir);
 	FREE_AND_NULL(session->req.cgi_dir);
-	FREE_AND_NULL(session->req.auth_list);
 	FREE_AND_NULL(session->req.realm);
-	FREE_AND_NULL(session->req.digest_realm);
-
-	FREE_AND_NULL(session->req.auth_list);
-	FREE_AND_NULL(session->req.auth.digest_uri);
-	FREE_AND_NULL(session->req.auth.cnonce);
-	FREE_AND_NULL(session->req.auth.realm);
-	FREE_AND_NULL(session->req.auth.nonce);
-	FREE_AND_NULL(session->req.auth.nonce_count);
-
 	/*
 	 * This causes all active http_session_threads to terminate.
 	 */
@@ -906,9 +846,7 @@ static void close_request(http_session_t * session)
 		session->finished=TRUE;
 
 	if(session->js_cx!=NULL && (session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)) {
-		JS_BeginRequest(session->js_cx);
 		JS_GC(session->js_cx);
-		JS_EndRequest(session->js_cx);
 	}
 	if(session->subscan!=NULL)
 		putmsgptrs(&scfg, session->user.number, session->subscan);
@@ -1384,11 +1322,9 @@ BOOL http_checkuser(http_session_t * session)
 		if(session->last_js_user_num==session->user.number)
 			return(TRUE);
 		lprintf(LOG_INFO,"%04d JavaScript: Initializing User Objects",session->socket);
-		JS_BeginRequest(session->js_cx);
 		if(session->user.number>0) {
 			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
-				JS_EndRequest(session->js_cx);
 				lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
 				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
@@ -1397,66 +1333,28 @@ BOOL http_checkuser(http_session_t * session)
 		else {
 			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
-				JS_EndRequest(session->js_cx);
 				lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript User Objects",session->socket);
 				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
 			}
 		}
-		JS_EndRequest(session->js_cx);
 		session->last_js_user_num=session->user.number;
 	}
 	return(TRUE);
 }
 
-static void calculate_digest(http_session_t * session, char *ha1, char *ha2, unsigned char digest[MD5_DIGEST_SIZE])
-{
-	MD5		ctx;
-
-	MD5_open(&ctx);
-	MD5_digest(&ctx, ha1, strlen(ha1));
-	MD5_digest(&ctx, ":", 1);
-	/* exception on next line (session->req.auth.nonce==NULL) */
-	MD5_digest(&ctx, session->req.auth.nonce, strlen(session->req.auth.nonce));
-	MD5_digest(&ctx, ":", 1);
-
-	if(session->req.auth.qop_value != QOP_NONE) {
-		MD5_digest(&ctx, session->req.auth.nonce_count, strlen(session->req.auth.nonce_count));
-		MD5_digest(&ctx, ":", 1);
-		MD5_digest(&ctx, session->req.auth.cnonce, strlen(session->req.auth.cnonce));
-		MD5_digest(&ctx, ":", 1);
-		switch(session->req.auth.qop_value) {
-			case QOP_AUTH:
-				MD5_digest(&ctx, "auth", 4);
-				break;
-			case QOP_AUTH_INT:
-				MD5_digest(&ctx, "auth-int", 7);
-				break;
-		}
-		MD5_digest(&ctx, ":", 1);
-	}
-	MD5_digest(&ctx, ha2, strlen(ha2));
-	MD5_close(&ctx, digest);
-}
-
 static BOOL check_ars(http_session_t * session)
 {
+	char	*username;
+	char	*password;
+	char	*last;
 	uchar	*ar;
 	BOOL	authorized;
+	char	auth_req[MAX_REQUEST_LINE+1];
 	int		i;
 	user_t	thisuser;
-	int		auth_allowed=0;
-	unsigned *auth_list;
-	unsigned auth_list_len;
 
-	auth_list=parseEnumList(session->req.auth_list?session->req.auth_list:default_auth_list, ",", auth_type_names, &auth_list_len);
-	for(i=0; ((unsigned)i)<auth_list_len; i++)
-		auth_allowed |= 1<<auth_list[i];
-	if(auth_list)
-		free(auth_list);
-
-	/* No authentication provided */
-	if(session->req.auth.type==AUTHENTICATION_UNKNOWN) {
+	if(session->req.auth[0]==0) {
 		/* No authentication information... */
 		if(session->last_user_num!=0) {
 			if(session->last_user_num>0)
@@ -1475,9 +1373,19 @@ static BOOL check_ars(http_session_t * session)
 		/* No auth required, allow */
 		return(TRUE);
 	}
+	SAFECOPY(auth_req,session->req.auth);
 
+	username=strtok_r(auth_req,":",&last);
+	if(username)
+		password=strtok_r(NULL,":",&last);
+	else {
+		username="";
+		password="";
+	}
 	/* Require a password */
-	i=matchuser(&scfg, session->req.auth.username, FALSE);
+	if(password==NULL)
+		password="";
+	i=matchuser(&scfg, username, FALSE);
 	if(i==0) {
 		if(session->last_user_num!=0) {
 			if(session->last_user_num>0)
@@ -1487,167 +1395,37 @@ static BOOL check_ars(http_session_t * session)
 		}
 		if(!http_checkuser(session))
 			return(FALSE);
-		if(scfg.sys_misc&SM_ECHO_PW && session->req.auth.type==AUTHENTICATION_BASIC)
+		if(scfg.sys_misc&SM_ECHO_PW)
 			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: %s, Password: %s"
-				,session->socket,session->req.auth.username,session->req.auth.password);
+				,session->socket,username,password);
 		else
 			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: %s"
-				,session->socket,session->req.auth.username);
+				,session->socket,username);
 		return(FALSE);
 	}
 	thisuser.number=i;
 	getuserdat(&scfg, &thisuser);
-	switch(session->req.auth.type) {
-		case AUTHENTICATION_BASIC:
-			if((auth_allowed & (1<<AUTHENTICATION_BASIC))==0)
-				return(FALSE);
-			if(thisuser.pass[0] && stricmp(thisuser.pass,session->req.auth.password)) {
-				if(session->last_user_num!=0) {
-					if(session->last_user_num>0)
-						http_logoff(session,session->socket,__LINE__);
-					session->user.number=0;
-					http_logon(session,NULL);
-				}
-				if(!http_checkuser(session))
-					return(FALSE);
-				/* Should go to the hack log? */
-				if(scfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s: '%s' expected '%s'"
-						,session->socket,session->req.auth.username,session->req.auth.password,thisuser.pass);
-				else
-					lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s"
-						,session->socket,session->req.auth.username);
-		#ifdef _WIN32
-				if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
-					PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
-		#endif
-				return(FALSE);
-			}
-			break;
-		case AUTHENTICATION_DIGEST:
-			{
-				unsigned char	digest[MD5_DIGEST_SIZE];
-				char			ha1[MD5_DIGEST_SIZE*2+1];
-				char			ha1l[MD5_DIGEST_SIZE*2+1];
-				char			ha1u[MD5_DIGEST_SIZE*2+1];
-				char			ha2[MD5_DIGEST_SIZE*2+1];
-				char			*pass;
-				char			*p;
-				char			*last;
-				time32_t		nonce_time;
-				time32_t		now;
-				MD5				ctx;
-
-				if((auth_allowed & (1<<AUTHENTICATION_DIGEST))==0)
-					return(FALSE);
-				if(session->req.auth.qop_value==QOP_UNKNOWN)
-					return(FALSE);
-				if(session->req.auth.algorithm==ALGORITHM_UNKNOWN)
-					return(FALSE);
-				/* Validate rules from RFC-2617 */
-				if(session->req.auth.qop_value==QOP_AUTH
-						|| session->req.auth.qop_value==QOP_AUTH_INT) {
-					if(session->req.auth.cnonce==NULL)
-						return(FALSE);
-					if(session->req.auth.nonce_count==NULL)
-						return(FALSE);
-				}
-				else {
-					if(session->req.auth.cnonce!=NULL)
-						return(FALSE);
-					if(session->req.auth.nonce_count!=NULL)
-						return(FALSE);
-				}
-
-				/* H(A1) */
-				MD5_open(&ctx);
-				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
-				MD5_close(&ctx, digest);
-				MD5_hex(ha1, digest);
-
-				/* H(A1)l */
-				pass=strdup(thisuser.pass);
-				strlwr(pass);
-				MD5_open(&ctx);
-				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, pass, strlen(pass));
-				MD5_close(&ctx, digest);
-				MD5_hex(ha1l, digest);
-
-				/* H(A1)u */
-				strupr(pass);
-				MD5_open(&ctx);
-				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
-				MD5_close(&ctx, digest);
-				MD5_hex(ha1u, digest);
-				free(pass);
-
-				/* H(A2) */
-				MD5_open(&ctx);
-				MD5_digest(&ctx, methods[session->req.method], strlen(methods[session->req.method]));
-				MD5_digest(&ctx, ":", 1);
-				/* exception here, session->req.auth.digest_uri==NULL */
-				MD5_digest(&ctx, session->req.auth.digest_uri, strlen(session->req.auth.digest_uri));
-				/* TODO QOP==AUTH_INT */
-				if(session->req.auth.qop_value == QOP_AUTH_INT)
-					return(FALSE);
-				MD5_close(&ctx, digest);
-				MD5_hex(ha2, digest);
-
-				/* Check password as in user.dat */
-				calculate_digest(session, ha1, ha2, digest);
-				if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-					/* Check against lower-case password */
-					calculate_digest(session, ha1l, ha2, digest);
-					if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-						/* Check against upper-case password */
-						calculate_digest(session, ha1u, ha2, digest);
-						if(memcmp(digest, session->req.auth.digest, sizeof(digest)))
-							return(FALSE);
-					}
-				}
-
-				/* Validate nonce */
-				p=strtok_r(session->req.auth.nonce, "@", &last);
-				if(p==NULL) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				if(strcmp(p, session->client.addr)) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				p=strtok_r(NULL, "", &last);
-				if(p==NULL) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				nonce_time=strtoul(p, &p, 10);
-				if(*p) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				now=(time32_t)time(NULL);
-				if(nonce_time > now) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				if(nonce_time < now-1800) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-			}
+	if(thisuser.pass[0] && stricmp(thisuser.pass,password)) {
+		if(session->last_user_num!=0) {
+			if(session->last_user_num>0)
+				http_logoff(session,session->socket,__LINE__);
+			session->user.number=0;
+			http_logon(session,NULL);
+		}
+		if(!http_checkuser(session))
+			return(FALSE);
+		/* Should go to the hack log? */
+		if(scfg.sys_misc&SM_ECHO_PW)
+			lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s: '%s' expected '%s'"
+				,session->socket,username,password,thisuser.pass);
+		else
+			lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s"
+				,session->socket,username);
+#ifdef _WIN32
+		if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
+			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
+#endif
+		return(FALSE);
 	}
 
 	if(i != session->last_user_num) {
@@ -1661,7 +1439,7 @@ static BOOL check_ars(http_session_t * session)
 	if(session->req.ld!=NULL) {
 		FREE_AND_NULL(session->req.ld->user);
 		/* FREE()d in http_logging_thread */
-		session->req.ld->user=strdup(session->req.auth.username);
+		session->req.ld->user=strdup(username);
 	}
 
 	ar = arstr(NULL,session->req.ars,&scfg);
@@ -1670,14 +1448,7 @@ static BOOL check_ars(http_session_t * session)
 		FREE_AND_NULL(ar);
 
 	if(authorized)  {
-		switch(session->req.auth.type) {
-			case AUTHENTICATION_BASIC:
-				add_env(session,"AUTH_TYPE","Basic");
-				break;
-			case AUTHENTICATION_DIGEST:
-				add_env(session,"AUTH_TYPE","Digest");
-				break;
-		}
+		add_env(session,"AUTH_TYPE","Basic");
 		/* Should use real name if set to do so somewhere ToDo */
 		add_env(session,"REMOTE_USER",session->user.alias);
 
@@ -1686,7 +1457,7 @@ static BOOL check_ars(http_session_t * session)
 
 	/* Should go to the hack log? */
 	lprintf(LOG_WARNING,"%04d !AUTHORIZATION FAILURE for user %s, ARS: %s"
-		,session->socket,session->req.auth.username,session->req.ars);
+		,session->socket,username,session->req.ars);
 
 #ifdef _WIN32
 	if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
@@ -1696,13 +1467,16 @@ static BOOL check_ars(http_session_t * session)
 	return(FALSE);
 }
 
-static named_string_t** read_ini_list(char* path, char* section, char* desc
+static named_string_t** read_ini_list(char* fname, char* section, char* desc
 									  ,named_string_t** list)
 {
+	char	path[MAX_PATH+1];
 	size_t	i;
 	FILE*	fp;
 
 	list=iniFreeNamedStringList(list);
+
+	iniFileName(path,sizeof(path),scfg.ctrl_dir,fname);
 
 	if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
 		list=iniReadNamedStringList(fp,section);
@@ -2068,89 +1842,10 @@ static void js_parse_query(http_session_t * session, char *p)  {
 	}
 }
 
-static char *get_token_value(char **p)
-{
-	char	*pos=*p;
-	char	*start;
-	char	*out;
-	BOOL	escaped=FALSE;
-
-	start=pos;
-	out=start;
-	if(*pos=='"') {
-		for(pos++; *pos; pos++) {
-			if(escaped && *pos)
-				*(out++)=*pos;
-			else if(*pos=='"') {
-				pos++;
-				break;
-			}
-			else if(*pos=='\\')
-				escaped=TRUE;
-			else
-				*(out++)=*pos;
-		}
-		*out=0;
-	}
-	else {
-		for(; *pos; pos++) {
-			if(iscntrl(*pos))
-				goto end_of_text;
-			switch(*pos) {
-				case 0:
-				case '(':
-				case ')':
-				case '<':
-				case '>':
-				case '@':
-				case ',':
-				case ';':
-				case ':':
-				case '\\':
-				case '"':
-				case '/':
-				case '[':
-				case ']':
-				case '?':
-				case '=':
-				case '{':
-				case '}':
-				case ' ':
-				case '\t':
-					goto end_of_text;
-			}
-			*(out++)=*pos;
-		}
-end_of_text:
-		if(*pos)
-			pos++;
-		*out=0;
-	}
-	*p=pos;
-	return(start);
-}
-
-static int hexval(unsigned char ch)
-{
-	ch-='0';
-	if(ch<10)
-		return(ch);
-	ch-=7;
-	if(ch<16 && ch>9)
-		return(ch);
-	if(ch>41) {
-		ch-=32;
-		if(ch<16 && ch>9)
-			return(ch);
-	}
-	return(0);
-}
-
 static BOOL parse_headers(http_session_t * session)
 {
 	char	*head_line;
 	char	*value;
-	char	*tvalue;
 	char	*last;
 	char	*p;
 	int		i;
@@ -2166,122 +1861,12 @@ static BOOL parse_headers(http_session_t * session)
 			while(*value && *value<=' ') value++;
 			switch(i) {
 				case HEAD_AUTH:
-					if((p=strtok_r(value," ",&last))!=NULL) {
-						if(stricmp(p, "Basic")==0) {
-							p=strtok_r(NULL," ",&last);
-							if(p==NULL)
-								break;
-							while(*p && *p<' ') p++;
-							b64_decode(p,strlen(p),p,strlen(p));
-							p=strtok_r(p,":",&last);
-							if(p) {
-								if(strlen(p) >= sizeof(session->req.auth.username))
-									break;
-								SAFECOPY(session->req.auth.username, p);
-								p=strtok_r(NULL,":",&last);
-								if(p) {
-									if(strlen(p) >= sizeof(session->req.auth.password))
-										break;
-									SAFECOPY(session->req.auth.password, p);
-									session->req.auth.type=AUTHENTICATION_BASIC;
-								}
-							}
-						}
-						else if(stricmp(p, "Digest")==0) {
-							p=strtok_r(NULL, "", &last);
-							/* Defaults */
-							session->req.auth.algorithm=ALGORITHM_MD5;
-							session->req.auth.type=AUTHENTICATION_DIGEST;
-							/* Parse out values one at a time and store */
-							while(*p) {
-								while(isspace(*p))
-									p++;
-								if(strnicmp(p,"username=",9)==0) {
-									p+=9;
-									tvalue=get_token_value(&p);
-									if(strlen(tvalue) >= sizeof(session->req.auth.username))
-										break;
-									SAFECOPY(session->req.auth.username, tvalue);
-								}
-								else if(strnicmp(p,"realm=",6)==0) {
-									p+=6;
-									session->req.auth.realm=strdup(get_token_value(&p));
-								}
-								else if(strnicmp(p,"nonce=",6)==0) {
-									p+=6;
-									session->req.auth.nonce=strdup(get_token_value(&p));
-								}
-								else if(strnicmp(p,"uri=",4)==0) {
-									p+=4;
-									session->req.auth.digest_uri=strdup(get_token_value(&p));
-								}
-								else if(strnicmp(p,"response=",9)==0) {
-									p+=9;
-									tvalue=get_token_value(&p);
-									if(strlen(tvalue)==32) {
-										for(i=0; i<16; i++) {
-											session->req.auth.digest[i]=hexval(tvalue[i*2])<<4 | hexval(tvalue[i*2+1]);
-										}
-									}
-								}
-								else if(strnicmp(p,"algorithm=",10)==0) {
-									p+=10;
-									tvalue=get_token_value(&p);
-									if(stricmp(tvalue,"MD5")==0) {
-										session->req.auth.algorithm=ALGORITHM_MD5;
-									}
-									else {
-										session->req.auth.algorithm=ALGORITHM_UNKNOWN;
-									}
-								}
-								else if(strnicmp(p,"cnonce=",7)==0) {
-									p+=7;
-									session->req.auth.cnonce=strdup(get_token_value(&p));
-								}
-								else if(strnicmp(p,"qop=",4)==0) {
-									p+=4;
-									tvalue=get_token_value(&p);
-									if(stricmp(tvalue,"auth")==0) {
-										session->req.auth.qop_value=QOP_AUTH;
-									}
-									else if (stricmp(tvalue,"auth-int")==0) {
-										session->req.auth.qop_value=QOP_AUTH_INT;
-									}
-									else {
-										session->req.auth.qop_value=QOP_UNKNOWN;
-									}
-								}
-								else if(strnicmp(p,"nc=",3)==0) {
-									p+=3;
-									session->req.auth.nonce_count=strdup(get_token_value(&p));
-								}
-								while(*p && !isspace(*p))
-									p++;
-							}
-							if(session->req.auth.digest_uri==NULL)
-								session->req.auth.digest_uri=strdup(session->req.request_line);
-							/* Validate that we have the required values... */
-							switch(session->req.auth.qop_value) {
-								case QOP_NONE:
-									if(session->req.auth.realm==NULL
-											|| session->req.auth.nonce==NULL
-											|| session->req.auth.digest_uri==NULL)
-										send_error(session,"400 Bad Request");
-									break;
-								case QOP_AUTH:
-								case QOP_AUTH_INT:
-									if(session->req.auth.realm==NULL
-											|| session->req.auth.nonce==NULL
-											|| session->req.auth.nonce_count==NULL
-											|| session->req.auth.cnonce==NULL
-											|| session->req.auth.digest_uri==NULL)
-										send_error(session,"400 Bad Request");
-									break;
-								default:
-									send_error(session,"400 Bad Request");
-									break;
-							}
-						}
+					if(strtok_r(value," ",&last)) {
+						p=strtok_r(NULL," ",&last);
+						if(p==NULL)
+							break;
+						while(*p && *p<' ') p++;
+						b64_decode(session->req.auth,sizeof(session->req.auth),p,strlen(p));
 					}
 					break;
 				case HEAD_LENGTH:
@@ -2423,8 +2008,6 @@ static BOOL parse_js_headers(http_session_t * session)
 
 						p=value;
 						while((key=strtok_r(p,"=",&last))!=NULL) {
-							while(isspace(*key))
-								key++;
 							p=NULL;
 							if((val=strtok_r(p,";\t\n\v\f\r ",&last))!=NULL) {	/* Whitespace */
 								js_add_cookieval(session,key,val);
@@ -2778,7 +2361,7 @@ static BOOL check_extra_path(http_session_t * session)
 
 			/* Check if this contains an index */
 			end=strchr(rpath,0);
-			if(session->req.path_info_index && (use_epath || strchr(epath+1,'/')!=NULL)) {
+			if(use_epath || session->req.path_info_index || strchr(epath+1,'/')!=NULL) {
 				use_epath=1;
 				if(isdir(rpath) && !isdir(session->req.physical_path)) {
 					for(i=0; startup->index_file_name!=NULL && startup->index_file_name[i]!=NULL ;i++)  {
@@ -2953,11 +2536,6 @@ static BOOL check_request(http_session_t * session)
 					/* FREE()d in close_request() */
 					session->req.realm=strdup(str);
 				}
-				if(iniReadString(file, NULL, "DigestRealm", scfg.sys_name,str)==str) {
-					FREE_AND_NULL(session->req.digest_realm);
-					/* FREE()d in close_request() */
-					session->req.digest_realm=strdup(str);
-				}
 				if(iniReadString(file, NULL, "ErrorDirectory", error_dir,str)==str) {
 					prep_dir(root_dir, str, sizeof(str));
 					FREE_AND_NULL(session->req.error_dir);
@@ -2971,11 +2549,6 @@ static BOOL check_request(http_session_t * session)
 					session->req.cgi_dir=strdup(str);
 					recheck_dynamic=TRUE;
 				}
-				if(iniReadString(file, NULL, "Authentication", default_auth_list,str)==str) {
-					FREE_AND_NULL(session->req.auth_list);
-					/* FREE()d in close_request() */
-					session->req.auth_list=strdup(str);
-				}
 				session->req.path_info_index=iniReadBool(file, NULL, "PathInfoIndex", FALSE);
 				/* Read in per-filespec */
 				while((spec=strListPop(&specs))!=NULL) {
@@ -2986,11 +2559,6 @@ static BOOL check_request(http_session_t * session)
 							FREE_AND_NULL(session->req.realm);
 							/* FREE()d in close_request() */
 							session->req.realm=strdup(str);
-						}
-						if(iniReadString(file, spec, "DigestRealm", scfg.sys_name,str)==str) {
-							FREE_AND_NULL(session->req.digest_realm);
-							/* FREE()d in close_request() */
-							session->req.digest_realm=strdup(str);
 						}
 						if(iniReadString(file, spec, "ErrorDirectory", error_dir,str)==str) {
 							FREE_AND_NULL(session->req.error_dir);
@@ -3004,11 +2572,6 @@ static BOOL check_request(http_session_t * session)
 							/* FREE()d in close_request() */
 							session->req.cgi_dir=strdup(str);
 							recheck_dynamic=TRUE;
-						}
-						if(iniReadString(file, spec, "Authentication", default_auth_list,str)==str) {
-							FREE_AND_NULL(session->req.auth_list);
-							/* FREE()d in close_request() */
-							session->req.auth_list=strdup(str);
 						}
 						session->req.path_info_index=iniReadBool(file, spec, "PathInfoIndex", FALSE);
 					}
@@ -3040,29 +2603,9 @@ static BOOL check_request(http_session_t * session)
 		send404=TRUE;
 
 	if(!check_ars(session)) {
-		unsigned *auth_list;
-		unsigned auth_list_len;
-	
 		/* No authentication provided */
-		strcpy(str,"401 Unauthorized");
-		auth_list=parseEnumList(session->req.auth_list?session->req.auth_list:default_auth_list, ",", auth_type_names, &auth_list_len);
-		for(i=0; ((unsigned)i)<auth_list_len; i++) {
-			p=strchr(str,0);
-			switch(auth_list[i]) {
-				case AUTHENTICATION_BASIC:
-					snprintf(p,sizeof(str)-(p-str),"%s%s: Basic realm=\"%s\""
-							,newline,get_header(HEAD_WWWAUTH),session->req.realm?session->req.realm:scfg.sys_name);
-					str[sizeof(str)-1]=0;
-					break;
-				case AUTHENTICATION_DIGEST:
-					snprintf(p,sizeof(str)-(p-str),"%s%s: Digest realm=\"%s\", nonce=\"%s@%u\", qop=\"auth\"%s"
-							,newline,get_header(HEAD_WWWAUTH),session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name),session->client.addr,time(NULL),session->req.auth.stale?", stale=true":"");
-					str[sizeof(str)-1]=0;
-					break;
-			}
-		}
-		if(auth_list)
-			free(auth_list);
+		sprintf(str,"401 Unauthorized%s%s: Basic realm=\"%s\""
+			,newline,get_header(HEAD_WWWAUTH),session->req.realm?session->req.realm:scfg.sys_name);
 		send_error(session,str);
 		return(FALSE);
 	}
@@ -3917,23 +3460,17 @@ js_writefunc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval,
     uintN		i;
     JSString*	str=NULL;
 	http_session_t* session;
-	jsrefcount	rc;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(session->req.fp==NULL) {
+	if(session->req.fp==NULL)
 		return(JS_FALSE);
-	}
 
 	if((!session->req.prev_write) && (!session->req.sent_headers)) {
 		if(session->http_ver>=HTTP_1_1 && session->req.keep_alive) {
-			rc=JS_SuspendRequest(cx);
-			if(!ssjs_send_headers(session,TRUE)) {
-				JS_ResumeRequest(cx, rc);
+			if(!ssjs_send_headers(session,TRUE))
 				return(JS_FALSE);
-			}
-			JS_ResumeRequest(cx, rc);
 		}
 		else {
 			/* "Fast Mode" requested? */
@@ -3944,12 +3481,8 @@ js_writefunc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval,
 			JS_GetProperty(cx, reply, "fast", &val);
 			if(JSVAL_IS_BOOLEAN(val) && JSVAL_TO_BOOLEAN(val)) {
 				session->req.keep_alive=FALSE;
-				rc=JS_SuspendRequest(cx);
-				if(!ssjs_send_headers(session,FALSE)) {
-					JS_ResumeRequest(cx, rc);
+				if(!ssjs_send_headers(session,FALSE))
 					return(JS_FALSE);
-				}
-				JS_ResumeRequest(cx, rc);
 			}
 		}
 	}
@@ -3961,11 +3494,9 @@ js_writefunc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval,
 			continue;
 		if(JS_GetStringLength(str)<1 && !writeln)
 			continue;
-		rc=JS_SuspendRequest(cx);
 		js_writebuf(session,JS_GetStringBytes(str), JS_GetStringLength(str));
 		if(writeln)
 			js_writebuf(session, newline, 2);
-		JS_ResumeRequest(cx, rc);
 	}
 
 	if(str==NULL)
@@ -4061,7 +3592,6 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	js_str;
 	http_session_t* session;
-	jsrefcount	rc;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -4080,9 +3610,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		strcat(str," ");
 	}
 
-	rc=JS_SuspendRequest(cx);
 	lprintf(level,"%04d %s",session->socket,str);
-	JS_ResumeRequest(cx, rc);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 
@@ -4097,7 +3625,6 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	user_t		user;
 	JSString*	js_str;
 	http_session_t*	session;
-	jsrefcount	rc;
 
 	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 
@@ -4111,8 +3638,6 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((p=JS_GetStringBytes(js_str))==NULL) 
 		return(JS_FALSE);
 
-	rc=JS_SuspendRequest(cx);
-
 	memset(&user,0,sizeof(user));
 
 	if(isdigit(*p))
@@ -4123,18 +3648,15 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(getuserdat(&scfg,&user)!=0) {
 		lprintf(LOG_NOTICE,"%04d !USER NOT FOUND: '%s'"
 			,session->socket,p);
-		JS_ResumeRequest(cx, rc);
 		return(JS_TRUE);
 	}
 
 	if(user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d !DELETED OR INACTIVE USER #%d: %s"
 			,session->socket,user.number,p);
-		JS_ResumeRequest(cx, rc);
 		return(JS_TRUE);
 	}
 
-	JS_ResumeRequest(cx, rc);
 	/* Password */
 	if(user.pass[0]) {
 		if((js_str=JS_ValueToString(cx, argv[1]))==NULL) 
@@ -4144,10 +3666,8 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 
 		if(stricmp(user.pass,p)) { /* Wrong password */
-			rc=JS_SuspendRequest(cx);
 			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: %s"
 				,session->socket,user.alias);
-			JS_ResumeRequest(cx, rc);
 			return(JS_TRUE);
 		}
 	}
@@ -4155,16 +3675,12 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>2)
 		JS_ValueToBoolean(cx,argv[2],&inc_logons);
 
-	rc=JS_SuspendRequest(cx);
-
 	if(inc_logons) {
 		user.logons++;
 		user.ltoday++;
 	}
 
 	http_logon(session, &user);
-
-	JS_ResumeRequest(cx, rc);
 
 	/* user-specific objects */
 	if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
@@ -4395,7 +3911,6 @@ js_initcx(http_session_t *session)
 
     if((js_cx = JS_NewContext(session->js_runtime, startup->js.cx_stack))==NULL)
 		return(NULL);
-	JS_BeginRequest(js_cx);
 
 	lprintf(LOG_INFO,"%04d JavaScript: Context created",session->socket);
 
@@ -4415,7 +3930,6 @@ js_initcx(http_session_t *session)
 									,&js_server_props			/* server */
 		))==NULL
 		|| !JS_DefineFunctions(js_cx, session->js_glob, js_global_functions)) {
-		JS_EndRequest(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
 	}
@@ -4432,7 +3946,7 @@ static BOOL js_setup(http_session_t* session)
 		lprintf(LOG_INFO,"%04d JavaScript: Creating runtime: %lu bytes"
 			,session->socket,startup->js.max_bytes);
 
-		if((session->js_runtime=jsrt_GetNew(startup->js.max_bytes, 5000, __FILE__, __LINE__))==NULL) {
+		if((session->js_runtime=JS_NewRuntime(startup->js.max_bytes))==NULL) {
 			lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",session->socket);
 			return(FALSE);
 		}
@@ -4440,7 +3954,6 @@ static BOOL js_setup(http_session_t* session)
 #endif
 
 	if(session->js_cx==NULL) {	/* Context not yet created, create it now */
-		/* js_initcx() begins a context */
 		if(((session->js_cx=js_initcx(session))==NULL)) {
 			lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",session->socket);
 			return(FALSE);
@@ -4460,25 +3973,20 @@ static BOOL js_setup(http_session_t* session)
 			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	}
-	else
-		JS_BeginRequest(session->js_cx);
 
 	lprintf(LOG_INFO,"%04d JavaScript: Initializing HttpRequest object",session->socket);
 	if(js_CreateHttpRequestObject(session->js_cx, session->js_glob, session)==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript HttpRequest object",session->socket);
-		JS_EndRequest(session->js_cx);
 		return(FALSE);
 	}
 
 	lprintf(LOG_INFO,"%04d JavaScript: Initializing HttpReply object",session->socket);
 	if(js_CreateHttpReplyObject(session->js_cx, session->js_glob, session)==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript HttpReply object",session->socket);
-		JS_EndRequest(session->js_cx);
 		return(FALSE);
 	}
 
 	JS_SetContextPrivate(session->js_cx, session);
-	JS_EndRequest(session->js_cx);
 
 	return(TRUE);
 }
@@ -4493,7 +4001,6 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSString*	js_str;
 	char		str[MAX_REQUEST_LINE+1];
 
-	JS_BeginRequest(session->js_cx);
 	JS_GetProperty(session->js_cx,session->js_glob,"http_reply",&val);
 	reply = JSVAL_TO_OBJECT(val);
 	JS_GetProperty(session->js_cx,reply,"status",&val);
@@ -4512,7 +4019,6 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 		}
 		JS_ClearScope(session->js_cx, headers);
 	}
-	JS_EndRequest(session->js_cx);
 	return(send_headers(session,session->req.status,chunked));
 }
 
@@ -4540,7 +4046,6 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	/* FREE()d in close_request() */
 	session->req.cleanup_file[CLEANUP_SSJS_TMP_FILE]=strdup(path);
 
-	JS_BeginRequest(session->js_cx);
 	js_add_request_prop(session,"real_path",session->req.physical_path);
 	js_add_request_prop(session,"virtual_path",session->req.virtual_path);
 	js_add_request_prop(session,"ars",session->req.ars);
@@ -4571,7 +4076,6 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 			,script))==NULL) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)"
 				,session->socket,script);
-			JS_EndRequest(session->js_cx);
 			return(FALSE);
 		}
 
@@ -4600,7 +4104,6 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	if(js_script!=NULL) 
 		JS_DestroyScript(session->js_cx, js_script);
 	session->req.dynamic=IS_SSJS;
-	JS_EndRequest(session->js_cx);
 	
 	return(retval);
 }
@@ -4699,9 +4202,6 @@ int read_post_data(http_session_t * session)
 					return(FALSE);
 				}
 				session->req.post_len+=bytes_read;
-				/* Read chunk terminator */
-				if(sockreadline(session,ch_lstr,sizeof(ch_lstr)-1)>0)
-					send_error(session,error_500);
 			}
 			/* Read more headers! */
 			if(!get_request_headers(session))
@@ -5054,7 +4554,7 @@ void http_session_thread(void* arg)
 #ifndef ONE_JS_RUNTIME
 	if(session.js_runtime!=NULL) {
 		lprintf(LOG_INFO,"%04d JavaScript: Destroying runtime",socket);
-		jsrt_Release(session.js_runtime);
+		JS_DestroyRuntime(session.js_runtime);
 		session.js_runtime=NULL;
 	}
 #endif
@@ -5135,7 +4635,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.489 $", "%*s %s", revision);
+	sscanf("$Revision: 1.462 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5265,8 +4765,6 @@ void DLLCALL web_server(void* arg)
 	char			host_ip[32];
 	char			path[MAX_PATH+1];
 	char			logstr[256];
-	char			mime_types_ini[MAX_PATH+1];
-	char			web_handler_ini[MAX_PATH+1];
 	SOCKADDR_IN		server_addr={0};
 	SOCKADDR_IN		client_addr;
 	socklen_t		client_addr_len;
@@ -5313,7 +4811,6 @@ void DLLCALL web_server(void* arg)
 	if(startup->port==0)					startup->port=IPPORT_HTTP;
 	if(startup->root_dir[0]==0)				SAFECOPY(startup->root_dir,WEB_DEFAULT_ROOT_DIR);
 	if(startup->error_dir[0]==0)			SAFECOPY(startup->error_dir,WEB_DEFAULT_ERROR_DIR);
-	if(startup->default_auth_list[0]==0)	SAFECOPY(startup->default_auth_list,WEB_DEFAULT_AUTH_LIST);
 	if(startup->cgi_dir[0]==0)				SAFECOPY(startup->cgi_dir,WEB_DEFAULT_CGI_DIR);
 	if(startup->default_cgi_content[0]==0)	SAFECOPY(startup->default_cgi_content,WEB_DEFAULT_CGI_CONTENT);
 	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
@@ -5346,7 +4843,6 @@ void DLLCALL web_server(void* arg)
 		/* Copy html directories */
 		SAFECOPY(root_dir,startup->root_dir);
 		SAFECOPY(error_dir,startup->error_dir);
-		SAFECOPY(default_auth_list,startup->default_auth_list);
 		SAFECOPY(cgi_dir,startup->cgi_dir);
 		if(startup->temp_dir[0])
 			SAFECOPY(temp_dir,startup->temp_dir);
@@ -5385,7 +4881,7 @@ void DLLCALL web_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,ctime_r(&t,logstr),startup->options);
+			,CTIME_R(&t,logstr),startup->options);
 
 		if(chdir(startup->ctrl_dir)!=0)
 			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
@@ -5414,13 +4910,11 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		iniFileName(mime_types_ini,sizeof(mime_types_ini),scfg.ctrl_dir,"mime_types.ini");
-		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
+		mime_types=read_ini_list("mime_types.ini",NULL /* root section */,"MIME types"
 			,mime_types);
-		iniFileName(web_handler_ini,sizeof(web_handler_ini),scfg.ctrl_dir,"web_handler.ini");
-		cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
+		cgi_handlers=read_ini_list("web_handler.ini","CGI","CGI content handlers"
 			,cgi_handlers);
-		xjs_handlers=read_ini_list(web_handler_ini,"JavaScript","JavaScript content handlers"
+		xjs_handlers=read_ini_list("web_handler.ini","JavaScript","JavaScript content handlers"
 			,xjs_handlers);
 
 		/* Don't do this for *each* CGI request, just once here during [re]init */
@@ -5428,6 +4922,12 @@ void DLLCALL web_server(void* arg)
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
+
+		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
+			if(putenv("TZ=UTC0"))
+				lprintf(LOG_WARNING,"!putenv() FAILED");
+			tzset();
+		}
 
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
@@ -5511,7 +5011,7 @@ void DLLCALL web_server(void* arg)
     	    lprintf(LOG_INFO,"%04d JavaScript: Creating runtime: %lu bytes"
         	    ,server_socket,startup->js.max_bytes);
 
-    	    if((js_runtime=jsrt_GetNew(startup->js.max_bytes, 0, __FILE__, __LINE__))==NULL) {
+    	    if((js_runtime=JS_NewRuntime(startup->js.max_bytes))==NULL) {
         	    lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",server_socket);
 				/* Sleep 15 seconds then try again */
 				/* ToDo: Something better should be used here. */
@@ -5526,8 +5026,6 @@ void DLLCALL web_server(void* arg)
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","web");
 		SAFEPRINTF(path,"%swebsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
-		semfile_list_add(&recycle_semfiles,mime_types_ini);
-		semfile_list_add(&recycle_semfiles,web_handler_ini);
 		if(!initialized) {
 			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
@@ -5734,7 +5232,7 @@ void DLLCALL web_server(void* arg)
 #ifdef ONE_JS_RUNTIME
     	if(js_runtime!=NULL) {
         	lprintf(LOG_INFO,"%04d JavaScript: Destroying runtime",server_socket);
-        	jsrt_Release(js_runtime);
+        	JS_DestroyRuntime(js_runtime);
     	    js_runtime=NULL;
 	    }
 #endif
