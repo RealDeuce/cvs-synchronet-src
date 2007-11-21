@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.56 2006/12/29 19:10:38 rswindell Exp $ */
+/* $Id: str.cpp,v 1.60 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -560,6 +560,16 @@ size_t sbbs_t::gettmplt(char *strout,char *templt, long mode)
 /* Accepts a user's input to change a new-scan time pointer                  */
 /* Returns 0 if input was aborted or invalid, 1 if complete					 */
 /*****************************************************************************/
+bool sbbs_t::inputnstime32(time32_t *dt)
+{
+	bool retval;
+	time_t	tmptime=*dt;
+
+	retval=inputnstime(&tmptime);
+	*dt=tmptime;
+	return(retval);
+}
+
 bool sbbs_t::inputnstime(time_t *dt)
 {
 	int hour;
@@ -568,7 +578,7 @@ bool sbbs_t::inputnstime(time_t *dt)
 	char str[256];
 
 	bputs(text[NScanDate]);
-	bputs(timestr(dt));
+	bputs(timestr(*dt));
 	CRLF;
 	if(localtime_r(dt,&tm)==NULL) {
 		errormsg(WHERE,ERR_CHK,"time ptr",0);
@@ -826,7 +836,7 @@ bool sbbs_t::trashcan(char *insearchof, char *name)
 	return(result);
 }
 
-char* sbbs_t::timestr(time_t *intime)
+char* sbbs_t::timestr(time_t intime)
 {
 	return(::timestr(&cfg,intime,timestr_output));
 }
