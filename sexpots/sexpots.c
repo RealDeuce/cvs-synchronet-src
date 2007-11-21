@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.14 2007/05/05 06:15:07 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.23 2007/09/11 01:12:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,10 +36,14 @@
  ****************************************************************************/
 
 /* ANSI C */
+#include <stdarg.h>
 #include <stdio.h>
 
 /* Windows */
+#ifdef _WIN32
+/* Doesn't this come in from sockwrap.h? */
 #include <winsock.h>
+#endif
 
 /* xpdev lib */
 #include "dirwrap.h"
@@ -54,26 +58,30 @@
 #include "telnet.h"
 
 /* constants */
-#define NAME					"SexPOTS"
+#define NAME					"SEXPOTS"
 #define TITLE					"Synchronet External POTS Support"
 #define DESCRIPTION				"Connects a communications port (e.g. COM1) to a TCP port (e.g. Telnet)"
 #define MDM_TILDE_DELAY			500	/* milliseconds */
 
 /* global vars */
 BOOL	daemonize=FALSE;
-char	termtype[TELNET_TERM_MAXLEN+1];
-char	termspeed[TELNET_TERM_MAXLEN+1];	/* "tx,rx", max length not defined */
+char	termtype[TELNET_TERM_MAXLEN+1]	= NAME;
+char	termspeed[TELNET_TERM_MAXLEN+1]	= "28800,28800";	/* "tx,rx", max length not defined */
 char	revision[16];
 
-char	mdm_init[INI_MAX_VALUE_LEN];
-char	mdm_autoans[INI_MAX_VALUE_LEN];
-char	mdm_cid[INI_MAX_VALUE_LEN];
-char	mdm_cleanup[INI_MAX_VALUE_LEN];
+char	mdm_init[INI_MAX_VALUE_LEN]		= "AT&F";
+char	mdm_autoans[INI_MAX_VALUE_LEN]	= "ATS0=1";
+char	mdm_cid[INI_MAX_VALUE_LEN]		= "AT+VCID=1";
+char	mdm_cleanup[INI_MAX_VALUE_LEN]	= "ATS0=0";
 BOOL	mdm_null=FALSE;
 int		mdm_timeout=5;			/* seconds */
 
-char	com_dev[MAX_PATH+1];
-HANDLE	com_handle=INVALID_HANDLE_VALUE;
+#ifdef _WIN32
+char	com_dev[MAX_PATH+1]				= "COM1";
+#else
+char	com_dev[MAX_PATH+1]				= "/dev/ttyd0";
+#endif
+COM_HANDLE	com_handle=COM_HANDLE_INVALID;
 BOOL	com_handle_passed=FALSE;
 BOOL	com_alreadyconnected=FALSE;
 BOOL	com_hangup=TRUE;
@@ -81,12 +89,13 @@ ulong	com_baudrate=0;
 BOOL	dcd_ignore=FALSE;
 int		dcd_timeout=10;	/* seconds */
 ulong	dtr_delay=100;	/* milliseconds */
+int		hangup_attempts=10;
 
 BOOL	terminated=FALSE;
 BOOL	terminate_after_one_call=FALSE;
 
 SOCKET	sock=INVALID_SOCKET;
-char	host[MAX_PATH+1];
+char	host[MAX_PATH+1]				= "localhost";
 ushort	port=IPPORT_TELNET;
 
 /* stats */
@@ -108,11 +117,11 @@ BYTE	telnet_cmd[64];
 int		telnet_cmdlen;
 BOOL	telnet_advertise_cid=FALSE;
 
-/* ident (RFC1416) server stuff */
+/* ident (RFC1413) server stuff */
 BOOL	ident=FALSE;
 ushort	ident_port=IPPORT_IDENT;
 ulong	ident_interface=INADDR_ANY;
-char	ident_response[INI_MAX_VALUE_LEN];
+char	ident_response[INI_MAX_VALUE_LEN]	= "CALLERID:SEXPOTS";
 
 /* Caller-ID stuff */
 char	cid_name[64];
@@ -137,7 +146,7 @@ int usage(const char* fname)
 		"\n-install              install and enable NT service (%s)"
 		"\n-service              run as an NT service (background execution)"
 		"\n-remove               remove NT service"
-		"\n-enable               enable NT service"
+		"\n-enable               enable NT service (auto-start during boot)"
 		"\n-disable              disable NT service"
 #endif
 		,getfname(fname)
@@ -213,13 +222,28 @@ int lputs(int level, const char* str)
 	_snprintf(dbgmsg,sizeof(dbgmsg),"%s %s", NAME, str);
 	if(log_level==LOG_DEBUG)
 		OutputDebugString(dbgmsg);
+#else
+	char dbgmsg[1024];
+	snprintf(dbgmsg,sizeof(dbgmsg),"%s %s", NAME, str);
+	if(log_level==LOG_DEBUG)
+		fputs(dbgmsg, stderr);
 #endif
 
 	if(level>log_level)
 		return 0;
 
-	if(daemonize)
+	if(daemonize) {
+#if defined(_WIN32)
 		return syslog(level,"%s", str);
+#else
+		/* syslog() is
+		 * void syslog(int priority, const char *message, ...);
+		 */
+
+		syslog(level,"%s", str);
+		return strlen(str);
+#endif
+	}
 
 	t=time(NULL);
 	if(localtime_r(&t,&tm)==NULL)
@@ -587,14 +611,22 @@ static BOOL winsock_startup(void)
 BOOL modem_send(COM_HANDLE com_handle, const char* str)
 {
 	const char* p;
+	char		ch;
 
 	lprintf(LOG_INFO,"Modem Command: %s", str);
 	for(p=str; *p; p++) {
-		if(*p=='~') {
+		ch=*p;
+		if(ch=='~') {
 			SLEEP(MDM_TILDE_DELAY);
 			continue;
 		}
-		if(!comWriteByte(com_handle,*p))
+		if(ch=='^' && *(p+1)) {	/* Support ^X for control characters embedded in modem command strings */
+			p++;
+			ch=*p;
+			if(ch!='^' && ch>='@')	/* ^^ to send an '^' char to the modem */
+				ch-='@';
+		}
+		if(!comWriteByte(com_handle,ch))
 			return FALSE;
 	}
 	SLEEP(100);
@@ -651,7 +683,8 @@ BOOL modem_command(COM_HANDLE com_handle, const char* cmd)
 	char resp[128];
 
 	if(!modem_send(com_handle, cmd)) {
-		lprintf(LOG_ERR,"ERROR %u sending modem command", COM_ERROR_VALUE);
+		lprintf(LOG_ERR,"ERROR %u sending modem command (%s)"
+			,COM_ERROR_VALUE, cmd);
 		return FALSE;
 	}
 
@@ -712,20 +745,22 @@ void cleanup(void)
 
 /****************************************************************************/
 /****************************************************************************/
-BOOL wait_for_call(HANDLE com_handle)
+BOOL wait_for_call(COM_HANDLE com_handle)
 {
 	char		str[128];
 	char*		p;
 	BOOL		result=TRUE;
 	DWORD		events=0;
+	int			mdm_status;
 
 	ZERO_VAR(cid_name);
 	ZERO_VAR(cid_number);
 
+	comRaiseDTR(com_handle);
+
 	if(com_alreadyconnected)
 		return TRUE;
 
-	comRaiseDTR(com_handle);
 	if(!mdm_null) {
 		if(mdm_init[0]) {
 			lprintf(LOG_INFO,"Initializing modem:");
@@ -781,7 +816,10 @@ BOOL wait_for_call(HANDLE com_handle)
 			}
 			continue;	/* don't check DCD until we've received all the modem msgs */
 		}
-		if(comGetModemStatus(com_handle)&COM_DCD)
+		if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR)
+			lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
+				,COM_ERROR_VALUE, __LINE__);
+		else if(mdm_status&COM_DCD)
 			break;
 	}
 
@@ -1154,6 +1192,7 @@ BOOL handle_call(void)
 	int			result;
 	int			rd;
 	int			wr;
+	int			mdm_status;
 	fd_set		socket_set;
 	struct		timeval tv = {0, 0};
 
@@ -1174,9 +1213,16 @@ BOOL handle_call(void)
 
 	while(!terminated) {
 
-		if(!dcd_ignore && (comGetModemStatus(com_handle)&COM_DCD) == 0) {
-			lprintf(LOG_WARNING,"Loss of Carrier Detect (DCD) detected");
-			break;
+		if(!dcd_ignore) {
+			if((mdm_status = comGetModemStatus(com_handle)) == COM_ERROR) {
+				lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
+					,COM_ERROR_VALUE, __LINE__);
+				break;
+			}
+			if((mdm_status&COM_DCD) == 0) {
+				lprintf(LOG_WARNING,"Loss of Carrier Detect (DCD) detected");
+				break;
+			}
 		}
 #if 0
 		if(comReadByte(com_handle, &ch)) {
@@ -1229,27 +1275,43 @@ BOOL handle_call(void)
 
 /****************************************************************************/
 /****************************************************************************/
-BOOL hangup_call(HANDLE com_handle)
+BOOL hangup_call(COM_HANDLE com_handle)
 {
-	time_t start;
+	time_t	start;
+	int		attempt;
+	int		mdm_status;
 
-	if((comGetModemStatus(com_handle)&COM_DCD)==0)	/* DCD already low */
+	if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR) {
+		lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
+			,COM_ERROR_VALUE, __LINE__);
+		return TRUE;
+	}
+	if((mdm_status&COM_DCD)==0)	/* DCD already low */
 		return TRUE;
 
 	lprintf(LOG_DEBUG,"Waiting for transmit buffer to empty");
 	SLEEP(dtr_delay);
-	lprintf(LOG_INFO,"Dropping DTR");
-	if(!comLowerDTR(com_handle))
-		return FALSE;
-
-	lprintf(LOG_INFO,"Waiting for loss of Carrier Detect (DCD)");
-	start=time(NULL);
-	while(time(NULL)-start <= dcd_timeout) {
-		if((comGetModemStatus(com_handle)&COM_DCD) == 0)
-			return TRUE;
-		SLEEP(1000); 
+	for(attempt=0; attempt<hangup_attempts; attempt++) {
+		lprintf(LOG_INFO,"Dropping DTR (attempt #%d)", attempt+1);
+		if(!comLowerDTR(com_handle)) {
+			lprintf(LOG_ERR,"ERROR %u lowering DTR", COM_ERROR);
+			continue;
+		}
+		lprintf(LOG_DEBUG,"Waiting for loss of Carrier Detect (DCD)");
+		start=time(NULL);
+		while(time(NULL)-start <= dcd_timeout) {
+			if((mdm_status=comGetModemStatus(com_handle)) == COM_ERROR) {
+				lprintf(LOG_ERR,"Error %u getting modem status (line %u)"
+					,COM_ERROR_VALUE, __LINE__);
+				return TRUE;
+			}
+			if((mdm_status&COM_DCD)==0)
+				return TRUE;
+			SLEEP(1000); 
+		}
+		lprintf(LOG_ERR,"TIMEOUT waiting for DCD to drop (attempt #%d of %d)"
+			, attempt+1, hangup_attempts);
 	}
-	lprintf(LOG_ERR,"TIMEOUT waiting for DCD to drop");
 
 	return FALSE;
 }
@@ -1274,58 +1336,61 @@ void parse_ini_file(const char* ini_fname)
 {
 	FILE* fp;
 	char* section;
+	str_list_t	list=NULL;
 
-	if((fp=fopen(ini_fname,"r"))!=NULL)
+	if((fp=fopen(ini_fname,"r"))!=NULL) {
 		lprintf(LOG_INFO,"Reading %s",ini_fname);
+		list=iniReadFile(fp);
+		fclose(fp);
+	}
 
 	/* Root section */
-	pause_on_exit			= iniReadBool(fp,ROOT_SECTION,"PauseOnExit",FALSE);
-	log_level				= iniReadLogLevel(fp,ROOT_SECTION,"LogLevel",log_level);
+	pause_on_exit			= iniGetBool(list,ROOT_SECTION,"PauseOnExit",FALSE);
+	log_level				= iniGetLogLevel(list,ROOT_SECTION,"LogLevel",log_level);
 
-	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
+	if(iniGetBool(list,ROOT_SECTION,"Debug",FALSE))
 		log_level=LOG_DEBUG;
 	
 	/* [COM] Section */
 	section="COM";
-	iniReadString(fp, section, "Device", "COM1", com_dev);
-	com_baudrate    = iniReadLongInt(fp, section, "BaudRate", com_baudrate);
-	com_hangup	    = iniReadBool(fp, section, "Hangup", com_hangup);
-	dcd_timeout     = iniReadInteger(fp, section, "DCDTimeout", dcd_timeout);
-	dcd_ignore      = iniReadBool(fp, section, "IgnoreDCD", dcd_ignore);
-	dtr_delay		= iniReadLongInt(fp, section, "DTRDelay", dtr_delay);
-	mdm_null	    = iniReadBool(fp, section, "NullModem", mdm_null);
+	iniGetExistingString(list, section, "Device", NULL, com_dev);
+	com_baudrate    = iniGetLongInt(list, section, "BaudRate", com_baudrate);
+	com_hangup	    = iniGetBool(list, section, "Hangup", com_hangup);
+	hangup_attempts = iniGetInteger(list, section, "HangupAttempts", hangup_attempts);
+	dcd_timeout     = iniGetInteger(list, section, "DCDTimeout", dcd_timeout);
+	dcd_ignore      = iniGetBool(list, section, "IgnoreDCD", dcd_ignore);
+	dtr_delay		= iniGetLongInt(list, section, "DTRDelay", dtr_delay);
+	mdm_null	    = iniGetBool(list, section, "NullModem", mdm_null);
 
 	/* [Modem] Section */
 	section="Modem";
-	iniReadString(fp, section, "Init", "AT&F", mdm_init);
-	iniReadString(fp, section, "AutoAnswer", "ATS0=1", mdm_autoans);
-	iniReadString(fp, section, "Cleanup", "ATS0=0", mdm_cleanup);
-	iniReadString(fp, section, "EnableCallerID", "AT+VCID=1", mdm_cid);
-	mdm_timeout     = iniReadInteger(fp, section, "Timeout", mdm_timeout);
+	iniGetExistingString(list, section, "Init", "", mdm_init);
+	iniGetExistingString(list, section, "AutoAnswer", "", mdm_autoans);
+	iniGetExistingString(list, section, "Cleanup", "", mdm_cleanup);
+	iniGetExistingString(list, section, "EnableCallerID", "", mdm_cid);
+	mdm_timeout     = iniGetInteger(list, section, "Timeout", mdm_timeout);
 
 	/* [TCP] Section */
 	section="TCP";
-	iniReadString(fp, section, "Host", "localhost", host);
-	port					= iniReadShortInt(fp, section, "Port", port);
-	tcp_nodelay				= iniReadBool(fp,section,"NODELAY", tcp_nodelay);
+	iniGetExistingString(list, section, "Host", NULL, host);
+	port					= iniGetShortInt(list, section, "Port", port);
+	tcp_nodelay				= iniGetBool(list,section,"NODELAY", tcp_nodelay);
 
 	/* [Telnet] Section */
 	section="Telnet";
-	telnet					= iniReadBool(fp,section,"Enabled", telnet);
-	debug_telnet			= iniReadBool(fp,section,"Debug", debug_telnet);
-	telnet_advertise_cid	= iniReadBool(fp,section,"AdvertiseLocation", telnet_advertise_cid);
-	iniReadString(fp, section, "TermType", termtype, termtype);
-	iniReadString(fp, section, "TermSpeed", "28800,28800", termspeed);
+	telnet					= iniGetBool(list,section,"Enabled", telnet);
+	debug_telnet			= iniGetBool(list,section,"Debug", debug_telnet);
+	telnet_advertise_cid	= iniGetBool(list,section,"AdvertiseLocation", telnet_advertise_cid);
+	iniGetExistingString(list, section, "TermType", NULL, termtype);
+	iniGetExistingString(list, section, "TermSpeed", NULL, termspeed);
 
 	/* [Ident] Section */
 	section="Ident";
-	ident					= iniReadBool(fp,section,"Enabled", ident);
-	ident_port				= iniReadShortInt(fp, section, "Port", ident_port);
-	ident_interface			= iniReadIpAddress(fp, section, "Interface", ident_interface);
-	iniReadString(fp, section, "Response", "CALLERID:SEXPOTS", ident_response);
+	ident					= iniGetBool(list,section,"Enabled", ident);
+	ident_port				= iniGetShortInt(list, section, "Port", ident_port);
+	ident_interface			= iniGetIpAddress(list, section, "Interface", ident_interface);
+	iniGetExistingString(list, section, "Response", NULL, ident_response);
 
-	if(fp!=NULL)
-		fclose(fp);
 }
 
 char	banner[128];
@@ -1365,7 +1430,7 @@ service_loop(int argc, char** argv)
 			port = (ushort)strtol(argv[++argn], NULL, 0);
 		else if(stricmp(arg,"live")==0) {
 			if(argc > argn+1 &&
-				(com_handle = (HANDLE)strtol(argv[argn+1], NULL, 0)) != 0) {
+				(com_handle = (COM_HANDLE)strtol(argv[argn+1], NULL, 0)) != 0) {
 				argn++;
 				com_handle_passed=TRUE;
 			}
@@ -1494,7 +1559,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.14 $", "%*s %s", revision);
+	sscanf("$Revision: 1.23 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
@@ -1514,7 +1579,10 @@ int main(int argc, char** argv)
 		arg=argv[argn];
 		while(*arg=='-') 
 			arg++;
-		if(stricmp(arg,"service")==0)
+		if(stricmp(arg,"help")==0 || *arg=='?')
+			return usage(argv[0]);
+#ifdef _WIN32
+		else if(stricmp(arg,"service")==0)
 			daemonize=TRUE;
 		else if(stricmp(arg,"install")==0)
 			return install();
@@ -1524,8 +1592,7 @@ int main(int argc, char** argv)
 			return enable(FALSE);
 		else if(stricmp(arg,"enable")==0)
 			return enable(TRUE);
-		else if(stricmp(arg,"help")==0 || *arg=='?')
-			return usage(argv[0]);
+#endif
 	}
 
 	/******************/
@@ -1538,7 +1605,6 @@ int main(int argc, char** argv)
 	*p=0;
 	if((p=getfext(fname))!=NULL) 
 		*p=0;
-	SAFECOPY(termtype,fname);
 	strcat(fname,".ini");
 
 	iniFileName(ini_fname,sizeof(ini_fname),path,fname);
