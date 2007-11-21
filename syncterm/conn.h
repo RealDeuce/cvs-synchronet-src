@@ -1,4 +1,6 @@
-/* $Id: conn.h,v 1.16 2007/10/21 18:27:48 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: conn.h,v 1.18 2007/11/13 01:37:56 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -9,7 +11,7 @@
 #include "bbslist.h"
 
 extern char *conn_types[];
-extern int conn_ports[];
+extern short unsigned int conn_ports[];
 
 enum {
 	 CONN_TYPE_UNKNOWN

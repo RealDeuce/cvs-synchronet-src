@@ -1,4 +1,6 @@
-/* $Id: modem.c,v 1.9 2007/10/21 18:27:48 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: modem.c,v 1.10 2007/11/13 01:37:56 deuce Exp $ */
 
 #include <stdlib.h>
 

@@ -1,4 +1,6 @@
-/* $Id: conn.c,v 1.46 2007/10/22 20:28:50 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: conn.c,v 1.48 2007/11/13 01:37:56 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -27,7 +29,7 @@ char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem"
 ,"Shell"
 #endif
 ,NULL};
-int conn_ports[]={0,513,23,0,22,0
+short unsigned int conn_ports[]={0,513,23,0,22,0
 #ifdef __unix__
 ,65535
 #endif
