@@ -1,4 +1,6 @@
-/* $Id: syncterm.c,v 1.122 2007/10/23 02:38:26 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: syncterm.c,v 1.125 2007/11/13 01:37:56 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -986,6 +988,7 @@ void load_settings(struct syncterm_settings *set)
 	sortby=iniReadStringList(inifile, "SyncTERM", "SortOrder", ",", "5,1");
 	while((order=strListRemove(&sortby,0))!=NULL) {
 		sortorder[i++]=atoi(order);
+		free(order);
 	}
 	strListFree(&sortby);
 
@@ -1060,10 +1063,26 @@ int main(int argc, char **argv)
 							ciolib_mode=CIOLIB_MODE_CONIO;
 							break;
 						case 'S':
-							ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
+							switch(toupper(argv[i][3])) {
+								case 0:
+								case 'F':
+									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
+									break;
+								case 'W':
+									ciolib_mode=CIOLIB_MODE_SDL;
+									break;
+							}
 							break;
 						case 'O':
-							ciolib_mode=CIOLIB_MODE_SDL_YUV;
+							switch(toupper(argv[i][3])) {
+								case 0:
+								case 'W':
+									ciolib_mode=CIOLIB_MODE_SDL_YUV;
+									break;
+								case 'F':
+									ciolib_mode=CIOLIB_MODE_SDL_YUV_FULLSCREEN;
+									break;
+							}
 							break;
 						default:
 							goto USAGE;
@@ -1304,8 +1323,8 @@ int main(int argc, char **argv)
         "\n\noptions:\n\n"
         "-e# =  set escape delay to #msec\n"
 		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
-		"       S = FullScreen SDL mode\n"
-		"       O = SDL overlay mode (hardware scaling)\n"
+		"       S[W|F] = SDL surface mode W for windowed and F for fullscreen\n"
+		"       O[W|F] = SDL overlay mode (hardware scaled)\n"
 #ifdef __unix__
 		"       X = X11 mode\n"
 		"       C = Curses mode\n"
