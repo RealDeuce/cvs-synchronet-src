@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.100 2007/05/16 19:22:55 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.104 2007/11/21 08:08:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -291,6 +291,31 @@ BOOL iniSectionExists(str_list_t list, const char* section)
 
 	i=find_section_index(list,section);
 	return(list[i]!=NULL);
+}
+
+str_list_t	iniGetSection(str_list_t list, const char *section)
+{
+	size_t		i;
+	str_list_t	retval=strListInit();
+	char		*p;
+
+	if(list==NULL)
+		return(retval);
+	if(section==ROOT_SECTION)
+		i=0;
+	else
+		i=find_section_index(list,section);
+	if(list[i]!=NULL) {
+		strListPush(&retval, list[i]);
+		for(i++;list[i]!=NULL;i++) {
+			p=list[i];
+			SKIP_WHITESPACE(p);
+			if(*p==INI_OPEN_SECTION_CHAR)
+				break;
+			strListPush(&retval, list[i]);
+		}
+	}
+	return(retval);
 }
 
 BOOL iniKeyExists(str_list_t list, const char* section, const char* key)
@@ -689,20 +714,10 @@ char* iniReadExistingString(FILE* fp, const char* section, const char* key, cons
 
 char* iniGetExistingString(str_list_t list, const char* section, const char* key, const char* deflt, char* value)
 {
-	size_t	i;
-
-	if(list==NULL)
+	if(!iniKeyExists(list, section, key))
 		return(NULL);
 
-	i=get_value(list, section, key, value);
-
-	if(list[i]==NULL || *(list[i])==INI_OPEN_SECTION_CHAR)	/* missing key */
-		return(NULL);
-
-	if(*value==0 /* blank value  */)
-		return default_value(deflt,value);
-
-	return(value);
+	return iniGetString(list, section, key, deflt, value);
 }
 
 static str_list_t splitList(char* list, const char* sep)
