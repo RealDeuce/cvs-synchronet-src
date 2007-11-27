@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.38 2006/05/25 07:35:26 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.40 2007/09/30 22:22:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -737,11 +737,14 @@ re-initialized, set this option to ~Yes~.
 
 void xtrn_cfg(uint section)
 {
-	static int ext_dflt,ext_bar,opt_dflt,time_dflt;
+	static int ext_dflt,ext_bar,sub_bar,opt_dflt,time_dflt;
 	char str[128],code[9],done=0,*p;
 	int j,k;
 	uint i,n,xtrnnum[MAX_OPTS+1];
 	static xtrn_t savxtrn;
+
+	sub_bar=0;
+	opt_dflt=0;
 
 while(1) {
 	for(i=0,j=0;i<cfg.total_xtrns && j<MAX_OPTS;i++)
@@ -917,7 +920,7 @@ online program name.
 
 This menu is for configuring the selected online program.
 */
-		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_MID,0,0,60,&opt_dflt,0,cfg.xtrn[i]->name
+		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_MID,0,0,60,&opt_dflt,&sub_bar,cfg.xtrn[i]->name
 			,opt)) {
 			case -1:
 				done=1;
@@ -1416,7 +1419,7 @@ online program (e.g. Free Time), set this option to Yes.
 /*
 Monitor Time Left:
 
-If you want Synchronet to monitor the user's time left onlnie while this
+If you want Synchronet to monitor the user's time left online while this
 program runs (and disconnect the user if their time runs out), set this
 option to Yes.
 */
