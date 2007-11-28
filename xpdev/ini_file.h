@@ -2,13 +2,13 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.42 2008/02/24 07:53:33 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.39 2007/11/28 03:41:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -101,7 +101,7 @@ time_t		iniReadDateTime(FILE*, const char* section, const char* key
 unsigned	iniReadEnum(FILE*, const char* section, const char* key
 					,str_list_t names, unsigned deflt);
 unsigned*	iniReadEnumList(FILE*, const char* section, const char* key
-					,str_list_t names, unsigned* count, const char* sep, const char* deflt);
+					,str_list_t names, const char* sep, const char* deflt);
 long		iniReadNamedInt(FILE*, const char* section, const char* key
 					,named_long_t*, long deflt);
 double		iniReadNamedFloat(FILE*, const char* section, const char* key
@@ -155,7 +155,7 @@ time_t		iniGetDateTime(str_list_t, const char* section, const char* key
 unsigned	iniGetEnum(str_list_t, const char* section, const char* key
 					,str_list_t names, unsigned deflt);
 unsigned*	iniGetEnumList(str_list_t, const char* section, const char* key
-					,str_list_t names, unsigned* count, const char* sep, const char* deflt);
+					,str_list_t names, const char* sep, const char* deflt);
 long		iniGetNamedInt(str_list_t, const char* section, const char* key
 					,named_long_t*, long deflt);
 double		iniGetNamedFloat(str_list_t, const char* section, const char* key
@@ -198,8 +198,6 @@ char*		iniSetDateTime(str_list_t*, const char* section, const char* key, BOOL in
 					,ini_style_t*);
 char*		iniSetEnum(str_list_t*, const char* section, const char* key, str_list_t names
 					,unsigned value, ini_style_t*);
-char*		iniSetEnumList(str_list_t*, const char* section, const char* key 
-					,const char* sep, str_list_t names, unsigned* values, unsigned count, ini_style_t*);
 char*		iniSetNamedInt(str_list_t*, const char* section, const char* key, named_long_t*
 					,long value, ini_style_t*);
 char*		iniSetNamedFloat(str_list_t*, const char* section, const char* key, named_double_t*
@@ -219,16 +217,10 @@ size_t		iniAppendSection(str_list_t*, const char* section
 BOOL		iniSectionExists(str_list_t, const char* section);
 BOOL		iniKeyExists(str_list_t, const char* section, const char* key);
 BOOL		iniValueExists(str_list_t, const char* section, const char* key);
-char*		iniPopKey(str_list_t*, const char* section, const char* key, char* value);
 BOOL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveSection(str_list_t*, const char* section);
 BOOL		iniRenameSection(str_list_t*, const char* section, const char* newname);
-
-/*
- * Too handy to leave internal
- */
-unsigned* parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count);
 
 #if defined(__cplusplus)
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.73 2008/02/16 05:19:23 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.67 2007/07/31 19:38:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -494,7 +494,6 @@ static JSBool
 js_getnum(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	ulong		maxnum=~0;
-	ulong		dflt=0;
 	sbbs_t*		sbbs;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
@@ -502,10 +501,8 @@ js_getnum(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc && JSVAL_IS_NUMBER(argv[0]))
 		JS_ValueToInt32(cx,argv[0],(int32*)&maxnum);
-	if(argc>1 && JSVAL_IS_NUMBER(argv[1]))
-		JS_ValueToInt32(cx,argv[1],(int32*)&dflt);
 
-	*rval = INT_TO_JSVAL(sbbs->getnum(maxnum,dflt));
+	*rval = INT_TO_JSVAL(sbbs->getnum(maxnum));
     return(JS_TRUE);
 }
 
@@ -805,16 +802,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	sbbs->rputs(JS_GetStringBytes(str));
     return(JS_TRUE);
-}
-
-static JSBool
-js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	if(argc) {
-		if(!js_write(cx, obj, argc, argv, rval))
-			return(JS_FALSE);
-	}
-	return(js_crlf(cx, obj, argc, argv, rval));
 }
 
 static JSBool
@@ -1249,8 +1236,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
 	},		
-	{"getnum",			js_getnum,			0, JSTYPE_NUMBER,	JSDOCSTR("[maxnum[, default]]")
-	,JSDOCSTR("get a number between 1 and <i>maxnum</i> from the user with a default value of <i>default</i>")
+	{"getnum",			js_getnum,			0, JSTYPE_NUMBER,	JSDOCSTR("[maxnum]")
+	,JSDOCSTR("get a number between 1 and <i>maxnum</i> from the user")
 	,310
 	},		
 	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("string keys [,maxnum]")
@@ -1316,10 +1303,6 @@ static jsSyncMethodSpec js_console_functions[] = {
 	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("text")
 	,JSDOCSTR("display a raw string")
 	,310
-	},		
-	{"writeln",			js_writeln,			1, JSTYPE_VOID,		JSDOCSTR("text")
-	,JSDOCSTR("display a raw string followed by a carriage-return/line-feed pair (new-line)")
-	,315
 	},		
 	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("display message text (Ctrl-A codes, @-codes, pipe codes, etc), "
@@ -1433,21 +1416,6 @@ static jsSyncMethodSpec js_console_functions[] = {
 };
 
 
-static JSBool js_console_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, js_console_properties, js_console_functions, NULL, 0));
-}
-
-static JSBool js_console_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_console_resolve(cx, obj, JSVAL_NULL));
-}
-
 static JSClass js_console_class = {
      "Console"				/* name			*/
     ,0						/* flags		*/
@@ -1455,8 +1423,8 @@ static JSClass js_console_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_console_get			/* getProperty	*/
 	,js_console_set			/* setProperty	*/
-	,js_console_enumerate	/* enumerate	*/
-	,js_console_resolve		/* resolve		*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub		/* finalize		*/
 };
@@ -1471,6 +1439,12 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 
 	if((obj=JS_DefineObject(cx, parent, "console", &js_console_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
+		return(NULL);
+
+	if(!js_DefineSyncProperties(cx, obj, js_console_properties))
+		return(NULL);
+
+	if (!js_DefineSyncMethods(cx, obj, js_console_functions, FALSE)) 
 		return(NULL);
 
 	/* Create an array of pre-defined colors */
@@ -1489,7 +1463,7 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 		jsval val=INT_TO_JSVAL(sbbs->cfg.color[i]);
 		if(!JS_SetElement(cx, color_list, i, &val))
 			return(NULL);
-	}
+	}	
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Controls the user's Telnet/RLogin terminal",310);
