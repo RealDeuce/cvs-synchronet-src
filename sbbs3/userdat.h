@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.31 2007/08/14 06:23:47 rswindell Exp $ */
+/* $Id: userdat.h,v 1.32 2007/10/24 07:41:46 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,6 +119,8 @@ DLLEXPORT BOOL	DLLCALL user_adjust_credits(scfg_t* cfg, user_t* user, long amoun
 DLLEXPORT BOOL	DLLCALL user_adjust_minutes(scfg_t* cfg, user_t* user, long amount);
 
 DLLEXPORT time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime);
+
+DLLEXPORT BOOL DLLCALL check_name(scfg_t* cfg, char* name);
 
 #ifdef __cplusplus
 }
