@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.36 2008/01/21 07:33:12 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.35 2007/09/06 17:19:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -986,7 +986,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							cp=num_str;
 							break;
 						case XP_PRINTF_TYPE_LONGDOUBLE:
-							sprintf(num_str, "%Lf", ld);
+							sprintf(num_str, "%Lf", d);
 							cp=num_str;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
