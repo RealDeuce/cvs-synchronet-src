@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.98 2007/05/27 06:09:16 deuce Exp $ */
+/* $Id: cterm.c,v 1.102 2007/08/24 06:13:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -572,6 +572,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 	char	tmp[1024];
 	int		i,j,k,l;
 	int		row,col;
+	struct text_info ti;
 
 	switch(cterm.escbuf[0]) {
 		case '[':
@@ -594,6 +595,14 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 									break;
 							}
 						}
+						break;
+					case 'h':
+						if(!strcmp(cterm.escbuf,"[=255h"))
+							cterm.doorway_mode=1;
+						break;
+					case 'l':
+						if(!strcmp(cterm.escbuf,"[=255l"))
+							cterm.doorway_mode=0;
 						break;
 					case '{':
 						if(cterm.escbuf[1] == '=') {	/* Font loading */
@@ -866,7 +875,8 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					break;
 #if 0
 				case 'U':
-					clearscreen(7);
+					gettextinfo(&ti);
+					clearscreen(ti.normattr);
 					gotoxy(1,1);
 					break;
 #endif
@@ -920,15 +930,16 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 				case 'm':
 					*(p--)=0;
 					p2=cterm.escbuf+1;
+					gettextinfo(&ti);
 					if(p2>p) {
-						cterm.attr=7;
+						cterm.attr=ti.normattr;
 						break;
 					}
 					while((p=strtok(p2,";"))!=NULL) {
 						p2=NULL;
 						switch(atoi(p)) {
 							case 0:
-								cterm.attr=7;
+								cterm.attr=ti.normattr;
 								break;
 							case 1:
 								cterm.attr|=8;
@@ -1174,17 +1185,19 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.98 $";
+	char	*revision="$Revision: 1.102 $";
 	char *in;
 	char	*out;
 	int		i;
+	struct text_info ti;
 
 	memset(&cterm, 0, sizeof(cterm));
 	cterm.x=xpos;
 	cterm.y=ypos;
 	cterm.height=height;
 	cterm.width=width;
-	cterm.attr=7;
+	gettextinfo(&ti);
+	cterm.attr=ti.normattr;
 	cterm.save_xpos=0;
 	cterm.save_ypos=0;
 	cterm.escbuf[0]=0;
@@ -1206,7 +1219,8 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 		memset(cterm.scrollback,0,cterm.width*2*cterm.backlines);
 	textattr(cterm.attr);
 	_setcursortype(_NORMALCURSOR);
-	window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
+	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
+		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	clearscreen(cterm.attr);
 	gotoxy(1,1);
 	strcpy(cterm.DA,"\x1b[=67;84;101;114;109;");
@@ -1355,7 +1369,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	if(retbuf!=NULL)
 		retbuf[0]=0;
 	gettextinfo(&ti);
-	window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
+	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
+		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	gotoxy(cterm.xpos,cterm.ypos);
 	textattr(cterm.attr);
 	ch[1]=0;
@@ -1877,47 +1892,68 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 						}
 					}
 					else {	/* ANSI-BBS */
-						switch(buf[j]) {
-							case 0:
-								break;
-							case 7:			/* Beep */
-								ctputs(prn);
-								prn[0]=0;
-								if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
-									fputs("\x07", cterm.logfile);
-								#ifdef __unix__
-									putch(7);
-								#else
-									MessageBeep(MB_OK);
-								#endif
-								break;
-							case 12:		/* ^L - Clear screen */
-								ctputs(prn);
-								prn[0]=0;
-								if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
-									fputs("\x0c", cterm.logfile);
-								clearscreen((char)cterm.attr);
-								gotoxy(1,1);
-								break;
-							case 27:		/* ESC */
-								ctputs(prn);
-								prn[0]=0;
-								cterm.sequence=1;
-								break;
-							case '\t':
-								ctputs(prn);
-								prn[0]=0;
-								if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
-									fputs("\t", cterm.logfile);
-								for(k=0;k<11;k++) {
-									if(cterm_tabs[k]>wherex()) {
-										gotoxy(cterm_tabs[k],wherey());
-										break;
-									}
+						if(cterm.doorway_char) {
+							ctputs(prn);
+							ch[1]=cterm.attr;
+							puttext(cterm.x+wherex()-1,cterm.y+wherey()-1,cterm.x+wherex()-1,cterm.y+wherey()-1,ch);
+							ch[1]=0;
+							if(wherex()==cterm.width) {
+								if(wherey()==cterm.height) {
+									scrollup();
+									gotoxy(1,wherey());
 								}
-								break;
-							default:
-								strcat(prn,ch);
+								else
+									gotoxy(1,wherey()+1);
+							}
+							else
+								gotoxy(wherex()+1,wherey());
+							cterm.doorway_char=0;
+						}
+						else {
+							switch(buf[j]) {
+								case 0:
+									if(cterm.doorway_mode)
+										cterm.doorway_char=1;
+									break;
+								case 7:			/* Beep */
+									ctputs(prn);
+									prn[0]=0;
+									if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
+										fputs("\x07", cterm.logfile);
+									#ifdef __unix__
+										putch(7);
+									#else
+										MessageBeep(MB_OK);
+									#endif
+									break;
+								case 12:		/* ^L - Clear screen */
+									ctputs(prn);
+									prn[0]=0;
+									if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
+										fputs("\x0c", cterm.logfile);
+									clearscreen((char)cterm.attr);
+									gotoxy(1,1);
+									break;
+								case 27:		/* ESC */
+									ctputs(prn);
+									prn[0]=0;
+									cterm.sequence=1;
+									break;
+								case '\t':
+									ctputs(prn);
+									prn[0]=0;
+									if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
+										fputs("\t", cterm.logfile);
+									for(k=0;k<11;k++) {
+										if(cterm_tabs[k]>wherex()) {
+											gotoxy(cterm_tabs[k],wherey());
+											break;
+										}
+									}
+									break;
+								default:
+									strcat(prn,ch);
+							}
 						}
 					}
 				}
@@ -1929,7 +1965,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	cterm.xpos=wherex();
 	cterm.ypos=wherey();
 #if 0
-	window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
+	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
+		window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
 	gotoxy(ti.curx,ti.cury);
 	textattr(ti.attribute);
 #endif
