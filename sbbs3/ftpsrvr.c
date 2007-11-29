@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.321 2007/11/28 08:48:37 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.322 2007/11/29 05:51:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2280,10 +2280,11 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts)
 	return(FALSE);
 }
 
-static char* ftp_tmpfname(char* str, SOCKET sock)
+static char* ftp_tmpfname(char* fname, char* ext, SOCKET sock)
 {
-	safe_snprintf(str,MAX_PATH,"%sSBBS_FTP.%u.%u.tx",scfg.temp_dir,getpid(),sock);
-	return(str);
+	safe_snprintf(fname,MAX_PATH,"%sSBBS_FTP.%x%x%x%lx.%s"
+		,scfg.temp_dir,getpid(),sock,rand(),clock(),ext);
+	return(fname);
 }
 
 static void ctrl_thread(void* arg)
@@ -3041,7 +3042,7 @@ static void ctrl_thread(void* arg)
 				strcat(local_dir,"/");
 
 			if(!strnicmp(cmd, "LIST", 4) || !strnicmp(cmd, "NLST", 4)) {	
-				if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
+				if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
 					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
 					sockprintf(sock, "451 Insufficient system storage");
 					continue;
@@ -3343,7 +3344,7 @@ static void ctrl_thread(void* arg)
 			if(*filespec==0)
 				filespec="*";
 
-			if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
+			if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
 				sockprintf(sock, "451 Insufficient system storage");
 				continue;
@@ -3736,7 +3737,7 @@ static void ctrl_thread(void* arg)
 					sockprintf(sock, "500 Size not available for dynamically generated files");
 					continue;
 				}
-				if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
+				if((fp=fopen(ftp_tmpfname(fname,"ndx",sock),"w+b"))==NULL) {
 					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
 					sockprintf(sock, "451 Insufficient system storage");
 					filepos=0;
@@ -3940,7 +3941,7 @@ static void ctrl_thread(void* arg)
 					JS_SetProperty(js_cx, js_ftp, "extended_descriptions", &js_val);
 
 #endif
-					if((fp=fopen(ftp_tmpfname(fname,sock),"w+b"))==NULL) {
+					if((fp=fopen(ftp_tmpfname(fname,"html",sock),"w+b"))==NULL) {
 						lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
 						sockprintf(sock, "451 Insufficient system storage");
 						filepos=0;
@@ -4539,7 +4540,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.321 $", "%*s %s", revision);
+	sscanf("$Revision: 1.322 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
