@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.24 2007/10/24 06:55:43 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.26 2007/10/24 06:58:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@ ulong _beginthread(void( *start_address )( void * )
 	size_t		default_stack;
 
 	pthread_attr_init(&attr);     /* initialize attribute structure */
+
 	/* set thread attributes to PTHREAD_CREATE_DETACHED which will ensure
 	   that thread resources are freed on exit() */
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
@@ -76,20 +77,19 @@ ulong _beginthread(void( *start_address )( void * )
 
 	if(stack_size!=0)
 		pthread_attr_setstacksize(&attr, stack_size);
-	else
-		pthread_attr_setstacksize(&attr, default_stack);
 
 	if(pthread_create(&thread
 #if defined(__BORLANDC__) /* a (hopefully temporary) work-around */
-		,NULL
+			,NULL
 #else
-		,&attr	/* default attributes */
+			,&attr	/* default attributes */
 #endif
-		/* POSIX defines this arg as "void *(*start_address)" */
-		,(void * (*)(void *)) start_address
-		,arglist)==0)
+			/* POSIX defines this arg as "void *(*start_address)" */
+			,(void * (*)(void *)) start_address
+			,arglist)==0) {
 		pthread_attr_destroy(&attr);
 		return((int) thread /* thread handle */);
+	}
 
 	pthread_attr_destroy(&attr);
 	return(-1);	/* error */
