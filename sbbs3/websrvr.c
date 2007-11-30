@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.467 2007/11/30 08:57:17 deuce Exp $ */
+/* $Id: websrvr.c,v 1.468 2007/11/30 09:00:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,8 +37,6 @@
 
 /*
  * General notes: (ToDo stuff)
- *
- * Should support RFC2617 Digest auth.
  *
  * Support the ident protocol... the standard log format supports it.
  *
@@ -5045,7 +5043,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.467 $", "%*s %s", revision);
+	sscanf("$Revision: 1.468 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
