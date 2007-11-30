@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.46 2008/02/14 08:09:38 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.45 2006/12/28 02:45:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,7 +42,7 @@
 #ifdef BUILD_JSDOCS
 
 static char* file_area_prop_desc[] = {
-	 "minimum amount of available disk space (in kilobytes) required for user uploads to be allowed"
+	 "minimum amount of available disk space (in bytes) required for user uploads to be allowed"
 	,"file area settings (bitfield) - see <tt>FM_*</tt> in <tt>sbbsdefs.js</tt> for details"
 	,NULL
 };

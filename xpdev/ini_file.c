@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.111 2008/02/25 05:12:16 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.106 2007/11/29 05:42:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -39,8 +39,7 @@
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
 #include <math.h>		/* fmod */
-#include "xpdatetime.h"	/* isoDateTime_t */
-#include "datewrap.h"	/* ctime_r */
+#include "datewrap.h"	/* isoDateTime_t */
 #include "dirwrap.h"	/* fexist */
 #include "filewrap.h"	/* chsize */
 #include "ini_file.h"
@@ -297,16 +296,15 @@ BOOL iniSectionExists(str_list_t list, const char* section)
 str_list_t	iniGetSection(str_list_t list, const char *section)
 {
 	size_t		i;
-	str_list_t	retval;
+	str_list_t	retval=strListInit();
 	char		*p;
 
 	if(list==NULL)
-		return(NULL);
-
-	if((retval=strListInit())==NULL)
-		return(NULL);
-
-	i=find_section(list,section);
+		return(retval);
+	if(section==ROOT_SECTION)
+		i=0;
+	else
+		i=find_section_index(list,section);
 	if(list[i]!=NULL) {
 		strListPush(&retval, list[i]);
 		for(i++;list[i]!=NULL;i++) {
@@ -586,7 +584,7 @@ char* iniSetDateTime(str_list_t* list, const char* section, const char* key
 
 	if(value==0)
 		SAFECOPY(str,"Never");
-	else if((p=ctime_r(&value,tstr))==NULL)
+	else if((p=CTIME_R(&value,tstr))==NULL)
 		SAFEPRINTF(str,"0x%lx",value);
 	else if(!include_time)	/* reformat into "Mon DD YYYY" */
 		safe_snprintf(str,sizeof(str),"%.3s %.2s %.4s"		,p+4,p+8,p+20);
@@ -726,23 +724,6 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 
 	if(*value==0 /* blank value or missing key */)
 		return default_value(deflt,value);
-
-	return(value);
-}
-
-char* iniPopKey(str_list_t* list, const char* section, const char* key, char* value)
-{
-	size_t i;
-	
-	if(list==NULL || *list==NULL)
-		return NULL;
-
-	i=get_value(*list, section, key, value);
-
-	if((*list)[i]==NULL)
-		return NULL;
-
-	strListDelete(list,i);
 
 	return(value);
 }
@@ -1569,7 +1550,7 @@ static unsigned parseEnum(const char* value, str_list_t names)
 	return(strtoul(value,NULL,0));
 }
 
-unsigned* parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count)
+static unsigned* parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count)
 {
 	char*		vals;
 	str_list_t	list;
