@@ -2,7 +2,7 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.41 2007/11/30 08:58:27 deuce Exp $ */
+/* $Id: ini_file.h,v 1.40 2007/11/29 05:42:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,11 +223,6 @@ BOOL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveSection(str_list_t*, const char* section);
 BOOL		iniRenameSection(str_list_t*, const char* section, const char* newname);
-
-/*
- * Too handy to leave internal
- */
-unsigned* parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count);
 
 #if defined(__cplusplus)
 }
