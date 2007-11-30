@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.106 2007/11/29 05:42:50 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.107 2007/11/30 08:58:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1550,7 +1550,7 @@ static unsigned parseEnum(const char* value, str_list_t names)
 	return(strtoul(value,NULL,0));
 }
 
-static unsigned* parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count)
+unsigned* parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count)
 {
 	char*		vals;
 	str_list_t	list;
