@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.325 2007/12/24 23:27:01 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.322 2007/11/29 05:51:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1707,6 +1707,8 @@ static void receive_thread(void* arg)
 		YIELD();
 	}
 
+	if(server_socket!=INVALID_SOCKET && !terminate_server)
+		*xfer.inprogress=FALSE;
 	fclose(fp);
 
 	ftp_close_socket(xfer.data_sock,__LINE__);
@@ -1820,9 +1822,6 @@ static void receive_thread(void* arg)
 		/* Send ACK */
 		sockprintf(xfer.ctrl_sock,"226 Upload complete (%lu cps).",cps);
 	}
-
-	if(server_socket!=INVALID_SOCKET && !terminate_server)
-		*xfer.inprogress=FALSE;
 
 	thread_down();
 }
@@ -4541,7 +4540,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.325 $", "%*s %s", revision);
+	sscanf("$Revision: 1.322 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
