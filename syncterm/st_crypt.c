@@ -1,3 +1,5 @@
+/* Copyright (C), 2007 by Stephen Hurd */
+
 #ifndef _WIN32
  #include <dlfcn.h>
 #endif
@@ -10,7 +12,7 @@ int crypt_loaded=0;
 
 int init_crypt(void)
 {
-#ifdef STATIC_LINK
+#ifdef STATIC_CRYPTLIB
 	cl.PopData=cryptPopData;
 	cl.PushData=cryptPushData;
 	cl.FlushData=cryptFlushData;
@@ -34,51 +36,51 @@ int init_crypt(void)
 	if(cryptlib==NULL)
 		return(-1);
 
-	if((cl.PopData=GetProcAddress(cryptlib,"cryptPopData"))==NULL) {
+	if((cl.PopData=(void*)GetProcAddress(cryptlib,"cryptPopData"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.PushData=GetProcAddress(cryptlib,"cryptPushData"))==NULL) {
+	if((cl.PushData=(void*)GetProcAddress(cryptlib,"cryptPushData"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.FlushData=GetProcAddress(cryptlib,"cryptFlushData"))==NULL) {
+	if((cl.FlushData=(void*)GetProcAddress(cryptlib,"cryptFlushData"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.Init=GetProcAddress(cryptlib,"cryptInit"))==NULL) {
+	if((cl.Init=(void*)GetProcAddress(cryptlib,"cryptInit"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.End=GetProcAddress(cryptlib,"cryptEnd"))==NULL) {
+	if((cl.End=(void*)GetProcAddress(cryptlib,"cryptEnd"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.CreateSession=GetProcAddress(cryptlib,"cryptCreateSession"))==NULL) {
+	if((cl.CreateSession=(void*)GetProcAddress(cryptlib,"cryptCreateSession"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.GetAttribute=GetProcAddress(cryptlib,"cryptGetAttribute"))==NULL) {
+	if((cl.GetAttribute=(void*)GetProcAddress(cryptlib,"cryptGetAttribute"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.GetAttributeString=GetProcAddress(cryptlib,"cryptGetAttributeString"))==NULL) {
+	if((cl.GetAttributeString=(void*)GetProcAddress(cryptlib,"cryptGetAttributeString"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.SetAttribute=GetProcAddress(cryptlib,"cryptSetAttribute"))==NULL) {
+	if((cl.SetAttribute=(void*)GetProcAddress(cryptlib,"cryptSetAttribute"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.SetAttributeString=GetProcAddress(cryptlib,"cryptSetAttributeString"))==NULL) {
+	if((cl.SetAttributeString=(void*)GetProcAddress(cryptlib,"cryptSetAttributeString"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.DestroySession=GetProcAddress(cryptlib,"cryptDestroySession"))==NULL) {
+	if((cl.DestroySession=(void*)GetProcAddress(cryptlib,"cryptDestroySession"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
-	if((cl.AddRandom=GetProcAddress(cryptlib,"cryptAddRandom"))==NULL) {
+	if((cl.AddRandom=(void*)GetProcAddress(cryptlib,"cryptAddRandom"))==NULL) {
 		FreeLibrary(cryptlib);
 		return(-1);
 	}
@@ -88,7 +90,8 @@ int init_crypt(void)
 	if(crypt_loaded)
 		return(0);
 
-	cryptlib=dlopen("libcl.so",RTLD_LAZY);
+	if((cryptlib=dlopen("libcl.so",RTLD_LAZY))==NULL)
+		cryptlib=dlopen("libcl.so.3",RTLD_LAZY);
 	if(cryptlib==NULL)
 		return(-1);
 	if((cl.PopData=dlsym(cryptlib,"cryptPopData"))==NULL) {
@@ -146,6 +149,7 @@ int init_crypt(void)
 			crypt_loaded=1;
 			return(0);
 		}
+		cl.End();
 	}
 	return(-1);
 }
