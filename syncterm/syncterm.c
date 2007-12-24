@@ -1,4 +1,6 @@
-/* $Id: syncterm.c,v 1.123 2007/10/23 21:11:55 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: syncterm.c,v 1.125 2007/11/13 01:37:56 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -986,6 +988,7 @@ void load_settings(struct syncterm_settings *set)
 	sortby=iniReadStringList(inifile, "SyncTERM", "SortOrder", ",", "5,1");
 	while((order=strListRemove(&sortby,0))!=NULL) {
 		sortorder[i++]=atoi(order);
+		free(order);
 	}
 	strListFree(&sortby);
 

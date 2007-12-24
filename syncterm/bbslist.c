@@ -1,3 +1,5 @@
+/* Copyright (C), 2007 by Stephen Hurd */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -347,7 +349,7 @@ int listcmp(const void *aptr, const void *bptr)
 			if(sort_order[item].flags & SORT_ORDER_STRING)
 				ret=stricmp(a+sort_order[item].offset,b+sort_order[item].offset);
 			else
-				ret=memcmp(a+sort_order[item].offset,b+sort_order[item].offset,sort_order[item].length);
+				ret=intbufcmp(a+sort_order[item].offset,b+sort_order[item].offset,sort_order[item].length);
 			if(ret) {
 				if(reverse)
 					ret=0-ret;
@@ -461,6 +463,12 @@ void edit_sorting(struct bbslist **list, int *listcount)
 			else
 				opt[i][0]=0;
 		}
+		uifc.helpbuf=	"`Sort Order`\n\n"
+						"Move the highlight bar to the position you would like\n"
+						"to add a new ordering before and press ~INSERT~.  Choose\n"
+						"a field from the list and it will be inserted.\n\n"
+						"To remove a sort order, use ~DELETE~.\n\n"
+						"To reverse a sort order, highlight it and press enter";
 		ret=uifc.list(WIN_XTR|WIN_DEL|WIN_INS|WIN_INSACT|WIN_ACT|WIN_SAV
 					,0,0,0,&curr,&bar,"Sort Order",opts);
 		if(ret==-1)
@@ -479,6 +487,7 @@ void edit_sorting(struct bbslist **list, int *listcount)
 			}
 			else {
 				sopt[j][0]=0;
+				uifc.helpbuf=	"Select a sort order to add and press enter";
 				sret=uifc.list(WIN_SAV|WIN_BOT|WIN_RHT
 							,0,0,0,&scurr,&sbar,"Sort Field",sopts);
 				if(sret>=0) {
@@ -522,8 +531,9 @@ void free_list(struct bbslist **list, int listcount)
 
 void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id, int type)
 {
-	BOOL	dumb;
-	char	home[MAX_PATH+1];
+	BOOL		dumb;
+	char		home[MAX_PATH+1];
+	str_list_t	section;
 
 	get_syncterm_filename(home, sizeof(home), SYNCTERM_DEFAULT_TRANSFER_PATH, FALSE);
 	if(bbsname != NULL) {
@@ -540,34 +550,37 @@ void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id
 		SAFECOPY(entry->name,bbsname);
 #endif
 	}
-	iniGetString(listfile,bbsname,"Address","",entry->addr);
-	entry->conn_type=iniGetEnum(listfile,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
-	entry->port=iniGetShortInt(listfile,bbsname,"Port",conn_ports[entry->conn_type]);
-	entry->added=iniGetDateTime(listfile,bbsname,"Added",0);
-	entry->connected=iniGetDateTime(listfile,bbsname,"LastConnected",0);
-	entry->calls=iniGetInteger(listfile,bbsname,"TotalCalls",0);
-	iniGetString(listfile,bbsname,"UserName","",entry->user);
-	iniGetString(listfile,bbsname,"Password","",entry->password);
-	iniGetString(listfile,bbsname,"SystemPassword","",entry->syspass);
-	dumb=iniGetBool(listfile,bbsname,"BeDumb",0);
+	section=iniGetSection(listfile,bbsname);
+	iniGetString(section,bbsname,"Address","",entry->addr);
+	entry->conn_type=iniGetEnum(section,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
+	entry->port=iniGetShortInt(section,bbsname,"Port",conn_ports[entry->conn_type]);
+	entry->added=iniGetDateTime(section,bbsname,"Added",0);
+	entry->connected=iniGetDateTime(section,bbsname,"LastConnected",0);
+	entry->calls=iniGetInteger(section,bbsname,"TotalCalls",0);
+	iniGetString(section,bbsname,"UserName","",entry->user);
+	iniGetString(section,bbsname,"Password","",entry->password);
+	iniGetString(section,bbsname,"SystemPassword","",entry->syspass);
+	dumb=iniGetBool(section,bbsname,"BeDumb",0);
 	if(dumb)
 		entry->conn_type=CONN_TYPE_RAW;
-	entry->reversed=iniGetBool(listfile,bbsname,"Reversed",0);
-	entry->screen_mode=iniGetEnum(listfile,bbsname,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
-	entry->nostatus=iniGetBool(listfile,bbsname,"NoStatus",0);
-	iniGetString(listfile,bbsname,"DownloadPath",home,entry->dldir);
-	iniGetString(listfile,bbsname,"UploadPath",home,entry->uldir);
+	entry->reversed=iniGetBool(section,bbsname,"Reversed",0);
+	entry->screen_mode=iniGetEnum(section,bbsname,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
+	entry->nostatus=iniGetBool(section,bbsname,"NoStatus",0);
+	iniGetString(section,bbsname,"DownloadPath",home,entry->dldir);
+	iniGetString(section,bbsname,"UploadPath",home,entry->uldir);
 
 	/* Log Stuff */
-	iniGetString(listfile,bbsname,"LogFile","",entry->logfile);
-	entry->xfer_loglevel=iniGetEnum(listfile,bbsname,"TransferLogLevel",log_levels,LOG_INFO);
-	entry->telnet_loglevel=iniGetEnum(listfile,bbsname,"TelnetLogLevel",log_levels,LOG_INFO);
+	iniGetString(section,bbsname,"LogFile","",entry->logfile);
+	entry->xfer_loglevel=iniGetEnum(section,bbsname,"TransferLogLevel",log_levels,LOG_INFO);
+	entry->telnet_loglevel=iniGetEnum(section,bbsname,"TelnetLogLevel",log_levels,LOG_INFO);
 
-	entry->bpsrate=iniGetInteger(listfile,bbsname,"BPSRate",0);
-	entry->music=iniGetInteger(listfile,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
-	iniGetString(listfile,bbsname,"Font","Codepage 437 English",entry->font);
+	entry->bpsrate=iniGetInteger(section,bbsname,"BPSRate",0);
+	entry->music=iniGetInteger(section,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
+	iniGetString(section,bbsname,"Font","Codepage 437 English",entry->font);
 	entry->type=type;
 	entry->id=id;
+
+	strListFree(&section);
 }
 
 /*
@@ -626,11 +639,14 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 		bbses=iniGetSectionList(inilines,NULL);
 		while((bbsname=strListRemove(&bbses,0))!=NULL) {
 			if(!list_name_check(list, bbsname, NULL, FALSE)) {
-				if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL)
+				if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL) {
+					free(bbsname);
 					break;
+				}
 				read_item(inilines,list[*i],bbsname,*i,type);
 				(*i)++;
 			}
+			free(bbsname);
 		}
 		strListFree(&bbses);
 		strListFree(&inilines);
