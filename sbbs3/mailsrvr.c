@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.423 2007/08/25 08:08:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.425 2007/12/24 22:55:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,6 +108,7 @@ struct mailproc {
 typedef struct {
 	SOCKET			socket;
 	SOCKADDR_IN		client_addr;
+	socklen_t		client_addr_len;
 } smtp_t,pop3_t;
 
 static int lprintf(int level, char *fmt, ...)
@@ -709,7 +710,7 @@ static void pop3_thread(void* arg)
 		host=NULL;
 	else
 		host=gethostbyaddr((char *)&pop3.client_addr.sin_addr
-			,sizeof(pop3.client_addr.sin_addr),AF_INET);
+			,pop3.client_addr_len,AF_INET);
 
 	if(host!=NULL && host->h_name!=NULL)
 		SAFECOPY(host_name,host->h_name);
@@ -1984,7 +1985,7 @@ static void smtp_thread(void* arg)
 		host=NULL;
 	else
 		host=gethostbyaddr ((char *)&smtp.client_addr.sin_addr
-			,sizeof(smtp.client_addr.sin_addr),AF_INET);
+			,smtp.client_addr_len,AF_INET);
 
 	if(host!=NULL && host->h_name!=NULL)
 		SAFECOPY(host_name,host->h_name);
@@ -2072,7 +2073,7 @@ static void smtp_thread(void* arg)
 	srand(time(NULL) ^ (DWORD)GetCurrentThreadId());	/* seed random number generator */
 	rand();	/* throw-away first result */
 	SAFEPRINTF3(session_id,"%x%x%lx",socket,rand(),clock());
-
+	SAFEPRINTF2(msgtxt_fname,"%sSBBS_SMTP.%s.msg", scfg.temp_dir, session_id);
 	SAFEPRINTF2(rcptlst_fname,"%sSBBS_SMTP.%s.lst", scfg.temp_dir, session_id);
 	rcptlst=fopen(rcptlst_fname,"w+");
 	if(rcptlst==NULL) {
@@ -3290,10 +3291,8 @@ static void smtp_thread(void* arg)
 			}
 			if(msgtxt!=NULL) {
 				fclose(msgtxt), msgtxt=NULL;
-				if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
-					unlink(msgtxt_fname);
 			}
-			SAFEPRINTF2(msgtxt_fname,"%sSBBS_SMTP.%s.msg", scfg.temp_dir, session_id);
+			remove(msgtxt_fname);
 			if((msgtxt=fopen(msgtxt_fname,"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !SMTP ERROR %d opening %s"
 					,socket, errno, msgtxt_fname);
@@ -3333,15 +3332,13 @@ static void smtp_thread(void* arg)
 	/* Free up resources here */
 	smb_freemsgmem(&msg);
 
-	if(msgtxt!=NULL) {
+	if(msgtxt!=NULL)
 		fclose(msgtxt);
-		if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
-			unlink(msgtxt_fname);
-	}
-	if(rcptlst!=NULL) {
+	if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
+		remove(msgtxt_fname);
+	if(rcptlst!=NULL)
 		fclose(rcptlst);
-		unlink(rcptlst_fname);
-	}
+	remove(rcptlst_fname);
 	if(spy!=NULL)
 		fclose(spy);
 
@@ -4061,7 +4058,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.423 $", "%*s %s", revision);
+	sscanf("$Revision: 1.425 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4498,6 +4495,7 @@ void DLLCALL mail_server(void* arg)
 
 				smtp->socket=client_socket;
 				smtp->client_addr=client_addr;
+				smtp->client_addr_len=client_addr_len;
 				_beginthread (smtp_thread, 0, smtp);
 				served++;
 			}
@@ -4566,6 +4564,7 @@ void DLLCALL mail_server(void* arg)
 
 				pop3->socket=client_socket;
 				pop3->client_addr=client_addr;
+				pop3->client_addr_len=client_addr_len;
 
 				_beginthread (pop3_thread, 0, pop3);
 				served++;
