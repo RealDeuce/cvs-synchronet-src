@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.471 2008/01/07 06:58:29 deuce Exp $ */
+/* $Id: websrvr.c,v 1.469 2007/12/24 23:04:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -228,6 +228,7 @@ typedef struct  {
 typedef struct  {
 	SOCKET			socket;
 	SOCKADDR_IN		addr;
+	socklen_t		addr_len;
 	http_request_t	req;
 	char			host_ip[64];
 	char			host_name[128];	/* Resolved remote host */
@@ -1428,6 +1429,7 @@ static void calculate_digest(http_session_t * session, char *ha1, char *ha2, uns
 
 static BOOL check_ars(http_session_t * session)
 {
+	char	*last;
 	uchar	*ar;
 	BOOL	authorized;
 	int		i;
@@ -1437,7 +1439,7 @@ static BOOL check_ars(http_session_t * session)
 	unsigned auth_list_len;
 
 	auth_list=parseEnumList(session->req.auth_list?session->req.auth_list:default_auth_list, ",", auth_type_names, &auth_list_len);
-	for(i=0; ((unsigned)i)<auth_list_len; i++)
+	for(i=0; i<auth_list_len; i++)
 		auth_allowed |= 1<<auth_list[i];
 	if(auth_list)
 		free(auth_list);
@@ -2996,7 +2998,7 @@ static BOOL check_request(http_session_t * session)
 		/* No authentication provided */
 		strcpy(str,"401 Unauthorized");
 		auth_list=parseEnumList(session->req.auth_list?session->req.auth_list:default_auth_list, ",", auth_type_names, &auth_list_len);
-		for(i=0; ((unsigned)i)<auth_list_len; i++) {
+		for(i=0; i<auth_list_len; i++) {
 			p=strchr(str,0);
 			switch(auth_list[i]) {
 				case AUTHENTICATION_BASIC:
@@ -4813,7 +4815,7 @@ void http_session_thread(void* arg)
 		host=NULL;
 	else
 		host=gethostbyaddr ((char *)&session.addr.sin_addr
-			,sizeof(session.addr.sin_addr),AF_INET);
+			,session.addr_len,AF_INET);
 
 	if(host!=NULL && host->h_name!=NULL)
 		host_name=host->h_name;
@@ -5042,7 +5044,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.471 $", "%*s %s", revision);
+	sscanf("$Revision: 1.469 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5584,6 +5586,7 @@ void DLLCALL web_server(void* arg)
 
 			SAFECOPY(session->host_ip,host_ip);
 			session->addr=client_addr;
+			session->addr_len=client_addr_len;
    			session->socket=client_socket;
 			session->js_branch.auto_terminate=TRUE;
 			session->js_branch.terminated=&terminate_server;
