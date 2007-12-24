@@ -1,3 +1,5 @@
+/* Copyright (C), 2007 by Stephen Hurd */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -347,7 +349,7 @@ int listcmp(const void *aptr, const void *bptr)
 			if(sort_order[item].flags & SORT_ORDER_STRING)
 				ret=stricmp(a+sort_order[item].offset,b+sort_order[item].offset);
 			else
-				ret=memcmp(a+sort_order[item].offset,b+sort_order[item].offset,sort_order[item].length);
+				ret=intbufcmp(a+sort_order[item].offset,b+sort_order[item].offset,sort_order[item].length);
 			if(ret) {
 				if(reverse)
 					ret=0-ret;
@@ -461,6 +463,12 @@ void edit_sorting(struct bbslist **list, int *listcount)
 			else
 				opt[i][0]=0;
 		}
+		uifc.helpbuf=	"`Sort Order`\n\n"
+						"Move the highlight bar to the position you would like\n"
+						"to add a new ordering before and press ~INSERT~.  Choose\n"
+						"a field from the list and it will be inserted.\n\n"
+						"To remove a sort order, use ~DELETE~.\n\n"
+						"To reverse a sort order, highlight it and press enter";
 		ret=uifc.list(WIN_XTR|WIN_DEL|WIN_INS|WIN_INSACT|WIN_ACT|WIN_SAV
 					,0,0,0,&curr,&bar,"Sort Order",opts);
 		if(ret==-1)
@@ -479,6 +487,7 @@ void edit_sorting(struct bbslist **list, int *listcount)
 			}
 			else {
 				sopt[j][0]=0;
+				uifc.helpbuf=	"Select a sort order to add and press enter";
 				sret=uifc.list(WIN_SAV|WIN_BOT|WIN_RHT
 							,0,0,0,&scurr,&sbar,"Sort Field",sopts);
 				if(sret>=0) {
@@ -630,11 +639,14 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 		bbses=iniGetSectionList(inilines,NULL);
 		while((bbsname=strListRemove(&bbses,0))!=NULL) {
 			if(!list_name_check(list, bbsname, NULL, FALSE)) {
-				if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL)
+				if((list[*i]=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL) {
+					free(bbsname);
 					break;
+				}
 				read_item(inilines,list[*i],bbsname,*i,type);
 				(*i)++;
 			}
+			free(bbsname);
 		}
 		strListFree(&bbses);
 		strListFree(&inilines);
