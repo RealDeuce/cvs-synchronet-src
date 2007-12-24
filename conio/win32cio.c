@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.83 2008/01/19 23:28:32 deuce Exp $ */
+/* $Id: win32cio.c,v 1.79 2007/10/11 08:28:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -431,7 +431,6 @@ int win32_initciolib(long inmode)
 			return(0);
 	}
 
-	SetConsoleCtrlHandler(NULL,TRUE);
 	if((h=GetStdHandle(STD_INPUT_HANDLE))==INVALID_HANDLE_VALUE
 		|| !GetConsoleMode(h, &orig_in_conmode))
 		return(0);
@@ -457,24 +456,6 @@ int win32_initciolib(long inmode)
 		/* Switch to closest mode to current screen size */
 		i=sbuff.srWindow.Right-sbuff.srWindow.Left+1;
 		j=sbuff.srWindow.Bottom-sbuff.srWindow.Top+1;
-		if(i>=132) {
-			if(j<25)
-				win32_textmode(VESA_132X21);
-			else if(j<28)
-				win32_textmode(VESA_132X25);
-			else if(j<30)
-				win32_textmode(VESA_132X28);
-			else if(j<34)
-				win32_textmode(VESA_132X30);
-			else if(j<43)
-				win32_textmode(VESA_132X34);
-			else if(j<50)
-				win32_textmode(VESA_132X43);
-			else if(j<60)
-				win32_textmode(VESA_132X50);
-			else
-				win32_textmode(VESA_132X60);
-		}
 		if(i>=80) {
 			if(j<21)
 				win32_textmode(C80X14);
