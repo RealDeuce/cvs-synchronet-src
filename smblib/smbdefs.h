@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.68 2008/01/16 08:04:46 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.67 2007/11/21 01:00:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,11 +91,9 @@
 
 #define SMB_SELFPACK		0			/* Self-packing storage allocation */
 #define SMB_FASTALLOC		1			/* Fast allocation */
+#define SMB_HYPERALLOC		2			/* No allocation */
 
-										/* status.attr bit flags: */
 #define SMB_EMAIL			1			/* User numbers stored in Indexes */
-#define SMB_HYPERALLOC		2			/* No allocation (also storage value for smb_addmsghdr) */
-#define SMB_NOHASH			4			/* Do not calculate or store hashes */
 
 #define SMB_SUCCESS			0			/* Successful result/return code */
 #define SMB_FAILURE			-1			/* Generic error (discouraged) */
@@ -468,12 +466,12 @@ typedef struct _PACK {
 	uint32_t	number;					/* Message number */
 	uint32_t	time;					/* Local time of fingerprinting */
 	uint32_t	length;					/* Length (in bytes) of source */
-	uchar		source;					/* SMB_HASH_SOURCE* (in low 5-bits) */
-	uchar		flags;					/* indications of valid hashes and pre-processing */
+	uchar	source;					/* SMB_HASH_SOURCE* (in low 5-bits) */
+	uchar	flags;					/* indications of valid hashes and pre-processing */
 	uint16_t	crc16;					/* CRC-16 of source */
 	uint32_t	crc32;					/* CRC-32 of source */
-	uchar		md5[MD5_DIGEST_SIZE];	/* MD5 digest of source */
-	uchar		reserved[28];			/* sizeof(hash_t) = 64 */
+	uchar	md5[MD5_DIGEST_SIZE];	/* MD5 digest of source */
+	uchar	reserved[28];			/* sizeof(hash_t) = 64 */
 
 } hash_t;
 
