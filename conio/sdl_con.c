@@ -753,6 +753,39 @@ int sdl_get_window_info(int *width, int *height, int *xpos, int *ypos)
 	return(0);
 }
 
+/* Called from events thread only */
+int sdl_setup_colours(SDL_Surface *surf)
+{
+	int i;
+	int ret=0;
+	SDL_Color	co[sizeof(dac_default)/sizeof(struct dac_colors)];
+
+	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
+		co[i].r=dac_default[i].red;
+		co[i].g=dac_default[i].green;
+		co[i].b=dac_default[i].blue;
+	}
+	sdl.SetColors(surf, co, 0, sizeof(dac_default)/sizeof(struct dac_colors));
+
+	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
+		sdl_dac_default[i]=sdl.MapRGB(win->format, co[i].r, co[i].g, co[i].b);
+	}
+	return(ret);
+}
+
+int sdl_setup_yuv_colours(void)
+{
+	int i;
+	int ret=0;
+
+	if(yuv.enabled) {
+		for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
+			RGBtoYUV(dac_default[i].red, dac_default[i].green, dac_default[i].blue, &(yuv.colours[i][0]), 0, 100);
+		}
+	}
+	return(ret);
+}
+
 void setup_surfaces(void)
 {
 	int		char_width=vstat.charwidth*vstat.cols*vstat.scaling;
@@ -884,39 +917,6 @@ void sdl_add_key(unsigned int keyval)
 		}
 		sdl.mutexV(sdl_keylock);
 	}
-}
-
-/* Called from events thread only */
-int sdl_setup_colours(SDL_Surface *surf)
-{
-	int i;
-	int ret=0;
-	SDL_Color	co[sizeof(dac_default)/sizeof(struct dac_colors)];
-
-	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-		co[i].r=dac_default[i].red;
-		co[i].g=dac_default[i].green;
-		co[i].b=dac_default[i].blue;
-	}
-	sdl.SetColors(surf, co, 0, sizeof(dac_default)/sizeof(struct dac_colors));
-
-	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-		sdl_dac_default[i]=sdl.MapRGB(win->format, co[i].r, co[i].g, co[i].b);
-	}
-	return(ret);
-}
-
-int sdl_setup_yuv_colours(void)
-{
-	int i;
-	int ret=0;
-
-	if(yuv.enabled) {
-		for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-			RGBtoYUV(dac_default[i].red, dac_default[i].green, dac_default[i].blue, &(yuv.colours[i][0]), 0, 100);
-		}
-	}
-	return(ret);
 }
 
 unsigned int cp437_convert(unsigned int unicode)
@@ -1209,13 +1209,32 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 			if(sdl_keyval[i].keysym==keysym) {
 				/* KeySym found in table */
 
-				/* Using the modifiers, look up the expected scan code */
+				/*
+				 * Using the modifiers, look up the expected scan code.
+				 * Under windows, this is what unicode will be set to
+				 * if the ALT key is not AltGr
+				 */
+
 				if(mod & KMOD_CTRL)
 					expect=sdl_keyval[i].ctrl;
 				else if(mod & KMOD_SHIFT)
 					expect=sdl_keyval[i].shift;
 				else
 					expect=sdl_keyval[i].key;
+
+				/*
+				 * Now handle the ALT case so that expect will
+				 * be what we expect to return
+				 */
+				if(mod & (KMOD_META|KMOD_ALT)) {
+
+					/* Yes, this is a "normal" ALT combo */
+					if(unicode==expect)
+						return(sdl_keyval[i].alt);
+
+					/* AltGr apparently... translate unicode or give up */
+					return(cp437_convert(unicode));
+				}
 
 				/*
 				 * Apparently, Win32 SDL doesn't interpret keypad with numlock...
@@ -1269,15 +1288,6 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 				}
 
 				/*
-				 * If there is no unicode translation available,
-				 * we *MUST* use our table since we have
-				 * no other data to use.  This is apparently
-				 * never true on OS X.
-				 */
-				if(!unicode)
-					return(expect);
-
-				/*
 				 * "Extended" keys are always right since we can't compare to unicode
 				 * This does *NOT* mean ALT-x, it means things like F1 and Print Screen
 				 */
@@ -1285,15 +1295,13 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 					return(expect);
 
 				/*
-				 * If this is a regular ASCII key, and ALT is not pressed,
-				 * the SDL keysym is cleverly the ASCII code.  We're trusting
-				 * this one more than our table.
+				 * If there is no unicode translation available,
+				 * we *MUST* use our table since we have
+				 * no other data to use.  This is apparently
+				 * never true on OS X.
 				 */
-				/*
-				 * WAIT!  We can't do this, CTRL-C would be returned as 'c'
-				 */
-				//if(keysym <= 127 && !(mod & (KMOD_META|KMOD_ALT)))					/* The keyboard syms have been cleverly chosen to map to ASCII */
-				//	return(keysym);
+				if(!unicode)
+					return(expect);
 
 				/*
 				 * At this point, we no longer have a reason to distrust the

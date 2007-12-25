@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.102 2007/08/24 06:13:11 deuce Exp $ */
+/* $Id: cterm.c,v 1.103 2007/12/13 02:06:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1185,7 +1185,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.102 $";
+	char	*revision="$Revision: 1.103 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1327,11 +1327,11 @@ void ctputs(char *buf)
 				if(cy==cterm.height
 						&& cx==cterm.width) {
 					char ch;
-					ch=*p;
-					*p=0;
+					ch=*(p+1);
+					*(p+1)=0;
 					cputs(outp);
-					*p=ch;
-					outp=p;
+					*(p+1)=ch;
+					outp=p+1;
 					scrollup();
 					cx=1;
 					gotoxy(cx,cy);
