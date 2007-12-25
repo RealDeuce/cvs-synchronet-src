@@ -1,3 +1,5 @@
+/* Copyright (C), 2007 by Stephen Hurd */
+
 #ifndef _WIN32
  #include <dlfcn.h>
 #endif
@@ -10,7 +12,7 @@ int crypt_loaded=0;
 
 int init_crypt(void)
 {
-#ifdef STATIC_LINK
+#ifdef STATIC_CRYPTLIB
 	cl.PopData=cryptPopData;
 	cl.PushData=cryptPushData;
 	cl.FlushData=cryptFlushData;
@@ -88,7 +90,8 @@ int init_crypt(void)
 	if(crypt_loaded)
 		return(0);
 
-	cryptlib=dlopen("libcl.so",RTLD_LAZY);
+	if((cryptlib=dlopen("libcl.so",RTLD_LAZY))==NULL)
+		cryptlib=dlopen("libcl.so.3",RTLD_LAZY);
 	if(cryptlib==NULL)
 		return(-1);
 	if((cl.PopData=dlsym(cryptlib,"cryptPopData"))==NULL) {
@@ -146,6 +149,7 @@ int init_crypt(void)
 			crypt_loaded=1;
 			return(0);
 		}
+		cl.End();
 	}
 	return(-1);
 }
