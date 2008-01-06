@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.33 2008/02/23 03:08:00 deuce Exp $ */
+/* $Id: getnode.cpp,v 1.31 2008/01/05 23:10:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ void sbbs_t::nodesync()
 				putnodedat(cfg.node_num,&thisnode); 
 			}
 		}
-		if(!(sys_status&SS_MOFF)) {
+		if(!(thisnode.misc&NODE_MOFF)) {
 			if(thisnode.misc&NODE_MSGW)
 				getsmsg(useron.number); 	/* getsmsg clears MSGW flag */
 			if(thisnode.misc&NODE_NMSG)
@@ -186,8 +186,8 @@ void sbbs_t::nodesync()
 	if(sys_status&SS_USERON && online && (timeleft/60)<(5-timeleft_warn)
 		&& !SYSOP) {
 		timeleft_warn=5-(timeleft/60);
-		if(!(sys_status&SS_MOFF)) {
-			attr(LIGHTGRAY);
+		attr(LIGHTGRAY);
+		if(!(thisnode.misc&NODE_MOFF)) {
 			bprintf(text[OnlyXminutesLeft]
 				,((ushort)timeleft/60)+1,(timeleft/60) ? "s" : nulstr); 
 		}
@@ -309,18 +309,6 @@ int sbbs_t::getsmsg(int usernumber)
 	char	str[MAX_PATH+1], *buf;
     int		file;
     long	length;
-	node_t	node;
-	int		i;
-
-	for(i=1;i<=cfg.sys_nodes;i++) {	/* clear msg waiting flag */
-		if(getnodedat(i,&node,true)==0) {
-			if(node.useron==usernumber
-					&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
-					&& node.misc&NODE_MSGW)
-				node.misc&=~NODE_MSGW;
-			putnodedat(i,&node); 
-		} 
-	}
 
 	sprintf(str,"%smsgs/%4.4u.msg",cfg.data_dir,usernumber);
 	if(flength(str)<1L)
@@ -348,6 +336,12 @@ int sbbs_t::getsmsg(int usernumber)
 	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
 		|| sys_status&SS_IN_CTRLP) {
 		CRLF; 
+	}
+	if(thisnode.misc&NODE_MSGW) {
+		if(getnodedat(cfg.node_num,&thisnode,true)==0) {
+			thisnode.misc&=~NODE_MSGW;
+			putnodedat(cfg.node_num,&thisnode); 
+		}
 	}
 	putmsg(buf,P_NOATCODES);
 	free(buf);
