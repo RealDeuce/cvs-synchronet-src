@@ -2,13 +2,13 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.125 2008/01/07 07:04:44 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.124 2007/11/30 08:57:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -436,8 +436,6 @@ void sbbs_read_ini(
 			=iniGetIpAddress(list,section,strInterface,global->interface_addr);
 		mail->smtp_port
 			=iniGetShortInt(list,section,"SMTPPort",IPPORT_SMTP);
-		mail->submission_port
-			=iniGetShortInt(list,section,"SubmissionPort",IPPORT_SUBMISSION);
 		mail->pop3_port
 			=iniGetShortInt(list,section,"POP3Port",IPPORT_POP3);
 		mail->relay_port
