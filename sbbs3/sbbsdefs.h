@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.154 2008/02/23 22:35:09 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.151 2008/01/06 07:34:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,7 +153,7 @@ typedef struct {
 #define SM_CELERITY		(1L<<10)	/* Expand Celerity color codes in messages	*/
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
-#define SM_UNUSED		(1L<<13)	/* Defaults to *on*	(used to SM_LOCAL_TZ)	*/
+#define SM_LOCAL_TZ		(1L<<13)	/* Use local timezone representations		*/
 #define SM_AUTO_DST		(1L<<14)	/* Automatic Daylight Savings Toggle (US)   */
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/
@@ -407,7 +407,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_NOCTRL	(1L<<12)		/* No extraneous control files			*/
 #define QWK_EXT		(1L<<13)		/* QWK Extended (QWKE) format			*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
-#define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
 																			
@@ -653,7 +652,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_RLOGIN	(1L<<26) /* Current login via BSD RLogin				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
 #define SS_SSH		(1L<<28) /* Current login via SSH						*/
-#define SS_MOFF		(1L<<29) /* Disable automatic messages					*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_NONE		0			/* Use as a place holder for no mode flags	*/
