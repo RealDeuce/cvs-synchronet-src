@@ -1,4 +1,3 @@
-#include <string.h>
 #include "dirwrap.h"
 
 #if defined(_WIN32)
