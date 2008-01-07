@@ -1,3 +1,5 @@
+/* Copyright (C), 2007 by Stephen Hurd */
+
 #include <gen_defs.h>
 #include <ciolib.h>
 #include "uifcinit.h"
@@ -13,7 +15,10 @@ int drawwin(void)
 
 	strcpy(str,"SyncTERM ");
     gettextinfo(&txtinfo);
-	term.width=80;
+	if(txtinfo.screenwidth < 80)
+		term.width=40;
+	else
+		term.width=80;
 	term.height=txtinfo.screenheight;
 	if(!term.nostatus)
 		term.height--;
