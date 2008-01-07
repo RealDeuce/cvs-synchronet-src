@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.415 2007/05/04 22:58:05 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.429 2008/01/07 07:04:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -54,6 +54,7 @@
 #include "base64.h"
 #include "ini_file.h"
 #include "netwrap.h"	/* getNameServerList() */
+#include "xpendian.h"
 
 /* Constants */
 #define FORWARD			"forward:"
@@ -67,6 +68,7 @@ static char* ok_rsp		=	"250 OK";
 static char* auth_ok	=	"235 User Authenticated";
 static char* sys_error	=	"421 System error";
 static char* sys_unavail=	"421 System unavailable, try again later";
+static char* insuf_stor =	"452 Insufficient system storage";
 static char* badarg_rsp =	"501 Bad argument";
 static char* badseq_rsp	=	"503 Bad sequence of commands";
 static char* badauth_rsp=	"535 Authentication failure";
@@ -81,6 +83,7 @@ static char* badrsp_err	=	"%s replied with:\r\n\"%s\"\r\n"
 static mail_startup_t* startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
+static SOCKET	submission_socket=INVALID_SOCKET;
 static SOCKET	pop3_socket=INVALID_SOCKET;
 static DWORD	active_clients=0;
 static int		active_sendmail=0;
@@ -671,7 +674,8 @@ static void pop3_thread(void* arg)
 	long		l;
 	ulong		lines;
 	ulong		lines_sent;
-	long		msgs,msgnum;
+	int32_t		msgs;
+	long		msgnum;
 	ulong		bytes;
 	SOCKET		socket;
 	HOSTENT*	host;
@@ -1352,7 +1356,7 @@ static void signal_smtp_sem(void)
 	if(scfg.smtpmail_sem[0]==0) 
 		return; /* do nothing */
 
-	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC,S_IREAD|S_IWRITE))!=-1)
+	if((file=open(scfg.smtpmail_sem,O_WRONLY|O_CREAT|O_TRUNC,DEFFILEMODE))!=-1)
 		close(file);
 }
 
@@ -1975,8 +1979,8 @@ static void smtp_thread(void* arg)
 
 	SAFECOPY(host_ip,inet_ntoa(smtp.client_addr.sin_addr));
 
-	lprintf(LOG_INFO,"%04d SMTP Connection accepted from: %s port %u"
-		, socket, host_ip, ntohs(smtp.client_addr.sin_port));
+	lprintf(LOG_INFO,"%04d SMTP Connection accepted on port %u from: %s port %u"
+		,socket, BE_INT16(server_addr.sin_port), host_ip, ntohs(smtp.client_addr.sin_port));
 
 	if(startup->options&MAIL_OPT_NO_HOST_LOOKUP)
 		host=NULL;
@@ -2069,8 +2073,8 @@ static void smtp_thread(void* arg)
 
 	srand(time(NULL) ^ (DWORD)GetCurrentThreadId());	/* seed random number generator */
 	rand();	/* throw-away first result */
-	SAFEPRINTF3(session_id,"%x%x%lx",socket,rand(),clock());
-
+	SAFEPRINTF4(session_id,"%x%x%x%lx",getpid(),socket,rand(),clock());
+	SAFEPRINTF2(msgtxt_fname,"%sSBBS_SMTP.%s.msg", scfg.temp_dir, session_id);
 	SAFEPRINTF2(rcptlst_fname,"%sSBBS_SMTP.%s.lst", scfg.temp_dir, session_id);
 	rcptlst=fopen(rcptlst_fname,"w+");
 	if(rcptlst==NULL) {
@@ -2164,14 +2168,14 @@ static void smtp_thread(void* arg)
 					if((telegram_buf=(char*)malloc(length+strlen(str)+1))==NULL) {
 						lprintf(LOG_CRIT,"%04d !SMTP ERROR allocating %lu bytes of memory for telegram from %s"
 							,socket,length+strlen(str)+1,sender_addr);
-						sockprintf(socket, "452 Insufficient system storage");
+						sockprintf(socket, insuf_stor);
 						continue; 
 					}
 					strcpy(telegram_buf,str);	/* can't use SAFECOPY here */
 					if(fread(telegram_buf+strlen(str),1,length,msgtxt)!=length) {
 						lprintf(LOG_ERR,"%04d !SMTP ERROR reading %lu bytes from telegram file"
 							,socket,length);
-						sockprintf(socket, "452 Insufficient system storage");
+						sockprintf(socket, insuf_stor);
 						free(telegram_buf);
 						continue; 
 					}
@@ -2301,7 +2305,7 @@ static void smtp_thread(void* arg)
 				/* Parse message header here */
 				hfield_type=UNKNOWN;
 				smb_error=SMB_SUCCESS; /* no SMB error */
-				errmsg="452 Insufficient system storage";
+				errmsg=insuf_stor;
 				while(!feof(msgtxt)) {
 					if(!fgets(buf,sizeof(buf),msgtxt))
 						break;
@@ -2440,7 +2444,7 @@ static void smtp_thread(void* arg)
 				if((msgbuf=(char*)malloc(length+1))==NULL) {
 					lprintf(LOG_CRIT,"%04d !SMTP ERROR allocating %d bytes of memory"
 						,socket,length+1);
-					sockprintf(socket, "452 Insufficient system storage");
+					sockprintf(socket, insuf_stor);
 					subnum=INVALID_SUB;
 					continue;
 				}
@@ -2450,14 +2454,14 @@ static void smtp_thread(void* arg)
 				/* Do external JavaScript processing here? */
 
 				if(subnum!=INVALID_SUB) {	/* Message Base */
+					uint reason;
 					if(relay_user.number==0)
 						memset(&relay_user,0,sizeof(relay_user));
 
-					if(!chk_ar(&scfg,scfg.grp[scfg.sub[subnum]->grp]->ar, &relay_user)
-						|| !chk_ar(&scfg,scfg.sub[subnum]->ar, &relay_user)
-						|| !chk_ar(&scfg,scfg.sub[subnum]->post_ar, &relay_user)) {
-						lprintf(LOG_WARNING,"%04d !SMTP %s has insufficient access to post on %s"
-							,socket, sender_addr, scfg.sub[subnum]->sname);
+					if(!can_user_post(&scfg,subnum,&relay_user,&reason)) {
+						lprintf(LOG_WARNING,"%04d !SMTP %s (user #u) cannot post on %s (reason: %u)"
+							,socket, sender_addr, relay_user.number
+							,scfg.sub[subnum]->sname, reason);
 						sockprintf(socket,"550 Insufficient access");
 						subnum=INVALID_SUB;
 						continue;
@@ -2564,7 +2568,7 @@ static void smtp_thread(void* arg)
 						safe_snprintf(str,sizeof(str)
 							,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you e-mail from: "
 							"\1h%s\1n\r\n"
-							,timestr(&scfg,(time_t*)&newmsg.hdr.when_imported.time,tmp)
+							,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 							,sender,sender_addr);
 						if(!newmsg.idx.to) {	/* Forwarding */
 							strcat(str,"\1mand it was automatically forwarded to: \1h");
@@ -2577,7 +2581,7 @@ static void smtp_thread(void* arg)
 				iniFreeStringList(sec_list);
 				if(rcpt_count<1) {
 					smb_freemsg_dfields(&smb,&msg,SMB_ALL_REFS);
-					sockprintf(socket, "452 Insufficient system storage");
+					sockprintf(socket, insuf_stor);
 				}
 				else {
 					if(rcpt_count>1)
@@ -3288,14 +3292,12 @@ static void smtp_thread(void* arg)
 			}
 			if(msgtxt!=NULL) {
 				fclose(msgtxt), msgtxt=NULL;
-				if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
-					unlink(msgtxt_fname);
 			}
-			SAFEPRINTF2(msgtxt_fname,"%sSBBS_SMTP.%s.msg", scfg.temp_dir, session_id);
+			remove(msgtxt_fname);
 			if((msgtxt=fopen(msgtxt_fname,"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !SMTP ERROR %d opening %s"
 					,socket, errno, msgtxt_fname);
-				sockprintf(socket, "452 Insufficient system storage");
+				sockprintf(socket, insuf_stor);
 				continue;
 			}
 			/* These vars are potentially over-written by parsing an RFC822 header */
@@ -3331,15 +3333,13 @@ static void smtp_thread(void* arg)
 	/* Free up resources here */
 	smb_freemsgmem(&msg);
 
-	if(msgtxt!=NULL) {
+	if(msgtxt!=NULL)
 		fclose(msgtxt);
-		if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
-			unlink(msgtxt_fname);
-	}
-	if(rcptlst!=NULL) {
+	if(!(startup->options&MAIL_OPT_DEBUG_RX_BODY))
+		remove(msgtxt_fname);
+	if(rcptlst!=NULL)
 		fclose(rcptlst);
-		unlink(rcptlst_fname);
-	}
+	remove(rcptlst_fname);
 	if(spy!=NULL)
 		fclose(spy);
 
@@ -3539,7 +3539,7 @@ static void sendmail_thread(void* arg)
 	smb_t		smb;
 	smbmsg_t	msg;
 	mail_t*		mail;
-	long		msgs;
+	int32_t		msgs;
 	long		l;
 	BOOL		sending_locally=FALSE;
 
@@ -3726,7 +3726,7 @@ static void sendmail_thread(void* arg)
 							,TIMEOUT_THREAD_WAIT/2))!=0) {
 							remove_msg_intransit(&smb,&msg);
 							lprintf(LOG_WARNING,"0000 !SEND ERROR %d obtaining MX records for %s from %s"
-								,i,p,startup->dns_server);
+								,i,p,dns_server);
 							SAFEPRINTF2(err,"Error %d obtaining MX record for %s",i,p);
 							bounce(&smb,&msg,err,FALSE);
 							continue;
@@ -3748,11 +3748,13 @@ static void sendmail_thread(void* arg)
 			addr.sin_addr.s_addr = htonl(startup->interface_addr);
 			addr.sin_family = AF_INET;
 
+			/* Not needed.  Port is zero
 			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
+				startup->seteuid(FALSE); */
 			i=bind(sock,(struct sockaddr *)&addr, sizeof(addr));
+			/* Not needed.  Port is zero
 			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
+				startup->seteuid(TRUE); */
 			if(i!=0) {
 				remove_msg_intransit(&smb,&msg);
 				lprintf(LOG_ERR,"%04d !SEND ERROR %d (%d) binding socket", sock, i, ERROR_VALUE);
@@ -4029,6 +4031,11 @@ static void cleanup(int code)
 		server_socket=INVALID_SOCKET;
 	}
 
+	if(submission_socket!=INVALID_SOCKET) {
+		mail_close_socket(submission_socket);
+		submission_socket=INVALID_SOCKET;
+	}
+
 	if(pop3_socket!=INVALID_SOCKET) {
 		mail_close_socket(pop3_socket);
 		pop3_socket=INVALID_SOCKET;
@@ -4057,7 +4064,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.415 $", "%*s %s", revision);
+	sscanf("$Revision: 1.429 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4124,6 +4131,7 @@ void DLLCALL mail_server(void* arg)
 
 	/* Setup intelligent defaults */
 	if(startup->relay_port==0)				startup->relay_port=IPPORT_SMTP;
+	if(startup->submission_port==0)			startup->submission_port=IPPORT_SUBMISSION;
 	if(startup->smtp_port==0)				startup->smtp_port=IPPORT_SMTP;
 	if(startup->pop3_port==0)				startup->pop3_port=IPPORT_POP3;
 	if(startup->rescan_frequency==0)		startup->rescan_frequency=3600;	/* 60 minutes */
@@ -4279,12 +4287,16 @@ void DLLCALL mail_server(void* arg)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port   = htons(startup->smtp_port);
 
-		if(startup->seteuid!=NULL)
-			startup->seteuid(FALSE);
+		if(startup->smtp_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
 		result = retry_bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 			,startup->bind_retry_count,startup->bind_retry_delay,"SMTP Server",lprintf);
-		if(startup->seteuid!=NULL)
-			startup->seteuid(TRUE);
+		if(startup->smtp_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
 		if(result != 0) {
 			lprintf(LOG_ERR,"%04d %s",server_socket, BIND_FAILURE_HELP);
 			cleanup(1);
@@ -4294,13 +4306,63 @@ void DLLCALL mail_server(void* arg)
 		lprintf(LOG_DEBUG,"%04d SMTP socket bound to port %u"
 			,server_socket, startup->smtp_port);
 
-		result = listen (server_socket, 1);
+		result = listen(server_socket, 1);
 
 		if(result != 0) {
 			lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on socket"
 				,server_socket, result, ERROR_VALUE);
 			cleanup(1);
 			return;
+		}
+
+		if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT) {
+
+			submission_socket = mail_open_socket(SOCK_STREAM,"submission");
+
+			if(submission_socket == INVALID_SOCKET) {
+				lprintf(LOG_ERR,"!ERROR %d opening socket", ERROR_VALUE);
+				cleanup(1);
+				return;
+			}
+
+			lprintf(LOG_DEBUG,"%04d SUBMISSION socket opened",submission_socket);
+
+			/*****************************/
+			/* Listen for incoming calls */
+			/*****************************/
+			memset(&server_addr, 0, sizeof(server_addr));
+
+			server_addr.sin_addr.s_addr = htonl(startup->interface_addr);
+			server_addr.sin_family = AF_INET;
+			server_addr.sin_port   = htons(startup->submission_port);
+
+			if(startup->submission_port < IPPORT_RESERVED) {
+				if(startup->seteuid!=NULL)
+					startup->seteuid(FALSE);
+			}
+			result = retry_bind(submission_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
+				,startup->bind_retry_count,startup->bind_retry_delay,"SMTP Submission Agent",lprintf);
+			if(startup->submission_port < IPPORT_RESERVED) {
+				if(startup->seteuid!=NULL)
+					startup->seteuid(TRUE);
+			}
+			if(result != 0) {
+				lprintf(LOG_ERR,"%04d %s",submission_socket, BIND_FAILURE_HELP);
+				cleanup(1);
+				return;
+			}
+
+			lprintf(LOG_DEBUG,"%04d SUBMISSION socket bound to port %u"
+				,submission_socket, startup->submission_port);
+
+			result = listen(submission_socket, 1);
+
+			if(result != 0) {
+				lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on socket"
+					,submission_socket, result, ERROR_VALUE);
+				cleanup(1);
+				return;
+			}
 		}
 
 		if(startup->options&MAIL_OPT_ALLOW_POP3) {
@@ -4326,12 +4388,16 @@ void DLLCALL mail_server(void* arg)
 			server_addr.sin_family = AF_INET;
 			server_addr.sin_port   = htons(startup->pop3_port);
 
-			if(startup->seteuid!=NULL)
-				startup->seteuid(FALSE);
+			if(startup->pop3_port < IPPORT_RESERVED) {
+				if(startup->seteuid!=NULL)
+					startup->seteuid(FALSE);
+			}
 			result = retry_bind(pop3_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
 				,startup->bind_retry_count,startup->bind_retry_delay,"POP3 Server",lprintf);
-			if(startup->seteuid!=NULL)
-				startup->seteuid(TRUE);
+			if(startup->pop3_port < IPPORT_RESERVED) {
+				if(startup->seteuid!=NULL)
+					startup->seteuid(FALSE);
+			}
 			if(result != 0) {
 				lprintf(LOG_ERR,"%04d %s",pop3_socket,BIND_FAILURE_HELP);
 				cleanup(1);
@@ -4341,7 +4407,7 @@ void DLLCALL mail_server(void* arg)
 			lprintf(LOG_DEBUG,"%04d POP3 socket bound to port %u"
 				,pop3_socket, startup->pop3_port);
 
-			result = listen (pop3_socket, 1);
+			result = listen(pop3_socket, 1);
 
 			if(result != 0) {
 				lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on POP3 socket"
@@ -4365,7 +4431,6 @@ void DLLCALL mail_server(void* arg)
 		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
-			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
@@ -4383,10 +4448,6 @@ void DLLCALL mail_server(void* arg)
 							,server_socket,p);
 						break;
 					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_NOTICE,"%04d Recycle semaphore signaled", server_socket);
 						startup->recycle_now=FALSE;
@@ -4415,6 +4476,12 @@ void DLLCALL mail_server(void* arg)
 				if(pop3_socket+1>high_socket_set)
 					high_socket_set=pop3_socket+1;
 			}
+			if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT 
+				&& submission_socket!=INVALID_SOCKET) {
+				FD_SET(submission_socket,&socket_set);
+				if(submission_socket+1>high_socket_set)
+					high_socket_set=submission_socket+1;
+			}
 
 			tv.tv_sec=startup->sem_chk_freq;
 			tv.tv_usec=0;
@@ -4432,10 +4499,14 @@ void DLLCALL mail_server(void* arg)
 			}
 
 			if(server_socket!=INVALID_SOCKET && !terminate_server
-				&& FD_ISSET(server_socket,&socket_set)) {
+				&& (FD_ISSET(server_socket,&socket_set) 
+					|| (startup->options&MAIL_OPT_USE_SUBMISSION_PORT
+						&& FD_ISSET(submission_socket,&socket_set)))) {
 
 				client_addr_len = sizeof(client_addr);
-				client_socket = accept(server_socket, (struct sockaddr *)&client_addr
+				client_socket = accept(
+					FD_ISSET(server_socket,&socket_set) ? server_socket:submission_socket
+					,(struct sockaddr *)&client_addr
         			,&client_addr_len);
 
 				if(client_socket == INVALID_SOCKET)
@@ -4448,7 +4519,8 @@ void DLLCALL mail_server(void* arg)
 					}
 #endif
 					lprintf(LOG_WARNING,"%04d SMTP !ERROR %d accepting connection"
-						,server_socket, ERROR_VALUE);
+						,FD_ISSET(server_socket,&socket_set) ? server_socket:submission_socket
+						,ERROR_VALUE);
 #ifdef _WIN32
 					if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
 						break;
@@ -4491,7 +4563,7 @@ void DLLCALL mail_server(void* arg)
 
 				smtp->socket=client_socket;
 				smtp->client_addr=client_addr;
-				_beginthread (smtp_thread, 0, smtp);
+				_beginthread(smtp_thread, 0, smtp);
 				served++;
 			}
 
@@ -4560,7 +4632,7 @@ void DLLCALL mail_server(void* arg)
 				pop3->socket=client_socket;
 				pop3->client_addr=client_addr;
 
-				_beginthread (pop3_thread, 0, pop3);
+				_beginthread(pop3_thread, 0, pop3);
 				served++;
 			}
 		}
