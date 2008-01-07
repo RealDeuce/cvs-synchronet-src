@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.13 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: con_hi.cpp,v 1.12 2006/08/23 01:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,7 +69,7 @@ void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 }
 
 
-int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const uchar *ar)
+int sbbs_t::uselect(int add, uint n, char *title, char *item, uchar *ar)
 {
 	char	str[128];
 	int		i;
