@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.210 2006/12/27 09:19:26 rswindell Exp $ */
+/* $Id: js_global.c,v 1.215 2008/01/07 06:14:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -2227,6 +2227,26 @@ js_md5_calc(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
+js_skipsp(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		str;
+	JSString*	js_str;
+
+	if(JSVAL_IS_VOID(argv[0]))
+		return(JS_TRUE);
+
+	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
+		return(JS_FALSE);
+
+	js_str = JS_NewStringCopyZ(cx, skipsp(str));
+	if(js_str==NULL)
+		return(JS_FALSE);
+
+	*rval = STRING_TO_JSVAL(js_str);
+	return(JS_TRUE);
+}
+
+static JSBool
 js_truncsp(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
@@ -2307,6 +2327,29 @@ js_backslash(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static JSBool
+js_fullpath(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char		path[MAX_PATH+1];
+	char*		str;
+	JSString*	js_str;
+
+	if(JSVAL_IS_VOID(argv[0]))
+		return(JS_TRUE);
+
+	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
+		return(JS_FALSE);
+
+	SAFECOPY(path,str);
+	_fullpath(path, str, sizeof(path));
+
+	if((js_str = JS_NewStringCopyZ(cx, path))==NULL)
+		return(JS_FALSE);
+
+	*rval = STRING_TO_JSVAL(js_str);
+	return(JS_TRUE);
+}
+
 
 static JSBool
 js_getfname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2373,6 +2416,38 @@ js_getfcase(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		*rval = STRING_TO_JSVAL(js_str);
 	}
+	return(JS_TRUE);
+}
+
+static JSBool
+js_dosfname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		str;
+	char		path[MAX_PATH+1];
+	JSString*	js_str;
+
+	if(JSVAL_IS_VOID(argv[0]))
+		return(JS_TRUE);
+
+#if defined(_WIN32)
+
+	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
+		return(JS_FALSE);
+
+	if(GetShortPathName(str,path,sizeof(path))) {
+		js_str = JS_NewStringCopyZ(cx, path);
+		if(js_str==NULL)
+			return(JS_FALSE);
+
+		*rval = STRING_TO_JSVAL(js_str);
+	}
+
+#else	/* No non-Windows equivalent */
+
+	*rval = argv[0];
+
+#endif
+
 	return(JS_TRUE);
 }
 
@@ -2573,8 +2648,7 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*			fname;
 	int32			actime;
 	int32			modtime;
-	struct utimbuf	tbuf;
-	struct utimbuf*	t=NULL;
+	struct utimbuf	ut;
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -2584,17 +2658,18 @@ js_utime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((fname=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
+	/* use current time as default */
+	ut.actime = ut.modtime = time(NULL);
+
 	if(argc>1) {
-		memset(&tbuf,0,sizeof(tbuf));
-		actime=modtime=time(NULL);
+		actime=modtime=ut.actime;
 		JS_ValueToInt32(cx,argv[1],&actime);
 		JS_ValueToInt32(cx,argv[2],&modtime);
-		tbuf.actime=actime;
-		tbuf.modtime=modtime;
-		t=&tbuf;
+		ut.actime=actime;
+		ut.modtime=modtime;
 	}
 
-	*rval = BOOLEAN_TO_JSVAL(utime(fname,t)==0);
+	*rval = BOOLEAN_TO_JSVAL(utime(fname,&ut)==0);
 
 	return(JS_TRUE);
 }
@@ -2855,18 +2930,18 @@ js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		}
     }
 
-	if(select(maxsock+1,rd_set,wr_set,NULL,&tv)<0)
-		lprintf(LOG_DEBUG,"Error in socket_select()  %s (%d)",strerror(errno),errno);
+	if(select(maxsock+1,rd_set,wr_set,NULL,&tv) >= 0) {
 
-	for(i=0;i<limit;i++) {
-		if(index[i]!=INVALID_SOCKET && FD_ISSET(index[i],&socket_set)) {
-			val=INT_TO_JSVAL(i);
-   			if(!JS_SetElement(cx, rarray, len++, &val))
-				break;
+		for(i=0;i<limit;i++) {
+			if(index[i]!=INVALID_SOCKET && FD_ISSET(index[i],&socket_set)) {
+				val=INT_TO_JSVAL(i);
+   				if(!JS_SetElement(cx, rarray, len++, &val))
+					break;
+			}
 		}
-	}
 
-    *rval = OBJECT_TO_JSVAL(rarray);
+		*rval = OBJECT_TO_JSVAL(rarray);
+	}
 
     return(JS_TRUE);
 }
@@ -3128,8 +3203,12 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("strip extended-ASCII characters from string, returns modified string")
 	,310
 	},		
+	{"skipsp",			js_skipsp,			1,	JSTYPE_STRING,	JSDOCSTR("text")
+	,JSDOCSTR("skip (trim) white-space characters off <b>beginning</b> of string, returns modified string")
+	,315
+	},
 	{"truncsp",			js_truncsp,			1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("truncate (trim) white-space characters off end of string, returns modified string")
+	,JSDOCSTR("truncate (trim) white-space characters off <b>end</b> of string, returns modified string")
 	,310
 	},
 	{"truncstr",		js_truncstr,		2,	JSTYPE_STRING,	JSDOCSTR("text, charset")
@@ -3150,6 +3229,10 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"(i.e. \"slash\" or \"backslash\")")
 	,312
 	},
+	{"fullpath",		js_fullpath,		1,	JSTYPE_STRING,	JSDOCSTR("path")
+	,JSDOCSTR("Creates an absolute or full path name for the specified relative path name.")
+	,315
+	},
 	{"file_getname",	js_getfname,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
 	,JSDOCSTR("returns filename portion of passed path string")
 	,311
@@ -3160,7 +3243,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,311
 	},
 	{"file_getcase",	js_getfcase,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
-	,JSDOCSTR("returns correct case of filename (long version of filename on Win32) "
+	,JSDOCSTR("returns correct case of filename (long version of filename on Windows) "
 		"or <i>undefined</i> if the file doesn't exist")
 	,311
 	},
@@ -3169,6 +3252,12 @@ static jsSyncMethodSpec js_global_functions[] = {
 	"optionally including the local hostname (e.g. <tt>path/file.<i>host</i>.<i>domain</i>.ext</tt> "
 	"or <tt>path/file.<i>host</i>.ext</tt>) if such a variation of the filename exists")
 	,312
+	},
+	{"file_getdosname",	js_dosfname,		1,	JSTYPE_STRING,	JSDOCSTR("path/filename")
+	,JSDOCSTR("returns DOS-compatible (Micros~1 shortened) version of specified <i>path/filename</i>"
+		"(on Windows only)<br>"
+		"returns unmodified <i>path/filename</i> on other platforms")
+	,315
 	},
 	{"file_exists",		js_fexist,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename")
 	,JSDOCSTR("verify a file's existence")
@@ -3257,7 +3346,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"socket_select",	js_socket_select,	0,	JSTYPE_ARRAY,	JSDOCSTR("[array of socket objects or descriptors] [,timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
 	,JSDOCSTR("checks an array of socket objects or descriptors for read or write ability (default is <i>read</i>), "
 		"default timeout value is 0.0 seconds (immediate timeout), "
-		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing")
+		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing, or <i>null</i> on error")
 	,311
 	},
 	{"mkdir",			js_mkdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
