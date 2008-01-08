@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.12 2008/01/20 08:02:34 rswindell Exp $ */
+/* $Id: modem.c,v 1.10 2007/11/13 01:37:56 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -35,7 +35,7 @@ void modem_input_thread(void *args)
 			buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
 			pthread_mutex_unlock(&(conn_inbuf.mutex));
 		}
-		if((comGetModemStatus(com)&COM_DCD) == 0)
+		if(comGetModemStatus(com)&COM_DCD == 0)
 			break;
 	}
 	conn_api.input_thread_running=0;
@@ -69,7 +69,7 @@ void modem_output_thread(void *args)
 		}
 		else
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
-		if((comGetModemStatus(com)&COM_DCD) == 0)
+		if(comGetModemStatus(com)&COM_DCD == 0)
 			break;
 	}
 	conn_api.output_thread_running=0;
@@ -162,7 +162,7 @@ int modem_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 	uifc.pop("Dialing...");
-	comWriteString(com, settings.mdm.dial_string);
+	comWriteString(com, "ATDT");
 	comWriteString(com, bbs->addr);
 	comWriteString(com, "\r");
 

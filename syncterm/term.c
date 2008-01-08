@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.197 2008/01/20 10:02:39 deuce Exp $ */
+/* $Id: term.c,v 1.192 2007/11/13 01:37:56 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -190,8 +190,6 @@ void update_status(struct bbslist *bbs, int speed)
 				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break;
 	}
-	if(wherex()>=80)
-		clreol();
 	_wscroll=oldscroll;
 	textattr(txtinfo.attribute);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
@@ -1226,13 +1224,15 @@ BOOL doterm(struct bbslist *bbs)
 	for(;;) {
 		hold_update=TRUE;
 		sleep=TRUE;
+		if(!speed && bbs->bpsrate)
+			speed = bbs->bpsrate;
+		if(speed)
+			thischar=xp_timer();
+
 		if(!term.nostatus)
 			update_status(bbs, speed);
 		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
-			if(speed)
-				thischar=xp_timer();
-
-			if((!speed) || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
+			if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
 				/* Get remote input */
 				inch=recv_byte(NULL, 0);
 
