@@ -2,13 +2,13 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.21 2008/02/22 23:03:49 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.20 2007/01/09 17:35:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,10 +80,9 @@ char *wcfaddrtoa(faddr_t* addr)
     static char str[25];
 	char tmp[25];
 
-	str[0]=0;
 	if(addr->zone==0xffff)
 		strcpy(str,"ALL");
-	else if(addr->zone) {
+	else {
 		sprintf(str,"%u:",addr->zone);
 		if(addr->net==0xffff)
 			strcat(str,"ALL");
@@ -575,8 +574,6 @@ int main(int argc, char **argv)
 									,25,K_EDIT);
 									if(str[0])
 										cfg.nodecfg[i].route=atofaddr(str);
-									else
-										cfg.nodecfg[i].route.zone=0;
 								break;
 								} } }
 				break;
