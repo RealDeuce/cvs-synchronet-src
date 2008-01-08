@@ -1,7 +1,10 @@
-/* $Id: conn_pty.c,v 1.1 2007/06/01 11:59:14 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: conn_pty.c,v 1.5 2007/11/13 01:37:56 deuce Exp $ */
 
 #ifdef __unix__
 
+#include <unistd.h>		/* _POSIX_VDISABLE - needed when termios.h is broken */
 #include <signal.h>		// kill()
 #include <sys/wait.h>	// WEXITSTATUS
 
@@ -287,7 +290,16 @@ int i;
 			break;
 		FD_ZERO(&rds);
 		FD_SET(master, &rds);
+#ifdef __linux__
+		{
+			struct timeval tv;
+			tv.tv_sec=0;
+			tv.tv_usec=500000;
+			rd=select(master+1, &rds, NULL, NULL, &tv);
+		}
+#else
 		rd=select(master+1, &rds, NULL, NULL, NULL);
+#endif
 		if(rd==-1) {
 			if(errno==EBADF)
 				break;
@@ -324,6 +336,7 @@ void pty_output_thread(void *args)
 		if(waitpid(child_pid, &status, WNOHANG))
 			break;
 		pthread_mutex_lock(&(conn_outbuf.mutex));
+		ret=0;
 		wr=conn_buf_wait_bytes(&conn_outbuf, 1, 100);
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
@@ -332,7 +345,16 @@ void pty_output_thread(void *args)
 			while(sent < wr) {
 				FD_ZERO(&wds);
 				FD_SET(master, &wds);
+#ifdef __linux__
+				{
+					struct timeval tv;
+					tv.tv_sec=0;
+					tv.tv_usec=500000;
+					ret=select(master+1, NULL, &wds, NULL, &tv);
+				}
+#else
 				ret=select(master+1, NULL, &wds, NULL, NULL);
+#endif
 				if(ret==-1) {
 					if(errno==EBADF)
 						break;
