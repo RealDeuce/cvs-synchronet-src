@@ -2,13 +2,13 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.13 2006/12/29 09:00:59 rswindell Exp $ */
+/* $Id: ars.c,v 1.15 2007/09/30 22:30:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -232,6 +232,24 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 				i+=2; }
 			else if(!strnicmp(str+i,"UDR",3)) {
 				artype=AR_UDR;
+				i+=2; }
+			else if(!strnicmp(str+i,"ULS",3)) {
+				artype=AR_ULS;
+				i+=2; }
+			else if(!strnicmp(str+i,"ULK",3)) {
+				artype=AR_ULK;
+				i+=2; }
+			else if(!strnicmp(str+i,"ULM",3)) {
+				artype=AR_ULM;
+				i+=2; }
+			else if(!strnicmp(str+i,"DLS",3)) {
+				artype=AR_DLS;
+				i+=2; }
+			else if(!strnicmp(str+i,"DLK",3)) {
+				artype=AR_DLK;
+				i+=2; }
+			else if(!strnicmp(str+i,"DLM",3)) {
+				artype=AR_DLM;
 				i+=2; }
 			else if(!strnicmp(str+i,"DAY",3)) {
 				artype=AR_DAY;
@@ -502,6 +520,12 @@ uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 				case AR_RANDOM:
 				case AR_LASTON:
 				case AR_LOGONS:
+				case AR_ULS:
+				case AR_ULK:
+				case AR_ULM:
+				case AR_DLS:
+				case AR_DLK:
+				case AR_DLM:
 					*((short *)(ar+j))=n;
 					j+=2;
 					break;
