@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.40 2007/05/25 02:23:59 deuce Exp $ */
+/* $Id: ciolib.h,v 1.48 2007/10/21 02:28:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,8 @@ enum {
 	,CIOLIB_MODE_CONIO
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
+	,CIOLIB_MODE_SDL_YUV
+	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
@@ -168,11 +170,12 @@ enum text_modes
 
     C4350    = C80X50,	/* this is actually "64" in the "real" conio */
 
-    _ORIGMODE = 65      /* original mode at program startup */
+    _ORIGMODE = 65,      /* original mode at program startup */
 
     C64_40X25 = 147,	/* Commodore 64 40x25 colour mode */
     C128_40X25,		/* Commodore 128 40x25 colour mode */
     C128_80X25,		/* Commodore 128 40x25 colour mode */
+	ATARI_40X24,	/* Atari 800 40x24 colour text mode */
 };
 
 #define COLOR_MODE	C80
@@ -198,6 +201,8 @@ struct text_info {
 	unsigned char curx;           /* x-coordinate in current window */
 	unsigned char cury;           /* y-coordinate in current window */
 };
+
+extern struct text_info cio_textinfo;
 
 typedef struct {
 	int		mode;
@@ -249,6 +254,7 @@ typedef struct {
 	int		(*setfont)		(int font, int force);
 	int		(*getfont)		(void);
 	int		(*loadfont)		(char *filename);
+	int		(*get_window_info)		(int* width, int* height, int* xpos, int* ypos);
 	int		*ESCDELAY;
 } cioapi_t;
 
@@ -308,6 +314,11 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
+CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
+CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void);
+
+/* DoorWay specific stuff that's only applicable to ANSI mode. */
+CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 #ifdef __cplusplus
 }
 #endif
@@ -358,6 +369,17 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 	#define setfont(a,b)			ciolib_setfont(a,b)
 	#define getfont()				ciolib_getfont()
 	#define loadfont(a)				ciolib_loadfont(a)
+	#define get_window_info(a,b,c,d)	ciolib_get_window_info(a,b,c,d)
+	#define beep()				ciolib_beep()
+#endif
+
+#ifdef WITH_SDL
+	#include <SDL.h>
+
+	#ifdef main
+		#undef main
+	#endif
+	#define	main	CIOLIB_main
 #endif
 
 #endif	/* Do not add anything after this line */
