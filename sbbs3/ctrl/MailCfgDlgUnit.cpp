@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.25 2008/02/13 07:50:45 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.23 2008/01/07 07:08:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,14 +173,9 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_ALLOW_RX_BY_NUMBER);
     AdvancedCheckListBox->Checked[i++]
-        =(MainForm->mail_startup.options&MAIL_OPT_ALLOW_SYSOP_ALIASES);
-
-    AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_CHKRECVHDRS);
     AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_THROTTLE);
-    AdvancedCheckListBox->Checked[i++]
-        =!(MainForm->mail_startup.options&MAIL_OPT_NO_AUTO_EXEMPT);
 
     DNSBLRadioButtonClick(Sender);
     DNSRadioButtonClick(Sender);
@@ -298,6 +293,12 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->mail_startup.options|=MAIL_OPT_DEBUG_POP3;
     else
 	    MainForm->mail_startup.options&=~MAIL_OPT_DEBUG_POP3;
+#if 0 /* this is a stupid option */
+	if(UserNumberCheckBox->Checked==true)
+    	MainForm->mail_startup.options|=MAIL_OPT_ALLOW_RX_BY_NUMBER;
+    else
+	    MainForm->mail_startup.options&=~MAIL_OPT_ALLOW_RX_BY_NUMBER;
+#endif
 	if(AllowRelayCheckBox->Checked==true)
     	MainForm->mail_startup.options|=MAIL_OPT_ALLOW_RELAY;
     else
@@ -349,17 +350,11 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
         ,MAIL_OPT_ALLOW_RX_BY_NUMBER
         ,AdvancedCheckListBox->Checked[i++]);
     setBit(&MainForm->mail_startup.options
-        ,MAIL_OPT_ALLOW_SYSOP_ALIASES
-        ,AdvancedCheckListBox->Checked[i++]);
-    setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_DNSBL_CHKRECVHDRS
         ,AdvancedCheckListBox->Checked[i++]);
     setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_DNSBL_THROTTLE
         ,AdvancedCheckListBox->Checked[i++]);
-    setBit(&MainForm->mail_startup.options
-        ,MAIL_OPT_NO_AUTO_EXEMPT
-        ,!AdvancedCheckListBox->Checked[i++]);
 
     MainForm->MailAutoStart=AutoStartCheckBox->Checked;
     MainForm->MailLogFile=LogFileCheckBox->Checked;
