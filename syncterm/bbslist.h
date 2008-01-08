@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.39 2008/01/20 06:53:00 rswindell Exp $ */
+/* $Id: bbslist.h,v 1.35 2007/11/13 01:37:56 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -38,13 +38,6 @@ enum {
 	,SCREEN_MODE_80X43
 	,SCREEN_MODE_80X50
 	,SCREEN_MODE_80X60
-	,SCREEN_MODE_132X25
-	,SCREEN_MODE_132X28
-	,SCREEN_MODE_132X30
-	,SCREEN_MODE_132X34
-	,SCREEN_MODE_132X43
-	,SCREEN_MODE_132X50
-	,SCREEN_MODE_132X60
 	,SCREEN_MODE_C64
 	,SCREEN_MODE_C128_40
 	,SCREEN_MODE_C128_80
@@ -66,6 +59,7 @@ struct bbslist {
 	int				type;
 	int				conn_type;
 	int				id;
+	int				reversed;
 	int				screen_mode;
 	int				nostatus;
 	char			dldir[MAX_PATH+1];
@@ -84,7 +78,6 @@ extern char *rate_names[];
 extern int rates[];
 extern int sortorder[];
 extern ini_style_t ini_style;
-extern char *screen_modes[];
 void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id, int type);
 void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, int *i, int type);
 void free_list(struct bbslist **list, int listcount);
