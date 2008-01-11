@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.467 2009/01/12 20:35:06 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.430 2008/01/08 03:54:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -56,11 +56,8 @@
 #include "ini_file.h"
 #include "netwrap.h"	/* getNameServerList() */
 #include "xpendian.h"
-#include "js_rtpool.h"
-#include "js_request.h"
 
 /* Constants */
-static const char*	server_name="Synchronet Mail Server";
 #define FORWARD			"forward:"
 #define NO_FORWARD		"local:"
 
@@ -103,17 +100,12 @@ static time_t	uptime;
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
 static int		mailproc_count;
-static js_server_props_t js_server_props;
 
 struct mailproc {
 	char		cmdline[INI_MAX_VALUE_LEN];
 	str_list_t	to;
-	str_list_t	from;
 	BOOL		passthru;
 	BOOL		native;
-	BOOL		ignore_on_error;	/* Ignore mail message if cmdline fails */
-	BOOL		disabled;
-	uint8_t*	ar;
 } *mailproc_list;
 
 typedef struct {
@@ -121,7 +113,7 @@ typedef struct {
 	SOCKADDR_IN		client_addr;
 } smtp_t,pop3_t;
 
-static int lprintf(int level, const char *fmt, ...)
+static int lprintf(int level, char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -310,6 +302,16 @@ int sockprintf(SOCKET sock, char *fmt, ...)
 	return(len);
 }
 
+static time_t checktime(void)
+{
+	struct tm tm;
+
+    memset(&tm,0,sizeof(tm));
+    tm.tm_year=94;
+    tm.tm_mday=1;
+    return(mktime(&tm)-0x2D24BD00L);
+}
+
 static void recverror(SOCKET socket, int rd, int line)
 {
 	if(rd==0) 
@@ -423,7 +425,6 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	char		toaddr[256]="";
 	char		fromaddr[256]="";
 	char		fromhost[256];
-	char		msgid[256];
 	char		date[64];
 	char*		p;
 	char*		tp;
@@ -433,11 +434,6 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	ulong		lines;
 
 	/* HEADERS (in recommended order per RFC822 4.1) */
-
-	if(msg->reverse_path!=NULL)
-		if(!sockprintf(socket,"Return-Path: %s", msg->reverse_path))
-			return(0);
-
 	if(!sockprintf(socket,"Date: %s",msgdate(msg->hdr.when_written,date)))
 		return(0);
 
@@ -497,7 +493,7 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 		s=sockprintf(socket,"Reply-To: %s",p);	/* use original RFC822 header field */
 	if(!s)
 		return(0);
-	if(!sockprintf(socket,"Message-ID: %s",get_msgid(&scfg,INVALID_SUB,msg,msgid,sizeof(msgid))))
+	if(!sockprintf(socket,"Message-ID: %s",get_msgid(&scfg,INVALID_SUB,msg)))
 		return(0);
 	if(msg->reply_id!=NULL)
 		if(!sockprintf(socket,"In-Reply-To: %s",msg->reply_id))
@@ -1226,10 +1222,8 @@ static void pop3_thread(void* arg)
 				,socket, user.alias, buf);
 			sockprintf(socket,"-ERR UNSUPPORTED COMMAND: %s",buf);
 		}
-		if(user.number) {
-			if(!logoutuserdat(&scfg,&user,time(NULL),client.time))
-				lprintf(LOG_ERR,"%04d !ERROR in logoutuserdat", socket);
-		}
+		if(user.number)
+			logoutuserdat(&scfg,&user,time(NULL),client.time);
 
 	} while(0);
 
@@ -1356,47 +1350,6 @@ static BOOL chk_email_addr(SOCKET socket, char* p, char* host_name, char* host_i
 	return(FALSE);
 }
 
-static BOOL email_addr_is_exempt(const char* addr)
-{
-	char fname[MAX_PATH+1];
-	char netmail[128];
-	char* p;
-
-	if(*addr==0 || strcmp(addr,"<>")==0)
-		return FALSE;
-	sprintf(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
-	if(findstr((char*)addr,fname))
-		return TRUE;
-	SAFECOPY(netmail, addr);
-	if(*(p=netmail)=='<')
-		p++;
-	truncstr(p,">");
-	return userdatdupe(&scfg, 0, U_NETMAIL, LEN_NETMAIL, p, FALSE);
-}
-
-static void exempt_email_addr(const char* comment
-							  ,const char* fromname, const char* fromaddr
-							  ,const char* toaddr)
-{
-	char	fname[MAX_PATH+1];
-	char	to[128];
-	char	tmp[128];
-	FILE*	fp;
-
-	SAFEPRINTF(to,"<%s>",toaddr);
-	if(!email_addr_is_exempt(to)) {
-		SAFEPRINTF(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
-		if((fp=fopen(fname,"a"))==NULL)
-			lprintf(LOG_ERR,"0000 !Error opening file: %s", fname);
-		else {
-			lprintf(LOG_INFO,"0000 %s: %s", comment, to);
-			fprintf(fp,"\n;%s from \"%s\" %s on %s\n%s\n"
-				,comment, fromname, fromaddr, timestr(&scfg,time(NULL),tmp), to);
-			fclose(fp);
-		}
-	}
-}
-
 static void signal_smtp_sem(void)
 {
 	int file;
@@ -1411,8 +1364,7 @@ static void signal_smtp_sem(void)
 /*****************************************************************************/
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
-static char* mailcmdstr(char* instr, char* msgpath, char* newpath, char* logpath
-						,char* lstpath, char* errpath
+static char* mailcmdstr(char* instr, char* msgpath, char* lstpath, char* errpath
 						,char* host, char* ip, uint usernum
 						,char* sender, char* sender_addr, char* reverse_path, char* cmd)
 {
@@ -1425,9 +1377,6 @@ static char* mailcmdstr(char* instr, char* msgpath, char* newpath, char* logpath
             i++;
             cmd[j]=0;
             switch(toupper(instr[i])) {
-				case 'D':
-					strcat(cmd,logpath);
-					break;
 				case 'E':
 					strcat(cmd,errpath);
 					break;
@@ -1452,9 +1401,6 @@ static char* mailcmdstr(char* instr, char* msgpath, char* newpath, char* logpath
 				case 'F':
 				case 'M':
 					strcat(cmd,msgpath);
-					break;
-				case 'N':
-					strcat(cmd,newpath);
 					break;
                 case 'O':   /* SysOp */
                     strcat(cmd,scfg.sys_op);
@@ -1523,7 +1469,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	char*	warning;
 	SOCKET*		sock;
-	jsrefcount	rc;
 
 	if((sock=(SOCKET*)JS_GetContextPrivate(cx))==NULL)
 		return;
@@ -1551,10 +1496,8 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	} else
 		warning="";
 
-	rc=JS_SUSPENDREQUEST(cx);
 	lprintf(LOG_ERR,"%04d !JavaScript %s%s%s: %s"
 		,*sock, warning ,file, line, message);
-	JS_RESUMEREQUEST(cx, rc);
 }
 
 static JSBool
@@ -1564,7 +1507,6 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 	SOCKET*		sock;
-	jsrefcount	rc;
 
 	if((sock=(SOCKET*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -1575,9 +1517,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%04d JavaScript: %s",*sock,JS_GetStringBytes(str));
-		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
@@ -1599,10 +1539,8 @@ static JSFunctionSpec js_global_functions[] = {
 static BOOL
 js_mailproc(SOCKET sock, client_t* client, user_t* user
 			,char* cmdline
-			,char* msgtxt_fname, char* newtxt_fname, char* logtxt_fname
-			,char* rcptlst_fname, char* proc_err_fname
-			,char* sender, char* sender_addr, char* reverse_path, char* hello_name
-			,int* result)
+			,char* msgtxt_fname, char* rcptlst_fname, char* proc_err_fname
+			,char* sender, char* sender_addr, char* reverse_path)
 {
 	char*		p;
 	char		fname[MAX_PATH+1];
@@ -1633,13 +1571,12 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 			sprintf(path,"%s%s",scfg.exec_dir,fname);
 	}
 
-	*result = 0;
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes\n"
 			,sock, startup->js.max_bytes);
 
-		if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
+		if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)\n"
@@ -1647,22 +1584,44 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 
 		if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
 			break;
-		JS_BEGINREQUEST(js_cx);
 
 		JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 		JS_SetContextPrivate(js_cx, &sock);
 
-		/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
-		if((js_glob=js_CreateCommonObjects(js_cx, &scfg, &scfg, NULL
-					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
-					,&js_branch									/* js */
-					,client, sock								/* client */
-					,&js_server_props							/* server */
-			))==NULL)
+		/* Global Object */
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL)
 			break;
 
-		if(!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
+		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
+			break;
+
+		/* Internal JS Object */
+		if(js_CreateInternalJsObject(js_cx, js_glob, &js_branch)==NULL)
+			break;
+
+		/* Client Object */
+		if(js_CreateClientObject(js_cx, js_glob, "client", client, sock)==NULL)
+			break;
+
+		/* System Object */
+		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL)
+			break;
+
+		/* Socket Class */
+		if(js_CreateSocketClass(js_cx, js_glob)==NULL)
+			break;
+
+		/* MsgBase Class */
+		if(js_CreateMsgBaseClass(js_cx, js_glob, &scfg)==NULL)
+			break;
+
+		/* File Class */
+		if(js_CreateFileClass(js_cx, js_glob)==NULL)
+			break;
+
+		/* User class */
+		if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
 			break;
 
 		/* Area and "user" Objects */
@@ -1694,14 +1653,6 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,msgtxt_fname))
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 
-		JS_DefineProperty(js_cx, js_glob, "new_message_text_filename"
-			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,newtxt_fname))
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-		JS_DefineProperty(js_cx, js_glob, "log_text_filename"
-			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,logtxt_fname))
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
 		JS_DefineProperty(js_cx, js_glob, "recipient_list_filename"
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rcptlst_fname))
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -1722,33 +1673,19 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,reverse_path))
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 
-		JS_DefineProperty(js_cx, js_glob, "hello_name"
-			,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,hello_name))
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
 		if((js_script=JS_CompileFile(js_cx, js_glob, path))==NULL)
 			break;
 
 		success=JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 
-		JS_ReportPendingException(js_cx);
-
 		js_EvalOnExit(js_cx, js_glob, &js_branch);
-
-		JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
 	} while(0);
 
-	if(js_cx!=NULL) {
-
-		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval))
-			JS_ValueToInt32(js_cx,rval,result);
-
-		JS_ENDREQUEST(js_cx);
+	if(js_cx!=NULL)
 		JS_DestroyContext(js_cx);
-	}
 	if(js_runtime!=NULL)
-		jsrt_Release(js_runtime);
+		JS_DestroyRuntime(js_runtime);
 
 	return(success);
 }
@@ -1804,18 +1741,13 @@ static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 	if(!stricmp(field, "DATE")) {
 		msg->hdr.when_written=rfc822date(p);
 		*type=UNKNOWN;
-		return SMB_SUCCESS;
+		return(0);
 	}
 	if(!stricmp(field, "MESSAGE-ID"))
 		return smb_hfield_str(msg, *type=RFC822MSGID, p);
 
 	if(!stricmp(field, "IN-REPLY-TO"))
 		return smb_hfield_str(msg, *type=RFC822REPLYID, p);
-
-	if(!stricmp(field, "RETURN-PATH")) {
-		*type=UNKNOWN;
-		return SMB_SUCCESS;	/* Ignore existing "Return-Path" header fields */
-	}
 
 	/* Fall-through */
 	return smb_hfield_str(msg, *type=RFC822HEADER, buf);
@@ -1911,7 +1843,7 @@ static BOOL checktag(scfg_t *scfg, char *tag, uint usernum)
 
 	if(tag==NULL)
 		return(FALSE);
-	sprintf(fname,"%suser/%04d.smtpblock",scfg->data_dir,usernum);
+	sprintf(fname,"%suser/%04d.smtptags",scfg->data_dir,usernum);
 	return(findstr(tag, fname));
 }
 
@@ -2022,8 +1954,6 @@ static void smtp_thread(void* arg)
 	uint		subnum=INVALID_SUB;
 	FILE*		msgtxt=NULL;
 	char		msgtxt_fname[MAX_PATH+1];
-	char		newtxt_fname[MAX_PATH+1];
-	char		logtxt_fname[MAX_PATH+1];
 	FILE*		rcptlst;
 	char		rcptlst_fname[MAX_PATH+1];
 	ushort		rcpt_count=0;
@@ -2138,59 +2068,49 @@ static void smtp_thread(void* arg)
 #endif
 	}
 
-	active_clients++, update_clients();
-
 	SAFECOPY(hello_name,host_name);
 
 	sprintf(spam_bait,"%sspambait.cfg",scfg.ctrl_dir);
 	sprintf(spam_block,"%sspamblock.cfg",scfg.ctrl_dir);
 
-	if(smtp.client_addr.sin_addr.s_addr==server_addr.sin_addr.s_addr 
-		|| smtp.client_addr.sin_addr.s_addr==htonl(IPv4_LOCALHOST)) {
-		/* local connection */
-		dnsbl_result.s_addr=0;
-	} else {
-		if(trashcan(&scfg,host_ip,"ip") || findstr(host_ip,spam_block)) {
-			lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER IP ADDRESS: %s"
-				,socket, host_ip);
-			sockprintf(socket,"550 Access denied.");
+	if(trashcan(&scfg,host_ip,"ip") || findstr(host_ip,spam_block)) {
+		lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER IP ADDRESS: %s"
+			,socket, host_ip);
+		sockprintf(socket,"550 Access denied.");
+		mail_close_socket(socket);
+		thread_down();
+		return;
+	}
+
+	if(trashcan(&scfg,host_name,"host") || findstr(host_name,spam_block)) {
+		lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER HOSTNAME: %s"
+			,socket, host_name);
+		sockprintf(socket,"550 Access denied.");
+		mail_close_socket(socket);
+		thread_down();
+		return;
+	}
+
+	active_clients++, update_clients();
+
+	/*  SPAM Filters (mail-abuse.org) */
+	dnsbl_result.s_addr = dns_blacklisted(socket,smtp.client_addr.sin_addr,host_name,dnsbl,dnsbl_ip);
+	if(dnsbl_result.s_addr) {
+		lprintf(LOG_WARNING,"%04d !SMTP BLACKLISTED SERVER on %s: %s [%s] = %s"
+			,socket, dnsbl, host_name, dnsbl_ip, inet_ntoa(dnsbl_result));
+		if(startup->options&MAIL_OPT_DNSBL_REFUSE) {
+			SAFEPRINTF2(str,"Listed on %s as %s", dnsbl, inet_ntoa(dnsbl_result));
+			spamlog(&scfg, "SMTP", "SESSION REFUSED", str, host_name, dnsbl_ip, NULL, NULL);
+			sockprintf(socket
+				,"550 Mail from %s refused due to listing at %s"
+				,dnsbl_ip, dnsbl);
 			mail_close_socket(socket);
+			lprintf(LOG_WARNING,"%04d !SMTP REFUSED SESSION from blacklisted server"
+				,socket);
 			thread_down();
 			if(active_clients)
 				active_clients--, update_clients();
 			return;
-		}
-
-		if(trashcan(&scfg,host_name,"host") || findstr(host_name,spam_block)) {
-			lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER HOSTNAME: %s"
-				,socket, host_name);
-			sockprintf(socket,"550 Access denied.");
-			mail_close_socket(socket);
-			thread_down();
-			if(active_clients)
-				active_clients--, update_clients();
-			return;
-		}
-
-		/*  SPAM Filters (mail-abuse.org) */
-		dnsbl_result.s_addr = dns_blacklisted(socket,smtp.client_addr.sin_addr,host_name,dnsbl,dnsbl_ip);
-		if(dnsbl_result.s_addr) {
-			lprintf(LOG_WARNING,"%04d !SMTP BLACKLISTED SERVER on %s: %s [%s] = %s"
-				,socket, dnsbl, host_name, dnsbl_ip, inet_ntoa(dnsbl_result));
-			if(startup->options&MAIL_OPT_DNSBL_REFUSE) {
-				SAFEPRINTF2(str,"Listed on %s as %s", dnsbl, inet_ntoa(dnsbl_result));
-				spamlog(&scfg, "SMTP", "SESSION REFUSED", str, host_name, dnsbl_ip, NULL, NULL);
-				sockprintf(socket
-					,"550 Mail from %s refused due to listing at %s"
-					,dnsbl_ip, dnsbl);
-				mail_close_socket(socket);
-				lprintf(LOG_WARNING,"%04d !SMTP REFUSED SESSION from blacklisted server"
-					,socket);
-				thread_down();
-				if(active_clients)
-					active_clients--, update_clients();
-				return;
-			}
 		}
 	}
 
@@ -2210,8 +2130,6 @@ static void smtp_thread(void* arg)
 	rand();	/* throw-away first result */
 	SAFEPRINTF4(session_id,"%x%x%x%lx",getpid(),socket,rand(),clock());
 	SAFEPRINTF2(msgtxt_fname,"%sSBBS_SMTP.%s.msg", scfg.temp_dir, session_id);
-	SAFEPRINTF2(newtxt_fname,"%sSBBS_SMTP.%s.new", scfg.temp_dir, session_id);
-	SAFEPRINTF2(logtxt_fname,"%sSBBS_SMTP.%s.log", scfg.temp_dir, session_id);
 	SAFEPRINTF2(rcptlst_fname,"%sSBBS_SMTP.%s.lst", scfg.temp_dir, session_id);
 	rcptlst=fopen(rcptlst_fname,"w+");
 	if(rcptlst==NULL) {
@@ -2355,46 +2273,28 @@ static void smtp_thread(void* arg)
 
 					for(i=0;i<mailproc_count;i++) {
 
-						if(!mailproc_match[i])
+						/* This processor is for specific recipients only and did not match */
+						if(strListCount(mailproc_list[i].to) && !mailproc_match[i])
 							continue;
 
 						if(!mailproc_list[i].passthru)
 							msg_handled=TRUE;
 
 						mailcmdstr(mailproc_list[i].cmdline
-							,msgtxt_fname, newtxt_fname, logtxt_fname
-							,rcptlst_fname, proc_err_fname
+							,msgtxt_fname, rcptlst_fname, proc_err_fname
 							,host_name, host_ip, relay_user.number
 							,sender, sender_addr, reverse_path, str);
 						lprintf(LOG_DEBUG,"%04d SMTP Executing external process: %s"
 							,socket, str);
 
 						if(mailproc_list[i].native) {
-							if((j=system(str))!=0) {
-								lprintf(LOG_NOTICE,"%04d !SMTP system(%s) returned %d (errno: %d)"
+							if((j=system(str))!=0)
+								lprintf(LOG_WARNING,"%04d !SMTP system(%s) returned %d (errno: %d)"
 									,socket, str, j, errno);
-								if(mailproc_list[i].ignore_on_error) {
-									lprintf(LOG_WARNING,"%04d !SMTP IGNORED MAIL due to mail processor (%s) error: %d"
-										,socket, str, j);
-									msg_handled=TRUE;
-								}
-							}
-						} else {  /* JavaScript */
-							if(!js_mailproc(socket, &client, &relay_user, str /* cmdline */
-								,msgtxt_fname, newtxt_fname, logtxt_fname
-								,rcptlst_fname, proc_err_fname
-								,sender, sender_addr, reverse_path, hello_name, &j) || j!=0) {
-#if 0 /* calling exit() in a script causes js_mailproc to return FALSE */
-								lprintf(LOG_NOTICE,"%04d !SMTP JavaScript mailproc command (%s) failed (returned: %d)"
-									,socket, str, j);
-								if(mailproc_list[i].ignore_on_error) {
-									lprintf(LOG_WARNING,"%04d !SMTP IGNORED MAIL due to mail processor (%s) failure"
-										,socket, str);
-									msg_handled=TRUE;
-								}
-#endif
-							}
-						}
+						} else  /* JavaScript */
+							js_mailproc(socket, &client, &relay_user, str /* cmdline */
+								,msgtxt_fname, rcptlst_fname, proc_err_fname
+								,sender, sender_addr, reverse_path);
 						if(flength(proc_err_fname)>0)
 							break;
 						if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname))
@@ -2445,13 +2345,6 @@ static void smtp_thread(void* arg)
 						,socket);
 					continue;
 				}
-
-				/* If mailproc has written new message text to .new file, use that instead of .msg */
-				if(flength(newtxt_fname) > 0) {
-					remove(msgtxt_fname);
-					SAFECOPY(msgtxt_fname, newtxt_fname);
-				} else
-					remove(newtxt_fname);
 
 				if((msgtxt=fopen(msgtxt_fname,"rb"))==NULL) {
 					lprintf(LOG_ERR,"%04d !SMTP ERROR %d re-opening message file: %s"
@@ -2621,7 +2514,7 @@ static void smtp_thread(void* arg)
 						memset(&relay_user,0,sizeof(relay_user));
 
 					if(!can_user_post(&scfg,subnum,&relay_user,&reason)) {
-						lprintf(LOG_WARNING,"%04d !SMTP %s (user #%u) cannot post on %s (reason: %u)"
+						lprintf(LOG_WARNING,"%04d !SMTP %s (user #u) cannot post on %s (reason: %u)"
 							,socket, sender_addr, relay_user.number
 							,scfg.sub[subnum]->sname, reason);
 						sockprintf(socket,"550 Insufficient access");
@@ -2693,16 +2586,13 @@ static void smtp_thread(void* arg)
 
 					snprintf(hdrfield,sizeof(hdrfield),
 						"Received: from %s (%s [%s])\r\n"
-						"          by %s [%s] (%s %s-%s) with %s\r\n"
-						"          for %s; %s\r\n"
-						"          (envelope-from %s)"
+						"          by %s [%s] (Synchronet Mail Server %s-%s) with %s\r\n"
+						"          for %s; %s"
 						,host_name,hello_name,host_ip
 						,startup->host_name,inet_ntoa(server_addr.sin_addr)
-						,server_name
 						,revision,PLATFORM_DESC
 						,esmtp ? "ESMTP" : "SMTP"
-						,rcpt_name,msgdate(msg.hdr.when_imported,date)
-						,reverse_path);
+						,rcpt_name,msgdate(msg.hdr.when_imported,date));
 					smb_hfield_str(&newmsg, RFC822HEADER, hdrfield);
 
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
@@ -2823,59 +2713,42 @@ static void smtp_thread(void* arg)
 			continue;
 		}
 		if((auth_login=(stricmp(buf,"AUTH LOGIN")==0))==TRUE 
-			|| strnicmp(buf,"AUTH PLAIN",10)==0) {
-			if(auth_login) {
+			|| stricmp(buf,"AUTH PLAIN")==0) {
+			if(auth_login)
 				sockprintf(socket,"334 VXNlcm5hbWU6");	/* Base64-encoded "Username:" */
-				if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
-					sockprintf(socket,badarg_rsp);
-					continue;
-				}
-				if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
-					lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
+			else
+				sockprintf(socket,"334 Username:");
+			if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
+				sockprintf(socket,badarg_rsp);
+				continue;
+			}
+			if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
+				lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
+			if(auth_login) {
 				if(b64_decode(user_name,sizeof(user_name),buf,rd)<1) {
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
+			} else
+				SAFECOPY(user_name,buf);
+
+			if(auth_login)
 				sockprintf(socket,"334 UGFzc3dvcmQ6");	/* Base64-encoded "Password:" */
-				if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
-					sockprintf(socket,badarg_rsp);
-					continue;
-				}
-				if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
-					lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
+			else
+				sockprintf(socket,"334 Password:");
+			if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
+				sockprintf(socket,badarg_rsp);
+				continue;
+			}
+			if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
+				lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
+			if(auth_login) {
 				if(b64_decode(user_pass,sizeof(user_pass),buf,rd)<1) {
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
-			} else {	/* AUTH PLAIN b64(<username>\0<user-id>\0<password>) */
-				p=buf+10;
-				SKIP_WHITESPACE(p);
-				if(*p==0) {
-					sockprintf(socket,badarg_rsp);
-					continue;
-				}
-				ZERO_VAR(tmp);
-				if(b64_decode(tmp,sizeof(tmp),p,strlen(p))<1) {
-					sockprintf(socket,badarg_rsp);
-					continue;
-				}
-				p=tmp;
-				while(*p) p++;	/* skip username */
-				p++;			/* skip NULL */
-				if(*p==0) {
-					sockprintf(socket,badarg_rsp);
-					continue;
-				}
-				SAFECOPY(user_name,p);
-				while(*p) p++;	/* skip user-id */
-				p++;			/* skip NULL */
-				if(*p==0) {
-					sockprintf(socket,badarg_rsp);
-					continue;
-				}
-				SAFECOPY(user_pass,p);
-			}
-
+			} else
+				SAFECOPY(user_pass,buf);
 			if((relay_user.number=matchuser(&scfg,user_name,FALSE))==0) {
 				if(scfg.sys_misc&SM_ECHO_PW)
 					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s (password: %s)"
@@ -3046,8 +2919,6 @@ static void smtp_thread(void* arg)
 			}
 			rcpt_count=0;
 
-			memset(mailproc_match,FALSE,sizeof(BOOL)*mailproc_count);
-
 			sockprintf(socket,ok_rsp);
 			badcmds=0;
 			lprintf(LOG_INFO,"%04d SMTP Session reset",socket);
@@ -3065,13 +2936,6 @@ static void smtp_thread(void* arg)
 			}
 			SKIP_WHITESPACE(p);
 			SAFECOPY(reverse_path,p);
-
-			/* If MAIL FROM address is in dnsbl_exempt.cfg, clear DNSBL results */
-			if(dnsbl_result.s_addr && email_addr_is_exempt(reverse_path)) {
-				lprintf(LOG_INFO,"%04d SMTP Ignoring DNSBL results for exempt sender: %s"
-					,socket,reverse_path);
-				dnsbl_result.s_addr=0;
-			}
 
 			/* Update client display */
 			if(relay_user.number==0) {
@@ -3201,7 +3065,7 @@ static void smtp_thread(void* arg)
 				sockprintf(socket
 					,"550 Mail from %s refused due to listing at %s"
 					,host_ip, dnsbl);
-				break;
+				continue;
 			}
 
 			/* Check for full address aliases */
@@ -3311,12 +3175,6 @@ static void smtp_thread(void* arg)
 
 			memset(mailproc_match,FALSE,sizeof(BOOL)*mailproc_count);
 			for(i=0;i<mailproc_count;i++) {
-				if(mailproc_list[i].disabled)
-					continue;
-				if(!chk_ar(&scfg,mailproc_list[i].ar,&relay_user))
-					continue;
-				if(mailproc_list[i].from!=NULL && !findstr_in_list(p, mailproc_list[i].from))
-					continue;
 				if(mailproc_list[i].to!=NULL) {
 					for(j=0;mailproc_list[i].to[j]!=NULL;j++) {
 						if(stricmp(p,mailproc_list[i].to[j])==0) {
@@ -3327,8 +3185,7 @@ static void smtp_thread(void* arg)
 					}
 					if(mailproc_list[i].to[j]!=NULL)
 						break;
-				} else
-					mailproc_match[i]=TRUE;
+				}
 			}
 			/* destined for an external mail processor */
 			if(i<mailproc_count) {
@@ -3744,7 +3601,6 @@ static void sendmail_thread(void* arg)
 	mail_t*		mail;
 	int32_t		msgs;
 	long		l;
-	size_t		len;
 	BOOL		sending_locally=FALSE;
 
 	SetThreadName("SendMail Thread");
@@ -3925,7 +3781,7 @@ static void sendmail_thread(void* arg)
 							continue;
 						}
 						lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
-						if((i=dns_getmx(p, mx, mx2, INADDR_ANY, dns
+						if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
 							,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
 							,TIMEOUT_THREAD_WAIT/2))!=0) {
 							remove_msg_intransit(&smb,&msg);
@@ -4038,81 +3894,77 @@ static void sendmail_thread(void* arg)
 			/* AUTH */
 			if(startup->options&MAIL_OPT_RELAY_TX 
 				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0 && !sending_locally) {
+				switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
+					case MAIL_OPT_RELAY_AUTH_PLAIN:
+						p="PLAIN";
+						break;
+					case MAIL_OPT_RELAY_AUTH_LOGIN:
+						p="LOGIN";
+						break;
+					case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
+						p="CRAM-MD5";
+						break;
+					default:
+						p="<unknown>";
+						break;
+				}
+				sockprintf(sock,"AUTH %s",p);
+				if(!sockgetrsp(sock,"334",buf,sizeof(buf))) {
+					SAFEPRINTF3(err,badrsp_err,server,buf,"334 Username/Challenge");
+					bounce(&smb,&msg,err,buf[0]=='5');
+					continue;
+				}
+				switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
+					case MAIL_OPT_RELAY_AUTH_PLAIN:
+						p=startup->relay_user;
+						break;
+					case MAIL_OPT_RELAY_AUTH_LOGIN:
+						b64_encode(p=resp,sizeof(resp),startup->relay_user,0);
+						break;
+					case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
+						p=buf;
+						FIND_WHITESPACE(p);
+						SKIP_WHITESPACE(p);
+						b64_decode(challenge,sizeof(challenge),p,0);
 
-				if((startup->options&MAIL_OPT_RELAY_AUTH_MASK)==MAIL_OPT_RELAY_AUTH_PLAIN) {
-					/* Build the buffer: <username>\0<user-id>\0<password */
-					len=safe_snprintf(buf,sizeof(buf),"%s%c%s%c%s"
-						,startup->relay_user
-						,0
-						,startup->relay_user
-						,0
-						,startup->relay_pass);
-					b64_encode(resp,sizeof(resp),buf,len);
-					sockprintf(sock,"AUTH PLAIN %s",resp);
-				} else {
-					switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-						case MAIL_OPT_RELAY_AUTH_LOGIN:
-							p="LOGIN";
-							break;
-						case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
-							p="CRAM-MD5";
-							break;
-						default:
-							p="<unknown>";
-							break;
-					}
-					sockprintf(sock,"AUTH %s",p);
+						/* Calculate response */
+						memset(secret,0,sizeof(secret));
+						SAFECOPY(secret,startup->relay_pass);
+						for(i=0;i<sizeof(secret);i++)
+							md5_data[i]=secret[i]^0x36;	/* ipad */
+						strcpy(md5_data+i,challenge);
+						MD5_calc(digest,md5_data,sizeof(secret)+strlen(challenge));
+						for(i=0;i<sizeof(secret);i++)
+							md5_data[i]=secret[i]^0x5c;	/* opad */
+						memcpy(md5_data+i,digest,sizeof(digest));
+						MD5_calc(digest,md5_data,sizeof(secret)+sizeof(digest));
+						
+						safe_snprintf(buf,sizeof(buf),"%s %s",startup->relay_user,MD5_hex(str,digest));
+						b64_encode(p=resp,sizeof(resp),buf,0);
+						break;
+					default:
+						p="<unknown>";
+						break;
+				}
+				sockprintf(sock,"%s",p);
+				if((startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=MAIL_OPT_RELAY_AUTH_CRAM_MD5) {
 					if(!sockgetrsp(sock,"334",buf,sizeof(buf))) {
-						SAFEPRINTF3(err,badrsp_err,server,buf,"334 Username/Challenge");
+						SAFEPRINTF3(err,badrsp_err,server,buf,"334 Password");
 						bounce(&smb,&msg,err,buf[0]=='5');
 						continue;
 					}
 					switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-						case MAIL_OPT_RELAY_AUTH_LOGIN:
-							b64_encode(p=resp,sizeof(resp),startup->relay_user,0);
+						case MAIL_OPT_RELAY_AUTH_PLAIN:
+							p=startup->relay_pass;
 							break;
-						case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
-							p=buf;
-							FIND_WHITESPACE(p);
-							SKIP_WHITESPACE(p);
-							b64_decode(challenge,sizeof(challenge),p,0);
-
-							/* Calculate response */
-							memset(secret,0,sizeof(secret));
-							SAFECOPY(secret,startup->relay_pass);
-							for(i=0;i<sizeof(secret);i++)
-								md5_data[i]=secret[i]^0x36;	/* ipad */
-							strcpy(md5_data+i,challenge);
-							MD5_calc(digest,md5_data,sizeof(secret)+strlen(challenge));
-							for(i=0;i<sizeof(secret);i++)
-								md5_data[i]=secret[i]^0x5c;	/* opad */
-							memcpy(md5_data+i,digest,sizeof(digest));
-							MD5_calc(digest,md5_data,sizeof(secret)+sizeof(digest));
-							
-							safe_snprintf(buf,sizeof(buf),"%s %s",startup->relay_user,MD5_hex(str,digest));
-							b64_encode(p=resp,sizeof(resp),buf,0);
+						case MAIL_OPT_RELAY_AUTH_LOGIN:
+							b64_encode(p=buf,sizeof(buf),startup->relay_pass,0);
 							break;
 						default:
 							p="<unknown>";
 							break;
 					}
 					sockprintf(sock,"%s",p);
-					if((startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=MAIL_OPT_RELAY_AUTH_CRAM_MD5) {
-						if(!sockgetrsp(sock,"334",buf,sizeof(buf))) {
-							SAFEPRINTF3(err,badrsp_err,server,buf,"334 Password");
-							bounce(&smb,&msg,err,buf[0]=='5');
-							continue;
-						}
-						switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-							case MAIL_OPT_RELAY_AUTH_LOGIN:
-								b64_encode(p=buf,sizeof(buf),startup->relay_pass,0);
-								break;
-							default:
-								p="<unknown>";
-								break;
-						}
-						sockprintf(sock,"%s",p);
-					}
 				}
 				if(!sockgetrsp(sock,"235",buf,sizeof(buf))) {
 					SAFEPRINTF3(err,badrsp_err,server,buf,"235");
@@ -4186,9 +4038,6 @@ static void sendmail_thread(void* arg)
 			if(msg.hdr.auxattr&MSG_FILEATTACH)
 				delfattach(&scfg,&msg);
 
-			if(msg.from_agent==AGENT_PERSON && !(startup->options&MAIL_OPT_NO_AUTO_EXEMPT))
-				exempt_email_addr("SEND Auto-exempting",msg.from,fromaddr,toaddr);
-
 			/* QUIT */
 			sockprintf(sock,"QUIT");
 			sockgetrsp(sock,"221", buf, sizeof(buf));
@@ -4232,12 +4081,8 @@ static void cleanup(int code)
 	semfile_list_free(&shutdown_semfiles);
 
 	if(mailproc_list!=NULL) {
-		for(i=0;i<mailproc_count;i++) {
-			if(mailproc_list[i].ar!=NULL && mailproc_list[i].ar!=nular)
-				free(mailproc_list[i].ar);
+		for(i=0;i<mailproc_count;i++)
 			strListFree(&mailproc_list[i].to);
-			strListFree(&mailproc_list[i].from);
-		}
 		FREE_AND_NULL(mailproc_list);
 	}
 
@@ -4279,11 +4124,10 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.467 $", "%*s %s", revision);
+	sscanf("$Revision: 1.430 $", "%*s %s", revision);
 
-	sprintf(ver,"%s %s%s  SMBLIB %s  "
+	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
-		,server_name
 		,revision
 #ifdef _DEBUG
 		," Debug"
@@ -4301,7 +4145,6 @@ void DLLCALL mail_server(void* arg)
 {
 	char*			p;
 	char			path[MAX_PATH+1];
-	char			mailproc_ini[MAX_PATH+1];
 	char			str[256];
 	char			error[256];
 	char			compiler[32];
@@ -4362,13 +4205,6 @@ void DLLCALL mail_server(void* arg)
 	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 #endif
 
-	ZERO_VAR(js_server_props);
-	SAFEPRINTF2(js_server_props.version,"%s %s",server_name,revision);
-	js_server_props.version_detail=mail_ver();
-	js_server_props.clients=&active_clients;
-	js_server_props.options=&startup->options;
-	js_server_props.interface_addr=&startup->interface_addr;
-
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
@@ -4385,8 +4221,7 @@ void DLLCALL mail_server(void* arg)
 
 		memset(&scfg, 0, sizeof(scfg));
 
-		lprintf(LOG_INFO,"%s Revision %s%s"
-			,server_name
+		lprintf(LOG_INFO,"Synchronet Mail Server Revision %s%s"
 			,revision
 #ifdef _DEBUG
 			," Debug"
@@ -4410,7 +4245,7 @@ void DLLCALL mail_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,ctime_r(&t,str),startup->options);
+			,CTIME_R(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
@@ -4440,30 +4275,21 @@ void DLLCALL mail_server(void* arg)
 		/* Parse the mailproc[.host].ini */
 		mailproc_list=NULL;
 		mailproc_count=0;
-		iniFileName(mailproc_ini,sizeof(mailproc_ini),scfg.ctrl_dir,"mailproc.ini");
-		if((fp=iniOpenFile(mailproc_ini, /* create? */FALSE))!=NULL) {
-			lprintf(LOG_DEBUG,"Reading %s",mailproc_ini);
+		iniFileName(path,sizeof(path),scfg.ctrl_dir,"mailproc.ini");
+		if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
+			lprintf(LOG_DEBUG,"Reading %s",path);
 			sec_list = iniReadSectionList(fp,/* prefix */NULL);
 			if((mailproc_count=strListCount(sec_list))!=0
 				&& (mailproc_list=malloc(mailproc_count*sizeof(struct mailproc)))!=NULL) {
-				char buf[INI_MAX_VALUE_LEN+1];
 				for(i=0;i<mailproc_count;i++) {
 					memset(&mailproc_list[i],0,sizeof(struct mailproc));
 					SAFECOPY(mailproc_list[i].cmdline,sec_list[i]);
 					mailproc_list[i].to =
 						iniReadStringList(fp,sec_list[i],"to",",",NULL);
-					mailproc_list[i].from =
-						iniReadStringList(fp,sec_list[i],"from",",",NULL);
 					mailproc_list[i].passthru =
 						iniReadBool(fp,sec_list[i],"passthru",TRUE);
 					mailproc_list[i].native =
 						iniReadBool(fp,sec_list[i],"native",FALSE);
-					mailproc_list[i].disabled = 
-						iniReadBool(fp,sec_list[i],"disabled",FALSE);
-					mailproc_list[i].ignore_on_error = 
-						iniReadBool(fp,sec_list[i],"IgnoreOnError",FALSE);
-					mailproc_list[i].ar = 
-						arstr(NULL,iniReadString(fp,sec_list[i],"AccessRequirements","",buf),&scfg);
 				}
 			}
 			iniFreeStringList(sec_list);
@@ -4473,8 +4299,16 @@ void DLLCALL mail_server(void* arg)
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-		if((t=checktime())!=0) {   /* Check binary time */
-			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&MAIL_OPT_LOCAL_TIMEZONE)) {
+			if(putenv("TZ=UTC0"))
+				lprintf(LOG_ERR,"!putenv() FAILED");
+			tzset();
+
+			if((t=checktime())!=0) {   /* Check binary time */
+				lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+				cleanup(1);
+				return;
+			}
 		}
 
 		if(uptime==0)
@@ -4656,7 +4490,6 @@ void DLLCALL mail_server(void* arg)
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","mail");
 		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
-		semfile_list_add(&recycle_semfiles,mailproc_ini);
 		if(!initialized) {
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
