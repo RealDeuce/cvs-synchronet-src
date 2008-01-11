@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.14 2007/05/25 07:15:38 deuce Exp $ */
+/* $Id: cterm.h,v 1.17 2007/06/23 23:30:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,6 +85,8 @@ struct cterminal {
 	int		font_size;
 	int		font_read;
 	int		font_start_time;
+	int		doorway_mode;
+	int		doorway_char;
 };
 
 #define CTERM_MUSIC_SYNCTERM	0
@@ -94,6 +96,7 @@ struct cterminal {
 enum {
 	 CTERM_EMULATION_ANSI_BBS
 	,CTERM_EMULATION_PETASCII
+	,CTERM_EMULATION_ATASCII
 };
 
 #ifdef __cplusplus
@@ -102,7 +105,7 @@ extern "C" {
 
 extern struct cterminal cterm;
 
-void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback);
+void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation);
 char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed);
 int cterm_openlog(char *logfile, int logtype);
 void cterm_closelog(void);
