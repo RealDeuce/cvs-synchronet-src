@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.72 2008/01/17 03:48:59 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.70 2008/01/11 09:07:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -807,10 +807,8 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	if(argc) {
-		if(!js_write(cx, obj, argc, argv, rval))
-			return(JS_FALSE);
-	}
+	if(!js_write(cx, obj, argc, argv, rval))
+		return(JS_FALSE);
 	return(js_crlf(cx, obj, argc, argv, rval));
 }
 
@@ -1314,7 +1312,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display a raw string")
 	,310
 	},		
-	{"writeln",			js_writeln,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	{"writeln",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("text")
 	,JSDOCSTR("display a raw string followed by a carriage-return/line-feed pair (new-line)")
 	,315
 	},		
