@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.30 2005/09/30 09:12:37 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.33 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,7 +153,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 			bprintf(text[MsgFromNet],smb_netaddr(&msg->from_net)); 
 	}
 	bprintf(text[MsgDate]
-		,timestr((time_t *)&msg->hdr.when_written.time)
+		,timestr(msg->hdr.when_written.time)
 		,smb_zonestr(msg->hdr.when_written.zone,NULL));
 
 	CRLF;
@@ -163,7 +163,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 			sender=(char *)msg->hfield_dat[i];
 		if(msg->hfield[i].type==FORWARDED && sender)
 			bprintf(text[ForwardedFrom],sender
-				,timestr((time_t *)msg->hfield_dat[i])); }
+				,timestr(*(time32_t *)msg->hfield_dat[i])); }
 
 	/* Debug stuff
 	if(SYSOP) {
@@ -231,7 +231,7 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 		if(msg->from_net.addr)
 			fprintf(out," (%s)",smb_netaddr(&msg->from_net));
 		fprintf(out,"\r\nDate : %.24s %s"
-			,timestr((time_t *)&msg->hdr.when_written.time)
+			,timestr(msg->hdr.when_written.time)
 			,smb_zonestr(msg->hdr.when_written.zone,NULL));
 		fprintf(out,"\r\n\r\n"); }
 
@@ -372,7 +372,7 @@ time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 /* Returns the total number of msgs in the sub-board and sets 'ptr' to the  */
 /* number of the last message in the sub (0) if no messages.				*/
 /****************************************************************************/
-ulong sbbs_t::getlastmsg(uint subnum, ulong *ptr, time_t *t)
+ulong sbbs_t::getlastmsg(uint subnum, uint32_t *ptr, time_t *t)
 {
 	int 		i;
 	ulong		total;
