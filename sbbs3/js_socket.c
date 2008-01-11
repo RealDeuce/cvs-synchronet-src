@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.120 2008/01/11 09:10:32 deuce Exp $ */
+/* $Id: js_socket.c,v 1.119 2008/01/11 09:07:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1455,6 +1455,9 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 	if(obj==NULL)
 		return(NULL);
 
+	if(!js_DefineSyncProperties(cx, obj, js_socket_properties))
+		return(NULL);
+
 	len = sizeof(type);
 	getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
 
@@ -1473,6 +1476,9 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
+
+	if (!js_DefineSyncMethods(cx, obj, js_socket_functions, FALSE)) 
+		return(NULL);
 
 	dbprintf(FALSE, p, "object created");
 
