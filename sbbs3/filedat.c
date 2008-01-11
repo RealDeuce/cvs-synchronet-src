@@ -2,13 +2,13 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.31 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: filedat.c,v 1.29 2007/08/25 08:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -74,8 +74,8 @@ BOOL DLLCALL getfiledat(scfg_t* cfg, file_t* f)
 
 	if(!f->size) {					/* only read disk if this is null */
 			getfilepath(cfg,f,str);
-			if((f->size=flength(str))>=0)
-				f->date=fdate(str);
+			f->size=flength(str);
+			f->date=fdate(str);
 	/*
 			}
 		else {
@@ -531,7 +531,7 @@ BOOL DLLCALL findfile(scfg_t* cfg, uint dirnum, char *filename)
 /****************************************************************************/
 /* Turns FILE.EXT into FILE    .EXT                                         */
 /****************************************************************************/
-char* DLLCALL padfname(const char *filename, char *str)
+char* DLLCALL padfname(char *filename, char *str)
 {
     int c,d;
 
@@ -558,7 +558,7 @@ char* DLLCALL padfname(const char *filename, char *str)
 /****************************************************************************/
 /* Turns FILE    .EXT into FILE.EXT                                         */
 /****************************************************************************/
-char* DLLCALL unpadfname(const char *filename, char *str)
+char* DLLCALL unpadfname(char *filename, char *str)
 {
     int c,d;
 
