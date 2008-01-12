@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.133 2008/01/19 20:00:26 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.130 2008/01/11 22:24:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -724,7 +724,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_STRING_TRUNCSP("to",p->msg.to);
 	LAZY_STRING_TRUNCSP("from",p->msg.from);
 	LAZY_STRING_TRUNCSP("subject",p->msg.subj);
-	LAZY_STRING_TRUNCSP_NULL("summary", p->msg.summary);
+	LAZY_STRING_TRUNCSP("summary", p->msg.summary);
 	LAZY_STRING_TRUNCSP_NULL("to_ext", p->msg.to_ext);
 	LAZY_STRING_TRUNCSP_NULL("from_ext", p->msg.from_ext);
 	LAZY_STRING_TRUNCSP_NULL("from_org", p->msg.from_org);
@@ -1650,6 +1650,20 @@ static char* msgbase_prop_desc[] = {
 };
 #endif
 
+
+static JSClass js_msgbase_class = {
+     "MsgBase"				/* name			*/
+    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+	,JS_PropertyStub		/* addProperty	*/
+	,JS_PropertyStub		/* delProperty	*/
+	,js_msgbase_get			/* getProperty	*/
+	,js_msgbase_set			/* setProperty	*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
+	,JS_ConvertStub			/* convert		*/
+	,js_finalize_msgbase	/* finalize		*/
+};
+
 static jsSyncMethodSpec js_msgbase_functions[] = {
 	{"open",			js_open,			0, JSTYPE_BOOLEAN,	JSDOCSTR("")
 	,JSDOCSTR("open message base")
@@ -1765,34 +1779,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	{0}
 };
 
-static JSBool js_msgbase_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, js_msgbase_properties, js_msgbase_functions, NULL, 0));
-}
-
-static JSBool js_msgbase_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(js_msgbase_resolve(cx, obj, JSVAL_NULL));
-}
-
-static JSClass js_msgbase_class = {
-     "MsgBase"				/* name			*/
-    ,JSCLASS_HAS_PRIVATE	/* flags		*/
-	,JS_PropertyStub		/* addProperty	*/
-	,JS_PropertyStub		/* delProperty	*/
-	,js_msgbase_get			/* getProperty	*/
-	,js_msgbase_set			/* setProperty	*/
-	,js_msgbase_enumerate	/* enumerate	*/
-	,js_msgbase_resolve		/* resolve		*/
-	,JS_ConvertStub			/* convert		*/
-	,js_finalize_msgbase	/* finalize		*/
-};
-
 /* MsgBase Constructor (open message base) */
 
 static JSBool
@@ -1818,6 +1804,11 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
+		free(p);
+		return(JS_FALSE);
+	}
+
+	if(!js_DefineSyncProperties(cx,obj,js_msgbase_properties)) {
 		free(p);
 		return(JS_FALSE);
 	}
@@ -1864,6 +1855,11 @@ js_msgbase_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, js
 			SAFECOPY(p->smb.file,base);
 			p->smb.subnum=INVALID_SUB;
 		}
+	}
+
+	if(!js_DefineSyncMethods(cx, obj, js_msgbase_functions, FALSE)) {
+		JS_ReportError(cx,"js_DefineSyncMethods failed");
+		return(JS_FALSE);
 	}
 
 	return(JS_TRUE);
