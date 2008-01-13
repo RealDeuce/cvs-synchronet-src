@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.133 2008/01/19 20:00:26 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.131 2008/01/12 23:30:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -724,7 +724,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_STRING_TRUNCSP("to",p->msg.to);
 	LAZY_STRING_TRUNCSP("from",p->msg.from);
 	LAZY_STRING_TRUNCSP("subject",p->msg.subj);
-	LAZY_STRING_TRUNCSP_NULL("summary", p->msg.summary);
+	LAZY_STRING_TRUNCSP("summary", p->msg.summary);
 	LAZY_STRING_TRUNCSP_NULL("to_ext", p->msg.to_ext);
 	LAZY_STRING_TRUNCSP_NULL("from_ext", p->msg.from_ext);
 	LAZY_STRING_TRUNCSP_NULL("from_org", p->msg.from_org);
