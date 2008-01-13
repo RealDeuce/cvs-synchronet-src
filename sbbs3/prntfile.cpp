@@ -2,13 +2,13 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.17 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.15 2005/09/25 22:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -198,12 +198,12 @@ void sbbs_t::menu(const char *code)
 		}
 		strcat(str,code);
 		strcat(str,".");
-		sprintf(path,"%s%s",str,term_supports(WIP) ? "wip": term_supports(RIP) ? "rip" : "html");
-		if(!(term_supports()&(RIP|WIP|HTML)) || !fexistcase(path)) {
+		sprintf(path,"%s%s",str,useron.misc&WIP ? "wip": useron.misc&RIP ? "rip" : "html");
+		if(!(useron.misc&(RIP|WIP|HTML)) || !fexistcase(path)) {
 			sprintf(path,"%smon",str);
-			if((term_supports()&(COLOR|ANSI))!=ANSI || !fexistcase(path)) {
+			if((useron.misc&(COLOR|ANSI))!=ANSI || !fexistcase(path)) {
 				sprintf(path,"%sans",str);
-				if(!term_supports(ANSI) || !fexistcase(path))
+				if(!(useron.misc&ANSI) || !fexistcase(path))
 					sprintf(path,"%sasc",str); 
 			} 
 		} 
