@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.23 2008/12/20 04:00:47 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.19 2008/01/11 09:07:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,7 +37,6 @@
 
 #include "sbbs.h"
 #include "msg_queue.h"
-#include "js_request.h"
 
 typedef struct
 {
@@ -63,7 +62,7 @@ static void js_finalize_queue(JSContext *cx, JSObject *obj)
 
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
-
+	
 	if(msgQueueDetach(q)==0 && (n=listFindNode(&named_queues,q,/* length=0 for ptr compare */0))!=NULL)
 		listRemoveNode(&named_queues,n,FALSE);
 
@@ -130,7 +129,6 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	msg_queue_t*	q;
 	queued_value_t*	v;
 	int32 timeout=0;
-	jsrefcount	rc;
 
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -140,10 +138,7 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc && JSVAL_IS_NUMBER(argv[0])) 	/* timeout specified */
 		JS_ValueToInt32(cx,argv[0],&timeout);
 
-	rc=JS_SUSPENDREQUEST(cx);
-	v=msgQueuePeek(q,timeout);
-	JS_RESUMEREQUEST(cx, rc);
-	if(v==NULL)
+	if((v=msgQueuePeek(q,timeout))==NULL)
 		*rval = JSVAL_FALSE;
 	else if(v->name!=NULL && v->name[0])
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,v->name));
@@ -160,7 +155,6 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	queued_value_t	find_v;
 	queued_value_t*	v;
 	int32 timeout=0;
-	jsrefcount	rc;
 
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -170,15 +164,11 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(JSVAL_IS_STRING(argv[0])) {	/* value named specified */
 		ZERO_VAR(find_v);
 		SAFECOPY(find_v.name,JS_GetStringBytes(JS_ValueToString(cx,argv[0])));
-		rc=JS_SUSPENDREQUEST(cx);
 		v=msgQueueFind(q,&find_v,sizeof(find_v.name));
-		JS_RESUMEREQUEST(cx, rc);
 	} else {
 		if(JSVAL_IS_NUMBER(argv[0]))
 			JS_ValueToInt32(cx,argv[0],&timeout);
-		rc=JS_SUSPENDREQUEST(cx);
 		v=msgQueueRead(q, timeout);
-		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(v!=NULL) {
@@ -195,7 +185,6 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	msg_queue_t*	q;
 	queued_value_t*	v;
 	int32 timeout=0;
-	jsrefcount	rc;
 
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -205,10 +194,7 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc && JSVAL_IS_NUMBER(argv[0])) 	/* timeout specified */
 		JS_ValueToInt32(cx,argv[0],&timeout);
 
-	rc=JS_SUSPENDREQUEST(cx);
-	v=msgQueuePeek(q, timeout);
-	JS_RESUMEREQUEST(cx, rc);
-	if(v!=NULL) {
+	if((v=msgQueuePeek(q, timeout))!=NULL) {
 		js_decode_value(cx, obj, v, rval, /* peek */TRUE);
 	}
 
@@ -295,15 +281,12 @@ BOOL js_enqueue_value(JSContext *cx, msg_queue_t* q, jsval val, char* name)
 	queued_value_t* v;
 	size_t			count=0;
 	BOOL			result;
-	jsrefcount		rc;
 
 	if((v=js_encode_value(cx,val,name,NULL,&count))==NULL || count<1)
 		return(FALSE);
 
-	rc=JS_SUSPENDREQUEST(cx);
 	result=msgQueueWrite(q,v,count*sizeof(queued_value_t));
 	free(v);
-	JS_RESUMEREQUEST(cx, rc);
 	return(result);
 }
 
@@ -352,7 +335,6 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
     jsint			tiny;
 	msg_queue_t*	q;
-	jsrefcount		rc;
 
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -367,19 +349,13 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,q->name));
 			break;
 		case QUEUE_PROP_DATA_WAITING:
-			rc=JS_SUSPENDREQUEST(cx);
 			*vp = BOOLEAN_TO_JSVAL(INT_TO_BOOL(msgQueueReadLevel(q)));
-			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case QUEUE_PROP_READ_LEVEL:
-			rc=JS_SUSPENDREQUEST(cx);
 			*vp = INT_TO_JSVAL(msgQueueReadLevel(q));
-			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case QUEUE_PROP_WRITE_LEVEL:
-			rc=JS_SUSPENDREQUEST(cx);
 			*vp = INT_TO_JSVAL(msgQueueWriteLevel(q));
-			JS_RESUMEREQUEST(cx, rc);
 			break;
 	}
 	return(JS_TRUE);
@@ -460,7 +436,6 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 	int32			flags=MSG_QUEUE_BIDIR;
 	msg_queue_t*	q=NULL;
 	list_node_t*	n;
-	jsrefcount		rc;
 
 	*rval = JSVAL_VOID;
 
@@ -478,7 +453,6 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]))
 		JS_ValueToInt32(cx,argv[argn++],&flags);
 
-	rc=JS_SUSPENDREQUEST(cx);
 	if(name!=NULL) {
 		for(n=listFirstNode(&named_queues);n!=NULL;n=listNextNode(n))
 			if((q=n->data)!=NULL && !stricmp(q->name,name))
@@ -494,7 +468,6 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 		listPushNode(&named_queues,q);
 	} else
 		msgQueueAttach(q);
-	JS_RESUMEREQUEST(cx, rc);
 
 	if(!JS_SetPrivate(cx, obj, q)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
