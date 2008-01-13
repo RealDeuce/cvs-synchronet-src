@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.115 2009/01/10 08:26:55 rswindell Exp $ */
+/* $Id: userdat.c,v 1.110 2007/10/24 07:41:46 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -343,8 +343,6 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	getrec(userdat,U_CHAT,8,str);
 	user->chat=ahtoul(str);
 
-	user->number=user_number;	/* Signal of success */
-
 	/* Reset daily stats if not logged on today */
 	unixtodstr(cfg, time(NULL),str);
 	unixtodstr(cfg, user->laston,tmp);
@@ -369,6 +367,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 		} 
 	}
 #endif
+	user->number=user_number;	/* Signal of success */
 
 	return(0);
 }
@@ -625,9 +624,9 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 /****************************************************************************/
 /* Returns the age derived from the string 'birth' in the format MM/DD/YY	*/
 /****************************************************************************/
-uint DLLCALL getage(scfg_t* cfg, char *birth)
+char DLLCALL getage(scfg_t* cfg, char *birth)
 {
-	uint	age;
+	char	age;
 	struct	tm tm;
 	time_t	now;
 
@@ -642,7 +641,7 @@ uint DLLCALL getage(scfg_t* cfg, char *birth)
 		return(0);
 	age=(tm.tm_year)-(((birth[6]&0xf)*10)+(birth[7]&0xf));
 	if(age>105)
-		age-=100;
+		age-=105;
 	tm.tm_mon++;	/* convert to 1 based */
 	if(cfg->sys_misc&SM_EURODATE) {		/* DD/MM/YY format */
 		if(atoi(birth)>31 || atoi(birth+3)>12)
@@ -1151,17 +1150,6 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	if(!VALID_CFG(cfg) || usernumber<1)
 		return(NULL);
 
-	for(i=1;i<=cfg->sys_nodes;i++) {	/* clear msg waiting flag */
-		getnodedat(cfg,i,&node,NULL);
-		if(node.useron==usernumber
-			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
-			&& node.misc&NODE_MSGW) {
-			getnodedat(cfg,i,&node,&file);
-			node.misc&=~NODE_MSGW;
-			putnodedat(cfg,i,&node,file); 
-		} 
-	}
-
 	sprintf(str,"%smsgs/%4.4u.msg",cfg->data_dir,usernumber);
 	if(flength(str)<1L)
 		return(NULL);
@@ -1180,6 +1168,17 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	chsize(file,0L);
 	close(file);
 	buf[length]=0;
+
+	for(i=1;i<=cfg->sys_nodes;i++) {	/* clear msg waiting flag */
+		getnodedat(cfg,i,&node,NULL);
+		if(node.useron==usernumber
+			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
+			&& node.misc&NODE_MSGW) {
+			getnodedat(cfg,i,&node,&file);
+			node.misc&=~NODE_MSGW;
+			putnodedat(cfg,i,&node,file); 
+		} 
+	}
 
 	return(buf);	/* caller must free */
 }
@@ -1861,7 +1860,7 @@ int DLLCALL getuserrec(scfg_t* cfg, int usernumber,int start, int length, char *
 /* Places into user.dat at the offset for usernumber+start for length bytes */
 /* Called from various locations											*/
 /****************************************************************************/
-int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const char *str)
+int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, char *str)
 {
 	char	str2[256];
 	int		file;
@@ -2578,13 +2577,8 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 BOOL DLLCALL check_name(scfg_t* cfg, char* name)
 {
 	char	tmp[512];
-	size_t	len;
 
-	len=strlen(name);
-	if(len<1)
-		return FALSE;
-	if (   name[0] <= ' '			/* begins with white-space? */
-		|| name[len-1] <= ' '		/* ends with white-space */
+	if (   name[0] <= ' '
 		|| !isalpha(name[0])
 		|| !stricmp(name,cfg->sys_id)
 		|| strchr(name,0xff)

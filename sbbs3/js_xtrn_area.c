@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.23 2009/01/13 06:02:04 deuce Exp $ */
+/* $Id: js_xtrn_area.c,v 1.21 2006/12/28 02:44:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,6 @@ static char* xtrn_sec_prop_desc[] = {
 	,"external program section internal code"
 	,"external program section name"
 	,"external program section access requirements"
-	,"user has sufficient access to enter this section <i>(introduced in v3.15)</i>"
 	,NULL
 };
 
@@ -72,7 +71,6 @@ static char* xtrn_prog_prop_desc[] = {
 	,"extra time given to users running this program"
 	,"maximum time allowed in program"
 	,"execution cost (credits to run this program)"
-	,"user has sufficient access to see this program"
 	/* Insert here */
 	,"user has sufficient access to run this program"
 	,NULL
@@ -287,13 +285,6 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 		if(!JS_SetProperty(cx, secobj, "ars", &val))
 			return(NULL);
 
-		if(user==NULL || chk_ar(cfg,cfg->xtrnsec[l]->ar,user))
-			val=JSVAL_TRUE;
-		else
-			val=JSVAL_FALSE;
-		if(!JS_SetProperty(cx, progobj, "can_access", &val))
-			return(NULL);
-
 		/* prog_list[] */
 		if((prog_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 			return(NULL);
@@ -351,13 +342,6 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 				return(NULL);
 
 			if(!js_CreateXtrnProgProperties(cx, progobj, cfg->xtrn[d]))
-				return(NULL);
-
-			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->ar,user))
-				val=JSVAL_TRUE;
-			else
-				val=JSVAL_FALSE;
-			if(!JS_SetProperty(cx, progobj, "can_access", &val))
 				return(NULL);
 
 			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->run_ar,user))

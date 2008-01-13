@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.36 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: netmail.cpp,v 1.35 2007/08/23 07:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,7 @@
 
 /****************************************************************************/
 /****************************************************************************/
-bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
+bool sbbs_t::inetmail(char *into, char *subj, long mode)
 {
 	char	str[256],str2[256],msgpath[256],title[256],name[256],ch
 			,buf[SDT_BLOCK_LEN],*p,addr[256];
@@ -286,7 +286,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	return(true);
 }
 
-bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
+bool sbbs_t::qnetmail(char *into, char *subj, long mode)
 {
 	char	str[256],msgpath[128],title[128],to[128],fulladdr[128]
 			,buf[SDT_BLOCK_LEN],*addr;
