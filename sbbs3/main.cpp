@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.487 2007/08/25 08:08:03 rswindell Exp $ */
+/* $Id: main.cpp,v 1.490 2008/01/11 08:45:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -500,6 +500,30 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
+/*
+ * Always resolve all here since
+ * 1) We'll always be enumerating anyways
+ * 2) The speed penalty won't be seen in production code anyways
+ */
+JSBool
+DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
+{
+	JSBool	ret=JS_TRUE;
+
+	if(props)
+		if(!js_DefineSyncProperties(cx, obj, props))
+			ret=JS_FALSE;
+		
+	if(funcs)
+		if(!js_DefineSyncMethods(cx, obj, funcs))
+			ret=JS_FALSE;
+
+	if(consts)
+		if(!js_DefineConstIntegers(JSContext* cx, JSObject* obj, consts, flags)
+
+	return(ret);
+}
+
 #else // NON-JSDOCS
 
 JSBool
@@ -527,6 +551,51 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
+JSBool
+DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
+{
+	uint i;
+	jsval	val;
+
+	if(props) {
+		for(i=0;props[i].name;i++) {
+			if(name==NULL || strcmp(name, props[i].name)==0) {
+				if(!JS_DefinePropertyWithTinyId(cx, obj, 
+						props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+					return(JS_FALSE);
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+	if(funcs) {
+		for(i=0;funcs[i].name;i++) {
+			if(name==NULL || strcmp(name, funcs[i].name)==0) {
+				if(!JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0))
+					return(JS_FALSE);
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+	if(consts) {
+		for(i=0;consts[i].name;i++) {
+			if(name==NULL || strcmp(name, consts[i].name)==0) {
+	        	if(!JS_NewNumberValue(cx, consts[i].val, &val))
+					return(JS_FALSE);
+
+				if(!JS_DefineProperty(cx, obj, consts[i].name, val ,NULL, NULL, flags))
+					return(JS_FALSE);
+
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+
+	return(JS_TRUE);
+}
+
 #endif
 
 /* This is a stream-lined version of JS_DefineConstDoubles */
@@ -543,7 +612,7 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 		if(!JS_DefineProperty(cx, obj, ints[i].name, val ,NULL, NULL, flags))
 			return(JS_FALSE);
 	}
-		
+
 	return(JS_TRUE);
 }
 
