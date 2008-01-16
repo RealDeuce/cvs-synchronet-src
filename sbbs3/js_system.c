@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.112 2008/01/16 04:07:32 deuce Exp $ */
+/* $Id: js_system.c,v 1.113 2008/01/16 04:16:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1730,6 +1730,9 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsval id)
 			return(JS_FALSE);
 
 		if((newobj=JS_NewArrayObject(cx, 0, NULL))==NULL)
+			return(JS_FALSE);
+
+		if(!JS_SetParent(cx, newobj, obj))
 			return(JS_FALSE);
 
 		if(!JS_DefineProperty(cx, obj, "fido_addr_list", OBJECT_TO_JSVAL(newobj)
