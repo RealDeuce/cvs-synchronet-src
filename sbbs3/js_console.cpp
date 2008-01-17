@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.70 2008/01/11 09:07:22 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.71 2008/01/17 03:44:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1312,7 +1312,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display a raw string")
 	,310
 	},		
-	{"writeln",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	{"writeln",			js_writeln,			1, JSTYPE_VOID,		JSDOCSTR("text")
 	,JSDOCSTR("display a raw string followed by a carriage-return/line-feed pair (new-line)")
 	,315
 	},		
