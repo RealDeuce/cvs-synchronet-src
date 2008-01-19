@@ -20,7 +20,6 @@
 #include "cterm.h"
 #include "window.h"
 #include "term.h"
-#include "menu.h"
 
 struct sort_order_info {
 	char		*name;
@@ -40,7 +39,7 @@ struct sort_order_info sort_order[] = {
 		,0
 	}
 	,{
-		 "Entry Name"
+		 "BBS Name"
 		,SORT_ORDER_STRING
 		,offsetof(struct bbslist, name)
 		,sizeof(((struct bbslist *)NULL)->name)
@@ -106,6 +105,12 @@ struct sort_order_info sort_order[] = {
 		,sizeof(((struct bbslist *)NULL)->conn_type)
 	}
 	,{
+		 "Reversed"
+		,0
+		,offsetof(struct bbslist, reversed)
+		,sizeof(((struct bbslist *)NULL)->reversed)
+	}
+	,{
 		 "Screen Mode"
 		,0
 		,offsetof(struct bbslist, screen_mode)
@@ -169,42 +174,16 @@ struct sort_order_info sort_order[] = {
 
 int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
 
-char *sort_orders[]={"Entry Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
+char *sort_orders[]={"BBS Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x21", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
-char *rate_names[]={"300", "600", "1200", "2400", "4800", "9600", "19200", "38400", "57600", "76800", "115200", "Current", NULL};
+char *rate_names[]={"300bps", "600bps", "1200bps", "2400bps", "4800bps", "9600bps", "19.2Kbps", "38.4Kbps", "57.6Kbps", "76.8Kbps", "115.2Kbps", "Unlimited", NULL};
 int rates[]={300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 76800, 115200, 0};
 
 char *music_names[]={"ESC [ | only", "BANSI Style", "All ANSI Music enabled", NULL};
-
-char *address_help=	
-#ifdef __unix__
-					"`Address`, `Phone Number`, `Serial Port`, or `Command`\n\n"
-					"Enter the hostname, IP address, phone number, or serial port device of\n"
-					"the system to connect to. Example: `nix.synchro.net`\n\n"
-					"In the case of the Shell type, enter the command to run.";
-#else
-					"`Address`, `Phone Number`, or `Serial Port`\n\n"
-					"Enter the hostname, IP address, phone number, or serial port device of\n"
-					"the system to connect to. Example: `nix.synchro.net`";
-#endif
-char *conn_type_help=			"`Connection Type`\n\n"
-								"Select the type of connection you wish to make:\n\n"
-								"`RLogin`...........: Auto-login with RLogin protocol\n"
-								"`RLogin Reversed`..: RLogin using reversed username/password parameters\n"
-								"`Telnet`...........: Use more common Telnet protocol\n"
-								"`Raw`..............: Make a raw TCP socket connection\n"
-								"`SSH`..............: Connect using the Secure Shell (SSH-2) protocol\n"
-								"`Modem`............: Connect using a dial-up modem\n"
-								"`Serial`...........: Connect directly to a serial communications port\n"
-#ifdef __unix__
-								"`Shell`............: Connect to a local PTY\n";
-#else
-								;
-#endif
 
 ini_style_t ini_style = {
 	/* key_len */ 15, 
@@ -218,71 +197,30 @@ void viewofflinescroll(void)
 	int	top;
 	int key;
 	int i;
+	char	*scrnbuf;
 	struct	text_info txtinfo;
-	struct	text_info sbtxtinfo;
+	int	x,y;
 	struct mouse_event mevent;
 
-	if(scrollback_buf==NULL)
-		return;
-	uifcbail();
+	x=wherex();
+	y=wherey();
     gettextinfo(&txtinfo);
-
-	textmode(scrollback_mode);
-	switch(ciolib_to_screen(scrollback_mode)) {
-		case SCREEN_MODE_C64:
-			setfont(33,TRUE);
-			break;
-		case SCREEN_MODE_C128_40:
-		case SCREEN_MODE_C128_80:
-			setfont(35,TRUE);
-			break;
-		case SCREEN_MODE_ATARI:
-		case SCREEN_MODE_ATARI_XEP80:
-			setfont(36,TRUE);
-			break;
-	}
+	scrnbuf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrnbuf);
+	uifcbail();
 	drawwin();
 	top=scrollback_lines;
 	gotoxy(1,1);
 	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
-    gettextinfo(&sbtxtinfo);
-
 	for(i=0;!i;) {
 		if(top<1)
 			top=1;
 		if(top>(int)scrollback_lines)
 			top=scrollback_lines;
-		puttext(((sbtxtinfo.screenwidth-scrollback_cols)/2)+1,1
-				,(sbtxtinfo.screenwidth-scrollback_cols)/2+scrollback_cols
-				,sbtxtinfo.screenheight
-				,scrollback_buf+(scrollback_cols*2*top));
-		switch(ciolib_to_screen(scrollback_mode)) {
-		case SCREEN_MODE_ATARI:
-		case SCREEN_MODE_ATARI_XEP80:
-			cputs("3crollback");
-			break;
-		case SCREEN_MODE_C64:
-		case SCREEN_MODE_C128_40:
-		case SCREEN_MODE_C128_80:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
-		gotoxy(scrollback_cols-9,1);
-		switch(ciolib_to_screen(scrollback_mode)) {
-		case SCREEN_MODE_ATARI:
-		case SCREEN_MODE_ATARI_XEP80:
-			cputs("3crollback");
-			break;
-		case SCREEN_MODE_C64:
-		case SCREEN_MODE_C128_40:
-		case SCREEN_MODE_C128_80:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		puttext(((txtinfo.screenwidth-80)/2)+1,1,(txtinfo.screenwidth-80)/2+80,txtinfo.screenheight,scrollback_buf+(80*2*top));
+		cputs("Scrollback");
+		gotoxy(71,1);
+		cputs("Scrollback");
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -304,10 +242,10 @@ void viewofflinescroll(void)
 						top++;
 						break;
 					case CIO_KEY_PPAGE:
-						top-=sbtxtinfo.screenheight;
+						top-=txtinfo.screenheight;
 						break;
 					case CIO_KEY_NPAGE:
-						top+=sbtxtinfo.screenheight;
+						top+=txtinfo.screenheight;
 						break;
 					case CIO_KEY_F(1):
 						init_uifc(FALSE, FALSE);
@@ -332,21 +270,20 @@ void viewofflinescroll(void)
 				break;
 			case 'h':
 			case 'H':
-				top-=term.height;
+				top-=txtinfo.screenheight;
 				break;
 			case 'l':
 			case 'L':
-				top+=term.height;
+				top+=txtinfo.screenheight;
 				break;
 			case ESC:
 				i=1;
 				break;
 		}
 	}
-
-	textmode(txtinfo.currmode);
-	setfont(default_font,TRUE);
-	init_uifc(TRUE,TRUE);
+	init_uifc(TRUE, TRUE);
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrnbuf);
+	gotoxy(x,y);
 	return;
 }
 
@@ -384,6 +321,7 @@ int intbufcmp(const void *a, const void *b, size_t size)
 	return(memcmp(a,b,size));
 #else
 	int i;
+	int ret;
 	const unsigned char *ac=(const unsigned char *)a;
 	const unsigned char *bc=(const unsigned char *)b;
 
@@ -425,8 +363,7 @@ int listcmp(const void *aptr, const void *bptr)
 	return(0);
 }
 
-void sort_list(struct bbslist **list, int *listcount, int *cur, int *bar, char *current)  {
-	int i;
+void sort_list(struct bbslist **list, int *listcount)  {
 #if 0
 	struct bbslist *tmp;
 	unsigned int	i,j,swapped=1;
@@ -461,16 +398,6 @@ void sort_list(struct bbslist **list, int *listcount, int *cur, int *bar, char *
 #else
 	qsort(list, *listcount, sizeof(struct bbslist *), listcmp);
 #endif
-	if(cur && current) {
-		for(i=0; i<*listcount; i++) {
-			if(strcmp(list[i]->name,current)==0) {
-				*cur=i;
-				if(bar)
-					*bar=i;
-				break;
-			}
-		}
-	}
 }
 
 void write_sortorder(void)
@@ -506,12 +433,13 @@ void write_sortorder(void)
 	strListFree(&inicontents);
 }
 
-void edit_sorting(struct bbslist **list, int *listcount, int *ocur, int *obar, char *current)
+void edit_sorting(struct bbslist **list, int *listcount)
 {
 	char	opt[sizeof(sort_order)/sizeof(struct sort_order_info)][80];
 	char	*opts[sizeof(sort_order)/sizeof(struct sort_order_info)+1];
 	char	sopt[sizeof(sort_order)/sizeof(struct sort_order_info)][80];
 	char	*sopts[sizeof(sort_order)/sizeof(struct sort_order_info)+1];
+	int		changed=0;
 	int		curr=0,bar=0;
 	int		scurr=0,sbar=0;
 	int		ret,sret;
@@ -575,6 +503,7 @@ void edit_sorting(struct bbslist **list, int *listcount, int *ocur, int *obar, c
 							j++;
 						}
 					}
+					changed=1;
 				}
 			}
 		}
@@ -588,7 +517,7 @@ void edit_sorting(struct bbslist **list, int *listcount, int *ocur, int *obar, c
 
 	/* Write back to the .ini file */
 	write_sortorder();
-	sort_list(list, listcount, ocur, obar, current);
+	sort_list(list, listcount);
 }
 
 void free_list(struct bbslist **list, int listcount)
@@ -602,6 +531,7 @@ void free_list(struct bbslist **list, int listcount)
 
 void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id, int type)
 {
+	BOOL		dumb;
 	char		home[MAX_PATH+1];
 	str_list_t	section;
 
@@ -621,31 +551,32 @@ void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id
 #endif
 	}
 	section=iniGetSection(listfile,bbsname);
-	iniGetString(section,NULL,"Address","",entry->addr);
-	entry->conn_type=iniGetEnum(section,NULL,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
-	entry->port=iniGetShortInt(section,NULL,"Port",conn_ports[entry->conn_type]);
-	entry->added=iniGetDateTime(section,NULL,"Added",0);
-	entry->connected=iniGetDateTime(section,NULL,"LastConnected",0);
-	entry->calls=iniGetInteger(section,NULL,"TotalCalls",0);
-	iniGetString(section,NULL,"UserName","",entry->user);
-	iniGetString(section,NULL,"Password","",entry->password);
-	iniGetString(section,NULL,"SystemPassword","",entry->syspass);
-	if(iniGetBool(section,NULL,"BeDumb",FALSE))	/* Legacy */
+	iniGetString(section,bbsname,"Address","",entry->addr);
+	entry->conn_type=iniGetEnum(section,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
+	entry->port=iniGetShortInt(section,bbsname,"Port",conn_ports[entry->conn_type]);
+	entry->added=iniGetDateTime(section,bbsname,"Added",0);
+	entry->connected=iniGetDateTime(section,bbsname,"LastConnected",0);
+	entry->calls=iniGetInteger(section,bbsname,"TotalCalls",0);
+	iniGetString(section,bbsname,"UserName","",entry->user);
+	iniGetString(section,bbsname,"Password","",entry->password);
+	iniGetString(section,bbsname,"SystemPassword","",entry->syspass);
+	dumb=iniGetBool(section,bbsname,"BeDumb",0);
+	if(dumb)
 		entry->conn_type=CONN_TYPE_RAW;
-	entry->screen_mode=iniGetEnum(section,NULL,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
-	entry->nostatus=iniGetBool(section,NULL,"NoStatus",FALSE);
-	iniGetString(section,NULL,"DownloadPath",home,entry->dldir);
-	iniGetString(section,NULL,"UploadPath",home,entry->uldir);
+	entry->reversed=iniGetBool(section,bbsname,"Reversed",0);
+	entry->screen_mode=iniGetEnum(section,bbsname,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
+	entry->nostatus=iniGetBool(section,bbsname,"NoStatus",0);
+	iniGetString(section,bbsname,"DownloadPath",home,entry->dldir);
+	iniGetString(section,bbsname,"UploadPath",home,entry->uldir);
 
 	/* Log Stuff */
-	iniGetString(section,NULL,"LogFile","",entry->logfile);
-	entry->append_logfile=iniGetBool(section,NULL,"AppendLogFile",TRUE);
-	entry->xfer_loglevel=iniGetEnum(section,NULL,"TransferLogLevel",log_levels,LOG_INFO);
-	entry->telnet_loglevel=iniGetEnum(section,NULL,"TelnetLogLevel",log_levels,LOG_INFO);
+	iniGetString(section,bbsname,"LogFile","",entry->logfile);
+	entry->xfer_loglevel=iniGetEnum(section,bbsname,"TransferLogLevel",log_levels,LOG_INFO);
+	entry->telnet_loglevel=iniGetEnum(section,bbsname,"TelnetLogLevel",log_levels,LOG_INFO);
 
-	entry->bpsrate=iniGetInteger(section,NULL,"BPSRate",0);
-	entry->music=iniGetInteger(section,NULL,"ANSIMusic",CTERM_MUSIC_BANSI);
-	iniGetString(section,NULL,"Font","Codepage 437 English",entry->font);
+	entry->bpsrate=iniGetInteger(section,bbsname,"BPSRate",0);
+	entry->music=iniGetInteger(section,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
+	iniGetString(section,bbsname,"Font","Codepage 437 English",entry->font);
 	entry->type=type;
 	entry->id=id;
 
@@ -680,7 +611,7 @@ int list_name_check(struct bbslist **list, char *bbsname, int *pos, int useronly
 	for(i=0; list[i]!=NULL; i++) {
 		if(useronly && list[i]->type != USER_BBSLIST)
 			continue;
-		if(stricmp(list[i]->name,bbsname)==0) {
+		if(strcmp(list[i]->name,bbsname)==0) {
 			if(pos)
 				*pos=i;
 			return(1);
@@ -703,7 +634,7 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 	if((listfile=fopen(listpath,"r"))!=NULL) {
 		inilines=iniReadFile(listfile);
 		fclose(listfile);
-		if(defaults != NULL && type==USER_BBSLIST)
+		if(defaults != NULL)
 			read_item(inilines,defaults,NULL,-1,type);
 		bbses=iniGetSectionList(inilines,NULL);
 		while((bbsname=strListRemove(&bbses,0))!=NULL) {
@@ -733,26 +664,25 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 
 int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault)
 {
-	char	opt[19][80];	/* <- Beware of magic number! */
-	char	*opts[20];		/* <- Beware of magic number! */
+	char	opt[18][80];	/* <- Beware of magic number! */
+	char	*opts[19];		/* <- Beware of magic number! */
 	int		changed=0;
 	int		copt=0,i,j;
 	int		bar=0;
-	char	str[64];
+	char	str[6];
 	FILE *listfile;
 	str_list_t	inifile;
 	char	tmp[LIST_NAME_MAX+1];
 	char	*itemname;
-	char	*YesNo[3]={"Yes","No",""};
 
-	for(i=0;i<19;i++)		/* <- Beware of magic number! */
+	for(i=0;i<18;i++)		/* <- Beware of magic number! */
 		opts[i]=opt[i];
 	if(item->type==SYSTEM_BBSLIST) {
-		uifc.helpbuf=	"`Copy from system directory`\n\n"
-						"This entry was loaded from the system directory.  In order to edit it, it\n"
-						"must be copied into your personal directory.\n";
-		i=0;
-		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Copy from system directory?",YesNo)!=0)
+		char	*YesNo[3]={"Yes","No",""};
+		uifc.helpbuf=	"`Copy from system BBS list`\n\n"
+						"This BBS was loaded from the system BBS list.  In order to edit it, it\n"
+						"must be copied into your personal BBS list.\n";
+		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Copy from system BBS list?",YesNo)!=0)
 			return(0);
 		item->type=USER_BBSLIST;
 		add_bbs(listpath, item);
@@ -772,28 +702,15 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 	for(;;) {
 		i=0;
 		if(!isdefault) {
-			sprintf(opt[i++], "Name              %s",itemname);
-			if(item->conn_type==CONN_TYPE_MODEM)
-				sprintf(opt[i++], "Phone Number      %s",item->addr);
-			else if(item->conn_type==CONN_TYPE_SERIAL)
-				sprintf(opt[i++], "Device Name       %s",item->addr);
-#ifdef __unix__
-			else if(item->conn_type==CONN_TYPE_SHELL)
-				sprintf(opt[i++], "Command           %s",item->addr);
-#endif
-			else
-				sprintf(opt[i++], "Address           %s",item->addr);
+			sprintf(opt[i++], "BBS Name          %s",itemname);
+			sprintf(opt[i++], "Address           %s",item->addr);
 		}
-		sprintf(opt[i++], "Connection Type   %s",conn_types[item->conn_type]);
-		if(item->conn_type!=CONN_TYPE_MODEM && item->conn_type!=CONN_TYPE_SERIAL
-#ifdef __unix__
-			&& item->conn_type!=CONN_TYPE_SHELL
-#endif
-			)
-			sprintf(opt[i++], "TCP Port          %hu",item->port);
+		sprintf(opt[i++], "Port              %hu",item->port);
 		sprintf(opt[i++], "Username          %s",item->user);
-		sprintf(opt[i++], "Password          %s",item->password[0]?"********":"<none>");
+		sprintf(opt[i++], "Password          ********");
 		sprintf(opt[i++], "System Password   %s",item->syspass[0]?"********":"<none>");
+		sprintf(opt[i++], "Connection        %s",conn_types[item->conn_type]);
+		sprintf(opt[i++], "Reversed          %s",item->reversed?"Yes":"No");
 		sprintf(opt[i++], "Screen Mode       %s",screen_modes[item->screen_mode]);
 		sprintf(opt[i++], "Hide Status Line  %s",item->nostatus?"Yes":"No");
 		sprintf(opt[i++], "Download Path     %s",item->dldir);
@@ -801,19 +718,17 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 		sprintf(opt[i++], "Log File          %s",item->logfile);
 		sprintf(opt[i++], "Log Transfers     %s",log_level_desc[item->xfer_loglevel]);
 		sprintf(opt[i++], "Log Telnet Cmds   %s",log_level_desc[item->telnet_loglevel]);
-		sprintf(opt[i++], "Append Log File   %s",item->append_logfile ? "Yes":"No");
-		if(item->bpsrate)
-			sprintf(str,"%ubps", item->bpsrate);
-		else
-			strcpy(str,"Current");
-		sprintf(opt[i++], "Comm Rate         %s",str);
+		sprintf(opt[i++], "Simulated BPS     %s",rate_names[get_rate_num(item->bpsrate)]);
 		sprintf(opt[i++], "ANSI Music        %s",music_names[item->music]);
 		sprintf(opt[i++], "Font              %s",item->font);
-		opt[i][0]=0;
+		opts[i]=NULL;
 		uifc.changes=0;
 
-		uifc.helpbuf=	"`Edit Directory Entry`\n\n"
+		uifc.helpbuf=	"`Edit BBS`\n\n"
 						"Select item to edit.\n\n"
+						"~ Reversed ~\n"
+						"        For RLogin connections, send the username and password in\n"
+						"        reverse order. Some Synchronet systems are set up this way.\n\n"
 						"~ Hide Status Line ~\n"
 						"        Selects if the status line should be hidden, giving an extra\n"
 						"        display row\n\n"
@@ -822,29 +737,11 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 						"~ Log Telnet Cmds ~\n"
 						"        Cycles through the various telnet command log settings.\n\n"
 						;
-		i=uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&copt,&bar
-			,isdefault ? "Edit Default Connection":"Edit Directory Entry"
-			,opts);
+		i=uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&copt,&bar,"Edit Entry",opts);
 		if(i>=0 && isdefault)
 			i+=2;
-		if(i>=3 && (item->conn_type==CONN_TYPE_MODEM || item->conn_type==CONN_TYPE_SERIAL
-#ifdef __unix__
-				|| item->conn_type==CONN_TYPE_SHELL
-#endif
-				))
-			i++;	/* no port number */
 		switch(i) {
 			case -1:
-				if((!isdefault) && (itemname!=NULL) && (itemname[0]==0)) {
-					uifc.helpbuf=	"`Cancel Save`\n\n"
-									"This entry has no name and can therefore not be saved.\n"
-									"Selecting `No` will return to editing mode.\n";
-					i=0;
-					if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Cancel Save?",YesNo)!=0)
-						break;
-					strListFree(&inifile);
-					return(0);
-				}
 				if(!safe_mode) {
 					if((listfile=fopen(listpath,"w"))!=NULL) {
 						iniWriteFile(listfile,inifile);
@@ -854,48 +751,36 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				strListFree(&inifile);
 				return(changed);
 			case 0:
-				do {
-					uifc.helpbuf=	"`Directory Entry Name`\n\n"
-									"Enter the name of the entry as it is to appear in the directory.";
-					strcpy(tmp,itemname);
-					uifc.input(WIN_MID|WIN_SAV,0,0,"Name",tmp,LIST_NAME_MAX,K_EDIT);
-					if(stricmp(tmp,itemname) && list_name_check(list, tmp, NULL, FALSE)) {
-						uifc.helpbuf=	"`Entry Name Already Exists`\n\n"
-										"An entry with that name already exists in the directory.\n"
-										"Please choose a unique name.\n";
-						uifc.msg("Entry Name Already Exists!");
-					}
-					else {
-						iniRenameSection(&inifile,itemname,tmp);
-						strcpy(itemname, tmp);
-					}
-					if(itemname[0]==0) {
-						uifc.helpbuf=	"`Can Not Use and Empty Name`\n\n"
-										"Entry names can not be empty.  Please enter an entry name.\n";
-						uifc.msg("Can not use an empty name");
-					}
-				} while(itemname[0]==0);
+				uifc.helpbuf=	"`BBS Name`\n\n"
+								"Enter the BBS name as it is to appear in the list.";
+				strcpy(tmp,itemname);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",itemname,LIST_NAME_MAX,K_EDIT);
+				if(strcmp(tmp,itemname) && list_name_check(list, itemname, NULL, FALSE)) {
+					uifc.helpbuf=	"`BBS Already Exists`\n\n"
+									"A BBS with that name already exists in the list.\n"
+									"Please choose a unique BBS name.\n";
+					uifc.msg("BBS Already Exists!");
+					strcpy(itemname,tmp);
+				}
+				else {
+					iniRenameSection(&inifile,tmp,itemname);
+				}
 				break;
 			case 1:
-				uifc.helpbuf=address_help;
-				uifc.input(WIN_MID|WIN_SAV,0,0
-					,item->conn_type==CONN_TYPE_MODEM ? "Phone Number"
-					:item->conn_type==CONN_TYPE_SERIAL ? "Device Name"
-#ifdef __unix__
-					:item->conn_type==CONN_TYPE_SHELL ? "Command"
-#endif
-					: "Address"
-					,item->addr,LIST_ADDR_MAX,K_EDIT);
+				uifc.helpbuf=	"`Address`\n\n"
+								"Enter the domain name of the system to connect to ie:\n"
+								"nix.synchro.net";
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Address",item->addr,LIST_ADDR_MAX,K_EDIT);
 				iniSetString(&inifile,itemname,"Address",item->addr,&ini_style);
 				break;
-			case 3:
+			case 2:
 				i=item->port;
 				sprintf(str,"%hu",item->port);
-				uifc.helpbuf=	"`TCP Port`\n\n"
-								"Enter the TCP port number that the server is listening to on the remote system.\n"
+				uifc.helpbuf=	"`Port`\n\n"
+								"Enter the port which the BBS is listening to on the remote system\n"
 								"Telnet is generally port 23, RLogin is generally 513 and SSH is\n"
 								"generally 22\n";
-				uifc.input(WIN_MID|WIN_SAV,0,0,"TCP Port",str,5,K_EDIT|K_NUMBER);
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Port",str,5,K_EDIT|K_NUMBER);
 				j=atoi(str);
 				if(j<1 || j>65535)
 					j=conn_ports[item->conn_type];
@@ -906,21 +791,21 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				else
 					uifc.changes=0;
 				break;
-			case 4:
+			case 3:
 				uifc.helpbuf=	"`Username`\n\n"
 								"Enter the username to attempt auto-login to the remote with.\n"
 								"For SSH, this must be the SSH user name.";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Username",item->user,MAX_USER_LEN,K_EDIT);
 				iniSetString(&inifile,itemname,"UserName",item->user,&ini_style);
 				break;
-			case 5:
+			case 4:
 				uifc.helpbuf=	"`Password`\n\n"
 								"Enter your password for auto-login.\n"
 								"For SSH, this must be the SSH password if it exists.\n";
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Password",item->password,MAX_PASSWD_LEN,K_EDIT);
 				iniSetString(&inifile,itemname,"Password",item->password,&ini_style);
 				break;
-			case 6:
+			case 5:
 				uifc.helpbuf=	"`System Password`\n\n"
 								"Enter your System password for auto-login.\n"
 								"This password is sent after the username and password, so for non-\n"
@@ -929,10 +814,21 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				uifc.input(WIN_MID|WIN_SAV,0,0,"System Password",item->syspass,MAX_SYSPASS_LEN,K_EDIT);
 				iniSetString(&inifile,itemname,"SystemPassword",item->syspass,&ini_style);
 				break;
-			case 2:
+			case 6:
 				i=item->conn_type;
 				item->conn_type--;
-				uifc.helpbuf=conn_type_help;
+				uifc.helpbuf=	"`Connection Type`\n\n"
+								"Select the type of connection you wish to make:\n"
+								"~ RLogin:~ Auto-login with RLogin protocol\n"
+								"~ Telnet:~ Use more common Telnet protocol\n"
+								"~ Raw:   ~ Make a raw socket connection\n"
+								"~ SSH:   ~ Connect using the SSH protocol\n"
+								"~ Modem: ~ Connect using a modem\n"
+#ifdef __unix__
+								"~ Shell: ~ Connect to a local PTY\n";
+#else
+								;
+#endif
 				switch(uifc.list(WIN_SAV,0,0,0,&(item->conn_type),NULL,"Connection Type",&(conn_types[1]))) {
 					case -1:
 						item->conn_type=i;
@@ -941,24 +837,23 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 						item->conn_type++;
 						iniSetEnum(&inifile,itemname,"ConnectionType",conn_types,item->conn_type,&ini_style);
 
-						if(item->conn_type!=CONN_TYPE_MODEM && item->conn_type!=CONN_TYPE_SERIAL
-#ifdef __unix__
-								&& item->conn_type!=CONN_TYPE_SHELL
-#endif
-								) {
-							/* Set the port too */
-							j=conn_ports[item->conn_type];
-							if(j<1 || j>65535)
-								j=item->port;
-							item->port=j;
-							iniSetShortInt(&inifile,itemname,"Port",item->port,&ini_style);
-						}
+						/* Set the port too */
+						j=conn_ports[item->conn_type];
+						if(j<1 || j>65535)
+							j=item->port;
+						item->port=j;
+						iniSetShortInt(&inifile,itemname,"Port",item->port,&ini_style);
 
 						changed=1;
 						break;
 				}
 				break;
 			case 7:
+				item->reversed=!item->reversed;
+				changed=1;
+				iniSetBool(&inifile,itemname,"Reversed",item->reversed,&ini_style);
+				break;
+			case 8:
 				i=item->screen_mode;
 				uifc.helpbuf=	"`Screen Mode`\n\n"
 								"Select the screen size for this connection\n";
@@ -987,40 +882,34 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
-						if(item->screen_mode == SCREEN_MODE_ATARI_XEP80) {
-							strcpy(item->font,font_names[36]);
-							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
-							item->nostatus = 1;
-							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
-						}
 						changed=1;
 						break;
 				}
 				break;
-			case 8:
+			case 9:
 				item->nostatus=!item->nostatus;
 				changed=1;
 				iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 				break;
-			case 9:
+			case 10:
 				uifc.helpbuf=	"`Download Path`\n\n"
 								"Enter the path where downloads will be placed.";
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Download Path",item->dldir,MAX_PATH,K_EDIT)>=0)
 					iniSetString(&inifile,itemname,"DownloadPath",item->dldir,&ini_style);
 				break;
-			case 10:
+			case 11:
 				uifc.helpbuf=	"`Upload Path`\n\n"
 								"Enter the path where uploads will be browsed from.";
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Upload Path",item->uldir,MAX_PATH,K_EDIT)>=0)
 					iniSetString(&inifile,itemname,"UploadPath",item->uldir,&ini_style);
 				break;
-			case 11:
+			case 12:
 				uifc.helpbuf=	"`Log Filename`\n\n"
 								"Enter the path to the optional log file.";
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Log File",item->logfile,MAX_PATH,K_EDIT)>=0)
 					iniSetString(&inifile,itemname,"LogFile",item->logfile,&ini_style);
 				break;
-			case 12:
+			case 13:
 				item->xfer_loglevel--;
 				if(item->xfer_loglevel<0)
 					item->xfer_loglevel=LOG_DEBUG;
@@ -1029,7 +918,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				iniSetEnum(&inifile,itemname,"TransferLogLevel",log_levels,item->xfer_loglevel,&ini_style);
 				changed=1;
 				break;
-			case 13:
+			case 14:
 				item->telnet_loglevel--;
 				if(item->telnet_loglevel<0)
 					item->telnet_loglevel=LOG_DEBUG;
@@ -1038,21 +927,12 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				iniSetEnum(&inifile,itemname,"TelnetLogLevel",log_levels,item->telnet_loglevel,&ini_style);
 				changed=1;
 				break;
-			case 14:
-				item->append_logfile=!item->append_logfile;
-				changed=1;
-				iniSetBool(&inifile,itemname,"AppendLogFile",item->append_logfile,&ini_style);
-				break;
 			case 15:
-				uifc.helpbuf=	"`Comm Rate (in bits-per-second)`\n\n"
-								"`For TCP connections:`\n"
+				uifc.helpbuf=	"`Simulated BPS Rate`\n\n"
 								"Select the rate which recieved characters will be displayed.\n\n"
-								"This allows animated ANSI and some games to work as intended.\n\n"
-								"`For Modem/Direct COM port connections:`\n"
-								"Select the `DTE Rate` to use."
-								;
+								"This allows ANSImation to work as intended.";
 				i=get_rate_num(item->bpsrate);
-				switch(uifc.list(WIN_SAV,0,0,0,&i,NULL,"Comm Rate (BPS)",rate_names)) {
+				switch(uifc.list(WIN_SAV,0,0,0,&i,NULL,"Simulated BPS Rate",rate_names)) {
 					case -1:
 						break;
 					default:
@@ -1139,14 +1019,13 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	iniSetString(&inifile,bbs->name,"Password",bbs->password,&ini_style);
 	iniSetString(&inifile,bbs->name,"SystemPassword",bbs->syspass,&ini_style);
 	iniSetEnum(&inifile,bbs->name,"ConnectionType",conn_types,bbs->conn_type,&ini_style);
+	iniSetBool(&inifile,bbs->name,"Reversed",bbs->reversed,&ini_style);
 	iniSetEnum(&inifile,bbs->name,"ScreenMode",screen_modes,bbs->screen_mode,&ini_style);
-	iniSetBool(&inifile,bbs->name,"NoStatus",bbs->nostatus,&ini_style);
 	iniSetString(&inifile,bbs->name,"DownloadPath",bbs->dldir,&ini_style);
 	iniSetString(&inifile,bbs->name,"UploadPath",bbs->uldir,&ini_style);
 	iniSetString(&inifile,bbs->name,"LogFile",bbs->logfile,&ini_style);
 	iniSetEnum(&inifile,bbs->name,"TransferLogLevel",log_levels,bbs->xfer_loglevel,&ini_style);
 	iniSetEnum(&inifile,bbs->name,"TelnetLogLevel",log_levels,bbs->telnet_loglevel,&ini_style);
-	iniSetBool(&inifile,bbs->name,"AppendLogFile",bbs->append_logfile,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"BPSRate",bbs->bpsrate,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"ANSIMusic",bbs->music,&ini_style);
 	iniSetString(&inifile,bbs->name,"Font",bbs->font,&ini_style);
@@ -1181,8 +1060,8 @@ void change_settings(void)
 	char	inipath[MAX_PATH+1];
 	FILE	*inifile;
 	str_list_t	inicontents;
-	char	opts[10][80];
-	char	*opt[11];
+	char	opts[7][80];
+	char	*opt[8];
 	int		i,j;
 	char	str[64];
 	int	cur=0;
@@ -1196,9 +1075,9 @@ void change_settings(void)
 		inicontents=strListInit();
 	}
 
-	for(i=0; i<10; i++)
+	for(i=0; i<7; i++)
 		opt[i]=opts[i];
-	opt[i]=NULL;
+	opt[7]=NULL;
 
 	for(;;) {
 
@@ -1207,39 +1086,24 @@ void change_settings(void)
 						"        Prompt the user before exiting.\n\n"
 						"~ Prompt to Save ~\n"
 						"        Prompt to save new URIs on before exiting\n\n"
-						"~ Startup Screen Mode ~\n"
-						"        Set the initial screen screen mode/size.\n\n"
-						"~ Video Output Mode ~\n"
-						"        Set video output mode (used during startup).\n\n"
+						"~ Startup Video Mode ~\n"
+						"        Set the initial video screen size.\n\n"
+						"~ Output Mode ~\n"
+						"        Set video output mode.\n\n"
 						"~ Scrollback Buffer Lines ~\n"
 						"        The number of lines in the scrollback buffer.\n\n"
-						"~ Modem/Comm Device ~\n"
-						"        The device name of the modem's communications port.\n\n"
-						"~ Modem/Comm Rate ~\n"
-						"        The DTE rate of the modem's communications port.\n\n"
+						"~ Modem Device ~\n"
+						"        The device name of the modem.\n\n"
 						"~ Modem Init String ~\n"
-						"        The command string to use to initialize the modem.\n\n"
-						"~ Modem Dial String ~\n"
-						"        The command string to use to dial the modem.\n\n"						;
+						"        An init string to use for the modem.\n\n";
 		sprintf(opts[0],"Confirm Program Exit    %s",settings.confirm_close?"Yes":"No");
 		sprintf(opts[1],"Prompt to Save          %s",settings.prompt_save?"Yes":"No");
-		sprintf(opts[2],"Startup Screen Mode     %s",screen_modes[settings.startup_mode]);
-		sprintf(opts[3],"Video Output Mode       %s",output_descrs[settings.output_mode]);
+		sprintf(opts[2],"Startup Video Mode      %s",screen_modes[settings.startup_mode]);
+		sprintf(opts[3],"Output Mode             %s",output_descrs[settings.output_mode]);
 		sprintf(opts[4],"Scrollback Buffer Lines %d",settings.backlines);
-		sprintf(opts[5],"Modem/Comm Device       %s",settings.mdm.device_name);
-		if(settings.mdm.com_rate)
-			sprintf(str,"%lubps",settings.mdm.com_rate);
-		else
-			strcpy(str,"Current");
-		sprintf(opts[6],"Modem/Comm Rate         %s",str);
-		sprintf(opts[7],"Modem Init String       %s",settings.mdm.init_string);
-		sprintf(opts[8],"Modem Dial String       %s",settings.mdm.dial_string);
-#ifdef __unix__
-		sprintf(opts[9],"TERM For Shell          %s",settings.TERM);
-#else
-		opts[9][0]=0;
-#endif
-		switch(uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&cur,NULL,"Program Settings",opt)) {
+		sprintf(opts[5],"Modem Device            %s",settings.mdm.device_name);
+		sprintf(opts[6],"Modem Init String       %s",settings.mdm.init_string);
+		switch(uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&cur,NULL,"Program Settings",opt)) {
 			case -1:
 				goto write_ini;
 			case 0:
@@ -1252,14 +1116,14 @@ void change_settings(void)
 				break;
 			case 2:
 				j=settings.startup_mode;
-				uifc.helpbuf=	"`Startup Screen Mode`\n\n"
-								"Select the screen mode/size for at startup\n";
-				switch(i=uifc.list(WIN_SAV,0,0,0,&j,NULL,"Startup Screen Mode",screen_modes)) {
+				uifc.helpbuf=	"`Startup Video Mode`\n\n"
+								"Select the screen size for at startup\n";
+				switch(i=uifc.list(WIN_SAV,0,0,0,&j,NULL,"Startup Video Mode",screen_modes)) {
 					case -1:
 						continue;
 					default:
 						settings.startup_mode=j;
-						iniSetEnum(&inicontents,"SyncTERM","ScreenMode",screen_modes,settings.startup_mode,&ini_style);
+						iniSetInteger(&inicontents,"SyncTERM","VideoMode",settings.startup_mode,&ini_style);
 						break;
 				}
 				break;
@@ -1269,7 +1133,7 @@ void change_settings(void)
 						break;
 				if(output_types[j]==NULL)
 					j=0;
-				uifc.helpbuf=	"`Video Output Mode`\n\n"
+				uifc.helpbuf=	"`Output Mode`\n\n"
 								"~ Autodetect ~\n"
 								"        Attempt to use the \"best\" display mode possible.  The order\n"
 								"        these are attempted is:"
@@ -1295,7 +1159,7 @@ void change_settings(void)
 								"        Writes ANSI on CodePage 437 on stdout and reads input from\n"
 								"        stdin. ANSI must be supported on the current terminal for this\n"
 								"        mode to work.  This mode is intended to be used to run SyncTERM\n"
-								"        as a BBS door\n\n"
+								"        as a door\n\n"
 #if defined(__unix__) && !defined(NO_X)
 								"~ X11 ~\n"
 								"        Uses the Xlib library directly for graphical output.  This is\n"
@@ -1326,7 +1190,7 @@ void change_settings(void)
 								"        As above, but starts in full-screen mode rather than a window\n\n"
 #endif
 								;
-				switch(i=uifc.list(WIN_SAV,0,0,0,&j,NULL,"Video Output Mode",output_types)) {
+				switch(i=uifc.list(WIN_SAV,0,0,0,&j,NULL,"Output Mode",output_types)) {
 					case -1:
 						continue;
 					default:
@@ -1366,67 +1230,32 @@ void change_settings(void)
 				}
 				break;
 			case 5:
-				uifc.helpbuf=	"`Modem/Comm Device`\n\n"
-								"Enter the name of the device used to communicate with the modem.\n\n"
-								"Example: \"`"
-								DEFAULT_MODEM_DEV
-								"`\"";
-				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Modem/Comm Device",settings.mdm.device_name,LIST_NAME_MAX,K_EDIT)>=0)
+				uifc.helpbuf=	"`Modem Device`\n\n"
+#ifdef _WIN32
+								"Enter the modem device name (ie: COM1).";
+#else
+								"Enter the modem device name (ie: /dev/ttyd0).";
+#endif
+				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Device",settings.mdm.device_name,LIST_NAME_MAX,K_EDIT)>=0)
 					iniSetString(&inicontents,"SyncTERM","ModemDevice",settings.mdm.device_name,&ini_style);
 				break;
 			case 6:
-				uifc.helpbuf=	"`Modem/Comm Rate`\n\n"
-								"Enter the rate (in `bits-per-second`) used to communicate with the modem.\n"
-								"Use the highest `DTE Rate` supported by your communication port and modem.\n\n"
-								"Examples: `38400`, `57600`, `115200`\n\n"
-								"This rate is sometimes (incorrectly) referred to as the `baud rate`.\n\n"
-								"Enter `0` to use the current or default rate of the communication port";
-				sprintf(str,"%lu",settings.mdm.com_rate);
-				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Modem/Comm Rate",str,LIST_NAME_MAX,K_EDIT)>=0) {
-					settings.mdm.com_rate=strtol(str,NULL,10);
-					iniSetLongInt(&inicontents,"SyncTERM","ModemComRate",settings.mdm.com_rate,&ini_style);
-				}
-				break;
-
-			case 7:
 				uifc.helpbuf=	"`Modem Init String`\n\n"
-								"Your modem initialization string goes here.\n\n"
-								"Example:\n"
-								"\"`AT&F`\" will load a Hayes compatible modem's factory default settings.\n\n"
-								"~For reference, here are the expected Hayes-compatible settings:~\n\n"
-								"State                      Command\n"
-								"----------------------------------\n"
+								"Your modem init string goes here.\n"
+								"For reference, here are the expected settings and USR inits\n\n"
+								"State                      USR Init\n"
+								"------------------------------------\n"
 								"Echo on                    E1\n"
 								"Verbal result codes        Q0V1\n"
-								"Normal CD Handling         &C1\n"
-								"Normal DTR                 &D2\n"
-								"\n\n"
-								"~For reference, here are the expected USRobotics-compatible settings:~\n\n"
-								"State                      Command\n"
-								"----------------------------------\n"
 								"Include connection speed   &X4\n"
+								"Normal CD Handling         &C1\n"
 								"Locked speed               &B1\n"
+								"Normal DTR                 &D2\n"
 								"CTS/RTS Flow Control       &H1&R2\n"
 								"Disable Software Flow      &I0\n";
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Init String",settings.mdm.init_string,LIST_NAME_MAX,K_EDIT)>=0)
 					iniSetString(&inicontents,"SyncTERM","ModemInit",settings.mdm.init_string,&ini_style);
 				break;
-			case 8:
-				uifc.helpbuf=   "`Modem Dial String`\n\n"
-								"The command string to dial the modem goes here.\n\n"
-								"Example: \"`ATDT`\" will dial a Hayes-compatible modem in touch-tone mode.";
-				if(uifc.input(WIN_MID|WIN_SAV,0,0,"Modem Dial String",settings.mdm.dial_string,LIST_NAME_MAX,K_EDIT)>=0)
-					iniSetString(&inicontents,"SyncTERM","ModemDial",settings.mdm.dial_string,&ini_style);
-				break;
-#ifdef __unix__
-			case 9:
-				uifc.helpbuf=   "`TERM For Shell`\n\n"
-								"The value to set the TERM envirnonment variable to goes here.\n\n"
-								"Example: \"`ansi`\" will select a dumb ANSI mode.";
-				if(uifc.input(WIN_MID|WIN_SAV,0,0,"TERM",settings.TERM,LIST_NAME_MAX,K_EDIT)>=0)
-					iniSetString(&inicontents,"SyncTERM","TERM",settings.TERM,&ini_style);
-				break;
-#endif
 		}
 	}
 write_ini:
@@ -1438,7 +1267,7 @@ write_ini:
 	}
 }
 
-void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaults, char *listpath, size_t listpathsize, char *shared_list, size_t shared_listsize, int *listcount, int *cur, int *bar, char *current)
+void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaults, char *listpath, size_t listpathsize, char *shared_list, size_t shared_listsize, int *listcount)
 {
 	free_list(&list[0],*listcount);
 	*listcount=0;
@@ -1451,16 +1280,14 @@ void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaul
 	/* System BBS List */
 	if(stricmp(shared_list, listpath)) /* don't read the same list twice */
 		read_list(shared_list, list, defaults, listcount, SYSTEM_BBSLIST);
-	sort_list(list, listcount, cur, bar, current);
-	if(current)
-		free(current);
+	sort_list(list, listcount);
 }
 
 /*
  * Displays the BBS list and allows edits to user BBS list
  * Mode is one of BBSLIST_SELECT or BBSLIST_EDIT
  */
-struct bbslist *show_bbslist(char *current, int connected)
+struct bbslist *show_bbslist(int mode)
 {
 	struct	bbslist	*list[MAX_OPTS+1];
 	int		i,j;
@@ -1476,20 +1303,9 @@ struct bbslist *show_bbslist(char *current, int connected)
 	char	*p;
 	char	addy[LIST_ADDR_MAX+1];
 	char	*settings_menu[]= {
-					 "Default Connection Settings"
-#ifdef CONFIGURABLE_MOUSE_ACTIONS
+					 "Default BBS Configuration"
 					,"Mouse Actions"
-#endif
-					,"Current Screen Mode"
-					,"Font Management"
-					,"Program Settings"
-					,NULL
-				};
-	char	*connected_settings_menu[]= {
-					 "Default Connection Settings"
-#ifdef CONFIGURABLE_MOUSE_ACTIONS
-					,"Mouse Actions"
-#endif
+					,"Screen Setup"
 					,"Font Management"
 					,"Program Settings"
 					,NULL
@@ -1500,32 +1316,24 @@ struct bbslist *show_bbslist(char *current, int connected)
 	char	shared_list[MAX_PATH+1];
 	char	listpath[MAX_PATH+1];
 
-	if(init_uifc(connected?FALSE:TRUE, TRUE))
+	if(init_uifc(TRUE, TRUE))
 		return(NULL);
 
 	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
 	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
-	load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current?strdup(current):NULL);
+	load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
 
-	uifc.helpbuf="Help Button Hack";
-	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
-		,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
+	uifc.list(WIN_T2B|WIN_RHT|WIN_IMM|WIN_INACT
+		,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
 	for(;;) {
 		if (!at_settings) {
 			for(;!at_settings;) {
-				if(connected)
-					uifc.helpbuf=	"`SyncTERM Directory`\n\n"
-									"Commands:\n\n"
-									"~ CTRL-E ~ to edit the selected entry\n"
-									"~ CTRL-S ~ to modify the sort order\n"
-									" ~ ENTER ~ to connect to the selected entry";
-				else
-					uifc.helpbuf=	"`SyncTERM Directory`\n\n"
-									"Commands:\n\n"
-									"~ CTRL-D ~ Quick-connect to a URL\n"
-									"~ CTRL-E ~ to edit the selected entry\n"
-									"~ CTRL-S ~ to modify the sort order\n"
-									" ~ ENTER ~ to connect to the selected entry";
+				uifc.helpbuf=	"`SyncTERM Dialing Directory`\n\n"
+								"Commands:\n\n"
+								"~ CTRL-D ~ Quick-dial a URL\n"
+								"~ CTRL-E ~ to edit the selected entry\n"
+								"~ CTRL-S ~ to modify the sort order\n"
+								" ~ ENTER ~ to dial the selected entry";
 				if(opt != oldopt) {
 					if(list[opt]!=NULL && list[opt]->name[0]) {
 						sprintf(title, "%s - %s (%d calls / Last: %s", syncterm_version, (char *)(list[opt]), list[opt]->calls, list[opt]->connected?ctime(&list[opt]->connected):"Never\n");
@@ -1539,35 +1347,18 @@ struct bbslist *show_bbslist(char *current, int connected)
 				}
 				oldopt=opt;
 				val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-					|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
+					|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE
 					|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
-					,0,0,0,&opt,&bar,"Directory",(char **)list);
+					,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 				if(val==listcount)
 					val=listcount|MSK_INS;
-				if(val==-7)	{ /* CTRL-E */
-					uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-						|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-						|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
-						|WIN_SEL
-						,0,0,0,&opt,&bar,"Directory",(char **)list);
-					val=opt|MSK_EDIT;
-				}
 				if(val<0) {
 					switch(val) {
 						case -2-0x13:	/* CTRL-S - Sort */
-							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
-								|WIN_SEL
-								,0,0,0,&opt,&bar,"Directory",(char **)list);
-							edit_sorting(list,&listcount, &opt, &bar, list[opt]?list[opt]->name:NULL);
+							edit_sorting(list,&listcount);
 							break;
 						case -2-0x3000:	/* ALT-B - Scrollback */
-							if(!connected) {
-								viewofflinescroll();
-								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
-									,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
-							}
+							viewofflinescroll();
 							break;
 						case -2-CIO_KEY_MOUSE:	/* Clicked outside of window... */
 							getmouse(&mevent);
@@ -1576,37 +1367,38 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -2-0x4d00:	/* Right Arrow */
 						case -11:		/* TAB */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
-								|WIN_SEL
-								,0,0,0,&opt,&bar,"Directory",(char **)list);
+								|WIN_T2B|WIN_IMM|WIN_INACT|WIN_HLP
+								,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 							at_settings=!at_settings;
 							break;
-						case -6:		/* CTRL-D */
-							if(!connected) {
-								uifc.changes=0;
-								uifc.helpbuf=	"`SyncTERM Quick-Connect`\n\n"
-												"Enter a URL in the format:\n"
-												"[(rlogin|telnet|ssh)://][user[:password]@]domainname[:port]\n";
-								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
-									|WIN_SEL
-									,0,0,0,&opt,&bar,"Directory",(char **)list);
-								uifc.input(WIN_MID|WIN_SAV,0,0,"Address",addy,LIST_ADDR_MAX,0);
-								memcpy(&retlist, &defaults, sizeof(defaults));
-								if(uifc.changes) {
-									parse_url(addy,&retlist,defaults.conn_type,FALSE);
-									free_list(&list[0],listcount);
-									return(&retlist);
+						case -7:		/* CTRL-E */
+							if(list[opt]) {
+								i=list[opt]->id;
+								if(edit_list(list, list[opt],listpath,FALSE)) {
+									load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+									for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
+										if(list[j]->id==i)
+											opt=j;
+									}
+									oldopt=-1;
 								}
 							}
 							break;
-						case -1:		/* ESC */
-							if(!connected) {
-								if(settings.confirm_close && !confirm("Are you sure you want to exit?",NULL))
-									continue;
+						case -6:		/* CTRL-D */
+							uifc.changes=0;
+							uifc.helpbuf=	"`SyncTERM QuickDial`\n\n"
+											"Enter a URL in the format [(rlogin|telnet)://][user[:password]@]domainname[:port]\n";
+							uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Address",addy,LIST_ADDR_MAX,0);
+							memcpy(&retlist, &defaults, sizeof(defaults));
+							if(uifc.changes) {
+								parse_url(addy,&retlist,defaults.conn_type,FALSE);
+								free_list(&list[0],listcount);
+								return(&retlist);
 							}
+							break;
+						case -1:		/* ESC */
+							if(settings.confirm_close && !confirm("Are you sure you want to exit?",NULL))
+								continue;
 							free_list(&list[0],listcount);
 							return(NULL);
 					}
@@ -1618,30 +1410,30 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case MSK_INS:
 							if(listcount>=MAX_OPTS) {
 								uifc.helpbuf=	"`Max List size reached`\n\n"
-												"The total combined size of loaded entries is currently the highest\n"
-												"supported size.  You must delete entries before adding more.";
+												"The total combined size of loaded BBS lists is currently the highest\n"
+												"Supported size.  You must delete entries before adding more.";
 								uifc.msg("Max List size reached!");
 								break;
 							}
 							if(safe_mode) {
 								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
 												"SyncTERM is currently running in safe mode.  This means you cannot add to the\n"
-												"directory.";
+												"BBS list.";
 								uifc.msg("Cannot edit list in safe mode");
 								break;
 							}
 							tmp[0]=0;
 							uifc.changes=0;
-							uifc.helpbuf=	"`Name`\n\n"
-											"Enter the name of the entry as it is to appear in the directory.";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Name",tmp,LIST_NAME_MAX,K_EDIT);
+							uifc.helpbuf=	"`BBS Name`\n\n"
+											"Enter the BBS name as it is to appear in the list.";
+							uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",tmp,LIST_NAME_MAX,K_EDIT);
 							if(!uifc.changes)
 								break;
 							if(list_name_check(list, tmp, NULL, FALSE)) {
-								uifc.helpbuf=	"`Entry Name Already Exists`\n\n"
-												"An entry with that name already exists in the directory.\n"
-												"Please choose a unique name.\n";
-								uifc.msg("Entry Name Already Exists!");
+								uifc.helpbuf=	"`BBS Already Exists`\n\n"
+												"A BBS with that name already exists in the list.\n"
+												"Please choose a unique BBS name.\n";
+								uifc.msg("BBS Already Exists!");
 								break;
 							}
 							listcount++;
@@ -1650,39 +1442,12 @@ struct bbslist *show_bbslist(char *current, int connected)
 							memcpy(list[listcount-1],&defaults,sizeof(struct bbslist));
 							list[listcount-1]->id=listcount-1;
 							strcpy(list[listcount-1]->name,tmp);
-
+							uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",list[listcount-1]->name,LIST_NAME_MAX,K_EDIT);
 							uifc.changes=0;
-							list[listcount-1]->conn_type--;
-							uifc.helpbuf=conn_type_help;
-							if(uifc.list(WIN_SAV,0,0,0,&(list[listcount-1]->conn_type),NULL,"Connection Type",&(conn_types[1]))>=0) {
-								list[listcount-1]->conn_type++;
-								if(list[listcount-1]->conn_type!=CONN_TYPE_MODEM
-									&& list[listcount-1]->conn_type!=CONN_TYPE_SERIAL
-#ifdef __unix__
-									&& list[listcount-1]->conn_type!=CONN_TYPE_SHELL
-#endif
-									) {
-									/* Set the port too */
-									j=conn_ports[list[listcount-1]->conn_type];
-									if(j<1 || j>65535)
-										j=list[listcount-1]->port;
-									list[listcount-1]->port=j;
-								}
-								uifc.changes=1;
-							}
-
-							if(uifc.changes) {
-								uifc.changes=0;
-								uifc.helpbuf=address_help;
-								uifc.input(WIN_MID|WIN_SAV,0,0
-									,list[listcount-1]->conn_type==CONN_TYPE_MODEM ? "Phone Number"
-									:list[listcount-1]->conn_type==CONN_TYPE_SERIAL ? "Device Name"
-#ifdef __unix__
-									:list[listcount-1]->conn_type==CONN_TYPE_SHELL ? "Command"
-#endif
-									:"Address"
-									,list[listcount-1]->addr,LIST_ADDR_MAX,K_EDIT);
-							}
+							uifc.helpbuf=	"`Address`\n\n"
+											"Enter the domain name of the system to connect to ie:\n"
+											"nix.synchro.net";
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Address",list[listcount-1]->addr,LIST_ADDR_MAX,K_EDIT);
 							if(!uifc.changes) {
 								FREE_AND_NULL(list[listcount-1]);
 								list[listcount-1]=list[listcount];
@@ -1690,7 +1455,11 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else {
 								add_bbs(listpath,list[listcount-1]);
-								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]?strdup(list[listcount-1]->name):NULL);
+								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
+									if(list[j]->id==listcount-1)
+										opt=j;
+								}
 								oldopt=-1;
 							}
 							break;
@@ -1714,49 +1483,59 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(safe_mode) {
 								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
 												"SyncTERM is currently running in safe mode.  This means you cannot remove from the\n"
-												"directory.";
+												"BBS list.";
 								uifc.msg("Cannot edit list in safe mode");
 								break;
 							}
 							if(list[opt]->type==SYSTEM_BBSLIST) {
 								uifc.helpbuf=	"`Cannot delete from system list`\n\n"
-												"This entry was loaded from the system-wide list and cannot be deleted.";
+												"This BBS was loaded from the system-wide list and cannot be deleted.";
 								uifc.msg("Cannot delete system list entries");
 								break;
 							}
 							sprintf(str,"Delete %s?",list[opt]->name);
-							i=0;
+							i=1;
 							if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,str,YesNo)!=0)
 								break;
 							del_bbs(listpath,list[opt]);
-							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, NULL, NULL, NULL);
-							oldopt=-1;
+							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
 							break;
 						case MSK_EDIT:
 							if(safe_mode) {
 								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
 												"SyncTERM is currently running in safe mode.  This means you cannot edit the\n"
-												"directory.";
+												"BBS list.";
 								uifc.msg("Cannot edit list in safe mode");
 								break;
 							}
+							i=list[opt]->id;
 							if(edit_list(list, list[opt],listpath,FALSE)) {
-								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+								for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
+									if(list[j]->id==i)
+										opt=j;
+								}
 								oldopt=-1;
 							}
 							break;
 					}
 				}
 				else {
-					if(connected) {
+					if(mode==BBSLIST_EDIT) {
 						if(safe_mode) {
 							uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
 											"SyncTERM is currently running in safe mode.  This means you cannot edit the\n"
-											"directory.";
+											"BBS list.";
 							uifc.msg("Cannot edit list in safe mode");
+							break;
 						}
-						else if(edit_list(list, list[opt],listpath,FALSE)) {
-							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+						i=list[opt]->id;
+						if(edit_list(list, list[opt],listpath,FALSE)) {
+							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
+							for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
+								if(list[j]->id==i)
+									opt=j;
+							}
 							oldopt=-1;
 						}
 					}
@@ -1771,35 +1550,24 @@ struct bbslist *show_bbslist(char *current, int connected)
 		else {
 			for(;at_settings;) {
 				uifc.helpbuf=	"`SyncTERM Settings Menu`\n\n"
-								"~ Default Connection Settings ~\n"
+								"~ Default BBS Configuration ~\n"
 								"        Modify the settings that are used by default for new entries\n\n"
-#ifdef CONFIGURABLE_MOUSE_ACTIONS
 								"~ Mouse Actions ~\n"
 								"        This feature is not yet functional\n\n"
-#endif
-								"~ Current Screen Mode ~\n"
-								"        Set the current screen size/mode\n\n"
+								"~ Screen Setup ~\n"
+								"        Set the initial screen size and emulation\n\n"
 								"~ Font Management ~\n"
 								"        Configure additional font files\n\n"
 								"~ Program Settings ~\n"
-								"        Modify hardware and screen/video settings\n\n";
+								"        Modify hardware and video settings\n\n";
 				if(oldopt != -2)
 					settitle(syncterm_version);
 				oldopt=-2;
-				val=uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP|WIN_ACT|WIN_ESC
-					,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
-				if(connected && val >= 1)
-					val++;
+				val=uifc.list(WIN_ACT|WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE
+					,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
 				switch(val) {
 					case -2-0x3000:	/* ALT-B - Scrollback */
-						if(!connected) {
-							viewofflinescroll();
-							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
-								|WIN_SEL|WIN_INACT
-								,0,0,0,&opt,&bar,"Directory",(char **)list);
-						}
+						viewofflinescroll();
 						break;
 					case -2-CIO_KEY_MOUSE:
 						getmouse(&mevent);
@@ -1807,55 +1575,46 @@ struct bbslist *show_bbslist(char *current, int connected)
 					case -2-0x4b00:	/* Left Arrow */
 					case -2-0x4d00:	/* Right Arrow */
 					case -11:		/* TAB */
-						uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_SEL
-							,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
+						uifc.list(WIN_T2B|WIN_RHT|WIN_IMM|WIN_INACT
+							,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
 						at_settings=!at_settings;
 						break;
 					case -1:		/* ESC */
-						if(!connected) {
-							if(settings.confirm_close && !confirm("Are you sure you want to exit?",NULL))
-								continue;
-						}
+						if(settings.confirm_close && !confirm("Are you sure you want to exit?",NULL))
+							continue;
 						free_list(&list[0],listcount);
 						return(NULL);
 					case 0:			/* Edit default connection settings */
 						edit_list(NULL, &defaults,listpath,TRUE);
 						break;
-#ifdef CONFIGURABLE_MOUSE_ACTIONS
 					case 1:			/* Mouse Actions setup */
 						uifc.helpbuf=	"Mouse actions are not yet user conifurable."
 										"This item is here to remind me to implement it.";
 						uifc.msg("This section not yet functional");
 						break;
-#endif
-					case 1: {		/* Screen Mode */
+					case 2: {		/* Screen Setup */
 							struct text_info ti;
 							gettextinfo(&ti);
 
-							uifc.helpbuf=	"`Current Screen Mode`\n\n"
-									"Change the current screen size/mode.\n";
+							uifc.helpbuf=	"`Screen Setup`\n\n"
+									"Select the new screen size.\n";
 							i=ti.currmode;
 							i=ciolib_to_screen(ti.currmode);
-							i--;
-							j=i;
-							i=uifc.list(WIN_SAV,0,0,0,&i,&j,"Screen Mode",screen_modes+1);
+							i=uifc.list(WIN_SAV,0,0,0,&i,NULL,"Screen Setup",screen_modes);
 							if(i>=0) {
-								i++;
 								uifcbail();
 								textmode(screen_to_ciolib(i));
 								init_uifc(TRUE, TRUE);
-								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
-									|WIN_SEL|WIN_INACT
-									,0,0,0,&opt,&bar,"Directory",(char **)list);
 							}
+							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
+								|WIN_T2B|WIN_IMM|WIN_INACT|WIN_HLP
+								,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 						}
 						break;
-					case 2:			/* Font management */
+					case 3:			/* Font management */
 						if(!safe_mode) font_management();
 						break;
-					case 3:			/* Program settings */
+					case 4:			/* Program settings */
 						change_settings();
 						break;
 				}
