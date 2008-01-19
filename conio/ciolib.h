@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.51 2008/01/20 10:21:26 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.50 2008/01/19 22:24:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,6 @@ enum {
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
-	,CIOLIB_MODE_CONIO_FULLSCREEN
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
 	,CIOLIB_MODE_SDL_YUV
