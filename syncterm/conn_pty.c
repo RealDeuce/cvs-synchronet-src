@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.7 2008/01/19 23:08:53 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.6 2008/01/19 22:40:46 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -395,12 +395,8 @@ int pty_connect(struct bbslist *bbs)
 	gettextinfo(&ti);
 	if(ti.screenwidth < 80)
 		ws.ws_col=40;
-	else {
-		if(ti.screenwidth < 132)
-			ws.ws_col=80;
-		else
-			ws.ws_col=132;
-	}
+	else
+		ws.ws_col=80;
 	ws.ws_row=ti.screenheight;
 	if(!bbs->nostatus)
 		ws.ws_row--;
