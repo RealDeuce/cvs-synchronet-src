@@ -2,13 +2,13 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.37 2008/08/21 00:23:58 deuce Exp $ */
+/* $Id: link_list.c,v 1.35 2006/05/29 07:32:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -130,7 +130,7 @@ BOOL DLLCALL listFree(link_list_t* list)
 	if(list->flags&LINK_LIST_SEMAPHORE) {
 		while(sem_destroy(&list->sem)==-1 && errno==EBUSY)
 			SLEEP(1);
-		//list->sem=(sem_t)NULL; /* Removed 08-20-08 - list->sem is never checked and this causes an error with gcc 4.1.2 (ThetaSigma) */
+		list->sem=NULL;
 	}
 #endif
 

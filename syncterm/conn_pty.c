@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.9 2008/01/28 06:27:47 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.6 2008/01/19 22:40:46 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -133,8 +133,6 @@
 #include "conn.h"
 #include "uifcinit.h"
 #include "ciolib.h"
-#include "syncterm.h"
-#include "fonts.h"
 extern int default_font;
 
 #ifdef NEEDS_CFMAKERAW
@@ -288,7 +286,7 @@ int i;
 
 	conn_api.input_thread_running=1;
 	while(master != -1 && !conn_api.terminate) {
-		if((i=waitpid(child_pid, &status, WNOHANG)))
+		if(i=waitpid(child_pid, &status, WNOHANG))
 			break;
 		FD_ZERO(&rds);
 		FD_SET(master, &rds);
@@ -397,12 +395,8 @@ int pty_connect(struct bbslist *bbs)
 	gettextinfo(&ti);
 	if(ti.screenwidth < 80)
 		ws.ws_col=40;
-	else {
-		if(ti.screenwidth < 132)
-			ws.ws_col=80;
-		else
-			ws.ws_col=132;
-	}
+	else
+		ws.ws_col=80;
 	ws.ws_row=ti.screenheight;
 	if(!bbs->nostatus)
 		ws.ws_row--;
@@ -418,7 +412,6 @@ int pty_connect(struct bbslist *bbs)
 		settitle("SyncTERM");
 		return(-1);
 	case 0:		/* Child */
-		setenv("TERM",settings.TERM,1);
 		if(bbs->addr[0])
 			execl("/bin/sh", "/bin/sh", "-c", bbs->addr, (char *)0);
 		else
