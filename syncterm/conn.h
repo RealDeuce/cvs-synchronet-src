@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.h,v 1.21 2008/01/21 04:40:48 deuce Exp $ */
+/* $Id: conn.h,v 1.18 2007/11/13 01:37:56 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -16,12 +16,10 @@ extern short unsigned int conn_ports[];
 enum {
 	 CONN_TYPE_UNKNOWN
 	,CONN_TYPE_RLOGIN
-	,CONN_TYPE_RLOGIN_REVERSED
 	,CONN_TYPE_TELNET
 	,CONN_TYPE_RAW
 	,CONN_TYPE_SSH
 	,CONN_TYPE_MODEM
-	,CONN_TYPE_SERIAL
 #ifdef __unix__
 	,CONN_TYPE_SHELL
 #endif
@@ -35,9 +33,9 @@ struct conn_api {
 	void (*binary_mode_off)(void);
 	int log_level;
 	int type;
-	volatile int input_thread_running;
-	volatile int output_thread_running;
-	volatile int terminate;
+	int input_thread_running;
+	int output_thread_running;
+	int terminate;
 	unsigned char *rd_buf;
 	size_t rd_buf_size;
 	unsigned char *wr_buf;
