@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.51 2008/01/20 10:21:26 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.49 2008/01/19 22:08:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,6 @@ enum {
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
-	,CIOLIB_MODE_CONIO_FULLSCREEN
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
 	,CIOLIB_MODE_SDL_YUV
@@ -179,14 +178,14 @@ enum text_modes
 	ATARI_40X24,	/* Atari 800 40x24 colour text mode */
 
 	/* VESA Modes */
-	VESA_132X21	= 235,
-	VESA_132X25	= 231,
-	VESA_132X28	= 228,
-	VESA_132X30	= 226,
-	VESA_132X34	= 222,
-	VESA_132X43	= 213,
-	VESA_132X50	= 206,
-	VESA_132X60	= 196,
+	VESA_21X132	= 235,
+	VESA_25X132	= 231,
+	VESA_28X132	= 228,
+	VESA_30X132	= 226,
+	VESA_34X132	= 222,
+	VESA_43X132	= 213,
+	VESA_50X132	= 206,
+	VESA_60X132	= 196,
 };
 
 #define COLOR_MODE	C80
