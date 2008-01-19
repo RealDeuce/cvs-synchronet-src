@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.19 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: chk_ar.cpp,v 1.18 2007/09/30 22:30:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
+bool sbbs_t::ar_exp(uchar **ptrptr, user_t* user)
 {
 	bool	result,_not,_or,equal;
 	uint	i,n,artype,age;
@@ -582,9 +582,9 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 	return(result);
 }
 
-bool sbbs_t::chk_ar(const uchar *ar, user_t* user)
+bool sbbs_t::chk_ar(uchar *ar, user_t* user)
 {
-	const uchar *p;
+	uchar *p;
 
 	if(ar==NULL)
 		return(true);
