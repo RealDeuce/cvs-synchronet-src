@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.14 2008/12/05 01:36:12 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.11 2008/01/11 09:07:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -229,7 +229,6 @@ js_uifc_init(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*	title="Synchronet";
 	char*	mode;
 	uifcapi_t* uifc;
-	jsrefcount	rc;
 
 	*rval = JSVAL_FALSE;
 
@@ -252,27 +251,19 @@ js_uifc_init(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			ciolib_mode=CIOLIB_MODE_CONIO;
 	}
 
-	rc=JS_SuspendRequest(cx);
 	if(ciolib_mode==-1) {
-		if(uifcinix(uifc)) {
-			JS_ResumeRequest(cx, rc);
+		if(uifcinix(uifc))
 			return(JS_TRUE);
-		}
 	} else {
-		if(initciolib(ciolib_mode)) {
-			JS_ResumeRequest(cx, rc);
+		if(initciolib(ciolib_mode))
 			return(JS_TRUE);
-		}
 
-		if(uifcini32(uifc)) {
-			JS_ResumeRequest(cx, rc);
+		if(uifcini32(uifc))
 			return(JS_TRUE);
-		}
 	}
 
 	*rval = JSVAL_TRUE;
 	uifc->scrn(title);
-	JS_ResumeRequest(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -280,14 +271,11 @@ static JSBool
 js_uifc_bail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uifcapi_t* uifc;
-	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
-	rc=JS_SuspendRequest(cx);
 	uifc->bail();
-	JS_ResumeRequest(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -296,7 +284,6 @@ js_uifc_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		str;
 	uifcapi_t*	uifc;
-	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -304,9 +291,7 @@ js_uifc_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
 		return(JS_FALSE);
 
-	rc=JS_SuspendRequest(cx);
 	uifc->msg(str);
-	JS_ResumeRequest(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -315,7 +300,6 @@ js_uifc_pop(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		str=NULL;
 	uifcapi_t*	uifc;
-	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -323,9 +307,7 @@ js_uifc_pop(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		str=js_ValueToStringBytes(cx, argv[0], NULL);
 
-	rc=JS_SuspendRequest(cx);
 	uifc->pop(str);
-	JS_ResumeRequest(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -342,7 +324,6 @@ js_uifc_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	int32		kmode=0;
 	uifcapi_t*	uifc;
 	uintN		argn=0;
-	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -380,12 +361,8 @@ js_uifc_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(org)
 		strncpy(str,org,maxlen);
 
-	rc=JS_SuspendRequest(cx);
-	if(uifc->input(mode, left, top, prompt, str, maxlen, kmode)<0) {
-		JS_ResumeRequest(cx, rc);
+	if(uifc->input(mode, left, top, prompt, str, maxlen, kmode)<0)
 		return(JS_TRUE);
-	}
-	JS_ResumeRequest(cx, rc);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,str));
 
@@ -409,7 +386,6 @@ js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	jsuint      i;
 	jsuint		numopts;
 	str_list_t	opts=NULL;
-	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -450,10 +426,8 @@ js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
-	rc=JS_SuspendRequest(cx);
     *rval = INT_TO_JSVAL(uifc->list(mode,left,top,width,(int*)&dflt,(int*)&bar,title,opts));
 	strListFree(&opts);
-	JS_ResumeRequest(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -521,8 +495,8 @@ static JSClass js_uifc_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_get					/* getProperty	*/
 	,js_set					/* setProperty	*/
-	,js_uifc_enumerate		/* enumerate	*/
-	,js_uifc_resolve		/* resolve		*/
+	,JS_EnumerateStub		/* enumerate	*/
+	,JS_ResolveStub			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,js_finalize			/* finalize		*/
 };
