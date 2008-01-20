@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.41 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: logfile.cpp,v 1.40 2007/08/25 08:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 	return(TRUE);
 }
 
-void sbbs_t::logentry(const char *code, const char *entry)
+void sbbs_t::logentry(char *code, char *entry)
 {
 	char str[512];
 
@@ -138,7 +138,7 @@ void sbbs_t::log(char *str)
 		logcol+=strlen(str);
 }
 
-bool sbbs_t::syslog(const char* code, const char *entry)
+bool sbbs_t::syslog(char* code, char *entry)
 {		
 	char	fname[MAX_PATH+1];
 	char	str[128];
@@ -166,7 +166,7 @@ bool sbbs_t::syslog(const char* code, const char *entry)
 /****************************************************************************/
 /* Writes 'str' on it's own line in node.log								*/
 /****************************************************************************/
-void sbbs_t::logline(const char *code, const char *str)
+void sbbs_t::logline(char *code, char *str)
 {
 	if(strchr(str,'\n')==NULL) {	// Keep the console log pretty
 		if(online==ON_LOCAL)
@@ -342,7 +342,7 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 /*****************************************************************************/
 /* Error logging to NODE.LOG and DATA\ERROR.LOG function                     */
 /*****************************************************************************/
-void sbbs_t::errorlog(const char *text)
+void sbbs_t::errorlog(char *text)
 {
     char hdr[256],str[256],tmp2[256];
     int file;
