@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.201 2008/01/20 23:31:35 deuce Exp $ */
+/* $Id: term.c,v 1.202 2008/01/20 23:32:35 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1189,7 +1189,9 @@ BOOL doterm(struct bbslist *bbs)
 	int 	emulation=CTERM_EMULATION_ANSI_BBS;
 	size_t	remain;
 
-	if(bps->conn_type != CONN_TYPE_SERIAL)
+	if(bps->conn_type == CONN_TYPE_SERIAL)
+		speed = 0;
+	else
 		speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
