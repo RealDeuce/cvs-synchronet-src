@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.430 2008/01/08 03:54:49 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.432 2008/01/13 02:21:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1843,7 +1843,7 @@ static BOOL checktag(scfg_t *scfg, char *tag, uint usernum)
 
 	if(tag==NULL)
 		return(FALSE);
-	sprintf(fname,"%suser/%04d.smtptags",scfg->data_dir,usernum);
+	sprintf(fname,"%suser/%04d.smtpblock",scfg->data_dir,usernum);
 	return(findstr(tag, fname));
 }
 
@@ -4124,7 +4124,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.430 $", "%*s %s", revision);
+	sscanf("$Revision: 1.432 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

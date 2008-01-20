@@ -1,10 +1,11 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.10 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: modem.c,v 1.15 2008/01/20 21:41:15 rswindell Exp $ */
 
 #include <stdlib.h>
 
 #include "comio.h"
+#include "ciolib.h"
 
 #include "sockwrap.h"
 
@@ -35,7 +36,7 @@ void modem_input_thread(void *args)
 			buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
 			pthread_mutex_unlock(&(conn_inbuf.mutex));
 		}
-		if(comGetModemStatus(com)&COM_DCD == 0)
+		if((comGetModemStatus(com)&COM_DCD) == 0)
 			break;
 	}
 	conn_api.input_thread_running=0;
@@ -69,7 +70,7 @@ void modem_output_thread(void *args)
 		}
 		else
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
-		if(comGetModemStatus(com)&COM_DCD == 0)
+		if((comGetModemStatus(com)&COM_DCD) == 0)
 			break;
 	}
 	conn_api.output_thread_running=0;
@@ -83,6 +84,12 @@ int modem_response(char *str, size_t maxlen, int timeout)
 
 	start=time(NULL);
 	while(1){
+		/* Abort with keystroke */
+		if(kbhit()) {
+			getch();
+			return(1);
+		}
+
 		if(time(NULL)-start >= timeout)
 			return(-1);
 		if(len >= maxlen)
@@ -107,6 +114,7 @@ int modem_response(char *str, size_t maxlen, int timeout)
 
 int modem_connect(struct bbslist *bbs)
 {
+	int		ret;
 	char	respbuf[1024];
 
 	init_uifc(TRUE, TRUE);
@@ -117,11 +125,13 @@ int modem_connect(struct bbslist *bbs)
 		conn_api.terminate=-1;
 		return(-1);
 	}
-	if(!comSetBaudRate(com, 115200)) {
-		uifcmsg("Cannot Set Baudrate",	"`Cannot Set Baudrate`\n\n"
-						"Cannot open the specified modem device.\n");
-		conn_api.terminate=-1;
-		return(-1);
+	if(settings.mdm.com_rate) {
+		if(!comSetBaudRate(com, settings.mdm.com_rate)) {
+			uifcmsg("Cannot Set Baudrate",	"`Cannot Set Baudrate`\n\n"
+							"Cannot open the specified modem device.\n");
+			conn_api.terminate=-1;
+			return(-1);
+		}
 	}
 	if(!comRaiseDTR(com)) {
 		uifcmsg("Cannot Raise DTR",	"`Cannot Raise DTR`\n\n"
@@ -130,6 +140,10 @@ int modem_connect(struct bbslist *bbs)
 		return(-1);
 	}
 
+	/* drain keyboard input to avoid accidental cancel */
+	while(kbhit())
+		getch();
+
 	uifc.pop("Initializing...");
 
 	comWriteString(com, settings.mdm.init_string);
@@ -137,10 +151,11 @@ int modem_connect(struct bbslist *bbs)
 
 	/* Wait for "OK" */
 	while(1) {
-		if(modem_response(respbuf, sizeof(respbuf), 5)) {
+		if((ret=modem_response(respbuf, sizeof(respbuf), 5))!=0) {
 			modem_close();
 			uifc.pop(NULL);
-			uifcmsg("Modem Not Responding",	"`Modem Not Responding`\n\n"
+			if(ret<0)
+				uifcmsg("Modem Not Responding",	"`Modem Not Responding`\n\n"
 							"The modem did not respond to the initializtion string\n"
 							"Check your init string and phone number.\n");
 			conn_api.terminate=-1;
@@ -162,16 +177,17 @@ int modem_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 	uifc.pop("Dialing...");
-	comWriteString(com, "ATDT");
+	comWriteString(com, settings.mdm.dial_string);
 	comWriteString(com, bbs->addr);
 	comWriteString(com, "\r");
 
 	/* Wait for "CONNECT" */
 	while(1) {
-		if(modem_response(respbuf, sizeof(respbuf), 30)) {
+		if((ret=modem_response(respbuf, sizeof(respbuf), 30))!=0) {
 			modem_close();
 			uifc.pop(NULL);
-			uifcmsg("No Answer",	"`No Answer`\n\n"
+			if(ret<0)
+				uifcmsg("No Answer",	"`No Answer`\n\n"
 							"The modem did not connect within 30 seconds.\n");
 			conn_api.terminate=-1;
 			return(-1);
