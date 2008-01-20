@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.196 2008/01/20 09:43:20 deuce Exp $ */
+/* $Id: term.c,v 1.197 2008/01/20 10:02:39 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1226,8 +1226,6 @@ BOOL doterm(struct bbslist *bbs)
 	for(;;) {
 		hold_update=TRUE;
 		sleep=TRUE;
-		if(!speed && bbs->bpsrate)
-			speed = bbs->bpsrate;
 		if(!term.nostatus)
 			update_status(bbs, speed);
 		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
