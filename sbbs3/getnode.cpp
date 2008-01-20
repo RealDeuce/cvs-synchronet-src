@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.31 2008/01/05 23:10:22 deuce Exp $ */
+/* $Id: getnode.cpp,v 1.32 2008/01/06 21:41:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ void sbbs_t::nodesync()
 				putnodedat(cfg.node_num,&thisnode); 
 			}
 		}
-		if(!(thisnode.misc&NODE_MOFF)) {
+		if(!(sys_status&SS_MOFF)) {
 			if(thisnode.misc&NODE_MSGW)
 				getsmsg(useron.number); 	/* getsmsg clears MSGW flag */
 			if(thisnode.misc&NODE_NMSG)
@@ -186,8 +186,8 @@ void sbbs_t::nodesync()
 	if(sys_status&SS_USERON && online && (timeleft/60)<(5-timeleft_warn)
 		&& !SYSOP) {
 		timeleft_warn=5-(timeleft/60);
-		attr(LIGHTGRAY);
-		if(!(thisnode.misc&NODE_MOFF)) {
+		if(!(sys_status&SS_MOFF)) {
+			attr(LIGHTGRAY);
 			bprintf(text[OnlyXminutesLeft]
 				,((ushort)timeleft/60)+1,(timeleft/60) ? "s" : nulstr); 
 		}

@@ -2,7 +2,7 @@
 
 /* Synchronet node information structure and constant definitions */
 
-/* $Id: nodedefs.h,v 1.16 2008/01/05 23:10:22 deuce Exp $ */
+/* $Id: nodedefs.h,v 1.17 2008/01/06 21:41:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,7 +75,6 @@ enum {                              /* Node Status */
 #define NODE_NMSG   (1<<11)         /* Node message waiting (new way) */
 #define NODE_EXT    (1<<12)         /* Extended info on node action */
 #define NODE_LCHAT	(1<<13)			/* Being pulled into local chat */
-#define NODE_MOFF	(1<<14)			/* Do not display messages */
 
 enum {                              /* Node Action */
      NODE_MAIN                      /* Main Prompt */
