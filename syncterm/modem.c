@@ -1,10 +1,11 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.10 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: modem.c,v 1.13 2008/01/20 21:28:36 rswindell Exp $ */
 
 #include <stdlib.h>
 
 #include "comio.h"
+#include "ciolib.h"
 
 #include "sockwrap.h"
 
@@ -35,7 +36,7 @@ void modem_input_thread(void *args)
 			buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
 			pthread_mutex_unlock(&(conn_inbuf.mutex));
 		}
-		if(comGetModemStatus(com)&COM_DCD == 0)
+		if((comGetModemStatus(com)&COM_DCD) == 0)
 			break;
 	}
 	conn_api.input_thread_running=0;
@@ -69,7 +70,7 @@ void modem_output_thread(void *args)
 		}
 		else
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
-		if(comGetModemStatus(com)&COM_DCD == 0)
+		if((comGetModemStatus(com)&COM_DCD) == 0)
 			break;
 	}
 	conn_api.output_thread_running=0;
@@ -117,11 +118,13 @@ int modem_connect(struct bbslist *bbs)
 		conn_api.terminate=-1;
 		return(-1);
 	}
-	if(!comSetBaudRate(com, 115200)) {
-		uifcmsg("Cannot Set Baudrate",	"`Cannot Set Baudrate`\n\n"
-						"Cannot open the specified modem device.\n");
-		conn_api.terminate=-1;
-		return(-1);
+	if(settings.mdm.com_rate) {
+		if(!comSetBaudRate(com, settings.mdm.com_rate)) {
+			uifcmsg("Cannot Set Baudrate",	"`Cannot Set Baudrate`\n\n"
+							"Cannot open the specified modem device.\n");
+			conn_api.terminate=-1;
+			return(-1);
+		}
 	}
 	if(!comRaiseDTR(com)) {
 		uifcmsg("Cannot Raise DTR",	"`Cannot Raise DTR`\n\n"
@@ -162,7 +165,7 @@ int modem_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 	uifc.pop("Dialing...");
-	comWriteString(com, "ATDT");
+	comWriteString(com, settings.mdm.dial_string);
 	comWriteString(com, bbs->addr);
 	comWriteString(com, "\r");
 
@@ -178,6 +181,14 @@ int modem_connect(struct bbslist *bbs)
 		}
 		if(strstr(respbuf, bbs->addr))	/* Dial command echoed */
 			continue;
+		/* Abort with keystroke */
+		if(kbhit()) {
+			modem_close();
+			uifc.pop(NULL);
+			uifcmsg("Aborted", "Dialing aborted");
+			conn_api.terminate=-1;
+			return(-1);
+		}
 		break;
 	}
 

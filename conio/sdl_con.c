@@ -1229,7 +1229,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 				if(mod & (KMOD_META|KMOD_ALT)) {
 
 					/* Yes, this is a "normal" ALT combo */
-					if(unicode==expect)
+					if(unicode==expect || unicode == 0)
 						return(sdl_keyval[i].alt);
 
 					/* AltGr apparently... translate unicode or give up */
