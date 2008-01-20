@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.35 2008/05/30 23:27:35 deuce Exp $ */
+/* $Id: inkey.cpp,v 1.34 2008/01/08 04:31:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -290,8 +290,6 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 						case 'F':	/* Xterm: cursor preceding line */
 						case 'K':	/* ANSI:  clear-to-end-of-line */
 							return(CTRL_E);	/* ctrl-e (end line) */
-						case '@':	/* ANSI/ECMA-048 INSERT */
-							return(CTRL_V);
 						case '~':	/* VT-220 (XP telnet.exe) */
 							switch(atoi(str)) {
 								case 1:
