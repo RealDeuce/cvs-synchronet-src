@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.101 2008/01/23 05:34:14 deuce Exp $ */
+/* $Id: ciolib.c,v 1.98 2007/10/24 19:39:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,9 +184,7 @@ int try_x_init(int mode)
 int try_curses_init(int mode)
 {
 	if(curs_initciolib(mode)) {
-		if(mode==CIOLIB_MODE_AUTO)
-			mode=CIOLIB_MODE_CURSES;
-		cio_api.mode=mode;
+		cio_api.mode=CIOLIB_MODE_CURSES_IBM;
 		cio_api.puttext=curs_puttext;
 		cio_api.gettext=curs_gettext;
 		cio_api.textattr=curs_textattr;
@@ -237,10 +235,7 @@ int try_conio_init(int mode)
 {
 	/* This should test for something or other */
 	if(win32_initciolib(mode)) {
-		if(mode==CIOLIB_MODE_AUTO)
-			cio_api.mode=CIOLIB_MODE_CONIO;
-		else
-			cio_api.mode=mode;	/* CIOLIB_MODE_CONIO or CIOLIB_MODE_CONIO_FULLSCREEN */
+		cio_api.mode=CIOLIB_MODE_CONIO;
 		cio_api.mouse=1;
 		cio_api.puttext=win32_puttext;
 		cio_api.gettext=win32_gettext;
@@ -304,7 +299,6 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			break;
 #ifdef _WIN32
 		case CIOLIB_MODE_CONIO:
-		case CIOLIB_MODE_CONIO_FULLSCREEN:
 			try_conio_init(mode);
 			break;
 #else
@@ -838,9 +832,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	char	str[16384];
 #else
 	char	*str;
-#ifndef HAVE_VASPRINTF
 	va_list argptr2;
-#endif
 #endif
 
 	CIOLIB_INIT();

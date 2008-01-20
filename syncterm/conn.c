@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.55 2008/01/21 08:22:39 deuce Exp $ */
+/* $Id: conn.c,v 1.49 2008/01/20 06:53:00 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -24,12 +24,12 @@
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial"
+char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem"
 #ifdef __unix__
 ,"Shell"
 #endif
 ,NULL};
-short unsigned int conn_ports[]={0,513,513,23,0,22,0,0
+short unsigned int conn_ports[]={0,513,513,23,0,22,0
 #ifdef __unix__
 ,65535
 #endif
@@ -303,10 +303,6 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
 			break;
-		case CONN_TYPE_SERIAL:
-			conn_api.connect=modem_connect;
-			conn_api.close=serial_close;
-			break;
 		case CONN_TYPE_MODEM:
 			conn_api.connect=modem_connect;
 			conn_api.close=modem_close;
@@ -317,8 +313,6 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.close=pty_close;
 			break;
 #endif
-		default:
-			conn_api.terminate=1;
 	}
 	if(conn_api.connect) {
 		if(conn_api.connect(bbs)) {
@@ -357,7 +351,6 @@ enum failure_reason {
 	,FAILURE_CONNECT_ERROR
 	,FAILURE_ABORTED
 	,FAILURE_GENERAL
-	,FAILURE_DISCONNECTED
 };
 
 int conn_socket_connect(struct bbslist *bbs)
@@ -447,10 +440,8 @@ int conn_socket_connect(struct bbslist *bbs)
 connected:
 	nonblock=0;
 	ioctlsocket(sock, FIONBIO, &nonblock);
-	if(!socket_check(sock, NULL, NULL, 0)) {
-		failcode=FAILURE_DISCONNECTED;
+	if(!socket_check(sock, NULL, NULL, 0))
 		goto connect_failed;
-	}
 
 	uifc.pop(NULL);
 	return(sock);
@@ -491,12 +482,6 @@ connect_failed:
 				uifcmsg(str
 								,"`SyncTERM failed to connect`\n\n"
 								 "The call to select() returned an unexpected error code.");
-				break;
-			case FAILURE_DISCONNECTED:
-				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
-				uifcmsg(str
-								,"`SyncTERM failed to connect`\n\n"
-								 "After connect() succeeded, the socket was in a disconnected state.");
 				break;
 		}
 		conn_close();
