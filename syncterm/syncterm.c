@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.130 2008/01/20 03:08:09 deuce Exp $ */
+/* $Id: syncterm.c,v 1.131 2008/01/20 03:14:45 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -40,6 +40,8 @@ char* syncterm_version = "SyncTERM 0.9.1"
 #if defined(__APPLE__) && defined(__MACH__)
 /* Mac OS X */
 #define DEFAULT_MODEM_DEV	"/dev/tty.modem"
+#elif defined(_WIN32)
+#define DEFAULT_MODEM_DEV	"COM1"
 #else
 /* FreeBSD */
 #define DEFAULT_MODEM_DEV	"/dev/ttyd0"
