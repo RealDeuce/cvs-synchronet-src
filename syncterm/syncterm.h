@@ -41,15 +41,12 @@ struct syncterm_settings {
 	int		backlines;
 	int		prompt_save;
 	struct modem_settings mdm;
-	char	TERM[INI_MAX_VALUE_LEN+1];
 };
 
 extern char *inpath;
 extern char *syncterm_version;
 extern unsigned char *scrollback_buf;
 extern unsigned int   scrollback_lines;
-extern unsigned int  scrollback_mode;
-extern unsigned int  scrollback_cols;
 extern struct syncterm_settings settings;
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults);
 extern int default_font;
