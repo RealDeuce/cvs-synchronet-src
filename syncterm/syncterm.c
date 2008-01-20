@@ -1,10 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.155 2008/10/13 00:03:12 deuce Exp $ */
-
-#if defined(__APPLE__) && defined(__MACH__)
-#include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
-#endif
+/* $Id: syncterm.c,v 1.132 2008/01/20 06:53:00 rswindell Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -34,11 +30,22 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.3b"
+char* syncterm_version = "SyncTERM 0.9.1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
 	;
+
+/* Default modem device */
+#if defined(__APPLE__) && defined(__MACH__)
+/* Mac OS X */
+#define DEFAULT_MODEM_DEV	"/dev/tty.modem"
+#elif defined(_WIN32)
+#define DEFAULT_MODEM_DEV	"COM1"
+#else
+/* FreeBSD */
+#define DEFAULT_MODEM_DEV	"/dev/ttyd0"
+#endif
 
 char *inpath=NULL;
 int default_font=0;
@@ -46,8 +53,6 @@ struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
 unsigned char *scrollback_buf=NULL;
 unsigned int  scrollback_lines=0;
-unsigned int  scrollback_mode=C80;
-unsigned int  scrollback_cols=80;
 int	safe_mode=0;
 FILE* log_fp;
 extern ini_style_t ini_style;
@@ -663,7 +668,6 @@ char *output_types[]={
 #endif
 #ifdef _WIN32
 	,"Win32 Console"
-	,"Win32 Console Fullscreen"
 #endif
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,"SDL"
@@ -684,7 +688,6 @@ int output_map[]={
 #endif
 #ifdef _WIN32
 	,CIOLIB_MODE_CONIO
-	,CIOLIB_MODE_CONIO_FULLSCREEN
 #endif
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,CIOLIB_MODE_SDL
@@ -700,7 +703,6 @@ char *output_descrs[]={
 	,"ANSI"
 	,"X11"
 	,"Win32 Console"
-	,"Win32 Console Fullscreen"
 	,"SDL"
 	,"SDL Fullscreen"
 	,"SDL Overlay"
@@ -714,7 +716,6 @@ char *output_enum[]={
 	,"ANSI"
 	,"X11"
 	,"WinConsole"
-	,"WinConsoleFullscreen"
 	,"SDL"
 	,"SDLFullscreen"
 	,"SDLOverlay"
@@ -775,6 +776,10 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	}
 #endif
 	/* ToDo: RFC2806 */
+	/* Remove trailing / (Win32 adds one 'cause it hates me) */
+	p2=strchr(p1,'/');
+	if(p2!=NULL)
+		*p2=0;
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
 		*p3=0;
@@ -794,10 +799,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		p2++;
 		bbs->port=atoi(p2);
 	}
-	/* Remove trailing / (Win32 adds one 'cause it hates me) */
-	p2=strrchr(p1,'/');
-	if(p2!=NULL && *(p2+1)==0)
-		*p2=0;
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
@@ -816,62 +817,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	}
 	free_list(&list[0],listcount);
 }
-
-#if defined(__APPLE__) && defined(__MACH__)
-static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
-{
-	FSRef		ref;
-	long		size;
-
-	/* First, get the path */
-	switch(type) {
-	case SYNCTERM_PATH_INI:
-	case SYNCTERM_PATH_LIST:
-		if(FSFindFolder(shared?kLocalDomain:kUserDomain, kPreferencesFolderType, kCreateFolder, &ref)!=noErr)
-			return(NULL);
-		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
-			return(NULL);
-		backslash(fn);
-		strncat(fn, "SyncTERM", fnlen);
-		backslash(fn);
-		if(!isdir(fn)) {
-			if(MKDIR(fn))
-				return(NULL);
-		}
-		break;
-
-	case SYNCTERM_DEFAULT_TRANSFER_PATH:
-		/* I'd love to use the "right" setting here, but don't know how */
-		if(FSFindFolder(shared?kLocalDomain:kUserDomain, kDesktopFolderType, kCreateFolder, &ref)!=noErr)
-			return(NULL);
-		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
-			return(NULL);
-		backslash(fn);
-		if(!isdir(fn)) {
-			if(MKDIR(fn))
-				return(NULL);
-		}
-		return(fn);
-	case SYNCTERM_PATH_CACHE:
-		if(FSFindFolder(shared?kLocalDomain:kUserDomain, kCachedDataFolderType, kCreateFolder, &ref)!=noErr)
-			return(NULL);
-		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
-			return(NULL);
-		backslash(fn);
-		return(fn);
-	}
-
-	switch(type) {
-	case SYNCTERM_PATH_INI:
-		strncat(fn, "SyncTERM.ini", fnlen);
-		return(fn);
-	case SYNCTERM_PATH_LIST:
-		strncat(fn, "SyncTERM.lst", fnlen);
-		return(fn);
-	}
-	return(NULL);
-}
-#endif
 
 char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 {
@@ -947,12 +892,12 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			break;
 	}
 #else
-	/* UNIX */
-	char	*home=NULL;
+	char	*home;
+	int		created;
 
 	if(inpath==NULL)
 		home=getenv("HOME");
-	if(!shared && (home==NULL || strlen(home) > MAX_PATH-32)) {	/* $HOME just too damn big */
+	if(home==NULL || strlen(home) > MAX_PATH-32) {	/* $HOME just too damn big */
 		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH || type==SYNCTERM_PATH_CACHE) {
 			getcwd(fn, fnlen);
 			backslash(fn);
@@ -969,10 +914,6 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 			strcpy(fn, home);
 			backslash(fn);
-#if defined(__APPLE__) && defined(__MACH__)
-			if(get_new_OSX_filename(oldlst, sizeof(oldlst), type, shared)!=NULL)
-				strcpy(fn, oldlst);
-#endif
 			if(!isdir(fn))
 				MKDIR(fn);
 			return(fn);
@@ -994,13 +935,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 #endif
 	}
 
-#if !(defined(__APPLE__) && defined(__MACH__))
 	/* Create if it doesn't exist */
 	if(!isdir(fn) && !shared) {
 		if(MKDIR(fn))
 			fn[0]=0;
 	}
-#endif
 
 	switch(type) {
 		case SYNCTERM_PATH_INI:
@@ -1012,38 +951,17 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		case SYNCTERM_PATH_CACHE:
 			strncat(fn,"cache",fnlen);
 			backslash(fn);
-#if !(defined(__APPLE__) && defined(__MACH__))
 			if(!isdir(fn)) {
 				if(MKDIR(fn))
 					fn[0]=0;
 			}
-#endif
 			break;
 	}
+#endif
 
-#if defined(__APPLE__) && defined(__MACH__)
-
-	strcpy(oldlst, fn);
-	if(get_new_OSX_filename(fn, fnlen, type, shared)!=NULL) {
-		if(fexist(oldlst)) {
-			if(!isdir(oldlst)) {
-				char *lastslash=strrchr(oldlst, '/');
-
-				rename(oldlst, fn);
-				if(lastslash) {
-					*(lastslash+1)='*';
-					*(lastslash+2)=0;
-					if(!fexist(oldlst)) {
-						*lastslash=0;
-						rmdir(oldlst);
-					}
-				}
-				
-			}
-		}
-	}
-#endif	/* OS X */
-#endif	/* !Win32 */
+	/* Copy pre-0.7 version of the syncterm.lst file to new location */
+	if(!shared && type == SYNCTERM_PATH_LIST && (!fexist(fn)) && fexist(oldlst))
+		rename(oldlst, fn);
 	return(fn);
 }
 
@@ -1059,16 +977,14 @@ void load_settings(struct syncterm_settings *set)
 	inifile=fopen(inipath,"r");
 	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
 	set->prompt_save=iniReadBool(inifile,"SyncTERM","PromptSave",TRUE);
-	set->startup_mode=iniReadEnum(inifile,"SyncTERM","VideoMode",screen_modes,SCREEN_MODE_CURRENT);
-	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
+	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 
 	/* Modem settings */
-	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
-	iniReadString(inifile, "SyncTERM", "ModemDial", "ATDT", set->mdm.dial_string);
+	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F", set->mdm.init_string);
 	iniReadString(inifile, "SyncTERM", "ModemDevice", DEFAULT_MODEM_DEV, set->mdm.device_name);
-	set->mdm.com_rate=iniReadLongInt(inifile, "SyncTERM", "ModemComRate", 0);
+
 	/* Sort order */
 	sortby=iniReadStringList(inifile, "SyncTERM", "SortOrder", ",", "5,1");
 	while((order=strListRemove(&sortby,0))!=NULL) {
@@ -1076,9 +992,6 @@ void load_settings(struct syncterm_settings *set)
 		free(order);
 	}
 	strListFree(&sortby);
-
-	/* Shell TERM settings */
-	iniReadString(inifile, "SyncTERM", "TERM", "ansi", set->TERM);
 
 	if(inifile)
 		fclose(inifile);
@@ -1105,7 +1018,6 @@ int main(int argc, char **argv)
 	int		conn_type=CONN_TYPE_TELNET;
 	BOOL	dont_set_mode=FALSE;
 	BOOL	override_conn=FALSE;
-	char	*last_bbs=NULL;
 
 	/* Cryptlib initialization MUST be done before ciolib init */
 	if(!crypt_loaded)
@@ -1151,11 +1063,6 @@ int main(int argc, char **argv)
 							break;
 						case 'W':
 							ciolib_mode=CIOLIB_MODE_CONIO;
-							switch(toupper(argv[i][3])) {
-								case 'F':
-									ciolib_mode=CIOLIB_MODE_CONIO_FULLSCREEN;
-									break;
-							}
 							break;
 						case 'S':
 							switch(toupper(argv[i][3])) {
@@ -1229,6 +1136,11 @@ int main(int argc, char **argv)
 		FULLPATH(path,inpath,sizeof(path));
 	atexit(uifcbail);
 
+	scrollback_buf=malloc(132*2*settings.backlines);	/* Terminal width is *always* <= 132 cols */
+	if(scrollback_buf==NULL) {
+		uifc.msg("Cannot allocate space for scrollback buffer.\n");
+	}
+
 #ifdef __unix__
 	umask(077);
 #endif
@@ -1242,7 +1154,6 @@ int main(int argc, char **argv)
 			uifcmsg("Unable to allocate memory","The system was unable to allocate memory.");
 			return(1);
 		}
-		memset(bbs, 0, sizeof(struct bbslist));
 		if((listfile=fopen(listpath,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
 		else {
@@ -1266,9 +1177,8 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while(bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL) {
+	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
-		FREE_AND_NULL(last_bbs);
 		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
@@ -1302,7 +1212,7 @@ int main(int argc, char **argv)
 				return(1);
 			}
 			if(log_fp==NULL && bbs->logfile[0])
-				log_fp=fopen(bbs->logfile,bbs->append_logfile ? "a" : "w");
+				log_fp=fopen(bbs->logfile,"a");
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
@@ -1313,7 +1223,6 @@ int main(int argc, char **argv)
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log closed\n", ctime(&now)+4);
-				fprintf(log_fp,"---------------\n");
 				fclose(log_fp);
 				log_fp=NULL;
 			}
@@ -1335,12 +1244,10 @@ int main(int argc, char **argv)
 						char	*YesNo[3]={"Yes","No",""};
 						/* Started from the command-line with a URL */
 						init_uifc(TRUE, TRUE);
-						i=1;
-						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this directory entry?",YesNo)) {
+						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 							case 0:	/* Yes */
 								edit_list(NULL, bbs,listpath,FALSE);
 								add_bbs(listpath,bbs);
-								last_bbs=strdup(bbs->name);
 								break;
 							default: /* ESC/No */
 								break;
@@ -1352,8 +1259,6 @@ int main(int argc, char **argv)
 			bbs=NULL;
 			break;
 		}
-		else
-			last_bbs=strdup(bbs->name);
 		bbs=NULL;
 	}
 	uifcbail();
@@ -1378,7 +1283,7 @@ int main(int argc, char **argv)
 		"       C = Curses mode\n"
 		"       F = Curses mode with forced IBM charset\n"
 #else
-		"       W[F] = Win32 native mode, F for fullscreen\n"
+		"       W = Win32 native mode\n"
 #endif
 		"       A = ANSI mode\n"
         "-l# =  set screen lines to # (default=auto-detect)\n"
@@ -1446,8 +1351,6 @@ int screen_to_ciolib(int screen)
 			return(C128_80X25);
 		case SCREEN_MODE_ATARI:
 			return(ATARI_40X24);
-		case SCREEN_MODE_ATARI_XEP80:
-			return(ATARI_80X25);
 	}
 	gettextinfo(&ti);
 	return(ti.currmode);
@@ -1455,6 +1358,8 @@ int screen_to_ciolib(int screen)
 
 int ciolib_to_screen(int ciolib)
 {
+	struct text_info	ti;
+
 	switch(ciolib) {
 		case C80 :
 			return(SCREEN_MODE_80X25);
@@ -1488,8 +1393,6 @@ int ciolib_to_screen(int ciolib)
 			return(SCREEN_MODE_C128_80);
 		case ATARI_40X24 :
 			return(SCREEN_MODE_ATARI);
-		case ATARI_80X25:
-			return(SCREEN_MODE_ATARI_XEP80);
 	}
 	return(SCREEN_MODE_CURRENT);
 }
