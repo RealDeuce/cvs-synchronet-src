@@ -1,4 +1,6 @@
-/* $Id: bbslist.h,v 1.31 2007/05/27 06:30:19 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: bbslist.h,v 1.39 2008/01/20 06:53:00 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -36,6 +38,13 @@ enum {
 	,SCREEN_MODE_80X43
 	,SCREEN_MODE_80X50
 	,SCREEN_MODE_80X60
+	,SCREEN_MODE_132X25
+	,SCREEN_MODE_132X28
+	,SCREEN_MODE_132X30
+	,SCREEN_MODE_132X34
+	,SCREEN_MODE_132X43
+	,SCREEN_MODE_132X50
+	,SCREEN_MODE_132X60
 	,SCREEN_MODE_C64
 	,SCREEN_MODE_C128_40
 	,SCREEN_MODE_C128_80
@@ -43,6 +52,7 @@ enum {
 	,SCREEN_MODE_TERMINATOR
 };
 
+/* NOTE: changing this may require updating sort_order in bbslist.c */
 struct bbslist {
 	char			name[LIST_NAME_MAX+1];
 	char			addr[LIST_ADDR_MAX+1];
@@ -56,7 +66,6 @@ struct bbslist {
 	int				type;
 	int				conn_type;
 	int				id;
-	int				reversed;
 	int				screen_mode;
 	int				nostatus;
 	char			dldir[MAX_PATH+1];
@@ -73,11 +82,14 @@ struct bbslist *show_bbslist(int mode);
 extern char *log_levels[];
 extern char *rate_names[];
 extern int rates[];
+extern int sortorder[];
 extern ini_style_t ini_style;
-void read_item(FILE *listfile, struct bbslist *entry, char *bbsname, int id, int type);
+extern char *screen_modes[];
+void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id, int type);
 void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, int *i, int type);
 void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
+int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault);
 int  get_rate_num(int rate);
 
 #endif
