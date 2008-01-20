@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.84 2008/01/19 23:58:45 deuce Exp $ */
+/* $Id: win32cio.c,v 1.85 2008/01/20 00:04:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,7 +149,6 @@ const struct keyvals keyval[] =
 	{0xbc, ',', '<', 0, 0x3300},
 	{0xbe, '.', '>', 0, 0x3400},
 	{0xc0, '`', '~', 0, 0x2900},
-	{VK_PAUSE, 0x13, 0x13, 0x13, 0x2900},
 	{0, 0, 0, 0, 0}	/** END **/
 };
 
