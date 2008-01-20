@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.51 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.50 2006/02/08 19:04:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -175,18 +175,6 @@ void sbbs_t::backspace(void)
 }
 
 /****************************************************************************/
-/* Returns true if the user (or the yet-to-be-logged-in client) supports	*/
-/* all of the specified terminal 'cmp_flags' (e.g. ANSI, COLOR, RIP).		*/
-/* If no flags specified, returns all terminal flag bits supported			*/
-/****************************************************************************/
-long sbbs_t::term_supports(long cmp_flags)
-{
-	long flags = sys_status&SS_USERON ? useron.misc : autoterm;
-
-	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
-}
-
-/****************************************************************************/
 /* Outputs character locally and remotely (if applicable), preforming echo  */
 /* translations (X's and r0dent emulation) if applicable.					*/
 /****************************************************************************/
@@ -210,7 +198,7 @@ void sbbs_t::outchar(char ch)
 	}
 	else
 		outchar_esc=0;
-	if(term_supports(NO_EXASCII) && ch&0x80)
+	if(useron.misc&NO_EXASCII && ch&0x80)
 		ch=sbtbl[(uchar)ch^0x80];  /* seven bit table */
 	if(ch==FF && lncntr>1 && !tos) {
 		lncntr=0;
@@ -245,7 +233,7 @@ void sbbs_t::outchar(char ch)
 			ch=text[YN][3];
 			if(text[YN][2]==0 || ch==0) ch='X';
 		}
-		if(ch==FF && term_supports(ANSI)) {
+		if(ch==FF && useron.misc&ANSI) {
 			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
 		}
 		else {
@@ -312,7 +300,7 @@ void sbbs_t::clearline(void)
 	int i;
 
 	outchar(CR);
-	if(term_supports(ANSI))
+	if(useron.misc&ANSI)
 		rputs("\x1b[K");
 	else {
 		for(i=0;i<cols-1;i++)
@@ -323,7 +311,7 @@ void sbbs_t::clearline(void)
 
 void sbbs_t::cursor_home(void)
 {
-	if(term_supports(ANSI))
+	if(useron.misc&ANSI)
 		rputs("\x1b[H");
 	else
 		outchar(FF);
@@ -333,7 +321,7 @@ void sbbs_t::cursor_up(int count)
 {
 	if(count<1)
 		return;
-	if(!term_supports(ANSI))
+	if(!(useron.misc&ANSI))
 		return;
 	if(count>1)
 		rprintf("\x1b[%dA",count);
@@ -345,7 +333,7 @@ void sbbs_t::cursor_down(int count)
 {
 	if(count<1)
 		return;
-	if(!term_supports(ANSI))
+	if(!(useron.misc&ANSI))
 		return;
 	if(count>1)
 		rprintf("\x1b[%dB",count);
@@ -357,7 +345,7 @@ void sbbs_t::cursor_right(int count)
 {
 	if(count<1)
 		return;
-	if(term_supports(ANSI)) {
+	if(useron.misc&ANSI) {
 		if(count>1)
 			rprintf("\x1b[%dC",count);
 		else
@@ -372,7 +360,7 @@ void sbbs_t::cursor_left(int count)
 {
 	if(count<1)
 		return;
-	if(term_supports(ANSI)) {
+	if(useron.misc&ANSI) {
 		if(count>1)
 			rprintf("\x1b[%dD",count);
 		else
@@ -385,7 +373,7 @@ void sbbs_t::cursor_left(int count)
 
 void sbbs_t::cleartoeol(void)
 {
-	if(term_supports(ANSI))
+	if(useron.misc&ANSI)
 		rputs("\x1b[K");
 #if 0
 	else {
@@ -608,9 +596,9 @@ void sbbs_t::attr(int atr)
 {
 	char	str[16];
 
-	if(!term_supports(ANSI))
+	if(!(useron.misc&ANSI))
 		return;
-	if(!term_supports(COLOR)) {  /* eliminate colors if user doesn't have them */
+	if(!(useron.misc&COLOR)) {  /* eliminate colors if user doesn't have them */
 		if(atr&LIGHTGRAY)       /* if any foreground bits set, set all */
 			atr|=LIGHTGRAY;
 		if(atr&BG_LIGHTGRAY)  /* if any background bits set, set all */
