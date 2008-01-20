@@ -1,4 +1,6 @@
-/* $Id: modem.c,v 1.8 2007/07/06 02:36:33 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: modem.c,v 1.12 2008/01/20 08:02:34 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -33,7 +35,7 @@ void modem_input_thread(void *args)
 			buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
 			pthread_mutex_unlock(&(conn_inbuf.mutex));
 		}
-		if(comGetModemStatus(com)&COM_DCD == 0)
+		if((comGetModemStatus(com)&COM_DCD) == 0)
 			break;
 	}
 	conn_api.input_thread_running=0;
@@ -67,7 +69,7 @@ void modem_output_thread(void *args)
 		}
 		else
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
-		if(comGetModemStatus(com)&COM_DCD == 0)
+		if((comGetModemStatus(com)&COM_DCD) == 0)
 			break;
 	}
 	conn_api.output_thread_running=0;
@@ -160,7 +162,7 @@ int modem_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 	uifc.pop("Dialing...");
-	comWriteString(com, "ATDT");
+	comWriteString(com, settings.mdm.dial_string);
 	comWriteString(com, bbs->addr);
 	comWriteString(com, "\r");
 
@@ -210,7 +212,7 @@ int modem_connect(struct bbslist *bbs)
 		modem_close();
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
-		free(conn_api.rd_buf);
+		FREE_AND_NULL(conn_api.rd_buf);
 		return(-1);
 	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
