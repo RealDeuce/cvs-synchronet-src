@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.85 2008/01/20 00:04:01 deuce Exp $ */
+/* $Id: win32cio.c,v 1.86 2008/01/20 00:14:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -435,8 +435,7 @@ int win32_initciolib(long inmode)
 	if((h=GetStdHandle(STD_INPUT_HANDLE))==INVALID_HANDLE_VALUE
 		|| !GetConsoleMode(h, &orig_in_conmode))
 		return(0);
-	conmode=orig_in_conmode;
-	conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
+	conmode=0;
 	conmode|=ENABLE_MOUSE_INPUT;
 	if(!SetConsoleMode(h, conmode))
 		return(0);
