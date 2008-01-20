@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.8 2008/01/21 08:31:52 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.7 2008/01/19 23:08:53 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -133,8 +133,6 @@
 #include "conn.h"
 #include "uifcinit.h"
 #include "ciolib.h"
-#include "syncterm.h"
-#include "fonts.h"
 extern int default_font;
 
 #ifdef NEEDS_CFMAKERAW
@@ -288,7 +286,7 @@ int i;
 
 	conn_api.input_thread_running=1;
 	while(master != -1 && !conn_api.terminate) {
-		if((i=waitpid(child_pid, &status, WNOHANG)))
+		if(i=waitpid(child_pid, &status, WNOHANG))
 			break;
 		FD_ZERO(&rds);
 		FD_SET(master, &rds);
