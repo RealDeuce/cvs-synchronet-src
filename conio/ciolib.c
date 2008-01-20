@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.101 2008/01/23 05:34:14 deuce Exp $ */
+/* $Id: ciolib.c,v 1.99 2008/01/20 10:21:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,9 +184,7 @@ int try_x_init(int mode)
 int try_curses_init(int mode)
 {
 	if(curs_initciolib(mode)) {
-		if(mode==CIOLIB_MODE_AUTO)
-			mode=CIOLIB_MODE_CURSES;
-		cio_api.mode=mode;
+		cio_api.mode=CIOLIB_MODE_CURSES_IBM;
 		cio_api.puttext=curs_puttext;
 		cio_api.gettext=curs_gettext;
 		cio_api.textattr=curs_textattr;
@@ -838,9 +836,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	char	str[16384];
 #else
 	char	*str;
-#ifndef HAVE_VASPRINTF
 	va_list argptr2;
-#endif
 #endif
 
 	CIOLIB_INIT();

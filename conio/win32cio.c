@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.92 2008/01/24 03:06:47 deuce Exp $ */
+/* $Id: win32cio.c,v 1.88 2008/01/20 10:54:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -495,10 +495,10 @@ void win32_suspend(void)
 {
 	HANDLE h;
 
-	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
-		SetConsoleMode(h, orig_out_conmode);
 	if((h=GetStdHandle(STD_INPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleMode(h, orig_in_conmode);
+	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleMode(h, orig_out_conmode);
 }
 
 void win32_resume(void)
@@ -506,7 +506,9 @@ void win32_resume(void)
 	DWORD	conmode;
 	HANDLE	h;
 
-	conmode=ENABLE_MOUSE_INPUT|ENABLE_EXTENDED_FLAGS;
+    conmode=orig_in_conmode;
+    conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
+    conmode|=ENABLE_MOUSE_INPUT;
 	if((h=GetStdHandle(STD_INPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleMode(h, conmode);
 
@@ -515,11 +517,6 @@ void win32_resume(void)
     conmode&=~ENABLE_WRAP_AT_EOL_OUTPUT;
 	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleMode(h, conmode);
-}
-
-static BOOL WINAPI ControlHandler(DWORD CtrlType)
-{
-	return TRUE;
 }
 
 int win32_initciolib(long inmode)
@@ -535,11 +532,12 @@ int win32_initciolib(long inmode)
 			return(0);
 	}
 
-	SetConsoleCtrlHandler(ControlHandler,TRUE);
+	SetConsoleCtrlHandler(NULL,TRUE);
 	if((h=GetStdHandle(STD_INPUT_HANDLE))==INVALID_HANDLE_VALUE
 		|| !GetConsoleMode(h, &orig_in_conmode))
 		return(0);
-	conmode=ENABLE_MOUSE_INPUT|ENABLE_EXTENDED_FLAGS;
+	conmode=0;
+	conmode|=ENABLE_MOUSE_INPUT;
 	if(!SetConsoleMode(h, conmode))
 		return(0);
 
@@ -577,7 +575,7 @@ int win32_initciolib(long inmode)
 			else
 				win32_textmode(VESA_132X60);
 		}
-		else if(i>=80) {
+		if(i>=80) {
 			if(j<21)
 				win32_textmode(C80X14);
 			else if(j<25)
