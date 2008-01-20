@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.132 2008/01/20 06:53:00 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.133 2008/01/20 07:13:55 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -977,7 +977,8 @@ void load_settings(struct syncterm_settings *set)
 	inifile=fopen(inipath,"r");
 	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
 	set->prompt_save=iniReadBool(inifile,"SyncTERM","PromptSave",TRUE);
-	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
+	set->startup_mode=iniReadEnum(inifile,"SyncTERM","VideoMode",screen_modes,SCREEN_MODE_CURRENT);
+	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 
