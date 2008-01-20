@@ -31,7 +31,6 @@ struct modem_settings {
 	char	init_string[INI_MAX_VALUE_LEN];
 	char	dial_string[INI_MAX_VALUE_LEN];
 	char	device_name[INI_MAX_VALUE_LEN+1];
-	ulong	com_rate;
 };
 
 struct syncterm_settings {
