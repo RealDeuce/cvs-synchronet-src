@@ -176,7 +176,7 @@ int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
 
 char *sort_orders[]={"BBS Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", NULL};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -737,7 +737,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 						"~ Log Telnet Cmds ~\n"
 						"        Cycles through the various telnet command log settings.\n\n"
 						;
-		i=uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&copt,&bar,"Edit Entry",opts);
+		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,&bar,"Edit Entry",opts);
 		if(i>=0 && isdefault)
 			i+=2;
 		switch(i) {
@@ -1103,7 +1103,7 @@ void change_settings(void)
 		sprintf(opts[4],"Scrollback Buffer Lines %d",settings.backlines);
 		sprintf(opts[5],"Modem Device            %s",settings.mdm.device_name);
 		sprintf(opts[6],"Modem Init String       %s",settings.mdm.init_string);
-		switch(uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&cur,NULL,"Program Settings",opt)) {
+		switch(uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&cur,NULL,"Program Settings",opt)) {
 			case -1:
 				goto write_ini;
 			case 0:
@@ -1123,7 +1123,7 @@ void change_settings(void)
 						continue;
 					default:
 						settings.startup_mode=j;
-						iniSetInteger(&inicontents,"SyncTERM","VideoMode",settings.startup_mode,&ini_style);
+						iniSetEnum(&inicontents,"SyncTERM","VideoMode",screen_modes,settings.startup_mode,&ini_style);
 						break;
 				}
 				break;
@@ -1355,10 +1355,13 @@ struct bbslist *show_bbslist(int mode)
 				if(val<0) {
 					switch(val) {
 						case -2-0x13:	/* CTRL-S - Sort */
+							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
+								|WIN_T2B|WIN_IMM|WIN_INACT|WIN_HLP
+								,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 							edit_sorting(list,&listcount);
 							break;
 						case -2-0x3000:	/* ALT-B - Scrollback */
-							viewofflinescroll();
+							//viewofflinescroll();
 							break;
 						case -2-CIO_KEY_MOUSE:	/* Clicked outside of window... */
 							getmouse(&mevent);
@@ -1374,6 +1377,9 @@ struct bbslist *show_bbslist(int mode)
 						case -7:		/* CTRL-E */
 							if(list[opt]) {
 								i=list[opt]->id;
+								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
+									|WIN_T2B|WIN_IMM|WIN_INACT|WIN_HLP
+									,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 								if(edit_list(list, list[opt],listpath,FALSE)) {
 									load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount);
 									for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
@@ -1388,6 +1394,9 @@ struct bbslist *show_bbslist(int mode)
 							uifc.changes=0;
 							uifc.helpbuf=	"`SyncTERM QuickDial`\n\n"
 											"Enter a URL in the format [(rlogin|telnet)://][user[:password]@]domainname[:port]\n";
+							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
+								|WIN_T2B|WIN_IMM|WIN_INACT|WIN_HLP
+								,0,0,0,&opt,&bar,mode==BBSLIST_SELECT?"Directory":"Edit",(char **)list);
 							uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Address",addy,LIST_ADDR_MAX,0);
 							memcpy(&retlist, &defaults, sizeof(defaults));
 							if(uifc.changes) {
@@ -1442,7 +1451,6 @@ struct bbslist *show_bbslist(int mode)
 							memcpy(list[listcount-1],&defaults,sizeof(struct bbslist));
 							list[listcount-1]->id=listcount-1;
 							strcpy(list[listcount-1]->name,tmp);
-							uifc.input(WIN_MID|WIN_SAV,0,0,"BBS Name",list[listcount-1]->name,LIST_NAME_MAX,K_EDIT);
 							uifc.changes=0;
 							uifc.helpbuf=	"`Address`\n\n"
 											"Enter the domain name of the system to connect to ie:\n"
@@ -1563,8 +1571,12 @@ struct bbslist *show_bbslist(int mode)
 				if(oldopt != -2)
 					settitle(syncterm_version);
 				oldopt=-2;
-				val=uifc.list(WIN_ACT|WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE
+				val=uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP
 					,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
+				if(val>=0) {
+					uifc.list(WIN_T2B|WIN_RHT|WIN_IMM|WIN_INACT
+						,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
+				}
 				switch(val) {
 					case -2-0x3000:	/* ALT-B - Scrollback */
 						viewofflinescroll();
@@ -1599,55 +1611,11 @@ struct bbslist *show_bbslist(int mode)
 							uifc.helpbuf=	"`Screen Setup`\n\n"
 									"Select the new screen size.\n";
 							i=ti.currmode;
-							switch(i) {
-								case C80:
-									i=SCREEN_MODE_80X25;
-									break;
-								case C80X28:
-									i=SCREEN_MODE_80X28;
-									break;
-								case C80X43:
-									i=SCREEN_MODE_80X43;
-									break;
-								case C80X50:
-									i=SCREEN_MODE_80X50;
-									break;
-								case C80X60:
-									i=SCREEN_MODE_80X60;
-									break;
-							}
+							i=ciolib_to_screen(ti.currmode);
 							i=uifc.list(WIN_SAV,0,0,0,&i,NULL,"Screen Setup",screen_modes);
 							if(i>=0) {
 								uifcbail();
-								switch(i) {
-									case SCREEN_MODE_80X25:
-										textmode(C80);
-										break;
-									case SCREEN_MODE_80X28:
-										textmode(C80X28);
-										break;
-									case SCREEN_MODE_80X43:
-										textmode(C80X43);
-										break;
-									case SCREEN_MODE_80X50:
-										textmode(C80X50);
-										break;
-									case SCREEN_MODE_80X60:
-										textmode(C80X60);
-										break;
-									case SCREEN_MODE_C64:
-										textmode(C64_40X25);
-										break;
-									case SCREEN_MODE_C128_40:
-										textmode(C128_40X25);
-										break;
-									case SCREEN_MODE_C128_80:
-										textmode(C128_80X25);
-										break;
-									case SCREEN_MODE_ATARI:
-										textmode(ATARI_40X24);
-										break;
-								}
+								textmode(screen_to_ciolib(i));
 								init_uifc(TRUE, TRUE);
 							}
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
