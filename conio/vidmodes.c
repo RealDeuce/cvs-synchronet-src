@@ -1,10 +1,10 @@
-/* $Id: vidmodes.c,v 1.8 2007/05/27 04:31:33 deuce Exp $ */
+/* $Id: vidmodes.c,v 1.12 2008/01/19 22:24:28 deuce Exp $ */
 
 #include <stdlib.h>
 
 #include "vidmodes.h"
 
-struct video_params vparams[40] = {
+struct video_params vparams[48] = {
 	/* BW 40x25 */
 	{BW40, GREYSCALE_PALETTE, 40, 25, 14, 15, 16, 8},
 	/* CO 40x25 */
@@ -84,10 +84,26 @@ struct video_params vparams[40] = {
 	/* Commodore 128 80x25 mode */
 	{C128_80X25, COLOUR_PALETTE, 80, 25, 0, 7, 8, 8},
 	/* Atari 800 40x24 mode */
-	{ATARI_40X24, MONO_PALETTE, 40, 24, 0, 7, 8, 8},
+	{ATARI_40X24, ATARI_PALETTE, 40, 24, 0, 7, 8, 8},
+	/* VESA 21x132 mode */
+	{VESA_132X21, COLOUR_PALETTE, 132, 21, 14, 15, 16, 8},
+	/* VESA 25x132 mode */
+	{VESA_132X25, COLOUR_PALETTE, 132, 25, 14, 15, 16, 8},
+	/* VESA 28x132 mode */
+	{VESA_132X28, COLOUR_PALETTE, 132, 28, 12, 13, 14, 8},
+	/* VESA 30x132 mode */
+	{VESA_132X30, COLOUR_PALETTE, 132, 30, 14, 15, 16, 8},
+	/* VESA 34x132 mode */
+	{VESA_132X34, COLOUR_PALETTE, 132, 34, 12, 13, 14, 8},
+	/* VESA 43x132 mode */
+	{VESA_132X43, COLOUR_PALETTE, 132, 34, 7, 7, 8, 8},
+	/* VESA 50x132 mode */
+	{VESA_132X50, COLOUR_PALETTE, 132, 50, 7, 7, 8, 8},
+	/* VESA 60x132 mode */
+	{VESA_132X60, COLOUR_PALETTE, 132, 60, 7, 7, 8, 8},
 };
 
-unsigned char palettes[4][16] = {
+unsigned char palettes[5][16] = {
 	/* Mono */
 	{ 0x00, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
 	  0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07
@@ -104,9 +120,13 @@ unsigned char palettes[4][16] = {
 	{ 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 
 	  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
 	},
+	/* Atari */
+	{ 0x20, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
+	  0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21
+	},
 };
 
-struct dac_colors dac_default[32] = {
+struct dac_colors dac_default[34] = {
 	{0, 0, 0},    {0, 0, 168},   {0, 168, 0},   {0, 168, 168},
 	{168, 0, 0},   {168, 0, 168},  {168, 84, 0},  {168, 168, 168},
 	{84, 84, 84}, {84, 84, 255}, {84, 255, 84}, {84, 255, 255},
@@ -120,6 +140,9 @@ struct dac_colors dac_default[32] = {
 	{0x43, 0x39, 0x00}, {0x9a, 0x67, 0x59}, {0x44, 0x44, 0x44},
 	{0x6c, 0x6c, 0x6c}, {0x9a, 0xd2, 0x84}, {0x6c, 0x5e, 0xb5},
 	{0x95, 0x95, 0x95},
+	/* Atari Colours */
+	/* BG, FG */
+	{0, 81, 129}, {96, 183, 231},
 };
 
 int find_vmode(int mode)
