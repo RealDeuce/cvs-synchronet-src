@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.128 2008/01/19 23:02:50 deuce Exp $ */
+/* $Id: syncterm.c,v 1.129 2008/01/20 02:54:55 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -1328,8 +1328,6 @@ int screen_to_ciolib(int screen)
 			return(C80X50);
 		case SCREEN_MODE_80X60:
 			return(C80X60);
-		case SCREEN_MODE_132X21:
-			return(VESA_132X21);
 		case SCREEN_MODE_132X25:
 			return(VESA_132X25);
 		case SCREEN_MODE_132X28:
@@ -1372,8 +1370,6 @@ int ciolib_to_screen(int ciolib)
 			return(SCREEN_MODE_80X50);
 		case C80X60 :
 			return(SCREEN_MODE_80X60);
-		case VESA_132X21 :
-			return(SCREEN_MODE_132X21);
 		case VESA_132X25 :
 			return(SCREEN_MODE_132X25);
 		case VESA_132X28 :
