@@ -1,4 +1,6 @@
-/* $Id: uifcinit.c,v 1.25 2007/05/27 06:30:19 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: uifcinit.c,v 1.26 2007/11/13 01:37:56 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
