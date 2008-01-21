@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.18 2008/01/20 23:29:27 deuce Exp $ */
+/* $Id: modem.c,v 1.19 2008/01/21 01:23:53 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -22,8 +22,13 @@ void modem_input_thread(void *args)
 	int		rd;
 	int	buffered;
 	size_t	buffer;
+	BOOL	monitor_dsr=TRUE;
 
 	conn_api.input_thread_running=1;
+	if(args != NULL) {
+		if((comGetModemStatus(com)&COM_DSR) == 0)
+			monitor_dsr=FALSE;
+	}
 	while(com != COM_HANDLE_INVALID && !conn_api.terminate) {
 		rd=comReadBuf(com, conn_api.rd_buf, conn_api.rd_buf_size, NULL, 100);
 		buffered=0;
@@ -37,7 +42,7 @@ void modem_input_thread(void *args)
 			if((comGetModemStatus(com)&COM_DCD) == 0)
 				break;
 		}
-		else {
+		else if(monitor_dsr) {
 			if((comGetModemStatus(com)&COM_DSR) == 0)
 				break;
 		}
@@ -52,8 +57,13 @@ void modem_output_thread(void *args)
 	int		wr;
 	int		ret;
 	int	sent;
+	BOOL	monitor_dsr=TRUE;
 
 	conn_api.output_thread_running=1;
+	if(args != NULL) {
+		if((comGetModemStatus(com)&COM_DSR) == 0)
+			monitor_dsr=FALSE;
+	}
 	while(com != COM_HANDLE_INVALID && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
 		wr=conn_buf_wait_bytes(&conn_outbuf, 1, 100);
@@ -76,7 +86,7 @@ void modem_output_thread(void *args)
 			if((comGetModemStatus(com)&COM_DCD) == 0)
 				break;
 		}
-		else {
+		else if(monitor_dsr) {
 			if((comGetModemStatus(com)&COM_DSR) == 0)
 				break;
 		}
