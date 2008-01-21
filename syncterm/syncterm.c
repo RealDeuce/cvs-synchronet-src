@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.139 2008/01/21 08:34:08 deuce Exp $ */
+/* $Id: syncterm.c,v 1.140 2008/01/21 19:50:15 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -1244,6 +1244,7 @@ int main(int argc, char **argv)
 						char	*YesNo[3]={"Yes","No",""};
 						/* Started from the command-line with a URL */
 						init_uifc(TRUE, TRUE);
+						i=1;
 						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 							case 0:	/* Yes */
 								edit_list(NULL, bbs,listpath,FALSE);
