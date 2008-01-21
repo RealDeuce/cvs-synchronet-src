@@ -13,7 +13,6 @@
 #include "sbbsdefs.h"
 #include "nopen.h"
 #include "dirwrap.h"
-#include "conwrap.h"
 
 /****************************************************************************/
 /* Lists system statistics for everyday the bbs has been running.           */
