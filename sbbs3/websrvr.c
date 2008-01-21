@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.474 2008/01/31 18:34:05 deuce Exp $ */
+/* $Id: websrvr.c,v 1.471 2008/01/07 06:58:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1531,20 +1531,6 @@ static BOOL check_ars(http_session_t * session)
 					return(FALSE);
 				if(session->req.auth.algorithm==ALGORITHM_UNKNOWN)
 					return(FALSE);
-				/* Validate rules from RFC-2617 */
-				if(session->req.auth.qop_value==QOP_AUTH
-						|| session->req.auth.qop_value==QOP_AUTH_INT) {
-					if(session->req.auth.cnonce==NULL)
-						return(FALSE);
-					if(session->req.auth.nonce_count==NULL)
-						return(FALSE);
-				}
-				else {
-					if(session->req.auth.cnonce!=NULL)
-						return(FALSE);
-					if(session->req.auth.nonce_count!=NULL)
-						return(FALSE);
-				}
 
 				/* H(A1) */
 				MD5_open(&ctx);
@@ -1584,7 +1570,6 @@ static BOOL check_ars(http_session_t * session)
 				MD5_open(&ctx);
 				MD5_digest(&ctx, methods[session->req.method], strlen(methods[session->req.method]));
 				MD5_digest(&ctx, ":", 1);
-				/* exception here, session->req.auth.digest_uri==NULL */
 				MD5_digest(&ctx, session->req.auth.digest_uri, strlen(session->req.auth.digest_uri));
 				/* TODO QOP==AUTH_INT */
 				if(session->req.auth.qop_value == QOP_AUTH_INT)
@@ -2248,8 +2233,6 @@ static BOOL parse_headers(http_session_t * session)
 								while(*p && !isspace(*p))
 									p++;
 							}
-							if(session->req.auth.digest_uri==NULL)
-								session->req.auth.digest_uri=strdup(session->req.request_line);
 						}
 					}
 					break;
@@ -4626,9 +4609,6 @@ int read_post_data(http_session_t * session)
 					return(FALSE);
 				}
 				session->req.post_len+=bytes_read;
-				/* Read chunk terminator */
-				if(sockreadline(session,ch_lstr,sizeof(ch_lstr)-1)>0)
-					send_error(session,error_500);
 			}
 			/* Read more headers! */
 			if(!get_request_headers(session))
@@ -5062,7 +5042,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.474 $", "%*s %s", revision);
+	sscanf("$Revision: 1.471 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
