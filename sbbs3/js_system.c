@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.114 2008/02/08 01:33:51 deuce Exp $ */
+/* $Id: js_system.c,v 1.113 2008/01/16 04:16:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1390,8 +1390,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	},		
 	{"datestr",			js_datestr,			0,	JSTYPE_STRING,	JSDOCSTR("[time=<i>current</i>]")
 	,JSDOCSTR("convert time_t integer into a date string (in either <tt>MM/DD/YY</tt> or <tt>DD/MM/YY</tt> format), "
-		"defaults to current date if <i>time</i> not specified. "
-		"If <i>time</i> is a string in the appropriate format, returns the time_t.")
+		"defaults to current date if <i>time</i> not specified")
 	,310
 	},		
 	{"secondstr",		js_secondstr,		0,	JSTYPE_STRING,	JSDOCSTR("seconds")
