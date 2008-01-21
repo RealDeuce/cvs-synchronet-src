@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.182 2007/10/28 04:22:04 deuce Exp $ */
+/* $Id: uifc32.c,v 1.183 2008/01/21 00:53:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,7 +359,9 @@ void docopy(void)
 							for(x=startx-1;x<endx;x++) {
 								copybuf[outpos++]=screen[(y*api->scrn_width+x)*2];
 							}
-							copybuf[outpos++]='\r';
+							#ifdef _WIN32
+								copybuf[outpos++]='\r';
+							#endif
 							copybuf[outpos++]='\n';
 						}
 						copybuf[outpos]=0;
