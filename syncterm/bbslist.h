@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.38 2008/01/20 03:08:09 deuce Exp $ */
+/* $Id: bbslist.h,v 1.41 2008/01/21 20:47:51 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -66,7 +66,6 @@ struct bbslist {
 	int				type;
 	int				conn_type;
 	int				id;
-	int				reversed;
 	int				screen_mode;
 	int				nostatus;
 	char			dldir[MAX_PATH+1];
@@ -79,7 +78,7 @@ struct bbslist {
 	char			font[80];
 };
 
-struct bbslist *show_bbslist(int mode);
+struct bbslist *show_bbslist(int id);
 extern char *log_levels[];
 extern char *rate_names[];
 extern int rates[];

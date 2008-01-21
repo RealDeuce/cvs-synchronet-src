@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.131 2008/01/20 03:14:45 deuce Exp $ */
+/* $Id: syncterm.c,v 1.141 2008/01/21 20:47:51 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -35,17 +35,6 @@ char* syncterm_version = "SyncTERM 0.9.1"
 	" Debug ("__DATE__")"
 #endif
 	;
-
-/* Default modem device */
-#if defined(__APPLE__) && defined(__MACH__)
-/* Mac OS X */
-#define DEFAULT_MODEM_DEV	"/dev/tty.modem"
-#elif defined(_WIN32)
-#define DEFAULT_MODEM_DEV	"COM1"
-#else
-/* FreeBSD */
-#define DEFAULT_MODEM_DEV	"/dev/ttyd0"
-#endif
 
 char *inpath=NULL;
 int default_font=0;
@@ -668,6 +657,7 @@ char *output_types[]={
 #endif
 #ifdef _WIN32
 	,"Win32 Console"
+	,"Win32 Console Fullscreen"
 #endif
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,"SDL"
@@ -688,6 +678,7 @@ int output_map[]={
 #endif
 #ifdef _WIN32
 	,CIOLIB_MODE_CONIO
+	,CIOLIB_MODE_CONIO_FULLSCREEN
 #endif
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,CIOLIB_MODE_SDL
@@ -703,6 +694,7 @@ char *output_descrs[]={
 	,"ANSI"
 	,"X11"
 	,"Win32 Console"
+	,"Win32 Console Fullscreen"
 	,"SDL"
 	,"SDL Fullscreen"
 	,"SDL Overlay"
@@ -716,6 +708,7 @@ char *output_enum[]={
 	,"ANSI"
 	,"X11"
 	,"WinConsole"
+	,"WinConsoleFullscreen"
 	,"SDL"
 	,"SDLFullscreen"
 	,"SDLOverlay"
@@ -739,7 +732,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	if(force_defaults) {
 		bbs->user[0]=0;
 		bbs->password[0]=0;
-		bbs->reversed=FALSE;
 		bbs->screen_mode=SCREEN_MODE_CURRENT;
 		bbs->conn_type=dflt_conn_type;
 		bbs->port=conn_ports[dflt_conn_type];
@@ -893,8 +885,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			break;
 	}
 #else
-	char	*home;
-	int		created;
+	char	*home=NULL;
 
 	if(inpath==NULL)
 		home=getenv("HOME");
@@ -979,13 +970,15 @@ void load_settings(struct syncterm_settings *set)
 	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
 	set->prompt_save=iniReadBool(inifile,"SyncTERM","PromptSave",TRUE);
 	set->startup_mode=iniReadEnum(inifile,"SyncTERM","VideoMode",screen_modes,SCREEN_MODE_CURRENT);
+	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F", set->mdm.init_string);
+	iniReadString(inifile, "SyncTERM", "ModemDial", "ATDT", set->mdm.dial_string);
 	iniReadString(inifile, "SyncTERM", "ModemDevice", DEFAULT_MODEM_DEV, set->mdm.device_name);
-
+	set->mdm.com_rate=iniReadLongInt(inifile, "SyncTERM", "ModemComRate", 0);
 	/* Sort order */
 	sortby=iniReadStringList(inifile, "SyncTERM", "SortOrder", ",", "5,1");
 	while((order=strListRemove(&sortby,0))!=NULL) {
@@ -1064,6 +1057,11 @@ int main(int argc, char **argv)
 							break;
 						case 'W':
 							ciolib_mode=CIOLIB_MODE_CONIO;
+							switch(toupper(argv[i][3])) {
+								case 'F':
+									ciolib_mode=CIOLIB_MODE_CONIO_FULLSCREEN;
+									break;
+							}
 							break;
 						case 'S':
 							switch(toupper(argv[i][3])) {
@@ -1178,7 +1176,7 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT))!=NULL) {
+	while(bbs!=NULL || (bbs=show_bbslist(bbs?bbs->id:-1))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
@@ -1224,6 +1222,7 @@ int main(int argc, char **argv)
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log closed\n", ctime(&now)+4);
+				fprintf(log_fp,"---------------\n");
 				fclose(log_fp);
 				log_fp=NULL;
 			}
@@ -1245,6 +1244,7 @@ int main(int argc, char **argv)
 						char	*YesNo[3]={"Yes","No",""};
 						/* Started from the command-line with a URL */
 						init_uifc(TRUE, TRUE);
+						i=1;
 						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 							case 0:	/* Yes */
 								edit_list(NULL, bbs,listpath,FALSE);
@@ -1284,7 +1284,7 @@ int main(int argc, char **argv)
 		"       C = Curses mode\n"
 		"       F = Curses mode with forced IBM charset\n"
 #else
-		"       W = Win32 native mode\n"
+		"       W[F] = Win32 native mode, F for fullscreen\n"
 #endif
 		"       A = ANSI mode\n"
         "-l# =  set screen lines to # (default=auto-detect)\n"
@@ -1359,8 +1359,6 @@ int screen_to_ciolib(int screen)
 
 int ciolib_to_screen(int ciolib)
 {
-	struct text_info	ti;
-
 	switch(ciolib) {
 		case C80 :
 			return(SCREEN_MODE_80X25);

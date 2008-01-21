@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.26 2006/02/22 08:12:49 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.27 2006/05/07 10:28:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,9 +57,11 @@ void create_raw_dir_list(const char* list_file)
 		uifc.msg(path);
 		return; 
 	}
-	glob(path,GLOB_ONLYDIR,NULL,&g);
-   	for(gi=0;gi<g.gl_pathc;gi++)
-		fprintf(fp,"%s\n",getfname(g.gl_pathv[gi]));
+	glob(path,0,NULL,&g);
+   	for(gi=0;gi<g.gl_pathc;gi++) {
+		if(isdir(g.gl_pathv[gi]))
+			fprintf(fp,"%s\n",getfname(g.gl_pathv[gi]));
+	}
 	globfree(&g);
 	fclose(fp);
 }

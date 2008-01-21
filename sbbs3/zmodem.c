@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.71 2006/09/07 00:43:59 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.73 2008/01/21 08:27:09 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -577,8 +577,15 @@ int zmodem_send_zeof(zmodem_t* zm)
 int zmodem_recv_raw(zmodem_t* zm)
 {
 	int c;
+	int attempt;
 
-	if((c=zm->recv_byte(zm->cbdata,zm->recv_timeout)) < 0)
+	for(attempt=0;attempt<=zm->recv_timeout;attempt++) {
+		if((c=zm->recv_byte(zm->cbdata,1 /* second timeout */)) >= 0)
+			break;
+		if(is_cancelled(zm))
+			return(ZCAN);
+	}
+	if(attempt>zm->recv_timeout)
 		return(TIMEOUT);
 
 	if(c == CAN) {
@@ -1241,7 +1248,7 @@ int zmodem_recv_header(zmodem_t* zm)
 
 int zmodem_recv_header_and_check(zmodem_t* zm)
 {
-	int type;
+	int type=TIMEOUT;
 
 	while(is_connected(zm)) {
 		type = zmodem_recv_header_raw(zm,TRUE);		
@@ -1543,8 +1550,11 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 
 	if(request_init) {
 		for(zm->errors=0; zm->errors<=zm->max_errors && !is_cancelled(zm) && is_connected(zm); zm->errors++) {
-			lprintf(zm,LOG_INFO,"Sending ZRQINIT (%u of %u)"
-				,zm->errors+1,zm->max_errors+1);
+			if(zm->errors)
+				lprintf(zm,LOG_NOTICE,"Sending ZRQINIT (%u of %u)"
+					,zm->errors+1,zm->max_errors+1);
+			else
+				lprintf(zm,LOG_INFO,"Sending ZRQINIT");
 			i = zmodem_get_zrinit(zm);
 			if(i == ZRINIT) {
 				zmodem_parse_zrinit(zm);
@@ -1619,10 +1629,10 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 
 	p += strlen(p) + 1;
 
-	sprintf(p,"%lu %lo %lo %d %u %lu %d"
+	sprintf(p,"%lu %lo %lo %d %u %u %d"
 		,zm->current_file_size
 		,s.st_mtime
-		,0						/* file mode */
+		,0UL						/* file mode */
 		,0						/* serial number */
 		,zm->files_remaining
 		,zm->bytes_remaining
@@ -1901,11 +1911,17 @@ int zmodem_recv_init(zmodem_t* zm)
 #endif
 
 	for(errors=0; errors<=zm->max_errors && !is_cancelled(zm) && is_connected(zm); errors++) {
-		lprintf(zm,LOG_DEBUG,"Sending ZRINIT (%u of %u)"
-			,errors+1, zm->max_errors+1);
+		if(errors)
+			lprintf(zm,LOG_NOTICE,"Sending ZRINIT (%u of %u)"
+				,errors+1, zm->max_errors+1);
+		else
+			lprintf(zm,LOG_INFO,"Sending ZRINIT");
 		zmodem_send_zrinit(zm);
 
 		type = zmodem_recv_header(zm);
+
+		if(zm->local_abort)
+			break;
 
 		if(type==TIMEOUT)
 			continue;
@@ -1944,7 +1960,7 @@ void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 	zm->files_remaining = 0;
 	zm->bytes_remaining = 0;
 
-	i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%lu %lo %lo %lo %lu %lu"
+	i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%lu %lo %lo %lo %u %u"
 		,&zm->current_file_size	/* file size (decimal) */
 		,&zm->current_file_time /* file time (octal unix format) */
 		,&mode					/* file mode */
@@ -1991,7 +2007,7 @@ unsigned zmodem_recv_file_data(zmodem_t* zm, FILE* fp, ulong offset)
 		if((i = zmodem_recv_file_frame(zm,fp)) == ZEOF)
 			break;
 		if(i!=ENDOFFRAME) {
-			if(i>0)
+			if(i>0 && !zm->local_abort)
 				lprintf(zm,LOG_ERR,"%s at offset: %lu", chr(i), ftell(fp));
 			errors++;
 		}
@@ -2057,7 +2073,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.71 $", "%*s %s", buf);
+	sscanf("$Revision: 1.73 $", "%*s %s", buf);
 
 	return(buf);
 }
@@ -2075,13 +2091,9 @@ void zmodem_init(zmodem_t* zm, void* cbdata
 
 	/* Use sane default values */
 	zm->init_timeout=10;		/* seconds */
-	zm->send_timeout=15;		/* seconds */
-	zm->recv_timeout=20;		/* seconds */
+	zm->send_timeout=10;		/* seconds (reduced from 15) */
+	zm->recv_timeout=10;		/* seconds (reduced from 20) */
 	zm->crc_timeout=60;			/* seconds */
-#if 0
-	zm->byte_timeout=3;			/* seconds */
-	zm->ack_timeout=10;			/* seconds */
-#endif
 	zm->block_size=ZBLOCKLEN;
 	zm->max_block_size=ZBLOCKLEN;
 	zm->max_errors=9;
