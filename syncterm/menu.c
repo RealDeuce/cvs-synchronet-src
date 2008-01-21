@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.45 2008/01/29 01:26:28 deuce Exp $ */
+/* $Id: menu.c,v 1.43 2008/01/21 07:02:11 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -127,7 +127,7 @@ void viewscroll(void)
 	}
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
 	gotoxy(x,y);
-	free(scrollback);
+	FREE_AND_NULL(scrollback);
 	return;
 }
 
@@ -146,7 +146,6 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						,"Font Control (Alt-F)"
 						,"Toggle Doorway Mode"
 						,"Exit (Alt-X)"
-						,"Edit Dialing Directory (ALT-E)"
 						,""};
 	int		opt=0;
 	int		i,j;

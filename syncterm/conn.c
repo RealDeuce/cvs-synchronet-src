@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.55 2008/01/21 08:22:39 deuce Exp $ */
+/* $Id: conn.c,v 1.54 2008/01/21 08:18:54 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -448,7 +448,7 @@ connected:
 	nonblock=0;
 	ioctlsocket(sock, FIONBIO, &nonblock);
 	if(!socket_check(sock, NULL, NULL, 0)) {
-		failcode=FAILURE_DISCONNECTED;
+		failure=FAILURE_DISCONNECTED;
 		goto connect_failed;
 	}
 

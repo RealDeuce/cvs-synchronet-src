@@ -16,7 +16,6 @@
 #include "draw.h"
 #include "help.h"
 #include "tabulator.h"
-#include "attrs.h"
 
 unsigned char   ActiveMenue = 1, MaxItem;
 char           *MenueItem[20], Length;
@@ -38,15 +37,15 @@ Menues(int x, int y)
 			for (a = 1; a <= MaxItem; a++) {
 				for (d = 1; d <= 2; d++) {
 					buf[i++]=MenueItem[a][d];
-					buf[i++]=(b==a)?ATTR_NORM_BAR_CURR:ATTR_NORM_HIGH;
+					buf[i++]=(b==a)?32+15:10;
 				}
 				for (d = 3; d < Length - 6; d++) {
 					buf[i++]=MenueItem[a][d];
-					buf[i++]=(b == a)?ATTR_NORM_BAR_CURR:ATTR_NORM_LOW;
+					buf[i++]=(b == a)?32 + 15:2;
 				}
 				for (d = Length - 6; d <= Length; d++) {
 					buf[i++]=MenueItem[a][d];
-					buf[i++]=(b==a)?ATTR_HELP_BAR_CURR:ATTR_HELP;
+					buf[i++]=(b==a)?32 + 8:7;
 				}
 			}
 			puttext(x+1,y+1,x+Length,y+MaxItem,buf);
@@ -97,7 +96,7 @@ Menues(int x, int y)
 			me.endy = 25;
 		if (me.event==CIOLIB_BUTTON_3_CLICK)
 			ch = 27;
-		if (me.endy == 1) {
+		if (me.endy == 2) {
 			if (me.endx >= 3 && me.endx <= 7) {
 				ActiveMenue = 1;
 				return 252;
@@ -146,21 +145,31 @@ menue(void)
 			ShowScreen(0, 0);
 			i=0;
 			buf[i++]=223;
-			buf[i++]=ATTR_NORM_LOW;
-			i+=bufprintf(buf+i,ActiveMenue==1?ATTR_NORM_BAR_CURR:ATTR_NORM_BAR," FILES      ");
-			i+=bufprintf(buf+i,ActiveMenue==2?ATTR_NORM_BAR_CURR:ATTR_NORM_BAR,"FONTS      ");
-			i+=bufprintf(buf+i,ActiveMenue==3?ATTR_NORM_BAR_CURR:ATTR_NORM_BAR,"OPTIONS      ");
-			i+=bufprintf(buf+i,ActiveMenue==4?ATTR_NORM_BAR_CURR:ATTR_NORM_BAR,"SCREEN      ");
-			i+=bufprintf(buf+i,ActiveMenue==5?ATTR_NORM_BAR_CURR:ATTR_NORM_BAR,"MISC.        ");
-			i+=bufprintf(buf+i,ActiveMenue==6?ATTR_NORM_BAR_CURR:ATTR_NORM_BAR,"TOGGLES    ");
-			i+=bufprintf(buf+i,ActiveMenue==7?ATTR_NORM_BAR_CURR:ATTR_NORM_BAR,"HELP");
-			buf[i++]=219;
-			buf[i++]=ATTR_NORM_LOW;
-			buf[i++]=220;
-			buf[i++]=ATTR_NORM_LOW;
+			buf[i++]=8;
+			buf[i++]=32;
+			buf[i++]=7;
+			for (x = 3; x <= 79; x++) {
+				buf[i++]=220;
+				buf[i++]=8;
+			}
 			buf[i++]=223;
-			buf[i]=ATTR_NORM_LOW;
-			puttext(1,1,80,1,buf);
+			buf[i++]=7;
+			buf[i++]=223;
+			buf[i++]=2;
+			i+=bufprintf(buf+i,ActiveMenue==1?8+32:15+32," FILES      ");
+			i+=bufprintf(buf+i,ActiveMenue==2?8+32:15+32,"FONTS      ");
+			i+=bufprintf(buf+i,ActiveMenue==3?8+32:15+32,"OPTIONS      ");
+			i+=bufprintf(buf+i,ActiveMenue==4?8+32:15+32,"SCREEN      ");
+			i+=bufprintf(buf+i,ActiveMenue==5?8+32:15+32,"MISC.        ");
+			i+=bufprintf(buf+i,ActiveMenue==6?8+32:15+32,"TOGGLES    ");
+			i+=bufprintf(buf+i,ActiveMenue==7?8+32:15+32,"HELP");
+			buf[i++]=219;
+			buf[i++]=2;
+			buf[i++]=220;
+			buf[i++]=2;
+			buf[i++]=223;
+			buf[i]=2;
+			puttext(1,1,80,2,buf);
 		}
 		b = ActiveMenue;
 		switch (ActiveMenue) {
@@ -170,7 +179,7 @@ menue(void)
 			MenueItem[3] = " QUIT       ALT+X  ";
 			Length = 18;
 			MaxItem = 3;
-			a = Menues(1, 2);
+			a = Menues(1, 3);
 			break;
 		case 2:
 			MenueItem[1] = " SELECT CHARSET        ";
@@ -179,7 +188,7 @@ menue(void)
 			MenueItem[4] = " OUTLINE TYPE   ALT+W  ";
 			Length = 22;
 			MaxItem = 4;
-			a = Menues(12, 2);
+			a = Menues(12, 3);
 			break;
 		case 3:
 			MenueItem[1] = " SAUCE SETUP   CTRL+S ";
@@ -189,7 +198,7 @@ menue(void)
 			MenueItem[5] = " SET EFFECT    ALT+M  ";
 			Length = 20;
 			MaxItem = 5;
-			a = Menues(23, 2);
+			a = Menues(23, 3);
 			break;
 		case 4:
 			MenueItem[1] = " CLEAR PAGE    ALT+C  ";
@@ -200,7 +209,7 @@ menue(void)
 			MenueItem[6] = " UNDO/RESTORE  ALT+R  ";
 			Length = 21;
 			MaxItem = 6;
-			a = Menues(36, 2);
+			a = Menues(36, 3);
 			break;
 		case 5:
 			MenueItem[1] = " SET COLORS    ALT+A  ";
@@ -208,23 +217,24 @@ menue(void)
 			MenueItem[3] = " ASCII TABLE   ALT+K  ";
 			Length = 21;
 			MaxItem = 3;
-			a = Menues(48, 2);
+			a = Menues(48, 3);
 			break;
 		case 6:
 			MenueItem[1] = " LINE DRAW        ALT+D  ";
 			MenueItem[2] = " DRAW MODE        ALT+-  ";
 			MenueItem[3] = " INSERT MODE      INS    ";
-			MenueItem[4] = " ELITE MODE       ALT+E  ";
+			MenueItem[4] = " VIEW IN 320x200  ALT+V  ";
+			MenueItem[5] = " ELITE MODE       ALT+E  ";
 			Length = 24;
-			MaxItem = 4;
-			a = Menues(55, 2);
+			MaxItem = 5;
+			a = Menues(55, 3);
 			break;
 		case 7:
 			MenueItem[1] = " HELP         ALT+H  ";
 			MenueItem[2] = " ABOUT               ";
 			Length = 20;
 			MaxItem = 2;
-			a = Menues(59, 2);
+			a = Menues(59, 3);
 			break;
 		};
 		switch (a) {
@@ -245,7 +255,7 @@ menue(void)
 	return a + (ActiveMenue << 8);
 }
 
-int
+void 
 menuemode(void)
 {
 	unsigned int    a;
@@ -260,8 +270,7 @@ menuemode(void)
 			save();
 			break;
 		case 3:
-			if(exitprg()==-1)
-				return(-1);
+			exitprg();
 			break;
 		}
 		break;
@@ -352,7 +361,12 @@ menuemode(void)
 		case 3:
 			InsertMode = !InsertMode;
 			break;
+#ifdef HAS_SVGALIB
 		case 4:
+			viewmode();
+			break;
+#endif
+		case 5:
 			EliteMode = !EliteMode;
 			break;
 		}
@@ -367,5 +381,4 @@ menuemode(void)
 		}
 		break;
 	}
-	return(0);
 }
