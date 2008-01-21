@@ -15,6 +15,16 @@ object ServicesForm: TServicesForm
   OnHide = FormHide
   PixelsPerInch = 120
   TextHeight = 16
+  object Log: TMemo
+    Left = 0
+    Top = 25
+    Width = 862
+    Height = 582
+    Align = alClient
+    ReadOnly = True
+    ScrollBars = ssBoth
+    TabOrder = 0
+  end
   object ToolBar: TToolBar
     Left = 0
     Top = 0
@@ -26,7 +36,7 @@ object ServicesForm: TServicesForm
     Images = MainForm.ImageList
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 0
+    TabOrder = 1
     object StartButton: TToolButton
       Left = 0
       Top = 0
@@ -83,54 +93,5 @@ object ServicesForm: TServicesForm
       Caption = 'Down'
       TabOrder = 0
     end
-    object ToolButton3: TToolButton
-      Left = 258
-      Top = 0
-      Width = 8
-      Caption = 'ToolButton3'
-      ImageIndex = 6
-      Style = tbsSeparator
-    end
-    object LogLevelText: TStaticText
-      Left = 266
-      Top = 0
-      Width = 75
-      Height = 22
-      Hint = 'Web Server Log Level'
-      AutoSize = False
-      BorderStyle = sbsSunken
-      TabOrder = 1
-    end
-    object LogLevelUpDown: TUpDown
-      Left = 341
-      Top = 0
-      Width = 16
-      Height = 22
-      Hint = 'Log Level Adjustment'
-      Min = 0
-      Max = 7
-      Position = 0
-      TabOrder = 2
-      Wrap = False
-      OnChangingEx = LogLevelUpDownChangingEx
-    end
-  end
-  object Log: TRichEdit
-    Left = 0
-    Top = 25
-    Width = 862
-    Height = 582
-    Align = alClient
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -14
-    Font.Name = 'MS Sans Serif'
-    Font.Style = []
-    HideScrollBars = False
-    ParentFont = False
-    ReadOnly = True
-    ScrollBars = ssBoth
-    TabOrder = 1
-    WordWrap = False
   end
 end
