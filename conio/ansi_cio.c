@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.67 2008/01/08 04:31:11 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.68 2008/01/21 07:34:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,6 @@ static int ansix=1;
 static int ansiy=1;
 
 static int ansi_got_row=0;
-static int ansi_got_col=0;
 static int doorway_enabled=0;
 
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
