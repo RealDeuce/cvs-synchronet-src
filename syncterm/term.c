@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.192 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: term.c,v 1.203 2008/01/20 23:34:38 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -190,6 +190,8 @@ void update_status(struct bbslist *bbs, int speed)
 				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break;
 	}
+	if(wherex()>=80)
+		clreol();
 	_wscroll=oldscroll;
 	textattr(txtinfo.attribute);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
@@ -252,7 +254,7 @@ static int lputs(void* cbdata, int level, const char* str)
 #endif
 
 	if(log_fp!=NULL && level <= log_level)
-		fprintf(log_fp,"%s: %s\n",log_levels[level], str);
+		fprintf(log_fp,"Xfer %s: %s\n",log_levels[level], str);
 
 	if(level > LOG_INFO)
 		return 0;
@@ -556,6 +558,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	}
 	SAFECOPY(path,fpick.selected[0]);
 	filepick_free(&fpick);
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
@@ -1186,7 +1189,10 @@ BOOL doterm(struct bbslist *bbs)
 	int 	emulation=CTERM_EMULATION_ANSI_BBS;
 	size_t	remain;
 
-	speed = bbs->bpsrate;
+	if(bbs->conn_type == CONN_TYPE_SERIAL)
+		speed = 0;
+	else
+		speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
 	ciomouse_setevents(0);
@@ -1224,15 +1230,13 @@ BOOL doterm(struct bbslist *bbs)
 	for(;;) {
 		hold_update=TRUE;
 		sleep=TRUE;
-		if(!speed && bbs->bpsrate)
-			speed = bbs->bpsrate;
-		if(speed)
-			thischar=xp_timer();
-
 		if(!term.nostatus)
-			update_status(bbs, speed);
+			update_status(bbs, (bbs->conn_type == CONN_TYPE_SERIAL)?bbs->bpsrate:speed);
 		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
-			if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
+			if(speed)
+				thischar=xp_timer();
+
+			if((!speed) || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
 				/* Get remote input */
 				inch=recv_byte(NULL, 0);
 
@@ -1476,13 +1480,17 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x2600:	/* ALT-L */
-					conn_send(bbs->user,strlen(bbs->user),0);
-					conn_send("\r",1,0);
-					SLEEP(10);
-					conn_send(bbs->password,strlen(bbs->password),0);
-					conn_send("\r",1,0);
-					if(bbs->syspass[0]) {
+					if(bbs->user[0]) {
+						conn_send(bbs->user,strlen(bbs->user),0);
+						conn_send("\r",1,0);
 						SLEEP(10);
+					}
+					if(bbs->password[0]) {
+						conn_send(bbs->password,strlen(bbs->password),0);
+						conn_send("\r",1,0);
+						SLEEP(10);
+					}
+					if(bbs->syspass[0]) {
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
 						conn_send("\r",1,0);
 					}
@@ -1613,19 +1621,23 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x9800:	/* ALT-Up */
-					if(speed)
-						speed=rates[get_rate_num(speed)+1];
-					else
-						speed=rates[0];
-					key = 0;
+					if(bbs->conn_type != CONN_TYPE_SERIAL) {
+						if(speed)
+							speed=rates[get_rate_num(speed)+1];
+						else
+							speed=rates[0];
+						key = 0;
+					}
 					break;
 				case 0xa000:	/* ALT-Down */
-					i=get_rate_num(speed);
-					if(i==0)
-						speed=0;
-					else
-						speed=rates[i-1];
-					key = 0;
+					if(bbs->conn_type != CONN_TYPE_SERIAL) {
+						i=get_rate_num(speed);
+						if(i==0)
+							speed=0;
+						else
+							speed=rates[i-1];
+						key = 0;
+					}
 					break;
 			}
 			if(key && cterm.emulation == CTERM_EMULATION_ATASCII) {
