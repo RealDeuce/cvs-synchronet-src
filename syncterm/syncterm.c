@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.147 2008/02/05 01:45:40 deuce Exp $ */
+/* $Id: syncterm.c,v 1.139 2008/01/21 08:34:08 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -42,8 +42,6 @@ struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
 unsigned char *scrollback_buf=NULL;
 unsigned int  scrollback_lines=0;
-unsigned int  scrollback_mode=C80;
-unsigned int  scrollback_cols=80;
 int	safe_mode=0;
 FILE* log_fp;
 extern ini_style_t ini_style;
@@ -771,6 +769,10 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	}
 #endif
 	/* ToDo: RFC2806 */
+	/* Remove trailing / (Win32 adds one 'cause it hates me) */
+	p2=strchr(p1,'/');
+	if(p2!=NULL)
+		*p2=0;
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
 		*p3=0;
@@ -790,10 +792,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		p2++;
 		bbs->port=atoi(p2);
 	}
-	/* Remove trailing / (Win32 adds one 'cause it hates me) */
-	p2=strrchr(p1,'/');
-	if(p2!=NULL && *(p2+1)==0)
-		*p2=0;
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
@@ -977,7 +975,7 @@ void load_settings(struct syncterm_settings *set)
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 
 	/* Modem settings */
-	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
+	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F", set->mdm.init_string);
 	iniReadString(inifile, "SyncTERM", "ModemDial", "ATDT", set->mdm.dial_string);
 	iniReadString(inifile, "SyncTERM", "ModemDevice", DEFAULT_MODEM_DEV, set->mdm.device_name);
 	set->mdm.com_rate=iniReadLongInt(inifile, "SyncTERM", "ModemComRate", 0);
@@ -988,9 +986,6 @@ void load_settings(struct syncterm_settings *set)
 		free(order);
 	}
 	strListFree(&sortby);
-
-	/* Shell TERM settings */
-	iniReadString(inifile, "SyncTERM", "TERM", "ansi", set->TERM);
 
 	if(inifile)
 		fclose(inifile);
@@ -1140,6 +1135,11 @@ int main(int argc, char **argv)
 		FULLPATH(path,inpath,sizeof(path));
 	atexit(uifcbail);
 
+	scrollback_buf=malloc(132*2*settings.backlines);	/* Terminal width is *always* <= 132 cols */
+	if(scrollback_buf==NULL) {
+		uifc.msg("Cannot allocate space for scrollback buffer.\n");
+	}
+
 #ifdef __unix__
 	umask(077);
 #endif
@@ -1176,7 +1176,7 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while(bbs!=NULL || (bbs=show_bbslist(bbs?bbs->id:-1, FALSE))!=NULL) {
+	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT, bbs?bbs->id:-1))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
@@ -1244,7 +1244,6 @@ int main(int argc, char **argv)
 						char	*YesNo[3]={"Yes","No",""};
 						/* Started from the command-line with a URL */
 						init_uifc(TRUE, TRUE);
-						i=1;
 						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 							case 0:	/* Yes */
 								edit_list(NULL, bbs,listpath,FALSE);
@@ -1352,8 +1351,6 @@ int screen_to_ciolib(int screen)
 			return(C128_80X25);
 		case SCREEN_MODE_ATARI:
 			return(ATARI_40X24);
-		case SCREEN_MODE_ATARI_XEP80:
-			return(ATARI_80X25);
 	}
 	gettextinfo(&ti);
 	return(ti.currmode);
@@ -1394,8 +1391,6 @@ int ciolib_to_screen(int ciolib)
 			return(SCREEN_MODE_C128_80);
 		case ATARI_40X24 :
 			return(SCREEN_MODE_ATARI);
-		case ATARI_80X25:
-			return(SCREEN_MODE_ATARI_XEP80);
 	}
 	return(SCREEN_MODE_CURRENT);
 }
