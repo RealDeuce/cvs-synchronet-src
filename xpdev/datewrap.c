@@ -2,7 +2,7 @@
 
 /* Wrappers for Borland getdate() and gettime() functions */
 
-/* $Id: datewrap.c,v 1.26 2006/05/31 07:35:32 deuce Exp $ */
+/* $Id: datewrap.c,v 1.25 2005/07/14 07:30:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,17 +135,17 @@ time_t xpDateTime_to_time(xpDateTime_t xpDateTime)
 
 }
 
-xpDateTime_t time_to_xpDateTime(time_t ti)
+xpDateTime_t time_to_xpDateTime(time_t time)
 {
 	xpDateTime_t	never;
 	struct tm tm;
 
 	memset(&never,0,sizeof(never));
-	if(ti==0)
+	if(time==0)
 		return(never);
 
 	ZERO_VAR(tm);
-	if(gmtime_r(&ti,&tm)==NULL)
+	if(gmtime_r(&time,&tm)==NULL)
 		return(never);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
@@ -170,24 +170,24 @@ isoDate_t xpDateTime_to_isoDateTime(xpDateTime_t xpDateTime, isoTime_t* isoTime)
 	return isoDate_create(xpDateTime.date.year,xpDateTime.date.month,xpDateTime.date.day);
 }
 
-xpDateTime_t isoDateTime_to_xpDateTime(isoDate_t date, isoTime_t ti)
+xpDateTime_t isoDateTime_to_xpDateTime(isoDate_t date, isoTime_t time)
 {
 	return xpDateTime_create(isoDate_year(date),isoDate_month(date),isoDate_day(date)
-		,isoTime_hour(ti),isoTime_minute(ti),(float)isoTime_second(ti),xpTimeZone_local());
+		,isoTime_hour(time),isoTime_minute(time),(float)isoTime_second(time),xpTimeZone_local());
 }
 
-isoDate_t time_to_isoDateTime(time_t ti, isoTime_t* isoTime)
+isoDate_t time_to_isoDateTime(time_t time, isoTime_t* isoTime)
 {
 	struct tm tm;
 
 	if(isoTime!=NULL)
 		*isoTime=0;
 
-	if(ti==0)
+	if(time==0)
 		return(0);
 
 	ZERO_VAR(tm);
-	if(gmtime_r(&ti,&tm)==NULL)
+	if(gmtime_r(&time,&tm)==NULL)
 		return(0);
 
 	if(isoTime!=NULL)
@@ -196,16 +196,16 @@ isoDate_t time_to_isoDateTime(time_t ti, isoTime_t* isoTime)
 	return isoDate_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday);
 }
 
-isoTime_t time_to_isoTime(time_t ti)
+isoTime_t time_to_isoTime(time_t time)
 {
 	isoTime_t isoTime;
 	
-	time_to_isoDateTime(ti,&isoTime);
+	time_to_isoDateTime(time,&isoTime);
 
 	return isoTime;
 }
 
-time_t isoDateTime_to_time(isoDate_t date, isoTime_t ti)
+time_t isoDateTime_to_time(isoDate_t date, isoTime_t time)
 {
 	struct tm tm;
 
@@ -218,9 +218,9 @@ time_t isoDateTime_to_time(isoDate_t date, isoTime_t ti)
 	tm.tm_mon	= isoDate_month(date);
 	tm.tm_mday	= isoDate_day(date);
 
-	tm.tm_hour	= isoTime_hour(ti);
-	tm.tm_min	= isoTime_minute(ti);
-	tm.tm_sec	= isoTime_second(ti);
+	tm.tm_hour	= isoTime_hour(time);
+	tm.tm_min	= isoTime_minute(time);
+	tm.tm_sec	= isoTime_second(time);
 
 	return sane_mktime(&tm);
 }
