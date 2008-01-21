@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.50 2008/07/09 01:37:20 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.49 2007/08/25 08:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -728,15 +728,14 @@ void sbbs_t::privchat(bool local)
 	node_t	node;
 	time_t	last_nodechk=0;
 
+	if(useron.rest&FLAG('C')) {
+		bputs(text[R_Chat]);
+		return; 
+	}
+
 	if(local) 
 		n=0;
 	else {
-
-		if(useron.rest&FLAG('C')) {
-			bputs(text[R_Chat]);
-			return; 
-		}
-
 		n=getnodetopage(0,0);
 		if(!n)
 			return;
