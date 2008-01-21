@@ -1,6 +1,6 @@
 # tome/GNUmakefile
 #
-# $Id: GNUmakefile,v 1.3 2006/05/30 22:53:55 deuce Exp $
+# $Id: GNUmakefile,v 1.2 2005/01/24 08:11:56 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -39,7 +39,7 @@ LDFLAGS 	+=	$(XPDEV_LDFLAGS)
 CFLAGS		+=	$(XPDEV_CFLAGS)
 LDLIBS		+=	$(XPDEV_LIBS)
 
-$(TONE):	$(OBJODIR)$(DIRSEP)tone$(OFILE) $(XPDEV_LIB)
+$(TONE):	$(OBJODIR)$(DIRSEP)tone$(OFILE)
 	@echo Creating $@
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) $(LDFLAGS) $(OUTPUT)$@ $^ $(LDLIBS)
 
