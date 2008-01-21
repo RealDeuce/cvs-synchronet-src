@@ -1,4 +1,6 @@
-/* $Id: menu.c,v 1.39 2007/06/23 23:48:53 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: menu.c,v 1.41 2007/11/13 01:37:56 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -125,7 +127,7 @@ void viewscroll(void)
 	}
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
 	gotoxy(x,y);
-	free(scrollback);
+	FREE_AND_NULL(scrollback);
 	return;
 }
 
