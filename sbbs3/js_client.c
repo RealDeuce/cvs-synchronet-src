@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.17 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: js_client.c,v 1.16 2008/01/11 09:07:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,7 +70,7 @@ static JSBool js_client_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 static JSBool js_client_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	const char*	p=NULL;
+	char*		p=NULL;
 	ulong		val=0;
     jsint       tiny;
 	JSString*	js_str;
