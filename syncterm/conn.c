@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.48 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: conn.c,v 1.50 2008/01/20 23:29:27 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -24,12 +24,12 @@
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem"
+char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Direct COM"
 #ifdef __unix__
 ,"Shell"
 #endif
 ,NULL};
-short unsigned int conn_ports[]={0,513,23,0,22,0
+short unsigned int conn_ports[]={0,513,513,23,0,22,0,0
 #ifdef __unix__
 ,65535
 #endif
@@ -285,6 +285,7 @@ int conn_connect(struct bbslist *bbs)
 
 	switch(bbs->conn_type) {
 		case CONN_TYPE_RLOGIN:
+		case CONN_TYPE_RLOGIN_REVERSED:
 			conn_api.connect=rlogin_connect;
 			conn_api.close=rlogin_close;
 			break;
@@ -302,6 +303,7 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
 			break;
+		case CONN_TYPE_SERIAL:
 		case CONN_TYPE_MODEM:
 			conn_api.connect=modem_connect;
 			conn_api.close=modem_close;

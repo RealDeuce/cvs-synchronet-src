@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.h,v 1.18 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: conn.h,v 1.20 2008/01/20 23:29:27 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -16,10 +16,12 @@ extern short unsigned int conn_ports[];
 enum {
 	 CONN_TYPE_UNKNOWN
 	,CONN_TYPE_RLOGIN
+	,CONN_TYPE_RLOGIN_REVERSED
 	,CONN_TYPE_TELNET
 	,CONN_TYPE_RAW
 	,CONN_TYPE_SSH
 	,CONN_TYPE_MODEM
+	,CONN_TYPE_SERIAL
 #ifdef __unix__
 	,CONN_TYPE_SHELL
 #endif

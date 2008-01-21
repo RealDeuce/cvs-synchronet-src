@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.65 2008/01/11 22:25:40 deuce Exp $ */
+/* $Id: js_user.c,v 1.67 2008/01/11 22:43:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1071,8 +1071,8 @@ static JSClass js_user_stats_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_user_get			/* getProperty	*/
 	,js_user_set			/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
+	,js_user_stats_enumerate		/* enumerate	*/
+	,js_user_stats_resolve	/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub        /* finalize		*/
 };
@@ -1084,8 +1084,8 @@ static JSClass js_user_security_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_user_get			/* getProperty	*/
 	,js_user_set			/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
+	,js_user_security_enumerate		/* enumerate	*/
+	,js_user_security_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub        /* finalize		*/
 };
@@ -1097,8 +1097,8 @@ static JSClass js_user_limits_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_user_get			/* getProperty	*/
 	,js_user_set			/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
+	,js_user_limits_enumerate		/* enumerate	*/
+	,js_user_limits_resolve			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub        /* finalize		*/
 };
@@ -1182,8 +1182,8 @@ static JSClass js_user_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_user_get			/* getProperty	*/
 	,js_user_set			/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
+	,js_user_enumerate		/* enumerate	*/
+	,js_user_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,js_user_finalize		/* finalize		*/
 };
