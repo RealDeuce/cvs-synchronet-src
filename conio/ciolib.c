@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.103 2008/02/03 02:40:33 deuce Exp $ */
+/* $Id: ciolib.c,v 1.99 2008/01/20 10:21:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,9 +128,6 @@ int try_sdl_init(int mode)
 		cio_api.setfont=bitmap_setfont;
 		cio_api.getfont=bitmap_getfont;
 		cio_api.loadfont=bitmap_loadfont;
-		cio_api.movetext=bitmap_movetext;
-		cio_api.clreol=bitmap_clreol;
-		cio_api.clrscr=bitmap_clrscr;
 
 		cio_api.kbhit=sdl_kbhit;
 		cio_api.getch=sdl_getch;
@@ -169,9 +166,6 @@ int try_x_init(int mode)
 		cio_api.getfont=bitmap_getfont;
 		cio_api.loadfont=bitmap_loadfont;
 		cio_api.beep=x_beep;
-		cio_api.movetext=bitmap_movetext;
-		cio_api.clreol=bitmap_clreol;
-		cio_api.clrscr=bitmap_clrscr;
 
 		cio_api.kbhit=x_kbhit;
 		cio_api.getch=x_getch;
@@ -190,9 +184,7 @@ int try_x_init(int mode)
 int try_curses_init(int mode)
 {
 	if(curs_initciolib(mode)) {
-		if(mode==CIOLIB_MODE_AUTO)
-			mode=CIOLIB_MODE_CURSES;
-		cio_api.mode=mode;
+		cio_api.mode=CIOLIB_MODE_CURSES_IBM;
 		cio_api.puttext=curs_puttext;
 		cio_api.gettext=curs_gettext;
 		cio_api.textattr=curs_textattr;
@@ -844,9 +836,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	char	str[16384];
 #else
 	char	*str;
-#ifndef HAVE_VASPRINTF
 	va_list argptr2;
-#endif
 #endif
 
 	CIOLIB_INIT();

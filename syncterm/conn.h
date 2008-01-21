@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.h,v 1.21 2008/01/21 04:40:48 deuce Exp $ */
+/* $Id: conn.h,v 1.20 2008/01/20 23:29:27 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -35,9 +35,9 @@ struct conn_api {
 	void (*binary_mode_off)(void);
 	int log_level;
 	int type;
-	volatile int input_thread_running;
-	volatile int output_thread_running;
-	volatile int terminate;
+	int input_thread_running;
+	int output_thread_running;
+	int terminate;
 	unsigned char *rd_buf;
 	size_t rd_buf_size;
 	unsigned char *wr_buf;
