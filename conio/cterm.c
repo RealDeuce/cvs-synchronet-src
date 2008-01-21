@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.106 2008/02/02 22:33:57 deuce Exp $ */
+/* $Id: cterm.c,v 1.103 2007/12/13 02:06:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -445,9 +445,10 @@ void scrolldown(void)
 	char *buf;
 	int i,j;
 
-	movetext(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-2,cterm.x,cterm.y+1);
+	buf=(char *)alloca(cterm.width*(cterm.height-1)*2);
+	gettext(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-2,buf);
+	puttext(cterm.x,cterm.y+1,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
 	j=0;
-	buf=(char *)alloca(cterm.width*2);
 	for(i=0;i<cterm.width;i++) {
 		if(cterm.emulation == CTERM_EMULATION_ATASCII)
 			buf[j++]=0;
@@ -471,9 +472,10 @@ void scrollup(void)
 		}
 		gettext(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y,cterm.scrollback+(cterm.backpos-1)*cterm.width*2);
 	}
-	movetext(cterm.x,cterm.y+1,cterm.x+cterm.width-1,cterm.y+cterm.height-1,cterm.x,cterm.y);
+	buf=(char *)alloca(cterm.width*(cterm.height-1)*2);
+	gettext(cterm.x,cterm.y+1,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
+	puttext(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-2,buf);
 	j=0;
-	buf=(char *)alloca(cterm.width*2);
 	for(i=0;i<cterm.width;i++) {
 		if(cterm.emulation == CTERM_EMULATION_ATASCII)
 			buf[j++]=0;
@@ -493,10 +495,11 @@ void dellines(int lines)
 	if(lines<1)
 		return;
 	linestomove=cterm.height-wherey();
-	movetext(cterm.x,cterm.y+wherey()-1+lines,cterm.x+cterm.width-1,cterm.y+cterm.height-1,cterm.x,cterm.y+wherey()-1);
+	buf=(char *)alloca(cterm.width*(linestomove>lines?linestomove:lines)*2);
+	gettext(cterm.x,cterm.y+wherey()-1+lines,cterm.x+cterm.width-1,cterm.y+cterm.height-1,buf);
+	puttext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+cterm.height-1-lines,buf);
 	j=0;
 	k=cterm.width*lines;
-	buf=(char *)alloca(k*2);
 	for(i=0;i<k;i++) {
 		if(cterm.emulation == CTERM_EMULATION_ATASCII)
 			buf[j++]=0;
@@ -530,7 +533,7 @@ void clear2eol(void)
 	clreol();
 }
 
-void cterm_clearscreen(char attr)
+void clearscreen(char attr)
 {
 	unsigned char *buf;
 	int i;
@@ -594,18 +597,10 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						}
 						break;
 					case 'h':
-						if(!strcmp(cterm.escbuf,"[?25h")) {
-							cterm.cursor=_NORMALCURSOR;
-							_setcursortype(cterm.cursor);
-						}
 						if(!strcmp(cterm.escbuf,"[=255h"))
 							cterm.doorway_mode=1;
 						break;
 					case 'l':
-						if(!strcmp(cterm.escbuf,"[?25l")) {
-							cterm.cursor=_NOCURSOR;
-							_setcursortype(cterm.cursor);
-						}
 						if(!strcmp(cterm.escbuf,"[=255l"))
 							cterm.doorway_mode=0;
 						break;
@@ -784,7 +779,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 							}
 							break;
 						case 2:
-							cterm_clearscreen((char)cterm.attr);
+							clearscreen((char)cterm.attr);
 							gotoxy(1,1);
 							break;
 					}
@@ -815,9 +810,14 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						i=1;
 					if(i>cterm.height-wherey())
 						i=cterm.height-wherey();
-					if(i)
-						movetext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+cterm.height-1-i,cterm.x,cterm.y+wherey()-1+i);
-					p2=(char *)alloca(cterm.width*2);
+					if(i) {
+						p2=(char *)alloca((cterm.height-wherey()-i+1)*cterm.width*2);
+						gettext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+cterm.height-1-i,p2);
+						puttext(cterm.x,cterm.y+wherey()-1+i,cterm.x+cterm.width-1,cterm.y+cterm.height-1,p2);
+					}
+					else {
+						p2=(char *)alloca(cterm.width*2);
+					}
 					j=0;
 					for(k=0;k<cterm.width;k++) {
 						p2[j++]=' ';
@@ -876,7 +876,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 #if 0
 				case 'U':
 					gettextinfo(&ti);
-					cterm_clearscreen(ti.normattr);
+					clearscreen(ti.normattr);
 					gotoxy(1,1);
 					break;
 #endif
@@ -1185,7 +1185,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.106 $";
+	char	*revision="$Revision: 1.103 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1215,14 +1215,13 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 	cterm.log=CTERM_LOG_NONE;
 	cterm.logfile=NULL;
 	cterm.emulation=emulation;
-	cterm.cursor=_NORMALCURSOR;
 	if(cterm.scrollback!=NULL)
 		memset(cterm.scrollback,0,cterm.width*2*cterm.backlines);
 	textattr(cterm.attr);
-	_setcursortype(cterm.cursor);
+	_setcursortype(_NORMALCURSOR);
 	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
 		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
-	cterm_clearscreen(cterm.attr);
+	clearscreen(cterm.attr);
 	gotoxy(1,1);
 	strcpy(cterm.DA,"\x1b[=67;84;101;114;109;");
 	out=strchr(cterm.DA, 0);
@@ -1374,7 +1373,6 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	gotoxy(cterm.xpos,cterm.ypos);
 	textattr(cterm.attr);
-	_setcursortype(cterm.cursor);
 	ch[1]=0;
 	switch(buflen) {
 		case 0:
@@ -1578,9 +1576,14 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									dellines(1);
 									break;
 								case 157:	/* Insert Line */
-									if(cterm.height-wherey())
-										movetext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+cterm.height-2,cterm.x,cterm.y+wherey());
-									p=(char *)alloca(cterm.width*2);
+									if(cterm.height-wherey()) {
+										p=(char *)alloca((cterm.height-wherey())*cterm.width*2);
+										gettext(cterm.x,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+cterm.height-2,p);
+										puttext(cterm.x,cterm.y+wherey(),cterm.x+cterm.width-1,cterm.y+cterm.height-1,p);
+									}
+									else {
+										p=(char *)alloca(cterm.width*2);
+									}
 									for(k=0;k<cterm.width;k++) {
 										p[k*2]=0;
 										p[k*2+1]=cterm.attr;
@@ -1595,7 +1598,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									puttext(cterm.x+wherex()-1,cterm.y+wherey()-1,cterm.x+cterm.width-1,cterm.y+wherey()-1,p);
 									break;
 								case 125:	/* Clear Screen */
-									cterm_clearscreen(cterm.attr);
+									clearscreen(cterm.attr);
 									break;
 								case 253:	/* Beep */
 									#ifdef __unix__
@@ -1756,7 +1759,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									gotoxy(wherex(), wherey()+1);
 								break;
 							case 147:
-								cterm_clearscreen(cterm.attr);
+								clearscreen(cterm.attr);
 								/* Fall through */
 							case 19:
 								gotoxy(1,1);
@@ -1928,7 +1931,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									prn[0]=0;
 									if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
 										fputs("\x0c", cterm.logfile);
-									cterm_clearscreen((char)cterm.attr);
+									clearscreen((char)cterm.attr);
 									gotoxy(1,1);
 									break;
 								case 27:		/* ESC */
@@ -1971,7 +1974,6 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	hold_update=olddmc;
 	puttext_can_move=oldptnm;
 	gotoxy(wherex(),wherey());
-	_setcursortype(cterm.cursor);
 	return(retbuf);
 }
 

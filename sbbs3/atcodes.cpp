@@ -2,13 +2,13 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.49 2008/02/03 00:23:47 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.48 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -589,15 +589,6 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strncmp(sp,"EXEC:",5)) {
 		exec_bin(sp+5,&main_csi);
-		return(nulstr);
-	}
-
-	if(!strncmp(sp,"XTRN:",5)) {
-		for(i=0;i<cfg.total_xtrns;i++)
-			if(!stricmp(cfg.xtrn[i]->code,sp+5))
-				break;
-		if(i<cfg.total_xtrns)
-			exec_xtrn(i);
 		return(nulstr);
 	}
 
