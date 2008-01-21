@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.52 2008/01/21 05:50:07 rswindell Exp $ */
+/* $Id: conn.c,v 1.53 2008/01/21 06:43:39 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -317,6 +317,8 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.close=pty_close;
 			break;
 #endif
+		default:
+			conn_api.terminate=1;
 	}
 	if(conn_api.connect) {
 		if(conn_api.connect(bbs)) {
