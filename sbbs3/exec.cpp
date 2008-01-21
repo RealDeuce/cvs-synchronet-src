@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.75 2009/01/24 22:46:44 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.70 2008/01/07 08:10:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,7 +37,6 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
-#include "js_request.h"
 
 char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 {
@@ -541,7 +540,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		return(JS_FALSE);
 
 	if(sbbs->js_branch.auto_terminate && !sbbs->online) {
-		JS_ReportWarning(cx,"Disconnected");
+		JS_ReportError(cx,"Disconnected");
 		sbbs->js_branch.counter=0;
 		return(JS_FALSE);
 	}
@@ -595,7 +594,6 @@ long sbbs_t::js_execfile(const char *cmd)
 		return(-1); 
 	}
 
-	JS_BEGINREQUEST(js_cx);
 	js_scope=JS_NewObject(js_cx, NULL, NULL, js_glob);
 
 	if(js_scope!=NULL) {
@@ -633,7 +631,6 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	if(js_scope==NULL || js_script==NULL) {
 		JS_ReportPendingException(js_cx);	/* Added Feb-2-2006, rswindell */
-		JS_ENDREQUEST(js_cx);
 		errormsg(WHERE,"compiling",path,0);
 		return(-1);
 	}
@@ -658,7 +655,6 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	if(rval!=JSVAL_VOID)
 		JS_ValueToInt32(js_cx,rval,&result);
-	JS_ENDREQUEST(js_cx);
 		
 	return(result);
 }
@@ -1104,7 +1100,7 @@ int sbbs_t::exec(csi_t *csi)
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 							break; }
 						for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-							if((text[i]=readtext((long *)NULL,stream,i))==NULL) {
+							if((text[i]=readtext((long *)NULL,stream))==NULL) {
 								i--;
 								continue; }
 							if(!strcmp(text[i],text_sav[i])) {	/* If identical */

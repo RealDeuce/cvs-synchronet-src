@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.52 2008/02/05 01:44:55 deuce Exp $ */
+/* $Id: ciolib.h,v 1.51 2008/01/20 10:21:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,7 +177,6 @@ enum text_modes
     C128_40X25,		/* Commodore 128 40x25 colour mode */
     C128_80X25,		/* Commodore 128 40x25 colour mode */
 	ATARI_40X24,	/* Atari 800 40x24 colour text mode */
-	ATARI_80X25,	/* Atari 800 XEP80 80x25 mono text mode */
 
 	/* VESA Modes */
 	VESA_132X21	= 235,
