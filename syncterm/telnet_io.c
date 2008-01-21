@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.25 2008/02/05 00:37:39 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.23 2008/01/21 07:00:51 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -92,7 +92,6 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 	BYTE	command;
 	BYTE	option;
 	BYTE*   first_iac;
-	BYTE*   first_cr;
 	int 	i;
 
 	if(inlen<1) {
@@ -101,9 +100,8 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 	}
 
     first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
-    first_cr=(BYTE*)memchr(inbuf, '\r', inlen);
 
-    if(!telnet_cmdlen	&& first_iac==NULL && first_cr==NULL) {
+    if(!telnet_cmdlen	&& first_iac==NULL) {
         *outlen=inlen;
         return(inbuf);	/* no interpretation needed */
     }
@@ -115,21 +113,6 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
     	*outlen=0;
 
     for(i=*outlen;i<inlen;i++) {
-		if(telnet_remote_option[TELNET_BINARY_TX]!=TELNET_WILL) {
-			if(telnet_cmdlen==1 && telnet_cmd[0]=='\r') {
-            	outbuf[(*outlen)++]='\r';
-				if(inbuf[i]!=0 && inbuf[i]!=TELNET_IAC)
-	            	outbuf[(*outlen)++]=inbuf[i];
-				telnet_cmdlen=0;
-				if(inbuf[i]!=TELNET_IAC)
-					continue;
-			}
-			if(inbuf[i]=='\r' && telnet_cmdlen==0) {
-				telnet_cmd[telnet_cmdlen++]='\r';
-				continue;
-			}
-		}
-
         if(inbuf[i]==TELNET_IAC && telnet_cmdlen==1) { /* escaped 255 */
             telnet_cmdlen=0;
             outbuf[(*outlen)++]=TELNET_IAC;
@@ -234,29 +217,22 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 BYTE* telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen)
 {
 	BYTE*   first_iac;
-	BYTE*   first_cr;
 	ulong	i,outlen;
 
     first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
-    first_cr=(BYTE*)memchr(inbuf, '\r', inlen);
 
-	if(first_iac==NULL && first_cr==NULL) {	/* Nothing to expand */
+	if(first_iac==NULL) {	/* Nothing to expand */
 		*newlen=inlen;
 		return(inbuf);
 	}
 
-	if(first_iac!=NULL && first_iac < first_cr)
-		outlen=first_iac-inbuf;
-	else
-		outlen=first_cr-inbuf;
+	outlen=first_iac-inbuf;
 	memcpy(outbuf, inbuf, outlen);
 
     for(i=outlen;i<inlen;i++) {
 		if(inbuf[i]==TELNET_IAC)
 			outbuf[outlen++]=TELNET_IAC;
 		outbuf[outlen++]=inbuf[i];
-		if(inbuf[i]=='\r')
-			outbuf[outlen++]='\n';
 	}
     *newlen=outlen;
     return(outbuf);
