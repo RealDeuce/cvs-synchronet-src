@@ -1117,7 +1117,7 @@ main(int argnum, char *args[])
 		}
 		switch (a) {
 		case CIO_KEY_MOUSE:
-			/* already handled */
+			getmouse(&me);
 			break;
 		case 0x2c00:	/* ALT+Z - Blink on\off */
 			Attribute ^= 128;
@@ -1153,8 +1153,8 @@ main(int argnum, char *args[])
 			EliteMode = !EliteMode;
 			break;
 		case 0x2d00:	/* ALT+X - Exit */
-			if(exitprg()==-1)
-				return(0);
+			exitprg();
+			return(0);
 			break;
 		case 0x1e00:	/* ALT+A - Color */
 			Attribute = SelectColor();
@@ -1209,8 +1209,7 @@ main(int argnum, char *args[])
 			FullScreen = !FullScreen;
 			break;
 		case 27:	/* ESC - Menue Mode  */
-			if(menuemode()==-1)
-				return(0);
+			menuemode();
 			break;
 		case 1:	/* Next FG Colour */
 			fg = ((Attribute & 128) >> 3) | (Attribute & 15);
