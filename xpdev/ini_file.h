@@ -2,13 +2,13 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.42 2008/02/24 07:53:33 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.41 2007/11/30 08:58:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -219,7 +219,6 @@ size_t		iniAppendSection(str_list_t*, const char* section
 BOOL		iniSectionExists(str_list_t, const char* section);
 BOOL		iniKeyExists(str_list_t, const char* section, const char* key);
 BOOL		iniValueExists(str_list_t, const char* section, const char* key);
-char*		iniPopKey(str_list_t*, const char* section, const char* key, char* value);
 BOOL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveSection(str_list_t*, const char* section);
