@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.203 2008/01/20 23:34:38 deuce Exp $ */
+/* $Id: term.c,v 1.204 2008/01/21 00:53:37 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -120,7 +120,9 @@ void mousedrag(unsigned char *scrollback)
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
-								copybuf[outpos++]='\r';
+								#ifdef _WIN32
+									copybuf[outpos++]='\r';
+								#endif
 								copybuf[outpos++]='\n';
 								lastchar=outpos;
 							}
