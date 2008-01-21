@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.51 2008/01/21 01:34:14 deuce Exp $ */
+/* $Id: conn.c,v 1.52 2008/01/21 05:50:07 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -24,7 +24,7 @@
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Direct COM"
+char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial"
 #ifdef __unix__
 ,"Shell"
 #endif
