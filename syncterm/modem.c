@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.25 2008/01/21 06:40:03 deuce Exp $ */
+/* $Id: modem.c,v 1.24 2008/01/21 03:17:15 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -258,23 +258,23 @@ int modem_connect(struct bbslist *bbs)
 	}
 
 	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE)) {
-		conn_api.close();
+		modem_close();
 		return(-1);
 	}
 	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
-		conn_api.close();
+		modem_close();
 		destroy_conn_buf(&conn_inbuf);
 		return(-1);
 	}
 	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		conn_api.close();
+		modem_close();
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
 		return(-1);
 	}
 	conn_api.rd_buf_size=BUFFER_SIZE;
 	if(!(conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		conn_api.close();
+		modem_close();
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
 		FREE_AND_NULL(conn_api.rd_buf);
