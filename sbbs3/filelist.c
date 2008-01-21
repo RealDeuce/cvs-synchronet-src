@@ -4,13 +4,13 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.15 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: filelist.c,v 1.13 2007/09/09 23:46:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -49,7 +49,7 @@ char *crlf="\r\n";
 
 /****************************************************************************/
 /****************************************************************************/
-int lprintf(int level, const char *fmat, ...)
+int lprintf(int level, char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[256];
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 	long	max_age=0;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.15 $", "%*s %s", revision);
+	sscanf("$Revision: 1.13 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -174,6 +174,9 @@ int main(int argc, char **argv)
 	}
 	SAFECOPY(scfg.temp_dir,"../temp");
 	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
+
+	if(!(scfg.sys_misc&SM_LOCAL_TZ))
+		putenv("TZ=UTC0");
 
 	dirnum=libnum=-1;
 	if(argv[1][0]=='*')
