@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.98 2007/10/24 19:39:51 deuce Exp $ */
+/* $Id: ciolib.c,v 1.99 2008/01/20 10:21:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,7 +235,10 @@ int try_conio_init(int mode)
 {
 	/* This should test for something or other */
 	if(win32_initciolib(mode)) {
-		cio_api.mode=CIOLIB_MODE_CONIO;
+		if(mode==CIOLIB_MODE_AUTO)
+			cio_api.mode=CIOLIB_MODE_CONIO;
+		else
+			cio_api.mode=mode;	/* CIOLIB_MODE_CONIO or CIOLIB_MODE_CONIO_FULLSCREEN */
 		cio_api.mouse=1;
 		cio_api.puttext=win32_puttext;
 		cio_api.gettext=win32_gettext;
@@ -299,6 +302,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			break;
 #ifdef _WIN32
 		case CIOLIB_MODE_CONIO:
+		case CIOLIB_MODE_CONIO_FULLSCREEN:
 			try_conio_init(mode);
 			break;
 #else
