@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.92 2008/01/24 03:06:47 deuce Exp $ */
+/* $Id: win32cio.c,v 1.90 2008/01/21 05:33:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -506,7 +506,7 @@ void win32_resume(void)
 	DWORD	conmode;
 	HANDLE	h;
 
-	conmode=ENABLE_MOUSE_INPUT|ENABLE_EXTENDED_FLAGS;
+    conmode=ENABLE_MOUSE_INPUT;
 	if((h=GetStdHandle(STD_INPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleMode(h, conmode);
 
@@ -539,7 +539,7 @@ int win32_initciolib(long inmode)
 	if((h=GetStdHandle(STD_INPUT_HANDLE))==INVALID_HANDLE_VALUE
 		|| !GetConsoleMode(h, &orig_in_conmode))
 		return(0);
-	conmode=ENABLE_MOUSE_INPUT|ENABLE_EXTENDED_FLAGS;
+	conmode=ENABLE_MOUSE_INPUT;
 	if(!SetConsoleMode(h, conmode))
 		return(0);
 
@@ -577,7 +577,7 @@ int win32_initciolib(long inmode)
 			else
 				win32_textmode(VESA_132X60);
 		}
-		else if(i>=80) {
+		if(i>=80) {
 			if(j<21)
 				win32_textmode(C80X14);
 			else if(j<25)
