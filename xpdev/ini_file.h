@@ -2,7 +2,7 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.37 2007/05/09 21:25:48 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.41 2007/11/30 08:58:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,6 +100,8 @@ time_t		iniReadDateTime(FILE*, const char* section, const char* key
 					,time_t deflt);
 unsigned	iniReadEnum(FILE*, const char* section, const char* key
 					,str_list_t names, unsigned deflt);
+unsigned*	iniReadEnumList(FILE*, const char* section, const char* key
+					,str_list_t names, unsigned* count, const char* sep, const char* deflt);
 long		iniReadNamedInt(FILE*, const char* section, const char* key
 					,named_long_t*, long deflt);
 double		iniReadNamedFloat(FILE*, const char* section, const char* key
@@ -152,12 +154,15 @@ time_t		iniGetDateTime(str_list_t, const char* section, const char* key
 					,time_t deflt);
 unsigned	iniGetEnum(str_list_t, const char* section, const char* key
 					,str_list_t names, unsigned deflt);
+unsigned*	iniGetEnumList(str_list_t, const char* section, const char* key
+					,str_list_t names, unsigned* count, const char* sep, const char* deflt);
 long		iniGetNamedInt(str_list_t, const char* section, const char* key
 					,named_long_t*, long deflt);
 double		iniGetNamedFloat(str_list_t, const char* section, const char* key
 					,named_double_t*, double deflt);
 ulong		iniGetBitField(str_list_t, const char* section, const char* key
 					,ini_bitdesc_t* bitdesc, ulong deflt);
+str_list_t	iniGetSection(str_list_t, const char *section);
 #define		iniGetLogLevel(l,s,k,d) iniGetEnum(l,s,k,iniLogLevelStringList(),d)
 
 #if !defined(NO_SOCKET_SUPPORT)
@@ -193,6 +198,8 @@ char*		iniSetDateTime(str_list_t*, const char* section, const char* key, BOOL in
 					,ini_style_t*);
 char*		iniSetEnum(str_list_t*, const char* section, const char* key, str_list_t names
 					,unsigned value, ini_style_t*);
+char*		iniSetEnumList(str_list_t*, const char* section, const char* key 
+					,const char* sep, str_list_t names, unsigned* values, unsigned count, ini_style_t*);
 char*		iniSetNamedInt(str_list_t*, const char* section, const char* key, named_long_t*
 					,long value, ini_style_t*);
 char*		iniSetNamedFloat(str_list_t*, const char* section, const char* key, named_double_t*
@@ -216,6 +223,11 @@ BOOL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 BOOL		iniRemoveSection(str_list_t*, const char* section);
 BOOL		iniRenameSection(str_list_t*, const char* section, const char* newname);
+
+/*
+ * Too handy to leave internal
+ */
+unsigned* parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count);
 
 #if defined(__cplusplus)
 }
