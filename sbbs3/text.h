@@ -2,13 +2,13 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.10 2009/01/22 15:03:11 deuce Exp $ */
+/* $Id: text.h,v 1.8 2004/10/21 09:03:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -202,7 +202,7 @@ enum {
 	,Unused156
 	,ErrorLogHdr
 	,DeleteErrorLogQ
-	,DirectoryDoesNotExist
+	,NoErrorLogExists
 	,ClearErrCounter
 	,InvalidNode
 	,SendingTelegramToUser
@@ -286,7 +286,7 @@ enum {
 	,CloseFileRecordQ
 	,SysopRemoveFilePrompt
 	,UserRemoveFilePrompt
-	,FileDoesNotExist
+	,FileNotThere
 	,CouldntRemoveFile
 	,DeleteFileQ
 	,AddToOfflineDirQ
@@ -764,14 +764,6 @@ enum {
 	,NodeActionPaging
 	,NodeActionRetrieving
 	,YN
-	,ViewSignatureQ
-	,DeleteSignatureQ
-	,CreateEditSignatureQ
-	,SpinningCursorOnPauseQ
-	,UseExternalEditorQ
-	,ExternalEditorHeading
-	,CommandShellHeading
-	,ArchiveTypeHeading
 
 	,TOTAL_TEXT 
 };
