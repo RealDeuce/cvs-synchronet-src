@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.80 2008/02/09 22:46:25 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.78 2008/01/21 00:05:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,7 +83,7 @@
 /***************/
 long	mode=0;							/* Program mode 					*/
 long	zmode=0L;						/* Zmodem mode						*/
-uchar	block[XMODEM_MAX_BLOCK_SIZE];					/* Block buffer 					*/
+uchar	block[1024];					/* Block buffer 					*/
 ulong	block_num;						/* Block number 					*/
 char*	dszlog;
 BOOL	dszlog_path=TRUE;				/* Log complete path to filename	*/
@@ -637,15 +637,14 @@ BOOL data_waiting(void* unused, unsigned timeout)
 }
 
 /****************************************************************************/
-/* Returns the total number of blocks required to send the file				*/
+/* Returns the number of blocks required to send len bytes					*/
 /****************************************************************************/
-unsigned num_blocks(unsigned block_num, ulong offset, ulong len, unsigned block_size)
+unsigned num_blocks(ulong len, unsigned block_size)
 {
 	ulong blocks;
-	ulong remain = len - offset;
 
-	blocks=block_num + (remain/block_size);
-	if(remain%block_size)
+	blocks=len/block_size;
+	if(len%block_size)
 		blocks++;
 	return(blocks);
 }
@@ -682,7 +681,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 		l-=t;				/* now, it's est time left */
 		if(l<0) l=0;
 		if(mode&SEND) {
-			total_blocks=num_blocks(block_num,offset,fsize,xm.block_size);
+			total_blocks=num_blocks(fsize,xm.block_size);
 			fprintf(statfp,"\rBlock (%lu%s): %lu/%lu  Byte: %lu  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
@@ -926,8 +925,8 @@ static int send_files(char** fname, uint fnames)
 
 			lprintf(LOG_INFO,"Sending Ymodem termination block");
 
-			memset(block,0,XMODEM_MIN_BLOCK_SIZE);	/* send short block for terminator */
-			xmodem_put_block(&xm, block, XMODEM_MIN_BLOCK_SIZE /* block_size */, 0 /* block_num */);
+			memset(block,0,128);	/* send short block for terminator */
+			xmodem_put_block(&xm, block, 128 /* block_size */, 0 /* block_num */);
 			if(!xmodem_get_ack(&xm,6,0)) {
 				lprintf(LOG_WARNING,"Failed to receive ACK after terminating block"); 
 			} 
@@ -1314,7 +1313,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.80 $", "%*s %s", revision);
+	sscanf("$Revision: 1.78 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1434,14 +1433,14 @@ int main(int argc, char **argv)
 						mode|=XMODEM|CRC;
 						break;
 					case 'x':
-						xm.block_size=XMODEM_MIN_BLOCK_SIZE;
+						xm.block_size=128;
 					case 'X':
 						mode|=XMODEM;
 						break;
 					case 'b':	/* sz/rz compatible */
 					case 'B':
 					case 'y':
-						xm.block_size=XMODEM_MIN_BLOCK_SIZE;
+						xm.block_size=128;
 					case 'Y':
 						mode|=(YMODEM|CRC);
 						break;
@@ -1496,7 +1495,7 @@ int main(int argc, char **argv)
 				}
 				switch(toupper(*arg)) {
 					case 'K':	/* sz/rz compatible */
-						xm.block_size=XMODEM_MAX_BLOCK_SIZE;
+						xm.block_size=1024;
 						break;
 					case 'C':	/* sz/rz compatible */
 						mode|=CRC;
