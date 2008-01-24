@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.65 2008/02/21 09:53:04 rswindell Exp $ */
+/* $Id: smblib.h,v 1.64 2007/07/10 22:20:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -210,7 +210,6 @@ SMBEXPORT ushort	SMBCALL smb_hfieldtypelookup(const char*);
 SMBEXPORT char*		SMBCALL smb_dfieldtype(ushort type);
 SMBEXPORT char*		SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* outstr);
 SMBEXPORT char*		SMBCALL smb_netaddr(net_t* net);
-SMBEXPORT char*		SMBCALL smb_netaddrstr(net_t* net, char* fidoaddr_buf);
 SMBEXPORT ushort	SMBCALL smb_netaddr_type(const char* str);
 SMBEXPORT char*		SMBCALL smb_zonestr(short zone, char* outstr);
 SMBEXPORT char*		SMBCALL smb_hashsource(smbmsg_t* msg, int source);
