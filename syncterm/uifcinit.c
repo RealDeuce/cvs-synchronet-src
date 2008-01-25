@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: uifcinit.c,v 1.28 2008/02/18 01:55:20 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.27 2008/01/24 02:45:39 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@
 
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 static int uifc_initialized=0;
-int uifc_old_font=0;
+static int uifc_old_font=0;
 
 #define UIFC_INIT	(1<<0)
 #define WITH_SCRN	(1<<1)
