@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.197 2008/01/20 10:02:39 deuce Exp $ */
+/* $Id: term.c,v 1.210 2008/01/26 20:35:14 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -100,9 +100,9 @@ void mousedrag(unsigned char *scrollback)
 						memcpy(sbuffer,screen,sbufsize);
 						for(pos=startpos;pos<=endpos;pos++) {
 							if((sbuffer[pos*2+1]&0x70)!=0x10)
-								sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x10;
+								sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x10;
 							else
-								sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x60;
+								sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x60;
 							if(((sbuffer[pos*2+1]&0x70)>>4) == (sbuffer[pos*2+1]&0x0F)) {
 								sbuffer[pos*2+1]|=0x08;
 							}
@@ -120,7 +120,9 @@ void mousedrag(unsigned char *scrollback)
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
-								copybuf[outpos++]='\r';
+								#ifdef _WIN32
+									copybuf[outpos++]='\r';
+								#endif
 								copybuf[outpos++]='\n';
 								lastchar=outpos;
 							}
@@ -254,7 +256,7 @@ static int lputs(void* cbdata, int level, const char* str)
 #endif
 
 	if(log_fp!=NULL && level <= log_level)
-		fprintf(log_fp,"%s: %s\n",log_levels[level], str);
+		fprintf(log_fp,"Xfer %s: %s\n",log_levels[level], str);
 
 	if(level > LOG_INFO)
 		return 0;
@@ -310,8 +312,8 @@ void zmodem_progress(void* cbdata, ulong current_pos)
 {
 	char		orig[128];
 	unsigned	cps;
-	long		l;
-	long		t;
+	time_t		l;
+	time_t		t;
 	time_t		now;
 	static time_t last_progress;
 	int			old_hold=hold_update;
@@ -533,7 +535,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	FILE*	fp;
 	struct file_pick fpick;
 	char	*opts[3]={
-			 "Zmodem"
+			 "ZMODEM"
 			,"ASCII"
 			,""
 		};
@@ -554,16 +556,19 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		filepick_free(&fpick);
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
 	filepick_free(&fpick);
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
@@ -584,6 +589,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	}
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	gotoxy(txtinfo.curx, txtinfo.cury);
 }
 
 #if defined(__BORLANDC__)
@@ -955,21 +961,33 @@ void font_control(struct bbslist *bbs)
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	init_uifc(FALSE, FALSE);
 
-	i=j=getfont();
-	uifc.helpbuf="`Font Setup`\n\n"
-				"Change the current font.  Must support the current video mode.";
-	k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
-	if(k!=-1) {
-		if(k & MSK_INS) {
-			struct file_pick fpick;
-			j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
+	switch(cio_api.mode) {
+		case CIOLIB_MODE_CONIO:
+		case CIOLIB_MODE_CONIO_FULLSCREEN:
+		case CIOLIB_MODE_CURSES:
+		case CIOLIB_MODE_CURSES_IBM:
+		case CIOLIB_MODE_ANSI:
+			uifcmsg("Not supported in this video output mode."
+				,"Font cannot be changed in the current video output mode");
+			break;
+		default:
+			i=j=getfont();
+			uifc.helpbuf="`Font Setup`\n\n"
+						"Change the current font.  Must support the current video mode.";
+			k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
+			if(k!=-1) {
+				if(k & MSK_INS) {
+					struct file_pick fpick;
+					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-			if(j!=-1 && fpick.files>=1)
-				loadfont(fpick.selected[0]);
-			filepick_free(&fpick);
-		}
-		else
-			setfont(i,FALSE);
+					if(j!=-1 && fpick.files>=1)
+						loadfont(fpick.selected[0]);
+					filepick_free(&fpick);
+				}
+				else
+					setfont(i,FALSE);
+			}
+		break;
 	}
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
@@ -1161,7 +1179,7 @@ BOOL doterm(struct bbslist *bbs)
 	unsigned char prn[ANSI_REPLY_BUFSIZE];
 	int	key;
 	int i,j;
-	unsigned char *p;
+	unsigned char *p,*p2;
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
 	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
 	BYTE zrqbuf[sizeof(zrqinit)];
@@ -1188,7 +1206,10 @@ BOOL doterm(struct bbslist *bbs)
 	int 	emulation=CTERM_EMULATION_ANSI_BBS;
 	size_t	remain;
 
-	speed = bbs->bpsrate;
+	if(bbs->conn_type == CONN_TYPE_SERIAL)
+		speed = 0;
+	else
+		speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
 	ciomouse_setevents(0);
@@ -1227,7 +1248,7 @@ BOOL doterm(struct bbslist *bbs)
 		hold_update=TRUE;
 		sleep=TRUE;
 		if(!term.nostatus)
-			update_status(bbs, speed);
+			update_status(bbs, (bbs->conn_type == CONN_TYPE_SERIAL)?bbs->bpsrate:speed);
 		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
 			if(speed)
 				thischar=xp_timer();
@@ -1446,7 +1467,15 @@ BOOL doterm(struct bbslist *bbs)
 						case CIOLIB_BUTTON_3_CLICK:
 							p=getcliptext();
 							if(p!=NULL) {
-								conn_send(p,strlen(p),0);
+								for(p2=p; *p2; p2++) {
+									if(*p2=='\n') {
+										/* If previous char was not \r, send a \r */
+										if(p2==p || *(p2-1)!='\r')
+											conn_send("\r",1,0);
+									}
+									else
+										conn_send(p2,1,0);
+								}
 								free(p);
 							}
 							key = 0;
@@ -1476,13 +1505,17 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x2600:	/* ALT-L */
-					conn_send(bbs->user,strlen(bbs->user),0);
-					conn_send("\r",1,0);
-					SLEEP(10);
-					conn_send(bbs->password,strlen(bbs->password),0);
-					conn_send("\r",1,0);
-					if(bbs->syspass[0]) {
+					if(bbs->user[0]) {
+						conn_send(bbs->user,strlen(bbs->user),0);
+						conn_send("\r",1,0);
 						SLEEP(10);
+					}
+					if(bbs->password[0]) {
+						conn_send(bbs->password,strlen(bbs->password),0);
+						conn_send("\r",1,0);
+						SLEEP(10);
+					}
+					if(bbs->syspass[0]) {
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
 						conn_send("\r",1,0);
 					}
@@ -1613,19 +1646,23 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x9800:	/* ALT-Up */
-					if(speed)
-						speed=rates[get_rate_num(speed)+1];
-					else
-						speed=rates[0];
-					key = 0;
+					if(bbs->conn_type != CONN_TYPE_SERIAL) {
+						if(speed)
+							speed=rates[get_rate_num(speed)+1];
+						else
+							speed=rates[0];
+						key = 0;
+					}
 					break;
 				case 0xa000:	/* ALT-Down */
-					i=get_rate_num(speed);
-					if(i==0)
-						speed=0;
-					else
-						speed=rates[i-1];
-					key = 0;
+					if(bbs->conn_type != CONN_TYPE_SERIAL) {
+						i=get_rate_num(speed);
+						if(i==0)
+							speed=0;
+						else
+							speed=rates[i-1];
+						key = 0;
+					}
 					break;
 			}
 			if(key && cterm.emulation == CTERM_EMULATION_ATASCII) {
