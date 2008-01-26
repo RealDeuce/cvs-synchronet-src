@@ -2,13 +2,13 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.36 2008/02/24 07:51:25 rswindell Exp $ */
+/* $Id: str_list.c,v 1.35 2006/08/14 22:55:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -43,7 +43,7 @@
 #include "genwrap.h"	/* stricmp */
 #include "str_list.h"
 
-str_list_t strListInit(void)
+str_list_t strListInit()
 {
 	str_list_t list;
 
@@ -61,21 +61,6 @@ size_t strListCount(const str_list_t list)
 	COUNT_LIST_ITEMS(list,i);
 
 	return(i);
-}
-
-int strListIndexOf(const str_list_t list, const char* str)
-{
-	size_t		i;
-
-	if(list==NULL)
-		return -1;
-
-	for(i=0; list[i]!=NULL; i++) {
-		if(list[i]==str)
-			return i;
-	}
-	
-	return -1;
 }
 
 static char* str_list_append(str_list_t* list, char* str, size_t index)

@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.44 2008/09/23 07:05:35 deuce Exp $ */
+/* $Id: zmodem.h,v 1.40 2008/01/26 20:33:49 deuce Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -237,9 +237,9 @@ typedef struct {
 	uint32_t	transfer_start_pos;
 	time_t		transfer_start_time;
 
-	int		receive_32bit_data;
-	int		use_crc16;
-	int32_t	ack_file_pos;				/* file position used in acknowledgement of correctly */
+	int receive_32bit_data;
+	int use_crc16;
+	int32_t ack_file_pos;				/* file position used in acknowledgement of correctly */
 									/* received data subpackets */
 
 	int last_sent;
@@ -254,7 +254,7 @@ typedef struct {
 	BOOL		file_skipped;
 	BOOL		no_streaming;
 	unsigned	recv_bufsize;	/* Receiver specified buffer size */
-	int32_t		crc_request;
+	int32_t	crc_request;
 	unsigned	errors;
 	unsigned	consecutive_errors;
 
@@ -277,7 +277,6 @@ typedef struct {
 	BOOL		(*is_connected)(void*);
 	BOOL		(*is_cancelled)(void*);
 	BOOL		(*data_waiting)(void*, unsigned timeout);
-	BOOL		(*duplicate_filename)(void*, void *zm);
 
 } zmodem_t;
 
