@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.84 2008/09/23 07:32:05 deuce Exp $ */
+/* $Id: zmodem.c,v 1.75 2008/01/26 21:01:17 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -577,7 +577,7 @@ int zmodem_send_zeof(zmodem_t* zm)
 int zmodem_recv_raw(zmodem_t* zm)
 {
 	int c;
-	unsigned attempt;
+	int attempt;
 
 	for(attempt=0;attempt<=zm->recv_timeout;attempt++) {
 		if((c=zm->recv_byte(zm->cbdata,1 /* second timeout */)) >= 0)
@@ -1779,7 +1779,6 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 	FILE*		fp;
 	int32_t		l;
 	BOOL		skip;
-	BOOL		loop;
 	uint32_t	b;
 	uint32_t	crc;
 	uint32_t	rcrc;
@@ -1803,7 +1802,6 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 
 		do {	/* try */
 			skip=TRUE;
-			loop=FALSE;
 
 			sprintf(fpath,"%s/%s",download_dir,zm->current_file_name);
 			lprintf(zm,LOG_DEBUG,"fpath=%s",fpath);
@@ -1813,17 +1811,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 				if(l>=(int32_t)bytes) {
 					lprintf(zm,LOG_WARNING,"Local file size >= remote file size (%ld)"
 						,bytes);
-					if(zm->duplicate_filename==NULL)
-						break;
-					else {
-						if(l > (int32_t)bytes) {
-							if(zm->duplicate_filename(zm->cbdata, zm)) {
-								loop=TRUE;
-								continue;
-							}
-							break;
-						}
-					}
+					break;
 				}
 				if((fp=fopen(fpath,"rb"))==NULL) {
 					lprintf(zm,LOG_ERR,"Error %d opening %s", errno, fpath);
@@ -1843,16 +1831,6 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 				}
 				if(crc!=rcrc) {
 					lprintf(zm,LOG_WARNING,"Remote file has different CRC value: %08lX", rcrc);
-					if(zm->duplicate_filename) {
-						if(zm->duplicate_filename(zm->cbdata, zm)) {
-							loop=TRUE;
-							continue;
-						}
-					}
-					break;
-				}
-				if(l == bytes) {
-					lprintf(zm,LOG_INFO,"CRC, length, and filename match.");
 					break;
 				}
 				lprintf(zm,LOG_INFO,"Resuming download of %s",fpath);
@@ -1898,7 +1876,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 					setfdate(fpath,zm->current_file_time);
 			}
 
-		} while(loop);
+		} while(0);
 		/* finally */
 
 		if(skip) {
@@ -1972,9 +1950,8 @@ int zmodem_recv_init(zmodem_t* zm)
 void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 {
 	int			i;
-	int			mode=0;
-	long		serial=-1L;
-	ulong		tmptime;
+	int32_t		mode=0;
+	int32_t		serial=-1;
 
 	SAFECOPY(zm->current_file_name,getfname(zm->rx_data_subpacket));
 
@@ -1984,9 +1961,9 @@ void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 	zm->bytes_remaining = 0;
 
 	if(sizeof(int32_t)==sizeof(long)) {
-		i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%lu %lo %o %lo %u %u"
+		i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%lu %lo %lo %lo %u %u"
 			,&zm->current_file_size	/* file size (decimal) */
-			,&tmptime				/* file time (octal unix format) */
+			,&zm->current_file_time /* file time (octal unix format) */
 			,&mode					/* file mode */
 			,&serial				/* program serial number */
 			,&zm->files_remaining	/* remaining files to be sent */
@@ -1994,16 +1971,15 @@ void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 			);
 	}
 	else {
-		i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%u %lo %o %lo %u %u"
+		i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%u %o %o %o %u %u"
 			,&zm->current_file_size	/* file size (decimal) */
-			,&tmptime				/* file time (octal unix format) */
+			,&zm->current_file_time /* file time (octal unix format) */
 			,&mode					/* file mode */
 			,&serial				/* program serial number */
 			,&zm->files_remaining	/* remaining files to be sent */
 			,&zm->bytes_remaining	/* remaining bytes to be sent */
 			);
 	}
-	zm->current_file_time=tmptime;
 
 	lprintf(zm,LOG_DEBUG,"Zmodem header (%u fields): %s"
 		,i, zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1);
@@ -2109,7 +2085,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.84 $", "%*s %s", buf);
+	sscanf("$Revision: 1.75 $", "%*s %s", buf);
 
 	return(buf);
 }
