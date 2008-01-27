@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.217 2008/01/27 03:19:35 deuce Exp $ */
+/* $Id: term.c,v 1.218 2008/01/27 22:54:20 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1321,6 +1321,11 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 		xmodem_put_nak(&xm, block_num);
 		while(is_connected(NULL)) {
 			xmodem_progress(&xm,block_num,ftell(fp),file_bytes,startfile);
+			if(xm.is_cancelled(&xm)) {
+				lprintf(LOG_WARNING,"Cancelled locally");
+				xmodem_cancel(&xm);
+				goto end; 
+			}
 			i=xmodem_get_block(&xm, block, block_num); 	
 
 			if(i!=0) {
