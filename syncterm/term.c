@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.218 2008/01/27 22:54:20 deuce Exp $ */
+/* $Id: term.c,v 1.219 2008/01/27 23:11:15 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -641,7 +641,7 @@ void begin_download(struct bbslist *bbs)
 			zmodem_download(bbs);
 			break;
 		case 1:
-			xmodem_download(bbs, YMODEM|GMODE|RECV, NULL);
+			xmodem_download(bbs, YMODEM|CRC|GMODE|RECV, NULL);
 			break;
 		case 2:
 			xmodem_download(bbs, YMODEM|CRC|RECV, NULL);
@@ -1326,7 +1326,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				xmodem_cancel(&xm);
 				goto end; 
 			}
-			i=xmodem_get_block(&xm, block, block_num); 	
+			i=xmodem_get_block(&xm, block, block_num);
 
 			if(i!=0) {
 				if(i==EOT)	{		/* end of transfer */
