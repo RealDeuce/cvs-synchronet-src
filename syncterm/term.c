@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.197 2008/01/20 10:02:39 deuce Exp $ */
+/* $Id: term.c,v 1.211 2008/01/27 00:19:50 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -18,7 +18,9 @@
 #include "filepick.h"
 #include "menu.h"
 #include "dirwrap.h"
+#include "sexyz.h"
 #include "zmodem.h"
+#include "xmodem.h"
 #include "telnet_io.h"
 #ifdef WITH_WXWIDGETS
 #include "htmlwin.h"
@@ -100,9 +102,9 @@ void mousedrag(unsigned char *scrollback)
 						memcpy(sbuffer,screen,sbufsize);
 						for(pos=startpos;pos<=endpos;pos++) {
 							if((sbuffer[pos*2+1]&0x70)!=0x10)
-								sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x10;
+								sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x10;
 							else
-								sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x60;
+								sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x60;
 							if(((sbuffer[pos*2+1]&0x70)>>4) == (sbuffer[pos*2+1]&0x0F)) {
 								sbuffer[pos*2+1]|=0x08;
 							}
@@ -120,7 +122,9 @@ void mousedrag(unsigned char *scrollback)
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
-								copybuf[outpos++]='\r';
+								#ifdef _WIN32
+									copybuf[outpos++]='\r';
+								#endif
 								copybuf[outpos++]='\n';
 								lastchar=outpos;
 							}
@@ -254,7 +258,7 @@ static int lputs(void* cbdata, int level, const char* str)
 #endif
 
 	if(log_fp!=NULL && level <= log_level)
-		fprintf(log_fp,"%s: %s\n",log_levels[level], str);
+		fprintf(log_fp,"Xfer %s: %s\n",log_levels[level], str);
 
 	if(level > LOG_INFO)
 		return 0;
@@ -306,12 +310,12 @@ static int lprintf(int level, const char *fmt, ...)
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
-void zmodem_progress(void* cbdata, ulong current_pos)
+void zmodem_progress(void* cbdata, uint32_t current_pos)
 {
 	char		orig[128];
 	unsigned	cps;
-	long		l;
-	long		t;
+	time_t		l;
+	time_t		t;
 	time_t		now;
 	static time_t last_progress;
 	int			old_hold=hold_update;
@@ -533,7 +537,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	FILE*	fp;
 	struct file_pick fpick;
 	char	*opts[3]={
-			 "Zmodem"
+			 "ZMODEM"
 			,"ASCII"
 			,""
 		};
@@ -554,16 +558,19 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		filepick_free(&fpick);
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
 	filepick_free(&fpick);
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
@@ -584,6 +591,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	}
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	gotoxy(txtinfo.curx, txtinfo.cury);
 }
 
 #if defined(__BORLANDC__)
@@ -866,7 +874,7 @@ void zmodem_download(struct bbslist *bbs)
 {
 	zmodem_t	zm;
 	int			files_received;
-	ulong		bytes_received;
+	uint32_t	bytes_received;
 
 	if(safe_mode)
 		return;
@@ -895,6 +903,218 @@ void zmodem_download(struct bbslist *bbs)
 	erase_transfer_window();
 }
 /* End of Zmodem Stuff */
+
+/* X/Y-MODEM stuff */
+
+enum { XMODEM_MODE_SEND, XMODEM_MODE_RECV } xmodem_mode;
+
+uchar	block[1024];					/* Block buffer 					*/
+ulong	block_num;						/* Block number 					*/
+
+static BOOL xmodem_check_abort(void* vp)
+{
+	xmodem_t* xm = (xmodem_t*)vp;
+	if(xm!=NULL && kbhit()) {
+		switch(getch()) {
+			case ESC:
+			case CTRL_C:
+			case CTRL_X:
+				xm->cancelled=TRUE;
+				break;
+		}
+	}
+	return(xm->cancelled);
+}
+
+#if defined(__BORLANDC__)
+	#pragma argsused
+#endif
+void xmodem_progress(void* cbdata, unsigned block_num, ulong offset, ulong fsize, time_t t)
+{
+	xmodem_check_abort(cbdata);
+}
+
+void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode)
+{
+	xmodem_t	xm;
+	ulong		fsize;
+
+	xmodem_mode=XMODEM_MODE_SEND;
+
+	conn_binary_mode_on();
+
+	xmodem_init(&xm
+		,/* cbdata */&xm
+		,&mode
+		,lputs
+		,xmodem_progress
+		,send_byte
+		,recv_byte
+		,is_connected
+		,xmodem_check_abort);
+
+	xm.total_files = 1;	/* ToDo: support multi-file/batch uploads */
+
+	fsize=filelength(fileno(fp));
+
+	if(mode&XMODEM) {
+		draw_transfer_window("Xmodem Upload");
+		lprintf(LOG_INFO,"Sending %s (%lu KB) via Xmodem"
+			,path,fsize/1024);
+	}
+	else if(mode&YMODEM) {
+		if(mode&GMODE) {
+			draw_transfer_window("Ymodem-G Upload");
+			lprintf(LOG_INFO,"Sending %s (%lu KB) via Ymodem-G"
+				,path,fsize/1024);
+		}
+		else {
+			draw_transfer_window("Ymodem Upload");
+			lprintf(LOG_INFO,"Sending %s (%lu KB) via Ymodem"
+				,path,fsize/1024);
+		}
+	}
+	else {
+		return;
+	}
+
+	if(xmodem_send_file(&xm, path, fp
+		,/* start_time */NULL, /* sent_bytes */ NULL)) {
+		if(mode&YMODEM) {
+
+			if(xmodem_get_mode(&xm)) {
+
+				lprintf(LOG_INFO,"Sending Ymodem termination block");
+
+				memset(block,0,128);	/* send short block for terminator */
+				xmodem_put_block(&xm, block, 128 /* block_size */, 0 /* block_num */);
+				if(!xmodem_get_ack(&xm,6,0)) {
+					lprintf(LOG_WARNING,"Failed to receive ACK after terminating block"); 
+				}
+			}
+		}
+	}
+
+	fclose(fp);
+
+	conn_binary_mode_off();
+	lprintf(LOG_NOTICE,"Hit any key to continue...");
+	getch();
+
+	erase_transfer_window();
+}
+
+void xmodem_download(struct bbslist *bbs, long mode)
+{
+	xmodem_t	xm;
+	/* The better to -Wunused you with my dear! */
+	int		i;
+	uint	errors;
+	uint	wr;
+	BOOL	success=FALSE;
+	ulong	file_bytes=0,file_bytes_left=0;
+	FILE*	fp;
+	time_t	startfile;
+
+	if(safe_mode)
+		return;
+
+	if(mode&XMODEM)
+		draw_transfer_window("Xmodem Download");
+	else if(mode&YMODEM) {
+		if(mode&GMODE)
+			draw_transfer_window("Ymodem-G Download");
+		else
+			draw_transfer_window("Ymodem Download");
+	}
+	else {
+		return;
+	}
+
+	xmodem_mode=ZMODEM_MODE_RECV;
+
+	conn_binary_mode_on();
+	xmodem_init(&xm
+		,/* cbdata */&xm
+		,&mode
+		,lputs
+		,xmodem_progress
+		,send_byte
+		,recv_byte
+		,is_connected
+		,xmodem_check_abort);
+
+	errors=0;
+	block_num=1;
+	xmodem_put_nak(&xm, block_num);
+	while(is_connected(NULL)) {
+		xmodem_progress(NULL,block_num,ftell(fp),file_bytes,startfile);
+		i=xmodem_get_block(&xm, block, block_num); 	
+
+		if(i!=0) {
+			if(i==EOT)	{		/* end of transfer */
+				success=TRUE;
+				xmodem_put_ack(&xm);
+				break;
+			}
+			if(i==CAN) {		/* Cancel */
+				xm.cancelled=TRUE;
+				break;
+			}
+
+			if(mode&GMODE) {
+				lprintf(LOG_ERR,"Too many errors (%u)",errors);
+				xmodem_cancel(&xm);
+				break; 
+			}
+
+			if(++errors>=xm.max_errors) {
+				lprintf(LOG_ERR,"Too many errors (%u)",errors);
+				xmodem_cancel(&xm);
+				break;
+			}
+			if(block_num==1 && errors>(xm.max_errors/2) && mode&CRC && !(mode&GMODE))
+				mode&=~CRC;
+			xmodem_put_nak(&xm, block_num);
+			continue;
+		}
+		if(!(mode&GMODE))
+			send_byte(NULL,ACK,10);
+		if(file_bytes_left<=0L)  { /* No more bytes to send */
+			lprintf(LOG_WARNING,"Attempt to send more byte specified in header");
+			break; 
+		}
+		wr=xm.block_size;
+		if(wr>file_bytes_left)
+			wr=file_bytes_left;
+		if(fwrite(block,1,wr,fp)!=wr) {
+			lprintf(LOG_ERR,"Error writing %u bytes to file at offset %lu"
+				,wr,ftell(fp));
+			xmodem_cancel(&xm);
+			break; 
+		}
+		file_bytes_left-=wr; 
+		block_num++;
+	}
+
+	/* Use correct file size */
+	fflush(fp);
+	if(file_bytes < (ulong)filelength(fileno(fp))) {
+		lprintf(LOG_INFO,"Truncating file to %lu bytes", file_bytes);
+		chsize(fileno(fp),file_bytes);
+	} else
+		file_bytes = filelength(fileno(fp));
+
+	fclose(fp);
+
+	conn_binary_mode_off();
+	lprintf(LOG_NOTICE,"Hit any key to continue...");
+	getch();
+
+	erase_transfer_window();
+}
+
+/* End of X/Y-MODEM stuff */
 
 void music_control(struct bbslist *bbs)
 {
@@ -955,21 +1175,33 @@ void font_control(struct bbslist *bbs)
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	init_uifc(FALSE, FALSE);
 
-	i=j=getfont();
-	uifc.helpbuf="`Font Setup`\n\n"
-				"Change the current font.  Must support the current video mode.";
-	k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
-	if(k!=-1) {
-		if(k & MSK_INS) {
-			struct file_pick fpick;
-			j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
+	switch(cio_api.mode) {
+		case CIOLIB_MODE_CONIO:
+		case CIOLIB_MODE_CONIO_FULLSCREEN:
+		case CIOLIB_MODE_CURSES:
+		case CIOLIB_MODE_CURSES_IBM:
+		case CIOLIB_MODE_ANSI:
+			uifcmsg("Not supported in this video output mode."
+				,"Font cannot be changed in the current video output mode");
+			break;
+		default:
+			i=j=getfont();
+			uifc.helpbuf="`Font Setup`\n\n"
+						"Change the current font.  Must support the current video mode.";
+			k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
+			if(k!=-1) {
+				if(k & MSK_INS) {
+					struct file_pick fpick;
+					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-			if(j!=-1 && fpick.files>=1)
-				loadfont(fpick.selected[0]);
-			filepick_free(&fpick);
-		}
-		else
-			setfont(i,FALSE);
+					if(j!=-1 && fpick.files>=1)
+						loadfont(fpick.selected[0]);
+					filepick_free(&fpick);
+				}
+				else
+					setfont(i,FALSE);
+			}
+		break;
 	}
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
@@ -1161,7 +1393,7 @@ BOOL doterm(struct bbslist *bbs)
 	unsigned char prn[ANSI_REPLY_BUFSIZE];
 	int	key;
 	int i,j;
-	unsigned char *p;
+	unsigned char *p,*p2;
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
 	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
 	BYTE zrqbuf[sizeof(zrqinit)];
@@ -1188,7 +1420,10 @@ BOOL doterm(struct bbslist *bbs)
 	int 	emulation=CTERM_EMULATION_ANSI_BBS;
 	size_t	remain;
 
-	speed = bbs->bpsrate;
+	if(bbs->conn_type == CONN_TYPE_SERIAL)
+		speed = 0;
+	else
+		speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
 	ciomouse_setevents(0);
@@ -1227,7 +1462,7 @@ BOOL doterm(struct bbslist *bbs)
 		hold_update=TRUE;
 		sleep=TRUE;
 		if(!term.nostatus)
-			update_status(bbs, speed);
+			update_status(bbs, (bbs->conn_type == CONN_TYPE_SERIAL)?bbs->bpsrate:speed);
 		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
 			if(speed)
 				thischar=xp_timer();
@@ -1446,7 +1681,15 @@ BOOL doterm(struct bbslist *bbs)
 						case CIOLIB_BUTTON_3_CLICK:
 							p=getcliptext();
 							if(p!=NULL) {
-								conn_send(p,strlen(p),0);
+								for(p2=p; *p2; p2++) {
+									if(*p2=='\n') {
+										/* If previous char was not \r, send a \r */
+										if(p2==p || *(p2-1)!='\r')
+											conn_send("\r",1,0);
+									}
+									else
+										conn_send(p2,1,0);
+								}
 								free(p);
 							}
 							key = 0;
@@ -1476,13 +1719,17 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x2600:	/* ALT-L */
-					conn_send(bbs->user,strlen(bbs->user),0);
-					conn_send("\r",1,0);
-					SLEEP(10);
-					conn_send(bbs->password,strlen(bbs->password),0);
-					conn_send("\r",1,0);
-					if(bbs->syspass[0]) {
+					if(bbs->user[0]) {
+						conn_send(bbs->user,strlen(bbs->user),0);
+						conn_send("\r",1,0);
 						SLEEP(10);
+					}
+					if(bbs->password[0]) {
+						conn_send(bbs->password,strlen(bbs->password),0);
+						conn_send("\r",1,0);
+						SLEEP(10);
+					}
+					if(bbs->syspass[0]) {
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
 						conn_send("\r",1,0);
 					}
@@ -1613,19 +1860,23 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x9800:	/* ALT-Up */
-					if(speed)
-						speed=rates[get_rate_num(speed)+1];
-					else
-						speed=rates[0];
-					key = 0;
+					if(bbs->conn_type != CONN_TYPE_SERIAL) {
+						if(speed)
+							speed=rates[get_rate_num(speed)+1];
+						else
+							speed=rates[0];
+						key = 0;
+					}
 					break;
 				case 0xa000:	/* ALT-Down */
-					i=get_rate_num(speed);
-					if(i==0)
-						speed=0;
-					else
-						speed=rates[i-1];
-					key = 0;
+					if(bbs->conn_type != CONN_TYPE_SERIAL) {
+						i=get_rate_num(speed);
+						if(i==0)
+							speed=0;
+						else
+							speed=rates[i-1];
+						key = 0;
+					}
 					break;
 			}
 			if(key && cterm.emulation == CTERM_EMULATION_ATASCII) {
