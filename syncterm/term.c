@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.216 2008/01/27 02:58:37 deuce Exp $ */
+/* $Id: term.c,v 1.217 2008/01/27 03:19:35 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1198,7 +1198,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 	BOOL	success=FALSE;
 	long	fmode;
 	long	serial_num=-1;
-	long	tmpftime;
+	ulong	tmpftime;
 	ulong	file_bytes=0,file_bytes_left=0;
 	ulong	total_bytes=0;
 	FILE*	fp=NULL;
