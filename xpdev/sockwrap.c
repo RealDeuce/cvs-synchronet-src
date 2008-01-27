@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.32 2006/05/09 21:02:55 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.33 2008/01/21 07:30:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <ctype.h>		/* isdigit */
 #include <stdlib.h>		/* alloca/free on FreeBSD */
 #include <string.h>		/* bzero (for FD_ZERO) on FreeBSD */
 #include <errno.h>		/* ENOMEM */
