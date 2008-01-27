@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.115 2008/02/10 01:23:23 rswindell Exp $ */
+/* $Id: js_system.c,v 1.113 2008/01/16 04:16:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1390,8 +1390,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	},		
 	{"datestr",			js_datestr,			0,	JSTYPE_STRING,	JSDOCSTR("[time=<i>current</i>]")
 	,JSDOCSTR("convert time_t integer into a date string (in either <tt>MM/DD/YY</tt> or <tt>DD/MM/YY</tt> format), "
-		"defaults to current date if <i>time</i> not specified. "
-		"If <i>time</i> is a string in the appropriate format, returns the time_t.")
+		"defaults to current date if <i>time</i> not specified")
 	,310
 	},		
 	{"secondstr",		js_secondstr,		0,	JSTYPE_STRING,	JSDOCSTR("seconds")
@@ -1826,9 +1825,12 @@ static JSClass js_system_class = {
 JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 										,scfg_t* cfg, time_t uptime, char* host_name, char* socklib_desc)
 {
+	uint		i;
 	jsval		val;
 	JSObject*	sysobj;
 	JSObject*	statsobj;
+	JSObject*	node_list;
+	JSObject*	fido_addr_list;
 	JSString*	js_str;
 	char		str[256];
 
