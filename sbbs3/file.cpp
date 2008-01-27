@@ -2,13 +2,13 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.21 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: file.cpp,v 1.24 2008/01/27 09:17:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,9 +71,9 @@ void sbbs_t::fileinfo(file_t* f)
 	bprintf(text[FiDescription],f->desc);
 	bprintf(text[FiUploadedBy],f->misc&FM_ANON ? text[UNKNOWN_USER] : f->uler);
 	if(f->date)
-		bprintf(text[FiFileDate],timestr(&f->date));
-	bprintf(text[FiDateUled],timestr(&f->dateuled));
-	bprintf(text[FiDateDled],f->datedled ? timestr(&f->datedled) : "Never");
+		bprintf(text[FiFileDate],timestr(f->date));
+	bprintf(text[FiDateUled],timestr(f->dateuled));
+	bprintf(text[FiDateDled],f->datedled ? timestr(f->datedled) : "Never");
 	bprintf(text[FiTimesDled],f->timesdled);
 	if(f->size!=-1L)
 		bprintf(text[FiTransferTime],sectostr(f->timetodl,tmp));
@@ -91,8 +91,11 @@ void sbbs_t::fileinfo(file_t* f)
 		CRLF;
 		putmsg(ext,P_NOATCODES);
 		CRLF; }
-	if(f->size==-1L)
+	if(f->size==-1L) {
 		bprintf(text[FileIsNotOnline],f->name);
+		if(SYSOP)
+			bprintf("%s\r\n",fpath);
+	}
 	if(f->opencount)
 		bprintf(text[FileIsOpen],f->opencount,f->opencount>1 ? "s" : nulstr);
 

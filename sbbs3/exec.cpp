@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.62 2007/07/10 21:07:17 deuce Exp $ */
+/* $Id: exec.cpp,v 1.70 2008/01/07 08:10:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-char ** sbbs_t::getstrvar(csi_t *bin, long name)
+char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
@@ -122,7 +122,7 @@ char ** sbbs_t::getstrvar(csi_t *bin, long name)
 	return((char **)&sysvar_p[sysvar_pi++]);
 }
 
-long * sbbs_t::getintvar(csi_t *bin, int32_t name)
+int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
@@ -195,76 +195,76 @@ long * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=useron.leech;
 			break;
 		case 0x7c602a37:
-			return((long *)&useron.misc);
+			return((int32_t *)&useron.misc);
 		case 0x61be0d36:
-			return((long *)&useron.qwk);
+			return((int32_t *)&useron.qwk);
 		case 0x665ac227:
-			return((long *)&useron.chat);
+			return((int32_t *)&useron.chat);
 		case 0x951341ab:
-			return((long *)&useron.flags1);
+			return((int32_t *)&useron.flags1);
 		case 0x0c1a1011:
-			return((long *)&useron.flags2);
+			return((int32_t *)&useron.flags2);
 		case 0x7b1d2087:
-			return((long *)&useron.flags3);
+			return((int32_t *)&useron.flags3);
 		case 0xe579b524:
-			return((long *)&useron.flags4);
+			return((int32_t *)&useron.flags4);
 		case 0x12e7d6d2:
-			return((long *)&useron.exempt);
+			return((int32_t *)&useron.exempt);
 		case 0xfed3115d:
-			return((long *)&useron.rest);
+			return((int32_t *)&useron.rest);
 		case 0xb65dd6d4:
-			return((long *)&useron.ulb);
+			return((int32_t *)&useron.ulb);
 		case 0xabb91f93:
-			return((long *)&useron.dlb);
+			return((int32_t *)&useron.dlb);
 		case 0x92fb364f:
-			return((long *)&useron.cdt);
+			return((int32_t *)&useron.cdt);
 		case 0xd0a99c72:
-			return((long *)&useron.min);
+			return((int32_t *)&useron.min);
 		case 0xd7ae3022:
-			return((long *)&useron.freecdt);
+			return((int32_t *)&useron.freecdt);
 		case 0x1ef214ef:
-			return((long *)&useron.firston);
+			return((int32_t *)&useron.firston);
 		case 0x0ea515b1:
-			return((long *)&useron.laston);
+			return((int32_t *)&useron.laston);
 		case 0x2aaf9bd3:
-			return((long *)&useron.expire);
+			return((int32_t *)&useron.expire);
 		case 0x89c91dc8:
-			return((long *)&useron.pwmod);
+			return((int32_t *)&useron.pwmod);
 		case 0x5b0d0c54:
-			return((long *)&useron.ns_time);
+			return((int32_t *)&useron.ns_time);
 
 		case 0xae256560:
-			return((long *)&cur_rate);
+			return((int32_t *)&cur_rate);
 		case 0x2b3c257f:
-			return((long *)&cur_cps);
+			return((int32_t *)&cur_cps);
 		case 0x1c4455ee:
-			return((long *)&dte_rate);
+			return((int32_t *)&dte_rate);
 		case 0x7fbf958e:
-			return((long *)&lncntr);
+			return((int32_t *)&lncntr);
 		case 0x5c1c1500:
-			return((long *)&tos);
+			return((int32_t *)&tos);
 		case 0x613b690e:
-			return((long *)&rows);
+			return((int32_t *)&rows);
 		case 0x205ace36:
-			return((long *)&autoterm);
+			return((int32_t *)&autoterm);
 		case 0x7d0ed0d1:
-			return((long *)&console);
+			return((int32_t *)&console);
 		case 0xbf31a280:
-			return((long *)&answertime);
+			return((int32_t *)&answertime);
 		case 0x83aa2a6a:
-			return((long *)&logontime);
+			return((int32_t *)&logontime);
 		case 0xb50cb889:
-			return((long *)&ns_time);
+			return((int32_t *)&ns_time);
 		case 0xae92d249:
-			return((long *)&last_ns_time);
+			return((int32_t *)&last_ns_time);
 		case 0x97f99eef:
-			return((long *)&online);
+			return((int32_t *)&online);
 		case 0x381d3c2a:
-			return((long *)&sys_status);
+			return((int32_t *)&sys_status);
 		case 0x7e29c819:
-			return((long *)&cfg.sys_misc);
+			return((int32_t *)&cfg.sys_misc);
 		case 0x11c83294:
-			return((long *)&cfg.sys_psnum);
+			return((int32_t *)&cfg.sys_psnum);
 		case 0x02408dc5:
 			sysvar_l[sysvar_li]=sys_timezone(&cfg);
 			break;
@@ -296,7 +296,7 @@ long * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.node_scrnblank;
 			break;
 		case 0x709c07da:
-			return((long *)&cfg.node_misc);
+			return((int32_t *)&cfg.node_misc);
 		case 0xb17e7914:
 			sysvar_l[sysvar_li]=cfg.node_valuser;
 			break;
@@ -316,26 +316,26 @@ long * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.new_level;
 			break;
 		case 0xccfe7c5d:
-			return((long *)&cfg.new_flags1);
+			return((int32_t *)&cfg.new_flags1);
 		case 0x55f72de7:
-			return((long *)&cfg.new_flags2);
+			return((int32_t *)&cfg.new_flags2);
 		case 0x22f01d71:
-			return((long *)&cfg.new_flags3);
+			return((int32_t *)&cfg.new_flags3);
 		case 0xbc9488d2:
-			return((long *)&cfg.new_flags4);
+			return((int32_t *)&cfg.new_flags4);
 		case 0x4b0aeb24:
-			return((long *)&cfg.new_exempt);
+			return((int32_t *)&cfg.new_exempt);
 		case 0x20cb6325:
-			return((long *)&cfg.new_rest);
+			return((int32_t *)&cfg.new_rest);
 		case 0x31178ba2:
-			return((long *)&cfg.new_cdt);
+			return((int32_t *)&cfg.new_cdt);
 		case 0x7345219f:
-			return((long *)&cfg.new_min);
+			return((int32_t *)&cfg.new_min);
 		case 0xb3f64be4:
 			sysvar_l[sysvar_li]=cfg.new_shell;
 			break;
 		case 0xa278584f:
-			return((long *)&cfg.new_misc);
+			return((int32_t *)&cfg.new_misc);
 		case 0x7342a625:
 			sysvar_l[sysvar_li]=cfg.new_expire;
 			break;
@@ -346,17 +346,17 @@ long * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.expired_level;
 			break;
 		case 0x89b69753:
-			return((long *)&cfg.expired_flags1);
+			return((int32_t *)&cfg.expired_flags1);
 		case 0x10bfc6e9:
-			return((long *)&cfg.expired_flags2);
+			return((int32_t *)&cfg.expired_flags2);
 		case 0x67b8f67f:
-			return((long *)&cfg.expired_flags3);
+			return((int32_t *)&cfg.expired_flags3);
 		case 0xf9dc63dc:
-			return((long *)&cfg.expired_flags4);
+			return((int32_t *)&cfg.expired_flags4);
 		case 0x0e42002a:
-			return((long *)&cfg.expired_exempt);
+			return((int32_t *)&cfg.expired_exempt);
 		case 0x4569c62e:
-			return((long *)&cfg.expired_rest);
+			return((int32_t *)&cfg.expired_rest);
 		case 0xfcf3542e:
 			sysvar_l[sysvar_li]=cfg.min_dspace;
 			break;
@@ -364,7 +364,7 @@ long * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.cdt_min_value;
 			break;
 		case 0xfcb5b274:
-			return((long *)&cfg.cdt_per_dollar);
+			return((int32_t *)&cfg.cdt_per_dollar);
 		case 0x4db200d2:
 			sysvar_l[sysvar_li]=cfg.leech_pct;
 			break;
@@ -372,31 +372,31 @@ long * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			sysvar_l[sysvar_li]=cfg.leech_sec;
 			break;
 		case 0x396b7167:
-			return((long *)&cfg.netmail_cost);
+			return((int32_t *)&cfg.netmail_cost);
 		case 0x5eeaff21:
 			sysvar_l[sysvar_li]=cfg.netmail_misc;
 			break;
 		case 0x82d9484e:
-			return((long *)&cfg.inetmail_cost);
+			return((int32_t *)&cfg.inetmail_cost);
 		case 0xe558c608:
-			return((long *)&cfg.inetmail_misc);
+			return((int32_t *)&cfg.inetmail_misc);
 
 		case 0xc6e8539d:
-			return((long *)&logon_ulb);
+			return((int32_t *)&logon_ulb);
 		case 0xdb0c9ada:
-			return((long *)&logon_dlb);
+			return((int32_t *)&logon_dlb);
 		case 0xac58736f:
-			return((long *)&logon_uls);
+			return((int32_t *)&logon_uls);
 		case 0xb1bcba28:
-			return((long *)&logon_dls);
+			return((int32_t *)&logon_dls);
 		case 0x9c5051c9:
-			return((long *)&logon_posts);
+			return((int32_t *)&logon_posts);
 		case 0xc82ba467:
-			return((long *)&logon_emails);
+			return((int32_t *)&logon_emails);
 		case 0x8e395209:
-			return((long *)&logon_fbacks);
+			return((int32_t *)&logon_fbacks);
 		case 0x8b12ba9d:
-			return((long *)&posts_read);
+			return((int32_t *)&posts_read);
 		case 0xe51c1956:
 			sysvar_l[sysvar_li]=(ulong)logfile_fp;
 			break;
@@ -420,12 +420,12 @@ long * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			break;
 
 		case 0x1e5052a7:
-			return((long *)&cfg.max_minutes);
+			return((int32_t *)&cfg.max_minutes);
 		case 0xedc643f1:
-			return((long *)&cfg.max_qwkmsgs);
+			return((int32_t *)&cfg.max_qwkmsgs);
 
 		case 0x430178ec:
-			return((long *)&cfg.uq);
+			return((int32_t *)&cfg.uq);
 
 		case 0x455CB929:
 			return(&bin->ftp_mode);
@@ -434,7 +434,7 @@ long * sbbs_t::getintvar(csi_t *bin, int32_t name)
 			return(&bin->socket_error);
 
 		case 0xA0023A2E:
-			return((long *)&startup->options);
+			return((int32_t *)&startup->options);
 
 		case 0x16E2585F:
 			sysvar_l[sysvar_li]=client_socket;
@@ -462,6 +462,7 @@ void sbbs_t::clearvars(csi_t *bin)
 	bin->int_vars=0;
 	bin->int_var=NULL;
 	bin->int_var_name=NULL;
+	bin->dirs=0;
 	bin->files=0;
 	bin->loops=0;
 	bin->sockets=0;
@@ -484,15 +485,21 @@ void sbbs_t::freevars(csi_t *bin)
 		free(bin->str_var_name);
 	if(bin->int_var_name)
 		free(bin->int_var_name);
+	for(i=0;i<bin->dirs;i++) {
+		if(bin->dir[i]!=NULL) {
+			closedir(bin->dir[i]);
+			bin->dir[i]=NULL; 
+		}
+	}
 	for(i=0;i<bin->files;i++) {
-		if(bin->file[i]) {
-			fclose((FILE *)bin->file[i]);
-			bin->file[i]=0; 
+		if(bin->file[i]!=NULL) {
+			fclose(bin->file[i]);
+			bin->file[i]=NULL; 
 		}
 	}
 	for(i=0;i<bin->sockets;i++) {
-		if(bin->socket[i]) {
-			close_socket((SOCKET)bin->socket[i]);
+		if(bin->socket[i]!=0) {
+			close_socket(bin->socket[i]);
 			bin->socket[i]=0; 
 		}
 	}
@@ -543,7 +550,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 
 static const char* js_ext(const char* fname)
 {
-	if(strchr(fname,'.')==NULL)
+	if(getfext(fname)==NULL)
 		return(".js");
 	return("");
 }
@@ -576,9 +583,9 @@ long sbbs_t::js_execfile(const char *cmd)
 	fname=cmdline;
 
 	if(strcspn(fname,"/\\")==strlen(fname)) {
-		sprintf(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
+		SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
 		if(cfg.mods_dir[0]==0 || !fexistcase(path))
-			sprintf(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
+			SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
 	} else
 		SAFECOPY(path,fname);
 
@@ -636,7 +643,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_ReportPendingException(js_cx);	/* Added Dec-4-2005, rswindell */
 
-	js_EvalOnExit(js_cx, js_glob, &js_branch);
+	js_EvalOnExit(js_cx, js_scope, &js_branch);
 
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 
@@ -678,25 +685,26 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 	if((p=getfext(mod))!=NULL && stricmp(p,".js")==0)
 		return(js_execfile(cmdline));
 	if(cfg.mods_dir[0]) {
-		sprintf(str,"%s%s.js",cfg.mods_dir,mod);
+		SAFEPRINTF2(str,"%s%s.js",cfg.mods_dir,mod);
 		if(fexistcase(str)) 
 			return(js_execfile(cmdline));
 	}
-	sprintf(str,"%s%s.js",cfg.exec_dir,mod);
-	if(fexistcase(str)) 
-		return(js_execfile(cmdline));
 #endif
-
-	memcpy(&bin,csi,sizeof(csi_t));
-	clearvars(&bin);
 
 	SAFECOPY(modname,mod);
 	if(!strchr(modname,'.'))
 		strcat(modname,".bin");
 
-	sprintf(str,"%s%s",cfg.mods_dir,modname);
+	SAFEPRINTF2(str,"%s%s",cfg.mods_dir,modname);
 	if(cfg.mods_dir[0]==0 || !fexistcase(str)) {
-		sprintf(str,"%s%s",cfg.exec_dir,modname);
+
+#ifdef JAVASCRIPT
+		SAFEPRINTF2(str,"%s%s.js",cfg.exec_dir,mod);
+		if(fexistcase(str)) 
+			return(js_execfile(cmdline));
+#endif
+
+		SAFEPRINTF2(str,"%s%s",cfg.exec_dir,modname);
 		fexistcase(str);
 	}
 	if((file=nopen(str,O_RDONLY))==-1) {
@@ -704,6 +712,8 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 		return(-1); 
 	}
 
+	memcpy(&bin,csi,sizeof(csi_t));
+	clearvars(&bin);
 	bin.length=filelength(file);
 	if((bin.cs=(uchar *)malloc(bin.length))==NULL) {
 		close(file);
@@ -1084,7 +1094,7 @@ int sbbs_t::exec(csi_t *csi)
 								if(text[i]!=nulstr)
 									free(text[i]);
 								text[i]=text_sav[i]; }
-						sprintf(str,"%s%s.dat"
+						SAFEPRINTF2(str,"%s%s.dat"
 							,cfg.ctrl_dir,cmdstr((char*)csi->ip,path,csi->str,(char*)buf));
 						if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
