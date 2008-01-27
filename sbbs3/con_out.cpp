@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.53 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.51 2006/08/23 01:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,7 +71,7 @@ char* DLLCALL ascii_str(uchar* str)
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
 /* Handles ctrl-a characters                                                */
 /****************************************************************************/
-int sbbs_t::bputs(const char *str)
+int sbbs_t::bputs(char *str)
 {
 	int i;
     ulong l=0;
@@ -115,7 +115,7 @@ int sbbs_t::bputs(const char *str)
 /* Does not expand ctrl-a characters (raw)                                  */
 /* Max length of str is 64 kbytes                                           */
 /****************************************************************************/
-int sbbs_t::rputs(const char *str)
+int sbbs_t::rputs(char *str)
 {
     ulong l=0;
 
@@ -130,7 +130,7 @@ int sbbs_t::rputs(const char *str)
 /****************************************************************************/
 /* Performs printf() using bbs bputs function								*/
 /****************************************************************************/
-int sbbs_t::bprintf(const char *fmt, ...)
+int sbbs_t::bprintf(char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[4096];
@@ -147,7 +147,7 @@ int sbbs_t::bprintf(const char *fmt, ...)
 /****************************************************************************/
 /* Performs printf() using bbs rputs function								*/
 /****************************************************************************/
-int sbbs_t::rprintf(const char *fmt, ...)
+int sbbs_t::rprintf(char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[4096];
@@ -219,10 +219,7 @@ void sbbs_t::outchar(char ch)
 			pause();
 			while(lncntr && online && !(sys_status&SS_ABORT))
 				pause(); 
-#if 0	/* This line was added in rev 1.41, but it prevents Ctrl-C or 'N' 
-			from the forced-pause prompt from aborting the currently displayed file: */
 			sys_status&=~SS_ABORT;
-#endif
 		}
 	}
 #if 0
