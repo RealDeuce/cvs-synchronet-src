@@ -1,4 +1,6 @@
-/* $Id: term.c,v 1.164 2007/06/29 05:48:29 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: term.c,v 1.211 2008/01/27 00:19:50 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -16,8 +18,13 @@
 #include "filepick.h"
 #include "menu.h"
 #include "dirwrap.h"
+#include "sexyz.h"
 #include "zmodem.h"
+#include "xmodem.h"
 #include "telnet_io.h"
+#ifdef WITH_WXWIDGETS
+#include "htmlwin.h"
+#endif
 
 #ifdef GUTS_BUILTIN
 #include "gutsz.h"
@@ -34,6 +41,24 @@ struct terminal term;
 static char winbuf[(TRANSFER_WIN_WIDTH + 2) * (TRANSFER_WIN_HEIGHT + 1) * 2];	/* Save buffer for transfer window */
 static struct text_info	trans_ti;
 static struct text_info	log_ti;
+#ifdef WITH_WXWIDGETS
+enum html_mode {
+	 HTML_MODE_HIDDEN
+	,HTML_MODE_ICONIZED
+	,HTML_MODE_RAISED
+	,HTML_MODE_READING
+};
+static enum html_mode html_mode=HTML_MODE_HIDDEN;
+enum {
+	 HTML_SUPPORT_UNKNOWN
+	,HTML_NOTSUPPORTED
+	,HTML_SUPPORTED
+};
+
+static int html_supported=HTML_SUPPORT_UNKNOWN;
+
+char *html_addr=NULL;
+#endif
 
 #if defined(__BORLANDC__)
 	#pragma argsused
@@ -77,9 +102,9 @@ void mousedrag(unsigned char *scrollback)
 						memcpy(sbuffer,screen,sbufsize);
 						for(pos=startpos;pos<=endpos;pos++) {
 							if((sbuffer[pos*2+1]&0x70)!=0x10)
-								sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x10;
+								sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x10;
 							else
-								sbuffer[pos*2+1]=sbuffer[pos*2+1]&0x8F|0x60;
+								sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x60;
 							if(((sbuffer[pos*2+1]&0x70)>>4) == (sbuffer[pos*2+1]&0x0F)) {
 								sbuffer[pos*2+1]|=0x08;
 							}
@@ -97,7 +122,9 @@ void mousedrag(unsigned char *scrollback)
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
-								copybuf[outpos++]='\r';
+								#ifdef _WIN32
+									copybuf[outpos++]='\r';
+								#endif
 								copybuf[outpos++]='\n';
 								lastchar=outpos;
 							}
@@ -121,7 +148,7 @@ void update_status(struct bbslist *bbs, int speed)
 	char nbuf[LIST_NAME_MAX+10+11+1];	/* Room for "Name (Logging) (115300)" and terminator */
 						/* SAFE and Logging should me be possible. */
 	int oldscroll;
-	int olddmc;
+	int olddmc=hold_update;
 	struct	text_info txtinfo;
 	int now;
 	static int lastupd=0;
@@ -136,7 +163,6 @@ void update_status(struct bbslist *bbs, int speed)
 	timeon=now - bbs->connected;
     gettextinfo(&txtinfo);
 	oldscroll=_wscroll;
-	olddmc=hold_update;
 	hold_update=TRUE;
 	textattr(YELLOW|(BLUE<<4));
 	/* Move to status line thinger */
@@ -168,11 +194,13 @@ void update_status(struct bbslist *bbs, int speed)
 				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break;
 	}
+	if(wherex()>=80)
+		clreol();
 	_wscroll=oldscroll;
 	textattr(txtinfo.attribute);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
-	hold_update=olddmc;
 	gotoxy(txtinfo.curx,txtinfo.cury);
+	hold_update=olddmc;
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -230,7 +258,7 @@ static int lputs(void* cbdata, int level, const char* str)
 #endif
 
 	if(log_fp!=NULL && level <= log_level)
-		fprintf(log_fp,"%s: %s\n",log_levels[level], str);
+		fprintf(log_fp,"Xfer %s: %s\n",log_levels[level], str);
 
 	if(level > LOG_INFO)
 		return 0;
@@ -282,22 +310,21 @@ static int lprintf(int level, const char *fmt, ...)
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
-void zmodem_progress(void* cbdata, ulong current_pos)
+void zmodem_progress(void* cbdata, uint32_t current_pos)
 {
 	char		orig[128];
 	unsigned	cps;
-	long		l;
-	long		t;
+	time_t		l;
+	time_t		t;
 	time_t		now;
 	static time_t last_progress;
-	int			old_hold;
+	int			old_hold=hold_update;
 	zmodem_t*	zm=(zmodem_t*)cbdata;
 
 	zmodem_check_abort(cbdata);
-	
+
 	now=time(NULL);
 	if(now-last_progress>0 || current_pos >= zm->current_file_size) {
-		old_hold = hold_update;
 		hold_update = TRUE;
 		window(((trans_ti.screenwidth-TRANSFER_WIN_WIDTH)/2)+2
 				, ((trans_ti.screenheight-TRANSFER_WIN_HEIGHT)/2)+1
@@ -362,7 +389,7 @@ void zmodem_progress(void* cbdata, ulong current_pos)
 #endif
 static int send_byte(void* unused, uchar ch, unsigned timeout /* seconds */)
 {
-	return conn_send(&ch,sizeof(ch),timeout*1000);
+	return(conn_send(&ch,sizeof(ch),timeout*1000)!=1);
 }
 
 #if defined(__BORLANDC__)
@@ -382,7 +409,7 @@ static int recv_byte(void* unused, unsigned timeout /* seconds */)
 #endif
 BOOL data_waiting(void* unused, unsigned timeout)
 {
-	return(conn_data_waiting());
+	return(conn_data_waiting()!=0);
 }
 
 void draw_transfer_window(char* title)
@@ -510,7 +537,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	FILE*	fp;
 	struct file_pick fpick;
 	char	*opts[3]={
-			 "Zmodem"
+			 "ZMODEM"
 			,"ASCII"
 			,""
 		};
@@ -531,16 +558,19 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		filepick_free(&fpick);
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
 	filepick_free(&fpick);
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
@@ -549,6 +579,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 		zmodem_upload(bbs, fp, path);
 	else {
 		i=0;
+		uifc.helpbuf="Select Transfer Type";
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Transfer Type",opts)) {
 			case 0:
 				zmodem_upload(bbs, fp, path);
@@ -560,6 +591,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm)
 	}
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	gotoxy(txtinfo.curx, txtinfo.cury);
 }
 
 #if defined(__BORLANDC__)
@@ -842,7 +874,7 @@ void zmodem_download(struct bbslist *bbs)
 {
 	zmodem_t	zm;
 	int			files_received;
-	ulong		bytes_received;
+	uint32_t	bytes_received;
 
 	if(safe_mode)
 		return;
@@ -871,6 +903,218 @@ void zmodem_download(struct bbslist *bbs)
 	erase_transfer_window();
 }
 /* End of Zmodem Stuff */
+
+/* X/Y-MODEM stuff */
+
+enum { XMODEM_MODE_SEND, XMODEM_MODE_RECV } xmodem_mode;
+
+uchar	block[1024];					/* Block buffer 					*/
+ulong	block_num;						/* Block number 					*/
+
+static BOOL xmodem_check_abort(void* vp)
+{
+	xmodem_t* xm = (xmodem_t*)vp;
+	if(xm!=NULL && kbhit()) {
+		switch(getch()) {
+			case ESC:
+			case CTRL_C:
+			case CTRL_X:
+				xm->cancelled=TRUE;
+				break;
+		}
+	}
+	return(xm->cancelled);
+}
+
+#if defined(__BORLANDC__)
+	#pragma argsused
+#endif
+void xmodem_progress(void* cbdata, unsigned block_num, ulong offset, ulong fsize, time_t t)
+{
+	xmodem_check_abort(cbdata);
+}
+
+void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode)
+{
+	xmodem_t	xm;
+	ulong		fsize;
+
+	xmodem_mode=XMODEM_MODE_SEND;
+
+	conn_binary_mode_on();
+
+	xmodem_init(&xm
+		,/* cbdata */&xm
+		,&mode
+		,lputs
+		,xmodem_progress
+		,send_byte
+		,recv_byte
+		,is_connected
+		,xmodem_check_abort);
+
+	xm.total_files = 1;	/* ToDo: support multi-file/batch uploads */
+
+	fsize=filelength(fileno(fp));
+
+	if(mode&XMODEM) {
+		draw_transfer_window("Xmodem Upload");
+		lprintf(LOG_INFO,"Sending %s (%lu KB) via Xmodem"
+			,path,fsize/1024);
+	}
+	else if(mode&YMODEM) {
+		if(mode&GMODE) {
+			draw_transfer_window("Ymodem-G Upload");
+			lprintf(LOG_INFO,"Sending %s (%lu KB) via Ymodem-G"
+				,path,fsize/1024);
+		}
+		else {
+			draw_transfer_window("Ymodem Upload");
+			lprintf(LOG_INFO,"Sending %s (%lu KB) via Ymodem"
+				,path,fsize/1024);
+		}
+	}
+	else {
+		return;
+	}
+
+	if(xmodem_send_file(&xm, path, fp
+		,/* start_time */NULL, /* sent_bytes */ NULL)) {
+		if(mode&YMODEM) {
+
+			if(xmodem_get_mode(&xm)) {
+
+				lprintf(LOG_INFO,"Sending Ymodem termination block");
+
+				memset(block,0,128);	/* send short block for terminator */
+				xmodem_put_block(&xm, block, 128 /* block_size */, 0 /* block_num */);
+				if(!xmodem_get_ack(&xm,6,0)) {
+					lprintf(LOG_WARNING,"Failed to receive ACK after terminating block"); 
+				}
+			}
+		}
+	}
+
+	fclose(fp);
+
+	conn_binary_mode_off();
+	lprintf(LOG_NOTICE,"Hit any key to continue...");
+	getch();
+
+	erase_transfer_window();
+}
+
+void xmodem_download(struct bbslist *bbs, long mode)
+{
+	xmodem_t	xm;
+	/* The better to -Wunused you with my dear! */
+	int		i;
+	uint	errors;
+	uint	wr;
+	BOOL	success=FALSE;
+	ulong	file_bytes=0,file_bytes_left=0;
+	FILE*	fp;
+	time_t	startfile;
+
+	if(safe_mode)
+		return;
+
+	if(mode&XMODEM)
+		draw_transfer_window("Xmodem Download");
+	else if(mode&YMODEM) {
+		if(mode&GMODE)
+			draw_transfer_window("Ymodem-G Download");
+		else
+			draw_transfer_window("Ymodem Download");
+	}
+	else {
+		return;
+	}
+
+	xmodem_mode=ZMODEM_MODE_RECV;
+
+	conn_binary_mode_on();
+	xmodem_init(&xm
+		,/* cbdata */&xm
+		,&mode
+		,lputs
+		,xmodem_progress
+		,send_byte
+		,recv_byte
+		,is_connected
+		,xmodem_check_abort);
+
+	errors=0;
+	block_num=1;
+	xmodem_put_nak(&xm, block_num);
+	while(is_connected(NULL)) {
+		xmodem_progress(NULL,block_num,ftell(fp),file_bytes,startfile);
+		i=xmodem_get_block(&xm, block, block_num); 	
+
+		if(i!=0) {
+			if(i==EOT)	{		/* end of transfer */
+				success=TRUE;
+				xmodem_put_ack(&xm);
+				break;
+			}
+			if(i==CAN) {		/* Cancel */
+				xm.cancelled=TRUE;
+				break;
+			}
+
+			if(mode&GMODE) {
+				lprintf(LOG_ERR,"Too many errors (%u)",errors);
+				xmodem_cancel(&xm);
+				break; 
+			}
+
+			if(++errors>=xm.max_errors) {
+				lprintf(LOG_ERR,"Too many errors (%u)",errors);
+				xmodem_cancel(&xm);
+				break;
+			}
+			if(block_num==1 && errors>(xm.max_errors/2) && mode&CRC && !(mode&GMODE))
+				mode&=~CRC;
+			xmodem_put_nak(&xm, block_num);
+			continue;
+		}
+		if(!(mode&GMODE))
+			send_byte(NULL,ACK,10);
+		if(file_bytes_left<=0L)  { /* No more bytes to send */
+			lprintf(LOG_WARNING,"Attempt to send more byte specified in header");
+			break; 
+		}
+		wr=xm.block_size;
+		if(wr>file_bytes_left)
+			wr=file_bytes_left;
+		if(fwrite(block,1,wr,fp)!=wr) {
+			lprintf(LOG_ERR,"Error writing %u bytes to file at offset %lu"
+				,wr,ftell(fp));
+			xmodem_cancel(&xm);
+			break; 
+		}
+		file_bytes_left-=wr; 
+		block_num++;
+	}
+
+	/* Use correct file size */
+	fflush(fp);
+	if(file_bytes < (ulong)filelength(fileno(fp))) {
+		lprintf(LOG_INFO,"Truncating file to %lu bytes", file_bytes);
+		chsize(fileno(fp),file_bytes);
+	} else
+		file_bytes = filelength(fileno(fp));
+
+	fclose(fp);
+
+	conn_binary_mode_off();
+	lprintf(LOG_NOTICE,"Hit any key to continue...");
+	getch();
+
+	erase_transfer_window();
+}
+
+/* End of X/Y-MODEM stuff */
 
 void music_control(struct bbslist *bbs)
 {
@@ -931,21 +1175,33 @@ void font_control(struct bbslist *bbs)
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	init_uifc(FALSE, FALSE);
 
-	i=j=getfont();
-	uifc.helpbuf="`Font Setup`\n\n"
-				"Change the current font.  Must support the current video mode.";
-	k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
-	if(k!=-1) {
-		if(k & MSK_INS) {
-			struct file_pick fpick;
-			j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
+	switch(cio_api.mode) {
+		case CIOLIB_MODE_CONIO:
+		case CIOLIB_MODE_CONIO_FULLSCREEN:
+		case CIOLIB_MODE_CURSES:
+		case CIOLIB_MODE_CURSES_IBM:
+		case CIOLIB_MODE_ANSI:
+			uifcmsg("Not supported in this video output mode."
+				,"Font cannot be changed in the current video output mode");
+			break;
+		default:
+			i=j=getfont();
+			uifc.helpbuf="`Font Setup`\n\n"
+						"Change the current font.  Must support the current video mode.";
+			k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
+			if(k!=-1) {
+				if(k & MSK_INS) {
+					struct file_pick fpick;
+					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-			if(j!=-1 && fpick.files>=1)
-				loadfont(fpick.selected[0]);
-			filepick_free(&fpick);
-		}
-		else
-			setfont(i,FALSE);
+					if(j!=-1 && fpick.files>=1)
+						loadfont(fpick.selected[0]);
+					filepick_free(&fpick);
+				}
+				else
+					setfont(i,FALSE);
+			}
+		break;
 	}
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
@@ -1038,19 +1294,120 @@ void capture_control(struct bbslist *bbs)
 	gotoxy(txtinfo.curx,txtinfo.cury);
 }
 
+#ifdef WITH_WXWIDGETS
+void html_send(const char *buf)
+{
+	conn_send((char *)buf,strlen(buf),0);
+}
+
+static char cachedir[MAX_PATH+6];
+static int cachedirlen=0;
+
+void html_cleanup(void)
+{
+	if(cachedirlen)
+		delfiles(cachedir+5,ALLFILES);
+}
+
+int html_urlredirect(const char *uri, char *buf, size_t bufsize, char *uribuf, size_t uribufsize)
+{
+	char *in;
+	size_t out;
+
+	if(!cachedirlen) {
+		strcpy(cachedir,"file:");
+		get_syncterm_filename(cachedir+5, sizeof(cachedir)-5, SYNCTERM_PATH_CACHE, FALSE);
+		cachedirlen=strlen(cachedir);
+		html_cleanup();
+	}
+
+	if(!memcmp(uri, cachedir, cachedirlen)) {
+		/* Reading from the cache... no redirect */
+		return(URL_ACTION_ISGOOD);
+	}
+
+	strncpy(buf, cachedir, bufsize);
+	buf[bufsize-1]=0;
+	backslash(buf);
+	/* Append mangledname */
+	in=(char *)uri;
+	out=strlen(buf);
+	while(*in && out < bufsize-1) {
+		char ch;
+		ch=*(in++);
+		if(ch < ' ')
+			ch='^';
+		if(ch > 126)
+			ch='~';
+		switch(ch) {
+			case '*':
+			case '?':
+			case ':':
+			case '[':
+			case ']':
+			case '"':
+			case '<':
+			case '>':
+			case '|':
+			case '(':
+			case ')':
+			case '{':
+			case '}':
+			case '/':
+			case '\\':
+				buf[out++]='_';
+				break;
+			default:
+				buf[out++]=ch;
+		}
+	}
+	buf[out]=0;
+
+	/* We now have the cache filename... does it already exist? */
+	if(fexist(buf+5))
+		return(URL_ACTION_REDIRECT);
+
+	/* If not, we need to fetch it... convert relative URIs */
+	if(strstr(uri,"://")) {
+		/* Good URI */
+		strncpy(uribuf, uri, uribufsize);
+		uribuf[uribufsize-1]=0;
+		return(URL_ACTION_DOWNLOAD);
+	}
+
+	strcpy(uribuf, "http://");
+	if(html_addr)
+		strcat(uribuf, html_addr);
+	if(uri[0]!='/')
+		strcat(uribuf, "/");
+	strcat(uribuf,uri);
+
+	return(URL_ACTION_DOWNLOAD);
+}
+
+#endif
+
 BOOL doterm(struct bbslist *bbs)
 {
 	unsigned char ch[2];
 	unsigned char prn[ANSI_REPLY_BUFSIZE];
 	int	key;
 	int i,j;
-	unsigned char *p;
+	unsigned char *p,*p2;
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
 	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
-	BYTE zrqbuf[5];
+	BYTE zrqbuf[sizeof(zrqinit)];
 #ifdef GUTS_BUILTIN
 	BYTE gutsinit[] = { ESC, '[', '{' };	/* For GUTS auto-transfers */
-	BYTE gutsbuf[3];
+	BYTE gutsbuf[sizeof(gutsinit)];
+#endif
+#ifdef WITH_WXWIDGETS
+	BYTE htmldetect[]="\2\2?HTML?";
+	BYTE htmlresponse[]="\2\2!HTML!";
+	BYTE htmlstart[]="\2\2<HTML>";
+	BYTE htmldet[sizeof(htmldetect)];
+	int html_startx;
+	int html_starty;
 #endif
 	int	inch;
 	long double nextchar=0;
@@ -1060,10 +1417,13 @@ BOOL doterm(struct bbslist *bbs)
 	int	oldmc;
 	int	updated=FALSE;
 	BOOL	sleep;
-	BOOL	rd;
 	int 	emulation=CTERM_EMULATION_ANSI_BBS;
+	size_t	remain;
 
-	speed = bbs->bpsrate;
+	if(bbs->conn_type == CONN_TYPE_SERIAL)
+		speed = 0;
+	else
+		speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
 	ciomouse_setevents(0);
@@ -1091,6 +1451,9 @@ BOOL doterm(struct bbslist *bbs)
 #ifdef GUTS_BUILTIN
 	gutsbuf[0]=0;
 #endif
+#ifdef WITH_WXWIDGETS
+	htmldet[0]=0;
+#endif
 
 	/* Main input loop */
 	oldmc=hold_update;
@@ -1098,15 +1461,13 @@ BOOL doterm(struct bbslist *bbs)
 	for(;;) {
 		hold_update=TRUE;
 		sleep=TRUE;
-		if(!speed && bbs->bpsrate)
-			speed = bbs->bpsrate;
-		if(speed)
-			thischar=xp_timer();
-
 		if(!term.nostatus)
-			update_status(bbs, speed);
-		while(conn_data_waiting() || !conn_connected()) {
-			if(!speed || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
+			update_status(bbs, (bbs->conn_type == CONN_TYPE_SERIAL)?bbs->bpsrate:speed);
+		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
+			if(speed)
+				thischar=xp_timer();
+
+			if((!speed) || thischar < lastchar /* Wrapped */ || thischar >= nextchar) {
 				/* Get remote input */
 				inch=recv_byte(NULL, 0);
 
@@ -1114,6 +1475,13 @@ BOOL doterm(struct bbslist *bbs)
 					case -1:
 						if(!conn_connected()) {
 							hold_update=oldmc;
+#ifdef WITH_WXWIDGETS
+							if(html_mode != HTML_MODE_HIDDEN) {
+								hide_html();
+								html_cleanup();
+								html_mode=HTML_MODE_HIDDEN;
+							}
+#endif
 							uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
@@ -1142,8 +1510,10 @@ BOOL doterm(struct bbslist *bbs)
 							if(inch == gutsinit[j]) {
 								gutsbuf[j]=inch;
 								gutsbuf[++j]=0;
-								if(j==sizeof(gutsinit)) /* Have full sequence */
+								if(j==sizeof(gutsinit)) { /* Have full sequence */
 									guts_transfer(bbs);
+									remain=1;
+								}
 							}
 							else {
 								gutsbuf[j++]=inch;
@@ -1152,6 +1522,68 @@ BOOL doterm(struct bbslist *bbs)
 									conn_send(prn,strlen(prn),0);
 								updated=TRUE;
 								gutsbuf[0]=0;
+							}
+							continue;
+						}
+#endif
+#ifdef WITH_WXWIDGETS
+						if(html_mode==HTML_MODE_READING) {
+							if(inch==2) {
+								html_startx=wherex();
+								html_starty=wherey();
+								html_commit();
+								raise_html();
+								html_mode=HTML_MODE_RAISED;
+							}
+							else {
+								add_html_char(inch);
+							}
+							continue;
+						}
+
+						if(!htmldet[0]) {
+							if(inch == htmldetect[0]) {
+								htmldet[0]=inch;
+								htmldet[1]=0;
+								continue;
+							}
+						}
+						else {
+							j=strlen(htmldet);
+							if(inch == htmldetect[j] || toupper(inch)==htmlstart[j]) {
+								htmldet[j]=inch;
+								htmldet[++j]=0;
+								if(j==sizeof(htmldetect)-1) {
+									if(!strcmp(htmldet, htmldetect)) {
+										if(html_supported==HTML_SUPPORT_UNKNOWN) {
+											int width,height,xpos,ypos;
+											html_addr=bbs->addr;
+
+											get_window_info(&width, &height, &xpos, &ypos);
+											if(!run_html(width, height, xpos, ypos, html_send, html_urlredirect))
+												html_supported=HTML_SUPPORTED;
+											else
+												html_supported=HTML_NOTSUPPORTED;
+										}
+										if(html_supported==HTML_SUPPORTED) {
+											conn_send(htmlresponse, sizeof(htmlresponse)-1, 0);
+											hide_html();
+										}
+									}
+									else {
+										show_html("");
+										html_mode=HTML_MODE_READING;
+									}
+									htmldet[0]=0;
+								}
+							}
+							else {
+								htmldet[j++]=inch;
+								cterm_write(htmldet, j, prn, sizeof(prn), &speed);
+								if(prn[0])
+									conn_send(prn,strlen(prn),0);
+								updated=TRUE;
+								htmldet[0]=0;
 							}
 							continue;
 						}
@@ -1175,6 +1607,7 @@ BOOL doterm(struct bbslist *bbs)
 									else
 										begin_upload(bbs, TRUE);
 									zrqbuf[0]=0;
+									remain=1;
 								}
 							}
 							else {	/* Not a real zrqinit */
@@ -1190,6 +1623,14 @@ BOOL doterm(struct bbslist *bbs)
 
 						ch[0]=inch;
 						cterm_write(ch, 1, prn, sizeof(prn), &speed);
+#ifdef WITH_WXWIDGETS
+						if(html_mode==HTML_MODE_RAISED) {
+							if(html_startx!=wherex() || html_starty!=wherey()) {
+								iconize_html();
+								html_mode=HTML_MODE_ICONIZED;
+							}
+						}
+#endif
 						if(prn[0])
 							conn_send(prn, strlen(prn), 0);
 						updated=TRUE;
@@ -1202,9 +1643,11 @@ BOOL doterm(struct bbslist *bbs)
 				break;
 			}
 		}
-		hold_update=oldmc;
-		if(updated && sleep)
+		if(updated && sleep) {
+			hold_update=FALSE;
 			gotoxy(wherex(), wherey());
+			hold_update=TRUE;
+		}
 
 		/* Get local input */
 		while(kbhit()) {
@@ -1238,7 +1681,15 @@ BOOL doterm(struct bbslist *bbs)
 						case CIOLIB_BUTTON_3_CLICK:
 							p=getcliptext();
 							if(p!=NULL) {
-								conn_send(p,strlen(p),0);
+								for(p2=p; *p2; p2++) {
+									if(*p2=='\n') {
+										/* If previous char was not \r, send a \r */
+										if(p2==p || *(p2-1)!='\r')
+											conn_send("\r",1,0);
+									}
+									else
+										conn_send(p2,1,0);
+								}
 								free(p);
 							}
 							key = 0;
@@ -1268,13 +1719,17 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x2600:	/* ALT-L */
-					conn_send(bbs->user,strlen(bbs->user),0);
-					conn_send("\r",1,0);
-					SLEEP(10);
-					conn_send(bbs->password,strlen(bbs->password),0);
-					conn_send("\r",1,0);
-					if(bbs->syspass[0]) {
+					if(bbs->user[0]) {
+						conn_send(bbs->user,strlen(bbs->user),0);
+						conn_send("\r",1,0);
 						SLEEP(10);
+					}
+					if(bbs->password[0]) {
+						conn_send(bbs->password,strlen(bbs->password),0);
+						conn_send("\r",1,0);
+						SLEEP(10);
+					}
+					if(bbs->syspass[0]) {
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
 						conn_send("\r",1,0);
 					}
@@ -1313,13 +1768,22 @@ BOOL doterm(struct bbslist *bbs)
 						gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						i=0;
 						init_uifc(FALSE, FALSE);
+						uifc.helpbuf="Selecting Yes closes the connection\n";
 						if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Disconnect... Are you sure?",opts)==0) {
+#ifdef WITH_WXWIDGETS
+							if(html_mode != HTML_MODE_HIDDEN) {
+								hide_html();
+								html_cleanup();
+								html_mode=HTML_MODE_HIDDEN;
+							}
+#endif
 							uifcbail();
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
 							conn_close();
 							hidemouse();
+							hold_update=oldmc;
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
@@ -1343,11 +1807,19 @@ BOOL doterm(struct bbslist *bbs)
 					j=wherey();
 					switch(syncmenu(bbs, &speed)) {
 						case -1:
+#ifdef WITH_WXWIDGETS
+							if(html_mode != HTML_MODE_HIDDEN) {
+								hide_html();
+								html_cleanup();
+								html_mode=HTML_MODE_HIDDEN;
+							}
+#endif
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
 							conn_close();
 							hidemouse();
+							hold_update=oldmc;
 							return(FALSE);
 						case 3:
 							begin_upload(bbs, FALSE);
@@ -1368,11 +1840,19 @@ BOOL doterm(struct bbslist *bbs)
 							cterm.doorway_mode=!cterm.doorway_mode;
 							break;
 						case 11:
+#ifdef WITH_WXWIDGETS
+							if(html_mode != HTML_MODE_HIDDEN) {
+								hide_html();
+								html_cleanup();
+								html_mode=HTML_MODE_HIDDEN;
+							}
+#endif
 							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
 							conn_close();
 							hidemouse();
+							hold_update=oldmc;
 							return(TRUE);
 					}
 					showmouse();
@@ -1380,19 +1860,23 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x9800:	/* ALT-Up */
-					if(speed)
-						speed=rates[get_rate_num(speed)+1];
-					else
-						speed=rates[0];
-					key = 0;
+					if(bbs->conn_type != CONN_TYPE_SERIAL) {
+						if(speed)
+							speed=rates[get_rate_num(speed)+1];
+						else
+							speed=rates[0];
+						key = 0;
+					}
 					break;
 				case 0xa000:	/* ALT-Down */
-					i=get_rate_num(speed);
-					if(i==0)
-						speed=0;
-					else
-						speed=rates[i-1];
-					key = 0;
+					if(bbs->conn_type != CONN_TYPE_SERIAL) {
+						i=get_rate_num(speed);
+						if(i==0)
+							speed=0;
+						else
+							speed=rates[i-1];
+						key = 0;
+					}
 					break;
 			}
 			if(key && cterm.emulation == CTERM_EMULATION_ATASCII) {
@@ -1428,29 +1912,16 @@ BOOL doterm(struct bbslist *bbs)
 						ch[0]=127;
 						conn_send(ch,1,0);
 						break;
+					case 96:	/* No backtick */
+						break;
 					default:
 						if(key<256) {
 							/* ASCII Translation */
 							if(key<32) {
 								break;
 							}
-							else if(key<65) {
-								ch[0]=key;
-								conn_send(ch,1,0);
-							}
-							else if(key<91) {
-								ch[0]=tolower(key);
-								conn_send(ch,1,0);
-							}
-							else if(key<96) {
-								ch[0]=key;
-								conn_send(ch,1,0);
-							}
-							else if(key==96) {
-								break;
-							}
 							else if(key<123) {
-								ch[0]=toupper(key);
+								ch[0]=key;
 								conn_send(ch,1,0);
 							}
 						}
@@ -1650,9 +2121,9 @@ BOOL doterm(struct bbslist *bbs)
 		else
 			MAYBE_YIELD();
 	}
-
 /*
 	hidemouse();
+	hold_update=oldmc;
 	return(FALSE);
  */
 }
