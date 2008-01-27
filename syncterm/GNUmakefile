@@ -3,12 +3,70 @@ include ${SRC_ROOT}/build/Common.gmake
 
 CFLAGS	+=	-I/usr/local/include	# cryptlib.h lives here by default
 CFLAGS	+=	-I../../include/cryptlib	# cryptlib.h lives here in CVS
-CXXFLAGS += `wxgtk2u-2.8-config --cxxflags`
-WXLIBS += `wxgtk2u-2.8-config --libs`
+
+ifdef USE_WXWIDGETS
+
+ ifdef WX_CONFIG
+  ifeq ($(shell ${WX_CONFIG} --version > /dev/null 2>&1 && echo YES),YES)
+       WITH_WXWIDGETS	:=	1
+  endif
+ else
+  ifeq ($(shell wx-config --version > /dev/null 2>&1 && echo YES),YES)
+   WX_CONFIG := wx-config
+   WITH_WXWIDGETS	:=	1
+      else
+   ifeq ($(shell wxgtk2-2.8-config --version > /dev/null 2>&1 && echo YES),YES)
+    WX_CONFIG := wxgtk2-2.8-config
+    WITH_WXWIDGETS	:=	1
+   else
+    ifeq ($(shell wxgtk2u-2.8-config --version > /dev/null 2>&1 && echo YES),YES)
+     WX_CONFIG := wxgtk2u-2.8-config
+     WITH_WXWIDGETS	:=	1
+    else
+     ifeq ($(shell wxgtk2-config --version > /dev/null 2>&1 && echo YES),YES)
+      WX_CONFIG := wxgtk2-config
+      WITH_WXWIDGETS	:=	1
+     else
+      ifeq ($(shell wxgtk2u-config --version > /dev/null 2>&1 && echo YES),YES)
+       WX_CONFIG := wxgtk2u-config
+       WITH_WXWIDGETS	:=	1
+      endif
+     endif
+    endif
+   endif
+  endif
+ endif
+endif
+
+ifdef WITH_WXWIDGETS
+ CXXFLAGS += `$(WX_CONFIG) --cxxflags`
+ WXLIBS += `$(WX_CONFIG) --libs`
+ CFLAGS += -DWITH_WXWIDGETS
+ OBJS += $(MTOBJODIR)$(DIRSEP)htmlwin$(OFILE)
+endif
 
 ifeq ($(os),sunos)    # Solaris
  LDFLAGS += -lnsl -lrt -lcurses -ldl
  CFLAGS	+=	-DNEED_CFMAKERAW
+endif
+
+ifdef STATIC_CRYPTLIB
+ CFLAGS += -DSTATIC_CRYPTLIB
+ LDFLAGS += -lz
+ EXTRA_LIBS += $(SRC_ROOT)/../lib/cryptlib/$(machine).release/libcl.a
+endif
+
+ifeq ($(os),darwin)
+ ifeq ($(shell uname -r),6.8)
+  EXTRA_LIBS += /usr/local/lib/libdl.a
+ endif
+ STATIC_CRYPTLIB ?= 1
+endif
+
+ifeq ($(os),linux)
+ ifeq ($(shell uname -m),x86_64)
+  LDFLAGS += -ldl
+ endif
 endif
 
 ifdef USE_GUTS
@@ -22,30 +80,53 @@ DESKTOPDIR ?= $(PREFIX)/share/applications
 CFLAGS	+=	-DPREFIX=\"${PREFIX}\"
 ifeq ($(PREFIX),/usr)
  MANPREFIX ?= /usr/share
+ SYSTEM_LIST_DIR ?= /etc
 else
  MANPREFIX ?= $(PREFIX)
+ SYSTEM_LIST_DIR ?= ${PREFIX}/etc
 endif
+CFLAGS	+=	-DSYSTEM_LIST_DIR=\"${SYSTEM_LIST_DIR}\"
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib -I../comio
 LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
 
 vpath %.c ../sbbs3 ../smblib ../uifc ../guts ../comio
 
-INSTALL_EXE	?=	install
+ifdef DEBUG
+ INSTALL_EXE	?=	install
+else
+ INSTALL_EXE	?=	install -s
+endif
 INSTALL_DATA	?=	install -m 0444
 
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
 ifndef bcc
  ifneq ($(os),sunos)
-  LDFLAGS   +=  -lutil
+  ifneq ($(os),darwin)
+   LDFLAGS   +=  -lutil
+  endif
  endif
 endif
 
 
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS)
+	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS) $(EXTRA_LIBS)
+ifeq ($(os),darwin)
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/MacOS
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/Resources
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/Frameworks
+	${QUIET}echo "APPL????" > $(EXEODIR)/SyncTERM.app/Contents/PkgInfo
+	${QUIET}${INSTALL_EXE} ${SYNCTERM} ${EXEODIR}/SyncTERM.app/Contents/MacOS
+	${QUIET}${INSTALL_DATA} Info.plist ${EXEODIR}/SyncTERM.app/Contents
+	${QUIET}${INSTALL_DATA} SyncTERM.icns ${EXEODIR}/SyncTERM.app/Contents/Resources
+	-${QUIET}rm -rf ${EXEODIR}/SyncTERM.app/Contents/Frameworks/SDL.framework
+	${QUIET}cp -R ${SDL_FRAMEWORK_PATH}/SDL.framework ${EXEODIR}/SyncTERM.app/Contents/Frameworks
+	${QUIET}rm -rf ${EXEODIR}/SyncTERM.app/Contents/Frameworks/SDL.framework/Headers/*
+endif
 
 syncterm.1.gz: syncterm.man
 	gzip < syncterm.man > syncterm.1.gz
