@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.136 2008/01/20 21:28:36 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.144 2008/01/28 06:27:47 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -769,10 +769,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	}
 #endif
 	/* ToDo: RFC2806 */
-	/* Remove trailing / (Win32 adds one 'cause it hates me) */
-	p2=strchr(p1,'/');
-	if(p2!=NULL)
-		*p2=0;
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
 		*p3=0;
@@ -792,6 +788,10 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		p2++;
 		bbs->port=atoi(p2);
 	}
+	/* Remove trailing / (Win32 adds one 'cause it hates me) */
+	p2=strrchr(p1,'/');
+	if(p2!=NULL && *(p2+1)==0)
+		*p2=0;
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
@@ -885,8 +885,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			break;
 	}
 #else
-	char	*home;
-	int		created;
+	char	*home=NULL;
 
 	if(inpath==NULL)
 		home=getenv("HOME");
@@ -976,7 +975,7 @@ void load_settings(struct syncterm_settings *set)
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 
 	/* Modem settings */
-	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F", set->mdm.init_string);
+	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
 	iniReadString(inifile, "SyncTERM", "ModemDial", "ATDT", set->mdm.dial_string);
 	iniReadString(inifile, "SyncTERM", "ModemDevice", DEFAULT_MODEM_DEV, set->mdm.device_name);
 	set->mdm.com_rate=iniReadLongInt(inifile, "SyncTERM", "ModemComRate", 0);
@@ -987,6 +986,9 @@ void load_settings(struct syncterm_settings *set)
 		free(order);
 	}
 	strListFree(&sortby);
+
+	/* Shell TERM settings */
+	iniReadString(inifile, "SyncTERM", "TERM", "ansi", set->TERM);
 
 	if(inifile)
 		fclose(inifile);
@@ -1177,7 +1179,7 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT))!=NULL) {
+	while(bbs!=NULL || (bbs=show_bbslist(bbs?bbs->id:-1))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
@@ -1223,6 +1225,7 @@ int main(int argc, char **argv)
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log closed\n", ctime(&now)+4);
+				fprintf(log_fp,"---------------\n");
 				fclose(log_fp);
 				log_fp=NULL;
 			}
@@ -1244,6 +1247,7 @@ int main(int argc, char **argv)
 						char	*YesNo[3]={"Yes","No",""};
 						/* Started from the command-line with a URL */
 						init_uifc(TRUE, TRUE);
+						i=1;
 						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 							case 0:	/* Yes */
 								edit_list(NULL, bbs,listpath,FALSE);
@@ -1358,8 +1362,6 @@ int screen_to_ciolib(int screen)
 
 int ciolib_to_screen(int ciolib)
 {
-	struct text_info	ti;
-
 	switch(ciolib) {
 		case C80 :
 			return(SCREEN_MODE_80X25);
