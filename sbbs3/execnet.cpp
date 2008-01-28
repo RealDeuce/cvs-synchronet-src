@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.26 2007/07/10 21:07:17 deuce Exp $ */
+/* $Id: execnet.cpp,v 1.29 2007/08/25 08:15:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,7 +48,7 @@ int sbbs_t::exec_net(csi_t* csi)
 	ushort	w;
 	uint 	i;
 	BOOL	rd;
-	long	*lp,*lp1,*lp2;
+	int32_t	*lp,*lp1,*lp2;
 	time_t	start;
 
 	switch(*(csi->ip++)) {	/* sub-op-code stored as next byte */
@@ -97,7 +97,7 @@ int sbbs_t::exec_net(csi_t* csi)
 				csi->logic=close_socket((SOCKET)*lp);
 				csi->socket_error=ERROR_VALUE;
 				for(i=0;i<csi->sockets;i++)
-					if(csi->socket[i]==*lp)
+					if(csi->socket[i]==(SOCKET)*lp)
 						csi->socket[i]=0; 
 				*lp=0;
 			}
@@ -121,7 +121,7 @@ int sbbs_t::exec_net(csi_t* csi)
 			lp=getintvar(csi,*(int32_t *)csi->ip);		/* socket */
 			csi->ip+=4;
 
-			pp=getstrvar(csi,*(long *)csi->ip);		/* address */
+			pp=getstrvar(csi,*(int32_t *)csi->ip);		/* address */
 			csi->ip+=4;
 
 			w=*(ushort *)csi->ip;					/* port */
@@ -178,7 +178,7 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_SOCKET_READ:
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp=getstrvar(csi,*(long *)csi->ip);			/* buffer */
+			pp=getstrvar(csi,*(int32_t *)csi->ip);			/* buffer */
 			csi->ip+=4;
 			w=*(ushort *)csi->ip;						/* length */
 			csi->ip+=2;					
@@ -207,7 +207,7 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_SOCKET_READLINE:
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp=getstrvar(csi,*(long *)csi->ip);			/* buffer */
+			pp=getstrvar(csi,*(int32_t *)csi->ip);			/* buffer */
 			csi->ip+=4;
 			w=*(ushort *)csi->ip;						/* length */
 			csi->ip+=2;					
@@ -264,7 +264,7 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_SOCKET_WRITE:	
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp=getstrvar(csi,*(long *)csi->ip);			/* buffer */
+			pp=getstrvar(csi,*(int32_t *)csi->ip);			/* buffer */
 			csi->ip+=4;
 
 			csi->logic=LOGIC_FALSE;
@@ -283,9 +283,9 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_FTP_LOGIN:
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp1=getstrvar(csi,*(long *)csi->ip);		/* username */
+			pp1=getstrvar(csi,*(int32_t *)csi->ip);		/* username */
 			csi->ip+=4;
-			pp2=getstrvar(csi,*(long *)csi->ip);		/* password */
+			pp2=getstrvar(csi,*(int32_t *)csi->ip);		/* password */
 			csi->ip+=4;
 
 			csi->logic=LOGIC_FALSE;
@@ -349,7 +349,7 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_FTP_CWD:
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp=getstrvar(csi,*(long *)csi->ip);			/* path */
+			pp=getstrvar(csi,*(int32_t *)csi->ip);			/* path */
 			csi->ip+=4;
 
 			csi->logic=LOGIC_FALSE;
@@ -369,7 +369,7 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_FTP_DIR:
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp=getstrvar(csi,*(long *)csi->ip);			/* path */
+			pp=getstrvar(csi,*(int32_t *)csi->ip);			/* path */
 			csi->ip+=4;
 
 			csi->logic=LOGIC_FALSE;
@@ -386,7 +386,7 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_FTP_DELETE:
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp=getstrvar(csi,*(long *)csi->ip);			/* path */
+			pp=getstrvar(csi,*(int32_t *)csi->ip);			/* path */
 			csi->ip+=4;
 
 			csi->logic=LOGIC_FALSE;
@@ -407,9 +407,9 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_FTP_GET:
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp1=getstrvar(csi,*(long *)csi->ip);		/* src path */
+			pp1=getstrvar(csi,*(int32_t *)csi->ip);		/* src path */
 			csi->ip+=4;
-			pp2=getstrvar(csi,*(long *)csi->ip);		/* dest path */
+			pp2=getstrvar(csi,*(int32_t *)csi->ip);		/* dest path */
 			csi->ip+=4;
 
 			csi->logic=LOGIC_FALSE;
@@ -426,9 +426,9 @@ int sbbs_t::exec_net(csi_t* csi)
 		case CS_FTP_PUT:
 			lp=getintvar(csi,*(int32_t *)csi->ip);			/* socket */
 			csi->ip+=4;
-			pp1=getstrvar(csi,*(long *)csi->ip);		/* src path */
+			pp1=getstrvar(csi,*(int32_t *)csi->ip);		/* src path */
 			csi->ip+=4;
-			pp2=getstrvar(csi,*(long *)csi->ip);		/* dest path */
+			pp2=getstrvar(csi,*(int32_t *)csi->ip);		/* dest path */
 			csi->ip+=4;
 
 			csi->logic=LOGIC_FALSE;
