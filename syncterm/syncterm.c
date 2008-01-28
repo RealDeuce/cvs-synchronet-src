@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.143 2008/01/28 06:09:25 deuce Exp $ */
+/* $Id: syncterm.c,v 1.144 2008/01/28 06:27:47 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -986,6 +986,9 @@ void load_settings(struct syncterm_settings *set)
 		free(order);
 	}
 	strListFree(&sortby);
+
+	/* Shell TERM settings */
+	iniReadString(inifile, "SyncTERM", "TERM", "ansi", set->TERM);
 
 	if(inifile)
 		fclose(inifile);
