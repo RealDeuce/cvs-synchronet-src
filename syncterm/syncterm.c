@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.150 2008/02/10 06:30:30 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.142 2008/01/22 00:23:20 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -42,8 +42,6 @@ struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
 unsigned char *scrollback_buf=NULL;
 unsigned int  scrollback_lines=0;
-unsigned int  scrollback_mode=C80;
-unsigned int  scrollback_cols=80;
 int	safe_mode=0;
 FILE* log_fp;
 extern ini_style_t ini_style;
@@ -771,6 +769,10 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	}
 #endif
 	/* ToDo: RFC2806 */
+	/* Remove trailing / (Win32 adds one 'cause it hates me) */
+	p2=strchr(p1,'/');
+	if(p2!=NULL)
+		*p2=0;
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
 		*p3=0;
@@ -790,10 +792,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		p2++;
 		bbs->port=atoi(p2);
 	}
-	/* Remove trailing / (Win32 adds one 'cause it hates me) */
-	p2=strrchr(p1,'/');
-	if(p2!=NULL && *(p2+1)==0)
-		*p2=0;
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
@@ -989,9 +987,6 @@ void load_settings(struct syncterm_settings *set)
 	}
 	strListFree(&sortby);
 
-	/* Shell TERM settings */
-	iniReadString(inifile, "SyncTERM", "TERM", "ansi", set->TERM);
-
 	if(inifile)
 		fclose(inifile);
 }
@@ -1017,7 +1012,6 @@ int main(int argc, char **argv)
 	int		conn_type=CONN_TYPE_TELNET;
 	BOOL	dont_set_mode=FALSE;
 	BOOL	override_conn=FALSE;
-	char	*last_bbs=NULL;
 
 	/* Cryptlib initialization MUST be done before ciolib init */
 	if(!crypt_loaded)
@@ -1141,6 +1135,11 @@ int main(int argc, char **argv)
 		FULLPATH(path,inpath,sizeof(path));
 	atexit(uifcbail);
 
+	scrollback_buf=malloc(132*2*settings.backlines);	/* Terminal width is *always* <= 132 cols */
+	if(scrollback_buf==NULL) {
+		uifc.msg("Cannot allocate space for scrollback buffer.\n");
+	}
+
 #ifdef __unix__
 	umask(077);
 #endif
@@ -1154,7 +1153,6 @@ int main(int argc, char **argv)
 			uifcmsg("Unable to allocate memory","The system was unable to allocate memory.");
 			return(1);
 		}
-		memset(bbs, 0, sizeof(struct bbslist));
 		if((listfile=fopen(listpath,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
 		else {
@@ -1178,9 +1176,8 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while(bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL) {
+	while(bbs!=NULL || (bbs=show_bbslist(bbs?bbs->id:-1))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
-		FREE_AND_NULL(last_bbs);
 		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
@@ -1214,7 +1211,7 @@ int main(int argc, char **argv)
 				return(1);
 			}
 			if(log_fp==NULL && bbs->logfile[0])
-				log_fp=fopen(bbs->logfile,bbs->append_logfile ? "a" : "w");
+				log_fp=fopen(bbs->logfile,"a");
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
@@ -1248,11 +1245,10 @@ int main(int argc, char **argv)
 						/* Started from the command-line with a URL */
 						init_uifc(TRUE, TRUE);
 						i=1;
-						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this directory entry?",YesNo)) {
+						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
 							case 0:	/* Yes */
 								edit_list(NULL, bbs,listpath,FALSE);
 								add_bbs(listpath,bbs);
-								last_bbs=strdup(bbs->name);
 								break;
 							default: /* ESC/No */
 								break;
@@ -1264,8 +1260,6 @@ int main(int argc, char **argv)
 			bbs=NULL;
 			break;
 		}
-		else
-			last_bbs=strdup(bbs->name);
 		bbs=NULL;
 	}
 	uifcbail();
@@ -1358,8 +1352,6 @@ int screen_to_ciolib(int screen)
 			return(C128_80X25);
 		case SCREEN_MODE_ATARI:
 			return(ATARI_40X24);
-		case SCREEN_MODE_ATARI_XEP80:
-			return(ATARI_80X25);
 	}
 	gettextinfo(&ti);
 	return(ti.currmode);
@@ -1400,8 +1392,6 @@ int ciolib_to_screen(int ciolib)
 			return(SCREEN_MODE_C128_80);
 		case ATARI_40X24 :
 			return(SCREEN_MODE_ATARI);
-		case ATARI_80X25:
-			return(SCREEN_MODE_ATARI_XEP80);
 	}
 	return(SCREEN_MODE_CURRENT);
 }
