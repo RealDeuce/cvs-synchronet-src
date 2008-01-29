@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.223 2008/01/29 01:26:28 deuce Exp $ */
+/* $Id: term.c,v 1.224 2008/01/29 01:33:57 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1788,7 +1788,7 @@ BOOL doterm(struct bbslist *bbs)
 							}
 #endif
 							uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
-							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+							cterm_clearscreen(cterm.attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
 							conn_close();
@@ -2093,7 +2093,7 @@ BOOL doterm(struct bbslist *bbs)
 							}
 #endif
 							uifcbail();
-							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+							cterm_clearscreen(cterm.attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
 							conn_close();
@@ -2129,7 +2129,7 @@ BOOL doterm(struct bbslist *bbs)
 								html_mode=HTML_MODE_HIDDEN;
 							}
 #endif
-							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+							cterm_clearscreen(cterm.attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
 							conn_close();
@@ -2162,7 +2162,7 @@ BOOL doterm(struct bbslist *bbs)
 								html_mode=HTML_MODE_HIDDEN;
 							}
 #endif
-							cterm_write("\x0c",1,NULL,0,NULL);	/* Clear screen into scrollback */
+							cterm_clearscreen(cterm.attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
 							conn_close();
