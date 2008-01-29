@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.101 2007/06/29 05:33:48 deuce Exp $ */
+/* $Id: cterm.c,v 1.104 2008/01/28 08:16:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -597,10 +597,18 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						}
 						break;
 					case 'h':
+						if(!strcmp(cterm.escbuf,"[?25h")) {
+							cterm.cursor=_NORMALCURSOR;
+							_setcursortype(cterm.cursor);
+						}
 						if(!strcmp(cterm.escbuf,"[=255h"))
 							cterm.doorway_mode=1;
 						break;
 					case 'l':
+						if(!strcmp(cterm.escbuf,"[?25l")) {
+							cterm.cursor=_NOCURSOR;
+							_setcursortype(cterm.cursor);
+						}
 						if(!strcmp(cterm.escbuf,"[=255l"))
 							cterm.doorway_mode=0;
 						break;
@@ -1185,7 +1193,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.101 $";
+	char	*revision="$Revision: 1.104 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1215,11 +1223,13 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 	cterm.log=CTERM_LOG_NONE;
 	cterm.logfile=NULL;
 	cterm.emulation=emulation;
+	cterm.cursor=_NORMALCURSOR;
 	if(cterm.scrollback!=NULL)
 		memset(cterm.scrollback,0,cterm.width*2*cterm.backlines);
 	textattr(cterm.attr);
-	_setcursortype(_NORMALCURSOR);
-	window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
+	_setcursortype(cterm.cursor);
+	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
+		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	clearscreen(cterm.attr);
 	gotoxy(1,1);
 	strcpy(cterm.DA,"\x1b[=67;84;101;114;109;");
@@ -1326,11 +1336,11 @@ void ctputs(char *buf)
 				if(cy==cterm.height
 						&& cx==cterm.width) {
 					char ch;
-					ch=*p;
-					*p=0;
+					ch=*(p+1);
+					*(p+1)=0;
 					cputs(outp);
-					*p=ch;
-					outp=p;
+					*(p+1)=ch;
+					outp=p+1;
 					scrollup();
 					cx=1;
 					gotoxy(cx,cy);
@@ -1368,9 +1378,11 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	if(retbuf!=NULL)
 		retbuf[0]=0;
 	gettextinfo(&ti);
-	window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
+	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
+		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	gotoxy(cterm.xpos,cterm.ypos);
 	textattr(cterm.attr);
+	_setcursortype(cterm.cursor);
 	ch[1]=0;
 	switch(buflen) {
 		case 0:
@@ -1963,7 +1975,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	cterm.xpos=wherex();
 	cterm.ypos=wherey();
 #if 0
-	window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
+	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
+		window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
 	gotoxy(ti.curx,ti.cury);
 	textattr(ti.attribute);
 #endif
@@ -1971,6 +1984,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	hold_update=olddmc;
 	puttext_can_move=oldptnm;
 	gotoxy(wherex(),wherey());
+	_setcursortype(cterm.cursor);
 	return(retbuf);
 }
 
