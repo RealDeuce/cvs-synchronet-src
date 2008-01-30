@@ -26,10 +26,6 @@ ifeq ($(shell if [ -c /dev/urandom ] ; then echo YES ; fi),YES)
  XPDEV-MT_CFLAGS	+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
  XPDEV_CFLAGS		+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
 endif
-ifeq ($(shell if [ -L /dev/urandom ] ; then echo YES ; fi),YES)
- XPDEV-MT_CFLAGS	+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
- XPDEV_CFLAGS		+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
-endif
 ifeq ($(shell if [ -c /dev/random ] ; then echo YES ; fi),YES)
  XPDEV-MT_CFLAGS	+=	-DHAS_DEV_RANDOM -DRANDOM_DEV=\"/dev/random\"
  XPDEV_CFLAGS		+=	-DHAS_DEV_RANDOM -DRANDOM_DEV=\"/dev/random\"
@@ -111,10 +107,6 @@ ifdef USE_SDL_AUDIO
  endif
 endif
 
-ifdef STATIC
- STATIC_SDL := true
-endif
-
 ifdef WITH_SDL_AUDIO
  ifdef SDL_CONFIG
   ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null 2>&1 && echo YES),YES)
@@ -176,10 +168,11 @@ endif
 XPDEV-MT_CFLAGS	+=	-I$(X_HEADERS)
 XPDEV_CFLAGS	+=	-I$(X_HEADERS)
 
-ifndef WITHOUT_PORTAUDIO
- PORTAUDIO_PATH ?=      $(shell if [ -f /usr/local/include/portaudio.h ]; then echo /usr/local ; elif [ -f /usr/include/portaudio.h ] ; then echo /usr ; else echo NOTFOUND ; fi)
+PORTAUDIO_PATH ?=      $(shell if [ -f /usr/local/include/portaudio.h ]; then echo /usr/local ; elif [ -f /usr/include/portaudio.h ] ; then echo /usr ; else echo NOTFOUND ; fi)
 
- ifneq ($(PORTAUDIO_PATH),NOTFOUND)
-  XPDEV_CFLAGS += -DWITH_PORTAUDIO
- endif
+ifneq ($(PORTAUDIO_PATH),NOTFOUND)
+ XPDEV_CFLAGS += -DWITH_PORTAUDIO
+ XPDEV_LDFLAGS += -L$(PORTAUDIO_PATH)/lib
+ XPDEV_LIBS	+=	-lportaudio
+ XPDEV-MT_LIBS	+=	-lportaudio
 endif
