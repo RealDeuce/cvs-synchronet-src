@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for xpdev "wrappers"
 
-# $Id: objects.mk,v 1.16 2008/09/28 02:00:08 deuce Exp $
+# $Id: objects.mk,v 1.14 2006/03/14 09:29:42 rswindell Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -20,9 +20,7 @@ OBJS	= \
 	$(OBJODIR)$(DIRSEP)semfile$(OFILE) \
 	$(OBJODIR)$(DIRSEP)str_list$(OFILE) \
 	$(OBJODIR)$(DIRSEP)strwrap$(OFILE) \
-	$(OBJODIR)$(DIRSEP)xp_dl$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xpbeep$(OFILE) \
-	$(OBJODIR)$(DIRSEP)xpdatetime$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xpprintf$(OFILE)
 
 
@@ -43,9 +41,7 @@ MTOBJS	= \
 	$(MTOBJODIR)$(DIRSEP)str_list$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)strwrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)threadwrap$(OFILE) \
-	$(MTOBJODIR)$(DIRSEP)xp_dl$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xpbeep$(OFILE) \
-	$(MTOBJODIR)$(DIRSEP)xpdatetime$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xpprintf$(OFILE)
 
 TESTOBJS = \

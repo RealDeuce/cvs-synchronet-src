@@ -1,4 +1,4 @@
-/* $Id: WebFormUnit.h,v 1.3 2009/01/24 12:23:16 rswindell Exp $ */
+/* $Id: WebFormUnit.h,v 1.2 2004/10/18 00:04:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,7 @@ __published:	// IDE-managed Components
     TStaticText *Status;
     TToolButton *ToolButton3;
     TProgressBar *ProgressBar;
-    TRichEdit *Log;
+    TMemo *Log;
 private:	// User declarations
 public:		// User declarations
     __fastcall TWebForm(TComponent* Owner);
