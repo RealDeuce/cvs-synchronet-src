@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.77 2008/02/09 22:48:48 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.76 2008/01/27 03:18:30 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -577,7 +577,7 @@ int zmodem_send_zeof(zmodem_t* zm)
 int zmodem_recv_raw(zmodem_t* zm)
 {
 	int c;
-	unsigned attempt;
+	int attempt;
 
 	for(attempt=0;attempt<=zm->recv_timeout;attempt++) {
 		if((c=zm->recv_byte(zm->cbdata,1 /* second timeout */)) >= 0)
@@ -1951,7 +1951,7 @@ void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 {
 	int			i;
 	int			mode=0;
-	long		serial=-1L;
+	ulong		serial=-1UL;
 	ulong		tmptime;
 
 	SAFECOPY(zm->current_file_name,getfname(zm->rx_data_subpacket));
@@ -2087,7 +2087,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.77 $", "%*s %s", buf);
+	sscanf("$Revision: 1.76 $", "%*s %s", buf);
 
 	return(buf);
 }
