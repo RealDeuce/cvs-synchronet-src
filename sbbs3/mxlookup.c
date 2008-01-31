@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.23 2008/02/18 19:38:02 deuce Exp $ */
+/* $Id: mxlookup.c,v 1.22 2005/10/13 06:49:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,9 +391,7 @@ void main(int argc, char **argv)
 {
 	char		mx[128],mx2[128];
 	int			result;
-#ifdef _WIN32
 	WSADATA		WSAData;
-#endif
 
 	printf("sizeof(dns_msghdr_t)=%d\n",sizeof(dns_msghdr_t));
 	printf("sizeof(dns_query_t)=%d\n",sizeof(dns_query_t));
@@ -405,12 +403,10 @@ void main(int argc, char **argv)
 	}
 
 
-#ifdef _WIN32
     if((result = WSAStartup(MAKEWORD(1,1), &WSAData))!=0) {
 		printf("Error %d in WSAStartup",result);
 		return;
 	}
-#endif
 
 	if((result=dns_getmx(argv[1],mx,mx2,0,inet_addr(argv[2]),FALSE,60))!=0) 
 		printf("Error %d getting mx record\n",result);
@@ -419,9 +415,7 @@ void main(int argc, char **argv)
 		printf("MX2: %s\n",mx2);
 	}
 
-#ifdef _WIN32
 	WSACleanup();
-#endif
 	gets(mx);
 }
 #endif
