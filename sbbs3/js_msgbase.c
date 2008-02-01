@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.133 2008/01/19 20:00:26 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.134 2008/02/01 18:15:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -738,6 +738,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_INTEGER_EXPAND("to_net_type", p->msg.to_net.type);
 	LAZY_STRING_COND("to_net_addr", p->msg.to_net.type, smb_netaddr(&(p->msg).to_net));
 	LAZY_INTEGER_EXPAND("from_net_type", p->msg.from_net.type);
+	/* exception here because p->msg.from_net is NULL */
 	LAZY_STRING_COND("from_net_addr", p->msg.from_net.type, smb_netaddr(&(p->msg).from_net));
 	LAZY_INTEGER_EXPAND("replyto_net_type", p->msg.replyto_net.type);
 	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.type, smb_netaddr(&(p->msg).replyto_net));
