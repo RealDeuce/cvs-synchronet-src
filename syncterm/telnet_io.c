@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.22 2008/01/20 23:11:14 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.23 2008/01/21 07:00:51 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +50,7 @@ void putcom(BYTE* buf, size_t len)
 	size_t i;
 
 	for(i=0;i<len;i++)
-		p+=sprintf(p,"%02X ", buf[i]);
+		p+=sprintf(p,"%u ", buf[i]);
 
 	lprintf(LOG_DEBUG,"TX: %s", str);
 	send(telnet_sock, buf, len, 0);
