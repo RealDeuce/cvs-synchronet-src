@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.59 2007/07/27 11:05:15 deuce Exp $ */
+/* $Id: answer.cpp,v 1.60 2007/07/30 08:57:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,7 @@ bool sbbs_t::answer()
 			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
-				useron.misc&=~(ANSI|COLOR|RIP|WIP|HTML);
+				useron.misc&=~TERM_FLAGS;
 				SAFEPRINTF(path,"%srlogin.cfg",cfg.ctrl_dir);
 				if(!findstr(client.addr,path)) {
 					SAFECOPY(tmp
@@ -193,7 +193,7 @@ bool sbbs_t::answer()
 		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
-			useron.misc&=~(ANSI|COLOR|RIP|WIP|HTML);
+			useron.misc&=~TERM_FLAGS;
 			SAFECOPY(tmp
 				,rlogin_pass);
 			for(i=0;i<3;i++) {
@@ -381,7 +381,7 @@ bool sbbs_t::answer()
 	}
 
 
-	useron.misc&=~(ANSI|COLOR|RIP|WIP|HTML);
+	useron.misc&=~TERM_FLAGS;
 	useron.misc|=autoterm;
 	SAFECOPY(useron.comp,client_name);
 
