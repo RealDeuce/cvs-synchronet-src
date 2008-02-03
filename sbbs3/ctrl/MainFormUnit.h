@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.74 2006/03/14 03:17:39 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.75 2006/03/16 00:07:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -438,6 +438,7 @@ public:		// User declarations
     void __fastcall WriteFont(AnsiString, TFont*);
     void __fastcall EditFile(AnsiString filename, AnsiString Caption="Edit");
     void __fastcall ViewFile(AnsiString filename, AnsiString Caption);
+    void __fastcall reload_config(void);    
     BOOL __fastcall bbsServiceEnabled(void);
     BOOL __fastcall ftpServiceEnabled(void);
     BOOL __fastcall webServiceEnabled(void);
