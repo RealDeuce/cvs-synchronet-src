@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.62 2008/02/02 22:34:30 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.63 2008/02/03 00:25:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1313,10 +1313,11 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"%d\n%d\n38400\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
+		sprintf(str,"%d\n%d\n%u\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
 			"%d\n%d\n"
 			,misc&IO_INTS ? 0 /* Local */ : 2 /* Telnet */
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
+			,dte_rate
 			,VERSION_NOTICE,REVISION
 			,useron.number
 			,useron.name
@@ -1684,7 +1685,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	else
 		SAFECOPY(name,useron.alias);
 
-	gettimeleft(false);
+	gettimeleft(cfg.xtrn[xtrnnum]->misc&XTRN_CHKTIME ? true:false);
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
 	if(cfg.xtrn[xtrnnum]->maxtime && tleft>(cfg.xtrn[xtrnnum]->maxtime*60))
 		tleft=(cfg.xtrn[xtrnnum]->maxtime*60);
