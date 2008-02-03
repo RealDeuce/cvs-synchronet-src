@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.311 2008/02/16 05:19:23 deuce Exp $ */
+/* $Id: sbbs.h,v 1.310 2008/01/11 08:34:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -520,7 +520,7 @@ public:
 	/* getstr.cpp */
 	size_t	getstr_offset;
 	size_t	getstr(char *str, size_t length, long mode);
-	long	getnum(ulong max, ulong dflt=0);
+	long	getnum(ulong max);
 	void	insert_indicator(void);
 
 	/* getkey.cpp */

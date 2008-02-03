@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.23 2008/02/23 06:23:18 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.21 2008/02/03 02:40:33 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -44,7 +44,6 @@ pthread_mutex_t		vstatlock;
 pthread_mutex_t		screenlock;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font;
-static unsigned char space=' ';
 int force_redraws=0;
 
 struct rectangle {
@@ -255,7 +254,7 @@ int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 void bitmap_clreol(void)
 {
 	int pos,x;
-	WORD fill=(cio_textinfo.attribute<<8)|space;
+	WORD fill=(cio_textinfo.attribute<<8)|' ';
 
 	pos=(cio_textinfo.cury+cio_textinfo.wintop-2)*cio_textinfo.screenwidth;
 	pthread_mutex_lock(&vstatlock);
@@ -268,7 +267,7 @@ void bitmap_clreol(void)
 void bitmap_clrscr(void)
 {
 	int x,y;
-	WORD fill=(cio_textinfo.attribute<<8)|space;
+	WORD fill=(cio_textinfo.attribute<<8)|' ';
 
 	pthread_mutex_lock(&vstatlock);
 	for(y=cio_textinfo.wintop-1; y<cio_textinfo.winbottom; y++) {
@@ -426,10 +425,6 @@ int bitmap_setfont(int font, int force)
 	if(changemode && newmode==-1)
 		goto error_return;
 	current_font=font;
-	if(font==36 /* ATARI */)
-		space=0;
-	else
-		space=' ';
 	pthread_mutex_unlock(&vstatlock);
 
 	if(changemode) {
@@ -454,12 +449,12 @@ int bitmap_setfont(int font, int force)
 							*(new++)=*(old++);
 						}
 						else {
-							*(new++)=space;
+							*(new++)=' ';
 							*(new++)=attr;
 						}
 					}
 					else {
-						*(new++)=space;
+						*(new++)=' ';
 						*(new++)=attr;
 					}
 				}
@@ -614,6 +609,8 @@ static void bitmap_draw_cursor()
 /* Called from main thread only */
 void bitmap_gotoxy(int x, int y)
 {
+	static int lx=-1,ly=-1;
+
 	if(!bitmap_initialized)
 		return;
 	/* Move cursor location */
@@ -625,6 +622,8 @@ void bitmap_gotoxy(int x, int y)
 		vstat.curs_col=x+cio_textinfo.winleft-1;
 		vstat.curs_row=y+cio_textinfo.wintop-1;
 		pthread_mutex_unlock(&vstatlock);
+		lx=vstat.curs_col;
+		ly=vstat.curs_row;
 	}
 }
 
