@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.162 2009/01/24 12:23:15 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.158 2007/05/10 00:56:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -124,44 +124,12 @@ DWORD					mail_svc_config_size;
 QUERY_SERVICE_CONFIG*	services_svc_config;
 DWORD					services_svc_config_size;
 
-const char* LogLevelDesc[] = {   "Emergency"
-                                ,"Alert"
-                                ,"Critical"
-                                ,"Error"
-                                ,"Warning"
-                                ,"Notice"
-                                ,"Normal"
-                                ,"Debug"
-                            };
-const TColor LogLevelColor[] = {
-                                 clRed
-                                ,clRed
-                                ,clRed
-                                ,clRed
-                                ,clFuchsia	
-                                ,clBlue
-                                ,clBlack    /* not used */
-                                ,clGreen
-                                };
-
 DWORD	MaxLogLen=20000;
 int     threads=1;
 time_t  initialized=0;
 static	str_list_t recycle_semfiles;
 static  str_list_t shutdown_semfiles;
 bool    terminating=false;
-
-/* crash here (Nov-26-08):
-
-SBBSCTRL! 004f9350()
-SBBSCTRL! 004f9bd3()
-SBBSCTRL! 00401cc0()
-thread_up(int 0x00000001) line 203 + 26 bytes
-send_thread(void * 0x013550d0) line 1323 + 7 bytes
-_threadstart(void * 0x01352298) line 187 + 13 bytes
-KERNEL32! 7c57b3bc()
-
-*/
 
 static void thread_up(void* p, BOOL up, BOOL setuid)
 {
@@ -286,7 +254,7 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
     ReleaseMutex(ClientForm->ListMutex);
 }
 
-static int bbs_lputs(void* p, int level, const char *str)
+static int bbs_lputs(void* p, int level, char *str)
 {
 	static HANDLE mutex;
 
@@ -294,20 +262,17 @@ static int bbs_lputs(void* p, int level, const char *str)
     	mutex=CreateMutex(NULL,false,NULL);
 	WaitForSingleObject(mutex,INFINITE);
 
-    while(MaxLogLen && TelnetForm->Log->Lines->Count >= MaxLogLen)
+    while(MaxLogLen && TelnetForm->Log->Text.Length()>=MaxLogLen)
         TelnetForm->Log->Lines->Delete(0);
 
     AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
     Line+=AnsiString(str).Trim();
-    TelnetForm->Log->SelLength=0;
-    TelnetForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(level, TelnetForm->Log->Color, TelnetForm->Log->Font));
 	TelnetForm->Log->Lines->Add(Line);
     ReleaseMutex(mutex);
     return(Line.Length());
 }
 
-static void bbs_status(void* p, const char *str)
+static void bbs_status(void* p, char *str)
 {
 	static HANDLE mutex;
 
@@ -376,7 +341,7 @@ static void bbs_start(void)
     Application->ProcessMessages();
 }
 
-static int event_lputs(int level, const char *str)
+static int event_lputs(int level, char *str)
 {
 	static HANDLE mutex;
 
@@ -384,20 +349,17 @@ static int event_lputs(int level, const char *str)
     	mutex=CreateMutex(NULL,false,NULL);
 	WaitForSingleObject(mutex,INFINITE);
 
-    while(MaxLogLen && EventsForm->Log->Lines->Count >= MaxLogLen)
+    while(MaxLogLen && EventsForm->Log->Text.Length()>=MaxLogLen)
         EventsForm->Log->Lines->Delete(0);
 
     AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
     Line+=AnsiString(str).Trim();
-    EventsForm->Log->SelLength=0;
-    EventsForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(level, EventsForm->Log->Color, EventsForm->Log->Font));
 	EventsForm->Log->Lines->Add(Line);
     ReleaseMutex(mutex);
     return(Line.Length());
 }
 
-static int service_lputs(void* p, int level, const char *str)
+static int service_lputs(void* p, int level, char *str)
 {
 	static HANDLE mutex;
 
@@ -405,20 +367,17 @@ static int service_lputs(void* p, int level, const char *str)
     	mutex=CreateMutex(NULL,false,NULL);
 	WaitForSingleObject(mutex,INFINITE);
 
-    while(MaxLogLen && ServicesForm->Log->Lines->Count >= MaxLogLen)
+    while(MaxLogLen && ServicesForm->Log->Text.Length()>=MaxLogLen)
         ServicesForm->Log->Lines->Delete(0);
 
     AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
     Line+=AnsiString(str).Trim();
-    ServicesForm->Log->SelLength=0;
-    ServicesForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(level, ServicesForm->Log->Color, ServicesForm->Log->Font));
 	ServicesForm->Log->Lines->Add(Line);
     ReleaseMutex(mutex);
     return(Line.Length());
 }
 
-static void services_status(void* p, const char *str)
+static void services_status(void* p, char *str)
 {
 	static HANDLE mutex;
 
@@ -452,7 +411,7 @@ static void services_clients(void* p, int clients)
 {
 }
 
-static int mail_lputs(void* p, int level, const char *str)
+static int mail_lputs(void* p, int level, char *str)
 {
 	static HANDLE mutex;
 	static FILE* LogStream;
@@ -469,14 +428,11 @@ static int mail_lputs(void* p, int level, const char *str)
         return(0);
     }
 
-    while(MaxLogLen && MailForm->Log->Lines->Count >= MaxLogLen)
+    while(MaxLogLen && MailForm->Log->Text.Length()>=MaxLogLen)
         MailForm->Log->Lines->Delete(0);
 
     AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
     Line+=AnsiString(str).Trim();
-    MailForm->Log->SelLength=0;
-    MailForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(level, MailForm->Log->Color, MailForm->Log->Font));
 	MailForm->Log->Lines->Add(Line);
 
     if(MainForm->MailLogFile && MainForm->MailStop->Enabled) {
@@ -507,7 +463,7 @@ static int mail_lputs(void* p, int level, const char *str)
     return(Line.Length());
 }
 
-static void mail_status(void* p, const char *str)
+static void mail_status(void* p, char *str)
 {
 	static HANDLE mutex;
 
@@ -571,7 +527,7 @@ static void mail_start(void)
     Application->ProcessMessages();
 }
 
-static int ftp_lputs(void* p, int level, const char *str)
+static int ftp_lputs(void* p, int level, char *str)
 {
 	static HANDLE mutex;
 	static FILE* LogStream;
@@ -588,14 +544,11 @@ static int ftp_lputs(void* p, int level, const char *str)
         return(0);
     }
 
-    while(MaxLogLen && FtpForm->Log->Lines->Count >= MaxLogLen)
+    while(MaxLogLen && FtpForm->Log->Text.Length()>=MaxLogLen)
         FtpForm->Log->Lines->Delete(0);
 
     AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
     Line+=AnsiString(str).Trim();
-    FtpForm->Log->SelLength=0;
-    FtpForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(level, FtpForm->Log->Color, FtpForm->Log->Font));
 	FtpForm->Log->Lines->Add(Line);
 
     if(MainForm->FtpLogFile && MainForm->FtpStop->Enabled) {
@@ -627,7 +580,7 @@ static int ftp_lputs(void* p, int level, const char *str)
     return(Line.Length());
 }
 
-static void ftp_status(void* p, const char *str)
+static void ftp_status(void* p, char *str)
 {
 	static HANDLE mutex;
 
@@ -691,7 +644,7 @@ static void ftp_start(void)
     Application->ProcessMessages();
 }
 //---------------------------------------------------------------------------
-static int web_lputs(void* p, int level, const char *str)
+static int web_lputs(void* p, int level, char *str)
 {
 	static HANDLE mutex;
 	static FILE* LogStream;
@@ -708,14 +661,11 @@ static int web_lputs(void* p, int level, const char *str)
         return(0);
     }
 
-    while(MaxLogLen && WebForm->Log->Lines->Count >= MaxLogLen)
+    while(MaxLogLen && WebForm->Log->Text.Length()>=MaxLogLen)
         WebForm->Log->Lines->Delete(0);
 
     AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
     Line+=AnsiString(str).Trim();
-    WebForm->Log->SelLength=0;
-    WebForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(level, WebForm->Log->Color, WebForm->Log->Font));
 	WebForm->Log->Lines->Add(Line);
 #if 0
     if(MainForm->WebLogFile && MainForm->WebStop->Enabled) {
@@ -747,7 +697,7 @@ static int web_lputs(void* p, int level, const char *str)
     return(Line.Length());
 }
 
-static void web_status(void* p, const char *str)
+static void web_status(void* p, char *str)
 {
 	static HANDLE mutex;
 
@@ -1018,17 +968,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
 		web_svc =  openService(hSCManager, NTSVC_NAME_WEB, GENERIC_READ|GENERIC_EXECUTE);        
 		mail_svc =  openService(hSCManager, NTSVC_NAME_MAIL, GENERIC_READ|GENERIC_EXECUTE);
 		services_svc =  openService(hSCManager, NTSVC_NAME_SERVICES, GENERIC_READ|GENERIC_EXECUTE);
-    }
-
-    {
-        int i;
-
-        for(i=LOG_EMERG;i<=LOG_DEBUG;i++) {
-            LogFont[i] = new TFont;
-            LogFont[i]->Color=LogLevelColor[i];
-            if(i<=LOG_ERR)
-                LogFont[i]->Style = TFontStyles()<< fsBold;
-        }
     }
 }
 //---------------------------------------------------------------------------
@@ -1825,13 +1764,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     ClientForm->ListView->Color=ReadColor(Registry,"ClientList");
     ReadFont("ClientList",ClientForm->ListView->Font);
 
-    {
-        int i;
-
-        for(i=LOG_EMERG; i<=LOG_DEBUG; i++)
-            ReadFont("Log" + AnsiString(LogLevelDesc[i]), LogFont[i]);
-    }
-
 	if(Registry->ValueExists("TelnetFormTop"))
     	TelnetForm->Top=Registry->ReadInteger("TelnetFormTop");
 	if(Registry->ValueExists("TelnetFormLeft"))
@@ -2302,6 +2234,15 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 	shutdown_semfiles=semfile_list_init(cfg.ctrl_dir,"shutdown","ctrl");
 	semfile_list_check(&initialized,shutdown_semfiles);
 
+    if(!(cfg.sys_misc&SM_LOCAL_TZ)) {
+    	if(putenv("TZ=UTC0")) {
+        	Application->MessageBox("Error setting timezone"
+            	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
+            Application->Terminate();
+        }
+    	tzset();
+    }
+
     if(cfg.new_install) {
     	Application->BringToFront();
         for(int i=0;i<10;i++) {
@@ -2414,8 +2355,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     UpTimer->Enabled=true; /* Start updating the status bar */
     LogTimer->Enabled=true;
     ServiceStatusTimer->Enabled=true;
-
-    TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
 
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
@@ -2553,13 +2492,6 @@ void __fastcall TMainForm::SaveRegistrySettings(TObject* Sender)
     WriteFont("NodeList",NodeForm->ListBox->Font);
     WriteColor(Registry,"ClientList",ClientForm->ListView->Color);
     WriteFont("ClientList",ClientForm->ListView->Font);
-
-    {
-        int i;
-
-        for(i=LOG_EMERG;i<=LOG_DEBUG;i++)
-            WriteFont("Log" + AnsiString(LogLevelDesc[i]), LogFont[i]);
-    }
 
     Registry->WriteBool("ToolBarVisible",Toolbar->Visible);
     Registry->WriteBool("StatusBarVisible",StatusBar->Visible);
@@ -2803,27 +2735,18 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
 
     ExportFormSettings(IniFile,section = "TelnetForm",TelnetForm);
     ExportFont(IniFile,section,"LogFont",TelnetForm->Log->Font);
-    IniFile->WriteString(section,"LogColor",ColorToString(TelnetForm->Log->Color));
 
     ExportFormSettings(IniFile,section = "EventsForm",EventsForm);
     ExportFont(IniFile,section,"LogFont",EventsForm->Log->Font);
-    IniFile->WriteString(section,"LogColor",ColorToString(EventsForm->Log->Color));
 
     ExportFormSettings(IniFile,section = "ServicesForm",ServicesForm);
     ExportFont(IniFile,section,"LogFont",ServicesForm->Log->Font);
-    IniFile->WriteString(section,"LogColor",ColorToString(ServicesForm->Log->Color));
 
     ExportFormSettings(IniFile,section = "FtpForm",FtpForm);
     ExportFont(IniFile,section,"LogFont",FtpForm->Log->Font);
-    IniFile->WriteString(section,"LogColor",ColorToString(FtpForm->Log->Color));
 
     ExportFormSettings(IniFile,section = "MailForm",MailForm);
     ExportFont(IniFile,section,"LogFont",MailForm->Log->Font);
-    IniFile->WriteString(section,"LogColor",ColorToString(MailForm->Log->Color));
-
-    ExportFormSettings(IniFile,section = "WebForm",WebForm);
-    ExportFont(IniFile,section,"LogFont",WebForm->Log->Font);
-    IniFile->WriteString(section,"LogColor",ColorToString(WebForm->Log->Color));
 
     section = "SpyTerminal";
 	IniFile->WriteInteger(section, "Width"
@@ -3795,14 +3718,6 @@ void __fastcall TMainForm::SemFileTimerTick(TObject *Sender)
 	    StatusBar->Panels->Items[4]->Text=AnsiString(p) + " signaled";
         reload_config();
     }
-}
-//---------------------------------------------------------------------------
-TFont* __fastcall TMainForm::LogAttributes(int log_level, TColor Color, TFont* Font)
-{
-    if(log_level==LOG_INFO || LogFont[log_level]->Color==Color)
-        return Font;
-
-    return LogFont[log_level];
 }
 //---------------------------------------------------------------------------
 
