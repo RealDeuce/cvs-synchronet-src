@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.59 2007/07/25 08:16:44 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.62 2008/02/02 22:34:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1684,7 +1684,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	else
 		SAFECOPY(name,useron.alias);
 
-	gettimeleft();
+	gettimeleft(false);
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
 	if(cfg.xtrn[xtrnnum]->maxtime && tleft>(cfg.xtrn[xtrnnum]->maxtime*60))
 		tleft=(cfg.xtrn[xtrnnum]->maxtime*60);
@@ -1759,8 +1759,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		}
 		getnodedat(cfg.node_num,&thisnode,0);
 		now=time(NULL);
-		sprintf(str,hungupstr,useron.alias,cfg.xtrn[thisnode.aux-1]->name
-			,timestr(&now));
+		sprintf(str,hungupstr,useron.alias,thisnode.aux ? cfg.xtrn[thisnode.aux-1]->name : "External Program"
+			,timestr(now));
 		write(file,str,strlen(str));
 		close(file); 
 	} 
