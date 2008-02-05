@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.225 2008/02/05 01:45:40 deuce Exp $ */
+/* $Id: term.c,v 1.226 2008/02/05 19:47:04 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2025,6 +2025,7 @@ BOOL doterm(struct bbslist *bbs)
 						if(p) {
 							gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							show_bbslist(bbs->id, TRUE);
+							uifcbail();
 							puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							free(p);
 						}
