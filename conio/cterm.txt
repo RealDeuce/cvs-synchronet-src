@@ -324,6 +324,15 @@ CSI U
 
 	SOURCE: BANSI.TXT
 
+CSI [ p1 ] X
+	Erase Character
+	Defaults: p1 = 1
+	Erase p1 characters starting at the current character.  Will not erase past the end
+	of line.
+	Erased characters are set to the current attribute.
+
+	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
+
 CSI [ p1 ] Z
 	Cursor Backward Tabulation
 	Defaults: p1 = 1
@@ -345,6 +354,30 @@ CSI [ p1 ] c
 	one!
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
+
+CSI [ = 255 h
+	NON-STANDARD EXTENSION
+	Enable DoorWay Mode
+
+	SOURCE: BANSI.TXT
+
+CSI [ ? 25 h
+	NON-STANDARD EXTENSION
+	Display the cursor
+
+	SOURCE: "Installing and Using the VT320 Video Terminal"
+
+CSI [ = 255 l
+	NON-STANDARD EXTENSION
+	Disable DoorWay Mode
+
+	SOURCE: BANSI.TXT
+
+CSI [ ? 25 l
+	NON-STANDARD EXTENSION
+	Hide the cursor
+
+	SOURCE: "Installing and Using the VT320 Video Terminal"
 
 CSI [ p1 [ ; pX ... ] ] m
 	Select Graphic Rendition
@@ -476,8 +509,7 @@ Mx sets misc music parameters where x is one of the following:
 	F - Plays music in the foreground, waiting for music to complete
 	    playing before more characters are processed.
 	B - Play music in the background, allowing normal processing to
-	    continue.  This is ignored by CTerm.  All music is played in
-	    the foreground.
+	    continue.
 	N - "Normal" not legato, not stacatto
 	L - Play notes legato
 	S - Play notes stacatto
@@ -514,6 +546,10 @@ A, B, C, D, E, G, or P Plays the named note or pause from the current
 	### - Notelength as a reciprical of the fraction of a whole note to
 		play the note for.  For example, 4 would indicate a 1/4 note.
 		The default note length is 4.
+L### Set the notelength parameter for all following notes which do not have
+	one specified (ie: override the quarter-note default)  Leval note lengths
+	are 1-64 indicating the recibrical of the fraction (ie: 4 indicates a 1/4
+	note).
 <	Move the the next lowest octave.
 	Octave cannot go above six or below zero.
 >	Move to the next highest octave.
@@ -529,3 +565,7 @@ low frequences.  The notes *sound* correct to me.  If anyone can give me
 an excellent reason to change them (and more correct integer values for all
 notes) I am willing to do that assuming the notes still sound "right".
 
+!!!PLEASE NOTE!!! If you are playing some ANSI Music then ask the user if they
+heard it, ALWAYS follow it with an 0x0b 0x0a is the shift lock character which
+*will* cause people with anything but an ANSI-BBS terminal (ie: *nix users using
+the bundled telnet app) to have their screen messed up.  0x0b "undoes" the 0x0a.

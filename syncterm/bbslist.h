@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.40 2008/01/21 00:19:05 deuce Exp $ */
+/* $Id: bbslist.h,v 1.43 2008/02/05 01:45:40 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -49,6 +49,7 @@ enum {
 	,SCREEN_MODE_C128_40
 	,SCREEN_MODE_C128_80
 	,SCREEN_MODE_ATARI
+	,SCREEN_MODE_ATARI_XEP80
 	,SCREEN_MODE_TERMINATOR
 };
 
@@ -78,7 +79,7 @@ struct bbslist {
 	char			font[80];
 };
 
-struct bbslist *show_bbslist(int mode, int id);
+struct bbslist *show_bbslist(int id, int connected);
 extern char *log_levels[];
 extern char *rate_names[];
 extern int rates[];
