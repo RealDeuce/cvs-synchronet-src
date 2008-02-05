@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.226 2008/02/05 19:47:04 deuce Exp $ */
+/* $Id: term.c,v 1.227 2008/02/05 19:52:55 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2039,17 +2039,17 @@ BOOL doterm(struct bbslist *bbs)
 				case 0x2600:	/* ALT-L */
 					if(bbs->user[0]) {
 						conn_send(bbs->user,strlen(bbs->user),0);
-						conn_send("\r",1,0);
+						conn_send(emulation==CTERM_EMULATION_PETASCII?"\x9b":"\r",1,0);
 						SLEEP(10);
 					}
 					if(bbs->password[0]) {
 						conn_send(bbs->password,strlen(bbs->password),0);
-						conn_send("\r",1,0);
+						conn_send(emulation==CTERM_EMULATION_PETASCII?"\x9b":"\r",1,0);
 						SLEEP(10);
 					}
 					if(bbs->syspass[0]) {
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
-						conn_send("\r",1,0);
+						conn_send(emulation==CTERM_EMULATION_PETASCII?"\x9b":"\r",1,0);
 					}
 					key = 0;
 					break;
