@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.24 2008/02/03 10:44:21 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.25 2008/02/05 00:37:39 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -245,7 +245,10 @@ BYTE* telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen)
 		return(inbuf);
 	}
 
-	outlen=first_iac-inbuf;
+	if(first_iac!=NULL && first_iac < first_cr)
+		outlen=first_iac-inbuf;
+	else
+		outlen=first_cr-inbuf;
 	memcpy(outbuf, inbuf, outlen);
 
     for(i=outlen;i<inlen;i++) {
