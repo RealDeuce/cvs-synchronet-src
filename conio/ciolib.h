@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.45 2007/07/27 02:02:04 deuce Exp $ */
+/* $Id: ciolib.h,v 1.51 2008/01/20 10:21:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,8 +76,11 @@ enum {
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
+	,CIOLIB_MODE_CONIO_FULLSCREEN
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
+	,CIOLIB_MODE_SDL_YUV
+	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
@@ -174,6 +177,16 @@ enum text_modes
     C128_40X25,		/* Commodore 128 40x25 colour mode */
     C128_80X25,		/* Commodore 128 40x25 colour mode */
 	ATARI_40X24,	/* Atari 800 40x24 colour text mode */
+
+	/* VESA Modes */
+	VESA_132X21	= 235,
+	VESA_132X25	= 231,
+	VESA_132X28	= 228,
+	VESA_132X30	= 226,
+	VESA_132X34	= 222,
+	VESA_132X43	= 213,
+	VESA_132X50	= 206,
+	VESA_132X60	= 196,
 };
 
 #define COLOR_MODE	C80
@@ -199,6 +212,8 @@ struct text_info {
 	unsigned char curx;           /* x-coordinate in current window */
 	unsigned char cury;           /* y-coordinate in current window */
 };
+
+extern struct text_info cio_textinfo;
 
 typedef struct {
 	int		mode;
@@ -311,6 +326,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
+CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -365,6 +381,7 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define getfont()				ciolib_getfont()
 	#define loadfont(a)				ciolib_loadfont(a)
 	#define get_window_info(a,b,c,d)	ciolib_get_window_info(a,b,c,d)
+	#define beep()				ciolib_beep()
 #endif
 
 #ifdef WITH_SDL
