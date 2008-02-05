@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.109 2008/02/23 06:23:48 deuce Exp $ */
+/* $Id: cterm.c,v 1.107 2008/02/03 11:34:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -473,7 +473,8 @@ void scrollup(void)
 
 void dellines(int lines)
 {
-	int i;
+	char *buf;
+	int i,j,k;
 	int linestomove;
 	int x,y;
 
@@ -510,6 +511,11 @@ void clear2bol(void)
 
 void cterm_clearscreen(char attr)
 {
+	unsigned char *buf;
+	int i;
+	int width,height;
+	struct text_info ti;
+
 	if(cterm.scrollback!=NULL) {
 		cterm.backpos+=cterm.height;
 		if(cterm.backpos>cterm.backlines) {
@@ -1135,7 +1141,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.109 $";
+	char	*revision="$Revision: 1.107 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1246,7 +1252,7 @@ void ctputs(char *buf)
 				*p=0;
 				cputs(outp);
 				outp=p+1;
-				if(cx>1)
+				if(cx>0)
 					cx--;
 				gotoxy(cx,cy);
 				break;
@@ -1311,6 +1317,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	struct text_info	ti;
 	int	olddmc;
 	int oldptnm;
+	unsigned char *p;
 
 	oldptnm=puttext_can_move;
 	puttext_can_move=1;

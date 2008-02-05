@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.27 2008/02/23 06:31:40 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.25 2008/02/05 00:37:39 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -91,8 +91,8 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 {
 	BYTE	command;
 	BYTE	option;
-	BYTE*   first_cr=NULL;
-	BYTE*   first_int=NULL;
+	BYTE*   first_iac;
+	BYTE*   first_cr;
 	int 	i;
 
 	if(inlen<1) {
@@ -100,22 +100,16 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 		return(inbuf);	/* no length? No interpretation */
 	}
 
-    first_int=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
-	if(telnet_remote_option[TELNET_BINARY_TX]!=TELNET_WILL) {
-		first_cr=(BYTE*)memchr(inbuf, '\r', inlen);
-		if(first_cr) {
-			if(first_int==NULL || first_cr < first_int)
-				first_int=first_cr;
-		}
-	}
+    first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
+    first_cr=(BYTE*)memchr(inbuf, '\r', inlen);
 
-    if(telnet_cmdlen==0 && first_int==NULL) {
+    if(!telnet_cmdlen	&& first_iac==NULL && first_cr==NULL) {
         *outlen=inlen;
         return(inbuf);	/* no interpretation needed */
     }
 
-    if(telnet_cmdlen==0 /* If we haven't returned and telnet_cmdlen==0 then first_int is not NULL */  ) {
-   		*outlen=first_int-inbuf;
+    if(first_iac!=NULL) {
+   		*outlen=first_iac-inbuf;
 	    memcpy(outbuf, inbuf, *outlen);
     } else
     	*outlen=0;
@@ -240,19 +234,18 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 BYTE* telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen)
 {
 	BYTE*   first_iac;
-	BYTE*   first_cr=NULL;
+	BYTE*   first_cr;
 	ulong	i,outlen;
 
     first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
-	if(telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO)
-	    first_cr=(BYTE*)memchr(inbuf, '\r', inlen);
+    first_cr=(BYTE*)memchr(inbuf, '\r', inlen);
 
 	if(first_iac==NULL && first_cr==NULL) {	/* Nothing to expand */
 		*newlen=inlen;
 		return(inbuf);
 	}
 
-	if(first_iac!=NULL && (first_cr==NULL || first_iac < first_cr))
+	if(first_iac!=NULL && first_iac < first_cr)
 		outlen=first_iac-inbuf;
 	else
 		outlen=first_cr-inbuf;
@@ -262,10 +255,8 @@ BYTE* telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen)
 		if(inbuf[i]==TELNET_IAC)
 			outbuf[outlen++]=TELNET_IAC;
 		outbuf[outlen++]=inbuf[i];
-		if(telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO) {
-			if(inbuf[i]=='\r')
-				outbuf[outlen++]='\n';
-		}
+		if(inbuf[i]=='\r')
+			outbuf[outlen++]='\n';
 	}
     *newlen=outlen;
     return(outbuf);
