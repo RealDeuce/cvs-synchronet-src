@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.37 2007/08/12 19:30:28 deuce Exp $ */
+/* $Id: unbaja.c,v 1.39 2007/08/12 19:36:48 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -242,7 +242,7 @@ char *find_bruted(long name)
 
 char* bruteforce(unsigned long name)
 {
-	long	this_crc=0;
+	uint32_t	this_crc=0;
 	char	*ret;
 	int	counter=0;
 	unsigned char	*pos;
@@ -259,7 +259,7 @@ char* bruteforce(unsigned long name)
 	memset(brute_buf,0,brute_len+1);
 	memset(brute_crc_buf,0,brute_len*sizeof(int32_t));
 	printf("Brute forcing var_%08x\n",name);
-	this_crc=crc32(brute_buf,0);
+	this_crc=crc32((char *)brute_buf,0);
 	for(;;) {
 		pos=brute_buf+l;
 		if(pos>brute_buf) {
@@ -2318,7 +2318,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.37 $", "%*s %s", revision);
+	sscanf("$Revision: 1.39 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
