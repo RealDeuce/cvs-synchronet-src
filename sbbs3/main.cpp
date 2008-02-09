@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.483 2007/07/11 00:11:15 deuce Exp $ */
+/* $Id: main.cpp,v 1.490 2008/01/11 08:45:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -500,6 +500,30 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
+/*
+ * Always resolve all here since
+ * 1) We'll always be enumerating anyways
+ * 2) The speed penalty won't be seen in production code anyways
+ */
+JSBool
+DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
+{
+	JSBool	ret=JS_TRUE;
+
+	if(props)
+		if(!js_DefineSyncProperties(cx, obj, props))
+			ret=JS_FALSE;
+		
+	if(funcs)
+		if(!js_DefineSyncMethods(cx, obj, funcs))
+			ret=JS_FALSE;
+
+	if(consts)
+		if(!js_DefineConstIntegers(JSContext* cx, JSObject* obj, consts, flags)
+
+	return(ret);
+}
+
 #else // NON-JSDOCS
 
 JSBool
@@ -527,6 +551,51 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
+JSBool
+DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
+{
+	uint i;
+	jsval	val;
+
+	if(props) {
+		for(i=0;props[i].name;i++) {
+			if(name==NULL || strcmp(name, props[i].name)==0) {
+				if(!JS_DefinePropertyWithTinyId(cx, obj, 
+						props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+					return(JS_FALSE);
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+	if(funcs) {
+		for(i=0;funcs[i].name;i++) {
+			if(name==NULL || strcmp(name, funcs[i].name)==0) {
+				if(!JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0))
+					return(JS_FALSE);
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+	if(consts) {
+		for(i=0;consts[i].name;i++) {
+			if(name==NULL || strcmp(name, consts[i].name)==0) {
+	        	if(!JS_NewNumberValue(cx, consts[i].val, &val))
+					return(JS_FALSE);
+
+				if(!JS_DefineProperty(cx, obj, consts[i].name, val ,NULL, NULL, flags))
+					return(JS_FALSE);
+
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+
+	return(JS_TRUE);
+}
+
 #endif
 
 /* This is a stream-lined version of JS_DefineConstDoubles */
@@ -543,7 +612,7 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 		if(!JS_DefineProperty(cx, obj, ints[i].name, val ,NULL, NULL, flags))
 			return(JS_FALSE);
 	}
-		
+
 	return(JS_TRUE);
 }
 
@@ -1920,6 +1989,7 @@ void event_thread(void* arg)
 	time_t		lastsemchk=0;
 	time_t		lastnodechk=0;
 	time32_t	lastprepack=0;
+	time_t		tmptime;
 	node_t		node;
 	glob_t		g;
 	sbbs_t*		sbbs = (sbbs_t*) arg;
@@ -2250,7 +2320,8 @@ void event_thread(void* arg)
 			}
 
 			/* Qnet call out based on time */
-			if(localtime_r(&sbbs->cfg.qhub[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.qhub[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
 				|| ((sbbs->cfg.qhub[i]->freq
@@ -2269,7 +2340,7 @@ void event_thread(void* arg)
 				for(j=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
 					if(file!=-1) {
-						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long),SEEK_SET);
+						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t),SEEK_SET);
 						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
 					}
 				}
@@ -2284,11 +2355,12 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L)
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
 								l32=l;
 								write(file,&l32,4);		/* initialize ptrs to null */
+							}
 							lseek(file
-								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(long)
+								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t)
 								,SEEK_SET);
 							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
 						}
@@ -2328,7 +2400,8 @@ void event_thread(void* arg)
 				|| sbbs->cfg.phub[i]->node>last_node)
 				continue;
 			/* PostLink call out based on time */
-			if(localtime_r(&sbbs->cfg.phub[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.phub[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.phub[i]->last==-1
 				|| (((sbbs->cfg.phub[i]->freq								/* or frequency */
@@ -2376,7 +2449,8 @@ void event_thread(void* arg)
 				&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 				continue;	// ignore non-exclusive events for other instances
 
-			if(localtime_r(&sbbs->cfg.event[i]->last,&tm)==NULL)
+			tmptime=sbbs->cfg.event[i]->last;
+			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.event[i]->last==-1 ||
 				(((sbbs->cfg.event[i]->freq 
@@ -2396,7 +2470,7 @@ void event_thread(void* arg)
 							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
 						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
 							,sbbs->cfg.event[i]->code
-							,timestr(&sbbs->cfg, &sbbs->cfg.event[i]->last, str)
+							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
 						start=time(NULL);
@@ -3177,7 +3251,7 @@ int sbbs_t::nopen(char *str, int access)
     else share=SH_DENYRW;
 	if(!(access&O_TEXT))
 		access|=O_BINARY;
-    while(((file=sopen(str,access,share,S_IREAD|S_IWRITE))==-1)
+    while(((file=sopen(str,access,share,DEFFILEMODE))==-1)
         && (errno==EACCES || errno==EAGAIN) && count++<LOOP_NOPEN)
 	    mswait(100);
     if(count>(LOOP_NOPEN/2) && count<=LOOP_NOPEN) {
@@ -4264,7 +4338,7 @@ void DLLCALL bbs_thread(void* arg)
 			md(scfg.node_path[i-1]);
 		SAFEPRINTF(str,"%sdsts.dab",i ? scfg.node_path[i-1] : scfg.ctrl_dir);
 		if(flength(str)<DSTSDABLEN) {
-			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, S_IREAD|S_IWRITE))==-1) {
+			if((file=sopen(str,O_WRONLY|O_CREAT|O_APPEND, SH_DENYNO, DEFFILEMODE))==-1) {
 				lprintf(LOG_ERR,"!ERROR %d creating %s",errno, str);
 				cleanup(1);
 				return; 
