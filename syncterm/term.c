@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.232 2008/02/09 20:39:47 deuce Exp $ */
+/* $Id: term.c,v 1.233 2008/02/09 20:41:05 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1124,7 +1124,7 @@ static int recv_nak(void *cbdata, unsigned timeout)
 	xmodem_t	*xm=(xmodem_t *)cbdata;
 	
 	xm->recv_byte=recv_byte;
-	return(6);
+	return(NAK);
 }
 
 void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int lastch)
