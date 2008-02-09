@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.234 2008/02/09 21:50:10 deuce Exp $ */
+/* $Id: term.c,v 1.235 2008/02/09 21:55:40 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2253,7 +2253,7 @@ BOOL doterm(struct bbslist *bbs)
 								p=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 								if(p) {
 									gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
-									show_bbslist(bbs->id, TRUE);
+									show_bbslist(bbs->name, TRUE);
 									puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 									free(p);
 								}
