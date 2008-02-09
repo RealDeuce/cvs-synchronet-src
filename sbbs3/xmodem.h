@@ -2,13 +2,13 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.16 2006/02/24 09:50:50 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.17 2008/02/09 22:46:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,6 +41,8 @@
 #include "gen_defs.h"
 
 #define CPMEOF		CTRL_Z	/* CP/M End of file (^Z)					*/
+#define XMODEM_MIN_BLOCK_SIZE	128
+#define XMODEM_MAX_BLOCK_SIZE	1024
 
 typedef struct {
 
