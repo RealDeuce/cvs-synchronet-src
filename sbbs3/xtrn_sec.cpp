@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.56 2007/07/10 21:58:31 deuce Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.63 2008/02/03 00:25:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -817,7 +817,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,&c,1);						/* GraphicsMode */
 		c=useron.xedit ? 1:0;
 		write(file,&c,1);						/* ExternEdit */
-		i=rows;
+		i=(int16_t)rows;
 		write(file,&i,2);						/* ScreenLength */
 		c=1;
 		write(file,&c,1);						/* MNP_Connect */
@@ -1008,7 +1008,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		sprintf(str,"%-25.25s",name);           /* User's full name */
 		write(file,str,25);
 
-		i=(tleft/60);
+		i=(int16_t)(tleft/60);
 		write(file,&i,2);						/* Minutes remaining */
 
 		write(file,&cfg.node_num,1);			/* Node number */
@@ -1313,10 +1313,11 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"%d\n%d\n38400\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
+		sprintf(str,"%d\n%d\n%u\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
 			"%d\n%d\n"
 			,misc&IO_INTS ? 0 /* Local */ : 2 /* Telnet */
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
+			,dte_rate
 			,VERSION_NOTICE,REVISION
 			,useron.number
 			,useron.name
@@ -1361,7 +1362,7 @@ void sbbs_t::moduserdat(uint xtrnnum)
 			lseek(file,373,SEEK_SET);
 			read(file,&i,2);			/* SecLvl */
 			if(i<SYSOP_LEVEL) {
-				useron.level=i;
+				useron.level=(uint8_t)i;
 				putuserrec(&cfg,useron.number,U_LEVEL,2,ultoa(useron.level,tmp,10)); 
 			}
 			close(file);
@@ -1448,7 +1449,7 @@ void sbbs_t::moduserdat(uint xtrnnum)
 				lseek(file,105,SEEK_CUR);	/* read security level */
 				read(file,&i,2);
 				if(i<SYSOP_LEVEL) {
-					useron.level=i;
+					useron.level=(uint8_t)i;
 					putuserrec(&cfg,useron.number,U_LEVEL,2,ultoa(useron.level,tmp,10)); 
 				}
 				lseek(file,75,SEEK_CUR);	/* read in expiration date */
@@ -1684,7 +1685,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	else
 		SAFECOPY(name,useron.alias);
 
-	gettimeleft();
+	gettimeleft(cfg.xtrn[xtrnnum]->misc&XTRN_CHKTIME ? true:false);
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
 	if(cfg.xtrn[xtrnnum]->maxtime && tleft>(cfg.xtrn[xtrnnum]->maxtime*60))
 		tleft=(cfg.xtrn[xtrnnum]->maxtime*60);
@@ -1759,8 +1760,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		}
 		getnodedat(cfg.node_num,&thisnode,0);
 		now=time(NULL);
-		sprintf(str,hungupstr,useron.alias,cfg.xtrn[thisnode.aux-1]->name
-			,timestr(&now));
+		sprintf(str,hungupstr,useron.alias,thisnode.aux ? cfg.xtrn[thisnode.aux-1]->name : "External Program"
+			,timestr(now));
 		write(file,str,strlen(str));
 		close(file); 
 	} 
