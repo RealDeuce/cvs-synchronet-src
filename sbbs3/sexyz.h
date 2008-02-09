@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Program */
 
-/* $Id: sexyz.h,v 1.12 2008/02/10 11:13:07 rswindell Exp $ */
+/* $Id: sexyz.h,v 1.10 2008/02/09 05:31:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -46,7 +46,7 @@
 #define YMODEM			(1<<3)	/* Use Ymodem								*/
 #define ZMODEM			(1<<4)	/* Use Zmodem								*/
 #define CRC 			(1<<5)	/* Use CRC error correction 				*/
-#define GMODE			(1<<6)	/* For Xmodem-G and Ymodem-G				*/
+#define GMODE			(1<<6)	/* For Qmodem-G and Ymodem-G				*/
 #define RECVDIR 		(1<<7)	/* Directory specified to download to		*/
 #define OVERWRITE		(1<<9)	/* Overwrite receiving files				*/
 
@@ -54,8 +54,5 @@
 #define CTRL_ESC	(1<<0)	/* Escape all control chars 				*/
 #define VAR_HDRS	(1<<1)	/* Use variable headers 					*/
 
-#define SUCCESS		0
-#define NOINP		-1			/* input buffer empty (incom only) */
-#define FAILURE		-2			/* xmodem_get_block() failure */
-#define NOT_YMODEM	-3			/* Expected block zero, got block one */
-#define NOT_XMODEM	-4			/* Expected block one, got block zero */
+#define NOINP -1     			/* input buffer empty (incom only) */
+#define NOT_YMODEM -3			/* Expected block zero, got block one */
