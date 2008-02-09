@@ -126,10 +126,6 @@ SOURCE=.\str_list.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\xpdatetime.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\xpprintf.c
 # End Source File
 # End Target
