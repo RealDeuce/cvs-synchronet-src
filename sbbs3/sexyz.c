@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.77 2006/12/28 22:25:36 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.79 2008/02/09 22:25:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -107,7 +107,6 @@ BOOL	telnet=TRUE;
 BOOL	stdio=FALSE;
 struct termios origterm;
 #endif
-BOOL	aborted=FALSE;
 BOOL	terminate=FALSE;
 BOOL	debug_tx=FALSE;
 BOOL	debug_rx=FALSE;
@@ -203,7 +202,7 @@ void break_handler(int type)
 	lprintf(LOG_NOTICE,"-> Aborted Locally (signal: %d)",type);
 
 	/* Flag to indicate local (as opposed to remote) abort */
-	aborted=TRUE;
+	zm.local_abort=TRUE;
 
 	/* Stop any transfers in progress immediately */
 	xm.cancelled=TRUE;	
@@ -638,14 +637,15 @@ BOOL data_waiting(void* unused, unsigned timeout)
 }
 
 /****************************************************************************/
-/* Returns the number of blocks required to send len bytes					*/
+/* Returns the total number of blocks required to send the file				*/
 /****************************************************************************/
-unsigned num_blocks(ulong len, unsigned block_size)
+unsigned num_blocks(unsigned block_num, ulong offset, ulong len, unsigned block_size)
 {
 	ulong blocks;
+	ulong remain = len - offset;
 
-	blocks=len/block_size;
-	if(len%block_size)
+	blocks=block_num + (remain/block_size);
+	if(remain%block_size)
 		blocks++;
 	return(blocks);
 }
@@ -682,7 +682,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 		l-=t;				/* now, it's est time left */
 		if(l<0) l=0;
 		if(mode&SEND) {
-			total_blocks=num_blocks(fsize,xm.block_size);
+			total_blocks=num_blocks(block_num,offset,fsize,xm.block_size);
 			fprintf(statfp,"\rBlock (%lu%s): %lu/%lu  Byte: %lu  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
@@ -873,7 +873,7 @@ static int send_files(char** fname, uint fnames)
 						,(xm.total_bytes-xm.sent_bytes)/1024
 						);
 			} else
-				lprintf(LOG_WARNING,"File Transfer %s", aborted ? "Aborted" : "Failure");
+				lprintf(LOG_WARNING,"File Transfer %s", zm.local_abort ? "Aborted" : "Failure");
 
 			/* DSZLOG entry */
 			if(logfp) {
@@ -894,7 +894,7 @@ static int send_files(char** fname, uint fnames)
 			}
 			total_bytes += sent_bytes;
 
-			if(aborted) {
+			if(zm.local_abort) {
 				xm.cancelled=FALSE;
 				xmodem_cancel(&xm);
 				break;
@@ -1197,7 +1197,7 @@ static int receive_files(char** fname_list, int fnames)
 			lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
 				,t/60,t%60,file_bytes/t);	
 		else
-			lprintf(LOG_ERR,"File Transfer %s", aborted ? "Aborted":"Failure");
+			lprintf(LOG_ERR,"File Transfer %s", zm.local_abort ? "Aborted":"Failure");
 
 		if(!(mode&XMODEM) && ftime)
 			setfdate(str,ftime); 
@@ -1218,7 +1218,7 @@ static int receive_files(char** fname_list, int fnames)
 			fflush(logfp);
 		}
 
-		if(aborted) {
+		if(zm.local_abort) {
 			lprintf(LOG_DEBUG,"Locally aborted, sending cancel to remote");
 			if(mode&ZMODEM)
 				zmodem_abort_receive(&zm);
@@ -1314,7 +1314,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.77 $", "%*s %s", revision);
+	sscanf("$Revision: 1.79 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/Zmodem  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
