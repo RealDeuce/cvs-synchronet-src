@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.29 2008/02/09 03:55:24 deuce Exp $ */
+/* $Id: xmodem.c,v 1.30 2008/02/09 04:05:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -428,6 +428,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 	size_t		rd;
 	time_t		startfile;
 	struct		stat st;
+	BOOL		sent_header=FALSE;
 
 	if(sent!=NULL)	
 		*sent=0;
@@ -463,8 +464,10 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			block_len=strlen(block)+1+i;
 			for(xm->errors=0;xm->errors<=xm->max_errors && !is_cancelled(xm) && is_connected(xm);xm->errors++) {
 				xmodem_put_block(xm, block, block_len <=128 ? 128:1024, 0  /* block_num */);
-				if(xmodem_get_ack(xm,1,0))
+				if(xmodem_get_ack(xm,1,0)) {
+					sent_header=TRUE;
 					break; 
+				}
 			}
 			if(xm->errors>=xm->max_errors || is_cancelled(xm)) {
 				lprintf(xm,LOG_ERR,"Failed to send header block");
@@ -485,10 +488,18 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			&& is_connected(xm)) {
 			fseek(fp,sent_bytes,SEEK_SET);
 			memset(block,CPMEOF,xm->block_size);
+			if(!sent_header) {
+				if(xm->block_size>128) {
+					if((sent_bytes+xm->block_size) > st.st_size) {
+						lprintf(xm,LOG_INFO,"Falling back to 128 byte blocks for end of file");
+						xm->block_size=128;
+					}
+				}
+			}
 			if((rd=fread(block,1,xm->block_size,fp))!=xm->block_size 
-				&& (long)(block_num*xm->block_size) < st.st_size) {
+				&& (long)(sent_bytes + xm->block_size) <= st.st_size) {
 				lprintf(xm,LOG_ERR,"READ ERROR %d instead of %d at offset %lu"
-					,rd,xm->block_size,(block_num-1)*(long)xm->block_size);
+					,rd,xm->block_size,sent_bytes);
 				xm->errors++;
 				continue;
 			}
@@ -538,7 +549,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.29 $", "%*s %s", buf);
+	sscanf("$Revision: 1.30 $", "%*s %s", buf);
 
 	return(buf);
 }
