@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.203 2007/07/11 01:31:45 deuce Exp $
+# $Id: GNUmakefile,v 1.211 2007/10/15 08:06:00 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -51,7 +51,18 @@ ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
 endif
 
+ifeq ($(os),linux)
+ ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
+  CFLAGS += -DUSE_LINUX_CAPS
+  SBBS_LIBS += -lcap
+ endif
+endif
+
 # JS and NSPR setup stuff...
+ifeq ($(shell nspr-config --version > /dev/null 2>&1 && echo YES),YES)
+ NSPRDIR ?= $(shell nspr-config --libdir)
+ NSPRINCLUDE ?= $(shell nspr-config --includedir)
+endif
 
 ifeq ($(os),sunos)
  ifeq ($(shell test -f /usr/sfw/lib/mozilla/libmozjs.so && echo "yes"),yes)
@@ -102,7 +113,7 @@ CFLAGS	+=	$(JS_CFLAGS)
 LDFLAGS	+=	$(JS_LDFLAGS)
 
 ifndef CRYPTLIBDIR
- CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(os).release
+ CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(machine).release
 endif
 LDFLAGS	+=	-L$(CRYPTLIBDIR)
 
@@ -125,7 +136,7 @@ else
 endif
 export LD_RUN_PATH
 
-CON_LIBS	:= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
+CON_LIBS	+= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
  MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
