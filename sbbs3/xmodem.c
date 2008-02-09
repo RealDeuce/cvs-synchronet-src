@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.28 2008/01/27 03:06:20 deuce Exp $ */
+/* $Id: xmodem.c,v 1.29 2008/02/09 03:55:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -499,6 +499,10 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 				xm->errors++;
 				lprintf(xm,LOG_WARNING,"Error #%d at offset %ld"
 					,xm->errors,ftell(fp)-xm->block_size);
+				if(xm->errors==3 && block_num==1 && xm->block_size>128) {
+					lprintf(xm,LOG_NOTICE,"Falling back to 128 byte blocks");
+					xm->block_size=128;
+				}
 			} else {
 				block_num++; 
 				sent_bytes+=rd;
@@ -534,7 +538,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.28 $", "%*s %s", buf);
+	sscanf("$Revision: 1.29 $", "%*s %s", buf);
 
 	return(buf);
 }
