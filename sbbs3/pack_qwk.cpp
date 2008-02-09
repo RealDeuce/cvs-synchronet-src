@@ -2,13 +2,13 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.52 2007/07/10 23:50:31 deuce Exp $ */
+/* $Id: pack_qwk.cpp,v 1.53 2007/08/11 18:28:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -168,7 +168,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			"%sFILES\r\n"
 			"%sATTACH\r\n"
 			"%sOWN\r\n"
-			"%smail\r\n"
+			"%sMAIL\r\n"
 			"%sDELMAIL\r\n"
 			"%sCTRL-A\r\n"
 			"%sFREQ\r\n"
