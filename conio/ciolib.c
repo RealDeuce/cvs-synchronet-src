@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.91 2007/07/31 21:42:40 deuce Exp $ */
+/* $Id: ciolib.c,v 1.104 2008/02/03 11:34:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@
  #undef getch
 #endif
 
+#include "bitmap_con.h"
 #include "ansi_cio.h"
 
 CIOLIBEXPORT cioapi_t	cio_api;
@@ -120,11 +121,18 @@ int try_sdl_init(int mode)
 {
 	if(!sdl_initciolib(mode)) {
 		cio_api.mouse=1;
-		cio_api.puttext=sdl_puttext;
-		cio_api.gettext=sdl_gettext;
+		cio_api.puttext=bitmap_puttext;
+		cio_api.gettext=bitmap_gettext;
+		cio_api.gotoxy=bitmap_gotoxy;
+		cio_api.setcursortype=bitmap_setcursortype;
+		cio_api.setfont=bitmap_setfont;
+		cio_api.getfont=bitmap_getfont;
+		cio_api.loadfont=bitmap_loadfont;
+		cio_api.movetext=bitmap_movetext;
+		cio_api.clreol=bitmap_clreol;
+		cio_api.clrscr=bitmap_clrscr;
+
 		cio_api.kbhit=sdl_kbhit;
-		cio_api.gotoxy=sdl_gotoxy;
-		cio_api.setcursortype=sdl_setcursortype;
 		cio_api.getch=sdl_getch;
 		cio_api.textmode=sdl_textmode;
 		cio_api.showmouse=sdl_showmouse;
@@ -139,9 +147,6 @@ int try_sdl_init(int mode)
 		cio_api.copytext=sdl_copytext;
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
-		cio_api.setfont=sdl_setfont;
-		cio_api.getfont=sdl_getfont;
-		cio_api.loadfont=sdl_loadfont;
 		cio_api.get_window_info=sdl_get_window_info;
 		return(1);
 	}
@@ -153,16 +158,20 @@ int try_sdl_init(int mode)
  #ifndef NO_X
 int try_x_init(int mode)
 {
-	if(!console_init()) {
+	if(!x_init()) {
 		cio_api.mode=CIOLIB_MODE_X;
 		cio_api.mouse=1;
-		cio_api.puttext=x_puttext;
-		cio_api.gettext=x_gettext;
-		cio_api.gotoxy=x_gotoxy;
-		cio_api.setcursortype=x_setcursortype;
-		cio_api.setfont=x_setfont;
-		cio_api.getfont=x_getfont;
-		cio_api.loadfont=x_loadfont;
+		cio_api.puttext=bitmap_puttext;
+		cio_api.gettext=bitmap_gettext;
+		cio_api.gotoxy=bitmap_gotoxy;
+		cio_api.setcursortype=bitmap_setcursortype;
+		cio_api.setfont=bitmap_setfont;
+		cio_api.getfont=bitmap_getfont;
+		cio_api.loadfont=bitmap_loadfont;
+		cio_api.beep=x_beep;
+		cio_api.movetext=bitmap_movetext;
+		cio_api.clreol=bitmap_clreol;
+		cio_api.clrscr=bitmap_clrscr;
 
 		cio_api.kbhit=x_kbhit;
 		cio_api.getch=x_getch;
@@ -181,7 +190,9 @@ int try_x_init(int mode)
 int try_curses_init(int mode)
 {
 	if(curs_initciolib(mode)) {
-		cio_api.mode=CIOLIB_MODE_CURSES_IBM;
+		if(mode==CIOLIB_MODE_AUTO)
+			mode=CIOLIB_MODE_CURSES;
+		cio_api.mode=mode;
 		cio_api.puttext=curs_puttext;
 		cio_api.gettext=curs_gettext;
 		cio_api.textattr=curs_textattr;
@@ -218,6 +229,7 @@ int try_ansi_init(int mode)
 		cio_api.getch=ansi_getch;
 		cio_api.textmode=ansi_textmode;
 		cio_api.ESCDELAY=&CIOLIB_ANSI_TIMEOUT;
+		cio_api.beep=ansi_beep;
 		return(1);
 	}
 	return(0);
@@ -231,7 +243,10 @@ int try_conio_init(int mode)
 {
 	/* This should test for something or other */
 	if(win32_initciolib(mode)) {
-		cio_api.mode=CIOLIB_MODE_CONIO;
+		if(mode==CIOLIB_MODE_AUTO)
+			cio_api.mode=CIOLIB_MODE_CONIO;
+		else
+			cio_api.mode=mode;	/* CIOLIB_MODE_CONIO or CIOLIB_MODE_CONIO_FULLSCREEN */
 		cio_api.mouse=1;
 		cio_api.puttext=win32_puttext;
 		cio_api.gettext=win32_gettext;
@@ -281,7 +296,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 	switch(mode) {
 		case CIOLIB_MODE_AUTO:
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-			if(!try_sdl_init(mode))
+			if(!try_sdl_init(CIOLIB_MODE_SDL))
 #endif
 #ifdef _WIN32
 				if(!try_conio_init(mode))
@@ -295,6 +310,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			break;
 #ifdef _WIN32
 		case CIOLIB_MODE_CONIO:
+		case CIOLIB_MODE_CONIO_FULLSCREEN:
 			try_conio_init(mode);
 			break;
 #else
@@ -316,6 +332,8 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 		case CIOLIB_MODE_SDL:
 		case CIOLIB_MODE_SDL_FULLSCREEN:
+		case CIOLIB_MODE_SDL_YUV:
+		case CIOLIB_MODE_SDL_YUV_FULLSCREEN:
 			try_sdl_init(mode);
 			break;
 #endif
@@ -581,20 +599,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gettextinfo(struct text_info *info)
 		return;
 	}
 	
-	if(info!=&cio_textinfo) {
-		info->winleft=cio_textinfo.winleft;        /* left window coordinate */
-		info->wintop=cio_textinfo.wintop;         /* top window coordinate */
-		info->winright=cio_textinfo.winright;       /* right window coordinate */
-		info->winbottom=cio_textinfo.winbottom;      /* bottom window coordinate */
-		info->attribute=cio_textinfo.attribute;      /* text attribute */
-		info->normattr=cio_textinfo.normattr;       /* normal attribute */
-		info->currmode=cio_textinfo.currmode;       /* current video mode:
-                               			 BW40, BW80, C40, C80, or C4350 */
-		info->screenheight=cio_textinfo.screenheight;   /* text screen's height */
-		info->screenwidth=cio_textinfo.screenwidth;    /* text screen's width */
-		info->curx=cio_textinfo.curx-cio_textinfo.winleft+1;           /* x-coordinate in current window */
-		info->cury=cio_textinfo.cury-cio_textinfo.wintop+1;           /* y-coordinate in current window */
-	}
+	if(info!=&cio_textinfo)
+		*info=cio_textinfo;
 }
 
 /* Optional */
@@ -662,9 +668,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_wherey(void)
 /* **MUST** be implemented */
 CIOLIBEXPORT void CIOLIBCALL ciolib_gotoxy(int x, int y)
 {
-	int nx;
-	int ny;
-
 	CIOLIB_INIT();
 
 	if(		x < 1
@@ -735,10 +738,9 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 	unsigned char *buf;
 	int i;
 	int width,height;
-	struct text_info ti;
 
 	CIOLIB_INIT();
-	
+
 	if(cio_api.clreol) {
 		cio_api.clreol();
 		return;
@@ -772,7 +774,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void)
 		cio_api.clrscr();
 		return;
 	}
-	
+
 	width=cio_textinfo.winright-cio_textinfo.winleft+1;
 	height=cio_textinfo.winbottom-cio_textinfo.wintop+1;
 	buf=(unsigned char *)alloca(width*height*2);
@@ -830,12 +832,24 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 	char	str[16384];
 #else
 	char	*str;
+#ifndef HAVE_VASPRINTF
 	va_list argptr2;
+#endif
 #endif
 
 	CIOLIB_INIT();
 
     va_start(argptr,fmat);
+
+#ifdef HAVE_VASPRINTF
+	ret=vasprintf(&str, fmat, argptr);
+	if(ret>=0)
+		ciolib_cputs(str);
+	else
+		ret=EOF;
+	free(str);
+#else
+
 #ifdef _MSC_VER
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
@@ -861,6 +875,9 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
 		ciolib_cputs(str);
 	else
 		ret=EOF;
+
+#endif
+
     return(ret);
 }
 
