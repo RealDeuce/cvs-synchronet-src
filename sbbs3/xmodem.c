@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.32 2008/02/09 04:51:35 deuce Exp $ */
+/* $Id: xmodem.c,v 1.33 2008/02/09 05:31:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,6 +234,8 @@ int xmodem_get_block(xmodem_t* xm, uchar* block, unsigned expected_block_num)
 		if(block_num!=(uchar)(expected_block_num&0xff)) {
 			lprintf(xm,LOG_WARNING,"Block number error (%u received, expected %u)"
 				,block_num,expected_block_num&0xff);
+			if(expected_block_num==0 && block_num==1)
+				return(NOT_YMODEM);
 			if(expected_block_num && block_num==(uchar)((expected_block_num-1)&0xff))
 				continue;	/* silently discard repeated packets (ymodem.doc 7.3.2) */
 			break; 
@@ -551,7 +553,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.32 $", "%*s %s", buf);
+	sscanf("$Revision: 1.33 $", "%*s %s", buf);
 
 	return(buf);
 }
