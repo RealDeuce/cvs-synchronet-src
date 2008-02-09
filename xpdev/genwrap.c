@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.77 2009/01/14 07:06:30 deuce Exp $ */
+/* $Id: genwrap.c,v 1.75 2008/02/02 22:09:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,19 +275,13 @@ char* DLLCALL strtok_r(char *str, const char *delim, char **last)
 /****************************************************************************/
 /* Initialize (seed) the random number generator							*/
 /****************************************************************************/
-void DLLCALL xp_randomize(void)
+unsigned DLLCALL xp_randomize(void)
 {
 	unsigned seed=~0;
-#if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
-	int		rf;
-#endif
-
-#if defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC)
-	srandomdev();
-	return;
-#endif
 
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
+	int     rf;
+
 	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
 		read(rf, &seed, sizeof(seed));
 		close(rf);
@@ -309,8 +303,10 @@ void DLLCALL xp_randomize(void)
 
 #ifdef HAS_RANDOM_FUNC
  	srandom(seed);
+	return(seed);
 #else
  	srand(seed);
+	return(seed);
 #endif
 }
 
@@ -431,6 +427,60 @@ char* DLLCALL os_cmdshell(void)
 
 	return(shell);
 }
+
+#if !defined(__unix__)
+
+/****************************************************************************/
+/* Win32 implementations of the recursive (thread-safe) versions of std C	*/
+/* time functions (gmtime, localtime, ctime, and asctime) used in Unix.		*/
+/* The native Win32 versions of these functions are already thread-safe.	*/
+/****************************************************************************/
+
+struct tm* DLLCALL gmtime_r(const time_t* t, struct tm* tm)
+{
+	struct tm* tmp = gmtime(t);
+
+	if(tmp==NULL)
+		return(NULL);
+
+	*tm = *tmp;
+	return(tm);
+}
+
+struct tm* DLLCALL localtime_r(const time_t* t, struct tm* tm)
+{
+	struct tm* tmp = localtime(t);
+
+	if(tmp==NULL)
+		return(NULL);
+
+	*tm = *tmp;
+	return(tm);
+}
+
+char* DLLCALL ctime_r(const time_t *t, char *buf)
+{
+	char* p = ctime(t);
+
+	if(p==NULL)
+		return(NULL);
+
+	strcpy(buf,p);
+	return(buf);
+}
+
+char* DLLCALL asctime_r(const struct tm *tm, char *buf)
+{
+	char* p = asctime(tm);
+
+	if(p==NULL)
+		return(NULL);
+
+	strcpy(buf,p);
+	return(buf);
+}
+
+#endif	/* !defined(__unix__) */
 
 /****************************************************************/
 /* Microsoft (DOS/Win32) real-time system clock implementation.	*/
