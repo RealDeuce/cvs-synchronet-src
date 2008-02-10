@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.103 2007/07/25 08:16:10 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.107 2008/01/11 09:07:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,6 +83,7 @@ enum {
 
 	,BBS_PROP_CONNECTION		/* READ ONLY */
 	,BBS_PROP_RLOGIN_NAME
+	,BBS_PROP_RLOGIN_PASS
 	,BBS_PROP_CLIENT_NAME
 
 	,BBS_PROP_ALTUL
@@ -182,7 +183,8 @@ enum {
 	,"current file directory internal code"
 
 	,"remote connection type"
-	,"rlogin name"
+	,"login name given during RLogin negotiation"
+	,"password specified during RLogin negotiation"
 	,"client name"
 
 	,"current alternate upload path number"
@@ -281,7 +283,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			val=sbbs->online;
 			break;
 		case BBS_PROP_TIMELEFT:
-			val=sbbs->timeleft;
+			val=sbbs->gettimeleft(false);
 			break;
 		case BBS_PROP_EVENT_TIME:
 			val=sbbs->event_time;
@@ -370,6 +372,9 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case BBS_PROP_RLOGIN_NAME:
 			p=sbbs->rlogin_name;
+			break;
+		case BBS_PROP_RLOGIN_PASS:
+			p=sbbs->rlogin_pass;
 			break;
 		case BBS_PROP_CLIENT_NAME:
 			p=sbbs->client_name;
@@ -772,6 +777,9 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case BBS_PROP_RLOGIN_NAME:
 			SAFECOPY(sbbs->rlogin_name,p);
 			break;
+		case BBS_PROP_RLOGIN_PASS:
+			SAFECOPY(sbbs->rlogin_pass,p);
+			break;
 		case BBS_PROP_CLIENT_NAME:
 			SAFECOPY(sbbs->client_name,p);
 			break;
@@ -842,6 +850,7 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"curdir_code"		,BBS_PROP_CURDIR_CODE	,JSPROP_ENUMERATE	,314},
 	{	"connection"		,BBS_PROP_CONNECTION	,PROP_READONLY		,310},
 	{	"rlogin_name"		,BBS_PROP_RLOGIN_NAME	,JSPROP_ENUMERATE	,310},
+	{	"rlogin_password"	,BBS_PROP_RLOGIN_PASS	,JSPROP_ENUMERATE	,315},
 	{	"client_name"		,BBS_PROP_CLIENT_NAME	,JSPROP_ENUMERATE	,310},
 	{	"alt_ul_dir"		,BBS_PROP_ALTUL			,JSPROP_ENUMERATE	,310},
 	{	"errorlevel"		,BBS_PROP_ERRORLEVEL	,PROP_READONLY		,312},
@@ -1248,20 +1257,47 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_atcode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char		str[128];
 	sbbs_t*		sbbs;
+	char	str[128],str2[128],*p;
+	char	*instr;
+	int		disp_len;
+	bool	padded_left=false;
+	bool	padded_right=false;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	char* p = JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+	instr = strdup(JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
+	if(instr==NULL)
+		return(JS_FALSE);
 
-	p=sbbs->atcode(p,str,sizeof(str));
+	disp_len=strlen(instr);
+	if((p=strstr(instr,"-L"))!=NULL)
+		padded_left=true;
+	else if((p=strstr(instr,"-R"))!=NULL)
+		padded_right=true;
+	if(p!=NULL) {
+		if(*(p+2) && isdigit(*(p+2)))
+			disp_len=atoi(p+2);
+		*p=0;
+	}
 
+	if(disp_len >= sizeof(str))
+		disp_len=sizeof(str)-1;
+
+	p=sbbs->atcode(instr,str2,sizeof(str2));
+	free(instr);
 	if(p==NULL)
 		*rval = JSVAL_NULL;
 	else {
-		JSString* js_str = JS_NewStringCopyZ(cx, p);
+		if(padded_left)
+			sprintf(str,"%-*.*s",disp_len,disp_len,p);
+		else if(padded_right)
+			sprintf(str,"%*.*s",disp_len,disp_len,p);
+		else
+			SAFECOPY(str,p);
+
+		JSString* js_str = JS_NewStringCopyZ(cx, str);
 		if(js_str==NULL)
 			return(JS_FALSE);
 		*rval = STRING_TO_JSVAL(js_str);
@@ -2602,8 +2638,7 @@ js_get_time_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	sbbs->gettimeleft();
-	*rval = INT_TO_JSVAL(sbbs->timeleft);
+	*rval = INT_TO_JSVAL(sbbs->gettimeleft());
 	return(JS_TRUE);
 }
 
@@ -2965,12 +3000,27 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},
 	{"get_time_left",	js_get_time_left,	0,	JSTYPE_NUMBER,	JSDOCSTR("")
-	,JSDOCSTR("check the user's time left and return the value, in seconds")
+	,JSDOCSTR("check the user's available remaining time online and return the value, in seconds<br>"
+	"This method will inform (and disconnect) the user when they are out of time")
 	,31401
 	},
 	{0}
 };
 
+static JSBool js_bbs_resolve(JSContext *cx, JSObject *obj, jsval id)
+{
+	char*			name=NULL;
+
+	if(id != JSVAL_NULL)
+		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+
+	return(js_SyncResolve(cx, obj, name, js_bbs_properties, js_bbs_functions, NULL, 0));
+}
+
+static JSBool js_bbs_enumerate(JSContext *cx, JSObject *obj)
+{
+	return(js_bbs_resolve(cx, obj, JSVAL_NULL));
+}
 
 static JSClass js_bbs_class = {
      "BBS"					/* name			*/
@@ -2979,8 +3029,8 @@ static JSClass js_bbs_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_bbs_get				/* getProperty	*/
 	,js_bbs_set				/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
+	,js_bbs_enumerate		/* enumerate	*/
+	,js_bbs_resolve			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub		/* finalize		*/
 };
@@ -2994,12 +3044,6 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(obj==NULL)
-		return(NULL);
-
-	if(!js_DefineSyncProperties(cx, obj, js_bbs_properties))
-		return(NULL);
-
-	if (!js_DefineSyncMethods(cx, obj, js_bbs_functions, FALSE)) 
 		return(NULL);
 
 	if((mods=JS_DefineObject(cx, obj, "mods", NULL, NULL ,JSPROP_ENUMERATE))==NULL)
