@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.22 2006/12/27 06:30:13 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.24 2008/01/08 06:27:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,12 +96,14 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     LogFileCheckBox->Checked=MainForm->MailLogFile;
     HostnameCheckBox->Checked
         =!(MainForm->mail_startup.options&MAIL_OPT_NO_HOST_LOOKUP);
+    UseSubPortCheckBox->Checked=MainForm->mail_startup.options&MAIL_OPT_USE_SUBMISSION_PORT;
 
     DefCharsetEdit->Text=AnsiString(MainForm->mail_startup.default_charset);
     RelayServerEdit->Text=AnsiString(MainForm->mail_startup.relay_server);
     RelayAuthNameEdit->Text=AnsiString(MainForm->mail_startup.relay_user);
     RelayAuthPassEdit->Text=AnsiString(MainForm->mail_startup.relay_pass);
     SMTPPortEdit->Text=AnsiString(MainForm->mail_startup.smtp_port);
+    SubPortEdit->Text=AnsiString(MainForm->mail_startup.submission_port);
     POP3PortEdit->Text=AnsiString(MainForm->mail_startup.pop3_port);
     RelayPortEdit->Text=AnsiString(MainForm->mail_startup.relay_port);
     if(isalnum(MainForm->mail_startup.dns_server[0]))
@@ -171,6 +173,9 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_ALLOW_RX_BY_NUMBER);
     AdvancedCheckListBox->Checked[i++]
+        =(MainForm->mail_startup.options&MAIL_OPT_ALLOW_SYSOP_ALIASES);
+
+    AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_CHKRECVHDRS);
     AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_THROTTLE);
@@ -181,6 +186,7 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     SendMailCheckBoxClick(Sender);
     AllowRelayCheckBoxClick(Sender);
     RelayAuthRadioButtonClick(Sender);
+    UseSubPortCheckBoxClick(Sender);
     PageControl->ActivePage=GeneralTabSheet;
 }
 //---------------------------------------------------------------------------
@@ -215,9 +221,10 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     } else
         MainForm->mail_startup.interface_addr=0;
 
-	MainForm->mail_startup.smtp_port=SMTPPortEdit->Text.ToIntDef(25);
-    MainForm->mail_startup.pop3_port=POP3PortEdit->Text.ToIntDef(110);
-    MainForm->mail_startup.relay_port=RelayPortEdit->Text.ToIntDef(25);
+	MainForm->mail_startup.smtp_port=SMTPPortEdit->Text.ToIntDef(IPPORT_SMTP);
+   	MainForm->mail_startup.submission_port=SubPortEdit->Text.ToIntDef(IPPORT_SUBMISSION);
+    MainForm->mail_startup.pop3_port=POP3PortEdit->Text.ToIntDef(IPPORT_POP3);
+    MainForm->mail_startup.relay_port=RelayPortEdit->Text.ToIntDef(IPPORT_SMTP);
     MainForm->mail_startup.max_clients=MaxClientsEdit->Text.ToIntDef(10);
     MainForm->mail_startup.max_inactivity=MaxInactivityEdit->Text.ToIntDef(120);
     MainForm->mail_startup.max_recipients=MaxRecipientsEdit->Text.ToIntDef(100);
@@ -289,12 +296,6 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->mail_startup.options|=MAIL_OPT_DEBUG_POP3;
     else
 	    MainForm->mail_startup.options&=~MAIL_OPT_DEBUG_POP3;
-#if 0 /* this is a stupid option */
-	if(UserNumberCheckBox->Checked==true)
-    	MainForm->mail_startup.options|=MAIL_OPT_ALLOW_RX_BY_NUMBER;
-    else
-	    MainForm->mail_startup.options&=~MAIL_OPT_ALLOW_RX_BY_NUMBER;
-#endif
 	if(AllowRelayCheckBox->Checked==true)
     	MainForm->mail_startup.options|=MAIL_OPT_ALLOW_RELAY;
     else
@@ -303,6 +304,10 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->mail_startup.options|=MAIL_OPT_SMTP_AUTH_VIA_IP;
     else
 	    MainForm->mail_startup.options&=~MAIL_OPT_SMTP_AUTH_VIA_IP;
+ 	if(UseSubPortCheckBox->Checked==true)
+    	MainForm->mail_startup.options|=MAIL_OPT_USE_SUBMISSION_PORT;
+    else
+	    MainForm->mail_startup.options&=~MAIL_OPT_USE_SUBMISSION_PORT;
 
     /* DNSBL */
 	MainForm->mail_startup.options&=
@@ -340,6 +345,9 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
         ,AdvancedCheckListBox->Checked[i++]);
     setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_ALLOW_RX_BY_NUMBER
+        ,AdvancedCheckListBox->Checked[i++]);
+    setBit(&MainForm->mail_startup.options
+        ,MAIL_OPT_ALLOW_SYSOP_ALIASES
         ,AdvancedCheckListBox->Checked[i++]);
     setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_DNSBL_CHKRECVHDRS
@@ -464,6 +472,15 @@ void __fastcall TMailCfgDlg::RelayAuthRadioButtonClick(TObject *Sender)
     RelayAuthPassEdit->Enabled=enabled;
     RelayAuthNameLabel->Enabled=enabled;
     RelayAuthPassLabel->Enabled=enabled;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMailCfgDlg::UseSubPortCheckBoxClick(TObject *Sender)
+{
+    bool enabled = UseSubPortCheckBox->Checked;
+
+    SubPortLabel->Enabled = enabled;
+    SubPortEdit->Enabled = enabled;
 }
 //---------------------------------------------------------------------------
 
