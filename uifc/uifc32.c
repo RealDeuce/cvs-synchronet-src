@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.188 2008/01/22 00:16:34 deuce Exp $ */
+/* $Id: uifc32.c,v 1.190 2008/02/05 01:47:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,7 +237,7 @@ int uifcini32(uifcapi_t* uifcapi)
             || txtinfo.currmode==MONO43 || txtinfo.currmode==BW40X43 || txtinfo.currmode==BW80X43
             || txtinfo.currmode==MONO50 || txtinfo.currmode==BW40X50 || txtinfo.currmode==BW80X50
             || txtinfo.currmode==MONO60 || txtinfo.currmode==BW40X60 || txtinfo.currmode==BW80X60
-			|| txtinfo.currmode==ATARI_40X24))
+			|| txtinfo.currmode==ATARI_40X24 || txtinfo.currmode==ATARI_80X25))
 	{
         api->bclr=BLACK;
         api->hclr=WHITE;
@@ -288,10 +288,11 @@ int uifcini32(uifcapi_t* uifcapi)
 	if(cio_api.ESCDELAY)
 		*(cio_api.ESCDELAY)=api->esc_delay;
 
-	api->initialized=TRUE;
-
 	for(i=0; i<MAX_BUFS; i++)
 		sav[i].buf=NULL;
+	api->savnum=0;
+
+	api->initialized=TRUE;
 
     return(0);
 }
@@ -410,6 +411,8 @@ static int uifc_getmouse(struct mouse_event *mevent)
 
 void uifcbail(void)
 {
+	int i;
+
 	_setcursortype(_NORMALCURSOR);
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
@@ -418,6 +421,8 @@ void uifcbail(void)
 	FREE_AND_NULL(tmp_buffer);
 	FREE_AND_NULL(tmp_buffer2);
 	api->initialized=FALSE;
+	for(i=0; i< MAX_BUFS; i++)
+		FREE_AND_NULL(sav[i].buf);
 }
 
 /****************************************************************************/
