@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.150 2008/02/10 06:30:30 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.149 2008/02/09 22:00:33 rswindell Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -1214,7 +1214,7 @@ int main(int argc, char **argv)
 				return(1);
 			}
 			if(log_fp==NULL && bbs->logfile[0])
-				log_fp=fopen(bbs->logfile,bbs->append_logfile ? "a" : "w");
+				log_fp=fopen(bbs->logfile,"a");
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
