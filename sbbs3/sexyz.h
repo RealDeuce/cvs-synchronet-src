@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Program */
 
-/* $Id: sexyz.h,v 1.9 2005/06/01 10:34:41 rswindell Exp $ */
+/* $Id: sexyz.h,v 1.11 2008/02/09 21:59:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,4 +55,4 @@
 #define VAR_HDRS	(1<<1)	/* Use variable headers 					*/
 
 #define NOINP -1     			/* input buffer empty (incom only) */
-
+#define NOT_YMODEM -3			/* Expected block zero, got block one */
