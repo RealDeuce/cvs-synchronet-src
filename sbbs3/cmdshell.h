@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module constants and structure definitions */
 
-/* $Id: cmdshell.h,v 1.10 2007/08/13 03:37:35 rswindell Exp $ */
+/* $Id: cmdshell.h,v 1.12 2007/08/13 21:41:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,8 @@
  ****************************************************************************/
 
 #include "gen_defs.h"
+#include "dirwrap.h"
+#include "sockwrap.h"
 
 #ifndef _CMDSHELL_H_
 #define _CMDSHELL_H_ 
