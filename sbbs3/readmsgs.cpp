@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.39 2008/02/23 11:08:33 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.37 2007/08/23 07:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -84,8 +84,9 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long i, long posts)
 	return(listed);
 }
 
-char *binstr(uchar *buf, ushort length, char* str)
+char *binstr(uchar *buf, ushort length)
 {
+	static char str[512];
 	char tmp[128];
 	int i;
 
@@ -99,10 +100,6 @@ char *binstr(uchar *buf, ushort length, char* str)
 	for(i=0;i<length;i++) {
 		sprintf(tmp,"%02X ",buf[i]);
 		strcat(str,tmp); 
-		if(i >= 100) {
-			strcat(str,"...");
-			break;
-		}
 	}
 	return(str);
 }
@@ -111,7 +108,6 @@ char *binstr(uchar *buf, ushort length, char* str)
 void sbbs_t::msghdr(smbmsg_t* msg)
 {
 	int i;
-	char str[512];
 
 	CRLF;
 
@@ -119,14 +115,12 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	for(i=0;i<msg->total_hfields;i++)
 		bprintf("%-16.16s %s\r\n"
 			,smb_hfieldtype(msg->hfield[i].type)
-			,binstr((uchar *)msg->hfield_dat[i],msg->hfield[i].length,str));
+			,binstr((uchar *)msg->hfield_dat[i],msg->hfield[i].length));
 
 	/* fixed fields */
-	bprintf("%-16.16s %08lX %04hX %s %s\r\n","when_written"	
-		,msg->hdr.when_written.time, msg->hdr.when_written.zone
+	bprintf("%-16.16s %s %s\r\n","when_written"	
 		,timestr(msg->hdr.when_written.time), smb_zonestr(msg->hdr.when_written.zone,NULL));
-	bprintf("%-16.16s %08lX %04hX %s %s\r\n","when_imported"	
-		,msg->hdr.when_imported.time, msg->hdr.when_imported.zone
+	bprintf("%-16.16s %s %s\r\n","when_imported"	
 		,timestr(msg->hdr.when_imported.time), smb_zonestr(msg->hdr.when_imported.zone,NULL));
 	bprintf("%-16.16s %04Xh\r\n","type"				,msg->hdr.type);
 	bprintf("%-16.16s %04Xh\r\n","version"			,msg->hdr.version);
