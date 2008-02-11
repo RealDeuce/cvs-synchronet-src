@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.27 2008/02/23 06:31:40 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.26 2008/02/09 01:42:02 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -109,12 +109,12 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 		}
 	}
 
-    if(telnet_cmdlen==0 && first_int==NULL) {
+    if(!telnet_cmdlen && first_int==NULL) {
         *outlen=inlen;
         return(inbuf);	/* no interpretation needed */
     }
 
-    if(telnet_cmdlen==0 /* If we haven't returned and telnet_cmdlen==0 then first_int is not NULL */  ) {
+    if(first_int!=NULL) {
    		*outlen=first_int-inbuf;
 	    memcpy(outbuf, inbuf, *outlen);
     } else
