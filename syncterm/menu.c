@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.47 2008/09/25 02:31:24 deuce Exp $ */
+/* $Id: menu.c,v 1.45 2008/01/29 01:26:28 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -134,22 +134,19 @@ void viewscroll(void)
 int syncmenu(struct bbslist *bbs, int *speed)
 {
 	char	*opts[]={
-						 "Scrollback ("ALT_KEY_NAMEP"-B)"
+						 "Scrollback (Alt-B)"
 						,"Disconnect (Ctrl-Q)"
-						,"Send Login ("ALT_KEY_NAMEP"-L)"
-						,"Upload ("ALT_KEY_NAMEP"-U)"
-						,"Download ("ALT_KEY_NAMEP"-D)"
-						,"Change Output Rate ("ALT_KEY_NAMEP"-Up/"ALT_KEY_NAMEP"-Down)"
+						,"Send Login (Alt-L)"
+						,"Upload (Alt-U)"
+						,"Download (Alt-D)"
+						,"Change Output Rate (Alt-Up/Alt-Down)"
 						,"Change Log Level"
-						,"Capture Control ("ALT_KEY_NAMEP"-C)"
-						,"ANSI Music Control ("ALT_KEY_NAMEP"-M)"
-						,"Font Control ("ALT_KEY_NAMEP"-F)"
+						,"Capture Control (Alt-C)"
+						,"ANSI Music Control (Alt-M)"
+						,"Font Control (Alt-F)"
 						,"Toggle Doorway Mode"
-#ifndef WITHOUT_OOII
-						,"Toggle Operation Overkill ][ Mode"
-#endif
-						,"Exit ("ALT_KEY_NAMEP"-X)"
-						,"Edit Dialing Directory ("ALT_KEY_NAMEP"-E)"
+						,"Exit (Alt-X)"
+						,"Edit Dialing Directory (ALT-E)"
 						,""};
 	int		opt=0;
 	int		i,j;
@@ -164,7 +161,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	if(cio_api.mode!=CIOLIB_MODE_CURSES
 			&& cio_api.mode!=CIOLIB_MODE_CURSES_IBM
 			&& cio_api.mode!=CIOLIB_MODE_ANSI) {
-		opts[1]="Disconnect ("ALT_KEY_NAMEP"-H)";
+		opts[1]="Disconnect (Alt-H)";
 	}
 
 	for(ret=0;!ret;) {
@@ -181,9 +178,6 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						"`ANSI Music`     Enables/Disables ANSI Music\n"
 						"`Font`           Changes the current font (when supported)\n"
 						"`Doorway Mode`   Toggles the current DoorWay (keyboard input) setting\n"
-#ifndef WITHOUT_OOII
-						"`Operation Overkill ][ Mode`   Toggles the current Operation Overkill ][ setting\n"
-#endif
 						"`Exit`           Disconnects and closes Syncterm";
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
 		switch(i) {
