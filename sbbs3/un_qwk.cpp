@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.34 2008/02/23 10:51:09 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.33 2008/02/11 00:20:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		errormsg(WHERE,ERR_EXEC,cmdstr(cfg.qhub[hubnum]->unpack,packet,ALLFILES,NULL),i);
 		return(false); 
 	}
-	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
+	sprintf(str,"%sMESSAGES.DAT",cfg.temp_dir);
 	if(!fexistcase(str)) {
 		SAFEPRINTF2(tmp,"%s doesn't contain MESSAGES.DAT (%s)",packet,str);
 		errorlog(tmp);
@@ -293,13 +293,13 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		smb_close(&smb);
 
 	delfiles(cfg.temp_dir,"*.NDX");
-	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
+	sprintf(str,"%sMESSAGES.DAT",cfg.temp_dir);
 	remove(str);
-	SAFEPRINTF(str,"%sDOOR.ID",cfg.temp_dir);
+	sprintf(str,"%sDOOR.ID",cfg.temp_dir);
 	remove(str);
-	SAFEPRINTF(str,"%sCONTROL.DAT",cfg.temp_dir);
+	sprintf(str,"%sCONTROL.DAT",cfg.temp_dir);
 	remove(str);
-	SAFEPRINTF(str,"%sNETFLAGS.DAT",cfg.temp_dir);
+	sprintf(str,"%sNETFLAGS.DAT",cfg.temp_dir);
 	remove(str);
 
 	dir=opendir(cfg.temp_dir);
