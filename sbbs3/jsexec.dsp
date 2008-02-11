@@ -85,10 +85,6 @@ LINK32=link.exe
 # Name "jsexec - Win32 Debug"
 # Begin Source File
 
-SOURCE=.\js_conio.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\js_uifc.c
 # End Source File
 # Begin Source File
