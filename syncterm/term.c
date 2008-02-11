@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.246 2008/02/18 01:55:20 deuce Exp $ */
+/* $Id: term.c,v 1.242 2008/02/11 07:25:52 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -189,9 +189,9 @@ void update_status(struct bbslist *bbs, int speed)
 			break;
 		default:
 			if(timeon>359999)
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type]);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 ALT-Z for menu",nbuf,conn_types[bbs->conn_type]);
 			else
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break; /*    1+29     +3    +6    +3    +11        +3+3+2        +3    +6    +4  +5 */
 	}
 	if(wherex()>=80)
@@ -1287,11 +1287,16 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					send_byte(NULL,ACK,10);
 					break;
 				}
-				if(i==NOINP && (mode&GMODE)) {			/* Timeout */
-					mode &= ~GMODE;
+#if 0
+				if(i==NOINP) {			/* Timeout */
+					if(mode&GMODE)
+						mode &= ~GMODE;
+					else if(mode&CRC)
+						mode &= ~CRC;
 					lprintf(LOG_WARNING,"Falling back to %s", 
 						(mode&CRC)?"CRC-16":"Checksum");
 				}
+#endif
 				if(i==NOT_YMODEM) {
 					lprintf(LOG_WARNING,"Falling back to XMODEM%s",(mode&GMODE)?"-g":"");
 					mode &= ~(YMODEM);
@@ -1415,6 +1420,16 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					xm.cancelled=TRUE;
 					break;
 				}
+#if 0
+				if(i==NOINP) {			/* Timeout */
+					if(mode&GMODE)
+						mode &= ~GMODE;
+					else if(mode&CRC)
+						mode &= ~CRC;
+					lprintf(LOG_WARNING,"Falling back to %s", 
+						(mode&CRC)?"CRC-16":"Checksum");
+				}
+#endif
 				if(mode&GMODE) {
 					lprintf(LOG_ERR,"Too many errors (%u)",++errors);
 					goto end; 
@@ -1587,16 +1602,12 @@ void font_control(struct bbslist *bbs)
 					struct file_pick fpick;
 					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-					if(j!=-1 && fpick.files>=1) {
+					if(j!=-1 && fpick.files>=1)
 						loadfont(fpick.selected[0]);
-						uifc_old_font=getfont();
-					}
 					filepick_free(&fpick);
 				}
-				else {
+				else
 					setfont(i,FALSE);
-					uifc_old_font=getfont();
-				}
 			}
 		break;
 	}

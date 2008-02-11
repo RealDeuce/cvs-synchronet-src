@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.121 2008/02/14 07:09:56 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.120 2008/01/11 09:10:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -215,7 +215,7 @@ js_listen(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 	
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argc)
 		backlog = JS_ValueToInt32(cx,argv[0],&backlog);
 
 	if(listen(p->sock, backlog)!=0) {
@@ -508,9 +508,8 @@ js_sendbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argv[0]!=JSVAL_VOID)
-		JS_ValueToInt32(cx,argv[0],&val);
-	if(argc>1 && argv[1]!=JSVAL_VOID) 
+	JS_ValueToInt32(cx,argv[0],&val);
+	if(argc>1) 
 		JS_ValueToInt32(cx,argv[1],(int32*)&size);
 
 	switch(size) {
@@ -561,7 +560,7 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
@@ -620,7 +619,7 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			binary=JSVAL_TO_BOOLEAN(argv[n]);
 			if(binary)
 				len=sizeof(DWORD);
-		} else if(argv[n]!=JSVAL_VOID)
+		} else
 			JS_ValueToInt32(cx,argv[n],&len);
 	}
 
@@ -722,7 +721,7 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
@@ -766,7 +765,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argc)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
@@ -774,7 +773,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc>1 && argv[1]!=JSVAL_VOID)
+	if(argc>1)
 		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
 
 	start=time(NULL);
@@ -837,7 +836,7 @@ js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) 
+	if(argc) 
 		JS_ValueToInt32(cx,argv[0],(int32*)&size);
 
 	switch(size) {
@@ -929,8 +928,7 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	}
 
 	opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
-	if(argv[1]!=JSVAL_VOID)
-		JS_ValueToInt32(cx,argv[1],&val);
+	JS_ValueToInt32(cx,argv[1],&val);
 
 	if(opt == SO_LINGER) {
 		if(val) {
@@ -962,9 +960,8 @@ js_ioctlsocket(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		return(JS_FALSE);
 	}
 
-	if(argv[0]!=JSVAL_VOID)
-		JS_ValueToInt32(cx,argv[0],&cmd);
-	if(argc>1 && argv[1]!=JSVAL_VOID)
+	JS_ValueToInt32(cx,argv[0],&cmd);
+	if(argc>1)
 		JS_ValueToInt32(cx,argv[1],&arg);
 
 	if(ioctlsocket(p->sock,cmd,(ulong*)&arg)==0)
