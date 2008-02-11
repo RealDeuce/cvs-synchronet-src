@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.109 2008/02/24 07:53:33 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.107 2007/11/30 08:58:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -39,8 +39,7 @@
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
 #include <math.h>		/* fmod */
-#include "xpdatetime.h"	/* isoDateTime_t */
-#include "datewrap.h"	/* ctime_r */
+#include "datewrap.h"	/* isoDateTime_t */
 #include "dirwrap.h"	/* fexist */
 #include "filewrap.h"	/* chsize */
 #include "ini_file.h"
@@ -302,7 +301,10 @@ str_list_t	iniGetSection(str_list_t list, const char *section)
 
 	if(list==NULL)
 		return(retval);
-	i=find_section(list,section);
+	if(section==ROOT_SECTION)
+		i=0;
+	else
+		i=find_section_index(list,section);
 	if(list[i]!=NULL) {
 		strListPush(&retval, list[i]);
 		for(i++;list[i]!=NULL;i++) {
@@ -582,7 +584,7 @@ char* iniSetDateTime(str_list_t* list, const char* section, const char* key
 
 	if(value==0)
 		SAFECOPY(str,"Never");
-	else if((p=ctime_r(&value,tstr))==NULL)
+	else if((p=CTIME_R(&value,tstr))==NULL)
 		SAFEPRINTF(str,"0x%lx",value);
 	else if(!include_time)	/* reformat into "Mon DD YYYY" */
 		safe_snprintf(str,sizeof(str),"%.3s %.2s %.4s"		,p+4,p+8,p+20);
@@ -722,18 +724,6 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 
 	if(*value==0 /* blank value or missing key */)
 		return default_value(deflt,value);
-
-	return(value);
-}
-
-char* iniPopKey(str_list_t* list, const char* section, const char* key, char* value)
-{
-	size_t i=get_value(*list, section, key, value);
-
-	if(*value==0)
-		return NULL;
-
-	strListDelete(list,i);
 
 	return(value);
 }

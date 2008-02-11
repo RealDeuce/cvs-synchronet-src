@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.76 2008/02/25 02:14:04 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.75 2007/08/14 06:23:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -402,8 +402,7 @@ extern "C" void DLLCALL signal_sub_sem(scfg_t* cfg, uint subnum)
 
 extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 {
-	int		i;
-	char	port[16];
+	int i;
 
 	if(client==NULL)
 		return(-1);
@@ -414,8 +413,7 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 		return(i);
 	if((i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
 		return(i);
-	SAFEPRINTF(port,"%u",client->port);
-	return smb_hfield_str(msg,SENDERPORT,port);
+	return smb_hfield(msg,SENDERPORT,sizeof(client->port),&client->port);
 }
 
 extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, char* msgbuf)
