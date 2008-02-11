@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.244 2008/02/11 09:21:39 deuce Exp $ */
+/* $Id: term.c,v 1.245 2008/02/11 09:31:48 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1415,16 +1415,6 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					xm.cancelled=TRUE;
 					break;
 				}
-#if 0
-				if(i==NOINP) {			/* Timeout */
-					if(mode&GMODE)
-						mode &= ~GMODE;
-					else if(mode&CRC)
-						mode &= ~CRC;
-					lprintf(LOG_WARNING,"Falling back to %s", 
-						(mode&CRC)?"CRC-16":"Checksum");
-				}
-#endif
 				if(mode&GMODE) {
 					lprintf(LOG_ERR,"Too many errors (%u)",++errors);
 					goto end; 
