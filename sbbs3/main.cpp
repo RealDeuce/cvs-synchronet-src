@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.495 2008/02/24 07:57:17 rswindell Exp $ */
+/* $Id: main.cpp,v 1.491 2008/02/09 23:17:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,6 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
-#include "netwrap.h"
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -2104,10 +2103,8 @@ void event_thread(void* arg)
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
-					if(!fmutex(semfile,startup->host_name,24*60*60)) {
-						eprintf(LOG_DEBUG,"%s exists (unpack in process?)", semfile);
+					if(!fmutex(semfile,startup->host_name,24*60*60))
 						continue;
-					}
 					sbbs->online=ON_LOCAL;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
@@ -2131,7 +2128,7 @@ void event_thread(void* arg)
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,24*60*60)) {
-					eprintf(LOG_DEBUG,"%s exists (pack in process?)", semfile);
+					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
 					continue;
 				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
@@ -4031,6 +4028,16 @@ void sbbs_t::daily_maint(void)
 	}
 }
 
+time_t checktime(void)
+{
+	struct tm tm;
+
+    memset(&tm,0,sizeof(tm));
+    tm.tm_year=94;
+    tm.tm_mday=1;
+    return(mktime(&tm)-0x2D24BD00L);
+}
+
 const char* DLLCALL js_ver(void)
 {
 #ifdef JAVASCRIPT
@@ -4282,7 +4289,7 @@ void DLLCALL bbs_thread(void* arg)
 
 	t=time(NULL);
 	lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-		,ctime_r(&t,str),startup->options);
+		,CTIME_R(&t,str),startup->options);
 
 	if(chdir(startup->ctrl_dir)!=0)
 		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
@@ -4303,8 +4310,16 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->host_name[0]==0)
 		SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-	if((t=checktime())!=0) {   /* Check binary time */
-		lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+	if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
+		if(putenv("TZ=UTC0"))
+			lprintf(LOG_ERR,"!putenv() FAILED");
+		tzset();
+
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+			cleanup(1);
+			return;
+		}
 	}
 
 	if(uptime==0)
@@ -5101,7 +5116,7 @@ NO_SSH:
 			/*****************************/
     		memset(&tmp_addr, 0, sizeof(tmp_addr));
 
-			tmp_addr.sin_addr.s_addr = htonl(IPv4_LOCALHOST);
+			tmp_addr.sin_addr.s_addr = htonl(0x7f000001U);
     		tmp_addr.sin_family = AF_INET;
     		tmp_addr.sin_port   = 0;
 
