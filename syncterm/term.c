@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.242 2008/02/11 07:25:52 deuce Exp $ */
+/* $Id: term.c,v 1.243 2008/02/11 07:44:03 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -189,9 +189,9 @@ void update_status(struct bbslist *bbs, int speed)
 			break;
 		default:
 			if(timeon>359999)
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 ALT-Z for menu",nbuf,conn_types[bbs->conn_type]);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type]);
 			else
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break; /*    1+29     +3    +6    +3    +11        +3+3+2        +3    +6    +4  +5 */
 	}
 	if(wherex()>=80)
