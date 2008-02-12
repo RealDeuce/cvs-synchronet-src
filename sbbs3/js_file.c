@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.103 2008/01/18 06:06:54 deuce Exp $ */
+/* $Id: js_file.c,v 1.106 2008/02/11 09:07:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -398,7 +398,7 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	size_t		count=1;
 	size_t		retlen;
 	void		*buffer=NULL;
-	int			i;
+	size_t		i;
     JSObject*	array;
     jsval       v;
 
@@ -1118,7 +1118,6 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	BYTE		*b;
 	WORD		*w;
 	DWORD		*l;
-	int32		val=0;
 	size_t		wr=0;
 	size_t		size=sizeof(DWORD);
 	size_t		count=1;
@@ -1126,6 +1125,7 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	private_t*	p;
     JSObject*	array=NULL;
     jsval       elemval;
+	jsdouble	val=0;
 
 	*rval = JSVAL_FALSE;
 
@@ -1147,7 +1147,7 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			array=NULL;
 	}
 	if(array==NULL) {
-		if(!JS_ValueToInt32(cx,argv[0],&val))
+		if(!JS_ValueToNumber(cx,argv[0],&val))
 			return(JS_FALSE);
 	}
 	if(argc>1) {
@@ -1183,7 +1183,7 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		for(wr=0; wr<count; wr++) {
 	        if(!JS_GetElement(cx, array, wr, &elemval))
 				goto end;
-			if(!JS_ValueToInt32(cx,elemval,&val))
+			if(!JS_ValueToNumber(cx,elemval,&val))
 				goto end;
 			switch(size) {
 				case sizeof(BYTE):
