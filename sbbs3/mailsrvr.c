@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.441 2008/02/23 22:35:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.433 2008/02/12 07:38:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -300,6 +300,16 @@ int sockprintf(SOCKET sock, char *fmt, ...)
 		lprintf(LOG_WARNING,"%04d !ERROR: short send on socket: %d instead of %d",sock,result,len);
 	}
 	return(len);
+}
+
+static time_t checktime(void)
+{
+	struct tm tm;
+
+    memset(&tm,0,sizeof(tm));
+    tm.tm_year=94;
+    tm.tm_mday=1;
+    return(mktime(&tm)-0x2D24BD00L);
 }
 
 static void recverror(SOCKET socket, int rd, int line)
@@ -1340,42 +1350,18 @@ static BOOL chk_email_addr(SOCKET socket, char* p, char* host_name, char* host_i
 	return(FALSE);
 }
 
-static BOOL email_addr_is_exempt(const char* addr)
+static void exempt_email_addr(const char* comment, const char* fromaddr, const char* toaddr)
 {
 	char fname[MAX_PATH+1];
-	char netmail[128];
-	char* p;
+	FILE* fp;
 
-	if(*addr==0 || strcmp(addr,"<>")==0)
-		return FALSE;
 	sprintf(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
-	if(findstr((char*)addr,fname))
-		return TRUE;
-	SAFECOPY(netmail, addr);
-	if(*(p=netmail)=='<')
-		p++;
-	truncstr(p,">");
-	return userdatdupe(&scfg, 0, U_NETMAIL, LEN_NETMAIL, p, FALSE);
-}
-
-static void exempt_email_addr(const char* comment
-							  ,const char* fromname, const char* fromaddr
-							  ,const char* toaddr)
-{
-	char	fname[MAX_PATH+1];
-	char	to[128];
-	char	tmp[128];
-	FILE*	fp;
-
-	SAFEPRINTF(to,"<%s>",toaddr);
-	if(!email_addr_is_exempt(to)) {
-		SAFEPRINTF(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
+	if(!findstr((char*)toaddr,fname)) {
 		if((fp=fopen(fname,"a"))==NULL)
 			lprintf(LOG_ERR,"0000 !Error opening file: %s", fname);
 		else {
-			lprintf(LOG_INFO,"0000 %s: %s", comment, to);
-			fprintf(fp,"\n;%s from \"%s\" %s on %s\n%s\n"
-				,comment, fromname, fromaddr, timestr(&scfg,time(NULL),tmp), to);
+			lprintf(LOG_INFO,"0000 %s: %s", comment, toaddr);
+			fprintf(fp,";%s from %s:\n%s\n", comment, fromaddr, toaddr);
 			fclose(fp);
 		}
 	}
@@ -2979,10 +2965,21 @@ static void smtp_thread(void* arg)
 			SAFECOPY(reverse_path,p);
 
 			/* If MAIL FROM address is in dnsbl_exempt.cfg, clear DNSBL results */
-			if(dnsbl_result.s_addr && email_addr_is_exempt(reverse_path)) {
-				lprintf(LOG_INFO,"%04d SMTP Ignoring DNSBL results for exempt sender: %s"
-					,socket,reverse_path);
-				dnsbl_result.s_addr=0;
+			if(dnsbl_result.s_addr) {
+				char fname[MAX_PATH+1];
+				char from[128];
+				
+				p=reverse_path;
+				if(*p=='<')
+					p++;
+				SAFECOPY(from, p);
+				truncstr(from,">");
+				sprintf(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
+				if(findstr(from,fname)) {
+					lprintf(LOG_INFO,"%04d SMTP Ignoring DNSBL results for exempt sender: %s"
+						,socket,from);
+					dnsbl_result.s_addr=0;
+				}
 			}
 
 			/* Update client display */
@@ -3113,7 +3110,7 @@ static void smtp_thread(void* arg)
 				sockprintf(socket
 					,"550 Mail from %s refused due to listing at %s"
 					,host_ip, dnsbl);
-				break;
+				continue;
 			}
 
 			/* Check for full address aliases */
@@ -3829,7 +3826,7 @@ static void sendmail_thread(void* arg)
 							continue;
 						}
 						lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
-						if((i=dns_getmx(p, mx, mx2, INADDR_ANY, dns
+						if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
 							,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
 							,TIMEOUT_THREAD_WAIT/2))!=0) {
 							remove_msg_intransit(&smb,&msg);
@@ -4086,8 +4083,7 @@ static void sendmail_thread(void* arg)
 			if(msg.hdr.auxattr&MSG_FILEATTACH)
 				delfattach(&scfg,&msg);
 
-			if(msg.from_agent==AGENT_PERSON && !(startup->options&MAIL_OPT_NO_AUTO_EXEMPT))
-				exempt_email_addr("SEND Auto-exempting",msg.from,fromaddr,toaddr);
+			exempt_email_addr("SEND Auto-exempting",fromaddr,toaddr);
 
 			/* QUIT */
 			sockprintf(sock,"QUIT");
@@ -4175,7 +4171,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.441 $", "%*s %s", revision);
+	sscanf("$Revision: 1.433 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4296,7 +4292,7 @@ void DLLCALL mail_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,ctime_r(&t,str),startup->options);
+			,CTIME_R(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
@@ -4350,8 +4346,16 @@ void DLLCALL mail_server(void* arg)
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-		if((t=checktime())!=0) {   /* Check binary time */
-			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&MAIL_OPT_LOCAL_TIMEZONE)) {
+			if(putenv("TZ=UTC0"))
+				lprintf(LOG_ERR,"!putenv() FAILED");
+			tzset();
+
+			if((t=checktime())!=0) {   /* Check binary time */
+				lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+				cleanup(1);
+				return;
+			}
 		}
 
 		if(uptime==0)
