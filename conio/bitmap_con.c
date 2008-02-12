@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.26 2008/09/24 22:51:48 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.22 2008/02/03 11:34:08 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -25,9 +25,9 @@
 #include "allfonts.h"
 #include "bitmap_con.h"
 
-static char *screen=NULL;
-int screenwidth=0;
-int screenheight=0;
+static char *screen;
+int screenwidth;
+int screenheight;
 #define PIXEL_OFFSET(x,y)	( (y)*screenwidth+(x) )
 
 static int current_font=-99;
@@ -62,9 +62,7 @@ static void blinker_thread(void *data)
 	int count=0;
 
 	while(1) {
-		do {
-			SLEEP(10);
-		} while(screen==NULL);
+		SLEEP(10);
 		count++;
 		pthread_mutex_lock(&vstatlock);
 		if(count==50) {
@@ -597,19 +595,15 @@ static void bitmap_draw_cursor()
 		if(vstat.curs_start<=vstat.curs_end) {
 			xoffset=(vstat.curs_col-1)*vstat.charwidth;
 			yoffset=(vstat.curs_row-1)*vstat.charheight;
-			if(xoffset < 0 || yoffset < 0)
-				return;
 			attr=cio_textinfo.attribute&0x0f;
 			width=vstat.charwidth;
 
 			pthread_mutex_lock(&screenlock);
 			for(y=vstat.curs_start; y<=vstat.curs_end; y++) {
-				if(xoffset < screenwidth && (yoffset+y) < screenheight) {
-					pixel=PIXEL_OFFSET(xoffset, yoffset+y);
-					for(x=0;x<vstat.charwidth;x++)
-						screen[pixel++]=attr;
-					//memset(screen+pixel,attr,width);
-				}
+				pixel=PIXEL_OFFSET(xoffset, yoffset+y);
+				for(x=0;x<vstat.charwidth;x++)
+					screen[pixel++]=attr;
+				//memset(screen+pixel,attr,width);
 			}
 			pthread_mutex_unlock(&screenlock);
 			send_rectangle(xoffset, yoffset+vstat.curs_start, vstat.charwidth, vstat.curs_end-vstat.curs_start+1,FALSE);
@@ -620,6 +614,8 @@ static void bitmap_draw_cursor()
 /* Called from main thread only */
 void bitmap_gotoxy(int x, int y)
 {
+	static int lx=-1,ly=-1;
+
 	if(!bitmap_initialized)
 		return;
 	/* Move cursor location */
@@ -631,6 +627,8 @@ void bitmap_gotoxy(int x, int y)
 		vstat.curs_col=x+cio_textinfo.winleft-1;
 		vstat.curs_row=y+cio_textinfo.wintop-1;
 		pthread_mutex_unlock(&vstatlock);
+		lx=vstat.curs_col;
+		ly=vstat.curs_row;
 	}
 }
 
