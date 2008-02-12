@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.490 2008/01/11 08:45:52 deuce Exp $ */
+/* $Id: main.cpp,v 1.492 2008/02/12 07:31:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,6 +38,7 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
+#include "netwrap.h"
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -510,16 +511,20 @@ DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertyS
 {
 	JSBool	ret=JS_TRUE;
 
-	if(props)
+	if(props) {
 		if(!js_DefineSyncProperties(cx, obj, props))
 			ret=JS_FALSE;
+	}
 		
-	if(funcs)
-		if(!js_DefineSyncMethods(cx, obj, funcs))
+	if(funcs) {
+		if(!js_DefineSyncMethods(cx, obj, funcs, 0))
 			ret=JS_FALSE;
+	}
 
-	if(consts)
-		if(!js_DefineConstIntegers(JSContext* cx, JSObject* obj, consts, flags)
+	if(consts) {
+		if(!js_DefineConstIntegers(cx, obj, consts, flags))
+			ret=JS_FALSE;
+	}
 
 	return(ret);
 }
@@ -5112,7 +5117,7 @@ NO_SSH:
 			/*****************************/
     		memset(&tmp_addr, 0, sizeof(tmp_addr));
 
-			tmp_addr.sin_addr.s_addr = htonl(0x7f000001U);
+			tmp_addr.sin_addr.s_addr = htonl(IPv4_LOCALHOST);
     		tmp_addr.sin_family = AF_INET;
     		tmp_addr.sin_port   = 0;
 
