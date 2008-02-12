@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.75 2008/01/26 21:01:17 deuce Exp $ */
+/* $Id: zmodem.c,v 1.77 2008/02/09 22:48:48 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -577,7 +577,7 @@ int zmodem_send_zeof(zmodem_t* zm)
 int zmodem_recv_raw(zmodem_t* zm)
 {
 	int c;
-	int attempt;
+	unsigned attempt;
 
 	for(attempt=0;attempt<=zm->recv_timeout;attempt++) {
 		if((c=zm->recv_byte(zm->cbdata,1 /* second timeout */)) >= 0)
@@ -1950,8 +1950,9 @@ int zmodem_recv_init(zmodem_t* zm)
 void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 {
 	int			i;
-	int32_t		mode=0;
-	int32_t		serial=-1;
+	int			mode=0;
+	long		serial=-1L;
+	ulong		tmptime;
 
 	SAFECOPY(zm->current_file_name,getfname(zm->rx_data_subpacket));
 
@@ -1961,9 +1962,9 @@ void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 	zm->bytes_remaining = 0;
 
 	if(sizeof(int32_t)==sizeof(long)) {
-		i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%lu %lo %lo %lo %u %u"
+		i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%lu %lo %o %lo %u %u"
 			,&zm->current_file_size	/* file size (decimal) */
-			,&zm->current_file_time /* file time (octal unix format) */
+			,&tmptime				/* file time (octal unix format) */
 			,&mode					/* file mode */
 			,&serial				/* program serial number */
 			,&zm->files_remaining	/* remaining files to be sent */
@@ -1971,15 +1972,16 @@ void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 			);
 	}
 	else {
-		i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%u %o %o %o %u %u"
+		i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%u %lo %o %lo %u %u"
 			,&zm->current_file_size	/* file size (decimal) */
-			,&zm->current_file_time /* file time (octal unix format) */
+			,&tmptime				/* file time (octal unix format) */
 			,&mode					/* file mode */
 			,&serial				/* program serial number */
 			,&zm->files_remaining	/* remaining files to be sent */
 			,&zm->bytes_remaining	/* remaining bytes to be sent */
 			);
 	}
+	zm->current_file_time=tmptime;
 
 	lprintf(zm,LOG_DEBUG,"Zmodem header (%u fields): %s"
 		,i, zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1);
@@ -2085,7 +2087,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.75 $", "%*s %s", buf);
+	sscanf("$Revision: 1.77 $", "%*s %s", buf);
 
 	return(buf);
 }
