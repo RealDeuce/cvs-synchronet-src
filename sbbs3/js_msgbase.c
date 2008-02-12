@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.137 2008/02/25 02:15:11 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.136 2008/02/01 19:52:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,6 +198,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	ushort		nettype=NET_UNKNOWN;
 	ushort		type;
 	ushort		agent;
+	ushort		port;
 	int32		i32;
 	jsval		val;
 	JSObject*	array;
@@ -298,9 +299,9 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_port", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
-			return(FALSE);
-		if((p->status=smb_hfield_str(msg, SENDERPORT, cp))!=SMB_SUCCESS)
+		JS_ValueToInt32(cx,val,&i32);
+		port=(ushort)i32;
+		if((p->status=smb_hfield_bin(msg, SENDERPORT, port))!=SMB_SUCCESS)
 			return(FALSE);
 	}
 
@@ -743,7 +744,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_STRING_COND("from_ip_addr", (val=smb_get_hfield(&(p->msg),SENDERIPADDR,NULL))!=NULL, val);
 	LAZY_STRING_COND("from_host_name", (val=smb_get_hfield(&(p->msg),SENDERHOSTNAME,NULL))!=NULL, val);
 	LAZY_STRING_COND("from_protocol", (val=smb_get_hfield(&(p->msg),SENDERPROTOCOL,NULL))!=NULL, val);
-	LAZY_STRING_COND("from_port", (port=smb_get_hfield(&(p->msg),SENDERPORT,NULL))!=NULL, val);
+	LAZY_INTEGER_COND("from_port", (port=smb_get_hfield(&(p->msg),SENDERPORT,NULL))!=NULL, *port);
 	LAZY_INTEGER_EXPAND("forwarded", p->msg.forwarded);
 	LAZY_INTEGER_EXPAND("expiration", p->msg.expiration);
 	LAZY_INTEGER_EXPAND("priority", p->msg.priority);
