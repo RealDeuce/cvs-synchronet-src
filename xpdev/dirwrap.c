@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.73 2008/06/04 04:40:02 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.71 2007/08/12 06:19:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -663,7 +663,7 @@ int removecase(char *path)
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
 /****************************************************************************/
-ulong DLLCALL delfiles(const char *inpath, const char *spec)
+ulong DLLCALL delfiles(char *inpath, char *spec)
 {
 	char	path[MAX_PATH+1];
 	char	lastch;
@@ -1016,7 +1016,7 @@ BOOL DLLCALL wildmatchi(const char *fname, const char *spec, BOOL path)
 /****************************************************************************/
 /* Creates all the necessary directories in the specified path				*/
 /****************************************************************************/
-int DLLCALL mkpath(const char* path)
+int DLLCALL mkdirs(const char* path)
 {
 	const char*	p=path;
 	const char*	tp;
