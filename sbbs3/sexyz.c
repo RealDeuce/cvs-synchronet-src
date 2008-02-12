@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.82 2008/02/12 08:05:01 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.83 2008/02/12 08:07:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -782,7 +782,7 @@ static int send_files(char** fname, uint fnames)
 	int			gi;
 	BOOL		success=TRUE;
 	long		fsize;
-	uint32_t	sent_bytes;
+	ulong		sent_bytes;
 	uint32_t	total_bytes=0;
 	time_t		t,startfile;
 	time_t		startall;
@@ -849,7 +849,7 @@ static int send_files(char** fname, uint fnames)
 				,mode&XMODEM ? 'X' : mode&YMODEM ? 'Y' : 'Z');
 
 			if(mode&ZMODEM)
-					success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, &sent_bytes);
+					success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, (uint32_t*)&sent_bytes);
 			else	/* X/Ymodem */
 					success=xmodem_send_file(&xm, path, fp, &startfile, &sent_bytes);
 
@@ -1323,7 +1323,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.82 $", "%*s %s", revision);
+	sscanf("$Revision: 1.83 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
