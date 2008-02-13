@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.73 2007/02/26 09:30:04 deuce Exp $ */
+/* $Id: genwrap.c,v 1.75 2008/02/02 22:09:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -498,18 +498,28 @@ clock_t DLLCALL msclock(void)
 #endif
 
 /****************************************************************************/
+/* Skips all white-space chars at beginning of 'str'						*/
+/****************************************************************************/
+char* DLLCALL skipsp(char* str)
+{
+	SKIP_WHITESPACE(str);
+	return(str);
+}
+
+/****************************************************************************/
 /* Truncates all white-space chars off end of 'str'	(needed by STRERRROR)	*/
 /****************************************************************************/
 char* DLLCALL truncsp(char* str)
 {
 	size_t i,len;
 
-	i=len=strlen(str);
-	while(i && (str[i-1]==' ' || str[i-1]=='\t' || str[i-1]=='\r' || str[i-1]=='\n')) 
-		i--;
-	if(i!=len)
-		str[i]=0;	/* truncate */
-
+	if(str!=NULL) {
+		i=len=strlen(str);
+		while(i && isspace(str[i-1])) 
+			i--;
+		if(i!=len)
+			str[i]=0;	/* truncate */
+	}
 	return(str);
 }
 
@@ -545,12 +555,13 @@ char* DLLCALL truncnl(char* str)
 {
 	size_t i,len;
 
-	i=len=strlen(str);
-	while(i && (str[i-1]=='\r' || str[i-1]=='\n')) 
-		i--;
-	if(i!=len)
-		str[i]=0;	/* truncate */
-
+	if(str!=NULL) {
+		i=len=strlen(str);
+		while(i && (str[i-1]=='\r' || str[i-1]=='\n')) 
+			i--;
+		if(i!=len)
+			str[i]=0;	/* truncate */
+	}
 	return(str);
 }
 
