@@ -7,8 +7,6 @@
 
 #define DUPEFIND_VER "1.01"
 
-char* crlf="\r\n";
-
 void bail(int code)
 {
 exit(code);
@@ -33,7 +31,7 @@ return(fputs(tmp,stderr));
 /* Performs printf() through local assembly routines                        */
 /* Called from everywhere                                                   */
 /****************************************************************************/
-int lprintf(const char *fmat, ...)
+int lprintf(char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[256];
@@ -67,8 +65,7 @@ int main(int argc,char **argv)
 {
 	char str[256],*ixbbuf,*p;
 	ulong **fcrc,*foundcrc,total_found=0L;
-	ulong g;
-	ushort i,j,k,h,start_lib=0,end_lib=0,found=-1;
+	ushort i,j,k,h,g,start_lib=0,end_lib=0,found=-1;
 	int file;
     long l,m;
 	scfg_t cfg;
