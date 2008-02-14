@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.444 2008/02/26 20:35:05 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.437 2008/02/13 07:38:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -302,6 +302,16 @@ int sockprintf(SOCKET sock, char *fmt, ...)
 	return(len);
 }
 
+static time_t checktime(void)
+{
+	struct tm tm;
+
+    memset(&tm,0,sizeof(tm));
+    tm.tm_year=94;
+    tm.tm_mday=1;
+    return(mktime(&tm)-0x2D24BD00L);
+}
+
 static void recverror(SOCKET socket, int rd, int line)
 {
 	if(rd==0) 
@@ -415,7 +425,6 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	char		toaddr[256]="";
 	char		fromaddr[256]="";
 	char		fromhost[256];
-	char		msgid[256];
 	char		date[64];
 	char*		p;
 	char*		tp;
@@ -484,7 +493,7 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 		s=sockprintf(socket,"Reply-To: %s",p);	/* use original RFC822 header field */
 	if(!s)
 		return(0);
-	if(!sockprintf(socket,"Message-ID: %s",get_msgid(&scfg,INVALID_SUB,msg,msgid,sizeof(msgid))))
+	if(!sockprintf(socket,"Message-ID: %s",get_msgid(&scfg,INVALID_SUB,msg)))
 		return(0);
 	if(msg->reply_id!=NULL)
 		if(!sockprintf(socket,"In-Reply-To: %s",msg->reply_id))
@@ -1341,24 +1350,6 @@ static BOOL chk_email_addr(SOCKET socket, char* p, char* host_name, char* host_i
 	return(FALSE);
 }
 
-static BOOL email_addr_is_exempt(const char* addr)
-{
-	char fname[MAX_PATH+1];
-	char netmail[128];
-	char* p;
-
-	if(*addr==0 || strcmp(addr,"<>")==0)
-		return FALSE;
-	sprintf(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
-	if(findstr((char*)addr,fname))
-		return TRUE;
-	SAFECOPY(netmail, addr);
-	if(*(p=netmail)=='<')
-		p++;
-	truncstr(p,">");
-	return userdatdupe(&scfg, 0, U_NETMAIL, LEN_NETMAIL, p, FALSE);
-}
-
 static void exempt_email_addr(const char* comment
 							  ,const char* fromname, const char* fromaddr
 							  ,const char* toaddr)
@@ -1369,8 +1360,8 @@ static void exempt_email_addr(const char* comment
 	FILE*	fp;
 
 	SAFEPRINTF(to,"<%s>",toaddr);
-	if(!email_addr_is_exempt(to)) {
-		SAFEPRINTF(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
+	SAFEPRINTF(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
+	if(!findstr(to,fname)) {
 		if((fp=fopen(fname,"a"))==NULL)
 			lprintf(LOG_ERR,"0000 !Error opening file: %s", fname);
 		else {
@@ -2980,10 +2971,15 @@ static void smtp_thread(void* arg)
 			SAFECOPY(reverse_path,p);
 
 			/* If MAIL FROM address is in dnsbl_exempt.cfg, clear DNSBL results */
-			if(dnsbl_result.s_addr && email_addr_is_exempt(reverse_path)) {
-				lprintf(LOG_INFO,"%04d SMTP Ignoring DNSBL results for exempt sender: %s"
-					,socket,reverse_path);
-				dnsbl_result.s_addr=0;
+			if(dnsbl_result.s_addr) {
+				char fname[MAX_PATH+1];
+				
+				sprintf(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
+				if(findstr(reverse_path,fname)) {
+					lprintf(LOG_INFO,"%04d SMTP Ignoring DNSBL results for exempt sender: %s"
+						,socket,reverse_path);
+					dnsbl_result.s_addr=0;
+				}
 			}
 
 			/* Update client display */
@@ -3114,7 +3110,7 @@ static void smtp_thread(void* arg)
 				sockprintf(socket
 					,"550 Mail from %s refused due to listing at %s"
 					,host_ip, dnsbl);
-				break;
+				continue;
 			}
 
 			/* Check for full address aliases */
@@ -3650,7 +3646,6 @@ static void sendmail_thread(void* arg)
 	mail_t*		mail;
 	int32_t		msgs;
 	long		l;
-	size_t		len;
 	BOOL		sending_locally=FALSE;
 
 	SetThreadName("SendMail Thread");
@@ -3831,7 +3826,7 @@ static void sendmail_thread(void* arg)
 							continue;
 						}
 						lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
-						if((i=dns_getmx(p, mx, mx2, INADDR_ANY, dns
+						if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
 							,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
 							,TIMEOUT_THREAD_WAIT/2))!=0) {
 							remove_msg_intransit(&smb,&msg);
@@ -3944,78 +3939,77 @@ static void sendmail_thread(void* arg)
 			/* AUTH */
 			if(startup->options&MAIL_OPT_RELAY_TX 
 				&& (startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=0 && !sending_locally) {
+				switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
+					case MAIL_OPT_RELAY_AUTH_PLAIN:
+						p="PLAIN";
+						break;
+					case MAIL_OPT_RELAY_AUTH_LOGIN:
+						p="LOGIN";
+						break;
+					case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
+						p="CRAM-MD5";
+						break;
+					default:
+						p="<unknown>";
+						break;
+				}
+				sockprintf(sock,"AUTH %s",p);
+				if(!sockgetrsp(sock,"334",buf,sizeof(buf))) {
+					SAFEPRINTF3(err,badrsp_err,server,buf,"334 Username/Challenge");
+					bounce(&smb,&msg,err,buf[0]=='5');
+					continue;
+				}
+				switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
+					case MAIL_OPT_RELAY_AUTH_PLAIN:
+						p=startup->relay_user;
+						break;
+					case MAIL_OPT_RELAY_AUTH_LOGIN:
+						b64_encode(p=resp,sizeof(resp),startup->relay_user,0);
+						break;
+					case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
+						p=buf;
+						FIND_WHITESPACE(p);
+						SKIP_WHITESPACE(p);
+						b64_decode(challenge,sizeof(challenge),p,0);
 
-				if((startup->options&MAIL_OPT_RELAY_AUTH_MASK)==MAIL_OPT_RELAY_AUTH_PLAIN) {
-					/* Build the buffer: <username>\0<user-id>\0<password */
-					len=safe_snprintf(buf,sizeof(buf),"%s",startup->relay_user)+1;
-					len+=safe_snprintf(buf+len,sizeof(buf)-1,startup->relay_user)+1;
-					len+=safe_snprintf(buf+len,sizeof(buf)-1,startup->relay_pass);
-					b64_encode(resp,sizeof(resp),buf,len);
-					sockprintf(sock,"AUTH PLAIN %s",resp);
-				} else {
-					switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-						case MAIL_OPT_RELAY_AUTH_LOGIN:
-							p="LOGIN";
-							break;
-						case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
-							p="CRAM-MD5";
-							break;
-						default:
-							p="<unknown>";
-							break;
-					}
-					sockprintf(sock,"AUTH %s",p);
+						/* Calculate response */
+						memset(secret,0,sizeof(secret));
+						SAFECOPY(secret,startup->relay_pass);
+						for(i=0;i<sizeof(secret);i++)
+							md5_data[i]=secret[i]^0x36;	/* ipad */
+						strcpy(md5_data+i,challenge);
+						MD5_calc(digest,md5_data,sizeof(secret)+strlen(challenge));
+						for(i=0;i<sizeof(secret);i++)
+							md5_data[i]=secret[i]^0x5c;	/* opad */
+						memcpy(md5_data+i,digest,sizeof(digest));
+						MD5_calc(digest,md5_data,sizeof(secret)+sizeof(digest));
+						
+						safe_snprintf(buf,sizeof(buf),"%s %s",startup->relay_user,MD5_hex(str,digest));
+						b64_encode(p=resp,sizeof(resp),buf,0);
+						break;
+					default:
+						p="<unknown>";
+						break;
+				}
+				sockprintf(sock,"%s",p);
+				if((startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=MAIL_OPT_RELAY_AUTH_CRAM_MD5) {
 					if(!sockgetrsp(sock,"334",buf,sizeof(buf))) {
-						SAFEPRINTF3(err,badrsp_err,server,buf,"334 Username/Challenge");
+						SAFEPRINTF3(err,badrsp_err,server,buf,"334 Password");
 						bounce(&smb,&msg,err,buf[0]=='5');
 						continue;
 					}
 					switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-						case MAIL_OPT_RELAY_AUTH_LOGIN:
-							b64_encode(p=resp,sizeof(resp),startup->relay_user,0);
+						case MAIL_OPT_RELAY_AUTH_PLAIN:
+							p=startup->relay_pass;
 							break;
-						case MAIL_OPT_RELAY_AUTH_CRAM_MD5:
-							p=buf;
-							FIND_WHITESPACE(p);
-							SKIP_WHITESPACE(p);
-							b64_decode(challenge,sizeof(challenge),p,0);
-
-							/* Calculate response */
-							memset(secret,0,sizeof(secret));
-							SAFECOPY(secret,startup->relay_pass);
-							for(i=0;i<sizeof(secret);i++)
-								md5_data[i]=secret[i]^0x36;	/* ipad */
-							strcpy(md5_data+i,challenge);
-							MD5_calc(digest,md5_data,sizeof(secret)+strlen(challenge));
-							for(i=0;i<sizeof(secret);i++)
-								md5_data[i]=secret[i]^0x5c;	/* opad */
-							memcpy(md5_data+i,digest,sizeof(digest));
-							MD5_calc(digest,md5_data,sizeof(secret)+sizeof(digest));
-							
-							safe_snprintf(buf,sizeof(buf),"%s %s",startup->relay_user,MD5_hex(str,digest));
-							b64_encode(p=resp,sizeof(resp),buf,0);
+						case MAIL_OPT_RELAY_AUTH_LOGIN:
+							b64_encode(p=buf,sizeof(buf),startup->relay_pass,0);
 							break;
 						default:
 							p="<unknown>";
 							break;
 					}
 					sockprintf(sock,"%s",p);
-					if((startup->options&MAIL_OPT_RELAY_AUTH_MASK)!=MAIL_OPT_RELAY_AUTH_CRAM_MD5) {
-						if(!sockgetrsp(sock,"334",buf,sizeof(buf))) {
-							SAFEPRINTF3(err,badrsp_err,server,buf,"334 Password");
-							bounce(&smb,&msg,err,buf[0]=='5');
-							continue;
-						}
-						switch(startup->options&MAIL_OPT_RELAY_AUTH_MASK) {
-							case MAIL_OPT_RELAY_AUTH_LOGIN:
-								b64_encode(p=buf,sizeof(buf),startup->relay_pass,0);
-								break;
-							default:
-								p="<unknown>";
-								break;
-						}
-						sockprintf(sock,"%s",p);
-					}
 				}
 				if(!sockgetrsp(sock,"235",buf,sizeof(buf))) {
 					SAFEPRINTF3(err,badrsp_err,server,buf,"235");
@@ -4178,7 +4172,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.444 $", "%*s %s", revision);
+	sscanf("$Revision: 1.437 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4299,7 +4293,7 @@ void DLLCALL mail_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,ctime_r(&t,str),startup->options);
+			,CTIME_R(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
@@ -4353,8 +4347,16 @@ void DLLCALL mail_server(void* arg)
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-		if((t=checktime())!=0) {   /* Check binary time */
-			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&MAIL_OPT_LOCAL_TIMEZONE)) {
+			if(putenv("TZ=UTC0"))
+				lprintf(LOG_ERR,"!putenv() FAILED");
+			tzset();
+
+			if((t=checktime())!=0) {   /* Check binary time */
+				lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
+				cleanup(1);
+				return;
+			}
 		}
 
 		if(uptime==0)
