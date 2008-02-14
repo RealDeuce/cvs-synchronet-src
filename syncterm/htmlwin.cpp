@@ -1,10 +1,4 @@
-//
-// file name: hworld.cpp
-//
-//   purpose: wxWidgets "Hello world"
-//
-
-// For compilers that support precompilation, includes "wx/wx.h".
+/* Copyright (C), 2007 by Stephen Hurd */
 
 #undef _DEBUG
 
@@ -27,65 +21,130 @@ static sem_t		shown;
 static sem_t		state_changed;
 static pthread_mutex_t	update_mutex;
 
-static wxString	addr;
 static wxString	update_str;
-
 enum update_type {
 	 HTML_WIN_UPDATE_NONE
 	,HTML_WIN_UPDATE_ADD
 	,HTML_WIN_UPDATE_REPLACE
 };
-
 static enum update_type		update_type=HTML_WIN_UPDATE_NONE;
 
 static wxFrame		*frame;
 static wxHtmlWindow *htmlWindow;
-static wxTimer		*update_timer;
-static wxTimer		*state_timer;
 
 static int			window_width=640;
 static int			window_height=400;
 static int			window_xpos=50;
 static int			window_ypos=50;
 static void(*output_callback)(const char *);
+static int(*url_callback)(const char *, char *, size_t, char *, size_t);
 
 static bool			html_thread_running=false;
 
 enum html_window_state {
 	 HTML_WIN_STATE_RAISED
+	,HTML_WIN_STATE_LOWERED
 	,HTML_WIN_STATE_ICONIZED
 	,HTML_WIN_STATE_HIDDEN
 };
-
 static enum html_window_state	html_window_requested_state=HTML_WIN_STATE_RAISED;
 
-class MyUpdateTimer: public wxTimer
+class MyHTML: public wxHtmlWindow
 {
+public:
+
+	MyHTML(wxFrame *parent, int id);
+	void Clicked(wxHtmlLinkEvent &ev);
+
 protected:
-	void Notify(void);
+	wxHtmlOpeningStatus OnOpeningURL(wxHtmlURLType type,const wxString& url, wxString *redirect) const;
+	void MyHTML::OnKeyDown(wxKeyEvent& event);
+	void MyHTML::OnUpdate(wxCommandEvent &event);
+	void MyHTML::OnState(wxCommandEvent &event);
+	void MyHTML::UnHide(void);
+
+	DECLARE_EVENT_TABLE()
 };
 
-void MyUpdateTimer::Notify(void)
+MyHTML::MyHTML(wxFrame *parent, int id) : wxHtmlWindow(parent, id)
 {
-	int width,height,xpos,ypos;
+}
 
+wxHtmlOpeningStatus MyHTML::OnOpeningURL(wxHtmlURLType type,const wxString& url, wxString *redirect) const
+{
+	char	cache[4096];
+	char	orig[4096];
+	char	buf[1024];
+	FILE	*outfile;
+	int		ret;
+
+	ret=url_callback(url.mb_str(), cache, sizeof(cache), orig, sizeof(orig));
+	wxString cstr(cache,wxConvUTF8);
+	wxString remotefile(orig,wxConvUTF8);
+	redirect->Empty();
+	redirect->Append(cstr);
+	switch(ret) {
+		case URL_ACTION_DOWNLOAD:
+			outfile=fopen(cache+5 /* file:// */,"wb");
+			if(outfile) {
+				wxFileSystem *fs=new wxFileSystem();
+				wxFSFile *infile=fs->OpenFile(remotefile);
+				wxInputStream *in=infile->GetStream();
+				while(!in->Eof())
+					fwrite(buf, in->Read(buf,sizeof(buf)).LastRead(), 1, outfile);
+				fclose(outfile);
+				delete infile;
+				delete fs;
+			}
+		case URL_ACTION_REDIRECT:
+			return(wxHTML_REDIRECT);
+	}
+	return(wxHTML_OPEN);
+}
+
+void MyHTML::Clicked(wxHtmlLinkEvent &ev)
+{
+	output_callback(ev.GetLinkInfo().GetHref().mb_str());
+}
+
+void MyHTML::OnKeyDown(wxKeyEvent& event)
+{
+	int key=event.GetKeyCode();
+	char send[2]={0,0};
+
+	if(key >= ' ' && key <= '~')
+		send[0]=key;
+	else {
+		switch(key) {
+			case WXK_BACK:
+			case WXK_TAB:
+			case WXK_RETURN:
+			case WXK_ESCAPE:
+			case WXK_SPACE:
+			case WXK_DELETE:
+				send[0]=key;
+		}
+	}
+	if(send[0])
+		output_callback(send);
+	event.Skip();
+}
+
+void MyHTML::OnUpdate(wxCommandEvent &event)
+{
 	pthread_mutex_lock(&update_mutex);
 	switch(update_type) {
 		case HTML_WIN_UPDATE_REPLACE:
 			frame->Show();
 			frame->Raise();
-			frame->GetPosition(&xpos, &ypos);
-			frame->GetSize(&width, &height);
-			if(xpos != window_xpos 
-					|| ypos != window_ypos
-					|| width != window_width
-					|| height != window_height)
-				frame->SetSize(window_xpos, window_ypos, window_width, window_height, wxSIZE_AUTO);
 			htmlWindow->SetPage(update_str);
+			htmlWindow->Raise();
+			htmlWindow->SetFocus();
 			sem_post(&shown);
 			break;
 		case HTML_WIN_UPDATE_ADD:
 			htmlWindow->AppendToPage(update_str);
+			sem_post(&shown);
 			break;
 	}
 	update_str=wxT("");
@@ -93,26 +152,47 @@ void MyUpdateTimer::Notify(void)
 	pthread_mutex_unlock(&update_mutex);
 }
 
-class MyStateTimer: public wxTimer
+void MyHTML::UnHide(void)
 {
-protected:
-	void Notify(void);
-};
+	int width,height,xpos,ypos;
 
-void MyStateTimer::Notify(void)
+	if(!frame->IsShown()) {
+		frame->GetPosition(&xpos, &ypos);
+		frame->GetSize(&width, &height);
+		if(xpos != window_xpos 
+				|| ypos != window_ypos
+				|| width != window_width
+				|| height != window_height)
+			frame->SetSize(window_xpos, window_ypos, window_width, window_height, wxSIZE_AUTO);
+		frame->Show(true);
+	}
+}
+
+void MyHTML::OnState(wxCommandEvent &event)
 {
 	if(wxTheApp) {
 		switch(html_window_requested_state) {
 			case HTML_WIN_STATE_RAISED:
-				if(!frame->IsShown())
-					frame->Show();
+				UnHide();
 				if(frame->IsIconized())
 					frame->Iconize(false);
+#ifdef _WIN32
+				frame->Hide();
+#endif
+				frame->Show();
 				frame->Raise();
+				htmlWindow->Show();
+				htmlWindow->Raise();
+				htmlWindow->SetFocus();
+				break;
+			case HTML_WIN_STATE_LOWERED:
+				UnHide();
+				if(frame->IsIconized())
+					frame->Iconize(false);
+				frame->Lower();
 				break;
 			case HTML_WIN_STATE_ICONIZED:
-				if(!frame->IsShown())
-					frame->Show();
+				UnHide();
 				frame->Lower();
 				if(!frame->IsIconized())
 					frame->Iconize(true);
@@ -127,47 +207,25 @@ void MyStateTimer::Notify(void)
 	sem_post(&state_changed);
 }
 
-class MyHTML: public wxHtmlWindow
-{
-public:
-
-	MyHTML(wxFrame *parent, int id);
-	void Clicked(wxHtmlLinkEvent &ev);
-
-protected:
-	wxHtmlOpeningStatus OnOpeningURL(wxHtmlURLType type,const wxString& url, wxString *redirect) const;
-	DECLARE_EVENT_TABLE();
-};
-
-MyHTML::MyHTML(wxFrame *parent, int id) : wxHtmlWindow(parent, id)
-{
-}
-
-wxHtmlOpeningStatus MyHTML::OnOpeningURL(wxHtmlURLType type,const wxString& url, wxString *redirect) const
-{
-	/* If the URL does not contain :// we need to fix it up and redirect */
-	if(!url.Matches(wxT("*://*"))) {
-		redirect->Empty();
-		redirect->Append(wxT("http://"));
-		redirect->Append(addr);
-		if(!url.StartsWith(wxT("/")))
-			redirect->Append(wxT("/"));
-		redirect->Append(url);
-		return wxHTML_REDIRECT;
-	}
-	return wxHTML_OPEN;
-}
-
-void MyHTML::Clicked(wxHtmlLinkEvent &ev)
-{
-	output_callback(ev.GetLinkInfo().GetHref().mb_str());
-}
-
 #define HTML_ID		wxID_HIGHEST
 
+DECLARE_EVENT_TYPE(update_event, -1)
+DECLARE_EVENT_TYPE(state_event, -1)
+DEFINE_EVENT_TYPE(update_event)
+DEFINE_EVENT_TYPE(state_event)
+
 BEGIN_EVENT_TABLE(MyHTML, wxHtmlWindow)
+  EVT_KEY_DOWN(MyHTML::OnKeyDown)
   EVT_HTML_LINK_CLICKED(HTML_ID, MyHTML::Clicked)
+  EVT_COMMAND(HTML_ID, update_event, MyHTML::OnUpdate)
+  EVT_COMMAND(HTML_ID, state_event, MyHTML::OnState)
 END_EVENT_TABLE()
+
+void send_html_event(int evt)
+{
+	wxCommandEvent event( evt, HTML_ID );
+	htmlWindow->GetEventHandler()->AddPendingEvent( event );
+}
 
 class MyFrame: public wxFrame
 {
@@ -176,7 +234,7 @@ public:
 private:
 	void MyFrame::OnCloseWindow(wxCloseEvent& event);
 
-	DECLARE_EVENT_TABLE();
+	DECLARE_EVENT_TABLE()
 };
 
 MyFrame::MyFrame(wxWindow * parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style)
@@ -206,18 +264,14 @@ bool MyApp::OnInit()
 			, wxT("SyncTERM HTML")
 			, wxPoint(window_xpos,window_ypos)
 			, wxSize(window_width,window_height)
-			, wxCLOSE_BOX | wxMINIMIZE_BOX | wxCAPTION | wxCLIP_CHILDREN
+			, wxMINIMIZE_BOX | wxRESIZE_BORDER | wxCAPTION | wxCLOSE_BOX | wxSYSTEM_MENU /* wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCLIP_CHILDREN */
 	);
-	wxFileSystem::AddHandler(new wxInternetFSHandler);
-	wxInitAllImageHandlers();
 	htmlWindow = new MyHTML(frame, HTML_ID);
 	htmlWindow->SetRelatedFrame(frame,wxT("SyncTERM HTML : %s"));
+	wxFileSystem::AddHandler(new wxInternetFSHandler);
+	wxInitAllImageHandlers();
     frame->Show();
-	frame->Iconize();
     SetTopWindow( frame );
-	update_timer = new MyUpdateTimer();
-	state_timer = new MyStateTimer();
-	state_timer->Start(1, true);
 	sem_post(&appstarted);
     return true;
 }
@@ -244,8 +298,15 @@ void html_thread(void *args)
 
 extern "C" {
 
-	int run_html()
+	int run_html(int width, int height, int xpos, int ypos, void(*callback)(const char *), int(*ucallback)(const char *, char *, size_t, char *, size_t))
 	{
+		output_callback=callback;
+		url_callback=ucallback;
+		window_xpos=xpos==-1?wxDefaultCoord:xpos;
+		window_ypos=ypos==-1?wxDefaultCoord:ypos;
+		window_width=width==-1?640:width;
+		window_height=height==-1?200:height;
+
 		if(!html_thread_running) {
 			sem_init(&appstarted, 0, 0);
 			sem_init(&state_changed, 0, 0);
@@ -261,31 +322,48 @@ extern "C" {
 	void hide_html(void)
 	{
 		html_window_requested_state=HTML_WIN_STATE_HIDDEN;
-		state_timer->Start(1, true);
+		send_html_event(state_event);
 		sem_wait(&state_changed);
 	}
 
 	void iconize_html(void)
 	{
 		html_window_requested_state=HTML_WIN_STATE_ICONIZED;
-		state_timer->Start(1, true);
+		send_html_event(state_event);
 		sem_wait(&state_changed);
 	}
 
 	void raise_html(void)
 	{
 		html_window_requested_state=HTML_WIN_STATE_RAISED;
-		state_timer->Start(1, true);
+		send_html_event(state_event);
 		sem_wait(&state_changed);
 	}
 	
+	void lower_html(void)
+	{
+		html_window_requested_state=HTML_WIN_STATE_LOWERED;
+		send_html_event(state_event);
+		sem_wait(&state_changed);
+	}
+
+	void html_commit(void)
+	{
+		pthread_mutex_lock(&update_mutex);
+		if(update_type!=HTML_WIN_UPDATE_NONE) {
+			send_html_event(update_event);
+			pthread_mutex_unlock(&update_mutex);
+			sem_wait(&shown);
+		}
+		else
+			pthread_mutex_unlock(&update_mutex);
+	}
+
 	void add_html(const char *buf)
 	{
 		wxString wx_page(buf,wxConvUTF8);
 		pthread_mutex_lock(&update_mutex);
 		update_str+=wx_page;
-		if(update_type==HTML_WIN_UPDATE_NONE)
-			update_timer->Start(10, true);
 		update_type=HTML_WIN_UPDATE_ADD;
 		pthread_mutex_unlock(&update_mutex);
 	}
@@ -298,25 +376,16 @@ extern "C" {
 		str[1]=0;
 		add_html(str);
 	}
-	
-	void show_html(const char *address, int width, int height, int xpos, int ypos, void(*callback)(const char *), const char *page)
-	{
-		window_xpos=xpos==-1?wxDefaultCoord:xpos;
-		window_ypos=ypos==-1?wxDefaultCoord:ypos;
-		window_width=width==-1?640:width;
-		window_height=height==-1?200:height;
-		output_callback=callback;
 
-		if(!run_html()) {
-			wxString wx_page(page,wxConvUTF8);
-			wxString newaddr(address,wxConvUTF8);
-			addr=newaddr;
+	void show_html(const char *page)
+	{
+		if(wxTheApp) {
 			pthread_mutex_lock(&update_mutex);
+			wxString wx_page(page, wxConvUTF8);
 			update_str=wx_page;
 			update_type=HTML_WIN_UPDATE_REPLACE;
 			pthread_mutex_unlock(&update_mutex);
-			update_timer->Start(1, true);
-			sem_wait(&shown);
+			html_commit();
 		}
 	}
 }
