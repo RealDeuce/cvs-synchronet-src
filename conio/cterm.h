@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.18 2008/01/28 08:16:16 deuce Exp $ */
+/* $Id: cterm.h,v 1.19 2008/01/29 01:32:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,6 +111,7 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 int cterm_openlog(char *logfile, int logtype);
 void cterm_closelog(void);
 void cterm_end(void);
+void cterm_clearscreen(char attr);
 #ifdef __cplusplus
 }
 #endif
