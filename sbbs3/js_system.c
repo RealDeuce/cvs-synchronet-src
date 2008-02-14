@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.116 2008/02/14 02:22:58 deuce Exp $ */
+/* $Id: js_system.c,v 1.117 2008/02/14 09:15:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1445,7 +1445,8 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,311
 	},
 	{"check_name",		js_chkname,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("name/alias")
-	,JSDOCSTR("check the provided name/alias string, returns <i>true</i> if it is valid")
+	,JSDOCSTR("checks that the provided name/alias string is suitable for a new user account, "
+		"returns <i>true</i> if it is valid")
 	,315
 	},
 	{0}
