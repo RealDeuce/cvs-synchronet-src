@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.106 2009/02/06 02:10:59 deuce Exp $ */
+/* $Id: ciolib.c,v 1.104 2008/02/03 11:34:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -404,13 +404,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getche(void)
 	else {
 		while(1) {
 			ch=ciolib_getch();
-			if(ch != 0 && ch != 0xe0) {
+			if(ch) {
 				ciolib_putch(ch);
 				return(ch);
 			}
-			/* Eat extended chars - except ESC which is an abort */
-			if(ciolib_getch()==1)
-				return(EOF);
+			/* Eat extended chars */
+			ciolib_getch();
 		}
 	}
 }
@@ -467,10 +466,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	maxlen=*(unsigned char *)str;
 	while((ch=ciolib_getch())!='\n' && ch !='\r') {
 		switch(ch) {
-			case 0:		/* Skip extended keys */
-			case 0xe0:	/* Skip extended keys */
-				if(ciolib_getche()==1)
-					goto early_return;
+			case 0:	/* Skip extended keys */
+				ciolib_getche();
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
 				break;
@@ -495,7 +492,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				break;
 		}
 	}
-early_return:
 	str[len+2]=0;
 	*((unsigned char *)(str+1))=(unsigned char)len;
 	ciolib_putch('\r');
@@ -567,10 +563,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt)
 	ciolib_cputs((char *)prompt);
 	while((ch=ciolib_getch())!='\n') {
 		switch(ch) {
-			case 0:		/* Skip extended keys */
-			case 0xe0:	/* Skip extended keys */
-				if(ciolib_getch()==1)
-					goto early_return;
+			case 0:	/* Skip extended keys */
+				ciolib_getch();
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treeated as a \n? */
 				break;
@@ -589,7 +583,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt)
 				break;
 		}
 	}
-early_return:
 	pass[len]=0;
 	return(pass);
 }
