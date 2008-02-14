@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.224 2008/02/23 22:35:09 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.223 2007/10/02 16:56:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -173,6 +173,7 @@ static const char* usage  = "\nusage: %s [[setting] [...]] [path/ini_file]\n"
 #ifdef __unix__
 							"\tnd         do not read run as daemon - overrides .ini file\n"
 #endif
+							"\tlt         use local timezone (do not force UTC/GMT)\n"
 							"\tdefaults   show default settings and options\n"
 							"\n"
 							;
@@ -1652,6 +1653,19 @@ int main(int argc, char** argv)
 						break;
 					case 'W':	/* no web server */
 						run_web=FALSE;
+						break;
+					default:
+						show_usage(argv[0]);
+						return(1);
+				}
+				break;
+			case 'L':	/* Local */
+				switch(toupper(*(arg++))) {
+					case 'T': /* timezone */
+						bbs_startup.options		|=BBS_OPT_LOCAL_TIMEZONE;
+						ftp_startup.options		|=BBS_OPT_LOCAL_TIMEZONE;
+						mail_startup.options	|=BBS_OPT_LOCAL_TIMEZONE;
+						services_startup.options|=BBS_OPT_LOCAL_TIMEZONE;
 						break;
 					default:
 						show_usage(argv[0]);
