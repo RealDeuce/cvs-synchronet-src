@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.119 2008/02/15 09:30:07 rswindell Exp $ */
+/* $Id: js_system.c,v 1.117 2008/02/14 09:15:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -215,8 +215,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			JS_NewNumberValue(cx,cfg->new_min,vp);
 			break;
 		case SYS_PROP_NEW_SHELL:
-			if(cfg->new_shell<cfg->total_shells)
-				p=cfg->shell[cfg->new_shell]->code;
+			*vp = INT_TO_JSVAL(cfg->new_shell);
 			break;
 		case SYS_PROP_NEW_XEDIT:
 			p=cfg->new_xedit;
@@ -1224,11 +1223,6 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	alias=JS_GetStringBytes(JS_ValueToString(cx,argv[0]));
-
-	if(!check_name(cfg,alias)) {
-		JS_ReportError(cx,"Invalid or duplicate user alias: %s", alias);
-		return JS_FALSE;
-	}
 
 	memset(&user,0,sizeof(user));
 
