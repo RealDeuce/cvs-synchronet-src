@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.109 2008/02/23 06:23:48 deuce Exp $ */
+/* $Id: cterm.c,v 1.108 2008/02/11 08:36:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1135,7 +1135,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.109 $";
+	char	*revision="$Revision: 1.108 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1246,7 +1246,7 @@ void ctputs(char *buf)
 				*p=0;
 				cputs(outp);
 				outp=p+1;
-				if(cx>1)
+				if(cx>0)
 					cx--;
 				gotoxy(cx,cy);
 				break;
