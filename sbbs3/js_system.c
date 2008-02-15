@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.117 2008/02/14 09:15:42 rswindell Exp $ */
+/* $Id: js_system.c,v 1.118 2008/02/15 08:46:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1223,6 +1223,11 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	alias=JS_GetStringBytes(JS_ValueToString(cx,argv[0]));
+
+	if(!check_name(cfg,alias)) {
+		JS_ReportError(cx,"Invalid or duplicate user alias: %s", alias);
+		return JS_FALSE;
+	}
 
 	memset(&user,0,sizeof(user));
 
