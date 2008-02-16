@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.478 2008/02/27 20:11:07 deuce Exp $ */
+/* $Id: websrvr.c,v 1.474 2008/01/31 18:34:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1404,7 +1404,6 @@ static void calculate_digest(http_session_t * session, char *ha1, char *ha2, uns
 	MD5_open(&ctx);
 	MD5_digest(&ctx, ha1, strlen(ha1));
 	MD5_digest(&ctx, ":", 1);
-	/* exception on next line (session->req.auth.nonce==NULL) */
 	MD5_digest(&ctx, session->req.auth.nonce, strlen(session->req.auth.nonce));
 	MD5_digest(&ctx, ":", 1);
 
@@ -2251,27 +2250,6 @@ static BOOL parse_headers(http_session_t * session)
 							}
 							if(session->req.auth.digest_uri==NULL)
 								session->req.auth.digest_uri=strdup(session->req.request_line);
-							/* Validate that we have the required values... */
-							switch(session->req.auth.qop_value) {
-								case QOP_NONE:
-									if(session->req.auth.realm==NULL
-											|| session->req.auth.nonce==NULL
-											|| session->req.auth.digest_uri==NULL)
-										send_error(session,"400 Bad Request");
-									break;
-								case QOP_AUTH:
-								case QOP_AUTH_INT:
-									if(session->req.auth.realm==NULL
-											|| session->req.auth.nonce==NULL
-											|| session->req.auth.nonce_count==NULL
-											|| session->req.auth.cnonce==NULL
-											|| session->req.auth.digest_uri==NULL)
-										send_error(session,"400 Bad Request");
-									break;
-								default:
-									send_error(session,"400 Bad Request");
-									break;
-							}
 						}
 					}
 					break;
@@ -5084,7 +5062,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.478 $", "%*s %s", revision);
+	sscanf("$Revision: 1.474 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5332,7 +5310,7 @@ void DLLCALL web_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,ctime_r(&t,logstr),startup->options);
+			,CTIME_R(&t,logstr),startup->options);
 
 		if(chdir(startup->ctrl_dir)!=0)
 			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
@@ -5373,6 +5351,12 @@ void DLLCALL web_server(void* arg)
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
+
+		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
+			if(putenv("TZ=UTC0"))
+				lprintf(LOG_WARNING,"!putenv() FAILED");
+			tzset();
+		}
 
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
