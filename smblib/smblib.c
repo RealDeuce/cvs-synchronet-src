@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.138 2007/07/10 22:20:00 deuce Exp $ */
+/* $Id: smblib.c,v 1.141 2007/11/21 00:59:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -768,13 +768,13 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 			msg->summary=(char*)hfield_dat;
 			break;
 		case SMB_EXPIRATION:
-			msg->expiration=*(time_t*)hfield_dat;
+			msg->expiration=*(uint32_t*)hfield_dat;
 			break;
 		case SMB_PRIORITY:
-			msg->priority=*(ulong*)hfield_dat;
+			msg->priority=*(uint32_t*)hfield_dat;
 			break;
 		case SMB_COST:
-			msg->cost=*(ulong*)hfield_dat;
+			msg->cost=*(uint32_t*)hfield_dat;
 			break;
 		case RFC822MSGID:
 			msg->id=(char*)hfield_dat;
@@ -1275,7 +1275,8 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 	int		wr;
 	long	length;
 	long	newlen;
-	ulong	l,*buf;
+	ulong	l;
+	uint32_t *buf;
 	time_t	start=0;
 
 	if(!smb->status.max_crcs)
@@ -1304,7 +1305,7 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 	}
 
 	length=filelength(file);
-	if(length<0L || length%sizeof(long)) {
+	if(length<0L || length%sizeof(uint32_t)) {
 		close(file);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"invalid file length: %ld", length);
@@ -1312,7 +1313,7 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 	}
 
 	if(length!=0) {
-		if((buf=(ulong*)malloc(length))==NULL) {
+		if((buf=(uint32_t*)malloc(length))==NULL) {
 			close(file);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"malloc failure of %ld bytes"
@@ -1329,10 +1330,10 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 			return(SMB_ERR_READ);
 		}
 
-		for(l=0;l<length/sizeof(long);l++)
+		for(l=0;l<length/sizeof(int32_t);l++)
 			if(crc==buf[l])
 				break;
-		if(l<length/sizeof(long)) {					/* Dupe CRC found */
+		if(l<length/sizeof(int32_t)) {					/* Dupe CRC found */
 			close(file);
 			free(buf);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
@@ -1340,8 +1341,8 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 			return(SMB_DUPE_MSG);
 		} 
 
-		if(length>=(long)(smb->status.max_crcs*sizeof(long))) {
-			newlen=(smb->status.max_crcs-1)*sizeof(long);
+		if(length>=(long)(smb->status.max_crcs*sizeof(int32_t))) {
+			newlen=(smb->status.max_crcs-1)*sizeof(int32_t);
 			chsize(file,0);	/* truncate it */
 			lseek(file,0L,SEEK_SET);
 			write(file,buf+(length-newlen),newlen); 
@@ -1399,7 +1400,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 
 	/* This is *not* a dupe-check */
 	if(!(msg->flags&MSG_FLAG_HASHED) /* not already hashed */
-		&& (i=smb_hashmsg(smb,msg,NULL,/* update? */TRUE))!=SMB_SUCCESS) {
+		&& (i=smb_hashmsg(smb,msg,/* text: */NULL,/* update? */TRUE))!=SMB_SUCCESS) {
 		smb_unlocksmbhdr(smb);
 		return(i);	/* error updating hash table */
 	}
