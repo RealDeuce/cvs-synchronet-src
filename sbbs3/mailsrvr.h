@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.62 2008/01/07 07:04:44 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.63 2008/02/13 07:38:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -144,6 +144,7 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_RELAY_AUTH_PLAIN		(1<<23)
 #define MAIL_OPT_RELAY_AUTH_LOGIN		(1<<24)
 #define MAIL_OPT_RELAY_AUTH_CRAM_MD5	(1<<25)
+#define MAIL_OPT_NO_AUTO_EXEMPT			(1<<26)	/* Do not auto DNSBL-exempt recipient e-mail addresses */
 #define MAIL_OPT_NO_RECYCLE				(1<<27)	/* Disable recycling of server		*/
 #define MAIL_OPT_LOCAL_TIMEZONE			(1<<30)	/* Don't force UTC/GMT */
 #define MAIL_OPT_MUTE					(1<<31)
@@ -182,6 +183,7 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_AUTH_PLAIN		,"RELAY_AUTH_PLAIN"		},
 	{ MAIL_OPT_RELAY_AUTH_LOGIN		,"RELAY_AUTH_LOGIN"		},
 	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
+	{ MAIL_OPT_NO_AUTO_EXEMPT		,"NO_AUTO_EXEMPT"		},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ MAIL_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
