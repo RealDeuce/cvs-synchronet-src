@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.438 2008/02/15 08:27:55 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.439 2008/02/20 00:46:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3839,7 +3839,7 @@ static void sendmail_thread(void* arg)
 							continue;
 						}
 						lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
-						if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
+						if((i=dns_getmx(p, mx, mx2, INADDR_ANY, dns
 							,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
 							,TIMEOUT_THREAD_WAIT/2))!=0) {
 							remove_msg_intransit(&smb,&msg);
@@ -4185,7 +4185,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.438 $", "%*s %s", revision);
+	sscanf("$Revision: 1.439 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
