@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.146 2008/01/29 01:26:28 deuce Exp $ */
+/* $Id: syncterm.c,v 1.150 2008/02/10 06:30:30 rswindell Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -1017,6 +1017,7 @@ int main(int argc, char **argv)
 	int		conn_type=CONN_TYPE_TELNET;
 	BOOL	dont_set_mode=FALSE;
 	BOOL	override_conn=FALSE;
+	char	*last_bbs=NULL;
 
 	/* Cryptlib initialization MUST be done before ciolib init */
 	if(!crypt_loaded)
@@ -1153,6 +1154,7 @@ int main(int argc, char **argv)
 			uifcmsg("Unable to allocate memory","The system was unable to allocate memory.");
 			return(1);
 		}
+		memset(bbs, 0, sizeof(struct bbslist));
 		if((listfile=fopen(listpath,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
 		else {
@@ -1176,8 +1178,9 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while(bbs!=NULL || (bbs=show_bbslist(bbs?bbs->id:-1, FALSE))!=NULL) {
+	while(bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
+		FREE_AND_NULL(last_bbs);
 		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
@@ -1211,7 +1214,7 @@ int main(int argc, char **argv)
 				return(1);
 			}
 			if(log_fp==NULL && bbs->logfile[0])
-				log_fp=fopen(bbs->logfile,"a");
+				log_fp=fopen(bbs->logfile,bbs->append_logfile ? "a" : "w");
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
@@ -1245,10 +1248,11 @@ int main(int argc, char **argv)
 						/* Started from the command-line with a URL */
 						init_uifc(TRUE, TRUE);
 						i=1;
-						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
+						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this directory entry?",YesNo)) {
 							case 0:	/* Yes */
 								edit_list(NULL, bbs,listpath,FALSE);
 								add_bbs(listpath,bbs);
+								last_bbs=strdup(bbs->name);
 								break;
 							default: /* ESC/No */
 								break;
@@ -1260,6 +1264,8 @@ int main(int argc, char **argv)
 			bbs=NULL;
 			break;
 		}
+		else
+			last_bbs=strdup(bbs->name);
 		bbs=NULL;
 	}
 	uifcbail();
@@ -1352,6 +1358,8 @@ int screen_to_ciolib(int screen)
 			return(C128_80X25);
 		case SCREEN_MODE_ATARI:
 			return(ATARI_40X24);
+		case SCREEN_MODE_ATARI_XEP80:
+			return(ATARI_80X25);
 	}
 	gettextinfo(&ti);
 	return(ti.currmode);
@@ -1392,6 +1400,8 @@ int ciolib_to_screen(int ciolib)
 			return(SCREEN_MODE_C128_80);
 		case ATARI_40X24 :
 			return(SCREEN_MODE_ATARI);
+		case ATARI_80X25:
+			return(SCREEN_MODE_ATARI_XEP80);
 	}
 	return(SCREEN_MODE_CURRENT);
 }

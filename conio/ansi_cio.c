@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.69 2008/01/23 05:45:18 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.70 2008/02/06 03:44:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,6 +162,12 @@ static tODKeySequence ODaKeySequences[] =
    {"\033Or", ANSI_KEY_F8},
    {"\033Op", ANSI_KEY_F9},
 
+   /* ECMA 048-specific control sequences. */
+   {"\033[V", ANSI_KEY_PGUP},
+   {"\033[U", ANSI_KEY_PGDN},
+   {"\033[@", ANSI_KEY_INSERT},
+   
+   
    /* PROCOMM-specific control sequences (non-keypad alternatives). */
    {"\033OA", ANSI_KEY_UP},
    {"\033OB", ANSI_KEY_DOWN},
