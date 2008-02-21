@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.36 2009/02/06 08:12:25 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.33 2008/01/21 07:30:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -69,9 +69,6 @@ static socket_option_t socket_options[] = {
 #endif
 
 	{ "REUSEADDR",			0,				SOL_SOCKET,		SO_REUSEADDR		},	
-#ifdef SO_REUSEPORT	/* BSD */
-	{ "REUSEPORT",			0,				SOL_SOCKET,		SO_REUSEPORT		},	
-#endif
 	{ "KEEPALIVE",			SOCK_STREAM,	SOL_SOCKET,		SO_KEEPALIVE		},
 	{ "DONTROUTE",			0,				SOL_SOCKET,		SO_DONTROUTE		},
 	{ "BROADCAST",			SOCK_DGRAM,		SOL_SOCKET,		SO_BROADCAST		},
@@ -337,7 +334,7 @@ BOOL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
 int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 			   ,uint retries, uint wait_secs
 			   ,const char* prot
-			   ,int (*lprintf)(int level, const char *fmt, ...))
+			   ,int (*lprintf)(int level, char *fmt, ...))
 {
 	char	port_str[128];
 	int		result=-1;
@@ -351,7 +348,7 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 		if((result=bind(s,addr,addrlen))==0)
 			break;
 		if(lprintf!=NULL)
-			lprintf(i<retries ? LOG_WARNING:LOG_CRIT
+			lprintf(i<retries ? LOG_WARNING:LOG_ERR
 				,"%04d !ERROR %d binding %s socket%s", s, ERROR_VALUE, prot, port_str);
 		if(i<retries) {
 			if(lprintf!=NULL)
