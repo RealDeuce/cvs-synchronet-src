@@ -1,3 +1,5 @@
+/* Copyright (C), 2007 by Stephen Hurd */
+
 #ifndef _HTMLWIN_H_
 #define _HTMLWIN_H_
 
@@ -15,6 +17,7 @@ int run_html(int width, int height, int xpos, int ypos, void(*callback)(const ch
 void hide_html(void);
 void iconize_html(void);
 void raise_html(void);
+void lower_html(void);
 void add_html_char(char ch);
 void add_html(const char *buf);
 void html_commit(void);
