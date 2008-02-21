@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.118 2006/12/28 02:43:48 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.121 2008/02/14 07:09:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -215,7 +215,7 @@ js_listen(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 	
-	if(argc)
+	if(argc && argv[0]!=JSVAL_VOID)
 		backlog = JS_ValueToInt32(cx,argv[0],&backlog);
 
 	if(listen(p->sock, backlog)!=0) {
@@ -508,8 +508,9 @@ js_sendbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	JS_ValueToInt32(cx,argv[0],&val);
-	if(argc>1) 
+	if(argv[0]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[0],&val);
+	if(argc>1 && argv[1]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[1],(int32*)&size);
 
 	switch(size) {
@@ -560,7 +561,7 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc)
+	if(argc && argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
@@ -619,7 +620,7 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			binary=JSVAL_TO_BOOLEAN(argv[n]);
 			if(binary)
 				len=sizeof(DWORD);
-		} else
+		} else if(argv[n]!=JSVAL_VOID)
 			JS_ValueToInt32(cx,argv[n],&len);
 	}
 
@@ -721,7 +722,7 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc)
+	if(argc && argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
@@ -765,7 +766,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc)
+	if(argc && argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
@@ -773,7 +774,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc>1)
+	if(argc>1 && argv[1]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
 
 	start=time(NULL);
@@ -836,7 +837,7 @@ js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc) 
+	if(argc && argv[0]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[0],(int32*)&size);
 
 	switch(size) {
@@ -928,7 +929,8 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	}
 
 	opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
-	JS_ValueToInt32(cx,argv[1],&val);
+	if(argv[1]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[1],&val);
 
 	if(opt == SO_LINGER) {
 		if(val) {
@@ -960,8 +962,9 @@ js_ioctlsocket(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		return(JS_FALSE);
 	}
 
-	JS_ValueToInt32(cx,argv[0],&cmd);
-	if(argc>1)
+	if(argv[0]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[0],&cmd);
+	if(argc>1 && argv[1]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[1],&arg);
 
 	if(ioctlsocket(p->sock,cmd,(ulong*)&arg)==0)
@@ -1231,19 +1234,6 @@ static jsSyncPropertySpec js_socket_properties[] = {
 	{0}
 };
 
-static JSClass js_socket_class = {
-     "Socket"				/* name			*/
-    ,JSCLASS_HAS_PRIVATE	/* flags		*/
-	,JS_PropertyStub		/* addProperty	*/
-	,JS_PropertyStub		/* delProperty	*/
-	,js_socket_get			/* getProperty	*/
-	,js_socket_set			/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
-	,JS_ConvertStub			/* convert		*/
-	,js_finalize_socket		/* finalize		*/
-};
-
 static jsSyncMethodSpec js_socket_functions[] = {
 	{"close",		js_close,		0,	JSTYPE_VOID,	""
 	,JSDOCSTR("close (shutdown) the socket immediately")
@@ -1333,6 +1323,34 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	{0}
 };
 
+static JSBool js_socket_resolve(JSContext *cx, JSObject *obj, jsval id)
+{
+	char*			name=NULL;
+
+	if(id != JSVAL_NULL)
+		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+
+	return(js_SyncResolve(cx, obj, name, js_socket_properties, js_socket_functions, NULL, 0));
+}
+
+static JSBool js_socket_enumerate(JSContext *cx, JSObject *obj)
+{
+	return(js_socket_resolve(cx, obj, JSVAL_NULL));
+}
+
+static JSClass js_socket_class = {
+     "Socket"				/* name			*/
+    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+	,JS_PropertyStub		/* addProperty	*/
+	,JS_PropertyStub		/* delProperty	*/
+	,js_socket_get			/* getProperty	*/
+	,js_socket_set			/* setProperty	*/
+	,js_socket_enumerate	/* enumerate	*/
+	,js_socket_resolve		/* resolve		*/
+	,JS_ConvertStub			/* convert		*/
+	,js_finalize_socket		/* finalize		*/
+};
+
 static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type)
 {
 	size_t		i;
@@ -1395,18 +1413,8 @@ js_socket_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsv
 		return(JS_FALSE);
 	}
 
-	if(!js_DefineSyncProperties(cx, obj, js_socket_properties)) {
-		JS_ReportError(cx,"js_DefineSyncProperties failed");
-		return(JS_FALSE);
-	}
-
 	if(!js_DefineSocketOptionsArray(cx, obj, type))
 		return(JS_FALSE);
-
-	if(!js_DefineSyncMethods(cx, obj, js_socket_functions, FALSE)) {
-		JS_ReportError(cx,"js_DefineSyncMethods failed");
-		return(JS_FALSE);
-	}
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for TCP/IP socket communications",310);
@@ -1450,9 +1458,6 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 	if(obj==NULL)
 		return(NULL);
 
-	if(!js_DefineSyncProperties(cx, obj, js_socket_properties))
-		return(NULL);
-
 	len = sizeof(type);
 	getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
 
@@ -1471,9 +1476,6 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
-
-	if (!js_DefineSyncMethods(cx, obj, js_socket_functions, FALSE)) 
-		return(NULL);
 
 	dbprintf(FALSE, p, "object created");
 
