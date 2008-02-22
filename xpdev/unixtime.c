@@ -1,4 +1,4 @@
-/* $Id: unixtime.c,v 1.1 2008/02/22 09:05:48 rswindell Exp $ */
+/* $Id: unixtime.c,v 1.2 2008/02/22 09:10:02 rswindell Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,8 +11,13 @@
 #define USE_SNPRINTF	/* we don't need safe_snprintf for this project */
 #include "genwrap.h"
 
-#define TIMEZONE	_timezone
-#define DAYLIGHT	_daylight
+#if !defined(__unix__)
+	#define TIMEZONE	_timezone
+	#define DAYLIGHT	_daylight
+#else
+	#define TIMEZONE	timezone
+	#define DAYLIGHT	daylight
+#endif
 
 /****************************************************************************/
 /* Converts a date string in format MM/DD/YY into unix time format			*/
@@ -61,7 +66,7 @@ int main(int argc, char **argv)
 
 	printf("\n");
 	DESCRIBE_COMPILER(str);
-	sscanf("$Revision: 1.1 $", "%*s %s", revision);
+	sscanf("$Revision: 1.2 $", "%*s %s", revision);
 
 	printf("Rev %s Built " __DATE__ " " __TIME__ " with %s\n\n", revision, str);
 
