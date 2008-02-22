@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.49 2008/02/03 00:23:47 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.50 2008/02/03 00:36:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -592,9 +592,9 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 
-	if(!strncmp(sp,"XTRN:",5)) {
+	if(!strncmp(sp,"EXEC_XTRN:",10)) {
 		for(i=0;i<cfg.total_xtrns;i++)
-			if(!stricmp(cfg.xtrn[i]->code,sp+5))
+			if(!stricmp(cfg.xtrn[i]->code,sp+10))
 				break;
 		if(i<cfg.total_xtrns)
 			exec_xtrn(i);
