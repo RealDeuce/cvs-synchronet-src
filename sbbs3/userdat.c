@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.107 2007/08/14 06:23:47 rswindell Exp $ */
+/* $Id: userdat.c,v 1.110 2007/10/24 07:41:46 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1672,6 +1672,48 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 						result=!not;
 				}
 				break;
+			case AR_ULS:
+				if((equal && user->uls!=i) || (!equal && user->uls<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_ULK:
+				if((equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_ULM:
+				if((equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_DLS:
+				if((equal && user->dls!=i) || (!equal && user->dls<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_DLK:
+				if((equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
+			case AR_DLM:
+				if((equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
+					result=not;
+				else
+					result=!not;
+				(*ptrptr)++;
+				break;
 			case AR_FLAG1:
 				if(user==NULL
 					|| (!equal && !(user->flags1&FLAG(n)))
@@ -2528,3 +2570,23 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 
 	return(timeleft);
 }
+
+/*************************************************************************/
+/* Check a supplied name/alias and see if it's valid by our standards.   */
+/*************************************************************************/
+BOOL DLLCALL check_name(scfg_t* cfg, char* name)
+{
+	char	tmp[512];
+
+	if (   name[0] <= ' '
+		|| !isalpha(name[0])
+		|| !stricmp(name,cfg->sys_id)
+		|| strchr(name,0xff)
+		|| matchuser(cfg,name,TRUE /* sysop_alias */)
+		|| trashcan(cfg,name,"name")
+		|| alias(cfg,name,tmp)!=name
+ 	   )
+ 		return FALSE;
+ 	return TRUE;
+} 
+

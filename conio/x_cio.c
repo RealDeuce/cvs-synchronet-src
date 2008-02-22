@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.24 2007/08/25 05:29:22 deuce Exp $ */
+/* $Id: x_cio.c,v 1.28 2008/01/21 07:56:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,12 +156,10 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 
 int x_init(void)
 {
-    int fd;
-    int i;
 	void *dl;
 
 	/* Ensure we haven't already initialized */
-	if(initialized)
+	if(x11_initialized)
 		return(0);
 
 	/* Set up the pipe for local events */
@@ -220,6 +218,9 @@ int x_init(void)
 	if((dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL))==NULL)
 #else
 	if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
+	if((dl=dlopen("libX11.so.7",RTLD_LAZY))==NULL)
+	if((dl=dlopen("libX11.so.6",RTLD_LAZY))==NULL)
+	if((dl=dlopen("libX11.so.5",RTLD_LAZY))==NULL)
 #endif
 		return(-1);
 	if((x11.XChangeGC=dlsym(dl,"XChangeGC"))==NULL) {
@@ -404,7 +405,7 @@ int x_init(void)
 
 	_beginthread(x11_event_thread,1<<16,NULL);
 	sem_wait(&init_complete);
-	if(!initialized) {
+	if(!x11_initialized) {
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		sem_destroy(&init_complete);
@@ -420,7 +421,7 @@ void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_DRAWRECT;
-	if(initialized) {
+	if(x11_initialized) {
 		ev.data.rect.x=xoffset;
 		ev.data.rect.y=yoffset;
 		ev.data.rect.width=width;
@@ -428,4 +429,13 @@ void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 		ev.data.rect.data=data;
 		while(write(local_pipe[1], &ev, sizeof(ev))==-1);
 	}
+}
+
+void x11_flush(void)
+{
+	struct x11_local_event ev;
+
+	ev.type=X11_LOCAL_FLUSH;
+	if(x11_initialized)
+		while(write(local_pipe[1], &ev, sizeof(ev))==-1);
 }
