@@ -1,4 +1,4 @@
-/* $Id: unixtime.c,v 1.2 2008/02/22 09:10:02 rswindell Exp $ */
+/* $Id: unixtime.c,v 1.3 2008/02/22 09:22:20 rswindell Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
 	printf("\n");
 	DESCRIBE_COMPILER(str);
-	sscanf("$Revision: 1.2 $", "%*s %s", revision);
+	sscanf("$Revision: 1.3 $", "%*s %s", revision);
 
 	printf("Rev %s Built " __DATE__ " " __TIME__ " with %s\n\n", revision, str);
 
@@ -83,9 +83,9 @@ int main(int argc, char **argv)
 	if(argc>1 && stricmp(argv[1],"-z")==0)	{ /* zulu/GMT/UTC timezone */
 		printf("Setting timezone to Zulu/GMT/UTC\n\n");
 		putenv("TZ=UTC0");
-		tzset();
 		argn++;
 	}
+	tzset();
 
 	printf("timezone=%d\n", TIMEZONE);
 	printf("daylight=%d\n", DAYLIGHT);
