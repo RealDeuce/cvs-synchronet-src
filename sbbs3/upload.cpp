@@ -2,13 +2,13 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.48 2006/10/27 00:39:45 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.49 2008/02/14 08:17:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -283,6 +283,12 @@ bool sbbs_t::upload(uint dirnum)
 	else
 		strcpy(path,cfg.dir[dirnum]->path);
 
+	if(!isdir(path)) {
+		bprintf(text[DirectoryDoesNotExist], path);
+		SAFEPRINTF(str,"File directory does not exist: %s", path);
+		errorlog(str);
+		return(false);
+	}
 
 	/* get free disk space */
 	space=getfreediskspace(path,1024);
