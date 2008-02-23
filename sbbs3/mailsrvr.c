@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.432 2008/01/13 02:21:19 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.440 2008/02/23 10:41:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1350,6 +1350,47 @@ static BOOL chk_email_addr(SOCKET socket, char* p, char* host_name, char* host_i
 	return(FALSE);
 }
 
+static BOOL email_addr_is_exempt(const char* addr)
+{
+	char fname[MAX_PATH+1];
+	char netmail[128];
+	char* p;
+
+	if(*addr==0 || strcmp(addr,"<>")==0)
+		return FALSE;
+	sprintf(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
+	if(findstr((char*)addr,fname))
+		return TRUE;
+	SAFECOPY(netmail, addr);
+	if(*(p=netmail)=='<')
+		p++;
+	truncstr(p,">");
+	return userdatdupe(&scfg, 0, U_NETMAIL, LEN_NETMAIL, p, FALSE);
+}
+
+static void exempt_email_addr(const char* comment
+							  ,const char* fromname, const char* fromaddr
+							  ,const char* toaddr)
+{
+	char	fname[MAX_PATH+1];
+	char	to[128];
+	char	tmp[128];
+	FILE*	fp;
+
+	SAFEPRINTF(to,"<%s>",toaddr);
+	if(!email_addr_is_exempt(to)) {
+		SAFEPRINTF(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
+		if((fp=fopen(fname,"a"))==NULL)
+			lprintf(LOG_ERR,"0000 !Error opening file: %s", fname);
+		else {
+			lprintf(LOG_INFO,"0000 %s: %s", comment, to);
+			fprintf(fp,"\n;%s from \"%s\" %s on %s\n%s\n"
+				,comment, fromname, fromaddr, timestr(&scfg,time(NULL),tmp), to);
+			fclose(fp);
+		}
+	}
+}
+
 static void signal_smtp_sem(void)
 {
 	int file;
@@ -2068,49 +2109,59 @@ static void smtp_thread(void* arg)
 #endif
 	}
 
+	active_clients++, update_clients();
+
 	SAFECOPY(hello_name,host_name);
 
 	sprintf(spam_bait,"%sspambait.cfg",scfg.ctrl_dir);
 	sprintf(spam_block,"%sspamblock.cfg",scfg.ctrl_dir);
 
-	if(trashcan(&scfg,host_ip,"ip") || findstr(host_ip,spam_block)) {
-		lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER IP ADDRESS: %s"
-			,socket, host_ip);
-		sockprintf(socket,"550 Access denied.");
-		mail_close_socket(socket);
-		thread_down();
-		return;
-	}
-
-	if(trashcan(&scfg,host_name,"host") || findstr(host_name,spam_block)) {
-		lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER HOSTNAME: %s"
-			,socket, host_name);
-		sockprintf(socket,"550 Access denied.");
-		mail_close_socket(socket);
-		thread_down();
-		return;
-	}
-
-	active_clients++, update_clients();
-
-	/*  SPAM Filters (mail-abuse.org) */
-	dnsbl_result.s_addr = dns_blacklisted(socket,smtp.client_addr.sin_addr,host_name,dnsbl,dnsbl_ip);
-	if(dnsbl_result.s_addr) {
-		lprintf(LOG_WARNING,"%04d !SMTP BLACKLISTED SERVER on %s: %s [%s] = %s"
-			,socket, dnsbl, host_name, dnsbl_ip, inet_ntoa(dnsbl_result));
-		if(startup->options&MAIL_OPT_DNSBL_REFUSE) {
-			SAFEPRINTF2(str,"Listed on %s as %s", dnsbl, inet_ntoa(dnsbl_result));
-			spamlog(&scfg, "SMTP", "SESSION REFUSED", str, host_name, dnsbl_ip, NULL, NULL);
-			sockprintf(socket
-				,"550 Mail from %s refused due to listing at %s"
-				,dnsbl_ip, dnsbl);
+	if(smtp.client_addr.sin_addr.s_addr==server_addr.sin_addr.s_addr 
+		|| smtp.client_addr.sin_addr.s_addr==htonl(IPv4_LOCALHOST)) {
+		/* local connection */
+		dnsbl_result.s_addr=0;
+	} else {
+		if(trashcan(&scfg,host_ip,"ip") || findstr(host_ip,spam_block)) {
+			lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER IP ADDRESS: %s"
+				,socket, host_ip);
+			sockprintf(socket,"550 Access denied.");
 			mail_close_socket(socket);
-			lprintf(LOG_WARNING,"%04d !SMTP REFUSED SESSION from blacklisted server"
-				,socket);
 			thread_down();
 			if(active_clients)
 				active_clients--, update_clients();
 			return;
+		}
+
+		if(trashcan(&scfg,host_name,"host") || findstr(host_name,spam_block)) {
+			lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER HOSTNAME: %s"
+				,socket, host_name);
+			sockprintf(socket,"550 Access denied.");
+			mail_close_socket(socket);
+			thread_down();
+			if(active_clients)
+				active_clients--, update_clients();
+			return;
+		}
+
+		/*  SPAM Filters (mail-abuse.org) */
+		dnsbl_result.s_addr = dns_blacklisted(socket,smtp.client_addr.sin_addr,host_name,dnsbl,dnsbl_ip);
+		if(dnsbl_result.s_addr) {
+			lprintf(LOG_WARNING,"%04d !SMTP BLACKLISTED SERVER on %s: %s [%s] = %s"
+				,socket, dnsbl, host_name, dnsbl_ip, inet_ntoa(dnsbl_result));
+			if(startup->options&MAIL_OPT_DNSBL_REFUSE) {
+				SAFEPRINTF2(str,"Listed on %s as %s", dnsbl, inet_ntoa(dnsbl_result));
+				spamlog(&scfg, "SMTP", "SESSION REFUSED", str, host_name, dnsbl_ip, NULL, NULL);
+				sockprintf(socket
+					,"550 Mail from %s refused due to listing at %s"
+					,dnsbl_ip, dnsbl);
+				mail_close_socket(socket);
+				lprintf(LOG_WARNING,"%04d !SMTP REFUSED SESSION from blacklisted server"
+					,socket);
+				thread_down();
+				if(active_clients)
+					active_clients--, update_clients();
+				return;
+			}
 		}
 	}
 
@@ -2937,6 +2988,13 @@ static void smtp_thread(void* arg)
 			SKIP_WHITESPACE(p);
 			SAFECOPY(reverse_path,p);
 
+			/* If MAIL FROM address is in dnsbl_exempt.cfg, clear DNSBL results */
+			if(dnsbl_result.s_addr && email_addr_is_exempt(reverse_path)) {
+				lprintf(LOG_INFO,"%04d SMTP Ignoring DNSBL results for exempt sender: %s"
+					,socket,reverse_path);
+				dnsbl_result.s_addr=0;
+			}
+
 			/* Update client display */
 			if(relay_user.number==0) {
 				client.user=reverse_path;
@@ -3065,7 +3123,7 @@ static void smtp_thread(void* arg)
 				sockprintf(socket
 					,"550 Mail from %s refused due to listing at %s"
 					,host_ip, dnsbl);
-				continue;
+				break;
 			}
 
 			/* Check for full address aliases */
@@ -3781,7 +3839,7 @@ static void sendmail_thread(void* arg)
 							continue;
 						}
 						lprintf(LOG_DEBUG,"0000 SEND getting MX records for %s from %s",p,dns_server);
-						if((i=dns_getmx(p, mx, mx2, startup->interface_addr, dns
+						if((i=dns_getmx(p, mx, mx2, INADDR_ANY, dns
 							,startup->options&MAIL_OPT_USE_TCP_DNS ? TRUE : FALSE
 							,TIMEOUT_THREAD_WAIT/2))!=0) {
 							remove_msg_intransit(&smb,&msg);
@@ -4038,6 +4096,9 @@ static void sendmail_thread(void* arg)
 			if(msg.hdr.auxattr&MSG_FILEATTACH)
 				delfattach(&scfg,&msg);
 
+			if(msg.from_agent==AGENT_PERSON && !(startup->options&MAIL_OPT_NO_AUTO_EXEMPT))
+				exempt_email_addr("SEND Auto-exempting",msg.from,fromaddr,toaddr);
+
 			/* QUIT */
 			sockprintf(sock,"QUIT");
 			sockgetrsp(sock,"221", buf, sizeof(buf));
@@ -4124,7 +4185,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.432 $", "%*s %s", revision);
+	sscanf("$Revision: 1.440 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4245,7 +4306,7 @@ void DLLCALL mail_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,CTIME_R(&t,str),startup->options);
+			,ctime_r(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
