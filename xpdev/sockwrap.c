@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.34 2008/05/01 01:10:56 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.33 2008/01/21 07:30:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,9 +69,6 @@ static socket_option_t socket_options[] = {
 #endif
 
 	{ "REUSEADDR",			0,				SOL_SOCKET,		SO_REUSEADDR		},	
-#ifdef SO_REUSEPORT	/* BSD */
-	{ "REUSEPORT",			0,				SOL_SOCKET,		SO_REUSEPORT		},	
-#endif
 	{ "KEEPALIVE",			SOCK_STREAM,	SOL_SOCKET,		SO_KEEPALIVE		},
 	{ "DONTROUTE",			0,				SOL_SOCKET,		SO_DONTROUTE		},
 	{ "BROADCAST",			SOCK_DGRAM,		SOL_SOCKET,		SO_BROADCAST		},
