@@ -1,6 +1,6 @@
-/* Copyright (C), 2007 by Sephen Hurd */
+/* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: uifcinit.c,v 1.30 2009/02/10 20:32:04 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.28 2008/02/18 01:55:20 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -31,7 +31,7 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 		/* Get old font... */
 		uifc_old_font=getfont();
 		if(uifc_old_font >= 32 && uifc_old_font <= 36)
-			setfont(0, FALSE,1);
+			setfont(0, FALSE);
 		/* Set scrn_len to 0 to prevent textmode() call */
 		uifc.scrn_len=0;
 		if((i=uifcini32(&uifc))!=0) {
@@ -76,7 +76,7 @@ void uifcbail(void)
 	if(uifc_initialized) {
 		uifc.bail();
 		if(uifc_old_font != getfont())
-			setfont(uifc_old_font, FALSE,1);
+			setfont(uifc_old_font, FALSE);
 	}
 	uifc_initialized=0;
 }
