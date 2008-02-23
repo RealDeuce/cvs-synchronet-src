@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.29 2009/02/10 11:06:31 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.23 2008/02/23 06:23:18 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -25,13 +25,12 @@
 #include "allfonts.h"
 #include "bitmap_con.h"
 
-static char *screen=NULL;
-int screenwidth=0;
-int screenheight=0;
+static char *screen;
+int screenwidth;
+int screenheight;
 #define PIXEL_OFFSET(x,y)	( (y)*screenwidth+(x) )
 
 static int current_font=-99;
-static int current_secondary_font=-99;
 static int bitmap_initialized=0;
 struct video_stats vstat;
 static int *damaged=NULL;
@@ -45,7 +44,6 @@ pthread_mutex_t		vstatlock;
 pthread_mutex_t		screenlock;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font;
-static unsigned char *secondary_font;
 static unsigned char space=' ';
 int force_redraws=0;
 
@@ -64,9 +62,7 @@ static void blinker_thread(void *data)
 	int count=0;
 
 	while(1) {
-		do {
-			SLEEP(10);
-		} while(screen==NULL);
+		SLEEP(10);
 		count++;
 		pthread_mutex_lock(&vstatlock);
 		if(count==50) {
@@ -215,73 +211,6 @@ end:
 /********************************************************/
 
 /* Called from main thread only (Passes Event) */
-
-void bitmap_getcustomcursor(int *s, int *e, int *r, int *b, int *v)
-{
-	pthread_mutex_lock(&vstatlock);
-	if(s)
-		*s=vstat.curs_start;
-	if(e)
-		*e=vstat.curs_end;
-	if(r)
-		*r=vstat.charheight;
-	if(b)
-		*b=vstat.curs_blink;
-	if(v)
-		*v=vstat.curs_visible;
-	pthread_mutex_unlock(&vstatlock);
-}
-
-void bitmap_setcustomcursor(int s, int e, int r, int b, int v)
-{
-	double ratio;
-
-	pthread_mutex_lock(&vstatlock);
-	if(r==0)
-		ratio=0;
-	else
-		ratio=vstat.charheight/r;
-	if(s>=0)
-		vstat.curs_start=s*ratio;
-	if(e>=0)
-		vstat.curs_end=e*ratio;
-	if(b>=0)
-		vstat.curs_blink=b;
-	if(v>=0)
-		vstat.curs_visible=v;
-	pthread_mutex_unlock(&vstatlock);
-}
-
-int bitmap_getvideoflags(void)
-{
-	int flags=0;
-
-	if(vstat.bright_background)
-		flags |= CIOLIB_VIDEO_BGBRIGHT;
-	if(vstat.no_bright)
-		flags |= CIOLIB_VIDEO_NOBRIGHT;
-	if(vstat.bright_altcharset)
-		flags |= CIOLIB_VIDEO_ALTCHARS;
-	return(flags);
-}
-
-void bitmap_setvideoflags(int flags)
-{
-	if(flags & CIOLIB_VIDEO_BGBRIGHT)
-		vstat.bright_background=1;
-	else
-		vstat.bright_background=0;
-
-	if(flags & CIOLIB_VIDEO_NOBRIGHT)
-		vstat.no_bright=1;
-	else
-		vstat.no_bright=0;
-
-	if(flags & CIOLIB_VIDEO_ALTCHARS)
-		vstat.bright_altcharset=1;
-	else
-		vstat.bright_altcharset=0;
-}
 
 int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 {
@@ -442,7 +371,7 @@ void bitmap_setcursortype(int type)
 	pthread_mutex_unlock(&vstatlock);
 }
 
-int bitmap_setfont(int font, int force, int font_num)
+int bitmap_setfont(int font, int force)
 {
 	int changemode=0;
 	int	newmode=-1;
@@ -494,19 +423,13 @@ int bitmap_setfont(int font, int force, int font_num)
 			}
 			break;
 	}
-	if(changemode && (newmode==-1 || font_num!=0))
+	if(changemode && newmode==-1)
 		goto error_return;
-	switch(font_num) {
-		case 0:
-			current_font=font;
-			if(font==36 /* ATARI */)
-				space=0;
-			else
-				space=' ';
-			break;
-		case 1:
-			current_secondary_font=font;
-	}
+	current_font=font;
+	if(font==36 /* ATARI */)
+		space=0;
+	else
+		space=' ';
 	pthread_mutex_unlock(&vstatlock);
 
 	if(changemode) {
@@ -592,13 +515,6 @@ int bitmap_loadfont(char *filename)
 	else if(conio_fontdata[current_font].desc==NULL)
 		return(-1);
 
-	if(current_secondary_font==-99)
-		current_secondary_font=current_font;
-	if(current_secondary_font==-1)
-		;
-	else if(conio_fontdata[current_secondary_font].desc==NULL)
-		current_secondary_font=current_font;
-
 	pthread_mutex_lock(&vstatlock);
 	fh=vstat.charheight;
 	fw=vstat.charwidth/8+(vstat.charwidth%8?1:0);
@@ -607,11 +523,7 @@ int bitmap_loadfont(char *filename)
 
 	if(font)
 		FREE_AND_NULL(font);
-	if(secondary_font)
-		FREE_AND_NULL(secondary_font);
 	if((font=(unsigned char *)malloc(fontsize))==NULL)
-		goto error_return;
-	if((secondary_font=(unsigned char *)malloc(fontsize))==NULL)
 		goto error_return;
 
 	if(filename != NULL) {
@@ -626,54 +538,25 @@ int bitmap_loadfont(char *filename)
 		current_font=-1;
 		if(filename != current_filename)
 			SAFECOPY(current_filename,filename);
-		if(current_secondary_font==-1)
-			memcpy(secondary_font, font, fontsize);
 	}
-	if(current_font != -1 || current_secondary_font != -1) {
+	else {
 		switch(vstat.charwidth) {
 			case 8:
 				switch(vstat.charheight) {
 					case 8:
-						if(current_font != -1) {
-							if(conio_fontdata[current_font].eight_by_eight==NULL)
-								goto error_return;
-							memcpy(font, conio_fontdata[current_font].eight_by_eight, fontsize);
-						}
-						if(current_secondary_font != -1) {
-							if(conio_fontdata[current_secondary_font].eight_by_eight==NULL) {
-								FREE_AND_NULL(secondary_font);
-							}
-							else
-								memcpy(secondary_font, conio_fontdata[current_secondary_font].eight_by_eight, fontsize);
-						}
+						if(conio_fontdata[current_font].eight_by_eight==NULL)
+							goto error_return;
+						memcpy(font, conio_fontdata[current_font].eight_by_eight, fontsize);
 						break;
 					case 14:
-						if(current_font != -1) {
-							if(conio_fontdata[current_font].eight_by_fourteen==NULL)
-								goto error_return;
-							memcpy(font, conio_fontdata[current_font].eight_by_fourteen, fontsize);
-						}
-						if(current_secondary_font != -1) {
-							if(conio_fontdata[current_secondary_font].eight_by_fourteen==NULL) {
-								FREE_AND_NULL(secondary_font);
-							}
-							else
-								memcpy(secondary_font, conio_fontdata[current_secondary_font].eight_by_fourteen, fontsize);
-						}
+						if(conio_fontdata[current_font].eight_by_fourteen==NULL)
+							goto error_return;
+						memcpy(font, conio_fontdata[current_font].eight_by_fourteen, fontsize);
 						break;
 					case 16:
-						if(current_font != -1) {
-							if(conio_fontdata[current_font].eight_by_sixteen==NULL)
-								goto error_return;
-							memcpy(font, conio_fontdata[current_font].eight_by_sixteen, fontsize);
-						}
-						if(current_secondary_font != -1) {
-							if(conio_fontdata[current_secondary_font].eight_by_sixteen==NULL) {
-								FREE_AND_NULL(secondary_font);
-							}
-							else
-								memcpy(secondary_font, conio_fontdata[current_secondary_font].eight_by_sixteen, fontsize);
-						}
+						if(conio_fontdata[current_font].eight_by_sixteen==NULL)
+							goto error_return;
+						memcpy(font, conio_fontdata[current_font].eight_by_sixteen, fontsize);
 						break;
 					default:
 						goto error_return;
@@ -690,7 +573,6 @@ int bitmap_loadfont(char *filename)
 
 error_return:
 	FREE_AND_NULL(font);
-	FREE_AND_NULL(secondary_font);
 	if(fontfile)
 		fclose(fontfile);
 	pthread_mutex_unlock(&vstatlock);
@@ -709,28 +591,22 @@ static void bitmap_draw_cursor()
 
 	if(!bitmap_initialized)
 		return;
-	if(vstat.curs_visible) {
-		if(vstat.blink || (!vstat.curs_blink)) {
-			if(vstat.curs_start<=vstat.curs_end) {
-				xoffset=(vstat.curs_col-1)*vstat.charwidth;
-				yoffset=(vstat.curs_row-1)*vstat.charheight;
-				if(xoffset < 0 || yoffset < 0)
-					return;
-				attr=cio_textinfo.attribute&0x0f;
-				width=vstat.charwidth;
-	
-				pthread_mutex_lock(&screenlock);
-				for(y=vstat.curs_start; y<=vstat.curs_end; y++) {
-					if(xoffset < screenwidth && (yoffset+y) < screenheight) {
-						pixel=PIXEL_OFFSET(xoffset, yoffset+y);
-						for(x=0;x<vstat.charwidth;x++)
-							screen[pixel++]=attr;
-						//memset(screen+pixel,attr,width);
-					}
-				}
-				pthread_mutex_unlock(&screenlock);
-				send_rectangle(xoffset, yoffset+vstat.curs_start, vstat.charwidth, vstat.curs_end-vstat.curs_start+1,FALSE);
+	if(vstat.blink) {
+		if(vstat.curs_start<=vstat.curs_end) {
+			xoffset=(vstat.curs_col-1)*vstat.charwidth;
+			yoffset=(vstat.curs_row-1)*vstat.charheight;
+			attr=cio_textinfo.attribute&0x0f;
+			width=vstat.charwidth;
+
+			pthread_mutex_lock(&screenlock);
+			for(y=vstat.curs_start; y<=vstat.curs_end; y++) {
+				pixel=PIXEL_OFFSET(xoffset, yoffset+y);
+				for(x=0;x<vstat.charwidth;x++)
+					screen[pixel++]=attr;
+				//memset(screen+pixel,attr,width);
 			}
+			pthread_mutex_unlock(&screenlock);
+			send_rectangle(xoffset, yoffset+vstat.curs_start, vstat.charwidth, vstat.curs_end-vstat.curs_start+1,FALSE);
 		}
 	}
 }
@@ -762,7 +638,6 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 	int		x;
 	int		y;
 	int		fontoffset;
-	unsigned char *this_font;
 	WORD	sch;
 
 	if(!bitmap_initialized)
@@ -778,35 +653,18 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 		return(-1);
 
 	sch=vstat.vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)];
-
-	if(vstat.bright_background) {
-		bg=(sch&0xf000)>>12;
+	bg=(sch&0x7000)>>12;
+	if(sch&0x8000 && vstat.blink)
+		fg=bg;
+	else
 		fg=(sch&0x0f00)>>8;
-	}
-	else {
-		bg=(sch&0x7000)>>12;
-		if(sch&0x8000 && vstat.blink)
-			fg=bg;
-		else
-			fg=(sch&0x0f00)>>8;
-	}
-	this_font=font;
-	if(vstat.bright_altcharset) {
-		if(fg & 0x08) {
-			this_font=secondary_font;
-			if(this_font==NULL)
-				this_font=font;
-		}
-	}
-	if(vstat.no_bright)
-		fg &= 0x07;
 	fontoffset=(sch&0xff)*vstat.charheight;
 
 	pthread_mutex_lock(&screenlock);
 	for(y=0; y<vstat.charheight; y++) {
 		memset(&screen[PIXEL_OFFSET(xoffset, yoffset+y)],bg,vstat.charwidth);
 		for(x=0; x<vstat.charwidth; x++) {
-			if(this_font[fontoffset] & (0x80 >> x))
+			if(font[fontoffset] & (0x80 >> x))
 				screen[PIXEL_OFFSET(xoffset+x, yoffset+y)]=fg;
 		}
 		fontoffset++;
