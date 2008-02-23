@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.34 2007/07/10 23:50:31 deuce Exp $ */
+/* $Id: readmsgs.cpp,v 1.38 2008/02/21 09:54:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -84,9 +84,8 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long i, long posts)
 	return(listed);
 }
 
-char *binstr(uchar *buf, ushort length)
+char *binstr(uchar *buf, ushort length, char* str)
 {
-	static char str[512];
 	char tmp[128];
 	int i;
 
@@ -108,6 +107,7 @@ char *binstr(uchar *buf, ushort length)
 void sbbs_t::msghdr(smbmsg_t* msg)
 {
 	int i;
+	char str[512];
 
 	CRLF;
 
@@ -115,13 +115,13 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	for(i=0;i<msg->total_hfields;i++)
 		bprintf("%-16.16s %s\r\n"
 			,smb_hfieldtype(msg->hfield[i].type)
-			,binstr((uchar *)msg->hfield_dat[i],msg->hfield[i].length));
+			,binstr((uchar *)msg->hfield_dat[i],msg->hfield[i].length,str));
 
 	/* fixed fields */
 	bprintf("%-16.16s %s %s\r\n","when_written"	
-		,timestr((time_t *)&msg->hdr.when_written.time), smb_zonestr(msg->hdr.when_written.zone,NULL));
+		,timestr(msg->hdr.when_written.time), smb_zonestr(msg->hdr.when_written.zone,NULL));
 	bprintf("%-16.16s %s %s\r\n","when_imported"	
-		,timestr((time_t *)&msg->hdr.when_imported.time), smb_zonestr(msg->hdr.when_imported.zone,NULL));
+		,timestr(msg->hdr.when_imported.time), smb_zonestr(msg->hdr.when_imported.zone,NULL));
 	bprintf("%-16.16s %04Xh\r\n","type"				,msg->hdr.type);
 	bprintf("%-16.16s %04Xh\r\n","version"			,msg->hdr.version);
 	bprintf("%-16.16s %04Xh\r\n","attr"				,msg->hdr.attr);
@@ -143,12 +143,12 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	if(msg->hdr.times_downloaded)
 		bprintf("%-16.16s %lu\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
 	if(msg->hdr.last_downloaded)
-		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr((time_t*)&msg->hdr.last_downloaded));
+		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr(msg->hdr.last_downloaded));
 
 	/* convenience integers */
 	if(msg->expiration)
 		bprintf("%-16.16s %s\r\n"	,"expiration"	
-			,timestr((time_t *)&msg->expiration));
+			,timestr(msg->expiration));
 	if(msg->priority)
 		bprintf("%-16.16s %lu\r\n"	,"priority"			,msg->priority);
 	if(msg->cost)
@@ -181,7 +181,7 @@ post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode)
 	(*posts)=0;
 
 	if((i=smb_locksmbhdr(&smb))!=0) {				/* Be sure noone deletes or */
-		errormsg(WHERE,ERR_LOCK,smb.file,i);		/* adds while we're reading */
+		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);		/* adds while we're reading */
 		return(NULL); 
 	}
 
@@ -452,13 +452,13 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
-		errormsg(WHERE,ERR_LOCK,smb.file,i);
+		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(0); 
 	}
 	if((i=smb_getstatus(&smb))!=0) {
 		smb_close(&smb);
-		errormsg(WHERE,ERR_READ,smb.file,i);
+		errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(0); 
 	}
@@ -504,12 +504,12 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 		msg.idx.subj=post[smb.curmsg].subj;
 
 		if((i=smb_locksmbhdr(&smb))!=0) {
-			errormsg(WHERE,ERR_LOCK,smb.file,i);
+			errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
 			break; 
 		}
 		if((i=smb_getstatus(&smb))!=0) {
 			smb_unlocksmbhdr(&smb);
-			errormsg(WHERE,ERR_READ,smb.file,i);
+			errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
 			break; 
 		}
 		smb_unlocksmbhdr(&smb);
@@ -606,7 +606,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 						msg.hdr.attr|=MSG_READ;
 						msg.idx.attr=msg.hdr.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i);
+							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 						smb_unlockmsghdr(&smb,&msg); 
 					}
 					smb_unlocksmbhdr(&smb); 
@@ -726,7 +726,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 						msg.idx.attr^=MSG_DELETE;
 						msg.hdr.attr=msg.idx.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
-							errormsg(WHERE,ERR_WRITE,smb.file,i);
+							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 						smb_unlockmsghdr(&smb,&msg);
 						if(i==0 && msg.idx.attr&MSG_DELETE) {
 							sprintf(str,"%s removed post from %s %s"
@@ -813,7 +813,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 					break;
 				sprintf(str2,text[Regarding]
 					,msg.subj
-					,timestr((time_t *)&msg.hdr.when_written.time));
+					,timestr(msg.hdr.when_written.time));
 				if(msg.from_net.addr==NULL)
 					strcpy(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO)
@@ -918,7 +918,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 								if(loadmsg(&msg,msg.idx.number)) {
 									msg.hdr.attr=msg.idx.attr=i;
 									if((i=smb_putmsg(&smb,&msg))!=0)
-										errormsg(WHERE,ERR_WRITE,smb.file,i);
+										errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 									smb_unlockmsghdr(&smb,&msg); 
 								}
 								smb_unlocksmbhdr(&smb);
@@ -949,7 +949,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 									msg.idx.attr|=MSG_DELETE;
 									msg.hdr.attr=msg.idx.attr;
 									if((i=smb_putmsg(&smb,&msg))!=0)
-										errormsg(WHERE,ERR_WRITE,smb.file,i); 
+										errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error); 
 								}
 								smb_unlockmsghdr(&smb,&msg);
 							}
@@ -982,7 +982,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 									msg.idx.attr|=MSG_VALIDATED;
 									msg.hdr.attr=msg.idx.attr;
 									if((i=smb_putmsg(&smb,&msg))!=0)
-										errormsg(WHERE,ERR_WRITE,smb.file,i);
+										errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 									smb_unlockmsghdr(&smb,&msg); 
 								}
 								smb_unlocksmbhdr(&smb);
