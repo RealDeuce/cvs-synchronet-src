@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.206 2007/08/15 08:12:30 rswindell Exp $ */
+/* $Id: services.c,v 1.209 2008/02/23 10:47:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1599,7 +1599,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.206 $", "%*s %s", revision);
+	sscanf("$Revision: 1.209 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1707,7 +1707,7 @@ void DLLCALL services_thread(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,CTIME_R(&t,str),startup->options);
+			,ctime_r(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
