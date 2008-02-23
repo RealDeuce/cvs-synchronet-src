@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.487 2007/08/25 08:08:03 rswindell Exp $ */
+/* $Id: main.cpp,v 1.493 2008/02/23 10:47:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,6 +38,7 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
+#include "netwrap.h"
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -500,6 +501,34 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
+/*
+ * Always resolve all here since
+ * 1) We'll always be enumerating anyways
+ * 2) The speed penalty won't be seen in production code anyways
+ */
+JSBool
+DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
+{
+	JSBool	ret=JS_TRUE;
+
+	if(props) {
+		if(!js_DefineSyncProperties(cx, obj, props))
+			ret=JS_FALSE;
+	}
+		
+	if(funcs) {
+		if(!js_DefineSyncMethods(cx, obj, funcs, 0))
+			ret=JS_FALSE;
+	}
+
+	if(consts) {
+		if(!js_DefineConstIntegers(cx, obj, consts, flags))
+			ret=JS_FALSE;
+	}
+
+	return(ret);
+}
+
 #else // NON-JSDOCS
 
 JSBool
@@ -527,6 +556,51 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	return(JS_TRUE);
 }
 
+JSBool
+DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
+{
+	uint i;
+	jsval	val;
+
+	if(props) {
+		for(i=0;props[i].name;i++) {
+			if(name==NULL || strcmp(name, props[i].name)==0) {
+				if(!JS_DefinePropertyWithTinyId(cx, obj, 
+						props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+					return(JS_FALSE);
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+	if(funcs) {
+		for(i=0;funcs[i].name;i++) {
+			if(name==NULL || strcmp(name, funcs[i].name)==0) {
+				if(!JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0))
+					return(JS_FALSE);
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+	if(consts) {
+		for(i=0;consts[i].name;i++) {
+			if(name==NULL || strcmp(name, consts[i].name)==0) {
+	        	if(!JS_NewNumberValue(cx, consts[i].val, &val))
+					return(JS_FALSE);
+
+				if(!JS_DefineProperty(cx, obj, consts[i].name, val ,NULL, NULL, flags))
+					return(JS_FALSE);
+
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+
+	return(JS_TRUE);
+}
+
 #endif
 
 /* This is a stream-lined version of JS_DefineConstDoubles */
@@ -543,7 +617,7 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 		if(!JS_DefineProperty(cx, obj, ints[i].name, val ,NULL, NULL, flags))
 			return(JS_FALSE);
 	}
-		
+
 	return(JS_TRUE);
 }
 
@@ -4216,7 +4290,7 @@ void DLLCALL bbs_thread(void* arg)
 
 	t=time(NULL);
 	lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-		,CTIME_R(&t,str),startup->options);
+		,ctime_r(&t,str),startup->options);
 
 	if(chdir(startup->ctrl_dir)!=0)
 		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
@@ -5043,7 +5117,7 @@ NO_SSH:
 			/*****************************/
     		memset(&tmp_addr, 0, sizeof(tmp_addr));
 
-			tmp_addr.sin_addr.s_addr = htonl(0x7f000001U);
+			tmp_addr.sin_addr.s_addr = htonl(IPv4_LOCALHOST);
     		tmp_addr.sin_family = AF_INET;
     		tmp_addr.sin_port   = 0;
 
