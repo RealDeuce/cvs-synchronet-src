@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.11 2008/01/11 09:07:22 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.12 2008/02/07 22:38:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -495,8 +495,8 @@ static JSClass js_uifc_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_get					/* getProperty	*/
 	,js_set					/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
+	,js_uifc_enumerate		/* enumerate	*/
+	,js_uifc_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,js_finalize			/* finalize		*/
 };
