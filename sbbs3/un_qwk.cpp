@@ -2,13 +2,13 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.31 2007/01/13 21:38:34 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.33 2008/02/11 00:20:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -164,20 +164,20 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				smb.status.attr=SMB_EMAIL;
 				if((k=smb_create(&smb))!=0) {
 					smb_close(&smb);
-					errormsg(WHERE,ERR_CREATE,smb.file,k);
+					errormsg(WHERE,ERR_CREATE,smb.file,k,smb.last_error);
 					smb_stack(&smb,SMB_STACK_POP);
 					continue; 
 				} 
 			}
 			if((k=smb_locksmbhdr(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_LOCK,smb.file,k);
+				errormsg(WHERE,ERR_LOCK,smb.file,k,smb.last_error);
 				smb_stack(&smb,SMB_STACK_POP);
 				continue; 
 			}
 			if((k=smb_getstatus(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_READ,smb.file,k);
+				errormsg(WHERE,ERR_READ,smb.file,k,smb.last_error);
 				smb_stack(&smb,SMB_STACK_POP);
 				continue; 
 			}
@@ -254,18 +254,18 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				smb.status.attr=cfg.sub[j]->misc&SUB_HYPER ? SMB_HYPERALLOC :0;
 				if((k=smb_create(&smb))!=0) {
 					smb_close(&smb);
-					errormsg(WHERE,ERR_CREATE,smb.file,k);
+					errormsg(WHERE,ERR_CREATE,smb.file,k,smb.last_error);
 					continue; 
 				} 
 			}
 			if((k=smb_locksmbhdr(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_LOCK,smb.file,k);
+				errormsg(WHERE,ERR_LOCK,smb.file,k,smb.last_error);
 				continue; 
 			}
 			if((k=smb_getstatus(&smb))!=0) {
 				smb_close(&smb);
-				errormsg(WHERE,ERR_READ,smb.file,k);
+				errormsg(WHERE,ERR_READ,smb.file,k,smb.last_error);
 				continue; 
 			}
 			smb_unlocksmbhdr(&smb);
@@ -329,6 +329,9 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		eprintf(LOG_INFO,"Finished Importing QWK Network Packet from %s: "
 			"(%lu msgs) in %lu seconds (%lu msgs/sec)"
 			,cfg.qhub[hubnum]->id, tmsgs, t, tmsgs/t);
+		/* trigger timed event with internal code of 'qnet-qwk' to run */
+		sprintf(str,"%sqnet-qwk.now",cfg.data_dir);
+		ftouch(str);
 	}
 	delfiles(cfg.temp_dir,ALLFILES);
 	return(true);
