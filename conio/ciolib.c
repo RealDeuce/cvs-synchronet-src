@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.103 2008/02/03 02:40:33 deuce Exp $ */
+/* $Id: ciolib.c,v 1.104 2008/02/03 11:34:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -599,20 +599,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gettextinfo(struct text_info *info)
 		return;
 	}
 	
-	if(info!=&cio_textinfo) {
-		info->winleft=cio_textinfo.winleft;        /* left window coordinate */
-		info->wintop=cio_textinfo.wintop;         /* top window coordinate */
-		info->winright=cio_textinfo.winright;       /* right window coordinate */
-		info->winbottom=cio_textinfo.winbottom;      /* bottom window coordinate */
-		info->attribute=cio_textinfo.attribute;      /* text attribute */
-		info->normattr=cio_textinfo.normattr;       /* normal attribute */
-		info->currmode=cio_textinfo.currmode;       /* current video mode:
-                               			 BW40, BW80, C40, C80, or C4350 */
-		info->screenheight=cio_textinfo.screenheight;   /* text screen's height */
-		info->screenwidth=cio_textinfo.screenwidth;    /* text screen's width */
-		info->curx=cio_textinfo.curx;           /* x-coordinate in current window */
-		info->cury=cio_textinfo.cury;           /* y-coordinate in current window */
-	}
+	if(info!=&cio_textinfo)
+		*info=cio_textinfo;
 }
 
 /* Optional */
@@ -752,7 +740,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 	int width,height;
 
 	CIOLIB_INIT();
-	
+
 	if(cio_api.clreol) {
 		cio_api.clreol();
 		return;
