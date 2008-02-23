@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.308 2007/08/15 01:56:11 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.311 2008/02/16 05:19:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -520,7 +520,7 @@ public:
 	/* getstr.cpp */
 	size_t	getstr_offset;
 	size_t	getstr(char *str, size_t length, long mode);
-	long	getnum(ulong max);
+	long	getnum(ulong max, ulong dflt=0);
 	void	insert_indicator(void);
 
 	/* getkey.cpp */
@@ -968,6 +968,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char*);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec*, BOOL append);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncProperties(JSContext* cx, JSObject* obj, jsSyncPropertySpec*);
+	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
