@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.73 2008/02/23 10:43:29 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.74 2008/02/23 11:21:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1051,6 +1051,9 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_hfield_str(msg,SENDER,useron.alias);
 	SAFEPRINTF(str,"%u",useron.number);
 	smb_hfield_str(msg,SENDEREXT,str);
+
+	/* Security logging */
+	msg_client_hfields(msg,&client);
 
 	username(&cfg,usernumber,touser);
 	smb_hfield_str(msg,RECIPIENT,touser);
