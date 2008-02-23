@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.112 2008/03/15 06:09:52 rswindell Exp $ */
+/* $Id: userdat.c,v 1.111 2008/02/23 03:08:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2577,13 +2577,8 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 BOOL DLLCALL check_name(scfg_t* cfg, char* name)
 {
 	char	tmp[512];
-	size_t	len;
 
-	len=strlen(name);
-	if(len<1)
-		return FALSE;
-	if (   name[0] <= ' '			/* begins with white-space? */
-		|| name[len-1] <= ' '		/* ends with white-space */
+	if (   name[0] <= ' '
 		|| !isalpha(name[0])
 		|| !stricmp(name,cfg->sys_id)
 		|| strchr(name,0xff)
