@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.h,v 1.1 2008/02/23 10:57:55 rswindell Exp $ */
+/* $Id: xpdatetime.h,v 1.2 2008/02/23 11:11:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
