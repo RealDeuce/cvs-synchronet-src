@@ -2,7 +2,7 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.h,v 1.21 2008/02/23 22:18:37 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.19 2008/02/23 10:57:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,9 +43,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-/* Return difference (in seconds) in time() result from standard (0 on success) */
-time_t checktime(void);
 
 /* Implementation of mktime() that handles common tm element conversions for you */
 time_t sane_mktime(struct tm* tm);

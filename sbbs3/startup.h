@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.64 2009/02/11 10:37:54 rswindell Exp $ */
+/* $Id: startup.h,v 1.61 2006/12/31 11:15:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -88,12 +88,11 @@ typedef struct {
     sem_t**	node_spysem;			/* Spy output semaphore (each node)	*/
 
 	void*	cbdata;					/* Private data passed to callbacks */ 
-	void*	event_cbdata;			/* Private data passed to event_lputs callback */
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int, const char*);			/* Log - put string					*/
-    int 	(*event_lputs)(void*, int, const char*);	/* Event log - put string			*/
-	void	(*status)(void*, const char*);
+	int 	(*lputs)(void*, int, char*);	/* Log - put string					*/
+    int 	(*event_lputs)(int, char*);		/* Event log - put string			*/
+	void	(*status)(void*, char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
@@ -161,11 +160,12 @@ static struct init_field {
 #define BBS_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define BBS_OPT_GET_IDENT			(1<<28)	/* Get Identity (RFC 1413)			*/
 #define BBS_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
+#define BBS_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT				*/
 #define BBS_OPT_MUTE				(1<<31)	/* Mute sounds						*/
 
 /* bbs_startup_t.options bits that require re-init/recycle when changed */
 #define BBS_INIT_OPTS	(BBS_OPT_ALLOW_RLOGIN|BBS_OPT_ALLOW_SSH|BBS_OPT_NO_EVENTS|BBS_OPT_NO_SPY_SOCKETS \
-						|BBS_OPT_NO_JAVASCRIPT)
+						|BBS_OPT_NO_JAVASCRIPT|BBS_OPT_LOCAL_TIMEZONE)
 
 #if defined(STARTUP_INI_BITDESC_TABLES)
 static ini_bitdesc_t bbs_options[] = {
@@ -185,6 +185,7 @@ static ini_bitdesc_t bbs_options[] = {
 	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
 	{ BBS_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
+	{ BBS_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ BBS_OPT_MUTE					,"MUTE"					},
 	/* terminator */										
 	{ 0								,NULL					}

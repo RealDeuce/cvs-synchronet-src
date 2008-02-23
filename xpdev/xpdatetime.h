@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.h,v 1.3 2008/02/23 21:05:30 rswindell Exp $ */
+/* $Id: xpdatetime.h,v 1.1 2008/02/23 10:57:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,17 +126,6 @@ isoDate_t		xpDateTime_to_isoDateTime(xpDateTime_t, isoTime_t*);
 /*****************************************************************/
 /* Conversion from xpDate/Time/Zone to isoDate/Time/Zone Strings */
 /*****************************************************************/
-
-/* NULL sep (separator) values are automatically replaced with ISO-standard separators */
-
-/* precision	example output
- * -2			"14"
- * -1			"14:02"
- * 0            "14:02:39"
- * 1            "14.02:39.8"
- * 2            "14.02:39.82"
- * 3            "14.02:39.829"
- */
 char* xpDate_to_isoDateStr(xpDate_t
 						,const char* sep
 						,char* str, size_t maxlen);
