@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.25 2008/03/09 20:18:18 rswindell Exp $ */
+/* $Id: mxlookup.c,v 1.24 2008/02/20 00:31:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -342,7 +342,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 		answers=ntohs(msghdr.ancount);
 		p=msg+len;	/* Skip the header and question portion */
 
-		for(i=0;i<answers && p<msg+sizeof(msg);i++) {
+		for(i=0;i<answers;i++) {
 			namelen=0;
 			p+=dns_name(hostname, &namelen, sizeof(hostname)-1, msg+offset, p);
 
