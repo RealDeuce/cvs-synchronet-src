@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.42 2007/08/23 07:53:46 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.43 2008/02/15 20:14:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -418,7 +418,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					}
 				}
 
-				if(msg.hdr.attr&MSG_DELETE || !yesno(str2)) {
+				if(msg.hdr.attr&MSG_DELETE || noyes(str2)) {
 					if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 					else done=1;
 					break;	}
