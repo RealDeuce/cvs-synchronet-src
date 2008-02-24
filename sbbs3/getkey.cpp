@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.39 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: getkey.cpp,v 1.38 2007/07/27 11:12:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -299,7 +299,7 @@ char sbbs_t::getkey(long mode)
 /****************************************************************************/
 /* Outputs a string highlighting characters preceeded by a tilde            */
 /****************************************************************************/
-void sbbs_t::mnemonics(const char *str)
+void sbbs_t::mnemonics(char *str)
 {
     char *ctrl_a_codes;
     long l;
@@ -351,7 +351,7 @@ void sbbs_t::mnemonics(const char *str)
 /* Returns 1 for Y or 0 for N                                               */
 /* Called from quite a few places                                           */
 /****************************************************************************/
-bool sbbs_t::yesno(const char *str)
+bool sbbs_t::yesno(char *str)
 {
     char ch;
 
@@ -389,7 +389,7 @@ bool sbbs_t::yesno(const char *str)
 /* Returns 1 for N or 0 for Y                                               */
 /* Called from quite a few places                                           */
 /****************************************************************************/
-bool sbbs_t::noyes(const char *str)
+bool sbbs_t::noyes(char *str)
 {
     char ch;
 
@@ -428,7 +428,7 @@ bool sbbs_t::noyes(const char *str)
 /* it is echoed (upper case) and is the return value.                       */
 /* Called from quite a few functions                                        */
 /****************************************************************************/
-long sbbs_t::getkeys(const char *keys, ulong max)
+long sbbs_t::getkeys(char *keys, ulong max)
 {
 	char	str[81];
 	uchar	ch,n=0,c=0;
