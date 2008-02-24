@@ -2,7 +2,7 @@
 
 /* Program to add a user to a Synchronet user database */
 
-/* $Id: makeuser.c,v 1.6 2006/04/21 04:24:53 deuce Exp $ */
+/* $Id: makeuser.c,v 1.7 2008/02/23 22:35:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	time_t	now;
 	user_t	user;
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.7 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nMAKEUSER v%s-%s - Adds User to Synchronet User Database\n"
 		,revision
@@ -124,9 +124,6 @@ int main(int argc, char **argv)
 		fprintf(stderr,"!ERROR loading configuration files: %s\n",error);
 		exit(1);
 	}
-
-	if(!(scfg.sys_misc&SM_LOCAL_TZ))
-		putenv("TZ=UTC0");
 
 	now=time(NULL);
 
