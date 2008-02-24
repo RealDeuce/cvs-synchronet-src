@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.480 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.476 2008/02/23 22:35:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,7 +100,6 @@ static BOOL		terminate_server=FALSE;
 static BOOL		terminate_http_logging_thread=FALSE;
 static uint		thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
-static SOCKET	server_socket6=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
@@ -229,8 +228,6 @@ typedef struct  {
 typedef struct  {
 	SOCKET			socket;
 	SOCKADDR_IN		addr;
-	SOCKET			socket6;
-	SOCKADDR_IN		addr6;
 	http_request_t	req;
 	char			host_ip[64];
 	char			host_name[128];	/* Resolved remote host */
@@ -476,7 +473,7 @@ time_gm(struct tm *tm)
         return (t < 0 ? (time_t) -1 : t);
 }
 
-static int lprintf(int level, const char *fmt, ...)
+static int lprintf(int level, char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -1407,7 +1404,6 @@ static void calculate_digest(http_session_t * session, char *ha1, char *ha2, uns
 	MD5_open(&ctx);
 	MD5_digest(&ctx, ha1, strlen(ha1));
 	MD5_digest(&ctx, ":", 1);
-	/* exception on next line (session->req.auth.nonce==NULL) */
 	MD5_digest(&ctx, session->req.auth.nonce, strlen(session->req.auth.nonce));
 	MD5_digest(&ctx, ":", 1);
 
@@ -1687,13 +1683,16 @@ static BOOL check_ars(http_session_t * session)
 	return(FALSE);
 }
 
-static named_string_t** read_ini_list(char* path, char* section, char* desc
+static named_string_t** read_ini_list(char* fname, char* section, char* desc
 									  ,named_string_t** list)
 {
+	char	path[MAX_PATH+1];
 	size_t	i;
 	FILE*	fp;
 
 	list=iniFreeNamedStringList(list);
+
+	iniFileName(path,sizeof(path),scfg.ctrl_dir,fname);
 
 	if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
 		list=iniReadNamedStringList(fp,section);
@@ -2251,27 +2250,6 @@ static BOOL parse_headers(http_session_t * session)
 							}
 							if(session->req.auth.digest_uri==NULL)
 								session->req.auth.digest_uri=strdup(session->req.request_line);
-							/* Validate that we have the required values... */
-							switch(session->req.auth.qop_value) {
-								case QOP_NONE:
-									if(session->req.auth.realm==NULL
-											|| session->req.auth.nonce==NULL
-											|| session->req.auth.digest_uri==NULL)
-										send_error(session,"400 Bad Request");
-									break;
-								case QOP_AUTH:
-								case QOP_AUTH_INT:
-									if(session->req.auth.realm==NULL
-											|| session->req.auth.nonce==NULL
-											|| session->req.auth.nonce_count==NULL
-											|| session->req.auth.cnonce==NULL
-											|| session->req.auth.digest_uri==NULL)
-										send_error(session,"400 Bad Request");
-									break;
-								default:
-									send_error(session,"400 Bad Request");
-									break;
-							}
 						}
 					}
 					break;
@@ -5084,7 +5062,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.480 $", "%*s %s", revision);
+	sscanf("$Revision: 1.476 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5214,8 +5192,6 @@ void DLLCALL web_server(void* arg)
 	char			host_ip[32];
 	char			path[MAX_PATH+1];
 	char			logstr[256];
-	char			mime_types_ini[MAX_PATH+1];
-	char			web_handler_ini[MAX_PATH+1];
 	SOCKADDR_IN		server_addr={0};
 	SOCKADDR_IN		client_addr;
 	socklen_t		client_addr_len;
@@ -5363,13 +5339,11 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		iniFileName(mime_types_ini,sizeof(mime_types_ini),scfg.ctrl_dir,"mime_types.ini");
-		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
+		mime_types=read_ini_list("mime_types.ini",NULL /* root section */,"MIME types"
 			,mime_types);
-		iniFileName(web_handler_ini,sizeof(web_handler_ini),scfg.ctrl_dir,"web_handler.ini");
-		cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
+		cgi_handlers=read_ini_list("web_handler.ini","CGI","CGI content handlers"
 			,cgi_handlers);
-		xjs_handlers=read_ini_list(web_handler_ini,"JavaScript","JavaScript content handlers"
+		xjs_handlers=read_ini_list("web_handler.ini","JavaScript","JavaScript content handlers"
 			,xjs_handlers);
 
 		/* Don't do this for *each* CGI request, just once here during [re]init */
@@ -5475,8 +5449,6 @@ void DLLCALL web_server(void* arg)
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","web");
 		SAFEPRINTF(path,"%swebsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
-		semfile_list_add(&recycle_semfiles,mime_types_ini);
-		semfile_list_add(&recycle_semfiles,web_handler_ini);
 		if(!initialized) {
 			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);

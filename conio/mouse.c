@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.36 2008/06/07 09:42:26 deuce Exp $ */
+/* $Id: mouse.c,v 1.33 2005/10/22 00:02:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,15 +97,14 @@ struct mouse_state {
 struct mouse_state state;
 int mouse_events=0;
 int ciolib_mouse_initialized=0;
-static int ungot=0;
 
 void init_mouse(void)
 {
 	memset(&state,0,sizeof(state));
 	state.click_timeout=0;
 	state.multi_timeout=300;
-	listInit(&state.input,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
-	listInit(&state.output,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
+	listInit(&state.input,LINK_LIST_SEMAPHORE);
+	listInit(&state.output,LINK_LIST_SEMAPHORE);
 	ciolib_mouse_initialized=1;
 }
 
@@ -213,7 +212,7 @@ void ciolib_mouse_thread(void *data)
 				timedout=1;
 			}
 			else {
-				timedout=!listSemTryWaitBlock(&state.input,delay);
+				timedout=listSemTryWaitBlock(&state.input,delay);
 			}
 		}
 		else {
@@ -430,30 +429,16 @@ void ciolib_mouse_thread(void *data)
 
 int mouse_trywait(void)
 {
-	int	result;
-
 	while(!ciolib_mouse_initialized)
 		SLEEP(1);
-	while(1) {
-		result=listSemTryWait(&state.output);
-		if(ungot==0)
-			return(result);
-		ungot--;
-	}
+	return(listSemTryWait(&state.output));
 }
 
 int mouse_wait(void)
 {
-	int result;
-
 	while(!ciolib_mouse_initialized)
 		SLEEP(1);
-	while(1) {
-		result=listSemWait(&state.output);
-		if(ungot==0)
-			return(result);
-		ungot--;
-	}
+	return(listSemWait(&state.output));
 }
 
 int mouse_pending(void)
@@ -472,10 +457,8 @@ int ciolib_getmouse(struct mouse_event *mevent)
 	if(listCountNodes(&state.output)) {
 		struct out_mouse_event *out;
 		out=listShiftNode(&state.output);
-		if(out==NULL) {
-fprintf(stderr,"Mouse list problem!\n");
+		if(out==NULL)
 			return(-1);
-		}
 		mevent->event=out->event;
 		mevent->bstate=out->bstate;
 		mevent->kbsm=out->kbsm;
@@ -486,7 +469,6 @@ fprintf(stderr,"Mouse list problem!\n");
 		free(out);
 	}
 	else {
-fprintf(stderr,"Mouse key problem!\n");
 		memset(mevent,0,sizeof(struct mouse_event));
 		retval=-1;
 	}
@@ -500,8 +482,5 @@ int ciolib_ungetmouse(struct mouse_event *mevent)
 	if((me=(struct mouse_event *)malloc(sizeof(struct mouse_event)))==NULL)
 		return(-1);
 	memcpy(me,mevent,sizeof(struct mouse_event));
-	if(listInsertNode(&state.output,me)==NULL)
-		return(FALSE);
-	ungot++;
-	return(TRUE);
+	return(listInsertNode(&state.output,me)==NULL);
 }
