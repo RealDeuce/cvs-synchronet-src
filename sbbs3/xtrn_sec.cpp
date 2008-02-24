@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.67 2009/01/12 02:43:18 deuce Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.64 2008/02/10 02:20:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -193,7 +193,7 @@ int sbbs_t::xtrn_sec()
 }
 
 
-const char *hungupstr="\1n\1h%s\1n hung up on \1h%s\1n %s\r\n";
+char *hungupstr="\1n\1h%s\1n hung up on \1h%s\1n %s\r\n";
 
 /****************************************************************************/
 /* Convert C string to pascal string										*/
