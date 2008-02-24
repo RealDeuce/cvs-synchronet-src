@@ -7,7 +7,7 @@
 #include "keys.h"
 #include "cterm.h"
 
-#define SCROLL_LINES	100000
+#define SCROLL_LINES	1000
 #define BUF_SIZE		1024
 
 
@@ -16,22 +16,21 @@ void viewscroll(void)
 	int	top;
 	int key;
 	int i;
+	char	*scrollback;
 	struct	text_info txtinfo;
 
     gettextinfo(&txtinfo);
-	cterm.backpos+=cterm.height;
-	if(cterm.backpos>cterm.backlines) {
-		memmove(cterm.scrollback,cterm.scrollback+cterm.width*2*(cterm.backpos-cterm.backlines),cterm.width*2*(cterm.backlines-(cterm.backpos-cterm.backlines)));
-		cterm.backpos=cterm.backlines;
-	}
-	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,cterm.scrollback+(cterm.backpos)*cterm.width*2);
+	/* ToDo: Watch this... may be too large for alloca() */
+	scrollback=(char *)malloc((txtinfo.screenwidth*2*SCROLL_LINES)+(txtinfo.screenheight*txtinfo.screenwidth*2));
+	memcpy(scrollback,cterm.scrollback,txtinfo.screenwidth*2*SCROLL_LINES);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm.backpos)*cterm.width*2);
 	top=cterm.backpos;
 	for(i=0;!i;) {
 		if(top<1)
 			top=1;
 		if(top>cterm.backpos)
 			top=cterm.backpos;
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,cterm.scrollback+(txtinfo.screenwidth*2*top));
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(txtinfo.screenwidth*2*top));
 		key=getch();
 		switch(key) {
 			case 0xff:
@@ -72,6 +71,7 @@ void viewscroll(void)
 				break;
 		}
 	}
+	free(scrollback);
 	return;
 }
 
@@ -99,21 +99,26 @@ int main(int argc, char **argv)
 	FILE	*f;
 	char	buf[BUF_SIZE*2];	/* Room for lfexpand */
 	int		len;
-	int		speed=0;
+	int		speed;
 	char	*scrollbuf;
 	char	*infile=NULL;
 	char	title[MAX_PATH+1];
 	int		expand=0;
-	int		ansi=0;
 	int		i;
 
+	textmode(C80);
+	gettextinfo(&ti);
+	if((scrollbuf=malloc(SCROLL_LINES*ti.screenwidth*2))==NULL) {
+		cprintf("Cannot allocate memory\n\n\rPress any key to exit.");
+		getch();
+		return(-1);
+	}
+	
 	/* Parse command line */
 	for(i=1; i<argc; i++) {
 		if(argv[i][0]=='-') {
 			if(argv[i][1]=='l' && argv[i][2]==0)
 				expand=1;
-			else if(argv[i][1]=='a' && argv[i][2]==0)
-				ansi=1;
 			else
 				goto usage;
 		}
@@ -125,20 +130,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if(ansi) {
-		initciolib(CIOLIB_MODE_ANSI);
-		puts("START OF ANSI...");
-	}
-
-	textmode(C80);
-	gettextinfo(&ti);
-	if((scrollbuf=malloc(SCROLL_LINES*ti.screenwidth*2))==NULL) {
-		cprintf("Cannot allocate memory\n\n\rPress any key to exit.");
-		getch();
-		return(-1);
-	}
-
-	cterm_init(ti.screenheight, ti.screenwidth, 1, 1, SCROLL_LINES, scrollbuf, CTERM_EMULATION_ANSI_BBS);
+	cterm_init(ti.screenheight, ti.screenwidth, 0, 0, SCROLL_LINES, scrollbuf, CTERM_EMULATION_ANSI_BBS);
 	if(infile) {
 		if((f=fopen(infile,"r"))==NULL) {
 			cprintf("Cannot read %s\n\n\rPress any key to exit.",argv[1]);
@@ -157,24 +149,13 @@ int main(int argc, char **argv)
 			lfexpand(buf, &len);
 		cterm_write(buf, len, NULL, 0, &speed);
 	}
-	if(ansi) {
-		puts("");
-		puts("END OF ANSI");
-		gettext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
-		puttext_can_move=1;
-		puts("START OF SCREEN DUMP...");
-		clrscr();
-		puttext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
-	}
-	else
-		viewscroll();
+	viewscroll();
 	return(0);
 
 usage:
-	cprintf("Usage: %s [-l] [-a] [filename]\r\n\r\n"
+	cprintf("Usage: %s [-l] [filename]\r\n\r\n"
 			"Displays the ANSI file filename expanding \\n to \\r\\n if -l is specified.\r\n"
 			"If no filename is specified, reads input from stdin\r\n"
-			"If -a is specified, outputs ANSI to stdout\r\n"
 			"\r\n"
 			"Press any key to exit.");
 	getch();
