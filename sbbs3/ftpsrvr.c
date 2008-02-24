@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.325 2007/12/24 23:27:01 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.327 2008/02/23 22:35:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -996,16 +996,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 
 #endif	/* ifdef JAVASCRIPT */
-
-static time_t checktime(void)
-{
-	struct tm tm;
-
-    memset(&tm,0,sizeof(tm));
-    tm.tm_year=94;
-    tm.tm_mday=1;
-    return(mktime(&tm)-0x2D24BD00L);
-}
 
 BOOL upload_stats(ulong bytes)
 {
@@ -4541,7 +4531,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.325 $", "%*s %s", revision);
+	sscanf("$Revision: 1.327 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4663,7 +4653,7 @@ void DLLCALL ftp_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,CTIME_R(&t,str),startup->options);
+			,ctime_r(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -4680,16 +4670,8 @@ void DLLCALL ftp_server(void* arg)
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&FTP_OPT_LOCAL_TIMEZONE)) { 
-			if(putenv("TZ=UTC0"))
-				lprintf(LOG_ERR,"!putenv() FAILED");
-			tzset();
-
-			if((t=checktime())!=0) {   /* Check binary time */
-				lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
-				cleanup(1,__LINE__);
-				return;
-			}
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
 		}
 
 		if(uptime==0)
