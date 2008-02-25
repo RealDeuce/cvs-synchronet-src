@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.19 2008/01/29 01:32:55 deuce Exp $ */
+/* $Id: cterm.h,v 1.20 2008/02/18 04:06:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,7 +59,7 @@ struct cterminal {
 	int	x;
 	int	y;
 	char *buffer;
-	int	attr;
+	unsigned char	attr;
 	int save_xpos;
 	int save_ypos;
 	char	escbuf[1024];
