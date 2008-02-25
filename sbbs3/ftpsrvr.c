@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.327 2008/02/23 22:35:08 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.328 2008/02/25 08:07:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -2616,18 +2616,18 @@ static void ctrl_thread(void* arg)
 					break;
 				continue;
 			}
-			if(user.ltoday>scfg.level_callsperday[user.level]
+			if(user.ltoday>=scfg.level_callsperday[user.level]
 				&& !(user.exempt&FLAG('L'))) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM LOGONS (%d) reached for %s"
 					,sock,scfg.level_callsperday[user.level],user.alias);
-				sockprintf(sock,"530 Maximum logons reached.");
+				sockprintf(sock,"530 Maximum logons per day reached.");
 				user.number=0;
 				continue;
 			}
-			if(user.rest&FLAG('L') && user.ltoday>1) {
+			if(user.rest&FLAG('L') && user.ltoday>=1) {
 				lprintf(LOG_WARNING,"%04d !L RESTRICTED user #%d (%s) already on today"
 					,sock,user.number,user.alias);
-				sockprintf(sock,"530 Maximum logons reached.");
+				sockprintf(sock,"530 Maximum logons per day reached.");
 				user.number=0;
 				continue;
 			}
@@ -2671,7 +2671,8 @@ static void ctrl_thread(void* arg)
 			client_on(sock,&client,TRUE /* update */);
 
 
-			lprintf(LOG_INFO,"%04d %s logged in",sock,user.alias);
+			lprintf(LOG_INFO,"%04d %s logged in (%u today, %u total)"
+				,sock,user.alias,user.ltoday+1, user.logons+1);
 			logintime=time(NULL);
 			timeleft=gettimeleft(&scfg,&user,logintime);
 			ftp_printfile(sock,"hello",230);
@@ -4531,7 +4532,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.327 $", "%*s %s", revision);
+	sscanf("$Revision: 1.328 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4722,10 +4723,6 @@ void DLLCALL ftp_server(void* arg)
 			strlwr(scfg.lib[i]->sname);
 			dotname(scfg.lib[i]->sname,scfg.lib[i]->sname);
 		}
-#if 0	/* this is now handled by load_cfg()->prep_cfg() */
-		for(i=0;i<scfg.total_dirs;i++) 
-			strlwr(scfg.dir[i]->code_suffix);
-#endif
 		/* open a socket and wait for a client */
 
 		if((server_socket=ftp_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
