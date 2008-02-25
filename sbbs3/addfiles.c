@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.42 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: addfiles.c,v 1.41 2008/02/23 22:35:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@ char lib[LEN_GSNAME+1];
 /****************************************************************************/
 /* This is needed by load_cfg.c												*/
 /****************************************************************************/
-int lprintf(int level, const char *fmat, ...)
+int lprintf(int level, char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[512];
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.42 $", "%*s %s", revision);
+	sscanf("$Revision: 1.41 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"

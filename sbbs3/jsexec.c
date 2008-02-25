@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.113 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: jsexec.c,v 1.112 2008/02/23 22:35:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,7 +159,7 @@ int mfprintf(FILE* fp, char *fmt, ...)
 }
 
 /* Log printf */
-int lprintf(int level, const char *fmt, ...)
+int lprintf(int level, char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -810,7 +810,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.113 $", "%*s %s", revision);
+	sscanf("$Revision: 1.112 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
