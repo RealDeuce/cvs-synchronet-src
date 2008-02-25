@@ -106,7 +106,6 @@ CopyBlock(char Mode)
 			puttext(1,1,80,ti.screenheight-1,buf);
 		else
 			puttext(1,2,80,ti.screenheight-1,buf);
-		free(buf);
 
 		Statusline();
 		Colors(Attribute);

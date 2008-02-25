@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.33 2008/06/04 04:40:02 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.32 2008/01/07 07:05:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,7 +172,7 @@ int		recvfilesocket(int sock, int file, long *offset, long count);
 BOOL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
 int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
-				   ,int (*lprintf)(int level, const char *fmt, ...));
+				   ,int (*lprintf)(int level, char *fmt, ...));
 
 #ifdef __cplusplus
 }
