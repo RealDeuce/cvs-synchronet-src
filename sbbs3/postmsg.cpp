@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.73 2007/08/13 23:27:50 deuce Exp $ */
+/* $Id: postmsg.cpp,v 1.76 2008/02/25 02:14:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,6 +71,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	ulong	length,offset,crc=0xffffffff;
 	FILE*	instream;
 	smbmsg_t msg;
+	uint	reason;
 
 	if(remsg) {
 		sprintf(title,"%.*s",LEN_TITLE,remsg->subj);
@@ -86,7 +87,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			SAFECOPY(touser,from);
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
 		sprintf(top,text[RegardingByToOn],title,from,remsg->to
-			,time32str((time32_t *)&remsg->hdr.when_written.time)
+			,timestr(remsg->hdr.when_written.time)
 			,smb_zonestr(remsg->hdr.when_written.zone,NULL)); 
 	} else {
 		title[0]=0;
@@ -96,22 +97,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	}
 
 	/* Security checks */
-	if(!chk_ar(cfg.sub[subnum]->post_ar,&useron)) {
-		bputs(text[CantPostOnSub]);
-		return(false); 
-	}
-	if(useron.rest&FLAG('P')) {
-		bputs(text[R_Post]);
-		return(false); 
-	}
-	if((cfg.sub[subnum]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET))
-		&& (useron.rest&FLAG('N'))) {
-		bputs(text[CantPostOnSub]);
-		return(false); 
-	}
-	if(useron.ptoday>=cfg.level_postsperday[useron.level]) {
-		bputs(text[TooManyPostsToday]);
-		return(false); 
+	if(!can_user_post(&cfg,subnum,&useron,&reason)) {
+		bputs(text[reason]);
+		return false;
 	}
 
 	bprintf(text[Posting],cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
@@ -414,7 +402,8 @@ extern "C" void DLLCALL signal_sub_sem(scfg_t* cfg, uint subnum)
 
 extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 {
-	int i;
+	int		i;
+	char	port[16];
 
 	if(client==NULL)
 		return(-1);
@@ -425,7 +414,8 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 		return(i);
 	if((i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
 		return(i);
-	return smb_hfield(msg,SENDERPORT,sizeof(client->port),&client->port);
+	SAFEPRINTF(port,"%u",client->port);
+	return smb_hfield_str(msg,SENDERPORT,port);
 }
 
 extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, char* msgbuf)

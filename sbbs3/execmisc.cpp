@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.47 2007/08/13 23:27:50 deuce Exp $ */
+/* $Id: execmisc.cpp,v 1.48 2007/08/14 00:37:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -532,7 +532,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					lp=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4; /* Skip int variable name */
 					if(pp && lp) {
-						strcpy(str,time32str(lp));
+						strcpy(str,timestr(*lp));
 						*pp=copystrvar(csi,*pp,str); }
 					return(0);
 				case DATE_STR:

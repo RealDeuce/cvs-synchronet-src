@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.8 2007/08/13 22:12:35 deuce Exp $ */
+/* $Id: smbdump.c,v 1.10 2008/02/24 08:21:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 
 	/* convenience strings */
 	if(msg->subj)
-		fprintf(fp,"%-20.20s %s\n"	,"subject"			,msg->subj);
+		fprintf(fp,"%-20.20s \"%s\"\n"	,"subject"			,msg->subj);
 	if(msg->to) {
 		fprintf(fp,"%-20.20s %s"	,"to"				,msg->to);
 		if(msg->to_ext)
@@ -82,7 +82,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		fprintf(fp,"\n");
 	}
 	if(msg->from) {
-		fprintf(fp,"%-20.20s %s"	,"from"				,msg->from);
+		fprintf(fp,"%-20.20s \"%s\""	,"from"				,msg->from);
 		if(msg->from_ext)
 			fprintf(fp," #%s",msg->from_ext);
 		if(msg->from_net.type)
@@ -90,7 +90,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		fprintf(fp,"\n");
 	}
 	if(msg->replyto) {
-		fprintf(fp,"%-20.20s %s"	,"reply-to"			,msg->replyto);
+		fprintf(fp,"%-20.20s \"%s\""	,"reply-to"			,msg->replyto);
 		if(msg->replyto_ext)
 			fprintf(fp," #%s",msg->replyto_ext);
 		if(msg->replyto_net.type)
@@ -98,7 +98,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		fprintf(fp,"\n");
 	}
 	if(msg->summary)
-		fprintf(fp,"%-20.20s %s\n"	,"summary"			,msg->summary);
+		fprintf(fp,"%-20.20s \"%s\"\n"	,"summary"			,msg->summary);
 
 	/* convenience integers */
 	if(msg->expiration) {
@@ -113,7 +113,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		,ctime(&tt)	
 		,smb_tzutc(msg->hdr.when_written.zone)/60
 		,abs(smb_tzutc(msg->hdr.when_written.zone)%60));
-	tt-msg->hdr.when_imported.time;
+	tt=msg->hdr.when_imported.time;
 	fprintf(fp,"%-20.20s %.24s  UTC%+d:%02d\n"	,"when_imported"	
 		,ctime(&tt)	
 		,smb_tzutc(msg->hdr.when_imported.zone)/60
@@ -146,7 +146,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 
 	/* variable fields */
 	for(i=0;i<msg->total_hfields;i++)
-		fprintf(fp,"%-20.20s %s\n"
+		fprintf(fp,"%-20.20s \"%s\"\n"
 			,smb_hfieldtype(msg->hfield[i].type)
 			,binstr((uchar *)msg->hfield_dat[i],msg->hfield[i].length));
 
