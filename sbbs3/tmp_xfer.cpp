@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.42 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.41 2008/02/14 08:17:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,7 +412,7 @@ void sbbs_t::extract(uint dirnum)
 /* Creates a text file named NEWFILES.DAT in the temp directory that        */
 /* all new files since p-date. Returns number of files in list.             */
 /****************************************************************************/
-ulong sbbs_t::create_filelist(const char *name, long mode)
+ulong sbbs_t::create_filelist(char *name, long mode)
 {
     char	str[256];
 	int		file;
