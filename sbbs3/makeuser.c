@@ -2,7 +2,7 @@
 
 /* Program to add a user to a Synchronet user database */
 
-/* $Id: makeuser.c,v 1.4 2003/10/24 22:10:00 rswindell Exp $ */
+/* $Id: makeuser.c,v 1.7 2008/02/23 22:35:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	time_t	now;
 	user_t	user;
 
-	sscanf("$Revision: 1.4 $", "%*s %s", revision);
+	sscanf("$Revision: 1.7 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nMAKEUSER v%s-%s - Adds User to Synchronet User Database\n"
 		,revision
@@ -125,9 +125,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if(!(scfg.sys_misc&SM_LOCAL_TZ))
-		putenv("TZ=UTC0");
-
 	now=time(NULL);
 
 	memset(&user,0,sizeof(user));
@@ -161,6 +158,7 @@ int main(int argc, char **argv)
 
 	user.shell=scfg.new_shell;
 	user.misc=(scfg.new_misc&~(DELETED|INACTIVE|QUIET|NETMAIL));
+	user.misc|=AUTOTERM;	/* No way to frob the default value... */
 	user.qwk=QWK_DEFAULT;
 	user.firston=now;
 	user.laston=now;	/* must set this or user may be purged prematurely */
@@ -173,6 +171,10 @@ int main(int argc, char **argv)
 
 	for(i=first_arg;i<argc;i++) {
 		if(argv[i][0]=='-') {
+			if(argv[i+1]==NULL) {
+				printf("%s",usage);
+				return(1);
+			}
 			switch(toupper(argv[i++][1])) {
 			case 'A':
 				SAFECOPY(user.address,argv[i]);

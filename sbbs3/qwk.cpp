@@ -2,13 +2,13 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.44 2007/07/10 23:50:31 deuce Exp $ */
+/* $Id: qwk.cpp,v 1.46 2008/02/24 07:56:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -62,6 +62,9 @@ float ltomsbin(long val)
 bool route_circ(char *via, char *id)
 {
 	char str[256],*p,*sp;
+
+	if(via==NULL || id==NULL)
+		return(false);
 
 	SAFECOPY(str,via);
 	p=str;
@@ -475,6 +478,9 @@ void sbbs_t::qwk_sec()
 				bprintf("\1hC\1n) %-30s: \1h%s\r\n"
 					,"Include Control Files"
 					,useron.qwk&QWK_NOCTRL ? text[No]:text[Yes]);
+				bprintf("\1hH\1n) %-30s: \1h%s\r\n"
+					,"Include HEADERS.DAT"
+					,useron.qwk&QWK_HEADERS ? text[Yes]:text[No]);
 				bprintf("\1hY\1n) %-30s: \1h%s\r\n"
 					,"Include Messages from You"
 					,useron.qwk&QWK_BYSELF ? text[Yes]:text[No]);
@@ -491,7 +497,7 @@ void sbbs_t::qwk_sec()
 					,"Extended (QWKE) Packet Format"
 					,useron.qwk&QWK_EXT ? text[Yes]:text[No]);
 				bputs(text[UserDefaultsWhich]);
-				ch=(char)getkeys("AEDFIOQTYMNCXZV",0);
+				ch=(char)getkeys("AEDFHIOQTYMNCXZV",0);
 				if(sys_status&SS_ABORT || !ch || ch=='Q' || !online)
 					break;
 				switch(ch) {
@@ -520,6 +526,9 @@ void sbbs_t::qwk_sec()
 							useron.qwk|=QWK_ALLMAIL; }
 						else
 							useron.qwk&=~(QWK_EMAIL|QWK_ALLMAIL);
+						break;
+					case 'H':
+						useron.qwk^=QWK_HEADERS;
 						break;
 					case 'I':
 						useron.qwk^=QWK_ATTACH;
@@ -979,13 +988,12 @@ int sbbs_t::set_qwk_flag(ulong flag)
 	int i;
 	char str[32];
 
+	if(useron.qwk&flag)
+		return 0;
 	if((i=getuserrec(&cfg,useron.number,U_QWK,8,str))!=0)
 		return(i);
 	useron.qwk=ahtoul(str);
 	useron.qwk|=flag;
-	if((i=putuserrec(&cfg,useron.number,U_QWK,8,ultoa(useron.qwk,str,16)))!=0)
-		return(i);
-
-	return(0);
+	return putuserrec(&cfg,useron.number,U_QWK,8,ultoa(useron.qwk,str,16));
 }
 
