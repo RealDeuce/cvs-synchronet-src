@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.87 2008/10/04 23:07:12 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.83 2008/02/12 08:07:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +90,6 @@ BOOL	dszlog_path=TRUE;				/* Log complete path to filename	*/
 BOOL	dszlog_short=FALSE;				/* Log Micros~1 short filename		*/
 BOOL	dszlog_quotes=FALSE;			/* Quote filenames in DSZLOG		*/
 int		log_level=LOG_INFO;
-BOOL	use_syslog=FALSE;
 
 xmodem_t xm;
 zmodem_t zm;
@@ -164,7 +163,6 @@ static BOOL winsock_startup(void)
 static int lputs(void* unused, int level, const char* str)
 {
 	FILE*	fp=statfp;
-	int		ret;
 
 #if defined(_WIN32) && defined(_DEBUG)
 	if(log_level==LOG_DEBUG)
@@ -182,24 +180,9 @@ static int lputs(void* unused, int level, const char* str)
 		newline=TRUE;
 	}
 	if(level<LOG_NOTICE)
-		ret=fprintf(fp,"!%s\n",str);
+		return fprintf(fp,"!%s\n",str);
 	else
-		ret=fprintf(fp,"%s\n",str);
-
-#if defined(__unix__)
-	if(use_syslog) {
-		char*	msg;
-		char*	p;
-		if((msg=strdup(str))!=NULL) {
-			REPLACE_CHARS(msg,'\r',' ',p);
-			REPLACE_CHARS(msg,'\n',' ',p);
-			syslog(level,"%s",msg);
-			free(msg);
-		}
-	}
-#endif
-
-	return ret;
+		return fprintf(fp,"%s\n",str);
 }
 
 static int lprintf(int level, const char *fmt, ...)
@@ -364,8 +347,8 @@ int recv_byte(void* unused, unsigned timeout)
 #endif
 			FD_SET(sock,&socket_set);
 		if((t=end-msclock())<0) t=0;
-		tv.tv_sec=t/((unsigned)MSCLOCKS_PER_SEC);
-		tv.tv_usec=(t%((unsigned)MSCLOCKS_PER_SEC))*1000;
+		tv.tv_sec=t/MSCLOCKS_PER_SEC;
+		tv.tv_usec=0;
 
 		if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 			if(i==SOCKET_ERROR) {
@@ -1340,7 +1323,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.87 $", "%*s %s", revision);
+	sscanf("$Revision: 1.83 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1376,7 +1359,6 @@ int main(int argc, char **argv)
 	pause_on_abend			=iniReadBool(fp,ROOT_SECTION,"PauseOnAbend",FALSE);
 
 	log_level				=iniReadLogLevel(fp,ROOT_SECTION,"LogLevel",log_level);
-	use_syslog				=iniReadBool(fp,ROOT_SECTION,"SysLog",use_syslog);
 
 	outbuf.highwater_mark	=iniReadInteger(fp,ROOT_SECTION,"OutbufHighwaterMark",1100);
 	outbuf_drain_timeout	=iniReadInteger(fp,ROOT_SECTION,"OutbufDrainTimeout",10);
@@ -1523,10 +1505,6 @@ int main(int argc, char **argv)
 				}
 				if(stricmp(arg,"debug")==0) {
 					log_level=LOG_DEBUG;
-					continue;
-				}
-				if(stricmp(arg,"syslog")==0) {
-					use_syslog=TRUE;
 					continue;
 				}
 				if(stricmp(arg,"quotes")==0) {
