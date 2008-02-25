@@ -229,7 +229,6 @@ static int init_window()
     x11.XSelectInput(dpy, win, KeyReleaseMask | KeyPressMask |
 		     ExposureMask | ButtonPressMask
 		     | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask);
-//	x11.XFlush(dpy);
 	x11.XGetWindowAttributes(dpy,win,&attr);
 	memcpy(&visual,attr.visual,sizeof(visual));
 
@@ -270,7 +269,6 @@ static void resize_window()
 
 static int init_mode(int mode)
 {
-    int i;
     int oldcols=vstat.cols;
 
 	bitmap_init_mode(mode, &bitmap_width, &bitmap_height);
@@ -302,7 +300,7 @@ static int video_init()
 		return(-1);
 
 	vstat.scaling=1;
-	bitmap_init(x11_drawrect);
+	bitmap_init(x11_drawrect, x11_flush);
 
     /* Initialize mode 3 (text, 80x25, 16 colors) */
     if(init_mode(3)) {
@@ -317,10 +315,10 @@ static int video_init()
 static void local_draw_rect(struct update_rect *rect)
 {
 	int x,y,xscale,yscale;
-	int rectw, recth, rectc,x2,y2;
 	XImage *xim;
 
 #if 0 /* Draw solid colour rectangles... */
+	int rectw, recth, rectc, y2;
 	for(y=0; y<rect->height; y++) {
 		for(x=0; x<rect->width; x++) {
 			rectc=rect->data[y*rect->width+x];
@@ -381,7 +379,6 @@ static void local_draw_rect(struct update_rect *rect)
 	}
 #endif
 #endif
-	x11.XFlush(dpy);
 	free(rect->data);
 }
 
@@ -393,7 +390,6 @@ static int x11_event(XEvent *ev)
 			{
 				int newFSH=1;
 				int newFSW=1;
-				int r;
 
 				x11_window_xpos=ev->xconfigure.x;
 				x11_window_ypos=ev->xconfigure.y;
@@ -865,6 +861,9 @@ void x11_event_thread(void *args)
 							break;
 						case X11_LOCAL_DRAWRECT:
 							local_draw_rect(&lev.data.rect);
+							break;
+						case X11_LOCAL_FLUSH:
+							x11.XFlush(dpy);
 							break;
 						case X11_LOCAL_BEEP:
 							x11.XBell(dpy, 100);
