@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.240 2008/02/11 06:47:05 deuce Exp $ */
+/* $Id: term.c,v 1.246 2008/02/18 01:55:20 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -189,9 +189,9 @@ void update_status(struct bbslist *bbs, int speed)
 			break;
 		default:
 			if(timeon>359999)
-				cprintf(" %-29.29s \263 %-6.6s \263 Connected: Too Long \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type]);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type]);
 			else
-				cprintf(" %-29.29s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break; /*    1+29     +3    +6    +3    +11        +3+3+2        +3    +6    +4  +5 */
 	}
 	if(wherex()>=80)
@@ -619,6 +619,7 @@ void begin_download(struct bbslist *bbs)
 		};
 	struct	text_info txtinfo;
 	char	*buf;
+	int old_hold=hold_update;
 
 	if(safe_mode)
 		return;
@@ -631,6 +632,7 @@ void begin_download(struct bbslist *bbs)
 
 	i=0;
 	uifc.helpbuf="Select Protocol";
+	hold_update=FALSE;
 	switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Protocol",opts)) {
 		case 0:
 			zmodem_download(bbs);
@@ -646,6 +648,7 @@ void begin_download(struct bbslist *bbs)
 				xmodem_download(bbs, XMODEM|CRC|RECV,path);
 			break;
 	}
+	hold_update=old_hold;
 	uifcbail();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
@@ -1170,21 +1173,20 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 	fsize=filelength(fileno(fp));
 
 	if(mode&XMODEM) {
-		draw_transfer_window("XMODEM Upload");
-		lprintf(LOG_INFO,"Sending %s (%lu KB) via XMODEM"
-			,path,fsize/1024);
+		if(mode&GMODE)
+			draw_transfer_window("XMODEM-g Upload");
+		else
+			draw_transfer_window("XMODEM Upload");
+		lprintf(LOG_INFO,"Sending %s (%lu KB) via XMODEM%s"
+			,path,fsize/1024,(mode&GMODE)?"-g":"");
 	}
 	else if(mode&YMODEM) {
-		if(mode&GMODE) {
+		if(mode&GMODE)
 			draw_transfer_window("YMODEM-g Upload");
-			lprintf(LOG_INFO,"Sending %s (%lu KB) via YMODEM-g"
-				,path,fsize/1024);
-		}
-		else {
+		else
 			draw_transfer_window("YMODEM Upload");
-			lprintf(LOG_INFO,"Sending %s (%lu KB) via YMODEM"
-				,path,fsize/1024);
-		}
+		lprintf(LOG_INFO,"Sending %s (%lu KB) via YMODEM%s"
+			,path,fsize/1024,(mode&GMODE)?"-g":"");
 	}
 	else {
 		return;
@@ -1244,7 +1246,10 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 		return;
 
 	if(mode&XMODEM)
-		draw_transfer_window("XMODEM Download");
+		if(mode&GMODE)
+			draw_transfer_window("XMODEM-g Download");
+		else
+			draw_transfer_window("XMODEM Download");
 	else if(mode&YMODEM) {
 		if(mode&GMODE)
 			draw_transfer_window("YMODEM-g Download");
@@ -1282,18 +1287,13 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					send_byte(NULL,ACK,10);
 					break;
 				}
-#if 0
-				if(i==NOINP) {			/* Timeout */
-					if(mode&GMODE)
-						mode &= ~GMODE;
-					else if(mode&CRC)
-						mode &= ~CRC;
+				if(i==NOINP && (mode&GMODE)) {			/* Timeout */
+					mode &= ~GMODE;
 					lprintf(LOG_WARNING,"Falling back to %s", 
 						(mode&CRC)?"CRC-16":"Checksum");
 				}
-#endif
 				if(i==NOT_YMODEM) {
-					lprintf(LOG_WARNING,"Falling back to XMODEM");
+					lprintf(LOG_WARNING,"Falling back to XMODEM%s",(mode&GMODE)?"-g":"");
 					mode &= ~(YMODEM);
 					mode |= XMODEM|CRC;
 					erase_transfer_window();
@@ -1303,8 +1303,11 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 						goto end;
 					}
 					hold_update=old_hold;
-					draw_transfer_window("XMODEM Download");
-					lprintf(LOG_WARNING,"Falling back to XMODEM");
+					if(mode&GMODE)
+						draw_transfer_window("XMODEM Download");
+					else
+						draw_transfer_window("XMODEM-g Download");
+					lprintf(LOG_WARNING,"Falling back to XMODEM%s",(mode&GMODE)?"-g":"");
 					if(isfullpath(fname))
 						SAFECOPY(str,fname);
 					else
@@ -1412,16 +1415,6 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					xm.cancelled=TRUE;
 					break;
 				}
-#if 0
-				if(i==NOINP) {			/* Timeout */
-					if(mode&GMODE)
-						mode &= ~GMODE;
-					else if(mode&CRC)
-						mode &= ~CRC;
-					lprintf(LOG_WARNING,"Falling back to %s", 
-						(mode&CRC)?"CRC-16":"Checksum");
-				}
-#endif
 				if(mode&GMODE) {
 					lprintf(LOG_ERR,"Too many errors (%u)",++errors);
 					goto end; 
@@ -1594,12 +1587,16 @@ void font_control(struct bbslist *bbs)
 					struct file_pick fpick;
 					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-					if(j!=-1 && fpick.files>=1)
+					if(j!=-1 && fpick.files>=1) {
 						loadfont(fpick.selected[0]);
+						uifc_old_font=getfont();
+					}
 					filepick_free(&fpick);
 				}
-				else
+				else {
 					setfont(i,FALSE);
+					uifc_old_font=getfont();
+				}
 			}
 		break;
 	}
@@ -2057,8 +2054,8 @@ BOOL doterm(struct bbslist *bbs)
 		if(updated && sleep) {
 			hold_update=FALSE;
 			gotoxy(wherex(), wherey());
-			hold_update=TRUE;
 		}
+		hold_update=oldmc;
 
 		/* Get local input */
 		while(kbhit()) {
