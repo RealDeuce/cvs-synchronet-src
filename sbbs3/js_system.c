@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.115 2008/02/10 01:23:23 rswindell Exp $ */
+/* $Id: js_system.c,v 1.119 2008/02/15 09:30:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -215,7 +215,8 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			JS_NewNumberValue(cx,cfg->new_min,vp);
 			break;
 		case SYS_PROP_NEW_SHELL:
-			*vp = INT_TO_JSVAL(cfg->new_shell);
+			if(cfg->new_shell<cfg->total_shells)
+				p=cfg->shell[cfg->new_shell]->code;
 			break;
 		case SYS_PROP_NEW_XEDIT:
 			p=cfg->new_xedit;
@@ -938,8 +939,7 @@ js_datestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		t=time(NULL);	/* use current time */
 	else {
 		if(JSVAL_IS_STRING(argv[0])) {	/* convert from string to time_t? */
-			*rval = INT_TO_JSVAL(
-				dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
+			JS_NewNumberValue(cx,dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))),rval);
 			return(JS_TRUE);
 		}
 		JS_ValueToInt32(cx,argv[0],(int32*)&t);
@@ -1225,6 +1225,11 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	alias=JS_GetStringBytes(JS_ValueToString(cx,argv[0]));
 
+	if(!check_name(cfg,alias)) {
+		JS_ReportError(cx,"Invalid or duplicate user alias: %s", alias);
+		return JS_FALSE;
+	}
+
 	memset(&user,0,sizeof(user));
 
 	user.sex=' ';
@@ -1446,7 +1451,8 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,311
 	},
 	{"check_name",		js_chkname,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("name/alias")
-	,JSDOCSTR("check the provided name/alias string, returns <i>true</i> if it is valid")
+	,JSDOCSTR("checks that the provided name/alias string is suitable for a new user account, "
+		"returns <i>true</i> if it is valid")
 	,315
 	},
 	{0}
