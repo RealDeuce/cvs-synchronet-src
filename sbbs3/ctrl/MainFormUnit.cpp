@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.158 2007/05/10 00:56:52 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.160 2008/02/24 21:17:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -2234,15 +2234,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 	shutdown_semfiles=semfile_list_init(cfg.ctrl_dir,"shutdown","ctrl");
 	semfile_list_check(&initialized,shutdown_semfiles);
 
-    if(!(cfg.sys_misc&SM_LOCAL_TZ)) {
-    	if(putenv("TZ=UTC0")) {
-        	Application->MessageBox("Error setting timezone"
-            	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
-            Application->Terminate();
-        }
-    	tzset();
-    }
-
     if(cfg.new_install) {
     	Application->BringToFront();
         for(int i=0;i<10;i++) {
@@ -2735,18 +2726,27 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
 
     ExportFormSettings(IniFile,section = "TelnetForm",TelnetForm);
     ExportFont(IniFile,section,"LogFont",TelnetForm->Log->Font);
+    IniFile->WriteString(section,"LogColor",ColorToString(TelnetForm->Log->Color));
 
     ExportFormSettings(IniFile,section = "EventsForm",EventsForm);
     ExportFont(IniFile,section,"LogFont",EventsForm->Log->Font);
+    IniFile->WriteString(section,"LogColor",ColorToString(EventsForm->Log->Color));
 
     ExportFormSettings(IniFile,section = "ServicesForm",ServicesForm);
     ExportFont(IniFile,section,"LogFont",ServicesForm->Log->Font);
+    IniFile->WriteString(section,"LogColor",ColorToString(ServicesForm->Log->Color));
 
     ExportFormSettings(IniFile,section = "FtpForm",FtpForm);
     ExportFont(IniFile,section,"LogFont",FtpForm->Log->Font);
+    IniFile->WriteString(section,"LogColor",ColorToString(FtpForm->Log->Color));
 
     ExportFormSettings(IniFile,section = "MailForm",MailForm);
     ExportFont(IniFile,section,"LogFont",MailForm->Log->Font);
+    IniFile->WriteString(section,"LogColor",ColorToString(MailForm->Log->Color));
+
+    ExportFormSettings(IniFile,section = "WebForm",WebForm);
+    ExportFont(IniFile,section,"LogFont",WebForm->Log->Font);
+    IniFile->WriteString(section,"LogColor",ColorToString(WebForm->Log->Color));
 
     section = "SpyTerminal";
 	IniFile->WriteInteger(section, "Width"
