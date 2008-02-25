@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.106 2008/02/11 09:07:16 deuce Exp $ */
+/* $Id: js_file.c,v 1.107 2008/02/14 08:03:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1193,7 +1193,7 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					*(w++)=(WORD)val;
 					break;
 				case sizeof(DWORD):
-					*(l++)=val;
+					*(l++)=(DWORD)val;
 					break;
 			}
 		}
