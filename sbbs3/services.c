@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.205 2007/08/15 07:42:14 rswindell Exp $ */
+/* $Id: services.c,v 1.210 2008/02/23 22:35:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -81,7 +81,7 @@ typedef struct {
 	uint16_t	port;
 	char		protocol[34];
 	char		cmd[128];
-	uint32_t	max_clients;
+	uint		max_clients;
 	uint32_t	options;
 	int			listen_backlog;
 	int			log_level;
@@ -248,16 +248,6 @@ static void status(char* str)
 {
 	if(startup!=NULL && startup->status!=NULL)
 	    startup->status(startup->cbdata,str);
-}
-
-static time_t checktime(void)
-{
-	struct tm tm;
-
-    memset(&tm,0,sizeof(tm));
-    tm.tm_year=94;
-    tm.tm_mday=1;
-    return(mktime(&tm)-0x2D24BD00L);
 }
 
 /* Global JavaScript Methods */
@@ -1467,6 +1457,11 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 	str_list_t	list;
 	service_t*	np;
 	service_t	serv;
+	int			log_level;
+	int			listen_backlog;
+	uint		max_clients;
+	uint32_t	options;
+	uint32_t	stack_size;
 
 	iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
 
@@ -1479,6 +1474,14 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 	list=iniReadFile(fp);
 	fclose(fp);
 
+	/* Get default key values from "root" section */
+	log_level		= iniGetLogLevel(list,ROOT_SECTION,"LogLevel",startup->log_level);
+	stack_size		= iniGetInteger(list,ROOT_SECTION,"StackSize",0);
+	max_clients		= iniGetInteger(list,ROOT_SECTION,"MaxClients",0);
+	listen_backlog	= iniGetInteger(list,ROOT_SECTION,"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
+	options			= iniGetBitField(list,ROOT_SECTION,"Options",service_options,0);
+
+	/* Enumerate and parse each service configuration */
 	sec_list = iniGetSectionList(list,"");
     for(i=0; sec_list!=NULL && sec_list[i]!=NULL; i++) {
 		if(!iniGetBool(list,sec_list[i],"Enabled",TRUE)) {
@@ -1489,11 +1492,11 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 		SAFECOPY(serv.protocol,iniGetString(list,sec_list[i],"Protocol",sec_list[i],prot));
 		serv.socket=INVALID_SOCKET;
 		serv.interface_addr=iniGetIpAddress(list,sec_list[i],"Interface",startup->interface_addr);
-		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",0);
-		serv.listen_backlog=iniGetInteger(list,sec_list[i],"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
-		serv.stack_size=iniGetInteger(list,sec_list[i],"StackSize",0);
-		serv.options=iniGetBitField(list,sec_list[i],"Options",service_options,0);
-		serv.log_level = iniGetLogLevel(list,sec_list[i],"LogLevel",startup->log_level);
+		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",max_clients);
+		serv.listen_backlog=iniGetInteger(list,sec_list[i],"ListenBacklog",listen_backlog);
+		serv.stack_size=iniGetInteger(list,sec_list[i],"StackSize",stack_size);
+		serv.options=iniGetBitField(list,sec_list[i],"Options",service_options,options);
+		serv.log_level=iniGetLogLevel(list,sec_list[i],"LogLevel",log_level);
 		SAFECOPY(serv.cmd,iniGetString(list,sec_list[i],"Command","",cmd));
 
 		p=iniGetString(list,sec_list[i],"Port",serv.protocol,portstr);
@@ -1586,7 +1589,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.205 $", "%*s %s", revision);
+	sscanf("$Revision: 1.210 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1694,7 +1697,7 @@ void DLLCALL services_thread(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,CTIME_R(&t,str),startup->options);
+			,ctime_r(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -1724,16 +1727,8 @@ void DLLCALL services_thread(void* arg)
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-			if(putenv("TZ=UTC0"))
-				lprintf(LOG_ERR,"!putenv() FAILED");
-			tzset();
-
-			if((t=checktime())!=0) {   /* Check binary time */
-				lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
-				cleanup(1);
-				return;
-			}
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
 		}
 
 		if(uptime==0)
