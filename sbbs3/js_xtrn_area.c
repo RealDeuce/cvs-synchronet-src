@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.26 2009/02/16 07:13:20 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.21 2006/12/28 02:44:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,7 +48,6 @@ static char* xtrn_sec_prop_desc[] = {
 	,"external program section internal code"
 	,"external program section name"
 	,"external program section access requirements"
-	,"user has sufficient access to enter this section <i>(introduced in v3.15)</i>"
 	,NULL
 };
 
@@ -73,7 +72,6 @@ static char* xtrn_prog_prop_desc[] = {
 	,"maximum time allowed in program"
 	,"execution cost (credits to run this program)"
 	/* Insert here */
-	,"user has sufficient access to see this program"
 	,"user has sufficient access to run this program"
 	,NULL
 };
@@ -287,13 +285,6 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 		if(!JS_SetProperty(cx, secobj, "ars", &val))
 			return(NULL);
 
-		if(user==NULL || chk_ar(cfg,cfg->xtrnsec[l]->ar,user))
-			val=JSVAL_TRUE;
-		else
-			val=JSVAL_FALSE;
-		if(!JS_SetProperty(cx, secobj, "can_access", &val))
-			return(NULL);
-
 		/* prog_list[] */
 		if((prog_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 			return(NULL);
@@ -351,13 +342,6 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 				return(NULL);
 
 			if(!js_CreateXtrnProgProperties(cx, progobj, cfg->xtrn[d]))
-				return(NULL);
-
-			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->ar,user))
-				val=JSVAL_TRUE;
-			else
-				val=JSVAL_FALSE;
-			if(!JS_SetProperty(cx, progobj, "can_access", &val))
 				return(NULL);
 
 			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->run_ar,user))
@@ -433,10 +417,6 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 			return(NULL);
 
 		if(!JS_DefineProperty(cx, eventobj, "mdays", INT_TO_JSVAL(cfg->event[l]->mdays)
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
-			return(NULL);
-
-		if(!JS_DefineProperty(cx, eventobj, "months", INT_TO_JSVAL(cfg->event[l]->months)
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 			return(NULL);
 
