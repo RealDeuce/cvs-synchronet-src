@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.75 2008/02/02 22:09:42 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.76 2008/02/23 10:57:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,60 +427,6 @@ char* DLLCALL os_cmdshell(void)
 
 	return(shell);
 }
-
-#if !defined(__unix__)
-
-/****************************************************************************/
-/* Win32 implementations of the recursive (thread-safe) versions of std C	*/
-/* time functions (gmtime, localtime, ctime, and asctime) used in Unix.		*/
-/* The native Win32 versions of these functions are already thread-safe.	*/
-/****************************************************************************/
-
-struct tm* DLLCALL gmtime_r(const time_t* t, struct tm* tm)
-{
-	struct tm* tmp = gmtime(t);
-
-	if(tmp==NULL)
-		return(NULL);
-
-	*tm = *tmp;
-	return(tm);
-}
-
-struct tm* DLLCALL localtime_r(const time_t* t, struct tm* tm)
-{
-	struct tm* tmp = localtime(t);
-
-	if(tmp==NULL)
-		return(NULL);
-
-	*tm = *tmp;
-	return(tm);
-}
-
-char* DLLCALL ctime_r(const time_t *t, char *buf)
-{
-	char* p = ctime(t);
-
-	if(p==NULL)
-		return(NULL);
-
-	strcpy(buf,p);
-	return(buf);
-}
-
-char* DLLCALL asctime_r(const struct tm *tm, char *buf)
-{
-	char* p = asctime(tm);
-
-	if(p==NULL)
-		return(NULL);
-
-	strcpy(buf,p);
-	return(buf);
-}
-
-#endif	/* !defined(__unix__) */
 
 /****************************************************************/
 /* Microsoft (DOS/Win32) real-time system clock implementation.	*/
