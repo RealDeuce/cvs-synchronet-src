@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.41 2008/02/25 08:25:29 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.42 2008/02/26 08:18:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -303,7 +303,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 				&& body[bodylen-3]=='-' && body[bodylen-2]=='-'
 				&& body[bodylen-1]=='-') {
 				bodylen-=3;
-				SAFECOPY(tail,"--- ");
+				strcpy(tail,"--- ");	/* DO NOT USE SAFECOPY */
 				taillen=4;
 				col++;
 				continue; 
@@ -312,7 +312,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 				if(!taillen && col==3 && bodylen>=3 && body[bodylen-3]=='-'
 					&& body[bodylen-2]=='-' && body[bodylen-1]=='-') {
 					bodylen-=3;
-					SAFECOPY(tail,"---");
+					strcpy(tail,"---");	/* DO NOT USE SAFECOPY */
 					taillen=3; 
 				}
 				col=0;
