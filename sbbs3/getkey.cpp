@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.41 2009/02/16 02:58:26 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.38 2007/07/27 11:12:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -299,9 +299,9 @@ char sbbs_t::getkey(long mode)
 /****************************************************************************/
 /* Outputs a string highlighting characters preceeded by a tilde            */
 /****************************************************************************/
-void sbbs_t::mnemonics(const char *str)
+void sbbs_t::mnemonics(char *str)
 {
-    const char *ctrl_a_codes;
+    char *ctrl_a_codes;
     long l;
 
 	if(!strchr(str,'~')) {
@@ -334,11 +334,10 @@ void sbbs_t::mnemonics(const char *str)
 				attr(cfg.color[clr_mnelow]); 
 		}
 		else {
-			if(str[l]==CTRL_A && str[l+1]!=0) {
-				l++;
-				if(toupper(str[l])=='Z')	/* EOF */
-					break;
-				ctrl_a(str[l++]);
+			if(str[l]==CTRL_A           /* ctrl-a */
+				&& str[l+1]!=0)	{		/* valid */
+				ctrl_a(str[++l]);       /* skip the ctrl-a */
+				l++;                    /* skip the attribute code */
 			} else
 				outchar(str[l++]); 
 		} 
@@ -352,13 +351,18 @@ void sbbs_t::mnemonics(const char *str)
 /* Returns 1 for Y or 0 for N                                               */
 /* Called from quite a few places                                           */
 /****************************************************************************/
-bool sbbs_t::yesno(const char *str)
+bool sbbs_t::yesno(char *str)
 {
     char ch;
 
-	SAFECOPY(question,str);
+	strcpy(question,str);
 	SYNC;
-	bprintf(text[YesNoQuestion],str);
+	if(useron.misc&WIP) {
+		strip_ctrl(question);
+		menu("yesno"); 
+	}
+	else
+		bprintf(text[YesNoQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YN][1];
@@ -385,13 +389,18 @@ bool sbbs_t::yesno(const char *str)
 /* Returns 1 for N or 0 for Y                                               */
 /* Called from quite a few places                                           */
 /****************************************************************************/
-bool sbbs_t::noyes(const char *str)
+bool sbbs_t::noyes(char *str)
 {
     char ch;
 
-	SAFECOPY(question,str);
+	strcpy(question,str);
 	SYNC;
-	bprintf(text[NoYesQuestion],str);
+	if(useron.misc&WIP) {
+		strip_ctrl(question);
+		menu("noyes"); 
+	}
+	else
+		bprintf(text[NoYesQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YN][1];
@@ -419,7 +428,7 @@ bool sbbs_t::noyes(const char *str)
 /* it is echoed (upper case) and is the return value.                       */
 /* Called from quite a few functions                                        */
 /****************************************************************************/
-long sbbs_t::getkeys(const char *keys, ulong max)
+long sbbs_t::getkeys(char *keys, ulong max)
 {
 	char	str[81];
 	uchar	ch,n=0,c=0;
