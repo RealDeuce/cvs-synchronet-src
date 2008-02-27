@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.37 2008/03/19 00:24:44 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.36 2008/02/26 21:05:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,7 +145,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		/*********************************/
 		n=(uint)block[123]|(((uint)block[124])<<8);  /* conference number */
 
-		qwk_new_msg(&msg,(char*)block,/* offset: */l,headers,/* parse_sender_hfields: */true);
+		qwk_new_msg(&msg,(char*)block,/*offset: */l,headers);
 
 		if(findstr_in_list(msg.from_ip,ip_can)) {
 			eprintf(LOG_NOTICE,"!Filtering message from %s due to blocked IP: %s"
