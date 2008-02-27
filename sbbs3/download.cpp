@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.37 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: download.cpp,v 1.36 2006/06/18 05:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,7 +171,7 @@ void sbbs_t::notdownloaded(ulong size, time_t start, time_t end)
 	}
 }
 
-const char* sbbs_t::protcmdline(prot_t* prot, enum XFER_TYPE type)
+char* sbbs_t::protcmdline(prot_t* prot, enum XFER_TYPE type)
 {
 	switch(type) {
 		case XFER_UPLOAD:
