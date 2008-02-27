@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.43 2008/03/19 00:24:44 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.42 2008/02/26 08:18:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "qwk.h"
 
-static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse_sender_hfields)
+static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers)
 {
 	char*		p;
 	char		zone[32];
@@ -70,18 +70,14 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SUBJECT),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 
-	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDER),value))!=NULL) {
-		if(parse_sender_hfields)
-			smb_hfield_str(msg,hfield_type,p);
-	}
+	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDER),value))!=NULL)
+		smb_hfield_str(msg,hfield_type,p);
 
 	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDERNETADDR),value))!=NULL) {
-		if(parse_sender_hfields) {
-			smb_hfield_str(msg,hfield_type,p);
-			net_type=NET_UNKNOWN;
-			smb_hfield_netaddr(msg,hfield_type,p,&net_type);
-			smb_hfield_bin(msg,SENDERNETTYPE,net_type);
-		}
+		smb_hfield_str(msg,hfield_type,p);
+		net_type=NET_UNKNOWN;
+		smb_hfield_netaddr(msg,hfield_type,p,&net_type);
+		smb_hfield_bin(msg,SENDERNETTYPE,net_type);
 	}
 
 	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=RFC822MSGID),value))!=NULL)
@@ -94,22 +90,15 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 		smb_hfield_str(msg,hfield_type,p);
 
 	/* Trace header fields */
-	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDERIPADDR),value))!=NULL) {
-		if(parse_sender_hfields)
-			smb_hfield_str(msg,hfield_type,p);
-	}
-	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDERHOSTNAME),value))!=NULL) {
-		if(parse_sender_hfields)
-			smb_hfield_str(msg,hfield_type,p);
-	}
-	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDERPROTOCOL),value))!=NULL) {
-		if(parse_sender_hfields)
-			smb_hfield_str(msg,hfield_type,p);
-	}
-	while((p=iniPopKey(headers,ROOT_SECTION,"Organization",value))!=NULL) {
-		if(parse_sender_hfields)
-			smb_hfield_str(msg,SENDERORG,p);
-	}
+	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDERIPADDR),value))!=NULL)
+		smb_hfield_str(msg,hfield_type,p);
+	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDERHOSTNAME),value))!=NULL)
+		smb_hfield_str(msg,hfield_type,p);
+	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SENDERPROTOCOL),value))!=NULL)
+		smb_hfield_str(msg,hfield_type,p);
+
+	while((p=iniPopKey(headers,ROOT_SECTION,"Organization",value))!=NULL)
+		smb_hfield_str(msg,SENDERORG,p);
 
 	/* FidoNet header fields */
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOAREA),value))!=NULL)
@@ -143,7 +132,7 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 			smb_hfield_str(msg,RFC822HEADER,(*headers)[i]);
 }
 
-void sbbs_t::qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t all_headers, bool parse_sender_hfields)
+void sbbs_t::qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t all_headers)
 {
 	char str[128];
 	str_list_t	msg_headers;
@@ -157,7 +146,7 @@ void sbbs_t::qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t al
 	msg->hdr.version=smb_ver();
 
 	if(msg_headers!=NULL)
-		qwk_parse_header_list(msg, &msg_headers, parse_sender_hfields);
+		qwk_parse_header_list(msg, &msg_headers);
 
 	/* Parse the QWK message header: */
 	if(msg->hdr.when_written.time==0) {
@@ -180,7 +169,7 @@ void sbbs_t::qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t al
 		smb_hfield_str(msg,RECIPIENT,str);
 	}
 
-	if(parse_sender_hfields && msg->from==NULL) {
+	if(msg->from==NULL) {
 		sprintf(str,"%25.25s",hdrblk+46);  
 		truncsp(str);
 		smb_hfield_str(msg,SENDER,str);

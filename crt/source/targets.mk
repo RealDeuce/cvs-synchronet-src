@@ -1,1 +1,0 @@
-all: $(LIBODIR)/$(LIBPREFIX)crt$(LIBFILE)
