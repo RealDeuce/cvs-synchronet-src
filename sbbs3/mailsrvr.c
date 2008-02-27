@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.444 2008/02/26 20:35:05 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.445 2008/02/27 05:45:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3947,9 +3947,12 @@ static void sendmail_thread(void* arg)
 
 				if((startup->options&MAIL_OPT_RELAY_AUTH_MASK)==MAIL_OPT_RELAY_AUTH_PLAIN) {
 					/* Build the buffer: <username>\0<user-id>\0<password */
-					len=safe_snprintf(buf,sizeof(buf),"%s",startup->relay_user)+1;
-					len+=safe_snprintf(buf+len,sizeof(buf)-1,startup->relay_user)+1;
-					len+=safe_snprintf(buf+len,sizeof(buf)-1,startup->relay_pass);
+					len=safe_snprintf(buf,sizeof(buf),"%s%c%s%c%s"
+						,startup->relay_user
+						,0
+						,startup->relay_user
+						,0
+						,startup->relay_pass);
 					b64_encode(resp,sizeof(resp),buf,len);
 					sockprintf(sock,"AUTH PLAIN %s",resp);
 				} else {
@@ -4178,7 +4181,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.444 $", "%*s %s", revision);
+	sscanf("$Revision: 1.445 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
