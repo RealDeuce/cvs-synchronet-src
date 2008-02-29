@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.492 2008/02/12 07:31:47 rswindell Exp $ */
+/* $Id: main.cpp,v 1.496 2008/02/26 21:05:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2104,12 +2104,15 @@ void event_thread(void* arg)
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
-					if(!fmutex(semfile,startup->host_name,24*60*60))
+					if(!fmutex(semfile,startup->host_name,24*60*60)) {
+						eprintf(LOG_DEBUG,"%s exists (unpack in process?)", semfile);
 						continue;
+					}
 					sbbs->online=ON_LOCAL;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
 					sbbs->unpack_rep(g.gl_pathv[i]);
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
 					
@@ -2129,14 +2132,13 @@ void event_thread(void* arg)
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,24*60*60)) {
-					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
+					eprintf(LOG_DEBUG,"%s exists (pack in process?)", semfile);
 					continue;
 				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
 					sbbs->online=ON_LOCAL;
-					delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->getmsgptrs();
 					sbbs->getusrsubs();
 					sbbs->batdn_total=0;
@@ -2189,7 +2191,6 @@ void event_thread(void* arg)
 							continue;
 						eprintf(LOG_INFO,"Pre-packing QWK for %s",sbbs->useron.alias);
 						sbbs->online=ON_LOCAL;
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->getmsgptrs();
 						sbbs->getusrsubs();
 						sbbs->batdn_total=0;
@@ -2303,7 +2304,6 @@ void event_thread(void* arg)
 					SAFECOPY(str,g.gl_pathv[j]);
 					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
 						if(sbbs->unpack_qwk(str,i)==false) {
@@ -2316,6 +2316,7 @@ void event_thread(void* arg)
 								sbbs->logline("Q!",logmsg);
 							}
 						}
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 						remove(str);
@@ -4029,16 +4030,6 @@ void sbbs_t::daily_maint(void)
 	}
 }
 
-time_t checktime(void)
-{
-	struct tm tm;
-
-    memset(&tm,0,sizeof(tm));
-    tm.tm_year=94;
-    tm.tm_mday=1;
-    return(mktime(&tm)-0x2D24BD00L);
-}
-
 const char* DLLCALL js_ver(void)
 {
 #ifdef JAVASCRIPT
@@ -4290,7 +4281,7 @@ void DLLCALL bbs_thread(void* arg)
 
 	t=time(NULL);
 	lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-		,CTIME_R(&t,str),startup->options);
+		,ctime_r(&t,str),startup->options);
 
 	if(chdir(startup->ctrl_dir)!=0)
 		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
@@ -4311,16 +4302,8 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->host_name[0]==0)
 		SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-	if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-		if(putenv("TZ=UTC0"))
-			lprintf(LOG_ERR,"!putenv() FAILED");
-		tzset();
-
-		if((t=checktime())!=0) {   /* Check binary time */
-			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
-			cleanup(1);
-			return;
-		}
+	if((t=checktime())!=0) {   /* Check binary time */
+		lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
 	}
 
 	if(uptime==0)
