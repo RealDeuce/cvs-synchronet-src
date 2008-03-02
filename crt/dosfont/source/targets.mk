@@ -1,2 +1,0 @@
-all: $(EXEODIR)/fontedit
-

@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.76 2009/01/24 12:23:16 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.75 2006/03/16 00:07:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -444,11 +444,7 @@ public:		// User declarations
     BOOL __fastcall webServiceEnabled(void);
     BOOL __fastcall mailServiceEnabled(void);
     BOOL __fastcall servicesServiceEnabled(void);
-    TFont*          LogFont[LOG_DEBUG+1];
-    TFont* __fastcall LogAttributes(int log_level, TColor, TFont*);
 };
-
-extern const char* LogLevelDesc[];
 
 //---------------------------------------------------------------------------
 extern PACKAGE TMainForm *MainForm;
