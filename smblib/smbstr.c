@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.14 2008/02/25 02:19:54 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.15 2008/03/12 06:03:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +90,7 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case FIDOFLAGS:			return("X-FTN-Flags");
 		case FIDOTID:			return("X-FTN-TID");
 
-		case RFC822HEADER:		return("RFC822Header");
+		case RFC822HEADER:		return("OtherHeader");
 		case RFC822MSGID:		return("Message-ID");			/* RFC-compliant */
 		case RFC822REPLYID:		return("In-Reply-To");			/* RFC-compliant */
 		case RFC822TO:			return("RFC822To");
