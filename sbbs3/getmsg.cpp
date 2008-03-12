@@ -2,13 +2,13 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.35 2009/02/16 17:12:02 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.33 2007/08/14 00:37:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -191,6 +191,20 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 	}
 }
 
+void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
+{
+	char	str[256];
+	char	tmp[13];
+
+	strcpy(tmp,"QUOTES.TXT");
+	if(useron.xedit && cfg.xedit[useron.xedit-1]->misc&XTRN_LWRCASE)
+		strlwr(tmp);
+	sprintf(str,"%s%s",cfg.node_dir,tmp);
+	remove(str);
+	msgtotxt(msg,str,0,tails);
+}
+
+
 /****************************************************************************/
 /* Writes message header and text data to a text file						*/
 /****************************************************************************/
@@ -223,7 +237,6 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 
 	buf=smb_getmsgtxt(&smb,msg,tails);
 	if(buf!=NULL) {
-		strip_invalid_attr(buf);
 		fputs(buf,out);
 		smb_freemsgtxt(buf); 
 	} else if(smb_getmsgdatlen(msg)>2)
