@@ -4,13 +4,13 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.12 2005/09/20 03:39:51 deuce Exp $ */
+/* $Id: filelist.c,v 1.14 2008/02/23 22:35:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,7 +39,7 @@
 
 #include "sbbs.h"
 
-#define FILELIST_VER "3.00"
+#define FILELIST_VER "3.10"
 
 #define MAX_NOTS 25
 
@@ -106,11 +106,12 @@ int main(int argc, char **argv)
 	uchar	*datbuf,*ixbbuf;
 	int 	i,j,file,dirnum,libnum,desc_off,lines,nots=0
 			,omode=O_WRONLY|O_CREAT|O_TRUNC;
-	ulong	l,m,n,cdt,misc=0,total_cdt=0,total_files=0,datbuflen;
-	time_t	uld,dld;
+	ulong	l,m,n,cdt,misc=0,total_cdt=0,total_files=0,dir_files,datbuflen;
+	time_t	uld,dld,now;
+	long	max_age=0;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.12 $", "%*s %s", revision);
+	sscanf("$Revision: 1.14 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -129,6 +130,7 @@ int main(int argc, char **argv)
 		printf("\n");
 		printf("switches: -lib name All directories of specified library\n");
 		printf("          -not code Exclude specific directory\n");
+		printf("          -new days Include only new files in listing (days since upload)\n");
 		printf("          -cat      Concatenate to existing outfile\n");
 		printf("          -pad      Pad filename with spaces\n");
 		printf("          -hdr      Include directory headers\n");
@@ -156,6 +158,8 @@ int main(int argc, char **argv)
 		exit(1); 
 	}
 
+	now=time(NULL);
+
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
 	SAFECOPY(scfg.ctrl_dir,p);
@@ -170,9 +174,6 @@ int main(int argc, char **argv)
 	}
 	SAFECOPY(scfg.temp_dir,"../temp");
 	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
-
-	if(!(scfg.sys_misc&SM_LOCAL_TZ))
-		putenv("TZ=UTC0");
 
 	dirnum=libnum=-1;
 	if(argv[1][0]=='*')
@@ -221,6 +222,14 @@ int main(int argc, char **argv)
 				printf("\nBoth library name and -all parameters were used.\n");
 				exit(1); }
 			misc|=ALL; }
+		else if(!stricmp(argv[i],"-new")) {
+			i++;
+			if(i>=argc) {
+				printf("\nDays since upload must follow -new parameter.\n");
+				exit(1); 
+			}
+			max_age=strtol(argv[i],NULL,0);
+		}
 		else if(!stricmp(argv[i],"-pad"))
 			misc|=PAD;
 		else if(!stricmp(argv[i],"-cat"))
@@ -271,6 +280,7 @@ int main(int argc, char **argv)
 		misc|=AUTO; }
 
 	for(i=0;i<scfg.total_dirs;i++) {
+		dir_files=0;
 		if(!(misc&ALL) && i!=dirnum && scfg.dir[i]->lib!=libnum)
 			continue;
 		for(j=0;j<nots;j++)
@@ -344,8 +354,6 @@ int main(int argc, char **argv)
 					str[j]=ixbbuf[m++]; /* Turns FILENAMEEXT into FILENAME.EXT */
 			str[j]=0;
 			unpadfname(str,fname);
-			fprintf(out,"%-12.12s",misc&PAD ? str : fname);
-			total_files++;
 			n=ixbbuf[m]|((long)ixbbuf[m+1]<<8)|((long)ixbbuf[m+2]<<16);
 			uld=(ixbbuf[m+3]|((long)ixbbuf[m+4]<<8)|((long)ixbbuf[m+5]<<16)
 				|((long)ixbbuf[m+6]<<24));
@@ -358,7 +366,14 @@ int main(int argc, char **argv)
 				fprintf(stderr,"\n\7%s%s is corrupted!\n"
 					,scfg.dir[i]->data_dir,scfg.dir[i]->code);
 				exit(-1); }
+			
+			if(max_age && ((now - uld) / (24*60*60) > max_age))
+				continue;
 
+			fprintf(out,"%-12.12s",misc&PAD ? str : fname);
+
+			total_files++;
+			dir_files++;
 
 			if(misc&PLUS && datbuf[n+F_MISC]!=ETX
 				&& (datbuf[n+F_MISC]-' ')&FM_EXTDESC)
@@ -449,7 +464,8 @@ int main(int argc, char **argv)
 			fprintf(out,"\r\n"); }
 		free((char *)datbuf);
 		free((char *)ixbbuf);
-		fprintf(out,"\r\n"); /* blank line at end of dir */
+		if(dir_files)
+			fprintf(out,"\r\n"); /* blank line at end of dir */
 		if(misc&AUTO) fclose(out); }
 
 	if(misc&TOT && !(misc&AUTO))
