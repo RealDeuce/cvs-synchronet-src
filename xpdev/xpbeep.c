@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.50 2008/09/21 22:21:59 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.49 2007/05/31 09:09:58 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -78,7 +78,7 @@ static int handle_type=SOUND_DEVICE_CLOSED;
 static PaStream			*portaudio_stream;
 static int				portaudio_buf_len=0;
 static int				portaudio_buf_pos=0;
-static unsigned char	*pawave;
+static unsigned char	pawave[S_RATE*15/2+1];
 static int				portaudio_initialized=FALSE;
 #endif
 
@@ -86,14 +86,14 @@ static int				portaudio_initialized=FALSE;
 static SDL_AudioSpec	spec;
 static int				sdl_audio_buf_len=0;
 static int				sdl_audio_buf_pos=0;
-static unsigned char	*swave;
+static unsigned char	swave[S_RATE*15/2+1];
 static SDL_sem			*sdlToneDone;
 #endif
 
 #ifdef _WIN32
 static	HWAVEOUT		waveOut;
 static	WAVEHDR			wh;
-static	unsigned char	*wave;
+static	unsigned char	wave[S_RATE*15/2+1];
 #endif
 
 #ifdef USE_ALSA_SOUND
@@ -222,7 +222,7 @@ static int portaudio_callback(void *inputBuffer
 		memset(outputBuffer+copylen, 128, framesPerBuffer-copylen);
 	}
 	if(copylen) {
-		memcpy(outputBuffer, (*((unsigned char **)userData))+portaudio_buf_pos, copylen);
+		memcpy(outputBuffer, ((unsigned char *)userData)+portaudio_buf_pos, copylen);
 		portaudio_buf_pos+=copylen;
 	}
 	if(portaudio_buf_pos >= portaudio_buf_len)
@@ -285,9 +285,9 @@ BOOL xptone_open(void)
 					, paUInt8
 					, S_RATE
 					, S_RATE/100	/* Buffer size is 1/100 of a second */
-					, (S_RATE*15/2+1)/(S_RATE/100)+1	/* Enough buffers for all audio data */
+					, sizeof(pawave)/(S_RATE/100)+1	/* Enough buffers for all audio data */
 					, portaudio_callback
-					, &pawave) != paNoError)
+					, pawave) != paNoError)
 				portaudio_device_open_failed=TRUE;
 			else {
 				handle_type=SOUND_DEVICE_PORTAUDIO;
@@ -470,9 +470,18 @@ BOOL xptone_close(void)
 	return(TRUE);
 }
 
-BOOL DLLCALL xp_play_sample(unsigned char *sample, size_t sample_size, BOOL background)
+/********************************************************************************/
+/* Play a tone through the wave/DSP output device (sound card) - Deuce			*/
+/********************************************************************************/
+
+BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 {
 	BOOL			must_close=FALSE;
+
+#if defined(USE_ALSA_SOUND) || defined(AFMT_U8)
+	unsigned char	wave[S_RATE*15/2+1];
+	int samples;
+#endif
 
 #ifdef USE_ALSA_SOUND
 	snd_pcm_hw_params_t *hw_params=NULL;
@@ -492,9 +501,11 @@ BOOL DLLCALL xp_play_sample(unsigned char *sample, size_t sample_size, BOOL back
 
 #ifdef WITH_PORTAUDIO
 	if(handle_type==SOUND_DEVICE_PORTAUDIO) {
-		pawave=sample;
 		portaudio_buf_pos=0;
-		portaudio_buf_len=sample_size;
+		portaudio_buf_len=S_RATE*duration/1000;
+		if(portaudio_buf_len<=S_RATE/freq*2)
+			portaudio_buf_len=S_RATE/freq*2;
+		makewave(freq,pawave,portaudio_buf_len,shape);
 		Pa_StartStream(portaudio_stream);
 		while(Pa_StreamActive(portaudio_stream))
 			SLEEP(1);
@@ -505,9 +516,11 @@ BOOL DLLCALL xp_play_sample(unsigned char *sample, size_t sample_size, BOOL back
 #ifdef WITH_SDL_AUDIO
 	if(handle_type==SOUND_DEVICE_SDL) {
 		sdl.LockAudio();
-		swave=sample;
 		sdl_audio_buf_pos=0;
-		sdl_audio_buf_len=sample_size;
+		sdl_audio_buf_len=S_RATE*duration/1000;
+		if(sdl_audio_buf_len<=S_RATE/freq*2)
+			sdl_audio_buf_len=S_RATE/freq*2;
+		makewave(freq,swave,sdl_audio_buf_len,shape);
 		sdl.UnlockAudio();
 		sdl.SemWait(sdlToneDone);
 	}
@@ -515,8 +528,12 @@ BOOL DLLCALL xp_play_sample(unsigned char *sample, size_t sample_size, BOOL back
 
 #ifdef _WIN32
 	if(handle_type==SOUND_DEVICE_WIN32) {
-		wave=sample;
-		wh.dwBufferLength=sample_size;
+		wh.dwBufferLength=S_RATE*duration/1000;
+		if(wh.dwBufferLength<=S_RATE/freq*2)
+			wh.dwBufferLength=S_RATE/freq*2;
+
+		makewave(freq,wave,wh.dwBufferLength,shape);
+
 		if(waveOutWrite(waveOut, &wh, sizeof(wh))==MMSYSERR_NOERROR) {
 			while(!(wh.dwFlags & WHDR_DONE))
 				SLEEP(1);
@@ -524,10 +541,19 @@ BOOL DLLCALL xp_play_sample(unsigned char *sample, size_t sample_size, BOOL back
 	}
 #endif
 
+#if defined(USE_ALSA_SOUND) || defined(AFMT_U8)
+	if(freq<17)
+		freq=17;
+	samples=S_RATE*duration/1000;
+	if(samples<=S_RATE/freq*2)
+		samples=S_RATE/freq*2;
+	makewave(freq,wave,samples,shape);
+#endif
+
 #ifdef USE_ALSA_SOUND
 	if(handle_type==SOUND_DEVICE_ALSA) {
 		alsa_api->snd_pcm_hw_params_free(hw_params);
-		if(alsa_api->snd_pcm_writei(handle, sample, sample_size)!=sample_size) {
+		if(alsa_api->snd_pcm_writei(handle, wave, samples)!=samples) {
 			/* Go back and try OSS */
 			alsa_device_open_failed=TRUE;
 			alsa_api->snd_pcm_close (handle);
@@ -544,8 +570,8 @@ BOOL DLLCALL xp_play_sample(unsigned char *sample, size_t sample_size, BOOL back
 #ifdef AFMT_U8
 	if(handle_type==SOUND_DEVICE_OSS) {
 		wr=0;
-		while(wr<sample_size) {
-			i=write(dsp, sample+wr, sample_size-wr);
+		while(wr<samples) {
+			i=write(dsp, wave+wr, samples-wr);
 			if(i>=0)
 				wr+=i;
 		}
@@ -557,24 +583,6 @@ BOOL DLLCALL xp_play_sample(unsigned char *sample, size_t sample_size, BOOL back
 	if(must_close)
 		xptone_close();
 	return(FALSE);
-}
-
-/********************************************************************************/
-/* Play a tone through the wave/DSP output device (sound card) - Deuce			*/
-/********************************************************************************/
-
-BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
-{
-	unsigned char	wave[S_RATE*15/2+1];
-	int samples;
-
-	if(freq<17)
-		freq=17;
-	samples=S_RATE*duration/1000;
-	if(samples<=S_RATE/freq*2)
-		samples=S_RATE/freq*2;
-	makewave(freq,wave,samples,shape);
-	return(xp_play_sample(wave, samples, FALSE));
 }
 
 #ifdef __unix__
