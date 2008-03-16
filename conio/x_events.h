@@ -21,6 +21,7 @@ enum x11_local_events {
 	,X11_LOCAL_COPY
 	,X11_LOCAL_PASTE
 	,X11_LOCAL_DRAWRECT
+	,X11_LOCAL_FLUSH
 	,X11_LOCAL_BEEP
 };
 
@@ -97,7 +98,7 @@ extern int x11_window_xpos;
 extern int x11_window_ypos;
 extern int x11_window_width;
 extern int x11_window_height;
-extern int initialized;
+extern int x11_initialized;
 
 void x11_event_thread(void *args);
 
