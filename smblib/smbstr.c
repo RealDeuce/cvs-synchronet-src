@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.18 2009/02/02 00:36:47 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.15 2008/03/12 06:03:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -101,9 +101,8 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case USENETNEWSGROUPS:	return("Newsgroups");			/* RFC-compliant */
 
 		case SMTPCOMMAND:		return("SMTPCommand");
-		case SMTPREVERSEPATH:	return("Return-Path");			/* RFC-compliant */
+		case SMTPREVERSEPATH:	return("SMTPReversePath");
 		case SMTPFORWARDPATH:	return("SMTPForwardPath");
-		case SMTPRECEIVED:		return("Received");				/* RFC-compliant */
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
 
@@ -316,8 +315,6 @@ ushort SMBCALL smb_netaddr_type(const char* str)
 {
 	char*	p;
 	char*	tp;
-	char*	firstdot;
-	char*	lastdot;
 
 	if((p=strchr(str,'@'))==NULL)
 		return(NET_NONE);
@@ -327,17 +324,14 @@ ushort SMBCALL smb_netaddr_type(const char* str)
 	if(*p==0)
 		return(NET_UNKNOWN);
 
-	firstdot=strchr(p,'.');
-	lastdot=strrchr(p,'.');
-
-	if(isalpha(*p) && firstdot==NULL)
+	if(isalpha(*p) && strchr(p,'.')==NULL)
 		return(NET_QWK);
 
 	for(tp=p;*tp;tp++) {
 		if(!isdigit(*tp) && *tp!=':' && *tp!='/' && *tp!='.')
 			break;
 	}
-	if(isdigit(*p) && *tp==0 && firstdot==lastdot)
+	if(isdigit(*p) && *tp)
 		return(NET_FIDO);
 	if(isalnum(*p))
 		return(NET_INTERNET);

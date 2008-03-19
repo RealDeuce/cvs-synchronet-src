@@ -1117,7 +1117,7 @@ main(int argnum, char *args[])
 		}
 		switch (a) {
 		case CIO_KEY_MOUSE:
-			/* already handled */
+			getmouse(&me);
 			break;
 		case 0x2c00:	/* ALT+Z - Blink on\off */
 			Attribute ^= 128;
