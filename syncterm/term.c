@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.248 2008/09/21 22:47:42 deuce Exp $ */
+/* $Id: term.c,v 1.246 2008/02/18 01:55:20 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -143,7 +143,7 @@ void mousedrag(unsigned char *scrollback)
 	}
 }
 
-void update_status(struct bbslist *bbs, int speed, BOOL ooii_mode)
+void update_status(struct bbslist *bbs, int speed)
 {
 	char nbuf[LIST_NAME_MAX+10+11+1];	/* Room for "Name (Logging) (115300)" and terminator */
 						/* SAFE and Logging should me be possible. */
@@ -178,8 +178,6 @@ void update_status(struct bbslist *bbs, int speed, BOOL ooii_mode)
 		sprintf(strchr(nbuf,0)," (%d)", speed);
 	if(cterm.doorway_mode)
 		strcat(nbuf, " (DrWy)");
-	if(ooii_mode)
-		strcat(nbuf, " (OO][)");
 	switch(cio_api.mode) {
 		case CIOLIB_MODE_CURSES:
 		case CIOLIB_MODE_CURSES_IBM:
@@ -1819,11 +1817,6 @@ BOOL doterm(struct bbslist *bbs)
 	int 	emulation=CTERM_EMULATION_ANSI_BBS;
 	size_t	remain;
 	struct text_info txtinfo;
-#ifndef WITHOUT_OOII
-	BYTE ooii_buf[256];
-	BYTE ooii_init[] = "\xdb\b \xdb\b \xdb\b[\xdb\b[\xdb\b \xdb\bM\xdb\ba\xdb\bi\xdb\bn\xdb\bt\xdb\be\xdb\bn\xdb\ba\xdb\bn\xdb\bc\xdb\be\xdb\b \xdb\bC\xdb\bo\xdb\bm\xdb\bp\xdb\bl\xdb\be\xdb\bt\xdb\be\xdb\b \xdb\b]\xdb\b]\xdb\b \b\r\n\r\n\r\n\x1b[0;0;36mDo you have the Overkill Ansiterm installed? (y/N)  \xe9 ";	/* for OOII auto-enable */
-#endif
-	BOOL ooii_mode=FALSE;
 
 	gettextinfo(&txtinfo);
 	if(bbs->conn_type == CONN_TYPE_SERIAL)
@@ -1863,9 +1856,6 @@ BOOL doterm(struct bbslist *bbs)
 	cterm.music_enable=bbs->music;
 	ch[1]=0;
 	zrqbuf[0]=0;
-#ifndef WITHOUT_OOII
-	ooii_buf[0]=0;
-#endif
 #ifdef GUTS_BUILTIN
 	gutsbuf[0]=0;
 #endif
@@ -1880,7 +1870,7 @@ BOOL doterm(struct bbslist *bbs)
 		hold_update=TRUE;
 		sleep=TRUE;
 		if(!term.nostatus)
-			update_status(bbs, (bbs->conn_type == CONN_TYPE_SERIAL)?bbs->bpsrate:speed, ooii_mode);
+			update_status(bbs, (bbs->conn_type == CONN_TYPE_SERIAL)?bbs->bpsrate:speed);
 		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
 			if(speed)
 				thischar=xp_timer();
@@ -2038,44 +2028,6 @@ BOOL doterm(struct bbslist *bbs)
 							}
 							continue;
 						}
-#ifndef WITHOUT_OOII
-						if(ooii_mode) {
-							if(ooii_buf[0]==0) {
-								if(inch == 0xab) {
-									ooii_buf[0]=inch;
-									ooii_buf[1]=0;
-									continue;
-								}
-							}
-							else { /* Already have the start of the sequence */
-								j=strlen(ooii_buf);
-								if(j+1 >= sizeof(ooii_buf))
-									j--;
-								ooii_buf[j++]=inch;
-								ooii_buf[j]=0;
-								if(inch == '|') {
-									if(handle_ooii_code(ooii_buf))
-										ooii_mode=FALSE;
-									ooii_buf[0]=0;
-								}
-								continue;
-							}
-						}
-						else {
-							j=strlen(ooii_buf);
-							if(inch==ooii_init[j]) {
-								ooii_buf[j++]=inch;
-								ooii_buf[j]=0;
-								if(ooii_init[j]==0) {
-									ooii_mode=TRUE;
-									ooii_buf[0]=0;
-								}
-							}
-							else {
-								ooii_buf[0]=0;
-							}
-						}
-#endif
 
 						ch[0]=inch;
 						cterm_write(ch, 1, prn, sizeof(prn), &speed);
@@ -2306,16 +2258,7 @@ BOOL doterm(struct bbslist *bbs)
 						case 10:
 							cterm.doorway_mode=!cterm.doorway_mode;
 							break;
-
-#ifdef WITHOUT_OOII
 						case 11:
-#else
-						case 11:
-							ooii_mode = !ooii_mode;
-							break;
-						case 12:
-#endif
-				
 #ifdef WITH_WXWIDGETS
 							if(html_mode != HTML_MODE_HIDDEN) {
 								hide_html();
@@ -2330,11 +2273,7 @@ BOOL doterm(struct bbslist *bbs)
 							hidemouse();
 							hold_update=oldmc;
 							return(TRUE);
-#ifdef WITHOUT_OOII
 						case 12:
-#else
-						case 13:
-#endif
 							{
 								p=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 								if(p) {
