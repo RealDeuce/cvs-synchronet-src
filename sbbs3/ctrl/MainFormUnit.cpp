@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.159 2008/02/21 05:55:44 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.160 2008/02/24 21:17:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2233,15 +2233,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
 	shutdown_semfiles=semfile_list_init(cfg.ctrl_dir,"shutdown","ctrl");
 	semfile_list_check(&initialized,shutdown_semfiles);
-
-    if(!(cfg.sys_misc&SM_LOCAL_TZ)) {
-    	if(putenv("TZ=UTC0")) {
-        	Application->MessageBox("Error setting timezone"
-            	,"ERROR",MB_OK|MB_ICONEXCLAMATION);
-            Application->Terminate();
-        }
-    	tzset();
-    }
 
     if(cfg.new_install) {
     	Application->BringToFront();
