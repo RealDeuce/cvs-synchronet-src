@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.84 2008/04/01 07:47:30 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.85 2008/04/01 07:52:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,7 +175,7 @@ static int lputs(void* unused, int level, const char* str)
 
 #if defined(__unix__)
 	if(use_syslog)
-		return syslog(level,"%s",str);
+		syslog(level,"%s",str);
 #endif
 
     if(level<LOG_NOTICE)
@@ -1329,7 +1329,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.84 $", "%*s %s", revision);
+	sscanf("$Revision: 1.85 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
