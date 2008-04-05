@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.74 2009/02/18 06:52:43 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.72 2008/02/24 09:21:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -634,7 +634,7 @@ int DLLCALL getfattr(const char* filename)
 }
 
 #ifdef __unix__
-int removecase(const char *path)
+int removecase(char *path)
 {
 	char inpath[MAX_PATH+1];
 	char fname[MAX_PATH*4+1];
@@ -663,7 +663,7 @@ int removecase(const char *path)
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
 /****************************************************************************/
-ulong DLLCALL delfiles(const char *inpath, const char *spec)
+ulong DLLCALL delfiles(char *inpath, char *spec)
 {
 	char	path[MAX_PATH+1];
 	char	lastch;

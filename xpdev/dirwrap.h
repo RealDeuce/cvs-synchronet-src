@@ -2,13 +2,13 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.41 2009/02/18 06:52:43 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.39 2008/02/24 09:21:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -229,7 +229,7 @@ DLLEXPORT char*		DLLCALL getfext(const char* path);
 DLLEXPORT int		DLLCALL getfattr(const char* filename);
 DLLEXPORT ulong		DLLCALL getdisksize(const char* path, ulong unit);
 DLLEXPORT ulong		DLLCALL getfreediskspace(const char* path, ulong unit);
-DLLEXPORT ulong		DLLCALL delfiles(const char *inpath, const char *spec);
+DLLEXPORT ulong		DLLCALL delfiles(char *inpath, char *spec);
 DLLEXPORT char*		DLLCALL backslash(char* path);
 DLLEXPORT BOOL 		DLLCALL wildmatch(const char *fname, const char *spec, BOOL path);
 DLLEXPORT BOOL 		DLLCALL wildmatchi(const char *fname, const char *spec, BOOL path);
@@ -240,7 +240,7 @@ DLLEXPORT int		DLLCALL	mkpath(const char* path);
 DLLEXPORT void DLLCALL _splitpath(const char *path, char *drive, char *dir, 
 								  char *fname, char *ext);
 DLLEXPORT char * DLLCALL _fullpath(char *target, const char *path, size_t size);
-DLLEXPORT int DLLCALL removecase(const char *path);
+DLLEXPORT int DLLCALL removecase(char *path);
 #else
 	#define	removecase(x)	remove(x)
 #endif
