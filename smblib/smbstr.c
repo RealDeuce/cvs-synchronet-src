@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.12 2008/02/21 09:53:04 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.15 2008/03/12 06:03:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,7 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case SENDERIPADDR:		return("SenderIpAddr");
 		case SENDERHOSTNAME:	return("SenderHostName");
 		case SENDERPROTOCOL:	return("SenderProtocol");
+		case SENDERPORT_BIN:	return("SenderPortBin");
 		case SENDERPORT:		return("SenderPort");
 
 		case REPLYTO:			return("Reply-To");				/* RFC-compliant */
@@ -76,6 +77,7 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case SMB_EXPIRATION:	return("Expiration");
 		case SMB_PRIORITY:		return("Priority");
 		case SMB_COST:			return("Cost");
+		case FORWARDED:			return("Forwarded");
 
 		/* All X-FTN-* are RFC-compliant */
 		case FIDOCTRL:			return("X-FTN-Kludge");
@@ -88,7 +90,7 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case FIDOFLAGS:			return("X-FTN-Flags");
 		case FIDOTID:			return("X-FTN-TID");
 
-		case RFC822HEADER:		return("RFC822Header");
+		case RFC822HEADER:		return("OtherHeader");
 		case RFC822MSGID:		return("Message-ID");			/* RFC-compliant */
 		case RFC822REPLYID:		return("In-Reply-To");			/* RFC-compliant */
 		case RFC822TO:			return("RFC822To");
@@ -166,11 +168,13 @@ char* SMBCALL smb_hashsource(smbmsg_t* msg, int source)
 /****************************************************************************/
 /* Converts when_t.zone into ASCII format                                   */
 /****************************************************************************/
-char* SMBCALL smb_zonestr(short zone, char* outstr)
+char* SMBCALL smb_zonestr(short zone, char* str)
 {
 	char*		plus;
-    static char str[32];
+    static char buf[32];
 
+	if(str==NULL)
+		str=buf;
 	switch((ushort)zone) {
 		case 0:     return("UTC");
 		case AST:   return("AST");
@@ -229,31 +233,27 @@ char* SMBCALL smb_zonestr(short zone, char* outstr)
 		plus="";
 	sprintf(str,"UTC%s%d:%02u", plus, zone/60, zone<0 ? (-zone)%60 : zone%60);
 
-	if(outstr==NULL)
-		return(str);
-	strcpy(outstr,str);
-	return(outstr);
+	return(str);
 }
 
 /****************************************************************************/
 /* Returns an ASCII string for FidoNet address 'addr'                       */
 /****************************************************************************/
-char* SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* outstr)
+char* SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* str)
 {
-	static char str[64];
+	static char buf[64];
     char point[25];
 
 	if(addr==NULL)
 		return("0:0/0");
+	if(str==NULL)
+		str=buf;
 	sprintf(str,"%hu:%hu/%hu",addr->zone,addr->net,addr->node);
 	if(addr->point) {
 		sprintf(point,".%hu",addr->point);
 		strcat(str,point); 
 	}
-	if(outstr==NULL)
-		return(str);
-	strcpy(outstr,str);
-	return(outstr);
+	return(str);
 }
 
 /****************************************************************************/
