@@ -1,4 +1,4 @@
-/* $Id: qwknodes.c,v 1.19 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: qwknodes.c,v 1.18 2008/02/24 18:51:39 rswindell Exp $ */
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
@@ -76,7 +76,7 @@ int lputs(char* str)
 /* Performs printf() through local assembly routines                        */
 /* Called from everywhere                                                   */
 /****************************************************************************/
-int lprintf(const char *fmat, ...)
+int lprintf(char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[256];
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	char		*ctrl_dir;
 	char		revision[16];
 
-	sscanf("$Revision: 1.19 $", "%*s %s", revision);
+	sscanf("$Revision: 1.18 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List Generator v%s-%s\n"
 		,revision, PLATFORM_DESC);
