@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.113 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: userdat.c,v 1.112 2008/03/15 06:09:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1860,7 +1860,7 @@ int DLLCALL getuserrec(scfg_t* cfg, int usernumber,int start, int length, char *
 /* Places into user.dat at the offset for usernumber+start for length bytes */
 /* Called from various locations											*/
 /****************************************************************************/
-int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const char *str)
+int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, char *str)
 {
 	char	str2[256];
 	int		file;
