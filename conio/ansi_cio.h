@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.h,v 1.8 2009/02/05 07:58:08 deuce Exp $ */
+/* $Id: ansi_cio.h,v 1.7 2006/01/30 04:16:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,21 +39,11 @@
 #endif
 
 #include "ciolib.h"
+extern int	CIOLIB_ANSI_TIMEOUT;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-extern int	CIOLIB_ANSI_TIMEOUT;
-extern int  (*ciolib_ansi_readbyte_cb)(void);
-extern int  (*ciolib_ansi_writebyte_cb)(unsigned char ch);
-extern int  (*ciolib_ansi_initio_cb)(void);
-extern int  (*ciolib_ansi_writestr_cb)(unsigned char *str, size_t len);
-
-int ansi_readbyte_cb(void);
-int ansi_writebyte_cb(unsigned char ch);
-int ansi_initio_cb(void);
-int ansi_writestr_cb(unsigned char *str, size_t len);
-
 int ansi_puttext(int sx, int sy, int ex, int ey, void *fill);
 int ansi_gettext(int sx, int sy, int ex, int ey, void *fill);
 void ansi_textattr(int);
