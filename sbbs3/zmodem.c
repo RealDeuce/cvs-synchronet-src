@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.79 2008/09/23 06:45:11 deuce Exp $ */
+/* $Id: zmodem.c,v 1.77 2008/02/09 22:48:48 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1779,7 +1779,6 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 	FILE*		fp;
 	int32_t		l;
 	BOOL		skip;
-	BOOL		loop;
 	uint32_t	b;
 	uint32_t	crc;
 	uint32_t	rcrc;
@@ -1803,7 +1802,6 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 
 		do {	/* try */
 			skip=TRUE;
-			loop=FALSE;
 
 			sprintf(fpath,"%s/%s",download_dir,zm->current_file_name);
 			lprintf(zm,LOG_DEBUG,"fpath=%s",fpath);
@@ -1833,10 +1831,6 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 				}
 				if(crc!=rcrc) {
 					lprintf(zm,LOG_WARNING,"Remote file has different CRC value: %08lX", rcrc);
-					if(zm->duplicate_file) {
-						if(zm->duplicate_filename(zm->cbdata, zm))
-							loop=TRUE;
-					}
 					break;
 				}
 				lprintf(zm,LOG_INFO,"Resuming download of %s",fpath);
@@ -1882,7 +1876,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 					setfdate(fpath,zm->current_file_time);
 			}
 
-		} while(loop);
+		} while(0);
 		/* finally */
 
 		if(skip) {
@@ -2093,7 +2087,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.79 $", "%*s %s", buf);
+	sscanf("$Revision: 1.77 $", "%*s %s", buf);
 
 	return(buf);
 }
