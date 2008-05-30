@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.209 2008/02/23 10:47:26 rswindell Exp $ */
+/* $Id: services.c,v 1.211 2008/03/02 23:34:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,16 +248,6 @@ static void status(char* str)
 {
 	if(startup!=NULL && startup->status!=NULL)
 	    startup->status(startup->cbdata,str);
-}
-
-static time_t checktime(void)
-{
-	struct tm tm;
-
-    memset(&tm,0,sizeof(tm));
-    tm.tm_year=94;
-    tm.tm_mday=1;
-    return(mktime(&tm)-0x2D24BD00L);
 }
 
 /* Global JavaScript Methods */
@@ -1453,7 +1443,7 @@ void DLLCALL services_terminate(void)
 
 #define NEXT_FIELD(p)	FIND_WHITESPACE(p); SKIP_WHITESPACE(p)
 
-static service_t* read_services_ini(service_t* service, uint32_t* services)
+static service_t* read_services_ini(const char* services_ini, service_t* service, uint32_t* services)
 {
 	uint		i,j;
 	FILE*		fp;
@@ -1462,7 +1452,6 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 	char		host[INI_MAX_VALUE_LEN];
 	char		prot[INI_MAX_VALUE_LEN];
 	char		portstr[INI_MAX_VALUE_LEN];
-	char		services_ini[MAX_PATH+1];
 	char**		sec_list;
 	str_list_t	list;
 	service_t*	np;
@@ -1472,8 +1461,6 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 	uint		max_clients;
 	uint32_t	options;
 	uint32_t	stack_size;
-
-	iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
 
 	if((fp=fopen(services_ini,"r"))==NULL) {
 		lprintf(LOG_ERR,"!ERROR %d opening %s", errno, services_ini);
@@ -1599,7 +1586,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.209 $", "%*s %s", revision);
+	sscanf("$Revision: 1.211 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1623,6 +1610,7 @@ void DLLCALL services_thread(void* arg)
 	char			host_ip[32];
 	char			compiler[32];
 	char			str[128];
+	char			services_ini[MAX_PATH+1];
 	SOCKADDR_IN		addr;
 	SOCKADDR_IN		client_addr;
 	socklen_t		client_addr_len;
@@ -1737,22 +1725,16 @@ void DLLCALL services_thread(void* arg)
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-			if(putenv("TZ=UTC0"))
-				lprintf(LOG_ERR,"!putenv() FAILED");
-			tzset();
-
-			if((t=checktime())!=0) {   /* Check binary time */
-				lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
-				cleanup(1);
-				return;
-			}
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
 		}
 
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		if((service=read_services_ini(service, &services))==NULL) {
+		iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
+
+		if((service=read_services_ini(services_ini, service, &services))==NULL) {
 			cleanup(1);
 			return;
 		}
@@ -1862,6 +1844,7 @@ void DLLCALL services_thread(void* arg)
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","services");
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
+		semfile_list_add(&recycle_semfiles,services_ini);
 		if(!initialized) {
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
