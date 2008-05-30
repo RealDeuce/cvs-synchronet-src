@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.35 2008/06/04 04:40:02 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.34 2008/05/01 01:10:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -337,7 +337,7 @@ BOOL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
 int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 			   ,uint retries, uint wait_secs
 			   ,const char* prot
-			   ,int (*lprintf)(int level, const char *fmt, ...))
+			   ,int (*lprintf)(int level, char *fmt, ...))
 {
 	char	port_str[128];
 	int		result=-1;
