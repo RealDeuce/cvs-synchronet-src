@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.116 2009/02/10 09:15:29 deuce Exp $ */
+/* $Id: cterm.c,v 1.109 2008/02/23 06:23:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -250,11 +250,6 @@ void play_music(void)
 	struct	note_params *np;
 	int		fore_count;
 
-	if(cterm.quiet) {
-		cterm.music=0;
-		cterm.musicbuf[0]=0;
-		return;
-	}
 	p=cterm.musicbuf;
 	fore_count=0;
 	if(cterm.music==1) {
@@ -664,10 +659,8 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 									j=atoi(p);
 								}
 							}
-							switch(i) {
-								case 0:	/* Only the primary and secondary font is currently supported */
-								case 1:
-									setfont(j,FALSE,i);
+							if(i==0) {	/* Only the primary font is currently supported */
+								setfont(j,FALSE);
 							}
 						}
 					}
@@ -1121,7 +1114,6 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 				case 'z':	/* ToDo?  Reset */
 					break;
 				case '|':	/* SyncTERM ANSI Music */
-					cterm.music=1;
 					break;
 			}
 			break;
@@ -1143,7 +1135,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.116 $";
+	char	*revision="$Revision: 1.109 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1327,14 +1319,12 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 	if(retbuf!=NULL)
 		retbuf[0]=0;
 	gettextinfo(&ti);
-	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winbottom != cterm.y+cterm.height-1)
+	if(ti.winleft != cterm.x || ti.wintop != cterm.y || ti.winright != cterm.x+cterm.width-1 || ti.winleft != cterm.y+cterm.height-1)
 		window(cterm.x,cterm.y,cterm.x+cterm.width-1,cterm.y+cterm.height-1);
 	gotoxy(cterm.xpos,cterm.ypos);
 	textattr(cterm.attr);
 	_setcursortype(cterm.cursor);
 	ch[1]=0;
-	if(buflen==-1)
-		buflen=strlen(buf);
 	switch(buflen) {
 		case 0:
 			break;
@@ -1470,15 +1460,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 					}
 				}
 				else if (cterm.music) {
-					if(ch[0]==14) {
-						hold_update=0;
-						puttext_can_move=0;
-						gotoxy(wherex(),wherey());
-						_setcursortype(cterm.cursor);
-						hold_update=1;
-						puttext_can_move=1;
+					if(ch[0]==14)
 						play_music();
-					}
 					else {
 						if(strchr(musicchars,ch[0])!=NULL)
 							strcat(cterm.musicbuf,ch);
@@ -1588,13 +1571,11 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									cterm.escbuf[wherex()]=1;
 									break;
 								case 253:	/* Beep */
-									if(!cterm.quiet) {
-										#ifdef __unix__
-											putch(7);
-										#else
-											MessageBeep(MB_OK);
-										#endif
-									}
+									#ifdef __unix__
+										putch(7);
+									#else
+										MessageBeep(MB_OK);
+									#endif
 									break;
 								case 254:	/* Delete Char */
 									j=wherex();
@@ -1853,15 +1834,15 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 							/* Font change... whee! */
 							case 14:	/* Lower case font */
 								if(ti.currmode == C64_40X25)
-									setfont(33,FALSE,0);
+									setfont(33,FALSE);
 								else	/* Assume C128 */
-									setfont(35,FALSE,0);
+									setfont(35,FALSE);
 								break;
 							case 142:	/* Upper case font */
 								if(ti.currmode == C64_40X25)
-									setfont(32,FALSE,0);
+									setfont(32,FALSE);
 								else	/* Assume C128 */
-									setfont(34,FALSE,0);
+									setfont(34,FALSE);
 								break;
 							case 18:	/* Reverse mode on */
 								cterm.c64reversemode = 1;
@@ -1872,13 +1853,11 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 
 							/* Extras */
 							case 7:			/* Beep */
-								if(!cterm.quiet) {
-									#ifdef __unix__
-										putch(7);
-									#else
-										MessageBeep(MB_OK);
-									#endif
-								}
+								#ifdef __unix__
+									putch(7);
+								#else
+									MessageBeep(MB_OK);
+								#endif
 								break;
 
 							/* Translate to screen codes */
@@ -1959,13 +1938,11 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									prn[0]=0;
 									if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
 										fputs("\x07", cterm.logfile);
-									if(!cterm.quiet) {
-										#ifdef __unix__
-											putch(7);
-										#else
-											MessageBeep(MB_OK);
-										#endif
-									}
+									#ifdef __unix__
+										putch(7);
+									#else
+										MessageBeep(MB_OK);
+									#endif
 									break;
 								case 12:		/* ^L - Clear screen */
 									ctputs(prn);
