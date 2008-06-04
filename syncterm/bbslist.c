@@ -230,15 +230,15 @@ void viewofflinescroll(void)
 	textmode(scrollback_mode);
 	switch(ciolib_to_screen(scrollback_mode)) {
 		case SCREEN_MODE_C64:
-			setfont(33,TRUE,1);
+			setfont(33,TRUE);
 			break;
 		case SCREEN_MODE_C128_40:
 		case SCREEN_MODE_C128_80:
-			setfont(35,TRUE,1);
+			setfont(35,TRUE);
 			break;
 		case SCREEN_MODE_ATARI:
 		case SCREEN_MODE_ATARI_XEP80:
-			setfont(36,TRUE,1);
+			setfont(36,TRUE);
 			break;
 	}
 	drawwin();
@@ -345,6 +345,7 @@ void viewofflinescroll(void)
 	}
 
 	textmode(txtinfo.currmode);
+	setfont(default_font,TRUE);
 	init_uifc(TRUE,TRUE);
 	return;
 }
@@ -1451,8 +1452,6 @@ void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaul
 	if(stricmp(shared_list, listpath)) /* don't read the same list twice */
 		read_list(shared_list, list, defaults, listcount, SYSTEM_BBSLIST);
 	sort_list(list, listcount, cur, bar, current);
-	if(current)
-		free(current);
 }
 
 /*
@@ -1504,10 +1503,10 @@ struct bbslist *show_bbslist(char *current, int connected)
 
 	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
 	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
-	load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current?strdup(current):NULL);
+	load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current);
 
 	uifc.helpbuf="Help Button Hack";
-	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
+	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP|WIN_ACT|WIN_INACT
 		,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 	for(;;) {
 		if (!at_settings) {
@@ -1545,7 +1544,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 					val=listcount|MSK_INS;
 				if(val==-7)	{ /* CTRL-E */
 					uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-						|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
+						|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
 						|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 						|WIN_SEL
 						,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1555,7 +1554,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 					switch(val) {
 						case -2-0x13:	/* CTRL-S - Sort */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
+								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1564,7 +1563,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -2-0x3000:	/* ALT-B - Scrollback */
 							if(!connected) {
 								viewofflinescroll();
-								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
+								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP|WIN_ACT|WIN_INACT
 									,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 							}
 							break;
@@ -1575,7 +1574,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -2-0x4d00:	/* Right Arrow */
 						case -11:		/* TAB */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
+								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1588,7 +1587,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 												"Enter a URL in the format:\n"
 												"[(rlogin|telnet|ssh)://][user[:password]@]domainname[:port]\n";
 								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
+									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
 									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 									|WIN_SEL
 									,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1689,7 +1688,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else {
 								add_bbs(listpath,list[listcount-1]);
-								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]?strdup(list[listcount-1]->name):NULL);
+								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]->name);
 								oldopt=-1;
 							}
 							break;
@@ -1740,7 +1739,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								break;
 							}
 							if(edit_list(list, list[opt],listpath,FALSE)) {
-								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?list[opt]->name:NULL);
 								oldopt=-1;
 							}
 							break;
@@ -1755,7 +1754,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							uifc.msg("Cannot edit list in safe mode");
 						}
 						else if(edit_list(list, list[opt],listpath,FALSE)) {
-							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?list[opt]->name:NULL);
 							oldopt=-1;
 						}
 					}
@@ -1794,7 +1793,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						if(!connected) {
 							viewofflinescroll();
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
+								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL|WIN_INACT
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1806,7 +1805,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 					case -2-0x4b00:	/* Left Arrow */
 					case -2-0x4d00:	/* Right Arrow */
 					case -11:		/* TAB */
-						uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_SEL
+						uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP|WIN_ACT|WIN_SEL
 							,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 						at_settings=!at_settings;
 						break;
@@ -1844,7 +1843,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								textmode(screen_to_ciolib(i));
 								init_uifc(TRUE, TRUE);
 								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
+									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
 									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 									|WIN_SEL|WIN_INACT
 									,0,0,0,&opt,&bar,"Directory",(char **)list);
