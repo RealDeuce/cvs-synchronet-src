@@ -17,11 +17,11 @@ ulong first_msg()
 {
 	smbmsg_t msg;
 
-	msg.offset=0;
-	msg.hdr.number=0;
-	if(smb_getmsgidx(&smb,&msg))			/* Get first message index */
-		return(0);
-	return(msg.idx.number);
+msg.offset=0;
+msg.hdr.number=0;
+if(smb_getmsgidx(&smb,&msg))			/* Get first message index */
+	return(0);
+return(msg.idx.number);
 }
 
 long lputs(char *str)
@@ -29,36 +29,36 @@ long lputs(char *str)
     char tmp[256];
     int i,j,k;
 
-	j=strlen(str);
-	for(i=k=0;i<j;i++)      /* remove CRs */
-		if(str[i]==CR && str[i+1]==LF)
-			continue;
-		else
-			tmp[k++]=str[i];
-	tmp[k]=0;
-	return(fputs(tmp,stderr));
+j=strlen(str);
+for(i=k=0;i<j;i++)      /* remove CRs */
+    if(str[i]==CR && str[i+1]==LF)
+        continue;
+    else
+        tmp[k++]=str[i];
+tmp[k]=0;
+return(fputs(tmp,stderr));
 }
 
 /****************************************************************************/
 /* Performs printf() through local assembly routines                        */
 /* Called from everywhere                                                   */
 /****************************************************************************/
-int lprintf(const char *fmat, ...)
+int lprintf(char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[256];
 	int chcount;
 
-	va_start(argptr,fmat);
-	chcount=vsprintf(sbuf,fmat,argptr);
-	va_end(argptr);
-	lputs(sbuf);
-	return(chcount);
+va_start(argptr,fmat);
+chcount=vsprintf(sbuf,fmat,argptr);
+va_end(argptr);
+lputs(sbuf);
+return(chcount);
 }
 
 void bail(int code)
 {
-	exit(code);
+exit(code);
 }
 
 int main(int argc, char **argv)
@@ -68,11 +68,12 @@ int main(int argc, char **argv)
 	ulong length,max_users=0xffffffff;
 	uint32_t l;
 	sub_status_t *sub_status;
+	FILE *stream;
 	scfg_t	cfg;
 	glob_t	gl;
 
-	fprintf(stderr,"\nSMBACTIV Version %s (%s) - Synchronet Message Base Activity "
-		"Monitor\n", SMBACTIV_VER, PLATFORM_DESC);
+fprintf(stderr,"\nSMBACTIV Version %s (%s) - Synchronet Message Base Activity "
+	"Monitor\n", SMBACTIV_VER, PLATFORM_DESC);
 
 	if(argc>1)
 		max_users=atol(argv[1]);
