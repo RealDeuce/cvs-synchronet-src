@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.32 2006/05/09 21:02:55 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.34 2008/05/01 01:10:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <ctype.h>		/* isdigit */
 #include <stdlib.h>		/* alloca/free on FreeBSD */
 #include <string.h>		/* bzero (for FD_ZERO) on FreeBSD */
 #include <errno.h>		/* ENOMEM */
@@ -68,6 +69,9 @@ static socket_option_t socket_options[] = {
 #endif
 
 	{ "REUSEADDR",			0,				SOL_SOCKET,		SO_REUSEADDR		},	
+#ifdef SO_REUSEPORT	/* BSD */
+	{ "REUSEPORT",			0,				SOL_SOCKET,		SO_REUSEPORT		},	
+#endif
 	{ "KEEPALIVE",			SOCK_STREAM,	SOL_SOCKET,		SO_KEEPALIVE		},
 	{ "DONTROUTE",			0,				SOL_SOCKET,		SO_DONTROUTE		},
 	{ "BROADCAST",			SOCK_DGRAM,		SOL_SOCKET,		SO_BROADCAST		},
