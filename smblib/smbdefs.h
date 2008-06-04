@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.69 2008/02/21 09:49:25 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.71 2008/02/25 05:16:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -189,7 +189,8 @@
 #define SENDERIPADDR		0x07		/* for tracing */
 #define SENDERHOSTNAME		0x08		/* for tracing */
 #define SENDERPROTOCOL		0x09		/* for tracing */
-#define SENDERPORT			0x0a		/* for tracing */
+#define SENDERPORT_BIN		0x0a		/* deprecated */
+#define SENDERPORT			0x0b		/* for tracing */
 
 #define AUTHOR				0x10
 #define AUTHORAGENT 		0x11
@@ -570,6 +571,9 @@ typedef struct {				/* Message */
 				*from,			/* From name */
 				*from_ext,		/* From extension */
 				*from_org,		/* From organization */
+				*from_ip,		/* From IP address (e.g. "192.168.1.2") */
+				*from_host,		/* From host name */
+				*from_prot,		/* From protocol (e.g. "Telnet", "NNTP", "HTTP", etc.) */
 				*replyto,		/* Reply-to name */
 				*replyto_ext,	/* Reply-to extension */
 				*id,			/* RFC822 Message-ID */
