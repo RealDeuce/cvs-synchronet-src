@@ -45,7 +45,7 @@ void drawfpwindow(uifcapi_t *api)
 	if(api->mode&UIFC_MOUSE && width>6) {
 		lbuf[2]='[';
 		lbuf[3]=api->hclr|(api->bclr<<4);
-		lbuf[4]=0xfe;
+		lbuf[4]='\xfe';
 		lbuf[5]=api->lclr|(api->bclr<<4);
 		lbuf[6]=']';
 		lbuf[7]=api->hclr|(api->bclr<<4);
@@ -316,6 +316,9 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	int		finished=FALSE;
 	int		retval=0;
 	int		fieldmove;
+	int		oldhu=hold_update;
+	int		oldx=wherex();
+	int		oldy=wherey();
 
 	height=api->scrn_len-3;
 	width=SCRN_RIGHT-SCRN_LEFT-3;
@@ -639,6 +642,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	}
 
 cleanup:		/* Cleans up allocated variables returns from function */
+	hold_update=oldhu;
+	gotoxy(oldx,oldy);
 	FREE_AND_NULL(lastpath);
 	FREE_AND_NULL(tmppath);
 	FREE_AND_NULL(tmplastpath);

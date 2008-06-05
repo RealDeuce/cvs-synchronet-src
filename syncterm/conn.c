@@ -1,4 +1,6 @@
-/* $Id: conn.c,v 1.42 2007/10/22 17:30:59 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: conn.c,v 1.56 2008/04/05 07:46:47 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -22,12 +24,12 @@
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types[]={"Unknown","RLogin","Telnet","Raw","SSH","Modem"
+char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial"
 #ifdef __unix__
 ,"Shell"
 #endif
 ,NULL};
-int conn_ports[]={0,513,23,0,22,0
+short unsigned int conn_ports[]={0,513,513,23,0,22,0,0
 #ifdef __unix__
 ,65535
 #endif
@@ -283,6 +285,7 @@ int conn_connect(struct bbslist *bbs)
 
 	switch(bbs->conn_type) {
 		case CONN_TYPE_RLOGIN:
+		case CONN_TYPE_RLOGIN_REVERSED:
 			conn_api.connect=rlogin_connect;
 			conn_api.close=rlogin_close;
 			break;
@@ -297,8 +300,21 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.close=raw_close;
 			break;
 		case CONN_TYPE_SSH:
+#ifdef WITHOUT_CRYPTLIB
+			init_uifc(TRUE, TRUE);
+			uifcmsg("SSH inoperative",	"`Compiled without cryptlib`\n\n"
+					"This binary was compiled without Cryptlib,\n"
+					"which is required for SSH support."
+					);
+			return(-1);
+#else
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
+			break;
+#endif
+		case CONN_TYPE_SERIAL:
+			conn_api.connect=modem_connect;
+			conn_api.close=serial_close;
 			break;
 		case CONN_TYPE_MODEM:
 			conn_api.connect=modem_connect;
@@ -310,6 +326,8 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.close=pty_close;
 			break;
 #endif
+		default:
+			conn_api.terminate=1;
 	}
 	if(conn_api.connect) {
 		if(conn_api.connect(bbs)) {
@@ -348,6 +366,7 @@ enum failure_reason {
 	,FAILURE_CONNECT_ERROR
 	,FAILURE_ABORTED
 	,FAILURE_GENERAL
+	,FAILURE_DISCONNECTED
 };
 
 int conn_socket_connect(struct bbslist *bbs)
@@ -400,6 +419,10 @@ int conn_socket_connect(struct bbslist *bbs)
 			case EINPROGRESS:
 			case EINTR:
 			case EAGAIN:
+
+#if (!defined(EAGAIN) && defined(EWOULDBLOCK)) || (EAGAIN!=EWOULDBLOCK)
+			case EWOULDBLOCK:
+#endif
 				break;
 			default:
 				failcode=FAILURE_CONNECT_ERROR;
@@ -433,19 +456,19 @@ int conn_socket_connect(struct bbslist *bbs)
 connected:
 	nonblock=0;
 	ioctlsocket(sock, FIONBIO, &nonblock);
-	if(!socket_check(sock, NULL, NULL, 0))
+	if(!socket_check(sock, NULL, NULL, 0)) {
+		failcode=FAILURE_DISCONNECTED;
 		goto connect_failed;
+	}
 
 	uifc.pop(NULL);
 	return(sock);
 
 connect_failed:
 	{
-		char str[LIST_ADDR_MAX+20];
+		char str[LIST_ADDR_MAX+40];
 
-		conn_close();
 		uifc.pop(NULL);
-		closesocket(sock);
 		conn_api.terminate=-1;
 		switch(failcode) {
 			case FAILURE_RESOLVE:
@@ -456,13 +479,15 @@ connect_failed:
 								"with the DNS settings of the system you are trying to contact.");
 				break;
 			case FAILURE_CANT_CREATE:
-				uifcmsg("Cannot create socket!",
+				sprintf(str,"Cannot create socket (%d)!",ERROR_VALUE);
+				uifcmsg(str,
 								"`Unable to create socket`\n\n"
 								"Your system is either dangerously low on resources, or there\n"
 								"is a problem with your TCP/IP stack.");
 				break;
 			case FAILURE_CONNECT_ERROR:
-				uifcmsg("Connect Error!"
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
 								,"`The connect call returned an error`\n\n"
 								 "The call to connect() returned an unexpected error code.");
 				break;
@@ -471,11 +496,20 @@ connect_failed:
 								"Connection to the remote system aborted by keystroke.");
 				break;
 			case FAILURE_GENERAL:
-				uifcmsg("Connect Error!"
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
 								,"`SyncTERM failed to connect`\n\n"
 								 "The call to select() returned an unexpected error code.");
 				break;
+			case FAILURE_DISCONNECTED:
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
+								,"`SyncTERM failed to connect`\n\n"
+								 "After connect() succeeded, the socket was in a disconnected state.");
+				break;
 		}
+		conn_close();
+		closesocket(sock);
 		return(INVALID_SOCKET);
 	}
 }
