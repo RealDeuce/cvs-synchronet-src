@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.110 2007/08/25 08:30:52 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.113 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,9 +43,8 @@
 #include <signal.h>
 #endif
 
-#include "ciolib.h"
-
 #include "sbbs.h"
+#include "ciolib.h"
 
 #define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
@@ -160,7 +159,7 @@ int mfprintf(FILE* fp, char *fmt, ...)
 }
 
 /* Log printf */
-int lprintf(int level, char *fmt, ...)
+int lprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -811,7 +810,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.110 $", "%*s %s", revision);
+	sscanf("$Revision: 1.113 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -959,9 +958,6 @@ int main(int argc, char **argv, char** environ)
 
 	if(host_name==NULL)
 		host_name=scfg.sys_inetaddr;
-
-	if(!(scfg.sys_misc&SM_LOCAL_TZ))
-		putenv("TZ=UTC0");
 
 #if defined(__unix__)
 	if(daemonize) {
