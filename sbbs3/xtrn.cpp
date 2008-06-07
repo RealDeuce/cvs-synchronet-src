@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.199 2006/11/16 20:41:06 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.200 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2008,7 +2008,7 @@ const char* quoted_string(const char* str, char* buf, size_t maxlen)
 /*****************************************************************************/
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
-char* sbbs_t::cmdstr(char *instr, char *fpath, char *fspec, char *outstr)
+char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, char *outstr)
 {
 	char	str[MAX_PATH+1],*cmd;
     int		i,j,len;
