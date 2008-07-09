@@ -3,6 +3,24 @@
 #else
 # CIOLIB-MT_LIBS		+=	$(UL_PRE)ncurses$(UL_SUF)
 #endif
+
+# OSs with vasprintf...
+ifeq ($(os),darwin)
+ CFLAGS += -DHAVE_VASPRINTF
+endif
+ifeq ($(os),linux)
+ CFLAGS += -DHAVE_VASPRINTF
+endif
+ifeq ($(os),freebsd)
+ CFLAGS += -DHAVE_VASPRINTF
+endif
+ifeq ($(os),netbsd)
+ CFLAGS += -DHAVE_VASPRINTF
+endif
+ifeq ($(os),openbsd)
+ CFLAGS += -DHAVE_VASPRINTF
+endif
+
 ifdef USE_SYSTEM_CURSES
  CIOLIB-MT_LIBS		+=	$(UL_PRE)curses$(UL_SUF)
 else
@@ -40,8 +58,11 @@ ifdef USE_SDL
   else
    ifeq ($(os),darwin)
 	ifeq ($(shell if [ -d /Library/Frameworks/SDL.framework ] ; then echo YES ; fi),YES)
-     WITH_SDL	:=	1
+     SDL_FRAMEWORK_PATH ?= /Library/Frameworks
 	endif
+    ifdef SDL_FRAMEWORK_PATH
+     WITH_SDL	:=	1
+    endif
    else
 	ifeq ($(shell sdl-config --cflags > /dev/null 2>&1 && echo YES),YES)
      SDL_CONFIG := sdl-config
@@ -69,6 +90,8 @@ endif
 
 ifdef WITH_SDL
  ifndef WITH_SDL_AUDIO
+  # Prefer local include over system includes.
+  #CFLAGS += -I$(SRC_ROOT)/../include/sdl
   ifdef SDL_CONFIG
    ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null 2>&1 && echo YES),YES)
 	CIOLIB-MT_CFLAGS	+=	-DWITH_SDL
@@ -102,11 +125,11 @@ ifdef WITH_SDL
 	CIOLIB-MT_CFLAGS	+=	-DWITH_SDL -DSTATIC_SDL
 	WITH_SDL	:=	1
 	STATIC_SDL	:=	1
-	CIOLIB-MT_CFLAGS	+=	-I/Library/Frameworks/SDL.framework/Headers
-	CIOLIB-MT_LIBS	+=	-framework SDL -framework Cocoa -framework Carbon -I/Library/Frameworks/SDL.framework/Headers
+	CIOLIB-MT_CFLAGS	+=	-I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
+	CIOLIB-MT_LIBS	+=	-F${SDL_FRAMEWORK_PATH} -framework SDL -framework Cocoa -framework Carbon -I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
 	CIOLIB_CFLAGS	+=	-DWITH_SDL -DSTATIC_SDL
-	CIOLIB_CFLAGS	+=	-I/Library/Frameworks/SDL.framework/Headers
-	CIOLIB_LIBS	+=	-framework SDL -framework Cocoa -framework Carbon -I/Library/Frameworks/SDL.framework/Headers
+	CIOLIB_CFLAGS	+=	-I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
+	CIOLIB_LIBS	+=	-F${SDL_FRAMEWORK_PATH} -framework SDL -framework Cocoa -framework Carbon -I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
    endif
   endif
  endif
