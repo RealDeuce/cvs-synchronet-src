@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.495 2008/02/24 07:57:17 rswindell Exp $ */
+/* $Id: main.cpp,v 1.498 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ extern "C" {
 
 static bbs_startup_t* startup=NULL;
 
-static void status(char* str)
+static void status(const char* str)
 {
 	if(startup!=NULL && startup->status!=NULL)
 	    startup->status(startup->cbdata,str);
@@ -147,7 +147,7 @@ static void thread_down()
 		startup->thread_up(startup->cbdata,FALSE,FALSE);
 }
 
-int lputs(int level, char* str)
+int lputs(int level, const char* str)
 {
 	if(startup==NULL || startup->lputs==NULL || str==NULL)
     	return(0);
@@ -155,7 +155,7 @@ int lputs(int level, char* str)
     return(startup->lputs(startup->cbdata,level,str));
 }
 
-int lprintf(int level, char *fmt, ...)
+int lprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -167,7 +167,7 @@ int lprintf(int level, char *fmt, ...)
     return(lputs(level,sbuf));
 }
 
-int eprintf(int level, char *fmt, ...)
+int eprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -2112,6 +2112,7 @@ void event_thread(void* arg)
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
 					sbbs->unpack_rep(g.gl_pathv[i]);
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
 					
@@ -2138,7 +2139,6 @@ void event_thread(void* arg)
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
 					sbbs->online=ON_LOCAL;
-					delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->getmsgptrs();
 					sbbs->getusrsubs();
 					sbbs->batdn_total=0;
@@ -2191,7 +2191,6 @@ void event_thread(void* arg)
 							continue;
 						eprintf(LOG_INFO,"Pre-packing QWK for %s",sbbs->useron.alias);
 						sbbs->online=ON_LOCAL;
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->getmsgptrs();
 						sbbs->getusrsubs();
 						sbbs->batdn_total=0;
@@ -2305,7 +2304,6 @@ void event_thread(void* arg)
 					SAFECOPY(str,g.gl_pathv[j]);
 					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
 						if(sbbs->unpack_qwk(str,i)==false) {
@@ -2318,6 +2316,7 @@ void event_thread(void* arg)
 								sbbs->logline("Q!",logmsg);
 							}
 						}
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 						remove(str);
@@ -2645,7 +2644,7 @@ void event_thread(void* arg)
 
 
 //****************************************************************************
-sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
+sbbs_t::sbbs_t(ushort node_num, DWORD addr, const char* name, SOCKET sd,
 			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
 	char	nodestr[32];
@@ -3275,7 +3274,7 @@ int sbbs_t::nopen(char *str, int access)
     return(file);
 }
 
-void sbbs_t::spymsg(char* msg)
+void sbbs_t::spymsg(const char* msg)
 {
 	char str[512];
 	struct in_addr addr;
@@ -3454,7 +3453,7 @@ int sbbs_t::outcom(uchar ch)
 	return(0);
 }
 
-void sbbs_t::putcom(char *str, int len)
+void sbbs_t::putcom(const char *str, int len)
 {
 	int i;
 
@@ -4139,7 +4138,7 @@ static void cleanup(int code)
 
 void DLLCALL bbs_thread(void* arg)
 {
-	char*			host_name;
+	const char*		host_name;
 	char*			identity;
 	char*			p;
     char			str[MAX_PATH+1];
@@ -4614,6 +4613,8 @@ NO_SSH:
 	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
+	semfile_list_add(&recycle_semfiles,str);
+	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
