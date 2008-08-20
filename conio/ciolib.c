@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.110 2009/02/12 07:17:27 deuce Exp $ */
+/* $Id: ciolib.c,v 1.104 2008/02/03 11:34:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,10 +131,6 @@ int try_sdl_init(int mode)
 		cio_api.movetext=bitmap_movetext;
 		cio_api.clreol=bitmap_clreol;
 		cio_api.clrscr=bitmap_clrscr;
-		cio_api.getcustomcursor=bitmap_getcustomcursor;
-		cio_api.setcustomcursor=bitmap_setcustomcursor;
-		cio_api.getvideoflags=bitmap_getvideoflags;
-		cio_api.setvideoflags=bitmap_setvideoflags;
 
 		cio_api.kbhit=sdl_kbhit;
 		cio_api.getch=sdl_getch;
@@ -176,10 +172,6 @@ int try_x_init(int mode)
 		cio_api.movetext=bitmap_movetext;
 		cio_api.clreol=bitmap_clreol;
 		cio_api.clrscr=bitmap_clrscr;
-		cio_api.getcustomcursor=bitmap_getcustomcursor;
-		cio_api.setcustomcursor=bitmap_setcustomcursor;
-		cio_api.getvideoflags=bitmap_getvideoflags;
-		cio_api.setvideoflags=bitmap_setvideoflags;
 
 		cio_api.kbhit=x_kbhit;
 		cio_api.getch=x_getch;
@@ -271,9 +263,6 @@ int try_conio_init(int mode)
 		cio_api.getcliptext=win32_getcliptext;
 		cio_api.suspend=win32_suspend;
 		cio_api.resume=win32_resume;
-		cio_api.getcustomcursor=win32_getcustomcursor;
-		cio_api.setcustomcursor=win32_setcustomcursor;
-		cio_api.getvideoflags=win32_getvideoflags;
 		return(1);
 	}
 	return(0);
@@ -415,13 +404,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getche(void)
 	else {
 		while(1) {
 			ch=ciolib_getch();
-			if(ch != 0 && ch != 0xe0) {
+			if(ch) {
 				ciolib_putch(ch);
 				return(ch);
 			}
-			/* Eat extended chars - except ESC which is an abort */
-			if(ciolib_getch()==1)
-				return(EOF);
+			/* Eat extended chars */
+			ciolib_getch();
 		}
 	}
 }
@@ -478,10 +466,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	maxlen=*(unsigned char *)str;
 	while((ch=ciolib_getch())!='\n' && ch !='\r') {
 		switch(ch) {
-			case 0:		/* Skip extended keys */
-			case 0xe0:	/* Skip extended keys */
-				if(ciolib_getche()==1)
-					goto early_return;
+			case 0:	/* Skip extended keys */
+				ciolib_getche();
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
 				break;
@@ -506,7 +492,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				break;
 		}
 	}
-early_return:
 	str[len+2]=0;
 	*((unsigned char *)(str+1))=(unsigned char)len;
 	ciolib_putch('\r');
@@ -578,10 +563,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt)
 	ciolib_cputs((char *)prompt);
 	while((ch=ciolib_getch())!='\n') {
 		switch(ch) {
-			case 0:		/* Skip extended keys */
-			case 0xe0:	/* Skip extended keys */
-				if(ciolib_getch()==1)
-					goto early_return;
+			case 0:	/* Skip extended keys */
+				ciolib_getch();
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treeated as a \n? */
 				break;
@@ -600,7 +583,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt)
 				break;
 		}
 	}
-early_return:
 	pass[len]=0;
 	return(pass);
 }
@@ -706,8 +688,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 		lastmode=cio_textinfo.currmode;
 	}
 	else {
-		if(mode==64)
-			mode=C80X50;
 		lastmode=cio_textinfo.currmode;
 		cio_api.textmode(mode);
 	}
@@ -1228,12 +1208,12 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void)
 }
 
 /* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force, int font_num)
+CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force)
 {
 	CIOLIB_INIT();
 
 	if(cio_api.setfont!=NULL)
-		return(cio_api.setfont(font,force,font_num));
+		return(cio_api.setfont(font,force));
 	else
 		return(-1);
 }
@@ -1286,34 +1266,5 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void)
 	if(cio_api.beep)
 		return(cio_api.beep());
 	BEEP(440,100);
-	return(0);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_getcustomcursor(int *start, int *end, int *range, int *blink, int *visible)
-{
-	if(cio_api.getcustomcursor)
-		cio_api.getcustomcursor(start,end,range,blink,visible);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_setcustomcursor(int start, int end, int range, int blink, int visible)
-{
-	if(cio_api.setcustomcursor)
-		cio_api.setcustomcursor(start,end,range,blink,visible);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags)
-{
-	if(cio_api.setvideoflags)
-		cio_api.setvideoflags(flags);
-}
-
-/* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void)
-{
-	if(cio_api.getvideoflags)
-		return(cio_api.getvideoflags());
 	return(0);
 }
