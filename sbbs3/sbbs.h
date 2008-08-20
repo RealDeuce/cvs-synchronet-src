@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.317 2008/08/30 19:03:12 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.316 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1069,9 +1069,6 @@ extern "C" {
 
 	/* js_uifc.c */
 	JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent);
-
-	/* js_conio.c */
-	JSObject* js_CreateConioObject(JSContext* cx, JSObject* parent);
 
 #endif
 
