@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.54 2008/02/23 11:08:33 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.56 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,10 +43,9 @@
 /****************************************************************************/
 bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 {
-	char	str[MAX_PATH+1],ch,*p;
+	char	str[MAX_PATH+1],ch;
 	char 	tmp[MAX_PATH+1],tmp2[MAX_PATH+1];
 	char*	fname;
-	char*	fmode;
 	int 	mode;
 	uint	i,j,k,conf;
 	long	l,size,msgndx,ex;
@@ -68,6 +67,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	DIRENT*	dirent;
 	struct	tm tm;
 	smbmsg_t msg;
+	const char* p;
+	const char* fmode;
 
 	ex=EX_OUTL|EX_OUTR;	/* Need sh for wildcard expansion */
 	if(prepack)
@@ -666,24 +667,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		return(false); 
 	}
 
-	if(prepack) 		/* Early return if pre-packing */
-		return(true);
-
-	l=flength(packet);
-	bprintf(text[FiFilename],getfname(packet));
-	bprintf(text[FiFileSize],ultoac(l,tmp));
-	if(l>0L && cur_cps)
-		i=l/(ulong)cur_cps;
-	else
-		i=0;
-	bprintf(text[FiTransferTime],sectostr(i,tmp));
-	CRLF;
-	if(!(useron.exempt&FLAG('T')) && i>timeleft) {
-		bputs(text[NotEnoughTimeToDl]);
-		return(false); 
-	}
-
-	if(useron.rest&FLAG('Q')) {
+	if(!prepack && useron.rest&FLAG('Q')) {
 		dir=opendir(cfg.temp_dir);
 		while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
 			if(!stricmp(getfname(packet),dirent->d_name))	/* QWK packet */
