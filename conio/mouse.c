@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.33 2005/10/22 00:02:13 rswindell Exp $ */
+/* $Id: mouse.c,v 1.37 2008/06/08 01:42:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,14 +97,17 @@ struct mouse_state {
 struct mouse_state state;
 int mouse_events=0;
 int ciolib_mouse_initialized=0;
+static int ungot=0;
+pthread_mutex_t unget_mutex;
 
 void init_mouse(void)
 {
 	memset(&state,0,sizeof(state));
 	state.click_timeout=0;
 	state.multi_timeout=300;
-	listInit(&state.input,LINK_LIST_SEMAPHORE);
-	listInit(&state.output,LINK_LIST_SEMAPHORE);
+	listInit(&state.input,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
+	listInit(&state.output,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
+	pthread_mutex_init(&unget_mutex, NULL);
 	ciolib_mouse_initialized=1;
 }
 
@@ -212,7 +215,7 @@ void ciolib_mouse_thread(void *data)
 				timedout=1;
 			}
 			else {
-				timedout=listSemTryWaitBlock(&state.input,delay);
+				timedout=!listSemTryWaitBlock(&state.input,delay);
 			}
 		}
 		else {
@@ -429,16 +432,38 @@ void ciolib_mouse_thread(void *data)
 
 int mouse_trywait(void)
 {
+	int	result;
+
 	while(!ciolib_mouse_initialized)
 		SLEEP(1);
-	return(listSemTryWait(&state.output));
+	while(1) {
+		result=listSemTryWait(&state.output);
+		pthread_mutex_lock(&unget_mutex);
+		if(ungot==0) {
+			pthread_mutex_unlock(&unget_mutex);
+			return(result);
+		}
+		ungot--;
+		pthread_mutex_unlock(&unget_mutex);
+	}
 }
 
 int mouse_wait(void)
 {
+	int result;
+
 	while(!ciolib_mouse_initialized)
 		SLEEP(1);
-	return(listSemWait(&state.output));
+	while(1) {
+		result=listSemWait(&state.output);
+		pthread_mutex_lock(&unget_mutex);
+		if(ungot==0) {
+			pthread_mutex_unlock(&unget_mutex);
+			return(result);
+		}
+		ungot--;
+		pthread_mutex_unlock(&unget_mutex);
+	}
 }
 
 int mouse_pending(void)
@@ -469,6 +494,7 @@ int ciolib_getmouse(struct mouse_event *mevent)
 		free(out);
 	}
 	else {
+		fprintf(stderr,"WARNING: attempt to get a mouse key when none pending!\n");
 		memset(mevent,0,sizeof(struct mouse_event));
 		retval=-1;
 	}
@@ -482,5 +508,12 @@ int ciolib_ungetmouse(struct mouse_event *mevent)
 	if((me=(struct mouse_event *)malloc(sizeof(struct mouse_event)))==NULL)
 		return(-1);
 	memcpy(me,mevent,sizeof(struct mouse_event));
-	return(listInsertNode(&state.output,me)==NULL);
+	pthread_mutex_lock(&unget_mutex);
+	if(listInsertNode(&state.output,me)==NULL) {
+		pthread_mutex_unlock(&unget_mutex);
+		return(FALSE);
+	}
+	ungot++;
+	pthread_mutex_unlock(&unget_mutex);
+	return(TRUE);
 }
