@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.70 2008/02/25 02:12:15 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.71 2008/02/25 05:16:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -571,6 +571,9 @@ typedef struct {				/* Message */
 				*from,			/* From name */
 				*from_ext,		/* From extension */
 				*from_org,		/* From organization */
+				*from_ip,		/* From IP address (e.g. "192.168.1.2") */
+				*from_host,		/* From host name */
+				*from_prot,		/* From protocol (e.g. "Telnet", "NNTP", "HTTP", etc.) */
 				*replyto,		/* Reply-to name */
 				*replyto_ext,	/* Reply-to extension */
 				*id,			/* RFC822 Message-ID */
