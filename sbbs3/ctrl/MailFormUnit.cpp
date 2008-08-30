@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailFormUnit.cpp,v 1.4 2009/01/24 22:23:49 rswindell Exp $ */
+/* $Id: MailFormUnit.cpp,v 1.3 2004/10/18 00:04:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -54,16 +54,4 @@ void __fastcall TMailForm::FormHide(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TMailForm::LogLevelUpDownChangingEx(TObject *Sender,
-      bool &AllowChange, short NewValue, TUpDownDirection Direction)
-{
-    if(NewValue < 0 || NewValue > LOG_DEBUG)
-        AllowChange = false;
-    else {
-        MainForm->mail_startup.log_level = NewValue;
-        LogLevelText->Caption = LogLevelDesc[NewValue];
-        MainForm->SaveIniSettings(Sender);
-    }
-}
-//---------------------------------------------------------------------------
 
