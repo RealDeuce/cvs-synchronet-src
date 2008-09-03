@@ -2,7 +2,7 @@
 
 /* Network related wrapper functions */
 
-/* $Id: netwrap.c,v 1.1 2005/10/07 06:23:15 rswindell Exp $ */
+/* $Id: netwrap.c,v 1.2 2008/01/21 07:28:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #include "netwrap.h"	/* verify prototypes */
 
 #include <stdlib.h>		/* malloc() */
+#include <ctype.h>		/* isspace() */
 
 #if defined(_WIN32)
 	#include <iphlpapi.h>	/* GetNetworkParams */
