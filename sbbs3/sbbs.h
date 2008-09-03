@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.323 2009/02/10 11:22:15 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.317 2008/08/30 19:03:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -231,7 +231,6 @@ public:
 	js_branch_t	js_branch;
 	long		js_execfile(const char *fname);
 	bool		js_init(ulong* stack_frame);
-	void		js_cleanup(const char* node);
 	void		js_create_user_objects(void);
 
 #endif
@@ -280,7 +279,7 @@ public:
 
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
     int     keybuftop,keybufbot;    /* Keyboard input buffer pointers (for ungetkey) */
-	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */
+	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */ 
 
 	ushort	node_connection;
 	char	connection[LEN_MODEM+1];	/* Connection Description */
@@ -379,10 +378,7 @@ public:
 
     /* ansi_term.cpp */
 	const char *	ansi(int atr);			/* Returns ansi escape sequence for atr */
-    bool	ansi_gotoxy(int x, int y);
-	bool	ansi_getxy(int* x, int* y);
-	bool	ansi_save(void);
-	bool	ansi_restore(void);
+    bool	ansi_getxy(int* x, int* y);
 	void	ansi_getlines(void);
 
 			/* Command Shell Methods */
@@ -467,7 +463,6 @@ public:
 	void	automsg(void);
 	bool	writemsg(const char *str, const char *top, char *title, long mode, int subnum
 				,const char *dest);
-	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode);
 	bool	msgabort(void);
@@ -488,8 +483,6 @@ public:
 				,uint subnum);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
-	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines);
-	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines);
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
@@ -714,7 +707,7 @@ public:
 	bool	errormsg_inside;
 	void	errormsg(int line, const char *file, const char* action, const char *object
 				,ulong access, const char *extinfo=NULL);
-
+	
 	/* qwk.cpp */
 	bool	qwklogon;
 	ulong	qwkmail_last;
@@ -876,9 +869,9 @@ extern "C" {
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
-	DLLEXPORT time_t	DLLCALL dstrtounix(scfg_t*, char *str);
+	DLLEXPORT time_t	DLLCALL dstrtounix(scfg_t*, char *str);	
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
-	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
+	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
@@ -902,15 +895,13 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
 	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
-
+	
 
 	/* scfglib1.c */
 	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
-	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* text);
-
-	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text
+	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text 
 										,char* host, SOCKADDR_IN* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
 										,char* host, char* ip_addr, char* to, char* from);
@@ -968,7 +959,7 @@ extern "C" {
 		 JSTYPE_ARRAY=JSTYPE_LIMIT
 		,JSTYPE_ALIAS
 		,JSTYPE_UNDEF
-#if JS_VERSION < JSVERSION_1_6	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
+#if !defined(JSTYPE_NULL)	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
 		,JSTYPE_NULL
 #endif
 	};
@@ -1033,7 +1024,7 @@ extern "C" {
 													,user_t* user, char* html_index_file
 													,subscan_t* subscan);
 	/* js_file_area.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
+	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg 
 													,user_t* user, char* html_index_file);
 
 	/* js_msg_area.c */
@@ -1107,11 +1098,11 @@ BOOL 	md(char *path);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
 
-	char *	readtext(long *line, FILE *stream, long dflt);
+	char *	readtext(long *line, FILE *stream);
 
 	/* ver.cpp */
 	char*	socklib_version(char* str, char* winsock_ver);
-
+	
 	/* sortdir.cpp */
 	int		fnamecmp_a(char **str1, char **str2);	 /* for use with resort() */
 	int		fnamecmp_d(char **str1, char **str2);
