@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.328 2008/02/25 08:07:58 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.330 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,7 @@ static char 	*text[TOTAL_TEXT];
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
 
-#ifdef _DEBUG
+#ifdef SOCKET_DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
 
 	#define	SOCKET_DEBUG_CTRL		(1<<0)	/* 0x01 */
@@ -126,7 +126,7 @@ BOOL dir_op(scfg_t* cfg, user_t* user, uint dirnum)
 		|| (cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user)));
 }
 
-static int lprintf(int level, char *fmt, ...)
+static int lprintf(int level, const char *fmt, ...)
 {
 	int		result;
 	va_list argptr;
@@ -223,7 +223,7 @@ static SOCKET ftp_open_socket(int type)
 		if(set_socket_options(&scfg, sock, "FTP", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock, error);
 		sockets++;
-#ifdef _DEBUG
+#ifdef SOCKET_DEBUG
 		lprintf(LOG_DEBUG,"%04d Socket opened (%u sockets in use)",sock,sockets);
 #endif
 	}
@@ -255,7 +255,7 @@ static int ftp_close_socket(SOCKET* sock, int line)
 			lprintf(LOG_WARNING,"%04d !ERROR %d closing socket from line %u",*sock,ERROR_VALUE,line);
 	} else if(sock==&server_socket || *sock==server_socket)
 		lprintf(LOG_DEBUG,"%04d Server socket closed (%u sockets in use) from line %u",*sock,sockets,line);
-#ifdef _DEBUG
+#ifdef SOCKET_DEBUG
 	else 
 		lprintf(LOG_DEBUG,"%04d Socket closed (%u sockets in use) from line %u",*sock,sockets,line);
 #endif
@@ -4532,7 +4532,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.328 $", "%*s %s", revision);
+	sscanf("$Revision: 1.330 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
