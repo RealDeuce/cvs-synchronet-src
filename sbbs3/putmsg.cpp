@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.18 2007/07/27 12:54:42 deuce Exp $ */
+/* $Id: putmsg.cpp,v 1.19 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 /* the attributes prior to diplaying the message are always restored.       */
 /* Ignores Ctrl-Z's                                                         */
 /****************************************************************************/
-char sbbs_t::putmsg(char *str, long mode)
+char sbbs_t::putmsg(const char *str, long mode)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
 	uchar	exatr=0;
