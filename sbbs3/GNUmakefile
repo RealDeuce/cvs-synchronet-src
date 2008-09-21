@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.209 2007/10/05 06:51:22 deuce Exp $
+# $Id: GNUmakefile,v 1.211 2007/10/15 08:06:00 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -54,7 +54,7 @@ endif
 ifeq ($(os),linux)
  ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
   CFLAGS += -DUSE_LINUX_CAPS
-  CON_LIBS += -lcap
+  SBBS_LIBS += -lcap
  endif
 endif
 
@@ -136,7 +136,7 @@ else
 endif
 export LD_RUN_PATH
 
-CON_LIBS	:= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
+CON_LIBS	+= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared
 ifeq ($(os),darwin)
  MKSHLIB		:=	libtool -dynamic -framework System -lcc_dynamic
