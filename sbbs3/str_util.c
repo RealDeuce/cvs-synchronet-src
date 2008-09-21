@@ -2,13 +2,13 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.39 2009/02/16 03:25:27 rswindell Exp $ */
+/* $Id: str_util.c,v 1.38 2008/02/26 07:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,100 +38,66 @@
 #include "sbbs.h"
 
 /****************************************************************************/
-/* For all the functions that take a 'dest' argument, pass NULL to have the	*/
-/* function malloc the buffer for you and return it.						*/
+/* Removes ctrl-a codes from the string 'instr'                             */
 /****************************************************************************/
-
-/****************************************************************************/
-/* Removes ctrl-a codes from the string 'str'								*/
-/****************************************************************************/
-char* DLLCALL remove_ctrl_a(const char *str, char *dest)
+char* DLLCALL remove_ctrl_a(char *instr, char *outstr)
 {
-	char*		tmp;
-	uint		i,j;
+	char str[1024],*p;
+	uint i,j;
 
-	if((tmp=strdup(str))==NULL)
-		return NULL;
-	for(i=j=0;str[i];i++) {
-		if(str[i]==CTRL_A) {
+	for(i=j=0;instr[i] && j<sizeof(str)-1;i++) {
+		if(instr[i]==CTRL_A && instr[i+1]!=0)
 			i++;
-			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
-				break;
-			/* convert non-destructive backspace to a destructive backspace */
-			if(str[i]=='<' && j)	
-				j--;
-		}
-		else tmp[j++]=str[i]; 
+		else str[j++]=instr[i]; 
 	}
-	tmp[j]=0;
-	if(dest==NULL)
-		return tmp;	/* Must be freed! */
-	strcpy(dest,tmp);
-	free(tmp);
-	return dest;
+	str[j]=0;
+	if(outstr!=NULL)
+		p=outstr;
+	else
+		p=instr;
+	strcpy(p,str);
+	return(p);
 }
 
-char* DLLCALL strip_ctrl(const char *str, char* dest)
+char* DLLCALL strip_ctrl(char *str)
 {
-	char*	tmp;
-	int		i,j;
+	char tmp[1024];
+	int i,j;
 
-	if((tmp=strdup(str))==NULL)
-		return NULL;
-	for(i=j=0;str[i];i++) {
-		if(str[i]==CTRL_A) {
+	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++) {
+		if(str[i]==CTRL_A && str[i+1]!=0)
 			i++;
-			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
-				break;
-			/* convert non-destructive backspace to a destructive backspace */
-			if(str[i]=='<' && j)	
-				j--;
-		}
 		else if((uchar)str[i]>=' ')
 			tmp[j++]=str[i];
 	}
-	tmp[j]=0;
-	if(dest==NULL)
-		return tmp;	/* Must be freed! */
-	strcpy(dest,tmp);
-	free(tmp);
-	return dest;
+	if(i!=j) {
+		tmp[j]=0;
+		strcpy(str,tmp);
+	}
+	return(str);
 }
 
-char* DLLCALL strip_exascii(const char *str, char* dest)
+char* DLLCALL strip_exascii(char *str)
 {
-	char*	tmp;
-	int		i,j;
+	char tmp[1024];
+	int i,j;
 
-	if((tmp=strdup(str))==NULL)
-		return NULL;
-	for(i=j=0;str[i];i++)
+	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++)
 		if(!(str[i]&0x80))
 			tmp[j++]=str[i];
 	tmp[j]=0;
-	if(dest==NULL)
-		return tmp;	/* Must be freed! */
-	strcpy(dest,tmp);
-	free(tmp);
-	return dest;
+	strcpy(str,tmp);
+	return(str);
 }
 
-char* DLLCALL prep_file_desc(const char *str, char* dest)
+char* DLLCALL prep_file_desc(char *str)
 {
-	char*	tmp;
-	int		i,j;
+	char tmp[1024];
+	int i,j;
 
-	if((tmp=strdup(str))==NULL)
-		return NULL;
 	for(i=j=0;str[i];i++)
-		if(str[i]==CTRL_A && str[i+1]!=0) {
+		if(str[i]==CTRL_A && str[i+1]!=0)
 			i++;
-			if(toupper(str[i])=='Z')	/* EOF */
-				break;
-			/* convert non-destructive backspace to a destructive backspace */
-			if(str[i]=='<' && j)	
-				j--;
-		}
 		else if(j && str[i]<=' ' && tmp[j-1]==' ')
 			continue;
 		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
@@ -141,11 +107,8 @@ char* DLLCALL prep_file_desc(const char *str, char* dest)
 		else if(str[i]==TAB || (str[i]==CR && str[i+1]==LF))
 			tmp[j++]=' ';
 	tmp[j]=0;
-	if(dest==NULL)
-		return tmp;	/* Must be freed! */
-	strcpy(dest,tmp);
-	free(tmp);
-	return dest;
+	strcpy(str,tmp);
+	return(str);
 }
 
 /****************************************************************************/
@@ -289,24 +252,17 @@ str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 /* Returns the number of characters in 'str' not counting ctrl-ax codes		*/
 /* or the null terminator													*/
 /****************************************************************************/
-size_t bstrlen(const char *str)
+int bstrlen(char *str)
 {
-	size_t i=0;
+	int i=0;
 
 	while(*str) {
-		if(*str==CTRL_A) {
+		if(*str==CTRL_A)
 			str++;
-			if(toupper(*str)=='Z')	/* EOF */
-				break;
-			if(*str=='[')
-				i=0;
-			else if(*str=='<' && i)
-				i--;
-		} else
+		else
 			i++;
 		if(!(*str)) break;
-		str++; 
-	}
+		str++; }
 	return(i);
 }
 
@@ -326,8 +282,7 @@ char* DLLCALL ultoac(ulong l, char *string)
 	for(k=1;i>-1;k++) {
 		string[j--]=str[i--];
 		if(j>0 && !(k%3))
-			string[j--]=','; 
-	}
+			string[j--]=','; }
 	return(string);
 }
 
@@ -367,7 +322,7 @@ char* DLLCALL rot13(char* str)
 /****************************************************************************/
 /* Puts a backslash on path strings if not just a drive letter and colon	*/
 /****************************************************************************/
-char* backslashcolon(char *str)
+void backslashcolon(char *str)
 {
     int i;
 
@@ -376,14 +331,12 @@ char* backslashcolon(char *str)
 		str[i]=PATH_DELIM; 
 		str[i+1]=0; 
 	}
-
-	return str;
 }
 
 /****************************************************************************/
 /* Compares pointers to pointers to char. Used in conjuction with qsort()   */
 /****************************************************************************/
-int pstrcmp(const char **str1, const char **str2)
+int pstrcmp(char **str1, char **str2)
 {
 	return(strcmp(*str1,*str2));
 }
@@ -391,7 +344,7 @@ int pstrcmp(const char **str1, const char **str2)
 /****************************************************************************/
 /* Returns the number of characters that are the same between str1 and str2 */
 /****************************************************************************/
-int strsame(const char *str1, const char *str2)
+int strsame(char *str1, char *str2)
 {
 	int i,j=0;
 
@@ -417,7 +370,7 @@ char *hexplus(uint num, char *str)
 /* Converts an ASCII Hex string into an ulong                               */
 /* by Steve Deppe (Ille Homine Albe)										*/
 /****************************************************************************/
-ulong ahtoul(const char *str)
+ulong ahtoul(char *str)
 {
     ulong l,val=0;
 
@@ -429,7 +382,7 @@ ulong ahtoul(const char *str)
 /****************************************************************************/
 /* Converts hex-plus string to integer										*/
 /****************************************************************************/
-uint hptoi(const char *str)
+uint hptoi(char *str)
 {
 	char tmp[128];
 	uint i;
@@ -443,10 +396,11 @@ uint hptoi(const char *str)
 }
 
 /****************************************************************************/
-/* Returns 1 if a is a valid ctrl-a "attribute" code, 0 if it isn't.        */
+/* Returns 1 if a is a valid ctrl-a code, 0 if it isn't.                    */
 /****************************************************************************/
 BOOL DLLCALL validattr(char a)
 {
+
 	switch(toupper(a)) {
 		case '+':	/* push attr	*/
 		case '-':   /* pop attr		*/
@@ -457,8 +411,10 @@ BOOL DLLCALL validattr(char a)
 		case 'H':   /* high     fg  */
 		case 'I':   /* blink        */
 		case 'K':   /* black    fg  */
+		case 'L':   /* cls          */
 		case 'M':   /* magenta  fg  */
 		case 'N':   /* normal       */
+		case 'P':   /* pause        */
 		case 'R':   /* red      fg  */
 		case 'W':   /* white    fg  */
 		case 'Y':   /* yellow   fg  */
@@ -476,78 +432,27 @@ BOOL DLLCALL validattr(char a)
 }
 
 /****************************************************************************/
-/****************************************************************************/
-char DLLCALL ctrl_a_to_ascii_char(char a)
-{
-	switch(toupper(a)) {
-		case 'L':   /* cls          */
-			return FF;
-		case '<':	/* backspace	*/
-			return '\b';
-		case '[':	/* CR			*/
-			return '\r';
-		case ']':	/* LF			*/
-			return '\n';
-	}
-	return 0;
-}
-
-/****************************************************************************/
-/* Strips invalid Ctrl-Ax "attribute" sequences from str                    */
+/* Strips invalid Ctrl-Ax sequences from str                                */
 /* Returns number of ^A's in line                                           */
 /****************************************************************************/
-size_t DLLCALL strip_invalid_attr(char *str)
+size_t DLLCALL strip_invalid_attr(char *strin)
 {
-    char*	tmp;
-    size_t	a,c,d;
+    char str[1024];
+    size_t a,c,d;
 
-	if((tmp=strdup(str))==NULL)
-		return 0;
-	for(a=c=d=0;str[c];c++) {
-		if(str[c]==CTRL_A) {
+	for(a=c=d=0;strin[c] && d<sizeof(str)-1;c++) {
+		if(strin[c]==CTRL_A && strin[c+1]!=0) {
 			a++;
-			if(str[c+1]==0)
-				break;
-			if(!validattr(str[c+1])) {
+			if(!validattr(strin[c+1])) {
 				c++;
 				continue; 
-			}
+			} 
 		}
-		tmp[d++]=str[c]; 
+		str[d++]=strin[c]; 
 	}
-	tmp[d]=0;
-	strcpy(str,tmp);
-	free(tmp);
+	str[d]=0;
+	strcpy(strin,str);
 	return(a);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-char DLLCALL exascii_to_ascii_char(uchar ch)
-{
-	/* Seven bit table for EXASCII to ASCII conversion */
-	const char *sbtbl="CUeaaaaceeeiiiAAEaAooouuyOUcLYRfaiounNao?--24!<>"
-			"###||||++||++++++--|-+||++--|-+----++++++++##[]#"
-			"abrpEout*ono%0ENE+><rj%=o..+n2* ";
-
-	if(ch&0x80)
-		return sbtbl[ch^0x80];
-	return ch;
-}
-
-/****************************************************************************/
-/* Convert string from IBM extended ASCII to just ASCII						*/
-/****************************************************************************/
-char* DLLCALL ascii_str(uchar* str)
-{
-	char*	p=str;
-
-	while(*p) {
-		if((*p)&0x80)
-			*p=exascii_to_ascii_char(*p);	
-		p++;
-	}
-	return((char*)str);
 }
 
 char* replace_named_values(const char* src

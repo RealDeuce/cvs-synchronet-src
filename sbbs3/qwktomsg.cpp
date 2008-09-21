@@ -2,13 +2,13 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.45 2009/02/16 02:45:35 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.43 2008/03/19 00:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "qwk.h"
 
-static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse_sender_hfields, bool parse_recipient_hfields)
+static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse_sender_hfields)
 {
 	char*		p;
 	char		zone[32];
@@ -57,18 +57,14 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 			msg->hdr.when_written.zone=(ushort)strtoul(zone,NULL,16);
 	}
 
-	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=RECIPIENT),value))!=NULL) {
-		if(parse_recipient_hfields)
-			smb_hfield_str(msg,hfield_type,p);		
-	}
+	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=RECIPIENT),value))!=NULL)
+		smb_hfield_str(msg,hfield_type,p);		
 
 	/* Recipient net address and type */
 	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=RECIPIENTNETADDR),value))!=NULL) {
-		if(parse_recipient_hfields) {
-			net_type=NET_UNKNOWN;
-			smb_hfield_netaddr(msg,hfield_type,p,&net_type);
-			smb_hfield_bin(msg,RECIPIENTNETTYPE,net_type);
-		}
+		net_type=NET_UNKNOWN;
+		smb_hfield_netaddr(msg,hfield_type,p,&net_type);
+		smb_hfield_bin(msg,RECIPIENTNETTYPE,net_type);
 	}
 
 	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SUBJECT),value))!=NULL)
@@ -150,7 +146,6 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 void sbbs_t::qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t all_headers, bool parse_sender_hfields)
 {
 	char str[128];
-	char to[128];
 	str_list_t	msg_headers;
 
 	smb_freemsgmem(msg);
@@ -161,11 +156,8 @@ void sbbs_t::qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t al
 	memset(msg,0,sizeof(smbmsg_t));		/* Initialize message header */
 	msg->hdr.version=smb_ver();
 
-	sprintf(to,"%25.25s",(char *)hdrblk+21);     /* To user */
-	truncsp(to);
-
 	if(msg_headers!=NULL)
-		qwk_parse_header_list(msg, &msg_headers, parse_sender_hfields, stricmp(to,"NETMAIL")!=0);
+		qwk_parse_header_list(msg, &msg_headers, parse_sender_hfields);
 
 	/* Parse the QWK message header: */
 	if(msg->hdr.when_written.time==0) {
@@ -182,8 +174,11 @@ void sbbs_t::qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t al
 		msg->hdr.when_written.time=sane_mktime(&tm);
 	}
 
-	if(msg->to==NULL)
-		smb_hfield_str(msg,RECIPIENT,to);
+	if(msg->to==NULL) {
+		sprintf(str,"%25.25s",(char *)hdrblk+21);     /* To user */
+		truncsp(str);
+		smb_hfield_str(msg,RECIPIENT,str);
+	}
 
 	if(parse_sender_hfields && msg->from==NULL) {
 		sprintf(str,"%25.25s",hdrblk+46);  
@@ -346,7 +341,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			if(!fromhub && qwkbuf[k]==BEL && useron.rest&FLAG('B'))   
 				continue;
 			/* ANSI restriction */
-			if(!fromhub && (qwkbuf[k]==CTRL_A || qwkbuf[k]==ESC)
+			if(!fromhub && (qwkbuf[k]==1 || qwkbuf[k]==ESC)
 				&& useron.rest&FLAG('A'))
 				continue;
 			if(qwkbuf[k]!=1 && lastch!=1)
@@ -514,4 +509,3 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 
 	return(success);
 }
-
