@@ -26,7 +26,7 @@ struct sdlfuncs {
 	int	(*BlitSurface)	(SDL_Surface *src, SDL_Rect *srcrect,
 								SDL_Surface *dst, SDL_Rect *dstrect);
 	void	(*UpdateRects)	(SDL_Surface *screen, int numrects, SDL_Rect *rects);
-	void	(*UpdateRect)	(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h);
+	void	(*UpdateRect)	(SDL_Surface *screen, Sint32 x, Sint32 y, Uint32 w, Uint32 h);
 	SDL_sem *(*SDL_CreateSemaphore)	(Uint32 initial_value);
 	void (*SDL_DestroySemaphore)	(SDL_sem *semaphore);
 	SDL_mutex	*(*SDL_CreateMutex)	(void);
@@ -57,6 +57,14 @@ struct sdlfuncs {
 	void (*UnlockSurface)	(SDL_Surface *surface);
 	SDL_Surface	*(*DisplayFormat)(SDL_Surface *surf);
 	int	(*Flip)	(SDL_Surface *surface);
+	SDL_Overlay *(*CreateYUVOverlay)(int width, int height, Uint32 format, SDL_Surface *display);
+	int (*DisplayYUVOverlay)(SDL_Overlay *overlay, SDL_Rect *dstrect);
+	void (*FreeYUVOverlay)	(SDL_Overlay *overlay);
+	int	(*LockYUVOverlay)	(SDL_Overlay *overlay);
+	void (*UnlockYUVOverlay)	(SDL_Overlay *overlay);
+	const SDL_VideoInfo *(*GetVideoInfo)(void);
+	const SDL_version *(*Linked_Version)(void);
+	SDL_VideoInfo initial_videoinfo;
 	int	gotfuncs;
 };
 
