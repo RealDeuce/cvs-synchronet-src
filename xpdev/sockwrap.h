@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.31 2007/04/20 09:13:59 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.33 2008/06/04 04:40:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -172,33 +172,37 @@ int		recvfilesocket(int sock, int file, long *offset, long count);
 BOOL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
 int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
-				   ,int (*lprintf)(int level, char *fmt, ...));
+				   ,int (*lprintf)(int level, const char *fmt, ...));
 
 #ifdef __cplusplus
 }
 #endif
 
 #ifndef SHUT_RDWR
-#define SHUT_RDWR		2	/* for shutdown() */
+#define SHUT_RDWR			2	/* for shutdown() */
 #endif
 
 #ifndef IPPORT_HTTP
-#define IPPORT_HTTP		80
+#define IPPORT_HTTP			80
 #endif
 #ifndef IPPORT_FTP
-#define IPPORT_FTP		21
+#define IPPORT_FTP			21
 #endif
 #ifndef IPPORT_TELNET
-#define IPPORT_TELNET	23
+#define IPPORT_TELNET		23
 #endif
 #ifndef IPPORT_SMTP
-#define IPPORT_SMTP		25
+#define IPPORT_SMTP			25
 #endif
 #ifndef IPPORT_POP3
-#define IPPORT_POP3		110
+#define IPPORT_POP3			110
 #endif
 #ifndef IPPORT_IDENT
-#define IPPORT_IDENT	113
+#define IPPORT_IDENT		113
 #endif
+#ifndef IPPORT_SUBMISSION
+#define IPPORT_SUBMISSION	587
+#endif
+
 
 #endif	/* Don't add anything after this line */
