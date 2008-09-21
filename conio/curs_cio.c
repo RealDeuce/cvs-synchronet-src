@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.29 2008/01/21 07:46:30 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.30 2008/06/07 09:42:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -618,7 +618,7 @@ int curs_kbhit(void)
 
 	if(curs_nextgetch)
 		return(1);
-	if(mouse_pending())
+	if(mouse_trywait())
 		return(1);
 	timeout.tv_sec=0;
 	timeout.tv_usec=0;
