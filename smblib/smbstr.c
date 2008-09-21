@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.15 2008/03/12 06:03:33 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.16 2008/05/08 00:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -315,6 +315,8 @@ ushort SMBCALL smb_netaddr_type(const char* str)
 {
 	char*	p;
 	char*	tp;
+	char*	firstdot;
+	char*	lastdot;
 
 	if((p=strchr(str,'@'))==NULL)
 		return(NET_NONE);
@@ -324,14 +326,17 @@ ushort SMBCALL smb_netaddr_type(const char* str)
 	if(*p==0)
 		return(NET_UNKNOWN);
 
-	if(isalpha(*p) && strchr(p,'.')==NULL)
+	firstdot=strchr(p,'.');
+	lastdot=strrchr(p,'.');
+
+	if(isalpha(*p) && firstdot==NULL)
 		return(NET_QWK);
 
 	for(tp=p;*tp;tp++) {
 		if(!isdigit(*tp) && *tp!=':' && *tp!='/' && *tp!='.')
 			break;
 	}
-	if(isdigit(*p) && *tp)
+	if(isdigit(*p) && *tp==0 && firstdot==lastdot)
 		return(NET_FIDO);
 	if(isalnum(*p))
 		return(NET_INTERNET);
