@@ -248,7 +248,7 @@ void RGBtoYUV(Uint8 r, Uint8 g, Uint8 b, Uint8 *yuv_array, int monochrome, int l
         yuv_array[1] = 128;
         yuv_array[2] = 128;
 #else
-        yuv_array[0] = (0.257 * r) + (0.504 * g) + (0.098 * b) + 16;
+        yuv_array[0] = (Uint8)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);
         yuv_array[1] = 128;
         yuv_array[2] = 128;
 #endif
@@ -260,9 +260,9 @@ void RGBtoYUV(Uint8 r, Uint8 g, Uint8 b, Uint8 *yuv_array, int monochrome, int l
         yuv_array[1] = (b-yuv[0])*0.565 + 128;
         yuv_array[2] = (r-yuv[0])*0.713 + 128;
 #else
-        yuv_array[0] = (0.257 * r) + (0.504 * g) + (0.098 * b) + 16;
-        yuv_array[1] = 128 - (0.148 * r) - (0.291 * g) + (0.439 * b);
-        yuv_array[2] = 128 + (0.439 * r) - (0.368 * g) - (0.071 * b);
+        yuv_array[0] = (Uint8)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);
+        yuv_array[1] = (Uint8)(128 - (0.148 * r) - (0.291 * g) + (0.439 * b));
+        yuv_array[2] = (Uint8)(128 + (0.439 * r) - (0.368 * g) - (0.071 * b));
 #endif
     }
 
@@ -688,11 +688,15 @@ int sdl_getch(void)
 
 	sdl.SemWait(sdl_key_pending);
 	sdl.mutexP(sdl_keylock);
+
+	/* This always frees up space in keybuf for one more char */
 	ch=sdl_keybuf[sdl_key++];
+	/* If we have missed mouse keys, tack them on to the end of the buffer now */
 	if(sdl_pending_mousekeys) {
-        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE & 0xff;
-        sdl.SemPost(sdl_key_pending);
-        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE >> 8;
+		if(sdl_pending_mousekeys & 1)	/* Odd number... second char */
+	       	sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE >> 8;
+		else							/* Even number... first char */
+	        sdl_keybuf[sdl_keynext++]=CIO_KEY_MOUSE & 0xff;
         sdl.SemPost(sdl_key_pending);
 		sdl_pending_mousekeys--;
 	}
@@ -903,7 +907,7 @@ void sdl_add_key(unsigned int keyval)
 		}
 		if((sdl_keynext+2==sdl_key) && keyval > 0xff) {
 			if(keyval==CIO_KEY_MOUSE)
-				sdl_pending_mousekeys++;
+				sdl_pending_mousekeys+=2;
 			else
 				beep();
 			sdl.mutexV(sdl_keylock);
@@ -1209,13 +1213,40 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 			if(sdl_keyval[i].keysym==keysym) {
 				/* KeySym found in table */
 
-				/* Using the modifiers, look up the expected scan code */
+				/*
+				 * Using the modifiers, look up the expected scan code.
+				 * Under windows, this is what unicode will be set to
+				 * if the ALT key is not AltGr
+				 */
+
 				if(mod & KMOD_CTRL)
 					expect=sdl_keyval[i].ctrl;
-				else if(mod & KMOD_SHIFT)
-					expect=sdl_keyval[i].shift;
-				else
-					expect=sdl_keyval[i].key;
+				else if(mod & KMOD_SHIFT) {
+					if(mod & KMOD_CAPS)
+						expect=sdl_keyval[i].key;
+					else
+						expect=sdl_keyval[i].shift;
+				}
+				else {
+					if(mod & KMOD_CAPS)
+						expect=sdl_keyval[i].shift;
+					else
+						expect=sdl_keyval[i].key;
+				}
+
+				/*
+				 * Now handle the ALT case so that expect will
+				 * be what we expect to return
+				 */
+				if(mod & (KMOD_META|KMOD_ALT)) {
+
+					/* Yes, this is a "normal" ALT combo */
+					if(unicode==expect || unicode == 0)
+						return(sdl_keyval[i].alt);
+
+					/* AltGr apparently... translate unicode or give up */
+					return(cp437_convert(unicode));
+				}
 
 				/*
 				 * Apparently, Win32 SDL doesn't interpret keypad with numlock...
@@ -1269,15 +1300,6 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 				}
 
 				/*
-				 * If there is no unicode translation available,
-				 * we *MUST* use our table since we have
-				 * no other data to use.  This is apparently
-				 * never true on OS X.
-				 */
-				if(!unicode)
-					return(expect);
-
-				/*
 				 * "Extended" keys are always right since we can't compare to unicode
 				 * This does *NOT* mean ALT-x, it means things like F1 and Print Screen
 				 */
@@ -1285,15 +1307,13 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 					return(expect);
 
 				/*
-				 * If this is a regular ASCII key, and ALT is not pressed,
-				 * the SDL keysym is cleverly the ASCII code.  We're trusting
-				 * this one more than our table.
+				 * If there is no unicode translation available,
+				 * we *MUST* use our table since we have
+				 * no other data to use.  This is apparently
+				 * never true on OS X.
 				 */
-				/*
-				 * WAIT!  We can't do this, CTRL-C would be returned as 'c'
-				 */
-				//if(keysym <= 127 && !(mod & (KMOD_META|KMOD_ALT)))					/* The keyboard syms have been cleverly chosen to map to ASCII */
-				//	return(keysym);
+				if(!unicode)
+					return(expect);
 
 				/*
 				 * At this point, we no longer have a reason to distrust the
@@ -1320,7 +1340,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 	 * we're not going to trust the keysym
 	 * value since we can't.
 	 */
-	if(keysym <= 127 && !(mod & KMOD_META|KMOD_ALT|KMOD_CTRL|KMOD_SHIFT))
+	if(keysym <= 127 && !(mod & (KMOD_META|KMOD_ALT|KMOD_CTRL|KMOD_SHIFT)))
 		return(keysym);
 
 	/* Give up.  It's not working out for us. */
@@ -1665,7 +1685,7 @@ int sdl_video_event_thread(void *data)
 											FREE_AND_NULL(sdl_pastebuf);
 										}
 										else
-											sdl_pastebuf=(unsigned char *)malloc(strlen(sdl_copybuf)+1);
+											sdl_pastebuf=(char *)malloc(strlen(sdl_copybuf)+1);
 										if(sdl_pastebuf!=NULL)
 											strcpy(sdl_pastebuf,sdl_copybuf);
 										/* Set paste buffer */
