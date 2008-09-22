@@ -7,8 +7,8 @@ LDFLAGS	=	$(LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
 .path.c = .;..\sbbs3;..\smblib;..\uifc;..\comio
 
 OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)comio_win32$(OFILE) $(MTOBJODIR)$(DIRSEP)ssh$(OFILE)
-!ifdef WITHOUT_OOII
- CFLAGS	= $(CFLAGS) -DWITHOUT_OOII=1
+!ifndef WITH_OOII
+ CFLAGS	+= -DWITHOUT_OOII=1
 !else
  OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)ooii$(OFILE)
  OBJS = $(OBJS) $(MTOBJODIR)$(DIRSEP)ooii_logons$(OFILE)
