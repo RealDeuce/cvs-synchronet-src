@@ -2,7 +2,7 @@
 
 /* Synchronet client information to share with SBBSCTRL */
 
-/* $Id: client.h,v 1.5 2002/07/21 13:04:51 rswindell Exp $ */
+/* $Id: client.h,v 1.6 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,7 @@ typedef struct {
 	WORD		port;		/* TCP port number */
 	time_t		time;		/* connect time */
 	const char*	protocol;	/* protocol description */
-	char*		user;		/* user name */
+	const char*	user;		/* user name */
 	char		pad[32];	/* padding for future expansion */
 } client_t;
 
