@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.159 2009/03/22 02:31:58 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.154 2008/02/23 22:35:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2009 Rob Swindell"
-#define COPYRIGHT_CRC		0xB7FED837
+#define COPYRIGHT_NOTICE	"Copyright 2008 Rob Swindell"
+#define COPYRIGHT_CRC		0x2AF13941
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -278,9 +278,8 @@ typedef struct {
 									/* Bit values for cfg.file_misc				*/
 #define FM_NO_LFN	(1<<0)			/* No long filenames in listings			*/
 
-									/* Bit values for cfg.msg_misc (upper 16-bits default to on) */
+									/* Bit values for cfg.msg_misc				*/
 #define MM_REALNAME	(1<<16)			/* Allow receipt of e-mail using real names	*/
-#define MM_EMAILSIG	(1<<17)			/* Include user signatures in e-mail msgs */
 
 									/* errormsg() codes */
 #define ERR_OPEN	"opening"		/* opening a file */
@@ -293,7 +292,6 @@ typedef struct {
 #define ERR_CHK		"checking"		/* checking */
 #define ERR_LEN		"checking length"
 #define ERR_EXEC	"executing"		/* executing */
-#define ERR_CHDIR	"changing directory */
 #define ERR_CREATE	"creating" 		/* creating */
 #define ERR_LOCK	"locking"		/* locking */
 #define ERR_UNLOCK 	"unlocking"		/* unlocking */
@@ -681,7 +679,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_LEFTEXIT	(1L<<19)	/* Allow exit by backspacing/arrowing left	*/
 #define K_USEOFFSET	(1L<<20)	/* Use getstr_offset for cursor	position	*/
 #define K_NOSPIN	(1L<<21)	/* Do not honor the user's spinning cursor	*/
-#define K_ANSI_CPR	(1L<<22)	/* Expect ANSI Cursor Position Report		*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
@@ -833,6 +830,9 @@ enum {							/* Values of mode for userlist function     */
 						  nodesync(); }
 #define ASYNC			{ getnodedat(cfg.node_num,&thisnode,0); \
 						  nodesync(); }
+#define ANSI_SAVE() 	rputs("\x1b[s")
+#define ANSI_RESTORE()	rputs("\x1b[u")
+#define GOTOXY(x,y)     rprintf("\x1b[%d;%dH",y,x);
 #define TM_YEAR(yy)		((yy)%100)
 #define sbbs_beep(f,d)	BEEP(f,d)
 #define mswait(x)		SLEEP(x)

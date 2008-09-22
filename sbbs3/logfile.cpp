@@ -2,13 +2,13 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.47 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.41 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -110,20 +110,6 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 	return(TRUE);
 }
 
-extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* text)
-{
-	FILE*	fp;
-	char	buf[128];
-	char	path[MAX_PATH+1];
-
-	sprintf(path,"%serror.log",cfg->logs_dir);
-	if((fp=fnopen(NULL,path,O_WRONLY|O_CREAT|O_APPEND))==NULL)
-		return -1; 
-	fprintf(fp,"%s\r\n%s\r\n\r\n",timestr(cfg,time(NULL),buf), text);
-	fclose(fp);
-	return 0;
-}
-
 void sbbs_t::logentry(const char *code, const char *entry)
 {
 	char str[512];
@@ -141,17 +127,13 @@ void sbbs_t::log(char *str)
 	if(logfile_fp==NULL || online==ON_LOCAL) return;
 	if(logcol>=78 || (78-logcol)<strlen(str)) {
 		fprintf(logfile_fp,"\r\n");
-		logcol=1; 
-	}
+		logcol=1; }
 	if(logcol==1) {
 		fprintf(logfile_fp,"   ");
-		logcol=4; 
-	}
+		logcol=4; }
 	fprintf(logfile_fp,str);
-	if(*lastchar(str)==LF) {
+	if(str[strlen(str)-1]==LF)
 		logcol=1;
-		fflush(logfile_fp);
-	}
 	else
 		logcol+=strlen(str);
 }
@@ -197,7 +179,6 @@ void sbbs_t::logline(const char *code, const char *str)
 		fprintf(logfile_fp,"\r\n");
 	fprintf(logfile_fp,"%-2.2s %s\r\n",code,str);
 	logcol=1;
-	fflush(logfile_fp);
 }
 
 /****************************************************************************/
@@ -328,25 +309,23 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 			sbbs_beep(500,220); sbbs_beep(250,220);
 			sbbs_beep(500,220); sbbs_beep(250,220);
 			sbbs_beep(500,220); sbbs_beep(250,220);
-			nosound(); 
-		}
+			nosound(); }
 		bputs("\r\n\r\nThe sysop has been notified. <Hit a key>");
 		getkey(0);
 		CRLF;
 	}
-	sprintf(str,"    source: %s\r\n      line: %d\r\n    action: %s\r\n"
+	sprintf(str,"\r\n    source: %s\r\n      line: %d\r\n    action: %s\r\n"
 		"    object: %s\r\n    access: %ld"
 		,src,line,action,object,access);
 	if(access>9 && (long)access!=-1 && (short)access!=-1 && (char)access!=-1) {
 		sprintf(tmp," (0x%lX)",access);
-		strcat(str,tmp); 
-	}
+		strcat(str,tmp); }
 	if(extinfo!=NULL) {
 		sprintf(tmp,"\r\n      info: %s",extinfo);
 		strcat(str,tmp);
 	}
 	if(errno) {
-		sprintf(tmp,"\r\n     errno: %d (%s)",errno,STRERROR(errno));
+		sprintf(tmp,"\r\n     errno: %d (%s)",errno,strerror(errno));
 		strcat(str,tmp); 
 		errno=0;
 	}
@@ -385,15 +364,13 @@ void sbbs_t::errorlog(const char *text)
 		sprintf(tmp2,"!ERROR %d opening/creating %s",errno,str);
 		logline("!!",tmp2);
 		errorlog_inside=0;
-		return; 
-
-	}
-	sprintf(hdr,"%s\r\nNode %2d: %s #%d\r\n"
+		return; }
+	sprintf(hdr,"%s Node %2d: %s #%d"
 		,timestr(now),cfg.node_num,useron.alias,useron.number);
 	write(file,hdr,strlen(hdr));
+	write(file,crlf,2);
 	write(file,text,strlen(text));
 	write(file,"\r\n\r\n",4);
 	close(file);
 	errorlog_inside=0;
 }
-
