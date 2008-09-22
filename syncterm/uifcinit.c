@@ -1,4 +1,6 @@
-/* $Id: uifcinit.c,v 1.25 2007/05/27 06:30:19 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: uifcinit.c,v 1.28 2008/02/18 01:55:20 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -11,7 +13,7 @@
 
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 static int uifc_initialized=0;
-static int uifc_old_font=0;
+int uifc_old_font=0;
 
 #define UIFC_INIT	(1<<0)
 #define WITH_SCRN	(1<<1)
@@ -22,6 +24,7 @@ static void (*bottomfunc)(int);
 int	init_uifc(BOOL scrn, BOOL bottom) {
 	int	i;
 	struct	text_info txtinfo;
+	char	top[80];
 
     gettextinfo(&txtinfo);
 	if(!uifc_initialized) {
@@ -40,7 +43,8 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 	}
 
 	if(scrn) {
-		if(uifc.scrn(syncterm_version)) {
+		sprintf(top, "%.40s - %.30s", syncterm_version, output_descrs[cio_api.mode]);
+		if(uifc.scrn(top)) {
 			printf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
 			uifc_initialized=0;
 			uifc.bail();
