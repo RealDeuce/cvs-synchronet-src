@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.27 2007/10/11 10:45:06 deuce Exp $ */
+/* $Id: x_cio.c,v 1.28 2008/01/21 07:56:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,8 +156,6 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 
 int x_init(void)
 {
-    int fd;
-    int i;
 	void *dl;
 
 	/* Ensure we haven't already initialized */
