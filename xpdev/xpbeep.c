@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.55 2008/09/23 20:00:35 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.56 2008/09/23 20:23:05 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -663,8 +663,6 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 
 #ifdef _WIN32
 	if(handle_type==SOUND_DEVICE_WIN32) {
-		wh.lpData=sample;
-		wh.dwBufferLength=sample_size;
 		wh.lpData=sample;
 		wh.dwBufferLength=sample_size;
 		if(waveOutPrepareHeader(waveOut, &wh, sizeof(wh))==MMSYSERR_NOERROR) {
