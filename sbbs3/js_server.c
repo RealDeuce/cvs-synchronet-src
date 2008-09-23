@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.4 2005/12/13 02:24:49 rswindell Exp $ */
+/* $Id: js_server.c,v 1.5 2008/01/11 09:07:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,20 @@ static char* server_prop_desc[] = {
 };
 #endif
 
+static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsval id)
+{
+	char*			name=NULL;
+
+	if(id != JSVAL_NULL)
+		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+
+	return(js_SyncResolve(cx, obj, name, js_server_properties, NULL, NULL, 0));
+}
+
+static JSBool js_server_enumerate(JSContext *cx, JSObject *obj)
+{
+	return(js_server_resolve(cx, obj, JSVAL_NULL));
+}
 
 static JSClass js_server_class = {
      "Server"				/* name			*/
@@ -142,8 +156,8 @@ static JSClass js_server_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_server_get			/* getProperty	*/
 	,js_server_set			/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
+	,js_server_enumerate	/* enumerate	*/
+	,js_server_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub		/* finalize		*/
 };
@@ -158,9 +172,6 @@ JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
 		return(NULL);
 
 	if(!JS_SetPrivate(cx, obj, props))
-		return(NULL);
-
-	if(!js_DefineSyncProperties(cx, obj, js_server_properties))
 		return(NULL);
 
 #ifdef BUILD_JSDOCS
