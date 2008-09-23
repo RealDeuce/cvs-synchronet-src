@@ -1,4 +1,4 @@
-/* $Id: PropertiesDlgUnit.h,v 1.14 2009/01/24 12:23:16 rswindell Exp $ */
+/* $Id: PropertiesDlgUnit.h,v 1.13 2005/04/26 08:46:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,19 +104,12 @@ __published:
     TCheckBox *FileAssociationsCheckBox;
     TLabel *Label15;
     TEdit *JS_ThreadStackEdit;
-    TGroupBox *LogFontGroupBox;
-    TComboBox *LogLevelComboBox;
-    TEdit *LogFontExampleEdit;
-    TButton *LogFontButton;
-    TLabel *LogLevelLabel;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall TrayIconCheckBoxClick(TObject *Sender);
 	void __fastcall SourceComboBoxChange(TObject *Sender);
 	void __fastcall FontButtonClick(TObject *Sender);
 	void __fastcall BackgroundButtonClick(TObject *Sender);
 	void __fastcall ApplyButtonClick(TObject *Sender);
-    void __fastcall LogLevelComboBoxChange(TObject *Sender);
-    void __fastcall LogFontButtonClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TPropertiesDlg(TComponent* AOwner);
