@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.81 2008/09/23 07:15:12 deuce Exp $ */
+/* $Id: zmodem.c,v 1.82 2008/09/23 07:19:08 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1848,6 +1848,10 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 					}
 					break;
 				}
+				if(l == bytes) {
+					lprintf(zm,LOG_ERR,"CRC, length, and filename match.");
+					break;
+				}
 				lprintf(zm,LOG_INFO,"Resuming download of %s",fpath);
 			}
 
@@ -2102,7 +2106,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.81 $", "%*s %s", buf);
+	sscanf("$Revision: 1.82 $", "%*s %s", buf);
 
 	return(buf);
 }
