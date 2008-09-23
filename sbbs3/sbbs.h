@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.318 2008/11/30 02:57:59 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.317 2008/08/30 19:03:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -959,7 +959,7 @@ extern "C" {
 		 JSTYPE_ARRAY=JSTYPE_LIMIT
 		,JSTYPE_ALIAS
 		,JSTYPE_UNDEF
-#if JS_VERSION < JSVERSION_1_6	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
+#if !defined(JSTYPE_NULL)	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
 		,JSTYPE_NULL
 #endif
 	};

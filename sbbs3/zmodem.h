@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.44 2008/09/23 07:05:35 deuce Exp $ */
+/* $Id: zmodem.h,v 1.43 2008/09/23 06:45:11 deuce Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -277,7 +277,7 @@ typedef struct {
 	BOOL		(*is_connected)(void*);
 	BOOL		(*is_cancelled)(void*);
 	BOOL		(*data_waiting)(void*, unsigned timeout);
-	BOOL		(*duplicate_filename)(void*, void *zm);
+	BOOL		(*duplicate_filename)(void*, zmodem_t *zm);
 
 } zmodem_t;
 
