@@ -6,15 +6,15 @@
 #include <stdio.h>		/* NULL */
 #include <stdlib.h>
 #include <string.h>
+#ifdef __unix__
+#include <dlfcn.h>
+#endif
 
 #include "gen_defs.h"
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "xpbeep.h"
 #include "threadwrap.h"
-#ifdef __unix__
-#include <xp_dl.h>
-#endif
 
 #if (defined CIOLIB_IMPORTS)
  #undef CIOLIB_IMPORTS
@@ -588,8 +588,7 @@ int sdl_init_mode(int mode)
 int sdl_init(int mode)
 {
 #if !defined(NO_X) && defined(__unix__)
-	dll_handle	dl;
-	const char *libnames[2]={"X11", NULL};
+	void *dl;
 #endif
 
 	if(init_sdl_video())
@@ -623,35 +622,42 @@ int sdl_init(int mode)
 		FreeConsole();
 #endif
 #if !defined(NO_X) && defined(__unix__)
-		dl=xp_dlopen(libnames,RTLD_LAZY|RTLD_GLOBAL,7);
+	#if defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
+		dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL);
+	#else
+		if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
+			if((dl=dlopen("libX11.so.7",RTLD_LAZY))==NULL)
+				if((dl=dlopen("libX11.so.6",RTLD_LAZY))==NULL)
+					dl=dlopen("libX11.so.5",RTLD_LAZY);
+	#endif
 		if(dl!=NULL) {
 			sdl_x11available=TRUE;
-			if(sdl_x11available && (sdl_x11.XFree=xp_dlsym(dl,XFree))==NULL) {
-				xp_dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XFree=dlsym(dl,"XFree"))==NULL) {
+				dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XGetSelectionOwner=xp_dlsym(dl,XGetSelectionOwner))==NULL) {
-				xp_dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XGetSelectionOwner=dlsym(dl,"XGetSelectionOwner"))==NULL) {
+				dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XConvertSelection=xp_dlsym(dl,XConvertSelection))==NULL) {
-				xp_dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XConvertSelection=dlsym(dl,"XConvertSelection"))==NULL) {
+				dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XGetWindowProperty=xp_dlsym(dl,XGetWindowProperty))==NULL) {
-				xp_dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XGetWindowProperty=dlsym(dl,"XGetWindowProperty"))==NULL) {
+				dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XChangeProperty=xp_dlsym(dl,XChangeProperty))==NULL) {
-				xp_dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XChangeProperty=dlsym(dl,"XChangeProperty"))==NULL) {
+				dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XSendEvent=xp_dlsym(dl,XSendEvent))==NULL) {
-				xp_dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XSendEvent=dlsym(dl,"XSendEvent"))==NULL) {
+				dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XSetSelectionOwner=xp_dlsym(dl,XSetSelectionOwner))==NULL) {
-				xp_dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XSetSelectionOwner=dlsym(dl,"XSetSelectionOwner"))==NULL) {
+				dlclose(dl);
 				sdl_x11available=FALSE;
 			}
 		}
