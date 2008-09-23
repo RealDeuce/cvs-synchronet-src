@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.79 2008/09/23 06:45:11 deuce Exp $ */
+/* $Id: zmodem.c,v 1.80 2008/09/23 07:10:55 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1833,7 +1833,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 				}
 				if(crc!=rcrc) {
 					lprintf(zm,LOG_WARNING,"Remote file has different CRC value: %08lX", rcrc);
-					if(zm->duplicate_file) {
+					if(zm->duplicate_filename) {
 						if(zm->duplicate_filename(zm->cbdata, zm))
 							loop=TRUE;
 					}
@@ -2093,7 +2093,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.79 $", "%*s %s", buf);
+	sscanf("$Revision: 1.80 $", "%*s %s", buf);
 
 	return(buf);
 }
