@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.24 2008/09/24 01:18:59 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.25 2008/09/24 22:50:09 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -26,8 +26,8 @@
 #include "bitmap_con.h"
 
 static char *screen=NULL;
-int screenwidth;
-int screenheight;
+int screenwidth=0;
+int screenheight=0;
 #define PIXEL_OFFSET(x,y)	( (y)*screenwidth+(x) )
 
 static int current_font=-99;
@@ -602,10 +602,12 @@ static void bitmap_draw_cursor()
 
 			pthread_mutex_lock(&screenlock);
 			for(y=vstat.curs_start; y<=vstat.curs_end; y++) {
-				pixel=PIXEL_OFFSET(xoffset, yoffset+y);
-				for(x=0;x<vstat.charwidth;x++)
-					screen[pixel++]=attr;
-				//memset(screen+pixel,attr,width);
+				if(xoffset < screenwidth && (yoffset+y) < screenheight) {
+					pixel=PIXEL_OFFSET(xoffset, yoffset+y);
+					for(x=0;x<vstat.charwidth;x++)
+						screen[pixel++]=attr;
+					//memset(screen+pixel,attr,width);
+				}
 			}
 			pthread_mutex_unlock(&screenlock);
 			send_rectangle(xoffset, yoffset+vstat.curs_start, vstat.charwidth, vstat.curs_end-vstat.curs_start+1,FALSE);
