@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.38 2009/02/18 05:50:31 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.35 2008/05/30 23:27:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -312,16 +312,12 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					return(ESC); 
 				}
 				if(ch=='R') {       /* cursor position report */
-					if(mode&K_ANSI_CPR && i && !(useron.rows)) {	/* auto-detect rows */
-						int	x,y;
+					if(i && !(useron.rows)) {	/* auto-detect rows */
 						str[i]=0;
-						if(sscanf(str,"%u;%u",&y,&x)==2) {
-							lprintf(LOG_DEBUG,"Node %d ANSI cursor position report: %ux%u"
-								,cfg.node_num, x, y);
-							/* Sanity check the coordinates in the response: */
-							if(x>=40 && x<=255) cols=x; 
-							if(y>=10 && y<=255) rows=y;
-						}
+						rows=atoi(str);
+						lprintf(LOG_DEBUG,"Node %d ANSI cursor position report: %u rows"
+							,cfg.node_num, rows);
+						if(rows<10 || rows>99) rows=24; 
 					}
 					return(0); 
 				}
