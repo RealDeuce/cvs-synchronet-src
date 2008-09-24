@@ -2,13 +2,13 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.4 2009/02/18 06:52:08 rswindell Exp $ */
+/* $Id: xpdatetime.c,v 1.2 2008/02/23 21:05:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -122,14 +122,15 @@ time_t xpDateTime_to_time(xpDateTime_t xpDateTime)
 	return sane_mktime(&tm);
 }
 
-xpDateTime_t time_to_xpDateTime(time_t ti, xpTimeZone_t zone)
+xpDateTime_t time_to_xpDateTime(time_t time, xpTimeZone_t zone)
 {
 	xpDateTime_t	never;
 	struct tm tm;
 
-	ZERO_VAR(never);
+	memset(&never,0,sizeof(never));
+
 	ZERO_VAR(tm);
-	if(localtime_r(&ti,&tm)==NULL)
+	if(localtime_r(&time,&tm)==NULL)
 		return(never);
 
 	return xpDateTime_create(1900+tm.tm_year,1+tm.tm_mon,tm.tm_mday
@@ -142,7 +143,8 @@ xpDateTime_t gmtime_to_xpDateTime(time_t ti)
 	xpDateTime_t	never;
 	struct tm tm;
 
-	ZERO_VAR(never);
+	memset(&never,0,sizeof(never));
+
 	ZERO_VAR(tm);
 	if(gmtime_r(&ti,&tm)==NULL)
 		return(never);
@@ -228,7 +230,7 @@ isoTime_t gmtime_to_isoTime(time_t ti)
 	return isoTime;
 }
 
-time_t isoDateTime_to_time(isoDate_t date, isoTime_t ti)
+time_t isoDateTime_to_time(isoDate_t date, isoTime_t time)
 {
 	struct tm tm;
 
@@ -241,9 +243,9 @@ time_t isoDateTime_to_time(isoDate_t date, isoTime_t ti)
 	tm.tm_mon	= isoDate_month(date);
 	tm.tm_mday	= isoDate_day(date);
 
-	tm.tm_hour	= isoTime_hour(ti);
-	tm.tm_min	= isoTime_minute(ti);
-	tm.tm_sec	= isoTime_second(ti);
+	tm.tm_hour	= isoTime_hour(time);
+	tm.tm_min	= isoTime_minute(time);
+	tm.tm_sec	= isoTime_second(time);
 
 	return sane_mktime(&tm);
 }
@@ -269,30 +271,30 @@ char* xpDate_to_isoDateStr(xpDate_t date, const char* sep, char* str, size_t max
  * -2			"14"
  * -1			"14:02"
  * 0            "14:02:39"
- * 1            "14:02:39.8"
- * 2            "14:02:39.82"
- * 3            "14:02:39.829"
+ * 1            "14.02:39.8"
+ * 2            "14.02:39.82"
+ * 3            "14.02:39.829"
  */
-char* xpTime_to_isoTimeStr(xpTime_t ti, const char* sep, int precision
+char* xpTime_to_isoTimeStr(xpTime_t time, const char* sep, int precision
 								   ,char* str, size_t maxlen)
 {
 	if(sep==NULL)
 		sep=":";
 
 	if(precision < -1)			/* HH */
-		snprintf(str, maxlen, "%02lu", ti.hour);
+		snprintf(str, maxlen, "%02lu", time.hour);
 	else if(precision < 0)		/* HH:MM */
 		snprintf(str, maxlen, "%02lu%s%02lu"
-			,ti.hour		,sep
-			,ti.minute
+			,time.hour		,sep
+			,time.minute
 			);
 	else						/* HH:MM:SS[.fract] */
 		snprintf(str, maxlen, "%02lu%s%02lu%s%0*.*f"
-			,ti.hour		,sep
-			,ti.minute		,sep
+			,time.hour		,sep
+			,time.minute	,sep
 			,precision ? (precision+3) : 2
 			,precision
-			,ti.second
+			,time.second
 			);
 
 	return str;
