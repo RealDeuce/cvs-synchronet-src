@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.452 2008/12/08 08:50:52 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.449 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,6 @@
 #include "ini_file.h"
 #include "netwrap.h"	/* getNameServerList() */
 #include "xpendian.h"
-#include "js_rtpool.h"
 
 /* Constants */
 #define FORWARD			"forward:"
@@ -1503,7 +1502,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	char*	warning;
 	SOCKET*		sock;
-	jsrefcount	rc;
 
 	if((sock=(SOCKET*)JS_GetContextPrivate(cx))==NULL)
 		return;
@@ -1531,10 +1529,8 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	} else
 		warning="";
 
-	rc=JS_SuspendRequest(cx);
 	lprintf(LOG_ERR,"%04d !JavaScript %s%s%s: %s"
 		,*sock, warning ,file, line, message);
-	JS_ResumeRequest(cx, rc);
 }
 
 static JSBool
@@ -1544,7 +1540,6 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 	SOCKET*		sock;
-	jsrefcount	rc;
 
 	if((sock=(SOCKET*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -1555,9 +1550,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		rc=JS_SuspendRequest(cx);
 		lprintf(level,"%04d JavaScript: %s",*sock,JS_GetStringBytes(str));
-		JS_ResumeRequest(cx, rc);
 	}
 
 	if(str==NULL)
@@ -1616,7 +1609,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 		lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes\n"
 			,sock, startup->js.max_bytes);
 
-		if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
+		if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)\n"
@@ -1725,7 +1718,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 	if(js_cx!=NULL)
 		JS_DestroyContext(js_cx);
 	if(js_runtime!=NULL)
-		jsrt_Release(js_runtime);
+		JS_DestroyRuntime(js_runtime);
 
 	return(success);
 }
@@ -4213,7 +4206,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.452 $", "%*s %s", revision);
+	sscanf("$Revision: 1.449 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

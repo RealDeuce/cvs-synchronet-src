@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.266 2008/12/04 03:38:06 deuce Exp $ */
+/* $Id: term.c,v 1.252 2008/09/24 08:39:53 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -10,7 +10,6 @@
 
 #include "threadwrap.h"
 #include "filewrap.h"
-#include "xpbeep.h"
 
 #include "conn.h"
 #include "syncterm.h"
@@ -64,16 +63,6 @@ static int html_supported=HTML_SUPPORT_UNKNOWN;
 
 char *html_addr=NULL;
 #endif
-
-void setup_mouse_events(void)
-{
-	ciomouse_setevents(0);
-	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
-	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
-	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
-	ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
-	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
-}
 
 #if defined(__BORLANDC__)
 	#pragma argsused
@@ -195,13 +184,10 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 		strcat(nbuf, " (DrWy)");
 	switch(ooii_mode) {
 	case 1:
-		strcat(nbuf, " (OOTerm)");
+		strcat(nbuf, " (OO][ 1.20)");
 		break;
 	case 2:
-		strcat(nbuf, " (OOTerm1)");
-		break;
-	case 3:
-		strcat(nbuf, " (OOTerm2)");
+		strcat(nbuf, " (OO][ 1.22)");
 		break;
 	}
 	switch(cio_api.mode) {
@@ -215,9 +201,9 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 			break;
 		default:
 			if(timeon>359999)
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 "ALT_KEY_NAME3CH"-Z for menu ",nbuf,conn_types[bbs->conn_type]);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type]);
 			else
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 "ALT_KEY_NAME3CH"-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 ALT-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break; /*    1+29     +3    +6    +3    +11        +3+3+2        +3    +6    +4  +5 */
 	}
 	if(wherex()>=80)
@@ -560,7 +546,6 @@ void erase_transfer_window(void) {
 }
 
 void ascii_upload(FILE *fp);
-void raw_upload(FILE *fp);
 #define XMODEM_128B		(1<<10)	/* Use 128 byte block size (ick!) */
 void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path);
 void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int lastch);
@@ -575,12 +560,11 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 	int i;
 	FILE*	fp;
 	struct file_pick fpick;
-	char	*opts[6]={
+	char	*opts[5]={
 			 "ZMODEM"
 			,"YMODEM"
 			,"XMODEM"
 			,"ASCII"
-			,"Raw"
 			,""
 		};
 	struct	text_info txtinfo;
@@ -601,7 +585,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		gotoxy(txtinfo.curx, txtinfo.cury);
-		setup_mouse_events();
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
@@ -612,7 +595,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
 		uifcbail();
-		setup_mouse_events();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
@@ -637,13 +619,9 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 			case 3:
 				ascii_upload(fp);
 				break;
-			case 4:
-				raw_upload(fp);
-				break;
 		}
 	}
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
 }
@@ -692,7 +670,6 @@ void begin_download(struct bbslist *bbs)
 	}
 	hold_update=old_hold;
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
 }
@@ -876,14 +853,12 @@ void guts_transfer(struct bbslist *bbs)
 			if(result==-1 || fpick.files<1) {
 				filepick_free(&fpick);
 				uifcbail();
-				setup_mouse_events();
 				return;
 			}
 			strListPush(&gi.files, fpick.selected[0]);
 			filepick_free(&fpick);
 
 			uifcbail();
-			setup_mouse_events();
 
 			_beginthread(guts_background_upload, 0, &gi);
 		}
@@ -896,30 +871,6 @@ void guts_transfer(struct bbslist *bbs)
 	return;
 }
 #endif
-
-void raw_upload(FILE *fp)
-{
-	char	buf[1024];
-	int		r;
-	int		inch;
-	char	ch[2];
-
-	ch[1]=0;
-	for(;;) {
-		r=fread(buf, 1, sizeof(buf), fp);
-		if(r)
-			conn_send(buf, r,0);
-		/* Note, during RAW uploads, do NOT send ANSI responses and don't
-		 * allow speed changes. */
-		while((inch=recv_byte(NULL, 0))>=0) {
-			ch[0]=inch;
-			cterm_write(ch, 1, NULL, 0, NULL);
-		}
-		if(r==0)
-			break;
-	}
-	fclose(fp);
-}
 
 void ascii_upload(FILE *fp)
 {
@@ -963,17 +914,14 @@ void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 {
 	zmodem_t	zm;
 	ulong	fsize;
-	struct zmodem_cbdata cbdata;
 
 	draw_transfer_window("ZMODEM Upload");
 
 	zmodem_mode=ZMODEM_MODE_SEND;
 
-	cbdata.zm=&zm;
-	cbdata.bbs=bbs;
 	conn_binary_mode_on();
 	zmodem_init(&zm
-		,/* cbdata */&cbdata
+		,/* cbdata */&zm
 		,lputs, zmodem_progress
 		,send_byte,recv_byte
 		,is_connected
@@ -1018,14 +966,11 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 	zmodem_t	*zm=(zmodem_t *)zm_void;
 	char		fpath[MAX_PATH+1];
 	BOOL		loop=TRUE;
-	int			old_hold=hold_update;
 
     gettextinfo(&txtinfo);
 	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	window(1, 1, txtinfo.screenwidth, txtinfo.screenheight);
 	init_uifc(FALSE, FALSE);
-	hold_update=FALSE;
 
 	while(loop) {
 		loop=FALSE;
@@ -1054,11 +999,7 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 	}
 
 	uifcbail();
-	setup_mouse_events();
-	window(txtinfo.winleft, txtinfo.wintop, txtinfo.winright, txtinfo.winbottom);
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	gotoxy(txtinfo.curx, txtinfo.cury);
-	hold_update=old_hold;
 	return(ret);
 }
 
@@ -1371,16 +1312,12 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 				  };
 	char	newfname[MAX_PATH+1];
 	BOOL	loop=TRUE;
-	int		old_hold=hold_update;
 
     gettextinfo(&txtinfo);
 	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	window(1, 1, txtinfo.screenwidth, txtinfo.screenheight);
-
 	init_uifc(FALSE, FALSE);
 
-	hold_update=FALSE;
 	while(loop) {
 		loop=FALSE;
 		i=0;
@@ -1410,11 +1347,7 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 	}
 
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	window(txtinfo.winleft, txtinfo.wintop, txtinfo.winright, txtinfo.winbottom);
-	gotoxy(txtinfo.curx, txtinfo.cury);
-	hold_update=old_hold;
 	return(ret);
 }
 
@@ -1748,7 +1681,6 @@ void music_control(struct bbslist *bbs)
 	if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"ANSI Music Setup",opts)!=-1)
 		cterm.music_enable=i;
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
@@ -1801,7 +1733,6 @@ void font_control(struct bbslist *bbs)
 		break;
 	}
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
@@ -1886,7 +1817,6 @@ void capture_control(struct bbslist *bbs)
 		}
 	}
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
@@ -2033,7 +1963,12 @@ BOOL doterm(struct bbslist *bbs)
 		speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
-	setup_mouse_events();
+	ciomouse_setevents(0);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
+	ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
+	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
 	p=(unsigned char *)realloc(scrollback_buf, term.width*2*settings.backlines);
 	if(p != NULL) {
 		scrollback_buf=p;
@@ -2112,17 +2047,33 @@ BOOL doterm(struct bbslist *bbs)
 						}
 
 #ifdef GUTS_BUILTIN
-						j=strlen(gutsbuf);
-						if(inch == gutsinit[j]) {
-							gutsbuf[j]=inch;
-							gutsbuf[++j]=0;
-							if(j==sizeof(gutsinit)) { /* Have full sequence */
-								guts_transfer(bbs);
-								remain=1;
+						if(!gutsbuf[0]) {
+							if(inch == gutsinit[0]) {
+								gutsbuf[0]=inch;
+								gutsbuf[1]=0;
+								continue;
 							}
 						}
-						else
-							gutsbuf[0]=0;
+						else {		/* Already have the start of the sequence */
+							j=strlen(gutsbuf);
+							if(inch == gutsinit[j]) {
+								gutsbuf[j]=inch;
+								gutsbuf[++j]=0;
+								if(j==sizeof(gutsinit)) { /* Have full sequence */
+									guts_transfer(bbs);
+									remain=1;
+								}
+							}
+							else {
+								gutsbuf[j++]=inch;
+								cterm_write(gutsbuf, j, prn, sizeof(prn), &speed);
+								if(prn[0])
+									conn_send(prn,strlen(prn),0);
+								updated=TRUE;
+								gutsbuf[0]=0;
+							}
+							continue;
+						}
 #endif
 #ifdef WITH_WXWIDGETS
 						if(html_mode==HTML_MODE_READING) {
@@ -2139,53 +2090,85 @@ BOOL doterm(struct bbslist *bbs)
 							continue;
 						}
 
-						j=strlen(htmldet);
-						if(inch == htmldetect[j] || toupper(inch)==htmlstart[j]) {
-							htmldet[j]=inch;
-							htmldet[++j]=0;
-							if(j==sizeof(htmldetect)-1) {
-								if(!strcmp(htmldet, htmldetect)) {
-									if(html_supported==HTML_SUPPORT_UNKNOWN) {
-										int width,height,xpos,ypos;
-										html_addr=bbs->addr;
+						if(!htmldet[0]) {
+							if(inch == htmldetect[0]) {
+								htmldet[0]=inch;
+								htmldet[1]=0;
+								continue;
+							}
+						}
+						else {
+							j=strlen(htmldet);
+							if(inch == htmldetect[j] || toupper(inch)==htmlstart[j]) {
+								htmldet[j]=inch;
+								htmldet[++j]=0;
+								if(j==sizeof(htmldetect)-1) {
+									if(!strcmp(htmldet, htmldetect)) {
+										if(html_supported==HTML_SUPPORT_UNKNOWN) {
+											int width,height,xpos,ypos;
+											html_addr=bbs->addr;
 
-										get_window_info(&width, &height, &xpos, &ypos);
-										if(!run_html(width, height, xpos, ypos, html_send, html_urlredirect))
-											html_supported=HTML_SUPPORTED;
-										else
-											html_supported=HTML_NOTSUPPORTED;
+											get_window_info(&width, &height, &xpos, &ypos);
+											if(!run_html(width, height, xpos, ypos, html_send, html_urlredirect))
+												html_supported=HTML_SUPPORTED;
+											else
+												html_supported=HTML_NOTSUPPORTED;
+										}
+										if(html_supported==HTML_SUPPORTED) {
+											conn_send(htmlresponse, sizeof(htmlresponse)-1, 0);
+											hide_html();
+										}
 									}
-									if(html_supported==HTML_SUPPORTED) {
-										conn_send(htmlresponse, sizeof(htmlresponse)-1, 0);
-										hide_html();
+									else {
+										show_html("");
+										html_mode=HTML_MODE_READING;
 									}
+									htmldet[0]=0;
 								}
-								else {
-									show_html("");
-									html_mode=HTML_MODE_READING;
-								}
+							}
+							else {
+								htmldet[j++]=inch;
+								cterm_write(htmldet, j, prn, sizeof(prn), &speed);
+								if(prn[0])
+									conn_send(prn,strlen(prn),0);
+								updated=TRUE;
 								htmldet[0]=0;
 							}
+							continue;
 						}
-						else
-							htmldet[0]=0;
 #endif
 
-						j=strlen(zrqbuf);
-						if(inch == zrqinit[j] || inch == zrinit[j]) {
-							zrqbuf[j]=inch;
-							zrqbuf[++j]=0;
-							if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
-								if(!strcmp(zrqbuf, zrqinit))
-									zmodem_download(bbs);
-								else
-									begin_upload(bbs, TRUE, inch);
-								zrqbuf[0]=0;
-								remain=1;
+						if(!zrqbuf[0]) {
+							if(inch == zrqinit[0] || inch == zrinit[0]) {
+								zrqbuf[0]=inch;
+								zrqbuf[1]=0;
+								continue;
 							}
 						}
-						else
-							zrqbuf[0]=0;
+						else {	/* Already have the start of the sequence */
+							j=strlen(zrqbuf);
+							if(inch == zrqinit[j] || inch == zrinit[j]) {
+								zrqbuf[j]=inch;
+								zrqbuf[++j]=0;
+								if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
+									if(!strcmp(zrqbuf, zrqinit))
+										zmodem_download(bbs);
+									else
+										begin_upload(bbs, TRUE, inch);
+									zrqbuf[0]=0;
+									remain=1;
+								}
+							}
+							else {	/* Not a real zrqinit */
+								zrqbuf[j++]=inch;
+								cterm_write(zrqbuf, j, prn, sizeof(prn), &speed);
+								if(prn[0])
+									conn_send(prn,strlen(prn),0);
+								updated=TRUE;
+								zrqbuf[0]=0;
+							}
+							continue;
+						}
 #ifndef WITHOUT_OOII
 						if(ooii_mode) {
 							if(ooii_buf[0]==0) {
@@ -2202,10 +2185,8 @@ BOOL doterm(struct bbslist *bbs)
 								ooii_buf[j++]=inch;
 								ooii_buf[j]=0;
 								if(inch == '|') {
-									if(handle_ooii_code(ooii_buf, &ooii_mode, prn, sizeof(prn))) {
+									if(handle_ooii_code(ooii_buf, ooii_mode, prn, sizeof(prn)))
 										ooii_mode=0;
-										xptone_close();
-									}
 									if(prn[0])
 										conn_send(prn,strlen(prn),0);
 									ooii_buf[0]=0;
@@ -2221,10 +2202,14 @@ BOOL doterm(struct bbslist *bbs)
 								if(ooii_init1[j]==0) {
 									if(strcmp(ooii_buf, ooii_init1)==0) {
 										ooii_mode=1;
-										xptone_open();
+										ooii_buf[0]=0;
 									}
+									cterm_write(ooii_buf, j, prn, sizeof(prn), &speed);
+									if(prn[0])
+										conn_send(prn,strlen(prn),0);
 									ooii_buf[0]=0;
 								}
+								continue;
 							}
 							else if(inch==ooii_init2[j]) {
 								ooii_buf[j++]=inch;
@@ -2232,13 +2217,23 @@ BOOL doterm(struct bbslist *bbs)
 								if(ooii_init2[j]==0) {
 									if(strcmp(ooii_buf, ooii_init2)==0) {
 										ooii_mode=2;
-										xptone_open();
+										ooii_buf[0]=0;
 									}
+									cterm_write(ooii_buf, j, prn, sizeof(prn), &speed);
+									if(prn[0])
+										conn_send(prn,strlen(prn),0);
+									ooii_buf[0]=0;
+								}
+								continue;
+							}
+							else {
+								if(j) {
+									cterm_write(ooii_buf, j, prn, sizeof(prn), &speed);
+									if(prn[0])
+										conn_send(prn,strlen(prn),0);
 									ooii_buf[0]=0;
 								}
 							}
-							else
-								ooii_buf[0]=0;
 						}
 #endif
 
@@ -2341,11 +2336,8 @@ BOOL doterm(struct bbslist *bbs)
 							gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							show_bbslist(bbs->name, TRUE);
 							uifcbail();
-							setup_mouse_events();
 							puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							free(p);
-							showmouse();
-							_setcursortype(_NORMALCURSOR);
 						}
 					}
 					break;
@@ -2413,7 +2405,6 @@ BOOL doterm(struct bbslist *bbs)
 							}
 #endif
 							uifcbail();
-							setup_mouse_events();
 							cterm_clearscreen(cterm.attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
@@ -2423,7 +2414,6 @@ BOOL doterm(struct bbslist *bbs)
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
-						setup_mouse_events();
 						puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 						textattr(txtinfo.attribute);
@@ -2482,12 +2472,8 @@ BOOL doterm(struct bbslist *bbs)
 #else
 						case 11:
 							ooii_mode++;
-							if(ooii_mode > MAX_OOII_MODE) {
-								xptone_close();
+							if(ooii_mode > 2)
 								ooii_mode=0;
-							}
-							else
-								xptone_open();
 							break;
 						case 12:
 #endif
@@ -2522,7 +2508,6 @@ BOOL doterm(struct bbslist *bbs)
 							}
 							break;
 					}
-					setup_mouse_events();
 					showmouse();
 					gotoxy(i,j);
 					key = 0;
