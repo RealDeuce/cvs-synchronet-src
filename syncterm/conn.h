@@ -1,4 +1,6 @@
-/* $Id: conn.h,v 1.15 2007/10/11 11:55:09 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: conn.h,v 1.21 2008/01/21 04:40:48 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -9,15 +11,17 @@
 #include "bbslist.h"
 
 extern char *conn_types[];
-extern int conn_ports[];
+extern short unsigned int conn_ports[];
 
 enum {
 	 CONN_TYPE_UNKNOWN
 	,CONN_TYPE_RLOGIN
+	,CONN_TYPE_RLOGIN_REVERSED
 	,CONN_TYPE_TELNET
 	,CONN_TYPE_RAW
 	,CONN_TYPE_SSH
 	,CONN_TYPE_MODEM
+	,CONN_TYPE_SERIAL
 #ifdef __unix__
 	,CONN_TYPE_SHELL
 #endif
@@ -31,9 +35,9 @@ struct conn_api {
 	void (*binary_mode_off)(void);
 	int log_level;
 	int type;
-	int input_thread_running;
-	int output_thread_running;
-	int terminate;
+	volatile int input_thread_running;
+	volatile int output_thread_running;
+	volatile int terminate;
 	unsigned char *rd_buf;
 	size_t rd_buf_size;
 	unsigned char *wr_buf;
@@ -80,7 +84,7 @@ size_t conn_buf_bytes(struct conn_buffer *buf);
 size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen);
 size_t conn_buf_get(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen);
 size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t outlen);
-size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long timeout, int free);
+size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long timeout, int do_free);
 #define conn_buf_wait_bytes(buf, count, timeout)	conn_buf_wait_cond(buf, count, timeout, 0)
 #define conn_buf_wait_free(buf, count, timeout)	conn_buf_wait_cond(buf, count, timeout, 1)
 int conn_socket_connect(struct bbslist *bbs);
