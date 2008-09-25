@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.43 2009/02/16 03:25:26 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.41 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -346,7 +346,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 {
 	char	str[256],str2[256],do_find=true,mismatches=0
 			,done=0,domsg=1,*buf,*p;
-	char	subj[128];
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
@@ -575,11 +574,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							domsg=0;
 					continue; 
 				}
-				strupr(buf);
-				strip_ctrl(buf, buf);
-				SAFECOPY(subj,msg.subj);
-				strupr(subj);
-				if(!strstr(buf,find) && !strstr(subj,find)) {
+				strupr((char *)buf);
+				if(!strstr((char *)buf,find) && !strstr(msg.subj,find)) {
 					free(buf);
 					if(smb.curmsg<smb.msgs-1) 
 						smb.curmsg++;
@@ -1175,8 +1171,7 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 	, const char *search)
 {
-	char*	buf,ch;
-	char	subj[128];
+	char	*buf,ch;
 	long	l,found=0;
 	smbmsg_t msg;
 
@@ -1191,11 +1186,8 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			smb_freemsgmem(&msg);
 			continue; 
 		}
-		strupr(buf);
-		strip_ctrl(buf, buf);
-		SAFECOPY(subj,msg.subj);
-		strupr(subj);
-		if(strstr(buf,search) || strstr(subj,search)) {
+		strupr((char *)buf);
+		if(strstr((char *)buf,search) || strstr(msg.subj,search)) {
 			if(!found)
 				CRLF;
 			if(msg.hdr.attr&MSG_DELETE)
