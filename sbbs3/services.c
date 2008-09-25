@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.217 2008/12/08 20:55:04 deuce Exp $ */
+/* $Id: services.c,v 1.212 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,7 +59,6 @@
 #include "services.h"
 #include "ident.h"	/* identify() */
 #include "sbbs_ini.h"
-#include "js_rtpool.h"
 
 /* Constants */
 
@@ -259,7 +258,6 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		buf;
 	int32		len=512;
 	service_client_t* client;
-	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -270,9 +268,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
 
-	rc=JS_SuspendRequest(cx);
 	len=recv(client->socket,buf,len,0);
-	JS_ResumeRequest(cx, rc);
 
 	if(len>0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len));
@@ -292,7 +288,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		timeout=30;	/* seconds */
 	JSString*	str;
 	service_client_t* client;
-	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -308,7 +303,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>1)
 		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
 
-	rc=JS_SuspendRequest(cx);
 	start=time(NULL);
 	for(i=0;i<len;) {
 
@@ -318,7 +312,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(!rd) {
 			if(time(NULL)-start>timeout) {
 				*rval = JSVAL_NULL;
-				JS_ResumeRequest(cx, rc);
 				return(JS_TRUE);	/* time-out */
 			}
 			continue;	/* no data */
@@ -336,7 +329,6 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		buf[i-1]=0;
 	else
 		buf[i]=0;
-	JS_ResumeRequest(cx, rc);
 
 	str = JS_NewStringCopyZ(cx, buf);
 	if(str==NULL)
@@ -354,7 +346,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		cp;
 	JSString*	str;
 	service_client_t* client;
-	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -366,9 +357,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			continue;
 		if((cp=JS_GetStringBytes(str))==NULL)
 			continue;
-		rc=JS_SuspendRequest(cx);
 		sendsocket(client->socket,cp,strlen(cp));
-		JS_ResumeRequest(cx, rc);
 	}
 
 	return(JS_TRUE);
@@ -379,17 +368,14 @@ js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		cp;
 	service_client_t* client;
-	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 	
 	js_write(cx,obj,argc,argv,rval);
 
-	rc=JS_SuspendRequest(cx);
 	cp="\r\n";
 	sendsocket(client->socket,cp,2);
-	JS_ResumeRequest(cx, rc);
 
 	return(JS_TRUE);
 }
@@ -402,7 +388,6 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	js_str;
 	service_client_t* client;
-	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -421,12 +406,10 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		strcat(str," ");
 	}
 
-	rc=JS_SuspendRequest(cx);
 	if(service==NULL)
 		lprintf(level,"%04d %s",client->socket,str);
 	else if(level <= client->service->log_level)
 		lprintf(level,"%04d %s %s",client->socket,client->service->protocol,str);
-	JS_ResumeRequest(cx, rc);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 
@@ -442,7 +425,6 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	jsval		val;
 	JSString*	js_str;
 	service_client_t* client;
-	jsrefcount	rc;
 
 	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 
@@ -456,7 +438,6 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((p=JS_GetStringBytes(js_str))==NULL) 
 		return(JS_FALSE);
 
-	rc=JS_SuspendRequest(cx);
 	memset(&user,0,sizeof(user));
 
 	if(isdigit(*p))
@@ -467,42 +448,33 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(getuserdat(&scfg,&user)!=0) {
 		lprintf(LOG_NOTICE,"%04d %s !USER NOT FOUND: '%s'"
 			,client->socket,client->service->protocol,p);
-		JS_ResumeRequest(cx, rc);
 		return(JS_TRUE);
 	}
 
 	if(user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d %s !DELETED OR INACTIVE USER #%d: %s"
 			,client->socket,client->service->protocol,user.number,p);
-		JS_ResumeRequest(cx, rc);
 		return(JS_TRUE);
 	}
 
 	/* Password */
 	if(user.pass[0]) {
-		if((js_str=JS_ValueToString(cx, argv[1]))==NULL)  {
-			JS_ResumeRequest(cx, rc);
+		if((js_str=JS_ValueToString(cx, argv[1]))==NULL) 
 			return(JS_FALSE);
-		}
 
-		if((p=JS_GetStringBytes(js_str))==NULL) {
-			JS_ResumeRequest(cx, rc);
+		if((p=JS_GetStringBytes(js_str))==NULL) 
 			return(JS_FALSE);
-		}
 
 		if(stricmp(user.pass,p)) { /* Wrong password */
 			lprintf(LOG_WARNING,"%04d %s !INVALID PASSWORD ATTEMPT FOR USER: %s"
 				,client->socket,client->service->protocol,user.alias);
-			JS_ResumeRequest(cx, rc);
 			return(JS_TRUE);
 		}
 	}
-	JS_ResumeRequest(cx, rc);
 
 	if(argc>2)
 		JS_ValueToBoolean(cx,argv[2],&inc_logons);
 
-	rc=JS_SuspendRequest(cx);
 	if(client->client!=NULL) {
 		SAFECOPY(user.note,client->client->addr);
 		SAFECOPY(user.comp,client->client->host);
@@ -515,7 +487,6 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}	
 
 	putuserdat(&scfg,&user);
-	JS_ResumeRequest(cx, rc);
 
 	/* user-specific objects */
 	if(!js_CreateUserObjects(cx, obj, &scfg, &user, NULL, NULL)) 
@@ -547,7 +518,6 @@ js_logout(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	jsval val;
 	service_client_t* client;
-	jsrefcount	rc;
 
 	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 
@@ -557,14 +527,12 @@ js_logout(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(client->user.number<1)	/* Not logged in */
 		return(JS_TRUE);
 
-	rc=JS_SuspendRequest(cx);
 	logoutuserdat(&scfg,&client->user,time(NULL),client->logintime);
 
 	lprintf(LOG_INFO,"%04d %s Logging out %s"
 		,client->socket,client->service->protocol,client->user.alias);
 
 	memset(&client->user,0,sizeof(client->user));
-	JS_ResumeRequest(cx, rc);
 
 	val = BOOLEAN_TO_JSVAL(JS_FALSE);
 	JS_SetProperty(cx, obj, "logged_in", &val);
@@ -595,7 +563,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	SOCKET	sock=0;
 	char*	warning;
 	service_client_t* client;
-	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))!=NULL) {
 		prot=client->service->protocol;
@@ -625,9 +592,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	} else
 		warning="";
 
-	rc=JS_SuspendRequest(cx);
 	lprintf(LOG_ERR,"%04d %s !JavaScript %s%s%s: %s",sock,prot,warning,file,line,message);
-	JS_ResumeRequest(cx, rc);
 }
 
 #if 0
@@ -700,7 +665,6 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	socklen_t	addr_len;
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
-	jsrefcount	rc;
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -730,14 +694,12 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(argc>2)
 		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
-	rc=JS_SuspendRequest(cx);
 	client_on(sock, &client, /* update? */ FALSE);
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG,"%04d %s client_add(%04u,%s,%s)"
 		,service_client->service->socket,service_client->service->protocol
 		,sock,client.user,client.host);
 #endif
-	JS_ResumeRequest(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -749,7 +711,6 @@ js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	socklen_t	addr_len;
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
-	jsrefcount	rc;
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -774,14 +735,12 @@ js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if(argc>2)
 		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
-	rc=JS_SuspendRequest(cx);
 	client_on(sock, &client, /* update? */ TRUE);
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG,"%04d %s client_update(%04u,%s,%s)"
 		,service_client->service->socket,service_client->service->protocol
 		,sock,client.user,client.host);
 #endif
-	JS_ResumeRequest(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -791,7 +750,6 @@ js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 {
 	SOCKET	sock=INVALID_SOCKET;
 	service_client_t* service_client;
-	jsrefcount	rc;
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -800,7 +758,6 @@ js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 
 	if(sock!=INVALID_SOCKET) {
 
-		rc=JS_SuspendRequest(cx);
 		client_off(sock);
 
 		if(service_client->service->clients==0)
@@ -810,7 +767,6 @@ js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 			service_client->service->clients--;
 			update_clients();
 		}
-		JS_ResumeRequest(cx, rc);
 	}
 
 #ifdef _DEBUG
@@ -1107,7 +1063,7 @@ static void js_service_thread(void* arg)
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
 
-	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000, __FILE__, __LINE__))==NULL
+	if((js_runtime=JS_NewRuntime(service->js.max_bytes))==NULL
 		|| (js_cx=js_initcx(js_runtime,socket,&service_client,&js_glob))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript context"
 			,socket,service->protocol);
@@ -1160,7 +1116,7 @@ static void js_service_thread(void* arg)
 	}
 	JS_DestroyContext(js_cx);	/* Free Context */
 
-	jsrt_Release(js_runtime);
+	JS_DestroyRuntime(js_runtime);
 
 	if(service_client.user.number) {
 		lprintf(LOG_INFO,"%04d %s Logging out %s"
@@ -1221,7 +1177,7 @@ static void js_static_service_thread(void* arg)
 	service_client.branch.terminated = &service->terminated;
 	service_client.branch.auto_terminate = TRUE;
 
-	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000, __FILE__, __LINE__))==NULL) {
+	if((js_runtime=JS_NewRuntime(service->js.max_bytes))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript runtime"
 			,service->socket,service->protocol);
 		close_socket(service->socket);
@@ -1263,11 +1219,10 @@ static void js_static_service_thread(void* arg)
 		js_cx=NULL;
 	} while(!service->terminated && service->options&SERVICE_OPT_STATIC_LOOP);
 
-	if(js_cx!=NULL) {
+	if(js_cx!=NULL)
 		JS_DestroyContext(js_cx);	/* Free Context */
-	}
 
-	jsrt_Release(js_runtime);
+	JS_DestroyRuntime(js_runtime);
 
 	if(service->clients) {
 		lprintf(LOG_WARNING,"%04d %s !service terminating with %u active clients"
@@ -1631,7 +1586,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.217 $", "%*s %s", revision);
+	sscanf("$Revision: 1.212 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
