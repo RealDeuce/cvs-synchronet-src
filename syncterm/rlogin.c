@@ -1,4 +1,6 @@
-/* $Id: rlogin.c,v 1.27 2007/10/21 18:27:48 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: rlogin.c,v 1.30 2008/01/20 06:53:00 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -68,6 +70,7 @@ void rlogin_output_thread(void *args)
 	conn_api.output_thread_running=1;
 	while(sock != INVALID_SOCKET && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
+		ret=0;
 		wr=conn_buf_wait_bytes(&conn_outbuf, 1, 100);
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
@@ -116,7 +119,7 @@ int rlogin_connect(struct bbslist *bbs)
 
 	ruser=bbs->user;
 	passwd=bbs->password;
-	if(bbs->conn_type==CONN_TYPE_RLOGIN && bbs->reversed) {
+	if(bbs->conn_type==CONN_TYPE_RLOGIN_REVERSED) {
 		passwd=bbs->user;
 		ruser=bbs->password;
 	}
@@ -145,7 +148,7 @@ int rlogin_connect(struct bbslist *bbs)
 	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
 
-	if(bbs->conn_type == CONN_TYPE_RLOGIN) {
+	if(bbs->conn_type == CONN_TYPE_RLOGIN || bbs->conn_type == CONN_TYPE_RLOGIN_REVERSED) {
 		conn_send("",1,1000);
 		conn_send(passwd,strlen(passwd)+1,1000);
 		conn_send(ruser,strlen(ruser)+1,1000);
