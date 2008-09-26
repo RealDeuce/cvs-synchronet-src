@@ -2,13 +2,13 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.57 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.56 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,7 +79,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	if(fexistcase(str)) {
 		for(k=0;k<cfg.total_fextrs;k++)
 			if(!stricmp(cfg.fextr[k]->ext,useron.tmpext)
-				&& chk_ar(cfg.fextr[k]->ar,&useron,&client))
+				&& chk_ar(cfg.fextr[k]->ar,&useron))
 				break;
 		if(k>=cfg.total_fextrs)
 			k=0;
@@ -355,7 +355,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			if(subscan[usrsub[i][j]].cfg&SUB_CFG_NSCAN
 				|| (!(useron.rest&FLAG('Q'))
 				&& cfg.sub[usrsub[i][j]]->misc&SUB_FORCED)) {
-				if(!chk_ar(cfg.sub[usrsub[i][j]]->read_ar,&useron,&client))
+				if(!chk_ar(cfg.sub[usrsub[i][j]]->read_ar,&useron))
 					continue;
 				lncntr=0;						/* defeat pause */
 				if(useron.rest&FLAG('Q') && !(cfg.sub[usrsub[i][j]]->misc&SUB_QNET))
@@ -565,7 +565,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 
 	if(batdn_total) {
 		for(i=0,totalcdt=0;i<batdn_total;i++)
-			if(!is_download_free(&cfg,batdn_dir[i],&useron,&client))
+			if(!is_download_free(&cfg,batdn_dir[i],&useron))
 				totalcdt+=batdn_cdt[i];
 		if(totalcdt>useron.cdt+useron.freecdt) {
 			bprintf(text[YouOnlyHaveNCredits]
