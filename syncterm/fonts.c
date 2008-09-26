@@ -1,3 +1,5 @@
+/* Copyright (C), 2007 by Stephen Hurd */
+
 #include <stdio.h>
 #include <string.h>
 
@@ -56,6 +58,7 @@ void save_font_files(struct font_files *fonts)
 	/* TODO: Remove all sections... we don't *NEED* to do this */
 	while((fontid=strListPop(&fontnames))!=NULL) {
 		iniRemoveSection(&ini_file, fontid);
+		free(fontid);
 	}
 
 	if(fonts != NULL) {
@@ -78,8 +81,8 @@ void save_font_files(struct font_files *fonts)
 		uifc.msg("Cannot write to the .ini file!");
 	}
 
-	strListFreeStrings(fontnames);
-	strListFreeStrings(ini_file);
+	strListFree(&fontnames);
+	strListFree(&ini_file);
 }
 
 struct font_files *read_font_files(int *count)
@@ -99,12 +102,15 @@ struct font_files *read_font_files(int *count)
 	}
 	fonts=iniReadSectionList(inifile, "Font:");
 	while((fontid=strListPop(&fonts))!=NULL) {
-		if(!fontid[5])
+		if(!fontid[5]) {
+			free(fontid);
 			continue;
+		}
 		(*count)++;
 		tmp=(struct font_files *)realloc(ret, sizeof(struct font_files)*(*count+1));
 		if(tmp==NULL) {
 			count--;
+			free(fontid);
 			continue;
 		}
 		ret=tmp;
@@ -116,9 +122,10 @@ struct font_files *read_font_files(int *count)
 			ret[*count-1].path8x14=strdup(fontpath);
 		if((ret[*count-1].path8x16=iniReadString(inifile,fontid,"Path8x16",NULL,fontpath))!=NULL)
 			ret[*count-1].path8x16=strdup(fontpath);
+		free(fontid);
 	}
 	fclose(inifile);
-	strListFreeStrings(fonts);
+	strListFree(&fonts);
 	return(ret);
 }
 
@@ -243,7 +250,7 @@ void font_management(void)
 			opts[0][0]=0;
 			opt[0]=opts[0];
 		}
-		i=uifc.list(WIN_SAV|WIN_INS|WIN_INSACT|WIN_DEL|WIN_XTR,0,0,0,&cur,&bar,"Font",opt);
+		i=uifc.list(WIN_SAV|WIN_INS|WIN_INSACT|WIN_DEL|WIN_XTR|WIN_ACT,0,0,0,&cur,&bar,"Font Management",opt);
 		if(i==-1) {
 			save_font_files(fonts);
 			free_font_files(fonts);
@@ -291,7 +298,7 @@ void font_management(void)
 			sprintf(opts[2],"8x14  %.50s",fonts[cur].path8x14?fonts[cur].path8x14:"<undefined>");
 			sprintf(opts[3],"8x16  %.50s",fonts[cur].path8x16?fonts[cur].path8x16:"<undefined>");
 			opts[4][0]=0;
-			i=uifc.list(WIN_SAV|WIN_INS|WIN_DEL,0,0,0,&fcur,&fbar,"Font",opt);
+			i=uifc.list(WIN_SAV|WIN_ACT|WIN_INS|WIN_INSACT|WIN_DEL|WIN_RHT|WIN_BOT,0,0,0,&fcur,&fbar,"Font Details",opt);
 			if(i==-1)
 				break;
 			switch(i) {
