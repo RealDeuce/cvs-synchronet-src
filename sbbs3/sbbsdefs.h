@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.150 2007/07/10 20:18:38 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.154 2008/02/23 22:35:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,16 +50,16 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.14"  /* Version: Major.minor  */
-#define REVISION	'b'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31400	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31400 + (tolower(REVISION)-'a'))
+#define VERSION 	"3.15"  /* Version: Major.minor  */
+#define REVISION	'a'     /* Revision: lowercase letter */
+#define VERSION_NUM	(31500	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31500 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2006 Rob Swindell"
-#define COPYRIGHT_CRC		0xE16A6CC1
+#define COPYRIGHT_NOTICE	"Copyright 2008 Rob Swindell"
+#define COPYRIGHT_CRC		0x2AF13941
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -153,7 +153,7 @@ typedef struct {
 #define SM_CELERITY		(1L<<10)	/* Expand Celerity color codes in messages	*/
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
-#define SM_LOCAL_TZ		(1L<<13)	/* Use local timezone representations		*/
+#define SM_UNUSED		(1L<<13)	/* Defaults to *on*	(used to SM_LOCAL_TZ)	*/
 #define SM_AUTO_DST		(1L<<14)	/* Automatic Daylight Savings Toggle (US)   */
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/
@@ -407,6 +407,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_NOCTRL	(1L<<12)		/* No extraneous control files			*/
 #define QWK_EXT		(1L<<13)		/* QWK Extended (QWKE) format			*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
+#define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
 																			
@@ -652,6 +653,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_RLOGIN	(1L<<26) /* Current login via BSD RLogin				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
 #define SS_SSH		(1L<<28) /* Current login via SSH						*/
+#define SS_MOFF		(1L<<29) /* Disable automatic messages					*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_NONE		0			/* Use as a place holder for no mode flags	*/
@@ -814,11 +816,12 @@ enum {							/* Values of mode for userlist function     */
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
 #define WHERE       	__LINE__,__FILE__
-#define SAVELINE		{ slatr[slcnt]=latr; \
+#define SAVELINE		{ if(slcnt<SAVE_LINES) { \
+							slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \
 							sprintf(slbuf[slcnt],"%.*s",lbuflen,lbuf); \
-							if(slcnt<SAVE_LINES) slcnt++; \
-							lbuflen=0; }
+							slcnt++; \
+							lbuflen=0; } }
 #define RESTORELINE 	{ lbuflen=0; if(slcnt) --slcnt; \
 							attr(slatr[slcnt]); \
 							rputs(slbuf[slcnt]); \
