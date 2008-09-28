@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.89 2009/07/15 02:33:57 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.86 2008/04/01 08:03:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -364,8 +364,8 @@ int recv_byte(void* unused, unsigned timeout)
 #endif
 			FD_SET(sock,&socket_set);
 		if((t=end-msclock())<0) t=0;
-		tv.tv_sec=t/((unsigned)MSCLOCKS_PER_SEC);
-		tv.tv_usec=(t%((unsigned)MSCLOCKS_PER_SEC))*1000;
+		tv.tv_sec=t/MSCLOCKS_PER_SEC;
+		tv.tv_usec=0;
 
 		if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 			if(i==SOCKET_ERROR) {
@@ -858,6 +858,7 @@ static int send_files(char** fname, uint fnames)
 			fsize=filelength(fileno(fp));
 
 			errors=0;
+			success=FALSE;
 			startfile=time(NULL);
 
 			lprintf(LOG_INFO,"Sending %s (%lu KB) via %cMODEM"
@@ -865,9 +866,9 @@ static int send_files(char** fname, uint fnames)
 				,mode&XMODEM ? 'X' : mode&YMODEM ? 'Y' : 'Z');
 
 			if(mode&ZMODEM)
-				success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, (uint32_t*)&sent_bytes);
+					success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, (uint32_t*)&sent_bytes);
 			else	/* X/Ymodem */
-				success=xmodem_send_file(&xm, path, fp, &startfile, &sent_bytes);
+					success=xmodem_send_file(&xm, path, fp, &startfile, &sent_bytes);
 
 			fclose(fp);
 
@@ -896,8 +897,8 @@ static int send_files(char** fname, uint fnames)
 				lprintf(LOG_DEBUG,"Updating DSZLOG: %s", dszlog);
 				fprintf(logfp,"%c %7lu %5u bps %6lu cps %3u errors %5u %4u "
 					"%s -1\n"
-					,(mode&ZMODEM && zm.file_skipped) ? 's' 
-						: success ? (mode&ZMODEM ? 'z':'S') 
+					,success ? (mode&ZMODEM ? 'z':'S') 
+						: (mode&ZMODEM && zm.file_skipped) ? 's' 
 						: 'E'
 					,sent_bytes
 					,115200 /* baud */
@@ -916,7 +917,7 @@ static int send_files(char** fname, uint fnames)
 				break;
 			}
 
-			if(xm.cancelled || zm.cancelled || !success)
+			if(xm.cancelled || zm.cancelled)
 				break;
 
 		} /* while(gi<(int)g.gl_pathc) */
@@ -925,7 +926,7 @@ static int send_files(char** fname, uint fnames)
 			break;
 	}
 
-	if(mode&ZMODEM && !zm.cancelled && is_connected(NULL) && (success || total_bytes))
+	if(mode&ZMODEM && !zm.cancelled && is_connected(NULL))
 		zmodem_get_zfin(&zm);
 
 	if(fnum<fnames) /* error occurred */
@@ -1140,8 +1141,14 @@ static int receive_files(char** fname_list, int fnames)
 
 			errors=zmodem_recv_file_data(&zm,fp,0);
 
-			if(errors<=zm.max_errors)
-				success=TRUE;
+			/*
+ 			 * wait for the eof header
+			 */
+
+			for(;errors<=zm.max_errors && !success && !zm.cancelled; errors++) {
+				if(zmodem_recv_header_and_check(&zm))
+					success=TRUE;
+			} 
 
 		} else {
 			errors=0;
@@ -1237,7 +1244,7 @@ static int receive_files(char** fname_list, int fnames)
 		if(zm.local_abort) {
 			lprintf(LOG_DEBUG,"Locally aborted, sending cancel to remote");
 			if(mode&ZMODEM)
-				zmodem_send_zabort(&zm);
+				zmodem_abort_receive(&zm);
 			xm.cancelled=FALSE;
 			xmodem_cancel(&xm);
 			break;
@@ -1333,7 +1340,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.89 $", "%*s %s", revision);
+	sscanf("$Revision: 1.86 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
