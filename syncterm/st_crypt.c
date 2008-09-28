@@ -1,8 +1,9 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
 #include <stdio.h>	/* NULL */
-#include "st_crypt.h"
 #include <xp_dl.h>
+
+#include "st_crypt.h"
 
 int crypt_loaded=0;
 
@@ -24,7 +25,7 @@ struct crypt_funcs cl;
 int init_crypt(void)
 {
 	dll_handle	cryptlib;
-	const char *libnames[]={ "cl", "cl33", "cl32", NULL };
+	const char *libnames[2]={ "cl", NULL };
 
 	if(crypt_loaded)
 		return(0);
