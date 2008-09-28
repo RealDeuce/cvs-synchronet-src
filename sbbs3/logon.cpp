@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.50 2009/03/20 08:58:45 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.48 2008/01/27 01:27:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -74,6 +74,19 @@ bool sbbs_t::logon()
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP))
 		return(false);
 
+#if 0
+	if(cur_rate<cfg.node_minbps && !(useron.exempt&FLAG('M'))) {
+		bprintf(text[MinimumModemSpeed],cfg.node_minbps);
+		sprintf(str,"%stooslow.msg",cfg.text_dir);
+		if(fexist(str))
+			printfile(str,0);
+		sprintf(str,"(%04u)  %-25s  Modem speed: %lu<%u"
+			,useron.number,useron.alias,cur_rate,cfg.node_minbps);
+		logline("+!",str);
+		return(false); 
+	}
+#endif
+
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
 		useron.rows=0;
@@ -88,7 +101,7 @@ bool sbbs_t::logon()
 			useron.misc|=NO_EXASCII;
 		for(i=0;i<cfg.total_xedits;i++)
 			if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit)
-				&& chk_ar(cfg.xedit[i]->ar,&useron,&client))
+				&& chk_ar(cfg.xedit[i]->ar,&useron))
 				break;
 		if(i<cfg.total_xedits)
 			useron.xedit=i+1;
@@ -98,7 +111,22 @@ bool sbbs_t::logon()
 		useron.shell=cfg.new_shell; 
 	}
 
-	if(!chk_ar(cfg.node_ar,&useron,&client)) {
+#if 0
+	if(cfg.node_dollars_per_call) {
+		adjustuserrec(&cfg,useron.number,U_CDT,10
+			,cfg.cdt_per_dollar*cfg.node_dollars_per_call);
+		bprintf(text[CreditedAccount]
+			,cfg.cdt_per_dollar*cfg.node_dollars_per_call);
+		sprintf(str,"%s #%u was billed $%d T: %lu seconds"
+			,useron.alias,useron.number
+			,cfg.node_dollars_per_call,(ulong)(now-answertime));
+		logline("$+",str);
+		hangup();
+		return(false); 
+	}
+#endif
+
+	if(!chk_ar(cfg.node_ar,&useron)) {
 		bputs(text[NoNodeAccess]);
 		sprintf(str,"(%04u)  %-25s  Insufficient node access"
 			,useron.number,useron.alias);
@@ -175,11 +203,11 @@ bool sbbs_t::logon()
 		useron.misc|=autoterm; 
 	}
 
-	if(!chk_ar(cfg.shell[useron.shell]->ar,&useron,&client)) {
+	if(!chk_ar(cfg.shell[useron.shell]->ar,&useron)) {
 		useron.shell=cfg.new_shell;
-		if(!chk_ar(cfg.shell[useron.shell]->ar,&useron,&client)) {
+		if(!chk_ar(cfg.shell[useron.shell]->ar,&useron)) {
 			for(i=0;i<cfg.total_shells;i++)
-				if(chk_ar(cfg.shell[i]->ar,&useron,&client))
+				if(chk_ar(cfg.shell[i]->ar,&useron))
 					break;
 			if(i==cfg.total_shells)
 				useron.shell=0; 
@@ -206,6 +234,10 @@ bool sbbs_t::logon()
 	CLS;
 	if(useron.rows)
 		rows=useron.rows;
+#if 0	/* no such thing as local logon */
+	else if(online==ON_LOCAL)
+		rows=cfg.node_scrnlen-1;
+#endif
 	unixtodstr(&cfg,logontime,str);
 	if(!strncmp(str,useron.birth,5) && !(useron.rest&FLAG('Q'))) {
 		bputs(text[HappyBirthday]);
@@ -454,7 +486,7 @@ bool sbbs_t::logon()
 		bprintf(text[LiMailWaiting],mailw);
 		strcpy(str,text[LiSysopIs]);
 		if(startup->options&BBS_OPT_SYSOP_AVAILABLE 
-			|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron,&client)))
+			|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron)))
 			strcat(str,text[LiSysopAvailable]);
 		else
 			strcat(str,text[LiSysopNotAvailable]);
