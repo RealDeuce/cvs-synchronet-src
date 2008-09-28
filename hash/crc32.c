@@ -2,7 +2,7 @@
 
 /* IEEE 802.3 32-bit CRC table and convenience functions */
 
-/* $Id: crc32.c,v 1.9 2007/07/11 05:24:02 rswindell Exp $ */
+/* $Id: crc32.c,v 1.10 2008/06/04 04:39:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@ int32_t crc32tbl[]={	/* CRC polynomial 0xedb88320 */
 /* Pass len of 0 to auto-determine ASCIIZ string length						*/
 /* or non-zero for arbitrary binary data									*/
 /****************************************************************************/
-uint32_t crc32i(uint32_t crc, char *buf, unsigned long len)
+uint32_t crc32i(uint32_t crc, const char *buf, unsigned long len)
 {
 	unsigned long l;
 
