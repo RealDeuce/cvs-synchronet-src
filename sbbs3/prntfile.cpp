@@ -2,13 +2,13 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.17 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.19 2008/02/26 08:21:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -78,8 +78,9 @@ void sbbs_t::printfile(char *str, long mode)
 	if(!(mode&P_NOCRLF) && !tos && !wip && !rip && !html)
 		CRLF;
 
-	if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
-		lprintf(LOG_NOTICE,"Node %d !File not found: %s",cfg.node_num,str);
+	if((stream=fnopen(&file,str,O_RDONLY|O_DENYNONE))==NULL) {
+		lprintf(LOG_NOTICE,"Node %d !Error %d (%s) opening: %s"
+			,cfg.node_num,errno,strerror(errno),str);
 		bputs(text[FileNotFound]);
 		if(SYSOP) bputs(str);
 		CRLF;
@@ -133,8 +134,9 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 	if(!tos) {
 		CRLF; 
 	}
-	if((file=nopen(str,O_RDONLY))==-1) {
-		lprintf(LOG_NOTICE,"Node %d !File not found: %s",cfg.node_num,str);
+	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1) {
+		lprintf(LOG_NOTICE,"Node %d !Error %d (%s) opening: %s"
+			,cfg.node_num,errno,strerror(errno),str);
 		bputs(text[FileNotFound]);
 		if(SYSOP) bputs(str);
 		CRLF;
