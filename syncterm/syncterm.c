@@ -1,10 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.160 2009/07/19 07:41:13 deuce Exp $ */
-
-#if defined(__APPLE__) && defined(__MACH__)
-#include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
-#endif
+/* $Id: syncterm.c,v 1.152 2008/09/29 06:46:49 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -34,7 +30,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.3b"
+char* syncterm_version = "SyncTERM 0.9.3\xe1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -817,62 +813,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	free_list(&list[0],listcount);
 }
 
-#if defined(__APPLE__) && defined(__MACH__)
-static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
-{
-	FSRef		ref;
-	long		size;
-
-	/* First, get the path */
-	switch(type) {
-	case SYNCTERM_PATH_INI:
-	case SYNCTERM_PATH_LIST:
-		if(FSFindFolder(shared?kLocalDomain:kUserDomain, kPreferencesFolderType, kCreateFolder, &ref)!=noErr)
-			return(NULL);
-		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
-			return(NULL);
-		backslash(fn);
-		strncat(fn, "SyncTERM", fnlen);
-		backslash(fn);
-		if(!isdir(fn)) {
-			if(MKDIR(fn))
-				return(NULL);
-		}
-		break;
-
-	case SYNCTERM_DEFAULT_TRANSFER_PATH:
-		/* I'd love to use the "right" setting here, but don't know how */
-		if(FSFindFolder(shared?kLocalDomain:kUserDomain, kDesktopFolderType, kCreateFolder, &ref)!=noErr)
-			return(NULL);
-		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
-			return(NULL);
-		backslash(fn);
-		if(!isdir(fn)) {
-			if(MKDIR(fn))
-				return(NULL);
-		}
-		return(fn);
-	case SYNCTERM_PATH_CACHE:
-		if(FSFindFolder(shared?kLocalDomain:kUserDomain, kCachedDataFolderType, kCreateFolder, &ref)!=noErr)
-			return(NULL);
-		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
-			return(NULL);
-		backslash(fn);
-		return(fn);
-	}
-
-	switch(type) {
-	case SYNCTERM_PATH_INI:
-		strncat(fn, "SyncTERM.ini", fnlen);
-		return(fn);
-	case SYNCTERM_PATH_LIST:
-		strncat(fn, "SyncTERM.lst", fnlen);
-		return(fn);
-	}
-	return(NULL);
-}
-#endif
-
 char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 {
 	char	oldlst[MAX_PATH+1];
@@ -947,12 +887,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			break;
 	}
 #else
-	/* UNIX */
 	char	*home=NULL;
 
 	if(inpath==NULL)
 		home=getenv("HOME");
-	if(!shared && (home==NULL || strlen(home) > MAX_PATH-32)) {	/* $HOME just too damn big */
+	if(home==NULL || strlen(home) > MAX_PATH-32) {	/* $HOME just too damn big */
 		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH || type==SYNCTERM_PATH_CACHE) {
 			getcwd(fn, fnlen);
 			backslash(fn);
@@ -969,10 +908,6 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
 			strcpy(fn, home);
 			backslash(fn);
-#if defined(__APPLE__) && defined(__MACH__)
-			if(get_new_OSX_filename(oldlst, sizeof(oldlst), type, shared)!=NULL)
-				strcpy(fn, oldlst);
-#endif
 			if(!isdir(fn))
 				MKDIR(fn);
 			return(fn);
@@ -994,13 +929,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 #endif
 	}
 
-#if !(defined(__APPLE__) && defined(__MACH__))
 	/* Create if it doesn't exist */
 	if(!isdir(fn) && !shared) {
 		if(MKDIR(fn))
 			fn[0]=0;
 	}
-#endif
 
 	switch(type) {
 		case SYNCTERM_PATH_INI:
@@ -1012,38 +945,17 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		case SYNCTERM_PATH_CACHE:
 			strncat(fn,"cache",fnlen);
 			backslash(fn);
-#if !(defined(__APPLE__) && defined(__MACH__))
 			if(!isdir(fn)) {
 				if(MKDIR(fn))
 					fn[0]=0;
 			}
-#endif
 			break;
 	}
+#endif
 
-#if defined(__APPLE__) && defined(__MACH__)
-
-	strcpy(oldlst, fn);
-	if(get_new_OSX_filename(fn, fnlen, type, shared)!=NULL) {
-		if(fexist(oldlst)) {
-			if(!isdir(oldlst)) {
-				char *lastslash=strrchr(oldlst, '/');
-
-				rename(oldlst, fn);
-				if(lastslash) {
-					*(lastslash+1)='*';
-					*(lastslash+2)=0;
-					if(!fexist(oldlst)) {
-						*lastslash=0;
-						rmdir(oldlst);
-					}
-				}
-				
-			}
-		}
-	}
-#endif	/* OS X */
-#endif	/* !Win32 */
+	/* Copy pre-0.7 version of the syncterm.lst file to new location */
+	if(!shared && type == SYNCTERM_PATH_LIST && (!fexist(fn)) && fexist(oldlst))
+		rename(oldlst, fn);
 	return(fn);
 }
 
@@ -1103,7 +1015,7 @@ int main(int argc, char **argv)
 	char	*inpath=NULL;
 	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
-	int		text_mode;
+	BOOL	dont_set_mode=FALSE;
 	BOOL	override_conn=FALSE;
 	char	*last_bbs=NULL;
 
@@ -1121,7 +1033,6 @@ int main(int argc, char **argv)
 
 	load_settings(&settings);
 	ciolib_mode=settings.output_mode;
-	text_mode=_ORIGMODE;
 
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
@@ -1185,32 +1096,8 @@ int main(int argc, char **argv)
 					}
 					break;
                 case 'L':
-                    switch(atoi(argv[i]+2)) {
-            			case 14:
-                			text_mode=C80X14;
-                			break;
-            			case 21:
-                			text_mode=C80X21;
-                			break;
-            			case 25:
-                			text_mode=C80;
-                			break;
-            			case 28:
-                			text_mode=C80X28;
-                			break;
-            			case 43:
-                			text_mode=C80X43;
-                			break;
-            			case 50:
-                			text_mode=C80X50;
-                			break;
-            			case 60:
-                			text_mode=C80X60;
-                			break;
-            			default:
-                			text_mode=C4350;
-                			break;
-					}
+                    uifc.scrn_len=atoi(argv[i]+2);
+					dont_set_mode=TRUE;
                     break;
 				case 'R':
 					conn_type=CONN_TYPE_RLOGIN;
@@ -1237,7 +1124,8 @@ int main(int argc, char **argv)
 	if(initciolib(ciolib_mode))
 		return(1);
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
-	textmode(text_mode);
+	if(!dont_set_mode)
+		textmode(screen_to_ciolib(settings.startup_mode));
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1318,7 +1206,7 @@ int main(int argc, char **argv)
 			uifcbail();
 			textmode(screen_to_ciolib(bbs->screen_mode));
 			load_font_files();
-			setfont(find_font_id(bbs->font),TRUE,1);
+			setfont(find_font_id(bbs->font),TRUE);
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
@@ -1333,7 +1221,6 @@ int main(int argc, char **argv)
 			}
 
 			exit_now=doterm(bbs);
-			setvideoflags(0);
 
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
@@ -1342,14 +1229,15 @@ int main(int argc, char **argv)
 				fclose(log_fp);
 				log_fp=NULL;
 			}
-			load_font_files();
-			textmode(txtinfo.currmode);
+			setfont(default_font,TRUE);
 			for(i=CONIO_FIRST_FREE_FONT; i<256; i++) {
 				FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
 				FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
 				FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
 				FREE_AND_NULL(conio_fontdata[i].desc);
 			}
+			load_font_files();
+			textmode(txtinfo.currmode);
 			settitle("SyncTERM");
 		}
 		if(exit_now || url[0]) {
