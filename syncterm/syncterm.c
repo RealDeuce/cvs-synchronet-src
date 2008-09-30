@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.151 2008/04/07 05:54:42 deuce Exp $ */
+/* $Id: syncterm.c,v 1.152 2008/09/29 06:46:49 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -30,7 +30,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.2"
+char* syncterm_version = "SyncTERM 0.9.3\xe1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
