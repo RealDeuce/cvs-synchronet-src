@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.76 2009/01/14 07:06:30 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.62 2008/09/30 02:27:25 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -49,7 +49,7 @@
 
 /* xpdev headers */
 #ifdef WITH_PORTAUDIO
-#include <portaudio.h>
+#include "portaudio.h"
 #endif
 
 #ifdef WITH_SDL_AUDIO
@@ -95,13 +95,9 @@ static int				portaudio_buf_len=0;
 static int				portaudio_buf_pos=0;
 static const unsigned char	*pawave;
 static int				portaudio_initialized=FALSE;
-#ifndef PaStream	// Detect version... defined for 1.8 and not for 1.9
-#define PortAudioCallback	void
-#define PaTimestamp		PaTime
-#endif
 struct portaudio_api_struct {
 	PaError (*init)( void );
-	PaError (*open)( PaStream** stream,
+	PaError (*open)( PortAudioStream** stream,
                               int numInputChannels,
                               int numOutputChannels,
                               PaSampleFormat sampleFormat,
@@ -110,11 +106,11 @@ struct portaudio_api_struct {
                               unsigned long numberOfBuffers,
                               PortAudioCallback *callback,
                               void *userData );
-	PaError (*close)( PaStream* );
-	PaError (*start)( PaStream *stream );
-	PaError (*stop)( PaStream *stream );
-	PaError (*active)( PaStream *stream );
-	PaError (*write)( PaStream *stream, const void *buf, unsigned long frames );
+	PaError (*close)( PortAudioStream* );
+	PaError (*start)( PortAudioStream *stream );
+	PaError (*stop)( PortAudioStream *stream );
+	PaError (*active)( PortAudioStream *stream );
+	PaError (*write)( PortAudioStream *stream, const void *buf, unsigned long frames );
 	int	(*version)( void );
 	int	ver;
 };
@@ -328,11 +324,7 @@ BOOL xptone_open(void)
 					|| ((pa_api->open=xp_dlsym(dl,Pa_OpenDefaultStream))==NULL)
 					|| ((pa_api->close=xp_dlsym(dl,Pa_CloseStream))==NULL)
 					|| ((pa_api->start=xp_dlsym(dl,Pa_StartStream))==NULL)
-					||
-						(
-							((pa_api->active=xp_dlsym(dl,Pa_StreamActive))==NULL)
-							&& ((pa_api->active=xp_dlsym(dl,Pa_IsStreamActive))==NULL)
-						)
+					|| ((pa_api->active=xp_dlsym(dl,Pa_StreamActive))==NULL)
 					|| ((pa_api->stop=xp_dlsym(dl,Pa_StopStream))==NULL)
 					) {
 				if(dl)
@@ -343,10 +335,10 @@ BOOL xptone_open(void)
 			else {
 				/* Get version and other optional pointers */
 				pa_api->ver=1800;
-				if((pa_api->version=xp_dlsym(dl, Pa_GetVersion))!=NULL) {
+				if(pa_api->version=xp_dlsym(dl, Pa_GetVersion)!=NULL) {
 					pa_api->ver=pa_api->version();
-					if(pa_api->ver >= 1899) {
-						if((pa_api->write=xp_dlsym(dl, Pa_WriteStream))==NULL) {
+					if(pa_api->ver >= 1900) {
+						if(pa_api->write=xp_dlsym(dl, Pa_WriteStream)==NULL) {
 							xp_dlclose(dl);
 							free(pa_api);
 							pa_api=NULL;
@@ -358,28 +350,26 @@ BOOL xptone_open(void)
                 portaudio_device_open_failed=TRUE;
 			}
 		}
-		if(pa_api != NULL) {
-			if(!portaudio_initialized) {
-				if(pa_api->init() != paNoError)
-					portaudio_device_open_failed=TRUE;
-				else
-					portaudio_initialized=TRUE;
-			}
-			if(portaudio_initialized) {
-				if(pa_api->open(&portaudio_stream
-						, 0	/* No input */
-						, 1	/* Mono output */
-						, paUInt8
-						, S_RATE
-						, 256
-						, 0
-						, pa_api->ver >= 1899 ? NULL : portaudio_callback
-						, &pawave) != paNoError)
-					portaudio_device_open_failed=TRUE;
-				else {
-					handle_type=SOUND_DEVICE_PORTAUDIO;
-					return(TRUE);
-				}
+		if(!portaudio_initialized) {
+			if(pa_api->init() != paNoError)
+				portaudio_device_open_failed=TRUE;
+			else
+				portaudio_initialized=TRUE;
+		}
+		if(portaudio_initialized) {
+			if(pa_api->open(&portaudio_stream
+					, 0	/* No input */
+					, 1	/* Mono output */
+					, paUInt8
+					, S_RATE
+					, S_RATE/100	/* Buffer size is 1/100 of a second */
+					, (S_RATE*15/2+1)/(S_RATE/100)+1	/* Enough buffers for all audio data */
+					, pa_api->ver >= 1900 ? NULL : portaudio_callback
+					, &pawave) != paNoError)
+				portaudio_device_open_failed=TRUE;
+			else {
+				handle_type=SOUND_DEVICE_PORTAUDIO;
+				return(TRUE);
 			}
 		}
 	}
@@ -484,7 +474,6 @@ BOOL xptone_open(void)
 				}
 			}
 			else {
-				alsa_api->snd_pcm_hw_params_free(hw_params);
 				handle_type=SOUND_DEVICE_ALSA;
 				return(TRUE);
 			}
@@ -567,7 +556,6 @@ void xp_play_sample_thread(void *data)
 {
 	BOOL			must_close=FALSE;
 	BOOL			posted_last=TRUE;
-	BOOL			waited=FALSE;
 
 #ifdef AFMT_U8
 	int wr;
@@ -576,12 +564,8 @@ void xp_play_sample_thread(void *data)
 
 	sample_thread_running=TRUE;
 	while(1) {
-		if(!waited) {
-			if(sem_wait(&sample_pending_sem)!=0)
-				goto error_return;
-		}
-		else
-			waited=FALSE;
+		if(sem_wait(&sample_pending_sem)!=0)
+			goto error_return;
 		posted_last=FALSE;
 		if(pthread_mutex_lock(&sample_mutex)!=0)
 			goto error_return;
@@ -597,7 +581,7 @@ void xp_play_sample_thread(void *data)
 
 	#ifdef WITH_PORTAUDIO
 		if(handle_type==SOUND_DEVICE_PORTAUDIO) {
-			if(pa_api->ver >= 1899) {
+			if(pa_api->ver >= 1900) {
 				pa_api->write(portaudio_stream, sample_buffer, sample_size);
 			}
 			else {
@@ -640,25 +624,17 @@ void xp_play_sample_thread(void *data)
 
 	#ifdef USE_ALSA_SOUND
 		if(handle_type==SOUND_DEVICE_ALSA) {
-			int ret;
-			int written=0;
-
-			while(written < sample_size) {
-				ret=alsa_api->snd_pcm_writei(playback_handle, sample_buffer+written, sample_size-written);
-				if(ret < 0) {
-					if(written==0) {
-						/* Go back and try OSS */
-						xptone_close();
-						alsa_device_open_failed=TRUE;
-						xptone_open();
-					}
-					break;
+			alsa_api->snd_pcm_hw_params_free(hw_params);
+			if(playback_handle != NULL) {
+				if(alsa_api->snd_pcm_writei(playback_handle, sample_buffer, sample_size)!=sample_size) {
+					/* Go back and try OSS */
+					alsa_device_open_failed=TRUE;
+					xptone_close();
+					xptone_open();
 				}
-				written += ret;
-			}
-			if(!alsa_device_open_failed) {
-				while(alsa_api->snd_pcm_drain(playback_handle))
-					SLEEP(1);
+				else {
+					alsa_api->snd_pcm_drain(playback_handle);
+				}
 			}
 		}
 	#endif
@@ -676,12 +652,8 @@ void xp_play_sample_thread(void *data)
 		sem_post(&sample_complete_sem);
 		posted_last=TRUE;
 		pthread_mutex_unlock(&sample_mutex);
-		if(must_close) {
-			if(sem_trywait(&sample_pending_sem)==0)
-				waited=TRUE;
-			else
-				xptone_close();
-		}
+		if(must_close)
+			xptone_close();
 	}
 
 error_return:
@@ -745,8 +717,8 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 
 #ifdef WITH_PORTAUDIO
 	if(handle_type==SOUND_DEVICE_PORTAUDIO) {
-		if(pa_api->ver >= 1899) {
-			pa_api->write(portaudio_stream, sample, sample_size);
+		if(pa_api->ver >= 1900) {
+			pa_api->write(portaudio_stream, sample_buffer, sample_size);
 		}
 		else {
 			pawave=sample;
@@ -788,28 +760,20 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 
 #ifdef USE_ALSA_SOUND
 	if(handle_type==SOUND_DEVICE_ALSA) {
-		int ret;
-		int written=0;
-
-		while(written < sample_size) {
-			ret=alsa_api->snd_pcm_writei(playback_handle, written, sample_size-written);
-			if(ret < 0) {
-				if(written==0) {
-					/* Go back and try OSS */
-					xptone_close();
-					alsa_device_open_failed=TRUE;
-					xptone_open();
-				}
-				break;
-			}
-			written += ret;
-		}
-		if(!alsa_device_open_failed) {
-			while(alsa_api->snd_pcm_drain(playback_handle))
-				SLEEP(1);
-			if(must_close)
+		alsa_api->snd_pcm_hw_params_free(hw_params);
+		if(playback_handle != NULL) {
+			if(alsa_api->snd_pcm_writei(playback_handle, sample, sample_size)!=sample_size) {
+				/* Go back and try OSS */
+				alsa_device_open_failed=TRUE;
 				xptone_close();
-			return(TRUE);
+				xptone_open();
+			}
+			else {
+				alsa_api->snd_pcm_drain(playback_handle);
+				if(must_close)
+					xptone_close();
+				return(TRUE);
+			}
 		}
 	}
 #endif
