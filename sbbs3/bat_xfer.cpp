@@ -2,13 +2,13 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.33 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.31 2008/02/14 08:13:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -101,7 +101,7 @@ void sbbs_t::batchmenu()
 					break; 
 				}
 				for(i=0,totalcdt=0;i<batdn_total;i++)
-					if(!is_download_free(&cfg,batdn_dir[i],&useron,&client))
+					if(!is_download_free(&cfg,batdn_dir[i],&useron))
 						totalcdt+=batdn_cdt[i];
 				if(totalcdt>useron.cdt+useron.freecdt) {
 					bprintf(text[YouOnlyHaveNCredits]
@@ -122,17 +122,16 @@ void sbbs_t::batchmenu()
 				mnemonics(text[ProtocolOrQuit]);
 				strcpy(tmp2,"Q");
 				for(i=0;i<cfg.total_prots;i++)
-					if(cfg.prot[i]->bicmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
+					if(cfg.prot[i]->bicmd[0] && chk_ar(cfg.prot[i]->ar,&useron)) {
 						sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
-						strcat(tmp2,tmp); 
-					}
+						strcat(tmp2,tmp); }
 				ungetkey(useron.prot);
 				ch=(char)getkeys(tmp2,0);
 				if(ch=='Q')
 					break;
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->bicmd[0] && cfg.prot[i]->mnemonic==ch
-						&& chk_ar(cfg.prot[i]->ar,&useron,&client))
+						&& chk_ar(cfg.prot[i]->ar,&useron))
 						break;
 				if(i<cfg.total_prots) {
 					if(!create_batchdn_lst((cfg.prot[i]->misc&PROT_NATIVE) ? true:false))
@@ -175,8 +174,7 @@ void sbbs_t::batchmenu()
 						if(cfg.dir[batdn_dir[i]]->seqdev) {
 							unpadfname(batdn_name[i],tmp);
 							sprintf(tmp2,"%s%s",cfg.temp_dir,tmp);
-							remove(tmp2); 
-						}
+							remove(tmp2); }
 					batch_upload();
 					batch_download(xfrprot);
 					if(batdn_total)     /* files still in queue, not xfered */
@@ -198,8 +196,7 @@ void sbbs_t::batchmenu()
 							f.datoffset=batdn_offset[i];
 							f.size=batdn_size[i];
 							strcpy(f.name,batdn_name[i]);
-							closefile(&f); 
-						}
+							closefile(&f); }
 						batdn_total=0;
 						bputs(text[DownloadQueueCleared]); 
 					} 
@@ -213,8 +210,7 @@ void sbbs_t::batchmenu()
 					bputs(text[UploadQueueLstHdr]);
 					for(i=0;i<batup_total;i++)
 						bprintf(text[UploadQueueLstFmt],i+1,batup_name[i]
-							,batup_desc[i]); 
-				}
+							,batup_desc[i]); }
 				if(batdn_total) {
 					bputs(text[DownloadQueueLstHdr]);
 					for(i=0,totalcdt=0,totalsize=0;i<batdn_total;i++) {
@@ -225,13 +221,11 @@ void sbbs_t::batchmenu()
 							? sectostr(batdn_size[i]/(ulong)cur_cps,tmp2)
 							: "??:??:??");
 						totalsize+=batdn_size[i];
-						totalcdt+=batdn_cdt[i]; 
-					}
+						totalcdt+=batdn_cdt[i]; }
 					bprintf(text[DownloadQueueTotals]
 						,ultoac(totalcdt,tmp),ultoac(totalsize,str),cur_cps
 						? sectostr(totalsize/(ulong)cur_cps,tmp2)
-						: "??:??:??"); 
-				}
+						: "??:??:??"); }
 				break;  /* Questionable line ^^^, see note above function */
 			case 'R':
 				if(batup_total) {
@@ -246,8 +240,7 @@ void sbbs_t::batchmenu()
 							batup_alt[n]=batup_alt[n+1];
 							strcpy(batup_name[n],batup_name[n+1]);
 							strcpy(batup_desc[n],batup_desc[n+1]);
-							n++; 
-						}
+							n++; }
 						if(!batup_total)
 							bputs(text[UploadQueueCleared]); 
 					} 
@@ -295,7 +288,7 @@ void sbbs_t::batchmenu()
 				mnemonics(text[ProtocolOrQuit]);
 				strcpy(str,"Q");
 				for(i=0;i<cfg.total_prots;i++)
-					if(cfg.prot[i]->batulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
+					if(cfg.prot[i]->batulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron)) {
 						sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
 						strcat(str,tmp); 
 					}
@@ -304,7 +297,7 @@ void sbbs_t::batchmenu()
 					break;
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->batulcmd[0] && cfg.prot[i]->mnemonic==ch
-						&& chk_ar(cfg.prot[i]->ar,&useron,&client))
+						&& chk_ar(cfg.prot[i]->ar,&useron))
 						break;
 				if(i<cfg.total_prots) {
 					sprintf(str,"%sBATCHUP.LST",cfg.node_dir);
@@ -361,7 +354,7 @@ BOOL sbbs_t::start_batch_download()
 		return(FALSE); 
 	}
 	for(i=0,totalcdt=0;i<batdn_total;i++)
-		if(is_download_free(&cfg,batdn_dir[i],&useron,&client))
+		if(is_download_free(&cfg,batdn_dir[i],&useron))
 			totalcdt+=batdn_cdt[i];
 	if(totalcdt>useron.cdt+useron.freecdt) {
 		bprintf(text[YouOnlyHaveNCredits]
@@ -383,7 +376,7 @@ BOOL sbbs_t::start_batch_download()
 	mnemonics(text[ProtocolOrQuit]);
 	strcpy(str,"Q");
 	for(i=0;i<cfg.total_prots;i++)
-		if(cfg.prot[i]->batdlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
+		if(cfg.prot[i]->batdlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron)) {
 			sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
 			strcat(str,tmp); 
 		}
@@ -393,7 +386,7 @@ BOOL sbbs_t::start_batch_download()
 		return(FALSE);
 	for(i=0;i<cfg.total_prots;i++)
 		if(cfg.prot[i]->batdlcmd[0] && cfg.prot[i]->mnemonic==ch
-			&& chk_ar(cfg.prot[i]->ar,&useron,&client))
+			&& chk_ar(cfg.prot[i]->ar,&useron))
 			break;
 	if(i>=cfg.total_prots)
 		return(FALSE);	/* no protocol selected */
@@ -450,7 +443,7 @@ BOOL sbbs_t::start_batch_download()
 		for(j=0;j<cfg.total_dlevents;j++) {
 			if(stricmp(cfg.dlevent[j]->ext,batdn_name[i]+9))
 				continue;
-			if(!chk_ar(cfg.dlevent[j]->ar,&useron,&client))
+			if(!chk_ar(cfg.dlevent[j]->ar,&useron))
 				continue;
 			bputs(cfg.dlevent[j]->workstr);
 			external(cmdstr(cfg.dlevent[j]->cmd,path,nulstr,NULL),EX_OUTL);
@@ -799,17 +792,17 @@ bool sbbs_t::addtobatdl(file_t* f)
 		return(false); 
 	}
 	for(i=0,totalcdt=0;i<batdn_total;i++)
-		if(!is_download_free(&cfg,batdn_dir[i],&useron,&client))
+		if(!is_download_free(&cfg,batdn_dir[i],&useron))
 			totalcdt+=batdn_cdt[i];
 	if(cfg.dir[f->dir]->misc&DIR_FREE) f->cdt=0L;
-	if(!is_download_free(&cfg,f->dir,&useron,&client))
+	if(!is_download_free(&cfg,f->dir,&useron))
 		totalcdt+=f->cdt;
 	if(totalcdt>useron.cdt+useron.freecdt) {
 		bprintf(text[CantAddToQueue],f->name);
 		bprintf(text[YouOnlyHaveNCredits],ultoac(useron.cdt+useron.freecdt,tmp));
 		return(false); 
 	}
-	if(!chk_ar(cfg.dir[f->dir]->dl_ar,&useron,&client)) {
+	if(!chk_ar(cfg.dir[f->dir]->dl_ar,&useron)) {
 		bprintf(text[CantAddToQueue],f->name);
 		bputs(text[CantDownloadFromDir]);
 		return(false); 
