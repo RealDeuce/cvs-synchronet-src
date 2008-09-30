@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.125 2007/11/13 01:37:56 deuce Exp $ */
+/* $Id: syncterm.c,v 1.152 2008/09/29 06:46:49 deuce Exp $ */
 
 #define NOCRYPT		/* Stop windows.h from loading wincrypt.h */
 					/* Is windows.h REALLY necessary?!?! */
@@ -30,20 +30,11 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.1"
+char* syncterm_version = "SyncTERM 0.9.3\xe1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
 	;
-
-/* Default modem device */
-#if defined(__APPLE__) && defined(__MACH__)
-/* Mac OS X */
-#define DEFAULT_MODEM_DEV	"/dev/tty.modem"
-#else
-/* FreeBSD */
-#define DEFAULT_MODEM_DEV	"/dev/ttyd0"
-#endif
 
 char *inpath=NULL;
 int default_font=0;
@@ -51,6 +42,8 @@ struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
 unsigned char *scrollback_buf=NULL;
 unsigned int  scrollback_lines=0;
+unsigned int  scrollback_mode=C80;
+unsigned int  scrollback_cols=80;
 int	safe_mode=0;
 FILE* log_fp;
 extern ini_style_t ini_style;
@@ -666,6 +659,7 @@ char *output_types[]={
 #endif
 #ifdef _WIN32
 	,"Win32 Console"
+	,"Win32 Console Fullscreen"
 #endif
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,"SDL"
@@ -686,6 +680,7 @@ int output_map[]={
 #endif
 #ifdef _WIN32
 	,CIOLIB_MODE_CONIO
+	,CIOLIB_MODE_CONIO_FULLSCREEN
 #endif
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,CIOLIB_MODE_SDL
@@ -701,6 +696,7 @@ char *output_descrs[]={
 	,"ANSI"
 	,"X11"
 	,"Win32 Console"
+	,"Win32 Console Fullscreen"
 	,"SDL"
 	,"SDL Fullscreen"
 	,"SDL Overlay"
@@ -714,6 +710,7 @@ char *output_enum[]={
 	,"ANSI"
 	,"X11"
 	,"WinConsole"
+	,"WinConsoleFullscreen"
 	,"SDL"
 	,"SDLFullscreen"
 	,"SDLOverlay"
@@ -737,7 +734,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	if(force_defaults) {
 		bbs->user[0]=0;
 		bbs->password[0]=0;
-		bbs->reversed=FALSE;
 		bbs->screen_mode=SCREEN_MODE_CURRENT;
 		bbs->conn_type=dflt_conn_type;
 		bbs->port=conn_ports[dflt_conn_type];
@@ -775,10 +771,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	}
 #endif
 	/* ToDo: RFC2806 */
-	/* Remove trailing / (Win32 adds one 'cause it hates me) */
-	p2=strchr(p1,'/');
-	if(p2!=NULL)
-		*p2=0;
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
 		*p3=0;
@@ -798,6 +790,10 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		p2++;
 		bbs->port=atoi(p2);
 	}
+	/* Remove trailing / (Win32 adds one 'cause it hates me) */
+	p2=strrchr(p1,'/');
+	if(p2!=NULL && *(p2+1)==0)
+		*p2=0;
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
@@ -891,8 +887,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 			break;
 	}
 #else
-	char	*home;
-	int		created;
+	char	*home=NULL;
 
 	if(inpath==NULL)
 		home=getenv("HOME");
@@ -976,14 +971,16 @@ void load_settings(struct syncterm_settings *set)
 	inifile=fopen(inipath,"r");
 	set->confirm_close=iniReadBool(inifile,"SyncTERM","ConfirmClose",FALSE);
 	set->prompt_save=iniReadBool(inifile,"SyncTERM","PromptSave",TRUE);
-	set->startup_mode=iniReadInteger(inifile,"SyncTERM","VideoMode",FALSE);
+	set->startup_mode=iniReadEnum(inifile,"SyncTERM","VideoMode",screen_modes,SCREEN_MODE_CURRENT);
+	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 
 	/* Modem settings */
-	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F", set->mdm.init_string);
+	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
+	iniReadString(inifile, "SyncTERM", "ModemDial", "ATDT", set->mdm.dial_string);
 	iniReadString(inifile, "SyncTERM", "ModemDevice", DEFAULT_MODEM_DEV, set->mdm.device_name);
-
+	set->mdm.com_rate=iniReadLongInt(inifile, "SyncTERM", "ModemComRate", 0);
 	/* Sort order */
 	sortby=iniReadStringList(inifile, "SyncTERM", "SortOrder", ",", "5,1");
 	while((order=strListRemove(&sortby,0))!=NULL) {
@@ -991,6 +988,9 @@ void load_settings(struct syncterm_settings *set)
 		free(order);
 	}
 	strListFree(&sortby);
+
+	/* Shell TERM settings */
+	iniReadString(inifile, "SyncTERM", "TERM", "ansi", set->TERM);
 
 	if(inifile)
 		fclose(inifile);
@@ -1016,6 +1016,8 @@ int main(int argc, char **argv)
 	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
 	BOOL	dont_set_mode=FALSE;
+	BOOL	override_conn=FALSE;
+	char	*last_bbs=NULL;
 
 	/* Cryptlib initialization MUST be done before ciolib init */
 	if(!crypt_loaded)
@@ -1061,6 +1063,11 @@ int main(int argc, char **argv)
 							break;
 						case 'W':
 							ciolib_mode=CIOLIB_MODE_CONIO;
+							switch(toupper(argv[i][3])) {
+								case 'F':
+									ciolib_mode=CIOLIB_MODE_CONIO_FULLSCREEN;
+									break;
+							}
 							break;
 						case 'S':
 							switch(toupper(argv[i][3])) {
@@ -1094,12 +1101,15 @@ int main(int argc, char **argv)
                     break;
 				case 'R':
 					conn_type=CONN_TYPE_RLOGIN;
+					override_conn=TRUE;
 					break;
 				case 'H':
 					conn_type=CONN_TYPE_SSH;
+					override_conn=TRUE;
 					break;
 				case 'T':
 					conn_type=CONN_TYPE_TELNET;
+					override_conn=TRUE;
 					break;
 				case 'S':
 					safe_mode=1;
@@ -1114,37 +1124,8 @@ int main(int argc, char **argv)
 	if(initciolib(ciolib_mode))
 		return(1);
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
-	if(!dont_set_mode) {
-		switch(settings.startup_mode) {
-			case SCREEN_MODE_80X25:
-				textmode(C80);
-				break;
-			case SCREEN_MODE_80X28:
-				textmode(C80X28);
-				break;
-			case SCREEN_MODE_80X43:
-				textmode(C80X43);
-				break;
-			case SCREEN_MODE_80X50:
-				textmode(C80X50);
-				break;
-			case SCREEN_MODE_80X60:
-				textmode(C80X60);
-				break;
-			case SCREEN_MODE_C64:
-				textmode(C64_40X25);
-				break;
-			case SCREEN_MODE_C128_40:
-				textmode(C128_40X25);
-				break;
-			case SCREEN_MODE_C128_80:
-				textmode(C128_80X25);
-				break;
-			case SCREEN_MODE_ATARI:
-				textmode(ATARI_40X24);
-				break;
-		}
-	}
+	if(!dont_set_mode)
+		textmode(screen_to_ciolib(settings.startup_mode));
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1160,11 +1141,6 @@ int main(int argc, char **argv)
 		FULLPATH(path,inpath,sizeof(path));
 	atexit(uifcbail);
 
-	scrollback_buf=malloc(80*2*settings.backlines);	/* Terminal width is *always* 80 cols */
-	if(scrollback_buf==NULL) {
-		uifc.msg("Cannot allocate space for scrollback buffer.\n");
-	}
-
 #ifdef __unix__
 	umask(077);
 #endif
@@ -1178,6 +1154,7 @@ int main(int argc, char **argv)
 			uifcmsg("Unable to allocate memory","The system was unable to allocate memory.");
 			return(1);
 		}
+		memset(bbs, 0, sizeof(struct bbslist));
 		if((listfile=fopen(listpath,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
 		else {
@@ -1185,6 +1162,11 @@ int main(int argc, char **argv)
 			inilines=iniReadFile(listfile);
 			fclose(listfile);
 			read_item(inilines, bbs, NULL, 0, USER_BBSLIST);
+			if(override_conn) {
+				if(conn_type != bbs->conn_type)
+					bbs->port=conn_ports[conn_type];
+				bbs->conn_type=conn_type;
+			}
 			parse_url(url, bbs, conn_type, FALSE);
 			strListFree(&inilines);
 		}
@@ -1196,8 +1178,9 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while(bbs!=NULL || (bbs=show_bbslist(BBSLIST_SELECT))!=NULL) {
+	while(bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
+		FREE_AND_NULL(last_bbs);
 		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
@@ -1221,35 +1204,7 @@ int main(int argc, char **argv)
 				}
 			}
 			uifcbail();
-			switch(bbs->screen_mode) {
-				case SCREEN_MODE_80X25:
-					textmode(C80);
-					break;
-				case SCREEN_MODE_80X28:
-					textmode(C80X28);
-					break;
-				case SCREEN_MODE_80X43:
-					textmode(C80X43);
-					break;
-				case SCREEN_MODE_80X50:
-					textmode(C80X50);
-					break;
-				case SCREEN_MODE_80X60:
-					textmode(C80X60);
-					break;
-				case SCREEN_MODE_C64:
-					textmode(C64_40X25);
-					break;
-				case SCREEN_MODE_C128_40:
-					textmode(C128_40X25);
-					break;
-				case SCREEN_MODE_C128_80:
-					textmode(C128_80X25);
-					break;
-				case SCREEN_MODE_ATARI:
-					textmode(ATARI_40X24);
-					break;
-			}
+			textmode(screen_to_ciolib(bbs->screen_mode));
 			load_font_files();
 			setfont(find_font_id(bbs->font),TRUE);
 			sprintf(str,"SyncTERM - %s",bbs->name);
@@ -1259,7 +1214,7 @@ int main(int argc, char **argv)
 				return(1);
 			}
 			if(log_fp==NULL && bbs->logfile[0])
-				log_fp=fopen(bbs->logfile,"a");
+				log_fp=fopen(bbs->logfile,bbs->append_logfile ? "a" : "w");
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
@@ -1270,6 +1225,7 @@ int main(int argc, char **argv)
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
 				fprintf(log_fp,"%.15s Log closed\n", ctime(&now)+4);
+				fprintf(log_fp,"---------------\n");
 				fclose(log_fp);
 				log_fp=NULL;
 			}
@@ -1291,10 +1247,12 @@ int main(int argc, char **argv)
 						char	*YesNo[3]={"Yes","No",""};
 						/* Started from the command-line with a URL */
 						init_uifc(TRUE, TRUE);
-						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this BBS in directory?",YesNo)) {
+						i=1;
+						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this directory entry?",YesNo)) {
 							case 0:	/* Yes */
 								edit_list(NULL, bbs,listpath,FALSE);
 								add_bbs(listpath,bbs);
+								last_bbs=strdup(bbs->name);
 								break;
 							default: /* ESC/No */
 								break;
@@ -1306,6 +1264,8 @@ int main(int argc, char **argv)
 			bbs=NULL;
 			break;
 		}
+		else
+			last_bbs=strdup(bbs->name);
 		bbs=NULL;
 	}
 	uifcbail();
@@ -1330,7 +1290,7 @@ int main(int argc, char **argv)
 		"       C = Curses mode\n"
 		"       F = Curses mode with forced IBM charset\n"
 #else
-		"       W = Win32 native mode\n"
+		"       W[F] = Win32 native mode, F for fullscreen\n"
 #endif
 		"       A = ANSI mode\n"
         "-l# =  set screen lines to # (default=auto-detect)\n"
@@ -1356,4 +1316,92 @@ int main(int argc, char **argv)
         );
 	getch();
 	return(0);
+}
+
+int screen_to_ciolib(int screen)
+{
+	struct text_info	ti;
+
+	switch(screen) {
+		case SCREEN_MODE_CURRENT:
+			gettextinfo(&ti);
+			return(ti.currmode);
+		case SCREEN_MODE_80X25:
+			return(C80);
+		case SCREEN_MODE_80X28:
+			return(C80X28);
+		case SCREEN_MODE_80X43:
+			return(C80X43);
+		case SCREEN_MODE_80X50:
+			return(C80X50);
+		case SCREEN_MODE_80X60:
+			return(C80X60);
+		case SCREEN_MODE_132X25:
+			return(VESA_132X25);
+		case SCREEN_MODE_132X28:
+			return(VESA_132X28);
+		case SCREEN_MODE_132X30:
+			return(VESA_132X30);
+		case SCREEN_MODE_132X34:
+			return(VESA_132X34);
+		case SCREEN_MODE_132X43:
+			return(VESA_132X43);
+		case SCREEN_MODE_132X50:
+			return(VESA_132X50);
+		case SCREEN_MODE_132X60:
+			return(VESA_132X60);
+		case SCREEN_MODE_C64:
+			return(C64_40X25);
+		case SCREEN_MODE_C128_40:
+			return(C128_40X25);
+		case SCREEN_MODE_C128_80:
+			return(C128_80X25);
+		case SCREEN_MODE_ATARI:
+			return(ATARI_40X24);
+		case SCREEN_MODE_ATARI_XEP80:
+			return(ATARI_80X25);
+	}
+	gettextinfo(&ti);
+	return(ti.currmode);
+}
+
+int ciolib_to_screen(int ciolib)
+{
+	switch(ciolib) {
+		case C80 :
+			return(SCREEN_MODE_80X25);
+		case C80X28 :
+			return(SCREEN_MODE_80X28);
+		case C80X43 :
+			return(SCREEN_MODE_80X43);
+		case C80X50 :
+			return(SCREEN_MODE_80X50);
+		case C80X60 :
+			return(SCREEN_MODE_80X60);
+		case VESA_132X25 :
+			return(SCREEN_MODE_132X25);
+		case VESA_132X28 :
+			return(SCREEN_MODE_132X28);
+		case VESA_132X30 :
+			return(SCREEN_MODE_132X30);
+		case VESA_132X34 :
+			return(SCREEN_MODE_132X34);
+		case VESA_132X43 :
+			return(SCREEN_MODE_132X43);
+		case VESA_132X50 :
+			return(SCREEN_MODE_132X50);
+		case VESA_132X60 :
+			return(SCREEN_MODE_132X60);
+		case C64_40X25 :
+			return(SCREEN_MODE_C64);
+		case C128_40X25 :
+			return(SCREEN_MODE_C128_40);
+		case C128_80X25 :
+			return(SCREEN_MODE_C128_80);
+		case ATARI_40X24 :
+			return(SCREEN_MODE_ATARI);
+		case ATARI_80X25:
+			return(SCREEN_MODE_ATARI_XEP80);
+	}
+	return(SCREEN_MODE_CURRENT);
 }
