@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.319 2008/12/20 06:03:06 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.317 2008/08/30 19:03:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,7 +231,6 @@ public:
 	js_branch_t	js_branch;
 	long		js_execfile(const char *fname);
 	bool		js_init(ulong* stack_frame);
-	void		js_cleanup(const char* node);
 	void		js_create_user_objects(void);
 
 #endif
@@ -960,7 +959,7 @@ extern "C" {
 		 JSTYPE_ARRAY=JSTYPE_LIMIT
 		,JSTYPE_ALIAS
 		,JSTYPE_UNDEF
-#if JS_VERSION < JSVERSION_1_6	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
+#if !defined(JSTYPE_NULL)	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
 		,JSTYPE_NULL
 #endif
 	};
