@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.75 2008/12/15 00:12:49 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.73 2008/09/30 05:18:18 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -49,7 +49,7 @@
 
 /* xpdev headers */
 #ifdef WITH_PORTAUDIO
-#include <portaudio.h>
+#include "portaudio.h"
 #endif
 
 #ifdef WITH_SDL_AUDIO
@@ -95,13 +95,9 @@ static int				portaudio_buf_len=0;
 static int				portaudio_buf_pos=0;
 static const unsigned char	*pawave;
 static int				portaudio_initialized=FALSE;
-#ifndef PaStream	// Detect version... defined for 1.8 and not for 1.9
-#define PortAudioCallback	void
-#define PaTimestamp		PaTime
-#endif
 struct portaudio_api_struct {
 	PaError (*init)( void );
-	PaError (*open)( PaStream** stream,
+	PaError (*open)( PortAudioStream** stream,
                               int numInputChannels,
                               int numOutputChannels,
                               PaSampleFormat sampleFormat,
@@ -110,11 +106,11 @@ struct portaudio_api_struct {
                               unsigned long numberOfBuffers,
                               PortAudioCallback *callback,
                               void *userData );
-	PaError (*close)( PaStream* );
-	PaError (*start)( PaStream *stream );
-	PaError (*stop)( PaStream *stream );
-	PaError (*active)( PaStream *stream );
-	PaError (*write)( PaStream *stream, const void *buf, unsigned long frames );
+	PaError (*close)( PortAudioStream* );
+	PaError (*start)( PortAudioStream *stream );
+	PaError (*stop)( PortAudioStream *stream );
+	PaError (*active)( PortAudioStream *stream );
+	PaError (*write)( PortAudioStream *stream, const void *buf, unsigned long frames );
 	int	(*version)( void );
 	int	ver;
 };
@@ -786,7 +782,7 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 		int written=0;
 
 		while(written < sample_size) {
-			ret=alsa_api->snd_pcm_writei(playback_handle, written, sample_size-written);
+			ret=alsa_api->snd_pcm_writei(playback_handle, sample_written, sample_size-written);
 			if(ret < 0) {
 				if(written==0) {
 					/* Go back and try OSS */
