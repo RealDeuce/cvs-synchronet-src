@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.351 2009/03/01 00:32:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.330 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,8 +51,6 @@
 #include "text.h"			/* TOTAL_TEXT */
 #include "ftpsrvr.h"
 #include "telnet.h"
-#include "js_rtpool.h"
-#include "js_request.h"
 
 /* Constants */
 
@@ -130,26 +128,20 @@ BOOL dir_op(scfg_t* cfg, user_t* user, uint dirnum)
 
 static int lprintf(int level, const char *fmt, ...)
 {
+	int		result;
 	va_list argptr;
 	char sbuf[1024];
+
+    if(startup==NULL || startup->lputs==NULL)
+        return(0);
 
     va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
+    result=startup->lputs(startup->cbdata,level,sbuf);
 
-	if(level <= LOG_ERR)
-		errorlog(&scfg,sbuf);
-
-    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
-		return(0);
-
-#if defined(_WIN32)
-	if(IsBadCodePtr((FARPROC)startup->lputs))
-		return(0);
-#endif
-
-    return startup->lputs(startup->cbdata,level,sbuf);
+	return(result);
 }
 
 #ifdef _WINSOCKAPI_
@@ -164,12 +156,12 @@ static BOOL winsock_startup(void)
 	int		status;             /* Status Code */
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
-		lprintf(LOG_DEBUG,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
+		lprintf(LOG_INFO,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
 		WSAInitialized=TRUE;
 		return (TRUE);
 	}
 
-    lprintf(LOG_CRIT,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
 	return (FALSE);
 }
 
@@ -394,7 +386,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     uintN		i;
     JSString*	str=NULL;
 	FILE*	fp;
-	jsrefcount	rc;
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -403,9 +394,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		str = JS_ValueToString(cx, argv[i]);
 		if (!str)
 		    return JS_FALSE;
-		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(fp,"%s",JS_GetStringBytes(str));
-		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
@@ -419,15 +408,12 @@ static JSBool
 js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	FILE*	fp;
-	jsrefcount	rc;
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
 	js_write(cx,obj,argc,argv,rval);
-	rc=JS_SUSPENDREQUEST(cx);
 	fprintf(fp,"\r\n");
-	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -445,7 +431,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	char*	warning;
 	FILE*	fp;
-	int		log_level;
 
 	fp=(FILE*)JS_GetContextPrivate(cx);
 	
@@ -471,13 +456,10 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 			warning="strict warning";
 		else
 			warning="warning";
-		log_level=LOG_WARNING;
-	} else {
-		log_level=LOG_ERR;
+	} else
 		warning="";
-	}
 
-	lprintf(log_level,"!JavaScript %s%s%s: %s",warning,file,line,message);
+	lprintf(LOG_ERR,"!JavaScript %s%s%s: %s",warning,file,line,message);
 	if(fp!=NULL)
 		fprintf(fp,"!JavaScript %s%s%s: %s",warning,file,line,message);
 }
@@ -494,7 +476,6 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 
     if((js_cx = JS_NewContext(runtime, startup->js.cx_stack))==NULL)
 		return(NULL);
-	JS_BEGINREQUEST(js_cx);
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Context created",sock);
 
@@ -528,7 +509,6 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 	} while(0);
 
 	if(!success) {
-		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
 	}
@@ -645,7 +625,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 	JSScript*	js_script=NULL;
 	JSString*	js_str;
 	long double		start=xp_timer();
-	jsrefcount	rc;
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Generating HTML Index for %s"
 		,sock, genvpath(lib,dir,str));
@@ -678,7 +657,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		rc=JS_SUSPENDREQUEST(js_cx);
 		if(strcspn(startup->html_index_script,"/\\")==strlen(startup->html_index_script)) {
 			sprintf(spath,"%s%s",scfg.mods_dir,startup->html_index_script);
 			if(scfg.mods_dir[0]==0 || !fexist(spath))
@@ -690,11 +668,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			strcat(spath,".js");
 
 		if(!fexist(spath)) {
-			JS_RESUMEREQUEST(js_cx, rc);
 			lprintf(LOG_ERR,"%04d !HTML JavaScript (%s) doesn't exist",sock,spath);
 			break;
 		}
-		JS_RESUMEREQUEST(js_cx, rc);
 
 		if((js_str=JS_NewStringCopyZ(js_cx, startup->html_index_file))==NULL)
 			break;
@@ -797,7 +773,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 		if(lib<0) {	/* root dir */
 
-			rc=JS_SUSPENDREQUEST(js_cx);
 			/* File Aliases */
 			sprintf(path,"%sftpalias.cfg",scfg.ctrl_dir);
 			if((alias_fp=fopen(path,"r"))!=NULL) {
@@ -857,7 +832,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						SAFEPRINTF2(vpath,"/%s/%s",p,startup->html_index_file);
 					} else
 						SAFECOPY(vpath,p);
-					JS_RESUMEREQUEST(js_cx, rc);
 					js_add_file(js_cx
 						,alias_dir ? dir_array : file_array
 						,p				/* filename */
@@ -873,12 +847,10 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						,scfg.sys_id	/* uploader */
 						,vpath			/* link */
 						);
-					rc=JS_SUSPENDREQUEST(js_cx);
 				}
 
 				fclose(alias_fp);
 			}
-			JS_RESUMEREQUEST(js_cx, rc);
 
 			/* QWK Packet */
 			if(startup->options&FTP_OPT_ALLOW_QWK /* && fexist(qwkfile) */) {
@@ -943,7 +915,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			}
 		} else if(chk_ar(&scfg,scfg.dir[dir]->ar,user)){
 			SAFEPRINTF(path,"%s*",scfg.dir[dir]->path);
-			rc=JS_SUSPENDREQUEST(js_cx);
 			glob(path,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
 				if(isdir(g.gl_pathv[i]))
@@ -962,13 +933,12 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						extdesc[0]=0;
 						getextdesc(&scfg, dir, f.datoffset, extdesc);
 						/* Remove Ctrl-A Codes and Ex-ASCII code */
-						remove_ctrl_a(extdesc,extdesc);
+						remove_ctrl_a(extdesc,NULL);
 					}
 					SAFEPRINTF3(vpath,"/%s/%s/%s"
 						,scfg.lib[scfg.dir[dir]->lib]->sname
 						,scfg.dir[dir]->code_suffix
 						,getfname(g.gl_pathv[i]));
-					JS_RESUMEREQUEST(js_cx, rc);
 					js_add_file(js_cx
 						,file_array 
 						,getfname(g.gl_pathv[i])	/* filename */
@@ -984,11 +954,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						,f.uler						/* uploader */
 						,getfname(g.gl_pathv[i])	/* link */
 						);
-					rc=JS_SUSPENDREQUEST(js_cx);
 				}
 			}
 			globfree(&g);
-			JS_RESUMEREQUEST(js_cx, rc);
 		}
 
 
@@ -1297,7 +1265,7 @@ static char* cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *c
 
 void DLLCALL ftp_terminate(void)
 {
-   	lprintf(LOG_INFO,"%04d FTP Server terminate",server_socket);
+   	lprintf(LOG_DEBUG,"%04d FTP Server terminate",server_socket);
 	terminate_server=TRUE;
 }
 
@@ -1352,7 +1320,6 @@ static void send_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("FTP Send");
 	thread_up(TRUE /* setuid */);
 
 	length=flength(xfer.filename);
@@ -1611,7 +1578,6 @@ static void receive_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("FTP RECV");
 	thread_up(TRUE /* setuid */);
 
 	if((fp=fopen(xfer.filename,xfer.append ? "ab" : "wb"))==NULL) {
@@ -1794,8 +1760,8 @@ static void receive_thread(void* arg)
 						ext[i]=0;
 						if(!f.desc[0]) {			/* use for normal description */
 							SAFECOPY(desc,ext);
-							strip_exascii(desc, desc);	/* strip extended ASCII chars */
-							prep_file_desc(desc, desc);	/* strip control chars and dupe chars */
+							strip_exascii(desc);	/* strip extended ASCII chars */
+							prep_file_desc(desc);	/* strip control chars and dupe chars */
 							for(i=0;desc[i];i++)	/* find approprate first char */
 								if(isalnum(desc[i]))
 									break;
@@ -2404,7 +2370,6 @@ static void ctrl_thread(void* arg)
 	JSString*	js_str;
 #endif
 
-	SetThreadName("FTP CTRL");
 	thread_up(TRUE /* setuid */);
 
 	lastactive=time(NULL);
@@ -2443,7 +2408,7 @@ static void ctrl_thread(void* arg)
 
 	SAFECOPY(host_ip,inet_ntoa(ftp.client_addr.sin_addr));
 
-	lprintf(LOG_INFO,"%04d CTRL connection accepted from: %s port %u"
+	lprintf(LOG_DEBUG,"%04d CTRL connection accepted from: %s port %u"
 		,sock, host_ip, ntohs(ftp.client_addr.sin_port));
 
 	if(startup->options&FTP_OPT_NO_HOST_LOOKUP)
@@ -3730,15 +3695,9 @@ static void ctrl_thread(void* arg)
 							,sock, str);
 					t=time(NULL);
 					while(fexist(str)) {
-						if(!socket_check(sock,NULL,NULL,0))
-							break;
 						if(time(NULL)-t>startup->qwk_timeout)
 							break;
 						mswait(1000);
-					}
-					if(!socket_check(sock,NULL,NULL,0)) {
-						remove(str);
-						continue;
 					}
 					if(fexist(str)) {
 						lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
@@ -3899,7 +3858,7 @@ static void ctrl_thread(void* arg)
 						lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
 							,sock,startup->js.max_bytes);
 
-						if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL) {
+						if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL) {
 							lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
 							sockprintf(sock,"451 Error creating JavaScript runtime");
 							filepos=0;
@@ -3908,7 +3867,6 @@ static void ctrl_thread(void* arg)
 					}
 
 					if(js_cx==NULL) {	/* Context not yet created, create it now */
-						/* js_initcx() starts a request */
 						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp))==NULL)) {
 							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
 							sockprintf(sock,"451 Error initializing JavaScript context");
@@ -3931,8 +3889,6 @@ static void ctrl_thread(void* arg)
 							,startup->html_index_file)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file area object",sock);
 					}
-					else
-						JS_BEGINREQUEST(js_cx);
 
 					if((js_str=JS_NewStringCopyZ(js_cx, "name"))!=NULL) {
 						js_val=STRING_TO_JSVAL(js_str);
@@ -3976,7 +3932,6 @@ static void ctrl_thread(void* arg)
 					js_val=BOOLEAN_TO_JSVAL(INT_TO_BOOL(user.misc&EXTDESC));
 					JS_SetProperty(js_cx, js_ftp, "extended_descriptions", &js_val);
 
-					JS_ENDREQUEST(js_cx);
 #endif
 					if((fp=fopen(ftp_tmpfname(fname,"html",sock),"w+b"))==NULL) {
 						lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
@@ -3991,12 +3946,10 @@ static void ctrl_thread(void* arg)
 					tmpfile=TRUE;
 					delfile=TRUE;
 #ifdef JAVASCRIPT
-					JS_BEGINREQUEST(js_cx);
 					js_val=INT_TO_JSVAL(timeleft);
 					if(!JS_SetProperty(js_cx, js_ftp, "time_left", &js_val))
 						lprintf(LOG_ERR,"%04d !JavaScript ERROR setting user.time_left",sock);
 					js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user);
-					JS_ENDREQUEST(js_cx);
 #endif
 					fclose(fp);
 				}
@@ -4080,7 +4033,7 @@ static void ctrl_thread(void* arg)
 						PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 				} else {
-					if(fexistcase(fname)) {
+					if(fexist(fname)) {
 						success=TRUE;
 						if(!getsize && !getdate && !delecmd)
 							lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
@@ -4104,7 +4057,7 @@ static void ctrl_thread(void* arg)
 					,1900+tm.tm_year,tm.tm_mon+1,tm.tm_mday
 					,tm.tm_hour,tm.tm_min,tm.tm_sec);
 			} else if(delecmd && success) {
-				if(removecase(fname)!=0) {
+				if(remove(fname)!=0) {
 					lprintf(LOG_ERR,"%04d !ERROR %d deleting %s",sock,errno,fname);
 					sockprintf(sock,"450 %s could not be deleted (error: %d)"
 						,fname,errno);
@@ -4489,8 +4442,7 @@ static void ctrl_thread(void* arg)
 
 	if(user.number) {
 		/* Update User Statistics */
-		if(!logoutuserdat(&scfg, &user, time(NULL), logintime))
-			lprintf(LOG_ERR,"%04d !ERROR in logoutuserdat",sock);
+		logoutuserdat(&scfg, &user, time(NULL), logintime);
 		/* Remove QWK-pack semaphore file (if left behind) */
 		sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
 		remove(str);
@@ -4510,7 +4462,7 @@ static void ctrl_thread(void* arg)
 
 	if(js_runtime!=NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying runtime",sock);
-		jsrt_Release(js_runtime);
+		JS_DestroyRuntime(js_runtime);
 	}
 
 #endif
@@ -4539,14 +4491,14 @@ static void ctrl_thread(void* arg)
 		active_clients--, update_clients();
 
 	thread_down();
-	lprintf(LOG_INFO,"%04d CTRL thread terminated (%d clients, %u threads remain, %lu served)"
+	lprintf(LOG_DEBUG,"%04d CTRL thread terminated (%d clients, %u threads remain, %lu served)"
 		,sock, active_clients, thread_count, served);
 }
 
 static void cleanup(int code, int line)
 {
 #ifdef _DEBUG
-	lprintf(LOG_DEBUG,"0000 cleanup called from line %d",line);
+	lprintf(LOG_INFO,"0000 cleanup called from line %d",line);
 #endif
 	free_cfg(&scfg);
 	free_text(text);
@@ -4580,7 +4532,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.351 $", "%*s %s", revision);
+	sscanf("$Revision: 1.330 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4619,7 +4571,6 @@ void DLLCALL ftp_server(void* arg)
 	ftp_ver();
 
 	startup=(ftp_startup_t*)arg;
-	SetThreadName("FTP Server");
 
 #ifdef _THREAD_SUID_BROKEN
 	if(thread_suid_broken)
@@ -4705,17 +4656,14 @@ void DLLCALL ftp_server(void* arg)
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
 
-		if(chdir(startup->ctrl_dir)!=0)
-			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
-
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(error,UNKNOWN_LOAD_ERROR);
 		if(!load_cfg(&scfg, text, TRUE, error)) {
-			lprintf(LOG_CRIT,"!ERROR %s",error);
-			lprintf(LOG_CRIT,"!Failed to load configuration files");
+			lprintf(LOG_ERR,"!ERROR %s",error);
+			lprintf(LOG_ERR,"!Failed to load configuration files");
 			cleanup(1,__LINE__);
 			return;
 		}
@@ -4738,7 +4686,7 @@ void DLLCALL ftp_server(void* arg)
 		MKDIR(scfg.temp_dir);
 		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
 		if(!isdir(scfg.temp_dir)) {
-			lprintf(LOG_CRIT,"!Invalid temp directory: %s", scfg.temp_dir);
+			lprintf(LOG_ERR,"!Invalid temp directory: %s", scfg.temp_dir);
 			cleanup(1,__LINE__);
 			return;
 		}
@@ -4778,7 +4726,7 @@ void DLLCALL ftp_server(void* arg)
 		/* open a socket and wait for a client */
 
 		if((server_socket=ftp_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
-			lprintf(LOG_CRIT,"!ERROR %d opening socket", ERROR_VALUE);
+			lprintf(LOG_ERR,"!ERROR %d opening socket", ERROR_VALUE);
 			cleanup(1,__LINE__);
 			return;
 		}
@@ -4805,19 +4753,19 @@ void DLLCALL ftp_server(void* arg)
 				startup->seteuid(TRUE);
 		}
 		if(result!=0) {
-			lprintf(LOG_CRIT,"%04d %s", server_socket, BIND_FAILURE_HELP);
+			lprintf(LOG_ERR,"%04d %s", server_socket, BIND_FAILURE_HELP);
 			cleanup(1,__LINE__);
 			return;
 		}
 
 		if((result=listen(server_socket, 1))!= 0) {
-			lprintf(LOG_CRIT,"%04d !ERROR %d (%d) listening on socket"
+			lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on socket"
 				,server_socket, result, ERROR_VALUE);
 			cleanup(1,__LINE__);
 			return;
 		}
 
-		lprintf(LOG_INFO,"%04d FTP Server listening on port %u",server_socket,startup->port);
+		lprintf(LOG_NOTICE,"%04d FTP Server thread started on port %d",server_socket,startup->port);
 		status(STATUS_WFC);
 
 		/* Setup recycle/shutdown semaphore file lists */
@@ -4830,11 +4778,10 @@ void DLLCALL ftp_server(void* arg)
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
 
+
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
-
-		lprintf(LOG_INFO,"%04d FTP Server thread started",server_socket);
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
@@ -4936,7 +4883,7 @@ void DLLCALL ftp_server(void* arg)
 			served++;
 		}
 
-#if 0 /* def _DEBUG */
+#ifdef _DEBUG
 		lprintf(LOG_DEBUG,"0000 server_socket: %d",server_socket);
 		lprintf(LOG_DEBUG,"0000 terminate_server: %d",terminate_server);
 #endif
