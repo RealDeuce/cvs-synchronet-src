@@ -2,13 +2,13 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.51 2009/02/16 03:25:27 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.49 2008/02/14 08:17:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -174,8 +174,8 @@ bool sbbs_t::uploadfile(file_t *f)
 				ext[i]=0;
 				if(!f->desc[0]) {
 					strcpy(desc,ext);
-					strip_exascii(desc, desc);
-					prep_file_desc(desc, desc);
+					strip_exascii(desc);
+					prep_file_desc(desc);
 					for(i=0;desc[i];i++)
 						if(isalnum(desc[i]))
 							break;
@@ -600,8 +600,6 @@ bool sbbs_t::bulkupload(uint dirnum)
 			getstr(f.desc,LEN_FDESC,K_LINE);
 			if(sys_status&SS_ABORT)
 				break;
-			if(strcmp(f.desc,"-")==0)	/* don't add this file */
-				continue;
 			uploadfile(&f); 
 		}
 	}

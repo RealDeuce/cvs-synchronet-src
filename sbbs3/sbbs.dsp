@@ -70,7 +70,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\include\mozilla\js" /I "..\..\include\mozilla\nspr" /I "..\xpdev" /I "..\smblib" /I "..\..\include\cryptlib" /D "_DEBUG" /D "USE_CRYPTLIB" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS" /D "SBBS_EXPORTS" /D "SMB_EXPORTS" /D "JAVASCRIPT" /D "RINGBUF_SEM" /D "RINGBUF_MUTEX" /D "_CRT_SECURE_NO_DEPRECATE" /D "_CRT_NONSTDC_NO_DEPRECATE" /D "DEBUG_JS_REQUESTS" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\include\mozilla\js" /I "..\..\include\mozilla\nspr" /I "..\xpdev" /I "..\smblib" /I "..\..\include\cryptlib" /D "_DEBUG" /D "USE_CRYPTLIB" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SBBS" /D "SBBS_EXPORTS" /D "SMB_EXPORTS" /D "JAVASCRIPT" /D "RINGBUF_SEM" /D "RINGBUF_MUTEX" /D "_CRT_SECURE_NO_DEPRECATE" /D "_CRT_NONSTDC_NO_DEPRECATE" /FR /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -267,14 +267,6 @@ SOURCE=.\js_queue.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\js_request.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\js_rtpool.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\js_server.c
 # End Source File
 # Begin Source File
@@ -395,10 +387,6 @@ SOURCE=.\readmsgs.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\readtext.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\ringbuf.c
 # End Source File
 # Begin Source File
@@ -447,10 +435,6 @@ SOURCE=.\telnet.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\text_defaults.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\text_sec.cpp
 # End Source File
 # Begin Source File
@@ -488,10 +472,6 @@ SOURCE=.\ver.cpp
 # Begin Source File
 
 SOURCE=.\viewfile.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\wordwrap.c
 # End Source File
 # Begin Source File
 
