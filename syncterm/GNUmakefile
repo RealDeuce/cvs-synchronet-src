@@ -79,7 +79,6 @@ ifeq ($(os),darwin)
  ifeq ($(shell uname -r),6.8)
   EXTRA_LIBS += /usr/local/lib/libdl.a
  endif
- EXTRA_LIBS += -framework CoreServices
  STATIC_CRYPTLIB ?= 1
 endif
 
