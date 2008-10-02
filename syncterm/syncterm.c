@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.161 2009/07/19 07:44:11 deuce Exp $ */
+/* $Id: syncterm.c,v 1.153 2008/10/02 10:17:03 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -34,7 +34,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.3b"
+char* syncterm_version = "SyncTERM 0.9.3\xe1"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -847,6 +847,8 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
 			return(NULL);
 		backslash(fn);
+		strncat(fn, "SyncTERM", fnlen);
+		backslash(fn);
 		if(!isdir(fn)) {
 			if(MKDIR(fn))
 				return(NULL);
@@ -1103,7 +1105,7 @@ int main(int argc, char **argv)
 	char	*inpath=NULL;
 	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
-	int		text_mode;
+	BOOL	dont_set_mode=FALSE;
 	BOOL	override_conn=FALSE;
 	char	*last_bbs=NULL;
 
@@ -1121,10 +1123,6 @@ int main(int argc, char **argv)
 
 	load_settings(&settings);
 	ciolib_mode=settings.output_mode;
-	if(settings.startup_mode != SCREEN_MODE_CURRENT)
-		text_mode=screen_to_ciolib(settings.startup_mode);
-	else
-		text_mode=_ORIGMODE;
 
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
@@ -1188,32 +1186,8 @@ int main(int argc, char **argv)
 					}
 					break;
                 case 'L':
-                    switch(atoi(argv[i]+2)) {
-            			case 14:
-                			text_mode=C80X14;
-                			break;
-            			case 21:
-                			text_mode=C80X21;
-                			break;
-            			case 25:
-                			text_mode=C80;
-                			break;
-            			case 28:
-                			text_mode=C80X28;
-                			break;
-            			case 43:
-                			text_mode=C80X43;
-                			break;
-            			case 50:
-                			text_mode=C80X50;
-                			break;
-            			case 60:
-                			text_mode=C80X60;
-                			break;
-            			default:
-                			text_mode=C4350;
-                			break;
-					}
+                    uifc.scrn_len=atoi(argv[i]+2);
+					dont_set_mode=TRUE;
                     break;
 				case 'R':
 					conn_type=CONN_TYPE_RLOGIN;
@@ -1240,7 +1214,8 @@ int main(int argc, char **argv)
 	if(initciolib(ciolib_mode))
 		return(1);
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
-	textmode(text_mode);
+	if(!dont_set_mode)
+		textmode(screen_to_ciolib(settings.startup_mode));
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1321,7 +1296,7 @@ int main(int argc, char **argv)
 			uifcbail();
 			textmode(screen_to_ciolib(bbs->screen_mode));
 			load_font_files();
-			setfont(find_font_id(bbs->font),TRUE,1);
+			setfont(find_font_id(bbs->font),TRUE);
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
@@ -1336,7 +1311,6 @@ int main(int argc, char **argv)
 			}
 
 			exit_now=doterm(bbs);
-			setvideoflags(0);
 
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
@@ -1345,14 +1319,15 @@ int main(int argc, char **argv)
 				fclose(log_fp);
 				log_fp=NULL;
 			}
-			load_font_files();
-			textmode(txtinfo.currmode);
+			setfont(default_font,TRUE);
 			for(i=CONIO_FIRST_FREE_FONT; i<256; i++) {
 				FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
 				FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
 				FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
 				FREE_AND_NULL(conio_fontdata[i].desc);
 			}
+			load_font_files();
+			textmode(txtinfo.currmode);
 			settitle("SyncTERM");
 		}
 		if(exit_now || url[0]) {
