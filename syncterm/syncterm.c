@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.153 2008/10/02 10:17:03 deuce Exp $ */
+/* $Id: syncterm.c,v 1.154 2008/10/11 04:48:45 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -34,7 +34,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.3\xe1"
+char* syncterm_version = "SyncTERM 0.9.3b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
