@@ -1,4 +1,6 @@
-/* $Id: conn_telnet.c,v 1.6 2007/10/22 03:49:01 deuce Exp $ */
+/* Copyright (C), 2007 by Stephen Hurd */
+
+/* $Id: conn_telnet.c,v 1.8 2008/01/20 22:56:40 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -14,6 +16,7 @@
 #include "telnet_io.h"
 
 SOCKET telnet_sock=INVALID_SOCKET;
+extern int	telnet_log_level;
 
 #ifdef __BORLANDC__
 #pragma argsused
@@ -123,6 +126,8 @@ void telnet_output_thread(void *args)
 int telnet_connect(struct bbslist *bbs)
 {
 	init_uifc(TRUE, TRUE);
+
+	telnet_log_level = bbs->telnet_loglevel;
 
 	telnet_sock=conn_socket_connect(bbs);
 	if(telnet_sock==INVALID_SOCKET)
