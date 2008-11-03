@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.66 2008/01/08 04:17:25 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.70 2008/02/06 03:44:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,6 @@ static int ansix=1;
 static int ansiy=1;
 
 static int ansi_got_row=0;
-static int ansi_got_col=0;
 static int doorway_enabled=0;
 
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
@@ -102,6 +101,8 @@ typedef struct
 #define ANSI_KEY_PGDN	0x51<<8
 #define ANSI_KEY_INSERT	0x52<<8
 #define ANSI_KEY_DELETE	0x53<<8
+#define ANSI_KEY_F11	0x85<<8
+#define ANSI_KEY_F12	0x86<<8
 
 static tODKeySequence ODaKeySequences[] =
 {
@@ -161,6 +162,12 @@ static tODKeySequence ODaKeySequences[] =
    {"\033Or", ANSI_KEY_F8},
    {"\033Op", ANSI_KEY_F9},
 
+   /* ECMA 048-specific control sequences. */
+   {"\033[V", ANSI_KEY_PGUP},
+   {"\033[U", ANSI_KEY_PGDN},
+   {"\033[@", ANSI_KEY_INSERT},
+   
+   
    /* PROCOMM-specific control sequences (non-keypad alternatives). */
    {"\033OA", ANSI_KEY_UP},
    {"\033OB", ANSI_KEY_DOWN},
@@ -705,7 +712,12 @@ static void ansi_keyparse(void *par)
 							i=strtol(p,&p,10);
 							if(i>cio_textinfo.screenheight) {
 								cio_textinfo.screenheight=i;
-								ansi_got_row=i;
+								if(*p==';') {
+									i=strtol(p+1, NULL, 10);
+									if(i>cio_textinfo.screenwidth)
+										cio_textinfo.screenwidth=i;
+								}
+								ansi_got_row=cio_textinfo.screenheight;;
 							}
 						}
 						unknown=0;
@@ -819,7 +831,6 @@ int ansi_beep(void)
 #endif
 void ansi_textmode(int mode)
 {
-	cio_textinfo.screenwidth=80;
 	cio_textinfo.winleft=1;
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
@@ -853,7 +864,7 @@ void ansi_fixterm(void)
 int ansi_initciolib(long inmode)
 {
 	int i;
-	char *init="\033[s\033[99B_\033[6n\033[u\033[0m_\033[2J\033[H";
+	char *init="\033[s\033[99B\033[99B\033[99B_\033[99C\033[99C\033[99C_\033[6n\033[u\033[0m_\033[2J\033[H";
 	time_t start;
 
 	ansi_textmode(1);
@@ -901,6 +912,7 @@ int ansi_initciolib(long inmode)
 		SLEEP(1);
 	if(!ansi_got_row) {
 		cio_textinfo.screenheight=24;
+		cio_textinfo.screenwidth=80;
 		ansi_got_row=24;
 	}
 	ansivmem=(WORD *)malloc(cio_textinfo.screenheight*cio_textinfo.screenwidth*sizeof(WORD));
