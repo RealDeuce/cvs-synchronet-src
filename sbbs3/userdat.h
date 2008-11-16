@@ -2,13 +2,13 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.34 2009/01/10 08:26:56 rswindell Exp $ */
+/* $Id: userdat.h,v 1.33 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,7 +80,7 @@ DLLEXPORT int	DLLCALL putusername(scfg_t* cfg, int number, char * name);
 DLLEXPORT uint	DLLCALL total_users(scfg_t* cfg);
 DLLEXPORT uint	DLLCALL lastuser(scfg_t* cfg);
 DLLEXPORT BOOL	DLLCALL del_lastuser(scfg_t* cfg);
-DLLEXPORT uint	DLLCALL getage(scfg_t* cfg, char *birthdate);
+DLLEXPORT char	DLLCALL getage(scfg_t* cfg, char *birthdate);
 DLLEXPORT char*	DLLCALL username(scfg_t* cfg, int usernumber, char * str);
 DLLEXPORT char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name);
 DLLEXPORT int	DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* file);
