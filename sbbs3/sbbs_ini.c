@@ -2,13 +2,13 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.127 2009/08/14 08:56:33 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.125 2008/01/07 07:04:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -65,7 +65,6 @@ static const char*	strJavaScriptThreadStack	="JavaScriptThreadStack";
 static const char*	strJavaScriptBranchLimit	="JavaScriptBranchLimit";
 static const char*	strJavaScriptGcInterval		="JavaScriptGcInterval";
 static const char*	strJavaScriptYieldInterval	="JavaScriptYieldInterval";
-static const char*	strJavaScriptLoadPath		="JavaScriptLoadPath";
 static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 
 #define DEFAULT_LOG_LEVEL		LOG_DEBUG
@@ -126,20 +125,12 @@ void sbbs_get_js_settings(
 	,js_startup_t* js
 	,js_startup_t* defaults)
 {
-	str_list_t	load_path;
-
 	js->max_bytes		= iniGetInteger(list,section,strJavaScriptMaxBytes		,defaults->max_bytes);
 	js->cx_stack		= iniGetInteger(list,section,strJavaScriptContextStack	,defaults->cx_stack);
 	js->thread_stack	= iniGetInteger(list,section,strJavaScriptThreadStack	,defaults->thread_stack);
 	js->branch_limit	= iniGetInteger(list,section,strJavaScriptBranchLimit	,defaults->branch_limit);
 	js->gc_interval		= iniGetInteger(list,section,strJavaScriptGcInterval	,defaults->gc_interval);
 	js->yield_interval	= iniGetInteger(list,section,strJavaScriptYieldInterval	,defaults->yield_interval);
-
-    if(js->load_path != defaults->load_path)
-    	iniFreeStringList(js->load_path);
-	if((load_path = iniGetStringList(list, section,strJavaScriptLoadPath,",",NULL)) == NULL)
-		load_path = defaults->load_path;
-	js->load_path = load_path;
 
 	sbbs_fix_js_settings(js);
 }
@@ -159,7 +150,6 @@ BOOL sbbs_set_js_settings(
 			,JAVASCRIPT_BRANCH_LIMIT
 			,JAVASCRIPT_GC_INTERVAL
 			,JAVASCRIPT_YIELD_INTERVAL
-            ,NULL   /* load_path */
 		};
 
 	if(defaults==NULL)
@@ -196,11 +186,6 @@ BOOL sbbs_set_js_settings(
 		iniRemoveValue(lp,section,strJavaScriptYieldInterval);
 	else 
 		failure|=iniSetInteger(lp,section,strJavaScriptYieldInterval,js->yield_interval,style)==NULL;
-
-	if(js->load_path==defaults->load_path)
-		iniRemoveValue(lp,section,strJavaScriptLoadPath);
-	else
-		failure|=iniSetStringList(lp,section,strJavaScriptLoadPath,",",js->load_path,style)==NULL;
 
 	return(!failure);
 }
@@ -244,8 +229,6 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	global->js.branch_limit		= JAVASCRIPT_BRANCH_LIMIT;
 	global->js.gc_interval		= JAVASCRIPT_GC_INTERVAL;
 	global->js.yield_interval	= JAVASCRIPT_YIELD_INTERVAL;
-    if(global->js.load_path==NULL)
-    	global->js.load_path	= strListSplit(NULL, JAVASCRIPT_LOAD_PATH, ",");
 
 	/* Read .ini values here */
 	sbbs_get_js_settings(list, section, &global->js, &global->js);
