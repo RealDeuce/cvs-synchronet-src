@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.266 2008/12/04 03:38:06 deuce Exp $ */
+/* $Id: term.c,v 1.264 2008/11/19 20:07:49 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -64,16 +64,6 @@ static int html_supported=HTML_SUPPORT_UNKNOWN;
 
 char *html_addr=NULL;
 #endif
-
-void setup_mouse_events(void)
-{
-	ciomouse_setevents(0);
-	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
-	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
-	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
-	ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
-	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
-}
 
 #if defined(__BORLANDC__)
 	#pragma argsused
@@ -601,7 +591,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		gotoxy(txtinfo.curx, txtinfo.cury);
-		setup_mouse_events();
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
@@ -612,7 +601,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("ERROR",str);
 		uifcbail();
-		setup_mouse_events();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
@@ -643,7 +631,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		}
 	}
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
 }
@@ -692,7 +679,6 @@ void begin_download(struct bbslist *bbs)
 	}
 	hold_update=old_hold;
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
 }
@@ -876,14 +862,12 @@ void guts_transfer(struct bbslist *bbs)
 			if(result==-1 || fpick.files<1) {
 				filepick_free(&fpick);
 				uifcbail();
-				setup_mouse_events();
 				return;
 			}
 			strListPush(&gi.files, fpick.selected[0]);
 			filepick_free(&fpick);
 
 			uifcbail();
-			setup_mouse_events();
 
 			_beginthread(guts_background_upload, 0, &gi);
 		}
@@ -1054,7 +1038,6 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 	}
 
 	uifcbail();
-	setup_mouse_events();
 	window(txtinfo.winleft, txtinfo.wintop, txtinfo.winright, txtinfo.winbottom);
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
@@ -1410,7 +1393,6 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 	}
 
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft, txtinfo.wintop, txtinfo.winright, txtinfo.winbottom);
 	gotoxy(txtinfo.curx, txtinfo.cury);
@@ -1748,7 +1730,6 @@ void music_control(struct bbslist *bbs)
 	if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"ANSI Music Setup",opts)!=-1)
 		cterm.music_enable=i;
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
@@ -1801,7 +1782,6 @@ void font_control(struct bbslist *bbs)
 		break;
 	}
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
@@ -1886,7 +1866,6 @@ void capture_control(struct bbslist *bbs)
 		}
 	}
 	uifcbail();
-	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	textattr(txtinfo.attribute);
@@ -2033,7 +2012,12 @@ BOOL doterm(struct bbslist *bbs)
 		speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
-	setup_mouse_events();
+	ciomouse_setevents(0);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
+	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
+	ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
+	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
 	p=(unsigned char *)realloc(scrollback_buf, term.width*2*settings.backlines);
 	if(p != NULL) {
 		scrollback_buf=p;
@@ -2341,11 +2325,8 @@ BOOL doterm(struct bbslist *bbs)
 							gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							show_bbslist(bbs->name, TRUE);
 							uifcbail();
-							setup_mouse_events();
 							puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							free(p);
-							showmouse();
-							_setcursortype(_NORMALCURSOR);
 						}
 					}
 					break;
@@ -2413,7 +2394,6 @@ BOOL doterm(struct bbslist *bbs)
 							}
 #endif
 							uifcbail();
-							setup_mouse_events();
 							cterm_clearscreen(cterm.attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm.backpos;
 							cterm_end();
@@ -2423,7 +2403,6 @@ BOOL doterm(struct bbslist *bbs)
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
-						setup_mouse_events();
 						puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 						textattr(txtinfo.attribute);
@@ -2522,7 +2501,6 @@ BOOL doterm(struct bbslist *bbs)
 							}
 							break;
 					}
-					setup_mouse_events();
 					showmouse();
 					gotoxy(i,j);
 					key = 0;
