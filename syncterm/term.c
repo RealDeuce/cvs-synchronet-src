@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.263 2008/11/19 20:04:13 deuce Exp $ */
+/* $Id: term.c,v 1.264 2008/11/19 20:07:49 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -10,6 +10,7 @@
 
 #include "threadwrap.h"
 #include "filewrap.h"
+#include "xpbeep.h"
 
 #include "conn.h"
 #include "syncterm.h"
