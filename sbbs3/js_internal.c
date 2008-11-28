@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.45 2009/08/14 08:00:32 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.36 2008/01/11 22:25:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "js_request.h"
 
 #include <jscntxt.h>	/* Needed for Context-private data structure */
 
@@ -214,7 +213,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Terminated? */
 	if(branch->auto_terminate &&
 		(branch->terminated!=NULL && *branch->terminated)) {
-		JS_ReportWarning(cx,"Terminated");
+		JS_ReportError(cx,"Terminated");
 		branch->counter=0;
 		return(JS_FALSE);
 	}
@@ -227,13 +226,8 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	}
 
 	/* Give up timeslices every once in a while */
-	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
-		jsrefcount	rc;
-
-		rc=JS_SUSPENDREQUEST(cx);
+	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0)
 		YIELD();
-		JS_RESUMEREQUEST(cx, rc);
-	}
 
 	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
@@ -424,9 +418,6 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	char*	p;
 	jsval	rval;
 	JSScript* script;
-	BOOL	auto_terminate=branch->auto_terminate;
-
-	branch->auto_terminate=FALSE;
 
 	while((p=strListPop(&branch->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
@@ -437,11 +428,9 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	}
 
 	strListFree(&branch->exit_func);
-
-	branch->auto_terminate = auto_terminate;
 }
 
-JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch, js_startup_t* startup)
+JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch)
 {
 	JSObject*	obj;
 
@@ -451,30 +440,6 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 
 	if(!JS_SetPrivate(cx, obj, branch))	/* Store a pointer to js_branch_t */
 		return(NULL);
-
-	if(startup!=NULL) {
-		JSObject*	load_path_list;
-		jsval		val;
-
-		if((load_path_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
-			return(NULL);
-		val=OBJECT_TO_JSVAL(load_path_list);
-		if(!JS_SetProperty(cx, obj, JAVASCRIPT_LOAD_PATH_LIST, &val)) 
-			return(NULL);
-
-		if(startup->load_path!=NULL) {
-			JSString*	js_str;
-			unsigned	i;
-
-			for(i=0; startup->load_path[i]!=NULL; i++) {
-				if((js_str=JS_NewStringCopyZ(cx, startup->load_path[i]))==NULL)
-					return(NULL);
-				val=STRING_TO_JSVAL(js_str);
-				if(!JS_SetElement(cx, load_path_list, i, &val))
-					return(NULL);
-			}
-		}
-	}
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"JavaScript execution and garbage collection control object",311);
