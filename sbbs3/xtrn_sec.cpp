@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.66 2009/01/12 02:36:24 deuce Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.65 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1740,8 +1740,6 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		sprintf(str,"%snode.log",cfg.node_dir);
 		if((logfile_fp=fopen(str,"a+b"))==NULL)
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
-		else
-			setvbuf(logfile_fp, NULL, _IOLBF, 0);
 	}
 
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
