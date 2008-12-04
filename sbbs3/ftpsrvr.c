@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.325 2007/12/24 23:27:01 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.331 2008/12/04 19:45:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,6 +51,7 @@
 #include "text.h"			/* TOTAL_TEXT */
 #include "ftpsrvr.h"
 #include "telnet.h"
+#include "js_rtpool.h"
 
 /* Constants */
 
@@ -88,7 +89,7 @@ static char 	*text[TOTAL_TEXT];
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
 
-#ifdef _DEBUG
+#ifdef SOCKET_DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
 
 	#define	SOCKET_DEBUG_CTRL		(1<<0)	/* 0x01 */
@@ -126,7 +127,7 @@ BOOL dir_op(scfg_t* cfg, user_t* user, uint dirnum)
 		|| (cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user)));
 }
 
-static int lprintf(int level, char *fmt, ...)
+static int lprintf(int level, const char *fmt, ...)
 {
 	int		result;
 	va_list argptr;
@@ -223,7 +224,7 @@ static SOCKET ftp_open_socket(int type)
 		if(set_socket_options(&scfg, sock, "FTP", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock, error);
 		sockets++;
-#ifdef _DEBUG
+#ifdef SOCKET_DEBUG
 		lprintf(LOG_DEBUG,"%04d Socket opened (%u sockets in use)",sock,sockets);
 #endif
 	}
@@ -255,7 +256,7 @@ static int ftp_close_socket(SOCKET* sock, int line)
 			lprintf(LOG_WARNING,"%04d !ERROR %d closing socket from line %u",*sock,ERROR_VALUE,line);
 	} else if(sock==&server_socket || *sock==server_socket)
 		lprintf(LOG_DEBUG,"%04d Server socket closed (%u sockets in use) from line %u",*sock,sockets,line);
-#ifdef _DEBUG
+#ifdef SOCKET_DEBUG
 	else 
 		lprintf(LOG_DEBUG,"%04d Socket closed (%u sockets in use) from line %u",*sock,sockets,line);
 #endif
@@ -996,16 +997,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 
 #endif	/* ifdef JAVASCRIPT */
-
-static time_t checktime(void)
-{
-	struct tm tm;
-
-    memset(&tm,0,sizeof(tm));
-    tm.tm_year=94;
-    tm.tm_mday=1;
-    return(mktime(&tm)-0x2D24BD00L);
-}
 
 BOOL upload_stats(ulong bytes)
 {
@@ -2626,18 +2617,18 @@ static void ctrl_thread(void* arg)
 					break;
 				continue;
 			}
-			if(user.ltoday>scfg.level_callsperday[user.level]
+			if(user.ltoday>=scfg.level_callsperday[user.level]
 				&& !(user.exempt&FLAG('L'))) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM LOGONS (%d) reached for %s"
 					,sock,scfg.level_callsperday[user.level],user.alias);
-				sockprintf(sock,"530 Maximum logons reached.");
+				sockprintf(sock,"530 Maximum logons per day reached.");
 				user.number=0;
 				continue;
 			}
-			if(user.rest&FLAG('L') && user.ltoday>1) {
+			if(user.rest&FLAG('L') && user.ltoday>=1) {
 				lprintf(LOG_WARNING,"%04d !L RESTRICTED user #%d (%s) already on today"
 					,sock,user.number,user.alias);
-				sockprintf(sock,"530 Maximum logons reached.");
+				sockprintf(sock,"530 Maximum logons per day reached.");
 				user.number=0;
 				continue;
 			}
@@ -2681,7 +2672,8 @@ static void ctrl_thread(void* arg)
 			client_on(sock,&client,TRUE /* update */);
 
 
-			lprintf(LOG_INFO,"%04d %s logged in",sock,user.alias);
+			lprintf(LOG_INFO,"%04d %s logged in (%u today, %u total)"
+				,sock,user.alias,user.ltoday+1, user.logons+1);
 			logintime=time(NULL);
 			timeleft=gettimeleft(&scfg,&user,logintime);
 			ftp_printfile(sock,"hello",230);
@@ -3867,7 +3859,7 @@ static void ctrl_thread(void* arg)
 						lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
 							,sock,startup->js.max_bytes);
 
-						if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL) {
+						if((js_runtime = jsrt_GetNew(startup->js.max_bytes))==NULL) {
 							lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
 							sockprintf(sock,"451 Error creating JavaScript runtime");
 							filepos=0;
@@ -4471,7 +4463,7 @@ static void ctrl_thread(void* arg)
 
 	if(js_runtime!=NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying runtime",sock);
-		JS_DestroyRuntime(js_runtime);
+		jsrt_Release(js_runtime);
 	}
 
 #endif
@@ -4541,7 +4533,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.325 $", "%*s %s", revision);
+	sscanf("$Revision: 1.331 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4663,7 +4655,7 @@ void DLLCALL ftp_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,CTIME_R(&t,str),startup->options);
+			,ctime_r(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -4680,16 +4672,8 @@ void DLLCALL ftp_server(void* arg)
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&FTP_OPT_LOCAL_TIMEZONE)) { 
-			if(putenv("TZ=UTC0"))
-				lprintf(LOG_ERR,"!putenv() FAILED");
-			tzset();
-
-			if((t=checktime())!=0) {   /* Check binary time */
-				lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
-				cleanup(1,__LINE__);
-				return;
-			}
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
 		}
 
 		if(uptime==0)
@@ -4740,10 +4724,6 @@ void DLLCALL ftp_server(void* arg)
 			strlwr(scfg.lib[i]->sname);
 			dotname(scfg.lib[i]->sname,scfg.lib[i]->sname);
 		}
-#if 0	/* this is now handled by load_cfg()->prep_cfg() */
-		for(i=0;i<scfg.total_dirs;i++) 
-			strlwr(scfg.dir[i]->code_suffix);
-#endif
 		/* open a socket and wait for a client */
 
 		if((server_socket=ftp_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
