@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.111 2008/01/12 23:10:10 deuce Exp $ */
+/* $Id: js_system.c,v 1.120 2008/06/05 05:25:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -215,7 +215,8 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			JS_NewNumberValue(cx,cfg->new_min,vp);
 			break;
 		case SYS_PROP_NEW_SHELL:
-			*vp = INT_TO_JSVAL(cfg->new_shell);
+			if(cfg->new_shell<cfg->total_shells)
+				p=cfg->shell[cfg->new_shell]->code;
 			break;
 		case SYS_PROP_NEW_XEDIT:
 			p=cfg->new_xedit;
@@ -938,8 +939,7 @@ js_datestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		t=time(NULL);	/* use current time */
 	else {
 		if(JSVAL_IS_STRING(argv[0])) {	/* convert from string to time_t? */
-			*rval = INT_TO_JSVAL(
-				dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
+			JS_NewNumberValue(cx,dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))),rval);
 			return(JS_TRUE);
 		}
 		JS_ValueToInt32(cx,argv[0],(int32*)&t);
@@ -1225,6 +1225,11 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	alias=JS_GetStringBytes(JS_ValueToString(cx,argv[0]));
 
+	if(!check_name(cfg,alias)) {
+		JS_ReportError(cx,"Invalid or duplicate user alias: %s", alias);
+		return JS_FALSE;
+	}
+
 	memset(&user,0,sizeof(user));
 
 	user.sex=' ';
@@ -1390,7 +1395,8 @@ static jsSyncMethodSpec js_system_functions[] = {
 	},		
 	{"datestr",			js_datestr,			0,	JSTYPE_STRING,	JSDOCSTR("[time=<i>current</i>]")
 	,JSDOCSTR("convert time_t integer into a date string (in either <tt>MM/DD/YY</tt> or <tt>DD/MM/YY</tt> format), "
-		"defaults to current date if <i>time</i> not specified")
+		"defaults to current date if <i>time</i> not specified. "
+		"If <i>time</i> is a string in the appropriate format, returns the time_t.")
 	,310
 	},		
 	{"secondstr",		js_secondstr,		0,	JSTYPE_STRING,	JSDOCSTR("seconds")
@@ -1445,7 +1451,8 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,311
 	},
 	{"check_name",		js_chkname,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("name/alias")
-	,JSDOCSTR("check the provided name/alias string, returns <i>true</i> if it is valid")
+	,JSDOCSTR("checks that the provided name/alias string is suitable for a new user account, "
+		"returns <i>true</i> if it is valid")
 	,315
 	},
 	{0}
@@ -1732,6 +1739,9 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsval id)
 		if((newobj=JS_NewArrayObject(cx, 0, NULL))==NULL)
 			return(JS_FALSE);
 
+		if(!JS_SetParent(cx, newobj, obj))
+			return(JS_FALSE);
+
 		if(!JS_DefineProperty(cx, obj, "fido_addr_list", OBJECT_TO_JSVAL(newobj)
 			, NULL, NULL, JSPROP_ENUMERATE))
 			return(JS_FALSE);
@@ -1762,6 +1772,9 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsval id)
 			return(JS_FALSE);
 
 		if((newobj=JS_NewArrayObject(cx, 0, NULL))==NULL) 
+			return(JS_FALSE);
+
+		if(!JS_SetParent(cx, newobj, obj))
 			return(JS_FALSE);
 
 		if(!JS_DefineProperty(cx, obj, "node_list", OBJECT_TO_JSVAL(newobj)
@@ -1819,12 +1832,8 @@ static JSClass js_system_class = {
 JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 										,scfg_t* cfg, time_t uptime, char* host_name, char* socklib_desc)
 {
-	uint		i;
 	jsval		val;
 	JSObject*	sysobj;
-	JSObject*	statsobj;
-	JSObject*	node_list;
-	JSObject*	fido_addr_list;
 	JSString*	js_str;
 	char		str[256];
 
@@ -1863,8 +1872,12 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 #endif
 
 #ifdef BUILD_JSDOCS
-	js_DescribeSyncObject(cx,statsobj,"System statistics",310);
-	js_CreateArrayOfStrings(cx, statsobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
+	{
+		JSObject*	statsobj;
+
+		js_DescribeSyncObject(cx,statsobj,"System statistics",310);
+		js_CreateArrayOfStrings(cx, statsobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
+	}
 #endif
 
 	return(sysobj);
