@@ -3,6 +3,15 @@ include ${SRC_ROOT}/build/Common.gmake
 
 CFLAGS	+=	-I/usr/local/include	# cryptlib.h lives here by default
 CFLAGS	+=	-I../../include/cryptlib	# cryptlib.h lives here in CVS
+ifdef WITHOUT_OOII
+ CFLAGS	+= -DWITHOUT_OOII=1
+else
+ OBJS += $(MTOBJODIR)$(DIRSEP)ooii$(OFILE)
+ OBJS += $(MTOBJODIR)$(DIRSEP)ooii_logons$(OFILE)
+ OBJS += $(MTOBJODIR)$(DIRSEP)ooii_cmenus$(OFILE)
+ OBJS += $(MTOBJODIR)$(DIRSEP)ooii_bmenus$(OFILE)
+ OBJS += $(MTOBJODIR)$(DIRSEP)ooii_sounds$(OFILE)
+endif
 
 ifdef USE_WXWIDGETS
 
@@ -50,6 +59,16 @@ ifeq ($(os),sunos)    # Solaris
  CFLAGS	+=	-DNEED_CFMAKERAW
 endif
 
+ifdef WITHOUT_CRYPTLIB
+ CFLAGS += -DWITHOUT_CRYPTLIB
+else
+ OBJS += $(MTOBJODIR)$(DIRSEP)ssh$(OFILE)
+endif
+
+ifdef STATIC
+ STATIC_CRYPTLIB	:= true
+endif
+
 ifdef STATIC_CRYPTLIB
  CFLAGS += -DSTATIC_CRYPTLIB
  LDFLAGS += -lz
@@ -60,6 +79,7 @@ ifeq ($(os),darwin)
  ifeq ($(shell uname -r),6.8)
   EXTRA_LIBS += /usr/local/lib/libdl.a
  endif
+ EXTRA_LIBS += -framework CoreServices
  STATIC_CRYPTLIB ?= 1
 endif
 
@@ -113,6 +133,20 @@ endif
 $(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
 	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS) $(EXTRA_LIBS)
+ifeq ($(os),darwin)
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/MacOS
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/Resources
+	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents/Frameworks
+	${QUIET}echo "APPL????" > $(EXEODIR)/SyncTERM.app/Contents/PkgInfo
+	${QUIET}${INSTALL_EXE} ${SYNCTERM} ${EXEODIR}/SyncTERM.app/Contents/MacOS
+	${QUIET}${INSTALL_DATA} Info.plist ${EXEODIR}/SyncTERM.app/Contents
+	${QUIET}${INSTALL_DATA} SyncTERM.icns ${EXEODIR}/SyncTERM.app/Contents/Resources
+	-${QUIET}rm -rf ${EXEODIR}/SyncTERM.app/Contents/Frameworks/SDL.framework
+	${QUIET}cp -R ${SDL_FRAMEWORK_PATH}/SDL.framework ${EXEODIR}/SyncTERM.app/Contents/Frameworks
+	${QUIET}rm -rf ${EXEODIR}/SyncTERM.app/Contents/Frameworks/SDL.framework/Headers/*
+endif
 
 syncterm.1.gz: syncterm.man
 	gzip < syncterm.man > syncterm.1.gz
