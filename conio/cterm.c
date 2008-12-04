@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.112 2009/01/09 07:56:07 deuce Exp $ */
+/* $Id: cterm.c,v 1.110 2008/09/22 21:17:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1114,7 +1114,6 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 				case 'z':	/* ToDo?  Reset */
 					break;
 				case '|':	/* SyncTERM ANSI Music */
-					cterm.music=1;
 					break;
 			}
 			break;
@@ -1136,7 +1135,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.112 $";
+	char	*revision="$Revision: 1.110 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1463,15 +1462,8 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 					}
 				}
 				else if (cterm.music) {
-					if(ch[0]==14) {
-						hold_update=0;
-						puttext_can_move=0;
-						gotoxy(wherex(),wherey());
-						_setcursortype(cterm.cursor);
-						hold_update=1;
-						puttext_can_move=1;
+					if(ch[0]==14)
 						play_music();
-					}
 					else {
 						if(strchr(musicchars,ch[0])!=NULL)
 							strcat(cterm.musicbuf,ch);
