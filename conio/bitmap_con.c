@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.23 2008/02/23 06:23:18 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.26 2008/09/24 22:51:48 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -25,9 +25,9 @@
 #include "allfonts.h"
 #include "bitmap_con.h"
 
-static char *screen;
-int screenwidth;
-int screenheight;
+static char *screen=NULL;
+int screenwidth=0;
+int screenheight=0;
 #define PIXEL_OFFSET(x,y)	( (y)*screenwidth+(x) )
 
 static int current_font=-99;
@@ -62,7 +62,9 @@ static void blinker_thread(void *data)
 	int count=0;
 
 	while(1) {
-		SLEEP(10);
+		do {
+			SLEEP(10);
+		} while(screen==NULL);
 		count++;
 		pthread_mutex_lock(&vstatlock);
 		if(count==50) {
@@ -595,15 +597,19 @@ static void bitmap_draw_cursor()
 		if(vstat.curs_start<=vstat.curs_end) {
 			xoffset=(vstat.curs_col-1)*vstat.charwidth;
 			yoffset=(vstat.curs_row-1)*vstat.charheight;
+			if(xoffset < 0 || yoffset < 0)
+				return;
 			attr=cio_textinfo.attribute&0x0f;
 			width=vstat.charwidth;
 
 			pthread_mutex_lock(&screenlock);
 			for(y=vstat.curs_start; y<=vstat.curs_end; y++) {
-				pixel=PIXEL_OFFSET(xoffset, yoffset+y);
-				for(x=0;x<vstat.charwidth;x++)
-					screen[pixel++]=attr;
-				//memset(screen+pixel,attr,width);
+				if(xoffset < screenwidth && (yoffset+y) < screenheight) {
+					pixel=PIXEL_OFFSET(xoffset, yoffset+y);
+					for(x=0;x<vstat.charwidth;x++)
+						screen[pixel++]=attr;
+					//memset(screen+pixel,attr,width);
+				}
 			}
 			pthread_mutex_unlock(&screenlock);
 			send_rectangle(xoffset, yoffset+vstat.curs_start, vstat.charwidth, vstat.curs_end-vstat.curs_start+1,FALSE);

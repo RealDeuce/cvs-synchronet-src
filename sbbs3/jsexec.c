@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.115 2008/08/20 19:34:30 deuce Exp $ */
+/* $Id: jsexec.c,v 1.117 2008/12/04 22:25:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 
 #include "sbbs.h"
 #include "ciolib.h"
+#include "js_rtpool.h"
 
 #define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
@@ -570,7 +571,7 @@ static BOOL js_init(char** environ)
 	fprintf(statfp,"JavaScript: Creating runtime: %lu bytes\n"
 		,js_max_bytes);
 
-	if((js_runtime = JS_NewRuntime(js_max_bytes))==NULL)
+	if((js_runtime = jsrt_GetNew(js_max_bytes, 5000))==NULL)
 		return(FALSE);
 
 	fprintf(statfp,"JavaScript: Initializing context (stack: %lu bytes)\n"
@@ -817,7 +818,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.115 $", "%*s %s", revision);
+	sscanf("$Revision: 1.117 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1023,7 +1024,7 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"JavaScript: Destroying context\n");
 		JS_DestroyContext(js_cx);
 		fprintf(statfp,"JavaScript: Destroying runtime\n");
-		JS_DestroyRuntime(js_runtime);	
+		jsrt_Release(js_runtime);	
 
 	} while((recycled || loop) && !terminated);
 
