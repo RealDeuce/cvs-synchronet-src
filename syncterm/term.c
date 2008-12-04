@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.264 2008/11/19 20:07:49 deuce Exp $ */
+/* $Id: term.c,v 1.265 2008/12/04 03:26:30 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2327,6 +2327,8 @@ BOOL doterm(struct bbslist *bbs)
 							uifcbail();
 							puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							free(p);
+							showmouse();
+							_setcursortype(_NORMALCURSOR);
 						}
 					}
 					break;
