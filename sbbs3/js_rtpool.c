@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.2 2008/12/04 21:42:03 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.3 2008/12/04 21:45:17 deuce Exp $ */
 
 #include <threadwrap.h>
 #include "js_rtpool.h"
@@ -18,6 +18,7 @@ static int			initialized=0;
 JSRuntime *jsrt_GetNew(int maxbytes)
 {
 	int	i;
+	int	last_unused=-1;
 
 	if(!initialized) {
 		pthread_mutex_init(&jsrt_mutex, NULL);
@@ -33,11 +34,20 @@ JSRuntime *jsrt_GetNew(int maxbytes)
 				jsrt_queue[i].used=0;
 			}
 		}
-		if(jsrt_queue[i].created && jsrt_queue[i].maxbytes == maxbytes && jsrt_queue[i].used == 0) {
-			jsrt_queue[i].used=1;
-			pthread_mutex_unlock(&jsrt_mutex);
-			return(jsrt_queue[i].rt);
+		if(!jsrt_queue[i].used) {
+			last_unused=i;
+			if(jsrt_queue[i].created && jsrt_queue[i].maxbytes == maxbytes) {
+				jsrt_queue[i].used=1;
+				pthread_mutex_unlock(&jsrt_mutex);
+				return(jsrt_queue[i].rt);
+			}
 		}
+	}
+
+	if(last_unused != -1) {
+		jsrt_queue[last_unused].used=1;
+		pthread_mutex_unlock(&jsrt_mutex);
+		return(jsrt_queue[last_unused].rt);
 	}
 
 	pthread_mutex_unlock(&jsrt_mutex);
