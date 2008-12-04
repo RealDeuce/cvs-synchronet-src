@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.h,v 1.3 2008/12/08 08:50:52 deuce Exp $ */
+/* $Id: js_rtpool.h,v 1.2 2008/12/04 22:25:41 deuce Exp $ */
 
 #ifndef _JS_RTPOOL_H_
 #define _JS_RTPOOL_H_
@@ -36,7 +36,7 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-DLLEXPORT JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char *filename, long line);
+DLLEXPORT JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout);
 DLLEXPORT void DLLCALL jsrt_Release(JSRuntime *);
 #if defined(__cplusplus)
 }
