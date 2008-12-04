@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.110 2007/10/24 07:41:46 cyan Exp $ */
+/* $Id: userdat.c,v 1.113 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1150,6 +1150,17 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	if(!VALID_CFG(cfg) || usernumber<1)
 		return(NULL);
 
+	for(i=1;i<=cfg->sys_nodes;i++) {	/* clear msg waiting flag */
+		getnodedat(cfg,i,&node,NULL);
+		if(node.useron==usernumber
+			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
+			&& node.misc&NODE_MSGW) {
+			getnodedat(cfg,i,&node,&file);
+			node.misc&=~NODE_MSGW;
+			putnodedat(cfg,i,&node,file); 
+		} 
+	}
+
 	sprintf(str,"%smsgs/%4.4u.msg",cfg->data_dir,usernumber);
 	if(flength(str)<1L)
 		return(NULL);
@@ -1168,17 +1179,6 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	chsize(file,0L);
 	close(file);
 	buf[length]=0;
-
-	for(i=1;i<=cfg->sys_nodes;i++) {	/* clear msg waiting flag */
-		getnodedat(cfg,i,&node,NULL);
-		if(node.useron==usernumber
-			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
-			&& node.misc&NODE_MSGW) {
-			getnodedat(cfg,i,&node,&file);
-			node.misc&=~NODE_MSGW;
-			putnodedat(cfg,i,&node,file); 
-		} 
-	}
 
 	return(buf);	/* caller must free */
 }
@@ -1860,7 +1860,7 @@ int DLLCALL getuserrec(scfg_t* cfg, int usernumber,int start, int length, char *
 /* Places into user.dat at the offset for usernumber+start for length bytes */
 /* Called from various locations											*/
 /****************************************************************************/
-int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, char *str)
+int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const char *str)
 {
 	char	str2[256];
 	int		file;
@@ -2577,8 +2577,13 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 BOOL DLLCALL check_name(scfg_t* cfg, char* name)
 {
 	char	tmp[512];
+	size_t	len;
 
-	if (   name[0] <= ' '
+	len=strlen(name);
+	if(len<1)
+		return FALSE;
+	if (   name[0] <= ' '			/* begins with white-space? */
+		|| name[len-1] <= ' '		/* ends with white-space */
 		|| !isalpha(name[0])
 		|| !stricmp(name,cfg->sys_id)
 		|| strchr(name,0xff)

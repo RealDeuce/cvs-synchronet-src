@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.71 2008/01/17 03:44:32 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.73 2008/02/16 05:19:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -494,6 +494,7 @@ static JSBool
 js_getnum(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	ulong		maxnum=~0;
+	ulong		dflt=0;
 	sbbs_t*		sbbs;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
@@ -501,8 +502,10 @@ js_getnum(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc && JSVAL_IS_NUMBER(argv[0]))
 		JS_ValueToInt32(cx,argv[0],(int32*)&maxnum);
+	if(argc>1 && JSVAL_IS_NUMBER(argv[1]))
+		JS_ValueToInt32(cx,argv[1],(int32*)&dflt);
 
-	*rval = INT_TO_JSVAL(sbbs->getnum(maxnum));
+	*rval = INT_TO_JSVAL(sbbs->getnum(maxnum,dflt));
     return(JS_TRUE);
 }
 
@@ -807,8 +810,10 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	if(!js_write(cx, obj, argc, argv, rval))
-		return(JS_FALSE);
+	if(argc) {
+		if(!js_write(cx, obj, argc, argv, rval))
+			return(JS_FALSE);
+	}
 	return(js_crlf(cx, obj, argc, argv, rval));
 }
 
@@ -1244,8 +1249,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
 	},		
-	{"getnum",			js_getnum,			0, JSTYPE_NUMBER,	JSDOCSTR("[maxnum]")
-	,JSDOCSTR("get a number between 1 and <i>maxnum</i> from the user")
+	{"getnum",			js_getnum,			0, JSTYPE_NUMBER,	JSDOCSTR("[maxnum[, default]]")
+	,JSDOCSTR("get a number between 1 and <i>maxnum</i> from the user with a default value of <i>default</i>")
 	,310
 	},		
 	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("string keys [,maxnum]")

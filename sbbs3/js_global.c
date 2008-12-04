@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.216 2008/01/13 08:27:17 deuce Exp $ */
+/* $Id: js_global.c,v 1.225 2008/12/04 22:25:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,6 +42,7 @@
 #include "base64.h"
 #include "htmlansi.h"
 #include "ini_file.h"
+#include "js_rtpool.h"
 
 /* SpiderMonkey: */
 #include <jsfun.h>
@@ -124,7 +125,7 @@ static void background_thread(void* arg)
 	js_enqueue_value(bg->cx, bg->msg_queue, result, NULL);
 	JS_DestroyScript(bg->cx, bg->script);
 	JS_DestroyContext(bg->cx);
-	JS_DestroyRuntime(bg->runtime);
+	jsrt_Release(bg->runtime);
 	free(bg);
 }
 
@@ -255,7 +256,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		bg->branch.counter=0;
 		bg->branch.gc_attempts=0;
 
-		if((bg->runtime = JS_NewRuntime(JAVASCRIPT_MAX_BYTES))==NULL)
+		if((bg->runtime = jsrt_GetNew(JAVASCRIPT_MAX_BYTES, 1000))==NULL)
 			return(JS_FALSE);
 
 	    if((bg->cx = JS_NewContext(bg->runtime, JAVASCRIPT_CONTEXT_STACK))==NULL)
@@ -291,8 +292,8 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		/* Save parent's 'log' function (for later use by our log function) */
 		if(JS_GetProperty(cx, obj, "log", &val)) {
 			JSFunction* func;
-			if((func=JS_ValueToFunction(cx, val))!=NULL && !func->interpreted) {
-				bg->log=func->u.native;
+			if((func=JS_ValueToFunction(cx, val))!=NULL && !(func->flags&JSFUN_INTERPRETED)) {
+				bg->log=func->u.n.native;
 				JS_DefineFunction(bg->cx, bg->obj
 					,"log", js_log, func->nargs, func->flags);
 			}
@@ -788,6 +789,35 @@ static void outbuf_append(char **outbuf, char **outp, char *append, int len, int
 	return;
 }
 
+static int compare_prefix(char *old_prefix, int old_prefix_bytes, char *new_prefix, int new_prefix_bytes)
+{
+	int i;
+
+	if(new_prefix_bytes != old_prefix_bytes) {
+		if(new_prefix_bytes < old_prefix_bytes) {
+			if(memcmp(old_prefix, new_prefix, new_prefix_bytes)!=0)
+				return(-1);
+			for(i=new_prefix_bytes; i<old_prefix_bytes; i++) {
+				if(!isspace(old_prefix[i]))
+					return(-1);
+			}
+		}
+		else {
+			if(memcmp(old_prefix, new_prefix, old_prefix_bytes)!=0)
+				return(-1);
+			for(i=old_prefix_bytes; i<new_prefix_bytes; i++) {
+				if(!isspace(new_prefix[i]))
+					return(-1);
+			}
+		}
+		return(0);
+	}
+	if(memcmp(old_prefix,new_prefix,new_prefix_bytes)!=0)
+		return(-1);
+
+	return(0);
+}
+
 static JSBool
 js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -830,12 +860,14 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
 		handle_quotes=JSVAL_TO_BOOLEAN(argv[3]);
 
-	if((linebuf=(char*)alloca((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
+	if((linebuf=(char*)malloc((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
 		return(JS_FALSE);
 
 	if(handle_quotes) {
-		if((prefix=(char *)alloca((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
+		if((prefix=(char *)malloc((len*2)+2))==NULL) { /* room for ^A codes ToDo: This isn't actually "enough" room */
+			free(linebuf);
 			return(JS_FALSE);
+		}
 		prefix[0]=0;
 	}
 
@@ -887,7 +919,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					ocol=1;
 				}
 				/* If there's a new prefix, it is a hardcr */
-				else if(prefix_bytes != old_prefix_bytes || (memcmp(prefix,inbuf+i+1-prefix_bytes,prefix_bytes))) {
+				else if(compare_prefix(prefix, old_prefix_bytes, inbuf+i+1-prefix_bytes, prefix_bytes)!=0) {
 					if(prefix_len>len/3*2) {
 						/* This prefix is insane (more than 2/3rds of the new width) hack it down to size */
 						/* Since we're hacking it, we will always end up with a hardcr on this line. */
@@ -909,12 +941,12 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					ocol=prefix_len+1;
 					old_prefix_bytes=prefix_bytes;
 				}
-				else if(isspace(inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
+				else if(isspace(inbuf[i+1]) && inbuf[i+1] != '\n' && inbuf[i+1] != '\r') {	/* Next line starts with whitespace.  This is a "hard" CR. */
 					linebuf[l++]='\r';
 					linebuf[l++]='\n';
 					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					l=0;
-					ocol=1;
+					l=prefix_bytes;
+					ocol=prefix_len+1;
 				}
 				else {
 					if(icol < oldlen) {			/* If this line is overly long, It's impossible for the next word to fit */
@@ -1000,7 +1032,7 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					}
 					t=l+1;									/* Store start position of next line */
 					/* Move to start of whitespace */
-					while(l>0 && isspace(l))
+					while(l>0 && isspace(linebuf[l]))
 						l--;
 					outbuf_append(&outbuf, &outp, linebuf, l+1, &outbuf_size);
 					outbuf_append(&outbuf, &outp, "\r\n", 2, &outbuf_size);
@@ -1013,9 +1045,9 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					for(ocol=prefix_len+1,t=prefix_bytes; t<l; t++) {
 						switch(linebuf[t]) {
 							case '\x01':	/* CTRL-A */
-								if(linebuf[t+1]!='\x01')
-									break;
 								t++;
+								if(linebuf[t]!='\x01')
+									break;
 								/* Fall-through */
 							default:
 								ocol++;
@@ -1041,6 +1073,9 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	js_str = JS_NewStringCopyZ(cx, outbuf);
 	free(outbuf);
+	free(linebuf);
+	if(prefix)
+		free(prefix);
 	if(js_str==NULL)
 		return(JS_FALSE);
 
@@ -2967,6 +3002,21 @@ js_mkdir(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
+js_mkpath(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char*		p;
+
+	if(JSVAL_IS_VOID(argv[0]))
+		return(JS_TRUE);
+
+	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
+		return(JS_FALSE);
+
+	*rval = BOOLEAN_TO_JSVAL(mkpath(p)==0);
+	return(JS_TRUE);
+}
+
+static JSBool
 js_rmdir(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
@@ -3345,6 +3395,10 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("make a directory")
 	,310
 	},		
+	{"mkpath",			js_mkpath,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
+	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories)")
+	,315
+	},		
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
 	,JSDOCSTR("remove a directory")
 	,310
@@ -3537,12 +3591,12 @@ static JSBool js_global_resolve(JSContext *cx, JSObject *obj, jsval id)
 	if(id != JSVAL_NULL)
 		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
 
-	if(js_SyncResolve(cx, obj, name, js_global_properties, js_global_functions, js_global_const_ints, 0)==JS_FALSE)
-		ret=JS_FALSE;
 	if(p->methods) {
 		if(js_SyncResolve(cx, obj, name, NULL, p->methods, NULL, 0)==JS_FALSE)
 			ret=JS_FALSE;
 	}
+	if(js_SyncResolve(cx, obj, name, js_global_properties, js_global_functions, js_global_const_ints, 0)==JS_FALSE)
+		ret=JS_FALSE;
 	return(ret);
 }
 
