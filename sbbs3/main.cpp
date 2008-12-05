@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.498 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: main.cpp,v 1.502 2008/12/04 22:25:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #include "ident.h"
 #include "telnet.h" 
 #include "netwrap.h"
+#include "js_rtpool.h"
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -980,7 +981,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 	lprintf(LOG_DEBUG,"%s JavaScript: Creating runtime: %lu bytes"
 		,node,startup->js.max_bytes);
 
-	if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
+	if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000))==NULL)
 		return(false);
 
 	lprintf(LOG_DEBUG,"%s JavaScript: Initializing context (stack: %lu bytes)"
@@ -1130,7 +1131,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 
 					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s Telnet sub-negotiation command: %s"
+						lprintf(LOG_DEBUG,"Node %d %s telnet sub-negotiation command: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,telnet_opt_desc(option));
@@ -1154,7 +1155,24 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,speed);
 						sbbs->cur_rate=atoi(speed);
 						sbbs->cur_cps=sbbs->cur_rate/10;
-
+#if 0
+					} else if(option==TELNET_NEW_ENVIRON
+						&& sbbs->telnet_cmd[3]==TELNET_ENVIRON_IS) {
+						BYTE*	p;
+						BYTE*   end=sbbs->telnet_cmd+(sbbs->telnet_cmdlen-2);
+						for(p=sbbs->telnet_cmd+4; p < end; ) {
+							if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR) {
+								p++;
+								lprintf(LOG_DEBUG,"Node %d %s telnet environment var/val: %.*s"
+	                				,sbbs->cfg.node_num
+									,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+									,end-p
+									,p);
+								p+=strlen((char*)p);
+							} else
+								p++;
+						}
+#endif
 					} else if(option==TELNET_SEND_LOCATION) {
 						safe_snprintf(sbbs->telnet_location
 							,sizeof(sbbs->telnet_location)
@@ -1253,6 +1271,20 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								,TELNET_IAC,TELNET_SE);
 							sbbs->putcom(buf,6);
 						}
+#if 0
+						else if(command==TELNET_WILL && option==TELNET_NEW_ENVIRON) {
+							if(startup->options&BBS_OPT_DEBUG_TELNET)
+								lprintf(LOG_DEBUG,"Node %d requesting USER environment variable value"
+									,sbbs->cfg.node_num);
+
+							char	buf[64];
+							int len=sprintf(buf,"%c%c%c%c%cUSER%c%c"
+								,TELNET_IAC,TELNET_SB
+								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND,TELNET_ENVIRON_VAR
+								,TELNET_IAC,TELNET_SE);
+							sbbs->putcom(buf,len);
+						}
+#endif
 					}
 				}
 
@@ -2638,6 +2670,8 @@ void event_thread(void* arg)
 	sbbs->cfg.node_num=0;
     sbbs->event_thread_running = false;
 
+	delete sbbs;
+
 	thread_down();
 	eprintf(LOG_DEBUG,"BBS Event thread terminated (%u threads remain)", thread_count);
 }
@@ -3155,7 +3189,7 @@ sbbs_t::~sbbs_t()
 
 	if(js_runtime!=NULL) {
 		lprintf(LOG_DEBUG,"%s JavaScript: Destroying runtime",node);
-		JS_DestroyRuntime(js_runtime);
+		jsrt_Release(js_runtime);
 		js_runtime=NULL;
 	}
 #endif
@@ -5264,9 +5298,6 @@ NO_PASSTHRU:
         node.status=NODE_OFFLINE;
         sbbs->putnodedat(i,&node);
     }
-
-	if(events!=NULL && !events->event_thread_running)
-		delete events;
 
     if(!sbbs->output_thread_running)
 	    delete sbbs;
