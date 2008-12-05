@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.330 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.332 2008/12/04 22:25:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,7 @@
 #include "text.h"			/* TOTAL_TEXT */
 #include "ftpsrvr.h"
 #include "telnet.h"
+#include "js_rtpool.h"
 
 /* Constants */
 
@@ -3858,7 +3859,7 @@ static void ctrl_thread(void* arg)
 						lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
 							,sock,startup->js.max_bytes);
 
-						if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL) {
+						if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000))==NULL) {
 							lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
 							sockprintf(sock,"451 Error creating JavaScript runtime");
 							filepos=0;
@@ -4462,7 +4463,7 @@ static void ctrl_thread(void* arg)
 
 	if(js_runtime!=NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying runtime",sock);
-		JS_DestroyRuntime(js_runtime);
+		jsrt_Release(js_runtime);
 	}
 
 #endif
@@ -4532,7 +4533,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.330 $", "%*s %s", revision);
+	sscanf("$Revision: 1.332 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
