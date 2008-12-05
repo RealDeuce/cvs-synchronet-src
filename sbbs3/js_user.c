@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.71 2008/12/09 09:48:48 deuce Exp $ */
+/* $Id: js_user.c,v 1.69 2008/12/05 02:54:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "js_request.h"
 
 #ifdef JAVASCRIPT
 
@@ -153,7 +152,7 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		return(JS_FALSE);
 	}
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	js_getuserdat(p);
 
     tiny = JSVAL_TO_INT(id);
@@ -379,20 +378,20 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 		case USER_PROP_CACHED:
 			*vp = BOOLEAN_TO_JSVAL(p->cached);
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			return(JS_TRUE);	/* intentional early return */
 
 		case USER_PROP_IS_SYSOP:
 			*vp = BOOLEAN_TO_JSVAL(p->user.level >= SYSOP_LEVEL);
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			return(JS_TRUE);	/* intentional early return */
 
 		default:	
 			/* This must not set vp in order for child objects to work (stats and security) */
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			return(JS_TRUE);
 	}
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 	if(s!=NULL) {
 		if((js_str=JS_NewStringCopyZ(cx, s))==NULL)
 			return(JS_FALSE);
@@ -428,12 +427,12 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
     tiny = JSVAL_TO_INT(id);
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	switch(tiny) {
 		case USER_PROP_NUMBER:
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			JS_ValueToInt32(cx, *vp, &usernumber);
-			rc=JS_SUSPENDREQUEST(cx);
+			rc=JS_SuspendRequest(cx);
 			if(usernumber!=p->user.number)
 				p->user.number=(ushort)usernumber;
 			break;
@@ -505,55 +504,55 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			putuserrec(p->cfg,p->user.number,U_COMP,0,str);
 			break;
 		case USER_PROP_MISC:
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_MISC,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_QWK:		 
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_QWK,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_CHAT:		 
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_CHAT,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_TMPEXT:	 
 			putuserrec(p->cfg,p->user.number,U_TMPEXT,0,str);
 			break;
 		case USER_PROP_NS_TIME:	 
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_NS_TIME,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_PROT:	
 			putuserrec(p->cfg,p->user.number,U_PROT,0,strupr(str)); /* single char */
 			break;
 		case USER_PROP_LOGONTIME:	 
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_LOGONTIME,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 			
 		/* security properties*/
@@ -561,70 +560,67 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			putuserrec(p->cfg,p->user.number,U_PASS,LEN_PASS,strupr(str));
 			break;
 		case USER_PROP_PWMOD:
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_PWMOD,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_LEVEL: 
 			putuserrec(p->cfg,p->user.number,U_LEVEL,0,str);
 			break;
 		case USER_PROP_FLAGS1:
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_FLAGS1,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_FLAGS2:
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_FLAGS2,0,ultoa(val,tmp,16));
-			}
-			else
-				rc=JS_SUSPENDREQUEST(cx);
 			break;
 		case USER_PROP_FLAGS3:
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_FLAGS3,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_FLAGS4:
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_FLAGS4,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_EXEMPT:
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_EXEMPT,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_REST:	
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_REST,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 		case USER_PROP_CDT:	
 			putuserrec(p->cfg,p->user.number,U_CDT,0,str);
@@ -639,24 +635,23 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			putuserrec(p->cfg,p->user.number,U_TEXTRA,0,str);
 			break;
 		case USER_PROP_EXPIRE:  
-			JS_RESUMEREQUEST(cx, rc);
+			JS_ResumeRequest(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val)) {
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 				putuserrec(p->cfg,p->user.number,U_EXPIRE,0,ultoa(val,tmp,16));
 			}
 			else
-				rc=JS_SUSPENDREQUEST(cx);
+				rc=JS_SuspendRequest(cx);
 			break;
 
 		case USER_PROP_CACHED:
 			JS_ValueToBoolean(cx, *vp, &p->cached);
-			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);	/* intentional early return */
 
 	}
 	p->cached=FALSE;
 
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -905,7 +900,7 @@ js_chk_ar(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return JS_FALSE;
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	ar = arstr(NULL,JS_GetStringBytes(js_str),p->cfg);
 
 	js_getuserdat(p);
@@ -914,7 +909,7 @@ js_chk_ar(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(ar!=NULL && ar!=nular)
 		free(ar);
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 
 	return JS_TRUE;
 }
@@ -932,11 +927,11 @@ js_posted_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(argc)
 		JS_ValueToInt32(cx, argv[0], &count);
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	js_getuserdat(p);
 
 	*rval = BOOLEAN_TO_JSVAL(user_posted_msg(p->cfg, &p->user, count));
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 
 	return JS_TRUE;
 }
@@ -957,11 +952,11 @@ js_sent_email(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(argc>1)
 		JS_ValueToBoolean(cx, argv[1], &feedback);
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	js_getuserdat(p);
 
 	*rval = BOOLEAN_TO_JSVAL(user_sent_email(p->cfg, &p->user, count, feedback));
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 
 	return JS_TRUE;
 }
@@ -982,11 +977,11 @@ js_downloaded_file(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval 
 	if(argc>1)
 		JS_ValueToInt32(cx, argv[1], &files);
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	js_getuserdat(p);
 
 	*rval = BOOLEAN_TO_JSVAL(user_downloaded(p->cfg, &p->user, files, bytes));
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 
 	return JS_TRUE;
 }
@@ -1007,11 +1002,11 @@ js_uploaded_file(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if(argc>1)
 		JS_ValueToInt32(cx, argv[1], &files);
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	js_getuserdat(p);
 
 	*rval = BOOLEAN_TO_JSVAL(user_uploaded(p->cfg, &p->user, files, bytes));
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 
 	return JS_TRUE;
 }
@@ -1029,11 +1024,11 @@ js_adjust_credits(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	if(argc)
 		JS_ValueToInt32(cx, argv[0], &count);
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	js_getuserdat(p);
 
 	*rval = BOOLEAN_TO_JSVAL(user_adjust_credits(p->cfg, &p->user, count));
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 
 	return JS_TRUE;
 }
@@ -1051,11 +1046,11 @@ js_adjust_minutes(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	if(argc)
 		JS_ValueToInt32(cx, argv[0], &count);
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	js_getuserdat(p);
 
 	*rval = BOOLEAN_TO_JSVAL(user_adjust_minutes(p->cfg, &p->user, count));
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 
 	return JS_TRUE;
 }
@@ -1073,11 +1068,11 @@ js_get_time_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if(argc)
 		JS_ValueToInt32(cx, argv[0], &start_time);
 
-	rc=JS_SUSPENDREQUEST(cx);
+	rc=JS_SuspendRequest(cx);
 	js_getuserdat(p);
 
 	*rval = INT_TO_JSVAL(gettimeleft(p->cfg, &p->user, (time_t)start_time));
-	JS_RESUMEREQUEST(cx, rc);
+	JS_ResumeRequest(cx, rc);
 
 	return JS_TRUE;
 }

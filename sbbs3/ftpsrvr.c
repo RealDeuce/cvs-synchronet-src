@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.339 2008/12/20 07:17:30 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.332 2008/12/04 22:25:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@
 #include "ftpsrvr.h"
 #include "telnet.h"
 #include "js_rtpool.h"
-#include "js_request.h"
 
 /* Constants */
 
@@ -388,7 +387,6 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     uintN		i;
     JSString*	str=NULL;
 	FILE*	fp;
-	jsrefcount	rc;
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -397,9 +395,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		str = JS_ValueToString(cx, argv[i]);
 		if (!str)
 		    return JS_FALSE;
-		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(fp,"%s",JS_GetStringBytes(str));
-		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
@@ -413,15 +409,12 @@ static JSBool
 js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	FILE*	fp;
-	jsrefcount	rc;
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
 	js_write(cx,obj,argc,argv,rval);
-	rc=JS_SUSPENDREQUEST(cx);
 	fprintf(fp,"\r\n");
-	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -484,7 +477,6 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 
     if((js_cx = JS_NewContext(runtime, startup->js.cx_stack))==NULL)
 		return(NULL);
-	JS_BEGINREQUEST(js_cx);
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Context created",sock);
 
@@ -518,7 +510,6 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 	} while(0);
 
 	if(!success) {
-		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
 	}
@@ -635,7 +626,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 	JSScript*	js_script=NULL;
 	JSString*	js_str;
 	long double		start=xp_timer();
-	jsrefcount	rc;
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Generating HTML Index for %s"
 		,sock, genvpath(lib,dir,str));
@@ -668,7 +658,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		rc=JS_SUSPENDREQUEST(js_cx);
 		if(strcspn(startup->html_index_script,"/\\")==strlen(startup->html_index_script)) {
 			sprintf(spath,"%s%s",scfg.mods_dir,startup->html_index_script);
 			if(scfg.mods_dir[0]==0 || !fexist(spath))
@@ -680,11 +669,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			strcat(spath,".js");
 
 		if(!fexist(spath)) {
-			JS_RESUMEREQUEST(js_cx, rc);
 			lprintf(LOG_ERR,"%04d !HTML JavaScript (%s) doesn't exist",sock,spath);
 			break;
 		}
-		JS_RESUMEREQUEST(js_cx, rc);
 
 		if((js_str=JS_NewStringCopyZ(js_cx, startup->html_index_file))==NULL)
 			break;
@@ -787,7 +774,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 		if(lib<0) {	/* root dir */
 
-			rc=JS_SUSPENDREQUEST(js_cx);
 			/* File Aliases */
 			sprintf(path,"%sftpalias.cfg",scfg.ctrl_dir);
 			if((alias_fp=fopen(path,"r"))!=NULL) {
@@ -847,7 +833,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						SAFEPRINTF2(vpath,"/%s/%s",p,startup->html_index_file);
 					} else
 						SAFECOPY(vpath,p);
-					JS_RESUMEREQUEST(js_cx, rc);
 					js_add_file(js_cx
 						,alias_dir ? dir_array : file_array
 						,p				/* filename */
@@ -863,12 +848,10 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						,scfg.sys_id	/* uploader */
 						,vpath			/* link */
 						);
-					rc=JS_SUSPENDREQUEST(js_cx);
 				}
 
 				fclose(alias_fp);
 			}
-			JS_RESUMEREQUEST(js_cx, rc);
 
 			/* QWK Packet */
 			if(startup->options&FTP_OPT_ALLOW_QWK /* && fexist(qwkfile) */) {
@@ -933,7 +916,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			}
 		} else if(chk_ar(&scfg,scfg.dir[dir]->ar,user)){
 			SAFEPRINTF(path,"%s*",scfg.dir[dir]->path);
-			rc=JS_SUSPENDREQUEST(js_cx);
 			glob(path,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
 				if(isdir(g.gl_pathv[i]))
@@ -958,7 +940,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						,scfg.lib[scfg.dir[dir]->lib]->sname
 						,scfg.dir[dir]->code_suffix
 						,getfname(g.gl_pathv[i]));
-					JS_RESUMEREQUEST(js_cx, rc);
 					js_add_file(js_cx
 						,file_array 
 						,getfname(g.gl_pathv[i])	/* filename */
@@ -974,11 +955,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						,f.uler						/* uploader */
 						,getfname(g.gl_pathv[i])	/* link */
 						);
-					rc=JS_SUSPENDREQUEST(js_cx);
 				}
 			}
 			globfree(&g);
-			JS_RESUMEREQUEST(js_cx, rc);
 		}
 
 
@@ -3880,7 +3859,7 @@ static void ctrl_thread(void* arg)
 						lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
 							,sock,startup->js.max_bytes);
 
-						if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL) {
+						if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000))==NULL) {
 							lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
 							sockprintf(sock,"451 Error creating JavaScript runtime");
 							filepos=0;
@@ -3889,7 +3868,6 @@ static void ctrl_thread(void* arg)
 					}
 
 					if(js_cx==NULL) {	/* Context not yet created, create it now */
-						/* js_initcx() starts a request */
 						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp))==NULL)) {
 							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
 							sockprintf(sock,"451 Error initializing JavaScript context");
@@ -3912,8 +3890,6 @@ static void ctrl_thread(void* arg)
 							,startup->html_index_file)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file area object",sock);
 					}
-					else
-						JS_BEGINREQUEST(js_cx);
 
 					if((js_str=JS_NewStringCopyZ(js_cx, "name"))!=NULL) {
 						js_val=STRING_TO_JSVAL(js_str);
@@ -3957,7 +3933,6 @@ static void ctrl_thread(void* arg)
 					js_val=BOOLEAN_TO_JSVAL(INT_TO_BOOL(user.misc&EXTDESC));
 					JS_SetProperty(js_cx, js_ftp, "extended_descriptions", &js_val);
 
-					JS_ENDREQUEST(js_cx);
 #endif
 					if((fp=fopen(ftp_tmpfname(fname,"html",sock),"w+b"))==NULL) {
 						lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
@@ -3972,12 +3947,10 @@ static void ctrl_thread(void* arg)
 					tmpfile=TRUE;
 					delfile=TRUE;
 #ifdef JAVASCRIPT
-					JS_BEGINREQUEST(js_cx);
 					js_val=INT_TO_JSVAL(timeleft);
 					if(!JS_SetProperty(js_cx, js_ftp, "time_left", &js_val))
 						lprintf(LOG_ERR,"%04d !JavaScript ERROR setting user.time_left",sock);
 					js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user);
-					JS_ENDREQUEST(js_cx);
 #endif
 					fclose(fp);
 				}
@@ -4470,8 +4443,7 @@ static void ctrl_thread(void* arg)
 
 	if(user.number) {
 		/* Update User Statistics */
-		if(!logoutuserdat(&scfg, &user, time(NULL), logintime))
-			lprintf(LOG_ERR,"%04d !ERROR in logoutuserdat",sock);
+		logoutuserdat(&scfg, &user, time(NULL), logintime);
 		/* Remove QWK-pack semaphore file (if left behind) */
 		sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
 		remove(str);
@@ -4561,7 +4533,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.339 $", "%*s %s", revision);
+	sscanf("$Revision: 1.332 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

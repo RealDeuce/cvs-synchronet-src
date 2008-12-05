@@ -504,10 +504,8 @@ char *sdl_getcliptext(void)
 			ret=(char *)malloc(strlen(sdl_pastebuf)+1);
 			if(ret!=NULL)
 				strcpy(ret,sdl_pastebuf);
+			sdl.SemPost(sdl_pastebuf_copied);
 		}
-		else
-			retNULL;
-		sdl.SemPost(sdl_pastebuf_copied);
 		return(ret);
 
 	}
@@ -521,10 +519,8 @@ char *sdl_getcliptext(void)
 			ret=(char *)malloc(strlen(sdl_pastebuf)+1);
 			if(ret!=NULL)
 				strcpy(ret,sdl_pastebuf);
+			sdl.SemPost(sdl_pastebuf_copied);
 		}
-		else
-			ret=NULL;
-		sdl.SemPost(sdl_pastebuf_copied);
 		return(ret);
 	}
 #endif
@@ -1630,7 +1626,7 @@ int sdl_video_event_thread(void *data)
 								}
 	#endif
 
-	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
+	#if !defined(NO_X) && defined(__unix__)
 								if(sdl_x11available && sdl_using_x11) {
 									SDL_SysWMinfo	wmi;
 
@@ -1668,7 +1664,7 @@ int sdl_video_event_thread(void *data)
 								}
 	#endif
 
-	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
+	#if !defined(NO_X) && defined(__unix__)
 								if(sdl_x11available && sdl_using_x11) {
 									Window sowner=None;
 									SDL_SysWMinfo	wmi;
@@ -1709,7 +1705,7 @@ int sdl_video_event_thread(void *data)
 						break;
 					}
 					case SDL_SYSWMEVENT:			/* ToDo... This is where Copy/Paste needs doing */
-	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
+	#if !defined(NO_X) && defined(__unix__)
 						if(sdl_x11available && sdl_using_x11) {
 							XEvent *e;
 							e=&ev.syswm.msg->event.xevent;
