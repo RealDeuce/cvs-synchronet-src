@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.75 2009/03/25 00:34:08 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.71 2008/02/25 05:16:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -226,8 +226,6 @@
 
 #define FORWARDED			0x48
 
-#if 0	/* Deprecating the following fields: (Jan-2009) never used */
-
 #define RECEIVEDBY			0x50
 #define RECEIVEDBYAGENT 	0x51
 #define RECEIVEDBYNETTYPE	0x52
@@ -237,8 +235,6 @@
 #define RECEIVEDBYORG		0x56
 
 #define RECEIVED			0x58
-
-#endif
 
 #define SUBJECT 			0x60	/* or filename */
 #define SMB_SUMMARY 		0x61	/* or file description */
@@ -294,10 +290,9 @@
 #define USENETPATH			0xc0
 #define USENETNEWSGROUPS	0xc1
 
-#define SMTPCOMMAND			0xd0		/* Arbitrary SMTP command */
+#define SMTPCOMMAND			0xd0		/* Aribtrary SMTP command */
 #define SMTPREVERSEPATH		0xd1		/* MAIL FROM: argument, "reverse path" */
 #define SMTPFORWARDPATH		0xd2		/* RCPT TO: argument, "forward path" */
-#define SMTPRECEIVED		0xd3		/* SMTP "Received" information */
 
 #define SMTPSYSMSG			0xd8		/* for delivery failure notification */
 
@@ -459,7 +454,6 @@ enum {
 	 SMB_HASH_SOURCE_BODY
 	,SMB_HASH_SOURCE_MSG_ID
 	,SMB_HASH_SOURCE_FTN_ID
-	,SMB_HASH_SOURCE_SUBJECT
 
 /* Add new ones here (max value of 31) */
 
@@ -469,10 +463,6 @@ enum {
 #define SMB_HASH_SOURCE_MASK	0x1f
 #define SMB_HASH_SOURCE_NONE	0
 #define SMB_HASH_SOURCE_ALL		0xff
-								/* These are the hash sources stored/compared for duplicate message detection: */
-#define SMB_HASH_SOURCE_DUPE	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_MSG_ID)|(1<<SMB_HASH_SOURCE_FTN_ID))
-								/* These are the hash sources stored/compared for SPAM message detection: */
-#define SMB_HASH_SOURCE_SPAM	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_SUBJECT))
 
 typedef struct _PACK {
 

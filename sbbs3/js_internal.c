@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.47 2009/08/18 23:24:28 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.37 2008/12/05 01:22:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "js_request.h"
 
 #include <jscntxt.h>	/* Needed for Context-private data structure */
 
@@ -214,7 +213,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Terminated? */
 	if(branch->auto_terminate &&
 		(branch->terminated!=NULL && *branch->terminated)) {
-		JS_ReportWarning(cx,"Terminated");
+		JS_ReportError(cx,"Terminated");
 		branch->counter=0;
 		return(JS_FALSE);
 	}
@@ -230,9 +229,9 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
 		jsrefcount	rc;
 
-		rc=JS_SUSPENDREQUEST(cx);
+		rc=JS_SuspendRequest(cx);
 		YIELD();
-		JS_RESUMEREQUEST(cx, rc);
+		JS_ResumeRequest(cx, rc);
 	}
 
 	/* Periodic Garbage Collection */
@@ -424,9 +423,6 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	char*	p;
 	jsval	rval;
 	JSScript* script;
-	BOOL	auto_terminate=branch->auto_terminate;
-
-	branch->auto_terminate=FALSE;
 
 	while((p=strListPop(&branch->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
@@ -437,11 +433,9 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	}
 
 	strListFree(&branch->exit_func);
-
-	branch->auto_terminate = auto_terminate;
 }
 
-JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch, js_startup_t* startup)
+JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch)
 {
 	JSObject*	obj;
 
@@ -452,64 +446,10 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	if(!JS_SetPrivate(cx, obj, branch))	/* Store a pointer to js_branch_t */
 		return(NULL);
 
-	if(startup!=NULL) {
-		JSObject*	load_path_list;
-		jsval		val;
-		str_list_t	load_path;
-
-		if((load_path_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
-			return(NULL);
-		val=OBJECT_TO_JSVAL(load_path_list);
-		if(!JS_SetProperty(cx, obj, JAVASCRIPT_LOAD_PATH_LIST, &val)) 
-			return(NULL);
-
-		if((load_path=strListSplitCopy(NULL, startup->load_path, ",")) != NULL) {
-			JSString*	js_str;
-			unsigned	i;
-
-			for(i=0; load_path[i]!=NULL; i++) {
-				if((js_str=JS_NewStringCopyZ(cx, load_path[i]))==NULL)
-					break;
-				val=STRING_TO_JSVAL(js_str);
-				if(!JS_SetElement(cx, load_path_list, i, &val))
-					break;
-			}
-			strListFree(&load_path);
-		}
-	}
-
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"JavaScript execution and garbage collection control object",311);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", prop_desc, JSPROP_READONLY);
 #endif
 
 	return(obj);
-}
-
-void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename)
-{
-	JSString*	str;
-	jsval		val;
-
-	if(JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val)) {
-		JSObject* js = JSVAL_TO_OBJECT(val);
-		char	dir[MAX_PATH+1];
-
-		if(filename!=NULL) {
-			char* p;
-
-			if((str=JS_NewStringCopyZ(cx, filename)) != NULL)
-				JS_DefineProperty(cx, js, "exec_path", STRING_TO_JSVAL(str)
-					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-			if((str=JS_NewStringCopyZ(cx, getfname(filename))) != NULL)
-				JS_DefineProperty(cx, js, "exec_file", STRING_TO_JSVAL(str)
-					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-			SAFECOPY(dir,filename);
-			p=getfname(dir);
-			*p=0;
-			if((str=JS_NewStringCopyZ(cx, dir)) != NULL)
-				JS_DefineProperty(cx, js, "exec_dir", STRING_TO_JSVAL(str)
-					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-		}
-	}
 }
