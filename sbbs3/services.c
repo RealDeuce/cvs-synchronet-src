@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.212 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: services.c,v 1.214 2008/12/04 22:25:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +59,7 @@
 #include "services.h"
 #include "ident.h"	/* identify() */
 #include "sbbs_ini.h"
+#include "js_rtpool.h"
 
 /* Constants */
 
@@ -1063,7 +1064,7 @@ static void js_service_thread(void* arg)
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
 
-	if((js_runtime=JS_NewRuntime(service->js.max_bytes))==NULL
+	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000))==NULL
 		|| (js_cx=js_initcx(js_runtime,socket,&service_client,&js_glob))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript context"
 			,socket,service->protocol);
@@ -1116,7 +1117,7 @@ static void js_service_thread(void* arg)
 	}
 	JS_DestroyContext(js_cx);	/* Free Context */
 
-	JS_DestroyRuntime(js_runtime);
+	jsrt_Release(js_runtime);
 
 	if(service_client.user.number) {
 		lprintf(LOG_INFO,"%04d %s Logging out %s"
@@ -1177,7 +1178,7 @@ static void js_static_service_thread(void* arg)
 	service_client.branch.terminated = &service->terminated;
 	service_client.branch.auto_terminate = TRUE;
 
-	if((js_runtime=JS_NewRuntime(service->js.max_bytes))==NULL) {
+	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript runtime"
 			,service->socket,service->protocol);
 		close_socket(service->socket);
@@ -1222,7 +1223,7 @@ static void js_static_service_thread(void* arg)
 	if(js_cx!=NULL)
 		JS_DestroyContext(js_cx);	/* Free Context */
 
-	JS_DestroyRuntime(js_runtime);
+	jsrt_Release(js_runtime);
 
 	if(service->clients) {
 		lprintf(LOG_WARNING,"%04d %s !service terminating with %u active clients"
@@ -1586,7 +1587,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.212 $", "%*s %s", revision);
+	sscanf("$Revision: 1.214 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
