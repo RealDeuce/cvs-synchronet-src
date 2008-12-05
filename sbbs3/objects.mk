@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.50 2009/01/10 07:04:06 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.48 2008/12/04 19:45:28 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -50,7 +50,6 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_msg_area$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_msgbase$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_queue$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_request$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_rtpool$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_server$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_socket$(OFILE)\
@@ -121,7 +120,6 @@ FTP_OBJS	= $(MTOBJODIR)$(DIRSEP)ftpsrvr$(OFILE) \
 MAIL_OBJS	= $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)mxlookup$(OFILE) \
  		  	$(MTOBJODIR)$(DIRSEP)mime$(OFILE) \
- 		  	$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)base64$(OFILE)
 
 # Must add new additions to MONO_OBJS too!
