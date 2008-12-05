@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.131 2008/01/12 23:30:00 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.140 2008/07/30 08:21:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -198,7 +198,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	ushort		nettype=NET_UNKNOWN;
 	ushort		type;
 	ushort		agent;
-	ushort		port;
 	int32		i32;
 	jsval		val;
 	JSObject*	array;
@@ -299,9 +298,9 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	}
 
 	if(JS_GetProperty(cx, hdr, "from_port", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JS_ValueToInt32(cx,val,&i32);
-		port=(ushort)i32;
-		if((p->status=smb_hfield_bin(msg, SENDERPORT, port))!=SMB_SUCCESS)
+		if((cp=JS_GetStringBytes(JS_ValueToString(cx,val)))==NULL)
+			return(FALSE);
+		if((p->status=smb_hfield_str(msg, SENDERPORT, cp))!=SMB_SUCCESS)
 			return(FALSE);
 	}
 
@@ -675,7 +674,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 
 #define LAZY_STRING_COND(PropName, Condition, PropValue) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
-		if((Condition) && (js_str=JS_NewStringCopyZ(cx, truncsp(PropValue)))!=NULL) { \
+		if((Condition) && (js_str=JS_NewStringCopyZ(cx, (PropValue)))!=NULL) { \
 			JS_DefineProperty(cx, obj, PropName, STRING_TO_JSVAL(js_str), NULL, NULL, JSPROP_ENUMERATE); \
 			if(name) return(JS_TRUE); \
 		} \
@@ -697,9 +696,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	char			msg_id[256];
 	char			reply_id[256];
 	char*			val;
-	ushort*			port;
 	int				i;
-	uintN			n;
 	smbmsg_t		remsg;
 	JSObject*		array;
 	JSObject*		field;
@@ -724,7 +721,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_STRING_TRUNCSP("to",p->msg.to);
 	LAZY_STRING_TRUNCSP("from",p->msg.from);
 	LAZY_STRING_TRUNCSP("subject",p->msg.subj);
-	LAZY_STRING_TRUNCSP("summary", p->msg.summary);
+	LAZY_STRING_TRUNCSP_NULL("summary", p->msg.summary);
 	LAZY_STRING_TRUNCSP_NULL("to_ext", p->msg.to_ext);
 	LAZY_STRING_TRUNCSP_NULL("from_ext", p->msg.from_ext);
 	LAZY_STRING_TRUNCSP_NULL("from_org", p->msg.from_org);
@@ -736,15 +733,16 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_INTEGER_EXPAND("from_agent", p->msg.from_agent);
 	LAZY_INTEGER_EXPAND("replyto_agent", p->msg.replyto_agent);
 	LAZY_INTEGER_EXPAND("to_net_type", p->msg.to_net.type);
-	LAZY_STRING_COND("to_net_addr", p->msg.to_net.type, smb_netaddr(&(p->msg).to_net));
+	LAZY_STRING_COND("to_net_addr", p->msg.to_net.type && p->msg.to_net.addr, smb_netaddr(&(p->msg).to_net));
 	LAZY_INTEGER_EXPAND("from_net_type", p->msg.from_net.type);
-	LAZY_STRING_COND("from_net_addr", p->msg.from_net.type, smb_netaddr(&(p->msg).from_net));
+	/* exception here because p->msg.from_net is NULL */
+	LAZY_STRING_COND("from_net_addr", p->msg.from_net.type && p->msg.from_net.addr, smb_netaddr(&(p->msg).from_net));
 	LAZY_INTEGER_EXPAND("replyto_net_type", p->msg.replyto_net.type);
-	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.type, smb_netaddr(&(p->msg).replyto_net));
+	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.type && p->msg.replyto_net.addr, smb_netaddr(&(p->msg).replyto_net));
 	LAZY_STRING_COND("from_ip_addr", (val=smb_get_hfield(&(p->msg),SENDERIPADDR,NULL))!=NULL, val);
 	LAZY_STRING_COND("from_host_name", (val=smb_get_hfield(&(p->msg),SENDERHOSTNAME,NULL))!=NULL, val);
-	LAZY_STRING_COND("from_prorocol", (val=smb_get_hfield(&(p->msg),SENDERPROTOCOL,NULL))!=NULL, val);
-	LAZY_INTEGER_COND("from_port", (port=smb_get_hfield(&(p->msg),SENDERPORT,NULL))!=NULL, *port);
+	LAZY_STRING_COND("from_protocol", (val=smb_get_hfield(&(p->msg),SENDERPROTOCOL,NULL))!=NULL, val);
+	LAZY_STRING_COND("from_port", (val=smb_get_hfield(&(p->msg),SENDERPORT,NULL))!=NULL, val);
 	LAZY_INTEGER_EXPAND("forwarded", p->msg.forwarded);
 	LAZY_INTEGER_EXPAND("expiration", p->msg.expiration);
 	LAZY_INTEGER_EXPAND("priority", p->msg.priority);
@@ -782,7 +780,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 				if(smb_getmsgidx(&(p->p->smb), &remsg))
 					sprintf(reply_id,"<%s>",p->p->smb.last_error);
 				else
-					SAFECOPY(reply_id,get_msgid(scfg,p->p->smb.subnum,&remsg));
+					get_msgid(scfg,p->p->smb.subnum,&remsg,reply_id,sizeof(reply_id));
 			}
 			val=reply_id;
 		}
@@ -800,7 +798,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	/* Message-ID */
 	if(name==NULL || strcmp(name,"id")==0) {
 		if(p->expand_fields || (p->msg).id!=NULL) {
-			SAFECOPY(msg_id,get_msgid(scfg,p->p->smb.subnum,&(p->msg)));
+			get_msgid(scfg,p->p->smb.subnum,&(p->msg),msg_id,sizeof(msg_id));
 			val=msg_id;
 			if((js_str=JS_NewStringCopyZ(cx,truncsp(val)))!=NULL) {
 				JS_DefineProperty(cx, obj, "id"
@@ -892,7 +890,7 @@ static JSBool js_get_msg_header_enumerate(JSContext *cx, JSObject *obj)
 	js_get_msg_header_resolve(cx, obj, JSVAL_NULL);
 
 	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL)
-		return;
+		return(JS_TRUE);
 
 	smb_freemsgmem(&(p->msg));
 	free(p);
@@ -931,22 +929,9 @@ static JSClass js_msghdr_class = {
 static JSBool
 js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char		date[128];
-	char		msg_id[256];
-	char		reply_id[256];
-	char*		val;
-	ushort*		port;
-	int			i;
 	uintN		n;
-	smbmsg_t	remsg;
 	JSObject*	hdrobj;
-	JSObject*	array;
-	JSObject*	field;
-	JSString*	js_str;
-	jsint		items;
-	jsval		v;
 	JSBool		by_offset=JS_FALSE;
-	JSBool		expand_fields=JS_TRUE;
 	privatemsg_t*	p;
 
 	*rval = JSVAL_NULL;
@@ -969,6 +954,7 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	}
 
 	/* Parse boolean arguments first */
+	p->expand_fields=JS_TRUE;	/* This parameter defaults to true */
 	for(n=0;n<argc;n++) {
 		if(!JSVAL_IS_BOOLEAN(argv[n]))
 			continue;
