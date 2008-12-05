@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.208 2007/12/24 23:27:01 deuce Exp $ */
+/* $Id: services.c,v 1.214 2008/12/04 22:25:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,6 +59,7 @@
 #include "services.h"
 #include "ident.h"	/* identify() */
 #include "sbbs_ini.h"
+#include "js_rtpool.h"
 
 /* Constants */
 
@@ -112,7 +113,7 @@ typedef struct {
 static service_t	*service=NULL;
 static uint32_t		services=0;
 
-static int lprintf(int level, char *fmt, ...)
+static int lprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -248,16 +249,6 @@ static void status(char* str)
 {
 	if(startup!=NULL && startup->status!=NULL)
 	    startup->status(startup->cbdata,str);
-}
-
-static time_t checktime(void)
-{
-	struct tm tm;
-
-    memset(&tm,0,sizeof(tm));
-    tm.tm_year=94;
-    tm.tm_mday=1;
-    return(mktime(&tm)-0x2D24BD00L);
 }
 
 /* Global JavaScript Methods */
@@ -1073,7 +1064,7 @@ static void js_service_thread(void* arg)
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
 
-	if((js_runtime=JS_NewRuntime(service->js.max_bytes))==NULL
+	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000))==NULL
 		|| (js_cx=js_initcx(js_runtime,socket,&service_client,&js_glob))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript context"
 			,socket,service->protocol);
@@ -1126,7 +1117,7 @@ static void js_service_thread(void* arg)
 	}
 	JS_DestroyContext(js_cx);	/* Free Context */
 
-	JS_DestroyRuntime(js_runtime);
+	jsrt_Release(js_runtime);
 
 	if(service_client.user.number) {
 		lprintf(LOG_INFO,"%04d %s Logging out %s"
@@ -1187,7 +1178,7 @@ static void js_static_service_thread(void* arg)
 	service_client.branch.terminated = &service->terminated;
 	service_client.branch.auto_terminate = TRUE;
 
-	if((js_runtime=JS_NewRuntime(service->js.max_bytes))==NULL) {
+	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript runtime"
 			,service->socket,service->protocol);
 		close_socket(service->socket);
@@ -1232,7 +1223,7 @@ static void js_static_service_thread(void* arg)
 	if(js_cx!=NULL)
 		JS_DestroyContext(js_cx);	/* Free Context */
 
-	JS_DestroyRuntime(js_runtime);
+	jsrt_Release(js_runtime);
 
 	if(service->clients) {
 		lprintf(LOG_WARNING,"%04d %s !service terminating with %u active clients"
@@ -1453,7 +1444,7 @@ void DLLCALL services_terminate(void)
 
 #define NEXT_FIELD(p)	FIND_WHITESPACE(p); SKIP_WHITESPACE(p)
 
-static service_t* read_services_ini(service_t* service, uint32_t* services)
+static service_t* read_services_ini(const char* services_ini, service_t* service, uint32_t* services)
 {
 	uint		i,j;
 	FILE*		fp;
@@ -1462,7 +1453,6 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 	char		host[INI_MAX_VALUE_LEN];
 	char		prot[INI_MAX_VALUE_LEN];
 	char		portstr[INI_MAX_VALUE_LEN];
-	char		services_ini[MAX_PATH+1];
 	char**		sec_list;
 	str_list_t	list;
 	service_t*	np;
@@ -1472,8 +1462,6 @@ static service_t* read_services_ini(service_t* service, uint32_t* services)
 	uint		max_clients;
 	uint32_t	options;
 	uint32_t	stack_size;
-
-	iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
 
 	if((fp=fopen(services_ini,"r"))==NULL) {
 		lprintf(LOG_ERR,"!ERROR %d opening %s", errno, services_ini);
@@ -1599,7 +1587,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.208 $", "%*s %s", revision);
+	sscanf("$Revision: 1.214 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1623,6 +1611,7 @@ void DLLCALL services_thread(void* arg)
 	char			host_ip[32];
 	char			compiler[32];
 	char			str[128];
+	char			services_ini[MAX_PATH+1];
 	SOCKADDR_IN		addr;
 	SOCKADDR_IN		client_addr;
 	socklen_t		client_addr_len;
@@ -1707,7 +1696,7 @@ void DLLCALL services_thread(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,CTIME_R(&t,str),startup->options);
+			,ctime_r(&t,str),startup->options);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -1737,22 +1726,16 @@ void DLLCALL services_thread(void* arg)
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-			if(putenv("TZ=UTC0"))
-				lprintf(LOG_ERR,"!putenv() FAILED");
-			tzset();
-
-			if((t=checktime())!=0) {   /* Check binary time */
-				lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
-				cleanup(1);
-				return;
-			}
+		if((t=checktime())!=0) {   /* Check binary time */
+			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
 		}
 
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		if((service=read_services_ini(service, &services))==NULL) {
+		iniFileName(services_ini,sizeof(services_ini),scfg.ctrl_dir,"services.ini");
+
+		if((service=read_services_ini(services_ini, service, &services))==NULL) {
 			cleanup(1);
 			return;
 		}
@@ -1862,6 +1845,7 @@ void DLLCALL services_thread(void* arg)
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","services");
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
+		semfile_list_add(&recycle_semfiles,services_ini);
 		if(!initialized) {
 			semfile_list_check(&initialized,recycle_semfiles);
 			semfile_list_check(&initialized,shutdown_semfiles);
