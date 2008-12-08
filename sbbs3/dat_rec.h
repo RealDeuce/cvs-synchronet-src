@@ -2,7 +2,7 @@
 
 /* Synchronet text data access routines (exported) */
 
-/* $Id: dat_rec.h,v 1.1 2002/07/27 02:09:02 rswindell Exp $ */
+/* $Id: dat_rec.h,v 1.2 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@
 extern "C" {
 #endif
 
-DLLEXPORT void	DLLCALL getrec(char *instr,int start,int length,char *outstr); /* Retrieve a record from a string */
+DLLEXPORT void	DLLCALL getrec(const char *instr,int start,int length,char *outstr); /* Retrieve a record from a string */
 DLLEXPORT void	DLLCALL putrec(char *outstr,int start,int length,char *instr); /* Place a record into a string */
 
 #ifdef __cplusplus
