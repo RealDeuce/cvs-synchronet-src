@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.36 2008/01/11 22:25:39 deuce Exp $ */
+/* $Id: js_internal.c,v 1.38 2008/12/08 20:13:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,8 +226,13 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	}
 
 	/* Give up timeslices every once in a while */
-	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0)
+	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
+		jsrefcount	rc;
+
+		rc=JS_SuspendRequest(cx);
 		YIELD();
+		JS_ResumeRequest(cx, rc);
+	}
 
 	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
@@ -262,6 +267,7 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 	if((cx=JS_NewContext(JS_GetRuntime(parent_cx),JAVASCRIPT_CONTEXT_STACK))==NULL)
 		return(JS_FALSE);
+	JS_BeginRequest(cx);
 
 	/* Use the error reporter from the parent context */
 	reporter=JS_SetErrorReporter(parent_cx,NULL);
@@ -280,6 +286,7 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL
 		|| !JS_InitStandardClasses(cx,obj)) {
+		JS_EndRequest(cx);
 		JS_DestroyContext(cx);
 		return(JS_FALSE);
 	}
@@ -289,6 +296,7 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 		JS_DestroyScript(cx, script);
 	}
 
+	JS_EndRequest(cx);
 	JS_DestroyContext(cx);
 
     return(JS_TRUE);
