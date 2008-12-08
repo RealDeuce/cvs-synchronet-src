@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.503 2008/12/08 08:50:52 deuce Exp $ */
+/* $Id: main.cpp,v 1.504 2008/12/08 20:13:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1026,6 +1026,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 
     if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
 		return(false);
+	JS_BeginRequest(js_cx);
 	
 	memset(&js_branch,0,sizeof(js_branch));
 	js_branch.limit = startup->js.branch_limit;
@@ -1078,6 +1079,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 	} while(0);
 
 	if(!success) {
+		JS_EndRequest(js_cx);
 		JS_DestroyContext(js_cx);
 		js_cx=NULL;
 		return(false);
@@ -3220,6 +3222,7 @@ sbbs_t::~sbbs_t()
 	/* Free Context */
 	if(js_cx!=NULL) {	
 		lprintf(LOG_DEBUG,"%s JavaScript: Destroying context",node);
+		JS_EndRequest(js_cx);
 		JS_DestroyContext(js_cx);
 		js_cx=NULL;
 	}
