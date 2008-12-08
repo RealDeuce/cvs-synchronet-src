@@ -1,8 +1,5 @@
-/* $Id: js_rtpool.c,v 1.5 2008/12/08 01:54:03 rswindell Exp $ */
+/* $Id: js_rtpool.c,v 1.6 2008/12/08 06:33:13 deuce Exp $ */
 
-#if !defined(_WIN32)
-#include <xpsem.h>
-#endif
 #include "js_rtpool.h"
 #include <threadwrap.h>
 
