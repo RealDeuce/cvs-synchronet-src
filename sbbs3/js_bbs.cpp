@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.115 2009/02/14 02:08:43 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.110 2008/12/09 09:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1268,7 +1268,7 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 	for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-		if((sbbs->text[i]=readtext((long *)NULL,stream,i))==NULL) {
+		if((sbbs->text[i]=readtext((long *)NULL,stream))==NULL) {
 			i--;
 			continue; 
 		}
@@ -1546,16 +1546,12 @@ js_logoff(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	JSBool		prompt=JS_TRUE;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToBoolean(cx,argv[0],&prompt);
-
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!prompt || !sbbs->noyes(sbbs->text[LogOffQ])) {
+	if(!sbbs->noyes(sbbs->text[LogOffQ])) {
 		if(sbbs->cfg.logoff_mod[0])
 			sbbs->exec_bin(sbbs->cfg.logoff_mod,&sbbs->main_csi);
 		sbbs->user_event(EVENT_LOGOFF);
@@ -1759,6 +1755,8 @@ js_recvfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		p;
 	char*		cstr;
 	jsrefcount	rc;
+	rc=JS_SUSPENDREQUEST(cx);
+	JS_RESUMEREQUEST(cx, rc);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -2945,9 +2943,9 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("interactive logon procedure")
 	,310
 	},
-	{"logoff",			js_logoff,			1,	JSTYPE_VOID,	JSDOCSTR("[prompt=<i>true</i>]")
-	,JSDOCSTR("interactive logoff procedure, pass <i>false</i> for <i>prompt</i> argument to avoid yes/no prompt")
-	,315
+	{"logoff",			js_logoff,			0,	JSTYPE_VOID,	JSDOCSTR("")
+	,JSDOCSTR("interactive logoff procedure")
+	,310
 	},
 	{"logout",			js_logout,			0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("non-interactive logout procedure")
@@ -3318,7 +3316,7 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,mods,"Global repository for 3rd party modifications",312);
-	js_DescribeSyncObject(cx,obj,"Controls the Telnet/SSH/RLogin BBS experience",310);
+	js_DescribeSyncObject(cx,obj,"Controls the Telnet/RLogin BBS experience",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", bbs_prop_desc, JSPROP_READONLY);
 #endif
 
