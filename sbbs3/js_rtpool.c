@@ -1,20 +1,7 @@
-/* $Id: js_rtpool.c,v 1.8 2008/12/10 02:45:24 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.7 2008/12/08 08:50:52 deuce Exp $ */
 
 #include "js_rtpool.h"
-#include <threadwrap.h>		/* Must be included after jsapi.h */
-
-#ifdef DLLCALL
-#undef DLLCALL
-#endif
-#ifdef _WIN32
-	#ifdef __BORLANDC__
-		#define DLLCALL __stdcall
-	#else
-		#define DLLCALL
-	#endif
-#else	/* !_WIN32 */
-	#define DLLCALL
-#endif
+#include <threadwrap.h>
 
 //#define SHARED_RUNTIMES
 
@@ -38,7 +25,7 @@ static int			initialized=0;
 static sem_t			jsrt_sem;
 #endif
 
-JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char *filename, long line)
+JSRuntime *jsrt_GetNew(int maxbytes, unsigned long timeout, const char *filename, long line)
 {
 #ifdef SHARED_RUNTIMES
 	int	i;
@@ -109,7 +96,7 @@ JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char 
 #endif
 }
 
-void DLLCALL jsrt_Release(JSRuntime *rt)
+void jsrt_Release(JSRuntime *rt)
 {
 #ifdef SHARED_RUNTIMES
 #else
