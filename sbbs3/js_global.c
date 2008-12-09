@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.229 2008/12/08 20:55:03 deuce Exp $ */
+/* $Id: js_global.c,v 1.230 2008/12/09 03:16:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1582,7 +1582,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		if((outbuf=(uchar*)malloc(obsize))==NULL)
 		{
 			free(tmpbuf);
-			rc=JS_SuspendRequest(cx);
+			JS_ResumeRequest(cx, rc);
 			return(JS_FALSE);
 		}
 		j=sprintf(outbuf,"<span style=\"%s\">",htmlansi[7]);
@@ -1595,7 +1595,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				{
 					free(tmpbuf);
 					free(outbuf);
-					rc=JS_SuspendRequest(cx);
+					JS_ResumeRequest(cx, rc);
 					return(JS_FALSE);
 				}
 				outbuf=param;
@@ -2049,13 +2049,13 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			}
 		}
 		strcpy(outbuf+j,"</span>");
-		rc=JS_SuspendRequest(cx);
+		JS_ResumeRequest(cx, rc);
 
 		js_str = JS_NewStringCopyZ(cx, outbuf);
 		free(outbuf);
 	}
 	else {
-		rc=JS_SuspendRequest(cx);
+		JS_ResumeRequest(cx, rc);
 		js_str = JS_NewStringCopyZ(cx, tmpbuf);
 	}
 
