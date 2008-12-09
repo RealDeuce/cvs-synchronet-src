@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.121 2008/12/08 20:55:03 deuce Exp $ */
+/* $Id: jsexec.c,v 1.122 2008/12/09 04:38:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -618,6 +618,7 @@ static BOOL js_init(char** environ)
 
     if((js_cx = JS_NewContext(js_runtime, js_cx_stack))==NULL)
 		return(FALSE);
+	JS_BeginRequest(js_cx);
 
 	if(stack_limit)
 		fprintf(statfp,"JavaScript: Thread stack limit: %lu bytes\n"
@@ -631,18 +632,26 @@ static BOOL js_init(char** environ)
 		,&branch								/* js */
 		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
-		))==NULL)
+		))==NULL) {
+		JS_EndRequest(js_cx);
 		return(FALSE);
+	}
 
 	/* Environment Object (associative array) */
-	if(!js_CreateEnvObject(js_cx, js_glob, environ))
+	if(!js_CreateEnvObject(js_cx, js_glob, environ)) {
+		JS_EndRequest(js_cx);
 		return(FALSE);
+	}
 
-	if(js_CreateUifcObject(js_cx, js_glob)==NULL)
+	if(js_CreateUifcObject(js_cx, js_glob)==NULL) {
+		JS_EndRequest(js_cx);
 		return(FALSE);
+	}
 
-	if(js_CreateConioObject(js_cx, js_glob)==NULL)
+	if(js_CreateConioObject(js_cx, js_glob)==NULL) {
+		JS_EndRequest(js_cx);
 		return(FALSE);
+	}
 
 	return(TRUE);
 }
@@ -857,7 +866,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.121 $", "%*s %s", revision);
+	sscanf("$Revision: 1.122 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1055,6 +1064,7 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"\n");
 
 		result=js_exec(module,&argv[argn]);
+		JS_EndRequest(js_cx);
 
 		if(result)
 			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
