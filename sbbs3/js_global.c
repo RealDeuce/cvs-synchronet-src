@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.231 2008/12/09 09:48:48 deuce Exp $ */
+/* $Id: js_global.c,v 1.232 2008/12/09 20:45:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2500,7 +2500,6 @@ js_getfcase(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char		path[MAX_PATH+1];
 	JSString*	js_str;
 	jsrefcount	rc;
-	rc=JS_SUSPENDREQUEST(cx);
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
