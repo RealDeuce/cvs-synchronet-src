@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.24 2008/01/08 06:27:24 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.25 2008/02/13 07:50:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,6 +179,8 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_CHKRECVHDRS);
     AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_THROTTLE);
+    AdvancedCheckListBox->Checked[i++]
+        =!(MainForm->mail_startup.options&MAIL_OPT_NO_AUTO_EXEMPT);
 
     DNSBLRadioButtonClick(Sender);
     DNSRadioButtonClick(Sender);
@@ -355,6 +357,9 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_DNSBL_THROTTLE
         ,AdvancedCheckListBox->Checked[i++]);
+    setBit(&MainForm->mail_startup.options
+        ,MAIL_OPT_NO_AUTO_EXEMPT
+        ,!AdvancedCheckListBox->Checked[i++]);
 
     MainForm->MailAutoStart=AutoStartCheckBox->Checked;
     MainForm->MailLogFile=LogFileCheckBox->Checked;

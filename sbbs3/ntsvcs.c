@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.35 2006/12/31 00:07:50 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.36 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -274,7 +274,7 @@ static WORD event_type(int level)
 /**************************************/
 /* Common Service Log Ouptut Function */
 /**************************************/
-static int svc_lputs(void* p, int level, char* str)
+static int svc_lputs(void* p, int level, const char* str)
 {
 	char	debug[1024];
 	char	fname[256];
@@ -349,7 +349,7 @@ static int svc_lputs(void* p, int level, char* str)
 /****************************************************************************/
 /* Event thread local/log print routine										*/
 /****************************************************************************/
-static int event_lputs(int level, char *str)
+static int event_lputs(int level, const char *str)
 {
 	svc_lputs(&event,level,str);
     return(0);

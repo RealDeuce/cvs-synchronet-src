@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.86 2008/01/20 00:14:11 deuce Exp $ */
+/* $Id: win32cio.c,v 1.92 2008/01/24 03:06:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -299,6 +299,7 @@ static int win32_keyboardio(int isgetch)
 		switch(input.EventType) {
 			case KEY_EVENT:
 
+#ifdef DEBUG_KEY_EVENTS
 				dprintf("KEY_EVENT: KeyDown=%u"
 					,input.Event.KeyEvent.bKeyDown);
 				dprintf("           RepeatCount=%u"
@@ -312,6 +313,7 @@ static int win32_keyboardio(int isgetch)
 					,(BYTE)input.Event.KeyEvent.uChar.AsciiChar);
 				dprintf("           ControlKeyState=0x%08lX"
 					,input.Event.KeyEvent.dwControlKeyState); 
+#endif
 
 				if(input.Event.KeyEvent.bKeyDown) {
 					/* Is this an AltGr key? */
@@ -391,14 +393,112 @@ static DWORD	orig_in_conmode=0;
 static DWORD	orig_out_conmode=0;
 static void *	win32_suspendbuf=NULL;
 
+#ifndef CONSOLE_FULLSCREEN_MODE
+/* SetConsoleDisplayMode parameter value */
+#define CONSOLE_FULLSCREEN_MODE	1		// Text is displayed in full-screen mode.
+#define CONSOLE_WINDOWED_MODE	2		// Text is displayed in a console window.
+#endif
+
+static DWORD	orig_display_mode=0;
+
+/*-----------------------------------------------------------------------------
+NT_SetConsoleDisplayMode - Set the console display to fullscreen or windowed.
+
+Parameters:
+    hOutputHandle - Output handle of cosole, usually 
+                        "GetStdHandle(STD_OUTPUT_HANDLE)"
+    dwNewMode - 0=windowed, 1=fullscreen
+
+Returns Values: 
+    TRUE if successful, otherwise FALSE is returned. Call GetLastError() for 
+    extened information.
+
+Remarks:
+    This only works on NT based versions of Windows.
+
+    If dwNewMode is anything other than 0 or 1, FALSE is returned and 
+    GetLastError() returns ERROR_INVALID_PARAMETER.
+    
+    If dwNewMode specfies the current mode, FALSE is returned and 
+    GetLastError() returns ERROR_INVALID_PARAMETER. Use the (documented) 
+    function GetConsoleDisplayMode() to determine the current display mode.
+-----------------------------------------------------------------------------*/
+BOOL NT_SetConsoleDisplayMode(HANDLE hOutputHandle, DWORD dwNewMode)
+{
+    typedef BOOL (WINAPI *SCDMProc_t) (HANDLE, DWORD, LPDWORD);
+    SCDMProc_t SetConsoleDisplayMode;
+    HMODULE hKernel32;
+    BOOL	ret;
+    const char KERNEL32_NAME[] = "kernel32.dll";
+
+    hKernel32 = LoadLibrary(KERNEL32_NAME);
+    if (hKernel32 == NULL)
+        return FALSE;
+
+    SetConsoleDisplayMode = 
+        (SCDMProc_t)GetProcAddress(hKernel32, "SetConsoleDisplayMode");
+    if (SetConsoleDisplayMode == NULL)
+    {
+        SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+        ret = FALSE;
+    }
+    else
+    {
+        DWORD dummy=0;
+        ret = SetConsoleDisplayMode(hOutputHandle, dwNewMode, &dummy);
+		dprintf("SetConsoleDisplayMode(%d) returned %d", dwNewMode, ret);
+    }
+        
+    FreeLibrary(hKernel32);
+
+	return ret;
+}
+
+BOOL NT_GetConsoleDisplayMode(DWORD* mode)
+{
+    typedef BOOL (WINAPI *GCDMProc_t) (LPDWORD);
+    GCDMProc_t GetConsoleDisplayMode;
+    HMODULE hKernel32;
+    BOOL	ret;
+    const char KERNEL32_NAME[] = "kernel32.dll";
+
+    hKernel32 = LoadLibrary(KERNEL32_NAME);
+    if (hKernel32 == NULL)
+        return FALSE;
+
+    GetConsoleDisplayMode = 
+        (GCDMProc_t)GetProcAddress(hKernel32, "GetConsoleDisplayMode");
+    if (GetConsoleDisplayMode == NULL)
+    {
+        SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+        ret = FALSE;
+    }
+    else
+    {
+        ret = GetConsoleDisplayMode(mode);
+		dprintf("GetConsoleDisplayMode() returned %d (%d)", ret, *mode);
+    }
+        
+    FreeLibrary(hKernel32);
+
+	return ret;
+}
+
+
+void RestoreDisplayMode(void)
+{
+	if(orig_display_mode==0)
+		NT_SetConsoleDisplayMode(GetStdHandle(STD_OUTPUT_HANDLE),CONSOLE_WINDOWED_MODE);
+}
+
 void win32_suspend(void)
 {
 	HANDLE h;
 
-	if((h=GetStdHandle(STD_INPUT_HANDLE)) != INVALID_HANDLE_VALUE)
-		SetConsoleMode(h, orig_in_conmode);
 	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleMode(h, orig_out_conmode);
+	if((h=GetStdHandle(STD_INPUT_HANDLE)) != INVALID_HANDLE_VALUE)
+		SetConsoleMode(h, orig_in_conmode);
 }
 
 void win32_resume(void)
@@ -406,9 +506,7 @@ void win32_resume(void)
 	DWORD	conmode;
 	HANDLE	h;
 
-    conmode=orig_in_conmode;
-    conmode&=~(ENABLE_PROCESSED_INPUT|ENABLE_QUICK_EDIT_MODE);
-    conmode|=ENABLE_MOUSE_INPUT;
+	conmode=ENABLE_MOUSE_INPUT|ENABLE_EXTENDED_FLAGS;
 	if((h=GetStdHandle(STD_INPUT_HANDLE)) != INVALID_HANDLE_VALUE)
 		SetConsoleMode(h, conmode);
 
@@ -419,6 +517,11 @@ void win32_resume(void)
 		SetConsoleMode(h, conmode);
 }
 
+static BOOL WINAPI ControlHandler(DWORD CtrlType)
+{
+	return TRUE;
+}
+
 int win32_initciolib(long inmode)
 {
 	DWORD	conmode;
@@ -426,17 +529,17 @@ int win32_initciolib(long inmode)
 	HANDLE	h;
 	CONSOLE_SCREEN_BUFFER_INFO	sbuff;
 
+	dprintf("win32_initciolib(%u)", inmode);
 	if(!isatty(fileno(stdin))) {
 		if(!AllocConsole())
 			return(0);
 	}
 
-	SetConsoleCtrlHandler(NULL,TRUE);
+	SetConsoleCtrlHandler(ControlHandler,TRUE);
 	if((h=GetStdHandle(STD_INPUT_HANDLE))==INVALID_HANDLE_VALUE
 		|| !GetConsoleMode(h, &orig_in_conmode))
 		return(0);
-	conmode=0;
-	conmode|=ENABLE_MOUSE_INPUT;
+	conmode=ENABLE_MOUSE_INPUT|ENABLE_EXTENDED_FLAGS;
 	if(!SetConsoleMode(h, conmode))
 		return(0);
 
@@ -474,7 +577,7 @@ int win32_initciolib(long inmode)
 			else
 				win32_textmode(VESA_132X60);
 		}
-		if(i>=80) {
+		else if(i>=80) {
 			if(j<21)
 				win32_textmode(C80X14);
 			else if(j<25)
@@ -508,6 +611,11 @@ int win32_initciolib(long inmode)
 		}
 	}
 
+	NT_GetConsoleDisplayMode(&orig_display_mode);
+	if(inmode==CIOLIB_MODE_CONIO_FULLSCREEN) {
+		NT_SetConsoleDisplayMode(h,CONSOLE_FULLSCREEN_MODE);
+		atexit(RestoreDisplayMode);
+	}
 	cio_api.mouse=1;
 	return(1);
 }
