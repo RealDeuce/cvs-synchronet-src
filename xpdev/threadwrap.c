@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.26 2007/10/24 06:58:12 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.27 2008/01/21 06:31:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,7 @@ ulong _beginthread(void( *start_address )( void * )
 			,(void * (*)(void *)) start_address
 			,arglist)==0) {
 		pthread_attr_destroy(&attr);
-		return((int) thread /* thread handle */);
+		return((ulong) thread /* thread handle */);
 	}
 
 	pthread_attr_destroy(&attr);
