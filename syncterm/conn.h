@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.h,v 1.19 2008/01/20 06:53:00 rswindell Exp $ */
+/* $Id: conn.h,v 1.21 2008/01/21 04:40:48 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -21,6 +21,7 @@ enum {
 	,CONN_TYPE_RAW
 	,CONN_TYPE_SSH
 	,CONN_TYPE_MODEM
+	,CONN_TYPE_SERIAL
 #ifdef __unix__
 	,CONN_TYPE_SHELL
 #endif
@@ -34,9 +35,9 @@ struct conn_api {
 	void (*binary_mode_off)(void);
 	int log_level;
 	int type;
-	int input_thread_running;
-	int output_thread_running;
-	int terminate;
+	volatile int input_thread_running;
+	volatile int output_thread_running;
+	volatile int terminate;
 	unsigned char *rd_buf;
 	size_t rd_buf_size;
 	unsigned char *wr_buf;
