@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.35 2007/10/28 20:21:46 deuce Exp $ */
+/* $Id: js_internal.c,v 1.40 2008/12/09 09:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "js_request.h"
 
 #include <jscntxt.h>	/* Needed for Context-private data structure */
 
@@ -226,8 +227,13 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	}
 
 	/* Give up timeslices every once in a while */
-	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0)
+	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
+		jsrefcount	rc;
+
+		rc=JS_SUSPENDREQUEST(cx);
 		YIELD();
+		JS_RESUMEREQUEST(cx, rc);
+	}
 
 	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
@@ -357,19 +363,6 @@ js_get_parent(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	return(JS_TRUE);
 }
 
-static JSClass js_internal_class = {
-     "JsInternal"				/* name			*/
-    ,JSCLASS_HAS_PRIVATE	/* flags		*/
-	,JS_PropertyStub		/* addProperty	*/
-	,JS_PropertyStub		/* delProperty	*/
-	,js_get					/* getProperty	*/
-	,js_set					/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
-	,JS_ConvertStub			/* convert		*/
-	,JS_FinalizeStub		/* finalize		*/
-};
-
 static jsSyncMethodSpec js_functions[] = {
 	{"eval",            js_eval,            0,	JSTYPE_UNDEF,	JSDOCSTR("script")
 	,JSDOCSTR("evaluate a JavaScript string in its own (secure) context, returning the result")
@@ -398,6 +391,34 @@ static jsSyncMethodSpec js_functions[] = {
 	{0}
 };
 
+static JSBool js_internal_resolve(JSContext *cx, JSObject *obj, jsval id)
+{
+	char*			name=NULL;
+
+	if(id != JSVAL_NULL)
+		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+
+	return(js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0));
+}
+
+static JSBool js_internal_enumerate(JSContext *cx, JSObject *obj)
+{
+	return(js_internal_resolve(cx, obj, JSVAL_NULL));
+}
+
+static JSClass js_internal_class = {
+     "JsInternal"				/* name			*/
+    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+	,JS_PropertyStub		/* addProperty	*/
+	,JS_PropertyStub		/* delProperty	*/
+	,js_get					/* getProperty	*/
+	,js_set					/* setProperty	*/
+	,js_internal_enumerate	/* enumerate	*/
+	,js_internal_resolve	/* resolve		*/
+	,JS_ConvertStub			/* convert		*/
+	,JS_FinalizeStub		/* finalize		*/
+};
+
 void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 {
 	char*	p;
@@ -424,12 +445,6 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 		return(NULL);
 
 	if(!JS_SetPrivate(cx, obj, branch))	/* Store a pointer to js_branch_t */
-		return(NULL);
-
-	if(!js_DefineSyncProperties(cx, obj, js_properties))	/* expose them */
-		return(NULL);
-
-	if(!js_DefineSyncMethods(cx, obj, js_functions, /* append? */ FALSE)) 
 		return(NULL);
 
 #ifdef BUILD_JSDOCS
