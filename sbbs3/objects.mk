@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.47 2008/08/20 04:45:20 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.49 2008/12/09 09:36:16 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -50,6 +50,8 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_msg_area$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_msgbase$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_queue$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_request$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_rtpool$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_server$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_socket$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_sprintf$(OFILE)\
