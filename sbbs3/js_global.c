@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.238 2009/01/16 02:57:19 rswindell Exp $ */
+/* $Id: js_global.c,v 1.235 2008/12/20 07:17:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -499,6 +499,9 @@ js_crc32(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	size_t		len;
 	uint32_t	cs;
 	jsrefcount	rc;
+	/* Deuce: please explain the next 2 lines: */
+	rc=JS_SUSPENDREQUEST(cx);
+	JS_RESUMEREQUEST(cx, rc);
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -527,7 +530,7 @@ js_chksum(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((p=js_ValueToStringBytes(cx, argv[0], &len))==NULL)
 		return(JS_FALSE);
 
-	rc=JS_SUSPENDREQUEST(cx);	/* 3.8 seconds on Deuce's computer when len==UINT_MAX/8 */
+	rc=JS_SUSPENDREQUEST(cx);	/* Deuce: Is this really necessary? */
 	while(len--) sum+=*(p++);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -2565,6 +2568,9 @@ js_cfgfname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char		result[MAX_PATH+1];
 	char*		cstr;
 	jsrefcount	rc;
+	/* Deuce: please explain next 2 lines: */
+	rc=JS_SUSPENDREQUEST(cx);
+	JS_RESUMEREQUEST(cx, rc);
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -3364,7 +3370,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"script/thread by reading from and/or writing to the <i>parent_queue</i> "
 		"(an automatically created <i>Queue</i> object). " 
 		"The result (last executed statement) of the executed script "
-		"(or the optional <i>exit_code</i> passed to the <i>exit()</i> function) "
+		"(or the optional <i>exit_code</i> passed to the <i>exit()/<i> function) "
 		"will be automatically written to the <i>parent_queue</i> "
 		"which may be read later by the parent script (using <i>load_result.read()</i>, for example).")
 	,312
