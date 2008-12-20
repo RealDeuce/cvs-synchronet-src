@@ -35,14 +35,8 @@ object WebForm: TWebForm
       ParentShowHint = False
       ShowHint = True
     end
-    object LogPauseButton: TToolButton
-      Left = 23
-      Top = 0
-      Action = MainForm.WebPause
-      Style = tbsCheck
-    end
     object StopButton: TToolButton
-      Left = 46
+      Left = 23
       Top = 0
       Action = MainForm.WebStop
       Grouped = True
@@ -50,12 +44,12 @@ object WebForm: TWebForm
       ShowHint = True
     end
     object RecycleButton: TToolButton
-      Left = 69
+      Left = 46
       Top = 0
       Action = MainForm.WebRecycle
     end
     object ToolButton1: TToolButton
-      Left = 92
+      Left = 69
       Top = 0
       Width = 8
       Caption = 'ToolButton1'
@@ -63,14 +57,14 @@ object WebForm: TWebForm
       Style = tbsSeparator
     end
     object ConfigureButton: TToolButton
-      Left = 100
+      Left = 77
       Top = 0
       Action = MainForm.WebConfigure
       ParentShowHint = False
       ShowHint = True
     end
     object ToolButton2: TToolButton
-      Left = 123
+      Left = 100
       Top = 0
       Width = 8
       Caption = 'ToolButton2'
@@ -78,7 +72,7 @@ object WebForm: TWebForm
       Style = tbsSeparator
     end
     object Status: TStaticText
-      Left = 131
+      Left = 108
       Top = 0
       Width = 150
       Height = 22
@@ -90,7 +84,7 @@ object WebForm: TWebForm
       TabOrder = 0
     end
     object ToolButton3: TToolButton
-      Left = 281
+      Left = 258
       Top = 0
       Width = 8
       Caption = 'ToolButton3'
@@ -98,7 +92,7 @@ object WebForm: TWebForm
       Style = tbsSeparator
     end
     object ProgressBar: TProgressBar
-      Left = 289
+      Left = 266
       Top = 0
       Width = 75
       Height = 22
@@ -109,54 +103,15 @@ object WebForm: TWebForm
       Step = 1
       TabOrder = 1
     end
-    object ToolButton4: TToolButton
-      Left = 364
-      Top = 0
-      Width = 8
-      Caption = 'ToolButton4'
-      ImageIndex = 7
-      Style = tbsSeparator
-    end
-    object LogLevelText: TStaticText
-      Left = 372
-      Top = 0
-      Width = 75
-      Height = 22
-      Hint = 'Log Level'
-      AutoSize = False
-      BorderStyle = sbsSunken
-      TabOrder = 2
-    end
-    object LogLevelUpDown: TUpDown
-      Left = 447
-      Top = 0
-      Width = 16
-      Height = 22
-      Hint = 'Log Level Adjustment'
-      Min = 0
-      Max = 7
-      Position = 0
-      TabOrder = 3
-      Wrap = False
-      OnChangingEx = LogLevelUpDownChangingEx
-    end
   end
-  object Log: TRichEdit
+  object Log: TMemo
     Left = 0
     Top = 25
     Width = 454
     Height = 171
     Align = alClient
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -14
-    Font.Name = 'MS Sans Serif'
-    Font.Style = []
-    HideScrollBars = False
-    ParentFont = False
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 1
-    WordWrap = False
   end
 end
