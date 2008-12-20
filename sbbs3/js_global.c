@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.236 2008/12/20 09:21:33 deuce Exp $ */
+/* $Id: js_global.c,v 1.237 2008/12/20 09:35:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -527,7 +527,7 @@ js_chksum(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((p=js_ValueToStringBytes(cx, argv[0], &len))==NULL)
 		return(JS_FALSE);
 
-	rc=JS_SUSPENDREQUEST(cx);	/* Deuce: Is this really necessary? */
+	rc=JS_SUSPENDREQUEST(cx);	/* 3.8 seconds on Deuce's computer when len==UINT_MAX/8 */
 	while(len--) sum+=*(p++);
 	JS_RESUMEREQUEST(cx, rc);
 
