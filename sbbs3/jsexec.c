@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.125 2009/01/24 12:19:46 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.123 2008/12/09 09:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -247,7 +247,7 @@ static BOOL winsock_startup(void)
 		return(TRUE);
 	}
 
-    lprintf(LOG_CRIT,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
 	return(FALSE);
 }
 
@@ -473,10 +473,8 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		instr[0]=0;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!fgets(instr,sizeof(instr),stdin)) {
-		JS_RESUMEREQUEST(cx, rc);
+	if(!fgets(instr,sizeof(instr),stdin))
 		return(JS_TRUE);
-	}
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((str=JS_NewStringCopyZ(cx, truncnl(instr)))==NULL)
@@ -869,7 +867,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.125 $", "%*s %s", revision);
+	sscanf("$Revision: 1.123 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
