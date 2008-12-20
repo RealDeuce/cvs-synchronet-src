@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.79 2009/03/24 20:40:17 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.77 2008/02/25 08:25:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -97,7 +97,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	}
 
 	/* Security checks */
-	if(!can_user_post(&cfg,subnum,&useron,&client,&reason)) {
+	if(!can_user_post(&cfg,subnum,&useron,&reason)) {
 		bputs(text[reason]);
 		return false;
 	}
@@ -165,7 +165,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			&& !noyes(text[AnonymousQ])))
 		msgattr|=MSG_ANONYMOUS;
 
-	if(cfg.sub[subnum]->mod_ar[0] && chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
+	if(cfg.sub[subnum]->mod_ar[0] && chk_ar(cfg.sub[subnum]->mod_ar,&useron))
 		msgattr|=MSG_MODERATED;
 
 	if(cfg.sub[subnum]->misc&SUB_SYSPERM && sub_op(subnum))
@@ -425,7 +425,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	ushort	xlat=XLAT_NONE;
 	int 	i;
 	int		storage=SMB_SELFPACK;
-	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
+	long	dupechk_hashes=SMB_HASH_SOURCE_ALL;
 
 	if(msg==NULL)
 		return(SMB_FAILURE);
