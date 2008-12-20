@@ -2,13 +2,13 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.29 2009/01/24 22:17:44 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.28 2005/10/13 06:49:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -110,7 +110,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 		return;
 	}
 
-	lprintf(LOG_INFO,"Node %d %s gate to %s port %u on socket %d"
+	lprintf(LOG_INFO,"Node %d %s gate to %s port %d on socket %d"
 		,cfg.node_num
 		,mode&TG_RLOGIN ? "RLogin" : "Telnet"
 		,destaddr,port,remote_socket);

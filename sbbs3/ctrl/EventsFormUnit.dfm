@@ -16,22 +16,14 @@ object EventsForm: TEventsForm
   OnHide = FormHide
   PixelsPerInch = 120
   TextHeight = 16
-  object Log: TRichEdit
+  object Log: TMemo
     Left = 0
     Top = 0
     Width = 551
     Height = 358
     Align = alClient
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -14
-    Font.Name = 'MS Sans Serif'
-    Font.Style = []
-    HideScrollBars = False
-    ParentFont = False
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 0
-    WordWrap = False
   end
 end
