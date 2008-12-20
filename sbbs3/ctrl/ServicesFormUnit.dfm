@@ -15,6 +15,16 @@ object ServicesForm: TServicesForm
   OnHide = FormHide
   PixelsPerInch = 120
   TextHeight = 16
+  object Log: TMemo
+    Left = 0
+    Top = 25
+    Width = 862
+    Height = 582
+    Align = alClient
+    ReadOnly = True
+    ScrollBars = ssBoth
+    TabOrder = 0
+  end
   object ToolBar: TToolBar
     Left = 0
     Top = 0
@@ -26,7 +36,7 @@ object ServicesForm: TServicesForm
     Images = MainForm.ImageList
     ParentShowHint = False
     ShowHint = True
-    TabOrder = 0
+    TabOrder = 1
     object StartButton: TToolButton
       Left = 0
       Top = 0
@@ -83,23 +93,5 @@ object ServicesForm: TServicesForm
       Caption = 'Down'
       TabOrder = 0
     end
-  end
-  object Log: TRichEdit
-    Left = 0
-    Top = 25
-    Width = 862
-    Height = 582
-    Align = alClient
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -14
-    Font.Name = 'MS Sans Serif'
-    Font.Style = []
-    HideScrollBars = False
-    ParentFont = False
-    ReadOnly = True
-    ScrollBars = ssBoth
-    TabOrder = 1
-    WordWrap = False
   end
 end

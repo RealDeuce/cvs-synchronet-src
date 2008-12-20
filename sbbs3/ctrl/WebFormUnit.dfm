@@ -104,22 +104,14 @@ object WebForm: TWebForm
       TabOrder = 1
     end
   end
-  object Log: TRichEdit
+  object Log: TMemo
     Left = 0
     Top = 25
     Width = 454
     Height = 171
     Align = alClient
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -14
-    Font.Name = 'MS Sans Serif'
-    Font.Style = []
-    HideScrollBars = False
-    ParentFont = False
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 1
-    WordWrap = False
   end
 end
