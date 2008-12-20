@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.449 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.457 2008/12/20 04:17:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,8 @@
 #include "ini_file.h"
 #include "netwrap.h"	/* getNameServerList() */
 #include "xpendian.h"
+#include "js_rtpool.h"
+#include "js_request.h"
 
 /* Constants */
 #define FORWARD			"forward:"
@@ -1214,8 +1216,10 @@ static void pop3_thread(void* arg)
 				,socket, user.alias, buf);
 			sockprintf(socket,"-ERR UNSUPPORTED COMMAND: %s",buf);
 		}
-		if(user.number)
-			logoutuserdat(&scfg,&user,time(NULL),client.time);
+		if(user.number) {
+			if(!logoutuserdat(&scfg,&user,time(NULL),client.time))
+				lprintf(LOG_ERR,"%04d !ERROR in logoutuserdat", socket);
+		}
 
 	} while(0);
 
@@ -1502,6 +1506,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	char*	warning;
 	SOCKET*		sock;
+	jsrefcount	rc;
 
 	if((sock=(SOCKET*)JS_GetContextPrivate(cx))==NULL)
 		return;
@@ -1529,8 +1534,10 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	} else
 		warning="";
 
+	rc=JS_SUSPENDREQUEST(cx);
 	lprintf(LOG_ERR,"%04d !JavaScript %s%s%s: %s"
 		,*sock, warning ,file, line, message);
+	JS_RESUMEREQUEST(cx, rc);
 }
 
 static JSBool
@@ -1540,6 +1547,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 	SOCKET*		sock;
+	jsrefcount	rc;
 
 	if((sock=(SOCKET*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -1550,7 +1558,9 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
+		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%04d JavaScript: %s",*sock,JS_GetStringBytes(str));
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
@@ -1609,7 +1619,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 		lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes\n"
 			,sock, startup->js.max_bytes);
 
-		if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
+		if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)\n"
@@ -1617,6 +1627,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 
 		if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
 			break;
+		JS_BEGINREQUEST(js_cx);
 
 		JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
@@ -1715,10 +1726,12 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user
 
 	} while(0);
 
-	if(js_cx!=NULL)
+	if(js_cx!=NULL) {
+		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
+	}
 	if(js_runtime!=NULL)
-		JS_DestroyRuntime(js_runtime);
+		jsrt_Release(js_runtime);
 
 	return(success);
 }
@@ -4206,7 +4219,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.449 $", "%*s %s", revision);
+	sscanf("$Revision: 1.457 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
