@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.38 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: download.cpp,v 1.37 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -68,7 +68,7 @@ void sbbs_t::downloadfile(file_t* f)
 	/* Update Downloader's Info */
 	/****************************/
 	user_downloaded(&cfg, &useron, 1, length);
-	if(!is_download_free(&cfg,f->dir,&useron,&client))
+	if(!is_download_free(&cfg,f->dir,&useron))
 		subtract_cdt(&cfg,&useron,f->cdt);
 	/**************************/
 	/* Update Uploader's Info */
@@ -462,7 +462,7 @@ bool sbbs_t::sendfile(char* fname, char prot)
 		mnemonics(text[ProtocolOrQuit]);
 		strcpy(keys,"Q");
 		for(i=0;i<cfg.total_prots;i++)
-			if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client))
+			if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron))
 				sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
 
 		ch=(char)getkeys(keys,0);
@@ -471,7 +471,7 @@ bool sbbs_t::sendfile(char* fname, char prot)
 			return(false); 
 	}
 	for(i=0;i<cfg.total_prots;i++)
-		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron,&client))
+		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
 			break;
 	if(i<cfg.total_prots) {
 		if(protocol(cfg.prot[i],XFER_DOWNLOAD,fname,fname,false)==0)
