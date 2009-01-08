@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.460 2009/01/08 18:30:01 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.461 2009/01/08 19:48:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4264,7 +4264,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.460 $", "%*s %s", revision);
+	sscanf("$Revision: 1.461 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Mail Server %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4434,7 +4434,7 @@ void DLLCALL mail_server(void* arg)
 					mailproc_list[i].disabled = 
 						iniReadBool(fp,sec_list[i],"disabled",FALSE);
 					mailproc_list[i].ignore_on_error = 
-						iniReadBool(fp,sec_list[i],"ignore_on_error",FALSE);
+						iniReadBool(fp,sec_list[i],"IgnoreOnError",FALSE);
 				}
 			}
 			iniFreeStringList(sec_list);
