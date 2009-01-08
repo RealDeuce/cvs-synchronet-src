@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.153 2008/10/02 10:17:03 deuce Exp $ */
+/* $Id: syncterm.c,v 1.155 2008/10/13 00:03:12 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -34,7 +34,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.3\xe1"
+char* syncterm_version = "SyncTERM 0.9.3b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -846,8 +846,6 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 			return(NULL);
 		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
 			return(NULL);
-		backslash(fn);
-		strncat(fn, "SyncTERM", fnlen);
 		backslash(fn);
 		if(!isdir(fn)) {
 			if(MKDIR(fn))
