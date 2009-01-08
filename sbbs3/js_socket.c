@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.120 2008/01/11 09:10:32 deuce Exp $ */
+/* $Id: js_socket.c,v 1.129 2008/12/20 07:17:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "js_request.h"
 
 #ifdef JAVASCRIPT
 
@@ -49,6 +50,7 @@ typedef struct
 	BOOL	network_byte_order;
 	int		last_error;
 	int		type;
+	SOCKADDR_IN	remote_addr;
 
 } private_t;
 
@@ -96,6 +98,7 @@ static JSBool
 js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	private_t*	p;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -105,6 +108,7 @@ js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->sock==INVALID_SOCKET)
 		return(JS_TRUE);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	close_socket(p->sock);
 
 	p->last_error = ERROR_VALUE;
@@ -113,6 +117,7 @@ js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	p->sock = INVALID_SOCKET; 
 	p->is_connected = FALSE;
+	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
 }
@@ -123,6 +128,7 @@ static ushort js_port(JSContext* cx, jsval val, int type)
 	JSString*		str;
 	int32			i=0;
 	struct servent*	serv;
+	jsrefcount		rc;
 
 	if(JSVAL_IS_NUMBER(val)) {
 		JS_ValueToInt32(cx,val,&i);
@@ -133,7 +139,9 @@ static ushort js_port(JSContext* cx, jsval val, int type)
 		cp = JS_GetStringBytes(str);
 		if(isdigit(*cp))
 			return((ushort)strtol(cp,NULL,0));
+		rc=JS_SUSPENDREQUEST(cx);
 		serv = getservbyname(cp,type==SOCK_STREAM ? "tcp":"udp");
+		JS_RESUMEREQUEST(cx, rc);
 		if(serv!=NULL)
 			return(htons(serv->s_port));
 	}
@@ -173,9 +181,10 @@ static JSBool
 js_bind(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	ulong		ip=0;
-	SOCKADDR_IN	addr;
 	private_t*	p;
 	ushort		port=0;
+	SOCKADDR_IN	addr;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -192,15 +201,18 @@ js_bind(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		&& (ip=inet_addr(JS_GetStringBytes(JS_ValueToString(cx,argv[1]))))!=INADDR_NONE)
 		addr.sin_addr.s_addr = ip;
 
+	rc=JS_SUSPENDREQUEST(cx);
 	if(bind(p->sock, (struct sockaddr *) &addr, sizeof(addr))!=0) {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "bind failed with error %d",ERROR_VALUE);
 		*rval = JSVAL_FALSE;
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	dbprintf(FALSE, p, "bound to port %u",port);
 	*rval = JSVAL_TRUE;
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -209,24 +221,28 @@ js_listen(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	private_t*	p;
 	int32		backlog=1;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 	
-	if(argc)
+	if(argc && argv[0]!=JSVAL_VOID)
 		backlog = JS_ValueToInt32(cx,argv[0],&backlog);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	if(listen(p->sock, backlog)!=0) {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "listen failed with error %d",ERROR_VALUE);
 		*rval = JSVAL_FALSE;
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	dbprintf(FALSE, p, "listening, backlog=%d",backlog);
 	*rval = JSVAL_TRUE;
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -237,24 +253,32 @@ js_accept(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	private_t*	new_p;
 	JSObject*	sockobj;
 	SOCKET		new_socket;
+	socklen_t	addrlen;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	if((new_socket=accept_socket(p->sock,NULL,NULL))==INVALID_SOCKET) {
+	addrlen=sizeof(p->remote_addr);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	if((new_socket=accept_socket(p->sock,(struct sockaddr *)&(p->remote_addr),&addrlen))==INVALID_SOCKET) {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "accept failed with error %d",ERROR_VALUE);
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	if((sockobj=js_CreateSocketObject(cx, obj, "new_socket", new_socket))==NULL) {
 		closesocket(new_socket);
+		JS_RESUMEREQUEST(cx, rc);
 		JS_ReportError(cx,"Error creating new socket object");
 		return(JS_TRUE);
 	}
 	if((new_p=(private_t*)JS_GetPrivate(cx,sockobj))==NULL) {
+		JS_RESUMEREQUEST(cx, rc);
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
@@ -267,6 +291,7 @@ js_accept(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	dbprintf(FALSE, p, "accepted connection");
 	*rval = OBJECT_TO_JSVAL(sockobj);
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -279,9 +304,10 @@ js_connect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	ushort		port;
 	JSString*	str;
 	private_t*	p;
-	SOCKADDR_IN	addr;
 	fd_set		socket_set;
 	struct		timeval tv = {0, 0};
+	jsrefcount	rc;
+	char*		cstr;
 	
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -289,14 +315,18 @@ js_connect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	str = JS_ValueToString(cx, argv[0]);
-	dbprintf(FALSE, p, "resolving hostname: %s", JS_GetStringBytes(str));
+	cstr = JS_GetStringBytes(str);
+	rc=JS_SUSPENDREQUEST(cx);
+	dbprintf(FALSE, p, "resolving hostname: %s", cstr);
 	if((ip_addr=resolve_ip(JS_GetStringBytes(str)))==INADDR_NONE) {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "resolve_ip failed with error %d",ERROR_VALUE);
 		*rval = JSVAL_FALSE;
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
+	JS_RESUMEREQUEST(cx, rc);
 	port = js_port(cx,argv[1],p->type);
 
 	tv.tv_sec = 10;	/* default time-out */
@@ -304,19 +334,20 @@ js_connect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>2)	/* time-out value specified */
 		js_timeval(cx,argv[2],&tv);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "connecting to port %u at %s", port, JS_GetStringBytes(str));
 
-	memset(&addr,0,sizeof(addr));
-	addr.sin_addr.s_addr = ip_addr;
-	addr.sin_family = AF_INET;
-	addr.sin_port   = htons(port);
+	memset(&(p->remote_addr),0,sizeof(p->remote_addr));
+	p->remote_addr.sin_addr.s_addr = ip_addr;
+	p->remote_addr.sin_family = AF_INET;
+	p->remote_addr.sin_port   = htons(port);
 
 	/* always set to nonblocking here */
 	val=1;
 	ioctlsocket(p->sock,FIONBIO,&val);	
 
-	result=connect(p->sock, (struct sockaddr *)&addr, sizeof(addr));
-	
+	result=connect(p->sock, (struct sockaddr *)&(p->remote_addr), sizeof(p->remote_addr));
+
 	if(result==SOCKET_ERROR
 		&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
 		FD_ZERO(&socket_set);
@@ -332,12 +363,14 @@ js_connect(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "connect failed with error %d",ERROR_VALUE);
 		*rval = JSVAL_FALSE;
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	p->is_connected = TRUE;
 	*rval = JSVAL_TRUE;
 	dbprintf(FALSE, p, "connected to port %u at %s", port, JS_GetStringBytes(str));
+	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
 }
@@ -349,6 +382,7 @@ js_send(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int			len;
 	JSString*	str;
 	private_t*	p;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -361,6 +395,7 @@ js_send(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	cp	= JS_GetStringBytes(str);
 	len	= JS_GetStringLength(str);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	if(sendsocket(p->sock,cp,len)==len) {
 		dbprintf(FALSE, p, "sent %u bytes",len);
 		*rval = JSVAL_TRUE;
@@ -368,6 +403,7 @@ js_send(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes failed",len);
 	}
+	JS_RESUMEREQUEST(cx, rc);
 		
 	return(JS_TRUE);
 }
@@ -383,6 +419,8 @@ js_sendto(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JSString*	ip_str;
 	private_t*	p;
 	SOCKADDR_IN	addr;
+	jsrefcount	rc;
+	char*		cstr;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -398,16 +436,21 @@ js_sendto(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	/* address */
 	ip_str = JS_ValueToString(cx, argv[1]);
+	cstr = JS_GetStringBytes(ip_str);
+	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "resolving hostname: %s", JS_GetStringBytes(ip_str));
-	if((ip_addr=resolve_ip(JS_GetStringBytes(ip_str)))==INADDR_NONE) {
+	if((ip_addr=resolve_ip(cstr))==INADDR_NONE) {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "resolve_ip failed with error %d",ERROR_VALUE);
 		*rval = JSVAL_FALSE;
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	/* port */
+	JS_RESUMEREQUEST(cx, rc);
 	port = js_port(cx,argv[2],p->type);
+	rc=JS_SUSPENDREQUEST(cx);
 
 	dbprintf(FALSE, p, "sending %d bytes to port %u at %s"
 		,len, port, JS_GetStringBytes(ip_str));
@@ -424,6 +467,7 @@ js_sendto(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes failed",len);
 	}
+	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
 }
@@ -437,6 +481,7 @@ js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int			file;
 	JSString*	str;
 	private_t*	p;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -451,8 +496,11 @@ js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if((file=nopen(fname,O_RDONLY|O_BINARY))==-1)
+	rc=JS_SUSPENDREQUEST(cx);
+	if((file=nopen(fname,O_RDONLY|O_BINARY))==-1) {
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
+	}
 
 #if 0
 	len=filelength(file);
@@ -487,6 +535,7 @@ js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 #endif
 
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -500,6 +549,7 @@ js_sendbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	size_t		wr=0;
 	size_t		size=sizeof(DWORD);
 	private_t*	p;
+	jsrefcount	rc;
 
 	*rval = JSVAL_FALSE;
 
@@ -508,10 +558,12 @@ js_sendbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	JS_ValueToInt32(cx,argv[0],&val);
-	if(argc>1) 
+	if(argv[0]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[0],&val);
+	if(argc>1 && argv[1]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[1],(int32*)&size);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	switch(size) {
 		case sizeof(BYTE):
 			b = (BYTE)val;
@@ -542,6 +594,7 @@ js_sendbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		dbprintf(TRUE, p, "send of %u bytes (binary) failed",size);
 	}
 		
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -552,6 +605,7 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		buf;
 	int32		len=512;
 	JSString*	str;
+	jsrefcount	rc;
 
 	private_t*	p;
 
@@ -560,7 +614,7 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc)
+	if(argc && argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
@@ -568,7 +622,9 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
+	rc=JS_SUSPENDREQUEST(cx);
 	len = recv(p->sock,buf,len,0);
+	JS_RESUMEREQUEST(cx, rc);
 	if(len<0) {
 		p->last_error=ERROR_VALUE;
 		*rval = JSVAL_NULL;
@@ -581,7 +637,9 @@ js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(str);
+	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "received %u bytes",len);
+	JS_RESUMEREQUEST(cx, rc);
 	
 	return(JS_TRUE);
 }
@@ -604,6 +662,7 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JSObject*	retobj;
 	SOCKADDR_IN	addr;
 	socklen_t	addrlen;
+	jsrefcount	rc;
 
 	private_t*	p;
 
@@ -619,7 +678,7 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			binary=JSVAL_TO_BOOLEAN(argv[n]);
 			if(binary)
 				len=sizeof(DWORD);
-		} else
+		} else if(argv[n]!=JSVAL_VOID)
 			JS_ValueToInt32(cx,argv[n],&len);
 	}
 
@@ -627,6 +686,7 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(binary) {	/* Binary/Integer Data */
 
+		rc=JS_SUSPENDREQUEST(cx);
 		switch(len) {
 			case sizeof(BYTE):
 				if((rd=recvfrom(p->sock,&b,len,0,(SOCKADDR*)&addr,&addrlen))==len)
@@ -643,10 +703,14 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				if((rd=recvfrom(p->sock,(BYTE*)&l,len,0,(SOCKADDR*)&addr,&addrlen))==len) {
 					if(p->network_byte_order)
 						l=ntohl(l);
+					JS_RESUMEREQUEST(cx, rc);
 					JS_NewNumberValue(cx,l,&data_val);
+					rc=JS_SUSPENDREQUEST(cx);
 				}
 				break;
 		}
+
+		JS_RESUMEREQUEST(cx, rc);
 
 		if(rd!=len) {
 			p->last_error=ERROR_VALUE;
@@ -660,7 +724,9 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 		}
 
+		rc=JS_SUSPENDREQUEST(cx);
 		len = recvfrom(p->sock,buf,len,0,(SOCKADDR*)&addr,&addrlen);
+		JS_RESUMEREQUEST(cx, rc);
 		if(len<0) {
 			p->last_error=ERROR_VALUE;
 			return(JS_TRUE);
@@ -701,7 +767,9 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	*rval = OBJECT_TO_JSVAL(retobj);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "received %u bytes from %s:%s",len,ip_addr,port);
+	JS_RESUMEREQUEST(cx, rc);
 		
 	return(JS_TRUE);
 }
@@ -713,6 +781,7 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		buf;
 	int32		len=512;
 	JSString*	str;
+	jsrefcount	rc;
 
 	private_t*	p;
 
@@ -721,14 +790,16 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc)
+	if(argc && argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
+	rc=JS_SUSPENDREQUEST(cx);
 	len = recv(p->sock,buf,len,MSG_PEEK);
+	JS_RESUMEREQUEST(cx, rc);
 	if(len<0) {
 		p->last_error=ERROR_VALUE;	
 		*rval = JSVAL_NULL;
@@ -741,8 +812,10 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(str);
+	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "received %u bytes, lasterror=%d"
 		,len,ERROR_VALUE);
+	JS_RESUMEREQUEST(cx, rc);
 		
 	return(JS_TRUE);
 }
@@ -759,13 +832,14 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		timeout=30;	/* seconds */
 	JSString*	str;
 	private_t*	p;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	if(argc)
+	if(argc && argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
@@ -773,10 +847,11 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc>1)
+	if(argc>1 && argv[1]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
 
 	start=time(NULL);
+	rc=JS_SUSPENDREQUEST(cx);
 	for(i=0;i<len;) {
 
 		if(!socket_check(p->sock,&rd,NULL,1000)) {
@@ -788,6 +863,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			if(time(NULL)-start>timeout) {
 				dbprintf(FALSE, p, "recvline timeout (received: %d)",i);
 				*rval = JSVAL_NULL;
+				JS_RESUMEREQUEST(cx, rc);
 				return(JS_TRUE);	/* time-out */
 			}
 			continue;	/* no data */
@@ -808,13 +884,16 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	else
 		buf[i]=0;
 
+	JS_RESUMEREQUEST(cx, rc);
 	str = JS_NewStringCopyZ(cx, buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(str);
+	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "received %u bytes (recvline) lasterror=%d"
 		,i,ERROR_VALUE);
+	JS_RESUMEREQUEST(cx, rc);
 		
 	return(JS_TRUE);
 }
@@ -828,6 +907,7 @@ js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int			size=sizeof(DWORD);
 	int			rd=0;
 	private_t*	p;
+	jsrefcount	rc;
 
 	*rval = INT_TO_JSVAL(-1);
 
@@ -836,9 +916,10 @@ js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
-	if(argc) 
+	if(argc && argv[0]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[0],(int32*)&size);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	switch(size) {
 		case sizeof(BYTE):
 			if((rd=recv(p->sock,&b,size,0))==size)
@@ -855,7 +936,9 @@ js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			if((rd=recv(p->sock,(BYTE*)&l,size,0))==size) {
 				if(p->network_byte_order)
 					l=ntohl(l);
+				JS_RESUMEREQUEST(cx, rc);
 				JS_NewNumberValue(cx,l,rval);
+				rc=JS_SUSPENDREQUEST(cx);
 			}
 			break;
 	}
@@ -863,6 +946,7 @@ js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(rd!=size)
 		p->last_error=ERROR_VALUE;
 		
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -877,6 +961,7 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	LINGER		linger;
 	void*		vp=&val;
 	socklen_t	len=sizeof(val);
+	jsrefcount	rc;
 
 	*rval = INT_TO_JSVAL(-1);
 
@@ -885,8 +970,11 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		return(JS_FALSE);
 	}
 
-	if((opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level)) == -1)
+	rc=JS_SUSPENDREQUEST(cx);
+	if((opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level)) == -1) {
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
+	}
 
 	if(opt == SO_LINGER) {
 		vp=&linger;
@@ -899,13 +987,16 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 			else
 				val = 0;
 		}
+		JS_RESUMEREQUEST(cx, rc);
 		JS_NewNumberValue(cx,val,rval);
+		rc=JS_SUSPENDREQUEST(cx);
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "error %d getting option %d"
 			,ERROR_VALUE,opt);
 	}
 
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -920,15 +1011,20 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	LINGER		linger;
 	void*		vp=&val;
 	socklen_t	len=sizeof(val);
-
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
+	rc=JS_SUSPENDREQUEST(cx);
 	opt = getSocketOptionByName(JS_GetStringBytes(JS_ValueToString(cx,argv[0])),&level);
-	JS_ValueToInt32(cx,argv[1],&val);
+	if(argv[1]!=JSVAL_VOID) {
+		JS_RESUMEREQUEST(cx, rc);
+		JS_ValueToInt32(cx,argv[1],&val);
+		rc=JS_SUSPENDREQUEST(cx);
+	}
 
 	if(opt == SO_LINGER) {
 		if(val) {
@@ -945,6 +1041,7 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		setsockopt(p->sock, level, opt, vp, len)==0);
 	p->last_error=ERROR_VALUE;
 
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -954,20 +1051,27 @@ js_ioctlsocket(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	int32		cmd;
 	int32		arg=0;
 	private_t*	p;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	JS_ValueToInt32(cx,argv[0],&cmd);
-	if(argc>1)
+	if(argv[0]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[0],&cmd);
+	if(argc>1 && argv[1]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[1],&arg);
 
-	if(ioctlsocket(p->sock,cmd,(ulong*)&arg)==0)
+	rc=JS_SUSPENDREQUEST(cx);
+	if(ioctlsocket(p->sock,cmd,(ulong*)&arg)==0) {
+		JS_RESUMEREQUEST(cx, rc);
 		JS_NewNumberValue(cx,arg,rval);
-	else
+	}
+	else {
 		*rval = INT_TO_JSVAL(-1);
+		JS_RESUMEREQUEST(cx, rc);
+	}
 
 	p->last_error=ERROR_VALUE;
 
@@ -985,6 +1089,7 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	uintN	argn;
 	int		result;
 	struct	timeval tv = {0, 0};
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -1004,6 +1109,7 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			js_timeval(cx,argv[argn],&tv);
 	}
 
+	rc=JS_SUSPENDREQUEST(cx);
 	FD_ZERO(&socket_set);
 	FD_SET(p->sock,&socket_set);
 	if(poll_for_write)
@@ -1019,6 +1125,7 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		,result,p->last_error);
 
 	*rval = INT_TO_JSVAL(result);
+	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
 }
@@ -1069,6 +1176,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
     jsint       tiny;
 	private_t*	p;
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -1077,7 +1185,9 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
     tiny = JSVAL_TO_INT(id);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "setting property %d",tiny);
+	JS_RESUMEREQUEST(cx, rc);
 
 	switch(tiny) {
 		case SOCK_PROP_DEBUG:
@@ -1091,7 +1201,9 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_NONBLOCKING:
 			JS_ValueToBoolean(cx,*vp,&(p->nonblocking));
+			rc=JS_SUSPENDREQUEST(cx);
 			ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
+			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case SOCK_PROP_NETWORK_ORDER:
 			JS_ValueToBoolean(cx,*vp,&(p->network_byte_order));
@@ -1108,9 +1220,10 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	BOOL		rd;
 	BOOL		wr;
 	private_t*	p;
-	socklen_t	addr_len;
-	SOCKADDR_IN	addr;
 	JSString*	js_str;
+	SOCKADDR_IN	addr;
+	socklen_t	len=sizeof(addr);
+	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -1119,6 +1232,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
     tiny = JSVAL_TO_INT(id);
 
+	rc=JS_SUSPENDREQUEST(cx);
 #if 0 /* just too much */
 	dbprintf(FALSE, p, "getting property %d",tiny);
 #endif
@@ -1128,7 +1242,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = INT_TO_JSVAL(p->last_error);
 			break;
 		case SOCK_PROP_IS_CONNECTED:
-			if(!p->is_connected && !p->external)
+			if(!p->is_connected)
 				*vp = JSVAL_FALSE;
 			else
 				*vp = BOOLEAN_TO_JSVAL(socket_check(p->sock,NULL,NULL,0));
@@ -1143,8 +1257,11 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_NREAD:
 			cnt=0;
-			if(ioctlsocket(p->sock, FIONREAD, &cnt)==0) 
+			if(ioctlsocket(p->sock, FIONREAD, &cnt)==0) {
+				JS_RESUMEREQUEST(cx, rc);
 				JS_NewNumberValue(cx,cnt,vp);
+				rc=JS_SUSPENDREQUEST(cx);
+			}
 			else
 				*vp = JSVAL_ZERO;
 			break;
@@ -1158,42 +1275,48 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = BOOLEAN_TO_JSVAL(p->nonblocking);
 			break;
 		case SOCK_PROP_LOCAL_IP:
-			addr_len = sizeof(addr);
-			if(getsockname(p->sock, (struct sockaddr *)&addr,&addr_len)!=0) {
-				p->last_error=ERROR_VALUE;
-				*vp = JSVAL_VOID;
-			} else {
+			if(p->sock != INVALID_SOCKET) {
+				if(getsockname(p->sock, (struct sockaddr *)&addr,&len)!=0)
+					return(JS_FALSE);
+				JS_RESUMEREQUEST(cx, rc);
 				if((js_str=JS_NewStringCopyZ(cx,inet_ntoa(addr.sin_addr)))==NULL)
 					return(JS_FALSE);
 				*vp = STRING_TO_JSVAL(js_str);
+				rc=JS_SUSPENDREQUEST(cx);
 			}
+			else
+				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_LOCAL_PORT:
-			addr_len = sizeof(addr);
-			if(getsockname(p->sock, (struct sockaddr *)&addr,&addr_len)!=0) {
-				p->last_error=ERROR_VALUE;
-				*vp = JSVAL_ZERO;
-			} else
-				*vp = INT_TO_JSVAL(ntohs(addr.sin_port));
-			break;
-		case SOCK_PROP_REMOTE_IP:
-			addr_len = sizeof(addr);
-			if(getpeername(p->sock, (struct sockaddr *)&addr,&addr_len)!=0) {
-				p->last_error=ERROR_VALUE;
-				*vp = JSVAL_VOID;
-			} else {
+			if(p->sock != INVALID_SOCKET) {
+				if(getsockname(p->sock, (struct sockaddr *)&addr,&len)!=0)
+					return(JS_FALSE);
+				JS_RESUMEREQUEST(cx, rc);
 				if((js_str=JS_NewStringCopyZ(cx,inet_ntoa(addr.sin_addr)))==NULL)
 					return(JS_FALSE);
-				*vp = STRING_TO_JSVAL(js_str);
+
+				*vp = INT_TO_JSVAL(ntohs(addr.sin_port));
+				rc=JS_SUSPENDREQUEST(cx);
 			}
+			else
+				*vp=JSVAL_VOID;
+			break;
+		case SOCK_PROP_REMOTE_IP:
+			if(p->is_connected) {
+				JS_RESUMEREQUEST(cx, rc);
+				if((js_str=JS_NewStringCopyZ(cx,inet_ntoa(p->remote_addr.sin_addr)))==NULL)
+					return(JS_FALSE);
+				*vp = STRING_TO_JSVAL(js_str);
+				rc=JS_SUSPENDREQUEST(cx);
+			}
+			else
+				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_REMOTE_PORT:
-			addr_len = sizeof(addr);
-			if(getpeername(p->sock, (struct sockaddr *)&addr,&addr_len)!=0) {
-				p->last_error=ERROR_VALUE;
-				*vp = JSVAL_ZERO;
-			} else
-				*vp = INT_TO_JSVAL(ntohs(addr.sin_port));
+			if(p->is_connected)
+				*vp = INT_TO_JSVAL(ntohs(p->remote_addr.sin_port));
+			else
+				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_TYPE:
 			*vp = INT_TO_JSVAL(p->type);
@@ -1204,6 +1327,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	}
 
+	JS_RESUMEREQUEST(cx, rc);
 	return(TRUE);
 }
 
@@ -1468,6 +1592,10 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 	p->sock = sock;
 	p->external = TRUE;
 	p->network_byte_order = TRUE;
+
+	len=sizeof(p->remote_addr);
+	if(getpeername(p->sock, (struct sockaddr *)&p->remote_addr,&len)==0)
+		p->is_connected=TRUE;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
