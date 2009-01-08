@@ -2,13 +2,13 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.40 2007/07/08 20:23:16 deuce Exp $ */
+/* $Id: addfiles.c,v 1.42 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -66,7 +66,7 @@ char lib[LEN_GSNAME+1];
 /****************************************************************************/
 /* This is needed by load_cfg.c												*/
 /****************************************************************************/
-int lprintf(int level, char *fmat, ...)
+int lprintf(int level, const char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[512];
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.40 $", "%*s %s", revision);
+	sscanf("$Revision: 1.42 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -710,9 +710,6 @@ int main(int argc, char **argv)
 	}
 	SAFECOPY(scfg.temp_dir,"../temp");
 	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
-
-	if(!(scfg.sys_misc&SM_LOCAL_TZ))
-		putenv("TZ=UTC0");
 
 	if(argv[1][0]=='*' || argv[1][0]=='-') {
 		if(argv[1][1]=='?') {
