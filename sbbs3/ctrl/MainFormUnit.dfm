@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 506
-  Top = 489
+  Left = 388
+  Top = 356
   Width = 640
   Height = 400
   Caption = 'Synchronet Control Panel'
