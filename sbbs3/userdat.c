@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.116 2009/01/24 12:08:03 rswindell Exp $ */
+/* $Id: userdat.c,v 1.114 2008/12/20 04:22:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -625,9 +625,9 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 /****************************************************************************/
 /* Returns the age derived from the string 'birth' in the format MM/DD/YY	*/
 /****************************************************************************/
-uint DLLCALL getage(scfg_t* cfg, char *birth)
+char DLLCALL getage(scfg_t* cfg, char *birth)
 {
-	uint	age;
+	char	age;
 	struct	tm tm;
 	time_t	now;
 
@@ -642,7 +642,7 @@ uint DLLCALL getage(scfg_t* cfg, char *birth)
 		return(0);
 	age=(tm.tm_year)-(((birth[6]&0xf)*10)+(birth[7]&0xf));
 	if(age>105)
-		age-=100;
+		age-=105;
 	tm.tm_mon++;	/* convert to 1 based */
 	if(cfg->sys_misc&SM_EURODATE) {		/* DD/MM/YY format */
 		if(atoi(birth)>31 || atoi(birth+3)>12)
@@ -659,8 +659,11 @@ uint DLLCALL getage(scfg_t* cfg, char *birth)
 			((birth[3]&0xf)*10)+(birth[4]&0xf)>tm.tm_mday))
 			age--; 
 	}
+	if(age<0)
+		return(0);
 	return(age);
 }
+
 
 /****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
