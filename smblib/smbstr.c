@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.19 2009/03/24 21:27:33 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.16 2008/05/08 00:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -101,9 +101,8 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case USENETNEWSGROUPS:	return("Newsgroups");			/* RFC-compliant */
 
 		case SMTPCOMMAND:		return("SMTPCommand");
-		case SMTPREVERSEPATH:	return("Return-Path");			/* RFC-compliant */
+		case SMTPREVERSEPATH:	return("SMTPReversePath");
 		case SMTPFORWARDPATH:	return("SMTPForwardPath");
-		case SMTPRECEIVED:		return("Received");				/* RFC-compliant */
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
 
@@ -150,7 +149,6 @@ char* SMBCALL smb_hashsourcetype(uchar type)
 		case SMB_HASH_SOURCE_BODY:		return(smb_dfieldtype(TEXT_BODY));
 		case SMB_HASH_SOURCE_MSG_ID:	return(smb_hfieldtype(RFC822MSGID));
 		case SMB_HASH_SOURCE_FTN_ID:	return(smb_hfieldtype(FIDOMSGID));
-		case SMB_HASH_SOURCE_SUBJECT:	return(smb_hfieldtype(SUBJECT));
 	}
 	sprintf(str,"%02Xh",type);
 	return(str);
@@ -163,8 +161,6 @@ char* SMBCALL smb_hashsource(smbmsg_t* msg, int source)
 			return(msg->id);
 		case SMB_HASH_SOURCE_FTN_ID:
 			return(msg->ftn_msgid);
-		case SMB_HASH_SOURCE_SUBJECT:
-			return(msg->subj);
 	}
 	return("hash");
 }
