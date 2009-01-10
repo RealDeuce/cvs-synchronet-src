@@ -2,13 +2,13 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.23 2007/08/14 00:37:02 deuce Exp $ */
+/* $Id: file.cpp,v 1.25 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,8 +91,11 @@ void sbbs_t::fileinfo(file_t* f)
 		CRLF;
 		putmsg(ext,P_NOATCODES);
 		CRLF; }
-	if(f->size==-1L)
+	if(f->size==-1L) {
 		bprintf(text[FileIsNotOnline],f->name);
+		if(SYSOP)
+			bprintf("%s\r\n",fpath);
+	}
 	if(f->opencount)
 		bprintf(text[FileIsOpen],f->opencount,f->opencount>1 ? "s" : nulstr);
 
@@ -236,7 +239,7 @@ char * sbbs_t::getfilespec(char *str)
 /****************************************************************************/
 /* Checks to see if filename matches filespec. Returns 1 if yes, 0 if no    */
 /****************************************************************************/
-extern "C" BOOL filematch(char *filename, char *filespec)
+extern "C" BOOL filematch(const char *filename, const char *filespec)
 {
     char c;
 
