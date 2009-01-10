@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.118 2009/01/24 12:06:39 rswindell Exp $ */
+/* $Id: js_file.c,v 1.111 2008/12/20 07:17:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1078,13 +1078,9 @@ js_iniSetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 {
 	char*		name="name";
     jsuint      i;
-    jsint       j;
     jsuint      count;
     JSObject*	array;
-    JSObject*	object;
-	jsval		oval;
-	jsval		set_argv[3];
-	JSIdArray*	id_array;
+	jsval		set_argv[2];
 
 	*rval = JSVAL_FALSE;
 
@@ -1104,29 +1100,14 @@ js_iniSetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	/* enumerate the array */
 	for(i=0; i<count; i++)  {
-        if(!JS_GetElement(cx, array, i, &oval))
+        if(!JS_GetElement(cx, array, i, &set_argv[1]))
 			break;
-		if(!JSVAL_IS_OBJECT(oval))	/* must be an array of objects */
+		if(!JSVAL_IS_OBJECT(set_argv[1]))	/* must be an array of objects */
 			break;
-		object=JSVAL_TO_OBJECT(oval);
-		if(!JS_GetProperty(cx, object, name, &set_argv[0]))
+		if(!JS_GetProperty(cx, JSVAL_TO_OBJECT(set_argv[1]), name, &set_argv[0]))
 			continue;
-		if((id_array=JS_Enumerate(cx,object))==NULL)
-			return(JS_TRUE);
-
-		for(j=0; j<id_array->length; j++)  {
-			/* property */
-			JS_IdToValue(cx,id_array->vector[j],&set_argv[1]);	
-			/* check if not name */
-			if(strcmp(JS_GetStringBytes(JS_ValueToString(cx, set_argv[1])),name)==0)
-				continue;
-			/* value */
-			JS_GetProperty(cx,object,JS_GetStringBytes(JSVAL_TO_STRING(set_argv[1])),&set_argv[2]);
-			if(!js_iniSetValue(cx,obj,3,set_argv,rval))
-				break;
-		}
-
-		JS_DestroyIdArray(cx,id_array);
+		if(!js_iniSetObject(cx, obj, 2, set_argv, rval))
+			break;
 	}
 
     return(JS_TRUE);
@@ -1258,7 +1239,7 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	DWORD		*l;
 	size_t		wr=0;
 	size_t		size=sizeof(DWORD);
-	jsuint		count=1;
+	size_t		count=1;
 	void		*buffer;
 	private_t*	p;
     JSObject*	array=NULL;
@@ -2026,19 +2007,6 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing, "
 		"use the <i>file_exists</i> function like so:<br>"
 		"<tt>file.open(file_exists(file.name) ? 'r+':'w+');</tt>"
-		"<br><b>Note:</b> When <i>shareable</i> is false, uses nopen() which will lock the file "
-		"and perform automatic retries.  The lock mode is as follows:<br>"
-		"<tt>r&nbsp</tt> DENYWRITE - Allows other scripts to open the file for reading, but not for writing.<br>"
-		"<tt>w&nbsp</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"<tt>a&nbsp</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"<tt>r+</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"<tt>w+</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"<tt>a+</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"When <i>shareable</i> is true uses fopen(), "
-		"and will only attempt to open the file once and will perform no locking.  The behaviour "
-		"when one script has a file opened with <i>shareable</i> set to a different value than is used "
-		"with a new call is OS specific.  On Windows, the second open will always fail and on *nix, "
-		"the second open will always succeed.<br>"
 		)
 	,310
 	},		
