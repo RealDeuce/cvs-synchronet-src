@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.85 2009/06/28 09:18:57 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.84 2008/09/23 07:32:05 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -533,7 +533,6 @@ int zmodem_send_ack(zmodem_t* zm, int32_t pos)
 
 int zmodem_send_nak(zmodem_t* zm)
 {
-	lprintf(zm,LOG_INFO,"send_nak");
 	return zmodem_send_pos_header(zm, ZNAK, 0, /* Hex? */ TRUE);
 }
 
@@ -552,7 +551,6 @@ int zmodem_abort_receive(zmodem_t* zm)
 
 int zmodem_send_znak(zmodem_t* zm)
 {
-	lprintf(zm,LOG_INFO,"send_znak");
 	return zmodem_send_pos_header(zm, ZNAK, zm->ack_file_pos, /* Hex? */ TRUE);
 }
 
@@ -586,8 +584,6 @@ int zmodem_recv_raw(zmodem_t* zm)
 			break;
 		if(is_cancelled(zm))
 			return(ZCAN);
-		if(!is_connected(zm))
-			return(TIMEOUT);
 	}
 	if(attempt>zm->recv_timeout)
 		return(TIMEOUT);
@@ -625,9 +621,9 @@ int zmodem_rx(zmodem_t* zm)
 	 * will be received.
 	 */
 
-	while(is_connected(zm) && !is_cancelled(zm)) {
+	while(is_connected(zm)) {
 
-		while(!is_cancelled(zm)) {
+		while(TRUE) {
 			if((c = zmodem_recv_raw(zm)) < 0)
 				return(c);
 	
@@ -638,8 +634,6 @@ int zmodem_rx(zmodem_t* zm)
 				case XON|0x80:
 				case XOFF:
 				case XOFF|0x80:
-					lprintf(zm,LOG_WARNING,"rx: dropping flow ctrl char: %s"
-						,chr(c));
 					continue;			
 				default:
 					/*
@@ -647,8 +641,6 @@ int zmodem_rx(zmodem_t* zm)
 					 * this one wasnt then its spurious and should be dropped.
 					 */
 					if(zm->escape_ctrl_chars && (c & 0x60) == 0) {
-						lprintf(zm,LOG_WARNING,"rx: dropping unescaped ctrl char: %s"
-							,chr(c));
 						continue;
 					}
 					/*
@@ -664,7 +656,7 @@ int zmodem_rx(zmodem_t* zm)
 		 * (or something illegal; then back to the top)
 		 */
 
-		while(!is_cancelled(zm)) {
+		while(TRUE) {
 			if((c = zmodem_recv_raw(zm)) < 0)
 				return(c);
 
@@ -672,8 +664,6 @@ int zmodem_rx(zmodem_t* zm)
 				/*
 				 * these can be dropped.
 				 */
-				lprintf(zm,LOG_WARNING,"rx: dropping escaped flow ctrl char: %s"
-					,chr(c));
 				continue;
 			}
 
@@ -702,8 +692,6 @@ int zmodem_rx(zmodem_t* zm)
 						 * a not escaped control character; probably
 						 * something from a network. just drop it.
 						 */
-						lprintf(zm,LOG_WARNING,"rx: dropping unescaped ctrl char: %s"
-							,chr(c));
 						continue;
 					}
 					/*
@@ -722,7 +710,7 @@ int zmodem_rx(zmodem_t* zm)
 	}
 
 	/*
-	 * not reached (unless cancelled).
+	 * not reached.
 	 */
 
 	return 0;
@@ -765,7 +753,7 @@ int zmodem_recv_data32(zmodem_t* zm, unsigned char * p, unsigned maxlen, unsigne
 			(*l)++;
 			continue;
 		}
-	} while(c < 0x100 && !is_cancelled(zm));
+	} while(c < 0x100);
 
 	subpkt_type = c & 0xff;
 
@@ -813,7 +801,7 @@ int zmodem_recv_data16(zmodem_t* zm, register unsigned char* p, unsigned maxlen,
 			*p++ = c;
 			(*l)++;
 		}
-	} while(c < 0x100 && !is_cancelled(zm));
+	} while(c < 0x100);
 
 	subpkt_type = c & 0xff;
 
@@ -1362,7 +1350,7 @@ int zmodem_get_zfin(zmodem_t* zm)
 	zmodem_send_zfin(zm);
 	do {
 		type = zmodem_recv_header(zm);
-	} while(type != ZFIN && type != ZCAN && type != TIMEOUT && is_connected(zm));
+	} while(type != ZFIN && type != TIMEOUT && is_connected(zm));
 	
 	/*
 	 * these Os are formally required; but they don't do a thing
@@ -1486,7 +1474,6 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, uint32_t pos, uint32_t* sent)
 				return(c);
 			if(c == ZPAD) {
 				type = zmodem_recv_header(zm);
-				lprintf(zm,LOG_DEBUG,"Received header: %s",chr(type));
 				if(type != TIMEOUT && type != ZACK) {
 					return type;
 				}
@@ -1864,7 +1851,7 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_re
 					}
 					break;
 				}
-				if(l == (int32_t)bytes) {
+				if(l == bytes) {
 					lprintf(zm,LOG_INFO,"CRC, length, and filename match.");
 					break;
 				}
@@ -2122,7 +2109,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.85 $", "%*s %s", buf);
+	sscanf("$Revision: 1.84 $", "%*s %s", buf);
 
 	return(buf);
 }
