@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.42 2007/08/23 07:53:46 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.44 2008/02/25 08:16:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -364,7 +364,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				else if(msg.from_net.type==NET_FIDO) 	/* FidoNet type */
 					SAFEPRINTF2(str,"%s@%s",msg.from
 						,smb_faddrtoa((faddr_t *)msg.from_net.addr,tmp));
-				else if(msg.from_net.type==NET_INTERNET) {
+				else if(msg.from_net.type==NET_INTERNET || strchr((char*)msg.from_net.addr,'@')!=NULL) {
 					if(msg.replyto_net.type==NET_INTERNET)
 						SAFECOPY(str,(char *)msg.replyto_net.addr);
 					else
@@ -418,7 +418,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					}
 				}
 
-				if(msg.hdr.attr&MSG_DELETE || !yesno(str2)) {
+				if(msg.hdr.attr&MSG_DELETE || noyes(str2)) {
 					if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 					else done=1;
 					break;	}
