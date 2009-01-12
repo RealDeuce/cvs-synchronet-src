@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.118 2009/01/24 12:06:39 rswindell Exp $ */
+/* $Id: js_file.c,v 1.113 2009/01/12 00:01:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1258,7 +1258,7 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	DWORD		*l;
 	size_t		wr=0;
 	size_t		size=sizeof(DWORD);
-	jsuint		count=1;
+	size_t		count=1;
 	void		*buffer;
 	private_t*	p;
     JSObject*	array=NULL;
@@ -2027,14 +2027,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"use the <i>file_exists</i> function like so:<br>"
 		"<tt>file.open(file_exists(file.name) ? 'r+':'w+');</tt>"
 		"<br><b>Note:</b> When <i>shareable</i> is false, uses nopen() which will lock the file "
-		"and perform automatic retries.  The lock mode is as follows:<br>"
-		"<tt>r&nbsp</tt> DENYWRITE - Allows other scripts to open the file for reading, but not for writing.<br>"
-		"<tt>w&nbsp</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"<tt>a&nbsp</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"<tt>r+</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"<tt>w+</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"<tt>a+</tt> DENYALL - Does not allow other scripts to open the file when <i>shareable</i> is set to true<br>"
-		"When <i>shareable</i> is true uses fopen(), "
+		"exclusively and perform automatic retries.  When <i>shareable</i> is true uses fopen(), "
 		"and will only attempt to open the file once and will perform no locking.  The behaviour "
 		"when one script has a file opened with <i>shareable</i> set to a different value than is used "
 		"with a new call is OS specific.  On Windows, the second open will always fail and on *nix, "
