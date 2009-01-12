@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.41 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: logfile.cpp,v 1.42 2009/01/12 02:57:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,8 +132,10 @@ void sbbs_t::log(char *str)
 		fprintf(logfile_fp,"   ");
 		logcol=4; }
 	fprintf(logfile_fp,str);
-	if(str[strlen(str)-1]==LF)
+	if(str[strlen(str)-1]==LF) {
 		logcol=1;
+		fflush(logfile_fp);
+	}
 	else
 		logcol+=strlen(str);
 }
@@ -179,6 +181,7 @@ void sbbs_t::logline(const char *code, const char *str)
 		fprintf(logfile_fp,"\r\n");
 	fprintf(logfile_fp,"%-2.2s %s\r\n",code,str);
 	logcol=1;
+	fflush(logfile_fp);
 }
 
 /****************************************************************************/
