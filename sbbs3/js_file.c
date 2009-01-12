@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.119 2009/07/11 09:09:28 rswindell Exp $ */
+/* $Id: js_file.c,v 1.117 2009/01/12 00:51:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1258,7 +1258,7 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	DWORD		*l;
 	size_t		wr=0;
 	size_t		size=sizeof(DWORD);
-	jsuint		count=1;
+	size_t		count=1;
 	void		*buffer;
 	private_t*	p;
     JSObject*	array=NULL;
@@ -1983,7 +1983,7 @@ static jsSyncPropertySpec js_file_properties[] = {
 static char* file_prop_desc[] = {
 	 "filename specified in constructor - <small>READ ONLY</small>"
 	,"mode string specified in <i>open</i> call - <small>READ ONLY</small>"
-	,"<i>true</i> if the file is open or exists (case-insensitive) - <small>READ ONLY</small>"
+	,"<i>true</i> if the file exists - <small>READ ONLY</small>"
 	,"<i>true</i> if the file has been opened successfully - <small>READ ONLY</small>"
 	,"<i>true</i> if the current file position is at the <i>end of file</i> - <small>READ ONLY</small>"
 	,"the last occurred error value (use clear_error to clear) - <small>READ ONLY</small>"
@@ -2023,10 +2023,9 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.12)</i><br>"
 		"<br><b>Note:</b> When using the <tt>iniSet</tt> methods to modify a <tt>.ini</tt> file, "
 		"the file must be opened for both reading and writing.<br>"
-		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing "
-		"(e.g. updating an <tt>.ini</tt> file) "
-		"use the <i>exists</i> property like so:<br>"
-		"<tt>file.open(file.exists ? 'r+':'w+');</tt>"
+		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing, "
+		"use the <i>file_exists</i> function like so:<br>"
+		"<tt>file.open(file_exists(file.name) ? 'r+':'w+');</tt>"
 		"<br><b>Note:</b> When <i>shareable</i> is false, uses nopen() which will lock the file "
 		"and perform automatic retries.  The lock mode is as follows:<br>"
 		"<tt>r&nbsp</tt> DENYWRITE - Allows other scripts to open the file for reading, but not for writing.<br>"
