@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.52 2008/01/21 05:50:07 rswindell Exp $ */
+/* $Id: conn.c,v 1.56 2008/04/05 07:46:47 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -300,9 +300,18 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.close=raw_close;
 			break;
 		case CONN_TYPE_SSH:
+#ifdef WITHOUT_CRYPTLIB
+			init_uifc(TRUE, TRUE);
+			uifcmsg("SSH inoperative",	"`Compiled without cryptlib`\n\n"
+					"This binary was compiled without Cryptlib,\n"
+					"which is required for SSH support."
+					);
+			return(-1);
+#else
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
 			break;
+#endif
 		case CONN_TYPE_SERIAL:
 			conn_api.connect=modem_connect;
 			conn_api.close=serial_close;
@@ -317,6 +326,8 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.close=pty_close;
 			break;
 #endif
+		default:
+			conn_api.terminate=1;
 	}
 	if(conn_api.connect) {
 		if(conn_api.connect(bbs)) {
@@ -355,6 +366,7 @@ enum failure_reason {
 	,FAILURE_CONNECT_ERROR
 	,FAILURE_ABORTED
 	,FAILURE_GENERAL
+	,FAILURE_DISCONNECTED
 };
 
 int conn_socket_connect(struct bbslist *bbs)
@@ -444,8 +456,10 @@ int conn_socket_connect(struct bbslist *bbs)
 connected:
 	nonblock=0;
 	ioctlsocket(sock, FIONBIO, &nonblock);
-	if(!socket_check(sock, NULL, NULL, 0))
+	if(!socket_check(sock, NULL, NULL, 0)) {
+		failcode=FAILURE_DISCONNECTED;
 		goto connect_failed;
+	}
 
 	uifc.pop(NULL);
 	return(sock);
@@ -486,6 +500,12 @@ connect_failed:
 				uifcmsg(str
 								,"`SyncTERM failed to connect`\n\n"
 								 "The call to select() returned an unexpected error code.");
+				break;
+			case FAILURE_DISCONNECTED:
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
+								,"`SyncTERM failed to connect`\n\n"
+								 "After connect() succeeded, the socket was in a disconnected state.");
 				break;
 		}
 		conn_close();
