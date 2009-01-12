@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.61 2007/10/04 16:07:31 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.66 2009/01/12 02:36:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -193,7 +193,7 @@ int sbbs_t::xtrn_sec()
 }
 
 
-char *hungupstr="\1n\1h%s\1n hung up on \1h%s\1n %s\r\n";
+const char *hungupstr="\1n\1h%s\1n hung up on \1h%s\1n %s\r\n";
 
 /****************************************************************************/
 /* Convert C string to pascal string										*/
@@ -372,7 +372,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.level						/* User main level */
 			,useron.level						/* User transfer level */
 			,useron.birth						/* User birthday */
-			,useron.sex 						/* User sex (M/F) */
+			,useron.sex ? useron.sex : '?'		/* User sex (M/F) */
 			,useron.number						/* User number */
 			,useron.phone); 					/* User phone number */
 		lfexpand(str,misc);
@@ -468,7 +468,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.name						/* User real name */
 			,nulstr 							/* User call sign */
 			,getage(&cfg,useron.birth)			/* User age */
-			,useron.sex);						/* User sex (M/F) */
+			,useron.sex ? useron.sex : '?');	/* User sex (M/F) */
 		strupr(str);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -1313,10 +1313,11 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"%d\n%d\n38400\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
+		sprintf(str,"%d\n%d\n%u\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
 			"%d\n%d\n"
 			,misc&IO_INTS ? 0 /* Local */ : 2 /* Telnet */
 			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
+			,dte_rate
 			,VERSION_NOTICE,REVISION
 			,useron.number
 			,useron.name
@@ -1684,7 +1685,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	else
 		SAFECOPY(name,useron.alias);
 
-	gettimeleft();
+	gettimeleft(cfg.xtrn[xtrnnum]->misc&XTRN_CHKTIME ? true:false);
 	tleft=timeleft+(cfg.xtrn[xtrnnum]->textra*60);
 	if(cfg.xtrn[xtrnnum]->maxtime && tleft>(cfg.xtrn[xtrnnum]->maxtime*60))
 		tleft=(cfg.xtrn[xtrnnum]->maxtime*60);
@@ -1739,6 +1740,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		sprintf(str,"%snode.log",cfg.node_dir);
 		if((logfile_fp=fopen(str,"a+b"))==NULL)
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
+		else
+			setvbuf(logfile_fp, NULL, _IOLBF, 0);
 	}
 
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
