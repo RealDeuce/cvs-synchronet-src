@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.225 2009/01/24 22:17:44 rswindell Exp $ */
+/* $Id: services.c,v 1.220 2008/12/20 04:17:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -119,7 +119,7 @@ static int lprintf(int level, const char *fmt, ...)
 	va_list argptr;
 	char sbuf[1024];
 
-    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
+    if(startup==NULL || startup->lputs==NULL)
         return(0);
 
 #if defined(_WIN32)
@@ -145,7 +145,7 @@ static BOOL winsock_startup(void)
 	int		status;             /* Status Code */
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
-		lprintf(LOG_DEBUG,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
+		lprintf(LOG_INFO,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
 		WSAInitialized=TRUE;
 		return (TRUE);
 	}
@@ -598,7 +598,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char*	warning;
 	service_client_t* client;
 	jsrefcount	rc;
-	int		log_level;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))!=NULL) {
 		prot=client->service->protocol;
@@ -625,14 +624,11 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 			warning="strict warning";
 		else
 			warning="warning";
-		log_level=LOG_WARNING;
-	} else {
-		log_level=LOG_ERR;
+	} else
 		warning="";
-	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	lprintf(log_level,"%04d %s !JavaScript %s%s%s: %s",sock,prot,warning,file,line,message);
+	lprintf(LOG_ERR,"%04d %s !JavaScript %s%s%s: %s",sock,prot,warning,file,line,message);
 	JS_RESUMEREQUEST(cx, rc);
 }
 
@@ -972,8 +968,8 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		return(JS_FALSE);
 
 	/* Terminated? */ 
-	if(client->branch.auto_terminate && terminated) {
-		JS_ReportWarning(cx,"Terminated");
+	if(terminated) {
+		JS_ReportError(cx,"Terminated");
 		client->branch.counter=0;
 		return(JS_FALSE);
 	}
@@ -1188,7 +1184,7 @@ static void js_service_thread(void* arg)
 #endif
 
 	thread_down();
-	lprintf(LOG_INFO,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
+	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread terminated (%u clients remain, %d total, %lu served)"
 		, socket, service->protocol, service->clients, active_clients(), service->served);
 
 	client_off(socket);
@@ -1287,7 +1283,7 @@ static void js_static_service_thread(void* arg)
 	}
 
 	thread_down();
-	lprintf(LOG_INFO,"%04d %s service thread terminated (%lu clients served)"
+	lprintf(LOG_DEBUG,"%04d %s static JavaScript service thread terminated (%lu clients served)"
 		,socket, service->protocol, service->served);
 
 	close_socket(service->socket);
@@ -1345,7 +1341,7 @@ static void native_static_service_thread(void* arg)
 	} while(!service->terminated && service->options&SERVICE_OPT_STATIC_LOOP);
 
 	thread_down();
-	lprintf(LOG_INFO,"%04d %s service thread terminated (%lu clients served)"
+	lprintf(LOG_DEBUG,"%04d %s static service thread terminated (%lu clients served)"
 		,socket, service->protocol, service->served);
 
 	close_socket(service->socket);
@@ -1478,7 +1474,7 @@ static void native_service_thread(void* arg)
 #endif
 
 	thread_down();
-	lprintf(LOG_INFO,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
+	lprintf(LOG_DEBUG,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
 		,socket, service->protocol, service->clients, active_clients(), service->served);
 
 	client_off(socket);
@@ -1519,11 +1515,11 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 	uint32_t	stack_size;
 
 	if((fp=fopen(services_ini,"r"))==NULL) {
-		lprintf(LOG_CRIT,"!ERROR %d opening %s", errno, services_ini);
+		lprintf(LOG_ERR,"!ERROR %d opening %s", errno, services_ini);
 		return(NULL);
 	}
 
-	lprintf(LOG_DEBUG,"Reading %s",services_ini);
+	lprintf(LOG_INFO,"Reading %s",services_ini);
 	list=iniReadFile(fp);
 	fclose(fp);
 
@@ -1629,7 +1625,7 @@ static void cleanup(int code)
 
 	thread_down();
 	if(terminated || code)
-		lprintf(LOG_INFO,"#### Services thread terminated (%lu clients served)",served);
+		lprintf(LOG_DEBUG,"#### Services thread terminated (%lu clients served)",served);
 	status("Down");
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
@@ -1642,7 +1638,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.225 $", "%*s %s", revision);
+	sscanf("$Revision: 1.220 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1759,8 +1755,8 @@ void DLLCALL services_thread(void* arg)
 		scfg.size=sizeof(scfg);
 		SAFECOPY(error,UNKNOWN_LOAD_ERROR);
 		if(!load_cfg(&scfg, NULL, TRUE, error)) {
-			lprintf(LOG_CRIT,"!ERROR %s",error);
-			lprintf(LOG_CRIT,"!Failed to load configuration files");
+			lprintf(LOG_ERR,"!ERROR %s",error);
+			lprintf(LOG_ERR,"!Failed to load configuration files");
 			cleanup(1);
 			return;
 		}
@@ -1773,7 +1769,7 @@ void DLLCALL services_thread(void* arg)
 		MKDIR(scfg.temp_dir);
 		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
 		if(!isdir(scfg.temp_dir)) {
-			lprintf(LOG_CRIT,"!Invalid temp directory: %s", scfg.temp_dir);
+			lprintf(LOG_ERR,"!Invalid temp directory: %s", scfg.temp_dir);
 			cleanup(1);
 			return;
 		}
@@ -1807,7 +1803,7 @@ void DLLCALL services_thread(void* arg)
 				(service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
 				,service[i].protocol))
 				==INVALID_SOCKET) {
-				lprintf(LOG_CRIT,"!ERROR %d opening %s socket"
+				lprintf(LOG_ERR,"!ERROR %d opening %s socket"
 					,ERROR_VALUE, service[i].protocol);
 				cleanup(1);
 				return;
@@ -1877,6 +1873,7 @@ void DLLCALL services_thread(void* arg)
 			cleanup(1);
 			return;
 		}
+		lprintf(LOG_INFO,"0000 %u service sockets bound", total_sockets);
 
 		/* Setup static service threads */
 		for(i=0;i<(int)services;i++) {
@@ -1910,8 +1907,6 @@ void DLLCALL services_thread(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
-
-		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
 
 		/* Main Server Loop */
 		while(!terminated) {
