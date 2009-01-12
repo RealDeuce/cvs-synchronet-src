@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.29 2007/08/25 08:15:55 rswindell Exp $ */
+/* $Id: execnet.cpp,v 1.30 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -450,7 +450,7 @@ int sbbs_t::exec_net(csi_t* csi)
 }
 
 /* FTP Command/Response function */
-bool sbbs_t::ftp_cmd(csi_t* csi, SOCKET sock, char* cmdsrc, char* rsp)
+bool sbbs_t::ftp_cmd(csi_t* csi, SOCKET sock, const char* cmdsrc, char* rsp)
 {
 	char	cmd[512];
 	int		len;

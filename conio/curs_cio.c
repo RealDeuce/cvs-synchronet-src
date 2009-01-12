@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.28 2007/07/31 12:02:14 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.30 2008/06/07 09:42:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -352,11 +352,11 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 		{
 			attr=mvinch(y, x);
 			if(attr&A_REVERSE) {
-				thischar=attr&255-'A'+1;
+				thischar=(attr&255)-'A'+1;
 			}
 			else if(attr&A_ALTCHARSET) {
+				ext_char=A_ALTCHARSET|(attr&255);
 				if(!(mode==CIOLIB_MODE_CURSES_IBM)){
-					ext_char=A_ALTCHARSET|(attr&255);
 					/* likely ones */
 					if (ext_char == ACS_CKBOARD)
 					{
@@ -618,7 +618,7 @@ int curs_kbhit(void)
 
 	if(curs_nextgetch)
 		return(1);
-	if(mouse_pending())
+	if(mouse_trywait())
 		return(1);
 	timeout.tv_sec=0;
 	timeout.tv_usec=0;
@@ -695,7 +695,7 @@ int curs_initciolib(long inmode)
 	}
 	mode = inmode;
 #ifdef NCURSES_VERSION_MAJOR
-		if(mousemask(BUTTON1_PRESSED|BUTTON1_RELEASED|BUTTON2_PRESSED|BUTTON2_RELEASED|BUTTON3_PRESSED|BUTTON3_RELEASED|REPORT_MOUSE_POSITION,NULL)==BUTTON1_PRESSED|BUTTON1_RELEASED|BUTTON2_PRESSED|BUTTON2_RELEASED|BUTTON3_PRESSED|BUTTON3_RELEASED|REPORT_MOUSE_POSITION) {
+		if(mousemask(BUTTON1_PRESSED|BUTTON1_RELEASED|BUTTON2_PRESSED|BUTTON2_RELEASED|BUTTON3_PRESSED|BUTTON3_RELEASED|REPORT_MOUSE_POSITION,NULL)==(BUTTON1_PRESSED|BUTTON1_RELEASED|BUTTON2_PRESSED|BUTTON2_RELEASED|BUTTON3_PRESSED|BUTTON3_RELEASED|REPORT_MOUSE_POSITION)) {
 			mouseinterval(0);
 			cio_api.mouse=1;
 		}
