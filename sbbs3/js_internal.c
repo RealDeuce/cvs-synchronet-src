@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.43 2009/01/24 12:07:22 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.40 2008/12/09 09:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -214,7 +214,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Terminated? */
 	if(branch->auto_terminate &&
 		(branch->terminated!=NULL && *branch->terminated)) {
-		JS_ReportWarning(cx,"Terminated");
+		JS_ReportError(cx,"Terminated");
 		branch->counter=0;
 		return(JS_FALSE);
 	}
@@ -424,8 +424,6 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	char*	p;
 	jsval	rval;
 	JSScript* script;
-
-	branch->auto_terminate=FALSE;
 
 	while((p=strListPop(&branch->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
