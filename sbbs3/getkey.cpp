@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.41 2009/02/16 02:58:26 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.40 2008/06/05 05:24:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -334,11 +334,10 @@ void sbbs_t::mnemonics(const char *str)
 				attr(cfg.color[clr_mnelow]); 
 		}
 		else {
-			if(str[l]==CTRL_A && str[l+1]!=0) {
-				l++;
-				if(toupper(str[l])=='Z')	/* EOF */
-					break;
-				ctrl_a(str[l++]);
+			if(str[l]==CTRL_A           /* ctrl-a */
+				&& str[l+1]!=0)	{		/* valid */
+				ctrl_a(str[++l]);       /* skip the ctrl-a */
+				l++;                    /* skip the attribute code */
 			} else
 				outchar(str[l++]); 
 		} 
@@ -356,9 +355,14 @@ bool sbbs_t::yesno(const char *str)
 {
     char ch;
 
-	SAFECOPY(question,str);
+	strcpy(question,str);
 	SYNC;
-	bprintf(text[YesNoQuestion],str);
+	if(useron.misc&WIP) {
+		strip_ctrl(question);
+		menu("yesno"); 
+	}
+	else
+		bprintf(text[YesNoQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YN][1];
@@ -389,9 +393,14 @@ bool sbbs_t::noyes(const char *str)
 {
     char ch;
 
-	SAFECOPY(question,str);
+	strcpy(question,str);
 	SYNC;
-	bprintf(text[NoYesQuestion],str);
+	if(useron.misc&WIP) {
+		strip_ctrl(question);
+		menu("noyes"); 
+	}
+	else
+		bprintf(text[NoYesQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YN][1];
