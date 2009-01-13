@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.22 2009/01/13 05:09:08 deuce Exp $ */
+/* $Id: js_xtrn_area.c,v 1.23 2009/01/13 06:02:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,6 +72,7 @@ static char* xtrn_prog_prop_desc[] = {
 	,"extra time given to users running this program"
 	,"maximum time allowed in program"
 	,"execution cost (credits to run this program)"
+	,"user has sufficient access to see this program"
 	/* Insert here */
 	,"user has sufficient access to run this program"
 	,NULL
@@ -350,6 +351,13 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 				return(NULL);
 
 			if(!js_CreateXtrnProgProperties(cx, progobj, cfg->xtrn[d]))
+				return(NULL);
+
+			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->ar,user))
+				val=JSVAL_TRUE;
+			else
+				val=JSVAL_FALSE;
+			if(!JS_SetProperty(cx, progobj, "can_access", &val))
 				return(NULL);
 
 			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->run_ar,user))
