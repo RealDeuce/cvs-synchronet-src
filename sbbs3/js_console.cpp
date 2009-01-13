@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.77 2009/01/16 04:33:19 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.76 2009/01/13 05:02:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1140,7 +1140,7 @@ js_pushxy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->ansi_save();
+	sbbs->ANSI_SAVE();
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1155,7 +1155,7 @@ js_popxy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->ansi_restore();
+	sbbs->ANSI_RESTORE();
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1182,7 +1182,7 @@ js_gotoxy(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->ansi_gotoxy(x,y);
+	sbbs->GOTOXY(x,y);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }

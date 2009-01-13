@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.25 2009/01/14 05:57:08 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.23 2009/01/13 06:02:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -72,8 +72,8 @@ static char* xtrn_prog_prop_desc[] = {
 	,"extra time given to users running this program"
 	,"maximum time allowed in program"
 	,"execution cost (credits to run this program)"
-	/* Insert here */
 	,"user has sufficient access to see this program"
+	/* Insert here */
 	,"user has sufficient access to run this program"
 	,NULL
 };
@@ -291,7 +291,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 			val=JSVAL_TRUE;
 		else
 			val=JSVAL_FALSE;
-		if(!JS_SetProperty(cx, secobj, "can_access", &val))
+		if(!JS_SetProperty(cx, progobj, "can_access", &val))
 			return(NULL);
 
 		/* prog_list[] */
