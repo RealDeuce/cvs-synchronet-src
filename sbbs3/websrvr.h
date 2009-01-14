@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.40 2007/11/30 08:57:17 deuce Exp $ */
+/* $Id: websrvr.h,v 1.42 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,8 +55,8 @@ typedef struct {
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int, char*);
-	void	(*status)(void*, char*);
+	int 	(*lputs)(void*, int, const char*);
+	void	(*status)(void*, const char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
@@ -121,7 +121,7 @@ static struct init_field web_init_fields[] = {
 #define WEB_OPT_HTTP_LOGGING		(1<<6)	/* Create/write-to HttpLogFile		*/
 
 /* web_startup_t.options bits that require re-init/recycle when changed */
-#define WEB_INIT_OPTS	(BBS_OPT_LOCAL_TIMEZONE|WEB_OPT_HTTP_LOGGING)
+#define WEB_INIT_OPTS	(WEB_OPT_HTTP_LOGGING)
 
 #if defined(STARTUP_INI_BITDESC_TABLES)
 static ini_bitdesc_t web_options[] = {
@@ -138,7 +138,6 @@ static ini_bitdesc_t web_options[] = {
 	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
 	{ BBS_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
-	{ BBS_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ BBS_OPT_MUTE					,"MUTE"					},
 
 	/* terminator */										
