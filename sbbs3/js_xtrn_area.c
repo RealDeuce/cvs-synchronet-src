@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.27 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.24 2009/01/13 06:08:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,7 +183,7 @@ BOOL DLLCALL js_CreateXtrnProgProperties(JSContext* cx, JSObject* obj, xtrn_t* x
 
 
 JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-										  ,user_t* user, client_t* client)
+										  ,user_t* user)
 {
 	JSObject*	areaobj;
 	JSObject*	allsec;
@@ -246,7 +246,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 			return(NULL);
 
 		sec_index=-1;
-		if(user==NULL || chk_ar(cfg,cfg->xtrnsec[l]->ar,user,client)) {
+		if(user==NULL || chk_ar(cfg,cfg->xtrnsec[l]->ar,user)) {
 
 			if(!JS_GetArrayLength(cx, sec_list, &sec_index))
 				return(NULL);
@@ -287,11 +287,11 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 		if(!JS_SetProperty(cx, secobj, "ars", &val))
 			return(NULL);
 
-		if(user==NULL || chk_ar(cfg,cfg->xtrnsec[l]->ar,user,client))
+		if(user==NULL || chk_ar(cfg,cfg->xtrnsec[l]->ar,user))
 			val=JSVAL_TRUE;
 		else
 			val=JSVAL_FALSE;
-		if(!JS_SetProperty(cx, secobj, "can_access", &val))
+		if(!JS_SetProperty(cx, progobj, "can_access", &val))
 			return(NULL);
 
 		/* prog_list[] */
@@ -314,7 +314,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 				return(NULL);
 
 			prog_index=-1;
-			if((user==NULL || chk_ar(cfg,cfg->xtrn[d]->ar,user,client))
+			if((user==NULL || chk_ar(cfg,cfg->xtrn[d]->ar,user))
 				&& !(cfg->xtrn[d]->event && cfg->xtrn[d]->misc&EVENTONLY)) {
 
 				if(!JS_GetArrayLength(cx, prog_list, &prog_index))
@@ -353,14 +353,14 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if(!js_CreateXtrnProgProperties(cx, progobj, cfg->xtrn[d]))
 				return(NULL);
 
-			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->ar,user,client))
+			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->ar,user))
 				val=JSVAL_TRUE;
 			else
 				val=JSVAL_FALSE;
 			if(!JS_SetProperty(cx, progobj, "can_access", &val))
 				return(NULL);
 
-			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->run_ar,user,client))
+			if(user==NULL || chk_ar(cfg,cfg->xtrn[d]->run_ar,user))
 				val=JSVAL_TRUE;
 			else
 				val=JSVAL_FALSE;
@@ -436,10 +436,6 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 			return(NULL);
 
-		if(!JS_DefineProperty(cx, eventobj, "months", INT_TO_JSVAL(cfg->event[l]->months)
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
-			return(NULL);
-
 		if(!JS_DefineProperty(cx, eventobj, "last_run", INT_TO_JSVAL(cfg->event[l]->last)
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 			return(NULL);
@@ -468,7 +464,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 
 	for(l=0;l<cfg->total_xedits;l++) {
 
-		if(user!=NULL && !chk_ar(cfg,cfg->xedit[l]->ar,user,client))
+		if(user!=NULL && !chk_ar(cfg,cfg->xedit[l]->ar,user))
 			continue;
 
 		if((xeditobj=JS_NewObject(cx, NULL, NULL, NULL))==NULL)
