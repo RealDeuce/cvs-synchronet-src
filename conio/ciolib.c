@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.112 2009/07/19 07:40:13 deuce Exp $ */
+/* $Id: ciolib.c,v 1.104 2008/02/03 11:34:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,10 +68,10 @@
 
 CIOLIBEXPORT cioapi_t	cio_api;
 
-static const int tabs[]={1,9,17,25,33,41,49,57,65,73,81,89,97,105,113,121,129,137,145};
+static const int tabs[10]={9,17,25,33,41,49,57,65,73,80};
 static int ungotch;
 struct text_info cio_textinfo;
-static int lastmode=C80;
+static int lastmode=3;
 CIOLIBEXPORT int _wscroll=1;
 CIOLIBEXPORT int directvideo=0;
 CIOLIBEXPORT int hold_update=0;
@@ -131,10 +131,6 @@ int try_sdl_init(int mode)
 		cio_api.movetext=bitmap_movetext;
 		cio_api.clreol=bitmap_clreol;
 		cio_api.clrscr=bitmap_clrscr;
-		cio_api.getcustomcursor=bitmap_getcustomcursor;
-		cio_api.setcustomcursor=bitmap_setcustomcursor;
-		cio_api.getvideoflags=bitmap_getvideoflags;
-		cio_api.setvideoflags=bitmap_setvideoflags;
 
 		cio_api.kbhit=sdl_kbhit;
 		cio_api.getch=sdl_getch;
@@ -176,10 +172,6 @@ int try_x_init(int mode)
 		cio_api.movetext=bitmap_movetext;
 		cio_api.clreol=bitmap_clreol;
 		cio_api.clrscr=bitmap_clrscr;
-		cio_api.getcustomcursor=bitmap_getcustomcursor;
-		cio_api.setcustomcursor=bitmap_setcustomcursor;
-		cio_api.getvideoflags=bitmap_getvideoflags;
-		cio_api.setvideoflags=bitmap_setvideoflags;
 
 		cio_api.kbhit=x_kbhit;
 		cio_api.getch=x_getch;
@@ -271,9 +263,6 @@ int try_conio_init(int mode)
 		cio_api.getcliptext=win32_getcliptext;
 		cio_api.suspend=win32_suspend;
 		cio_api.resume=win32_resume;
-		cio_api.getcustomcursor=win32_getcustomcursor;
-		cio_api.setcustomcursor=win32_setcustomcursor;
-		cio_api.getvideoflags=win32_getvideoflags;
 		return(1);
 	}
 	return(0);
@@ -367,7 +356,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			cio_textinfo.normattr=14;
 			break;
 		default:
-			cio_textinfo.normattr=LIGHTGRAY;
+			cio_textinfo.normattr=7;
 	}
 	_beginthread(ciolib_mouse_thread,0,NULL);
 	return(0);
@@ -415,13 +404,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getche(void)
 	else {
 		while(1) {
 			ch=ciolib_getch();
-			if(ch != 0 && ch != 0xe0) {
+			if(ch) {
 				ciolib_putch(ch);
 				return(ch);
 			}
-			/* Eat extended chars - except ESC which is an abort */
-			if(ciolib_getch()==1)
-				return(EOF);
+			/* Eat extended chars */
+			ciolib_getch();
 		}
 	}
 }
@@ -478,10 +466,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	maxlen=*(unsigned char *)str;
 	while((ch=ciolib_getch())!='\n' && ch !='\r') {
 		switch(ch) {
-			case 0:		/* Skip extended keys */
-			case 0xe0:	/* Skip extended keys */
-				if(ciolib_getche()==1)
-					goto early_return;
+			case 0:	/* Skip extended keys */
+				ciolib_getche();
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
 				break;
@@ -506,7 +492,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				break;
 		}
 	}
-early_return:
 	str[len+2]=0;
 	*((unsigned char *)(str+1))=(unsigned char)len;
 	ciolib_putch('\r');
@@ -578,10 +563,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt)
 	ciolib_cputs((char *)prompt);
 	while((ch=ciolib_getch())!='\n') {
 		switch(ch) {
-			case 0:		/* Skip extended keys */
-			case 0xe0:	/* Skip extended keys */
-				if(ciolib_getch()==1)
-					goto early_return;
+			case 0:	/* Skip extended keys */
+				ciolib_getch();
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treeated as a \n? */
 				break;
@@ -600,7 +583,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt)
 				break;
 		}
 	}
-early_return:
 	pass[len]=0;
 	return(pass);
 }
@@ -701,15 +683,11 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 {
 	CIOLIB_INIT();
 
-	if(mode==LASTMODE) {
+	if(mode==-1) {
 		cio_api.textmode(lastmode);
 		lastmode=cio_textinfo.currmode;
 	}
 	else {
-		if(mode==64)
-			mode=C80X50;
-		if(mode==_ORIGMODE)
-			mode=C80;
 		lastmode=cio_textinfo.currmode;
 		cio_api.textmode(mode);
 	}
@@ -1099,7 +1077,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
 			ciolib_beep();
 			break;
 		case '\t':
-			for(i=0;i<(sizeof(tabs)/sizeof(int));i++) {
+			for(i=0;i<10;i++) {
 				if(tabs[i]>cio_textinfo.curx) {
 					buf[0]=' ';
 					while(cio_textinfo.curx<tabs[i]) {
@@ -1109,13 +1087,11 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
 								,cio_textinfo.cury+cio_textinfo.wintop-1
 								,buf);
 						ciolib_gotoxy(cio_textinfo.curx+1,cio_textinfo.cury);
-						if(cio_textinfo.curx==cio_textinfo.screenwidth)
-							break;
 					}
 					break;
 				}
 			}
-			if(cio_textinfo.curx==cio_textinfo.screenwidth) {
+			if(i==10) {
 				ciolib_gotoxy(1,cio_textinfo.cury);
 				if(cio_textinfo.cury==cio_textinfo.winbottom-cio_textinfo.wintop+1)
 					ciolib_wscroll();
@@ -1232,12 +1208,12 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void)
 }
 
 /* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force, int font_num)
+CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force)
 {
 	CIOLIB_INIT();
 
 	if(cio_api.setfont!=NULL)
-		return(cio_api.setfont(font,force,font_num));
+		return(cio_api.setfont(font,force));
 	else
 		return(-1);
 }
@@ -1290,34 +1266,5 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void)
 	if(cio_api.beep)
 		return(cio_api.beep());
 	BEEP(440,100);
-	return(0);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_getcustomcursor(int *start, int *end, int *range, int *blink, int *visible)
-{
-	if(cio_api.getcustomcursor)
-		cio_api.getcustomcursor(start,end,range,blink,visible);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_setcustomcursor(int start, int end, int range, int blink, int visible)
-{
-	if(cio_api.setcustomcursor)
-		cio_api.setcustomcursor(start,end,range,blink,visible);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags)
-{
-	if(cio_api.setvideoflags)
-		cio_api.setvideoflags(flags);
-}
-
-/* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void)
-{
-	if(cio_api.getvideoflags)
-		return(cio_api.getvideoflags());
 	return(0);
 }
