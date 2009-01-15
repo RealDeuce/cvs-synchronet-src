@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.8 2008/01/21 08:31:52 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.9 2008/01/28 06:27:47 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -418,6 +418,7 @@ int pty_connect(struct bbslist *bbs)
 		settitle("SyncTERM");
 		return(-1);
 	case 0:		/* Child */
+		setenv("TERM",settings.TERM,1);
 		if(bbs->addr[0])
 			execl("/bin/sh", "/bin/sh", "-c", bbs->addr, (char *)0);
 		else

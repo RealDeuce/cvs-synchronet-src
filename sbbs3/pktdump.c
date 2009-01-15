@@ -1,6 +1,6 @@
 /* pktdump.c */
 
-/* $Id: pktdump.c,v 1.2 2007/01/07 20:19:29 rswindell Exp $ */
+/* $Id: pktdump.c,v 1.3 2009/01/15 07:32:10 rswindell Exp $ */
 
 #include "fidodefs.h"
 #include "sbbsdefs.h"	/* faddr_t */
@@ -90,6 +90,8 @@ int pktdump(FILE* fp, const char* fname)
 		&& pkthdr.fill.two_plus.cword&1) {
 		fprintf(stdout,"2+");
 		dest.point=pkthdr.fill.two_plus.destpoint;
+		if(orig.net==-1)	/* see FSC-0048 for details */
+			orig.net=pkthdr.fill.two_plus.auxnet;
 	} else if(pkthdr.baud==2) {					/* Type 2.2 Packet Header */
 		fprintf(stdout,"2.2");
 		dest.point=pkthdr.month; 
@@ -156,7 +158,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 1.2 $", "%*s %s", revision);
+	sscanf("$Revision: 1.3 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
