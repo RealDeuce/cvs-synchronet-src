@@ -2,13 +2,13 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.12 2009/07/14 01:40:26 rswindell Exp $ */
+/* $Id: text.h,v 1.9 2008/02/14 08:17:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,7 +37,7 @@
 
 /****************************************************************************/
 /* Macros for elements of the array of pointers (text[]) to static text		*/
-/* Auto-generated from CTRL\TEXT.DAT										*/
+/* Should correlate with CTRL\TEXT.DAT										*/
 /****************************************************************************/
 
 #ifndef _TEXT_H
@@ -587,7 +587,7 @@ enum {
 	,NodeJoinedPrivateChat
 	,NodeLeftPrivateChat
 	,NoOneHasLoggedOnToday
-	,Unused544 /* Was LastFewCallers */
+	,Unused544	/* was LastFewCallers */
 	,LastFewCallersFmt
 	,CallersToday
 	,DoYouMeanThisUserQ
@@ -763,18 +763,9 @@ enum {
 	,NodeActionPrivateChat
 	,NodeActionPaging
 	,NodeActionRetrieving
-	,YN /* (Yes/No/Quit/Password chars) */
-	,ViewSignatureQ
-	,DeleteSignatureQ
-	,CreateEditSignatureQ
-	,SpinningCursorOnPauseQ
-	,UseExternalEditorQ
-	,ExternalEditorHeading
-	,CommandShellHeading
-	,ArchiveTypeHeading
-	,ValidatePostQ
+	,YN
 
-	,TOTAL_TEXT
+	,TOTAL_TEXT 
 };
 
 #endif
