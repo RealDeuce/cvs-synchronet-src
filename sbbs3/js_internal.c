@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.37 2008/12/05 01:22:35 deuce Exp $ */
+/* $Id: js_internal.c,v 1.40 2008/12/09 09:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "js_request.h"
 
 #include <jscntxt.h>	/* Needed for Context-private data structure */
 
@@ -229,9 +230,9 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
 		jsrefcount	rc;
 
-		rc=JS_SuspendRequest(cx);
+		rc=JS_SUSPENDREQUEST(cx);
 		YIELD();
-		JS_ResumeRequest(cx, rc);
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	/* Periodic Garbage Collection */
