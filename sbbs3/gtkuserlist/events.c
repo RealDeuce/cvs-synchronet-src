@@ -87,7 +87,7 @@ void update_userlist_item(GtkListStore *lstore, GtkTreeIter *curr, int usernum)
 	user.number=usernum;
 	getuserdat(&cfg, &user);
 	if(arbuf) {
-		if(!chk_ar(&cfg, arbuf, &user, /* client: */NULL)) {
+		if(!chk_ar(&cfg, arbuf, &user)) {
 			gtk_list_store_remove(lstore, curr);
 			return;
 		}
