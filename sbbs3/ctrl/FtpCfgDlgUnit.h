@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.h,v 1.6 2006/05/10 22:25:43 rswindell Exp $ */
+/* $Id: FtpCfgDlgUnit.h,v 1.5 2005/05/07 07:44:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -103,7 +103,6 @@ __published:
     TEdit *PasvPortLowEdit;
     TEdit *PasvPortHighEdit;
     TLabel *PasvPortThroughLabel;
-    TCheckBox *PasvIpLookupCheckBox;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);
@@ -112,7 +111,6 @@ __published:
     void __fastcall HtmlJavaScriptButtonClick(TObject *Sender);
     void __fastcall HtmlIndexCheckBoxClick(TObject *Sender);
     void __fastcall HackAttemptSoundButtonClick(TObject *Sender);
-    void __fastcall PasvIpLookupCheckBoxClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TFtpCfgDlg(TComponent* AOwner);
