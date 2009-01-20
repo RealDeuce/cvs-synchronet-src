@@ -2,13 +2,13 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.21 2009/02/18 05:23:00 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.20 2008/11/19 21:54:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,6 +53,7 @@ char sbbs_t::putmsg(const char *str, long mode)
 	uchar	exatr=0;
 	int 	orgcon=console,i;
 	ulong	l=0,sys_status_sav=sys_status;
+	long	col=0;
 	int		defered_pause=FALSE;
 
 	attr_sp=0;	/* clear any saved attributes */
@@ -253,12 +254,10 @@ char sbbs_t::putmsg(const char *str, long mode)
 			}
 			if(str[l]!=CTRL_Z) {
 				outchar(str[l]);
-#if 0
 				if(!(mode&P_HTML) && !exatr && !outchar_esc && lncntr && lbuflen && cols && ++col==cols)
 					lncntr++;
 				else
 					col=0;
-#endif
 			}
 			l++; 
 		} 
