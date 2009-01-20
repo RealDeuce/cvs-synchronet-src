@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.11 2008/01/11 09:07:22 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.15 2008/12/09 09:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,7 @@
 #include "sbbs.h"
 #include "uifc.h"
 #include "ciolib.h"
+#include "js_request.h"
 
 /* Properties */
 enum {
@@ -229,6 +230,7 @@ js_uifc_init(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*	title="Synchronet";
 	char*	mode;
 	uifcapi_t* uifc;
+	jsrefcount	rc;
 
 	*rval = JSVAL_FALSE;
 
@@ -251,19 +253,27 @@ js_uifc_init(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			ciolib_mode=CIOLIB_MODE_CONIO;
 	}
 
+	rc=JS_SUSPENDREQUEST(cx);
 	if(ciolib_mode==-1) {
-		if(uifcinix(uifc))
+		if(uifcinix(uifc)) {
+			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
+		}
 	} else {
-		if(initciolib(ciolib_mode))
+		if(initciolib(ciolib_mode)) {
+			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
+		}
 
-		if(uifcini32(uifc))
+		if(uifcini32(uifc)) {
+			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
+		}
 	}
 
 	*rval = JSVAL_TRUE;
 	uifc->scrn(title);
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -271,11 +281,14 @@ static JSBool
 js_uifc_bail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uifcapi_t* uifc;
+	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	uifc->bail();
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -284,6 +297,7 @@ js_uifc_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		str;
 	uifcapi_t*	uifc;
+	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -291,7 +305,9 @@ js_uifc_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
 		return(JS_FALSE);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	uifc->msg(str);
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -300,6 +316,7 @@ js_uifc_pop(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		str=NULL;
 	uifcapi_t*	uifc;
+	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -307,7 +324,9 @@ js_uifc_pop(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		str=js_ValueToStringBytes(cx, argv[0], NULL);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	uifc->pop(str);
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -324,6 +343,7 @@ js_uifc_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	int32		kmode=0;
 	uifcapi_t*	uifc;
 	uintN		argn=0;
+	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -361,8 +381,12 @@ js_uifc_input(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(org)
 		strncpy(str,org,maxlen);
 
-	if(uifc->input(mode, left, top, prompt, str, maxlen, kmode)<0)
+	rc=JS_SUSPENDREQUEST(cx);
+	if(uifc->input(mode, left, top, prompt, str, maxlen, kmode)<0) {
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
+	}
+	JS_RESUMEREQUEST(cx, rc);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,str));
 
@@ -386,6 +410,7 @@ js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	jsuint      i;
 	jsuint		numopts;
 	str_list_t	opts=NULL;
+	jsrefcount	rc;
 
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -426,8 +451,10 @@ js_uifc_list(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		}
 	}
 
+	rc=JS_SUSPENDREQUEST(cx);
     *rval = INT_TO_JSVAL(uifc->list(mode,left,top,width,(int*)&dflt,(int*)&bar,title,opts));
 	strListFree(&opts);
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -495,8 +522,8 @@ static JSClass js_uifc_class = {
 	,JS_PropertyStub		/* delProperty	*/
 	,js_get					/* getProperty	*/
 	,js_set					/* setProperty	*/
-	,JS_EnumerateStub		/* enumerate	*/
-	,JS_ResolveStub			/* resolve		*/
+	,js_uifc_enumerate		/* enumerate	*/
+	,js_uifc_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
 	,js_finalize			/* finalize		*/
 };
