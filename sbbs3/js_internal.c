@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.43 2009/01/24 12:07:22 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.42 2009/01/20 21:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,7 +214,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Terminated? */
 	if(branch->auto_terminate &&
 		(branch->terminated!=NULL && *branch->terminated)) {
-		JS_ReportWarning(cx,"Terminated");
+		JS_ReportError(cx,"Terminated");
 		branch->counter=0;
 		return(JS_FALSE);
 	}
