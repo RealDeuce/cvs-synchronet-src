@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.70 2008/01/07 08:10:59 deuce Exp $ */
+/* $Id: exec.cpp,v 1.73 2009/01/23 08:04:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
+#include "js_request.h"
 
 char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 {
@@ -594,6 +595,7 @@ long sbbs_t::js_execfile(const char *cmd)
 		return(-1); 
 	}
 
+	JS_BEGINREQUEST(js_cx);
 	js_scope=JS_NewObject(js_cx, NULL, NULL, js_glob);
 
 	if(js_scope!=NULL) {
@@ -631,6 +633,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	if(js_scope==NULL || js_script==NULL) {
 		JS_ReportPendingException(js_cx);	/* Added Feb-2-2006, rswindell */
+		JS_ENDREQUEST(js_cx);
 		errormsg(WHERE,"compiling",path,0);
 		return(-1);
 	}
@@ -655,6 +658,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	if(rval!=JSVAL_VOID)
 		JS_ValueToInt32(js_cx,rval,&result);
+	JS_ENDREQUEST(js_cx);
 		
 	return(result);
 }
@@ -1100,7 +1104,7 @@ int sbbs_t::exec(csi_t *csi)
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 							break; }
 						for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-							if((text[i]=readtext((long *)NULL,stream))==NULL) {
+							if((text[i]=readtext((long *)NULL,stream,l))==NULL) {
 								i--;
 								continue; }
 							if(!strcmp(text[i],text_sav[i])) {	/* If identical */
