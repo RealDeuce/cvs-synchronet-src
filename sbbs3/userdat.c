@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.117 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: userdat.c,v 1.115 2009/01/10 08:26:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,7 +312,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	getrec(userdat,U_XEDIT,8,str);
 	for(i=0;i<cfg->total_xedits;i++)
-		if(!stricmp(str,cfg->xedit[i]->code) && chk_ar(cfg,cfg->xedit[i]->ar,user,/* client: */NULL))
+		if(!stricmp(str,cfg->xedit[i]->code) && chk_ar(cfg,cfg->xedit[i]->ar,user))
 			break;
 	user->xedit=i+1;
 	if(user->xedit>cfg->total_xedits)
@@ -659,8 +659,11 @@ uint DLLCALL getage(scfg_t* cfg, char *birth)
 			((birth[3]&0xf)*10)+(birth[4]&0xf)>tm.tm_mday))
 			age--; 
 	}
+	if(age<0)
+		return(0);
 	return(age);
 }
+
 
 /****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
@@ -1298,14 +1301,13 @@ static int getgrpnum(scfg_t* cfg, char* code)
 	return(-1);
 }
 
-static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
+static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 {
 	BOOL	result,not,or,equal;
 	uint	i,n,artype=AR_LEVEL,age;
 	ulong	l;
 	time_t	now;
 	struct tm tm;
-	const char*	p;
 
 	result = TRUE;
 
@@ -1336,7 +1338,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 
 		if((**ptrptr)==AR_BEGNEST) {
 			(*ptrptr)++;
-			if(ar_exp(cfg,ptrptr,user,client))
+			if(ar_exp(cfg,ptrptr,user))
 				result=!not;
 			else
 				result=not;
@@ -1538,7 +1540,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_SUBCODE:
-				if(user!=NULL && !findstr_in_string(user->cursub,(char *)*ptrptr)==0)
+				if(user!=NULL && stricmp(user->cursub,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -1571,7 +1573,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_DIRCODE:
-				if(user!=NULL && !findstr_in_string(user->curdir,(char *)*ptrptr)==0)
+				if(user!=NULL && stricmp(user->curdir,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -1770,7 +1772,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 			case AR_SHELL:
 				if(user==NULL 
 					|| user->shell>=cfg->total_shells
-					|| !findstr_in_string(cfg->shell[user->shell]->code,(char*)*ptrptr))
+					|| stricmp(cfg->shell[user->shell]->code,(char*)*ptrptr))
 					result=not;
 				else
 					result=!not;
@@ -1778,41 +1780,8 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 					(*ptrptr)++;
 				break;
 			case AR_PROT:
-				if(client!=NULL)
-					p=client->protocol;
-				else if(user!=NULL)
-					p=user->modem;
-				else
-					p=NULL;
-				if(!findstr_in_string(p,(char*)*ptrptr))
-					result=not;
-				else
-					result=!not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
-			case AR_HOST:
-				if(client!=NULL)
-					p=client->host;
-				else if(user!=NULL)
-					p=user->comp;
-				else
-					p=NULL;
-				if(!findstr_in_string(p,(char*)*ptrptr))
-					result=not;
-				else
-					result=!not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
-			case AR_IP:
-				if(client!=NULL)
-					p=client->addr;
-				else if(user!=NULL)
-					p=user->note;
-				else
-					p=NULL;
-				if(!findstr_in_string(p,(char*)*ptrptr))
+				if(user==NULL
+					|| stricmp(user->modem,(char*)*ptrptr))	/* should this be changed to client.prot? */
 					result=not;
 				else
 					result=!not;
@@ -1824,7 +1793,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 	return(result);
 }
 
-BOOL DLLCALL chk_ar(scfg_t* cfg, uchar *ar, user_t* user, client_t* client)
+BOOL DLLCALL chk_ar(scfg_t* cfg, uchar *ar, user_t* user)
 {
 	uchar *p;
 
@@ -1833,7 +1802,7 @@ BOOL DLLCALL chk_ar(scfg_t* cfg, uchar *ar, user_t* user, client_t* client)
 	if(!VALID_CFG(cfg))
 		return(FALSE);
 	p=ar;
-	return(ar_exp(cfg,&p,user,client));
+	return(ar_exp(cfg,&p,user));
 }
 
 /****************************************************************************/
@@ -2479,7 +2448,7 @@ int DLLCALL user_rec_len(int offset)
 /* 'reason' is an (optional) pointer to a text.dat item number, indicating	*/
 /* the reason the user cannot post, when returning FALSE.					*/
 /****************************************************************************/
-BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason)
+BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, uint* reason)
 {
 	if(reason!=NULL)
 		*reason=CantPostOnSub;
@@ -2487,11 +2456,11 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 		return FALSE;
 	if(subnum>=cfg->total_subs)
 		return FALSE;
-	if(!chk_ar(cfg,cfg->grp[cfg->sub[subnum]->grp]->ar,user,client))
+	if(!chk_ar(cfg,cfg->grp[cfg->sub[subnum]->grp]->ar,user))
 		return FALSE;
-	if(!chk_ar(cfg,cfg->sub[subnum]->ar,user,client))
+	if(!chk_ar(cfg,cfg->sub[subnum]->ar,user))
 		return FALSE;
-	if(!chk_ar(cfg,cfg->sub[subnum]->post_ar,user,client))
+	if(!chk_ar(cfg,cfg->sub[subnum]->post_ar,user))
 		return FALSE;
 	if(cfg->sub[subnum]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET)
 		&& user->rest&FLAG('N'))		/* network restriction? */
@@ -2512,7 +2481,7 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 /* Determine if downloads from the specified directory are free for the		*/
 /* specified user															*/
 /****************************************************************************/
-BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* client)
+BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user)
 {
 	if(!VALID_CFG(cfg))
 		return(FALSE);
@@ -2532,7 +2501,7 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* 
 	if(cfg->dir[dirnum]->ex_ar==NULL || cfg->dir[dirnum]->ex_ar[0]==0)
 		return(FALSE);
 
-	return(chk_ar(cfg,cfg->dir[dirnum]->ex_ar,user,client));
+	return(chk_ar(cfg,cfg->dir[dirnum]->ex_ar,user));
 }
 
 /****************************************************************************/
