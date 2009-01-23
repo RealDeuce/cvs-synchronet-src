@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.36 2008/01/11 22:25:39 deuce Exp $ */
+/* $Id: js_internal.c,v 1.42 2009/01/20 21:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "js_request.h"
 
 #include <jscntxt.h>	/* Needed for Context-private data structure */
 
@@ -226,8 +227,13 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	}
 
 	/* Give up timeslices every once in a while */
-	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0)
+	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
+		jsrefcount	rc;
+
+		rc=JS_SUSPENDREQUEST(cx);
 		YIELD();
+		JS_RESUMEREQUEST(cx, rc);
+	}
 
 	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
@@ -418,6 +424,8 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	char*	p;
 	jsval	rval;
 	JSScript* script;
+
+	branch->auto_terminate=FALSE;
 
 	while((p=strListPop(&branch->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
