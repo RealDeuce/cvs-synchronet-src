@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.9 2008/02/14 08:17:29 rswindell Exp $ */
+/* $Id: text.h,v 1.10 2009/01/22 15:03:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -764,6 +764,14 @@ enum {
 	,NodeActionPaging
 	,NodeActionRetrieving
 	,YN
+	,ViewSignatureQ
+	,DeleteSignatureQ
+	,CreateEditSignatureQ
+	,SpinningCursorOnPauseQ
+	,UseExternalEditorQ
+	,ExternalEditorHeading
+	,CommandShellHeading
+	,ArchiveTypeHeading
 
 	,TOTAL_TEXT 
 };
