@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.490 2008/01/11 08:45:52 deuce Exp $ */
+/* $Id: main.cpp,v 1.510 2009/01/14 03:03:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,6 +38,9 @@
 #include "sbbs.h"
 #include "ident.h"
 #include "telnet.h" 
+#include "netwrap.h"
+#include "js_rtpool.h"
+#include "js_request.h"
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -107,7 +110,7 @@ extern "C" {
 
 static bbs_startup_t* startup=NULL;
 
-static void status(char* str)
+static void status(const char* str)
 {
 	if(startup!=NULL && startup->status!=NULL)
 	    startup->status(startup->cbdata,str);
@@ -146,7 +149,7 @@ static void thread_down()
 		startup->thread_up(startup->cbdata,FALSE,FALSE);
 }
 
-int lputs(int level, char* str)
+int lputs(int level, const char* str)
 {
 	if(startup==NULL || startup->lputs==NULL || str==NULL)
     	return(0);
@@ -154,7 +157,7 @@ int lputs(int level, char* str)
     return(startup->lputs(startup->cbdata,level,str));
 }
 
-int lprintf(int level, char *fmt, ...)
+int lprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -166,7 +169,7 @@ int lprintf(int level, char *fmt, ...)
     return(lputs(level,sbuf));
 }
 
-int eprintf(int level, char *fmt, ...)
+int eprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -275,6 +278,7 @@ DLLEXPORT void DLLCALL sbbs_srand()
 {
 	DWORD seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
 
+	xp_randomize();
 #if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
 	int     rf;
 
@@ -510,16 +514,20 @@ DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertyS
 {
 	JSBool	ret=JS_TRUE;
 
-	if(props)
+	if(props) {
 		if(!js_DefineSyncProperties(cx, obj, props))
 			ret=JS_FALSE;
+	}
 		
-	if(funcs)
-		if(!js_DefineSyncMethods(cx, obj, funcs))
+	if(funcs) {
+		if(!js_DefineSyncMethods(cx, obj, funcs, 0))
 			ret=JS_FALSE;
+	}
 
-	if(consts)
-		if(!js_DefineConstIntegers(JSContext* cx, JSObject* obj, consts, flags)
+	if(consts) {
+		if(!js_DefineConstIntegers(cx, obj, consts, flags))
+			ret=JS_FALSE;
+	}
 
 	return(ret);
 }
@@ -637,6 +645,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -645,13 +654,17 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ValueToInt32(cx,argv[i++],&level);
 
     for(; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+			JS_RESUMEREQUEST(cx, rc);
 		    return(JS_FALSE);
+		}
+		rc=JS_SUSPENDREQUEST(cx);
 		if(sbbs->online==ON_LOCAL) {
 			if(startup!=NULL && startup->event_lputs!=NULL)
 				startup->event_lputs(level,JS_GetStringBytes(str));
 		} else
 			lputs(level,JS_GetStringBytes(str));
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
@@ -667,6 +680,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	uchar*		buf;
 	int32		len=128;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -677,7 +691,9 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((buf=(uchar*)malloc(len))==NULL)
 		return(JS_TRUE);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	len=RingBufRead(&sbbs->inbuf,buf,len);
+	JS_RESUMEREQUEST(cx, rc);
 
 	if(len>0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,(char*)buf,len));
@@ -692,6 +708,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		buf;
 	int32		len=128;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -702,7 +719,9 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((buf=(char*)malloc(len))==NULL)
 		return(JS_TRUE);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	len=sbbs->getstr(buf,len,K_NONE);
+	JS_RESUMEREQUEST(cx, rc);
 
 	if(len>0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,buf));
@@ -717,6 +736,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     uintN		i;
     JSString*	str=NULL;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -724,10 +744,12 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     for (i = 0; i < argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 		    return(JS_FALSE);
+		rc=JS_SUSPENDREQUEST(cx);
 		if(sbbs->online==ON_LOCAL)
 			eprintf(LOG_INFO,"%s",JS_GetStringBytes(str));
 		else
 			sbbs->bputs(JS_GetStringBytes(str));
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
@@ -744,6 +766,7 @@ js_write_raw(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     char*	str=NULL;
 	size_t		len;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -751,7 +774,9 @@ js_write_raw(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     for (i = 0; i < argc; i++) {
 		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
 		    return(JS_FALSE);
+		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->putcom(str, len);
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
     return(JS_TRUE);
@@ -761,13 +786,16 @@ static JSBool
 js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
 	js_write(cx,obj,argc,argv,rval);
+	rc=JS_SUSPENDREQUEST(cx);
 	if(sbbs->online==ON_REMOTE)
 		sbbs->bputs(crlf);
+	JS_RESUMEREQUEST(cx, rc);
 
     return(JS_TRUE);
 }
@@ -777,6 +805,7 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -786,10 +815,12 @@ js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 	}
 
+	rc=JS_SUSPENDREQUEST(cx);
 	if(sbbs->online==ON_LOCAL)
 		eprintf(LOG_INFO,"%s",p);
 	else
 		sbbs->bputs(p);
+	JS_RESUMEREQUEST(cx, rc);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p));
 
@@ -803,6 +834,7 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     JSString *	str;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -810,10 +842,12 @@ js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->attr(sbbs->cfg.color[clr_err]);
 	sbbs->bputs(JS_GetStringBytes(str));
 	sbbs->attr(LIGHTGRAY);
 	sbbs->bputs(crlf);
+	JS_RESUMEREQUEST(cx, rc);
 
     return(JS_TRUE);
 }
@@ -823,6 +857,7 @@ js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     JSString *	str;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -830,7 +865,9 @@ js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	*rval = BOOLEAN_TO_JSVAL(sbbs->yesno(JS_GetStringBytes(str)));
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -841,6 +878,7 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     JSString *	prompt;
     JSString *	str;
 	sbbs_t*		sbbs;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -855,12 +893,15 @@ js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	} else
 		instr[0]=0;
 
+	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->bprintf("\1n\1y\1h%s\1w: ",JS_GetStringBytes(prompt));
 
 	if(!sbbs->getstr(instr,sizeof(instr)-1,K_EDIT)) {
 		*rval = JSVAL_NULL;
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
+	JS_RESUMEREQUEST(cx, rc);
 
 	if((str=JS_NewStringCopyZ(cx, instr))==NULL)
 	    return(JS_FALSE);
@@ -925,6 +966,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	sbbs_t*	sbbs;
 	const char*	warning;
+	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return;
@@ -952,12 +994,14 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	} else
 		warning=nulstr;
 
+	rc=JS_SUSPENDREQUEST(cx);
 	if(sbbs->online==ON_LOCAL) 
 		eprintf(LOG_ERR,"!JavaScript %s%s%s: %s",warning,file,line,message);
 	else {
 		lprintf(LOG_ERR,"!JavaScript %s%s%s: %s",warning,file,line,message);
 		sbbs->bprintf("!JavaScript %s%s%s: %s\r\n",warning,file,line,message);
 	}
+	JS_RESUMEREQUEST(cx, rc);
 }
 
 bool sbbs_t::js_init(ulong* stack_frame)
@@ -975,7 +1019,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 	lprintf(LOG_DEBUG,"%s JavaScript: Creating runtime: %lu bytes"
 		,node,startup->js.max_bytes);
 
-	if((js_runtime = JS_NewRuntime(startup->js.max_bytes))==NULL)
+	if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
 		return(false);
 
 	lprintf(LOG_DEBUG,"%s JavaScript: Initializing context (stack: %lu bytes)"
@@ -983,6 +1027,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 
     if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
 		return(false);
+	JS_BEGINREQUEST(js_cx);
 	
 	memset(&js_branch,0,sizeof(js_branch));
 	js_branch.limit = startup->js.branch_limit;
@@ -1034,6 +1079,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 
 	} while(0);
 
+	JS_ENDREQUEST(js_cx);
 	if(!success) {
 		JS_DestroyContext(js_cx);
 		js_cx=NULL;
@@ -1043,13 +1089,31 @@ bool sbbs_t::js_init(ulong* stack_frame)
 	return(true);
 }
 
+void sbbs_t::js_cleanup(const char* node)
+{
+	/* Free Context */
+	if(js_cx!=NULL) {	
+		lprintf(LOG_DEBUG,"%s JavaScript: Destroying context",node);
+		JS_DestroyContext(js_cx);
+		js_cx=NULL;
+	}
+
+	if(js_runtime!=NULL) {
+		lprintf(LOG_DEBUG,"%s JavaScript: Destroying runtime",node);
+		jsrt_Release(js_runtime);
+		js_runtime=NULL;
+	}
+}
+
 void sbbs_t::js_create_user_objects(void)
 {
 	if(js_cx==NULL)
 		return;
 
+	JS_BEGINREQUEST(js_cx);
 	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, NULL, subscan)) 
 		lprintf(LOG_ERR,"!JavaScript ERROR creating user objects");
+	JS_ENDREQUEST(js_cx);
 }
 
 #endif	/* JAVASCRIPT */
@@ -1125,7 +1189,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 
 					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s Telnet sub-negotiation command: %s"
+						lprintf(LOG_DEBUG,"Node %d %s telnet sub-negotiation command: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,telnet_opt_desc(option));
@@ -1149,7 +1213,24 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,speed);
 						sbbs->cur_rate=atoi(speed);
 						sbbs->cur_cps=sbbs->cur_rate/10;
-
+#if 0
+					} else if(option==TELNET_NEW_ENVIRON
+						&& sbbs->telnet_cmd[3]==TELNET_ENVIRON_IS) {
+						BYTE*	p;
+						BYTE*   end=sbbs->telnet_cmd+(sbbs->telnet_cmdlen-2);
+						for(p=sbbs->telnet_cmd+4; p < end; ) {
+							if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR) {
+								p++;
+								lprintf(LOG_DEBUG,"Node %d %s telnet environment var/val: %.*s"
+	                				,sbbs->cfg.node_num
+									,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+									,end-p
+									,p);
+								p+=strlen((char*)p);
+							} else
+								p++;
+						}
+#endif
 					} else if(option==TELNET_SEND_LOCATION) {
 						safe_snprintf(sbbs->telnet_location
 							,sizeof(sbbs->telnet_location)
@@ -1248,6 +1329,20 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								,TELNET_IAC,TELNET_SE);
 							sbbs->putcom(buf,6);
 						}
+#if 0
+						else if(command==TELNET_WILL && option==TELNET_NEW_ENVIRON) {
+							if(startup->options&BBS_OPT_DEBUG_TELNET)
+								lprintf(LOG_DEBUG,"Node %d requesting USER environment variable value"
+									,sbbs->cfg.node_num);
+
+							char	buf[64];
+							int len=sprintf(buf,"%c%c%c%c%cUSER%c%c"
+								,TELNET_IAC,TELNET_SB
+								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND,TELNET_ENVIRON_VAR
+								,TELNET_IAC,TELNET_SE);
+							sbbs->putcom(buf,len);
+						}
+#endif
 					}
 				}
 
@@ -2099,12 +2194,15 @@ void event_thread(void* arg)
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
-					if(!fmutex(semfile,startup->host_name,24*60*60))
+					if(!fmutex(semfile,startup->host_name,24*60*60)) {
+						eprintf(LOG_DEBUG,"%s exists (unpack in process?)", semfile);
 						continue;
+					}
 					sbbs->online=ON_LOCAL;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
 					sbbs->unpack_rep(g.gl_pathv[i]);
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
 					
@@ -2124,14 +2222,13 @@ void event_thread(void* arg)
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,24*60*60)) {
-					eprintf(LOG_WARNING,"%s exists (already being packed?)", semfile);
+					eprintf(LOG_DEBUG,"%s exists (pack in process?)", semfile);
 					continue;
 				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
 					sbbs->online=ON_LOCAL;
-					delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->getmsgptrs();
 					sbbs->getusrsubs();
 					sbbs->batdn_total=0;
@@ -2184,7 +2281,6 @@ void event_thread(void* arg)
 							continue;
 						eprintf(LOG_INFO,"Pre-packing QWK for %s",sbbs->useron.alias);
 						sbbs->online=ON_LOCAL;
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->getmsgptrs();
 						sbbs->getusrsubs();
 						sbbs->batdn_total=0;
@@ -2298,7 +2394,6 @@ void event_thread(void* arg)
 					SAFECOPY(str,g.gl_pathv[j]);
 					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
 						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
 						if(sbbs->unpack_qwk(str,i)==false) {
@@ -2311,6 +2406,7 @@ void event_thread(void* arg)
 								sbbs->logline("Q!",logmsg);
 							}
 						}
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 						remove(str);
@@ -2632,13 +2728,15 @@ void event_thread(void* arg)
 	sbbs->cfg.node_num=0;
     sbbs->event_thread_running = false;
 
+	sbbs->js_cleanup(sbbs->client_name);
+
 	thread_down();
 	eprintf(LOG_DEBUG,"BBS Event thread terminated (%u threads remain)", thread_count);
 }
 
 
 //****************************************************************************
-sbbs_t::sbbs_t(ushort node_num, DWORD addr, char* name, SOCKET sd,
+sbbs_t::sbbs_t(ushort node_num, DWORD addr, const char* name, SOCKET sd,
 			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
 	char	nodestr[32];
@@ -3139,20 +3237,7 @@ sbbs_t::~sbbs_t()
 	/* Free allocated class members */
 	/********************************/
 
-#ifdef JAVASCRIPT
-	/* Free Context */
-	if(js_cx!=NULL) {	
-		lprintf(LOG_DEBUG,"%s JavaScript: Destroying context",node);
-		JS_DestroyContext(js_cx);
-		js_cx=NULL;
-	}
-
-	if(js_runtime!=NULL) {
-		lprintf(LOG_DEBUG,"%s JavaScript: Destroying runtime",node);
-		JS_DestroyRuntime(js_runtime);
-		js_runtime=NULL;
-	}
-#endif
+	js_cleanup(node);
 
 	/* Reset text.dat */
 
@@ -3268,7 +3353,7 @@ int sbbs_t::nopen(char *str, int access)
     return(file);
 }
 
-void sbbs_t::spymsg(char* msg)
+void sbbs_t::spymsg(const char* msg)
 {
 	char str[512];
 	struct in_addr addr;
@@ -3447,7 +3532,7 @@ int sbbs_t::outcom(uchar ch)
 	return(0);
 }
 
-void sbbs_t::putcom(char *str, int len)
+void sbbs_t::putcom(const char *str, int len)
 {
 	int i;
 
@@ -4024,16 +4109,6 @@ void sbbs_t::daily_maint(void)
 	}
 }
 
-time_t checktime(void)
-{
-	struct tm tm;
-
-    memset(&tm,0,sizeof(tm));
-    tm.tm_year=94;
-    tm.tm_mday=1;
-    return(mktime(&tm)-0x2D24BD00L);
-}
-
 const char* DLLCALL js_ver(void)
 {
 #ifdef JAVASCRIPT
@@ -4142,7 +4217,7 @@ static void cleanup(int code)
 
 void DLLCALL bbs_thread(void* arg)
 {
-	char*			host_name;
+	const char*		host_name;
 	char*			identity;
 	char*			p;
     char			str[MAX_PATH+1];
@@ -4285,7 +4360,7 @@ void DLLCALL bbs_thread(void* arg)
 
 	t=time(NULL);
 	lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-		,CTIME_R(&t,str),startup->options);
+		,ctime_r(&t,str),startup->options);
 
 	if(chdir(startup->ctrl_dir)!=0)
 		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
@@ -4306,16 +4381,8 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->host_name[0]==0)
 		SAFECOPY(startup->host_name,scfg.sys_inetaddr);
 
-	if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-		if(putenv("TZ=UTC0"))
-			lprintf(LOG_ERR,"!putenv() FAILED");
-		tzset();
-
-		if((t=checktime())!=0) {   /* Check binary time */
-			lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
-			cleanup(1);
-			return;
-		}
+	if((t=checktime())!=0) {   /* Check binary time */
+		lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
 	}
 
 	if(uptime==0)
@@ -4625,6 +4692,8 @@ NO_SSH:
 	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
+	semfile_list_add(&recycle_semfiles,str);
+	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
@@ -5112,7 +5181,7 @@ NO_SSH:
 			/*****************************/
     		memset(&tmp_addr, 0, sizeof(tmp_addr));
 
-			tmp_addr.sin_addr.s_addr = htonl(0x7f000001U);
+			tmp_addr.sin_addr.s_addr = htonl(IPv4_LOCALHOST);
     		tmp_addr.sin_family = AF_INET;
     		tmp_addr.sin_port   = 0;
 
@@ -5275,10 +5344,16 @@ NO_PASSTHRU:
         sbbs->putnodedat(i,&node);
     }
 
-	if(events!=NULL && !events->event_thread_running)
-		delete events;
+    if(events!=NULL) {
+		if(events->event_thread_running)
+			lprintf(LOG_ERR,"!Event thread still running, can't delete");
+		else
+		    delete events; 
+	}
 
-    if(!sbbs->output_thread_running)
+    if(sbbs->output_thread_running)
+		lprintf(LOG_ERR,"!Output thread still running, can't delete");
+	else
 	    delete sbbs;
 
 	cleanup(0);
