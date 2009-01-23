@@ -153,8 +153,8 @@ char *format_as_cstr(char *orig)
 	if(!orig)
 		return(NULL);
 	for(in=orig; *in; in++) {
-		if(outpos >= len-5) {
-			len += strlen(in)+5;
+		if(outpos >= len-7) {
+			len += strlen(in)+7;
 			tmp=realloc(ret, len);
 			if(tmp==NULL) {
 				free(ret);
@@ -168,6 +168,8 @@ char *format_as_cstr(char *orig)
 			ret[outpos++]='x';
 			ret[outpos++]=hex[0];
 			ret[outpos++]=hex[1];
+			ret[outpos++]='"';
+			ret[outpos++]='"';
 		}
 		else
 			ret[outpos++]=*in;
@@ -205,7 +207,7 @@ int main(int argc, char **argv)
 	fputs("\n",text_h);
 	fputs("/* Synchronet static text string constants */\n",text_h);
 	fputs("\n",text_h);
-	fputs("/* $Id: textgen.c,v 1.1 2009/01/23 06:31:13 deuce Exp $ */\n",text_h);
+	fputs("/* $Id: textgen.c,v 1.2 2009/01/23 07:20:30 deuce Exp $ */\n",text_h);
 	fputs("\n",text_h);
 	fputs("/****************************************************************************\n",text_h);
 	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_h);
@@ -255,7 +257,7 @@ int main(int argc, char **argv)
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
-	fputs("/* $Id: textgen.c,v 1.1 2009/01/23 06:31:13 deuce Exp $ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.2 2009/01/23 07:20:30 deuce Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/****************************************************************************\n",text_js);
 	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_js);
@@ -301,7 +303,7 @@ int main(int argc, char **argv)
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
-	fputs("/* $Id: textgen.c,v 1.1 2009/01/23 06:31:13 deuce Exp $ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.2 2009/01/23 07:20:30 deuce Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/****************************************************************************\n",text_defaults_c);
 	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_defaults_c);
