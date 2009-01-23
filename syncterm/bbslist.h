@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.37 2008/01/20 02:54:55 deuce Exp $ */
+/* $Id: bbslist.h,v 1.45 2008/02/10 06:30:30 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -49,6 +49,7 @@ enum {
 	,SCREEN_MODE_C128_40
 	,SCREEN_MODE_C128_80
 	,SCREEN_MODE_ATARI
+	,SCREEN_MODE_ATARI_XEP80
 	,SCREEN_MODE_TERMINATOR
 };
 
@@ -66,12 +67,12 @@ struct bbslist {
 	int				type;
 	int				conn_type;
 	int				id;
-	int				reversed;
 	int				screen_mode;
 	int				nostatus;
 	char			dldir[MAX_PATH+1];
 	char			uldir[MAX_PATH+1];
 	char			logfile[MAX_PATH+1];
+	BOOL			append_logfile;
 	int				xfer_loglevel;
 	int				telnet_loglevel;
 	int				bpsrate;
@@ -79,12 +80,13 @@ struct bbslist {
 	char			font[80];
 };
 
-struct bbslist *show_bbslist(int mode);
+struct bbslist *show_bbslist(char *current, int connected);
 extern char *log_levels[];
 extern char *rate_names[];
 extern int rates[];
 extern int sortorder[];
 extern ini_style_t ini_style;
+extern char *screen_modes[];
 void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id, int type);
 void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, int *i, int type);
 void free_list(struct bbslist **list, int listcount);
