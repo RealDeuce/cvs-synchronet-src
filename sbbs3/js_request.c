@@ -9,6 +9,7 @@
 	#define XP_WIN
 #endif
 
+#define JS_THREADSAFE
 #include <jsapi.h>
 #include "threadwrap.h"
 #include "js_request.h"
@@ -16,7 +17,6 @@
 #ifdef DEBUG_JS_REQUESTS
 
 #define DEBUG
-#define JS_THREADSAFE
 #include <jscntxt.h>
 
 enum last_request_type {
@@ -171,17 +171,19 @@ void js_debug_endrequest(JSContext *cx, const char *file, unsigned long line)
 	req->file=file;
 	req->line=line;
 	JS_EndRequest(cx);
-	if(req->prev != NULL)
-		req->prev->next=req->next;
-	if(req->next != NULL)
-		req->next->prev=req->prev;
-	if(first_request==req) {
+	if(cx->requestDepth==0) {
 		if(req->prev != NULL)
-			first_request=req->prev;
-		else
-			first_request=req->next;
+			req->prev->next=req->next;
+		if(req->next != NULL)
+			req->next->prev=req->prev;
+		if(first_request==req) {
+			if(req->prev != NULL)
+				first_request=req->prev;
+			else
+				first_request=req->next;
+		}
+		free(req);
 	}
-	free(req);
 	pthread_mutex_unlock(&req_mutex);
 }
 
@@ -197,7 +199,7 @@ jsrefcount js_debug_suspendrequest(JSContext *cx, const char *file, unsigned lon
 	if(req==NULL) {
 		strcpy(str,"Missing req in Suspend\n");
 		logstr();
-		return;
+		return -1;
 	}
 	switch(req->type) {
 	case LAST_REQUEST_TYPE_BEGIN:

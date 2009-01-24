@@ -2,13 +2,13 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.34 2004/12/01 03:07:32 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.36 2009/01/22 15:03:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -864,25 +864,25 @@ void sbbs_t::maindflts(user_t* user)
 				putuserrec(&cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
 				break;
 			case 'E':
-				if(noyes("Use an external editor")) {
+				if(noyes(text[UseExternalEditorQ])) {
 					putuserrec(&cfg,user->number,U_XEDIT,8,nulstr);
 					break; }
 				if(user->xedit)
 					user->xedit--;
 				for(i=0;i<cfg.total_xedits;i++)
-					uselect(1,i,"External Editor",cfg.xedit[i]->name, cfg.xedit[i]->ar);
+					uselect(1,i,text[ExternalEditorHeading],cfg.xedit[i]->name, cfg.xedit[i]->ar);
 				if((i=uselect(0,user->xedit,0,0,0))>=0)
 					putuserrec(&cfg,user->number,U_XEDIT,8,cfg.xedit[i]->code);
 				break;
 			case 'K':   /* Command shell */
 				for(i=0;i<cfg.total_shells;i++)
-					uselect(1,i,"Command Shell",cfg.shell[i]->name,cfg.shell[i]->ar);
+					uselect(1,i,text[CommandShellHeading],cfg.shell[i]->name,cfg.shell[i]->ar);
 				if((i=uselect(0,user->shell,0,0,0))>=0)
 					putuserrec(&cfg,user->number,U_SHELL,8,cfg.shell[i]->code);
 				break;
 			case 'A':
 				for(i=0;i<cfg.total_fcomps;i++)
-					uselect(1,i,"Archive Type",cfg.fcomp[i]->ext,cfg.fcomp[i]->ar);
+					uselect(1,i,text[ArchiveTypeHeading],cfg.fcomp[i]->ext,cfg.fcomp[i]->ar);
 				if((i=uselect(0,0,0,0,0))>=0)
 					putuserrec(&cfg,user->number,U_TMPEXT,3,cfg.fcomp[i]->ext);
 				break;
@@ -907,7 +907,7 @@ void sbbs_t::maindflts(user_t* user)
 			case 'S':
 				user->misc^=SPIN;
 				if(!(user->misc&SPIN)) {
-					if(!yesno("Spinning cursor on pause prompts"))
+					if(!yesno(text[SpinningCursorOnPauseQ]))
 						user->misc|=NOPAUSESPIN;
 					else
 						user->misc&=~NOPAUSESPIN;
@@ -961,8 +961,6 @@ void sbbs_t::maindflts(user_t* user)
 				if(!noyes(text[NewPasswordQ])) {
 					bputs(text[CurrentPassword]);
 					console|=CON_R_ECHOX;
-					if(!(cfg.sys_misc&SM_ECHO_PW))
-						console|=CON_L_ECHOX;
 					ch=getstr(str,LEN_PASS,K_UPPER);
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
 					if(strcmp(str,user->pass)) {
@@ -979,8 +977,6 @@ void sbbs_t::maindflts(user_t* user)
 						break; }
 					bputs(text[VerifyPassword]);
 					console|=CON_R_ECHOX;
-					if(!(cfg.sys_misc&SM_ECHO_PW))
-						console|=CON_L_ECHOX;
 					getstr(tmp,LEN_PASS*2,K_UPPER);
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
 					if(strcmp(str,tmp)) {
@@ -997,11 +993,11 @@ void sbbs_t::maindflts(user_t* user)
 					logline(nulstr,str);
 				}
 				sprintf(str,"%suser/%04u.sig",cfg.data_dir,user->number);
-				if(fexist(str) && yesno("View signature"))
+				if(fexist(str) && yesno(text[ViewSignatureQ]))
 					printfile(str,P_NOATCODES);
-				if(!noyes("Create/Edit signature"))
+				if(!noyes(text[CreateEditSignatureQ]))
 					editfile(str);
-				else if(fexist(str) && !noyes("Delete signature"))
+				else if(fexist(str) && !noyes(text[DeleteSignatureQ]))
 					remove(str);
 				break;
 			case 'Z':
