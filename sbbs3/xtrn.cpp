@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.204 2009/10/18 23:38:18 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.200 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -385,13 +385,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	HANDLE	wrinpipe;
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
-	unsigned long	rd;
+	DWORD	rd;
     DWORD	wr;
-    unsigned long	len;
+    DWORD	len;
     DWORD	avail;
-	unsigned long	dummy;
-	unsigned long	msglen;
-	unsigned long	retval;
+	DWORD	dummy;
+	DWORD	msglen;
+	DWORD	retval;
 	DWORD	last_error;
 	DWORD	loop_since_io=0;
 	struct	tm tm;
@@ -399,15 +399,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	if(cfg.node_num==0)
-		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
+	if(online==ON_LOCAL)
+		eprintf(LOG_INFO,"Executing external: %s",cmdline);
 	else
-		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
-
-	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
-		errormsg(WHERE, ERR_CHK, startup_dir, 0);
-		return -1;
-	}
+		lprintf(LOG_INFO,"Node %d Executing external: %s",cfg.node_num,cmdline);
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
@@ -877,7 +872,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
             		len=avail;
 
 				while(rd<len) {
-					unsigned long waiting=0;
+					DWORD waiting=0;
 
 					if(use_pipes)
 						PeekNamedPipe(
@@ -1313,13 +1308,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	int	high_fd;
 	struct timeval timeout;
 
-	if(cfg.node_num==0)
-		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
-
-	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
-		errormsg(WHERE, ERR_CHK, startup_dir, 0);
-		return -1;
-	}
+	if(online==ON_LOCAL)
+		eprintf(LOG_INFO,"Executing external: %s",cmdline);
 
 	if(startup_dir==NULL)
 		startup_dir=nulstr;
@@ -1733,10 +1723,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		else
 #endif
 		if(startup_dir!=NULL && startup_dir[0])
-			if(chdir(startup_dir)!=0) {
-				errormsg(WHERE,ERR_CHDIR,startup_dir,0);
-				return(-1);
-			}
+			chdir(startup_dir);
 
 		if(mode&EX_SH || strcspn(fullcmdline,"<>|;\"")!=strlen(fullcmdline)) {
 			argv[0]=comspec;
@@ -1786,7 +1773,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(cfg.node_num)
+	if(online!=ON_LOCAL)
 		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */

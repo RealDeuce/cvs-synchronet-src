@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib winmm.lib ../../lib/mozilla/js/win32.debug/js32.lib ../../lib/cryptlib/win32.release/cl32.lib ../../lib/microsoft/psdk/iphlpapi.lib /nologo /dll /map /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib winmm.lib ../../lib/mozilla/js/win32.debug/js32.lib ../../lib/cryptlib/win32.release/cl32.lib /nologo /dll /map /machine:I386
 
 !ELSEIF  "$(CFG)" == "sbbs - Win32 Debug"
 
@@ -80,7 +80,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib winmm.lib ../../lib/mozilla/js/win32.debug/js32.lib ../../lib/cryptlib/win32.release/cl32.lib ../../lib/microsoft/psdk/iphlpapi.lib /nologo /dll /map /debug /debugtype:both /machine:I386 /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib wsock32.lib winmm.lib ../../lib/mozilla/js/win32.debug/js32.lib ../../lib/cryptlib/win32.release/cl32.lib /nologo /dll /map /debug /debugtype:both /machine:I386 /pdbtype:sept
 # SUBTRACT LINK32 /profile
 
 !ENDIF 
@@ -267,10 +267,6 @@ SOURCE=.\js_queue.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\js_request.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\js_rtpool.c
 # End Source File
 # Begin Source File
@@ -387,15 +383,15 @@ SOURCE=.\qwktomsg.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\readtext.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\readmail.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\readmsgs.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\readtext.c
 # End Source File
 # Begin Source File
 
@@ -447,10 +443,6 @@ SOURCE=.\telnet.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\text_defaults.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\text_sec.cpp
 # End Source File
 # Begin Source File
@@ -488,10 +480,6 @@ SOURCE=.\ver.cpp
 # Begin Source File
 
 SOURCE=.\viewfile.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\wordwrap.c
 # End Source File
 # Begin Source File
 
