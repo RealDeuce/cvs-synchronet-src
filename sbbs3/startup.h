@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.65 2009/08/14 08:00:32 rswindell Exp $ */
+/* $Id: startup.h,v 1.63 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -52,7 +52,6 @@ typedef struct {
 	ulong	branch_limit;	/* maximum number of branches (for infinite loop detection) */
 	ulong	gc_interval;	/* number of branches between garbage collection attempts */
 	ulong	yield_interval;	/* number of branches between time-slice yields */
-	str_list_t	load_path;	/* additional directories to search for load()ed scripts */
 } js_startup_t;
 
 typedef struct {
@@ -89,11 +88,10 @@ typedef struct {
     sem_t**	node_spysem;			/* Spy output semaphore (each node)	*/
 
 	void*	cbdata;					/* Private data passed to callbacks */ 
-	void*	event_cbdata;			/* Private data passed to event_lputs callback */
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int, const char*);			/* Log - put string					*/
-    int 	(*event_lputs)(void*, int, const char*);	/* Event log - put string			*/
+	int 	(*lputs)(void*, int, const char*);	/* Log - put string					*/
+    int 	(*event_lputs)(int, const char*);		/* Event log - put string			*/
 	void	(*status)(void*, const char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
