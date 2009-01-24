@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ServicesFormUnit.h,v 1.7 2009/01/26 06:49:21 rswindell Exp $ */
+/* $Id: ServicesFormUnit.h,v 1.6 2009/01/24 22:23:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,6 @@ __published:	// IDE-managed Components
     TToolButton *ToolButton3;
     TStaticText *LogLevelText;
     TUpDown *LogLevelUpDown;
-    TToolButton *LogPauseButton;
     void __fastcall FormHide(TObject *Sender);
     void __fastcall LogLevelUpDownChangingEx(TObject *Sender,
           bool &AllowChange, short NewValue, TUpDownDirection Direction);

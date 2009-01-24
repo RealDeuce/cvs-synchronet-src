@@ -1,4 +1,4 @@
-/* $Id: WebFormUnit.h,v 1.5 2009/01/26 06:49:21 rswindell Exp $ */
+/* $Id: WebFormUnit.h,v 1.4 2009/01/24 22:23:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,6 @@ __published:	// IDE-managed Components
     TToolButton *ToolButton4;
     TStaticText *LogLevelText;
     TUpDown *LogLevelUpDown;
-    TToolButton *LogPauseButton;
     void __fastcall LogLevelUpDownChangingEx(TObject *Sender,
           bool &AllowChange, short NewValue, TUpDownDirection Direction);
 private:	// User declarations
