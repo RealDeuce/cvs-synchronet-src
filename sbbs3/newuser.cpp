@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.57 2009/10/18 09:38:00 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.54 2007/10/24 07:41:46 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -263,7 +263,7 @@ BOOL sbbs_t::newuser()
 			if(getstr(useron.location,LEN_LOCATION,kmode)
 				&& (cfg.uq&UQ_NOCOMMAS || strchr(useron.location,',')))
 				break;
-			bputs(text[CommaInLocationRequired]);
+			bputs("\r\nYou must include a comma between the city and state.\r\n");
 			useron.location[0]=0; 
 		}
 		if(cfg.uq&UQ_ADDRESS)
@@ -341,15 +341,15 @@ BOOL sbbs_t::newuser()
 
 	/* Default editor (moved here, after terminal type setup Jan-2003) */
 	for(i=0;i<cfg.total_xedits;i++)
-		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron,&client))
+		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron))
 			break;
 	if(i<cfg.total_xedits)
 		useron.xedit=i+1;
 
 	if(cfg.total_xedits && cfg.uq&UQ_XEDIT) {
-		if(yesno(text[UseExternalEditorQ])) {
+		if(yesno("Use an external message editor")) {
 			for(i=0;i<cfg.total_xedits;i++)
-				uselect(1,i,text[ExternalEditorHeading],cfg.xedit[i]->name,cfg.xedit[i]->ar);
+				uselect(1,i,"External Editor",cfg.xedit[i]->name,cfg.xedit[i]->ar);
 			if((int)(i=uselect(0,useron.xedit ? useron.xedit-1 : 0,0,0,0))>=0)
 				useron.xedit=i+1; 
 		} else
@@ -358,7 +358,7 @@ BOOL sbbs_t::newuser()
 
 	if(cfg.total_shells>1 && cfg.uq&UQ_CMDSHELL) {
 		for(i=0;i<cfg.total_shells;i++)
-			uselect(1,i,text[CommandShellHeading],cfg.shell[i]->name,cfg.shell[i]->ar);
+			uselect(1,i,"Command Shell",cfg.shell[i]->name,cfg.shell[i]->ar);
 		if((int)(i=uselect(0,useron.shell,0,0,0))>=0)
 			useron.shell=i; 
 	}
@@ -449,7 +449,7 @@ BOOL sbbs_t::newuser()
 	if(!(cfg.uq&UQ_NODEF))
 		maindflts(&useron);
 
-	delallmail(useron.number, MAIL_ANY);
+	delallmail(useron.number);
 
 	if(useron.number!=1 && cfg.node_valuser) {
 		sprintf(str,"%sfeedback.msg",cfg.text_dir);
