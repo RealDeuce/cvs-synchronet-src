@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetFormUnit.h,v 1.3 2004/10/18 00:04:41 rswindell Exp $ */
+/* $Id: TelnetFormUnit.h,v 1.4 2009/01/24 12:23:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,9 +60,14 @@ __published:	// IDE-managed Components
 	TStaticText *Status;
 	TToolButton *ToolButton3;
 	TProgressBar *ProgressBar;
-	TMemo *Log;
 	TToolButton *RecycleButton;
+    TToolButton *ToolButton4;
+    TUpDown *LogLevelUpDown;
+    TStaticText *LogLevelText;
+    TRichEdit *Log;
     void __fastcall FormHide(TObject *Sender);
+    void __fastcall LogLevelUpDownChangingEx(TObject *Sender,
+          bool &AllowChange, short NewValue, TUpDownDirection Direction);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TTelnetForm(TComponent* Owner);

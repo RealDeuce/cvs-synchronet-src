@@ -267,6 +267,10 @@ SOURCE=.\js_queue.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\js_rtpool.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\js_server.c
 # End Source File
 # Begin Source File
@@ -376,6 +380,10 @@ SOURCE=.\qwk.cpp
 # Begin Source File
 
 SOURCE=.\qwktomsg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\readtext.c
 # End Source File
 # Begin Source File
 
