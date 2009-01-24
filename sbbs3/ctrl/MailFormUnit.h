@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailFormUnit.h,v 1.3 2004/10/18 00:04:41 rswindell Exp $ */
+/* $Id: MailFormUnit.h,v 1.4 2009/01/24 12:23:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,8 +59,8 @@ __published:	// IDE-managed Components
 	TStaticText *Status;
 	TToolButton *ToolButton1;
 	TProgressBar *ProgressBar;
-	TMemo *Log;
 	TToolButton *RecycleButton;
+    TRichEdit *Log;
     void __fastcall FormHide(TObject *Sender);
 private:	// User declarations
 public:		// User declarations

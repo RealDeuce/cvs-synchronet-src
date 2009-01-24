@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.189 2008/01/23 04:31:45 deuce Exp $ */
+/* $Id: uifc32.c,v 1.191 2008/02/29 07:35:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,7 +237,7 @@ int uifcini32(uifcapi_t* uifcapi)
             || txtinfo.currmode==MONO43 || txtinfo.currmode==BW40X43 || txtinfo.currmode==BW80X43
             || txtinfo.currmode==MONO50 || txtinfo.currmode==BW40X50 || txtinfo.currmode==BW80X50
             || txtinfo.currmode==MONO60 || txtinfo.currmode==BW40X60 || txtinfo.currmode==BW80X60
-			|| txtinfo.currmode==ATARI_40X24))
+			|| txtinfo.currmode==ATARI_40X24 || txtinfo.currmode==ATARI_80X25))
 	{
         api->bclr=BLACK;
         api->hclr=WHITE;
@@ -1218,12 +1218,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						y=top+tbrdrwidth;
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+tbrdrwidth);
 						textattr(lclr|(bclr<<4));
-						if(*cur && opts>height-tbrdrwidth)  /* Scroll mode */
+						if(*cur)  /* Scroll mode */
 							putch(30);	   /* put the up arrow */
 						else
 							putch(' ');    /* delete the up arrow */
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+height-bbrdrwidth-1);
-						if(opts > height-tbrdrwidth && *cur + height - vbrdrsize < opts)
+						if(opts >= height-tbrdrwidth && *cur + height - vbrdrsize < opts)
 							putch(31);	   /* put the down arrow */
 						else
 							putch(' ');    /* delete the down arrow */
