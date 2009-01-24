@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetFormUnit.cpp,v 1.3 2009/01/24 12:23:16 rswindell Exp $ */
+/* $Id: TelnetFormUnit.cpp,v 1.4 2009/01/24 22:23:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,7 @@ void __fastcall TTelnetForm::LogLevelUpDownChangingEx(TObject *Sender,
         AllowChange = false;
     else {
         MainForm->bbs_startup.log_level = NewValue;
-        LogLevelText->Caption = LogLevelDesc[MainForm->bbs_startup.log_level];
+        LogLevelText->Caption = LogLevelDesc[NewValue];
         MainForm->SaveIniSettings(Sender);
     }
 }

@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.162 2009/01/24 12:23:15 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.163 2009/01/24 22:23:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2416,6 +2416,10 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     ServiceStatusTimer->Enabled=true;
 
     TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
+    FtpForm->LogLevelUpDown->Position=ftp_startup.log_level;
+    MailForm->LogLevelUpDown->Position=mail_startup.log_level;
+    WebForm->LogLevelUpDown->Position=web_startup.log_level;
+    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;            
 
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
