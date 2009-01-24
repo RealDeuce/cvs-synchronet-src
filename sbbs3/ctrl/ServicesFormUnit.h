@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ServicesFormUnit.h,v 1.7 2009/01/26 06:49:21 rswindell Exp $ */
+/* $Id: ServicesFormUnit.h,v 1.4 2004/10/18 00:04:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -49,6 +49,7 @@
 class TServicesForm : public TForm
 {
 __published:	// IDE-managed Components
+    TMemo *Log;
     TToolBar *ToolBar;
     TToolButton *StartButton;
     TToolButton *StopButton;
@@ -57,14 +58,7 @@ __published:	// IDE-managed Components
     TToolButton *ToolButton2;
     TStaticText *Status;
 	TToolButton *RecycleButton;
-    TRichEdit *Log;
-    TToolButton *ToolButton3;
-    TStaticText *LogLevelText;
-    TUpDown *LogLevelUpDown;
-    TToolButton *LogPauseButton;
     void __fastcall FormHide(TObject *Sender);
-    void __fastcall LogLevelUpDownChangingEx(TObject *Sender,
-          bool &AllowChange, short NewValue, TUpDownDirection Direction);
 private:	// User declarations
 public:		// User declarations
     __fastcall TServicesForm(TComponent* Owner);
