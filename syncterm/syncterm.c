@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.162 2009/09/24 00:52:23 deuce Exp $ */
+/* $Id: syncterm.c,v 1.155 2008/10/13 00:03:12 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -725,7 +725,11 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 {
 	char *p1, *p2, *p3;
 	struct	bbslist	*list[MAX_OPTS+1];
+	char	listpath[MAX_PATH+1];
 	int		listcount=0, i;
+
+	/* User BBS list path */
+	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
 
 	bbs->id=-1;
 	bbs->added=time(NULL);
@@ -797,15 +801,17 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
-	read_list(settings.list_path, &list[0], NULL, &listcount, USER_BBSLIST);
-	for(i=0;i<listcount;i++) {
-		if((stricmp(bbs->addr,list[i]->addr)==0)
-				&& (bbs->port==list[i]->port)
-				&& (bbs->conn_type==list[i]->conn_type)
-				&& (bbs->user[0]==0 || (stricmp(bbs->name,list[i]->name)==0))
-				&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
-			memcpy(bbs,list[i],sizeof(struct bbslist));
-			break;
+	if(listpath != NULL) {
+		read_list(listpath, &list[0], NULL, &listcount, USER_BBSLIST);
+		for(i=0;i<listcount;i++) {
+			if((stricmp(bbs->addr,list[i]->addr)==0)
+					&& (bbs->port==list[i]->port)
+					&& (bbs->conn_type==list[i]->conn_type)
+					&& (bbs->user[0]==0 || (stricmp(bbs->name,list[i]->name)==0))
+					&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
+				memcpy(bbs,list[i],sizeof(struct bbslist));
+				break;
+			}
 		}
 	}
 	free_list(&list[0],listcount);
@@ -1057,8 +1063,6 @@ void load_settings(struct syncterm_settings *set)
 	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
-	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
-	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1095,10 +1099,11 @@ int main(int argc, char **argv)
 	int	ciolib_mode;
 	str_list_t	inifile;
 	FILE *listfile;
+	char	listpath[MAX_PATH+1];
 	char	*inpath=NULL;
 	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
-	int		text_mode;
+	BOOL	dont_set_mode=FALSE;
 	BOOL	override_conn=FALSE;
 	char	*last_bbs=NULL;
 
@@ -1116,10 +1121,6 @@ int main(int argc, char **argv)
 
 	load_settings(&settings);
 	ciolib_mode=settings.output_mode;
-	if(settings.startup_mode != SCREEN_MODE_CURRENT)
-		text_mode=screen_to_ciolib(settings.startup_mode);
-	else
-		text_mode=_ORIGMODE;
 
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
@@ -1183,32 +1184,8 @@ int main(int argc, char **argv)
 					}
 					break;
                 case 'L':
-                    switch(atoi(argv[i]+2)) {
-            			case 14:
-                			text_mode=C80X14;
-                			break;
-            			case 21:
-                			text_mode=C80X21;
-                			break;
-            			case 25:
-                			text_mode=C80;
-                			break;
-            			case 28:
-                			text_mode=C80X28;
-                			break;
-            			case 43:
-                			text_mode=C80X43;
-                			break;
-            			case 50:
-                			text_mode=C80X50;
-                			break;
-            			case 60:
-                			text_mode=C80X60;
-                			break;
-            			default:
-                			text_mode=C4350;
-                			break;
-					}
+                    uifc.scrn_len=atoi(argv[i]+2);
+					dont_set_mode=TRUE;
                     break;
 				case 'R':
 					conn_type=CONN_TYPE_RLOGIN;
@@ -1235,7 +1212,8 @@ int main(int argc, char **argv)
 	if(initciolib(ciolib_mode))
 		return(1);
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
-	textmode(text_mode);
+	if(!dont_set_mode)
+		textmode(screen_to_ciolib(settings.startup_mode));
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1255,6 +1233,9 @@ int main(int argc, char **argv)
 	umask(077);
 #endif
 
+	/* User BBS list path */
+	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
+
 	/* Auto-connect URL */
 	if(url[0]) {
 		if((bbs=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL) {
@@ -1262,7 +1243,7 @@ int main(int argc, char **argv)
 			return(1);
 		}
 		memset(bbs, 0, sizeof(struct bbslist));
-		if((listfile=fopen(settings.list_path,"r"))==NULL)
+		if((listfile=fopen(listpath,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
 		else {
 			str_list_t	inilines;
@@ -1296,14 +1277,14 @@ int main(int argc, char **argv)
 			if(bbs->id != -1) {
 				if(bbs->type==SYSTEM_BBSLIST) {
 					bbs->type=USER_BBSLIST;
-					add_bbs(settings.list_path, bbs);
+					add_bbs(listpath, bbs);
 				}
-				if((listfile=fopen(settings.list_path,"r"))!=NULL) {
+				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
 					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,&ini_style);
 					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,&ini_style);
-					if((listfile=fopen(settings.list_path,"w"))!=NULL) {
+					if((listfile=fopen(listpath,"w"))!=NULL) {
 						iniWriteFile(listfile,inifile);
 						fclose(listfile);
 					}
@@ -1313,7 +1294,7 @@ int main(int argc, char **argv)
 			uifcbail();
 			textmode(screen_to_ciolib(bbs->screen_mode));
 			load_font_files();
-			setfont(find_font_id(bbs->font),TRUE,1);
+			setfont(find_font_id(bbs->font),TRUE);
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
@@ -1328,7 +1309,6 @@ int main(int argc, char **argv)
 			}
 
 			exit_now=doterm(bbs);
-			setvideoflags(0);
 
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
@@ -1337,14 +1317,15 @@ int main(int argc, char **argv)
 				fclose(log_fp);
 				log_fp=NULL;
 			}
-			load_font_files();
-			textmode(txtinfo.currmode);
+			setfont(default_font,TRUE);
 			for(i=CONIO_FIRST_FREE_FONT; i<256; i++) {
 				FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
 				FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
 				FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
 				FREE_AND_NULL(conio_fontdata[i].desc);
 			}
+			load_font_files();
+			textmode(txtinfo.currmode);
 			settitle("SyncTERM");
 		}
 		if(exit_now || url[0]) {
@@ -1357,8 +1338,8 @@ int main(int argc, char **argv)
 						i=1;
 						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this directory entry?",YesNo)) {
 							case 0:	/* Yes */
-								edit_list(NULL, bbs,settings.list_path,FALSE);
-								add_bbs(settings.list_path,bbs);
+								edit_list(NULL, bbs,listpath,FALSE);
+								add_bbs(listpath,bbs);
 								last_bbs=strdup(bbs->name);
 								break;
 							default: /* ESC/No */
