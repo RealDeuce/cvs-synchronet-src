@@ -35,16 +35,8 @@ object WebForm: TWebForm
       ParentShowHint = False
       ShowHint = True
     end
-    object LogPauseButton: TToolButton
-      Left = 23
-      Top = 0
-      Hint = 'Pause Log Scrolling'
-      Enabled = False
-      ImageIndex = 67
-      Style = tbsCheck
-    end
     object StopButton: TToolButton
-      Left = 46
+      Left = 23
       Top = 0
       Action = MainForm.WebStop
       Grouped = True
@@ -52,12 +44,12 @@ object WebForm: TWebForm
       ShowHint = True
     end
     object RecycleButton: TToolButton
-      Left = 69
+      Left = 46
       Top = 0
       Action = MainForm.WebRecycle
     end
     object ToolButton1: TToolButton
-      Left = 92
+      Left = 69
       Top = 0
       Width = 8
       Caption = 'ToolButton1'
@@ -65,14 +57,14 @@ object WebForm: TWebForm
       Style = tbsSeparator
     end
     object ConfigureButton: TToolButton
-      Left = 100
+      Left = 77
       Top = 0
       Action = MainForm.WebConfigure
       ParentShowHint = False
       ShowHint = True
     end
     object ToolButton2: TToolButton
-      Left = 123
+      Left = 100
       Top = 0
       Width = 8
       Caption = 'ToolButton2'
@@ -80,7 +72,7 @@ object WebForm: TWebForm
       Style = tbsSeparator
     end
     object Status: TStaticText
-      Left = 131
+      Left = 108
       Top = 0
       Width = 150
       Height = 22
@@ -92,7 +84,7 @@ object WebForm: TWebForm
       TabOrder = 0
     end
     object ToolButton3: TToolButton
-      Left = 281
+      Left = 258
       Top = 0
       Width = 8
       Caption = 'ToolButton3'
@@ -100,7 +92,7 @@ object WebForm: TWebForm
       Style = tbsSeparator
     end
     object ProgressBar: TProgressBar
-      Left = 289
+      Left = 266
       Top = 0
       Width = 75
       Height = 22
@@ -112,7 +104,7 @@ object WebForm: TWebForm
       TabOrder = 1
     end
     object ToolButton4: TToolButton
-      Left = 364
+      Left = 341
       Top = 0
       Width = 8
       Caption = 'ToolButton4'
@@ -120,17 +112,17 @@ object WebForm: TWebForm
       Style = tbsSeparator
     end
     object LogLevelText: TStaticText
-      Left = 372
+      Left = 349
       Top = 0
       Width = 75
       Height = 22
-      Hint = 'Log Level'
+      Hint = 'Web Server Log Level'
       AutoSize = False
       BorderStyle = sbsSunken
       TabOrder = 2
     end
     object LogLevelUpDown: TUpDown
-      Left = 447
+      Left = 424
       Top = 0
       Width = 16
       Height = 22

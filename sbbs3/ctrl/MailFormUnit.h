@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailFormUnit.h,v 1.6 2009/01/26 06:49:20 rswindell Exp $ */
+/* $Id: MailFormUnit.h,v 1.5 2009/01/24 22:23:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,6 @@ __published:	// IDE-managed Components
     TToolButton *ToolButton2;
     TStaticText *LogLevelText;
     TUpDown *LogLevelUpDown;
-    TToolButton *LogPauseButton;
     void __fastcall FormHide(TObject *Sender);
     void __fastcall LogLevelUpDownChangingEx(TObject *Sender,
           bool &AllowChange, short NewValue, TUpDownDirection Direction);
