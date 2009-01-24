@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.122 2008/12/09 09:48:48 deuce Exp $ */
+/* $Id: js_system.c,v 1.124 2009/01/12 20:59:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -818,11 +818,10 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 
 	JS_ValueToInt32(cx,argv[0],&offset);
 	rc=JS_SUSPENDREQUEST(cx);
-	if((len=user_rec_len(offset))<0) {
-		JS_RESUMEREQUEST(cx, rc);
-		return(JS_FALSE);
-	}
+	len=user_rec_len(offset);
 	JS_RESUMEREQUEST(cx, rc);
+	if(len<0)
+		return(JS_FALSE);
 
 	if((js_str=JS_ValueToString(cx, argv[1]))==NULL) {
 		*rval = INT_TO_JSVAL(0);
@@ -1183,11 +1182,10 @@ js_get_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 		node_num=1;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if((buf=getnmsg(cfg,node_num))==NULL) {
-		JS_RESUMEREQUEST(cx, rc);
-		return(JS_TRUE);
-	}
+	buf=getnmsg(cfg,node_num);
 	JS_RESUMEREQUEST(cx, rc);
+	if(buf==NULL)
+		return(JS_TRUE);
 
 	js_str=JS_NewStringCopyZ(cx, buf);
 	free(buf);
@@ -1247,11 +1245,10 @@ js_get_telegram(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 		usernumber=1;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if((buf=getsmsg(cfg,usernumber))==NULL) {
-		JS_RESUMEREQUEST(cx, rc);
-		return(JS_TRUE);
-	}
+	buf=getsmsg(cfg,usernumber);
 	JS_RESUMEREQUEST(cx, rc);
+	if(buf==NULL)
+		return(JS_TRUE);
 
 	js_str=JS_NewStringCopyZ(cx, buf);
 	free(buf);
@@ -1571,6 +1568,7 @@ enum {
 	,NODE_PROP_MISC
 	,NODE_PROP_AUX
 	,NODE_PROP_EXTAUX
+	,NODE_PROP_DIR
 };
 
 #ifdef BUILD_JSDOCS
@@ -1583,6 +1581,7 @@ static char* node_prop_desc[] = {
 	,"miscellaneous bitfield (see <tt>nodedefs.js</tt>)"
 	,"auxillary value"
 	,"extended auxillary value"
+	,"node directory"
 	,NULL
 };
 #endif
@@ -1597,6 +1596,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	JSObject*	sysobj;
 	JSObject*	node_list;
 	jsrefcount	rc;
+	JSString*	js_str;
 
 	tiny = JSVAL_TO_INT(id);
 
@@ -1643,6 +1643,11 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case NODE_PROP_EXTAUX:	
 			JS_NewNumberValue(cx,node.extaux,vp);
+			break;
+		case NODE_PROP_DIR:
+			if((js_str=JS_NewStringCopyZ(cx, cfg->node_path[node_num-1]))==NULL)
+				return(JS_FALSE);
+			*vp = STRING_TO_JSVAL(js_str);
 			break;
 	}
 	return(JS_TRUE);
@@ -1729,6 +1734,7 @@ static jsSyncPropertySpec js_node_properties[] = {
 	{	"misc",						NODE_PROP_MISC,			JSPROP_ENUMERATE,	310 },
 	{	"aux",						NODE_PROP_AUX,			JSPROP_ENUMERATE,	310 },
 	{	"extaux",					NODE_PROP_EXTAUX,		JSPROP_ENUMERATE,	310 },
+	{	"dir",						NODE_PROP_DIR,			JSPROP_ENUMERATE|JSPROP_READONLY,	315 },
 	{0}
 };
 

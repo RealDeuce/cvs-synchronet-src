@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.491 2008/12/20 04:17:58 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.496 2009/01/24 12:19:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -485,7 +485,7 @@ static int lprintf(int level, const char *fmt, ...)
 	va_list argptr;
 	char sbuf[1024];
 
-    if(startup==NULL || startup->lputs==NULL)
+    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
 
 	va_start(argptr,fmt);
@@ -536,6 +536,10 @@ static int sock_sendbuf(SOCKET *sock, const char *buf, size_t len, BOOL *failed)
 						lprintf(LOG_NOTICE,"%04d Connection reset by peer on send",*sock);
 					else if(ERROR_VALUE==ECONNABORTED) 
 						lprintf(LOG_NOTICE,"%04d Connection aborted by peer on send",*sock);
+#ifdef EPIPE
+					else if(ERROR_VALUE==EPIPE) 
+						lprintf(LOG_NOTICE,"%04d Unable to send to peer",*sock);
+#endif
 					else
 						lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",*sock,ERROR_VALUE);
 					if(failed)
@@ -572,12 +576,12 @@ static BOOL winsock_startup(void)
 	int		status;             /* Status Code */
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
-		lprintf(LOG_INFO,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
+		lprintf(LOG_DEBUG,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
 		WSAInitialized=TRUE;
 		return (TRUE);
 	}
 
-    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_CRIT,"!WinSock startup ERROR %d", status);
 	return (FALSE);
 }
 
@@ -1744,7 +1748,7 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 				return(-1);
 			default:
 				/* Timeout */
-				lprintf(LOG_WARNING,"%04d Session timeout due to inactivity (%d seconds)",session->socket,startup->max_inactivity);
+				lprintf(LOG_NOTICE,"%04d Session timeout due to inactivity (%d seconds)",session->socket,startup->max_inactivity);
 				return(-1);
 		}
 
@@ -2760,7 +2764,6 @@ static BOOL check_extra_path(http_session_t * session)
 	struct	stat sb;
 	int		i;
 	char	*end;
-	int	use_epath=0;
 
 	epath[0]=0;
 	epath[1]=0;
@@ -2780,8 +2783,7 @@ static BOOL check_extra_path(http_session_t * session)
 
 			/* Check if this contains an index */
 			end=strchr(rpath,0);
-			if(session->req.path_info_index && (use_epath || strchr(epath+1,'/')!=NULL)) {
-				use_epath=1;
+			if(session->req.path_info_index) {
 				if(isdir(rpath) && !isdir(session->req.physical_path)) {
 					for(i=0; startup->index_file_name!=NULL && startup->index_file_name[i]!=NULL ;i++)  {
 						*end=0;
@@ -2943,7 +2945,7 @@ static BOOL check_request(http_session_t * session)
 				send_error(session,"403 Forbidden");
 				return(FALSE);
 			}
-			/* Read webctrl.ars file */
+			/* Read webctrl.ini file */
 			if((file=fopen(str,"r"))!=NULL) {
 				/* FREE()d in this block */
 				specs=iniReadSectionList(file,NULL);
@@ -5137,7 +5139,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.491 $", "%*s %s", revision);
+	sscanf("$Revision: 1.496 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5172,7 +5174,7 @@ void http_logging_thread(void* arg)
 
 	thread_up(TRUE /* setuid */);
 
-	lprintf(LOG_DEBUG,"%04d http logging thread started", server_socket);
+	lprintf(LOG_INFO,"%04d HTTP logging thread started", server_socket);
 
 	for(;;) {
 		struct log_data *ld;
@@ -5193,7 +5195,7 @@ void http_logging_thread(void* arg)
 		if(ld==NULL) {
 			if(terminate_http_logging_thread)
 				break;
-			lprintf(LOG_ERR,"%04d http logging thread received NULL linked list log entry"
+			lprintf(LOG_ERR,"%04d HTTP logging thread received NULL linked list log entry"
 				,server_socket);
 			continue;
 		}
@@ -5253,7 +5255,7 @@ void http_logging_thread(void* arg)
 		logfile=NULL;
 	}
 	thread_down();
-	lprintf(LOG_DEBUG,"%04d http logging thread terminated",server_socket);
+	lprintf(LOG_INFO,"%04d HTTP logging thread terminated",server_socket);
 
 	http_logging_thread_running=FALSE;
 }
@@ -5398,8 +5400,8 @@ void DLLCALL web_server(void* arg)
 		scfg.size=sizeof(scfg);
 		SAFECOPY(logstr,UNKNOWN_LOAD_ERROR);
 		if(!load_cfg(&scfg, NULL, TRUE, logstr)) {
-			lprintf(LOG_ERR,"!ERROR %s",logstr);
-			lprintf(LOG_ERR,"!FAILED to load configuration files");
+			lprintf(LOG_CRIT,"!ERROR %s",logstr);
+			lprintf(LOG_CRIT,"!FAILED to load configuration files");
 			cleanup(1);
 			return;
 		}
@@ -5408,7 +5410,7 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Temporary file directory: %s", temp_dir);
 		MKDIR(temp_dir);
 		if(!isdir(temp_dir)) {
-			lprintf(LOG_ERR,"!Invalid temp directory: %s", temp_dir);
+			lprintf(LOG_CRIT,"!Invalid temp directory: %s", temp_dir);
 			cleanup(1);
 			return;
 		}
@@ -5442,7 +5444,7 @@ void DLLCALL web_server(void* arg)
 		server_socket = open_socket(SOCK_STREAM);
 
 		if(server_socket == INVALID_SOCKET) {
-			lprintf(LOG_ERR,"!ERROR %d creating HTTP socket", ERROR_VALUE);
+			lprintf(LOG_CRIT,"!ERROR %d creating HTTP socket", ERROR_VALUE);
 			cleanup(1);
 			return;
 		}
@@ -5459,7 +5461,7 @@ void DLLCALL web_server(void* arg)
 		setsockopt(server_socket, SOL_SOCKET, SO_ACCEPTFILTER, &afa, sizeof(afa));
 #endif
 
-		lprintf(LOG_INFO,"%04d Web Server socket opened",server_socket);
+		lprintf(LOG_DEBUG,"%04d Web Server socket opened",server_socket);
 
 		/*****************************/
 		/* Listen for incoming calls */
@@ -5481,7 +5483,7 @@ void DLLCALL web_server(void* arg)
 				startup->seteuid(TRUE);
 		}
 		if(result != 0) {
-			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
+			lprintf(LOG_CRIT,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
 			return;
 		}
@@ -5489,7 +5491,7 @@ void DLLCALL web_server(void* arg)
 		result = listen(server_socket, 64);
 
 		if(result != 0) {
-			lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on socket"
+			lprintf(LOG_CRIT,"%04d !ERROR %d (%d) listening on socket"
 				,server_socket, result, ERROR_VALUE);
 			cleanup(1);
 			return;

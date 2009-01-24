@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.71 2008/12/09 09:48:48 deuce Exp $ */
+/* $Id: exec.cpp,v 1.74 2009/01/24 12:05:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -541,7 +541,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		return(JS_FALSE);
 
 	if(sbbs->js_branch.auto_terminate && !sbbs->online) {
-		JS_ReportError(cx,"Disconnected");
+		JS_ReportWarning(cx,"Disconnected");
 		sbbs->js_branch.counter=0;
 		return(JS_FALSE);
 	}
@@ -633,6 +633,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	if(js_scope==NULL || js_script==NULL) {
 		JS_ReportPendingException(js_cx);	/* Added Feb-2-2006, rswindell */
+		JS_ENDREQUEST(js_cx);
 		errormsg(WHERE,"compiling",path,0);
 		return(-1);
 	}
@@ -1103,7 +1104,7 @@ int sbbs_t::exec(csi_t *csi)
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 							break; }
 						for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-							if((text[i]=readtext((long *)NULL,stream))==NULL) {
+							if((text[i]=readtext((long *)NULL,stream,l))==NULL) {
 								i--;
 								continue; }
 							if(!strcmp(text[i],text_sav[i])) {	/* If identical */
