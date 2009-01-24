@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.115 2009/01/10 08:26:55 rswindell Exp $ */
+/* $Id: userdat.c,v 1.116 2009/01/24 12:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -659,11 +659,8 @@ uint DLLCALL getage(scfg_t* cfg, char *birth)
 			((birth[3]&0xf)*10)+(birth[4]&0xf)>tm.tm_mday))
 			age--; 
 	}
-	if(age<0)
-		return(0);
 	return(age);
 }
-
 
 /****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
