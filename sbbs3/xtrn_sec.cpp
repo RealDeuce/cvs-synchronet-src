@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.63 2008/02/03 00:25:34 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.67 2009/01/12 02:43:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -193,7 +193,7 @@ int sbbs_t::xtrn_sec()
 }
 
 
-char *hungupstr="\1n\1h%s\1n hung up on \1h%s\1n %s\r\n";
+const char *hungupstr="\1n\1h%s\1n hung up on \1h%s\1n %s\r\n";
 
 /****************************************************************************/
 /* Convert C string to pascal string										*/
@@ -372,7 +372,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.level						/* User main level */
 			,useron.level						/* User transfer level */
 			,useron.birth						/* User birthday */
-			,useron.sex 						/* User sex (M/F) */
+			,useron.sex ? useron.sex : '?'		/* User sex (M/F) */
 			,useron.number						/* User number */
 			,useron.phone); 					/* User phone number */
 		lfexpand(str,misc);
@@ -468,7 +468,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,useron.name						/* User real name */
 			,nulstr 							/* User call sign */
 			,getage(&cfg,useron.birth)			/* User age */
-			,useron.sex);						/* User sex (M/F) */
+			,useron.sex ? useron.sex : '?');	/* User sex (M/F) */
 		strupr(str);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));

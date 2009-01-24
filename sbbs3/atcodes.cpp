@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.49 2008/02/03 00:23:47 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.52 2009/01/06 03:29:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,13 +48,14 @@
 /****************************************************************************/
 /* Returns 0 if invalid @ code. Returns length of @ code if valid.          */
 /****************************************************************************/
-int sbbs_t::show_atcode(char *instr)
+int sbbs_t::show_atcode(const char *instr)
 {
-	char	str[128],str2[128],*p,*tp,*sp;
+	char	str[128],str2[128],*tp,*sp,*p;
     int     len;
 	int		disp_len;
 	bool	padded_left=false;
 	bool	padded_right=false;
+	const char *cp;
 
 	sprintf(str,"%.80s",instr);
 	tp=strchr(str+1,'@');
@@ -78,21 +79,21 @@ int sbbs_t::show_atcode(char *instr)
 		*p=0;
 	}
 
-	p=atcode(sp,str2,sizeof(str2));
-	if(p==NULL)
+	cp=atcode(sp,str2,sizeof(str2));
+	if(cp==NULL)
 		return(0);
 
 	if(padded_left)
-		rprintf("%-*.*s",disp_len,disp_len,p);
+		rprintf("%-*.*s",disp_len,disp_len,cp);
 	else if(padded_right)
-		rprintf("%*.*s",disp_len,disp_len,p);
+		rprintf("%*.*s",disp_len,disp_len,cp);
 	else
-		rputs(p);
+		rputs(cp);
 
 	return(len);
 }
 
-char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
+const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 {
 	char*	tp;
 	uint	i;
@@ -592,9 +593,9 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 
-	if(!strncmp(sp,"XTRN:",5)) {
+	if(!strncmp(sp,"EXEC_XTRN:",10)) {
 		for(i=0;i<cfg.total_xtrns;i++)
-			if(!stricmp(cfg.xtrn[i]->code,sp+5))
+			if(!stricmp(cfg.xtrn[i]->code,sp+10))
 				break;
 		if(i<cfg.total_xtrns)
 			exec_xtrn(i);
@@ -611,7 +612,7 @@ char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 
-	if(!strncmp(sp,"INCLUDE:",5)) {
+	if(!strncmp(sp,"INCLUDE:",8)) {
 		printfile(cmdstr(sp+8,nulstr,nulstr,str),P_NOCRLF|P_SAVEATR);
 		return(nulstr);
 	}
