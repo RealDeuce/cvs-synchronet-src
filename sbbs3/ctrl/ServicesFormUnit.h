@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ServicesFormUnit.h,v 1.4 2004/10/18 00:04:41 rswindell Exp $ */
+/* $Id: ServicesFormUnit.h,v 1.5 2009/01/24 12:23:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,6 @@
 class TServicesForm : public TForm
 {
 __published:	// IDE-managed Components
-    TMemo *Log;
     TToolBar *ToolBar;
     TToolButton *StartButton;
     TToolButton *StopButton;
@@ -58,6 +57,7 @@ __published:	// IDE-managed Components
     TToolButton *ToolButton2;
     TStaticText *Status;
 	TToolButton *RecycleButton;
+    TRichEdit *Log;
     void __fastcall FormHide(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
