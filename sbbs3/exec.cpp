@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.74 2009/01/24 12:05:53 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.75 2009/01/24 22:46:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1104,7 +1104,7 @@ int sbbs_t::exec(csi_t *csi)
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 							break; }
 						for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-							if((text[i]=readtext((long *)NULL,stream,l))==NULL) {
+							if((text[i]=readtext((long *)NULL,stream,i))==NULL) {
 								i--;
 								continue; }
 							if(!strcmp(text[i],text_sav[i])) {	/* If identical */
