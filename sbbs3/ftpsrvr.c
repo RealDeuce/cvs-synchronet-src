@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.341 2009/01/24 12:19:46 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.342 2009/01/24 19:40:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -439,6 +439,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	char*	warning;
 	FILE*	fp;
+	int		log_level;
 
 	fp=(FILE*)JS_GetContextPrivate(cx);
 	
@@ -464,10 +465,13 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 			warning="strict warning";
 		else
 			warning="warning";
-	} else
+		log_level=LOG_WARNING;
+	} else {
+		log_level=LOG_ERR;
 		warning="";
+	}
 
-	lprintf(LOG_ERR,"!JavaScript %s%s%s: %s",warning,file,line,message);
+	lprintf(log_level,"!JavaScript %s%s%s: %s",warning,file,line,message);
 	if(fp!=NULL)
 		fprintf(fp,"!JavaScript %s%s%s: %s",warning,file,line,message);
 }
@@ -4561,7 +4565,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.341 $", "%*s %s", revision);
+	sscanf("$Revision: 1.342 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

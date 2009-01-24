@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.475 2009/01/24 12:19:46 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.476 2009/01/24 19:40:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1539,6 +1539,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char*	warning;
 	private_t*	p;
 	jsrefcount	rc;
+	int		log_level;
 
 	if((p=(private_t*)JS_GetContextPrivate(cx))==NULL)
 		return;
@@ -1564,11 +1565,14 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 			warning="strict warning";
 		else
 			warning="warning";
-	} else
+		log_level=LOG_WARNING;
+	} else {
+		log_level=LOG_ERR;
 		warning="";
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	lprintf(LOG_ERR,"%04d %s %s !JavaScript %s%s%s: %s"
+	lprintf(log_level,"%04d %s %s !JavaScript %s%s%s: %s"
 		,p->sock, p->log_prefix, p->proc_name
 		,warning ,file, line, message);
 	JS_RESUMEREQUEST(cx, rc);
@@ -4352,7 +4356,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.475 $", "%*s %s", revision);
+	sscanf("$Revision: 1.476 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
