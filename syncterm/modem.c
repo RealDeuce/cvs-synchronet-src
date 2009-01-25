@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.22 2008/01/21 01:35:03 deuce Exp $ */
+/* $Id: modem.c,v 1.25 2008/01/21 06:40:03 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -144,11 +144,12 @@ int modem_connect(struct bbslist *bbs)
 			conn_api.terminate=-1;
 			return(-1);
 		}
-		if(rates[bbs->bpsrate]) {
-			if(!comSetBaudRate(com, rates[bbs->bpsrate])) {
+		if(bbs->bpsrate) {
+			if(!comSetBaudRate(com, bbs->bpsrate)) {
 				uifcmsg("Cannot Set Baud Rate",	"`Cannot Set Baud Rate`\n\n"
 								"Cannot open the specified serial device.\n");
 				conn_api.terminate=-1;
+				comClose(com);
 				return(-1);
 			}
 		}
@@ -156,6 +157,7 @@ int modem_connect(struct bbslist *bbs)
 			uifcmsg("Cannot Raise DTR",	"`Cannot Raise DTR`\n\n"
 							"comRaiseDTR() returned an error.\n");
 			conn_api.terminate=-1;
+			comClose(com);
 			return(-1);
 		}
 	}
@@ -171,6 +173,7 @@ int modem_connect(struct bbslist *bbs)
 				uifcmsg("Cannot Set Baud Rate",	"`Cannot Set Baud Rate`\n\n"
 								"Cannot open the specified modem device.\n");
 				conn_api.terminate=-1;
+				comClose(com);
 				return(-1);
 			}
 		}
@@ -178,6 +181,7 @@ int modem_connect(struct bbslist *bbs)
 			uifcmsg("Cannot Raise DTR",	"`Cannot Raise DTR`\n\n"
 							"comRaiseDTR() returned an error.\n");
 			conn_api.terminate=-1;
+			comClose(com);
 			return(-1);
 		}
 
@@ -254,23 +258,23 @@ int modem_connect(struct bbslist *bbs)
 	}
 
 	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE)) {
-		modem_close();
+		conn_api.close();
 		return(-1);
 	}
 	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
-		modem_close();
+		conn_api.close();
 		destroy_conn_buf(&conn_inbuf);
 		return(-1);
 	}
 	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		modem_close();
+		conn_api.close();
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
 		return(-1);
 	}
 	conn_api.rd_buf_size=BUFFER_SIZE;
 	if(!(conn_api.wr_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
-		modem_close();
+		conn_api.close();
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
 		FREE_AND_NULL(conn_api.rd_buf);
@@ -329,10 +333,10 @@ int modem_close(void)
 	}
 
 CLOSEIT:
-	comClose(com);
-
 	while(conn_api.input_thread_running || conn_api.output_thread_running)
 		SLEEP(1);
+	comClose(com);
+
 	destroy_conn_buf(&conn_inbuf);
 	destroy_conn_buf(&conn_outbuf);
 	FREE_AND_NULL(conn_api.rd_buf);
