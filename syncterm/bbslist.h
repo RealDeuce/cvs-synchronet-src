@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.43 2008/02/05 01:45:40 deuce Exp $ */
+/* $Id: bbslist.h,v 1.45 2008/02/10 06:30:30 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -72,6 +72,7 @@ struct bbslist {
 	char			dldir[MAX_PATH+1];
 	char			uldir[MAX_PATH+1];
 	char			logfile[MAX_PATH+1];
+	BOOL			append_logfile;
 	int				xfer_loglevel;
 	int				telnet_loglevel;
 	int				bpsrate;
@@ -79,7 +80,7 @@ struct bbslist {
 	char			font[80];
 };
 
-struct bbslist *show_bbslist(int id, int connected);
+struct bbslist *show_bbslist(char *current, int connected);
 extern char *log_levels[];
 extern char *rate_names[];
 extern int rates[];
