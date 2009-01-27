@@ -2,13 +2,13 @@
 
 /* Converts Synchronet Ctrl-A codes into ANSI escape sequences */
 
-/* $Id: asc2ans.c,v 1.5 2009/02/16 02:52:45 rswindell Exp $ */
+/* $Id: asc2ans.c,v 1.4 2006/05/09 23:03:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,11 +36,10 @@
  ****************************************************************************/
 
 #include <stdio.h>
-#include <ctype.h>		/* toupper */
-#include <string.h>		/* strcmp */
+#include <ctype.h>	/* toupper */
+#include <string.h>	/* strcmp */
 
-#define CTRL_A	'\1'
-#define ANSI	fprintf(out,"\x1b[")
+#define ANSI fprintf(out,"\x1b[")
 
 int main(int argc, char **argv)
 {
@@ -49,7 +48,7 @@ int main(int argc, char **argv)
 	FILE*	in;
 	FILE*	out;
 
-	sscanf("$Revision: 1.5 $", "%*s %s", revision);
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
 
 	if(argc<2) {
 		fprintf(stderr,"\nasc2ans %s\n",revision);
@@ -76,16 +75,13 @@ int main(int argc, char **argv)
 		out=stdout;
 
 	while((ch=fgetc(in))!=EOF) {
-		if(ch==CTRL_A) { /* ctrl-a */
+		if(ch==1) { /* ctrl-a */
 			ch=fgetc(in);
-			if(ch==EOF || toupper(ch)=='Z')	/* EOF */
+			if(ch==EOF)
 				break;
-			if(ch>0x7f) {					/* move cursor right x columns */
-				int cnt=ch-0x7f;
+			if(ch>=0x7f) {					/* move cursor right x columns */
 				ANSI;
-				if(cnt>1)
-					fprintf(out,"%u",cnt);
-				fputc('C',out);
+				fprintf(out,"%uC",ch-0x7f);
 				continue; 
 			}
 			switch(toupper(ch)) {
@@ -106,10 +102,8 @@ int main(int argc, char **argv)
 					fputc('\n',out);
 					break;
 				case 'L':
-					ANSI;	
-					fprintf(out,"2J");	/* clear screen */
-					ANSI;	
-					fprintf(out,"H");	/* home cursor */
+					ANSI;
+					fprintf(out,"2J");
 					break;
 				case '-':
 				case '_':
