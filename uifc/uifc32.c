@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.194 2009/05/29 09:38:50 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.191 2008/02/29 07:35:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -140,7 +140,7 @@ int inkey(void)
 	int c;
 
 	c=getch();
-	if(!c || c==0xe0)
+	if(!c || c==0xff)
 		c|=(getch()<<8);
 	return(c);
 }
@@ -314,7 +314,7 @@ void docopy(void)
 	gettext(1,1,api->scrn_width,api->scrn_len+1,screen);
 	while(1) {
 		key=getch();
-		if(key==0 || key==0xe0)
+		if(key==0 || key==0xff)
 			key|=getch()<<8;
 		switch(key) {
 			case CIO_KEY_MOUSE:
@@ -1097,9 +1097,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				case CTRL_V:
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_F(6);	/* paste */
-					break;
-				case CIO_KEY_ABORTED:
-					gotkey=ESC;
 					break;
 			}
 			if(gotkey>255) {
@@ -2075,7 +2072,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						continue;
 					}
 				case CIO_KEY_DC:	/* delete */
-				case DEL:			/* sdl_getch() is returning 127 when keypad "Del" is hit */
 					if(i<j)
 					{
 						if(str[i]=='.')
@@ -2085,7 +2081,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						j--;
 					}
 					continue;
-				case CIO_KEY_ABORTED:
 				case CTRL_C:
 				case ESC:
 					{

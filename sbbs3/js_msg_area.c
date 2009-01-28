@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.56 2009/10/06 03:10:10 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.53 2008/08/04 00:22:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -324,7 +324,7 @@ static JSClass js_sub_class = {
 };
 
 JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-										  ,user_t* user, client_t* client, subscan_t* subscan)
+										  ,user_t* user, subscan_t* subscan)
 {
 	JSObject*	areaobj;
 	JSObject*	allgrps;
@@ -390,7 +390,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 		val=OBJECT_TO_JSVAL(grpobj);
 		grp_index=-1;
-		if(user==NULL || chk_ar(cfg,cfg->grp[l]->ar,user,client)) {
+		if(user==NULL || chk_ar(cfg,cfg->grp[l]->ar,user)) {
 
 			if(!JS_GetArrayLength(cx, grp_list, &grp_index))
 				return(NULL);
@@ -454,7 +454,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			val=OBJECT_TO_JSVAL(subobj);
 			sub_index=-1;
-			if(user==NULL || can_user_access_sub(cfg,d,user,client)) {
+			if(user==NULL || chk_ar(cfg,cfg->sub[d]->ar,user)) {
 
 				if(!JS_GetArrayLength(cx, sub_list, &sub_index))
 					return(NULL);							
@@ -478,30 +478,32 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			if(!js_CreateMsgAreaProperties(cx, cfg, subobj, d))
 				return(NULL);
-		
-			if(user==NULL)
+			
+			if(user==NULL || chk_ar(cfg,cfg->sub[d]->read_ar,user))
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=BOOLEAN_TO_JSVAL(can_user_read_sub(cfg,d,user,client));
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
 			if(!JS_SetProperty(cx, subobj, "can_read", &val))
 				return(NULL);
 
 			if(user==NULL)
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=BOOLEAN_TO_JSVAL(can_user_post(cfg,d,user,client,/* reason: */NULL));
+				val=BOOLEAN_TO_JSVAL(can_user_post(cfg,d,user,/* reason: */NULL));
 			if(!JS_SetProperty(cx, subobj, "can_post", &val))
 				return(NULL);
 
-			if(user==NULL)
+			if(user!=NULL &&
+				(user->level>=SYSOP_LEVEL ||
+					(cfg->sub[d]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[d]->op_ar,user))))
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=BOOLEAN_TO_JSVAL(is_user_subop(cfg,d,user,client));
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
 			if(!JS_SetProperty(cx, subobj, "is_operator", &val))
 				return(NULL);
 
 			if(cfg->sub[d]->mod_ar[0]!=0 && user!=NULL 
-				&& chk_ar(cfg,cfg->sub[d]->mod_ar,user,client))
+				&& chk_ar(cfg,cfg->sub[d]->mod_ar,user))
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
 				val=BOOLEAN_TO_JSVAL(JS_FALSE);

@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.21 2009/02/06 00:32:39 deuce Exp $ */
+/* $Id: cterm.h,v 1.20 2008/02/18 04:06:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,6 @@ struct cterminal {
 	int music_enable;
 	char	musicbuf[1024];
 	int music;
-	int quiet;
 	int	tempo;
 	int	octave;
 	int notelen;
