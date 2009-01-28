@@ -2,13 +2,13 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.35 2006/01/26 00:52:47 rswindell Exp $ */
+/* $Id: str_util.c,v 1.38 2008/02/26 07:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -112,73 +112,104 @@ char* DLLCALL prep_file_desc(char *str)
 }
 
 /****************************************************************************/
-/* Pattern matching string search of 'insearchof' in 'fname'.				*/
+/* Pattern matching string search of 'insearchof' in 'string'.				*/
 /****************************************************************************/
-BOOL DLLCALL findstr(char* insearchof, char* fname)
+BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 {
 	char*	p;
-	char	str[128];
+	char	str[256];
 	char	search[81];
 	int		c;
 	int		i;
-	BOOL	found;
-	FILE*	stream;
+	BOOL	found=FALSE;
 
-	if((stream=fopen(fname,"r"))==NULL)
-		return(FALSE); 
+	if(string==NULL || insearchof==NULL)
+		return(FALSE);
 
 	SAFECOPY(search,insearchof);
 	strupr(search);
+	SAFECOPY(str,string);
 
-	found=FALSE;
+	p=str;	
+	SKIP_WHITESPACE(p);
 
-	while(!feof(stream) && !ferror(stream) && !found) {
-		if(!fgets(str,sizeof(str),stream))
-			break;
-		
-		found=FALSE;
+	if(*p==';')		/* comment */
+		return(FALSE);
 
-		p=str;	
-		while(*p && *p<=' ') p++; /* Skip white-space */
+	if(*p=='!')	{	/* !match */
+		found=TRUE;
+		p++;
+	}
 
-		if(*p==';')		/* comment */
-			continue;
-
-		if(*p=='!')	{	/* !match */
-			found=TRUE;
-			p++;
+	truncsp(p);
+	c=strlen(p);
+	if(c) {
+		c--;
+		strupr(p);
+		if(p[c]=='~') {
+			p[c]=0;
+			if(strstr(search,p))
+				found=!found; 
 		}
 
-		truncsp(p);
-		c=strlen(p);
-		if(c) {
-			c--;
-			strupr(p);
-			if(p[c]=='~') {
-				p[c]=0;
-				if(strstr(search,p))
-					found=!found; 
-			}
-
-			else if(p[c]=='^' || p[c]=='*') {
-				p[c]=0;
-				if(!strncmp(p,search,c))
-					found=!found; 
-			}
-
-			else if(p[0]=='*') {
-				i=strlen(search);
-				if(i<c)
-					continue;
-				if(!strncmp(p+1,search+(i-c),c))
-					found=!found; 
-			}
-
-			else if(!strcmp(p,search))
+		else if(p[c]=='^' || p[c]=='*') {
+			p[c]=0;
+			if(!strncmp(p,search,c))
 				found=!found; 
-		} 
+		}
+
+		else if(p[0]=='*') {
+			i=strlen(search);
+			if(i<c)
+				return(found);
+			if(!strncmp(p+1,search+(i-c),c))
+				found=!found; 
+		}
+
+		else if(!strcmp(p,search))
+			found=!found; 
+	} 
+	return(found);
+}
+
+/****************************************************************************/
+/* Pattern matching string search of 'insearchof' in 'fname'.				*/
+/****************************************************************************/
+BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
+{
+	size_t	index;
+	BOOL	found=FALSE;
+
+	if(list==NULL || insearchof==NULL)
+		return(FALSE);
+
+	for(index=0;list[index]!=NULL && !found; index++)
+		found=findstr_in_string(insearchof, list[index]);
+	return(found);
+}
+
+/****************************************************************************/
+/* Pattern matching string search of 'insearchof' in 'fname'.				*/
+/****************************************************************************/
+BOOL DLLCALL findstr(const char* insearchof, const char* fname)
+{
+	char		str[256];
+	BOOL		found=FALSE;
+	FILE*		fp;
+
+	if(insearchof==NULL || fname==NULL)
+		return(FALSE);
+
+	if((fp=fopen(fname,"r"))==NULL)
+		return(FALSE); 
+
+	while(!feof(fp) && !ferror(fp) && !found) {
+		if(!fgets(str,sizeof(str),fp))
+			break;
+		found=findstr_in_string(insearchof,str);
 	}
-	fclose(stream);
+
+	fclose(fp);
 	return(found);
 }
 
@@ -186,12 +217,35 @@ BOOL DLLCALL findstr(char* insearchof, char* fname)
 /* Searches the file <name>.can in the TEXT directory for matches			*/
 /* Returns TRUE if found in list, FALSE if not.								*/
 /****************************************************************************/
-BOOL DLLCALL trashcan(scfg_t* cfg, char* insearchof, char* name)
+BOOL DLLCALL trashcan(scfg_t* cfg, const char* insearchof, const char* name)
 {
 	char fname[MAX_PATH+1];
 
-	sprintf(fname,"%s%s.can",cfg->text_dir,name);
-	return(findstr(insearchof,fname));
+	return(findstr(insearchof,trashcan_fname(cfg,name,fname,sizeof(fname))));
+}
+
+/****************************************************************************/
+char* DLLCALL trashcan_fname(scfg_t* cfg, const char* name, char* fname, size_t maxlen)
+{
+	safe_snprintf(fname,maxlen,"%s%s.can",cfg->text_dir,name);
+	return fname;
+}
+
+/****************************************************************************/
+str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
+{
+	char	fname[MAX_PATH+1];
+	FILE*	fp;
+	str_list_t	list;
+
+	if((fp=fopen(trashcan_fname(cfg, name, fname, sizeof(fname)),"r"))==NULL)
+		return NULL;
+
+	list=strListReadFile(fp,NULL,255);
+
+	fclose(fp);
+
+	return list;
 }
 
 /****************************************************************************/
