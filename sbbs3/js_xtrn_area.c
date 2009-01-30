@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.24 2009/01/13 06:08:20 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.25 2009/01/14 05:57:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -291,7 +291,7 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 			val=JSVAL_TRUE;
 		else
 			val=JSVAL_FALSE;
-		if(!JS_SetProperty(cx, progobj, "can_access", &val))
+		if(!JS_SetProperty(cx, secobj, "can_access", &val))
 			return(NULL);
 
 		/* prog_list[] */
