@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.500 2009/01/28 01:16:02 deuce Exp $ */
+/* $Id: websrvr.c,v 1.501 2009/01/30 22:57:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4774,11 +4774,13 @@ void http_output_thread(void *arg)
 			/* Check for sanity... */
 			if(i>100) {
 				obuf->highwater_mark=i-12;
-				lprintf(LOG_DEBUG,"Autotuning outbuf highwater mark to %d based on MSS",i);
+				lprintf(LOG_DEBUG,"%04d Autotuning outbuf highwater mark to %d based on MSS"
+					,session->socket,i);
 				mss=obuf->highwater_mark;
 				if(mss>OUTBUF_LEN) {
 					mss=OUTBUF_LEN;
-					lprintf(LOG_DEBUG,"MSS (%d) is higher than OUTBUF_LEN (%d)",i,OUTBUF_LEN);
+					lprintf(LOG_DEBUG,"%04d MSS (%d) is higher than OUTBUF_LEN (%d)"
+						,session->socket,i,OUTBUF_LEN);
 				}
 			}
 		}
@@ -5145,7 +5147,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.500 $", "%*s %s", revision);
+	sscanf("$Revision: 1.501 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
