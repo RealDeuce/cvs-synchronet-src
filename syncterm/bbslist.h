@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.44 2008/02/09 21:50:10 deuce Exp $ */
+/* $Id: bbslist.h,v 1.45 2008/02/10 06:30:30 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -72,6 +72,7 @@ struct bbslist {
 	char			dldir[MAX_PATH+1];
 	char			uldir[MAX_PATH+1];
 	char			logfile[MAX_PATH+1];
+	BOOL			append_logfile;
 	int				xfer_loglevel;
 	int				telnet_loglevel;
 	int				bpsrate;
