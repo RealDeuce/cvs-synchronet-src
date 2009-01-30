@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.517 2009/01/28 01:16:02 deuce Exp $ */
+/* $Id: main.cpp,v 1.518 2009/01/30 07:12:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5028,8 +5028,8 @@ NO_SSH:
 		if(sbbs->trashcan(host_ip,"ip")) {
 			SSH_END();
 			close_socket(client_socket);
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can"
-				,client_socket);
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s"
+				,client_socket, host_ip);
 			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
 			sbbs->syslog("@!",logstr);
 			continue;
@@ -5067,7 +5067,8 @@ NO_SSH:
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
 			close_socket(client_socket);
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can",client_socket);
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s"
+				,client_socket, host_name);
 			SAFEPRINTF(logstr, "Blocked Hostname: %s",host_name);
 			sbbs->syslog("@!",logstr);
 			continue;
