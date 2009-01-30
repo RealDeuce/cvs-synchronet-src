@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.45 2006/09/15 21:12:53 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.47 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,8 +57,8 @@ typedef struct {
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int, char*);
-	void	(*status)(void*, char*);
+	int 	(*lputs)(void*, int, const char*);
+	void	(*status)(void*, const char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
@@ -116,11 +116,10 @@ static struct init_field ftp_init_fields[] = {
 #define FTP_OPT_NO_HOST_LOOKUP		(1<<11)
 #define FTP_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define FTP_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
-#define FTP_OPT_LOCAL_TIMEZONE		(1<<30)	/* Don't force UTC/GMT */
 #define FTP_OPT_MUTE				(1<<31)
 
 /* ftp_startup_t.options bits that require re-init/recycle when changed */
-#define FTP_INIT_OPTS	(FTP_OPT_LOCAL_TIMEZONE)
+#define FTP_INIT_OPTS	(0)
 
 #if defined(STARTUP_INI_BITDESC_TABLES)
 static ini_bitdesc_t ftp_options[] = {
@@ -138,7 +137,6 @@ static ini_bitdesc_t ftp_options[] = {
 	{ FTP_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ FTP_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ FTP_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
-	{ FTP_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ FTP_OPT_MUTE					,"MUTE"					},
 	/* terminator */										
 	{ 0 							,NULL					}
