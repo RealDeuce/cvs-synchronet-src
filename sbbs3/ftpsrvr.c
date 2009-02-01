@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.345 2009/01/28 01:16:02 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.346 2009/02/01 21:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,20 +130,26 @@ BOOL dir_op(scfg_t* cfg, user_t* user, uint dirnum)
 
 static int lprintf(int level, const char *fmt, ...)
 {
-	int		result;
 	va_list argptr;
 	char sbuf[1024];
-
-    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
-        return(0);
 
     va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
-    result=startup->lputs(startup->cbdata,level,sbuf);
 
-	return(result);
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
+
+    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
+		return(0);
+
+#if defined(_WIN32)
+	if(IsBadCodePtr((FARPROC)startup->lputs))
+		return(0);
+#endif
+
+    return startup->lputs(startup->cbdata,level,sbuf);
 }
 
 #ifdef _WINSOCKAPI_
@@ -4568,7 +4574,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.345 $", "%*s %s", revision);
+	sscanf("$Revision: 1.346 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
