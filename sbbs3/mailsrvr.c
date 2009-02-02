@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.483 2009/02/01 21:39:46 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.484 2009/02/02 00:39:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -448,6 +448,11 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	if(msg->reverse_path!=NULL)
 		if(!sockprintf(socket,"Return-Path: %s", msg->reverse_path))
 			return(0);
+
+	for(i=0;i<msg->total_hfields;i++)
+		if(msg->hfield[i].type == SMTPRECEIVED && msg->hfield_dat[i]!=NULL) 
+			if(!sockprintf(socket,"Received: %s", msg->hfield_dat[i]))
+				return(0);
 
 	if(!sockprintf(socket,"Date: %s",msgdate(msg->hdr.when_written,date)))
 		return(0);
@@ -1891,6 +1896,9 @@ static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 	if(!stricmp(field, "CC"))
 		return smb_hfield_str(msg, *type=SMB_CARBONCOPY, p);
 
+	if(!stricmp(field, "RECEIVED"))
+		return smb_hfield_str(msg, *type=SMTPRECEIVED, p);
+
 	if(!stricmp(field, "RETURN-PATH")) {
 		*type=UNKNOWN;
 		return SMB_SUCCESS;	/* Ignore existing "Return-Path" header fields */
@@ -2646,8 +2654,7 @@ static void smtp_thread(void* arg)
 				dnsbl_recvhdr=FALSE;
 				if(startup->options&MAIL_OPT_DNSBL_CHKRECVHDRS)  {
 					for(i=0;!dnsbl_result.s_addr && i<msg.total_hfields;i++)  {
-						if(msg.hfield[i].type == RFC822HEADER
-							&& strnicmp(msg.hfield_dat[i],"Received:",9)==0)  {
+						if(msg.hfield[i].type == SMTPRECEIVED)  {
 							if(chk_received_hdr(socket,msg.hfield_dat[i],&dnsbl_result,dnsbl,dnsbl_ip)) {
 								dnsbl_recvhdr=TRUE;
 								break;
@@ -2797,7 +2804,7 @@ static void smtp_thread(void* arg)
 					}
 
 					snprintf(hdrfield,sizeof(hdrfield),
-						"Received: from %s (%s [%s])\r\n"
+						"from %s (%s [%s])\r\n"
 						"          by %s [%s] (%s %s-%s) with %s\r\n"
 						"          for %s; %s\r\n"
 						"          (envelope-from %s)"
@@ -2808,7 +2815,7 @@ static void smtp_thread(void* arg)
 						,esmtp ? "ESMTP" : "SMTP"
 						,rcpt_name,msgdate(msg.hdr.when_imported,date)
 						,reverse_path);
-					smb_hfield_str(&newmsg, RFC822HEADER, hdrfield);
+					smb_hfield_add_str(&newmsg, SMTPRECEIVED, hdrfield, /* insert: */TRUE);
 
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
 
@@ -4377,7 +4384,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.483 $", "%*s %s", revision);
+	sscanf("$Revision: 1.484 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
