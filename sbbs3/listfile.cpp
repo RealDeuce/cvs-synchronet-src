@@ -2,13 +2,13 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.48 2007/07/11 00:33:05 deuce Exp $ */
+/* $Id: listfile.cpp,v 1.50 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,7 +48,7 @@ int extdesclines(char *str);
 /* list the directory header.                                                */
 /* Returns -1 if the listing was aborted, otherwise total files listed		 */
 /*****************************************************************************/
-int sbbs_t::listfiles(uint dirnum, char *filespec, int tofile, long mode)
+int sbbs_t::listfiles(uint dirnum, const char *filespec, int tofile, long mode)
 {
 	char	str[256],hdr[256],c,d,letter='A',*p,*datbuf,ext[513];
 	char 	tmp[512];
@@ -372,8 +372,8 @@ int sbbs_t::listfiles(uint dirnum, char *filespec, int tofile, long mode)
 /* Prints one file's information on a single line                           */
 /* Return 1 if displayed, 0 otherwise										*/
 /****************************************************************************/
-bool sbbs_t::listfile(char *fname, char *buf, uint dirnum
-	, char *search, char letter, ulong datoffset)
+bool sbbs_t::listfile(const char *fname, const char *buf, uint dirnum
+	, const char *search, const char letter, ulong datoffset)
 {
 	char	str[256],ext[513]="",*ptr,*cr,*lf,exist=1;
 	char	path[MAX_PATH+1];
@@ -390,7 +390,7 @@ bool sbbs_t::listfile(char *fname, char *buf, uint dirnum
 	attr(cfg.color[clr_filename]);
 	bputs(fname);
 
-	getrec((char *)buf,F_ALTPATH,2,str);
+	getrec(buf,F_ALTPATH,2,str);
 	alt=(uchar)ahtoul(str);
 	sprintf(path,"%s%s",alt>0 && alt<=cfg.altpaths ? cfg.altpath[alt-1]:cfg.dir[dirnum]->path
 		,unpadfname(fname,tmp));
@@ -410,7 +410,7 @@ bool sbbs_t::listfile(char *fname, char *buf, uint dirnum
 		attr(cfg.color[clr_err]); }
 	else
 		attr(cfg.color[clr_filecdt]);
-	getrec((char *)buf,F_CDT,LEN_FCDT,str);
+	getrec(buf,F_CDT,LEN_FCDT,str);
 	cdt=atol(str);
 	if(useron.misc&BATCHFLAG) {
 		if(!cdt) {
@@ -435,7 +435,7 @@ bool sbbs_t::listfile(char *fname, char *buf, uint dirnum
 		outchar(' ');
 	else
 		outchar('-');
-	getrec((char *)buf,F_DESC,LEN_FDESC,str);
+	getrec(buf,F_DESC,LEN_FDESC,str);
 	attr(cfg.color[clr_filedesc]);
 
 #ifdef _WIN32
@@ -1067,7 +1067,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 				case 'F':   /* delete file only */
 					sprintf(str,"%s%s",dirpath,fname);
 					if(!fexistcase(str))
-						bputs(text[FileNotThere]);
+						bprintf(text[FileDoesNotExist],str);
 					else {
 						if(!noyes(text[AreYouSureQ])) {
 							if(remove(str))
