@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.320 2009/01/16 04:33:19 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.322 2009/02/01 21:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -905,6 +905,8 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
+	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* text);
+
 	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text
 										,char* host, SOCKADDR_IN* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
@@ -1102,7 +1104,7 @@ BOOL 	md(char *path);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
 
-	char *	readtext(long *line, FILE *stream);
+	char *	readtext(long *line, FILE *stream, long dflt);
 
 	/* ver.cpp */
 	char*	socklib_version(char* str, char* winsock_ver);
