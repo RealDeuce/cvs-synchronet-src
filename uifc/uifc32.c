@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.187 2008/01/22 00:08:34 deuce Exp $ */
+/* $Id: uifc32.c,v 1.192 2009/02/05 22:19:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,7 +140,7 @@ int inkey(void)
 	int c;
 
 	c=getch();
-	if(!c || c==0xff)
+	if(!c || c==0xe0)
 		c|=(getch()<<8);
 	return(c);
 }
@@ -237,7 +237,7 @@ int uifcini32(uifcapi_t* uifcapi)
             || txtinfo.currmode==MONO43 || txtinfo.currmode==BW40X43 || txtinfo.currmode==BW80X43
             || txtinfo.currmode==MONO50 || txtinfo.currmode==BW40X50 || txtinfo.currmode==BW80X50
             || txtinfo.currmode==MONO60 || txtinfo.currmode==BW40X60 || txtinfo.currmode==BW80X60
-			|| txtinfo.currmode==ATARI_40X24))
+			|| txtinfo.currmode==ATARI_40X24 || txtinfo.currmode==ATARI_80X25))
 	{
         api->bclr=BLACK;
         api->hclr=WHITE;
@@ -288,10 +288,11 @@ int uifcini32(uifcapi_t* uifcapi)
 	if(cio_api.ESCDELAY)
 		*(cio_api.ESCDELAY)=api->esc_delay;
 
-	api->initialized=TRUE;
-
 	for(i=0; i<MAX_BUFS; i++)
 		sav[i].buf=NULL;
+	api->savnum=0;
+
+	api->initialized=TRUE;
 
     return(0);
 }
@@ -313,7 +314,7 @@ void docopy(void)
 	gettext(1,1,api->scrn_width,api->scrn_len+1,screen);
 	while(1) {
 		key=getch();
-		if(key==0 || key==0xff)
+		if(key==0 || key==0xe0)
 			key|=getch()<<8;
 		switch(key) {
 			case CIO_KEY_MOUSE:
@@ -410,6 +411,8 @@ static int uifc_getmouse(struct mouse_event *mevent)
 
 void uifcbail(void)
 {
+	int i;
+
 	_setcursortype(_NORMALCURSOR);
 	textattr(LIGHTGRAY);
 	uifc_mouse_disable();
@@ -418,6 +421,8 @@ void uifcbail(void)
 	FREE_AND_NULL(tmp_buffer);
 	FREE_AND_NULL(tmp_buffer2);
 	api->initialized=FALSE;
+	for(i=0; i< MAX_BUFS; i++)
+		FREE_AND_NULL(sav[i].buf);
 }
 
 /****************************************************************************/
@@ -1093,6 +1098,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_F(6);	/* paste */
 					break;
+				case CIO_KEY_ABORT:
+					gotkey=ESC;
+					break;
 			}
 			if(gotkey>255) {
 				s=0;
@@ -1213,12 +1221,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						y=top+tbrdrwidth;
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+tbrdrwidth);
 						textattr(lclr|(bclr<<4));
-						if(*cur && opts>height-tbrdrwidth)  /* Scroll mode */
+						if(*cur)  /* Scroll mode */
 							putch(30);	   /* put the up arrow */
 						else
 							putch(' ');    /* delete the up arrow */
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+height-bbrdrwidth-1);
-						if(opts > height-tbrdrwidth && *cur + height - vbrdrsize < opts)
+						if(opts >= height-tbrdrwidth && *cur + height - vbrdrsize < opts)
 							putch(31);	   /* put the down arrow */
 						else
 							putch(' ');    /* delete the down arrow */
@@ -2076,6 +2084,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						j--;
 					}
 					continue;
+				case CIO_KEY_ABORT:
 				case CTRL_C:
 				case ESC:
 					{
@@ -2616,6 +2625,9 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 							p=p+(width-2-pad-pad)*2*(height-5);
 							continue;
 						}
+						/* Non-click events (drag, move, multiclick, etc) */
+						else if(mevnt.event!=CIOLIB_BUTTON_CLICK(CIOLIB_BUTTON_NUMBER(mevnt.event)))
+							continue;
 						i=1;
 					}
 					continue;
