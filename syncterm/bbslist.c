@@ -621,31 +621,31 @@ void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id
 #endif
 	}
 	section=iniGetSection(listfile,bbsname);
-	iniGetString(section,bbsname,"Address","",entry->addr);
-	entry->conn_type=iniGetEnum(section,bbsname,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
-	entry->port=iniGetShortInt(section,bbsname,"Port",conn_ports[entry->conn_type]);
-	entry->added=iniGetDateTime(section,bbsname,"Added",0);
-	entry->connected=iniGetDateTime(section,bbsname,"LastConnected",0);
-	entry->calls=iniGetInteger(section,bbsname,"TotalCalls",0);
-	iniGetString(section,bbsname,"UserName","",entry->user);
-	iniGetString(section,bbsname,"Password","",entry->password);
-	iniGetString(section,bbsname,"SystemPassword","",entry->syspass);
-	if(iniGetBool(section,bbsname,"BeDumb",FALSE))	/* Legacy */
+	iniGetString(section,NULL,"Address","",entry->addr);
+	entry->conn_type=iniGetEnum(section,NULL,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
+	entry->port=iniGetShortInt(section,NULL,"Port",conn_ports[entry->conn_type]);
+	entry->added=iniGetDateTime(section,NULL,"Added",0);
+	entry->connected=iniGetDateTime(section,NULL,"LastConnected",0);
+	entry->calls=iniGetInteger(section,NULL,"TotalCalls",0);
+	iniGetString(section,NULL,"UserName","",entry->user);
+	iniGetString(section,NULL,"Password","",entry->password);
+	iniGetString(section,NULL,"SystemPassword","",entry->syspass);
+	if(iniGetBool(section,NULL,"BeDumb",FALSE))	/* Legacy */
 		entry->conn_type=CONN_TYPE_RAW;
-	entry->screen_mode=iniGetEnum(section,bbsname,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
-	entry->nostatus=iniGetBool(section,bbsname,"NoStatus",FALSE);
-	iniGetString(section,bbsname,"DownloadPath",home,entry->dldir);
-	iniGetString(section,bbsname,"UploadPath",home,entry->uldir);
+	entry->screen_mode=iniGetEnum(section,NULL,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
+	entry->nostatus=iniGetBool(section,NULL,"NoStatus",FALSE);
+	iniGetString(section,NULL,"DownloadPath",home,entry->dldir);
+	iniGetString(section,NULL,"UploadPath",home,entry->uldir);
 
 	/* Log Stuff */
-	iniGetString(section,bbsname,"LogFile","",entry->logfile);
-	entry->append_logfile=iniGetBool(section,bbsname,"AppendLogFile",TRUE);
-	entry->xfer_loglevel=iniGetEnum(section,bbsname,"TransferLogLevel",log_levels,LOG_INFO);
-	entry->telnet_loglevel=iniGetEnum(section,bbsname,"TelnetLogLevel",log_levels,LOG_INFO);
+	iniGetString(section,NULL,"LogFile","",entry->logfile);
+	entry->append_logfile=iniGetBool(section,NULL,"AppendLogFile",TRUE);
+	entry->xfer_loglevel=iniGetEnum(section,NULL,"TransferLogLevel",log_levels,LOG_INFO);
+	entry->telnet_loglevel=iniGetEnum(section,NULL,"TelnetLogLevel",log_levels,LOG_INFO);
 
-	entry->bpsrate=iniGetInteger(section,bbsname,"BPSRate",0);
-	entry->music=iniGetInteger(section,bbsname,"ANSIMusic",CTERM_MUSIC_BANSI);
-	iniGetString(section,bbsname,"Font","Codepage 437 English",entry->font);
+	entry->bpsrate=iniGetInteger(section,NULL,"BPSRate",0);
+	entry->music=iniGetInteger(section,NULL,"ANSIMusic",CTERM_MUSIC_BANSI);
+	iniGetString(section,NULL,"Font","Codepage 437 English",entry->font);
 	entry->type=type;
 	entry->id=id;
 
@@ -1452,6 +1452,8 @@ void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaul
 	if(stricmp(shared_list, listpath)) /* don't read the same list twice */
 		read_list(shared_list, list, defaults, listcount, SYSTEM_BBSLIST);
 	sort_list(list, listcount, cur, bar, current);
+	if(current)
+		free(current);
 }
 
 /*
@@ -1503,27 +1505,27 @@ struct bbslist *show_bbslist(char *current, int connected)
 
 	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
 	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
-	load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current);
+	load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current?strdup(current):NULL);
 
 	uifc.helpbuf="Help Button Hack";
-	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP|WIN_ACT|WIN_INACT
+	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
 		,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 	for(;;) {
 		if (!at_settings) {
 			for(;!at_settings;) {
 				if(connected)
-					uifc.helpbuf=	"`SyncTERM Dialing Directory`\n\n"
+					uifc.helpbuf=	"`SyncTERM Directory`\n\n"
 									"Commands:\n\n"
 									"~ CTRL-E ~ to edit the selected entry\n"
 									"~ CTRL-S ~ to modify the sort order\n"
-									" ~ ENTER ~ to dial the selected entry";
+									" ~ ENTER ~ to connect to the selected entry";
 				else
-					uifc.helpbuf=	"`SyncTERM Dialing Directory`\n\n"
+					uifc.helpbuf=	"`SyncTERM Directory`\n\n"
 									"Commands:\n\n"
-									"~ CTRL-D ~ Quick-dial a URL\n"
+									"~ CTRL-D ~ Quick-connect to a URL\n"
 									"~ CTRL-E ~ to edit the selected entry\n"
 									"~ CTRL-S ~ to modify the sort order\n"
-									" ~ ENTER ~ to dial the selected entry";
+									" ~ ENTER ~ to connect to the selected entry";
 				if(opt != oldopt) {
 					if(list[opt]!=NULL && list[opt]->name[0]) {
 						sprintf(title, "%s - %s (%d calls / Last: %s", syncterm_version, (char *)(list[opt]), list[opt]->calls, list[opt]->connected?ctime(&list[opt]->connected):"Never\n");
@@ -1544,7 +1546,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 					val=listcount|MSK_INS;
 				if(val==-7)	{ /* CTRL-E */
 					uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-						|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
+						|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 						|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 						|WIN_SEL
 						,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1554,7 +1556,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 					switch(val) {
 						case -2-0x13:	/* CTRL-S - Sort */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
+								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1563,7 +1565,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -2-0x3000:	/* ALT-B - Scrollback */
 							if(!connected) {
 								viewofflinescroll();
-								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP|WIN_ACT|WIN_INACT
+								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
 									,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 							}
 							break;
@@ -1574,7 +1576,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -2-0x4d00:	/* Right Arrow */
 						case -11:		/* TAB */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
+								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1583,10 +1585,11 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -6:		/* CTRL-D */
 							if(!connected) {
 								uifc.changes=0;
-								uifc.helpbuf=	"`SyncTERM QuickDial`\n\n"
-												"Enter a URL in the format [(rlogin|telnet)://][user[:password]@]domainname[:port]\n";
+								uifc.helpbuf=	"`SyncTERM Quick-Connect`\n\n"
+												"Enter a URL in the format:\n"
+												"[(rlogin|telnet|ssh)://][user[:password]@]domainname[:port]\n";
 								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
+									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 									|WIN_SEL
 									,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1623,7 +1626,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(safe_mode) {
 								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
 												"SyncTERM is currently running in safe mode.  This means you cannot add to the\n"
-												"dialing directory.";
+												"directory.";
 								uifc.msg("Cannot edit list in safe mode");
 								break;
 							}
@@ -1687,7 +1690,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else {
 								add_bbs(listpath,list[listcount-1]);
-								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]->name);
+								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]?strdup(list[listcount-1]->name):NULL);
 								oldopt=-1;
 							}
 							break;
@@ -1711,7 +1714,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(safe_mode) {
 								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
 												"SyncTERM is currently running in safe mode.  This means you cannot remove from the\n"
-												"dialing directory.";
+												"directory.";
 								uifc.msg("Cannot edit list in safe mode");
 								break;
 							}
@@ -1733,12 +1736,12 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(safe_mode) {
 								uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
 												"SyncTERM is currently running in safe mode.  This means you cannot edit the\n"
-												"dialing directory.";
+												"directory.";
 								uifc.msg("Cannot edit list in safe mode");
 								break;
 							}
 							if(edit_list(list, list[opt],listpath,FALSE)) {
-								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?list[opt]->name:NULL);
+								load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
 								oldopt=-1;
 							}
 							break;
@@ -1749,11 +1752,11 @@ struct bbslist *show_bbslist(char *current, int connected)
 						if(safe_mode) {
 							uifc.helpbuf=	"`Cannot edit list in safe mode`\n\n"
 											"SyncTERM is currently running in safe mode.  This means you cannot edit the\n"
-											"dialing directory.";
+											"directory.";
 							uifc.msg("Cannot edit list in safe mode");
 						}
 						else if(edit_list(list, list[opt],listpath,FALSE)) {
-							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?list[opt]->name:NULL);
+							load_bbslist(list, sizeof(list), &defaults, listpath, sizeof(listpath), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
 							oldopt=-1;
 						}
 					}
@@ -1792,7 +1795,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						if(!connected) {
 							viewofflinescroll();
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
+								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL|WIN_INACT
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
@@ -1804,7 +1807,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 					case -2-0x4b00:	/* Left Arrow */
 					case -2-0x4d00:	/* Right Arrow */
 					case -11:		/* TAB */
-						uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP|WIN_ACT|WIN_SEL
+						uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_SEL
 							,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 						at_settings=!at_settings;
 						break;
@@ -1842,7 +1845,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								textmode(screen_to_ciolib(i));
 								init_uifc(TRUE, TRUE);
 								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
-									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
+									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 									|WIN_SEL|WIN_INACT
 									,0,0,0,&opt,&bar,"Directory",(char **)list);
