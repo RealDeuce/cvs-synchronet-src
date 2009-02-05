@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.74 2009/02/12 07:16:50 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.71 2009/02/05 07:58:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,13 +217,8 @@ static void ansi_sendch(char ch)
 		ciolib_ansi_writebyte_cb(0);
 	ciolib_ansi_writebyte_cb((unsigned char)ch);
 	/* We sent a control char... better make the next movement explicit */
-	if(ch<' ' && ch > 0) {
-		if(doorway_enabled) {
-			/* In doorway mode, some chars may want to force movement... */
-		}
-		else
-			force_move=1;
-	}
+	if(ch<' ' && ch > 0)
+		force_move=1;
 }
 
 static void ansi_sendstr(char *str,int len)
@@ -669,37 +664,7 @@ static void ansi_keyparse(void *par)
 			sem_wait(&got_key);
 
 		ch=ansi_raw_inch;
-		if(ch==-2) {
-			ansi_inch=0x0100;
-			sem_post(&got_input);
-			/* Two-byte code, need to post twice times and wait for one to
-			   be received */
-			sem_wait(&used_input);
-			sem_wait(&goahead);
-			sem_post(&got_input);
-			sem_wait(&used_input);
-		}
-		if(gotnull==2) {
-			// 0xe0 enhanced keyboard key... translate to 0x00 key for now.
-
-			ansi_inch=ch<<8;	// (ch<<8)|0xe0;
-			sem_post(&got_input);
-			/* Two-byte code, need to post twice times and wait for one to
-			   be received */
-			sem_wait(&used_input);
-			sem_wait(&goahead);
-			sem_post(&got_input);
-			sem_wait(&used_input);
-			gotnull=0;
-			continue;
-		}
-		if(gotnull==1) {
-			if(ch==0xe0) {
-				gotnull=2;
-				// Need another key... keep looping.
-				sem_post(&goahead);
-				continue;
-			}
+		if(gotnull) {
 			ansi_inch=ch<<8;
 			sem_post(&got_input);
 			/* Two-byte code, need to post twice and wait for one to
@@ -816,7 +781,7 @@ static void ansi_keythread(void *params)
 		sem_getvalue(&got_key,&sval);
 		if(!sval) {
 			ansi_raw_inch=ciolib_ansi_readbyte_cb();
-			if(ansi_raw_inch >= 0 || ansi_raw_inch==-2)
+			if(ansi_raw_inch >= 0)
 				sem_post(&got_key);
 			else
 				SLEEP(1);
@@ -916,12 +881,12 @@ int ansi_readbyte_cb(void)
 
 int ansi_writebyte_cb(unsigned char ch)
 {
-	return(fwrite(&ch,1,1,stdout));
+	fwrite(&ch,1,1,stdout);
 }
 
 int ansi_writestr_cb(unsigned char *str, size_t len)
 {
-	return(fwrite(str,len,1,stdout));
+	fwrite(str,len,1,stdout);
 }
 
 int ansi_initio_cb(void)
@@ -954,7 +919,6 @@ int ansi_initio_cb(void)
 		atexit(ansi_fixterm);
 	}
 #endif
-	return(0);
 }
 
 #if defined(__BORLANDC__)
