@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.68 2008/01/21 07:34:04 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.71 2009/02/05 07:58:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,10 @@
 #include "ansi_cio.h"
 
 int	CIOLIB_ANSI_TIMEOUT=500;
+int  (*ciolib_ansi_readbyte_cb)(void)=ansi_readbyte_cb;
+int  (*ciolib_ansi_writebyte_cb)(unsigned char ch)=ansi_writebyte_cb;
+int  (*ciolib_ansi_initio_cb)(void)=ansi_initio_cb;
+int  (*ciolib_ansi_writestr_cb)(unsigned char *str, size_t len)=ansi_writestr_cb;
 
 static sem_t	got_key;
 static sem_t	got_input;
@@ -70,7 +74,7 @@ static int doorway_enabled=0;
 
 const int 	ansi_colours[8]={0,4,2,6,1,5,3,7};
 static WORD		ansi_inch;
-static unsigned char		ansi_raw_inch;
+static int		ansi_raw_inch;
 static WORD	*ansivmem;
 static int		force_move=1;
 
@@ -162,6 +166,12 @@ static tODKeySequence ODaKeySequences[] =
    {"\033Or", ANSI_KEY_F8},
    {"\033Op", ANSI_KEY_F9},
 
+   /* ECMA 048-specific control sequences. */
+   {"\033[V", ANSI_KEY_PGUP},
+   {"\033[U", ANSI_KEY_PGDN},
+   {"\033[@", ANSI_KEY_INSERT},
+   
+   
    /* PROCOMM-specific control sequences (non-keypad alternatives). */
    {"\033OA", ANSI_KEY_UP},
    {"\033OB", ANSI_KEY_DOWN},
@@ -204,8 +214,8 @@ static void ansi_sendch(char ch)
 		}
 	}
 	if(doorway_enabled && ch < ' ')
-		fwrite("",1,1,stdout);
-	fwrite(&ch,1,1,stdout);
+		ciolib_ansi_writebyte_cb(0);
+	ciolib_ansi_writebyte_cb((unsigned char)ch);
 	/* We sent a control char... better make the next movement explicit */
 	if(ch<' ' && ch > 0)
 		force_move=1;
@@ -216,7 +226,7 @@ static void ansi_sendstr(char *str,int len)
 	if(len==-1)
 		len=strlen(str);
 	if(len)
-		fwrite(str,len,1,stdout);
+		ciolib_ansi_writestr_cb((unsigned char *)str, (size_t)len);
 }
 
 static void ansi_gotoxy_abs(int x, int y)
@@ -706,7 +716,12 @@ static void ansi_keyparse(void *par)
 							i=strtol(p,&p,10);
 							if(i>cio_textinfo.screenheight) {
 								cio_textinfo.screenheight=i;
-								ansi_got_row=i;
+								if(*p==';') {
+									i=strtol(p+1, NULL, 10);
+									if(i>cio_textinfo.screenwidth)
+										cio_textinfo.screenwidth=i;
+								}
+								ansi_got_row=cio_textinfo.screenheight;;
 							}
 						}
 						unknown=0;
@@ -764,8 +779,13 @@ static void ansi_keythread(void *params)
 		sem_wait(&need_key);
 		/* If you already have a key, don't get another */
 		sem_getvalue(&got_key,&sval);
-		if((!sval) && fread(&ansi_raw_inch,1,1,stdin)==1)
-			sem_post(&got_key);
+		if(!sval) {
+			ansi_raw_inch=ciolib_ansi_readbyte_cb();
+			if(ansi_raw_inch >= 0)
+				sem_post(&got_key);
+			else
+				SLEEP(1);
+		}
 		else
 			SLEEP(1);
 	}
@@ -820,7 +840,6 @@ int ansi_beep(void)
 #endif
 void ansi_textmode(int mode)
 {
-	cio_textinfo.screenwidth=80;
 	cio_textinfo.winleft=1;
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
@@ -848,18 +867,30 @@ void ansi_fixterm(void)
 #define ENABLE_AUTO_POSITION	0x0100
 #endif
 
-#if defined(__BORLANDC__)
-        #pragma argsused
-#endif
-int ansi_initciolib(long inmode)
+/*
+ * Returns -1 if no character read or -2 on abort
+ */
+int ansi_readbyte_cb(void)
 {
-	int i;
-	char *init="\033[s\033[99B_\033[6n\033[u\033[0m_\033[2J\033[H";
-	time_t start;
+	unsigned char ch;
 
-	ansi_textmode(1);
-	cio_textinfo.screenheight=24;
-	cio_textinfo.screenwidth=80;
+	if(fread(&ch,1,1,stdin)!=1)
+		return(-1);
+	return(ch);
+}
+
+int ansi_writebyte_cb(unsigned char ch)
+{
+	fwrite(&ch,1,1,stdout);
+}
+
+int ansi_writestr_cb(unsigned char *str, size_t len)
+{
+	fwrite(str,len,1,stdout);
+}
+
+int ansi_initio_cb(void)
+{
 #ifdef _WIN32
 	if(isatty(fileno(stdin))) {
 		if(!SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0))
@@ -888,6 +919,21 @@ int ansi_initciolib(long inmode)
 		atexit(ansi_fixterm);
 	}
 #endif
+}
+
+#if defined(__BORLANDC__)
+        #pragma argsused
+#endif
+int ansi_initciolib(long inmode)
+{
+	int i;
+	char *init="\033[s\033[99B\033[99B\033[99B_\033[99C\033[99C\033[99C_\033[6n\033[u\033[0m_\033[2J\033[H";
+	time_t start;
+
+	ansi_textmode(1);
+	cio_textinfo.screenheight=24;
+	cio_textinfo.screenwidth=80;
+	ciolib_ansi_initio_cb();
 
 	sem_init(&got_key,0,0);
 	sem_init(&got_input,0,0);
@@ -902,6 +948,7 @@ int ansi_initciolib(long inmode)
 		SLEEP(1);
 	if(!ansi_got_row) {
 		cio_textinfo.screenheight=24;
+		cio_textinfo.screenwidth=80;
 		ansi_got_row=24;
 	}
 	ansivmem=(WORD *)malloc(cio_textinfo.screenheight*cio_textinfo.screenwidth*sizeof(WORD));
