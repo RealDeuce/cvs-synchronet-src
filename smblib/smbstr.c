@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.17 2009/01/12 07:42:19 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.18 2009/02/02 00:36:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,6 +103,7 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case SMTPCOMMAND:		return("SMTPCommand");
 		case SMTPREVERSEPATH:	return("Return-Path");			/* RFC-compliant */
 		case SMTPFORWARDPATH:	return("SMTPForwardPath");
+		case SMTPRECEIVED:		return("Received");				/* RFC-compliant */
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
 

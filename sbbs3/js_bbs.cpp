@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.112 2008/12/20 09:21:33 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.113 2009/01/23 08:04:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1268,7 +1268,7 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 	for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-		if((sbbs->text[i]=readtext((long *)NULL,stream))==NULL) {
+		if((sbbs->text[i]=readtext((long *)NULL,stream,i))==NULL) {
 			i--;
 			continue; 
 		}
