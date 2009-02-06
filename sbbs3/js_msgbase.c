@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.145 2009/07/11 10:00:32 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.143 2009/01/27 07:01:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -795,7 +795,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 				memset(&remsg,0,sizeof(remsg));
 				remsg.hdr.number=(p->msg).hdr.thread_back;
 				if(smb_getmsgidx(&(p->p->smb), &remsg))
-					SAFEPRINTF(reply_id,"<%s>",p->p->smb.last_error);
+					sprintf(reply_id,"<%s>",p->p->smb.last_error);
 				else
 					get_msgid(scfg,p->p->smb.subnum,&remsg,reply_id,sizeof(reply_id));
 				JS_RESUMEREQUEST(cx, rc);
@@ -1122,7 +1122,7 @@ js_put_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 
 		JS_RESUMEREQUEST(cx, rc);
 		if(!parse_header_object(cx, p, hdr, &msg, TRUE)) {
-			SAFECOPY(p->smb.last_error,"Header parsing failure (required field missing?)");
+			sprintf(p->smb.last_error,"Header parsing failure (required field missing?)");
 			break;
 		}
 		rc=JS_SUSPENDREQUEST(cx);
@@ -1233,8 +1233,20 @@ static char* get_msg_text(private_t* p, smbmsg_t* msg, BOOL strip_ctrl_a, BOOL r
 	smb_unlockmsghdr(&(p->smb), msg); 
 	smb_freemsgmem(msg);
 
-	if(strip_ctrl_a)
-		remove_ctrl_a(buf, buf);
+	if(strip_ctrl_a) {
+		char* newbuf;
+		if((newbuf=malloc(strlen(buf)+1))!=NULL) {
+			int i,j;
+			for(i=j=0;buf[i];i++) {
+				if(buf[i]==CTRL_A && buf[i+1]!=0)
+					i++;
+				else newbuf[j++]=buf[i]; 
+			}
+			newbuf[j]=0;
+			strcpy(buf,newbuf);
+			free(newbuf);
+		}
+	}
 
 	if(rfc822) {	/* must escape lines starting with dot ('.') */
 		char* newbuf;
@@ -1490,43 +1502,41 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		if(body[0])
 			truncsp(body);
-		if((p->status=savemsg(scfg, &(p->smb), &msg, client, body))==SMB_SUCCESS) {
+		if(savemsg(scfg, &(p->smb), &msg, client, body)==0)
 			*rval = JSVAL_TRUE;
 
-			if(rcpt_list!=NULL) {	/* Sending to a list of recipients */
+		if(rcpt_list!=NULL) {	/* Sending to a list of recipients */
 
-				*rval = JSVAL_FALSE;	/* failure, by default */
-				SAFECOPY(p->smb.last_error,"Recipient list parsing failure");
+			*rval = JSVAL_FALSE;	/* failure, by default */
 
-				memset(&rcpt_msg, 0, sizeof(rcpt_msg));
+			memset(&rcpt_msg, 0, sizeof(rcpt_msg));
 
-				for(i=0;i<rcpt_list_length;i++) {
+			for(i=0;i<rcpt_list_length;i++) {
 
-					if(!JS_GetElement(cx, rcpt_list, i, &val))
-						break;
-					
-					if(!JSVAL_IS_OBJECT(val))
-						break;
+				if(!JS_GetElement(cx, rcpt_list, i, &val))
+					break;
+				
+				if(!JSVAL_IS_OBJECT(val))
+					break;
 
-					if((p->status=smb_copymsgmem(&(p->smb), &rcpt_msg, &msg))!=SMB_SUCCESS)
-						break;
+				if((p->status=smb_copymsgmem(&(p->smb), &rcpt_msg, &msg))!=SMB_SUCCESS)
+					break;
 
-					if(!parse_recipient_object(cx, p, JSVAL_TO_OBJECT(val), &rcpt_msg))
-						break;
+				if(!parse_recipient_object(cx, p, JSVAL_TO_OBJECT(val), &rcpt_msg))
+					break;
 
-					if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK))!=SMB_SUCCESS)
-						break;
+				if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK))!=SMB_SUCCESS)
+					break;
 
-					smb_freemsgmem(&rcpt_msg);
-				}
-				smb_freemsgmem(&rcpt_msg);	/* just in case we broke the loop */
-
-				if(i==rcpt_list_length)
-					*rval = JSVAL_TRUE;	/* success */
+				smb_freemsgmem(&rcpt_msg);
 			}
+			smb_freemsgmem(&rcpt_msg);	/* just in case we broke the loop */
+
+			if(i==rcpt_list_length)
+				*rval = JSVAL_TRUE;	/* success */
 		}
 	} else
-		SAFECOPY(p->smb.last_error,"Header parsing failure (required field missing?)");
+		sprintf(p->smb.last_error,"Header parsing failure (required field missing?)");
 
 	smb_freemsgmem(&msg);
 
