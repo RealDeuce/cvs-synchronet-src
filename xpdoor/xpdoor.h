@@ -99,7 +99,6 @@ struct xpd_info {
 		SOCKET					sock;
 		struct xpd_telnet_io	telnet;
 	} io;
-	int							doorway_mode;
 	time_t						end_time;	/* -1 if there is no limit */
 	struct xpd_dropfile_info	drop;
 };
@@ -130,10 +129,5 @@ int xpd_parse_dropfile(void);
  * Write "raw" (ie: May include ANSI sequences etc)
  */
 int xpd_rwrite(const char *data, int data_len);
-
-/*
- * Enables doorway mode
- */
-void xpd_doorway(int enable);
 
 #endif

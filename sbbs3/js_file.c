@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.119 2009/07/11 09:09:28 rswindell Exp $ */
+/* $Id: js_file.c,v 1.118 2009/01/24 12:06:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1983,7 +1983,7 @@ static jsSyncPropertySpec js_file_properties[] = {
 static char* file_prop_desc[] = {
 	 "filename specified in constructor - <small>READ ONLY</small>"
 	,"mode string specified in <i>open</i> call - <small>READ ONLY</small>"
-	,"<i>true</i> if the file is open or exists (case-insensitive) - <small>READ ONLY</small>"
+	,"<i>true</i> if the file exists - <small>READ ONLY</small>"
 	,"<i>true</i> if the file has been opened successfully - <small>READ ONLY</small>"
 	,"<i>true</i> if the current file position is at the <i>end of file</i> - <small>READ ONLY</small>"
 	,"the last occurred error value (use clear_error to clear) - <small>READ ONLY</small>"
@@ -2023,10 +2023,9 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.12)</i><br>"
 		"<br><b>Note:</b> When using the <tt>iniSet</tt> methods to modify a <tt>.ini</tt> file, "
 		"the file must be opened for both reading and writing.<br>"
-		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing "
-		"(e.g. updating an <tt>.ini</tt> file) "
-		"use the <i>exists</i> property like so:<br>"
-		"<tt>file.open(file.exists ? 'r+':'w+');</tt>"
+		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing, "
+		"use the <i>file_exists</i> function like so:<br>"
+		"<tt>file.open(file_exists(file.name) ? 'r+':'w+');</tt>"
 		"<br><b>Note:</b> When <i>shareable</i> is false, uses nopen() which will lock the file "
 		"and perform automatic retries.  The lock mode is as follows:<br>"
 		"<tt>r&nbsp</tt> DENYWRITE - Allows other scripts to open the file for reading, but not for writing.<br>"
