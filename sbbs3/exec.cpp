@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.73 2009/01/23 08:04:28 deuce Exp $ */
+/* $Id: exec.cpp,v 1.76 2009/02/06 03:46:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -541,7 +541,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		return(JS_FALSE);
 
 	if(sbbs->js_branch.auto_terminate && !sbbs->online) {
-		JS_ReportError(cx,"Disconnected");
+		JS_ReportWarning(cx,"Disconnected");
 		sbbs->js_branch.counter=0;
 		return(JS_FALSE);
 	}
@@ -568,6 +568,7 @@ long sbbs_t::js_execfile(const char *cmd)
 	JSScript*	js_script=NULL;
 	jsval		rval;
 	int32		result=0;
+	BOOL		auto_terminate = js_branch.auto_terminate;
 	
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
@@ -659,6 +660,9 @@ long sbbs_t::js_execfile(const char *cmd)
 	if(rval!=JSVAL_VOID)
 		JS_ValueToInt32(js_cx,rval,&result);
 	JS_ENDREQUEST(js_cx);
+
+	// Restore saved auto_terminate state
+	js_branch.auto_terminate = auto_terminate;
 		
 	return(result);
 }
@@ -1104,7 +1108,7 @@ int sbbs_t::exec(csi_t *csi)
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 							break; }
 						for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-							if((text[i]=readtext((long *)NULL,stream,l))==NULL) {
+							if((text[i]=readtext((long *)NULL,stream,i))==NULL) {
 								i--;
 								continue; }
 							if(!strcmp(text[i],text_sav[i])) {	/* If identical */

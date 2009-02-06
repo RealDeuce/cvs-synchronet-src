@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.112 2009/01/09 07:56:07 deuce Exp $ */
+/* $Id: cterm.c,v 1.114 2009/02/06 02:12:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -250,6 +250,11 @@ void play_music(void)
 	struct	note_params *np;
 	int		fore_count;
 
+	if(cterm.quiet) {
+		cterm.music=0;
+		cterm.musicbuf[0]=0;
+		return;
+	}
 	p=cterm.musicbuf;
 	fore_count=0;
 	if(cterm.music==1) {
@@ -1136,7 +1141,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.112 $";
+	char	*revision="$Revision: 1.114 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1581,11 +1586,13 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									cterm.escbuf[wherex()]=1;
 									break;
 								case 253:	/* Beep */
-									#ifdef __unix__
-										putch(7);
-									#else
-										MessageBeep(MB_OK);
-									#endif
+									if(!cterm.quiet) {
+										#ifdef __unix__
+											putch(7);
+										#else
+											MessageBeep(MB_OK);
+										#endif
+									}
 									break;
 								case 254:	/* Delete Char */
 									j=wherex();
@@ -1863,11 +1870,13 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 
 							/* Extras */
 							case 7:			/* Beep */
-								#ifdef __unix__
-									putch(7);
-								#else
-									MessageBeep(MB_OK);
-								#endif
+								if(!cterm.quiet) {
+									#ifdef __unix__
+										putch(7);
+									#else
+										MessageBeep(MB_OK);
+									#endif
+								}
 								break;
 
 							/* Translate to screen codes */
@@ -1948,11 +1957,13 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									prn[0]=0;
 									if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
 										fputs("\x07", cterm.logfile);
-									#ifdef __unix__
-										putch(7);
-									#else
-										MessageBeep(MB_OK);
-									#endif
+									if(!cterm.quiet) {
+										#ifdef __unix__
+											putch(7);
+										#else
+											MessageBeep(MB_OK);
+										#endif
+									}
 									break;
 								case 12:		/* ^L - Clear screen */
 									ctputs(prn);
