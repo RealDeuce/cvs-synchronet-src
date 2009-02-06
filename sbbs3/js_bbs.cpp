@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.112 2008/12/20 09:21:33 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.114 2009/02/05 19:56:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1268,7 +1268,7 @@ js_load_text(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 	}
 	for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-		if((sbbs->text[i]=readtext((long *)NULL,stream))==NULL) {
+		if((sbbs->text[i]=readtext((long *)NULL,stream,i))==NULL) {
 			i--;
 			continue; 
 		}
@@ -3314,7 +3314,7 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,mods,"Global repository for 3rd party modifications",312);
-	js_DescribeSyncObject(cx,obj,"Controls the Telnet/RLogin BBS experience",310);
+	js_DescribeSyncObject(cx,obj,"Controls the Telnet/SSH/RLogin BBS experience",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", bbs_prop_desc, JSPROP_READONLY);
 #endif
 

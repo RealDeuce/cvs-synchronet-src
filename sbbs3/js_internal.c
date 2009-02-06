@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.41 2009/01/20 21:22:40 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.43 2009/01/24 12:07:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,7 +214,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Terminated? */
 	if(branch->auto_terminate &&
 		(branch->terminated!=NULL && *branch->terminated)) {
-		JS_ReportError(cx,"Terminated");
+		JS_ReportWarning(cx,"Terminated");
 		branch->counter=0;
 		return(JS_FALSE);
 	}
@@ -425,7 +425,7 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	jsval	rval;
 	JSScript* script;
 
-	branch->auto_terminate=false;
+	branch->auto_terminate=FALSE;
 
 	while((p=strListPop(&branch->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
