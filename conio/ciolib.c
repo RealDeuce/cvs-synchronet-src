@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.100 2008/01/21 07:37:45 deuce Exp $ */
+/* $Id: ciolib.c,v 1.106 2009/02/06 02:10:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,6 +128,9 @@ int try_sdl_init(int mode)
 		cio_api.setfont=bitmap_setfont;
 		cio_api.getfont=bitmap_getfont;
 		cio_api.loadfont=bitmap_loadfont;
+		cio_api.movetext=bitmap_movetext;
+		cio_api.clreol=bitmap_clreol;
+		cio_api.clrscr=bitmap_clrscr;
 
 		cio_api.kbhit=sdl_kbhit;
 		cio_api.getch=sdl_getch;
@@ -166,6 +169,9 @@ int try_x_init(int mode)
 		cio_api.getfont=bitmap_getfont;
 		cio_api.loadfont=bitmap_loadfont;
 		cio_api.beep=x_beep;
+		cio_api.movetext=bitmap_movetext;
+		cio_api.clreol=bitmap_clreol;
+		cio_api.clrscr=bitmap_clrscr;
 
 		cio_api.kbhit=x_kbhit;
 		cio_api.getch=x_getch;
@@ -184,7 +190,9 @@ int try_x_init(int mode)
 int try_curses_init(int mode)
 {
 	if(curs_initciolib(mode)) {
-		cio_api.mode=CIOLIB_MODE_CURSES_IBM;
+		if(mode==CIOLIB_MODE_AUTO)
+			mode=CIOLIB_MODE_CURSES;
+		cio_api.mode=mode;
 		cio_api.puttext=curs_puttext;
 		cio_api.gettext=curs_gettext;
 		cio_api.textattr=curs_textattr;
@@ -396,12 +404,13 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getche(void)
 	else {
 		while(1) {
 			ch=ciolib_getch();
-			if(ch) {
+			if(ch != 0 && ch != 0xe0) {
 				ciolib_putch(ch);
 				return(ch);
 			}
-			/* Eat extended chars */
-			ciolib_getch();
+			/* Eat extended chars - except ESC which is an abort */
+			if(ciolib_getch()==1)
+				return(EOF);
 		}
 	}
 }
@@ -458,8 +467,10 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 	maxlen=*(unsigned char *)str;
 	while((ch=ciolib_getch())!='\n' && ch !='\r') {
 		switch(ch) {
-			case 0:	/* Skip extended keys */
-				ciolib_getche();
+			case 0:		/* Skip extended keys */
+			case 0xe0:	/* Skip extended keys */
+				if(ciolib_getche()==1)
+					goto early_return;
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
 				break;
@@ -484,6 +495,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				break;
 		}
 	}
+early_return:
 	str[len+2]=0;
 	*((unsigned char *)(str+1))=(unsigned char)len;
 	ciolib_putch('\r');
@@ -555,8 +567,10 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt)
 	ciolib_cputs((char *)prompt);
 	while((ch=ciolib_getch())!='\n') {
 		switch(ch) {
-			case 0:	/* Skip extended keys */
-				ciolib_getch();
+			case 0:		/* Skip extended keys */
+			case 0xe0:	/* Skip extended keys */
+				if(ciolib_getch()==1)
+					goto early_return;
 				break;
 			case '\r':	/* Skip \r (ToDo: Should this be treeated as a \n? */
 				break;
@@ -575,6 +589,7 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt)
 				break;
 		}
 	}
+early_return:
 	pass[len]=0;
 	return(pass);
 }
@@ -591,20 +606,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gettextinfo(struct text_info *info)
 		return;
 	}
 	
-	if(info!=&cio_textinfo) {
-		info->winleft=cio_textinfo.winleft;        /* left window coordinate */
-		info->wintop=cio_textinfo.wintop;         /* top window coordinate */
-		info->winright=cio_textinfo.winright;       /* right window coordinate */
-		info->winbottom=cio_textinfo.winbottom;      /* bottom window coordinate */
-		info->attribute=cio_textinfo.attribute;      /* text attribute */
-		info->normattr=cio_textinfo.normattr;       /* normal attribute */
-		info->currmode=cio_textinfo.currmode;       /* current video mode:
-                               			 BW40, BW80, C40, C80, or C4350 */
-		info->screenheight=cio_textinfo.screenheight;   /* text screen's height */
-		info->screenwidth=cio_textinfo.screenwidth;    /* text screen's width */
-		info->curx=cio_textinfo.curx;           /* x-coordinate in current window */
-		info->cury=cio_textinfo.cury;           /* y-coordinate in current window */
-	}
+	if(info!=&cio_textinfo)
+		*info=cio_textinfo;
 }
 
 /* Optional */
@@ -744,7 +747,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void)
 	int width,height;
 
 	CIOLIB_INIT();
-	
+
 	if(cio_api.clreol) {
 		cio_api.clreol();
 		return;
