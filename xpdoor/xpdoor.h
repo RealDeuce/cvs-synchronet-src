@@ -23,12 +23,11 @@ struct xpd_user_info {
 	int				rows;
 	BOOL			expert;
 	isoDate_t		expiration;
-	int				number;
+	int				user_num;
 	char			protocol;
 	int				uploads;
 	int				downloads;
 	int				download_k_today;	// KiB downloaded today
-	int				max_download_k_today;	// KiB downloaded today
 	isoDate_t		birthday;
 	char			*alias;
 	isoTime_t		call_time;
@@ -94,12 +93,12 @@ struct xpd_telnet_io {
 
 struct xpd_info {
 	enum io_type				io_type;
+	int							io_flags;
 	union {
 		COM_HANDLE				com;
 		SOCKET					sock;
 		struct xpd_telnet_io	telnet;
 	} io;
-	int							doorway_mode;
 	time_t						end_time;	/* -1 if there is no limit */
 	struct xpd_dropfile_info	drop;
 };
@@ -112,14 +111,9 @@ extern struct xpd_info	xpd_info;
 void xpd_parse_cmdline(int argc, char **argv);
 
 /*
- * Initialize (turns on Doorway mode)
+ * Initialize
  */
 int xpd_init();
-
-/*
- * Exit (turns off Doorway mode)
- */
-int xpd_exit(void);
 
 /*
  * Parse dropfile
@@ -130,10 +124,5 @@ int xpd_parse_dropfile(void);
  * Write "raw" (ie: May include ANSI sequences etc)
  */
 int xpd_rwrite(const char *data, int data_len);
-
-/*
- * Enables doorway mode
- */
-void xpd_doorway(int enable);
 
 #endif
