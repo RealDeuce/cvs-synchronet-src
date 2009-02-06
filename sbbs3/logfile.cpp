@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.43 2009/01/12 23:01:51 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.46 2009/02/05 07:58:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,6 +108,20 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 	close(file);
 
 	return(TRUE);
+}
+
+extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* text)
+{
+	FILE*	fp;
+	char	buf[128];
+	char	path[MAX_PATH+1];
+
+	sprintf(path,"%serror.log",cfg->logs_dir);
+	if((fp=fnopen(NULL,path,O_WRONLY|O_CREAT|O_APPEND))==NULL)
+		return -1; 
+	fprintf(fp,"%s\r\n%s\r\n\r\n",timestr(cfg,time(NULL),buf), text);
+	fclose(fp);
+	return 0;
 }
 
 void sbbs_t::logentry(const char *code, const char *entry)
@@ -317,7 +331,7 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 		getkey(0);
 		CRLF;
 	}
-	sprintf(str,"\r\n    source: %s\r\n      line: %d\r\n    action: %s\r\n"
+	sprintf(str,"    source: %s\r\n      line: %d\r\n    action: %s\r\n"
 		"    object: %s\r\n    access: %ld"
 		,src,line,action,object,access);
 	if(access>9 && (long)access!=-1 && (short)access!=-1 && (char)access!=-1) {
@@ -328,7 +342,7 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 		strcat(str,tmp);
 	}
 	if(errno) {
-		sprintf(tmp,"\r\n     errno: %d (%s)",errno,strerror(errno));
+		sprintf(tmp,"\r\n     errno: %d (%s)",errno,STRERROR(errno));
 		strcat(str,tmp); 
 		errno=0;
 	}
@@ -368,12 +382,12 @@ void sbbs_t::errorlog(const char *text)
 		logline("!!",tmp2);
 		errorlog_inside=0;
 		return; }
-	sprintf(hdr,"%s Node %2d: %s #%d"
+	sprintf(hdr,"%s\r\nNode %2d: %s #%d\r\n"
 		,timestr(now),cfg.node_num,useron.alias,useron.number);
 	write(file,hdr,strlen(hdr));
-	write(file,crlf,2);
 	write(file,text,strlen(text));
 	write(file,"\r\n\r\n",4);
 	close(file);
 	errorlog_inside=0;
 }
+
