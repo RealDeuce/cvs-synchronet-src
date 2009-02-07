@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.74 2009/01/24 12:05:53 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.76 2009/02/06 03:46:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -568,6 +568,7 @@ long sbbs_t::js_execfile(const char *cmd)
 	JSScript*	js_script=NULL;
 	jsval		rval;
 	int32		result=0;
+	BOOL		auto_terminate = js_branch.auto_terminate;
 	
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
@@ -659,6 +660,9 @@ long sbbs_t::js_execfile(const char *cmd)
 	if(rval!=JSVAL_VOID)
 		JS_ValueToInt32(js_cx,rval,&result);
 	JS_ENDREQUEST(js_cx);
+
+	// Restore saved auto_terminate state
+	js_branch.auto_terminate = auto_terminate;
 		
 	return(result);
 }
@@ -1104,7 +1108,7 @@ int sbbs_t::exec(csi_t *csi)
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 							break; }
 						for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-							if((text[i]=readtext((long *)NULL,stream,l))==NULL) {
+							if((text[i]=readtext((long *)NULL,stream,i))==NULL) {
 								i--;
 								continue; }
 							if(!strcmp(text[i],text_sav[i])) {	/* If identical */
