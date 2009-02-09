@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.110 2009/02/12 07:17:27 deuce Exp $ */
+/* $Id: ciolib.c,v 1.107 2009/02/09 08:03:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,10 +131,6 @@ int try_sdl_init(int mode)
 		cio_api.movetext=bitmap_movetext;
 		cio_api.clreol=bitmap_clreol;
 		cio_api.clrscr=bitmap_clrscr;
-		cio_api.getcustomcursor=bitmap_getcustomcursor;
-		cio_api.setcustomcursor=bitmap_setcustomcursor;
-		cio_api.getvideoflags=bitmap_getvideoflags;
-		cio_api.setvideoflags=bitmap_setvideoflags;
 
 		cio_api.kbhit=sdl_kbhit;
 		cio_api.getch=sdl_getch;
@@ -176,10 +172,6 @@ int try_x_init(int mode)
 		cio_api.movetext=bitmap_movetext;
 		cio_api.clreol=bitmap_clreol;
 		cio_api.clrscr=bitmap_clrscr;
-		cio_api.getcustomcursor=bitmap_getcustomcursor;
-		cio_api.setcustomcursor=bitmap_setcustomcursor;
-		cio_api.getvideoflags=bitmap_getvideoflags;
-		cio_api.setvideoflags=bitmap_setvideoflags;
 
 		cio_api.kbhit=x_kbhit;
 		cio_api.getch=x_getch;
@@ -271,9 +263,6 @@ int try_conio_init(int mode)
 		cio_api.getcliptext=win32_getcliptext;
 		cio_api.suspend=win32_suspend;
 		cio_api.resume=win32_resume;
-		cio_api.getcustomcursor=win32_getcustomcursor;
-		cio_api.setcustomcursor=win32_setcustomcursor;
-		cio_api.getvideoflags=win32_getvideoflags;
 		return(1);
 	}
 	return(0);
@@ -1228,12 +1217,12 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void)
 }
 
 /* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force, int font_num)
+CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force)
 {
 	CIOLIB_INIT();
 
 	if(cio_api.setfont!=NULL)
-		return(cio_api.setfont(font,force,font_num));
+		return(cio_api.setfont(font,force));
 	else
 		return(-1);
 }
@@ -1286,34 +1275,5 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void)
 	if(cio_api.beep)
 		return(cio_api.beep());
 	BEEP(440,100);
-	return(0);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_getcustomcursor(int *start, int *end, int *range, int *blink, int *visible)
-{
-	if(cio_api.getcustomcursor)
-		cio_api.getcustomcursor(start,end,range,blink,visible);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_setcustomcursor(int start, int end, int range, int blink, int visible)
-{
-	if(cio_api.setcustomcursor)
-		cio_api.setcustomcursor(start,end,range,blink,visible);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags)
-{
-	if(cio_api.setvideoflags)
-		cio_api.setvideoflags(flags);
-}
-
-/* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void)
-{
-	if(cio_api.getvideoflags)
-		return(cio_api.getvideoflags());
 	return(0);
 }

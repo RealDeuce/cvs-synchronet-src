@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.323 2009/02/10 11:22:15 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.322 2009/02/01 21:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -467,7 +467,6 @@ public:
 	void	automsg(void);
 	bool	writemsg(const char *str, const char *top, char *title, long mode, int subnum
 				,const char *dest);
-	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode);
 	bool	msgabort(void);
@@ -488,8 +487,6 @@ public:
 				,uint subnum);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
-	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines);
-	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines);
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
