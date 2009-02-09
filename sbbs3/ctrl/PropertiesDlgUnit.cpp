@@ -1,4 +1,4 @@
-/* $Id: PropertiesDlgUnit.cpp,v 1.8 2009/10/25 05:05:54 rswindell Exp $ */
+/* $Id: PropertiesDlgUnit.cpp,v 1.6 2009/01/24 12:23:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@
 #include "MailFormUnit.h"
 #include "ServicesFormUnit.h"
 #include "PropertiesDlgUnit.h"
-#include <mmsystem.h>		// sndPlaySound()
 //---------------------------------------------------------------------
 #pragma resource "*.dfm"
 TPropertiesDlg *PropertiesDlg;
@@ -82,7 +81,7 @@ void __fastcall TPropertiesDlg::SourceComboBoxChange(TObject *Sender)
             ExampleEdit->Font=ClientForm->ListView->Font;
         	ExampleEdit->Color=ClientForm->ListView->Color;
             break;
-        case 2: /* Terminal Server Log */
+        case 2: /* Telnet Server Log */
             ExampleEdit->Font=TelnetForm->Log->Font;
         	ExampleEdit->Color=TelnetForm->Log->Color;
             break;
@@ -143,7 +142,7 @@ void __fastcall TPropertiesDlg::ChangeScheme(int target)
             ClientForm->ListView->Font=ExampleEdit->Font;
         	ClientForm->ListView->Color=ExampleEdit->Color;
             break;
-        case 2: /* Terminal Server Log */
+        case 2: /* Telnet Server Log */
             TelnetForm->Log->Font=ExampleEdit->Font;
         	TelnetForm->Log->Color=ExampleEdit->Color;
             break;
@@ -195,16 +194,6 @@ void __fastcall TPropertiesDlg::LogFontButtonClick(TObject *Sender)
 	    MainForm->LogFont[LogLevelComboBox->ItemIndex]->Assign(FontDialog->Font);
     }
     delete FontDialog;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TPropertiesDlg::ErrorSoundButtonClick(TObject *Sender)
-{
-	OpenDialog->FileName=ErrorSoundEdit->Text;
-	if(OpenDialog->Execute()==true) {
-        ErrorSoundEdit->Text=OpenDialog->FileName;
-        sndPlaySound(OpenDialog->FileName.c_str(),SND_ASYNC);
-    }
 }
 //---------------------------------------------------------------------------
 

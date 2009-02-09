@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.198 2009/07/16 01:07:47 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.194 2008/02/25 08:25:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -164,9 +164,7 @@ void logprintf(char *str, ...)
 	now=time(NULL);
 	gm=localtime(&now);
 	fprintf(fidologfile,"%02u/%02u/%02u %02u:%02u:%02u %s\n"
-		,(scfg.sys_misc&SM_EURODATE) ? gm->tm_mday : gm->tm_mon+1
-		,(scfg.sys_misc&SM_EURODATE) ? gm->tm_mon+1 : gm->tm_mday
-		,TM_YEAR(gm->tm_year),gm->tm_hour,gm->tm_min,gm->tm_sec
+		,gm->tm_mon+1,gm->tm_mday,TM_YEAR(gm->tm_year),gm->tm_hour,gm->tm_min,gm->tm_sec
 		,buf);
 }
 
@@ -1302,7 +1300,7 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 
 	p=(char *)inbuf;
 
-	while(*p==CTRL_A) {			/* Skip kludge lines 11/05/95 */
+	while(*p==1) {				/* Skip kludge lines 11/05/95 */
 		FIND_CHAR(p,'\r');
 		if(*p) {
 			p++;				/* Skip CR (required) */
@@ -1347,7 +1345,7 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 	del_area.tag=NULL;
 	for(l=0;l<m;l++) { 
 		while(*(p+l) && isspace(*(p+l))) l++;
-		while(*(p+l)==CTRL_A) {				/* Ignore kludge lines June-13-2004 */
+		while(*(p+l)==1) {				/* Ignore kludge lines June-13-2004 */
 			while(*(p+l) && *(p+l)!='\r') l++;
 			continue;
 		}
@@ -2238,7 +2236,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	ushort	xlat=XLAT_NONE,net;
 	ulong	l,m,length,bodylen,taillen,crc;
 	ulong	save;
-	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
+	long	dupechk_hashes=SMB_HASH_SOURCE_ALL;
 	faddr_t faddr,origaddr,destaddr;
 	smb_t*	smbfile;
 	char	fname[MAX_PATH+1];
@@ -2317,7 +2315,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		}
 
 		ch=fbuf[l];
-		if(ch==CTRL_A && cr) {	/* kludge line */
+		if(ch==1 && cr) {	/* kludge line */
 
 			if(!strncmp((char *)fbuf+l+1,"TOPT ",5))
 				destaddr.point=atoi((char *)fbuf+l+6);
@@ -2554,7 +2552,7 @@ void getzpt(FILE *stream, fmsghdr_t *hdr)
 	for(i=0;i<len;i++) {
 		if(buf[i]=='\n')	/* ignore line-feeds */
 			continue;
-		if((!i || cr) && buf[i]==CTRL_A) {	/* kludge */
+		if((!i || cr) && buf[i]==1) {	/* kludge */
 			if(!strncmp(buf+i+1,"TOPT ",5))
 				hdr->destpoint=atoi(buf+i+6);
 			else if(!strncmp(buf+i+1,"FMPT ",5))
@@ -3317,7 +3315,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	}
 
 	if(match>=scfg.total_faddrs && !(misc&IGNORE_ADDRESS)) {
-		printf("Foreign address");
+		printf("Wrong address");
 		if(!path[0]) {
 			printf(" - ");
 			pkt_to_msg(fidomsg,&hdr,info);
@@ -3722,15 +3720,11 @@ void export_echomail(char *sub_code,faddr_t addr)
 						f+=sprintf(fmsgbuf+f,"\1%.512s\r",(char*)msg.hfield_dat[l]);
 
 				for(l=0,cr=1;buf[l] && f<fmsgbuflen;l++) {
-					if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
-						char ch;
+					if(buf[l]==1) { /* Ctrl-A, so skip it and the next char */
 						l++;
-						if(buf[l]==0 || toupper(buf[l])=='Z')	/* EOF */
+						if(!buf[l])
 							break;
-						if((ch=ctrl_a_to_ascii_char(buf[l])) != 0)
-							fmsgbuf[f++]=ch;
-						continue; 
-					}
+						continue; }
 					
 					if(misc&STRIP_LF && buf[l]=='\n')	/* Ignore line feeds */
 						continue;
@@ -3754,9 +3748,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 						if(buf[l]<' ' && buf[l]!='\r'
 							&& buf[l]!='\n')			/* Ctrl ascii */
 							buf[l]='.';             /* converted to '.' */
-						if((uchar)buf[l]&0x80)		/* extended ASCII */
-							buf[l]=exascii_to_ascii_char(buf[l]);
-					}
+						if((uchar)buf[l]>0x7f)		/* extended ASCII */
+							buf[l]='*'; }           /* converted to '*' */
 
 					fmsgbuf[f++]=buf[l]; }
 
@@ -3880,11 +3873,10 @@ int main(int argc, char **argv)
 	addrlist_t msg_seen,msg_path;
 	areasbbs_t fakearea,curarea;
 	char *usage="\n"
-	"usage: sbbsecho [cfg_file] [-switches] [sub_code] [address]\n"
+	"usage: sbbsecho [cfg_file] [-switches] [sub_code]\n"
 	"\n"
 	"where: cfg_file is the filename of config file (default is ctrl/sbbsecho.cfg)\n"
 	"       sub_code is the internal code for a sub-board (default is ALL subs)\n"
-	"       address is the link to export for (default is ALL links)\n"
 	"\n"
 	"valid switches:\n"
 	"\n"
@@ -3911,7 +3903,6 @@ int main(int argc, char **argv)
 		bail(1); }
 	for(i=0;i<MAX_OPEN_SMBS;i++)
 		memset(&smb[i],0,sizeof(smb_t));
-	memset(&addr,0,sizeof(addr));
 	memset(&cfg,0,sizeof(config_t));
 	memset(&hdr,0,sizeof(hdr));
 	memset(&pkt_faddr,0,sizeof(pkt_faddr));
@@ -3919,7 +3910,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.198 $", "%*s %s", revision);
+	sscanf("$Revision: 1.194 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4024,8 +4015,6 @@ int main(int argc, char **argv)
 			if(strchr(argv[i],'\\') || strchr(argv[i],'/') 
 				|| argv[i][1]==':' || strchr(argv[i],'.'))
 				SAFECOPY(cfg.cfgfile,argv[i]);
-			else if(isdigit(argv[i][0]))
-				addr=atofaddr(argv[i]);
 			else
 				SAFECOPY(sub_code,argv[i]); }  }
 
@@ -4756,8 +4745,11 @@ int main(int argc, char **argv)
 	}
 
 
-	if(misc&EXPORT_ECHOMAIL)
+	if(misc&EXPORT_ECHOMAIL) {
+		memset(&addr,0,sizeof(faddr_t));
 		export_echomail(sub_code,addr);
+	}
+
 
 	if(misc&PACK_NETMAIL) {
 
