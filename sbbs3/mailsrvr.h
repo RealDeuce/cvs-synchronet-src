@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.63 2008/02/13 07:38:08 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.65 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,8 +62,8 @@ typedef struct {
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int, char*);
-	void	(*status)(void*, char*);
+	int 	(*lputs)(void*, int, const char*);
+	void	(*status)(void*, const char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
@@ -146,13 +146,12 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_RELAY_AUTH_CRAM_MD5	(1<<25)
 #define MAIL_OPT_NO_AUTO_EXEMPT			(1<<26)	/* Do not auto DNSBL-exempt recipient e-mail addresses */
 #define MAIL_OPT_NO_RECYCLE				(1<<27)	/* Disable recycling of server		*/
-#define MAIL_OPT_LOCAL_TIMEZONE			(1<<30)	/* Don't force UTC/GMT */
 #define MAIL_OPT_MUTE					(1<<31)
 
 #define MAIL_OPT_RELAY_AUTH_MASK		(MAIL_OPT_RELAY_AUTH_PLAIN|MAIL_OPT_RELAY_AUTH_LOGIN|MAIL_OPT_RELAY_AUTH_CRAM_MD5)
 
 /* mail_startup_t.options bits that require re-init/recycle when changed */
-#define MAIL_INIT_OPTS	(MAIL_OPT_ALLOW_POP3|MAIL_OPT_NO_SENDMAIL|MAIL_OPT_LOCAL_TIMEZONE)
+#define MAIL_INIT_OPTS	(MAIL_OPT_ALLOW_POP3|MAIL_OPT_NO_SENDMAIL)
 
 #if defined(STARTUP_INI_BITDESC_TABLES)
 static ini_bitdesc_t mail_options[] = {
@@ -185,7 +184,6 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
 	{ MAIL_OPT_NO_AUTO_EXEMPT		,"NO_AUTO_EXEMPT"		},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ MAIL_OPT_LOCAL_TIMEZONE		,"LOCAL_TIMEZONE"		},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
 	/* terminator */
 	{ 0 							,NULL					}

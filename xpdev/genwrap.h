@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.90 2008/02/22 09:28:52 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.92 2009/01/14 07:06:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,7 @@
 
 #include <stdio.h>		/* sprintf */
 #include <string.h>		/* strerror() */
+#include <time.h>		/* clock_t */
 #include "gen_defs.h"	/* ulong */
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
 
@@ -289,28 +290,13 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #endif
 
 /* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
-
 #if !defined(__unix__)	
 
-	#include <time.h>		/* time_t, etc. */
-
-	DLLEXPORT struct tm*    DLLCALL		gmtime_r(const time_t* t, struct tm* tm);
-	DLLEXPORT struct tm*    DLLCALL		localtime_r(const time_t* t, struct tm* tm);
-	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf);
-	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf);
 	DLLEXPORT char*			DLLCALL		strtok_r(char *str, const char *delim, char **last);
-
-#endif
-
-#if defined(__solaris__)
-	#define CTIME_R(x,y)	ctime_r(x,y)
-	/* #define CTIME_R(x,y)	ctime_r(x,y,sizeof y) */
-#else
-	#define CTIME_R(x,y)	ctime_r(x,y)
 #endif
 
 /* Mimic the Borland randomize() and random() CRTL functions */
-DLLEXPORT unsigned	DLLCALL xp_randomize(void);
+DLLEXPORT void		DLLCALL xp_randomize(void);
 DLLEXPORT int		DLLCALL	xp_random(int);
 
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
