@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.56 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.54 2007/10/24 07:41:46 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -341,7 +341,7 @@ BOOL sbbs_t::newuser()
 
 	/* Default editor (moved here, after terminal type setup Jan-2003) */
 	for(i=0;i<cfg.total_xedits;i++)
-		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron,&client))
+		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron))
 			break;
 	if(i<cfg.total_xedits)
 		useron.xedit=i+1;
@@ -449,7 +449,7 @@ BOOL sbbs_t::newuser()
 	if(!(cfg.uq&UQ_NODEF))
 		maindflts(&useron);
 
-	delallmail(useron.number, MAIL_ANY);
+	delallmail(useron.number);
 
 	if(useron.number!=1 && cfg.node_valuser) {
 		sprintf(str,"%sfeedback.msg",cfg.text_dir);
