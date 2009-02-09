@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.497 2009/01/24 19:40:45 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.502 2009/02/01 21:39:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -485,13 +485,22 @@ static int lprintf(int level, const char *fmt, ...)
 	va_list argptr;
 	char sbuf[1024];
 
-    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
-        return(0);
-
 	va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
+
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
+
+    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
+        return(0);
+
+#if defined(_WIN32)
+	if(IsBadCodePtr((FARPROC)startup->lputs))
+		return(0);
+#endif
+
     return(startup->lputs(startup->cbdata,level,sbuf));
 }
 
@@ -2482,7 +2491,7 @@ static int is_dynamic_req(http_session_t* session)
 	else if(stricmp(ext,startup->js_ext)==0)
 		i=IS_JS;
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT) && i)  {
-		lprintf(LOG_INFO,"%04d Setting up JavaScript support", session->socket);
+		lprintf(LOG_DEBUG,"%04d Setting up JavaScript support", session->socket);
 		if(!js_setup(session)) {
 			lprintf(LOG_ERR,"%04d !ERROR setting up JavaScript support", session->socket);
 			send_error(session,error_500);
@@ -4752,6 +4761,7 @@ void http_output_thread(void *arg)
 	int		i;
 	unsigned mss=OUTBUF_LEN;
 
+	SetThreadName("HTTP Output");
 	obuf=&(session->outbuf);
 	/* Destroyed at end of function */
 	if((i=pthread_mutex_init(&session->outbuf_write,NULL))!=0) {
@@ -4773,11 +4783,13 @@ void http_output_thread(void *arg)
 			/* Check for sanity... */
 			if(i>100) {
 				obuf->highwater_mark=i-12;
-				lprintf(LOG_DEBUG,"Autotuning outbuf highwater mark to %d based on MSS",i);
+				lprintf(LOG_DEBUG,"%04d Autotuning outbuf highwater mark to %d based on MSS"
+					,session->socket,i);
 				mss=obuf->highwater_mark;
 				if(mss>OUTBUF_LEN) {
 					mss=OUTBUF_LEN;
-					lprintf(LOG_DEBUG,"MSS (%d) is higher than OUTBUF_LEN (%d)",i,OUTBUF_LEN);
+					lprintf(LOG_DEBUG,"%04d MSS (%d) is higher than OUTBUF_LEN (%d)"
+						,session->socket,i,OUTBUF_LEN);
 				}
 			}
 		}
@@ -4869,6 +4881,7 @@ void http_session_thread(void* arg)
 	int				loop_count;
 	BOOL			init_error;
 
+	SetThreadName("HTTP Session");
 	pthread_mutex_lock(&((http_session_t*)arg)->struct_filled);
 	pthread_mutex_unlock(&((http_session_t*)arg)->struct_filled);
 	pthread_mutex_destroy(&((http_session_t*)arg)->struct_filled);
@@ -5143,7 +5156,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.497 $", "%*s %s", revision);
+	sscanf("$Revision: 1.502 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5173,6 +5186,7 @@ void http_logging_thread(void* arg)
 	if(!base[0])
 		SAFEPRINTF(base,"%slogs/http-",scfg.logs_dir);
 
+	SetThreadName("HTTP Logging");
 	filename[0]=0;
 	newfilename[0]=0;
 
@@ -5215,7 +5229,7 @@ void http_logging_thread(void* arg)
 				fclose(logfile);
 			SAFECOPY(filename,newfilename);
 			logfile=fopen(filename,"ab");
-			lprintf(LOG_INFO,"%04d http logfile is now: %s",server_socket,filename);
+			lprintf(LOG_INFO,"%04d HTTP logfile is now: %s",server_socket,filename);
 		}
 		if(logfile!=NULL) {
 			if(ld->status) {
@@ -5243,7 +5257,7 @@ void http_logging_thread(void* arg)
 		}
 		else {
 			logfile=fopen(filename,"ab");
-			lprintf(LOG_ERR,"%04d http logfile %s was not open!",server_socket,filename);
+			lprintf(LOG_ERR,"%04d HTTP logfile %s was not open!",server_socket,filename);
 		}
 		FREE_AND_NULL(ld->hostname);
 		FREE_AND_NULL(ld->ident);
@@ -5296,6 +5310,7 @@ void DLLCALL web_server(void* arg)
 
 	startup=(web_startup_t*)arg;
 
+	SetThreadName("Web Server");
 	web_ver();	/* get CVS revision */
 
     if(startup==NULL) {
@@ -5500,11 +5515,9 @@ void DLLCALL web_server(void* arg)
 			cleanup(1);
 			return;
 		}
-		lprintf(LOG_INFO,"%04d Web Server listening on port %d"
+		lprintf(LOG_INFO,"%04d Web Server listening on port %u"
 			,server_socket, startup->port);
 		status("Listening");
-
-		lprintf(LOG_INFO,"%04d Web Server thread started", server_socket);
 
 		listInit(&log_list,/* flags */ LINK_LIST_MUTEX|LINK_LIST_SEMAPHORE);
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
@@ -5545,6 +5558,8 @@ void DLLCALL web_server(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
+
+		lprintf(LOG_INFO,"%04d Web Server thread started", server_socket);
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
