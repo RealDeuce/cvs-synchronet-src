@@ -41,8 +41,10 @@ object TelnetForm: TTelnetForm
     object LogPauseButton: TToolButton
       Left = 23
       Top = 0
-      Action = MainForm.TelnetPause
+      Hint = 'Pause Log Scrolling'
       AllowAllUp = True
+      Enabled = False
+      ImageIndex = 67
       Style = tbsCheck
     end
     object StopButton: TToolButton

@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.166 2009/02/11 20:05:20 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.164 2009/01/26 06:49:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,13 +144,6 @@ const TColor LogLevelColor[] = {
                                 ,clGreen
                                 };
 
-link_list_t bbs_log_list;
-link_list_t event_log_list;
-link_list_t mail_log_list;
-link_list_t ftp_log_list;
-link_list_t web_log_list;
-link_list_t services_log_list;
-
 DWORD	MaxLogLen=20000;
 int     threads=1;
 time_t  initialized=0;
@@ -293,30 +286,27 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
     ReleaseMutex(ClientForm->ListMutex);
 }
 
-static int lputs(void* p, int level, const char *str)
+static int bbs_lputs(void* p, int level, const char *str)
 {
-    log_msg_t   msg;
+	static HANDLE mutex;
 
-    msg.level = level;
-    GetLocalTime(&msg.time);
-    SAFECOPY(msg.buf, str);
-    listPushNodeData((link_list_t*)p, &msg, sizeof(msg));
-    return strlen(msg.buf);
-}
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
 
-static void bbs_log_msg(log_msg_t* msg)
-{
     while(MaxLogLen && TelnetForm->Log->Lines->Count >= MaxLogLen)
         TelnetForm->Log->Lines->Delete(0);
 
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-
-    Line+=AnsiString(msg->buf).Trim();
+    AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(str).Trim();
     TelnetForm->Log->SelLength=0;
     TelnetForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, TelnetForm->Log->Color, TelnetForm->Log->Font));
+        MainForm->LogAttributes(level, TelnetForm->Log->Color, TelnetForm->Log->Font));
 	TelnetForm->Log->Lines->Add(Line);
-    SendMessage(TelnetForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+    ReleaseMutex(mutex);
+    if(!TelnetForm->LogPauseButton->Down)
+        SendMessage(TelnetForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+    return(Line.Length());
 }
 
 static void bbs_status(void* p, const char *str)
@@ -357,8 +347,7 @@ static void bbs_terminated(void* p, int code)
 	MainForm->TelnetStart->Enabled=true;
 	MainForm->TelnetStop->Enabled=false;
 	MainForm->TelnetRecycle->Enabled=false;
-    MainForm->TelnetPause->Enabled=false;
-    MainForm->TelnetPause->Checked=false;    
+    TelnetForm->LogPauseButton->Enabled=false;    
     Application->ProcessMessages();
 }
 static void bbs_started(void* p)
@@ -367,8 +356,7 @@ static void bbs_started(void* p)
 	MainForm->TelnetStart->Enabled=false;
     MainForm->TelnetStop->Enabled=true;
     MainForm->TelnetRecycle->Enabled=true;
-    MainForm->TelnetPause->Enabled=true;
-    MainForm->TelnetPause->Checked=false;        
+    TelnetForm->LogPauseButton->Enabled=true;    
     Application->ProcessMessages();
 }
 static void bbs_start(void)
@@ -392,32 +380,50 @@ static void bbs_start(void)
     Application->ProcessMessages();
 }
 
-static void event_log_msg(log_msg_t* msg)
+static int event_lputs(int level, const char *str)
 {
+	static HANDLE mutex;
+
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
     while(MaxLogLen && EventsForm->Log->Lines->Count >= MaxLogLen)
         EventsForm->Log->Lines->Delete(0);
 
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
+    AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(str).Trim();
     EventsForm->Log->SelLength=0;
     EventsForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, EventsForm->Log->Color, EventsForm->Log->Font));
+        MainForm->LogAttributes(level, EventsForm->Log->Color, EventsForm->Log->Font));
 	EventsForm->Log->Lines->Add(Line);
-    SendMessage(EventsForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+    if(!TelnetForm->LogPauseButton->Down)
+        SendMessage(EventsForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+    ReleaseMutex(mutex);
+    return(Line.Length());
 }
 
-static void services_log_msg(log_msg_t* msg)
+static int service_lputs(void* p, int level, const char *str)
 {
+	static HANDLE mutex;
+
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
     while(MaxLogLen && ServicesForm->Log->Lines->Count >= MaxLogLen)
         ServicesForm->Log->Lines->Delete(0);
 
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
+    AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(str).Trim();
     ServicesForm->Log->SelLength=0;
     ServicesForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, ServicesForm->Log->Color, ServicesForm->Log->Font));
+        MainForm->LogAttributes(level, ServicesForm->Log->Color, ServicesForm->Log->Font));
 	ServicesForm->Log->Lines->Add(Line);
-    SendMessage(ServicesForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+    if(!ServicesForm->LogPauseButton->Down)
+        SendMessage(ServicesForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+    ReleaseMutex(mutex);
+    return(Line.Length());
 }
 
 static void services_status(void* p, const char *str)
@@ -439,8 +445,7 @@ static void services_terminated(void* p, int code)
 	MainForm->ServicesStart->Enabled=true;
 	MainForm->ServicesStop->Enabled=false;
     MainForm->ServicesRecycle->Enabled=false;
-    MainForm->ServicesPause->Enabled=false;
-    MainForm->ServicesPause->Checked=false;
+    ServicesForm->LogPauseButton->Enabled=false;
     Application->ProcessMessages();
 }
 static void services_started(void* p)
@@ -449,8 +454,7 @@ static void services_started(void* p)
 	MainForm->ServicesStart->Enabled=false;
     MainForm->ServicesStop->Enabled=true;
     MainForm->ServicesRecycle->Enabled=true;
-    MainForm->ServicesPause->Enabled=true;
-    MainForm->ServicesPause->Checked=false;
+    ServicesForm->LogPauseButton->Enabled=true;    
     Application->ProcessMessages();
 }
 
@@ -458,33 +462,40 @@ static void services_clients(void* p, int clients)
 {
 }
 
-static void mail_log_msg(log_msg_t* msg)
+static int mail_lputs(void* p, int level, const char *str)
 {
+	static HANDLE mutex;
 	static FILE* LogStream;
 
-    if(msg==NULL) {
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
+    if(str==NULL) {
         if(LogStream!=NULL)
             fclose(LogStream);
         LogStream=NULL;
-        return;
+        ReleaseMutex(mutex);
+        return(0);
     }
 
     while(MaxLogLen && MailForm->Log->Lines->Count >= MaxLogLen)
         MailForm->Log->Lines->Delete(0);
 
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
+    AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(str).Trim();
     MailForm->Log->SelLength=0;
     MailForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, MailForm->Log->Color, MailForm->Log->Font));
+        MainForm->LogAttributes(level, MailForm->Log->Color, MailForm->Log->Font));
 	MailForm->Log->Lines->Add(Line);
-    SendMessage(MailForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+    if(!MailForm->LogPauseButton->Down)
+        SendMessage(MailForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 
     if(MainForm->MailLogFile && MainForm->MailStop->Enabled) {
         AnsiString LogFileName
             =AnsiString(MainForm->cfg.data_dir)
             +"LOGS\\MS"
-            +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
+            +Now().FormatString("mmddyy")
             +".LOG";
 
         if(!FileExists(LogFileName)) {
@@ -497,12 +508,15 @@ static void mail_log_msg(log_msg_t* msg)
             LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
-			Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
-		    Line+=AnsiString(msg->buf).Trim();
+			Line=Now().FormatString("hh:mm:ss")+"  ";
+		    Line+=AnsiString(str).Trim();
 	        Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
 	}
+
+    ReleaseMutex(mutex);
+    return(Line.Length());
 }
 
 static void mail_status(void* p, const char *str)
@@ -538,8 +552,7 @@ static void mail_terminated(void* p, int code)
 	MainForm->MailStart->Enabled=true;
 	MainForm->MailStop->Enabled=false;
     MainForm->MailRecycle->Enabled=false;
-    MainForm->MailPause->Enabled=false;
-    MainForm->MailPause->Checked=false;
+    MailForm->LogPauseButton->Enabled=false;
     Application->ProcessMessages();
 }
 static void mail_started(void* p)
@@ -548,8 +561,7 @@ static void mail_started(void* p)
 	MainForm->MailStart->Enabled=false;
     MainForm->MailStop->Enabled=true;
     MainForm->MailRecycle->Enabled=true;
-    MainForm->MailPause->Enabled=true;
-    MainForm->MailPause->Checked=false;    
+    MailForm->LogPauseButton->Enabled=true;   
     Application->ProcessMessages();
 }
 static void mail_start(void)
@@ -573,33 +585,41 @@ static void mail_start(void)
     Application->ProcessMessages();
 }
 
-static void ftp_log_msg(log_msg_t* msg)
+static int ftp_lputs(void* p, int level, const char *str)
 {
+	static HANDLE mutex;
 	static FILE* LogStream;
 
-    if(msg==NULL) {
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
+    if(str==NULL) {
         if(LogStream!=NULL)
             fclose(LogStream);
         LogStream=NULL;
-        return;
+        ReleaseMutex(mutex);
+        return(0);
     }
 
     while(MaxLogLen && FtpForm->Log->Lines->Count >= MaxLogLen)
         FtpForm->Log->Lines->Delete(0);
 
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
+    AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(str).Trim();
     FtpForm->Log->SelLength=0;
     FtpForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, FtpForm->Log->Color, FtpForm->Log->Font));
+        MainForm->LogAttributes(level, FtpForm->Log->Color, FtpForm->Log->Font));
 	FtpForm->Log->Lines->Add(Line);
-    SendMessage(FtpForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+
+    if(!FtpForm->LogPauseButton->Down)
+        SendMessage(FtpForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 
     if(MainForm->FtpLogFile && MainForm->FtpStop->Enabled) {
         AnsiString LogFileName
             =AnsiString(MainForm->cfg.data_dir)
             +"LOGS\\FS"
-            +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
+            +Now().FormatString("mmddyy")
             +".LOG";
 
         if(!FileExists(LogFileName)) {
@@ -613,12 +633,15 @@ static void ftp_log_msg(log_msg_t* msg)
             LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
-            Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
-            Line+=AnsiString(msg->buf).Trim();
+            Line=Now().FormatString("hh:mm:ss")+"  ";
+            Line+=AnsiString(str).Trim();
             Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
 	}
+
+    ReleaseMutex(mutex);
+    return(Line.Length());
 }
 
 static void ftp_status(void* p, const char *str)
@@ -654,8 +677,7 @@ static void ftp_terminated(void* p, int code)
 	MainForm->FtpStart->Enabled=true;
 	MainForm->FtpStop->Enabled=false;
     MainForm->FtpRecycle->Enabled=false;
-    MainForm->FtpPause->Enabled=false;
-    MainForm->FtpPause->Checked=false;
+    FtpForm->LogPauseButton->Enabled=false;
     Application->ProcessMessages();
 }
 static void ftp_started(void* p)
@@ -664,8 +686,7 @@ static void ftp_started(void* p)
 	MainForm->FtpStart->Enabled=false;
     MainForm->FtpStop->Enabled=true;
     MainForm->FtpRecycle->Enabled=true;
-    MainForm->FtpPause->Enabled=true;
-    MainForm->FtpPause->Checked=false;    
+    FtpForm->LogPauseButton->Enabled=true;
     Application->ProcessMessages();
 }
 static void ftp_start(void)
@@ -689,34 +710,42 @@ static void ftp_start(void)
     Application->ProcessMessages();
 }
 //---------------------------------------------------------------------------
-static void web_log_msg(log_msg_t* msg)
+static int web_lputs(void* p, int level, const char *str)
 {
+	static HANDLE mutex;
 	static FILE* LogStream;
 
-    if(msg==NULL) {
+    if(!mutex)
+    	mutex=CreateMutex(NULL,false,NULL);
+	WaitForSingleObject(mutex,INFINITE);
+
+    if(str==NULL) {
         if(LogStream!=NULL)
             fclose(LogStream);
         LogStream=NULL;
-        return;
+        ReleaseMutex(mutex);
+        return(0);
     }
 
     while(MaxLogLen && WebForm->Log->Lines->Count >= MaxLogLen)
         WebForm->Log->Lines->Delete(0);
 
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
+    AnsiString Line=Now().FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(str).Trim();
     WebForm->Log->SelLength=0;
     WebForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, WebForm->Log->Color, WebForm->Log->Font));
+        MainForm->LogAttributes(level, WebForm->Log->Color, WebForm->Log->Font));
 	WebForm->Log->Lines->Add(Line);
-    SendMessage(WebForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+
+    if(!WebForm->LogPauseButton->Down)
+        SendMessage(WebForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 
 #if 0
     if(MainForm->WebLogFile && MainForm->WebStop->Enabled) {
         AnsiString LogFileName
             =AnsiString(MainForm->cfg.data_dir)
             +"LOGS\\FS"
-            +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
+            +Now().FormatString("mmddyy")
             +".LOG";
 
         if(!FileExists(LogFileName)) {
@@ -730,13 +759,15 @@ static void web_log_msg(log_msg_t* msg)
             LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
-            Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
+            Line=Now().FormatString("hh:mm:ss")+"  ";
             Line+=AnsiString(str).Trim();
             Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
 	}
 #endif
+    ReleaseMutex(mutex);
+    return(Line.Length());
 }
 
 static void web_status(void* p, const char *str)
@@ -772,8 +803,7 @@ static void web_terminated(void* p, int code)
 	MainForm->WebStart->Enabled=true;
 	MainForm->WebStop->Enabled=false;
     MainForm->WebRecycle->Enabled=false;
-    MainForm->WebPause->Enabled=false;  // caused exception
-    MainForm->WebPause->Checked=false;
+    WebForm->LogPauseButton->Enabled=false;
     Application->ProcessMessages();
 }
 static void web_started(void* p)
@@ -782,8 +812,7 @@ static void web_started(void* p)
 	MainForm->WebStart->Enabled=false;
     MainForm->WebStop->Enabled=true;
     MainForm->WebRecycle->Enabled=true;
-    MainForm->WebPause->Enabled=true;
-    MainForm->WebPause->Checked=false;    
+    WebForm->LogPauseButton->Enabled=true;    
     Application->ProcessMessages();
 }
 static void web_start(void)
@@ -819,21 +848,21 @@ static void recycle(void* cbdata)
 	services_startup_t* services=NULL;
 
     SAFEPRINTF(str,"Reading %s",MainForm->ini_file);
-	if(cbdata==(void*)&bbs_log_list) {
+	if(cbdata==(void*)&MainForm->bbs_startup) {
 		bbs=&MainForm->bbs_startup;
-        lputs(cbdata,LOG_INFO,str);
-	} else if(cbdata==(void*)&ftp_log_list) {
+        bbs_lputs(cbdata,LOG_INFO,str);
+	} else if(cbdata==(void*)&MainForm->ftp_startup) {
 		ftp=&MainForm->ftp_startup;
-        lputs(cbdata,LOG_INFO,str);
-    } else if(cbdata==(void*)&web_log_list) {
+        ftp_lputs(cbdata,LOG_INFO,str);
+    } else if(cbdata==(void*)&MainForm->web_startup) {
 		web=&MainForm->web_startup;
-        lputs(cbdata,LOG_INFO,str);
-    } else if(cbdata==(void*)&mail_log_list) {
+        web_lputs(cbdata,LOG_INFO,str);
+    } else if(cbdata==(void*)&MainForm->mail_startup) {
 		mail=&MainForm->mail_startup;
-        lputs(cbdata,LOG_INFO,str);
-	} else if(cbdata==(void*)&services_log_list) {
+        mail_lputs(cbdata,LOG_INFO,str);
+	} else if(cbdata==(void*)&MainForm->services_startup) {
 		services=&MainForm->services_startup;
-        lputs(cbdata,LOG_INFO,str);
+        service_lputs(cbdata,LOG_INFO,str);
     }
 
     fp=fopen(MainForm->ini_file,"r");
@@ -878,8 +907,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
         
     memset(&bbs_startup,0,sizeof(bbs_startup));
     bbs_startup.size=sizeof(bbs_startup);
-    bbs_startup.cbdata=&bbs_log_list;
-    bbs_startup.event_cbdata=&event_log_list;    
+    bbs_startup.cbdata=&bbs_startup;
     bbs_startup.first_node=1;
     bbs_startup.last_node=4;
 	bbs_startup.options=BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE;
@@ -887,8 +915,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_startup.telnet_interface=INADDR_ANY;
     bbs_startup.rlogin_port=513;
     bbs_startup.rlogin_interface=INADDR_ANY;
-	bbs_startup.lputs=lputs;
-    bbs_startup.event_lputs=lputs;
+	bbs_startup.lputs=bbs_lputs;
     bbs_startup.status=bbs_status;
     bbs_startup.clients=bbs_clients;
     bbs_startup.started=bbs_started;
@@ -897,15 +924,16 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_startup.thread_up=thread_up;
     bbs_startup.client_on=client_on;
     bbs_startup.socket_open=socket_open;
+    bbs_startup.event_lputs=event_lputs;
 
     memset(&mail_startup,0,sizeof(mail_startup));
     mail_startup.size=sizeof(mail_startup);
-    mail_startup.cbdata=&mail_log_list;
+    mail_startup.cbdata=&mail_startup;
     mail_startup.smtp_port=IPPORT_SMTP;
     mail_startup.relay_port=IPPORT_SMTP;
     mail_startup.pop3_port=110;
     mail_startup.interface_addr=INADDR_ANY;
-	mail_startup.lputs=lputs;
+	mail_startup.lputs=mail_lputs;
     mail_startup.status=mail_status;
     mail_startup.clients=mail_clients;
     mail_startup.started=mail_started;
@@ -923,10 +951,10 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
 
     memset(&ftp_startup,0,sizeof(ftp_startup));
     ftp_startup.size=sizeof(ftp_startup);
-    ftp_startup.cbdata=&ftp_log_list;
+    ftp_startup.cbdata=&ftp_startup;
     ftp_startup.port=IPPORT_FTP;
     ftp_startup.interface_addr=INADDR_ANY;
-	ftp_startup.lputs=lputs;
+	ftp_startup.lputs=ftp_lputs;
     ftp_startup.status=ftp_status;
     ftp_startup.clients=ftp_clients;
     ftp_startup.started=ftp_started;
@@ -944,8 +972,8 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
 
     memset(&web_startup,0,sizeof(web_startup));
     web_startup.size=sizeof(web_startup);
-    web_startup.cbdata=&web_log_list;
-	web_startup.lputs=lputs;
+    web_startup.cbdata=&web_startup;
+	web_startup.lputs=web_lputs;
     web_startup.status=web_status;
     web_startup.clients=web_clients;
     web_startup.started=web_started;
@@ -957,9 +985,9 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
 
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
-    services_startup.cbdata=&services_log_list;
+    services_startup.cbdata=&services_startup;
     services_startup.interface_addr=INADDR_ANY;
-    services_startup.lputs=lputs;
+    services_startup.lputs=service_lputs;
     services_startup.status=services_status;
     services_startup.clients=services_clients;
     services_startup.started=services_started;
@@ -1027,13 +1055,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
                 LogFont[i]->Style = TFontStyles()<< fsBold;
         }
     }
-
-    listInit(&bbs_log_list, LINK_LIST_MUTEX);
-    listInit(&event_log_list, LINK_LIST_MUTEX);    
-    listInit(&ftp_log_list, LINK_LIST_MUTEX);
-    listInit(&web_log_list, LINK_LIST_MUTEX);
-    listInit(&mail_log_list, LINK_LIST_MUTEX);
-    listInit(&services_log_list, LINK_LIST_MUTEX);
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::FileExitMenuItemClick(TObject *Sender)
@@ -1161,7 +1182,6 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
     Application->ProcessMessages();
     
 	LogTimer->Enabled=false;
-
 	ServiceStatusTimer->Enabled=false;
 	NodeForm->Timer->Enabled=false;
 	ClientForm->Timer->Enabled=false;
@@ -2392,11 +2412,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         LowerLeftPageControl->ActivePageIndex=i;
     LowerLeftPageControl->ActivePageIndex=0;
 
-    /* Open Log Mailslots */
-    LogTimerTick(Sender);
-
-    /* Query service config lengths */
-	ServiceStatusTimerTick(Sender);
+    LogTimerTick(Sender);			/* Open Log Mailslots */
+	ServiceStatusTimerTick(Sender);	/* Query service config lengths */
 
     if(SysAutoStart)
        TelnetStartExecute(Sender);
@@ -2421,7 +2438,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
     UpTimer->Enabled=true; /* Start updating the status bar */
     LogTimer->Enabled=true;
-                
     ServiceStatusTimer->Enabled=true;
 
     TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
@@ -3145,8 +3161,8 @@ void __fastcall TMainForm::ViewLogClick(TObject *Sender)
         return;
 
     /* Close Mail/FTP logs */
-    mail_log_msg(NULL);
-    ftp_log_msg(NULL);
+    mail_lputs(NULL,0,NULL);
+    ftp_lputs(NULL,0,NULL);
 
     sprintf(filename,"%sLOGS\\%s%02d%02d%02d.LOG"
     	,MainForm->cfg.logs_dir
@@ -3572,7 +3588,7 @@ void __fastcall TMainForm::BBSEditFileClick(TObject *Sender)
     delete dlg;
 }
 //---------------------------------------------------------------------------
-bool GetServerLogLine(HANDLE& log, const char* name, log_msg_t* msg)
+bool GetServerLogLine(HANDLE& log, const char* name, char* line, size_t len)
 {
 	char fname[256];
 
@@ -3599,12 +3615,14 @@ bool GetServerLogLine(HANDLE& log, const char* name, log_msg_t* msg)
     DWORD rd=0;
     if(!ReadFile(
         log,				// handle of file to read
-        msg,		        // pointer to buffer that receives data
-        sizeof(*msg),	   	// number of bytes to read
+        line,		        // pointer to buffer that receives data
+        len-1,				// number of bytes to read
         &rd,				// pointer to number of bytes read
         NULL				// pointer to structure for data
         ) || !rd)
 		return(false);
+
+    line[rd]=0;	/* 0-terminate */
 
 	return(true);
 }
@@ -3612,64 +3630,28 @@ bool GetServerLogLine(HANDLE& log, const char* name, log_msg_t* msg)
 
 void __fastcall TMainForm::LogTimerTick(TObject *Sender)
 {
-    log_msg_t   msg;
-    log_msg_t*  pmsg;
+	char line[1024];
 
-    if(!TelnetPause->Checked) {
-        while(GetServerLogLine(bbs_log,NTSVC_NAME_BBS,&msg))
-            bbs_log_msg(&msg);
+	while(GetServerLogLine(bbs_log,NTSVC_NAME_BBS,line,sizeof(line)))
+    	bbs_lputs(NULL,LOG_INFO,line);
 
-        while(GetServerLogLine(event_log,NTSVC_NAME_EVENT,&msg))
-            event_log_msg(&msg);
+	while(GetServerLogLine(event_log,NTSVC_NAME_EVENT,line,sizeof(line)))
+    	event_lputs(LOG_INFO,line);
 
-        while((pmsg=(log_msg_t*)listShiftNode(&bbs_log_list)) != NULL) {
-            bbs_log_msg(pmsg);
-            free(pmsg);
-        }
+	while(GetServerLogLine(ftp_log,NTSVC_NAME_FTP,line,sizeof(line)))
+    	ftp_lputs(NULL,LOG_INFO,line);
 
-        while((pmsg=(log_msg_t*)listShiftNode(&event_log_list)) != NULL) {
-            event_log_msg(pmsg);
-            free(pmsg);
-        }
-    }
+	while(GetServerLogLine(web_log,NTSVC_NAME_WEB,line,sizeof(line)))
+    	web_lputs(NULL,LOG_INFO,line);
 
-    if(!FtpPause->Checked) {
-        while(GetServerLogLine(ftp_log,NTSVC_NAME_FTP,&msg))
-            ftp_log_msg(&msg);
+	while(GetServerLogLine(mail_log,NTSVC_NAME_MAIL,line,sizeof(line)))
+    	mail_lputs(NULL,LOG_INFO,line);
 
-        while((pmsg=(log_msg_t*)listShiftNode(&ftp_log_list)) != NULL) {
-            ftp_log_msg(pmsg);
-            free(pmsg);
-        }
-    }
-    if(!MailPause->Checked) {
-        while(GetServerLogLine(mail_log,NTSVC_NAME_MAIL,&msg))
-            mail_log_msg(&msg);
+	while(GetServerLogLine(services_log,NTSVC_NAME_SERVICES,line,sizeof(line)))
+    	service_lputs(NULL,LOG_INFO,line);
 
-        while((pmsg=(log_msg_t*)listShiftNode(&mail_log_list)) != NULL) {
-            mail_log_msg(pmsg);
-            free(pmsg);
-        }
-    }
-    if(!WebPause->Checked) {
-        while(GetServerLogLine(web_log,NTSVC_NAME_WEB,&msg))
-            web_log_msg(&msg);
-
-        while((pmsg=(log_msg_t*)listShiftNode(&web_log_list)) != NULL) {
-            web_log_msg(pmsg);
-            free(pmsg);
-        }
-    }
-    if(!ServicesPause->Checked) {
-        while(GetServerLogLine(services_log,NTSVC_NAME_SERVICES,&msg))
-            services_log_msg(&msg);
-
-        while((pmsg=(log_msg_t*)listShiftNode(&services_log_list)) != NULL) {
-            services_log_msg(pmsg);
-            free(pmsg);
-        }
-    }
 }
+
 //---------------------------------------------------------------------------
 void CheckServiceStatus(
 	 SC_HANDLE svc
@@ -3852,33 +3834,5 @@ TFont* __fastcall TMainForm::LogAttributes(int log_level, TColor Color, TFont* F
     return LogFont[log_level];
 }
 //---------------------------------------------------------------------------
-void __fastcall TMainForm::TelnetPauseExecute(TObject *Sender)
-{
-    ;
-}
-//---------------------------------------------------------------------------
 
-void __fastcall TMainForm::MailPauseExecute(TObject *Sender)
-{
-    ;    
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TMainForm::FtpPauseExecute(TObject *Sender)
-{
-    ;    
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TMainForm::ServicesPauseExecute(TObject *Sender)
-{
-    ;    
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TMainForm::WebPauseExecute(TObject *Sender)
-{
-    ;    
-}
-//---------------------------------------------------------------------------
 
