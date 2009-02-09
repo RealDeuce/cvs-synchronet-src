@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.474 2008/01/31 18:34:05 deuce Exp $ */
+/* $Id: websrvr.c,v 1.502 2009/02/01 21:39:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,6 +45,8 @@
  *      This would allow people to run apache and Synchronet as the same site.
  */
 
+//#define ONE_JS_RUNTIME
+
 /* Headers for CGI stuff */
 #if defined(__unix__)
 	#include <sys/wait.h>		/* waitpid() */
@@ -65,6 +67,8 @@
 #include "websrvr.h"
 #include "base64.h"
 #include "md5.h"
+#include "js_rtpool.h"
+#include "js_request.h"
 
 static const char*	server_name="Synchronet Web Server";
 static const char*	newline="\r\n";
@@ -100,6 +104,7 @@ static BOOL		terminate_server=FALSE;
 static BOOL		terminate_http_logging_thread=FALSE;
 static uint		thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
+static SOCKET	server_socket6=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
@@ -228,6 +233,8 @@ typedef struct  {
 typedef struct  {
 	SOCKET			socket;
 	SOCKADDR_IN		addr;
+	SOCKET			socket6;
+	SOCKADDR_IN		addr6;
 	http_request_t	req;
 	char			host_ip[64];
 	char			host_name[128];	/* Resolved remote host */
@@ -473,18 +480,27 @@ time_gm(struct tm *tm)
         return (t < 0 ? (time_t) -1 : t);
 }
 
-static int lprintf(int level, char *fmt, ...)
+static int lprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
-
-    if(startup==NULL || startup->lputs==NULL)
-        return(0);
 
 	va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
+
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
+
+    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
+        return(0);
+
+#if defined(_WIN32)
+	if(IsBadCodePtr((FARPROC)startup->lputs))
+		return(0);
+#endif
+
     return(startup->lputs(startup->cbdata,level,sbuf));
 }
 
@@ -529,6 +545,10 @@ static int sock_sendbuf(SOCKET *sock, const char *buf, size_t len, BOOL *failed)
 						lprintf(LOG_NOTICE,"%04d Connection reset by peer on send",*sock);
 					else if(ERROR_VALUE==ECONNABORTED) 
 						lprintf(LOG_NOTICE,"%04d Connection aborted by peer on send",*sock);
+#ifdef EPIPE
+					else if(ERROR_VALUE==EPIPE) 
+						lprintf(LOG_NOTICE,"%04d Unable to send to peer",*sock);
+#endif
 					else
 						lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",*sock,ERROR_VALUE);
 					if(failed)
@@ -565,12 +585,12 @@ static BOOL winsock_startup(void)
 	int		status;             /* Status Code */
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
-		lprintf(LOG_INFO,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
+		lprintf(LOG_DEBUG,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
 		WSAInitialized=TRUE;
 		return (TRUE);
 	}
 
-    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_CRIT,"!WinSock startup ERROR %d", status);
 	return (FALSE);
 }
 
@@ -900,7 +920,9 @@ static void close_request(http_session_t * session)
 		session->finished=TRUE;
 
 	if(session->js_cx!=NULL && (session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)) {
+		JS_BEGINREQUEST(session->js_cx);
 		JS_GC(session->js_cx);
+		JS_ENDREQUEST(session->js_cx);
 	}
 	if(session->subscan!=NULL)
 		putmsgptrs(&scfg, session->user.number, session->subscan);
@@ -1365,7 +1387,8 @@ void http_logoff(http_session_t* session, SOCKET socket, int line)
 		,socket,session->user.number, line);
 
 	SAFECOPY(session->username,unknown);
-	logoutuserdat(&scfg, &session->user, time(NULL), session->logon_time);
+	if(!logoutuserdat(&scfg, &session->user, time(NULL), session->logon_time))
+		lprintf(LOG_ERR,"%04d !ERROR in logoutuserdat", socket);
 	memset(&session->user,0,sizeof(session->user));
 	session->last_user_num=session->user.number;
 }
@@ -1375,10 +1398,12 @@ BOOL http_checkuser(http_session_t * session)
 	if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 		if(session->last_js_user_num==session->user.number)
 			return(TRUE);
-		lprintf(LOG_INFO,"%04d JavaScript: Initializing User Objects",session->socket);
+		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing User Objects",session->socket);
+		JS_BEGINREQUEST(session->js_cx);
 		if(session->user.number>0) {
 			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
+				JS_ENDREQUEST(session->js_cx);
 				lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
 				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
@@ -1387,11 +1412,13 @@ BOOL http_checkuser(http_session_t * session)
 		else {
 			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
+				JS_ENDREQUEST(session->js_cx);
 				lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript User Objects",session->socket);
 				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
 			}
 		}
+		JS_ENDREQUEST(session->js_cx);
 		session->last_js_user_num=session->user.number;
 	}
 	return(TRUE);
@@ -1404,6 +1431,7 @@ static void calculate_digest(http_session_t * session, char *ha1, char *ha2, uns
 	MD5_open(&ctx);
 	MD5_digest(&ctx, ha1, strlen(ha1));
 	MD5_digest(&ctx, ":", 1);
+	/* exception on next line (session->req.auth.nonce==NULL) */
 	MD5_digest(&ctx, session->req.auth.nonce, strlen(session->req.auth.nonce));
 	MD5_digest(&ctx, ":", 1);
 
@@ -1683,16 +1711,13 @@ static BOOL check_ars(http_session_t * session)
 	return(FALSE);
 }
 
-static named_string_t** read_ini_list(char* fname, char* section, char* desc
+static named_string_t** read_ini_list(char* path, char* section, char* desc
 									  ,named_string_t** list)
 {
-	char	path[MAX_PATH+1];
 	size_t	i;
 	FILE*	fp;
 
 	list=iniFreeNamedStringList(list);
-
-	iniFileName(path,sizeof(path),scfg.ctrl_dir,fname);
 
 	if((fp=iniOpenFile(path, /* create? */FALSE))!=NULL) {
 		list=iniReadNamedStringList(fp,section);
@@ -1732,7 +1757,7 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 				return(-1);
 			default:
 				/* Timeout */
-				lprintf(LOG_WARNING,"%04d Session timeout due to inactivity (%d seconds)",session->socket,startup->max_inactivity);
+				lprintf(LOG_NOTICE,"%04d Session timeout due to inactivity (%d seconds)",session->socket,startup->max_inactivity);
 				return(-1);
 		}
 
@@ -2250,6 +2275,27 @@ static BOOL parse_headers(http_session_t * session)
 							}
 							if(session->req.auth.digest_uri==NULL)
 								session->req.auth.digest_uri=strdup(session->req.request_line);
+							/* Validate that we have the required values... */
+							switch(session->req.auth.qop_value) {
+								case QOP_NONE:
+									if(session->req.auth.realm==NULL
+											|| session->req.auth.nonce==NULL
+											|| session->req.auth.digest_uri==NULL)
+										send_error(session,"400 Bad Request");
+									break;
+								case QOP_AUTH:
+								case QOP_AUTH_INT:
+									if(session->req.auth.realm==NULL
+											|| session->req.auth.nonce==NULL
+											|| session->req.auth.nonce_count==NULL
+											|| session->req.auth.cnonce==NULL
+											|| session->req.auth.digest_uri==NULL)
+										send_error(session,"400 Bad Request");
+									break;
+								default:
+									send_error(session,"400 Bad Request");
+									break;
+							}
 						}
 					}
 					break;
@@ -2392,6 +2438,8 @@ static BOOL parse_js_headers(http_session_t * session)
 
 						p=value;
 						while((key=strtok_r(p,"=",&last))!=NULL) {
+							while(isspace(*key))
+								key++;
 							p=NULL;
 							if((val=strtok_r(p,";\t\n\v\f\r ",&last))!=NULL) {	/* Whitespace */
 								js_add_cookieval(session,key,val);
@@ -2443,7 +2491,7 @@ static int is_dynamic_req(http_session_t* session)
 	else if(stricmp(ext,startup->js_ext)==0)
 		i=IS_JS;
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT) && i)  {
-		lprintf(LOG_INFO,"%04d Setting up JavaScript support", session->socket);
+		lprintf(LOG_DEBUG,"%04d Setting up JavaScript support", session->socket);
 		if(!js_setup(session)) {
 			lprintf(LOG_ERR,"%04d !ERROR setting up JavaScript support", session->socket);
 			send_error(session,error_500);
@@ -2725,7 +2773,6 @@ static BOOL check_extra_path(http_session_t * session)
 	struct	stat sb;
 	int		i;
 	char	*end;
-	int	use_epath=0;
 
 	epath[0]=0;
 	epath[1]=0;
@@ -2745,8 +2792,7 @@ static BOOL check_extra_path(http_session_t * session)
 
 			/* Check if this contains an index */
 			end=strchr(rpath,0);
-			if(use_epath || session->req.path_info_index || strchr(epath+1,'/')!=NULL) {
-				use_epath=1;
+			if(session->req.path_info_index) {
 				if(isdir(rpath) && !isdir(session->req.physical_path)) {
 					for(i=0; startup->index_file_name!=NULL && startup->index_file_name[i]!=NULL ;i++)  {
 						*end=0;
@@ -2908,7 +2954,7 @@ static BOOL check_request(http_session_t * session)
 				send_error(session,"403 Forbidden");
 				return(FALSE);
 			}
-			/* Read webctrl.ars file */
+			/* Read webctrl.ini file */
 			if((file=fopen(str,"r"))!=NULL) {
 				/* FREE()d in this block */
 				specs=iniReadSectionList(file,NULL);
@@ -3834,6 +3880,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	char*	warning;
 	http_session_t* session;
+	int		log_level;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return;
@@ -3860,10 +3907,13 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 			warning="strict warning";
 		else
 			warning="warning";
-	} else
+		log_level=LOG_WARNING;
+	} else {
+		log_level=LOG_ERR;
 		warning="";
+	}
 
-	lprintf(LOG_ERR,"%04d !JavaScript %s%s%s: %s",session->socket,warning,file,line,message);
+	lprintf(log_level,"%04d !JavaScript %s%s%s: %s",session->socket,warning,file,line,message);
 	if(session->req.fp!=NULL)
 		fprintf(session->req.fp,"!JavaScript %s%s%s: %s",warning,file,line,message);
 }
@@ -3884,17 +3934,23 @@ js_writefunc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval,
     uintN		i;
     JSString*	str=NULL;
 	http_session_t* session;
+	jsrefcount	rc;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(session->req.fp==NULL)
+	if(session->req.fp==NULL) {
 		return(JS_FALSE);
+	}
 
 	if((!session->req.prev_write) && (!session->req.sent_headers)) {
 		if(session->http_ver>=HTTP_1_1 && session->req.keep_alive) {
-			if(!ssjs_send_headers(session,TRUE))
+			rc=JS_SUSPENDREQUEST(cx);
+			if(!ssjs_send_headers(session,TRUE)) {
+				JS_RESUMEREQUEST(cx, rc);
 				return(JS_FALSE);
+			}
+			JS_RESUMEREQUEST(cx, rc);
 		}
 		else {
 			/* "Fast Mode" requested? */
@@ -3905,8 +3961,12 @@ js_writefunc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval,
 			JS_GetProperty(cx, reply, "fast", &val);
 			if(JSVAL_IS_BOOLEAN(val) && JSVAL_TO_BOOLEAN(val)) {
 				session->req.keep_alive=FALSE;
-				if(!ssjs_send_headers(session,FALSE))
+				rc=JS_SUSPENDREQUEST(cx);
+				if(!ssjs_send_headers(session,FALSE)) {
+					JS_RESUMEREQUEST(cx, rc);
 					return(JS_FALSE);
+				}
+				JS_RESUMEREQUEST(cx, rc);
 			}
 		}
 	}
@@ -3918,9 +3978,11 @@ js_writefunc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval,
 			continue;
 		if(JS_GetStringLength(str)<1 && !writeln)
 			continue;
+		rc=JS_SUSPENDREQUEST(cx);
 		js_writebuf(session,JS_GetStringBytes(str), JS_GetStringLength(str));
 		if(writeln)
 			js_writebuf(session, newline, 2);
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
@@ -4016,6 +4078,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	js_str;
 	http_session_t* session;
+	jsrefcount	rc;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -4034,7 +4097,9 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		strcat(str," ");
 	}
 
+	rc=JS_SUSPENDREQUEST(cx);
 	lprintf(level,"%04d %s",session->socket,str);
+	JS_RESUMEREQUEST(cx, rc);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 
@@ -4049,6 +4114,7 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	user_t		user;
 	JSString*	js_str;
 	http_session_t*	session;
+	jsrefcount	rc;
 
 	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 
@@ -4062,6 +4128,8 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((p=JS_GetStringBytes(js_str))==NULL) 
 		return(JS_FALSE);
 
+	rc=JS_SUSPENDREQUEST(cx);
+
 	memset(&user,0,sizeof(user));
 
 	if(isdigit(*p))
@@ -4072,15 +4140,18 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(getuserdat(&scfg,&user)!=0) {
 		lprintf(LOG_NOTICE,"%04d !USER NOT FOUND: '%s'"
 			,session->socket,p);
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	if(user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d !DELETED OR INACTIVE USER #%d: %s"
 			,session->socket,user.number,p);
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
+	JS_RESUMEREQUEST(cx, rc);
 	/* Password */
 	if(user.pass[0]) {
 		if((js_str=JS_ValueToString(cx, argv[1]))==NULL) 
@@ -4090,8 +4161,10 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 
 		if(stricmp(user.pass,p)) { /* Wrong password */
+			rc=JS_SUSPENDREQUEST(cx);
 			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: %s"
 				,session->socket,user.alias);
+			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
 	}
@@ -4099,12 +4172,16 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>2)
 		JS_ValueToBoolean(cx,argv[2],&inc_logons);
 
+	rc=JS_SUSPENDREQUEST(cx);
+
 	if(inc_logons) {
 		user.logons++;
 		user.ltoday++;
 	}
 
 	http_logon(session, &user);
+
+	JS_RESUMEREQUEST(cx, rc);
 
 	/* user-specific objects */
 	if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
@@ -4330,19 +4407,20 @@ js_initcx(http_session_t *session)
 {
 	JSContext*	js_cx;
 
-	lprintf(LOG_INFO,"%04d JavaScript: Initializing context (stack: %lu bytes)"
+	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)"
 		,session->socket,startup->js.cx_stack);
 
     if((js_cx = JS_NewContext(session->js_runtime, startup->js.cx_stack))==NULL)
 		return(NULL);
+	JS_BEGINREQUEST(js_cx);
 
-	lprintf(LOG_INFO,"%04d JavaScript: Context created",session->socket);
+	lprintf(LOG_DEBUG,"%04d JavaScript: Context created",session->socket);
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
 
-	lprintf(LOG_INFO,"%04d JavaScript: Creating Global Objects and Classes",session->socket);
+	lprintf(LOG_DEBUG,"%04d JavaScript: Creating Global Objects and Classes",session->socket);
 	if((session->js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL
 									,NULL						/* global */
 									,uptime						/* system */
@@ -4354,6 +4432,7 @@ js_initcx(http_session_t *session)
 									,&js_server_props			/* server */
 		))==NULL
 		|| !JS_DefineFunctions(js_cx, session->js_glob, js_global_functions)) {
+		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
 	}
@@ -4367,10 +4446,10 @@ static BOOL js_setup(http_session_t* session)
 
 #ifndef ONE_JS_RUNTIME
 	if(session->js_runtime == NULL) {
-		lprintf(LOG_INFO,"%04d JavaScript: Creating runtime: %lu bytes"
+		lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
 			,session->socket,startup->js.max_bytes);
 
-		if((session->js_runtime=JS_NewRuntime(startup->js.max_bytes))==NULL) {
+		if((session->js_runtime=jsrt_GetNew(startup->js.max_bytes, 5000, __FILE__, __LINE__))==NULL) {
 			lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",session->socket);
 			return(FALSE);
 		}
@@ -4378,6 +4457,7 @@ static BOOL js_setup(http_session_t* session)
 #endif
 
 	if(session->js_cx==NULL) {	/* Context not yet created, create it now */
+		/* js_initcx() begins a context */
 		if(((session->js_cx=js_initcx(session))==NULL)) {
 			lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",session->socket);
 			return(FALSE);
@@ -4397,20 +4477,25 @@ static BOOL js_setup(http_session_t* session)
 			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
 	}
+	else
+		JS_BEGINREQUEST(session->js_cx);
 
-	lprintf(LOG_INFO,"%04d JavaScript: Initializing HttpRequest object",session->socket);
+	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing HttpRequest object",session->socket);
 	if(js_CreateHttpRequestObject(session->js_cx, session->js_glob, session)==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript HttpRequest object",session->socket);
+		JS_ENDREQUEST(session->js_cx);
 		return(FALSE);
 	}
 
-	lprintf(LOG_INFO,"%04d JavaScript: Initializing HttpReply object",session->socket);
+	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing HttpReply object",session->socket);
 	if(js_CreateHttpReplyObject(session->js_cx, session->js_glob, session)==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript HttpReply object",session->socket);
+		JS_ENDREQUEST(session->js_cx);
 		return(FALSE);
 	}
 
 	JS_SetContextPrivate(session->js_cx, session);
+	JS_ENDREQUEST(session->js_cx);
 
 	return(TRUE);
 }
@@ -4425,6 +4510,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSString*	js_str;
 	char		str[MAX_REQUEST_LINE+1];
 
+	JS_BEGINREQUEST(session->js_cx);
 	JS_GetProperty(session->js_cx,session->js_glob,"http_reply",&val);
 	reply = JSVAL_TO_OBJECT(val);
 	JS_GetProperty(session->js_cx,reply,"status",&val);
@@ -4443,6 +4529,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 		}
 		JS_ClearScope(session->js_cx, headers);
 	}
+	JS_ENDREQUEST(session->js_cx);
 	return(send_headers(session,session->req.status,chunked));
 }
 
@@ -4470,6 +4557,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	/* FREE()d in close_request() */
 	session->req.cleanup_file[CLEANUP_SSJS_TMP_FILE]=strdup(path);
 
+	JS_BEGINREQUEST(session->js_cx);
 	js_add_request_prop(session,"real_path",session->req.physical_path);
 	js_add_request_prop(session,"virtual_path",session->req.virtual_path);
 	js_add_request_prop(session,"ars",session->req.ars);
@@ -4500,6 +4588,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 			,script))==NULL) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)"
 				,session->socket,script);
+			JS_ENDREQUEST(session->js_cx);
 			return(FALSE);
 		}
 
@@ -4528,6 +4617,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	if(js_script!=NULL) 
 		JS_DestroyScript(session->js_cx, js_script);
 	session->req.dynamic=IS_SSJS;
+	JS_ENDREQUEST(session->js_cx);
 	
 	return(retval);
 }
@@ -4671,6 +4761,7 @@ void http_output_thread(void *arg)
 	int		i;
 	unsigned mss=OUTBUF_LEN;
 
+	SetThreadName("HTTP Output");
 	obuf=&(session->outbuf);
 	/* Destroyed at end of function */
 	if((i=pthread_mutex_init(&session->outbuf_write,NULL))!=0) {
@@ -4692,11 +4783,13 @@ void http_output_thread(void *arg)
 			/* Check for sanity... */
 			if(i>100) {
 				obuf->highwater_mark=i-12;
-				lprintf(LOG_DEBUG,"Autotuning outbuf highwater mark to %d based on MSS",i);
+				lprintf(LOG_DEBUG,"%04d Autotuning outbuf highwater mark to %d based on MSS"
+					,session->socket,i);
 				mss=obuf->highwater_mark;
 				if(mss>OUTBUF_LEN) {
 					mss=OUTBUF_LEN;
-					lprintf(LOG_DEBUG,"MSS (%d) is higher than OUTBUF_LEN (%d)",i,OUTBUF_LEN);
+					lprintf(LOG_DEBUG,"%04d MSS (%d) is higher than OUTBUF_LEN (%d)"
+						,session->socket,i,OUTBUF_LEN);
 				}
 			}
 		}
@@ -4788,6 +4881,7 @@ void http_session_thread(void* arg)
 	int				loop_count;
 	BOOL			init_error;
 
+	SetThreadName("HTTP Session");
 	pthread_mutex_lock(&((http_session_t*)arg)->struct_filled);
 	pthread_mutex_unlock(&((http_session_t*)arg)->struct_filled);
 	pthread_mutex_destroy(&((http_session_t*)arg)->struct_filled);
@@ -4973,15 +5067,15 @@ void http_session_thread(void* arg)
 	http_logoff(&session,socket,__LINE__);
 
 	if(session.js_cx!=NULL) {
-		lprintf(LOG_INFO,"%04d JavaScript: Destroying context",socket);
+		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying context",socket);
 		JS_DestroyContext(session.js_cx);	/* Free Context */
 		session.js_cx=NULL;
 	}
 
 #ifndef ONE_JS_RUNTIME
 	if(session.js_runtime!=NULL) {
-		lprintf(LOG_INFO,"%04d JavaScript: Destroying runtime",socket);
-		JS_DestroyRuntime(session.js_runtime);
+		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying runtime",socket);
+		jsrt_Release(session.js_runtime);
 		session.js_runtime=NULL;
 	}
 #endif
@@ -5062,7 +5156,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.474 $", "%*s %s", revision);
+	sscanf("$Revision: 1.502 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5092,12 +5186,13 @@ void http_logging_thread(void* arg)
 	if(!base[0])
 		SAFEPRINTF(base,"%slogs/http-",scfg.logs_dir);
 
+	SetThreadName("HTTP Logging");
 	filename[0]=0;
 	newfilename[0]=0;
 
 	thread_up(TRUE /* setuid */);
 
-	lprintf(LOG_DEBUG,"%04d http logging thread started", server_socket);
+	lprintf(LOG_INFO,"%04d HTTP logging thread started", server_socket);
 
 	for(;;) {
 		struct log_data *ld;
@@ -5118,7 +5213,7 @@ void http_logging_thread(void* arg)
 		if(ld==NULL) {
 			if(terminate_http_logging_thread)
 				break;
-			lprintf(LOG_ERR,"%04d http logging thread received NULL linked list log entry"
+			lprintf(LOG_ERR,"%04d HTTP logging thread received NULL linked list log entry"
 				,server_socket);
 			continue;
 		}
@@ -5134,7 +5229,7 @@ void http_logging_thread(void* arg)
 				fclose(logfile);
 			SAFECOPY(filename,newfilename);
 			logfile=fopen(filename,"ab");
-			lprintf(LOG_INFO,"%04d http logfile is now: %s",server_socket,filename);
+			lprintf(LOG_INFO,"%04d HTTP logfile is now: %s",server_socket,filename);
 		}
 		if(logfile!=NULL) {
 			if(ld->status) {
@@ -5162,7 +5257,7 @@ void http_logging_thread(void* arg)
 		}
 		else {
 			logfile=fopen(filename,"ab");
-			lprintf(LOG_ERR,"%04d http logfile %s was not open!",server_socket,filename);
+			lprintf(LOG_ERR,"%04d HTTP logfile %s was not open!",server_socket,filename);
 		}
 		FREE_AND_NULL(ld->hostname);
 		FREE_AND_NULL(ld->ident);
@@ -5178,7 +5273,7 @@ void http_logging_thread(void* arg)
 		logfile=NULL;
 	}
 	thread_down();
-	lprintf(LOG_DEBUG,"%04d http logging thread terminated",server_socket);
+	lprintf(LOG_INFO,"%04d HTTP logging thread terminated",server_socket);
 
 	http_logging_thread_running=FALSE;
 }
@@ -5192,6 +5287,8 @@ void DLLCALL web_server(void* arg)
 	char			host_ip[32];
 	char			path[MAX_PATH+1];
 	char			logstr[256];
+	char			mime_types_ini[MAX_PATH+1];
+	char			web_handler_ini[MAX_PATH+1];
 	SOCKADDR_IN		server_addr={0};
 	SOCKADDR_IN		client_addr;
 	socklen_t		client_addr_len;
@@ -5213,6 +5310,7 @@ void DLLCALL web_server(void* arg)
 
 	startup=(web_startup_t*)arg;
 
+	SetThreadName("Web Server");
 	web_ver();	/* get CVS revision */
 
     if(startup==NULL) {
@@ -5310,7 +5408,7 @@ void DLLCALL web_server(void* arg)
 
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
-			,CTIME_R(&t,logstr),startup->options);
+			,ctime_r(&t,logstr),startup->options);
 
 		if(chdir(startup->ctrl_dir)!=0)
 			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
@@ -5321,8 +5419,8 @@ void DLLCALL web_server(void* arg)
 		scfg.size=sizeof(scfg);
 		SAFECOPY(logstr,UNKNOWN_LOAD_ERROR);
 		if(!load_cfg(&scfg, NULL, TRUE, logstr)) {
-			lprintf(LOG_ERR,"!ERROR %s",logstr);
-			lprintf(LOG_ERR,"!FAILED to load configuration files");
+			lprintf(LOG_CRIT,"!ERROR %s",logstr);
+			lprintf(LOG_CRIT,"!FAILED to load configuration files");
 			cleanup(1);
 			return;
 		}
@@ -5331,7 +5429,7 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Temporary file directory: %s", temp_dir);
 		MKDIR(temp_dir);
 		if(!isdir(temp_dir)) {
-			lprintf(LOG_ERR,"!Invalid temp directory: %s", temp_dir);
+			lprintf(LOG_CRIT,"!Invalid temp directory: %s", temp_dir);
 			cleanup(1);
 			return;
 		}
@@ -5339,11 +5437,13 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		mime_types=read_ini_list("mime_types.ini",NULL /* root section */,"MIME types"
+		iniFileName(mime_types_ini,sizeof(mime_types_ini),scfg.ctrl_dir,"mime_types.ini");
+		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
 			,mime_types);
-		cgi_handlers=read_ini_list("web_handler.ini","CGI","CGI content handlers"
+		iniFileName(web_handler_ini,sizeof(web_handler_ini),scfg.ctrl_dir,"web_handler.ini");
+		cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
 			,cgi_handlers);
-		xjs_handlers=read_ini_list("web_handler.ini","JavaScript","JavaScript content handlers"
+		xjs_handlers=read_ini_list(web_handler_ini,"JavaScript","JavaScript content handlers"
 			,xjs_handlers);
 
 		/* Don't do this for *each* CGI request, just once here during [re]init */
@@ -5351,12 +5451,6 @@ void DLLCALL web_server(void* arg)
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
-
-		if(!(scfg.sys_misc&SM_LOCAL_TZ) && !(startup->options&BBS_OPT_LOCAL_TIMEZONE)) {
-			if(putenv("TZ=UTC0"))
-				lprintf(LOG_WARNING,"!putenv() FAILED");
-			tzset();
-		}
 
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
@@ -5369,7 +5463,7 @@ void DLLCALL web_server(void* arg)
 		server_socket = open_socket(SOCK_STREAM);
 
 		if(server_socket == INVALID_SOCKET) {
-			lprintf(LOG_ERR,"!ERROR %d creating HTTP socket", ERROR_VALUE);
+			lprintf(LOG_CRIT,"!ERROR %d creating HTTP socket", ERROR_VALUE);
 			cleanup(1);
 			return;
 		}
@@ -5386,7 +5480,7 @@ void DLLCALL web_server(void* arg)
 		setsockopt(server_socket, SOL_SOCKET, SO_ACCEPTFILTER, &afa, sizeof(afa));
 #endif
 
-		lprintf(LOG_INFO,"%04d Web Server socket opened",server_socket);
+		lprintf(LOG_DEBUG,"%04d Web Server socket opened",server_socket);
 
 		/*****************************/
 		/* Listen for incoming calls */
@@ -5408,7 +5502,7 @@ void DLLCALL web_server(void* arg)
 				startup->seteuid(TRUE);
 		}
 		if(result != 0) {
-			lprintf(LOG_NOTICE,"%s",BIND_FAILURE_HELP);
+			lprintf(LOG_CRIT,"%s",BIND_FAILURE_HELP);
 			cleanup(1);
 			return;
 		}
@@ -5416,16 +5510,14 @@ void DLLCALL web_server(void* arg)
 		result = listen(server_socket, 64);
 
 		if(result != 0) {
-			lprintf(LOG_ERR,"%04d !ERROR %d (%d) listening on socket"
+			lprintf(LOG_CRIT,"%04d !ERROR %d (%d) listening on socket"
 				,server_socket, result, ERROR_VALUE);
 			cleanup(1);
 			return;
 		}
-		lprintf(LOG_INFO,"%04d Web Server listening on port %d"
+		lprintf(LOG_INFO,"%04d Web Server listening on port %u"
 			,server_socket, startup->port);
 		status("Listening");
-
-		lprintf(LOG_INFO,"%04d Web Server thread started", server_socket);
 
 		listInit(&log_list,/* flags */ LINK_LIST_MUTEX|LINK_LIST_SEMAPHORE);
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
@@ -5437,10 +5529,10 @@ void DLLCALL web_server(void* arg)
 
 #ifdef ONE_JS_RUNTIME
 	    if(js_runtime == NULL) {
-    	    lprintf(LOG_INFO,"%04d JavaScript: Creating runtime: %lu bytes"
+    	    lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
         	    ,server_socket,startup->js.max_bytes);
 
-    	    if((js_runtime=JS_NewRuntime(startup->js.max_bytes))==NULL) {
+    	    if((js_runtime=jsrt_GetNew(startup->js.max_bytes, 0, __FILE__, __LINE__))==NULL) {
         	    lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",server_socket);
 				/* Sleep 15 seconds then try again */
 				/* ToDo: Something better should be used here. */
@@ -5455,6 +5547,8 @@ void DLLCALL web_server(void* arg)
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","web");
 		SAFEPRINTF(path,"%swebsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
+		semfile_list_add(&recycle_semfiles,mime_types_ini);
+		semfile_list_add(&recycle_semfiles,web_handler_ini);
 		if(!initialized) {
 			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
@@ -5464,6 +5558,8 @@ void DLLCALL web_server(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
+
+		lprintf(LOG_INFO,"%04d Web Server thread started", server_socket);
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
@@ -5660,8 +5756,8 @@ void DLLCALL web_server(void* arg)
 
 #ifdef ONE_JS_RUNTIME
     	if(js_runtime!=NULL) {
-        	lprintf(LOG_INFO,"%04d JavaScript: Destroying runtime",server_socket);
-        	JS_DestroyRuntime(js_runtime);
+        	lprintf(LOG_DEBUG,"%04d JavaScript: Destroying runtime",server_socket);
+        	jsrt_Release(js_runtime);
     	    js_runtime=NULL;
 	    }
 #endif
