@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.514 2009/01/24 22:17:44 rswindell Exp $ */
+/* $Id: main.cpp,v 1.521 2009/02/08 04:37:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,8 +151,16 @@ static void thread_down()
 
 int lputs(int level, const char* str)
 {
+	if(level <= LOG_ERR)
+		errorlog(&scfg,str);
+
 	if(startup==NULL || startup->lputs==NULL || str==NULL || level > startup->log_level)
     	return(0);
+
+#if defined(_WIN32)
+	if(IsBadCodePtr((FARPROC)startup->lputs))
+		return(0);
+#endif
 
     return(startup->lputs(startup->cbdata,level,str));
 }
@@ -222,7 +230,7 @@ int close_socket(SOCKET sock)
 	if(startup!=NULL && startup->socket_open!=NULL)
 		startup->socket_open(startup->cbdata,FALSE);
 	if(result!=0 && ERROR_VALUE!=ENOTSOCK)
-		lprintf(LOG_ERR,"!ERROR %d closing socket %d",ERROR_VALUE,sock);
+		lprintf(LOG_WARNING,"!ERROR %d closing socket %d",ERROR_VALUE,sock);
 	return(result);
 }
 
@@ -1113,7 +1121,7 @@ void sbbs_t::js_create_user_objects(void)
 {
 	if(js_cx==NULL)
 		return;
-
+	
 	JS_BEGINREQUEST(js_cx);
 	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, NULL, subscan)) 
 		lprintf(LOG_ERR,"!JavaScript ERROR creating user objects");
@@ -1414,6 +1422,7 @@ void input_thread(void *arg)
 	SOCKET		high_socket;
 	SOCKET		sock;
 
+	SetThreadName("Node Input");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _DEBUG
@@ -1572,6 +1581,8 @@ void input_thread(void *arg)
 #ifdef __unix__
 			if(sock==sbbs->client_socket)  {
 #endif
+				if(!sbbs->online)	// sbbs_t::hangup() called?
+					break;
 	        	if(ERROR_VALUE == ENOTSOCK)
     	            lprintf(LOG_NOTICE,"Node %d socket closed by peer on receive", sbbs->cfg.node_num);
         	    else if(ERROR_VALUE==ECONNRESET) 
@@ -1685,6 +1696,7 @@ void passthru_output_thread(void* arg)
 	int		rd;
 	int		wr;
 
+	SetThreadName("Passthrough Output");
 	thread_up(FALSE /* setuid */);
 
     sbbs->passthru_output_thread_running = true;
@@ -1796,6 +1808,7 @@ void passthru_input_thread(void* arg)
 	BYTE	ch;
 	int		i;
 
+	SetThreadName("Passthrough Input");
 	thread_up(FALSE /* setuid */);
 
 	sbbs->passthru_input_thread_running = true;
@@ -1888,6 +1901,7 @@ void output_thread(void* arg)
 	struct timeval tv;
 	ulong		mss=IO_THREAD_BUF_SIZE;
 
+	SetThreadName("Node Output");
 	thread_up(TRUE /* setuid */);
 
     if(sbbs->cfg.node_num)
@@ -1963,7 +1977,7 @@ void output_thread(void* arg)
 			 * into linear buffer.
 			 */
            	if(avail>sizeof(buf)) {
-               	lprintf(LOG_WARNING,"!%s: Insufficient linear output buffer (%lu > %lu)"
+               	lprintf(LOG_WARNING,"%s !Insufficient linear output buffer (%lu > %lu)"
 					,node, avail, sizeof(buf));
                	avail=sizeof(buf);
            	}
@@ -1984,11 +1998,12 @@ void output_thread(void* arg)
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
 		if(i==SOCKET_ERROR) {
 			if(sbbs->client_socket!=INVALID_SOCKET)
-				lprintf(LOG_ERR,"!%s: ERROR %d selecting socket %u for send"
+				lprintf(LOG_ERR,"%s !ERROR %d selecting socket %u for send"
 					,node,ERROR_VALUE,sbbs->client_socket);
 			if(sbbs->cfg.node_num)	/* Only break if node output (not server) */
 				break;
-			RingBufReInit(&sbbs->outbuf);	/* Flush output buffer */
+			RingBufReInit(&sbbs->outbuf);	/* Purge output ring buffer */
+			bufbot=buftop=0;				/* Purge linear buffer */
 			continue;
 		}
 		if(i<1) {
@@ -2000,7 +2015,7 @@ void output_thread(void* arg)
 			int err;
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
-				lprintf(LOG_ERR,"!%s: ERROR %d sending on Cryptlib session", node, err);
+				lprintf(LOG_ERR,"%s !ERROR %d sending on Cryptlib session", node, err);
 				i=-1;
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
@@ -2019,7 +2034,7 @@ void output_thread(void* arg)
             else if(ERROR_VALUE==ECONNABORTED) 
 				lprintf(LOG_NOTICE,"%s connection aborted by peer on send", node);
 			else
-				lprintf(LOG_WARNING,"!%s: ERROR %d sending on socket %d"
+				lprintf(LOG_WARNING,"%s !ERROR %d sending on socket %d"
                 	,node, ERROR_VALUE, sbbs->client_socket);
 			sbbs->online=FALSE;
 			/* was break; on 4/7/00 */
@@ -2046,7 +2061,7 @@ void output_thread(void* arg)
 		}
 
 		if(i!=(int)(buftop-bufbot)) {
-			lprintf(LOG_WARNING,"!%s: Short socket send (%u instead of %u)"
+			lprintf(LOG_WARNING,"%s !Short socket send (%u instead of %u)"
 				,node, i ,buftop-bufbot);
 			short_sends++;
 		}
@@ -2101,6 +2116,7 @@ void event_thread(void* arg)
 
 	sbbs_srand();	/* Seed random number generator */
 
+	SetThreadName("BBS Events");
 	thread_up(TRUE /* setuid */);
 
 #ifdef JAVASCRIPT
@@ -3494,6 +3510,10 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 
 void sbbs_t::hangup(void)
 {
+	if(online) {
+		lprintf(LOG_DEBUG,"Node %d disconnecting client", cfg.node_num);
+		online=FALSE;	// moved from the bottom of this function on Jan-25-2009
+	}
 	if(client_socket_dup!=INVALID_SOCKET && client_socket_dup!=client_socket)
 		closesocket(client_socket_dup);
 	client_socket_dup=INVALID_SOCKET;
@@ -3505,7 +3525,6 @@ void sbbs_t::hangup(void)
 		client_socket=INVALID_SOCKET;
 	}
 	sem_post(&outbuf.sem);
-	online=FALSE;
 }
 
 int sbbs_t::incom(unsigned long timeout)
@@ -3792,6 +3811,7 @@ void node_thread(void* arg)
 	sbbs_t*			sbbs = (sbbs_t*) arg;
 
 	update_clients();
+	SetThreadName("Node");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _DEBUG
@@ -4293,6 +4313,8 @@ void DLLCALL bbs_thread(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 	terminate_server=false;
+
+	SetThreadName("BBS");
 
 	do {
 
@@ -5015,8 +5037,8 @@ NO_SSH:
 		if(sbbs->trashcan(host_ip,"ip")) {
 			SSH_END();
 			close_socket(client_socket);
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can"
-				,client_socket);
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s"
+				,client_socket, host_ip);
 			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
 			sbbs->syslog("@!",logstr);
 			continue;
@@ -5054,7 +5076,8 @@ NO_SSH:
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
 			close_socket(client_socket);
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can",client_socket);
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s"
+				,client_socket, host_name);
 			SAFEPRINTF(logstr, "Blocked Hostname: %s",host_name);
 			sbbs->syslog("@!",logstr);
 			continue;
@@ -5138,7 +5161,7 @@ NO_SSH:
 			SAFECOPY(new_node->client_ident,identity);
 
 		if(new_node->init()==false) {
-			lprintf(LOG_INFO,"%04d !Node %d Initialization failure"
+			lprintf(LOG_INFO,"%04d Node %d !Initialization failure"
 				,client_socket,new_node->cfg.node_num);
 			SAFEPRINTF(str,"%snonodes.txt",scfg.text_dir);
 			if(fexist(str))

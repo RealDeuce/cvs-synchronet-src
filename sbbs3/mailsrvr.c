@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.477 2009/01/24 22:17:44 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.485 2009/02/08 04:37:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,13 +128,22 @@ static int lprintf(int level, const char *fmt, ...)
 	va_list argptr;
 	char sbuf[1024];
 
-    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
-        return(0);
-
 	va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
+
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
+
+    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
+		return(0);
+
+#if defined(_WIN32)
+	if(IsBadCodePtr((FARPROC)startup->lputs))
+		return(0);
+#endif
+
     return(startup->lputs(startup->cbdata,level,sbuf));
 }
 
@@ -234,7 +243,7 @@ int mail_close_socket(SOCKET sock)
 	sockets--;
 	if(result!=0) {
 		if(ERROR_VALUE!=ENOTSOCK)
-			lprintf(LOG_ERR,"%04d !ERROR %d closing socket",sock, ERROR_VALUE);
+			lprintf(LOG_WARNING,"%04d !ERROR %d closing socket",sock, ERROR_VALUE);
 	}
 #if 0 /*def _DEBUG */
 	else 
@@ -439,6 +448,11 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	if(msg->reverse_path!=NULL)
 		if(!sockprintf(socket,"Return-Path: %s", msg->reverse_path))
 			return(0);
+
+	for(i=0;i<msg->total_hfields;i++)
+		if(msg->hfield[i].type == SMTPRECEIVED && msg->hfield_dat[i]!=NULL) 
+			if(!sockprintf(socket,"Received: %s", msg->hfield_dat[i]))
+				return(0);
 
 	if(!sockprintf(socket,"Date: %s",msgdate(msg->hdr.when_written,date)))
 		return(0);
@@ -696,7 +710,7 @@ static void pop3_thread(void* arg)
 	mail_t*		mail;
 	pop3_t		pop3=*(pop3_t*)arg;
 
-	SetThreadName("POP3 Thread");
+	SetThreadName("POP3");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -736,7 +750,7 @@ static void pop3_thread(void* arg)
 	}
 
 	if(trashcan(&scfg,host_ip,"ip")) {
-		lprintf(LOG_NOTICE,"%04d !POP3 BLOCKED CLIENT IP ADDRESS: %s"
+		lprintf(LOG_NOTICE,"%04d !POP3 CLIENT BLOCKED in ip.can: %s"
 			,socket, host_ip);
 		sockprintf(socket,"-ERR Access denied.");
 		mail_close_socket(socket);
@@ -745,7 +759,7 @@ static void pop3_thread(void* arg)
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
-		lprintf(LOG_NOTICE,"%04d !POP3 BLOCKED CLIENT HOSTNAME: %s"
+		lprintf(LOG_NOTICE,"%04d !POP3 CLIENT BLOCKED in host.can: %s"
 			,socket, host_name);
 		sockprintf(socket,"-ERR Access denied.");
 		mail_close_socket(socket);
@@ -821,10 +835,10 @@ static void pop3_thread(void* arg)
 		user.number=matchuser(&scfg,username,FALSE /*sysop_alias*/);
 		if(!user.number) {
 			if(scfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_WARNING,"%04d !POP3 UNKNOWN USER: %s (password: %s)"
+				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: %s (password: %s)"
 					,socket, username, password);
 			else
-				lprintf(LOG_WARNING,"%04d !POP3 UNKNOWN USER: %s"
+				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: %s"
 					,socket, username);
 			sockprintf(socket,pop_err);
 			break;
@@ -836,7 +850,7 @@ static void pop3_thread(void* arg)
 			break;
 		}
 		if(user.misc&(DELETED|INACTIVE)) {
-			lprintf(LOG_WARNING,"%04d !POP3 DELETED or INACTIVE user #%u (%s)"
+			lprintf(LOG_NOTICE,"%04d !POP3 DELETED or INACTIVE user #%u (%s)"
 				,socket, user.number, username);
 			sockprintf(socket, pop_err);
 			break;
@@ -847,7 +861,7 @@ static void pop3_thread(void* arg)
 			MD5_calc(digest,challenge,strlen(challenge));
 			MD5_hex(str,digest);
 			if(strcmp(str,response)) {
-				lprintf(LOG_WARNING,"%04d !POP3 %s FAILED APOP authentication"
+				lprintf(LOG_NOTICE,"%04d !POP3 %s FAILED APOP authentication"
 					,socket,username);
 #if 0
 				lprintf(LOG_DEBUG,"%04d !POP3 digest data: %s",socket,challenge);
@@ -859,10 +873,10 @@ static void pop3_thread(void* arg)
 			}
 		} else if(stricmp(password,user.pass)) {
 			if(scfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_WARNING,"%04d !POP3 FAILED Password attempt for user %s: '%s' expected '%s'"
+				lprintf(LOG_NOTICE,"%04d !POP3 FAILED Password attempt for user %s: '%s' expected '%s'"
 					,socket, username, password, user.pass);
 			else
-				lprintf(LOG_WARNING,"%04d !POP3 FAILED Password attempt for user %s"
+				lprintf(LOG_NOTICE,"%04d !POP3 FAILED Password attempt for user %s"
 					,socket, username);
 			sockprintf(socket, pop_err);
 			break;
@@ -991,7 +1005,7 @@ static void pop3_thread(void* arg)
 				if(isdigit(*p)) {
 					msgnum=atol(p);
 					if(msgnum<1 || msgnum>msgs) {
-						lprintf(LOG_WARNING,"%04d !POP3 INVALID message #%ld"
+						lprintf(LOG_NOTICE,"%04d !POP3 INVALID message #%ld"
 							,socket, msgnum);
 						sockprintf(socket,"-ERR no such message");
 						continue;
@@ -1004,7 +1018,7 @@ static void pop3_thread(void* arg)
 						break;
 					}
 					if(msg.idx.attr&MSG_DELETE) {
-						lprintf(LOG_WARNING,"%04d !POP3 ATTEMPT to list DELETED message"
+						lprintf(LOG_NOTICE,"%04d !POP3 ATTEMPT to list DELETED message"
 							,socket);
 						sockprintf(socket,"-ERR message deleted");
 						continue;
@@ -1082,15 +1096,15 @@ static void pop3_thread(void* arg)
 					lines=atol(p);
 				}
 				if(msgnum<1 || msgnum>msgs) {
-					lprintf(LOG_WARNING,"%04d !POP3 %s ATTEMPTED to retrieve an INVALID message #%ld"
+					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to retrieve an INVALID message #%ld"
 						,socket, user.alias, msgnum);
 					sockprintf(socket,"-ERR no such message");
 					continue;
 				}
 				msg.hdr.number=mail[msgnum-1].number;
 
-				lprintf(LOG_INFO,"%04d POP3 %s retrieving message #%ld"
-					,socket, user.alias, msg.hdr.number);
+				lprintf(LOG_INFO,"%04d POP3 %s retrieving message #%ld with command: %s"
+					,socket, user.alias, msg.hdr.number, buf);
 
 				if((i=smb_getmsgidx(&smb,&msg))!=SMB_SUCCESS) {
 					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message index"
@@ -1099,7 +1113,7 @@ static void pop3_thread(void* arg)
 					continue;
 				}
 				if(msg.idx.attr&MSG_DELETE) {
-					lprintf(LOG_WARNING,"%04d !POP3 ATTEMPT to retrieve DELETED message"
+					lprintf(LOG_NOTICE,"%04d !POP3 ATTEMPT to retrieve DELETED message"
 						,socket);
 					sockprintf(socket,"-ERR message deleted");
 					continue;
@@ -1175,7 +1189,7 @@ static void pop3_thread(void* arg)
 				msgnum=atol(p);
 
 				if(msgnum<1 || msgnum>msgs) {
-					lprintf(LOG_WARNING,"%04d !POP3 %s ATTEMPTED to delete an INVALID message #%ld"
+					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to delete an INVALID message #%ld"
 						,socket, user.alias, msgnum);
 					sockprintf(socket,"-ERR no such message");
 					continue;
@@ -1231,7 +1245,7 @@ static void pop3_thread(void* arg)
 					lprintf(LOG_INFO,"%04d POP3 message deleted", socket);
 				continue;
 			}
-			lprintf(LOG_WARNING,"%04d !POP3 UNSUPPORTED COMMAND from %s: '%s'"
+			lprintf(LOG_NOTICE,"%04d !POP3 UNSUPPORTED COMMAND from %s: '%s'"
 				,socket, user.alias, buf);
 			sockprintf(socket,"-ERR UNSUPPORTED COMMAND: %s",buf);
 		}
@@ -1423,6 +1437,7 @@ static void signal_smtp_sem(void)
 static char* mailcmdstr(char* instr, char* msgpath, char* newpath, char* logpath
 						,char* lstpath, char* errpath
 						,char* host, char* ip, uint usernum
+						,char* rcpt_addr
 						,char* sender, char* sender_addr, char* reverse_path, char* cmd)
 {
 	char	str[1024];
@@ -1476,6 +1491,9 @@ static char* mailcmdstr(char* instr, char* msgpath, char* newpath, char* logpath
 					break;
 				case 'S':	/* sender name */
 					strcat(cmd,sender);
+					break;
+				case 'T':	/* recipient */
+					strcat(cmd,rcpt_addr);
 					break;
 				case 'A':	/* sender address */
 					strcat(cmd,sender_addr);
@@ -1622,6 +1640,7 @@ static BOOL
 js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailproc
 			,char* cmdline
 			,char* msgtxt_fname, char* newtxt_fname, char* logtxt_fname
+			,char* rcpt_addr
 			,char* rcptlst_fname, char* proc_err_fname
 			,char* sender, char* sender_addr, char* reverse_path, char* hello_name
 			,int32* result
@@ -1713,6 +1732,10 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 
 			JS_DefineProperty(*js_cx, *js_glob, "log_text_filename"
 				,STRING_TO_JSVAL(JS_NewStringCopyZ(*js_cx,logtxt_fname))
+				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+
+			JS_DefineProperty(*js_cx, *js_glob, "recipient_address"
+				,STRING_TO_JSVAL(JS_NewStringCopyZ(*js_cx,rcpt_addr))
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 			JS_DefineProperty(*js_cx, *js_glob, "recipient_list_filename"
@@ -1872,6 +1895,9 @@ static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 
 	if(!stricmp(field, "CC"))
 		return smb_hfield_str(msg, *type=SMB_CARBONCOPY, p);
+
+	if(!stricmp(field, "RECEIVED"))
+		return smb_hfield_str(msg, *type=SMTPRECEIVED, p);
 
 	if(!stricmp(field, "RETURN-PATH")) {
 		*type=UNKNOWN;
@@ -2130,7 +2156,7 @@ static void smtp_thread(void* arg)
 
 	} cmd = SMTP_CMD_NONE;
 
-	SetThreadName("SMTP Thread");
+	SetThreadName("SMTP");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -2217,7 +2243,7 @@ static void smtp_thread(void* arg)
 		dnsbl_result.s_addr=0;
 	} else {
 		if(trashcan(&scfg,host_ip,"ip") || findstr(host_ip,spam_block)) {
-			lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER IP ADDRESS: %s"
+			lprintf(LOG_NOTICE,"%04d !SMTP CLIENT BLOCKED in ip.can: %s"
 				,socket, host_ip);
 			sockprintf(socket,"550 Access denied.");
 			mail_close_socket(socket);
@@ -2228,7 +2254,7 @@ static void smtp_thread(void* arg)
 		}
 
 		if(trashcan(&scfg,host_name,"host") || findstr(host_name,spam_block)) {
-			lprintf(LOG_NOTICE,"%04d !SMTP BLOCKED SERVER HOSTNAME: %s"
+			lprintf(LOG_NOTICE,"%04d !SMTP CLIENT BLOCKED in host.can: %s"
 				,socket, host_name);
 			sockprintf(socket,"550 Access denied.");
 			mail_close_socket(socket);
@@ -2441,6 +2467,7 @@ static void smtp_thread(void* arg)
 							,msgtxt_fname, newtxt_fname, logtxt_fname
 							,rcptlst_fname, proc_err_fname
 							,host_name, host_ip, relay_user.number
+							,rcpt_addr
 							,sender, sender_addr, reverse_path, str);
 						lprintf(LOG_INFO,"%04d SMTP Executing external mail processor: %s"
 							,socket, mailproc_list[i].name);
@@ -2462,6 +2489,7 @@ static void smtp_thread(void* arg)
 								,&mailproc_list[i]
 								,str /* cmdline */
 								,msgtxt_fname, newtxt_fname, logtxt_fname
+								,rcpt_addr
 								,rcptlst_fname, proc_err_fname
 								,sender, sender_addr, reverse_path, hello_name, &js_result
 								,&js_runtime, &js_cx, &js_glob
@@ -2626,8 +2654,7 @@ static void smtp_thread(void* arg)
 				dnsbl_recvhdr=FALSE;
 				if(startup->options&MAIL_OPT_DNSBL_CHKRECVHDRS)  {
 					for(i=0;!dnsbl_result.s_addr && i<msg.total_hfields;i++)  {
-						if(msg.hfield[i].type == RFC822HEADER
-							&& strnicmp(msg.hfield_dat[i],"Received:",9)==0)  {
+						if(msg.hfield[i].type == SMTPRECEIVED)  {
 							if(chk_received_hdr(socket,msg.hfield_dat[i],&dnsbl_result,dnsbl,dnsbl_ip)) {
 								dnsbl_recvhdr=TRUE;
 								break;
@@ -2777,7 +2804,7 @@ static void smtp_thread(void* arg)
 					}
 
 					snprintf(hdrfield,sizeof(hdrfield),
-						"Received: from %s (%s [%s])\r\n"
+						"from %s (%s [%s])\r\n"
 						"          by %s [%s] (%s %s-%s) with %s\r\n"
 						"          for %s; %s\r\n"
 						"          (envelope-from %s)"
@@ -2788,7 +2815,7 @@ static void smtp_thread(void* arg)
 						,esmtp ? "ESMTP" : "SMTP"
 						,rcpt_name,msgdate(msg.hdr.when_imported,date)
 						,reverse_path);
-					smb_hfield_str(&newmsg, RFC822HEADER, hdrfield);
+					smb_hfield_add_str(&newmsg, SMTPRECEIVED, hdrfield, /* insert: */TRUE);
 
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
 
@@ -3236,7 +3263,7 @@ static void smtp_thread(void* arg)
 			}
 
 			if(*p==0) {
-				lprintf(LOG_WARNING,"%04d !SMTP NO RECIPIENT SPECIFIED"
+				lprintf(LOG_NOTICE,"%04d !SMTP NO RECIPIENT SPECIFIED"
 					,socket);
 				sockprintf(socket, "500 No recipient specified");
 				continue;
@@ -3247,7 +3274,7 @@ static void smtp_thread(void* arg)
 
 			/* Check recipient counter */
 			if(rcpt_count>=startup->max_recipients) {
-				lprintf(LOG_WARNING,"%04d !SMTP MAXIMUM RECIPIENTS (%d) REACHED"
+				lprintf(LOG_NOTICE,"%04d !SMTP MAXIMUM RECIPIENTS (%d) REACHED"
 					,socket, startup->max_recipients);
 				sprintf(tmp,"Maximum recipient count (%d)",startup->max_recipients);
 				spamlog(&scfg, "SMTP", "REFUSED", tmp
@@ -3292,7 +3319,8 @@ static void smtp_thread(void* arg)
 			/* Check for full address aliases */
 			p=alias(&scfg,p,alias_buf);
 			if(p==alias_buf) 
-				lprintf(LOG_INFO,"%04d SMTP ADDRESS ALIAS: %s",socket,p);
+				lprintf(LOG_INFO,"%04d SMTP ADDRESS ALIAS: %s (for %s)"
+					,socket,p,rcpt_addr);
 
 			tp=strrchr(p,'@');
 			if(cmd==SMTP_CMD_MAIL && tp!=NULL) {
@@ -3375,7 +3403,8 @@ static void smtp_thread(void* arg)
 
 			p=alias(&scfg,p,name_alias_buf);
 			if(p==name_alias_buf) 
-				lprintf(LOG_INFO,"%04d SMTP NAME ALIAS: %s",socket,p);
+				lprintf(LOG_INFO,"%04d SMTP NAME ALIAS: %s (for %s)"
+					,socket,p,rcpt_addr);
 		
 			if(!strnicmp(p,"sub:",4)) {		/* Post on a sub-board */
 				p+=4;
@@ -3383,7 +3412,7 @@ static void smtp_thread(void* arg)
 					if(!stricmp(p,scfg.sub[i]->code))
 						break;
 				if(i>=scfg.total_subs) {
-					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN SUB-BOARD: %s", socket, p);
+					lprintf(LOG_NOTICE,"%04d !SMTP UNKNOWN SUB-BOARD: %s", socket, p);
 					sockprintf(socket, "550 Unknown sub-board: %s", p);
 					continue;
 				}
@@ -3531,7 +3560,6 @@ static void smtp_thread(void* arg)
 			fprintf(rcptlst,"[%u]\n",rcpt_count++);
 			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 			fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTEXT),user.number);
-
 
 			/* Forward to Internet */
 			tp=strrchr(user.netmail,'@');
@@ -3824,7 +3852,7 @@ static void sendmail_thread(void* arg)
 	size_t		len;
 	BOOL		sending_locally=FALSE;
 
-	SetThreadName("SendMail Thread");
+	SetThreadName("SendMail");
 	thread_up(TRUE /* setuid */);
 
 	sendmail_running=TRUE;
@@ -3924,7 +3952,7 @@ static void sendmail_thread(void* arg)
 
 			if(!(startup->options&MAIL_OPT_SEND_INTRANSIT) && msg.hdr.netattr&MSG_INTRANSIT) {
 				smb_unlockmsghdr(&smb,&msg);
-				lprintf(LOG_ERR,"0000 SEND Message #%lu from %s to %s - in transit"
+				lprintf(LOG_NOTICE,"0000 SEND Message #%lu from %s to %s - in transit"
 					,msg.hdr.number, msg.from, msg.to_net.addr);
 				continue;
 			}
@@ -4356,7 +4384,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.477 $", "%*s %s", revision);
+	sscanf("$Revision: 1.485 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
