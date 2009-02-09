@@ -2,13 +2,13 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.13 2006/05/03 00:26:52 rswindell Exp $ */
+/* $Id: login.cpp,v 1.12 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,10 +45,8 @@ int sbbs_t::login(char *username, char *pw)
 	long	useron_misc=useron.misc;
 
 	useron.number=0;
-#if 0
 	if(cfg.node_dollars_per_call && noyes(text[AreYouSureQ]))
 		return(LOGIC_FALSE);
-#endif
 
 	SAFECOPY(str,username);
 
@@ -79,6 +77,8 @@ int sbbs_t::login(char *username, char *pw)
 			strcpy(useron.alias,str);
 			bputs(pw);
 			console|=CON_R_ECHOX;
+			if(!(cfg.sys_misc&SM_ECHO_PW))
+				console|=CON_L_ECHOX;
 			getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			bputs(text[InvalidLogon]);	/* why does this always fail? */
@@ -103,6 +103,8 @@ int sbbs_t::login(char *username, char *pw)
 	if(useron.pass[0] || REALSYSOP) {
 		bputs(pw);
 		console|=CON_R_ECHOX;
+		if(!(cfg.sys_misc&SM_ECHO_PW))
+			console|=CON_L_ECHOX;
 		getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 		console&=~(CON_R_ECHOX|CON_L_ECHOX);
 		if(!online) {
