@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.20 2008/02/02 22:33:57 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.26 2008/09/24 22:51:48 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -25,9 +25,9 @@
 #include "allfonts.h"
 #include "bitmap_con.h"
 
-static char *screen;
-int screenwidth;
-int screenheight;
+static char *screen=NULL;
+int screenwidth=0;
+int screenheight=0;
 #define PIXEL_OFFSET(x,y)	( (y)*screenwidth+(x) )
 
 static int current_font=-99;
@@ -44,6 +44,7 @@ pthread_mutex_t		vstatlock;
 pthread_mutex_t		screenlock;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font;
+static unsigned char space=' ';
 int force_redraws=0;
 
 struct rectangle {
@@ -61,7 +62,9 @@ static void blinker_thread(void *data)
 	int count=0;
 
 	while(1) {
-		SLEEP(10);
+		do {
+			SLEEP(10);
+		} while(screen==NULL);
 		count++;
 		pthread_mutex_lock(&vstatlock);
 		if(count==50) {
@@ -243,12 +246,39 @@ int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 
 	pthread_mutex_lock(&vstatlock);
 	for(cy=(direction==-1?(height-1):0); cy<height && cy>=0; cy+=direction) {
-		damaged[toy+cy]=1;
+		damaged[toy+cy-1]=1;
 		sourcepos=((y-1)+cy)*cio_textinfo.screenwidth+(x-1);
 		memmove(&(vstat.vmem[sourcepos+destoffset]), &(vstat.vmem[sourcepos]), sizeof(vstat.vmem[0])*width);
 	}
 	pthread_mutex_unlock(&vstatlock);
 	return(1);
+}
+
+void bitmap_clreol(void)
+{
+	int pos,x;
+	WORD fill=(cio_textinfo.attribute<<8)|space;
+
+	pos=(cio_textinfo.cury+cio_textinfo.wintop-2)*cio_textinfo.screenwidth;
+	pthread_mutex_lock(&vstatlock);
+	damaged[cio_textinfo.cury-1]=1;
+	for(x=cio_textinfo.curx+cio_textinfo.winleft-2; x<cio_textinfo.winright; x++)
+		vstat.vmem[pos+x]=fill;
+	pthread_mutex_unlock(&vstatlock);
+}
+
+void bitmap_clrscr(void)
+{
+	int x,y;
+	WORD fill=(cio_textinfo.attribute<<8)|space;
+
+	pthread_mutex_lock(&vstatlock);
+	for(y=cio_textinfo.wintop-1; y<cio_textinfo.winbottom; y++) {
+		damaged[y]=1;
+		for(x=cio_textinfo.winleft-1; x<cio_textinfo.winright; x++)
+			vstat.vmem[y*cio_textinfo.screenwidth+x]=fill;
+	}
+	pthread_mutex_unlock(&vstatlock);
 }
 
 int bitmap_puttext(int sx, int sy, int ex, int ey, void *fill)
@@ -398,6 +428,10 @@ int bitmap_setfont(int font, int force)
 	if(changemode && newmode==-1)
 		goto error_return;
 	current_font=font;
+	if(font==36 /* ATARI */)
+		space=0;
+	else
+		space=' ';
 	pthread_mutex_unlock(&vstatlock);
 
 	if(changemode) {
@@ -422,12 +456,12 @@ int bitmap_setfont(int font, int force)
 							*(new++)=*(old++);
 						}
 						else {
-							*(new++)=' ';
+							*(new++)=space;
 							*(new++)=attr;
 						}
 					}
 					else {
-						*(new++)=' ';
+						*(new++)=space;
 						*(new++)=attr;
 					}
 				}
@@ -563,15 +597,19 @@ static void bitmap_draw_cursor()
 		if(vstat.curs_start<=vstat.curs_end) {
 			xoffset=(vstat.curs_col-1)*vstat.charwidth;
 			yoffset=(vstat.curs_row-1)*vstat.charheight;
+			if(xoffset < 0 || yoffset < 0)
+				return;
 			attr=cio_textinfo.attribute&0x0f;
 			width=vstat.charwidth;
 
 			pthread_mutex_lock(&screenlock);
 			for(y=vstat.curs_start; y<=vstat.curs_end; y++) {
-				pixel=PIXEL_OFFSET(xoffset, yoffset+y);
-				for(x=0;x<vstat.charwidth;x++)
-					screen[pixel++]=attr;
-				//memset(screen+pixel,attr,width);
+				if(xoffset < screenwidth && (yoffset+y) < screenheight) {
+					pixel=PIXEL_OFFSET(xoffset, yoffset+y);
+					for(x=0;x<vstat.charwidth;x++)
+						screen[pixel++]=attr;
+					//memset(screen+pixel,attr,width);
+				}
 			}
 			pthread_mutex_unlock(&screenlock);
 			send_rectangle(xoffset, yoffset+vstat.curs_start, vstat.charwidth, vstat.curs_end-vstat.curs_start+1,FALSE);
@@ -582,8 +620,6 @@ static void bitmap_draw_cursor()
 /* Called from main thread only */
 void bitmap_gotoxy(int x, int y)
 {
-	static int lx=-1,ly=-1;
-
 	if(!bitmap_initialized)
 		return;
 	/* Move cursor location */
@@ -595,8 +631,6 @@ void bitmap_gotoxy(int x, int y)
 		vstat.curs_col=x+cio_textinfo.winleft-1;
 		vstat.curs_row=y+cio_textinfo.wintop-1;
 		pthread_mutex_unlock(&vstatlock);
-		lx=vstat.curs_col;
-		ly=vstat.curs_row;
 	}
 }
 
