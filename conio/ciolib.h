@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.54 2009/02/10 09:50:18 deuce Exp $ */
+/* $Id: ciolib.h,v 1.52 2008/02/05 01:44:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,10 +116,6 @@ enum {
 #ifndef BLINK
 #define BLINK 128
 #endif
-
-#define CIOLIB_VIDEO_ALTCHARS	(1<<0)	// Attribute bit 3 selects alternate char set
-#define CIOLIB_VIDEO_NOBRIGHT	(1<<1)	// Attribute bit 3 does not increase intensity
-#define CIOLIB_VIDEO_BGBRIGHT	(1<<2)	// Attribute bit 7 selects high intensity background, not blink
 
 enum text_modes
 {
@@ -267,14 +263,10 @@ typedef struct {
 	char 	*(*getcliptext)	(void);
 	void	(*suspend)		(void);
 	void	(*resume)		(void);
-	int		(*setfont)		(int font, int force, int font_num);
+	int		(*setfont)		(int font, int force);
 	int		(*getfont)		(void);
 	int		(*loadfont)		(char *filename);
 	int		(*get_window_info)		(int* width, int* height, int* xpos, int* ypos);
-	void	(*getcustomcursor)	(int *startline, int *endline, int *range, int *blink, int *visible);
-	void	(*setcustomcursor)	(int startline, int endline, int range, int blink, int visible);
-	void	(*setvideoflags)	(int flags);
-	int		(*getvideoflags)	();
 	int		*ESCDELAY;
 } cioapi_t;
 
@@ -331,15 +323,11 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_showmouse(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_hidemouse(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_copytext(const char *text, size_t buflen);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force, int font_num);
+CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
 CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void);
-CIOLIBEXPORT void CIOLIBCALL ciolib_getcustomcursor(int *startline, int *endline, int *range, int *blink, int *visible);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setcustomcursor(int startline, int endline, int range, int blink, int visible);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags);
-CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -390,15 +378,11 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define settitle(a)				ciolib_settitle(a)
 	#define copytext(a,b)			ciolib_copytext(a,b)
 	#define getcliptext()			ciolib_getcliptext()
-	#define setfont(a,b,c)			ciolib_setfont(a,b,c)
+	#define setfont(a,b)			ciolib_setfont(a,b)
 	#define getfont()				ciolib_getfont()
 	#define loadfont(a)				ciolib_loadfont(a)
 	#define get_window_info(a,b,c,d)	ciolib_get_window_info(a,b,c,d)
 	#define beep()				ciolib_beep()
-	#define getcustomcursor(a,b,c,d,e)	ciolib_getcustomcursor(a,b,c,d,e)
-	#define setcustomcursor(a,b,c,d,e)	ciolib_setcustomcursor(a,b,c,d,e)
-	#define setvideoflags(a)		ciolib_setvideoflags(a)
-	#define getvideoflags()			ciolib_getvideoflags()
 #endif
 
 #ifdef WITH_SDL

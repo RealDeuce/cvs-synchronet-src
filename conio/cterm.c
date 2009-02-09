@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.117 2009/02/10 09:50:18 deuce Exp $ */
+/* $Id: cterm.c,v 1.115 2009/02/06 08:08:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -563,21 +563,6 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 							cterm.cursor=_NORMALCURSOR;
 							_setcursortype(cterm.cursor);
 						}
-						if(!strcmp(cterm.escbuf,"[?31h")) {
-							i=getvideoflags();
-							i|=CIOLIB_VIDEO_ALTCHARS;
-							setvideoflags(i);
-						}
-						if(!strcmp(cterm.escbuf,"[?32h")) {
-							i=getvideoflags();
-							i|=CIOLIB_VIDEO_NOBRIGHT;
-							setvideoflags(i);
-						}
-						if(!strcmp(cterm.escbuf,"[?33h")) {
-							i=getvideoflags();
-							i|=CIOLIB_VIDEO_BGBRIGHT;
-							setvideoflags(i);
-						}
 						if(!strcmp(cterm.escbuf,"[=255h"))
 							cterm.doorway_mode=1;
 						break;
@@ -585,21 +570,6 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						if(!strcmp(cterm.escbuf,"[?25l")) {
 							cterm.cursor=_NOCURSOR;
 							_setcursortype(cterm.cursor);
-						}
-						if(!strcmp(cterm.escbuf,"[?31l")) {
-							i=getvideoflags();
-							i&=~CIOLIB_VIDEO_ALTCHARS;
-							setvideoflags(i);
-						}
-						if(!strcmp(cterm.escbuf,"[?32l")) {
-							i=getvideoflags();
-							i&=~CIOLIB_VIDEO_NOBRIGHT;
-							setvideoflags(i);
-						}
-						if(!strcmp(cterm.escbuf,"[?33l")) {
-							i=getvideoflags();
-							i&=~CIOLIB_VIDEO_BGBRIGHT;
-							setvideoflags(i);
 						}
 						if(!strcmp(cterm.escbuf,"[=255l"))
 							cterm.doorway_mode=0;
@@ -694,10 +664,8 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 									j=atoi(p);
 								}
 							}
-							switch(i) {
-								case 0:	/* Only the primary and secondary font is currently supported */
-								case 1:
-									setfont(j,FALSE,i);
+							if(i==0) {	/* Only the primary font is currently supported */
+								setfont(j,FALSE);
 							}
 						}
 					}
@@ -1173,7 +1141,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.117 $";
+	char	*revision="$Revision: 1.115 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1883,15 +1851,15 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 							/* Font change... whee! */
 							case 14:	/* Lower case font */
 								if(ti.currmode == C64_40X25)
-									setfont(33,FALSE,0);
+									setfont(33,FALSE);
 								else	/* Assume C128 */
-									setfont(35,FALSE,0);
+									setfont(35,FALSE);
 								break;
 							case 142:	/* Upper case font */
 								if(ti.currmode == C64_40X25)
-									setfont(32,FALSE,0);
+									setfont(32,FALSE);
 								else	/* Assume C128 */
-									setfont(34,FALSE,0);
+									setfont(34,FALSE);
 								break;
 							case 18:	/* Reverse mode on */
 								cterm.c64reversemode = 1;

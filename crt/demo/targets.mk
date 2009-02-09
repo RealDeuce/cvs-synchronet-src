@@ -1,2 +1,2 @@
-all: $(OBJODIR) $(EXEODIR) $(EXEODIR)/crttest
+all: $(EXEODIR)/crttest
 

@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.156 2009/02/10 09:57:02 deuce Exp $ */
+/* $Id: syncterm.c,v 1.155 2008/10/13 00:03:12 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1294,7 +1294,7 @@ int main(int argc, char **argv)
 			uifcbail();
 			textmode(screen_to_ciolib(bbs->screen_mode));
 			load_font_files();
-			setfont(find_font_id(bbs->font),TRUE,0);
+			setfont(find_font_id(bbs->font),TRUE);
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
@@ -1309,7 +1309,6 @@ int main(int argc, char **argv)
 			}
 
 			exit_now=doterm(bbs);
-			setvideoflags(0);
 
 			if(log_fp!=NULL) {
 				time_t now=time(NULL);
@@ -1318,7 +1317,7 @@ int main(int argc, char **argv)
 				fclose(log_fp);
 				log_fp=NULL;
 			}
-			setfont(default_font,TRUE,0);
+			setfont(default_font,TRUE);
 			for(i=CONIO_FIRST_FREE_FONT; i<256; i++) {
 				FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
 				FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
