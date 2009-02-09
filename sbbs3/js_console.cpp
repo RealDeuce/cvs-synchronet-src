@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.78 2009/02/15 20:57:55 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.77 2009/01/16 04:33:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1303,21 +1303,6 @@ js_cursor_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 }
 
 static JSBool
-js_backspace(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-	jsrefcount	rc;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->backspace();
-	JS_RESUMEREQUEST(cx, rc);
-    return(JS_TRUE);
-}
-
-static JSBool
 js_getlines(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
@@ -1600,10 +1585,6 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"supports all the specified <i>terminal_flags</i>, or returns the current user/client's "
 		"<i>terminal_flags</i> (numeric bit-field) if no <i>terminal_flags</i> were specified")
 	,314
-	},
-	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("send a destructive backspace sequence")
-	,315
 	},
 	{0}
 };

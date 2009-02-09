@@ -1,8 +1,8 @@
 /* main.cpp */
 
-/* Synchronet terminal server thread and related functions */
+/* Synchronet main/telnet server thread and related functions */
 
-/* $Id: main.cpp,v 1.527 2009/02/16 08:54:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.521 2009/02/08 04:37:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@
 
 //---------------------------------------------------------------------------
 
-#define TELNET_SERVER "Synchronet Terminal Server"
+#define TELNET_SERVER "Synchronet Telnet Server"
 #define STATUS_WFC	"Listening"
 
 #define TIMEOUT_THREAD_WAIT		60			// Seconds (was 15)
@@ -189,8 +189,8 @@ int eprintf(int level, const char *fmt, ...)
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
-	strip_ctrl(sbuf, sbuf);
-    return(startup->event_lputs(startup->event_cbdata,level,sbuf));
+	strip_ctrl(sbuf);
+    return(startup->event_lputs(level,sbuf));
 }
 
 SOCKET open_socket(int type, const char* protocol)
@@ -669,9 +669,9 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		rc=JS_SUSPENDREQUEST(cx);
 		if(sbbs->online==ON_LOCAL) {
 			if(startup!=NULL && startup->event_lputs!=NULL && level <= startup->log_level)
-				startup->event_lputs(startup->event_cbdata,level,JS_GetStringBytes(str));
+				startup->event_lputs(level,JS_GetStringBytes(str));
 		} else
-			lprintf(level,"Node %d %s", sbbs->cfg.node_num, JS_GetStringBytes(str));
+			lputs(level,JS_GetStringBytes(str));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -1557,7 +1557,7 @@ void input_thread(void *arg)
 				if(err==CRYPT_ERROR_TIMEOUT)
 					continue;
 				/* Handle the SSH error here... */
-				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
+				lprintf(LOG_ERR,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				break;
 			}
 			else {
@@ -2015,7 +2015,7 @@ void output_thread(void* arg)
 			int err;
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
-				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
+				lprintf(LOG_ERR,"%s !ERROR %d sending on Cryptlib session", node, err);
 				i=-1;
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
@@ -2576,9 +2576,7 @@ void event_thread(void* arg)
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
 				&& sbbs->cfg.event[i]->days&(1<<now_tm.tm_wday)
 				&& (sbbs->cfg.event[i]->mdays==0 
-					|| sbbs->cfg.event[i]->mdays&(1<<now_tm.tm_mday))
-				&& (sbbs->cfg.event[i]->months==0
-					|| sbbs->cfg.event[i]->months&(1<<now_tm.tm_mon)))) 
+					|| sbbs->cfg.event[i]->mdays&(1<<now_tm.tm_mday)))) 
 			{
 				if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
 
@@ -4870,9 +4868,9 @@ NO_SSH:
 			if(i==0)
 				continue;
 			if(ERROR_VALUE==EINTR)
-				lprintf(LOG_DEBUG,"Terminal Server listening interrupted");
+				lprintf(LOG_DEBUG,"Telnet Server listening interrupted");
 			else if(ERROR_VALUE == ENOTSOCK)
-            	lprintf(LOG_NOTICE,"Terminal Server sockets closed");
+            	lprintf(LOG_NOTICE,"Telnet Server sockets closed");
 			else
 				lprintf(LOG_WARNING,"!ERROR %d selecting sockets",ERROR_VALUE);
 			continue;
