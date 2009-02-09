@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.152 2008/01/06 21:41:23 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.155 2009/01/16 03:51:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -153,7 +153,7 @@ typedef struct {
 #define SM_CELERITY		(1L<<10)	/* Expand Celerity color codes in messages	*/
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
-#define SM_LOCAL_TZ		(1L<<13)	/* Use local timezone representations		*/
+#define SM_UNUSED		(1L<<13)	/* Defaults to *on*	(used to SM_LOCAL_TZ)	*/
 #define SM_AUTO_DST		(1L<<14)	/* Automatic Daylight Savings Toggle (US)   */
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/
@@ -407,6 +407,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_NOCTRL	(1L<<12)		/* No extraneous control files			*/
 #define QWK_EXT		(1L<<13)		/* QWK Extended (QWKE) format			*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
+#define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
 																			
@@ -678,6 +679,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_LEFTEXIT	(1L<<19)	/* Allow exit by backspacing/arrowing left	*/
 #define K_USEOFFSET	(1L<<20)	/* Use getstr_offset for cursor	position	*/
 #define K_NOSPIN	(1L<<21)	/* Do not honor the user's spinning cursor	*/
+#define K_ANSI_CPR	(1L<<22)	/* Expect ANSI Cursor Position Report		*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */

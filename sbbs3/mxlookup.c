@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.23 2008/02/18 19:38:02 deuce Exp $ */
+/* $Id: mxlookup.c,v 1.25 2008/03/09 20:18:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -342,7 +342,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 		answers=ntohs(msghdr.ancount);
 		p=msg+len;	/* Skip the header and question portion */
 
-		for(i=0;i<answers;i++) {
+		for(i=0;i<answers && p<msg+sizeof(msg);i++) {
 			namelen=0;
 			p+=dns_name(hostname, &namelen, sizeof(hostname)-1, msg+offset, p);
 
@@ -391,6 +391,7 @@ void main(int argc, char **argv)
 {
 	char		mx[128],mx2[128];
 	int			result;
+	DWORD		bindaddr=0;
 #ifdef _WIN32
 	WSADATA		WSAData;
 #endif
@@ -400,7 +401,7 @@ void main(int argc, char **argv)
 	printf("sizeof(dns_rr_t)=%d\n",sizeof(dns_rr_t));
 
 	if(argc<3) {
-		printf("usage: mxlookup hostname dns\n");
+		printf("usage: mxlookup hostname dns [bindaddr]\n");
 		return;
 	}
 
@@ -412,7 +413,10 @@ void main(int argc, char **argv)
 	}
 #endif
 
-	if((result=dns_getmx(argv[1],mx,mx2,0,inet_addr(argv[2]),FALSE,60))!=0) 
+	if(argc > 3)
+		bindaddr=ntohl(inet_addr(argv[3]));
+
+	if((result=dns_getmx(argv[1],mx,mx2,bindaddr,inet_addr(argv[2]),FALSE,60))!=0) 
 		printf("Error %d getting mx record\n",result);
 	else {
 		printf("MX1: %s\n",mx);
