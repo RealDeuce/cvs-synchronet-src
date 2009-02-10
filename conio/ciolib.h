@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.55 2009/02/12 07:19:36 deuce Exp $ */
+/* $Id: ciolib.h,v 1.54 2009/02/10 09:50:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -274,7 +274,7 @@ typedef struct {
 	void	(*getcustomcursor)	(int *startline, int *endline, int *range, int *blink, int *visible);
 	void	(*setcustomcursor)	(int startline, int endline, int range, int blink, int visible);
 	void	(*setvideoflags)	(int flags);
-	int		(*getvideoflags)	(void);
+	int		(*getvideoflags)	();
 	int		*ESCDELAY;
 } cioapi_t;
 

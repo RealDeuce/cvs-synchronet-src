@@ -38,7 +38,9 @@ object WebForm: TWebForm
     object LogPauseButton: TToolButton
       Left = 23
       Top = 0
-      Action = MainForm.WebPause
+      Hint = 'Pause Log Scrolling'
+      Enabled = False
+      ImageIndex = 67
       Style = tbsCheck
     end
     object StopButton: TToolButton
