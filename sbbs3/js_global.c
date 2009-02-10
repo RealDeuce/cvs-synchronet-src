@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.245 2009/02/16 04:22:10 rswindell Exp $ */
+/* $Id: js_global.c,v 1.242 2009/02/10 07:33:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -642,7 +642,10 @@ js_strip_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	buf=strip_ctrl(p, NULL);
+	if((buf=strdup(p))==NULL)
+		return(JS_FALSE);
+
+	strip_ctrl(buf);
 
 	js_str = JS_NewStringCopyZ(cx, buf);
 	free(buf);
@@ -666,7 +669,10 @@ js_strip_exascii(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	buf=strip_exascii(p, NULL);
+	if((buf=strdup(p))==NULL)
+		return(JS_FALSE);
+
+	strip_exascii(buf);
 
 	js_str = JS_NewStringCopyZ(cx, buf);
 	free(buf);
@@ -1169,8 +1175,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				j+=sprintf(tmpbuf+j,"&gt;");
 				break;
 			case '\b':
-				if(j)
-					j--;
+				j--;
 				break;
 			default:
 				if(inbuf[i]&0x80) {
@@ -1196,7 +1201,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						esccount++;
 						tmpbuf[j++]=inbuf[i];
 					}
-					else if(ctrl_a && inbuf[i]==CTRL_A)
+					else if(ctrl_a && inbuf[i]==1)
 					{
 						esccount++;
 						tmpbuf[j++]=inbuf[i];
@@ -1430,7 +1435,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				}
 				i+=(int)(lastparam-ansi_seq)+2;
 			}
-			else if(ctrl_a && tmpbuf[i]==CTRL_A)		/* CTRL-A codes */
+			else if(ctrl_a && tmpbuf[i]==1)		/* CTRL-A codes */
 			{
 /*				j+=sprintf(outbuf+j,"<!-- CTRL-A-%c (%u) -->",tmpbuf[i+1],tmpbuf[i+1]); */
 				if(nodisplay && tmpbuf[i+1] != ')')
@@ -1546,10 +1551,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 					case '.':
 					case 'S':
 					case '>':
-						break;
-					case '<':		/* convert non-destructive backspace into destructive backspace */
-						if(j)
-							j--;
+					case '<':
 						break;
 
 					case '!':		/* This needs to be fixed! (Somehow) */
@@ -1588,7 +1590,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case ']':
 						currrow++;
-						if(hpos!=0 && tmpbuf[i+2]!=CR && !(tmpbuf[i+2]==CTRL_A && tmpbuf[i+3]=='['))
+						if(hpos!=0 && tmpbuf[i+2]!=CR && !(tmpbuf[i+2]==1 && tmpbuf[i+3]=='['))
 						{
 							outbuf[j++]='\r';
 							outbuf[j++]='\n';
