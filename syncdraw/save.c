@@ -439,7 +439,7 @@ save(void)
 		}
 		SauceDescr.DataType = 5;
 		SauceDescr.FileType = 40;
-		/* if (SaveSauce) AppendSauce(fp); */
+		/* if (SaveSauce==TRUE) AppendSauce(fp); */
 		fclose(fp);
 		break;
 	case 7:

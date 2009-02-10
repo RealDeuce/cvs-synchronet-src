@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.58 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.54 2007/10/24 07:41:46 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -68,7 +68,7 @@ BOOL sbbs_t::newuser()
 	getnodedat(cfg.node_num,&thisnode,0);
 	if(thisnode.misc&NODE_LOCK) {
 		bputs(text[NodeLocked]);
-		logline(LOG_WARNING,"N!","New user locked node logon attempt");
+		logline("N!","New user locked node logon attempt");
 		hangup();
 		return(FALSE); 
 	}
@@ -91,7 +91,7 @@ BOOL sbbs_t::newuser()
 			if(!strcmp(str,cfg.new_pass))
 				break;
 			sprintf(tmp,"NUP Attempted: '%s'",str);
-			logline(LOG_NOTICE,"N!",tmp); 
+			logline("N!",tmp); 
 		}
 		if(c==4) {
 			sprintf(str,"%snupguess.msg",cfg.text_dir);
@@ -118,7 +118,7 @@ BOOL sbbs_t::newuser()
 	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true))!=0) {	/* Duplicate IP address */
 		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
-		logline(LOG_NOTICE,"N!",useron.comment); 
+		logline("N!",useron.comment); 
 	}
 
 	SAFECOPY(useron.alias,"New");     /* just for status line */
@@ -263,7 +263,7 @@ BOOL sbbs_t::newuser()
 			if(getstr(useron.location,LEN_LOCATION,kmode)
 				&& (cfg.uq&UQ_NOCOMMAS || strchr(useron.location,',')))
 				break;
-			bputs(text[CommaInLocationRequired]);
+			bputs("\r\nYou must include a comma between the city and state.\r\n");
 			useron.location[0]=0; 
 		}
 		if(cfg.uq&UQ_ADDRESS)
@@ -341,15 +341,15 @@ BOOL sbbs_t::newuser()
 
 	/* Default editor (moved here, after terminal type setup Jan-2003) */
 	for(i=0;i<cfg.total_xedits;i++)
-		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron,&client))
+		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron))
 			break;
 	if(i<cfg.total_xedits)
 		useron.xedit=i+1;
 
 	if(cfg.total_xedits && cfg.uq&UQ_XEDIT) {
-		if(yesno(text[UseExternalEditorQ])) {
+		if(yesno("Use an external message editor")) {
 			for(i=0;i<cfg.total_xedits;i++)
-				uselect(1,i,text[ExternalEditorHeading],cfg.xedit[i]->name,cfg.xedit[i]->ar);
+				uselect(1,i,"External Editor",cfg.xedit[i]->name,cfg.xedit[i]->ar);
 			if((int)(i=uselect(0,useron.xedit ? useron.xedit-1 : 0,0,0,0))>=0)
 				useron.xedit=i+1; 
 		} else
@@ -358,7 +358,7 @@ BOOL sbbs_t::newuser()
 
 	if(cfg.total_shells>1 && cfg.uq&UQ_CMDSHELL) {
 		for(i=0;i<cfg.total_shells;i++)
-			uselect(1,i,text[CommandShellHeading],cfg.shell[i]->name,cfg.shell[i]->ar);
+			uselect(1,i,"Command Shell",cfg.shell[i]->name,cfg.shell[i]->ar);
 		if((int)(i=uselect(0,useron.shell,0,0,0))>=0)
 			useron.shell=i; 
 	}
@@ -408,9 +408,9 @@ BOOL sbbs_t::newuser()
 			else
 				sprintf(tmp,"%s FAILED Password verification"
 					,useron.alias);
-			logline(LOG_NOTICE,nulstr,tmp);
+			logline(nulstr,tmp);
 			if(++c==4) {
-				logline(LOG_NOTICE,"N!","Couldn't figure out password.");
+				logline("N!","Couldn't figure out password.");
 				hangup(); 
 			}
 			bputs(text[IncorrectPassword]);
@@ -449,7 +449,7 @@ BOOL sbbs_t::newuser()
 	if(!(cfg.uq&UQ_NODEF))
 		maindflts(&useron);
 
-	delallmail(useron.number, MAIL_ANY);
+	delallmail(useron.number);
 
 	if(useron.number!=1 && cfg.node_valuser) {
 		sprintf(str,"%sfeedback.msg",cfg.text_dir);
@@ -466,7 +466,7 @@ BOOL sbbs_t::newuser()
 				} /* give 'em a 2nd try */
 			if(!useron.fbacks && !useron.emails) {
         		bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
-				logline(LOG_NOTICE,"N!","Aborted feedback");
+				logline("N!","Aborted feedback");
 				hangup();
 				putuserrec(&cfg,useron.number,U_COMMENT,60,"Didn't leave feedback");
 				putuserrec(&cfg,useron.number,U_MISC,8
