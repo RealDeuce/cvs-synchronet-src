@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.24 2008/01/27 09:17:54 rswindell Exp $ */
+/* $Id: file.cpp,v 1.25 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,7 +239,7 @@ char * sbbs_t::getfilespec(char *str)
 /****************************************************************************/
 /* Checks to see if filename matches filespec. Returns 1 if yes, 0 if no    */
 /****************************************************************************/
-extern "C" BOOL filematch(char *filename, char *filespec)
+extern "C" BOOL filematch(const char *filename, const char *filespec)
 {
     char c;
 
