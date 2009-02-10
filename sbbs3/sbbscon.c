@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.233 2009/10/25 03:07:05 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.228 2009/01/28 01:16:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,10 +105,9 @@ BOOL				web_running=FALSE;
 BOOL				web_stopped=FALSE;
 BOOL				has_web=FALSE;
 web_startup_t		web_startup;
-ulong				thread_count=1;
-ulong				socket_count=0;
-ulong				client_count=0;
-ulong				error_count=0;
+uint				thread_count=1;
+uint				socket_count=0;
+uint				client_count=0;
 int					prompt_len=0;
 static scfg_t		scfg;					/* To allow rerun */
 static ulong		served=0;
@@ -177,18 +176,18 @@ static const char* usage  = "\nusage: %s [[setting] [...]] [path/ini_file]\n"
 							"\tdefaults   show default settings and options\n"
 							"\n"
 							;
-static const char* telnet_usage  = "Terminal server settings:\n\n"
-							"\ttf<node>   set first node number\n"
-							"\ttl<node>   set last node number\n"
+static const char* telnet_usage  = "Telnet server settings:\n\n"
+							"\ttf<node>   set first Telnet node number\n"
+							"\ttl<node>   set last Telnet node number\n"
 							"\ttp<port>   set Telnet server port\n"
 							"\trp<port>   set RLogin server port (and enable RLogin server)\n"
 							"\tr2         use second RLogin name in BSD RLogin\n"
-							"\tto<value>  set Terminal server options value (advanced)\n"
+							"\tto<value>  set Telnet server options value (advanced)\n"
 							"\tta         enable auto-logon via IP address\n"
 							"\ttd         enable Telnet command debug output\n"
 							"\ttc         emabble sysop availability for chat\n"
 							"\ttq         disable QWK events\n"
-							"\tt-         disable Terminal server\n"
+							"\tt-         disable Telnet/RLogin server\n"
 							"\n"
 							;
 static const char* ftp_usage  = "FTP server settings:\n"
@@ -260,16 +259,11 @@ static int lputs(int level, char *str)
 	}
 	/* re-display prompt with current stats */
 	if(prompt!=NULL)
-		prompt_len = printf(prompt, thread_count, socket_count, client_count, served, error_count);
+		prompt_len = printf(prompt, thread_count, socket_count, client_count, served);
 	fflush(stdout);
 	pthread_mutex_unlock(&mutex);
 
     return(prompt_len);
-}
-
-static void errormsg(void* cbdata, int level, const char* fmt)
-{
-	error_count++;
 }
 
 static int lprintf(int level, const char *fmt, ...)
@@ -622,7 +616,7 @@ static int bbs_lputs(void* p, int level, const char *str)
 		if (std_facilities)
 			syslog(level|LOG_AUTH,"%s",str);
 		else
-			syslog(level,"term %s",str);
+			syslog(level,"     %s",str);
 		return(strlen(str));
 	}
 #endif
@@ -635,7 +629,7 @@ static int bbs_lputs(void* p, int level, const char *str)
 			,tm.tm_mon+1,tm.tm_mday
 			,tm.tm_hour,tm.tm_min,tm.tm_sec);
 
-	sprintf(logline,"%sterm %.*s",tstr,(int)sizeof(logline)-32,str);
+	sprintf(logline,"%s     %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
 	lputs(level,logline);
 	
@@ -841,7 +835,7 @@ static void services_terminated(void* p, int code)
 /****************************************************************************/
 /* Event thread local/log print routine										*/
 /****************************************************************************/
-static int event_lputs(void* p, int level, const char *str)
+static int event_lputs(int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];
@@ -958,7 +952,7 @@ static void terminate(void)
 	while(bbs_running || ftp_running || web_running || mail_running || services_running)  {
 		if(count && (count%10)==0) {
 			if(bbs_running)
-				lputs(LOG_INFO,"Terminal Server thread still running");
+				lputs(LOG_INFO,"BBS System thread still running");
 			if(ftp_running)
 				lputs(LOG_INFO,"FTP Server thread still running");
 			if(web_running)
@@ -1050,7 +1044,7 @@ void cleanup(void)
 }
 
 #if defined(_WIN32)
-BOOL WINAPI ControlHandler(unsigned long CtrlType)
+BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
 	terminated=TRUE;
 	return TRUE;
@@ -1231,7 +1225,6 @@ int main(int argc, char** argv)
 	bbs_startup.log_level = LOG_DEBUG;
 	bbs_startup.lputs=bbs_lputs;
 	bbs_startup.event_lputs=event_lputs;
-	bbs_startup.errormsg=errormsg;
     bbs_startup.started=bbs_started;
 	bbs_startup.recycle=recycle;
     bbs_startup.terminated=bbs_terminated;
@@ -1254,7 +1247,6 @@ int main(int argc, char** argv)
 	ftp_startup.cbdata=&ftp_startup;
 	ftp_startup.log_level = LOG_DEBUG;
 	ftp_startup.lputs=ftp_lputs;
-	ftp_startup.errormsg=errormsg;
     ftp_startup.started=ftp_started;
 	ftp_startup.recycle=recycle;
     ftp_startup.terminated=ftp_terminated;
@@ -1274,7 +1266,6 @@ int main(int argc, char** argv)
 	web_startup.cbdata=&web_startup;
 	web_startup.log_level = LOG_DEBUG;
 	web_startup.lputs=web_lputs;
-	web_startup.errormsg=errormsg;
     web_startup.started=web_started;
 	web_startup.recycle=recycle;
     web_startup.terminated=web_terminated;
@@ -1293,7 +1284,6 @@ int main(int argc, char** argv)
 	mail_startup.cbdata=&mail_startup;
 	mail_startup.log_level = LOG_DEBUG;
 	mail_startup.lputs=mail_lputs;
-	mail_startup.errormsg=errormsg;
     mail_startup.started=mail_started;
 	mail_startup.recycle=recycle;
     mail_startup.terminated=mail_terminated;
@@ -1312,7 +1302,6 @@ int main(int argc, char** argv)
 	services_startup.cbdata=&services_startup;
 	services_startup.log_level = LOG_DEBUG;
 	services_startup.lputs=services_lputs;
-	services_startup.errormsg=errormsg;
     services_startup.started=services_started;
 	services_startup.recycle=recycle;
     services_startup.terminated=services_terminated;
@@ -1392,9 +1381,9 @@ int main(int argc, char** argv)
 			printf("Default settings:\n");
 			printf("\n");
 			printf("Telnet server port:\t%u\n",bbs_startup.telnet_port);
-			printf("Terminal first node:\t%u\n",bbs_startup.first_node);
-			printf("Terminal last node:\t%u\n",bbs_startup.last_node);
-			printf("Terminal server options:\t0x%08lX\n",bbs_startup.options);
+			printf("Telnet first node:\t%u\n",bbs_startup.first_node);
+			printf("Telnet last node:\t%u\n",bbs_startup.last_node);
+			printf("Telnet server options:\t0x%08lX\n",bbs_startup.options);
 			printf("FTP server port:\t%u\n",ftp_startup.port);
 			printf("FTP server options:\t0x%08lX\n",ftp_startup.options);
 			printf("Mail SMTP server port:\t%u\n",mail_startup.smtp_port);
@@ -1414,7 +1403,7 @@ int main(int argc, char** argv)
 						SAFECOPY(log_facility,arg++);
 				break;
 #endif
-			case 'T':	/* Terminal server settings */
+			case 'T':	/* Telnet settings */
 				switch(toupper(*(arg++))) {
 					case '-':	
 						run_bbs=FALSE;
@@ -1634,7 +1623,7 @@ int main(int argc, char** argv)
 					case 'S':	/* Services */
 						run_services=FALSE;
 						break;
-					case 'T':	/* Terminal Server */
+					case 'T':	/* Telnet */
 						run_bbs=FALSE;
 						break;
 					case 'E': /* No Events */
@@ -1914,7 +1903,7 @@ int main(int argc, char** argv)
 	else 								/* interactive */
 #endif
 	{
-	    prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu  Errors: %lu] (?=Help): ";
+	    prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu] (?=Help): ";
 	    lputs(LOG_INFO,NULL);	/* display prompt */
 
 		while(!terminated) {

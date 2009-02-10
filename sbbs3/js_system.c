@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.127 2009/11/21 20:32:32 rswindell Exp $ */
+/* $Id: js_system.c,v 1.124 2009/01/12 20:59:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1293,12 +1293,10 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		alias;
 	int			i;
-	uintN		n;
 	scfg_t*		cfg;
 	user_t		user;
 	JSObject*	userobj;
 	jsrefcount	rc;
-	client_t*	client=NULL;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -1313,21 +1311,6 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	memset(&user,0,sizeof(user));
-	for(n=0;n<argc;n++) {
-		if(JSVAL_IS_OBJECT(argv[n])) {
-			JSClass*	cl;
-			JSObject*	objarg = JSVAL_TO_OBJECT(argv[n]);
-			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0) {
-				client=JS_GetPrivate(cx,objarg);
-				continue;
-			}
-		}
-	}
-	if(client!=NULL) {
-		SAFECOPY(user.modem,client->protocol);
-		SAFECOPY(user.comp,client->host);
-		SAFECOPY(user.note,client->addr);
-	}
 
 	user.sex=' ';
 	SAFECOPY(user.alias,alias);
@@ -1364,7 +1347,7 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	user.qwk=QWK_DEFAULT;
 
 	for(i=0;i<cfg->total_xedits;i++)
-		if(!stricmp(cfg->xedit[i]->code,cfg->new_xedit) && chk_ar(cfg,cfg->xedit[i]->ar,&user,/* client: */NULL))
+		if(!stricmp(cfg->xedit[i]->code,cfg->new_xedit) && chk_ar(cfg,cfg->xedit[i]->ar,&user))
 			break;
 	if(i<cfg->total_xedits)
 		user.xedit=i+1;
@@ -1373,7 +1356,7 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(i==0) {
-		userobj=js_CreateUserObject(cx, obj, cfg, NULL, &user, /* client: */NULL, /* global_user: */FALSE);
+		userobj=js_CreateUserObject(cx, obj, cfg, NULL, user.number);
 		*rval = OBJECT_TO_JSVAL(userobj);
 	} else
 		*rval = INT_TO_JSVAL(i);
@@ -1547,9 +1530,9 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,310
 	},		
 	{"newuser",			js_new_user,		1,	JSTYPE_ALIAS },
-	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias [,client object]")
+	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias")
 	,JSDOCSTR("creates a new user record, returns a new <a href=#User>User</a> object representing the new user account, on success.<br>"
-	"returns an numeric error code on failure (optional <i>client</i> object argument added in v3.15a)")
+	"returns an numeric error code on failure")
 	,310
 	},
 	{"exec",			js_exec,			1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
