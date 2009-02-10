@@ -1,2 +1,2 @@
-all: $(OBJODIR) $(EXEODIR) $(EXEODIR)/fontedit
+all: $(EXEODIR)/fontedit
 

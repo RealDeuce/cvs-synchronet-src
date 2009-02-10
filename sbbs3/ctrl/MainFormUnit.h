@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.81 2010/02/25 07:43:34 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.76 2009/01/24 12:23:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -253,7 +253,7 @@ __published:	// IDE-managed Components
 	TAction *ServicesRecycle;
 	TMenuItem *Recycle1;
 	TMenuItem *Recycle2;
-    TMenuItem *ServicesRecycleMenuItem;
+	TMenuItem *Recycle3;
 	TAction *TelnetRecycle;
 	TMenuItem *DnsBlacklists;
 	TMenuItem *ExportSettingsMenuItem;
@@ -273,8 +273,7 @@ __published:	// IDE-managed Components
 	TMenuItem *N10;
 	TMenuItem *SpamBaitList;
 	TMenuItem *SpamBlockList;
-	TMenuItem *SpamBlockExemptions;
-    TTimer *LogTimer;
+	TTimer *LogTimer;
 	TTimer *ServiceStatusTimer;
     TMenuItem *ViewWebServerMenuItem;
     TAction *ViewWebServer;
@@ -284,10 +283,10 @@ __published:	// IDE-managed Components
     TAction *WebRecycle;
     TAction *WebConfigure;
     TMenuItem *WebMenuItem;
-    TMenuItem *WebConfigureMenuItem;
-    TMenuItem *WebStartMenuItem;
-    TMenuItem *WebStopMenuItem;
-    TMenuItem *WebRecycleMenuItem;
+    TMenuItem *Configure1;
+    TMenuItem *Start1;
+    TMenuItem *Stop1;
+    TMenuItem *Recycle4;
     TMenuItem *N11;
     TMenuItem *WebEditMenuItem;
     TMenuItem *WebEditMimeTypesMenuItem;
@@ -304,18 +303,6 @@ __published:	// IDE-managed Components
     TMenuItem *ConfigureServicesTrayMenuItem;
     TMenuItem *HelpTechnicalSupportMenuItem;
     TTimer *SemFileTimer;
-    TMenuItem *ViewErrorLogMenuItem;
-    TAction *TelnetPause;
-    TMenuItem *TelnetPauseMenuItem;
-    TAction *MailPause;
-    TAction *WebPause;
-    TAction *FtpPause;
-    TAction *ServicesPause;
-    TMenuItem *MailPauseMenuItem;
-    TMenuItem *FtpPauseMenuItem;
-    TMenuItem *WebPauseMenuItem;
-    TMenuItem *ServicesPauseMenuItem;
-    TMenuItem *LogoffMessage;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
