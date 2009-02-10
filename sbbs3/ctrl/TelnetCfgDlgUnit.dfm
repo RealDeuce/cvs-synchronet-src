@@ -2,7 +2,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
   Left = 377
   Top = 354
   BorderStyle = bsDialog
-  Caption = 'Terminal Server Configuration'
+  Caption = 'Telnet Server Configuration'
   ClientHeight = 288
   ClientWidth = 352
   Color = clBtnFace
@@ -43,7 +43,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Top = 12
         Width = 144
         Height = 24
-        Hint = 'Automatically start Terminal server'
+        Hint = 'Automatically start Telnet server'
         Caption = 'Auto Startup'
         ParentShowHint = False
         ShowHint = True
@@ -54,7 +54,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Top = 12
         Width = 48
         Height = 21
-        Hint = 'First node number available for Terminal logins'
+        Hint = 'First node number available for Telnet logins'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -75,7 +75,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Top = 44
         Width = 48
         Height = 21
-        Hint = 'Last node number available for Terminal logins'
+        Hint = 'Last node number available for Telnet logins'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 1
