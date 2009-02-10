@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.69 2008/02/21 09:49:25 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.72 2009/02/02 00:36:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -189,7 +189,8 @@
 #define SENDERIPADDR		0x07		/* for tracing */
 #define SENDERHOSTNAME		0x08		/* for tracing */
 #define SENDERPROTOCOL		0x09		/* for tracing */
-#define SENDERPORT			0x0a		/* for tracing */
+#define SENDERPORT_BIN		0x0a		/* deprecated */
+#define SENDERPORT			0x0b		/* for tracing */
 
 #define AUTHOR				0x10
 #define AUTHORAGENT 		0x11
@@ -225,6 +226,8 @@
 
 #define FORWARDED			0x48
 
+#if 0	/* Deprecating the following fields: (Jan-2009) never used */
+
 #define RECEIVEDBY			0x50
 #define RECEIVEDBYAGENT 	0x51
 #define RECEIVEDBYNETTYPE	0x52
@@ -234,6 +237,8 @@
 #define RECEIVEDBYORG		0x56
 
 #define RECEIVED			0x58
+
+#endif
 
 #define SUBJECT 			0x60	/* or filename */
 #define SMB_SUMMARY 		0x61	/* or file description */
@@ -289,9 +294,10 @@
 #define USENETPATH			0xc0
 #define USENETNEWSGROUPS	0xc1
 
-#define SMTPCOMMAND			0xd0		/* Aribtrary SMTP command */
+#define SMTPCOMMAND			0xd0		/* Arbitrary SMTP command */
 #define SMTPREVERSEPATH		0xd1		/* MAIL FROM: argument, "reverse path" */
 #define SMTPFORWARDPATH		0xd2		/* RCPT TO: argument, "forward path" */
+#define SMTPRECEIVED		0xd3		/* SMTP "Received" information */
 
 #define SMTPSYSMSG			0xd8		/* for delivery failure notification */
 
@@ -570,6 +576,9 @@ typedef struct {				/* Message */
 				*from,			/* From name */
 				*from_ext,		/* From extension */
 				*from_org,		/* From organization */
+				*from_ip,		/* From IP address (e.g. "192.168.1.2") */
+				*from_host,		/* From host name */
+				*from_prot,		/* From protocol (e.g. "Telnet", "NNTP", "HTTP", etc.) */
 				*replyto,		/* Reply-to name */
 				*replyto_ext,	/* Reply-to extension */
 				*id,			/* RFC822 Message-ID */
