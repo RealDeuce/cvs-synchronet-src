@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.325 2009/02/16 10:35:48 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.322 2009/02/01 21:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -467,7 +467,6 @@ public:
 	void	automsg(void);
 	bool	writemsg(const char *str, const char *top, char *title, long mode, int subnum
 				,const char *dest);
-	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode);
 	bool	msgabort(void);
@@ -488,8 +487,6 @@ public:
 				,uint subnum);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
-	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines);
-	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines);
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
@@ -852,23 +849,19 @@ extern "C" {
 	DLLEXPORT int		DLLCALL update_uldate(scfg_t* cfg, file_t* f);
 
 	/* str_util.c */
-	DLLEXPORT char *	DLLCALL remove_ctrl_a(const char* instr, char* outstr);
-	DLLEXPORT char 		DLLCALL ctrl_a_to_ascii_char(char code);
 	DLLEXPORT char *	DLLCALL truncstr(char* str, const char* set);
 	DLLEXPORT char *	DLLCALL ascii_str(uchar* str);
-	DLLEXPORT char		DLLCALL exascii_to_ascii_char(uchar ch);
 	DLLEXPORT BOOL		DLLCALL findstr(const char *insearch, const char *fname);
 	DLLEXPORT BOOL		DLLCALL findstr_in_string(const char* insearchof, char* string);
 	DLLEXPORT BOOL		DLLCALL findstr_in_list(const char* insearchof, str_list_t list);
 	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, const char *insearch, const char *name);
 	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
 	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
-	DLLEXPORT char *	DLLCALL strip_exascii(const char *str, char* dest);
-	DLLEXPORT char *	DLLCALL prep_file_desc(const char *str, char* dest);
-	DLLEXPORT char *	DLLCALL strip_ctrl(const char *str, char* dest);
+	DLLEXPORT char *	DLLCALL strip_exascii(char *str);
+	DLLEXPORT char *	DLLCALL prep_file_desc(char *str);
+	DLLEXPORT char *	DLLCALL strip_ctrl(char *str);
 	DLLEXPORT char *	DLLCALL net_addr(net_t* net);
-	DLLEXPORT BOOL		DLLCALL valid_ctrl_a_attr(char a);
-	DLLEXPORT BOOL		DLLCALL valid_ctrl_a_code(char a);
+	DLLEXPORT BOOL		DLLCALL validattr(char a);
 	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
 	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
 	DLLEXPORT char *	DLLCALL rot13(char* str);
@@ -918,6 +911,8 @@ extern "C" {
 										,char* host, SOCKADDR_IN* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
 										,char* host, char* ip_addr, char* to, char* from);
+
+	DLLEXPORT char *	DLLCALL remove_ctrl_a(char* instr, char* outstr);
 
 	/* data.cpp */
 	DLLEXPORT time_t	DLLCALL getnextevent(scfg_t* cfg, event_t* event);
@@ -1087,13 +1082,13 @@ extern "C" {
 #endif
 
 /* str_util.c */
-size_t	bstrlen(const char *str);
-char*	backslashcolon(char *str);
-ulong	ahtoul(const char *str);	/* Converts ASCII hex to ulong */
+int		bstrlen(char *str);
+void	backslashcolon(char *str);
+ulong	ahtoul(char *str);	/* Converts ASCII hex to ulong */
 char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
-uint	hptoi(const char *str);
-int		pstrcmp(const char **str1, const char **str2);  /* Compares pointers to pointers */
-int		strsame(const char *str1, const char *str2);	/* Compares number of same chars */
+uint	hptoi(char *str);
+int		pstrcmp(char **str1, char **str2);  /* Compares pointers to pointers */
+int		strsame(char *str1, char *str2);	/* Compares number of same chars */
 
 /* load_cfg.c */
 BOOL 	md(char *path);

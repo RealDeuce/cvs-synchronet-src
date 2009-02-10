@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.62 2009/02/16 03:25:26 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.61 2009/01/16 03:54:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -268,7 +268,7 @@ bool sbbs_t::answer()
 	strcpy(str,VERSION_NOTICE);
 	strcat(str,"  ");
 	strcat(str,COPYRIGHT_NOTICE);
-	strip_ctrl(str, str);
+	strip_ctrl(str);
 	center(str);
 
 	while(i++<50 && l<(int)sizeof(str)-1) { 	/* wait up to 5 seconds for response */
