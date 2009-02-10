@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.106 2009/02/06 02:10:59 deuce Exp $ */
+/* $Id: ciolib.c,v 1.107 2009/02/09 08:03:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -695,6 +695,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 		lastmode=cio_textinfo.currmode;
 	}
 	else {
+		if(mode==64)
+			mode=C80X50;
 		lastmode=cio_textinfo.currmode;
 		cio_api.textmode(mode);
 	}
