@@ -2,7 +2,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
   Left = 377
   Top = 354
   BorderStyle = bsDialog
-  Caption = 'Terminal Server Configuration'
+  Caption = 'Telnet Server Configuration'
   ClientHeight = 288
   ClientWidth = 352
   Color = clBtnFace
@@ -17,8 +17,8 @@ object TelnetCfgDlg: TTelnetCfgDlg
     Top = 4
     Width = 342
     Height = 229
-    ActivePage = SoundTabSheet
-    TabIndex = 4
+    ActivePage = SshTabSheet
+    TabIndex = 3
     TabOrder = 0
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
@@ -43,7 +43,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Top = 12
         Width = 144
         Height = 24
-        Hint = 'Automatically start Terminal server'
+        Hint = 'Automatically start Telnet server'
         Caption = 'Auto Startup'
         ParentShowHint = False
         ShowHint = True
@@ -53,8 +53,8 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 105
         Top = 12
         Width = 48
-        Height = 24
-        Hint = 'First node number available for Terminal logins'
+        Height = 21
+        Hint = 'First node number available for Telnet logins'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
@@ -74,8 +74,8 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 105
         Top = 44
         Width = 48
-        Height = 24
-        Hint = 'Last node number available for Terminal logins'
+        Height = 21
+        Hint = 'Last node number available for Telnet logins'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 1
@@ -100,7 +100,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'QWK Msg Events'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 7
+        TabOrder = 6
       end
       object JavaScriptCheckBox: TCheckBox
         Left = 182
@@ -111,7 +111,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'JavaScript Support'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 8
+        TabOrder = 7
       end
       object IdentityCheckBox: TCheckBox
         Left = 9
@@ -133,7 +133,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Events Enabled'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
+        TabOrder = 8
       end
     end
     object TelnetTabSheet: TTabSheet
@@ -236,7 +236,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 105
         Top = 12
         Width = 48
-        Height = 24
+        Height = 21
         Hint = 'TCP port for incoming connections (default=513)'
         ParentShowHint = False
         ShowHint = True
@@ -246,7 +246,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 105
         Top = 44
         Width = 192
-        Height = 24
+        Height = 21
         Hint = 
           'Enter your Network adapter'#39's static IP address here or blank for' +
           ' <ANY>'
@@ -350,24 +350,24 @@ object TelnetCfgDlg: TTelnetCfgDlg
       object AnswerSoundLabel: TLabel
         Left = 9
         Top = 12
-        Width = 80
+        Width = 64
         Height = 25
         AutoSize = False
-        Caption = 'Connect'
+        Caption = 'Answer'
       end
       object HnagupSoundLabel: TLabel
         Left = 9
         Top = 44
-        Width = 80
+        Width = 64
         Height = 25
         AutoSize = False
-        Caption = 'Disconnect'
+        Caption = 'Hangup'
       end
       object AnswerSoundEdit: TEdit
         Left = 89
         Top = 12
         Width = 208
-        Height = 24
+        Height = 21
         Hint = 'Sound file to play when accepting an incoming connection'
         ParentShowHint = False
         ShowHint = True
@@ -386,7 +386,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 89
         Top = 44
         Width = 208
-        Height = 24
+        Height = 21
         Hint = 'Sound file to play when disconnecting'
         ParentShowHint = False
         ShowHint = True
