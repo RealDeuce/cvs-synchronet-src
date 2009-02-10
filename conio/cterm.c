@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.117 2009/02/10 09:50:18 deuce Exp $ */
+/* $Id: cterm.c,v 1.118 2009/02/10 20:31:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -697,7 +697,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 							switch(i) {
 								case 0:	/* Only the primary and secondary font is currently supported */
 								case 1:
-									setfont(j,FALSE,i);
+									setfont(j,FALSE,i+1);
 							}
 						}
 					}
@@ -1173,7 +1173,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.117 $";
+	char	*revision="$Revision: 1.118 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1883,15 +1883,15 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 							/* Font change... whee! */
 							case 14:	/* Lower case font */
 								if(ti.currmode == C64_40X25)
-									setfont(33,FALSE,0);
+									setfont(33,FALSE,1);
 								else	/* Assume C128 */
-									setfont(35,FALSE,0);
+									setfont(35,FALSE,1);
 								break;
 							case 142:	/* Upper case font */
 								if(ti.currmode == C64_40X25)
-									setfont(32,FALSE,0);
+									setfont(32,FALSE,1);
 								else	/* Assume C128 */
-									setfont(34,FALSE,0);
+									setfont(34,FALSE,1);
 								break;
 							case 18:	/* Reverse mode on */
 								cterm.c64reversemode = 1;
