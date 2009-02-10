@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.74 2009/02/12 07:16:50 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.73 2009/02/06 08:15:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -916,12 +916,12 @@ int ansi_readbyte_cb(void)
 
 int ansi_writebyte_cb(unsigned char ch)
 {
-	return(fwrite(&ch,1,1,stdout));
+	fwrite(&ch,1,1,stdout);
 }
 
 int ansi_writestr_cb(unsigned char *str, size_t len)
 {
-	return(fwrite(str,len,1,stdout));
+	fwrite(str,len,1,stdout);
 }
 
 int ansi_initio_cb(void)
@@ -954,7 +954,6 @@ int ansi_initio_cb(void)
 		atexit(ansi_fixterm);
 	}
 #endif
-	return(0);
 }
 
 #if defined(__BORLANDC__)
