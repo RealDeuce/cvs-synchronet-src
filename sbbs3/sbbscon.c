@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.224 2008/02/23 22:35:09 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.228 2009/01/28 01:16:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -266,7 +266,7 @@ static int lputs(int level, char *str)
     return(prompt_len);
 }
 
-static int lprintf(int level, char *fmt, ...)
+static int lprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[1024];
@@ -510,7 +510,7 @@ static BOOL winsock_startup(void)
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0)
 		return(TRUE);
 
-    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_CRIT,"!WinSock startup ERROR %d", status);
 	return(FALSE);
 }
 
@@ -599,7 +599,7 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
 /****************************************************************************/
 /* BBS local/log print routine												*/
 /****************************************************************************/
-static int bbs_lputs(void* p, int level, char *str)
+static int bbs_lputs(void* p, int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];
@@ -657,7 +657,7 @@ static void bbs_terminated(void* p, int code)
 /****************************************************************************/
 /* FTP local/log print routine												*/
 /****************************************************************************/
-static int ftp_lputs(void* p, int level, char *str)
+static int ftp_lputs(void* p, int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];
@@ -719,7 +719,7 @@ static void ftp_terminated(void* p, int code)
 /****************************************************************************/
 /* Mail Server local/log print routine										*/
 /****************************************************************************/
-static int mail_lputs(void* p, int level, char *str)
+static int mail_lputs(void* p, int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];
@@ -777,7 +777,7 @@ static void mail_terminated(void* p, int code)
 /****************************************************************************/
 /* Services local/log print routine											*/
 /****************************************************************************/
-static int services_lputs(void* p, int level, char *str)
+static int services_lputs(void* p, int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];
@@ -835,7 +835,7 @@ static void services_terminated(void* p, int code)
 /****************************************************************************/
 /* Event thread local/log print routine										*/
 /****************************************************************************/
-static int event_lputs(int level, char *str)
+static int event_lputs(int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];
@@ -875,7 +875,7 @@ static int event_lputs(int level, char *str)
 /****************************************************************************/
 /* web local/log print routine											*/
 /****************************************************************************/
-static int web_lputs(void* p, int level, char *str)
+static int web_lputs(void* p, int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];
@@ -1090,6 +1090,7 @@ static void handle_sigs(void)
 	int			sig=0;
 	sigset_t	sigs;
 
+	SetThreadName("Signal Handler");
 	thread_up(NULL,TRUE,TRUE);
 
 	if (is_daemon) {
@@ -1197,6 +1198,7 @@ int main(int argc, char** argv)
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
+	SetThreadName("Main");
 	atexit(cleanup);
 
 	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
@@ -1549,7 +1551,6 @@ int main(int argc, char** argv)
 						show_usage(argv[0]);
 						return(1);
 				}
-				break;
 				break;
 			case 'G':	/* GET */
 				switch(toupper(*(arg++))) {
