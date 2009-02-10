@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.76 2010/03/05 03:30:53 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.73 2008/06/04 04:40:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -388,9 +388,8 @@ int DLLCALL setfdate(const char* filename, time_t t)
 
 /****************************************************************************/
 /* Returns the length of the file in 'filename'                             */
-/* or -1 if the file doesn't exist											*/
 /****************************************************************************/
-int64_t DLLCALL flength(const char *filename)
+long DLLCALL flength(const char *filename)
 {
 #if defined(__BORLANDC__) && !defined(__unix__)	/* stat() doesn't work right */
 
@@ -398,7 +397,7 @@ int64_t DLLCALL flength(const char *filename)
 	struct _finddata_t f;
 
 	if(access((char*)filename,0)==-1)
-		return(-1);
+		return(-1L);
 
 	if((handle=_findfirst((char*)filename,&f))==-1)
 		return(-1);
@@ -409,21 +408,13 @@ int64_t DLLCALL flength(const char *filename)
 
 #else 
 
-#ifdef _WIN32
-	struct _stati64 st;
-#else
 	struct stat st;
-#endif
 
 	if(access(filename,0)==-1)
-		return(-1);
+		return(-1L);
 
-#ifdef _WIN32
-	if(_stati64(filename, &st)!=0)
-#else
 	if(stat(filename, &st)!=0)
-#endif
-		return(-1);
+		return(-1L);
 
 	return(st.st_size);
 
@@ -456,23 +447,19 @@ BOOL DLLCALL fexist(const char *filespec)
 
 	long	handle;
 	struct _finddata_t f;
-	BOOL	found;
 
 	if(!strchr(filespec,'*') && !strchr(filespec,'?'))
 		return(fnameexist(filespec));
 
 	if((handle=_findfirst((char*)filespec,&f))==-1)
 		return(FALSE);
-	found=TRUE;
-	while(f.attrib&_A_SUBDIR)
-		if(_findnext(handle,&f)!=0) {
-			found=FALSE;
-			break;
-		}
 
  	_findclose(handle);
 
-	return(found);
+ 	if(f.attrib&_A_SUBDIR)
+		return(FALSE);
+
+	return(TRUE);
 
 #else /* Unix or OS/2 */
 	
@@ -647,7 +634,7 @@ int DLLCALL getfattr(const char* filename)
 }
 
 #ifdef __unix__
-int removecase(const char *path)
+int removecase(char *path)
 {
 	char inpath[MAX_PATH+1];
 	char fname[MAX_PATH*4+1];

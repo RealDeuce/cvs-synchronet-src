@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.96 2009/08/21 08:54:34 deuce Exp $ */
+/* $Id: win32cio.c,v 1.92 2008/01/24 03:06:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -517,7 +517,7 @@ void win32_resume(void)
 		SetConsoleMode(h, conmode);
 }
 
-static BOOL WINAPI ControlHandler(unsigned long CtrlType)
+static BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
 	return TRUE;
 }
@@ -825,55 +825,4 @@ char *win32_getcliptext(void)
 	CloseClipboard();
 	
 	return(ret);
-}
-
-void win32_getcustomcursor(int *s, int *e, int *r, int *b, int *v)
-{
-	CONSOLE_CURSOR_INFO	ci;
-	HANDLE				h;
-
-	if((h=GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE)
-		return;
-
-	GetConsoleCursorInfo(h, &ci);
-	if(s)
-		*s=100-ci.dwSize;
-	if(e)
-		*e=99;
-	if(r)
-		*r=100;
-	if(b)
-		*b=1;
-	if(v)
-		*v=ci.bVisible?1:0;
-}
-
-void win32_setcustomcursor(int s, int e, int r, int b, int v)
-{
-	CONSOLE_CURSOR_INFO	ci;
-	HANDLE				h;
-
-	if((h=GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE)
-		return;
-
-	ci.bVisible=v;
-	if(e>s)
-		ci.bVisible=0;
-	else {
-		if(r>0)
-			ci.dwSize=(1+e-s)/r;
-		else
-			ci.dwSize=100;
-	}
-}
-
-int win32_getvideoflags(void)
-{
-	DWORD	mode;
-
-	if(!NT_GetConsoleDisplayMode(&mode))
-		return(CIOLIB_VIDEO_BGBRIGHT);
-	if(mode==CONSOLE_FULLSCREEN_MODE)
-		return(0);
-	return(CIOLIB_VIDEO_BGBRIGHT);
 }
