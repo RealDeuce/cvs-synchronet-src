@@ -246,7 +246,6 @@ freadQuestionRecord(tQuestionRecord *q, FILE *f)
 			fprintf(stderr, "Unhandled time_t size (%d)\n", sizeof(time_t));
 			exit(1);
 	}
-	return(1);
 }
 
 int
@@ -295,7 +294,6 @@ fwriteQuestionRecord(tQuestionRecord *q, FILE *f)
 			fprintf(stderr, "Unhandled time_t size (%d)\n", sizeof(time_t));
 			exit(1);
 	}
-	return(1);
 }
 
 void gettime(struct time *tim)  {

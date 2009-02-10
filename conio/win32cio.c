@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.95 2009/02/12 07:21:23 deuce Exp $ */
+/* $Id: win32cio.c,v 1.93 2009/02/10 09:15:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -833,7 +833,7 @@ void win32_getcustomcursor(int *s, int *e, int *r, int *b, int *v)
 	HANDLE				h;
 
 	if((h=GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE)
-		return;
+		return(0);
 
 	GetConsoleCursorInfo(h, &ci);
 	if(s)
@@ -848,13 +848,13 @@ void win32_getcustomcursor(int *s, int *e, int *r, int *b, int *v)
 		*v=ci.bVisible?1:0;
 }
 
-void win32_setcustomcursor(int s, int e, int r, int b, int v)
+void win32_set customcursor(int s, int e, int r, int b, int v)
 {
 	CONSOLE_CURSOR_INFO	ci;
 	HANDLE				h;
 
 	if((h=GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE)
-		return;
+		return(0);
 
 	ci.bVisible=v;
 	if(e>s)
@@ -865,15 +865,4 @@ void win32_setcustomcursor(int s, int e, int r, int b, int v)
 		else
 			ci.dwSize=100;
 	}
-}
-
-int win32_getvideoflags(void)
-{
-	DWORD	mode;
-
-	if(!NT_GetConsoleDisplayMode(&mode))
-		return(CIOLIB_VIDEO_BGBRIGHT);
-	if(mode==CONSOLE_FULLSCREEN_MODE)
-		return(0);
-	return(CIOLIB_VIDEO_BGBRIGHT);
 }
