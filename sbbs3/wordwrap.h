@@ -1,4 +1,4 @@
-/* $Id: wordwrap.h,v 1.2 2009/02/10 07:39:03 rswindell Exp $ */
+/* $Id: wordwrap.h,v 1.1 2009/02/10 07:33:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,6 @@
 #ifndef _WORDWRAP_H_
 #define _WORDWRAP_H_
 
-char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes);
+char* wordwrap(const char* inbuf, int len, int oldlen, BOOL handle_quotes);
 
 #endif /* Don't add anything after this line */
