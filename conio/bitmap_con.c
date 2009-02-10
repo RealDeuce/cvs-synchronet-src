@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.32 2009/02/16 00:45:55 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.30 2009/02/10 20:31:15 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -59,15 +59,6 @@ struct rectangle {
 
 static int update_rect(int sx, int sy, int width, int height, int force);
 
-static __inline void *locked_screen_check(void)
-{
-	void *ret;
-	pthread_mutex_lock(&screenlock);
-	ret=screen;
-	pthread_mutex_unlock(&screenlock);
-	return(ret);
-}
-
 /* Blinker Thread */
 static void blinker_thread(void *data)
 {
@@ -76,7 +67,7 @@ static void blinker_thread(void *data)
 	while(1) {
 		do {
 			SLEEP(10);
-		} while(locked_screen_check()==NULL);
+		} while(screen==NULL);
 		count++;
 		pthread_mutex_lock(&vstatlock);
 		if(count==50) {
@@ -712,7 +703,7 @@ error_return:
 }
 
 /* vstatlock is held */
-static void bitmap_draw_cursor(void)
+static void bitmap_draw_cursor()
 {
 	int x;
 	int y;
