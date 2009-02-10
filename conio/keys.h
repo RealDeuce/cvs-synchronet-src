@@ -1,4 +1,4 @@
-/* $Id: keys.h,v 1.7 2009/02/10 09:15:29 deuce Exp $ */
+/* $Id: keys.h,v 1.6 2009/02/05 21:28:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,4 +45,4 @@
 #define CIO_KEY_ALT_F(x)      ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
 
 #define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards
-#define CIO_KEY_ABORTED   0x01E0	// ESC key by scancode
+#define CIO_KEY_ABORTED   0x0100	// ESC key by scancode

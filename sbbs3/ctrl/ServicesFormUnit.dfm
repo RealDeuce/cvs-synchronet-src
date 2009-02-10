@@ -38,7 +38,10 @@ object ServicesForm: TServicesForm
     object LogPauseButton: TToolButton
       Left = 23
       Top = 0
-      Action = MainForm.ServicesPause
+      Hint = 'Pause Log Scrolling'
+      Caption = 'LogPauseButton'
+      Enabled = False
+      ImageIndex = 67
     end
     object StopButton: TToolButton
       Left = 46
