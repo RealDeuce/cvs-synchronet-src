@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.315 2008/03/19 00:24:44 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.322 2009/02/01 21:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -160,7 +160,7 @@ class sbbs_t
 
 public:
 
-	sbbs_t(ushort node_num, DWORD addr, char* host_name, SOCKET
+	sbbs_t(ushort node_num, DWORD addr, const char* host_name, SOCKET
 		,scfg_t*, char* text[], client_t* client_info);
 	~sbbs_t();
 
@@ -200,9 +200,9 @@ public:
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
 
-	void	spymsg(char *msg);		// send message to active spies
+	void	spymsg(const char *msg);		// send message to active spies
 
-	void	putcom(char *str, int len=0);  // Send string
+	void	putcom(const char *str, int len=0);  // Send string
 	void	hangup(void);		   // Hangup modem
 
 	uchar	telnet_local_option[0x100];
@@ -231,6 +231,7 @@ public:
 	js_branch_t	js_branch;
 	long		js_execfile(const char *fname);
 	bool		js_init(ulong* stack_frame);
+	void		js_cleanup(const char* node);
 	void		js_create_user_objects(void);
 
 #endif
@@ -279,7 +280,7 @@ public:
 
 	char 	dszlog[127];	/* DSZLOG enviornment variable */
     int     keybuftop,keybufbot;    /* Keyboard input buffer pointers (for ungetkey) */
-	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */ 
+	char    keybuf[KEY_BUFSIZE];    /* Keyboard input buffer */
 
 	ushort	node_connection;
 	char	connection[LEN_MODEM+1];	/* Connection Description */
@@ -377,8 +378,11 @@ public:
 	uint	sysvar_li;
 
     /* ansi_term.cpp */
-	char *	ansi(int atr);			/* Returns ansi escape sequence for atr */
-    bool	ansi_getxy(int* x, int* y);
+	const char *	ansi(int atr);			/* Returns ansi escape sequence for atr */
+    bool	ansi_gotoxy(int x, int y);
+	bool	ansi_getxy(int* x, int* y);
+	bool	ansi_save(void);
+	bool	ansi_restore(void);
 	void	ansi_getlines(void);
 
 			/* Command Shell Methods */
@@ -395,7 +399,7 @@ public:
 	int32_t*	getintvar(csi_t *bin, int32_t name);
 	char*	copystrvar(csi_t *csi, char *p, char *str);
 	void	skipto(csi_t *csi, uchar inst);
-	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, char* cmdsrc, char* rsp);
+	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, const char* cmdsrc, char* rsp);
 	bool	ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest);
 	bool	ftp_get(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest, bool dir=false);
 	SOCKET	ftp_data_sock(csi_t* csi, SOCKET ctrl_sock, SOCKADDR_IN*);
@@ -441,7 +445,7 @@ public:
 	char*	timestr(time_t intime);
     char	timestr_output[60];
 	void	userlist(long mode);
-	size_t	gettmplt(char *outstr, char *tmplt, long mode);
+	size_t	gettmplt(char *outstr, const char *tmplt, long mode);
 	void	sif(char *fname, char *answers, long len);	/* Synchronet Interface File */
 	void	sof(char *fname, char *answers, long len);
 	void	create_sif_dat(char *siffile, char *datfile);
@@ -450,26 +454,26 @@ public:
 	bool	inputnstime32(time32_t *dt);
 	bool	inputnstime(time_t *dt);
 	bool	chkpass(char *pass, user_t* user, bool unique);
-	char *	cmdstr(char *instr, char *fpath, char *fspec, char *outstr);
+	char *	cmdstr(const char *instr, const char *fpath, const char *fspec, char *outstr);
 	char	cmdstr_output[512];
 
 	void	subinfo(uint subnum);
 	void	dirinfo(uint dirnum);
-	bool	trashcan(char *insearch, char *name);
+	bool	trashcan(const char *insearch, const char *name);
 	void	time_bank(void);
 	void	change_user(void);
 
 	/* writemsg.cpp */
 	void	automsg(void);
-	bool	writemsg(char *str, char *top, char *title, long mode, int subnum
-				,char *dest);
+	bool	writemsg(const char *str, const char *top, char *title, long mode, int subnum
+				,const char *dest);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
-	char	putmsg(char *str, long mode);
+	char	putmsg(const char *str, long mode);
 	bool	msgabort(void);
-	bool	email(int usernumber, char *top, char *title, long mode);
+	bool	email(int usernumber, const char *top, const char *title, long mode);
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
-	ulong	msgeditor(char *buf, char *top, char *title);
+	ulong	msgeditor(char *buf, const char *top, char *title);
 	void	editfile(char *path);
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	ushort	chmsgattr(ushort attr);
@@ -479,7 +483,7 @@ public:
 	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
 	void	quotemsg(smbmsg_t* msg, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
-	void	editor_inf(int xeditnum,char *dest, char *title, long mode
+	void	editor_inf(int xeditnum, const char *dest, const char *title, long mode
 				,uint subnum);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
@@ -503,10 +507,10 @@ public:
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
-	int		bputs(char *str);				/* BBS puts function */
-	int		rputs(char *str);				/* BBS raw puts function */
-	int		bprintf(char *fmt, ...);		/* BBS printf function */
-	int		rprintf(char *fmt, ...);		/* BBS raw printf function */
+	int		bputs(const char *str);				/* BBS puts function */
+	int		rputs(const char *str);				/* BBS raw puts function */
+	int		bprintf(const char *fmt, ...);		/* BBS printf function */
+	int		rprintf(const char *fmt, ...);		/* BBS raw printf function */
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
@@ -527,14 +531,14 @@ public:
 
 	/* getkey.cpp */
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
-	long	getkeys(char *str, ulong max);
+	long	getkeys(const char *str, ulong max);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[128];
-	bool	yesno(char *str);
-	bool	noyes(char *str);
+	bool	yesno(const char *str);
+	bool	noyes(const char *str);
 	void	pause(void);
-	char *	mnestr;
-	void	mnemonics(char *str);
+	const char *	mnestr;
+	void	mnemonics(const char *str);
 
 	/* inkey.cpp */
 	char	inkey(long mode, unsigned long timeout=0);
@@ -545,7 +549,7 @@ public:
 	void	printtail(char *str, int lines, long mode);
 	void	menu(const char *code);
 
-	int		uselect(int add, uint n, char *title, char *item, uchar *ar);
+	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
 
 	void	redrwstr(char *strin, int i, int l, long mode);
@@ -553,8 +557,8 @@ public:
 	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
 
 	/* atcodes.cpp */
-	int		show_atcode(char *code);
-	char*	atcode(char* sp, char* str, size_t maxlen);
+	int		show_atcode(const char *code);
+	const char*	atcode(char* sp, char* str, size_t maxlen);
 
 	/* getnode.cpp */
 	int		getsmsg(int usernumber);
@@ -584,10 +588,10 @@ public:
 	int		text_sec(void);						/* Text sections */
 
 	/* readmsgs.cpp */
-	int		scanposts(uint subnum, long mode, char* find);	/* Scan sub-board */
-	long	listsub(uint subnum, long mode, long start, char* search);
+	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
+	long	listsub(uint subnum, long mode, long start, const char* search);
 	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
-	long	searchposts(uint subnum, post_t* post, long start, long msgs, char* find);
+	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(post_t* post, ulong start, long posts);
 	void	msghdr(smbmsg_t* msg);
 
@@ -616,8 +620,8 @@ public:
 	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
 	bool	chksyspass(void);
-	bool	chk_ar(uchar * str, user_t * user); /* checks access requirements */
-	bool	ar_exp(uchar ** ptrptr, user_t * user);
+	bool	chk_ar(const uchar * str, user_t * user); /* checks access requirements */
+	bool	ar_exp(const uchar ** ptrptr, user_t * user);
 	void	daily_maint(void);
 
 	/* upload.cpp */
@@ -631,7 +635,7 @@ public:
 	void	downloadfile(file_t* f);
 	void	notdownloaded(ulong size, time_t start, time_t end);
 	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd);
-	char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
+	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
 	bool	checkdszlog(file_t*);
@@ -651,9 +655,9 @@ public:
 	bool	addtobatdl(file_t* f);
 
 	/* listfile.cpp */
-	bool	listfile(char *fname, char *buf, uint dirnum
-				,char *search, char letter, ulong datoffset);
-	int		listfiles(uint dirnum, char *filespec, int tofile, long mode);
+	bool	listfile(const char *fname, const char *buf, uint dirnum
+				,const char *search, const char letter, ulong datoffset);
+	int		listfiles(uint dirnum, const char *filespec, int tofile, long mode);
 	int		listfileinfo(uint dirnum, char *filespec, long mode);
 	void	listfiletofile(char *fname, char *buf, uint dirnum, int file);
 	int		batchflagprompt(uint dirnum, file_t bf[], uint total, long totalfiles);
@@ -673,7 +677,7 @@ public:
 	void	temp_xfer(void);
 	void	extract(uint dirnum);
 	char *	temp_cmd(void);					/* Returns temp file command line */
-	ulong	create_filelist(char *name, long mode);
+	ulong	create_filelist(const char *name, long mode);
 
 	/* viewfile.cpp */
 	int		viewfile(file_t* f, int ext);
@@ -696,18 +700,18 @@ public:
 	void	moduserdat(uint xtrnnum);
 
 	/* logfile.cpp */
-	void	logentry(char *code,char *entry);
+	void	logentry(const char *code,const char *entry);
 	void	log(char *str);				/* Writes 'str' to node log */
 	void	logch(char ch, bool comma);	/* Writes 'ch' to node log */
-	void	logline(char *code,char *str); /* Writes 'str' on it's own line in log */
+	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log */
 	void	logofflist(void);              /* List of users logon activity */
-	bool	syslog(char* code, char *entry);
-	void	errorlog(char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
+	bool	syslog(const char* code, const char *entry);
+	void	errorlog(const char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
 	bool	errorlog_inside;
 	bool	errormsg_inside;
 	void	errormsg(int line, const char *file, const char* action, const char *object
 				,ulong access, const char *extinfo=NULL);
-	
+
 	/* qwk.cpp */
 	bool	qwklogon;
 	ulong	qwkmail_last;
@@ -740,12 +744,12 @@ public:
 				,uint touser, smbmsg_t* msg);
 
 	/* fido.cpp */
-	bool	netmail(char *into, char *subj, long mode);
+	bool	netmail(const char *into, const char *subj, long mode);
 	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub);
 	bool	lookup_netuser(char *into);
 
-	bool	inetmail(char *into, char *subj, long mode);
-	bool	qnetmail(char *into, char *subj, long mode);
+	bool	inetmail(const char *into, const char *subj, long mode);
+	bool	qnetmail(const char *into, const char *subj, long mode);
 
 	/* useredit.cpp */
 	void	useredit(int usernumber);
@@ -838,8 +842,8 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL removefiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL addfiledat(scfg_t* cfg, file_t* f);
 	DLLEXPORT BOOL		DLLCALL findfile(scfg_t* cfg, uint dirnum, char *filename);
-	DLLEXPORT char *	DLLCALL padfname(char *filename, char *str);
-	DLLEXPORT char *	DLLCALL unpadfname(char *filename, char *str);
+	DLLEXPORT char *	DLLCALL padfname(const char *filename, char *str);
+	DLLEXPORT char *	DLLCALL unpadfname(const char *filename, char *str);
 	DLLEXPORT BOOL		DLLCALL rmuserxfers(scfg_t* cfg, int fromuser, int destuser, char *fname);
 
 	DLLEXPORT int		DLLCALL update_uldate(scfg_t* cfg, file_t* f);
@@ -869,9 +873,9 @@ extern "C" {
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
-	DLLEXPORT time_t	DLLCALL dstrtounix(scfg_t*, char *str);	
+	DLLEXPORT time_t	DLLCALL dstrtounix(scfg_t*, char *str);
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
-	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);		
+	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
@@ -895,13 +899,15 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
 	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
-	
+
 
 	/* scfglib1.c */
 	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
-	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text 
+	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* text);
+
+	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text
 										,char* host, SOCKADDR_IN* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
 										,char* host, char* ip_addr, char* to, char* from);
@@ -959,7 +965,7 @@ extern "C" {
 		 JSTYPE_ARRAY=JSTYPE_LIMIT
 		,JSTYPE_ALIAS
 		,JSTYPE_UNDEF
-#if !defined(JSTYPE_NULL)	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
+#if JS_VERSION < JSVERSION_1_6	/* JSTYPE_NULL was removed after 1.5 rc 6a (?) */
 		,JSTYPE_NULL
 #endif
 	};
@@ -1024,7 +1030,7 @@ extern "C" {
 													,user_t* user, char* html_index_file
 													,subscan_t* subscan);
 	/* js_file_area.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg 
+	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
 													,user_t* user, char* html_index_file);
 
 	/* js_msg_area.c */
@@ -1070,6 +1076,9 @@ extern "C" {
 	/* js_uifc.c */
 	JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent);
 
+	/* js_conio.c */
+	JSObject* js_CreateConioObject(JSContext* cx, JSObject* parent);
+
 #endif
 
 /* str_util.c */
@@ -1087,19 +1096,19 @@ BOOL 	md(char *path);
 #ifdef SBBS /* These aren't exported */
 
 	/* main.c */
-	int 	lputs(int level, char *);			/* log output */
-	int 	lprintf(int level, char *fmt, ...);	/* log output */
-	int 	eprintf(int level, char *fmt, ...);	/* event log */
+	int 	lputs(int level, const char *);			/* log output */
+	int 	lprintf(int level, const char *fmt, ...);	/* log output */
+	int 	eprintf(int level, const char *fmt, ...);	/* event log */
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, SOCKADDR* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
 
-	char *	readtext(long *line, FILE *stream);
+	char *	readtext(long *line, FILE *stream, long dflt);
 
 	/* ver.cpp */
 	char*	socklib_version(char* str, char* winsock_ver);
-	
+
 	/* sortdir.cpp */
 	int		fnamecmp_a(char **str1, char **str2);	 /* for use with resort() */
 	int		fnamecmp_d(char **str1, char **str2);
@@ -1107,7 +1116,7 @@ BOOL 	md(char *path);
 	int		fdatecmp_d(uchar **buf1, uchar **buf2);
 
 	/* file.cpp */
-	BOOL	filematch(char *filename, char *filespec);
+	BOOL	filematch(const char *filename, const char *filespec);
 
 	/* sbbscon.c */
 	#if defined(__unix__) && defined(NEEDS_DAEMON)
