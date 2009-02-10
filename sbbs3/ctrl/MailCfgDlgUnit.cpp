@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.26 2009/08/14 08:58:15 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.25 2008/02/13 07:50:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -157,8 +157,8 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
 	    BLIgnoreRadioButton->Checked=true;
 	else
 	    BLTagRadioButton->Checked=true;
-    DNSBLSpamHashCheckBox->Checked=MainForm->mail_startup.options
-    	&MAIL_OPT_DNSBL_SPAMHASH;
+    BLDebugCheckBox->Checked=MainForm->mail_startup.options
+    	&MAIL_OPT_DNSBL_DEBUG;
 
     TcpDnsCheckBox->Checked=MainForm->mail_startup.options
     	&MAIL_OPT_USE_TCP_DNS;
@@ -320,10 +320,10 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->mail_startup.options|=MAIL_OPT_DNSBL_REFUSE;
     else if(BLBadUserRadioButton->Checked==true)
     	MainForm->mail_startup.options|=MAIL_OPT_DNSBL_BADUSER;
-    if(DNSBLSpamHashCheckBox->Checked==true)
-    	MainForm->mail_startup.options|=MAIL_OPT_DNSBL_SPAMHASH;
+    if(BLDebugCheckBox->Checked==true)
+    	MainForm->mail_startup.options|=MAIL_OPT_DNSBL_DEBUG;
     else
-	    MainForm->mail_startup.options&=~MAIL_OPT_DNSBL_SPAMHASH;
+	    MainForm->mail_startup.options&=~MAIL_OPT_DNSBL_DEBUG;
 
 	if(HostnameCheckBox->Checked==false)
     	MainForm->mail_startup.options|=MAIL_OPT_NO_HOST_LOOKUP;
@@ -433,8 +433,6 @@ void __fastcall TMailCfgDlg::DNSBLRadioButtonClick(TObject *Sender)
    	BLHeaderEdit->Enabled=BLTagRadioButton->Checked;
     BLSubjectLabel->Enabled=BLTagRadioButton->Checked;
    	BLHeaderLabel->Enabled=BLTagRadioButton->Checked;
-    DNSBLSpamHashCheckBox->Enabled
-        =(BLTagRadioButton->Checked ||  BLIgnoreRadioButton->Checked);
 }
 //---------------------------------------------------------------------------
 
