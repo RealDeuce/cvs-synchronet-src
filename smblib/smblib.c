@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.145 2009/07/15 05:13:44 rswindell Exp $ */
+/* $Id: smblib.c,v 1.144 2009/02/02 00:36:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1750,7 +1750,7 @@ int SMBCALL smb_tzutc(short zone)
 	tz=zone&0xfff;
 	if(zone&(WESTERN_ZONE|US_ZONE)) {	/* West of UTC? */
 		if(zone&DAYLIGHT)
-			tz-=60;			/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
+			tz-=60;
 		return(-tz);
 	}
 	return(tz);
