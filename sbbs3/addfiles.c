@@ -2,13 +2,13 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.45 2009/08/07 17:20:49 deuce Exp $ */
+/* $Id: addfiles.c,v 1.42 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -266,15 +266,15 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 			if(mode&FILE_ID) {
 				for(i=0;i<scfg.total_fextrs;i++)
-					if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,/* user: */NULL, /* client: */NULL))
+					if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,NULL))
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-					removecase(tmp);
+					remove(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,filepath,"FILE_ID.DIZ",NULL));
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-						removecase(tmp);
+						remove(tmp);
 						system(mycmdstr(scfg.fextr[i]->cmd,filepath,"DESC.SDI",NULL)); 
 						fexistcase(tmp);
 					}
@@ -286,7 +286,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 								break;
 						ext[i]=0;
 						if(mode&ASCII_ONLY)
-							strip_exascii(ext, ext);
+							strip_exascii(ext);
 						if(!(mode&KEEP_DESC)) {
 							sprintf(tmpext,"%.256s",ext);
 							prep_desc(tmpext);
@@ -307,7 +307,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			f.altpath=cur_altpath;
 			prep_desc(f.desc);
 			if(mode&ASCII_ONLY)
-				strip_exascii(f.desc, f.desc);
+				strip_exascii(f.desc);
 			if(exist) {
 				putfiledat(&scfg,&f);
 				if(!(mode&NO_NEWDATE))
@@ -469,15 +469,15 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 		if(mode&FILE_ID) {
 			for(i=0;i<scfg.total_fextrs;i++)
-				if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,/* user: */NULL, /* client: */NULL))
+				if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,NULL))
 					break;
 			if(i<scfg.total_fextrs) {
 				sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-				removecase(tmp);
+				remove(tmp);
 				system(mycmdstr(scfg.fextr[i]->cmd,filepath,"FILE_ID.DIZ",NULL));
 				if(!fexistcase(tmp)) {
 					sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-					removecase(tmp);
+					remove(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,filepath,"DESC.SDI",NULL)); 
 					fexistcase(tmp);
 				}
@@ -489,7 +489,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 							break;
 					ext[i]=0;
 					if(mode&ASCII_ONLY)
-						strip_exascii(ext, ext);
+						strip_exascii(ext);
 					if(!(mode&KEEP_DESC)) {
 						sprintf(tmpext,"%.256s",ext);
 						prep_desc(tmpext);
@@ -512,7 +512,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		f.altpath=cur_altpath;
 		prep_desc(f.desc);
 		if(mode&ASCII_ONLY)
-			strip_exascii(f.desc, f.desc);
+			strip_exascii(f.desc);
 		if(exist) {
 			putfiledat(&scfg,&f);
 			if(!(mode&NO_NEWDATE))
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.45 $", "%*s %s", revision);
+	sscanf("$Revision: 1.42 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -887,19 +887,19 @@ int main(int argc, char **argv)
 			f.altpath=cur_altpath;
 			prep_desc(f.desc);
 			if(mode&ASCII_ONLY)
-				strip_exascii(f.desc, f.desc);
+				strip_exascii(f.desc);
 			printf("%s %7lu %s\n",f.name,f.cdt,f.desc);
 			if(mode&FILE_ID) {
 				for(i=0;i<scfg.total_fextrs;i++)
-					if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,/* user: */NULL, /* client: */NULL))
+					if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,NULL))
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-					removecase(tmp);
+					remove(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,str,"FILE_ID.DIZ",NULL));
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-						removecase(tmp);
+						remove(tmp);
 						system(mycmdstr(scfg.fextr[i]->cmd,str,"DESC.SDI",NULL)); 
 						fexistcase(tmp);
 					}

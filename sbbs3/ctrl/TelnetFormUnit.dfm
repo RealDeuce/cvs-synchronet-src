@@ -3,7 +3,7 @@ object TelnetForm: TTelnetForm
   Top = 641
   Width = 591
   Height = 214
-  Caption = 'Terminal Server'
+  Caption = 'Telnet Server'
   Color = clBtnFace
   UseDockManager = True
   DragKind = dkDock
@@ -41,8 +41,10 @@ object TelnetForm: TTelnetForm
     object LogPauseButton: TToolButton
       Left = 23
       Top = 0
-      Action = MainForm.TelnetPause
+      Hint = 'Pause Log Scrolling'
       AllowAllUp = True
+      Enabled = False
+      ImageIndex = 67
       Style = tbsCheck
     end
     object StopButton: TToolButton
@@ -86,7 +88,7 @@ object TelnetForm: TTelnetForm
       Top = 0
       Width = 150
       Height = 22
-      Hint = 'Terminal Server Status'
+      Hint = 'Telnet Server Status'
       Align = alClient
       AutoSize = False
       BorderStyle = sbsSunken
@@ -106,7 +108,7 @@ object TelnetForm: TTelnetForm
       Top = 0
       Width = 75
       Height = 22
-      Hint = 'Terminal Server Utilization'
+      Hint = 'Telnet Server Utilization'
       Min = 0
       Max = 100
       Smooth = True
