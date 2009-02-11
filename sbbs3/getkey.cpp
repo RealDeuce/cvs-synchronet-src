@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.39 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: getkey.cpp,v 1.40 2008/06/05 05:24:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -301,7 +301,7 @@ char sbbs_t::getkey(long mode)
 /****************************************************************************/
 void sbbs_t::mnemonics(const char *str)
 {
-    char *ctrl_a_codes;
+    const char *ctrl_a_codes;
     long l;
 
 	if(!strchr(str,'~')) {
