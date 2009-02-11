@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.39 2009/02/19 19:01:07 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.37 2009/02/11 10:37:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,7 +92,7 @@ typedef struct {
 
 sbbs_ntsvc_t bbs ={	
 	NTSVC_NAME_BBS,
-	"Synchronet Terminal Server",
+	"Synchronet Telnet/RLogin/SSH Server",
 	"Provides support for Telnet, RLogin, and SSH clients and executes timed events. " \
 		"This service provides the critical functions of your Synchronet BBS.",
 	&bbs_startup,
@@ -294,7 +294,6 @@ static int svc_lputs(void* p, int level, const char* str)
 	len = strlen(str);
 	SAFECOPY(msg.buf, str);
 	msg.level = level;
-	GetLocalTime(&msg.time);
 
 	/* Mailslot Logging (for sbbsctrl) */
 	if(svc->log_handle != INVALID_HANDLE_VALUE /* Invalid log handle? */

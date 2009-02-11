@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.4 2009/02/18 06:52:08 rswindell Exp $ */
+/* $Id: xpdatetime.c,v 1.3 2009/02/06 08:13:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,9 +269,9 @@ char* xpDate_to_isoDateStr(xpDate_t date, const char* sep, char* str, size_t max
  * -2			"14"
  * -1			"14:02"
  * 0            "14:02:39"
- * 1            "14:02:39.8"
- * 2            "14:02:39.82"
- * 3            "14:02:39.829"
+ * 1            "14.02:39.8"
+ * 2            "14.02:39.82"
+ * 3            "14.02:39.829"
  */
 char* xpTime_to_isoTimeStr(xpTime_t ti, const char* sep, int precision
 								   ,char* str, size_t maxlen)
