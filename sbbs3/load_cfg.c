@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.59 2009/02/16 03:36:04 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.58 2009/01/23 08:04:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,12 +48,10 @@ int 	lprintf(int level, const char *fmt, ...);	/* log output */
 /****************************************************************************/
 BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 {
+	char	str[256],fname[13];
 	int		i;
 	long	line=0L;
-#ifdef SBBS
 	FILE 	*instream;
-	char	str[256],fname[13];
-#endif
 
 	if(cfg->size!=sizeof(scfg_t)) {
 		sprintf(error,"cfg->size (%ld) != sizeof(scfg_t) (%d)"

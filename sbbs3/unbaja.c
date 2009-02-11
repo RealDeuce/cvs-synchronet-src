@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.40 2009/02/16 03:36:04 rswindell Exp $ */
+/* $Id: unbaja.c,v 1.39 2007/08/12 19:36:48 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -247,7 +247,7 @@ char* bruteforce(unsigned long name)
 	int	counter=0;
 	unsigned char	*pos;
 	size_t	l=0;
-	size_t	i;
+	size_t	i,j;
 
 	if(!brute_len)
 		return(NULL);
@@ -2318,7 +2318,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.40 $", "%*s %s", revision);
+	sscanf("$Revision: 1.39 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
