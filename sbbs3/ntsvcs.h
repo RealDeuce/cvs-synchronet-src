@@ -2,13 +2,13 @@
 
 /* Synchronet BBS Windows NT Service Names */
 
-/* $Id: ntsvcs.h,v 1.4 2006/02/21 23:49:03 rswindell Exp $ */
+/* $Id: ntsvcs.h,v 1.5 2009/02/11 10:37:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,5 +53,10 @@ enum {
 	,SERVICE_CONTROL_SYSOP_AVAILABLE		/* BBS service only */
 	,SERVICE_CONTROL_SYSOP_UNAVAILABLE		/* BBS service only */
 };
+
+typedef struct {
+	char level;
+	char buf[1024];
+} log_msg_t;
 
 #endif	/* Don't add anything after this line */

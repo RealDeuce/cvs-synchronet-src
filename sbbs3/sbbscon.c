@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.228 2009/01/28 01:16:02 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.229 2009/02/11 10:37:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -835,7 +835,7 @@ static void services_terminated(void* p, int code)
 /****************************************************************************/
 /* Event thread local/log print routine										*/
 /****************************************************************************/
-static int event_lputs(int level, const char *str)
+static int event_lputs(void* p, int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];

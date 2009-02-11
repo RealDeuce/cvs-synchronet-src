@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.266 2008/12/04 03:38:06 deuce Exp $ */
+/* $Id: term.c,v 1.268 2009/02/10 20:32:04 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1794,7 +1794,7 @@ void font_control(struct bbslist *bbs)
 					filepick_free(&fpick);
 				}
 				else {
-					setfont(i,FALSE);
+					setfont(i,FALSE,1);
 					uifc_old_font=getfont();
 				}
 			}
