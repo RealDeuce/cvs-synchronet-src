@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.76 2008/02/23 10:57:55 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.77 2009/01/14 07:06:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,13 +275,19 @@ char* DLLCALL strtok_r(char *str, const char *delim, char **last)
 /****************************************************************************/
 /* Initialize (seed) the random number generator							*/
 /****************************************************************************/
-unsigned DLLCALL xp_randomize(void)
+void DLLCALL xp_randomize(void)
 {
 	unsigned seed=~0;
+#if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
+	int		rf;
+#endif
+
+#if defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC)
+	srandomdev();
+	return;
+#endif
 
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
-	int     rf;
-
 	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
 		read(rf, &seed, sizeof(seed));
 		close(rf);
@@ -303,10 +309,8 @@ unsigned DLLCALL xp_randomize(void)
 
 #ifdef HAS_RANDOM_FUNC
  	srandom(seed);
-	return(seed);
 #else
  	srand(seed);
-	return(seed);
 #endif
 }
 
