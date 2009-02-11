@@ -2,7 +2,7 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.c,v 1.27 2008/02/23 10:57:55 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.28 2008/02/23 22:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,19 @@
 #include "string.h"	/* memset */
 #include "genwrap.h"
 #include "datewrap.h"
+
+/* Return difference (in seconds) in time() result from standard */
+time_t checktime(void)
+{
+	time_t		t=0x2D24BD00L;	/* Correct time_t value on Jan-1-1994 */
+	struct tm	gmt;
+	struct tm	tm;
+
+	memset(&tm,0,sizeof(tm));
+	tm.tm_year=94;
+	tm.tm_mday=1;
+	return mktime(&tm) - mktime(gmtime_r(&t,&gmt));
+}
 
 /* Compensates for struct tm "weirdness" */
 time_t sane_mktime(struct tm* tm)
