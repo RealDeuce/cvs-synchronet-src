@@ -1,4 +1,4 @@
 
-long CRCValue(void *Data, int DataSize);
+  long CRCValue ( void *Data, _INT16 DataSize );
 
-int CheckCRC(void *Data, int Size, long CRC);
+  _INT16 CheckCRC ( void *Data, _INT16 Size, long CRC );
