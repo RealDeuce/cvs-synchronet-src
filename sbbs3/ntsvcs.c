@@ -2,13 +2,13 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.35 2006/12/31 00:07:50 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.37 2009/02/11 10:37:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -274,12 +274,13 @@ static WORD event_type(int level)
 /**************************************/
 /* Common Service Log Ouptut Function */
 /**************************************/
-static int svc_lputs(void* p, int level, char* str)
+static int svc_lputs(void* p, int level, const char* str)
 {
 	char	debug[1024];
 	char	fname[256];
 	DWORD	len;
 	DWORD	wr;
+	log_msg_t	msg;
 	sbbs_ntsvc_t* svc = (sbbs_ntsvc_t*)p;
 
 	/* Debug Logging */
@@ -291,6 +292,8 @@ static int svc_lputs(void* p, int level, char* str)
 		return(0);
 
 	len = strlen(str);
+	SAFECOPY(msg.buf, str);
+	msg.level = level;
 
 	/* Mailslot Logging (for sbbsctrl) */
 	if(svc->log_handle != INVALID_HANDLE_VALUE /* Invalid log handle? */
@@ -313,7 +316,8 @@ static int svc_lputs(void* p, int level, char* str)
 			);
 	}
 	if(svc->log_handle != INVALID_HANDLE_VALUE) {
-		if(!WriteFile(svc->log_handle,str,len,&wr,NULL) || wr!=len) {
+		len=sizeof(msg);
+		if(!WriteFile(svc->log_handle,&msg,len,&wr,NULL) || wr!=len) {
 			/* This most likely indicates the server closed the mailslot */
 			sprintf(debug,"!ERROR %d writing %u bytes to %s pipe (wr=%d)"
 				,GetLastError(),len,svc->name,wr);
@@ -343,15 +347,6 @@ static int svc_lputs(void* p, int level, char* str)
 				NULL);					/* pointer to data */
 	}
 
-    return(0);
-}
-
-/****************************************************************************/
-/* Event thread local/log print routine										*/
-/****************************************************************************/
-static int event_lputs(int level, char *str)
-{
-	svc_lputs(&event,level,str);
     return(0);
 }
 
@@ -1218,7 +1213,8 @@ int main(int argc, char** argv)
     bbs_startup.size=sizeof(bbs_startup);
 	bbs_startup.cbdata=&bbs;
 	bbs_startup.lputs=svc_lputs;
-	bbs_startup.event_lputs=event_lputs;
+	bbs_startup.event_cbdata=&event;
+	bbs_startup.event_lputs=svc_lputs;
     bbs_startup.started=svc_started;
 	bbs_startup.recycle=svc_recycle;
     bbs_startup.terminated=svc_terminated;
