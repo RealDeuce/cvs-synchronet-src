@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.81 2010/02/25 07:43:34 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.77 2009/02/11 10:41:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -273,8 +273,7 @@ __published:	// IDE-managed Components
 	TMenuItem *N10;
 	TMenuItem *SpamBaitList;
 	TMenuItem *SpamBlockList;
-	TMenuItem *SpamBlockExemptions;
-    TTimer *LogTimer;
+    TTimer *BBSLogTimer;
 	TTimer *ServiceStatusTimer;
     TMenuItem *ViewWebServerMenuItem;
     TAction *ViewWebServer;
@@ -305,6 +304,10 @@ __published:	// IDE-managed Components
     TMenuItem *HelpTechnicalSupportMenuItem;
     TTimer *SemFileTimer;
     TMenuItem *ViewErrorLogMenuItem;
+    TTimer *FtpLogTimer;
+    TTimer *MailLogTimer;
+    TTimer *ServicesLogTimer;
+    TTimer *WebLogTimer;
     TAction *TelnetPause;
     TMenuItem *TelnetPauseMenuItem;
     TAction *MailPause;
@@ -315,7 +318,6 @@ __published:	// IDE-managed Components
     TMenuItem *FtpPauseMenuItem;
     TMenuItem *WebPauseMenuItem;
     TMenuItem *ServicesPauseMenuItem;
-    TMenuItem *LogoffMessage;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -355,7 +357,7 @@ __published:	// IDE-managed Components
 	void __fastcall TextMenuItemEditClick(TObject *Sender);
 	void __fastcall CtrlMenuItemEditClick(TObject *Sender);
     void __fastcall UpTimerTick(TObject *Sender);
-    void __fastcall LogTimerTick(TObject *Sender);
+    void __fastcall BBSLogTimerTick(TObject *Sender);
     void __fastcall BBSViewErrorLogMenuItemClick(TObject *Sender);
     void __fastcall ChatToggleExecute(TObject *Sender);
     void __fastcall ViewClientsExecute(TObject *Sender);
@@ -405,6 +407,15 @@ __published:	// IDE-managed Components
     void __fastcall WebConfigureExecute(TObject *Sender);
     void __fastcall ViewServicesExecute(TObject *Sender);
     void __fastcall SemFileTimerTick(TObject *Sender);
+    void __fastcall FtpLogTimerTick(TObject *Sender);
+    void __fastcall MailLogTimerTick(TObject *Sender);
+    void __fastcall ServicesLogTimerTick(TObject *Sender);
+    void __fastcall WebLogTimerTick(TObject *Sender);
+    void __fastcall TelnetPauseExecute(TObject *Sender);
+    void __fastcall MailPauseExecute(TObject *Sender);
+    void __fastcall FtpPauseExecute(TObject *Sender);
+    void __fastcall ServicesPauseExecute(TObject *Sender);
+    void __fastcall WebPauseExecute(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);

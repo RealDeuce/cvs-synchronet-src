@@ -13600,10 +13600,6 @@ object MainForm: TMainForm
         Width = 100
       end
       item
-        Text = 'Errors: 0'
-        Width = 100
-      end
-      item
         Text = 'Starting up...'
         Width = 100
       end>
@@ -13772,11 +13768,6 @@ object MainForm: TMainForm
           Hint = 'MENU/LOGON.ASC'
           OnClick = TextMenuItemEditClick
         end
-        object LogoffMessage: TMenuItem
-          Caption = 'Logoff Message'
-          Hint = 'MENU/LOGOFF.ASC'
-          OnClick = TextMenuItemEditClick
-        end
         object BBSEditAutoMsg: TMenuItem
           Caption = 'Auto Message'
           Hint = 'MSGS/AUTO.MSG'
@@ -13928,7 +13919,7 @@ object MainForm: TMainForm
       end
     end
     object TelnetMenuItem: TMenuItem
-      Caption = '&Terminal'
+      Caption = '&Telnet'
       object TelnetConfigureMenuItem: TMenuItem
         Action = TelnetConfigure
         Caption = '&Configure'
@@ -13990,7 +13981,7 @@ object MainForm: TMainForm
         object MailViewSpamLog: TMenuItem
           Caption = 'Spam Log'
           Hint = 'SPAM.LOG'
-          OnClick = ViewLogClick
+          OnClick = DataMenuItemClick
         end
         object MailViewTodaysLog: TMenuItem
           Caption = 'Today'#39's Log'
@@ -14037,11 +14028,6 @@ object MainForm: TMainForm
           Hint = 'SPAMBLOCK.CFG'
           OnClick = CtrlMenuItemEditClick
         end
-        object SpamBlockExemptions: TMenuItem
-          Caption = 'Spam Block Exemptions'
-          Hint = 'SPAMBLOCK_EXEMPT.CFG'
-          OnClick = CtrlMenuItemEditClick
-        end
         object AllowedRelayList: TMenuItem
           Caption = 'Allowed Relay List'
           Hint = 'RELAY.CFG'
@@ -14065,7 +14051,7 @@ object MainForm: TMainForm
       end
     end
     object FtpMenuItem: TMenuItem
-      Caption = 'FT&P'
+      Caption = 'FTP'
       object FtpConfigureMenuItem: TMenuItem
         Action = FtpConfigure
         Caption = '&Configure'
@@ -14217,7 +14203,6 @@ object MainForm: TMainForm
       end
     end
     object ViewMenuItem: TMenuItem
-      AutoHotkeys = maManual
       Caption = '&View'
       object ViewNodesMenuItem: TMenuItem
         Action = ViewNodes
@@ -14267,17 +14252,16 @@ object MainForm: TMainForm
         OnClick = ViewStatusBarMenuItemClick
       end
       object ViewErrorLogMenuItem: TMenuItem
-        AutoHotkeys = maManual
         Caption = 'Error Log...'
         Hint = 'ERROR.LOG'
         ImageIndex = 29
-        OnClick = ViewLogClick
+        OnClick = DataMenuItemClick
       end
       object ViewHackAttemptLogMenuItem: TMenuItem
         AutoHotkeys = maManual
         Caption = 'Hack Attempt Log...'
         Hint = 'HACK.LOG'
-        OnClick = ViewLogClick
+        OnClick = DataMenuItemClick
       end
     end
     object HelpMenuItem: TMenuItem
@@ -14316,7 +14300,7 @@ object MainForm: TMainForm
     Left = 392
     Top = 65533
     object TelnetStart: TAction
-      Hint = 'Start Terminal Server'
+      Hint = 'Start Telnet Server'
       ImageIndex = 0
       OnExecute = TelnetStartExecute
     end
@@ -14324,23 +14308,24 @@ object MainForm: TMainForm
       AutoCheck = True
       Caption = 'Pause'
       Enabled = False
-      Hint = 'Pause Terminal Server Logging'
+      Hint = 'Pause Telnet Server Logging'
       ImageIndex = 67
+      OnExecute = TelnetPauseExecute
     end
     object TelnetStop: TAction
       Enabled = False
-      Hint = 'Stop Terminal Server'
+      Hint = 'Stop Telnet Server'
       ImageIndex = 2
       OnExecute = TelnetStopExecute
     end
     object TelnetRecycle: TAction
       Caption = 'Recycle'
-      Hint = 'Recycle Terminal Server'
+      Hint = 'Recycle Telnet Server'
       ImageIndex = 55
       OnExecute = TelnetRecycleExecute
     end
     object TelnetConfigure: TAction
-      Hint = 'Configure Terminal Server'
+      Hint = 'Configure Telnet Server'
       ImageIndex = 4
       OnExecute = TelnetConfigureExecute
     end
@@ -14366,6 +14351,7 @@ object MainForm: TMainForm
       Enabled = False
       Hint = 'Pause Mail Server Logging'
       ImageIndex = 67
+      OnExecute = MailPauseExecute
     end
     object MailStop: TAction
       Enabled = False
@@ -14387,9 +14373,9 @@ object MainForm: TMainForm
     end
     object ViewTelnet: TAction
       AutoCheck = True
-      Caption = '&Terminal Server'
+      Caption = '&Telnet Server'
       Checked = True
-      Hint = 'View Terminal Server Window'
+      Hint = 'View Telnet Server Window'
       ImageIndex = 9
       OnExecute = ViewTelnetExecute
     end
@@ -14465,6 +14451,7 @@ object MainForm: TMainForm
       Enabled = False
       Hint = 'Pause FTP Server Logging'
       ImageIndex = 67
+      OnExecute = FtpPauseExecute
     end
     object FtpStop: TAction
       Enabled = False
@@ -14532,6 +14519,7 @@ object MainForm: TMainForm
       Enabled = False
       Hint = 'Pause Services Logging'
       ImageIndex = 67
+      OnExecute = ServicesPauseExecute
     end
     object ServicesStop: TAction
       Caption = 'Stop'
@@ -14565,6 +14553,7 @@ object MainForm: TMainForm
       Enabled = False
       Hint = 'Pause Web Server Logging'
       ImageIndex = 67
+      OnExecute = WebPauseExecute
     end
     object WebStop: TAction
       Caption = 'Stop'
@@ -17151,7 +17140,7 @@ object MainForm: TMainForm
         OnClick = BBSConfigureMenuItemClick
       end
       object ConfigureTelnetTrayMenuItem: TMenuItem
-        Caption = 'Terminal Server'
+        Caption = 'Telnet Server'
         OnClick = TelnetConfigureExecute
       end
       object ConfigureFtpTrayMenuItem: TMenuItem
@@ -17190,10 +17179,10 @@ object MainForm: TMainForm
   object SaveDialog: TSaveDialog
     Left = 600
   end
-  object LogTimer: TTimer
+  object BBSLogTimer: TTimer
     Enabled = False
     Interval = 250
-    OnTimer = LogTimerTick
+    OnTimer = BBSLogTimerTick
     Left = 536
     Top = 40
   end
@@ -17210,5 +17199,33 @@ object MainForm: TMainForm
     OnTimer = SemFileTimerTick
     Left = 472
     Top = 40
+  end
+  object FtpLogTimer: TTimer
+    Enabled = False
+    Interval = 250
+    OnTimer = FtpLogTimerTick
+    Left = 568
+    Top = 40
+  end
+  object MailLogTimer: TTimer
+    Enabled = False
+    Interval = 250
+    OnTimer = MailLogTimerTick
+    Left = 472
+    Top = 72
+  end
+  object ServicesLogTimer: TTimer
+    Enabled = False
+    Interval = 250
+    OnTimer = ServicesLogTimerTick
+    Left = 504
+    Top = 72
+  end
+  object WebLogTimer: TTimer
+    Enabled = False
+    Interval = 250
+    OnTimer = WebLogTimerTick
+    Left = 536
+    Top = 72
   end
 end

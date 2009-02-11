@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.33 2009/02/24 06:07:03 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.30 2009/02/10 20:31:15 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -59,15 +59,6 @@ struct rectangle {
 
 static int update_rect(int sx, int sy, int width, int height, int force);
 
-static __inline void *locked_screen_check(void)
-{
-	void *ret;
-	pthread_mutex_lock(&screenlock);
-	ret=screen;
-	pthread_mutex_unlock(&screenlock);
-	return(ret);
-}
-
 /* Blinker Thread */
 static void blinker_thread(void *data)
 {
@@ -76,7 +67,7 @@ static void blinker_thread(void *data)
 	while(1) {
 		do {
 			SLEEP(10);
-		} while(locked_screen_check()==NULL);
+		} while(screen==NULL);
 		count++;
 		pthread_mutex_lock(&vstatlock);
 		if(count==50) {
@@ -482,7 +473,7 @@ int bitmap_setfont(int font, int force, int font_num)
 	switch(vstat.charheight) {
 		case 8:
 			if(conio_fontdata[font].eight_by_eight==NULL) {
-				if(!force)
+				if(force)
 					goto error_return;
 				else
 					changemode=1;
@@ -490,7 +481,7 @@ int bitmap_setfont(int font, int force, int font_num)
 			break;
 		case 14:
 			if(conio_fontdata[font].eight_by_fourteen==NULL) {
-				if(!force)
+				if(force)
 					goto error_return;
 				else
 					changemode=1;
@@ -498,7 +489,7 @@ int bitmap_setfont(int font, int force, int font_num)
 			break;
 		case 16:
 			if(conio_fontdata[font].eight_by_sixteen==NULL) {
-				if(!force)
+				if(force)
 					goto error_return;
 				else
 					changemode=1;
@@ -712,7 +703,7 @@ error_return:
 }
 
 /* vstatlock is held */
-static void bitmap_draw_cursor(void)
+static void bitmap_draw_cursor()
 {
 	int x;
 	int y;
