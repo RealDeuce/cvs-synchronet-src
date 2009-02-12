@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.78 2009/02/11 20:05:20 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.79 2009/02/12 11:02:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,11 +403,6 @@ __published:	// IDE-managed Components
     void __fastcall WebConfigureExecute(TObject *Sender);
     void __fastcall ViewServicesExecute(TObject *Sender);
     void __fastcall SemFileTimerTick(TObject *Sender);
-    void __fastcall TelnetPauseExecute(TObject *Sender);
-    void __fastcall MailPauseExecute(TObject *Sender);
-    void __fastcall FtpPauseExecute(TObject *Sender);
-    void __fastcall ServicesPauseExecute(TObject *Sender);
-    void __fastcall WebPauseExecute(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
