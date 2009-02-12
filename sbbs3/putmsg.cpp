@@ -2,13 +2,13 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.22 2010/03/08 10:27:14 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.20 2008/11/19 21:54:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,6 +53,7 @@ char sbbs_t::putmsg(const char *str, long mode)
 	uchar	exatr=0;
 	int 	orgcon=console,i;
 	ulong	l=0,sys_status_sav=sys_status;
+	long	col=0;
 	int		defered_pause=FALSE;
 
 	attr_sp=0;	/* clear any saved attributes */
@@ -68,11 +69,11 @@ char sbbs_t::putmsg(const char *str, long mode)
 			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
 				l+=2;
 				i=0;
-				while(i<sizeof(tmp2)-1 && isprint(str[l]) && str[l]!='\\' && str[l]!='/')
+				while(i<12 && isprint(str[l]) && str[l]!='\\' && str[l]!='/')
 					tmp2[i++]=str[l++];
 				tmp2[i]=0;
 				sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
-				SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
+				sprintf(tmp3,"%s%s",cfg.text_dir,tmp2);
 				printfile(tmp3,0);
 				sys_status&=~SS_NEST_PF; 
 			}
@@ -253,12 +254,10 @@ char sbbs_t::putmsg(const char *str, long mode)
 			}
 			if(str[l]!=CTRL_Z) {
 				outchar(str[l]);
-#if 0
 				if(!(mode&P_HTML) && !exatr && !outchar_esc && lncntr && lbuflen && cols && ++col==cols)
 					lncntr++;
 				else
 					col=0;
-#endif
 			}
 			l++; 
 		} 

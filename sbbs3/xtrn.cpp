@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.209 2010/03/09 01:44:48 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.201 2009/01/24 22:17:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -385,13 +385,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	HANDLE	wrinpipe;
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
-	unsigned long	rd;
+	DWORD	rd;
     DWORD	wr;
-    unsigned long	len;
+    DWORD	len;
     DWORD	avail;
-	unsigned long	dummy;
-	unsigned long	msglen;
-	unsigned long	retval;
+	DWORD	dummy;
+	DWORD	msglen;
+	DWORD	retval;
 	DWORD	last_error;
 	DWORD	loop_since_io=0;
 	struct	tm tm;
@@ -399,15 +399,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	if(online!=ON_REMOTE || cfg.node_num==0)
+	if(online==ON_LOCAL)
 		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 	else
 		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
-
-	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
-		errormsg(WHERE, ERR_CHK, startup_dir, 0);
-		return -1;
-	}
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
@@ -789,7 +784,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
         if(!online && !(mode&EX_OFFLINE)) { // Tell VXD/VDD and external that user hung-up
         	if(was_online) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline(LOG_NOTICE,"X!",str);
+				logline("X!",str);
             	hungup=time(NULL);
 				if(!native) {
 					if(nt)
@@ -877,7 +872,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
             		len=avail;
 
 				while(rd<len) {
-					unsigned long waiting=0;
+					DWORD waiting=0;
 
 					if(use_pipes)
 						PeekNamedPipe(
@@ -1313,13 +1308,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	int	high_fd;
 	struct timeval timeout;
 
-	if(online!=ON_REMOTE || cfg.node_num==0)
-		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
-
-	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
-		errormsg(WHERE, ERR_CHK, startup_dir, 0);
-		return -1;
-	}
+	if(online==ON_LOCAL)
+		eprintf(LOG_INFO,"Executing external: %s",cmdline);
 
 	if(startup_dir==NULL)
 		startup_dir=nulstr;
@@ -1733,10 +1723,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		else
 #endif
 		if(startup_dir!=NULL && startup_dir[0])
-			if(chdir(startup_dir)!=0) {
-				errormsg(WHERE,ERR_CHDIR,startup_dir,0);
-				return(-1);
-			}
+			chdir(startup_dir);
 
 		if(mode&EX_SH || strcspn(fullcmdline,"<>|;\"")!=strlen(fullcmdline)) {
 			argv[0]=comspec;
@@ -1786,7 +1773,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(online==ON_REMOTE)
+	if(online!=ON_LOCAL)
 		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */
@@ -1809,7 +1796,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			
 			if(!online && !(mode&EX_OFFLINE)) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline(LOG_NOTICE,"X!",str);
+				logline("X!",str);
 				break;
 			}
 
@@ -2060,7 +2047,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                 case 'G':   /* Temp directory */
                     strcat(cmd,cfg.temp_dir);
                     break;
-                case 'H':   /* Socket Handle */
+                case 'H':   /* Port Handle or Hardware Flow Control */
                     strcat(cmd,ultoa(client_socket_dup,str,10));
                     break;
                 case 'I':   /* IP address */
@@ -2105,10 +2092,8 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
-					strcat(cmd,str);
                     break;
-                case 'W':   /* Columns (width) */
-                    strcat(cmd,ultoa(cols,str,10));
+                case 'W':   /* Time-slice API type (mswtype) */
                     break;
                 case 'X':
                     strcat(cmd,cfg.shell[useron.shell]->code);
@@ -2208,8 +2193,6 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'B':   /* Baud (DTE) Rate */
                     break;
                 case 'C':   /* Connect Description */
-					if(user!=NULL)
-						strcat(cmd,user->modem);
                     break;
                 case 'D':   /* Connect (DCE) Rate */
                     break;
@@ -2224,8 +2207,6 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'H':   /* Port Handle or Hardware Flow Control */
                     break;
                 case 'I':   /* IP address */
-					if(user!=NULL)
-						strcat(cmd,user->note);
                     break;
                 case 'J':
                     strcat(cmd,cfg->data_dir);
@@ -2266,9 +2247,8 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
-					strcat(cmd,str);
                     break;
-                case 'W':   /* Columns/width */
+                case 'W':   /* Time-slice API type (mswtype) */
                     break;
                 case 'X':
 					if(user!=NULL)
