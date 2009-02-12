@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.108 2008/02/23 10:58:59 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.111 2008/02/25 05:12:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -297,15 +297,16 @@ BOOL iniSectionExists(str_list_t list, const char* section)
 str_list_t	iniGetSection(str_list_t list, const char *section)
 {
 	size_t		i;
-	str_list_t	retval=strListInit();
+	str_list_t	retval;
 	char		*p;
 
 	if(list==NULL)
-		return(retval);
-	if(section==ROOT_SECTION)
-		i=0;
-	else
-		i=find_section_index(list,section);
+		return(NULL);
+
+	if((retval=strListInit())==NULL)
+		return(NULL);
+
+	i=find_section(list,section);
 	if(list[i]!=NULL) {
 		strListPush(&retval, list[i]);
 		for(i++;list[i]!=NULL;i++) {
@@ -725,6 +726,23 @@ char* iniGetString(str_list_t list, const char* section, const char* key, const 
 
 	if(*value==0 /* blank value or missing key */)
 		return default_value(deflt,value);
+
+	return(value);
+}
+
+char* iniPopKey(str_list_t* list, const char* section, const char* key, char* value)
+{
+	size_t i;
+	
+	if(list==NULL || *list==NULL)
+		return NULL;
+
+	i=get_value(*list, section, key, value);
+
+	if((*list)[i]==NULL)
+		return NULL;
+
+	strListDelete(list,i);
 
 	return(value);
 }
