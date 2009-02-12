@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.91 2008/02/23 10:57:55 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.92 2009/01/14 07:06:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -296,7 +296,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #endif
 
 /* Mimic the Borland randomize() and random() CRTL functions */
-DLLEXPORT unsigned	DLLCALL xp_randomize(void);
+DLLEXPORT void		DLLCALL xp_randomize(void);
 DLLEXPORT int		DLLCALL	xp_random(int);
 
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
