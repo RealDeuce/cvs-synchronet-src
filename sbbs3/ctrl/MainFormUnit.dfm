@@ -13600,10 +13600,6 @@ object MainForm: TMainForm
         Width = 100
       end
       item
-        Text = 'Errors: 0'
-        Width = 100
-      end
-      item
         Text = 'Starting up...'
         Width = 100
       end>
@@ -13772,11 +13768,6 @@ object MainForm: TMainForm
           Hint = 'MENU/LOGON.ASC'
           OnClick = TextMenuItemEditClick
         end
-        object LogoffMessage: TMenuItem
-          Caption = 'Logoff Message'
-          Hint = 'MENU/LOGOFF.ASC'
-          OnClick = TextMenuItemEditClick
-        end
         object BBSEditAutoMsg: TMenuItem
           Caption = 'Auto Message'
           Hint = 'MSGS/AUTO.MSG'
@@ -13928,7 +13919,7 @@ object MainForm: TMainForm
       end
     end
     object TelnetMenuItem: TMenuItem
-      Caption = '&Terminal'
+      Caption = '&Telnet'
       object TelnetConfigureMenuItem: TMenuItem
         Action = TelnetConfigure
         Caption = '&Configure'
@@ -13990,7 +13981,7 @@ object MainForm: TMainForm
         object MailViewSpamLog: TMenuItem
           Caption = 'Spam Log'
           Hint = 'SPAM.LOG'
-          OnClick = ViewLogClick
+          OnClick = DataMenuItemClick
         end
         object MailViewTodaysLog: TMenuItem
           Caption = 'Today'#39's Log'
@@ -14037,11 +14028,6 @@ object MainForm: TMainForm
           Hint = 'SPAMBLOCK.CFG'
           OnClick = CtrlMenuItemEditClick
         end
-        object SpamBlockExemptions: TMenuItem
-          Caption = 'Spam Block Exemptions'
-          Hint = 'SPAMBLOCK_EXEMPT.CFG'
-          OnClick = CtrlMenuItemEditClick
-        end
         object AllowedRelayList: TMenuItem
           Caption = 'Allowed Relay List'
           Hint = 'RELAY.CFG'
@@ -14065,7 +14051,7 @@ object MainForm: TMainForm
       end
     end
     object FtpMenuItem: TMenuItem
-      Caption = 'FT&P'
+      Caption = 'FTP'
       object FtpConfigureMenuItem: TMenuItem
         Action = FtpConfigure
         Caption = '&Configure'
@@ -14217,7 +14203,6 @@ object MainForm: TMainForm
       end
     end
     object ViewMenuItem: TMenuItem
-      AutoHotkeys = maManual
       Caption = '&View'
       object ViewNodesMenuItem: TMenuItem
         Action = ViewNodes
@@ -14267,17 +14252,16 @@ object MainForm: TMainForm
         OnClick = ViewStatusBarMenuItemClick
       end
       object ViewErrorLogMenuItem: TMenuItem
-        AutoHotkeys = maManual
         Caption = 'Error Log...'
         Hint = 'ERROR.LOG'
         ImageIndex = 29
-        OnClick = ViewLogClick
+        OnClick = DataMenuItemClick
       end
       object ViewHackAttemptLogMenuItem: TMenuItem
         AutoHotkeys = maManual
         Caption = 'Hack Attempt Log...'
         Hint = 'HACK.LOG'
-        OnClick = ViewLogClick
+        OnClick = DataMenuItemClick
       end
     end
     object HelpMenuItem: TMenuItem
@@ -14316,7 +14300,7 @@ object MainForm: TMainForm
     Left = 392
     Top = 65533
     object TelnetStart: TAction
-      Hint = 'Start Terminal Server'
+      Hint = 'Start Telnet Server'
       ImageIndex = 0
       OnExecute = TelnetStartExecute
     end
@@ -14324,23 +14308,23 @@ object MainForm: TMainForm
       AutoCheck = True
       Caption = 'Pause'
       Enabled = False
-      Hint = 'Pause Terminal Server Logging'
+      Hint = 'Pause Telnet Server Logging'
       ImageIndex = 67
     end
     object TelnetStop: TAction
       Enabled = False
-      Hint = 'Stop Terminal Server'
+      Hint = 'Stop Telnet Server'
       ImageIndex = 2
       OnExecute = TelnetStopExecute
     end
     object TelnetRecycle: TAction
       Caption = 'Recycle'
-      Hint = 'Recycle Terminal Server'
+      Hint = 'Recycle Telnet Server'
       ImageIndex = 55
       OnExecute = TelnetRecycleExecute
     end
     object TelnetConfigure: TAction
-      Hint = 'Configure Terminal Server'
+      Hint = 'Configure Telnet Server'
       ImageIndex = 4
       OnExecute = TelnetConfigureExecute
     end
@@ -14387,9 +14371,9 @@ object MainForm: TMainForm
     end
     object ViewTelnet: TAction
       AutoCheck = True
-      Caption = '&Terminal Server'
+      Caption = '&Telnet Server'
       Checked = True
-      Hint = 'View Terminal Server Window'
+      Hint = 'View Telnet Server Window'
       ImageIndex = 9
       OnExecute = ViewTelnetExecute
     end
@@ -17151,7 +17135,7 @@ object MainForm: TMainForm
         OnClick = BBSConfigureMenuItemClick
       end
       object ConfigureTelnetTrayMenuItem: TMenuItem
-        Caption = 'Terminal Server'
+        Caption = 'Telnet Server'
         OnClick = TelnetConfigureExecute
       end
       object ConfigureFtpTrayMenuItem: TMenuItem
