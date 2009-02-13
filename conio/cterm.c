@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.120 2009/02/11 08:14:22 deuce Exp $ */
+/* $Id: cterm.c,v 1.121 2009/02/13 16:32:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,7 @@
 
 struct cterminal cterm;
 
-const int cterm_tabs[]={8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128,132,136};
+const int cterm_tabs[]={1,9,17,25,33,41,49,57,65,73,81,89,97,105,113,121,129,137,145};
 
 const char *octave="C#D#EF#G#A#B";
 
@@ -1175,7 +1175,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.120 $";
+	char	*revision="$Revision: 1.121 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1293,26 +1293,23 @@ void ctputs(char *buf)
 			case 7:		/* Bell */
 				break;
 			case '\t':
+				*p=0;
+				cputs(outp);
+				outp=p+1;
 				for(i=0;i<sizeof(cterm_tabs)/sizeof(cterm_tabs[0]);i++) {
 					if(cterm_tabs[i]>cx) {
-						while(cx<cterm_tabs[i]) {
-							cx++;
-						}
+						cx=cterm_tabs[i];
 						break;
 					}
 				}
 				if(cx>cterm.width) {
 					cx=1;
-					if(cy==cterm.height) {
-						*p=0;
-						cputs(outp);
-						outp=p+1;
+					if(cy==cterm.height)
 						scrollup();
-						gotoxy(cx,cy);
-					}
 					else
 						cy++;
 				}
+				gotoxy(cx,cy);
 				break;
 			default:
 				if(cy==cterm.height
@@ -2011,18 +2008,6 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									ctputs(prn);
 									prn[0]=0;
 									cterm.sequence=1;
-									break;
-								case '\t':
-									ctputs(prn);
-									prn[0]=0;
-									if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
-										fputs("\t", cterm.logfile);
-									for(k=0;k<sizeof(cterm_tabs)/sizeof(cterm_tabs[0]);k++) {
-										if(cterm_tabs[k]>wherex()) {
-											gotoxy(cterm_tabs[k],wherey());
-											break;
-										}
-									}
 									break;
 								default:
 									strcat(prn,ch);
