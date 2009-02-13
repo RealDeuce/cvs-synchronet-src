@@ -54,7 +54,7 @@ StampBlock(char under)
 void 
 CopyBlock(char Mode)
 {
-	char            under = -1;
+	char            under = 0;
 	int             x, y, ch, ymax = 22;
 	struct			text_info	ti;
 	struct			mouse_event	me;
@@ -81,7 +81,7 @@ CopyBlock(char Mode)
 
 	Dragging=TRUE;
 	do {
-		buf=(char *)alloca(80*ti.screenheight*2);
+		buf=(char *)malloc(80*ti.screenheight*2);
 
 		memcpy(buf,Screen[ActivePage][FirstLine],80*ti.screenheight*2);
 		for (y=Y1;y<=Y2;y++) {
@@ -90,7 +90,7 @@ CopyBlock(char Mode)
 			for(x=X1;x<=X2;x++) {
 				if(CursorX+x-X1>=80)
 					continue;
-				if(under==TRUE) {
+				if(under) {
 					if(buf[((CursorY+y-Y1))*160+(CursorX+x-X1)*2]==32 || buf[((CursorY+y-Y1))*160+(CursorX+x-X1)*2]==0) {
 						buf[((CursorY+y-Y1))*160+(CursorX+x-X1)*2]=Screen[COPYPage][y][x*2];
 						buf[((CursorY+y-Y1))*160+(CursorX+x-X1)*2+1]=Screen[COPYPage][y][x*2+1];
@@ -106,6 +106,7 @@ CopyBlock(char Mode)
 			puttext(1,1,80,ti.screenheight-1,buf);
 		else
 			puttext(1,2,80,ti.screenheight-1,buf);
+		free(buf);
 
 		Statusline();
 		Colors(Attribute);
@@ -262,7 +263,7 @@ blockmode(void)
 			X1 = CursorX;
 		}
 
-		buf=(char *)alloca(80*ti.screenheight*2);
+		buf=(char *)malloc(80*ti.screenheight*2);
 		memcpy(buf,Screen[ActivePage][FirstLine],80*ti.screenheight*2);
 		for(y=Y1-FirstLine;y<=Y2-FirstLine;y++) {
 			for(x=X1;x<=X2;x++) {
@@ -273,6 +274,7 @@ blockmode(void)
 			puttext(1,1,80,ti.screenheight-1,buf);
 		else
 			puttext(1,2,80,ti.screenheight-1,buf);
+		free(buf);
 
 		Statusline();
 		Colors(Attribute);
