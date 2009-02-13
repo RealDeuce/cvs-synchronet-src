@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.167 2009/02/12 11:02:30 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.168 2009/02/13 04:24:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1191,8 +1191,8 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
 
     if(TelnetStop->Enabled && !bbsServiceEnabled()) {
      	if(!terminating && TelnetForm->ProgressBar->Position
-	        && Application->MessageBox("Shut down the Telnet Server?"
-        	,"Telnet Server In Use", MB_OKCANCEL)!=IDOK)
+	        && Application->MessageBox("Shut down the Terminal Server?"
+        	,"Terminal Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         TelnetStopExecute(Sender);
 	}
