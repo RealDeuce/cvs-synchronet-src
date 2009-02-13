@@ -2,13 +2,13 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.72 2009/02/16 03:35:16 rswindell Exp $ */
+/* $Id: scfg.c,v 1.71 2007/08/25 08:31:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1882,7 +1882,7 @@ int lprintf(int level, char *fmt, ...)
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
-    strip_ctrl(sbuf,sbuf);
+    strip_ctrl(sbuf);
     uifc.msg(sbuf);
     return(0);
 }

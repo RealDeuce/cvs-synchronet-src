@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.125 2009/02/19 02:39:00 deuce Exp $ */
+/* $Id: cterm.c,v 1.120 2009/02/11 08:14:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,7 @@
 
 struct cterminal cterm;
 
-const int cterm_tabs[]={1,9,17,25,33,41,49,57,65,73,81,89,97,105,113,121,129,137,145};
+const int cterm_tabs[]={8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128,132,136};
 
 const char *octave="C#D#EF#G#A#B";
 
@@ -716,8 +716,10 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					if(i==0)
 						i=1;
 					i=wherey()+i;
-					if(i>cterm.height)
-						i=cterm.height;
+					while(i>cterm.height) {
+						scrollup();
+						i--;
+					}
 					gotoxy(1,i);
 					break;
 				case 'F':	/* Cursor preceding line */
@@ -728,14 +730,6 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 					if(i<1)
 						i=1;
 					gotoxy(1,i);
-					break;
-				case 'G':
-					col=strtoul(cterm.escbuf+1,NULL,10);
-					if(col<1)
-						col=1;
-					if(col>cterm.width)
-						col=cterm.width;
-					gotoxy(col,wherey());
 					break;
 				case 'f':
 				case 'H':
@@ -849,7 +843,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 						i=1;
 					if(i>cterm.width-col+1)
 						i=cterm.width-col+1;
-					movetext(cterm.x+col-1+i,cterm.y+row-1,cterm.x+cterm.width-1,cterm.y+row-1,cterm.x+col-1,cterm.y+row-1);
+					movetext(cterm.x+col-1+i,cterm.y+row-1,cterm.x+cterm.width-1-i,cterm.y+row-1,cterm.x+col-1,cterm.y+row-1);
 					gotoxy(cterm.width-i,col);
 					clreol();
 					gotoxy(col,row);
@@ -1181,7 +1175,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.125 $";
+	char	*revision="$Revision: 1.120 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1299,23 +1293,26 @@ void ctputs(char *buf)
 			case 7:		/* Bell */
 				break;
 			case '\t':
-				*p=0;
-				cputs(outp);
-				outp=p+1;
 				for(i=0;i<sizeof(cterm_tabs)/sizeof(cterm_tabs[0]);i++) {
 					if(cterm_tabs[i]>cx) {
-						cx=cterm_tabs[i];
+						while(cx<cterm_tabs[i]) {
+							cx++;
+						}
 						break;
 					}
 				}
 				if(cx>cterm.width) {
 					cx=1;
-					if(cy==cterm.height)
+					if(cy==cterm.height) {
+						*p=0;
+						cputs(outp);
+						outp=p+1;
 						scrollup();
+						gotoxy(cx,cy);
+					}
 					else
 						cy++;
 				}
-				gotoxy(cx,cy);
 				break;
 			default:
 				if(cy==cterm.height
@@ -1378,10 +1375,6 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 				fwrite(buf, buflen, 1, cterm.logfile);
 			prn[0]=0;
 			for(j=0;j<buflen;j++) {
-				if(strlen(prn) >= sizeof(prn)-sizeof(cterm.escbuf)) {
-					ctputs(prn);
-					prn[0]=0;
-				}
 				ch[0]=buf[j];
 				if(cterm.font_size) {
 					cterm.fontbuf[cterm.font_read++]=ch[0];
@@ -1420,81 +1413,12 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 				}
 				else if(cterm.sequence) {
 					k=strlen(cterm.escbuf);
-					if(k+1 >= sizeof(cterm.escbuf)) {
-						/* Broken sequence detected */
-						strcat(prn,"\033");
-						strcat(prn,cterm.escbuf);
-						cterm.escbuf[0]=0;
-						cterm.sequence=0;
-					}
-					else {
-						strcat(cterm.escbuf,ch);
-						if(k) {
-							if(cterm.escbuf[0] != '[') {	/* Not a CSI code. */
-								/* ANSI control characters */
-								if(ch[0] >= 32 && ch[0] <= 47) {
-									/* Legal intermediate character */
-								}
-								else if(ch[0] >= 48 && ch[0] <= 126) {
-									/* Terminating character */
-									do_ansi(retbuf, retsize, speed);
-								}
-								else {
-									/* Broken sequence detected */
-									strcat(prn,"\033");
-									strcat(prn,cterm.escbuf);
-									cterm.escbuf[0]=0;
-									cterm.sequence=0;
-								}
-							}
-							else {
-								/* We know that it was a CSI at this point */
-								/* Here's where we get funky! */
-								/* the last character defines the set of legal next characters */
-								if(ch[0] >= 48 && ch[0] <= 63) {
-									/* Parameter character.  Only legal after '[' and other param chars */
-									if(cterm.escbuf[k]!='[' 
-											&& (cterm.escbuf[k] < 48 || cterm.escbuf[k] > 63)) {
-										/* Broken sequence detected */
-										strcat(prn,"\033");
-										strcat(prn,cterm.escbuf);
-										cterm.escbuf[0]=0;
-										cterm.sequence=0;
-									}
-								}
-								else if(ch[0] >= 32 && ch[0] <= 47) {
-									/* Intermediate character.  Legal after '[', param, or intermetiate chars */
-									if(cterm.escbuf[k]!='[' 
-											&& (cterm.escbuf[k] < 48 || cterm.escbuf[k] > 63) 
-											&& (cterm.escbuf[k] < 32 || cterm.escbuf[k] > 47)) {
-										/* Broken sequence detected */
-										strcat(prn,"\033");
-										strcat(prn,cterm.escbuf);
-										cterm.escbuf[0]=0;
-										cterm.sequence=0;
-									}
-								}
-								else if(ch[0] >= 64 && ch[0] <= 126) {
-										/* Terminating character.  Always legal at this point. */
-									do_ansi(retbuf, retsize, speed);
-								}
-								else {
-									/* Broken sequence detected */
-									strcat(prn,"\033");
-									strcat(prn,cterm.escbuf);
-									cterm.escbuf[0]=0;
-									cterm.sequence=0;
-								}
-							}
-						}
-						else {
-							/* First char after the ESC */
+					strcat(cterm.escbuf,ch);
+					if(k) {
+						if(cterm.escbuf[0] != '[') {	/* Not a CSI code. */
+							/* ANSI control characters */
 							if(ch[0] >= 32 && ch[0] <= 47) {
 								/* Legal intermediate character */
-								/* No CSI then */
-							}
-							else if(ch[0]=='[') {
-								/* CSI received */
 							}
 							else if(ch[0] >= 48 && ch[0] <= 126) {
 								/* Terminating character */
@@ -1508,13 +1432,73 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 								cterm.sequence=0;
 							}
 						}
-						if(ch[0]=='\033') {	/* Broken sequence followed by a legal one! */
-							if(prn[0])	/* Don't display the ESC */
-								prn[strlen(prn)-1]=0;
-							ctputs(prn);
-							prn[0]=0;
-							cterm.sequence=1;
+						else {
+							/* We know that it was a CSI at this point */
+							/* Here's where we get funky! */
+							/* the last character defines the set of legal next characters */
+							if(ch[0] >= 48 && ch[0] <= 63) {
+								/* Parameter character.  Only legal after '[' and other param chars */
+								if(cterm.escbuf[k]!='[' 
+										&& (cterm.escbuf[k] < 48 || cterm.escbuf[k] > 63)) {
+									/* Broken sequence detected */
+									strcat(prn,"\033");
+									strcat(prn,cterm.escbuf);
+									cterm.escbuf[0]=0;
+									cterm.sequence=0;
+								}
+							}
+							else if(ch[0] >= 32 && ch[0] <= 47) {
+								/* Intermediate character.  Legal after '[', param, or intermetiate chars */
+								if(cterm.escbuf[k]!='[' 
+										&& (cterm.escbuf[k] < 48 || cterm.escbuf[k] > 63) 
+										&& (cterm.escbuf[k] < 32 || cterm.escbuf[k] > 47)) {
+									/* Broken sequence detected */
+									strcat(prn,"\033");
+									strcat(prn,cterm.escbuf);
+									cterm.escbuf[0]=0;
+									cterm.sequence=0;
+								}
+							}
+							else if(ch[0] >= 64 && ch[0] <= 126) {
+								/* Terminating character.  Always legal at this point. */
+								do_ansi(retbuf, retsize, speed);
+							}
+							else {
+								/* Broken sequence detected */
+								strcat(prn,"\033");
+								strcat(prn,cterm.escbuf);
+								cterm.escbuf[0]=0;
+								cterm.sequence=0;
+							}
 						}
+					}
+					else {
+						/* First char after the ESC */
+						if(ch[0] >= 32 && ch[0] <= 47) {
+							/* Legal intermediate character */
+							/* No CSI then */
+						}
+						else if(ch[0]=='[') {
+							/* CSI received */
+						}
+						else if(ch[0] >= 48 && ch[0] <= 126) {
+							/* Terminating character */
+							do_ansi(retbuf, retsize, speed);
+						}
+						else {
+							/* Broken sequence detected */
+							strcat(prn,"\033");
+							strcat(prn,cterm.escbuf);
+							cterm.escbuf[0]=0;
+							cterm.sequence=0;
+						}
+					}
+					if(ch[0]=='\033') {	/* Broken sequence followed by a legal one! */
+						if(prn[0])	/* Don't display the ESC */
+							prn[strlen(prn)-1]=0;
+						ctputs(prn);
+						prn[0]=0;
+						cterm.sequence=1;
 					}
 				}
 				else if (cterm.music) {
@@ -2027,6 +2011,18 @@ char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, 
 									ctputs(prn);
 									prn[0]=0;
 									cterm.sequence=1;
+									break;
+								case '\t':
+									ctputs(prn);
+									prn[0]=0;
+									if(cterm.log==CTERM_LOG_ASCII && cterm.logfile != NULL)
+										fputs("\t", cterm.logfile);
+									for(k=0;k<sizeof(cterm_tabs)/sizeof(cterm_tabs[0]);k++) {
+										if(cterm_tabs[k]>wherex()) {
+											gotoxy(cterm_tabs[k],wherey());
+											break;
+										}
+									}
 									break;
 								default:
 									strcat(prn,ch);
