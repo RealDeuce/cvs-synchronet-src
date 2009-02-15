@@ -2,7 +2,7 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.30 2008/01/27 09:16:53 rswindell Exp $ */
+/* $Id: filedat.c,v 1.31 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -531,7 +531,7 @@ BOOL DLLCALL findfile(scfg_t* cfg, uint dirnum, char *filename)
 /****************************************************************************/
 /* Turns FILE.EXT into FILE    .EXT                                         */
 /****************************************************************************/
-char* DLLCALL padfname(char *filename, char *str)
+char* DLLCALL padfname(const char *filename, char *str)
 {
     int c,d;
 
@@ -558,7 +558,7 @@ char* DLLCALL padfname(char *filename, char *str)
 /****************************************************************************/
 /* Turns FILE    .EXT into FILE.EXT                                         */
 /****************************************************************************/
-char* DLLCALL unpadfname(char *filename, char *str)
+char* DLLCALL unpadfname(const char *filename, char *str)
 {
     int c,d;
 
