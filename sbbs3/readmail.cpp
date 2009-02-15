@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.48 2009/03/20 09:02:10 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.45 2009/02/15 11:32:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,19 +237,37 @@ void sbbs_t::readmail(uint usernumber, int which)
 						sprintf(str3,text[DownloadAttachedFileQ]
 							,tp,ultoac(length,tmp));
 						if(length>0L && yesno(str3)) {
+#if 0	/* no such thing as local logon */
+							if(online==ON_LOCAL) {
+								bputs(text[EnterPath]);
+								if(getstr(str3,60,K_LINE)) {
+									backslashcolon(str3);
+									sprintf(tmp,"%s%s",str3,tp);
+									if(!mv(str2,tmp,which!=MAIL_YOUR)) {
+										logon_dlb+=length;
+										logon_dls++;
+										useron.dls=(ushort)adjustuserrec(&cfg,useron.number
+											,U_DLS,5,1);
+										useron.dlb=adjustuserrec(&cfg,useron.number
+											,U_DLB,10,length);
+										bprintf(text[FileNBytesSent]
+											,fd.name,ultoac(length,tmp)); } } }
+
+							else 
+#endif
 							{	/* Remote User */
 								xfer_prot_menu(XFER_DOWNLOAD);
 								mnemonics(text[ProtocolOrQuit]);
 								strcpy(str3,"Q");
 								for(i=0;i<cfg.total_prots;i++)
 									if(cfg.prot[i]->dlcmd[0]
-										&& chk_ar(cfg.prot[i]->ar,&useron,&client)) {
+										&& chk_ar(cfg.prot[i]->ar,&useron)) {
 										sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
 										strcat(str3,tmp); }
 								ch=(char)getkeys(str3,0);
 								for(i=0;i<cfg.total_prots;i++)
 									if(cfg.prot[i]->dlcmd[0] && ch==cfg.prot[i]->mnemonic
-										&& chk_ar(cfg.prot[i]->ar,&useron,&client))
+										&& chk_ar(cfg.prot[i]->ar,&useron))
 										break;
 								if(i<cfg.total_prots) {
 									error=protocol(cfg.prot[i],XFER_DOWNLOAD,str2,nulstr,false);
@@ -692,13 +710,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	if(smb.msgs)
 		free(mail);
-
-	SAFEPRINTF(str,text[DeleteMailQ],"everyone");
-	if(which==MAIL_YOUR 
-		&& getmail(&cfg, usernumber, /* sent: */FALSE)
-		&& bputs(crlf)
-		&& !noyes(str))
-		delallmail(usernumber, MAIL_YOUR);
 
 	/***************************************/
 	/* Delete messages marked for deletion */

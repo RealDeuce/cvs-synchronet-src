@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.72 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: js_user.c,v 1.71 2008/12/09 09:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -46,10 +46,9 @@ static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 typedef struct
 {
-	user_t		user;
-	BOOL		cached;
-	scfg_t*		cfg;
-	client_t*	client;
+	user_t	user;
+	BOOL	cached;
+	scfg_t*	cfg;
 
 } private_t;
 
@@ -911,7 +910,7 @@ js_chk_ar(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	js_getuserdat(p);
 
-	*rval = BOOLEAN_TO_JSVAL(chk_ar(p->cfg,ar,&p->user,p->client));
+	*rval = BOOLEAN_TO_JSVAL(chk_ar(p->cfg,ar,&p->user));
 
 	if(ar!=NULL && ar!=nular)
 		free(ar);
@@ -1337,7 +1336,7 @@ JSObject* DLLCALL js_CreateUserClass(JSContext* cx, JSObject* parent, scfg_t* cf
 }
 
 JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg, char* name
-									  , uint usernumber, client_t* client)
+									  , uint usernumber)
 {
 	JSObject*	userobj;
 	private_t*	p;
@@ -1359,7 +1358,6 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 
 	p->cfg = cfg;
 	p->user.number = usernumber;
-	p->client = client;
 	p->cached = FALSE;
 
 	JS_SetPrivate(cx, userobj, p);	
@@ -1381,16 +1379,16 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 /* Creates all the user-specific objects: user, msg_area, file_area			*/
 /****************************************************************************/
 JSBool DLLCALL
-js_CreateUserObjects(JSContext* cx, JSObject* parent, scfg_t* cfg, user_t* user, client_t* client
+js_CreateUserObjects(JSContext* cx, JSObject* parent, scfg_t* cfg, user_t* user
 					 ,char* html_index_file, subscan_t* subscan)
 {
-	if(js_CreateUserObject(cx,parent,cfg,"user",user==NULL ? 0 : user->number, client)==NULL)
+	if(js_CreateUserObject(cx,parent,cfg,"user",user==NULL ? 0 : user->number)==NULL)
 		return(JS_FALSE);
-	if(js_CreateFileAreaObject(cx,parent,cfg,user,client,html_index_file)==NULL) 
+	if(js_CreateFileAreaObject(cx,parent,cfg,user,html_index_file)==NULL) 
 		return(JS_FALSE);
-	if(js_CreateMsgAreaObject(cx,parent,cfg,user,client,subscan)==NULL) 
+	if(js_CreateMsgAreaObject(cx,parent,cfg,user,subscan)==NULL) 
 		return(JS_FALSE);
-	if(js_CreateXtrnAreaObject(cx,parent,cfg,user,client)==NULL)
+	if(js_CreateXtrnAreaObject(cx,parent,cfg,user)==NULL)
 		return(JS_FALSE);
 
 	return(JS_TRUE);

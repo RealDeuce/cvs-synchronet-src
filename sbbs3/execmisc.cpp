@@ -2,13 +2,13 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.51 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.49 2008/03/15 01:02:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -575,7 +575,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					pp=getstrvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 					if(pp && *pp)
-						strip_ctrl(*pp, *pp);
+						strip_ctrl(*pp);
 					return(0);
 
 				case ADD_INT_VAR:
@@ -964,7 +964,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					cmdstr((char *)csi->ip,csi->str,csi->str,str);
 					while(*(csi->ip++));	/* Find NULL */
 					for(i=0;i<cfg.total_prots;i++)
-						if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron,&client))
+						if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
 							break;
 					csi->logic=LOGIC_FALSE;
 					if(i<cfg.total_prots)
@@ -979,7 +979,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					pp=getstrvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 					for(i=0;i<cfg.total_prots;i++)
-						if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron,&client))
+						if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
 							break;
 					csi->logic=LOGIC_FALSE;
 					if(!pp || !(*pp))
@@ -1465,7 +1465,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 			return(0);
 		case CS_COMPARE_ARS:
 			i=*(csi->ip++);  /* Length of ARS stored as byte before ARS */
-			csi->logic=!chk_ar(csi->ip,&useron,&client);
+			csi->logic=!chk_ar(csi->ip,&useron);
 			csi->ip+=i;
 			return(0);
 		case CS_TOGGLE_USER_MISC:
