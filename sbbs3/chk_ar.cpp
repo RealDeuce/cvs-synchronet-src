@@ -2,13 +2,13 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.20 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.19 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,13 +37,12 @@
 
 #include "sbbs.h"
 
-bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
+bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 {
 	bool	result,_not,_or,equal;
 	uint	i,n,artype,age;
 	ulong	l;
 	struct tm tm;
-	const char*	p;
 
 	result = true;
 
@@ -71,7 +70,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 
 		if((**ptrptr)==AR_BEGNEST) {
 			(*ptrptr)++;
-			if(ar_exp(ptrptr,user,client))
+			if(ar_exp(ptrptr,user))
 				result=!_not;
 			else
 				result=_not;
@@ -294,7 +293,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				break;
 			case AR_SUBCODE:
 				if(cursubnum>=cfg.total_subs
-					|| !findstr_in_string(cfg.sub[cursubnum]->code,(char*)*ptrptr))
+					|| stricmp(cfg.sub[cursubnum]->code,(char*)*ptrptr))
 					result=_not;
 				else
 					result=!_not;
@@ -329,7 +328,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				break;
 			case AR_DIRCODE:
 				if(curdirnum>=cfg.total_dirs
-					|| !findstr_in_string(cfg.dir[curdirnum]->code,(char *)*ptrptr))
+					|| stricmp(cfg.dir[curdirnum]->code,(char *)*ptrptr))
 					result=_not;
 				else
 					result=!_not;
@@ -563,7 +562,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				break; 
 			case AR_SHELL:
 				if(user->shell>=cfg.total_shells
-					|| !findstr_in_string(cfg.shell[user->shell]->code,(char*)*ptrptr))
+					|| stricmp(cfg.shell[user->shell]->code,(char*)*ptrptr))
 					result=_not;
 				else
 					result=!_not;
@@ -571,35 +570,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 					(*ptrptr)++;
 				break;
 			case AR_PROT:
-				if(client!=NULL)
-					p=client->protocol;
-				else
-					p=user->modem;
-				if(!findstr_in_string(p,(char*)*ptrptr))
-					result=_not;
-				else
-					result=!_not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
-			case AR_HOST:
-				if(client!=NULL)
-					p=client->host;
-				else
-					p=user->comp;
-				if(!findstr_in_string(p,(char*)*ptrptr))
-					result=_not;
-				else
-					result=!_not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
-			case AR_IP:
-				if(client!=NULL)
-					p=client->addr;
-				else
-					p=user->note;
-				if(!findstr_in_string(p,(char*)*ptrptr))
+				if(stricmp(user->modem,(char*)*ptrptr))	/* should this be changed to client.prot? */
 					result=_not;
 				else
 					result=!_not;
@@ -611,14 +582,14 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 	return(result);
 }
 
-bool sbbs_t::chk_ar(const uchar *ar, user_t* user, client_t* client)
+bool sbbs_t::chk_ar(const uchar *ar, user_t* user)
 {
 	const uchar *p;
 
 	if(ar==NULL)
 		return(true);
 	p=ar;
-	return(ar_exp(&p,user,client));
+	return(ar_exp(&p,user));
 }
 
 
@@ -631,11 +602,11 @@ void sbbs_t::getusrsubs()
     uint i,j,k,l;
 
 	for(j=0,i=0;i<cfg.total_grps;i++) {
-		if(!chk_ar(cfg.grp[i]->ar,&useron,&client))
+		if(!chk_ar(cfg.grp[i]->ar,&useron))
 			continue;
 		for(k=0,l=0;l<cfg.total_subs;l++) {
 			if(cfg.sub[l]->grp!=i) continue;
-			if(!chk_ar(cfg.sub[l]->ar,&useron,&client))
+			if(!chk_ar(cfg.sub[l]->ar,&useron))
 				continue;
 			usrsub[j][k++]=l; 
 		}
@@ -664,11 +635,11 @@ void sbbs_t::getusrdirs()
 		return; 
 	}
 	for(j=0,i=0;i<cfg.total_libs;i++) {
-		if(!chk_ar(cfg.lib[i]->ar,&useron,&client))
+		if(!chk_ar(cfg.lib[i]->ar,&useron))
 			continue;
 		for(k=0,l=0;l<cfg.total_dirs;l++) {
 			if(cfg.dir[l]->lib!=i) continue;
-			if(!chk_ar(cfg.dir[l]->ar,&useron,&client))
+			if(!chk_ar(cfg.dir[l]->ar,&useron))
 				continue;
 			usrdir[j][k++]=l; }
 		usrdirs[j]=k;
@@ -718,7 +689,7 @@ uint sbbs_t::getusrsub(uint subnum)
 
 int sbbs_t::dir_op(uint dirnum)
 {
-	return(SYSOP || (cfg.dir[dirnum]->op_ar[0] && chk_ar(cfg.dir[dirnum]->op_ar,&useron,&client)));
+	return(SYSOP || (cfg.dir[dirnum]->op_ar[0] && chk_ar(cfg.dir[dirnum]->op_ar,&useron)));
 }
 
 

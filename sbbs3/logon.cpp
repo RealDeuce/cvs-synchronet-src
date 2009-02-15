@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.49 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.48 2008/01/27 01:27:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -101,7 +101,7 @@ bool sbbs_t::logon()
 			useron.misc|=NO_EXASCII;
 		for(i=0;i<cfg.total_xedits;i++)
 			if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit)
-				&& chk_ar(cfg.xedit[i]->ar,&useron,&client))
+				&& chk_ar(cfg.xedit[i]->ar,&useron))
 				break;
 		if(i<cfg.total_xedits)
 			useron.xedit=i+1;
@@ -126,7 +126,7 @@ bool sbbs_t::logon()
 	}
 #endif
 
-	if(!chk_ar(cfg.node_ar,&useron,&client)) {
+	if(!chk_ar(cfg.node_ar,&useron)) {
 		bputs(text[NoNodeAccess]);
 		sprintf(str,"(%04u)  %-25s  Insufficient node access"
 			,useron.number,useron.alias);
@@ -203,11 +203,11 @@ bool sbbs_t::logon()
 		useron.misc|=autoterm; 
 	}
 
-	if(!chk_ar(cfg.shell[useron.shell]->ar,&useron,&client)) {
+	if(!chk_ar(cfg.shell[useron.shell]->ar,&useron)) {
 		useron.shell=cfg.new_shell;
-		if(!chk_ar(cfg.shell[useron.shell]->ar,&useron,&client)) {
+		if(!chk_ar(cfg.shell[useron.shell]->ar,&useron)) {
 			for(i=0;i<cfg.total_shells;i++)
-				if(chk_ar(cfg.shell[i]->ar,&useron,&client))
+				if(chk_ar(cfg.shell[i]->ar,&useron))
 					break;
 			if(i==cfg.total_shells)
 				useron.shell=0; 
@@ -486,7 +486,7 @@ bool sbbs_t::logon()
 		bprintf(text[LiMailWaiting],mailw);
 		strcpy(str,text[LiSysopIs]);
 		if(startup->options&BBS_OPT_SYSOP_AVAILABLE 
-			|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron,&client)))
+			|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron)))
 			strcat(str,text[LiSysopAvailable]);
 		else
 			strcat(str,text[LiSysopNotAvailable]);
