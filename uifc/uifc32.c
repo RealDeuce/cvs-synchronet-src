@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.190 2008/02/05 01:47:54 deuce Exp $ */
+/* $Id: uifc32.c,v 1.193 2009/02/06 02:13:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,7 +140,7 @@ int inkey(void)
 	int c;
 
 	c=getch();
-	if(!c || c==0xff)
+	if(!c || c==0xe0)
 		c|=(getch()<<8);
 	return(c);
 }
@@ -314,7 +314,7 @@ void docopy(void)
 	gettext(1,1,api->scrn_width,api->scrn_len+1,screen);
 	while(1) {
 		key=getch();
-		if(key==0 || key==0xff)
+		if(key==0 || key==0xe0)
 			key|=getch()<<8;
 		switch(key) {
 			case CIO_KEY_MOUSE:
@@ -1098,6 +1098,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_F(6);	/* paste */
 					break;
+				case CIO_KEY_ABORTED:
+					gotkey=ESC;
+					break;
 			}
 			if(gotkey>255) {
 				s=0;
@@ -1218,12 +1221,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						y=top+tbrdrwidth;
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+tbrdrwidth);
 						textattr(lclr|(bclr<<4));
-						if(*cur && opts>height-tbrdrwidth)  /* Scroll mode */
+						if(*cur)  /* Scroll mode */
 							putch(30);	   /* put the up arrow */
 						else
 							putch(' ');    /* delete the up arrow */
 						gotoxy(s_left+left+lbrdrwidth,s_top+top+height-bbrdrwidth-1);
-						if(opts > height-tbrdrwidth && *cur + height - vbrdrsize < opts)
+						if(opts >= height-tbrdrwidth && *cur + height - vbrdrsize < opts)
 							putch(31);	   /* put the down arrow */
 						else
 							putch(' ');    /* delete the down arrow */
@@ -2081,6 +2084,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						j--;
 					}
 					continue;
+				case CIO_KEY_ABORTED:
 				case CTRL_C:
 				case ESC:
 					{
