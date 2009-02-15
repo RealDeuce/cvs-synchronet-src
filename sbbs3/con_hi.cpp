@@ -2,13 +2,13 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.18 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.13 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,19 +39,35 @@
 
 /****************************************************************************/
 /* Redraws str using i as current cursor position and l as length           */
-/* Currently only used by getstr() - so should be moved to getstr.cpp?		*/
 /****************************************************************************/
 void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 {
-	cursor_left(i);
+    char str[256],c;
+
+	sprintf(str,"%-*.*s",l,l,strin);
+	c=i;
+	while(c--)
+		outchar(BS);
 	if(mode&K_MSG)
-		bprintf("%-*.*s",l,l,strin);
+		bputs(str);
 	else
-		column+=rprintf("%-*.*s",l,l,strin);
-	cleartoeol();
-	if(i<l)
-		cursor_left(l-i); 
+		rputs(str);
+	if(term_supports(ANSI)) {
+		cleartoeol();
+		if(i<l)
+			cursor_left(l-i); 
+	} else {
+		while(c<cols-1) { /* clear to end of line */
+			outchar(' ');
+			c++; 
+		}
+		while(c>l) { /* back space to end of string */
+			outchar(BS);
+			c--; 
+		} 
+	}
 }
+
 
 int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const uchar *ar)
 {
@@ -63,7 +79,7 @@ int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const 
 		uselect_total=0;
 
 	if(add) {
-		if(ar && !chk_ar(ar,&useron,&client))
+		if(ar && !chk_ar(ar,&useron))
 			return(0);
 		if(!uselect_total)
 			bprintf(text[SelectItemHdr],title);
@@ -108,15 +124,25 @@ bool sbbs_t::chksyspass()
 		logline("S!","Remote sysop access disabled");
 		return(false);
 	}
+#if 0	/* no local logins in v3 */
+	if(online==ON_LOCAL) {
+		if(!(cfg.sys_misc&SM_L_SYSOP))
+			return(false);
+		if(!(cfg.node_misc&NM_SYSPW) && !(cfg.sys_misc&SM_REQ_PW))
+			return(false); 
+	}
+#endif
 	bputs(text[SystemPassword]);
-	getstr(str,40,K_UPPER|K_NOECHO);
+	console&=~(CON_R_ECHO|CON_L_ECHO);
+	getstr(str,40,K_UPPER);
+	console=orgcon;
 	CRLF;
 	if(strcmp(cfg.sys_pass,str)) {
 		if(cfg.sys_misc&SM_ECHO_PW) 
-			SAFEPRINTF3(str2,"%s #%u System password attempt: '%s'"
+			sprintf(str2,"%s #%u System password attempt: '%s'"
 				,useron.alias,useron.number,str);
 		else
-			SAFEPRINTF2(str2,"%s #%u System password verification failure"
+			sprintf(str2,"%s #%u System password verification failure"
 				,useron.alias,useron.number);
 		logline("S!",str2);
 		return(false); 

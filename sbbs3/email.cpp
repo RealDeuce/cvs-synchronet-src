@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.44 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: email.cpp,v 1.43 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -139,7 +139,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
 			for(x=0;x<cfg.total_prots;x++)
-				if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
+				if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron)) {
 					sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
 					strcat(str,tmp); }
 			ch=(char)getkeys(str,0);
@@ -149,7 +149,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 				return(false); }
 			for(x=0;x<cfg.total_prots;x++)
 				if(cfg.prot[x]->ulcmd[0] && cfg.prot[x]->mnemonic==ch
-					&& chk_ar(cfg.prot[x]->ar,&useron,&client))
+					&& chk_ar(cfg.prot[x]->ar,&useron))
 					break;
 			if(x<cfg.total_prots)	/* This should be always */
 				protocol(cfg.prot[x],XFER_UPLOAD,str2,nulstr,true); 

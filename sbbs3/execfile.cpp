@@ -2,13 +2,13 @@
 
 /* Synchronet file transfer-related command shell/module routines */
 
-/* $Id: execfile.cpp,v 1.10 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: execfile.cpp,v 1.9 2004/05/30 06:47:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -265,7 +265,7 @@ int sbbs_t::exec_file(csi_t *csi)
 			if(usrlibs) {
 				i=usrdir[curlib][curdir[curlib]];
 				if(cfg.upload_dir!=INVALID_DIR
-					&& !chk_ar(cfg.dir[i]->ul_ar,&useron,&client))
+					&& !chk_ar(cfg.dir[i]->ul_ar,&useron))
 					i=cfg.upload_dir; 
 			} else
 				i=cfg.upload_dir;

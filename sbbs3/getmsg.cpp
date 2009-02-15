@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.35 2009/02/16 17:12:02 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.34 2009/02/10 11:22:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,7 +223,6 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 
 	buf=smb_getmsgtxt(&smb,msg,tails);
 	if(buf!=NULL) {
-		strip_invalid_attr(buf);
 		fputs(buf,out);
 		smb_freemsgtxt(buf); 
 	} else if(smb_getmsgdatlen(msg)>2)

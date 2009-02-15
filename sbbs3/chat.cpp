@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.53 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.50 2008/07/09 01:37:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,7 +80,7 @@ void sbbs_t::multinodechat(int channel)
 		free(gurubuf);
 		gurubuf=NULL; }
 	if(cfg.chan[channel-1]->misc&CHAN_GURU && cfg.chan[channel-1]->guru<cfg.total_gurus
-		&& chk_ar(cfg.guru[cfg.chan[channel-1]->guru]->ar,&useron,&client)) {
+		&& chk_ar(cfg.guru[cfg.chan[channel-1]->guru]->ar,&useron)) {
 		sprintf(str,"%s%s.dat",cfg.ctrl_dir,cfg.guru[cfg.chan[channel-1]->guru]->code);
 		if((file=nopen(str,O_RDONLY))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
@@ -215,7 +215,7 @@ void sbbs_t::multinodechat(int channel)
 						gurubuf=NULL; }
 					if(cfg.chan[savch-1]->misc&CHAN_GURU
 						&& cfg.chan[savch-1]->guru<cfg.total_gurus
-						&& chk_ar(cfg.guru[cfg.chan[savch-1]->guru]->ar,&useron,&client
+						&& chk_ar(cfg.guru[cfg.chan[savch-1]->guru]->ar,&useron
 						)) {
 						sprintf(str,"%s%s.dat",cfg.ctrl_dir
 							,cfg.guru[cfg.chan[savch-1]->guru]->code);
@@ -523,7 +523,7 @@ bool sbbs_t::guru_page(void)
 		bprintf(text[SysopIsNotAvailable],"The Guru");
 		return(false); 
 	}
-	if(cfg.total_gurus==1 && chk_ar(cfg.guru[0]->ar,&useron,&client))
+	if(cfg.total_gurus==1 && chk_ar(cfg.guru[0]->ar,&useron))
 		i=0;
 	else {
 		for(i=0;i<cfg.total_gurus;i++)
@@ -614,7 +614,7 @@ void sbbs_t::chatsection()
 				no_rip_menu=1;
 				if(sysop_page())
 					break;
-				if(cfg.total_gurus && chk_ar(cfg.guru[0]->ar,&useron,&client)) {
+				if(cfg.total_gurus && chk_ar(cfg.guru[0]->ar,&useron)) {
 					sprintf(str,text[ChatWithGuruInsteadQ],cfg.guru[0]->name);
 					if(!yesno(str))
 						break; }
@@ -658,14 +658,14 @@ bool sbbs_t::sysop_page(void)
 	}
 
 	if(startup->options&BBS_OPT_SYSOP_AVAILABLE 
-		|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron,&client))
+		|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron))
 		|| useron.exempt&FLAG('C')) {
 
 		sprintf(str,"%s paged sysop for chat",useron.alias);
 		logline("C",str);
 
 		for(i=0;i<cfg.total_pages;i++)
-			if(chk_ar(cfg.page[i]->ar,&useron,&client))
+			if(chk_ar(cfg.page[i]->ar,&useron))
 				break;
 		if(i<cfg.total_pages) {
 			bprintf(text[PagingGuru],cfg.sys_op);
@@ -700,7 +700,7 @@ bool sbbs_t::sysop_page(void)
 bool sbbs_t::chan_access(uint cnum)
 {
 
-	if(!cfg.total_chans || cnum>=cfg.total_chans || !chk_ar(cfg.chan[cnum]->ar,&useron,&client)) {
+	if(!cfg.total_chans || cnum>=cfg.total_chans || !chk_ar(cfg.chan[cnum]->ar,&useron)) {
 		bputs(text[CantAccessThatChannel]);
 		return(false); }
 	if(!(useron.exempt&FLAG('J')) && cfg.chan[cnum]->cost>useron.cdt+useron.freecdt) {
@@ -803,7 +803,7 @@ void sbbs_t::privchat(bool local)
 		return;
 
 	if(((sys_status&SS_USERON && useron.chat&CHAT_SPLITP) || !(sys_status&SS_USERON))
-		&& term_supports(ANSI) && rows>=24 && cols>=80)
+		&& term_supports(ANSI) && rows>=24)
 		sys_status|=SS_SPLITP;
 	else
 		sys_status&=~SS_SPLITP;
@@ -881,12 +881,12 @@ void sbbs_t::privchat(bool local)
 	if(sys_status&SS_SPLITP) {
 		lncntr=0;
 		CLS;
-		ansi_save();
+		ANSI_SAVE();
 #if 0
 		if(local)
 			bprintf(text[SysopIsHere],cfg.sys_op);
 #endif
-		ansi_gotoxy(1,13);
+		GOTOXY(1,13);
 		remote_y=1;
 		bprintf(local ? local_sep : sep
 			,thisnode.misc&NODE_MSGW ? 'T':' '
@@ -933,8 +933,8 @@ void sbbs_t::privchat(bool local)
 					}
 					remote_y=1+remoteline;
 					bputs("\1i_\1n");  /* Fake cursor */
-					ansi_save();
-					ansi_gotoxy(1,13);
+					ANSI_SAVE();
+					GOTOXY(1,13);
 					bprintf(local ? local_sep : sep
 						,thisnode.misc&NODE_MSGW ? 'T':' '
 						,sectostr(timeleft,tmp)
@@ -963,7 +963,7 @@ void sbbs_t::privchat(bool local)
 					localchar=0;
 
 					if(sys_status&SS_SPLITP && local_y==24) {
-						ansi_gotoxy(1,13);
+						GOTOXY(1,13);
 						bprintf(local ? local_sep : sep
 							,thisnode.misc&NODE_MSGW ? 'T':' '
 							,sectostr(timeleft,tmp)
@@ -973,7 +973,7 @@ void sbbs_t::privchat(bool local)
 							rprintf("\x1b[%d;1H\x1b[K",x+1);
 							if(y<=localline)
 								bprintf("%s\r\n",localbuf[y]); }
-						ansi_gotoxy(1,local_y=(15+localline));
+						GOTOXY(1,local_y=(15+localline));
 						localline=0; }
 					else {
 						if(localline>=4)
@@ -1021,7 +1021,7 @@ void sbbs_t::privchat(bool local)
 			activity=1;
 			if(sys_status&SS_SPLITP && !remote_activity) {
 				ansi_getxy(&x,&y);
-				ansi_restore();
+				ANSI_RESTORE();
 			}
 			attr(cfg.color[clr_chatremote]);
 			if(sys_status&SS_SPLITP && !remote_activity)
@@ -1061,7 +1061,7 @@ void sbbs_t::privchat(bool local)
 							if(i<=remoteline)
 								bprintf("%s\r\n",remotebuf[i]); }
 						remoteline=0;
-						ansi_gotoxy(1, remote_y=6); }
+						GOTOXY(1, remote_y=6); }
 					else {
 						if(remoteline>=4)
 							for(i=0;i<4;i++)
@@ -1086,8 +1086,8 @@ void sbbs_t::privchat(bool local)
 
 		if(sys_status&SS_SPLITP && remote_activity) {
 			bputs("\1i_\1n");  /* Fake cursor */
-			ansi_save();
-			ansi_gotoxy(x,y); 
+			ANSI_SAVE();
+			GOTOXY(x,y); 
 		}
 
 		now=time(NULL);
@@ -1712,7 +1712,7 @@ bool sbbs_t::guruexp(char **ptrptr, char *line)
 			cp=strchr(str,']');
 			if(cp) *cp=0;
 			ar=arstr(NULL,str,&cfg);
-			c=chk_ar(ar,&useron,&client);
+			c=chk_ar(ar,&useron);
 			if(ar[0]!=AR_NULL)
 				free(ar);
 			if(!c && _and) {

@@ -2,13 +2,13 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.45 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.44 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -83,7 +83,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 		return(false); 
 	}
 	for(k=0;k<cfg.total_fextrs;k++)
-		if(!stricmp(cfg.fextr[k]->ext,useron.tmpext) && chk_ar(cfg.fextr[k]->ar,&useron,&client))
+		if(!stricmp(cfg.fextr[k]->ext,useron.tmpext) && chk_ar(cfg.fextr[k]->ar,&useron))
 			break;
 	if(k>=cfg.total_fextrs)
 		k=0;
@@ -410,7 +410,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				continue; 
 			}
 
-			if(!chk_ar(cfg.sub[n]->post_ar,&useron,&client)) {
+			if(!chk_ar(cfg.sub[n]->post_ar,&useron)) {
 				bputs(text[CantPostOnSub]);
 				logline("P!","Post attempted");
 				continue; 

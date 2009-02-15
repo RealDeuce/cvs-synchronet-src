@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.5 2009/03/14 02:59:41 rswindell Exp $ */
+/* $Id: xpdatetime.c,v 1.3 2009/02/06 08:13:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,34 +92,13 @@ xpTimeZone_t xpTimeZone_local(void)
 
 	localtime_r(&t, &tm);
 	return(tm.tm_gmtoff/60);
-#elif defined(_WIN32)
-	TIME_ZONE_INFORMATION	tz;
-	DWORD					tzRet;
-
-	/*****************************/
-	/* Get Time-zone information */
-	/*****************************/
-    memset(&tz,0,sizeof(tz));
-	tzRet=GetTimeZoneInformation(&tz);
-	switch(tzRet) {
-		case TIME_ZONE_ID_DAYLIGHT:
-			tz.Bias += tz.DaylightBias;
-			break;
-		case TIME_ZONE_ID_STANDARD:
-			tz.Bias += tz.StandardBias;
-			break;
-	}
-
-	return -tz.Bias;
 #else
-
 #if defined(__BORLANDC__) || defined(__CYGWIN__)
 	#define timezone _timezone
 #endif
 
 	/* Converts (_)timezone from seconds west of UTC to minutes east of UTC */
-	/* Adjust for DST, assuming adjustment is 60 seconds <sigh> */
-	return -((timezone/60) - (daylight*60));
+	return -timezone/60;
 #endif
 }
 
@@ -290,9 +269,9 @@ char* xpDate_to_isoDateStr(xpDate_t date, const char* sep, char* str, size_t max
  * -2			"14"
  * -1			"14:02"
  * 0            "14:02:39"
- * 1            "14:02:39.8"
- * 2            "14:02:39.82"
- * 3            "14:02:39.829"
+ * 1            "14.02:39.8"
+ * 2            "14.02:39.82"
+ * 3            "14.02:39.829"
  */
 char* xpTime_to_isoTimeStr(xpTime_t ti, const char* sep, int precision
 								   ,char* str, size_t maxlen)
