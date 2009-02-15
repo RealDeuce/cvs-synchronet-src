@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.60 2010/03/08 05:18:12 rswindell Exp $ */
+/* $Id: conn.c,v 1.56 2008/04/05 07:46:47 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -220,7 +220,7 @@ size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long 
 		}
 		if(sem_trywait_block(sem, timeleft))
 			retnow=1;
-		pthread_mutex_lock(&(buf->mutex));	/* term.c data_waiting() blocks here, seemingly forever */
+		pthread_mutex_lock(&(buf->mutex));
 		found=cond(buf);
 		if(found > bcount)
 			found=bcount;
@@ -242,18 +242,6 @@ BOOL conn_connected(void)
 		return(TRUE);
 	return(FALSE);
 }
-
-int conn_recv_upto(char *buffer, size_t buflen, unsigned timeout)
-{
-	size_t	found=0;
-
-	pthread_mutex_lock(&(conn_inbuf.mutex));
-	if(conn_buf_wait_bytes(&conn_inbuf, 1, timeout))
-		found=conn_buf_get(&conn_inbuf, buffer, buflen);
-	pthread_mutex_unlock(&(conn_inbuf.mutex));
-	return(found);
-}
-
 
 int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 {
