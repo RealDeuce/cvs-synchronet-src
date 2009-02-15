@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.523 2009/02/13 04:22:55 rswindell Exp $ */
+/* $Id: main.cpp,v 1.524 2009/02/15 02:52:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -671,7 +671,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			if(startup!=NULL && startup->event_lputs!=NULL && level <= startup->log_level)
 				startup->event_lputs(startup->event_cbdata,level,JS_GetStringBytes(str));
 		} else
-			lputs(level,JS_GetStringBytes(str));
+			lprintf(level,"Node %d %s", sbbs->cfg.node_num, JS_GetStringBytes(str));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
