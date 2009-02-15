@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.18 2007/07/27 12:54:42 deuce Exp $ */
+/* $Id: putmsg.cpp,v 1.20 2008/11/19 21:54:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 /* the attributes prior to diplaying the message are always restored.       */
 /* Ignores Ctrl-Z's                                                         */
 /****************************************************************************/
-char sbbs_t::putmsg(char *str, long mode)
+char sbbs_t::putmsg(const char *str, long mode)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
 	uchar	exatr=0;
@@ -168,7 +168,7 @@ char sbbs_t::putmsg(char *str, long mode)
 				case 'W':
 					attr((curatr&0xf0)|LIGHTGRAY|HIGH);
 					break;
-				case 'S':   /* swap foreground and background */
+				case 'S':   /* swap foreground and background - TODO: This sets foreground to BLACK! */
 					attr((curatr&0x07)<<4);
 					break; 
 			}
