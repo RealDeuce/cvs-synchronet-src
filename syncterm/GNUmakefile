@@ -3,13 +3,14 @@ include ${SRC_ROOT}/build/Common.gmake
 
 CFLAGS	+=	-I/usr/local/include	# cryptlib.h lives here by default
 CFLAGS	+=	-I../../include/cryptlib	# cryptlib.h lives here in CVS
-ifndef WITH_OOII
+ifdef WITHOUT_OOII
  CFLAGS	+= -DWITHOUT_OOII=1
 else
  OBJS += $(MTOBJODIR)$(DIRSEP)ooii$(OFILE)
  OBJS += $(MTOBJODIR)$(DIRSEP)ooii_logons$(OFILE)
  OBJS += $(MTOBJODIR)$(DIRSEP)ooii_cmenus$(OFILE)
  OBJS += $(MTOBJODIR)$(DIRSEP)ooii_bmenus$(OFILE)
+ OBJS += $(MTOBJODIR)$(DIRSEP)ooii_sounds$(OFILE)
 endif
 
 ifdef USE_WXWIDGETS
@@ -64,6 +65,10 @@ else
  OBJS += $(MTOBJODIR)$(DIRSEP)ssh$(OFILE)
 endif
 
+ifdef STATIC
+ STATIC_CRYPTLIB	:= true
+endif
+
 ifdef STATIC_CRYPTLIB
  CFLAGS += -DSTATIC_CRYPTLIB
  LDFLAGS += -lz
@@ -74,6 +79,7 @@ ifeq ($(os),darwin)
  ifeq ($(shell uname -r),6.8)
   EXTRA_LIBS += /usr/local/lib/libdl.a
  endif
+ EXTRA_LIBS += -framework CoreServices
  STATIC_CRYPTLIB ?= 1
 endif
 
