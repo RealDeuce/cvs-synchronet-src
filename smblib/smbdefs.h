@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.73 2009/03/24 19:37:26 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.72 2009/02/02 00:36:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -459,7 +459,6 @@ enum {
 	 SMB_HASH_SOURCE_BODY
 	,SMB_HASH_SOURCE_MSG_ID
 	,SMB_HASH_SOURCE_FTN_ID
-	,SMB_HASH_SOURCE_SUBJECT
 
 /* Add new ones here (max value of 31) */
 
