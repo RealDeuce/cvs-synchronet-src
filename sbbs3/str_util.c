@@ -2,13 +2,13 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.37 2008/02/25 23:31:04 rswindell Exp $ */
+/* $Id: str_util.c,v 1.39 2009/02/16 03:25:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,66 +38,100 @@
 #include "sbbs.h"
 
 /****************************************************************************/
-/* Removes ctrl-a codes from the string 'instr'                             */
+/* For all the functions that take a 'dest' argument, pass NULL to have the	*/
+/* function malloc the buffer for you and return it.						*/
 /****************************************************************************/
-char* DLLCALL remove_ctrl_a(char *instr, char *outstr)
-{
-	char str[1024],*p;
-	uint i,j;
 
-	for(i=j=0;instr[i] && j<sizeof(str)-1;i++) {
-		if(instr[i]==CTRL_A && instr[i+1]!=0)
+/****************************************************************************/
+/* Removes ctrl-a codes from the string 'str'								*/
+/****************************************************************************/
+char* DLLCALL remove_ctrl_a(const char *str, char *dest)
+{
+	char*		tmp;
+	uint		i,j;
+
+	if((tmp=strdup(str))==NULL)
+		return NULL;
+	for(i=j=0;str[i];i++) {
+		if(str[i]==CTRL_A) {
 			i++;
-		else str[j++]=instr[i]; 
+			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
+				break;
+			/* convert non-destructive backspace to a destructive backspace */
+			if(str[i]=='<' && j)	
+				j--;
+		}
+		else tmp[j++]=str[i]; 
 	}
-	str[j]=0;
-	if(outstr!=NULL)
-		p=outstr;
-	else
-		p=instr;
-	strcpy(p,str);
-	return(p);
+	tmp[j]=0;
+	if(dest==NULL)
+		return tmp;	/* Must be freed! */
+	strcpy(dest,tmp);
+	free(tmp);
+	return dest;
 }
 
-char* DLLCALL strip_ctrl(char *str)
+char* DLLCALL strip_ctrl(const char *str, char* dest)
 {
-	char tmp[1024];
-	int i,j;
+	char*	tmp;
+	int		i,j;
 
-	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++) {
-		if(str[i]==CTRL_A && str[i+1]!=0)
+	if((tmp=strdup(str))==NULL)
+		return NULL;
+	for(i=j=0;str[i];i++) {
+		if(str[i]==CTRL_A) {
 			i++;
+			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
+				break;
+			/* convert non-destructive backspace to a destructive backspace */
+			if(str[i]=='<' && j)	
+				j--;
+		}
 		else if((uchar)str[i]>=' ')
 			tmp[j++]=str[i];
 	}
-	if(i!=j) {
-		tmp[j]=0;
-		strcpy(str,tmp);
-	}
-	return(str);
+	tmp[j]=0;
+	if(dest==NULL)
+		return tmp;	/* Must be freed! */
+	strcpy(dest,tmp);
+	free(tmp);
+	return dest;
 }
 
-char* DLLCALL strip_exascii(char *str)
+char* DLLCALL strip_exascii(const char *str, char* dest)
 {
-	char tmp[1024];
-	int i,j;
+	char*	tmp;
+	int		i,j;
 
-	for(i=j=0;str[i] && j<(int)sizeof(tmp)-1;i++)
+	if((tmp=strdup(str))==NULL)
+		return NULL;
+	for(i=j=0;str[i];i++)
 		if(!(str[i]&0x80))
 			tmp[j++]=str[i];
 	tmp[j]=0;
-	strcpy(str,tmp);
-	return(str);
+	if(dest==NULL)
+		return tmp;	/* Must be freed! */
+	strcpy(dest,tmp);
+	free(tmp);
+	return dest;
 }
 
-char* DLLCALL prep_file_desc(char *str)
+char* DLLCALL prep_file_desc(const char *str, char* dest)
 {
-	char tmp[1024];
-	int i,j;
+	char*	tmp;
+	int		i,j;
 
+	if((tmp=strdup(str))==NULL)
+		return NULL;
 	for(i=j=0;str[i];i++)
-		if(str[i]==CTRL_A && str[i+1]!=0)
+		if(str[i]==CTRL_A && str[i+1]!=0) {
 			i++;
+			if(toupper(str[i])=='Z')	/* EOF */
+				break;
+			/* convert non-destructive backspace to a destructive backspace */
+			if(str[i]=='<' && j)	
+				j--;
+		}
 		else if(j && str[i]<=' ' && tmp[j-1]==' ')
 			continue;
 		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
@@ -107,8 +141,72 @@ char* DLLCALL prep_file_desc(char *str)
 		else if(str[i]==TAB || (str[i]==CR && str[i+1]==LF))
 			tmp[j++]=' ';
 	tmp[j]=0;
-	strcpy(str,tmp);
-	return(str);
+	if(dest==NULL)
+		return tmp;	/* Must be freed! */
+	strcpy(dest,tmp);
+	free(tmp);
+	return dest;
+}
+
+/****************************************************************************/
+/* Pattern matching string search of 'insearchof' in 'string'.				*/
+/****************************************************************************/
+BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
+{
+	char*	p;
+	char	str[256];
+	char	search[81];
+	int		c;
+	int		i;
+	BOOL	found=FALSE;
+
+	if(string==NULL || insearchof==NULL)
+		return(FALSE);
+
+	SAFECOPY(search,insearchof);
+	strupr(search);
+	SAFECOPY(str,string);
+
+	p=str;	
+	SKIP_WHITESPACE(p);
+
+	if(*p==';')		/* comment */
+		return(FALSE);
+
+	if(*p=='!')	{	/* !match */
+		found=TRUE;
+		p++;
+	}
+
+	truncsp(p);
+	c=strlen(p);
+	if(c) {
+		c--;
+		strupr(p);
+		if(p[c]=='~') {
+			p[c]=0;
+			if(strstr(search,p))
+				found=!found; 
+		}
+
+		else if(p[c]=='^' || p[c]=='*') {
+			p[c]=0;
+			if(!strncmp(p,search,c))
+				found=!found; 
+		}
+
+		else if(p[0]=='*') {
+			i=strlen(search);
+			if(i<c)
+				return(found);
+			if(!strncmp(p+1,search+(i-c),c))
+				found=!found; 
+		}
+
+		else if(!strcmp(p,search))
+			found=!found; 
+	} 
+	return(found);
 }
 
 /****************************************************************************/
@@ -116,67 +214,14 @@ char* DLLCALL prep_file_desc(char *str)
 /****************************************************************************/
 BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 {
-	char*	p;
-	char	str[256];
-	char	search[81];
-	int		c;
-	int		i;
 	size_t	index;
-	BOOL	found;
+	BOOL	found=FALSE;
 
 	if(list==NULL || insearchof==NULL)
 		return(FALSE);
 
-	SAFECOPY(search,insearchof);
-	strupr(search);
-
-	found=FALSE;
-
-	for(index=0;list[index]!=NULL && !found; index++) {
-		SAFECOPY(str,list[index]);
-		
-		found=FALSE;
-
-		p=str;	
-		while(*p && *p<=' ') p++; /* Skip white-space */
-
-		if(*p==';')		/* comment */
-			continue;
-
-		if(*p=='!')	{	/* !match */
-			found=TRUE;
-			p++;
-		}
-
-		truncsp(p);
-		c=strlen(p);
-		if(c) {
-			c--;
-			strupr(p);
-			if(p[c]=='~') {
-				p[c]=0;
-				if(strstr(search,p))
-					found=!found; 
-			}
-
-			else if(p[c]=='^' || p[c]=='*') {
-				p[c]=0;
-				if(!strncmp(p,search,c))
-					found=!found; 
-			}
-
-			else if(p[0]=='*') {
-				i=strlen(search);
-				if(i<c)
-					continue;
-				if(!strncmp(p+1,search+(i-c),c))
-					found=!found; 
-			}
-
-			else if(!strcmp(p,search))
-				found=!found; 
-		} 
-	}
+	for(index=0;list[index]!=NULL && !found; index++)
+		found=findstr_in_string(insearchof, list[index]);
 	return(found);
 }
 
@@ -185,23 +230,23 @@ BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 /****************************************************************************/
 BOOL DLLCALL findstr(const char* insearchof, const char* fname)
 {
-	str_list_t	list;
-	BOOL		found;
+	char		str[256];
+	BOOL		found=FALSE;
 	FILE*		fp;
 
-	if(insearchof==NULL)
+	if(insearchof==NULL || fname==NULL)
 		return(FALSE);
 
 	if((fp=fopen(fname,"r"))==NULL)
 		return(FALSE); 
 
-	list=strListReadFile(fp,NULL,255);
+	while(!feof(fp) && !ferror(fp) && !found) {
+		if(!fgets(str,sizeof(str),fp))
+			break;
+		found=findstr_in_string(insearchof,str);
+	}
+
 	fclose(fp);
-
-	found=findstr_in_list(insearchof,list);
-
-	strListFree(&list);
-
 	return(found);
 }
 
@@ -244,17 +289,24 @@ str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 /* Returns the number of characters in 'str' not counting ctrl-ax codes		*/
 /* or the null terminator													*/
 /****************************************************************************/
-int bstrlen(char *str)
+size_t bstrlen(const char *str)
 {
-	int i=0;
+	size_t i=0;
 
 	while(*str) {
-		if(*str==CTRL_A)
+		if(*str==CTRL_A) {
 			str++;
-		else
+			if(toupper(*str)=='Z')	/* EOF */
+				break;
+			if(*str=='[')
+				i=0;
+			else if(*str=='<' && i)
+				i--;
+		} else
 			i++;
 		if(!(*str)) break;
-		str++; }
+		str++; 
+	}
 	return(i);
 }
 
@@ -274,7 +326,8 @@ char* DLLCALL ultoac(ulong l, char *string)
 	for(k=1;i>-1;k++) {
 		string[j--]=str[i--];
 		if(j>0 && !(k%3))
-			string[j--]=','; }
+			string[j--]=','; 
+	}
 	return(string);
 }
 
@@ -314,7 +367,7 @@ char* DLLCALL rot13(char* str)
 /****************************************************************************/
 /* Puts a backslash on path strings if not just a drive letter and colon	*/
 /****************************************************************************/
-void backslashcolon(char *str)
+char* backslashcolon(char *str)
 {
     int i;
 
@@ -323,12 +376,14 @@ void backslashcolon(char *str)
 		str[i]=PATH_DELIM; 
 		str[i+1]=0; 
 	}
+
+	return str;
 }
 
 /****************************************************************************/
 /* Compares pointers to pointers to char. Used in conjuction with qsort()   */
 /****************************************************************************/
-int pstrcmp(char **str1, char **str2)
+int pstrcmp(const char **str1, const char **str2)
 {
 	return(strcmp(*str1,*str2));
 }
@@ -336,7 +391,7 @@ int pstrcmp(char **str1, char **str2)
 /****************************************************************************/
 /* Returns the number of characters that are the same between str1 and str2 */
 /****************************************************************************/
-int strsame(char *str1, char *str2)
+int strsame(const char *str1, const char *str2)
 {
 	int i,j=0;
 
@@ -362,7 +417,7 @@ char *hexplus(uint num, char *str)
 /* Converts an ASCII Hex string into an ulong                               */
 /* by Steve Deppe (Ille Homine Albe)										*/
 /****************************************************************************/
-ulong ahtoul(char *str)
+ulong ahtoul(const char *str)
 {
     ulong l,val=0;
 
@@ -374,7 +429,7 @@ ulong ahtoul(char *str)
 /****************************************************************************/
 /* Converts hex-plus string to integer										*/
 /****************************************************************************/
-uint hptoi(char *str)
+uint hptoi(const char *str)
 {
 	char tmp[128];
 	uint i;
@@ -388,11 +443,10 @@ uint hptoi(char *str)
 }
 
 /****************************************************************************/
-/* Returns 1 if a is a valid ctrl-a code, 0 if it isn't.                    */
+/* Returns 1 if a is a valid ctrl-a "attribute" code, 0 if it isn't.        */
 /****************************************************************************/
 BOOL DLLCALL validattr(char a)
 {
-
 	switch(toupper(a)) {
 		case '+':	/* push attr	*/
 		case '-':   /* pop attr		*/
@@ -403,10 +457,8 @@ BOOL DLLCALL validattr(char a)
 		case 'H':   /* high     fg  */
 		case 'I':   /* blink        */
 		case 'K':   /* black    fg  */
-		case 'L':   /* cls          */
 		case 'M':   /* magenta  fg  */
 		case 'N':   /* normal       */
-		case 'P':   /* pause        */
 		case 'R':   /* red      fg  */
 		case 'W':   /* white    fg  */
 		case 'Y':   /* yellow   fg  */
@@ -424,27 +476,78 @@ BOOL DLLCALL validattr(char a)
 }
 
 /****************************************************************************/
-/* Strips invalid Ctrl-Ax sequences from str                                */
+/****************************************************************************/
+char DLLCALL ctrl_a_to_ascii_char(char a)
+{
+	switch(toupper(a)) {
+		case 'L':   /* cls          */
+			return FF;
+		case '<':	/* backspace	*/
+			return '\b';
+		case '[':	/* CR			*/
+			return '\r';
+		case ']':	/* LF			*/
+			return '\n';
+	}
+	return 0;
+}
+
+/****************************************************************************/
+/* Strips invalid Ctrl-Ax "attribute" sequences from str                    */
 /* Returns number of ^A's in line                                           */
 /****************************************************************************/
-size_t DLLCALL strip_invalid_attr(char *strin)
+size_t DLLCALL strip_invalid_attr(char *str)
 {
-    char str[1024];
-    size_t a,c,d;
+    char*	tmp;
+    size_t	a,c,d;
 
-	for(a=c=d=0;strin[c] && d<sizeof(str)-1;c++) {
-		if(strin[c]==CTRL_A && strin[c+1]!=0) {
+	if((tmp=strdup(str))==NULL)
+		return 0;
+	for(a=c=d=0;str[c];c++) {
+		if(str[c]==CTRL_A) {
 			a++;
-			if(!validattr(strin[c+1])) {
+			if(str[c+1]==0)
+				break;
+			if(!validattr(str[c+1])) {
 				c++;
 				continue; 
-			} 
+			}
 		}
-		str[d++]=strin[c]; 
+		tmp[d++]=str[c]; 
 	}
-	str[d]=0;
-	strcpy(strin,str);
+	tmp[d]=0;
+	strcpy(str,tmp);
+	free(tmp);
 	return(a);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+char DLLCALL exascii_to_ascii_char(uchar ch)
+{
+	/* Seven bit table for EXASCII to ASCII conversion */
+	const char *sbtbl="CUeaaaaceeeiiiAAEaAooouuyOUcLYRfaiounNao?--24!<>"
+			"###||||++||++++++--|-+||++--|-+----++++++++##[]#"
+			"abrpEout*ono%0ENE+><rj%=o..+n2* ";
+
+	if(ch&0x80)
+		return sbtbl[ch^0x80];
+	return ch;
+}
+
+/****************************************************************************/
+/* Convert string from IBM extended ASCII to just ASCII						*/
+/****************************************************************************/
+char* DLLCALL ascii_str(uchar* str)
+{
+	char*	p=str;
+
+	while(*p) {
+		if((*p)&0x80)
+			*p=exascii_to_ascii_char(*p);	
+		p++;
+	}
+	return((char*)str);
 }
 
 char* replace_named_values(const char* src
