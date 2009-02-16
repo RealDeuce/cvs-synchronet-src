@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.32 2009/02/16 10:35:48 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.30 2009/02/16 03:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	, int conf, FILE* hdrs)
 {
 	char	str[512],from[512],to[512],ch=0,tear=0,tearwatch=0,*buf,*p;
-	char	asc;
 	char	msgid[256];
 	char 	tmp[512];
 	long	l,size=0,offset;
@@ -319,8 +318,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 			ch=buf[++l];
 			if(ch==0 || toupper(ch)=='Z')		/* EOF */
 				break;
-			if((asc=ctrl_a_to_ascii_char(ch)) != 0) {
-				fputc(asc,qwk_fp);
+			if((ch=ctrl_a_to_ascii_char(ch)) != 0) {
+				fputc(ch,qwk_fp);
 				size++;
 				continue;
 			}
@@ -391,8 +390,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 					size+=fwrite(str,sizeof(char),strlen(str),qwk_fp);
 				continue; 
 			} 						/* End Expand */
-			if(mode&A_LEAVE && valid_ctrl_a_code(ch)) {
-				fputc(CTRL_A,qwk_fp);
+			if(mode&A_LEAVE) {
+				fputc(1,qwk_fp);
 				fputc(ch,qwk_fp);
 				size+=2L; 
 			}
