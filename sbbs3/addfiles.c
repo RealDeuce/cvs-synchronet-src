@@ -2,13 +2,13 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.41 2008/02/23 22:35:08 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.43 2009/02/16 03:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -66,7 +66,7 @@ char lib[LEN_GSNAME+1];
 /****************************************************************************/
 /* This is needed by load_cfg.c												*/
 /****************************************************************************/
-int lprintf(int level, char *fmat, ...)
+int lprintf(int level, const char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[512];
@@ -286,7 +286,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 								break;
 						ext[i]=0;
 						if(mode&ASCII_ONLY)
-							strip_exascii(ext);
+							strip_exascii(ext, ext);
 						if(!(mode&KEEP_DESC)) {
 							sprintf(tmpext,"%.256s",ext);
 							prep_desc(tmpext);
@@ -307,7 +307,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			f.altpath=cur_altpath;
 			prep_desc(f.desc);
 			if(mode&ASCII_ONLY)
-				strip_exascii(f.desc);
+				strip_exascii(f.desc, f.desc);
 			if(exist) {
 				putfiledat(&scfg,&f);
 				if(!(mode&NO_NEWDATE))
@@ -489,7 +489,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 							break;
 					ext[i]=0;
 					if(mode&ASCII_ONLY)
-						strip_exascii(ext);
+						strip_exascii(ext, ext);
 					if(!(mode&KEEP_DESC)) {
 						sprintf(tmpext,"%.256s",ext);
 						prep_desc(tmpext);
@@ -512,7 +512,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		f.altpath=cur_altpath;
 		prep_desc(f.desc);
 		if(mode&ASCII_ONLY)
-			strip_exascii(f.desc);
+			strip_exascii(f.desc, f.desc);
 		if(exist) {
 			putfiledat(&scfg,&f);
 			if(!(mode&NO_NEWDATE))
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.41 $", "%*s %s", revision);
+	sscanf("$Revision: 1.43 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -887,7 +887,7 @@ int main(int argc, char **argv)
 			f.altpath=cur_altpath;
 			prep_desc(f.desc);
 			if(mode&ASCII_ONLY)
-				strip_exascii(f.desc);
+				strip_exascii(f.desc, f.desc);
 			printf("%s %7lu %s\n",f.name,f.cdt,f.desc);
 			if(mode&FILE_ID) {
 				for(i=0;i<scfg.total_fextrs;i++)
