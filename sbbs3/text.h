@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.9 2008/02/14 08:17:29 rswindell Exp $ */
+/* $Id: text.h,v 1.11 2009/01/23 08:04:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 /****************************************************************************/
 /* Macros for elements of the array of pointers (text[]) to static text		*/
-/* Should correlate with CTRL\TEXT.DAT										*/
+/* Auto-generated from CTRL\TEXT.DAT										*/
 /****************************************************************************/
 
 #ifndef _TEXT_H
@@ -587,7 +587,7 @@ enum {
 	,NodeJoinedPrivateChat
 	,NodeLeftPrivateChat
 	,NoOneHasLoggedOnToday
-	,Unused544	/* was LastFewCallers */
+	,Unused544 /* Was LastFewCallers */
 	,LastFewCallersFmt
 	,CallersToday
 	,DoYouMeanThisUserQ
@@ -763,9 +763,17 @@ enum {
 	,NodeActionPrivateChat
 	,NodeActionPaging
 	,NodeActionRetrieving
-	,YN
+	,YN /* (Yes/No/Quit/Password chars) */
+	,ViewSignatureQ
+	,DeleteSignatureQ
+	,CreateEditSignatureQ
+	,SpinningCursorOnPauseQ
+	,UseExternalEditorQ
+	,ExternalEditorHeading
+	,CommandShellHeading
+	,ArchiveTypeHeading
 
-	,TOTAL_TEXT 
+	,TOTAL_TEXT
 };
 
 #endif
