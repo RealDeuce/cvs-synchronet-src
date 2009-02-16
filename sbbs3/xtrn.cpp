@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.200 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.201 2009/01/24 22:17:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -400,9 +400,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	OPENVXDHANDLE OpenVxDHandle;
 
 	if(online==ON_LOCAL)
-		eprintf(LOG_INFO,"Executing external: %s",cmdline);
+		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 	else
-		lprintf(LOG_INFO,"Node %d Executing external: %s",cfg.node_num,cmdline);
+		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
