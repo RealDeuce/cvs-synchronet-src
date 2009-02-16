@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.347 2009/02/15 01:48:57 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.348 2009/02/16 02:56:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -962,7 +962,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						extdesc[0]=0;
 						getextdesc(&scfg, dir, f.datoffset, extdesc);
 						/* Remove Ctrl-A Codes and Ex-ASCII code */
-						remove_ctrl_a(extdesc,NULL);
+						remove_ctrl_a(extdesc,extdesc);
 					}
 					SAFEPRINTF3(vpath,"/%s/%s/%s"
 						,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -4574,7 +4574,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.347 $", "%*s %s", revision);
+	sscanf("$Revision: 1.348 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
