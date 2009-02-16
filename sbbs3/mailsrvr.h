@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.64 2008/02/23 22:35:09 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.65 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,8 +62,8 @@ typedef struct {
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int, char*);
-	void	(*status)(void*, char*);
+	int 	(*lputs)(void*, int, const char*);
+	void	(*status)(void*, const char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
     void	(*terminated)(void*, int code);
