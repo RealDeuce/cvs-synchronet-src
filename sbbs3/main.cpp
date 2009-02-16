@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.532 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: main.cpp,v 1.525 2009/02/16 03:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1123,7 +1123,7 @@ void sbbs_t::js_create_user_objects(void)
 		return;
 	
 	JS_BEGINREQUEST(js_cx);
-	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, &client, NULL, subscan)) 
+	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, NULL, subscan)) 
 		lprintf(LOG_ERR,"!JavaScript ERROR creating user objects");
 	JS_ENDREQUEST(js_cx);
 }
@@ -1557,7 +1557,7 @@ void input_thread(void *arg)
 				if(err==CRYPT_ERROR_TIMEOUT)
 					continue;
 				/* Handle the SSH error here... */
-				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
+				lprintf(LOG_ERR,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				break;
 			}
 			else {
@@ -1993,8 +1993,6 @@ void output_thread(void* arg)
 		tv.tv_usec=1000;
 
 		FD_ZERO(&socket_set);
-		if(sbbs->client_socket==INVALID_SOCKET)		// Make the race condition less likely to actually happen... TODO: Fix race
-			continue;
 		FD_SET(sbbs->client_socket,&socket_set);
 
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
@@ -2017,7 +2015,7 @@ void output_thread(void* arg)
 			int err;
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
-				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
+				lprintf(LOG_ERR,"%s !ERROR %d sending on Cryptlib session", node, err);
 				i=-1;
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
@@ -2291,7 +2289,7 @@ void event_thread(void* arg)
 
 					if(sbbs->useron.number
 						&& !(sbbs->useron.misc&(DELETED|INACTIVE))	 /* Pre-QWK */
-						&& sbbs->chk_ar(sbbs->cfg.preqwk_ar,&sbbs->useron,/* client: */NULL)) { 
+						&& sbbs->chk_ar(sbbs->cfg.preqwk_ar,&sbbs->useron)) { 
 						for(k=1;k<=sbbs->cfg.sys_nodes;k++) {
 							if(sbbs->getnodedat(k,&node,0)!=0)
 								continue;
@@ -2578,9 +2576,7 @@ void event_thread(void* arg)
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
 				&& sbbs->cfg.event[i]->days&(1<<now_tm.tm_wday)
 				&& (sbbs->cfg.event[i]->mdays==0 
-					|| sbbs->cfg.event[i]->mdays&(1<<now_tm.tm_mday))
-				&& (sbbs->cfg.event[i]->months==0
-					|| sbbs->cfg.event[i]->months&(1<<now_tm.tm_mon)))) 
+					|| sbbs->cfg.event[i]->mdays&(1<<now_tm.tm_mday)))) 
 			{
 				if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
 
@@ -2858,7 +2854,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, const char* name, SOCKET sd,
 	telnet_last_rxch=0;
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
-	column=0;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -3560,16 +3555,14 @@ int sbbs_t::outcom(uchar ch)
 	return(0);
 }
 
-int sbbs_t::putcom(const char *str, size_t len)
+void sbbs_t::putcom(const char *str, int len)
 {
-	size_t i;
+	int i;
 
-	if(!len)
-		len=strlen(str);
-    for(i=0;i<len && online;i++)
-        if(outcom(str[i])!=0)
-			break;
-	return i;
+    if(!len)
+    	len=strlen(str);
+    for(i=0;i<len && online; i++)
+        outcom(str[i]);
 }
 
 /* Legacy Remote I/O Control Interface */
@@ -4109,7 +4102,7 @@ void sbbs_t::daily_maint(void)
 			> sbbs->cfg.sys_autodel)) {			/* Inactive too long */
 			SAFEPRINTF2(str,"Auto-Deleted %s #%u",user.alias,user.number);
 			sbbs->logentry("!*",str);
-			sbbs->delallmail(user.number, MAIL_ANY);
+			sbbs->delallmail(user.number);
 			putusername(&sbbs->cfg,user.number,nulstr);
 			putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
 		}
@@ -5402,3 +5395,6 @@ NO_PASSTHRU:
 	} while(!terminate_server);
 
 }
+
+
+
