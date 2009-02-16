@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.111 2008/02/23 03:08:00 deuce Exp $ */
+/* $Id: userdat.c,v 1.116 2009/01/24 12:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -343,6 +343,8 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	getrec(userdat,U_CHAT,8,str);
 	user->chat=ahtoul(str);
 
+	user->number=user_number;	/* Signal of success */
+
 	/* Reset daily stats if not logged on today */
 	unixtodstr(cfg, time(NULL),str);
 	unixtodstr(cfg, user->laston,tmp);
@@ -367,7 +369,6 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 		} 
 	}
 #endif
-	user->number=user_number;	/* Signal of success */
 
 	return(0);
 }
@@ -624,9 +625,9 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 /****************************************************************************/
 /* Returns the age derived from the string 'birth' in the format MM/DD/YY	*/
 /****************************************************************************/
-char DLLCALL getage(scfg_t* cfg, char *birth)
+uint DLLCALL getage(scfg_t* cfg, char *birth)
 {
-	char	age;
+	uint	age;
 	struct	tm tm;
 	time_t	now;
 
@@ -641,7 +642,7 @@ char DLLCALL getage(scfg_t* cfg, char *birth)
 		return(0);
 	age=(tm.tm_year)-(((birth[6]&0xf)*10)+(birth[7]&0xf));
 	if(age>105)
-		age-=105;
+		age-=100;
 	tm.tm_mon++;	/* convert to 1 based */
 	if(cfg->sys_misc&SM_EURODATE) {		/* DD/MM/YY format */
 		if(atoi(birth)>31 || atoi(birth+3)>12)
@@ -658,11 +659,8 @@ char DLLCALL getage(scfg_t* cfg, char *birth)
 			((birth[3]&0xf)*10)+(birth[4]&0xf)>tm.tm_mday))
 			age--; 
 	}
-	if(age<0)
-		return(0);
 	return(age);
 }
-
 
 /****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
@@ -1860,7 +1858,7 @@ int DLLCALL getuserrec(scfg_t* cfg, int usernumber,int start, int length, char *
 /* Places into user.dat at the offset for usernumber+start for length bytes */
 /* Called from various locations											*/
 /****************************************************************************/
-int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, char *str)
+int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const char *str)
 {
 	char	str2[256];
 	int		file;
@@ -2577,8 +2575,13 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 BOOL DLLCALL check_name(scfg_t* cfg, char* name)
 {
 	char	tmp[512];
+	size_t	len;
 
-	if (   name[0] <= ' '
+	len=strlen(name);
+	if(len<1)
+		return FALSE;
+	if (   name[0] <= ' '			/* begins with white-space? */
+		|| name[len-1] <= ' '		/* ends with white-space */
 		|| !isalpha(name[0])
 		|| !stricmp(name,cfg->sys_id)
 		|| strchr(name,0xff)
