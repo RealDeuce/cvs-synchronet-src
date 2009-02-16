@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.47 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.45 2009/02/16 02:45:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,7 +235,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 		msg->hdr.attr|=MSG_READ;
 
 	if(subnum!=INVALID_SUB && !fromhub && cfg.sub[subnum]->mod_ar[0]
-		&& chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
+		&& chk_ar(cfg.sub[subnum]->mod_ar,&useron))
 		msg->hdr.attr|=MSG_MODERATED;
 	if(subnum!=INVALID_SUB && !fromhub && cfg.sub[subnum]->misc&SUB_SYSPERM
 		&& sub_op(subnum))
@@ -351,7 +351,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 				continue;
 			if(qwkbuf[k]!=1 && lastch!=1)
 				col++;
-			if(lastch==CTRL_A && !valid_ctrl_a_code(qwkbuf[k])) {
+			if(lastch==CTRL_A && !validattr(qwkbuf[k])) {
 				if(taillen) taillen--;
 				else		bodylen--;
 				lastch=0;
