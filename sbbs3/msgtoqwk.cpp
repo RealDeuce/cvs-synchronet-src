@@ -2,13 +2,13 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.27 2008/02/23 11:08:32 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.30 2009/02/16 03:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,6 +48,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	, int conf, FILE* hdrs)
 {
 	char	str[512],from[512],to[512],ch=0,tear=0,tearwatch=0,*buf,*p;
+	char	msgid[256];
 	char 	tmp[512];
 	long	l,size=0,offset;
 	int 	i;
@@ -61,7 +62,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		fprintf(hdrs,"[%x]\n",offset);
 
 		/* Message-IDs */
-		fprintf(hdrs,"Message-ID:  %s\n",get_msgid(&cfg,subnum,msg));
+		fprintf(hdrs,"Message-ID:  %s\n",get_msgid(&cfg,subnum,msg,msgid,sizeof(msgid)));
 		if(msg->reply_id!=NULL)
 			fprintf(hdrs,"In-Reply-To: %s\n",msg->reply_id);
 
@@ -80,6 +81,18 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 				,str,sizeof(str))
 			,msg->hdr.when_imported.zone
 			);
+		fprintf(hdrs,"WhenExported: %-20s %04hx\n"
+			,xpDateTime_to_isoDateTimeStr(
+				xpDateTime_now()
+				,/* separators: */"","","", /* precision: */0
+				,str,sizeof(str))
+			,sys_timezone(&cfg)
+			);
+		fprintf(hdrs,"ExportedFrom: %s %s %lu\n"
+			,cfg.sys_id
+			,subnum==INVALID_SUB ? "mail":cfg.sub[subnum]->code
+			,msg->hdr.number
+			);
 
 		/* SENDER */
 		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(SENDER),msg->from);
@@ -93,6 +106,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 			fprintf(hdrs,"%s: %s\n",smb_hfieldtype(hfield_type),p);
 		if(msg->from_org!=NULL)
 			fprintf(hdrs,"Organization: %s\n",msg->from_org);
+		else if(msg->from_net.type==NET_NONE)
+			fprintf(hdrs,"Organization: %s\n",cfg.sys_name);
 
 		/* Reply-To */
 		if((p=(char*)smb_get_hfield(msg,RFC822REPLYTO,NULL))==NULL) {
@@ -139,13 +154,13 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		/* RFC822 header fields: */
 		for(i=0;i<msg->total_hfields;i++)
 			if(msg->hfield[i].type==RFC822HEADER)
-				fprintf(hdrs,"%s\n",msg->hfield_dat[i]);
+				fprintf(hdrs,"%s\n",truncsp_lines((char*)msg->hfield_dat[i]));
 
 		/* Blank line: */
 		fprintf(hdrs,"\n");
 	}
-	memset(str,' ',QWK_BLOCK_LEN);
-	fwrite(str,QWK_BLOCK_LEN,1,qwk_fp);		/* Init header to space */
+
+	fprintf(qwk_fp,"%*s",QWK_BLOCK_LEN,"");		/* Init header to space */
 
 	if(msg->from_net.addr && (uint)subnum==INVALID_SUB) {
 		if(mode&QM_TO_QNET)
@@ -153,7 +168,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		else if(msg->from_net.type==NET_FIDO)
 			sprintf(from,"%.128s@%.128s"
 				,msg->from,smb_faddrtoa((faddr_t *)msg->from_net.addr,tmp));
-		else if(msg->from_net.type==NET_INTERNET)
+		else if(msg->from_net.type==NET_INTERNET || strchr((char*)msg->from_net.addr,'@')!=NULL)
 			sprintf(from,"%.128s",(char*)msg->from_net.addr);
 		else
 			sprintf(from,"%.128s@%.128s",msg->from,(char*)msg->from_net.addr);
@@ -182,9 +197,11 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 					size+=fprintf(qwk_fp,"%.128s@%.128s%c",msg->to,p,QWK_NEWLINE);
 				}
 				else
-					sprintf(to,"%.128s",msg->to); }
+					sprintf(to,"%.128s",msg->to); 
+			}
 			else
-				sprintf(to,"%.128s@%.128s",msg->to,(char*)msg->to_net.addr); }
+				sprintf(to,"%.128s@%.128s",msg->to,(char*)msg->to_net.addr); 
+		}
 		else
 			sprintf(to,"%.128s@%.128s",msg->to,(char*)msg->to_net.addr);
 		if(strlen(to)>25) {
@@ -204,7 +221,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	
 	if(mode&QM_MSGID && (uint)subnum!=INVALID_SUB) {
 		size+=fprintf(qwk_fp,"@MSGID: %s%c"
-			,get_msgid(&cfg,subnum,msg),QWK_NEWLINE);
+			,get_msgid(&cfg,subnum,msg,msgid,sizeof(msgid)),QWK_NEWLINE);
 
 		if(msg->reply_id) {
 			SAFECOPY(tmp,msg->reply_id);
@@ -218,7 +235,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 				size+=fprintf(qwk_fp,"@REPLY: <%s>%c",smb.last_error,QWK_NEWLINE);
 			else
 				size+=fprintf(qwk_fp,"@REPLY: %s%c"
-					,get_msgid(&cfg,subnum,&remsg)
+					,get_msgid(&cfg,subnum,&remsg,msgid,sizeof(msgid))
 					,QWK_NEWLINE);
 		}
 	}
@@ -255,7 +272,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 				tear=0;
 			if(tearwatch==4) {			/* watch for LF---LF */
 				tear=1;
-				tearwatch=0; }
+				tearwatch=0; 
+			}
 			else if(!tearwatch)
 				tearwatch=1;
 			else
@@ -263,22 +281,26 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 			ch=QWK_NEWLINE;
 			fputc(ch,qwk_fp);		  /* Replace LF with funky char */
 			size++;
-			continue; }
+			continue; 
+		}
 
 		if(ch==CR) {					/* Ignore CRs */
 			if(tearwatch<4) 			/* LF---CRLF is okay */
 				tearwatch=0;			/* LF-CR- is not okay */
-			continue; }
+			continue; 
+		}
 
 		if(ch==' ' && tearwatch==4) {	/* watch for "LF--- " */
 			tear=1;
-			tearwatch=0; }
+			tearwatch=0; 
+		}
 
 		if(ch=='-') {                   /* watch for "LF---" */
 			if(l==0 || (tearwatch && tearwatch<4))
 				tearwatch++;
 			else
-				tearwatch=0; }
+				tearwatch=0; 
+		}
 		else
 			tearwatch=0;
 
@@ -286,21 +308,24 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 			if(ch<' ' && ch!=1)
 				ch='.';
 			else if((uchar)ch>0x7f)
-				ch='*'; }
+				ch=exascii_to_ascii_char(ch); 
+		}
 
 		if(ch==QWK_NEWLINE)					/* funky char */
 			ch='*';
 
 		if(ch==CTRL_A) {
 			ch=buf[++l];
-			if(!ch)
+			if(ch==0 || toupper(ch)=='Z')		/* EOF */
 				break;
+			if((ch=ctrl_a_to_ascii_char(ch)) != 0) {
+				fputc(ch,qwk_fp);
+				size++;
+				continue;
+			}
 			if(mode&A_EXPAND) {
 				str[0]=0;
-				switch(toupper(ch)) {		/* non-color codes */
-					case 'L':
-						SAFECOPY(str,"\x1b[2J\x1b[H");
-						break;
+				switch(toupper(ch)) {
 					case 'W':
 						SAFECOPY(str,ansi(LIGHTGRAY));
 						break;
@@ -313,10 +338,12 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 					case 'I':
 						SAFECOPY(str,ansi(BLINK));
 						break;
+					case '-':
+					case '_':
 					case 'N':   /* Normal */
 						SAFECOPY(str,ansi(ANSI_NORMAL));
 						break;
-					case 'R':                               /* Color codes */
+					case 'R':
 						SAFECOPY(str,ansi(RED));
 						break;
 					case 'G':
@@ -363,23 +390,22 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 					size+=fwrite(str,sizeof(char),strlen(str),qwk_fp);
 				continue; 
 			} 						/* End Expand */
-
 			if(mode&A_LEAVE) {
 				fputc(1,qwk_fp);
 				fputc(ch,qwk_fp);
-				size+=2L; }
-			else									/* Strip */
-				if(toupper(ch)=='L') {
-					fputc(FF,qwk_fp);
-					size++; }
-			continue; } 							/* End of Ctrl-A shit */
+				size+=2L; 
+			}
+			continue; 
+		} 							/* End of Ctrl-A shit */
 		fputc(ch,qwk_fp);
-		size++; }
+		size++; 
+	}
 
 	free(buf);
 	if(ch!=QWK_NEWLINE) {
 		fputc(QWK_NEWLINE,qwk_fp); 		/* make sure it ends in CRLF */
-		size++; }
+		size++; 
+	}
 
 	if(mode&QM_TAGLINE && !(cfg.sub[subnum]->misc&SUB_NOTAG)) {
 		if(!tear)										/* no tear line */
@@ -392,13 +418,14 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 			,ch,VERSION_NOTICE,ch,cfg.sub[subnum]->tagline,QWK_NEWLINE);
 		strcat(str,tmp);
 		if(!(mode&A_LEAVE))
-			remove_ctrl_a(str,NULL);
+			remove_ctrl_a(str,str);
 		size+=fwrite(str,sizeof(char),strlen(str),qwk_fp);
 	}
 
 	while(size%QWK_BLOCK_LEN) {				 /* Pad with spaces */
 		size++;
-		fputc(' ',qwk_fp); }
+		fputc(' ',qwk_fp); 
+	}
 
 	tt=msg->hdr.when_written.time;
 	if(localtime_r(&tt,&tm)==NULL)

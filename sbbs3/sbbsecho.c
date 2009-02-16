@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.193 2007/08/19 06:26:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.195 2009/02/16 03:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1300,7 +1300,7 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 
 	p=(char *)inbuf;
 
-	while(*p==1) {				/* Skip kludge lines 11/05/95 */
+	while(*p==CTRL_A) {			/* Skip kludge lines 11/05/95 */
 		FIND_CHAR(p,'\r');
 		if(*p) {
 			p++;				/* Skip CR (required) */
@@ -1345,7 +1345,7 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 	del_area.tag=NULL;
 	for(l=0;l<m;l++) { 
 		while(*(p+l) && isspace(*(p+l))) l++;
-		while(*(p+l)==1) {				/* Ignore kludge lines June-13-2004 */
+		while(*(p+l)==CTRL_A) {				/* Ignore kludge lines June-13-2004 */
 			while(*(p+l) && *(p+l)!='\r') l++;
 			continue;
 		}
@@ -2315,7 +2315,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		}
 
 		ch=fbuf[l];
-		if(ch==1 && cr) {	/* kludge line */
+		if(ch==CTRL_A && cr) {	/* kludge line */
 
 			if(!strncmp((char *)fbuf+l+1,"TOPT ",5))
 				destaddr.point=atoi((char *)fbuf+l+6);
@@ -2517,7 +2517,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		msg.idx.number=smbfile->status.last_msg+1;		/* needed for MSG-ID generation */
 
 		/* Generate default (RFC822) message-id (always) */
-		SAFECOPY(msg_id,get_msgid(&scfg,subnum,&msg));
+		get_msgid(&scfg,subnum,&msg,msg_id,sizeof(msg_id));
 		smb_hfield_str(&msg,RFC822MSGID,msg_id);
 	}
 	if(smbfile->status.max_crcs==0)
@@ -2552,7 +2552,7 @@ void getzpt(FILE *stream, fmsghdr_t *hdr)
 	for(i=0;i<len;i++) {
 		if(buf[i]=='\n')	/* ignore line-feeds */
 			continue;
-		if((!i || cr) && buf[i]==1) {	/* kludge */
+		if((!i || cr) && buf[i]==CTRL_A) {	/* kludge */
 			if(!strncmp(buf+i+1,"TOPT ",5))
 				hdr->destpoint=atoi(buf+i+6);
 			else if(!strncmp(buf+i+1,"FMPT ",5))
@@ -3499,6 +3499,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 void export_echomail(char *sub_code,faddr_t addr)
 {
 	char	str[1025],tear,cr;
+	char	msgid[256];
 	char*	buf=NULL;
 	char*	minus;
 	uchar*	fmsgbuf=NULL;
@@ -3688,7 +3689,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 					f+=sprintf(fmsgbuf+f,"\1FLAGS %.256s\r", msg.ftn_flags);
 
 				f+=sprintf(fmsgbuf+f,"\1MSGID: %.256s\r"
-					,ftn_msgid(scfg.sub[i],&msg));
+					,ftn_msgid(scfg.sub[i],&msg,msgid,sizeof(msgid)));
 
 				if(msg.ftn_reply!=NULL)			/* use original REPLYID */
 					f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
@@ -3702,7 +3703,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 						smb_getmsghdr(&smb[cur_smb],&orig_msg);
 						smb_unlockmsghdr(&smb[cur_smb],&orig_msg);
 						f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r"
-							,ftn_msgid(scfg.sub[i],&orig_msg));	
+							,ftn_msgid(scfg.sub[i],&orig_msg,msgid,sizeof(msgid)));	
 					}
 				}
 				if(msg.ftn_pid!=NULL)	/* use original PID */
@@ -3719,11 +3720,15 @@ void export_echomail(char *sub_code,faddr_t addr)
 						f+=sprintf(fmsgbuf+f,"\1%.512s\r",(char*)msg.hfield_dat[l]);
 
 				for(l=0,cr=1;buf[l] && f<fmsgbuflen;l++) {
-					if(buf[l]==1) { /* Ctrl-A, so skip it and the next char */
+					if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
+						char ch;
 						l++;
-						if(!buf[l])
+						if(buf[l]==0 || toupper(buf[l])=='Z')	/* EOF */
 							break;
-						continue; }
+						if((ch=ctrl_a_to_ascii_char(buf[l])) != 0)
+							fmsgbuf[f++]=ch;
+						continue; 
+					}
 					
 					if(misc&STRIP_LF && buf[l]=='\n')	/* Ignore line feeds */
 						continue;
@@ -3747,8 +3752,9 @@ void export_echomail(char *sub_code,faddr_t addr)
 						if(buf[l]<' ' && buf[l]!='\r'
 							&& buf[l]!='\n')			/* Ctrl ascii */
 							buf[l]='.';             /* converted to '.' */
-						if((uchar)buf[l]>0x7f)		/* extended ASCII */
-							buf[l]='*'; }           /* converted to '*' */
+						if((uchar)buf[l]&0x80)		/* extended ASCII */
+							buf[l]=exascii_to_ascii_char(buf[l]);
+					}
 
 					fmsgbuf[f++]=buf[l]; }
 
@@ -3872,10 +3878,11 @@ int main(int argc, char **argv)
 	addrlist_t msg_seen,msg_path;
 	areasbbs_t fakearea,curarea;
 	char *usage="\n"
-	"usage: sbbsecho [cfg_file] [-switches] [sub_code]\n"
+	"usage: sbbsecho [cfg_file] [-switches] [sub_code] [address]\n"
 	"\n"
 	"where: cfg_file is the filename of config file (default is ctrl/sbbsecho.cfg)\n"
 	"       sub_code is the internal code for a sub-board (default is ALL subs)\n"
+	"       address is the link to export for (default is ALL links)\n"
 	"\n"
 	"valid switches:\n"
 	"\n"
@@ -3902,6 +3909,7 @@ int main(int argc, char **argv)
 		bail(1); }
 	for(i=0;i<MAX_OPEN_SMBS;i++)
 		memset(&smb[i],0,sizeof(smb_t));
+	memset(&addr,0,sizeof(addr));
 	memset(&cfg,0,sizeof(config_t));
 	memset(&hdr,0,sizeof(hdr));
 	memset(&pkt_faddr,0,sizeof(pkt_faddr));
@@ -3909,7 +3917,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.193 $", "%*s %s", revision);
+	sscanf("$Revision: 1.195 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4014,6 +4022,8 @@ int main(int argc, char **argv)
 			if(strchr(argv[i],'\\') || strchr(argv[i],'/') 
 				|| argv[i][1]==':' || strchr(argv[i],'.'))
 				SAFECOPY(cfg.cfgfile,argv[i]);
+			else if(isdigit(argv[i][0]))
+				addr=atofaddr(argv[i]);
 			else
 				SAFECOPY(sub_code,argv[i]); }  }
 
@@ -4744,11 +4754,8 @@ int main(int argc, char **argv)
 	}
 
 
-	if(misc&EXPORT_ECHOMAIL) {
-		memset(&addr,0,sizeof(faddr_t));
+	if(misc&EXPORT_ECHOMAIL)
 		export_echomail(sub_code,addr);
-	}
-
 
 	if(misc&PACK_NETMAIL) {
 
