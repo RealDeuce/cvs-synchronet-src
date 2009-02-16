@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.40 2008/02/26 21:05:27 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.44 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,8 +43,7 @@
 /****************************************************************************/
 bool sbbs_t::unpack_rep(char* repfile)
 {
-	char	str[MAX_PATH+1],fname[MAX_PATH+1]
-			,*AttemptedToUploadREPpacket="Attempted to upload REP packet";
+	char	str[MAX_PATH+1],fname[MAX_PATH+1];
 	char	rep_fname[MAX_PATH+1];
 	char	msg_fname[MAX_PATH+1];
 	char 	tmp[512];
@@ -68,6 +67,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
 	str_list_t	twit_list=NULL;
+	const char* AttemptedToUploadREPpacket="Attempted to upload REP packet";
 
 	memset(&msg,0,sizeof(msg));
 
@@ -172,7 +172,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			blocks=1;
 			continue; 
 		}
-		qwk_new_msg(&msg, block, /* offset: */l, headers);
+		qwk_new_msg(&msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
 
 		if(findstr_in_list(msg.from_ip,ip_can)) {
 			SAFEPRINTF2(str,"!Filtering message from %s due to blocked IP: %s"
@@ -204,17 +204,19 @@ bool sbbs_t::unpack_rep(char* repfile)
 				continue; 
 			}
 
-			if(!stricmp(msg.to,"NETMAIL")) {  /* QWK to FidoNet NetMail */
-				qwktonetmail(rep,block,NULL,0);
-				continue; 
-			}
-			if(strchr(msg.to,'@')) {
-				qwktonetmail(rep,block,msg.to,0);
-				continue; 
-			}
-			if(!stricmp(msg.to,"SBBS")) {    /* to SBBS, config stuff */
-				qwkcfgline(msg.subj,INVALID_SUB);
-				continue; 
+			if(msg.to!=NULL) {
+				if(stricmp(msg.to,"NETMAIL")==0) {  /* QWK to FidoNet NetMail */
+					qwktonetmail(rep,block,NULL,0);
+					continue; 
+				}
+				if(strchr(msg.to,'@')) {
+					qwktonetmail(rep,block,msg.to,0);
+					continue; 
+				}
+				if(!stricmp(msg.to,"SBBS")) {    /* to SBBS, config stuff */
+					qwkcfgline(msg.subj,INVALID_SUB);
+					continue; 
+				}
 			}
 
 			if(useron.etoday>=cfg.level_emailperday[useron.level]
@@ -222,11 +224,14 @@ bool sbbs_t::unpack_rep(char* repfile)
 				bputs(text[TooManyEmailsToday]);
 				continue; 
 			}
-			usernum=atoi(msg.to);
-			if(usernum>lastuser(&cfg))
-				usernum=0;
-			if(!usernum)
-				usernum=matchuser(&cfg,msg.to,TRUE /* sysop_alias */);
+			usernum=0;
+			if(msg.to!=NULL) {
+				usernum=atoi(msg.to);
+				if(usernum>lastuser(&cfg))
+					usernum=0;
+				if(!usernum)
+					usernum=matchuser(&cfg,msg.to,TRUE /* sysop_alias */);
+			}
 			if(!usernum) {
 				bputs(text[UnknownUser]);
 				continue; 
@@ -362,9 +367,11 @@ bool sbbs_t::unpack_rep(char* repfile)
 			if(useron.rest&FLAG('Q'))
 				subscan[n].cfg|=SUB_CFG_NSCAN;
 
-			if(!stricmp(msg.to,"SBBS")) {	/* to SBBS, config stuff */
-				qwkcfgline(msg.subj,n);
-				continue; 
+			if(msg.to!=NULL) {
+				if(stricmp(msg.to,"SBBS")==0) {	/* to SBBS, config stuff */
+					qwkcfgline(msg.subj,n);
+					continue; 
+				}
 			}
 
 #if 0	/* This stuff isn't really necessary anymore */
@@ -418,9 +425,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			if(block[0]=='*' || block[0]=='+'           /* Private post */
 				|| cfg.sub[n]->misc&SUB_PONLY) {
-				if(msg.subj==NULL || !msg.subj[0]
-					|| stricmp(msg.subj,"All")==0) {			/* to blank */
-					bputs(text[NoToUser]);						/* or all */
+				if(msg.to==NULL || !msg.to[0]
+					|| stricmp(msg.to,"All")==0) {		/* to blank */
+					bputs(text[NoToUser]);				/* or all */
 					continue; 
 				} 
 			}
@@ -537,7 +544,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			SAFEPRINTF2(fname,"%s/%s",inbox,dirent->d_name);
 			mv(str,fname,1);
-			putsmsg(&cfg,1,str);	/* debug */
 			SAFEPRINTF2(str,text[ReceivedFileViaQWK],dirent->d_name,useron.alias);
 			putsmsg(&cfg,1,str);
 		} 
