@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.85 2008/04/01 07:52:24 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.87 2008/10/04 23:07:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,6 +164,7 @@ static BOOL winsock_startup(void)
 static int lputs(void* unused, int level, const char* str)
 {
 	FILE*	fp=statfp;
+	int		ret;
 
 #if defined(_WIN32) && defined(_DEBUG)
 	if(log_level==LOG_DEBUG)
@@ -173,11 +174,6 @@ static int lputs(void* unused, int level, const char* str)
 	if(level>log_level)
 		return 0;
 
-#if defined(__unix__)
-	if(use_syslog)
-		syslog(level,"%s",str);
-#endif
-
     if(level<LOG_NOTICE)
 		fp=errfp;
 
@@ -186,9 +182,24 @@ static int lputs(void* unused, int level, const char* str)
 		newline=TRUE;
 	}
 	if(level<LOG_NOTICE)
-		return fprintf(fp,"!%s\n",str);
+		ret=fprintf(fp,"!%s\n",str);
 	else
-		return fprintf(fp,"%s\n",str);
+		ret=fprintf(fp,"%s\n",str);
+
+#if defined(__unix__)
+	if(use_syslog) {
+		char*	msg;
+		char*	p;
+		if((msg=strdup(str))!=NULL) {
+			REPLACE_CHARS(msg,'\r',' ',p);
+			REPLACE_CHARS(msg,'\n',' ',p);
+			syslog(level,"%s",msg);
+			free(msg);
+		}
+	}
+#endif
+
+	return ret;
 }
 
 static int lprintf(int level, const char *fmt, ...)
@@ -353,8 +364,8 @@ int recv_byte(void* unused, unsigned timeout)
 #endif
 			FD_SET(sock,&socket_set);
 		if((t=end-msclock())<0) t=0;
-		tv.tv_sec=t/MSCLOCKS_PER_SEC;
-		tv.tv_usec=0;
+		tv.tv_sec=t/((unsigned)MSCLOCKS_PER_SEC);
+		tv.tv_usec=(t%((unsigned)MSCLOCKS_PER_SEC))*1000;
 
 		if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 			if(i==SOCKET_ERROR) {
@@ -1329,7 +1340,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.85 $", "%*s %s", revision);
+	sscanf("$Revision: 1.87 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"

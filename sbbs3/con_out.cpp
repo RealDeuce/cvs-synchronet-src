@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.51 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.55 2009/02/18 05:23:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,35 +43,11 @@
 
 #include "sbbs.h"
 
-/***************************************************/
-/* Seven bit table for EXASCII to ASCII conversion */
-/***************************************************/
-static const char *sbtbl="CUeaaaaceeeiiiAAEaAooouuyOUcLYRfaiounNao?--24!<>"
-			"###||||++||++++++--|-+||++--|-+----++++++++##[]#"
-			"abrpEout*ono%0ENE+><rj%=o..+n2* ";
-
-/****************************************************************************/
-/* Convert string from IBM extended ASCII to just ASCII						*/
-/****************************************************************************/
-char* DLLCALL ascii_str(uchar* str)
-{
-	size_t i;
-
-	for(i=0;str[i];i++)
-		if(str[i]&0x80)
-			str[i]=sbtbl[str[i]^0x80];  /* seven bit table */
-		else if(str[i]==CTRL_A	        /* ctrl-a */
-			&& str[i+1]!=0)				/* valid */
-			i++;						/* skip the attribute code */
-
-	return((char*)str);
-}
-
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
 /* Handles ctrl-a characters                                                */
 /****************************************************************************/
-int sbbs_t::bputs(char *str)
+int sbbs_t::bputs(const char *str)
 {
 	int i;
     ulong l=0;
@@ -80,10 +56,11 @@ int sbbs_t::bputs(char *str)
 		return(eprintf(LOG_INFO,"%s",str));
 
 	while(str[l]) {
-		if(str[l]==CTRL_A	        /* ctrl-a */
-			&& str[l+1]!=0) {		/* valid */
-			ctrl_a(str[++l]);       /* skip the ctrl-a */
-			l++;					/* skip the attribute code */
+		if(str[l]==CTRL_A && str[l+1]!=0) {
+			l++;
+			if(toupper(str[l])=='Z')	/* EOF */
+				break;
+			ctrl_a(str[l++]);
 			continue; 
 		}
 		if(str[l]=='@') {           /* '@' */
@@ -115,7 +92,7 @@ int sbbs_t::bputs(char *str)
 /* Does not expand ctrl-a characters (raw)                                  */
 /* Max length of str is 64 kbytes                                           */
 /****************************************************************************/
-int sbbs_t::rputs(char *str)
+int sbbs_t::rputs(const char *str)
 {
     ulong l=0;
 
@@ -130,7 +107,7 @@ int sbbs_t::rputs(char *str)
 /****************************************************************************/
 /* Performs printf() using bbs bputs function								*/
 /****************************************************************************/
-int sbbs_t::bprintf(char *fmt, ...)
+int sbbs_t::bprintf(const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[4096];
@@ -147,7 +124,7 @@ int sbbs_t::bprintf(char *fmt, ...)
 /****************************************************************************/
 /* Performs printf() using bbs rputs function								*/
 /****************************************************************************/
-int sbbs_t::rprintf(char *fmt, ...)
+int sbbs_t::rprintf(const char *fmt, ...)
 {
 	va_list argptr;
 	char sbuf[4096];
@@ -211,7 +188,7 @@ void sbbs_t::outchar(char ch)
 	else
 		outchar_esc=0;
 	if(term_supports(NO_EXASCII) && ch&0x80)
-		ch=sbtbl[(uchar)ch^0x80];  /* seven bit table */
+		ch=exascii_to_ascii_char(ch);  /* seven bit table */
 	if(ch==FF && lncntr>1 && !tos) {
 		lncntr=0;
 		CRLF;
@@ -219,26 +196,8 @@ void sbbs_t::outchar(char ch)
 			pause();
 			while(lncntr && online && !(sys_status&SS_ABORT))
 				pause(); 
-			sys_status&=~SS_ABORT;
 		}
 	}
-#if 0
-	if(sys_status&SS_CAP	/* Writes to Capture File */
-		&& (sys_status&SS_ANSCAP || (ch!=ESC /* && !lclaes() */)))
-		fwrite(&ch,1,1,capfile);
-#endif
-#if 0 
-	if(console&CON_L_ECHO) {
-		if(console&CON_L_ECHOX && (uchar)ch>=' ')
-			putch(password_char);
-		else if(cfg.node_misc&NM_NOBEEP && ch==BEL);	 /* Do nothing if beep */
-		else if(ch==BEL) {
-				sbbs_beep(2000,110);
-				nosound(); 
-		}
-		else putch(ch); 
-	}
-#endif
 
 	if(online==ON_REMOTE && console&CON_R_ECHO) {
 		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
@@ -269,14 +228,18 @@ void sbbs_t::outchar(char ch)
 			} 
 		} 
 	}
-	if(ch==LF) {
+	if(!outchar_esc && isprint(ch))
+		column++;
+	if(ch==LF || column>=cols) {
 		lncntr++;
 		lbuflen=0;
 		tos=0;
+		column=0;
 	} else if(ch==FF) {
 		lncntr=0;
 		lbuflen=0;
 		tos=1;
+		column=0;
 	} else {
 		if(!lbuflen)
 			latr=curatr;
@@ -385,17 +348,17 @@ void sbbs_t::cursor_left(int count)
 
 void sbbs_t::cleartoeol(void)
 {
+	int i,j;
+
 	if(term_supports(ANSI))
 		rputs("\x1b[K");
-#if 0
 	else {
-		i=j=lclwx();	/* commented out */
-		while(i++<79)
+		i=j=column;
+		while(i++<cols)
 			outchar(' ');
-		while(j++<79)
+		while(j++<cols)
 			outchar(BS); 
 	}
-#endif                
 }
 
 /****************************************************************************/
