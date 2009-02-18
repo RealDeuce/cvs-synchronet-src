@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.126 2009/01/24 19:40:45 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.127 2009/02/18 06:35:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -796,19 +796,19 @@ long js_exec(const char *fname, char** args)
 
 	start=xp_timer();
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
+	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
+		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
+		JS_ValueToInt32(js_cx,rval,&result);
+	}
 	js_EvalOnExit(js_cx, js_glob, &branch);
+
+	JS_ReportPendingException(js_cx);
 
 	if((diff=xp_timer()-start) > 0)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
 			,path
 			,diff);
-
-	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
-
-	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
-		JS_ValueToInt32(js_cx,rval,&result);
-	}
 
 	JS_DestroyScript(js_cx, js_script);
 
@@ -873,7 +873,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.126 $", "%*s %s", revision);
+	sscanf("$Revision: 1.127 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
