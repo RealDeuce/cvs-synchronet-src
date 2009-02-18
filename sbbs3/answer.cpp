@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.61 2009/01/16 03:54:05 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.65 2009/02/18 05:50:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,6 +181,7 @@ bool sbbs_t::answer()
 		request_telnet_opt(TELNET_DO,TELNET_TERM_TYPE);
 		request_telnet_opt(TELNET_DO,TELNET_TERM_SPEED);
 		request_telnet_opt(TELNET_DO,TELNET_SEND_LOCATION);
+		request_telnet_opt(TELNET_DO,TELNET_NEGOTIATE_WINDOW_SIZE);
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
@@ -251,7 +252,9 @@ bool sbbs_t::answer()
 	rioctl(IOFI);		/* flush input buffer */
 	putcom( "\r\n"		/* locate cursor at column 1 */
 			"\x1b[s"	/* save cursor position (necessary for HyperTerm auto-ANSI) */
-    		"\x1b[99B_"	/* locate cursor as far down as possible */
+    		"\x1b[255B"	/* locate cursor as far down as possible */
+			"\x1b[255C"	/* locate cursor as far right as possible */
+			"_"			/* need a printable at this location to actually move cursor */
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
@@ -268,7 +271,7 @@ bool sbbs_t::answer()
 	strcpy(str,VERSION_NOTICE);
 	strcat(str,"  ");
 	strcat(str,COPYRIGHT_NOTICE);
-	strip_ctrl(str);
+	strip_ctrl(str, str);
 	center(str);
 
 	while(i++<50 && l<(int)sizeof(str)-1) { 	/* wait up to 5 seconds for response */
@@ -290,14 +293,22 @@ bool sbbs_t::answer()
 	str[l]=0;
 
     if(l) {
-        if(str[0]==ESC && str[1]=='[') {	/* TODO: verify this is actually a cursor position report */
+		c_escape_str(str,tmp,sizeof(tmp),TRUE);
+		lprintf(LOG_DEBUG,"Node %d Terminal auto-detection response: '%s'"
+			,cfg.node_num,tmp);
+        if(str[0]==ESC && str[1]=='[' && str[l-1]=='R') {
+			int	x,y;
+
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"ANSI");
 			autoterm|=(ANSI|COLOR);
-            rows=atoi(str+2);
-			lprintf(LOG_DEBUG,"Node %d ANSI cursor position report: %u rows"
-				,cfg.node_num, rows);
-			if(rows<10 || rows>99) rows=24; 
+			if(sscanf(str+2,"%u;%u",&y,&x)==2) {
+				lprintf(LOG_DEBUG,"Node %d ANSI cursor position report: %ux%u"
+					,cfg.node_num, x, y);
+				/* Sanity check the coordinates in the response: */
+				if(x>=40 && x<=255) cols=x; 
+				if(y>=10 && y<=255) rows=y;
+			}
 		}
 		truncsp(str);
 		if(strstr(str,"RIPSCRIP")) {
@@ -318,16 +329,9 @@ bool sbbs_t::answer()
 	rioctl(IOFI); /* flush left-over or late response chars */
 
 	if(!autoterm && str[0]) {
-		lputs(LOG_DEBUG,"Terminal Auto-detect failed, Response: ");
-        str2[0]=0;
-		for(i=0;str[i];i++) {
-        	if(str[i]>=' ' && str[i]<='~')
-            	sprintf(tmp,"%c", str[i]);
-            else
-				sprintf(tmp,"<%02X>", (uchar)str[i]);
-            strcat(str2,tmp);
-        }
-        lputs(LOG_DEBUG,str2);
+		c_escape_str(str,tmp,sizeof(tmp),TRUE);
+		lprintf(LOG_NOTICE,"Node %d Terminal auto-detection failed, response: '%s'"
+			,cfg.node_num, tmp);
 	}
 
 	/* AutoLogon via IP or Caller ID here */
