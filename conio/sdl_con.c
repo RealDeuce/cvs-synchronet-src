@@ -6,15 +6,15 @@
 #include <stdio.h>		/* NULL */
 #include <stdlib.h>
 #include <string.h>
-#ifdef __unix__
-#include <dlfcn.h>
-#endif
 
 #include "gen_defs.h"
 #include "genwrap.h"
 #include "dirwrap.h"
 #include "xpbeep.h"
 #include "threadwrap.h"
+#ifdef __unix__
+#include <xp_dl.h>
+#endif
 
 #if (defined CIOLIB_IMPORTS)
  #undef CIOLIB_IMPORTS
@@ -504,8 +504,10 @@ char *sdl_getcliptext(void)
 			ret=(char *)malloc(strlen(sdl_pastebuf)+1);
 			if(ret!=NULL)
 				strcpy(ret,sdl_pastebuf);
-			sdl.SemPost(sdl_pastebuf_copied);
 		}
+		else
+			ret=NULL;
+		sdl.SemPost(sdl_pastebuf_copied);
 		return(ret);
 
 	}
@@ -519,8 +521,10 @@ char *sdl_getcliptext(void)
 			ret=(char *)malloc(strlen(sdl_pastebuf)+1);
 			if(ret!=NULL)
 				strcpy(ret,sdl_pastebuf);
-			sdl.SemPost(sdl_pastebuf_copied);
 		}
+		else
+			ret=NULL;
+		sdl.SemPost(sdl_pastebuf_copied);
 		return(ret);
 	}
 #endif
@@ -588,7 +592,8 @@ int sdl_init_mode(int mode)
 int sdl_init(int mode)
 {
 #if !defined(NO_X) && defined(__unix__)
-	void *dl;
+	dll_handle	dl;
+	const char *libnames[2]={"X11", NULL};
 #endif
 
 	if(init_sdl_video())
@@ -622,42 +627,35 @@ int sdl_init(int mode)
 		FreeConsole();
 #endif
 #if !defined(NO_X) && defined(__unix__)
-	#if defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__)
-		dl=dlopen("/usr/X11R6/lib/libX11.dylib",RTLD_LAZY|RTLD_GLOBAL);
-	#else
-		if((dl=dlopen("libX11.so",RTLD_LAZY))==NULL)
-			if((dl=dlopen("libX11.so.7",RTLD_LAZY))==NULL)
-				if((dl=dlopen("libX11.so.6",RTLD_LAZY))==NULL)
-					dl=dlopen("libX11.so.5",RTLD_LAZY);
-	#endif
+		dl=xp_dlopen(libnames,RTLD_LAZY|RTLD_GLOBAL,7);
 		if(dl!=NULL) {
 			sdl_x11available=TRUE;
-			if(sdl_x11available && (sdl_x11.XFree=dlsym(dl,"XFree"))==NULL) {
-				dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XFree=xp_dlsym(dl,XFree))==NULL) {
+				xp_dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XGetSelectionOwner=dlsym(dl,"XGetSelectionOwner"))==NULL) {
-				dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XGetSelectionOwner=xp_dlsym(dl,XGetSelectionOwner))==NULL) {
+				xp_dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XConvertSelection=dlsym(dl,"XConvertSelection"))==NULL) {
-				dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XConvertSelection=xp_dlsym(dl,XConvertSelection))==NULL) {
+				xp_dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XGetWindowProperty=dlsym(dl,"XGetWindowProperty"))==NULL) {
-				dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XGetWindowProperty=xp_dlsym(dl,XGetWindowProperty))==NULL) {
+				xp_dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XChangeProperty=dlsym(dl,"XChangeProperty"))==NULL) {
-				dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XChangeProperty=xp_dlsym(dl,XChangeProperty))==NULL) {
+				xp_dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XSendEvent=dlsym(dl,"XSendEvent"))==NULL) {
-				dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XSendEvent=xp_dlsym(dl,XSendEvent))==NULL) {
+				xp_dlclose(dl);
 				sdl_x11available=FALSE;
 			}
-			if(sdl_x11available && (sdl_x11.XSetSelectionOwner=dlsym(dl,"XSetSelectionOwner"))==NULL) {
-				dlclose(dl);
+			if(sdl_x11available && (sdl_x11.XSetSelectionOwner=xp_dlsym(dl,XSetSelectionOwner))==NULL) {
+				xp_dlclose(dl);
 				sdl_x11available=FALSE;
 			}
 		}
@@ -1632,7 +1630,7 @@ int sdl_video_event_thread(void *data)
 								}
 	#endif
 
-	#if !defined(NO_X) && defined(__unix__)
+	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 								if(sdl_x11available && sdl_using_x11) {
 									SDL_SysWMinfo	wmi;
 
@@ -1670,7 +1668,7 @@ int sdl_video_event_thread(void *data)
 								}
 	#endif
 
-	#if !defined(NO_X) && defined(__unix__)
+	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 								if(sdl_x11available && sdl_using_x11) {
 									Window sowner=None;
 									SDL_SysWMinfo	wmi;
@@ -1711,7 +1709,7 @@ int sdl_video_event_thread(void *data)
 						break;
 					}
 					case SDL_SYSWMEVENT:			/* ToDo... This is where Copy/Paste needs doing */
-	#if !defined(NO_X) && defined(__unix__)
+	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 						if(sdl_x11available && sdl_using_x11) {
 							XEvent *e;
 							e=&ev.syswm.msg->event.xevent;
