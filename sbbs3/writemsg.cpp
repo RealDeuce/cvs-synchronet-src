@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.81 2009/02/16 02:47:15 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.82 2009/02/18 06:23:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -990,11 +990,12 @@ void sbbs_t::editfile(char *fname)
 		}
 		CLS;
 		rioctl(IOCM|PAUSE|ABORT);
-		external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir);
-		l=process_edited_file(msgtmp, path, /* mode: */0, &lines);
-		SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
-			,useron.alias, path, l, lines);
-		logline(nulstr,str);
+		if(external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir)==0) {
+			l=process_edited_file(msgtmp, path, /* mode: */0, &lines);
+			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
+				,useron.alias, path, l, lines);
+			logline(nulstr,str);
+		}
 		rioctl(IOSM|PAUSE|ABORT); 
 		return; 
 	}
