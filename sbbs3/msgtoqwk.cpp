@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.33 2009/10/25 03:12:13 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.32 2009/02/16 10:35:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,10 +144,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 		if((p=(char*)smb_get_hfield(msg,hfield_type=FIDOFLAGS,NULL))!=NULL)	
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 		if((p=(char*)smb_get_hfield(msg,hfield_type=FIDOTID,NULL))!=NULL)	
-			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
-
-		/* Synchronet */
-		if((p=(char*)smb_get_hfield(msg,hfield_type=SMB_EDITOR,NULL))!=NULL)	
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 
 		/* USENET */
