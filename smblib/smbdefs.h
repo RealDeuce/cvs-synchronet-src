@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.74 2009/03/24 20:39:35 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.72 2009/02/02 00:36:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -459,7 +459,6 @@ enum {
 	 SMB_HASH_SOURCE_BODY
 	,SMB_HASH_SOURCE_MSG_ID
 	,SMB_HASH_SOURCE_FTN_ID
-	,SMB_HASH_SOURCE_SUBJECT
 
 /* Add new ones here (max value of 31) */
 
@@ -469,7 +468,6 @@ enum {
 #define SMB_HASH_SOURCE_MASK	0x1f
 #define SMB_HASH_SOURCE_NONE	0
 #define SMB_HASH_SOURCE_ALL		0xff
-#define SMB_HASH_SOURCE_DUPE	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_MSG_ID)|(1<<SMB_HASH_SOURCE_FTN_ID))
 
 typedef struct _PACK {
 

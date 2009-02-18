@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.532 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: main.cpp,v 1.528 2009/02/18 05:23:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1123,7 +1123,7 @@ void sbbs_t::js_create_user_objects(void)
 		return;
 	
 	JS_BEGINREQUEST(js_cx);
-	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, &client, NULL, subscan)) 
+	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, NULL, subscan)) 
 		lprintf(LOG_ERR,"!JavaScript ERROR creating user objects");
 	JS_ENDREQUEST(js_cx);
 }
@@ -1993,8 +1993,6 @@ void output_thread(void* arg)
 		tv.tv_usec=1000;
 
 		FD_ZERO(&socket_set);
-		if(sbbs->client_socket==INVALID_SOCKET)		// Make the race condition less likely to actually happen... TODO: Fix race
-			continue;
 		FD_SET(sbbs->client_socket,&socket_set);
 
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
@@ -2291,7 +2289,7 @@ void event_thread(void* arg)
 
 					if(sbbs->useron.number
 						&& !(sbbs->useron.misc&(DELETED|INACTIVE))	 /* Pre-QWK */
-						&& sbbs->chk_ar(sbbs->cfg.preqwk_ar,&sbbs->useron,/* client: */NULL)) { 
+						&& sbbs->chk_ar(sbbs->cfg.preqwk_ar,&sbbs->useron)) { 
 						for(k=1;k<=sbbs->cfg.sys_nodes;k++) {
 							if(sbbs->getnodedat(k,&node,0)!=0)
 								continue;
@@ -3560,16 +3558,14 @@ int sbbs_t::outcom(uchar ch)
 	return(0);
 }
 
-int sbbs_t::putcom(const char *str, size_t len)
+void sbbs_t::putcom(const char *str, int len)
 {
-	size_t i;
+	int i;
 
-	if(!len)
-		len=strlen(str);
-    for(i=0;i<len && online;i++)
-        if(outcom(str[i])!=0)
-			break;
-	return i;
+    if(!len)
+    	len=strlen(str);
+    for(i=0;i<len && online; i++)
+        outcom(str[i]);
 }
 
 /* Legacy Remote I/O Control Interface */
@@ -4109,7 +4105,7 @@ void sbbs_t::daily_maint(void)
 			> sbbs->cfg.sys_autodel)) {			/* Inactive too long */
 			SAFEPRINTF2(str,"Auto-Deleted %s #%u",user.alias,user.number);
 			sbbs->logentry("!*",str);
-			sbbs->delallmail(user.number, MAIL_ANY);
+			sbbs->delallmail(user.number);
 			putusername(&sbbs->cfg,user.number,nulstr);
 			putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
 		}
@@ -5402,3 +5398,6 @@ NO_PASSTHRU:
 	} while(!terminate_server);
 
 }
+
+
+

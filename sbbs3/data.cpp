@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.25 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: data.cpp,v 1.24 2009/02/16 07:13:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,8 +58,7 @@ uint sbbs_t::finduser(char *instr)
 	if(i>0) {
 		username(&cfg, i,str2);
 		if(str2[0] && strcmp(str2,"DELETED USER"))
-			return(i); 
-	}
+			return(i); }
 	strcpy(str,instr);
 	strupr(str);
 	SAFEPRINTF(str3,"%suser/name.dat",cfg.data_dir);
@@ -67,8 +66,7 @@ uint sbbs_t::finduser(char *instr)
 		return(0);
 	if((stream=fnopen(&file,str3,O_RDONLY))==NULL) {
 		errormsg(WHERE,ERR_OPEN,str3,O_RDONLY);
-		return(0); 
-	}
+		return(0); }
 	SAFEPRINTF(ynq,"%.2s",text[YN]);
 	ynq[2]='Q';
 	ynq[3]=0;
@@ -87,28 +85,21 @@ uint sbbs_t::finduser(char *instr)
 			strupr(str2);
 			if(pass==1 && !strcmp(str,str2)) {
 				fclose(stream);
-				return((l/(LEN_ALIAS+2))+1); 
-			}
+				return((l/(LEN_ALIAS+2))+1); }
 			if(pass==2 && strstr(str2,str)) {
 				bprintf(text[DoYouMeanThisUserQ],str3
 					,(uint)(l/(LEN_ALIAS+2))+1);
 				c=(char)getkeys(ynq,0);
 				if(sys_status&SS_ABORT) {
 					fclose(stream);
-					return(0); 
-				}
+					return(0); }
 				if(c==text[YN][0]) {
 					fclose(stream);
-					return((l/(LEN_ALIAS+2))+1); 
-				}
+					return((l/(LEN_ALIAS+2))+1); }
 				if(c=='Q') {
 					fclose(stream);
-					return(0); 
-				} 
-			} 
-		}
-		pass++; 
-	}
+					return(0); } } }
+		pass++; }
 	bputs(text[UnknownUser]);
 	fclose(stream);
 	return(0);
@@ -129,12 +120,10 @@ int sbbs_t::getuserxfers(int fromuser, int destuser, char *fname)
 		return(0);
 	if(!flength(str)) {
 		remove(str);
-		return(0); 
-	}
+		return(0); }
 	if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
-		return(0); 
-	}
+		return(0); }
 	while(!ferror(stream)) {
 		if(!fgets(str,81,stream))
 			break;
@@ -144,8 +133,7 @@ int sbbs_t::getuserxfers(int fromuser, int destuser, char *fname)
 		else if(fromuser && atoi(str+18)==fromuser)
 				found++;
 		else if(destuser && atoi(str)==destuser)
-				found++; 
-	}
+				found++; }
 	fclose(stream);
 	return(found);
 }
@@ -285,8 +273,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 							+(cfg.val_expire[cfg.level_expireto[useron.level]]*24*60*60);
 					else
 						useron.expire=0;
-					useron.level=cfg.val_level[cfg.level_expireto[useron.level]]; 
-				}
+					useron.level=cfg.val_level[cfg.level_expireto[useron.level]]; }
 				else {
 					if(cfg.level_misc[useron.level]&LEVEL_EXPTOLVL)
 						useron.level=cfg.level_expireto[useron.level];
