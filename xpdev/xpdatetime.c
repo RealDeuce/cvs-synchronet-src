@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.5 2009/03/14 02:59:41 rswindell Exp $ */
+/* $Id: xpdatetime.c,v 1.4 2009/02/18 06:52:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,34 +92,13 @@ xpTimeZone_t xpTimeZone_local(void)
 
 	localtime_r(&t, &tm);
 	return(tm.tm_gmtoff/60);
-#elif defined(_WIN32)
-	TIME_ZONE_INFORMATION	tz;
-	DWORD					tzRet;
-
-	/*****************************/
-	/* Get Time-zone information */
-	/*****************************/
-    memset(&tz,0,sizeof(tz));
-	tzRet=GetTimeZoneInformation(&tz);
-	switch(tzRet) {
-		case TIME_ZONE_ID_DAYLIGHT:
-			tz.Bias += tz.DaylightBias;
-			break;
-		case TIME_ZONE_ID_STANDARD:
-			tz.Bias += tz.StandardBias;
-			break;
-	}
-
-	return -tz.Bias;
 #else
-
 #if defined(__BORLANDC__) || defined(__CYGWIN__)
 	#define timezone _timezone
 #endif
 
 	/* Converts (_)timezone from seconds west of UTC to minutes east of UTC */
-	/* Adjust for DST, assuming adjustment is 60 seconds <sigh> */
-	return -((timezone/60) - (daylight*60));
+	return -timezone/60;
 #endif
 }
 
