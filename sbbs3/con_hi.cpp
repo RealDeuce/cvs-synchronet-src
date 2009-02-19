@@ -2,13 +2,13 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.12 2006/08/23 01:45:05 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.14 2009/02/19 09:35:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,6 +39,7 @@
 
 /****************************************************************************/
 /* Redraws str using i as current cursor position and l as length           */
+/* Currently only used by getstr() - so should be moved to getstr.cpp?		*/
 /****************************************************************************/
 void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 {
@@ -51,25 +52,13 @@ void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 	if(mode&K_MSG)
 		bputs(str);
 	else
-		rputs(str);
-	if(term_supports(ANSI)) {
-		cleartoeol();
-		if(i<l)
-			cursor_left(l-i); 
-	} else {
-		while(c<cols-1) { /* clear to end of line */
-			outchar(' ');
-			c++; 
-		}
-		while(c>l) { /* back space to end of string */
-			outchar(BS);
-			c--; 
-		} 
-	}
+		column+=rputs(str);
+	cleartoeol();
+	if(i<l)
+		cursor_left(l-i); 
 }
 
-
-int sbbs_t::uselect(int add, uint n, char *title, char *item, uchar *ar)
+int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const uchar *ar)
 {
 	char	str[128];
 	int		i;

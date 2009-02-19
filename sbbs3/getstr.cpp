@@ -2,13 +2,13 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.23 2008/02/16 05:19:23 deuce Exp $ */
+/* $Id: getstr.cpp,v 1.25 2009/02/19 09:35:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -81,7 +81,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 			i|=(cfg.color[clr_inputline]&0x77)>>4;
 			attr(i); 
 		}
-		rputs(str1);
+		column+=rputs(str1);
 		if(mode&K_EDIT && !(mode&(K_LINE|K_AUTODEL)) && term_supports(ANSI))
 			cleartoeol();  /* destroy to eol */ 
 	}
@@ -99,7 +99,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 		else {
 			for(i=0;i<l;i++)
 				outchar(BS);
-			rputs(str1);
+			column+=rputs(str1);
 			i=l; 
 		}
 		if(ch!=' ' && ch!=TAB)
@@ -636,8 +636,8 @@ long sbbs_t::getnum(ulong max, ulong dflt)
 
 void sbbs_t::insert_indicator(void)
 {
-	ANSI_SAVE();
-	GOTOXY(cols,1);
+	ansi_save();
+	ansi_gotoxy(cols,1);
 	uchar z=curatr;                       /* and go to EOL */
 	if(console&CON_INSERT) {
 		attr(BLINK|BLACK|(LIGHTGRAY<<4));
@@ -647,5 +647,5 @@ void sbbs_t::insert_indicator(void)
 		outchar(' ');
 	}
 	attr(z);
-	ANSI_RESTORE();
+	ansi_restore();
 }
