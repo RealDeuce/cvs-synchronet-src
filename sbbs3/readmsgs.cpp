@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.40 2008/02/25 08:18:30 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.43 2009/02/16 03:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -342,10 +342,11 @@ static int get_start_msg(sbbs_t* sbbs, smb_t* smb)
 /* Returns 0 if normal completion, 1 if aborted.                            */
 /* Called from function main_sec                                            */
 /****************************************************************************/
-int sbbs_t::scanposts(uint subnum, long mode, char *find)
+int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 {
 	char	str[256],str2[256],do_find=true,mismatches=0
 			,done=0,domsg=1,*buf,*p;
+	char	subj[128];
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
@@ -574,8 +575,11 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 							domsg=0;
 					continue; 
 				}
-				strupr((char *)buf);
-				if(!strstr((char *)buf,find) && !strstr(msg.subj,find)) {
+				strupr(buf);
+				strip_ctrl(buf, buf);
+				SAFECOPY(subj,msg.subj);
+				strupr(subj);
+				if(!strstr(buf,find) && !strstr(subj,find)) {
 					free(buf);
 					if(smb.curmsg<smb.msgs-1) 
 						smb.curmsg++;
@@ -1126,7 +1130,7 @@ int sbbs_t::scanposts(uint subnum, long mode, char *find)
 /* This function lists all messages in sub-board							*/
 /* Returns number of messages found/displayed.                              */
 /****************************************************************************/
-long sbbs_t::listsub(uint subnum, long mode, long start, char* search)
+long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 {
 	int 	i;
 	int32_t	posts;
@@ -1169,9 +1173,10 @@ long sbbs_t::listsub(uint subnum, long mode, long start, char* search)
 /* Returns number of messages found.                                        */
 /****************************************************************************/
 long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
-	, char *search)
+	, const char *search)
 {
-	char	*buf,ch;
+	char*	buf,ch;
+	char	subj[128];
 	long	l,found=0;
 	smbmsg_t msg;
 
@@ -1186,8 +1191,11 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			smb_freemsgmem(&msg);
 			continue; 
 		}
-		strupr((char *)buf);
-		if(strstr((char *)buf,search) || strstr(msg.subj,search)) {
+		strupr(buf);
+		strip_ctrl(buf, buf);
+		SAFECOPY(subj,msg.subj);
+		strupr(subj);
+		if(strstr(buf,search) || strstr(subj,search)) {
 			if(!found)
 				CRLF;
 			if(msg.hdr.attr&MSG_DELETE)
