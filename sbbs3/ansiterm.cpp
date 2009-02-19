@@ -2,13 +2,13 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.12 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: ansiterm.cpp,v 1.18 2009/02/19 09:19:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -102,8 +102,8 @@ void sbbs_t::ansi_getlines()
 	if(sys_status&SS_USERON && useron.misc&ANSI && !useron.rows /* Auto-detect rows */
 		&& online==ON_REMOTE) {									/* Remote */
 		SYNC;
-		putcom("\x1b[s\x1b[99B\x1b[6n\x1b[u");
-		inkey(K_NONE,TIMEOUT_ANSI_GETXY*1000); 
+		putcom("\x1b[s\x1b[255B\x1b[255C\x1b[6n\x1b[u");
+		inkey(K_ANSI_CPR,TIMEOUT_ANSI_GETXY*1000); 
 	}
 }
 
@@ -158,4 +158,33 @@ bool sbbs_t::ansi_getxy(int* x, int* y)
     }
 
 	return(true);
+}
+
+bool sbbs_t::ansi_gotoxy(int x, int y)
+{
+	if(term_supports(ANSI)) {
+		rprintf("\x1b[%d;%dH",y,x);
+		if(x>0)
+			column=x-1;
+		return true;
+	}
+	return false;
+}
+
+bool sbbs_t::ansi_save(void)
+{
+	if(term_supports(ANSI)) {
+		rputs("\x1b[s");
+		return true;
+	}
+	return false;
+}
+
+bool sbbs_t::ansi_restore(void)
+{
+	if(term_supports(ANSI)) {
+		rputs("\x1b[u");
+		return true;
+	}
+	return false;
 }
