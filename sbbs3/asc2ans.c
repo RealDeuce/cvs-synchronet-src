@@ -2,13 +2,13 @@
 
 /* Converts Synchronet Ctrl-A codes into ANSI escape sequences */
 
-/* $Id: asc2ans.c,v 1.1 2003/09/19 01:47:17 rswindell Exp $ */
+/* $Id: asc2ans.c,v 1.5 2009/02/16 02:52:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,9 +36,11 @@
  ****************************************************************************/
 
 #include <stdio.h>
-#include <ctype.h>	/* toupper */
+#include <ctype.h>		/* toupper */
+#include <string.h>		/* strcmp */
 
-#define ANSI fprintf(out,"\x1b[")
+#define CTRL_A	'\1'
+#define ANSI	fprintf(out,"\x1b[")
 
 int main(int argc, char **argv)
 {
@@ -47,32 +49,43 @@ int main(int argc, char **argv)
 	FILE*	in;
 	FILE*	out;
 
-	sscanf("$Revision: 1.1 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
-	if(argc<3) {
+	if(argc<2) {
 		fprintf(stderr,"\nasc2ans %s\n",revision);
-		fprintf(stderr,"\nusage: %s infile.asc outfile.ans\n",argv[0]);
+		fprintf(stderr,"\nusage: %s infile.asc [outfile.ans]\n",argv[0]);
 		return(0); 
 	}
 
-	if((in=fopen(argv[1],"rb"))==NULL) {
-		perror(argv[1]);
-		return(1);
+	if(strcmp(argv[1],"-")) {
+		if((in=fopen(argv[1],"rb"))==NULL) {
+			perror(argv[1]);
+			return(1);
+		}
 	}
+	else
+		in=stdin;
 
-	if((out=fopen(argv[2],"wb"))==NULL) {
-		perror(argv[2]);
-		return(1);
+	if(argc > 2 && (strcmp(argv[2],"-"))) {
+		if((out=fopen(argv[2],"wb"))==NULL) {
+			perror(argv[2]);
+			return(1);
+		}
 	}
+	else
+		out=stdout;
 
 	while((ch=fgetc(in))!=EOF) {
-		if(ch==1) { /* ctrl-a */
+		if(ch==CTRL_A) { /* ctrl-a */
 			ch=fgetc(in);
-			if(ch==EOF)
+			if(ch==EOF || toupper(ch)=='Z')	/* EOF */
 				break;
-			if(ch>=0x7f) {					/* move cursor right x columns */
+			if(ch>0x7f) {					/* move cursor right x columns */
+				int cnt=ch-0x7f;
 				ANSI;
-				fprintf(out,"%uC",ch-0x7f);
+				if(cnt>1)
+					fprintf(out,"%u",cnt);
+				fputc('C',out);
 				continue; 
 			}
 			switch(toupper(ch)) {
@@ -93,8 +106,10 @@ int main(int argc, char **argv)
 					fputc('\n',out);
 					break;
 				case 'L':
-					ANSI;
-					fprintf(out,"2J");
+					ANSI;	
+					fprintf(out,"2J");	/* clear screen */
+					ANSI;	
+					fprintf(out,"H");	/* home cursor */
 					break;
 				case '-':
 				case '_':
