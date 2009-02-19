@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.32 2008/01/07 07:05:40 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.34 2009/01/09 00:35:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -129,6 +129,11 @@ typedef struct {
 #undef	EINPROGRESS
 #define EINPROGRESS		(WSAEINPROGRESS-WSABASEERR)
 
+/* for shutdown() */
+#define SHUT_RD			SD_RECEIVE
+#define SHUT_WR			SD_SEND
+#define SHUT_RDWR		SD_BOTH
+
 #define s_addr			S_un.S_addr
 
 #define socklen_t		int
@@ -172,14 +177,10 @@ int		recvfilesocket(int sock, int file, long *offset, long count);
 BOOL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
 int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
-				   ,int (*lprintf)(int level, char *fmt, ...));
+				   ,int (*lprintf)(int level, const char *fmt, ...));
 
 #ifdef __cplusplus
 }
-#endif
-
-#ifndef SHUT_RDWR
-#define SHUT_RDWR			2	/* for shutdown() */
 #endif
 
 #ifndef IPPORT_HTTP
