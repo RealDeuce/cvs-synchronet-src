@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.39 2009/02/19 09:28:45 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.38 2009/02/18 05:50:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,7 +316,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 						int	x,y;
 						str[i]=0;
 						if(sscanf(str,"%u;%u",&y,&x)==2) {
-							lprintf(LOG_DEBUG,"Node %d received ANSI cursor position report: %ux%u"
+							lprintf(LOG_DEBUG,"Node %d ANSI cursor position report: %ux%u"
 								,cfg.node_num, x, y);
 							/* Sanity check the coordinates in the response: */
 							if(x>=40 && x<=255) cols=x; 
