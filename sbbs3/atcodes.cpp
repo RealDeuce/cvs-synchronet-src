@@ -2,13 +2,13 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.51 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: atcodes.cpp,v 1.54 2009/02/19 09:25:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -84,11 +84,11 @@ int sbbs_t::show_atcode(const char *instr)
 		return(0);
 
 	if(padded_left)
-		rprintf("%-*.*s",disp_len,disp_len,cp);
+		bprintf("%-*.*s",disp_len,disp_len,cp);
 	else if(padded_right)
-		rprintf("%*.*s",disp_len,disp_len,cp);
+		bprintf("%*.*s",disp_len,disp_len,cp);
 	else
-		rputs(cp);
+		bputs(cp);
 
 	return(len);
 }
@@ -612,7 +612,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 
-	if(!strncmp(sp,"INCLUDE:",5)) {
+	if(!strncmp(sp,"INCLUDE:",8)) {
 		printfile(cmdstr(sp+8,nulstr,nulstr,str),P_NOCRLF|P_SAVEATR);
 		return(nulstr);
 	}
@@ -636,26 +636,34 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return("\r\n");
 
 	if(!strcmp(sp,"PUSHXY")) {
-		ANSI_SAVE();
+		ansi_save();
 		return(nulstr);
 	}
 
 	if(!strcmp(sp,"POPXY")) {
-		ANSI_RESTORE();
+		ansi_restore();
 		return(nulstr);
 	}
 
-	if(!strcmp(sp,"UP"))
-		return("\x1b[A");
+	if(!strcmp(sp,"UP")) {
+		cursor_up();
+		return(nulstr);
+	}
 
-	if(!strcmp(sp,"DOWN"))
-		return("\x1b[B");
+	if(!strcmp(sp,"DOWN")) {
+		cursor_down();
+		return(nulstr);
+	}
 
-	if(!strcmp(sp,"RIGHT"))
-		return("\x1b[C");
+	if(!strcmp(sp,"RIGHT")) {
+		cursor_right();
+		return(nulstr);
+	}
 
-	if(!strcmp(sp,"LEFT"))
-		return("\x1b[D");
+	if(!strcmp(sp,"LEFT")) {
+		cursor_left();
+		return(nulstr);
+	}
 
 	if(!strncmp(sp,"UP:",3)) {
 		safe_snprintf(str,maxlen,"\x1b[%dA",atoi(sp+3));
@@ -681,7 +689,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		tp=strchr(sp,',');
 		if(tp!=NULL) {
 			tp++;
-			GOTOXY(atoi(sp+7),atoi(tp));
+			ansi_gotoxy(atoi(sp+7),atoi(tp));
 		}
 		return(nulstr);
 	}
