@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.230 2009/03/21 10:06:44 rswindell Exp $ */
+/* $Id: services.c,v 1.227 2009/02/01 21:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -443,6 +443,7 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
 	JSBool		inc_logons=JS_FALSE;
+	user_t		user;
 	jsval		val;
 	JSString*	js_str;
 	service_client_t* client;
@@ -461,29 +462,29 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	memset(&client->user,0,sizeof(user_t));
+	memset(&user,0,sizeof(user));
 
 	if(isdigit(*p))
-		client->user.number=atoi(p);
+		user.number=atoi(p);
 	else if(*p)
-		client->user.number=matchuser(&scfg,p,FALSE);
+		user.number=matchuser(&scfg,p,FALSE);
 
-	if(getuserdat(&scfg,&client->user)!=0) {
+	if(getuserdat(&scfg,&user)!=0) {
 		lprintf(LOG_NOTICE,"%04d %s !USER NOT FOUND: '%s'"
 			,client->socket,client->service->protocol,p);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
-	if(client->user.misc&(DELETED|INACTIVE)) {
+	if(user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d %s !DELETED OR INACTIVE USER #%d: %s"
-			,client->socket,client->service->protocol,client->user.number,p);
+			,client->socket,client->service->protocol,user.number,p);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	/* Password */
-	if(client->user.pass[0]) {
+	if(user.pass[0]) {
 		if((js_str=JS_ValueToString(cx, argv[1]))==NULL)  {
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_FALSE);
@@ -494,9 +495,9 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 		}
 
-		if(stricmp(client->user.pass,p)) { /* Wrong password */
+		if(stricmp(user.pass,p)) { /* Wrong password */
 			lprintf(LOG_WARNING,"%04d %s !INVALID PASSWORD ATTEMPT FOR USER: %s"
-				,client->socket,client->service->protocol,client->user.alias);
+				,client->socket,client->service->protocol,user.alias);
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
@@ -508,23 +509,25 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(client->client!=NULL) {
-		SAFECOPY(client->user.note,client->client->addr);
-		SAFECOPY(client->user.comp,client->client->host);
-		SAFECOPY(client->user.modem,client->service->protocol);
+		SAFECOPY(user.note,client->client->addr);
+		SAFECOPY(user.comp,client->client->host);
+		SAFECOPY(user.modem,client->service->protocol);
 	}
 
 	if(inc_logons) {
-		client->user.logons++;
-		client->user.ltoday++;
+		user.logons++;
+		user.ltoday++;
 	}	
 
-	putuserdat(&scfg,&client->user);
+	putuserdat(&scfg,&user);
 	JS_RESUMEREQUEST(cx, rc);
 
 	/* user-specific objects */
-	if(!js_CreateUserObjects(cx, obj, &scfg, &client->user, client->client, NULL, NULL)) 
+	if(!js_CreateUserObjects(cx, obj, &scfg, &user, NULL, NULL)) 
 		lprintf(LOG_ERR,"%04d %s !JavaScript ERROR creating user objects"
 			,client->socket,client->service->protocol);
+
+	memcpy(&client->user,&user,sizeof(user));
 
 	if(client->client!=NULL) {
 		client->client->user=client->user.alias;
@@ -878,7 +881,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 			break;
 
 		/* user-specific objects */
-		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, /*user: */NULL, service_client->client, NULL, NULL)) 
+		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, NULL, NULL, NULL)) 
 			break;
 
 		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
@@ -1643,7 +1646,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.230 $", "%*s %s", revision);
+	sscanf("$Revision: 1.227 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1753,9 +1756,6 @@ void DLLCALL services_thread(void* arg)
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
-
-		if(chdir(startup->ctrl_dir)!=0)
-			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
