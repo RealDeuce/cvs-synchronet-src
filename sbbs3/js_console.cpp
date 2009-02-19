@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.86 2009/02/21 11:14:54 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.81 2009/02/19 08:26:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -791,20 +791,13 @@ js_crlf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	int32		i;
-	int32		count=1;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToInt32(cx, argv[0], &count);
-
 	rc=JS_SUSPENDREQUEST(cx);
-	for(i=0;i<count;i++) {
-		sbbs->outchar(CR);
-		sbbs->outchar(LF);
-	}
+	sbbs->outchar(CR);
+	sbbs->outchar(LF);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -848,7 +841,7 @@ js_beep(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_print(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	uintN		i;
+    JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
 	jsrefcount	rc;
@@ -856,14 +849,14 @@ js_print(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-    for (i = 0; i < argc; i++) {
-		if((cstr=js_ValueToStringBytes(cx, argv[i], NULL))==NULL)
-		    return(JS_FALSE);
-		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->bputs(cstr);
-		JS_RESUMEREQUEST(cx, rc);
-	}
+	str = JS_ValueToString(cx, argv[0]);
+	if (!str)
+		return(JS_FALSE);
 
+	cstr=JS_GetStringBytes(str);
+	rc=JS_SUSPENDREQUEST(cx);
+	sbbs->bputs(cstr);
+	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
 
@@ -887,40 +880,33 @@ js_strlen(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+    JSString*	str;
 	sbbs_t*		sbbs;
-	uintN		i;
-	char*		str;
-	size_t		len;
+	char*		cstr;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-    for (i = 0; i < argc; i++) {
-		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
-		    return(JS_FALSE);
-		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->rputs(str, len);
-		JS_RESUMEREQUEST(cx, rc);
-	}
+	str = JS_ValueToString(cx, argv[0]);
+	if (!str)
+		return(JS_FALSE);
 
+	cstr=JS_GetStringBytes(str);
+	rc=JS_SUSPENDREQUEST(cx);
+	sbbs->rputs(cstr);
+	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
 
 static JSBool
 js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
 	if(argc) {
 		if(!js_write(cx, obj, argc, argv, rval))
 			return(JS_FALSE);
 	}
-	sbbs->rputs("\r\n");
-	return(JS_TRUE);
+	return(js_crlf(cx, obj, argc, argv, rval));
 }
 
 static JSBool
@@ -1151,17 +1137,8 @@ js_ansi(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&attr);
-	if(argc>1) {
-		int32	curattr=0;
-		char	buf[16];
-
-		JS_ValueToInt32(cx,argv[0],&curattr);
-		if((js_str=JS_NewStringCopyZ(cx,sbbs->ansi(attr,curattr,buf)))==NULL)
-			return(JS_FALSE);
-	} else {
-		if((js_str=JS_NewStringCopyZ(cx,sbbs->ansi(attr)))==NULL)
-			return(JS_FALSE);
-	}
+	if((js_str=JS_NewStringCopyZ(cx,sbbs->ansi(attr)))==NULL)
+		return(JS_FALSE);
 
 	*rval = STRING_TO_JSVAL(js_str);
     return(JS_TRUE);
@@ -1506,8 +1483,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"optionally (in v3.13b+) setting current attribute first")
 	,311
 	},		
-	{"crlf",            js_crlf,			0, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
-	,JSDOCSTR("output <i>count</i> number of carriage-return/line-feed pairs (new-lines)")
+	{"crlf",            js_crlf,			0, JSTYPE_VOID,		JSDOCSTR("")
+	,JSDOCSTR("output a carriage-return/line-feed pair (new-line)")
 	,310
 	},		
 	{"pause",			js_pause,			0, JSTYPE_VOID,		JSDOCSTR("")
@@ -1515,19 +1492,19 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,310
 	},
 	{"beep",			js_beep,			1, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
-	,JSDOCSTR("beep for <i>count</i> number of times (default count is 1)")
+	,JSDOCSTR("beep for count number of times (default count is 1)")
 	,311
 	},
-	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
-	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.)")
+	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	,JSDOCSTR("display a string (supports Ctrl-A codes, auto-screen pausing, etc.)")
 	,310
 	},		
-	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
-	,JSDOCSTR("display one or more values as raw strings (may include NULs)")
+	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	,JSDOCSTR("display a raw string")
 	,310
 	},		
-	{"writeln",			js_writeln,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
-	,JSDOCSTR("display one or more values as raw strings followed by a single carriage-return/line-feed pair (new-line)")
+	{"writeln",			js_writeln,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	,JSDOCSTR("display a raw string followed by a carriage-return/line-feed pair (new-line)")
 	,315
 	},		
 	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
@@ -1567,10 +1544,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("restore last output line")
 	,310
 	},		
-	{"ansi",			js_ansi,			1, JSTYPE_STRING,	JSDOCSTR("attribute [,current_attribute]")
-	,JSDOCSTR("returns ANSI sequence required to generate specified terminal <i>attribute</i> "
-	"(e.g. <tt>YELLOW|HIGH|BG_BLUE</tt>), "
-	"if <i>current_attribute</i> is specified, an optimized ANSI sequence may be returned")
+	{"ansi",			js_ansi,			1, JSTYPE_STRING,	JSDOCSTR("attribute_number")
+	,JSDOCSTR("returns ANSI encoding of specified <i>attribute_number</i>")
 	,310
 	},		
 	{"ansi_save",		js_pushxy,			0, JSTYPE_ALIAS	},
@@ -1613,15 +1588,13 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,311
 	},
 	{"ansi_getlines",	js_getlines,		0, JSTYPE_ALIAS },
-	{"getlines",		js_getlines,		0, JSTYPE_ALIAS },
-	{"getdimensions",	js_getlines,		0, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("query the number of rows and columns on the remote terminal (ANSI)")
+	{"getlines",		js_getlines,		0, JSTYPE_VOID,		JSDOCSTR("")
+	,JSDOCSTR("auto-detect the number of rows/lines on the user's terminal (ANSI)")
 	,311
 	},
 	{"ansi_getxy",		js_getxy,			0, JSTYPE_ALIAS },
 	{"getxy",			js_getxy,			0, JSTYPE_OBJECT,	JSDOCSTR("")
-	,JSDOCSTR("query the current cursor position on the remote terminal (ANSI) "
-		"and returns the coordinates as an object (with x and y properties)")
+	,JSDOCSTR("returns the current cursor position as an object (with x and y properties)")
 	,311
 	},
 	{"lock_input",		js_lock_input,		1, JSTYPE_VOID,		JSDOCSTR("[lock=<tt>true</tt>]")
@@ -1709,7 +1682,7 @@ JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
 	}
 
 #ifdef BUILD_JSDOCS
-	js_DescribeSyncObject(cx,obj,"Controls the remote terminal",310);
+	js_DescribeSyncObject(cx,obj,"Controls the user's Telnet/RLogin terminal",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", con_prop_desc, JSPROP_READONLY);
 #endif
 
