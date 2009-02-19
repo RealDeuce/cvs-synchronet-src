@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.80 2009/02/19 07:33:21 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.81 2009/02/19 08:26:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1095,10 +1095,13 @@ js_saveline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	sbbs->slatr[sbbs->slcnt]=sbbs->latr; 
-	sprintf(sbbs->slbuf[sbbs->slcnt<SAVE_LINES ? sbbs->slcnt++ : sbbs->slcnt] 
-			,"%.*s",sbbs->lbuflen,sbbs->lbuf); 
-	sbbs->lbuflen=0; 
+	if(sbbs->slcnt<SAVE_LINES) {
+		sbbs->slatr[sbbs->slcnt]=sbbs->latr; 
+		sbbs->slcuratr[sbbs->slcnt]=sbbs->curatr;
+		sprintf(sbbs->slbuf[sbbs->slcnt],"%.*s",sbbs->lbuflen,sbbs->lbuf);
+		sbbs->slcnt++;
+		sbbs->lbuflen=0; 
+	}
     return(JS_TRUE);
 }
 
@@ -1113,9 +1116,11 @@ js_restoreline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->lbuflen=0; 
-	sbbs->attr(sbbs->slatr[--sbbs->slcnt]);
+	if(sbbs->slcnt)
+		sbbs->slcnt--;
+	sbbs->attr(sbbs->slatr[sbbs->slcnt]);
 	sbbs->rputs(sbbs->slbuf[sbbs->slcnt]); 
-	sbbs->curatr=LIGHTGRAY;
+	sbbs->curatr=sbbs->slcuratr[sbbs->slcnt];
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
