@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.19 2010/02/26 02:03:43 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.18 2008/02/10 11:13:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,10 +61,10 @@ typedef struct {
 	unsigned	max_errors;
 	unsigned	fallback_to_xmodem; /* fallback to Xmodem after this many Ymodem send attempts */
 	unsigned	g_delay;
-	ulong		total_files;
-	ulong		total_bytes;
+	unsigned	total_files;
+	unsigned	total_bytes;
 	unsigned	sent_files;
-	ulong		sent_bytes;
+	unsigned	sent_bytes;
 	int			(*lputs)(void*, int level, const char* str);
 	void		(*progress)(void*, unsigned block_num, ulong offset, ulong fsize, time_t t);
 	int			(*send_byte)(void*, uchar ch, unsigned timeout);
