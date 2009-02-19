@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.59 2009/02/19 09:28:11 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.60 2009/02/19 09:38:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -366,9 +366,9 @@ void sbbs_t::cleartoeol(void)
 		rputs("\x1b[K");
 	else {
 		i=j=column;
-		while(++i<cols-1)
+		while(++i<cols)
 			outchar(' ');
-		while(++j<cols-1)
+		while(++j<cols)
 			outchar(BS); 
 	}
 }
