@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.246 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: js_global.c,v 1.245 2009/02/16 04:22:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3523,7 +3523,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		return(NULL);
 
 	/* Area Objects */
-	if(!js_CreateUserObjects(js_cx, js_glob, cfg, /* user: */NULL, client, /* html_index_fname: */NULL, /* subscan: */NULL)) 
+	if(!js_CreateUserObjects(js_cx, js_glob, cfg, NULL, NULL, NULL)) 
 		return(NULL);
 
 	return(js_glob);
