@@ -2,13 +2,13 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.24 2010/03/10 08:04:20 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.22 2009/02/15 11:32:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -160,7 +160,7 @@ void sbbs_t::telluser(smbmsg_t* msg)
 /************************************************************************/
 /* Deletes all mail waiting for user number 'usernumber'                */
 /************************************************************************/
-void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
+void sbbs_t::delallmail(uint usernumber)
 {
 	int 	i;
 	long	l,deleted=0;
@@ -181,7 +181,7 @@ void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
 		return; 
 	}
 
-	mail=loadmail(&smb,&msgs,usernumber,which,0);
+	mail=loadmail(&smb,&msgs,usernumber,MAIL_ANY,0);
 	if(!msgs) {
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
@@ -196,8 +196,6 @@ void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
 	}
 	for(l=0;l<msgs;l++) {
 		msg.idx.offset=0;						/* search by number */
-		if((mail[l].attr&MSG_PERMANENT) && !permanent)
-			continue;
 		if(loadmsg(&msg,mail[l].number)) {	   /* message still there */
 			msg.hdr.attr|=MSG_DELETE;
 			msg.hdr.attr&=~MSG_PERMANENT;
@@ -213,7 +211,7 @@ void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
 
 	if(msgs)
 		free(mail);
-	if(permanent && deleted && (cfg.sys_misc&SM_DELEMAIL))
+	if(deleted && cfg.sys_misc&SM_DELEMAIL)
 		delmail(usernumber,MAIL_ANY);
 	smb_unlocksmbhdr(&smb);
 	smb_close(&smb);
