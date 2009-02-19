@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.42 2009/02/10 07:56:01 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.43 2009/02/16 03:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -576,7 +576,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					continue; 
 				}
 				strupr(buf);
-				strip_ctrl(buf);
+				strip_ctrl(buf, buf);
 				SAFECOPY(subj,msg.subj);
 				strupr(subj);
 				if(!strstr(buf,find) && !strstr(subj,find)) {
@@ -1192,7 +1192,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			continue; 
 		}
 		strupr(buf);
-		strip_ctrl(buf);
+		strip_ctrl(buf, buf);
 		SAFECOPY(subj,msg.subj);
 		strupr(subj);
 		if(strstr(buf,search) || strstr(subj,search)) {
