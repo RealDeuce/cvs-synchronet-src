@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.50 2009/01/30 07:11:35 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.51 2009/02/16 03:25:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,8 +174,8 @@ bool sbbs_t::uploadfile(file_t *f)
 				ext[i]=0;
 				if(!f->desc[0]) {
 					strcpy(desc,ext);
-					strip_exascii(desc);
-					prep_file_desc(desc);
+					strip_exascii(desc, desc);
+					prep_file_desc(desc, desc);
 					for(i=0;desc[i];i++)
 						if(isalnum(desc[i]))
 							break;

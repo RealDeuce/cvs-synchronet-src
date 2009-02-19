@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.14 2009/01/16 04:33:19 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.18 2009/02/19 09:19:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ void sbbs_t::ansi_getlines()
 	if(sys_status&SS_USERON && useron.misc&ANSI && !useron.rows /* Auto-detect rows */
 		&& online==ON_REMOTE) {									/* Remote */
 		SYNC;
-		putcom("\x1b[s\x1b[99B\x1b[6n\x1b[u");
+		putcom("\x1b[s\x1b[255B\x1b[255C\x1b[6n\x1b[u");
 		inkey(K_ANSI_CPR,TIMEOUT_ANSI_GETXY*1000); 
 	}
 }
@@ -164,6 +164,8 @@ bool sbbs_t::ansi_gotoxy(int x, int y)
 {
 	if(term_supports(ANSI)) {
 		rprintf("\x1b[%d;%dH",y,x);
+		if(x>0)
+			column=x-1;
 		return true;
 	}
 	return false;
