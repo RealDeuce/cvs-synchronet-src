@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.107 2010/03/03 06:26:10 deuce Exp $ */
+/* $Id: sexyz.c,v 1.87 2008/10/04 23:07:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -77,15 +77,13 @@
 #define SINGLE_THREADED		FALSE
 #define MIN_OUTBUF_SIZE		1024
 #define MAX_OUTBUF_SIZE		(64*1024)
-#define INBUF_SIZE			(64*1024)
-#define	MAX_FILE_SIZE		0			/* Default value for max recv file size, 0 = unlimited*/
 
 /***************/
 /* Global Vars */
 /***************/
 long	mode=0;							/* Program mode 					*/
 long	zmode=0L;						/* Zmodem mode						*/
-uchar	block[XMODEM_MAX_BLOCK_SIZE];	/* Block buffer 					*/
+uchar	block[XMODEM_MAX_BLOCK_SIZE];					/* Block buffer 					*/
 ulong	block_num;						/* Block number 					*/
 char*	dszlog;
 BOOL	dszlog_path=TRUE;				/* Log complete path to filename	*/
@@ -93,7 +91,6 @@ BOOL	dszlog_short=FALSE;				/* Log Micros~1 short filename		*/
 BOOL	dszlog_quotes=FALSE;			/* Quote filenames in DSZLOG		*/
 int		log_level=LOG_INFO;
 BOOL	use_syslog=FALSE;
-ulong	max_file_size=MAX_FILE_SIZE;
 
 xmodem_t xm;
 zmodem_t zm;
@@ -118,7 +115,6 @@ BOOL	debug_telnet=FALSE;
 BOOL	pause_on_exit=FALSE;
 BOOL	pause_on_abend=FALSE;
 BOOL	newline=TRUE;
-BOOL	connected=TRUE;
 
 time_t		progress_interval;
 
@@ -130,10 +126,6 @@ RingBuf		outbuf;
 #endif
 unsigned	outbuf_drain_timeout;
 long		outbuf_size;
-
-uchar		inbuf[INBUF_SIZE];
-unsigned	inbuf_pos=0;
-unsigned	inbuf_len=0;
 
 unsigned	flows=0;
 unsigned	select_errors=0;
@@ -215,9 +207,6 @@ static int lprintf(int level, const char *fmt, ...)
 	char sbuf[1024];
 	va_list argptr;
 
-	if(level>log_level)
-		return 0;
-
     va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
@@ -238,7 +227,7 @@ void break_handler(int type)
 }
 
 #if defined(_WIN32)
-BOOL WINAPI ControlHandler(unsigned long CtrlType)
+BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
 	break_handler((int)CtrlType);
 	return TRUE;
@@ -332,56 +321,6 @@ void dump(BYTE* buf, int len)
 	}
 }
 
-int sock_sendbuf(SOCKET s, void *buf, size_t buflen)
-{
-	size_t		sent=0;
-	int			ret;
-	fd_set		socket_set;
-
-	for(;;) {
-		ret=sendsocket(s,(char *)buf+sent,buflen-sent);
-		if(ret==SOCKET_ERROR) {
-			switch(ERROR_VALUE) {
-				case EAGAIN:
-				case ENOBUFS:
-#if (EAGAIN != EWOULDBLOCK)
-				case EWOULDBLOCK:
-#endif
-					/* Block until we can send */
-					FD_ZERO(&socket_set);
-#ifdef __unix__
-					if(stdio)
-						FD_SET(STDIN_FILENO,&socket_set);
-					else
-#endif
-						FD_SET(sock,&socket_set);
-
-					if((ret=select(sock+1,NULL,&socket_set,NULL,NULL))<1) {
-						if(ret==SOCKET_ERROR && ERROR_VALUE != EINTR) {
-							lprintf(LOG_ERR,"ERROR %d selecting socket", ERROR_VALUE);
-							goto disconnect;
-						}
-					}
-					break;
-				default:
-					goto disconnect;
-			}
-		}
-		else {
-			sent += ret;
-			if(sent >= buflen)
-				return(sent);
-		}
-	}
-
-disconnect:
-	lprintf(LOG_DEBUG,"DISCONNECTED line %u", __LINE__);
-	connected=FALSE;
-	if(sent)
-		return sent;
-	return SOCKET_ERROR;
-}
-
 void send_telnet_cmd(SOCKET sock, uchar cmd, uchar opt)
 {
 	uchar	buf[3];
@@ -394,80 +333,11 @@ void send_telnet_cmd(SOCKET sock, uchar cmd, uchar opt)
 		lprintf(LOG_DEBUG,"Sending telnet command: %s %s"
 			,telnet_cmd_desc(buf[1]),telnet_opt_desc(buf[2]));
 
-	if(sock_sendbuf(sock,buf,sizeof(buf))!=sizeof(buf) && debug_telnet)
+	if(sendsocket(sock,buf,sizeof(buf))!=sizeof(buf) && debug_telnet)
 		lprintf(LOG_ERR,"FAILED");
 }
 
 #define DEBUG_TELNET FALSE
-
-/*
- * Returns -1 on disconnect or the number of bytes read.
- * Does not muck around with ERROR_VALUE (hopefully)
- */
-static int recv_buffer(int timeout)
-{
-	int i;
-	fd_set		socket_set;
-	struct timeval	tv;
-
-	for(;;) {
-		if(inbuf_len > inbuf_pos)
-			return(inbuf_len-inbuf_pos);
-#ifdef __unix__
-		if(stdio)
-			i=read(STDIN_FILENO,inbuf,sizeof(inbuf));
-		else
-#endif
-			i=recv(sock,inbuf,sizeof(inbuf),0);
-		if(i==SOCKET_ERROR) {
-			switch(ERROR_VALUE) {
-				case EAGAIN:
-				case EINTR:
-#if (EAGAIN != EWOULDBLOCK)
-				case EWOULDBLOCK:
-#endif
-					// Call select()
-					if(timeout) {
-						FD_ZERO(&socket_set);
-#ifdef __unix__
-						if(stdio)
-							FD_SET(STDIN_FILENO,&socket_set);
-						else
-#endif
-							FD_SET(sock,&socket_set);
-						tv.tv_sec=timeout;
-						timeout=0;
-						tv.tv_usec=0;
-						if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
-							if(i==SOCKET_ERROR) {
-								lprintf(LOG_ERR,"ERROR %d selecting socket", ERROR_VALUE);
-								connected=FALSE;
-							}
-							else
-								lprintf(LOG_WARNING,"Receive timeout (%u seconds)", timeout);
-						}
-						else
-							continue;
-					}
-					return 0;
-				default:
-					lprintf(LOG_DEBUG,"DISCONNECTED line %u, error=%u", __LINE__,ERROR_VALUE);
-					connected=FALSE;
-					return -1;
-			}
-			return -1; // Impossible.
-		}
-		else if(i==0) {
-			lprintf(LOG_DEBUG,"DISCONNECTED line %u", __LINE__);
-			connected=FALSE;
-			return -1;
-		}
-		else {
-			inbuf_len=i;
-			return i;
-		}
-	};
-}
 
 /****************************************************************************/
 /* Receive a byte from remote (single-threaded version)						*/
@@ -475,30 +345,43 @@ static int recv_buffer(int timeout)
 int recv_byte(void* unused, unsigned timeout)
 {
 	int			i;
+	long		t;
 	uchar		ch;
+	fd_set		socket_set;
+	time_t		end;
+	struct timeval	tv;
 	static uchar	telnet_cmd;
 	static int		telnet_cmdlen;
 
-	while((inbuf_len || connected) && !terminate) {
-		if(inbuf_len) {
-			ch=inbuf[inbuf_pos++];
-			i=1;
-			if(inbuf_pos >= inbuf_len)
-				inbuf_pos=inbuf_len=0;
-		}
-		else {
-			i=recv_buffer(timeout);
-			switch(i) {
-				case -1:
-					i=0;
-					break;
-				case 0:
-					return NOINP;
-				default:
-					i=1;
-					continue;
+	end=msclock()+(timeout*MSCLOCKS_PER_SEC);
+	while(!terminate) {
+
+		FD_ZERO(&socket_set);
+#ifdef __unix__
+		if(stdio)
+			FD_SET(STDIN_FILENO,&socket_set);
+		else
+#endif
+			FD_SET(sock,&socket_set);
+		if((t=end-msclock())<0) t=0;
+		tv.tv_sec=t/((unsigned)MSCLOCKS_PER_SEC);
+		tv.tv_usec=(t%((unsigned)MSCLOCKS_PER_SEC))*1000;
+
+		if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
+			if(i==SOCKET_ERROR) {
+				lprintf(LOG_ERR,"ERROR %d selecting socket", ERROR_VALUE);
 			}
+			if(timeout)
+				lprintf(LOG_WARNING,"Receive timeout (%u seconds)", timeout);
+			return(NOINP);
 		}
+		
+#ifdef __unix__
+		if(stdio)
+			i=read(STDIN_FILENO,&ch,sizeof(ch));
+		else
+#endif
+			i=recv(sock,&ch,sizeof(ch),0);
 
 		if(i!=sizeof(ch)) {
 			if(i==0) {
@@ -636,7 +519,7 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 		i=write(STDOUT_FILENO,buf,len);
 	else
 #endif
-		i=sock_sendbuf(sock,buf,len);
+		i=sendsocket(sock,buf,len);
 	
 	if(i==len) {
 		if(debug_tx)
@@ -659,6 +542,8 @@ static void output_thread(void* arg)
 	ulong		short_sends=0;
     ulong		bufbot=0;
     ulong		buftop=0;
+	fd_set		socket_set;
+	struct timeval tv;
 
 #if 0 /* def _DEBUG */
 	fprintf(statfp,"output thread started\n");
@@ -681,6 +566,29 @@ static void output_thread(void* arg)
 			continue; 
 		}
 
+		/* Check socket for writability (using select) */
+		tv.tv_sec=0;
+		tv.tv_usec=1000;
+
+		FD_ZERO(&socket_set);
+#ifdef __unix__
+		if(stdio)
+			FD_SET(STDOUT_FILENO,&socket_set);
+		else
+#endif
+			FD_SET(sock,&socket_set);
+
+		i=select(sock+1,NULL,&socket_set,NULL,&tv);
+		if(i==SOCKET_ERROR) {
+			lprintf(LOG_ERR,"ERROR %d selecting socket %u for send"
+				,ERROR_VALUE,sock);
+			break;
+		}
+		if(i<1) {
+			select_errors++;
+			continue;
+		}
+
         if(bufbot==buftop) { /* linear buf empty, read from ring buf */
             if(avail>sizeof(buf)) {
                 lprintf(LOG_ERR,"Insufficient linear output buffer (%lu > %lu)"
@@ -695,7 +603,7 @@ static void output_thread(void* arg)
 			i=write(STDOUT_FILENO, (char*)buf+bufbot, buftop-bufbot);
 		else
 #endif
-			i=sock_sendbuf(sock, (char*)buf+bufbot, buftop-bufbot);
+			i=sendsocket(sock, (char*)buf+bufbot, buftop-bufbot);
 		if(i==SOCKET_ERROR) {
         	if(ERROR_VALUE == ENOTSOCK)
                 lprintf(LOG_ERR,"client socket closed on send");
@@ -731,24 +639,18 @@ static void output_thread(void* arg)
 	lprintf(LOG_DEBUG,"output thread terminated\n%s", stats);
 }
 
-/* Flush output buffer */
-void flush(void* unused)
-{
-
-}
-
 BOOL is_connected(void* unused)
 {
-	if(inbuf_len > inbuf_pos)
-		return TRUE;
-	return connected;
+	return socket_check(sock,NULL,NULL,0);
 }
 
 BOOL data_waiting(void* unused, unsigned timeout)
 {
-	if(recv_buffer(timeout) > 0)
-		return TRUE;
-	return FALSE;
+	BOOL rd;
+
+	if(!socket_check(sock,&rd,NULL,timeout))
+		return(FALSE);
+	return(rd);
 }
 
 /****************************************************************************/
@@ -810,7 +712,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
+				,(long)(((float)offset/(float)fsize)*100.0)
 				);
 		} else if(mode&YMODEM) {
 			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
@@ -824,7 +726,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
+				,(long)(((float)offset/(float)fsize)*100.0)
 				);
 		} else { /* XModem receive */
 			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
@@ -879,7 +781,7 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 			,l/60L
 			,l%60L
 			,cps
-			,zm.current_file_size?(long)(((float)current_pos/(float)zm.current_file_size)*100.0):100
+			,(long)(((float)current_pos/(float)zm.current_file_size)*100.0)
 			);
 		newline=FALSE;
 		last_progress=now;
@@ -956,6 +858,7 @@ static int send_files(char** fname, uint fnames)
 			fsize=filelength(fileno(fp));
 
 			errors=0;
+			success=FALSE;
 			startfile=time(NULL);
 
 			lprintf(LOG_INFO,"Sending %s (%lu KB) via %cMODEM"
@@ -963,9 +866,9 @@ static int send_files(char** fname, uint fnames)
 				,mode&XMODEM ? 'X' : mode&YMODEM ? 'Y' : 'Z');
 
 			if(mode&ZMODEM)
-				success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, (uint32_t*)&sent_bytes);
+					success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, (uint32_t*)&sent_bytes);
 			else	/* X/Ymodem */
-				success=xmodem_send_file(&xm, path, fp, &startfile, &sent_bytes);
+					success=xmodem_send_file(&xm, path, fp, &startfile, &sent_bytes);
 
 			fclose(fp);
 
@@ -976,10 +879,7 @@ static int send_files(char** fname, uint fnames)
 			if(success) {
 				xm.sent_files++;
 				xm.sent_bytes+=fsize;
-				if(zm.file_skipped)
-					lprintf(LOG_WARNING,"File Skipped");
-				else
-					lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
+				lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
 						,t/60,t%60,cps);
 
 				if(xm.total_files-xm.sent_files)
@@ -997,8 +897,8 @@ static int send_files(char** fname, uint fnames)
 				lprintf(LOG_DEBUG,"Updating DSZLOG: %s", dszlog);
 				fprintf(logfp,"%c %7lu %5u bps %6lu cps %3u errors %5u %4u "
 					"%s -1\n"
-					,(mode&ZMODEM && zm.file_skipped) ? 's' 
-						: success ? (mode&ZMODEM ? 'z':'S') 
+					,success ? (mode&ZMODEM ? 'z':'S') 
+						: (mode&ZMODEM && zm.file_skipped) ? 's' 
 						: 'E'
 					,sent_bytes
 					,115200 /* baud */
@@ -1017,7 +917,7 @@ static int send_files(char** fname, uint fnames)
 				break;
 			}
 
-			if(xm.cancelled || zm.cancelled || !success)
+			if(xm.cancelled || zm.cancelled)
 				break;
 
 		} /* while(gi<(int)g.gl_pathc) */
@@ -1026,7 +926,7 @@ static int send_files(char** fname, uint fnames)
 			break;
 	}
 
-	if(mode&ZMODEM && !zm.cancelled && is_connected(NULL) && (success || total_bytes))
+	if(mode&ZMODEM && !zm.cancelled && is_connected(NULL))
 		zmodem_get_zfin(&zm);
 
 	if(fnum<fnames) /* error occurred */
@@ -1087,11 +987,11 @@ static int receive_files(char** fname_list, int fnames)
 		lprintf(LOG_WARNING,"Throwing out received: %s",chr((uchar)i));
 
 	while(is_connected(NULL)) {
-		file_bytes=0x7fffffff;
 		if(mode&XMODEM) {
 			SAFECOPY(str,fname_list[0]);	/* we'll have at least one fname */
-			file_bytes_left=file_bytes;
+			file_bytes=file_bytes_left=0x7fffffff;
 		}
+
 		else {
 			if(mode&YMODEM) {
 				lprintf(LOG_INFO,"Fetching YMODEM header block");
@@ -1115,8 +1015,8 @@ static int receive_files(char** fname_list, int fnames)
 					lprintf(LOG_INFO,"Received YMODEM termination block");
 					return(0); 
 				}
-				ftime=total_files=total_bytes=0;
-				i=sscanf(block+strlen(block)+1,"%lu %lo %lo %lo %u %lu"
+				file_bytes=ftime=total_files=total_bytes=0;
+				i=sscanf(block+strlen(block)+1,"%ld %lo %lo %lo %d %ld"
 					,&file_bytes			/* file size (decimal) */
 					,&ftime 				/* file time (octal unix format) */
 					,&fmode 				/* file mode (not used) */
@@ -1151,6 +1051,9 @@ static int receive_files(char** fname_list, int fnames)
 						return(-1);
 				}
 			}
+
+			if(!file_bytes)
+				file_bytes=0x7fffffff;
 			file_bytes_left=file_bytes;
 			if(!total_files)
 				total_files=fnames-fnum;
@@ -1209,17 +1112,6 @@ static int receive_files(char** fname_list, int fnames)
 			xmodem_cancel(&xm);
 			return(1); 
 		}
-
-		if(!(mode&XMODEM) && max_file_size!=0 && file_bytes > max_file_size) {
-			lprintf(LOG_WARNING,"%s file size (%u) exceeds specified maximum: %u bytes", str, file_bytes, max_file_size);
-			if(mode&ZMODEM) {
-				zmodem_send_zskip(&zm);
-				continue;
-			}
-			xmodem_cancel(&xm);
-			return(1); 
-		}
-
 		if((fp=fnopen(NULL,str,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY))==NULL
 			&& (fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
@@ -1249,21 +1141,21 @@ static int receive_files(char** fname_list, int fnames)
 
 			errors=zmodem_recv_file_data(&zm,fp,0);
 
-			if(errors<=zm.max_errors && !zm.cancelled)
-				success=TRUE;
+			/*
+ 			 * wait for the eof header
+			 */
+
+			for(;errors<=zm.max_errors && !success && !zm.cancelled; errors++) {
+				if(zmodem_recv_header_and_check(&zm))
+					success=TRUE;
+			} 
 
 		} else {
 			errors=0;
 			block_num=1;
 			xmodem_put_nak(&xm, block_num);
 			while(is_connected(NULL)) {
-				ulong pos=ftell(fp);
-				if(max_file_size!=0 && pos>=max_file_size) {
-					lprintf(LOG_WARNING,"Specified maximum file size (%lu bytes) reached at offset %lu"
-						,max_file_size, pos);
-					break;
-				}
-				xmodem_progress(NULL,block_num,pos,file_bytes,startfile);
+				xmodem_progress(NULL,block_num,ftell(fp),file_bytes,startfile);
 				i=xmodem_get_block(&xm, block, block_num); 	
 
 				if(i!=SUCCESS) {
@@ -1314,28 +1206,21 @@ static int receive_files(char** fname_list, int fnames)
 		}
 
 		/* Use correct file size */
-		if(mode&ZMODEM)
-			file_bytes = zm.current_file_size;	/* file can grow in transit */
-		else {
-			fflush(fp);
-			if(file_bytes < (ulong)filelength(fileno(fp))) {
-				lprintf(LOG_INFO,"Truncating file to %lu bytes", file_bytes);
-				chsize(fileno(fp),file_bytes);
-			} else
-				file_bytes = filelength(fileno(fp));
-		}
+		fflush(fp);
+		if(file_bytes < (ulong)filelength(fileno(fp))) {
+			lprintf(LOG_INFO,"Truncating file to %lu bytes", file_bytes);
+			chsize(fileno(fp),file_bytes);
+		} else
+			file_bytes = filelength(fileno(fp));
 		fclose(fp);
-
+		
 		t=time(NULL)-startfile;
 		if(!t) t=1;
-		if(zm.file_skipped)
-			lprintf(LOG_WARNING,"File Skipped");
-		else if(success)
+		if(success)
 			lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
 				,t/60,t%60,file_bytes/t);	
 		else
-			lprintf(LOG_ERR,"File Transfer %s"
-				,zm.local_abort ? "Aborted": zm.cancelled ? "Cancelled":"Failure");
+			lprintf(LOG_ERR,"File Transfer %s", zm.local_abort ? "Aborted":"Failure");
 
 		if(!(mode&XMODEM) && ftime)
 			setfdate(str,ftime); 
@@ -1359,7 +1244,7 @@ static int receive_files(char** fname_list, int fnames)
 		if(zm.local_abort) {
 			lprintf(LOG_DEBUG,"Locally aborted, sending cancel to remote");
 			if(mode&ZMODEM)
-				zmodem_send_zabort(&zm);
+				zmodem_abort_receive(&zm);
 			xm.cancelled=FALSE;
 			xmodem_cancel(&xm);
 			break;
@@ -1411,7 +1296,6 @@ static const char* usage=
 	"         -2  set maximum Zmodem block size to 2K\n"
 	"         -4  set maximum Zmodem block size to 4K\n"
 	"         -8  set maximum Zmodem block size to 8K (ZedZap)\n"
-	"         -m# set maximum receive file size to # bytes (0=unlimited, default=%u)\n"
 	"         -!  to pause after abnormal exit (error)\n"
 	"         -telnet to enable Telnet mode (the default)\n"
 	"         -rlogin or -ssh or -raw to disable Telnet mode\n"
@@ -1456,7 +1340,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.107 $", "%*s %s", revision);
+	sscanf("$Revision: 1.87 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1465,8 +1349,8 @@ int main(int argc, char **argv)
 		,__DATE__+7
 		);
 
-	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected,NULL,flush);
-	zmodem_init(&zm,NULL,lputs,zmodem_progress,send_byte,recv_byte,is_connected,NULL,data_waiting,flush);
+	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected,NULL);
+	zmodem_init(&zm,NULL,lputs,zmodem_progress,send_byte,recv_byte,is_connected,NULL,data_waiting);
 
 	/* Generate path/sexyz[.host].ini from path/sexyz[.exe] */
 	SAFECOPY(str,argv[0]);
@@ -1499,7 +1383,6 @@ int main(int argc, char **argv)
 	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",16*1024);
 
 	progress_interval		=iniReadInteger(fp,ROOT_SECTION,"ProgressInterval",1);
-	max_file_size 			=iniReadLongInt(fp,ROOT_SECTION,"MaxFileSize",MAX_FILE_SIZE);
 
 	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
 		log_level=LOG_DEBUG;
@@ -1522,7 +1405,7 @@ int main(int argc, char **argv)
 	zm.recv_timeout			=iniReadInteger(fp,"Zmodem","RecvTimeout",zm.recv_timeout);	/* seconds */
 	zm.crc_timeout			=iniReadInteger(fp,"Zmodem","CrcTimeout",zm.crc_timeout);	/* seconds */
 	zm.block_size			=iniReadInteger(fp,"Zmodem","BlockSize",zm.block_size);			/* 1024  */
-	zm.max_block_size		=iniReadInteger(fp,"Zmodem","MaxBlockSize", zm.max_block_size); /* 1024 or 8192 */
+	zm.max_block_size		=iniReadInteger(fp,"Zmodem","MaxBlockSize",zm.max_block_size);	/* 1024 or 8192 */
 	zm.max_errors			=iniReadInteger(fp,"Zmodem","MaxErrors",zm.max_errors);
 	zm.recv_bufsize			=iniReadInteger(fp,"Zmodem","RecvBufSize",0);
 	zm.no_streaming			=!iniReadBool(fp,"Zmodem","Streaming",TRUE);
@@ -1607,7 +1490,7 @@ int main(int argc, char **argv)
 						break;
 					default:
 						fprintf(statfp,"Unrecognized command '%s'\n\n",argv[i]);
-						fprintf(statfp,usage,MAX_FILE_SIZE);
+						fprintf(statfp,usage);
 						bail(1); 
 				} 
 				continue;
@@ -1681,9 +1564,6 @@ int main(int argc, char **argv)
 					case '!':
 						pause_on_abend=TRUE;
 						break;
-					case 'M':	/* MaxFileSize */
-						max_file_size=strtoul(arg++,NULL,0);
-						break;
 				}
 			}
 		}
@@ -1730,8 +1610,6 @@ int main(int argc, char **argv)
 	if(!telnet)
 		zm.escape_telnet_iac = FALSE;
 
-	zm.max_file_size = max_file_size;
-
 	if(sock==INVALID_SOCKET || sock<1) {
 #ifdef __unix__
 		if(STDOUT_FILENO > STDIN_FILENO)
@@ -1744,7 +1622,7 @@ int main(int argc, char **argv)
 		telnet=FALSE;
 #else
 		fprintf(statfp,"!No socket descriptor specified\n\n");
-		fprintf(errfp,usage,MAX_FILE_SIZE);
+		fprintf(errfp,usage);
 		bail(1);
 #endif
 	}
@@ -1755,13 +1633,13 @@ int main(int argc, char **argv)
 
 	if(!(mode&(SEND|RECV))) {
 		fprintf(statfp,"!No command specified\n\n");
-		fprintf(statfp,usage,MAX_FILE_SIZE);
+		fprintf(statfp,usage);
 		bail(1); 
 	}
 
 	if(mode&(SEND|XMODEM) && !fnames) { /* Sending with any or recv w/Xmodem */
 		fprintf(statfp,"!Must specify filename or filelist\n\n");
-		fprintf(statfp,usage,MAX_FILE_SIZE);
+		fprintf(statfp,usage);
 		bail(1); 
 	}
 
@@ -1798,18 +1676,6 @@ int main(int argc, char **argv)
 #ifdef __unix__
 	}
 #endif
-
-	/* Set non-blocking mode */
-#ifdef __unix__
-	if(stdio) {
-		fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
-	}
-	else
-#endif
-	{
-		i=1;
-		ioctlsocket(sock, FIONBIO, &i);
-	}
 
 	if(!socket_check(sock, NULL, NULL, 0)) {
 		lprintf(LOG_WARNING,"No socket connection");
