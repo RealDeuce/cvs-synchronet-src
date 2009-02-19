@@ -2,7 +2,7 @@
 
 /* Program to delete expired files from a Synchronet file database */
 
-/* $Id: delfiles.c,v 1.5 2008/02/23 22:35:08 rswindell Exp $ */
+/* $Id: delfiles.c,v 1.6 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ long lputs(char *str)
 /* Performs printf() through local assembly routines                        */
 /* Called from everywhere                                                   */
 /****************************************************************************/
-int lprintf(char *fmat, ...)
+int lprintf(const char *fmat, ...)
 {
 	va_list argptr;
 	char sbuf[256];

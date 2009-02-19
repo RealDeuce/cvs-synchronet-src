@@ -2,13 +2,13 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.18 2007/07/27 12:54:42 deuce Exp $ */
+/* $Id: putmsg.cpp,v 1.21 2009/02/18 05:23:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,13 +47,12 @@
 /* the attributes prior to diplaying the message are always restored.       */
 /* Ignores Ctrl-Z's                                                         */
 /****************************************************************************/
-char sbbs_t::putmsg(char *str, long mode)
+char sbbs_t::putmsg(const char *str, long mode)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
 	uchar	exatr=0;
 	int 	orgcon=console,i;
 	ulong	l=0,sys_status_sav=sys_status;
-	long	col=0;
 	int		defered_pause=FALSE;
 
 	attr_sp=0;	/* clear any saved attributes */
@@ -168,7 +167,7 @@ char sbbs_t::putmsg(char *str, long mode)
 				case 'W':
 					attr((curatr&0xf0)|LIGHTGRAY|HIGH);
 					break;
-				case 'S':   /* swap foreground and background */
+				case 'S':   /* swap foreground and background - TODO: This sets foreground to BLACK! */
 					attr((curatr&0x07)<<4);
 					break; 
 			}
@@ -254,10 +253,12 @@ char sbbs_t::putmsg(char *str, long mode)
 			}
 			if(str[l]!=CTRL_Z) {
 				outchar(str[l]);
+#if 0
 				if(!(mode&P_HTML) && !exatr && !outchar_esc && lncntr && lbuflen && cols && ++col==cols)
 					lncntr++;
 				else
 					col=0;
+#endif
 			}
 			l++; 
 		} 
