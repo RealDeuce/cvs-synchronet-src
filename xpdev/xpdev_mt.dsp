@@ -134,10 +134,6 @@ SOURCE=.\threadwrap.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\xp_dl.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\xpdatetime.c
 # End Source File
 # Begin Source File
