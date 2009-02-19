@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.15 2009/02/19 10:49:29 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.16 2009/02/19 10:55:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,14 +43,11 @@
 /****************************************************************************/
 void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 {
-    char str[256];
-
-	sprintf(str,"%-*.*s",l,l,strin);
 	cursor_left(i);
 	if(mode&K_MSG)
-		bputs(str);
+		bprintf("%-*.*s",l,l,strin);
 	else
-		column+=rputs(str);
+		column+=rprintf("%-*.*s",l,l,strin);
 	cleartoeol();
 	if(i<l)
 		cursor_left(l-i); 
