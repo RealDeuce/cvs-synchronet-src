@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.65 2009/02/18 05:50:31 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.66 2009/02/19 07:39:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,7 +254,7 @@ bool sbbs_t::answer()
 			"\x1b[s"	/* save cursor position (necessary for HyperTerm auto-ANSI) */
     		"\x1b[255B"	/* locate cursor as far down as possible */
 			"\x1b[255C"	/* locate cursor as far right as possible */
-			"_"			/* need a printable at this location to actually move cursor */
+			"\b_"		/* need a printable at this location to actually move cursor */
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
