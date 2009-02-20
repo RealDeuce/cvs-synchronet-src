@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.528 2009/02/18 05:23:00 rswindell Exp $ */
+/* $Id: main.cpp,v 1.529 2009/02/20 00:05:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1993,6 +1993,8 @@ void output_thread(void* arg)
 		tv.tv_usec=1000;
 
 		FD_ZERO(&socket_set);
+		if(sbbs->client_socket==INVALID_SOCKET)		// Make the race condition less likely to actually happen... TODO: Fix race
+			continue;
 		FD_SET(sbbs->client_socket,&socket_set);
 
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
@@ -5398,6 +5400,3 @@ NO_PASSTHRU:
 	} while(!terminate_server);
 
 }
-
-
-
