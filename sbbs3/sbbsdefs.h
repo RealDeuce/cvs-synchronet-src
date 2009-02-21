@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.155 2009/01/16 03:51:46 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.158 2009/02/21 22:01:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2008 Rob Swindell"
-#define COPYRIGHT_CRC		0x2AF13941
+#define COPYRIGHT_NOTICE	"Copyright 2009 Rob Swindell"
+#define COPYRIGHT_CRC		0xB7FED837
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -278,8 +278,9 @@ typedef struct {
 									/* Bit values for cfg.file_misc				*/
 #define FM_NO_LFN	(1<<0)			/* No long filenames in listings			*/
 
-									/* Bit values for cfg.msg_misc				*/
+									/* Bit values for cfg.msg_misc (upper 16-bits default to on) */
 #define MM_REALNAME	(1<<16)			/* Allow receipt of e-mail using real names	*/
+#define MM_EMAILSIG	(1<<17)			/* Include user signatures in e-mail msgs */
 
 									/* errormsg() codes */
 #define ERR_OPEN	"opening"		/* opening a file */
@@ -831,9 +832,6 @@ enum {							/* Values of mode for userlist function     */
 						  nodesync(); }
 #define ASYNC			{ getnodedat(cfg.node_num,&thisnode,0); \
 						  nodesync(); }
-#define ANSI_SAVE() 	rputs("\x1b[s")
-#define ANSI_RESTORE()	rputs("\x1b[u")
-#define GOTOXY(x,y)     rprintf("\x1b[%d;%dH",y,x);
 #define TM_YEAR(yy)		((yy)%100)
 #define sbbs_beep(f,d)	BEEP(f,d)
 #define mswait(x)		SLEEP(x)
