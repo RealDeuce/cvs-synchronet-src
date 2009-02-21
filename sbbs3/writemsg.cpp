@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.87 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.83 2009/02/18 06:32:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 /* 'dest' contains a text description of where the message is going.        */
 /****************************************************************************/
 bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode, int subnum
-	,const char *dest, char** editor)
+	,const char *dest)
 {
 	char	str[256],quote[128],c,*buf,*p,*tp
 				,useron_level;
@@ -181,9 +181,6 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 	unsigned lines;
 
 	useron_level=useron.level;
-
-	if(editor!=NULL)
-		*editor=NULL;
 
 	if((buf=(char*)malloc(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN))
 		==NULL) {
@@ -419,9 +416,6 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 
 	else if(useron.xedit) {
 
-		if(editor!=NULL)
-			*editor=cfg.xedit[useron.xedit-1]->name;
-
 		editor_inf(useron.xedit,dest,title,mode,subnum);
 		if(cfg.xedit[useron.xedit-1]->type) {
 			gettimeleft();
@@ -519,8 +513,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 	l=process_edited_text(buf,stream,mode,&lines);
 
 	/* Signature file */
-	if((subnum==INVALID_SUB && cfg.msg_misc&MM_EMAILSIG)
-		|| (subnum!=INVALID_SUB && !(cfg.sub[subnum]->misc&SUB_NOUSERSIG))) {
+	if(subnum==INVALID_SUB || !(cfg.sub[subnum]->misc&SUB_NOUSERSIG)) {
 		SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,useron.number);
 		FILE* sig;
 		if(fexist(str) && (sig=fopen(str,"rb"))!=NULL) {
@@ -1000,11 +993,9 @@ bool sbbs_t::editfile(char *fname)
 		if(external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir)!=0)
 			return false;
 		l=process_edited_file(msgtmp, path, /* mode: */0, &lines);
-		if(l>0) {
-			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
-				,useron.alias, path, l, lines);
-			logline(LOG_NOTICE,nulstr,str);
-		}
+		SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
+			,useron.alias, path, l, lines);
+		logline(nulstr,str);
 		rioctl(IOSM|PAUSE|ABORT); 
 		return true; 
 	}

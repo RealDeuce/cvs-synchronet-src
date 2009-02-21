@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.165 2009/12/08 23:46:04 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.157 2009/02/21 09:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@
 
 #define FNOPEN_BUF_SIZE		(2*1024)
 
-#define ILLEGAL_FILENAME_CHARS	"\\/|<>:\";,%"
+#define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
 
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
@@ -76,8 +76,6 @@
 #define JAVASCRIPT_BRANCH_LIMIT		99999999
 #define JAVASCRIPT_YIELD_INTERVAL	10000
 #define JAVASCRIPT_GC_INTERVAL		100 
-#define JAVASCRIPT_LOAD_PATH		"load"
-#define JAVASCRIPT_LOAD_PATH_LIST	"load_path_list"
 
 typedef struct {
 	ulong	counter;
@@ -100,8 +98,6 @@ typedef struct {
 
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
-
-#define MAX_TEXTDAT_ITEM_LEN	2000
 
 
 #define LEN_DIR		63		/* Maximum length of directory paths		*/
@@ -282,9 +278,8 @@ typedef struct {
 									/* Bit values for cfg.file_misc				*/
 #define FM_NO_LFN	(1<<0)			/* No long filenames in listings			*/
 
-									/* Bit values for cfg.msg_misc (upper 16-bits default to on) */
+									/* Bit values for cfg.msg_misc				*/
 #define MM_REALNAME	(1<<16)			/* Allow receipt of e-mail using real names	*/
-#define MM_EMAILSIG	(1<<17)			/* Include user signatures in e-mail msgs */
 
 									/* errormsg() codes */
 #define ERR_OPEN	"opening"		/* opening a file */
@@ -297,7 +292,6 @@ typedef struct {
 #define ERR_CHK		"checking"		/* checking */
 #define ERR_LEN		"checking length"
 #define ERR_EXEC	"executing"		/* executing */
-#define ERR_CHDIR	"changing directory"
 #define ERR_CREATE	"creating" 		/* creating */
 #define ERR_LOCK	"locking"		/* locking */
 #define ERR_UNLOCK 	"unlocking"		/* unlocking */
@@ -393,7 +387,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_SH			(1<<18)		/* Use command shell to execute			*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
-#define QUOTEWRAP		(1<<21)		/* Word-wrap the quoted text			*/
 
 									/* Bits in cfg.xtrn_misc				*/
 #define XTRN_NO_MUTEX	(1<<0)		/* Do not use exec_mutex for FOSSIL VXD	*/
@@ -426,8 +419,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CHAT_SPLITP (1<<4)	/* Split screen private chat					*/
 																			
 																			
-#define INVALID_DIR ((uint)-1)	/* Invalid directory value					*/
-#define INVALID_SUB ((uint)-1)	/* Invalid sub-board value					*/
+#define INVALID_DIR 0xffff	/* Invalid directory value						*/
+#define INVALID_SUB 0xffff	/* Invalid sub-board value						*/
 																			
 #define KEY_BUFSIZE 1024	/* Size of keyboard input buffer				*/
 #define SAVE_LINES	 4		/* Maximum number of lines to save				*/
@@ -823,7 +816,7 @@ enum {							/* Values of mode for userlist function     */
 #define REALSYSOP		(useron.level>=SYSOP_LEVEL)
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
-#define WHERE       	__LINE__,getfname(__FILE__)
+#define WHERE       	__LINE__,__FILE__
 #define SAVELINE		{ if(slcnt<SAVE_LINES) { \
 							slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \
