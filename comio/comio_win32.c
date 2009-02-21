@@ -2,13 +2,13 @@
 
 /* Synchronet Serial Communications I/O Library Functions for Win32 */
 
-/* $Id: comio_win32.c,v 1.6 2009/07/06 20:36:23 rswindell Exp $ */
+/* $Id: comio_win32.c,v 1.5 2007/04/21 01:36:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -42,7 +42,7 @@ char* comVersion(char* str, size_t len)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
 	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
 	return str;
@@ -52,7 +52,6 @@ COM_HANDLE comOpen(const char* device)
 {
 	COM_HANDLE handle;
 	COMMTIMEOUTS timeouts;
-	DCB	dcb;
 
 	if((handle=CreateFile(device
 		,GENERIC_READ|GENERIC_WRITE 	/* Access */
@@ -72,14 +71,6 @@ COM_HANDLE comOpen(const char* device)
 		timeouts.WriteTotalTimeoutMultiplier=0;
 		timeouts.WriteTotalTimeoutConstant=5000;	// 5 seconds
 		SetCommTimeouts(handle,&timeouts);
-	}
-
-	/* Force N-8-1 mode: */
-	if(GetCommState(handle, &dcb)==TRUE) {
-		dcb.ByteSize	= 8;
-		dcb.Parity		= NOPARITY;
-		dcb.StopBits	= ONESTOPBIT;
-		SetCommState(handle, &dcb);
 	}
 
 	return handle;

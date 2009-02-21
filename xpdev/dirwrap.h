@@ -2,13 +2,13 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.42 2010/03/05 03:30:53 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.41 2009/02/18 06:52:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -218,7 +218,7 @@ extern "C" {
 /* General file system wrappers for all platforms and compilers */
 DLLEXPORT BOOL		DLLCALL fexist(const char *filespec);
 DLLEXPORT BOOL		DLLCALL fexistcase(char *filespec);	/* fixes upr/lwr case fname */
-DLLEXPORT int64_t	DLLCALL flength(const char *filename);
+DLLEXPORT long		DLLCALL flength(const char *filename);
 DLLEXPORT time_t	DLLCALL fdate(const char *filename);
 DLLEXPORT int		DLLCALL setfdate(const char* filename, time_t t);
 DLLEXPORT BOOL		DLLCALL	isdir(const char *filename);
