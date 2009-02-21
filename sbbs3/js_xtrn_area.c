@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.25 2009/01/14 05:57:08 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.26 2009/02/16 07:13:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -433,6 +433,10 @@ JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_
 			return(NULL);
 
 		if(!JS_DefineProperty(cx, eventobj, "mdays", INT_TO_JSVAL(cfg->event[l]->mdays)
+			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
+			return(NULL);
+
+		if(!JS_DefineProperty(cx, eventobj, "months", INT_TO_JSVAL(cfg->event[l]->months)
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 			return(NULL);
 
