@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.86 2009/02/21 11:14:54 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.85 2009/02/21 08:09:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -900,7 +900,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->rputs(str, len);
+		sbbs->putcom(str, len);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
