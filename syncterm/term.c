@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.271 2009/05/22 22:18:06 deuce Exp $ */
+/* $Id: term.c,v 1.270 2009/02/19 03:06:23 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2380,17 +2380,15 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x2600:	/* ALT-L */
-					if(bbs->conn_type != CONN_TYPE_RLOGIN && bbs->conn_type != CONN_TYPE_RLOGIN_REVERSED && bbs->conn_type != CONN_TYPE_SSH) {
-						if(bbs->user[0]) {
-							conn_send(bbs->user,strlen(bbs->user),0);
-							conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
-							SLEEP(10);
-						}
-						if(bbs->password[0]) {
-							conn_send(bbs->password,strlen(bbs->password),0);
-							conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
-							SLEEP(10);
-						}
+					if(bbs->user[0]) {
+						conn_send(bbs->user,strlen(bbs->user),0);
+						conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
+						SLEEP(10);
+					}
+					if(bbs->password[0]) {
+						conn_send(bbs->password,strlen(bbs->password),0);
+						conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
+						SLEEP(10);
 					}
 					if(bbs->syspass[0]) {
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
