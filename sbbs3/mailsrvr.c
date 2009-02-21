@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.487 2009/02/16 03:25:26 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.488 2009/02/21 08:47:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2505,13 +2505,14 @@ static void smtp_thread(void* arg)
 					if(flength(proc_err_fname)>0 
 						&& (proc_err=fopen(proc_err_fname,"r"))!=NULL) {
 						while(!feof(proc_err)) {
+							int n;
 							if(!fgets(str,sizeof(str),proc_err))
 								break;
 							truncsp(str);
 							lprintf(LOG_WARNING,"%04d !SMTP External mail processor (%s) error: %s"
 								,socket, mailproc_list[i].name, str);
-							i=atoi(str);
-							if(i>=100 && i<1000)
+							n=atoi(str);
+							if(n>=100 && n<1000)
 								sockprintf(socket,"%s", str);
 							else
 								sockprintf(socket,"554%c%s"
@@ -4379,7 +4380,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.487 $", "%*s %s", revision);
+	sscanf("$Revision: 1.488 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
