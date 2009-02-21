@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.75 2009/03/23 23:16:55 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.74 2009/02/18 06:52:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -447,23 +447,19 @@ BOOL DLLCALL fexist(const char *filespec)
 
 	long	handle;
 	struct _finddata_t f;
-	BOOL	found;
 
 	if(!strchr(filespec,'*') && !strchr(filespec,'?'))
 		return(fnameexist(filespec));
 
 	if((handle=_findfirst((char*)filespec,&f))==-1)
 		return(FALSE);
-	found=TRUE;
-	while(f.attrib&_A_SUBDIR)
-		if(_findnext(handle,&f)!=0) {
-			found=FALSE;
-			break;
-		}
 
  	_findclose(handle);
 
-	return(found);
+ 	if(f.attrib&_A_SUBDIR)
+		return(FALSE);
+
+	return(TRUE);
 
 #else /* Unix or OS/2 */
 	

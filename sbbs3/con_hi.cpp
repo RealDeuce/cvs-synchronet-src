@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.20 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.16 2009/02/19 10:55:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,14 +63,13 @@ int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const 
 		uselect_total=0;
 
 	if(add) {
-		if(ar && !chk_ar(ar,&useron,&client))
+		if(ar && !chk_ar(ar,&useron))
 			return(0);
 		if(!uselect_total)
 			bprintf(text[SelectItemHdr],title);
 		uselect_num[uselect_total++]=n;
 		bprintf(text[SelectItemFmt],uselect_total,item);
-		return(0); 
-	}
+		return(0); }
 
 	if(!uselect_total)
 		return(-1);
@@ -93,8 +92,7 @@ int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const 
 				return(uselect_num[u]);
 		if(n<t)
 			return(uselect_num[n]);
-		return(-1); 
-	}
+		return(-1); }
 	return(uselect_num[i-1]);
 }
 
@@ -107,20 +105,30 @@ bool sbbs_t::chksyspass()
 	int 	orgcon=console;
 
 	if(online==ON_REMOTE && !(cfg.sys_misc&SM_R_SYSOP)) {
-		logline(LOG_NOTICE,"S!","Remote sysop access disabled");
+		logline("S!","Remote sysop access disabled");
 		return(false);
 	}
+#if 0	/* no local logins in v3 */
+	if(online==ON_LOCAL) {
+		if(!(cfg.sys_misc&SM_L_SYSOP))
+			return(false);
+		if(!(cfg.node_misc&NM_SYSPW) && !(cfg.sys_misc&SM_REQ_PW))
+			return(false); 
+	}
+#endif
 	bputs(text[SystemPassword]);
-	getstr(str,40,K_UPPER|K_NOECHO);
+	console&=~(CON_R_ECHO|CON_L_ECHO);
+	getstr(str,40,K_UPPER);
+	console=orgcon;
 	CRLF;
 	if(strcmp(cfg.sys_pass,str)) {
 		if(cfg.sys_misc&SM_ECHO_PW) 
-			SAFEPRINTF3(str2,"%s #%u System password attempt: '%s'"
+			sprintf(str2,"%s #%u System password attempt: '%s'"
 				,useron.alias,useron.number,str);
 		else
-			SAFEPRINTF2(str2,"%s #%u System password verification failure"
+			sprintf(str2,"%s #%u System password verification failure"
 				,useron.alias,useron.number);
-		logline(LOG_NOTICE,"S!",str2);
+		logline("S!",str2);
 		return(false); 
 	}
 	return(true);
