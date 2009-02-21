@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.62 2009/02/21 08:09:14 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.63 2009/02/21 08:24:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -575,7 +575,7 @@ void sbbs_t::attr(int atr)
 
 	if(!term_supports(ANSI))
 		return;
-	rputs(ansi(atr,curatr,str,sizeof(str)-1));
+	rputs(ansi(atr,curatr,str));
 	curatr=atr;
 }
 
