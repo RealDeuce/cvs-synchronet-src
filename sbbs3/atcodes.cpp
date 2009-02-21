@@ -2,13 +2,13 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.57 2010/03/07 22:10:25 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.54 2009/02/19 09:25:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -57,7 +57,7 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	padded_right=false;
 	const char *cp;
 
-	SAFECOPY(str,instr);
+	sprintf(str,"%.80s",instr);
 	tp=strchr(str+1,'@');
 	if(!tp)                 /* no terminating @ */
 		return(0);
@@ -645,23 +645,43 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 
+	if(!strcmp(sp,"UP")) {
+		cursor_up();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"DOWN")) {
+		cursor_down();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"RIGHT")) {
+		cursor_right();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"LEFT")) {
+		cursor_left();
+		return(nulstr);
+	}
+
 	if(!strncmp(sp,"UP:",3)) {
-		cursor_up(atoi(sp+3));
+		safe_snprintf(str,maxlen,"\x1b[%dA",atoi(sp+3));
 		return(str);
 	}
 
 	if(!strncmp(sp,"DOWN:",5)) {
-		cursor_down(atoi(sp+5));
+		safe_snprintf(str,maxlen,"\x1b[%dB",atoi(sp+5));
 		return(str);
 	}
 
 	if(!strncmp(sp,"LEFT:",5)) {
-		cursor_left(atoi(sp+5));
+		safe_snprintf(str,maxlen,"\x1b[%dC",atoi(sp+5));
 		return(str);
 	}
 
 	if(!strncmp(sp,"RIGHT:",6)) {
-		cursor_right(atoi(sp+6));
+		safe_snprintf(str,maxlen,"\x1b[%dD",atoi(sp+6));
 		return(str);
 	}
 
@@ -963,7 +983,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_TIMEZONE") && current_msg!=NULL)
 		return(smb_zonestr(current_msg->hdr.when_written.zone,NULL));
 	if(!strcmp(sp,"MSG_ATTR") && current_msg!=NULL) {
-		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s%s%s%s%s"
+		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s%s%s%s"
 			,current_msg->hdr.attr&MSG_PRIVATE		? "Private  "   :nulstr
 			,current_msg->hdr.attr&MSG_READ			? "Read  "      :nulstr
 			,current_msg->hdr.attr&MSG_DELETE		? "Deleted  "   :nulstr
@@ -974,7 +994,6 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			,current_msg->hdr.attr&MSG_MODERATED	? "Moderated  " :nulstr
 			,current_msg->hdr.attr&MSG_VALIDATED	? "Validated  " :nulstr
 			,current_msg->hdr.attr&MSG_REPLIED		? "Replied  "	:nulstr
-			,current_msg->hdr.attr&MSG_NOREPLY		? "NoReply  "	:nulstr
 			);
 		return(str);
 	}

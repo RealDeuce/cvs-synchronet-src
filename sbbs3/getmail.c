@@ -2,13 +2,13 @@
 
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.10 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: getmail.c,v 1.8 2007/07/10 23:50:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -54,7 +54,7 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
 	sprintf(smb.file,"%smail",cfg->data_dir);
 	smb.retry_time=cfg->smb_retry_time;
 	sprintf(str,"%s.sid",smb.file);
-	l=(long)flength(str);
+	l=flength(str);
 	if(l<(long)sizeof(idxrec_t))
 		return(0);
 	if(!usernumber) 
@@ -110,9 +110,7 @@ void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 		remove(str2);
 		if(!p)
 			break;
-		tp=p+1; 
-
-	}
+		tp=p+1; }
 	sprintf(str,"%sfile/%04u.in",cfg->data_dir,msg->idx.to);
 	rmdir(str);                     /* remove the dir if it's empty */
 }
