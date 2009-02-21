@@ -2,13 +2,13 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.13 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: con_hi.cpp,v 1.16 2009/02/19 10:55:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,35 +39,19 @@
 
 /****************************************************************************/
 /* Redraws str using i as current cursor position and l as length           */
+/* Currently only used by getstr() - so should be moved to getstr.cpp?		*/
 /****************************************************************************/
 void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 {
-    char str[256],c;
-
-	sprintf(str,"%-*.*s",l,l,strin);
-	c=i;
-	while(c--)
-		outchar(BS);
+	cursor_left(i);
 	if(mode&K_MSG)
-		bputs(str);
+		bprintf("%-*.*s",l,l,strin);
 	else
-		rputs(str);
-	if(term_supports(ANSI)) {
-		cleartoeol();
-		if(i<l)
-			cursor_left(l-i); 
-	} else {
-		while(c<cols-1) { /* clear to end of line */
-			outchar(' ');
-			c++; 
-		}
-		while(c>l) { /* back space to end of string */
-			outchar(BS);
-			c--; 
-		} 
-	}
+		column+=rprintf("%-*.*s",l,l,strin);
+	cleartoeol();
+	if(i<l)
+		cursor_left(l-i); 
 }
-
 
 int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const uchar *ar)
 {
