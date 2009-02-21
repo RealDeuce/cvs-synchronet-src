@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.114 2009/02/05 19:56:16 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.115 2009/02/14 02:08:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1546,12 +1546,16 @@ js_logoff(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	JSBool		prompt=JS_TRUE;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
+	if(argc)
+		JS_ValueToBoolean(cx,argv[0],&prompt);
+
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!sbbs->noyes(sbbs->text[LogOffQ])) {
+	if(!prompt || !sbbs->noyes(sbbs->text[LogOffQ])) {
 		if(sbbs->cfg.logoff_mod[0])
 			sbbs->exec_bin(sbbs->cfg.logoff_mod,&sbbs->main_csi);
 		sbbs->user_event(EVENT_LOGOFF);
@@ -2941,9 +2945,9 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("interactive logon procedure")
 	,310
 	},
-	{"logoff",			js_logoff,			0,	JSTYPE_VOID,	JSDOCSTR("")
-	,JSDOCSTR("interactive logoff procedure")
-	,310
+	{"logoff",			js_logoff,			1,	JSTYPE_VOID,	JSDOCSTR("[prompt=<i>true</i>]")
+	,JSDOCSTR("interactive logoff procedure, pass <i>false</i> for <i>prompt</i> argument to avoid yes/no prompt")
+	,315
 	},
 	{"logout",			js_logout,			0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("non-interactive logout procedure")
