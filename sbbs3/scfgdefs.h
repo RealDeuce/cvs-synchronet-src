@@ -2,13 +2,13 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.29 2008/02/14 08:09:38 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.31 2009/02/21 22:01:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -289,16 +289,17 @@ typedef struct {						/* External Editors */
 
 
 typedef struct {						/* Generic Timed Event */
-	char	code[LEN_CODE+1],			/* Internal code */
-			days,						/* week days to run event */
-			dir[LEN_DIR+1], 			/* Start-up directory */
-			cmd[LEN_CMD+1]; 			/* Command line */
-	uint16_t	node,						/* Node to execute event */
-			time,						/* Time to run event */
-			freq;						/* Frequency to run event */
-	uint32_t	misc,						/* Misc bits */
-			mdays;						/* days of month (if non-zero) to run event */
-	time32_t	last;						/* Last time event ran */
+	char		code[LEN_CODE+1],		/* Internal code */
+				days,					/* Week days to run event */
+				dir[LEN_DIR+1], 		/* Start-up directory */
+				cmd[LEN_CMD+1]; 		/* Command line */
+	uint16_t	node,					/* Node to execute event */
+				time,					/* Time to run event */
+				freq;					/* Frequency to run event */
+	uint32_t	misc,					/* Misc bits */
+				mdays;					/* Days of month (if non-zero) to run event */
+	uint16_t	months;					/* Months (if non-zero) to run event */
+	time32_t	last;					/* Last time event ran */
 
 } event_t;
 
@@ -452,9 +453,9 @@ typedef struct
 	char	sys_chat_arstr[LEN_ARSTR+1];	/* chat override */
 	uchar * sys_chat_ar;
 
-	int32_t	msg_misc;			/* Global Message-Related Settings */
+	int32_t		msg_misc;			/* Global Message-Related Settings (upper 16-bits default to on) */
 	int32_t 	file_misc;			/* File Misc Settings */
-	int32_t	xtrn_misc;			/* External Programs Misc Settings */
+	int32_t		xtrn_misc;			/* External Programs Misc Settings */
 
 	char	node_comspec[LEN_CMD+1];	/* DOS COMMAND.COM to use */
 	char	node_editor[LEN_CMD+1]; /* Local text editor command line to use */
