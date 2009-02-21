@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.87 2009/07/19 02:45:18 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.86 2009/02/21 11:14:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1355,18 +1355,6 @@ js_backspace(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_clearkeybuf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	sbbs_t*		sbbs;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	sbbs->keybufbot=sbbs->keybuftop=0;
-    return(JS_TRUE);
-}
-
-static JSBool
 js_getlines(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
@@ -1656,10 +1644,6 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("")
 	,JSDOCSTR("send a destructive backspace sequence")
-	,315
-	},
-	{"clearkeybuffer",	js_clearkeybuf,		0, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("clear keyboard input buffer")
 	,315
 	},
 	{0}

@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.50 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.46 2009/02/16 10:35:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,10 +135,6 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOCTRL),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 
-	/* Synchronet */
-	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_EDITOR),value))!=NULL)
-		smb_hfield_str(msg,hfield_type,p);
-
 	/* USENET */
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=USENETPATH),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
@@ -225,7 +221,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	uint16_t	net_type;
 	ushort		xlat=XLAT_NONE;
 	int			storage=SMB_SELFPACK;
-	long		dupechk_hashes=SMB_HASH_SOURCE_DUPE;
+	long		dupechk_hashes=SMB_HASH_SOURCE_ALL;
 
 	if(subnum!=INVALID_SUB
 		&& (hdrblk[0]=='*' || hdrblk[0]=='+' || cfg.sub[subnum]->misc&SUB_PONLY))
@@ -239,7 +235,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 		msg->hdr.attr|=MSG_READ;
 
 	if(subnum!=INVALID_SUB && !fromhub && cfg.sub[subnum]->mod_ar[0]
-		&& chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
+		&& chk_ar(cfg.sub[subnum]->mod_ar,&useron))
 		msg->hdr.attr|=MSG_MODERATED;
 	if(subnum!=INVALID_SUB && !fromhub && cfg.sub[subnum]->misc&SUB_SYSPERM
 		&& sub_op(subnum))
@@ -499,14 +495,14 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 		if(!fromhub) {
 			if(subnum==INVALID_SUB) {
 				SAFEPRINTF2(str,"%s duplicate e-mail attempt (%s)",useron.alias,smb.last_error);
-				logline(LOG_NOTICE,"E!",str); 
+				logline("E!",str); 
 			} else {
 				SAFEPRINTF4(str,"%s duplicate message attempt in %s %s (%s)"
 					,useron.alias
 					,cfg.grp[cfg.sub[subnum]->grp]->sname
 					,cfg.sub[subnum]->lname
 					,smb.last_error);
-				logline(LOG_NOTICE,"P!",str); 
+				logline("P!",str); 
 			}
 		}
 	}
