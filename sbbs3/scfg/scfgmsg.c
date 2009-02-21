@@ -1,12 +1,12 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.34 2009/06/28 09:19:41 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.31 2005/11/27 23:34:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -126,7 +126,6 @@ void msgs_cfg()
 	char	tmp_code[16];
 	int		j,k,l,q,s;
 	int		i,file,ptridx,n;
-	unsigned total_subs;
 	long	ported;
 	sub_t	tmpsub;
 	static grp_t savgrp;
@@ -539,8 +538,6 @@ import into the current message group.
 					uifc.msg("Open Failure");
                     break; }
 				uifc.pop("Importing Areas...");
-				total_subs = cfg.total_subs;	 /* Save original number of subs */
-				ptridx = 0;
 				while(!feof(stream)) {
 					if(!fgets(str,sizeof(str),stream)) break;
 					truncsp(str);
@@ -679,13 +676,13 @@ import into the current message group.
 						|| tmpsub.qwkname[0]==0)
 						continue;
 
-					for(j=0;j<total_subs;j++) {
+					for(j=0;j<cfg.total_subs;j++) {
 						if(cfg.sub[j]->grp!=i)
 							continue;
 						if(!stricmp(cfg.sub[j]->code_suffix,tmpsub.code_suffix))
 							break; }
-					if(j==total_subs) {
-						j=cfg.total_subs;
+					if(j==cfg.total_subs) {
+
 						if((cfg.sub=(sub_t **)realloc(cfg.sub
 							,sizeof(sub_t *)*(cfg.total_subs+1)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_subs+1);
@@ -701,9 +698,9 @@ import into the current message group.
 						}
 						memset(cfg.sub[j],0,sizeof(sub_t)); }
 					if(!k) {
-						n=cfg.sub[j]->ptridx;	/* save original ptridx */
+						ptridx=cfg.sub[j]->ptridx;	/* save original ptridx */
 						memcpy(cfg.sub[j],&tmpsub,sizeof(sub_t));
-						cfg.sub[j]->ptridx=n;	/* restore original ptridx */
+						cfg.sub[j]->ptridx=ptridx;	/* restore original ptridx */
 					} else {
                         cfg.sub[j]->grp=i;
 						if(cfg.total_faddrs)
@@ -717,17 +714,16 @@ import into the current message group.
 							cfg.sub[j]->maxmsgs=1000;
 					}
 					if(j==cfg.total_subs) {	/* adding new sub-board */
-						for(;ptridx<USHRT_MAX;ptridx++) {
-							for(n=0;n<total_subs;n++)
+						for(ptridx=0;ptridx<USHRT_MAX;ptridx++) {
+							for(n=0;n<cfg.total_subs;n++)
 								if(cfg.sub[n]->ptridx==ptridx)
 									break;
-							if(n==total_subs)
+							if(n==cfg.total_subs)
 								break; 
 						}
 						cfg.sub[j]->ptridx=ptridx;	/* use new ptridx */
 						cfg.sub[j]->misc=tmpsub.misc;
 						cfg.total_subs++; 
-						ptridx++;	/* don't use the same ptridx for next sub */
 					}
 					uifc.changes=1; 
 					ported++;
@@ -748,7 +744,7 @@ void msg_opts()
 {
 	char str[128],*p;
 	static int msg_dflt;
-	int i,j,n;
+	int i,j;
 
 	while(1) {
 		i=0;
@@ -764,12 +760,6 @@ void msg_opts()
 			sprintf(str,"Unlimited");
 		sprintf(opt[i++],"%-33.33s%s"
 			,"Maximum QWK Messages",str);
-		if(cfg.max_qwkmsgage)
-			sprintf(str,"%u days",cfg.max_qwkmsgage);
-		else
-			sprintf(str,"Unlimited");
-		sprintf(opt[i++],"%-33.33s%s"
-			,"Maximum QWK Message Age",str);
 		sprintf(opt[i++],"%-33.33s%s","Pre-pack QWK Requirements",cfg.preqwk_arstr);
 		if(cfg.mail_maxage)
 			sprintf(str,"Enabled (%u days old)",cfg.mail_maxage);
@@ -798,8 +788,6 @@ void msg_opts()
 			,cfg.sys_misc&SM_DELREADM ? "Yes" : "No");
 		sprintf(opt[i++],"%-33.33s%s","Receive E-mail by Real Name"
 			,cfg.msg_misc&MM_REALNAME ? "Yes" : "No");
-		sprintf(opt[i++],"%-33.33s%s","Include Signatures in E-mail"
-			,cfg.msg_misc&MM_EMAILSIG ? "Yes" : "No");
 		sprintf(opt[i++],"%-33.33s%s","Users Can View Deleted Messages"
 			,cfg.sys_misc&SM_USRVDELM ? "Yes" : cfg.sys_misc&SM_SYSVDELM
 				? "Sysops Only":"No");
@@ -1081,22 +1069,6 @@ QWK network nodes (Q restriction). If set to 0, no limit is imposed.
 			case 4:
 				SETHELP(WHERE);
 /*
-`Maximum Age of Messages Imported From QWK Packets:`
-
-This is the maximum age of messages (in days), allowed for messages in
-QWK packets. Messages with an age older than this value will not be
-imported. If set to `0`, no age limit is imposed.
-*/
-
-				itoa(cfg.max_qwkmsgage,str,10);
-				uifc.input(WIN_MID|WIN_SAV,0,0
-					,"Maximum Age (in days) of QWK-imported Messages (0=No Limit)"
-					,str,4,K_NUMBER|K_EDIT);
-				cfg.max_qwkmsgage=atoi(str);
-                break;
-			case 5:
-				SETHELP(WHERE);
-/*
 Pre-pack QWK Requirements:
 
 ALL user accounts on the BBS meeting this requirmenet will have a QWK
@@ -1110,7 +1082,7 @@ system (in the DATA\FILE directory).
 */
 				getar("Pre-pack QWK (Use with caution!)",cfg.preqwk_arstr);
 				break;
-			case 6:
+			case 5:
 				sprintf(str,"%u",cfg.mail_maxage);
                 SETHELP(WHERE);
 /*
@@ -1122,7 +1094,7 @@ This value is the maximum number of days that mail will be kept.
                     "(in days)",str,5,K_EDIT|K_NUMBER);
                 cfg.mail_maxage=atoi(str);
                 break;
-			case 7:
+			case 6:
 				strcpy(opt[0],"Daily");
 				strcpy(opt[1],"Immediately");
 				opt[2][0]=0;
@@ -1150,7 +1122,7 @@ day.
 					cfg.sys_misc|=SM_DELEMAIL;
 					uifc.changes=1; }
                 break;
-			case 8:
+			case 7:
 				sprintf(str,"%lu",cfg.mail_maxcrcs);
                 SETHELP(WHERE);
 /*
@@ -1164,7 +1136,7 @@ CRCs will be automatically purged.
                     "CRCs",str,5,K_EDIT|K_NUMBER);
                 cfg.mail_maxcrcs=atol(str);
                 break;
-			case 9:
+			case 8:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1186,7 +1158,7 @@ anonymously, set this option to Yes.
 					cfg.sys_misc&=~SM_ANON_EM;
 					uifc.changes=1; }
 				break;
-			case 10:
+			case 9:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1208,7 +1180,7 @@ responding in E-mail, set this option to Yes.
 					cfg.sys_misc&=~SM_QUOTE_EM;
 					uifc.changes=1; }
 				break;
-			case 11:
+			case 10:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1230,7 +1202,7 @@ an E-mail message, set this option to Yes.
 					cfg.sys_misc&=~SM_FILE_EM;
 					uifc.changes=1; }
 				break;
-			case 12:
+			case 11:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1253,7 +1225,7 @@ set this option to Yes.
 					cfg.sys_misc&=~SM_FWDTONET;
 					uifc.changes=1; }
                 break;
-			case 13:
+			case 12:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1275,7 +1247,7 @@ automatically deleted when message base maintenance is run.
 					cfg.sys_misc&=~SM_DELREADM;
 					uifc.changes=1; }
                 break;
-			case 14:
+			case 13:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1299,33 +1271,7 @@ addressed to a user's real name (rather than their alias).
 					uifc.changes=1; 
 				}
                 break;
-			case 15:
-				n=(cfg.sub[i]->misc&MM_EMAILSIG) ? 0:1;
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				opt[2][0]=0;
-				SETHELP(WHERE);
-/*
-`Include User Signatures in E-mail:`
-
-If you wish to have user signatures automatically appended to e-mail
-messages, set this option to ~Yes~.
-*/
-				n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-					,"Include User Signatures in E-mail",opt);
-				if(n==-1)
-                    break;
-				if(!n && !(cfg.msg_misc&MM_EMAILSIG)) {
-					uifc.changes=1;
-					cfg.msg_misc|=MM_EMAILSIG;
-					break; 
-				}
-				if(n==1 && cfg.msg_misc&MM_EMAILSIG) {
-					uifc.changes=1;
-					cfg.msg_misc&=~MM_EMAILSIG; 
-				}
-                break;
-			case 16:
+			case 14:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				strcpy(opt[2],"Sysops Only");
@@ -1362,7 +1308,7 @@ appropriate) can view deleted messages.
 					cfg.sys_misc&=~SM_USRVDELM;
 					uifc.changes=1; }
                 break;
-			case 17:
+			case 15:
 				SETHELP(WHERE);
 /*
 Extra Attribute Codes...
