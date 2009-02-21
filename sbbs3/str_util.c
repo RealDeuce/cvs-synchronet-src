@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.43 2009/03/19 07:28:02 rswindell Exp $ */
+/* $Id: str_util.c,v 1.42 2009/02/21 08:50:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,18 +196,12 @@ BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 {
 	size_t	index;
 	BOOL	found=FALSE;
-	char*	p;
 
 	if(list==NULL || insearchof==NULL)
 		return(FALSE);
 
-	for(index=0; list[index]!=NULL; index++) {
-		p=list[index];
-		SKIP_WHITESPACE(p);
-		found=findstr_in_string(insearchof,p);
-		if(found!=(*p=='!'))
-			break;
-	}
+	for(index=0;list[index]!=NULL && !found; index++)
+		found=findstr_in_string(insearchof, list[index]);
 	return(found);
 }
 
