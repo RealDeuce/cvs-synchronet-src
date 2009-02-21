@@ -2,13 +2,13 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.50 2007/07/10 19:51:47 deuce Exp $ */
+/* $Id: scfgsave.c,v 1.51 2009/02/16 07:13:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1112,8 +1112,9 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		put_str(cfg->event[i]->dir,stream);
 		put_int(cfg->event[i]->freq,stream);
 		put_int(cfg->event[i]->mdays,stream);
+		put_int(cfg->event[i]->months,stream);
 		n=0;
-		for(j=0;j<5;j++)
+		for(j=0;j<4;j++)
 			put_int(n,stream);
 		}
 

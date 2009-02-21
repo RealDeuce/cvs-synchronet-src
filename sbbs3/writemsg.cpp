@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.80 2009/02/10 11:22:15 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.83 2009/02/18 06:32:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 			continue; 
 		}
 		/* Strip FidoNet Kludge Lines? */
-		if(buf[l]==1 && useron.xedit
+		if(buf[l]==CTRL_A && useron.xedit
 			&& cfg.xedit[useron.xedit-1]->misc&STRIPKLUDGE) {
 			while(buf[l] && buf[l]!=LF) 
 				l++;
@@ -539,12 +539,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 /****************************************************************************/
 void quotestr(char *str)
 {
-	int j;
-
-	j=strlen(str);
-	while(j && (str[j-1]==' ' || str[j-1]==LF || str[j-1]==CR)) j--;
-	str[j]=0;
-	remove_ctrl_a(str,NULL);
+	truncsp(str);
+	remove_ctrl_a(str,str);
 }
 
 /****************************************************************************/
@@ -957,7 +953,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 /****************************************************************************/
 /* Edits an existing file or creates a new one in MSG format                */
 /****************************************************************************/
-void sbbs_t::editfile(char *fname)
+bool sbbs_t::editfile(char *fname)
 {
 	char *buf,path[MAX_PATH+1];
 	char msgtmp[MAX_PATH+1];
@@ -994,17 +990,18 @@ void sbbs_t::editfile(char *fname)
 		}
 		CLS;
 		rioctl(IOCM|PAUSE|ABORT);
-		external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir);
+		if(external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir)!=0)
+			return false;
 		l=process_edited_file(msgtmp, path, /* mode: */0, &lines);
 		SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 			,useron.alias, path, l, lines);
 		logline(nulstr,str);
 		rioctl(IOSM|PAUSE|ABORT); 
-		return; 
+		return true; 
 	}
 	if((buf=(char *)malloc(maxlines*MAX_LINE_LEN))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,nulstr,maxlines*MAX_LINE_LEN);
-		return; 
+		return false; 
 	}
 	if((file=nopen(fname,O_RDONLY))!=-1) {
 		length=filelength(file);
@@ -1014,13 +1011,13 @@ void sbbs_t::editfile(char *fname)
 			attr(cfg.color[clr_err]);
 			bprintf("\7\r\nFile size (%lu bytes) is larger than %lu (maxlines: %lu).\r\n"
 				,length, (ulong)maxlines*MAX_LINE_LEN, maxlines);
-			return;
+			return false;
 		}
 		if(read(file,buf,length)!=length) {
 			close(file);
 			free(buf);
 			errormsg(WHERE,ERR_READ,fname,length);
-			return; 
+			return false; 
 		}
 		buf[length]=0;
 		close(file); 
@@ -1031,13 +1028,13 @@ void sbbs_t::editfile(char *fname)
 	}
 	if(!msgeditor(buf,nulstr,nulstr)) {
 		free(buf);
-		return; 
+		return false; 
 	}
 	bputs(text[Saving]);
 	if((stream=fnopen(NULL,fname,O_CREAT|O_WRONLY|O_TRUNC))==NULL) {
 		errormsg(WHERE,ERR_OPEN,fname,O_CREAT|O_WRONLY|O_TRUNC);
 		free(buf);
-		return; 
+		return false; 
 	}
 	l=process_edited_text(buf,stream,/* mode: */0,&lines);
 	bprintf(text[SavedNBytes],l,lines);
@@ -1046,6 +1043,7 @@ void sbbs_t::editfile(char *fname)
 	SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 		,useron.alias, fname, l, lines);
 	logline(nulstr,str);
+	return true;
 }
 
 /*************************/
@@ -1267,7 +1265,8 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 	removecase(msgtmp);
 	msgtotxt(msg,msgtmp,0,1);
-	editfile(msgtmp);
+	if(!editfile(msgtmp))
+		return;
 	length=flength(msgtmp);
 	if(length<1L)
 		return;
