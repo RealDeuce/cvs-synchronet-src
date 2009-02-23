@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.40 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.39 2009/02/21 23:46:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -617,7 +617,7 @@ void sbbs_t::useredit(int usernumber)
 					for(i=k-1;i;i--) {
 						user.number=i;
 						getuserdat(&cfg,&user);
-						if(chk_ar(ar,&user,/* client: */NULL)) {
+						if(chk_ar(ar,&user)) {
 							outchar(BEL);
 							break; 
 						} 
@@ -637,7 +637,7 @@ void sbbs_t::useredit(int usernumber)
 					for(i=k+1;i<=j;i++) {
 						user.number=i;
 						getuserdat(&cfg,&user);
-						if(chk_ar(ar,&user,/* client: */NULL)) {
+						if(chk_ar(ar,&user)) {
 							outchar(BEL);
 							break; 
 						} 
@@ -1055,7 +1055,7 @@ void sbbs_t::maindflts(user_t* user)
 				mnemonics(text[ProtocolOrQuit]);
 				SAFECOPY(str,"Q");
 				for(i=0;i<cfg.total_prots;i++)
-					if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
+					if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron)) {
 						SAFEPRINTF(tmp,"%c",cfg.prot[i]->mnemonic);
 						strcat(str,tmp); 
 					}
