@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.225 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.230 2009/02/13 04:22:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -176,18 +176,18 @@ static const char* usage  = "\nusage: %s [[setting] [...]] [path/ini_file]\n"
 							"\tdefaults   show default settings and options\n"
 							"\n"
 							;
-static const char* telnet_usage  = "Telnet server settings:\n\n"
-							"\ttf<node>   set first Telnet node number\n"
-							"\ttl<node>   set last Telnet node number\n"
+static const char* telnet_usage  = "Terminal server settings:\n\n"
+							"\ttf<node>   set first node number\n"
+							"\ttl<node>   set last node number\n"
 							"\ttp<port>   set Telnet server port\n"
 							"\trp<port>   set RLogin server port (and enable RLogin server)\n"
 							"\tr2         use second RLogin name in BSD RLogin\n"
-							"\tto<value>  set Telnet server options value (advanced)\n"
+							"\tto<value>  set Terminal server options value (advanced)\n"
 							"\tta         enable auto-logon via IP address\n"
 							"\ttd         enable Telnet command debug output\n"
 							"\ttc         emabble sysop availability for chat\n"
 							"\ttq         disable QWK events\n"
-							"\tt-         disable Telnet/RLogin server\n"
+							"\tt-         disable Terminal server\n"
 							"\n"
 							;
 static const char* ftp_usage  = "FTP server settings:\n"
@@ -510,7 +510,7 @@ static BOOL winsock_startup(void)
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0)
 		return(TRUE);
 
-    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_CRIT,"!WinSock startup ERROR %d", status);
 	return(FALSE);
 }
 
@@ -835,7 +835,7 @@ static void services_terminated(void* p, int code)
 /****************************************************************************/
 /* Event thread local/log print routine										*/
 /****************************************************************************/
-static int event_lputs(int level, const char *str)
+static int event_lputs(void* p, int level, const char *str)
 {
 	char		logline[512];
 	char		tstr[64];
@@ -1090,6 +1090,7 @@ static void handle_sigs(void)
 	int			sig=0;
 	sigset_t	sigs;
 
+	SetThreadName("Signal Handler");
 	thread_up(NULL,TRUE,TRUE);
 
 	if (is_daemon) {
@@ -1197,6 +1198,7 @@ int main(int argc, char** argv)
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
+	SetThreadName("Main");
 	atexit(cleanup);
 
 	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
@@ -1379,9 +1381,9 @@ int main(int argc, char** argv)
 			printf("Default settings:\n");
 			printf("\n");
 			printf("Telnet server port:\t%u\n",bbs_startup.telnet_port);
-			printf("Telnet first node:\t%u\n",bbs_startup.first_node);
-			printf("Telnet last node:\t%u\n",bbs_startup.last_node);
-			printf("Telnet server options:\t0x%08lX\n",bbs_startup.options);
+			printf("Terminal first node:\t%u\n",bbs_startup.first_node);
+			printf("Terminal last node:\t%u\n",bbs_startup.last_node);
+			printf("Terminal server options:\t0x%08lX\n",bbs_startup.options);
 			printf("FTP server port:\t%u\n",ftp_startup.port);
 			printf("FTP server options:\t0x%08lX\n",ftp_startup.options);
 			printf("Mail SMTP server port:\t%u\n",mail_startup.smtp_port);
@@ -1401,7 +1403,7 @@ int main(int argc, char** argv)
 						SAFECOPY(log_facility,arg++);
 				break;
 #endif
-			case 'T':	/* Telnet settings */
+			case 'T':	/* Terminal server settings */
 				switch(toupper(*(arg++))) {
 					case '-':	
 						run_bbs=FALSE;
@@ -1550,7 +1552,6 @@ int main(int argc, char** argv)
 						return(1);
 				}
 				break;
-				break;
 			case 'G':	/* GET */
 				switch(toupper(*(arg++))) {
 					case 'I': /* Identity */
@@ -1622,7 +1623,7 @@ int main(int argc, char** argv)
 					case 'S':	/* Services */
 						run_services=FALSE;
 						break;
-					case 'T':	/* Telnet */
+					case 'T':	/* Terminal Server */
 						run_bbs=FALSE;
 						break;
 					case 'E': /* No Events */
