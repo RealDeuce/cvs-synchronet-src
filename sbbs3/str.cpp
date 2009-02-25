@@ -2,13 +2,13 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.62 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: str.cpp,v 1.61 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -69,11 +69,11 @@ void sbbs_t::userlist(long mode)
 		if(mode==UL_SUB) {
 			if(!usrgrps)
 				continue;
-			if(!chk_ar(cfg.grp[usrgrp[curgrp]]->ar,&user,/* client: */NULL))
+			if(!chk_ar(cfg.grp[usrgrp[curgrp]]->ar,&user))
 				continue;
-			if(!chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->ar,&user,/* client: */NULL)
+			if(!chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->ar,&user)
 				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
-				&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
+				&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user)))
 				continue; 
 		}
 		else if(mode==UL_DIR) {
@@ -81,9 +81,9 @@ void sbbs_t::userlist(long mode)
 				continue;
 			if(!usrlibs)
 				continue;
-			if(!chk_ar(cfg.lib[usrlib[curlib]]->ar,&user,/* client: */NULL))
+			if(!chk_ar(cfg.lib[usrlib[curlib]]->ar,&user))
 				continue;
-			if(!chk_ar(cfg.dir[usrdir[curlib][curdir[curlib]]]->ar,&user,/* client: */NULL))
+			if(!chk_ar(cfg.dir[usrdir[curlib][curdir[curlib]]]->ar,&user))
 				continue; 
 		}
 		if(sort) {
@@ -960,7 +960,7 @@ void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
 	CRLF;
 	int printed=0;
 	for(int i=0;i<cfg.total_prots;i++) {
-		if(!chk_ar(cfg.prot[i]->ar,&useron,&client))
+		if(!chk_ar(cfg.prot[i]->ar,&useron))
 			continue;
 		if(type==XFER_UPLOAD && cfg.prot[i]->ulcmd[0]==0)
 			continue;
