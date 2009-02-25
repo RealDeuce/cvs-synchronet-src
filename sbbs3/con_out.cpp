@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.53 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.66 2009/02/25 00:06:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,33 +43,9 @@
 
 #include "sbbs.h"
 
-/***************************************************/
-/* Seven bit table for EXASCII to ASCII conversion */
-/***************************************************/
-static const char *sbtbl="CUeaaaaceeeiiiAAEaAooouuyOUcLYRfaiounNao?--24!<>"
-			"###||||++||++++++--|-+||++--|-+----++++++++##[]#"
-			"abrpEout*ono%0ENE+><rj%=o..+n2* ";
-
-/****************************************************************************/
-/* Convert string from IBM extended ASCII to just ASCII						*/
-/****************************************************************************/
-char* DLLCALL ascii_str(uchar* str)
-{
-	size_t i;
-
-	for(i=0;str[i];i++)
-		if(str[i]&0x80)
-			str[i]=sbtbl[str[i]^0x80];  /* seven bit table */
-		else if(str[i]==CTRL_A	        /* ctrl-a */
-			&& str[i+1]!=0)				/* valid */
-			i++;						/* skip the attribute code */
-
-	return((char*)str);
-}
-
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
-/* Handles ctrl-a characters                                                */
+/* Handles ctrl-a codes, Telnet-escaping, column & line count, auto-pausing */
 /****************************************************************************/
 int sbbs_t::bputs(const char *str)
 {
@@ -79,11 +55,12 @@ int sbbs_t::bputs(const char *str)
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
 		return(eprintf(LOG_INFO,"%s",str));
 
-	while(str[l]) {
-		if(str[l]==CTRL_A	        /* ctrl-a */
-			&& str[l+1]!=0) {		/* valid */
-			ctrl_a(str[++l]);       /* skip the ctrl-a */
-			l++;					/* skip the attribute code */
+	while(str[l] && online) {
+		if(str[l]==CTRL_A && str[l+1]!=0) {
+			l++;
+			if(toupper(str[l])=='Z')	/* EOF */
+				break;
+			ctrl_a(str[l++]);
 			continue; 
 		}
 		if(str[l]=='@') {           /* '@' */
@@ -111,19 +88,25 @@ int sbbs_t::bputs(const char *str)
 }
 
 /****************************************************************************/
-/* Outputs a NULL terminated string locally and remotely (if applicable)    */
-/* Does not expand ctrl-a characters (raw)                                  */
-/* Max length of str is 64 kbytes                                           */
+/* Raw put string (remotely)												*/
+/* Performs Telnet IAC escaping												*/
+/* Performs saveline buffering (for restoreline)							*/
+/* DOES NOT expand ctrl-A codes, track colunms, lines, auto-pause, etc.     */
 /****************************************************************************/
-int sbbs_t::rputs(const char *str)
+int sbbs_t::rputs(const char *str, size_t len)
 {
-    ulong l=0;
+    size_t	l;
 
-	if(online==ON_LOCAL && console&CON_L_ECHO)	/* script running as event */
-		return(eprintf(LOG_INFO,"%s",str));
-
-	while(str[l])
-		outchar(str[l++]);
+	if(len==0)
+		len=strlen(str);
+	for(l=0;l<len && online;l++) {
+		if(str[l]==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
+		if(outcom(str[l])!=0)
+			break;
+		if(lbuflen<LINE_BUFSIZE)
+			lbuf[lbuflen++]=str[l]; 
+	}
 	return(l);
 }
 
@@ -164,14 +147,13 @@ int sbbs_t::rprintf(const char *fmt, ...)
 /****************************************************************************/
 void sbbs_t::backspace(void)
 {
-	int		oldconsole;
-
-	oldconsole=console;
-	console &= ~(CON_R_ECHOX|CON_L_ECHOX);
-	outchar('\b');
-	outchar(' ');
-	outchar('\b');
-	console=oldconsole;
+	if(!(console&CON_ECHO_OFF)) {
+		outcom('\b');
+		outcom(' ');
+		outcom('\b');
+		if(column)
+			column--;
+	}
 }
 
 /****************************************************************************/
@@ -187,8 +169,11 @@ long sbbs_t::term_supports(long cmp_flags)
 }
 
 /****************************************************************************/
-/* Outputs character locally and remotely (if applicable), preforming echo  */
-/* translations (X's and r0dent emulation) if applicable.					*/
+/* Outputs character														*/
+/* Performs terminal translations (e.g. EXASCII-to-ASCII, FF->ESC[2J)		*/
+/* Performs Telnet IAC escaping												*/
+/* Performs column counting, line counting, and auto-pausing				*/
+/* Performs saveline buffering (for restoreline)							*/
 /****************************************************************************/
 void sbbs_t::outchar(char ch)
 {
@@ -205,13 +190,13 @@ void sbbs_t::outchar(char ch)
 			outchar_esc=0;
 	}
 	else if(outchar_esc==2) {
-		if((ch>='@' && ch<='Z') || (ch>='a' && ch<='z'))
+		if(ch>='@' && ch<='~')
 			outchar_esc++;
 	}
 	else
 		outchar_esc=0;
 	if(term_supports(NO_EXASCII) && ch&0x80)
-		ch=sbtbl[(uchar)ch^0x80];  /* seven bit table */
+		ch=exascii_to_ascii_char(ch);  /* seven bit table */
 	if(ch==FF && lncntr>1 && !tos) {
 		lncntr=0;
 		CRLF;
@@ -219,29 +204,8 @@ void sbbs_t::outchar(char ch)
 			pause();
 			while(lncntr && online && !(sys_status&SS_ABORT))
 				pause(); 
-#if 0	/* This line was added in rev 1.41, but it prevents Ctrl-C or 'N' 
-			from the forced-pause prompt from aborting the currently displayed file: */
-			sys_status&=~SS_ABORT;
-#endif
 		}
 	}
-#if 0
-	if(sys_status&SS_CAP	/* Writes to Capture File */
-		&& (sys_status&SS_ANSCAP || (ch!=ESC /* && !lclaes() */)))
-		fwrite(&ch,1,1,capfile);
-#endif
-#if 0 
-	if(console&CON_L_ECHO) {
-		if(console&CON_L_ECHOX && (uchar)ch>=' ')
-			putch(password_char);
-		else if(cfg.node_misc&NM_NOBEEP && ch==BEL);	 /* Do nothing if beep */
-		else if(ch==BEL) {
-				sbbs_beep(2000,110);
-				nosound(); 
-		}
-		else putch(ch); 
-	}
-#endif
 
 	if(online==ON_REMOTE && console&CON_R_ECHO) {
 		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
@@ -272,14 +236,26 @@ void sbbs_t::outchar(char ch)
 			} 
 		} 
 	}
-	if(ch==LF) {
+	if(!outchar_esc) {
+		if((uchar)ch>=' ')
+			column++;
+		else if(ch=='\r')
+			column=0;
+		else if(ch=='\b') {
+			if(column)
+				column--;
+		}
+	}
+	if(ch==LF || column>=cols) {
 		lncntr++;
 		lbuflen=0;
 		tos=0;
+		column=0;
 	} else if(ch==FF) {
 		lncntr=0;
 		lbuflen=0;
 		tos=1;
+		column=0;
 	} else {
 		if(!lbuflen)
 			latr=curatr;
@@ -312,16 +288,9 @@ void sbbs_t::center(char *instr)
 
 void sbbs_t::clearline(void)
 {
-	int i;
-
-	outchar(CR);
-	if(term_supports(ANSI))
-		rputs("\x1b[K");
-	else {
-		for(i=0;i<cols-1;i++)
-			outchar(' ');
-		outchar(CR); 
-	}
+	outcom(CR);
+	column=0;
+	cleartoeol();
 }
 
 void sbbs_t::cursor_home(void)
@@ -329,7 +298,7 @@ void sbbs_t::cursor_home(void)
 	if(term_supports(ANSI))
 		rputs("\x1b[H");
 	else
-		outchar(FF);
+		outchar(FF);	/* this will clear some terminals, do nothing with others */
 }
 
 void sbbs_t::cursor_up(int count)
@@ -367,8 +336,9 @@ void sbbs_t::cursor_right(int count)
 			rputs("\x1b[C");
 	} else {
 		for(int i=0;i<count;i++)
-			outchar(' ');
+			outcom(' ');
 	}
+	column+=count;
 }
 
 void sbbs_t::cursor_left(int count)
@@ -382,23 +352,27 @@ void sbbs_t::cursor_left(int count)
 			rputs("\x1b[D");
 	} else {
 		for(int i=0;i<count;i++)
-			outchar('\b');
+			outcom('\b');
 	}
+	if(column > count)
+		column-=count;
+	else
+		column=0;
 }
 
 void sbbs_t::cleartoeol(void)
 {
+	int i,j;
+
 	if(term_supports(ANSI))
 		rputs("\x1b[K");
-#if 0
 	else {
-		i=j=lclwx();	/* commented out */
-		while(i++<79)
-			outchar(' ');
-		while(j++<79)
-			outchar(BS); 
+		i=j=column;
+		while(++i<cols)
+			outcom(' ');
+		while(++j<cols)
+			outcom(BS); 
 	}
-#endif                
 }
 
 /****************************************************************************/
@@ -613,181 +587,7 @@ void sbbs_t::attr(int atr)
 
 	if(!term_supports(ANSI))
 		return;
-	if(!term_supports(COLOR)) {  /* eliminate colors if user doesn't have them */
-		if(atr&LIGHTGRAY)       /* if any foreground bits set, set all */
-			atr|=LIGHTGRAY;
-		if(atr&BG_LIGHTGRAY)  /* if any background bits set, set all */
-			atr|=BG_LIGHTGRAY;
-		if(atr&LIGHTGRAY && atr&BG_LIGHTGRAY)
-			atr&=~LIGHTGRAY;    /* if background is solid, foreground is black */
-		if(!atr)
-			atr|=LIGHTGRAY;		/* don't allow black on black */
-	}
-	if(curatr==atr) /* text hasn't changed. don't send codes */
-		return;
-
-#if 1
-	strcpy(str,"\033[");
-	if((!(atr&HIGH) && curatr&HIGH) || (!(atr&BLINK) && curatr&BLINK)
-		|| atr==LIGHTGRAY) {
-		strcat(str,"0;");
-		curatr=LIGHTGRAY;
-	}
-	if(atr&BLINK) {                     /* special attributes */
-		if(!(curatr&BLINK))
-			strcat(str,"5;");
-	}
-	if(atr&HIGH) {
-		if(!(curatr&HIGH))
-			strcat(str,"1;"); 
-	}
-	if((atr&0x07) != (curatr&0x07)) {
-		switch(atr&0x07) {
-			case BLACK:
-				strcat(str,"30;");
-				break;
-			case RED:
-				strcat(str,"31;");
-				break;
-			case GREEN:
-				strcat(str,"32;");
-				break;
-			case BROWN:
-				strcat(str,"33;");
-				break;
-			case BLUE:
-				strcat(str,"34;");
-				break;
-			case MAGENTA:
-				strcat(str,"35;");
-				break;
-			case CYAN:
-				strcat(str,"36;");
-				break;
-			case LIGHTGRAY:
-				strcat(str,"37;");
-				break;
-		}
-	}
-	if((atr&0x70) != (curatr&0x70)) {
-		switch(atr&0x70) {
-			/* The BG_BLACK macro is 0x200, so isn't in the mask */
-			case 0 /* BG_BLACK */:	
-				strcat(str,"40;");
-				break;
-			case BG_RED:
-				strcat(str,"41;");
-				break;
-			case BG_GREEN:
-				strcat(str,"42;");
-				break;
-			case BG_BROWN:
-				strcat(str,"43;");
-				break;
-			case BG_BLUE:
-				strcat(str,"44;");
-				break;
-			case BG_MAGENTA:
-				strcat(str,"45;");
-				break;
-			case BG_CYAN:
-				strcat(str,"46;");
-				break;
-			case BG_LIGHTGRAY:
-				strcat(str,"47;");
-				break;
-		}
-	}
-	if(strlen(str)==2)
-		return;
-	str[strlen(str)-1]='m';
-	rputs(str);
-#else
-	if((!(atr&HIGH) && curatr&HIGH) || (!(atr&BLINK) && curatr&BLINK)
-		|| atr==LIGHTGRAY) {
-		rputs(ansi(ANSI_NORMAL));
-		curatr=LIGHTGRAY; 
-	}
-
-	if(atr==LIGHTGRAY)                  /* no attributes */
-		return;
-
-	if(atr&BLINK) {                     /* special attributes */
-		if(!(curatr&BLINK))
-			rputs(ansi(BLINK)); 
-	}
-	if(atr&HIGH) {
-		if(!(curatr&HIGH))
-			rputs(ansi(HIGH)); 
-	}
-
-	if((atr&0x7)==BLACK) {              /* foreground colors */
-		if((curatr&0x7)!=BLACK)
-			rputs(ansi(BLACK)); 
-	}
-	else if((atr&0x7)==RED) {
-		if((curatr&0x7)!=RED)
-			rputs(ansi(RED)); 
-	}
-	else if((atr&0x7)==GREEN) {
-		if((curatr&0x7)!=GREEN)
-			rputs(ansi(GREEN)); 
-	}
-	else if((atr&0x7)==BROWN) {
-		if((curatr&0x7)!=BROWN)
-			rputs(ansi(BROWN)); 
-	}
-	else if((atr&0x7)==BLUE) {
-		if((curatr&0x7)!=BLUE)
-			rputs(ansi(BLUE)); 
-	}
-	else if((atr&0x7)==MAGENTA) {
-		if((curatr&0x7)!=MAGENTA)
-			rputs(ansi(MAGENTA)); 
-	}
-	else if((atr&0x7)==CYAN) {
-		if((curatr&0x7)!=CYAN)
-			rputs(ansi(CYAN)); 
-	}
-	else if((atr&0x7)==LIGHTGRAY) {
-		if((curatr&0x7)!=LIGHTGRAY)
-			rputs(ansi(LIGHTGRAY)); 
-	}
-
-	if((atr&0x70)==0) {        /* background colors */
-		if((curatr&0x70)!=0)
-			rputs(ansi(BG_BLACK)); 
-	}
-	else if((atr&0x70)==BG_RED) {
-		if((curatr&0x70)!=BG_RED)
-			rputs(ansi(BG_RED)); 
-	}
-	else if((atr&0x70)==BG_GREEN) {
-		if((curatr&0x70)!=BG_GREEN)
-			rputs(ansi(BG_GREEN)); 
-	}
-	else if((atr&0x70)==BG_BROWN) {
-		if((curatr&0x70)!=BG_BROWN)
-			rputs(ansi(BG_BROWN)); 
-	}
-	else if((atr&0x70)==BG_BLUE) {
-		if((curatr&0x70)!=BG_BLUE)
-			rputs(ansi(BG_BLUE)); 
-	}
-	else if((atr&0x70)==BG_MAGENTA) {
-		if((curatr&0x70)!=BG_MAGENTA)
-			rputs(ansi(BG_MAGENTA)); 
-	}
-	else if((atr&0x70)==BG_CYAN) {
-		if((curatr&0x70)!=BG_CYAN)
-			rputs(ansi(BG_CYAN)); 
-	}
-	else if((atr&0x70)==BG_LIGHTGRAY) {
-		if((curatr&0x70)!=BG_LIGHTGRAY)
-			rputs(ansi(BG_LIGHTGRAY)); 
-	}
-#endif
-
+	rputs(ansi(atr,curatr,str));
 	curatr=atr;
 }
 
