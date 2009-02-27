@@ -2,13 +2,13 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.42 2010/03/05 05:59:21 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.37 2008/02/11 06:54:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -60,9 +60,6 @@ static int lprintf(xmodem_t* xm, int level, const char *fmt, ...)
 
 	if(xm->lputs==NULL)
 		return(-1);
-	if(xm->log_level != NULL)
-		if(level > *xm->log_level)
-			return 0;
 
     va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
@@ -83,12 +80,6 @@ static BOOL is_cancelled(xmodem_t* xm)
 	if(xm->is_cancelled!=NULL)
 		return(xm->cancelled=xm->is_cancelled(xm->cbdata));
 	return(xm->cancelled);
-}
-
-static void xmodem_flush(xmodem_t* xm)
-{
-	if(xm->flush!=NULL)
-		xm->flush(xm);
 }
 
 static char *chr(uchar ch)
@@ -114,21 +105,14 @@ static char *chr(uchar ch)
 
 int xmodem_put_ack(xmodem_t* xm)
 {
-	int result;
-
 	while(getcom(0)!=NOINP && is_connected(xm))
 		;				/* wait for any trailing data */
-	result = putcom(ACK);
-
-	xmodem_flush(xm);
-
-	return result;
+	return putcom(ACK);
 }
 
 int xmodem_put_nak(xmodem_t* xm, unsigned block_num)
 {
 	int i,dump_count=0;
-	int	result;
 
 	/* wait for any trailing data */
 	while((i=getcom(0))!=NOINP && is_connected(xm)) {
@@ -144,20 +128,16 @@ int xmodem_put_nak(xmodem_t* xm, unsigned block_num)
 	if(block_num<=1) {
 		if(*(xm->mode)&GMODE) {		/* G for X/Ymodem-G */
 			lprintf(xm,LOG_INFO,"Block %u: Requesting mode: Streaming, 16-bit CRC", block_num);
-			result = putcom('G');
+			return putcom('G');
 		} else if(*(xm->mode)&CRC) {	/* C for CRC */
 			lprintf(xm,LOG_INFO,"Block %u: Requesting mode: 16-bit CRC", block_num);
-			result = putcom('C');
+			return putcom('C');
 		} else {				/* NAK for checksum */
 			lprintf(xm,LOG_INFO,"Block %u: Requesting mode: 8-bit Checksum", block_num);
-			result = putcom(NAK);
+			return putcom(NAK);
 		}
-	} else
-		result = putcom(NAK);
-
-	xmodem_flush(xm);
-
-	return result;
+	}
+	return putcom(NAK);
 }
 
 int xmodem_cancel(xmodem_t* xm)
@@ -174,8 +154,6 @@ int xmodem_cancel(xmodem_t* xm)
 				return result;
 		xm->cancelled=TRUE;
 	}
-
-	xmodem_flush(xm);
 
 	return SUCCESS;
 }
@@ -337,13 +315,9 @@ int xmodem_put_block(xmodem_t* xm, uchar* block, unsigned block_size, unsigned b
 	if((*xm->mode)&CRC) {
 		if((result=	putcom((uchar)(crc >> 8)))!=0)
 			return result;
-		result = putcom((uchar)(crc&0xff)); 
-	} else
-		result = putcom(chksum);
-
-	xmodem_flush(xm);
-
-	return result;
+		return		putcom((uchar)(crc&0xff)); 
+	}
+	return putcom(chksum);
 }
 
 /************************************************************/
@@ -456,7 +430,6 @@ BOOL xmodem_put_eot(xmodem_t* xm)
 			lprintf(xm,LOG_INFO,"Throwing out received: %s",chr((uchar)ch));
 
 		putcom(EOT);
-		xmodem_flush(xm);
 		if((ch=getcom(xm->recv_timeout))==NOINP)
 			continue;
 		lprintf(xm,LOG_INFO,"Received %s",chr((uchar)ch)); 
@@ -472,7 +445,7 @@ BOOL xmodem_put_eot(xmodem_t* xm)
 	return(FALSE);
 }
 
-BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, int64_t* sent)
+BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, ulong* sent)
 {
 	BOOL		success=FALSE;
 	ulong		sent_bytes=0;
@@ -482,11 +455,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 	size_t		i;
 	size_t		rd;
 	time_t		startfile;
-#ifdef _WIN32
-	struct		_stati64 st;
-#else
 	struct		stat st;
-#endif
 	BOOL		sent_header=FALSE;
 
 	if(sent!=NULL)	
@@ -495,11 +464,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 	if(start!=NULL)		
 		*start=time(NULL);
 
-#ifdef _WIN32
-	_fstati64(fileno(fp),&st);
-#else
 	fstat(fileno(fp),&st);
-#endif
 
 	if(xm->total_files==0)
 		xm->total_files=1;
@@ -516,8 +481,8 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 
 			memset(block,0,sizeof(block));
 			SAFECOPY(block,getfname(fname));
-			i=sprintf(block+strlen(block)+1,"%"PRIu64" %lo 0 0 %d %u"
-				,(uint64_t)st.st_size
+			i=sprintf(block+strlen(block)+1,"%lu %lo 0 0 %d %u"
+				,(ulong)st.st_size
 				,st.st_mtime
 				,xm->total_files-xm->sent_files
 				,xm->total_bytes-xm->sent_bytes);
@@ -554,14 +519,14 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 
 		block_num=1;
 		xm->errors=0;
-		while(sent_bytes < st.st_size && xm->errors<=xm->max_errors && !is_cancelled(xm)
+		while(sent_bytes < (ulong)st.st_size && xm->errors<=xm->max_errors && !is_cancelled(xm)
 			&& is_connected(xm)) {
 			fseek(fp,sent_bytes,SEEK_SET);
 			memset(block,CPMEOF,xm->block_size);
 			if(!sent_header) {
 				if(xm->block_size>XMODEM_MIN_BLOCK_SIZE) {
-					if((sent_bytes+xm->block_size) > st.st_size) {
-						if((sent_bytes+xm->block_size-XMODEM_MIN_BLOCK_SIZE) >= st.st_size) {
+					if((long)(sent_bytes+xm->block_size) > st.st_size) {
+						if((long)(sent_bytes+xm->block_size-XMODEM_MIN_BLOCK_SIZE) >= st.st_size) {
 							lprintf(xm,LOG_INFO,"Falling back to 128-byte blocks for end of file");
 							xm->block_size=XMODEM_MIN_BLOCK_SIZE;
 						}
@@ -569,8 +534,8 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 				}
 			}
 			if((rd=fread(block,1,xm->block_size,fp))!=xm->block_size 
-				&& (sent_bytes + rd) != st.st_size) {
-				lprintf(xm,LOG_ERR,"READ ERROR %d instead of %d at offset %"PRIu64
+				&& (long)(sent_bytes + rd) != st.st_size) {
+				lprintf(xm,LOG_ERR,"READ ERROR %d instead of %d at offset %lu"
 					,rd,xm->block_size,sent_bytes);
 				xm->errors++;
 				continue;
@@ -580,7 +545,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			xmodem_put_block(xm, block, xm->block_size, block_num);
 			if(xmodem_get_ack(xm, /* tries: */5,block_num) != ACK) {
 				xm->errors++;
-				lprintf(xm,LOG_WARNING,"Block %u: Error #%d at offset %"PRIu64
+				lprintf(xm,LOG_WARNING,"Block %u: Error #%d at offset %ld"
 					,block_num, xm->errors,ftell(fp)-xm->block_size);
 				if(xm->errors==3 && block_num==1 && xm->block_size>XMODEM_MIN_BLOCK_SIZE) {
 					lprintf(xm,LOG_NOTICE,"Block %u: Falling back to 128-byte blocks", block_num);
@@ -591,7 +556,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 				sent_bytes+=rd;
 			}
 		}
-		if(sent_bytes >= st.st_size && !is_cancelled(xm) && is_connected(xm)) {
+		if(sent_bytes >= (ulong)st.st_size && !is_cancelled(xm) && is_connected(xm)) {
 
 	#if 0 /* !SINGLE_THREADED */
 			lprintf(LOG_DEBUG,"Waiting for output buffer to empty... ");
@@ -621,19 +586,18 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.42 $", "%*s %s", buf);
+	sscanf("$Revision: 1.37 $", "%*s %s", buf);
 
 	return(buf);
 }
 
 void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 				,int	(*lputs)(void*, int level, const char* str)
-				,void	(*progress)(void* unused, unsigned block_num, int64_t offset, int64_t fsize, time_t t)
+				,void	(*progress)(void* unused, unsigned block_num, ulong offset, ulong fsize, time_t t)
 				,int	(*send_byte)(void*, uchar ch, unsigned timeout)
 				,int	(*recv_byte)(void*, unsigned timeout)
 				,BOOL	(*is_connected)(void*)
-				,BOOL	(*is_cancelled)(void*)
-				,void	(*flush)(void*))
+				,BOOL	(*is_cancelled)(void*))
 {
 	memset(xm,0,sizeof(xmodem_t));
 
@@ -658,5 +622,4 @@ void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 	xm->recv_byte=recv_byte;
 	xm->is_connected=is_connected;
 	xm->is_cancelled=is_cancelled;
-	xm->flush=flush;
 }
