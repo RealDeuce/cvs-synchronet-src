@@ -2,13 +2,13 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.35 2010/03/05 04:09:11 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.34 2007/07/11 03:52:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -56,7 +56,6 @@
 
 /****************************************************************************/
 /* Returns the modification time of the file in 'fd'						*/
-/* or -1 if file doesn't exist.												*/
 /****************************************************************************/
 time_t DLLCALL filetime(int fd)
 {
@@ -72,7 +71,6 @@ time_t DLLCALL filetime(int fd)
 
 /****************************************************************************/
 /* Returns the length of the file in 'fd'									*/
-/* or -1 if file doesn't exist.												*/
 /****************************************************************************/
 long DLLCALL filelength(int fd)
 {
@@ -80,21 +78,6 @@ long DLLCALL filelength(int fd)
 
 	if(fstat(fd, &st)!=0)
 		return(-1L);
-
-	return(st.st_size);
-}
-
-/****************************************************************************/
-/* Returns the length (63-bits) of the file in 'fd'							*/
-/* or -1 if file doesn't exist.												*/
-/* Microsoftism																*/
-/****************************************************************************/
-int64_t DLLCALL _filelengthi64(int fd)
-{
-	struct stat st;
-
-	if(fstat(fd, &st)!=0)
-		return(-1);
 
 	return(st.st_size);
 }
