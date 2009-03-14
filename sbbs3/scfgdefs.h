@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.35 2009/11/11 05:34:09 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.32 2009/03/07 21:45:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,7 +118,7 @@ typedef struct {							/* Transfer Library Information */
 				code_prefix[LEN_CODE+1],	/* Prefix for internal code */
 				parent_path[48];			/* Parent for dir paths */
 	uchar		*ar;
-	uint32_t	offline_dir;				/* Offline file directory */
+	uint16_t	offline_dir;				/* Offline file directory */
 
 } lib_t;
 
@@ -314,8 +314,8 @@ typedef struct {							/* QWK Network Hub */
 				node,						/* Node to do the call-out */
 				freq,						/* Frequency of call-outs */
 				subs,						/* Number Sub-boards carried */
+				*sub,						/* Number of local sub-board for ea. */
 				*conf;						/* Conference number of ea. */
-	ulong		*sub;						/* Number of local sub-board for ea. */
 	time32_t	last;						/* Last network attempt */
 
 } qhub_t;
@@ -529,7 +529,6 @@ typedef struct
 	uint16_t		max_userxfer;	/* Max dest. users of user to user xfer */
 	uint32_t		max_minutes;	/* Maximum minutes a user can have */
 	uint32_t		max_qwkmsgs;	/* Maximum messages per QWK packet */
-	uint16_t		max_qwkmsgage;	/* Maximum age (in days) of QWK messages to be imported */
 	char			preqwk_arstr[LEN_ARSTR+1]; /* pre pack QWK */
 	uchar*			preqwk_ar;
 	uint16_t		cdt_min_value;	/* Minutes per 100k credits */
@@ -545,9 +544,9 @@ typedef struct
 	char			mods_dir[LEN_DIR+1];
 	char			logs_dir[LEN_DIR+1];
 	char			node_path[MAX_NODES][LEN_DIR+1]; /* paths to all node dirs */
-	uint			sysop_dir;			/* Destination for uploads to sysop */
-	uint			user_dir;			/* Directory for user to user xfers */
-	uint			upload_dir; 		/* Directory where all uploads go */
+	uint16_t		sysop_dir;			/* Destination for uploads to sysop */
+	uint16_t		user_dir;			/* Directory for user to user xfers */
+	uint16_t		upload_dir; 		/* Directory where all uploads go */
 	char **			altpath;			/* Alternate paths for files */
 	uint16_t		altpaths;			/* Total number of alternate paths */
 	uint16_t		leech_pct;			/* Leech detection percentage */
