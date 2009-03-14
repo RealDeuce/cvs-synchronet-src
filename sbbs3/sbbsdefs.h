@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.161 2009/04/22 03:12:30 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.158 2009/02/21 22:01:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,8 +98,6 @@ typedef struct {
 
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
-
-#define MAX_TEXTDAT_ITEM_LEN	2000
 
 
 #define LEN_DIR		63		/* Maximum length of directory paths		*/
@@ -295,7 +293,6 @@ typedef struct {
 #define ERR_CHK		"checking"		/* checking */
 #define ERR_LEN		"checking length"
 #define ERR_EXEC	"executing"		/* executing */
-#define ERR_CHDIR	"changing directory"
 #define ERR_CREATE	"creating" 		/* creating */
 #define ERR_LOCK	"locking"		/* locking */
 #define ERR_UNLOCK 	"unlocking"		/* unlocking */

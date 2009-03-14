@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.509 2009/08/04 01:03:00 deuce Exp $ */
+/* $Id: websrvr.c,v 1.502 2009/02/01 21:39:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1401,7 +1401,7 @@ BOOL http_checkuser(http_session_t * session)
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing User Objects",session->socket);
 		JS_BEGINREQUEST(session->js_cx);
 		if(session->user.number>0) {
-			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user, &session->client
+			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				JS_ENDREQUEST(session->js_cx);
 				lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
@@ -1410,7 +1410,7 @@ BOOL http_checkuser(http_session_t * session)
 			}
 		}
 		else {
-			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, /* user: */NULL, &session->client
+			if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, NULL
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				JS_ENDREQUEST(session->js_cx);
 				lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript User Objects",session->socket);
@@ -1680,7 +1680,7 @@ static BOOL check_ars(http_session_t * session)
 	}
 
 	ar = arstr(NULL,session->req.ars,&scfg);
-	authorized=chk_ar(&scfg,ar,&session->user,&session->client);
+	authorized=chk_ar(&scfg,ar,&session->user);
 	if(ar!=NULL && ar!=nular)
 		FREE_AND_NULL(ar);
 
@@ -2105,11 +2105,12 @@ static char *get_token_value(char **p)
 			else
 				*(out++)=*pos;
 		}
+		*out=0;
 	}
 	else {
 		for(; *pos; pos++) {
 			if(iscntrl(*pos))
-				break;
+				goto end_of_text;
 			switch(*pos) {
 				case 0:
 				case '(':
@@ -2135,11 +2136,11 @@ static char *get_token_value(char **p)
 			}
 			*(out++)=*pos;
 		}
-	}
 end_of_text:
-	while(*pos==',' || isspace(*pos))
-		pos++;
-	*out=0;
+		if(*pos)
+			pos++;
+		*out=0;
+	}
 	*p=pos;
 	return(start);
 }
@@ -2269,12 +2270,8 @@ static BOOL parse_headers(http_session_t * session)
 									p+=3;
 									session->req.auth.nonce_count=strdup(get_token_value(&p));
 								}
-								else {
-									while(*p && *p != '=')
-										p++;
-									if(*p == '=')
-										get_token_value(&p);
-								}
+								while(*p && !isspace(*p))
+									p++;
 							}
 							if(session->req.auth.digest_uri==NULL)
 								session->req.auth.digest_uri=strdup(session->req.request_line);
@@ -2543,19 +2540,12 @@ static char *get_request(http_session_t * session, char *req_line)
 	/* Must initialize physical_path before calling is_dynamic_req() */
 	SAFECOPY(session->req.physical_path,session->req.virtual_path);
 	unescape(session->req.physical_path);
-
 	if(!strnicmp(session->req.physical_path,http_scheme,http_scheme_len)) {
 		/* Set HOST value... ignore HOST header */
 		SAFECOPY(session->req.host,session->req.physical_path+http_scheme_len);
-		/* Remove path of present */
-		strtok_r(session->req.host,"/",&last);
-
-		/* Set vhost value */
 		SAFECOPY(session->req.vhost,session->req.host);
-		/* Remove port specification from vhost */
+		/* Remove port specification */
 		strtok_r(session->req.vhost,":",&last);
-
-		/* Do weird physical_path dance... TODO: Understand this code */
 		if(strtok_r(session->req.physical_path,"/",&last))
 			p=strtok_r(NULL,"/",&last);
 		else
@@ -3557,7 +3547,6 @@ static BOOL exec_cgi(http_session_t *session)
 	char*	env_block;
 	char	startup_dir[MAX_PATH+1];
 	int		wr;
-	BOOL	rd;
 	HANDLE	rdpipe=INVALID_HANDLE_VALUE;
 	HANDLE	wrpipe=INVALID_HANDLE_VALUE;
 	HANDLE	rdoutpipe;
@@ -3659,20 +3648,6 @@ static BOOL exec_cgi(http_session_t *session)
 			lprintf(LOG_WARNING,"%04d CGI Process %s timed out after %u seconds of inactivity"
 				,session->socket,getfname(cmdline),startup->max_cgi_inactivity);
 			break;
-		}
-
-		/* Check socket for received POST Data */
-		if(!socket_check(session->socket, &rd, NULL, /* timeout: */0)) {
-			lprintf(LOG_WARNING,"%04d CGI Socket disconected", session->socket);
-			break;
-		}
-		if(rd) {
-			/* Send received POST Data to stdin of CGI process */
-			if((i=recv(session->socket, buf, sizeof(buf), 0)) > 0)  {
-				lprintf(LOG_DEBUG,"%04d CGI Received %d bytes of POST data"
-					,session->socket, i);
-				WriteFile(wrpipe, buf, i, &wr, /* Overlapped: */NULL);
-			}
 		}
 
 		waiting = 0;
@@ -4209,7 +4184,7 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JS_RESUMEREQUEST(cx, rc);
 
 	/* user-specific objects */
-	if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user, &session->client
+	if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user
 		,NULL /* ftp index file */, session->subscan /* subscan */)) {
 		lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
 		send_error(session,"500 Error initializing JavaScript User Objects");
@@ -4896,6 +4871,7 @@ void http_output_thread(void *arg)
 
 void http_session_thread(void* arg)
 {
+	int				i;
 	char*			host_name;
 	HOSTENT*		host;
 	SOCKET			socket;
@@ -4962,12 +4938,9 @@ void http_session_thread(void* arg)
 
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
 		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, host_name);
-#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
-	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL 
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", session.socket, host->h_aliases[i]);
-#endif
 		if(trashcan(&scfg,host_name,"host")) {
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			close_socket(&session.socket);
@@ -5183,7 +5156,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.509 $", "%*s %s", revision);
+	sscanf("$Revision: 1.502 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5251,13 +5224,12 @@ void http_logging_thread(void* arg)
 				strcat(newfilename,"-");
 		}
 		strftime(strchr(newfilename,0),15,"%Y-%m-%d.log",&ld->completed);
-		if(logfile==NULL || strcmp(newfilename,filename)) {
+		if(strcmp(newfilename,filename)) {
 			if(logfile!=NULL)
 				fclose(logfile);
 			SAFECOPY(filename,newfilename);
 			logfile=fopen(filename,"ab");
-			if(logfile)
-				lprintf(LOG_INFO,"%04d HTTP logfile is now: %s",server_socket,filename);
+			lprintf(LOG_INFO,"%04d HTTP logfile is now: %s",server_socket,filename);
 		}
 		if(logfile!=NULL) {
 			if(ld->status) {
@@ -5284,7 +5256,8 @@ void http_logging_thread(void* arg)
 			}
 		}
 		else {
-			lprintf(LOG_ERR,"%04d HTTP server failed to open logfile %s (%d)!",server_socket,filename,errno);
+			logfile=fopen(filename,"ab");
+			lprintf(LOG_ERR,"%04d HTTP logfile %s was not open!",server_socket,filename);
 		}
 		FREE_AND_NULL(ld->hostname);
 		FREE_AND_NULL(ld->ident);
