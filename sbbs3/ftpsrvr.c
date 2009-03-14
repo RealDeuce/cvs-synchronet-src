@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.346 2009/02/01 21:39:46 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.351 2009/03/01 00:32:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -962,7 +962,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						extdesc[0]=0;
 						getextdesc(&scfg, dir, f.datoffset, extdesc);
 						/* Remove Ctrl-A Codes and Ex-ASCII code */
-						remove_ctrl_a(extdesc,NULL);
+						remove_ctrl_a(extdesc,extdesc);
 					}
 					SAFEPRINTF3(vpath,"/%s/%s/%s"
 						,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -1794,8 +1794,8 @@ static void receive_thread(void* arg)
 						ext[i]=0;
 						if(!f.desc[0]) {			/* use for normal description */
 							SAFECOPY(desc,ext);
-							strip_exascii(desc);	/* strip extended ASCII chars */
-							prep_file_desc(desc);	/* strip control chars and dupe chars */
+							strip_exascii(desc, desc);	/* strip extended ASCII chars */
+							prep_file_desc(desc, desc);	/* strip control chars and dupe chars */
 							for(i=0;desc[i];i++)	/* find approprate first char */
 								if(isalnum(desc[i]))
 									break;
@@ -3730,9 +3730,15 @@ static void ctrl_thread(void* arg)
 							,sock, str);
 					t=time(NULL);
 					while(fexist(str)) {
+						if(!socket_check(sock,NULL,NULL,0))
+							break;
 						if(time(NULL)-t>startup->qwk_timeout)
 							break;
 						mswait(1000);
+					}
+					if(!socket_check(sock,NULL,NULL,0)) {
+						remove(str);
+						continue;
 					}
 					if(fexist(str)) {
 						lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
@@ -4074,7 +4080,7 @@ static void ctrl_thread(void* arg)
 						PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 				} else {
-					if(fexist(fname)) {
+					if(fexistcase(fname)) {
 						success=TRUE;
 						if(!getsize && !getdate && !delecmd)
 							lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
@@ -4098,7 +4104,7 @@ static void ctrl_thread(void* arg)
 					,1900+tm.tm_year,tm.tm_mon+1,tm.tm_mday
 					,tm.tm_hour,tm.tm_min,tm.tm_sec);
 			} else if(delecmd && success) {
-				if(remove(fname)!=0) {
+				if(removecase(fname)!=0) {
 					lprintf(LOG_ERR,"%04d !ERROR %d deleting %s",sock,errno,fname);
 					sockprintf(sock,"450 %s could not be deleted (error: %d)"
 						,fname,errno);
@@ -4574,7 +4580,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.346 $", "%*s %s", revision);
+	sscanf("$Revision: 1.351 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4698,6 +4704,9 @@ void DLLCALL ftp_server(void* arg)
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
+
+		if(chdir(startup->ctrl_dir)!=0)
+			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);

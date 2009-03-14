@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.485 2009/02/08 04:37:30 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.489 2009/03/01 00:32:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -549,15 +549,6 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 
 	/* MESSAGE BODY */
 	lines=0;
-#if 0	/* This is now handled in smb_getmsgtxt() */
-    for(i=0;i<msg->total_hfields;i++) {			/* delivery failure notification? */
-		if(msg->hfield[i].type==SMTPSYSMSG || msg->hfield[i].type==SMB_COMMENT) { 
-			if(!sockprintf(socket,"%s",(char*)msg->hfield_dat[i]))
-				return(0);
-			lines++;
-		}
-    }
-#endif
 	p=msgtxt;
 	while(*p && lines<maxlines) {
 		tp=strchr(p,'\n');
@@ -670,10 +661,9 @@ static u_long resolve_ip(char *inaddr)
 	if(!(*p))
 		return(inet_addr(addr));
 
-	if((host=gethostbyname(inaddr))==NULL) {
-		lprintf(LOG_WARNING,"0000 !ERROR resolving hostname: %s",inaddr);
+	if((host=gethostbyname(inaddr))==NULL)
 		return((u_long)INADDR_NONE);
-	}
+
 	return(*((ulong*)host->h_addr_list[0]));
 }
 
@@ -1140,6 +1130,8 @@ static void pop3_thread(void* arg)
 					sockprintf(socket,"-ERR retrieving message text");
 					continue;
 				}
+
+				remove_ctrl_a(msgtxt, msgtxt);
 
 				if(lines > 0					/* Works around BlackBerry mail server */
 					&& lines >= strlen(msgtxt))	/* which requests the number of bytes (instead of lines) using TOP */
@@ -2513,13 +2505,14 @@ static void smtp_thread(void* arg)
 					if(flength(proc_err_fname)>0 
 						&& (proc_err=fopen(proc_err_fname,"r"))!=NULL) {
 						while(!feof(proc_err)) {
+							int n;
 							if(!fgets(str,sizeof(str),proc_err))
 								break;
 							truncsp(str);
 							lprintf(LOG_WARNING,"%04d !SMTP External mail processor (%s) error: %s"
 								,socket, mailproc_list[i].name, str);
-							i=atoi(str);
-							if(i>=100 && i<1000)
+							n=atoi(str);
+							if(n>=100 && n<1000)
 								sockprintf(socket,"%s", str);
 							else
 								sockprintf(socket,"554%c%s"
@@ -2907,7 +2900,7 @@ static void smtp_thread(void* arg)
 			hdr_lines++;
 			continue;
 		}
-		strip_ctrl(buf);
+		strip_ctrl(buf, buf);
 		lprintf(LOG_DEBUG,"%04d SMTP RX: %s", socket, buf);
 		if(!strnicmp(buf,"HELO",4)) {
 			p=buf+4;
@@ -3977,6 +3970,8 @@ static void sendmail_thread(void* arg)
 				continue;
 			}
 
+			remove_ctrl_a(msgtxt, msgtxt);
+
 			port=0;
 
 			/* Check if this is a local email ToDo */
@@ -4083,6 +4078,7 @@ static void sendmail_thread(void* arg)
 				ip_addr=resolve_ip(server);
 				if(ip_addr==INADDR_NONE) {
 					SAFEPRINTF(err,"Failed to resolve SMTP hostname: %s",server);
+					lprintf(LOG_WARNING,"%04d !SEND failure resolving hostname: %s", sock, server);
 					continue;
 				}
 
@@ -4384,7 +4380,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.485 $", "%*s %s", revision);
+	sscanf("$Revision: 1.489 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4516,6 +4512,9 @@ void DLLCALL mail_server(void* arg)
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
+
+		if(chdir(startup->ctrl_dir)!=0)
+			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
