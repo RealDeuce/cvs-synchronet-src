@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.494 2009/06/01 22:19:53 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.490 2009/03/19 07:35:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,6 +111,8 @@ struct mailproc {
 	char		eval[INI_MAX_VALUE_LEN];
 	str_list_t	to;
 	str_list_t	from;
+	str_list_t	host;
+	str_list_t	ip;
 	BOOL		passthru;
 	BOOL		native;
 	BOOL		ignore_on_error;	/* Ignore mail message if cmdline fails */
@@ -437,7 +439,6 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	char		msgid[256];
 	char		date[64];
 	char*		p;
-	char*		np;
 	char*		tp;
 	char*		content_type=NULL;
 	int			i;
@@ -507,18 +508,14 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	if((p=smb_get_hfield(msg,SMB_CARBONCOPY,NULL))!=NULL)
 		if(!sockprintf(socket,"CC: %s",p))
 			return(0);
-	np=NULL;
 	if((p=smb_get_hfield(msg,RFC822REPLYTO,NULL))==NULL) {
-		np=msg->replyto;
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
+		else if(msg->replyto!=NULL)
+			p=msg->replyto;
 	}
-	if(p!=NULL) {
-		if(np!=NULL)
-			s=sockprintf(socket,"Reply-To: \"%s\" <%s>",np,p);
-		else 
-			s=sockprintf(socket,"Reply-To: %s",p);
-	}
+	if(p!=NULL)
+		s=sockprintf(socket,"Reply-To: %s",p);	/* use original RFC822 header field */
 	if(!s)
 		return(0);
 	if(!sockprintf(socket,"Message-ID: %s",get_msgid(&scfg,INVALID_SUB,msg,msgid,sizeof(msgid))))
@@ -736,6 +733,13 @@ static void pop3_thread(void* arg)
 		SAFECOPY(host_name,host->h_name);
 	else
 		strcpy(host_name,"<no name>");
+
+	if(startup->options&MAIL_OPT_DEBUG_POP3
+		&& !(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
+		lprintf(LOG_INFO,"%04d POP3 Hostname: %s", socket, host_name);
+		for(i=0;host!=NULL && host->h_aliases!=NULL && host->h_aliases[i]!=NULL;i++)
+			lprintf(LOG_INFO,"%04d POP3 HostAlias: %s", socket, host->h_aliases[i]);
+	}
 
 	if(trashcan(&scfg,host_ip,"ip")) {
 		lprintf(LOG_NOTICE,"%04d !POP3 CLIENT BLOCKED in ip.can: %s"
@@ -1708,7 +1712,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 				break;
 
 			/* Area and "user" Objects */
-			if(!js_CreateUserObjects(*js_cx, *js_glob, &scfg, user, client, NULL, NULL)) 
+			if(!js_CreateUserObjects(*js_cx, *js_glob, &scfg, user, NULL, NULL)) 
 				break;
 
 			/* Mailproc "API" filenames */
@@ -2202,6 +2206,26 @@ static void smtp_thread(void* arg)
 	else
 		strcpy(host_name,"<no name>");
 
+	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
+		lprintf(LOG_INFO,"%04d SMTP Hostname: %s", socket, host_name);
+		for(i=0;host!=NULL && host->h_aliases!=NULL && host->h_aliases[i]!=NULL;i++)
+			lprintf(LOG_INFO,"%04d SMTP HostAlias: %s", socket, host->h_aliases[i]);
+#if 0
+		if(host!=NULL) {
+			ip=resolve_ip(host_name);
+			if(ip!=smtp.client_addr.sin_addr.s_addr) {
+				smtp.client_addr.sin_addr.s_addr=ip;
+				lprintf(LOG_WARNING,"%04d !SMTP DNS/IP ADDRESS MISMATCH: %s vs %s"
+					,socket, inet_ntoa(smtp.client_addr.sin_addr), host_ip);
+				sockprintf(socket,"550 DNS and IP address mismatch");
+				mail_close_socket(socket);
+				thread_down();
+				return;
+			}
+		}
+#endif
+	}
+
 	active_clients++, update_clients();
 
 	SAFECOPY(hello_name,host_name);
@@ -2422,7 +2446,7 @@ static void smtp_thread(void* arg)
 						if(mailproc_list[i].disabled)
 							continue;
 
-						if(!chk_ar(&scfg,mailproc_list[i].ar,&relay_user,&client))
+						if(!chk_ar(&scfg,mailproc_list[i].ar,&relay_user))
 							continue;
 
 						if(mailproc_list[i].to!=NULL && !mailproc_to_match[i])
@@ -2430,6 +2454,14 @@ static void smtp_thread(void* arg)
 
 						if(mailproc_list[i].from!=NULL 
 							&& !findstr_in_list(sender_addr, mailproc_list[i].from))
+							continue;
+
+						if(mailproc_list[i].host!=NULL 
+							&& !findstr_in_list(host_name, mailproc_list[i].host))
+							continue;
+
+						if(mailproc_list[i].ip!=NULL 
+							&& !findstr_in_list(host_ip, mailproc_list[i].ip))
 							continue;
 
 						if(!mailproc_list[i].passthru)
@@ -2705,7 +2737,7 @@ static void smtp_thread(void* arg)
 					if(relay_user.number==0)
 						memset(&relay_user,0,sizeof(relay_user));
 
-					if(!can_user_post(&scfg,subnum,&relay_user,&client,&reason)) {
+					if(!can_user_post(&scfg,subnum,&relay_user,&reason)) {
 						lprintf(LOG_WARNING,"%04d !SMTP %s (user #%u) cannot post on %s (reason: %u)"
 							,socket, sender_addr, relay_user.number
 							,scfg.sub[subnum]->sname, reason);
@@ -4320,6 +4352,8 @@ static void cleanup(int code)
 				free(mailproc_list[i].ar);
 			strListFree(&mailproc_list[i].to);
 			strListFree(&mailproc_list[i].from);
+			strListFree(&mailproc_list[i].host);
+			strListFree(&mailproc_list[i].ip);
 		}
 		FREE_AND_NULL(mailproc_list);
 	}
@@ -4362,7 +4396,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.494 $", "%*s %s", revision);
+	sscanf("$Revision: 1.490 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4544,6 +4578,10 @@ void DLLCALL mail_server(void* arg)
 						iniReadStringList(fp,sec_list[i],"To",",",NULL);
 					mailproc_list[i].from =
 						iniReadStringList(fp,sec_list[i],"From",",",NULL);
+					mailproc_list[i].host =
+						iniReadStringList(fp,sec_list[i],"Host",",",NULL);
+					mailproc_list[i].ip =
+						iniReadStringList(fp,sec_list[i],"Ip",",",NULL);
 					mailproc_list[i].passthru =
 						iniReadBool(fp,sec_list[i],"PassThru",TRUE);
 					mailproc_list[i].native =
