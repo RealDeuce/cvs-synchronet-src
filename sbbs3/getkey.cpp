@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.39 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: getkey.cpp,v 1.41 2009/02/16 02:58:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -301,7 +301,7 @@ char sbbs_t::getkey(long mode)
 /****************************************************************************/
 void sbbs_t::mnemonics(const char *str)
 {
-    char *ctrl_a_codes;
+    const char *ctrl_a_codes;
     long l;
 
 	if(!strchr(str,'~')) {
@@ -334,10 +334,11 @@ void sbbs_t::mnemonics(const char *str)
 				attr(cfg.color[clr_mnelow]); 
 		}
 		else {
-			if(str[l]==CTRL_A           /* ctrl-a */
-				&& str[l+1]!=0)	{		/* valid */
-				ctrl_a(str[++l]);       /* skip the ctrl-a */
-				l++;                    /* skip the attribute code */
+			if(str[l]==CTRL_A && str[l+1]!=0) {
+				l++;
+				if(toupper(str[l])=='Z')	/* EOF */
+					break;
+				ctrl_a(str[l++]);
 			} else
 				outchar(str[l++]); 
 		} 
@@ -355,14 +356,9 @@ bool sbbs_t::yesno(const char *str)
 {
     char ch;
 
-	strcpy(question,str);
+	SAFECOPY(question,str);
 	SYNC;
-	if(useron.misc&WIP) {
-		strip_ctrl(question);
-		menu("yesno"); 
-	}
-	else
-		bprintf(text[YesNoQuestion],str);
+	bprintf(text[YesNoQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YN][1];
@@ -393,14 +389,9 @@ bool sbbs_t::noyes(const char *str)
 {
     char ch;
 
-	strcpy(question,str);
+	SAFECOPY(question,str);
 	SYNC;
-	if(useron.misc&WIP) {
-		strip_ctrl(question);
-		menu("noyes"); 
-	}
-	else
-		bprintf(text[NoYesQuestion],str);
+	bprintf(text[NoYesQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YN][1];
