@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.41 2011/02/12 00:30:43 deuce Exp $ */
+/* $Id: inkey.cpp,v 1.39 2009/02/19 09:28:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,20 +41,6 @@
 
 #define nosound()	
 
-static int kbincom(unsigned long timeout)
-{
-	int ch;
-
-	if(keybuftop!=keybufbot) {   
-		ch=keybuf[keybufbot++];   
-		if(keybufbot==KEY_BUFSIZE)   
-			keybufbot=0;   
-	} else 
-		ch=incom(timeout);
-
-	return ch;
-}
-
 /****************************************************************************/
 /* Returns character if a key has been hit remotely and responds			*/
 /* Called from functions getkey, msgabort and main_sec						*/
@@ -63,7 +49,12 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 {
 	uchar	ch=0;
 
-	ch=kbincom(timeout);
+	if(keybuftop!=keybufbot) {   
+		ch=keybuf[keybufbot++];   
+		if(keybufbot==KEY_BUFSIZE)   
+			keybufbot=0;   
+	} else 
+		ch=incom(timeout);
 
 	if(ch==0) {
 		// moved here from getkey() on AUG-29-2001
@@ -263,7 +254,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			hotkey_inside--;
 			return(0); 
 		case ESC:
-			i=kbincom(mode&K_GETSTR ? 3000:1000);
+			i=incom(mode&K_GETSTR ? 3000:1000);
 			if(i==NOINP)		// timed-out waiting for '['
 				return(ESC);
 			ch=i;
@@ -279,7 +270,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				putuserrec(&cfg,useron.number,U_MISC,8,ultoa(useron.misc,str,16)); 
 			}
 			while(i<10 && j<30) {		/* up to 3 seconds */
-				ch=kbincom(100);
+				ch=incom(100);
 				if(ch==(NOINP&0xff)) {
 					j++;
 					continue;

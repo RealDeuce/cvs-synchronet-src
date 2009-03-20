@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.46 2010/05/24 05:19:48 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.44 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,11 +270,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-					removecase(tmp);
+					remove(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,filepath,"FILE_ID.DIZ",NULL));
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-						removecase(tmp);
+						remove(tmp);
 						system(mycmdstr(scfg.fextr[i]->cmd,filepath,"DESC.SDI",NULL)); 
 						fexistcase(tmp);
 					}
@@ -473,11 +473,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 					break;
 			if(i<scfg.total_fextrs) {
 				sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-				removecase(tmp);
+				remove(tmp);
 				system(mycmdstr(scfg.fextr[i]->cmd,filepath,"FILE_ID.DIZ",NULL));
 				if(!fexistcase(tmp)) {
 					sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-					removecase(tmp);
+					remove(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,filepath,"DESC.SDI",NULL)); 
 					fexistcase(tmp);
 				}
@@ -636,22 +636,22 @@ char *usage="\nusage: addfiles code [.alt_path] [-opts] +list "
 	"\n   or: addfiles code [.alt_path] [-opts] file "
 		"\"description\"\n"
 	"\navailable opts:"
-	"\n      -a         import ASCII only (no extended ASCII)"
-	"\n      -b         synchronize database with file list (use with caution)"
-	"\n      -c         do not remove extra spaces from file description"
-	"\n      -d         delete list after import"
-	"\n      -e         do not import extended descriptions"
-	"\n      -f         include file date in descriptions"
-	"\n      -t         include today's date in descriptions"
-	"\n      -i         include added files in upload statistics"
-	"\n      -n         do not update information for existing files"
-	"\n      -o         update upload date only for existing files"
-	"\n      -u         do not update upload date for existing files"
-	"\n      -z         check for and import FILE_ID.DIZ and DESC.SDI"
-	"\n      -k         keep original short description (not DIZ)"
-	"\n      -s         search directory for files (no file list)"
-	"\n      -l <lib>   specify library (short name) to Auto-ADD"
-	"\n      -x <name>  specify uploader's user name (may require quotes)"
+	"\n       a         import ASCII only (no extended ASCII)"
+	"\n       b         synchronize database with file list (use with caution)"
+	"\n       c         do not remove extra spaces from file description"
+	"\n       d         delete list after import"
+	"\n       e         do not import extended descriptions"
+	"\n       f         include file date in descriptions"
+	"\n       t         include today's date in descriptions"
+	"\n       i         include added files in upload statistics"
+	"\n       n         do not update information for existing files"
+	"\n       o         update upload date only for existing files"
+	"\n       u         do not update upload date for existing files"
+	"\n       z         check for and import FILE_ID.DIZ and DESC.SDI"
+	"\n       k         keep original short description (not DIZ)"
+	"\n       s         search directory for files (no file list)"
+	"\n       l<lib>    specify library (short name) to Auto-ADD"
+	"\n       x<name>   specify uploader's user name (may require quotes)"
 	"\n"
 	"\nAuto-ADD:   use - in place of code for Auto-ADD of FILES.BBS"
 	"\n            use -filename to Auto-ADD a different filename"
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.46 $", "%*s %s", revision);
+	sscanf("$Revision: 1.44 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -895,11 +895,11 @@ int main(int argc, char **argv)
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-					removecase(tmp);
+					remove(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,str,"FILE_ID.DIZ",NULL));
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-						removecase(tmp);
+						remove(tmp);
 						system(mycmdstr(scfg.fextr[i]->cmd,str,"DESC.SDI",NULL)); 
 						fexistcase(tmp);
 					}
