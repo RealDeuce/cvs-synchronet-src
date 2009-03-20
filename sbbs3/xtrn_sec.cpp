@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.70 2010/03/12 08:27:57 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.68 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -380,7 +380,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 
 		sprintf(str,"%u\n%u\n%x\n%lu\n%s\n%s\n"
 			"%s\n%s\n%s\n%s\n%s\n%s\n%lu\n"
-			,misc&(XTRN_STDIO|XTRN_CONIO) ? 0:cfg.com_port		/* Com port or 0 if !FOSSIL */
+			,misc&IO_INTS ? 0:cfg.com_port		/* Com port or 0 if !FOSSIL */
 			,cfg.com_irq						/* Com IRQ */
 			,cfg.com_base						/* Com base in hex */
 			,dte_rate							/* Com rate */
@@ -441,7 +441,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,temp_dir
 			,cfg.sys_id
 			,cfg.node_misc
-			,misc&(XTRN_STDIO|XTRN_CONIO) ? INVALID_SOCKET : client_socket_dup
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
 			);
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
@@ -524,7 +524,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 
 #if 0
 		if(misc&XTRN_NATIVE) {
-			if(misc&(XTRN_STDIO|XTRN_CONIO)) {
+			if(misc&IO_INTS) {
 				strcpy(str,"COM0:STDIO\n");
 			}
 			else {
@@ -1315,8 +1315,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 
 		sprintf(str,"%d\n%d\n%u\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
 			"%d\n%d\n"
-			,misc&(XTRN_STDIO|XTRN_CONIO) ? 0 /* Local */ : 2 /* Telnet */
-			,misc&(XTRN_STDIO|XTRN_CONIO) ? INVALID_SOCKET : client_socket_dup
+			,misc&IO_INTS ? 0 /* Local */ : 2 /* Telnet */
+			,misc&IO_INTS ? INVALID_SOCKET : client_socket_dup
 			,dte_rate
 			,VERSION_NOTICE,REVISION
 			,useron.number
@@ -1617,7 +1617,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 					c=cfg.sys_nodes+1; 
 				}
 				else if(node.misc&NODE_ANON)
-					SAFECOPY(str,text[UNKNOWN_USER]);
+					SAFECOPY(str,"UNKNOWN USER");
 				else
 					username(&cfg,node.useron,str);
 				bprintf(text[UserRunningXtrn],str
@@ -1714,10 +1714,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	mode=0; 	
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_SH)
 		mode|=EX_SH;
-	if(cfg.xtrn[xtrnnum]->misc&XTRN_STDIO)
-		mode|=EX_STDIO;
-	else if(cfg.xtrn[xtrnnum]->misc&XTRN_CONIO)
-		mode|=EX_CONIO;
+	if(cfg.xtrn[xtrnnum]->misc&IO_INTS)
+		mode|=(EX_OUTR|EX_INR|EX_OUTL);
 	mode|=(cfg.xtrn[xtrnnum]->misc&(XTRN_CHKTIME|XTRN_NATIVE|XTRN_NOECHO|WWIVCOLOR));
 	if(cfg.xtrn[xtrnnum]->misc&MODUSERDAT) {		/* Delete MODUSER.DAT */
 		sprintf(str,"%sMODUSER.DAT",dropdir);       /* if for some weird  */
@@ -1735,7 +1733,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		starttime+=end-start;
 	if(cfg.xtrn[xtrnnum]->clean[0]) {
 		external(cmdstr(cfg.xtrn[xtrnnum]->clean,path,nulstr,NULL)
-			,mode&~(EX_STDIN|EX_CONIO), cfg.xtrn[xtrnnum]->path); 
+			,mode&~EX_INR, cfg.xtrn[xtrnnum]->path); 
 	}
 	/* Re-open the logfile */
 	if(logfile_fp==NULL) {
