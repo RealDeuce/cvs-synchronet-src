@@ -2,13 +2,13 @@
 
 /* Convert ANSI messages to Synchronet .asc (Ctrl-A code) format */
 
-/* $Id: ans2asc.c,v 1.1 2003/09/19 01:47:17 rswindell Exp $ */
+/* $Id: ans2asc.c,v 1.5 2009/02/16 02:49:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>		/* isdigit */
+#include <string.h>		/* strcmp */
 
 int main(int argc, char **argv)
 {
@@ -46,28 +47,37 @@ int main(int argc, char **argv)
 	int i,ch,ni;
 	FILE *in,*out;
 
-	sscanf("$Revision: 1.1 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
-	if(argc<3) {
+	if(argc<2) {
 		fprintf(stderr,"\nans2asc %s\n",revision);
-		fprintf(stderr,"\nusage: %s infile.ans outfile.asc\n",argv[0]);
+		fprintf(stderr,"\nusage: %s infile.ans [outfile.asc]\n",argv[0]);
 		return(0); 
 	}
 
-	if((in=fopen(argv[1],"rb"))==NULL) {
-		perror(argv[1]);
-		return(1); 
+	if(strcmp(argv[1],"-")) {
+		if((in=fopen(argv[1],"rb"))==NULL) {
+			perror(argv[1]);
+			return(1); 
+		}
 	}
+	else
+		in=stdin;
 
-	if((out=fopen(argv[2],"wb"))==NULL) {
-		perror(argv[2]);
-		return(1); 
+	if(argc > 2 && (strcmp(argv[2],"-"))) {
+		if((out=fopen(argv[2],"wb"))==NULL) {
+			perror(argv[2]);
+			return(1);
+		}
 	}
+	else
+		out=stdout;
 
 	esc=0;
 	while((ch=fgetc(in))!=EOF) {
 		if(ch=='[' && esc) {    /* ANSI escape sequence */
 			ni=0;				/* zero number index */
+			memset(n,1,sizeof(n));
 			while((ch=fgetc(in))!=EOF) {
 				if(isdigit(ch)) {			/* 1 digit */
 					n[ni]=ch&0xf;
@@ -176,8 +186,20 @@ int main(int argc, char **argv)
 									fputc('7',out);
 									break; } }
 						break;
-					case 'C':
+					case 'B':	/* cursor down */
+						while(n[0]) {
+							fprintf(out,"\n");
+							n[0]--;
+						}
+						break;
+					case 'C':	/* cursor right */
 						fprintf(out,"\1%c",0x7f+n[0]);
+						break;
+					case 'D':	/* cursor left */
+						while(n[0]) {
+							fprintf(out,"\b");
+							n[0]--;
+						}
 						break;
 					default:
 						fprintf(stderr,"Unsupported ANSI code '%c' (0x%02X)\r\n",ch,ch);
