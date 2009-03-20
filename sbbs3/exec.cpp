@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.70 2008/01/07 08:10:59 deuce Exp $ */
+/* $Id: exec.cpp,v 1.78 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,6 +37,7 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
+#include "js_request.h"
 
 char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 {
@@ -540,7 +541,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		return(JS_FALSE);
 
 	if(sbbs->js_branch.auto_terminate && !sbbs->online) {
-		JS_ReportError(cx,"Disconnected");
+		JS_ReportWarning(cx,"Disconnected");
 		sbbs->js_branch.counter=0;
 		return(JS_FALSE);
 	}
@@ -567,6 +568,7 @@ long sbbs_t::js_execfile(const char *cmd)
 	JSScript*	js_script=NULL;
 	jsval		rval;
 	int32		result=0;
+	BOOL		auto_terminate = js_branch.auto_terminate;
 	
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
@@ -594,6 +596,7 @@ long sbbs_t::js_execfile(const char *cmd)
 		return(-1); 
 	}
 
+	JS_BEGINREQUEST(js_cx);
 	js_scope=JS_NewObject(js_cx, NULL, NULL, js_glob);
 
 	if(js_scope!=NULL) {
@@ -631,6 +634,7 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	if(js_scope==NULL || js_script==NULL) {
 		JS_ReportPendingException(js_cx);	/* Added Feb-2-2006, rswindell */
+		JS_ENDREQUEST(js_cx);
 		errormsg(WHERE,"compiling",path,0);
 		return(-1);
 	}
@@ -641,11 +645,13 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
 
-	JS_ReportPendingException(js_cx);	/* Added Dec-4-2005, rswindell */
+	JS_GetProperty(js_cx, js_scope, "exit_code", &rval);
+	if(rval!=JSVAL_VOID)
+		JS_ValueToInt32(js_cx,rval,&result);
 
 	js_EvalOnExit(js_cx, js_scope, &js_branch);
 
-	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
+	JS_ReportPendingException(js_cx);	/* Added Dec-4-2005, rswindell */
 
 	JS_DestroyScript(js_cx, js_script);
 
@@ -653,9 +659,11 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_GC(js_cx);
 
-	if(rval!=JSVAL_VOID)
-		JS_ValueToInt32(js_cx,rval,&result);
-		
+	JS_ENDREQUEST(js_cx);
+
+	// Restore saved auto_terminate state
+	js_branch.auto_terminate = auto_terminate;
+	
 	return(result);
 }
 #endif
@@ -1100,7 +1108,7 @@ int sbbs_t::exec(csi_t *csi)
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 							break; }
 						for(i=0;i<TOTAL_TEXT && !feof(stream);i++) {
-							if((text[i]=readtext((long *)NULL,stream))==NULL) {
+							if((text[i]=readtext((long *)NULL,stream,i))==NULL) {
 								i--;
 								continue; }
 							if(!strcmp(text[i],text_sav[i])) {	/* If identical */
@@ -1740,7 +1748,7 @@ int sbbs_t::exec(csi_t *csi)
 			csi->logic=LOGIC_TRUE;
 			for(i=0;i<cfg.total_shells;i++)
 				if(!stricmp(csi->str,cfg.shell[i]->code)
-					&& chk_ar(cfg.shell[i]->ar,&useron))
+					&& chk_ar(cfg.shell[i]->ar,&useron,&client))
 					break;
 			if(i<cfg.total_shells) {
 				useron.shell=i;
@@ -1756,7 +1764,7 @@ int sbbs_t::exec(csi_t *csi)
 			csi->logic=LOGIC_TRUE;
 			for(i=0;i<cfg.total_xedits;i++)
 				if(!stricmp(csi->str,cfg.xedit[i]->code)
-					&& chk_ar(cfg.xedit[i]->ar,&useron))
+					&& chk_ar(cfg.xedit[i]->ar,&useron,&client))
 					break;
 			if(i<cfg.total_xedits) {
 				useron.xedit=i+1;
