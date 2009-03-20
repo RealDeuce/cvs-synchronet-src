@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.52 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.49 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -242,7 +242,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					padfname(tp,fd.name);
 					sprintf(str2,"%sfile/%04u.in/%s"  /* str2 is path/fname */
 						,cfg.data_dir,msg.idx.to,tp);
-					length=(long)flength(str2);
+					length=flength(str2);
 					if(length<1)
 						bputs(text[FileNotFound]);
 					else if(!(useron.exempt&FLAG('T')) && cur_cps && !SYSOP
@@ -360,12 +360,12 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 				if(which==MAIL_SENT)
 					break;
-				if((msg.hdr.attr&(MSG_NOREPLY|MSG_ANONYMOUS)) && !SYSOP) {
-					bputs(text[CantReplyToMsg]);
+				if((msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP) {
+					bputs(text[CantReplyToAnonMsg]);
 					break; 
 				}
 
-				quotemsg(&msg,/* include tails: */TRUE);
+				quotemsg(&msg,1);
 
 				if(msg.from_net.addr==NULL)
 					SAFECOPY(str,msg.from);
@@ -435,7 +435,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				/* Case 'D': must follow! */
 			case 'D':   /* Delete last piece (toggle) */
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bputs(text[CantDeleteMsg]);
+					bputs("\r\nPermanent message.\r\n");
 					domsg=0;
 					break; 
 				}
@@ -726,7 +726,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	SAFEPRINTF(str,text[DeleteMailQ],"everyone");
 	if(which==MAIL_YOUR 
-		&& getmail(&cfg, usernumber, /* sent: */FALSE)>1
+		&& getmail(&cfg, usernumber, /* sent: */FALSE)
 		&& bputs(crlf)
 		&& !noyes(str))
 		delallmail(usernumber, MAIL_YOUR);
