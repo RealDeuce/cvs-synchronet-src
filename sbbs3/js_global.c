@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.243 2009/02/16 03:25:26 rswindell Exp $ */
+/* $Id: js_global.c,v 1.246 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1169,7 +1169,8 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				j+=sprintf(tmpbuf+j,"&gt;");
 				break;
 			case '\b':
-				j--;
+				if(j)
+					j--;
 				break;
 			default:
 				if(inbuf[i]&0x80) {
@@ -1429,7 +1430,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				}
 				i+=(int)(lastparam-ansi_seq)+2;
 			}
-			else if(ctrl_a && tmpbuf[i]==1)		/* CTRL-A codes */
+			else if(ctrl_a && tmpbuf[i]==CTRL_A)		/* CTRL-A codes */
 			{
 /*				j+=sprintf(outbuf+j,"<!-- CTRL-A-%c (%u) -->",tmpbuf[i+1],tmpbuf[i+1]); */
 				if(nodisplay && tmpbuf[i+1] != ')')
@@ -1545,7 +1546,10 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 					case '.':
 					case 'S':
 					case '>':
-					case '<':
+						break;
+					case '<':		/* convert non-destructive backspace into destructive backspace */
+						if(j)
+							j--;
 						break;
 
 					case '!':		/* This needs to be fixed! (Somehow) */
@@ -3519,7 +3523,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		return(NULL);
 
 	/* Area Objects */
-	if(!js_CreateUserObjects(js_cx, js_glob, cfg, NULL, NULL, NULL)) 
+	if(!js_CreateUserObjects(js_cx, js_glob, cfg, /* user: */NULL, client, /* html_index_fname: */NULL, /* subscan: */NULL)) 
 		return(NULL);
 
 	return(js_glob);
