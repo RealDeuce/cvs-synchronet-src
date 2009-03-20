@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.39 2007/08/12 19:36:48 deuce Exp $ */
+/* $Id: unbaja.c,v 1.41 2009/03/20 00:39:46 rswindell Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -247,7 +247,7 @@ char* bruteforce(unsigned long name)
 	int	counter=0;
 	unsigned char	*pos;
 	size_t	l=0;
-	size_t	i,j;
+	size_t	i;
 
 	if(!brute_len)
 		return(NULL);
@@ -1183,6 +1183,24 @@ char *decompile_ars(uchar *ars, int len)
 				not=0;
 				*out=0;
 				strcat(out,"PROT");
+				out=strchr(buf,0);
+				artype=*in;
+				break;
+			case AR_HOST:
+				if(not)
+					*(out++)='!';
+				not=0;
+				*out=0;
+				strcat(out,"HOST");
+				out=strchr(buf,0);
+				artype=*in;
+				break;
+			case AR_IP:
+				if(not)
+					*(out++)='!';
+				not=0;
+				*out=0;
+				strcat(out,"IP");
 				out=strchr(buf,0);
 				artype=*in;
 				break;
@@ -2318,7 +2336,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.39 $", "%*s %s", revision);
+	sscanf("$Revision: 1.41 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
