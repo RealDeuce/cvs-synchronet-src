@@ -2,13 +2,13 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.45 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.44 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -143,7 +143,7 @@ void sbbs_t::temp_xfer()
 					bprintf(text[TempFileNotCreatedYet],f.name);
 					break; 
 				}
-				f.size=f.cdt=(long)flength(str);
+				f.size=f.cdt=flength(str);
 				f.opencount=0;
 				if(temp_cdt)    /* if file was not free */
 					f.cdt=f.size;
@@ -234,10 +234,10 @@ void sbbs_t::temp_xfer()
 						continue;
 					t=fdate(g.gl_pathv[i]);
 					bprintf("%-25s %15s   %s\r\n",getfname(g.gl_pathv[i])
-						,ultoac((long)flength(g.gl_pathv[i]),tmp)
+						,ultoac(flength(g.gl_pathv[i]),tmp)
 						,timestr(t));
 					files++;
-					bytes+=(long)flength(g.gl_pathv[i]);
+					bytes+=flength(g.gl_pathv[i]);
 				}
 				globfree(&g);
 				if(!files)
