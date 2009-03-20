@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.42 2009/02/10 07:56:01 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.45 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 
 int sbbs_t::sub_op(uint subnum)
 {
-	return(SYSOP || (cfg.sub[subnum]->op_ar[0] && chk_ar(cfg.sub[subnum]->op_ar,&useron)));
+	return(SYSOP || (cfg.sub[subnum]->op_ar[0] && chk_ar(cfg.sub[subnum]->op_ar,&useron,&client)));
 }
 
 
@@ -359,7 +359,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	smbmsg_t	msg;
 
 	cursubnum=subnum;	/* for ARS */
-	if(!chk_ar(cfg.sub[subnum]->read_ar,&useron)) {
+	if(!chk_ar(cfg.sub[subnum]->read_ar,&useron,&client)) {
 		bprintf("\1n\r\nYou can't read messages on %s %s\r\n"
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 		return(0); 
@@ -576,7 +576,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					continue; 
 				}
 				strupr(buf);
-				strip_ctrl(buf);
+				strip_ctrl(buf, buf);
 				SAFECOPY(subj,msg.subj);
 				strupr(subj);
 				if(!strstr(buf,find) && !strstr(subj,find)) {
@@ -675,7 +675,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				/* Reply to last message */
 				domsg=0;
-				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron)) {
+				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron,&client)) {
 					bputs(text[CantPostOnSub]);
 					break; 
 				}
@@ -865,7 +865,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case 'P':   /* Post message on sub-board */
 				domsg=0;
-				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron))
+				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron,&client))
 					bputs(text[CantPostOnSub]);
 				else {
 					FREE_AND_NULL(post);
@@ -1108,13 +1108,15 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			case '?':
 				menu("msgscan");
 				domsg=0;
-				break;	} }
+				break;	
+		} 
+	}
 	if(msg.total_hfields)
 		smb_freemsgmem(&msg);
 	if(post)
 		free(post);
 	if(!(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
-		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron)
+		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron,&client)
 		&& !(useron.rest&FLAG('P'))) {
 		sprintf(str,text[Post],cfg.grp[cfg.sub[subnum]->grp]->sname
 			,cfg.sub[subnum]->lname);
@@ -1192,7 +1194,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			continue; 
 		}
 		strupr(buf);
-		strip_ctrl(buf);
+		strip_ctrl(buf, buf);
 		SAFECOPY(subj,msg.subj);
 		strupr(subj);
 		if(strstr(buf,search) || strstr(subj,search)) {
