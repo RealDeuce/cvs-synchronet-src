@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.323 2009/02/10 11:22:15 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.331 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,7 +202,7 @@ public:
 
 	void	spymsg(const char *msg);		// send message to active spies
 
-	void	putcom(const char *str, int len=0);  // Send string
+	int		putcom(const char *str, size_t len=0);  // Send string
 	void	hangup(void);		   // Hangup modem
 
 	uchar	telnet_local_option[0x100];
@@ -296,6 +296,7 @@ public:
 	long 	tos;			/* Top of Screen */
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
+	long	column;			/* Current column counter (for line counter) */
 	long 	autoterm;		/* Autodetected terminal type */
 	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
 	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
@@ -378,7 +379,8 @@ public:
 	uint	sysvar_li;
 
     /* ansi_term.cpp */
-	const char *	ansi(int atr);			/* Returns ansi escape sequence for atr */
+	const char*	ansi(int atr);			/* Returns ansi escape sequence for atr */
+	char*	ansi(int atr, int curatr, char* str);
     bool	ansi_gotoxy(int x, int y);
 	bool	ansi_getxy(int* x, int* y);
 	bool	ansi_save(void);
@@ -475,7 +477,7 @@ public:
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
-	void	editfile(char *path);
+	bool	editfile(char *path);
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	ushort	chmsgattr(ushort attr);
 	void	show_msgattr(ushort attr);
@@ -497,7 +499,7 @@ public:
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber);
+	void	delallmail(uint usernumber, int which);
 
 	/* getmsg.cpp */
 	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
@@ -510,10 +512,10 @@ public:
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
-	int		bputs(const char *str);				/* BBS puts function */
-	int		rputs(const char *str);				/* BBS raw puts function */
-	int		bprintf(const char *fmt, ...);		/* BBS printf function */
-	int		rprintf(const char *fmt, ...);		/* BBS raw printf function */
+	int		bputs(const char *str);					/* BBS puts function */
+	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
+	int		bprintf(const char *fmt, ...);			/* BBS printf function */
+	int		rprintf(const char *fmt, ...);			/* BBS raw printf function */
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
@@ -623,8 +625,8 @@ public:
 	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
 	bool	chksyspass(void);
-	bool	chk_ar(const uchar * str, user_t * user); /* checks access requirements */
-	bool	ar_exp(const uchar ** ptrptr, user_t * user);
+	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
+	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
 
 	/* upload.cpp */
@@ -852,19 +854,23 @@ extern "C" {
 	DLLEXPORT int		DLLCALL update_uldate(scfg_t* cfg, file_t* f);
 
 	/* str_util.c */
+	DLLEXPORT char *	DLLCALL remove_ctrl_a(const char* instr, char* outstr);
+	DLLEXPORT char 		DLLCALL ctrl_a_to_ascii_char(char code);
 	DLLEXPORT char *	DLLCALL truncstr(char* str, const char* set);
 	DLLEXPORT char *	DLLCALL ascii_str(uchar* str);
+	DLLEXPORT char		DLLCALL exascii_to_ascii_char(uchar ch);
 	DLLEXPORT BOOL		DLLCALL findstr(const char *insearch, const char *fname);
 	DLLEXPORT BOOL		DLLCALL findstr_in_string(const char* insearchof, char* string);
 	DLLEXPORT BOOL		DLLCALL findstr_in_list(const char* insearchof, str_list_t list);
 	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, const char *insearch, const char *name);
 	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
 	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
-	DLLEXPORT char *	DLLCALL strip_exascii(char *str);
-	DLLEXPORT char *	DLLCALL prep_file_desc(char *str);
-	DLLEXPORT char *	DLLCALL strip_ctrl(char *str);
+	DLLEXPORT char *	DLLCALL strip_exascii(const char *str, char* dest);
+	DLLEXPORT char *	DLLCALL prep_file_desc(const char *str, char* dest);
+	DLLEXPORT char *	DLLCALL strip_ctrl(const char *str, char* dest);
 	DLLEXPORT char *	DLLCALL net_addr(net_t* net);
-	DLLEXPORT BOOL		DLLCALL validattr(char a);
+	DLLEXPORT BOOL		DLLCALL valid_ctrl_a_attr(char a);
+	DLLEXPORT BOOL		DLLCALL valid_ctrl_a_code(char a);
 	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
 	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
 	DLLEXPORT char *	DLLCALL rot13(char* str);
@@ -914,8 +920,6 @@ extern "C" {
 										,char* host, SOCKADDR_IN* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
 										,char* host, char* ip_addr, char* to, char* from);
-
-	DLLEXPORT char *	DLLCALL remove_ctrl_a(char* instr, char* outstr);
 
 	/* data.cpp */
 	DLLEXPORT time_t	DLLCALL getnextevent(scfg_t* cfg, event_t* event);
@@ -1028,23 +1032,23 @@ extern "C" {
 	/* js_user.c */
 	DLLEXPORT JSObject*	DLLCALL js_CreateUserClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,char* name, uint usernumber);
+													,char* name, uint usernumber, client_t* client);
 	DLLEXPORT JSBool	DLLCALL js_CreateUserObjects(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,user_t* user, char* html_index_file
+													,user_t* user, client_t* client, char* html_index_file
 													,subscan_t* subscan);
 	/* js_file_area.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,user_t* user, char* html_index_file);
+													,user_t* user, client_t* client, char* html_index_file);
 
 	/* js_msg_area.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,user_t* user, subscan_t* subscan);
+													,user_t* user, client_t* client, subscan_t* subscan);
 	DLLEXPORT BOOL		DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg
 													,JSObject* subobj, uint subnum);
 
 	/* js_xtrn_area.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,user_t* user);
+													,user_t* user, client_t* client);
 
 	/* js_msgbase.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
@@ -1085,13 +1089,13 @@ extern "C" {
 #endif
 
 /* str_util.c */
-int		bstrlen(char *str);
-void	backslashcolon(char *str);
-ulong	ahtoul(char *str);	/* Converts ASCII hex to ulong */
+size_t	bstrlen(const char *str);
+char*	backslashcolon(char *str);
+ulong	ahtoul(const char *str);	/* Converts ASCII hex to ulong */
 char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
-uint	hptoi(char *str);
-int		pstrcmp(char **str1, char **str2);  /* Compares pointers to pointers */
-int		strsame(char *str1, char *str2);	/* Compares number of same chars */
+uint	hptoi(const char *str);
+int		pstrcmp(const char **str1, const char **str2);  /* Compares pointers to pointers */
+int		strsame(const char *str1, const char *str2);	/* Compares number of same chars */
 
 /* load_cfg.c */
 BOOL 	md(char *path);
