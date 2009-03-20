@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.38 2008/12/08 20:13:06 deuce Exp $ */
+/* $Id: js_internal.c,v 1.44 2009/02/06 03:06:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "js_request.h"
 
 #include <jscntxt.h>	/* Needed for Context-private data structure */
 
@@ -213,7 +214,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Terminated? */
 	if(branch->auto_terminate &&
 		(branch->terminated!=NULL && *branch->terminated)) {
-		JS_ReportError(cx,"Terminated");
+		JS_ReportWarning(cx,"Terminated");
 		branch->counter=0;
 		return(JS_FALSE);
 	}
@@ -229,9 +230,9 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
 		jsrefcount	rc;
 
-		rc=JS_SuspendRequest(cx);
+		rc=JS_SUSPENDREQUEST(cx);
 		YIELD();
-		JS_ResumeRequest(cx, rc);
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	/* Periodic Garbage Collection */
@@ -267,7 +268,6 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 	if((cx=JS_NewContext(JS_GetRuntime(parent_cx),JAVASCRIPT_CONTEXT_STACK))==NULL)
 		return(JS_FALSE);
-	JS_BeginRequest(cx);
 
 	/* Use the error reporter from the parent context */
 	reporter=JS_SetErrorReporter(parent_cx,NULL);
@@ -286,7 +286,6 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL
 		|| !JS_InitStandardClasses(cx,obj)) {
-		JS_EndRequest(cx);
 		JS_DestroyContext(cx);
 		return(JS_FALSE);
 	}
@@ -296,7 +295,6 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 		JS_DestroyScript(cx, script);
 	}
 
-	JS_EndRequest(cx);
 	JS_DestroyContext(cx);
 
     return(JS_TRUE);
@@ -426,6 +424,9 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	char*	p;
 	jsval	rval;
 	JSScript* script;
+	BOOL	auto_terminate=branch->auto_terminate;
+
+	branch->auto_terminate=FALSE;
 
 	while((p=strListPop(&branch->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
@@ -436,6 +437,8 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	}
 
 	strListFree(&branch->exit_func);
+
+	branch->auto_terminate = auto_terminate;
 }
 
 JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch)
