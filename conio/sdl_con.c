@@ -453,7 +453,7 @@ int sdl_using_x11=0;
 void sdl_copytext(const char *text, size_t buflen)
 {
 #if (defined(__MACH__) && defined(__APPLE__))
-	if(sdl_using_quartz) {
+	if(!sdl_using_x11) {
 		sdl.mutexP(sdl_copybuf_mutex);
 		FREE_AND_NULL(sdl_copybuf);
 
@@ -497,15 +497,17 @@ char *sdl_getcliptext(void)
 	char *ret=NULL;
 
 #if (defined(__MACH__) && defined(__APPLE__))
-	if(sdl_using_quartz) {
+	if(!sdl_using_x11) {
 		sdl_user_func(SDL_USEREVENT_PASTE,0,0,0,0);
 		sdl.SemWait(sdl_pastebuf_set);
 		if(sdl_pastebuf!=NULL) {
 			ret=(char *)malloc(strlen(sdl_pastebuf)+1);
 			if(ret!=NULL)
 				strcpy(ret,sdl_pastebuf);
-			sdl.SemPost(sdl_pastebuf_copied);
 		}
+		else
+			ret=NULL;
+		sdl.SemPost(sdl_pastebuf_copied);
 		return(ret);
 
 	}
@@ -519,8 +521,10 @@ char *sdl_getcliptext(void)
 			ret=(char *)malloc(strlen(sdl_pastebuf)+1);
 			if(ret!=NULL)
 				strcpy(ret,sdl_pastebuf);
-			sdl.SemPost(sdl_pastebuf_copied);
 		}
+		else
+			ret=NULL;
+		sdl.SemPost(sdl_pastebuf_copied);
 		return(ret);
 	}
 #endif
@@ -1610,7 +1614,7 @@ int sdl_video_event_thread(void *data)
 								break;
 							case SDL_USEREVENT_COPY:
 	#if (defined(__MACH__) && defined(__APPLE__))
-								if(sdl_using_quartz) {
+								if(!sdl_using_x11) {
 									ScrapRef	scrap;
 									sdl.mutexP(sdl_copybuf_mutex);
 									if(sdl_copybuf!=NULL) {
@@ -1626,7 +1630,7 @@ int sdl_video_event_thread(void *data)
 								}
 	#endif
 
-	#if !defined(NO_X) && defined(__unix__)
+	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 								if(sdl_x11available && sdl_using_x11) {
 									SDL_SysWMinfo	wmi;
 
@@ -1639,7 +1643,7 @@ int sdl_video_event_thread(void *data)
 								break;
 							case SDL_USEREVENT_PASTE:
 	#if (defined(__MACH__) && defined(__APPLE__))
-								if(sdl_using_quartz) {
+								if(!sdl_using_x11) {
 									ScrapRef	scrap;
 									UInt32	fl;
 									Size		scraplen;
@@ -1664,7 +1668,7 @@ int sdl_video_event_thread(void *data)
 								}
 	#endif
 
-	#if !defined(NO_X) && defined(__unix__)
+	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 								if(sdl_x11available && sdl_using_x11) {
 									Window sowner=None;
 									SDL_SysWMinfo	wmi;
@@ -1705,7 +1709,7 @@ int sdl_video_event_thread(void *data)
 						break;
 					}
 					case SDL_SYSWMEVENT:			/* ToDo... This is where Copy/Paste needs doing */
-	#if !defined(NO_X) && defined(__unix__)
+	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 						if(sdl_x11available && sdl_using_x11) {
 							XEvent *e;
 							e=&ev.syswm.msg->event.xevent;
