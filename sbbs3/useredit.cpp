@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.37 2009/02/15 12:55:17 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.40 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -617,7 +617,7 @@ void sbbs_t::useredit(int usernumber)
 					for(i=k-1;i;i--) {
 						user.number=i;
 						getuserdat(&cfg,&user);
-						if(chk_ar(ar,&user)) {
+						if(chk_ar(ar,&user,/* client: */NULL)) {
 							outchar(BEL);
 							break; 
 						} 
@@ -637,7 +637,7 @@ void sbbs_t::useredit(int usernumber)
 					for(i=k+1;i<=j;i++) {
 						user.number=i;
 						getuserdat(&cfg,&user);
-						if(chk_ar(ar,&user)) {
+						if(chk_ar(ar,&user,/* client: */NULL)) {
 							outchar(BEL);
 							break; 
 						} 
@@ -841,12 +841,15 @@ void sbbs_t::maindflts(user_t* user)
 		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
 			bprintf(text[UserDefaultsQuiet]
 				,user->misc&QUIET ? text[On] : text[Off]);
-		if(user->prot!=' ')
-			SAFEPRINTF(str,"%c",user->prot);
-		else
-			SAFECOPY(str,"None");
+		SAFECOPY(str,"None");
+		for(i=0;i<cfg.total_prots;i++) {
+			if(user->prot==cfg.prot[i]->mnemonic) {
+				SAFECOPY(str,cfg.prot[i]->name);
+				break;
+			}
+		}
 		bprintf(text[UserDefaultsProtocol],str
-			,user->misc&AUTOHANG ? "(Hang-up After Xfer)":nulstr);
+			,user->misc&AUTOHANG ? "(Auto-Hangup)":nulstr);
 		if(cfg.sys_misc&SM_PWEDIT && !(user->rest&FLAG('G')))
 			bputs(text[UserDefaultsPassword]);
 
@@ -1052,7 +1055,7 @@ void sbbs_t::maindflts(user_t* user)
 				mnemonics(text[ProtocolOrQuit]);
 				SAFECOPY(str,"Q");
 				for(i=0;i<cfg.total_prots;i++)
-					if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron)) {
+					if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 						SAFEPRINTF(tmp,"%c",cfg.prot[i]->mnemonic);
 						strcat(str,tmp); 
 					}
@@ -1084,7 +1087,7 @@ void sbbs_t::purgeuser(int usernumber)
 	getuserdat(&cfg,&user);
 	SAFEPRINTF2(str,"Purged %s #%u",user.alias,usernumber);
 	logentry("!*",str);
-	delallmail(usernumber);
+	delallmail(usernumber, MAIL_ANY);
 	putusername(&cfg,usernumber,nulstr);
 	putuserrec(&cfg,usernumber,U_MISC,8,ultoa(user.misc|DELETED,str,16));
 }

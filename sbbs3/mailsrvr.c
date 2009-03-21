@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.487 2009/02/16 03:25:26 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.493 2009/03/21 03:09:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -437,6 +437,7 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	char		msgid[256];
 	char		date[64];
 	char*		p;
+	char*		np;
 	char*		tp;
 	char*		content_type=NULL;
 	int			i;
@@ -506,14 +507,18 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	if((p=smb_get_hfield(msg,SMB_CARBONCOPY,NULL))!=NULL)
 		if(!sockprintf(socket,"CC: %s",p))
 			return(0);
+	np=NULL;
 	if((p=smb_get_hfield(msg,RFC822REPLYTO,NULL))==NULL) {
+		np=msg->replyto;
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
-		else if(msg->replyto!=NULL)
-			p=msg->replyto;
 	}
-	if(p!=NULL)
-		s=sockprintf(socket,"Reply-To: %s",p);	/* use original RFC822 header field */
+	if(p!=NULL) {
+		if(np!=NULL)
+			s=sockprintf(socket,"Reply-To: \"%s\" <%s>",np,p);
+		else 
+			s=sockprintf(socket,"Reply-To: %s",p);
+	}
 	if(!s)
 		return(0);
 	if(!sockprintf(socket,"Message-ID: %s",get_msgid(&scfg,INVALID_SUB,msg,msgid,sizeof(msgid))))
@@ -1710,7 +1715,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 				break;
 
 			/* Area and "user" Objects */
-			if(!js_CreateUserObjects(*js_cx, *js_glob, &scfg, user, NULL, NULL)) 
+			if(!js_CreateUserObjects(*js_cx, *js_glob, &scfg, user, client, NULL, NULL)) 
 				break;
 
 			/* Mailproc "API" filenames */
@@ -1831,6 +1836,7 @@ void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx)
 static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 {
 	char*	p;
+	char*	tp;
 	char	field[128];
 	int		len;
 	ushort	nettype;
@@ -1860,9 +1866,10 @@ static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 
 	if(!stricmp(field, "REPLY-TO")) {
 		smb_hfield_str(msg, *type=RFC822REPLYTO, p);
-		if(*p=='<')  {
-			p++;
-			truncstr(p,">");
+		if((tp=strrchr(p,'<'))!=NULL)  {
+			tp++;
+			truncstr(tp,">");
+			p=tp;
 		}
 		nettype=NET_INTERNET;
 		smb_hfield(msg, REPLYTONETTYPE, sizeof(nettype), &nettype);
@@ -1957,7 +1964,7 @@ static void parse_mail_address(char* p
 	SKIP_WHITESPACE(p);
 
 	/* Get the address */
-	if((tp=strchr(p,'<'))!=NULL)
+	if((tp=strrchr(p,'<'))!=NULL)
 		tp++;
 	else
 		tp=p;
@@ -2442,7 +2449,7 @@ static void smtp_thread(void* arg)
 						if(mailproc_list[i].disabled)
 							continue;
 
-						if(!chk_ar(&scfg,mailproc_list[i].ar,&relay_user))
+						if(!chk_ar(&scfg,mailproc_list[i].ar,&relay_user,&client))
 							continue;
 
 						if(mailproc_list[i].to!=NULL && !mailproc_to_match[i])
@@ -2505,13 +2512,14 @@ static void smtp_thread(void* arg)
 					if(flength(proc_err_fname)>0 
 						&& (proc_err=fopen(proc_err_fname,"r"))!=NULL) {
 						while(!feof(proc_err)) {
+							int n;
 							if(!fgets(str,sizeof(str),proc_err))
 								break;
 							truncsp(str);
 							lprintf(LOG_WARNING,"%04d !SMTP External mail processor (%s) error: %s"
 								,socket, mailproc_list[i].name, str);
-							i=atoi(str);
-							if(i>=100 && i<1000)
+							n=atoi(str);
+							if(n>=100 && n<1000)
 								sockprintf(socket,"%s", str);
 							else
 								sockprintf(socket,"554%c%s"
@@ -2724,7 +2732,7 @@ static void smtp_thread(void* arg)
 					if(relay_user.number==0)
 						memset(&relay_user,0,sizeof(relay_user));
 
-					if(!can_user_post(&scfg,subnum,&relay_user,&reason)) {
+					if(!can_user_post(&scfg,subnum,&relay_user,&client,&reason)) {
 						lprintf(LOG_WARNING,"%04d !SMTP %s (user #%u) cannot post on %s (reason: %u)"
 							,socket, sender_addr, relay_user.number
 							,scfg.sub[subnum]->sname, reason);
@@ -3311,7 +3319,7 @@ static void smtp_thread(void* arg)
 			/* Check for full address aliases */
 			p=alias(&scfg,p,alias_buf);
 			if(p==alias_buf) 
-				lprintf(LOG_INFO,"%04d SMTP ADDRESS ALIAS: %s (for %s)"
+				lprintf(LOG_DEBUG,"%04d SMTP ADDRESS ALIAS: %s (for %s)"
 					,socket,p,rcpt_addr);
 
 			tp=strrchr(p,'@');
@@ -3395,7 +3403,7 @@ static void smtp_thread(void* arg)
 
 			p=alias(&scfg,p,name_alias_buf);
 			if(p==name_alias_buf) 
-				lprintf(LOG_INFO,"%04d SMTP NAME ALIAS: %s (for %s)"
+				lprintf(LOG_DEBUG,"%04d SMTP NAME ALIAS: %s (for %s)"
 					,socket,p,rcpt_addr);
 		
 			if(!strnicmp(p,"sub:",4)) {		/* Post on a sub-board */
@@ -3596,7 +3604,7 @@ static void smtp_thread(void* arg)
 			}
 			/* These vars are potentially over-written by parsing an RFC822 header */
 			/* get sender_addr */
-			p=strchr(reverse_path,'<');
+			p=strrchr(reverse_path,'<');
 			if(p==NULL)	
 				p=reverse_path;
 			else 
@@ -3613,6 +3621,8 @@ static void smtp_thread(void* arg)
 				state=SMTP_STATE_DATA_BODY;	/* No RFC headers in Telegrams */
 			else
 				state=SMTP_STATE_DATA_HEADER;
+			lprintf(LOG_INFO,"%04d SMTP Receiving %s message from: %s"
+				,socket, telegram ? "telegram":"mail", reverse_path);
 			hdr_lines=0;
 			continue;
 		}
@@ -4379,7 +4389,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.487 $", "%*s %s", revision);
+	sscanf("$Revision: 1.493 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4511,6 +4521,9 @@ void DLLCALL mail_server(void* arg)
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
+
+		if(chdir(startup->ctrl_dir)!=0)
+			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
