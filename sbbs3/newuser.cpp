@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.59 2011/03/01 20:26:37 mcmlxxix Exp $ */
+/* $Id: newuser.cpp,v 1.56 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +68,7 @@ BOOL sbbs_t::newuser()
 	getnodedat(cfg.node_num,&thisnode,0);
 	if(thisnode.misc&NODE_LOCK) {
 		bputs(text[NodeLocked]);
-		logline(LOG_WARNING,"N!","New user locked node logon attempt");
+		logline("N!","New user locked node logon attempt");
 		hangup();
 		return(FALSE); 
 	}
@@ -91,7 +91,7 @@ BOOL sbbs_t::newuser()
 			if(!strcmp(str,cfg.new_pass))
 				break;
 			sprintf(tmp,"NUP Attempted: '%s'",str);
-			logline(LOG_NOTICE,"N!",tmp); 
+			logline("N!",tmp); 
 		}
 		if(c==4) {
 			sprintf(str,"%snupguess.msg",cfg.text_dir);
@@ -115,10 +115,10 @@ BOOL sbbs_t::newuser()
 	useron.prot=cfg.new_prot;
 	SAFECOPY(useron.comp,client_name);	/* hostname or CID name */
 	SAFECOPY(useron.note,cid);			/* IP address or CID number */
-	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true,false))!=0) {	/* Duplicate IP address */
+	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true))!=0) {	/* Duplicate IP address */
 		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
-		logline(LOG_NOTICE,"N!",useron.comment); 
+		logline("N!",useron.comment); 
 	}
 
 	SAFECOPY(useron.alias,"New");     /* just for status line */
@@ -219,7 +219,7 @@ BOOL sbbs_t::newuser()
 					|| !strchr(useron.name,' ')
 					|| (cfg.uq&UQ_DUPREAL
 						&& userdatdupe(useron.number,U_NAME,LEN_NAME
-							,useron.name,0,0)))
+							,useron.name,0)))
 					bputs(text[YouCantUseThatName]);
 				else
 					break; 
@@ -242,7 +242,7 @@ BOOL sbbs_t::newuser()
 				,K_LINE|K_EDIT|K_AUTODEL|(cfg.uq&UQ_NOEXASC))
 				|| strchr(useron.handle,0xff)
 				|| (cfg.uq&UQ_DUPHAND
-					&& userdatdupe(0,U_HANDLE,LEN_HANDLE,useron.handle,0,0))
+					&& userdatdupe(0,U_HANDLE,LEN_HANDLE,useron.handle,0))
 				|| trashcan(useron.handle,"name"))
 				bputs(text[YouCantUseThatName]);
 			else
@@ -263,7 +263,7 @@ BOOL sbbs_t::newuser()
 			if(getstr(useron.location,LEN_LOCATION,kmode)
 				&& (cfg.uq&UQ_NOCOMMAS || strchr(useron.location,',')))
 				break;
-			bputs(text[CommaInLocationRequired]);
+			bputs("\r\nYou must include a comma between the city and state.\r\n");
 			useron.location[0]=0; 
 		}
 		if(cfg.uq&UQ_ADDRESS)
@@ -347,9 +347,9 @@ BOOL sbbs_t::newuser()
 		useron.xedit=i+1;
 
 	if(cfg.total_xedits && cfg.uq&UQ_XEDIT) {
-		if(yesno(text[UseExternalEditorQ])) {
+		if(yesno("Use an external message editor")) {
 			for(i=0;i<cfg.total_xedits;i++)
-				uselect(1,i,text[ExternalEditorHeading],cfg.xedit[i]->name,cfg.xedit[i]->ar);
+				uselect(1,i,"External Editor",cfg.xedit[i]->name,cfg.xedit[i]->ar);
 			if((int)(i=uselect(0,useron.xedit ? useron.xedit-1 : 0,0,0,0))>=0)
 				useron.xedit=i+1; 
 		} else
@@ -358,7 +358,7 @@ BOOL sbbs_t::newuser()
 
 	if(cfg.total_shells>1 && cfg.uq&UQ_CMDSHELL) {
 		for(i=0;i<cfg.total_shells;i++)
-			uselect(1,i,text[CommandShellHeading],cfg.shell[i]->name,cfg.shell[i]->ar);
+			uselect(1,i,"Command Shell",cfg.shell[i]->name,cfg.shell[i]->ar);
 		if((int)(i=uselect(0,useron.shell,0,0,0))>=0)
 			useron.shell=i; 
 	}
@@ -408,9 +408,9 @@ BOOL sbbs_t::newuser()
 			else
 				sprintf(tmp,"%s FAILED Password verification"
 					,useron.alias);
-			logline(LOG_NOTICE,nulstr,tmp);
+			logline(nulstr,tmp);
 			if(++c==4) {
-				logline(LOG_NOTICE,"N!","Couldn't figure out password.");
+				logline("N!","Couldn't figure out password.");
 				hangup(); 
 			}
 			bputs(text[IncorrectPassword]);
@@ -466,7 +466,7 @@ BOOL sbbs_t::newuser()
 				} /* give 'em a 2nd try */
 			if(!useron.fbacks && !useron.emails) {
         		bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
-				logline(LOG_NOTICE,"N!","Aborted feedback");
+				logline("N!","Aborted feedback");
 				hangup();
 				putuserrec(&cfg,useron.number,U_COMMENT,60,"Didn't leave feedback");
 				putuserrec(&cfg,useron.number,U_MISC,8

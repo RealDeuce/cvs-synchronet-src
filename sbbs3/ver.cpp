@@ -2,13 +2,13 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.26 2010/03/19 19:43:13 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.25 2005/08/02 22:39:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-const char* beta_version = " "; /* Space if non-beta, " beta" otherwise */
+extern "C" const char* beta_version = " "; /* Space if non-beta, " beta" otherwise */
 
 #if defined(_WINSOCKAPI_)
 	extern WSADATA WSAData;
