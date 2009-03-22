@@ -4,14 +4,12 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.52 2010/03/05 20:56:16 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.44 2008/09/23 07:05:35 deuce Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
 
 #include <stdio.h>	/* FILE */
-
-#define ZMODEM_FILE_SIZE_MAX	0xffffffff	/* 32-bits, blame Chuck */
 
 /*
  * ascii constants
@@ -229,21 +227,20 @@ typedef struct {
 	BYTE rx_data_subpacket[8192];							/* zzap = 8192 */
 
 	char		current_file_name[MAX_PATH+1];
-	int64_t		current_file_size;
-	int64_t		current_file_pos;
+	uint32_t	current_file_size;
 	time_t		current_file_time;
 	unsigned	current_file_num;
 	unsigned	total_files;
-	int64_t		total_bytes;
+	uint32_t	total_bytes;
 	unsigned	files_remaining;
-	int64_t		bytes_remaining;
-	int64_t		transfer_start_pos;
+	unsigned	bytes_remaining;
+	uint32_t	transfer_start_pos;
 	time_t		transfer_start_time;
 
 	int		receive_32bit_data;
 	int		use_crc16;
 	int32_t	ack_file_pos;				/* file position used in acknowledgement of correctly */
-										/* received data subpackets */
+									/* received data subpackets */
 
 	int last_sent;
 
@@ -256,7 +253,6 @@ typedef struct {
 	BOOL		local_abort;
 	BOOL		file_skipped;
 	BOOL		no_streaming;
-	BOOL		frame_in_transit;
 	unsigned	recv_bufsize;	/* Receiver specified buffer size */
 	int32_t		crc_request;
 	unsigned	errors;
@@ -271,39 +267,34 @@ typedef struct {
 	unsigned	max_errors;
 	unsigned	block_size;
 	unsigned	max_block_size;
-	int64_t		max_file_size;		/* 0 = unlimited */
-	int			*log_level;
 
 	/* Callbacks */
-	/* error C2520: conversion from unsigned __int64 to double not implemented, use signed __int64 */
 	void*		cbdata;
 	int			(*lputs)(void*, int level, const char* str);
-	int			(*send_byte)(void*, BYTE ch, unsigned timeout /* seconds */);
-	int			(*recv_byte)(void*, unsigned timeout /* seconds */);
-	void		(*progress)(void*, int64_t current_pos);
+	int			(*send_byte)(void*, BYTE ch, unsigned timeout);
+	int			(*recv_byte)(void*, unsigned timeout);
+	void		(*progress)(void*, uint32_t current_pos);
 	BOOL		(*is_connected)(void*);
 	BOOL		(*is_cancelled)(void*);
-	BOOL		(*data_waiting)(void*, unsigned timeout /* seconds */);
+	BOOL		(*data_waiting)(void*, unsigned timeout);
 	BOOL		(*duplicate_filename)(void*, void *zm);
-	void		(*flush)(void*);
 
 } zmodem_t;
 
 void		zmodem_init(zmodem_t*, void* cbdata
 						,int	(*lputs)(void*, int level, const char* str)
-						,void	(*progress)(void*, int64_t current_pos)
+						,void	(*progress)(void*, uint32_t current_pos)
 						,int	(*send_byte)(void*, BYTE ch, unsigned timeout)
 						,int	(*recv_byte)(void*, unsigned timeout)
 						,BOOL	(*is_connected)(void*)
 						,BOOL	(*is_cancelled)(void*)
 						,BOOL	(*data_waiting)(void*, unsigned timeout)
-						,void	(*flush)(void*)
 						);
 char*		zmodem_ver(char *buf);
 const char* zmodem_source(void);
 int			zmodem_rx(zmodem_t* zm);
 int			zmodem_tx(zmodem_t* zm, BYTE ch);
-int			zmodem_send_zabort(zmodem_t*);
+int			zmodem_abort_receive(zmodem_t*);
 int			zmodem_send_ack(zmodem_t*, int32_t pos);
 int			zmodem_send_nak(zmodem_t*);
 int			zmodem_send_zskip(zmodem_t* zm);
@@ -315,10 +306,10 @@ BOOL		zmodem_get_crc(zmodem_t*, int32_t length, uint32_t* crc);
 void		zmodem_parse_zrinit(zmodem_t*);
 void		zmodem_parse_zfile_subpacket(zmodem_t* zm);
 int			zmodem_send_zfin(zmodem_t*);
-BOOL		zmodem_send_file(zmodem_t*, char* name, FILE* fp, BOOL request_init, time_t* start, int64_t* bytes_sent);
-int			zmodem_recv_files(zmodem_t* zm, const char* download_dir, int64_t* bytes_received);
+BOOL		zmodem_send_file(zmodem_t*, char* name, FILE* fp, BOOL request_init, time_t* start, uint32_t* bytes_sent);
+int			zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint32_t* bytes_received);
 int			zmodem_recv_init(zmodem_t* zm);
-unsigned	zmodem_recv_file_data(zmodem_t*, FILE*, int64_t offset);
+unsigned	zmodem_recv_file_data(zmodem_t*, FILE*, uint32_t offset);
 int			zmodem_recv_file_frame(zmodem_t* zm, FILE* fp);
 int			zmodem_recv_header_and_check(zmodem_t* zm);
 #endif
