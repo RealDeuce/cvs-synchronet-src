@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.18 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: ars.c,v 1.19 2009/03/22 02:27:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
