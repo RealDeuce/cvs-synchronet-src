@@ -2,13 +2,13 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.26 2010/11/19 04:10:23 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.24 2009/01/08 03:26:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,6 +39,12 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+/* Windows */
+#ifdef _WIN32
+/* Doesn't this come in from sockwrap.h? */
+#include <winsock.h>
+#endif
+
 /* xpdev lib */
 #include "dirwrap.h"
 #include "datewrap.h"
@@ -59,8 +65,8 @@
 
 /* global vars */
 BOOL	daemonize=FALSE;
-char	termtype[INI_MAX_VALUE_LEN+1]	= NAME;
-char	termspeed[INI_MAX_VALUE_LEN+1]	= "28800,28800";	/* "tx,rx", max length not defined */
+char	termtype[TELNET_TERM_MAXLEN+1]	= NAME;
+char	termspeed[TELNET_TERM_MAXLEN+1]	= "28800,28800";	/* "tx,rx", max length not defined */
 char	revision[16];
 
 char	mdm_init[INI_MAX_VALUE_LEN]		= "AT&F";
@@ -1328,20 +1334,6 @@ BOOL WINAPI ControlHandler(DWORD CtrlType)
 }
 #endif
 
-/****************************************************************************/
-/****************************************************************************/
-char* iniGetExistingWord(str_list_t list, const char* section, const char* key
-					,const char* deflt, char* value)
-{
-	char* p;
-
-	if((p=iniGetExistingString(list, section, key, deflt, value)) !=NULL) {
-		FIND_WHITESPACE(value);
-		*value=0;
-	}
-	return p;
-}
-
 void parse_ini_file(const char* ini_fname)
 {
 	FILE* fp;
@@ -1363,7 +1355,7 @@ void parse_ini_file(const char* ini_fname)
 	
 	/* [COM] Section */
 	section="COM";
-	iniGetExistingWord(list, section, "Device", NULL, com_dev);
+	iniGetExistingString(list, section, "Device", NULL, com_dev);
 	com_baudrate    = iniGetLongInt(list, section, "BaudRate", com_baudrate);
 	com_hangup	    = iniGetBool(list, section, "Hangup", com_hangup);
 	hangup_attempts = iniGetInteger(list, section, "HangupAttempts", hangup_attempts);
@@ -1374,15 +1366,15 @@ void parse_ini_file(const char* ini_fname)
 
 	/* [Modem] Section */
 	section="Modem";
-	iniGetExistingWord(list, section, "Init", "", mdm_init);
-	iniGetExistingWord(list, section, "AutoAnswer", "", mdm_autoans);
-	iniGetExistingWord(list, section, "Cleanup", "", mdm_cleanup);
-	iniGetExistingWord(list, section, "EnableCallerID", "", mdm_cid);
+	iniGetExistingString(list, section, "Init", "", mdm_init);
+	iniGetExistingString(list, section, "AutoAnswer", "", mdm_autoans);
+	iniGetExistingString(list, section, "Cleanup", "", mdm_cleanup);
+	iniGetExistingString(list, section, "EnableCallerID", "", mdm_cid);
 	mdm_timeout     = iniGetInteger(list, section, "Timeout", mdm_timeout);
 
 	/* [TCP] Section */
 	section="TCP";
-	iniGetExistingWord(list, section, "Host", NULL, host);
+	iniGetExistingString(list, section, "Host", NULL, host);
 	port					= iniGetShortInt(list, section, "Port", port);
 	tcp_nodelay				= iniGetBool(list,section,"NODELAY", tcp_nodelay);
 
@@ -1391,15 +1383,15 @@ void parse_ini_file(const char* ini_fname)
 	telnet					= iniGetBool(list,section,"Enabled", telnet);
 	debug_telnet			= iniGetBool(list,section,"Debug", debug_telnet);
 	telnet_advertise_cid	= iniGetBool(list,section,"AdvertiseLocation", telnet_advertise_cid);
-	iniGetExistingWord(list, section, "TermType", NULL, termtype);
-	iniGetExistingWord(list, section, "TermSpeed", NULL, termspeed);
+	iniGetExistingString(list, section, "TermType", NULL, termtype);
+	iniGetExistingString(list, section, "TermSpeed", NULL, termspeed);
 
 	/* [Ident] Section */
 	section="Ident";
 	ident					= iniGetBool(list,section,"Enabled", ident);
 	ident_port				= iniGetShortInt(list, section, "Port", ident_port);
 	ident_interface			= iniGetIpAddress(list, section, "Interface", ident_interface);
-	iniGetExistingWord(list, section, "Response", NULL, ident_response);
+	iniGetExistingString(list, section, "Response", NULL, ident_response);
 
 }
 
@@ -1520,6 +1512,7 @@ service_loop(int argc, char** argv)
 
 	lprintf(LOG_INFO,"%s set to %ld bps DTE rate", com_dev, comGetBaudRate(com_handle));
 
+
 	if(ident)
 		_beginthread(ident_server_thread, 0, NULL);
 
@@ -1571,7 +1564,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.26 $", "%*s %s", revision);
+	sscanf("$Revision: 1.24 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
