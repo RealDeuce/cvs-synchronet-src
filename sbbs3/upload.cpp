@@ -2,13 +2,13 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.54 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.52 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,7 +73,7 @@ bool sbbs_t::uploadfile(file_t *f)
 			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-		logline(LOG_NOTICE,"U!",str);
+		logline("U!",str);
 		return(0); 
 	}
 	strcpy(tmp,f->name);
@@ -104,7 +104,7 @@ bool sbbs_t::uploadfile(file_t *f)
 					,useron.alias
 					,f->name
 					,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname,cfg.ftest[i]->ext);
-				logline(LOG_NOTICE,"U!",str);
+				logline("U!",str);
 #if 0
 				sprintf(str,"Failed test: %s", cmdstr(cfg.ftest[i]->cmd,path,f->desc,NULL));
 				logline("  ",str);
@@ -139,14 +139,14 @@ bool sbbs_t::uploadfile(file_t *f)
 			} 
 		}
 
-	if((length=(long)flength(path))<=0L) {
+	if((length=flength(path))<=0L) {
 		bprintf(text[FileZeroLength],f->name);
 		remove(path);
 		sprintf(str,"%s attempted to upload %s to %s %s (Zero length)"
 			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-		logline(LOG_NOTICE,"U!",str);
+		logline("U!",str);
 		return(0); 
 	}
 	if(cfg.dir[f->dir]->misc&DIR_DIZ) {
@@ -595,7 +595,7 @@ bool sbbs_t::bulkupload(uint dirnum)
 
 		if(findfile(&cfg,f.dir,str)==0) {
 			strcpy(f.name,str);
-			f.cdt=(long)flength(spath);
+			f.cdt=flength(spath);
 			bprintf(text[BulkUploadDescPrompt],f.name,f.cdt/1024);
 			getstr(f.desc,LEN_FDESC,K_LINE);
 			if(sys_status&SS_ABORT)
