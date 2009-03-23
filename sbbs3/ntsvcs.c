@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.38 2009/02/11 20:02:18 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.39 2009/02/19 19:01:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,7 +92,7 @@ typedef struct {
 
 sbbs_ntsvc_t bbs ={	
 	NTSVC_NAME_BBS,
-	"Synchronet Telnet/RLogin/SSH Server",
+	"Synchronet Terminal Server",
 	"Provides support for Telnet, RLogin, and SSH clients and executes timed events. " \
 		"This service provides the critical functions of your Synchronet BBS.",
 	&bbs_startup,

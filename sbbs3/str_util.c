@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.39 2009/02/16 03:25:27 rswindell Exp $ */
+/* $Id: str_util.c,v 1.43 2009/03/19 07:28:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,10 +47,9 @@
 /****************************************************************************/
 char* DLLCALL remove_ctrl_a(const char *str, char *dest)
 {
-	char*		tmp;
-	uint		i,j;
+	int	i,j;
 
-	if((tmp=strdup(str))==NULL)
+	if(dest==NULL && (dest=strdup(str))==NULL)
 		return NULL;
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
@@ -61,22 +60,17 @@ char* DLLCALL remove_ctrl_a(const char *str, char *dest)
 			if(str[i]=='<' && j)	
 				j--;
 		}
-		else tmp[j++]=str[i]; 
+		else dest[j++]=str[i]; 
 	}
-	tmp[j]=0;
-	if(dest==NULL)
-		return tmp;	/* Must be freed! */
-	strcpy(dest,tmp);
-	free(tmp);
+	dest[j]=0;
 	return dest;
 }
 
 char* DLLCALL strip_ctrl(const char *str, char* dest)
 {
-	char*	tmp;
-	int		i,j;
+	int	i,j;
 
-	if((tmp=strdup(str))==NULL)
+	if(dest==NULL && (dest=strdup(str))==NULL)
 		return NULL;
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
@@ -88,40 +82,30 @@ char* DLLCALL strip_ctrl(const char *str, char* dest)
 				j--;
 		}
 		else if((uchar)str[i]>=' ')
-			tmp[j++]=str[i];
+			dest[j++]=str[i];
 	}
-	tmp[j]=0;
-	if(dest==NULL)
-		return tmp;	/* Must be freed! */
-	strcpy(dest,tmp);
-	free(tmp);
+	dest[j]=0;
 	return dest;
 }
 
 char* DLLCALL strip_exascii(const char *str, char* dest)
 {
-	char*	tmp;
-	int		i,j;
+	int	i,j;
 
-	if((tmp=strdup(str))==NULL)
+	if(dest==NULL && (dest=strdup(str))==NULL)
 		return NULL;
 	for(i=j=0;str[i];i++)
 		if(!(str[i]&0x80))
-			tmp[j++]=str[i];
-	tmp[j]=0;
-	if(dest==NULL)
-		return tmp;	/* Must be freed! */
-	strcpy(dest,tmp);
-	free(tmp);
+			dest[j++]=str[i];
+	dest[j]=0;
 	return dest;
 }
 
 char* DLLCALL prep_file_desc(const char *str, char* dest)
 {
-	char*	tmp;
-	int		i,j;
+	int	i,j;
 
-	if((tmp=strdup(str))==NULL)
+	if(dest==NULL && (dest=strdup(str))==NULL)
 		return NULL;
 	for(i=j=0;str[i];i++)
 		if(str[i]==CTRL_A && str[i+1]!=0) {
@@ -132,19 +116,15 @@ char* DLLCALL prep_file_desc(const char *str, char* dest)
 			if(str[i]=='<' && j)	
 				j--;
 		}
-		else if(j && str[i]<=' ' && tmp[j-1]==' ')
+		else if(j && str[i]<=' ' && dest[j-1]==' ')
 			continue;
 		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
 			continue;
 		else if((uchar)str[i]>=' ')
-			tmp[j++]=str[i];
+			dest[j++]=str[i];
 		else if(str[i]==TAB || (str[i]==CR && str[i+1]==LF))
-			tmp[j++]=' ';
-	tmp[j]=0;
-	if(dest==NULL)
-		return tmp;	/* Must be freed! */
-	strcpy(dest,tmp);
-	free(tmp);
+			dest[j++]=' ';
+	dest[j]=0;
 	return dest;
 }
 
@@ -216,12 +196,18 @@ BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 {
 	size_t	index;
 	BOOL	found=FALSE;
+	char*	p;
 
 	if(list==NULL || insearchof==NULL)
 		return(FALSE);
 
-	for(index=0;list[index]!=NULL && !found; index++)
-		found=findstr_in_string(insearchof, list[index]);
+	for(index=0; list[index]!=NULL; index++) {
+		p=list[index];
+		SKIP_WHITESPACE(p);
+		found=findstr_in_string(insearchof,p);
+		if(found!=(*p=='!'))
+			break;
+	}
 	return(found);
 }
 
@@ -443,9 +429,9 @@ uint hptoi(const char *str)
 }
 
 /****************************************************************************/
-/* Returns 1 if a is a valid ctrl-a "attribute" code, 0 if it isn't.        */
+/* Returns TRUE if a is a valid ctrl-a "attribute" code, FALSE if it isn't. */
 /****************************************************************************/
-BOOL DLLCALL validattr(char a)
+BOOL DLLCALL valid_ctrl_a_attr(char a)
 {
 	switch(toupper(a)) {
 		case '+':	/* push attr	*/
@@ -476,6 +462,20 @@ BOOL DLLCALL validattr(char a)
 }
 
 /****************************************************************************/
+/* Returns TRUE if a is a valid QWKnet compatible Ctrl-A code, else FALSE	*/
+/****************************************************************************/
+BOOL DLLCALL valid_ctrl_a_code(char a)
+{
+	switch(toupper(a)) {
+		case 'P':		/* Pause */
+		case 'L':		/* CLS */
+		case ',':		/* 100ms delay */
+			return TRUE;
+	}
+	return valid_ctrl_a_attr(a);
+}
+
+/****************************************************************************/
 /****************************************************************************/
 char DLLCALL ctrl_a_to_ascii_char(char a)
 {
@@ -498,26 +498,26 @@ char DLLCALL ctrl_a_to_ascii_char(char a)
 /****************************************************************************/
 size_t DLLCALL strip_invalid_attr(char *str)
 {
-    char*	tmp;
+    char*	dest;
     size_t	a,c,d;
 
-	if((tmp=strdup(str))==NULL)
-		return 0;
+	dest=str;
 	for(a=c=d=0;str[c];c++) {
 		if(str[c]==CTRL_A) {
 			a++;
 			if(str[c+1]==0)
 				break;
-			if(!validattr(str[c+1])) {
+			if(!valid_ctrl_a_attr(str[c+1])) {
+				/* convert non-destructive backspace to a destructive backspace */
+				if(str[c+1]=='<' && d)	
+					d--;
 				c++;
 				continue; 
 			}
 		}
-		tmp[d++]=str[c]; 
+		dest[d++]=str[c]; 
 	}
-	tmp[d]=0;
-	strcpy(str,tmp);
-	free(tmp);
+	dest[d]=0;
 	return(a);
 }
 
