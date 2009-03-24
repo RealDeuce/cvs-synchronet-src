@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.78 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.79 2009/03/24 20:40:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -425,7 +425,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	ushort	xlat=XLAT_NONE;
 	int 	i;
 	int		storage=SMB_SELFPACK;
-	long	dupechk_hashes=SMB_HASH_SOURCE_ALL;
+	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 
 	if(msg==NULL)
 		return(SMB_FAILURE);

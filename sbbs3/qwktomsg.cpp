@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.47 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.48 2009/03/24 20:40:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	uint16_t	net_type;
 	ushort		xlat=XLAT_NONE;
 	int			storage=SMB_SELFPACK;
-	long		dupechk_hashes=SMB_HASH_SOURCE_ALL;
+	long		dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 
 	if(subnum!=INVALID_SUB
 		&& (hdrblk[0]=='*' || hdrblk[0]=='+' || cfg.sub[subnum]->misc&SUB_PONLY))
