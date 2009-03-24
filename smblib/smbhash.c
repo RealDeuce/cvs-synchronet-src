@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.23 2009/03/24 20:39:35 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.24 2009/03/24 20:45:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,6 +188,9 @@ hash_t* SMBCALL smb_hash(ulong msgnum, ulong t, unsigned source, unsigned flags
 						 ,const void* data, size_t length)
 {
 	hash_t*	hash;
+
+	if(length==0)		/* Don't hash 0-length sources (e.g. empty/blank message bodies) */
+		return(NULL);
 
 	if((hash=(hash_t*)malloc(sizeof(hash_t)))==NULL)
 		return(NULL);
