@@ -2,13 +2,13 @@
 
 /* Synchronet file contents display routines */
 
-/* $Id: viewfile.cpp,v 1.6 2008/02/14 08:17:29 rswindell Exp $ */
+/* $Id: viewfile.cpp,v 1.8 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,7 +73,9 @@ int sbbs_t::viewfile(file_t* f, int ext)
 				ext=0;
 				continue;
 			case CR:
-				return(1); } }
+				return(1); 
+		} 
+	}
 	return(0);
 }
 
@@ -91,16 +93,19 @@ void sbbs_t::viewfiles(uint dirnum, char *fspec)
 	sprintf(viewcmd,"%s%s",cfg.dir[dirnum]->path,fspec);
 	if(!fexist(viewcmd)) {
 		bputs(text[FileNotFound]);
-		return; }
+		return; 
+	}
 	padfname(fspec,tmp);
 	truncsp(tmp);
 	for(i=0;i<cfg.total_fviews;i++)
-		if(!stricmp(tmp+9,cfg.fview[i]->ext) && chk_ar(cfg.fview[i]->ar,&useron)) {
+		if(!stricmp(tmp+9,cfg.fview[i]->ext) && chk_ar(cfg.fview[i]->ar,&useron,&client)) {
 			strcpy(viewcmd,cfg.fview[i]->cmd);
-			break; }
+			break; 
+		}
 	if(i==cfg.total_fviews) {
 		bprintf(text[NonviewableFile],tmp+9);
-		return; }
+		return; 
+	}
 	sprintf(tmp,"%s%s",cfg.dir[dirnum]->path,fspec);
 	if((i=external(cmdstr(viewcmd,tmp,tmp,NULL),EX_OUTL|EX_OUTR|EX_INR|EX_SH))!=0)
 		errormsg(WHERE,ERR_EXEC,viewcmd,i);    /* must of EX_SH to ^C */
@@ -125,7 +130,7 @@ void sbbs_t::viewfilecontents(file_t* f)
 		ext++;
 		for(i=0;i<cfg.total_fviews;i++) {
 			if(!stricmp(ext,cfg.fview[i]->ext)
-				&& chk_ar(cfg.fview[i]->ar,&useron)) {
+				&& chk_ar(cfg.fview[i]->ar,&useron,&client)) {
 				strcpy(cmd,cfg.fview[i]->cmd);
 				break; 
 			} 
