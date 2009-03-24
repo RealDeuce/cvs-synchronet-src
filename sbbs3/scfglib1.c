@@ -2,13 +2,13 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.59 2007/07/10 22:10:13 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.60 2009/03/20 09:52:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -440,9 +440,11 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 	for(i=0;i<234;i++)	/* NULL */
 		get_int(n,instream);
 	get_int(cfg->msg_misc,instream);
-	for(i=0;i<255;i++)	/* 0xff */
+	get_int(cfg->max_qwkmsgage, instream);
+	if(cfg->max_qwkmsgage == 0xffff)		/* default */
+		cfg->max_qwkmsgage = 30;			/* days */
+	for(i=0;i<254;i++)	/* 0xff */
 		get_int(n,instream);
-
 
 	/******************/
 	/* Message Groups */

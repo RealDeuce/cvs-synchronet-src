@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.64 2009/02/18 05:32:16 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.67 2009/02/19 09:24:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,17 +157,18 @@ bool sbbs_t::answer()
 									,0,useron.alias);
 								logline("+!",str);
 						}
-						lprintf(LOG_WARNING,"%04d !CLIENT IP NOT LISTED in %s",client_socket,path);
+						lprintf(LOG_WARNING,"Node %d !CLIENT IP NOT LISTED in %s"
+							,cfg.node_num,path);
 						useron.number=0;
 						hangup();
 					}
 				}
 			}
 			else
-				lprintf(LOG_DEBUG,"Node %d RLogin: Unknown user: %s",cfg.node_num,rlogin_name);
+				lprintf(LOG_INFO,"Node %d RLogin: Unknown user: %s",cfg.node_num,rlogin_name);
 		}
 		if(rlogin_name[0]==0) {
-			lprintf(LOG_DEBUG,"Node %d !RLogin: No user name received",cfg.node_num);
+			lprintf(LOG_NOTICE,"Node %d !RLogin: No user name received",cfg.node_num);
 			sys_status&=~SS_RLOGIN;
 		}
 	}
@@ -243,7 +244,7 @@ bool sbbs_t::answer()
 			}
 		}
 		else
-			lprintf(LOG_DEBUG,"Node %d SSH: Unknown user: %s",cfg.node_num,rlogin_name);
+			lprintf(LOG_INFO,"Node %d SSH: Unknown user: %s",cfg.node_num,rlogin_name);
 	}
 #endif
 
@@ -252,8 +253,9 @@ bool sbbs_t::answer()
 	rioctl(IOFI);		/* flush input buffer */
 	putcom( "\r\n"		/* locate cursor at column 1 */
 			"\x1b[s"	/* save cursor position (necessary for HyperTerm auto-ANSI) */
-    		"\x1b[255;255H"	/* locate cursor as far down and right as possible */
-			"_"			/* need a printable at this location to actually move cursor */
+    		"\x1b[255B"	/* locate cursor as far down as possible */
+			"\x1b[255C"	/* locate cursor as far right as possible */
+			"\b_"		/* need a printable at this location to actually move cursor */
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
@@ -293,7 +295,7 @@ bool sbbs_t::answer()
 
     if(l) {
 		c_escape_str(str,tmp,sizeof(tmp),TRUE);
-		lprintf(LOG_DEBUG,"Node %d Terminal auto-detection response: '%s'"
+		lprintf(LOG_DEBUG,"Node %d received terminal auto-detection response: '%s'"
 			,cfg.node_num,tmp);
         if(str[0]==ESC && str[1]=='[' && str[l-1]=='R') {
 			int	x,y;
@@ -302,11 +304,11 @@ bool sbbs_t::answer()
 				SAFECOPY(terminal,"ANSI");
 			autoterm|=(ANSI|COLOR);
 			if(sscanf(str+2,"%u;%u",&y,&x)==2) {
-				lprintf(LOG_DEBUG,"Node %d ANSI cursor position report: %ux%u"
+				lprintf(LOG_DEBUG,"Node %d received ANSI cursor position report: %ux%u"
 					,cfg.node_num, x, y);
 				/* Sanity check the coordinates in the response: */
-				if(x>=10 && x<=255) cols=x; 
-				if(y>=40 && y<=255) rows=y;
+				if(x>=40 && x<=255) cols=x; 
+				if(y>=10 && y<=255) rows=y;
 			}
 		}
 		truncsp(str);
@@ -329,7 +331,7 @@ bool sbbs_t::answer()
 
 	if(!autoterm && str[0]) {
 		c_escape_str(str,tmp,sizeof(tmp),TRUE);
-		lprintf(LOG_NOTICE,"Node %d Terminal auto-detection failed, response: '%s'"
+		lprintf(LOG_NOTICE,"Node %d terminal auto-detection failed, response: '%s'"
 			,cfg.node_num, tmp);
 	}
 
