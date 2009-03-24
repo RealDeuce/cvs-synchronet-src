@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.121 2010/03/09 21:58:34 rswindell Exp $ */
+/* $Id: js_file.c,v 1.118 2009/01/24 12:06:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -295,8 +295,8 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 	} else {
 		rc=JS_SUSPENDREQUEST(cx);
-		len=(long)filelength(fileno(p->fp));
-		offset=(long)ftell(p->fp);
+		len=filelength(fileno(p->fp));
+		offset=ftell(p->fp);
 		if(offset>0)
 			len-=offset;
 		JS_RESUMEREQUEST(cx, rc);
@@ -1398,11 +1398,10 @@ js_writeall(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_lock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	off_t		offset=0;
-	off_t		len=0;
+	int32		offset=0;
+	int32		len=0;
 	private_t*	p;
 	jsrefcount	rc;
-	jsdouble	val;
 
 	*rval = JSVAL_FALSE;
 
@@ -1416,16 +1415,14 @@ js_lock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	/* offset */
 	if(argc) {
-		if(!JS_ValueToNumber(cx,argv[0],&val))
+		if(!JS_ValueToInt32(cx,argv[0],&offset))
 			return(JS_FALSE);
-		offset=(off_t)val;
 	}
 
 	/* length */
 	if(argc>1) {
-		if(!JS_ValueToNumber(cx,argv[1],&val))
+		if(!JS_ValueToInt32(cx,argv[1],&len))
 			return(JS_FALSE);
-		len=(off_t)val;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1442,11 +1439,10 @@ js_lock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_unlock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	off_t		offset=0;
-	off_t		len=0;
+	int32		offset=0;
+	int32		len=0;
 	private_t*	p;
 	jsrefcount	rc;
-	jsdouble	val;
 
 	*rval = JSVAL_FALSE;
 
@@ -1460,16 +1456,14 @@ js_unlock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	/* offset */
 	if(argc) {
-		if(!JS_ValueToNumber(cx,argv[0],&val))
+		if(!JS_ValueToInt32(cx,argv[0],&offset))
 			return(JS_FALSE);
-		offset=(off_t)val;
 	}
 
 	/* length */
 	if(argc>1) {
-		if(!JS_ValueToNumber(cx,argv[1],&val))
+		if(!JS_ValueToInt32(cx,argv[1],&len))
 			return(JS_FALSE);
-		len=(off_t)val;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1745,7 +1739,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	char		str[128];
 	size_t		i;
 	size_t		rd;
-	off_t		offset;
+	long		offset;
 	ulong		sum=0;
 	ushort		c16=0;
 	ulong		c32=~0;
@@ -1757,7 +1751,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	private_t*	p;
 	jsrefcount	rc;
 	time_t		tt;
-	off_t		lng;
+	long		lng;
 	int			in;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
@@ -1823,7 +1817,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				rc=JS_SUSPENDREQUEST(cx);
 				lng=ftell(p->fp);
 				JS_RESUMEREQUEST(cx, rc);
-				JS_NewNumberValue(cx,(double)lng,vp);
+				JS_NewNumberValue(cx,lng,vp);
 			}
 			else
 				*vp = INT_TO_JSVAL(-1);
@@ -1835,7 +1829,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			else
 				lng = flength(p->name);
 			JS_RESUMEREQUEST(cx, rc);
-			JS_NewNumberValue(cx,(double)lng,vp);
+			JS_NewNumberValue(cx,lng,vp);
 			break;
 		case FILE_PROP_ATTRIBUTES:
 			rc=JS_SUSPENDREQUEST(cx);
@@ -1989,7 +1983,7 @@ static jsSyncPropertySpec js_file_properties[] = {
 static char* file_prop_desc[] = {
 	 "filename specified in constructor - <small>READ ONLY</small>"
 	,"mode string specified in <i>open</i> call - <small>READ ONLY</small>"
-	,"<i>true</i> if the file is open or exists (case-insensitive) - <small>READ ONLY</small>"
+	,"<i>true</i> if the file exists - <small>READ ONLY</small>"
 	,"<i>true</i> if the file has been opened successfully - <small>READ ONLY</small>"
 	,"<i>true</i> if the current file position is at the <i>end of file</i> - <small>READ ONLY</small>"
 	,"the last occurred error value (use clear_error to clear) - <small>READ ONLY</small>"
@@ -2029,10 +2023,9 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.12)</i><br>"
 		"<br><b>Note:</b> When using the <tt>iniSet</tt> methods to modify a <tt>.ini</tt> file, "
 		"the file must be opened for both reading and writing.<br>"
-		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing "
-		"(e.g. updating an <tt>.ini</tt> file) "
-		"use the <i>exists</i> property like so:<br>"
-		"<tt>file.open(file.exists ? 'r+':'w+');</tt>"
+		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing, "
+		"use the <i>file_exists</i> function like so:<br>"
+		"<tt>file.open(file_exists(file.name) ? 'r+':'w+');</tt>"
 		"<br><b>Note:</b> When <i>shareable</i> is false, uses nopen() which will lock the file "
 		"and perform automatic retries.  The lock mode is as follows:<br>"
 		"<tt>r&nbsp</tt> DENYWRITE - Allows other scripts to open the file for reading, but not for writing.<br>"

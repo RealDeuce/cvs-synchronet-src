@@ -2,13 +2,13 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.59 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.57 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -225,7 +225,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			return(false); 
 		}
 	}
-	l=(long)filelength(fileno(qwk));
+	l=filelength(fileno(qwk));
 	if(l<1) {
 		fprintf(qwk,"%-128.128s","Produced by " VERSION_NOTICE "  " COPYRIGHT_NOTICE);
 		msgndx=1; 
@@ -318,7 +318,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						,cfg.data_dir,useron.number,msg.subj);
 					SAFEPRINTF2(tmp,"%s%s",cfg.temp_dir,msg.subj);
 					if(fexistcase(str) && !fexistcase(tmp))
-						mv(str,tmp,/* copy: */TRUE); 
+						mv(str,tmp,1); 
 				}
 
 				size=msgtoqwk(&msg,qwk,mode,INVALID_SUB,0,hdrs);
@@ -541,23 +541,20 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		return(false);
 
 	if(/*!prepack && */ useron.rest&FLAG('Q')) { /* If QWK Net node, check for files */
-		char id[LEN_QWKID+1];
-		SAFECOPY(id,useron.alias);
-		strlwr(id);
-		SAFEPRINTF2(str,"%sqnet/%s.out/",cfg.data_dir,id);
+		SAFEPRINTF2(str,"%sqnet/%s.out/",cfg.data_dir,useron.alias);
 		dir=opendir(str);
 		while(dir!=NULL && (dirent=readdir(dir))!=NULL) {    /* Move files into temp dir */
-			SAFEPRINTF3(str,"%sqnet/%s.out/%s",cfg.data_dir,id,dirent->d_name);
+			SAFEPRINTF3(str,"%sqnet/%s.out/%s",cfg.data_dir,useron.alias,dirent->d_name);
 			if(isdir(str))
 				continue;
 			SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,dirent->d_name);
-			lncntr=0;	/* Defeat pause */
+			lncntr=0;	/* Default pause */
 			if(online==ON_LOCAL)
 				eprintf(LOG_INFO,"Including %s in packet",str);
 			else
 				lprintf(LOG_INFO,"Including %s in packet",str);
 			bprintf(text[RetrievingFile],str);
-			if(!mv(str,tmp2,/* copy: */TRUE))
+			if(!mv(str,tmp2,1))
 				netfiles++;
 		}
 		if(dir!=NULL)
@@ -594,8 +591,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 							? cfg.altpath[batdn_alt[i]-1]
 							: cfg.dir[batdn_dir[i]]->path
 							,tmp);
-						mv(str,tmp2,/* copy: */TRUE); /* copy the file to temp dir */
-						getnodedat(cfg.node_num,&thisnode,/* copy: */TRUE);
+						mv(str,tmp2,1); /* copy the file to temp dir */
+						getnodedat(cfg.node_num,&thisnode,1);
 						thisnode.aux=0xfe;
 						putnodedat(cfg.node_num,&thisnode);
 						CRLF; 
@@ -618,17 +615,17 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		SAFEPRINTF(str,"%sQWK/HELLO",cfg.text_dir);
 		if(fexistcase(str)) {
 			SAFEPRINTF(tmp2,"%sHELLO",cfg.temp_dir);
-			mv(str,tmp2,/* copy: */TRUE); 
+			mv(str,tmp2,1); 
 		}
 		SAFEPRINTF(str,"%sQWK/BBSNEWS",cfg.text_dir);
 		if(fexistcase(str)) {
 			SAFEPRINTF(tmp2,"%sBBSNEWS",cfg.temp_dir);
-			mv(str,tmp2,/* copy: */TRUE); 
+			mv(str,tmp2,1); 
 		}
 		SAFEPRINTF(str,"%sQWK/GOODBYE",cfg.text_dir);
 		if(fexistcase(str)) {
 			SAFEPRINTF(tmp2,"%sGOODBYE",cfg.temp_dir);
-			mv(str,tmp2,/* copy: */TRUE); 
+			mv(str,tmp2,1); 
 		}
 		SAFEPRINTF(str,"%sQWK/BLT-*",cfg.text_dir);
 		glob(str,0,NULL,&g);
@@ -638,7 +635,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			if(isdigit(str[4]) && isdigit(str[9])) {
 				SAFEPRINTF2(str,"%sQWK/%s",cfg.text_dir,fname);
 				SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,fname);
-				mv(str,tmp2,/* copy: */TRUE); 
+				mv(str,tmp2,1); 
 			}
 		}
 		globfree(&g);
