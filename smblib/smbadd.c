@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.22 2009/03/24 20:39:35 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.21 2009/03/24 10:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +85,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		msg->hdr.number=smb->status.last_msg+1;
 		if(!(smb->status.attr&(SMB_EMAIL|SMB_NOHASH))) {
 
-			hashes=smb_msghashes(msg,body,SMB_HASH_SOURCE_DUPE);
+			hashes=smb_msghashes(msg,body,SMB_HASH_SOURCE_ALL);
 
 			if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
