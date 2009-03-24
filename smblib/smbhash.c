@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.19 2008/02/25 05:14:42 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.21 2009/03/24 10:30:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -238,7 +238,7 @@ hash_t* SMBCALL smb_hashstr(ulong msgnum, ulong t, unsigned source, unsigned fla
 
 /* Allocates and calculates all hashes for a single message					*/
 /* Returns NULL on failure													*/
-hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body)
+hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body, long source_mask)
 {
 	size_t		h=0;
 	uchar		flags=SMB_HASH_CRC16|SMB_HASH_CRC32|SMB_HASH_MD5;
@@ -251,20 +251,27 @@ hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body)
 
 	memset(hashes, 0, sizeof(hash_t*)*(SMB_HASH_SOURCE_TYPES+1));
 
-	if(msg->id!=NULL && 
+	if(msg->id!=NULL && (source_mask&(1<<SMB_HASH_SOURCE_MSG_ID)) &&
 		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_MSG_ID, flags, msg->id))!=NULL)
 		hashes[h++]=hash;
 
-	if(msg->ftn_msgid!=NULL	&& 
+	if(msg->ftn_msgid!=NULL	&& (source_mask&(1<<SMB_HASH_SOURCE_FTN_ID)) &&
 		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_FTN_ID, flags, msg->ftn_msgid))!=NULL)
 		hashes[h++]=hash;
 
 	flags|=SMB_HASH_STRIP_WSP|SMB_HASH_STRIP_CTRL_A;
-	if(body!=NULL && 
+	if(body!=NULL && (source_mask&(1<<SMB_HASH_SOURCE_BODY)) &&
 		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_BODY, flags, body))!=NULL)
 		hashes[h++]=hash;
 
 	return(hashes);
+}
+
+void SMBCALL smb_freehashes(hash_t** hashes)
+{
+	size_t		n;
+
+	FREE_LIST(hashes,n);
 }
 
 /* Calculates and stores the hashes for a single message					*/
@@ -278,7 +285,7 @@ int SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL updat
 	if(smb->status.attr&(SMB_EMAIL|SMB_NOHASH))
 		return(SMB_SUCCESS);
 
-	hashes=smb_msghashes(msg,text);
+	hashes=smb_msghashes(msg,text,SMB_HASH_SOURCE_ALL);
 
 	if(smb_findhash(smb, hashes, &found, SMB_HASH_SOURCE_ALL, update)==SMB_SUCCESS && !update) {
 		retval=SMB_DUPE_MSG;
