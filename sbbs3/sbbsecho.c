@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.198 2009/07/16 01:07:47 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.196 2009/03/24 20:40:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,9 +164,7 @@ void logprintf(char *str, ...)
 	now=time(NULL);
 	gm=localtime(&now);
 	fprintf(fidologfile,"%02u/%02u/%02u %02u:%02u:%02u %s\n"
-		,(scfg.sys_misc&SM_EURODATE) ? gm->tm_mday : gm->tm_mon+1
-		,(scfg.sys_misc&SM_EURODATE) ? gm->tm_mon+1 : gm->tm_mday
-		,TM_YEAR(gm->tm_year),gm->tm_hour,gm->tm_min,gm->tm_sec
+		,gm->tm_mon+1,gm->tm_mday,TM_YEAR(gm->tm_year),gm->tm_hour,gm->tm_min,gm->tm_sec
 		,buf);
 }
 
@@ -3317,7 +3315,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	}
 
 	if(match>=scfg.total_faddrs && !(misc&IGNORE_ADDRESS)) {
-		printf("Foreign address");
+		printf("Wrong address");
 		if(!path[0]) {
 			printf(" - ");
 			pkt_to_msg(fidomsg,&hdr,info);
@@ -3919,7 +3917,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.198 $", "%*s %s", revision);
+	sscanf("$Revision: 1.196 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
