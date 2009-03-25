@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.113 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: userdat.c,v 1.117 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -312,7 +312,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	getrec(userdat,U_XEDIT,8,str);
 	for(i=0;i<cfg->total_xedits;i++)
-		if(!stricmp(str,cfg->xedit[i]->code) && chk_ar(cfg,cfg->xedit[i]->ar,user))
+		if(!stricmp(str,cfg->xedit[i]->code) && chk_ar(cfg,cfg->xedit[i]->ar,user,/* client: */NULL))
 			break;
 	user->xedit=i+1;
 	if(user->xedit>cfg->total_xedits)
@@ -343,6 +343,8 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	getrec(userdat,U_CHAT,8,str);
 	user->chat=ahtoul(str);
 
+	user->number=user_number;	/* Signal of success */
+
 	/* Reset daily stats if not logged on today */
 	unixtodstr(cfg, time(NULL),str);
 	unixtodstr(cfg, user->laston,tmp);
@@ -367,7 +369,6 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 		} 
 	}
 #endif
-	user->number=user_number;	/* Signal of success */
 
 	return(0);
 }
@@ -624,9 +625,9 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 /****************************************************************************/
 /* Returns the age derived from the string 'birth' in the format MM/DD/YY	*/
 /****************************************************************************/
-char DLLCALL getage(scfg_t* cfg, char *birth)
+uint DLLCALL getage(scfg_t* cfg, char *birth)
 {
-	char	age;
+	uint	age;
 	struct	tm tm;
 	time_t	now;
 
@@ -641,7 +642,7 @@ char DLLCALL getage(scfg_t* cfg, char *birth)
 		return(0);
 	age=(tm.tm_year)-(((birth[6]&0xf)*10)+(birth[7]&0xf));
 	if(age>105)
-		age-=105;
+		age-=100;
 	tm.tm_mon++;	/* convert to 1 based */
 	if(cfg->sys_misc&SM_EURODATE) {		/* DD/MM/YY format */
 		if(atoi(birth)>31 || atoi(birth+3)>12)
@@ -658,11 +659,8 @@ char DLLCALL getage(scfg_t* cfg, char *birth)
 			((birth[3]&0xf)*10)+(birth[4]&0xf)>tm.tm_mday))
 			age--; 
 	}
-	if(age<0)
-		return(0);
 	return(age);
 }
-
 
 /****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
@@ -1300,13 +1298,14 @@ static int getgrpnum(scfg_t* cfg, char* code)
 	return(-1);
 }
 
-static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
+static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 {
 	BOOL	result,not,or,equal;
 	uint	i,n,artype=AR_LEVEL,age;
 	ulong	l;
 	time_t	now;
 	struct tm tm;
+	const char*	p;
 
 	result = TRUE;
 
@@ -1337,7 +1336,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 
 		if((**ptrptr)==AR_BEGNEST) {
 			(*ptrptr)++;
-			if(ar_exp(cfg,ptrptr,user))
+			if(ar_exp(cfg,ptrptr,user,client))
 				result=!not;
 			else
 				result=not;
@@ -1539,7 +1538,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				break;
 			case AR_SUBCODE:
-				if(user!=NULL && stricmp(user->cursub,(char *)*ptrptr)==0)
+				if(user!=NULL && !findstr_in_string(user->cursub,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -1572,7 +1571,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				break;
 			case AR_DIRCODE:
-				if(user!=NULL && stricmp(user->curdir,(char *)*ptrptr)==0)
+				if(user!=NULL && !findstr_in_string(user->curdir,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -1771,7 +1770,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 			case AR_SHELL:
 				if(user==NULL 
 					|| user->shell>=cfg->total_shells
-					|| stricmp(cfg->shell[user->shell]->code,(char*)*ptrptr))
+					|| !findstr_in_string(cfg->shell[user->shell]->code,(char*)*ptrptr))
 					result=not;
 				else
 					result=!not;
@@ -1779,8 +1778,41 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 					(*ptrptr)++;
 				break;
 			case AR_PROT:
-				if(user==NULL
-					|| stricmp(user->modem,(char*)*ptrptr))	/* should this be changed to client.prot? */
+				if(client!=NULL)
+					p=client->protocol;
+				else if(user!=NULL)
+					p=user->modem;
+				else
+					p=NULL;
+				if(!findstr_in_string(p,(char*)*ptrptr))
+					result=not;
+				else
+					result=!not;
+				while(*(*ptrptr))
+					(*ptrptr)++;
+				break;
+			case AR_HOST:
+				if(client!=NULL)
+					p=client->host;
+				else if(user!=NULL)
+					p=user->comp;
+				else
+					p=NULL;
+				if(!findstr_in_string(p,(char*)*ptrptr))
+					result=not;
+				else
+					result=!not;
+				while(*(*ptrptr))
+					(*ptrptr)++;
+				break;
+			case AR_IP:
+				if(client!=NULL)
+					p=client->addr;
+				else if(user!=NULL)
+					p=user->note;
+				else
+					p=NULL;
+				if(!findstr_in_string(p,(char*)*ptrptr))
 					result=not;
 				else
 					result=!not;
@@ -1792,7 +1824,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user)
 	return(result);
 }
 
-BOOL DLLCALL chk_ar(scfg_t* cfg, uchar *ar, user_t* user)
+BOOL DLLCALL chk_ar(scfg_t* cfg, uchar *ar, user_t* user, client_t* client)
 {
 	uchar *p;
 
@@ -1801,7 +1833,7 @@ BOOL DLLCALL chk_ar(scfg_t* cfg, uchar *ar, user_t* user)
 	if(!VALID_CFG(cfg))
 		return(FALSE);
 	p=ar;
-	return(ar_exp(cfg,&p,user));
+	return(ar_exp(cfg,&p,user,client));
 }
 
 /****************************************************************************/
@@ -2447,7 +2479,7 @@ int DLLCALL user_rec_len(int offset)
 /* 'reason' is an (optional) pointer to a text.dat item number, indicating	*/
 /* the reason the user cannot post, when returning FALSE.					*/
 /****************************************************************************/
-BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, uint* reason)
+BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason)
 {
 	if(reason!=NULL)
 		*reason=CantPostOnSub;
@@ -2455,11 +2487,11 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, uint* reason)
 		return FALSE;
 	if(subnum>=cfg->total_subs)
 		return FALSE;
-	if(!chk_ar(cfg,cfg->grp[cfg->sub[subnum]->grp]->ar,user))
+	if(!chk_ar(cfg,cfg->grp[cfg->sub[subnum]->grp]->ar,user,client))
 		return FALSE;
-	if(!chk_ar(cfg,cfg->sub[subnum]->ar,user))
+	if(!chk_ar(cfg,cfg->sub[subnum]->ar,user,client))
 		return FALSE;
-	if(!chk_ar(cfg,cfg->sub[subnum]->post_ar,user))
+	if(!chk_ar(cfg,cfg->sub[subnum]->post_ar,user,client))
 		return FALSE;
 	if(cfg->sub[subnum]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET)
 		&& user->rest&FLAG('N'))		/* network restriction? */
@@ -2480,7 +2512,7 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, uint* reason)
 /* Determine if downloads from the specified directory are free for the		*/
 /* specified user															*/
 /****************************************************************************/
-BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user)
+BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* client)
 {
 	if(!VALID_CFG(cfg))
 		return(FALSE);
@@ -2500,7 +2532,7 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user)
 	if(cfg->dir[dirnum]->ex_ar==NULL || cfg->dir[dirnum]->ex_ar[0]==0)
 		return(FALSE);
 
-	return(chk_ar(cfg,cfg->dir[dirnum]->ex_ar,user));
+	return(chk_ar(cfg,cfg->dir[dirnum]->ex_ar,user,client));
 }
 
 /****************************************************************************/
