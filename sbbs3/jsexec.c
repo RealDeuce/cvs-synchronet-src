@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.133 2010/03/12 22:14:41 deuce Exp $ */
+/* $Id: jsexec.c,v 1.127 2009/02/18 06:35:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,8 +39,6 @@
 #define JAVASCRIPT
 #endif
 
-#include <unistd.h>						// getcwd()
-
 #ifdef __unix__
 #include <signal.h>
 #endif
@@ -69,7 +67,6 @@ char		revision[16];
 char		compiler[32];
 char*		host_name=NULL;
 char		host_name_buf[128];
-char*		load_path_list=JAVASCRIPT_LOAD_PATH;
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
@@ -80,96 +77,6 @@ pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
 #endif
-char		orig_cwd[MAX_PATH+1];
-
-enum {
-	 JSEXEC_ORIG_CWD		/* cwd at program start */
-};
-
-#ifdef BUILD_JSDOCS
-	static char* jsexec_prop_desc[] = {
-	 "Current working directory at program start"
-	,NULL
-	};
-#endif
-
-static JSBool jsexec_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-	return(JS_FALSE);
-}
-
-static JSBool jsexec_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-	jsint		tiny;
-	JSString*	js_str;
-
-    tiny = JSVAL_TO_INT(id);
-
-	switch(tiny) {
-		case JSEXEC_ORIG_CWD:
-			if((js_str=JS_NewStringCopyZ(cx, orig_cwd))==NULL)
-				return(JS_FALSE);
-			*vp = STRING_TO_JSVAL(js_str);
-			break;
-	}
-
-	return(JS_TRUE);
-}
-
-#define JSEXEC_PROP_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY
-
-static jsSyncPropertySpec jsexec_properties[] = {
-/*		 name				,tinyid					,flags,					ver	*/
-
-	{	"orig_cwd"			,JSEXEC_ORIG_CWD 		,JSEXEC_ORIG_CWD,		315},
-	{0}
-};
-
-static JSBool jsexec_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, jsexec_properties, NULL, NULL, 0));
-}
-
-static JSBool jsexec_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(jsexec_resolve(cx, obj, JSVAL_NULL));
-}
-
-static JSClass jsexec_class = {
-     "JSExec"				/* name			*/
-    ,JSCLASS_HAS_PRIVATE	/* flags		*/
-	,JS_PropertyStub		/* addProperty	*/
-	,JS_PropertyStub		/* delProperty	*/
-	,jsexec_get				/* getProperty	*/
-	,jsexec_set				/* setProperty	*/
-	,jsexec_enumerate		/* enumerate	*/
-	,jsexec_resolve			/* resolve		*/
-	,JS_ConvertStub			/* convert		*/
-	,JS_FinalizeStub		/* finalize		*/
-};
-
-JSObject* DLLCALL js_CreateExecObject(JSContext* cx, JSObject* parent, char* name)
-{
-	JSObject*	obj;
-
-	obj = JS_DefineObject(cx, parent, name, &jsexec_class, NULL
-		,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if(obj==NULL)
-		return(NULL);
-
-#ifdef BUILD_JSDOCS
-	js_DescribeSyncObject(cx,obj,"Represents a JSExec instance",315);
-	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", jsexec_prop_desc, JSPROP_READONLY);
-#endif
-
-	return(obj);
-}
 
 void banner(FILE* fp)
 {
@@ -209,7 +116,6 @@ void usage(FILE* fp)
 		"\t-u<mask>       set file creation permissions mask (in octal)\n"
 		"\t-L<level>      set log level (default=%u)\n"
 		"\t-E<level>      set error log level threshold (default=%d)\n"
-		"\t-i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
 		"\t-f             use non-buffered stream for console messages\n"
 		"\t-a             append instead of overwriting message output files\n"
 		"\t-e<filename>   send error messages to file in addition to stderr\n"
@@ -229,7 +135,6 @@ void usage(FILE* fp)
 		,JAVASCRIPT_GC_INTERVAL
 		,DEFAULT_LOG_LEVEL
 		,DEFAULT_ERR_LOG_LVL
-		,load_path_list
 		,_PATH_DEVNULL
 		,_PATH_DEVNULL
 		);
@@ -707,11 +612,6 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 
 static BOOL js_init(char** environ)
 {
-	js_startup_t	startup;
-
-	memset(&startup,0,sizeof(startup));
-	SAFECOPY(startup.load_path, load_path_list);
-
 	fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 
 	fprintf(statfp,"JavaScript: Creating runtime: %lu bytes\n"
@@ -736,7 +636,7 @@ static BOOL js_init(char** environ)
 	/* Global Object */
 	if((js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
-		,&branch,&startup						/* js */
+		,&branch								/* js */
 		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
 		))==NULL) {
@@ -760,11 +660,6 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 	}
 
-	/* JSExec object */
-	if(js_CreateExecObject(js_cx, js_glob, "jsexec")==NULL) {
-		JS_ENDREQUEST(js_cx);
-		return(FALSE);
-	}
 	return(TRUE);
 }
 
@@ -899,7 +794,6 @@ long js_exec(const char *fname, char** args)
 			,path
 			,diff);
 
-	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path);
 	start=xp_timer();
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
@@ -941,7 +835,7 @@ void recycle_handler(int type)
 
 
 #if defined(_WIN32)
-BOOL WINAPI ControlHandler(unsigned long CtrlType)
+BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
 	break_handler((int)CtrlType);
 	return TRUE;
@@ -979,7 +873,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.133 $", "%*s %s", revision);
+	sscanf("$Revision: 1.127 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -987,8 +881,6 @@ int main(int argc, char **argv, char** environ)
 
 	if(!winsock_startup())
 		return(do_bail(2));
-
-	getcwd(orig_cwd, sizeof(orig_cwd));
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
@@ -1077,10 +969,6 @@ int main(int argc, char **argv, char** environ)
 				case 'c':
 					if(*p==0) p=argv[++argn];
 					SAFECOPY(scfg.ctrl_dir,p);
-					break;
-				case 'i':
-					if(*p==0) p=argv[++argn];
-					load_path_list=p;
 					break;
 				case 'v':
 					banner(statfp);

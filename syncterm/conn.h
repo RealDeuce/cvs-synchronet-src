@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.h,v 1.22 2010/03/03 06:34:11 deuce Exp $ */
+/* $Id: conn.h,v 1.21 2008/01/21 04:40:48 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -58,7 +58,6 @@ struct conn_buffer {
 /*
  * Functions for stuff using connections
  */
-int conn_recv_upto(char *buffer, size_t buflen, unsigned int timeout);
 int conn_recv(char *buffer, size_t buflen, unsigned int timeout);
 int conn_peek(char *buffer, size_t buflen);
 int conn_send(char *buffer, size_t buflen, unsigned int timeout);
