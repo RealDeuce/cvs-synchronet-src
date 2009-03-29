@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.55 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.56 2009/03/29 05:24:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1743,7 +1743,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			mswait(500+sbbs_random(1000));	 /* thinking time */
 			if(action!=NODE_MCHT) {
 				for(i=0;i<k;i++) {
-					if(mistakes && theanswer[i]!=theanswer[i-1] &&
+					if(i && mistakes && theanswer[i]!=theanswer[i-1] &&
 						((!isalnum(theanswer[i]) && !sbbs_random(100))
 						|| (isalnum(theanswer[i]) && !sbbs_random(30)))) {
 						c=j=((uint)sbbs_random(3)+1);	/* 1 to 3 chars */
