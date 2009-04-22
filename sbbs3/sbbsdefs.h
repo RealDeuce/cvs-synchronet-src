@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.160 2009/03/22 02:34:17 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.161 2009/04/22 03:12:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,6 +98,8 @@ typedef struct {
 
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
+
+#define MAX_TEXTDAT_ITEM_LEN	2000
 
 
 #define LEN_DIR		63		/* Maximum length of directory paths		*/
