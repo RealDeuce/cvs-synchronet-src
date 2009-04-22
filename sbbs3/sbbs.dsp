@@ -267,6 +267,14 @@ SOURCE=.\js_queue.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\js_request.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\js_rtpool.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\js_server.c
 # End Source File
 # Begin Source File
@@ -387,6 +395,10 @@ SOURCE=.\readmsgs.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\readtext.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\ringbuf.c
 # End Source File
 # Begin Source File
@@ -435,6 +447,10 @@ SOURCE=.\telnet.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\text_defaults.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\text_sec.cpp
 # End Source File
 # Begin Source File
@@ -472,6 +488,10 @@ SOURCE=.\ver.cpp
 # Begin Source File
 
 SOURCE=.\viewfile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\wordwrap.c
 # End Source File
 # Begin Source File
 
