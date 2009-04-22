@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.168 2009/02/13 04:24:00 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.169 2009/04/22 18:50:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3852,7 +3852,8 @@ void __fastcall TMainForm::SemFileTimerTick(TObject *Sender)
 //---------------------------------------------------------------------------
 TFont* __fastcall TMainForm::LogAttributes(int log_level, TColor Color, TFont* Font)
 {
-    if(log_level==LOG_INFO || LogFont[log_level]->Color==Color)
+    if(log_level==LOG_INFO || LogFont[log_level]->Color==Color
+        || log_level > LOG_DEBUG)
         return Font;
 
     return LogFont[log_level];
