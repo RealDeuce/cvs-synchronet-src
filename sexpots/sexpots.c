@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.25 2009/07/06 20:37:40 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.24 2009/01/08 03:26:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,12 @@
 /* ANSI C */
 #include <stdarg.h>
 #include <stdio.h>
+
+/* Windows */
+#ifdef _WIN32
+/* Doesn't this come in from sockwrap.h? */
+#include <winsock.h>
+#endif
 
 /* xpdev lib */
 #include "dirwrap.h"
@@ -1506,6 +1512,7 @@ service_loop(int argc, char** argv)
 
 	lprintf(LOG_INFO,"%s set to %ld bps DTE rate", com_dev, comGetBaudRate(com_handle));
 
+
 	if(ident)
 		_beginthread(ident_server_thread, 0, NULL);
 
@@ -1557,7 +1564,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.25 $", "%*s %s", revision);
+	sscanf("$Revision: 1.24 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
