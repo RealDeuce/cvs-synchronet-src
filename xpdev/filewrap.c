@@ -2,13 +2,13 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.37 2010/03/09 03:23:34 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.34 2007/07/11 03:52:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -56,7 +56,6 @@
 
 /****************************************************************************/
 /* Returns the modification time of the file in 'fd'						*/
-/* or -1 if file doesn't exist.												*/
 /****************************************************************************/
 time_t DLLCALL filetime(int fd)
 {
@@ -72,9 +71,8 @@ time_t DLLCALL filetime(int fd)
 
 /****************************************************************************/
 /* Returns the length of the file in 'fd'									*/
-/* or -1 if file doesn't exist.												*/
 /****************************************************************************/
-off_t DLLCALL filelength(int fd)
+long DLLCALL filelength(int fd)
 {
 	struct stat st;
 
@@ -85,7 +83,7 @@ off_t DLLCALL filelength(int fd)
 }
 
 /* Sets a lock on a portion of a file */
-int DLLCALL lock(int fd, off_t pos, off_t len)
+int DLLCALL lock(int fd, long pos, long len)
 {
 	#if defined(F_SANERDLCKNO) || !defined(BSD)
  		struct flock alock;
@@ -119,7 +117,7 @@ int DLLCALL lock(int fd, off_t pos, off_t len)
 }
 
 /* Removes a lock from a file record */
-int DLLCALL unlock(int fd, off_t pos, off_t len)
+int DLLCALL unlock(int fd, long pos, long len)
 {
 
 #if defined(F_SANEUNLCK) || !defined(BSD)
@@ -247,29 +245,29 @@ int DLLCALL sopen(const char *fn, int sh_access, int share, ...)
 	#define LK_UNLCK LK_UNLOCK
 #endif
 
-int DLLCALL lock(int file, off_t offset, off_t size) 
+int DLLCALL lock(int file, long offset, long size) 
 {
 	int	i;
-	off_t pos;
+	long	pos;
    
 	pos=tell(file);
 	if(offset!=pos)
 		lseek(file, offset, SEEK_SET);
-	i=_locking(file,LK_NBLCK,(long)size);
+	i=_locking(file,LK_NBLCK,size);
 	if(offset!=pos)
 		lseek(file, pos, SEEK_SET);
 	return(i);
 }
 
-int DLLCALL unlock(int file, off_t offset, off_t size)
+int DLLCALL unlock(int file, long offset, long size)
 {
 	int	i;
-	off_t	pos;
+	long	pos;
    
 	pos=tell(file);
 	if(offset!=pos)
 		lseek(file, offset, SEEK_SET);
-	i=_locking(file,LK_UNLCK,(long)size);
+	i=_locking(file,LK_UNLCK,size);
 	if(offset!=pos)
 		lseek(file, pos, SEEK_SET);
 	return(i);
