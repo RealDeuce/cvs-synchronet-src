@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.212 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: services.c,v 1.231 2009/05/28 02:19:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,6 +59,8 @@
 #include "services.h"
 #include "ident.h"	/* identify() */
 #include "sbbs_ini.h"
+#include "js_rtpool.h"
+#include "js_request.h"
 
 /* Constants */
 
@@ -117,7 +119,15 @@ static int lprintf(int level, const char *fmt, ...)
 	va_list argptr;
 	char sbuf[1024];
 
-    if(startup==NULL || startup->lputs==NULL)
+	va_start(argptr,fmt);
+    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;
+    va_end(argptr);
+
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
+
+    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
 
 #if defined(_WIN32)
@@ -125,10 +135,6 @@ static int lprintf(int level, const char *fmt, ...)
 		return(0);
 #endif
 
-	va_start(argptr,fmt);
-    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
     return(startup->lputs(startup->cbdata,level,sbuf));
 }
 
@@ -143,7 +149,7 @@ static BOOL winsock_startup(void)
 	int		status;             /* Status Code */
 
     if((status = WSAStartup(MAKEWORD(1,1), &WSAData))==0) {
-		lprintf(LOG_INFO,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
+		lprintf(LOG_DEBUG,"%s %s",WSAData.szDescription, WSAData.szSystemStatus);
 		WSAInitialized=TRUE;
 		return (TRUE);
 	}
@@ -258,6 +264,7 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		buf;
 	int32		len=512;
 	service_client_t* client;
+	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -268,7 +275,9 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	len=recv(client->socket,buf,len,0);
+	JS_RESUMEREQUEST(cx, rc);
 
 	if(len>0)
 		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len));
@@ -288,6 +297,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		timeout=30;	/* seconds */
 	JSString*	str;
 	service_client_t* client;
+	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -303,6 +313,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>1)
 		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	start=time(NULL);
 	for(i=0;i<len;) {
 
@@ -312,6 +323,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if(!rd) {
 			if(time(NULL)-start>timeout) {
 				*rval = JSVAL_NULL;
+				JS_RESUMEREQUEST(cx, rc);
 				return(JS_TRUE);	/* time-out */
 			}
 			continue;	/* no data */
@@ -329,6 +341,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		buf[i-1]=0;
 	else
 		buf[i]=0;
+	JS_RESUMEREQUEST(cx, rc);
 
 	str = JS_NewStringCopyZ(cx, buf);
 	if(str==NULL)
@@ -346,6 +359,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	char*		cp;
 	JSString*	str;
 	service_client_t* client;
+	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -357,7 +371,9 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			continue;
 		if((cp=JS_GetStringBytes(str))==NULL)
 			continue;
+		rc=JS_SUSPENDREQUEST(cx);
 		sendsocket(client->socket,cp,strlen(cp));
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	return(JS_TRUE);
@@ -368,14 +384,17 @@ js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		cp;
 	service_client_t* client;
+	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 	
 	js_write(cx,obj,argc,argv,rval);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	cp="\r\n";
 	sendsocket(client->socket,cp,2);
+	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
 }
@@ -388,6 +407,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	int32		level=LOG_INFO;
     JSString*	js_str;
 	service_client_t* client;
+	jsrefcount	rc;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -406,10 +426,12 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		strcat(str," ");
 	}
 
+	rc=JS_SUSPENDREQUEST(cx);
 	if(service==NULL)
 		lprintf(level,"%04d %s",client->socket,str);
 	else if(level <= client->service->log_level)
 		lprintf(level,"%04d %s %s",client->socket,client->service->protocol,str);
+	JS_RESUMEREQUEST(cx, rc);
 
 	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 
@@ -421,10 +443,10 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
 	JSBool		inc_logons=JS_FALSE;
-	user_t		user;
 	jsval		val;
 	JSString*	js_str;
 	service_client_t* client;
+	jsrefcount	rc;
 
 	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 
@@ -438,62 +460,71 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if((p=JS_GetStringBytes(js_str))==NULL) 
 		return(JS_FALSE);
 
-	memset(&user,0,sizeof(user));
+	rc=JS_SUSPENDREQUEST(cx);
+	memset(&client->user,0,sizeof(user_t));
 
 	if(isdigit(*p))
-		user.number=atoi(p);
+		client->user.number=atoi(p);
 	else if(*p)
-		user.number=matchuser(&scfg,p,FALSE);
+		client->user.number=matchuser(&scfg,p,FALSE);
 
-	if(getuserdat(&scfg,&user)!=0) {
+	if(getuserdat(&scfg,&client->user)!=0) {
 		lprintf(LOG_NOTICE,"%04d %s !USER NOT FOUND: '%s'"
 			,client->socket,client->service->protocol,p);
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
-	if(user.misc&(DELETED|INACTIVE)) {
+	if(client->user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d %s !DELETED OR INACTIVE USER #%d: %s"
-			,client->socket,client->service->protocol,user.number,p);
+			,client->socket,client->service->protocol,client->user.number,p);
+		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	/* Password */
-	if(user.pass[0]) {
-		if((js_str=JS_ValueToString(cx, argv[1]))==NULL) 
+	if(client->user.pass[0]) {
+		if((js_str=JS_ValueToString(cx, argv[1]))==NULL)  {
+			JS_RESUMEREQUEST(cx, rc);
 			return(JS_FALSE);
+		}
 
-		if((p=JS_GetStringBytes(js_str))==NULL) 
+		if((p=JS_GetStringBytes(js_str))==NULL) {
+			JS_RESUMEREQUEST(cx, rc);
 			return(JS_FALSE);
+		}
 
-		if(stricmp(user.pass,p)) { /* Wrong password */
+		if(stricmp(client->user.pass,p)) { /* Wrong password */
 			lprintf(LOG_WARNING,"%04d %s !INVALID PASSWORD ATTEMPT FOR USER: %s"
-				,client->socket,client->service->protocol,user.alias);
+				,client->socket,client->service->protocol,client->user.alias);
+			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
 	}
+	JS_RESUMEREQUEST(cx, rc);
 
 	if(argc>2)
 		JS_ValueToBoolean(cx,argv[2],&inc_logons);
 
+	rc=JS_SUSPENDREQUEST(cx);
 	if(client->client!=NULL) {
-		SAFECOPY(user.note,client->client->addr);
-		SAFECOPY(user.comp,client->client->host);
-		SAFECOPY(user.modem,client->service->protocol);
+		SAFECOPY(client->user.note,client->client->addr);
+		SAFECOPY(client->user.comp,client->client->host);
+		SAFECOPY(client->user.modem,client->service->protocol);
 	}
 
 	if(inc_logons) {
-		user.logons++;
-		user.ltoday++;
+		client->user.logons++;
+		client->user.ltoday++;
 	}	
 
-	putuserdat(&scfg,&user);
+	putuserdat(&scfg,&client->user);
+	JS_RESUMEREQUEST(cx, rc);
 
 	/* user-specific objects */
-	if(!js_CreateUserObjects(cx, obj, &scfg, &user, NULL, NULL)) 
+	if(!js_CreateUserObjects(cx, obj, &scfg, &client->user, client->client, NULL, NULL)) 
 		lprintf(LOG_ERR,"%04d %s !JavaScript ERROR creating user objects"
 			,client->socket,client->service->protocol);
-
-	memcpy(&client->user,&user,sizeof(user));
 
 	if(client->client!=NULL) {
 		client->client->user=client->user.alias;
@@ -518,6 +549,7 @@ js_logout(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	jsval val;
 	service_client_t* client;
+	jsrefcount	rc;
 
 	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 
@@ -527,12 +559,15 @@ js_logout(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(client->user.number<1)	/* Not logged in */
 		return(JS_TRUE);
 
-	logoutuserdat(&scfg,&client->user,time(NULL),client->logintime);
+	rc=JS_SUSPENDREQUEST(cx);
+	if(!logoutuserdat(&scfg,&client->user,time(NULL),client->logintime))
+		lprintf(LOG_ERR,"%04d !ERROR in logoutuserdat",client->socket);
 
 	lprintf(LOG_INFO,"%04d %s Logging out %s"
 		,client->socket,client->service->protocol,client->user.alias);
 
 	memset(&client->user,0,sizeof(client->user));
+	JS_RESUMEREQUEST(cx, rc);
 
 	val = BOOLEAN_TO_JSVAL(JS_FALSE);
 	JS_SetProperty(cx, obj, "logged_in", &val);
@@ -563,6 +598,8 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	SOCKET	sock=0;
 	char*	warning;
 	service_client_t* client;
+	jsrefcount	rc;
+	int		log_level;
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))!=NULL) {
 		prot=client->service->protocol;
@@ -589,10 +626,15 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 			warning="strict warning";
 		else
 			warning="warning";
-	} else
+		log_level=LOG_WARNING;
+	} else {
+		log_level=LOG_ERR;
 		warning="";
+	}
 
-	lprintf(LOG_ERR,"%04d %s !JavaScript %s%s%s: %s",sock,prot,warning,file,line,message);
+	rc=JS_SUSPENDREQUEST(cx);
+	lprintf(log_level,"%04d %s !JavaScript %s%s%s: %s",sock,prot,warning,file,line,message);
+	JS_RESUMEREQUEST(cx, rc);
 }
 
 #if 0
@@ -665,6 +707,7 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	socklen_t	addr_len;
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
+	jsrefcount	rc;
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -694,12 +737,14 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if(argc>2)
 		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
+	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ FALSE);
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG,"%04d %s client_add(%04u,%s,%s)"
 		,service_client->service->socket,service_client->service->protocol
 		,sock,client.user,client.host);
 #endif
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -711,6 +756,7 @@ js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	socklen_t	addr_len;
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
+	jsrefcount	rc;
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -735,12 +781,14 @@ js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if(argc>2)
 		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
+	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ TRUE);
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG,"%04d %s client_update(%04u,%s,%s)"
 		,service_client->service->socket,service_client->service->protocol
 		,sock,client.user,client.host);
 #endif
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -750,6 +798,7 @@ js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 {
 	SOCKET	sock=INVALID_SOCKET;
 	service_client_t* service_client;
+	jsrefcount	rc;
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -758,6 +807,7 @@ js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 
 	if(sock!=INVALID_SOCKET) {
 
+		rc=JS_SUSPENDREQUEST(cx);
 		client_off(sock);
 
 		if(service_client->service->clients==0)
@@ -767,6 +817,7 @@ js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 			service_client->service->clients--;
 			update_clients();
 		}
+		JS_RESUMEREQUEST(cx, rc);
 	}
 
 #ifdef _DEBUG
@@ -787,6 +838,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
     if((js_cx = JS_NewContext(js_runtime, service_client->service->js.cx_stack))==NULL)
 		return(NULL);
+	JS_BEGINREQUEST(js_cx);
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
@@ -826,7 +878,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 			break;
 
 		/* user-specific objects */
-		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, NULL, NULL, NULL)) 
+		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, /*user: */NULL, service_client->client, NULL, NULL)) 
 			break;
 
 		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
@@ -904,6 +956,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 
 	if(!success) {
+		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
 	}
@@ -920,8 +973,8 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 		return(JS_FALSE);
 
 	/* Terminated? */ 
-	if(terminated) {
-		JS_ReportError(cx,"Terminated");
+	if(client->branch.auto_terminate && terminated) {
+		JS_ReportWarning(cx,"Terminated");
 		client->branch.counter=0;
 		return(JS_FALSE);
 	}
@@ -999,7 +1052,7 @@ static void js_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread started", socket, service->protocol);
 
-	SetThreadName("JS Service Thread");
+	SetThreadName("JS Service");
 	thread_up(TRUE /* setuid */);
 
 	/* Host name lookup and filtering */
@@ -1063,7 +1116,7 @@ static void js_service_thread(void* arg)
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
 
-	if((js_runtime=JS_NewRuntime(service->js.max_bytes))==NULL
+	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000, __FILE__, __LINE__))==NULL
 		|| (js_cx=js_initcx(js_runtime,socket,&service_client,&js_glob))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript context"
 			,socket,service->protocol);
@@ -1114,9 +1167,10 @@ static void js_service_thread(void* arg)
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
 	}
+	JS_ENDREQUEST(js_cx);
 	JS_DestroyContext(js_cx);	/* Free Context */
 
-	JS_DestroyRuntime(js_runtime);
+	jsrt_Release(js_runtime);
 
 	if(service_client.user.number) {
 		lprintf(LOG_INFO,"%04d %s Logging out %s"
@@ -1135,7 +1189,7 @@ static void js_service_thread(void* arg)
 #endif
 
 	thread_down();
-	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread terminated (%u clients remain, %d total, %lu served)"
+	lprintf(LOG_INFO,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
 		, socket, service->protocol, service->clients, active_clients(), service->served);
 
 	client_off(socket);
@@ -1165,7 +1219,7 @@ static void js_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static JavaScript service thread started", service->socket, service->protocol);
 
-	SetThreadName("JS Static Service Thread");
+	SetThreadName("JS Static Service");
 	thread_up(TRUE /* setuid */);
 
 	memset(&service_client,0,sizeof(service_client));
@@ -1177,7 +1231,7 @@ static void js_static_service_thread(void* arg)
 	service_client.branch.terminated = &service->terminated;
 	service_client.branch.auto_terminate = TRUE;
 
-	if((js_runtime=JS_NewRuntime(service->js.max_bytes))==NULL) {
+	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000, __FILE__, __LINE__))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript runtime"
 			,service->socket,service->protocol);
 		close_socket(service->socket);
@@ -1215,14 +1269,17 @@ static void js_static_service_thread(void* arg)
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
 
+		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
 		js_cx=NULL;
 	} while(!service->terminated && service->options&SERVICE_OPT_STATIC_LOOP);
 
-	if(js_cx!=NULL)
+	if(js_cx!=NULL) {
+		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
+	}
 
-	JS_DestroyRuntime(js_runtime);
+	jsrt_Release(js_runtime);
 
 	if(service->clients) {
 		lprintf(LOG_WARNING,"%04d %s !service terminating with %u active clients"
@@ -1231,7 +1288,7 @@ static void js_static_service_thread(void* arg)
 	}
 
 	thread_down();
-	lprintf(LOG_DEBUG,"%04d %s static JavaScript service thread terminated (%lu clients served)"
+	lprintf(LOG_INFO,"%04d %s service thread terminated (%lu clients served)"
 		,socket, service->protocol, service->served);
 
 	close_socket(service->socket);
@@ -1255,7 +1312,7 @@ static void native_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static service thread started", socket, service->protocol);
 
-	SetThreadName("Native Static Service Thread");
+	SetThreadName("Static Service");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _WIN32
@@ -1289,7 +1346,7 @@ static void native_static_service_thread(void* arg)
 	} while(!service->terminated && service->options&SERVICE_OPT_STATIC_LOOP);
 
 	thread_down();
-	lprintf(LOG_DEBUG,"%04d %s static service thread terminated (%lu clients served)"
+	lprintf(LOG_INFO,"%04d %s service thread terminated (%lu clients served)"
 		,socket, service->protocol, service->served);
 
 	close_socket(service->socket);
@@ -1319,7 +1376,7 @@ static void native_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s service thread started", socket, service->protocol);
 
-	SetThreadName("Native Service Thread");
+	SetThreadName("Native Service");
 	thread_up(TRUE /* setuid */);
 
 	/* Host name lookup and filtering */
@@ -1422,7 +1479,7 @@ static void native_service_thread(void* arg)
 #endif
 
 	thread_down();
-	lprintf(LOG_DEBUG,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
+	lprintf(LOG_INFO,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
 		,socket, service->protocol, service->clients, active_clients(), service->served);
 
 	client_off(socket);
@@ -1463,11 +1520,11 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 	uint32_t	stack_size;
 
 	if((fp=fopen(services_ini,"r"))==NULL) {
-		lprintf(LOG_ERR,"!ERROR %d opening %s", errno, services_ini);
+		lprintf(LOG_CRIT,"!ERROR %d opening %s", errno, services_ini);
 		return(NULL);
 	}
 
-	lprintf(LOG_INFO,"Reading %s",services_ini);
+	lprintf(LOG_DEBUG,"Reading %s",services_ini);
 	list=iniReadFile(fp);
 	fclose(fp);
 
@@ -1573,7 +1630,7 @@ static void cleanup(int code)
 
 	thread_down();
 	if(terminated || code)
-		lprintf(LOG_DEBUG,"#### Services thread terminated (%lu clients served)",served);
+		lprintf(LOG_INFO,"#### Services thread terminated (%lu clients served)",served);
 	status("Down");
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
@@ -1586,7 +1643,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.212 $", "%*s %s", revision);
+	sscanf("$Revision: 1.231 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1663,7 +1720,7 @@ void DLLCALL services_thread(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 
-	SetThreadName("Services Thread");
+	SetThreadName("Services");
 
 	do {
 
@@ -1697,14 +1754,17 @@ void DLLCALL services_thread(void* arg)
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
 
+		if(chdir(startup->ctrl_dir)!=0)
+			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
+
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(error,UNKNOWN_LOAD_ERROR);
 		if(!load_cfg(&scfg, NULL, TRUE, error)) {
-			lprintf(LOG_ERR,"!ERROR %s",error);
-			lprintf(LOG_ERR,"!Failed to load configuration files");
+			lprintf(LOG_CRIT,"!ERROR %s",error);
+			lprintf(LOG_CRIT,"!Failed to load configuration files");
 			cleanup(1);
 			return;
 		}
@@ -1717,7 +1777,7 @@ void DLLCALL services_thread(void* arg)
 		MKDIR(scfg.temp_dir);
 		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
 		if(!isdir(scfg.temp_dir)) {
-			lprintf(LOG_ERR,"!Invalid temp directory: %s", scfg.temp_dir);
+			lprintf(LOG_CRIT,"!Invalid temp directory: %s", scfg.temp_dir);
 			cleanup(1);
 			return;
 		}
@@ -1751,7 +1811,7 @@ void DLLCALL services_thread(void* arg)
 				(service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
 				,service[i].protocol))
 				==INVALID_SOCKET) {
-				lprintf(LOG_ERR,"!ERROR %d opening %s socket"
+				lprintf(LOG_CRIT,"!ERROR %d opening %s socket"
 					,ERROR_VALUE, service[i].protocol);
 				cleanup(1);
 				return;
@@ -1821,7 +1881,6 @@ void DLLCALL services_thread(void* arg)
 			cleanup(1);
 			return;
 		}
-		lprintf(LOG_INFO,"0000 %u service sockets bound", total_sockets);
 
 		/* Setup static service threads */
 		for(i=0;i<(int)services;i++) {
@@ -1855,6 +1914,8 @@ void DLLCALL services_thread(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
+
+		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
 
 		/* Main Server Loop */
 		while(!terminated) {
@@ -1986,7 +2047,7 @@ void DLLCALL services_thread(void* arg)
 					result=bind(client_socket, (struct sockaddr *) &addr, sizeof(addr));
 					if(result==SOCKET_ERROR) {
 						/* Failed to re-bind to same port number, use user port */
-						lprintf(LOG_ERR,"%04d %s ERROR %d re-binding socket to port %u failed, "
+						lprintf(LOG_NOTICE,"%04d %s ERROR %d re-binding socket to port %u failed, "
 							"using user port"
 							,client_socket, service[i].protocol, ERROR_VALUE, service[i].port);
 						addr.sin_port=0;
