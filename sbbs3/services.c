@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.230 2009/03/21 10:06:44 rswindell Exp $ */
+/* $Id: services.c,v 1.231 2009/05/28 02:19:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1643,7 +1643,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.230 $", "%*s %s", revision);
+	sscanf("$Revision: 1.231 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -2047,7 +2047,7 @@ void DLLCALL services_thread(void* arg)
 					result=bind(client_socket, (struct sockaddr *) &addr, sizeof(addr));
 					if(result==SOCKET_ERROR) {
 						/* Failed to re-bind to same port number, use user port */
-						lprintf(LOG_ERR,"%04d %s ERROR %d re-binding socket to port %u failed, "
+						lprintf(LOG_NOTICE,"%04d %s ERROR %d re-binding socket to port %u failed, "
 							"using user port"
 							,client_socket, service[i].protocol, ERROR_VALUE, service[i].port);
 						addr.sin_port=0;
