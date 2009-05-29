@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.53 2009/02/19 07:21:31 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.55 2009/02/27 06:16:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,7 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	padded_right=false;
 	const char *cp;
 
-	sprintf(str,"%.80s",instr);
+	SAFECOPY(str,instr);
 	tp=strchr(str+1,'@');
 	if(!tp)                 /* no terminating @ */
 		return(0);
@@ -84,11 +84,11 @@ int sbbs_t::show_atcode(const char *instr)
 		return(0);
 
 	if(padded_left)
-		rprintf("%-*.*s",disp_len,disp_len,cp);
+		bprintf("%-*.*s",disp_len,disp_len,cp);
 	else if(padded_right)
-		rprintf("%*.*s",disp_len,disp_len,cp);
+		bprintf("%*.*s",disp_len,disp_len,cp);
 	else
-		rputs(cp);
+		bputs(cp);
 
 	return(len);
 }
