@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.242 2010/03/13 08:15:08 rswindell Exp $ */
+/* $Id: services.c,v 1.232 2009/05/30 22:12:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,8 +91,8 @@ typedef struct {
 	js_startup_t	js;
 	js_server_props_t js_server_props;
 	/* These are run-time state and stat vars */
-	ulong		clients;
-	ulong		served;
+	uint32_t	clients;
+	uint32_t	served;
 	SOCKET		socket;
 	BOOL		running;
 	BOOL		terminated;
@@ -109,7 +109,6 @@ typedef struct {
 	/* Initial UDP datagram */
 	BYTE*			udp_buf;
 	int				udp_len;
-	subscan_t		*subscan;
 } service_client_t;
 
 static service_t	*service=NULL;
@@ -125,11 +124,8 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
-		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
-	}
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
@@ -467,11 +463,6 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&client->user,0,sizeof(user_t));
 
-	if(client->user.number) {
-		if(client->subscan!=NULL)
-			putmsgptrs(&scfg, client->user.number, client->subscan);
-	}
-
 	if(isdigit(*p))
 		client->user.number=atoi(p);
 	else if(*p)
@@ -528,18 +519,10 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}	
 
 	putuserdat(&scfg,&client->user);
-	if(client->subscan==NULL) {
-		client->subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
-		if(client->subscan==NULL)
-			lprintf(LOG_CRIT,"!MALLOC FAILURE");
-	}
-	if(client->subscan!=NULL) {
-		getmsgptrs(&scfg,client->user.number,client->subscan);
-	}
-
 	JS_RESUMEREQUEST(cx, rc);
 
-	if(!js_CreateUserObjects(cx, obj, &scfg, &client->user, client->client, NULL, client->subscan))
+	/* user-specific objects */
+	if(!js_CreateUserObjects(cx, obj, &scfg, &client->user, client->client, NULL, NULL)) 
 		lprintf(LOG_ERR,"%04d %s !JavaScript ERROR creating user objects"
 			,client->socket,client->service->protocol);
 
@@ -859,20 +842,18 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-	/* ToDo: call js_CreateCommonObjects() instead */
-
 	do {
 
 		JS_SetContextPrivate(js_cx, service_client);
 
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &service_client->service->js))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
 			break;
 
 		/* Internal JS Object */
-		if(js_CreateInternalJsObject(js_cx, js_glob, &service_client->branch, &service_client->service->js)==NULL)
+		if(js_CreateInternalJsObject(js_cx, js_glob, &service_client->branch)==NULL)
 			break;
 
 		/* Client Object */
@@ -896,12 +877,8 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateFileClass(js_cx, js_glob)==NULL)
 			break;
 
-		/* Queue Class */
-		if(js_CreateQueueClass(js_cx, js_glob)==NULL)
-			break;
-
 		/* user-specific objects */
-		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
+		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, /*user: */NULL, service_client->client, NULL, NULL)) 
 			break;
 
 		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
@@ -1047,6 +1024,7 @@ static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline
 
 static void js_service_thread(void* arg)
 {
+	int						i;
 	char*					host_name;
 	HOSTENT*				host;
 	SOCKET					socket;
@@ -1187,7 +1165,6 @@ static void js_service_thread(void* arg)
 	if(js_script==NULL) 
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
-		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
@@ -1199,13 +1176,10 @@ static void js_service_thread(void* arg)
 	jsrt_Release(js_runtime);
 
 	if(service_client.user.number) {
-		if(service_client.subscan!=NULL)
-			putmsgptrs(&scfg, service_client.user.number, service_client.subscan);
 		lprintf(LOG_INFO,"%04d %s Logging out %s"
 			,socket, service->protocol, service_client.user.alias);
 		logoutuserdat(&scfg,&service_client.user,time(NULL),service_client.logintime);
 	}
-	FREE_AND_NULL(service_client.subscan);
 
 	if(service->clients)
 		service->clients--;
@@ -1294,7 +1268,6 @@ static void js_static_service_thread(void* arg)
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1388,6 +1361,7 @@ static void native_static_service_thread(void* arg)
 
 static void native_service_thread(void* arg)
 {
+	int						i;
 	char					cmd[MAX_PATH];
 	char					fullcmd[MAX_PATH*2];
 	char*					host_name;
@@ -1562,7 +1536,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 
 	/* Get default key values from "root" section */
 	log_level		= iniGetLogLevel(list,ROOT_SECTION,"LogLevel",startup->log_level);
-	stack_size		= (uint32_t)iniGetBytes(list,ROOT_SECTION,"StackSize",1,0);
+	stack_size		= iniGetInteger(list,ROOT_SECTION,"StackSize",0);
 	max_clients		= iniGetInteger(list,ROOT_SECTION,"MaxClients",0);
 	listen_backlog	= iniGetInteger(list,ROOT_SECTION,"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
 	options			= iniGetBitField(list,ROOT_SECTION,"Options",service_options,0);
@@ -1580,7 +1554,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		serv.interface_addr=iniGetIpAddress(list,sec_list[i],"Interface",startup->interface_addr);
 		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",max_clients);
 		serv.listen_backlog=iniGetInteger(list,sec_list[i],"ListenBacklog",listen_backlog);
-		serv.stack_size=(uint32_t)iniGetBytes(list,sec_list[i],"StackSize",1,stack_size);
+		serv.stack_size=iniGetInteger(list,sec_list[i],"StackSize",stack_size);
 		serv.options=iniGetBitField(list,sec_list[i],"Options",service_options,options);
 		serv.log_level=iniGetLogLevel(list,sec_list[i],"LogLevel",log_level);
 		SAFECOPY(serv.cmd,iniGetString(list,sec_list[i],"Command","",cmd));
@@ -1675,7 +1649,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.242 $", "%*s %s", revision);
+	sscanf("$Revision: 1.232 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
