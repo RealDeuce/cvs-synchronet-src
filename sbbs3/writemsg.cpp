@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.83 2009/02/18 06:32:40 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.84 2009/02/21 22:01:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -513,7 +513,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 	l=process_edited_text(buf,stream,mode,&lines);
 
 	/* Signature file */
-	if(subnum==INVALID_SUB || !(cfg.sub[subnum]->misc&SUB_NOUSERSIG)) {
+	if((subnum==INVALID_SUB && cfg.msg_misc&MM_EMAILSIG)
+		|| (subnum!=INVALID_SUB && !(cfg.sub[subnum]->misc&SUB_NOUSERSIG))) {
 		SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,useron.number);
 		FILE* sig;
 		if(fexist(str) && (sig=fopen(str,"rb"))!=NULL) {
