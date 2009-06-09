@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.232 2009/05/30 22:12:45 rswindell Exp $ */
+/* $Id: services.c,v 1.233 2009/06/09 05:06:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1024,7 +1024,6 @@ static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline
 
 static void js_service_thread(void* arg)
 {
-	int						i;
 	char*					host_name;
 	HOSTENT*				host;
 	SOCKET					socket;
@@ -1361,7 +1360,6 @@ static void native_static_service_thread(void* arg)
 
 static void native_service_thread(void* arg)
 {
-	int						i;
 	char					cmd[MAX_PATH];
 	char					fullcmd[MAX_PATH*2];
 	char*					host_name;
@@ -1649,7 +1647,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.232 $", "%*s %s", revision);
+	sscanf("$Revision: 1.233 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

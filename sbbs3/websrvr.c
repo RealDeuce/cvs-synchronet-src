@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.505 2009/05/30 22:12:45 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.506 2009/06/09 05:06:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4878,7 +4878,6 @@ void http_output_thread(void *arg)
 
 void http_session_thread(void* arg)
 {
-	int				i;
 	char*			host_name;
 	HOSTENT*		host;
 	SOCKET			socket;
@@ -5166,7 +5165,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.505 $", "%*s %s", revision);
+	sscanf("$Revision: 1.506 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
