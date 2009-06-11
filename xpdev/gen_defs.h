@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.43 2007/10/21 04:09:07 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.44 2009/02/16 08:57:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,7 +97,7 @@
 #define CR		'\r'				/* Carriage return			^M	*/
 #endif
 
-
+#ifndef CTRL_A
 enum {
 	 CTRL_A=1
 	,CTRL_B
@@ -126,6 +126,7 @@ enum {
 	,CTRL_Y
 	,CTRL_Z
 };
+#endif
 
 /* Unsigned type short-hands	*/
 #ifndef uchar
