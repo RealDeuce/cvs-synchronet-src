@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.115 2010/03/17 04:22:52 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.112 2009/04/22 18:48:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -526,25 +526,25 @@ char* iniSetFloat(str_list_t* list, const char* section, const char* key, double
 }
 
 char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong unit
-					,int64_t value, ini_style_t* style)
+					,ulong value, ini_style_t* style)
 {
 	char	str[INI_MAX_VALUE_LEN];
 	double	bytes;
 
 	switch(unit) {
 		case 1024*1024*1024:
-			SAFEPRINTF(str,"%"PRIi64"G",value);
+			SAFEPRINTF(str,"%luG",value);
 			break;
 		case 1024*1024:
-			SAFEPRINTF(str,"%"PRIi64"M",value);
+			SAFEPRINTF(str,"%luM",value);
 			break;
 		case 1024:
-			SAFEPRINTF(str,"%"PRIi64"K",value);
+			SAFEPRINTF(str,"%luK",value);
 			break;
 		default:
 			if(unit<1)
 				unit=1;
-			bytes=(double)(value*unit);
+			bytes=value*unit;
 
 			if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
 				SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
@@ -555,7 +555,7 @@ char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong 
 			else if(fmod(bytes,1024)==0)
 				SAFEPRINTF(str,"%gK",bytes/1024);
 			else
-				SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
+				SAFEPRINTF(str,"%lu",(ulong)bytes);
 	}
 
 	return iniSetString(list, section, key, str, style);
@@ -687,11 +687,21 @@ char* iniSetStringList(str_list_t* list, const char* section, const char* key
 					,const char* sep, str_list_t val_list, ini_style_t* style)
 {
 	char	value[INI_MAX_VALUE_LEN];
+	size_t	i;
+
+	value[0]=0;
 
 	if(sep==NULL)
 		sep=",";
 
-	return iniSetString(list, section, key, strListCombine(val_list, value, sizeof(value), sep), style);
+	if(val_list!=NULL)
+		for(i=0; val_list[i]!=NULL; i++) {
+			if(value[0])
+				strcat(value,sep);
+			strcat(value,val_list[i]);
+		}
+
+	return iniSetString(list, section, key, value, style);
 }
 
 static char* default_value(const char* deflt, char* value)
@@ -998,8 +1008,13 @@ iniReadNamedStringList(FILE* fp, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	items=0;
-	named_string_t** lp=NULL;
+	named_string_t** lp;
 	named_string_t** np;
+
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
+
+	*lp=NULL;
 
 	if(fp==NULL)
 		return(lp);
@@ -1030,8 +1045,7 @@ iniReadNamedStringList(FILE* fp, const char* section)
 		items++;
 	}
 
-	if(items)
-		lp[items]=NULL;	/* terminate list */
+	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
@@ -1043,8 +1057,13 @@ iniGetNamedStringList(str_list_t list, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	i,items=0;
-	named_string_t** lp=NULL;
+	named_string_t** lp;
 	named_string_t** np;
+
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
+
+	*lp=NULL;
 
 	if(list==NULL)
 		return(lp);
@@ -1069,8 +1088,7 @@ iniGetNamedStringList(str_list_t list, const char* section)
 		items++;
 	}
 
-	if(items)
-		lp[items]=NULL;	/* terminate list */
+	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
@@ -1166,7 +1184,7 @@ ulong iniGetLongInt(str_list_t list, const char* section, const char* key, ulong
 	return(parseLongInteger(value));
 }
 
-static int64_t parseBytes(const char* value, ulong unit)
+static ulong parseBytes(const char* value, ulong unit)
 {
 	char*	p=NULL;
 	double	bytes;
@@ -1174,30 +1192,21 @@ static int64_t parseBytes(const char* value, ulong unit)
 	bytes=strtod(value,&p);
 	if(p!=NULL) {
 		switch(toupper(*p)) {
-			case 'E':
-				bytes*=1024;
-				/* fall-through */
-			case 'P':
-				bytes*=1024;
-				/* fall-through */
 			case 'T':
 				bytes*=1024;
-				/* fall-through */
 			case 'G':
 				bytes*=1024;
-				/* fall-through */
 			case 'M':
 				bytes*=1024;
-				/* fall-through */
 			case 'K':
 				bytes*=1024;
 				break;
 		}
 	}
-	return((int64_t)(unit>1 ? (bytes/unit):bytes));
+	return((ulong)(unit>1 ? (bytes/unit):bytes));
 }
 
-int64_t iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit, int64_t deflt)
+ulong iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit, ulong deflt)
 {
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
@@ -1211,7 +1220,7 @@ int64_t iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit,
 	return(parseBytes(value,unit));
 }
 
-int64_t iniGetBytes(str_list_t list, const char* section, const char* key, ulong unit, int64_t deflt)
+ulong iniGetBytes(str_list_t list, const char* section, const char* key, ulong unit, ulong deflt)
 {
 	char	value[INI_MAX_VALUE_LEN];
 
