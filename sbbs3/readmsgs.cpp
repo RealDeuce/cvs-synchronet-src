@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.41 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: readmsgs.cpp,v 1.46 2009/06/19 21:36:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,7 +39,7 @@
 
 int sbbs_t::sub_op(uint subnum)
 {
-	return(SYSOP || (cfg.sub[subnum]->op_ar[0] && chk_ar(cfg.sub[subnum]->op_ar,&useron)));
+	return(SYSOP || (cfg.sub[subnum]->op_ar[0] && chk_ar(cfg.sub[subnum]->op_ar,&useron,&client)));
 }
 
 
@@ -346,6 +346,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 {
 	char	str[256],str2[256],do_find=true,mismatches=0
 			,done=0,domsg=1,*buf,*p;
+	char	subj[128];
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
@@ -357,8 +358,9 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	post_t	*post;
 	smbmsg_t	msg;
 
+	find_buf[0]=0;
 	cursubnum=subnum;	/* for ARS */
-	if(!chk_ar(cfg.sub[subnum]->read_ar,&useron)) {
+	if(!chk_ar(cfg.sub[subnum]->read_ar,&useron,&client)) {
 		bprintf("\1n\r\nYou can't read messages on %s %s\r\n"
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 		return(0); 
@@ -574,8 +576,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							domsg=0;
 					continue; 
 				}
-				strupr((char *)buf);
-				if(!strstr((char *)buf,find) && !strstr(msg.subj,find)) {
+				strupr(buf);
+				strip_ctrl(buf, buf);
+				SAFECOPY(subj,msg.subj);
+				strupr(subj);
+				if(!strstr(buf,find) && !strstr(subj,find)) {
 					free(buf);
 					if(smb.curmsg<smb.msgs-1) 
 						smb.curmsg++;
@@ -671,7 +676,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				/* Reply to last message */
 				domsg=0;
-				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron)) {
+				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron,&client)) {
 					bputs(text[CantPostOnSub]);
 					break; 
 				}
@@ -787,7 +792,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				if((i=get_start_msg(this,&smb))<0)
 					break;
 				bputs(text[SearchStringPrompt]);
-				if(!getstr(find_buf,40,K_LINE|K_UPPER))
+				if(!getstr(find_buf,40,K_LINE|K_UPPER|K_EDIT|K_AUTODEL))
 					break;
 				if(yesno(text[DisplaySubjectsOnlyQ]))
 					searchposts(subnum,post,(long)i,smb.msgs,find_buf);
@@ -861,7 +866,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case 'P':   /* Post message on sub-board */
 				domsg=0;
-				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron))
+				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron,&client))
 					bputs(text[CantPostOnSub]);
 				else {
 					FREE_AND_NULL(post);
@@ -1104,13 +1109,15 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			case '?':
 				menu("msgscan");
 				domsg=0;
-				break;	} }
+				break;	
+		} 
+	}
 	if(msg.total_hfields)
 		smb_freemsgmem(&msg);
 	if(post)
 		free(post);
 	if(!(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
-		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron)
+		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron,&client)
 		&& !(useron.rest&FLAG('P'))) {
 		sprintf(str,text[Post],cfg.grp[cfg.sub[subnum]->grp]->sname
 			,cfg.sub[subnum]->lname);
@@ -1171,7 +1178,8 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 	, const char *search)
 {
-	char	*buf,ch;
+	char*	buf,ch;
+	char	subj[128];
 	long	l,found=0;
 	smbmsg_t msg;
 
@@ -1186,8 +1194,11 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			smb_freemsgmem(&msg);
 			continue; 
 		}
-		strupr((char *)buf);
-		if(strstr((char *)buf,search) || strstr(msg.subj,search)) {
+		strupr(buf);
+		strip_ctrl(buf, buf);
+		SAFECOPY(subj,msg.subj);
+		strupr(subj);
+		if(strstr(buf,search) || strstr(subj,search)) {
 			if(!found)
 				CRLF;
 			if(msg.hdr.attr&MSG_DELETE)

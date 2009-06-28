@@ -2,7 +2,7 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.25 2009/01/12 00:33:39 deuce Exp $ */
+/* $Id: nopen.c,v 1.26 2009/01/12 00:43:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,10 +39,10 @@
 #include "crc32.h"
 
 /****************************************************************************/
-/* Network open function. Opens all files DENYALL or DENYWRITE depending on */
-/* access, and retries LOOP_NOPEN number of times if the attempted file is	*/
-/* already open or denying access  for some other reason. All files are 	*/
-/* opened in BINARY mode.													*/
+/* Network open function. Opens all files DENYALL, DENYWRITE, or DENYNONE	*/
+/* depending on access, and retries LOOP_NOPEN number of times if the		*/
+/* attempted file is already open or denying access  for some other reason. */
+/* All files are opened in BINARY mode.										*/
 /****************************************************************************/
 int nopen(const char* str, int access)
 {
