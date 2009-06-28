@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.123 2008/12/20 07:17:30 rswindell Exp $ */
+/* $Id: js_system.c,v 1.126 2009/03/21 02:37:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1347,7 +1347,7 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	user.qwk=QWK_DEFAULT;
 
 	for(i=0;i<cfg->total_xedits;i++)
-		if(!stricmp(cfg->xedit[i]->code,cfg->new_xedit) && chk_ar(cfg,cfg->xedit[i]->ar,&user))
+		if(!stricmp(cfg->xedit[i]->code,cfg->new_xedit) && chk_ar(cfg,cfg->xedit[i]->ar,&user,/* client: */NULL))
 			break;
 	if(i<cfg->total_xedits)
 		user.xedit=i+1;
@@ -1356,7 +1356,7 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(i==0) {
-		userobj=js_CreateUserObject(cx, obj, cfg, NULL, user.number);
+		userobj=js_CreateUserObject(cx, obj, cfg, NULL, &user, /* client: */NULL, /* global_user: */FALSE);
 		*rval = OBJECT_TO_JSVAL(userobj);
 	} else
 		*rval = INT_TO_JSVAL(i);
@@ -1568,6 +1568,7 @@ enum {
 	,NODE_PROP_MISC
 	,NODE_PROP_AUX
 	,NODE_PROP_EXTAUX
+	,NODE_PROP_DIR
 };
 
 #ifdef BUILD_JSDOCS
@@ -1580,6 +1581,7 @@ static char* node_prop_desc[] = {
 	,"miscellaneous bitfield (see <tt>nodedefs.js</tt>)"
 	,"auxillary value"
 	,"extended auxillary value"
+	,"node directory"
 	,NULL
 };
 #endif
@@ -1594,6 +1596,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	JSObject*	sysobj;
 	JSObject*	node_list;
 	jsrefcount	rc;
+	JSString*	js_str;
 
 	tiny = JSVAL_TO_INT(id);
 
@@ -1640,6 +1643,11 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case NODE_PROP_EXTAUX:	
 			JS_NewNumberValue(cx,node.extaux,vp);
+			break;
+		case NODE_PROP_DIR:
+			if((js_str=JS_NewStringCopyZ(cx, cfg->node_path[node_num-1]))==NULL)
+				return(JS_FALSE);
+			*vp = STRING_TO_JSVAL(js_str);
 			break;
 	}
 	return(JS_TRUE);
@@ -1726,6 +1734,7 @@ static jsSyncPropertySpec js_node_properties[] = {
 	{	"misc",						NODE_PROP_MISC,			JSPROP_ENUMERATE,	310 },
 	{	"aux",						NODE_PROP_AUX,			JSPROP_ENUMERATE,	310 },
 	{	"extaux",					NODE_PROP_EXTAUX,		JSPROP_ENUMERATE,	310 },
+	{	"dir",						NODE_PROP_DIR,			JSPROP_ENUMERATE|JSPROP_READONLY,	315 },
 	{0}
 };
 
