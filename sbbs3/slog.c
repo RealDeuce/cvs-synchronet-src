@@ -112,8 +112,7 @@ while(l>-1L) {
 	lncntr++;
 	if(pause && lncntr>=20) {
 		printf("[Hit a key]");
-		fflush(stdout);
-		if(getchar()==3)
+		if(getch()==3)
 			break;
 		printf("\r");
 		lncntr=0; } }
