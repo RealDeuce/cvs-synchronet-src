@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.73 2008/06/04 04:40:02 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.75 2009/03/23 23:16:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -447,19 +447,23 @@ BOOL DLLCALL fexist(const char *filespec)
 
 	long	handle;
 	struct _finddata_t f;
+	BOOL	found;
 
 	if(!strchr(filespec,'*') && !strchr(filespec,'?'))
 		return(fnameexist(filespec));
 
 	if((handle=_findfirst((char*)filespec,&f))==-1)
 		return(FALSE);
+	found=TRUE;
+	while(f.attrib&_A_SUBDIR)
+		if(_findnext(handle,&f)!=0) {
+			found=FALSE;
+			break;
+		}
 
  	_findclose(handle);
 
- 	if(f.attrib&_A_SUBDIR)
-		return(FALSE);
-
-	return(TRUE);
+	return(found);
 
 #else /* Unix or OS/2 */
 	
@@ -634,7 +638,7 @@ int DLLCALL getfattr(const char* filename)
 }
 
 #ifdef __unix__
-int removecase(char *path)
+int removecase(const char *path)
 {
 	char inpath[MAX_PATH+1];
 	char fname[MAX_PATH*4+1];
