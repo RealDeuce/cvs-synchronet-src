@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.45 2009/08/19 05:59:51 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.44 2009/02/16 08:57:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,10 +63,6 @@
 #include <sys/types.h>
 #ifdef HAS_INTTYPES_H
 #include <inttypes.h>
-#else
-#ifdef HAS_STDINT_H
-#include <stdint.h>
-#endif
 #endif
 
 									/* Control characters */
@@ -144,7 +140,7 @@ enum {
 	#endif
 #endif
 
-#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES) && !defined(HAS_STDINT_H)
+#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)
 
 typedef char	int8_t;
 typedef short	int16_t;
