@@ -362,10 +362,6 @@ ODAPIDEF void ODCALL ODConfigInit(void)
                                  ch = fgetc(pfCustomDropFile);
                               } while(ch != '\n' && ch != EOF);
                            }
-                           if(szTempString[strlen(szTempString) - 1] == '\r')
-                           {
-                              szTempString[strlen(szTempString) - 1] = '\0';
-                           }
 
                            strupr(pchConfigText);
 
