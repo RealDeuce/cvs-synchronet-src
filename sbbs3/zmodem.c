@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.86 2009/07/08 19:25:37 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.87 2009/07/12 16:51:29 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1443,7 +1443,7 @@ int zmodem_send_from(zmodem_t* zm, FILE* fp, uint32_t pos, uint32_t* sent)
 			buf_sent=0;
 		}
 
-		if(zm->current_file_pos >= zm->current_file_size || n==0)	/* can't use feof() here! */
+		if(zm->current_file_pos+n >= zm->current_file_size || n==0)	/* can't use feof() here! */
 			type = ZCRCE;
 
 		/* Note: No support for sending ZCRCQ data sub-packets here */
@@ -2162,7 +2162,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.86 $", "%*s %s", buf);
+	sscanf("$Revision: 1.87 $", "%*s %s", buf);
 
 	return(buf);
 }
