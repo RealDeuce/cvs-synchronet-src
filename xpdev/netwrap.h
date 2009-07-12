@@ -2,13 +2,13 @@
 
 /* Network related wrapper functions */
 
-/* $Id: netwrap.h,v 1.3 2009/08/17 07:46:49 rswindell Exp $ */
+/* $Id: netwrap.h,v 1.2 2008/02/12 07:31:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -47,7 +47,6 @@
 extern "C" {
 #endif
 
-const char* getHostNameByAddr(const char*);
 str_list_t	getNameServerList(void);
 void		freeNameServerList(str_list_t);
 
