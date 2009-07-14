@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.68 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.67 2009/02/19 09:24:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ bool sbbs_t::answer()
 							else
 								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
-								logline(LOG_NOTICE,"+!",str);
+								logline("+!",str);
 							bputs(text[PasswordPrompt]);
 							console|=CON_R_ECHOX;
 							getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
@@ -155,7 +155,7 @@ bool sbbs_t::answer()
 							else
 								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
-								logline(LOG_NOTICE,"+!",str);
+								logline("+!",str);
 						}
 						lprintf(LOG_WARNING,"Node %d !CLIENT IP NOT LISTED in %s"
 							,cfg.node_num,path);
@@ -208,7 +208,7 @@ bool sbbs_t::answer()
 					else
 						sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 							,0,useron.alias);
-						logline(LOG_NOTICE,"+!",str);
+						logline("+!",str);
 					bputs(text[PasswordPrompt]);
 					console|=CON_R_ECHOX;
 					getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
@@ -237,7 +237,7 @@ bool sbbs_t::answer()
 					else
 						sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 							,0,useron.alias);
-						logline(LOG_NOTICE,"+!",str);
+						logline("+!",str);
 				}
 				useron.number=0;
 				hangup();
