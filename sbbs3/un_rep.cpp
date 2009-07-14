@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.47 2009/08/17 07:49:10 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.46 2009/03/20 09:52:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
 	str_list_t	twit_list=NULL;
-	const char* hostname;
 	const char* AttemptedToUploadREPpacket="Attempted to upload REP packet";
 
 	memset(&msg,0,sizeof(msg));
@@ -193,11 +192,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		hostname = getHostNameByAddr(msg.from_host);
-		if(findstr_in_list(hostname,host_can)) {
+		if(findstr_in_list(msg.from_host,host_can)) {
 			SAFEPRINTF2(str,"!Filtering QWK message from %s due to blocked hostname: %s"
 				,msg.from
-				,hostname); 
+				,msg.from_host); 
 			logline("P!",str);
 			continue;
 		}
