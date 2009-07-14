@@ -135,16 +135,6 @@ ifdef WITH_SDL
  endif
 endif
 
-ifndef NO_X
- CIOLIB_CFLAGS += -DHAS_VSTAT
- CIOLIB-MT_CFLAGS += -DHAS_VSTAT
-else
- ifdef WITH_SDL
-  CIOLIB_CFLAGS += -DHAS_VSTAT
-  CIOLIB-MT_CFLAGS += -DHAS_VSTAT
- endif
-endif
-
 ifdef NO_X
  ifndef WITH_SDL
   ifndef WITH_SDL_AUDIO
