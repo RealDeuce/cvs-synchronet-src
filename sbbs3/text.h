@@ -2,13 +2,13 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.11 2009/01/23 08:04:28 deuce Exp $ */
+/* $Id: text.h,v 1.12 2009/07/14 01:40:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -772,6 +772,7 @@ enum {
 	,ExternalEditorHeading
 	,CommandShellHeading
 	,ArchiveTypeHeading
+	,ValidatePostQ
 
 	,TOTAL_TEXT
 };
