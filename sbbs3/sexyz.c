@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.91 2009/08/21 08:55:09 deuce Exp $ */
+/* $Id: sexyz.c,v 1.89 2009/07/15 02:33:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,7 +227,7 @@ void break_handler(int type)
 }
 
 #if defined(_WIN32)
-BOOL WINAPI ControlHandler(unsigned long CtrlType)
+BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
 	break_handler((int)CtrlType);
 	return TRUE;
@@ -878,10 +878,7 @@ static int send_files(char** fname, uint fnames)
 			if(success) {
 				xm.sent_files++;
 				xm.sent_bytes+=fsize;
-				if(zm.file_skipped)
-					lprintf(LOG_WARNING,"File Skipped");
-				else
-					lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
+				lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
 						,t/60,t%60,cps);
 
 				if(xm.total_files-xm.sent_files)
@@ -1143,7 +1140,7 @@ static int receive_files(char** fname_list, int fnames)
 
 			errors=zmodem_recv_file_data(&zm,fp,0);
 
-			if(errors<=zm.max_errors && !zm.cancelled)
+			if(errors<=zm.max_errors)
 				success=TRUE;
 
 		} else {
@@ -1212,14 +1209,11 @@ static int receive_files(char** fname_list, int fnames)
 		
 		t=time(NULL)-startfile;
 		if(!t) t=1;
-		if(zm.file_skipped)
-			lprintf(LOG_WARNING,"File Skipped");
-		else if(success)
+		if(success)
 			lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
 				,t/60,t%60,file_bytes/t);	
 		else
-			lprintf(LOG_ERR,"File Transfer %s"
-				,zm.local_abort ? "Aborted": zm.cancelled ? "Cancelled":"Failure");
+			lprintf(LOG_ERR,"File Transfer %s", zm.local_abort ? "Aborted":"Failure");
 
 		if(!(mode&XMODEM) && ftime)
 			setfdate(str,ftime); 
@@ -1339,7 +1333,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.91 $", "%*s %s", revision);
+	sscanf("$Revision: 1.89 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"

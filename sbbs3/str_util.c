@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.44 2009/09/18 18:22:37 rswindell Exp $ */
+/* $Id: str_util.c,v 1.43 2009/03/19 07:28:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,19 +96,6 @@ char* DLLCALL strip_exascii(const char *str, char* dest)
 		return NULL;
 	for(i=j=0;str[i];i++)
 		if(!(str[i]&0x80))
-			dest[j++]=str[i];
-	dest[j]=0;
-	return dest;
-}
-
-char* DLLCALL strip_space(const char *str, char* dest)
-{
-	int	i,j;
-
-	if(dest==NULL && (dest=strdup(str))==NULL)
-		return NULL;
-	for(i=j=0;str[i];i++)
-		if(!isspace(str[i]))
 			dest[j++]=str[i];
 	dest[j]=0;
 	return dest;

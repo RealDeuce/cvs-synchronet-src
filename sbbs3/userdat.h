@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.36 2009/09/18 18:24:58 rswindell Exp $ */
+/* $Id: userdat.h,v 1.35 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,15 +75,15 @@ extern char* nulstr;
 DLLEXPORT int	DLLCALL getuserdat(scfg_t* cfg, user_t* user); 	/* Fill userdat struct with user data   */
 DLLEXPORT int	DLLCALL putuserdat(scfg_t* cfg, user_t* user);	/* Put userdat struct into user file	*/
 DLLEXPORT int	DLLCALL newuserdat(scfg_t* cfg, user_t* user);	/* Create new userdat in user file */
-DLLEXPORT uint	DLLCALL matchuser(scfg_t* cfg, const char *str, BOOL sysop_alias); /* Checks for a username match */
-DLLEXPORT char* DLLCALL alias(scfg_t* cfg, const char* name, char* buf);
+DLLEXPORT uint	DLLCALL matchuser(scfg_t* cfg, char *str, BOOL sysop_alias); /* Checks for a username match */
+DLLEXPORT char* DLLCALL alias(scfg_t* cfg, char* name, char* buf);
 DLLEXPORT int	DLLCALL putusername(scfg_t* cfg, int number, char * name);
 DLLEXPORT uint	DLLCALL total_users(scfg_t* cfg);
 DLLEXPORT uint	DLLCALL lastuser(scfg_t* cfg);
 DLLEXPORT BOOL	DLLCALL del_lastuser(scfg_t* cfg);
 DLLEXPORT uint	DLLCALL getage(scfg_t* cfg, char *birthdate);
 DLLEXPORT char*	DLLCALL username(scfg_t* cfg, int usernumber, char * str);
-DLLEXPORT char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, const char* name);
+DLLEXPORT char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, char* name);
 DLLEXPORT int	DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* file);
 DLLEXPORT int	DLLCALL putnodedat(scfg_t* cfg, uint number, node_t *node, int file);
 DLLEXPORT char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen);
@@ -121,7 +121,7 @@ DLLEXPORT BOOL	DLLCALL user_adjust_minutes(scfg_t* cfg, user_t* user, long amoun
 
 DLLEXPORT time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime);
 
-DLLEXPORT BOOL	DLLCALL check_name(scfg_t* cfg, const char* name);
+DLLEXPORT BOOL DLLCALL check_name(scfg_t* cfg, char* name);
 
 #ifdef __cplusplus
 }

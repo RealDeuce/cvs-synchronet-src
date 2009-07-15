@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.161 2009/07/19 07:44:11 deuce Exp $ */
+/* $Id: syncterm.c,v 1.159 2009/02/24 08:39:59 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1121,10 +1121,7 @@ int main(int argc, char **argv)
 
 	load_settings(&settings);
 	ciolib_mode=settings.output_mode;
-	if(settings.startup_mode != SCREEN_MODE_CURRENT)
-		text_mode=screen_to_ciolib(settings.startup_mode);
-	else
-		text_mode=_ORIGMODE;
+	text_mode=screen_to_ciolib(settings.startup_mode);
 
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'

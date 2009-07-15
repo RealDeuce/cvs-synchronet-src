@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.90 2009/07/15 07:54:56 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.89 2009/07/15 02:33:57 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1800,9 +1800,7 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 
 		if(type == ZSKIP) {
 			zm->file_skipped=TRUE;
-			lprintf(zm,LOG_WARNING,"File skipped by receiver at offset: %lu", pos + sent_bytes);
-			/* ZOC sends a ZRINIT after mid-file ZSKIP, so consume the ZRINIT here */
-			zmodem_recv_header(zm);
+			lprintf(zm,LOG_WARNING,"File skipped by receiver at offset: %lu", pos);
 			return(TRUE);
 		}
 
@@ -2202,7 +2200,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.90 $", "%*s %s", buf);
+	sscanf("$Revision: 1.89 $", "%*s %s", buf);
 
 	return(buf);
 }
