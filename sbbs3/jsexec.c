@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.124 2008/12/20 07:17:30 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.127 2009/02/18 06:35:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -247,7 +247,7 @@ static BOOL winsock_startup(void)
 		return(TRUE);
 	}
 
-    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_CRIT,"!WinSock startup ERROR %d", status);
 	return(FALSE);
 }
 
@@ -540,6 +540,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	const char*	warning;
 	jsrefcount	rc;
+	int		log_level;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(report==NULL) {
@@ -563,10 +564,13 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 			warning="strict warning";
 		else
 			warning="warning";
-	} else
+		log_level=LOG_WARNING;
+	} else {
+		log_level=LOG_ERR;
 		warning="";
+	}
 
-	lprintf(LOG_ERR,"!JavaScript %s%s%s: %s",warning,file,line,message);
+	lprintf(log_level,"!JavaScript %s%s%s: %s",warning,file,line,message);
 	JS_RESUMEREQUEST(cx, rc);
 }
 
@@ -792,19 +796,19 @@ long js_exec(const char *fname, char** args)
 
 	start=xp_timer();
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
+	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
+		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
+		JS_ValueToInt32(js_cx,rval,&result);
+	}
 	js_EvalOnExit(js_cx, js_glob, &branch);
+
+	JS_ReportPendingException(js_cx);
 
 	if((diff=xp_timer()-start) > 0)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
 			,path
 			,diff);
-
-	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
-
-	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
-		JS_ValueToInt32(js_cx,rval,&result);
-	}
 
 	JS_DestroyScript(js_cx, js_script);
 
@@ -869,7 +873,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.124 $", "%*s %s", revision);
+	sscanf("$Revision: 1.127 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
