@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.530 2009/02/21 11:14:54 rswindell Exp $ */
+/* $Id: main.cpp,v 1.536 2009/07/11 09:10:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -976,12 +976,18 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	const char*	warning;
 	jsrefcount	rc;
 	int		log_level;
+	char	nodestr[128];
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return;
+
+    if(sbbs->cfg.node_num)
+    	SAFEPRINTF(nodestr,"Node %d",sbbs->cfg.node_num);
+    else
+    	SAFECOPY(nodestr,sbbs->client_name);
 	
 	if(report==NULL) {
-		lprintf(LOG_ERR,"!JavaScript: %s", message);
+		lprintf(LOG_ERR,"%s !JavaScript: %s", nodestr, message);
 		return;
     }
 
@@ -1010,7 +1016,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	if(sbbs->online==ON_LOCAL) 
 		eprintf(log_level,"!JavaScript %s%s%s: %s",warning,file,line,message);
 	else {
-		lprintf(log_level,"!JavaScript %s%s%s: %s",warning,file,line,message);
+		lprintf(log_level,"%s !JavaScript %s%s%s: %s",nodestr,warning,file,line,message);
 		sbbs->bprintf("!JavaScript %s%s%s: %s\r\n",warning,file,line,message);
 	}
 	JS_RESUMEREQUEST(cx, rc);
@@ -1123,7 +1129,7 @@ void sbbs_t::js_create_user_objects(void)
 		return;
 	
 	JS_BEGINREQUEST(js_cx);
-	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, NULL, subscan)) 
+	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, &client, NULL, subscan)) 
 		lprintf(LOG_ERR,"!JavaScript ERROR creating user objects");
 	JS_ENDREQUEST(js_cx);
 }
@@ -2291,7 +2297,7 @@ void event_thread(void* arg)
 
 					if(sbbs->useron.number
 						&& !(sbbs->useron.misc&(DELETED|INACTIVE))	 /* Pre-QWK */
-						&& sbbs->chk_ar(sbbs->cfg.preqwk_ar,&sbbs->useron)) { 
+						&& sbbs->chk_ar(sbbs->cfg.preqwk_ar,&sbbs->useron,/* client: */NULL)) { 
 						for(k=1;k<=sbbs->cfg.sys_nodes;k++) {
 							if(sbbs->getnodedat(k,&node,0)!=0)
 								continue;
@@ -2720,10 +2726,15 @@ void event_thread(void* arg)
 						ex_mode |= EX_SH;
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
-					sbbs->external(
-						 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
-						,ex_mode
-						,sbbs->cfg.event[i]->dir);
+					{
+						int result=
+						sbbs->external(
+							 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
+							,ex_mode
+							,sbbs->cfg.event[i]->dir);
+						if(!(ex_mode&EX_BG))
+							eprintf(LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
+					}
 					sbbs->cfg.event[i]->last=time(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 					if((file=sbbs->nopen(str,O_WRONLY))==-1) {
@@ -2750,9 +2761,9 @@ void event_thread(void* arg)
 		mswait(1000);
 	}
 	sbbs->cfg.node_num=0;
-    sbbs->event_thread_running = false;
-
 	sbbs->js_cleanup(sbbs->client_name);
+
+    sbbs->event_thread_running = false;
 
 	thread_down();
 	eprintf(LOG_INFO,"BBS Events thread terminated");
@@ -4109,7 +4120,7 @@ void sbbs_t::daily_maint(void)
 			> sbbs->cfg.sys_autodel)) {			/* Inactive too long */
 			SAFEPRINTF2(str,"Auto-Deleted %s #%u",user.alias,user.number);
 			sbbs->logentry("!*",str);
-			sbbs->delallmail(user.number);
+			sbbs->delallmail(user.number, MAIL_ANY);
 			putusername(&sbbs->cfg,user.number,nulstr);
 			putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
 		}
@@ -5074,11 +5085,14 @@ NO_SSH:
 		else
 			host_name="<no name>";
 
+#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
+	     and getnameinfo() doesn't return alias information */
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
 			for(i=0;h!=NULL && h->h_aliases!=NULL && h->h_aliases[i]!=NULL;i++)
 				lprintf(LOG_INFO,"%04d HostAlias: %s", client_socket, h->h_aliases[i]);
 		}
+#endif
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
