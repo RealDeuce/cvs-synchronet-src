@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.127 2011/05/04 21:12:33 deuce Exp $ */
+/* $Id: cterm.c,v 1.125 2009/02/19 02:39:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1181,7 +1181,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.127 $";
+	char	*revision="$Revision: 1.125 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1346,11 +1346,11 @@ void ctputs(char *buf)
 	_wscroll=oldscroll;
 }
 
-char *cterm_write(const unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed)
+char *cterm_write(unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed)
 {
 	unsigned char ch[2];
 	unsigned char prn[BUFSIZE];
-	int j,k,l;
+	int j,k;
 	struct text_info	ti;
 	int	olddmc;
 	int oldptnm;
@@ -1545,28 +1545,28 @@ char *cterm_write(const unsigned char *buf, int buflen, char *retbuf, size_t ret
 									cterm.attr=1;
 									break;
 								case 28:	/* Up (TODO: Wraps??) */
-									l=wherey()-1;
-									if(l<1)
-										l=cterm.height;
-									gotoxy(wherex(),l);
+									j=wherey()-1;
+									if(j<1)
+										j=cterm.height;
+									gotoxy(wherex(),j);
 									break;
 								case 29:	/* Down (TODO: Wraps??) */
-									l=wherey()+1;
-									if(l>cterm.height)
-										l=1;
-									gotoxy(wherex(),l);
+									j=wherey()+1;
+									if(j>cterm.height)
+										j=1;
+									gotoxy(wherex(),j);
 									break;
 								case 30:	/* Left (TODO: Wraps around to same line?) */
-									l=wherex()-1;
-									if(l<1)
-										l=cterm.width;
-									gotoxy(l,wherey());
+									j=wherex()-1;
+									if(j<1)
+										j=cterm.width;
+									gotoxy(j,wherey());
 									break;
 								case 31:	/* Right (TODO: Wraps around to same line?) */
-									l=wherex()+1;
-									if(l>cterm.width)
-										l=1;
-									gotoxy(l,wherey());
+									j=wherex()+1;
+									if(j>cterm.width)
+										j=1;
+									gotoxy(j,wherey());
 									break;
 								case 125:	/* Clear Screen */
 									cterm_clearscreen(cterm.attr);
@@ -1574,38 +1574,38 @@ char *cterm_write(const unsigned char *buf, int buflen, char *retbuf, size_t ret
 								case 126:	/* Backspace (TODO: Wraps around to previous line?) */
 											/* DOES NOT delete char, merely erases */
 									k=wherey();
-									l=wherex()-1;
+									j=wherex()-1;
 
-									if(l<1) {
+									if(j<1) {
 										k--;
 										if(k<1)
 											break;
-										l=cterm.width;
+										j=cterm.width;
 									}
-									gotoxy(l,k);
+									gotoxy(j,k);
 									putch(0);
-									gotoxy(l,k);
+									gotoxy(j,k);
 									break;
 								/* We abuse the ESC buffer for tab stops */
 								case 127:	/* Tab (Wraps around to next line) */
-									l=wherex();
-									for(k=l+1; k<=cterm.width; k++) {
+									j=wherex();
+									for(k=j+1; k<=cterm.width; k++) {
 										if(cterm.escbuf[k]) {
-											l=k;
+											j=k;
 											break;
 										}
 									}
 									if(k>cterm.width) {
-										l=1;
+										j=1;
 										k=wherey()+1;
 										if(k>cterm.height) {
 											scrollup();
 											k=cterm.height;
 										}
-										gotoxy(l,k);
+										gotoxy(j,k);
 									}
 									else
-										gotoxy(l,wherey());
+										gotoxy(j,wherey());
 									break;
 								case 155:	/* Return */
 									k=wherey();
@@ -1620,7 +1620,7 @@ char *cterm_write(const unsigned char *buf, int buflen, char *retbuf, size_t ret
 									gotoxy(1,wherey());
 									break;
 								case 157:	/* Insert Line */
-									l=wherex();
+									j=wherex();
 									k=wherey();
 									if(k<cterm.height)
 										movetext(cterm.x,cterm.y+k-1
@@ -1645,25 +1645,25 @@ char *cterm_write(const unsigned char *buf, int buflen, char *retbuf, size_t ret
 									}
 									break;
 								case 254:	/* Delete Char */
-									l=wherex();
+									j=wherex();
 									k=wherey();
-									if(l<cterm.width)
-										movetext(cterm.x+l,cterm.y+k-1
+									if(j<cterm.width)
+										movetext(cterm.x+j,cterm.y+k-1
 												,cterm.x+cterm.width-1,cterm.y+k-1
-												,cterm.x+l-1,cterm.y+k-1);
+												,cterm.x+j-1,cterm.y+k-1);
 									gotoxy(cterm.width,k);
 									clreol();
-									gotoxy(l,k);
+									gotoxy(j,k);
 									break;
 								case 255:	/* Insert Char */
-									l=wherex();
+									j=wherex();
 									k=wherey();
-									if(l<cterm.width)
-										movetext(cterm.x+l-1,cterm.y+k-1
+									if(j<cterm.width)
+										movetext(cterm.x+j-1,cterm.y+k-1
 												,cterm.x+cterm.width-2,cterm.y+k-1
-												,cterm.x+l,cterm.y+k-1);
+												,cterm.x+j,cterm.y+k-1);
 									putch(0);
-									gotoxy(l,k);
+									gotoxy(j,k);
 									break;
 								default:
 									/* Translate to screen codes */
@@ -1844,22 +1844,22 @@ char *cterm_write(const unsigned char *buf, int buflen, char *retbuf, size_t ret
 								break;
 							case 20:	/* Delete (Wrapping backspace) */
 								k=wherey();
-								l=wherex();
+								j=wherex();
 
-								if(l==1) {
+								if(j==1) {
 									if(k==1)
 										break;
-									gotoxy((l=cterm.width), k-1);
+									gotoxy((j=cterm.width), k-1);
 								}
 								else
-									gotoxy(--l, k);
-								if(l<cterm.width)
-									movetext(cterm.x+l,cterm.y+k-1
+									gotoxy(--j, k);
+								if(j<cterm.width)
+									movetext(cterm.x+j,cterm.y+k-1
 											,cterm.x+cterm.width-1,cterm.y+k-1
-											,cterm.x+l-1,cterm.y+k-1);
+											,cterm.x+j-1,cterm.y+k-1);
 								gotoxy(cterm.width,k);
 								clreol();
-								gotoxy(l,k);
+								gotoxy(j,k);
 								break;
 							case 157:	/* Cursor Left (wraps) */
 								if(wherex()==1) {
@@ -1888,14 +1888,14 @@ char *cterm_write(const unsigned char *buf, int buflen, char *retbuf, size_t ret
 							case 148:	/* Insert TODO verify last column */
 										/* CGTerm does nothing there... we */
 										/* Erase under cursor. */
-								l=wherex();
+								j=wherex();
 								k=wherey();
-								if(l<=cterm.width)
-									movetext(cterm.x+l-1,cterm.y+k-1
+								if(j<=cterm.width)
+									movetext(cterm.x+j-1,cterm.y+k-1
 											,cterm.x+cterm.width-2,cterm.y+k-1
-											,cterm.x+l,cterm.y+k-1);
+											,cterm.x+j,cterm.y+k-1);
 								putch(' ');
-								gotoxy(l,k);
+								gotoxy(j,k);
 								break;
 
 							/* Font change... whee! */
