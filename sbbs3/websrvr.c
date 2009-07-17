@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.513 2009/10/01 22:19:01 deuce Exp $ */
+/* $Id: websrvr.c,v 1.506 2009/06/09 05:06:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2105,11 +2105,12 @@ static char *get_token_value(char **p)
 			else
 				*(out++)=*pos;
 		}
+		*out=0;
 	}
 	else {
 		for(; *pos; pos++) {
 			if(iscntrl(*pos))
-				break;
+				goto end_of_text;
 			switch(*pos) {
 				case 0:
 				case '(':
@@ -2135,11 +2136,11 @@ static char *get_token_value(char **p)
 			}
 			*(out++)=*pos;
 		}
-	}
 end_of_text:
-	while(*pos==',' || isspace(*pos))
-		pos++;
-	*out=0;
+		if(*pos)
+			pos++;
+		*out=0;
+	}
 	*p=pos;
 	return(start);
 }
@@ -2269,12 +2270,8 @@ static BOOL parse_headers(http_session_t * session)
 									p+=3;
 									session->req.auth.nonce_count=strdup(get_token_value(&p));
 								}
-								else {
-									while(*p && *p != '=')
-										p++;
-									if(*p == '=')
-										get_token_value(&p);
-								}
+								while(*p && !isspace(*p))
+									p++;
 							}
 							if(session->req.auth.digest_uri==NULL)
 								session->req.auth.digest_uri=strdup(session->req.request_line);
@@ -2545,41 +2542,31 @@ static char *get_request(http_session_t * session, char *req_line)
 	unescape(session->req.physical_path);
 
 	if(!strnicmp(session->req.physical_path,http_scheme,http_scheme_len)) {
-		/* Remove http:// from start of physical_path */
-		memmove(session->req.physical_path, session->req.physical_path+http_scheme_len, strlen(session->req.physical_path+http_scheme_len)+1);
-
 		/* Set HOST value... ignore HOST header */
-		SAFECOPY(session->req.host,session->req.physical_path);
-
-		/* Remove path if present (everything after the forst /) */
+		SAFECOPY(session->req.host,session->req.physical_path+http_scheme_len);
+		/* Remove path of present */
 		strtok_r(session->req.host,"/",&last);
 
-		/* Set vhost value to host value */
+		/* Set vhost value */
 		SAFECOPY(session->req.vhost,session->req.host);
-
-		/* Remove port specification from vhost (if present) */
+		/* Remove port specification from vhost */
 		strtok_r(session->req.vhost,":",&last);
 
-		/* Do weird physical_path dance... This sets p to point to the first character after the first slash */
+		/* Do weird physical_path dance... TODO: Understand this code */
 		if(strtok_r(session->req.physical_path,"/",&last))
 			p=strtok_r(NULL,"/",&last);
 		else
 			p=NULL;
-
-		/*
-		 * If we have a character after the first slash, make it the first char in the string.
-		 * otherwise, clear the string
-		 */
 		if(p==NULL) {
-			session->req.physical_path[0]=0;
+			/* Do not allow host values larger than 128 bytes */
+			session->req.host[0]=0;
+			p=session->req.physical_path+http_scheme_len;
 		}
-		else {
-			offset=p-session->req.physical_path;
-			memmove(session->req.physical_path
-				,session->req.physical_path+offset
-				,strlen(session->req.physical_path+offset)+1	/* move '\0' terminator too */
-				);
-		}
+		offset=p-session->req.physical_path;
+		memmove(session->req.physical_path
+			,session->req.physical_path+offset
+			,strlen(session->req.physical_path+offset)+1	/* move '\0' terminator too */
+			);
 	}
 	if(query!=NULL)
 		SAFECOPY(session->req.query_str,query);
@@ -2670,10 +2657,12 @@ static BOOL get_fullpath(http_session_t * session)
 	} else
 		safe_snprintf(str,sizeof(str),"%s%s",root_dir,session->req.physical_path);
 
-	if(FULLPATH(session->req.physical_path,str,sizeof(session->req.physical_path))==NULL)
+	if(FULLPATH(session->req.physical_path,str,sizeof(session->req.physical_path))==NULL) {
+		send_error(session,error_500);
 		return(FALSE);
+	}
 
-	return(isabspath(session->req.physical_path));
+	return(TRUE);
 }
 
 static BOOL get_req(http_session_t * session, char *request_line)
@@ -3565,7 +3554,6 @@ static BOOL exec_cgi(http_session_t *session)
 	char*	env_block;
 	char	startup_dir[MAX_PATH+1];
 	int		wr;
-	BOOL	rd;
 	HANDLE	rdpipe=INVALID_HANDLE_VALUE;
 	HANDLE	wrpipe=INVALID_HANDLE_VALUE;
 	HANDLE	rdoutpipe;
@@ -3667,20 +3655,6 @@ static BOOL exec_cgi(http_session_t *session)
 			lprintf(LOG_WARNING,"%04d CGI Process %s timed out after %u seconds of inactivity"
 				,session->socket,getfname(cmdline),startup->max_cgi_inactivity);
 			break;
-		}
-
-		/* Check socket for received POST Data */
-		if(!socket_check(session->socket, &rd, NULL, /* timeout: */0)) {
-			lprintf(LOG_WARNING,"%04d CGI Socket disconnected", session->socket);
-			break;
-		}
-		if(rd) {
-			/* Send received POST Data to stdin of CGI process */
-			if((i=recv(session->socket, buf, sizeof(buf), 0)) > 0)  {
-				lprintf(LOG_DEBUG,"%04d CGI Received %d bytes of POST data"
-					,session->socket, i);
-				WriteFile(wrpipe, buf, i, &wr, /* Overlapped: */NULL);
-			}
 		}
 
 		waiting = 0;
@@ -4460,7 +4434,6 @@ js_initcx(http_session_t *session)
 									,startup->host_name			/* system */
 									,SOCKLIB_DESC				/* system */
 									,&session->js_branch		/* js */
-									,&startup->js				/* js */
 									,&session->client			/* client */
 									,session->socket			/* client */
 									,&js_server_props			/* server */
@@ -4628,7 +4601,6 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=xp_timer();
-		js_PrepareToExecute(session->js_cx, session->js_glob, script);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
@@ -5193,7 +5165,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.513 $", "%*s %s", revision);
+	sscanf("$Revision: 1.506 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

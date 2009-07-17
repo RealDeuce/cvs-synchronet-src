@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.357 2009/08/17 07:50:03 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.354 2009/05/30 22:12:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -503,7 +503,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing Global object",sock);
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
@@ -1000,7 +1000,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, parent, spath);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -2341,7 +2340,7 @@ static void ctrl_thread(void* arg)
 	char		ren_from[MAX_PATH+1]="";
 	char		html_index_ext[MAX_PATH+1];
 	WORD		port;
-	uint32_t	ip_addr;
+	ulong		ip_addr;
 	socklen_t	addr_len;
 	DWORD		h1,h2,h3,h4;
 	u_short		p1,p2;	/* For PORT command */
@@ -4589,7 +4588,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.357 $", "%*s %s", revision);
+	sscanf("$Revision: 1.354 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

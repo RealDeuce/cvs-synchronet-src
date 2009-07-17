@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.75 2009/08/14 07:48:26 rswindell Exp $ */
+/* $Id: js_user.c,v 1.74 2009/03/21 10:05:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -845,8 +845,8 @@ static jsSyncPropertySpec js_user_stats_properties[] = {
 #ifdef BUILD_JSDOCS
 static char* user_stats_prop_desc[] = {
 
-	 "date of previous logon (time_t format)"
-	,"date of first logon (time_t format)"
+	 "date of previous logon"
+	,"date of first logon"
 	,"total number of logons"
 	,"total logons today"
 	,"total time used (in minutes)"

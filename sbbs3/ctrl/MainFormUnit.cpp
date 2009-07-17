@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.173 2009/08/19 22:30:47 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.171 2009/04/22 20:21:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -853,7 +853,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
         : TForm(Owner)
 {
     /* Defaults */
-    memset(&global,0,sizeof(global));
     SAFECOPY(global.ctrl_dir,"c:\\sbbs\\ctrl\\");
     global.js.max_bytes=JAVASCRIPT_MAX_BYTES;
     global.js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
@@ -3234,7 +3233,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->JS_BranchLimitEdit->Text=IntToStr(global.js.branch_limit);
     PropertiesDlg->JS_GcIntervalEdit->Text=IntToStr(global.js.gc_interval);
     PropertiesDlg->JS_YieldIntervalEdit->Text=IntToStr(global.js.yield_interval);
-    PropertiesDlg->JS_LoadPathEdit->Text=global.js.load_path;
 
     if(MaxLogLen==0)
 		PropertiesDlg->MaxLogLenEdit->Text="<unlimited>";
@@ -3297,7 +3295,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         	=PropertiesDlg->JS_GcIntervalEdit->Text.ToIntDef(JAVASCRIPT_GC_INTERVAL);
         global.js.yield_interval
         	=PropertiesDlg->JS_YieldIntervalEdit->Text.ToIntDef(JAVASCRIPT_YIELD_INTERVAL);
-        SAFECOPY(global.js.load_path, PropertiesDlg->JS_LoadPathEdit->Text.c_str());
 
         /* Copy global settings, if appropriate (not unique) */
         if(memcmp(&bbs_startup.js,&js,sizeof(js))==0)       bbs_startup.js=global.js;
