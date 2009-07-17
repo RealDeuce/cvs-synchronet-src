@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.65 2009/02/21 11:14:54 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.67 2009/02/27 06:15:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,6 +97,8 @@ int sbbs_t::rputs(const char *str, size_t len)
 {
     size_t	l;
 
+	if(console&CON_ECHO_OFF)
+		return 0;
 	if(len==0)
 		len=strlen(str);
 	for(l=0;l<len && online;l++) {
@@ -147,11 +149,13 @@ int sbbs_t::rprintf(const char *fmt, ...)
 /****************************************************************************/
 void sbbs_t::backspace(void)
 {
-	outcom('\b');
-	outcom(' ');
-	outcom('\b');
-	if(column)
-		column--;
+	if(!(console&CON_ECHO_OFF)) {
+		outcom('\b');
+		outcom(' ');
+		outcom('\b');
+		if(column)
+			column--;
+	}
 }
 
 /****************************************************************************/
