@@ -2,13 +2,13 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.23 2007/09/11 01:12:52 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.25 2009/07/06 20:37:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,12 +38,6 @@
 /* ANSI C */
 #include <stdarg.h>
 #include <stdio.h>
-
-/* Windows */
-#ifdef _WIN32
-/* Doesn't this come in from sockwrap.h? */
-#include <winsock.h>
-#endif
 
 /* xpdev lib */
 #include "dirwrap.h"
@@ -141,6 +135,7 @@ int usage(const char* fname)
 		"\n-nohangup             Do not hangup (drop DTR) after call"
 		"\n-host <addr | name>   Specify TCP server hostname or IP address"
 		"\n-port <number>        Specify TCP port number"
+		"\n-debug                Enable debug log output"
 #if defined(_WIN32)
 		"\n\nNT Service\n"
 		"\n-install              install and enable NT service (%s)"
@@ -149,6 +144,7 @@ int usage(const char* fname)
 		"\n-enable               enable NT service (auto-start during boot)"
 		"\n-disable              disable NT service"
 #endif
+		"\n"
 		,getfname(fname)
 		,NAME);
 
@@ -1441,6 +1437,9 @@ service_loop(int argc, char** argv)
 		else if(stricmp(arg,"nohangup")==0) {
 			com_hangup=FALSE;
 		}
+		else if(stricmp(arg,"debug")==0) {
+			log_level=LOG_DEBUG;
+		}
 		else if(stricmp(arg,"help")==0 || *arg=='?')
 			exit(usage(argv[0]));
 		else {
@@ -1507,7 +1506,6 @@ service_loop(int argc, char** argv)
 
 	lprintf(LOG_INFO,"%s set to %ld bps DTE rate", com_dev, comGetBaudRate(com_handle));
 
-
 	if(ident)
 		_beginthread(ident_server_thread, 0, NULL);
 
@@ -1559,7 +1557,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.23 $", "%*s %s", revision);
+	sscanf("$Revision: 1.25 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
