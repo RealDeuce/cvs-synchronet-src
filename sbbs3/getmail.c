@@ -2,13 +2,13 @@
 
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.8 2007/07/10 23:50:31 deuce Exp $ */
+/* $Id: getmail.c,v 1.9 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -110,7 +110,9 @@ void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 		remove(str2);
 		if(!p)
 			break;
-		tp=p+1; }
+		tp=p+1; 
+
+	}
 	sprintf(str,"%sfile/%04u.in",cfg->data_dir,msg->idx.to);
 	rmdir(str);                     /* remove the dir if it's empty */
 }
