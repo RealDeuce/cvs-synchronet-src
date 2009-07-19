@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.55 2009/02/21 23:46:36 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.56 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -341,7 +341,7 @@ BOOL sbbs_t::newuser()
 
 	/* Default editor (moved here, after terminal type setup Jan-2003) */
 	for(i=0;i<cfg.total_xedits;i++)
-		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron))
+		if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit) && chk_ar(cfg.xedit[i]->ar,&useron,&client))
 			break;
 	if(i<cfg.total_xedits)
 		useron.xedit=i+1;
