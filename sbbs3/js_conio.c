@@ -2,13 +2,13 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.7 2008/12/09 09:48:48 deuce Exp $ */
+/* $Id: js_conio.c,v 1.10 2009/07/14 01:47:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -607,20 +607,28 @@ js_conio_setfont(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 {
 	int32	font;
 	int force=JS_FALSE;
+	int32 fnum=0;
 	jsrefcount	rc;
+	int arg=0;
 
 	if(argc > 2)
 		return(JS_FALSE);
 
-	if(argc > 0 && JSVAL_IS_NUMBER(argv[0]) && JS_ValueToInt32(cx,argv[0],&font)) {
-		if(argc > 1) {
-			if(!JSVAL_IS_BOOLEAN(argv[1]))
-				return(JS_FALSE);
-			if(!JS_ValueToBoolean(cx, argv[1], &force))
+	if(argc > 0 && JSVAL_IS_NUMBER(argv[arg]) && JS_ValueToInt32(cx,argv[arg],&font)) {
+		for(arg=1; arg<argc; arg++) {
+			if(JSVAL_IS_NUMBER(argv[arg])) {
+				if(!JS_ValueToInt32(cx,argv[arg],&fnum))
+					return(JS_FALSE);
+			}
+			else if(JSVAL_IS_BOOLEAN(argv[arg])) {
+				if(!JS_ValueToBoolean(cx, argv[1], &force))
+					return(JS_FALSE);
+			}
+			else
 				return(JS_FALSE);
 		}
 		rc=JS_SUSPENDREQUEST(cx);
-		*rval=INT_TO_JSVAL(setfont(font, force));
+		*rval=INT_TO_JSVAL(setfont(font, force,fnum));
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
