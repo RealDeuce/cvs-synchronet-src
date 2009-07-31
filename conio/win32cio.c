@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.96 2009/08/21 08:54:34 deuce Exp $ */
+/* $Id: win32cio.c,v 1.95 2009/02/12 07:21:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -517,7 +517,7 @@ void win32_resume(void)
 		SetConsoleMode(h, conmode);
 }
 
-static BOOL WINAPI ControlHandler(unsigned long CtrlType)
+static BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
 	return TRUE;
 }
