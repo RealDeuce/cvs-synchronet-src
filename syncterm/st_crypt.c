@@ -1,11 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
 #include <stdio.h>	/* NULL */
-#ifdef _WIN32
-	#include <stdlib.h>
-#else
-	#include <unistd.h>	/* _exit() */
-#endif
 #include "st_crypt.h"
 #include <xp_dl.h>
 
@@ -24,21 +19,6 @@ void exit_crypt()
 
 #else
 
-/*
- * cryptlib calls fork() to gather entropy.
- * It then calls exit().
- * This calls the atexit() handlers.
- * SDL_Exit is in there...
- * SDL doesn't exist in the forked child.
- * This causes the child to spin FOREVER
- * Eating your CPU.
- * So, we will break exit(3).
- */
-void exit(int code)
-{
-	_exit(code);
-}
-
 struct crypt_funcs cl;
 
 int init_crypt(void)
@@ -49,20 +29,6 @@ int init_crypt(void)
 	if(crypt_loaded)
 		return(0);
 
-#ifdef STATIC_CRYPTLIB
-	cl.PopData=cryptPopData;
-	cl.PushData=cryptPushData;
-	cl.FlushData=cryptFlushData;
-	cl.Init=cryptInit;
-	cl.End=cryptEnd;
-	cl.CreateSession=cryptCreateSession;
-	cl.GetAttribute=cryptGetAttribute;
-	cl.GetAttributeString=cryptGetAttributeString;
-	cl.SetAttribute=cryptSetAttribute;
-	cl.SetAttributeString=cryptSetAttributeString;
-	cl.DestroySession=cryptDestroySession;
-	cl.AddRandom=cryptAddRandom;
-#else
 	cryptlib=xp_dlopen(libnames,RTLD_LAZY, CRYPTLIB_VERSION/1000);
 	if(cryptlib==NULL)
 		return(-1);
@@ -114,7 +80,6 @@ int init_crypt(void)
 		xp_dlclose(cryptlib);
 		return(-1);
 	}
-#endif
 	if(cryptStatusOK(cl.Init())) {
 		if(cryptStatusOK(cl.AddRandom(NULL, CRYPT_RANDOM_SLOWPOLL))) {
 			crypt_loaded=1;
