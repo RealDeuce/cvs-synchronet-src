@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.507 2009/07/31 09:50:48 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.508 2009/08/03 23:57:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2105,12 +2105,11 @@ static char *get_token_value(char **p)
 			else
 				*(out++)=*pos;
 		}
-		*out=0;
 	}
 	else {
 		for(; *pos; pos++) {
 			if(iscntrl(*pos))
-				goto end_of_text;
+				break;
 			switch(*pos) {
 				case 0:
 				case '(':
@@ -2136,11 +2135,11 @@ static char *get_token_value(char **p)
 			}
 			*(out++)=*pos;
 		}
-end_of_text:
-		if(*pos)
-			pos++;
-		*out=0;
 	}
+end_of_text:
+	while(*pos==',' || isspace(*pos))
+		pos++;
+	*out=0;
 	*p=pos;
 	return(start);
 }
@@ -2270,8 +2269,12 @@ static BOOL parse_headers(http_session_t * session)
 									p+=3;
 									session->req.auth.nonce_count=strdup(get_token_value(&p));
 								}
-								while(*p && !isspace(*p))
-									p++;
+								else {
+									while(*p && *p != ',')
+										p++;
+									if(*p == ',')
+										p++;
+								}
 							}
 							if(session->req.auth.digest_uri==NULL)
 								session->req.auth.digest_uri=strdup(session->req.request_line);
@@ -5180,7 +5183,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.507 $", "%*s %s", revision);
+	sscanf("$Revision: 1.508 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
