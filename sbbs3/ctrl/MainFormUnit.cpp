@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.168 2009/02/13 04:24:00 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.171 2009/04/22 20:21:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2431,10 +2431,15 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     ServiceStatusTimer->Enabled=true;
 
     TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
+    TelnetForm->LogLevelText->Caption=LogLevelDesc[bbs_startup.log_level];
     FtpForm->LogLevelUpDown->Position=ftp_startup.log_level;
+    FtpForm->LogLevelText->Caption=LogLevelDesc[ftp_startup.log_level];
     MailForm->LogLevelUpDown->Position=mail_startup.log_level;
+    MailForm->LogLevelText->Caption=LogLevelDesc[mail_startup.log_level];
     WebForm->LogLevelUpDown->Position=web_startup.log_level;
-    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;            
+    WebForm->LogLevelText->Caption=LogLevelDesc[web_startup.log_level];
+    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;
+    ServicesForm->LogLevelText->Caption=LogLevelDesc[services_startup.log_level];
 
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
@@ -3852,7 +3857,8 @@ void __fastcall TMainForm::SemFileTimerTick(TObject *Sender)
 //---------------------------------------------------------------------------
 TFont* __fastcall TMainForm::LogAttributes(int log_level, TColor Color, TFont* Font)
 {
-    if(log_level==LOG_INFO || LogFont[log_level]->Color==Color)
+    if(log_level==LOG_INFO || LogFont[log_level]->Color==Color
+        || log_level > LOG_DEBUG)
         return Font;
 
     return LogFont[log_level];
