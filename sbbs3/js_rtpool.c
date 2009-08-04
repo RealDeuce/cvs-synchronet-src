@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.12 2009/08/04 01:17:44 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.11 2009/08/04 01:03:00 deuce Exp $ */
 
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
@@ -16,7 +16,7 @@
 	#define DLLCALL
 #endif
 
-//#define SHARED_RUNTIMES
+#define SHARED_RUNTIMES
 
 struct jsrt_queue {
 	JSRuntime       *rt;
