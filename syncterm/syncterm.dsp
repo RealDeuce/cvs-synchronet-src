@@ -128,26 +128,6 @@ SOURCE=.\modem.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ooii.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ooii_bmenus.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ooii_cmenus.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ooii_logons.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\ooii_sounds.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\rlogin.c
 # End Source File
 # Begin Source File

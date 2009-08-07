@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.203 2009/08/21 08:55:09 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.202 2009/03/22 02:25:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -385,13 +385,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	HANDLE	wrinpipe;
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
-	unsigned long	rd;
+	DWORD	rd;
     DWORD	wr;
-    unsigned long	len;
+    DWORD	len;
     DWORD	avail;
-	unsigned long	dummy;
-	unsigned long	msglen;
-	unsigned long	retval;
+	DWORD	dummy;
+	DWORD	msglen;
+	DWORD	retval;
 	DWORD	last_error;
 	DWORD	loop_since_io=0;
 	struct	tm tm;
@@ -877,7 +877,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
             		len=avail;
 
 				while(rd<len) {
-					unsigned long waiting=0;
+					DWORD waiting=0;
 
 					if(use_pipes)
 						PeekNamedPipe(

@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.91 2009/08/21 08:55:09 deuce Exp $ */
+/* $Id: sexyz.c,v 1.90 2009/07/15 07:54:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,7 +227,7 @@ void break_handler(int type)
 }
 
 #if defined(_WIN32)
-BOOL WINAPI ControlHandler(unsigned long CtrlType)
+BOOL WINAPI ControlHandler(DWORD CtrlType)
 {
 	break_handler((int)CtrlType);
 	return TRUE;
@@ -1339,7 +1339,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.91 $", "%*s %s", revision);
+	sscanf("$Revision: 1.90 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"

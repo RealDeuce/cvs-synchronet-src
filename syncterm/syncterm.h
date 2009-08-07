@@ -3,8 +3,6 @@
 #ifndef _SYNCTERM_H_
 #define _SYNCTERM_H_
 
-#include <dirwrap.h>
-
 #include "bbslist.h"
 
 #if defined(_WIN32)
@@ -55,7 +53,6 @@ struct syncterm_settings {
 	int		prompt_save;
 	struct modem_settings mdm;
 	char	TERM[INI_MAX_VALUE_LEN+1];
-	char	list_path[MAX_PATH+1];
 };
 
 extern char *inpath;
