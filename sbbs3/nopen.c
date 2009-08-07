@@ -2,13 +2,13 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.27 2010/06/15 22:54:35 rswindell Exp $ */
+/* $Id: nopen.c,v 1.26 2009/01/12 00:43:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -74,7 +74,7 @@ int nopen(const char* str, int access)
 /****************************************************************************/
 FILE* fnopen(int* fd, const char* str, int access)
 {
-	char*	mode;
+	char	mode[128];
 	int		file;
 	FILE *	stream;
 
@@ -86,19 +86,19 @@ FILE* fnopen(int* fd, const char* str, int access)
 
     if(access&O_APPEND) {
         if((access&O_RDWR)==O_RDWR)
-            mode="a+";
+            strcpy(mode,"a+");
         else
-            mode="a"; 
+            strcpy(mode,"a"); 
 	} else if(access&(O_TRUNC|O_WRONLY)) {
 		if((access&O_RDWR)==O_RDWR)
-			mode="w+";
+			strcpy(mode,"w+");
 		else
-			mode="w";
+			strcpy(mode,"w");
 	} else {
         if((access&O_RDWR)==O_RDWR)
-            mode="r+";
+            strcpy(mode,"r+");
         else
-            mode="r"; 
+            strcpy(mode,"r"); 
 	}
     stream=fdopen(file,mode);
     if(stream==NULL) {
