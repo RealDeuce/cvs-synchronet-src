@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.4 2009/02/12 10:43:24 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.5 2009/06/09 04:59:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,7 +190,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 		return NULL;
 	outp=outbuf;
 
-	if((linebuf=(char*)malloc(inbuf_len+1))==NULL) /* room for ^A codes */
+	if((linebuf=(char*)malloc(inbuf_len+2))==NULL) /* room for ^A codes */
 		return NULL;
 
 	if(handle_quotes) {
@@ -400,8 +400,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 				memmove(inbuf, inbuf+1, strlen(inbuf));
 		}
 	}
-
-	free(linebuf);
+ 	free(linebuf);
 
 	if(prefix)
 		free(prefix);
