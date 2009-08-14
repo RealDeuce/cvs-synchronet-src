@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.13 2009/10/18 09:38:00 rswindell Exp $ */
+/* $Id: text.h,v 1.12 2009/07/14 01:40:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,7 +93,7 @@ enum {
 	,MailWaitingLstFmt
 	,StartWithN
 	,ReadingMail
-	,CantReplyToMsg
+	,CantReplyToAnonMsg
 	,Regarding
 	,RegardingByOn
 	,RegardingByToOn
@@ -199,7 +199,7 @@ enum {
 	,StatsFeedbacksToday
 	,ChUserPrompt
 	,ChUserPwPrompt
-	,CommaInLocationRequired
+	,Unused156
 	,ErrorLogHdr
 	,DeleteErrorLogQ
 	,DirectoryDoesNotExist
@@ -773,38 +773,6 @@ enum {
 	,CommandShellHeading
 	,ArchiveTypeHeading
 	,ValidatePostQ
-	,NodeStatusWaitingForCall
-	,NodeStatusLogon
-	,NodeStatusNewUser
-	,NodeStatusOffline
-	,NodeStatusEventWaiting
-	,NodeStatusEventRunning
-	,NodeStatusEventLimbo
-	,NodeConnectionTelnet
-	,NodeConnectionRLogin
-	,NodeConnectionSSH
-	,NodeConnectionModem
-	,QWKSettingsHdr
-	,QWKSettingsCtrlA
-	,QWKSettingsArchive
-	,QWKSettingsEmail
-	,QWKSettingsAttach
-	,QWKSettingsDeleteEmail
-	,QWKSettingsNewFilesList
-	,QWKSettingsIndex
-	,QWKSettingsControl
-	,QWKSettingsHeaders
-	,QWKSettingsBySelf
-	,QWKSettingsTimeZone
-	,QWKSettingsVIA
-	,QWKSettingsMsgID
-	,QWKSettingsExtended
-	,QWKSettingsWhich
-	,CantEditMsg
-	,CantDeleteMsg
-	,CantReadSub
-	,CantPostMsg
-	,OperatorPrompt
 
 	,TOTAL_TEXT
 };

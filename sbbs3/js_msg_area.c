@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.56 2009/10/06 03:10:10 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.54 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -454,7 +454,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			val=OBJECT_TO_JSVAL(subobj);
 			sub_index=-1;
-			if(user==NULL || can_user_access_sub(cfg,d,user,client)) {
+			if(user==NULL || chk_ar(cfg,cfg->sub[d]->ar,user,client)) {
 
 				if(!JS_GetArrayLength(cx, sub_list, &sub_index))
 					return(NULL);							
@@ -478,11 +478,11 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			if(!js_CreateMsgAreaProperties(cx, cfg, subobj, d))
 				return(NULL);
-		
-			if(user==NULL)
+			
+			if(user==NULL || chk_ar(cfg,cfg->sub[d]->read_ar,user,client))
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=BOOLEAN_TO_JSVAL(can_user_read_sub(cfg,d,user,client));
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
 			if(!JS_SetProperty(cx, subobj, "can_read", &val))
 				return(NULL);
 
@@ -493,10 +493,12 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			if(!JS_SetProperty(cx, subobj, "can_post", &val))
 				return(NULL);
 
-			if(user==NULL)
+			if(user!=NULL &&
+				(user->level>=SYSOP_LEVEL ||
+					(cfg->sub[d]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[d]->op_ar,user,client))))
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
-				val=BOOLEAN_TO_JSVAL(is_user_subop(cfg,d,user,client));
+				val=BOOLEAN_TO_JSVAL(JS_FALSE);
 			if(!JS_SetProperty(cx, subobj, "is_operator", &val))
 				return(NULL);
 
