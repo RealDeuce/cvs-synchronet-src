@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.124 2008/12/20 07:17:30 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.128 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -67,6 +67,7 @@ char		revision[16];
 char		compiler[32];
 char*		host_name=NULL;
 char		host_name_buf[128];
+char*		load_path_list=JAVASCRIPT_LOAD_PATH;
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 BOOL		terminated=FALSE;
@@ -116,6 +117,7 @@ void usage(FILE* fp)
 		"\t-u<mask>       set file creation permissions mask (in octal)\n"
 		"\t-L<level>      set log level (default=%u)\n"
 		"\t-E<level>      set error log level threshold (default=%d)\n"
+		"\t-i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
 		"\t-f             use non-buffered stream for console messages\n"
 		"\t-a             append instead of overwriting message output files\n"
 		"\t-e<filename>   send error messages to file in addition to stderr\n"
@@ -135,6 +137,7 @@ void usage(FILE* fp)
 		,JAVASCRIPT_GC_INTERVAL
 		,DEFAULT_LOG_LEVEL
 		,DEFAULT_ERR_LOG_LVL
+		,load_path_list
 		,_PATH_DEVNULL
 		,_PATH_DEVNULL
 		);
@@ -247,7 +250,7 @@ static BOOL winsock_startup(void)
 		return(TRUE);
 	}
 
-    lprintf(LOG_ERR,"!WinSock startup ERROR %d", status);
+    lprintf(LOG_CRIT,"!WinSock startup ERROR %d", status);
 	return(FALSE);
 }
 
@@ -540,6 +543,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	char	file[MAX_PATH+1];
 	const char*	warning;
 	jsrefcount	rc;
+	int		log_level;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(report==NULL) {
@@ -563,10 +567,13 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 			warning="strict warning";
 		else
 			warning="warning";
-	} else
+		log_level=LOG_WARNING;
+	} else {
+		log_level=LOG_ERR;
 		warning="";
+	}
 
-	lprintf(LOG_ERR,"!JavaScript %s%s%s: %s",warning,file,line,message);
+	lprintf(log_level,"!JavaScript %s%s%s: %s",warning,file,line,message);
 	JS_RESUMEREQUEST(cx, rc);
 }
 
@@ -608,6 +615,11 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 
 static BOOL js_init(char** environ)
 {
+	js_startup_t	startup;
+
+	memset(&startup,0,sizeof(startup));
+	startup.load_path=strListSplit(NULL, load_path_list, ",");
+
 	fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 
 	fprintf(statfp,"JavaScript: Creating runtime: %lu bytes\n"
@@ -632,7 +644,7 @@ static BOOL js_init(char** environ)
 	/* Global Object */
 	if((js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
-		,&branch								/* js */
+		,&branch,&startup						/* js */
 		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
 		))==NULL) {
@@ -792,19 +804,19 @@ long js_exec(const char *fname, char** args)
 
 	start=xp_timer();
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
+	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
+		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
+		JS_ValueToInt32(js_cx,rval,&result);
+	}
 	js_EvalOnExit(js_cx, js_glob, &branch);
+
+	JS_ReportPendingException(js_cx);
 
 	if((diff=xp_timer()-start) > 0)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
 			,path
 			,diff);
-
-	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
-
-	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
-		JS_ValueToInt32(js_cx,rval,&result);
-	}
 
 	JS_DestroyScript(js_cx, js_script);
 
@@ -869,7 +881,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.124 $", "%*s %s", revision);
+	sscanf("$Revision: 1.128 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -965,6 +977,10 @@ int main(int argc, char **argv, char** environ)
 				case 'c':
 					if(*p==0) p=argv[++argn];
 					SAFECOPY(scfg.ctrl_dir,p);
+					break;
+				case 'i':
+					if(*p==0) p=argv[++argn];
+					load_path_list=p;
 					break;
 				case 'v':
 					banner(statfp);

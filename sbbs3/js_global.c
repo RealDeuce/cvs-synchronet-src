@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.238 2009/01/16 02:57:19 rswindell Exp $ */
+/* $Id: js_global.c,v 1.247 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 #include "ini_file.h"
 #include "js_rtpool.h"
 #include "js_request.h"
+#include "wordwrap.h"
 
 /* SpiderMonkey: */
 #include <jsfun.h>
@@ -54,8 +55,9 @@
 #ifdef JAVASCRIPT
 
 typedef struct {
-	scfg_t				*cfg;
-	jsSyncMethodSpec	*methods;
+	scfg_t*				cfg;
+	jsSyncMethodSpec*	methods;
+	js_startup_t*		startup;
 } private_t;
 
 /* Global Object Properites */
@@ -117,6 +119,7 @@ static void background_thread(void* arg)
 	jsval result=JSVAL_VOID;
 	jsval exit_code;
 
+	SetThreadName("JS Background");
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
 	JS_BEGINREQUEST(bg->cx);
@@ -251,11 +254,13 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		bg->parent_cx = cx;
 
 		/* Setup default values for branch settings */
-		bg->branch.limit=JAVASCRIPT_BRANCH_LIMIT;
-		bg->branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
-		bg->branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
+		bg->branch.limit=p->startup->branch_limit;
+		bg->branch.gc_interval=p->startup->gc_interval;
+		bg->branch.yield_interval=p->startup->yield_interval;
+#if 0
 		if(JS_GetProperty(cx, obj,"js",&val))	/* copy branch settings from parent */
 			memcpy(&bg->branch,JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)),sizeof(bg->branch));
+#endif
 		bg->branch.terminated=NULL;	/* could be bad pointer at any time */
 		bg->branch.counter=0;
 		bg->branch.gc_attempts=0;
@@ -275,6 +280,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				,""				/* hostname */
 				,""				/* socklib_desc */
 				,&bg->branch	/* js */
+				,p->startup		/* js */
 				,NULL			/* client */
 				,INVALID_SOCKET	/* client_socket */
 				,NULL			/* server props */
@@ -338,11 +344,45 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	errno = 0;
 	if(isfullpath(filename))
-		strcpy(path,filename);
+		SAFECOPY(path,filename);
 	else {
-		sprintf(path,"%s%s",p->cfg->mods_dir,filename);
-		if(p->cfg->mods_dir[0]==0 || !fexistcase(path))
-			sprintf(path,"%s%s",p->cfg->exec_dir,filename);
+		path[0]=0;
+		if(JS_GetProperty(cx, obj, "js", &val)) {
+			JSObject* js = JSVAL_TO_OBJECT(val);
+			if(JS_GetProperty(cx, js, JAVASCRIPT_LOAD_PATH_LIST, &val) && JSVAL_IS_OBJECT(val)) {
+				JSObject*	list = JSVAL_TO_OBJECT(val);
+				jsuint		i;
+				char		prefix[MAX_PATH+1];
+				for(i=0;path[0]==0;i++) {
+					if(!JS_GetElement(cx, list, i, &val) || val==JSVAL_VOID)
+						break;
+					if(!JSVAL_IS_STRING(val))
+						continue;
+					SAFECOPY(prefix,js_ValueToStringBytes(cx, val, NULL));
+					if(prefix[0]==0)
+						continue;
+					backslash(prefix);
+					if(isfullpath(prefix)) {
+						SAFEPRINTF2(path,"%s%s",prefix,filename);
+						if(!fexistcase(path))
+							path[0]=0;
+					} else {
+						/* relative path */
+						SAFEPRINTF3(path,"%s%s%s",p->cfg->mods_dir,prefix,filename);
+						if(p->cfg->mods_dir[0]==0 || !fexistcase(path)) {
+							SAFEPRINTF3(path,"%s%s%s",p->cfg->exec_dir,prefix,filename);
+							if(!fexistcase(path))
+								path[0]=0;
+						}
+					}
+				}
+			}
+		}
+		if(path[0]==0) {
+			SAFEPRINTF2(path,"%s%s",p->cfg->mods_dir,filename);
+			if(p->cfg->mods_dir[0]==0 || !fexistcase(path))
+				SAFEPRINTF2(path,"%s%s",p->cfg->exec_dir,filename);
+		}
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -640,10 +680,7 @@ js_strip_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	if((buf=strdup(p))==NULL)
-		return(JS_FALSE);
-
-	strip_ctrl(buf);
+	buf=strip_ctrl(p, NULL);
 
 	js_str = JS_NewStringCopyZ(cx, buf);
 	free(buf);
@@ -667,10 +704,7 @@ js_strip_exascii(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	if((buf=strdup(p))==NULL)
-		return(JS_FALSE);
-
-	strip_exascii(buf);
+	buf=strip_exascii(p, NULL);
 
 	js_str = JS_NewStringCopyZ(cx, buf);
 	free(buf);
@@ -714,158 +748,14 @@ js_lfexpand(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static int get_prefix(char *text, int *bytes, int *len, int maxlen)
-{
-	int		tmp_prefix_bytes,tmp_prefix_len;
-	int		expect;
-	int		depth;
-
-	*bytes=0;
-	*len=0;
-	tmp_prefix_bytes=0;
-	tmp_prefix_len=0;
-	depth=0;
-	expect=1;
-	if(text[0]!=' ')
-		expect=2;
-	while(expect) {
-		tmp_prefix_bytes++;
-		/* Skip CTRL-A codes */
-		while(text[tmp_prefix_bytes-1]=='\x01') {
-			tmp_prefix_bytes++;
-			if(text[tmp_prefix_bytes-1]=='\x01')
-				break;
-			tmp_prefix_bytes++;
-		}
-		tmp_prefix_len++;
-		if(text[tmp_prefix_bytes-1]==0 || text[tmp_prefix_bytes-1]=='\n' || text[tmp_prefix_bytes-1]=='\r')
-			break;
-		switch(expect) {
-			case 1:		/* At start of possible quote (Next char should be space) */
-				if(text[tmp_prefix_bytes-1]!=' ')
-					expect=0;
-				else
-					expect++;
-				break;
-			case 2:		/* At start of nick (next char should be alphanum or '>') */
-			case 3:		/* At second nick initial (next char should be alphanum or '>') */
-			case 4:		/* At third nick initial (next char should be alphanum or '>') */
-				if(text[tmp_prefix_bytes-1]==' ' || text[tmp_prefix_bytes-1]==0)
-					expect=0;
-				else
-					if(text[tmp_prefix_bytes-1]=='>')
-						expect=6;
-					else
-						expect++;
-				break;
-			case 5:		/* After three regular chars, next HAS to be a '>') */
-				if(text[tmp_prefix_bytes-1]!='>')
-					expect=0;
-				else
-					expect++;
-				break;
-			case 6:		/* At '>' next char must be a space */
-				if(text[tmp_prefix_bytes-1]!=' ')
-					expect=0;
-				else {
-					expect=1;
-					*len=tmp_prefix_len;
-					*bytes=tmp_prefix_bytes;
-					depth++;
-					/* Some editors don't put double spaces in between */
-					if(text[tmp_prefix_bytes]!=' ')
-						expect++;
-				}
-				break;
-			default:
-				expect=0;
-				break;
-		}
-	}
-	if(*bytes >= maxlen) {
-		lprintf(LOG_CRIT, "Prefix bytes %u is larger than buffer (%u) here: %*.*s",*bytes,maxlen,maxlen,maxlen,text);
-		*bytes=maxlen-1;
-	}
-	return(depth);
-}
-
-static void outbuf_append(char **outbuf, char **outp, char *append, int len, int *outlen)
-{
-	char	*p;
-
-	/* Terminate outbuf */
-	**outp=0;
-	/* Check if there's room */
-	if(*outp - *outbuf + len < *outlen) {
-		memcpy(*outp, append, len);
-		*outp+=len;
-		return;
-	}
-	/* Not enough room, double the size. */
-	*outlen *= 2;
-	p=realloc(*outbuf, *outlen);
-	if(p==NULL) {
-		/* Can't do it. */
-		*outlen/=2;
-		return;
-	}
-	/* Set outp for new buffer */
-	*outp=p+(*outp - *outbuf);
-	*outbuf=p;
-	memcpy(*outp, append, len);
-	*outp+=len;
-	return;
-}
-
-static int compare_prefix(char *old_prefix, int old_prefix_bytes, char *new_prefix, int new_prefix_bytes)
-{
-	int i;
-
-	if(new_prefix_bytes != old_prefix_bytes) {
-		if(new_prefix_bytes < old_prefix_bytes) {
-			if(memcmp(old_prefix, new_prefix, new_prefix_bytes)!=0)
-				return(-1);
-			for(i=new_prefix_bytes; i<old_prefix_bytes; i++) {
-				if(!isspace(old_prefix[i]))
-					return(-1);
-			}
-		}
-		else {
-			if(memcmp(old_prefix, new_prefix, old_prefix_bytes)!=0)
-				return(-1);
-			for(i=old_prefix_bytes; i<new_prefix_bytes; i++) {
-				if(!isspace(new_prefix[i]))
-					return(-1);
-			}
-		}
-		return(0);
-	}
-	if(memcmp(old_prefix,new_prefix,new_prefix_bytes)!=0)
-		return(-1);
-
-	return(0);
-}
-
 static JSBool
 js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	int32		l,len=79;
+	int32		len=79;
 	int32		oldlen=79;
-	int32		crcount=0;
 	JSBool		handle_quotes=JS_TRUE;
-	long		i,k,t;
-	int			ocol=1;
-	int			icol=1;
 	uchar*		inbuf;
 	char*		outbuf;
-	char*		outp;
-	char*		linebuf;
-	char*		prefix=NULL;
-	int			prefix_len=0;
-	int			prefix_bytes=0;
-	int			quote_count=0;
-	int			old_prefix_bytes=0;
-	int			outbuf_size=0;
 	JSString*	js_str;
 	jsrefcount	rc;
 
@@ -874,11 +764,6 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if((inbuf=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
-
-	outbuf_size=strlen(inbuf)*3+1;
-	if((outbuf=(char*)malloc(outbuf_size))==NULL)
-		return(JS_FALSE);
-	outp=outbuf;
 
 	if(argc>1)
 		JS_ValueToInt32(cx,argv[1],&len);
@@ -889,227 +774,18 @@ js_word_wrap(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
 		handle_quotes=JSVAL_TO_BOOLEAN(argv[3]);
 
-	if((linebuf=(char*)malloc((len*2)+2))==NULL) /* room for ^A codes ToDo: This isn't actually "enough" room */
-		return(JS_FALSE);
-
-	if(handle_quotes) {
-		if((prefix=(char *)malloc((len*2)+2))==NULL) { /* room for ^A codes ToDo: This isn't actually "enough" room */
-			free(linebuf);
-			return(JS_FALSE);
-		}
-		prefix[0]=0;
-	}
 	rc=JS_SUSPENDREQUEST(cx);
 
-	outbuf[0]=0;
-	/* Get prefix from the first line (ouch) */
-	l=0;
-	i=0;
-	if(handle_quotes && (quote_count=get_prefix(inbuf, &prefix_bytes, &prefix_len, len*2+2))!=0) {
-		i+=prefix_bytes;
-		if(prefix_len>len/3*2) {
-			/* This prefix is insane (more than 2/3rds of the new width) hack it down to size */
-			/* Since we're hacking it, we will always end up with a hardcr on this line. */
-			/* ToDo: Something prettier would be nice. */
-			sprintf(prefix," %d> ",quote_count);
-			prefix_len=strlen(prefix);
-			prefix_bytes=strlen(prefix);
-		}
-		else {
-			memcpy(prefix,inbuf,prefix_bytes);
-			/* Terminate prefix */
-			prefix[prefix_bytes]=0;
-		}
-		memcpy(linebuf,prefix,prefix_bytes);
-		l=prefix_bytes;
-		ocol=prefix_len+1;
-		icol=prefix_len+1;
-		old_prefix_bytes=prefix_bytes;
-	}
-	for(; inbuf[i]; i++) {
-		if(l>=len*2+2) {
-			l-=4;
-			linebuf[l]=0;
-			lprintf(LOG_CRIT, "Word wrap line buffer exceeded... munging line %s",linebuf);
-		}
-		switch(inbuf[i]) {
-			case '\r':
-				crcount++;
-				break;
-			case '\n':
-				if(handle_quotes && (quote_count=get_prefix(inbuf+i+1, &prefix_bytes, &prefix_len, len*2+2))!=0) {
-					/* Move the input pointer offset to the last char of the prefix */
-					i+=prefix_bytes;
-				}
-				if(!inbuf[i+1]) {			/* EOF */
-					linebuf[l++]='\r';
-					linebuf[l++]='\n';
-					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					l=0;
-					ocol=1;
-				}
-				/* If there's a new prefix, it is a hardcr */
-				else if(compare_prefix(prefix, old_prefix_bytes, inbuf+i+1-prefix_bytes, prefix_bytes)!=0) {
-					if(prefix_len>len/3*2) {
-						/* This prefix is insane (more than 2/3rds of the new width) hack it down to size */
-						/* Since we're hacking it, we will always end up with a hardcr on this line. */
-						/* ToDo: Something prettier would be nice. */
-						sprintf(prefix," %d> ",quote_count);
-						prefix_len=strlen(prefix);
-						prefix_bytes=strlen(prefix);
-					}
-					else {
-						memcpy(prefix,inbuf+i+1-prefix_bytes,prefix_bytes);
-						/* Terminate prefix */
-						prefix[prefix_bytes]=0;
-					}
-					linebuf[l++]='\r';
-					linebuf[l++]='\n';
-					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					memcpy(linebuf,prefix,prefix_bytes);
-					l=prefix_bytes;
-					ocol=prefix_len+1;
-					old_prefix_bytes=prefix_bytes;
-				}
-				else if(isspace(inbuf[i+1]) && inbuf[i+1] != '\n' && inbuf[i+1] != '\r') {	/* Next line starts with whitespace.  This is a "hard" CR. */
-					linebuf[l++]='\r';
-					linebuf[l++]='\n';
-					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					l=prefix_bytes;
-					ocol=prefix_len+1;
-				}
-				else {
-					if(icol < oldlen) {			/* If this line is overly long, It's impossible for the next word to fit */
-						/* k will equal the length of the first word on the next line */
-						for(k=0; inbuf[i+1+k] && (!isspace(inbuf[i+1+k])); k++);
-						if(icol+k+1 < oldlen) {	/* The next word would have fit but isn't here.  Must be a hard CR */
-							linebuf[l++]='\r';
-							linebuf[l++]='\n';
-							outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-							if(prefix)
-								memcpy(linebuf,prefix,prefix_bytes);
-							l=prefix_bytes;
-							ocol=prefix_len+1;
-						}
-						else {		/* Not a hard CR... add space if needed */
-							if(l<1 || !isspace(linebuf[l-1])) {
-								linebuf[l++]=' ';
-								ocol++;
-							}
-						}
-					}
-					else {			/* Not a hard CR... add space if needed */
-						if(l<1 || !isspace(linebuf[l-1])) {
-							linebuf[l++]=' ';
-							ocol++;
-						}
-					}
-				}
-				icol=prefix_len+1;
-				break;
-			case '\x1f':	/* Delete... meaningless... strip. */
-				break;
-			case '\b':		/* Backspace... handle if possible, but don't go crazy. */
-				if(l>0) {
-					if(l>1 && linebuf[l-2]=='\x01') {
-						if(linebuf[l-1]=='\x01') {
-							ocol--;
-							icol--;
-						}
-						l-=2;
-					}
-					else {
-						l--;
-						ocol--;
-						icol--;
-					}
-				}
-				break;
-			case '\t':		/* TAB */
-				linebuf[l++]=inbuf[i];
-				/* Can't ever wrap on whitespace remember. */
-				icol++;
-				ocol++;
-				while(ocol%8)
-					ocol++;
-				while(icol%8)
-					icol++;
-				break;
-			case '\x01':	/* CTRL-A */
-				linebuf[l++]=inbuf[i++];
-				if(inbuf[i]!='\x01') {
-					linebuf[l++]=inbuf[i];
-					break;
-				}
-			default:
-				linebuf[l++]=inbuf[i];
-				ocol++;
-				icol++;
-				if(ocol>len && !isspace(inbuf[i])) {		/* Need to wrap here */
-					/* Find the start of the last word */
-					k=l;									/* Original next char */
-					l--;									/* Move back to the last char */
-					while((!isspace(linebuf[l])) && l>0)		/* Move back to the last non-space char */
-						l--;
-					if(l==0) {		/* Couldn't wrap... must chop. */
-						l=k;
-						while(l>1 && linebuf[l-2]=='\x01' && linebuf[l-1]!='\x01')
-							l-=2;
-						if(l>0 && linebuf[l-1]=='\x01')
-							l--;
-						if(l>0)
-							l--;
-					}
-					t=l+1;									/* Store start position of next line */
-					/* Move to start of whitespace */
-					while(l>0 && isspace(linebuf[l]))
-						l--;
-					outbuf_append(&outbuf, &outp, linebuf, l+1, &outbuf_size);
-					outbuf_append(&outbuf, &outp, "\r\n", 2, &outbuf_size);
-					/* Move trailing words to start of buffer. */
-					l=prefix_bytes;
-					if(k-t>0)							/* k-1 is the last char position.  t is the start of the next line position */
-						memmove(linebuf+l, linebuf+t, k-t);
-					l+=k-t;
-					/* Find new ocol */
-					for(ocol=prefix_len+1,t=prefix_bytes; t<l; t++) {
-						switch(linebuf[t]) {
-							case '\x01':	/* CTRL-A */
-								t++;
-								if(linebuf[t]!='\x01')
-									break;
-								/* Fall-through */
-							default:
-								ocol++;
-						}
-					}
-				}
-		}
-	}
-	/* Trailing bits. */
-	if(l) {
-		linebuf[l++]='\r';
-		linebuf[l++]='\n';
-		outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-	}
-	*outp=0;
-	/* If there were no CRs in the input, strip all CRs */
-	if(!crcount) {
-		for(inbuf=outbuf; *inbuf; inbuf++) {
-			if(*inbuf=='\r')
-				memmove(inbuf, inbuf+1, strlen(inbuf));
-		}
-	}
+	outbuf=wordwrap(inbuf, len, oldlen, handle_quotes);
 
 	JS_RESUMEREQUEST(cx, rc);
+
+	if(outbuf==NULL)
+		return(JS_FALSE);
 	js_str = JS_NewStringCopyZ(cx, outbuf);
 	free(outbuf);
-	free(linebuf);
-	if(prefix)
-		free(prefix);
 	if(js_str==NULL)
 		return(JS_FALSE);
-
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
@@ -1531,7 +1207,8 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				j+=sprintf(tmpbuf+j,"&gt;");
 				break;
 			case '\b':
-				j--;
+				if(j)
+					j--;
 				break;
 			default:
 				if(inbuf[i]&0x80) {
@@ -1557,7 +1234,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						esccount++;
 						tmpbuf[j++]=inbuf[i];
 					}
-					else if(ctrl_a && inbuf[i]==1)
+					else if(ctrl_a && inbuf[i]==CTRL_A)
 					{
 						esccount++;
 						tmpbuf[j++]=inbuf[i];
@@ -1791,7 +1468,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				}
 				i+=(int)(lastparam-ansi_seq)+2;
 			}
-			else if(ctrl_a && tmpbuf[i]==1)		/* CTRL-A codes */
+			else if(ctrl_a && tmpbuf[i]==CTRL_A)		/* CTRL-A codes */
 			{
 /*				j+=sprintf(outbuf+j,"<!-- CTRL-A-%c (%u) -->",tmpbuf[i+1],tmpbuf[i+1]); */
 				if(nodisplay && tmpbuf[i+1] != ')')
@@ -1907,7 +1584,10 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 					case '.':
 					case 'S':
 					case '>':
-					case '<':
+						break;
+					case '<':		/* convert non-destructive backspace into destructive backspace */
+						if(j)
+							j--;
 						break;
 
 					case '!':		/* This needs to be fixed! (Somehow) */
@@ -1946,7 +1626,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case ']':
 						currrow++;
-						if(hpos!=0 && tmpbuf[i+2]!=CR && !(tmpbuf[i+2]==1 && tmpbuf[i+3]=='['))
+						if(hpos!=0 && tmpbuf[i+2]!=CR && !(tmpbuf[i+2]==CTRL_A && tmpbuf[i+3]=='['))
 						{
 							outbuf[j++]='\r';
 							outbuf[j++]='\n';
@@ -3791,7 +3471,7 @@ static JSClass js_global_class = {
 	,js_global_finalize		/* finalize		*/
 };
 
-JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods)
+JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t* startup)
 {
 	JSObject*	glob;
 	private_t*	p;
@@ -3801,6 +3481,7 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethod
 
 	p->cfg = cfg;
 	p->methods = methods;
+	p->startup = startup;
 
 	if((glob = JS_NewObject(cx, &js_global_class, NULL, NULL)) ==NULL)
 		return(NULL);
@@ -3827,6 +3508,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,char* host_name			/* system */
 										,char* socklib_desc			/* system */
 										,js_branch_t* branch		/* js */
+										,js_startup_t* js_startup	/* js */
 										,client_t* client			/* client */
 										,SOCKET client_socket		/* client */
 										,js_server_props_t* props	/* server */
@@ -3838,7 +3520,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		node_cfg=cfg;
 
 	/* Global Object */
-	if((js_glob=js_CreateGlobalObject(js_cx, cfg, methods))==NULL)
+	if((js_glob=js_CreateGlobalObject(js_cx, cfg, methods, js_startup))==NULL)
 		return(NULL);
 
 	/* System Object */
@@ -3847,7 +3529,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 	/* Internal JS Object */
 	if(branch!=NULL 
-		&& js_CreateInternalJsObject(js_cx, js_glob, branch)==NULL)
+		&& js_CreateInternalJsObject(js_cx, js_glob, branch, js_startup)==NULL)
 		return(NULL);
 
 	/* Client Object */
@@ -3881,7 +3563,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		return(NULL);
 
 	/* Area Objects */
-	if(!js_CreateUserObjects(js_cx, js_glob, cfg, NULL, NULL, NULL)) 
+	if(!js_CreateUserObjects(js_cx, js_glob, cfg, /* user: */NULL, client, /* html_index_fname: */NULL, /* subscan: */NULL)) 
 		return(NULL);
 
 	return(js_glob);

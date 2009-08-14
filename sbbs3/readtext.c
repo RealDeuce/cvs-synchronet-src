@@ -7,11 +7,15 @@
 /****************************************************************************/
 char *readtext(long *line,FILE *stream,long dflt)
 {
-	char buf[2048],str[2048],tmp[256],*p,*p2;
+	char buf[MAX_TEXTDAT_ITEM_LEN+256],str[MAX_TEXTDAT_ITEM_LEN+1],tmp[256],*p,*p2;
 	int i,j,k;
 
-	if(!fgets(buf,256,stream))
+	if(!fgets(buf,256,stream)) {
+		/* Hide the EOF */
+		if(feof(stream))
+			clearerr(stream);
 		goto use_default;
+	}
 	if(line)
 		(*line)++;
 	if(buf[0]=='#')
@@ -23,9 +27,13 @@ char *readtext(long *line,FILE *stream,long dflt)
 		goto use_default;
 	}
 	if(*(p+1)=='\\')	/* merge multiple lines */
-		while(strlen(buf)<2000) {
-			if(!fgets(str,255,stream))
+		while(strlen(buf)<MAX_TEXTDAT_ITEM_LEN) {
+			if(!fgets(str,255,stream)) {
+				/* Hide the EOF */
+				if(feof(stream))
+					clearerr(stream);
 				goto use_default;
+			}
 			if(line)
 				(*line)++;
 			p2=strchr(str,'"');
@@ -39,7 +47,7 @@ char *readtext(long *line,FILE *stream,long dflt)
 		}
 	*(p)=0;
 	k=strlen(buf);
-	for(i=1,j=0;i<k;j++) {
+	for(i=1,j=0;i<k && j<sizeof(str)-1;j++) {
 		if(buf[i]=='\\')	{ /* escape */
 			i++;
 			if(isdigit(buf[i])) {
