@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.257 2010/04/02 23:12:02 deuce Exp $ */
+/* $Id: js_global.c,v 1.248 2009/08/14 10:59:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -166,19 +166,6 @@ static JSBool js_BranchCallback(JSContext *cx, JSScript* script)
 	return js_CommonBranchCallback(cx,&bg->branch);
 }
 
-#ifdef USE_JS_OPERATION_CALLBACK
-static JSBool
-js_OperationCallback(JSContext *cx)
-{
-	JSBool	ret;
-
-	JS_SetOperationCallback(cx, NULL);
-	ret=js_BranchCallback(cx, NULL);
-	JS_SetOperationCallback(cx, js_OperationCallback);
-	return ret;
-}
-#endif
-
 static JSBool
 js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -311,11 +298,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		/* Set our branch callback (which calls the generic branch callback) */
 		JS_SetContextPrivate(bg->cx, bg);
-#ifdef USE_JS_OPERATION_CALLBACK
-		JS_SetOperationCallback(bg->cx, js_OperationCallback);
-#else
 		JS_SetBranchCallback(bg->cx, js_BranchCallback);
-#endif
 
 		/* Save parent's 'log' function (for later use by our log function) */
 		if(JS_GetProperty(cx, obj, "log", &val)) {
@@ -363,38 +346,22 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(isfullpath(filename))
 		SAFECOPY(path,filename);
 	else {
-		JSObject* js_load_list = NULL;
-
-		path[0]=0;	/* Empty path, indicates load file not found (yet) */
-
-		JS_RESUMEREQUEST(cx, rc);
-		if(JS_GetProperty(cx, obj, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val)) {
-			JSObject* js_obj = JSVAL_TO_OBJECT(val);
-			
-			/* if js.exec_dir is defined (location of executed script), search their first */
-			if(JS_GetProperty(cx, js_obj, "exec_dir", &val) && val!=JSVAL_VOID && JSVAL_IS_STRING(val)) {
-				SAFEPRINTF2(path,"%s%s",js_ValueToStringBytes(cx, val, NULL),filename);
-				rc=JS_SUSPENDREQUEST(cx);
-				if(!fexistcase(path))
-					path[0]=0;
-				JS_RESUMEREQUEST(cx, rc);
-			}
-			if(JS_GetProperty(cx, js_obj, JAVASCRIPT_LOAD_PATH_LIST, &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))
-				js_load_list = JSVAL_TO_OBJECT(val);
-
-			/* if mods_dir is defined, search mods/js.load_path_list[n] next */
-			if(path[0]==0 && p->cfg->mods_dir[0]!=0 && js_load_list!=NULL) {
+		path[0]=0;
+		if(JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val)) {
+			JSObject* js = JSVAL_TO_OBJECT(val);
+			if(JS_GetProperty(cx, js, JAVASCRIPT_LOAD_PATH_LIST, &val) && JSVAL_IS_OBJECT(val)) {
+				JSObject*	list = JSVAL_TO_OBJECT(val);
 				jsuint		i;
 				char		prefix[MAX_PATH+1];
-
 				for(i=0;path[0]==0;i++) {
-					if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID)
+					if(!JS_GetElement(cx, list, i, &val) || val==JSVAL_VOID)
 						break;
+					if(!JSVAL_IS_STRING(val))
+						continue;
 					SAFECOPY(prefix,js_ValueToStringBytes(cx, val, NULL));
 					if(prefix[0]==0)
 						continue;
 					backslash(prefix);
-					rc=JS_SUSPENDREQUEST(cx);
 					if(isfullpath(prefix)) {
 						SAFEPRINTF2(path,"%s%s",prefix,filename);
 						if(!fexistcase(path))
@@ -402,51 +369,20 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					} else {
 						/* relative path */
 						SAFEPRINTF3(path,"%s%s%s",p->cfg->mods_dir,prefix,filename);
-						if(!fexistcase(path))
-							path[0]=0;
+						if(p->cfg->mods_dir[0]==0 || !fexistcase(path)) {
+							SAFEPRINTF3(path,"%s%s%s",p->cfg->exec_dir,prefix,filename);
+							if(!fexistcase(path))
+								path[0]=0;
+						}
 					}
-					JS_RESUMEREQUEST(cx, rc);
 				}
 			}
 		}
-		rc=JS_SUSPENDREQUEST(cx);
-		/* if mods_dir is defined, search there next */
-		if(path[0]==0 && p->cfg->mods_dir[0]!=0) {
+		if(path[0]==0) {
 			SAFEPRINTF2(path,"%s%s",p->cfg->mods_dir,filename);
-			if(!fexistcase(path))
-				path[0]=0;
+			if(p->cfg->mods_dir[0]==0 || !fexistcase(path))
+				SAFEPRINTF2(path,"%s%s",p->cfg->exec_dir,filename);
 		}
-		/* if js.load_path_list is defined, search exec/load_path_list[n] next */
-		if(path[0]==0 && js_load_list!=NULL) {
-			jsuint		i;
-			char		prefix[MAX_PATH+1];
-
-			for(i=0;path[0]==0;i++) {
-				JS_RESUMEREQUEST(cx, rc);
-				if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID) {
-					rc=JS_SUSPENDREQUEST(cx);
-					break;
-				}
-				SAFECOPY(prefix,js_ValueToStringBytes(cx, val, NULL));
-				rc=JS_SUSPENDREQUEST(cx);
-				if(prefix[0]==0)
-					continue;
-				backslash(prefix);
-				if(isfullpath(prefix)) {
-					SAFEPRINTF2(path,"%s%s",prefix,filename);
-					if(!fexistcase(path))
-						path[0]=0;
-				} else {
-					/* relative path */
-					SAFEPRINTF3(path,"%s%s%s",p->cfg->exec_dir,prefix,filename);
-					if(!fexistcase(path))
-						path[0]=0;
-				}
-			}
-		}
-		/* lastly, search exec dir */
-		if(path[0]==0)
-			SAFEPRINTF2(path,"%s%s",p->cfg->exec_dir,filename);
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -878,14 +814,14 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>2)
 		prefix=js_ValueToStringBytes(cx, argv[2], NULL);
 
-	if((outbuf=(char*)malloc((strlen(inbuf)*(strlen(prefix)+1))+1))==NULL)
+	if((outbuf=(char*)malloc((strlen(inbuf)*strlen(prefix))+1))==NULL)
 		return(JS_FALSE);
 
 	len-=strlen(prefix);
 	if(len<=0)
 		return(JS_FALSE);
 
-	if((linebuf=(char*)alloca((len*3)+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
+	if((linebuf=(char*)alloca(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -2571,7 +2507,7 @@ static JSBool
 js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	off_t		fl;
+	long		fl;
 	jsrefcount	rc;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -2583,7 +2519,7 @@ js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	fl=flength(p);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,(double)fl,rval);
+	JS_NewNumberValue(cx,fl,rval);
 	return(JS_TRUE);
 }
 

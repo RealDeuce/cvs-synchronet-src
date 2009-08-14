@@ -1,5 +1,5 @@
 CC=	 gcc
-FLAGS=	 -O -Wall -std=c99 -pedantic
+FLAGS=	 -O -Wall
 EXECFILE= 
 RM=	 rm -f
 
