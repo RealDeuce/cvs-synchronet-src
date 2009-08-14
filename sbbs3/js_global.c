@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.248 2009/08/14 10:59:49 rswindell Exp $ */
+/* $Id: js_global.c,v 1.249 2009/08/14 15:50:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -349,7 +349,14 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		path[0]=0;
 		if(JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val)) {
 			JSObject* js = JSVAL_TO_OBJECT(val);
-			if(JS_GetProperty(cx, js, JAVASCRIPT_LOAD_PATH_LIST, &val) && JSVAL_IS_OBJECT(val)) {
+			if(JS_GetProperty(cx, js, "exec_dir", &val) && JSVAL_IS_STRING(val)) {
+				SAFEPRINTF2(path,"%s%s",js_ValueToStringBytes(cx, val, NULL),filename);
+				if(!fexistcase(path))
+					path[0]=0;
+			}
+			if(path[0]==0
+				&& JS_GetProperty(cx, js, JAVASCRIPT_LOAD_PATH_LIST, &val) 
+				&& JSVAL_IS_OBJECT(val)) {
 				JSObject*	list = JSVAL_TO_OBJECT(val);
 				jsuint		i;
 				char		prefix[MAX_PATH+1];
