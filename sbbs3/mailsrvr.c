@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.499 2009/10/18 09:29:41 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.495 2009/08/14 08:06:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1784,8 +1784,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 		} else {
 			lprintf(LOG_DEBUG,"%04d %s Executing: %s"
 				,sock, log_prefix, cmdline);
-			if((js_script=JS_CompileFile(*js_cx, js_scope, path)) != NULL)
-				js_PrepareToExecute(*js_cx, js_scope, path);
+			js_script=JS_CompileFile(*js_cx, js_scope, path);
 		}
 		if(js_script==NULL)
 			break;
@@ -2648,7 +2647,7 @@ static void smtp_thread(void* arg)
 						lprintf(LOG_NOTICE,"%04d !SMTP TAGGED MAIL HEADER from blacklisted server with: %s"
 							,socket, startup->dnsbl_hdr);
 					}
-					if((startup->dnsbl_hdr[0] || startup->dnsbl_tag[0]) && !(startup->options&MAIL_OPT_DNSBL_IGNORE)) {
+					if(startup->dnsbl_hdr[0] || startup->dnsbl_tag[0]) {
 						SAFEPRINTF2(str,"Listed on %s as %s", dnsbl, inet_ntoa(dnsbl_result));
 						spamlog(&scfg, "SMTP", "TAGGED", str, host_name, dnsbl_ip, rcpt_addr, reverse_path);
 					}
@@ -2743,7 +2742,7 @@ static void smtp_thread(void* arg)
 
 						if((i=smb_findhash(&spam, hashes, &found, SMB_HASH_SOURCE_SPAM, /* Mark: */TRUE))==SMB_SUCCESS
 							&& !is_spam) {
-							SAFEPRINTF2(str,"%s '%s' found in SPAM database"
+							SAFEPRINTF2(str,"%s %s found in SPAM database"
 								,smb_hashsourcetype(found.source)
 								,smb_hashsource(&msg,found.source)
 								);
@@ -2769,17 +2768,16 @@ static void smtp_thread(void* arg)
 						smb_freehashes(hashes);
 					}
 
-					if(is_spam || ((startup->options&MAIL_OPT_DNSBL_IGNORE) && (dnsbl_recvhdr || dnsbl_result.s_addr))) {
+					if(is_spam) {
 						free(msgbuf);
-						if(is_spam)
-							lprintf(LOG_INFO,"%04d SMTP IGNORED SPAM MESSAGE",socket);
-						else {
+						if(dnsbl_recvhdr || dnsbl_result.s_addr) {
 							SAFEPRINTF2(str,"Listed on %s as %s", dnsbl, inet_ntoa(dnsbl_result));
 							lprintf(LOG_NOTICE,"%04d !SMTP IGNORED MAIL from server: %s"
 								,socket, str);
 							spamlog(&scfg, "SMTP", "IGNORED"
 								,str, host_name, dnsbl_ip, rcpt_addr, reverse_path);
-						}
+						} else
+							lprintf(LOG_INFO,"%04d SMTP IGNORED SPAM MESSAGE",socket);
 						/* pretend we received it */
 						sockprintf(socket,ok_rsp);
 						subnum=INVALID_SUB;
@@ -3734,7 +3732,6 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	}
 
 	if(msg->from_agent==AGENT_SMTPSYSMSG	/* don't bounce 'bounce messages' */
-		|| (msg->hdr.attr&MSG_NOREPLY)
 		|| (msg->idx.from==0 && msg->from_net.type==NET_NONE)
 		|| (msg->reverse_path!=NULL && *msg->reverse_path==0)) {
 		lprintf(LOG_WARNING,"0000 !Deleted undeliverable message from %s", msg->from);
@@ -3750,9 +3747,9 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 
 	SAFEPRINTF(str,"Delivery failure: %s",newmsg.subj);
 	smb_hfield_str(&newmsg, SUBJECT, str);
-	smb_hfield_str(&newmsg, RECIPIENT, newmsg.from);
 	if(msg->from_agent==AGENT_PERSON) {
 
+		smb_hfield_str(&newmsg, RECIPIENT, newmsg.from);
 		if(newmsg.from_ext!=NULL) { /* Back to sender */
 			smb_hfield_str(&newmsg, RECIPIENTEXT, newmsg.from_ext);
 			newmsg.from_ext=NULL;	/* Clear the sender extension */
@@ -3764,9 +3761,8 @@ BOOL bounce(smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 			smb_hfield_str(&newmsg, RECIPIENTNETADDR, newmsg.reverse_path);
 		}
 	} else {
-		smb_hfield(&newmsg, RECIPIENTAGENT, sizeof(msg->from_agent), &msg->from_agent);
+
 	}
-	newmsg.hdr.attr|=MSG_NOREPLY;
 	strcpy(str,"Mail Delivery Subsystem");
 	smb_hfield_str(&newmsg, SENDER, str);
 	smb_hfield(&newmsg, SENDERAGENT, sizeof(agent), &agent);
@@ -4424,7 +4420,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.499 $", "%*s %s", revision);
+	sscanf("$Revision: 1.495 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

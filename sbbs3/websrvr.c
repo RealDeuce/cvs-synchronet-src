@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.515 2009/10/05 22:20:17 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.510 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2545,38 +2545,31 @@ static char *get_request(http_session_t * session, char *req_line)
 	unescape(session->req.physical_path);
 
 	if(!strnicmp(session->req.physical_path,http_scheme,http_scheme_len)) {
-		/* Remove http:// from start of physical_path */
-		memmove(session->req.physical_path, session->req.physical_path+http_scheme_len, strlen(session->req.physical_path+http_scheme_len)+1);
-
 		/* Set HOST value... ignore HOST header */
-		SAFECOPY(session->req.host,session->req.physical_path);
-
-		/* Remove path if present (everything after the first /) */
+		SAFECOPY(session->req.host,session->req.physical_path+http_scheme_len);
+		/* Remove path of present */
 		strtok_r(session->req.host,"/",&last);
 
-		/* Set vhost value to host value */
+		/* Set vhost value */
 		SAFECOPY(session->req.vhost,session->req.host);
-
-		/* Remove port specification from vhost (if present) */
+		/* Remove port specification from vhost */
 		strtok_r(session->req.vhost,":",&last);
 
-		/* Sets p to point to the first character after the first slash */
-		p=strchr(session->req.physical_path, '/');
-		
-		/*
-		 * If we have a slash, make it the first char in the string.
-		 * otherwise, set path to "/"
-		 */
+		/* Do weird physical_path dance... TODO: Understand this code */
+		if(strtok_r(session->req.physical_path,"/",&last))
+			p=strtok_r(NULL,"/",&last);
+		else
+			p=NULL;
 		if(p==NULL) {
-			strcpy(session->req.physical_path, "/");
+			/* Do not allow host values larger than 128 bytes */
+			session->req.host[0]=0;
+			p=session->req.physical_path+http_scheme_len;
 		}
-		else {
-			offset=p-session->req.physical_path;
-			memmove(session->req.physical_path
-				,session->req.physical_path+offset
-				,strlen(session->req.physical_path+offset)+1	/* move '\0' terminator too */
-				);
-		}
+		offset=p-session->req.physical_path;
+		memmove(session->req.physical_path
+			,session->req.physical_path+offset
+			,strlen(session->req.physical_path+offset)+1	/* move '\0' terminator too */
+			);
 	}
 	if(query!=NULL)
 		SAFECOPY(session->req.query_str,query);
@@ -2667,10 +2660,12 @@ static BOOL get_fullpath(http_session_t * session)
 	} else
 		safe_snprintf(str,sizeof(str),"%s%s",root_dir,session->req.physical_path);
 
-	if(FULLPATH(session->req.physical_path,str,sizeof(session->req.physical_path))==NULL)
+	if(FULLPATH(session->req.physical_path,str,sizeof(session->req.physical_path))==NULL) {
+		send_error(session,error_500);
 		return(FALSE);
+	}
 
-	return(isabspath(session->req.physical_path));
+	return(TRUE);
 }
 
 static BOOL get_req(http_session_t * session, char *request_line)
@@ -4625,7 +4620,6 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=xp_timer();
-		js_PrepareToExecute(session->js_cx, session->js_glob, script);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
@@ -5190,7 +5184,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.515 $", "%*s %s", revision);
+	sscanf("$Revision: 1.510 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

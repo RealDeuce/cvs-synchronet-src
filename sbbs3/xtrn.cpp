@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.204 2009/10/18 23:38:18 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.202 2009/03/22 02:25:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -385,13 +385,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	HANDLE	wrinpipe;
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
-	unsigned long	rd;
+	DWORD	rd;
     DWORD	wr;
-    unsigned long	len;
+    DWORD	len;
     DWORD	avail;
-	unsigned long	dummy;
-	unsigned long	msglen;
-	unsigned long	retval;
+	DWORD	dummy;
+	DWORD	msglen;
+	DWORD	retval;
 	DWORD	last_error;
 	DWORD	loop_since_io=0;
 	struct	tm tm;
@@ -399,7 +399,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	if(cfg.node_num==0)
+	if(online==ON_LOCAL)
 		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 	else
 		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
@@ -877,7 +877,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
             		len=avail;
 
 				while(rd<len) {
-					unsigned long waiting=0;
+					DWORD waiting=0;
 
 					if(use_pipes)
 						PeekNamedPipe(
@@ -1313,8 +1313,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	int	high_fd;
 	struct timeval timeout;
 
-	if(cfg.node_num==0)
-		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
+	if(online==ON_LOCAL)
+		eprintf(LOG_INFO,"Executing external: %s",cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
 		errormsg(WHERE, ERR_CHK, startup_dir, 0);
@@ -1786,7 +1786,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(cfg.node_num)
+	if(online!=ON_LOCAL)
 		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */
