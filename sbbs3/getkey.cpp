@@ -2,7 +2,7 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.42 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.41 2009/02/16 02:58:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,7 +278,7 @@ char sbbs_t::getkey(long mode)
 						console&=~CON_R_ECHOX; 
 					}
 					bputs(text[CallBackWhenYoureThere]);
-					logline(LOG_NOTICE,nulstr,"Inactive");
+					logline(nulstr,"Inactive");
 					hangup();
 					return(0); 
 				}
