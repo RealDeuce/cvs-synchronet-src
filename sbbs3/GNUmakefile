@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.212 2010/04/02 00:12:47 deuce Exp $
+# $Id: GNUmakefile,v 1.211 2007/10/15 08:06:00 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -295,8 +295,3 @@ $(DUPEFIND): $(DUPEFIND_OBJS)
 $(SMBACTIV): $(SMBACTIV_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(SMBACTIV_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS)
-
-# DSTSEDIT
-$(DSTSEDIT): $(DSTSEDIT_OBJS)
-	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(DSTSEDIT_OBJS) $(XPDEV_LIBS)

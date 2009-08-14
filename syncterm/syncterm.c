@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.168 2011/05/26 21:21:11 deuce Exp $ */
+/* $Id: syncterm.c,v 1.161 2009/07/19 07:44:11 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -22,9 +22,6 @@
 #include <dirwrap.h>
 
 #include "ciolib.h"
-#ifdef HAS_VSTAT
-#include "bitmap_con.h"
-#endif
 #include "cterm.h"
 #include "allfonts.h"
 
@@ -37,7 +34,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.5b"
+char* syncterm_version = "SyncTERM 0.9.3b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -727,8 +724,12 @@ char *output_enum[]={
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
-	struct	bbslist	*list[MAX_OPTS+1]={NULL};
+	struct	bbslist	*list[MAX_OPTS+1];
+	char	listpath[MAX_PATH+1];
 	int		listcount=0, i;
+
+	/* User BBS list path */
+	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
 
 	bbs->id=-1;
 	bbs->added=time(NULL);
@@ -800,20 +801,14 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
-	read_list(settings.list_path, &list[0], NULL, &listcount, USER_BBSLIST);
-	for(i=0;i<listcount;i++) {
-		if((stricmp(bbs->addr,list[i]->addr)==0)
-				&& (bbs->port==list[i]->port)
-				&& (bbs->conn_type==list[i]->conn_type)
-				&& (bbs->user[0]==0 || (stricmp(bbs->name,list[i]->name)==0))
-				&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
-			memcpy(bbs,list[i],sizeof(struct bbslist));
-			break;
-		}
-	}
-	if(i==listcount) {
+	if(listpath != NULL) {
+		read_list(listpath, &list[0], NULL, &listcount, USER_BBSLIST);
 		for(i=0;i<listcount;i++) {
-			if(stricmp(bbs->name,list[i]->name)==0) {
+			if((stricmp(bbs->addr,list[i]->addr)==0)
+					&& (bbs->port==list[i]->port)
+					&& (bbs->conn_type==list[i]->conn_type)
+					&& (bbs->user[0]==0 || (stricmp(bbs->name,list[i]->name)==0))
+					&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
 				memcpy(bbs,list[i],sizeof(struct bbslist));
 				break;
 			}
@@ -1068,12 +1063,6 @@ void load_settings(struct syncterm_settings *set)
 	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
-	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
-	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
-	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
-#ifdef HAS_VSTAT
-	vstat.scaling=set->scaling_factor;
-#endif
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1110,6 +1099,7 @@ int main(int argc, char **argv)
 	int	ciolib_mode;
 	str_list_t	inifile;
 	FILE *listfile;
+	char	listpath[MAX_PATH+1];
 	char	*inpath=NULL;
 	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
@@ -1124,7 +1114,7 @@ int main(int argc, char **argv)
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
-	uifc.mode=UIFC_NOCTRL|UIFC_NHM;
+	uifc.mode=UIFC_NOCTRL;
 	uifc.size=sizeof(uifc);
 	uifc.esc_delay=25;
 	url[0]=0;
@@ -1270,6 +1260,9 @@ int main(int argc, char **argv)
 	umask(077);
 #endif
 
+	/* User BBS list path */
+	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
+
 	/* Auto-connect URL */
 	if(url[0]) {
 		if((bbs=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL) {
@@ -1277,7 +1270,7 @@ int main(int argc, char **argv)
 			return(1);
 		}
 		memset(bbs, 0, sizeof(struct bbslist));
-		if((listfile=fopen(settings.list_path,"r"))==NULL)
+		if((listfile=fopen(listpath,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
 		else {
 			str_list_t	inilines;
@@ -1311,14 +1304,14 @@ int main(int argc, char **argv)
 			if(bbs->id != -1) {
 				if(bbs->type==SYSTEM_BBSLIST) {
 					bbs->type=USER_BBSLIST;
-					add_bbs(settings.list_path, bbs);
+					add_bbs(listpath, bbs);
 				}
-				if((listfile=fopen(settings.list_path,"r"))!=NULL) {
+				if((listfile=fopen(listpath,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
 					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,&ini_style);
 					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,&ini_style);
-					if((listfile=fopen(settings.list_path,"w"))!=NULL) {
+					if((listfile=fopen(listpath,"w"))!=NULL) {
 						iniWriteFile(listfile,inifile);
 						fclose(listfile);
 					}
@@ -1372,8 +1365,8 @@ int main(int argc, char **argv)
 						i=1;
 						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this directory entry?",YesNo)) {
 							case 0:	/* Yes */
-								edit_list(NULL, bbs,settings.list_path,FALSE);
-								add_bbs(settings.list_path,bbs);
+								edit_list(NULL, bbs,listpath,FALSE);
+								add_bbs(listpath,bbs);
 								last_bbs=strdup(bbs->name);
 								break;
 							default: /* ESC/No */
@@ -1390,28 +1383,6 @@ int main(int argc, char **argv)
 			last_bbs=strdup(bbs->name);
 		bbs=NULL;
 	}
-	// Save changed settings
-#ifdef HAS_VSTAT
-	if(vstat.scaling > 0 && vstat.scaling != settings.scaling_factor) {
-		char	inipath[MAX_PATH+1];
-		FILE	*inifile;
-		str_list_t	inicontents;
-
-		get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
-		if((inifile=fopen(inipath,"r"))!=NULL) {
-			inicontents=iniReadFile(inifile);
-			fclose(inifile);
-		}
-		else {
-			inicontents=strListInit();
-		}
-		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",vstat.scaling,&ini_style);
-		if((inifile=fopen(inipath,"w"))!=NULL) {
-			iniWriteFile(inifile,inicontents);
-			fclose(inifile);
-		}
-	}
-#endif
 	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
