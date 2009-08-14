@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.247 2009/08/14 08:00:32 rswindell Exp $ */
+/* $Id: js_global.c,v 1.248 2009/08/14 10:59:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -347,7 +347,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		SAFECOPY(path,filename);
 	else {
 		path[0]=0;
-		if(JS_GetProperty(cx, obj, "js", &val)) {
+		if(JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val)) {
 			JSObject* js = JSVAL_TO_OBJECT(val);
 			if(JS_GetProperty(cx, js, JAVASCRIPT_LOAD_PATH_LIST, &val) && JSVAL_IS_OBJECT(val)) {
 				JSObject*	list = JSVAL_TO_OBJECT(val);
@@ -3568,6 +3568,4 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 	return(js_glob);
 }
-
-
 #endif	/* JAVSCRIPT */
