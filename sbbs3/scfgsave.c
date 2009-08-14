@@ -2,13 +2,13 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.50 2007/07/10 19:51:47 deuce Exp $ */
+/* $Id: scfgsave.c,v 1.54 2009/06/28 09:15:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -458,11 +458,13 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->mail_maxage,stream);
 	put_str(cfg->preqwk_arstr,stream);
 	put_int(cfg->smb_retry_time,stream);
+	put_int(cfg->max_qwkmsgage,stream);
 	n=0;
-	for(i=0;i<235;i++)
+	for(i=0;i<233;i++)
 		put_int(n,stream);
+	put_int(cfg->msg_misc,stream);
 	n=0xffff;
-	for(i=0;i<256;i++)
+	for(i=0;i<255;i++)
 		put_int(n,stream);
 
 	/* Message Groups */
@@ -1112,8 +1114,9 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		put_str(cfg->event[i]->dir,stream);
 		put_int(cfg->event[i]->freq,stream);
 		put_int(cfg->event[i]->mdays,stream);
+		put_int(cfg->event[i]->months,stream);
 		n=0;
-		for(j=0;j<5;j++)
+		for(j=0;j<4;j++)
 			put_int(n,stream);
 		}
 
