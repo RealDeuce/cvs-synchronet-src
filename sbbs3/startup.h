@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.67 2009/10/25 03:05:58 rswindell Exp $ */
+/* $Id: startup.h,v 1.65 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ typedef struct {
 	ulong	branch_limit;	/* maximum number of branches (for infinite loop detection) */
 	ulong	gc_interval;	/* number of branches between garbage collection attempts */
 	ulong	yield_interval;	/* number of branches between time-slice yields */
-	char	load_path[INI_MAX_VALUE_LEN];	/* additional (comma-separated) directories to search for load()ed scripts */
+	str_list_t	load_path;	/* additional directories to search for load()ed scripts */
 } js_startup_t;
 
 typedef struct {
@@ -92,9 +92,8 @@ typedef struct {
 	void*	event_cbdata;			/* Private data passed to event_lputs callback */
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int , const char*);			/* Log - put string					*/
+	int 	(*lputs)(void*, int, const char*);			/* Log - put string					*/
     int 	(*event_lputs)(void*, int, const char*);	/* Event log - put string			*/
-	void	(*errormsg)(void*, int level, const char* msg);
 	void	(*status)(void*, const char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
