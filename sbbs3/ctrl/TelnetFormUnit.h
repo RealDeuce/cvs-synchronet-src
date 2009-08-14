@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetFormUnit.h,v 1.3 2004/10/18 00:04:41 rswindell Exp $ */
+/* $Id: TelnetFormUnit.h,v 1.6 2009/01/26 06:49:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -60,9 +60,15 @@ __published:	// IDE-managed Components
 	TStaticText *Status;
 	TToolButton *ToolButton3;
 	TProgressBar *ProgressBar;
-	TMemo *Log;
 	TToolButton *RecycleButton;
+    TToolButton *ToolButton4;
+    TUpDown *LogLevelUpDown;
+    TStaticText *LogLevelText;
+    TRichEdit *Log;
+    TToolButton *LogPauseButton;
     void __fastcall FormHide(TObject *Sender);
+    void __fastcall LogLevelUpDownChangingEx(TObject *Sender,
+          bool &AllowChange, short NewValue, TUpDownDirection Direction);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TTelnetForm(TComponent* Owner);
