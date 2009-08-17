@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.127 2009/08/14 08:56:33 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.128 2009/08/17 02:05:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -245,7 +245,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	global->js.gc_interval		= JAVASCRIPT_GC_INTERVAL;
 	global->js.yield_interval	= JAVASCRIPT_YIELD_INTERVAL;
     if(global->js.load_path==NULL)
-    	global->js.load_path	= strListSplit(NULL, JAVASCRIPT_LOAD_PATH, ",");
+    	global->js.load_path	= strListSplitCopy(NULL, JAVASCRIPT_LOAD_PATH, ",");
 
 	/* Read .ini values here */
 	sbbs_get_js_settings(list, section, &global->js, &global->js);
