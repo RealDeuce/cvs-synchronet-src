@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.128 2009/08/17 02:05:41 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.129 2009/08/17 08:12:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,8 +135,8 @@ void sbbs_get_js_settings(
 	js->gc_interval		= iniGetInteger(list,section,strJavaScriptGcInterval	,defaults->gc_interval);
 	js->yield_interval	= iniGetInteger(list,section,strJavaScriptYieldInterval	,defaults->yield_interval);
 
-    if(js->load_path != defaults->load_path)
-    	iniFreeStringList(js->load_path);
+//    if(js->load_path != defaults->load_path)      /* Memory leak, ToDo Fix! */
+//    	iniFreeStringList(js->load_path);
 	if((load_path = iniGetStringList(list, section,strJavaScriptLoadPath,",",NULL)) == NULL)
 		load_path = defaults->load_path;
 	js->load_path = load_path;
