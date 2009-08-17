@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.335 2009/08/14 11:02:54 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.336 2009/08/17 07:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,6 +130,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #endif
 #include "genwrap.h"
 #include "semfile.h"
+#include "netwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "datewrap.h"
