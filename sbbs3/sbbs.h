@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.337 2009/09/18 18:22:37 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.335 2009/08/14 11:02:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,7 +130,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #endif
 #include "genwrap.h"
 #include "semfile.h"
-#include "netwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "datewrap.h"
@@ -867,7 +866,6 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
 	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
 	DLLEXPORT char *	DLLCALL strip_exascii(const char *str, char* dest);
-	DLLEXPORT char *	DLLCALL strip_space(const char *str, char* dest);
 	DLLEXPORT char *	DLLCALL prep_file_desc(const char *str, char* dest);
 	DLLEXPORT char *	DLLCALL strip_ctrl(const char *str, char* dest);
 	DLLEXPORT char *	DLLCALL net_addr(net_t* net);

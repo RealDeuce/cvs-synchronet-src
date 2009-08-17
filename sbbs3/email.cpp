@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.48 2009/10/18 09:38:00 rswindell Exp $ */
+/* $Id: email.cpp,v 1.47 2009/03/20 19:23:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,7 +271,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			attr(cfg.color[clr_err]);
-			bputs(text[CantPostMsg]);
+			bputs("Duplicate message!\r\n");
 			return(false); 
 		} 
 	}
