@@ -2,7 +2,7 @@
 
 /* Network related wrapper functions */
 
-/* $Id: netwrap.c,v 1.3 2009/08/17 07:46:49 rswindell Exp $ */
+/* $Id: netwrap.c,v 1.4 2009/08/17 16:51:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,7 +111,9 @@ const char* getHostNameByAddr(const char* str)
 	if((h=gethostbyaddr((char *)&ip,sizeof(ip),AF_INET))==NULL)
 		return NULL;
 
+#ifdef _WIN32
 	WSACleanup();
+#endif
 
 	return h->h_name;
 }
