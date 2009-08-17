@@ -2,13 +2,13 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.133 2010/03/08 00:58:46 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.129 2009/08/17 08:12:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -75,23 +75,42 @@ static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
-	/* pHostName is no longer used since iniFileName calls gethostname() itself */
+    char	host_name[128];
+    char	path[MAX_PATH+1];
+	char*	p;
 
-#if defined(_WINSOCKAPI_)	 
-	WSADATA WSAData;	 
-    WSAStartup(MAKEWORD(1,1), &WSAData); /* req'd for gethostname */	 
-#endif	 
-
+    if(pHostName!=NULL)
+		SAFECOPY(host_name,pHostName);
+	else {
+#if defined(_WINSOCKAPI_)
+        WSADATA WSAData;
+        WSAStartup(MAKEWORD(1,1), &WSAData); /* req'd for gethostname */
+#endif
+    	gethostname(host_name,sizeof(host_name)-1);
+#if defined(_WINSOCKAPI_)
+        WSACleanup();
+#endif
+    }
+	SAFECOPY(path,ctrl_dir);
+	backslash(path);
+	sprintf(ini_file,"%s%s.ini",path,host_name);
+	if(fexistcase(ini_file))
+		return;
+	if((p=strchr(host_name,'.'))!=NULL) {
+		*p=0;
+		sprintf(ini_file,"%s%s.ini",path,host_name);
+		if(fexistcase(ini_file))
+			return;
+	}
 #if defined(__unix__) && defined(PREFIX)
 	sprintf(ini_file,PREFIX"/etc/sbbs.ini");
 	if(fexistcase(ini_file))
 		return;
 #endif
 	iniFileName(ini_file,MAX_PATH,ctrl_dir,"sbbs.ini");
-
-#if defined(_WINSOCKAPI_)	 
-	WSACleanup();	 
-#endif
+	if(fexistcase(ini_file))
+		return;
+	iniFileName(ini_file,MAX_PATH,ctrl_dir,"startup.ini");
 }
 
 static void sbbs_fix_js_settings(js_startup_t* js)
@@ -107,22 +126,20 @@ void sbbs_get_js_settings(
 	,js_startup_t* js
 	,js_startup_t* defaults)
 {
-	char	value[INI_MAX_VALUE_LEN];
-    char*   p;
+	str_list_t	load_path;
 
-	js->max_bytes		= (ulong)iniGetBytes(list,section,strJavaScriptMaxBytes		,/* unit: */1,defaults->max_bytes);
-	js->cx_stack		= (ulong)iniGetBytes(list,section,strJavaScriptContextStack	,/* unit: */1,defaults->cx_stack);
-	js->thread_stack	= (ulong)iniGetBytes(list,section,strJavaScriptThreadStack	,/* unit: */1,defaults->thread_stack);
+	js->max_bytes		= iniGetInteger(list,section,strJavaScriptMaxBytes		,defaults->max_bytes);
+	js->cx_stack		= iniGetInteger(list,section,strJavaScriptContextStack	,defaults->cx_stack);
+	js->thread_stack	= iniGetInteger(list,section,strJavaScriptThreadStack	,defaults->thread_stack);
 	js->branch_limit	= iniGetInteger(list,section,strJavaScriptBranchLimit	,defaults->branch_limit);
 	js->gc_interval		= iniGetInteger(list,section,strJavaScriptGcInterval	,defaults->gc_interval);
 	js->yield_interval	= iniGetInteger(list,section,strJavaScriptYieldInterval	,defaults->yield_interval);
 
-	/* Get JavaScriptLoadPath, use default is key is missing, use blank if key value is blank */
-    if((p=iniGetExistingString(list, section, strJavaScriptLoadPath, nulstr, value)) == NULL) {
-		if(defaults!=js)
-			SAFECOPY(js->load_path, defaults->load_path);
-	} else
-        SAFECOPY(js->load_path, p);
+//    if(js->load_path != defaults->load_path)      /* Memory leak, ToDo Fix! */
+//    	iniFreeStringList(js->load_path);
+	if((load_path = iniGetStringList(list, section,strJavaScriptLoadPath,",",NULL)) == NULL)
+		load_path = defaults->load_path;
+	js->load_path = load_path;
 
 	sbbs_fix_js_settings(js);
 }
@@ -142,9 +159,8 @@ BOOL sbbs_set_js_settings(
 			,JAVASCRIPT_BRANCH_LIMIT
 			,JAVASCRIPT_GC_INTERVAL
 			,JAVASCRIPT_YIELD_INTERVAL
-            ,JAVASCRIPT_LOAD_PATH
+            ,NULL   /* load_path */
 		};
-	SAFECOPY(global_defaults.load_path, JAVASCRIPT_LOAD_PATH);
 
 	if(defaults==NULL)
 		defaults=&global_defaults;
@@ -154,17 +170,17 @@ BOOL sbbs_set_js_settings(
 	if(js->max_bytes==defaults->max_bytes)
 		iniRemoveValue(lp,section,strJavaScriptMaxBytes);
 	else
-		failure|=iniSetBytes(lp,section,strJavaScriptMaxBytes,/*unit: */1, js->max_bytes,style)==NULL;
+		failure|=iniSetInteger(lp,section,strJavaScriptMaxBytes,js->max_bytes,style)==NULL;
 
 	if(js->cx_stack==defaults->cx_stack)
 		iniRemoveValue(lp,section,strJavaScriptContextStack);
 	else 
-		failure|=iniSetBytes(lp,section,strJavaScriptContextStack,/*unit: */1,js->cx_stack,style)==NULL;
+		failure|=iniSetInteger(lp,section,strJavaScriptContextStack,js->cx_stack,style)==NULL;
 
 	if(js->thread_stack==defaults->thread_stack)
 		iniRemoveValue(lp,section,strJavaScriptThreadStack);
 	else 
-		failure|=iniSetBytes(lp,section,strJavaScriptThreadStack,/*unit: */1,js->thread_stack,style)==NULL;
+		failure|=iniSetInteger(lp,section,strJavaScriptThreadStack,js->thread_stack,style)==NULL;
 
 	if(js->branch_limit==defaults->branch_limit)
 		iniRemoveValue(lp,section,strJavaScriptBranchLimit);
@@ -181,10 +197,10 @@ BOOL sbbs_set_js_settings(
 	else 
 		failure|=iniSetInteger(lp,section,strJavaScriptYieldInterval,js->yield_interval,style)==NULL;
 
-	if(strcmp(js->load_path,defaults->load_path)==0)
-		iniRemoveKey(lp,section,strJavaScriptLoadPath);
+	if(js->load_path==defaults->load_path)
+		iniRemoveValue(lp,section,strJavaScriptLoadPath);
 	else
-		failure|=iniSetString(lp,section,strJavaScriptLoadPath,js->load_path,style)==NULL;
+		failure|=iniSetStringList(lp,section,strJavaScriptLoadPath,",",js->load_path,style)==NULL;
 
 	return(!failure);
 }
@@ -228,7 +244,8 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	global->js.branch_limit		= JAVASCRIPT_BRANCH_LIMIT;
 	global->js.gc_interval		= JAVASCRIPT_GC_INTERVAL;
 	global->js.yield_interval	= JAVASCRIPT_YIELD_INTERVAL;
-    SAFECOPY(global->js.load_path, JAVASCRIPT_LOAD_PATH);
+    if(global->js.load_path==NULL)
+    	global->js.load_path	= strListSplitCopy(NULL, JAVASCRIPT_LOAD_PATH, ",");
 
 	/* Read .ini values here */
 	sbbs_get_js_settings(list, section, &global->js, &global->js);

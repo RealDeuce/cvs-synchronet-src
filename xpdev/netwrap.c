@@ -2,7 +2,7 @@
 
 /* Network related wrapper functions */
 
-/* $Id: netwrap.c,v 1.5 2009/08/19 00:16:14 rswindell Exp $ */
+/* $Id: netwrap.c,v 1.4 2009/08/17 16:51:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,8 +106,6 @@ const char* getHostNameByAddr(const char* str)
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
-	if(str==NULL)
-		return NULL;
 	if((ip=inet_addr(str)) == INADDR_NONE)
 		return str;
 	if((h=gethostbyaddr((char *)&ip,sizeof(ip),AF_INET))==NULL)
