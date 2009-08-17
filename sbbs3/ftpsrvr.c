@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.356 2009/08/14 11:02:54 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.357 2009/08/17 07:50:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2341,7 +2341,7 @@ static void ctrl_thread(void* arg)
 	char		ren_from[MAX_PATH+1]="";
 	char		html_index_ext[MAX_PATH+1];
 	WORD		port;
-	ulong		ip_addr;
+	uint32_t	ip_addr;
 	socklen_t	addr_len;
 	DWORD		h1,h2,h3,h4;
 	u_short		p1,p2;	/* For PORT command */
@@ -4589,7 +4589,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.356 $", "%*s %s", revision);
+	sscanf("$Revision: 1.357 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
