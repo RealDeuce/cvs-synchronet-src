@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.130 2009/08/17 03:30:15 cyan Exp $ */
+/* $Id: jsexec.c,v 1.131 2009/08/18 23:24:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -618,7 +618,7 @@ static BOOL js_init(char** environ)
 	js_startup_t	startup;
 
 	memset(&startup,0,sizeof(startup));
-	startup.load_path=strListSplitCopy(NULL, load_path_list, ",");
+	SAFECOPY(startup.load_path, load_path_list);
 
 	fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 
@@ -882,7 +882,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.130 $", "%*s %s", revision);
+	sscanf("$Revision: 1.131 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
