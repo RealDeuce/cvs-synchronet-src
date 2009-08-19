@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.158 2009/02/21 22:01:04 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.162 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,6 +76,8 @@
 #define JAVASCRIPT_BRANCH_LIMIT		99999999
 #define JAVASCRIPT_YIELD_INTERVAL	10000
 #define JAVASCRIPT_GC_INTERVAL		100 
+#define JAVASCRIPT_LOAD_PATH		"load"
+#define JAVASCRIPT_LOAD_PATH_LIST	"load_path_list"
 
 typedef struct {
 	ulong	counter;
@@ -98,6 +100,8 @@ typedef struct {
 
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
+
+#define MAX_TEXTDAT_ITEM_LEN	2000
 
 
 #define LEN_DIR		63		/* Maximum length of directory paths		*/
@@ -293,6 +297,7 @@ typedef struct {
 #define ERR_CHK		"checking"		/* checking */
 #define ERR_LEN		"checking length"
 #define ERR_EXEC	"executing"		/* executing */
+#define ERR_CHDIR	"changing directory"
 #define ERR_CREATE	"creating" 		/* creating */
 #define ERR_LOCK	"locking"		/* locking */
 #define ERR_UNLOCK 	"unlocking"		/* unlocking */
@@ -388,6 +393,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_SH			(1<<18)		/* Use command shell to execute			*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
+#define QUOTEWRAP		(1<<21)		/* Word-wrap the quoted text			*/
 
 									/* Bits in cfg.xtrn_misc				*/
 #define XTRN_NO_MUTEX	(1<<0)		/* Do not use exec_mutex for FOSSIL VXD	*/

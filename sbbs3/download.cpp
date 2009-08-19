@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.38 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: download.cpp,v 1.39 2009/06/11 06:15:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,7 +118,7 @@ void sbbs_t::downloadfile(file_t* f)
 	for(l=0;l<(ulong)length;l+=F_IXBSIZE) {
 		read(file,str,F_IXBSIZE);      /* Look for the filename in the IXB file */
 		str[11]=0;
-		if(!strcmp(fname,str)) 
+		if(!stricmp(fname,str)) 
 			break; 
 	}
 	if(l>=(ulong)length) {

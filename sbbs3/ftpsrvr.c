@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.352 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.357 2009/08/17 07:50:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -503,7 +503,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing Global object",sock);
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
@@ -1000,6 +1000,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
+		js_PrepareToExecute(js_cx, parent, spath);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -2340,7 +2341,7 @@ static void ctrl_thread(void* arg)
 	char		ren_from[MAX_PATH+1]="";
 	char		html_index_ext[MAX_PATH+1];
 	WORD		port;
-	ulong		ip_addr;
+	uint32_t	ip_addr;
 	socklen_t	addr_len;
 	DWORD		h1,h2,h3,h4;
 	u_short		p1,p2;	/* For PORT command */
@@ -2460,11 +2461,14 @@ static void ctrl_thread(void* arg)
 	else
 		host_name="<no name>";
 
+#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
+	     and getnameinfo() doesn't return alias information */
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 		for(i=0;host!=NULL && host->h_aliases!=NULL && host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", sock, host->h_aliases[i]);
 	}
+#endif
 
 	if(trashcan(&scfg,host_ip,"ip")) {
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
@@ -3925,7 +3929,7 @@ static void ctrl_thread(void* arg)
 						if(js_CreateFileClass(js_cx, js_glob)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file class",sock);
 
-						if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", user.number, &client)==NULL) 
+						if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", &user, &client, /* global_user: */TRUE)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
 						if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
@@ -4585,7 +4589,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.352 $", "%*s %s", revision);
+	sscanf("$Revision: 1.357 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.5 2009/03/14 02:59:41 rswindell Exp $ */
+/* $Id: xpdatetime.c,v 1.6 2009/04/22 18:43:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,7 +118,7 @@ xpTimeZone_t xpTimeZone_local(void)
 #endif
 
 	/* Converts (_)timezone from seconds west of UTC to minutes east of UTC */
-	/* Adjust for DST, assuming adjustment is 60 seconds <sigh> */
+	/* Adjust for DST, assuming adjustment is always 60 minutes <sigh> */
 	return -((timezone/60) - (daylight*60));
 #endif
 }

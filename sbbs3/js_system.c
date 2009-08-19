@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.125 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: js_system.c,v 1.126 2009/03/21 02:37:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1356,7 +1356,7 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(i==0) {
-		userobj=js_CreateUserObject(cx, obj, cfg, NULL, user.number, /* client: */NULL);
+		userobj=js_CreateUserObject(cx, obj, cfg, NULL, &user, /* client: */NULL, /* global_user: */FALSE);
 		*rval = OBJECT_TO_JSVAL(userobj);
 	} else
 		*rval = INT_TO_JSVAL(i);

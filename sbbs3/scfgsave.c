@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.52 2009/02/21 21:55:39 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.54 2009/06/28 09:15:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -458,8 +458,9 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->mail_maxage,stream);
 	put_str(cfg->preqwk_arstr,stream);
 	put_int(cfg->smb_retry_time,stream);
+	put_int(cfg->max_qwkmsgage,stream);
 	n=0;
-	for(i=0;i<234;i++)
+	for(i=0;i<233;i++)
 		put_int(n,stream);
 	put_int(cfg->msg_misc,stream);
 	n=0xffff;
