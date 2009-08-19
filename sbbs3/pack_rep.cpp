@@ -2,13 +2,13 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.37 2009/12/04 06:05:01 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.36 2008/02/23 11:08:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -244,7 +244,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			continue;
 		SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,dirent->d_name);
 		eprintf(LOG_INFO,remove_ctrl_a(text[RetrievingFile],tmp),str);
-		if(!mv(str,tmp2,/* copy: */TRUE))
+		if(!mv(str,tmp2,1))
 			netfiles++;
 	}
 	if(dir!=NULL)
