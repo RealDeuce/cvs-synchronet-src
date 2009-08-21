@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.80 2009/10/18 09:38:00 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.79 2009/03/24 20:40:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -336,7 +336,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			attr(cfg.color[clr_err]);
-			bputs(text[CantPostMsg]);
+			bputs("Duplicate message!\r\n");
 			return(false); 
 		} 
 	}

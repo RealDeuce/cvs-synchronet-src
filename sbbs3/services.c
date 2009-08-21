@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.236 2009/10/22 23:24:07 rswindell Exp $ */
+/* $Id: services.c,v 1.235 2009/08/14 11:02:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -842,8 +842,6 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-	/* ToDo: call js_CreateCommonObjects() instead */
-
 	do {
 
 		JS_SetContextPrivate(js_cx, service_client);
@@ -877,10 +875,6 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		/* File Class */
 		if(js_CreateFileClass(js_cx, js_glob)==NULL)
-			break;
-
-		/* Queue Class */
-		if(js_CreateQueueClass(js_cx, js_glob)==NULL)
 			break;
 
 		/* user-specific objects */
@@ -1655,7 +1649,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.236 $", "%*s %s", revision);
+	sscanf("$Revision: 1.235 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
