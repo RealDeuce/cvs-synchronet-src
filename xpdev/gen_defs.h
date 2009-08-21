@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.43 2007/10/21 04:09:07 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.45 2009/08/19 05:59:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,10 @@
 #include <sys/types.h>
 #ifdef HAS_INTTYPES_H
 #include <inttypes.h>
+#else
+#ifdef HAS_STDINT_H
+#include <stdint.h>
+#endif
 #endif
 
 									/* Control characters */
@@ -97,7 +101,7 @@
 #define CR		'\r'				/* Carriage return			^M	*/
 #endif
 
-
+#ifndef CTRL_A
 enum {
 	 CTRL_A=1
 	,CTRL_B
@@ -126,6 +130,7 @@ enum {
 	,CTRL_Y
 	,CTRL_Z
 };
+#endif
 
 /* Unsigned type short-hands	*/
 #ifndef uchar
@@ -139,7 +144,7 @@ enum {
 	#endif
 #endif
 
-#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)
+#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES) && !defined(HAS_STDINT_H)
 
 typedef char	int8_t;
 typedef short	int16_t;
