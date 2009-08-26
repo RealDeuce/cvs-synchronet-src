@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.46 2009/02/05 07:58:40 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.48 2009/03/24 08:03:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,10 +141,12 @@ void sbbs_t::log(char *str)
 	if(logfile_fp==NULL || online==ON_LOCAL) return;
 	if(logcol>=78 || (78-logcol)<strlen(str)) {
 		fprintf(logfile_fp,"\r\n");
-		logcol=1; }
+		logcol=1; 
+	}
 	if(logcol==1) {
 		fprintf(logfile_fp,"   ");
-		logcol=4; }
+		logcol=4; 
+	}
 	fprintf(logfile_fp,str);
 	if(*lastchar(str)==LF) {
 		logcol=1;
@@ -248,61 +250,6 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 
 	/* Don't log path to source code */
 	src=getfname(source);
-#if 0
-	switch(action) {
-		case ERR_OPEN:
-			actstr="opening";
-			break;
-		case ERR_CLOSE:
-			actstr="closing";
-			break;
-		case ERR_FDOPEN:
-			actstr="fdopen";
-			break;
-		case ERR_READ:
-			actstr="reading";
-			break;
-		case ERR_WRITE:
-			actstr="writing";
-			break;
-		case ERR_REMOVE:
-			actstr="removing";
-			break;
-		case ERR_ALLOC:
-			actstr="allocating memory";
-			break;
-		case ERR_CHK:
-			actstr="checking";
-			break;
-		case ERR_LEN:
-			actstr="checking length";
-			break;
-		case ERR_EXEC:
-			actstr="executing";
-			break;
-		case ERR_CHDIR:
-			actstr="changing directory";
-			break;
-		case ERR_CREATE:
-			actstr="creating";
-			break;
-		case ERR_LOCK:
-			actstr="locking";
-			break;
-		case ERR_UNLOCK:
-			actstr="unlocking";
-			break;
-		case ERR_TIMEOUT:
-    		actstr="time-out waiting for resource";
-			break;
-		case ERR_IOCTL:
-    		actstr="sending IOCTL";
-			break;
-		default:
-			actstr="UNKNOWN"; 
-			break;
-	}
-#endif
 	sprintf(str,"Node %d !ERROR %d "
 #ifdef _WIN32
 		"(WinError %d) "
@@ -326,7 +273,8 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 			sbbs_beep(500,220); sbbs_beep(250,220);
 			sbbs_beep(500,220); sbbs_beep(250,220);
 			sbbs_beep(500,220); sbbs_beep(250,220);
-			nosound(); }
+			nosound(); 
+		}
 		bputs("\r\n\r\nThe sysop has been notified. <Hit a key>");
 		getkey(0);
 		CRLF;
@@ -336,7 +284,8 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 		,src,line,action,object,access);
 	if(access>9 && (long)access!=-1 && (short)access!=-1 && (char)access!=-1) {
 		sprintf(tmp," (0x%lX)",access);
-		strcat(str,tmp); }
+		strcat(str,tmp); 
+	}
 	if(extinfo!=NULL) {
 		sprintf(tmp,"\r\n      info: %s",extinfo);
 		strcat(str,tmp);
@@ -381,7 +330,9 @@ void sbbs_t::errorlog(const char *text)
 		sprintf(tmp2,"!ERROR %d opening/creating %s",errno,str);
 		logline("!!",tmp2);
 		errorlog_inside=0;
-		return; }
+		return; 
+
+	}
 	sprintf(hdr,"%s\r\nNode %2d: %s #%d\r\n"
 		,timestr(now),cfg.node_num,useron.alias,useron.number);
 	write(file,hdr,strlen(hdr));
