@@ -28,10 +28,10 @@
 #include <sys/stat.h>
 #include "snipfile.h"
 
-int file_append(char *from, char *to)
+_INT16 file_append(char *from, char *to)
 {
-	int fdfrom,fdto;
-	int bufsiz;
+	_INT16 fdfrom,fdto;
+	_INT16 bufsiz;
 
 	fdfrom = open(from,O_RDONLY|O_BINARY,0);
 	if (fdfrom < 0)
@@ -55,7 +55,7 @@ int file_append(char *from, char *to)
 		buffer = (char *) malloc(bufsiz);
 		if (buffer) {
 			while (1) {
-				register int n;
+				register _INT16 n;
 
 				n = read(fdfrom,buffer,bufsiz);
 				if (n == -1)                /* if error             */
@@ -80,10 +80,10 @@ err:
 	return 1;
 }
 
-int file_copy(char *from, char *to)
+_INT16 file_copy(char *from, char *to)
 {
-	int fdfrom,fdto;
-	int bufsiz;
+	_INT16 fdfrom,fdto;
+	_INT16 bufsiz;
 
 	fdfrom = open(from,O_RDONLY|O_BINARY,0);
 	if (fdfrom < 0)
@@ -107,7 +107,7 @@ int file_copy(char *from, char *to)
 		buffer = (char *) malloc(bufsiz);
 		if (buffer) {
 			while (1) {
-				register int n;
+				register _INT16 n;
 
 				n = read(fdfrom,buffer,bufsiz);
 				if (n == -1)                /* if error             */

@@ -4,7 +4,7 @@
 
 #include "defines.h"
 
-long CRCValue(void *Data, int DataSize)
+long CRCValue(void *Data, _INT16 DataSize)
 {
 	char *p;
 	long CRC = 0;
@@ -19,7 +19,7 @@ long CRCValue(void *Data, int DataSize)
 	return CRC;
 }
 
-int CheckCRC(void *Data, int Size, long CRC)
+_INT16 CheckCRC(void *Data, _INT16 Size, long CRC)
 {
 	return (CRCValue(Data, Size) == CRC);
 }
