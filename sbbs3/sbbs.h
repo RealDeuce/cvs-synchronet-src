@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.333 2009/04/22 03:12:30 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.336 2009/08/17 07:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,8 +119,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 /***********************/
 /* Synchronet-specific */
 /***********************/
+#include "startup.h"
 #ifdef __cplusplus
-	#include "startup.h"
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
 
@@ -130,6 +130,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #endif
 #include "genwrap.h"
 #include "semfile.h"
+#include "netwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "datewrap.h"
@@ -1001,7 +1002,7 @@ extern "C" {
 										,js_server_props_t* props);
 
 	/* js_global.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods);
+	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*);
 	DLLEXPORT JSObject*	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1009,16 +1010,18 @@ extern "C" {
 													,time_t uptime				/* system */
 													,char* host_name			/* system */
 													,char* socklib_desc			/* system */
-													,js_branch_t* js_branch		/* js */
+													,js_branch_t*				/* js */
+													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
 													,js_server_props_t* props	/* server */
 													);
 
 	/* js_internal.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t* branch);
+	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
