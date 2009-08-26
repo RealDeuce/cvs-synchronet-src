@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.535 2009/06/12 08:06:15 rswindell Exp $ */
+/* $Id: main.cpp,v 1.537 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1066,6 +1066,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		if((js_glob=js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
 					,&js_branch									/* js */
+					,&startup->js
 					,&client, client_socket						/* client */
 					,&js_server_props							/* server */
 			))==NULL)
@@ -2726,10 +2727,15 @@ void event_thread(void* arg)
 						ex_mode |= EX_SH;
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
-					sbbs->external(
-						 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
-						,ex_mode
-						,sbbs->cfg.event[i]->dir);
+					{
+						int result=
+						sbbs->external(
+							 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
+							,ex_mode
+							,sbbs->cfg.event[i]->dir);
+						if(!(ex_mode&EX_BG))
+							eprintf(LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
+					}
 					sbbs->cfg.event[i]->last=time(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 					if((file=sbbs->nopen(str,O_WRONLY))==-1) {
