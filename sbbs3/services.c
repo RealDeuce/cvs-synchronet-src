@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.224 2009/01/24 19:40:45 rswindell Exp $ */
+/* $Id: services.c,v 1.235 2009/08/14 11:02:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,6 +119,14 @@ static int lprintf(int level, const char *fmt, ...)
 	va_list argptr;
 	char sbuf[1024];
 
+	va_start(argptr,fmt);
+    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;
+    va_end(argptr);
+
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
+
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
 
@@ -127,10 +135,6 @@ static int lprintf(int level, const char *fmt, ...)
 		return(0);
 #endif
 
-	va_start(argptr,fmt);
-    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
     return(startup->lputs(startup->cbdata,level,sbuf));
 }
 
@@ -439,7 +443,6 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
 	JSBool		inc_logons=JS_FALSE;
-	user_t		user;
 	jsval		val;
 	JSString*	js_str;
 	service_client_t* client;
@@ -458,29 +461,29 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	memset(&user,0,sizeof(user));
+	memset(&client->user,0,sizeof(user_t));
 
 	if(isdigit(*p))
-		user.number=atoi(p);
+		client->user.number=atoi(p);
 	else if(*p)
-		user.number=matchuser(&scfg,p,FALSE);
+		client->user.number=matchuser(&scfg,p,FALSE);
 
-	if(getuserdat(&scfg,&user)!=0) {
+	if(getuserdat(&scfg,&client->user)!=0) {
 		lprintf(LOG_NOTICE,"%04d %s !USER NOT FOUND: '%s'"
 			,client->socket,client->service->protocol,p);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
-	if(user.misc&(DELETED|INACTIVE)) {
+	if(client->user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d %s !DELETED OR INACTIVE USER #%d: %s"
-			,client->socket,client->service->protocol,user.number,p);
+			,client->socket,client->service->protocol,client->user.number,p);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	/* Password */
-	if(user.pass[0]) {
+	if(client->user.pass[0]) {
 		if((js_str=JS_ValueToString(cx, argv[1]))==NULL)  {
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_FALSE);
@@ -491,9 +494,9 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			return(JS_FALSE);
 		}
 
-		if(stricmp(user.pass,p)) { /* Wrong password */
+		if(stricmp(client->user.pass,p)) { /* Wrong password */
 			lprintf(LOG_WARNING,"%04d %s !INVALID PASSWORD ATTEMPT FOR USER: %s"
-				,client->socket,client->service->protocol,user.alias);
+				,client->socket,client->service->protocol,client->user.alias);
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
@@ -505,25 +508,23 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(client->client!=NULL) {
-		SAFECOPY(user.note,client->client->addr);
-		SAFECOPY(user.comp,client->client->host);
-		SAFECOPY(user.modem,client->service->protocol);
+		SAFECOPY(client->user.note,client->client->addr);
+		SAFECOPY(client->user.comp,client->client->host);
+		SAFECOPY(client->user.modem,client->service->protocol);
 	}
 
 	if(inc_logons) {
-		user.logons++;
-		user.ltoday++;
+		client->user.logons++;
+		client->user.ltoday++;
 	}	
 
-	putuserdat(&scfg,&user);
+	putuserdat(&scfg,&client->user);
 	JS_RESUMEREQUEST(cx, rc);
 
 	/* user-specific objects */
-	if(!js_CreateUserObjects(cx, obj, &scfg, &user, NULL, NULL)) 
+	if(!js_CreateUserObjects(cx, obj, &scfg, &client->user, client->client, NULL, NULL)) 
 		lprintf(LOG_ERR,"%04d %s !JavaScript ERROR creating user objects"
 			,client->socket,client->service->protocol);
-
-	memcpy(&client->user,&user,sizeof(user));
 
 	if(client->client!=NULL) {
 		client->client->user=client->user.alias;
@@ -845,14 +846,14 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		JS_SetContextPrivate(js_cx, service_client);
 
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &service_client->service->js))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
 			break;
 
 		/* Internal JS Object */
-		if(js_CreateInternalJsObject(js_cx, js_glob, &service_client->branch)==NULL)
+		if(js_CreateInternalJsObject(js_cx, js_glob, &service_client->branch, &service_client->service->js)==NULL)
 			break;
 
 		/* Client Object */
@@ -877,7 +878,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 			break;
 
 		/* user-specific objects */
-		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, NULL, NULL, NULL)) 
+		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, /*user: */NULL, service_client->client, NULL, NULL)) 
 			break;
 
 		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
@@ -1023,7 +1024,6 @@ static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline
 
 static void js_service_thread(void* arg)
 {
-	int						i;
 	char*					host_name;
 	HOSTENT*				host;
 	SOCKET					socket;
@@ -1051,7 +1051,7 @@ static void js_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread started", socket, service->protocol);
 
-	SetThreadName("JS Service Thread");
+	SetThreadName("JS Service");
 	thread_up(TRUE /* setuid */);
 
 	/* Host name lookup and filtering */
@@ -1071,10 +1071,13 @@ static void js_service_thread(void* arg)
 		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 		lprintf(LOG_INFO,"%04d %s Hostname: %s"
 			,socket, service->protocol, host_name);
+#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
+	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL 
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d %s HostAlias: %s"
 				,socket, service->protocol, host->h_aliases[i]);
+#endif
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
@@ -1161,6 +1164,7 @@ static void js_service_thread(void* arg)
 	if(js_script==NULL) 
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
+		js_PrepareToExecute(js_cx, js_glob, spath);
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
@@ -1218,7 +1222,7 @@ static void js_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static JavaScript service thread started", service->socket, service->protocol);
 
-	SetThreadName("JS Static Service Thread");
+	SetThreadName("JS Static Service");
 	thread_up(TRUE /* setuid */);
 
 	memset(&service_client,0,sizeof(service_client));
@@ -1264,6 +1268,7 @@ static void js_static_service_thread(void* arg)
 			break;
 		}
 
+		js_PrepareToExecute(js_cx, js_glob, spath);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1311,7 +1316,7 @@ static void native_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static service thread started", socket, service->protocol);
 
-	SetThreadName("Native Static Service Thread");
+	SetThreadName("Static Service");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _WIN32
@@ -1357,7 +1362,6 @@ static void native_static_service_thread(void* arg)
 
 static void native_service_thread(void* arg)
 {
-	int						i;
 	char					cmd[MAX_PATH];
 	char					fullcmd[MAX_PATH*2];
 	char*					host_name;
@@ -1375,7 +1379,7 @@ static void native_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s service thread started", socket, service->protocol);
 
-	SetThreadName("Native Service Thread");
+	SetThreadName("Native Service");
 	thread_up(TRUE /* setuid */);
 
 	/* Host name lookup and filtering */
@@ -1395,10 +1399,13 @@ static void native_service_thread(void* arg)
 		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 		lprintf(LOG_INFO,"%04d %s Hostname: %s"
 			,socket, service->protocol, host_name);
+#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
+	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL 
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d %s HostAlias: %s"
 				,socket, service->protocol, host->h_aliases[i]);
+#endif
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
@@ -1642,7 +1649,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.224 $", "%*s %s", revision);
+	sscanf("$Revision: 1.235 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1719,7 +1726,7 @@ void DLLCALL services_thread(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 
-	SetThreadName("Services Thread");
+	SetThreadName("Services");
 
 	do {
 
@@ -1752,6 +1759,9 @@ void DLLCALL services_thread(void* arg)
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
+
+		if(chdir(startup->ctrl_dir)!=0)
+			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -1877,7 +1887,6 @@ void DLLCALL services_thread(void* arg)
 			cleanup(1);
 			return;
 		}
-		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
 
 		/* Setup static service threads */
 		for(i=0;i<(int)services;i++) {
@@ -1911,6 +1920,8 @@ void DLLCALL services_thread(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
+
+		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
 
 		/* Main Server Loop */
 		while(!terminated) {
@@ -2042,7 +2053,7 @@ void DLLCALL services_thread(void* arg)
 					result=bind(client_socket, (struct sockaddr *) &addr, sizeof(addr));
 					if(result==SOCKET_ERROR) {
 						/* Failed to re-bind to same port number, use user port */
-						lprintf(LOG_ERR,"%04d %s ERROR %d re-binding socket to port %u failed, "
+						lprintf(LOG_NOTICE,"%04d %s ERROR %d re-binding socket to port %u failed, "
 							"using user port"
 							,client_socket, service[i].protocol, ERROR_VALUE, service[i].port);
 						addr.sin_port=0;

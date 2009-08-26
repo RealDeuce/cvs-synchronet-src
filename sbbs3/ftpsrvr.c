@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.342 2009/01/24 19:40:45 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.357 2009/08/17 07:50:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,28 +122,34 @@ BOOL direxist(char *dir)
 		return(FALSE);
 }
 
-BOOL dir_op(scfg_t* cfg, user_t* user, uint dirnum)
+BOOL dir_op(scfg_t* cfg, user_t* user, client_t* client, uint dirnum)
 {
 	return(user->level>=SYSOP_LEVEL || user->exempt&FLAG('R')
-		|| (cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user)));
+		|| (cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user,client)));
 }
 
 static int lprintf(int level, const char *fmt, ...)
 {
-	int		result;
 	va_list argptr;
 	char sbuf[1024];
-
-    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
-        return(0);
 
     va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
-    result=startup->lputs(startup->cbdata,level,sbuf);
 
-	return(result);
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
+
+    if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
+		return(0);
+
+#if defined(_WIN32)
+	if(IsBadCodePtr((FARPROC)startup->lputs))
+		return(0);
+#endif
+
+    return startup->lputs(startup->cbdata,level,sbuf);
 }
 
 #ifdef _WINSOCKAPI_
@@ -329,7 +335,7 @@ static int sockprintf(SOCKET sock, char *fmt, ...)
 
 
 /* Returns the directory index of a virtual lib/dir path (e.g. main/games/filename) */
-int getdir(char* p, user_t* user)
+int getdir(char* p, user_t* user, client_t* client)
 {
 	char*	tp;
 	char	path[MAX_PATH+1];
@@ -347,7 +353,7 @@ int getdir(char* p, user_t* user)
 	tp=strchr(p,'/');
 	if(tp) *tp=0;
 	for(lib=0;lib<scfg.total_libs;lib++) {
-		if(!chk_ar(&scfg,scfg.lib[lib]->ar,user))
+		if(!chk_ar(&scfg,scfg.lib[lib]->ar,user,client))
 			continue;
 		if(!stricmp(scfg.lib[lib]->sname,p))
 			break;
@@ -364,7 +370,7 @@ int getdir(char* p, user_t* user)
 		if(scfg.dir[dir]->lib!=lib)
 			continue;
 		if(dir!=scfg.sysop_dir && dir!=scfg.upload_dir 
-			&& !chk_ar(&scfg,scfg.dir[dir]->ar,user))
+			&& !chk_ar(&scfg,scfg.dir[dir]->ar,user,client))
 			continue;
 		if(!stricmp(scfg.dir[dir]->code_suffix,p))
 			break;
@@ -497,7 +503,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing Global object",sock);
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
@@ -611,7 +617,7 @@ BOOL js_add_file(JSContext* js_cx, JSObject* array,
 }
 
 BOOL js_generate_index(JSContext* js_cx, JSObject* parent, 
-					   SOCKET sock, FILE* fp, int lib, int dir, user_t* user)
+					   SOCKET sock, FILE* fp, int lib, int dir, user_t* user, client_t* client)
 {
 	char		str[256];
 	char		path[MAX_PATH+1];
@@ -828,7 +834,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 					/* Virtual Path? */
 					if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
-						if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),user))<0)
+						if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),user,client))<0)
 							continue; /* No access or invalid virtual path */
 						tp=strrchr(np,'/');
 						if(tp==NULL) 
@@ -846,7 +852,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						continue;
 
 					if(alias_dir) {
-						if(!chk_ar(&scfg,scfg.dir[dir]->ar,user))
+						if(!chk_ar(&scfg,scfg.dir[dir]->ar,user,client))
 							continue;
 						SAFEPRINTF2(vpath,"/%s/%s",p,startup->html_index_file);
 					} else
@@ -897,7 +903,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 			/* Library Folders */
 			for(i=0;i<scfg.total_libs;i++) {
-				if(!chk_ar(&scfg,scfg.lib[i]->ar,user))
+				if(!chk_ar(&scfg,scfg.lib[i]->ar,user,client))
 					continue;
 				SAFEPRINTF2(vpath,"/%s/%s",scfg.lib[i]->sname,startup->html_index_file);
 				js_add_file(js_cx
@@ -916,7 +922,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 				if(scfg.dir[i]->lib!=lib)
 					continue;
 				if(/* i!=scfg.sysop_dir && i!=scfg.upload_dir && */
-					!chk_ar(&scfg,scfg.dir[i]->ar,user))
+					!chk_ar(&scfg,scfg.dir[i]->ar,user,client))
 					continue;
 				SAFEPRINTF3(vpath,"/%s/%s/%s"
 					,scfg.lib[scfg.dir[i]->lib]->sname
@@ -935,7 +941,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 					);
 
 			}
-		} else if(chk_ar(&scfg,scfg.dir[dir]->ar,user)){
+		} else if(chk_ar(&scfg,scfg.dir[dir]->ar,user,client)){
 			SAFEPRINTF(path,"%s*",scfg.dir[dir]->path);
 			rc=JS_SUSPENDREQUEST(js_cx);
 			glob(path,0,NULL,&g);
@@ -956,7 +962,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 						extdesc[0]=0;
 						getextdesc(&scfg, dir, f.datoffset, extdesc);
 						/* Remove Ctrl-A Codes and Ex-ASCII code */
-						remove_ctrl_a(extdesc,NULL);
+						remove_ctrl_a(extdesc,extdesc);
 					}
 					SAFEPRINTF3(vpath,"/%s/%s/%s"
 						,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -994,6 +1000,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
+		js_PrepareToExecute(js_cx, parent, spath);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -1297,20 +1304,21 @@ void DLLCALL ftp_terminate(void)
 
 
 typedef struct {
-	SOCKET	ctrl_sock;
-	SOCKET*	data_sock;
-	BOOL*	inprogress;
-	BOOL*	aborted;
-	BOOL	delfile;
-	BOOL	tmpfile;
-	BOOL	credits;
-	BOOL	append;
-	long	filepos;
-	char	filename[MAX_PATH+1];
-	time_t*	lastactive;
-	user_t*	user;
-	int		dir;
-	char*	desc;
+	SOCKET		ctrl_sock;
+	SOCKET*		data_sock;
+	BOOL*		inprogress;
+	BOOL*		aborted;
+	BOOL		delfile;
+	BOOL		tmpfile;
+	BOOL		credits;
+	BOOL		append;
+	long		filepos;
+	char		filename[MAX_PATH+1];
+	time_t*		lastactive;
+	user_t*		user;
+	client_t*	client;
+	int			dir;
+	char*		desc;
 } xfer_t;
 
 static void send_thread(void* arg)
@@ -1346,6 +1354,7 @@ static void send_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
+	SetThreadName("FTP Send");
 	thread_up(TRUE /* setuid */);
 
 	length=flength(xfer.filename);
@@ -1551,7 +1560,7 @@ static void send_thread(void* arg)
 
 		if(xfer.credits) {
 			user_downloaded(&scfg, xfer.user, 1, total);
-			if(xfer.dir>=0 && !is_download_free(&scfg,xfer.dir,xfer.user))
+			if(xfer.dir>=0 && !is_download_free(&scfg,xfer.dir,xfer.user,xfer.client))
 				subtract_cdt(&scfg, xfer.user, xfer.credits);
 		}
 	}
@@ -1604,6 +1613,7 @@ static void receive_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
+	SetThreadName("FTP RECV");
 	thread_up(TRUE /* setuid */);
 
 	if((fp=fopen(xfer.filename,xfer.append ? "ab" : "wb"))==NULL) {
@@ -1763,7 +1773,7 @@ static void receive_thread(void* arg)
 			if(p!=NULL && scfg.dir[f.dir]->misc&DIR_DIZ) {
 				for(i=0;i<scfg.total_fextrs;i++)
 					if(!stricmp(scfg.fextr[i]->ext,p+1) 
-						&& chk_ar(&scfg,scfg.fextr[i]->ar,xfer.user))
+						&& chk_ar(&scfg,scfg.fextr[i]->ar,xfer.user,xfer.client))
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
@@ -1786,8 +1796,8 @@ static void receive_thread(void* arg)
 						ext[i]=0;
 						if(!f.desc[0]) {			/* use for normal description */
 							SAFECOPY(desc,ext);
-							strip_exascii(desc);	/* strip extended ASCII chars */
-							prep_file_desc(desc);	/* strip control chars and dupe chars */
+							strip_exascii(desc, desc);	/* strip extended ASCII chars */
+							prep_file_desc(desc, desc);	/* strip control chars and dupe chars */
 							for(i=0;desc[i];i++)	/* find approprate first char */
 								if(isalnum(desc[i]))
 									break;
@@ -1850,6 +1860,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 					,BOOL delfile, BOOL tmpfile
 					,time_t* lastactive
 					,user_t* user
+					,client_t* client
 					,int dir
 					,BOOL receiving
 					,BOOL credits
@@ -2024,6 +2035,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 		xfer->credits=credits;
 		xfer->lastactive=lastactive;
 		xfer->user=user;
+		xfer->client=client;
 		xfer->dir=dir;
 		xfer->desc=desc;
 		SAFECOPY(xfer->filename,filename);
@@ -2062,7 +2074,7 @@ char* dotname(char* in, char* out)
 	return(out);
 }
 
-void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
+void parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curdir)
 {
 	char*	p;
 	char*	tp;
@@ -2103,7 +2115,7 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 		else
 			tp=p+strlen(p);
 		for(lib=0;lib<scfg.total_libs;lib++) {
-			if(!chk_ar(&scfg,scfg.lib[lib]->ar,user))
+			if(!chk_ar(&scfg,scfg.lib[lib]->ar,user,client))
 				continue;
 			if(!stricmp(scfg.lib[lib]->sname,p))
 				break;
@@ -2134,7 +2146,7 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 		if(scfg.dir[dir]->lib!=lib)
 			continue;
 		if(dir!=scfg.sysop_dir && dir!=scfg.upload_dir 
-			&& !chk_ar(&scfg,scfg.dir[dir]->ar,user))
+			&& !chk_ar(&scfg,scfg.dir[dir]->ar,user,client))
 			continue;
 		if(!stricmp(scfg.dir[dir]->code_suffix,p))
 			break;
@@ -2150,7 +2162,7 @@ void parsepath(char** pp, user_t* user, int* curlib, int* curdir)
 	*pp+=tp-path;	/* skip "lib/dir/" */
 }
 
-static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
+static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* client, int* curdir)
 {
 	char*	p;
 	char*	tp;
@@ -2202,7 +2214,7 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, int* curdir)
 		if(*tp) *tp=0;
 
 		if(!strnicmp(p,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
-			if((dir=getdir(p+strlen(BBS_VIRTUAL_PATH),user))<0)	{
+			if((dir=getdir(p+strlen(BBS_VIRTUAL_PATH),user,client))<0)	{
 				lprintf(LOG_WARNING,"0000 !Invalid virtual path (%s) for %s",p,user->alias);
 				/* invalid or no access */
 				continue;
@@ -2329,7 +2341,7 @@ static void ctrl_thread(void* arg)
 	char		ren_from[MAX_PATH+1]="";
 	char		html_index_ext[MAX_PATH+1];
 	WORD		port;
-	ulong		ip_addr;
+	uint32_t	ip_addr;
 	socklen_t	addr_len;
 	DWORD		h1,h2,h3,h4;
 	u_short		p1,p2;	/* For PORT command */
@@ -2396,6 +2408,7 @@ static void ctrl_thread(void* arg)
 	JSString*	js_str;
 #endif
 
+	SetThreadName("FTP CTRL");
 	thread_up(TRUE /* setuid */);
 
 	lastactive=time(NULL);
@@ -2448,11 +2461,14 @@ static void ctrl_thread(void* arg)
 	else
 		host_name="<no name>";
 
+#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
+	     and getnameinfo() doesn't return alias information */
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 		for(i=0;host!=NULL && host->h_aliases!=NULL && host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", sock, host->h_aliases[i]);
 	}
+#endif
 
 	if(trashcan(&scfg,host_ip,"ip")) {
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
@@ -2710,7 +2726,7 @@ static void ctrl_thread(void* arg)
 				if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
 					lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user class",sock);
 
-				if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", user.number)==NULL) 
+				if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", user.number, &client)==NULL) 
 					lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
 				if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
@@ -3119,7 +3135,7 @@ static void ctrl_thread(void* arg)
 					,&transfer_inprogress,&transfer_aborted
 					,TRUE	/* delfile */
 					,TRUE	/* tmpfile */
-					,&lastactive,&user,-1,FALSE,FALSE,FALSE,NULL);
+					,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL);
 				continue;
 			} /* Local LIST/NLST */
 				
@@ -3305,7 +3321,7 @@ static void ctrl_thread(void* arg)
 				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
 				filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
 					,&transfer_inprogress,&transfer_aborted,FALSE,FALSE
-					,&lastactive,&user,-1,FALSE,FALSE,FALSE,NULL);
+					,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL);
 				continue;
 			} /* Local RETR/SIZE/MDTM */
 
@@ -3330,6 +3346,7 @@ static void ctrl_thread(void* arg)
 					,&transfer_inprogress,&transfer_aborted,FALSE,FALSE
 					,&lastactive
 					,&user
+					,&client
 					,-1		/* dir */
 					,TRUE	/* uploading */
 					,FALSE	/* credits */
@@ -3357,7 +3374,7 @@ static void ctrl_thread(void* arg)
 				SKIP_WHITESPACE(p);
 			}
 
-			parsepath(&p,&user,&lib,&dir);
+			parsepath(&p,&user,&client,&lib,&dir);
 			filespec=p;
 			if(*filespec==0)
 				filespec="*";
@@ -3475,7 +3492,7 @@ static void ctrl_thread(void* arg)
 
 						/* Virtual Path? */
 						if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
-							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user))<0) {
+							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user,&client))<0) {
 								lprintf(LOG_WARNING,"0000 !Invalid virtual path (%s) for %s",np,user.alias);
 								continue; /* No access or invalid virtual path */
 							}
@@ -3529,7 +3546,7 @@ static void ctrl_thread(void* arg)
 
 				/* Library folders */
 				for(i=0;i<scfg.total_libs;i++) {
-					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
+					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user,&client))
 						continue;
 					if(!wildmatchi(scfg.lib[i]->sname, filespec, FALSE))
 						continue;
@@ -3551,7 +3568,7 @@ static void ctrl_thread(void* arg)
 					if(scfg.dir[i]->lib!=lib)
 						continue;
 					if(i!=scfg.sysop_dir && i!=scfg.upload_dir 
-						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user))
+						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!wildmatchi(scfg.dir[i]->code_suffix, filespec, FALSE))
 						continue;
@@ -3566,7 +3583,7 @@ static void ctrl_thread(void* arg)
 					else
 						fprintf(fp,"%s\r\n",scfg.dir[i]->code_suffix);
 				}
-			} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user)) {
+			} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)) {
 				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode"
 					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
@@ -3625,7 +3642,7 @@ static void ctrl_thread(void* arg)
 				,&transfer_inprogress,&transfer_aborted
 				,TRUE /* delfile */
 				,TRUE /* tmpfile */
-				,&lastactive,&user,dir,FALSE,FALSE,FALSE,NULL);
+				,&lastactive,&user,&client,dir,FALSE,FALSE,FALSE,NULL);
 			continue;
 		}
 
@@ -3669,7 +3686,7 @@ static void ctrl_thread(void* arg)
 			else if(!strncmp(p,"./",2))
 				p+=2;
 
-			if(lib<0 && ftpalias(p, fname, &user, &dir)==TRUE) {
+			if(lib<0 && ftpalias(p, fname, &user, &client, &dir)==TRUE) {
 				success=TRUE;
 				credits=TRUE;	/* include in d/l stats */
 				tmpfile=FALSE;
@@ -3684,7 +3701,7 @@ static void ctrl_thread(void* arg)
 				dir=-1;
 				*tp=0;
 				for(i=0;i<scfg.total_libs;i++) {
-					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
+					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.lib[i]->sname,p))
 						break;
@@ -3698,7 +3715,7 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=lib)
 						continue;
-					if(!chk_ar(&scfg,scfg.dir[i]->ar,&user))
+					if(!chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.dir[i]->code_suffix,p))
 						break;
@@ -3721,9 +3738,15 @@ static void ctrl_thread(void* arg)
 							,sock, str);
 					t=time(NULL);
 					while(fexist(str)) {
+						if(!socket_check(sock,NULL,NULL,0))
+							break;
 						if(time(NULL)-t>startup->qwk_timeout)
 							break;
 						mswait(1000);
+					}
+					if(!socket_check(sock,NULL,NULL,0)) {
+						remove(str);
+						continue;
 					}
 					if(fexist(str)) {
 						lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
@@ -3821,7 +3844,7 @@ static void ctrl_thread(void* arg)
 
 						/* Library Folders */
 						for(i=0;i<scfg.total_libs;i++) {
-							if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
+							if(!chk_ar(&scfg,scfg.lib[i]->ar,&user,&client))
 								continue;
 							fprintf(fp,"%-*s %s\r\n"
 								,INDEX_FNAME_LEN,scfg.lib[i]->sname,scfg.lib[i]->lname);
@@ -3831,12 +3854,12 @@ static void ctrl_thread(void* arg)
 							if(scfg.dir[i]->lib!=lib)
 								continue;
 							if(i!=scfg.sysop_dir && i!=scfg.upload_dir
-								&& !chk_ar(&scfg,scfg.dir[i]->ar,&user))
+								&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 								continue;
 							fprintf(fp,"%-*s %s\r\n"
 								,INDEX_FNAME_LEN,scfg.dir[i]->code_suffix,scfg.dir[i]->lname);
 						}
-					} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user)){
+					} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)){
 						sprintf(cmd,"%s*",scfg.dir[dir]->path);
 						glob(cmd,0,NULL,&g);
 						for(i=0;i<(int)g.gl_pathc;i++) {
@@ -3906,13 +3929,13 @@ static void ctrl_thread(void* arg)
 						if(js_CreateFileClass(js_cx, js_glob)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file class",sock);
 
-						if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", user.number)==NULL) 
+						if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", &user, &client, /* global_user: */TRUE)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
 						if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating client object",sock);
 
-						if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user
+						if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user, &client
 							,startup->html_index_file)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file area object",sock);
 					}
@@ -3980,14 +4003,14 @@ static void ctrl_thread(void* arg)
 					js_val=INT_TO_JSVAL(timeleft);
 					if(!JS_SetProperty(js_cx, js_ftp, "time_left", &js_val))
 						lprintf(LOG_ERR,"%04d !JavaScript ERROR setting user.time_left",sock);
-					js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user);
+					js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user, &client);
 					JS_ENDREQUEST(js_cx);
 #endif
 					fclose(fp);
 				}
 			} else if(dir>=0) {
 
-				if(!chk_ar(&scfg,scfg.dir[dir]->ar,&user)) {
+				if(!chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)) {
 					lprintf(LOG_WARNING,"%04d !%s has insufficient access to /%s/%s"
 						,sock,user.alias
 						,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -3998,7 +4021,7 @@ static void ctrl_thread(void* arg)
 				}
 
 				if(!getsize && !getdate && !delecmd
-					&& !chk_ar(&scfg,scfg.dir[dir]->dl_ar,&user)) {
+					&& !chk_ar(&scfg,scfg.dir[dir]->dl_ar,&user,&client)) {
 					lprintf(LOG_WARNING,"%04d !%s has insufficient access to download from /%s/%s"
 						,sock,user.alias
 						,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -4008,7 +4031,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 
-				if(delecmd && !dir_op(&scfg,&user,dir)) {
+				if(delecmd && !dir_op(&scfg,&user,&client,dir)) {
 					lprintf(LOG_WARNING,"%04d !%s has insufficient access to delete files in /%s/%s"
 						,sock,user.alias
 						,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -4038,7 +4061,7 @@ static void ctrl_thread(void* arg)
 
 				/* Verify credits */
 				if(!getsize && !getdate && !delecmd
-					&& !is_download_free(&scfg,dir,&user)) {
+					&& !is_download_free(&scfg,dir,&user,&client)) {
 					if(filedat)
 						getfiledat(&scfg,&f);
 					else
@@ -4065,7 +4088,7 @@ static void ctrl_thread(void* arg)
 						PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 				} else {
-					if(fexist(fname)) {
+					if(fexistcase(fname)) {
 						success=TRUE;
 						if(!getsize && !getdate && !delecmd)
 							lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
@@ -4089,7 +4112,7 @@ static void ctrl_thread(void* arg)
 					,1900+tm.tm_year,tm.tm_mon+1,tm.tm_mday
 					,tm.tm_hour,tm.tm_min,tm.tm_sec);
 			} else if(delecmd && success) {
-				if(remove(fname)!=0) {
+				if(removecase(fname)!=0) {
 					lprintf(LOG_ERR,"%04d !ERROR %d deleting %s",sock,errno,fname);
 					sockprintf(sock,"450 %s could not be deleted (error: %d)"
 						,fname,errno);
@@ -4103,7 +4126,7 @@ static void ctrl_thread(void* arg)
 				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
 				filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
 					,&transfer_inprogress,&transfer_aborted,delfile,tmpfile
-					,&lastactive,&user,dir,FALSE,credits,FALSE,NULL);
+					,&lastactive,&user,&client,dir,FALSE,credits,FALSE,NULL);
 			}
 			else {
 				sockprintf(sock,"550 File not found: %s",p);
@@ -4170,7 +4193,7 @@ static void ctrl_thread(void* arg)
 				dir=-1;
 				*tp=0;
 				for(i=0;i<scfg.total_libs;i++) {
-					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
+					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.lib[i]->sname,p))
 						break;
@@ -4185,7 +4208,7 @@ static void ctrl_thread(void* arg)
 					if(scfg.dir[i]->lib!=lib)
 						continue;
 					if(i!=scfg.sysop_dir && i!=scfg.upload_dir 
-						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user))
+						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.dir[i]->code_suffix,p))
 						break;
@@ -4211,7 +4234,7 @@ static void ctrl_thread(void* arg)
 
 				append=(strnicmp(cmd,"APPE",4)==0);
 			
-				if(!chk_ar(&scfg,scfg.dir[dir]->ul_ar,&user)) {
+				if(!chk_ar(&scfg,scfg.dir[dir]->ul_ar,&user,&client)) {
 					lprintf(LOG_WARNING,"%04d !%s has insufficient access to upload to /%s/%s"
 						,sock,user.alias
 						,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -4283,6 +4306,7 @@ static void ctrl_thread(void* arg)
 				,&transfer_inprogress,&transfer_aborted,FALSE,FALSE
 				,&lastactive
 				,&user
+				,&client
 				,dir
 				,TRUE	/* uploading */
 				,TRUE	/* credits */
@@ -4333,7 +4357,7 @@ static void ctrl_thread(void* arg)
 			success=FALSE;
 
 			/* Directory Alias? */
-			if(curlib<0 && ftpalias(p,NULL,&user,&curdir)==TRUE) {
+			if(curlib<0 && ftpalias(p,NULL,&user,&client,&curdir)==TRUE) {
 				if(curdir>=0)
 					curlib=scfg.dir[curdir]->lib;
 				success=TRUE;
@@ -4365,7 +4389,7 @@ static void ctrl_thread(void* arg)
 				tp=strchr(p,'/');
 				if(tp) *tp=0;
 				for(i=0;i<scfg.total_libs;i++) {
-					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user))
+					if(!chk_ar(&scfg,scfg.lib[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.lib[i]->sname,p))
 						break;
@@ -4384,7 +4408,7 @@ static void ctrl_thread(void* arg)
 					if(scfg.dir[i]->lib!=curlib)
 						continue;
 					if(i!=scfg.sysop_dir && i!=scfg.upload_dir
-						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user))
+						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.dir[i]->code_suffix,p))
 						break;
@@ -4565,7 +4589,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.342 $", "%*s %s", revision);
+	sscanf("$Revision: 1.357 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4604,6 +4628,7 @@ void DLLCALL ftp_server(void* arg)
 	ftp_ver();
 
 	startup=(ftp_startup_t*)arg;
+	SetThreadName("FTP Server");
 
 #ifdef _THREAD_SUID_BROKEN
 	if(thread_suid_broken)
@@ -4688,6 +4713,9 @@ void DLLCALL ftp_server(void* arg)
 		t=time(NULL);
 		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
+
+		if(chdir(startup->ctrl_dir)!=0)
+			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -4798,9 +4826,8 @@ void DLLCALL ftp_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_INFO,"%04d FTP Server listening on port %d",server_socket,startup->port);
+		lprintf(LOG_INFO,"%04d FTP Server listening on port %u",server_socket,startup->port);
 		status(STATUS_WFC);
-		lprintf(LOG_INFO,"%04d FTP Server thread started",server_socket);
 
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","ftp");
@@ -4812,10 +4839,11 @@ void DLLCALL ftp_server(void* arg)
 			semfile_list_check(&initialized,shutdown_semfiles);
 		}
 
-
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
+
+		lprintf(LOG_INFO,"%04d FTP Server thread started",server_socket);
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
