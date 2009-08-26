@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.71 2006/05/08 22:38:35 deuce Exp $ */
+/* $Id: umonitor.c,v 1.69 2005/09/20 03:41:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,6 +102,16 @@ void allocfail(uint size)
     bail(1);
 }
 
+void freeopt(char** opt)
+{
+	int i;
+
+	for(i=0;i<(MAX_OPTS+1);i++)
+		free(opt[i]);
+
+	free(opt);
+}
+
 void node_toggles(scfg_t *cfg,int nodenum)  {
 	int nodefile;
 	char**	opt;
@@ -109,10 +119,10 @@ void node_toggles(scfg_t *cfg,int nodenum)  {
 	node_t	node;
 	int		save=0;
 
-	if((opt=(char **)alloca(sizeof(char *)*(4+1)))==NULL)
-		allocfail(sizeof(char *)*(4+1));
-	for(i=0;i<(4+1);i++)
-		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((opt=(char **)malloc(sizeof(char *)*(MAX_OPTS+1)))==NULL)
+		allocfail(sizeof(char *)*(MAX_OPTS+1));
+	for(i=0;i<(MAX_OPTS+1);i++)
+		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 	i=0;
@@ -176,6 +186,7 @@ void node_toggles(scfg_t *cfg,int nodenum)  {
 		}
 		putnodedat(cfg,nodenum,&node,nodefile);
 	}
+	freeopt(opt);
 }
 
 int dospy(int nodenum, bbs_startup_t *bbs_startup)  {
@@ -414,11 +425,12 @@ int view_log(char *filename, char *title)
 	if(fexist(filename)) {
 		if((buffile=sopen(filename,O_RDONLY,SH_DENYWR))>=0) {
 			j=filelength(buffile);
-			if((buf=(char *)alloca(j+1))!=NULL) {
+			if((buf=(char *)malloc(j+1))!=NULL) {
 				read(buffile,buf,j);
 				close(buffile);
 				*(buf+j)=0;
 				uifc.showbuf(WIN_MID,0,0,76,uifc.scrn_len-2,title,buf,NULL,NULL);
+				free(buf);
 				return(0);
 			}
 			close(buffile);
@@ -447,10 +459,10 @@ int view_logs(scfg_t *cfg)
 	localtime_r(&now,&tm);
 	now -= 60*60*24;
 	localtime_r(&now,&tm_yest);
-	if((opt=(char **)alloca(sizeof(char *)*(9+1)))==NULL)
-		allocfail(sizeof(char *)*(9+1));
-	for(i=0;i<(9+1);i++)
-		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((opt=(char **)malloc(sizeof(char *)*(MAX_OPTS+1)))==NULL)
+		allocfail(sizeof(char *)*(MAX_OPTS+1));
+	for(i=0;i<(MAX_OPTS+1);i++)
+		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 	i=0;
@@ -480,6 +492,7 @@ int view_logs(scfg_t *cfg)
 	while(1) {
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"View Logs",opt))  {
 			case -1:
+				freeopt(opt);
 				return(0);
 			case 0:
 				sprintf(str,"%slogs/%2.2d%2.2d%2.2d.lol",cfg->logs_dir,tm.tm_mon+1,tm.tm_mday
@@ -532,10 +545,11 @@ int do_cmd(char *cmd)
 	char *p;
 
 	gettextinfo(&ti);
-	p=alloca(ti.screenheight*ti.screenwidth*2);
+	p=malloc(ti.screenheight*ti.screenwidth*2);
 	gettext(1,1,ti.screenwidth,ti.screenheight,p);
 	i=system(cmd);
 	puttext(1,1,ti.screenwidth,ti.screenheight,p);
+	free(p);
 	return(i);
 }
 
@@ -550,10 +564,10 @@ int qwk_callouts(scfg_t *cfg)
 		return(1);
 	}
 
-	if((opt=(char **)alloca(sizeof(char *)*(cfg->total_qhubs+1)))==NULL)
-		allocfail(sizeof(char *)*(cfg->total_qhubs+1));
-	for(i=0;i<(cfg->total_qhubs+1);i++)
-		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((opt=(char **)malloc(sizeof(char *)*(MAX_OPTS+1)))==NULL)
+		allocfail(sizeof(char *)*(MAX_OPTS+1));
+	for(i=0;i<(MAX_OPTS+1);i++)
+		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 
@@ -573,6 +587,7 @@ int qwk_callouts(scfg_t *cfg)
 		opt[i][0]=0;
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"QWK Callouts",opt))  {
 			case -1:
+				freeopt(opt);
 				return(0);
 				break;
 			default:
@@ -589,10 +604,10 @@ int run_events(scfg_t *cfg)
 	int		i,j;
 	char	str[1024];
 
-	if((opt=(char **)alloca(sizeof(char *)*(cfg->total_events+1)))==NULL)
-		allocfail(sizeof(char *)*(cfg->total_events+1));
-	for(i=0;i<(cfg->total_events+1);i++)
-		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((opt=(char **)malloc(sizeof(char *)*(MAX_OPTS+1)))==NULL)
+		allocfail(sizeof(char *)*(MAX_OPTS+1));
+	for(i=0;i<(MAX_OPTS+1);i++)
+		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 	if(cfg->total_events<1) {
@@ -615,6 +630,7 @@ int run_events(scfg_t *cfg)
 		opt[i][0]=0;
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0,"Run Events",opt))  {
 			case -1:
+				freeopt(opt);
 				return(0);
 				break;
 			default:
@@ -631,10 +647,10 @@ int recycle_servers(scfg_t *cfg)
 	char **opt;
 	int i=0;
 
-	if((opt=(char **)alloca(sizeof(char *)*(5+1)))==NULL)
-		allocfail(sizeof(char *)*(5+1));
-	for(i=0;i<(5+1);i++)
-		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((opt=(char **)malloc(sizeof(char *)*(MAX_OPTS+1)))==NULL)
+		allocfail(sizeof(char *)*(MAX_OPTS+1));
+	for(i=0;i<(MAX_OPTS+1);i++)
+		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 	i=0;
@@ -655,6 +671,7 @@ int recycle_servers(scfg_t *cfg)
 	while(1) {
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Recycle Servers",opt))  {
 			case -1:
+				freeopt(opt);
 				return(0);
 				break;
 			case 0:
@@ -703,10 +720,10 @@ int edit_cfg(scfg_t *cfg)
 	char	cmd[1024];
 	char	editcmd[1024];
 
-	if((opt=(char **)alloca(sizeof(char *)*(17+1)))==NULL)
-		allocfail(sizeof(char *)*(17+1));
-	for(i=0;i<(17+1);i++)
-		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((opt=(char **)malloc(sizeof(char *)*(MAX_OPTS+1)))==NULL)
+		allocfail(sizeof(char *)*(MAX_OPTS+1));
+	for(i=0;i<(MAX_OPTS+1);i++)
+		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 	i=0;
@@ -733,6 +750,7 @@ int edit_cfg(scfg_t *cfg)
 	while(1) {
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"System Options",opt))  {
 			case -1:
+				freeopt(opt);
 				return(0);
 				break;
 			default:
@@ -751,10 +769,10 @@ int edit_can(scfg_t *cfg)
 	char	cmd[1024];
 	char	editcmd[1024];
 
-	if((opt=(char **)alloca(sizeof(char *)*(9+1)))==NULL)
-		allocfail(sizeof(char *)*(9+1));
-	for(i=0;i<(9+1);i++)
-		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((opt=(char **)malloc(sizeof(char *)*(MAX_OPTS+1)))==NULL)
+		allocfail(sizeof(char *)*(MAX_OPTS+1));
+	for(i=0;i<(MAX_OPTS+1);i++)
+		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 	i=0;
@@ -773,6 +791,7 @@ int edit_can(scfg_t *cfg)
 	while(1) {
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"System Options",opt))  {
 			case -1:
+				freeopt(opt);
 				return(0);
 				break;
 			default:
@@ -808,7 +827,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.71 $", "%*s %s", revision);
+	sscanf("$Revision: 1.69 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -950,16 +969,16 @@ int main(int argc, char** argv)  {
 		exit(1);
 	}
 
-	if((opt=(char **)alloca(sizeof(char *)*(10+1)))==NULL)
-		allocfail(sizeof(char *)*(10+1));
-	for(i=0;i<(10+1);i++)
-		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((opt=(char **)malloc(sizeof(char *)*(MAX_OPTS+1)))==NULL)
+		allocfail(sizeof(char *)*(MAX_OPTS+1));
+	for(i=0;i<(MAX_OPTS+1);i++)
+		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
-	if((mopt=(char **)alloca(sizeof(char *)*cfg.sys_nodes+2))==NULL)
-		allocfail(sizeof(char *)*cfg.sys_nodes+2);
-	for(i=0;i<cfg.sys_nodes+2;i++)
-		if((mopt[i]=(char *)alloca(MAX_OPLN))==NULL)
+	if((mopt=(char **)malloc(sizeof(char *)*MAX_OPTS))==NULL)
+		allocfail(sizeof(char *)*MAX_OPTS);
+	for(i=0;i<MAX_OPTS;i++)
+		if((mopt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 	sprintf(title,"Synchronet UNIX Monitor %s-%s",revision,PLATFORM_DESC);
