@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.48 2009/10/27 06:01:40 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.47 2009/08/17 07:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -323,20 +323,18 @@ bool sbbs_t::unpack_rep(char* repfile)
 				SAFEPRINTF3(str,"%s sent QWK e-mail to %s #%d"
 					,useron.alias,username(&cfg,usernum,tmp),usernum);
 				logline("E+",str);
-				if(cfg.node_num) {
-					for(k=1;k<=cfg.sys_nodes;k++) { /* Tell user, if online */
-						getnodedat(k,&node,0);
-						if(node.useron==usernum && !(node.misc&NODE_POFF)
-							&& (node.status==NODE_INUSE
-							|| node.status==NODE_QUIET)) {
-							SAFEPRINTF2(str,text[EmailNodeMsg]
-								,cfg.node_num,msg.from);
-							putnmsg(&cfg,k,str);
-							break; 
-						} 
-					}
+				for(k=1;k<=cfg.sys_nodes;k++) { /* Tell user, if online */
+					getnodedat(k,&node,0);
+					if(node.useron==usernum && !(node.misc&NODE_POFF)
+						&& (node.status==NODE_INUSE
+						|| node.status==NODE_QUIET)) {
+						SAFEPRINTF2(str,text[EmailNodeMsg]
+							,cfg.node_num,msg.from);
+						putnmsg(&cfg,k,str);
+						break; 
+					} 
 				}
-				if(cfg.node_num==0 || k>cfg.sys_nodes) {
+				if(k>cfg.sys_nodes) {
 					SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 					putsmsg(&cfg,usernum,str); 
 				} 
