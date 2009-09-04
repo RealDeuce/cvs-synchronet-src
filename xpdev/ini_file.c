@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.112 2009/04/22 18:48:09 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.113 2009/08/14 10:02:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -687,21 +687,11 @@ char* iniSetStringList(str_list_t* list, const char* section, const char* key
 					,const char* sep, str_list_t val_list, ini_style_t* style)
 {
 	char	value[INI_MAX_VALUE_LEN];
-	size_t	i;
-
-	value[0]=0;
 
 	if(sep==NULL)
 		sep=",";
 
-	if(val_list!=NULL)
-		for(i=0; val_list[i]!=NULL; i++) {
-			if(value[0])
-				strcat(value,sep);
-			strcat(value,val_list[i]);
-		}
-
-	return iniSetString(list, section, key, value, style);
+	return iniSetString(list, section, key, strListCombine(val_list, value, sizeof(value), sep), style);
 }
 
 static char* default_value(const char* deflt, char* value)
