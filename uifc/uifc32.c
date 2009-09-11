@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.193 2009/02/06 02:13:25 deuce Exp $ */
+/* $Id: uifc32.c,v 1.194 2009/05/29 09:38:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -2075,6 +2075,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						continue;
 					}
 				case CIO_KEY_DC:	/* delete */
+				case DEL:			/* sdl_getch() is returning 127 when keypad "Del" is hit */
 					if(i<j)
 					{
 						if(str[i]=='.')

@@ -1,4 +1,4 @@
-/* $Id: PropertiesDlgUnit.cpp,v 1.6 2009/01/24 12:23:16 rswindell Exp $ */
+/* $Id: PropertiesDlgUnit.cpp,v 1.7 2009/02/13 04:24:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,7 @@ void __fastcall TPropertiesDlg::SourceComboBoxChange(TObject *Sender)
             ExampleEdit->Font=ClientForm->ListView->Font;
         	ExampleEdit->Color=ClientForm->ListView->Color;
             break;
-        case 2: /* Telnet Server Log */
+        case 2: /* Terminal Server Log */
             ExampleEdit->Font=TelnetForm->Log->Font;
         	ExampleEdit->Color=TelnetForm->Log->Color;
             break;
@@ -142,7 +142,7 @@ void __fastcall TPropertiesDlg::ChangeScheme(int target)
             ClientForm->ListView->Font=ExampleEdit->Font;
         	ClientForm->ListView->Color=ExampleEdit->Color;
             break;
-        case 2: /* Telnet Server Log */
+        case 2: /* Terminal Server Log */
             TelnetForm->Log->Font=ExampleEdit->Font;
         	TelnetForm->Log->Color=ExampleEdit->Color;
             break;
