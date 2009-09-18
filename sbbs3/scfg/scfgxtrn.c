@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.43 2009/10/25 05:08:34 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.42 2009/03/23 22:48:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1593,7 +1593,7 @@ This is the internal code for the external editor.
 		k=0;
 		sprintf(opt[k++],"%-32.32s%s","Name",cfg.xedit[i]->name);
 		sprintf(opt[k++],"%-32.32s%s","Internal Code",cfg.xedit[i]->code);
-		sprintf(opt[k++],"%-32.32s%.40s","Command Line",cfg.xedit[i]->rcmd);
+		sprintf(opt[k++],"%-32.32s%.40s","Remote Command Line",cfg.xedit[i]->rcmd);
 		sprintf(opt[k++],"%-32.32s%.40s","Access Requirements",cfg.xedit[i]->arstr);
 		sprintf(opt[k++],"%-32.32s%s%s","Intercept Standard I/O"
 			,cfg.xedit[i]->misc&IO_INTS ? "Yes":"No"
@@ -1664,11 +1664,11 @@ abreviation of the name.
 		   case 2:
 				SETHELP(WHERE);
 /*
-External Editor Command Line:
+External Editor Remote Command Line:
 
-This is the command line to execute when using this editor.
+This is the command line to execute when using this editor remotely.
 */
-				uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
+				uifc.input(WIN_MID|WIN_SAV,0,10,"Remote"
 					,cfg.xedit[i]->rcmd,sizeof(cfg.xedit[i]->rcmd)-1,K_EDIT);
 				break;
 			case 3:
@@ -2296,7 +2296,7 @@ This is the global control key used to execute this event.
 
 This is the command line to execute when this hot key is pressed.
 */
-				uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
+				uifc.input(WIN_MID|WIN_SAV,0,10,"Command Line"
 					,cfg.hotkey[i]->cmd,sizeof(cfg.hotkey[i]->cmd)-1,K_EDIT);
 				break;
 				} } }

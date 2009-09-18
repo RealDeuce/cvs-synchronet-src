@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.69 2009/10/18 09:38:00 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.68 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1617,7 +1617,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 					c=cfg.sys_nodes+1; 
 				}
 				else if(node.misc&NODE_ANON)
-					SAFECOPY(str,text[UNKNOWN_USER]);
+					SAFECOPY(str,"UNKNOWN USER");
 				else
 					username(&cfg,node.useron,str);
 				bprintf(text[UserRunningXtrn],str

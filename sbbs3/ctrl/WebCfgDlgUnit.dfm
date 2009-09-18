@@ -25,8 +25,8 @@ object WebCfgDlg: TWebCfgDlg
     Top = 4
     Width = 342
     Height = 245
-    ActivePage = HttpTabSheet
-    TabIndex = 1
+    ActivePage = CGITabSheet
+    TabIndex = 2
     TabOrder = 0
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
@@ -162,7 +162,6 @@ object WebCfgDlg: TWebCfgDlg
         AutoSize = False
         Caption = 'Embedded JS File Extension'
         Enabled = False
-        Visible = False
       end
       object IndexLabel: TLabel
         Left = 9
@@ -202,7 +201,7 @@ object WebCfgDlg: TWebCfgDlg
           '.ssjs")'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 3
+        TabOrder = 2
       end
       object EmbeddedJsExtEdit: TEdit
         Left = 192
@@ -215,8 +214,7 @@ object WebCfgDlg: TWebCfgDlg
         Enabled = False
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
-        Visible = False
+        TabOrder = 3
       end
       object VirtualHostsCheckBox: TCheckBox
         Left = 9
@@ -227,7 +225,7 @@ object WebCfgDlg: TWebCfgDlg
         Caption = 'Virtual Hosts'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 4
       end
       object IndexFileEdit: TEdit
         Left = 104
@@ -237,7 +235,7 @@ object WebCfgDlg: TWebCfgDlg
         Hint = 
           'List of filenames that will be automatically sent to client (e.g' +
           '. index.html)'
-        TabOrder = 2
+        TabOrder = 5
       end
     end
     object CGITabSheet: TTabSheet
@@ -283,7 +281,7 @@ object WebCfgDlg: TWebCfgDlg
         Hint = 'CGI sub-directory (off of HTML root)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 1
+        TabOrder = 0
       end
       object CGICheckBox: TCheckBox
         Left = 9
@@ -294,7 +292,7 @@ object WebCfgDlg: TWebCfgDlg
         Caption = 'Enabled'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 0
+        TabOrder = 1
         OnClick = CGICheckBoxClick
       end
       object CGIExtEdit: TEdit
@@ -317,7 +315,7 @@ object WebCfgDlg: TWebCfgDlg
           'lt=120)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 3
       end
       object CGIContentEdit: TEdit
         Left = 105
@@ -327,7 +325,7 @@ object WebCfgDlg: TWebCfgDlg
         Hint = 'Default Content-Type for CGI output'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 3
+        TabOrder = 4
       end
       object CGIEnvButton: TButton
         Left = 8

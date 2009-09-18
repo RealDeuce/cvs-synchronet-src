@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.37 2009/10/17 23:19:37 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.36 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,7 @@ void sbbs_t::show_msgattr(ushort attr)
 		,attr&MSG_MODERATED ? "Moderated  " :nulstr
 		,attr&MSG_VALIDATED ? "Validated  " :nulstr
 		,attr&MSG_REPLIED	? "Replied  "	:nulstr
-		,attr&MSG_NOREPLY	? "NoReply  "	:nulstr
+		,nulstr
 		,nulstr
 		,nulstr
 		,nulstr
