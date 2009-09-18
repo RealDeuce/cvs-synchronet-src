@@ -1,12 +1,12 @@
 /* scfg.h */
 
-/* $Id: scfg.h,v 1.19 2011/06/30 03:07:04 rswindell Exp $ */
+/* $Id: scfg.h,v 1.18 2006/02/03 22:14:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -112,8 +112,8 @@ int code_ok(char *str);
 int  bits(long l);
 void getar(char *desc, char *ar);
 
-/* Prepare a string to be used as an internal code; Note: use the return value, Luke */
-char* prep_code(char *str, const char* prefix);
+/* Prepare a string to be used as an internal code */
+char* prep_code(char *str);
 
 /* scfgnet.h */
 faddr_t atofaddr(char *str);
