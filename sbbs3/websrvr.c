@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.518 2009/10/27 06:03:16 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.512 2009/09/11 06:46:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -490,11 +490,8 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
-		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
-	}
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
@@ -2548,38 +2545,31 @@ static char *get_request(http_session_t * session, char *req_line)
 	unescape(session->req.physical_path);
 
 	if(!strnicmp(session->req.physical_path,http_scheme,http_scheme_len)) {
-		/* Remove http:// from start of physical_path */
-		memmove(session->req.physical_path, session->req.physical_path+http_scheme_len, strlen(session->req.physical_path+http_scheme_len)+1);
-
 		/* Set HOST value... ignore HOST header */
-		SAFECOPY(session->req.host,session->req.physical_path);
-
-		/* Remove path if present (everything after the first /) */
+		SAFECOPY(session->req.host,session->req.physical_path+http_scheme_len);
+		/* Remove path of present */
 		strtok_r(session->req.host,"/",&last);
 
-		/* Set vhost value to host value */
+		/* Set vhost value */
 		SAFECOPY(session->req.vhost,session->req.host);
-
-		/* Remove port specification from vhost (if present) */
+		/* Remove port specification from vhost */
 		strtok_r(session->req.vhost,":",&last);
 
-		/* Sets p to point to the first character after the first slash */
-		p=strchr(session->req.physical_path, '/');
-		
-		/*
-		 * If we have a slash, make it the first char in the string.
-		 * otherwise, set path to "/"
-		 */
+		/* Do weird physical_path dance... TODO: Understand this code */
+		if(strtok_r(session->req.physical_path,"/",&last))
+			p=strtok_r(NULL,"/",&last);
+		else
+			p=NULL;
 		if(p==NULL) {
-			strcpy(session->req.physical_path, "/");
+			/* Do not allow host values larger than 128 bytes */
+			session->req.host[0]=0;
+			p=session->req.physical_path+http_scheme_len;
 		}
-		else {
-			offset=p-session->req.physical_path;
-			memmove(session->req.physical_path
-				,session->req.physical_path+offset
-				,strlen(session->req.physical_path+offset)+1	/* move '\0' terminator too */
-				);
-		}
+		offset=p-session->req.physical_path;
+		memmove(session->req.physical_path
+			,session->req.physical_path+offset
+			,strlen(session->req.physical_path+offset)+1	/* move '\0' terminator too */
+			);
 	}
 	if(query!=NULL)
 		SAFECOPY(session->req.query_str,query);
@@ -5180,9 +5170,8 @@ static void cleanup(int code)
 	thread_down();
 	status("Down");
 	if(terminate_server || code)
-		lprintf(LOG_INFO,"#### Web Server thread terminated (%lu clients served)", served);
-	if(thread_count)
-		lprintf(LOG_WARNING,"#### !Web Server threads (%u) remain after termination", thread_count);
+		lprintf(LOG_INFO,"#### Web Server thread terminated (%u threads remain, %lu clients served)"
+			,thread_count, served);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -5194,7 +5183,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.518 $", "%*s %s", revision);
+	sscanf("$Revision: 1.512 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
