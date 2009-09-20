@@ -2,13 +2,13 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.55 2011/07/21 11:16:09 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.49 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -344,10 +344,8 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 	smbmsg_t msg;
 
 	if(useron.rest&FLAG('Q')) {	// Was if(!prepack) only
-		char id[LEN_QWKID+1];
-		SAFECOPY(id,useron.alias);
-		strlwr(id);
-		sprintf(str,"%sqnet/%s.out/",cfg.data_dir,id);
+		sprintf(str,"%sqnet/%.8s.out/",cfg.data_dir,useron.alias);
+		strlwr(str);
 		delfiles(str,ALLFILES); 
 	}
 
@@ -413,7 +411,7 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 				smb_putmsg(&smb,&msg); 
 			}
 			if(!(msg.hdr.attr&MSG_PERMANENT)
-				&& (((msg.hdr.attr&MSG_KILLREAD) && (msg.hdr.attr&MSG_READ))
+				&& ((msg.hdr.attr&MSG_KILLREAD && msg.hdr.attr&MSG_READ)
 				|| (useron.qwk&QWK_DELMAIL))) {
 				msg.hdr.attr|=MSG_DELETE;
 				msg.idx.attr=msg.hdr.attr;
@@ -502,40 +500,53 @@ void sbbs_t::qwk_sec()
 		if(ch=='C') {
 			while(online) {
 				CLS;
-				bprintf(text[QWKSettingsHdr],useron.alias,useron.number);
-				bprintf(text[QWKSettingsCtrlA]
+				bputs("\1n\1gQWK Settings:\1n\r\n\r\n");
+				bprintf("\1hA\1n) %-30s: \1h%s\r\n"
+					,"Ctrl-A Color Codes"
 					,useron.qwk&QWK_EXPCTLA
 					? "Expand to ANSI" : useron.qwk&QWK_RETCTLA ? "Leave in"
 					: "Strip");
-				bprintf(text[QWKSettingsArchive],useron.tmpext);
-				bprintf(text[QWKSettingsEmail]
+				bprintf("\1hT\1n) %-30s: \1h%s\r\n"
+					,"Archive Type"
+					,useron.tmpext);
+				bprintf("\1hE\1n) %-30s: \1h%s\r\n"
+					,"Include E-mail Messages"
 					,useron.qwk&QWK_EMAIL ? "Un-read Only"
 					: useron.qwk&QWK_ALLMAIL ? text[Yes] : text[No]);
-				if(useron.qwk&(QWK_ALLMAIL|QWK_EMAIL)) {
-					bprintf(text[QWKSettingsAttach]
-						,useron.qwk&QWK_ATTACH ? text[Yes] : text[No]);
-					bprintf(text[QWKSettingsDeleteEmail]
-						,useron.qwk&QWK_DELMAIL ? text[Yes]:text[No]);
-				}
-				bprintf(text[QWKSettingsNewFilesList]
+				bprintf("\1hI\1n) %-30s: \1h%s\r\n"
+					,"Include File Attachments"
+					,useron.qwk&QWK_ATTACH ? text[Yes] : text[No]);
+				bprintf("\1hD\1n) %-30s: \1h%s\r\n"
+					,"Delete E-mail Automatically"
+					,useron.qwk&QWK_DELMAIL ? text[Yes]:text[No]);
+				bprintf("\1hF\1n) %-30s: \1h%s\r\n"
+					,"Include New Files List"
 					,useron.qwk&QWK_FILES ? text[Yes]:text[No]);
-				bprintf(text[QWKSettingsIndex]
+				bprintf("\1hN\1n) %-30s: \1h%s\r\n"
+					,"Include Index Files"
 					,useron.qwk&QWK_NOINDEX ? text[No]:text[Yes]);
-				bprintf(text[QWKSettingsControl]
+				bprintf("\1hC\1n) %-30s: \1h%s\r\n"
+					,"Include Control Files"
 					,useron.qwk&QWK_NOCTRL ? text[No]:text[Yes]);
-				bprintf(text[QWKSettingsHeaders]
+				bprintf("\1hH\1n) %-30s: \1h%s\r\n"
+					,"Include HEADERS.DAT"
 					,useron.qwk&QWK_HEADERS ? text[Yes]:text[No]);
-				bprintf(text[QWKSettingsBySelf]
+				bprintf("\1hY\1n) %-30s: \1h%s\r\n"
+					,"Include Messages from You"
 					,useron.qwk&QWK_BYSELF ? text[Yes]:text[No]);
-				bprintf(text[QWKSettingsTimeZone]
+				bprintf("\1hZ\1n) %-30s: \1h%s\r\n"
+					,"Include Time Zone (TZ)"
 					,useron.qwk&QWK_TZ ? text[Yes]:text[No]);
-				bprintf(text[QWKSettingsVIA]
+				bprintf("\1hV\1n) %-30s: \1h%s\1n\r\n"
+					,"Include Message Path (VIA)"
 					,useron.qwk&QWK_VIA ? text[Yes]:text[No]);
-				bprintf(text[QWKSettingsMsgID]
+				bprintf("\1hM\1n) %-30s: \1h%s\1n\r\n"
+					,"Include Message/Reply IDs"
 					,useron.qwk&QWK_MSGID ? text[Yes]:text[No]);
-				bprintf(text[QWKSettingsExtended]
+				bprintf("\1hX\1n) %-30s: \1h%s\1n\r\n"
+					,"Extended (QWKE) Packet Format"
 					,useron.qwk&QWK_EXT ? text[Yes]:text[No]);
-				bputs(text[QWKSettingsWhich]);
+				bputs(text[UserDefaultsWhich]);
 				ch=(char)getkeys("AEDFHIOQTYMNCXZV",0);
 				if(sys_status&SS_ABORT || !ch || ch=='Q' || !online)
 					break;
@@ -552,7 +563,7 @@ void sbbs_t::qwk_sec()
 						break;
 					case 'T':
 						for(i=0;i<cfg.total_fcomps;i++)
-							uselect(1,i,text[ArchiveTypeHeading],cfg.fcomp[i]->ext,cfg.fcomp[i]->ar);
+							uselect(1,i,"Archive Types",cfg.fcomp[i]->ext,cfg.fcomp[i]->ar);
 						s=uselect(0,0,0,0,0);
 						if(s>=0) {
 							strcpy(useron.tmpext,cfg.fcomp[s]->ext);
@@ -694,7 +705,7 @@ void sbbs_t::qwk_sec()
 				continue; 
 			}
 
-			l=(long)flength(str);
+			l=flength(str);
 			bprintf(text[FiFilename],getfname(str));
 			bprintf(text[FiFileSize],ultoac(l,tmp));
 			if(l>0L && cur_cps)
@@ -818,14 +829,14 @@ void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 	if(l>=0)							  /* ptr specified */
 		subscan[subnum].ptr=l;
 	else if(l) {						  /* relative ptr specified */
-		getlastmsg(subnum,&last,/* time_t* */NULL);
+		getlastmsg(subnum,&last,0);
 		if(-l>(long)last)
 			subscan[subnum].ptr=0;
 		else
 			subscan[subnum].ptr=last+l; 
 	}
 	else if(reset)
-		getlastmsg(subnum,&(subscan[subnum].ptr),/* time_t* */NULL);
+		getlastmsg(subnum,&(subscan[subnum].ptr),0);
 }
 
 
@@ -841,7 +852,7 @@ void sbbs_t::qwkcfgline(char *buf,uint subnum)
 	ulong	qwk=useron.qwk;
 	file_t	f;
 
-	sprintf(str,"%-25.25s",buf);	/* Note: must be space-padded, left justified */
+	sprintf(str,"%.25s",buf);
 	strupr(str);
 	bprintf("\1n\r\n\1b\1hQWK Control [\1c%s\1b]: \1g%s\r\n"
 		,subnum==INVALID_SUB ? "Mail":cfg.sub[subnum]->qwkname,str);
@@ -858,7 +869,7 @@ void sbbs_t::qwkcfgline(char *buf,uint subnum)
 				if(x>=usrgrps || y>=usrsubs[x]) {
 					bprintf(text[QWKInvalidConferenceN],l);
 					sprintf(str,"Invalid conference number %lu",l);
-					logline(LOG_NOTICE,"Q!",str); 
+					logline("Q!",str); 
 				}
 				else
 					subscan[usrsub[x][y]].cfg&=~SUB_CFG_NSCAN; 

@@ -2,13 +2,13 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.23 2010/11/19 06:36:24 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.21 2009/02/18 05:23:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -68,11 +68,11 @@ char sbbs_t::putmsg(const char *str, long mode)
 			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
 				l+=2;
 				i=0;
-				while(i<sizeof(tmp2)-1 && isprint(str[l]) && str[l]!='\\' && str[l]!='/')
+				while(i<12 && isprint(str[l]) && str[l]!='\\' && str[l]!='/')
 					tmp2[i++]=str[l++];
 				tmp2[i]=0;
 				sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
-				SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
+				sprintf(tmp3,"%s%s",cfg.text_dir,tmp2);
 				printfile(tmp3,0);
 				sys_status&=~SS_NEST_PF; 
 			}
@@ -101,8 +101,8 @@ char sbbs_t::putmsg(const char *str, long mode)
 			// exatr=1;
 			l+=4; 
 		}
-		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit((unsigned char)str[l+1])
-			&& isdigit((unsigned char)str[l+2]) && !(useron.misc&(RIP|WIP))) {
+		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit(str[l+1])
+			&& isdigit(str[l+2]) && !(useron.misc&(RIP|WIP))) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			i=atoi(tmp2);
 			if(i>=16) { 				/* setting background */
@@ -174,7 +174,7 @@ char sbbs_t::putmsg(const char *str, long mode)
 			exatr=1;
 			l+=2;	/* Skip |x */
 		}  /* Skip second digit if it exists */
-		else if(cfg.sys_misc&SM_WWIV && str[l]==CTRL_C && isdigit((unsigned char)str[l+1])) {
+		else if(cfg.sys_misc&SM_WWIV && str[l]==CTRL_C && isdigit(str[l+1])) {
 			exatr=1;
 			switch(str[l+1]) {
 				default:
