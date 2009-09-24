@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.48 2009/07/14 01:40:26 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.49 2009/07/17 22:14:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -637,23 +637,24 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				subscan[subnum].ptr=post[smb.curmsg].number; 
 			} 
 
-			if(sub_op(subnum) && (msg.idx.attr&(MSG_MODERATED|MSG_VALIDATED)) == MSG_MODERATED) {
+			if(sub_op(subnum) && (msg.hdr.attr&(MSG_MODERATED|MSG_VALIDATED)) == MSG_MODERATED) {
+				uint16_t msg_attr = msg.hdr.attr;
 				SAFEPRINTF2(str,text[ValidatePostQ],msg.hdr.number,msg.subj);
 				if(!noyes(str))
-					msg.idx.attr|=MSG_VALIDATED;
+					msg.hdr.attr|=MSG_VALIDATED;
 				else {
 					SAFEPRINTF2(str,text[DeletePostQ],msg.hdr.number,msg.subj);
 					if(yesno(str))
-						msg.idx.attr|=MSG_DELETE;
+						msg.hdr.attr|=MSG_DELETE;
 				}
-				if(msg.idx.attr!=msg.hdr.attr) {
+				if(msg_attr!=msg.hdr.attr) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
 					msg.idx.offset=0;
 					if(!smb_locksmbhdr(&smb)) { 			  /* Lock the entire base */
 						if(loadmsg(&msg,msg.idx.number)) {
-							msg.hdr.attr=msg.idx.attr;
+							msg.hdr.attr=msg.idx.attr=msg_attr;
 							if((i=smb_putmsg(&smb,&msg))!=0)
 								errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 							smb_unlockmsghdr(&smb,&msg); 

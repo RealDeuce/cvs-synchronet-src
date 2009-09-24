@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.159 2009/02/24 08:39:59 deuce Exp $ */
+/* $Id: syncterm.c,v 1.162 2009/09/24 00:52:23 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -725,11 +725,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 {
 	char *p1, *p2, *p3;
 	struct	bbslist	*list[MAX_OPTS+1];
-	char	listpath[MAX_PATH+1];
 	int		listcount=0, i;
-
-	/* User BBS list path */
-	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
 
 	bbs->id=-1;
 	bbs->added=time(NULL);
@@ -801,17 +797,15 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
-	if(listpath != NULL) {
-		read_list(listpath, &list[0], NULL, &listcount, USER_BBSLIST);
-		for(i=0;i<listcount;i++) {
-			if((stricmp(bbs->addr,list[i]->addr)==0)
-					&& (bbs->port==list[i]->port)
-					&& (bbs->conn_type==list[i]->conn_type)
-					&& (bbs->user[0]==0 || (stricmp(bbs->name,list[i]->name)==0))
-					&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
-				memcpy(bbs,list[i],sizeof(struct bbslist));
-				break;
-			}
+	read_list(settings.list_path, &list[0], NULL, &listcount, USER_BBSLIST);
+	for(i=0;i<listcount;i++) {
+		if((stricmp(bbs->addr,list[i]->addr)==0)
+				&& (bbs->port==list[i]->port)
+				&& (bbs->conn_type==list[i]->conn_type)
+				&& (bbs->user[0]==0 || (stricmp(bbs->name,list[i]->name)==0))
+				&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
+			memcpy(bbs,list[i],sizeof(struct bbslist));
+			break;
 		}
 	}
 	free_list(&list[0],listcount);
@@ -1063,6 +1057,8 @@ void load_settings(struct syncterm_settings *set)
 	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
+	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
+	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1099,7 +1095,6 @@ int main(int argc, char **argv)
 	int	ciolib_mode;
 	str_list_t	inifile;
 	FILE *listfile;
-	char	listpath[MAX_PATH+1];
 	char	*inpath=NULL;
 	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
@@ -1121,7 +1116,10 @@ int main(int argc, char **argv)
 
 	load_settings(&settings);
 	ciolib_mode=settings.output_mode;
-	text_mode=screen_to_ciolib(settings.startup_mode);
+	if(settings.startup_mode != SCREEN_MODE_CURRENT)
+		text_mode=screen_to_ciolib(settings.startup_mode);
+	else
+		text_mode=_ORIGMODE;
 
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
@@ -1257,9 +1255,6 @@ int main(int argc, char **argv)
 	umask(077);
 #endif
 
-	/* User BBS list path */
-	get_syncterm_filename(listpath, sizeof(listpath), SYNCTERM_PATH_LIST, FALSE);
-
 	/* Auto-connect URL */
 	if(url[0]) {
 		if((bbs=(struct bbslist *)malloc(sizeof(struct bbslist)))==NULL) {
@@ -1267,7 +1262,7 @@ int main(int argc, char **argv)
 			return(1);
 		}
 		memset(bbs, 0, sizeof(struct bbslist));
-		if((listfile=fopen(listpath,"r"))==NULL)
+		if((listfile=fopen(settings.list_path,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
 		else {
 			str_list_t	inilines;
@@ -1301,14 +1296,14 @@ int main(int argc, char **argv)
 			if(bbs->id != -1) {
 				if(bbs->type==SYSTEM_BBSLIST) {
 					bbs->type=USER_BBSLIST;
-					add_bbs(listpath, bbs);
+					add_bbs(settings.list_path, bbs);
 				}
-				if((listfile=fopen(listpath,"r"))!=NULL) {
+				if((listfile=fopen(settings.list_path,"r"))!=NULL) {
 					inifile=iniReadFile(listfile);
 					fclose(listfile);
 					iniSetDateTime(&inifile,bbs->name,"LastConnected",TRUE,bbs->connected,&ini_style);
 					iniSetInteger(&inifile,bbs->name,"TotalCalls",bbs->calls,&ini_style);
-					if((listfile=fopen(listpath,"w"))!=NULL) {
+					if((listfile=fopen(settings.list_path,"w"))!=NULL) {
 						iniWriteFile(listfile,inifile);
 						fclose(listfile);
 					}
@@ -1362,8 +1357,8 @@ int main(int argc, char **argv)
 						i=1;
 						switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Save this directory entry?",YesNo)) {
 							case 0:	/* Yes */
-								edit_list(NULL, bbs,listpath,FALSE);
-								add_bbs(listpath,bbs);
+								edit_list(NULL, bbs,settings.list_path,FALSE);
+								add_bbs(settings.list_path,bbs);
 								last_bbs=strdup(bbs->name);
 								break;
 							default: /* ESC/No */
