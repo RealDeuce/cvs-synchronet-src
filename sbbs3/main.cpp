@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.536 2009/07/11 09:10:18 rswindell Exp $ */
+/* $Id: main.cpp,v 1.537 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1066,6 +1066,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		if((js_glob=js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
 					,&js_branch									/* js */
+					,&startup->js
 					,&client, client_socket						/* client */
 					,&js_server_props							/* server */
 			))==NULL)

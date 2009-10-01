@@ -2,7 +2,7 @@
 
 /* Convert ANSI messages to Synchronet .asc (Ctrl-A code) format */
 
-/* $Id: ans2asc.c,v 1.5 2009/02/16 02:49:24 rswindell Exp $ */
+/* $Id: ans2asc.c,v 1.7 2009/09/21 18:41:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,12 +42,12 @@
 
 int main(int argc, char **argv)
 {
-	char esc,n[25];
+	unsigned char esc,n[25];
 	char revision[16];
 	int i,ch,ni;
 	FILE *in,*out;
 
-	sscanf("$Revision: 1.5 $", "%*s %s", revision);
+	sscanf("$Revision: 1.7 $", "%*s %s", revision);
 
 	if(argc<2) {
 		fprintf(stderr,"\nans2asc %s\n",revision);
@@ -196,10 +196,13 @@ int main(int argc, char **argv)
 						fprintf(out,"\1%c",0x7f+n[0]);
 						break;
 					case 'D':	/* cursor left */
-						while(n[0]) {
-							fprintf(out,"\b");
-							n[0]--;
-						}
+						if(n[0]>=80)
+							fprintf(out,"\r");
+						else
+							while(n[0]) {
+								fprintf(out,"\b");
+								n[0]--;
+							}
 						break;
 					default:
 						fprintf(stderr,"Unsupported ANSI code '%c' (0x%02X)\r\n",ch,ch);
