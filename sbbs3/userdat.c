@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.118 2009/09/18 18:24:58 rswindell Exp $ */
+/* $Id: userdat.c,v 1.119 2009/10/05 23:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2483,14 +2483,10 @@ int DLLCALL user_rec_len(int offset)
 }
 
 /****************************************************************************/
-/* Determine if the specified user can or cannot post on the specified sub	*/
-/* 'reason' is an (optional) pointer to a text.dat item number, indicating	*/
-/* the reason the user cannot post, when returning FALSE.					*/
+/* Determine if the specified user can or cannot access the specified sub	*/
 /****************************************************************************/
-BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason)
+BOOL DLLCALL can_user_access_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client)
 {
-	if(reason!=NULL)
-		*reason=CantPostOnSub;
 	if(!VALID_CFG(cfg))
 		return FALSE;
 	if(subnum>=cfg->total_subs)
@@ -2499,6 +2495,33 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 		return FALSE;
 	if(!chk_ar(cfg,cfg->sub[subnum]->ar,user,client))
 		return FALSE;
+
+	return TRUE;
+}
+
+/****************************************************************************/
+/* Determine if the specified user can or cannot read the specified sub		*/
+/****************************************************************************/
+BOOL DLLCALL can_user_read_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client)
+{
+	if(!can_user_access_sub(cfg, subnum, user, client))
+		return FALSE;
+	return chk_ar(cfg,cfg->sub[subnum]->read_ar,user,client);
+}
+
+/****************************************************************************/
+/* Determine if the specified user can or cannot post on the specified sub	*/
+/* 'reason' is an (optional) pointer to a text.dat item number, indicating	*/
+/* the reason the user cannot post, when returning FALSE.					*/
+/****************************************************************************/
+BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason)
+{
+	if(reason!=NULL)
+		*reason=NoAccessSub;
+	if(!can_user_access_sub(cfg, subnum, user, client))
+		return FALSE;
+	if(reason!=NULL)
+		*reason=CantPostOnSub;
 	if(!chk_ar(cfg,cfg->sub[subnum]->post_ar,user,client))
 		return FALSE;
 	if(cfg->sub[subnum]->misc&(SUB_QNET|SUB_FIDO|SUB_PNET|SUB_INET)
@@ -2514,6 +2537,19 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 		return FALSE;
 
 	return TRUE;
+}
+
+/****************************************************************************/
+/* Determine if the specified user is a sub-board operator					*/
+/****************************************************************************/
+BOOL DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client)
+{
+	if(!can_user_access_sub(cfg, subnum, user, client))
+		return FALSE;
+	if(user->level>=SYSOP_LEVEL)
+		return TRUE;
+
+	return cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
 }
 
 /****************************************************************************/
