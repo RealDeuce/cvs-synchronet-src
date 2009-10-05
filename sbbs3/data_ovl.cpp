@@ -2,13 +2,13 @@
 
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.16 2011/03/01 22:27:02 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.12 2007/07/10 22:02:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,11 +53,11 @@ void sbbs_t::getmsgptrs()
 
 extern "C" BOOL DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan)
 {
-	char		str[256];
-	uint		i;
-	int 		file;
-	long		length;
-	FILE*		stream;
+	char	str[256];
+	uint	i;
+	int 	file;
+	long	length;
+	FILE	*stream;
 
 	/* Initialize to configured defaults */
 	for(i=0;i<cfg->total_subs;i++) {
@@ -78,7 +78,7 @@ extern "C" BOOL DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 	if((stream=fnopen(&file,str,O_RDONLY))==NULL)
 		return(TRUE); 
 
-	length=(long)filelength(file);
+	length=filelength(file);
 	for(i=0;i<cfg->total_subs;i++) {
 		if(length>=(cfg->sub[i]->ptridx+1)*10L) {
 			fseek(stream,(long)cfg->sub[i]->ptridx*10L,SEEK_SET);
@@ -105,12 +105,12 @@ void sbbs_t::putmsgptrs()
 /****************************************************************************/
 extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan)
 {
-	char		str[256];
-	ushort		idx;
-	uint16_t	scancfg;
-	uint		i,j;
-	int 		file;
-	ulong		length;
+	char	str[256];
+	ushort	idx;
+	uint16_t scancfg;
+	uint	i,j;
+	int 	file;
+	ulong	length;
 	uint32_t	l=0L;
 
 	if(!usernumber)
@@ -119,7 +119,7 @@ extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 	if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
 		return(FALSE); 
 	}
-	length=(ulong)filelength(file);
+	length=filelength(file);
 	for(i=0;i<cfg->total_subs;i++) {
 		if(subscan[i].sav_ptr==subscan[i].ptr 
 			&& subscan[i].sav_last==subscan[i].last
@@ -159,16 +159,15 @@ extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 /****************************************************************************/
 /* Checks for a duplicate user field starting at user record offset         */
 /* 'offset', reading in 'datlen' chars, comparing to 'str' for each user    */
-/* except 'usernumber' if it is non-zero, or starting at 'usernumber' if    */
-/* 'next' is true. Comparison is NOT case sensitive.                        */
+/* except 'usernumber' if it is non-zero. Comparison is NOT case sensitive. */
 /* 'del' is true if the search is to include deleted/inactive users			*/
 /* Returns the usernumber of the dupe if found, 0 if not                    */
 /****************************************************************************/
 uint sbbs_t::userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
-    ,bool del, bool next)
+    ,bool del)
 {
 	bputs(text[SearchingForDupes]);
-	uint i=::userdatdupe(&cfg, usernumber, offset, datlen, dat, del, next);
+	uint i=::userdatdupe(&cfg, usernumber, offset, datlen, dat, del);
 	bputs(text[SearchedForDupes]);
 	return(i);
 }
