@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.33 2008/02/23 03:08:00 deuce Exp $ */
+/* $Id: getnode.cpp,v 1.34 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -511,7 +511,7 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 					else {
 						bputs("running ");
 						i=node->aux-1;
-						if(SYSOP || chk_ar(cfg.xtrn[i]->ar,&useron))
+						if(SYSOP || chk_ar(cfg.xtrn[i]->ar,&useron,&client))
 							bputs(cfg.xtrn[node->aux-1]->name);
 						else
 							bputs("external program"); 
