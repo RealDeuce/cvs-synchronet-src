@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "xpendian.h"
-
 #include "homedir.h"
 #include "config.h"
 #include "effekt.h"
@@ -23,7 +21,6 @@ loadconfig(void)
 	fp = fopen(fname, "rb");
 	if (fp != NULL) {
 		fread(&ver, 4, 1, fp);
-		ver=LE_LONG(ver);
 		if (ver >= 1) {
 			fread(&Attribute, 1, 1, fp);
 			for (i = 1; i <= 80; i++)
@@ -49,9 +46,7 @@ saveconfig(void)
 	sprintf(fname, "%s%s", homedir(), CONFIGFILE);
 	fp = fopen(fname, "wb");
 	if (fp != NULL) {
-		ver=LE_LONG(ver);
 		fwrite(&ver, 4, 1, fp);
-		ver=LE_LONG(ver);
 		fwrite(&Attribute, 1, 1, fp);
 		for (i = 1; i <= 80; i++)
 			fwrite(&tabs[i], 1, 1, fp);
