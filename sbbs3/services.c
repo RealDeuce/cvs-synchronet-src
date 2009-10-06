@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.233 2009/06/09 05:06:58 rswindell Exp $ */
+/* $Id: services.c,v 1.235 2009/08/14 11:02:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -846,14 +846,14 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		JS_SetContextPrivate(js_cx, service_client);
 
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &service_client->service->js))==NULL) 
 			break;
 
 		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
 			break;
 
 		/* Internal JS Object */
-		if(js_CreateInternalJsObject(js_cx, js_glob, &service_client->branch)==NULL)
+		if(js_CreateInternalJsObject(js_cx, js_glob, &service_client->branch, &service_client->service->js)==NULL)
 			break;
 
 		/* Client Object */
@@ -1164,6 +1164,7 @@ static void js_service_thread(void* arg)
 	if(js_script==NULL) 
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
+		js_PrepareToExecute(js_cx, js_glob, spath);
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
@@ -1267,6 +1268,7 @@ static void js_static_service_thread(void* arg)
 			break;
 		}
 
+		js_PrepareToExecute(js_cx, js_glob, spath);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1647,7 +1649,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.233 $", "%*s %s", revision);
+	sscanf("$Revision: 1.235 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
