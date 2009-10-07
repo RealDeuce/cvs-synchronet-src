@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.122 2009/10/25 02:58:06 rswindell Exp $ */
+/* $Id: userdat.c,v 1.119 2009/10/05 23:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,6 @@ uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
 	char*	p;
 	char	dat[LEN_ALIAS+2];
 	char	str[256];
-	char	tmp[256];
 	ulong	l,length;
 	FILE*	stream;
 
@@ -112,10 +111,9 @@ uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
 		REPLACE_CHARS(str,'_',' ',p);
 		if(!stricmp(str,name)) 
 			break;
-		/* strip spaces (from both) */
+		/* strip spaces */
 		strip_space(dat,str);
-		strip_space(name,tmp);
-		if(!stricmp(str,tmp)) 
+		if(!stricmp(str,name)) 
 			break;
 	}
 	fclose(stream);
@@ -841,17 +839,16 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 
     switch(node->status) {
         case NODE_WFC:
-            strcpy(str,"Waiting for connection");
+            strcpy(str,"Waiting for call");
             break;
         case NODE_OFFLINE:
             strcpy(str,"Offline");
             break;
-        case NODE_NETTING:	/* Obsolete */
+        case NODE_NETTING:
             strcpy(str,"Networking");
             break;
         case NODE_LOGON:
-            sprintf(str,"At logon prompt %s"
-				,node_connection_desc(node->connection, tmp));
+            strcpy(str,"At logon prompt");
             break;
         case NODE_EVENT_WAITING:
             strcpy(str,"Waiting for all nodes to become inactive");
