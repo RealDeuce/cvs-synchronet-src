@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.41 2010/03/09 03:23:34 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.37 2009/10/07 07:39:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -164,14 +164,14 @@ socket_option_t* getSocketOptionList(void)
 	return(socket_options);
 }
 
-int sendfilesocket(int sock, int file, off_t *offset, off_t count)
+int sendfilesocket(int sock, int file, long *offset, long count)
 {
-	char		buf[1024*16];
-	off_t		len;
-	int			rd;
-	int			wr=0;
-	int			total=0;
-	int			i;
+	char	buf[1024*16];
+	long	len;
+	int		rd;
+	int		wr=0;
+	int		total=0;
+	int		i;
 
 /* sendfile() on Linux may or may not work with non-blocking sockets ToDo */
 	len=filelength(file);
@@ -226,7 +226,7 @@ int sendfilesocket(int sock, int file, off_t *offset, off_t count)
 	return(total);
 }
 
-int recvfilesocket(int sock, int file, off_t *offset, off_t count)
+int recvfilesocket(int sock, int file, long *offset, long count)
 {
 	/* Writes a file from a socket -
 	 *
@@ -252,7 +252,7 @@ int recvfilesocket(int sock, int file, off_t *offset, off_t count)
 		return(-1);
 	}
 		
-	if((buf=(char*)alloca((size_t)count))==NULL) {
+	if((buf=(char*)alloca(count))==NULL) {
 		errno=ENOMEM;
 		return(-1);
 	}
@@ -261,7 +261,7 @@ int recvfilesocket(int sock, int file, off_t *offset, off_t count)
 		if(lseek(file,*offset,SEEK_SET)<0)
 			return(-1);
 
-	rd=read(sock,buf,(size_t)count);
+	rd=read(sock,buf,count);
 	if(rd!=count)
 		return(-1);
 
@@ -373,13 +373,12 @@ int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigne
 		&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
 		fd_set		socket_set;
 		struct		timeval tv;
-		socklen_t	optlen=sizeof(result);
 		tv.tv_sec = timeout;
 		tv.tv_usec = 0;
 		FD_ZERO(&socket_set);
 		FD_SET(sock,&socket_set);
 		if(select(sock,NULL,&socket_set,NULL,&tv)==1)
-			getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen);
+			return 0;	/* success */
 	}
 	return result;
 }
