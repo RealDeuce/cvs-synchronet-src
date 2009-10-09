@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.37 2009/10/07 07:39:10 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.38 2009/10/09 21:10:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -378,7 +378,7 @@ int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigne
 		FD_ZERO(&socket_set);
 		FD_SET(sock,&socket_set);
 		if(select(sock,NULL,&socket_set,NULL,&tv)==1)
-			return 0;	/* success */
+			getsockopt(sock, SOL_SOCKET, SO_ERROR, &result, sizeof(result));
 	}
 	return result;
 }
