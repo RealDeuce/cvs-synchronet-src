@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.35 2008/06/04 04:40:02 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.38 2009/10/09 21:10:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -351,7 +351,7 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 		if((result=bind(s,addr,addrlen))==0)
 			break;
 		if(lprintf!=NULL)
-			lprintf(i<retries ? LOG_WARNING:LOG_ERR
+			lprintf(i<retries ? LOG_WARNING:LOG_CRIT
 				,"%04d !ERROR %d binding %s socket%s", s, ERROR_VALUE, prot, port_str);
 		if(i<retries) {
 			if(lprintf!=NULL)
@@ -361,4 +361,24 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 		}
 	}
 	return(result);
+}
+
+int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigned timeout)
+{
+	int result;
+
+	result=connect(sock, addr, size);
+
+	if(result==SOCKET_ERROR
+		&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
+		fd_set		socket_set;
+		struct		timeval tv;
+		tv.tv_sec = timeout;
+		tv.tv_usec = 0;
+		FD_ZERO(&socket_set);
+		FD_SET(sock,&socket_set);
+		if(select(sock,NULL,&socket_set,NULL,&tv)==1)
+			getsockopt(sock, SOL_SOCKET, SO_ERROR, &result, sizeof(result));
+	}
+	return result;
 }
