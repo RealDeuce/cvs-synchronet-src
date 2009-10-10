@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.167 2010/03/12 08:27:57 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.162 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,14 +58,14 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2010 Rob Swindell"
-#define COPYRIGHT_CRC		0xA053FC9F
+#define COPYRIGHT_NOTICE	"Copyright 2009 Rob Swindell"
+#define COPYRIGHT_CRC		0xB7FED837
 
 #define Y2K_2DIGIT_WINDOW	70
 
 #define FNOPEN_BUF_SIZE		(2*1024)
 
-#define ILLEGAL_FILENAME_CHARS	"\\/|<>:\";,%"
+#define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
 
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
@@ -373,8 +373,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 																			
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
-#define XTRN_ANSI		(1<<1)		/* LEGACY (not used)                    */
-#define XTRN_STDIO 		(1<<2) 		/* Intercept Standard I/O (aka IO_INTS)	*/
+#define XTRN_ANSI		(1<<1) 		/* user must have ANSI, same as ^^^		*/
+#define IO_INTS 		(1<<2) 		/* Intercept I/O interrupts 			*/
 #define MODUSERDAT		(1<<3) 		/* Program can modify user data 		*/
 #define WWIVCOLOR		(1<<4) 		/* Program uses WWIV color codes		*/
 #define EVENTONLY		(1<<5) 		/* Program executes as event only		*/
@@ -394,8 +394,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
 #define QUOTEWRAP		(1<<21)		/* Word-wrap the quoted text			*/
-#define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
-
 
 									/* Bits in cfg.xtrn_misc				*/
 #define XTRN_NO_MUTEX	(1<<0)		/* Do not use exec_mutex for FOSSIL VXD	*/
@@ -428,8 +426,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CHAT_SPLITP (1<<4)	/* Split screen private chat					*/
 																			
 																			
-#define INVALID_DIR ((uint)-1)	/* Invalid directory value					*/
-#define INVALID_SUB ((uint)-1)	/* Invalid sub-board value					*/
+#define INVALID_DIR 0xffff	/* Invalid directory value						*/
+#define INVALID_SUB 0xffff	/* Invalid sub-board value						*/
 																			
 #define KEY_BUFSIZE 1024	/* Size of keyboard input buffer				*/
 #define SAVE_LINES	 4		/* Maximum number of lines to save				*/
@@ -740,9 +738,9 @@ enum {							/* readmail and delmailidx which types		*/
 								
 								/* Bits in the mode of external()           */
 #define EX_SH       (1<<0)		/* Use command shell to load other process  */
-#define EX_STDOUT   (1<<1)		/* Copy DOS output to remote                */
-#define EX_OUTL 	(1<<2)		/* Use _lputc() for local output (*legacy*)	*/
-#define EX_STDIN	(1<<3)		/* Trap int 16h keyboard input requests     */
+#define EX_OUTR     (1<<1)		/* Copy DOS output to remote                */
+#define EX_OUTL 	(1<<2)		/* Use _lputc() for local DOS output		*/
+#define EX_INR		(1<<3)		/* Trap int 16h keyboard input requests     */
 #define EX_WWIV 	WWIVCOLOR	/* Expand WWIV color codes to ANSI sequence */
 #define EX_SWAP 	(1<<5)		/* Swap out for this external (*legacy*)	*/
 #define EX_POPEN	(1<<7)		/* Leave COM port open	(*legacy*)			*/
@@ -752,8 +750,6 @@ enum {							/* readmail and delmailidx which types		*/
 #define EX_NATIVE	XTRN_NATIVE		/* Native 32-bit application 			*/
 #define EX_CHKTIME	XTRN_CHKTIME	/* Check time left						*/
 #define EX_NOECHO	XTRN_NOECHO		/* Don't echo stdin to stdout 			*/
-#define EX_STDIO	(EX_STDIN|EX_STDOUT)
-#define EX_CONIO	(1<<31)		/* Intercept Windows console I/O (doorway)	*/
 
 #if defined(__unix)
 #define EX_WILDCARD	EX_SH		/* Expand wildcards using 'sh' on Unix		*/
@@ -827,7 +823,7 @@ enum {							/* Values of mode for userlist function     */
 #define REALSYSOP		(useron.level>=SYSOP_LEVEL)
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
-#define WHERE       	__LINE__,getfname(__FILE__)
+#define WHERE       	__LINE__,__FILE__
 #define SAVELINE		{ if(slcnt<SAVE_LINES) { \
 							slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \
