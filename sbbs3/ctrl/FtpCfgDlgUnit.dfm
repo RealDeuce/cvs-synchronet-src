@@ -3,7 +3,7 @@ object FtpCfgDlg: TFtpCfgDlg
   Top = 375
   BorderStyle = bsDialog
   Caption = 'FTP Server Configuration'
-  ClientHeight = 302
+  ClientHeight = 301
   ClientWidth = 352
   Color = clBtnFace
   ParentFont = True
@@ -12,7 +12,7 @@ object FtpCfgDlg: TFtpCfgDlg
   OnShow = FormShow
   DesignSize = (
     352
-    302)
+    301)
   PixelsPerInch = 120
   TextHeight = 16
   object PageControl: TPageControl
@@ -29,7 +29,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 9
         Top = 106
         Width = 96
-        Height = 24
+        Height = 25
         AutoSize = False
         Caption = 'Max Clients'
       end
@@ -37,7 +37,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 9
         Top = 138
         Width = 96
-        Height = 24
+        Height = 25
         AutoSize = False
         Caption = 'Max Inactivity'
       end
@@ -45,7 +45,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 9
         Top = 74
         Width = 96
-        Height = 24
+        Height = 25
         AutoSize = False
         Caption = 'Control Port'
       end
@@ -53,7 +53,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 9
         Top = 42
         Width = 96
-        Height = 24
+        Height = 25
         AutoSize = False
         Caption = 'Interface (IP)'
       end
@@ -61,7 +61,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 9
         Top = 170
         Width = 96
-        Height = 24
+        Height = 25
         AutoSize = False
         Caption = 'QWK Timeout'
       end
@@ -80,7 +80,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 105
         Top = 106
         Width = 48
-        Height = 21
+        Height = 24
         Hint = 'Maximum number of simultaneous clients (default=10)'
         ParentShowHint = False
         ShowHint = True
@@ -90,7 +90,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 105
         Top = 138
         Width = 48
-        Height = 21
+        Height = 24
         Hint = 
           'Maximum number of seconds of inactivity before disconnect (defau' +
           'lt=300)'
@@ -102,7 +102,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 105
         Top = 74
         Width = 48
-        Height = 21
+        Height = 24
         Hint = 'TCP port to use for FTP control connections (default=21)'
         ParentShowHint = False
         ShowHint = True
@@ -112,7 +112,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 105
         Top = 42
         Width = 192
-        Height = 21
+        Height = 24
         Hint = 'Your network adapter'#39's static IP address or blank for <ANY>'
         ParentShowHint = False
         ShowHint = True
@@ -122,7 +122,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 182
         Top = 74
         Width = 147
-        Height = 24
+        Height = 25
         Hint = 'Allow QWK packet transfers'
         Caption = 'QWK Packets'
         ParentShowHint = False
@@ -133,7 +133,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 182
         Top = 106
         Width = 147
-        Height = 24
+        Height = 25
         Hint = 
           'Allow sysop access to local file system (requires sysop password' +
           ')'
@@ -168,7 +168,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 105
         Top = 170
         Width = 48
-        Height = 21
+        Height = 24
         Hint = 'Maximum number of seconds before QWK packet creation timeout'
         ParentShowHint = False
         ShowHint = True
@@ -195,9 +195,9 @@ object FtpCfgDlg: TFtpCfgDlg
         Caption = 'Port Range'
       end
       object PasvPortThroughLabel: TLabel
-        Left = 153
+        Left = 152
         Top = 44
-        Width = 16
+        Width = 17
         Height = 25
         Alignment = taCenter
         AutoSize = False
@@ -206,7 +206,7 @@ object FtpCfgDlg: TFtpCfgDlg
       object PasvIpAddrEdit: TEdit
         Left = 105
         Top = 12
-        Width = 113
+        Width = 192
         Height = 24
         Hint = 'Your static public IP address or blank for <unspecified>'
         ParentShowHint = False
@@ -223,7 +223,7 @@ object FtpCfgDlg: TFtpCfgDlg
           '=1024)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 2
+        TabOrder = 1
       end
       object PasvPortHighEdit: TEdit
         Left = 169
@@ -235,19 +235,7 @@ object FtpCfgDlg: TFtpCfgDlg
           't=65535)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 3
-      end
-      object PasvIpLookupCheckBox: TCheckBox
-        Left = 226
-        Top = 10
-        Width = 90
-        Height = 21
-        Hint = 'Get passive IP address from public hostname (dynamic IP)'
-        Caption = 'Lookup'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 1
-        OnClick = PasvIpLookupCheckBoxClick
+        TabOrder = 2
       end
     end
     object IndexTabSheet: TTabSheet
@@ -277,7 +265,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 105
         Top = 12
         Width = 192
-        Height = 21
+        Height = 24
         Hint = 'Name of ASCII index file (default=00index)'
         ParentShowHint = False
         ShowHint = True
@@ -299,7 +287,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 105
         Top = 44
         Width = 192
-        Height = 21
+        Height = 24
         Hint = 'Name of HTML index file (default=00index.html)'
         ParentShowHint = False
         ShowHint = True
@@ -309,7 +297,7 @@ object FtpCfgDlg: TFtpCfgDlg
         Left = 105
         Top = 76
         Width = 192
-        Height = 21
+        Height = 24
         Hint = 'JavaScript filename to execute to generate HTML index file'
         ParentShowHint = False
         ShowHint = True
@@ -343,9 +331,9 @@ object FtpCfgDlg: TFtpCfgDlg
       end
       object DebugDataCheckBox: TCheckBox
         Left = 9
-        Top = 73
+        Top = 72
         Width = 192
-        Height = 23
+        Height = 24
         Hint = 'Log (debug) data channel operations'
         Caption = 'Data Channel Activity'
         ParentShowHint = False
