@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.50 2009/10/25 02:55:51 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.48 2009/03/24 08:03:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 	return(TRUE);
 }
 
-extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text)
+extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* text)
 {
 	FILE*	fp;
 	char	buf[128];
@@ -119,7 +119,7 @@ extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text)
 	sprintf(path,"%serror.log",cfg->logs_dir);
 	if((fp=fnopen(NULL,path,O_WRONLY|O_CREAT|O_APPEND))==NULL)
 		return -1; 
-	fprintf(fp,"%s %s\r\n%s\r\n\r\n", timestr(cfg,time(NULL),buf), host==NULL ? "":host, text);
+	fprintf(fp,"%s\r\n%s\r\n\r\n",timestr(cfg,time(NULL),buf), text);
 	fclose(fp);
 	return 0;
 }
@@ -241,6 +241,7 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 {
 	const char*	src;
     char	str[2048];
+	char 	tmp[512];
 
 	/* prevent recursion */
 	if(errormsg_inside)
@@ -249,31 +250,57 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 
 	/* Don't log path to source code */
 	src=getfname(source);
-	safe_snprintf(str,sizeof(str),"ERROR %d (%s) "
+	sprintf(str,"Node %d !ERROR %d "
 #ifdef _WIN32
-		"(WinError %u) "
+		"(WinError %d) "
 #endif
-		"in %s line %u %s \"%s\" access=%ld %s%s"
-		,errno,STRERROR(errno)
+		"in %s line %d %s \"%s\" access=%ld"
+		,cfg.node_num, errno
 #ifdef _WIN32
 		,GetLastError()
 #endif
-		,src, line, action, object, access
-		,extinfo==NULL ? "":"info="
-		,extinfo==NULL ? "":extinfo);
+		,src, line, action, object, access);
 	if(online==ON_LOCAL)
 		eprintf(LOG_ERR,"%s",str);
 	else {
-		int savatr=curatr;
-		lprintf(LOG_ERR,"Node %d !%s",cfg.node_num, str);
-		attr(cfg.color[clr_err]);
-		bprintf("\7\r\n!ERROR %s %s\r\n", action, object);   /* tell user about error */
-		bputs("\r\nThe sysop has been notified.\r\n");
-		pause();
-		attr(savatr);
+		lprintf(LOG_ERR,"%s",str);
+		bprintf("\7\r\nERROR -   action: %s",action);   /* tell user about error */
+		bprintf("\7\r\n          object: %s",object);
+		bprintf("\7\r\n          access: %ld",access);
+		if(access>9 && (long)access!=-1 && (short)access!=-1 && (char)access!=-1)
+			bprintf(" (0x%lX)",access);
+		if(cfg.sys_misc&SM_ERRALARM) {
+			sbbs_beep(500,220); sbbs_beep(250,220);
+			sbbs_beep(500,220); sbbs_beep(250,220);
+			sbbs_beep(500,220); sbbs_beep(250,220);
+			nosound(); 
+		}
+		bputs("\r\n\r\nThe sysop has been notified. <Hit a key>");
+		getkey(0);
 		CRLF;
 	}
-	safe_snprintf(str,sizeof(str),"ERROR %s %s", action, object);
+	sprintf(str,"    source: %s\r\n      line: %d\r\n    action: %s\r\n"
+		"    object: %s\r\n    access: %ld"
+		,src,line,action,object,access);
+	if(access>9 && (long)access!=-1 && (short)access!=-1 && (char)access!=-1) {
+		sprintf(tmp," (0x%lX)",access);
+		strcat(str,tmp); 
+	}
+	if(extinfo!=NULL) {
+		sprintf(tmp,"\r\n      info: %s",extinfo);
+		strcat(str,tmp);
+	}
+	if(errno) {
+		sprintf(tmp,"\r\n     errno: %d (%s)",errno,STRERROR(errno));
+		strcat(str,tmp); 
+		errno=0;
+	}
+#if defined(_WIN32)
+	if(GetLastError()!=0) {
+		sprintf(tmp,"\r\n  WinError: %d (0x%X)",GetLastError(), GetLastError());
+		strcat(str,tmp);
+	}
+#endif
 	errorlog(str);
 	errormsg_inside=false;
 }
@@ -283,6 +310,9 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 /*****************************************************************************/
 void sbbs_t::errorlog(const char *text)
 {
+    char hdr[256],str[256],tmp2[256];
+    int file;
+
 	if(errorlog_inside)		/* let's not go recursive on this puppy */
 		return;
 	errorlog_inside=1;
@@ -294,14 +324,21 @@ void sbbs_t::errorlog(const char *text)
 		putnodedat(cfg.node_num,&thisnode);
 	}
 	now=time(NULL);
+	logline("!!",text);
+	sprintf(str,"%serror.log",cfg.logs_dir);
+	if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
+		sprintf(tmp2,"!ERROR %d opening/creating %s",errno,str);
+		logline("!!",tmp2);
+		errorlog_inside=0;
+		return; 
 
-	if(logfile_fp!=NULL) {
-		if(logcol!=1)
-			fprintf(logfile_fp,"\r\n");
-		fprintf(logfile_fp,"%!! %s\r\n",text);
-		logcol=1;
-		fflush(logfile_fp);
 	}
+	sprintf(hdr,"%s\r\nNode %2d: %s #%d\r\n"
+		,timestr(now),cfg.node_num,useron.alias,useron.number);
+	write(file,hdr,strlen(hdr));
+	write(file,text,strlen(text));
+	write(file,"\r\n\r\n",4);
+	close(file);
 	errorlog_inside=0;
 }
 
