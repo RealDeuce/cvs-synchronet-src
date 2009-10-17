@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.252 2009/10/24 04:58:56 rswindell Exp $ */
+/* $Id: js_global.c,v 1.251 2009/08/14 23:29:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -387,7 +387,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				}
 			}
 		}
-		/* if mods_dir is defined, search there next */
+		/* if mods_dir is defined, search their next */
 		if(path[0]==0 && p->cfg->mods_dir[0]!=0) {
 			SAFEPRINTF2(path,"%s%s",p->cfg->mods_dir,filename);
 			if(!fexistcase(path))
