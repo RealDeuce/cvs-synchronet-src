@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.372 2011/04/13 15:21:58 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.357 2009/08/17 07:50:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,11 +79,11 @@
 static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
-static ulong	active_clients=0;
-static ulong	sockets=0;
-static ulong	thread_count=0;
+static DWORD	active_clients=0;
+static DWORD	sockets=0;
+static DWORD	thread_count=0;
 static time_t	uptime=0;
-static ulong	served=0;
+static DWORD	served=0;
 static BOOL		terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
@@ -138,11 +138,8 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR) {
-		errorlog(&scfg, startup==NULL ? NULL:startup->host_name, sbuf);
-		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
-	}
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
 		return(0);
@@ -342,8 +339,8 @@ int getdir(char* p, user_t* user, client_t* client)
 {
 	char*	tp;
 	char	path[MAX_PATH+1];
-	uint	dir;
-	uint	lib;
+	int		dir;
+	int		lib;
 
 	SAFECOPY(path,p);
 	p=path;
@@ -486,7 +483,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static JSContext* 
-js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_branch_t* branch)
+js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 {
 	JSContext*	js_cx;
 	JSObject*	js_glob;
@@ -503,21 +500,13 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_b
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-	memset(branch, 0, sizeof(js_branch_t));
-
-	/* ToDo: call js_CreateCommonObjects() instead */
-
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing Global object",sock);
 		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js))==NULL) 
 			break;
 
-		if(!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
-			break;
-
-		/* Internal JS Object */
-		if(js_CreateInternalJsObject(js_cx, js_glob, branch, &startup->js)==NULL)
+		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing System object",sock);
@@ -588,7 +577,7 @@ BOOL js_add_file(JSContext* js_cx, JSObject* array,
 	if(!JS_SetProperty(js_cx, file, "credits", &val))
 		return(FALSE);
 
-	JS_NewNumberValue(js_cx,(jsdouble)time,&val);
+	JS_NewNumberValue(js_cx,time,&val);
 	if(!JS_SetProperty(js_cx, file, "time", &val))
 		return(FALSE);
 
@@ -1011,7 +1000,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL);
+		js_PrepareToExecute(js_cx, parent, spath);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -1405,7 +1394,7 @@ static void send_thread(void* arg)
 				str[0]=0;
 			lprintf(LOG_INFO,"%04d Sent %lu bytes (%lu total) of %s (%lu cps)%s"
 				,xfer.ctrl_sock,total,length,xfer.filename
-				,(ulong)((total-last_total)/(now-last_report))
+				,(total-last_total)/(now-last_report)
 				,str);
 			last_total=total;
 			last_report=now;
@@ -1501,7 +1490,7 @@ static void send_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d DATA socket closed",xfer.ctrl_sock);
 	
 	if(!error) {
-		dur=(long)(time(NULL)-start);
+		dur=time(NULL)-start;
 		cps=dur ? total/dur : total*2;
 		lprintf(LOG_INFO,"%04d Transfer successful: %lu bytes sent in %lu seconds (%lu cps)"
 			,xfer.ctrl_sock
@@ -1658,7 +1647,7 @@ static void receive_thread(void* arg)
 				str[0]=0;
 			lprintf(LOG_INFO,"%04d Received %lu bytes of %s (%lu cps)%s"
 				,xfer.ctrl_sock,total,xfer.filename
-				,(ulong)((total-last_total)/(now-last_report))
+				,(total-last_total)/(now-last_report)
 				,str);
 			last_total=total;
 			last_report=now;
@@ -1751,7 +1740,7 @@ static void receive_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d DATA socket %d closed",xfer.ctrl_sock,*xfer.data_sock);
 	
 	if(!error) {
-		dur=(long)(time(NULL)-start);
+		dur=time(NULL)-start;
 		cps=dur ? total/dur : total*2;
 		lprintf(LOG_INFO,"%04d Transfer successful: %lu bytes received in %lu seconds (%lu cps)"
 			,xfer.ctrl_sock
@@ -1790,20 +1779,15 @@ static void receive_thread(void* arg)
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
 					if(fexistcase(tmp))
 						remove(tmp);
-					cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd);
-					lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
-					system(cmd);
+					system(cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd));
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
 						if(fexistcase(tmp))
 							remove(tmp);
-						cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd);
-						lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
-						system(cmd); 
+						system(cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd)); 
 						fexistcase(tmp);	/* fixes filename case */
 					}
 					if((file=nopen(tmp,O_RDONLY))!=-1) {
-						lprintf(LOG_DEBUG,"%04d Parsing DIZ: %s",xfer.ctrl_sock,tmp);
 						memset(ext,0,sizeof(ext));
 						read(file,ext,sizeof(ext)-1);
 						for(i=sizeof(ext)-1;i;i--)	/* trim trailing spaces */
@@ -1822,8 +1806,7 @@ static void receive_thread(void* arg)
 						close(file);
 						remove(tmp);
 						f.misc|=FM_EXTDESC; 
-					} else
-						lprintf(LOG_DEBUG,"%04d DIZ Does not exist: %s",xfer.ctrl_sock,tmp);
+					} 
 				} 
 			} /* FILE_ID.DIZ support */
 
@@ -2096,8 +2079,8 @@ void parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curd
 	char*	p;
 	char*	tp;
 	char	path[MAX_PATH+1];
-	uint	dir=*curdir;
-	uint	lib=*curlib;
+	int		dir=*curdir;
+	int		lib=*curlib;
 
 	SAFECOPY(path,*pp);
 	p=path;
@@ -2360,7 +2343,7 @@ static void ctrl_thread(void* arg)
 	WORD		port;
 	uint32_t	ip_addr;
 	socklen_t	addr_len;
-	unsigned	h1,h2,h3,h4;
+	DWORD		h1,h2,h3,h4;
 	u_short		p1,p2;	/* For PORT command */
 	int			i;
 	int			rd;
@@ -2423,7 +2406,6 @@ static void ctrl_thread(void* arg)
 	JSObject*	js_glob;
 	JSObject*	js_ftp;
 	JSString*	js_str;
-	js_branch_t	js_branch;
 #endif
 
 	SetThreadName("FTP CTRL");
@@ -2479,8 +2461,14 @@ static void ctrl_thread(void* arg)
 	else
 		host_name="<no name>";
 
-	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
+#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
+	     and getnameinfo() doesn't return alias information */
+	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
+		for(i=0;host!=NULL && host->h_aliases!=NULL && host->h_aliases[i]!=NULL;i++)
+			lprintf(LOG_INFO,"%04d HostAlias: %s", sock, host->h_aliases[i]);
+	}
+#endif
 
 	if(trashcan(&scfg,host_ip,"ip")) {
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
@@ -2592,7 +2580,7 @@ static void ctrl_thread(void* arg)
 			sockprintf(sock," QUIT    REIN    PORT    PASV    LIST    NLST    NOOP    HELP");
 			sockprintf(sock," SIZE    MDTM    RETR    STOR    REST    ALLO    ABOR    SYST");
 			sockprintf(sock," TYPE    STRU    MODE    SITE    RNFR*   RNTO*   DELE*   DESC#");
-			sockprintf(sock," FEAT#   OPTS#   EPRT    EPSV");
+			sockprintf(sock," FEAT#   OPTS#");
 			sockprintf(sock,"214 Direct comments to sysop@%s.",scfg.sys_inetaddr);
 			continue;
 		}
@@ -2865,35 +2853,16 @@ static void ctrl_thread(void* arg)
 		}
 #endif
 
-		if(strnicmp(cmd, "PORT ",5)==0 || strnicmp(cmd, "EPRT ",5)==0) {
+		if(!strnicmp(cmd, "PORT ",5)) {
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
 
 			p=cmd+5;
 			SKIP_WHITESPACE(p);
-			if(strnicmp(cmd, "PORT ",5)==0) {
-				sscanf(p,"%u,%u,%u,%u,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
-				data_addr.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
-				data_addr.sin_port=(u_short)((p1<<8)|p2);
-			} else { /* EPRT */
-				char	delim = *p;
-				int		prot;
-
-				if(*p) p++;
-				prot=strtol(p,NULL,/* base: */10);
-				if(prot!=1) {
-					lprintf(LOG_WARNING,"%04d UNSUPPORTED protocol: %d", sock, prot);
-					sockprintf(sock,"522 Network protocol not supported, use (1)");
-					continue;
-				}
-				FIND_CHAR(p,delim);
-				if(*p) p++;
-				data_addr.sin_addr.s_addr=inet_addr(p);
-				FIND_CHAR(p,delim);
-				if(*p) p++;
-				data_addr.sin_port=atoi(p);
-			}
+			sscanf(p,"%ld,%ld,%ld,%ld,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
+			data_addr.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
+			data_addr.sin_port=(u_short)((p1<<8)|p2);
 			if(data_addr.sin_port< IPPORT_RESERVED) {	
 				lprintf(LOG_WARNING,"%04d !SUSPECTED BOUNCE ATTACK ATTEMPT by %s to %s port %u"
 					,sock,user.alias
@@ -2912,8 +2881,8 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 
-		if(stricmp(cmd, "PASV")==0 || stricmp(cmd, "P@SW")==0	/* Kludge required for SMC Barricade V1.2 */
-			|| stricmp(cmd, "EPSV")==0) {	
+		if(!stricmp(cmd, "PASV") 
+			|| !stricmp(cmd, "P@SW")) {	/* Kludge required for SMC Barricade V1.2 */
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -2990,17 +2959,14 @@ static void ctrl_thread(void* arg)
 					,ip_addr&0xff
 					);
 			port=ntohs(addr.sin_port);
-			if(stricmp(cmd, "EPSV")==0)
-				sockprintf(sock,"229 Entering Extended Passive Mode (|||%hu|)", port);
-			else
-				sockprintf(sock,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
-					,(ip_addr>>24)&0xff
-					,(ip_addr>>16)&0xff
-					,(ip_addr>>8)&0xff
-					,ip_addr&0xff
-					,(port>>8)&0xff
-					,port&0xff
-					);
+			sockprintf(sock,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
+				,(ip_addr>>24)&0xff
+				,(ip_addr>>16)&0xff
+				,(ip_addr>>8)&0xff
+				,ip_addr&0xff
+				,(port>>8)&0xff
+				,port&0xff
+				);
 			mode="passive";
 			continue;
 		}
@@ -3325,7 +3291,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				if(!strnicmp(cmd,"SIZE ",5)) {
-					sockprintf(sock,"213 %"PRIuOFF,flength(fname));
+					sockprintf(sock,"213 %lu",flength(fname));
 					continue;
 				}
 				if(!strnicmp(cmd,"MDTM ",5)) {
@@ -3349,7 +3315,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				/* RETR */
-				lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
+				lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
 					,sock,user.alias,fname,flength(fname)
 					,mode);
 				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
@@ -3562,7 +3528,7 @@ static void ctrl_thread(void* arg)
 								t=fdate(np);
 								if(localtime_r(&t,&tm)==NULL)
 									memset(&tm,0,sizeof(tm));
-								fprintf(fp,"-r--r--r--   1 %-*s %-8s %9"PRIdOFF" %s %2d %02d:%02d %s\r\n"
+								fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
 									,NAME_LEN
 									,scfg.sys_id
 									,scfg.sys_id
@@ -3601,7 +3567,7 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=lib)
 						continue;
-					if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir 
+					if(i!=scfg.sysop_dir && i!=scfg.upload_dir 
 						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!wildmatchi(scfg.dir[i]->code_suffix, filespec, FALSE))
@@ -3801,7 +3767,7 @@ static void ctrl_thread(void* arg)
 				delfile=TRUE;
 				credits=FALSE;
 				if(!getsize && !getdate)
-					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%"PRIuOFF" bytes) in %s mode"
+					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
 						,sock,user.alias,flength(fname)
 						,mode);
 			/* ASCII Index File */
@@ -3809,8 +3775,7 @@ static void ctrl_thread(void* arg)
 				&& !stricmp(p,startup->index_file_name)
 				&& !delecmd) {
 				if(getsize) {
-					/* Size not available for dynamically generated files */
-					sockprintf(sock, "213 0"); /* report size of 0 to be make Google Chrome happy */
+					sockprintf(sock, "500 Size not available for dynamically generated files");
 					continue;
 				}
 				if((fp=fopen(ftp_tmpfname(fname,"ndx",sock),"w+b"))==NULL) {
@@ -3888,7 +3853,7 @@ static void ctrl_thread(void* arg)
 						for(i=0;i<scfg.total_dirs;i++) {
 							if(scfg.dir[i]->lib!=lib)
 								continue;
-							if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir
+							if(i!=scfg.sysop_dir && i!=scfg.upload_dir
 								&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 								continue;
 							fprintf(fp,"%-*s %s\r\n"
@@ -3925,8 +3890,7 @@ static void ctrl_thread(void* arg)
 				&& !delecmd) {
 				success=TRUE;
 				if(getsize) {
-					/* Size not available for dynamically generated files */
-					sockprintf(sock, "213 0"); /* report size of 0 to be make Google Chrome happy */
+					sockprintf(sock, "500 Size not available for dynamically generated files");
 					continue;
 				}
 				else if(getdate)
@@ -3953,7 +3917,7 @@ static void ctrl_thread(void* arg)
 
 					if(js_cx==NULL) {	/* Context not yet created, create it now */
 						/* js_initcx() starts a request */
-						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_branch))==NULL)) {
+						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp))==NULL)) {
 							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
 							sockprintf(sock,"451 Error initializing JavaScript context");
 							filepos=0;
@@ -4127,7 +4091,7 @@ static void ctrl_thread(void* arg)
 					if(fexistcase(fname)) {
 						success=TRUE;
 						if(!getsize && !getdate && !delecmd)
-							lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
+							lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
 								,sock,user.alias,fname,flength(fname)
 								,mode);
 					} 
@@ -4138,7 +4102,7 @@ static void ctrl_thread(void* arg)
 #endif
 
 			if(getsize && success)
-				sockprintf(sock,"213 %"PRIuOFF, flength(fname));
+				sockprintf(sock,"213 %lu", flength(fname));
 			else if(getdate && success) {
 				if(file_date==0)
 					file_date = fdate(fname);
@@ -4243,7 +4207,7 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=lib)
 						continue;
-					if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir 
+					if(i!=scfg.sysop_dir && i!=scfg.upload_dir 
 						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.dir[i]->code_suffix,p))
@@ -4443,7 +4407,7 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=curlib)
 						continue;
-					if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir
+					if(i!=scfg.sysop_dir && i!=scfg.upload_dir
 						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.dir[i]->code_suffix,p))
@@ -4612,9 +4576,8 @@ static void cleanup(int code, int line)
 	thread_down();
 	status("Down");
 	if(terminate_server || code)
-		lprintf(LOG_INFO,"#### FTP Server thread terminated (%lu clients served)", served);
-	if(thread_count)
-		lprintf(LOG_WARNING,"#### !FTP Server threads (%u) remain after termination", thread_count);
+		lprintf(LOG_INFO,"#### FTP Server thread terminated (%u threads remain, %lu clients served)"
+			,thread_count, served);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -4626,7 +4589,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.372 $", "%*s %s", revision);
+	sscanf("$Revision: 1.357 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
