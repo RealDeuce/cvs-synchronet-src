@@ -144,47 +144,34 @@ char *readtext(FILE *stream, char **comment_ret)
 char *format_as_cstr(char *orig)
 {
 	int		len=0;
-	int		outpos=0;
 	char	*ret=NULL;
 	char	*in;
-	char	*tmp;
 	char	hex[32];
+	int		outpos=0;
 
-	if(!orig)
-		return(NULL);
+	len=strlen(orig);
+	len += ((len / 32)*2);
+	len *= 6;
+	len += 32;	/* Only needs to be three, the extra is for luck  ;-) */
+
+	ret=(char *)malloc(len);
+	if(ret==NULL)
+		return(ret);
+	strcpy(ret,"\"");
 	for(in=orig; *in; in++) {
-		if(outpos >= len-7) {
-			len += strlen(in)+7;
-			tmp=realloc(ret, len);
-			if(tmp==NULL) {
-				free(ret);
-				return(NULL);
-			}
-			ret=tmp;
-		}
-		if(*in < ' ' || *in > '~') {
-			sprintf(hex, "%02x", (unsigned char)*in);
-			ret[outpos++]='\\';
-			ret[outpos++]='x';
-			ret[outpos++]=hex[0];
-			ret[outpos++]=hex[1];
-			ret[outpos++]='"';
-			ret[outpos++]='"';
-		}
-		else
-			ret[outpos++]=*in;
+		sprintf(hex, "\\x%02x", (unsigned char)*in);
+		strcat(ret,hex);
+		if((++outpos)%32==0)
+			strcat(ret,"\"\n\t\t\"");
 	}
-	if(in==orig) {
-		ret=(char *)malloc(1);
-	}
-	if(ret)
-		ret[outpos]=0;
+	strcat(ret, "\"");
 	return(ret);
 }
 
 int main(int argc, char **argv)
 {
 	FILE			*text_dat;
+	char			path[MAX_PATH+1];
 	char			*p;
 	char			*cstr;
 	char			*comment;
@@ -195,25 +182,28 @@ int main(int argc, char **argv)
 	FILE			*text_js;
 	FILE			*text_defaults_c;
 
-	if((text_dat=fopen("../../ctrl/text.dat","r"))==NULL) {
-		fprintf(stderr,"Can't open text.dat!\n");
+	if((p=getenv("SBBSCTRL"))==NULL)
+		p="/sbbs/ctrl";
+	sprintf(path,"%s/text.dat",p);
+	if((text_dat=fopen(path,"r"))==NULL) {
+		perror(path);
 		return(1);
 	}
 	if((text_h=fopen("text.h", "w"))==NULL) {
-		fprintf(stderr,"Can't open text.h!\n");
+		perror("text.h");
 		return(1);
 	}
 	fputs("/* text.h */\n",text_h);
 	fputs("\n",text_h);
 	fputs("/* Synchronet static text string constants */\n",text_h);
 	fputs("\n",text_h);
-	fputs("/* $Id: textgen.c,v 1.2 2009/01/23 07:20:30 deuce Exp $ */\n",text_h);
+	fputs("/* $Id: textgen.c,v 1.4 2009/07/17 05:05:39 rswindell Exp $ */\n",text_h);
 	fputs("\n",text_h);
 	fputs("/****************************************************************************\n",text_h);
 	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_h);
 	fputs(" * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*\n",text_h);
 	fputs(" *																			*\n",text_h);
-	fputs(" * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*\n",text_h);
+	fputs(" * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*\n",text_h);
 	fputs(" *																			*\n",text_h);
 	fputs(" * This program is free software; you can redistribute it and/or			*\n",text_h);
 	fputs(" * modify it under the terms of the GNU General Public License				*\n",text_h);
@@ -249,21 +239,25 @@ int main(int argc, char **argv)
 	fputs("#define _TEXT_H\n",text_h);
 	fputs("\n",text_h);
 	fputs("enum {\n",text_h);
-	if((text_js=fopen("../../exec/text.js", "w"))==NULL) {
-		fprintf(stderr,"Can't open text.js!\n");
+
+	if((p=getenv("SBBSEXEC"))==NULL)
+		p="/sbbs/exec";
+	sprintf(path,"%s/text.js",p);
+	if((text_js=fopen(path, "w"))==NULL) {
+		perror(path);
 		return(1);
 	}
 	fputs("/* text.js */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
-	fputs("/* $Id: textgen.c,v 1.2 2009/01/23 07:20:30 deuce Exp $ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.4 2009/07/17 05:05:39 rswindell Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/****************************************************************************\n",text_js);
 	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_js);
 	fputs(" * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*\n",text_js);
 	fputs(" *																			*\n",text_js);
-	fputs(" * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*\n",text_js);
+	fputs(" * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*\n",text_js);
 	fputs(" *																			*\n",text_js);
 	fputs(" * This program is free software; you can redistribute it and/or			*\n",text_js);
 	fputs(" * modify it under the terms of the GNU General Public License				*\n",text_js);
@@ -303,7 +297,7 @@ int main(int argc, char **argv)
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
-	fputs("/* $Id: textgen.c,v 1.2 2009/01/23 07:20:30 deuce Exp $ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.4 2009/07/17 05:05:39 rswindell Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/****************************************************************************\n",text_defaults_c);
 	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_defaults_c);
@@ -331,7 +325,7 @@ int main(int argc, char **argv)
 			}
 			fprintf(text_h, "\t%c%s\n", i==1?' ':',', macro);
 			fprintf(text_js, "var %s=%d;\n", macro, i);
-			fprintf(text_defaults_c, "\t%c\"%s\"\n", i==1?' ':',', cstr);
+			fprintf(text_defaults_c, "\t%c%s\n", i==1?' ':',', cstr);
 		}
 	} while(p != NULL);
 	fclose(text_dat);
