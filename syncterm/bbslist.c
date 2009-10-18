@@ -1504,6 +1504,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 	struct mouse_event mevent;
 	struct bbslist defaults;
 	char	shared_list[MAX_PATH+1];
+	char	listpath[MAX_PATH+1];
 
 	if(init_uifc(connected?FALSE:TRUE, TRUE))
 		return(NULL);
@@ -1588,13 +1589,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 							break;
 						case -6:		/* CTRL-D */
 							if(!connected) {
-								if(safe_mode) {
-									uifc.helpbuf=	"`Cannot Quick-Connect in safe mode`\n\n"
-													"SyncTERM is currently running in safe mode.  This means you cannot use the\n"
-													"Quick-Connect feature.";
-									uifc.msg("Cannot edit list in safe mode");
-									break;
-								}
 								uifc.changes=0;
 								uifc.helpbuf=	"`SyncTERM Quick-Connect`\n\n"
 												"Enter a URL in the format:\n"
@@ -1868,7 +1862,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						break;
 					case 3:			/* Program settings */
 						change_settings();
-						load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, listcount && list[listcount-1]?strdup(list[listcount-1]->name):NULL);
+						load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]?strdup(list[listcount-1]->name):NULL);
 						oldopt=-1;
 						break;
 				}
