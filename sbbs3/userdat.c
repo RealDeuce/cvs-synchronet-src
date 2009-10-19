@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.120 2009/10/10 07:13:55 rswindell Exp $ */
+/* $Id: userdat.c,v 1.121 2009/10/19 00:17:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -846,11 +846,12 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
         case NODE_OFFLINE:
             strcpy(str,"Offline");
             break;
-        case NODE_NETTING:
+        case NODE_NETTING:	/* Obsolete */
             strcpy(str,"Networking");
             break;
         case NODE_LOGON:
-            strcpy(str,"At logon prompt");
+            sprintf(str,"At logon prompt %s"
+				,node_connection_desc(node->connection, tmp));
             break;
         case NODE_EVENT_WAITING:
             strcpy(str,"Waiting for all nodes to become inactive");
