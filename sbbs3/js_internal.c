@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.45 2009/08/14 08:00:32 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.47 2009/08/18 23:24:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -455,6 +455,7 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	if(startup!=NULL) {
 		JSObject*	load_path_list;
 		jsval		val;
+		str_list_t	load_path;
 
 		if((load_path_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 			return(NULL);
@@ -462,17 +463,18 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 		if(!JS_SetProperty(cx, obj, JAVASCRIPT_LOAD_PATH_LIST, &val)) 
 			return(NULL);
 
-		if(startup->load_path!=NULL) {
+		if((load_path=strListSplitCopy(NULL, startup->load_path, ",")) != NULL) {
 			JSString*	js_str;
 			unsigned	i;
 
-			for(i=0; startup->load_path[i]!=NULL; i++) {
-				if((js_str=JS_NewStringCopyZ(cx, startup->load_path[i]))==NULL)
-					return(NULL);
+			for(i=0; load_path[i]!=NULL; i++) {
+				if((js_str=JS_NewStringCopyZ(cx, load_path[i]))==NULL)
+					break;
 				val=STRING_TO_JSVAL(js_str);
 				if(!JS_SetElement(cx, load_path_list, i, &val))
-					return(NULL);
+					break;
 			}
+			strListFree(&load_path);
 		}
 	}
 
@@ -482,4 +484,32 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 #endif
 
 	return(obj);
+}
+
+void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename)
+{
+	JSString*	str;
+	jsval		val;
+
+	if(JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val)) {
+		JSObject* js = JSVAL_TO_OBJECT(val);
+		char	dir[MAX_PATH+1];
+
+		if(filename!=NULL) {
+			char* p;
+
+			if((str=JS_NewStringCopyZ(cx, filename)) != NULL)
+				JS_DefineProperty(cx, js, "exec_path", STRING_TO_JSVAL(str)
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+			if((str=JS_NewStringCopyZ(cx, getfname(filename))) != NULL)
+				JS_DefineProperty(cx, js, "exec_file", STRING_TO_JSVAL(str)
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+			SAFECOPY(dir,filename);
+			p=getfname(dir);
+			*p=0;
+			if((str=JS_NewStringCopyZ(cx, dir)) != NULL)
+				JS_DefineProperty(cx, js, "exec_dir", STRING_TO_JSVAL(str)
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+		}
+	}
 }

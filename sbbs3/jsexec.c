@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.128 2009/08/14 08:00:32 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.132 2009/08/21 08:55:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -618,7 +618,7 @@ static BOOL js_init(char** environ)
 	js_startup_t	startup;
 
 	memset(&startup,0,sizeof(startup));
-	startup.load_path=strListSplit(NULL, load_path_list, ",");
+	SAFECOPY(startup.load_path, load_path_list);
 
 	fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 
@@ -802,6 +802,7 @@ long js_exec(const char *fname, char** args)
 			,path
 			,diff);
 
+	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path);
 	start=xp_timer();
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
@@ -843,7 +844,7 @@ void recycle_handler(int type)
 
 
 #if defined(_WIN32)
-BOOL WINAPI ControlHandler(DWORD CtrlType)
+BOOL WINAPI ControlHandler(unsigned long CtrlType)
 {
 	break_handler((int)CtrlType);
 	return TRUE;
@@ -881,7 +882,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.128 $", "%*s %s", revision);
+	sscanf("$Revision: 1.132 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
