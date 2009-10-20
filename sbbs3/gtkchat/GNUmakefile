@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.4 2011/09/08 02:39:03 deuce Exp $
+# $Id: GNUmakefile,v 1.2 2009/07/19 02:02:34 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -22,10 +22,10 @@ endif
 
 vpath %.c ..
 
-CFLAGS	+=	-I.. -I../comio $(SMBLIB_CFLAGS) $(XPDEV-MT_CFLAGS) `pkg-config gtk+-2.0 --cflags`
+CFLAGS	+=	-I.. $(SMBLIB_CFLAGS) $(XPDEV-MT_CFLAGS) `pkg-config gtk+-2.0 --cflags`
 LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS) `pkg-config gtk+-2.0 --libs`
 
 $(GTKCHAT): $(OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
-	$(QUIET)cd $(EXEODIR) && ln -s ../gtk-chat.glade .
+	$(QUIET)cd $(EXEODIR) && ln -s ../gtkchat.glade .
