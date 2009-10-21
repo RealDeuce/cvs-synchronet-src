@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.534 2011/04/29 20:17:13 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.515 2009/10/05 22:20:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,14 +96,15 @@ enum {
 };
 
 static scfg_t	scfg;
-static volatile BOOL	http_logging_thread_running=FALSE;
-static volatile ulong	active_clients=0;
-static volatile ulong	sockets=0;
-static volatile BOOL	terminate_server=FALSE;
-static volatile BOOL	terminate_http_logging_thread=FALSE;
-static volatile	ulong	thread_count=0;
-static volatile SOCKET	server_socket=INVALID_SOCKET;
-static volatile SOCKET	server_socket6=INVALID_SOCKET;
+static BOOL		scfg_reloaded=TRUE;
+static BOOL		http_logging_thread_running=FALSE;
+static DWORD	active_clients=0;
+static ulong	sockets=0;
+static BOOL		terminate_server=FALSE;
+static BOOL		terminate_http_logging_thread=FALSE;
+static uint		thread_count=0;
+static SOCKET	server_socket=INVALID_SOCKET;
+static SOCKET	server_socket6=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
@@ -111,14 +112,13 @@ static char		temp_dir[MAX_PATH+1];
 static char		cgi_dir[MAX_PATH+1];
 static char		cgi_env_ini[MAX_PATH+1];
 static char		default_auth_list[MAX_PATH+1];
-static volatile	time_t	uptime=0;
-static volatile	ulong	served=0;
+static time_t	uptime=0;
+static DWORD	served=0;
 static web_startup_t* startup=NULL;
 static js_server_props_t js_server_props;
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
-static str_list_t cgi_env;
-static volatile ulong session_threads=0;
+static int session_threads=0;
 
 static named_string_t** mime_types;
 static named_string_t** cgi_handlers;
@@ -222,7 +222,7 @@ typedef struct  {
 	BOOL	sent_headers;
 	BOOL	prev_write;
 
-	/* webctrl.ini overrides */
+	/* webconfig.ini overrides */
 	char	*error_dir;
 	char	*cgi_dir;
 	char	*auth_list;
@@ -490,11 +490,8 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
-		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
-	}
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
@@ -986,18 +983,23 @@ static const char* get_mime_type(char *ext)
 	return(unknown_mime_type);
 }
 
-static char* get_cgi_handler(const char* fname)
+static BOOL get_cgi_handler(char* cmdline, size_t maxlen)
 {
+	char	fname[MAX_PATH+1];
 	char*	ext;
 	size_t	i;
 
-	if(cgi_handlers==NULL || (ext=getfext(fname))==NULL)
-		return(NULL);
+	if(cgi_handlers==NULL || (ext=getfext(cmdline))==NULL)
+		return(FALSE);
+
 	for(i=0;cgi_handlers[i]!=NULL;i++) {
-		if(stricmp(cgi_handlers[i]->name, ext+1)==0)
-			return(cgi_handlers[i]->value);
+		if(stricmp(cgi_handlers[i]->name, ext+1)==0) {
+			SAFECOPY(fname,cmdline);
+			safe_snprintf(cmdline,maxlen,"%s %s",cgi_handlers[i]->value,fname);
+			return(TRUE);
+		}
 	}
-	return(NULL);
+	return(FALSE);
 }
 
 static BOOL get_xjs_handler(char* ext, http_session_t* session)
@@ -1037,7 +1039,6 @@ static void safecat(char *dst, const char *append, size_t maxlen) {
 static BOOL send_headers(http_session_t *session, const char *status, int chunked)
 {
 	int		ret;
-	int		stat_code;
 	BOOL	send_file=TRUE;
 	time_t	ti;
 	size_t	idx;
@@ -1092,14 +1093,8 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			send_file=FALSE;
 		}
 
-		stat_code=atoi(status_line);
 		if(session->req.ld!=NULL)
-			session->req.ld->status=stat_code;
-
-		if(stat_code==304 || stat_code==204 || (stat_code >= 100 && stat_code<=199)) {
-			send_file=FALSE;
-			chunked=FALSE;
-		}
+			session->req.ld->status=atoi(status_line);
 
 		/* Status-Line */
 		safe_snprintf(header,sizeof(header),"%s %s",http_vers[session->http_ver],status_line);
@@ -1553,6 +1548,7 @@ static BOOL check_ars(http_session_t * session)
 				char			ha2[MD5_DIGEST_SIZE*2+1];
 				char			*pass;
 				char			*p;
+				char			*last;
 				time32_t		nonce_time;
 				time32_t		now;
 				MD5				ctx;
@@ -1626,32 +1622,32 @@ static BOOL check_ars(http_session_t * session)
 
 				/* Check password as in user.dat */
 				calculate_digest(session, ha1, ha2, digest);
-				if(thisuser.pass[0]) {	// Zero-length password is "special" (any password will work)
+				if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
+					/* Check against lower-case password */
+					calculate_digest(session, ha1l, ha2, digest);
 					if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-						/* Check against lower-case password */
-						calculate_digest(session, ha1l, ha2, digest);
-						if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-							/* Check against upper-case password */
-							calculate_digest(session, ha1u, ha2, digest);
-							if(memcmp(digest, session->req.auth.digest, sizeof(digest)))
-								return(FALSE);
-						}
+						/* Check against upper-case password */
+						calculate_digest(session, ha1u, ha2, digest);
+						if(memcmp(digest, session->req.auth.digest, sizeof(digest)))
+							return(FALSE);
 					}
 				}
 
 				/* Validate nonce */
-				p=strchr(session->req.auth.nonce, '@');
+				p=strtok_r(session->req.auth.nonce, "@", &last);
 				if(p==NULL) {
 					session->req.auth.stale=TRUE;
 					return(FALSE);
 				}
-				*p=0;
-				if(strcmp(session->req.auth.nonce, session->client.addr)) {
+				if(strcmp(p, session->client.addr)) {
 					session->req.auth.stale=TRUE;
 					return(FALSE);
 				}
-				*p='@';
-				p++;
+				p=strtok_r(NULL, "", &last);
+				if(p==NULL) {
+					session->req.auth.stale=TRUE;
+					return(FALSE);
+				}
 				nonce_time=strtoul(p, &p, 10);
 				if(*p) {
 					session->req.auth.stale=TRUE;
@@ -1728,9 +1724,9 @@ static named_string_t** read_ini_list(char* path, char* section, char* desc
 		iniCloseFile(fp);
 		COUNT_LIST_ITEMS(list,i);
 		if(i)
-			lprintf(LOG_DEBUG,"Read %u %s from %s section of %s"
-				,i,desc,section==NULL ? "root":section,path);
+			lprintf(LOG_DEBUG,"Read %u %s from %s",i,desc,path);
 	}
+
 	return(list);
 }
 
@@ -2934,7 +2930,7 @@ static BOOL check_request(http_session_t * session)
 
 	/* Set default ARS to a 0-length string */
 	session->req.ars[0]=0;
-	/* Walk up from root_dir checking for access.ars and webctrl.ini */
+	/* Walk up from root_dir checking for access.ars and webconfig.ini */
 	SAFECOPY(curdir,path);
 	last_slash=curdir+strlen(root_dir)-1;
 	/* Loop while there's more /s in path*/
@@ -3156,6 +3152,7 @@ static str_list_t get_cgi_env(http_session_t *session)
 	char		append[INI_MAX_VALUE_LEN+1];
 	char		prepend[INI_MAX_VALUE_LEN+1];
 	char		env_str[(INI_MAX_VALUE_LEN*4)+2];
+	FILE*		fp;
 	size_t		i;
 	str_list_t	env_list;
 	str_list_t	add_list;
@@ -3166,22 +3163,29 @@ static str_list_t get_cgi_env(http_session_t *session)
 
 	strListAppendList(&env_list, session->req.cgi_env);
 
+	strListPush(&env_list,"REDIRECT_STATUS=200");	/* Kludge for php-cgi */
+
+	if((fp=iniOpenFile(cgi_env_ini,/* create? */FALSE))==NULL)
+		return(env_list);
+
 	/* FREE()d in this block */
-	if((add_list=iniGetSectionList(cgi_env,NULL))!=NULL) {
+	if((add_list=iniReadSectionList(fp,NULL))!=NULL) {
 
 		for(i=0; add_list[i]!=NULL; i++) {
 			if((deflt=getenv(add_list[i]))==NULL)
-				deflt=iniGetString(cgi_env,add_list[i],"default",NULL,defltbuf);
-			if(iniGetString(cgi_env,add_list[i],"value",deflt,value)==NULL)
+				deflt=iniReadString(fp,add_list[i],"default",NULL,defltbuf);
+			if(iniReadString(fp,add_list[i],"value",deflt,value)==NULL)
 				continue;
-			iniGetString(cgi_env,add_list[i],"append","",append);
-			iniGetString(cgi_env,add_list[i],"prepend","",prepend);
+			iniReadString(fp,add_list[i],"append","",append);
+			iniReadString(fp,add_list[i],"prepend","",prepend);
 			safe_snprintf(env_str,sizeof(env_str),"%s=%s%s%s"
 				,add_list[i], prepend, value, append);
 			strListPush(&env_list,env_str);
 		}
 		iniFreeStringList(add_list);
 	}
+
+	fclose(fp);
 
 	return(env_list);
 }
@@ -3269,10 +3273,10 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 
 		/* Execute command */
-		if((p=get_cgi_handler(cmdline))!=NULL) {
+		if(get_cgi_handler(cgipath, sizeof(cgipath))) {
 			char* shell=os_cmdshell();
-			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,p,cmdline);
-			execle(shell,shell,"-c",p,cmdline,NULL,env_list);
+			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,cgipath,cmdline);
+			execle(shell,shell,"-c",cgipath,NULL,env_list);
 		}
 		else {
 			execle(cmdline,cmdline,NULL,env_list);
@@ -3577,7 +3581,9 @@ static BOOL exec_cgi(http_session_t *session)
 	startup_info.dwFlags|=STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
     startup_info.wShowWindow=SW_HIDE;
 
-	SAFECOPY(startup_dir,session->req.physical_path);
+	SAFECOPY(cmdline,session->req.physical_path);
+
+	SAFECOPY(startup_dir,cmdline);
 	if((p=strrchr(startup_dir,'/'))!=NULL || (p=strrchr(startup_dir,'\\'))!=NULL)
 		*p=0;
 	else
@@ -3585,10 +3591,7 @@ static BOOL exec_cgi(http_session_t *session)
 
 	lprintf(LOG_DEBUG,"%04d CGI startup dir: %s", session->socket, startup_dir);
 
-	if((p=get_cgi_handler(session->req.physical_path))!=NULL)
-		SAFEPRINTF2(cmdline,"%s %s",p,session->req.physical_path);
-	else
-		SAFECOPY(cmdline,session->req.physical_path);
+	get_cgi_handler(cmdline, sizeof(cmdline));
 
 	lprintf(LOG_INFO,"%04d Executing CGI: %s",session->socket,cmdline);
 
@@ -4429,19 +4432,6 @@ js_BranchCallback(JSContext *cx, JSScript *script)
     return(js_CommonBranchCallback(cx,&session->js_branch));
 }
 
-#ifdef USE_JS_OPERATION_CALLBACK
-static JSBool
-js_OperationCallback(JSContext *cx)
-{
-	JSBool	ret;
-
-	JS_SetOperationCallback(cx, NULL);
-	ret=js_BranchCallback(cx, NULL);
-	JS_SetOperationCallback(cx, js_OperationCallback);
-	return ret;
-}
-#endif
-
 static JSContext* 
 js_initcx(http_session_t *session)
 {
@@ -4458,11 +4448,7 @@ js_initcx(http_session_t *session)
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-#ifdef USE_JS_OPERATION_CALLBACK
-	JS_SetOperationCallback(js_cx, js_OperationCallback);
-#else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
-#endif
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Creating Global Objects and Classes",session->socket);
 	if((session->js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL
@@ -4639,7 +4625,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=xp_timer();
-		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL);
+		js_PrepareToExecute(session->js_cx, session->js_glob, script);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
@@ -4702,7 +4688,7 @@ static void respond(http_session_t * session)
 		send_file=FALSE;
 	if(send_file)  {
 		int snt=0;
-		lprintf(LOG_INFO,"%04d Sending file: %s (%"PRIuOFF" bytes)"
+		lprintf(LOG_INFO,"%04d Sending file: %s (%u bytes)"
 			,session->socket, session->req.physical_path, flength(session->req.physical_path));
 		snt=sock_sendfile(session,session->req.physical_path,session->req.range_start,session->req.range_end);
 		if(session->req.ld!=NULL) {
@@ -4982,15 +4968,15 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.host_name,host_name);
 
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
-		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, session.host_name);
+		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, host_name);
 #if	0 /* gethostbyaddr() is apparently not (always) thread-safe
 	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL 
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", session.socket, host->h_aliases[i]);
 #endif
-		if(trashcan(&scfg,session.host_name,"host")) {
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, session.host_name);
+		if(trashcan(&scfg,host_name,"host")) {
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			close_socket(&session.socket);
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
@@ -5174,8 +5160,6 @@ static void cleanup(int code)
 	cgi_handlers=iniFreeNamedStringList(cgi_handlers);
 	xjs_handlers=iniFreeNamedStringList(xjs_handlers);
 
-	cgi_env=iniFreeStringList(cgi_env);
-
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 
@@ -5193,9 +5177,8 @@ static void cleanup(int code)
 	thread_down();
 	status("Down");
 	if(terminate_server || code)
-		lprintf(LOG_INFO,"#### Web Server thread terminated (%lu clients served)", served);
-	if(thread_count)
-		lprintf(LOG_WARNING,"#### !Web Server threads (%u) remain after termination", thread_count);
+		lprintf(LOG_INFO,"#### Web Server thread terminated (%u threads remain, %lu clients served)"
+			,thread_count, served);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -5207,7 +5190,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.534 $", "%*s %s", revision);
+	sscanf("$Revision: 1.515 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5348,7 +5331,6 @@ void DLLCALL web_server(void* arg)
 	fd_set			socket_set;
 	time_t			t;
 	time_t			initialized=0;
-	FILE*			fp;
 	char*			p;
 	char			compiler[32];
 	http_session_t *	session=NULL;
@@ -5476,6 +5458,7 @@ void DLLCALL web_server(void* arg)
 			cleanup(1);
 			return;
 		}
+		scfg_reloaded=TRUE;
 
 		lprintf(LOG_DEBUG,"Temporary file directory: %s", temp_dir);
 		MKDIR(temp_dir);
@@ -5492,19 +5475,13 @@ void DLLCALL web_server(void* arg)
 		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
 			,mime_types);
 		iniFileName(web_handler_ini,sizeof(web_handler_ini),scfg.ctrl_dir,"web_handler.ini");
-		if((cgi_handlers=read_ini_list(web_handler_ini,"CGI."PLATFORM_DESC,"CGI content handlers"
-			,cgi_handlers))==NULL)
-			cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
-				,cgi_handlers);
+		cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
+			,cgi_handlers);
 		xjs_handlers=read_ini_list(web_handler_ini,"JavaScript","JavaScript content handlers"
 			,xjs_handlers);
 
 		/* Don't do this for *each* CGI request, just once here during [re]init */
 		iniFileName(cgi_env_ini,sizeof(cgi_env_ini),scfg.ctrl_dir,"cgi_env.ini");
-		if((fp=iniOpenFile(cgi_env_ini,/* create? */FALSE)) != NULL) {
-			cgi_env = iniReadFile(fp);
-			iniCloseFile(fp);
-		}
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
@@ -5606,7 +5583,6 @@ void DLLCALL web_server(void* arg)
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mime_types_ini);
 		semfile_list_add(&recycle_semfiles,web_handler_ini);
-		semfile_list_add(&recycle_semfiles,cgi_env_ini);
 		if(!initialized) {
 			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
@@ -5668,7 +5644,7 @@ void DLLCALL web_server(void* arg)
 				/* FREE()d at the start of the session thread */
 				if((session=malloc(sizeof(http_session_t)))==NULL) {
 					lprintf(LOG_CRIT,"%04d !ERROR allocating %u bytes of memory for http_session_t"
-						,server_socket, sizeof(http_session_t));
+						,client_socket, sizeof(http_session_t));
 					mswait(3000);
 					continue;
 				}
