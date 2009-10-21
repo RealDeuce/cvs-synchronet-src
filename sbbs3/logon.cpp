@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.51 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.50 2009/03/20 08:58:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ bool sbbs_t::logon()
 		bputs(text[NoNodeAccess]);
 		sprintf(str,"(%04u)  %-25s  Insufficient node access"
 			,useron.number,useron.alias);
-		logline(LOG_NOTICE,"+!",str);
+		logline("+!",str);
 		return(false); 
 	}
 
@@ -113,7 +113,7 @@ bool sbbs_t::logon()
 			bputs(text[NodeLocked]);
 			sprintf(str,"(%04u)  %-25s  Locked node logon attempt"
 				,useron.number,useron.alias);
-			logline(LOG_NOTICE,"+!",str);
+			logline("+!",str);
 			return(false); 
 		}
 		if(yesno(text[RemoveNodeLockQ])) {
@@ -277,7 +277,7 @@ bool sbbs_t::logon()
 			bputs(text[NoMoreLogons]);
 			sprintf(str,"(%04u)  %-25s  Out of logons"
 				,useron.number,useron.alias);
-			logline(LOG_NOTICE,"+!",str);
+			logline("+!",str);
 			hangup();
 			return(false); 
 		}
@@ -285,7 +285,7 @@ bool sbbs_t::logon()
 			bputs(text[R_Logons]);
 			sprintf(str,"(%04u)  %-25s  Out of logons"
 				,useron.number,useron.alias);
-			logline(LOG_NOTICE,"+!",str);
+			logline("+!",str);
 			hangup();
 			return(false); 
 		}
@@ -390,7 +390,7 @@ bool sbbs_t::logon()
 	if(!online) {
 		sprintf(str,"(%04u)  %-25s  Unsuccessful logon"
 			,useron.number,useron.alias);
-		logline(LOG_NOTICE,"+!",str);
+		logline("+!",str);
 		return(false); 
 	}
 	SAFECOPY(useron.modem,connection);
@@ -490,7 +490,7 @@ bool sbbs_t::logon()
 				strcpy(tmp,"On two nodes at the same time");
 				sprintf(str,"(%04u)  %-25s  %s"
 					,useron.number,useron.alias,tmp);
-				logline(LOG_NOTICE,"+!",str);
+				logline("+!",str);
 				errorlog(tmp);
 				bputs(text[UserOnTwoNodes]);
 				hangup();

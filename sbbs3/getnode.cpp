@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.37 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.36 2009/10/18 09:57:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,7 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 	if(count>(LOOP_NODEDAB/2)) {
 		sprintf(str,"NODE.DAB (node %d) COLLISION - Count: %d"
 			,number+1, count);
-		logline(LOG_WARNING,"!!",str); 
+		logline("!!",str); 
 	}
 
 	return(0);
@@ -165,7 +165,7 @@ void sbbs_t::nodesync()
 
 	if(thisnode.misc&NODE_INTR) {
 		bputs(text[NodeLocked]);
-		logline(LOG_NOTICE,nulstr,"Interrupted");
+		logline(nulstr,"Interrupted");
 		hangup();
 		nodesync_inside=0;
 		return; 
