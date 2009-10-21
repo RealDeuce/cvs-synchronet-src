@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.50 2009/06/28 09:18:02 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.51 2009/10/18 09:38:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -360,8 +360,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 				if(which==MAIL_SENT)
 					break;
-				if((msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP) {
-					bputs(text[CantReplyToAnonMsg]);
+				if((msg.hdr.attr&(MSG_NOREPLY|MSG_ANONYMOUS)) && !SYSOP) {
+					bputs(text[CantReplyToMsg]);
 					break; 
 				}
 
@@ -435,7 +435,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				/* Case 'D': must follow! */
 			case 'D':   /* Delete last piece (toggle) */
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bputs("\r\nPermanent message.\r\n");
+					bputs(text[CantDeleteMsg]);
 					domsg=0;
 					break; 
 				}
@@ -726,7 +726,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	SAFEPRINTF(str,text[DeleteMailQ],"everyone");
 	if(which==MAIL_YOUR 
-		&& getmail(&cfg, usernumber, /* sent: */FALSE)
+		&& getmail(&cfg, usernumber, /* sent: */FALSE)>1
 		&& bputs(crlf)
 		&& !noyes(str))
 		delallmail(usernumber, MAIL_YOUR);
