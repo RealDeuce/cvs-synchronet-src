@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.50 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.47 2009/08/17 07:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,8 +79,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 		SAFEPRINTF2(rep_fname,"%s%s.rep",cfg.temp_dir,cfg.sys_id);
 	if(!fexistcase(rep_fname)) {
 		bputs(text[QWKReplyNotReceived]);
-		logline(LOG_NOTICE,"U!",AttemptedToUploadREPpacket);
-		logline(LOG_NOTICE,nulstr,"REP file not received");
+		logline("U!",AttemptedToUploadREPpacket);
+		logline(nulstr,"REP file not received");
 		return(false); 
 	}
 	for(k=0;k<cfg.total_fextrs;k++)
@@ -94,15 +94,15 @@ bool sbbs_t::unpack_rep(char* repfile)
 	i=external(cmdstr(cfg.fextr[k]->cmd,rep_fname,ALLFILES,NULL),ex);
 	if(i) {
 		bputs(text[QWKExtractionFailed]);
-		logline(LOG_NOTICE,"U!",AttemptedToUploadREPpacket);
-		logline(LOG_NOTICE,nulstr,"Extraction failed");
+		logline("U!",AttemptedToUploadREPpacket);
+		logline(nulstr,"Extraction failed");
 		return(false); 
 	}
 	SAFEPRINTF2(msg_fname,"%s%s.msg",cfg.temp_dir,cfg.sys_id);
 	if(!fexistcase(msg_fname)) {
 		bputs(text[QWKReplyNotReceived]);
-		logline(LOG_NOTICE,"U!",AttemptedToUploadREPpacket);
-		logline(LOG_NOTICE,nulstr,"MSG file not received");
+		logline("U!",AttemptedToUploadREPpacket);
+		logline(nulstr,"MSG file not received");
 		return(false); 
 	}
 	if((rep=fnopen(&file,msg_fname,O_RDONLY))==NULL) {
@@ -130,8 +130,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 			iniFreeStringList(headers);
 		fclose(rep);
 		bputs(text[QWKReplyNotReceived]);
-		logline(LOG_NOTICE,"U!",AttemptedToUploadREPpacket);
-		logline(LOG_NOTICE,nulstr,"Incorrect QWK BBS ID");
+		logline("U!",AttemptedToUploadREPpacket);
+		logline(nulstr,"Incorrect QWK BBS ID");
 		return(false); 
 	}
 	logline("U+","Uploaded REP packet");
@@ -181,7 +181,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			SAFEPRINTF2(str,"!Filtering QWK message from %s due to age: %u days"
 				,msg.from
 				,(now-msg.hdr.when_written.time)/(24*60*60)); 
-			logline(LOG_NOTICE,"P!",str);
+			logline("P!",str);
 			continue;
 		}
 
@@ -189,7 +189,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			SAFEPRINTF2(str,"!Filtering QWK message from %s due to blocked IP: %s"
 				,msg.from
 				,msg.from_ip); 
-			logline(LOG_NOTICE,"P!",str);
+			logline("P!",str);
 			continue;
 		}
 
@@ -198,7 +198,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			SAFEPRINTF2(str,"!Filtering QWK message from %s due to blocked hostname: %s"
 				,msg.from
 				,hostname); 
-			logline(LOG_NOTICE,"P!",str);
+			logline("P!",str);
 			continue;
 		}
 
@@ -206,7 +206,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			SAFEPRINTF2(str,"!Filtering QWK message from %s due to filtered subject: %s"
 				,msg.from
 				,msg.subj); 
-			logline(LOG_NOTICE,"P!",str);
+			logline("P!",str);
 			continue;
 		}
 
@@ -323,20 +323,18 @@ bool sbbs_t::unpack_rep(char* repfile)
 				SAFEPRINTF3(str,"%s sent QWK e-mail to %s #%d"
 					,useron.alias,username(&cfg,usernum,tmp),usernum);
 				logline("E+",str);
-				if(cfg.node_num) {
-					for(k=1;k<=cfg.sys_nodes;k++) { /* Tell user, if online */
-						getnodedat(k,&node,0);
-						if(node.useron==usernum && !(node.misc&NODE_POFF)
-							&& (node.status==NODE_INUSE
-							|| node.status==NODE_QUIET)) {
-							SAFEPRINTF2(str,text[EmailNodeMsg]
-								,cfg.node_num,msg.from);
-							putnmsg(&cfg,k,str);
-							break; 
-						} 
-					}
+				for(k=1;k<=cfg.sys_nodes;k++) { /* Tell user, if online */
+					getnodedat(k,&node,0);
+					if(node.useron==usernum && !(node.misc&NODE_POFF)
+						&& (node.status==NODE_INUSE
+						|| node.status==NODE_QUIET)) {
+						SAFEPRINTF2(str,text[EmailNodeMsg]
+							,cfg.node_num,msg.from);
+						putnmsg(&cfg,k,str);
+						break; 
+					} 
 				}
-				if(cfg.node_num==0 || k>cfg.sys_nodes) {
+				if(k>cfg.sys_nodes) {
 					SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 					putsmsg(&cfg,usernum,str); 
 				} 
@@ -370,7 +368,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf) {
 					bprintf(text[QWKInvalidConferenceN],n);
 					SAFEPRINTF2(str,"%s: Invalid QWK conference number %lu",useron.alias,n);
-					logline(LOG_NOTICE,"P!",str);
+					logline("P!",str);
 					continue; 
 				} 
 			}
@@ -401,13 +399,13 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			if(useron.rest&FLAG('Q') && !(cfg.sub[n]->misc&SUB_QNET)) {
 				bputs(text[CantPostOnSub]);
-				logline(LOG_NOTICE,"P!","Attempted to post QWK message on non-QWKnet sub");
+				logline("P!","Attempted to post QWK message on non-QWKnet sub");
 				continue; 
 			}
 
 			if(useron.rest&FLAG('P')) {
 				bputs(text[R_Post]);
-				logline(LOG_NOTICE,"P!","QWK Post attempted");
+				logline("P!","QWK Post attempted");
 				continue; 
 			}
 
@@ -420,20 +418,20 @@ bool sbbs_t::unpack_rep(char* repfile)
 			if(useron.rest&FLAG('N')
 				&& cfg.sub[n]->misc&(SUB_FIDO|SUB_PNET|SUB_QNET|SUB_INET)) {
 				bputs(text[CantPostOnSub]);
-				logline(LOG_NOTICE,"P!","QWK Networked post attempted");
+				logline("P!","QWK Networked post attempted");
 				continue; 
 			}
 
 			if(!chk_ar(cfg.sub[n]->post_ar,&useron,&client)) {
 				bputs(text[CantPostOnSub]);
-				logline(LOG_NOTICE,"P!","QWK Post attempted");
+				logline("P!","QWK Post attempted");
 				continue; 
 			}
 
 			if((block[0]=='*' || block[0]=='+')
 				&& !(cfg.sub[n]->misc&SUB_PRIV)) {
 				bputs(text[PrivatePostsNotAllowed]);
-				logline(LOG_NOTICE,"P!","QWK Private post attempt");
+				logline("P!","QWK Private post attempt");
 				continue; 
 			}
 
@@ -458,11 +456,11 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			/* TWIT FILTER */
 			if(findstr_in_list(msg.from,twit_list) || findstr_in_list(msg.to,twit_list)) {
-				SAFEPRINTF4(str,"!Filtering QWK post from %s to %s on %s %s"
+				SAFEPRINTF4(str,"Filtering QWK post from %s to %s on %s %s"
 					,msg.from
 					,msg.to
 					,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
-				logline(LOG_NOTICE,"P!",str);
+				logline("P!",str);
 				continue; 
 			}
 
