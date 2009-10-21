@@ -1,8 +1,6 @@
-CFLAGS += -g -std=c99 -Wall -pedantic
-CFLAGS += -I../../conio
-LDFLAGS += -lcurses -lm -pthread
+CFLAGS += -std=c99 -Wall -pedantic
 
-testmain: Alchemisty.o BobsBeer.o Status.o ShadyShops.o IO.o Config.o Bash.o Races.o Classes.o files.o str.o testmain.o various.o ../../conio/gcc.freebsd.lib.ace.hurd.local/libciolib_mt.a ../../xpdev/gcc.freebsd.lib.ace.hurd.local/libxpdev_mt.a
+all: Alchemisty.o ArmorShop.o files.o
 
 clean:
 	rm -rf *.o
