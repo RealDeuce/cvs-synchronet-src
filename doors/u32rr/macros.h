@@ -10,6 +10,32 @@
 
 #define CRASHF(...)	({ fprintf(stderr, __VA_ARGS__); CRASH; })
 
+enum colors {
+	BLACK,
+	BLUE,
+	GREEN,
+	CYAN,
+	RED,
+	MAGENTA,
+	BROWN,
+	GREY,
+	LIGHT_GREY=GREY,
+
+	BRIGHT_BLACK,
+	DARK_GREY=BRIGHT_BLACK,
+	BRIGHT_BLUE,
+	BRIGHT_GREEN,
+	BRIGHT_CYAN,
+	BRIGHT_RED,
+	BRIGHT_MAGENTA,
+	BRIGHT_BROWN,
+	YELLOW=BRIGHT_BROWN,
+	BRIGHT_GREY,
+	WHITE=BRIGHT_GREY,
+
+	D_DONE = 127
+};
+
 #define mkstring(len, ch) ({ \
 	char *mkstring_tmp_str = (char *)alloca((len)+1); \
 \
@@ -65,22 +91,20 @@
 
 #define kingstring(sex)		(sex==Male?"King":"Queen")
 
-#define MANY_MONEY(x)		((x)==1?config.moneytype2:config.moneytype3)
-
-#define SLEEP(x)		({	int sleep_msecs=x; struct timeval tv; \
-						tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
-						select(0,NULL,NULL,NULL,&tv); })
-
 #define PART(...)	d(config.textcolor, __VA_ARGS__, NULL)			// GREEN
 #define PLAYER(...)	d(config.plycolor, __VA_ARGS__, NULL)			// BRIGHT_GREEN
 
-#define TEXT(...)	d(config.textcolor, __VA_ARGS__, NULL); nl()	// GREEN
-#define SAY(...)	d(config.talkcolor, __VA_ARGS__, NULL); nl()			// BRIGHT_MAGENTA
-#define BAD(...)	d(config.badcolor, __VA_ARGS__, NULL); nl()			// BRIGHT_RED
-#define GOOD(...)	d(config.goodcolor, __VA_ARGS__, NULL); nl()			// WHITE
-#define HEADER(...)	d(config.headercolor, __VA_ARGS__, NULL); nl()		// MAGENTA
-#define NOTICE(...)	d(config.noticecolor, __VA_ARGS__, NULL); nl()
-#define TITLE(...)	d(config.titlecolor, __VA_ARGS__, NULL); nl()
-#define EVENT(...)	d(config.eventcolor, __VA_ARGS__, NULL); nl()
+#define TEXT(...)	dl(config.textcolor, __VA_ARGS__, NULL)	// GREEN
+#define SAY(...)	dl(config.talkcolor, __VA_ARGS__, NULL)			// BRIGHT_MAGENTA
+#define BAD(...)	dl(config.badcolor, __VA_ARGS__, NULL)			// BRIGHT_RED
+#define GOOD(...)	dl(config.goodcolor, __VA_ARGS__, NULL)			// WHITE
+#define HEADER(...)	dl(config.headercolor, __VA_ARGS__, NULL)		// MAGENTA
+#define NOTICE(...)	dl(config.noticecolor, __VA_ARGS__, NULL)
+#define TITLE(...)	dl(config.titlecolor, __VA_ARGS__, NULL)
+#define EVENT(...)	dl(config.eventcolor, __VA_ARGS__, NULL)
+#define D(...)		d(..., NULL)
+#define DC(...)		d(..., D_DONE)
+#define DL(...)		d(..., NULL)
+#define DLC(...)	d(..., D_DONE)
 
 #endif
