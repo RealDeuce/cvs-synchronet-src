@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.197 2011/04/23 17:42:19 deuce Exp $ */
+/* $Id: uifc32.c,v 1.194 2009/05/29 09:38:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -93,8 +93,6 @@ static int *last_menu_bar=NULL;
 static int save_menu_cur=-1;
 static int save_menu_bar=-1;
 static int save_menu_opts=-1;
-
-char* uifcYesNoOpts[]={"Yes","No",NULL};
 
 static void reset_dynamic(void) {
 	last_menu_cur=NULL;
@@ -493,7 +491,7 @@ static void truncsp(char *str)
 int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
-	uchar line[MAX_COLS*2],shade[MAX_LINES*4],*ptr
+	uchar line[256],shade[256],*ptr
 		,search[MAX_OPLN],bline=0,*win;
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
@@ -530,8 +528,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	}
 	title=strdup(initial_title==NULL?"":initial_title);
 
-	if(!(api->mode&UIFC_NHM))
-		uifc_mouse_disable();
+	uifc_mouse_disable();
 
 	title_len=strlen(title);
 
@@ -670,8 +667,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						cprintf("UIFC line %d: error allocating %u bytes."
 							,__LINE__,(width+3)*(height+2)*2);
 						free(title);
-						if(!(api->mode&UIFC_NHM))
-							uifc_mouse_enable();
+						uifc_mouse_enable();
 						return(-1);
 					}
 					gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -695,8 +691,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
-				if(!(api->mode&UIFC_NHM))
-					uifc_mouse_enable();
+				uifc_mouse_enable();
 				return(-1);
 			}
 			gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -956,8 +951,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	last_menu_cur=cur;
 	last_menu_bar=bar;
-	if(!(api->mode&UIFC_NHM))
-		uifc_mouse_enable();
+	uifc_mouse_enable();
 
 	if(mode&WIN_IMM) {
 		return(-2);
@@ -1004,8 +998,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_SAV)
 							api->savnum++;
 						if(mode&WIN_ACT) {
-							if(!(api->mode&UIFC_NHM))
-								uifc_mouse_disable();
+							uifc_mouse_disable();
 							if((win=(char *)alloca((width+3)*(height+2)*2))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
@@ -1021,18 +1014,15 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 							puttext(s_left+left,s_top+top,s_left
 								+left+width-1,s_top+top+height-1,win);
-							if(!(api->mode&UIFC_NHM))
-								uifc_mouse_enable();
+							uifc_mouse_enable();
 						}
 						else if(mode&WIN_SAV) {
 							api->savnum--;
-							if(!(api->mode&UIFC_NHM))
-								uifc_mouse_disable();
+							uifc_mouse_disable();
 							puttext(sav[api->savnum].left,sav[api->savnum].top
 								,sav[api->savnum].right,sav[api->savnum].bot
 								,sav[api->savnum].buf);
-							if(!(api->mode&UIFC_NHM))
-								uifc_mouse_enable();
+							uifc_mouse_enable();
 							FREE_AND_NULL(sav[api->savnum].buf);
 						}
 						if(mode&WIN_XTR && (*cur)==opts-1)
@@ -1654,8 +1644,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 int uinput(int mode, int left, int top, char *inprompt, char *str,
 	int max, int kmode)
 {
-	unsigned char save_buf[MAX_COLS*8],in_win[MAX_COLS*6]
-		,shade[MAX_COLS*2];
+	unsigned char save_buf[2048],in_win[2048]
+		,shade[160];
 	int	width;
 	int height=3;
 	int i,plen,slen,j;
@@ -2194,7 +2184,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
 {
 	va_list argptr;
-	char str[MAX_COLS+1],buf[MAX_COLS*2];
+	char str[256],buf[512];
 	int i,j;
 
     va_start(argptr,fmat);
