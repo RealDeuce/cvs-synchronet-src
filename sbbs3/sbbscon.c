@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.230 2009/02/13 04:22:55 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.231 2009/08/21 08:55:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1044,7 +1044,7 @@ void cleanup(void)
 }
 
 #if defined(_WIN32)
-BOOL WINAPI ControlHandler(DWORD CtrlType)
+BOOL WINAPI ControlHandler(unsigned long CtrlType)
 {
 	terminated=TRUE;
 	return TRUE;
