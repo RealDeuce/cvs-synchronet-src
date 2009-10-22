@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.51 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.50 2009/10/18 09:38:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -856,7 +856,7 @@ void sbbs_t::qwkcfgline(char *buf,uint subnum)
 				if(x>=usrgrps || y>=usrsubs[x]) {
 					bprintf(text[QWKInvalidConferenceN],l);
 					sprintf(str,"Invalid conference number %lu",l);
-					logline(LOG_NOTICE,"Q!",str); 
+					logline("Q!",str); 
 				}
 				else
 					subscan[usrsub[x][y]].cfg&=~SUB_CFG_NSCAN; 
