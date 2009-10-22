@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.43 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: email.cpp,v 1.48 2009/10/18 09:38:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -62,24 +62,29 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
-		return(false); }
+		return(false); 
+	}
 
 	if(usernumber==1 && useron.rest&FLAG('S')
 		&& (cfg.node_valuser!=1 || useron.fbacks || useron.emails)) { /* ! val fback */
 		bprintf(text[R_Feedback],cfg.sys_op);
-		return(false); }
+		return(false); 
+	}
 	if(usernumber!=1 && useron.rest&FLAG('E')
 		&& (cfg.node_valuser!=usernumber || useron.fbacks || useron.emails)) {
 		bputs(text[R_Email]);
-		return(false); }
+		return(false); 
+	}
 	if(!usernumber) {
 		bputs(text[UnknownUser]);
-		return(false); }
+		return(false); 
+	}
 	getuserrec(&cfg,usernumber,U_MISC,8,str);
 	l=ahtoul(str);
 	if(l&(DELETED|INACTIVE)) {              /* Deleted or Inactive User */
 		bputs(text[UnknownUser]);
-		return(false); }
+		return(false); 
+	}
 	if(l&NETMAIL && cfg.sys_misc&SM_FWDTONET) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
 		bprintf(text[UserNetMail],str);
@@ -94,7 +99,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	if(usernumber==1 && useron.fbacks && fexist(str)) {
 		exec_bin("feedback",&main_csi);
 		if(main_csi.logic!=LOGIC_TRUE)
-			return(false); }
+			return(false); 
+	}
 
 	if(cfg.sys_misc&SM_ANON_EM && useron.exempt&FLAG('A')
 		&& !noyes(text[AnonymousQ]))
@@ -121,35 +127,26 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		if(fexistcase(str2)) {
 			bputs(text[FileAlreadyThere]);
 			remove(msgpath);
-			return(false); }
-#if 0	/* no such thing as local logon */
-		if(online==ON_LOCAL) {		/* Local upload */
-			bputs(text[EnterPath]);
-			if(!getstr(str,60,K_LINE|K_UPPER)) {
-				bputs(text[Aborted]);
-				remove(msgpath);
-				return(false); }
-			backslash(str);
-			strcat(str,title);
-			mv(str,str2,1); }
-		else 
-#endif
+			return(false); 
+		}
 		{ /* Remote */
 			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
 			strcpy(str,"Q");
 			for(x=0;x<cfg.total_prots;x++)
-				if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron)) {
+				if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
 					sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
-					strcat(str,tmp); }
+					strcat(str,tmp); 
+				}
 			ch=(char)getkeys(str,0);
 			if(ch=='Q' || sys_status&SS_ABORT) {
 				bputs(text[Aborted]);
 				remove(msgpath);
-				return(false); }
+				return(false); 
+			}
 			for(x=0;x<cfg.total_prots;x++)
 				if(cfg.prot[x]->ulcmd[0] && cfg.prot[x]->mnemonic==ch
-					&& chk_ar(cfg.prot[x]->ar,&useron))
+					&& chk_ar(cfg.prot[x]->ar,&useron,&client))
 					break;
 			if(x<cfg.total_prots)	/* This should be always */
 				protocol(cfg.prot[x],XFER_UPLOAD,str2,nulstr,true); 
@@ -163,20 +160,24 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		else {
 			bprintf(text[FileNotReceived],title);
 			remove(msgpath);
-			return(false); } }
+			return(false); 
+		} 
+	}
 
 	bputs(text[WritingIndx]);
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,"MAIL",i);
-		return(false); }
+		return(false); 
+	}
 	sprintf(smb.file,"%smail", cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=INVALID_SUB;
 	if((i=smb_open(&smb))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-		return(false); }
+		return(false); 
+	}
 
 	if(smb_fgetlength(smb.shd_fp)<1) {	 /* Create it if it doesn't exist */
 		smb.status.max_crcs=cfg.mail_maxcrcs;
@@ -187,13 +188,16 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			errormsg(WHERE,ERR_CREATE,smb.file,i,smb.last_error);
-			return(false); } }
+			return(false); 
+		} 
+	}
 
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
-		return(false); }
+		return(false); 
+	}
 
 	length=flength(msgpath)+2;	 /* +2 for translation string */
 
@@ -202,14 +206,16 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_LEN,msgpath,length);
-		return(false); }
+		return(false); 
+	}
 
 	if((i=smb_open_da(&smb))!=0) {
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-		return(false); }
+		return(false); 
+	}
 	if(cfg.sys_misc&SM_FASTMAIL)
 		offset=smb_fallocdat(&smb,length,1);
 	else
@@ -223,7 +229,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,msgpath,O_RDONLY|O_BINARY);
-		return(false); }
+		return(false); 
+	}
 
 	setvbuf(instream,NULL,_IOFBF,2*1024);
 	smb_fseek(smb.sdt_fp,offset,SEEK_SET);
@@ -239,9 +246,11 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			buf[j-1]=buf[j-2]=0;
 		if(cfg.mail_maxcrcs) {
 			for(i=0;i<j;i++)
-				crc=ucrc32(buf[i],crc); }
+				crc=ucrc32(buf[i],crc); 
+		}
 		smb_fwrite(&smb,buf,j,smb.sdt_fp);
-		x=SDT_BLOCK_LEN; }
+		x=SDT_BLOCK_LEN; 
+	}
 	smb_fflush(smb.sdt_fp);
 	fclose(instream);
 	crc=~crc;
@@ -262,7 +271,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			attr(cfg.color[clr_err]);
-			bputs("Duplicate message!\r\n");
+			bputs(text[CantPostMsg]);
 			return(false); 
 		} 
 	}
@@ -282,6 +291,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	smb_hfield_str(&msg,SENDEREXT,str);
 
 	if(useron.misc&NETMAIL) {
+		if(useron.rest&FLAG('G'))
+			smb_hfield_str(&msg,REPLYTO,useron.name);
 		nettype=smb_netaddr_type(useron.netmail);
 		if(nettype!=NET_NONE && nettype!=NET_UNKNOWN) {
 			smb_hfield(&msg,REPLYTONETTYPE,sizeof(nettype),&nettype);
@@ -326,9 +337,12 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)) {
 			sprintf(str,text[EmailNodeMsg],cfg.node_num,useron.alias);
 			putnmsg(&cfg,i,str);
-			break; } }
+			break; 
+		} 
+	}
 	if(i>cfg.sys_nodes) {	/* User wasn't online, so leave short msg */
 		sprintf(str,text[UserSentYouMail],useron.alias);
-		putsmsg(&cfg,usernumber,str); }
+		putsmsg(&cfg,usernumber,str); 
+	}
 	return(true);
 }
