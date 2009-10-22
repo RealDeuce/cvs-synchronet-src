@@ -13600,10 +13600,6 @@ object MainForm: TMainForm
         Width = 100
       end
       item
-        Text = 'Errors: 0'
-        Width = 100
-      end
-      item
         Text = 'Starting up...'
         Width = 100
       end>
@@ -13990,7 +13986,7 @@ object MainForm: TMainForm
         object MailViewSpamLog: TMenuItem
           Caption = 'Spam Log'
           Hint = 'SPAM.LOG'
-          OnClick = ViewLogClick
+          OnClick = DataMenuItemClick
         end
         object MailViewTodaysLog: TMenuItem
           Caption = 'Today'#39's Log'
@@ -14060,7 +14056,7 @@ object MainForm: TMainForm
       end
     end
     object FtpMenuItem: TMenuItem
-      Caption = 'FT&P'
+      Caption = 'FTP'
       object FtpConfigureMenuItem: TMenuItem
         Action = FtpConfigure
         Caption = '&Configure'
@@ -14212,7 +14208,6 @@ object MainForm: TMainForm
       end
     end
     object ViewMenuItem: TMenuItem
-      AutoHotkeys = maManual
       Caption = '&View'
       object ViewNodesMenuItem: TMenuItem
         Action = ViewNodes
@@ -14262,17 +14257,16 @@ object MainForm: TMainForm
         OnClick = ViewStatusBarMenuItemClick
       end
       object ViewErrorLogMenuItem: TMenuItem
-        AutoHotkeys = maManual
         Caption = 'Error Log...'
         Hint = 'ERROR.LOG'
         ImageIndex = 29
-        OnClick = ViewLogClick
+        OnClick = DataMenuItemClick
       end
       object ViewHackAttemptLogMenuItem: TMenuItem
         AutoHotkeys = maManual
         Caption = 'Hack Attempt Log...'
         Hint = 'HACK.LOG'
-        OnClick = ViewLogClick
+        OnClick = DataMenuItemClick
       end
     end
     object HelpMenuItem: TMenuItem
