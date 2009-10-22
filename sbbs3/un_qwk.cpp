@@ -2,7 +2,7 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.40 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.39 2009/08/17 07:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,7 +153,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			eprintf(LOG_NOTICE,"!Filtering QWK message from %s due to age: %u days"
 				,msg.from
 				,(now-msg.hdr.when_written.time)/(24*60*60)); 
-			logline(LOG_NOTICE,"P!",str);
+			logline("P!",str);
 			continue;
 		}
 
