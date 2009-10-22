@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.79 2009/11/10 22:48:35 deuce Exp $ */
+/* $Id: js_user.c,v 1.75 2009/08/14 07:48:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,8 +149,10 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	private_t*	p;
 	jsrefcount	rc;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_TRUE);
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
@@ -414,8 +416,10 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	int32		usernumber;
 	jsrefcount	rc;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_TRUE);
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
 
 	if((js_str=JS_ValueToString(cx,*vp))==NULL)
 		return(JS_FALSE);
@@ -1198,13 +1202,14 @@ static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsval id)
 	JSObject*		newobj;
 	private_t*		p;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_TRUE);
-
 	if(id != JSVAL_NULL)
 		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
 
 	if(name==NULL || strcmp(name, "stats")==0) {
+		if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+			JS_ReportError(cx,getprivate_failure,WHERE);
+			return(JS_FALSE);
+		}
 		/* user.stats */
 		if((newobj=JS_DefineObject(cx, obj, "stats"
 			,&js_user_stats_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
@@ -1220,6 +1225,10 @@ static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsval id)
 	}
 
 	if(name==NULL || strcmp(name, "security")==0) {
+		if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+			JS_ReportError(cx,getprivate_failure,WHERE);
+			return(JS_FALSE);
+		}
 		/* user.security */
 		if((newobj=JS_DefineObject(cx, obj, "security"
 			,&js_user_security_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
@@ -1234,6 +1243,10 @@ static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsval id)
 	}
 
 	if(name==NULL || strcmp(name, "limits")==0) {
+		if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+			JS_ReportError(cx,getprivate_failure,WHERE);
+			return(JS_FALSE);
+		}
 		/* user.limits */
 		if((newobj=JS_DefineObject(cx, obj, "limits"
 			,&js_user_limits_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 

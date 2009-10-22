@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.520 2009/12/09 18:53:13 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.515 2009/10/05 22:20:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,11 +98,11 @@ enum {
 static scfg_t	scfg;
 static BOOL		scfg_reloaded=TRUE;
 static BOOL		http_logging_thread_running=FALSE;
-static ulong	active_clients=0;
+static DWORD	active_clients=0;
 static ulong	sockets=0;
 static BOOL		terminate_server=FALSE;
 static BOOL		terminate_http_logging_thread=FALSE;
-static ulong	thread_count=0;
+static uint		thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
 static SOCKET	server_socket6=INVALID_SOCKET;
 static char		revision[16];
@@ -113,12 +113,12 @@ static char		cgi_dir[MAX_PATH+1];
 static char		cgi_env_ini[MAX_PATH+1];
 static char		default_auth_list[MAX_PATH+1];
 static time_t	uptime=0;
-static ulong	served=0;
+static DWORD	served=0;
 static web_startup_t* startup=NULL;
 static js_server_props_t js_server_props;
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
-static ulong session_threads=0;
+static int session_threads=0;
 
 static named_string_t** mime_types;
 static named_string_t** cgi_handlers;
@@ -490,11 +490,8 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
-		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
-	}
+	if(level <= LOG_ERR)
+		errorlog(&scfg,sbuf);
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
@@ -4971,15 +4968,15 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.host_name,host_name);
 
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
-		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, session.host_name);
+		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, host_name);
 #if	0 /* gethostbyaddr() is apparently not (always) thread-safe
 	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL 
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", session.socket, host->h_aliases[i]);
 #endif
-		if(trashcan(&scfg,session.host_name,"host")) {
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, session.host_name);
+		if(trashcan(&scfg,host_name,"host")) {
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
 			close_socket(&session.socket);
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
@@ -5180,9 +5177,8 @@ static void cleanup(int code)
 	thread_down();
 	status("Down");
 	if(terminate_server || code)
-		lprintf(LOG_INFO,"#### Web Server thread terminated (%lu clients served)", served);
-	if(thread_count)
-		lprintf(LOG_WARNING,"#### !Web Server threads (%u) remain after termination", thread_count);
+		lprintf(LOG_INFO,"#### Web Server thread terminated (%u threads remain, %lu clients served)"
+			,thread_count, served);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -5194,7 +5190,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.520 $", "%*s %s", revision);
+	sscanf("$Revision: 1.515 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
