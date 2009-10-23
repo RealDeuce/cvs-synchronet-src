@@ -3,25 +3,6 @@
 
 #include <stdbool.h>
 
-enum allow_items {
-	ALLOW_Hand,
-	ALLOW_Head,
-	ALLOW_Body,
-	ALLOW_Arm,
-	ALLOW_LeftFinger,
-	ALLOW_RightFinger,
-	ALLOW_Leg,
-	ALLOW_Feet,
-	ALLOW_Waist,
-	ALLOW_Neck1,
-	ALLOW_Neck2,
-	ALLOW_Face,
-	ALLOW_Shield,
-	ALLOW_AroundBody,
-	ALLOW_SecondaryWeapon,
-	ALLOW_TOTAL
-};
-
 struct config {
 	// Integer colours
 	const char *textcolor;		// Normal text colour for display (same as textcol1)
@@ -42,10 +23,10 @@ struct config {
 	const char *eventcolor;		// Events
 	const char *moneycolor;
 	const char *bracketcolor;
-	const char *teamcolor;
-	const char *bashcolor;
-	const char *itemcolor;
-	const char *umailheadcolor;
+
+	// String colours
+	char	textcol1[4];
+	char	textcol2[4];
 
 	// Strings
 	char	moneytype[23];	// Name of money (ie: Gold)
@@ -54,15 +35,10 @@ struct config {
 	char	reese_name[23];	// Name of "Reese" from Armor shoppe
 	char	groggo_name[23];// Name of "Groggo" from shady shoppe
 	char	bobsplace[23];	// Name of Bobs Place
-	char	returnenter[23];// Name of return/enter key
 
 	// Allow/disallow
 	bool	allow_drugs;
 	bool	allow_steroids;
-	bool	allowitem[ALLOW_TOTAL];
-
-	// Gameplay
-	bool	classic;
 };
 
 extern struct config config;
