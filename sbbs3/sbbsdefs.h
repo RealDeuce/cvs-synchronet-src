@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.165 2009/12/08 23:46:04 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.162 2009/08/14 08:00:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@
 
 #define FNOPEN_BUF_SIZE		(2*1024)
 
-#define ILLEGAL_FILENAME_CHARS	"\\/|<>:\";,%"
+#define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
 
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
@@ -426,8 +426,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CHAT_SPLITP (1<<4)	/* Split screen private chat					*/
 																			
 																			
-#define INVALID_DIR ((uint)-1)	/* Invalid directory value					*/
-#define INVALID_SUB ((uint)-1)	/* Invalid sub-board value					*/
+#define INVALID_DIR 0xffff	/* Invalid directory value						*/
+#define INVALID_SUB 0xffff	/* Invalid sub-board value						*/
 																			
 #define KEY_BUFSIZE 1024	/* Size of keyboard input buffer				*/
 #define SAVE_LINES	 4		/* Maximum number of lines to save				*/
@@ -823,7 +823,7 @@ enum {							/* Values of mode for userlist function     */
 #define REALSYSOP		(useron.level>=SYSOP_LEVEL)
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
-#define WHERE       	__LINE__,getfname(__FILE__)
+#define WHERE       	__LINE__,__FILE__
 #define SAVELINE		{ if(slcnt<SAVE_LINES) { \
 							slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \

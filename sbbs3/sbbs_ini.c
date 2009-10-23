@@ -2,13 +2,13 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.132 2010/02/25 06:32:09 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.130 2009/08/18 23:24:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -75,23 +75,42 @@ static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
-	/* pHostName is no longer used since iniFileName calls gethostname() itself */
+    char	host_name[128];
+    char	path[MAX_PATH+1];
+	char*	p;
 
-#if defined(_WINSOCKAPI_)	 
-	WSADATA WSAData;	 
-    WSAStartup(MAKEWORD(1,1), &WSAData); /* req'd for gethostname */	 
-#endif	 
-
+    if(pHostName!=NULL)
+		SAFECOPY(host_name,pHostName);
+	else {
+#if defined(_WINSOCKAPI_)
+        WSADATA WSAData;
+        WSAStartup(MAKEWORD(1,1), &WSAData); /* req'd for gethostname */
+#endif
+    	gethostname(host_name,sizeof(host_name)-1);
+#if defined(_WINSOCKAPI_)
+        WSACleanup();
+#endif
+    }
+	SAFECOPY(path,ctrl_dir);
+	backslash(path);
+	sprintf(ini_file,"%s%s.ini",path,host_name);
+	if(fexistcase(ini_file))
+		return;
+	if((p=strchr(host_name,'.'))!=NULL) {
+		*p=0;
+		sprintf(ini_file,"%s%s.ini",path,host_name);
+		if(fexistcase(ini_file))
+			return;
+	}
 #if defined(__unix__) && defined(PREFIX)
 	sprintf(ini_file,PREFIX"/etc/sbbs.ini");
 	if(fexistcase(ini_file))
 		return;
 #endif
 	iniFileName(ini_file,MAX_PATH,ctrl_dir,"sbbs.ini");
-
-#if defined(_WINSOCKAPI_)	 
-	WSACleanup();	 
-#endif
+	if(fexistcase(ini_file))
+		return;
+	iniFileName(ini_file,MAX_PATH,ctrl_dir,"startup.ini");
 }
 
 static void sbbs_fix_js_settings(js_startup_t* js)
