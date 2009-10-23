@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.273 2010/02/25 03:29:51 deuce Exp $ */
+/* $Id: term.c,v 1.271 2009/05/22 22:18:06 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -400,15 +400,9 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 			);
 		clreol();
 		cputs("\r\n");
-		if(zm->current_file_size==0) {
-			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, "", 100);
-			l = 60;
-		}
-		else{
-			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-				,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
-			l = (long)(60*((float)current_pos/(float)zm->current_file_size));
-		}
+		cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
+			,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
+		l = (long)(60*((float)current_pos/(float)zm->current_file_size));
 		cprintf("[%*.*s%*s]", l, l, 
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1191,13 +1185,13 @@ void xmodem_progress(void* cbdata, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
+				,(long)(((float)offset/(float)fsize)*100.0)
 				);
 			clreol();
 			cputs("\r\n");
 			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-				,fsize?(long)(((float)offset/(float)fsize)*100.0):100);
-			l = fsize?(long)(((float)offset/(float)fsize)*60.0):60;
+				,(long)(((float)offset/(float)fsize)*100.0));
+			l = (long)(((float)offset/(float)fsize)*60.0);
 			cprintf("[%*.*s%*s]", l, l, 
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1223,8 +1217,8 @@ void xmodem_progress(void* cbdata, unsigned block_num, ulong offset, ulong fsize
 			clreol();
 			cputs("\r\n");
 			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-				,fsize?(long)(((float)offset/(float)fsize)*100.0):100);
-			l = fsize?(long)(((float)offset/(float)fsize)*60.0):60;
+				,(long)(((float)offset/(float)fsize)*100.0));
+			l = (long)(((float)offset/(float)fsize)*60.0);
 			cprintf("[%*.*s%*s]", l, l, 
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"

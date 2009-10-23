@@ -2,7 +2,7 @@
 
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.12 2009/10/25 02:56:39 rswindell Exp $ */
+/* $Id: text_sec.cpp,v 1.11 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -245,7 +245,6 @@ int sbbs_t::text_sec()
 					,cfg.data_dir,cfg.txtsec[usrsec[cursec]]->code,file[i]);
 			else
 				strcpy(str,file[i]);
-			fexistcase(str);
 			attr(LIGHTGRAY);
 			printfile(str,0);
 			sprintf(str,"%s read text file: %s"
