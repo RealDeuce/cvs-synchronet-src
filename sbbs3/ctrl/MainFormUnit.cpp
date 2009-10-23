@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.182 2011/09/09 08:13:41 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.174 2009/10/05 04:50:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,7 +71,6 @@
 #include "PropertiesDlgUnit.h"
 #include "ConfigWizardUnit.h"
 #include "PreviewFormUnit.h"
-#include "LoginAttemptsFormUnit.h"
 
 #include "sbbs_ini.h"		// sbbs_read_ini()
 #include "userdat.h"		// lastuser()
@@ -85,7 +84,6 @@
 TMainForm *MainForm;
 
 #define LOG_TIME_FMT "  m/d  hh:mm:ssa/p"
-#define STATUSBAR_LAST_PANEL  5
 
 /* Service functions are NT-only, must call dynamically :-( */
 typedef WINADVAPI SC_HANDLE (WINAPI *OpenSCManager_t)(LPCTSTR,LPCTSTR,DWORD);
@@ -152,7 +150,6 @@ link_list_t mail_log_list;
 link_list_t ftp_log_list;
 link_list_t web_log_list;
 link_list_t services_log_list;
-link_list_t	login_attempt_list;
 
 DWORD	MaxLogLen=20000;
 int     threads=1;
@@ -160,16 +157,18 @@ time_t  initialized=0;
 static	str_list_t recycle_semfiles;
 static  str_list_t shutdown_semfiles;
 bool    terminating=false;
-ulong   errors;
-AnsiString ErrorSoundFile;
 
-static void errormsg(void* p, int level, const char* msg)
-{
-    errors++;
+/* crash here (Nov-26-08):
 
-    if(MainForm->SoundToggle->Checked)
-        PlaySound(ErrorSoundFile.c_str(), NULL, SND_ASYNC|SND_FILENAME);
-}
+SBBSCTRL! 004f9350()
+SBBSCTRL! 004f9bd3()
+SBBSCTRL! 00401cc0()
+thread_up(int 0x00000001) line 203 + 26 bytes
+send_thread(void * 0x013550d0) line 1323 + 7 bytes
+_threadstart(void * 0x01352298) line 187 + 13 bytes
+KERNEL32! 7c57b3bc()
+
+*/
 
 static void thread_up(void* p, BOOL up, BOOL setuid)
 {
@@ -256,12 +255,11 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
         return;
     }
     if(client!=NULL && client->size==sizeof(client_t)) {
-        t=time(NULL);
         if(i>=0) {
             Item=ClientForm->ListView->Items->Item[i];
         } else {
             Item=ClientForm->ListView->Items->Add();
-            Item->Data=(void*)t;
+            Item->Data=(void*)client->time;
             Item->Caption=sock;
         }
         Item->SubItems->Clear();
@@ -270,7 +268,7 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
         Item->SubItems->Add(client->addr);
         Item->SubItems->Add(client->host);
         Item->SubItems->Add(client->port);
-        t-=(time_t)Item->Data;
+        t=time(NULL)-(time_t)Item->Data;
         sprintf(str,"%d:%02d",t/60,t%60);
         Item->SubItems->Add(str);
     }
@@ -467,7 +465,7 @@ static void mail_log_msg(log_msg_t* msg)
 
     if(MainForm->MailLogFile && MainForm->MailStop->Enabled) {
         AnsiString LogFileName
-            =AnsiString(MainForm->cfg.logs_dir)
+            =AnsiString(MainForm->cfg.data_dir)
             +"LOGS\\MS"
             +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
             +".LOG";
@@ -582,7 +580,7 @@ static void ftp_log_msg(log_msg_t* msg)
 
     if(MainForm->FtpLogFile && MainForm->FtpStop->Enabled) {
         AnsiString LogFileName
-            =AnsiString(MainForm->cfg.logs_dir)
+            =AnsiString(MainForm->cfg.data_dir)
             +"LOGS\\FS"
             +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
             +".LOG";
@@ -695,6 +693,33 @@ static void web_log_msg(log_msg_t* msg)
         MainForm->LogAttributes(msg->level, WebForm->Log->Color, WebForm->Log->Font));
 	WebForm->Log->Lines->Add(Line);
     SendMessage(WebForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+
+#if 0
+    if(MainForm->WebLogFile && MainForm->WebStop->Enabled) {
+        AnsiString LogFileName
+            =AnsiString(MainForm->cfg.data_dir)
+            +"LOGS\\FS"
+            +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
+            +".LOG";
+
+        if(!FileExists(LogFileName)) {
+            FileClose(FileCreate(LogFileName));
+            if(LogStream!=NULL) {
+                fclose(LogStream);
+                LogStream=NULL;
+            }
+        }
+        if(LogStream==NULL)
+            LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
+
+        if(LogStream!=NULL) {
+            Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
+            Line+=AnsiString(str).Trim();
+            Line+="\n";
+        	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
+        }
+	}
+#endif
 }
 
 static void web_status(void* p, const char *str)
@@ -718,7 +743,7 @@ static void web_clients(void* p, int clients)
     	mutex=CreateMutex(NULL,false,NULL);
 	WaitForSingleObject(mutex,INFINITE);
 
-    WebForm->ProgressBar->Max=MainForm->web_startup.max_clients;
+    WebForm->ProgressBar->Max=MainForm->ftp_startup.max_clients;
 	WebForm->ProgressBar->Position=clients;
 
     ReleaseMutex(mutex);
@@ -828,8 +853,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     UseFileAssociations=true;
     Initialized=false;
 
-	loginAttemptListInit(&login_attempt_list);
-
     char* p;
     if((p=getenv("SBBSCTRL"))!=NULL)
         SAFECOPY(global.ctrl_dir,p);
@@ -850,7 +873,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_startup.rlogin_interface=INADDR_ANY;
 	bbs_startup.lputs=lputs;
     bbs_startup.event_lputs=lputs;
-    bbs_startup.errormsg=errormsg;
     bbs_startup.status=bbs_status;
     bbs_startup.clients=bbs_clients;
     bbs_startup.started=bbs_started;
@@ -859,7 +881,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_startup.thread_up=thread_up;
     bbs_startup.client_on=client_on;
     bbs_startup.socket_open=socket_open;
-	bbs_startup.login_attempt_list=&login_attempt_list;
 
     memset(&mail_startup,0,sizeof(mail_startup));
     mail_startup.size=sizeof(mail_startup);
@@ -869,7 +890,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     mail_startup.pop3_port=110;
     mail_startup.interface_addr=INADDR_ANY;
 	mail_startup.lputs=lputs;
-    mail_startup.errormsg=errormsg;
     mail_startup.status=mail_status;
     mail_startup.clients=mail_clients;
     mail_startup.started=mail_started;
@@ -884,7 +904,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     mail_startup.lines_per_yield=10;
     mail_startup.max_clients=10;
     mail_startup.max_msg_size=10*1024*1024;
-	mail_startup.login_attempt_list=&login_attempt_list;
 
     memset(&ftp_startup,0,sizeof(ftp_startup));
     ftp_startup.size=sizeof(ftp_startup);
@@ -892,7 +911,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     ftp_startup.port=IPPORT_FTP;
     ftp_startup.interface_addr=INADDR_ANY;
 	ftp_startup.lputs=lputs;
-    ftp_startup.errormsg=errormsg;
     ftp_startup.status=ftp_status;
     ftp_startup.clients=ftp_clients;
     ftp_startup.started=ftp_started;
@@ -907,13 +925,11 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     strcpy(ftp_startup.index_file_name,"00index");
     strcpy(ftp_startup.html_index_file,"00index.html");
     strcpy(ftp_startup.html_index_script,"ftp-html.js");
-	ftp_startup.login_attempt_list=&login_attempt_list;
 
     memset(&web_startup,0,sizeof(web_startup));
     web_startup.size=sizeof(web_startup);
     web_startup.cbdata=&web_log_list;
 	web_startup.lputs=lputs;
-    web_startup.errormsg=errormsg;
     web_startup.status=web_status;
     web_startup.clients=web_clients;
     web_startup.started=web_started;
@@ -922,14 +938,12 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     web_startup.thread_up=thread_up;
     web_startup.client_on=client_on;
     web_startup.socket_open=socket_open;
-	web_startup.login_attempt_list=&login_attempt_list;
 
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
     services_startup.cbdata=&services_log_list;
     services_startup.interface_addr=INADDR_ANY;
     services_startup.lputs=lputs;
-    services_startup.errormsg=errormsg;
     services_startup.status=services_status;
     services_startup.clients=services_clients;
     services_startup.started=services_started;
@@ -938,7 +952,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     services_startup.thread_up=thread_up;
     services_startup.client_on=client_on;
     services_startup.socket_open=socket_open;
-	services_startup.login_attempt_list=&login_attempt_list;
 
     bbs_log=INVALID_HANDLE_VALUE;
     event_log=INVALID_HANDLE_VALUE;
@@ -1122,7 +1135,7 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
     if(Initialized) /* Don't overwrite registry settings with defaults */
         SaveRegistrySettings(Sender);
 
-	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Terminating servers...";
+	StatusBar->Panels->Items[4]->Text="Terminating servers...";
     time_t start=time(NULL);
 	while( (TelnetStop->Enabled     && !bbsServiceEnabled())
         || (MailStop->Enabled       && !mailServiceEnabled())
@@ -1134,7 +1147,7 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
         Application->ProcessMessages();
         YIELD();
     }
-	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Closing...";
+	StatusBar->Panels->Items[4]->Text="Closing...";
     Application->ProcessMessages();
     
 	LogTimer->Enabled=false;
@@ -1142,6 +1155,18 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
 	ServiceStatusTimer->Enabled=false;
 	NodeForm->Timer->Enabled=false;
 	ClientForm->Timer->Enabled=false;
+#if 0
+    /* Extra time for callbacks to be called by child threads */
+    start=time(NULL);
+    while(time(NULL)<start+2) {
+        Application->ProcessMessages();
+        YIELD();
+    }
+#endif
+#if 0
+    if(hSCManager!=NULL)
+    	closeServiceHandle(hSCManager);
+#endif
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
@@ -1914,8 +1939,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     	NodeForm->Timer->Interval=Registry->ReadInteger("NodeDisplayInterval")*1000;
 	if(Registry->ValueExists("ClientDisplayInterval"))
     	ClientForm->Timer->Interval=Registry->ReadInteger("ClientDisplayInterval")*1000;
-    if(Registry->ValueExists("ErrorSoundFile"))
-        ErrorSoundFile=Registry->ReadString("ErrorSoundFile");
 
     if(Registry->ValueExists("MailLogFile"))
     	MailLogFile=Registry->ReadInteger("MailLogFile");
@@ -1946,7 +1969,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             ,&MailAutoStart 	    ,&mail_startup
             ,&ServicesAutoStart     ,&services_startup
             );
-       	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Read " + AnsiString(ini_file);
+       	StatusBar->Panels->Items[4]->Text="Read " + AnsiString(ini_file);
         fclose(fp);
 
     } else {    /* Legacy (v3.10-3.11) */
@@ -2174,6 +2197,66 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
 		if(SaveIniSettings(Sender))
             Registry->WriteBool("Imported",true);   /* Use the .ini file for these settings from now on */
+
+#if 0
+        /******************************************************/
+        /* Copy global values into each server startup struct */
+        /******************************************************/
+
+        /* used to be handled in bbs_start() */
+        SAFECOPY(bbs_startup.ctrl_dir,global.ctrl_dir);
+        SAFECOPY(bbs_startup.temp_dir,global.temp_dir);
+        SAFECOPY(bbs_startup.host_name,global.host_name);
+        bbs_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* JavaScript operational parameters */
+        bbs_startup.js_max_bytes=global.js.max_bytes;
+        bbs_startup.js_cx_stack=global.js.cx_stack;
+        bbs_startup.js_branch_limit=global.js.branch_limit;
+        bbs_startup.js_gc_interval=global.js.gc_interval;
+        bbs_startup.js_yield_interval=global.js.yield_interval;
+
+        /* used to be handled in mail_start() */
+        SAFECOPY(mail_startup.ctrl_dir
+            ,global.ctrl_dir);
+        SAFECOPY(mail_startup.host_name
+            ,global.host_name);
+        mail_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* used to be handled in ftp_start() */
+        SAFECOPY(ftp_startup.ctrl_dir
+            ,global.ctrl_dir);
+        SAFECOPY(ftp_startup.temp_dir
+            ,global.temp_dir);
+        SAFECOPY(ftp_startup.host_name
+            ,global.host_name);
+        ftp_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* JavaScript operational parameters */
+        ftp_startup.js_max_bytes=global.js.max_bytes;
+        ftp_startup.js_cx_stack=global.js.cx_stack;
+
+        /* used to be handled in web_start() */
+        SAFECOPY(web_startup.ctrl_dir,global.ctrl_dir);
+        SAFECOPY(web_startup.host_name,global.host_name);
+        web_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* JavaScript operational parameters */
+        web_startup.js_max_bytes=global.js.max_bytes;
+        web_startup.js_cx_stack=global.js.cx_stack;
+
+        /* used to be handled in ServicesStartExecute() */
+        SAFECOPY(services_startup.ctrl_dir,global.ctrl_dir);
+        SAFECOPY(services_startup.host_name,global.host_name);
+        services_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* JavaScript operational parameters */
+        services_startup.js_max_bytes=global.js.max_bytes;
+        services_startup.js_cx_stack=global.js.cx_stack;
+        services_startup.js_branch_limit=global.js.branch_limit;
+        services_startup.js_gc_interval=global.js.gc_interval;
+        services_startup.js_yield_interval=global.js.yield_interval;
+#endif
     }
 
     Registry->CloseKey();
@@ -2199,17 +2282,16 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     char error[256];
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
 
-   	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Loading configuration...";
+   	StatusBar->Panels->Items[4]->Text="Loading configuration...";
 	if(!load_cfg(&cfg, NULL, TRUE, error)) {
     	Application->MessageBox(error,"ERROR Loading Configuration"
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
         return;
     }
-   	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Configuration loaded";
+   	StatusBar->Panels->Items[4]->Text="Configuration loaded";
 
 	recycle_semfiles=semfile_list_init(cfg.ctrl_dir,"recycle","ctrl");
-    semfile_list_add(&recycle_semfiles,ini_file);
    	semfile_list_check(&initialized,recycle_semfiles);
 
 	shutdown_semfiles=semfile_list_init(cfg.ctrl_dir,"shutdown","ctrl");
@@ -2320,7 +2402,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     NodeForm->Timer->Enabled=true;
     ClientForm->Timer->Enabled=true;
 
-    SemFileTimer->Interval=global.sem_chk_freq*1000;
+    SemFileTimer->Interval=global.sem_chk_freq;
     SemFileTimer->Enabled=true;
 
     StatsTimer->Interval=cfg.node_stat_check*1000;
@@ -2349,7 +2431,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::SaveRegistrySettings(TObject* Sender)
 {
-	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Saving Registry Settings...";
+	StatusBar->Panels->Items[4]->Text="Saving Registry Settings...";
 
     // Write Registry keys
 	TRegistry* Registry=new TRegistry;
@@ -2499,7 +2581,6 @@ void __fastcall TMainForm::SaveRegistrySettings(TObject* Sender)
     Registry->WriteBool("UseFileAssociations",UseFileAssociations);
     Registry->WriteInteger("NodeDisplayInterval",NodeForm->Timer->Interval/1000);
     Registry->WriteInteger("ClientDisplayInterval",ClientForm->Timer->Interval/1000);
-    Registry->WriteString("ErrorSoundFile",ErrorSoundFile);
 
 	Registry->WriteInteger( "SpyTerminalWidth"
                             ,SpyTerminalWidth);
@@ -2535,7 +2616,7 @@ bool __fastcall TMainForm::SaveIniSettings(TObject* Sender)
         return(false);
     }
 
-	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Saving Settings to " + AnsiString(ini_file) + " ...";
+	StatusBar->Panels->Items[4]->Text="Saving Settings to " + AnsiString(ini_file) + " ...";
 
     bool success = sbbs_write_ini(fp
         ,&cfg
@@ -2554,7 +2635,6 @@ bool __fastcall TMainForm::SaveIniSettings(TObject* Sender)
         Application->MessageBox(err,"ERROR",MB_OK|MB_ICONEXCLAMATION);
 	}
 
-   	semfile_list_check(&initialized,recycle_semfiles);    
     return(success);
 }
 
@@ -2602,7 +2682,7 @@ void __fastcall TMainForm::ImportSettings(TObject* Sender)
     if(!OpenDialog->Execute())
     	return;
 
-	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Importing Settings...";
+	StatusBar->Panels->Items[4]->Text="Importing Settings...";
 
 	TMemIniFile* IniFile=new TMemIniFile(OpenDialog->FileName);
 
@@ -2693,7 +2773,7 @@ void __fastcall TMainForm::ExportSettings(TObject* Sender)
 
 	TMemIniFile* IniFile=new TMemIniFile(SaveDialog->FileName);
 
-	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Exporting Settings...";
+	StatusBar->Panels->Items[4]->Text="Exporting Settings...";
 
     const char* section = "Properties";
 
@@ -2944,33 +3024,28 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
         ,(up/60)%60
         );
     AnsiString Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text=Str;
+    if(MainForm->StatusBar->Panels->Items[4]->Text!=Str)
+		MainForm->StatusBar->Panels->Items[4]->Text=Str;
 
-    sprintf(str,"Threads: %u",threads);
+    sprintf(str,"Threads: %d",threads);
     Str=AnsiString(str);
     if(MainForm->StatusBar->Panels->Items[0]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[0]->Text=Str;
 
-    sprintf(str,"Sockets: %u",sockets);
+    sprintf(str,"Sockets: %d",sockets);
     Str=AnsiString(str);
     if(MainForm->StatusBar->Panels->Items[1]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[1]->Text=Str;
 
-    sprintf(str,"Clients: %u",clients);
+    sprintf(str,"Clients: %d",clients);
     Str=AnsiString(str);
     if(MainForm->StatusBar->Panels->Items[2]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[2]->Text=Str;
 
-    sprintf(str,"Served: %u",total_clients);
+    sprintf(str,"Served: %d",total_clients);
     Str=AnsiString(str);
     if(MainForm->StatusBar->Panels->Items[3]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[3]->Text=Str;
-
-    sprintf(str,"Errors: %u",errors);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[4]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[4]->Text=Str;
 
 #if 0
     THeapStatus hp=GetHeapStatus();
@@ -2997,6 +3072,15 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
+void __fastcall TMainForm::BBSViewErrorLogMenuItemClick(TObject *Sender)
+{
+	char filename[MAX_PATH+1];
+
+    sprintf(filename,"%sERROR.LOG"
+    	,MainForm->cfg.logs_dir);
+    ViewFile(filename,"Error Log");
+}
+//---------------------------------------------------------------------------
 
 void __fastcall TMainForm::ChatToggleExecute(TObject *Sender)
 {
@@ -3080,18 +3164,12 @@ void __fastcall TMainForm::ViewLogClick(TObject *Sender)
     mail_log_msg(NULL);
     ftp_log_msg(NULL);
 
-    if(strchr(((TMenuItem*)Sender)->Hint.c_str(),'.')==NULL)
-        sprintf(filename,"%sLOGS\\%s%02d%02d%02d.LOG"
-            ,MainForm->cfg.logs_dir
-            ,((TMenuItem*)Sender)->Hint.c_str()
-            ,tm->tm_mon+1
-            ,tm->tm_mday
-            ,tm->tm_year%100
-            );
-    else
-        sprintf(filename,"%s\\%s"
-            ,MainForm->cfg.logs_dir
-            ,((TMenuItem*)Sender)->Hint.c_str()
+    sprintf(filename,"%sLOGS\\%s%02d%02d%02d.LOG"
+    	,MainForm->cfg.logs_dir
+        ,((TMenuItem*)Sender)->Hint.c_str()
+        ,tm->tm_mon+1
+        ,tm->tm_mday
+        ,tm->tm_year%100
         );
     ViewFile(filename,((TMenuItem*)Sender)->Caption);
 }
@@ -3161,7 +3239,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->JS_GcIntervalEdit->Text=IntToStr(global.js.gc_interval);
     PropertiesDlg->JS_YieldIntervalEdit->Text=IntToStr(global.js.yield_interval);
     PropertiesDlg->JS_LoadPathEdit->Text=global.js.load_path;
-    PropertiesDlg->ErrorSoundEdit->Text=ErrorSoundFile;
 
     if(MaxLogLen==0)
 		PropertiesDlg->MaxLogLenEdit->Text="<unlimited>";
@@ -3201,7 +3278,7 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         SAFECOPY(services_startup.host_name,global.host_name);
         SAFECOPY(services_startup.ctrl_dir,global.ctrl_dir);
         SAFECOPY(services_startup.temp_dir,global.temp_dir);
-        services_startup.sem_chk_freq=global.sem_chk_freq ;
+        services_startup.sem_chk_freq=global.sem_chk_freq;
 
         Password=PropertiesDlg->PasswordEdit->Text;
         NodeForm->Timer->Interval=PropertiesDlg->NodeIntUpDown->Position*1000;
@@ -3209,7 +3286,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         MinimizeToSysTray=PropertiesDlg->TrayIconCheckBox->Checked;
         UndockableForms=PropertiesDlg->UndockableCheckBox->Checked;
         UseFileAssociations=PropertiesDlg->FileAssociationsCheckBox->Checked;
-        ErrorSoundFile=PropertiesDlg->ErrorSoundEdit->Text;
 
         /* JavaScript operating parameters */
         js_startup_t js=global.js; // save for later comparison
@@ -3306,35 +3382,14 @@ void __fastcall TMainForm::reload_config(void)
 {
 	char error[256];
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
-   	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Reloading configuration...";
+   	StatusBar->Panels->Items[4]->Text="Reloading configuration...";
 	if(!load_cfg(&cfg, NULL, TRUE, error)) {
     	Application->MessageBox(error,"ERROR Re-loading Configuration"
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
-    FILE* fp=fopen(MainForm->ini_file,"r");
-    sbbs_read_ini(fp
-        ,&MainForm->global
-        ,NULL   ,&MainForm->bbs_startup
-        ,NULL   ,NULL
-        ,NULL   ,NULL
-        ,NULL   ,NULL
-        ,NULL   ,NULL
-        );
-    if(fp!=NULL)
-        fclose(fp);
-   	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Configuration reloaded";
+   	StatusBar->Panels->Items[4]->Text="Configuration reloaded";    
    	semfile_list_check(&initialized,recycle_semfiles);
-
-    if(bbs_startup.options&BBS_OPT_SYSOP_AVAILABLE)
-    	ChatToggle->Checked=true;
-    else
-    	ChatToggle->Checked=false;
-        
-    if(bbs_startup.options&BBS_OPT_MUTE)
-    	SoundToggle->Checked=false;
-    else
-    	SoundToggle->Checked=true;
 }
 //---------------------------------------------------------------------------
 
@@ -3797,12 +3852,12 @@ void __fastcall TMainForm::SemFileTimerTick(TObject *Sender)
     char* p;
 
     if((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL) {
-	    StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text=AnsiString(p) + " signaled";
+	    StatusBar->Panels->Items[4]->Text=AnsiString(p) + " signaled";
         terminating=true;
         Close();
     }
     else if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
-	    StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text=AnsiString(p) + " signaled";
+	    StatusBar->Panels->Items[4]->Text=AnsiString(p) + " signaled";
         reload_config();
     }
 }
@@ -3816,33 +3871,8 @@ TFont* __fastcall TMainForm::LogAttributes(int log_level, TColor Color, TFont* F
     return LogFont[log_level];
 }
 //---------------------------------------------------------------------------
-void __fastcall TMainForm::ClearErrorsExecute(TObject *Sender)
-{
-    errors=0;
 
-    node_t node;
-    for(int i=0;i<cfg.sys_nodes;i++) {
-    	int file;
-       	if(NodeForm->getnodedat(i+1,&node,&file))
-            break;
-        node.errors=0;
-        if(NodeForm->putnodedat(i+1,&node,file))
-            break;
-    }
-}
-//---------------------------------------------------------------------------
-void __fastcall TMainForm::ViewErrorLogExecute(TObject *Sender)
-{
-	char filename[MAX_PATH+1];
 
-    sprintf(filename,"%sERROR.LOG"
-    	,MainForm->cfg.logs_dir);
-    ViewFile(filename,"Error Log");
-}
-//---------------------------------------------------------------------------
-void __fastcall TMainForm::ViewLoginAttemptsMenuItemClick(TObject *Sender)
-{
-    LoginAttemptsForm->Show();
-}
-//---------------------------------------------------------------------------
+
+
 
