@@ -2,13 +2,13 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.42 2011/08/30 22:51:21 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.38 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,8 +45,6 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	char	str[256],str2[256],msgpath[256],title[256],name[256],ch
 			,buf[SDT_BLOCK_LEN],*p,addr[256];
 	char 	tmp[512];
-	char	pid[128];
-	char*	editor=NULL;
 	char	your_addr[128];
 	ushort	xlat=XLAT_NONE,net=NET_INTERNET;
 	int 	i,j,x,file;
@@ -55,7 +53,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	FILE	*instream;
 	smbmsg_t msg;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -97,7 +95,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	nodesync();
 
 	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,&editor)) {
+	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -136,7 +134,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 		sprintf(tmp,"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(str2) && fexistcase(tmp))
 			mv(tmp,str2,0);
-		l=(long)flength(str2);
+		l=flength(str2);
 		if(l>0)
 			bprintf(text[FileNBytesReceived],title,ultoac(l,tmp));
 		else {
@@ -179,7 +177,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 		return(false); 
 	}
 
-	length=(long)flength(msgpath)+2;	 /* +2 for translation string */
+	length=flength(msgpath)+2;	 /* +2 for translation string */
 
 	if(length&0xfff00000UL) {
 		smb_unlocksmbhdr(&smb);
@@ -256,15 +254,9 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
-	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
-
-	/* Generate FidoNet Program Identifier */
-	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
-
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	SAFECOPY(str,title);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -305,15 +297,13 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	char	str[256],msgpath[128],title[128],to[128],fulladdr[128]
 			,buf[SDT_BLOCK_LEN],*addr;
 	char 	tmp[512];
-	char	pid[128];
-	char*	editor=NULL;
 	ushort	xlat=XLAT_NONE,net=NET_QWK,touser;
 	int 	i,j,x,file;
 	ulong	length,offset;
 	FILE	*instream;
 	smbmsg_t msg;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -352,7 +342,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	nodesync();
 
 	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,&editor)) {
+	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -390,7 +380,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 		return(false); 
 	}
 
-	length=(long)flength(msgpath)+2;	 /* +2 for translation string */
+	length=flength(msgpath)+2;	 /* +2 for translation string */
 
 	if(length&0xfff00000UL) {
 		smb_unlocksmbhdr(&smb);
@@ -464,15 +454,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
-	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
-
-	/* Generate FidoNet Program Identifier */
-	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
-
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
