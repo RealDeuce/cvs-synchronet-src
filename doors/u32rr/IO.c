@@ -83,11 +83,6 @@ void halt(void)
 	exit(1);
 }
 
-void normal_exit(void)
-{
-	exit(0);
-}
-
 void nl(void)
 {
 	door_nl();
