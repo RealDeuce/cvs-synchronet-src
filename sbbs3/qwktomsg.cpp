@@ -2,13 +2,13 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.52 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.48 2009/03/24 20:40:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -135,10 +135,6 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOCTRL),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 
-	/* Synchronet */
-	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_EDITOR),value))!=NULL)
-		smb_hfield_str(msg,hfield_type,p);
-
 	/* USENET */
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=USENETPATH),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
@@ -214,18 +210,18 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 {
 	char*		body;
 	char*		tail;
-	char*		qwkbuf;
-	char		str[256],col=0,lastch=0,*p;
+	char*		header;
+	char		str[256],col=0,lastch=0,*p,qwkbuf[QWK_BLOCK_LEN+1];
 	char		from[128];
-	uint 		i,k,lzh=0;
+	uint 		i,k,lzh=0,skip=0;
 	long		bodylen,taillen;
 	bool		header_cont=false;
 	bool		success=false;
+	ulong		block;
 	uint16_t	net_type;
 	ushort		xlat=XLAT_NONE;
 	int			storage=SMB_SELFPACK;
 	long		dupechk_hashes=SMB_HASH_SOURCE_DUPE;
-	str_list_t	kludges;
 
 	if(subnum!=INVALID_SUB
 		&& (hdrblk[0]=='*' || hdrblk[0]=='+' || cfg.sub[subnum]->misc&SUB_PONLY))
@@ -278,102 +274,96 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	/* Convert the QWK message text */
 	/********************************/
 
-	if((qwkbuf=(char *)malloc((blocks-1)*QWK_BLOCK_LEN))==NULL) {
-		errormsg(WHERE,ERR_ALLOC,"QWK msg buf",(blocks-1)*QWK_BLOCK_LEN);
+	if((header=(char *)calloc((blocks-1L)*QWK_BLOCK_LEN*2L,sizeof(char)))==NULL) {
+		errormsg(WHERE,ERR_ALLOC,"QWK msg header",(blocks-1L)*QWK_BLOCK_LEN*2L);
 		return(false); 
-	}
-
-	if(fread(qwkbuf,QWK_BLOCK_LEN,blocks-1,qwk_fp) != blocks-1) {
-		free(qwkbuf);
-		errormsg(WHERE,ERR_READ,"QWK msg blocks",(blocks-1)*QWK_BLOCK_LEN);
 	}
 
 	bodylen=0;
 	if((body=(char *)malloc((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
-		free(qwkbuf);
+		free(header);
 		errormsg(WHERE,ERR_ALLOC,"QWK msg body",(blocks-1L)*QWK_BLOCK_LEN*2L);
 		return(false); 
 	}
 
 	taillen=0;
 	if((tail=(char *)malloc((blocks-1L)*QWK_BLOCK_LEN*2L))==NULL) {
-		free(qwkbuf);
+		free(header);
 		free(body);
 		errormsg(WHERE,ERR_ALLOC,"QWK msg tail",(blocks-1L)*QWK_BLOCK_LEN*2L);
 		return(false); 
 	}
 
-	kludges=strListInit();
+	memset(qwkbuf,0,sizeof(qwkbuf));
 
-	for(k=0;k<(blocks-1)*QWK_BLOCK_LEN;k++) {
-		if(qwkbuf[k]==0)
-			continue;
-		if(bodylen==0 
-			&& (qwkbuf[k]=='@' 
-				|| (((useron.qwk&QWK_EXT) || subnum==INVALID_SUB)
-					&& (strnicmp(qwkbuf+k,"To:",3)==0 
-					||  strnicmp(qwkbuf+k,"From:",5)==0 
-					||  strnicmp(qwkbuf+k,"Subject:",8)==0)))) {
-			if((p=strchr(qwkbuf+k, QWK_NEWLINE))==NULL) {
-				body[bodylen++]=qwkbuf[k];
+	for(block=1;block<blocks;block++) {
+		if(!fread(qwkbuf,1,QWK_BLOCK_LEN,qwk_fp))
+			break;
+		for(k=0;k<QWK_BLOCK_LEN;k++) {
+			if(qwkbuf[k]==0)
+				continue;
+			if(bodylen==0 && (qwkbuf[k]=='@' || header_cont)) {
+				if((p=strchr(qwkbuf+k, QWK_NEWLINE))!=NULL)
+					*p=0;
+				strcat(header, qwkbuf+k);
+				strcat(header, "\n");
+				if(p==NULL) {
+					header_cont=true;
+					break;
+				}
+				k+=strlen(qwkbuf+k);
+				header_cont=false;
 				continue;
 			}
-			*p=0;	/* Converts QWK_NEWLINE to NUL */
-			strListPush(&kludges, qwkbuf+k);
-			k+=strlen(qwkbuf+k);
-			continue;
-		}
-		if(!taillen && qwkbuf[k]==' ' && col==3 && bodylen>=3
-			&& body[bodylen-3]=='-' && body[bodylen-2]=='-'
-			&& body[bodylen-1]=='-') {
-			bodylen-=3;
-			strcpy(tail,"--- ");	/* DO NOT USE SAFECOPY */
-			taillen=4;
-			col++;
-			continue; 
-		}
-		if(qwkbuf[k]==QWK_NEWLINE) {		/* expand QWK_NEWLINE to crlf */
-			if(!bodylen && !taillen)		/* Ignore blank lines at top of message */
-				continue;
-			if(!taillen && col==3 && bodylen>=3 && body[bodylen-3]=='-'
-				&& body[bodylen-2]=='-' && body[bodylen-1]=='-') {
+			if(!taillen && qwkbuf[k]==' ' && col==3 && bodylen>=3
+				&& body[bodylen-3]=='-' && body[bodylen-2]=='-'
+				&& body[bodylen-1]=='-') {
 				bodylen-=3;
-				strcpy(tail,"---");	/* DO NOT USE SAFECOPY */
-				taillen=3; 
+				strcpy(tail,"--- ");	/* DO NOT USE SAFECOPY */
+				taillen=4;
+				col++;
+				continue; 
 			}
-			col=0;
-			if(taillen) {
-				tail[taillen++]=CR;
-				tail[taillen++]=LF; 
+			if(qwkbuf[k]==QWK_NEWLINE) {		/* expand QWK_NEWLINE to crlf */
+				if(!taillen && col==3 && bodylen>=3 && body[bodylen-3]=='-'
+					&& body[bodylen-2]=='-' && body[bodylen-1]=='-') {
+					bodylen-=3;
+					strcpy(tail,"---");	/* DO NOT USE SAFECOPY */
+					taillen=3; 
+				}
+				col=0;
+				if(taillen) {
+					tail[taillen++]=CR;
+					tail[taillen++]=LF; 
+				}
+				else {
+					body[bodylen++]=CR;
+					body[bodylen++]=LF; 
+				}
+				continue; 
 			}
-			else {
-				body[bodylen++]=CR;
-				body[bodylen++]=LF; 
+			/* beep restrict */
+			if(!fromhub && qwkbuf[k]==BEL && useron.rest&FLAG('B'))   
+				continue;
+			/* ANSI restriction */
+			if(!fromhub && (qwkbuf[k]==CTRL_A || qwkbuf[k]==ESC)
+				&& useron.rest&FLAG('A'))
+				continue;
+			if(qwkbuf[k]!=1 && lastch!=1)
+				col++;
+			if(lastch==CTRL_A && !valid_ctrl_a_code(qwkbuf[k])) {
+				if(taillen) taillen--;
+				else		bodylen--;
+				lastch=0;
+				continue; 
 			}
-			continue; 
-		}
-		/* beep restrict */
-		if(!fromhub && qwkbuf[k]==BEL && useron.rest&FLAG('B'))   
-			continue;
-		/* ANSI restriction */
-		if(!fromhub && (qwkbuf[k]==CTRL_A || qwkbuf[k]==ESC)
-			&& useron.rest&FLAG('A'))
-			continue;
-		if(qwkbuf[k]!=1 && lastch!=1)
-			col++;
-		if(lastch==CTRL_A && !valid_ctrl_a_code(qwkbuf[k])) {
-			if(taillen) taillen--;
-			else		bodylen--;
-			lastch=0;
-			continue; 
-		}
-		lastch=qwkbuf[k];
-		if(taillen)
-			tail[taillen++]=qwkbuf[k];
-		else
-			body[bodylen++]=qwkbuf[k]; 
-	} 
-	free(qwkbuf);
+			lastch=qwkbuf[k];
+			if(taillen)
+				tail[taillen++]=qwkbuf[k];
+			else
+				body[bodylen++]=qwkbuf[k]; 
+		} 
+	}
 
 	while(bodylen && body[bodylen-1]==' ') bodylen--; /* remove trailing spaces */
 	if(bodylen>=2 && body[bodylen-2]==CR && body[bodylen-1]==LF)
@@ -381,16 +371,25 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 
 	while(taillen && tail[taillen-1]<=' ') taillen--; /* remove trailing garbage */
 
-	/* Parse QWK Kludges (QWKE standard and SyncQNET legacy) here: */
+	skip=0;
 	if(useron.rest&FLAG('Q') || fromhub) {      /* QWK Net */
-		if((p=iniGetString(kludges,ROOT_SECTION,"@VIA",NULL,NULL)) != NULL) {
+		if(!strnicmp(header,"@VIA:",5)) {
 			if(!fromhub)
 				set_qwk_flag(QWK_VIA);
+			p=strchr(header, '\n');
+			if(p) {
+				*p=0;
+				skip=strlen(header)+1; 
+			}
+			truncsp(header);
+			p=header+5; 					/* Skip "@VIA:" */
+			while(*p && *p<=' ') p++;		/* Skip any spaces */
 			if(route_circ(p,cfg.sys_id)) {
 				bprintf("\r\nCircular message path: %s\r\n",p);
-				lprintf(LOG_ERR,"Circular message path: %s from %s"
+				SAFEPRINTF2(str,"Circular message path: %s from %s"
 					,p,fromhub ? cfg.qhub[fromhub-1]->id:useron.alias);
-				strListFree(&kludges);
+				errorlog(str);
+				free(header);
 				free(body);
 				free(tail);
 				return(false); 
@@ -421,39 +420,63 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			SAFECOPY(from,useron.alias);
 		smb_hfield_str(msg,SENDER,from);
 	}
-	if((p=iniGetString(kludges,ROOT_SECTION,"@MSGID",NULL,NULL)) != NULL) {
+
+	if(!strnicmp(header+skip,"@MSGID:",7)) {
 		if(!fromhub)
 			set_qwk_flag(QWK_MSGID);
+		p=strchr(header+skip, '\n');
+		i=skip;
+		if(p) {
+			*p=0;
+			skip+=strlen(header+i)+1; 
+		}
+		p=header+i+7;					/* Skip "@MSGID:" */
+		while(*p && *p<=' ') p++;		/* Skip any spaces */
 		truncstr(p," ");				/* Truncate at first space char */
 		if(msg->id==NULL)
 			smb_hfield_str(msg,RFC822MSGID,p);
 	}
-	if((p=iniGetString(kludges,ROOT_SECTION,"@REPLY",NULL,NULL)) != NULL) {
+	if(!strnicmp(header+skip,"@REPLY:",7)) {
 		if(!fromhub)
 			set_qwk_flag(QWK_MSGID);
+		p=strchr(header+skip, '\n');
+		i=skip;
+		if(p) {
+			*p=0;
+			skip+=strlen(header+i)+1; 
+		}
+		p=header+i+7;					/* Skip "@REPLY:" */
+		while(*p && *p<=' ') p++;		/* Skip any spaces */
 		truncstr(p," ");				/* Truncate at first space char */
 		if(msg->reply_id==NULL)
 			smb_hfield_str(msg,RFC822REPLYID,p);
 	}
-	if((p=iniGetString(kludges,ROOT_SECTION,"@TZ",NULL,NULL)) != NULL) {
+	if(!strnicmp(header+skip,"@TZ:",4)) {
 		if(!fromhub)
 			set_qwk_flag(QWK_TZ);
+		p=strchr(header+skip, '\n');
+		i=skip;
+		if(p) {
+			*p=0;
+			skip+=strlen(header+i)+1; 
+		}
+		p=header+i+4;					/* Skip "@TZ:" */
+		while(*p && *p<=' ') p++;		/* Skip any spaces */
 		msg->hdr.when_written.zone=(short)ahtoul(p); 
 	}
-	if((p=iniGetString(kludges,ROOT_SECTION,"@REPLYTO",NULL,NULL)) != NULL) {
+	if(!strnicmp(header+skip,"@REPLYTO:",9)) {
+		p=strchr(header+skip, '\n');
+		i=skip;
+		if(p) {
+			*p=0;
+			skip+=strlen(header+i)+1; 
+		}
+		p=header+i+9;					/* Skip "@REPLYTO:" */
+		while(*p && *p<=' ') p++;		/* Skip any spaces */
 		if(msg->replyto==NULL)
 			smb_hfield_str(msg,REPLYTO,p);
 	}
-	/* QWKE standard: */
-	if((p=iniGetString(kludges,ROOT_SECTION,"Subject",NULL,NULL)) != NULL)
-		smb_hfield_replace_str(msg,SUBJECT,p);
-	if((p=iniGetString(kludges,ROOT_SECTION,"To",NULL,NULL)) != NULL)
-		smb_hfield_replace_str(msg,RECIPIENT,p);
-	if((useron.rest&FLAG('Q'))
-		&& (p=iniGetString(kludges,ROOT_SECTION,"From",NULL,NULL)) != NULL)
-		smb_hfield_replace_str(msg,SENDER,p);
-
-	strListFree(&kludges);
+	free(header);
 
 	/* smb_addmsg requires ASCIIZ strings */
 	body[bodylen]=0;
@@ -472,14 +495,14 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 		if(!fromhub) {
 			if(subnum==INVALID_SUB) {
 				SAFEPRINTF2(str,"%s duplicate e-mail attempt (%s)",useron.alias,smb.last_error);
-				logline(LOG_NOTICE,"E!",str); 
+				logline("E!",str); 
 			} else {
 				SAFEPRINTF4(str,"%s duplicate message attempt in %s %s (%s)"
 					,useron.alias
 					,cfg.grp[cfg.sub[subnum]->grp]->sname
 					,cfg.sub[subnum]->lname
 					,smb.last_error);
-				logline(LOG_NOTICE,"P!",str); 
+				logline("P!",str); 
 			}
 		}
 	}

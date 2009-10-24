@@ -46,8 +46,12 @@ void newsy(bool trailing_line, ...)
 
 int rand_num(int limit)
 {
-	D(lred, Asprintf("RANDOM(%d):", limit));
-	return(get_number(0, limit-1));
+	return(limit-1);
+}
+
+void reduce_player_resurrections(struct player *pl, bool doit)
+{
+	DL("REDUCE PLAYER RESURRECTIONS");
 }
 
 void objekt_affect(int i, uint16_t index, enum objtype type, struct player *pl, bool loud)
@@ -55,9 +59,24 @@ void objekt_affect(int i, uint16_t index, enum objtype type, struct player *pl, 
 	DL("OBJEKT AFFECT");
 }
 
+void decplayermoney(struct player *pl, int amount)
+{
+	pl->gold -= amount;
+}
+
 void user_save(struct player *pl)
 {
 	DL(lred, "SAVING USER");
+}
+
+void quick_healing(struct player *pl)
+{
+	DL(lred,"QUICK HEALING");
+}
+
+void healing(struct player *pl)
+{
+	DL(lred,"HEALING");
 }
 
 void inventory_display(struct player *pl)
@@ -75,9 +94,9 @@ void Display_Member(struct player *pl, bool doit)
 	DL(lred,"DISPLAY MEMBER");
 }
 
-void Display_Members(const char *team, bool topbar)
+void Display_Members(const char *team, bool doit)
 {
-	DL(lred, "DISPLAY MEMBERS");
+	DL(lred,"DISPLAY MEMBERS");
 }
 
 void inventory_sort(struct player *pl)
@@ -138,19 +157,9 @@ struct onliner *onliner=&onliner_str;
 bool global_begged=false;
 bool global_nobeg=false;
 
-void Drinking_Competition(void)
+void Bobs_Inn(void)
 {
-	BAD("DRINKING COMPETITION not implemented!");
-}
-
-void Brawl(void)
-{
-	BAD("BRAWL not implemented!");
-}
-
-void Post(enum mailaction action, const char *to, enum aitype toai, bool togod, enum mailspecial special, const char *from, ...)
-{
-	BAD("POST not implemented!");
+	BAD("Bob's Inn not implemented!");
 }
 
 void Groggos_Magic(void)
@@ -189,21 +198,6 @@ int CIOLIB_main(int argc, char **argv)
 	player->class=Alchemist;
 	onliner=onliners;
 	DefaultConfig();
-
-	// Open the shops...
-	king->shop_weapon=true;
-        king->shop_armor=true;
-        king->shop_magic=true;
-        king->shop_alabat=true;
-        king->shop_plmarket=true;
-        king->shop_healing=true;
-        king->shop_drugs=true;
-        king->shop_steroids=true;
-        king->shop_orbs=true;
-        king->shop_evilmagic=true;
-        king->shop_bobs=true;
-        king->shop_gigolos=true;
-
 	Shady_Shops();
 	return(0);
 }

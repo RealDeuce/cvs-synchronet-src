@@ -2,13 +2,13 @@
 
 /* Synchronet file database scanning routines */
 
-/* $Id: scandirs.cpp,v 1.5 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: scandirs.cpp,v 1.4 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -65,7 +65,7 @@ void sbbs_t::scandirs(long mode)
 			padfname(tmp,str); 
 		}
 		else if(mode==FL_FINDDESC) {	/* Find text in description */
-			if(text[SearchExtendedQ][0] && !noyes(text[SearchExtendedQ]))
+			if(!noyes(text[SearchExtendedQ]))
 				mode=FL_EXFIND;
 			if(sys_status&SS_ABORT) {
 				lncntr=0;
@@ -136,7 +136,7 @@ void sbbs_t::scanalldirs(long mode)
 		padfname(tmp,str); 
 	}
 	else if(mode==FL_FINDDESC) {	/* Find text in description */
-		if(text[SearchExtendedQ][0] && !noyes(text[SearchExtendedQ]))
+		if(!noyes(text[SearchExtendedQ]))
 			mode=FL_EXFIND;
 		if(sys_status&SS_ABORT) {
 			lncntr=0;
