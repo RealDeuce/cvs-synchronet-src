@@ -4,7 +4,6 @@
 
 #include <ciolib.h>
 
-#include "doorIO.h"
 #include "IO.h"
 #include "Config.h"
 #include "macros.h"
@@ -13,16 +12,6 @@
 
 #include "todo.h"
 
-struct dropfile_info dropfile;
-struct door_info door;
-
-void get_string(char *str, size_t size)
-{
-	DL(lred, "NO GETSTRING!");
-	strncpy(str, "NO GETSTRING!", size);
-	str[size-1]=0;
-}
-
 const char *location_desc(enum onloc loc)
 {
 	return("NO LOCATION DESCRIPTION");
@@ -30,7 +19,7 @@ const char *location_desc(enum onloc loc)
 
 void player_vs_monsters(enum pl_vs_type type, struct monster **mosnters, struct player **players)
 {
-	DL("A battle occurs!");
+	puts("A battle occurs!");
 }
 
 void newsy(bool trailing_line, ...)
@@ -46,63 +35,32 @@ void newsy(bool trailing_line, ...)
 
 int rand_num(int limit)
 {
-	D(lred, Asprintf("RANDOM(%d):", limit));
-	return(get_number(0, limit-1));
+	return(limit-1);
+}
+
+void status(struct player *pl)
+{
+	puts("DISPLAY USER STATUS");
+}
+
+void reduce_player_resurrections(struct player *pl, bool doit)
+{
+	puts("REDUCE PLAYER RESURRECTIONS");
 }
 
 void objekt_affect(int i, uint16_t index, enum objtype type, struct player *pl, bool loud)
 {
-	DL("OBJEKT AFFECT");
+	puts("OBJEKT AFFECT");
+}
+
+void decplayermoney(struct player *pl, int amount)
+{
+	pl->gold -= amount;
 }
 
 void user_save(struct player *pl)
 {
-	DL(lred, "SAVING USER");
-}
-
-void inventory_display(struct player *pl)
-{
-	DL(lred,"INVENTORY DISPLAY");
-}
-
-void spell_list(struct player *pl)
-{
-	DL(lred, "SPELL LIST");
-}
-
-void Display_Member(struct player *pl, bool doit)
-{
-	DL(lred,"DISPLAY MEMBER");
-}
-
-void Display_Members(const char *team, bool topbar)
-{
-	DL(lred, "DISPLAY MEMBERS");
-}
-
-void inventory_sort(struct player *pl)
-{
-	DL(lred,"INVENTORY SORT");
-}
-
-void item_select(struct player *pl)
-{
-	DL(lred,"ITEM SELECT");
-}
-
-void use_item(int item)
-{
-	DL(lred,"USE ITEM");
-}
-
-void drop_item(struct player *pl)
-{
-	DL(lred,"DROP ITEM");
-}
-
-void Remove_Item(void)
-{
-	DL(lred,"REMOVE ITEM");
+	puts("SAVING USER");
 }
 
 void door_textattr(int attr)
@@ -128,7 +86,6 @@ int door_readch(void)
 void door_clearscreen(void)
 {
 	clrscr();
-	gotoxy(1,1);
 }
 
 char *uplc="PLAYER_COLOUR";	// Colour string for player name in messages
@@ -138,19 +95,9 @@ struct onliner *onliner=&onliner_str;
 bool global_begged=false;
 bool global_nobeg=false;
 
-void Drinking_Competition(void)
+void Bobs_Inn(void)
 {
-	BAD("DRINKING COMPETITION not implemented!");
-}
-
-void Brawl(void)
-{
-	BAD("BRAWL not implemented!");
-}
-
-void Post(enum mailaction action, const char *to, enum aitype toai, bool togod, enum mailspecial special, const char *from, ...)
-{
-	BAD("POST not implemented!");
+	BAD("Bob's Inn not implemented!");
 }
 
 void Groggos_Magic(void)
@@ -189,21 +136,5 @@ int CIOLIB_main(int argc, char **argv)
 	player->class=Alchemist;
 	onliner=onliners;
 	DefaultConfig();
-
-	// Open the shops...
-	king->shop_weapon=true;
-        king->shop_armor=true;
-        king->shop_magic=true;
-        king->shop_alabat=true;
-        king->shop_plmarket=true;
-        king->shop_healing=true;
-        king->shop_drugs=true;
-        king->shop_steroids=true;
-        king->shop_orbs=true;
-        king->shop_evilmagic=true;
-        king->shop_bobs=true;
-        king->shop_gigolos=true;
-
 	Shady_Shops();
-	return(0);
 }
