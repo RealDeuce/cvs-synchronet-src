@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.231 2009/08/21 08:55:09 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.232 2009/10/24 01:45:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -616,7 +616,7 @@ static int bbs_lputs(void* p, int level, const char *str)
 		if (std_facilities)
 			syslog(level|LOG_AUTH,"%s",str);
 		else
-			syslog(level,"     %s",str);
+			syslog(level,"term %s",str);
 		return(strlen(str));
 	}
 #endif
@@ -629,7 +629,7 @@ static int bbs_lputs(void* p, int level, const char *str)
 			,tm.tm_mon+1,tm.tm_mday
 			,tm.tm_hour,tm.tm_min,tm.tm_sec);
 
-	sprintf(logline,"%s     %.*s",tstr,(int)sizeof(logline)-32,str);
+	sprintf(logline,"%sterm %.*s",tstr,(int)sizeof(logline)-32,str);
 	truncsp(logline);
 	lputs(level,logline);
 	
