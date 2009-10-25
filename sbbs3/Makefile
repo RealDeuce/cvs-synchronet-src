@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.83 2007/03/31 08:21:55 rswindell Exp $
+# $Id: Makefile,v 1.84 2009/08/17 08:10:48 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -80,7 +80,7 @@ $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 $(SBBS): $(OBJS) $(LIBS)
 	@echo Linking $@
 	$(QUIET)$(MKSHLIB) $(MT_LDFLAGS) -lGi -e$@ $(LDFLAGS) $(SHLIBOPTS) \
-		$(SMBLIB) $(XPDEV-MT_LIB) $(CRYPTLIB) @&&|
+		$(SMBLIB) $(XPDEV-MT_LIB) $(CRYPTLIB) iphlpapi.lib @&&|
 	$**
 |
 
