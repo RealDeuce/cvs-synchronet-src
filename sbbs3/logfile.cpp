@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.51 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.50 2009/10/25 02:55:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,23 +182,15 @@ bool sbbs_t::syslog(const char* code, const char *entry)
 }
 
 /****************************************************************************/
-/* Writes 'str' on it's own line in node.log (using LOG_INFO level)			*/
+/* Writes 'str' on it's own line in node.log								*/
 /****************************************************************************/
 void sbbs_t::logline(const char *code, const char *str)
 {
-	logline(LOG_INFO, code, str);
-}
-
-/****************************************************************************/
-/* Writes 'str' on it's own line in node.log								*/
-/****************************************************************************/
-void sbbs_t::logline(int level, const char *code, const char *str)
-{
 	if(strchr(str,'\n')==NULL) {	// Keep the console log pretty
 		if(online==ON_LOCAL)
-			eprintf(level,"%s",str);
+			eprintf(LOG_INFO,"%s",str);
 		else
-			lprintf(level,"Node %d %s", cfg.node_num, str);
+			lprintf(LOG_INFO,"Node %d %s", cfg.node_num, str);
 	}
 	if(logfile_fp==NULL || (online==ON_LOCAL && strcmp(code,"!!"))) return;
 	if(logcol!=1)
