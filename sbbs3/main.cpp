@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.544 2009/12/09 19:00:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.539 2009/10/25 03:05:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@
 time_t	uptime=0;
 DWORD	served=0;
 
-static	ulong node_threads_running=0;
+static	DWORD node_threads_running=0;
 static	ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
@@ -2442,7 +2442,7 @@ void event_thread(void* arg)
 							if(rename(str,newname)==0) {
 								char logmsg[MAX_PATH*3];
 								SAFEPRINTF2(logmsg,"%s renamed to %s",str,newname);
-								sbbs->logline(LOG_NOTICE,"Q!",logmsg);
+								sbbs->logline("Q!",logmsg);
 							}
 						}
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
@@ -2960,9 +2960,10 @@ bool sbbs_t::init()
 	socklen_t	addr_len;
 	SOCKADDR_IN	addr;
 
-	RingBufInit(&inbuf, IO_THREAD_BUF_SIZE);
-	if(cfg.node_num>0)
+	if(cfg.node_num>0) {
+		RingBufInit(&inbuf, IO_THREAD_BUF_SIZE);
 		node_inbuf[cfg.node_num-1]=&inbuf;
+	}
 
     RingBufInit(&outbuf, IO_THREAD_BUF_SIZE);
 	outbuf.highwater_mark=startup->outbuf_highwater_mark;
@@ -3053,7 +3054,7 @@ bool sbbs_t::init()
 				,hhmmtostr(&cfg,&tm,tmp)
 				,wday[tm.tm_wday]
 				,mon[tm.tm_mon],tm.tm_mday,tm.tm_year+1900);
-			logline(LOG_NOTICE,"L!",str);
+			logline("L!",str);
 			log(crlf);
 			catsyslog(1); 
 		}
@@ -3260,7 +3261,7 @@ sbbs_t::~sbbs_t()
 
 	if(cfg.node_num>0)
 		node_inbuf[cfg.node_num-1]=NULL;
-	if(!input_thread_running)
+	if(cfg.node_num>0 && !input_thread_running)
 		RingBufDispose(&inbuf);
 	if(!output_thread_running)
 		RingBufDispose(&outbuf);
@@ -3388,12 +3389,12 @@ int sbbs_t::nopen(char *str, int access)
     if(count>(LOOP_NOPEN/2) && count<=LOOP_NOPEN) {
         SAFEPRINTF2(logstr,"NOPEN COLLISION - File: \"%s\" Count: %d"
             ,str,count);
-        logline(LOG_WARNING,"!!",logstr); 
+        logline("!!",logstr); 
 	}
     if(file==-1 && (errno==EACCES || errno==EAGAIN)) {
         SAFEPRINTF2(logstr,"NOPEN ACCESS DENIED - File: \"%s\" errno: %d"
 			,str,errno);
-		logline(LOG_WARNING,"!!",logstr);
+		logline("!!",logstr);
 		bputs("\7\r\nNOPEN: ACCESS DENIED\r\n\7");
 	}
     return(file);
@@ -4263,7 +4264,7 @@ static void cleanup(int code)
 	if(terminate_server || code)
 		lprintf(LOG_INFO,"Terminal Server thread terminated (%lu clients served)", served);
 	if(thread_count)
-		lprintf(LOG_WARNING,"!Terminal Server threads (%u) remain after termination", thread_count);
+		lprintf(LOG_ERR,"!Terminal Server threads (%u) remain active after termination", thread_count);
 	if(startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -4848,7 +4849,6 @@ NO_SSH:
 		}
 
     	sbbs->online=FALSE;
-//		sbbs->client_socket=INVALID_SOCKET;
 #ifdef USE_CRYPTLIB
 		sbbs->ssh_mode=false;
 #endif
@@ -5097,8 +5097,14 @@ NO_SSH:
 		else
 			host_name="<no name>";
 
-		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
+#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
+	     and getnameinfo() doesn't return alias information */
+		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
+			for(i=0;h!=NULL && h->h_aliases!=NULL && h->h_aliases[i]!=NULL;i++)
+				lprintf(LOG_INFO,"%04d HostAlias: %s", client_socket, h->h_aliases[i]);
+		}
+#endif
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
@@ -5147,16 +5153,6 @@ NO_SSH:
 				continue;
 			if(node.status==NODE_WFC) {
 				node.status=NODE_LOGON;
-#ifdef USE_CRYPTLIB
-				if(ssh)
-					node.connection=NODE_CONNECTION_SSH;
-				else
-#endif
-				if(rlogin)
-					node.connection=NODE_CONNECTION_RLOGIN;
-				else
-					node.connection=NODE_CONNECTION_TELNET;
-
 				sbbs->putnodedat(i,&node);
 				break;
 			}

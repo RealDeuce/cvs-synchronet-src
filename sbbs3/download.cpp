@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.40 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: download.cpp,v 1.39 2009/06/11 06:15:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,7 +247,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 			if(!fgets(protlog,sizeof(protlog),stream))
 				break;
 			truncsp(protlog);
-			logline(LOG_DEBUG,nulstr,protlog);
+			logline(nulstr,protlog);
 		}
 		fclose(stream);
 	}
@@ -397,7 +397,7 @@ bool sbbs_t::checkprotresult(prot_t* prot, int error, file_t* f)
 		else if(f->dir==cfg.total_dirs+1)
 			sprintf(str,"%s attempted to download attached file: %s"
 				,useron.alias,f->name);
-		logline(LOG_NOTICE,"D!",str);
+		logline("D!",str);
 		return(false); 
 	}
 	return(true);
