@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.206 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.205 2009/10/25 02:53:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -789,7 +789,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
         if(!online && !(mode&EX_OFFLINE)) { // Tell VXD/VDD and external that user hung-up
         	if(was_online) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline(LOG_NOTICE,"X!",str);
+				logline("X!",str);
             	hungup=time(NULL);
 				if(!native) {
 					if(nt)
@@ -1809,7 +1809,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			
 			if(!online && !(mode&EX_OFFLINE)) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline(LOG_NOTICE,"X!",str);
+				logline("X!",str);
 				break;
 			}
 
