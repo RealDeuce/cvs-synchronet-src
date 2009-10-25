@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.113 2009/01/23 08:04:28 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.116 2009/04/08 22:39:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1009,7 +1009,7 @@ js_exec(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	uintN		i;
 	sbbs_t*		sbbs;
-	long		mode=0;
+	int32		mode=0;
     JSString*	cmd;
 	JSString*	startup_dir=NULL;
 	char*		p_startup_dir=NULL;
@@ -1024,7 +1024,7 @@ js_exec(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	for(i=1;i<argc;i++) {
 		if(JSVAL_IS_NUM(argv[i]))
-			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[i],&mode);
 		else if(JSVAL_IS_STRING(argv[i]))
 			startup_dir=JS_ValueToString(cx,argv[i]);
 	}
@@ -1546,12 +1546,16 @@ js_logoff(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	JSBool		prompt=JS_TRUE;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
+	if(argc)
+		JS_ValueToBoolean(cx,argv[0],&prompt);
+
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!sbbs->noyes(sbbs->text[LogOffQ])) {
+	if(!prompt || !sbbs->noyes(sbbs->text[LogOffQ])) {
 		if(sbbs->cfg.logoff_mod[0])
 			sbbs->exec_bin(sbbs->cfg.logoff_mod,&sbbs->main_csi);
 		sbbs->user_event(EVENT_LOGOFF);
@@ -2092,7 +2096,7 @@ static JSBool
 js_email(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32		usernumber=1;
-	long		mode=WM_EMAIL;
+	int32		mode=WM_EMAIL;
 	const char*	top="";
 	const char*	subj="";
 	JSString*	js_top=NULL;
@@ -2107,7 +2111,7 @@ js_email(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		JS_ValueToInt32(cx,argv[0],&usernumber);
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUM(argv[i]))
-			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[i],&mode);
 		else if(JSVAL_IS_STRING(argv[i]) && js_top==NULL)
 			js_top=JS_ValueToString(cx,argv[i]);
 		else if(JSVAL_IS_STRING(argv[i]))
@@ -2127,7 +2131,7 @@ js_email(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_netmail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=0;
+	int32		mode=0;
 	const char*	subj="";
 	JSString*	js_to;
 	JSString*	js_subj=NULL;
@@ -2143,7 +2147,7 @@ js_netmail(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUM(argv[i]))
-			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[i],&mode);
 		else if(JSVAL_IS_STRING(argv[i]))
 			js_subj=JS_ValueToString(cx,argv[i]);
 	}
@@ -2535,7 +2539,7 @@ js_getfilespec(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 static JSBool
 js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=0;
+	int32		mode=0;
 	const char*	fspec=ALLFILES;
 	char		buf[MAX_PATH+1];
 	uint		dirnum;
@@ -2555,7 +2559,7 @@ js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUM(argv[i]))
-			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[i],&mode);
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
 			fspec=JS_GetStringBytes(js_str);
@@ -2575,7 +2579,7 @@ js_listfiles(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_listfileinfo(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=FI_INFO;
+	int32		mode=FI_INFO;
 	const char*	fspec=ALLFILES;
 	char		buf[MAX_PATH+1];
 	uint		dirnum;
@@ -2595,7 +2599,7 @@ js_listfileinfo(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUM(argv[i]))
-			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[i],&mode);
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
 			fspec=JS_GetStringBytes(js_str);
@@ -2611,7 +2615,7 @@ js_listfileinfo(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 static JSBool
 js_postmsg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=0;
+	int32		mode=0;
 	uint		subnum;
 	uintN		n;
 	JSObject*	hdrobj;
@@ -2634,7 +2638,7 @@ js_postmsg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	for(n=1; n<argc; n++) {
 		if(JSVAL_IS_NUM(argv[n]))
-			JS_ValueToInt32(cx,argv[n],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[n],&mode);
 		else if(JSVAL_IS_OBJECT(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return(JS_TRUE);
@@ -2655,7 +2659,7 @@ js_postmsg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_msgscan_cfg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=SUB_CFG_NSCAN;
+	int32		mode=SUB_CFG_NSCAN;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2663,7 +2667,7 @@ js_msgscan_cfg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 		return(JS_FALSE);
 
 	if(argc && JSVAL_IS_NUM(argv[0]))
-		JS_ValueToInt32(cx,argv[0],(int32*)&mode);
+		JS_ValueToInt32(cx,argv[0],&mode);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->new_scan_cfg(mode);
@@ -2712,7 +2716,7 @@ js_msgscan_reinit(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 static JSBool
 js_scansubs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=SCAN_NEW;
+	int32		mode=SCAN_NEW;
 	BOOL		all=FALSE;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -2722,7 +2726,7 @@ js_scansubs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	for(uintN i=0;i<argc;i++) {
 		if(JSVAL_IS_NUM(argv[i]))
-			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[i],&mode);
 		else if(JSVAL_IS_BOOLEAN(argv[i]))
 			all=JSVAL_TO_BOOLEAN(argv[i]);
 	}
@@ -2740,7 +2744,7 @@ js_scansubs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_scandirs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	long		mode=0;
+	int32		mode=0;
 	BOOL		all=FALSE;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -2750,7 +2754,7 @@ js_scandirs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	for(uintN i=0;i<argc;i++) {
 		if(JSVAL_IS_NUM(argv[i]))
-			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[i],&mode);
 		else if(JSVAL_IS_BOOLEAN(argv[i]))
 			all=JSVAL_TO_BOOLEAN(argv[i]);
 	}
@@ -2769,7 +2773,7 @@ static JSBool
 js_scanposts(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	const char*	find="";
-	long		mode=0;
+	int32		mode=0;
 	uint		subnum;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -2786,7 +2790,7 @@ js_scanposts(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUM(argv[i]))
-			JS_ValueToInt32(cx,argv[i],(int32*)&mode);
+			JS_ValueToInt32(cx,argv[i],&mode);
 		else if(JSVAL_IS_STRING(argv[i]))
 			find=JS_GetStringBytes(JS_ValueToString(cx,argv[i]));
 	}
@@ -2804,8 +2808,8 @@ static JSBool
 js_listmsgs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	const char*	find="";
-	long		mode=0;
-	long		start=0;
+	int32		mode=0;
+	int32		start=0;
 	uint		subnum;
 	sbbs_t*		sbbs;
 	uintN		argn=0;
@@ -2822,9 +2826,9 @@ js_listmsgs(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		return(JS_TRUE);
 
 	if(JSVAL_IS_NUM(argv[argn]))
-		JS_ValueToInt32(cx,argv[argn++],(int32*)&mode);
+		JS_ValueToInt32(cx,argv[argn++],&mode);
 	if(JSVAL_IS_NUM(argv[argn]))
-		JS_ValueToInt32(cx,argv[argn++],(int32*)&start);
+		JS_ValueToInt32(cx,argv[argn++],&start);
 	if(JSVAL_IS_STRING(argv[argn]))
 		find=JS_GetStringBytes(JS_ValueToString(cx,argv[argn++]));
 
@@ -2941,9 +2945,9 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("interactive logon procedure")
 	,310
 	},
-	{"logoff",			js_logoff,			0,	JSTYPE_VOID,	JSDOCSTR("")
-	,JSDOCSTR("interactive logoff procedure")
-	,310
+	{"logoff",			js_logoff,			1,	JSTYPE_VOID,	JSDOCSTR("[prompt=<i>true</i>]")
+	,JSDOCSTR("interactive logoff procedure, pass <i>false</i> for <i>prompt</i> argument to avoid yes/no prompt")
+	,315
 	},
 	{"logout",			js_logout,			0,	JSTYPE_VOID,	JSDOCSTR("")
 	,JSDOCSTR("non-interactive logout procedure")
@@ -3314,7 +3318,7 @@ JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,mods,"Global repository for 3rd party modifications",312);
-	js_DescribeSyncObject(cx,obj,"Controls the Telnet/RLogin BBS experience",310);
+	js_DescribeSyncObject(cx,obj,"Controls the Telnet/SSH/RLogin BBS experience",310);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", bbs_prop_desc, JSPROP_READONLY);
 #endif
 
