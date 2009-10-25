@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.72 2009/02/05 22:12:05 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.74 2009/02/12 07:16:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,8 +217,13 @@ static void ansi_sendch(char ch)
 		ciolib_ansi_writebyte_cb(0);
 	ciolib_ansi_writebyte_cb((unsigned char)ch);
 	/* We sent a control char... better make the next movement explicit */
-	if(ch<' ' && ch > 0)
-		force_move=1;
+	if(ch<' ' && ch > 0) {
+		if(doorway_enabled) {
+			/* In doorway mode, some chars may want to force movement... */
+		}
+		else
+			force_move=1;
+	}
 }
 
 static void ansi_sendstr(char *str,int len)
@@ -911,12 +916,12 @@ int ansi_readbyte_cb(void)
 
 int ansi_writebyte_cb(unsigned char ch)
 {
-	fwrite(&ch,1,1,stdout);
+	return(fwrite(&ch,1,1,stdout));
 }
 
 int ansi_writestr_cb(unsigned char *str, size_t len)
 {
-	fwrite(str,len,1,stdout);
+	return(fwrite(str,len,1,stdout));
 }
 
 int ansi_initio_cb(void)
@@ -949,6 +954,7 @@ int ansi_initio_cb(void)
 		atexit(ansi_fixterm);
 	}
 #endif
+	return(0);
 }
 
 #if defined(__BORLANDC__)
