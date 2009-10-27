@@ -45,7 +45,10 @@ struct config {
 	const char *teamcolor;
 	const char *bashcolor;
 	const char *itemcolor;
-	const char *umailheadcolor;
+
+	// String colours
+	char	textcol1[4];
+	char	textcol2[4];
 
 	// Strings
 	char	moneytype[23];	// Name of money (ie: Gold)

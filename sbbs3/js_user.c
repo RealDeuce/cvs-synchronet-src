@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.82 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: js_user.c,v 1.75 2009/08/14 07:48:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -139,9 +139,8 @@ static void js_getuserdat(private_t* p)
 }
 
 
-static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
 	char*		s=NULL;
 	char		tmp[128];
 	ulong		val=0;
@@ -150,14 +149,15 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	private_t*	p;
 	jsrefcount	rc;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_TRUE);
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case USER_PROP_NUMBER:
@@ -399,14 +399,13 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			return(JS_FALSE);
 		*vp = STRING_TO_JSVAL(js_str);
 	} else
-		*vp=DOUBLE_TO_JSVAL((double)val);
+		JS_NewNumberValue(cx,val,vp);
 
 	return(JS_TRUE);
 }
 
-static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
+static JSBool js_user_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
 	char*		str;
 	char		tmp[64];
 	jsint		val;
@@ -417,8 +416,10 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	int32		usernumber;
 	jsrefcount	rc;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_TRUE);
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
 
 	if((js_str=JS_ValueToString(cx,*vp))==NULL)
 		return(JS_FALSE);
@@ -426,8 +427,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	if((str=JS_GetStringBytes(js_str))==NULL)
 		return(JS_FALSE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	switch(tiny) {
@@ -523,7 +523,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 			putuserrec(p->cfg,p->user->number,U_XEDIT,0,str);
 			break;
 		case USER_PROP_SHELL: 	 
-			putuserrec(p->cfg,p->user->number,U_SHELL,0,str);
+			putuserrec(p->cfg,p->user->number,U_COMP,0,str);
 			break;
 		case USER_PROP_MISC:
 			JS_RESUMEREQUEST(cx, rc);
@@ -883,10 +883,8 @@ static void js_user_finalize(JSContext *cx, JSObject *obj)
 }
 
 static JSBool
-js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
+js_chk_ar(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	uchar*		ar;
 	JSString*	js_str;
 	private_t*	p;
@@ -903,7 +901,7 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(chk_ar(p->cfg,ar,p->user,p->client)));
+	*rval = BOOLEAN_TO_JSVAL(chk_ar(p->cfg,ar,p->user,p->client));
 
 	if(ar!=NULL && ar!=nular)
 		free(ar);
@@ -913,10 +911,8 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_posted_msg(JSContext *cx, uintN argc, jsval *arglist)
+js_posted_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	int32	count=1;
 	jsrefcount	rc;
@@ -930,17 +926,15 @@ js_posted_msg(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_posted_msg(p->cfg, p->user, count)));
+	*rval = BOOLEAN_TO_JSVAL(user_posted_msg(p->cfg, p->user, count));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
 }
 
 static JSBool
-js_sent_email(JSContext *cx, uintN argc, jsval *arglist)
+js_sent_email(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	int32	count=1;
 	BOOL	feedback=FALSE;
@@ -957,17 +951,15 @@ js_sent_email(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_sent_email(p->cfg, p->user, count, feedback)));
+	*rval = BOOLEAN_TO_JSVAL(user_sent_email(p->cfg, p->user, count, feedback));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
 }
 
 static JSBool
-js_downloaded_file(JSContext *cx, uintN argc, jsval *arglist)
+js_downloaded_file(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	int32	files=1;
 	int32	bytes=0;
@@ -984,17 +976,15 @@ js_downloaded_file(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_downloaded(p->cfg, p->user, files, bytes)));
+	*rval = BOOLEAN_TO_JSVAL(user_downloaded(p->cfg, p->user, files, bytes));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
 }
 
 static JSBool
-js_uploaded_file(JSContext *cx, uintN argc, jsval *arglist)
+js_uploaded_file(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	int32	files=1;
 	int32	bytes=0;
@@ -1011,17 +1001,15 @@ js_uploaded_file(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_uploaded(p->cfg, p->user, files, bytes)));
+	*rval = BOOLEAN_TO_JSVAL(user_uploaded(p->cfg, p->user, files, bytes));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
 }
 
 static JSBool
-js_adjust_credits(JSContext *cx, uintN argc, jsval *arglist)
+js_adjust_credits(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	int32	count=0;
 	jsrefcount	rc;
@@ -1035,17 +1023,15 @@ js_adjust_credits(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_adjust_credits(p->cfg, p->user, count)));
+	*rval = BOOLEAN_TO_JSVAL(user_adjust_credits(p->cfg, p->user, count));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
 }
 
 static JSBool
-js_adjust_minutes(JSContext *cx, uintN argc, jsval *arglist)
+js_adjust_minutes(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	int32	count=0;
 	jsrefcount	rc;
@@ -1059,17 +1045,15 @@ js_adjust_minutes(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_adjust_minutes(p->cfg, p->user, count)));
+	*rval = BOOLEAN_TO_JSVAL(user_adjust_minutes(p->cfg, p->user, count));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
 }
 
 static JSBool
-js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
+js_get_time_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	int32	start_time=0;
 	jsrefcount	rc;
@@ -1083,7 +1067,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(gettimeleft(p->cfg, p->user, (time_t)start_time)));
+	*rval = INT_TO_JSVAL(gettimeleft(p->cfg, p->user, (time_t)start_time));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
@@ -1128,7 +1112,7 @@ static jsSyncMethodSpec js_user_functions[] = {
 	{0}
 };
 
-static JSBool js_user_stats_resolve(JSContext *cx, JSObject *obj, jsid id)
+static JSBool js_user_stats_resolve(JSContext *cx, JSObject *obj, jsval id)
 {
 	char*			name=NULL;
 
@@ -1143,7 +1127,7 @@ static JSBool js_user_stats_enumerate(JSContext *cx, JSObject *obj)
 	return(js_user_stats_resolve(cx, obj, JSVAL_NULL));
 }
 
-static JSBool js_user_security_resolve(JSContext *cx, JSObject *obj, jsid id)
+static JSBool js_user_security_resolve(JSContext *cx, JSObject *obj, jsval id)
 {
 	char*			name=NULL;
 
@@ -1158,7 +1142,7 @@ static JSBool js_user_security_enumerate(JSContext *cx, JSObject *obj)
 	return(js_user_security_resolve(cx, obj, JSVAL_NULL));
 }
 
-static JSBool js_user_limits_resolve(JSContext *cx, JSObject *obj, jsid id)
+static JSBool js_user_limits_resolve(JSContext *cx, JSObject *obj, jsval id)
 {
 	char*			name=NULL;
 
@@ -1212,19 +1196,20 @@ static JSClass js_user_limits_class = {
 	,JS_FinalizeStub        /* finalize		*/
 };
 
-static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsid id)
+static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsval id)
 {
 	char*			name=NULL;
 	JSObject*		newobj;
 	private_t*		p;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_TRUE);
-
 	if(id != JSVAL_NULL)
 		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
 
 	if(name==NULL || strcmp(name, "stats")==0) {
+		if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+			JS_ReportError(cx,getprivate_failure,WHERE);
+			return(JS_FALSE);
+		}
 		/* user.stats */
 		if((newobj=JS_DefineObject(cx, obj, "stats"
 			,&js_user_stats_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
@@ -1240,6 +1225,10 @@ static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsid id)
 	}
 
 	if(name==NULL || strcmp(name, "security")==0) {
+		if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+			JS_ReportError(cx,getprivate_failure,WHERE);
+			return(JS_FALSE);
+		}
 		/* user.security */
 		if((newobj=JS_DefineObject(cx, obj, "security"
 			,&js_user_security_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
@@ -1254,6 +1243,10 @@ static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsid id)
 	}
 
 	if(name==NULL || strcmp(name, "limits")==0) {
+		if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+			JS_ReportError(cx,getprivate_failure,WHERE);
+			return(JS_FALSE);
+		}
 		/* user.limits */
 		if((newobj=JS_DefineObject(cx, obj, "limits"
 			,&js_user_limits_class, NULL, JSPROP_ENUMERATE|JSPROP_READONLY))==NULL) 
@@ -1291,10 +1284,8 @@ static JSClass js_user_class = {
 /* User Constructor (creates instance of user class) */
 
 static JSBool
-js_user_constructor(JSContext *cx, uintN argc, jsval *arglist)
+js_user_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	int			i;
 	int32		val=0;
 	user_t		user;
