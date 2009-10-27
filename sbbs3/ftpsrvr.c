@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.360 2009/10/25 03:05:58 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.361 2009/10/27 06:03:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4590,7 +4590,7 @@ static void cleanup(int code, int line)
 	if(terminate_server || code)
 		lprintf(LOG_INFO,"#### FTP Server thread terminated (%lu clients served)", served);
 	if(thread_count)
-		lprintf(LOG_ERR,"#### !FTP Server threads (%u) remain active after termination", thread_count);
+		lprintf(LOG_WARNING,"#### !FTP Server threads (%u) remain after termination", thread_count);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -4602,7 +4602,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.360 $", "%*s %s", revision);
+	sscanf("$Revision: 1.361 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
