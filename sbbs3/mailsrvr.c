@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.506 2009/10/27 06:03:15 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.507 2009/10/28 19:38:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2367,6 +2367,8 @@ static void smtp_thread(void* arg)
 		return;
 	}
 	SAFEPRINTF(spam.file,"%sspam",scfg.data_dir);
+	spam.retry_time=scfg.smb_retry_time;
+	spam.subnum=INVALID_SUB;
 
 	srand(time(NULL) ^ (DWORD)GetCurrentThreadId());	/* seed random number generator */
 	rand();	/* throw-away first result */
@@ -2869,7 +2871,10 @@ static void smtp_thread(void* arg)
 									,str, host_name, host_ip, rcpt_addr, reverse_path);
 								is_spam=TRUE;
 							}
-						}
+						} else if(i!=SMB_ERR_NOT_FOUND)
+							lprintf(LOG_ERR,"%04d !SMTP ERROR %d (%s) opening SPAM database"
+								,socket, i, spam.last_error);
+						
 						if(is_spam) {
 							size_t	n,total=0;
 							for(n=0;hashes[n]!=NULL;n++)
@@ -4641,7 +4646,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.506 $", "%*s %s", revision);
+	sscanf("$Revision: 1.507 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
