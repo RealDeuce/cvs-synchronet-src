@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.7 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: js_server.c,v 1.5 2008/01/11 09:07:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,9 +46,8 @@ enum {
 	,SERVER_PROP_CLIENTS
 };
 
-static JSBool js_server_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
 	char*		ip;
     jsint       tiny;
 	struct in_addr in_addr;
@@ -57,8 +56,7 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	if((p=(js_server_props_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case SERVER_PROP_VER:
@@ -79,28 +77,26 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SERVER_PROP_OPTIONS:
 			if(p->options!=NULL)
-				*vp=UINT_TO_JSVAL(*p->options);
+				JS_NewNumberValue(cx,*p->options,vp);
 			break;
 		case SERVER_PROP_CLIENTS:
 			if(p->clients!=NULL)
-				*vp=UINT_TO_JSVAL(*p->clients);
+				JS_NewNumberValue(cx,*p->clients,vp);
 			break;
 	}
 
 	return(JS_TRUE);
 }
 
-static JSBool js_server_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
+static JSBool js_server_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
     jsint				tiny;
 	js_server_props_t*	p;
 
 	if((p=(js_server_props_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case SERVER_PROP_OPTIONS:
@@ -138,7 +134,7 @@ static char* server_prop_desc[] = {
 };
 #endif
 
-static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsid id)
+static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsval id)
 {
 	char*			name=NULL;
 

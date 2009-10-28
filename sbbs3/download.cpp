@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.44 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: download.cpp,v 1.39 2009/06/11 06:15:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,13 +44,12 @@
 /****************************************************************************/
 void sbbs_t::downloadfile(file_t* f)
 {
-    char		str[256],fname[13];
-	char 		tmp[512];
-    int			i,file;
-	long		mod;
-	long		length;
-    ulong		l;
-	user_t		uploader;
+    char	str[256],fname[13];
+	char 	tmp[512];
+    int		i,file;
+	long	length,mod;
+    ulong	l;
+	user_t	uploader;
 
 	getfiledat(&cfg,f); /* Get current data - right after download */
 	if((length=f->size)<0L)
@@ -107,7 +106,7 @@ void sbbs_t::downloadfile(file_t* f)
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return; 
 	}
-	length=(long)filelength(file);
+	length=filelength(file);
 	if(length%F_IXBSIZE) {
 		close(file);
 		errormsg(WHERE,ERR_LEN,str,length);
@@ -165,8 +164,9 @@ void sbbs_t::notdownloaded(ulong size, time_t start, time_t end)
 	if(cfg.leech_pct && cur_cps                 /* leech detection */
 		&& end-start>=cfg.leech_sec
 		&& end-start>=(double)(size/cur_cps)*(double)cfg.leech_pct/100.0) {
-		lprintf(LOG_ERR, "Node %d Possible use of leech protocol (leech=%u  downloads=%u)"
-			,cfg.node_num, useron.leech+1,useron.dls);
+		sprintf(str,"Possible use of leech protocol (leech=%u  downloads=%u)"
+			,useron.leech+1,useron.dls);
+		errorlog(str);
 		useron.leech=(uchar)adjustuserrec(&cfg,useron.number,U_LEECH,2,1); 
 	}
 }
@@ -205,13 +205,11 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 	sprintf(protlog,"%sPROTOCOL.LOG",cfg.node_dir);
 	remove(protlog);                        /* Deletes the protocol log */
 	if(useron.misc&AUTOHANG)
-		autohang=true;
-	else if(text[HangUpAfterXferQ][0])
-		autohang=yesno(text[HangUpAfterXferQ]);
+		autohang=1;
 	else
-		autohang=false;
+		autohang=yesno(text[HangUpAfterXferQ]);
 	if(sys_status&SS_ABORT || !online) {	/* if ctrl-c or hangup */
-		autohang=false;
+		autohang=0;
 		return(-1); 
 	}
 	bputs(text[StartXferNow]);
@@ -231,7 +229,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 		ex_mode|=EX_NATIVE;
 #ifdef __unix__		/* file xfer progs must use stdio on Unix */
 	if(!(prot->misc&PROT_SOCKET))
-		ex_mode|=(EX_STDIO|EX_BIN);
+		ex_mode|=(EX_INR|EX_OUTR|EX_BIN);
 #endif
 
 	i=external(cmdline,ex_mode,p);
@@ -249,7 +247,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 			if(!fgets(protlog,sizeof(protlog),stream))
 				break;
 			truncsp(protlog);
-			logline(LOG_DEBUG,nulstr,protlog);
+			logline(nulstr,protlog);
 		}
 		fclose(stream);
 	}
@@ -399,7 +397,7 @@ bool sbbs_t::checkprotresult(prot_t* prot, int error, file_t* f)
 		else if(f->dir==cfg.total_dirs+1)
 			sprintf(str,"%s attempted to download attached file: %s"
 				,useron.alias,f->name);
-		logline(LOG_NOTICE,"D!",str);
+		logline("D!",str);
 		return(false); 
 	}
 	return(true);

@@ -2,13 +2,13 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.57 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.52 2009/03/20 00:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,7 +73,7 @@ bool sbbs_t::uploadfile(file_t *f)
 			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-		logline(LOG_NOTICE,"U!",str);
+		logline("U!",str);
 		return(0); 
 	}
 	strcpy(tmp,f->name);
@@ -104,7 +104,7 @@ bool sbbs_t::uploadfile(file_t *f)
 					,useron.alias
 					,f->name
 					,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname,cfg.ftest[i]->ext);
-				logline(LOG_NOTICE,"U!",str);
+				logline("U!",str);
 #if 0
 				sprintf(str,"Failed test: %s", cmdstr(cfg.ftest[i]->cmd,path,f->desc,NULL));
 				logline("  ",str);
@@ -139,14 +139,14 @@ bool sbbs_t::uploadfile(file_t *f)
 			} 
 		}
 
-	if((length=(long)flength(path))==0L) {
+	if((length=flength(path))<=0L) {
 		bprintf(text[FileZeroLength],f->name);
 		remove(path);
 		sprintf(str,"%s attempted to upload %s to %s %s (Zero length)"
 			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-		logline(LOG_NOTICE,"U!",str);
+		logline("U!",str);
 		return(0); 
 	}
 	if(cfg.dir[f->dir]->misc&DIR_DIZ) {
@@ -266,16 +266,14 @@ bool sbbs_t::upload(uint dirnum)
 		bputs(text[CantUploadHere]);
 		return(false);
 	}
-	if(!(useron.exempt&FLAG('U')) && !dir_op(dirnum)) {
-		if(!chk_ar(cfg.dir[dirnum]->ul_ar,&useron,&client)) {
-			bputs(dirnum==cfg.user_dir ? text[CantUploadToUser] : 
-				dirnum==cfg.sysop_dir ? text[CantUploadToSysop] : text[CantUploadHere]);
-			return(false); 
-		}
-		if(cfg.dir[dirnum]->maxfiles && getfiles(&cfg,dirnum)>=cfg.dir[dirnum]->maxfiles) {
-			bputs(dirnum==cfg.user_dir ? text[UserDirFull] : text[DirFull]);
-			return(false);
-		}
+	if(!chk_ar(cfg.dir[dirnum]->ul_ar,&useron,&client)) {
+		bputs(dirnum==cfg.user_dir ? text[CantUploadToUser] : 
+			dirnum==cfg.sysop_dir ? text[CantUploadToSysop] : text[CantUploadHere]);
+		return(false); 
+	}
+	if(getfiles(&cfg,dirnum)>=cfg.dir[dirnum]->maxfiles) {
+		bputs(dirnum==cfg.user_dir ? text[UserDirFull] : text[DirFull]);
+		return(false);
 	}
 
 	if(sys_status&SS_EVENT && online==ON_REMOTE && !dir_op(dirnum))
@@ -287,7 +285,8 @@ bool sbbs_t::upload(uint dirnum)
 
 	if(!isdir(path)) {
 		bprintf(text[DirectoryDoesNotExist], path);
-		lprintf(LOG_ERR,"File directory does not exist: %s", path);
+		SAFEPRINTF(str,"File directory does not exist: %s", path);
+		errorlog(str);
 		return(false);
 	}
 
@@ -295,7 +294,8 @@ bool sbbs_t::upload(uint dirnum)
 	space=getfreediskspace(path,1024);
 	if(space<(ulong)cfg.min_dspace) {
 		bputs(text[LowDiskSpace]);
-		lprintf(LOG_ERR,"Diskspace is low: %s (%lu kilobytes)",path,space);
+		sprintf(str,"Diskspace is low: %s (%lu kilobytes)",path,space);
+		errorlog(str);
 		if(!dir_op(dirnum))
 			return(false); 
 	}
@@ -574,6 +574,10 @@ bool sbbs_t::bulkupload(uint dirnum)
 	SYNC;
 	dir=opendir(path);
 	while(dir!=NULL && (dirent=readdir(dir))!=NULL && !msgabort()) {
+		if(getfiles(&cfg,dirnum)>=cfg.dir[dirnum]->maxfiles) {
+			bputs(text[DirFull]);
+			break; 
+		}
 		sprintf(str,"%s%s",path,dirent->d_name);
 		if(isdir(str))
 			continue;
@@ -591,7 +595,7 @@ bool sbbs_t::bulkupload(uint dirnum)
 
 		if(findfile(&cfg,f.dir,str)==0) {
 			strcpy(f.name,str);
-			f.cdt=(long)flength(spath);
+			f.cdt=flength(spath);
 			bprintf(text[BulkUploadDescPrompt],f.name,f.cdt/1024);
 			getstr(f.desc,LEN_FDESC,K_LINE);
 			if(sys_status&SS_ABORT)
