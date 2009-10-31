@@ -2,7 +2,7 @@
 
 /* Synchronet BBS Windows NT Service Names */
 
-/* $Id: ntsvcs.h,v 1.5 2009/02/11 10:37:54 rswindell Exp $ */
+/* $Id: ntsvcs.h,v 1.6 2009/02/11 20:02:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,8 +55,9 @@ enum {
 };
 
 typedef struct {
-	char level;
-	char buf[1024];
+	SYSTEMTIME	time;
+	char		level;
+	char		buf[1000];
 } log_msg_t;
 
 #endif	/* Don't add anything after this line */
