@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.39 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.36 2009/10/18 09:57:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,7 +96,7 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 	if(count>(LOOP_NODEDAB/2)) {
 		sprintf(str,"NODE.DAB (node %d) COLLISION - Count: %d"
 			,number+1, count);
-		logline(LOG_WARNING,"!!",str); 
+		logline("!!",str); 
 	}
 
 	return(0);
@@ -142,7 +142,7 @@ void sbbs_t::nodesync()
 			unixtodstr(&cfg,now,today);
 			if(strcmp(str,today)) { /* New day, clear "today" user vars */
 				sys_status|=SS_NEWDAY;	// So we don't keep doing this over&over
-				resetdailyuserdat(&cfg, &useron,/* write: */true);
+				resetdailyuserdat(&cfg,&useron);
 			} 
 		}
 		if(thisnode.misc&NODE_UDAT && !(useron.rest&FLAG('G'))) {   /* not guest */
@@ -165,7 +165,7 @@ void sbbs_t::nodesync()
 
 	if(thisnode.misc&NODE_INTR) {
 		bputs(text[NodeLocked]);
-		logline(LOG_NOTICE,nulstr,"Interrupted");
+		logline(nulstr,"Interrupted");
 		hangup();
 		nodesync_inside=0;
 		return; 
@@ -220,7 +220,7 @@ int sbbs_t::getnmsg()
 		**/
 		return(errno); 
 	}
-	length=(long)filelength(file);
+	length=filelength(file);
 	if(!length) {
 		close(file);
 		return(0); 
@@ -329,7 +329,7 @@ int sbbs_t::getsmsg(int usernumber)
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return(errno); 
 	}
-	length=(long)filelength(file);
+	length=filelength(file);
 	if((buf=(char *)malloc(length+1))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1);
