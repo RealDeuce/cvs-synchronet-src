@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.515 2009/10/05 22:20:17 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.518 2009/10/27 06:03:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -490,8 +490,11 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR)
-		errorlog(&scfg,sbuf);
+	if(level <= LOG_ERR) {
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
+		if(startup!=NULL && startup->errormsg!=NULL)
+			startup->errormsg(startup->cbdata,level,sbuf);
+	}
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
@@ -5177,8 +5180,9 @@ static void cleanup(int code)
 	thread_down();
 	status("Down");
 	if(terminate_server || code)
-		lprintf(LOG_INFO,"#### Web Server thread terminated (%u threads remain, %lu clients served)"
-			,thread_count, served);
+		lprintf(LOG_INFO,"#### Web Server thread terminated (%lu clients served)", served);
+	if(thread_count)
+		lprintf(LOG_WARNING,"#### !Web Server threads (%u) remain after termination", thread_count);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -5190,7 +5194,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.515 $", "%*s %s", revision);
+	sscanf("$Revision: 1.518 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
