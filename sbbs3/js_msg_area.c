@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.59 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: js_msg_area.c,v 1.56 2009/10/06 03:10:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -205,7 +205,8 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
 
-	val=UINT_TO_JSVAL(sub->misc);
+	if(!JS_NewNumberValue(cx,sub->misc,&val))
+		return(FALSE);
 	if(!JS_DefineProperty(cx, subobj, "settings", val
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
@@ -247,36 +248,33 @@ enum {
 };
 
 
-static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
     jsint       tiny;
 	subscan_t*	scan;
 
 	if((scan=(subscan_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
-			*vp=UINT_TO_JSVAL(scan->ptr);
+			JS_NewNumberValue(cx,scan->ptr,vp);
 			break;
 		case SUB_PROP_SCAN_CFG:
-			*vp=UINT_TO_JSVAL(scan->cfg);
+			JS_NewNumberValue(cx,scan->cfg,vp);
 			break;
 		case SUB_PROP_LAST_READ:
-			*vp=UINT_TO_JSVAL(scan->last);
+			JS_NewNumberValue(cx,scan->last,vp);
 			break;
 	}
 
 	return(JS_TRUE);
 }
 
-static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
+static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
 	int32		val=0;
     jsint       tiny;
 	subscan_t*	scan;
@@ -284,8 +282,7 @@ static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 	if((scan=(subscan_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
@@ -308,7 +305,7 @@ static struct JSPropertySpec js_sub_properties[] = {
 
 	{	"scan_ptr"	,SUB_PROP_SCAN_PTR	,JSPROP_ENUMERATE|JSPROP_SHARED },
 	{	"scan_cfg"	,SUB_PROP_SCAN_CFG	,JSPROP_ENUMERATE|JSPROP_SHARED },
-	{	"last_read"	,SUB_PROP_LAST_READ	,JSPROP_ENUMERATE|JSPROP_SHARED },
+	{	"lead_read"	,SUB_PROP_LAST_READ	,JSPROP_ENUMERATE|JSPROP_SHARED },
 	{0}
 };
 
