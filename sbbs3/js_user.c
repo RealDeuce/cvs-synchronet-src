@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.75 2009/08/14 07:48:26 rswindell Exp $ */
+/* $Id: js_user.c,v 1.76 2009/11/10 00:07:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1270,7 +1270,7 @@ static JSBool js_user_enumerate(JSContext *cx, JSObject *obj)
 
 static JSClass js_user_class = {
      "User"					/* name			*/
-    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+    ,JSCLASS_HAS_PRIVATE|JSCLASS_CONSTRUCT_PROTOTYPE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
 	,js_user_get			/* getProperty	*/
