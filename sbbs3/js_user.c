@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.78 2009/11/10 22:08:54 deuce Exp $ */
+/* $Id: js_user.c,v 1.79 2009/11/10 22:48:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,10 +149,8 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	private_t*	p;
 	jsrefcount	rc;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
