@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.121 2009/10/19 00:17:28 rswindell Exp $ */
+/* $Id: userdat.c,v 1.123 2009/11/08 21:42:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -841,7 +841,7 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 
     switch(node->status) {
         case NODE_WFC:
-            strcpy(str,"Waiting for call");
+            strcpy(str,"Waiting for connection");
             break;
         case NODE_OFFLINE:
             strcpy(str,"Offline");
@@ -2600,6 +2600,9 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
 	sprintf(ip_can,"%sip.can",cfg->text_dir);
 	if(fname==NULL)
 		fname=ip_can;
+
+	if(findstr(ip_addr, fname))	/* Already filtered? */
+		return(TRUE);
 
     if((fp=fopen(fname,"a"))==NULL)
     	return(FALSE);
