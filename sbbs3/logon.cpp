@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.52 2009/11/21 20:36:30 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.51 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,7 +213,14 @@ bool sbbs_t::logon()
 		CLS;
 		user_event(EVENT_BIRTHDAY); 
 	}
-	useron.ltoday++;
+	unixtodstr(&cfg,useron.laston,tmp);
+	if(strcmp(str,tmp)) {			/* str still equals logon time */
+		useron.ltoday=1;
+		useron.ttoday=useron.etoday=useron.ptoday=useron.textra=0;
+		useron.freecdt=cfg.level_freecdtperday[useron.level]; 
+	}
+	else
+		useron.ltoday++;
 
 	gettimeleft();
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);

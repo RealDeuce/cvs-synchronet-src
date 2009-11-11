@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.176 2009/11/27 23:27:48 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.175 2009/10/25 05:07:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -464,7 +464,7 @@ static void mail_log_msg(log_msg_t* msg)
 
     if(MainForm->MailLogFile && MainForm->MailStop->Enabled) {
         AnsiString LogFileName
-            =AnsiString(MainForm->cfg.logs_dir)
+            =AnsiString(MainForm->cfg.data_dir)
             +"LOGS\\MS"
             +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
             +".LOG";
@@ -579,7 +579,7 @@ static void ftp_log_msg(log_msg_t* msg)
 
     if(MainForm->FtpLogFile && MainForm->FtpStop->Enabled) {
         AnsiString LogFileName
-            =AnsiString(MainForm->cfg.logs_dir)
+            =AnsiString(MainForm->cfg.data_dir)
             +"LOGS\\FS"
             +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
             +".LOG";
@@ -696,7 +696,7 @@ static void web_log_msg(log_msg_t* msg)
 #if 0
     if(MainForm->WebLogFile && MainForm->WebStop->Enabled) {
         AnsiString LogFileName
-            =AnsiString(MainForm->cfg.logs_dir)
+            =AnsiString(MainForm->cfg.data_dir)
             +"LOGS\\FS"
             +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
             +".LOG";
@@ -3186,7 +3186,7 @@ void __fastcall TMainForm::ViewLogClick(TObject *Sender)
             );
     else
         sprintf(filename,"%s\\%s"
-            ,MainForm->cfg.logs_dir
+            ,MainForm->cfg.data_dir
             ,((TMenuItem*)Sender)->Hint.c_str()
         );
     ViewFile(filename,((TMenuItem*)Sender)->Caption);
