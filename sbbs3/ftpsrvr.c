@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.361 2009/10/27 06:03:15 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.362 2009/11/11 05:28:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,11 +79,11 @@
 static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
-static DWORD	active_clients=0;
-static DWORD	sockets=0;
-static DWORD	thread_count=0;
+static ulong	active_clients=0;
+static ulong	sockets=0;
+static ulong	thread_count=0;
 static time_t	uptime=0;
-static DWORD	served=0;
+static ulong	served=0;
 static BOOL		terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
@@ -342,8 +342,8 @@ int getdir(char* p, user_t* user, client_t* client)
 {
 	char*	tp;
 	char	path[MAX_PATH+1];
-	int		dir;
-	int		lib;
+	uint	dir;
+	uint	lib;
 
 	SAFECOPY(path,p);
 	p=path;
@@ -4602,7 +4602,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.361 $", "%*s %s", revision);
+	sscanf("$Revision: 1.362 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
