@@ -1,14 +1,14 @@
+#ifndef _TODO_H_
+#define _TODO_H_
+
 /*
  * TODO functions and constants used in current code
  */
 #include <stdbool.h>
 #include <inttypes.h>
+#include "Bash.h"
 #include "structs.h"
-
-/*
- * Formats a number with commas into a malloc()ed buffer
- */
-char *acommastr(int64_t num);
+#include "files.h"
 
 /*
  * Sets input hotkeys
@@ -45,56 +45,9 @@ void newsy(bool, ...);
 #define pbreak()	TEXT("")
 
 /*
- * Displays a partial line (no trailing linefeed)
- */
-void d_part(int color, const char *text);
-
-/*
- * Displays a comma formatted number (no trailing lnefeed)
- */
-void d_comma(int color, long number);
-
-/*
- * Displays a line (with trailing linefeed)
- */
-void d_line(int color, const char *text);
-
-/*
- * Does the pause thing
- */
-void upause(void);
-
-/*
- * Exits game normally
- */
-void halt(void);
-
-/*
- * Starts a new screen (clear screen)
- */
-void newscreen(void);
-
-/*
- * Displays a meny option "(B)uy Poison" for example
- */
-void menu(const char *);
-
-/*
- * Y/N prompt
- */
-char confirm(const char *player, char dflt);
-
-/*
  * Random integer less than parameter
  */
 int rand_num(int limit);
-
-/*
- * Display status for specified player
- */
-void status(struct player *);
-
-void reduce_player_resurrections(struct player *, bool);
 
 void objekt_affect(int, uint16_t, enum objtype, struct player *player, bool loud);
 
@@ -104,49 +57,176 @@ void objekt_affect(int, uint16_t, enum objtype, struct player *player, bool loud
  */
 void user_save(struct player *player);
 
-void decplayermoney(struct player *player, int amount);
-
-int get_number(int min, int max);
-
 extern char *uplc;	// Colour string for player name in messages
 extern char *uitemc;	// Colour string for items in messages
 
+enum places {
+	NoWhere,
+	MainStreet,
+	Slottet,
+	Inn,
+	Dormy,
+	Prison,
+	UmanCave
+};
+
+#define MAXITEM			15	// Most items you can carry at a time...
+#define MAXSPELLS		12	// Max spells available
 struct player {
-	char	name2[70];	// Alias? (used in news messages)
-	bool	allowed;	// Can player today
-	int	poison;		// Amount of poison
-	bool	expert;		// Expert menus
-	bool	auto_meny;	// Always display menus?
-	int	level;
-	bool	amember;	// Member of Alchemist brotherhood
-	int	hps;		// Hit points (<1 is dead)
-	int	gold;
-	bool	deleted;
-	uint16_t	head;
-	uint16_t	body;
-	uint16_t	arms;
-	uint16_t	hands;
-	uint16_t	legs;
-	uint16_t	feet;
-	uint16_t	face;
-	uint16_t	abody;
-	uint16_t	shield;
+	char		name1[71];	// BBS Name
+	char		name2[71];	// Game name (used in news messages)
+	bool		allowed;	// Can player today
+	int			poison;		// Amount of poison
+	bool		expert;		// Expert menus
+	bool		auto_meny;	// Always display menus?
+	int			level;
+	bool		amember;	// Member of Alchemist brotherhood
+	int			hps;		// Hit points (<1 is dead)
+	int			gold;
+	bool		deleted;
+	enum places	auto_probe;	// When AutoProbe is set to a direction the player auto travels there
+	int			head;
+	int			body;
+	int			arms;
+	int			hands;
+	int			legs;
+	int			feet;
+	int			face;
+	int			abody;
+	int			shield;
+	int			lhand;
+	int			neck;
+	int			neck2;
+	int			rfinger;
+	int			lfinger;
+	int			waist;
+	bool		king;
+	enum class	class;
+	enum sex	sex;
+	unsigned long	exp;
+	enum race	race;
+	int			weapon;
+	int			armor;
+	int			trains;
+	int			age;
+	int			bankgold;
+	int			healing;
+	int			maxhps;
+	int			strength;
+	int			defence;
+	char		team[26];
+	int			wpow;
+	int			apow;
+	int			mana;
+	int			maxmana;
+	int			pickpocketattempts;
+	int			rhand;
+	bool		blind;
+	bool		plague;
+	bool		smallpox;
+	bool		measles;
+	bool		leprosy;
+	int			skill[BASH_COUNT];
+	char		beendefeated[71];
+	char		begging[71];
+	char		battlecry[71];
+	char		spareopp[71];
+	char		dontspareopp[71];
+	char		attacked[71];
+	char		defeatedopp[71];
+	bool		autohate;
+	bool		autoheal;
+	enum ear	ear;
+	char		desc[4][71];
+	bool		automeny;
+	int			item[MAXITEM];
+	enum objtype	itemtype[MAXITEM];
+	int			wisdom;
+	int			dark;
+	int			charisma;
+	int			fights;
+	int			agility;
+	int			tfights;
+	int			dex;
+	int			chiv;
+	int			stamina;
+	int			disres;
+	int			addict;
+	int			mental;
+	int			height;
+	int			hair;
+	int			weight;
+	int			eyes;
+	int			skin;
+	int			m_kills;
+	int			m_defeats;
+	int			p_kills;
+	int			p_defeats;
+	int			resurrections;
+	bool		spell[MAXSPELLS][2];
+	enum aitype	ai;
+	int			darknr;		// Dark Deeds remaining
+	int			thiefs;
+	int			brawls;
+	int			chivnr;		// Good deeds left
 };
 
 #define MAX_PLAYERS	1024
 #define MAX_NPCS	1024
 
-struct config {
-	int	textcolor;	// Normal text colour for display (same as textcol1)
-	char	textcol1[6];	// Text colour "1" (normal for news)
-	char	textcol2[6];	// Text colour "2" (normal for prompt chars)
-	char	moneytype[23];	// Name of money (ie: Gold)
-	char	moneytype3[23];	// Unknown... "can get it for 3,000 moneytype moneytype3" ("coins" maybe?)
-	char	reese_name[23];	// Name of "Reese" from Armor shoppe
-};
 
-struct config config;
+#ifdef getchar
+#undef getchar
+#endif
+#define getchar()	(1 = 2)
+
+extern struct config config;
 #define global_plycol BRIGHT_GREEN
 #define global_talkcol BRIGHT_MAGENTA
 extern bool global_begged;
 extern bool global_nobeg;
+
+enum mailaction {
+	MailRead,
+	MailSend
+};
+
+enum mailspecial {
+	MAILREQUEST_Nothing,
+	MAILREQUEST_BeMyGuard,
+	MAILREQUEST_IWantGuard,
+	MAILREQUEST_DrinkOffer,
+
+	// Immortal
+	MAILREQUEST_ImmortalOffer = 40,
+	MAILREQUEST_RoyalAngel = 50,
+	MAILREQUEST_RoyalAvenger,
+	MAILREQUEST_QuestOffer = 60,
+	MAILREQUEST_Birthday,
+
+	// Relationship
+	MAILREQUEST_HoldHands = 70,
+	MAILREQUEST_Roses,
+	MAILREQUEST_Poison,
+	MAILREQUEST_Dinner,
+	MAILREQUEST_Scorpions,
+	MAILREQUEST_Chocolate,
+	MAILREQUEST_Kiss,
+	MAILREQUEST_HaveSex,
+	MAILREQUEST_HaveDiscreteSex,
+	MAILREQUEST_ScanForBabies,
+	MAILREQUEST_ChildRaisingExp,
+	MAILREQUEST_ChildPoisonedExp,
+	MAILREQUEST_ChildFightExp,
+	MAILREQUEST_SilentExp,
+	MAILREQUEST_ChildCursedExp,
+	MAILREQUEST_ChildDepressedExp,
+	MAILREQUEST_GymMembership = 89,
+	MAILREQUEST_JoinTeam
+};
+void Post(enum mailaction, const char *to, enum aitype toai, bool togod, enum mailspecial special, const char *from, ...);
+void Brawl(void);
+void Drinking_Competition(void);
+
+
+#endif

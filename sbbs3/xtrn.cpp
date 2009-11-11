@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.204 2009/10/18 23:38:18 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.206 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -399,7 +399,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	if(cfg.node_num==0)
+	if(online!=ON_REMOTE || cfg.node_num==0)
 		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 	else
 		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
@@ -789,7 +789,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
         if(!online && !(mode&EX_OFFLINE)) { // Tell VXD/VDD and external that user hung-up
         	if(was_online) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline("X!",str);
+				logline(LOG_NOTICE,"X!",str);
             	hungup=time(NULL);
 				if(!native) {
 					if(nt)
@@ -1313,7 +1313,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	int	high_fd;
 	struct timeval timeout;
 
-	if(cfg.node_num==0)
+	if(online!=ON_REMOTE || cfg.node_num==0)
 		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
@@ -1786,7 +1786,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(cfg.node_num)
+	if(online==ON_REMOTE)
 		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */
@@ -1809,7 +1809,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			
 			if(!online && !(mode&EX_OFFLINE)) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline("X!",str);
+				logline(LOG_NOTICE,"X!",str);
 				break;
 			}
 
