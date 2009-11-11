@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.53 2011/08/30 22:51:21 rswindell Exp $ */
+/* $Id: email.cpp,v 1.49 2009/10/25 03:12:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,26 +45,24 @@
 /****************************************************************************/
 bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 {
-	char		str[256],str2[256],msgpath[256],title[LEN_TITLE+1],ch
-				,buf[SDT_BLOCK_LEN];
-	char 		tmp[512];
-	char		pid[128];
-	char*		editor=NULL;
-	ushort		msgattr=0;
-	uint16_t	xlat=XLAT_NONE;
-	ushort		nettype;
-	int 		i,j,x,file;
-	long		l;
-	long		length;
-	ulong		offset;
-	uint32_t	crc=0xffffffffUL;
-	FILE*		instream;
-	node_t		node;
-	smbmsg_t	msg;
+	char	str[256],str2[256],msgpath[256],title[LEN_TITLE+1],ch
+			,buf[SDT_BLOCK_LEN];
+	char 	tmp[512];
+	char	pid[128];
+	char*	editor=NULL;
+	ushort	msgattr=0;
+	uint16_t xlat=XLAT_NONE;
+	ushort	nettype;
+	int 	i,j,x,file;
+	long	l;
+	ulong	length,offset,crc=0xffffffffUL;
+	FILE	*instream;
+	node_t	node;
+	smbmsg_t msg;
 
 	SAFECOPY(title,subj);
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -92,7 +90,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	if(l&NETMAIL && cfg.sys_misc&SM_FWDTONET) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
 		bprintf(text[UserNetMail],str);
-		if(text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
+		if(yesno(text[ForwardMailQ])) /* Forward to netmail address */
 			return(netmail(str,subj,mode));
 	}
 	bprintf(text[Emailing],username(&cfg,usernumber,tmp),usernumber);
@@ -158,7 +156,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		sprintf(tmp,"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(str2) && fexistcase(tmp))
 			mv(tmp,str2,0);
-		l=(long)flength(str2);
+		l=flength(str2);
 		if(l>0)
 			bprintf(text[FileNBytesReceived],title,ultoac(l,tmp));
 		else {
@@ -203,7 +201,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		return(false); 
 	}
 
-	length=(long)flength(msgpath)+2;	 /* +2 for translation string */
+	length=flength(msgpath)+2;	 /* +2 for translation string */
 
 	if(length&0xfff00000UL) {
 		smb_unlocksmbhdr(&smb);
@@ -306,7 +304,6 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
-	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
