@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.63 2009/11/12 04:34:41 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.62 2009/11/11 05:35:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -629,11 +629,9 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		}
 
 		for(j=0;j<k;j++) {
-			uint16_t	subnum;
 			if(feof(instream)) break;
 			get_int(cfg->qhub[i]->conf[cfg->qhub[i]->subs],instream);
-			get_int(subnum,instream);
-			cfg->qhub[i]->sub[cfg->qhub[i]->subs]=subnum;
+			get_int(cfg->qhub[i]->sub[cfg->qhub[i]->subs],instream);
 			get_int(cfg->qhub[i]->mode[cfg->qhub[i]->subs],instream);
 			if(cfg->qhub[i]->sub[cfg->qhub[i]->subs]<cfg->total_subs)
 				cfg->sub[cfg->qhub[i]->sub[cfg->qhub[i]->subs]]->misc|=SUB_QNET;
