@@ -2,13 +2,13 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.59 2007/07/10 22:10:13 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.62 2009/11/11 05:35:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -437,12 +437,12 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 	get_int(cfg->smb_retry_time,instream);	 /* odd byte */
 	if(!cfg->smb_retry_time)
 		cfg->smb_retry_time=30;
-	for(i=0;i<234;i++)	/* NULL */
+	get_int(cfg->max_qwkmsgage, instream);
+	for(i=0;i<233;i++)	/* NULL */
 		get_int(n,instream);
 	get_int(cfg->msg_misc,instream);
 	for(i=0;i<255;i++)	/* 0xff */
 		get_int(n,instream);
-
 
 	/******************/
 	/* Message Groups */
@@ -620,8 +620,8 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_int(k,instream);
 
 		if(k) {
-			if((cfg->qhub[i]->sub=(ushort *)malloc(sizeof(ushort)*k))==NULL)
-				return allocerr(instream,error,offset,fname,sizeof(uint)*k);
+			if((cfg->qhub[i]->sub=(ulong *)malloc(sizeof(ulong)*k))==NULL)
+				return allocerr(instream,error,offset,fname,sizeof(ulong)*k);
 			if((cfg->qhub[i]->conf=(ushort *)malloc(sizeof(ushort)*k))==NULL)
 				return allocerr(instream,error,offset,fname,sizeof(ushort)*k);
 			if((cfg->qhub[i]->mode=(char *)malloc(sizeof(char)*k))==NULL)
