@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.147 2009/11/11 00:02:08 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.148 2009/11/11 01:56:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -734,9 +734,9 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 		return(JS_TRUE);
 
 	LAZY_INTEGER("number", p->msg.hdr.number, JSPROP_ENUMERATE);
-	LAZY_INTEGER("offset", p->msg.offset, JSPROP_ENUMERATE, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP("to",p->msg.to, JSPROP_ENUMERATE, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP("from",p->msg.from, JSPROP_ENUMERATE, JSPROP_ENUMERATE);
+	LAZY_INTEGER("offset", p->msg.offset, JSPROP_ENUMERATE);
+	LAZY_STRING_TRUNCSP("to",p->msg.to, JSPROP_ENUMERATE);
+	LAZY_STRING_TRUNCSP("from",p->msg.from, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP("subject",p->msg.subj, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("summary", p->msg.summary, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("to_ext", p->msg.to_ext, JSPROP_ENUMERATE);
