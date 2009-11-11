@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.41 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: download.cpp,v 1.40 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,13 +44,12 @@
 /****************************************************************************/
 void sbbs_t::downloadfile(file_t* f)
 {
-    char		str[256],fname[13];
-	char 		tmp[512];
-    int			i,file;
-	long		mod;
-	long		length;
-    ulong		l;
-	user_t		uploader;
+    char	str[256],fname[13];
+	char 	tmp[512];
+    int		i,file;
+	long	length,mod;
+    ulong	l;
+	user_t	uploader;
 
 	getfiledat(&cfg,f); /* Get current data - right after download */
 	if((length=f->size)<0L)
@@ -107,7 +106,7 @@ void sbbs_t::downloadfile(file_t* f)
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return; 
 	}
-	length=(long)filelength(file);
+	length=filelength(file);
 	if(length%F_IXBSIZE) {
 		close(file);
 		errormsg(WHERE,ERR_LEN,str,length);
