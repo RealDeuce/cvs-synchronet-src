@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: UserListFormUnit.cpp,v 1.8 2011/09/03 06:02:47 rswindell Exp $ */
+/* $Id: UserListFormUnit.cpp,v 1.7 2009/03/29 06:00:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,7 +36,6 @@
 
 #include "sbbs.h"
 #include <vcl.h>
-#include <vcl/Clipbrd.hpp>
 #pragma hdrstop
 
 #include "UserListFormUnit.h"
@@ -158,6 +157,10 @@ void __fastcall TUserListForm::FormClose(TObject *Sender,
     ListView->Items->EndUpdate();
 }
 //---------------------------------------------------------------------------
+
+
+
+
 void __fastcall TUserListForm::EditUserPopupClick(TObject *Sender)
 {
     char str[256];
@@ -174,45 +177,7 @@ void __fastcall TUserListForm::EditUserPopupClick(TObject *Sender)
 void __fastcall TUserListForm::ListViewKeyPress(TObject *Sender, char &Key)
 {
     if(Key=='\r')
-        EditUserPopupClick(Sender);
-}
-//---------------------------------------------------------------------------
-static AnsiString ListItemString(TListItem* item)
-{
-    AnsiString str = item->Caption;
-    int i;
-
-    for(i=0;i<item->SubItems->Count;i++)
-        str += "\t" + item->SubItems->Strings[i];
-
-    return str + "\r\n";
-}
-//---------------------------------------------------------------------------
-void __fastcall TUserListForm::CopyPopupClick(TObject *Sender)
-{
-    if(ListView->Selected==NULL)
-        return;
-    Clipboard()->SetTextBuf(ListItemString(ListView->Selected).c_str());
-}
-//---------------------------------------------------------------------------
-void __fastcall TUserListForm::CopyAllPopupClick(TObject *Sender)
-{
-    AnsiString buf;
-    int i;
-
-    for(i=0;i<ListView->Items->Count;i++)
-        buf += ListItemString(ListView->Items->Item[i]);
-
-    Clipboard()->SetTextBuf(buf.c_str());
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TUserListForm::RefreshPopupClick(TObject *Sender)
-{
-    ListView->Items->BeginUpdate();
-    ListView->Items->Clear();
-    ListView->Items->EndUpdate();    
-    FormShow(Sender);
+        EditUserPopupClick(Sender);    
 }
 //---------------------------------------------------------------------------
 
