@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.362 2009/11/11 05:28:56 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.363 2009/11/21 06:20:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2090,8 +2090,8 @@ void parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curd
 	char*	p;
 	char*	tp;
 	char	path[MAX_PATH+1];
-	int		dir=*curdir;
-	int		lib=*curlib;
+	uint	dir=*curdir;
+	uint	lib=*curlib;
 
 	SAFECOPY(path,*pp);
 	p=path;
@@ -4602,7 +4602,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.362 $", "%*s %s", revision);
+	sscanf("$Revision: 1.363 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
