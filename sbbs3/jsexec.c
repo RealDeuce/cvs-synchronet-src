@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.133 2010/03/12 22:14:41 deuce Exp $ */
+/* $Id: jsexec.c,v 1.132 2009/08/21 08:55:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,8 +38,6 @@
 #ifndef JAVASCRIPT
 #define JAVASCRIPT
 #endif
-
-#include <unistd.h>						// getcwd()
 
 #ifdef __unix__
 #include <signal.h>
@@ -80,96 +78,6 @@ pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
 #endif
-char		orig_cwd[MAX_PATH+1];
-
-enum {
-	 JSEXEC_ORIG_CWD		/* cwd at program start */
-};
-
-#ifdef BUILD_JSDOCS
-	static char* jsexec_prop_desc[] = {
-	 "Current working directory at program start"
-	,NULL
-	};
-#endif
-
-static JSBool jsexec_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-	return(JS_FALSE);
-}
-
-static JSBool jsexec_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-	jsint		tiny;
-	JSString*	js_str;
-
-    tiny = JSVAL_TO_INT(id);
-
-	switch(tiny) {
-		case JSEXEC_ORIG_CWD:
-			if((js_str=JS_NewStringCopyZ(cx, orig_cwd))==NULL)
-				return(JS_FALSE);
-			*vp = STRING_TO_JSVAL(js_str);
-			break;
-	}
-
-	return(JS_TRUE);
-}
-
-#define JSEXEC_PROP_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY
-
-static jsSyncPropertySpec jsexec_properties[] = {
-/*		 name				,tinyid					,flags,					ver	*/
-
-	{	"orig_cwd"			,JSEXEC_ORIG_CWD 		,JSEXEC_ORIG_CWD,		315},
-	{0}
-};
-
-static JSBool jsexec_resolve(JSContext *cx, JSObject *obj, jsval id)
-{
-	char*			name=NULL;
-
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
-
-	return(js_SyncResolve(cx, obj, name, jsexec_properties, NULL, NULL, 0));
-}
-
-static JSBool jsexec_enumerate(JSContext *cx, JSObject *obj)
-{
-	return(jsexec_resolve(cx, obj, JSVAL_NULL));
-}
-
-static JSClass jsexec_class = {
-     "JSExec"				/* name			*/
-    ,JSCLASS_HAS_PRIVATE	/* flags		*/
-	,JS_PropertyStub		/* addProperty	*/
-	,JS_PropertyStub		/* delProperty	*/
-	,jsexec_get				/* getProperty	*/
-	,jsexec_set				/* setProperty	*/
-	,jsexec_enumerate		/* enumerate	*/
-	,jsexec_resolve			/* resolve		*/
-	,JS_ConvertStub			/* convert		*/
-	,JS_FinalizeStub		/* finalize		*/
-};
-
-JSObject* DLLCALL js_CreateExecObject(JSContext* cx, JSObject* parent, char* name)
-{
-	JSObject*	obj;
-
-	obj = JS_DefineObject(cx, parent, name, &jsexec_class, NULL
-		,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	if(obj==NULL)
-		return(NULL);
-
-#ifdef BUILD_JSDOCS
-	js_DescribeSyncObject(cx,obj,"Represents a JSExec instance",315);
-	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", jsexec_prop_desc, JSPROP_READONLY);
-#endif
-
-	return(obj);
-}
 
 void banner(FILE* fp)
 {
@@ -760,11 +668,6 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 	}
 
-	/* JSExec object */
-	if(js_CreateExecObject(js_cx, js_glob, "jsexec")==NULL) {
-		JS_ENDREQUEST(js_cx);
-		return(FALSE);
-	}
 	return(TRUE);
 }
 
@@ -979,7 +882,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.133 $", "%*s %s", revision);
+	sscanf("$Revision: 1.132 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -987,8 +890,6 @@ int main(int argc, char **argv, char** environ)
 
 	if(!winsock_startup())
 		return(do_bail(2));
-
-	getcwd(orig_cwd, sizeof(orig_cwd));
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
