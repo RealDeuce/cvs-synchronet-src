@@ -2,7 +2,7 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.22 2009/02/15 11:32:56 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.23 2009/02/21 23:46:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -160,7 +160,7 @@ void sbbs_t::telluser(smbmsg_t* msg)
 /************************************************************************/
 /* Deletes all mail waiting for user number 'usernumber'                */
 /************************************************************************/
-void sbbs_t::delallmail(uint usernumber)
+void sbbs_t::delallmail(uint usernumber, int which)
 {
 	int 	i;
 	long	l,deleted=0;
@@ -181,7 +181,7 @@ void sbbs_t::delallmail(uint usernumber)
 		return; 
 	}
 
-	mail=loadmail(&smb,&msgs,usernumber,MAIL_ANY,0);
+	mail=loadmail(&smb,&msgs,usernumber,which,0);
 	if(!msgs) {
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
