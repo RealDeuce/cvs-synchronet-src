@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.164 2009/11/10 23:58:02 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.165 2009/12/08 23:46:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@
 
 #define FNOPEN_BUF_SIZE		(2*1024)
 
-#define ILLEGAL_FILENAME_CHARS	"\\/|<>+[]:=\";,%"
+#define ILLEGAL_FILENAME_CHARS	"\\/|<>:\";,%"
 
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
