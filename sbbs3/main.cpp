@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.543 2009/11/11 05:32:00 rswindell Exp $ */
+/* $Id: main.cpp,v 1.544 2009/12/09 19:00:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5097,14 +5097,8 @@ NO_SSH:
 		else
 			host_name="<no name>";
 
-#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
-	     and getnameinfo() doesn't return alias information */
-		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
+		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
 			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
-			for(i=0;h!=NULL && h->h_aliases!=NULL && h->h_aliases[i]!=NULL;i++)
-				lprintf(LOG_INFO,"%04d HostAlias: %s", client_socket, h->h_aliases[i]);
-		}
-#endif
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
