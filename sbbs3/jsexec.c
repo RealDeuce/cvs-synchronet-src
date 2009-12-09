@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.134 2010/03/13 08:15:07 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.132 2009/08/21 08:55:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -78,7 +78,6 @@ pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
 #endif
-char		orig_cwd[MAX_PATH+1];
 
 void banner(FILE* fp)
 {
@@ -669,11 +668,6 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 	}
 
-	/* JSExec object */
-	if(js_CreateExecObject(js_cx, js_glob, "jsexec")==NULL) {
-		JS_ENDREQUEST(js_cx);
-		return(FALSE);
-	}
 	return(TRUE);
 }
 
@@ -808,7 +802,7 @@ long js_exec(const char *fname, char** args)
 			,path
 			,diff);
 
-	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path, orig_cwd);
+	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path);
 	start=xp_timer();
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
@@ -888,7 +882,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.134 $", "%*s %s", revision);
+	sscanf("$Revision: 1.132 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -896,8 +890,6 @@ int main(int argc, char **argv, char** environ)
 
 	if(!winsock_startup())
 		return(do_bail(2));
-
-	getcwd(orig_cwd, sizeof(orig_cwd));
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
