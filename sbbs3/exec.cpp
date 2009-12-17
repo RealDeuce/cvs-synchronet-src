@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.82 2009/11/02 03:30:52 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.83 2009/12/17 00:57:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -610,6 +610,7 @@ long sbbs_t::js_execfile(const char *cmd)
 		JS_DefineProperty(js_cx, js_scope, "argv", OBJECT_TO_JSVAL(argv)
 			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
+		/* TODO: Handle quoted "one arg" syntax here? */
 		if(args!=NULL && argv!=NULL) {
 			while(*args) {
 				p=strchr(args,' ');
