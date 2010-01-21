@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.242 2011/09/03 09:34:27 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.233 2009/10/25 03:07:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -107,13 +107,12 @@ BOOL				has_web=FALSE;
 web_startup_t		web_startup;
 ulong				thread_count=1;
 ulong				socket_count=0;
+ulong				client_count=0;
 ulong				error_count=0;
 int					prompt_len=0;
 static scfg_t		scfg;					/* To allow rerun */
 static ulong		served=0;
 char				ini_file[MAX_PATH+1];
-link_list_t			login_attempt_list;
-link_list_t			client_list;
 
 #ifdef __unix__
 char				new_uid_name[32];
@@ -252,7 +251,7 @@ static int lputs(int level, char *str)
 	printf("\r%*s\r",prompt_len,"");
 	if(str!=NULL) {
 		for(p=str; *p; p++) {
-			if(iscntrl((unsigned char)*p))
+			if(iscntrl(*p))
 				printf("^%c",'@'+*p);
 			else
 				printf("%c",*p);
@@ -261,7 +260,7 @@ static int lputs(int level, char *str)
 	}
 	/* re-display prompt with current stats */
 	if(prompt!=NULL)
-		prompt_len = printf(prompt, thread_count, socket_count, client_list.count, served, error_count);
+		prompt_len = printf(prompt, thread_count, socket_count, client_count, served, error_count);
 	fflush(stdout);
 	pthread_mutex_unlock(&mutex);
 
@@ -375,11 +374,6 @@ BOOL do_setuid(BOOL force)
 	}
 
 	if(getuid() != new_uid || geteuid() != new_uid) {
-		if(initgroups(new_uid_name, new_gid)) {
-			lputs(LOG_ERR,"!initgroups FAILED");
-			lputs(LOG_ERR,strerror(errno));
-			result=FALSE;
-		}	
 		if(setreuid(new_uid,new_uid))
 		{
 			lputs(LOG_ERR,"!setuid FAILED");
@@ -590,21 +584,21 @@ static void socket_open(void* p, BOOL open)
 
 static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
 {
-	if(on) {
-		if(update) {
-			list_node_t*	node;
+   	static pthread_mutex_t mutex;
+	static BOOL mutex_initialized;
 
-			listLock(&client_list);
-			if((node=listFindTaggedNode(&client_list, sock)) != NULL)
-				memcpy(node->data, client, sizeof(client_t));
-			listUnlock(&client_list);
-		} else {
-			served++;
-			listAddNodeData(&client_list, client, sizeof(client_t), sock, LAST_NODE);
-		}
-	} else
-		listRemoveTaggedNode(&client_list, sock, /* free_data: */TRUE);
+	if(!mutex_initialized) {
+		pthread_mutex_init(&mutex,NULL);
+		mutex_initialized=TRUE;
+	}
 
+	pthread_mutex_lock(&mutex);
+	if(on && !update) {
+		client_count++;
+	    served++;
+	} else if(!on && client_count>0)
+		client_count--;
+	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
 
@@ -1191,7 +1185,6 @@ int main(int argc, char** argv)
     char	error[256];
 	char	host_name[128]="";
 	node_t	node;
-	unsigned		count;
 #ifdef __unix__
 	struct passwd*	pw_entry;
 	struct group*	gr_entry;
@@ -1212,8 +1205,6 @@ int main(int argc, char** argv)
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
 	SetThreadName("Main");
-	listInit(&client_list, LINK_LIST_MUTEX);
-	loginAttemptListInit(&login_attempt_list);
 	atexit(cleanup);
 
 	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
@@ -1255,7 +1246,6 @@ int main(int argc, char** argv)
     bbs_startup.status=bbs_status;
     bbs_startup.clients=bbs_clients;
 */
-	bbs_startup.login_attempt_list=&login_attempt_list;
     strcpy(bbs_startup.ctrl_dir,ctrl_dir);
 
 	/* Initialize FTP startup structure */
@@ -1275,7 +1265,6 @@ int main(int argc, char** argv)
 	ftp_startup.seteuid=do_seteuid;
 	ftp_startup.setuid=do_setuid;
 #endif
-	ftp_startup.login_attempt_list=&login_attempt_list;
     strcpy(ftp_startup.index_file_name,"00index");
     strcpy(ftp_startup.ctrl_dir,ctrl_dir);
 
@@ -1296,7 +1285,6 @@ int main(int argc, char** argv)
 	web_startup.seteuid=do_seteuid;
 	web_startup.setuid=do_setuid;
 #endif
-	web_startup.login_attempt_list=&login_attempt_list;
     strcpy(web_startup.ctrl_dir,ctrl_dir);
 
 	/* Initialize Mail Server startup structure */
@@ -1316,7 +1304,6 @@ int main(int argc, char** argv)
 	mail_startup.seteuid=do_seteuid;
 	mail_startup.setuid=do_setuid;
 #endif
-	mail_startup.login_attempt_list=&login_attempt_list;
     strcpy(mail_startup.ctrl_dir,ctrl_dir);
 
 	/* Initialize Services startup structure */
@@ -1336,7 +1323,6 @@ int main(int argc, char** argv)
 	services_startup.seteuid=do_seteuid;
 	services_startup.setuid=do_setuid;
 #endif
-	services_startup.login_attempt_list=&login_attempt_list;
     strcpy(services_startup.ctrl_dir,ctrl_dir);
 
 	/* Pre-INI command-line switches */
@@ -1923,10 +1909,8 @@ int main(int argc, char** argv)
 	}
 
     if(!isatty(fileno(stdin)))  			/* redirected */
-	   	while(1) {
+	   	while(1)
 	    	select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
-		lputs(LOG_WARNING,"select(NULL) returned!");
-	}
 	else 								/* interactive */
 #endif
 	{
@@ -1959,7 +1943,6 @@ int main(int argc, char** argv)
 			printf("%c\n",ch);
 			switch(ch) {
 				case 'q':
-#ifdef SBBSCON_PROMPT_ON_QUIT	/* This part of Quicksilver's mod doesn't work right on an active BBS (the prompt is usually quickly erased) */
                     /* default to no, prevent accidental quit */
                     printf("Confirm quit [y/N]: ");
                     fflush(stdout);
@@ -1970,24 +1953,17 @@ int main(int argc, char** argv)
                         default:
                             break;
                     }
-#else
-						terminated = TRUE;
-#endif
                      break;
 				case 'w':	/* who's online */
 					printf("\nNodes in use:\n");
 				case 'n':	/* nodelist */
 					printf("\n");
-					count=0;
 					for(i=1;i<=scfg.sys_nodes;i++) {
 						getnodedat(&scfg,i,&node,NULL /* file */);
 						if(ch=='w' && node.status!=NODE_INUSE && node.status!=NODE_QUIET)
 							continue;
 						printnodedat(&scfg, i,&node);
-						count++;
 					}
-					if(ch=='w')
-						printf("%u nodes in use\n", count);
 					break;
 				case 'l':	/* lock node */
 				case 'd':	/* down node */
@@ -2107,78 +2083,14 @@ int main(int argc, char** argv)
 	                _echo_off(); /* turn off echoing - failsafe */
 #endif
 					break;
-				case 'a':	/* Show failed login attempts: */
-					printf("\nFailed login attempts:\n\n");
-					{
-						unsigned long		total=0;
-						struct tm			tm;
-						list_node_t*		node;
-						login_attempt_t*	login_attempt;
-
-					    listLock(&login_attempt_list);
-						count=0;
-						for(node=listFirstNode(&login_attempt_list); node!=NULL; node=listNextNode(node)) {
-							login_attempt=node->data;
-							localtime_r(&login_attempt->time,&tm);
-							printf("%u attempts (%u duplicate) from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
-								,login_attempt->count
-								,login_attempt->dupes
-								,inet_ntoa(login_attempt->addr)
-								,login_attempt->prot
-								,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec
-								,login_attempt->user
-								,login_attempt->pass
-								);
-							count++;
-							total+=(login_attempt->count-login_attempt->dupes);
-						}
-						listUnlock(&login_attempt_list);
-						if(count)
-							printf("==\n");
-						printf("%u failed login attempters (potential password hackers)\n", count);
-						printf("%u total unique failed login attempts (potential password hack attempts)\n", total);
-					}
-					break;
-				case 'A':
-					printf("\n%u login attempts cleared\n", loginAttemptListClear(&login_attempt_list));
-					break;
-				case 'c':	/* Show connected clients: */
-					printf("\nConnected clients:\n\n");
-					{
-						unsigned long		total=0;
-						struct tm			tm;
-						list_node_t*		node;
-						client_t*			client;
-
-					    listLock(&client_list);
-						count=0;
-						for(node=listFirstNode(&client_list); node!=NULL; node=listNextNode(node)) {
-							client=node->data;
-							localtime_r(&client->time,&tm);
-							printf("%04d %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
-								,node->tag
-								,client->protocol
-								,client->user
-								,client->addr
-								,client->host
-								,client->port
-								,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec
-								);
-							count++;
-						}
-						listUnlock(&client_list);
-					}
-					break;
                 case '?': /* only print help if user requests it */
 					printf("\nSynchronet Console Version %s%c Help\n\n",VERSION,REVISION);
 					printf("q   = quit\n");
 					printf("n   = node list\n");
-					printf("w   = who's online (node's in-use)\n");
+					printf("w   = who's online\n");
 					printf("l   = lock node (toggle)\n");
 					printf("d   = down node (toggle)\n");
 					printf("i   = interrupt node (toggle)\n");
-					printf("a   = show failed login attempts\n");
-					printf("c   = show connected clients\n");
 					printf("r   = recycle servers (when not in use)\n");
 					printf("s   = shutdown servers (when not in use)\n");
 					printf("t   = terminate servers (immediately)\n");
