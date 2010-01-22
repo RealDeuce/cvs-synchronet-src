@@ -2,7 +2,7 @@
 #
 # Global build system setup file
 #
-# $Id: Common.gmake,v 1.69 2010/01/21 03:55:01 deuce Exp $
+# $Id: Common.gmake,v 1.70 2010/01/22 06:43:08 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -162,7 +162,7 @@ ifdef BUILD_DEPENDS
  else
   CC			:=	gcc
  endif
- CCPRE			:=	$(shell echo $(CC) | sed -E 's/^.*\///')
+ CCPRE			:=	$(CC)
  CC				:=	$(SRC_ROOT)/build/mkdep -a
  CXX			:=	$(SRC_ROOT)/build/mkdep -a
  LD				:=	echo
@@ -175,7 +175,7 @@ else
  else
   CC			:=	gcc
  endif
- CCPRE			:=	$(shell echo $(CC) | sed -E 's/^.*\///')
+ CCPRE			:=	$(CC)
  CXX			?=	g++
  LD				?=	ld
  COMPILE_MSG	:= Compiling
