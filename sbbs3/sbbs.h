@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.344 2010/03/13 08:20:16 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.341 2009/11/11 05:30:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -230,7 +230,7 @@ public:
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	js_branch_t	js_branch;
-	long		js_execfile(const char *fname, const char* startup_dir);
+	long		js_execfile(const char *fname);
 	bool		js_init(ulong* stack_frame);
 	void		js_cleanup(const char* node);
 	void		js_create_user_objects(void);
@@ -395,7 +395,7 @@ public:
 	int		exec_net(csi_t *csi);
 	int		exec_msg(csi_t *csi);
 	int		exec_file(csi_t *csi);
-	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir=NULL);
+	long	exec_bin(const char *mod, csi_t *csi);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
 	char**	getstrvar(csi_t *bin, int32_t name);
@@ -500,7 +500,7 @@ public:
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber, int which, bool permanent=true);
+	void	delallmail(uint usernumber, int which);
 
 	/* getmsg.cpp */
 	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
@@ -1024,7 +1024,7 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
-	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
