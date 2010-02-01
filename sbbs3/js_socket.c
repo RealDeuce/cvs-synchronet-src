@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.131 2009/01/09 00:25:57 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.132 2010/02/01 19:22:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1282,6 +1282,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_DESCRIPTOR:
 			*vp = INT_TO_JSVAL(p->sock);
+			p->is_connected = TRUE;
 			break;
 		case SOCK_PROP_NONBLOCKING:
 			*vp = BOOLEAN_TO_JSVAL(p->nonblocking);
