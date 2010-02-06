@@ -2,13 +2,13 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.19 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: chk_ar.cpp,v 1.21 2009/03/20 09:36:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,12 +37,13 @@
 
 #include "sbbs.h"
 
-bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
+bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 {
 	bool	result,_not,_or,equal;
 	uint	i,n,artype,age;
 	ulong	l;
 	struct tm tm;
+	const char*	p;
 
 	result = true;
 
@@ -55,22 +56,25 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 
 		if((**ptrptr)==AR_OR) {
 			_or=true;
-			(*ptrptr)++; }
+			(*ptrptr)++; 
+		}
 		
 		if((**ptrptr)==AR_NOT) {
 			_not=true;
-			(*ptrptr)++; }
+			(*ptrptr)++; 
+		}
 
 		if((**ptrptr)==AR_EQUAL) {
 			equal=true;
-			(*ptrptr)++; }
+			(*ptrptr)++; 
+		}
 
 		if((result && _or) || (!result && !_or))
 			break;
 
 		if((**ptrptr)==AR_BEGNEST) {
 			(*ptrptr)++;
-			if(ar_exp(ptrptr,user))
+			if(ar_exp(ptrptr,user,client))
 				result=!_not;
 			else
 				result=_not;
@@ -78,7 +82,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 			if(!(**ptrptr))
 				break;
-			continue; }
+			continue; 
+		}
 
 		artype=(**ptrptr);
 		switch(artype) {
@@ -99,7 +104,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				break;
 			default:
 				(*ptrptr)++;
-				break; }
+				break; 
+		}
 
 		n=(**ptrptr);
 		i=(*(short *)*ptrptr);
@@ -111,7 +117,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessLevel];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_AGE:
 				age=getage(&cfg,user->birth);
@@ -121,7 +128,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessAge];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_BPS:
 				if((equal && cur_rate!=i) || (!equal && cur_rate<i))
@@ -131,7 +139,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessBPS];
-					noaccess_val=i; }
+					noaccess_val=i; 
+				}
 				break;
 			case AR_ANSI:
 				if(!(user->misc&ANSI))
@@ -234,7 +243,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessDay];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_CREDIT:
 				l=(ulong)i*1024UL;
@@ -246,7 +256,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessCredit];
-					noaccess_val=l; }
+					noaccess_val=l; 
+				}
 				break;
 			case AR_NODE:
 				if((equal && cfg.node_num!=n) || (!equal && cfg.node_num<n))
@@ -255,7 +266,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessNode];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_USER:
 				if((equal && user->number!=i) || (!equal && user->number<i))
@@ -265,7 +277,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessUser];
-					noaccess_val=i; }
+					noaccess_val=i; 
+				}
 				break;
 			case AR_GROUP:
 				if((equal
@@ -279,7 +292,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessGroup];
-					noaccess_val=i+1; }
+					noaccess_val=i+1; 
+				}
 				break;
 			case AR_SUB:
 				if((equal && cursubnum!=i) || (!equal && cursubnum<i))
@@ -289,11 +303,12 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessSub];
-					noaccess_val=i+1; }
+					noaccess_val=i+1; 
+				}
 				break;
 			case AR_SUBCODE:
 				if(cursubnum>=cfg.total_subs
-					|| stricmp(cfg.sub[cursubnum]->code,(char*)*ptrptr))
+					|| !findstr_in_string(cfg.sub[cursubnum]->code,(char*)*ptrptr))
 					result=_not;
 				else
 					result=!_not;
@@ -314,7 +329,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessLib];
-					noaccess_val=i+1; }
+					noaccess_val=i+1; 
+				}
 				break;
 			case AR_DIR:
 				if((equal && curdirnum!=i) || (!equal && curdirnum<i))
@@ -324,11 +340,12 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessDir];
-					noaccess_val=i+1; }
+					noaccess_val=i+1; 
+				}
 				break;
 			case AR_DIRCODE:
 				if(curdirnum>=cfg.total_dirs
-					|| stricmp(cfg.dir[curdirnum]->code,(char *)*ptrptr))
+					|| !findstr_in_string(cfg.dir[curdirnum]->code,(char *)*ptrptr))
 					result=_not;
 				else
 					result=!_not;
@@ -346,7 +363,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessExpire];
-					noaccess_val=i; }
+					noaccess_val=i; 
+				}
 				break;
 			case AR_RANDOM:
 				n=sbbs_random(i+1);
@@ -392,7 +410,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessTimeLeft];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_TUSED:
 				if((time(NULL)-logontime)/60<(long)n)
@@ -401,7 +420,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessTimeUsed];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_TIME:
 				now=time(NULL);
@@ -413,7 +433,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 				(*ptrptr)++;
 				if(!result) {
 					noaccess_str=text[NoAccessTime];
-					noaccess_val=i; }
+					noaccess_val=i; 
+				}
 				break;
 			case AR_PCR:	/* post/call ratio (by percentage) */
 				if(user->logons>user->posts
@@ -423,7 +444,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessPCR];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_UDR:	/* up/download byte ratio (by percentage) */
 				l=user->dlb;
@@ -435,7 +457,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessUDR];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_UDFR:	/* up/download file ratio (in percentage) */
 				i=user->dls;
@@ -447,7 +470,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessUDFR];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_ULS:
 				if((equal && user->uls!=i) || (!equal && user->uls<i))
@@ -499,7 +523,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessFlag1];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_FLAG2:
 				if((!equal && !(user->flags2&FLAG(n)))
@@ -509,7 +534,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessFlag2];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_FLAG3:
 				if((!equal && !(user->flags3&FLAG(n)))
@@ -519,7 +545,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessFlag3];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_FLAG4:
 				if((!equal && !(user->flags4&FLAG(n)))
@@ -529,7 +556,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessFlag4];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_REST:
 				if((!equal && !(user->rest&FLAG(n)))
@@ -539,7 +567,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessRest];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_EXEMPT:
 				if((!equal && !(user->exempt&FLAG(n)))
@@ -549,7 +578,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessExempt];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break;
 			case AR_SEX:
 				if(user->sex!=n)
@@ -558,11 +588,12 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					result=!_not;
 				if(!result) {
 					noaccess_str=text[NoAccessSex];
-					noaccess_val=n; }
+					noaccess_val=n; 
+				}
 				break; 
 			case AR_SHELL:
 				if(user->shell>=cfg.total_shells
-					|| stricmp(cfg.shell[user->shell]->code,(char*)*ptrptr))
+					|| !findstr_in_string(cfg.shell[user->shell]->code,(char*)*ptrptr))
 					result=_not;
 				else
 					result=!_not;
@@ -570,7 +601,35 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 					(*ptrptr)++;
 				break;
 			case AR_PROT:
-				if(stricmp(user->modem,(char*)*ptrptr))	/* should this be changed to client.prot? */
+				if(client!=NULL)
+					p=client->protocol;
+				else
+					p=user->modem;
+				if(!findstr_in_string(p,(char*)*ptrptr))
+					result=_not;
+				else
+					result=!_not;
+				while(*(*ptrptr))
+					(*ptrptr)++;
+				break;
+			case AR_HOST:
+				if(client!=NULL)
+					p=client->host;
+				else
+					p=user->comp;
+				if(!findstr_in_string(p,(char*)*ptrptr))
+					result=_not;
+				else
+					result=!_not;
+				while(*(*ptrptr))
+					(*ptrptr)++;
+				break;
+			case AR_IP:
+				if(client!=NULL)
+					p=client->addr;
+				else
+					p=user->note;
+				if(!findstr_in_string(p,(char*)*ptrptr))
 					result=_not;
 				else
 					result=!_not;
@@ -582,14 +641,14 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user)
 	return(result);
 }
 
-bool sbbs_t::chk_ar(const uchar *ar, user_t* user)
+bool sbbs_t::chk_ar(const uchar *ar, user_t* user, client_t* client)
 {
 	const uchar *p;
 
 	if(ar==NULL)
 		return(true);
 	p=ar;
-	return(ar_exp(&p,user));
+	return(ar_exp(&p,user,client));
 }
 
 
@@ -602,11 +661,11 @@ void sbbs_t::getusrsubs()
     uint i,j,k,l;
 
 	for(j=0,i=0;i<cfg.total_grps;i++) {
-		if(!chk_ar(cfg.grp[i]->ar,&useron))
+		if(!chk_ar(cfg.grp[i]->ar,&useron,&client))
 			continue;
 		for(k=0,l=0;l<cfg.total_subs;l++) {
 			if(cfg.sub[l]->grp!=i) continue;
-			if(!chk_ar(cfg.sub[l]->ar,&useron))
+			if(!chk_ar(cfg.sub[l]->ar,&useron,&client))
 				continue;
 			usrsub[j][k++]=l; 
 		}
@@ -635,13 +694,14 @@ void sbbs_t::getusrdirs()
 		return; 
 	}
 	for(j=0,i=0;i<cfg.total_libs;i++) {
-		if(!chk_ar(cfg.lib[i]->ar,&useron))
+		if(!chk_ar(cfg.lib[i]->ar,&useron,&client))
 			continue;
 		for(k=0,l=0;l<cfg.total_dirs;l++) {
 			if(cfg.dir[l]->lib!=i) continue;
-			if(!chk_ar(cfg.dir[l]->ar,&useron))
+			if(!chk_ar(cfg.dir[l]->ar,&useron,&client))
 				continue;
-			usrdir[j][k++]=l; }
+			usrdir[j][k++]=l; 
+		}
 		usrdirs[j]=k;
 		if(!k)          /* No dirs accessible in lib */
 			continue;
@@ -689,7 +749,7 @@ uint sbbs_t::getusrsub(uint subnum)
 
 int sbbs_t::dir_op(uint dirnum)
 {
-	return(SYSOP || (cfg.dir[dirnum]->op_ar[0] && chk_ar(cfg.dir[dirnum]->op_ar,&useron)));
+	return(SYSOP || (cfg.dir[dirnum]->op_ar[0] && chk_ar(cfg.dir[dirnum]->op_ar,&useron,&client)));
 }
 
 
