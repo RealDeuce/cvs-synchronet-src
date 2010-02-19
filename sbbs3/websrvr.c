@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.515 2009/10/05 22:20:17 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.521 2010/02/19 05:28:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -98,11 +98,11 @@ enum {
 static scfg_t	scfg;
 static BOOL		scfg_reloaded=TRUE;
 static BOOL		http_logging_thread_running=FALSE;
-static DWORD	active_clients=0;
+static ulong	active_clients=0;
 static ulong	sockets=0;
 static BOOL		terminate_server=FALSE;
 static BOOL		terminate_http_logging_thread=FALSE;
-static uint		thread_count=0;
+static ulong	thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
 static SOCKET	server_socket6=INVALID_SOCKET;
 static char		revision[16];
@@ -113,12 +113,12 @@ static char		cgi_dir[MAX_PATH+1];
 static char		cgi_env_ini[MAX_PATH+1];
 static char		default_auth_list[MAX_PATH+1];
 static time_t	uptime=0;
-static DWORD	served=0;
+static ulong	served=0;
 static web_startup_t* startup=NULL;
 static js_server_props_t js_server_props;
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
-static int session_threads=0;
+static ulong session_threads=0;
 
 static named_string_t** mime_types;
 static named_string_t** cgi_handlers;
@@ -490,8 +490,11 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR)
-		errorlog(&scfg,sbuf);
+	if(level <= LOG_ERR) {
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
+		if(startup!=NULL && startup->errormsg!=NULL)
+			startup->errormsg(startup->cbdata,level,sbuf);
+	}
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
@@ -983,23 +986,18 @@ static const char* get_mime_type(char *ext)
 	return(unknown_mime_type);
 }
 
-static BOOL get_cgi_handler(char* cmdline, size_t maxlen)
+static char* get_cgi_handler(const char* fname)
 {
-	char	fname[MAX_PATH+1];
 	char*	ext;
 	size_t	i;
 
-	if(cgi_handlers==NULL || (ext=getfext(cmdline))==NULL)
-		return(FALSE);
-
+	if(cgi_handlers==NULL || (ext=getfext(fname))==NULL)
+		return(NULL);
 	for(i=0;cgi_handlers[i]!=NULL;i++) {
-		if(stricmp(cgi_handlers[i]->name, ext+1)==0) {
-			SAFECOPY(fname,cmdline);
-			safe_snprintf(cmdline,maxlen,"%s %s",cgi_handlers[i]->value,fname);
-			return(TRUE);
-		}
+		if(stricmp(cgi_handlers[i]->name, ext+1)==0)
+			return(cgi_handlers[i]->value);
 	}
-	return(FALSE);
+	return(NULL);
 }
 
 static BOOL get_xjs_handler(char* ext, http_session_t* session)
@@ -3270,13 +3268,14 @@ static BOOL exec_cgi(http_session_t *session)
 		{
 			*p=0;
 			chdir(cgipath);
+			SAFECOPY(cgipath,cmdline);
 		}
 
 		/* Execute command */
-		if(get_cgi_handler(cgipath, sizeof(cgipath))) {
+		if((p=get_cgi_handler(cmdline))!=NULL) {
 			char* shell=os_cmdshell();
-			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,cgipath,cmdline);
-			execle(shell,shell,"-c",cgipath,NULL,env_list);
+			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,p,cmdline);
+			execle(shell,shell,"-c",p,cmdline,NULL,env_list);
 		}
 		else {
 			execle(cmdline,cmdline,NULL,env_list);
@@ -3581,9 +3580,7 @@ static BOOL exec_cgi(http_session_t *session)
 	startup_info.dwFlags|=STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
     startup_info.wShowWindow=SW_HIDE;
 
-	SAFECOPY(cmdline,session->req.physical_path);
-
-	SAFECOPY(startup_dir,cmdline);
+	SAFECOPY(startup_dir,session->req.physical_path);
 	if((p=strrchr(startup_dir,'/'))!=NULL || (p=strrchr(startup_dir,'\\'))!=NULL)
 		*p=0;
 	else
@@ -3591,7 +3588,12 @@ static BOOL exec_cgi(http_session_t *session)
 
 	lprintf(LOG_DEBUG,"%04d CGI startup dir: %s", session->socket, startup_dir);
 
-	get_cgi_handler(cmdline, sizeof(cmdline));
+	if((p=get_cgi_handler(session->req.physical_path))==NULL) {
+		lprintf(LOG_ERR,"%04d !CGI handler not found for %s"
+			,session->socket,session->req.physical_path);
+		return(FALSE);
+	}
+	SAFEPRINTF2(cmdline,"%s %s",p,session->req.physical_path);
 
 	lprintf(LOG_INFO,"%04d Executing CGI: %s",session->socket,cmdline);
 
@@ -4968,15 +4970,15 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.host_name,host_name);
 
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
-		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, host_name);
+		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, session.host_name);
 #if	0 /* gethostbyaddr() is apparently not (always) thread-safe
 	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL 
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", session.socket, host->h_aliases[i]);
 #endif
-		if(trashcan(&scfg,host_name,"host")) {
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
+		if(trashcan(&scfg,session.host_name,"host")) {
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, session.host_name);
 			close_socket(&session.socket);
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
@@ -5177,8 +5179,9 @@ static void cleanup(int code)
 	thread_down();
 	status("Down");
 	if(terminate_server || code)
-		lprintf(LOG_INFO,"#### Web Server thread terminated (%u threads remain, %lu clients served)"
-			,thread_count, served);
+		lprintf(LOG_INFO,"#### Web Server thread terminated (%lu clients served)", served);
+	if(thread_count)
+		lprintf(LOG_WARNING,"#### !Web Server threads (%u) remain after termination", thread_count);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -5190,7 +5193,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.515 $", "%*s %s", revision);
+	sscanf("$Revision: 1.521 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
