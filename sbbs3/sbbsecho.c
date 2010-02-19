@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.199 2010/03/13 09:32:54 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.198 2009/07/16 01:07:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -3732,7 +3732,6 @@ void export_echomail(char *sub_code,faddr_t addr)
 						continue; 
 					}
 					
-					/* Need to support converting sole-LFs to Hard-CR and soft-CR (0x8D) as well */
 					if(misc&STRIP_LF && buf[l]=='\n')	/* Ignore line feeds */
 						continue;
 
@@ -3751,7 +3750,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 						cr=1;
 					else
 						cr=0;
-					if((scfg.sub[i]->misc&SUB_ASCII) || (misc&ASCII_ONLY)) {
+					if(scfg.sub[i]->misc&SUB_ASCII || misc&ASCII_ONLY) {
 						if(buf[l]<' ' && buf[l]!='\r'
 							&& buf[l]!='\n')			/* Ctrl ascii */
 							buf[l]='.';             /* converted to '.' */
@@ -3920,7 +3919,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.199 $", "%*s %s", revision);
+	sscanf("$Revision: 1.198 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

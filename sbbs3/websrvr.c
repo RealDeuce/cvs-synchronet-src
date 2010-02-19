@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.524 2010/03/13 08:15:08 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.521 2010/02/19 05:28:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,7 +118,6 @@ static web_startup_t* startup=NULL;
 static js_server_props_t js_server_props;
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
-static str_list_t cgi_env;
 static ulong session_threads=0;
 
 static named_string_t** mime_types;
@@ -223,7 +222,7 @@ typedef struct  {
 	BOOL	sent_headers;
 	BOOL	prev_write;
 
-	/* webctrl.ini overrides */
+	/* webconfig.ini overrides */
 	char	*error_dir;
 	char	*cgi_dir;
 	char	*auth_list;
@@ -2929,7 +2928,7 @@ static BOOL check_request(http_session_t * session)
 
 	/* Set default ARS to a 0-length string */
 	session->req.ars[0]=0;
-	/* Walk up from root_dir checking for access.ars and webctrl.ini */
+	/* Walk up from root_dir checking for access.ars and webconfig.ini */
 	SAFECOPY(curdir,path);
 	last_slash=curdir+strlen(root_dir)-1;
 	/* Loop while there's more /s in path*/
@@ -3151,6 +3150,7 @@ static str_list_t get_cgi_env(http_session_t *session)
 	char		append[INI_MAX_VALUE_LEN+1];
 	char		prepend[INI_MAX_VALUE_LEN+1];
 	char		env_str[(INI_MAX_VALUE_LEN*4)+2];
+	FILE*		fp;
 	size_t		i;
 	str_list_t	env_list;
 	str_list_t	add_list;
@@ -3161,22 +3161,29 @@ static str_list_t get_cgi_env(http_session_t *session)
 
 	strListAppendList(&env_list, session->req.cgi_env);
 
+	strListPush(&env_list,"REDIRECT_STATUS=200");	/* Kludge for php-cgi */
+
+	if((fp=iniOpenFile(cgi_env_ini,/* create? */FALSE))==NULL)
+		return(env_list);
+
 	/* FREE()d in this block */
-	if((add_list=iniGetSectionList(cgi_env,NULL))!=NULL) {
+	if((add_list=iniReadSectionList(fp,NULL))!=NULL) {
 
 		for(i=0; add_list[i]!=NULL; i++) {
 			if((deflt=getenv(add_list[i]))==NULL)
-				deflt=iniGetString(cgi_env,add_list[i],"default",NULL,defltbuf);
-			if(iniGetString(cgi_env,add_list[i],"value",deflt,value)==NULL)
+				deflt=iniReadString(fp,add_list[i],"default",NULL,defltbuf);
+			if(iniReadString(fp,add_list[i],"value",deflt,value)==NULL)
 				continue;
-			iniGetString(cgi_env,add_list[i],"append","",append);
-			iniGetString(cgi_env,add_list[i],"prepend","",prepend);
+			iniReadString(fp,add_list[i],"append","",append);
+			iniReadString(fp,add_list[i],"prepend","",prepend);
 			safe_snprintf(env_str,sizeof(env_str),"%s=%s%s%s"
 				,add_list[i], prepend, value, append);
 			strListPush(&env_list,env_str);
 		}
 		iniFreeStringList(add_list);
 	}
+
+	fclose(fp);
 
 	return(env_list);
 }
@@ -3261,6 +3268,7 @@ static BOOL exec_cgi(http_session_t *session)
 		{
 			*p=0;
 			chdir(cgipath);
+			SAFECOPY(cgipath,cmdline);
 		}
 
 		/* Execute command */
@@ -4619,7 +4627,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=xp_timer();
-		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL);
+		js_PrepareToExecute(session->js_cx, session->js_glob, script);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
@@ -5154,8 +5162,6 @@ static void cleanup(int code)
 	cgi_handlers=iniFreeNamedStringList(cgi_handlers);
 	xjs_handlers=iniFreeNamedStringList(xjs_handlers);
 
-	cgi_env=iniFreeStringList(cgi_env);
-
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 
@@ -5187,7 +5193,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.524 $", "%*s %s", revision);
+	sscanf("$Revision: 1.521 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5328,7 +5334,6 @@ void DLLCALL web_server(void* arg)
 	fd_set			socket_set;
 	time_t			t;
 	time_t			initialized=0;
-	FILE*			fp;
 	char*			p;
 	char			compiler[32];
 	http_session_t *	session=NULL;
@@ -5480,10 +5485,6 @@ void DLLCALL web_server(void* arg)
 
 		/* Don't do this for *each* CGI request, just once here during [re]init */
 		iniFileName(cgi_env_ini,sizeof(cgi_env_ini),scfg.ctrl_dir,"cgi_env.ini");
-		if((fp=iniOpenFile(cgi_env_ini,/* create? */FALSE)) != NULL) {
-			cgi_env = iniReadFile(fp);
-			iniCloseFile(fp);
-		}
 
 		if(startup->host_name[0]==0)
 			SAFECOPY(startup->host_name,scfg.sys_inetaddr);
@@ -5585,7 +5586,6 @@ void DLLCALL web_server(void* arg)
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mime_types_ini);
 		semfile_list_add(&recycle_semfiles,web_handler_ini);
-		semfile_list_add(&recycle_semfiles,cgi_env_ini);
 		if(!initialized) {
 			initialized=time(NULL);
 			semfile_list_check(&initialized,recycle_semfiles);
