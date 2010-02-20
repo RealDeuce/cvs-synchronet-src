@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.255 2010/03/12 08:19:27 rswindell Exp $ */
+/* $Id: js_global.c,v 1.252 2009/10/24 04:58:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -851,14 +851,14 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>2)
 		prefix=js_ValueToStringBytes(cx, argv[2], NULL);
 
-	if((outbuf=(char*)malloc((strlen(inbuf)*(strlen(prefix)+1))+1))==NULL)
+	if((outbuf=(char*)malloc((strlen(inbuf)*strlen(prefix))+1))==NULL)
 		return(JS_FALSE);
 
 	len-=strlen(prefix);
 	if(len<=0)
 		return(JS_FALSE);
 
-	if((linebuf=(char*)alloca((len*3)+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
+	if((linebuf=(char*)alloca(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -2544,7 +2544,7 @@ static JSBool
 js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	off_t		fl;
+	long		fl;
 	jsrefcount	rc;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -2556,7 +2556,7 @@ js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	fl=flength(p);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,(double)fl,rval);
+	JS_NewNumberValue(cx,fl,rval);
 	return(JS_TRUE);
 }
 
