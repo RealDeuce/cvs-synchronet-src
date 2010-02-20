@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.521 2010/02/19 05:28:51 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.522 2010/02/20 01:46:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -222,7 +222,7 @@ typedef struct  {
 	BOOL	sent_headers;
 	BOOL	prev_write;
 
-	/* webconfig.ini overrides */
+	/* webctrl.ini overrides */
 	char	*error_dir;
 	char	*cgi_dir;
 	char	*auth_list;
@@ -2928,7 +2928,7 @@ static BOOL check_request(http_session_t * session)
 
 	/* Set default ARS to a 0-length string */
 	session->req.ars[0]=0;
-	/* Walk up from root_dir checking for access.ars and webconfig.ini */
+	/* Walk up from root_dir checking for access.ars and webctrl.ini */
 	SAFECOPY(curdir,path);
 	last_slash=curdir+strlen(root_dir)-1;
 	/* Loop while there's more /s in path*/
@@ -3268,7 +3268,6 @@ static BOOL exec_cgi(http_session_t *session)
 		{
 			*p=0;
 			chdir(cgipath);
-			SAFECOPY(cgipath,cmdline);
 		}
 
 		/* Execute command */
@@ -5193,7 +5192,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.521 $", "%*s %s", revision);
+	sscanf("$Revision: 1.522 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
