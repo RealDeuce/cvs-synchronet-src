@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.125 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: userdat.c,v 1.124 2009/11/21 20:42:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -72,7 +72,7 @@ uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
 	sprintf(str,"%suser/name.dat",cfg->data_dir);
 	if((file=nopen(str,O_RDONLY))==-1)
 		return(0);
-	length=(long)filelength(file);
+	length=filelength(file);
 	if((stream=fdopen(file,"rb"))==NULL)
 		return(0);
 	for(l=0;l<length;l+=LEN_ALIAS+2) {
@@ -138,7 +138,7 @@ uint DLLCALL total_users(scfg_t* cfg)
 	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
 		return(0);
-	length=(long)filelength(file);
+	length=filelength(file);
 	for(l=0;l<length;l+=U_LEN) {
 		lseek(file,l+U_MISC,SEEK_SET);
 		if(read(file,str,8)!=8)
@@ -165,7 +165,7 @@ uint DLLCALL lastuser(scfg_t* cfg)
 		return(0);
 
 	sprintf(str,"%suser/user.dat", cfg->data_dir);
-	if((length=(long)flength(str))>0)
+	if((length=flength(str))>0)
 		return((uint)(length/U_LEN));
 	return(0);
 }
@@ -185,7 +185,7 @@ BOOL DLLCALL del_lastuser(scfg_t* cfg)
 	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDWR|O_DENYNONE))==-1)
 		return(FALSE);
-	length=(long)filelength(file);
+	length=filelength(file);
 	if(length<U_LEN) {
 		close(file);
 		return(FALSE);
@@ -598,7 +598,7 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 	sprintf(str,"%suser/name.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDWR|O_CREAT))==-1) 
 		return(errno); 
-	length=(long)filelength(file);
+	length=filelength(file);
 
 	/* Truncate corrupted name.dat */
 	total_users=lastuser(cfg);
@@ -1061,7 +1061,7 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
 		return(0);
-	length=(long)filelength(file);
+	length=filelength(file);
 	for(l=0;l<length;l+=U_LEN) {
 		if(usernumber && l/U_LEN==(long)usernumber-1)
 			continue;
@@ -1171,7 +1171,7 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 		return(NULL);
 	if((file=nopen(str,O_RDWR))==-1)
 		return(NULL);
-	length=(long)filelength(file);
+	length=filelength(file);
 	if((buf=(char *)malloc(length+1))==NULL) {
 		close(file);
 		return(NULL);
@@ -1208,7 +1208,7 @@ char* DLLCALL getnmsg(scfg_t* cfg, int node_num)
 		return(NULL);
 	if((file=nopen(str,O_RDWR))==-1)
 		return(NULL); 
-	length=(long)filelength(file);
+	length=filelength(file);
 	if(!length) {
 		close(file);
 		return(NULL); 
@@ -2294,7 +2294,7 @@ int DLLCALL newuserdat(scfg_t* cfg, user_t* user)
 		if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 			return(errno); 
 		}
-		last=(long)filelength(file)/(LEN_ALIAS+2);	   /* total users */
+		last=filelength(file)/(LEN_ALIAS+2);	   /* total users */
 		while(unum<=last) {
 			fread(str,LEN_ALIAS+2,1,stream);
 			for(c=0;c<LEN_ALIAS;c++)

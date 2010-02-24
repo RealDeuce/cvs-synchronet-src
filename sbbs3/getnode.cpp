@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.39 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.38 2009/11/21 20:42:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -220,7 +220,7 @@ int sbbs_t::getnmsg()
 		**/
 		return(errno); 
 	}
-	length=(long)filelength(file);
+	length=filelength(file);
 	if(!length) {
 		close(file);
 		return(0); 
@@ -329,7 +329,7 @@ int sbbs_t::getsmsg(int usernumber)
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return(errno); 
 	}
-	length=(long)filelength(file);
+	length=filelength(file);
 	if((buf=(char *)malloc(length+1))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1);
