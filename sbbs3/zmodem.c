@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.90 2009/07/15 07:54:56 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.91 2010/02/25 01:47:30 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1291,7 +1291,7 @@ int zmodem_recv_header_and_check(zmodem_t* zm)
 	while(is_connected(zm) && !is_cancelled(zm)) {
 		type = zmodem_recv_header_raw(zm,TRUE);		
 
-		if(type != INVHDR && (type&BADSUBPKT) == 0) {
+		if(type != INVHDR && ((type&BADSUBPKT) == 0 || type==TIMEOUT)) {
 			break;
 		}
 
@@ -2202,7 +2202,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.90 $", "%*s %s", buf);
+	sscanf("$Revision: 1.91 $", "%*s %s", buf);
 
 	return(buf);
 }
