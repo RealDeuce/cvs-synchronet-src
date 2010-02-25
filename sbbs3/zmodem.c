@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.93 2010/02/25 03:06:14 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.94 2010/02/25 06:44:49 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1419,7 +1419,7 @@ int zmodem_get_zfin(zmodem_t* zm)
 	return type;
 }
 
-BOOL zmodem_handle_zrpos(zmodem_t* zm, ulong* pos)
+BOOL zmodem_handle_zrpos(zmodem_t* zm, uint32_t* pos)
 {
 	if(zm->rxd_header_pos <= zm->current_file_size) {
 		if(*pos != zm->rxd_header_pos) {
@@ -2221,7 +2221,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.93 $", "%*s %s", buf);
+	sscanf("$Revision: 1.94 $", "%*s %s", buf);
 
 	return(buf);
 }
