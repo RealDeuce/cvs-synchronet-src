@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.271 2009/05/22 22:18:06 deuce Exp $ */
+/* $Id: term.c,v 1.272 2010/02/25 03:27:08 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -400,9 +400,15 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 			);
 		clreol();
 		cputs("\r\n");
-		cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-			,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
-		l = (long)(60*((float)current_pos/(float)zm->current_file_size));
+		if(zm->current_file_size==0) {
+			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, "", 100);
+			l = 60;
+		}
+		else{
+			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
+				,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
+			l = (long)(60*((float)current_pos/(float)zm->current_file_size));
+		}
 		cprintf("[%*.*s%*s]", l, l, 
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
