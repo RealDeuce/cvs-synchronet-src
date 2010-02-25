@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.15 2009/02/18 05:23:00 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.20 2009/02/27 06:19:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,12 +97,108 @@ const char *sbbs_t::ansi(int atr)
 	return("-Invalid use of ansi()-");
 }
 
+/* insure str is at least 14 bytes in size! */
+char* sbbs_t::ansi(int atr, int curatr, char* str)
+{
+	if(!term_supports(COLOR)) {  /* eliminate colors if user doesn't have them */
+		if(atr&LIGHTGRAY)       /* if any foreground bits set, set all */
+			atr|=LIGHTGRAY;
+		if(atr&BG_LIGHTGRAY)  /* if any background bits set, set all */
+			atr|=BG_LIGHTGRAY;
+		if(atr&LIGHTGRAY && atr&BG_LIGHTGRAY)
+			atr&=~LIGHTGRAY;    /* if background is solid, foreground is black */
+		if(!atr)
+			atr|=LIGHTGRAY;		/* don't allow black on black */
+	}
+	if(curatr==atr) { /* text hasn't changed. no sequence needed */
+		*str=0;
+		return str;
+	}
+
+	strcpy(str,"\033[");
+	if((!(atr&HIGH) && curatr&HIGH) || (!(atr&BLINK) && curatr&BLINK)
+		|| atr==LIGHTGRAY) {
+		strcat(str,"0;");
+		curatr=LIGHTGRAY;
+	}
+	if(atr&BLINK) {                     /* special attributes */
+		if(!(curatr&BLINK))
+			strcat(str,"5;");
+	}
+	if(atr&HIGH) {
+		if(!(curatr&HIGH))
+			strcat(str,"1;"); 
+	}
+	if((atr&0x07) != (curatr&0x07)) {
+		switch(atr&0x07) {
+			case BLACK:
+				strcat(str,"30;");
+				break;
+			case RED:
+				strcat(str,"31;");
+				break;
+			case GREEN:
+				strcat(str,"32;");
+				break;
+			case BROWN:
+				strcat(str,"33;");
+				break;
+			case BLUE:
+				strcat(str,"34;");
+				break;
+			case MAGENTA:
+				strcat(str,"35;");
+				break;
+			case CYAN:
+				strcat(str,"36;");
+				break;
+			case LIGHTGRAY:
+				strcat(str,"37;");
+				break;
+		}
+	}
+	if((atr&0x70) != (curatr&0x70)) {
+		switch(atr&0x70) {
+			/* The BG_BLACK macro is 0x200, so isn't in the mask */
+			case 0 /* BG_BLACK */:	
+				strcat(str,"40;");
+				break;
+			case BG_RED:
+				strcat(str,"41;");
+				break;
+			case BG_GREEN:
+				strcat(str,"42;");
+				break;
+			case BG_BROWN:
+				strcat(str,"43;");
+				break;
+			case BG_BLUE:
+				strcat(str,"44;");
+				break;
+			case BG_MAGENTA:
+				strcat(str,"45;");
+				break;
+			case BG_CYAN:
+				strcat(str,"46;");
+				break;
+			case BG_LIGHTGRAY:
+				strcat(str,"47;");
+				break;
+		}
+	}
+	if(strlen(str)==2)	/* Convert <ESC>[ to blank */
+		*str=0;
+	else
+		str[strlen(str)-1]='m';
+	return str;
+}
+
 void sbbs_t::ansi_getlines()
 {
 	if(sys_status&SS_USERON && useron.misc&ANSI && !useron.rows /* Auto-detect rows */
 		&& online==ON_REMOTE) {									/* Remote */
 		SYNC;
-		putcom("\x1b[s\x1b[255;255H\x1b[6n\x1b[u");
+		putcom("\x1b[s\x1b[255B\x1b[255C\x1b[6n\x1b[u");
 		inkey(K_ANSI_CPR,TIMEOUT_ANSI_GETXY*1000); 
 	}
 }
@@ -164,6 +260,9 @@ bool sbbs_t::ansi_gotoxy(int x, int y)
 {
 	if(term_supports(ANSI)) {
 		rprintf("\x1b[%d;%dH",y,x);
+		if(x>0)
+			column=x-1;
+		lncntr=0;
 		return true;
 	}
 	return false;
