@@ -4,12 +4,14 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.44 2008/09/23 07:05:35 deuce Exp $ */
+/* $Id: zmodem.h,v 1.47 2010/02/25 02:45:42 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
 
 #include <stdio.h>	/* FILE */
+
+#define ZMODEM_FILE_SIZE_MAX	0xffffffff	/* 32-bits, blame Chuck */
 
 /*
  * ascii constants
@@ -228,19 +230,20 @@ typedef struct {
 
 	char		current_file_name[MAX_PATH+1];
 	uint32_t	current_file_size;
+	uint32_t	current_file_pos;
 	time_t		current_file_time;
 	unsigned	current_file_num;
 	unsigned	total_files;
 	uint32_t	total_bytes;
 	unsigned	files_remaining;
-	unsigned	bytes_remaining;
+	uint32_t	bytes_remaining;
 	uint32_t	transfer_start_pos;
 	time_t		transfer_start_time;
 
 	int		receive_32bit_data;
 	int		use_crc16;
 	int32_t	ack_file_pos;				/* file position used in acknowledgement of correctly */
-									/* received data subpackets */
+										/* received data subpackets */
 
 	int last_sent;
 
@@ -253,6 +256,7 @@ typedef struct {
 	BOOL		local_abort;
 	BOOL		file_skipped;
 	BOOL		no_streaming;
+	BOOL		frame_in_transit;
 	unsigned	recv_bufsize;	/* Receiver specified buffer size */
 	int32_t		crc_request;
 	unsigned	errors;
@@ -294,7 +298,7 @@ char*		zmodem_ver(char *buf);
 const char* zmodem_source(void);
 int			zmodem_rx(zmodem_t* zm);
 int			zmodem_tx(zmodem_t* zm, BYTE ch);
-int			zmodem_abort_receive(zmodem_t*);
+int			zmodem_send_zabort(zmodem_t*);
 int			zmodem_send_ack(zmodem_t*, int32_t pos);
 int			zmodem_send_nak(zmodem_t*);
 int			zmodem_send_zskip(zmodem_t* zm);

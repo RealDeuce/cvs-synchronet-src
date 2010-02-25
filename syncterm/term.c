@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.269 2009/02/16 10:21:56 deuce Exp $ */
+/* $Id: term.c,v 1.273 2010/02/25 03:29:51 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -400,9 +400,15 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 			);
 		clreol();
 		cputs("\r\n");
-		cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-			,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
-		l = (long)(60*((float)current_pos/(float)zm->current_file_size));
+		if(zm->current_file_size==0) {
+			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, "", 100);
+			l = 60;
+		}
+		else{
+			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
+				,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
+			l = (long)(60*((float)current_pos/(float)zm->current_file_size));
+		}
 		cprintf("[%*.*s%*s]", l, l, 
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1185,13 +1191,13 @@ void xmodem_progress(void* cbdata, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,(long)(((float)offset/(float)fsize)*100.0)
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 			clreol();
 			cputs("\r\n");
 			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-				,(long)(((float)offset/(float)fsize)*100.0));
-			l = (long)(((float)offset/(float)fsize)*60.0);
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100);
+			l = fsize?(long)(((float)offset/(float)fsize)*60.0):60;
 			cprintf("[%*.*s%*s]", l, l, 
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1217,8 +1223,8 @@ void xmodem_progress(void* cbdata, unsigned block_num, ulong offset, ulong fsize
 			clreol();
 			cputs("\r\n");
 			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-				,(long)(((float)offset/(float)fsize)*100.0));
-			l = (long)(((float)offset/(float)fsize)*60.0);
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100);
+			l = fsize?(long)(((float)offset/(float)fsize)*60.0):60;
 			cprintf("[%*.*s%*s]", l, l, 
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1986,9 +1992,39 @@ int html_urlredirect(const char *uri, char *buf, size_t bufsize, char *uribuf, s
 
 #endif
 
+#define OUTBUF_SIZE	2048
+
+#ifdef WITH_WXWIDGETS
+#define WRITE_OUTBUF()	\
+	if(outbuf_size > 0) { \
+		cterm_write(outbuf, outbuf_size, prn, sizeof(prn), &speed); \
+		outbuf_size=0; \
+		if(html_mode==HTML_MODE_RAISED) { \
+			if(html_startx != wherex() || html_starty != wherey()) { \
+				iconize_html(); \
+				html_mode=HTML_MODE_ICONIZED; \
+			} \
+		} \
+		if(prn[0]) \
+			conn_send(prn, strlen(prn), 0); \
+		updated=TRUE; \
+	}
+#else
+#define WRITE_OUTBUF()	\
+	if(outbuf_size > 0) { \
+		cterm_write(outbuf, outbuf_size, prn, sizeof(prn), &speed); \
+		outbuf_size=0; \
+		if(prn[0]) \
+			conn_send(prn, strlen(prn), 0); \
+		updated=TRUE; \
+	}
+#endif
+
 BOOL doterm(struct bbslist *bbs)
 {
 	unsigned char ch[2];
+	unsigned char outbuf[OUTBUF_SIZE];
+	size_t outbuf_size=0;
 	unsigned char prn[ANSI_REPLY_BUFSIZE];
 	int	key;
 	int i,j;
@@ -2088,6 +2124,7 @@ BOOL doterm(struct bbslist *bbs)
 				switch(inch) {
 					case -1:
 						if(!conn_connected()) {
+							WRITE_OUTBUF();
 							hold_update=oldmc;
 #ifdef WITH_WXWIDGETS
 							if(html_mode != HTML_MODE_HIDDEN) {
@@ -2117,6 +2154,7 @@ BOOL doterm(struct bbslist *bbs)
 							gutsbuf[j]=inch;
 							gutsbuf[++j]=0;
 							if(j==sizeof(gutsinit)) { /* Have full sequence */
+								WRITE_OUTBUF();
 								guts_transfer(bbs);
 								remain=1;
 							}
@@ -2144,6 +2182,7 @@ BOOL doterm(struct bbslist *bbs)
 							htmldet[j]=inch;
 							htmldet[++j]=0;
 							if(j==sizeof(htmldetect)-1) {
+								WRITE_OUTBUF();
 								if(!strcmp(htmldet, htmldetect)) {
 									if(html_supported==HTML_SUPPORT_UNKNOWN) {
 										int width,height,xpos,ypos;
@@ -2176,6 +2215,7 @@ BOOL doterm(struct bbslist *bbs)
 							zrqbuf[j]=inch;
 							zrqbuf[++j]=0;
 							if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
+								WRITE_OUTBUF();
 								if(!strcmp(zrqbuf, zrqinit))
 									zmodem_download(bbs);
 								else
@@ -2202,6 +2242,7 @@ BOOL doterm(struct bbslist *bbs)
 								ooii_buf[j++]=inch;
 								ooii_buf[j]=0;
 								if(inch == '|') {
+									WRITE_OUTBUF();
 									if(handle_ooii_code(ooii_buf, &ooii_mode, prn, sizeof(prn))) {
 										ooii_mode=0;
 										xptone_close();
@@ -2241,20 +2282,9 @@ BOOL doterm(struct bbslist *bbs)
 								ooii_buf[0]=0;
 						}
 #endif
-
-						ch[0]=inch;
-						cterm_write(ch, 1, prn, sizeof(prn), &speed);
-#ifdef WITH_WXWIDGETS
-						if(html_mode==HTML_MODE_RAISED) {
-							if(html_startx!=wherex() || html_starty!=wherey()) {
-								iconize_html();
-								html_mode=HTML_MODE_ICONIZED;
-							}
-						}
-#endif
-						if(prn[0])
-							conn_send(prn, strlen(prn), 0);
-						updated=TRUE;
+						if(outbuf_size >= sizeof(outbuf))
+							WRITE_OUTBUF();
+						outbuf[outbuf_size++]=inch;
 						continue;
 				}
 			}
@@ -2264,6 +2294,7 @@ BOOL doterm(struct bbslist *bbs)
 				break;
 			}
 		}
+		WRITE_OUTBUF();
 		if(updated) {
 			hold_update=FALSE;
 			gotoxy(wherex(), wherey());
@@ -2355,15 +2386,17 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x2600:	/* ALT-L */
-					if(bbs->user[0]) {
-						conn_send(bbs->user,strlen(bbs->user),0);
-						conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
-						SLEEP(10);
-					}
-					if(bbs->password[0]) {
-						conn_send(bbs->password,strlen(bbs->password),0);
-						conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
-						SLEEP(10);
+					if(bbs->conn_type != CONN_TYPE_RLOGIN && bbs->conn_type != CONN_TYPE_RLOGIN_REVERSED && bbs->conn_type != CONN_TYPE_SSH) {
+						if(bbs->user[0]) {
+							conn_send(bbs->user,strlen(bbs->user),0);
+							conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
+							SLEEP(10);
+						}
+						if(bbs->password[0]) {
+							conn_send(bbs->password,strlen(bbs->password),0);
+							conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
+							SLEEP(10);
+						}
 					}
 					if(bbs->syspass[0]) {
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
