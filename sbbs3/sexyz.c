@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.92 2010/02/25 02:45:42 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.93 2010/02/25 03:34:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -712,7 +712,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,(long)(((float)offset/(float)fsize)*100.0)
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else if(mode&YMODEM) {
 			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
@@ -726,7 +726,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,(long)(((float)offset/(float)fsize)*100.0)
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else { /* XModem receive */
 			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
@@ -781,7 +781,7 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 			,l/60L
 			,l%60L
 			,cps
-			,(long)(((float)current_pos/(float)zm.current_file_size)*100.0)
+			,zm.current_file_size?(long)(((float)current_pos/(float)zm.current_file_size)*100.0):100
 			);
 		newline=FALSE;
 		last_progress=now;
@@ -1339,7 +1339,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.92 $", "%*s %s", revision);
+	sscanf("$Revision: 1.93 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
