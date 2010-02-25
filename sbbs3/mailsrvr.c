@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.509 2009/12/09 19:00:36 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.510 2010/02/25 04:34:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2320,7 +2320,7 @@ static void smtp_thread(void* arg)
 		if(trashcan(&scfg,host_ip,"ip") || findstr(host_ip,spam_block)) {
 			lprintf(LOG_NOTICE,"%04d !SMTP CLIENT IP ADDRESS BLOCKED: %s (%u total)"
 				,socket, host_ip, ++stats.sessions_refused);
-			sockprintf(socket,"550 Access denied.");
+			sockprintf(socket,"550 CLIENT IP ADDRESS BLOCKED: %s", host_ip);
 			mail_close_socket(socket);
 			thread_down();
 			if(active_clients)
@@ -2331,7 +2331,7 @@ static void smtp_thread(void* arg)
 		if(trashcan(&scfg,host_name,"host") || findstr(host_name,spam_block)) {
 			lprintf(LOG_NOTICE,"%04d !SMTP CLIENT HOSTNAME BLOCKED: %s (%u total)"
 				,socket, host_name, ++stats.sessions_refused);
-			sockprintf(socket,"550 Access denied.");
+			sockprintf(socket,"550 CLIENT HOSTNAME BLOCKED: %s", host_name);
 			mail_close_socket(socket);
 			thread_down();
 			if(active_clients)
@@ -4668,7 +4668,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.509 $", "%*s %s", revision);
+	sscanf("$Revision: 1.510 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
