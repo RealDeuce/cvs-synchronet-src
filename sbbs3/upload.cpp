@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.52 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.53 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ bool sbbs_t::uploadfile(file_t *f)
 			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-		logline("U!",str);
+		logline(LOG_NOTICE,"U!",str);
 		return(0); 
 	}
 	strcpy(tmp,f->name);
@@ -104,7 +104,7 @@ bool sbbs_t::uploadfile(file_t *f)
 					,useron.alias
 					,f->name
 					,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname,cfg.ftest[i]->ext);
-				logline("U!",str);
+				logline(LOG_NOTICE,"U!",str);
 #if 0
 				sprintf(str,"Failed test: %s", cmdstr(cfg.ftest[i]->cmd,path,f->desc,NULL));
 				logline("  ",str);
@@ -146,7 +146,7 @@ bool sbbs_t::uploadfile(file_t *f)
 			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-		logline("U!",str);
+		logline(LOG_NOTICE,"U!",str);
 		return(0); 
 	}
 	if(cfg.dir[f->dir]->misc&DIR_DIZ) {

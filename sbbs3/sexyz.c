@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.91 2009/08/21 08:55:09 deuce Exp $ */
+/* $Id: sexyz.c,v 1.94 2010/02/25 04:07:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -345,15 +345,12 @@ void send_telnet_cmd(SOCKET sock, uchar cmd, uchar opt)
 int recv_byte(void* unused, unsigned timeout)
 {
 	int			i;
-	long		t;
 	uchar		ch;
 	fd_set		socket_set;
-	time_t		end;
 	struct timeval	tv;
 	static uchar	telnet_cmd;
 	static int		telnet_cmdlen;
 
-	end=msclock()+(timeout*MSCLOCKS_PER_SEC);
 	while(!terminate) {
 
 		FD_ZERO(&socket_set);
@@ -363,9 +360,8 @@ int recv_byte(void* unused, unsigned timeout)
 		else
 #endif
 			FD_SET(sock,&socket_set);
-		if((t=end-msclock())<0) t=0;
-		tv.tv_sec=t/((unsigned)MSCLOCKS_PER_SEC);
-		tv.tv_usec=(t%((unsigned)MSCLOCKS_PER_SEC))*1000;
+		tv.tv_sec=timeout;
+		tv.tv_usec=0;
 
 		if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 			if(i==SOCKET_ERROR) {
@@ -712,7 +708,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,(long)(((float)offset/(float)fsize)*100.0)
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else if(mode&YMODEM) {
 			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
@@ -726,7 +722,7 @@ void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,(long)(((float)offset/(float)fsize)*100.0)
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else { /* XModem receive */
 			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
@@ -781,7 +777,7 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 			,l/60L
 			,l%60L
 			,cps
-			,(long)(((float)current_pos/(float)zm.current_file_size)*100.0)
+			,zm.current_file_size?(long)(((float)current_pos/(float)zm.current_file_size)*100.0):100
 			);
 		newline=FALSE;
 		last_progress=now;
@@ -1018,7 +1014,7 @@ static int receive_files(char** fname_list, int fnames)
 					return(0); 
 				}
 				file_bytes=ftime=total_files=total_bytes=0;
-				i=sscanf(block+strlen(block)+1,"%ld %lo %lo %lo %d %ld"
+				i=sscanf(block+strlen(block)+1,"%lu %lo %lo %lo %u %lu"
 					,&file_bytes			/* file size (decimal) */
 					,&ftime 				/* file time (octal unix format) */
 					,&fmode 				/* file mode (not used) */
@@ -1055,7 +1051,7 @@ static int receive_files(char** fname_list, int fnames)
 			}
 
 			if(!file_bytes)
-				file_bytes=0x7fffffff;
+				file_bytes=0x7fffffff;	/* Should we use 0xffffffff instead? */
 			file_bytes_left=file_bytes;
 			if(!total_files)
 				total_files=fnames-fnum;
@@ -1339,7 +1335,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.91 $", "%*s %s", revision);
+	sscanf("$Revision: 1.94 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
