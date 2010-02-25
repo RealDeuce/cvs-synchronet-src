@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.93 2010/02/25 03:34:48 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.94 2010/02/25 04:07:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -345,15 +345,12 @@ void send_telnet_cmd(SOCKET sock, uchar cmd, uchar opt)
 int recv_byte(void* unused, unsigned timeout)
 {
 	int			i;
-	long		t;
 	uchar		ch;
 	fd_set		socket_set;
-	time_t		end;
 	struct timeval	tv;
 	static uchar	telnet_cmd;
 	static int		telnet_cmdlen;
 
-	end=msclock()+(timeout*MSCLOCKS_PER_SEC);
 	while(!terminate) {
 
 		FD_ZERO(&socket_set);
@@ -363,9 +360,8 @@ int recv_byte(void* unused, unsigned timeout)
 		else
 #endif
 			FD_SET(sock,&socket_set);
-		if((t=end-msclock())<0) t=0;
-		tv.tv_sec=t/((unsigned)MSCLOCKS_PER_SEC);
-		tv.tv_usec=(t%((unsigned)MSCLOCKS_PER_SEC))*1000;
+		tv.tv_sec=timeout;
+		tv.tv_usec=0;
 
 		if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 			if(i==SOCKET_ERROR) {
@@ -1339,7 +1335,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.93 $", "%*s %s", revision);
+	sscanf("$Revision: 1.94 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
