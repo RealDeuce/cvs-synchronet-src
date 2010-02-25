@@ -2,13 +2,13 @@
 
 /* Synchronet file database sorting routines */
 
-/* $Id: sortdir.cpp,v 1.7 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: sortdir.cpp,v 1.6 2005/09/20 03:39:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -72,8 +72,8 @@ void sbbs_t::resort(uint dirnum)
 		close(ixbfile);
 		errormsg(WHERE,ERR_OPEN,datfname,O_RDONLY);
 		return; }
-	ixblen=(long)filelength(ixbfile);
-	datlen=(long)filelength(datfile);
+	ixblen=filelength(ixbfile);
+	datlen=filelength(datfile);
 	if((ixbbuf=(uchar *)malloc(ixblen))==NULL) {
 		close(ixbfile);
 		close(datfile);
