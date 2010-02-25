@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.95 2010/02/25 17:27:55 deuce Exp $ */
+/* $Id: sexyz.c,v 1.96 2010/02/25 21:34:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,7 +403,7 @@ int recv_byte(void* unused, unsigned timeout)
 	static uchar	telnet_cmd;
 	static int		telnet_cmdlen;
 
-	while(!terminate) {
+	while((inbuf_len || connected) && !terminate) {
 		if(inbuf_len) {
 			ch=inbuf[inbuf_pos++];
 			i=1;
@@ -449,6 +449,10 @@ int recv_byte(void* unused, unsigned timeout)
 						connected=FALSE;
 						break;
 				}
+			}
+			else if(i==0) {
+				connected=FALSE;
+				break;
 			}
 			else
 				inbuf_len=i;
@@ -1413,7 +1417,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.95 $", "%*s %s", revision);
+	sscanf("$Revision: 1.96 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
