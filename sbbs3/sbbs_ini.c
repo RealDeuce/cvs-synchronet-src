@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.131 2010/02/23 00:21:32 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.132 2010/02/25 06:32:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,12 +77,21 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
 	/* pHostName is no longer used since iniFileName calls gethostname() itself */
 
+#if defined(_WINSOCKAPI_)	 
+	WSADATA WSAData;	 
+    WSAStartup(MAKEWORD(1,1), &WSAData); /* req'd for gethostname */	 
+#endif	 
+
 #if defined(__unix__) && defined(PREFIX)
 	sprintf(ini_file,PREFIX"/etc/sbbs.ini");
 	if(fexistcase(ini_file))
 		return;
 #endif
 	iniFileName(ini_file,MAX_PATH,ctrl_dir,"sbbs.ini");
+
+#if defined(_WINSOCKAPI_)	 
+	WSACleanup();	 
+#endif
 }
 
 static void sbbs_fix_js_settings(js_startup_t* js)
