@@ -421,8 +421,10 @@ int read_config(void)
 	char	*p;
 
 	p=getenv("SBBSCTRL");
-	if(p==NULL)
-		p="/sbbs/ctrl";
+	if(p==NULL) {
+		display_message("Environment Error","SBBSCTRL not set","gtk-dialog-error");
+		return(-1);
+	}
 	SAFECOPY(ctrl_dir, p);
 	prep_dir("",ctrl_dir,sizeof(ctrl_dir));
 	if(!isdir(ctrl_dir)) {
