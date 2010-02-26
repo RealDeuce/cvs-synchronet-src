@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.47 2010/02/25 02:45:42 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.48 2010/02/26 02:13:50 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -271,6 +271,7 @@ typedef struct {
 	unsigned	max_errors;
 	unsigned	block_size;
 	unsigned	max_block_size;
+	uint32_t	max_file_size;		/* 0 = unlimited */
 
 	/* Callbacks */
 	void*		cbdata;

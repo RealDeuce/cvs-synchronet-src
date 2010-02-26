@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.94 2010/02/25 06:44:49 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.95 2010/02/26 02:13:50 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -2121,6 +2121,12 @@ unsigned zmodem_recv_file_data(zmodem_t* zm, FILE* fp, uint32_t offset)
 		if((pos=ftell(fp)) > zm->current_file_size)
 			zm->current_file_size = pos;
 
+		if(zm->max_file_size!=0 && pos >= zm->max_file_size) {
+			lprintf(zm,LOG_WARNING,"Specified maximum file size (%lu bytes) reached at offset %lu"
+				,zm->max_file_size, pos);
+			break;
+		}
+
 		if(type!=ENDOFFRAME)
 			zmodem_send_pos_header(zm, ZRPOS, ftell(fp), /* Hex? */ TRUE);
 
@@ -2221,7 +2227,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.94 $", "%*s %s", buf);
+	sscanf("$Revision: 1.95 $", "%*s %s", buf);
 
 	return(buf);
 }
