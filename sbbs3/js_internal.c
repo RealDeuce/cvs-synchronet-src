@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.48 2010/03/13 08:15:07 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.47 2009/08/18 23:24:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -486,7 +486,7 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	return(obj);
 }
 
-void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
+void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename)
 {
 	JSString*	str;
 	jsval		val;
@@ -511,10 +511,5 @@ void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filen
 				JS_DefineProperty(cx, js, "exec_dir", STRING_TO_JSVAL(str)
 					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 		}
-		if(startup_dir==NULL)
-			startup_dir="";
-		if((str=JS_NewStringCopyZ(cx, startup_dir)) != NULL)
-			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
-				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
 }
