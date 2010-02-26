@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.162 2009/09/24 00:52:23 deuce Exp $ */
+/* $Id: syncterm.c,v 1.163 2010/02/26 00:19:34 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -34,7 +34,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.3b"
+char* syncterm_version = "SyncTERM 0.9.4b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -724,7 +724,7 @@ char *output_enum[]={
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
-	struct	bbslist	*list[MAX_OPTS+1];
+	struct	bbslist	*list[MAX_OPTS+1]={NULL};
 	int		listcount=0, i;
 
 	bbs->id=-1;
