@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: rlogin.c,v 1.31 2010/03/03 07:09:35 deuce Exp $ */
+/* $Id: rlogin.c,v 1.30 2008/01/20 06:53:00 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -49,7 +49,7 @@ void rlogin_input_thread(void *args)
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
-			buffer=conn_buf_wait_free(&conn_inbuf, rd-buffered, 1000);
+			buffer=conn_buf_wait_free(&conn_inbuf, rd-buffered, 100);
 			buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
 			pthread_mutex_unlock(&(conn_inbuf.mutex));
 		}
