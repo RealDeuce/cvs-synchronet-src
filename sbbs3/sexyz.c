@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.97 2010/02/26 02:13:50 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.98 2010/03/01 01:44:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -341,6 +341,7 @@ int sock_sendbuf(SOCKET s, void *buf, size_t buflen)
 			switch(ERROR_VALUE) {
 				case EAGAIN:
 				case ENOBUFS:
+				case EWOULDBLOCK:
 					/* Block until we can send */
 					FD_ZERO(&socket_set);
 #ifdef __unix__
@@ -369,6 +370,7 @@ int sock_sendbuf(SOCKET s, void *buf, size_t buflen)
 	}
 
 disconnect:
+	lprintf(LOG_DEBUG,"DISCONNECTED line %u", __LINE__);
 	connected=FALSE;
 	if(sent)
 		return sent;
@@ -423,6 +425,7 @@ int recv_byte(void* unused, unsigned timeout)
 				switch(ERROR_VALUE) {
 					case EAGAIN:
 					case EINTR:
+					case EWOULDBLOCK:
 						if(timeout) {
 							FD_ZERO(&socket_set);
 #ifdef __unix__
@@ -448,11 +451,13 @@ int recv_byte(void* unused, unsigned timeout)
 						return(NOINP);
 						break;
 					default:
+						lprintf(LOG_DEBUG,"DISCONNECTED line %u, error=%u", __LINE__,ERROR_VALUE);
 						connected=FALSE;
 						break;
 				}
 			}
 			else if(i==0) {
+				lprintf(LOG_DEBUG,"DISCONNECTED line %u", __LINE__);
 				connected=FALSE;
 				break;
 			}
@@ -1438,7 +1443,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.97 $", "%*s %s", revision);
+	sscanf("$Revision: 1.98 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
