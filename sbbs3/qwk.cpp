@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.50 2009/10/18 09:38:00 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.52 2009/12/04 06:04:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -344,8 +344,10 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 	smbmsg_t msg;
 
 	if(useron.rest&FLAG('Q')) {	// Was if(!prepack) only
-		sprintf(str,"%sqnet/%.8s.out/",cfg.data_dir,useron.alias);
-		strlwr(str);
+		char id[LEN_QWKID+1];
+		SAFECOPY(id,useron.alias);
+		strlwr(id);
+		sprintf(str,"%sqnet/%s.out/",cfg.data_dir,id);
 		delfiles(str,ALLFILES); 
 	}
 
@@ -856,7 +858,7 @@ void sbbs_t::qwkcfgline(char *buf,uint subnum)
 				if(x>=usrgrps || y>=usrsubs[x]) {
 					bprintf(text[QWKInvalidConferenceN],l);
 					sprintf(str,"Invalid conference number %lu",l);
-					logline("Q!",str); 
+					logline(LOG_NOTICE,"Q!",str); 
 				}
 				else
 					subscan[usrsub[x][y]].cfg&=~SUB_CFG_NSCAN; 
