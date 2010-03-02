@@ -2,7 +2,7 @@
 
 /* Synchronet Menu Editor		 										*/
 
-/* $Id: menuedit.c,v 1.5 2011/05/27 06:03:31 deuce Exp $ */
+/* $Id: menuedit.c,v 1.4 2005/02/20 20:51:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,8 +36,8 @@
  ****************************************************************************/
 
 #include <stdlib.h>
+#include <malloc.h>		/* alloca */
 #include "genwrap.h"
-#include "ciolib.h"
 #include "uifc.h"
 #include "dirwrap.h"
 #include "ini_file.h"
@@ -93,15 +93,15 @@ static void edit_menu(char* path)
 	}
 
 	/* Read menu file */
-	SAFECOPY(prompt,iniReadString(fp,ROOT_SECTION, "prompt", "'Command: '", value));
-	SAFECOPY(exec,iniReadString(fp,ROOT_SECTION, "exec", "", value));
-	SAFECOPY(menu_file,iniReadString(fp,ROOT_SECTION, "menu_file", "", value));
-	SAFECOPY(menu_format,iniReadString(fp,ROOT_SECTION, "menu_format", "\1n\1h\1w%s \1b%s", value));
-	menu_column_width=iniReadInteger(fp,ROOT_SECTION,"menu_column_width", 39);
-	menu_reverse=iniReadBool(fp,ROOT_SECTION,"menu_reverse", FALSE);
+	SAFECOPY(prompt,iniGetString(fp,ROOT_SECTION, "prompt", "'Command: '", value));
+	SAFECOPY(exec,iniGetString(fp,ROOT_SECTION, "exec", "", value));
+	SAFECOPY(menu_file,iniGetString(fp,ROOT_SECTION, "menu_file", "", value));
+	SAFECOPY(menu_format,iniGetString(fp,ROOT_SECTION, "menu_format", "\1n\1h\1w%s \1b%s", value));
+	menu_column_width=iniGetInteger(fp,ROOT_SECTION,"menu_column_width", 39);
+	menu_reverse=iniGetBool(fp,ROOT_SECTION,"menu_reverse", FALSE);
 
-	hotkeys=iniReadBool(fp,ROOT_SECTION,"hotkeys",TRUE);
-	expert=iniReadBool(fp,ROOT_SECTION,"expert",TRUE);
+	hotkeys=iniGetBool(fp,ROOT_SECTION,"hotkeys",TRUE);
+	expert=iniGetBool(fp,ROOT_SECTION,"expert",TRUE);
 
 	fclose(fp);
 
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
 	glob_t	g;
 	size_t	gi;
 
-	sscanf("$Revision: 1.5 $", "%*s %s", revision);
+	sscanf("$Revision: 1.4 $", "%*s %s", revision);
 
     printf("\r\nSynchronet Menu Editor (%s)  %s  Copyright 2004 "
         "Rob Swindell\r\n",PLATFORM_DESC,revision);
@@ -242,9 +242,11 @@ int main(int argc, char **argv)
 	uifc.esc_delay=25;
 
 	uifc.size=sizeof(uifc);
+#if defined(USE_UIFC32)
 	if(!door_mode)
 		i=uifcini32(&uifc);  /* curses/conio */
 	else
+#endif
 		i=uifcinix(&uifc);  /* stdio */
 	if(i!=0) {
 		printf("!ERROR: UIFC library init returned: %d\n",i);
