@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.100 2010/03/02 23:22:20 deuce Exp $ */
+/* $Id: sexyz.c,v 1.101 2010/03/02 23:43:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -336,7 +336,7 @@ int sock_sendbuf(SOCKET s, void *buf, size_t buflen)
 	fd_set		socket_set;
 
 	for(;;) {
-		ret=sendsocket(s,buf,buflen);
+		ret=sendsocket(s,buf+sent,buflen-sent);
 		if(ret==SOCKET_ERROR) {
 			switch(ERROR_VALUE) {
 				case EAGAIN:
@@ -1453,7 +1453,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.100 $", "%*s %s", revision);
+	sscanf("$Revision: 1.101 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
