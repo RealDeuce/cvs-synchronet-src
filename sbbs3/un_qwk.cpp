@@ -2,13 +2,13 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.42 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.40 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -72,7 +72,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	memset(&msg,0,sizeof(msg));
 
 	start=time(NULL);
-	if((l=(long)flength(packet))<1) {
+	if((l=flength(packet))<1) {
 		errormsg(WHERE,ERR_LEN,packet,l);
 		return(false);
 	}
@@ -84,14 +84,15 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	}
 	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
 	if(!fexistcase(str)) {
-		lprintf(LOG_WARNING,"%s doesn't contain MESSAGES.DAT (%s)",packet,str);
+		SAFEPRINTF2(tmp,"%s doesn't contain MESSAGES.DAT (%s)",packet,str);
+		errorlog(tmp);
 		return(false); 
 	}
 	if((qwk=fnopen(&file,str,O_RDONLY))==NULL) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 		return(false); 
 	}
-	size=(long)filelength(file);
+	size=filelength(file);
 
 	SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
 	if(fexistcase(str)) {
