@@ -2,13 +2,13 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.44 2011/07/21 10:47:47 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.42 2008/02/24 07:53:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -90,8 +90,8 @@ ushort		iniReadShortInt(FILE*, const char* section, const char* key
 					,ushort deflt);
 ulong		iniReadLongInt(FILE*, const char* section, const char* key
 					,ulong deflt);
-int64_t		iniReadBytes(FILE*, const char* section, const char* key
-					,ulong unit, int64_t deflt);
+ulong		iniReadBytes(FILE*, const char* section, const char* key
+					,ulong unit, ulong deflt);
 double		iniReadFloat(FILE*, const char* section, const char* key
 					,double deflt);
 BOOL		iniReadBool(FILE*, const char* section, const char* key
@@ -132,10 +132,10 @@ named_string_t**
 			iniGetNamedStringList(str_list_t list, const char* section);
 
 char*		iniGetString(str_list_t, const char* section, const char* key
-					,const char* deflt, char* value /* may be NULL */);
+					,const char* deflt, char* value);
 /* If the key doesn't exist, iniGetExistingString just returns NULL */
 char*		iniGetExistingString(str_list_t, const char* section, const char* key
-					,const char* deflt, char* value /* may be NULL */);
+					,const char* deflt, char* value);
 str_list_t	iniGetStringList(str_list_t, const char* section, const char* key
 					,const char* sep, const char* deflt);
 long		iniGetInteger(str_list_t, const char* section, const char* key
@@ -144,8 +144,8 @@ ushort		iniGetShortInt(str_list_t, const char* section, const char* key
 					,ushort deflt);
 ulong		iniGetLongInt(str_list_t, const char* section, const char* key
 					,ulong deflt);
-int64_t		iniGetBytes(str_list_t, const char* section, const char* key
-					,ulong unit, int64_t deflt);
+ulong		iniGetBytes(str_list_t, const char* section, const char* key
+					,ulong unit, ulong deflt);
 double		iniGetFloat(str_list_t, const char* section, const char* key
 					,double deflt);
 BOOL		iniGetBool(str_list_t, const char* section, const char* key
@@ -186,7 +186,7 @@ char*		iniSetShortInt(str_list_t*, const char* section, const char* key, ushort 
 					,ini_style_t*);
 char*		iniSetLongInt(str_list_t*, const char* section, const char* key, ulong value
 					,ini_style_t*);
-char*		iniSetBytes(str_list_t*, const char* section, const char* key, ulong unit, int64_t value
+char*		iniSetBytes(str_list_t*, const char* section, const char* key, ulong unit, ulong value
 					,ini_style_t*);
 char*		iniSetHexInt(str_list_t*, const char* section, const char* key, ulong value
 					,ini_style_t*);
