@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.97 2010/03/02 22:10:20 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.98 2010/03/02 23:11:15 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -2240,7 +2240,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.97 $", "%*s %s", buf);
+	sscanf("$Revision: 1.98 $", "%*s %s", buf);
 
 	return(buf);
 }
@@ -2252,7 +2252,8 @@ void zmodem_init(zmodem_t* zm, void* cbdata
 				,int	(*recv_byte)(void*, unsigned timeout)
 				,BOOL	(*is_connected)(void*)
 				,BOOL	(*is_cancelled)(void*)
-				,BOOL	(*data_waiting)(void*, unsigned timeout))
+				,BOOL	(*data_waiting)(void*, unsigned timeout)
+				,void   (*flush)(void*))
 {
 	memset(zm,0,sizeof(zmodem_t));
 
@@ -2273,4 +2274,5 @@ void zmodem_init(zmodem_t* zm, void* cbdata
 	zm->is_connected=is_connected;
 	zm->is_cancelled=is_cancelled;
 	zm->data_waiting=data_waiting;
+	zm->flush=flush;
 }

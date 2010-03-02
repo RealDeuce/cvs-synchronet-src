@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.38 2010/03/02 22:10:20 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.39 2010/03/02 23:11:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -610,7 +610,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.38 $", "%*s %s", buf);
+	sscanf("$Revision: 1.39 $", "%*s %s", buf);
 
 	return(buf);
 }
@@ -621,7 +621,8 @@ void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 				,int	(*send_byte)(void*, uchar ch, unsigned timeout)
 				,int	(*recv_byte)(void*, unsigned timeout)
 				,BOOL	(*is_connected)(void*)
-				,BOOL	(*is_cancelled)(void*))
+				,BOOL	(*is_cancelled)(void*)
+				,void	(*flush)(void*))
 {
 	memset(xm,0,sizeof(xmodem_t));
 
@@ -646,4 +647,5 @@ void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 	xm->recv_byte=recv_byte;
 	xm->is_connected=is_connected;
 	xm->is_cancelled=is_cancelled;
+	xm->flush=flush;
 }
