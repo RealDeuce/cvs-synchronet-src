@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.236 2009/10/22 23:24:07 rswindell Exp $ */
+/* $Id: services.c,v 1.240 2009/11/21 21:04:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,8 +91,8 @@ typedef struct {
 	js_startup_t	js;
 	js_server_props_t js_server_props;
 	/* These are run-time state and stat vars */
-	uint32_t	clients;
-	uint32_t	served;
+	ulong		clients;
+	ulong		served;
 	SOCKET		socket;
 	BOOL		running;
 	BOOL		terminated;
@@ -109,6 +109,7 @@ typedef struct {
 	/* Initial UDP datagram */
 	BYTE*			udp_buf;
 	int				udp_len;
+	subscan_t		*subscan;
 } service_client_t;
 
 static service_t	*service=NULL;
@@ -124,8 +125,11 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR)
-		errorlog(&scfg,sbuf);
+	if(level <= LOG_ERR) {
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
+		if(startup!=NULL && startup->errormsg!=NULL)
+			startup->errormsg(startup->cbdata,level,sbuf);
+	}
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
         return(0);
@@ -463,6 +467,11 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&client->user,0,sizeof(user_t));
 
+	if(client->user.number) {
+		if(client->subscan!=NULL)
+			putmsgptrs(&scfg, client->user.number, client->subscan);
+	}
+
 	if(isdigit(*p))
 		client->user.number=atoi(p);
 	else if(*p)
@@ -519,10 +528,18 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}	
 
 	putuserdat(&scfg,&client->user);
+	if(client->subscan==NULL) {
+		client->subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
+		if(client->subscan==NULL)
+			lprintf(LOG_CRIT,"!MALLOC FAILURE");
+	}
+	if(client->subscan!=NULL) {
+		getmsgptrs(&scfg,client->user.number,client->subscan);
+	}
+
 	JS_RESUMEREQUEST(cx, rc);
 
-	/* user-specific objects */
-	if(!js_CreateUserObjects(cx, obj, &scfg, &client->user, client->client, NULL, NULL)) 
+	if(!js_CreateUserObjects(cx, obj, &scfg, &client->user, client->client, NULL, client->subscan))
 		lprintf(LOG_ERR,"%04d %s !JavaScript ERROR creating user objects"
 			,client->socket,client->service->protocol);
 
@@ -884,7 +901,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 			break;
 
 		/* user-specific objects */
-		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, /*user: */NULL, service_client->client, NULL, NULL)) 
+		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
 
 		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
@@ -1182,10 +1199,13 @@ static void js_service_thread(void* arg)
 	jsrt_Release(js_runtime);
 
 	if(service_client.user.number) {
+		if(service_client.subscan!=NULL)
+			putmsgptrs(&scfg, service_client.user.number, service_client.subscan);
 		lprintf(LOG_INFO,"%04d %s Logging out %s"
 			,socket, service->protocol, service_client.user.alias);
 		logoutuserdat(&scfg,&service_client.user,time(NULL),service_client.logintime);
 	}
+	FREE_AND_NULL(service_client.subscan);
 
 	if(service->clients)
 		service->clients--;
@@ -1655,7 +1675,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.236 $", "%*s %s", revision);
+	sscanf("$Revision: 1.240 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
