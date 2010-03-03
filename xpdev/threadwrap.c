@@ -2,13 +2,13 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.30 2011/09/07 01:26:39 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.27 2008/01/21 06:31:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -52,14 +52,15 @@
 /****************************************************************************/
 #if defined(__unix__)
 #if defined(_POSIX_THREADS)
+#if defined(__BORLANDC__)
+        #pragma argsused
+#endif
 ulong _beginthread(void( *start_address )( void * )
 		,unsigned stack_size, void *arglist)
 {
 	pthread_t	thread;
 	pthread_attr_t attr;
 	size_t		default_stack;
-
-	(void)stack_size;
 
 	pthread_attr_init(&attr);     /* initialize attribute structure */
 
@@ -104,31 +105,22 @@ ulong _beginthread(void( *start_address )( void * )
 /****************************************************************************/
 /* Wrappers for POSIX thread (pthread) mutexes								*/
 /****************************************************************************/
-pthread_mutex_t pthread_mutex_initializer_np(BOOL recursive)
+pthread_mutex_t pthread_mutex_initializer(void)
 {
 	pthread_mutex_t	mutex;
-#if defined(_POSIX_THREADS)
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	if(recursive)
-#if defined(__linux__) && !defined(__USE_UNIX98)
-		pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE_NP);
-#else
-		pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
-#endif
-	pthread_mutex_init(&mutex, &attr);
-#else	/* Assumes recursive (e.g. Windows) */
-	(void)recursive;
+
 	pthread_mutex_init(&mutex,NULL);
-#endif
+
 	return(mutex);
 }
 
 #if !defined(_POSIX_THREADS)
 
+#if defined(__BORLANDC__)
+        #pragma argsused	/* attr arg not used */
+#endif
 int pthread_mutex_init(pthread_mutex_t* mutex, void* attr)
 {
-	(void)attr;
 #if defined(PTHREAD_MUTEX_AS_WIN32_MUTEX)
 	return ((((*mutex)=CreateMutex(/* security */NULL, /* owned */FALSE, /* name */NULL))==NULL) ? -1 : 0);
 #elif defined(_WIN32)	/* Win32 Critical Section */
