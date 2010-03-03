@@ -6,12 +6,10 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.86 2011/09/07 00:18:24 rswindell Exp $
+# $Id: Makefile,v 1.84 2009/08/17 08:10:48 rswindell Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
-
-OBJS = $(OBJS) $(MTOBJODIR)\comio_win32.obj
 
 UTIL_LDFLAGS	=	-q $(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
 CFLAGS	=	$(CFLAGS) -w-csu -w-par -w-aus
@@ -35,7 +33,6 @@ CFLAGS = $(CFLAGS) -DJAVASCRIPT
 !else
 	CFLAGS = $(CFLAGS) -I$(SRC_ROOT)\..\include\cryptlib
 !endif
-CFLAGS = $(CFLAGS) -I..\comio
 
 
 !ifndef JSLIBDIR
@@ -231,14 +228,6 @@ $(MTOBJODIR)\services$(OFILE): services.c
         $(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -DSERVICES_EXPORTS -DSMB_IMPORTS -USBBS_EXPORTS \
 			-n$(MTOBJODIR) $(MT_CFLAGS) -c $** $(OUTPUT)$@
 
-$(MTOBJODIR)\comio$(OFILE): ..\comio\comio.c
-        $(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -DFTPSRVR_EXPORTS -DSMB_IMPORTS -USBBS_EXPORTS \
-			-n$(MTOBJODIR) $(MT_CFLAGS) -c $** $(OUTPUT)$@
-
-$(MTOBJODIR)\comio_win32$(OFILE): ..\comio\comio_win32.c
-        $(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -DFTPSRVR_EXPORTS -DSMB_IMPORTS -USBBS_EXPORTS \
-			-n$(MTOBJODIR) $(MT_CFLAGS) -c $** $(OUTPUT)$@
-
 # QWKNodes
 $(QWKNODES): $(QWKNODES_OBJS)
 	@echo Linking $@
@@ -273,8 +262,3 @@ $(SMBACTIV): $(SMBACTIV_OBJS)
 $(SEXYZ): $(SEXYZ_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(MT_LDFLAGS) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV-MT_LIBS)
-
-# DSTSEDIT
-$(DSTSEDIT): $(DSTSEDIT_OBJS)
-	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV_LIBS)
