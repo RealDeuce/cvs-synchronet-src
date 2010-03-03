@@ -2,13 +2,13 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.37 2008/02/11 06:54:47 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.39 2010/03/02 23:11:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -82,6 +82,12 @@ static BOOL is_cancelled(xmodem_t* xm)
 	return(xm->cancelled);
 }
 
+static void xmodem_flush(xmodem_t* xm)
+{
+	if(xm->flush!=NULL)
+		xm->flush(xm);
+}
+
 static char *chr(uchar ch)
 {
 	static char str[25];
@@ -105,14 +111,21 @@ static char *chr(uchar ch)
 
 int xmodem_put_ack(xmodem_t* xm)
 {
+	int result;
+
 	while(getcom(0)!=NOINP && is_connected(xm))
 		;				/* wait for any trailing data */
-	return putcom(ACK);
+	result = putcom(ACK);
+
+	xmodem_flush(xm);
+
+	return result;
 }
 
 int xmodem_put_nak(xmodem_t* xm, unsigned block_num)
 {
 	int i,dump_count=0;
+	int	result;
 
 	/* wait for any trailing data */
 	while((i=getcom(0))!=NOINP && is_connected(xm)) {
@@ -128,16 +141,20 @@ int xmodem_put_nak(xmodem_t* xm, unsigned block_num)
 	if(block_num<=1) {
 		if(*(xm->mode)&GMODE) {		/* G for X/Ymodem-G */
 			lprintf(xm,LOG_INFO,"Block %u: Requesting mode: Streaming, 16-bit CRC", block_num);
-			return putcom('G');
+			result = putcom('G');
 		} else if(*(xm->mode)&CRC) {	/* C for CRC */
 			lprintf(xm,LOG_INFO,"Block %u: Requesting mode: 16-bit CRC", block_num);
-			return putcom('C');
+			result = putcom('C');
 		} else {				/* NAK for checksum */
 			lprintf(xm,LOG_INFO,"Block %u: Requesting mode: 8-bit Checksum", block_num);
-			return putcom(NAK);
+			result = putcom(NAK);
 		}
-	}
-	return putcom(NAK);
+	} else
+		result = putcom(NAK);
+
+	xmodem_flush(xm);
+
+	return result;
 }
 
 int xmodem_cancel(xmodem_t* xm)
@@ -154,6 +171,8 @@ int xmodem_cancel(xmodem_t* xm)
 				return result;
 		xm->cancelled=TRUE;
 	}
+
+	xmodem_flush(xm);
 
 	return SUCCESS;
 }
@@ -315,9 +334,13 @@ int xmodem_put_block(xmodem_t* xm, uchar* block, unsigned block_size, unsigned b
 	if((*xm->mode)&CRC) {
 		if((result=	putcom((uchar)(crc >> 8)))!=0)
 			return result;
-		return		putcom((uchar)(crc&0xff)); 
-	}
-	return putcom(chksum);
+		result = putcom((uchar)(crc&0xff)); 
+	} else
+		result = putcom(chksum);
+
+	xmodem_flush(xm);
+
+	return result;
 }
 
 /************************************************************/
@@ -430,6 +453,7 @@ BOOL xmodem_put_eot(xmodem_t* xm)
 			lprintf(xm,LOG_INFO,"Throwing out received: %s",chr((uchar)ch));
 
 		putcom(EOT);
+		xmodem_flush(xm);
 		if((ch=getcom(xm->recv_timeout))==NOINP)
 			continue;
 		lprintf(xm,LOG_INFO,"Received %s",chr((uchar)ch)); 
@@ -586,7 +610,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.37 $", "%*s %s", buf);
+	sscanf("$Revision: 1.39 $", "%*s %s", buf);
 
 	return(buf);
 }
@@ -597,7 +621,8 @@ void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 				,int	(*send_byte)(void*, uchar ch, unsigned timeout)
 				,int	(*recv_byte)(void*, unsigned timeout)
 				,BOOL	(*is_connected)(void*)
-				,BOOL	(*is_cancelled)(void*))
+				,BOOL	(*is_cancelled)(void*)
+				,void	(*flush)(void*))
 {
 	memset(xm,0,sizeof(xmodem_t));
 
@@ -622,4 +647,5 @@ void xmodem_init(xmodem_t* xm, void* cbdata, long* mode
 	xm->recv_byte=recv_byte;
 	xm->is_connected=is_connected;
 	xm->is_cancelled=is_cancelled;
+	xm->flush=flush;
 }

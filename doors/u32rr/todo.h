@@ -1,9 +1,14 @@
+#ifndef _TODO_H_
+#define _TODO_H_
+
 /*
  * TODO functions and constants used in current code
  */
 #include <stdbool.h>
 #include <inttypes.h>
+#include "Bash.h"
 #include "structs.h"
+#include "files.h"
 
 /*
  * Sets input hotkeys
@@ -44,13 +49,6 @@ void newsy(bool, ...);
  */
 int rand_num(int limit);
 
-/*
- * Display status for specified player
- */
-void status(struct player *);
-
-void reduce_player_resurrections(struct player *, bool);
-
 void objekt_affect(int, uint16_t, enum objtype, struct player *player, bool loud);
 
 /*
@@ -58,8 +56,6 @@ void objekt_affect(int, uint16_t, enum objtype, struct player *player, bool loud
  * Force write, unlock area(?)
  */
 void user_save(struct player *player);
-
-void decplayermoney(struct player *player, int amount);
 
 extern char *uplc;	// Colour string for player name in messages
 extern char *uitemc;	// Colour string for items in messages
@@ -74,6 +70,8 @@ enum places {
 	UmanCave
 };
 
+#define MAXITEM			15	// Most items you can carry at a time...
+#define MAXSPELLS		12	// Max spells available
 struct player {
 	char		name1[71];	// BBS Name
 	char		name2[71];	// Game name (used in news messages)
@@ -87,17 +85,90 @@ struct player {
 	int			gold;
 	bool		deleted;
 	enum places	auto_probe;	// When AutoProbe is set to a direction the player auto travels there
-	uint16_t	head;
-	uint16_t	body;
-	uint16_t	arms;
-	uint16_t	hands;
-	uint16_t	legs;
-	uint16_t	feet;
-	uint16_t	face;
-	uint16_t	abody;
-	uint16_t	shield;
+	int			head;
+	int			body;
+	int			arms;
+	int			hands;
+	int			legs;
+	int			feet;
+	int			face;
+	int			abody;
+	int			shield;
+	int			lhand;
+	int			neck;
+	int			neck2;
+	int			rfinger;
+	int			lfinger;
+	int			waist;
 	bool		king;
 	enum class	class;
+	enum sex	sex;
+	unsigned long	exp;
+	enum race	race;
+	int			weapon;
+	int			armor;
+	int			trains;
+	int			age;
+	int			bankgold;
+	int			healing;
+	int			maxhps;
+	int			strength;
+	int			defence;
+	char		team[26];
+	int			wpow;
+	int			apow;
+	int			mana;
+	int			maxmana;
+	int			pickpocketattempts;
+	int			rhand;
+	bool		blind;
+	bool		plague;
+	bool		smallpox;
+	bool		measles;
+	bool		leprosy;
+	int			skill[BASH_COUNT];
+	char		beendefeated[71];
+	char		begging[71];
+	char		battlecry[71];
+	char		spareopp[71];
+	char		dontspareopp[71];
+	char		attacked[71];
+	char		defeatedopp[71];
+	bool		autohate;
+	bool		autoheal;
+	enum ear	ear;
+	char		desc[4][71];
+	bool		automeny;
+	int			item[MAXITEM];
+	enum objtype	itemtype[MAXITEM];
+	int			wisdom;
+	int			dark;
+	int			charisma;
+	int			fights;
+	int			agility;
+	int			tfights;
+	int			dex;
+	int			chiv;
+	int			stamina;
+	int			disres;
+	int			addict;
+	int			mental;
+	int			height;
+	int			hair;
+	int			weight;
+	int			eyes;
+	int			skin;
+	int			m_kills;
+	int			m_defeats;
+	int			p_kills;
+	int			p_defeats;
+	int			resurrections;
+	bool		spell[MAXSPELLS][2];
+	enum aitype	ai;
+	int			darknr;		// Dark Deeds remaining
+	int			thiefs;
+	int			brawls;
+	int			chivnr;		// Good deeds left
 };
 
 #define MAX_PLAYERS	1024
@@ -114,3 +185,48 @@ extern struct config config;
 #define global_talkcol BRIGHT_MAGENTA
 extern bool global_begged;
 extern bool global_nobeg;
+
+enum mailaction {
+	MailRead,
+	MailSend
+};
+
+enum mailspecial {
+	MAILREQUEST_Nothing,
+	MAILREQUEST_BeMyGuard,
+	MAILREQUEST_IWantGuard,
+	MAILREQUEST_DrinkOffer,
+
+	// Immortal
+	MAILREQUEST_ImmortalOffer = 40,
+	MAILREQUEST_RoyalAngel = 50,
+	MAILREQUEST_RoyalAvenger,
+	MAILREQUEST_QuestOffer = 60,
+	MAILREQUEST_Birthday,
+
+	// Relationship
+	MAILREQUEST_HoldHands = 70,
+	MAILREQUEST_Roses,
+	MAILREQUEST_Poison,
+	MAILREQUEST_Dinner,
+	MAILREQUEST_Scorpions,
+	MAILREQUEST_Chocolate,
+	MAILREQUEST_Kiss,
+	MAILREQUEST_HaveSex,
+	MAILREQUEST_HaveDiscreteSex,
+	MAILREQUEST_ScanForBabies,
+	MAILREQUEST_ChildRaisingExp,
+	MAILREQUEST_ChildPoisonedExp,
+	MAILREQUEST_ChildFightExp,
+	MAILREQUEST_SilentExp,
+	MAILREQUEST_ChildCursedExp,
+	MAILREQUEST_ChildDepressedExp,
+	MAILREQUEST_GymMembership = 89,
+	MAILREQUEST_JoinTeam
+};
+void Post(enum mailaction, const char *to, enum aitype toai, bool togod, enum mailspecial special, const char *from, ...);
+void Brawl(void);
+void Drinking_Competition(void);
+
+
+#endif
