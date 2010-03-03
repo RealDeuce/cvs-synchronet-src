@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.270 2009/02/19 03:06:23 deuce Exp $ */
+/* $Id: term.c,v 1.278 2010/03/03 07:35:19 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -355,10 +355,9 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 	struct zmodem_cbdata *zcb=(struct zmodem_cbdata *)cbdata;
 	zmodem_t*	zm=zcb->zm;
 
-	zmodem_check_abort(cbdata);
-
 	now=time(NULL);
 	if(now-last_progress>0 || current_pos >= zm->current_file_size) {
+		zmodem_check_abort(cbdata);
 		hold_update = TRUE;
 		window(((trans_ti.screenwidth-TRANSFER_WIN_WIDTH)/2)+2
 				, ((trans_ti.screenheight-TRANSFER_WIN_HEIGHT)/2)+1
@@ -400,9 +399,15 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 			);
 		clreol();
 		cputs("\r\n");
-		cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-			,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
-		l = (long)(60*((float)current_pos/(float)zm->current_file_size));
+		if(zm->current_file_size==0) {
+			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, "", 100);
+			l = 60;
+		}
+		else{
+			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
+				,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
+			l = (long)(60*((float)current_pos/(float)zm->current_file_size));
+		}
 		cprintf("[%*.*s%*s]", l, l, 
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -421,21 +426,58 @@ void zmodem_progress(void* cbdata, uint32_t current_pos)
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
+
+unsigned char transfer_buffer[BUFFER_SIZE/2];
+unsigned transfer_buf_len=0;
+
+static void flush_send(void *unused)
+{
+	int	sent;
+
+	sent=conn_send(transfer_buffer, transfer_buf_len, 120*1000);
+	if(sent < transfer_buf_len) {
+		memmove(transfer_buffer, transfer_buffer+sent, transfer_buf_len-sent);
+		transfer_buf_len -= sent;
+	}
+	else
+		transfer_buf_len=0;
+}
+
 static int send_byte(void* unused, uchar ch, unsigned timeout /* seconds */)
 {
-	return(conn_send(&ch,sizeof(ch),timeout*1000)!=1);
+	transfer_buffer[transfer_buf_len++]=ch;
+	if(transfer_buf_len==sizeof(transfer_buffer))
+		flush_send(unused);
+	return(!(transfer_buf_len < sizeof(transfer_buffer)));
 }
 
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
+BYTE	recv_byte_buffer[BUFFER_SIZE];
+unsigned recv_byte_buffer_len=0;
+unsigned recv_byte_buffer_pos=0;
+
+static void recv_bytes(unsigned timeout /* Milliseconds */)
+{
+	if(recv_byte_buffer_len == 0)
+		recv_byte_buffer_len=conn_recv_upto(recv_byte_buffer, sizeof(recv_byte_buffer), timeout);
+}
+
 static int recv_byte(void* unused, unsigned timeout /* seconds */)
 {
-	BYTE	ch;
+	BYTE ch;
 
-	if(conn_recv(&ch, sizeof(ch), timeout*1000))
-		return(ch);
-	return(-1);
+	recv_bytes(timeout*1000);
+
+	if(recv_byte_buffer_len > 0) {
+		ch=recv_byte_buffer[recv_byte_buffer_pos++];
+		if(recv_byte_buffer_pos == recv_byte_buffer_len)
+			recv_byte_buffer_len=recv_byte_buffer_pos=0;
+		return ch;
+	}
+
+	return -1;
 }
 
 #if defined(__BORLANDC__)
@@ -443,7 +485,15 @@ static int recv_byte(void* unused, unsigned timeout /* seconds */)
 #endif
 BOOL data_waiting(void* unused, unsigned timeout)
 {
+	if(recv_byte_buffer_len)
+		return TRUE;
 	return(conn_data_waiting()!=0);
+}
+
+size_t count_data_waiting(void)
+{
+	recv_bytes(0);
+	return recv_byte_buffer_len;
 }
 
 void draw_transfer_window(char* title)
@@ -702,6 +752,8 @@ void begin_download(struct bbslist *bbs)
 #endif
 static BOOL is_connected(void* unused)
 {
+	if(recv_byte_buffer_len)
+		return TRUE;
 	return(conn_connected());
 }
 
@@ -740,14 +792,14 @@ static int guts_send_byte(void* cbdata, uchar ch, unsigned timeout)
 
 static int guts_recv_byte(void* cbdata, unsigned timeout)
 {
-	BOOL	data_waiting;
+	BOOL	data_is_waiting;
 	BYTE	ch;
 	struct GUTS_info *gi=cbdata;
 
-	if(!socket_check(gi->oob_socket, &data_waiting, NULL, timeout*1000))
+	if(!socket_check(gi->oob_socket, &data_is_waiting, NULL, timeout*1000))
 		return(-1);
 
-	if(!data_waiting)
+	if(!data_is_waiting)
 		return(-1);
 
 	if(recv(gi->oob_socket,&ch,1,0)!=1)
@@ -781,12 +833,14 @@ void guts_background_download(void *cbdata)
 
 	zmodem_mode=ZMODEM_MODE_RECV;
 
+	transfer_buf_len=0;
 	zmodem_init(&zm
 		,&gi
 		,guts_lputs, guts_zmodem_progress
 		,guts_send_byte,guts_recv_byte,guts_is_connected
 		,NULL /* is_cancelled */
-		,guts_data_waiting);
+		,guts_data_waiting
+		,guts_flush_send);
 
 	/* ToDo: This would be a good time to detach or something. */
 	zmodem_recv_files(&zm,gi.files[0],&bytes_received);
@@ -812,12 +866,14 @@ void guts_background_upload(void *cbdata)
 
 	zmodem_mode=ZMODEM_MODE_SEND;
 
+	transfer_buf_len=0;
 	zmodem_init(&zm
 		,&gi
 		,guts_lputs, guts_zmodem_progress
 		,guts_send_byte,guts_recv_byte,guts_is_connected
 		,NULL /* is_cancelled */
-		,guts_data_waiting);
+		,guts_data_waiting
+		,guts_flush_send);
 
 	zm.current_file_num = zm.total_files = 1;	/* ToDo: support multi-file/batch uploads */
 
@@ -972,13 +1028,15 @@ void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 	cbdata.zm=&zm;
 	cbdata.bbs=bbs;
 	conn_binary_mode_on();
+	transfer_buf_len=0;
 	zmodem_init(&zm
 		,/* cbdata */&cbdata
 		,lputs, zmodem_progress
 		,send_byte,recv_byte
 		,is_connected
 		,zmodem_check_abort
-		,data_waiting);
+		,data_waiting
+		,flush_send);
 
 	zm.current_file_num = zm.total_files = 1;	/* ToDo: support multi-file/batch uploads */
 	
@@ -1078,13 +1136,15 @@ void zmodem_download(struct bbslist *bbs)
 	conn_binary_mode_on();
 	cbdata.zm=&zm;
 	cbdata.bbs=bbs;
+	transfer_buf_len=0;
 	zmodem_init(&zm
 		,/* cbdata */&cbdata
 		,lputs, zmodem_progress
 		,send_byte,recv_byte
 		,is_connected
 		,zmodem_check_abort
-		,data_waiting);
+		,data_waiting
+		,flush_send);
 
 	zm.duplicate_filename=zmodem_duplicate_callback;
 
@@ -1185,13 +1245,13 @@ void xmodem_progress(void* cbdata, unsigned block_num, ulong offset, ulong fsize
 				,l/60L
 				,l%60L
 				,cps
-				,(long)(((float)offset/(float)fsize)*100.0)
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 			clreol();
 			cputs("\r\n");
 			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-				,(long)(((float)offset/(float)fsize)*100.0));
-			l = (long)(((float)offset/(float)fsize)*60.0);
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100);
+			l = fsize?(long)(((float)offset/(float)fsize)*60.0):60;
 			cprintf("[%*.*s%*s]", l, l, 
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1217,8 +1277,8 @@ void xmodem_progress(void* cbdata, unsigned block_num, ulong offset, ulong fsize
 			clreol();
 			cputs("\r\n");
 			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
-				,(long)(((float)offset/(float)fsize)*100.0));
-			l = (long)(((float)offset/(float)fsize)*60.0);
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100);
+			l = fsize?(long)(((float)offset/(float)fsize)*60.0):60;
 			cprintf("[%*.*s%*s]", l, l, 
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1287,7 +1347,8 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 		,send_byte
 		,recv_byte
 		,is_connected
-		,xmodem_check_abort);
+		,xmodem_check_abort
+		,flush_send);
 	if(!data_waiting(&xm, 0)) {
 		switch(lastch) {
 			case 'G':
@@ -1466,7 +1527,8 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 		,send_byte
 		,recv_byte
 		,is_connected
-		,xmodem_check_abort);
+		,xmodem_check_abort
+		,flush_send);
 	while(is_connected(NULL)) {
 		if(mode&XMODEM) {
 			if(isfullpath(path))
@@ -2055,6 +2117,7 @@ BOOL doterm(struct bbslist *bbs)
 	BYTE ooii_init2[] = "\xdb\b \xdb\b \xdb\b[\xdb\b[\xdb\b \xdb\bM\xdb\ba\xdb\bi\xdb\bn\xdb\bt\xdb\be\xdb\bn\xdb\ba\xdb\bn\xdb\bc\xdb\be\xdb\b \xdb\bC\xdb\bo\xdb\bm\xdb\bp\xdb\bl\xdb\be\xdb\bt\xdb\be\xdb\b \xdb\b]\xdb\b]\xdb\b \b\r\n\r\n\x1b[0m\x1b[2J\r\n\r\n\x1b[0;1;30mHX Force retinal scan in progress ... \x1b[0;0;30m";	/* for OOII auto-enable */
 #endif
 	int ooii_mode=0;
+	recv_byte_buffer_len=recv_byte_buffer_pos=0;
 
 	gettextinfo(&txtinfo);
 	if(bbs->conn_type == CONN_TYPE_SERIAL)
@@ -2107,7 +2170,7 @@ BOOL doterm(struct bbslist *bbs)
 		sleep=TRUE;
 		if(!term.nostatus)
 			update_status(bbs, (bbs->conn_type == CONN_TYPE_SERIAL)?bbs->bpsrate:speed, ooii_mode);
-		for(remain=conn_data_waiting() /* Hack for connection check */ + (!conn_connected()); remain; remain--) {
+		for(remain=count_data_waiting() /* Hack for connection check */ + (!is_connected(NULL)); remain; remain--) {
 			if(speed)
 				thischar=xp_timer();
 
@@ -2117,7 +2180,7 @@ BOOL doterm(struct bbslist *bbs)
 
 				switch(inch) {
 					case -1:
-						if(!conn_connected()) {
+						if(!is_connected(NULL)) {
 							WRITE_OUTBUF();
 							hold_update=oldmc;
 #ifdef WITH_WXWIDGETS
@@ -2380,15 +2443,17 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x2600:	/* ALT-L */
-					if(bbs->user[0]) {
-						conn_send(bbs->user,strlen(bbs->user),0);
-						conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
-						SLEEP(10);
-					}
-					if(bbs->password[0]) {
-						conn_send(bbs->password,strlen(bbs->password),0);
-						conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
-						SLEEP(10);
+					if(bbs->conn_type != CONN_TYPE_RLOGIN && bbs->conn_type != CONN_TYPE_RLOGIN_REVERSED && bbs->conn_type != CONN_TYPE_SSH) {
+						if(bbs->user[0]) {
+							conn_send(bbs->user,strlen(bbs->user),0);
+							conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
+							SLEEP(10);
+						}
+						if(bbs->password[0]) {
+							conn_send(bbs->password,strlen(bbs->password),0);
+							conn_send(cterm.emulation==CTERM_EMULATION_ATASCII?"\x9b":"\r",1,0);
+							SLEEP(10);
+						}
 					}
 					if(bbs->syspass[0]) {
 						conn_send(bbs->syspass,strlen(bbs->syspass),0);
