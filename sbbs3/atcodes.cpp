@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.54 2009/02/19 09:25:28 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.56 2009/10/17 23:19:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,7 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	padded_right=false;
 	const char *cp;
 
-	sprintf(str,"%.80s",instr);
+	SAFECOPY(str,instr);
 	tp=strchr(str+1,'@');
 	if(!tp)                 /* no terminating @ */
 		return(0);
@@ -983,7 +983,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_TIMEZONE") && current_msg!=NULL)
 		return(smb_zonestr(current_msg->hdr.when_written.zone,NULL));
 	if(!strcmp(sp,"MSG_ATTR") && current_msg!=NULL) {
-		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s%s%s%s"
+		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s%s%s%s%s"
 			,current_msg->hdr.attr&MSG_PRIVATE		? "Private  "   :nulstr
 			,current_msg->hdr.attr&MSG_READ			? "Read  "      :nulstr
 			,current_msg->hdr.attr&MSG_DELETE		? "Deleted  "   :nulstr
@@ -994,6 +994,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			,current_msg->hdr.attr&MSG_MODERATED	? "Moderated  " :nulstr
 			,current_msg->hdr.attr&MSG_VALIDATED	? "Validated  " :nulstr
 			,current_msg->hdr.attr&MSG_REPLIED		? "Replied  "	:nulstr
+			,current_msg->hdr.attr&MSG_NOREPLY		? "NoReply  "	:nulstr
 			);
 		return(str);
 	}
