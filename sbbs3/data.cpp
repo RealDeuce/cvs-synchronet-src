@@ -2,13 +2,13 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.27 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: data.cpp,v 1.26 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,7 +51,7 @@ uint sbbs_t::finduser(char *instr)
 {
 	int file,i;
 	char str[128],str2[256],str3[256],ynq[25],c,pass=1;
-	long l,length;
+	ulong l,length;
 	FILE *stream;
 
 	i=atoi(instr);
@@ -72,7 +72,7 @@ uint sbbs_t::finduser(char *instr)
 	SAFEPRINTF(ynq,"%.2s",text[YN]);
 	ynq[2]='Q';
 	ynq[3]=0;
-	length=(long)filelength(file);
+	length=filelength(file);
 	while(pass<3) {
 		fseek(stream,0L,SEEK_SET);	/* seek to beginning for each pass */
 		for(l=0;l<length;l+=LEN_ALIAS+2) {
