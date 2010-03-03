@@ -4,12 +4,14 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.46 2009/07/14 08:55:47 rswindell Exp $ */
+/* $Id: zmodem.h,v 1.49 2010/03/02 22:10:20 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
 
 #include <stdio.h>	/* FILE */
+
+#define ZMODEM_FILE_SIZE_MAX	0xffffffff	/* 32-bits, blame Chuck */
 
 /*
  * ascii constants
@@ -234,7 +236,7 @@ typedef struct {
 	unsigned	total_files;
 	uint32_t	total_bytes;
 	unsigned	files_remaining;
-	unsigned	bytes_remaining;
+	uint32_t	bytes_remaining;
 	uint32_t	transfer_start_pos;
 	time_t		transfer_start_time;
 
@@ -269,6 +271,7 @@ typedef struct {
 	unsigned	max_errors;
 	unsigned	block_size;
 	unsigned	max_block_size;
+	uint32_t	max_file_size;		/* 0 = unlimited */
 
 	/* Callbacks */
 	void*		cbdata;
@@ -280,6 +283,7 @@ typedef struct {
 	BOOL		(*is_cancelled)(void*);
 	BOOL		(*data_waiting)(void*, unsigned timeout);
 	BOOL		(*duplicate_filename)(void*, void *zm);
+	void		(*flush)(void*);
 
 } zmodem_t;
 
@@ -291,6 +295,7 @@ void		zmodem_init(zmodem_t*, void* cbdata
 						,BOOL	(*is_connected)(void*)
 						,BOOL	(*is_cancelled)(void*)
 						,BOOL	(*data_waiting)(void*, unsigned timeout)
+						,void	(*flush)(void*)
 						);
 char*		zmodem_ver(char *buf);
 const char* zmodem_source(void);
