@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.103 2010/03/03 04:50:49 deuce Exp $ */
+/* $Id: sexyz.c,v 1.104 2010/03/03 04:52:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -571,20 +571,17 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 		buf[0]=ch;
 
 	if(RingBufFree(&outbuf)<len) {
-		lprintf(LOG_DEBUG,"FLOW! (%d < %d)",RingBufFree(&outbuf),len);
 		fprintf(statfp,"FLOW");
 		flows++;
 		result=WaitForEvent(outbuf_empty,timeout*1000);
 		fprintf(statfp,"\b\b\b\b    \b\b\b\b");
 		if(result!=WAIT_OBJECT_0) {
-			lprintf(LOG_INFO
+			fprintf(LOG_INFO
 				,"\n!TIMEOUT (%d) waiting for output buffer to flush (%u seconds, %u bytes)\n"
 				,result, timeout, RingBufFull(&outbuf));
 			newline=TRUE;
-			if(RingBufFree(&outbuf)<len) {
-				lprintf(LOG_ERR, "ERROR: %d < %d",RingBufFree(&outbuf),len);
+			if(RingBufFree(&outbuf)<len)
 				return(-1);
-			}
 		}
 	}
 
@@ -1458,7 +1455,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.103 $", "%*s %s", revision);
+	sscanf("$Revision: 1.104 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
