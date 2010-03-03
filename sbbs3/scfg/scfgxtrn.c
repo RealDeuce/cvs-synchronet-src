@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.41 2009/02/16 07:13:55 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.43 2009/10/25 05:08:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1593,7 +1593,7 @@ This is the internal code for the external editor.
 		k=0;
 		sprintf(opt[k++],"%-32.32s%s","Name",cfg.xedit[i]->name);
 		sprintf(opt[k++],"%-32.32s%s","Internal Code",cfg.xedit[i]->code);
-		sprintf(opt[k++],"%-32.32s%.40s","Remote Command Line",cfg.xedit[i]->rcmd);
+		sprintf(opt[k++],"%-32.32s%.40s","Command Line",cfg.xedit[i]->rcmd);
 		sprintf(opt[k++],"%-32.32s%.40s","Access Requirements",cfg.xedit[i]->arstr);
 		sprintf(opt[k++],"%-32.32s%s%s","Intercept Standard I/O"
 			,cfg.xedit[i]->misc&IO_INTS ? "Yes":"No"
@@ -1605,8 +1605,8 @@ This is the internal code for the external editor.
 		sprintf(opt[k++],"%-32.32s%s","Quoted Text"
 			,cfg.xedit[i]->misc&QUOTEALL ? "All":cfg.xedit[i]->misc&QUOTENONE
 				? "None" : "Prompt User");
-		sprintf(opt[k++],"%-32.32s%s","QuickBBS Style (MSGTMP)"
-			,cfg.xedit[i]->misc&QUICKBBS ? "Yes":"No");
+		sprintf(opt[k++],"%-32.32s%s","Editor Information Files"
+			,cfg.xedit[i]->misc&QUICKBBS ? "QuickBBS MSGINF/MSGTMP":"WWIV EDITOR.INF/RESULT.ED");
 		sprintf(opt[k++],"%-32.32s%s","Expand Line Feeds to CRLF"
 			,cfg.xedit[i]->misc&EXPANDLF ? "Yes":"No");
 		sprintf(opt[k++],"%-32.32s%s","Strip FidoNet Kludge Lines"
@@ -1664,11 +1664,11 @@ abreviation of the name.
 		   case 2:
 				SETHELP(WHERE);
 /*
-External Editor Remote Command Line:
+External Editor Command Line:
 
-This is the command line to execute when using this editor remotely.
+This is the command line to execute when using this editor.
 */
-				uifc.input(WIN_MID|WIN_SAV,0,10,"Remote"
+				uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 					,cfg.xedit[i]->rcmd,sizeof(cfg.xedit[i]->rcmd)-1,K_EDIT);
 				break;
 			case 3:
@@ -1795,17 +1795,17 @@ drop file (like SyncEdit v2.x).
                 break;
 			case 8:
 				k=cfg.xedit[i]->misc&QUICKBBS ? 0:1;
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
+				strcpy(opt[0],"QuickBBS MSGINF/MSGTMP");
+				strcpy(opt[1],"WWIV EDITOR.INF/RESULT.ED");
 				opt[2][0]=0;
 				SETHELP(WHERE);
 /*
-QuickBBS Style (MSGTMP):
+Editor Information File:
 
 If this external editor uses the QuickBBS style MSGTMP interface, set
-this option to Yes.
+this option to ~QuickBBS MSGINF/MSGTMP~, otherwise set to ~WWIV EDITOR.INF/RESULT.ED~.
 */
-				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"QuickBBS Style (MSGTMP)"
+				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Editor Information Files"
 					,opt);
 				if(!k && !(cfg.xedit[i]->misc&QUICKBBS)) {
 					cfg.xedit[i]->misc|=QUICKBBS;
@@ -2296,7 +2296,7 @@ This is the global control key used to execute this event.
 
 This is the command line to execute when this hot key is pressed.
 */
-				uifc.input(WIN_MID|WIN_SAV,0,10,"Command Line"
+				uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 					,cfg.hotkey[i]->cmd,sizeof(cfg.hotkey[i]->cmd)-1,K_EDIT);
 				break;
 				} } }
