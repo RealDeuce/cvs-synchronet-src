@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.58 2010/03/03 06:49:18 deuce Exp $ */
+/* $Id: conn.c,v 1.59 2010/03/03 07:14:53 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -245,7 +245,7 @@ BOOL conn_connected(void)
 
 int conn_recv_upto(char *buffer, size_t buflen, unsigned timeout)
 {
-	size_t	found;
+	size_t	found=0;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
 	if(conn_buf_wait_bytes(&conn_inbuf, 1, timeout))
