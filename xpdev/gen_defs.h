@@ -2,13 +2,13 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.52 2010/03/22 20:44:19 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.45 2009/08/19 05:59:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -153,48 +153,10 @@ typedef uchar	uint8_t;
 typedef ushort	uint16_t;
 typedef ulong	uint32_t;
 
-#if defined(_MSC_VER) || defined(__WATCOMC__)
-typedef signed __int64 int64_t;
-typedef unsigned __int64 uint64_t;
-#define INTTYPES_H_64BIT_PREFIX		"I64"
-#else
-typedef signed long long int int64_t;
-typedef unsigned long long int uint64_t;
-#define INTTYPES_H_64BIT_PREFIX		"ll"
-#endif
-
-#define PRIi64	INTTYPES_H_64BIT_PREFIX"i"
-#define PRIu64	INTTYPES_H_64BIT_PREFIX"u"
-#define PRId64	INTTYPES_H_64BIT_PREFIX"d"
-#define PRIx64	INTTYPES_H_64BIT_PREFIX"x"
-#define PRIo64	INTTYPES_H_64BIT_PREFIX"o"
-
 #endif
 
 /* Legacy 32-bit time_t */
 typedef int32_t		time32_t;
-
-#if defined(_WIN32)
-#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
-#    define	off_t		int64_t
-#    define PRIdOFF		PRId64
-#    define PRIuOFF		PRIu64
-#  else
-#    define PRIdOFF		"ld"
-#    define PRIuOFF		"lu"
-#  endif
-#elif defined(__linux__) || defined(__sun__)
-#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
-#    define PRIdOFF		PRId64
-#    define PRIuOFF		PRIu64
-#  else
-#    define PRIdOFF		PRId32
-#    define PRIuOFF		PRIu32
-#  endif
-#else
-#  define PRIdOFF	PRId64
-#  define PRIuOFF	PRIu64
-#endif
 
 /* Windows Types */
 
