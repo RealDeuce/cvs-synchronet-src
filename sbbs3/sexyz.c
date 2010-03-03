@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.108 2010/03/03 08:23:10 deuce Exp $ */
+/* $Id: sexyz.c,v 1.109 2010/03/03 08:24:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1456,7 +1456,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.108 $", "%*s %s", revision);
+	sscanf("$Revision: 1.109 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1467,8 +1467,8 @@ int main(int argc, char **argv)
 
 	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected,NULL,flush);
 	zmodem_init(&zm,NULL,lputs,zmodem_progress,send_byte,recv_byte,is_connected,NULL,data_waiting,flush);
-	xm->log_level=&log_level;
-	zm->log_level=&log_level;
+	xm.log_level=&log_level;
+	zm.log_level=&log_level;
 
 	/* Generate path/sexyz[.host].ini from path/sexyz[.exe] */
 	SAFECOPY(str,argv[0]);
