@@ -2,13 +2,13 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.42 2009/02/21 08:50:11 rswindell Exp $ */
+/* $Id: str_util.c,v 1.45 2010/02/25 06:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,6 +96,19 @@ char* DLLCALL strip_exascii(const char *str, char* dest)
 		return NULL;
 	for(i=j=0;str[i];i++)
 		if(!(str[i]&0x80))
+			dest[j++]=str[i];
+	dest[j]=0;
+	return dest;
+}
+
+char* DLLCALL strip_space(const char *str, char* dest)
+{
+	int	i,j;
+
+	if(dest==NULL && (dest=strdup(str))==NULL)
+		return NULL;
+	for(i=j=0;str[i];i++)
+		if(!isspace(str[i]))
 			dest[j++]=str[i];
 	dest[j]=0;
 	return dest;
@@ -190,18 +203,24 @@ BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 }
 
 /****************************************************************************/
-/* Pattern matching string search of 'insearchof' in 'fname'.				*/
+/* Pattern matching string search of 'insearchof' in 'list'.				*/
 /****************************************************************************/
 BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 {
 	size_t	index;
 	BOOL	found=FALSE;
+	char*	p;
 
 	if(list==NULL || insearchof==NULL)
 		return(FALSE);
 
-	for(index=0;list[index]!=NULL && !found; index++)
-		found=findstr_in_string(insearchof, list[index]);
+	for(index=0; list[index]!=NULL; index++) {
+		p=list[index];
+		SKIP_WHITESPACE(p);
+		found=findstr_in_string(insearchof,p);
+		if(found!=(*p=='!'))
+			break;
+	}
 	return(found);
 }
 

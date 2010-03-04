@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.63 2009/02/21 08:24:32 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.67 2009/02/27 06:15:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@
 
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
-/* Handles ctrl-a characters                                                */
+/* Handles ctrl-a codes, Telnet-escaping, column & line count, auto-pausing */
 /****************************************************************************/
 int sbbs_t::bputs(const char *str)
 {
@@ -55,7 +55,7 @@ int sbbs_t::bputs(const char *str)
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
 		return(eprintf(LOG_INFO,"%s",str));
 
-	while(str[l]) {
+	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
 			if(toupper(str[l])=='Z')	/* EOF */
@@ -88,18 +88,27 @@ int sbbs_t::bputs(const char *str)
 }
 
 /****************************************************************************/
-/* Outputs a NULL terminated string remotely (if applicable)				*/
-/* Does not expand ctrl-A codes or track line counter, etc. (raw)           */
+/* Raw put string (remotely)												*/
+/* Performs Telnet IAC escaping												*/
+/* Performs saveline buffering (for restoreline)							*/
+/* DOES NOT expand ctrl-A codes, track colunms, lines, auto-pause, etc.     */
 /****************************************************************************/
-int sbbs_t::rputs(const char *str)
+int sbbs_t::rputs(const char *str, size_t len)
 {
-    ulong l=0;
+    size_t	l;
 
-	if(online==ON_LOCAL && console&CON_L_ECHO)	/* script running as event */
-		return(eprintf(LOG_INFO,"%s",str));
-	
-	while(str[l])
-		outcom(str[l++]);
+	if(console&CON_ECHO_OFF)
+		return 0;
+	if(len==0)
+		len=strlen(str);
+	for(l=0;l<len && online;l++) {
+		if(str[l]==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
+		if(outcom(str[l])!=0)
+			break;
+		if(lbuflen<LINE_BUFSIZE)
+			lbuf[lbuflen++]=str[l]; 
+	}
 	return(l);
 }
 
@@ -140,11 +149,13 @@ int sbbs_t::rprintf(const char *fmt, ...)
 /****************************************************************************/
 void sbbs_t::backspace(void)
 {
-	outcom('\b');
-	outcom(' ');
-	outcom('\b');
-	if(column)
-		column--;
+	if(!(console&CON_ECHO_OFF)) {
+		outcom('\b');
+		outcom(' ');
+		outcom('\b');
+		if(column)
+			column--;
+	}
 }
 
 /****************************************************************************/
@@ -160,8 +171,11 @@ long sbbs_t::term_supports(long cmp_flags)
 }
 
 /****************************************************************************/
-/* Outputs character locally and remotely (if applicable), preforming echo  */
-/* translations (X's and r0dent emulation) if applicable.					*/
+/* Outputs character														*/
+/* Performs terminal translations (e.g. EXASCII-to-ASCII, FF->ESC[2J)		*/
+/* Performs Telnet IAC escaping												*/
+/* Performs column counting, line counting, and auto-pausing				*/
+/* Performs saveline buffering (for restoreline)							*/
 /****************************************************************************/
 void sbbs_t::outchar(char ch)
 {
