@@ -2,13 +2,13 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.56 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.52 2009/12/04 06:04:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -694,7 +694,7 @@ void sbbs_t::qwk_sec()
 				continue; 
 			}
 
-			l=(long)flength(str);
+			l=flength(str);
 			bprintf(text[FiFilename],getfname(str));
 			bprintf(text[FiFileSize],ultoac(l,tmp));
 			if(l>0L && cur_cps)
@@ -769,7 +769,7 @@ void sbbs_t::qwk_sec()
 					break;
 			if(k>=cfg.total_fextrs) {
 				bputs(text[QWKExtractionFailed]);
-				lprintf(LOG_ERR, "Couldn't extract REP packet - configuration error");
+				errorlog("Couldn't extract REP packet - configuration error");
 				continue; 
 			}
 
@@ -818,14 +818,14 @@ void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 	if(l>=0)							  /* ptr specified */
 		subscan[subnum].ptr=l;
 	else if(l) {						  /* relative ptr specified */
-		getlastmsg(subnum,&last,/* time_t* */NULL);
+		getlastmsg(subnum,&last,0);
 		if(-l>(long)last)
 			subscan[subnum].ptr=0;
 		else
 			subscan[subnum].ptr=last+l; 
 	}
 	else if(reset)
-		getlastmsg(subnum,&(subscan[subnum].ptr),/* time_t* */NULL);
+		getlastmsg(subnum,&(subscan[subnum].ptr),0);
 }
 
 
@@ -841,7 +841,7 @@ void sbbs_t::qwkcfgline(char *buf,uint subnum)
 	ulong	qwk=useron.qwk;
 	file_t	f;
 
-	sprintf(str,"%-25.25s",buf);	/* Note: must be space-padded, left justified */
+	sprintf(str,"%.25s",buf);
 	strupr(str);
 	bprintf("\1n\r\n\1b\1hQWK Control [\1c%s\1b]: \1g%s\r\n"
 		,subnum==INVALID_SUB ? "Mail":cfg.sub[subnum]->qwkname,str);
