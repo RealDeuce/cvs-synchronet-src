@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.201 2009/01/24 22:17:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.206 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -385,13 +385,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	HANDLE	wrinpipe;
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
-	DWORD	rd;
+	unsigned long	rd;
     DWORD	wr;
-    DWORD	len;
+    unsigned long	len;
     DWORD	avail;
-	DWORD	dummy;
-	DWORD	msglen;
-	DWORD	retval;
+	unsigned long	dummy;
+	unsigned long	msglen;
+	unsigned long	retval;
 	DWORD	last_error;
 	DWORD	loop_since_io=0;
 	struct	tm tm;
@@ -399,10 +399,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	if(online==ON_LOCAL)
+	if(online!=ON_REMOTE || cfg.node_num==0)
 		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 	else
 		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
+
+	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
+		errormsg(WHERE, ERR_CHK, startup_dir, 0);
+		return -1;
+	}
 
 	XTRN_LOADABLE_MODULE;
 	XTRN_LOADABLE_JS_MODULE;
@@ -784,7 +789,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
         if(!online && !(mode&EX_OFFLINE)) { // Tell VXD/VDD and external that user hung-up
         	if(was_online) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline("X!",str);
+				logline(LOG_NOTICE,"X!",str);
             	hungup=time(NULL);
 				if(!native) {
 					if(nt)
@@ -872,7 +877,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
             		len=avail;
 
 				while(rd<len) {
-					DWORD waiting=0;
+					unsigned long waiting=0;
 
 					if(use_pipes)
 						PeekNamedPipe(
@@ -1308,8 +1313,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	int	high_fd;
 	struct timeval timeout;
 
-	if(online==ON_LOCAL)
-		eprintf(LOG_INFO,"Executing external: %s",cmdline);
+	if(online!=ON_REMOTE || cfg.node_num==0)
+		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
+
+	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
+		errormsg(WHERE, ERR_CHK, startup_dir, 0);
+		return -1;
+	}
 
 	if(startup_dir==NULL)
 		startup_dir=nulstr;
@@ -1723,7 +1733,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		else
 #endif
 		if(startup_dir!=NULL && startup_dir[0])
-			chdir(startup_dir);
+			if(chdir(startup_dir)!=0) {
+				errormsg(WHERE,ERR_CHDIR,startup_dir,0);
+				return(-1);
+			}
 
 		if(mode&EX_SH || strcspn(fullcmdline,"<>|;\"")!=strlen(fullcmdline)) {
 			argv[0]=comspec;
@@ -1773,7 +1786,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(online!=ON_LOCAL)
+	if(online==ON_REMOTE)
 		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */
@@ -1796,7 +1809,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			
 			if(!online && !(mode&EX_OFFLINE)) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline("X!",str);
+				logline(LOG_NOTICE,"X!",str);
 				break;
 			}
 
