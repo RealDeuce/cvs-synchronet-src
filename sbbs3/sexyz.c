@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.114 2010/03/04 20:31:38 deuce Exp $ */
+/* $Id: sexyz.c,v 1.115 2010/03/04 22:59:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -592,19 +592,30 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 		result=WaitForEvent(outbuf_empty,timeout*1000);
 		fprintf(statfp,"\b\b\b\b    \b\b\b\b");
 		if(result!=WAIT_OBJECT_0) {
+			lprintf(LOG_WARNING
+				,"!TIMEOUT (%d) waiting for output buffer to flush (%u seconds, %u bytes)\n"
+				,result, timeout, RingBufFull(&outbuf));
 			fprintf(statfp
 				,"\n!TIMEOUT (%d) waiting for output buffer to flush (%u seconds, %u bytes)\n"
 				,result, timeout, RingBufFull(&outbuf));
 			newline=TRUE;
-			if(RingBufFree(&outbuf)<len)
+			if((result=RingBufFree(&outbuf))<len) {
+				lprintf(LOG_ERR,"Still not enough space in ring buffer (need %d, avail=%d)",len,result);
 				return(-1);
+			}
+		}
+		if((result=RingBufFree(&outbuf))<len) {
+			lprintf(LOG_ERR,"Not enough space in ring buffer (need %d, avail=%d) although empty event is set!",len,result);
+			return(-1);
 		}
 	}
 
 #if !defined(RINGBUF_EVENT)
 	ResetEvent(outbuf_empty);
 #endif
-	RingBufWrite(&outbuf,buf,len);
+	if((result=RingBufWrite(&outbuf,buf,len))!=len) {
+		lprintf(LOG_ERR,"RingBufWrite() returned %d, expected %d",result,len);
+	}
 
 #if 0
 	if(debug_tx)
@@ -1517,7 +1528,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.114 $", "%*s %s", revision);
+	sscanf("$Revision: 1.115 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
