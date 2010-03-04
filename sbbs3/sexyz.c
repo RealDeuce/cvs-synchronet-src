@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.113 2010/03/04 04:49:17 deuce Exp $ */
+/* $Id: sexyz.c,v 1.114 2010/03/04 20:31:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -415,9 +415,14 @@ static int recv_buffer(int timeout)
 		if(stdio) {
 			i=read(STDIN_FILENO,inbuf,sizeof(inbuf));
 			/* Look like a socket using MAGIC! */
-			if(i==0) {
-				i=-1;
-				magic_errno=EAGAIN;
+			switch(i) {
+				case 0:
+					i=-1;
+					magic_errno=EAGAIN;
+					break;
+				case -1:
+					magic_errno=errno;
+					break;
 			}
 		}
 		else
@@ -448,7 +453,7 @@ static int recv_buffer(int timeout)
 						tv.tv_usec=0;
 						if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 							if(i==SOCKET_ERROR) {
-								lprintf(LOG_ERR,"ERROR %d selecting socket", ERROR_VALUE);
+								lprintf(LOG_ERR,"ERROR %d selecting socket", magic_errno);
 								connected=FALSE;
 							}
 							else
@@ -459,7 +464,7 @@ static int recv_buffer(int timeout)
 					}
 					return 0;
 				default:
-					lprintf(LOG_DEBUG,"DISCONNECTED line %u, error=%u", __LINE__,ERROR_VALUE);
+					lprintf(LOG_DEBUG,"DISCONNECTED line %u, error=%u", __LINE__,magic_errno);
 					connected=FALSE;
 					return -1;
 			}
@@ -596,10 +601,10 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 		}
 	}
 
-	RingBufWrite(&outbuf,buf,len);
 #if !defined(RINGBUF_EVENT)
 	ResetEvent(outbuf_empty);
 #endif
+	RingBufWrite(&outbuf,buf,len);
 
 #if 0
 	if(debug_tx)
@@ -1512,7 +1517,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.113 $", "%*s %s", revision);
+	sscanf("$Revision: 1.114 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
