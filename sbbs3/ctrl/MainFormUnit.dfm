@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 506
-  Top = 489
+  Left = 538
+  Top = 491
   Width = 640
   Height = 400
   Caption = 'Synchronet Control Panel'
@@ -13600,6 +13600,10 @@ object MainForm: TMainForm
         Width = 100
       end
       item
+        Text = 'Errors: 0'
+        Width = 100
+      end
+      item
         Text = 'Starting up...'
         Width = 100
       end>
@@ -13768,6 +13772,11 @@ object MainForm: TMainForm
           Hint = 'MENU/LOGON.ASC'
           OnClick = TextMenuItemEditClick
         end
+        object LogoffMessage: TMenuItem
+          Caption = 'Logoff Message'
+          Hint = 'MENU/LOGOFF.ASC'
+          OnClick = TextMenuItemEditClick
+        end
         object BBSEditAutoMsg: TMenuItem
           Caption = 'Auto Message'
           Hint = 'MSGS/AUTO.MSG'
@@ -13919,7 +13928,7 @@ object MainForm: TMainForm
       end
     end
     object TelnetMenuItem: TMenuItem
-      Caption = '&Telnet'
+      Caption = '&Terminal'
       object TelnetConfigureMenuItem: TMenuItem
         Action = TelnetConfigure
         Caption = '&Configure'
@@ -13927,6 +13936,10 @@ object MainForm: TMainForm
       object TelnetStartMenuItem: TMenuItem
         Action = TelnetStart
         Caption = '&Start'
+      end
+      object TelnetPauseMenuItem: TMenuItem
+        Action = TelnetPause
+        AutoCheck = True
       end
       object TelnetStopMenuItem: TMenuItem
         Action = TelnetStop
@@ -13956,6 +13969,10 @@ object MainForm: TMainForm
         Action = MailStart
         Caption = '&Start'
       end
+      object MailPauseMenuItem: TMenuItem
+        Action = MailPause
+        AutoCheck = True
+      end
       object MailStopMenuItem: TMenuItem
         Action = MailStop
         Caption = 'S&top'
@@ -13973,7 +13990,7 @@ object MainForm: TMainForm
         object MailViewSpamLog: TMenuItem
           Caption = 'Spam Log'
           Hint = 'SPAM.LOG'
-          OnClick = DataMenuItemClick
+          OnClick = ViewLogClick
         end
         object MailViewTodaysLog: TMenuItem
           Caption = 'Today'#39's Log'
@@ -14020,6 +14037,11 @@ object MainForm: TMainForm
           Hint = 'SPAMBLOCK.CFG'
           OnClick = CtrlMenuItemEditClick
         end
+        object SpamBlockExemptions: TMenuItem
+          Caption = 'Spam Block Exemptions'
+          Hint = 'SPAMBLOCK_EXEMPT.CFG'
+          OnClick = CtrlMenuItemEditClick
+        end
         object AllowedRelayList: TMenuItem
           Caption = 'Allowed Relay List'
           Hint = 'RELAY.CFG'
@@ -14043,7 +14065,7 @@ object MainForm: TMainForm
       end
     end
     object FtpMenuItem: TMenuItem
-      Caption = 'FTP'
+      Caption = 'FT&P'
       object FtpConfigureMenuItem: TMenuItem
         Action = FtpConfigure
         Caption = '&Configure'
@@ -14051,6 +14073,10 @@ object MainForm: TMainForm
       object FtpStartMenuItem: TMenuItem
         Action = FtpStart
         Caption = '&Start'
+      end
+      object FtpPauseMenuItem: TMenuItem
+        Action = FtpPause
+        AutoCheck = True
       end
       object FtpStopMenuItem: TMenuItem
         Action = FtpStop
@@ -14120,16 +14146,20 @@ object MainForm: TMainForm
     end
     object WebMenuItem: TMenuItem
       Caption = '&Web'
-      object Configure1: TMenuItem
+      object WebConfigureMenuItem: TMenuItem
         Action = WebConfigure
       end
-      object Start1: TMenuItem
+      object WebStartMenuItem: TMenuItem
         Action = WebStart
       end
-      object Stop1: TMenuItem
+      object WebPauseMenuItem: TMenuItem
+        Action = WebPause
+        AutoCheck = True
+      end
+      object WebStopMenuItem: TMenuItem
         Action = WebStop
       end
-      object Recycle4: TMenuItem
+      object WebRecycleMenuItem: TMenuItem
         Action = WebRecycle
       end
       object N11: TMenuItem
@@ -14163,10 +14193,14 @@ object MainForm: TMainForm
       object ServicesStartMenuItem: TMenuItem
         Action = ServicesStart
       end
+      object ServicesPauseMenuItem: TMenuItem
+        Action = ServicesPause
+        AutoCheck = True
+      end
       object ServicesStopMenuItem: TMenuItem
         Action = ServicesStop
       end
-      object Recycle3: TMenuItem
+      object ServicesRecycleMenuItem: TMenuItem
         Action = ServicesRecycle
       end
       object N12: TMenuItem
@@ -14183,6 +14217,7 @@ object MainForm: TMainForm
       end
     end
     object ViewMenuItem: TMenuItem
+      AutoHotkeys = maManual
       Caption = '&View'
       object ViewNodesMenuItem: TMenuItem
         Action = ViewNodes
@@ -14231,11 +14266,18 @@ object MainForm: TMainForm
         Caption = '&Status Bar'
         OnClick = ViewStatusBarMenuItemClick
       end
+      object ViewErrorLogMenuItem: TMenuItem
+        AutoHotkeys = maManual
+        Caption = 'Error Log...'
+        Hint = 'ERROR.LOG'
+        ImageIndex = 29
+        OnClick = ViewLogClick
+      end
       object ViewHackAttemptLogMenuItem: TMenuItem
         AutoHotkeys = maManual
         Caption = 'Hack Attempt Log...'
         Hint = 'HACK.LOG'
-        OnClick = DataMenuItemClick
+        OnClick = ViewLogClick
       end
     end
     object HelpMenuItem: TMenuItem
@@ -14274,24 +14316,31 @@ object MainForm: TMainForm
     Left = 392
     Top = 65533
     object TelnetStart: TAction
-      Hint = 'Start Telnet Server'
+      Hint = 'Start Terminal Server'
       ImageIndex = 0
       OnExecute = TelnetStartExecute
     end
+    object TelnetPause: TAction
+      AutoCheck = True
+      Caption = 'Pause'
+      Enabled = False
+      Hint = 'Pause Terminal Server Logging'
+      ImageIndex = 67
+    end
     object TelnetStop: TAction
       Enabled = False
-      Hint = 'Stop Telnet Server'
+      Hint = 'Stop Terminal Server'
       ImageIndex = 2
       OnExecute = TelnetStopExecute
     end
     object TelnetRecycle: TAction
       Caption = 'Recycle'
-      Hint = 'Recycle Telnet Server'
+      Hint = 'Recycle Terminal Server'
       ImageIndex = 55
       OnExecute = TelnetRecycleExecute
     end
     object TelnetConfigure: TAction
-      Hint = 'Configure Telnet Server'
+      Hint = 'Configure Terminal Server'
       ImageIndex = 4
       OnExecute = TelnetConfigureExecute
     end
@@ -14310,6 +14359,13 @@ object MainForm: TMainForm
       Hint = 'Start Mail Server'
       ImageIndex = 0
       OnExecute = MailStartExecute
+    end
+    object MailPause: TAction
+      AutoCheck = True
+      Caption = 'Pause'
+      Enabled = False
+      Hint = 'Pause Mail Server Logging'
+      ImageIndex = 67
     end
     object MailStop: TAction
       Enabled = False
@@ -14331,9 +14387,9 @@ object MainForm: TMainForm
     end
     object ViewTelnet: TAction
       AutoCheck = True
-      Caption = '&Telnet Server'
+      Caption = '&Terminal Server'
       Checked = True
-      Hint = 'View Telnet Server Window'
+      Hint = 'View Terminal Server Window'
       ImageIndex = 9
       OnExecute = ViewTelnetExecute
     end
@@ -14403,6 +14459,13 @@ object MainForm: TMainForm
       ImageIndex = 0
       OnExecute = FtpStartExecute
     end
+    object FtpPause: TAction
+      AutoCheck = True
+      Caption = 'Pause'
+      Enabled = False
+      Hint = 'Pause FTP Server Logging'
+      ImageIndex = 67
+    end
     object FtpStop: TAction
       Enabled = False
       Hint = 'Stop FTP Server'
@@ -14463,6 +14526,13 @@ object MainForm: TMainForm
       ImageIndex = 0
       OnExecute = ServicesStartExecute
     end
+    object ServicesPause: TAction
+      AutoCheck = True
+      Caption = 'Pause'
+      Enabled = False
+      Hint = 'Pause Services Logging'
+      ImageIndex = 67
+    end
     object ServicesStop: TAction
       Caption = 'Stop'
       Enabled = False
@@ -14489,6 +14559,13 @@ object MainForm: TMainForm
       ImageIndex = 0
       OnExecute = WebStartExecute
     end
+    object WebPause: TAction
+      AutoCheck = True
+      Caption = 'Pause'
+      Enabled = False
+      Hint = 'Pause Web Server Logging'
+      ImageIndex = 67
+    end
     object WebStop: TAction
       Caption = 'Stop'
       Enabled = False
@@ -14513,7 +14590,7 @@ object MainForm: TMainForm
   object ImageList: TImageList
     Left = 360
     Bitmap = {
-      494C010145004A00040010001000FFFFFFFFFF00FFFFFFFFFFFFFFFF424D3600
+      494C010145004A00040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003001000001002000000000000030
       0100000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -17025,7 +17102,8 @@ object MainForm: TMainForm
       000180010001800100019FF900019FF91FF19EF91FF19FF91DF19C791FF19C19
       1CF19C39183198191C719C19183198191C319C39183198191C719C7918319819
       1CF19CF9183198391DF19DF91FF19FF91FF19FF91FF19FF90001800100018001
-      00018003000180030001FFFF0001FFFF}
+      00018003000180030001FFFF0001FFFF00000000000000000000000000000000
+      000000000000}
   end
   object StatsTimer: TTimer
     Enabled = False
@@ -17073,7 +17151,7 @@ object MainForm: TMainForm
         OnClick = BBSConfigureMenuItemClick
       end
       object ConfigureTelnetTrayMenuItem: TMenuItem
-        Caption = 'Telnet Server'
+        Caption = 'Terminal Server'
         OnClick = TelnetConfigureExecute
       end
       object ConfigureFtpTrayMenuItem: TMenuItem

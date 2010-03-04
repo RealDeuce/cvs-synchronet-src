@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.9 2008/01/28 06:27:47 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.11 2009/02/10 20:32:04 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -412,7 +412,6 @@ int pty_connect(struct bbslist *bbs)
 	child_pid = forkpty(&master, NULL, &ts, &ws);
 	switch(child_pid) {
 	case -1:
-		setfont(default_font,TRUE);
 		load_font_files();
 		textmode(ti.currmode);
 		settitle("SyncTERM");
@@ -427,7 +426,6 @@ int pty_connect(struct bbslist *bbs)
 	}
 
 	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE)) {
-		setfont(default_font,TRUE);
 		load_font_files();
 		textmode(ti.currmode);
 		settitle("SyncTERM");
@@ -435,7 +433,6 @@ int pty_connect(struct bbslist *bbs)
 	}
 	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
 		destroy_conn_buf(&conn_inbuf);
-		setfont(default_font,TRUE);
 		load_font_files();
 		textmode(ti.currmode);
 		settitle("SyncTERM");
@@ -444,7 +441,6 @@ int pty_connect(struct bbslist *bbs)
 	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
-		setfont(default_font,TRUE);
 		load_font_files();
 		textmode(ti.currmode);
 		settitle("SyncTERM");
@@ -455,7 +451,6 @@ int pty_connect(struct bbslist *bbs)
 		free(conn_api.rd_buf);
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
-		setfont(default_font,TRUE);
 		load_font_files();
 		textmode(ti.currmode);
 		settitle("SyncTERM");
