@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.11 2010/03/04 22:29:44 deuce Exp $ */
+/* $Id: xpevent.c,v 1.12 2010/03/04 22:57:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,6 +176,7 @@ WaitForEvent(xpevent_t event, DWORD ms)
 					retval=0;
 				else
 					retval=WAIT_TIMEOUT;
+				event->nwaiters--;
 				goto DONE;
 				break;
 			case INFINITE:
@@ -190,6 +191,7 @@ WaitForEvent(xpevent_t event, DWORD ms)
 						errno=retval;
 						retval=WAIT_FAILED;
 					}
+					event->nwaiters--;
 					goto DONE;
 				}
 		}
