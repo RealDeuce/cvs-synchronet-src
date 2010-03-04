@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.9 2005/10/21 21:49:48 deuce Exp $ */
+/* $Id: xpevent.c,v 1.13 2010/03/04 23:53:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,18 +168,26 @@ WaitForEvent(xpevent_t event, DWORD ms)
 	
 	pthread_mutex_lock(&event->lock);
 
+	if(event->value)
+		retval=WAIT_OBJECT_0;
+
 	while (!(event->value)) {
 		event->nwaiters++;
 		switch(ms) {
 			case 0:
 				if(event->value)
-					retval=0;
+					retval=WAIT_OBJECT_0;
 				else
 					retval=WAIT_TIMEOUT;
+				event->nwaiters--;
 				goto DONE;
 				break;
 			case INFINITE:
 				retval=pthread_cond_wait(&event->gtzero, &event->lock);
+				if(retval) {
+					errno=retval;
+					retval=WAIT_FAILED;
+				}
 				break;
 			default:
 				retval=pthread_cond_timedwait(&event->gtzero, &event->lock, &abstime);
@@ -190,6 +198,7 @@ WaitForEvent(xpevent_t event, DWORD ms)
 						errno=retval;
 						retval=WAIT_FAILED;
 					}
+					event->nwaiters--;
 					goto DONE;
 				}
 		}
@@ -198,8 +207,7 @@ WaitForEvent(xpevent_t event, DWORD ms)
 
   DONE:
 
-	if(retval==0) {
-		retval=WAIT_OBJECT_0;
+	if(retval==WAIT_OBJECT_0) {
 		if(!event->mreset)
 			event->value=FALSE;
 	}
