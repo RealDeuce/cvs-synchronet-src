@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.112 2010/03/04 04:48:09 deuce Exp $ */
+/* $Id: sexyz.c,v 1.113 2010/03/04 04:49:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1512,7 +1512,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.112 $", "%*s %s", revision);
+	sscanf("$Revision: 1.113 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1787,6 +1787,18 @@ int main(int argc, char **argv)
 		} 
 	}
 
+	if(!(mode&(SEND|RECV))) {
+		fprintf(statfp,"!No command specified\n\n");
+		fprintf(statfp,usage,MAX_FILE_SIZE);
+		bail(1); 
+	}
+
+	if(mode&(SEND|XMODEM) && !fnames) { /* Sending with any or recv w/Xmodem */
+		fprintf(statfp,"!Must specify filename or filelist\n\n");
+		fprintf(statfp,usage,MAX_FILE_SIZE);
+		bail(1); 
+	}
+
 	if(sock==INVALID_SOCKET || sock<1) {
 #ifdef __unix__
 		if(STDOUT_FILENO > STDIN_FILENO)
@@ -1814,18 +1826,6 @@ int main(int argc, char **argv)
 		zm.escape_telnet_iac = FALSE;
 
 	zm.max_file_size = max_file_size;
-
-	if(!(mode&(SEND|RECV))) {
-		fprintf(statfp,"!No command specified\n\n");
-		fprintf(statfp,usage,MAX_FILE_SIZE);
-		bail(1); 
-	}
-
-	if(mode&(SEND|XMODEM) && !fnames) { /* Sending with any or recv w/Xmodem */
-		fprintf(statfp,"!Must specify filename or filelist\n\n");
-		fprintf(statfp,usage,MAX_FILE_SIZE);
-		bail(1); 
-	}
 
 	/* Code disabled.  Why?  ToDo */
 /*	if(mode&RECVDIR)
