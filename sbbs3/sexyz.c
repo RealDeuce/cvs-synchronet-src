@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.130 2010/03/13 17:18:46 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.114 2010/03/04 20:31:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,7 +93,7 @@ BOOL	dszlog_short=FALSE;				/* Log Micros~1 short filename		*/
 BOOL	dszlog_quotes=FALSE;			/* Quote filenames in DSZLOG		*/
 int		log_level=LOG_INFO;
 BOOL	use_syslog=FALSE;
-int64_t	max_file_size=MAX_FILE_SIZE;
+ulong	max_file_size=MAX_FILE_SIZE;
 
 xmodem_t xm;
 zmodem_t zm;
@@ -401,7 +401,7 @@ void send_telnet_cmd(SOCKET sock, uchar cmd, uchar opt)
  * Returns -1 on disconnect or the number of bytes read.
  * Does not muck around with ERROR_VALUE (hopefully)
  */
-static int recv_buffer(int timeout /* seconds */)
+static int recv_buffer(int timeout)
 {
 	int i;
 	fd_set		socket_set;
@@ -485,7 +485,7 @@ static int recv_buffer(int timeout /* seconds */)
 /****************************************************************************/
 /* Receive a byte from remote (single-threaded version)						*/
 /****************************************************************************/
-int recv_byte(void* unused, unsigned timeout /* seconds */)
+int recv_byte(void* unused, unsigned timeout)
 {
 	int			i;
 	uchar		ch;
@@ -587,35 +587,24 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 		buf[0]=ch;
 
 	if(RingBufFree(&outbuf)<len) {
-#if !defined(RINGBUF_EVENT)
-		ResetEvent(outbuf_empty);
-#endif
 		fprintf(statfp,"FLOW");
 		flows++;
 		result=WaitForEvent(outbuf_empty,timeout*1000);
 		fprintf(statfp,"\b\b\b\b    \b\b\b\b");
 		if(result!=WAIT_OBJECT_0) {
-			lprintf(LOG_WARNING
-				,"!TIMEOUT (%d) waiting for output buffer to flush (%u seconds, %u bytes)\n"
-				,result, timeout, RingBufFull(&outbuf));
 			fprintf(statfp
 				,"\n!TIMEOUT (%d) waiting for output buffer to flush (%u seconds, %u bytes)\n"
 				,result, timeout, RingBufFull(&outbuf));
 			newline=TRUE;
-			if((result=RingBufFree(&outbuf))<len) {
-				lprintf(LOG_ERR,"Still not enough space in ring buffer (need %d, avail=%d)",len,result);
+			if(RingBufFree(&outbuf)<len)
 				return(-1);
-			}
-		}
-		if((result=RingBufFree(&outbuf))<len) {
-			lprintf(LOG_ERR,"Not enough space in ring buffer (need %d, avail=%d) although empty event is set!",len,result);
-			return(-1);
 		}
 	}
 
-	if((result=RingBufWrite(&outbuf,buf,len))!=len) {
-		lprintf(LOG_ERR,"RingBufWrite() returned %d, expected %d",result,len);
-	}
+#if !defined(RINGBUF_EVENT)
+	ResetEvent(outbuf_empty);
+#endif
+	RingBufWrite(&outbuf,buf,len);
 
 #if 0
 	if(debug_tx)
@@ -634,13 +623,33 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 	uchar		buf[2] = { TELNET_IAC, TELNET_IAC };
 	int			len=1;
 	int			i;
+	fd_set		socket_set;
+	struct timeval	tv;
+
+	FD_ZERO(&socket_set);
+#ifdef __unix__
+	if(stdio)
+		FD_SET(STDOUT_FILENO,&socket_set);
+	else
+#endif
+		FD_SET(sock,&socket_set);
+	tv.tv_sec=timeout;
+	tv.tv_usec=0;
+
+	if(select(sock+1,NULL,&socket_set,NULL,&tv)<1)
+		return(ERROR_VALUE);
 
 	if(telnet && ch==TELNET_IAC)	/* escape IAC char */
 		len=2;
 	else
 		buf[0]=ch;
 
-	i=sendbuf(sock,buf,len);
+#ifdef __unix__
+	if(stdio)
+		i=write(STDOUT_FILENO,buf,len);
+	else
+#endif
+		i=sendbuf(sock,buf,len);
 	
 	if(i==len) {
 		if(debug_tx)
@@ -658,8 +667,8 @@ static void output_thread(void* arg)
     BYTE		buf[MAX_OUTBUF_SIZE];
 	int			i;
     ulong		avail;
-	uint64_t	total_sent=0;
-	uint64_t	total_pkts=0;
+	ulong		total_sent=0;
+	ulong		total_pkts=0;
 	ulong		short_sends=0;
     ulong		bufbot=0;
     ulong		buftop=0;
@@ -722,7 +731,7 @@ static void output_thread(void* arg)
     }
 
 	if(total_sent)
-		sprintf(stats,"(sent %"PRIu64" bytes in %"PRIu64" blocks, %"PRIu64" average, %lu short, %lu errors)"
+		sprintf(stats,"(sent %lu bytes in %lu blocks, %lu average, %lu short, %lu errors)"
 			,total_sent, total_pkts, total_sent/total_pkts, short_sends, select_errors);
 	else
 		stats[0]=0;
@@ -733,10 +742,8 @@ static void output_thread(void* arg)
 /* Flush output buffer */
 void flush(void* unused)
 {
-#ifdef __unix__
 	if(stdio)
 		fflush(stdout);
-#endif
 }
 
 BOOL is_connected(void* unused)
@@ -746,7 +753,7 @@ BOOL is_connected(void* unused)
 	return connected;
 }
 
-BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
+BOOL data_waiting(void* unused, unsigned timeout)
 {
 	if(recv_buffer(timeout) > 0)
 		return TRUE;
@@ -756,10 +763,10 @@ BOOL data_waiting(void* unused, unsigned timeout /* seconds */)
 /****************************************************************************/
 /* Returns the total number of blocks required to send the file				*/
 /****************************************************************************/
-uint64_t num_blocks(unsigned block_num, uint64_t offset, uint64_t len, unsigned block_size)
+unsigned num_blocks(unsigned block_num, ulong offset, ulong len, unsigned block_size)
 {
-	uint64_t blocks;
-	uint64_t remain = len - offset;
+	ulong blocks;
+	ulong remain = len - offset;
 
 	blocks=block_num + (remain/block_size);
 	if(remain%block_size)
@@ -779,10 +786,10 @@ void dump_block(long block_size)
 	fprintf(statfp,"\n");
 }
 
-void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t fsize, time_t start)
+void xmodem_progress(void* unused, unsigned block_num, ulong offset, ulong fsize, time_t start)
 {
 	unsigned	cps;
-	uint64_t	total_blocks;
+	unsigned	total_blocks;
 	long		l;
 	long		t;
 	time_t		now;
@@ -793,14 +800,14 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 		t=now-start;
 		if(t<=0)
 			t=1;
-		if((cps=(unsigned)(offset/t))==0)
-			cps=1;				/* cps so far */
-		l=(long)(fsize/cps);	/* total transfer est time */
-		l-=t;					/* now, it's est time left */
+		if((cps=offset/t)==0)
+			cps=1;			/* cps so far */
+		l=fsize/cps;		/* total transfer est time */
+		l-=t;				/* now, it's est time left */
 		if(l<0) l=0;
 		if(mode&SEND) {
 			total_blocks=num_blocks(block_num,offset,fsize,xm.block_size);
-			fprintf(statfp,"\rBlock (%lu%s): %lu/%"PRId64"  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %lu/%lu  Byte: %lu  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -815,7 +822,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else if(mode&YMODEM) {
-			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -829,7 +836,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else { /* XModem receive */
-			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %lu  "
 				"Time: %lu:%02lu  %u cps "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -849,7 +856,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
  * show the progress of the transfer like this:
  * zmtx: sending file "garbage" 4096 bytes ( 20%)
  */
-void zmodem_progress(void* cbdata, int64_t current_pos)
+void zmodem_progress(void* cbdata, uint32_t current_pos)
 {
 	unsigned	cps;
 	long		l;
@@ -864,12 +871,12 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 			t=1;
 		if(zm.transfer_start_pos>current_pos)
 			zm.transfer_start_pos=0;
-		if((cps=(unsigned)((current_pos-zm.transfer_start_pos)/t))==0)
-			cps=1;							/* cps so far */
-		l=(long)(zm.current_file_size/cps);	/* total transfer est time */
-		l-=t;								/* now, it's est time left */
+		if((cps=(current_pos-zm.transfer_start_pos)/t)==0)
+			cps=1;		/* cps so far */
+		l=zm.current_file_size/cps;	/* total transfer est time */
+		l-=t;			/* now, it's est time left */
 		if(l<0) l=0;
-		fprintf(statfp,"\rKByte: %"PRId64"/%"PRId64"  %u/CRC-%u  "
+		fprintf(statfp,"\rKByte: %lu/%lu  %u/CRC-%u  "
 			"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 			,current_pos/1024
 			,zm.current_file_size/1024
@@ -898,9 +905,9 @@ static int send_files(char** fname, uint fnames)
 	glob_t		g;
 	int			gi;
 	BOOL		success=TRUE;
-	uint64_t	fsize;
-	uint64_t	sent_bytes;
-	uint64_t	total_bytes=0;
+	long		fsize;
+	ulong		sent_bytes;
+	uint32_t	total_bytes=0;
 	time_t		t,startfile;
 	time_t		startall;
 	FILE*		fp;
@@ -929,7 +936,7 @@ static int send_files(char** fname, uint fnames)
 		return(-1);
 	}
 	if(xm.total_files>1)
-		lprintf(LOG_INFO,"Sending %u files (%"PRId64" KB total)"
+		lprintf(LOG_INFO,"Sending %u files (%lu KB total)"
 			,xm.total_files,xm.total_bytes/1024);
 
 	zm.files_remaining = xm.total_files;
@@ -960,12 +967,12 @@ static int send_files(char** fname, uint fnames)
 			errors=0;
 			startfile=time(NULL);
 
-			lprintf(LOG_INFO,"Sending %s (%"PRId64" KB) via %cMODEM"
+			lprintf(LOG_INFO,"Sending %s (%lu KB) via %cMODEM"
 				,path,fsize/1024
 				,mode&XMODEM ? 'X' : mode&YMODEM ? 'Y' : 'Z');
 
 			if(mode&ZMODEM)
-				success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, &sent_bytes);
+				success=zmodem_send_file(&zm, path, fp, /* ZRQINIT? */fnum==0, &startfile, (uint32_t*)&sent_bytes);
 			else	/* X/Ymodem */
 				success=xmodem_send_file(&xm, path, fp, &startfile, &sent_bytes);
 
@@ -973,7 +980,7 @@ static int send_files(char** fname, uint fnames)
 
 			if((t=time(NULL)-startfile)<=0) 
 				t=1;
-			if((cps=(unsigned)(sent_bytes/t))==0)
+			if((cps=sent_bytes/t)==0)
 				cps=1;
 			if(success) {
 				xm.sent_files++;
@@ -985,7 +992,7 @@ static int send_files(char** fname, uint fnames)
 						,t/60,t%60,cps);
 
 				if(xm.total_files-xm.sent_files)
-					lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %"PRId64
+					lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %lu"
 						,((xm.total_bytes-xm.sent_bytes)/cps)/60
 						,((xm.total_bytes-xm.sent_bytes)/cps)%60
 						,xm.total_files-xm.sent_files
@@ -997,7 +1004,7 @@ static int send_files(char** fname, uint fnames)
 			/* DSZLOG entry */
 			if(logfp) {
 				lprintf(LOG_DEBUG,"Updating DSZLOG: %s", dszlog);
-				fprintf(logfp,"%c %7"PRId64" %5u bps %6lu cps %3u errors %5u %4u "
+				fprintf(logfp,"%c %7lu %5u bps %6lu cps %3u errors %5u %4u "
 					"%s -1\n"
 					,(mode&ZMODEM && zm.file_skipped) ? 's' 
 						: success ? (mode&ZMODEM ? 'z':'S') 
@@ -1055,7 +1062,7 @@ static int send_files(char** fname, uint fnames)
 	if(xm.total_files>1) {
 		t=time(NULL)-startall;
 		if(!t) t=1;
-		lprintf(LOG_INFO,"Overall - Time %02lu:%02lu  KBytes: %"PRId64"  CPS: %lu"
+		lprintf(LOG_INFO,"Overall - Time %02lu:%02lu  KBytes: %lu  CPS: %lu"
 			,t/60,t%60,total_bytes/1024,total_bytes/t); 
 	}
 	return(0);	/* success */
@@ -1074,8 +1081,8 @@ static int receive_files(char** fname_list, int fnames)
 	BOOL	success=FALSE;
 	long	fmode;
 	long	serial_num=-1;
-	int64_t	file_bytes=0,file_bytes_left=0;
-	int64_t	total_bytes=0;
+	ulong	file_bytes=0,file_bytes_left=0;
+	ulong	total_bytes=0;
 	FILE*	fp;
 	time_t	t,startfile,ftime;
 
@@ -1117,9 +1124,8 @@ static int receive_files(char** fname_list, int fnames)
 					lprintf(LOG_INFO,"Received YMODEM termination block");
 					return(0); 
 				}
-				ftime=total_files=0;
-				total_bytes=0;
-				i=sscanf(block+strlen(block)+1,"%"PRId64" %lo %lo %lo %u %"PRId64
+				ftime=total_files=total_bytes=0;
+				i=sscanf(block+strlen(block)+1,"%lu %lo %lo %lo %u %lu"
 					,&file_bytes			/* file size (decimal) */
 					,&ftime 				/* file time (octal unix format) */
 					,&fmode 				/* file mode (not used) */
@@ -1188,9 +1194,9 @@ static int receive_files(char** fname_list, int fnames)
 					} 
 				} 
 			}
-			fprintf(statfp,"File size: %"PRId64" bytes\n", file_bytes);
+			fprintf(statfp,"File size: %lu bytes\n", file_bytes);
 			if(total_files>1)
-				fprintf(statfp,"Remaining: %"PRId64" bytes in %u files\n", total_bytes, total_files);
+				fprintf(statfp,"Remaining: %lu bytes in %u files\n", total_bytes, total_files);
 		}
 
 		lprintf(LOG_DEBUG,"Receiving: %.64s ",str);
@@ -1214,7 +1220,7 @@ static int receive_files(char** fname_list, int fnames)
 		}
 
 		if(!(mode&XMODEM) && max_file_size!=0 && file_bytes > max_file_size) {
-			lprintf(LOG_WARNING,"%s file size (%"PRId64") exceeds specified maximum: %"PRId64" bytes", str, file_bytes, max_file_size);
+			lprintf(LOG_WARNING,"%s file size (%u) exceeds specified maximum: %u bytes", str, file_bytes, max_file_size);
 			if(mode&ZMODEM) {
 				zmodem_send_zskip(&zm);
 				continue;
@@ -1240,7 +1246,7 @@ static int receive_files(char** fname_list, int fnames)
 				,mode&GMODE ? "-G" : ""
 				,mode&CRC ? "CRC-16":"Checksum");
 		else
-			lprintf(LOG_INFO,"Receiving %s (%"PRId64" KB) via %s %s"
+			lprintf(LOG_INFO,"Receiving %s (%lu KB) via %s %s"
 				,str
 				,file_bytes/1024
 				,mode&YMODEM ? mode&GMODE ? "YMODEM-G" : "YMODEM" :"ZMODEM"
@@ -1260,9 +1266,9 @@ static int receive_files(char** fname_list, int fnames)
 			block_num=1;
 			xmodem_put_nak(&xm, block_num);
 			while(is_connected(NULL)) {
-				off_t pos=ftello(fp);
+				ulong pos=ftell(fp);
 				if(max_file_size!=0 && pos>=max_file_size) {
-					lprintf(LOG_WARNING,"Specified maximum file size (%"PRId64" bytes) reached at offset %"PRId64
+					lprintf(LOG_WARNING,"Specified maximum file size (%lu bytes) reached at offset %lu"
 						,max_file_size, pos);
 					break;
 				}
@@ -1303,11 +1309,11 @@ static int receive_files(char** fname_list, int fnames)
 					break; 
 				}
 				wr=xm.block_size;
-				if(wr>(uint)file_bytes_left)
-					wr=(uint)file_bytes_left;
+				if(wr>file_bytes_left)
+					wr=file_bytes_left;
 				if(fwrite(block,1,wr,fp)!=wr) {
-					lprintf(LOG_ERR,"ERROR %d writing %u bytes at file offset %"PRIu64
-						,errno, wr, (uint64_t)ftello(fp));
+					lprintf(LOG_ERR,"Error writing %u bytes to file at offset %lu"
+						,wr,ftell(fp));
 					xmodem_cancel(&xm);
 					return(1); 
 				}
@@ -1321,9 +1327,9 @@ static int receive_files(char** fname_list, int fnames)
 			file_bytes = zm.current_file_size;	/* file can grow in transit */
 		else {
 			fflush(fp);
-			if(file_bytes < filelength(fileno(fp))) {
-				lprintf(LOG_INFO,"Truncating file to %"PRIu64" bytes", file_bytes);
-				chsize(fileno(fp),(ulong)file_bytes);	/* <--- 4GB limit */
+			if(file_bytes < (ulong)filelength(fileno(fp))) {
+				lprintf(LOG_INFO,"Truncating file to %lu bytes", file_bytes);
+				chsize(fileno(fp),file_bytes);
 			} else
 				file_bytes = filelength(fileno(fp));
 		}
@@ -1335,7 +1341,7 @@ static int receive_files(char** fname_list, int fnames)
 			lprintf(LOG_WARNING,"File Skipped");
 		else if(success)
 			lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
-				,t/60,t%60,(ulong)(file_bytes/t));
+				,t/60,t%60,file_bytes/t);	
 		else
 			lprintf(LOG_ERR,"File Transfer %s"
 				,zm.local_abort ? "Aborted": zm.cancelled ? "Cancelled":"Failure");
@@ -1370,12 +1376,12 @@ static int receive_files(char** fname_list, int fnames)
 
 		if(mode&XMODEM)	/* maximum of one file */
 			break;
-		if((cps=(unsigned)(file_bytes/t))==0)
+		if((cps=file_bytes/t)==0)
 			cps=1;
 		total_files--;
 		total_bytes-=file_bytes;
 		if(total_files>1 && total_bytes)
-			lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %"PRIu64
+			lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %lu"
 				,(total_bytes/cps)/60
 				,(total_bytes/cps)%60
 				,total_files
@@ -1436,7 +1442,9 @@ static const char* usage=
 
 #ifdef __unix__
 
-struct termios tio_default;				/* Initial term settings */
+#ifdef __unix__
+	struct termios tio_default;				/* Initial term settings */
+#endif
 
 #ifdef NEEDS_CFMAKERAW
 static void
@@ -1477,11 +1485,6 @@ static void init_stdio(void)
 	}
 }
 
-BOOL	RingBufIsEmpty(void *buf)
-{
-	return(RingBufFull(buf)==0);
-}
-
 #endif
 
 /***************/
@@ -1514,7 +1517,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.130 $", "%*s %s", revision);
+	sscanf("$Revision: 1.114 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1554,12 +1557,12 @@ int main(int argc, char **argv)
 	log_level				=iniReadLogLevel(fp,ROOT_SECTION,"LogLevel",log_level);
 	use_syslog				=iniReadBool(fp,ROOT_SECTION,"SysLog",use_syslog);
 
-	outbuf.highwater_mark	=(ulong)iniReadBytes(fp,ROOT_SECTION,"OutbufHighwaterMark",1,1100);
+	outbuf.highwater_mark	=iniReadInteger(fp,ROOT_SECTION,"OutbufHighwaterMark",1100);
 	outbuf_drain_timeout	=iniReadInteger(fp,ROOT_SECTION,"OutbufDrainTimeout",10);
-	outbuf_size				=(ulong)iniReadBytes(fp,ROOT_SECTION,"OutbufSize",1,16*1024);
+	outbuf_size				=iniReadInteger(fp,ROOT_SECTION,"OutbufSize",16*1024);
 
 	progress_interval		=iniReadInteger(fp,ROOT_SECTION,"ProgressInterval",1);
-	max_file_size 			=iniReadBytes(fp,ROOT_SECTION,"MaxFileSize",/* unit: */1,MAX_FILE_SIZE);
+	max_file_size 			=iniReadLongInt(fp,ROOT_SECTION,"MaxFileSize",MAX_FILE_SIZE);
 
 	if(iniReadBool(fp,ROOT_SECTION,"Debug",FALSE))
 		log_level=LOG_DEBUG;
@@ -1568,8 +1571,8 @@ int main(int argc, char **argv)
 	xm.recv_timeout			=iniReadInteger(fp,"Xmodem","RecvTimeout",xm.recv_timeout);	/* seconds */
 	xm.byte_timeout			=iniReadInteger(fp,"Xmodem","ByteTimeout",xm.byte_timeout);	/* seconds */
 	xm.ack_timeout			=iniReadInteger(fp,"Xmodem","AckTimeout",xm.ack_timeout);	/* seconds */
-	xm.block_size			=(ulong)iniReadBytes(fp,"Xmodem","BlockSize",1,xm.block_size);			/* 128 or 1024 */
-	xm.max_block_size		=(ulong)iniReadBytes(fp,"Xmodem","MaxBlockSize",1,xm.max_block_size);	/* 128 or 1024 */
+	xm.block_size			=iniReadInteger(fp,"Xmodem","BlockSize",xm.block_size);			/* 128 or 1024 */
+	xm.max_block_size		=iniReadInteger(fp,"Xmodem","MaxBlockSize",xm.max_block_size);	/* 128 or 1024 */
 	xm.max_errors			=iniReadInteger(fp,"Xmodem","MaxErrors",xm.max_errors);
 	xm.g_delay				=iniReadInteger(fp,"Xmodem","G_Delay",xm.g_delay);
 	xm.crc_mode_supported	=iniReadBool(fp,"Xmodem","SendCRC",xm.crc_mode_supported);
@@ -1581,10 +1584,10 @@ int main(int argc, char **argv)
 	zm.send_timeout			=iniReadInteger(fp,"Zmodem","SendTimeout",zm.send_timeout);	/* seconds */
 	zm.recv_timeout			=iniReadInteger(fp,"Zmodem","RecvTimeout",zm.recv_timeout);	/* seconds */
 	zm.crc_timeout			=iniReadInteger(fp,"Zmodem","CrcTimeout",zm.crc_timeout);	/* seconds */
-	zm.block_size			=(ulong)iniReadBytes(fp,"Zmodem","BlockSize",1,zm.block_size);	/* 1024  */
-	zm.max_block_size		=(ulong)iniReadBytes(fp,"Zmodem","MaxBlockSize",1,zm.max_block_size); /* 1024 or 8192 */
+	zm.block_size			=iniReadInteger(fp,"Zmodem","BlockSize",zm.block_size);			/* 1024  */
+	zm.max_block_size		=iniReadInteger(fp,"Zmodem","MaxBlockSize", zm.max_block_size); /* 1024 or 8192 */
 	zm.max_errors			=iniReadInteger(fp,"Zmodem","MaxErrors",zm.max_errors);
-	zm.recv_bufsize			=(ulong)iniReadBytes(fp,"Zmodem","RecvBufSize",1,0);
+	zm.recv_bufsize			=iniReadInteger(fp,"Zmodem","RecvBufSize",0);
 	zm.no_streaming			=!iniReadBool(fp,"Zmodem","Streaming",TRUE);
 	zm.want_fcs_16			=!iniReadBool(fp,"Zmodem","CRC32",TRUE);
 	zm.escape_telnet_iac	=iniReadBool(fp,"Zmodem","EscapeTelnetIAC",TRUE);
@@ -1611,10 +1614,6 @@ int main(int argc, char **argv)
 
 #if !defined(RINGBUF_EVENT)
 	outbuf_empty=CreateEvent(NULL,/* ManualReset */TRUE, /*InitialState */TRUE,NULL);
-#ifdef __unix__
-	outbuf_empty->cbdata=&outbuf;
-	outbuf_empty->verify=RingBufIsEmpty;
-#endif
 #endif
 
 #if 0
@@ -1748,7 +1747,7 @@ int main(int argc, char **argv)
 						pause_on_abend=TRUE;
 						break;
 					case 'M':	/* MaxFileSize */
-						max_file_size=strtoul(arg++,NULL,0);	/* TODO: use strtoull() ? */
+						max_file_size=strtoul(arg++,NULL,0);
 						break;
 				}
 			}
@@ -1792,9 +1791,6 @@ int main(int argc, char **argv)
 			strListAppend(&fname_list,argv[i],fnames++);
 		} 
 	}
-
-	if(max_file_size)
-		fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
 
 	if(!(mode&(SEND|RECV))) {
 		fprintf(statfp,"!No command specified\n\n");
@@ -1902,13 +1898,8 @@ int main(int argc, char **argv)
 
 #if !SINGLE_THREADED
 	lprintf(LOG_DEBUG,"Waiting for output buffer to empty... ");
-	if(RingBufFull(&outbuf)) {
-#if !defined(RINGBUF_EVENT)
-		ResetEvent(outbuf_empty);
-#endif
-		if(WaitForEvent(outbuf_empty,5000)!=WAIT_OBJECT_0)
-			lprintf(LOG_DEBUG,"FAILURE");
-	}
+	if(WaitForEvent(outbuf_empty,5000)!=WAIT_OBJECT_0)
+		lprintf(LOG_DEBUG,"FAILURE");
 #endif
 
 	terminate=TRUE;	/* stop output thread */
