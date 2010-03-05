@@ -11,12 +11,12 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.21 2011/10/14 17:57:24 deuce Exp $
+# $Id: GNUmakefile,v 1.18 2006/01/11 02:16:26 deuce Exp $
 
 SRC_ROOT	= ../..
 include $(SRC_ROOT)/build/Common.gmake
 
-CFLAGS	+=	-I../ -I../../comio
+CFLAGS	+=	-I../
 
 ifdef STATIC
  LDFLAGS	+=	-static
@@ -26,7 +26,7 @@ ifeq ($(os),sunos)
  LDFLAGS	+=	-lnsl
 endif
 
-CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(JS_CFLAGS)
+CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS)
 LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS)
 
 $(SBBSINST): $(OBJS)
