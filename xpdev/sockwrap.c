@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.42 2011/09/19 03:08:56 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.40 2010/03/05 23:26:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -164,10 +164,10 @@ socket_option_t* getSocketOptionList(void)
 	return(socket_options);
 }
 
-int sendfilesocket(int sock, int file, off_t *offset, off_t count)
+int sendfilesocket(int sock, int file, fileoff_t *offset, filelen_t count)
 {
 	char		buf[1024*16];
-	off_t		len;
+	filelen_t	len;
 	int			rd;
 	int			wr=0;
 	int			total=0;
@@ -226,7 +226,7 @@ int sendfilesocket(int sock, int file, off_t *offset, off_t count)
 	return(total);
 }
 
-int recvfilesocket(int sock, int file, off_t *offset, off_t count)
+int recvfilesocket(int sock, int file, fileoff_t *offset, filelen_t count)
 {
 	/* Writes a file from a socket -
 	 *
@@ -378,7 +378,7 @@ int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigne
 		tv.tv_usec = 0;
 		FD_ZERO(&socket_set);
 		FD_SET(sock,&socket_set);
-		if(select(sock+1,NULL,&socket_set,NULL,&tv)==1)
+		if(select(sock,NULL,&socket_set,NULL,&tv)==1)
 			getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen);
 	}
 	return result;

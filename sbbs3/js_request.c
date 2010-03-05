@@ -9,6 +9,7 @@
 	#define XP_WIN
 #endif
 
+#define JS_THREADSAFE
 #include <jsapi.h>
 #include "threadwrap.h"
 #include "js_request.h"
