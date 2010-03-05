@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.13 2010/03/04 23:53:15 deuce Exp $ */
+/* $Id: xpevent.c,v 1.14 2010/03/05 00:03:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,6 +187,8 @@ WaitForEvent(xpevent_t event, DWORD ms)
 				if(retval) {
 					errno=retval;
 					retval=WAIT_FAILED;
+					event->nwaiters--;
+					goto DONE;
 				}
 				break;
 			default:
