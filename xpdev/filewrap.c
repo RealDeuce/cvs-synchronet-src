@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.35 2010/03/05 04:09:11 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.36 2010/03/05 23:26:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ time_t DLLCALL filetime(int fd)
 /* Returns the length of the file in 'fd'									*/
 /* or -1 if file doesn't exist.												*/
 /****************************************************************************/
-long DLLCALL filelength(int fd)
+filelen_t DLLCALL filelength(int fd)
 {
 	struct stat st;
 
@@ -84,23 +84,8 @@ long DLLCALL filelength(int fd)
 	return(st.st_size);
 }
 
-/****************************************************************************/
-/* Returns the length (63-bits) of the file in 'fd'							*/
-/* or -1 if file doesn't exist.												*/
-/* Microsoftism																*/
-/****************************************************************************/
-int64_t DLLCALL _filelengthi64(int fd)
-{
-	struct stat st;
-
-	if(fstat(fd, &st)!=0)
-		return(-1);
-
-	return(st.st_size);
-}
-
 /* Sets a lock on a portion of a file */
-int DLLCALL lock(int fd, long pos, long len)
+int DLLCALL lock(int fd, fileoff_t pos, filelen_t len)
 {
 	#if defined(F_SANERDLCKNO) || !defined(BSD)
  		struct flock alock;
@@ -134,7 +119,7 @@ int DLLCALL lock(int fd, long pos, long len)
 }
 
 /* Removes a lock from a file record */
-int DLLCALL unlock(int fd, long pos, long len)
+int DLLCALL unlock(int fd, fileoff_t pos, filelen_t len)
 {
 
 #if defined(F_SANEUNLCK) || !defined(BSD)
@@ -262,29 +247,29 @@ int DLLCALL sopen(const char *fn, int sh_access, int share, ...)
 	#define LK_UNLCK LK_UNLOCK
 #endif
 
-int DLLCALL lock(int file, long offset, long size) 
+int DLLCALL lock(int file, fileoff_t offset, filelen_t size) 
 {
 	int	i;
-	long	pos;
+	fileoff_t pos;
    
 	pos=tell(file);
 	if(offset!=pos)
 		lseek(file, offset, SEEK_SET);
-	i=_locking(file,LK_NBLCK,size);
+	i=_locking(file,LK_NBLCK,(long)size);
 	if(offset!=pos)
 		lseek(file, pos, SEEK_SET);
 	return(i);
 }
 
-int DLLCALL unlock(int file, long offset, long size)
+int DLLCALL unlock(int file, fileoff_t offset, filelen_t size)
 {
 	int	i;
-	long	pos;
+	fileoff_t	pos;
    
 	pos=tell(file);
 	if(offset!=pos)
 		lseek(file, offset, SEEK_SET);
-	i=_locking(file,LK_UNLCK,size);
+	i=_locking(file,LK_UNLCK,(long)size);
 	if(offset!=pos)
 		lseek(file, pos, SEEK_SET);
 	return(i);
