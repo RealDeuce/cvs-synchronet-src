@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.29 2010/03/05 23:26:26 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.30 2010/03/05 23:54:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,16 +53,6 @@
 #endif
 
 #include <fcntl.h>		/* O_RDONLY, O_CREAT, etc. */
-
-/************/
-/* Typedefs */
-/************/
-
-#if defined(XPDEV_LARGE_FILE_SUPPORT)
-typedef int64_t		fileoff_t, filelen_t;
-#else
-typedef int32_t		fileoff_t, filelen_t;
-#endif
 
 /**********/
 /* Macros */

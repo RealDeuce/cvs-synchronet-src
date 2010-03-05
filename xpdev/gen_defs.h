@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.47 2010/03/05 05:57:18 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.48 2010/03/05 23:54:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,6 +170,12 @@ typedef unsigned long long int uint64_t;
 
 /* Legacy 32-bit time_t */
 typedef int32_t		time32_t;
+
+#if defined(XPDEV_LARGE_FILE_SUPPORT)
+typedef int64_t		fileoff_t, filelen_t;
+#else
+typedef long		fileoff_t, filelen_t;
+#endif
 
 /* Windows Types */
 
