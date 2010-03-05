@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.46 2010/03/05 03:30:53 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.47 2010/03/05 05:57:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,10 +156,15 @@ typedef ulong	uint32_t;
 #if defined(_MSC_VER) || defined(__WATCOMC__)
 typedef signed __int64 int64_t;
 typedef unsigned __int64 uint64_t;
+#define INTTYPES_H_64BIT_PREFIX		"I64"
 #else
 typedef signed long long int int64_t;
 typedef unsigned long long int uint64_t;
+#define INTTYPES_H_64BIT_PREFIX		"ll"
 #endif
+
+#define PRIi64	INTTYPES_H_64BIT_PREFIX"i"
+#define PRIu64	INTTYPES_H_64BIT_PREFIX"u"
 
 #endif
 
