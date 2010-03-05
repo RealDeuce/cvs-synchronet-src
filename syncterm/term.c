@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.283 2010/03/05 07:23:11 rswindell Exp $ */
+/* $Id: term.c,v 1.284 2010/03/05 08:12:42 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -491,6 +491,7 @@ static int recv_byte(void* unused, unsigned timeout /* seconds */)
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
+/* This function is supposed to wait up to 'timeout' seconds for incoming data */
 BOOL data_waiting(void* unused, unsigned timeout)
 {
 	if(recv_byte_buffer_len)
