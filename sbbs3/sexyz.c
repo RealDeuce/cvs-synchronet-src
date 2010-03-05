@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.116 2010/03/05 00:43:11 deuce Exp $ */
+/* $Id: sexyz.c,v 1.117 2010/03/05 00:53:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -587,6 +587,9 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 		buf[0]=ch;
 
 	if(RingBufFree(&outbuf)<len) {
+#if !defined(RINGBUF_EVENT)
+		ResetEvent(outbuf_empty);
+#endif
 		fprintf(statfp,"FLOW");
 		flows++;
 		result=WaitForEvent(outbuf_empty,timeout*1000);
@@ -610,9 +613,6 @@ int send_byte(void* unused, uchar ch, unsigned timeout)
 		}
 	}
 
-#if !defined(RINGBUF_EVENT)
-	ResetEvent(outbuf_empty);
-#endif
 	if((result=RingBufWrite(&outbuf,buf,len))!=len) {
 		lprintf(LOG_ERR,"RingBufWrite() returned %d, expected %d",result,len);
 	}
@@ -1508,7 +1508,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.116 $", "%*s %s", revision);
+	sscanf("$Revision: 1.117 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1889,8 +1889,11 @@ int main(int argc, char **argv)
 
 #if !SINGLE_THREADED
 	lprintf(LOG_DEBUG,"Waiting for output buffer to empty... ");
-	if(WaitForEvent(outbuf_empty,5000)!=WAIT_OBJECT_0)
-		lprintf(LOG_DEBUG,"FAILURE");
+	if(RingBufFull(&outbuf)) {
+		ResetEvent(outbuf_empty);
+		if(WaitForEvent(outbuf_empty,5000)!=WAIT_OBJECT_0)
+			lprintf(LOG_DEBUG,"FAILURE");
+	}
 #endif
 
 	terminate=TRUE;	/* stop output thread */
