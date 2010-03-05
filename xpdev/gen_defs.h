@@ -2,13 +2,13 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.44 2009/02/16 08:57:37 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.47 2010/03/05 05:57:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -63,6 +63,10 @@
 #include <sys/types.h>
 #ifdef HAS_INTTYPES_H
 #include <inttypes.h>
+#else
+#ifdef HAS_STDINT_H
+#include <stdint.h>
+#endif
 #endif
 
 									/* Control characters */
@@ -140,7 +144,7 @@ enum {
 	#endif
 #endif
 
-#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)
+#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES) && !defined(HAS_STDINT_H)
 
 typedef char	int8_t;
 typedef short	int16_t;
@@ -148,6 +152,19 @@ typedef long	int32_t;
 typedef uchar	uint8_t;
 typedef ushort	uint16_t;
 typedef ulong	uint32_t;
+
+#if defined(_MSC_VER) || defined(__WATCOMC__)
+typedef signed __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+#define INTTYPES_H_64BIT_PREFIX		"I64"
+#else
+typedef signed long long int int64_t;
+typedef unsigned long long int uint64_t;
+#define INTTYPES_H_64BIT_PREFIX		"ll"
+#endif
+
+#define PRIi64	INTTYPES_H_64BIT_PREFIX"i"
+#define PRIu64	INTTYPES_H_64BIT_PREFIX"u"
 
 #endif
 
