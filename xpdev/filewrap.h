@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.28 2010/03/05 04:09:11 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.29 2010/03/05 23:26:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #define _FILEWRAP_H
 
 #include "wrapdll.h"	/* DLLEXPORT and DLLCALL */
+#include "gen_defs.h"	/* int32_t, int64_t */
 
 #include <sys/stat.h>	/* S_IREAD and S_IWRITE (for use with sopen) */
 #include <stdio.h>
@@ -52,6 +53,16 @@
 #endif
 
 #include <fcntl.h>		/* O_RDONLY, O_CREAT, etc. */
+
+/************/
+/* Typedefs */
+/************/
+
+#if defined(XPDEV_LARGE_FILE_SUPPORT)
+typedef int64_t		fileoff_t, filelen_t;
+#else
+typedef int32_t		fileoff_t, filelen_t;
+#endif
 
 /**********/
 /* Macros */
@@ -71,6 +82,16 @@
 
 	#ifndef SH_COMPAT
 	#define SH_COMPAT			0
+	#endif
+
+	#if defined(XPDEV_LARGE_FILE_SUPPORT)
+		#define	lseek			_lseeki64
+		#define	tell			_telli64
+		#define filelength		_filelengthi64
+		#define	stat			_stati64
+		#define	fstat			_fstati64
+		#define fseek			_fseeki64
+		#define ftell			_ftelli64
 	#endif
 
 #elif defined(__unix__)
@@ -115,7 +136,6 @@
 	#endif
 
 	#define chsize(fd,size)		ftruncate(fd,size)
-	#define _chsize_s(fd,size)	ftruncate(fd,size)		/* supports 64-bit size */
 	#define tell(fd)			lseek(fd,0,SEEK_CUR)
 	#define eof(fd)				(tell(fd)==filelength(fd))
 
@@ -149,18 +169,24 @@ extern "C" {
 #endif
 
 #if !defined(__BORLANDC__) && !defined(__WATCOMC__)
-	DLLEXPORT int	DLLCALL	lock(int fd, long pos, long len);
-	DLLEXPORT int	DLLCALL unlock(int fd, long pos, long len);
+	DLLEXPORT int	DLLCALL	lock(int fd, fileoff_t pos, filelen_t len);
+	DLLEXPORT int	DLLCALL unlock(int fd, fileoff_t pos, filelen_t len);
 #endif
 
 #if !defined(__BORLANDC__) && defined(__unix__)
 	DLLEXPORT int		DLLCALL sopen(const char* fn, int sh_access, int share, ...);
-	DLLEXPORT long		DLLCALL filelength(int fd);
-	DLLEXPORT int64_t	DLLCALL _filelengthi64(int fd);
+	DLLEXPORT filelen_t	DLLCALL filelength(int fd);
 #endif
 
 #if defined(__unix__)
 	DLLEXPORT FILE * DLLCALL _fsopen(char *pszFilename, char *pszMode, int shmode);
+#endif
+
+#if defined(_WIN32) && defined(XPDEV_LARGE_FILE_SUPPORT)
+#if _MSC_VER < 1300
+	DLLEXPORT int		DLLCALL	_fseeki64(FILE*, fileoff_t, int origin);
+	DLLEXPORT fileoff_t DLLCALL _ftelli64(FILE*);
+#endif
 #endif
 
 DLLEXPORT time_t	DLLCALL filetime(int fd);
