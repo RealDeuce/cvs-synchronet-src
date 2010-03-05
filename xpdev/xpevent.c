@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.15 2010/03/11 01:14:17 deuce Exp $ */
+/* $Id: xpevent.c,v 1.14 2010/03/05 00:03:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,6 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 		errno = ENOSPC;
 		return(NULL);
 	}
-	memset(event,0,sizeof(struct xpevent));
 
 	/*
 	 * Initialize
@@ -163,17 +162,16 @@ WaitForEvent(xpevent_t event, DWORD ms)
 
 	if(ms && ms!=INFINITE) {
 		gettimeofday(&currtime,NULL);
-		abstime.tv_sec=currtime.tv_sec + ((currtime.tv_usec/1000 + ms)/1000);
+		abstime.tv_sec=currtime.tv_sec + (currtime.tv_usec/1000 + ms)/1000;
 		abstime.tv_nsec=(currtime.tv_usec*1000 + ms*1000000)%1000000000;
 	}
-
+	
 	pthread_mutex_lock(&event->lock);
 
 	if(event->value)
 		retval=WAIT_OBJECT_0;
 
-	while ((!(event->value)) || (event->verify!=NULL && !event->verify(event->cbdata))) {
-		retval=WAIT_FAILED;
+	while (!(event->value)) {
 		event->nwaiters++;
 		switch(ms) {
 			case 0:
