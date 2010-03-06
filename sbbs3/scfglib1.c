@@ -2,13 +2,13 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.59 2007/07/10 22:10:13 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.63 2009/11/12 04:34:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -437,12 +437,12 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 	get_int(cfg->smb_retry_time,instream);	 /* odd byte */
 	if(!cfg->smb_retry_time)
 		cfg->smb_retry_time=30;
-	for(i=0;i<234;i++)	/* NULL */
+	get_int(cfg->max_qwkmsgage, instream);
+	for(i=0;i<233;i++)	/* NULL */
 		get_int(n,instream);
 	get_int(cfg->msg_misc,instream);
 	for(i=0;i<255;i++)	/* 0xff */
 		get_int(n,instream);
-
 
 	/******************/
 	/* Message Groups */
@@ -620,8 +620,8 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_int(k,instream);
 
 		if(k) {
-			if((cfg->qhub[i]->sub=(ushort *)malloc(sizeof(ushort)*k))==NULL)
-				return allocerr(instream,error,offset,fname,sizeof(uint)*k);
+			if((cfg->qhub[i]->sub=(ulong *)malloc(sizeof(ulong)*k))==NULL)
+				return allocerr(instream,error,offset,fname,sizeof(ulong)*k);
 			if((cfg->qhub[i]->conf=(ushort *)malloc(sizeof(ushort)*k))==NULL)
 				return allocerr(instream,error,offset,fname,sizeof(ushort)*k);
 			if((cfg->qhub[i]->mode=(char *)malloc(sizeof(char)*k))==NULL)
@@ -629,9 +629,11 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		}
 
 		for(j=0;j<k;j++) {
+			uint16_t	subnum;
 			if(feof(instream)) break;
 			get_int(cfg->qhub[i]->conf[cfg->qhub[i]->subs],instream);
-			get_int(cfg->qhub[i]->sub[cfg->qhub[i]->subs],instream);
+			get_int(subnum,instream);
+			cfg->qhub[i]->sub[cfg->qhub[i]->subs]=subnum;
 			get_int(cfg->qhub[i]->mode[cfg->qhub[i]->subs],instream);
 			if(cfg->qhub[i]->sub[cfg->qhub[i]->subs]<cfg->total_subs)
 				cfg->sub[cfg->qhub[i]->sub[cfg->qhub[i]->subs]]->misc|=SUB_QNET;

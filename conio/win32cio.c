@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.94 2009/02/10 09:50:18 deuce Exp $ */
+/* $Id: win32cio.c,v 1.96 2009/08/21 08:54:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -517,7 +517,7 @@ void win32_resume(void)
 		SetConsoleMode(h, conmode);
 }
 
-static BOOL WINAPI ControlHandler(DWORD CtrlType)
+static BOOL WINAPI ControlHandler(unsigned long CtrlType)
 {
 	return TRUE;
 }
@@ -833,7 +833,7 @@ void win32_getcustomcursor(int *s, int *e, int *r, int *b, int *v)
 	HANDLE				h;
 
 	if((h=GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE)
-		return(0);
+		return;
 
 	GetConsoleCursorInfo(h, &ci);
 	if(s)
@@ -854,7 +854,7 @@ void win32_setcustomcursor(int s, int e, int r, int b, int v)
 	HANDLE				h;
 
 	if((h=GetStdHandle(STD_INPUT_HANDLE)) == INVALID_HANDLE_VALUE)
-		return(0);
+		return;
 
 	ci.bVisible=v;
 	if(e>s)
