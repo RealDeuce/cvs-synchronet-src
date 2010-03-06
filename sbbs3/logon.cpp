@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.49 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.52 2009/11/21 20:36:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,19 +74,6 @@ bool sbbs_t::logon()
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP))
 		return(false);
 
-#if 0
-	if(cur_rate<cfg.node_minbps && !(useron.exempt&FLAG('M'))) {
-		bprintf(text[MinimumModemSpeed],cfg.node_minbps);
-		sprintf(str,"%stooslow.msg",cfg.text_dir);
-		if(fexist(str))
-			printfile(str,0);
-		sprintf(str,"(%04u)  %-25s  Modem speed: %lu<%u"
-			,useron.number,useron.alias,cur_rate,cfg.node_minbps);
-		logline("+!",str);
-		return(false); 
-	}
-#endif
-
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
 		useron.rows=0;
@@ -111,26 +98,11 @@ bool sbbs_t::logon()
 		useron.shell=cfg.new_shell; 
 	}
 
-#if 0
-	if(cfg.node_dollars_per_call) {
-		adjustuserrec(&cfg,useron.number,U_CDT,10
-			,cfg.cdt_per_dollar*cfg.node_dollars_per_call);
-		bprintf(text[CreditedAccount]
-			,cfg.cdt_per_dollar*cfg.node_dollars_per_call);
-		sprintf(str,"%s #%u was billed $%d T: %lu seconds"
-			,useron.alias,useron.number
-			,cfg.node_dollars_per_call,(ulong)(now-answertime));
-		logline("$+",str);
-		hangup();
-		return(false); 
-	}
-#endif
-
 	if(!chk_ar(cfg.node_ar,&useron,&client)) {
 		bputs(text[NoNodeAccess]);
 		sprintf(str,"(%04u)  %-25s  Insufficient node access"
 			,useron.number,useron.alias);
-		logline("+!",str);
+		logline(LOG_NOTICE,"+!",str);
 		return(false); 
 	}
 
@@ -141,7 +113,7 @@ bool sbbs_t::logon()
 			bputs(text[NodeLocked]);
 			sprintf(str,"(%04u)  %-25s  Locked node logon attempt"
 				,useron.number,useron.alias);
-			logline("+!",str);
+			logline(LOG_NOTICE,"+!",str);
 			return(false); 
 		}
 		if(yesno(text[RemoveNodeLockQ])) {
@@ -234,10 +206,6 @@ bool sbbs_t::logon()
 	CLS;
 	if(useron.rows)
 		rows=useron.rows;
-#if 0	/* no such thing as local logon */
-	else if(online==ON_LOCAL)
-		rows=cfg.node_scrnlen-1;
-#endif
 	unixtodstr(&cfg,logontime,str);
 	if(!strncmp(str,useron.birth,5) && !(useron.rest&FLAG('Q'))) {
 		bputs(text[HappyBirthday]);
@@ -245,14 +213,7 @@ bool sbbs_t::logon()
 		CLS;
 		user_event(EVENT_BIRTHDAY); 
 	}
-	unixtodstr(&cfg,useron.laston,tmp);
-	if(strcmp(str,tmp)) {			/* str still equals logon time */
-		useron.ltoday=1;
-		useron.ttoday=useron.etoday=useron.ptoday=useron.textra=0;
-		useron.freecdt=cfg.level_freecdtperday[useron.level]; 
-	}
-	else
-		useron.ltoday++;
+	useron.ltoday++;
 
 	gettimeleft();
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
@@ -309,7 +270,7 @@ bool sbbs_t::logon()
 			bputs(text[NoMoreLogons]);
 			sprintf(str,"(%04u)  %-25s  Out of logons"
 				,useron.number,useron.alias);
-			logline("+!",str);
+			logline(LOG_NOTICE,"+!",str);
 			hangup();
 			return(false); 
 		}
@@ -317,7 +278,7 @@ bool sbbs_t::logon()
 			bputs(text[R_Logons]);
 			sprintf(str,"(%04u)  %-25s  Out of logons"
 				,useron.number,useron.alias);
-			logline("+!",str);
+			logline(LOG_NOTICE,"+!",str);
 			hangup();
 			return(false); 
 		}
@@ -422,7 +383,7 @@ bool sbbs_t::logon()
 	if(!online) {
 		sprintf(str,"(%04u)  %-25s  Unsuccessful logon"
 			,useron.number,useron.alias);
-		logline("+!",str);
+		logline(LOG_NOTICE,"+!",str);
 		return(false); 
 	}
 	SAFECOPY(useron.modem,connection);
@@ -522,7 +483,7 @@ bool sbbs_t::logon()
 				strcpy(tmp,"On two nodes at the same time");
 				sprintf(str,"(%04u)  %-25s  %s"
 					,useron.number,useron.alias,tmp);
-				logline("+!",str);
+				logline(LOG_NOTICE,"+!",str);
 				errorlog(tmp);
 				bputs(text[UserOnTwoNodes]);
 				hangup();

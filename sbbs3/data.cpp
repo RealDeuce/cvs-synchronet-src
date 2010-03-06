@@ -2,13 +2,13 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.24 2009/02/16 07:13:20 rswindell Exp $ */
+/* $Id: data.cpp,v 1.27 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,14 +51,15 @@ uint sbbs_t::finduser(char *instr)
 {
 	int file,i;
 	char str[128],str2[256],str3[256],ynq[25],c,pass=1;
-	ulong l,length;
+	long l,length;
 	FILE *stream;
 
 	i=atoi(instr);
 	if(i>0) {
 		username(&cfg, i,str2);
 		if(str2[0] && strcmp(str2,"DELETED USER"))
-			return(i); }
+			return(i); 
+	}
 	strcpy(str,instr);
 	strupr(str);
 	SAFEPRINTF(str3,"%suser/name.dat",cfg.data_dir);
@@ -66,11 +67,12 @@ uint sbbs_t::finduser(char *instr)
 		return(0);
 	if((stream=fnopen(&file,str3,O_RDONLY))==NULL) {
 		errormsg(WHERE,ERR_OPEN,str3,O_RDONLY);
-		return(0); }
+		return(0); 
+	}
 	SAFEPRINTF(ynq,"%.2s",text[YN]);
 	ynq[2]='Q';
 	ynq[3]=0;
-	length=filelength(file);
+	length=(long)filelength(file);
 	while(pass<3) {
 		fseek(stream,0L,SEEK_SET);	/* seek to beginning for each pass */
 		for(l=0;l<length;l+=LEN_ALIAS+2) {
@@ -85,21 +87,28 @@ uint sbbs_t::finduser(char *instr)
 			strupr(str2);
 			if(pass==1 && !strcmp(str,str2)) {
 				fclose(stream);
-				return((l/(LEN_ALIAS+2))+1); }
+				return((l/(LEN_ALIAS+2))+1); 
+			}
 			if(pass==2 && strstr(str2,str)) {
 				bprintf(text[DoYouMeanThisUserQ],str3
 					,(uint)(l/(LEN_ALIAS+2))+1);
 				c=(char)getkeys(ynq,0);
 				if(sys_status&SS_ABORT) {
 					fclose(stream);
-					return(0); }
+					return(0); 
+				}
 				if(c==text[YN][0]) {
 					fclose(stream);
-					return((l/(LEN_ALIAS+2))+1); }
+					return((l/(LEN_ALIAS+2))+1); 
+				}
 				if(c=='Q') {
 					fclose(stream);
-					return(0); } } }
-		pass++; }
+					return(0); 
+				} 
+			} 
+		}
+		pass++; 
+	}
 	bputs(text[UnknownUser]);
 	fclose(stream);
 	return(0);
@@ -120,10 +129,12 @@ int sbbs_t::getuserxfers(int fromuser, int destuser, char *fname)
 		return(0);
 	if(!flength(str)) {
 		remove(str);
-		return(0); }
+		return(0); 
+	}
 	if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
-		return(0); }
+		return(0); 
+	}
 	while(!ferror(stream)) {
 		if(!fgets(str,81,stream))
 			break;
@@ -133,7 +144,8 @@ int sbbs_t::getuserxfers(int fromuser, int destuser, char *fname)
 		else if(fromuser && atoi(str+18)==fromuser)
 				found++;
 		else if(destuser && atoi(str)==destuser)
-				found++; }
+				found++; 
+	}
 	fclose(stream);
 	return(found);
 }
@@ -232,7 +244,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 		gettimeleft_inside=1;
 
 		if(!timeleft && !SYSOP && !(sys_status&SS_LCHAT)) {
-			logline(nulstr,"Ran out of time");
+			logline(LOG_NOTICE,nulstr,"Ran out of time");
 			SAVELINE;
 			if(sys_status&SS_EVENT)
 				bprintf(text[ReducedTime],timestr(event_time));
@@ -273,7 +285,8 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 							+(cfg.val_expire[cfg.level_expireto[useron.level]]*24*60*60);
 					else
 						useron.expire=0;
-					useron.level=cfg.val_level[cfg.level_expireto[useron.level]]; }
+					useron.level=cfg.val_level[cfg.level_expireto[useron.level]]; 
+				}
 				else {
 					if(cfg.level_misc[useron.level]&LEVEL_EXPTOLVL)
 						useron.level=cfg.level_expireto[useron.level];
