@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.156 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.152 2009/11/14 05:39:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -621,31 +621,31 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((idxobj=JS_NewObject(cx,NULL,proto,obj))==NULL)
 		return(JS_TRUE);
 
-	val=UINT_TO_JSVAL(msg.idx.number);
+	JS_NewNumberValue(cx, msg.idx.number	,&val);
 	JS_DefineProperty(cx, idxobj, "number"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.to;
+	JS_NewNumberValue(cx, msg.idx.to		,&val);
 	JS_DefineProperty(cx, idxobj, "to"		,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.from);
+	JS_NewNumberValue(cx, msg.idx.from		,&val);
 	JS_DefineProperty(cx, idxobj, "from"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.subj);
+	JS_NewNumberValue(cx, msg.idx.subj		,&val);
 	JS_DefineProperty(cx, idxobj, "subject"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.attr);
+	JS_NewNumberValue(cx, msg.idx.attr		,&val);
 	JS_DefineProperty(cx, idxobj, "attr"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.offset);
+	JS_NewNumberValue(cx, msg.offset		,&val);
 	JS_DefineProperty(cx, idxobj, "offset"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.time);
+	JS_NewNumberValue(cx, msg.idx.time		,&val);
 	JS_DefineProperty(cx, idxobj, "time"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
@@ -656,7 +656,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 
 #define LAZY_INTEGER(PropName, PropValue, flags) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
-		v=UINT_TO_JSVAL((PropValue)); \
+		JS_NewNumberValue(cx,(PropValue),&v); \
 		JS_DefineProperty(cx, obj, (PropName), v, NULL,NULL,flags); \
 		if(name) return(JS_TRUE); \
 	}
@@ -664,7 +664,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 #define LAZY_INTEGER_EXPAND(PropName, PropValue, flags) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
 		if(p->expand_fields || (PropValue)) { \
-			val=UINT_TO_JSVAL((PropValue)); \
+			JS_NewNumberValue(cx,(PropValue),&v); \
 			JS_DefineProperty(cx, obj, (PropName), v, NULL,NULL,flags); \
 			if(name) return(JS_TRUE); \
 		} \
@@ -674,7 +674,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 #define LAZY_INTEGER_COND(PropName, Condition, PropValue, flags) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
 		if(Condition) { \
-			val=UINT_TO_JSVAL((PropValue)); \
+			JS_NewNumberValue(cx,(PropValue),&v); \
 			JS_DefineProperty(cx, obj, (PropName), v, NULL,NULL,flags); \
 			if(name) return(JS_TRUE); \
 		} \
@@ -722,7 +722,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	char			date[128];
 	char			msg_id[256];
 	char			reply_id[256];
-	char			tmp[128];
 	char*			val;
 	int				i;
 	smbmsg_t		remsg;
@@ -762,12 +761,12 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_INTEGER_EXPAND("from_agent", p->msg.from_agent, JSPROP_ENUMERATE);
 	LAZY_INTEGER_EXPAND("replyto_agent", p->msg.replyto_agent, JSPROP_ENUMERATE);
 	LAZY_INTEGER_EXPAND("to_net_type", p->msg.to_net.type, JSPROP_ENUMERATE);
-	LAZY_STRING_COND("to_net_addr", p->msg.to_net.type && p->msg.to_net.addr, smb_netaddrstr(&(p->msg).to_net,tmp), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("to_net_addr", p->msg.to_net.type && p->msg.to_net.addr, smb_netaddr(&(p->msg).to_net), JSPROP_ENUMERATE);
 	LAZY_INTEGER_EXPAND("from_net_type", p->msg.from_net.type, JSPROP_ENUMERATE);
 	/* exception here because p->msg.from_net is NULL */
-	LAZY_STRING_COND("from_net_addr", p->msg.from_net.type && p->msg.from_net.addr, smb_netaddrstr(&(p->msg).from_net,tmp), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("from_net_addr", p->msg.from_net.type && p->msg.from_net.addr, smb_netaddr(&(p->msg).from_net), JSPROP_ENUMERATE);
 	LAZY_INTEGER_EXPAND("replyto_net_type", p->msg.replyto_net.type, JSPROP_ENUMERATE);
-	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.type && p->msg.replyto_net.addr, smb_netaddrstr(&(p->msg).replyto_net,tmp), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.type && p->msg.replyto_net.addr, smb_netaddr(&(p->msg).replyto_net), JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_ip_addr", (val=smb_get_hfield(&(p->msg),SENDERIPADDR,NULL))!=NULL, val, JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_host_name", (val=smb_get_hfield(&(p->msg),SENDERHOSTNAME,NULL))!=NULL, val, JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_protocol", (val=smb_get_hfield(&(p->msg),SENDERPROTOCOL,NULL))!=NULL, val, JSPROP_ENUMERATE);
@@ -1477,7 +1476,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	memset(&msg,0,sizeof(msg));
 
 	for(n=0;n<argc;n++) {
-		if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
+		if(JSVAL_IS_OBJECT(argv[n])) {
 			objarg = JSVAL_TO_OBJECT(argv[n]);
 			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0) {
 				client=JS_GetPrivate(cx,objarg);
@@ -1517,7 +1516,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		if(body[0])
 			truncsp(body);
-		if((p->status=savemsg(scfg, &(p->smb), &msg, client, /* ToDo server hostname: */NULL, body))==SMB_SUCCESS) {
+		if((p->status=savemsg(scfg, &(p->smb), &msg, client, body))==SMB_SUCCESS) {
 			*rval = JSVAL_TRUE;
 
 			if(rcpt_list!=NULL) {	/* Sending to a list of recipients */
@@ -1646,31 +1645,31 @@ static JSBool js_msgbase_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			memset(&idx,0,sizeof(idx));
 			smb_getfirstidx(&(p->smb),&idx);
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=UINT_TO_JSVAL(idx.number);
+			JS_NewNumberValue(cx,idx.number,vp);
 			break;
 		case SMB_PROP_LAST_MSG:
 			rc=JS_SUSPENDREQUEST(cx);
 			smb_getstatus(&(p->smb));
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=UINT_TO_JSVAL(p->smb.status.last_msg);
+			JS_NewNumberValue(cx,p->smb.status.last_msg,vp);
 			break;
 		case SMB_PROP_TOTAL_MSGS:
 			rc=JS_SUSPENDREQUEST(cx);
 			smb_getstatus(&(p->smb));
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=UINT_TO_JSVAL(p->smb.status.total_msgs);
+			JS_NewNumberValue(cx,p->smb.status.total_msgs,vp);
 			break;
 		case SMB_PROP_MAX_CRCS:
-			*vp=UINT_TO_JSVAL(p->smb.status.max_crcs);
+			JS_NewNumberValue(cx,p->smb.status.max_crcs,vp);
 			break;
 		case SMB_PROP_MAX_MSGS:
-			*vp=UINT_TO_JSVAL(p->smb.status.max_msgs);
+			JS_NewNumberValue(cx,p->smb.status.max_msgs,vp);
 			break;
 		case SMB_PROP_MAX_AGE:
-			*vp=UINT_TO_JSVAL(p->smb.status.max_age);
+			JS_NewNumberValue(cx,p->smb.status.max_age,vp);
 			break;
 		case SMB_PROP_ATTR:
-			*vp=UINT_TO_JSVAL(p->smb.status.attr);
+			JS_NewNumberValue(cx,p->smb.status.attr,vp);
 			break;
 		case SMB_PROP_SUBNUM:
 			*vp = INT_TO_JSVAL(p->smb.subnum);
@@ -1755,7 +1754,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	},
 	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [,strip_ctrl_a=<tt>false</tt>] "
 		"[,rfc822_encoded=<tt>false</tt>] [,include_tails=<tt>true</tt>]")
-	,JSDOCSTR("returns the entire body text of a specific message as a single String, <i>null</i> on failure. "
+	,JSDOCSTR("returns the body text of a specific message, <i>null</i> on failure. "
 		"The default behavior is to leave Ctrl-A codes intact, perform no RFC-822 encoding, and to include tails (if any) in the "
 		"returned body text."
 	)

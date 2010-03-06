@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.25 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_queue.c,v 1.23 2008/12/20 04:00:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,7 +96,7 @@ static size_t js_decode_value(JSContext *cx, JSObject *parent
 			*rval = BOOLEAN_TO_JSVAL(v->value.b);
 			break;
 		case JSTYPE_NUMBER:
-			*rval=DOUBLE_TO_JSVAL(v->value.n);
+			JS_NewNumberValue(cx,v->value.n,rval);
 			break;
 		case JSTYPE_STRING:
 			if(v->value.s) {
@@ -480,11 +480,9 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(name!=NULL) {
-		listLock(&named_queues);
-		for(n=named_queues.first;n!=NULL;n=n->next)
+		for(n=listFirstNode(&named_queues);n!=NULL;n=listNextNode(n))
 			if((q=n->data)!=NULL && !stricmp(q->name,name))
 				break;
-		listUnlock(&named_queues);
 		if(n==NULL)
 			q=NULL;
 	}

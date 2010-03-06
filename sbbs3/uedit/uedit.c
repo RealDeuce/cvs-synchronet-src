@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.48 2010/03/29 21:40:12 deuce Exp $ */
+/* $Id: uedit.c,v 1.47 2008/02/25 08:27:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -985,9 +985,9 @@ int edit_stats(scfg_t *cfg, user_t *user)
 	while(1) {
 		getuserdat(cfg,user);
 		i=0;
-		sprintf(opt[i++],"First On           %s",user->firston?timestr(cfg, user->firston, str):"Never");
-		sprintf(opt[i++],"Last On            %s",user->laston?timestr(cfg, user->laston, str):"Never");
-		sprintf(opt[i++],"Logon Time         %s",user->laston?timestr(cfg, user->logontime, str):"Not On");
+		sprintf(opt[i++],"First On           %s",user->firston?timestr(cfg, &user->firston, str):"Never");
+		sprintf(opt[i++],"Last On            %s",user->laston?timestr(cfg, &user->laston, str):"Never");
+		sprintf(opt[i++],"Logon Time         %s",user->laston?timestr(cfg, &user->logontime, str):"Not On");
 		sprintf(opt[i++],"Total Logons       %hu",user->logons);
 		sprintf(opt[i++],"Todays Logons      %hu",user->ltoday);
 		sprintf(opt[i++],"Total Posts        %hu",user->posts);
@@ -1004,7 +1004,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 		sprintf(opt[i++],"Total Uploads      %hu",user->uls);
 		sprintf(opt[i++],"Uploaded Bytes     %lu",user->ulb);
 		sprintf(opt[i++],"Leech Downloads    %u",user->leech);
-		sprintf(opt[i++],"Password Modified  %s",user->pwmod?timestr(cfg, user->pwmod, str):"Never");
+		sprintf(opt[i++],"Password Modified  %s",user->pwmod?timestr(cfg, &user->pwmod, str):"Never");
 		opt[i][0]=0;
 		switch(uifc.list(WIN_MID|WIN_ACT,0,0,0,&j,0,"Statistics",opt)) {
 			case -1:
@@ -1898,7 +1898,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.48 $", "%*s %s", revision);
+	sscanf("$Revision: 1.47 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
