@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.262 2010/06/02 14:28:48 cyan Exp $ */
+/* $Id: js_global.c,v 1.253 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,19 +166,6 @@ static JSBool js_BranchCallback(JSContext *cx, JSScript* script)
 	return js_CommonBranchCallback(cx,&bg->branch);
 }
 
-#ifdef USE_JS_OPERATION_CALLBACK
-static JSBool
-js_OperationCallback(JSContext *cx)
-{
-	JSBool	ret;
-
-	JS_SetOperationCallback(cx, NULL);
-	ret=js_BranchCallback(cx, NULL);
-	JS_SetOperationCallback(cx, js_OperationCallback);
-	return ret;
-}
-#endif
-
 static JSBool
 js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -311,11 +298,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		/* Set our branch callback (which calls the generic branch callback) */
 		JS_SetContextPrivate(bg->cx, bg);
-#ifdef USE_JS_OPERATION_CALLBACK
-		JS_SetOperationCallback(bg->cx, js_OperationCallback);
-#else
 		JS_SetBranchCallback(bg->cx, js_BranchCallback);
-#endif
 
 		/* Save parent's 'log' function (for later use by our log function) */
 		if(JS_GetProperty(cx, obj, "log", &val)) {
@@ -367,17 +350,14 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		path[0]=0;	/* Empty path, indicates load file not found (yet) */
 
-		JS_RESUMEREQUEST(cx, rc);
 		if(JS_GetProperty(cx, obj, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val)) {
 			JSObject* js_obj = JSVAL_TO_OBJECT(val);
 			
 			/* if js.exec_dir is defined (location of executed script), search their first */
 			if(JS_GetProperty(cx, js_obj, "exec_dir", &val) && val!=JSVAL_VOID && JSVAL_IS_STRING(val)) {
 				SAFEPRINTF2(path,"%s%s",js_ValueToStringBytes(cx, val, NULL),filename);
-				rc=JS_SUSPENDREQUEST(cx);
 				if(!fexistcase(path))
 					path[0]=0;
-				JS_RESUMEREQUEST(cx, rc);
 			}
 			if(JS_GetProperty(cx, js_obj, JAVASCRIPT_LOAD_PATH_LIST, &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))
 				js_load_list = JSVAL_TO_OBJECT(val);
@@ -394,7 +374,6 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					if(prefix[0]==0)
 						continue;
 					backslash(prefix);
-					rc=JS_SUSPENDREQUEST(cx);
 					if(isfullpath(prefix)) {
 						SAFEPRINTF2(path,"%s%s",prefix,filename);
 						if(!fexistcase(path))
@@ -405,11 +384,9 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 						if(!fexistcase(path))
 							path[0]=0;
 					}
-					JS_RESUMEREQUEST(cx, rc);
 				}
 			}
 		}
-		rc=JS_SUSPENDREQUEST(cx);
 		/* if mods_dir is defined, search there next */
 		if(path[0]==0 && p->cfg->mods_dir[0]!=0) {
 			SAFEPRINTF2(path,"%s%s",p->cfg->mods_dir,filename);
@@ -422,13 +399,9 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			char		prefix[MAX_PATH+1];
 
 			for(i=0;path[0]==0;i++) {
-				JS_RESUMEREQUEST(cx, rc);
-				if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID) {
-					rc=JS_SUSPENDREQUEST(cx);
+				if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID)
 					break;
-				}
 				SAFECOPY(prefix,js_ValueToStringBytes(cx, val, NULL));
-				rc=JS_SUSPENDREQUEST(cx);
 				if(prefix[0]==0)
 					continue;
 				backslash(prefix);
@@ -878,14 +851,14 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>2)
 		prefix=js_ValueToStringBytes(cx, argv[2], NULL);
 
-	if((outbuf=(char*)malloc((strlen(inbuf)*(strlen(prefix)+1))+1))==NULL)
+	if((outbuf=(char*)malloc((strlen(inbuf)*strlen(prefix))+1))==NULL)
 		return(JS_FALSE);
 
 	len-=strlen(prefix);
 	if(len<=0)
 		return(JS_FALSE);
 
-	if((linebuf=(char*)alloca((len*3)+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
+	if((linebuf=(char*)alloca(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -2571,7 +2544,7 @@ static JSBool
 js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	off_t		fl;
+	filelen_t	fl;
 	jsrefcount	rc;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -2792,33 +2765,6 @@ js_disksize(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     return(JS_TRUE);
 }
 
-static JSBool
-js_kill(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	int32		pid=0;
-	int32		sig=0;
-	int			ds;
-	jsrefcount	rc;
-
-	if(JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	if(argc<2) /* Require two arguments here - is this correct handling? */
-		return(JS_FALSE);
-
-	/* Convert JS values to C integers.. */	
-	JS_ValueToInt32(cx,argv[0],&sig);
-	JS_ValueToInt32(cx,argv[1],&pid);
-	
-	rc=JS_SUSPENDREQUEST(cx);
-	ds = kill(sig, pid);
-	if (ds == -1)
-		ds = errno;
-	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,ds,rval);
-
-	return(JS_TRUE);
-}
 
 static JSBool
 js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2982,8 +2928,9 @@ js_strftime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	strcpy(str,"-Invalid time-");
 	t=i;
-	if(localtime_r(&t,&tm)!=NULL)
-		strftime(str,sizeof(str),fmt,&tm);
+	if(localtime_r(&t,&tm)==NULL)
+		memset(&tm,0,sizeof(tm));
+	strftime(str,sizeof(str),fmt,&tm);
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((js_str=JS_NewStringCopyZ(cx, str))==NULL)
@@ -3327,13 +3274,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"using the specified <i>unit_size</i> in bytes (default: 1), "
 		"specify a <i>unit_size</i> of <tt>1024</tt> to return the total disk size in <i>kilobytes</i>.")
 	,314
-	},
-	{"kill",			js_kill,			2,	JSTYPE_NUMBER,
-JSDOCSTR("processid, signal")
-	,JSDOCSTR("send a signal to a system process, returns 0 on success, and "
-		"a non-zero errno value upon failure that is likely platform dependent."
-		" Useful for checking process ID validity (i.e., by sending signal 0.)")
-	,311
 	},
 	{"socket_select",	js_socket_select,	0,	JSTYPE_ARRAY,	JSDOCSTR("[array of socket objects or descriptors] [,timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
 	,JSDOCSTR("checks an array of socket objects or descriptors for read or write ability (default is <i>read</i>), "
