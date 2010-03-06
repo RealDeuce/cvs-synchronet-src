@@ -2,13 +2,13 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.30 2011/08/27 21:22:07 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.29 2009/01/24 22:17:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -115,6 +115,9 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 		,mode&TG_RLOGIN ? "RLogin" : "Telnet"
 		,destaddr,port,remote_socket);
 
+	if(mode&(TG_PASSTHRU|TG_RLOGIN))
+		telnet_mode|=TELNET_MODE_GATE;	// Pass-through telnet commands
+
 	if(!(mode&TG_CTRLKEYS))
 		console|=CON_RAW_IN;
 
@@ -133,13 +136,10 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 
 	/* This is required for gating to Unix telnetd */
 	if(mode&TG_NOTERMTYPE)
-		request_telnet_opt(TELNET_DONT,TELNET_TERM_TYPE, 3000);	// Re-negotiation of terminal type
+		request_telnet_opt(TELNET_DONT,TELNET_TERM_TYPE);	// Re-negotiation of terminal type
 
 	/* Text/NVT mode by default */
-	request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX, 3000);
-
-	if(mode&(TG_PASSTHRU|TG_RLOGIN))
-		telnet_mode|=TELNET_MODE_GATE;	// Pass-through telnet commands
+	request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
 
 	while(online) {
 		if(!(mode&TG_NOCHKTIME))
@@ -250,7 +250,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 			p=dump;
 			for(int i=0;i<rd;i++)
 				p+=sprintf(p,"%u ",buf[i]);
-			lprintf(LOG_DEBUG,"Node %d Telnet cmd from server: %s", cfg.node_num, dump);
+			lprintf(LOG_DEBUG,"Node %d Telnet cmd from remote: %s", cfg.node_num, dump);
 		}
 #endif
 		RingBufWrite(&outbuf,buf,rd);
