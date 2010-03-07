@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.52 2010/03/12 08:27:57 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.51 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			break;
 	if(k>=cfg.total_fextrs)
 		k=0;
-	ex=EX_STDOUT;
+	ex=EX_OUTL|EX_OUTR;
 	if(online!=ON_REMOTE)
 		ex|=EX_OFFLINE;
 	i=external(cmdstr(cfg.fextr[k]->cmd,rep_fname,ALLFILES,NULL),ex);

@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.212 2010/03/13 08:15:08 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.207 2010/03/06 08:15:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -279,13 +279,13 @@ static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
     return(i<cfg->total_natvpgms);
 }
 
-#define XTRN_LOADABLE_MODULE(cmdline,startup_dir)			\
+#define XTRN_LOADABLE_MODULE								\
 	if(cmdline[0]=='*')		/* Baja module or JavaScript */	\
-		return(exec_bin(cmdline+1,&main_csi,startup_dir))				
+		return(exec_bin(cmdline+1,&main_csi))				
 #ifdef JAVASCRIPT
-	#define XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir)	\
+	#define XTRN_LOADABLE_JS_MODULE							\
 	if(cmdline[0]=='?') 	/* JavaScript */				\
-		return(js_execfile(cmdline+1,startup_dir))						
+		return(js_execfile(cmdline+1))						
 #else
 	#define XTRN_LOADABLE_JS_MODULE
 #endif
@@ -409,8 +409,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		return -1;
 	}
 
-	XTRN_LOADABLE_MODULE(cmdline,startup_dir);
-	XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir);
+	XTRN_LOADABLE_MODULE;
+	XTRN_LOADABLE_JS_MODULE;
 
 	attr(cfg.color[clr_external]);		/* setup default attributes */
 
@@ -444,7 +444,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		return(GetLastError());
 	}
 
-	if(native && mode&EX_STDOUT && !(mode&EX_OFFLINE))
+	if(native && mode&EX_OUTR && !(mode&EX_OFFLINE))
 		use_pipes=true;
 
  	if(native) { // Native (32-bit) external
@@ -535,9 +535,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		if(!(mode&EX_OFFLINE) && nt) {	// Windows NT/2000
 			i=SBBSEXEC_MODE_FOSSIL;
-			if(mode&EX_STDIN)
+			if(mode&EX_INR)
            		i|=SBBSEXEC_MODE_DOS_IN;
-			if(mode&EX_STDOUT)
+			if(mode&EX_OUTR)
         		i|=SBBSEXEC_MODE_DOS_OUT;
 			sprintf(str," NT %u %u"
 				,cfg.node_num,i);
@@ -609,9 +609,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				start.event=start_event;
 
 			start.mode=SBBSEXEC_MODE_FOSSIL;
-			if(mode&EX_STDIN)
+			if(mode&EX_INR)
            		start.mode|=SBBSEXEC_MODE_DOS_IN;
-			if(mode&EX_STDOUT)
+			if(mode&EX_OUTR)
         		start.mode|=SBBSEXEC_MODE_DOS_OUT;
 
 			sprintf(str," 95 %u %u"
@@ -691,12 +691,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 	if(native && !(mode&EX_OFFLINE)) {
 
-		if(!(mode&EX_STDIN) && input_thread_running) {
+		if(!(mode&EX_INR) && input_thread_running) {
 			pthread_mutex_lock(&input_thread_mutex);
 			input_thread_mutex_locked=true;
 		}
 
-		if(!(mode&EX_STDOUT)) {	 /* Native Socket I/O program */
+		if(!(mode&EX_OUTR)) {	 /* Native Socket I/O program */
 			/* Enable the Nagle algorithm */
 			BOOL nodelay=FALSE;
 			setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
@@ -1324,8 +1324,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(startup_dir==NULL)
 		startup_dir=nulstr;
 
-	XTRN_LOADABLE_MODULE(cmdline,startup_dir);
-	XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir);
+	XTRN_LOADABLE_MODULE;
+	XTRN_LOADABLE_JS_MODULE;
 
 	attr(cfg.color[clr_external]);  /* setup default attributes */
 
@@ -1579,7 +1579,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		 * it's a timed event.
 		 */
 
-		if (!(mode&(EX_STDIO)) && online!=ON_LOCAL)
+		if (!(mode&(EX_INR|EX_OUTR)) && online!=ON_LOCAL)
 			SAFECOPY(virtualconf,"-I\"serial { virtual com 1 }\"");
 		else
 			virtualconf[0] = '\0';
@@ -1588,7 +1588,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		 * to intercept dos programs under Unix.
 		 */
 
-		mode |= EX_STDIO;
+		mode |= (EX_INR|EX_OUTR);
 
 		/* See if we have the dosemu link in the door's dir.  If so, use the dosemu
 		 * that it points to as our command to execute.  If not, use DOSemuPath.
@@ -1646,7 +1646,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	}
 
-	if(!(mode&EX_STDIN) && input_thread_running) {
+	if(!(mode&EX_INR) && input_thread_running) {
 		lprintf(LOG_DEBUG,"Locking input thread mutex"); 
 		if(pthread_mutex_lock(&input_thread_mutex)!=0)
 			errormsg(WHERE,ERR_LOCK,"input_thread_mutex",0);
@@ -1660,7 +1660,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 }
 #endif
 
-	if((mode&EX_STDIO)==EX_STDIO)  {
+	if((mode&EX_INR) && (mode&EX_OUTR))  {
 		struct winsize winsize;
 		struct termios term;
 		memset(&term,0,sizeof(term));
@@ -1689,12 +1689,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		out_pipe[0]=in_pipe[1];
 	}
 	else  {
-		if(mode&EX_STDIN)
+		if(mode&EX_INR)
 			if(pipe(in_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"in_pipe",0);
 				return(-1);
 			}
-		if(mode&EX_STDOUT)
+		if(mode&EX_OUTR)
 			if(pipe(out_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"out_pipe",0);
 				return(-1);
@@ -1740,7 +1740,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		if(mode&EX_SH || strcspn(fullcmdline,"<>|;\"")!=strlen(fullcmdline)) {
 			argv[0]=comspec;
-			argv[1]=(char*)"-c";
+			argv[1]="-c";
 			argv[2]=fullcmdline;
 			argv[3]=NULL;
 		} else {
@@ -1754,13 +1754,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			argv[argc]=NULL;
 		}
 
-		if(mode&EX_STDIN && !(mode&EX_STDOUT))  {
+		if(mode&EX_INR && !(mode&EX_OUTR))  {
 			close(in_pipe[1]);		/* close write-end of pipe */
 			dup2(in_pipe[0],0);		/* redirect stdin */
 			close(in_pipe[0]);		/* close excess file descriptor */
 		}
 
-		if(mode&EX_STDOUT && !(mode&EX_STDIN)) {
+		if(mode&EX_OUTR && !(mode&EX_INR)) {
 			close(out_pipe[0]);		/* close read-end of pipe */
 			dup2(out_pipe[1],1);	/* stdout */
 #ifndef XTERN_LOG_STDERR
@@ -1797,8 +1797,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	close(err_pipe[1]);	/* close write-end of pipe */
 #endif
 
-	if(mode&EX_STDOUT) {
-		if(!(mode&EX_STDIN))
+	if(mode&EX_OUTR) {
+		if(!(mode&EX_INR))
 			close(out_pipe[1]);	/* close write-end of pipe */
 		while(!terminated) {
 			if(waitpid(pid, &i, WNOHANG)!=0)	/* child exited */
@@ -1814,7 +1814,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			}
 
 			/* Input */	
-			if(mode&EX_STDIN && RingBufFull(&inbuf)) {
+			if(mode&EX_INR && RingBufFull(&inbuf)) {
 				if((wr=RingBufRead(&inbuf,buf,sizeof(buf)))!=0)
 					write(in_pipe[1],buf,wr);
 			}
@@ -1933,7 +1933,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				kill(pid, SIGKILL);				// terminate child process
 		}
 		/* close unneeded descriptors */
-		if(mode&EX_STDIN)
+		if(mode&EX_INR)
 			close(in_pipe[1]);
 		close(out_pipe[0]);
 	}
@@ -2105,7 +2105,6 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
-					strcat(cmd,str);
                     break;
                 case 'W':   /* Columns (width) */
                     strcat(cmd,ultoa(cols,str,10));
@@ -2208,8 +2207,6 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'B':   /* Baud (DTE) Rate */
                     break;
                 case 'C':   /* Connect Description */
-					if(user!=NULL)
-						strcat(cmd,user->modem);
                     break;
                 case 'D':   /* Connect (DCE) Rate */
                     break;
@@ -2224,8 +2221,6 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'H':   /* Port Handle or Hardware Flow Control */
                     break;
                 case 'I':   /* IP address */
-					if(user!=NULL)
-						strcat(cmd,user->note);
                     break;
                 case 'J':
                     strcat(cmd,cfg->data_dir);
@@ -2266,9 +2261,8 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
-					strcat(cmd,str);
                     break;
-                case 'W':   /* Columns/width */
+                case 'W':   /* Time-slice API type (mswtype) */
                     break;
                 case 'X':
 					if(user!=NULL)
