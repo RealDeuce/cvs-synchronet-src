@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.36 2009/02/06 08:12:25 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.40 2010/03/05 23:26:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -164,14 +164,14 @@ socket_option_t* getSocketOptionList(void)
 	return(socket_options);
 }
 
-int sendfilesocket(int sock, int file, long *offset, long count)
+int sendfilesocket(int sock, int file, fileoff_t *offset, filelen_t count)
 {
-	char	buf[1024*16];
-	long	len;
-	int		rd;
-	int		wr=0;
-	int		total=0;
-	int		i;
+	char		buf[1024*16];
+	filelen_t	len;
+	int			rd;
+	int			wr=0;
+	int			total=0;
+	int			i;
 
 /* sendfile() on Linux may or may not work with non-blocking sockets ToDo */
 	len=filelength(file);
@@ -226,7 +226,7 @@ int sendfilesocket(int sock, int file, long *offset, long count)
 	return(total);
 }
 
-int recvfilesocket(int sock, int file, long *offset, long count)
+int recvfilesocket(int sock, int file, fileoff_t *offset, filelen_t count)
 {
 	/* Writes a file from a socket -
 	 *
@@ -252,7 +252,7 @@ int recvfilesocket(int sock, int file, long *offset, long count)
 		return(-1);
 	}
 		
-	if((buf=(char*)alloca(count))==NULL) {
+	if((buf=(char*)alloca((size_t)count))==NULL) {
 		errno=ENOMEM;
 		return(-1);
 	}
@@ -261,7 +261,7 @@ int recvfilesocket(int sock, int file, long *offset, long count)
 		if(lseek(file,*offset,SEEK_SET)<0)
 			return(-1);
 
-	rd=read(sock,buf,count);
+	rd=read(sock,buf,(size_t)count);
 	if(rd!=count)
 		return(-1);
 
@@ -361,4 +361,25 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 		}
 	}
 	return(result);
+}
+
+int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigned timeout)
+{
+	int result;
+
+	result=connect(sock, addr, size);
+
+	if(result==SOCKET_ERROR
+		&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
+		fd_set		socket_set;
+		struct		timeval tv;
+		socklen_t	optlen=sizeof(result);
+		tv.tv_sec = timeout;
+		tv.tv_usec = 0;
+		FD_ZERO(&socket_set);
+		FD_SET(sock,&socket_set);
+		if(select(sock,NULL,&socket_set,NULL,&tv)==1)
+			getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen);
+	}
+	return result;
 }
