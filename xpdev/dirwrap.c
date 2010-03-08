@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.77 2010/03/05 23:55:58 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.78 2010/03/08 03:44:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,7 @@
 
 #include "genwrap.h"	/* strupr/strlwr */
 #include "dirwrap.h"	/* DLLCALL */
+#include "filewrap.h"	/* LARGE_FILE_SUPPORT */
 
 /****************************************************************************/
 /* Return the filename portion of a full pathname							*/
