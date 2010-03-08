@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.31 2010/03/09 03:23:34 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.30 2010/03/05 23:54:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,17 +74,14 @@
 	#define SH_COMPAT			0
 	#endif
 
-	#if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
+	#if defined(XPDEV_LARGE_FILE_SUPPORT)
 		#define	lseek			_lseeki64
 		#define	tell			_telli64
 		#define filelength		_filelengthi64
 		#define	stat			_stati64
 		#define	fstat			_fstati64
-		#define fseeko			_fseeki64
-		#define ftello			_ftelli64
-	#else
-		#define fseeko			fseek
-		#define ftello			ftell
+		#define fseek			_fseeki64
+		#define ftell			_ftelli64
 	#endif
 
 #elif defined(__unix__)
@@ -162,22 +159,24 @@ extern "C" {
 #endif
 
 #if !defined(__BORLANDC__) && !defined(__WATCOMC__)
-	DLLEXPORT int	DLLCALL	lock(int fd, off_t pos, off_t len);
-	DLLEXPORT int	DLLCALL unlock(int fd, off_t pos, off_t len);
+	DLLEXPORT int	DLLCALL	lock(int fd, fileoff_t pos, filelen_t len);
+	DLLEXPORT int	DLLCALL unlock(int fd, fileoff_t pos, filelen_t len);
 #endif
 
 #if !defined(__BORLANDC__) && defined(__unix__)
 	DLLEXPORT int		DLLCALL sopen(const char* fn, int sh_access, int share, ...);
-	DLLEXPORT off_t		DLLCALL filelength(int fd);
+	DLLEXPORT filelen_t	DLLCALL filelength(int fd);
 #endif
 
 #if defined(__unix__)
 	DLLEXPORT FILE * DLLCALL _fsopen(char *pszFilename, char *pszMode, int shmode);
 #endif
 
-#if _MSC_VER < 1300	/* missing prototypes */
-	DLLEXPORT int		DLLCALL	_fseeki64(FILE*, int64_t, int origin);
-	DLLEXPORT int64_t	DLLCALL _ftelli64(FILE*);
+#if defined(_WIN32) && defined(XPDEV_LARGE_FILE_SUPPORT)
+#if _MSC_VER < 1300
+	DLLEXPORT int		DLLCALL	_fseeki64(FILE*, fileoff_t, int origin);
+	DLLEXPORT fileoff_t DLLCALL _ftelli64(FILE*);
+#endif
 #endif
 
 DLLEXPORT time_t	DLLCALL filetime(int fd);
