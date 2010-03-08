@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.40 2010/03/19 19:39:25 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.39 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -402,7 +402,7 @@ static char* node_connection_desc(sbbs_t* sbbs, ushort conn, char* str)
 {
 	switch(conn) {
 		case NODE_CONNECTION_LOCAL:
-			return (char*)" Locally";	/* obsolete */
+			return " Locally";	/* obsolete */
 		case NODE_CONNECTION_TELNET:
 			return sbbs->text[NodeConnectionTelnet];
 		case NODE_CONNECTION_RLOGIN:

@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.129 2010/06/03 01:38:43 rswindell Exp $ */
+/* $Id: js_system.c,v 1.127 2009/11/21 20:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -503,7 +503,6 @@ static char* sys_prop_desc[] = {
 	,"Synchronet version number in decimal (e.g. 31301 for v3.13b)"
 	,"Synchronet version number in hexadecimal (e.g. 0x31301 for v3.13b)"
 	,"platform description (e.g. 'Win32', 'Linux', 'FreeBSD')"
-	,"architecture description (e.g. 'i386', 'i686', 'x86_64')"
 	,"socket library version information"
 	,"message base library version information"
 	,"compiler used to build Synchronet"
@@ -1473,47 +1472,6 @@ js_chkname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static JSBool 
-js_chkpid(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	int32		pid=0;
-	jsrefcount	rc;
-
-	*rval = JSVAL_FALSE;
-
-	if(argc<1)
-		return(JS_TRUE);
-
-	JS_ValueToInt32(cx,argv[0],&pid);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	*rval = BOOLEAN_TO_JSVAL(check_pid(pid));
-	JS_RESUMEREQUEST(cx, rc);
-
-	return(JS_TRUE);
-}
-
-static JSBool 
-js_killpid(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	int32		pid=0;
-	jsrefcount	rc;
-
-	*rval = JSVAL_FALSE;
-
-	if(argc<1)
-		return(JS_TRUE);
-
-	JS_ValueToInt32(cx,argv[0],&pid);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	*rval = BOOLEAN_TO_JSVAL(terminate_pid(pid));
-	JS_RESUMEREQUEST(cx, rc);
-
-	return(JS_TRUE);
-}
-
-
 static jsSyncMethodSpec js_system_functions[] = {
 	{"username",		js_username,		1,	JSTYPE_STRING,	JSDOCSTR("number")
 	,JSDOCSTR("returns name of user in specified user record <i>number</i>, or empty string if not found")
@@ -1610,16 +1568,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 	{"check_name",		js_chkname,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("name/alias")
 	,JSDOCSTR("checks that the provided name/alias string is suitable for a new user account, "
 		"returns <i>true</i> if it is valid")
-	,315
-	},
-	{"check_pid",		js_chkpid,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("process-ID")
-	,JSDOCSTR("checks that the provided process ID is a valid executing process on the system, "
-		"returns <i>true</i> if it is valid")
-	,315
-	},
-	{"terminate_pid",	js_killpid,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("process-ID")
-	,JSDOCSTR("terminates executing process on the system with the specified process ID, "
-		"returns <i>true</i> on success")
 	,315
 	},
 	{0}
@@ -1912,7 +1860,6 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_INTEGER("version_hex", VERSION_HEX);
 
 	LAZY_STRING("platform", PLATFORM_DESC);
-	LAZY_STRING("architecture", ARCHITECTURE_DESC);
 	LAZY_STRFUNC("msgbase_lib", sprintf(str,"SMBLIB %s",smb_lib_ver()), str);
 	LAZY_STRFUNC("compiled_with", DESCRIBE_COMPILER(str), str);
 	LAZY_STRFUNC("compiled_when", sprintf(str,"%s %.5s",__DATE__,__TIME__), str);
