@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.80 2011/04/23 17:42:19 deuce Exp $ */
+/* $Id: uifc.h,v 1.78 2010/03/02 03:09:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,6 @@
 #define UIFC_IBM	(1<<4)	/* Force use of IBM charset	*/
 #define UIFC_NOCTRL	(1<<5)	/* Don't allow useage of CTRL keys for movement 
 							 * etc in menus (Still available in text boxes) */
-#define UIFC_NHM	(1<<6)	/* Don't hide the mouse pointer */
 
 							/*******************************/
                             /* Bits in uifcapi_t.list mode */
@@ -407,18 +406,6 @@ typedef struct {
 
 } uifcapi_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* Return value from uifc_api.list() when uifcYesNoOpts is used */
-enum {
-	uifcYes=0,
-	uifcNo=1
-};
-
-extern char* uifcYesNoOpts[];
-
 /****************************************************************************/
 /* Initialization routines for each UIFC implementation.					*/
 /* Returns 0 on success, non-zero on failure.								*/
@@ -427,9 +414,5 @@ int uifcini(uifcapi_t*);	/* Original implementation based on conio		*/
 int uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
 int uifcini32(uifcapi_t*);	/* conio/curses implementation					*/
 /****************************************************************************/
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* Don't add anything after this line! */
