@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.36 2010/06/10 00:39:28 sbbs Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.34 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	}
 
 	if(msg->hdr.when_written.zone && mode&QM_TZ)
-		size+=fprintf(qwk_fp,"@TZ: %04hx%c",msg->hdr.when_written.zone,QWK_NEWLINE);
+		size+=fprintf(qwk_fp,"@TZ: %04x%c",msg->hdr.when_written.zone,QWK_NEWLINE);
 
 	if(msg->replyto!=NULL && mode&QM_REPLYTO)
 		size+=fprintf(qwk_fp,"@REPLYTO: %s%c"
@@ -270,7 +270,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	for(l=0;buf[l];l++) {
 		ch=buf[l];
 
-		if(ch=='\n') {
+		if(ch==LF) {
 			if(tear)
 				tear++; 				/* Count LFs after tearline */
 			if(tear>3)					/* more than two LFs after the tear */
@@ -283,14 +283,13 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 				tearwatch=1;
 			else
 				tearwatch=0;
-			if(l && buf[l-1]=='\r')		/* Replace CRLF with funky char */
-				ch=QWK_NEWLINE;			/* but leave sole LF (soft-NL) alone */
-			fputc(ch,qwk_fp);		  
+			ch=QWK_NEWLINE;
+			fputc(ch,qwk_fp);		  /* Replace LF with funky char */
 			size++;
 			continue; 
 		}
 
-		if(ch=='\r') {					/* Ignore CRs */
+		if(ch==CR) {					/* Ignore CRs */
 			if(tearwatch<4) 			/* LF---CRLF is okay */
 				tearwatch=0;			/* LF-CR- is not okay */
 			continue; 
