@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.48 2010/03/05 23:54:13 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.49 2010/03/08 03:44:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,6 +165,9 @@ typedef unsigned long long int uint64_t;
 
 #define PRIi64	INTTYPES_H_64BIT_PREFIX"i"
 #define PRIu64	INTTYPES_H_64BIT_PREFIX"u"
+#define PRId64	INTTYPES_H_64BIT_PREFIX"d"
+#define PRIx64	INTTYPES_H_64BIT_PREFIX"x"
+#define PRIo64	INTTYPES_H_64BIT_PREFIX"o"
 
 #endif
 
