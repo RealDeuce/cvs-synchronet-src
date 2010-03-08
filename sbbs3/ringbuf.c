@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.29 2011/04/21 20:52:27 deuce Exp $ */
+/* $Id: ringbuf.c,v 1.27 2005/10/21 21:52:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -147,6 +147,15 @@ DWORD RINGBUFCALL RingBufFull( RingBuf* rb )
 
 	retval = RINGBUF_FILL_LEVEL(rb);
 
+#ifdef RINGBUF_EVENT
+	if(rb->empty_event!=NULL) {
+		if(retval==0)
+			SetEvent(rb->empty_event);
+		else
+			ResetEvent(rb->empty_event);
+	}
+#endif
+
 #ifdef RINGBUF_MUTEX
 	pthread_mutex_unlock(&rb->mutex);
 #endif
@@ -167,9 +176,6 @@ DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, BYTE* src,  DWORD cnt )
 {
 	DWORD max, first, remain;
 
-	if(cnt==0)
-		return(cnt);
-
 	if(rb->pStart==NULL)
 		return(0);
 
@@ -178,7 +184,7 @@ DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, BYTE* src,  DWORD cnt )
 #endif
 
     /* allowed to write at pEnd */
-	max = rb->pEnd - rb->pHead + 1;
+	max = (((DWORD) rb->pEnd) - ((DWORD) rb->pHead)) + 1;
 
 	/*
 	 * we assume the caller has checked that there is enough room. For this reason
@@ -239,7 +245,7 @@ DWORD RINGBUFCALL RingBufRead( RingBuf* rb, BYTE* dst,  DWORD cnt )
         cnt = len;
 
 	/* allowed to read at pEnd */
-	max = rb->pEnd - rb->pTail + 1;
+	max = (((DWORD) rb->pEnd) - ((DWORD) rb->pTail)) + 1;
 
 	if( max >= cnt ) {
 		first = cnt;
@@ -301,7 +307,7 @@ DWORD RINGBUFCALL RingBufPeek( RingBuf* rb, BYTE* dst,  DWORD cnt)
         cnt = len;
 
     /* allowed to read at pEnd */
-	max = rb->pEnd - rb->pTail + 1;
+	max = (((DWORD) rb->pEnd) - ((DWORD) rb->pTail)) + 1;
 
 	if( max >= cnt ) {
 		first = cnt;

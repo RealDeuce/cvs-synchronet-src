@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.36 2011/10/13 23:37:30 deuce Exp $
+# $Id: targets.mk,v 1.33 2007/03/31 08:22:51 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -34,7 +34,6 @@ ALLUSERS	= $(EXEODIR)$(DIRSEP)allusers$(EXEFILE)
 DELFILES	= $(EXEODIR)$(DIRSEP)delfiles$(EXEFILE)
 DUPEFIND	= $(EXEODIR)$(DIRSEP)dupefind$(EXEFILE)
 SMBACTIV	= $(EXEODIR)$(DIRSEP)smbactiv$(EXEFILE)
-DSTSEDIT	= $(EXEODIR)$(DIRSEP)dstsedit$(EXEFILE)
 
 UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(SMBUTIL) $(BAJA) $(NODE) \
@@ -43,11 +42,11 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(ANS2ASC) $(ASC2ANS)  $(UNBAJA) \
 			  $(QWKNODES) $(SLOG) $(ALLUSERS) \
 			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
-			  $(SEXYZ) $(DSTSEDIT)
+			  $(SEXYZ)
 
-all:	dlls utils console
+all:	dlls utils console mono
 
-console:	$(JS_DEPS) xpdev-mt smblib \
+console:	xpdev-mt smblib \
 		$(MTOBJODIR) $(LIBODIR) $(EXEODIR) \
 		dlls \
 		$(SBBSCON) $(JSEXEC)
@@ -56,7 +55,7 @@ utils:	smblib xpdev-mt xpdev ciolib-mt uifc-mt \
 		$(LIBODIR) $(OBJODIR) $(MTOBJODIR) $(EXEODIR) \
 		$(UTILS)
 
-dlls:	$(JS_DEPS) smblib xpdev-mt \
+dlls:	smblib xpdev-mt \
 		$(MTOBJODIR) $(LIBODIR) \
 		$(SBBS) $(FTPSRVR) $(MAILSRVR) $(SERVICES)
 
@@ -94,4 +93,3 @@ $(ALLUSERS): $(XPDEV_LIB)
 $(DELFILES): $(XPDEV_LIB)
 $(DUPEFIND): $(XPDEV_LIB) $(SMBLIB)
 $(SMBACTIV): $(XPDEV_LIB) $(SMBLIB)
-$(DSTSEDIT): $(XPDEV_LIB)
