@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.38 2010/05/24 01:13:52 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.36 2010/03/05 23:26:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #define _SOCKWRAP_H
 
 #include "gen_defs.h"	/* BOOL */
+#include "filewrap.h"	/* fileoff_t, filelen_t */
 
 /***************/
 /* OS-specific */
@@ -98,27 +99,13 @@ typedef struct {
 #undef  EWOULDBLOCK
 #define EWOULDBLOCK		(WSAEWOULDBLOCK-WSABASEERR)
 
-#ifndef EPROTOTYPE
 #define EPROTOTYPE		(WSAEPROTOTYPE-WSABASEERR)
-#endif
-#ifndef ENOPROTOOPT
 #define ENOPROTOOPT		(WSAENOPROTOOPT-WSABASEERR)
-#endif
-#ifndef EPROTONOSUPPORT
 #define EPROTONOSUPPORT	(WSAEPROTONOSUPPORT-WSABASEERR)
-#endif
-#ifndef ESOCKTNOSUPPORT
 #define ESOCKTNOSUPPORT	(WSAESOCKTNOSUPPORT-WSABASEERR)
-#endif
-#ifndef EOPNOTSUPP
 #define EOPNOTSUPP		(WSAEOPNOTSUPP-WSABASEERR)
-#endif
-#ifndef EPFNOSUPPORT
 #define EPFNOSUPPORT	(WSAEPFNOSUPPORT-WSABASEERR)
-#endif
-#ifndef EAFNOSUPPORT
 #define EAFNOSUPPORT	(WSAEAFNOSUPPORT-WSABASEERR)
-#endif
 
 #undef  EADDRINUSE
 #define EADDRINUSE		(WSAEADDRINUSE-WSABASEERR)
@@ -186,8 +173,8 @@ socket_option_t*
 		getSocketOptionList(void);
 int		getSocketOptionByName(const char* name, int* level);
 
-int		sendfilesocket(int sock, int file, off_t* offset, off_t count);
-int		recvfilesocket(int sock, int file, off_t* offset, off_t count);
+int		sendfilesocket(int sock, int file, fileoff_t* offset, filelen_t count);
+int		recvfilesocket(int sock, int file, fileoff_t* offset, filelen_t count);
 BOOL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
 int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
