@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.122 2010/04/02 22:57:45 deuce Exp $ */
+/* $Id: js_file.c,v 1.120 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1398,8 +1398,8 @@ js_writeall(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_lock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	off_t		offset=0;
-	off_t		len=0;
+	fileoff_t	offset=0;
+	filelen_t	len=0;
 	private_t*	p;
 	jsrefcount	rc;
 	jsdouble	val;
@@ -1418,14 +1418,14 @@ js_lock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc) {
 		if(!JS_ValueToNumber(cx,argv[0],&val))
 			return(JS_FALSE);
-		offset=(off_t)val;
+		offset=(fileoff_t)val;
 	}
 
 	/* length */
 	if(argc>1) {
 		if(!JS_ValueToNumber(cx,argv[1],&val))
 			return(JS_FALSE);
-		len=(off_t)val;
+		len=(filelen_t)val;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1442,8 +1442,8 @@ js_lock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 static JSBool
 js_unlock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	off_t		offset=0;
-	off_t		len=0;
+	fileoff_t	offset=0;
+	filelen_t	len=0;
 	private_t*	p;
 	jsrefcount	rc;
 	jsdouble	val;
@@ -1462,14 +1462,14 @@ js_unlock(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc) {
 		if(!JS_ValueToNumber(cx,argv[0],&val))
 			return(JS_FALSE);
-		offset=(off_t)val;
+		offset=(fileoff_t)val;
 	}
 
 	/* length */
 	if(argc>1) {
 		if(!JS_ValueToNumber(cx,argv[1],&val))
 			return(JS_FALSE);
-		len=(off_t)val;
+		len=(filelen_t)val;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1745,7 +1745,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	char		str[128];
 	size_t		i;
 	size_t		rd;
-	off_t		offset;
+	fileoff_t	offset;
 	ulong		sum=0;
 	ushort		c16=0;
 	ulong		c32=~0;
@@ -1757,7 +1757,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	private_t*	p;
 	jsrefcount	rc;
 	time_t		tt;
-	off_t		lng;
+	filelen_t	lng;
 	int			in;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
@@ -2256,6 +2256,8 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 		JS_ReportError(cx,"No filename specified");
 		return(JS_FALSE);
 	}
+
+	*rval = JSVAL_VOID;
 
 	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL) {
 		JS_ReportError(cx,"calloc failed");

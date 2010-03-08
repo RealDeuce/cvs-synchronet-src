@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.41 2010/03/09 03:23:34 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.40 2010/03/05 23:26:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,10 +164,10 @@ socket_option_t* getSocketOptionList(void)
 	return(socket_options);
 }
 
-int sendfilesocket(int sock, int file, off_t *offset, off_t count)
+int sendfilesocket(int sock, int file, fileoff_t *offset, filelen_t count)
 {
 	char		buf[1024*16];
-	off_t		len;
+	filelen_t	len;
 	int			rd;
 	int			wr=0;
 	int			total=0;
@@ -226,7 +226,7 @@ int sendfilesocket(int sock, int file, off_t *offset, off_t count)
 	return(total);
 }
 
-int recvfilesocket(int sock, int file, off_t *offset, off_t count)
+int recvfilesocket(int sock, int file, fileoff_t *offset, filelen_t count)
 {
 	/* Writes a file from a socket -
 	 *
