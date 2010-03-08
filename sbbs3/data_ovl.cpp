@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.14 2010/03/09 01:55:50 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.13 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 	uint16_t	scancfg;
 	uint		i,j;
 	int 		file;
-	ulong		length;
+	long		length;
 	uint32_t	l=0L;
 
 	if(!usernumber)
@@ -119,7 +119,7 @@ extern "C" BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subs
 	if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
 		return(FALSE); 
 	}
-	length=(ulong)filelength(file);
+	length=filelength(file);
 	for(i=0;i<cfg->total_subs;i++) {
 		if(subscan[i].sav_ptr==subscan[i].ptr 
 			&& subscan[i].sav_last==subscan[i].last
