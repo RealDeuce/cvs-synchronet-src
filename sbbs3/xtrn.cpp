@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.205 2009/10/25 02:53:00 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.208 2010/03/07 22:13:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -789,7 +789,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
         if(!online && !(mode&EX_OFFLINE)) { // Tell VXD/VDD and external that user hung-up
         	if(was_online) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline("X!",str);
+				logline(LOG_NOTICE,"X!",str);
             	hungup=time(NULL);
 				if(!native) {
 					if(nt)
@@ -1809,7 +1809,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			
 			if(!online && !(mode&EX_OFFLINE)) {
 				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline("X!",str);
+				logline(LOG_NOTICE,"X!",str);
 				break;
 			}
 
@@ -2060,7 +2060,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                 case 'G':   /* Temp directory */
                     strcat(cmd,cfg.temp_dir);
                     break;
-                case 'H':   /* Port Handle or Hardware Flow Control */
+                case 'H':   /* Socket Handle */
                     strcat(cmd,ultoa(client_socket_dup,str,10));
                     break;
                 case 'I':   /* IP address */
@@ -2105,8 +2105,10 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
+					strcat(cmd,str);
                     break;
-                case 'W':   /* Time-slice API type (mswtype) */
+                case 'W':   /* Columns (width) */
+                    strcat(cmd,ultoa(cols,str,10));
                     break;
                 case 'X':
                     strcat(cmd,cfg.shell[useron.shell]->code);
@@ -2206,6 +2208,8 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'B':   /* Baud (DTE) Rate */
                     break;
                 case 'C':   /* Connect Description */
+					if(user!=NULL)
+						strcat(cmd,user->modem);
                     break;
                 case 'D':   /* Connect (DCE) Rate */
                     break;
@@ -2220,6 +2224,8 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                 case 'H':   /* Port Handle or Hardware Flow Control */
                     break;
                 case 'I':   /* IP address */
+					if(user!=NULL)
+						strcat(cmd,user->note);
                     break;
                 case 'J':
                     strcat(cmd,cfg->data_dir);
@@ -2260,8 +2266,11 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
+					strcat(cmd,str);
                     break;
-                case 'W':   /* Time-slice API type (mswtype) */
+                case 'W':   /* Columns/width */
+					if(user!=NULL)
+						strcat(cmd,ultoa(user->cols,str,10));
                     break;
                 case 'X':
 					if(user!=NULL)
