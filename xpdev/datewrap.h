@@ -2,13 +2,13 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.h,v 1.23 2011/10/18 11:25:04 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.21 2008/02/23 22:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -45,15 +45,10 @@ extern "C" {
 #endif
 
 /* Return difference (in seconds) in time() result from standard (0 on success) */
-DLLEXPORT time_t		DLLCALL		checktime(void);
+time_t checktime(void);
 
 /* Implementation of mktime() that handles common tm element conversions for you */
-DLLEXPORT time_t		DLLCALL		sane_mktime(struct tm*);
-
-/* Legacy (32-bit time_t) versions of time() and mktime() */
-DLLEXPORT time32_t		DLLCALL		time32(time32_t* tp);
-DLLEXPORT time32_t		DLLCALL		mktime32(struct tm*);
-DLLEXPORT struct tm*	DLLCALL		localtime32_r(const time32_t* t, struct tm* tm);
+time_t sane_mktime(struct tm* tm);
 
 /*********************************************************************************/
 /* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
@@ -95,8 +90,8 @@ struct time {
 };
 
 #define getdate(x)	xp_getdate(x)
-DLLEXPORT void	DLLCALL		xp_getdate(struct date*);
-DLLEXPORT void	DLLCALL		gettime(struct time*);
+void xp_getdate(struct date*);
+void gettime(struct time*);
 
 #endif	/* !Borland */
 
