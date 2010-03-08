@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.117 2010/03/17 08:27:53 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.114 2010/03/08 00:56:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -531,35 +531,32 @@ char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong 
 	char	str[INI_MAX_VALUE_LEN];
 	double	bytes;
 
-	if(value==0)
-		SAFECOPY(str,"0");
-	else
-		switch(unit) {
-			case 1024*1024*1024:
-				SAFEPRINTF(str,"%"PRIi64"G",value);
-				break;
-			case 1024*1024:
-				SAFEPRINTF(str,"%"PRIi64"M",value);
-				break;
-			case 1024:
-				SAFEPRINTF(str,"%"PRIi64"K",value);
-				break;
-			default:
-				if(unit<1)
-					unit=1;
-				bytes=(double)(value*unit);
+	switch(unit) {
+		case 1024*1024*1024:
+			SAFEPRINTF(str,"%"PRIi64"G",value);
+			break;
+		case 1024*1024:
+			SAFEPRINTF(str,"%"PRIi64"M",value);
+			break;
+		case 1024:
+			SAFEPRINTF(str,"%"PRIi64"K",value);
+			break;
+		default:
+			if(unit<1)
+				unit=1;
+			bytes=(double)(value*unit);
 
-				if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
-					SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
-				else if(fmod(bytes,1024*1024*1024)==0)
-					SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
-				else if(fmod(bytes,1024*1024)==0)
-					SAFEPRINTF(str,"%gM",bytes/(1024*1024));
-				else if(fmod(bytes,1024)==0)
-					SAFEPRINTF(str,"%gK",bytes/1024);
-				else
-					SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
-		}
+			if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
+				SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+			else if(fmod(bytes,1024*1024*1024)==0)
+				SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
+			else if(fmod(bytes,1024*1024)==0)
+				SAFEPRINTF(str,"%gM",bytes/(1024*1024));
+			else if(fmod(bytes,1024)==0)
+				SAFEPRINTF(str,"%gK",bytes/1024);
+			else
+				SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
+	}
 
 	return iniSetString(list, section, key, str, style);
 }
@@ -1001,8 +998,13 @@ iniReadNamedStringList(FILE* fp, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	items=0;
-	named_string_t** lp=NULL;
+	named_string_t** lp;
 	named_string_t** np;
+
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
+
+	*lp=NULL;
 
 	if(fp==NULL)
 		return(lp);
@@ -1033,8 +1035,7 @@ iniReadNamedStringList(FILE* fp, const char* section)
 		items++;
 	}
 
-	if(items)
-		lp[items]=NULL;	/* terminate list */
+	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
@@ -1046,8 +1047,13 @@ iniGetNamedStringList(str_list_t list, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	i,items=0;
-	named_string_t** lp=NULL;
+	named_string_t** lp;
 	named_string_t** np;
+
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
+
+	*lp=NULL;
 
 	if(list==NULL)
 		return(lp);
@@ -1072,8 +1078,7 @@ iniGetNamedStringList(str_list_t list, const char* section)
 		items++;
 	}
 
-	if(items)
-		lp[items]=NULL;	/* terminate list */
+	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
