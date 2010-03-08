@@ -1,6 +1,5 @@
 #include <sys/time.h>
 #include <stdlib.h>
-#include <string.h>
 #include <signal.h>
 #include "doors.h"
 #include "tplib.h"

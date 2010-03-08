@@ -1,14 +1,14 @@
 # build/Common.gmake
 #
-# Global build system setup file (for GNU Make and gcc)
+# Global build system setup file
 #
-# $Id: Common.gmake,v 1.78 2011/10/13 23:36:51 deuce Exp $
+# $Id: Common.gmake,v 1.70 2010/01/22 06:43:08 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
 # @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)			#
 #																			#
-# Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		#
+# Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		#
 #																			#
 # This program is free software; you can redistribute it and/or				#
 # modify it under the terms of the GNU General Public License				#
@@ -109,7 +109,7 @@
 
 # Set VERSION
 ifndef VERSION
- VERSION	:=	3.15
+ VERSION	:=	3.14
 endif
 
 # Put local (optional) macro definitions in localdefs.mk
@@ -198,18 +198,9 @@ os      :=	$(shell echo $(os) | tr '[A-Z]' '[a-z]' | tr ' ' '_')
 
 machine		:=	$(shell if uname -m | egrep -v "(i[3456789]*|x)86" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; fi)
 machine		:=	$(shell if uname -m | egrep "64" > /dev/null; then uname -m | tr "[A-Z]" "[a-z]" | tr " " "_" ; else echo $(machine) ; fi)
-ifeq ($(os),darwin)
- ifeq ("$(machine)","")
-  ifeq ($(shell sysctl hw.optional.x86_64),hw.optional.x86_64: 1)
-   machine	:= x86_64
-  endif
- endif
-endif
-
 ifeq ($(machine),x86_64)
- machine	:= x64
+ CFLAGS +=	-fPIC
 endif
-CFLAGS +=	-fpic
 ifeq ($(machine),sparc64)
  CFLAGS +=      -D__BIG_ENDIAN__
 endif
@@ -232,7 +223,6 @@ ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
  CFLAGS	+=	-DHAS_INTTYPES_H
 endif
 
-CCPRE := $(lastword $(subst /, ,$(CCPRE)))
 LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
 OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)
 MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
@@ -271,6 +261,7 @@ ifeq ($(os),openbsd)
 else
  ifeq ($(os),darwin)
   SOFILE =	.dylib
+  CFLAGS +=	-Wno-long-double
   RANLIB +=	-s
  endif
 endif
@@ -360,7 +351,6 @@ XPDEV_SRC	:=	$(SRC_ROOT)$(DIRSEP)xpdev
 CIOLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)conio
 SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
-JS_SRC		:=	$(SRC_ROOT)$(DIRSEP)js
 
 # SDL ciolib enabled by default for the moment.
 ifndef WITHOUT_SDL
@@ -378,8 +368,6 @@ endif
 -include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
 -include		$(UIFC_SRC)$(DIRSEP)Common.make
 -include		$(UIFC_SRC)$(DIRSEP)Common.gmake
--include		$(JS_SRC)$(DIRSEP)Common.make
--include		$(JS_SRC)$(DIRSEP)Common.gmake
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb
@@ -455,7 +443,3 @@ uifc:
 $(UIFCLIB-MT): uifc-mt
 uifc-mt:
 	$(MAKE) -C $(UIFC_SRC) mtlib
-
-$(JS_LIB):  $(JS_DEPS)
-js:
-	$(MAKE) -C $(JS_SRC) lib
