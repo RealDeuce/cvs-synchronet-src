@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.74 2009/02/18 06:52:43 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.78 2010/03/08 03:44:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -84,6 +84,7 @@
 
 #include "genwrap.h"	/* strupr/strlwr */
 #include "dirwrap.h"	/* DLLCALL */
+#include "filewrap.h"	/* LARGE_FILE_SUPPORT */
 
 /****************************************************************************/
 /* Return the filename portion of a full pathname							*/
@@ -388,8 +389,9 @@ int DLLCALL setfdate(const char* filename, time_t t)
 
 /****************************************************************************/
 /* Returns the length of the file in 'filename'                             */
+/* or -1 if the file doesn't exist											*/
 /****************************************************************************/
-long DLLCALL flength(const char *filename)
+filelen_t DLLCALL flength(const char *filename)
 {
 #if defined(__BORLANDC__) && !defined(__unix__)	/* stat() doesn't work right */
 
@@ -397,7 +399,7 @@ long DLLCALL flength(const char *filename)
 	struct _finddata_t f;
 
 	if(access((char*)filename,0)==-1)
-		return(-1L);
+		return(-1);
 
 	if((handle=_findfirst((char*)filename,&f))==-1)
 		return(-1);
@@ -411,10 +413,10 @@ long DLLCALL flength(const char *filename)
 	struct stat st;
 
 	if(access(filename,0)==-1)
-		return(-1L);
+		return(-1);
 
 	if(stat(filename, &st)!=0)
-		return(-1L);
+		return(-1);
 
 	return(st.st_size);
 
@@ -447,19 +449,23 @@ BOOL DLLCALL fexist(const char *filespec)
 
 	long	handle;
 	struct _finddata_t f;
+	BOOL	found;
 
 	if(!strchr(filespec,'*') && !strchr(filespec,'?'))
 		return(fnameexist(filespec));
 
 	if((handle=_findfirst((char*)filespec,&f))==-1)
 		return(FALSE);
+	found=TRUE;
+	while(f.attrib&_A_SUBDIR)
+		if(_findnext(handle,&f)!=0) {
+			found=FALSE;
+			break;
+		}
 
  	_findclose(handle);
 
- 	if(f.attrib&_A_SUBDIR)
-		return(FALSE);
-
-	return(TRUE);
+	return(found);
 
 #else /* Unix or OS/2 */
 	
