@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.56 2011/09/03 06:00:03 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.52 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,7 +48,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 	int		i,j;
 	int		error;
 	int		mismatches=0,act;
-	uint	unum;
     long    length,l,lm_mode;
 	ulong	last;
 	bool	replied;
@@ -252,7 +251,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					else {
 						sprintf(str3,text[DownloadAttachedFileQ]
 							,tp,ultoac(length,tmp));
-						if(length>0L && text[DownloadAttachedFileQ][0] && yesno(str3)) {
+						if(length>0L && yesno(str3)) {
 							{	/* Remote User */
 								xfer_prot_menu(XFER_DOWNLOAD);
 								mnemonics(text[ProtocolOrQuit]);
@@ -341,7 +340,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADKFLNQRT?<>[]{}-+");
+		sprintf(str,"ADFLNQRT?<>[]{}-+");
 		if(SYSOP)
 			strcat(str,"CUSPH");
 		if(which!=MAIL_YOUR)
@@ -457,12 +456,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 				}
 				if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 				else done=1;
-				break;
-			case 'K':	/* Kill All Mail */
-				SAFEPRINTF(str,text[DeleteMailQ],"everyone");
-				if(!noyes(str))
-					delallmail(usernumber, MAIL_YOUR, /* permanent: */false);
-				domsg=false;
 				break;
 			case 'F':  /* Forward last piece */
 				domsg=0;
@@ -701,26 +694,15 @@ void sbbs_t::readmail(uint usernumber, int which)
 			case 'U':   /* user edit */
 				msg.hdr.number=msg.idx.number;
 				smb_getmsgidx(&smb,&msg);
-				if((unum=(which==MAIL_SENT ? msg.idx.to : msg.idx.from)) == 0)
-					unum=(which==MAIL_SENT ? msg.idx.from : msg.idx.to);
-				if(unum == 0 || unum > lastuser(&cfg)) {
-					bputs(text[UnknownUser]);
-					domsg=false;
-				} else
-					useredit(unum);
+				useredit(which==MAIL_SENT ? msg.idx.to : msg.idx.from);
 				break;
 			case 'P':   /* Purge author and all mail to/from */
-				if(noyes(text[UeditDeleteQ]))
+				if(noyes(text[AreYouSureQ]))
 					break;
 				msg.hdr.number=msg.idx.number;
 				smb_getmsgidx(&smb,&msg);
-				if((which==MAIL_SENT ? msg.idx.to : msg.idx.from) == 0) {
-					bputs(text[UnknownUser]);
-					domsg=false;
-				} else {
-					purgeuser(msg.idx.from);
-					if(smb.curmsg<smb.msgs-1) smb.curmsg++;
-				}
+				purgeuser(msg.idx.from);
+				if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 				break;
 			case '?':
 				strcpy(str,which==MAIL_YOUR ? "mailread" : which==MAIL_ALL
@@ -741,6 +723,13 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	if(smb.msgs)
 		free(mail);
+
+	SAFEPRINTF(str,text[DeleteMailQ],"everyone");
+	if(which==MAIL_YOUR 
+		&& getmail(&cfg, usernumber, /* sent: */FALSE)>1
+		&& bputs(crlf)
+		&& !noyes(str))
+		delallmail(usernumber, MAIL_YOUR);
 
 	/***************************************/
 	/* Delete messages marked for deletion */
