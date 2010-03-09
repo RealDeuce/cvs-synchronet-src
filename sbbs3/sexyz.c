@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.132 2011/07/14 08:30:52 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.124 2010/03/09 03:25:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -658,8 +658,8 @@ static void output_thread(void* arg)
     BYTE		buf[MAX_OUTBUF_SIZE];
 	int			i;
     ulong		avail;
-	uint64_t	total_sent=0;
-	uint64_t	total_pkts=0;
+	ulong		total_sent=0;
+	ulong		total_pkts=0;
 	ulong		short_sends=0;
     ulong		bufbot=0;
     ulong		buftop=0;
@@ -722,7 +722,7 @@ static void output_thread(void* arg)
     }
 
 	if(total_sent)
-		sprintf(stats,"(sent %"PRIu64" bytes in %"PRIu64" blocks, %"PRIu64" average, %lu short, %lu errors)"
+		sprintf(stats,"(sent %"PRIu64" bytes in %lu blocks, %lu average, %lu short, %lu errors)"
 			,total_sent, total_pkts, total_sent/total_pkts, short_sends, select_errors);
 	else
 		stats[0]=0;
@@ -800,7 +800,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 		if(l<0) l=0;
 		if(mode&SEND) {
 			total_blocks=num_blocks(block_num,offset,fsize,xm.block_size);
-			fprintf(statfp,"\rBlock (%lu%s): %lu/%"PRId64"  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %lu/%lu  Byte: %"PRIu64"  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -815,7 +815,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else if(mode&YMODEM) {
-			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %"PRIu64"  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -829,7 +829,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else { /* XModem receive */
-			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %"PRIu64"  "
 				"Time: %lu:%02lu  %u cps "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -869,7 +869,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 		l=(long)(zm.current_file_size/cps);	/* total transfer est time */
 		l-=t;								/* now, it's est time left */
 		if(l<0) l=0;
-		fprintf(statfp,"\rKByte: %"PRId64"/%"PRId64"  %u/CRC-%u  "
+		fprintf(statfp,"\rKByte: %"PRIu64"/%"PRIu64"  %u/CRC-%u  "
 			"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 			,current_pos/1024
 			,zm.current_file_size/1024
@@ -929,7 +929,7 @@ static int send_files(char** fname, uint fnames)
 		return(-1);
 	}
 	if(xm.total_files>1)
-		lprintf(LOG_INFO,"Sending %u files (%"PRId64" KB total)"
+		lprintf(LOG_INFO,"Sending %u files (%"PRIu64" KB total)"
 			,xm.total_files,xm.total_bytes/1024);
 
 	zm.files_remaining = xm.total_files;
@@ -960,7 +960,7 @@ static int send_files(char** fname, uint fnames)
 			errors=0;
 			startfile=time(NULL);
 
-			lprintf(LOG_INFO,"Sending %s (%"PRId64" KB) via %cMODEM"
+			lprintf(LOG_INFO,"Sending %s (%"PRIu64" KB) via %cMODEM"
 				,path,fsize/1024
 				,mode&XMODEM ? 'X' : mode&YMODEM ? 'Y' : 'Z');
 
@@ -985,7 +985,7 @@ static int send_files(char** fname, uint fnames)
 						,t/60,t%60,cps);
 
 				if(xm.total_files-xm.sent_files)
-					lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %"PRId64
+					lprintf(LOG_INFO,"Remaining - Time: %lu:%02lu  Files: %u  KBytes: %"PRIu64
 						,((xm.total_bytes-xm.sent_bytes)/cps)/60
 						,((xm.total_bytes-xm.sent_bytes)/cps)%60
 						,xm.total_files-xm.sent_files
@@ -997,7 +997,7 @@ static int send_files(char** fname, uint fnames)
 			/* DSZLOG entry */
 			if(logfp) {
 				lprintf(LOG_DEBUG,"Updating DSZLOG: %s", dszlog);
-				fprintf(logfp,"%c %7"PRId64" %5u bps %6lu cps %3u errors %5u %4u "
+				fprintf(logfp,"%c %7"PRIu64" %5u bps %6lu cps %3u errors %5u %4u "
 					"%s -1\n"
 					,(mode&ZMODEM && zm.file_skipped) ? 's' 
 						: success ? (mode&ZMODEM ? 'z':'S') 
@@ -1055,7 +1055,7 @@ static int send_files(char** fname, uint fnames)
 	if(xm.total_files>1) {
 		t=time(NULL)-startall;
 		if(!t) t=1;
-		lprintf(LOG_INFO,"Overall - Time %02lu:%02lu  KBytes: %"PRId64"  CPS: %lu"
+		lprintf(LOG_INFO,"Overall - Time %02lu:%02lu  KBytes: %"PRIu64"  CPS: %lu"
 			,t/60,t%60,total_bytes/1024,total_bytes/t); 
 	}
 	return(0);	/* success */
@@ -1119,7 +1119,7 @@ static int receive_files(char** fname_list, int fnames)
 				}
 				ftime=total_files=0;
 				total_bytes=0;
-				i=sscanf(block+strlen(block)+1,"%"PRId64" %lo %lo %lo %u %"PRId64
+				i=sscanf(block+strlen(block)+1,"%"PRIu64" %lo %lo %lo %u %"PRIu64
 					,&file_bytes			/* file size (decimal) */
 					,&ftime 				/* file time (octal unix format) */
 					,&fmode 				/* file mode (not used) */
@@ -1188,9 +1188,9 @@ static int receive_files(char** fname_list, int fnames)
 					} 
 				} 
 			}
-			fprintf(statfp,"File size: %"PRId64" bytes\n", file_bytes);
+			fprintf(statfp,"File size: %"PRIu64" bytes\n", file_bytes);
 			if(total_files>1)
-				fprintf(statfp,"Remaining: %"PRId64" bytes in %u files\n", total_bytes, total_files);
+				fprintf(statfp,"Remaining: %"PRIu64" bytes in %u files\n", total_bytes, total_files);
 		}
 
 		lprintf(LOG_DEBUG,"Receiving: %.64s ",str);
@@ -1214,7 +1214,7 @@ static int receive_files(char** fname_list, int fnames)
 		}
 
 		if(!(mode&XMODEM) && max_file_size!=0 && file_bytes > max_file_size) {
-			lprintf(LOG_WARNING,"%s file size (%"PRId64") exceeds specified maximum: %"PRId64" bytes", str, file_bytes, max_file_size);
+			lprintf(LOG_WARNING,"%s file size (%"PRIu64") exceeds specified maximum: %"PRIu64" bytes", str, file_bytes, max_file_size);
 			if(mode&ZMODEM) {
 				zmodem_send_zskip(&zm);
 				continue;
@@ -1240,7 +1240,7 @@ static int receive_files(char** fname_list, int fnames)
 				,mode&GMODE ? "-G" : ""
 				,mode&CRC ? "CRC-16":"Checksum");
 		else
-			lprintf(LOG_INFO,"Receiving %s (%"PRId64" KB) via %s %s"
+			lprintf(LOG_INFO,"Receiving %s (%"PRIu64" KB) via %s %s"
 				,str
 				,file_bytes/1024
 				,mode&YMODEM ? mode&GMODE ? "YMODEM-G" : "YMODEM" :"ZMODEM"
@@ -1262,7 +1262,7 @@ static int receive_files(char** fname_list, int fnames)
 			while(is_connected(NULL)) {
 				off_t pos=ftello(fp);
 				if(max_file_size!=0 && pos>=max_file_size) {
-					lprintf(LOG_WARNING,"Specified maximum file size (%"PRId64" bytes) reached at offset %"PRId64
+					lprintf(LOG_WARNING,"Specified maximum file size (%"PRIu64" bytes) reached at offset %"PRIu64
 						,max_file_size, pos);
 					break;
 				}
@@ -1280,7 +1280,10 @@ static int receive_files(char** fname_list, int fnames)
 						break;
 					}
 
-					if(++errors>xm.max_errors || (mode&GMODE)) {
+					if(mode&GMODE)
+						return(-1);
+
+					if(++errors>xm.max_errors) {
 						lprintf(LOG_ERR,"Too many errors (%u)",errors);
 						xmodem_cancel(&xm);
 						break;
@@ -1433,7 +1436,9 @@ static const char* usage=
 
 #ifdef __unix__
 
-struct termios tio_default;				/* Initial term settings */
+#ifdef __unix__
+	struct termios tio_default;				/* Initial term settings */
+#endif
 
 #ifdef NEEDS_CFMAKERAW
 static void
@@ -1474,11 +1479,6 @@ static void init_stdio(void)
 	}
 }
 
-BOOL	RingBufIsEmpty(void *buf)
-{
-	return(RingBufFull(buf)==0);
-}
-
 #endif
 
 /***************/
@@ -1511,7 +1511,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.132 $", "%*s %s", revision);
+	sscanf("$Revision: 1.124 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1608,10 +1608,6 @@ int main(int argc, char **argv)
 
 #if !defined(RINGBUF_EVENT)
 	outbuf_empty=CreateEvent(NULL,/* ManualReset */TRUE, /*InitialState */TRUE,NULL);
-#ifdef __unix__
-	outbuf_empty->cbdata=&outbuf;
-	outbuf_empty->verify=RingBufIsEmpty;
-#endif
 #endif
 
 #if 0
@@ -1670,7 +1666,6 @@ int main(int argc, char **argv)
 						fprintf(statfp,"Unrecognized command '%s'\n\n",argv[i]);
 						fprintf(statfp,usage,MAX_FILE_SIZE);
 						bail(1); 
-						return -1;
 				} 
 				continue;
 			}
@@ -1686,7 +1681,6 @@ int main(int argc, char **argv)
 				fprintf(statfp,"Compiled %s %.5s with %s\n",__DATE__,__TIME__,compiler);
 				fprintf(statfp,"%s\n",os_version(str));
 				bail(0);
-				return 0;
 			}
 
 			arg=argv[i];
@@ -1757,13 +1751,11 @@ int main(int argc, char **argv)
 			if(mode&RECVDIR) {
 				fprintf(statfp,"!Cannot specify both directory and filename\n");
 				bail(1); 
-				return -1;
 			}
 			sprintf(str,"%s",argv[i]+1);
 			if((fp=fopen(str,"r"))==NULL) {
 				fprintf(statfp,"!Error %d opening filelist: %s\n",errno,str);
 				bail(1); 
-				return -1;
 			}
 			while(!feof(fp) && !ferror(fp)) {
 				if(!fgets(str,sizeof(str),fp))
@@ -1779,17 +1771,14 @@ int main(int argc, char **argv)
 				if(mode&RECVDIR) {
 					fprintf(statfp,"!Only one directory can be specified\n");
 					bail(1); 
-					return -1;
 				}
 				if(fnames) {
 					fprintf(statfp,"!Cannot specify both directory and filename\n");
 					bail(1); 
-					return -1;
 				}
 				if(mode&SEND) {
 					fprintf(statfp,"!Cannot send directory '%s'\n",argv[i]);
 					bail(1);
-					return -1;
 				}
 				mode|=RECVDIR; 
 			}
@@ -1797,21 +1786,18 @@ int main(int argc, char **argv)
 		} 
 	}
 
-	if(max_file_size)
-		fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
+	fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
 
 	if(!(mode&(SEND|RECV))) {
 		fprintf(statfp,"!No command specified\n\n");
 		fprintf(statfp,usage,MAX_FILE_SIZE);
 		bail(1); 
-		return -1;
 	}
 
 	if(mode&(SEND|XMODEM) && !fnames) { /* Sending with any or recv w/Xmodem */
 		fprintf(statfp,"!Must specify filename or filelist\n\n");
 		fprintf(statfp,usage,MAX_FILE_SIZE);
 		bail(1); 
-		return -1;
 	}
 
 	if(sock==INVALID_SOCKET || sock<1) {
@@ -1830,7 +1816,6 @@ int main(int argc, char **argv)
 		fprintf(statfp,"!No socket descriptor specified\n\n");
 		fprintf(errfp,usage,MAX_FILE_SIZE);
 		bail(1);
-		return -1;
 #endif
 	}
 #ifdef __unix__
@@ -1875,14 +1860,12 @@ int main(int argc, char **argv)
 	if(!socket_check(sock, NULL, NULL, 0)) {
 		lprintf(LOG_WARNING,"No socket connection");
 		bail(-1); 
-		return -1;
 	}
 
 	if((dszlog=getenv("DSZLOG"))!=NULL) {
 		if((logfp=fopen(dszlog,"w"))==NULL) {
 			lprintf(LOG_WARNING,"Error %d opening DSZLOG file: %s",errno,dszlog);
 			bail(-1); 
-			return -1;
 		}
 	}
 
@@ -1912,9 +1895,7 @@ int main(int argc, char **argv)
 #if !SINGLE_THREADED
 	lprintf(LOG_DEBUG,"Waiting for output buffer to empty... ");
 	if(RingBufFull(&outbuf)) {
-#if !defined(RINGBUF_EVENT)
 		ResetEvent(outbuf_empty);
-#endif
 		if(WaitForEvent(outbuf_empty,5000)!=WAIT_OBJECT_0)
 			lprintf(LOG_DEBUG,"FAILURE");
 	}
@@ -1930,6 +1911,5 @@ int main(int argc, char **argv)
 	fprintf(statfp,"\n");
 
 	bail(retval);
-	return retval;
 }
 

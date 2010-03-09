@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.46 2010/06/07 07:01:21 rswindell Exp $ */
+/* $Id: str_util.c,v 1.45 2010/02/25 06:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ char* DLLCALL strip_space(const char *str, char* dest)
 	if(dest==NULL && (dest=strdup(str))==NULL)
 		return NULL;
 	for(i=j=0;str[i];i++)
-		if(!isspace((unsigned char)str[i]))
+		if(!isspace(str[i]))
 			dest[j++]=str[i];
 	dest[j]=0;
 	return dest;
@@ -131,7 +131,7 @@ char* DLLCALL prep_file_desc(const char *str, char* dest)
 		}
 		else if(j && str[i]<=' ' && dest[j-1]==' ')
 			continue;
-		else if(i && !isalnum((unsigned char)str[i]) && str[i]==str[i-1])
+		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
 			continue;
 		else if((uchar)str[i]>=' ')
 			dest[j++]=str[i];
