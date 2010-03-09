@@ -118,7 +118,7 @@ struct font_files *read_font_files(int *count)
 		ret[*count-1].name=strdup(fontid+5);
 		if((ret[*count-1].path8x8=iniReadString(inifile,fontid,"Path8x8",NULL,fontpath))!=NULL)
 			ret[*count-1].path8x8=strdup(fontpath);
-		if((ret[*count-1].path8x14=iniReadString(inifile,fontid,"Path8x14",NULL,fontpath))!=NULL)
+		if((ret[*count-1].path8x14=iniReadString(inifile,fontid,"Path8x14","",fontpath))!=NULL)
 			ret[*count-1].path8x14=strdup(fontpath);
 		if((ret[*count-1].path8x16=iniReadString(inifile,fontid,"Path8x16",NULL,fontpath))!=NULL)
 			ret[*count-1].path8x16=strdup(fontpath);
@@ -162,7 +162,6 @@ void load_font_files(void)
 						free(fontdata);
 					}
 				}
-				fclose(fontfile);
 			}
 		}
 		if(ff[i].path8x14 && ff[i].path8x14[0]) {
@@ -175,7 +174,6 @@ void load_font_files(void)
 						free(fontdata);
 					}
 				}
-				fclose(fontfile);
 			}
 		}
 		if(ff[i].path8x16 && ff[i].path8x16[0]) {
@@ -188,7 +186,6 @@ void load_font_files(void)
 						free(fontdata);
 					}
 				}
-				fclose(fontfile);
 			}
 		}
 		nextfont++;
@@ -271,7 +268,7 @@ void font_management(void)
 				FREE_AND_NULL(fonts[cur].path8x8);
 				FREE_AND_NULL(fonts[cur].path8x14);
 				FREE_AND_NULL(fonts[cur].path8x16);
-				memmove(&(fonts[cur]),&(fonts[cur+1]),sizeof(struct font_files)*(count-cur));
+				memmove(&(fonts[cur]),&(fonts[cur+1]),sizeof(struct font_files)*(count-cur-1));
 				count--;
 				break;
 			}
