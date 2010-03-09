@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.81 2010/06/03 01:36:10 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.79 2010/03/09 03:23:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -536,9 +536,6 @@ BOOL DLLCALL fexistcase(char *path)
 	int  i;
 	glob_t	glb;
 	
-	if(path[0]==0)		/* work around glibc bug 574274 */
-		return FALSE;
-
 	if(!strchr(path,'*') && !strchr(path,'?') && fnameexist(path))
 		return(TRUE);
 
