@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.294 2010/03/13 02:03:51 deuce Exp $ */
+/* $Id: term.c,v 1.290 2010/03/09 03:50:09 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -289,7 +289,6 @@ static int lputs(void* cbdata, int level, const char* str)
 {
 	char msg[512];
 	int chars;
-	int oldhold=hold_update;
 
 #if defined(_WIN32) && defined(_DEBUG) && FALSE
 	sprintf(msg,"SyncTerm: %s\n",str);
@@ -328,9 +327,7 @@ static int lputs(void* cbdata, int level, const char* str)
 			SAFEPRINTF(msg,"!ERROR: %s\r\n",str);
 			break;
 	}
-	hold_update=FALSE;
 	chars=cputs(msg);
-	hold_update=oldhold;
 	gettextinfo(&log_ti);
 
 	return chars;
@@ -1259,7 +1256,7 @@ void xmodem_progress(void* cbdata, unsigned block_num, int64_t offset, int64_t f
 		if(l<0) l=0;
 		if((*(xm->mode))&SEND) {
 			total_blocks=num_blocks(block_num,offset,fsize,xm->block_size);
-			cprintf("Block (%lu%s): %u/%"PRId64"  Byte: %"PRId64
+			cprintf("Block (%lu%s): %lu/%lu  Byte: %"PRId64
 				,xm->block_size%1024L ? xm->block_size: xm->block_size/1024L
 				,xm->block_size%1024L ? "" : "K"
 				,block_num
@@ -1574,8 +1571,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				xmodem_put_nak(&xm, /* expected_block: */ 0);
 				i=xmodem_get_block(&xm, block, /* expected_block: */ 0);
 				if(i==SUCCESS) {
-					send_byte(&xm,ACK,10);
-					flush_send(&xm);
+					send_byte(NULL,ACK,10);
 					break;
 				}
 				if(i==NOINP && (mode&GMODE)) {			/* Timeout */
@@ -1726,10 +1722,8 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				xmodem_put_nak(&xm, block_num);
 				continue;
 			}
-			if(!(mode&GMODE)) {
-				send_byte(&xm,ACK,10);
-				flush_send(&xm);
-			}
+			if(!(mode&GMODE))
+				send_byte(NULL,ACK,10);
 			if(file_bytes_left<=0L)  { /* No more bytes to receive */
 				lprintf(LOG_WARNING,"Sender attempted to send more bytes than were specified in header");
 				break; 
@@ -2586,7 +2580,7 @@ BOOL doterm(struct bbslist *bbs)
 							begin_upload(bbs, FALSE, inch);
 							break;
 						case 4:
-							begin_download(bbs);
+							zmodem_download(bbs);
 							break;
 						case 7:
 							capture_control(bbs);
