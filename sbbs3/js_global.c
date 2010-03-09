@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.253 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: js_global.c,v 1.254 2010/03/09 21:58:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2544,7 +2544,7 @@ static JSBool
 js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	filelen_t	fl;
+	off_t		fl;
 	jsrefcount	rc;
 
 	if(JSVAL_IS_VOID(argv[0]))
