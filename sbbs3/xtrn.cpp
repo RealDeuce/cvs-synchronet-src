@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.208 2010/03/07 22:13:10 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.209 2010/03/09 01:44:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2269,8 +2269,6 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 					strcat(cmd,str);
                     break;
                 case 'W':   /* Columns/width */
-					if(user!=NULL)
-						strcat(cmd,ultoa(user->cols,str,10));
                     break;
                 case 'X':
 					if(user!=NULL)
