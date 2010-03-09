@@ -2,7 +2,7 @@
 
 /* Synchronet temp directory file transfer routines */
 
-/* $Id: tmp_xfer.cpp,v 1.46 2010/03/12 08:27:57 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.45 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,7 +135,7 @@ void sbbs_t::temp_xfer()
 				logline(nulstr,tmp2);
 				SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,str);
 				SAFEPRINTF2(str,"%s%s",cfg.temp_dir,f.name);
-				external(cmdstr(temp_cmd(),str,tmp2,NULL),EX_WILDCARD|EX_STDOUT);
+				external(cmdstr(temp_cmd(),str,tmp2,NULL),EX_WILDCARD|EX_OUTL|EX_OUTR);
 				break;
 			case 'D':   /* download from temp dir */
 				SAFEPRINTF2(str,"%s%s",cfg.temp_dir,f.name);
@@ -414,7 +414,8 @@ void sbbs_t::extract(uint dirnum)
 					break;
 				if(!checkfname(str))
 					break;
-				if((i=external(cmdstr(excmd,path,str,NULL),EX_STDIO))!=0) {
+				if((i=external(cmdstr(excmd,path,str,NULL)
+					,EX_INR|EX_OUTL|EX_OUTR))!=0) {
 					errormsg(WHERE,ERR_EXEC,cmdstr(excmd,path,str,NULL),i);
 					return; 
 				}
