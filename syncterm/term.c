@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.286 2010/03/08 23:31:35 deuce Exp $ */
+/* $Id: term.c,v 1.287 2010/03/09 00:09:30 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -520,6 +520,8 @@ void draw_transfer_window(char* title)
 	gettextinfo(&trans_ti);
 	top=(trans_ti.screenheight-TRANSFER_WIN_HEIGHT)/2;
 	left=(trans_ti.screenwidth-TRANSFER_WIN_WIDTH)/2;
+	window(1, 1, trans_ti.screenwidth, trans_ti.screenheight);
+
 	gettext(left, top, left + TRANSFER_WIN_WIDTH + 1, top + TRANSFER_WIN_HEIGHT, winbuf);
 	memset(outline, YELLOW | (BLUE<<4), sizeof(outline));
 	for(i=2;i < sizeof(outline) - 2; i+=2) {
