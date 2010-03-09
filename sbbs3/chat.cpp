@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.61 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.57 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -658,8 +658,8 @@ void sbbs_t::chatsection()
 				no_rip_menu=1;
 				if(sysop_page())
 					break;
-				if(cfg.total_gurus && chk_ar(cfg.guru[0]->ar,&useron,&client) && text[ChatWithGuruInsteadQ][0]) {
-					SAFEPRINTF(str,text[ChatWithGuruInsteadQ],cfg.guru[0]->name);
+				if(cfg.total_gurus && chk_ar(cfg.guru[0]->ar,&useron,&client)) {
+					sprintf(str,text[ChatWithGuruInsteadQ],cfg.guru[0]->name);
 					if(!yesno(str))
 						break; 
 				}
@@ -717,7 +717,8 @@ bool sbbs_t::sysop_page(void)
 		if(i<cfg.total_pages) {
 			bprintf(text[PagingGuru],cfg.sys_op);
 			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL)
-				,cfg.page[i]->misc&XTRN_STDIO ? EX_STDIO : 0); 
+				,cfg.page[i]->misc&IO_INTS ? EX_OUTL|EX_OUTR|EX_INR
+					: EX_OUTL); 
 		}
 		else if(cfg.sys_misc&SM_SHRTPAGE) {
 			bprintf(text[PagingGuru],cfg.sys_op);
@@ -1282,7 +1283,7 @@ int sbbs_t::getnodetopage(int all, int telegram)
 		return(-1);
 
 	if(str[0]=='\'') {
-		j=userdatdupe(0,U_HANDLE,LEN_HANDLE,str+1);
+		j=userdatdupe(0,U_HANDLE,LEN_HANDLE,str+1,0);
 		if(!j) {
 			bputs(text[UnknownUser]);
 			return(0); 
