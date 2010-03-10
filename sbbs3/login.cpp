@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.14 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: login.cpp,v 1.15 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,11 +91,11 @@ int sbbs_t::login(char *username, char *pw)
 			else
 				sprintf(tmp,"(%04u)  %-25s  FAILED Password attempt"
 					,0,useron.alias);
-			logline("+!",tmp); 
+			logline(LOG_NOTICE,"+!",tmp); 
 		} else {
 			bputs(text[UnknownUser]);
 			sprintf(tmp,"Unknown User '%s'",str);
-			logline("+!",tmp); 
+			logline(LOG_NOTICE,"+!",tmp); 
 		}
 		useron.misc=useron_misc;
 		return(LOGIC_FALSE); 
@@ -123,7 +123,7 @@ int sbbs_t::login(char *username, char *pw)
 			else
 				sprintf(tmp,"(%04u)  %-25s  FAILED Password attempt"
 					,useron.number,useron.alias);
-			logline("+!",tmp);
+			logline(LOG_NOTICE,"+!",tmp);
 			useron.number=0;
 			useron.misc=useron_misc;
 			return(LOGIC_FALSE); 
