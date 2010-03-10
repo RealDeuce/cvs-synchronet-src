@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.291 2010/03/10 06:36:51 deuce Exp $ */
+/* $Id: term.c,v 1.292 2010/03/10 07:47:51 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1571,7 +1571,8 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				xmodem_put_nak(&xm, /* expected_block: */ 0);
 				i=xmodem_get_block(&xm, block, /* expected_block: */ 0);
 				if(i==SUCCESS) {
-					send_byte(NULL,ACK,10);
+					send_byte(&xm,ACK,10);
+					flush_send(&xm);
 					break;
 				}
 				if(i==NOINP && (mode&GMODE)) {			/* Timeout */
@@ -1722,8 +1723,10 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				xmodem_put_nak(&xm, block_num);
 				continue;
 			}
-			if(!(mode&GMODE))
-				send_byte(NULL,ACK,10);
+			if(!(mode&GMODE)) {
+				send_byte(&xm,ACK,10);
+				flush_send(&xm);
+			}
 			if(file_bytes_left<=0L)  { /* No more bytes to receive */
 				lprintf(LOG_WARNING,"Sender attempted to send more bytes than were specified in header");
 				break; 
