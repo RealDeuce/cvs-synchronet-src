@@ -2,13 +2,13 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.66 2011/08/25 07:56:25 rswindell Exp $ */
+/* $Id: str.cpp,v 1.63 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -250,15 +250,15 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 				cr=1;
 				m++; 
 			}
-			if(isdigit((uchar)buf[m+1])) {
+			if(isdigit(buf[m+1])) {
 				max=buf[++m]&0xf;
-				if(isdigit((uchar)buf[m+1]))
+				if(isdigit(buf[m+1]))
 					max=max*10+(buf[++m]&0xf); 
 			}
-			if(buf[m+1]=='.' && isdigit((uchar)buf[m+2])) {
+			if(buf[m+1]=='.' && isdigit(buf[m+2])) {
 				m++;
 				min=buf[++m]&0xf;
-				if(isdigit((uchar)buf[m+1]))
+				if(isdigit(buf[m+1]))
 					min=min*10+(buf[++m]&0xf); 
 			}
 			if(buf[m+1]=='"') {
@@ -396,15 +396,15 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 				cr=1;
 				m++; 
 			}
-			if(isdigit((uchar)buf[m+1])) {
+			if(isdigit(buf[m+1])) {
 				max=buf[++m]&0xf;
-				if(isdigit((uchar)buf[m+1]))
+				if(isdigit(buf[m+1]))
 					max=max*10+(buf[++m]&0xf); 
 			}
-			if(buf[m+1]=='.' && isdigit((uchar)buf[m+2])) {
+			if(buf[m+1]=='.' && isdigit(buf[m+2])) {
 				m++;
 				min=buf[++m]&0xf;
-				if(isdigit((uchar)buf[m+1]))
+				if(isdigit(buf[m+1]))
 					min=min*10+(buf[++m]&0xf); 
 			}
 			if(buf[m+1]=='"') {
@@ -536,9 +536,9 @@ size_t sbbs_t::gettmplt(char *strout, const char *templt, long mode)
 			}
 		}
 		else if(c<t) {
-			if(tmplt[c]=='N' && !isdigit((uchar)ch))
+			if(tmplt[c]=='N' && !isdigit(ch))
 				continue;
-			if(tmplt[c]=='A' && !isalpha((uchar)ch))
+			if(tmplt[c]=='A' && !isalpha(ch))
 				continue;
 			outchar(ch);
 			str[c++]=ch;
@@ -697,11 +697,11 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 
 	if(strlen(pass)<4) {
 		bputs(text[PasswordTooShort]);
-		return(false); 
+		return(0); 
 	}
 	if(!strcmp(pass,user->pass)) {
 		bputs(text[PasswordNotChanged]);
-		return(false); 
+		return(0); 
 	}
 	d=strlen(pass);
 	for(c=1;c<d;c++)
@@ -709,21 +709,21 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 			break;
 	if(c==d) {
 		bputs(text[PasswordInvalid]);
-		return(false); 
+		return(0); 
 	}
 	for(c=0;c<3;c++)	/* check for 1234 and ABCD */
 		if(pass[c]!=pass[c+1]+1)
 			break;
 	if(c==3) {
 		bputs(text[PasswordObvious]);
-		return(false); 
+		return(0); 
 	}
 	for(c=0;c<3;c++)	/* check for 4321 and ZYXW */
 		if(pass[c]!=pass[c+1]-1)
 			break;
 	if(c==3) {
 		bputs(text[PasswordObvious]);
-		return(false); 
+		return(0); 
 	}
 	SAFECOPY(name,user->name);
 	strupr(name);
@@ -768,9 +768,9 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 		)
 		{
 		bputs(text[PasswordObvious]);
-		return(false); 
+		return(0); 
 	}
-	return(!trashcan(pass,"password"));
+	return(1);
 }
 
 /****************************************************************************/
@@ -778,7 +778,7 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 /****************************************************************************/
 void sbbs_t::subinfo(uint subnum)
 {
-	char str[MAX_PATH+1];
+	char str[256];
 
 	bputs(text[SubInfoHdr]);
 	bprintf(text[SubInfoLongName],cfg.sub[subnum]->lname);
@@ -791,7 +791,7 @@ void sbbs_t::subinfo(uint subnum)
 		bprintf(text[SubInfoFidoNet]
 			,cfg.sub[subnum]->origline
 			,smb_faddrtoa(&cfg.sub[subnum]->faddr,str));
-	SAFEPRINTF2(str,"%s%s.msg",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	sprintf(str,"%s%s.msg",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	if(fexist(str) && yesno(text[SubInfoViewFileQ]))
 		printfile(str,0);
 }
@@ -801,7 +801,7 @@ void sbbs_t::subinfo(uint subnum)
 /****************************************************************************/
 void sbbs_t::dirinfo(uint dirnum)
 {
-	char str[MAX_PATH+1];
+	char str[256];
 
 	bputs(text[DirInfoHdr]);
 	bprintf(text[DirInfoLongName],cfg.dir[dirnum]->lname);
@@ -809,7 +809,7 @@ void sbbs_t::dirinfo(uint dirnum)
 	if(cfg.dir[dirnum]->exts[0])
 		bprintf(text[DirInfoAllowedExts],cfg.dir[dirnum]->exts);
 	bprintf(text[DirInfoMaxFiles],cfg.dir[dirnum]->maxfiles);
-	SAFEPRINTF2(str,"%s%s.msg",cfg.dir[dirnum]->data_dir,cfg.dir[dirnum]->code);
+	sprintf(str,"%s%s.msg",cfg.dir[dirnum]->data_dir,cfg.dir[dirnum]->code);
 	if(fexist(str) && yesno(text[DirInfoViewFileQ]))
 		printfile(str,0);
 }
@@ -855,25 +855,22 @@ void sbbs_t::sys_info()
 		bprintf(text[SiSysFaddr],smb_faddrtoa(&cfg.faddr[i],tmp));
 	if(cfg.sys_psname[0])				/* PostLink/PCRelay */
 		bprintf(text[SiSysPsite],cfg.sys_psname,cfg.sys_psnum);
-	if(cfg.sys_location[0])
-		bprintf(text[SiSysLocation],cfg.sys_location);
-	if(cfg.sys_op[0])
-		bprintf(text[SiSysop],cfg.sys_op);
+	bprintf(text[SiSysLocation],cfg.sys_location);
+	bprintf(text[SiSysop],cfg.sys_op);
 	bprintf(text[SiSysNodes],cfg.sys_nodes);
 //	bprintf(text[SiNodeNumberName],cfg.node_num,cfg.node_name);
-	if(cfg.node_phone[0])
-		bprintf(text[SiNodePhone],cfg.node_phone);
+	bprintf(text[SiNodePhone],cfg.node_phone);
 	bprintf(text[SiTotalLogons],ultoac(stats.logons,tmp));
 	bprintf(text[SiLogonsToday],ultoac(stats.ltoday,tmp));
 	bprintf(text[SiTotalTime],ultoac(stats.timeon,tmp));
 	bprintf(text[SiTimeToday],ultoac(stats.ttoday,tmp));
 	ver();
-	if(text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
+	if(yesno(text[ViewSysInfoFileQ])) {
 		CLS;
 		sprintf(tmp,"%ssystem.msg", cfg.text_dir);
 		printfile(tmp,0); 
 	}
-	if(text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
+	if(yesno(text[ViewLogonMsgQ])) {
 		CLS;
 		menu("logon"); 
 	}
