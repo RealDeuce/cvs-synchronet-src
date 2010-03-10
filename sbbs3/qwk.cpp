@@ -2,13 +2,13 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.51 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.53 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -344,8 +344,10 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 	smbmsg_t msg;
 
 	if(useron.rest&FLAG('Q')) {	// Was if(!prepack) only
-		sprintf(str,"%sqnet/%.8s.out/",cfg.data_dir,useron.alias);
-		strlwr(str);
+		char id[LEN_QWKID+1];
+		SAFECOPY(id,useron.alias);
+		strlwr(id);
+		sprintf(str,"%sqnet/%s.out/",cfg.data_dir,id);
 		delfiles(str,ALLFILES); 
 	}
 
@@ -692,7 +694,7 @@ void sbbs_t::qwk_sec()
 				continue; 
 			}
 
-			l=flength(str);
+			l=(long)flength(str);
 			bprintf(text[FiFilename],getfname(str));
 			bprintf(text[FiFileSize],ultoac(l,tmp));
 			if(l>0L && cur_cps)
