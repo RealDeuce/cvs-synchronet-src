@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.46 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: email.cpp,v 1.50 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,18 +45,22 @@
 /****************************************************************************/
 bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 {
-	char	str[256],str2[256],msgpath[256],title[LEN_TITLE+1],ch
-			,buf[SDT_BLOCK_LEN];
-	char 	tmp[512];
-	ushort	msgattr=0;
-	uint16_t xlat=XLAT_NONE;
-	ushort	nettype;
-	int 	i,j,x,file;
-	long	l;
-	ulong	length,offset,crc=0xffffffffUL;
-	FILE	*instream;
-	node_t	node;
-	smbmsg_t msg;
+	char		str[256],str2[256],msgpath[256],title[LEN_TITLE+1],ch
+				,buf[SDT_BLOCK_LEN];
+	char 		tmp[512];
+	char		pid[128];
+	char*		editor=NULL;
+	ushort		msgattr=0;
+	uint16_t	xlat=XLAT_NONE;
+	ushort		nettype;
+	int 		i,j,x,file;
+	long		l;
+	long		length;
+	ulong		offset;
+	uint32_t	crc=0xffffffffUL;
+	FILE*		instream;
+	node_t		node;
+	smbmsg_t	msg;
 
 	SAFECOPY(title,subj);
 
@@ -111,7 +115,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top,title,mode,INVALID_SUB,str2)) {
+	if(!writemsg(msgpath,top,title,mode,INVALID_SUB,str2,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -154,7 +158,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		sprintf(tmp,"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(str2) && fexistcase(tmp))
 			mv(tmp,str2,0);
-		l=flength(str2);
+		l=(long)flength(str2);
 		if(l>0)
 			bprintf(text[FileNBytesReceived],title,ultoac(l,tmp));
 		else {
@@ -199,7 +203,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		return(false); 
 	}
 
-	length=flength(msgpath)+2;	 /* +2 for translation string */
+	length=(long)flength(msgpath)+2;	 /* +2 for translation string */
 
 	if(length&0xfff00000UL) {
 		smb_unlocksmbhdr(&smb);
@@ -271,7 +275,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			attr(cfg.color[clr_err]);
-			bputs("Duplicate message!\r\n");
+			bputs(text[CantPostMsg]);
 			return(false); 
 		} 
 	}
@@ -291,6 +295,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	smb_hfield_str(&msg,SENDEREXT,str);
 
 	if(useron.misc&NETMAIL) {
+		if(useron.rest&FLAG('G'))
+			smb_hfield_str(&msg,REPLYTO,useron.name);
 		nettype=smb_netaddr_type(useron.netmail);
 		if(nettype!=NET_NONE && nettype!=NET_UNKNOWN) {
 			smb_hfield(&msg,REPLYTONETTYPE,sizeof(nettype),&nettype);
@@ -302,6 +308,12 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	msg_client_hfields(&msg,&client);
 
 	smb_hfield_str(&msg,SUBJECT,title);
+
+	/* Generate FidoNet Program Identifier */
+	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
+
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
