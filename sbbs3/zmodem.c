@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.108 2010/03/09 03:52:33 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.109 2010/03/10 01:47:25 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -667,9 +667,9 @@ int zmodem_rx(zmodem_t* zm)
 	 * will be received.
 	 */
 
-	while(is_connected(zm) && !is_cancelled(zm)) {
+	do {
 
-		while(!is_cancelled(zm)) {
+		do {
 			if((c = zmodem_recv_raw(zm)) < 0)
 				return(c);
 	
@@ -699,14 +699,14 @@ int zmodem_rx(zmodem_t* zm)
 					return c;
 			}
 			break;
-		}
+		} while(!is_cancelled(zm));
 	
 		/*
 	 	 * ZDLE encoded sequence or session abort.
 		 * (or something illegal; then back to the top)
 		 */
 
-		while(!is_cancelled(zm)) {
+		do {
 			if((c = zmodem_recv_raw(zm)) < 0)
 				return(c);
 
@@ -760,8 +760,8 @@ int zmodem_rx(zmodem_t* zm)
 					break;
 			}
 			break;
-		} 
-	}
+		} while(!is_cancelled(zm));
+	} while(is_connected(zm) && !is_cancelled(zm));
 
 	/*
 	 * not reached (unless cancelled).
@@ -2253,7 +2253,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.108 $", "%*s %s", buf);
+	sscanf("$Revision: 1.109 $", "%*s %s", buf);
 
 	return(buf);
 }
