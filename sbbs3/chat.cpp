@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.55 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.57 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -87,12 +87,12 @@ void sbbs_t::multinodechat(int channel)
 			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 			return; 
 		}
-		if((gurubuf=(char *)malloc(filelength(file)+1))==NULL) {
+		if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
 			close(file);
-			errormsg(WHERE,ERR_ALLOC,str,filelength(file)+1);
+			errormsg(WHERE,ERR_ALLOC,str,(size_t)filelength(file)+1);
 			return; 
 		}
-		read(file,gurubuf,filelength(file));
+		read(file,gurubuf,(size_t)filelength(file));
 		gurubuf[filelength(file)]=0;
 		close(file); 
 	}
@@ -238,13 +238,13 @@ void sbbs_t::multinodechat(int channel)
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 							break; 
 						}
-						if((gurubuf=(char *)malloc(filelength(file)+1))==NULL) {
+						if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
 							close(file);
 							errormsg(WHERE,ERR_ALLOC,str
-								,filelength(file)+1);
+								,(size_t)filelength(file)+1);
 							break; 
 						}
-						read(file,gurubuf,filelength(file));
+						read(file,gurubuf,(size_t)filelength(file));
 						gurubuf[filelength(file)]=0;
 						close(file); 
 					}
@@ -581,12 +581,12 @@ bool sbbs_t::guru_page(void)
 		errormsg(WHERE,ERR_OPEN,path,O_RDONLY);
 		return(false); 
 	}
-	if((gurubuf=(char *)malloc(filelength(file)+1))==NULL) {
+	if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
 		close(file);
-		errormsg(WHERE,ERR_ALLOC,path,filelength(file)+1);
+		errormsg(WHERE,ERR_ALLOC,path,(size_t)filelength(file)+1);
 		return(false); 
 	}
-	read(file,gurubuf,filelength(file));
+	read(file,gurubuf,(size_t)filelength(file));
 	gurubuf[filelength(file)]=0;
 	close(file);
 	localguru(gurubuf,i);
@@ -1743,7 +1743,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			mswait(500+sbbs_random(1000));	 /* thinking time */
 			if(action!=NODE_MCHT) {
 				for(i=0;i<k;i++) {
-					if(mistakes && theanswer[i]!=theanswer[i-1] &&
+					if(i && mistakes && theanswer[i]!=theanswer[i-1] &&
 						((!isalnum(theanswer[i]) && !sbbs_random(100))
 						|| (isalnum(theanswer[i]) && !sbbs_random(30)))) {
 						c=j=((uint)sbbs_random(3)+1);	/* 1 to 3 chars */
