@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.132 2011/07/14 08:30:52 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.127 2010/03/11 01:16:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1280,7 +1280,10 @@ static int receive_files(char** fname_list, int fnames)
 						break;
 					}
 
-					if(++errors>xm.max_errors || (mode&GMODE)) {
+					if(mode&GMODE)
+						return(-1);
+
+					if(++errors>xm.max_errors) {
 						lprintf(LOG_ERR,"Too many errors (%u)",errors);
 						xmodem_cancel(&xm);
 						break;
@@ -1511,7 +1514,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.132 $", "%*s %s", revision);
+	sscanf("$Revision: 1.127 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1608,8 +1611,8 @@ int main(int argc, char **argv)
 
 #if !defined(RINGBUF_EVENT)
 	outbuf_empty=CreateEvent(NULL,/* ManualReset */TRUE, /*InitialState */TRUE,NULL);
-#ifdef __unix__
 	outbuf_empty->cbdata=&outbuf;
+#ifdef __unix__
 	outbuf_empty->verify=RingBufIsEmpty;
 #endif
 #endif
@@ -1670,7 +1673,6 @@ int main(int argc, char **argv)
 						fprintf(statfp,"Unrecognized command '%s'\n\n",argv[i]);
 						fprintf(statfp,usage,MAX_FILE_SIZE);
 						bail(1); 
-						return -1;
 				} 
 				continue;
 			}
@@ -1686,7 +1688,6 @@ int main(int argc, char **argv)
 				fprintf(statfp,"Compiled %s %.5s with %s\n",__DATE__,__TIME__,compiler);
 				fprintf(statfp,"%s\n",os_version(str));
 				bail(0);
-				return 0;
 			}
 
 			arg=argv[i];
@@ -1757,13 +1758,11 @@ int main(int argc, char **argv)
 			if(mode&RECVDIR) {
 				fprintf(statfp,"!Cannot specify both directory and filename\n");
 				bail(1); 
-				return -1;
 			}
 			sprintf(str,"%s",argv[i]+1);
 			if((fp=fopen(str,"r"))==NULL) {
 				fprintf(statfp,"!Error %d opening filelist: %s\n",errno,str);
 				bail(1); 
-				return -1;
 			}
 			while(!feof(fp) && !ferror(fp)) {
 				if(!fgets(str,sizeof(str),fp))
@@ -1779,17 +1778,14 @@ int main(int argc, char **argv)
 				if(mode&RECVDIR) {
 					fprintf(statfp,"!Only one directory can be specified\n");
 					bail(1); 
-					return -1;
 				}
 				if(fnames) {
 					fprintf(statfp,"!Cannot specify both directory and filename\n");
 					bail(1); 
-					return -1;
 				}
 				if(mode&SEND) {
 					fprintf(statfp,"!Cannot send directory '%s'\n",argv[i]);
 					bail(1);
-					return -1;
 				}
 				mode|=RECVDIR; 
 			}
@@ -1797,21 +1793,18 @@ int main(int argc, char **argv)
 		} 
 	}
 
-	if(max_file_size)
-		fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
+	fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
 
 	if(!(mode&(SEND|RECV))) {
 		fprintf(statfp,"!No command specified\n\n");
 		fprintf(statfp,usage,MAX_FILE_SIZE);
 		bail(1); 
-		return -1;
 	}
 
 	if(mode&(SEND|XMODEM) && !fnames) { /* Sending with any or recv w/Xmodem */
 		fprintf(statfp,"!Must specify filename or filelist\n\n");
 		fprintf(statfp,usage,MAX_FILE_SIZE);
 		bail(1); 
-		return -1;
 	}
 
 	if(sock==INVALID_SOCKET || sock<1) {
@@ -1830,7 +1823,6 @@ int main(int argc, char **argv)
 		fprintf(statfp,"!No socket descriptor specified\n\n");
 		fprintf(errfp,usage,MAX_FILE_SIZE);
 		bail(1);
-		return -1;
 #endif
 	}
 #ifdef __unix__
@@ -1875,14 +1867,12 @@ int main(int argc, char **argv)
 	if(!socket_check(sock, NULL, NULL, 0)) {
 		lprintf(LOG_WARNING,"No socket connection");
 		bail(-1); 
-		return -1;
 	}
 
 	if((dszlog=getenv("DSZLOG"))!=NULL) {
 		if((logfp=fopen(dszlog,"w"))==NULL) {
 			lprintf(LOG_WARNING,"Error %d opening DSZLOG file: %s",errno,dszlog);
 			bail(-1); 
-			return -1;
 		}
 	}
 
@@ -1912,9 +1902,7 @@ int main(int argc, char **argv)
 #if !SINGLE_THREADED
 	lprintf(LOG_DEBUG,"Waiting for output buffer to empty... ");
 	if(RingBufFull(&outbuf)) {
-#if !defined(RINGBUF_EVENT)
 		ResetEvent(outbuf_empty);
-#endif
 		if(WaitForEvent(outbuf_empty,5000)!=WAIT_OBJECT_0)
 			lprintf(LOG_DEBUG,"FAILURE");
 	}
@@ -1930,6 +1918,5 @@ int main(int argc, char **argv)
 	fprintf(statfp,"\n");
 
 	bail(retval);
-	return retval;
 }
 
