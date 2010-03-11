@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.49 2011/08/25 07:48:40 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.48 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -114,7 +114,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	fmsghdr_t hdr;
 	struct tm tm;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
