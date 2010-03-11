@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.133 2010/03/11 02:30:15 deuce Exp $ */
+/* $Id: js_socket.c,v 1.134 2010/03/11 22:49:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1202,6 +1202,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_DESCRIPTOR:
 			JS_ValueToInt32(cx,*vp,(int32*)&(p->sock));
+			p->is_connected=TRUE;
 			break;
 		case SOCK_PROP_LAST_ERROR:
 			JS_ValueToInt32(cx,*vp,(int32*)&(p->last_error));
