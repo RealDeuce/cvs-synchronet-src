@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.22 2011/08/31 04:12:34 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.20 2009/10/25 03:11:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -56,9 +56,6 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case SENDERPROTOCOL:	return("SenderProtocol");
 		case SENDERPORT_BIN:	return("SenderPortBin");
 		case SENDERPORT:		return("SenderPort");
-		case SENDERUSERID:		return("SenderUserID");
-		case SENDERTIME:		return("SenderTime");
-		case SENDERSERVER:		return("SenderServer");
 
 		case REPLYTO:			return("Reply-To");				/* RFC-compliant */
 		case REPLYTOAGENT:		return("Reply-ToAgent");
@@ -300,7 +297,6 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 
 /****************************************************************************/
 /* Returns ASCIIZ representation of network address (net_t)					*/
-/* NOT THREAD-SAFE!															*/
 /****************************************************************************/
 char* SMBCALL smb_netaddr(net_t* net)
 {
