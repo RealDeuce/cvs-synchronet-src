@@ -2,13 +2,13 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.50 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.52 2010/03/12 08:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -88,7 +88,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			break;
 	if(k>=cfg.total_fextrs)
 		k=0;
-	ex=EX_OUTL|EX_OUTR;
+	ex=EX_STDOUT;
 	if(online!=ON_REMOTE)
 		ex|=EX_OFFLINE;
 	i=external(cmdstr(cfg.fextr[k]->cmd,rep_fname,ALLFILES,NULL),ex);
@@ -109,7 +109,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 		errormsg(WHERE,ERR_OPEN,msg_fname,O_RDONLY);
 		return(false); 
 	}
-	size=filelength(file);
+	size=(long)filelength(file);
 
 	SAFEPRINTF(fname,"%sHEADERS.DAT",cfg.temp_dir);
 	if(fexistcase(fname)) {
@@ -163,7 +163,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			break;
 		}
 		if(fread(block,1,QWK_BLOCK_LEN,rep)!=QWK_BLOCK_LEN) {
-			errormsg(WHERE,ERR_READ,msg_fname,ftell(rep));
+			errormsg(WHERE,ERR_READ,msg_fname,(long)ftell(rep));
 			break;
 		}
 		sprintf(tmp,"%.6s",block+116);
