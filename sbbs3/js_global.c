@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.242 2009/02/10 07:33:41 rswindell Exp $ */
+/* $Id: js_global.c,v 1.254 2010/03/09 21:58:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -55,8 +55,9 @@
 #ifdef JAVASCRIPT
 
 typedef struct {
-	scfg_t				*cfg;
-	jsSyncMethodSpec	*methods;
+	scfg_t*				cfg;
+	jsSyncMethodSpec*	methods;
+	js_startup_t*		startup;
 } private_t;
 
 /* Global Object Properites */
@@ -253,11 +254,13 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		bg->parent_cx = cx;
 
 		/* Setup default values for branch settings */
-		bg->branch.limit=JAVASCRIPT_BRANCH_LIMIT;
-		bg->branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
-		bg->branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
+		bg->branch.limit=p->startup->branch_limit;
+		bg->branch.gc_interval=p->startup->gc_interval;
+		bg->branch.yield_interval=p->startup->yield_interval;
+#if 0
 		if(JS_GetProperty(cx, obj,"js",&val))	/* copy branch settings from parent */
 			memcpy(&bg->branch,JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)),sizeof(bg->branch));
+#endif
 		bg->branch.terminated=NULL;	/* could be bad pointer at any time */
 		bg->branch.counter=0;
 		bg->branch.gc_attempts=0;
@@ -277,6 +280,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				,""				/* hostname */
 				,""				/* socklib_desc */
 				,&bg->branch	/* js */
+				,p->startup		/* js */
 				,NULL			/* client */
 				,INVALID_SOCKET	/* client_socket */
 				,NULL			/* server props */
@@ -340,11 +344,82 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	errno = 0;
 	if(isfullpath(filename))
-		strcpy(path,filename);
+		SAFECOPY(path,filename);
 	else {
-		sprintf(path,"%s%s",p->cfg->mods_dir,filename);
-		if(p->cfg->mods_dir[0]==0 || !fexistcase(path))
-			sprintf(path,"%s%s",p->cfg->exec_dir,filename);
+		JSObject* js_load_list = NULL;
+
+		path[0]=0;	/* Empty path, indicates load file not found (yet) */
+
+		if(JS_GetProperty(cx, obj, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val)) {
+			JSObject* js_obj = JSVAL_TO_OBJECT(val);
+			
+			/* if js.exec_dir is defined (location of executed script), search their first */
+			if(JS_GetProperty(cx, js_obj, "exec_dir", &val) && val!=JSVAL_VOID && JSVAL_IS_STRING(val)) {
+				SAFEPRINTF2(path,"%s%s",js_ValueToStringBytes(cx, val, NULL),filename);
+				if(!fexistcase(path))
+					path[0]=0;
+			}
+			if(JS_GetProperty(cx, js_obj, JAVASCRIPT_LOAD_PATH_LIST, &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))
+				js_load_list = JSVAL_TO_OBJECT(val);
+
+			/* if mods_dir is defined, search mods/js.load_path_list[n] next */
+			if(path[0]==0 && p->cfg->mods_dir[0]!=0 && js_load_list!=NULL) {
+				jsuint		i;
+				char		prefix[MAX_PATH+1];
+
+				for(i=0;path[0]==0;i++) {
+					if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID)
+						break;
+					SAFECOPY(prefix,js_ValueToStringBytes(cx, val, NULL));
+					if(prefix[0]==0)
+						continue;
+					backslash(prefix);
+					if(isfullpath(prefix)) {
+						SAFEPRINTF2(path,"%s%s",prefix,filename);
+						if(!fexistcase(path))
+							path[0]=0;
+					} else {
+						/* relative path */
+						SAFEPRINTF3(path,"%s%s%s",p->cfg->mods_dir,prefix,filename);
+						if(!fexistcase(path))
+							path[0]=0;
+					}
+				}
+			}
+		}
+		/* if mods_dir is defined, search there next */
+		if(path[0]==0 && p->cfg->mods_dir[0]!=0) {
+			SAFEPRINTF2(path,"%s%s",p->cfg->mods_dir,filename);
+			if(!fexistcase(path))
+				path[0]=0;
+		}
+		/* if js.load_path_list is defined, search exec/load_path_list[n] next */
+		if(path[0]==0 && js_load_list!=NULL) {
+			jsuint		i;
+			char		prefix[MAX_PATH+1];
+
+			for(i=0;path[0]==0;i++) {
+				if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID)
+					break;
+				SAFECOPY(prefix,js_ValueToStringBytes(cx, val, NULL));
+				if(prefix[0]==0)
+					continue;
+				backslash(prefix);
+				if(isfullpath(prefix)) {
+					SAFEPRINTF2(path,"%s%s",prefix,filename);
+					if(!fexistcase(path))
+						path[0]=0;
+				} else {
+					/* relative path */
+					SAFEPRINTF3(path,"%s%s%s",p->cfg->exec_dir,prefix,filename);
+					if(!fexistcase(path))
+						path[0]=0;
+				}
+			}
+		}
+		/* lastly, search exec dir */
+		if(path[0]==0)
+			SAFEPRINTF2(path,"%s%s",p->cfg->exec_dir,filename);
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -642,10 +717,7 @@ js_strip_ctrl(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	if((buf=strdup(p))==NULL)
-		return(JS_FALSE);
-
-	strip_ctrl(buf);
+	buf=strip_ctrl(p, NULL);
 
 	js_str = JS_NewStringCopyZ(cx, buf);
 	free(buf);
@@ -669,10 +741,7 @@ js_strip_exascii(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((p=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
-	if((buf=strdup(p))==NULL)
-		return(JS_FALSE);
-
-	strip_exascii(buf);
+	buf=strip_exascii(p, NULL);
 
 	js_str = JS_NewStringCopyZ(cx, buf);
 	free(buf);
@@ -1175,7 +1244,8 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				j+=sprintf(tmpbuf+j,"&gt;");
 				break;
 			case '\b':
-				j--;
+				if(j)
+					j--;
 				break;
 			default:
 				if(inbuf[i]&0x80) {
@@ -1201,7 +1271,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						esccount++;
 						tmpbuf[j++]=inbuf[i];
 					}
-					else if(ctrl_a && inbuf[i]==1)
+					else if(ctrl_a && inbuf[i]==CTRL_A)
 					{
 						esccount++;
 						tmpbuf[j++]=inbuf[i];
@@ -1435,7 +1505,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				}
 				i+=(int)(lastparam-ansi_seq)+2;
 			}
-			else if(ctrl_a && tmpbuf[i]==1)		/* CTRL-A codes */
+			else if(ctrl_a && tmpbuf[i]==CTRL_A)		/* CTRL-A codes */
 			{
 /*				j+=sprintf(outbuf+j,"<!-- CTRL-A-%c (%u) -->",tmpbuf[i+1],tmpbuf[i+1]); */
 				if(nodisplay && tmpbuf[i+1] != ')')
@@ -1551,7 +1621,10 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 					case '.':
 					case 'S':
 					case '>':
-					case '<':
+						break;
+					case '<':		/* convert non-destructive backspace into destructive backspace */
+						if(j)
+							j--;
 						break;
 
 					case '!':		/* This needs to be fixed! (Somehow) */
@@ -1590,7 +1663,7 @@ js_html_encode(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 						break;
 					case ']':
 						currrow++;
-						if(hpos!=0 && tmpbuf[i+2]!=CR && !(tmpbuf[i+2]==1 && tmpbuf[i+3]=='['))
+						if(hpos!=0 && tmpbuf[i+2]!=CR && !(tmpbuf[i+2]==CTRL_A && tmpbuf[i+3]=='['))
 						{
 							outbuf[j++]='\r';
 							outbuf[j++]='\n';
@@ -2471,7 +2544,7 @@ static JSBool
 js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	long		fl;
+	off_t		fl;
 	jsrefcount	rc;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -2483,7 +2556,7 @@ js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	fl=flength(p);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,fl,rval);
+	JS_NewNumberValue(cx,(double)fl,rval);
 	return(JS_TRUE);
 }
 
@@ -3435,7 +3508,7 @@ static JSClass js_global_class = {
 	,js_global_finalize		/* finalize		*/
 };
 
-JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods)
+JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t* startup)
 {
 	JSObject*	glob;
 	private_t*	p;
@@ -3445,6 +3518,7 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethod
 
 	p->cfg = cfg;
 	p->methods = methods;
+	p->startup = startup;
 
 	if((glob = JS_NewObject(cx, &js_global_class, NULL, NULL)) ==NULL)
 		return(NULL);
@@ -3471,6 +3545,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,char* host_name			/* system */
 										,char* socklib_desc			/* system */
 										,js_branch_t* branch		/* js */
+										,js_startup_t* js_startup	/* js */
 										,client_t* client			/* client */
 										,SOCKET client_socket		/* client */
 										,js_server_props_t* props	/* server */
@@ -3482,7 +3557,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		node_cfg=cfg;
 
 	/* Global Object */
-	if((js_glob=js_CreateGlobalObject(js_cx, cfg, methods))==NULL)
+	if((js_glob=js_CreateGlobalObject(js_cx, cfg, methods, js_startup))==NULL)
 		return(NULL);
 
 	/* System Object */
@@ -3491,7 +3566,7 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 	/* Internal JS Object */
 	if(branch!=NULL 
-		&& js_CreateInternalJsObject(js_cx, js_glob, branch)==NULL)
+		&& js_CreateInternalJsObject(js_cx, js_glob, branch, js_startup)==NULL)
 		return(NULL);
 
 	/* Client Object */
@@ -3525,11 +3600,9 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		return(NULL);
 
 	/* Area Objects */
-	if(!js_CreateUserObjects(js_cx, js_glob, cfg, NULL, NULL, NULL)) 
+	if(!js_CreateUserObjects(js_cx, js_glob, cfg, /* user: */NULL, client, /* html_index_fname: */NULL, /* subscan: */NULL)) 
 		return(NULL);
 
 	return(js_glob);
 }
-
-
 #endif	/* JAVSCRIPT */
