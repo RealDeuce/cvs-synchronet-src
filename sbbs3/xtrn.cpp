@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.212 2010/03/13 08:15:08 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.211 2010/03/12 08:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -279,13 +279,13 @@ static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
     return(i<cfg->total_natvpgms);
 }
 
-#define XTRN_LOADABLE_MODULE(cmdline,startup_dir)			\
+#define XTRN_LOADABLE_MODULE								\
 	if(cmdline[0]=='*')		/* Baja module or JavaScript */	\
-		return(exec_bin(cmdline+1,&main_csi,startup_dir))				
+		return(exec_bin(cmdline+1,&main_csi))				
 #ifdef JAVASCRIPT
-	#define XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir)	\
+	#define XTRN_LOADABLE_JS_MODULE							\
 	if(cmdline[0]=='?') 	/* JavaScript */				\
-		return(js_execfile(cmdline+1,startup_dir))						
+		return(js_execfile(cmdline+1))						
 #else
 	#define XTRN_LOADABLE_JS_MODULE
 #endif
@@ -409,8 +409,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		return -1;
 	}
 
-	XTRN_LOADABLE_MODULE(cmdline,startup_dir);
-	XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir);
+	XTRN_LOADABLE_MODULE;
+	XTRN_LOADABLE_JS_MODULE;
 
 	attr(cfg.color[clr_external]);		/* setup default attributes */
 
@@ -1324,8 +1324,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(startup_dir==NULL)
 		startup_dir=nulstr;
 
-	XTRN_LOADABLE_MODULE(cmdline,startup_dir);
-	XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir);
+	XTRN_LOADABLE_MODULE;
+	XTRN_LOADABLE_JS_MODULE;
 
 	attr(cfg.color[clr_external]);  /* setup default attributes */
 
