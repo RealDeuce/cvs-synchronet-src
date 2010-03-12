@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.42 2009/02/10 07:56:01 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.52 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,7 +39,7 @@
 
 int sbbs_t::sub_op(uint subnum)
 {
-	return(SYSOP || (cfg.sub[subnum]->op_ar[0] && chk_ar(cfg.sub[subnum]->op_ar,&useron)));
+	return(is_user_subop(&cfg, subnum, &useron, &client));
 }
 
 
@@ -193,7 +193,7 @@ post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode)
 		return(NULL); 
 	}
 
-	total=filelength(fileno(smb.sid_fp))/sizeof(idxrec_t); /* total msgs in sub */
+	total=(long)filelength(fileno(smb.sid_fp))/sizeof(idxrec_t); /* total msgs in sub */
 
 	if(!total) {			/* empty */
 		smb_unlocksmbhdr(&smb);
@@ -358,9 +358,10 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	post_t	*post;
 	smbmsg_t	msg;
 
+	find_buf[0]=0;
 	cursubnum=subnum;	/* for ARS */
-	if(!chk_ar(cfg.sub[subnum]->read_ar,&useron)) {
-		bprintf("\1n\r\nYou can't read messages on %s %s\r\n"
+	if(!chk_ar(cfg.sub[subnum]->read_ar,&useron,&client)) {
+		bprintf(text[CantReadSub]
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 		return(0); 
 	}
@@ -576,7 +577,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					continue; 
 				}
 				strupr(buf);
-				strip_ctrl(buf);
+				strip_ctrl(buf, buf);
 				SAFECOPY(subj,msg.subj);
 				strupr(subj);
 				if(!strstr(buf,find) && !strstr(subj,find)) {
@@ -635,6 +636,38 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				posts_read++;
 				subscan[subnum].ptr=post[smb.curmsg].number; 
 			} 
+
+			if(sub_op(subnum) && (msg.hdr.attr&(MSG_MODERATED|MSG_VALIDATED)) == MSG_MODERATED) {
+				uint16_t msg_attr = msg.hdr.attr;
+				SAFEPRINTF2(str,text[ValidatePostQ],msg.hdr.number,msg.subj);
+				if(!noyes(str))
+					msg.hdr.attr|=MSG_VALIDATED;
+				else {
+					SAFEPRINTF2(str,text[DeletePostQ],msg.hdr.number,msg.subj);
+					if(yesno(str))
+						msg.hdr.attr|=MSG_DELETE;
+				}
+				if(msg_attr!=msg.hdr.attr) {
+					if(msg.total_hfields)
+						smb_freemsgmem(&msg);
+					msg.total_hfields=0;
+					msg.idx.offset=0;
+					if(!smb_locksmbhdr(&smb)) { 			  /* Lock the entire base */
+						if(loadmsg(&msg,msg.idx.number)) {
+							msg.hdr.attr=msg.idx.attr=msg_attr;
+							if((i=smb_putmsg(&smb,&msg))!=0)
+								errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+							smb_unlockmsghdr(&smb,&msg); 
+						}
+						smb_unlocksmbhdr(&smb); 
+					}
+					if(!msg.total_hfields) {				/* unsuccessful reload */
+						domsg=0;
+						continue; 
+					} 
+				}
+
+			}
 		}
 		else domsg=1;
 		if(mode&SCAN_CONST) {
@@ -675,11 +708,15 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				/* Reply to last message */
 				domsg=0;
-				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron)) {
+				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron,&client)) {
 					bputs(text[CantPostOnSub]);
 					break; 
 				}
-				quotemsg(&msg,0);
+				if(msg.hdr.attr&MSG_NOREPLY && !sub_op(subnum)) {
+					bputs(text[CantReplyToMsg]);
+					break; 
+				}
+				quotemsg(&msg,/* include tails: */FALSE);
 				FREE_AND_NULL(post);
 				postmsg(subnum,&msg,WM_QUOTE);
 				if(mode&SCAN_TOYOU)
@@ -709,7 +746,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 						break; 
 					}
 					if(cfg.sub[subnum]->misc&SUB_DELLAST && smb.curmsg!=(smb.msgs-1)) {
-						bputs("\1n\r\nCan only delete last message.\r\n");
+						bputs(text[CantDeleteMsg]);
 						domsg=0;
 						break;
 					}
@@ -722,7 +759,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					} 
 				}
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bputs("\1n\r\nMessage is marked permanent.\r\n");
+					bputs(text[CantDeleteMsg]);
 					domsg=0;
 					break; 
 				}
@@ -765,13 +802,12 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			case 'E':   /* edit last post */
 				if(!sub_op(subnum)) {
 					if(!(cfg.sub[subnum]->misc&SUB_EDIT)) {
-						bputs("\1n\r\nCan't edit messages on this message base.\r\n");
-						// bputs(text[CantDeletePosts]);
+						bputs(text[CantEditMsg]);
 						domsg=0;
 						break; 
 					}
 					if(cfg.sub[subnum]->misc&SUB_EDITLAST && smb.curmsg!=(smb.msgs-1)) {
-						bputs("\1n\r\nCan only edit last message.\r\n");
+						bputs(text[CantEditMsg]);
 						domsg=0;
 						break;
 					}
@@ -791,7 +827,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				if((i=get_start_msg(this,&smb))<0)
 					break;
 				bputs(text[SearchStringPrompt]);
-				if(!getstr(find_buf,40,K_LINE|K_UPPER))
+				if(!getstr(find_buf,40,K_LINE|K_UPPER|K_EDIT|K_AUTODEL))
 					break;
 				if(yesno(text[DisplaySubjectsOnlyQ]))
 					searchposts(subnum,post,(long)i,smb.msgs,find_buf);
@@ -815,8 +851,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case 'M':   /* Reply to last post in mail */
 				domsg=0;
-				if(msg.hdr.attr&MSG_ANONYMOUS && !sub_op(subnum)) {
-					bputs(text[CantReplyToAnonMsg]);
+				if(msg.hdr.attr&(MSG_NOREPLY|MSG_ANONYMOUS) && !sub_op(subnum)) {
+					bputs(text[CantReplyToMsg]);
 					break; 
 				}
 				if(!sub_op(subnum) && msg.hdr.attr&MSG_PRIVATE
@@ -844,7 +880,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					break;
 
 				FREE_AND_NULL(post);
-				quotemsg(&msg,1);
+				quotemsg(&msg,/* include tails: */TRUE);
 				if(smb_netaddr_type(str)==NET_INTERNET)
 					inetmail(str,msg.subj,WM_QUOTE|WM_NETMAIL);
 				else {
@@ -865,7 +901,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case 'P':   /* Post message on sub-board */
 				domsg=0;
-				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron))
+				if(!chk_ar(cfg.sub[subnum]->post_ar,&useron,&client))
 					bputs(text[CantPostOnSub]);
 				else {
 					FREE_AND_NULL(post);
@@ -908,7 +944,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				while(online) {
 					if(!(useron.misc&EXPERT))
 						menu("sysmscan");
-					bprintf("\r\n\1y\1hOperator: \1w");
+					bputs(text[OperatorPrompt]);
 					strcpy(str,"?CEHMPQUV");
 					if(SYSOP)
 						strcat(str,"S");
@@ -918,6 +954,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 								menu("sysmscan");
 							continue;
 						case 'P':   /* Purge user */
+							if(noyes(text[AreYouSureQ]))
+								break;
 							purgeuser(cfg.sub[subnum]->misc&SUB_NAME
 								? userdatdupe(0,U_NAME,LEN_NAME,msg.from,0)
 								: matchuser(&cfg,msg.from,FALSE));
@@ -1108,13 +1146,15 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			case '?':
 				menu("msgscan");
 				domsg=0;
-				break;	} }
+				break;	
+		} 
+	}
 	if(msg.total_hfields)
 		smb_freemsgmem(&msg);
 	if(post)
 		free(post);
 	if(!(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
-		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron)
+		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron,&client)
 		&& !(useron.rest&FLAG('P'))) {
 		sprintf(str,text[Post],cfg.grp[cfg.sub[subnum]->grp]->sname
 			,cfg.sub[subnum]->lname);
@@ -1192,7 +1232,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			continue; 
 		}
 		strupr(buf);
-		strip_ctrl(buf);
+		strip_ctrl(buf, buf);
 		SAFECOPY(subj,msg.subj);
 		strupr(subj);
 		if(strstr(buf,search) || strstr(subj,search)) {
