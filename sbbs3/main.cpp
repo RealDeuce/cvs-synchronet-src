@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.543 2009/11/11 05:32:00 rswindell Exp $ */
+/* $Id: main.cpp,v 1.545 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -3490,7 +3490,7 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 	}
     setvbuf(outp,NULL,_IOFBF,8*1024);
 	ftime=filetime(ind);
-    length=filelength(ind);
+    length=(long)filelength(ind);
     if(length) {	/* Something to copy */
 		if((buf=(char *)malloc(MV_BUFLEN))==NULL) {
 			fclose(inp);
@@ -3731,7 +3731,7 @@ void sbbs_t::catsyslog(int crash)
 			return; 
 		}
 	}
-	length=ftell(logfile_fp);
+	length=(long)ftell(logfile_fp);
 	if(length) {
 		if((buf=(char *)malloc(length))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,str,length);
@@ -3880,7 +3880,7 @@ void node_thread(void* arg)
 				sbbs->freevars(&sbbs->main_csi);
 				sbbs->clearvars(&sbbs->main_csi);
 
-				sbbs->main_csi.length=filelength(file);
+				sbbs->main_csi.length=(long)filelength(file);
 				if((sbbs->main_csi.cs=(uchar *)malloc(sbbs->main_csi.length))==NULL) {
 					close(file);
 					sbbs->errormsg(WHERE,ERR_ALLOC,str,sbbs->main_csi.length);
@@ -5097,14 +5097,8 @@ NO_SSH:
 		else
 			host_name="<no name>";
 
-#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
-	     and getnameinfo() doesn't return alias information */
-		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
+		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
 			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
-			for(i=0;h!=NULL && h->h_aliases!=NULL && h->h_aliases[i]!=NULL;i++)
-				lprintf(LOG_INFO,"%04d HostAlias: %s", client_socket, h->h_aliases[i]);
-		}
-#endif
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
