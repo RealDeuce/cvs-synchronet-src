@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.130 2010/03/13 17:18:46 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.129 2010/03/12 08:20:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1514,7 +1514,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.130 $", "%*s %s", revision);
+	sscanf("$Revision: 1.129 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1611,8 +1611,8 @@ int main(int argc, char **argv)
 
 #if !defined(RINGBUF_EVENT)
 	outbuf_empty=CreateEvent(NULL,/* ManualReset */TRUE, /*InitialState */TRUE,NULL);
-#ifdef __unix__
 	outbuf_empty->cbdata=&outbuf;
+#ifdef __unix__
 	outbuf_empty->verify=RingBufIsEmpty;
 #endif
 #endif

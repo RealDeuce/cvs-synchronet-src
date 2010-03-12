@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.90 2010/03/12 18:24:09 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.89 2010/03/12 08:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,11 +36,10 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "wordwrap.h"
 
 #define MAX_LINE_LEN 82L
 
-const char *quote_fmt=" > %.*s\r\n";
+const char *quote_fmt=" > %.76s\r\n";
 void quotestr(char *str);
 
 /****************************************************************************/
@@ -74,32 +73,11 @@ char* sbbs_t::quotes_fname(int xedit, char *path, size_t len)
 /****************************************************************************/
 void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 {
-	char	fname[MAX_PATH+1];
-	char*	buf;
-	char*	wrapped=NULL;
-	FILE*	fp;
+	char	str[MAX_PATH+1];
 
-	quotes_fname(useron.xedit,fname,sizeof(fname));
-	removecase(fname);
-
-	if((fp=fopen(fname,"w"))==NULL) {
-		errormsg(WHERE,ERR_OPEN,fname,0);
-		return; 
-	}
-
-	if((buf=smb_getmsgtxt(&smb,msg,tails)) != NULL) {
-		strip_invalid_attr(buf);
-		if(useron.xedit && (cfg.xedit[useron.xedit-1]->misc&QUOTEWRAP))
-			wrapped=::wordwrap(buf, cols-4, cols-1, /* handle_quotes */TRUE);
-		if(wrapped!=NULL) {
-			fputs(wrapped,fp);
-			free(wrapped);
-		} else
-			fputs(buf,fp);
-		smb_freemsgtxt(buf); 
-	} else if(smb_getmsgdatlen(msg)>2)
-		errormsg(WHERE,ERR_READ,smb.file,smb_getmsgdatlen(msg));
-	fclose(fp);
+	quotes_fname(useron.xedit,str,sizeof(str));
+	removecase(str);
+	msgtotxt(msg,str,0,tails);
 }
 
 /****************************************************************************/
@@ -243,10 +221,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 			}
 
 			while(!feof(stream) && !ferror(stream)) {
-				if(!fgets(str,sizeof(str),stream))
+				if(!fgets(str,255,stream))
 					break;
 				quotestr(str);
-				SAFEPRINTF2(tmp,quote_fmt,cols-4,str);
+				SAFEPRINTF(tmp,quote_fmt,str);
 				write(file,tmp,strlen(tmp));
 				linesquoted++; 
 			}
@@ -291,10 +269,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 				if(!i || quote[0]=='A') {                   /* Quote all */
 					fseek(stream,l,SEEK_SET);
 					while(!feof(stream) && !ferror(stream)) {
-						if(!fgets(str,sizeof(str),stream))
+						if(!fgets(str,255,stream))
 							break;
 						quotestr(str);
-						SAFEPRINTF2(tmp,quote_fmt,cols-4,str);
+						SAFEPRINTF(tmp,quote_fmt,str);
 						write(file,tmp,strlen(tmp));
 						linesquoted++; 
 					}
@@ -306,7 +284,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 					CRLF;
 					attr(LIGHTGRAY);
 					while(!feof(stream) && !ferror(stream) && !msgabort()) {
-						if(!fgets(str,sizeof(str),stream))
+						if(!fgets(str,255,stream))
 							break;
 						quotestr(str);
 						bprintf("%3d: %.74s\r\n",i,str);
@@ -327,7 +305,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 					fseek(stream,l,SEEK_SET);
 					j=1;
 					while(!feof(stream) && !ferror(stream) && j<i) {
-						if(!fgets(tmp,sizeof(tmp),stream))
+						if(!fgets(tmp,255,stream))
 							break;
 						j++; /* skip beginning */
 					}		
@@ -335,19 +313,19 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 					if(tp) {		 /* range */
 						i=atoi(tp+1);
 						while(!feof(stream) && !ferror(stream) && j<=i) {
-							if(!fgets(str,sizeof(str),stream))
+							if(!fgets(str,255,stream))
 								break;
 							quotestr(str);
-							SAFEPRINTF2(tmp,quote_fmt,cols-4,str);
+							SAFEPRINTF(tmp,quote_fmt,str);
 							write(file,tmp,strlen(tmp));
 							linesquoted++;
 							j++; 
 						} 
 					}
 					else {			/* one line */
-						if(fgets(str,sizeof(str),stream)) {
+						if(fgets(str,255,stream)) {
 							quotestr(str);
-							SAFEPRINTF2(tmp,quote_fmt,cols-4,str);
+							SAFEPRINTF(tmp,quote_fmt,str);
 							write(file,tmp,strlen(tmp));
 							linesquoted++; 
 						} 
