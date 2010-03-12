@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.39 2011/03/01 20:26:37 mcmlxxix Exp $ */
+/* $Id: userdat.h,v 1.38 2009/11/21 20:42:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,7 @@ DLLEXPORT char* DLLCALL getnmsg(scfg_t* cfg, int node_num);
 DLLEXPORT int	DLLCALL putnmsg(scfg_t* cfg, int num, char *strin);
 
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen, char *dat
-							,BOOL del, BOOL next);
+							,BOOL del);
 
 DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t* cfg, uchar* str, user_t*, client_t*); /* checks access requirements */
 

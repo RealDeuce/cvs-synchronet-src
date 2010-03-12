@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.128 2011/03/01 22:27:02 rswindell Exp $ */
+/* $Id: userdat.c,v 1.125 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -69,7 +69,7 @@ uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
 		(!stricmp(name,"SYSOP") || !stricmp(name,"POSTMASTER") || !stricmp(name,cfg->sys_id)))
 		return(1);
 
-	SAFEPRINTF(str,"%suser/name.dat",cfg->data_dir);
+	sprintf(str,"%suser/name.dat",cfg->data_dir);
 	if((file=nopen(str,O_RDONLY))==-1)
 		return(0);
 	length=(long)filelength(file);
@@ -135,7 +135,7 @@ uint DLLCALL total_users(scfg_t* cfg)
 	if(!VALID_CFG(cfg))
 		return(0);
 
-	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
+	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
 		return(0);
 	length=(long)filelength(file);
@@ -164,7 +164,7 @@ uint DLLCALL lastuser(scfg_t* cfg)
 	if(!VALID_CFG(cfg))
 		return(0);
 
-	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
+	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((length=(long)flength(str))>0)
 		return((uint)(length/U_LEN));
 	return(0);
@@ -182,7 +182,7 @@ BOOL DLLCALL del_lastuser(scfg_t* cfg)
 	if(!VALID_CFG(cfg))
 		return(FALSE);
 
-	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
+	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDWR|O_DENYNONE))==-1)
 		return(FALSE);
 	length=(long)filelength(file);
@@ -215,7 +215,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	if(!VALID_CFG(cfg) || user_number<1)
 		return(-1); 
 
-	SAFEPRINTF(userdat,"%suser/user.dat",cfg->data_dir);
+	sprintf(userdat,"%suser/user.dat",cfg->data_dir);
 	if((file=nopen(userdat,O_RDONLY|O_DENYNONE))==-1)
 		return(errno); 
 
@@ -502,7 +502,7 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_UNUSED,U_LEN-(U_UNUSED)-2,crlf);
 	putrec(userdat,U_UNUSED+(U_LEN-(U_UNUSED)-2),2,crlf);
 
-	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
+	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDWR|O_CREAT|O_DENYNONE))==-1) {
 		return(errno);
 	}
@@ -556,7 +556,7 @@ char* DLLCALL username(scfg_t* cfg, int usernumber, char *name)
 		name[0]=0;
 		return(name); 
 	}
-	SAFEPRINTF(str,"%suser/name.dat",cfg->data_dir);
+	sprintf(str,"%suser/name.dat",cfg->data_dir);
 	if(flength(str)<1L) {
 		name[0]=0;
 		return(name); 
@@ -595,7 +595,7 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 	if(!VALID_CFG(cfg) || name==NULL || number<1) 
 		return(-1);
 
-	SAFEPRINTF(str,"%suser/name.dat", cfg->data_dir);
+	sprintf(str,"%suser/name.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDWR|O_CREAT))==-1) 
 		return(errno); 
 	length=(long)filelength(file);
@@ -610,7 +610,7 @@ int DLLCALL putusername(scfg_t* cfg, int number, char *name)
 		return(-3); 
 	}
 	if(length<(((long)number-1)*(LEN_ALIAS+2))) {
-		SAFEPRINTF2(str,"%*s",LEN_ALIAS,nulstr);
+		sprintf(str,"%*s",LEN_ALIAS,nulstr);
 		memset(str,ETX,LEN_ALIAS);
 		strcat(str,crlf);
 		lseek(file,0L,SEEK_END);
@@ -687,7 +687,7 @@ int DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* fdp)
 		return(-1);
 
 	memset(node,0,sizeof(node_t));
-	SAFEPRINTF(str,"%snode.dab",cfg->ctrl_dir);
+	sprintf(str,"%snode.dab",cfg->ctrl_dir);
 	if((file=nopen(str,O_RDWR|O_DENYNONE))==-1)
 		return(errno); 
 
@@ -850,21 +850,21 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
             strcpy(str,"Networking");
             break;
         case NODE_LOGON:
-            SAFEPRINTF(str,"At logon prompt %s"
+            sprintf(str,"At logon prompt %s"
 				,node_connection_desc(node->connection, tmp));
             break;
         case NODE_EVENT_WAITING:
             strcpy(str,"Waiting for all nodes to become inactive");
             break;
         case NODE_EVENT_LIMBO:
-            SAFEPRINTF(str,"Waiting for node %d to finish external event"
+            sprintf(str,"Waiting for node %d to finish external event"
                 ,node->aux);
             break;
         case NODE_EVENT_RUNNING:
             strcpy(str,"Running external event");
             break;
         case NODE_NEWUSER:
-            SAFEPRINTF(str,"New user applying for access %s"
+            sprintf(str,"New user applying for access %s"
 				,node_connection_desc(node->connection, tmp));
             break;
         case NODE_QUIET:
@@ -1047,7 +1047,7 @@ void DLLCALL printnodedat(scfg_t* cfg, uint number, node_t* node)
 
 /****************************************************************************/
 uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
-						 ,char *dat, BOOL del, BOOL next)
+						 ,char *dat, BOOL del)
 {
     char	str[MAX_PATH+1];
     uint	i;
@@ -1058,16 +1058,12 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 		return(0);
 
 	truncsp(dat);
-	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
+	sprintf(str,"%suser/user.dat", cfg->data_dir);
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
 		return(0);
 	length=(long)filelength(file);
-	if(usernumber && next) 
-		l=((long)usernumber) * U_LEN;
-	else
-		l=0;
-	for(;l<length;l+=U_LEN) {
-		if(usernumber && l/U_LEN==(long)usernumber-1) 
+	for(l=0;l<length;l+=U_LEN) {
+		if(usernumber && l/U_LEN==(long)usernumber-1)
 			continue;
 		lseek(file,l+offset,SEEK_SET);
 		i=0;
@@ -1122,7 +1118,7 @@ int DLLCALL putsmsg(scfg_t* cfg, int usernumber, char *strin)
 	if(*strin==0)
 		return(0);
 
-	SAFEPRINTF2(str,"%smsgs/%4.4u.msg",cfg->data_dir,usernumber);
+	sprintf(str,"%smsgs/%4.4u.msg",cfg->data_dir,usernumber);
 	if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
 		return(errno); 
 	}
@@ -1170,7 +1166,7 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 		} 
 	}
 
-	SAFEPRINTF2(str,"%smsgs/%4.4u.msg",cfg->data_dir,usernumber);
+	sprintf(str,"%smsgs/%4.4u.msg",cfg->data_dir,usernumber);
 	if(flength(str)<1L)
 		return(NULL);
 	if((file=nopen(str,O_RDWR))==-1)
@@ -1207,7 +1203,7 @@ char* DLLCALL getnmsg(scfg_t* cfg, int node_num)
 	node.misc&=~NODE_NMSG;          /* clear the NMSG flag */
 	putnodedat(cfg,node_num,&node,file);
 
-	SAFEPRINTF2(str,"%smsgs/n%3.3u.msg",cfg->data_dir,node_num);
+	sprintf(str,"%smsgs/n%3.3u.msg",cfg->data_dir,node_num);
 	if(flength(str)<1L)
 		return(NULL);
 	if((file=nopen(str,O_RDWR))==-1)
@@ -1248,7 +1244,7 @@ int DLLCALL putnmsg(scfg_t* cfg, int num, char *strin)
 	if(*strin==0)
 		return(0);
 
-	SAFEPRINTF2(str,"%smsgs/n%3.3u.msg",cfg->data_dir,num);
+	sprintf(str,"%smsgs/n%3.3u.msg",cfg->data_dir,num);
 	if((file=nopen(str,O_WRONLY|O_CREAT))==-1)
 		return(errno); 
 	lseek(file,0L,SEEK_END);	/* Instead of opening with O_APPEND */
@@ -1858,7 +1854,7 @@ int DLLCALL getuserrec(scfg_t* cfg, int usernumber,int start, int length, char *
 
 	if(!VALID_CFG(cfg) || usernumber<1 || str==NULL)
 		return(-1);
-	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
+	sprintf(path,"%suser/user.dat",cfg->data_dir);
 	if((file=nopen(path,O_RDONLY|O_DENYNONE))==-1) 
 		return(errno);
 	if(usernumber<1
@@ -1912,7 +1908,7 @@ int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const
 	if(!VALID_CFG(cfg) || usernumber<1 || str==NULL)
 		return(-1);
 
-	SAFEPRINTF(str2,"%suser/user.dat",cfg->data_dir);
+	sprintf(str2,"%suser/user.dat",cfg->data_dir);
 	if((file=nopen(str2,O_RDWR|O_DENYNONE))==-1)
 		return(errno);
 
@@ -1964,7 +1960,7 @@ ulong DLLCALL adjustuserrec(scfg_t* cfg, int usernumber, int start, int length, 
 	if(!VALID_CFG(cfg) || usernumber<1) 
 		return(0); 
 
-	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
+	sprintf(path,"%suser/user.dat",cfg->data_dir);
 	if((file=nopen(path,O_RDWR|O_DENYNONE))==-1)
 		return(0); 
 
@@ -2227,7 +2223,7 @@ char* DLLCALL alias(scfg_t* cfg, const char* name, char* buf)
 
 	p=(char*)name;
 
-	SAFEPRINTF(fname,"%salias.cfg",cfg->ctrl_dir);
+	sprintf(fname,"%salias.cfg",cfg->ctrl_dir);
 	if((fp=fopen(fname,"r"))==NULL)
 		return((char*)name);
 
@@ -2293,7 +2289,7 @@ int DLLCALL newuserdat(scfg_t* cfg, user_t* user)
 	if(!VALID_CFG(cfg) || user==NULL)
 		return(-1);
 
-	SAFEPRINTF(str,"%suser/name.dat",cfg->data_dir);
+	sprintf(str,"%suser/name.dat",cfg->data_dir);
 	if(fexist(str)) {
 		if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 			return(errno); 
@@ -2337,27 +2333,24 @@ int DLLCALL newuserdat(scfg_t* cfg, user_t* user)
 	if((err=putuserdat(cfg,user))!=0)
 		return(err);
 
-	SAFEPRINTF2(str,"%sfile/%04u.in",cfg->data_dir,user->number);  /* delete any files */
+	sprintf(str,"%sfile/%04u.in",cfg->data_dir,user->number);  /* delete any files */
 	delfiles(str,ALLFILES);                                    /* waiting for user */
 	rmdir(str);
-	SAFEPRINTF(tmp,"%04u.*",user->number);
-	SAFEPRINTF(str,"%sfile",cfg->data_dir);
+	sprintf(tmp,"%04u.*",user->number);
+	sprintf(str,"%sfile",cfg->data_dir);
 	delfiles(str,tmp);
-	SAFEPRINTF(str,"%suser",cfg->data_dir);
+	sprintf(str,"%suser",cfg->data_dir);
 	delfiles(str,tmp);
-	SAFEPRINTF2(str,"%suser/%04u",cfg->data_dir,user->number);
-	delfiles(str,ALLFILES);
-	rmdir(str);
 
-	SAFEPRINTF2(str,"%suser/ptrs/%04u.ixb",cfg->data_dir,user->number); /* msg ptrs */
+	sprintf(str,"%suser/ptrs/%04u.ixb",cfg->data_dir,user->number); /* msg ptrs */
 	remove(str);
-	SAFEPRINTF2(str,"%smsgs/%04u.msg",cfg->data_dir,user->number); /* delete short msg */
+	sprintf(str,"%smsgs/%04u.msg",cfg->data_dir,user->number); /* delete short msg */
 	remove(str);
 
 	/* Update daily statistics database (for system and node) */
 
 	for(i=0;i<2;i++) {
-		SAFEPRINTF(str,"%sdsts.dab",i ? cfg->ctrl_dir : cfg->node_dir);
+		sprintf(str,"%sdsts.dab",i ? cfg->ctrl_dir : cfg->node_dir);
 		if((file=nopen(str,O_RDWR))==-1)
 			continue; 
 		memset(&stats,0,sizeof(stats));
@@ -2579,7 +2572,7 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
 	if(ip_addr==NULL)
 		return(FALSE);
 
-	SAFEPRINTF(ip_can,"%sip.can",cfg->text_dir);
+	sprintf(ip_can,"%sip.can",cfg->text_dir);
 	if(fname==NULL)
 		fname=ip_can;
 

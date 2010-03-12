@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.532 2011/04/12 03:20:57 deuce Exp $ */
+/* $Id: websrvr.c,v 1.523 2010/02/20 03:23:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1038,7 +1038,6 @@ static void safecat(char *dst, const char *append, size_t maxlen) {
 static BOOL send_headers(http_session_t *session, const char *status, int chunked)
 {
 	int		ret;
-	int		stat_code;
 	BOOL	send_file=TRUE;
 	time_t	ti;
 	size_t	idx;
@@ -1093,14 +1092,8 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			send_file=FALSE;
 		}
 
-		stat_code=atoi(status_line);
 		if(session->req.ld!=NULL)
-			session->req.ld->status=stat_code;
-
-		if(stat_code==304 || stat_code==204 || (stat_code >= 100 && stat_code<=199)) {
-			send_file=FALSE;
-			chunked=FALSE;
-		}
+			session->req.ld->status=atoi(status_line);
 
 		/* Status-Line */
 		safe_snprintf(header,sizeof(header),"%s %s",http_vers[session->http_ver],status_line);
@@ -1628,32 +1621,32 @@ static BOOL check_ars(http_session_t * session)
 
 				/* Check password as in user.dat */
 				calculate_digest(session, ha1, ha2, digest);
-				if(thisuser.pass[0]) {	// Zero-length password is "special" (any password will work)
+				if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
+					/* Check against lower-case password */
+					calculate_digest(session, ha1l, ha2, digest);
 					if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-						/* Check against lower-case password */
-						calculate_digest(session, ha1l, ha2, digest);
-						if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-							/* Check against upper-case password */
-							calculate_digest(session, ha1u, ha2, digest);
-							if(memcmp(digest, session->req.auth.digest, sizeof(digest)))
-								return(FALSE);
-						}
+						/* Check against upper-case password */
+						calculate_digest(session, ha1u, ha2, digest);
+						if(memcmp(digest, session->req.auth.digest, sizeof(digest)))
+							return(FALSE);
 					}
 				}
 
 				/* Validate nonce */
-				p=strchr(session->req.auth.nonce, '@');
+				p=strtok_r(session->req.auth.nonce, "@", &last);
 				if(p==NULL) {
 					session->req.auth.stale=TRUE;
 					return(FALSE);
 				}
-				*p=0;
-				if(strcmp(session->req.auth.nonce, session->client.addr)) {
+				if(strcmp(p, session->client.addr)) {
 					session->req.auth.stale=TRUE;
 					return(FALSE);
 				}
-				*p='@';
-				p++;
+				p=strtok_r(NULL, "", &last);
+				if(p==NULL) {
+					session->req.auth.stale=TRUE;
+					return(FALSE);
+				}
 				nonce_time=strtoul(p, &p, 10);
 				if(*p) {
 					session->req.auth.stale=TRUE;
@@ -1730,9 +1723,9 @@ static named_string_t** read_ini_list(char* path, char* section, char* desc
 		iniCloseFile(fp);
 		COUNT_LIST_ITEMS(list,i);
 		if(i)
-			lprintf(LOG_DEBUG,"Read %u %s from %s section of %s"
-				,i,desc,section==NULL ? "root":section,path);
+			lprintf(LOG_DEBUG,"Read %u %s from %s",i,desc,path);
 	}
+
 	return(list);
 }
 
@@ -3587,10 +3580,12 @@ static BOOL exec_cgi(http_session_t *session)
 
 	lprintf(LOG_DEBUG,"%04d CGI startup dir: %s", session->socket, startup_dir);
 
-	if((p=get_cgi_handler(session->req.physical_path))!=NULL)
-		SAFEPRINTF2(cmdline,"%s %s",p,session->req.physical_path);
-	else
-		SAFECOPY(cmdline,session->req.physical_path);
+	if((p=get_cgi_handler(session->req.physical_path))==NULL) {
+		lprintf(LOG_ERR,"%04d !CGI handler not found for %s"
+			,session->socket,session->req.physical_path);
+		return(FALSE);
+	}
+	SAFEPRINTF2(cmdline,"%s %s",p,session->req.physical_path);
 
 	lprintf(LOG_INFO,"%04d Executing CGI: %s",session->socket,cmdline);
 
@@ -4431,19 +4426,6 @@ js_BranchCallback(JSContext *cx, JSScript *script)
     return(js_CommonBranchCallback(cx,&session->js_branch));
 }
 
-#ifdef USE_JS_OPERATION_CALLBACK
-static JSBool
-js_OperationCallback(JSContext *cx)
-{
-	JSBool	ret;
-
-	JS_SetOperationCallback(cx, NULL);
-	ret=js_BranchCallback(cx, NULL);
-	JS_SetOperationCallback(cx, js_OperationCallback);
-	return ret;
-}
-#endif
-
 static JSContext* 
 js_initcx(http_session_t *session)
 {
@@ -4460,11 +4442,7 @@ js_initcx(http_session_t *session)
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-#ifdef USE_JS_OPERATION_CALLBACK
-	JS_SetOperationCallback(js_cx, js_OperationCallback);
-#else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
-#endif
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Creating Global Objects and Classes",session->socket);
 	if((session->js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL
@@ -4641,7 +4619,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=xp_timer();
-		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL);
+		js_PrepareToExecute(session->js_cx, session->js_glob, script);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
@@ -4704,7 +4682,7 @@ static void respond(http_session_t * session)
 		send_file=FALSE;
 	if(send_file)  {
 		int snt=0;
-		lprintf(LOG_INFO,"%04d Sending file: %s (%"PRIuOFF" bytes)"
+		lprintf(LOG_INFO,"%04d Sending file: %s (%u bytes)"
 			,session->socket, session->req.physical_path, flength(session->req.physical_path));
 		snt=sock_sendfile(session,session->req.physical_path,session->req.range_start,session->req.range_end);
 		if(session->req.ld!=NULL) {
@@ -5209,7 +5187,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.532 $", "%*s %s", revision);
+	sscanf("$Revision: 1.523 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5495,10 +5473,8 @@ void DLLCALL web_server(void* arg)
 		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
 			,mime_types);
 		iniFileName(web_handler_ini,sizeof(web_handler_ini),scfg.ctrl_dir,"web_handler.ini");
-		if((cgi_handlers=read_ini_list(web_handler_ini,"CGI."PLATFORM_DESC,"CGI content handlers"
-			,cgi_handlers))==NULL)
-			cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
-				,cgi_handlers);
+		cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
+			,cgi_handlers);
 		xjs_handlers=read_ini_list(web_handler_ini,"JavaScript","JavaScript content handlers"
 			,xjs_handlers);
 

@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.294 2010/03/13 02:03:51 deuce Exp $ */
+/* $Id: term.c,v 1.293 2010/03/12 19:31:32 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2586,7 +2586,7 @@ BOOL doterm(struct bbslist *bbs)
 							begin_upload(bbs, FALSE, inch);
 							break;
 						case 4:
-							begin_download(bbs);
+							zmodem_download(bbs);
 							break;
 						case 7:
 							capture_control(bbs);
