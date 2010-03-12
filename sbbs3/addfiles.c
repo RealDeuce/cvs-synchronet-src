@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.44 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.45 2009/08/07 17:20:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,11 +270,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-					remove(tmp);
+					removecase(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,filepath,"FILE_ID.DIZ",NULL));
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-						remove(tmp);
+						removecase(tmp);
 						system(mycmdstr(scfg.fextr[i]->cmd,filepath,"DESC.SDI",NULL)); 
 						fexistcase(tmp);
 					}
@@ -473,11 +473,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 					break;
 			if(i<scfg.total_fextrs) {
 				sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-				remove(tmp);
+				removecase(tmp);
 				system(mycmdstr(scfg.fextr[i]->cmd,filepath,"FILE_ID.DIZ",NULL));
 				if(!fexistcase(tmp)) {
 					sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-					remove(tmp);
+					removecase(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,filepath,"DESC.SDI",NULL)); 
 					fexistcase(tmp);
 				}
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.44 $", "%*s %s", revision);
+	sscanf("$Revision: 1.45 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -895,11 +895,11 @@ int main(int argc, char **argv)
 						break;
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-					remove(tmp);
+					removecase(tmp);
 					system(mycmdstr(scfg.fextr[i]->cmd,str,"FILE_ID.DIZ",NULL));
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
-						remove(tmp);
+						removecase(tmp);
 						system(mycmdstr(scfg.fextr[i]->cmd,str,"DESC.SDI",NULL)); 
 						fexistcase(tmp);
 					}
