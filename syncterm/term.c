@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.292 2010/03/10 07:47:51 deuce Exp $ */
+/* $Id: term.c,v 1.293 2010/03/12 19:31:32 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -289,6 +289,7 @@ static int lputs(void* cbdata, int level, const char* str)
 {
 	char msg[512];
 	int chars;
+	int oldhold=hold_update;
 
 #if defined(_WIN32) && defined(_DEBUG) && FALSE
 	sprintf(msg,"SyncTerm: %s\n",str);
@@ -327,7 +328,9 @@ static int lputs(void* cbdata, int level, const char* str)
 			SAFEPRINTF(msg,"!ERROR: %s\r\n",str);
 			break;
 	}
+	hold_update=FALSE;
 	chars=cputs(msg);
+	hold_update=oldhold;
 	gettextinfo(&log_ti);
 
 	return chars;
