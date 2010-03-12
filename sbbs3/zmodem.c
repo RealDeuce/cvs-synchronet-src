@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.113 2010/03/12 19:29:58 deuce Exp $ */
+/* $Id: zmodem.c,v 1.112 2010/03/12 19:24:40 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1344,6 +1344,10 @@ BOOL zmodem_request_crc(zmodem_t* zm, int32_t length)
 {
 	zmodem_recv_purge(zm);
 	zmodem_send_pos_header(zm,ZCRC,length,TRUE);
+	if(!zmodem_data_waiting(zm,zm->crc_timeout)) {
+		lprintf(zm,LOG_ERR,"Timeout waiting for response (%u seconds)", zm->crc_timeout);
+		return(FALSE);
+	}
 	return TRUE;
 }
 
@@ -1351,10 +1355,6 @@ BOOL zmodem_recv_crc(zmodem_t* zm, uint32_t* crc)
 {
 	int type;
 
-	if(!zmodem_data_waiting(zm,zm->crc_timeout)) {
-		lprintf(zm,LOG_ERR,"Timeout waiting for response (%u seconds)", zm->crc_timeout);
-		return(FALSE);
-	}
 	if((type=zmodem_recv_header(zm))!=ZCRC) {
 		lprintf(zm,LOG_ERR,"Received %s instead of ZCRC", frame_desc(type));
 		return(FALSE);
@@ -2288,7 +2288,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.113 $", "%*s %s", buf);
+	sscanf("$Revision: 1.112 $", "%*s %s", buf);
 
 	return(buf);
 }
