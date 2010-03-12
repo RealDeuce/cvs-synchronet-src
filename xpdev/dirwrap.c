@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.75 2009/03/23 23:16:55 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.79 2010/03/09 03:23:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -388,8 +388,9 @@ int DLLCALL setfdate(const char* filename, time_t t)
 
 /****************************************************************************/
 /* Returns the length of the file in 'filename'                             */
+/* or -1 if the file doesn't exist											*/
 /****************************************************************************/
-long DLLCALL flength(const char *filename)
+off_t DLLCALL flength(const char *filename)
 {
 #if defined(__BORLANDC__) && !defined(__unix__)	/* stat() doesn't work right */
 
@@ -397,7 +398,7 @@ long DLLCALL flength(const char *filename)
 	struct _finddata_t f;
 
 	if(access((char*)filename,0)==-1)
-		return(-1L);
+		return(-1);
 
 	if((handle=_findfirst((char*)filename,&f))==-1)
 		return(-1);
@@ -411,10 +412,10 @@ long DLLCALL flength(const char *filename)
 	struct stat st;
 
 	if(access(filename,0)==-1)
-		return(-1L);
+		return(-1);
 
 	if(stat(filename, &st)!=0)
-		return(-1L);
+		return(-1);
 
 	return(st.st_size);
 

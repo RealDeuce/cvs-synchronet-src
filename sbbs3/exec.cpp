@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.82 2009/11/02 03:30:52 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.85 2010/03/12 08:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -610,6 +610,7 @@ long sbbs_t::js_execfile(const char *cmd)
 		JS_DefineProperty(js_cx, js_scope, "argv", OBJECT_TO_JSVAL(argv)
 			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
+		/* TODO: Handle quoted "one arg" syntax here? */
 		if(args!=NULL && argv!=NULL) {
 			while(*args) {
 				p=strchr(args,' ');
@@ -727,7 +728,7 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 
 	memcpy(&bin,csi,sizeof(csi_t));
 	clearvars(&bin);
-	bin.length=filelength(file);
+	bin.length=(uint32_t)filelength(file);
 	if((bin.cs=(uchar *)malloc(bin.length))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,bin.length);
@@ -1244,7 +1245,7 @@ int sbbs_t::exec(csi_t *csi)
 				external(cmdstr((char*)csi->ip,path,csi->str,(char*)buf),0);
 				break;
 			case CS_EXEC_INT:
-				external(cmdstr((char*)csi->ip,path,csi->str,(char*)buf),EX_OUTR|EX_INR|EX_OUTL);
+				external(cmdstr((char*)csi->ip,path,csi->str,(char*)buf),EX_STDIO);
 				break;
 			case CS_EXEC_XTRN:
 				for(i=0;i<cfg.total_xtrns;i++)
