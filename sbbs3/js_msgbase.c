@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.148 2009/11/11 01:56:12 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.152 2009/11/14 05:39:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,7 @@
 
 #ifdef JAVASCRIPT
 
-static scfg_t* scfg=NULL;
+static scfg_t* 		scfg=NULL;
 
 typedef struct
 {
@@ -573,6 +573,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	JSBool		by_offset=JS_FALSE;
 	private_t*	p;
 	jsrefcount	rc;
+	JSObject*	proto;
 
 	*rval = JSVAL_NULL;
 	
@@ -607,7 +608,17 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		}
 	}
 
-	if((idxobj=JS_NewObject(cx,NULL,NULL,obj))==NULL)
+	if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "MsgBase", &val) && !JSVAL_NULL_OR_VOID(val)) {
+		JS_ValueToObject(cx,val,&proto);
+		if(JS_GetProperty(cx, proto, "IndexPrototype", &val) && !JSVAL_NULL_OR_VOID(val))
+			JS_ValueToObject(cx,val,&proto);
+		else
+			proto=NULL;
+	}
+	else
+		proto=NULL;
+
+	if((idxobj=JS_NewObject(cx,NULL,proto,obj))==NULL)
 		return(JS_TRUE);
 
 	JS_NewNumberValue(cx, msg.idx.number	,&val);
@@ -956,6 +967,8 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	jsrefcount	rc;
 	char*		cstr;
 	privatemsg_t*	p;
+	JSObject*	proto;
+	jsval		val;
 
 	*rval = JSVAL_NULL;
 
@@ -1031,7 +1044,17 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	if((p->msg).hdr.number==0) /* No valid message number/id/offset specified */
 		return(JS_TRUE);
 
-	if((hdrobj=JS_NewObject(cx,&js_msghdr_class,NULL,obj))==NULL) {
+	if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "MsgBase", &val) && !JSVAL_NULL_OR_VOID(val)) {
+		JS_ValueToObject(cx,val,&proto);
+		if(JS_GetProperty(cx, proto, "HeaderPrototype", &val) && !JSVAL_NULL_OR_VOID(val))
+			JS_ValueToObject(cx,val,&proto);
+		else
+			proto=NULL;
+	}
+	else
+		proto=NULL;
+
+	if((hdrobj=JS_NewObject(cx,&js_msghdr_class,proto,obj))==NULL) {
 		smb_freemsgmem(&(p->msg));
 		return(JS_TRUE);
 	}
@@ -2057,9 +2080,19 @@ $5 = {size = 23200, prepped = 1, grp = 0x0, total_grps = 3, sub = 0x0, total_sub
 	return(JS_TRUE);
 }
 
+static struct JSPropertySpec js_msgbase_static_properties[] = {
+/*		 name				,tinyid					,flags,				getter,	setter	*/
+
+	{	"IndexPrototype"		,0	,JSPROP_ENUMERATE|JSPROP_PERMANENT,	NULL,NULL},
+	{	"HeaderPrototype"		,0	,JSPROP_ENUMERATE|JSPROP_PERMANENT,	NULL,NULL},
+	{0}
+};
+
 JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg)
 {
 	JSObject*	obj;
+	JSObject*	constructor;
+	jsval		val;
 
 	scfg = cfg;
 	obj = JS_InitClass(cx, parent, NULL
@@ -2068,7 +2101,14 @@ JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t*
 		,1	/* number of constructor args */
 		,NULL /* js_msgbase_properties */
 		,NULL /* js_msgbase_functions */
-		,NULL,NULL);
+		,js_msgbase_static_properties,NULL);
+
+
+	if(JS_GetProperty(cx, parent, js_msgbase_class.name, &val) && !JSVAL_NULL_OR_VOID(val)) {
+		JS_ValueToObject(cx,val,&constructor);
+		JS_DefineObject(cx,constructor,"IndexPrototype",NULL,NULL,JSPROP_PERMANENT|JSPROP_ENUMERATE);
+		JS_DefineObject(cx,constructor,"HeaderPrototype",NULL,NULL,JSPROP_PERMANENT|JSPROP_ENUMERATE);
+	}
 
 	return(obj);
 }
