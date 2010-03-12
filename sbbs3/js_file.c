@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.125 2010/09/14 23:36:17 rswindell Exp $ */
+/* $Id: js_file.c,v 1.121 2010/03/09 21:58:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,10 +169,7 @@ js_open(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		p->fp=fopen(p->name,p->mode);
 	else {
 		if((file=nopen(p->name,fopenflags(p->mode)))!=-1) {
-			char fdomode[4];
-			SAFECOPY(fdomode,p->mode);
-			fdomode[strspn(fdomode,"abrwt+")]=0;	/* MSVC10 fdopen() asserts when passed a mode with an unsupported char (e.g. 'e') */
-			if((p->fp=fdopen(file,fdomode))==NULL)
+			if((p->fp=fdopen(file,p->mode))==NULL)
 				close(file);
 		}
 	}
@@ -951,16 +948,11 @@ js_iniGetObject(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 
 	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		section=JS_GetStringBytes(JS_ValueToString(cx, argv[0]));
+    object = JS_NewObject(cx, NULL, NULL, obj);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	list = iniReadNamedStringList(p->fp,section);
 	JS_RESUMEREQUEST(cx, rc);
-
-	if(list==NULL)	/* New behavior at request of MCMLXXIX: return NULL/undefined if specified section doesn't exist */
-		return JSVAL_NULL;
-
-    object = JS_NewObject(cx, NULL, NULL, obj);
-
     for(i=0;list && list[i];i++) {
 		JS_DefineProperty(cx, object, list[i]->name
 			,get_value(cx,list[i]->value)
@@ -1069,20 +1061,6 @@ js_iniGetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 		JS_RESUMEREQUEST(cx, rc);
 
 		val=OBJECT_TO_JSVAL(object);
-		/* exception here, Apr-4-2010:
-
-  2000007a()
-js_iniGetAllObjects(JSContext * 0x049383e0, JSObject * 0x049c76a8, unsigned int 0x00000001, long * 0x049c0490, long * 0x02c5c494) line 1064 + 24 bytes
-js_Invoke(JSContext * 0x049383e0, unsigned int 0x00000001, unsigned int 0x00000000) line 1375 + 23 bytes
-js_Interpret(JSContext * 0x049383e0, unsigned char * 0x031ab4b2, long * 0x02c5d6ac) line 3944 + 15 bytes
-js_Execute(JSContext * 0x049383e0, JSObject * 0x049b73e8, JSScript * 0x02f2a7e0, JSStackFrame * 0x00000000, unsigned int 0x00000000, long * 0x02c5d7bc) line 1633 + 19 bytes
-JS_ExecuteScript(JSContext * 0x049383e0, JSObject * 0x049b73e8, JSScript * 0x02f2a7e0, long * 0x02c5d7bc) line 4188 + 25 bytes
-sbbs_t::js_execfile(const char * 0x0226b59a, const char * 0x022060fa) line 668 + 39 bytes
-sbbs_t::external(const char * 0x0226b599, long 0x00000100, const char * 0x022060fa) line 413 + 30 bytes
-event_thread(void * 0x022622b8) line 2745 + 113 bytes
-_threadstart(void * 0x0227dab0) line 187 + 13 bytes
-
-  */
         if(!JS_SetElement(cx, array, i, &val))
 			break;
 	}
@@ -1110,7 +1088,7 @@ js_iniSetAllObjects(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 
 	*rval = JSVAL_FALSE;
 
-	if(JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0]))
+	if(!JSVAL_IS_OBJECT(argv[0]))
 		return(JS_TRUE);
 
     array = JSVAL_TO_OBJECT(argv[0]);
@@ -1298,7 +1276,7 @@ js_writebin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(JSVAL_IS_OBJECT(argv[0]) && !JSVAL_IS_NULL(argv[0])) {
+	if(JSVAL_IS_OBJECT(argv[0])) {
 		array = JSVAL_TO_OBJECT(argv[0]);
 		if(JS_IsArrayObject(cx, array)) {
 		    if(!JS_GetArrayLength(cx, array, &count))
@@ -1393,7 +1371,7 @@ js_writeall(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0]))
+	if(!JSVAL_IS_OBJECT(argv[0]))
 		return(JS_TRUE);
 
     array = JSVAL_TO_OBJECT(argv[0]);
@@ -2278,6 +2256,8 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 		JS_ReportError(cx,"No filename specified");
 		return(JS_FALSE);
 	}
+
+	*rval = JSVAL_VOID;
 
 	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL) {
 		JS_ReportError(cx,"calloc failed");
