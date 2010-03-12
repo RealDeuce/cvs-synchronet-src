@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.128 2010/03/12 02:28:31 deuce Exp $ */
+/* $Id: sexyz.c,v 1.129 2010/03/12 08:20:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1514,7 +1514,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.128 $", "%*s %s", revision);
+	sscanf("$Revision: 1.129 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1793,7 +1793,8 @@ int main(int argc, char **argv)
 		} 
 	}
 
-	fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
+	if(max_file_size)
+		fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
 
 	if(!(mode&(SEND|RECV))) {
 		fprintf(statfp,"!No command specified\n\n");
