@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.512 2010/03/13 08:15:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.513 2010/03/13 08:25:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1816,8 +1816,8 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 		} else {
 			lprintf(LOG_DEBUG,"%04d %s Executing: %s"
 				,sock, log_prefix, cmdline);
-			if((js_script=JS_CompileFile(*js_cx, js_scope, path, /* startup_dir: */NULL)) != NULL)
-				js_PrepareToExecute(*js_cx, js_scope, path);
+			if((js_script=JS_CompileFile(*js_cx, js_scope, path)) != NULL)
+				js_PrepareToExecute(*js_cx, js_scope, path, /* startup_dir: */NULL);
 		}
 		if(js_script==NULL)
 			break;
@@ -4674,7 +4674,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.512 $", "%*s %s", revision);
+	sscanf("$Revision: 1.513 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
