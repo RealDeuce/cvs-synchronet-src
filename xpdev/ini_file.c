@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.119 2010/11/19 04:08:03 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.114 2010/03/08 00:56:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -531,35 +531,32 @@ char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong 
 	char	str[INI_MAX_VALUE_LEN];
 	double	bytes;
 
-	if(value==0)
-		SAFECOPY(str,"0");
-	else
-		switch(unit) {
-			case 1024*1024*1024:
-				SAFEPRINTF(str,"%"PRIi64"G",value);
-				break;
-			case 1024*1024:
-				SAFEPRINTF(str,"%"PRIi64"M",value);
-				break;
-			case 1024:
-				SAFEPRINTF(str,"%"PRIi64"K",value);
-				break;
-			default:
-				if(unit<1)
-					unit=1;
-				bytes=(double)(value*unit);
+	switch(unit) {
+		case 1024*1024*1024:
+			SAFEPRINTF(str,"%"PRIi64"G",value);
+			break;
+		case 1024*1024:
+			SAFEPRINTF(str,"%"PRIi64"M",value);
+			break;
+		case 1024:
+			SAFEPRINTF(str,"%"PRIi64"K",value);
+			break;
+		default:
+			if(unit<1)
+				unit=1;
+			bytes=(double)(value*unit);
 
-				if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
-					SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
-				else if(fmod(bytes,1024*1024*1024)==0)
-					SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
-				else if(fmod(bytes,1024*1024)==0)
-					SAFEPRINTF(str,"%gM",bytes/(1024*1024));
-				else if(fmod(bytes,1024)==0)
-					SAFEPRINTF(str,"%gK",bytes/1024);
-				else
-					SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
-		}
+			if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
+				SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+			else if(fmod(bytes,1024*1024*1024)==0)
+				SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
+			else if(fmod(bytes,1024*1024)==0)
+				SAFEPRINTF(str,"%gM",bytes/(1024*1024));
+			else if(fmod(bytes,1024)==0)
+				SAFEPRINTF(str,"%gK",bytes/1024);
+			else
+				SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
+	}
 
 	return iniSetString(list, section, key, str, style);
 }
@@ -1001,20 +998,21 @@ iniReadNamedStringList(FILE* fp, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	items=0;
-	named_string_t** lp=NULL;
+	named_string_t** lp;
 	named_string_t** np;
 
-	if(fp==NULL)
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
 		return(NULL);
+
+	*lp=NULL;
+
+	if(fp==NULL)
+		return(lp);
 
 	rewind(fp);
 
 	if(!seek_section(fp,section))
-		return(NULL);
-
-	/* New behavior, if section exists but is empty, return single element array (terminator only) */
-	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
-		return(NULL);
+		return(lp);
 
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
@@ -1049,21 +1047,18 @@ iniGetNamedStringList(str_list_t list, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	i,items=0;
-	named_string_t** lp=NULL;
+	named_string_t** lp;
 	named_string_t** np;
 
-	if(list==NULL)
-		return(NULL);
-
-	i=find_section(list,section);
-	if(list[i]==NULL)
-		return(NULL);
-
-	/* New behavior, if section exists but is empty, return single element array (terminator only) */
 	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
 		return(NULL);
 
-	for(;list[i]!=NULL;i++) {
+	*lp=NULL;
+
+	if(list==NULL)
+		return(lp);
+
+	for(i=find_section(list,section);list[i]!=NULL;i++) {
 		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			break;
@@ -1559,29 +1554,21 @@ time_t iniGetDateTime(str_list_t list, const char* section, const char* key, tim
 static unsigned parseEnum(const char* value, str_list_t names)
 {
 	unsigned i,count;
-	char val[INI_MAX_VALUE_LEN];
-	char* p=val;
-
-	/* Strip trailing words (enums must be a single word with no white-space) */
-	/* to support comments following enum values */
-	SAFECOPY(val,value);
-	FIND_WHITESPACE(p);
-	*p=0;
 
     if((count=strListCount(names)) == 0)
         return 0;
         
 	/* Look for exact matches first */
 	for(i=0; i<count; i++)
-		if(stricmp(names[i],val)==0)
+		if(stricmp(names[i],value)==0)
 			return(i);
 
 	/* Look for partial matches second */
 	for(i=0; i<count; i++)
-		if(strnicmp(names[i],val,strlen(val))==0)
+		if(strnicmp(names[i],value,strlen(value))==0)
 			return(i);
 
-    i=strtoul(val,NULL,0);
+    i=strtoul(value,NULL,0);
     if(i>=count)
         i=count-1;
 	return i;
