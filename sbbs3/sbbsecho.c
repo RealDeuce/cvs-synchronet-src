@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.197 2009/03/27 01:58:13 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.198 2009/07/16 01:07:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,7 +164,9 @@ void logprintf(char *str, ...)
 	now=time(NULL);
 	gm=localtime(&now);
 	fprintf(fidologfile,"%02u/%02u/%02u %02u:%02u:%02u %s\n"
-		,gm->tm_mon+1,gm->tm_mday,TM_YEAR(gm->tm_year),gm->tm_hour,gm->tm_min,gm->tm_sec
+		,(scfg.sys_misc&SM_EURODATE) ? gm->tm_mday : gm->tm_mon+1
+		,(scfg.sys_misc&SM_EURODATE) ? gm->tm_mon+1 : gm->tm_mday
+		,TM_YEAR(gm->tm_year),gm->tm_hour,gm->tm_min,gm->tm_sec
 		,buf);
 }
 
@@ -3917,7 +3919,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.197 $", "%*s %s", revision);
+	sscanf("$Revision: 1.198 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
