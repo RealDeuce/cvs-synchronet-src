@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.135 2010/03/13 08:32:10 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.136 2010/03/13 09:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 
 #include "sbbs.h"
 #include "ciolib.h"
+#include "ini_file.h"
 #include "js_rtpool.h"
 #include "js_request.h"
 
@@ -117,7 +118,7 @@ void usage(FILE* fp)
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
 		"\t-u<mask>       set file creation permissions mask (in octal)\n"
 		"\t-L<level>      set log level (default=%u)\n"
-		"\t-E<level>      set error log level threshold (default=%d)\n"
+		"\t-E<level>      set error log level threshold (default=%u)\n"
 		"\t-i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
 		"\t-f             use non-buffered stream for console messages\n"
 		"\t-a             append instead of overwriting message output files\n"
@@ -852,6 +853,28 @@ BOOL WINAPI ControlHandler(unsigned long CtrlType)
 }
 #endif
 
+int parseLogLevel(const char* p)
+{
+	str_list_t logLevelStringList=iniLogLevelStringList();
+	int i;
+
+	if(isdigit(*p))
+		return strtol(p,NULL,0);
+
+	/* Exact match */
+	for(i=0;logLevelStringList[i]!=NULL;i++) {
+		if(stricmp(logLevelStringList[i],p)==0)
+			return i;
+	}
+	/* Partial match */
+	for(i=0;logLevelStringList[i]!=NULL;i++) {
+		if(strnicmp(logLevelStringList[i],p,strlen(p))==0)
+			return i;
+	}
+	return DEFAULT_LOG_LEVEL;
+}
+
+
 /*********************/
 /* Entry point (duh) */
 /*********************/
@@ -883,7 +906,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.135 $", "%*s %s", revision);
+	sscanf("$Revision: 1.136 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -940,11 +963,11 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'L':
 					if(*p==0) p=argv[++argn];
-					log_level=strtol(p,NULL,0);
+					log_level=parseLogLevel(p);
 					break;
 				case 'E':
 					if(*p==0) p=argv[++argn];
-					err_level=strtol(p,NULL,0);
+					err_level=parseLogLevel(p);
 					break;
 				case 'e':
 					if(*p==0) p=argv[++argn];
