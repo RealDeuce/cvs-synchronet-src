@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.509 2009/12/09 19:00:36 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.513 2010/03/13 08:25:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -766,7 +766,7 @@ static void pop3_thread(void* arg)
 	else
 		strcpy(host_name,"<no name>");
 
-	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP))
+	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP) && (startup->options&MAIL_OPT_DEBUG_POP3))
 		lprintf(LOG_INFO,"%04d POP3 Hostname: %s", socket, host_name);
 
 	if(trashcan(&scfg,host_ip,"ip")) {
@@ -1817,7 +1817,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 			lprintf(LOG_DEBUG,"%04d %s Executing: %s"
 				,sock, log_prefix, cmdline);
 			if((js_script=JS_CompileFile(*js_cx, js_scope, path)) != NULL)
-				js_PrepareToExecute(*js_cx, js_scope, path);
+				js_PrepareToExecute(*js_cx, js_scope, path, /* startup_dir: */NULL);
 		}
 		if(js_script==NULL)
 			break;
@@ -2158,6 +2158,7 @@ static void smtp_thread(void* arg)
 	char		spam_bait[MAX_PATH+1];
 	BOOL		spam_bait_result=FALSE;
 	char		spam_block[MAX_PATH+1];
+	char		spam_block_exempt[MAX_PATH+1];
 	char		host_name[128];
 	char		host_ip[64];
 	char		dnsbl[256];
@@ -2311,16 +2312,18 @@ static void smtp_thread(void* arg)
 
 	SAFEPRINTF(spam_bait,"%sspambait.cfg",scfg.ctrl_dir);
 	SAFEPRINTF(spam_block,"%sspamblock.cfg",scfg.ctrl_dir);
+	SAFEPRINTF(spam_block_exempt,"%sspamblock_exempt.cfg",scfg.ctrl_dir);
 
 	if(smtp.client_addr.sin_addr.s_addr==server_addr.sin_addr.s_addr 
 		|| smtp.client_addr.sin_addr.s_addr==htonl(IPv4_LOCALHOST)) {
 		/* local connection */
 		dnsbl_result.s_addr=0;
 	} else {
-		if(trashcan(&scfg,host_ip,"ip") || findstr(host_ip,spam_block)) {
+		if(trashcan(&scfg,host_ip,"ip") 
+			|| (findstr(host_ip,spam_block) && !findstr(host_ip,spam_block_exempt))) {
 			lprintf(LOG_NOTICE,"%04d !SMTP CLIENT IP ADDRESS BLOCKED: %s (%u total)"
 				,socket, host_ip, ++stats.sessions_refused);
-			sockprintf(socket,"550 Access denied.");
+			sockprintf(socket,"550 CLIENT IP ADDRESS BLOCKED: %s", host_ip);
 			mail_close_socket(socket);
 			thread_down();
 			if(active_clients)
@@ -2328,10 +2331,11 @@ static void smtp_thread(void* arg)
 			return;
 		}
 
-		if(trashcan(&scfg,host_name,"host") || findstr(host_name,spam_block)) {
+		if(trashcan(&scfg,host_name,"host") 
+			|| (findstr(host_name,spam_block) && !findstr(host_name,spam_block_exempt))) {
 			lprintf(LOG_NOTICE,"%04d !SMTP CLIENT HOSTNAME BLOCKED: %s (%u total)"
 				,socket, host_name, ++stats.sessions_refused);
-			sockprintf(socket,"550 Access denied.");
+			sockprintf(socket,"550 CLIENT HOSTNAME BLOCKED: %s", host_name);
 			mail_close_socket(socket);
 			thread_down();
 			if(active_clients)
@@ -3520,7 +3524,9 @@ static void smtp_thread(void* arg)
 					,socket, reason, reverse_path);
 				if(relay_user.number==0) {
 					strcpy(tmp,"IGNORED");
-					if(dnsbl_result.s_addr==0)	{ /* Don't double-filter */
+					if(dnsbl_result.s_addr==0						/* Don't double-filter */
+						&& !findstr(host_name,spam_block_exempt)
+						&& !findstr(host_ip,spam_block_exempt))	{ 
 						lprintf(LOG_NOTICE,"%04d !BLOCKING IP ADDRESS: %s in %s", socket, host_ip, spam_block);
 						filter_ip(&scfg, "SMTP", reason, host_name, host_ip, reverse_path, spam_block);
 						strcat(tmp," and BLOCKED");
@@ -4668,7 +4674,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.509 $", "%*s %s", revision);
+	sscanf("$Revision: 1.513 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
