@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.139 2010/06/28 23:49:06 deuce Exp $ */
+/* $Id: jsexec.c,v 1.136 2010/03/13 09:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -585,19 +585,6 @@ js_BranchCallback(JSContext *cx, JSScript *script)
     return(js_CommonBranchCallback(cx,&branch));
 }
 
-#ifdef USE_JS_OPERATION_CALLBACK
-static JSBool
-js_OperationCallback(JSContext *cx)
-{
-	JSBool	ret;
-
-	JS_SetOperationCallback(cx, NULL);
-	ret=js_BranchCallback(cx, NULL);
-	JS_SetOperationCallback(cx, js_OperationCallback);
-	return ret;
-}
-#endif
-
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 {
 	char		name[256];
@@ -715,17 +702,12 @@ long js_exec(const char *fname, char** args)
 	long double	diff;
 
 	if(fname!=NULL) {
-		if(isfullpath(fname)) {
+		if(strcspn(fname,"/\\")==strlen(fname)) {
+			sprintf(path,"%s%s%s",scfg.mods_dir,fname,js_ext(fname));
+			if(scfg.mods_dir[0]==0 || !fexistcase(path))
+				sprintf(path,"%s%s%s",scfg.exec_dir,fname,js_ext(fname));
+		} else
 			SAFECOPY(path,fname);
-		}
-		else {
-			SAFEPRINTF3(path,"%s%s%s",orig_cwd,fname,js_ext(fname));
-			if(!fexistcase(path)) {
-				SAFEPRINTF3(path,"%s%s%s",scfg.mods_dir,fname,js_ext(fname));
-				if(scfg.mods_dir[0]==0 || !fexistcase(path))
-					SAFEPRINTF3(path,"%s%s%s",scfg.exec_dir,fname,js_ext(fname));
-			}
-		}
 
 		if(!fexistcase(path)) {
 			lprintf(LOG_ERR,"!Module file (%s) doesn't exist",path);
@@ -784,11 +766,7 @@ long js_exec(const char *fname, char** args)
 
 	branch.terminated=&terminated;
 
-#ifdef USE_JS_OPERATION_CALLBACK
-	JS_SetOperationCallback(js_cx, js_OperationCallback);
-#else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
-#endif
 
 	if(fp==stdin) 	 /* Using stdin for script source */
 		SAFECOPY(path,"stdin");
@@ -928,7 +906,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.139 $", "%*s %s", revision);
+	sscanf("$Revision: 1.136 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -938,7 +916,6 @@ int main(int argc, char **argv, char** environ)
 		return(do_bail(2));
 
 	getcwd(orig_cwd, sizeof(orig_cwd));
-	backslash(orig_cwd);
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
