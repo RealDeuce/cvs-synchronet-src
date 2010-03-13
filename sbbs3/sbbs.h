@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.343 2010/03/13 08:15:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.344 2010/03/13 08:20:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -395,7 +395,7 @@ public:
 	int		exec_net(csi_t *csi);
 	int		exec_msg(csi_t *csi);
 	int		exec_file(csi_t *csi);
-	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir);
+	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir=NULL);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
 	char**	getstrvar(csi_t *bin, int32_t name);
