@@ -1,7 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
 #include <stdio.h>	/* NULL */
-#include <unistd.h>	/* _exit() */
 #include "st_crypt.h"
 #include <xp_dl.h>
 
@@ -19,21 +18,6 @@ void exit_crypt()
 }
 
 #else
-
-/*
- * cryptlib calls fork() to gather entropy.
- * It then calls exit().
- * This calls the atexit() handlers.
- * SDL_Exit is in there...
- * SDL doesn't exist in the forked child.
- * This causes the child to spin FOREVER
- * Eating your CPU.
- * So, we will break exit(3).
- */
-void exit(int code)
-{
-	_exit(code);
-}
 
 struct crypt_funcs cl;
 
