@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.38 2010/05/24 01:13:52 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.37 2010/03/09 03:23:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,27 +98,13 @@ typedef struct {
 #undef  EWOULDBLOCK
 #define EWOULDBLOCK		(WSAEWOULDBLOCK-WSABASEERR)
 
-#ifndef EPROTOTYPE
 #define EPROTOTYPE		(WSAEPROTOTYPE-WSABASEERR)
-#endif
-#ifndef ENOPROTOOPT
 #define ENOPROTOOPT		(WSAENOPROTOOPT-WSABASEERR)
-#endif
-#ifndef EPROTONOSUPPORT
 #define EPROTONOSUPPORT	(WSAEPROTONOSUPPORT-WSABASEERR)
-#endif
-#ifndef ESOCKTNOSUPPORT
 #define ESOCKTNOSUPPORT	(WSAESOCKTNOSUPPORT-WSABASEERR)
-#endif
-#ifndef EOPNOTSUPP
 #define EOPNOTSUPP		(WSAEOPNOTSUPP-WSABASEERR)
-#endif
-#ifndef EPFNOSUPPORT
 #define EPFNOSUPPORT	(WSAEPFNOSUPPORT-WSABASEERR)
-#endif
-#ifndef EAFNOSUPPORT
 #define EAFNOSUPPORT	(WSAEAFNOSUPPORT-WSABASEERR)
-#endif
 
 #undef  EADDRINUSE
 #define EADDRINUSE		(WSAEADDRINUSE-WSABASEERR)

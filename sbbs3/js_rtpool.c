@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.19 2011/10/08 18:12:56 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.14 2010/03/11 23:14:52 deuce Exp $ */
 
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
@@ -16,7 +16,7 @@
 	#define DLLCALL
 #endif
 
-#define SHARED_RUNTIMES
+//#define SHARED_RUNTIMES
 
 struct jsrt_queue {
 	JSRuntime       *rt;
@@ -123,31 +123,6 @@ void DLLCALL jsrt_Release(JSRuntime *rt)
 			pthread_mutex_unlock(&jsrt_mutex);
 			sem_post(&jsrt_sem);
 		}
-	}
-#endif
-}
-
-void DLLCALL jsrt_TriggerAll(void)
-{
-#if JS_VERSION>180
-	int	i;
-	int j;
-	JSContext	*iterp,*cx;
-
-	if(!initialized)
-		return;
-	for(i=0; i<JSRT_QUEUE_SIZE; i++) {
-		pthread_mutex_lock(&jsrt_mutex);
-#ifdef SHARED_RUNTIMES
-		if(jsrt_queue[i].created) {
-#else
-		if(jsrt_queue[i].used) {
-#endif
-			iterp=NULL;
-			while((cx = JS_ContextIterator(jsrt_queue[i].rt, &iterp)) != NULL)
-				JS_TriggerOperationCallback(cx);
-		}
-		pthread_mutex_unlock(&jsrt_mutex);
 	}
 #endif
 }
