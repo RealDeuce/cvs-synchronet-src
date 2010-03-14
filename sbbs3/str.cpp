@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.64 2010/11/19 06:36:24 rswindell Exp $ */
+/* $Id: str.cpp,v 1.63 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -250,15 +250,15 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 				cr=1;
 				m++; 
 			}
-			if(isdigit((uchar)buf[m+1])) {
+			if(isdigit(buf[m+1])) {
 				max=buf[++m]&0xf;
-				if(isdigit((uchar)buf[m+1]))
+				if(isdigit(buf[m+1]))
 					max=max*10+(buf[++m]&0xf); 
 			}
-			if(buf[m+1]=='.' && isdigit((uchar)buf[m+2])) {
+			if(buf[m+1]=='.' && isdigit(buf[m+2])) {
 				m++;
 				min=buf[++m]&0xf;
-				if(isdigit((uchar)buf[m+1]))
+				if(isdigit(buf[m+1]))
 					min=min*10+(buf[++m]&0xf); 
 			}
 			if(buf[m+1]=='"') {
@@ -396,15 +396,15 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 				cr=1;
 				m++; 
 			}
-			if(isdigit((uchar)buf[m+1])) {
+			if(isdigit(buf[m+1])) {
 				max=buf[++m]&0xf;
-				if(isdigit((uchar)buf[m+1]))
+				if(isdigit(buf[m+1]))
 					max=max*10+(buf[++m]&0xf); 
 			}
-			if(buf[m+1]=='.' && isdigit((uchar)buf[m+2])) {
+			if(buf[m+1]=='.' && isdigit(buf[m+2])) {
 				m++;
 				min=buf[++m]&0xf;
-				if(isdigit((uchar)buf[m+1]))
+				if(isdigit(buf[m+1]))
 					min=min*10+(buf[++m]&0xf); 
 			}
 			if(buf[m+1]=='"') {
@@ -536,9 +536,9 @@ size_t sbbs_t::gettmplt(char *strout, const char *templt, long mode)
 			}
 		}
 		else if(c<t) {
-			if(tmplt[c]=='N' && !isdigit((uchar)ch))
+			if(tmplt[c]=='N' && !isdigit(ch))
 				continue;
-			if(tmplt[c]=='A' && !isalpha((uchar)ch))
+			if(tmplt[c]=='A' && !isalpha(ch))
 				continue;
 			outchar(ch);
 			str[c++]=ch;
