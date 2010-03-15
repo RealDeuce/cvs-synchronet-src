@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.346 2011/03/01 22:27:02 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.344 2010/03/13 08:20:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -440,7 +440,7 @@ public:
 	uint	getusrgrp(uint subnum);
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
-				,bool del=false, bool next=false);
+				,bool del);
 	ulong	gettimeleft(bool handle_out_of_time=true);
 	bool	gettimeleft_inside;
 
