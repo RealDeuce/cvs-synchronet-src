@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.88 2010/03/13 08:15:07 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.89 2010/03/15 18:42:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -598,10 +598,11 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 	}
 	fname=cmdline;
 
+	path[0]=0;
 	if(strcspn(fname,"/\\")==strlen(fname)) {
 		if(startup_dir!=NULL && *startup_dir)
 			SAFEPRINTF3(path,"%s%s%s",startup_dir,fname,js_ext(fname));
-		if(!fexistcase(path)) {
+		if(path[0]==0 || !fexistcase(path)) {
 			SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
 			if(cfg.mods_dir[0]==0 || !fexistcase(path))
 				SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
