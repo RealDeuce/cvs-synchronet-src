@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.167 2011/04/23 17:43:31 deuce Exp $ */
+/* $Id: syncterm.c,v 1.164 2010/02/26 01:26:02 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -34,7 +34,7 @@
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.5b"
+char* syncterm_version = "SyncTERM 0.9.4b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -1117,7 +1117,7 @@ int main(int argc, char **argv)
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
-	uifc.mode=UIFC_NOCTRL|UIFC_NHM;
+	uifc.mode=UIFC_NOCTRL;
 	uifc.size=sizeof(uifc);
 	uifc.esc_delay=25;
 	url[0]=0;
