@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.524 2010/03/13 08:15:08 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.525 2010/03/17 04:25:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1723,9 +1723,9 @@ static named_string_t** read_ini_list(char* path, char* section, char* desc
 		iniCloseFile(fp);
 		COUNT_LIST_ITEMS(list,i);
 		if(i)
-			lprintf(LOG_DEBUG,"Read %u %s from %s",i,desc,path);
+			lprintf(LOG_DEBUG,"Read %u %s from %s section of %s"
+				,i,desc,section==NULL ? "root":section,path);
 	}
-
 	return(list);
 }
 
@@ -5187,7 +5187,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.524 $", "%*s %s", revision);
+	sscanf("$Revision: 1.525 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5473,8 +5473,10 @@ void DLLCALL web_server(void* arg)
 		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
 			,mime_types);
 		iniFileName(web_handler_ini,sizeof(web_handler_ini),scfg.ctrl_dir,"web_handler.ini");
-		cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
-			,cgi_handlers);
+		if((cgi_handlers=read_ini_list(web_handler_ini,"CGI."PLATFORM_DESC,"CGI content handlers"
+			,cgi_handlers))==NULL)
+			cgi_handlers=read_ini_list(web_handler_ini,"CGI","CGI content handlers"
+				,cgi_handlers);
 		xjs_handlers=read_ini_list(web_handler_ini,"JavaScript","JavaScript content handlers"
 			,xjs_handlers);
 
