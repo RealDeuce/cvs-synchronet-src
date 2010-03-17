@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.116 2010/03/17 05:08:26 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.117 2010/03/17 08:27:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -532,7 +532,7 @@ char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong 
 	double	bytes;
 
 	if(value==0)
-		SAFECPY(str,"0");
+		SAFECOPY(str,"0");
 	else
 		switch(unit) {
 			case 1024*1024*1024:
