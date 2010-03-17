@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.354 2009/05/30 22:12:45 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.365 2010/03/13 08:15:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,11 +79,11 @@
 static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
-static DWORD	active_clients=0;
-static DWORD	sockets=0;
-static DWORD	thread_count=0;
+static ulong	active_clients=0;
+static ulong	sockets=0;
+static ulong	thread_count=0;
 static time_t	uptime=0;
-static DWORD	served=0;
+static ulong	served=0;
 static BOOL		terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
@@ -138,8 +138,11 @@ static int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	if(level <= LOG_ERR)
-		errorlog(&scfg,sbuf);
+	if(level <= LOG_ERR) {
+		errorlog(&scfg, startup==NULL ? NULL:startup->host_name, sbuf);
+		if(startup!=NULL && startup->errormsg!=NULL)
+			startup->errormsg(startup->cbdata,level,sbuf);
+	}
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
 		return(0);
@@ -339,8 +342,8 @@ int getdir(char* p, user_t* user, client_t* client)
 {
 	char*	tp;
 	char	path[MAX_PATH+1];
-	int		dir;
-	int		lib;
+	uint	dir;
+	uint	lib;
 
 	SAFECOPY(path,p);
 	p=path;
@@ -483,7 +486,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static JSContext* 
-js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
+js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_branch_t* branch)
 {
 	JSContext*	js_cx;
 	JSObject*	js_glob;
@@ -500,13 +503,21 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp)
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
+	memset(branch, 0, sizeof(js_branch_t));
+
+	/* ToDo: call js_CreateCommonObjects() instead */
+
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing Global object",sock);
-		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL))==NULL) 
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js))==NULL) 
 			break;
 
-		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
+		if(!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
+			break;
+
+		/* Internal JS Object */
+		if(js_CreateInternalJsObject(js_cx, js_glob, branch, &startup->js)==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing System object",sock);
@@ -1000,6 +1011,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
+		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -2078,8 +2090,8 @@ void parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curd
 	char*	p;
 	char*	tp;
 	char	path[MAX_PATH+1];
-	int		dir=*curdir;
-	int		lib=*curlib;
+	uint	dir=*curdir;
+	uint	lib=*curlib;
 
 	SAFECOPY(path,*pp);
 	p=path;
@@ -2340,7 +2352,7 @@ static void ctrl_thread(void* arg)
 	char		ren_from[MAX_PATH+1]="";
 	char		html_index_ext[MAX_PATH+1];
 	WORD		port;
-	ulong		ip_addr;
+	uint32_t	ip_addr;
 	socklen_t	addr_len;
 	DWORD		h1,h2,h3,h4;
 	u_short		p1,p2;	/* For PORT command */
@@ -2405,6 +2417,7 @@ static void ctrl_thread(void* arg)
 	JSObject*	js_glob;
 	JSObject*	js_ftp;
 	JSString*	js_str;
+	js_branch_t	js_branch;
 #endif
 
 	SetThreadName("FTP CTRL");
@@ -2460,14 +2473,8 @@ static void ctrl_thread(void* arg)
 	else
 		host_name="<no name>";
 
-#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
-	     and getnameinfo() doesn't return alias information */
-	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
+	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
-		for(i=0;host!=NULL && host->h_aliases!=NULL && host->h_aliases[i]!=NULL;i++)
-			lprintf(LOG_INFO,"%04d HostAlias: %s", sock, host->h_aliases[i]);
-	}
-#endif
 
 	if(trashcan(&scfg,host_ip,"ip")) {
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
@@ -3916,7 +3923,7 @@ static void ctrl_thread(void* arg)
 
 					if(js_cx==NULL) {	/* Context not yet created, create it now */
 						/* js_initcx() starts a request */
-						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp))==NULL)) {
+						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_branch))==NULL)) {
 							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
 							sockprintf(sock,"451 Error initializing JavaScript context");
 							filepos=0;
@@ -4575,8 +4582,9 @@ static void cleanup(int code, int line)
 	thread_down();
 	status("Down");
 	if(terminate_server || code)
-		lprintf(LOG_INFO,"#### FTP Server thread terminated (%u threads remain, %lu clients served)"
-			,thread_count, served);
+		lprintf(LOG_INFO,"#### FTP Server thread terminated (%lu clients served)", served);
+	if(thread_count)
+		lprintf(LOG_WARNING,"#### !FTP Server threads (%u) remain after termination", thread_count);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -4588,7 +4596,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.354 $", "%*s %s", revision);
+	sscanf("$Revision: 1.365 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
