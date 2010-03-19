@@ -2,13 +2,13 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.44 2009/09/18 18:22:37 rswindell Exp $ */
+/* $Id: str_util.c,v 1.45 2010/02/25 06:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -203,7 +203,7 @@ BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 }
 
 /****************************************************************************/
-/* Pattern matching string search of 'insearchof' in 'fname'.				*/
+/* Pattern matching string search of 'insearchof' in 'list'.				*/
 /****************************************************************************/
 BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 {

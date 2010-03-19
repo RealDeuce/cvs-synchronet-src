@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.131 2010/02/23 00:21:32 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.133 2010/03/08 00:58:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,12 +77,21 @@ void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
 	/* pHostName is no longer used since iniFileName calls gethostname() itself */
 
+#if defined(_WINSOCKAPI_)	 
+	WSADATA WSAData;	 
+    WSAStartup(MAKEWORD(1,1), &WSAData); /* req'd for gethostname */	 
+#endif	 
+
 #if defined(__unix__) && defined(PREFIX)
 	sprintf(ini_file,PREFIX"/etc/sbbs.ini");
 	if(fexistcase(ini_file))
 		return;
 #endif
 	iniFileName(ini_file,MAX_PATH,ctrl_dir,"sbbs.ini");
+
+#if defined(_WINSOCKAPI_)	 
+	WSACleanup();	 
+#endif
 }
 
 static void sbbs_fix_js_settings(js_startup_t* js)
@@ -101,9 +110,9 @@ void sbbs_get_js_settings(
 	char	value[INI_MAX_VALUE_LEN];
     char*   p;
 
-	js->max_bytes		= iniGetInteger(list,section,strJavaScriptMaxBytes		,defaults->max_bytes);
-	js->cx_stack		= iniGetInteger(list,section,strJavaScriptContextStack	,defaults->cx_stack);
-	js->thread_stack	= iniGetInteger(list,section,strJavaScriptThreadStack	,defaults->thread_stack);
+	js->max_bytes		= (ulong)iniGetBytes(list,section,strJavaScriptMaxBytes		,/* unit: */1,defaults->max_bytes);
+	js->cx_stack		= (ulong)iniGetBytes(list,section,strJavaScriptContextStack	,/* unit: */1,defaults->cx_stack);
+	js->thread_stack	= (ulong)iniGetBytes(list,section,strJavaScriptThreadStack	,/* unit: */1,defaults->thread_stack);
 	js->branch_limit	= iniGetInteger(list,section,strJavaScriptBranchLimit	,defaults->branch_limit);
 	js->gc_interval		= iniGetInteger(list,section,strJavaScriptGcInterval	,defaults->gc_interval);
 	js->yield_interval	= iniGetInteger(list,section,strJavaScriptYieldInterval	,defaults->yield_interval);
@@ -145,17 +154,17 @@ BOOL sbbs_set_js_settings(
 	if(js->max_bytes==defaults->max_bytes)
 		iniRemoveValue(lp,section,strJavaScriptMaxBytes);
 	else
-		failure|=iniSetInteger(lp,section,strJavaScriptMaxBytes,js->max_bytes,style)==NULL;
+		failure|=iniSetBytes(lp,section,strJavaScriptMaxBytes,/*unit: */1, js->max_bytes,style)==NULL;
 
 	if(js->cx_stack==defaults->cx_stack)
 		iniRemoveValue(lp,section,strJavaScriptContextStack);
 	else 
-		failure|=iniSetInteger(lp,section,strJavaScriptContextStack,js->cx_stack,style)==NULL;
+		failure|=iniSetBytes(lp,section,strJavaScriptContextStack,/*unit: */1,js->cx_stack,style)==NULL;
 
 	if(js->thread_stack==defaults->thread_stack)
 		iniRemoveValue(lp,section,strJavaScriptThreadStack);
 	else 
-		failure|=iniSetInteger(lp,section,strJavaScriptThreadStack,js->thread_stack,style)==NULL;
+		failure|=iniSetBytes(lp,section,strJavaScriptThreadStack,/*unit: */1,js->thread_stack,style)==NULL;
 
 	if(js->branch_limit==defaults->branch_limit)
 		iniRemoveValue(lp,section,strJavaScriptBranchLimit);
