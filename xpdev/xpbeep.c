@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.76 2009/01/14 07:06:30 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.77 2009/09/04 00:49:48 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -792,7 +792,7 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 		int written=0;
 
 		while(written < sample_size) {
-			ret=alsa_api->snd_pcm_writei(playback_handle, written, sample_size-written);
+			ret=alsa_api->snd_pcm_writei(playback_handle, sample+written, sample_size-written);
 			if(ret < 0) {
 				if(written==0) {
 					/* Go back and try OSS */
