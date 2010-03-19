@@ -1,5 +1,4 @@
-var currtext='';
-var stringsequence={storing:false,value:'',type:0};
+var connection=null;
 
 function writeHTML(data)
 {
@@ -7,16 +6,9 @@ function writeHTML(data)
 	var doc=frame.contentDocument;
 	var win=frame.contentWindow;
 	var term=doc.getElementById("terminal");
-	var bottom;
-	var offe;
+	var top;
 
-	currtext += data;
-	if(term==null)
-		return;
-	term.innerHTML = currtext;
-
-	var winVisible=win.innerHeight-win.scrollMaxY;
-	/* Scroll to bottom of terminal container */
+	term.innerHTML += data;
 	if(term.scroll != undefined && term.clientHeight != undefined) {
 		term.scroll(0, term.clientHeight);
 	}
@@ -27,71 +19,17 @@ function writeHTML(data)
 		if(term.scrollTop != top)
 			term.scrollTop=top;
 	}
-	else {
-		alert("Scroll problems!");
-	}
-
-	/* Scroll window so that the bottom of the terminal container is visible */
-	bottom=term.offsetHeight;
-	offe=term;
-	do {
-		bottom += offe.offsetTop;
-		offe = offe.offsetParent;
-	} while(offe && offe.tagName != 'BODY');
-	top = win.scrollY;
-	if(bottom > win.scrollY+winVisible) {
-		top=bottom-winVisible;
-	}
-	else if(bottom < win.scrollY) {
-		/* TODO: Just show some of the bottom */
-		top=bottom-winVisible;
-	}
-	if(top < 0)
-		top=0;
-	if(top != win.scrollY)
-		win.scroll(win.scrollX,top);
 }
 
 function writeText(data)
 {
-	if(stringsequence.storing) {
-		stringsequence.value += data;
-	}
-	else {
-		if(Zuul.escapeHTML) {
-			data=data.replace(/&/g,'&amp;');
-			data=data.replace(/</g,'&lt;');
-			data=data.replace(/>/g,'&gt;');
-			data=data.replace(/'/g,'&apos;');
-			data=data.replace(/"/g,'&quot;');
-			data=data.replace(/ /g,'&nbsp;');
-		}
-		writeHTML(data);
-	}
-}
-
-function handleString(obj)
-{
-	var doc=document.getElementById("frame").contentDocument;
-	var term=doc.getElementById("terminal");
-	var win=document.getElementById("frame").contentWindow;
-	var tmp;
-
-	switch(obj.type) {
-		case '\x90':
-			tmp = obj.value.match(/^([^\s]+) (.*)/);
-			if(tmp != null) {
-				switch(tmp[1]) {
-					case 'GET':
-						win.location=tmp[2];
-						break;
-				}
-			}
-			break;
-		case '\x9f':
-			eval(obj.value, win);
-			break;
-	}
+	data=data.replace(/&/g,'&amp;');
+	data=data.replace(/</g,'&lt;');
+	data=data.replace(/>/g,'&gt;');
+	data=data.replace(/'/g,'&apos;');
+	data=data.replace(/"/g,'&quot;');
+	data=data.replace(/ /g,'&nbsp;');
+	writeHTML(data);
 }
 
 function handleCtrl(byte)
@@ -108,62 +46,31 @@ function handleCtrl(byte)
 		case '\r':
 			break;
 		case '\b':
-			if(currtext.length > 0) {
-				switch(currtext.charAt(currtext.length-1)) {
-					case ';':
-						currtext = currtext.replace(/&[^&]+;$/,'');
-						term.innerHTML=currtext;
-						break;
-					case '>':
-						break;
-					default:
-						currtext = currtext.replace(/.$/,'');
-						term.innerHTML=currtext;
-						break;
-				}
-			}
+			term.innerHTML = term.innerHTML.replace(/[^\x00-\x1F]$/,'');
 			break;
 		case '\x0c':	// Formfeed -- clear screen
-			currtext = '';
-			term.innerHTML=currtext;
+			term.innerHTML = '';
 			break;
 		case '\x07':	// BEL
 			sound.beep();
 			break;
 		case '\x85':	// NEL (Next Line)
-			writeHTML("<br>");
-			break;
-		case '\x98':	// SOS (Start Of String)
-		case '\x90':	// DCS (Device Control String)
-		case '\x9d':	// OSC (Operating System Command)
-		case '\x9e':	// PM  (Privacy Message)
-		case '\x9f':	// APC (Application Program Command)
-			stringsequence.storing=true;
-			stringsequence.value='';
-			stringsequence.type=byte;
-			break;
-		case '\x9c':	// ST  (String Terminator)
-			stringsequence.storing=false;
-			handleString(stringsequence);
+			writeText("\r\n");
 			break;
 	}
 }
 
 function UpdateTerm(data)
 {
-	var val;
-
 	while(data.length) {
-		data=data.replace(/^([^\x00-\x1F\x80-\x9f]+)/, function(matched, text) {
+		data=data.replace(/^([^\x00-\x1F\x80-\x9f]*)/, function(matched, text) {
 			writeText(text);
 			return '';
 		});
 		if(data.length) {
-			val=data.charCodeAt(0);
-			while(val < 32 || (val >= 0x90 && val <= 0x9f)) {
+			while(data.charCodeAt(0) < 32) {
 				handleCtrl(data.substr(0,1));
 				data=data.substr(1);
-				val=data.charCodeAt(0);
 			}
 		}
 	}
@@ -173,17 +80,14 @@ function doTerm(host, port)
 {
 	var ConnOpt=document.getElementById("MainConnectionMenu-connect").disabled=true;
 	var DisconnOpt=document.getElementById("MainConnectionMenu-disconnect").disabled=false;
-	Zuul.connection=new RLoginConnection(host,port,UpdateTerm);
-	currtext='';
-	document.getElementById("frame").contentWindow.location="chrome://ZuulTerm/content/default.html";
-	Zuul.escapeHTML=true;
+	connection=new RLoginConnection(host,port,UpdateTerm);
 }
 
 function endTerm()
 {
-	if(Zuul.connection != null)
-		Zuul.connection.close();
-	Zuul.connection=null;
+	if(connection != null)
+		connection.close();
+	connection=null;
 
 	var ConnOpt=document.getElementById("MainConnectionMenu-connect").disabled=false;
 	var DisconnOpt=document.getElementById("MainConnectionMenu-disconnect").disabled=true;
@@ -218,7 +122,7 @@ function translateKey(key)
 
 function sendKey(key)
 {
-	if(Zuul.connection != null) {
-		Zuul.connection.write(translateKey(key));
+	if(connection != null) {
+		connection.write(translateKey(key));
 	}
 }
