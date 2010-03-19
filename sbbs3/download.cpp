@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.37 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: download.cpp,v 1.42 2010/03/12 19:16:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,12 +44,13 @@
 /****************************************************************************/
 void sbbs_t::downloadfile(file_t* f)
 {
-    char	str[256],fname[13];
-	char 	tmp[512];
-    int		i,file;
-	long	length,mod;
-    ulong	l;
-	user_t	uploader;
+    char		str[256],fname[13];
+	char 		tmp[512];
+    int			i,file;
+	long		mod;
+	long		length;
+    ulong		l;
+	user_t		uploader;
 
 	getfiledat(&cfg,f); /* Get current data - right after download */
 	if((length=f->size)<0L)
@@ -68,7 +69,7 @@ void sbbs_t::downloadfile(file_t* f)
 	/* Update Downloader's Info */
 	/****************************/
 	user_downloaded(&cfg, &useron, 1, length);
-	if(!is_download_free(&cfg,f->dir,&useron))
+	if(!is_download_free(&cfg,f->dir,&useron,&client))
 		subtract_cdt(&cfg,&useron,f->cdt);
 	/**************************/
 	/* Update Uploader's Info */
@@ -106,7 +107,7 @@ void sbbs_t::downloadfile(file_t* f)
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if(length%F_IXBSIZE) {
 		close(file);
 		errormsg(WHERE,ERR_LEN,str,length);
@@ -118,7 +119,7 @@ void sbbs_t::downloadfile(file_t* f)
 	for(l=0;l<(ulong)length;l+=F_IXBSIZE) {
 		read(file,str,F_IXBSIZE);      /* Look for the filename in the IXB file */
 		str[11]=0;
-		if(!strcmp(fname,str)) 
+		if(!stricmp(fname,str)) 
 			break; 
 	}
 	if(l>=(ulong)length) {
@@ -229,7 +230,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 		ex_mode|=EX_NATIVE;
 #ifdef __unix__		/* file xfer progs must use stdio on Unix */
 	if(!(prot->misc&PROT_SOCKET))
-		ex_mode|=(EX_INR|EX_OUTR|EX_BIN);
+		ex_mode|=(EX_STDIO|EX_BIN);
 #endif
 
 	i=external(cmdline,ex_mode,p);
@@ -247,7 +248,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 			if(!fgets(protlog,sizeof(protlog),stream))
 				break;
 			truncsp(protlog);
-			logline(nulstr,protlog);
+			logline(LOG_DEBUG,nulstr,protlog);
 		}
 		fclose(stream);
 	}
@@ -397,7 +398,7 @@ bool sbbs_t::checkprotresult(prot_t* prot, int error, file_t* f)
 		else if(f->dir==cfg.total_dirs+1)
 			sprintf(str,"%s attempted to download attached file: %s"
 				,useron.alias,f->name);
-		logline("D!",str);
+		logline(LOG_NOTICE,"D!",str);
 		return(false); 
 	}
 	return(true);
@@ -462,7 +463,7 @@ bool sbbs_t::sendfile(char* fname, char prot)
 		mnemonics(text[ProtocolOrQuit]);
 		strcpy(keys,"Q");
 		for(i=0;i<cfg.total_prots;i++)
-			if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron))
+			if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client))
 				sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
 
 		ch=(char)getkeys(keys,0);
@@ -471,7 +472,7 @@ bool sbbs_t::sendfile(char* fname, char prot)
 			return(false); 
 	}
 	for(i=0;i<cfg.total_prots;i++)
-		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron))
+		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron,&client))
 			break;
 	if(i<cfg.total_prots) {
 		if(protocol(cfg.prot[i],XFER_DOWNLOAD,fname,fname,false)==0)
