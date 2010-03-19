@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.511 2010/02/25 06:40:51 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.515 2010/03/19 07:57:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -717,7 +717,7 @@ static void pop3_thread(void* arg)
 	char*		msgtxt;
 	int			i;
 	int			rd;
-	BOOL		activity=FALSE;
+	BOOL		activity=TRUE;
 	BOOL		apop=FALSE;
 	long		l;
 	ulong		lines;
@@ -907,6 +907,7 @@ static void pop3_thread(void* arg)
 		/* Update client display */
 		client.user=user.alias;
 		client_on(socket,&client,TRUE /* update */);
+		activity=FALSE;
 
 		if(startup->options&MAIL_OPT_DEBUG_POP3)		
 			lprintf(LOG_INFO,"%04d POP3 %s logged in %s", socket, user.alias, apop ? "via APOP":"");
@@ -1278,9 +1279,14 @@ static void pop3_thread(void* arg)
 
 	} while(0);
 
-	if(activity) 
-		lprintf(LOG_INFO,"%04d POP3 %s logged out from port %u on %s [%s]"
-			,socket, user.alias, ntohs(pop3.client_addr.sin_port), host_name, host_ip);
+	if(activity) {
+		if(user.number)
+			lprintf(LOG_INFO,"%04d POP3 %s logged out from port %u on %s [%s]"
+				,socket, user.alias, ntohs(pop3.client_addr.sin_port), host_name, host_ip);
+		else
+			lprintf(LOG_INFO,"%04d POP3 client disconnected from port %u on %s [%s]"
+				,socket, ntohs(pop3.client_addr.sin_port), host_name, host_ip);
+	}
 
 	status(STATUS_WFC);
 
@@ -1817,7 +1823,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 			lprintf(LOG_DEBUG,"%04d %s Executing: %s"
 				,sock, log_prefix, cmdline);
 			if((js_script=JS_CompileFile(*js_cx, js_scope, path)) != NULL)
-				js_PrepareToExecute(*js_cx, js_scope, path);
+				js_PrepareToExecute(*js_cx, js_scope, path, /* startup_dir: */NULL);
 		}
 		if(js_script==NULL)
 			break;
@@ -3808,7 +3814,7 @@ static void smtp_thread(void* arg)
 				}
 			}
 			if(cmd==SMTP_CMD_MAIL) {
-#if 0	/* implement later */
+#if 0	/* TODO implement later */
 				if(useron.etoday>=cfg.level_emailperday[useron.level]
 					&& !(useron.rest&FLAG('Q'))) {
 					bputs(text[TooManyEmailsToday]);
@@ -4674,7 +4680,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.511 $", "%*s %s", revision);
+	sscanf("$Revision: 1.515 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

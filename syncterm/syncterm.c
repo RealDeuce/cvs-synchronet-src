@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.163 2010/02/26 00:19:34 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.164 2010/02/26 01:26:02 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -806,6 +806,14 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 				&& (bbs->password[0]==0 || (stricmp(bbs->password,list[i]->password)==0))) {
 			memcpy(bbs,list[i],sizeof(struct bbslist));
 			break;
+		}
+	}
+	if(i==listcount) {
+		for(i=0;i<listcount;i++) {
+			if(stricmp(bbs->name,list[i]->name)==0) {
+				memcpy(bbs,list[i],sizeof(struct bbslist));
+				break;
+			}
 		}
 	}
 	free_list(&list[0],listcount);
