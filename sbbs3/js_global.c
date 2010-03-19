@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.252 2009/10/24 04:58:56 rswindell Exp $ */
+/* $Id: js_global.c,v 1.256 2010/03/19 01:20:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -350,14 +350,17 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		path[0]=0;	/* Empty path, indicates load file not found (yet) */
 
+		JS_RESUMEREQUEST(cx, rc);
 		if(JS_GetProperty(cx, obj, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val)) {
 			JSObject* js_obj = JSVAL_TO_OBJECT(val);
 			
 			/* if js.exec_dir is defined (location of executed script), search their first */
 			if(JS_GetProperty(cx, js_obj, "exec_dir", &val) && val!=JSVAL_VOID && JSVAL_IS_STRING(val)) {
 				SAFEPRINTF2(path,"%s%s",js_ValueToStringBytes(cx, val, NULL),filename);
+				rc=JS_SUSPENDREQUEST(cx);
 				if(!fexistcase(path))
 					path[0]=0;
+				JS_RESUMEREQUEST(cx, rc);
 			}
 			if(JS_GetProperty(cx, js_obj, JAVASCRIPT_LOAD_PATH_LIST, &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))
 				js_load_list = JSVAL_TO_OBJECT(val);
@@ -374,6 +377,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					if(prefix[0]==0)
 						continue;
 					backslash(prefix);
+					rc=JS_SUSPENDREQUEST(cx);
 					if(isfullpath(prefix)) {
 						SAFEPRINTF2(path,"%s%s",prefix,filename);
 						if(!fexistcase(path))
@@ -384,9 +388,11 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 						if(!fexistcase(path))
 							path[0]=0;
 					}
+					JS_RESUMEREQUEST(cx, rc);
 				}
 			}
 		}
+		rc=JS_SUSPENDREQUEST(cx);
 		/* if mods_dir is defined, search there next */
 		if(path[0]==0 && p->cfg->mods_dir[0]!=0) {
 			SAFEPRINTF2(path,"%s%s",p->cfg->mods_dir,filename);
@@ -399,9 +405,13 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			char		prefix[MAX_PATH+1];
 
 			for(i=0;path[0]==0;i++) {
-				if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID)
+				JS_RESUMEREQUEST(cx, rc);
+				if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID) {
+					rc=JS_SUSPENDREQUEST(cx);
 					break;
+				}
 				SAFECOPY(prefix,js_ValueToStringBytes(cx, val, NULL));
+				rc=JS_SUSPENDREQUEST(cx);
 				if(prefix[0]==0)
 					continue;
 				backslash(prefix);
@@ -851,14 +861,14 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>2)
 		prefix=js_ValueToStringBytes(cx, argv[2], NULL);
 
-	if((outbuf=(char*)malloc((strlen(inbuf)*strlen(prefix))+1))==NULL)
+	if((outbuf=(char*)malloc((strlen(inbuf)*(strlen(prefix)+1))+1))==NULL)
 		return(JS_FALSE);
 
 	len-=strlen(prefix);
 	if(len<=0)
 		return(JS_FALSE);
 
-	if((linebuf=(char*)alloca(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
+	if((linebuf=(char*)alloca((len*3)+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -2544,7 +2554,7 @@ static JSBool
 js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	long		fl;
+	off_t		fl;
 	jsrefcount	rc;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -2556,7 +2566,7 @@ js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	fl=flength(p);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,fl,rval);
+	JS_NewNumberValue(cx,(double)fl,rval);
 	return(JS_TRUE);
 }
 
