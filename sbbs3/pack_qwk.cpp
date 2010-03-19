@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.61 2010/12/07 00:35:31 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.60 2010/03/12 08:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,7 +278,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		qwkmail_last=0;
 		mail=loadmail(&smb,&mailmsgs,useron.number,0,useron.qwk&QWK_ALLMAIL ? 0
 			: LM_UNREAD);
-		if(mailmsgs && (online==ON_LOCAL || !(sys_status&SS_ABORT))) {
+		if(mailmsgs && !(sys_status&SS_ABORT)) {
 			bputs(text[QWKPackingEmail]);
 			if(!(useron.qwk&QWK_NOINDEX)) {
 				SAFEPRINTF(str,"%s000.NDX",cfg.temp_dir);
@@ -537,10 +537,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	}
 	CRLF;
 
-	if(!prepack && online!=ON_LOCAL && ((sys_status&SS_ABORT) || !online)) {
-		bputs(text[Aborted]);
+	if(!prepack && (sys_status&SS_ABORT || !online))
 		return(false);
-	}
 
 	if(/*!prepack && */ useron.rest&FLAG('Q')) { /* If QWK Net node, check for files */
 		char id[LEN_QWKID+1];

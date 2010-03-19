@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.245 2010/04/02 23:23:00 deuce Exp $ */
+/* $Id: services.c,v 1.243 2010/03/15 21:54:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -945,19 +945,6 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	return js_CommonBranchCallback(cx,&client->branch);
 }
 
-#ifdef USE_JS_OPERATION_CALLBACK
-static JSBool
-js_OperationCallback(JSContext *cx)
-{
-	JSBool	ret;
-
-	JS_SetOperationCallback(cx, NULL);
-	ret=js_BranchCallback(cx, NULL);
-	JS_SetOperationCallback(cx, js_OperationCallback);
-	return ret;
-}
-#endif
-
 static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline)
 {
 	char					argbuf[MAX_PATH+1];
@@ -1141,11 +1128,7 @@ static void js_service_thread(void* arg)
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
-#ifdef USE_JS_OPERATION_CALLBACK
-		JS_SetOperationCallback(js_cx, js_OperationCallback);
-#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
-#endif
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1244,11 +1227,7 @@ static void js_static_service_thread(void* arg)
 		val = BOOLEAN_TO_JSVAL(JS_FALSE);
 		JS_SetProperty(js_cx, js_glob, "logged_in", &val);
 
-#ifdef USE_JS_OPERATION_CALLBACK
-		JS_SetOperationCallback(js_cx, js_OperationCallback);
-#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
-#endif
 	
 		if((js_script=JS_CompileFile(js_cx, js_glob, spath))==NULL)  {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",service->socket,spath);
@@ -1636,7 +1615,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.245 $", "%*s %s", revision);
+	sscanf("$Revision: 1.243 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
