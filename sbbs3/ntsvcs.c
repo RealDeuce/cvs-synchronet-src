@@ -2,13 +2,13 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.38 2009/02/11 20:02:18 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.40 2010/03/17 04:27:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -92,7 +92,7 @@ typedef struct {
 
 sbbs_ntsvc_t bbs ={	
 	NTSVC_NAME_BBS,
-	"Synchronet Telnet/RLogin/SSH Server",
+	"Synchronet Terminal Server",
 	"Provides support for Telnet, RLogin, and SSH clients and executes timed events. " \
 		"This service provides the critical functions of your Synchronet BBS.",
 	&bbs_startup,
@@ -1352,7 +1352,7 @@ int main(int argc, char** argv)
 	printf("\nAvailable Commands:\n\n");
 	printf("%-20s %s\n","list","to list services");
     printf("%-20s %s\n","install","to install services");
-    printf("%-20s %s\n","remove","to remove serivces");
+    printf("%-20s %s\n","remove","to remove services");
     printf("%-20s %s\n","disable","to disable services");
     printf("%-20s %s\n","enable","to re-enable disabled services");
     printf("%-20s %s\n","start","to start services");
