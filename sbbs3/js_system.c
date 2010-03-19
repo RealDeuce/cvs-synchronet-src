@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.134 2011/03/04 02:26:43 mcmlxxix Exp $ */
+/* $Id: js_system.c,v 1.127 2009/11/21 20:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -503,7 +503,6 @@ static char* sys_prop_desc[] = {
 	,"Synchronet version number in decimal (e.g. 31301 for v3.13b)"
 	,"Synchronet version number in hexadecimal (e.g. 0x31301 for v3.13b)"
 	,"platform description (e.g. 'Win32', 'Linux', 'FreeBSD')"
-	,"architecture description (e.g. 'i386', 'i686', 'x86_64')"
 	,"socket library version information"
 	,"message base library version information"
 	,"compiler used to build Synchronet"
@@ -771,6 +770,7 @@ js_username(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+
 static JSBool
 js_matchuser(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -812,8 +812,6 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	int			len;
 	scfg_t*		cfg;
 	jsrefcount	rc;
-	BOOL		match_next=FALSE;
-	int 		argnum=2;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -822,28 +820,24 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	rc=JS_SUSPENDREQUEST(cx);
 	len=user_rec_len(offset);
 	JS_RESUMEREQUEST(cx, rc);
-	if(len<0) {
-		JS_ReportError(cx,"Invalid user data offset: %d", offset);
+	if(len<0)
 		return(JS_FALSE);
-	}
 
 	if((js_str=JS_ValueToString(cx, argv[1]))==NULL) {
 		*rval = INT_TO_JSVAL(0);
 		return(JS_TRUE);
 	}
 
-	if(JSVAL_IS_NUMBER(argv[argnum]))
-		JS_ValueToInt32(cx, argv[argnum++], &usernumber);
-	if(JSVAL_IS_BOOLEAN(argv[argnum]))
-		JS_ValueToBoolean(cx, argv[argnum], &match_next);
-		
+	if(argc>2)
+		JS_ValueToInt32(cx,argv[2],&usernumber);
+
 	if((p=JS_GetStringBytes(js_str))==NULL) {
 		*rval = INT_TO_JSVAL(0);
 		return(JS_TRUE);
 	}
-	
+
 	rc=JS_SUSPENDREQUEST(cx);
-	*rval = INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next));
+	*rval = INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE /* deleted users */));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -922,6 +916,7 @@ js_findstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+
 static JSBool
 js_zonestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -980,6 +975,7 @@ js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
+
 
 /* Returns a mm/dd/yy or dd/mm/yy formated string */
 static JSBool
@@ -1199,6 +1195,7 @@ js_get_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
+
 
 static JSBool
 js_put_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -1475,47 +1472,6 @@ js_chkname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-static JSBool 
-js_chkpid(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	int32		pid=0;
-	jsrefcount	rc;
-
-	*rval = JSVAL_FALSE;
-
-	if(argc<1)
-		return(JS_TRUE);
-
-	JS_ValueToInt32(cx,argv[0],&pid);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	*rval = BOOLEAN_TO_JSVAL(check_pid(pid));
-	JS_RESUMEREQUEST(cx, rc);
-
-	return(JS_TRUE);
-}
-
-static JSBool 
-js_killpid(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	int32		pid=0;
-	jsrefcount	rc;
-
-	*rval = JSVAL_FALSE;
-
-	if(argc<1)
-		return(JS_TRUE);
-
-	JS_ValueToInt32(cx,argv[0],&pid);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	*rval = BOOLEAN_TO_JSVAL(terminate_pid(pid));
-	JS_RESUMEREQUEST(cx, rc);
-
-	return(JS_TRUE);
-}
-
-
 static jsSyncMethodSpec js_system_functions[] = {
 	{"username",		js_username,		1,	JSTYPE_STRING,	JSDOCSTR("number")
 	,JSDOCSTR("returns name of user in specified user record <i>number</i>, or empty string if not found")
@@ -1530,10 +1486,9 @@ static jsSyncMethodSpec js_system_functions[] = {
 		" or 0 if not found, matches well-known sysop aliases by default")
 	,310
 	},		
-	{"matchuserdata",	js_matchuserdata,	2,	JSTYPE_NUMBER,	JSDOCSTR("field, data [,usernumber, match_next=<tt>false</tt>]")
-	,JSDOCSTR("search user database for data in a specific field (see <tt>U_*</tt> in <tt>sbbsdefs.js</tt>), "
-		"returns first matching user record number, optional <i>usernumber</i> specifies user record to skip, "
-		"or record at which to begin searching if optional <i>match_next</i> is <tt>true</tt>")
+	{"matchuserdata",	js_matchuserdata,	2,	JSTYPE_NUMBER,	JSDOCSTR("field, data [,usernumber]")
+	,JSDOCSTR("search user database for data in a specific field (specified by offset), "
+		"returns first matching user record number, optional <i>usernumber</i> specifies user record to skip")
 	,310
 	},
 	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
@@ -1607,22 +1562,12 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,311
 	},
 	{"check_syspass",	js_chksyspass,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("password")
-	,JSDOCSTR("compares the supplied <i>password</i> against the system password and returns <i>true</i> if it matches")
+	,JSDOCSTR("compares the supplied <i>password</i> against the system password and return's <i>true</i> if it matches")
 	,311
 	},
 	{"check_name",		js_chkname,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("name/alias")
 	,JSDOCSTR("checks that the provided name/alias string is suitable for a new user account, "
 		"returns <i>true</i> if it is valid")
-	,315
-	},
-	{"check_pid",		js_chkpid,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("process-ID")
-	,JSDOCSTR("checks that the provided process ID is a valid executing process on the system, "
-		"returns <i>true</i> if it is valid")
-	,315
-	},
-	{"terminate_pid",	js_killpid,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("process-ID")
-	,JSDOCSTR("terminates executing process on the system with the specified process ID, "
-		"returns <i>true</i> on success")
 	,315
 	},
 	{0}
@@ -1915,7 +1860,6 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_INTEGER("version_hex", VERSION_HEX);
 
 	LAZY_STRING("platform", PLATFORM_DESC);
-	LAZY_STRING("architecture", ARCHITECTURE_DESC);
 	LAZY_STRFUNC("msgbase_lib", sprintf(str,"SMBLIB %s",smb_lib_ver()), str);
 	LAZY_STRFUNC("compiled_with", DESCRIBE_COMPILER(str), str);
 	LAZY_STRFUNC("compiled_when", sprintf(str,"%s %.5s",__DATE__,__TIME__), str);

@@ -1,5 +1,4 @@
-var currtext='';
-var stringsequence={storing:false,value:'',type:0};
+var connection=null;
 
 function writeHTML(data)
 {
@@ -10,10 +9,7 @@ function writeHTML(data)
 	var bottom;
 	var offe;
 
-	currtext += data;
-	if(term==null)
-		return;
-	term.innerHTML = currtext;
+	term.innerHTML += data;
 
 	var winVisible=win.innerHeight-win.scrollMaxY;
 	/* Scroll to bottom of terminal container */
@@ -54,44 +50,13 @@ function writeHTML(data)
 
 function writeText(data)
 {
-	if(stringsequence.storing) {
-		stringsequence.value += data;
-	}
-	else {
-		if(Zuul.escapeHTML) {
-			data=data.replace(/&/g,'&amp;');
-			data=data.replace(/</g,'&lt;');
-			data=data.replace(/>/g,'&gt;');
-			data=data.replace(/'/g,'&apos;');
-			data=data.replace(/"/g,'&quot;');
-			data=data.replace(/ /g,'&nbsp;');
-		}
-		writeHTML(data);
-	}
-}
-
-function handleString(obj)
-{
-	var doc=document.getElementById("frame").contentDocument;
-	var term=doc.getElementById("terminal");
-	var win=document.getElementById("frame").contentWindow;
-	var tmp;
-
-	switch(obj.type) {
-		case '\x90':
-			tmp = obj.value.match(/^([^\s]+) (.*)/);
-			if(tmp != null) {
-				switch(tmp[1]) {
-					case 'GET':
-						win.location=tmp[2];
-						break;
-				}
-			}
-			break;
-		case '\x9f':
-			eval(obj.value, win);
-			break;
-	}
+	data=data.replace(/&/g,'&amp;');
+	data=data.replace(/</g,'&lt;');
+	data=data.replace(/>/g,'&gt;');
+	data=data.replace(/'/g,'&apos;');
+	data=data.replace(/"/g,'&quot;');
+	data=data.replace(/ /g,'&nbsp;');
+	writeHTML(data);
 }
 
 function handleCtrl(byte)
@@ -108,24 +73,21 @@ function handleCtrl(byte)
 		case '\r':
 			break;
 		case '\b':
-			if(currtext.length > 0) {
-				switch(currtext.charAt(currtext.length-1)) {
+			if(term.innerHTML.length > 0) {
+				switch(term.innerHTML.charCodeAt(term.innerHTML.length-1)) {
 					case ';':
-						currtext = currtext.replace(/&[^&]+;$/,'');
-						term.innerHTML=currtext;
+						term.innerHTML = term.innerHTML.replace(/&[^&]+;$/,'');
 						break;
 					case '>':
 						break;
 					default:
-						currtext = currtext.replace(/.$/,'');
-						term.innerHTML=currtext;
+						term.innerHTML = term.innerHTML.replace(/.$/,'');
 						break;
 				}
 			}
 			break;
 		case '\x0c':	// Formfeed -- clear screen
-			currtext = '';
-			term.innerHTML=currtext;
+			term.innerHTML = '';
 			break;
 		case '\x07':	// BEL
 			sound.beep();
@@ -133,37 +95,20 @@ function handleCtrl(byte)
 		case '\x85':	// NEL (Next Line)
 			writeHTML("<br>");
 			break;
-		case '\x98':	// SOS (Start Of String)
-		case '\x90':	// DCS (Device Control String)
-		case '\x9d':	// OSC (Operating System Command)
-		case '\x9e':	// PM  (Privacy Message)
-		case '\x9f':	// APC (Application Program Command)
-			stringsequence.storing=true;
-			stringsequence.value='';
-			stringsequence.type=byte;
-			break;
-		case '\x9c':	// ST  (String Terminator)
-			stringsequence.storing=false;
-			handleString(stringsequence);
-			break;
 	}
 }
 
 function UpdateTerm(data)
 {
-	var val;
-
 	while(data.length) {
-		data=data.replace(/^([^\x00-\x1F\x80-\x9f]+)/, function(matched, text) {
+		data=data.replace(/^([^\x00-\x1F\x80-\x9f]*)/, function(matched, text) {
 			writeText(text);
 			return '';
 		});
 		if(data.length) {
-			val=data.charCodeAt(0);
-			while(val < 32 || (val >= 0x90 && val <= 0x9f)) {
+			while(data.charCodeAt(0) < 32) {
 				handleCtrl(data.substr(0,1));
 				data=data.substr(1);
-				val=data.charCodeAt(0);
 			}
 		}
 	}
@@ -173,17 +118,14 @@ function doTerm(host, port)
 {
 	var ConnOpt=document.getElementById("MainConnectionMenu-connect").disabled=true;
 	var DisconnOpt=document.getElementById("MainConnectionMenu-disconnect").disabled=false;
-	Zuul.connection=new RLoginConnection(host,port,UpdateTerm);
-	currtext='';
-	document.getElementById("frame").contentWindow.location="chrome://ZuulTerm/content/default.html";
-	Zuul.escapeHTML=true;
+	connection=new RLoginConnection(host,port,UpdateTerm);
 }
 
 function endTerm()
 {
-	if(Zuul.connection != null)
-		Zuul.connection.close();
-	Zuul.connection=null;
+	if(connection != null)
+		connection.close();
+	connection=null;
 
 	var ConnOpt=document.getElementById("MainConnectionMenu-connect").disabled=false;
 	var DisconnOpt=document.getElementById("MainConnectionMenu-disconnect").disabled=true;
@@ -218,7 +160,7 @@ function translateKey(key)
 
 function sendKey(key)
 {
-	if(Zuul.connection != null) {
-		Zuul.connection.write(translateKey(key));
+	if(connection != null) {
+		connection.write(translateKey(key));
 	}
 }

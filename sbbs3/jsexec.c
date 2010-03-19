@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.140 2011/04/27 22:48:27 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.137 2010/03/19 01:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -585,19 +585,6 @@ js_BranchCallback(JSContext *cx, JSScript *script)
     return(js_CommonBranchCallback(cx,&branch));
 }
 
-#ifdef USE_JS_OPERATION_CALLBACK
-static JSBool
-js_OperationCallback(JSContext *cx)
-{
-	JSBool	ret;
-
-	JS_SetOperationCallback(cx, NULL);
-	ret=js_BranchCallback(cx, NULL);
-	JS_SetOperationCallback(cx, js_OperationCallback);
-	return ret;
-}
-#endif
-
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 {
 	char		name[256];
@@ -715,17 +702,15 @@ long js_exec(const char *fname, char** args)
 	long double	diff;
 
 	if(fname!=NULL) {
-		if(isfullpath(fname)) {
-			SAFECOPY(path,fname);
-		}
-		else {
+		if(strcspn(fname,"/\\")==strlen(fname)) {
 			SAFEPRINTF3(path,"%s%s%s",orig_cwd,fname,js_ext(fname));
 			if(!fexistcase(path)) {
 				SAFEPRINTF3(path,"%s%s%s",scfg.mods_dir,fname,js_ext(fname));
 				if(scfg.mods_dir[0]==0 || !fexistcase(path))
 					SAFEPRINTF3(path,"%s%s%s",scfg.exec_dir,fname,js_ext(fname));
 			}
-		}
+		} else
+			SAFECOPY(path,fname);
 
 		if(!fexistcase(path)) {
 			lprintf(LOG_ERR,"!Module file (%s) doesn't exist",path);
@@ -784,11 +769,7 @@ long js_exec(const char *fname, char** args)
 
 	branch.terminated=&terminated;
 
-#ifdef USE_JS_OPERATION_CALLBACK
-	JS_SetOperationCallback(js_cx, js_OperationCallback);
-#else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
-#endif
 
 	if(fp==stdin) 	 /* Using stdin for script source */
 		SAFECOPY(path,"stdin");
@@ -928,7 +909,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.140 $", "%*s %s", revision);
+	sscanf("$Revision: 1.137 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1134,7 +1115,6 @@ int main(int argc, char **argv, char** environ)
 
 		result=js_exec(module,&argv[argn]);
 		JS_ENDREQUEST(js_cx);
-		YIELD();
 
 		if(result)
 			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
