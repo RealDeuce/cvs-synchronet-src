@@ -195,7 +195,6 @@ static int init_window()
 	XColor color;
     int i;
 	XWindowAttributes	attr;
-	XWMHints *wmhints;
 
 	dpy = x11.XOpenDisplay(NULL);
     if (dpy == NULL) {
@@ -210,14 +209,6 @@ static int init_window()
     /* Create window, but defer setting a size and GC. */
     win = x11.XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0,
 			      1, 1, 2, black, black);
-
-	wmhints=x11.XAllocWMHints();
-	if(wmhints) {
-		wmhints->initial_state=NormalState;
-		wmhints->flags = (StateHint | IconPixmapHint | IconMaskHint | InputHint);
-		wmhints->input = True;
-		x11.XSetWMProperties(dpy, win, NULL, NULL, 0, 0, NULL, wmhints, NULL);
-	}
 
 	gcv.function = GXcopy;
     gcv.foreground = white;
@@ -308,8 +299,7 @@ static int video_init()
     if(init_window())
 		return(-1);
 
-	if(vstat.scaling<1)
-		vstat.scaling=1;
+	vstat.scaling=1;
 	bitmap_init(x11_drawrect, x11_flush);
 
     /* Initialize mode 3 (text, 80x25, 16 colors) */
@@ -461,13 +451,9 @@ static int x11_event(XEvent *ev)
 					break;
 				if(ev->xselection.requestor!=win)
 					break;
-				if(ev->xselection.property) {
-					x11.XGetWindowProperty(dpy, win, ev->xselection.property, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&pastebuf));
-					if(bytes_left > 0 && format==8)
-						x11.XGetWindowProperty(dpy, win, ev->xselection.property,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&pastebuf);
-					else
-						pastebuf=NULL;
-				}
+				x11.XGetWindowProperty(dpy, win, ev->xselection.property, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&pastebuf));
+				if(bytes_left > 0 && format==8)
+					x11.XGetWindowProperty(dpy, win, ev->xselection.property,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&pastebuf);
 				else
 					pastebuf=NULL;
 
@@ -743,20 +729,25 @@ static int x11_event(XEvent *ev)
 							break;
 						}
 
-						if (ev->xkey.state & Mod1Mask) {
-							scan = ScanCodes[scan & 0xff].alt;
-						} else if ((ev->xkey.state & ShiftMask) || (scan & 0x100)) {
+						if ((ev->xkey.state & ShiftMask) || (scan & 0x100)) {
 							scan = ScanCodes[scan & 0xff].shift;
 						} else if (ev->xkey.state & ControlMask) {
 							scan = ScanCodes[scan & 0xff].ctrl;
+						} else if (ev->xkey.state & Mod1Mask) {
+							scan = ScanCodes[scan & 0xff].alt;
 						}  else
 							scan = ScanCodes[scan & 0xff].base;
 
 						break;
 				}
 				if (scan != 0xffff) {
-					uint16_t key=scan;
-					write(key_pipe[1], &key, (scan&0xff)?1:2);
+					unsigned char ch;
+					ch=scan & 0xff;
+					write(key_pipe[1], &ch, 1);
+					if(!ch) {
+						ch=scan >> 8;
+						write(key_pipe[1], &ch, 1);
+					}
 				}
 				return(1);
 			}
@@ -858,7 +849,7 @@ void x11_event_thread(void *args)
 									FREE_AND_NULL(pastebuf);
 								}
 								else if(sowner!=None) {
-									x11.XConvertSelection(dpy, CONSOLE_CLIPBOARD, XA_STRING, XA_STRING, win, CurrentTime);
+									x11.XConvertSelection(dpy, CONSOLE_CLIPBOARD, XA_STRING, None, win, CurrentTime);
 								}
 								else {
 									/* Set paste buffer */
