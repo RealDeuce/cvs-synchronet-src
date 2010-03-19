@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.326 2009/02/18 05:23:00 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.344 2010/03/13 08:20:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -119,8 +119,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 /***********************/
 /* Synchronet-specific */
 /***********************/
+#include "startup.h"
 #ifdef __cplusplus
-	#include "startup.h"
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
 
@@ -130,6 +130,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #endif
 #include "genwrap.h"
 #include "semfile.h"
+#include "netwrap.h"
 #include "dirwrap.h"
 #include "filewrap.h"
 #include "datewrap.h"
@@ -202,7 +203,7 @@ public:
 
 	void	spymsg(const char *msg);		// send message to active spies
 
-	void	putcom(const char *str, int len=0);  // Send string
+	int		putcom(const char *str, size_t len=0);  // Send string
 	void	hangup(void);		   // Hangup modem
 
 	uchar	telnet_local_option[0x100];
@@ -229,7 +230,7 @@ public:
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	js_branch_t	js_branch;
-	long		js_execfile(const char *fname);
+	long		js_execfile(const char *fname, const char* startup_dir);
 	bool		js_init(ulong* stack_frame);
 	void		js_cleanup(const char* node);
 	void		js_create_user_objects(void);
@@ -379,7 +380,8 @@ public:
 	uint	sysvar_li;
 
     /* ansi_term.cpp */
-	const char *	ansi(int atr);			/* Returns ansi escape sequence for atr */
+	const char*	ansi(int atr);			/* Returns ansi escape sequence for atr */
+	char*	ansi(int atr, int curatr, char* str);
     bool	ansi_gotoxy(int x, int y);
 	bool	ansi_getxy(int* x, int* y);
 	bool	ansi_save(void);
@@ -393,7 +395,7 @@ public:
 	int		exec_net(csi_t *csi);
 	int		exec_msg(csi_t *csi);
 	int		exec_file(csi_t *csi);
-	long	exec_bin(const char *mod, csi_t *csi);
+	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir=NULL);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
 	char**	getstrvar(csi_t *bin, int32_t name);
@@ -467,7 +469,7 @@ public:
 	/* writemsg.cpp */
 	void	automsg(void);
 	bool	writemsg(const char *str, const char *top, char *title, long mode, int subnum
-				,const char *dest);
+				,const char *dest, char** editor=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode);
@@ -476,7 +478,7 @@ public:
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
-	void	editfile(char *path);
+	bool	editfile(char *path);
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	ushort	chmsgattr(ushort attr);
 	void	show_msgattr(ushort attr);
@@ -498,7 +500,7 @@ public:
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber);
+	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
 	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
@@ -511,10 +513,10 @@ public:
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
-	int		bputs(const char *str);				/* BBS puts function */
-	int		rputs(const char *str);				/* BBS raw puts function */
-	int		bprintf(const char *fmt, ...);		/* BBS printf function */
-	int		rprintf(const char *fmt, ...);		/* BBS raw printf function */
+	int		bputs(const char *str);					/* BBS puts function */
+	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
+	int		bprintf(const char *fmt, ...);			/* BBS printf function */
+	int		rprintf(const char *fmt, ...);			/* BBS raw printf function */
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
@@ -537,7 +539,7 @@ public:
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
 	long	getkeys(const char *str, ulong max);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
-	char	question[128];
+	char	question[MAX_TEXTDAT_ITEM_LEN+1];
 	bool	yesno(const char *str);
 	bool	noyes(const char *str);
 	void	pause(void);
@@ -624,8 +626,8 @@ public:
 	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
 	bool	chksyspass(void);
-	bool	chk_ar(const uchar * str, user_t * user); /* checks access requirements */
-	bool	ar_exp(const uchar ** ptrptr, user_t * user);
+	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
+	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
 
 	/* upload.cpp */
@@ -707,7 +709,8 @@ public:
 	void	logentry(const char *code,const char *entry);
 	void	log(char *str);				/* Writes 'str' to node log */
 	void	logch(char ch, bool comma);	/* Writes 'ch' to node log */
-	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log */
+	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log (LOG_INFO level) */
+	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
 	bool	syslog(const char* code, const char *entry);
 	void	errorlog(const char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
@@ -833,6 +836,7 @@ extern "C" {
 	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, char* msgbuf);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
+	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
@@ -865,6 +869,7 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
 	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
 	DLLEXPORT char *	DLLCALL strip_exascii(const char *str, char* dest);
+	DLLEXPORT char *	DLLCALL strip_space(const char *str, char* dest);
 	DLLEXPORT char *	DLLCALL prep_file_desc(const char *str, char* dest);
 	DLLEXPORT char *	DLLCALL strip_ctrl(const char *str, char* dest);
 	DLLEXPORT char *	DLLCALL net_addr(net_t* net);
@@ -913,7 +918,7 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
-	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* text);
+	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
 
 	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text
 										,char* host, SOCKADDR_IN* addr);
@@ -962,9 +967,9 @@ extern "C" {
 	typedef struct {
 		char		version[128];
 		const char*	version_detail;
-		DWORD*		interface_addr;
-		DWORD*		options;
-		DWORD*		clients;
+		uint32_t*	interface_addr;
+		uint32_t*	options;
+		ulong*		clients;
 	} js_server_props_t;
 
 	enum {
@@ -1000,7 +1005,7 @@ extern "C" {
 										,js_server_props_t* props);
 
 	/* js_global.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods);
+	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*);
 	DLLEXPORT JSObject*	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1008,16 +1013,18 @@ extern "C" {
 													,time_t uptime				/* system */
 													,char* host_name			/* system */
 													,char* socklib_desc			/* system */
-													,js_branch_t* js_branch		/* js */
+													,js_branch_t*				/* js */
+													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
 													,js_server_props_t* props	/* server */
 													);
 
 	/* js_internal.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t* branch);
+	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -1031,23 +1038,23 @@ extern "C" {
 	/* js_user.c */
 	DLLEXPORT JSObject*	DLLCALL js_CreateUserClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,char* name, uint usernumber);
+													,char* name, user_t* user, client_t* client, BOOL global_user);
 	DLLEXPORT JSBool	DLLCALL js_CreateUserObjects(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,user_t* user, char* html_index_file
+													,user_t* user, client_t* client, char* html_index_file
 													,subscan_t* subscan);
 	/* js_file_area.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,user_t* user, char* html_index_file);
+													,user_t* user, client_t* client, char* html_index_file);
 
 	/* js_msg_area.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,user_t* user, subscan_t* subscan);
+													,user_t* user, client_t* client, subscan_t* subscan);
 	DLLEXPORT BOOL		DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg
 													,JSObject* subobj, uint subnum);
 
 	/* js_xtrn_area.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateXtrnAreaObject(JSContext* cx, JSObject* parent, scfg_t* cfg
-													,user_t* user);
+													,user_t* user, client_t* client);
 
 	/* js_msgbase.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
