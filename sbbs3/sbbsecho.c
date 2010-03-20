@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.195 2009/02/16 03:25:26 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.199 2010/03/13 09:32:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -164,7 +164,9 @@ void logprintf(char *str, ...)
 	now=time(NULL);
 	gm=localtime(&now);
 	fprintf(fidologfile,"%02u/%02u/%02u %02u:%02u:%02u %s\n"
-		,gm->tm_mon+1,gm->tm_mday,TM_YEAR(gm->tm_year),gm->tm_hour,gm->tm_min,gm->tm_sec
+		,(scfg.sys_misc&SM_EURODATE) ? gm->tm_mday : gm->tm_mon+1
+		,(scfg.sys_misc&SM_EURODATE) ? gm->tm_mon+1 : gm->tm_mday
+		,TM_YEAR(gm->tm_year),gm->tm_hour,gm->tm_min,gm->tm_sec
 		,buf);
 }
 
@@ -2236,7 +2238,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	ushort	xlat=XLAT_NONE,net;
 	ulong	l,m,length,bodylen,taillen,crc;
 	ulong	save;
-	long	dupechk_hashes=SMB_HASH_SOURCE_ALL;
+	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	faddr_t faddr,origaddr,destaddr;
 	smb_t*	smbfile;
 	char	fname[MAX_PATH+1];
@@ -3315,7 +3317,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	}
 
 	if(match>=scfg.total_faddrs && !(misc&IGNORE_ADDRESS)) {
-		printf("Wrong address");
+		printf("Foreign address");
 		if(!path[0]) {
 			printf(" - ");
 			pkt_to_msg(fidomsg,&hdr,info);
@@ -3730,6 +3732,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 						continue; 
 					}
 					
+					/* Need to support converting sole-LFs to Hard-CR and soft-CR (0x8D) as well */
 					if(misc&STRIP_LF && buf[l]=='\n')	/* Ignore line feeds */
 						continue;
 
@@ -3748,7 +3751,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 						cr=1;
 					else
 						cr=0;
-					if(scfg.sub[i]->misc&SUB_ASCII || misc&ASCII_ONLY) {
+					if((scfg.sub[i]->misc&SUB_ASCII) || (misc&ASCII_ONLY)) {
 						if(buf[l]<' ' && buf[l]!='\r'
 							&& buf[l]!='\n')			/* Ctrl ascii */
 							buf[l]='.';             /* converted to '.' */
@@ -3917,7 +3920,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.195 $", "%*s %s", revision);
+	sscanf("$Revision: 1.199 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
