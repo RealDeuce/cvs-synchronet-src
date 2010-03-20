@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.61 2009/06/28 09:15:19 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.63 2009/11/12 04:34:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -620,8 +620,8 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_int(k,instream);
 
 		if(k) {
-			if((cfg->qhub[i]->sub=(ushort *)malloc(sizeof(ushort)*k))==NULL)
-				return allocerr(instream,error,offset,fname,sizeof(uint)*k);
+			if((cfg->qhub[i]->sub=(ulong *)malloc(sizeof(ulong)*k))==NULL)
+				return allocerr(instream,error,offset,fname,sizeof(ulong)*k);
 			if((cfg->qhub[i]->conf=(ushort *)malloc(sizeof(ushort)*k))==NULL)
 				return allocerr(instream,error,offset,fname,sizeof(ushort)*k);
 			if((cfg->qhub[i]->mode=(char *)malloc(sizeof(char)*k))==NULL)
@@ -629,9 +629,11 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		}
 
 		for(j=0;j<k;j++) {
+			uint16_t	subnum;
 			if(feof(instream)) break;
 			get_int(cfg->qhub[i]->conf[cfg->qhub[i]->subs],instream);
-			get_int(cfg->qhub[i]->sub[cfg->qhub[i]->subs],instream);
+			get_int(subnum,instream);
+			cfg->qhub[i]->sub[cfg->qhub[i]->subs]=subnum;
 			get_int(cfg->qhub[i]->mode[cfg->qhub[i]->subs],instream);
 			if(cfg->qhub[i]->sub[cfg->qhub[i]->subs]<cfg->total_subs)
 				cfg->sub[cfg->qhub[i]->sub[cfg->qhub[i]->subs]]->misc|=SUB_QNET;
