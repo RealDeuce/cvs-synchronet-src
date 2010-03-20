@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.80 2011/04/23 17:42:19 deuce Exp $ */
+/* $Id: uifc.h,v 1.79 2010/03/12 06:21:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,6 @@
 #define UIFC_IBM	(1<<4)	/* Force use of IBM charset	*/
 #define UIFC_NOCTRL	(1<<5)	/* Don't allow useage of CTRL keys for movement 
 							 * etc in menus (Still available in text boxes) */
-#define UIFC_NHM	(1<<6)	/* Don't hide the mouse pointer */
 
 							/*******************************/
                             /* Bits in uifcapi_t.list mode */
