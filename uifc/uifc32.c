@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.197 2011/04/23 17:42:19 deuce Exp $ */
+/* $Id: uifc32.c,v 1.196 2010/03/12 06:21:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -530,8 +530,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	}
 	title=strdup(initial_title==NULL?"":initial_title);
 
-	if(!(api->mode&UIFC_NHM))
-		uifc_mouse_disable();
+	uifc_mouse_disable();
 
 	title_len=strlen(title);
 
@@ -670,8 +669,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						cprintf("UIFC line %d: error allocating %u bytes."
 							,__LINE__,(width+3)*(height+2)*2);
 						free(title);
-						if(!(api->mode&UIFC_NHM))
-							uifc_mouse_enable();
+						uifc_mouse_enable();
 						return(-1);
 					}
 					gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -695,8 +693,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
-				if(!(api->mode&UIFC_NHM))
-					uifc_mouse_enable();
+				uifc_mouse_enable();
 				return(-1);
 			}
 			gettext(s_left+left,s_top+top,s_left+left+width+1
@@ -956,8 +953,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	last_menu_cur=cur;
 	last_menu_bar=bar;
-	if(!(api->mode&UIFC_NHM))
-		uifc_mouse_enable();
+	uifc_mouse_enable();
 
 	if(mode&WIN_IMM) {
 		return(-2);
@@ -1004,8 +1000,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_SAV)
 							api->savnum++;
 						if(mode&WIN_ACT) {
-							if(!(api->mode&UIFC_NHM))
-								uifc_mouse_disable();
+							uifc_mouse_disable();
 							if((win=(char *)alloca((width+3)*(height+2)*2))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
@@ -1021,18 +1016,15 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 							puttext(s_left+left,s_top+top,s_left
 								+left+width-1,s_top+top+height-1,win);
-							if(!(api->mode&UIFC_NHM))
-								uifc_mouse_enable();
+							uifc_mouse_enable();
 						}
 						else if(mode&WIN_SAV) {
 							api->savnum--;
-							if(!(api->mode&UIFC_NHM))
-								uifc_mouse_disable();
+							uifc_mouse_disable();
 							puttext(sav[api->savnum].left,sav[api->savnum].top
 								,sav[api->savnum].right,sav[api->savnum].bot
 								,sav[api->savnum].buf);
-							if(!(api->mode&UIFC_NHM))
-								uifc_mouse_enable();
+							uifc_mouse_enable();
 							FREE_AND_NULL(sav[api->savnum].buf);
 						}
 						if(mode&WIN_XTR && (*cur)==opts-1)
