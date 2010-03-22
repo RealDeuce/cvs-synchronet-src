@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.50 2010/03/09 03:23:34 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.51 2010/03/22 18:39:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,8 +174,26 @@ typedef unsigned long long int uint64_t;
 /* Legacy 32-bit time_t */
 typedef int32_t		time32_t;
 
-#if defined(_WIN32) && defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
-#define	off_t		int64_t
+#if defined(_WIN32)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
+#    define	off_t		int64_t
+#    define PRIdOFF		PRId64
+#    define PRIuOFF		PRIu64
+#  else
+#    define PRIdOFF		PRId32
+#    define PRIuOFF		PRIu32
+#  endif
+#elif defined(__linux__) || defined(__sun__)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
+#    define PRIdOFF		PRId64
+#    define PRIuOFF		PRIu64
+#  else
+#    define PRIdOFF		PRId64
+#    define PRIuOFF		PRIu64
+#  endif
+#else
+#  define PRIdOFF	PRId64
+#  define PRIuOFF	PRIu64
 #endif
 
 /* Windows Types */
