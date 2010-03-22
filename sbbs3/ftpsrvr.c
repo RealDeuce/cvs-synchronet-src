@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.364 2009/12/09 19:00:36 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.366 2010/03/22 18:40:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1011,7 +1011,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, parent, spath);
+		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -3297,7 +3297,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				if(!strnicmp(cmd,"SIZE ",5)) {
-					sockprintf(sock,"213 %lu",flength(fname));
+					sockprintf(sock,"213 %"PRIuOFF,flength(fname));
 					continue;
 				}
 				if(!strnicmp(cmd,"MDTM ",5)) {
@@ -3321,7 +3321,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				/* RETR */
-				lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
+				lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
 					,sock,user.alias,fname,flength(fname)
 					,mode);
 				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
@@ -3534,7 +3534,7 @@ static void ctrl_thread(void* arg)
 								t=fdate(np);
 								if(localtime_r(&t,&tm)==NULL)
 									memset(&tm,0,sizeof(tm));
-								fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
+								fprintf(fp,"-r--r--r--   1 %-*s %-8s %9"PRIdOFF" %s %2d %02d:%02d %s\r\n"
 									,NAME_LEN
 									,scfg.sys_id
 									,scfg.sys_id
@@ -3773,7 +3773,7 @@ static void ctrl_thread(void* arg)
 				delfile=TRUE;
 				credits=FALSE;
 				if(!getsize && !getdate)
-					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
+					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%"PRIuOFF" bytes) in %s mode"
 						,sock,user.alias,flength(fname)
 						,mode);
 			/* ASCII Index File */
@@ -4097,7 +4097,7 @@ static void ctrl_thread(void* arg)
 					if(fexistcase(fname)) {
 						success=TRUE;
 						if(!getsize && !getdate && !delecmd)
-							lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
+							lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
 								,sock,user.alias,fname,flength(fname)
 								,mode);
 					} 
@@ -4108,7 +4108,7 @@ static void ctrl_thread(void* arg)
 #endif
 
 			if(getsize && success)
-				sockprintf(sock,"213 %lu", flength(fname));
+				sockprintf(sock,"213 %"PRIuOFF, flength(fname));
 			else if(getdate && success) {
 				if(file_date==0)
 					file_date = fdate(fname);
@@ -4596,7 +4596,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.364 $", "%*s %s", revision);
+	sscanf("$Revision: 1.366 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

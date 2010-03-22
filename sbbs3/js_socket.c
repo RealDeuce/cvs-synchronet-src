@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.132 2010/02/01 19:22:35 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.134 2010/03/11 22:49:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -849,7 +849,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(argc>1 && argv[1]!=JSVAL_VOID)
-		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
+		JS_ValueToInt32(cx,argv[1],&timeout);
 
 	start=time(NULL);
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1202,6 +1202,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_DESCRIPTOR:
 			JS_ValueToInt32(cx,*vp,(int32*)&(p->sock));
+			p->is_connected=TRUE;
 			break;
 		case SOCK_PROP_LAST_ERROR:
 			JS_ValueToInt32(cx,*vp,(int32*)&(p->last_error));
