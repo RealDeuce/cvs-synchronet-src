@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.34 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.40 2010/03/19 19:39:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,7 +96,7 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 	if(count>(LOOP_NODEDAB/2)) {
 		sprintf(str,"NODE.DAB (node %d) COLLISION - Count: %d"
 			,number+1, count);
-		logline("!!",str); 
+		logline(LOG_WARNING,"!!",str); 
 	}
 
 	return(0);
@@ -142,7 +142,7 @@ void sbbs_t::nodesync()
 			unixtodstr(&cfg,now,today);
 			if(strcmp(str,today)) { /* New day, clear "today" user vars */
 				sys_status|=SS_NEWDAY;	// So we don't keep doing this over&over
-				resetdailyuserdat(&cfg,&useron);
+				resetdailyuserdat(&cfg, &useron,/* write: */true);
 			} 
 		}
 		if(thisnode.misc&NODE_UDAT && !(useron.rest&FLAG('G'))) {   /* not guest */
@@ -165,7 +165,7 @@ void sbbs_t::nodesync()
 
 	if(thisnode.misc&NODE_INTR) {
 		bputs(text[NodeLocked]);
-		logline(nulstr,"Interrupted");
+		logline(LOG_NOTICE,nulstr,"Interrupted");
 		hangup();
 		nodesync_inside=0;
 		return; 
@@ -220,7 +220,7 @@ int sbbs_t::getnmsg()
 		**/
 		return(errno); 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if(!length) {
 		close(file);
 		return(0); 
@@ -329,7 +329,7 @@ int sbbs_t::getsmsg(int usernumber)
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return(errno); 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if((buf=(char *)malloc(length+1))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1);
@@ -398,23 +398,19 @@ void sbbs_t::nodelist(void)
 	}
 }
 
-static char* node_connection_desc(ushort conn, char* str)
+static char* node_connection_desc(sbbs_t* sbbs, ushort conn, char* str)
 {
 	switch(conn) {
 		case NODE_CONNECTION_LOCAL:
-			strcpy(str,"Locally");
-			break;
+			return (char*)" Locally";	/* obsolete */
 		case NODE_CONNECTION_TELNET:
-			strcpy(str,"via telnet");
-			break;
+			return sbbs->text[NodeConnectionTelnet];
 		case NODE_CONNECTION_RLOGIN:
-			strcpy(str,"via rlogin");
-			break;
+			return sbbs->text[NodeConnectionRLogin];
 		case NODE_CONNECTION_SSH:
-			strcpy(str,"via ssh");
-			break;
+			return sbbs->text[NodeConnectionSSH];
 		default:
-			sprintf(str,"at %ubps",conn);
+			sprintf(str,sbbs->text[NodeConnectionModem],conn);
 			break;
 	}
 
@@ -435,36 +431,34 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 	attr(cfg.color[clr_nodestatus]);
 	switch(node->status) {
 		case NODE_WFC:
-			bputs("Waiting for call");
+			bputs(text[NodeStatusWaitingForCall]);
 			break;
 		case NODE_OFFLINE:
-			bputs("Offline");
+			bputs(text[NodeStatusOffline]);
 			break;
 		case NODE_NETTING:
-			bputs("Networking");
+			bputs("Networking");	/* obsolete */
 			break;
 		case NODE_LOGON:
-			bputs("At logon prompt");
+			bputs(text[NodeStatusLogon]);
+			bputs(node_connection_desc(this, node->connection, tmp));
 			break;
 		case NODE_EVENT_WAITING:
-			bputs("Waiting for all nodes to become inactive");
+			bputs(text[NodeStatusEventWaiting]);
 			break;
 		case NODE_EVENT_LIMBO:
-			bprintf("Waiting for node %d to finish external event",node->aux);
+			bprintf(text[NodeStatusEventLimbo],node->aux);
 			break;
 		case NODE_EVENT_RUNNING:
-			bputs("Running external event");
+			bputs(text[NodeStatusEventRunning]);
 			break;
 		case NODE_NEWUSER:
-			attr(cfg.color[clr_nodeuser]);
-			bputs("New user");
-			attr(cfg.color[clr_nodestatus]);
-			bputs(" applying for access ");
-			bputs(node_connection_desc(node->connection, tmp));
+			bputs(text[NodeStatusNewUser]);
+			bputs(node_connection_desc(this, node->connection, tmp));
 			break;
 		case NODE_QUIET:
 			if(!SYSOP) {
-				bputs("Waiting for call");
+				bputs(text[NodeStatusWaitingForCall]);
 				break; 
 			}
 		case NODE_INUSE:
@@ -475,7 +469,7 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 			}
 			attr(cfg.color[clr_nodeuser]);
 			if(node->misc&NODE_ANON && !SYSOP)
-				bputs("UNKNOWN USER");
+				bputs(text[UNKNOWN_USER]);
 			else
 				bputs(username(&cfg,node->useron,tmp));
 			attr(cfg.color[clr_nodestatus]);
@@ -583,7 +577,7 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 				default:
 					bputs(ultoa(node->action,tmp,10));
 					break;  }
-			bprintf(" %s",node_connection_desc(node->connection, tmp));
+			bputs(node_connection_desc(this, node->connection, tmp));
 			if(node->action==NODE_DLNG) {
 				if(cfg.sys_misc&SM_MILITARY) {
 					hour=node->aux/60;
