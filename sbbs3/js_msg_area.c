@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.60 2011/10/19 07:27:19 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.57 2009/11/11 01:49:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,12 +39,11 @@
 
 #ifdef JAVASCRIPT
 
-#ifdef BUILD_JSDOCS
-
-static char* msg_area_prop_desc[] = {
-	,"message area settings (bitfield) - see <tt>MM_*</tt> in <tt>sbbsdefs.js</tt> for details"
-	,NULL
+enum {	/* msg_area Object Properties */
+	 PROP_MAX_QWK_MSGS
 };
+
+#ifdef BUILD_JSDOCS
 
 static char* msg_grp_prop_desc[] = {
 	 "index into grp_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
@@ -206,7 +205,8 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
 
-	val=UINT_TO_JSVAL(sub->misc);
+	if(!JS_NewNumberValue(cx,sub->misc,&val))
+		return(FALSE);
 	if(!JS_DefineProperty(cx, subobj, "settings", val
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
@@ -248,36 +248,33 @@ enum {
 };
 
 
-static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
     jsint       tiny;
 	subscan_t*	scan;
 
 	if((scan=(subscan_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
-			*vp=UINT_TO_JSVAL(scan->ptr);
+			JS_NewNumberValue(cx,scan->ptr,vp);
 			break;
 		case SUB_PROP_SCAN_CFG:
-			*vp=UINT_TO_JSVAL(scan->cfg);
+			JS_NewNumberValue(cx,scan->cfg,vp);
 			break;
 		case SUB_PROP_LAST_READ:
-			*vp=UINT_TO_JSVAL(scan->last);
+			JS_NewNumberValue(cx,scan->last,vp);
 			break;
 	}
 
 	return(JS_TRUE);
 }
 
-static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
+static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
 	int32		val=0;
     jsint       tiny;
 	subscan_t*	scan;
@@ -285,8 +282,7 @@ static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 	if((scan=(subscan_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
@@ -358,12 +354,6 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,areaobj,"Message Areas",310);
 #endif
-
-	/* msg_area.properties */
-	if(!JS_NewNumberValue(cx,cfg->msg_misc,&val))
-		return(NULL);
-	if(!JS_SetProperty(cx, areaobj, "settings", &val)) 
-		return(NULL);
 
 	/* msg_area.grp[] */
 	if((allgrps=JS_NewObject(cx, NULL, NULL, areaobj))==NULL)
@@ -536,8 +526,6 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 	}
 
 #ifdef BUILD_JSDOCS
-	js_CreateArrayOfStrings(cx, areaobj, "_property_desc_list", msg_area_prop_desc, JSPROP_READONLY);
-
 	js_DescribeSyncObject(cx,allgrps,"Associative array of all groups (use name as index)",312);
 	JS_DefineProperty(cx,allgrps,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
 #endif
