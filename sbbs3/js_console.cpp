@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.84 2009/02/21 07:31:46 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.87 2009/07/19 02:45:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -900,7 +900,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->putcom(str, len);
+		sbbs->rputs(str, len);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -1151,8 +1151,17 @@ js_ansi(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&attr);
-	if((js_str=JS_NewStringCopyZ(cx,sbbs->ansi(attr)))==NULL)
-		return(JS_FALSE);
+	if(argc>1) {
+		int32	curattr=0;
+		char	buf[16];
+
+		JS_ValueToInt32(cx,argv[0],&curattr);
+		if((js_str=JS_NewStringCopyZ(cx,sbbs->ansi(attr,curattr,buf)))==NULL)
+			return(JS_FALSE);
+	} else {
+		if((js_str=JS_NewStringCopyZ(cx,sbbs->ansi(attr)))==NULL)
+			return(JS_FALSE);
+	}
 
 	*rval = STRING_TO_JSVAL(js_str);
     return(JS_TRUE);
@@ -1342,6 +1351,18 @@ js_backspace(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->backspace();
 	JS_RESUMEREQUEST(cx, rc);
+    return(JS_TRUE);
+}
+
+static JSBool
+js_clearkeybuf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	sbbs_t*		sbbs;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	sbbs->keybufbot=sbbs->keybuftop=0;
     return(JS_TRUE);
 }
 
@@ -1558,8 +1579,10 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("restore last output line")
 	,310
 	},		
-	{"ansi",			js_ansi,			1, JSTYPE_STRING,	JSDOCSTR("attribute_number")
-	,JSDOCSTR("returns ANSI encoding of specified <i>attribute_number</i>")
+	{"ansi",			js_ansi,			1, JSTYPE_STRING,	JSDOCSTR("attribute [,current_attribute]")
+	,JSDOCSTR("returns ANSI sequence required to generate specified terminal <i>attribute</i> "
+	"(e.g. <tt>YELLOW|HIGH|BG_BLUE</tt>), "
+	"if <i>current_attribute</i> is specified, an optimized ANSI sequence may be returned")
 	,310
 	},		
 	{"ansi_save",		js_pushxy,			0, JSTYPE_ALIAS	},
@@ -1633,6 +1656,10 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("")
 	,JSDOCSTR("send a destructive backspace sequence")
+	,315
+	},
+	{"clearkeybuffer",	js_clearkeybuf,		0, JSTYPE_VOID,		JSDOCSTR("")
+	,JSDOCSTR("clear keyboard input buffer")
 	,315
 	},
 	{0}
