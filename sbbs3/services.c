@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.244 2010/04/02 23:12:02 deuce Exp $ */
+/* $Id: services.c,v 1.245 2010/04/02 23:23:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1244,7 +1244,11 @@ static void js_static_service_thread(void* arg)
 		val = BOOLEAN_TO_JSVAL(JS_FALSE);
 		JS_SetProperty(js_cx, js_glob, "logged_in", &val);
 
+#ifdef USE_JS_OPERATION_CALLBACK
+		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 	
 		if((js_script=JS_CompileFile(js_cx, js_glob, spath))==NULL)  {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",service->socket,spath);
@@ -1632,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.244 $", "%*s %s", revision);
+	sscanf("$Revision: 1.245 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
