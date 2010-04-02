@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.49 2010/04/02 23:12:02 deuce Exp $ */
+/* $Id: js_internal.c,v 1.50 2010/04/02 23:30:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -286,7 +286,7 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 #else	/* Use the branch callback from the parent context */
 	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
 #ifdef USE_JS_OPERATION_CALLBACK
-	JS_SetOperationCallback(cx, JS_GetBranchCallback(parent_cx));
+	JS_SetOperationCallback(cx, JS_GetOperationCallback(parent_cx));
 #else
 	callback=JS_SetBranchCallback(parent_cx,NULL);
 	JS_SetBranchCallback(parent_cx, callback);
