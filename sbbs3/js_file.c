@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.121 2010/03/09 21:58:34 rswindell Exp $ */
+/* $Id: js_file.c,v 1.122 2010/04/02 22:57:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2256,8 +2256,6 @@ js_file_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 		JS_ReportError(cx,"No filename specified");
 		return(JS_FALSE);
 	}
-
-	*rval = JSVAL_VOID;
 
 	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL) {
 		JS_ReportError(cx,"calloc failed");
