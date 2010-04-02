@@ -8,16 +8,15 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include "sbbs.h"
 #include "dirwrap.h"
+#include "sbbs.h"
 #include "nopen.h"
 #include "sbbsdefs.h"
-#include "conwrap.h"
 
 int 
 main(int argc, char **argv)
 {
-	char		ch, str[MAX_PATH+1], path[MAX_PATH + 1]
+	char		ch, str[PATH_MAX+1], path[PATH_MAX + 1]
 	               ,*lst = "%c) %-25s: %13lu\n"
 	               ,*nv = "\nNew value: ", *p;
 	int		file;
@@ -25,7 +24,7 @@ main(int argc, char **argv)
 	time32_t		t;
 	scfg_t		cfg;
 
-	memset(&cfg, 0, sizeof(cfg));
+	cfg.sys_misc = 0;
 
 	if (argc > 1)
 		strcpy(path, argv[1]);
@@ -52,7 +51,7 @@ main(int argc, char **argv)
 	close(file);
 	while (1) {
 		printf("Synchronet Daily Statistics Editor v1.01\r\n\r\n");
-		printf("S) %-25s: %13s\n", "Date Stamp (MM/DD/YY)", unixtodstr(&cfg, t, str));
+		printf("S) %-25s: %13s\n", "Date Stamp", unixtodstr(&cfg, t, str));
 		printf(lst, 'L', "Total Logons", stats.logons);
 		printf(lst, 'O', "Logons Today", stats.ltoday);
 		printf(lst, 'T', "Total Time on", stats.timeon);
@@ -77,79 +76,79 @@ main(int argc, char **argv)
 		switch (ch) {
 		case 'S':
 			printf("Date stamp (MM/DD/YY): ");
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				t = dstrtounix(&cfg, str);
 			break;
 		case 'L':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.logons = atol(str);
 			break;
 		case 'O':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.ltoday = atol(str);
 			break;
 		case 'T':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.timeon = atol(str);
 			break;
 		case 'I':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.ttoday = atol(str);
 			break;
 		case 'U':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.uls = atol(str);
 			break;
 		case 'B':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.ulb = atol(str);
 			break;
 		case 'D':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.dls = atol(str);
 			break;
 		case 'W':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.dlb = atol(str);
 			break;
 		case 'P':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.ptoday = atol(str);
 			break;
 		case 'E':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.etoday = atol(str);
 			break;
 		case 'F':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.ftoday = atol(str);
 			break;
 		case 'N':
 			printf(nv);
-			fgets(str, sizeof(str), stdin);
+			gets(str);
 			if (str[0])
 				stats.nusers = atoi(str);
 			break;
