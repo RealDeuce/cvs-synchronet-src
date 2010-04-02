@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.47 2009/08/18 23:24:28 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.49 2010/04/02 23:12:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,7 +254,9 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 	JSObject*		obj;
 	JSErrorReporter	reporter;
 #ifndef EVAL_BRANCH_CALLBACK
+#ifndef USE_JS_OPERATION_CALLBACK
 	JSBranchCallback callback;
+#endif
 #endif
 
 	if(argc<1)
@@ -276,12 +278,20 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 #ifdef EVAL_BRANCH_CALLBACK
 	JS_SetContextPrivate(cx, JS_GetPrivate(parent_cx, parent_obj));
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(cx, js_OperationCallback);
+#else
 	JS_SetBranchCallback(cx, js_BranchCallback);
+#endif
 #else	/* Use the branch callback from the parent context */
 	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(cx, JS_GetBranchCallback(parent_cx));
+#else
 	callback=JS_SetBranchCallback(parent_cx,NULL);
 	JS_SetBranchCallback(parent_cx, callback);
 	JS_SetBranchCallback(cx, callback);
+#endif
 #endif
 
 	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL
@@ -486,7 +496,7 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	return(obj);
 }
 
-void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename)
+void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
 {
 	JSString*	str;
 	jsval		val;
@@ -511,5 +521,10 @@ void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filen
 				JS_DefineProperty(cx, js, "exec_dir", STRING_TO_JSVAL(str)
 					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 		}
+		if(startup_dir==NULL)
+			startup_dir="";
+		if((str=JS_NewStringCopyZ(cx, startup_dir)) != NULL)
+			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
+				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
 }
