@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.19 2009/02/21 08:09:14 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.20 2009/02/27 06:19:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -262,6 +262,7 @@ bool sbbs_t::ansi_gotoxy(int x, int y)
 		rprintf("\x1b[%d;%dH",y,x);
 		if(x>0)
 			column=x-1;
+		lncntr=0;
 		return true;
 	}
 	return false;
