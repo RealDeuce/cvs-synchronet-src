@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.50 2010/04/02 23:30:24 deuce Exp $ */
+/* $Id: js_internal.c,v 1.51 2010/04/02 23:35:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,6 +226,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 		return(JS_FALSE);
 	}
 
+#ifndef USE_JS_OPERATION_CALLBACK
 	/* Give up timeslices every once in a while */
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
 		jsrefcount	rc;
@@ -238,6 +239,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
 		JS_MaybeGC(cx), branch->gc_attempts++;
+#endif
 
     return(JS_TRUE);
 }
