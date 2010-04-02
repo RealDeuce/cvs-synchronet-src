@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.h,v 1.4 2005/01/24 10:46:07 deuce Exp $ */
+/* $Id: xpevent.h,v 1.5 2010/03/11 01:14:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,6 +69,8 @@ struct xpevent {
         BOOL			value;
 		BOOL			mreset;
         DWORD			nwaiters;
+		void			*cbdata;
+		BOOL			(*verify)(void *);
 };
 
 #define INFINITE 	((DWORD)(-1))

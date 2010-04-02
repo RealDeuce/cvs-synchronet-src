@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.67 2009/02/19 09:24:23 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.69 2010/03/27 19:20:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,7 +126,7 @@ bool sbbs_t::answer()
 							else
 								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
-								logline("+!",str);
+								logline(LOG_NOTICE,"+!",str);
 							bputs(text[PasswordPrompt]);
 							console|=CON_R_ECHOX;
 							getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
@@ -155,7 +155,7 @@ bool sbbs_t::answer()
 							else
 								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
-								logline("+!",str);
+								logline(LOG_NOTICE,"+!",str);
 						}
 						lprintf(LOG_WARNING,"Node %d !CLIENT IP NOT LISTED in %s"
 							,cfg.node_num,path);
@@ -208,7 +208,7 @@ bool sbbs_t::answer()
 					else
 						sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 							,0,useron.alias);
-						logline("+!",str);
+						logline(LOG_NOTICE,"+!",str);
 					bputs(text[PasswordPrompt]);
 					console|=CON_R_ECHOX;
 					getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
@@ -237,7 +237,7 @@ bool sbbs_t::answer()
 					else
 						sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
 							,0,useron.alias);
-						logline("+!",str);
+						logline(LOG_NOTICE,"+!",str);
 				}
 				useron.number=0;
 				hangup();
@@ -259,7 +259,7 @@ bool sbbs_t::answer()
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
-			"\2\2?HTML?"/* HTML? */
+			"\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm?
 			"\x1b[0m_"	/* "Normal" colors */
 			"\x1b[2J"	/* clear screen */
 			"\x1b[H"	/* home cursor */
@@ -317,10 +317,10 @@ bool sbbs_t::answer()
 				SAFECOPY(terminal,"RIP");
 			logline("@R",strstr(str,"RIPSCRIP"));
 			autoterm|=(RIP|COLOR|ANSI); }
-		else if(strstr(str,"!HTML!"))  {
+		else if(strstr(str,"Are you the gatekeeper?"))  {
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"HTML");
-			logline("@H",strstr(str,"!HTML!"));
+			logline("@H",strstr(str,"Are you the gatekeeper?"));
 			autoterm|=HTML;
 		} 
 	}
