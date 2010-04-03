@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.537 2009/08/14 08:00:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.545 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,7 +79,7 @@
 time_t	uptime=0;
 DWORD	served=0;
 
-static	DWORD node_threads_running=0;
+static	ulong node_threads_running=0;
 static	ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
@@ -151,8 +151,11 @@ static void thread_down()
 
 int lputs(int level, const char* str)
 {
-	if(level <= LOG_ERR)
-		errorlog(&scfg,str);
+	if(level <= LOG_ERR) {
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
+		if(startup!=NULL && startup->errormsg!=NULL)
+			startup->errormsg(startup->cbdata,level,str);
+	}
 
 	if(startup==NULL || startup->lputs==NULL || str==NULL || level > startup->log_level)
     	return(0);
@@ -182,13 +185,20 @@ int eprintf(int level, const char *fmt, ...)
 	va_list argptr;
 	char sbuf[1024];
 
-    if(startup==NULL || startup->event_lputs==NULL || level > startup->log_level)
-        return(0);
-
     va_start(argptr,fmt);
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
+
+	if(level <= LOG_ERR) {
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
+		if(startup!=NULL && startup->errormsg!=NULL)
+			startup->errormsg(startup->cbdata,level,sbuf);
+	}
+
+    if(startup==NULL || startup->event_lputs==NULL || level > startup->log_level)
+        return(0);
+
 	strip_ctrl(sbuf, sbuf);
     return(startup->event_lputs(startup->event_cbdata,level,sbuf));
 }
@@ -2432,7 +2442,7 @@ void event_thread(void* arg)
 							if(rename(str,newname)==0) {
 								char logmsg[MAX_PATH*3];
 								SAFEPRINTF2(logmsg,"%s renamed to %s",str,newname);
-								sbbs->logline("Q!",logmsg);
+								sbbs->logline(LOG_NOTICE,"Q!",logmsg);
 							}
 						}
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
@@ -2950,10 +2960,9 @@ bool sbbs_t::init()
 	socklen_t	addr_len;
 	SOCKADDR_IN	addr;
 
-	if(cfg.node_num>0) {
-		RingBufInit(&inbuf, IO_THREAD_BUF_SIZE);
+	RingBufInit(&inbuf, IO_THREAD_BUF_SIZE);
+	if(cfg.node_num>0)
 		node_inbuf[cfg.node_num-1]=&inbuf;
-	}
 
     RingBufInit(&outbuf, IO_THREAD_BUF_SIZE);
 	outbuf.highwater_mark=startup->outbuf_highwater_mark;
@@ -3044,7 +3053,7 @@ bool sbbs_t::init()
 				,hhmmtostr(&cfg,&tm,tmp)
 				,wday[tm.tm_wday]
 				,mon[tm.tm_mon],tm.tm_mday,tm.tm_year+1900);
-			logline("L!",str);
+			logline(LOG_NOTICE,"L!",str);
 			log(crlf);
 			catsyslog(1); 
 		}
@@ -3251,7 +3260,7 @@ sbbs_t::~sbbs_t()
 
 	if(cfg.node_num>0)
 		node_inbuf[cfg.node_num-1]=NULL;
-	if(cfg.node_num>0 && !input_thread_running)
+	if(!input_thread_running)
 		RingBufDispose(&inbuf);
 	if(!output_thread_running)
 		RingBufDispose(&outbuf);
@@ -3379,12 +3388,12 @@ int sbbs_t::nopen(char *str, int access)
     if(count>(LOOP_NOPEN/2) && count<=LOOP_NOPEN) {
         SAFEPRINTF2(logstr,"NOPEN COLLISION - File: \"%s\" Count: %d"
             ,str,count);
-        logline("!!",logstr); 
+        logline(LOG_WARNING,"!!",logstr); 
 	}
     if(file==-1 && (errno==EACCES || errno==EAGAIN)) {
         SAFEPRINTF2(logstr,"NOPEN ACCESS DENIED - File: \"%s\" errno: %d"
 			,str,errno);
-		logline("!!",logstr);
+		logline(LOG_WARNING,"!!",logstr);
 		bputs("\7\r\nNOPEN: ACCESS DENIED\r\n\7");
 	}
     return(file);
@@ -3481,7 +3490,7 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 	}
     setvbuf(outp,NULL,_IOFBF,8*1024);
 	ftime=filetime(ind);
-    length=filelength(ind);
+    length=(long)filelength(ind);
     if(length) {	/* Something to copy */
 		if((buf=(char *)malloc(MV_BUFLEN))==NULL) {
 			fclose(inp);
@@ -3722,7 +3731,7 @@ void sbbs_t::catsyslog(int crash)
 			return; 
 		}
 	}
-	length=ftell(logfile_fp);
+	length=(long)ftell(logfile_fp);
 	if(length) {
 		if((buf=(char *)malloc(length))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,str,length);
@@ -3871,7 +3880,7 @@ void node_thread(void* arg)
 				sbbs->freevars(&sbbs->main_csi);
 				sbbs->clearvars(&sbbs->main_csi);
 
-				sbbs->main_csi.length=filelength(file);
+				sbbs->main_csi.length=(long)filelength(file);
 				if((sbbs->main_csi.cs=(uchar *)malloc(sbbs->main_csi.length))==NULL) {
 					close(file);
 					sbbs->errormsg(WHERE,ERR_ALLOC,str,sbbs->main_csi.length);
@@ -4199,7 +4208,7 @@ void DLLCALL bbs_terminate(void)
 
 static void cleanup(int code)
 {
-    lputs(LOG_INFO,"BBS System thread terminating");
+    lputs(LOG_INFO,"Terminal Server thread terminating");
 
 	if(telnet_socket!=INVALID_SOCKET) {
 		close_socket(telnet_socket);
@@ -4252,8 +4261,9 @@ static void cleanup(int code)
 	status("Down");
 	thread_down();
 	if(terminate_server || code)
-		lprintf(LOG_INFO,"BBS System thread terminated (%u threads remain, %lu clients served)"
-			,thread_count, served);
+		lprintf(LOG_INFO,"Terminal Server thread terminated (%lu clients served)", served);
+	if(thread_count)
+		lprintf(LOG_WARNING,"!Terminal Server threads (%u) remain after termination", thread_count);
 	if(startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -4665,7 +4675,7 @@ NO_SSH:
 #endif
 
 	sbbs = new sbbs_t(0, server_addr.sin_addr.s_addr
-		,"BBS System", telnet_socket, &scfg, text, NULL);
+		,"Terminal Server", telnet_socket, &scfg, text, NULL);
     sbbs->online = 0;
 	if(sbbs->init()==false) {
 		lputs(LOG_CRIT,"!BBS initialization failed");
@@ -4791,7 +4801,7 @@ NO_SSH:
     if(startup->started!=NULL)
     	startup->started(startup->cbdata);
 
-	lprintf(LOG_INFO,"BBS System thread started for nodes %d through %d", first_node, last_node);
+	lprintf(LOG_INFO,"Terminal Server thread started for nodes %d through %d", first_node, last_node);
 
 	while(!terminate_server) {
 
@@ -4838,6 +4848,7 @@ NO_SSH:
 		}
 
     	sbbs->online=FALSE;
+//		sbbs->client_socket=INVALID_SOCKET;
 #ifdef USE_CRYPTLIB
 		sbbs->ssh_mode=false;
 #endif
@@ -5086,14 +5097,8 @@ NO_SSH:
 		else
 			host_name="<no name>";
 
-#if	0 /* gethostbyaddr() is apparently not (always) thread-safe
-	     and getnameinfo() doesn't return alias information */
-		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
+		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
 			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
-			for(i=0;h!=NULL && h->h_aliases!=NULL && h->h_aliases[i]!=NULL;i++)
-				lprintf(LOG_INFO,"%04d HostAlias: %s", client_socket, h->h_aliases[i]);
-		}
-#endif
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
@@ -5142,6 +5147,16 @@ NO_SSH:
 				continue;
 			if(node.status==NODE_WFC) {
 				node.status=NODE_LOGON;
+#ifdef USE_CRYPTLIB
+				if(ssh)
+					node.connection=NODE_CONNECTION_SSH;
+				else
+#endif
+				if(rlogin)
+					node.connection=NODE_CONNECTION_RLOGIN;
+				else
+					node.connection=NODE_CONNECTION_TELNET;
+
 				sbbs->putnodedat(i,&node);
 				break;
 			}
