@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.130 2011/04/27 01:51:54 rswindell Exp $ */
+/* $Id: userdat.c,v 1.126 2010/03/21 04:15:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1047,7 +1047,7 @@ void DLLCALL printnodedat(scfg_t* cfg, uint number, node_t* node)
 
 /****************************************************************************/
 uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
-						 ,char *dat, BOOL del, BOOL next)
+						 ,char *dat, BOOL del)
 {
     char	str[MAX_PATH+1];
     uint	i;
@@ -1062,12 +1062,8 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
 		return(0);
 	length=(long)filelength(file);
-	if(usernumber && next) 
-		l=((long)usernumber) * U_LEN;
-	else
-		l=0;
-	for(;l<length;l+=U_LEN) {
-		if(usernumber && l/U_LEN==(long)usernumber-1) 
+	for(l=0;l<length;l+=U_LEN) {
+		if(usernumber && l/U_LEN==(long)usernumber-1)
 			continue;
 		lseek(file,l+offset,SEEK_SET);
 		i=0;
@@ -1553,6 +1549,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 					result=!not;
 				else
 					result=not;
+				result=not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
 				break;
@@ -1682,42 +1679,42 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_ULS:
-				if(user==NULL || (equal && user->uls!=i) || (!equal && user->uls<i))
+				if((equal && user->uls!=i) || (!equal && user->uls<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_ULK:
-				if(user==NULL || (equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
+				if((equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_ULM:
-				if(user==NULL || (equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
+				if((equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLS:
-				if(user==NULL || (equal && user->dls!=i) || (!equal && user->dls<i))
+				if((equal && user->dls!=i) || (!equal && user->dls<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLK:
-				if(user==NULL || (equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
+				if((equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLM:
-				if(user==NULL || (equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
+				if((equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
 					result=not;
 				else
 					result=!not;
