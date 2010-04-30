@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.100 2011/03/21 01:29:53 sbbs Exp $ */
+/* $Id: smbutil.c,v 1.99 2009/03/24 20:40:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -475,7 +475,7 @@ void listmsgs(ulong start, ulong count)
 				,beep,i,smb.last_error);
 			break; 
 		}
-		printf("%4lu %-25.25s %-25.25s %s\n"
+		printf("%4lu %-25.25s %-25.25s %.20s\n"
 			,msg.hdr.number,msg.from,msg.to,msg.subj);
 		smb_freemsgmem(&msg);
 		l++; 
@@ -1451,7 +1451,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.100 $", "%*s %s", revision);
+	sscanf("$Revision: 1.99 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
