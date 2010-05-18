@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.240 2009/11/21 21:04:03 rswindell Exp $ */
+/* $Id: services.c,v 1.245 2010/04/02 23:23:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -654,66 +654,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	JS_RESUMEREQUEST(cx, rc);
 }
 
-#if 0
-
-/* Server Object Properites */
-enum {
-	 SERVER_PROP_TERMINATED
-	,SERVER_PROP_CLIENTS
-};
-
-
-static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-    jsint       tiny;
-	service_client_t* client;
-
-	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-    tiny = JSVAL_TO_INT(id);
-
-	switch(tiny) {
-		case SERVER_PROP_TERMINATED:
-#if 0
-			lprintf(LOG_DEBUG,"%s client->service->terminated=%d"
-				,client->service->protocol, client->service->terminated);
-#endif
-			*vp = BOOLEAN_TO_JSVAL(client->service->terminated);
-			break;
-		case SERVER_PROP_CLIENTS:
-			*vp = INT_TO_JSVAL(active_clients());
-			break;
-	}
-
-	return(JS_TRUE);
-}
-
-#define SERVER_PROP_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY
-
-static struct JSPropertySpec js_server_properties[] = {
-/*		 name				,tinyid					,flags,				getter,	setter	*/
-
-	{	"terminated"		,SERVER_PROP_TERMINATED	,SERVER_PROP_FLAGS,	NULL,NULL},
-	{	"clients"			,SERVER_PROP_CLIENTS	,SERVER_PROP_FLAGS,	NULL,NULL},
-	{0}
-};
-
-static JSClass js_server_class = {
-         "Server"			/* name			*/
-		,0					/* flags		*/
-        ,JS_PropertyStub	/* addProperty	*/
-		,JS_PropertyStub	/* delProperty	*/
-		,js_server_get		/* getProperty	*/
-		,JS_PropertyStub	/* setProperty	*/
-		,JS_EnumerateStub	/* enumerate	*/
-		,JS_ResolveStub		/* resolve		*/
-		,JS_ConvertStub		/* convert		*/
-		,JS_FinalizeStub	/* finalize		*/
-}; 
-
-#endif
-
 /* Server Methods */
 
 static JSBool
@@ -1005,6 +945,19 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	return js_CommonBranchCallback(cx,&client->branch);
 }
 
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline)
 {
 	char					argbuf[MAX_PATH+1];
@@ -1187,8 +1140,12 @@ static void js_service_thread(void* arg)
 	if(js_script==NULL) 
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
-		js_PrepareToExecute(js_cx, js_glob, spath);
+		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
+#ifdef USE_JS_OPERATION_CALLBACK
+		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1287,14 +1244,18 @@ static void js_static_service_thread(void* arg)
 		val = BOOLEAN_TO_JSVAL(JS_FALSE);
 		JS_SetProperty(js_cx, js_glob, "logged_in", &val);
 
+#ifdef USE_JS_OPERATION_CALLBACK
+		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 	
 		if((js_script=JS_CompileFile(js_cx, js_glob, spath))==NULL)  {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",service->socket,spath);
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, js_glob, spath);
+		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1562,7 +1523,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 
 	/* Get default key values from "root" section */
 	log_level		= iniGetLogLevel(list,ROOT_SECTION,"LogLevel",startup->log_level);
-	stack_size		= iniGetInteger(list,ROOT_SECTION,"StackSize",0);
+	stack_size		= (uint32_t)iniGetBytes(list,ROOT_SECTION,"StackSize",1,0);
 	max_clients		= iniGetInteger(list,ROOT_SECTION,"MaxClients",0);
 	listen_backlog	= iniGetInteger(list,ROOT_SECTION,"ListenBacklog",DEFAULT_LISTEN_BACKLOG);
 	options			= iniGetBitField(list,ROOT_SECTION,"Options",service_options,0);
@@ -1580,7 +1541,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		serv.interface_addr=iniGetIpAddress(list,sec_list[i],"Interface",startup->interface_addr);
 		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",max_clients);
 		serv.listen_backlog=iniGetInteger(list,sec_list[i],"ListenBacklog",listen_backlog);
-		serv.stack_size=iniGetInteger(list,sec_list[i],"StackSize",stack_size);
+		serv.stack_size=(uint32_t)iniGetBytes(list,sec_list[i],"StackSize",1,stack_size);
 		serv.options=iniGetBitField(list,sec_list[i],"Options",service_options,options);
 		serv.log_level=iniGetLogLevel(list,sec_list[i],"LogLevel",log_level);
 		SAFECOPY(serv.cmd,iniGetString(list,sec_list[i],"Command","",cmd));
@@ -1675,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.240 $", "%*s %s", revision);
+	sscanf("$Revision: 1.245 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

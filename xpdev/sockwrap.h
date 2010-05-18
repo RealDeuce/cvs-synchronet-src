@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.36 2010/03/05 23:26:26 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.37 2010/03/09 03:23:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,6 @@
 #define _SOCKWRAP_H
 
 #include "gen_defs.h"	/* BOOL */
-#include "filewrap.h"	/* fileoff_t, filelen_t */
 
 /***************/
 /* OS-specific */
@@ -173,8 +172,8 @@ socket_option_t*
 		getSocketOptionList(void);
 int		getSocketOptionByName(const char* name, int* level);
 
-int		sendfilesocket(int sock, int file, fileoff_t* offset, filelen_t count);
-int		recvfilesocket(int sock, int file, fileoff_t* offset, filelen_t count);
+int		sendfilesocket(int sock, int file, off_t* offset, off_t count);
+int		recvfilesocket(int sock, int file, off_t* offset, off_t count);
 BOOL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
 int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
