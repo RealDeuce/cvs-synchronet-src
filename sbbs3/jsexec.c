@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.130 2009/08/17 03:30:15 cyan Exp $ */
+/* $Id: jsexec.c,v 1.138 2010/04/02 23:12:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,6 +45,7 @@
 
 #include "sbbs.h"
 #include "ciolib.h"
+#include "ini_file.h"
 #include "js_rtpool.h"
 #include "js_request.h"
 
@@ -78,6 +79,7 @@ pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
 #endif
+char		orig_cwd[MAX_PATH+1];
 
 void banner(FILE* fp)
 {
@@ -116,7 +118,7 @@ void usage(FILE* fp)
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
 		"\t-u<mask>       set file creation permissions mask (in octal)\n"
 		"\t-L<level>      set log level (default=%u)\n"
-		"\t-E<level>      set error log level threshold (default=%d)\n"
+		"\t-E<level>      set error log level threshold (default=%u)\n"
 		"\t-i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
 		"\t-f             use non-buffered stream for console messages\n"
 		"\t-a             append instead of overwriting message output files\n"
@@ -583,6 +585,19 @@ js_BranchCallback(JSContext *cx, JSScript *script)
     return(js_CommonBranchCallback(cx,&branch));
 }
 
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 {
 	char		name[256];
@@ -618,7 +633,7 @@ static BOOL js_init(char** environ)
 	js_startup_t	startup;
 
 	memset(&startup,0,sizeof(startup));
-	startup.load_path=strListSplitCopy(NULL, load_path_list, ",");
+	SAFECOPY(startup.load_path, load_path_list);
 
 	fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 
@@ -701,9 +716,12 @@ long js_exec(const char *fname, char** args)
 
 	if(fname!=NULL) {
 		if(strcspn(fname,"/\\")==strlen(fname)) {
-			sprintf(path,"%s%s%s",scfg.mods_dir,fname,js_ext(fname));
-			if(scfg.mods_dir[0]==0 || !fexistcase(path))
-				sprintf(path,"%s%s%s",scfg.exec_dir,fname,js_ext(fname));
+			SAFEPRINTF3(path,"%s%s%s",orig_cwd,fname,js_ext(fname));
+			if(!fexistcase(path)) {
+				SAFEPRINTF3(path,"%s%s%s",scfg.mods_dir,fname,js_ext(fname));
+				if(scfg.mods_dir[0]==0 || !fexistcase(path))
+					SAFEPRINTF3(path,"%s%s%s",scfg.exec_dir,fname,js_ext(fname));
+			}
 		} else
 			SAFECOPY(path,fname);
 
@@ -764,7 +782,11 @@ long js_exec(const char *fname, char** args)
 
 	branch.terminated=&terminated;
 
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 
 	if(fp==stdin) 	 /* Using stdin for script source */
 		SAFECOPY(path,"stdin");
@@ -802,7 +824,7 @@ long js_exec(const char *fname, char** args)
 			,path
 			,diff);
 
-	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path);
+	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path, orig_cwd);
 	start=xp_timer();
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
@@ -844,12 +866,34 @@ void recycle_handler(int type)
 
 
 #if defined(_WIN32)
-BOOL WINAPI ControlHandler(DWORD CtrlType)
+BOOL WINAPI ControlHandler(unsigned long CtrlType)
 {
 	break_handler((int)CtrlType);
 	return TRUE;
 }
 #endif
+
+int parseLogLevel(const char* p)
+{
+	str_list_t logLevelStringList=iniLogLevelStringList();
+	int i;
+
+	if(isdigit(*p))
+		return strtol(p,NULL,0);
+
+	/* Exact match */
+	for(i=0;logLevelStringList[i]!=NULL;i++) {
+		if(stricmp(logLevelStringList[i],p)==0)
+			return i;
+	}
+	/* Partial match */
+	for(i=0;logLevelStringList[i]!=NULL;i++) {
+		if(strnicmp(logLevelStringList[i],p,strlen(p))==0)
+			return i;
+	}
+	return DEFAULT_LOG_LEVEL;
+}
+
 
 /*********************/
 /* Entry point (duh) */
@@ -882,7 +926,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.130 $", "%*s %s", revision);
+	sscanf("$Revision: 1.138 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -890,6 +934,9 @@ int main(int argc, char **argv, char** environ)
 
 	if(!winsock_startup())
 		return(do_bail(2));
+
+	getcwd(orig_cwd, sizeof(orig_cwd));
+	backslash(orig_cwd);
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
@@ -937,11 +984,11 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'L':
 					if(*p==0) p=argv[++argn];
-					log_level=strtol(p,NULL,0);
+					log_level=parseLogLevel(p);
 					break;
 				case 'E':
 					if(*p==0) p=argv[++argn];
-					err_level=strtol(p,NULL,0);
+					err_level=parseLogLevel(p);
 					break;
 				case 'e':
 					if(*p==0) p=argv[++argn];
