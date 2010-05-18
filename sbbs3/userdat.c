@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.138 2011/09/23 06:53:26 rswindell Exp $ */
+/* $Id: userdat.c,v 1.126 2010/03/21 04:15:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1047,7 +1047,7 @@ void DLLCALL printnodedat(scfg_t* cfg, uint number, node_t* node)
 
 /****************************************************************************/
 uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
-						 ,char *dat, BOOL del, BOOL next)
+						 ,char *dat, BOOL del)
 {
     char	str[MAX_PATH+1];
     uint	i;
@@ -1062,12 +1062,8 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
 		return(0);
 	length=(long)filelength(file);
-	if(usernumber && next) 
-		l=((long)usernumber) * U_LEN;
-	else
-		l=0;
-	for(;l<length;l+=U_LEN) {
-		if(usernumber && l/U_LEN==(long)usernumber-1) 
+	for(l=0;l<length;l+=U_LEN) {
+		if(usernumber && l/U_LEN==(long)usernumber-1)
 			continue;
 		lseek(file,l+offset,SEEK_SET);
 		i=0;
@@ -1371,9 +1367,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 			case AR_QUIET:
 			case AR_OS2:
 			case AR_DOS:
-			case AR_WIN32:
-			case AR_UNIX:
-			case AR_LINUX:
 				break;
 			default:
 				(*ptrptr)++;
@@ -1556,6 +1549,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 					result=!not;
 				else
 					result=not;
+				result=not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
 				break;
@@ -1685,42 +1679,42 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_ULS:
-				if(user==NULL || (equal && user->uls!=i) || (!equal && user->uls<i))
+				if((equal && user->uls!=i) || (!equal && user->uls<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_ULK:
-				if(user==NULL || (equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
+				if((equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_ULM:
-				if(user==NULL || (equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
+				if((equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLS:
-				if(user==NULL || (equal && user->dls!=i) || (!equal && user->dls<i))
+				if((equal && user->dls!=i) || (!equal && user->dls<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLK:
-				if(user==NULL || (equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
+				if((equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLM:
-				if(user==NULL || (equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
+				if((equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
 					result=not;
 				else
 					result=!not;
@@ -2570,8 +2564,8 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* 
 /* Add an IP address (with comment) to the IP filter/trashcan file			*/
 /* ToDo: Move somewhere more appropriate (filter.c?)						*/
 /****************************************************************************/
-BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const char* host
-					   ,const char* ip_addr, const char* username, const char* fname)
+BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
+					   ,char* ip_addr, char* username, char* fname)
 {
 	char	ip_can[MAX_PATH+1];
 	char	tstr[64];
@@ -2661,103 +2655,3 @@ BOOL DLLCALL check_name(scfg_t* cfg, const char* name)
  	return TRUE;
 } 
 
-/****************************************************************************/
-/* Login attempt/hack tracking												*/
-/****************************************************************************/
-
-/****************************************************************************/
-link_list_t* DLLCALL loginAttemptListInit(link_list_t* list)
-{
-	return listInit(list, LINK_LIST_MUTEX);
-}
-
-/****************************************************************************/
-BOOL DLLCALL loginAttemptListFree(link_list_t* list)
-{
-	return listFree(list);
-}
-
-/****************************************************************************/
-long DLLCALL loginAttemptListClear(link_list_t* list)
-{	
-	long count;
-	
-	listLock(list);
-	count=listCountNodes(list);
-	count-=listFreeNodes(list);
-	listUnlock(list);
-	return count;
-}
-
-/****************************************************************************/
-static list_node_t* login_attempted(link_list_t* list, SOCKADDR_IN* addr)
-{
-	list_node_t*		node;
-	login_attempt_t*	attempt;
-
-	for(node=list->first; node!=NULL; node=node->next) {
-		attempt=node->data;
-		if(memcmp(&attempt->addr,&addr->sin_addr,sizeof(attempt->addr))==0)
-			break;
-	}
-	return node;
-}
-
-/****************************************************************************/
-long DLLCALL loginAttempts(link_list_t* list, SOCKADDR_IN* addr)
-{
-	long				count=0;
-	list_node_t*		node;
-
-	listLock(list);
-	if((node=login_attempted(list, addr))!=NULL)
-		count = ((login_attempt_t*)node->data)->count - ((login_attempt_t*)node->data)->dupes;
-	listUnlock(list);
-
-	return count;
-}
-
-/****************************************************************************/
-void DLLCALL loginSuccess(link_list_t* list, SOCKADDR_IN* addr)
-{
-	list_node_t*		node;
-
-	listLock(list);
-	if((node=login_attempted(list, addr)) != NULL)
-		listRemoveNode(list, node, /* freeData: */TRUE);
-	listUnlock(list);
-}
-
-/****************************************************************************/
-/* Returns number of *unique* login attempts (excludes consecutive dupes)	*/
-/****************************************************************************/
-ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* prot, const char* user, const char* pass)
-{
-	list_node_t*		node;
-	login_attempt_t		first={0};
-	login_attempt_t*	attempt=&first;
-	ulong				count=0;
-
-	if(list==NULL)
-		return 0;
-
-	listLock(list);
-	if((node=login_attempted(list, addr)) != NULL) {
-		attempt=node->data;
-		/* Don't count consecutive duplicate attempts (same name and password): */
-		if(strcmp(attempt->user,user)==0 && (pass==NULL || strcmp(attempt->pass,pass)==0))
-			attempt->dupes++;
-	}
-	SAFECOPY(attempt->prot,prot);
-	attempt->time=time(NULL);
-	attempt->addr=addr->sin_addr;
-	SAFECOPY(attempt->user, user);
-	SAFECOPY(attempt->pass, pass);
-	attempt->count++;
-	count = attempt->count-attempt->dupes;
-	if(node==NULL)
-		listPushNodeData(list, attempt, sizeof(login_attempt_t));
-	listUnlock(list);
-
-	return count;
-}
