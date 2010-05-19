@@ -2,13 +2,13 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.33 2011/10/19 02:37:36 deuce Exp $ */
+/* $Id: filewrap.h,v 1.31 2010/03/09 03:23:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -172,10 +172,10 @@ extern "C" {
 #endif
 
 #if defined(__unix__)
-	DLLEXPORT FILE * DLLCALL _fsopen(const char *pszFilename, const char *pszMode, int shmode);
+	DLLEXPORT FILE * DLLCALL _fsopen(char *pszFilename, char *pszMode, int shmode);
 #endif
 
-#if defined(_MSC_VER) && (_MSC_VER < 1300)	/* missing prototypes */
+#if _MSC_VER < 1300	/* missing prototypes */
 	DLLEXPORT int		DLLCALL	_fseeki64(FILE*, int64_t, int origin);
 	DLLEXPORT int64_t	DLLCALL _ftelli64(FILE*);
 #endif
