@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.77 2009/01/14 07:06:30 deuce Exp $ */
+/* $Id: genwrap.c,v 1.78 2010/05/19 18:26:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -465,7 +465,7 @@ char* DLLCALL truncsp(char* str)
 
 	if(str!=NULL) {
 		i=len=strlen(str);
-		while(i && isspace(str[i-1])) 
+		while(i && isspace((unsigned char)str[i-1])) 
 			i--;
 		if(i!=len)
 			str[i]=0;	/* truncate */
