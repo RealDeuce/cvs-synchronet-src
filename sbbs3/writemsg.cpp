@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.91 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.90 2010/03/12 18:24:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -891,7 +891,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 			else if(toupper(strin[1])=='L') {   /* list message */
 				if(line==lines)
 					free(str[line]);
-				if(lines && text[WithLineNumbersQ][0])
+				if(lines)
 					i=!noyes(text[WithLineNumbersQ]);
 				else
 					i=0;
