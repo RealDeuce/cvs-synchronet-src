@@ -2,13 +2,13 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.53 2011/07/21 11:28:23 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.52 2010/03/12 08:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,40 +37,6 @@
 
 #include "sbbs.h"
 #include "qwk.h"
-
-/****************************************************************************/
-/* Convert a QWK conference number into a sub-board offset					*/
-/* Return INVALID_SUB upon failure to convert								*/
-/****************************************************************************/
-uint sbbs_t::resolve_qwkconf(uint n)
-{
-	uint	j,k;
-
-	for	(j=0;j<usrgrps;j++) {
-		for(k=0;k<usrsubs[j];k++)
-			if(cfg.sub[usrsub[j][k]]->qwkconf==n)
-				break;
-		if(k<usrsubs[j])
-			break; 
-	}
-
-	if(j>=usrgrps) {
-		if(n<1000) {			 /* version 1 method, start at 101 */
-			j=n/100;
-			k=n-(j*100); 
-		}
-		else {					 /* version 2 method, start at 1001 */
-			j=n/1000;
-			k=n-(j*1000); 
-		}
-		j--;	/* j is group */
-		k--;	/* k is sub */
-		if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf)
-			return INVALID_SUB;
-	}
-
-	return usrsub[j][k];
-}
 
 /****************************************************************************/
 /* Unpacks .REP packet, 'repname' is the path and filename of the packet    */
@@ -381,14 +347,35 @@ bool sbbs_t::unpack_rep(char* repfile)
 				/**************************/
 		else {	/* message on a sub-board */
 				/**************************/
-			n=resolve_qwkconf(atol((char *)block+1)); /* conference number */
-
-			if(n==INVALID_SUB) {
-				bprintf(text[QWKInvalidConferenceN],n);
-				SAFEPRINTF2(str,"%s: Invalid QWK conference number %lu",useron.alias,n);
-				logline(LOG_NOTICE,"P!",str);
-				continue; 
+			n=atol((char *)block+1); /* conference number */
+			for(j=0;j<usrgrps;j++) {
+				for(k=0;k<usrsubs[j];k++)
+					if(cfg.sub[usrsub[j][k]]->qwkconf==n)
+						break;
+				if(k<usrsubs[j])
+					break; 
 			}
+
+			if(j>=usrgrps) {
+				if(n<1000) {			 /* version 1 method, start at 101 */
+					j=n/100;
+					k=n-(j*100); 
+				}
+				else {					 /* version 2 method, start at 1001 */
+					j=n/1000;
+					k=n-(j*1000); 
+				}
+				j--;	/* j is group */
+				k--;	/* k is sub */
+				if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf) {
+					bprintf(text[QWKInvalidConferenceN],n);
+					SAFEPRINTF2(str,"%s: Invalid QWK conference number %lu",useron.alias,n);
+					logline(LOG_NOTICE,"P!",str);
+					continue; 
+				} 
+			}
+
+			n=usrsub[j][k];
 
 			/* if posting, add to new-scan config for QWKnet nodes automatically */
 			if(useron.rest&FLAG('Q'))
@@ -548,56 +535,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 	if(lastsub!=INVALID_SUB)
 		smb_close(&smb);
 	fclose(rep);
-
-	/* QWKE support */
-	SAFEPRINTF(fname,"%sTODOOR.EXT",cfg.temp_dir);
-	if(fexistcase(fname)) {
-		useron.qwk|=QWK_EXT;
-		FILE* fp=fopen(fname,"r");
-		char* p;
-		if(fp!=NULL) {
-			while(!feof(fp)) {
-				if(!fgets(str,sizeof(str)-1,fp))
-					break;
-				if(strnicmp(str,"AREA ",5)==0) {
-					p=str+5;
-					SKIP_WHITESPACE(p);
-					if((n=resolve_qwkconf(atoi(p))) != INVALID_SUB) {
-						FIND_WHITESPACE(p);
-						SKIP_WHITESPACE(p);
-						if(strchr(p,'D'))
-							subscan[n].cfg&=~SUB_CFG_NSCAN;
-						else if(strchr(p,'a') || strchr(p,'g'))
-							subscan[n].cfg|=SUB_CFG_NSCAN;
-						else if(strchr(p,'p'))
-							subscan[n].cfg|=SUB_CFG_NSCAN|SUB_CFG_YSCAN;
-					}
-					continue;
-				}
-				if(strnicmp(str,"RESET ",6)==0) {
-					p=str+6;
-					SKIP_WHITESPACE(p);
-					if((n=resolve_qwkconf(atoi(p))) != INVALID_SUB) {
-						FIND_WHITESPACE(p);
-						SKIP_WHITESPACE(p);
-						/* If the [#ofmessages] is blank then the pointer should be set back to the start of the message base */
-						if(*p==0)
-							subscan[n].ptr=0;
-						else {
-							/* otherwise it should be set back [#ofmessages] back from the end of the message base. */
-							uint32_t last=0;
-							getlastmsg(n,&last,/* time_t* */NULL);
-							l=last-atol(p);
-							if(l<0)
-								l=0;
-							subscan[n].ptr=l;
-						}
-					}
-				}
-			}
-			fclose(fp);
-		}
-	}
 
 	if(useron.rest&FLAG('Q')) {             /* QWK Net Node */
 		if(fexistcase(msg_fname))
