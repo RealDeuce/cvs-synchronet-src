@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.515 2010/03/19 07:57:42 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.516 2010/05/24 05:17:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1876,8 +1876,8 @@ static uchar* get_header_field(uchar* buf, char* name, size_t maxlen)
 		return NULL;
 
 	len = p-buf;
-	if(len > maxlen)
-		len = maxlen;
+	if(len >= maxlen)
+		len = maxlen-1;
 	sprintf(name,"%.*s",len,buf);
 	truncsp(name);
 
@@ -4680,7 +4680,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.515 $", "%*s %s", revision);
+	sscanf("$Revision: 1.516 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
