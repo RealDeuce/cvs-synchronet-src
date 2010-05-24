@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.96 2011/05/11 00:46:32 deuce Exp $ */
+/* $Id: genwrap.h,v 1.94 2010/05/24 01:13:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,6 @@
 	#endif
 #elif defined(_WIN32)
 	#include <process.h>	/* getpid() */
-	typedef DWORD pid_t;
 #endif
 
 #if !defined(_WIN32)
@@ -324,7 +323,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 
 /* Mimic the Borland randomize() and random() CRTL functions */
 DLLEXPORT void		DLLCALL xp_randomize(void);
-DLLEXPORT long		DLLCALL	xp_random(int);
+DLLEXPORT int		DLLCALL	xp_random(int);
 
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
@@ -348,9 +347,6 @@ typedef		clock_t				msclock_t;
 	#define		MSCLOCKS_PER_SEC	1000
 	msclock_t	msclock(void);
 #endif
-
-DLLEXPORT BOOL		DLLCALL check_pid(pid_t);
-DLLEXPORT BOOL		DLLCALL	terminate_pid(pid_t);
 
 #if defined(__cplusplus)
 }
