@@ -1,5 +1,4 @@
 #include <dirwrap.h>
-#include <string.h>
 
 int mdel(char *glob)
 {
