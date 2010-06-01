@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.54 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.53 2010/03/10 08:04:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -251,7 +251,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					else {
 						sprintf(str3,text[DownloadAttachedFileQ]
 							,tp,ultoac(length,tmp));
-						if(length>0L && text[DownloadAttachedFileQ][0] && yesno(str3)) {
+						if(length>0L && yesno(str3)) {
 							{	/* Remote User */
 								xfer_prot_menu(XFER_DOWNLOAD);
 								mnemonics(text[ProtocolOrQuit]);
