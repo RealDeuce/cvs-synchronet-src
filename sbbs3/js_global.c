@@ -2,11 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-<<<<<<< js_global.c
-/* $Id: js_global.c,v 1.259 2010/06/01 19:55:43 cyan Exp $ */
-=======
-/* $Id: js_global.c,v 1.259 2010/06/01 19:55:43 cyan Exp $ */
->>>>>>> 1.258
+/* $Id: js_global.c,v 1.260 2010/06/01 19:56:57 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
