@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.56 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.53 2010/05/28 01:10:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -350,7 +350,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
-	int		quit=0;
 	uint 	usub,ugrp,reads=0;
 	uint	lp=0;
 	long	org_mode=mode;
@@ -688,8 +687,13 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		l=getkeys(str,smb.msgs);
 		if(l&0x80000000L) {
 			if((long)l==-1) { /* ctrl-c */
-				quit=1;
-				break; 
+				if(msg.total_hfields)
+					smb_freemsgmem(&msg);
+				if(post)
+					free(post);
+				smb_close(&smb);
+				smb_stack(&smb,SMB_STACK_POP);
+				return(1); 
 			}
 			smb.curmsg=(l&~0x80000000L)-1;
 			do_find=false;
@@ -719,7 +723,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					domsg=1;
 				break;
 			case 'B':   /* Skip sub-board */
-				if(mode&SCAN_NEW && text[RemoveFromNewScanQ][0] && !noyes(text[RemoveFromNewScanQ]))
+				if(mode&SCAN_NEW && !noyes(text[RemoveFromNewScanQ]))
 					subscan[subnum].cfg&=~SUB_CFG_NSCAN;
 				if(msg.total_hfields)
 					smb_freemsgmem(&msg);
@@ -825,7 +829,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				bputs(text[SearchStringPrompt]);
 				if(!getstr(find_buf,40,K_LINE|K_UPPER|K_EDIT|K_AUTODEL))
 					break;
-				if(text[DisplaySubjectsOnlyQ][0] && yesno(text[DisplaySubjectsOnlyQ]))
+				if(yesno(text[DisplaySubjectsOnlyQ]))
 					searchposts(subnum,post,(long)i,smb.msgs,find_buf);
 				else {
 					smb.curmsg=i;
@@ -887,7 +891,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 						i=atoi(str);
 						if(!i) {
 							if(cfg.sub[subnum]->misc&SUB_NAME)
-								i=userdatdupe(0,U_NAME,LEN_NAME,str);
+								i=userdatdupe(0,U_NAME,LEN_NAME,str,0);
 							else
 								i=matchuser(&cfg,str,TRUE /* sysop_alias */); 
 						}
@@ -905,9 +909,13 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				break;
 			case 'Q':   /* Quit */
-				quit=1;
-				done=1;
-				break;
+				if(msg.total_hfields)
+					smb_freemsgmem(&msg);
+				if(post)
+					free(post);
+				smb_close(&smb);
+				smb_stack(&smb,SMB_STACK_POP);
+				return(1);
 			case 'T':   /* List titles of next ten messages */
 				domsg=0;
 				if(!smb.msgs)
@@ -949,7 +957,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							if(noyes(text[AreYouSureQ]))
 								break;
 							purgeuser(cfg.sub[subnum]->misc&SUB_NAME
-								? userdatdupe(0,U_NAME,LEN_NAME,msg.from)
+								? userdatdupe(0,U_NAME,LEN_NAME,msg.from,0)
 								: matchuser(&cfg,msg.from,FALSE));
 							break;
 						case 'C':   /* Change message attributes */
@@ -1015,7 +1023,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							break;
 						case 'U':   /* User edit */
 							useredit(cfg.sub[subnum]->misc&SUB_NAME
-								? userdatdupe(0,U_NAME,LEN_NAME,msg.from)
+								? userdatdupe(0,U_NAME,LEN_NAME,msg.from,0)
 								: matchuser(&cfg,msg.from,TRUE /* sysop_alias */));
 							break;
 						case 'V':   /* Validate message */
@@ -1145,21 +1153,17 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		smb_freemsgmem(&msg);
 	if(post)
 		free(post);
-	if(!quit
-		&& !(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
-		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron,&client) && text[Post][0]
+	if(!(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
+		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron,&client)
 		&& !(useron.rest&FLAG('P'))) {
 		sprintf(str,text[Post],cfg.grp[cfg.sub[subnum]->grp]->sname
 			,cfg.sub[subnum]->lname);
 		if(!noyes(str))
 			postmsg(subnum,0,0); 
 	}
-	if(!(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND))
-		&& !(subscan[subnum].cfg&SUB_CFG_NSCAN) && text[AddSubToNewScanQ][0] && yesno(text[AddSubToNewScanQ]))
-		subscan[subnum].cfg|=SUB_CFG_NSCAN;
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
-	return(quit);
+	return(0);
 }
 
 /****************************************************************************/
