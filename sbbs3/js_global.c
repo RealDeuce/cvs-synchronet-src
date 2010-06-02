@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.261 2010/06/02 14:19:01 cyan Exp $ */
+/* $Id: js_global.c,v 1.262 2010/06/02 14:28:48 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2797,7 +2797,7 @@ js_kill(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	int32		pid=0;
 	int32		sig=0;
-	int			ds=0; /* assumes success by default */
+	int			ds;
 	jsrefcount	rc;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -2811,7 +2811,8 @@ js_kill(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JS_ValueToInt32(cx,argv[1],&pid);
 	
 	rc=JS_SUSPENDREQUEST(cx);
-	if (kill(sig, pid) == -1) /* failure */
+	ds = kill(sig, pid);
+	if (ds == -1)
 		ds = errno;
 	JS_RESUMEREQUEST(cx, rc);
 	JS_NewNumberValue(cx,ds,rval);
