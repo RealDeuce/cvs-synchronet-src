@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.77 2010/03/05 23:55:58 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.81 2010/06/03 01:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,7 +390,7 @@ int DLLCALL setfdate(const char* filename, time_t t)
 /* Returns the length of the file in 'filename'                             */
 /* or -1 if the file doesn't exist											*/
 /****************************************************************************/
-filelen_t DLLCALL flength(const char *filename)
+off_t DLLCALL flength(const char *filename)
 {
 #if defined(__BORLANDC__) && !defined(__unix__)	/* stat() doesn't work right */
 
@@ -536,6 +536,9 @@ BOOL DLLCALL fexistcase(char *path)
 	int  i;
 	glob_t	glb;
 	
+	if(path[0]==0)		/* work around glibc bug 574274 */
+		return FALSE;
+
 	if(!strchr(path,'*') && !strchr(path,'?') && fnameexist(path))
 		return(TRUE);
 
