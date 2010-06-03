@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.234 2010/05/19 18:25:05 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.235 2010/06/03 05:50:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -374,6 +374,11 @@ BOOL do_setuid(BOOL force)
 	}
 
 	if(getuid() != new_uid || geteuid() != new_uid) {
+		if(initgroups(new_uid_name, new_gid)) {
+			lputs(LOG_ERR,"!initgroups FAILED");
+			lputs(LOG_ERR,strerror(errno));
+			result=FALSE;
+		}	
 		if(setreuid(new_uid,new_uid))
 		{
 			lputs(LOG_ERR,"!setuid FAILED");
