@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.77 2009/01/14 07:06:30 deuce Exp $ */
+/* $Id: genwrap.c,v 1.79 2010/06/03 01:34:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -465,7 +465,7 @@ char* DLLCALL truncsp(char* str)
 
 	if(str!=NULL) {
 		i=len=strlen(str);
-		while(i && isspace(str[i-1])) 
+		while(i && isspace((unsigned char)str[i-1])) 
 			i--;
 		if(i!=len)
 			str[i]=0;	/* truncate */
@@ -560,3 +560,45 @@ long double	DLLCALL	xp_timer(void)
 #endif
 	return(ret);
 }
+
+/* Returns TRUE if specified process is running */
+BOOL DLLCALL check_pid(pid_t pid)
+{
+#if defined(__unix__)
+	return(kill(pid,0)==0);
+#elif defined(_WIN32)
+	HANDLE	h;
+	BOOL	result=FALSE;
+
+	if((h=OpenProcess(PROCESS_QUERY_INFORMATION,/* inheritable: */FALSE, pid)) != NULL) {
+		DWORD	code;
+		if(GetExitCodeProcess(h,&code)==TRUE && code==STILL_ACTIVE)
+			result=TRUE;
+		CloseHandle(h);
+	}
+	return result;
+#else
+	return FALSE;	/* Need check_pid() definition! */
+#endif
+}
+
+/* Terminate (unconditionally) the specified process */
+BOOL DLLCALL terminate_pid(pid_t pid)
+{
+#if defined(__unix__)
+	return(kill(pid,SIGKILL)==0);
+#elif defined(_WIN32)
+	HANDLE	h;
+	BOOL	result=FALSE;
+
+	if((h=OpenProcess(PROCESS_TERMINATE,/* inheritable: */FALSE, pid)) != NULL) {
+		if(TerminateProcess(h,255))
+			result=TRUE;
+		CloseHandle(h);
+	}
+	return result;
+#else
+	return FALSE;	/* Need check_pid() definition! */
+#endif
+}
+

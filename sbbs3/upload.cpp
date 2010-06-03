@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.54 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.55 2010/03/11 22:53:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,7 +139,7 @@ bool sbbs_t::uploadfile(file_t *f)
 			} 
 		}
 
-	if((length=(long)flength(path))<=0L) {
+	if((length=(long)flength(path))==0L) {
 		bprintf(text[FileZeroLength],f->name);
 		remove(path);
 		sprintf(str,"%s attempted to upload %s to %s %s (Zero length)"
