@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.516 2010/05/24 05:17:57 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.517 2010/06/07 07:02:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,7 +810,7 @@ static void pop3_thread(void* arg)
 		memset(&user,0,sizeof(user));
 		password[0]=0;
 
-		srand(time(NULL) ^ (DWORD)GetCurrentThreadId());	/* seed random number generator */
+		srand((unsigned int)(time(NULL) ^ (time_t)GetCurrentThreadId()));	/* seed random number generator */
 		rand();	/* throw-away first result */
 		safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%.128s>"
 			,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
@@ -2386,7 +2386,7 @@ static void smtp_thread(void* arg)
 	spam.retry_time=scfg.smb_retry_time;
 	spam.subnum=INVALID_SUB;
 
-	srand(time(NULL) ^ (DWORD)GetCurrentThreadId());	/* seed random number generator */
+	srand((unsigned int)(time(NULL) ^ (time_t)GetCurrentThreadId()));	/* seed random number generator */
 	rand();	/* throw-away first result */
 	SAFEPRINTF4(session_id,"%x%x%x%lx",getpid(),socket,rand(),clock());
 	lprintf(LOG_DEBUG,"%04d SMTP Session ID=%s", socket, session_id);
@@ -4680,7 +4680,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.516 $", "%*s %s", revision);
+	sscanf("$Revision: 1.517 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
