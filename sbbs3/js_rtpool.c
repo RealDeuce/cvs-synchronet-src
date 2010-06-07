@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.20 2011/10/19 06:54:02 rswindell Exp $ */
+/* $Id: js_rtpool.c,v 1.18 2010/04/03 00:16:53 deuce Exp $ */
 
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
@@ -129,8 +129,9 @@ void DLLCALL jsrt_Release(JSRuntime *rt)
 
 void DLLCALL jsrt_TriggerAll(void)
 {
-#if JS_VERSION>180
+#ifdef USE_JS_OPERATION_CALLBACK
 	int	i;
+	int j;
 	JSContext	*iterp,*cx;
 
 	if(!initialized)
