@@ -2,13 +2,13 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.43 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.40 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -55,7 +55,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	FILE	*instream;
 	smbmsg_t msg;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -234,7 +234,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	msg.hdr.version=smb_ver();
 	if(mode&WM_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
-	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
+	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	msg.hdr.offset=offset;
@@ -256,7 +256,6 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
-	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
@@ -313,7 +312,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	FILE	*instream;
 	smbmsg_t msg;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -445,7 +444,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	msg.hdr.version=smb_ver();
 	if(mode&WM_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
-	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
+	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	msg.hdr.offset=offset;
@@ -464,7 +463,6 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
-	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
