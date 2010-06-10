@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.52 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.53 2010/05/28 01:10:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,11 +124,11 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	/* fixed fields */
 	bprintf("%-16.16s %08lX %04hX %.24s %s\r\n","when_written"	
 		,msg->hdr.when_written.time, msg->hdr.when_written.zone
-		,ctime((time_t*)&msg->hdr.when_written.time)
+		,timestr(msg->hdr.when_written.time)
 		,smb_zonestr(msg->hdr.when_written.zone,NULL));
 	bprintf("%-16.16s %08lX %04hX %.24s %s\r\n","when_imported"	
 		,msg->hdr.when_imported.time, msg->hdr.when_imported.zone
-		,ctime((time_t*)&msg->hdr.when_imported.time)
+		,timestr(msg->hdr.when_imported.time)
 		,smb_zonestr(msg->hdr.when_imported.zone,NULL));
 	bprintf("%-16.16s %04Xh\r\n","type"				,msg->hdr.type);
 	bprintf("%-16.16s %04Xh\r\n","version"			,msg->hdr.version);

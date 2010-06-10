@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.52 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.53 2010/03/10 08:04:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -340,7 +340,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRT?<>[]{}-+");
+		sprintf(str,"ADKFLNQRT?<>[]{}-+");
 		if(SYSOP)
 			strcat(str,"CUSPH");
 		if(which!=MAIL_YOUR)
@@ -456,6 +456,12 @@ void sbbs_t::readmail(uint usernumber, int which)
 				}
 				if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 				else done=1;
+				break;
+			case 'K':	/* Kill All Mail */
+				SAFEPRINTF(str,text[DeleteMailQ],"everyone");
+				if(!noyes(str))
+					delallmail(usernumber, MAIL_YOUR, /* permanent: */false);
+				domsg=false;
 				break;
 			case 'F':  /* Forward last piece */
 				domsg=0;
@@ -723,13 +729,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	if(smb.msgs)
 		free(mail);
-
-	SAFEPRINTF(str,text[DeleteMailQ],"everyone");
-	if(which==MAIL_YOUR 
-		&& getmail(&cfg, usernumber, /* sent: */FALSE)>1
-		&& bputs(crlf)
-		&& !noyes(str))
-		delallmail(usernumber, MAIL_YOUR);
 
 	/***************************************/
 	/* Delete messages marked for deletion */
