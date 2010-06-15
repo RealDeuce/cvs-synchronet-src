@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.122 2010/04/02 22:57:45 deuce Exp $ */
+/* $Id: js_file.c,v 1.123 2010/06/15 22:53:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,7 +169,10 @@ js_open(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		p->fp=fopen(p->name,p->mode);
 	else {
 		if((file=nopen(p->name,fopenflags(p->mode)))!=-1) {
-			if((p->fp=fdopen(file,p->mode))==NULL)
+			char fdomode[4];
+			SAFECOPY(fdomode,p->mode);
+			fdomode[strspn(fdomode,"abrwt+")]=0;	/* MSVC10 fdopen() asserts when passed a mode with an unsupported char (e.g. 'e') */
+			if((p->fp=fdopen(file,fdomode))==NULL)
 				close(file);
 		}
 	}
