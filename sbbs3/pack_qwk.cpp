@@ -2,13 +2,13 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.63 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.60 2010/03/12 08:27:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -205,66 +205,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		}
 	}
 
-	if(useron.qwk&QWK_EXT) {
-		/****************************/
-		/* Create TOREADER.EXT file */
-		/****************************/
-		SAFEPRINTF(str,"%sTOREADER.EXT",cfg.temp_dir);
-		if((stream=fopen(str,"wb"))==NULL) {
-			errormsg(WHERE,ERR_OPEN,str,0);
-			return(false); 
-		}
-
-		fprintf(stream,"ALIAS %s\r\n", useron.alias);
-
-		/* Double-checked with multimail (qwk.cc): */
-		for(i=0;i<usrgrps;i++) 
-			for(j=0;j<usrsubs[i];j++) {
-				fprintf(stream,"AREA %u "
-					,cfg.sub[usrsub[i][j]]->qwkconf ? cfg.sub[usrsub[i][j]]->qwkconf : ((i+1)*1000)+j+1);
-				switch(subscan[usrsub[i][j]].cfg&(SUB_CFG_NSCAN|SUB_CFG_YSCAN)) {
-					case SUB_CFG_NSCAN|SUB_CFG_YSCAN:
-						fputc('p', stream);	// p   for personal messages
-						break;
-					case SUB_CFG_NSCAN:
-						fputc('a', stream); // a   for all messages
-						break;
-				}
-				switch(cfg.sub[usrsub[i][j]]->misc&(SUB_PRIV|SUB_PONLY)) {
-					case SUB_PRIV|SUB_PONLY:
-						fputc('P', stream);	// P   if the area is private mail only
-						break;
-					case SUB_PRIV:
-						fputc('X', stream); // X   if either private or public mail is allowed
-						break;
-					default:
-						fputc('O', stream);	// O   if the area is public mail only
-						break;
-				}
-				if(useron.qwk&QWK_BYSELF)
-					fputc('w', stream);		// w   if this area should include mail written by themselves
-				if(cfg.sub[usrsub[i][j]]->misc&SUB_FORCED)
-					fputc('F', stream);		// F   if this area is forced to be read
-				if(!chk_ar(cfg.sub[usrsub[i][j]]->post_ar,&useron,&client))
-					fputc('R', stream);		// R   if the area is read-only (no posting at all allowed)
-				if(cfg.sub[usrsub[i][j]]->misc&SUB_QNET)
-					fputc('Q', stream);		// I   if the area is an internet area
-				if(cfg.sub[usrsub[i][j]]->misc&SUB_INET)
-					fputc('I', stream);		// I   if the area is an internet area
-				if(cfg.sub[usrsub[i][j]]->misc&SUB_FIDO)
-					fputc('E', stream);		// E   if the area is an echomail area
-				if((cfg.sub[usrsub[i][j]]->misc&(SUB_FIDO|SUB_INET|SUB_QNET))==0)
-					fputc('L', stream);		// L   if the area is a local message area
-				if((cfg.sub[usrsub[i][j]]->misc&SUB_NAME)==0)
-					fputc('H', stream);		// H   if the area is an handles only message area
-				if(cfg.sub[usrsub[i][j]]->misc&SUB_ANON)
-					fputc('A', stream);		// A   if the area allows messages 'from' any name (pick-an-alias)
-				
-				fprintf(stream,"\r\n");
-			}
-		fclose(stream);
-	}
-
 	/****************************************************/
 	/* Create MESSAGES.DAT, write header and leave open */
 	/****************************************************/
@@ -338,7 +278,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		qwkmail_last=0;
 		mail=loadmail(&smb,&mailmsgs,useron.number,0,useron.qwk&QWK_ALLMAIL ? 0
 			: LM_UNREAD);
-		if(mailmsgs && (online==ON_LOCAL || !(sys_status&SS_ABORT))) {
+		if(mailmsgs && !(sys_status&SS_ABORT)) {
 			bputs(text[QWKPackingEmail]);
 			if(!(useron.qwk&QWK_NOINDEX)) {
 				SAFEPRINTF(str,"%s000.NDX",cfg.temp_dir);
@@ -597,10 +537,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	}
 	CRLF;
 
-	if(!prepack && online!=ON_LOCAL && ((sys_status&SS_ABORT) || !online)) {
-		bputs(text[Aborted]);
+	if(!prepack && (sys_status&SS_ABORT || !online))
 		return(false);
-	}
 
 	if(/*!prepack && */ useron.rest&FLAG('Q')) { /* If QWK Net node, check for files */
 		char id[LEN_QWKID+1];
@@ -728,7 +666,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		if(i)
 			errormsg(WHERE,ERR_EXEC,cmdstr(temp_cmd(),packet,tmp2,NULL),i);
 		else
-			lprintf(LOG_ERR, "Couldn't compress QWK packet");
+			errorlog("Couldn't compress QWK packet");
 		return(false); 
 	}
 
