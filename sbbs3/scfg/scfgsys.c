@@ -1,12 +1,12 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.32 2011/06/30 03:07:04 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.30 2009/10/25 05:10:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -75,10 +75,10 @@ while(1) {
 	opt[i][0]=0;
 	SETHELP(WHERE);
 /*
-`System Configuration:`
+System Configuration:
 
 This menu contains options and sub-menus of options that affect the
-entire BBS system and the Synchronet Terminal Server in particular.
+entire system.
 */
 	switch(uifc.list(WIN_ORG|WIN_ACT|WIN_CHE,0,0,72,&sys_dflt,0
 		,"System Configuration",opt)) {
@@ -95,7 +95,7 @@ entire BBS system and the Synchronet Terminal Server in particular.
 		case 0:
 			SETHELP(WHERE);
 /*
-`BBS Name:`
+BBS Name:
 
 This is the name of the BBS.
 */
@@ -104,20 +104,20 @@ This is the name of the BBS.
 		case 1:
 			SETHELP(WHERE);
 /*
-`System Location:`
+System Location:
 
 This is the location of the BBS. The format is flexible, but it is
-suggested you use the `City, State` format for clarity.
+suggested you use the City, State format for clarity.
 */
 			uifc.input(WIN_MID,0,0,"Location",cfg.sys_location,sizeof(cfg.sys_location)-1,K_EDIT);
             break;
 		case 2:
 			SETHELP(WHERE);
 /*
-`System Operator:`
+System Operator:
 
 This is the name or alias of the system operator. This does not have to
-be the same as user #1. This field is used for informational purposes
+be the same as user #1. This field is used for documentary purposes
 only.
 */
 			uifc.input(WIN_MID,0,0,"System Operator",cfg.sys_op,sizeof(cfg.sys_op)-1,K_EDIT);
@@ -125,12 +125,12 @@ only.
 		case 3:
 			SETHELP(WHERE);
 /*
-`System Password:`
+System Password:
 
 This is an extra security password required for sysop logon and certain
 sysop functions. This password should be something not easily guessed
 and should be kept absolutely confidential. This password must be
-entered at the Terminal Server `SY:` prompt.
+entered at the SY: prompt.
 */
 			uifc.input(WIN_MID,0,0,"System Password",cfg.sys_pass,sizeof(cfg.sys_pass)-1,K_EDIT|K_UPPER);
 			break;
@@ -141,29 +141,27 @@ entered at the Terminal Server `SY:` prompt.
 			i=1;
 			SETHELP(WHERE);
 /*
-`Allow Users to Change Their Password:`
+Allow Users to Change Their Password:
 
 If you want the users of your system to have the option of changing
-their password to a string of their choice, set this option to `Yes`.
-For the highest level of security, set this option to `No.`
+their password to a string of their choice, set this option to Yes.
+For the highest level of security, set this option to No.
 */
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 				,"Allow Users to Change Their Password",opt);
 			if(!i && !(cfg.sys_misc&SM_PWEDIT)) {
 				cfg.sys_misc|=SM_PWEDIT;
-				uifc.changes=1; 
-			}
+				uifc.changes=1; }
 			else if(i==1 && cfg.sys_misc&SM_PWEDIT) {
                 cfg.sys_misc&=~SM_PWEDIT;
-                uifc.changes=1; 
-			}
+                uifc.changes=1; }
 			i=0;
 			SETHELP(WHERE);
 /*
-`Force Periodic Password uifc.changes:`
+Force Periodic Password uifc.changes:
 
 If you want your users to be forced to change their passwords
-periodically, select `Yes`.
+periodically, select Yes.
 */
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 				,"Force Periodic Password Changes",opt);
@@ -171,7 +169,7 @@ periodically, select `Yes`.
 				ultoa(cfg.sys_pwdays,str,10);
 			SETHELP(WHERE);
 /*
-`Maximum Days Between Password uifc.changes:`
+Maximum Days Between Password uifc.changes:
 
 Enter the maximum number of days allowed between password uifc.changes.
 If a user has not voluntarily changed his or her password in this
@@ -180,21 +178,19 @@ logon.
 */
 				uifc.input(WIN_MID,0,0,"Maximum Days Between Password Changes"
 					,str,5,K_NUMBER|K_EDIT);
-				cfg.sys_pwdays=atoi(str); 
-			}
+				cfg.sys_pwdays=atoi(str); }
 			else if(i==1 && cfg.sys_pwdays) {
 				cfg.sys_pwdays=0;
-				uifc.changes=1; 
-			}
+				uifc.changes=1; }
 			
 			break;
 		case 5:
 			sprintf(str,"%u",cfg.sys_deldays);
 			SETHELP(WHERE);
 /*
-`Days Since Last Logon to Preserve Deleted Users:`
+Days Since Last Logon to Preserve Deleted Users:
 
-Deleted user slots can be `undeleted` until the slot is written over
+Deleted user slots can be undeleted until the slot is written over
 by a new user. If you want deleted user slots to be preserved for period
 of time since their last logon, set this value to the number of days to
 keep new users from taking over a deleted user's slot.
@@ -207,14 +203,14 @@ keep new users from taking over a deleted user's slot.
 			sprintf(str,"%u",cfg.sys_autodel);
 			SETHELP(WHERE);
 /*
-`Maximum Days of Inactivity Before Auto-Deletion:`
+Maximum Days of Inactivity Before Auto-Deletion:
 
 If you want users that haven't logged on in certain period of time to
 be automatically deleted, set this value to the maximum number of days
-of inactivity before the user is deleted. Setting this value to `0`
+of inactivity before the user is deleted. Setting this value to 0
 disables this feature.
 
-Users with the `P` exemption will not be deleted due to inactivity.
+Users with the P exemption will not be deleted due to inactivity.
 */
 			uifc.input(WIN_MID,0,0,"Maximum Days of Inactivity Before Auto-Deletion"
 				,str,5,K_EDIT|K_NUMBER);
@@ -223,9 +219,9 @@ Users with the `P` exemption will not be deleted due to inactivity.
 		case 7:
 			SETHELP(WHERE);
 /*
-`New User Password:`
+New User Password:
 
-If you want callers to only be able to logon as `New` if they know a
+If you want callers to only be able to logon as New if they know a
 certain password, enter that password here. If you want any caller to
 be able to logon as New, leave this option blank.
 */
@@ -269,10 +265,10 @@ be able to logon as New, leave this option blank.
 				opt[i][0]=0;
 				SETHELP(WHERE);
 /*
-`System Toggle Options:`
+System Toggle Options:
 
 This is a menu of system related options that can be toggled between
-two or more states, such as `Yes` and `No`.
+two or more states, such as Yes and No.
 */
 				switch(uifc.list(WIN_ACT|WIN_BOT|WIN_RHT,0,0,41,&tog_dflt,0
                     ,"Toggle Options",opt)) {
@@ -286,22 +282,20 @@ two or more states, such as `Yes` and `No`.
 						i=cfg.uq&UQ_ALIASES ? 0:1;
 						SETHELP(WHERE);
 /*
-`Allow Users to Use Aliases:`
+Allow Users to Use Aliases:
 
 If you want the users of your system to be allowed to be known by a
-false name, handle, or alias, set this option to `Yes`. If you want all
-users on your system to be known only by their real names, select `No`.
+false name, handle, or alias, set this option to Yes. If you want all
+users on your system to be known only by their real names, select No.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"Allow Users to Use Aliases",opt);
 						if(!i && !(cfg.uq&UQ_ALIASES)) {
 							cfg.uq|=UQ_ALIASES;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
 						else if(i==1 && cfg.uq&UQ_ALIASES) {
 							cfg.uq&=~UQ_ALIASES;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
 						break;
 					case 1:
 						strcpy(opt[0],"Yes");
@@ -310,11 +304,11 @@ users on your system to be known only by their real names, select `No`.
 						i=cfg.sys_misc&SM_TIMEBANK ? 0:1;
 						SETHELP(WHERE);
 /*
-`Allow Time Banking:`
+Allow Time Banking:
 
 If you want the users of your system to be allowed to be deposit
 any extra time they may have left during a call into their minute bank,
-set this option to `Yes`. If this option is set to `No`, then the only
+set this option to Yes. If this option is set to No, then the only
 way a user may get minutes in their minute bank is to purchase them
 with credits.
 */
@@ -322,12 +316,10 @@ with credits.
 							,"Allow Users to Depost Time in Minute Bank",opt);
 						if(!i && !(cfg.sys_misc&SM_TIMEBANK)) {
 							cfg.sys_misc|=SM_TIMEBANK;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
 						else if(i==1 && cfg.sys_misc&SM_TIMEBANK) {
 							cfg.sys_misc&=~SM_TIMEBANK;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
                         break;
 					case 2:
 						strcpy(opt[0],"Yes");
@@ -336,23 +328,21 @@ with credits.
 						i=cfg.sys_misc&SM_NOCDTCVT ? 1:0;
 						SETHELP(WHERE);
 /*
-`Allow Credits to be Converted into Minutes:`
+Allow Credits to be Converted into Minutes:
 
 If you want the users of your system to be allowed to be convert
 any credits they may have into minutes for their minute bank,
-set this option to `Yes`.
+set this option to Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"Allow Users to Convert Credits into Minutes"
 							,opt);
 						if(!i && cfg.sys_misc&SM_NOCDTCVT) {
 							cfg.sys_misc&=~SM_NOCDTCVT;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
 						else if(i==1 && !(cfg.sys_misc&SM_NOCDTCVT)) {
 							cfg.sys_misc|=SM_NOCDTCVT;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
                         break;
 					case 3:
 						strcpy(opt[0],"Yes");
@@ -361,20 +351,18 @@ set this option to `Yes`.
 						i=cfg.sys_misc&SM_R_SYSOP ? 0:1;
 						SETHELP(WHERE);
 /*
-`Allow Sysop Logins:`
+Allow Sysop Logins:
 
-If you want to be able to login with sysop access, set this option to `Yes`.
+If you want to be able to login with sysop access, set this option to Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"Allow Sysop Logins",opt);
 						if(!i && !(cfg.sys_misc&SM_R_SYSOP)) {
 							cfg.sys_misc|=SM_R_SYSOP;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
 						else if(i==1 && cfg.sys_misc&SM_R_SYSOP) {
 							cfg.sys_misc&=~SM_R_SYSOP;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
                         break;
 					case 4:
 						strcpy(opt[0],"Yes");
@@ -383,21 +371,19 @@ If you want to be able to login with sysop access, set this option to `Yes`.
 						i=cfg.sys_misc&SM_ECHO_PW ? 0:1;
 						SETHELP(WHERE);
 /*
-`Echo Passwords Locally:`
+Echo Passwords Locally:
 
 If you want to passwords to be displayed locally, set this option to
-`Yes`.
+Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"Echo Passwords Locally",opt);
 						if(!i && !(cfg.sys_misc&SM_ECHO_PW)) {
 							cfg.sys_misc|=SM_ECHO_PW;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
 						else if(i==1 && cfg.sys_misc&SM_ECHO_PW) {
 							cfg.sys_misc&=~SM_ECHO_PW;
-							uifc.changes=1; 
-						}
+							uifc.changes=1; }
                         break;
 					case 5:
                         strcpy(opt[0],"Yes");
@@ -406,21 +392,19 @@ If you want to passwords to be displayed locally, set this option to
                         i=cfg.sys_misc&SM_SHRTPAGE ? 0:1;
 						SETHELP(WHERE);
 /*
-`Short Sysop Page:`
+Short Sysop Page:
 
 If you would like the sysop page to be a short series of beeps rather
-than continuous random tones, set this option to `Yes`.
+than continuous random tones, set this option to Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Short Sysop Page"
 							,opt);
 						if(i==1 && cfg.sys_misc&SM_SHRTPAGE) {
 							cfg.sys_misc&=~SM_SHRTPAGE;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
 						else if(!i && !(cfg.sys_misc&SM_SHRTPAGE)) {
 							cfg.sys_misc|=SM_SHRTPAGE;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
 						break;
 					case 6:
                         strcpy(opt[0],"Yes");
@@ -429,11 +413,11 @@ than continuous random tones, set this option to `Yes`.
                         i=cfg.sys_misc&SM_SYSSTAT ? 0:1;
 						SETHELP(WHERE);
 /*
-`Include Sysop Activity in System Statistics:`
+Include Sysop Activity in System Statistics:
 
 If you want sysops to be included in the statistical data of the BBS,
-set this option to `Yes`. The suggested setting for this option is
-`No` so that statistical data will only reflect user usage and not
+set this option to Yes. The suggested setting for this option is
+No so that statistical data will only reflect user usage and not
 include sysop maintenance activity.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
@@ -441,12 +425,10 @@ include sysop maintenance activity.
 							,opt);
                         if(!i && !(cfg.sys_misc&SM_SYSSTAT)) {
                             cfg.sys_misc|=SM_SYSSTAT;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         else if(i==1 && cfg.sys_misc&SM_SYSSTAT) {
                             cfg.sys_misc&=~SM_SYSSTAT;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         break;
 					case 7:
                         strcpy(opt[0],"Yes");
@@ -455,20 +437,18 @@ include sysop maintenance activity.
                         i=cfg.sys_misc&SM_CLOSED ? 0:1;
 						SETHELP(WHERE);
 /*
-`Closed to New Users:`
+Closed to New Users:
 
-If you want callers to be able to logon as `New`, set this option to `No`.
+If you want callers to be able to logon as New, set this option to No.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"Closed to New Users",opt);
                         if(!i && !(cfg.sys_misc&SM_CLOSED)) {
                             cfg.sys_misc|=SM_CLOSED;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         else if(i==1 && cfg.sys_misc&SM_CLOSED) {
                             cfg.sys_misc&=~SM_CLOSED;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         break;
 					case 8:
                         strcpy(opt[0],"Yes");
@@ -477,10 +457,10 @@ If you want callers to be able to logon as `New`, set this option to `No`.
                         i=cfg.sys_misc&SM_LISTLOC ? 0:1;
 						SETHELP(WHERE);
 /*
-`User Location in User Lists:`
+User Location in User Lists:
 
 If you want user locations (city, state) displayed in the user lists,
-set this option to `Yes`. If this option is set to `No`, the user notes
+set this option to Yes. If this option is set to No, the user notes
 (if they exist) are displayed in the user lists.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
@@ -488,12 +468,10 @@ set this option to `Yes`. If this option is set to `No`, the user notes
                             ,opt);
 						if(!i && !(cfg.sys_misc&SM_LISTLOC)) {
 							cfg.sys_misc|=SM_LISTLOC;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
 						else if(i==1 && cfg.sys_misc&SM_LISTLOC) {
 							cfg.sys_misc&=~SM_LISTLOC;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         break;
 					case 9:
                         strcpy(opt[0],"Yes");
@@ -528,21 +506,19 @@ time on your system(s) for you.
 						i=cfg.sys_misc&SM_MILITARY ? 0:1;
 						SETHELP(WHERE);
 /*
-`Military:`
+Military:
 
 If you would like the time-of-day to be displayed and entered in 24 hour
-format always, set this option to `Yes`.
+format always, set this option to Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"Use Military Time Format",opt);
 						if(!i && !(cfg.sys_misc&SM_MILITARY)) {
 							cfg.sys_misc|=SM_MILITARY;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
 						else if(i==1 && cfg.sys_misc&SM_MILITARY) {
 							cfg.sys_misc&=~SM_MILITARY;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         break;
 					case 11:
                         strcpy(opt[0],"Yes");
@@ -551,21 +527,19 @@ format always, set this option to `Yes`.
 						i=cfg.sys_misc&SM_EURODATE ? 0:1;
 						SETHELP(WHERE);
 /*
-`European Date Format:`
+European Date Format:
 
-If you would like dates to be displayed and entered in `DD/MM/YY` format
-instead of `MM/DD/YY` format, set this option to `Yes`.
+If you would like dates to be displayed and entered in DD/MM/YY format
+instead of MM/DD/YY format, set this option to Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"European Date Format",opt);
 						if(!i && !(cfg.sys_misc&SM_EURODATE)) {
 							cfg.sys_misc|=SM_EURODATE;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
 						else if(i==1 && cfg.sys_misc&SM_EURODATE) {
 							cfg.sys_misc&=~SM_EURODATE;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         break;
 					case 12:
                         strcpy(opt[0],"Yes");
@@ -574,21 +548,19 @@ instead of `MM/DD/YY` format, set this option to `Yes`.
 						i=cfg.sys_misc&SM_TIME_EXP ? 0:1;
 						SETHELP(WHERE);
 /*
-`User Expires When Out-of-time:`
+User Expires When Out-of-time:
 
-If you want users to be set to `Expired User Values` if they run out of
-time online, then set this option to `Yes`.
+If you want users to be set to Expired User Values if they run out of
+time online, then set this option to Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"User Expires When Out-of-time",opt);
 						if(!i && !(cfg.sys_misc&SM_TIME_EXP)) {
 							cfg.sys_misc|=SM_TIME_EXP;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
 						else if(i==1 && cfg.sys_misc&SM_TIME_EXP) {
 							cfg.sys_misc&=~SM_TIME_EXP;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         break;
 					case 13:
                         strcpy(opt[0],"Yes");
@@ -597,21 +569,19 @@ time online, then set this option to `Yes`.
 						i=cfg.sys_misc&SM_NOSYSINFO ? 1:0;
 						SETHELP(WHERE);
 /*
-`Display System Information During Logon:`
+Display System Information During Logon:
 
 If you want system information displayed during logon, set this option
-to `Yes`.
+to Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"Display System Information During Logon",opt);
 						if(!i && cfg.sys_misc&SM_NOSYSINFO) {
 							cfg.sys_misc&=~SM_NOSYSINFO;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
 						else if(i==1 && !(cfg.sys_misc&SM_NOSYSINFO)) {
 							cfg.sys_misc|=SM_NOSYSINFO;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         break;
 					case 14:
                         strcpy(opt[0],"Yes");
@@ -620,24 +590,21 @@ to `Yes`.
 						i=cfg.sys_misc&SM_NONODELIST ? 1:0;
 						SETHELP(WHERE);
 /*
-`Display Active Node List During Logon:`
+Display Active Node List During Logon:
 
 If you want the active nodes displayed during logon, set this option
-to `Yes`.
+to Yes.
 */
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 							,"Display Active Node List During Logon",opt);
 						if(!i && cfg.sys_misc&SM_NONODELIST) {
 							cfg.sys_misc&=~SM_NONODELIST;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
 						else if(i==1 && !(cfg.sys_misc&SM_NONODELIST)) {
 							cfg.sys_misc|=SM_NONODELIST;
-                            uifc.changes=1; 
-						}
+                            uifc.changes=1; }
                         break;
-					} 
-				}
+						} }
             break;
 		case 9:    /* New User Values */
 			done=0;
@@ -677,7 +644,7 @@ to `Yes`.
 				opt[i][0]=0;
 				SETHELP(WHERE);
 /*
-`New User Values:`
+New User Values:
 
 This menu allows you to determine the default settings for new users.
 */
@@ -690,7 +657,7 @@ This menu allows you to determine the default settings for new users.
 						ultoa(cfg.new_level,str,10);
 						SETHELP(WHERE);
 /*
-`New User Security Level:`
+New User Security Level:
 
 This is the security level automatically given to new users.
 */
@@ -702,7 +669,7 @@ This is the security level automatically given to new users.
 						truncsp(ltoaf(cfg.new_flags1,str));
 						SETHELP(WHERE);
 /*
-`New User Security Flags:`
+New User Security Flags:
 
 These are the security flags automatically given to new users.
 */
@@ -714,7 +681,7 @@ These are the security flags automatically given to new users.
 						truncsp(ltoaf(cfg.new_flags2,str));
 						SETHELP(WHERE);
 /*
-`New User Security Flags:`
+New User Security Flags:
 
 These are the security flags automatically given to new users.
 */
@@ -726,7 +693,7 @@ These are the security flags automatically given to new users.
 						truncsp(ltoaf(cfg.new_flags3,str));
 						SETHELP(WHERE);
 /*
-`New User Security Flags:`
+New User Security Flags:
 
 These are the security flags automatically given to new users.
 */
@@ -738,7 +705,7 @@ These are the security flags automatically given to new users.
 						truncsp(ltoaf(cfg.new_flags4,str));
 						SETHELP(WHERE);
 /*
-`New User Security Flags:`
+New User Security Flags:
 
 These are the security flags automatically given to new users.
 */
@@ -750,7 +717,7 @@ These are the security flags automatically given to new users.
 						truncsp(ltoaf(cfg.new_exempt,str));
 						SETHELP(WHERE);
 /*
-`New User Exemption Flags:`
+New User Exemption Flags:
 
 These are the exemptions that are automatically given to new users.
 */
@@ -762,7 +729,7 @@ These are the exemptions that are automatically given to new users.
 						truncsp(ltoaf(cfg.new_rest,str));
 						SETHELP(WHERE);
 /*
-`New User Restriction Flags:`
+New User Restriction Flags:
 
 These are the restrictions that are automatically given to new users.
 */
@@ -774,11 +741,11 @@ These are the restrictions that are automatically given to new users.
 						ultoa(cfg.new_expire,str,10);
 						SETHELP(WHERE);
 /*
-`New User Expiration Days:`
+New User Expiration Days:
 
 If you wish new users to have an automatic expiration date, set this
 value to the number of days before the user will expire. To disable
-New User expiration, set this value to `0`.
+New User expiration, set this value to 0.
 */
 						uifc.input(WIN_SAV|WIN_MID,0,0,"Expiration Days",str,4
 							,K_EDIT|K_NUMBER);
@@ -788,7 +755,7 @@ New User expiration, set this value to `0`.
 						ultoa(cfg.new_cdt,str,10);
 						SETHELP(WHERE);
 /*
-`New User Credits:`
+New User Credits:
 
 This is the amount of credits that are automatically given to new users.
 */
@@ -800,7 +767,7 @@ This is the amount of credits that are automatically given to new users.
 						ultoa(cfg.new_min,str,10);
 						SETHELP(WHERE);
 /*
-`New User Minutes:`
+New User Minutes:
 
 This is the number of extra minutes automatically given to new users.
 */
@@ -811,8 +778,7 @@ This is the number of extra minutes automatically given to new users.
 					case 10:
 						if(!cfg.total_xedits) {
 							uifc.msg("No External Editors Configured");
-							break; 
-						}
+							break; }
 						strcpy(opt[0],"Internal");
 						for(i=1;i<=cfg.total_xedits;i++)
 							strcpy(opt[i],cfg.xedit[i-1]->code);
@@ -820,7 +786,7 @@ This is the number of extra minutes automatically given to new users.
 						i=0;
 						SETHELP(WHERE);
 /*
-`New User Editor:`
+New User Editor:
 
 You can use this option to select the default editor for new users.
 */
@@ -840,7 +806,7 @@ You can use this option to select the default editor for new users.
 						i=0;
 						SETHELP(WHERE);
 /*
-`New User Command Shell:`
+New User Command Shell:
 
 You can use this option to select the default command shell for new
 users.
@@ -855,10 +821,10 @@ users.
 					case 12:
 						SETHELP(WHERE);
 /*
-`New User Default Download Protocol:`
+New User Default Download Protocol:
 
 This option allows you to set the default download protocol of new users
-(protocol command key or `BLANK` for no default).
+(protocol command key or BLANK for no default).
 */
 						sprintf(str,"%c",cfg.new_prot);
 						uifc.input(WIN_SAV|WIN_MID,0,0
@@ -871,7 +837,7 @@ This option allows you to set the default download protocol of new users
 					case 13:
 						SETHELP(WHERE);
 /*
-`New User Default Toggle Options:`
+New User Default Toggle Options:
 
 This menu contains the default state of new user toggle options. All new
 users on your system will have their defaults set according to the
@@ -963,14 +929,12 @@ options available.
 								case 11:
 									cfg.new_misc^=AUTOHANG;
                                     break;
-									
-							} 
-						}
+									} }
 						break;
 					case 14:
 						SETHELP(WHERE);
 /*
-`New User Question Toggle Options:`
+New User Question Toggle Options:
 
 This menu allows you to decide which questions will be asked of a new
 user.
@@ -1087,11 +1051,8 @@ user.
 								case 16:
 									cfg.uq^=UQ_NODEF;
                                     break;
-							} 
-						}
-					break; 
-				} 
-			}
+									} }
+						break; } }
 			break;
 		case 10:	/* Advanced Options */
 			done=0;
@@ -1139,7 +1100,7 @@ user.
 				opt[i][0]=0;
 				SETHELP(WHERE);
 /*
-`System Advanced Options:`
+System Advanced Options:
 
 Care should be taken when modifying any of the options listed here.
 */
@@ -1152,10 +1113,10 @@ Care should be taken when modifying any of the options listed here.
 					case 0:
 						SETHELP(WHERE);
 /*
-`New User Magic Word:`
+New User Magic Word:
 
 If this field has a value, it is assumed the sysop has placed some
-reference to this `magic word` in TEXT\NEWUSER.MSG and new users
+reference to this magic word in TEXT\NEWUSER.MSG and new users
 will be prompted for the magic word after they enter their password.
 If they do not enter it correctly, it is assumed they didn't read the
 new user information displayed to them and they are disconnected.
@@ -1242,7 +1203,7 @@ are assumed to be located in the `exec` directory.
 						strcpy(str,cfg.new_sif);
 						SETHELP(WHERE);
 /*
-`SIF Questionnaire for User Input:`
+SIF Questionnaire for User Input:
 
 This is the name of a SIF questionnaire file that resides your text
 directory that all users will be prompted to answer.
@@ -1259,7 +1220,7 @@ directory that all users will be prompted to answer.
 						strcpy(str,cfg.new_sof);
 						SETHELP(WHERE);
 /*
-`SIF Questionnaire for Reviewing User Input:`
+SIF Questionnaire for Reviewing User Input:
 
 This is the SIF file used to review the input of users from the user
 edit function.
@@ -1275,7 +1236,7 @@ edit function.
 					case 7:
 						SETHELP(WHERE);
 /*
-`Credits Per Dollar:`
+Credits Per Dollar:
 
 This is the monetary value of a credit (How many credits per dollar).
 This value should be a power of 2 (1, 2, 4, 8, 16, 32, 64, 128, etc.)
@@ -1291,7 +1252,7 @@ To make a dollar worth two megabytes of credits, set this value to
 					case 8:
 						SETHELP(WHERE);
 /*
-`Minutes Per 100K Credits:`
+Minutes Per 100K Credits:
 
 This is the value of a minute of time online. This field is the number
 of minutes to give the user in exchange for each 100K credit block.
@@ -1304,12 +1265,12 @@ of minutes to give the user in exchange for each 100K credit block.
 					case 9:
 						SETHELP(WHERE);
 /*
-`Maximum Number of Minutes User Can Have:`
+Maximum Number of Minutes User Can Have:
 
 This value is the maximum total number of minutes a user can have. If a
 user has this number of minutes or more, they will not be allowed to
 convert credits into minutes. A sysop can add minutes to a user's
-account regardless of this maximum. If this value is set to `0`, users
+account regardless of this maximum. If this value is set to 0, users
 will have no limit on the total number of minutes they can have.
 */
 						sprintf(str,"%lu",cfg.max_minutes);
@@ -1322,10 +1283,10 @@ will have no limit on the total number of minutes they can have.
 					case 10:
 						SETHELP(WHERE);
 /*
-`Warning Days Till Expire:`
+Warning Days Till Expire:
 
 If a user's account will expire in this many days or less, the user will
-be notified at logon. Setting this value to `0` disables the warning
+be notified at logon. Setting this value to 0 disables the warning
 completely.
 */
 						sprintf(str,"%u",cfg.sys_exp_warn);
@@ -1336,10 +1297,10 @@ completely.
 					case 11:
 						SETHELP(WHERE);
 /*
-`Last Displayed Node:`
+Last Displayed Node:
 
 This is the number of the last node to display to users in node lists.
-This allows the sysop to define the higher numbered nodes as `invisible`
+This allows the sysop to define the higher numbered nodes as invisible
 to users.
 */
 						sprintf(str,"%u",cfg.sys_lastnode);
@@ -1350,12 +1311,12 @@ to users.
 					case 12:
 						SETHELP(WHERE);
 /*
-`Phone Number Format:`
+Phone Number Format:
 
 This is the format used for phone numbers in your local calling
-area. Use `N` for number positions, `A` for alphabetic, or `!` for any
+area. Use N for number positions, A for alphabetic, or ! for any
 character. All other characters will be static in the phone number
-format. An example for North American phone numbers is `NNN-NNN-NNNN`.
+format. An example for North American phone numbers is NNN-NNN-NNNN.
 */
 						uifc.input(WIN_MID|WIN_SAV,0,0
 							,"Phone Number Format",cfg.sys_phonefmt
@@ -1420,8 +1381,7 @@ If unsure, leave this value set to `0`, the default.
 							,str,8,K_UPPER|K_EDIT);
 						cfg.ctrlkey_passthru=strtoul(str,NULL,16);
                         break;
-					} 
-				}
+						} }
 				break;
 		case 11: /* Loadable Modules */
 			done=0;
@@ -1429,32 +1389,28 @@ If unsure, leave this value set to `0`, the default.
 			while(!done) {
 				i=0;
 				sprintf(opt[i++],"%-16.16s%s","Login",cfg.login_mod);
-				sprintf(opt[i++],"%-16.16s%s","Logon",cfg.logon_mod);
-				sprintf(opt[i++],"%-16.16s%s","Sync",cfg.sync_mod);
-				sprintf(opt[i++],"%-16.16s%s","Logoff",cfg.logoff_mod);
-				sprintf(opt[i++],"%-16.16s%s","Logout",cfg.logout_mod);
-				sprintf(opt[i++],"%-16.16s%s","New User",cfg.newuser_mod);
+				sprintf(opt[i++],"%-16.16s%s","Logon Event",cfg.logon_mod);
+				sprintf(opt[i++],"%-16.16s%s","Sync Event",cfg.sync_mod);
+				sprintf(opt[i++],"%-16.16s%s","Logoff Event",cfg.logoff_mod);
+				sprintf(opt[i++],"%-16.16s%s","Logout Event",cfg.logout_mod);
+				sprintf(opt[i++],"%-16.16s%s","New User Event",cfg.newuser_mod);
 				sprintf(opt[i++],"%-16.16s%s","Expired User",cfg.expire_mod);
 				opt[i][0]=0;
 				SETHELP(WHERE);
 /*
-`Loadable Modules:`
+Loadable Modules:
 
-Baja modules (`.bin` files) or JavaScript modules (`.js` files) can be
-automatically loaded and executed during certain Terminal Server
-operations. The name (root filename) of the module can be specified for
-each of the available operations listed here:
+Baja modules (.BIN files) can be automatically loaded and executed
+during certain system functions. The name of the module can be specified
+for each of the available triggers listed here.
 
-`Login` 		Required module for interactive terminal logins (answer)
-`Logon` 		Executed during terminal logon procedure
-`Sync`			Executed when terminal nodes are periodically synchronized
-`Logoff`		Executed during terminal logoff procedure (interactive)
-`Logout`		Executed during terminal logout procedure (offline)
-`New User`		Executed at end of new terminal user creation process
-`Expired User`	Executed during daily event when user expires (offline)
-
-`Note:` JavaScript modules take precedence over Baja modules if both exist
-in your `exec` or `mods` directories.
+Login 		Required module for remote and local logins (online)
+Logon 		Executed as an event during logon procedure (online)
+Sync			Executed when nodes are periodically synchronized (online)
+Logoff		Executed during logoff procedure (online)
+Logout		Executed during logout procedure (offline)
+New User		Executed at end of new user procedure (online)
+Expired User	Executed during daily event when user expires (offline)
 */
 				switch(uifc.list(WIN_ACT|WIN_T2B|WIN_RHT,0,0,32,&k,0
 					,"Loadable Modules",opt)) {
@@ -1492,8 +1448,7 @@ in your `exec` or `mods` directories.
 							,cfg.expire_mod,sizeof(cfg.expire_mod)-1,K_EDIT);
                         break;
 
-				} 
-			}
+					} }
 			break;
 
 		case 12: /* Security Levels */
@@ -1510,13 +1465,12 @@ in your `exec` or `mods` directories.
 						,tmp
 						,cfg.level_misc[i]&LEVEL_EXPTOVAL ? "Val Set" : "Level"
 						,cfg.level_misc[i]&(LEVEL_EXPTOVAL|LEVEL_EXPTOLVL) ?
-							cfg.level_expireto[i] : cfg.expired_level); 
-				}
+							cfg.level_expireto[i] : cfg.expired_level); }
 				opt[i][0]=0;
 				i=0;
 				SETHELP(WHERE);
 /*
-`Security Level Values:`
+Security Level Values:
 
 This menu allows you to change the security options for every possible
 security level from 0 to 99. The available options for each level are:
@@ -1634,8 +1588,7 @@ security level from 0 to 99. The available options for each level are:
 								cfg.level_misc[i]&=
 									~(LEVEL_EXPTOLVL|LEVEL_EXPTOVAL);
 								uifc.changes=1;
-								break; 
-							}
+								break; }
 							if(j==1) {
 								cfg.level_misc[i]&=~LEVEL_EXPTOVAL;
 								cfg.level_misc[i]|=LEVEL_EXPTOLVL;
@@ -1645,8 +1598,7 @@ security level from 0 to 99. The available options for each level are:
 									,ultoa(cfg.level_expireto[i],tmp,10),2
 									,K_EDIT|K_NUMBER);
 								cfg.level_expireto[i]=atoi(tmp);
-								break; 
-							}
+								break; }
 							cfg.level_misc[i]&=~LEVEL_EXPTOLVL;
 							cfg.level_misc[i]|=LEVEL_EXPTOVAL;
 							uifc.input(WIN_MID|WIN_SAV,0,0
@@ -1655,9 +1607,7 @@ security level from 0 to 99. The available options for each level are:
 								,K_EDIT|K_NUMBER);
 							cfg.level_expireto[i]=atoi(tmp);
 							break;
-					} 
-				} 
-			}
+							} } }
 			break;
 		case 13:	/* Expired Acccount Values */
 			dflt=0;
@@ -1680,13 +1630,13 @@ security level from 0 to 99. The available options for each level are:
 				opt[i][0]=0;
 				SETHELP(WHERE);
 /*
-`Expired Account Values:`
+Expired Account Values:
 
 If a user's account expires, the security levels for that account will
-be modified according to the settings of this menu. The `Main Level` and
-`Transfer Level` will be set to the values listed on this menu. The `Main
-Flags`, `Transfer Flags`, and `Exemptions` listed on this menu will be
-removed from the account if they are set. The `Restrictions` listed will
+be modified according to the settings of this menu. The Main Level and
+Transfer Level will be set to the values listed on this menu. The Main
+Flags, Transfer Flags, and Exemptions listed on this menu will be
+removed from the account if they are set. The Restrictions listed will
 be added to the account.
 */
 				switch(uifc.list(WIN_ACT|WIN_BOT|WIN_RHT,0,0,60,&dflt,0
@@ -1698,7 +1648,7 @@ be added to the account.
 						ultoa(cfg.expired_level,str,10);
 						SETHELP(WHERE);
 /*
-`Expired Account Security Level:`
+Expired Account Security Level:
 
 This is the security level automatically given to expired user accounts.
 */
@@ -1710,7 +1660,7 @@ This is the security level automatically given to expired user accounts.
 						truncsp(ltoaf(cfg.expired_flags1,str));
 						SETHELP(WHERE);
 /*
-`Expired Security Flags to Remove:`
+Expired Security Flags to Remove:
 
 These are the security flags automatically removed when a user account
 has expired.
@@ -1723,7 +1673,7 @@ has expired.
 						truncsp(ltoaf(cfg.expired_flags2,str));
 						SETHELP(WHERE);
 /*
-`Expired Security Flags to Remove:`
+Expired Security Flags to Remove:
 
 These are the security flags automatically removed when a user account
 has expired.
@@ -1736,7 +1686,7 @@ has expired.
 						truncsp(ltoaf(cfg.expired_flags3,str));
 						SETHELP(WHERE);
 /*
-`Expired Security Flags to Remove:`
+Expired Security Flags to Remove:
 
 These are the security flags automatically removed when a user account
 has expired.
@@ -1749,7 +1699,7 @@ has expired.
 						truncsp(ltoaf(cfg.expired_flags4,str));
 						SETHELP(WHERE);
 /*
-`Expired Security Flags to Remove:`
+Expired Security Flags to Remove:
 
 These are the security flags automatically removed when a user account
 has expired.
@@ -1762,7 +1712,7 @@ has expired.
 						truncsp(ltoaf(cfg.expired_exempt,str));
 						SETHELP(WHERE);
 /*
-`Expired Exemption Flags to Remove:`
+Expired Exemption Flags to Remove:
 
 These are the exemptions that are automatically removed from a user
 account if it expires.
@@ -1775,7 +1725,7 @@ account if it expires.
 						truncsp(ltoaf(cfg.expired_rest,str));
 						SETHELP(WHERE);
 /*
-`Expired Restriction Flags to Add:`
+Expired Restriction Flags to Add:
 
 These are the restrictions that are automatically added to a user
 account if it expires.
@@ -1798,7 +1748,7 @@ account if it expires.
 				i=0;
 				SETHELP(WHERE);
 /*
-`Quick-Validation Values:`
+Quick-Validation Values:
 
 This is a list of the ten quick-validation sets. These sets are used to
 quickly set a user's security values (Level, Flags, Exemptions,
@@ -1806,11 +1756,11 @@ Restrictions, Expiration Date, and Credits) with one key stroke. The
 user's expiration date may be extended and additional credits may also
 be added using quick-validation sets.
 
-Holding down ~ ALT ~ and one of the number keys (`1-9`) while a user
+Holding down  ALT  and one of the number keys (1-9) while a user
 is online, automatically sets his or user security values to the
 quick-validation set for that number key.
 
-From within the `User Edit` function, a sysop can use the `V`alidate
+From within the User Edit function, a sysop can use the Validate
 User command and select from this quick-validation list to change a
 user's security values with very few key-strokes.
 */
@@ -1906,12 +1856,7 @@ user's security values with very few key-strokes.
 								,ultoa(cfg.val_cdt[i],tmp,10),10
 								,K_NUMBER|K_EDIT);
 							cfg.val_cdt[i]=atol(tmp);
-							break; 
-					} 
-				} 
-			}
-			break; 
-		} 
-	}
+							break; } } }
+			break; } }
 
 }
