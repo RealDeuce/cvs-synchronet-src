@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.57 2010/03/07 22:10:25 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.58 2010/06/07 06:59:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -238,10 +238,16 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(str);
 	}
 
+	if(!strcmp(sp,"TIMEZONE"))
+		return(smb_zonestr(sys_timezone(&cfg),str));
+
 	if(!strcmp(sp,"DATE") || !strcmp(sp,"SYSDATE")) {
 		now=time(NULL);
 		return(unixtodstr(&cfg,now,str));
 	}
+
+	if(!strcmp(sp,"DATETIME"))
+		return(timestr(time(NULL)));
 
 	if(!strcmp(sp,"TMSG")) {
 		l=0;

@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.195 2010/03/02 03:09:49 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.196 2010/03/12 06:21:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,6 +93,8 @@ static int *last_menu_bar=NULL;
 static int save_menu_cur=-1;
 static int save_menu_bar=-1;
 static int save_menu_opts=-1;
+
+char* uifcYesNoOpts[]={"Yes","No",NULL};
 
 static void reset_dynamic(void) {
 	last_menu_cur=NULL;
