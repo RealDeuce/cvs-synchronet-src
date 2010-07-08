@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.552 2011/08/27 21:22:07 rswindell Exp $ */
+/* $Id: main.cpp,v 1.548 2010/05/22 01:48:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -76,11 +76,11 @@
 	#define	SSH_END()
 #endif
 
-volatile time_t	uptime=0;
-volatile ulong	served=0;
+time_t	uptime=0;
+DWORD	served=0;
 
-static	volatile ulong node_threads_running=0;
-static	volatile ulong thread_count=0;
+static	ulong node_threads_running=0;
+static	ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
 RingBuf* node_inbuf[MAX_NODES];
@@ -294,7 +294,7 @@ static BOOL winsock_startup(void)
 
 DLLEXPORT void DLLCALL sbbs_srand()
 {
-	DWORD seed;
+	DWORD seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
 
 	xp_randomize();
 #if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
@@ -304,8 +304,6 @@ DLLEXPORT void DLLCALL sbbs_srand()
 		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
-#else
-	seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
 #endif
 
  	srand(seed);
@@ -1311,16 +1309,13 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 
 				if(!(sbbs->telnet_mode&TELNET_MODE_GATE)) {
 					if(command==TELNET_DO || command==TELNET_DONT) {	/* local options */
-						if(sbbs->telnet_local_option[option]==command) 
-							SetEvent(sbbs->telnet_ack_event);
-						else {
+						if(sbbs->telnet_local_option[option]!=command) {
 							sbbs->telnet_local_option[option]=command;
 							sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
 						}
 					} else { /* WILL/WONT (remote options) */ 
-						if(sbbs->telnet_remote_option[option]==command)	
-							SetEvent(sbbs->telnet_ack_event);
-						else {
+						if(sbbs->telnet_remote_option[option]!=command) {	
+						
 							switch(option) {
 								case TELNET_BINARY_TX:
 								case TELNET_ECHO:
@@ -1416,23 +1411,18 @@ void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 	}
 }
 
-bool sbbs_t::request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack)
+void sbbs_t::request_telnet_opt(uchar cmd, uchar opt)
 {
 	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
 		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
-			return true;	/* already set in this mode, do nothing */
+			return;	/* already set in this mode, do nothing */
 		telnet_remote_option[opt]=telnet_opt_ack(cmd);
 	} else {	/* local option */
 		if(telnet_local_option[opt]==telnet_opt_ack(cmd))
-			return true;	/* already set in this mode, do nothing */
+			return;	/* already set in this mode, do nothing */
 		telnet_local_option[opt]=telnet_opt_ack(cmd);
 	}
-	if(waitforack)
-		ResetEvent(telnet_ack_event);
 	send_telnet_cmd(cmd,opt);
-	if(waitforack)
-		return WaitForEvent(telnet_ack_event, waitforack)==WAIT_OBJECT_0;
-	return true;
 }
 
 void input_thread(void *arg)
@@ -2244,7 +2234,7 @@ void event_thread(void* arg)
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
 					if(!fmutex(semfile,startup->host_name,24*60*60)) {
-						eprintf(LOG_INFO,"%s exists (unpack in progress?)", semfile);
+						eprintf(LOG_DEBUG,"%s exists (unpack in process?)", semfile);
 						continue;
 					}
 					sbbs->online=ON_LOCAL;
@@ -2267,11 +2257,11 @@ void event_thread(void* arg)
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
-				eprintf(LOG_INFO,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
+				eprintf(LOG_DEBUG,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,24*60*60)) {
-					eprintf(LOG_INFO,"%s exists (pack in progress?)", semfile);
+					eprintf(LOG_DEBUG,"%s exists (pack in process?)", semfile);
 					continue;
 				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
@@ -2888,7 +2878,6 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, const char* name, SOCKET sd,
     telnet_cmdlen=0;
 	telnet_mode=0;
 	telnet_last_rxch=0;
-	telnet_ack_event=CreateEvent(NULL, /* Manual Reset: */FALSE,/* InitialState */FALSE,NULL);
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
@@ -3275,9 +3264,6 @@ sbbs_t::~sbbs_t()
 		RingBufDispose(&inbuf);
 	if(!output_thread_running)
 		RingBufDispose(&outbuf);
-
-	if(telnet_ack_event!=NULL)
-		CloseEvent(telnet_ack_event);
 
 	/* Close all open files */
 	if(nodefile!=-1) {

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.264 2010/12/21 21:38:25 deuce Exp $ */
+/* $Id: js_global.c,v 1.263 2010/06/03 01:38:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -460,7 +460,6 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		bg->script = script;
 		*rval = OBJECT_TO_JSVAL(js_CreateQueueObject(cx, obj, NULL, bg->msg_queue));
 		JS_ENDREQUEST(bg->cx);
-		JS_ClearContextThread(bg->cx);
 		success = _beginthread(background_thread,0,bg)!=-1;
 
 	} else {
