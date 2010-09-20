@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.117 2010/03/17 08:27:53 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.118 2010/09/20 22:48:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1005,12 +1005,16 @@ iniReadNamedStringList(FILE* fp, const char* section)
 	named_string_t** np;
 
 	if(fp==NULL)
-		return(lp);
+		return(NULL);
 
 	rewind(fp);
 
 	if(!seek_section(fp,section))
-		return(lp);
+		return(NULL);
+
+	/* New behavior, if section exists but is empty, return single element array (terminator only) */
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
 
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
@@ -1033,8 +1037,7 @@ iniReadNamedStringList(FILE* fp, const char* section)
 		items++;
 	}
 
-	if(items)
-		lp[items]=NULL;	/* terminate list */
+	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
@@ -1050,9 +1053,17 @@ iniGetNamedStringList(str_list_t list, const char* section)
 	named_string_t** np;
 
 	if(list==NULL)
-		return(lp);
+		return(NULL);
 
-	for(i=find_section(list,section);list[i]!=NULL;i++) {
+	i=find_section(list,section);
+	if(list[i]==NULL)
+		return(NULL);
+
+	/* New behavior, if section exists but is empty, return single element array (terminator only) */
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
+
+	for(;list[i]!=NULL;i++) {
 		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			break;
@@ -1072,8 +1083,7 @@ iniGetNamedStringList(str_list_t list, const char* section)
 		items++;
 	}
 
-	if(items)
-		lp[items]=NULL;	/* terminate list */
+	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
