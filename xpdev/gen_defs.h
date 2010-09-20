@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.49 2010/03/08 03:44:07 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.53 2010/05/20 04:08:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,10 +174,26 @@ typedef unsigned long long int uint64_t;
 /* Legacy 32-bit time_t */
 typedef int32_t		time32_t;
 
-#if defined(XPDEV_LARGE_FILE_SUPPORT)
-typedef int64_t		fileoff_t, filelen_t;
+#if defined(_WIN32)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
+#    define	off_t		int64_t
+#    define PRIdOFF		PRId64
+#    define PRIuOFF		PRIu64
+#  else
+#    define PRIdOFF		"ld"
+#    define PRIuOFF		"lu"
+#  endif
+#elif defined(__linux__) || defined(__sun__)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
+#    define PRIdOFF		PRId64
+#    define PRIuOFF		PRIu64
+#  else
+#    define PRIdOFF		PRId32
+#    define PRIuOFF		PRIu32
+#  endif
 #else
-typedef long		fileoff_t, filelen_t;
+#  define PRIdOFF	PRId64
+#  define PRIuOFF	PRIu64
 #endif
 
 /* Windows Types */
@@ -307,20 +323,20 @@ typedef struct {
 #define REPLACE_CHARS(str,c1,c2,p)	for((p)=(str);*(p);(p)++) if(*(p)==(c1)) *(p)=(c2);
 
 /* ASCIIZ char* parsing helper macros */
-#define SKIP_WHITESPACE(p)			while(*(p) && isspace(*(p)))			(p)++;
-#define FIND_WHITESPACE(p)			while(*(p) && !isspace(*(p)))			(p)++;
-#define SKIP_CHAR(p,c)				while(*(p)==c)							(p)++;
-#define FIND_CHAR(p,c)				while(*(p) && *(p)!=c)					(p)++;
-#define SKIP_CHARSET(p,s)			while(*(p) && strchr(s,*(p))!=NULL)		(p)++;
-#define FIND_CHARSET(p,s)			while(*(p) && strchr(s,*(p))==NULL)		(p)++;
-#define SKIP_ALPHA(p)				while(*(p) && isalpha(*(p)))			(p)++;
-#define FIND_ALPHA(p)				while(*(p) && !isalpha(*(p)))			(p)++;
-#define SKIP_ALPHANUMERIC(p)		while(*(p) && isalnum(*(p)))			(p)++;
-#define FIND_ALPHANUMERIC(p)		while(*(p) && !isalnum(*(p)))			(p)++;
-#define SKIP_DIGIT(p)				while(*(p) && isdigit(*(p)))			(p)++;
-#define FIND_DIGIT(p)				while(*(p) && !isdigit(*(p)))			(p)++;
-#define SKIP_HEXDIGIT(p)			while(*(p) && isxdigit(*(p)))			(p)++;
-#define FIND_HEXDIGIT(p)			while(*(p) && !isxdigit(*(p)))			(p)++;
+#define SKIP_WHITESPACE(p)			while(*(p) && isspace((unsigned char)*(p)))			(p)++;
+#define FIND_WHITESPACE(p)			while(*(p) && !isspace((unsigned char)*(p)))		(p)++;
+#define SKIP_CHAR(p,c)				while(*(p)==c)										(p)++;
+#define FIND_CHAR(p,c)				while(*(p) && *(p)!=c)								(p)++;
+#define SKIP_CHARSET(p,s)			while(*(p) && strchr(s,*(p))!=NULL)					(p)++;
+#define FIND_CHARSET(p,s)			while(*(p) && strchr(s,*(p))==NULL)					(p)++;
+#define SKIP_ALPHA(p)				while(*(p) && isalpha((unsigned char)*(p)))			(p)++;
+#define FIND_ALPHA(p)				while(*(p) && !isalpha((unsigned char)*(p)))		(p)++;
+#define SKIP_ALPHANUMERIC(p)		while(*(p) && isalnum((unsigned char)*(p)))			(p)++;
+#define FIND_ALPHANUMERIC(p)		while(*(p) && !isalnum((unsigned char)*(p)))		(p)++;
+#define SKIP_DIGIT(p)				while(*(p) && isdigit((unsigned char)*(p)))			(p)++;
+#define FIND_DIGIT(p)				while(*(p) && !isdigit((unsigned char)*(p)))		(p)++;
+#define SKIP_HEXDIGIT(p)			while(*(p) && isxdigit((unsigned char)*(p)))		(p)++;
+#define FIND_HEXDIGIT(p)			while(*(p) && !isxdigit((unsigned char)*(p)))		(p)++;
 
 /* Variable/buffer initialization (with zeros) */
 #define ZERO_VAR(var)				memset(&(var),0,sizeof(var))
