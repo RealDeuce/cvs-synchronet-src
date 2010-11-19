@@ -14287,24 +14287,19 @@ object MainForm: TMainForm
         Hint = 'http://www.synchro.net/docs/'
         OnClick = WebPageMenuItemClick
       end
-      object HelpWikiMenuItem: TMenuItem
-        Caption = 'Wiki'
-        Hint = 'http://wiki.synchro.net'
+      object HelpSysopMenuItem: TMenuItem
+        Caption = 'Sysop Manual'
+        Hint = 'http://www.synchro.net/docs/sysop.html'
         OnClick = WebPageMenuItemClick
       end
       object HelpFAQMenuItem: TMenuItem
         Caption = 'Frequently Asked Questions'
-        Hint = 'http://wiki.synchro.net/faq:'
-        OnClick = WebPageMenuItemClick
-      end
-      object HelpSysopMenuItem: TMenuItem
-        Caption = 'Sysop Manual (old)'
-        Hint = 'http://www.synchro.net/docs/sysop.html'
+        Hint = 'http://www.synchro.net/docs/v3cfgfaq.txt'
         OnClick = WebPageMenuItemClick
       end
       object HelpTechnicalSupportMenuItem: TMenuItem
         Caption = 'Technical Support'
-        Hint = 'http://wiki.synchro.net/howto:support'
+        Hint = 'http://www.synchro.net/docs/support.html'
         OnClick = WebPageMenuItemClick
       end
       object N7: TMenuItem
