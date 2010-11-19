@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.364 2009/12/09 19:00:36 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.369 2010/11/19 06:34:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1011,7 +1011,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, parent, spath);
+		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -1405,7 +1405,7 @@ static void send_thread(void* arg)
 				str[0]=0;
 			lprintf(LOG_INFO,"%04d Sent %lu bytes (%lu total) of %s (%lu cps)%s"
 				,xfer.ctrl_sock,total,length,xfer.filename
-				,(total-last_total)/(now-last_report)
+				,(ulong)((total-last_total)/(now-last_report))
 				,str);
 			last_total=total;
 			last_report=now;
@@ -1790,15 +1790,20 @@ static void receive_thread(void* arg)
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
 					if(fexistcase(tmp))
 						remove(tmp);
-					system(cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd));
+					cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd);
+					lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
+					system(cmd);
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
 						if(fexistcase(tmp))
 							remove(tmp);
-						system(cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd)); 
+						cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd);
+						lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
+						system(cmd); 
 						fexistcase(tmp);	/* fixes filename case */
 					}
 					if((file=nopen(tmp,O_RDONLY))!=-1) {
+						lprintf(LOG_DEBUG,"%04d Parsing DIZ: %s",xfer.ctrl_sock,tmp);
 						memset(ext,0,sizeof(ext));
 						read(file,ext,sizeof(ext)-1);
 						for(i=sizeof(ext)-1;i;i--)	/* trim trailing spaces */
@@ -1817,7 +1822,8 @@ static void receive_thread(void* arg)
 						close(file);
 						remove(tmp);
 						f.misc|=FM_EXTDESC; 
-					} 
+					} else
+						lprintf(LOG_DEBUG,"%04d DIZ Does not exist: %s",xfer.ctrl_sock,tmp);
 				} 
 			} /* FILE_ID.DIZ support */
 
@@ -2354,7 +2360,7 @@ static void ctrl_thread(void* arg)
 	WORD		port;
 	uint32_t	ip_addr;
 	socklen_t	addr_len;
-	DWORD		h1,h2,h3,h4;
+	unsigned	h1,h2,h3,h4;
 	u_short		p1,p2;	/* For PORT command */
 	int			i;
 	int			rd;
@@ -2866,7 +2872,7 @@ static void ctrl_thread(void* arg)
 
 			p=cmd+5;
 			SKIP_WHITESPACE(p);
-			sscanf(p,"%ld,%ld,%ld,%ld,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
+			sscanf(p,"%u,%u,%u,%u,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
 			data_addr.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
 			data_addr.sin_port=(u_short)((p1<<8)|p2);
 			if(data_addr.sin_port< IPPORT_RESERVED) {	
@@ -3297,7 +3303,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				if(!strnicmp(cmd,"SIZE ",5)) {
-					sockprintf(sock,"213 %lu",flength(fname));
+					sockprintf(sock,"213 %"PRIuOFF,flength(fname));
 					continue;
 				}
 				if(!strnicmp(cmd,"MDTM ",5)) {
@@ -3321,7 +3327,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				/* RETR */
-				lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
+				lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
 					,sock,user.alias,fname,flength(fname)
 					,mode);
 				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
@@ -3534,7 +3540,7 @@ static void ctrl_thread(void* arg)
 								t=fdate(np);
 								if(localtime_r(&t,&tm)==NULL)
 									memset(&tm,0,sizeof(tm));
-								fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
+								fprintf(fp,"-r--r--r--   1 %-*s %-8s %9"PRIdOFF" %s %2d %02d:%02d %s\r\n"
 									,NAME_LEN
 									,scfg.sys_id
 									,scfg.sys_id
@@ -3773,7 +3779,7 @@ static void ctrl_thread(void* arg)
 				delfile=TRUE;
 				credits=FALSE;
 				if(!getsize && !getdate)
-					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
+					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%"PRIuOFF" bytes) in %s mode"
 						,sock,user.alias,flength(fname)
 						,mode);
 			/* ASCII Index File */
@@ -4097,7 +4103,7 @@ static void ctrl_thread(void* arg)
 					if(fexistcase(fname)) {
 						success=TRUE;
 						if(!getsize && !getdate && !delecmd)
-							lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
+							lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
 								,sock,user.alias,fname,flength(fname)
 								,mode);
 					} 
@@ -4108,7 +4114,7 @@ static void ctrl_thread(void* arg)
 #endif
 
 			if(getsize && success)
-				sockprintf(sock,"213 %lu", flength(fname));
+				sockprintf(sock,"213 %"PRIuOFF, flength(fname));
 			else if(getdate && success) {
 				if(file_date==0)
 					file_date = fdate(fname);
@@ -4596,7 +4602,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.364 $", "%*s %s", revision);
+	sscanf("$Revision: 1.369 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
