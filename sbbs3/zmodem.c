@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.114 2011/10/21 11:21:02 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.113 2010/03/12 19:29:58 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1764,7 +1764,7 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 
 	p = zm->tx_data_subpacket;
 
-	SAFECOPY(zm->tx_data_subpacket,getfname(fname));
+	strcpy(p,getfname(fname));
 
 	p += strlen(p) + 1;
 
@@ -2288,7 +2288,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.114 $", "%*s %s", buf);
+	sscanf("$Revision: 1.113 $", "%*s %s", buf);
 
 	return(buf);
 }
