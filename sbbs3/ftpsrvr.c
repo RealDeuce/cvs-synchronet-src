@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.368 2010/11/11 03:12:42 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.369 2010/11/19 06:34:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1405,7 +1405,7 @@ static void send_thread(void* arg)
 				str[0]=0;
 			lprintf(LOG_INFO,"%04d Sent %lu bytes (%lu total) of %s (%lu cps)%s"
 				,xfer.ctrl_sock,total,length,xfer.filename
-				,(total-last_total)/(now-last_report)
+				,(ulong)((total-last_total)/(now-last_report))
 				,str);
 			last_total=total;
 			last_report=now;
@@ -4602,7 +4602,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.368 $", "%*s %s", revision);
+	sscanf("$Revision: 1.369 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
