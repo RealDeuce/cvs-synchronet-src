@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.40 2010/03/19 19:39:25 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.41 2010/11/19 06:39:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,6 +91,8 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 
 	if(count==LOOP_NODEDAB) {
 		errormsg(WHERE,rd==sizeof(node_t) ? ERR_LOCK : ERR_READ,"node.dab",number+1);
+		close(nodefile);
+		nodefile=-1;
 		return(-2);
 	}
 	if(count>(LOOP_NODEDAB/2)) {
