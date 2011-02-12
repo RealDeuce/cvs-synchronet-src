@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.38 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: download.cpp,v 1.42 2010/03/12 19:16:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,12 +44,13 @@
 /****************************************************************************/
 void sbbs_t::downloadfile(file_t* f)
 {
-    char	str[256],fname[13];
-	char 	tmp[512];
-    int		i,file;
-	long	length,mod;
-    ulong	l;
-	user_t	uploader;
+    char		str[256],fname[13];
+	char 		tmp[512];
+    int			i,file;
+	long		mod;
+	long		length;
+    ulong		l;
+	user_t		uploader;
 
 	getfiledat(&cfg,f); /* Get current data - right after download */
 	if((length=f->size)<0L)
@@ -106,7 +107,7 @@ void sbbs_t::downloadfile(file_t* f)
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if(length%F_IXBSIZE) {
 		close(file);
 		errormsg(WHERE,ERR_LEN,str,length);
@@ -118,7 +119,7 @@ void sbbs_t::downloadfile(file_t* f)
 	for(l=0;l<(ulong)length;l+=F_IXBSIZE) {
 		read(file,str,F_IXBSIZE);      /* Look for the filename in the IXB file */
 		str[11]=0;
-		if(!strcmp(fname,str)) 
+		if(!stricmp(fname,str)) 
 			break; 
 	}
 	if(l>=(ulong)length) {
@@ -229,7 +230,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 		ex_mode|=EX_NATIVE;
 #ifdef __unix__		/* file xfer progs must use stdio on Unix */
 	if(!(prot->misc&PROT_SOCKET))
-		ex_mode|=(EX_INR|EX_OUTR|EX_BIN);
+		ex_mode|=(EX_STDIO|EX_BIN);
 #endif
 
 	i=external(cmdline,ex_mode,p);
@@ -247,7 +248,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 			if(!fgets(protlog,sizeof(protlog),stream))
 				break;
 			truncsp(protlog);
-			logline(nulstr,protlog);
+			logline(LOG_DEBUG,nulstr,protlog);
 		}
 		fclose(stream);
 	}
@@ -397,7 +398,7 @@ bool sbbs_t::checkprotresult(prot_t* prot, int error, file_t* f)
 		else if(f->dir==cfg.total_dirs+1)
 			sprintf(str,"%s attempted to download attached file: %s"
 				,useron.alias,f->name);
-		logline("D!",str);
+		logline(LOG_NOTICE,"D!",str);
 		return(false); 
 	}
 	return(true);
