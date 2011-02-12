@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.176 2009/11/27 23:27:48 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.178 2010/03/20 05:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -254,11 +254,12 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
         return;
     }
     if(client!=NULL && client->size==sizeof(client_t)) {
+        t=time(NULL);
         if(i>=0) {
             Item=ClientForm->ListView->Items->Item[i];
         } else {
             Item=ClientForm->ListView->Items->Add();
-            Item->Data=(void*)client->time;
+            Item->Data=(void*)t;
             Item->Caption=sock;
         }
         Item->SubItems->Clear();
@@ -267,7 +268,7 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
         Item->SubItems->Add(client->addr);
         Item->SubItems->Add(client->host);
         Item->SubItems->Add(client->port);
-        t=time(NULL)-(time_t)Item->Data;
+        t-=(time_t)Item->Data;
         sprintf(str,"%d:%02d",t/60,t%60);
         Item->SubItems->Add(str);
     }
@@ -2298,6 +2299,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
    	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Configuration loaded";
 
 	recycle_semfiles=semfile_list_init(cfg.ctrl_dir,"recycle","ctrl");
+    semfile_list_add(&recycle_semfiles,ini_file);
    	semfile_list_check(&initialized,recycle_semfiles);
 
 	shutdown_semfiles=semfile_list_init(cfg.ctrl_dir,"shutdown","ctrl");
@@ -2642,6 +2644,7 @@ bool __fastcall TMainForm::SaveIniSettings(TObject* Sender)
         Application->MessageBox(err,"ERROR",MB_OK|MB_ICONEXCLAMATION);
 	}
 
+   	semfile_list_check(&initialized,recycle_semfiles);    
     return(success);
 }
 
@@ -3408,8 +3411,29 @@ void __fastcall TMainForm::reload_config(void)
 	        ,MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
-   	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Configuration reloaded";    
+    FILE* fp=fopen(MainForm->ini_file,"r");
+    sbbs_read_ini(fp
+        ,&MainForm->global
+        ,NULL   ,&MainForm->bbs_startup
+        ,NULL   ,NULL
+        ,NULL   ,NULL
+        ,NULL   ,NULL
+        ,NULL   ,NULL
+        );
+    if(fp!=NULL)
+        fclose(fp);
+   	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Configuration reloaded";
    	semfile_list_check(&initialized,recycle_semfiles);
+
+    if(bbs_startup.options&BBS_OPT_SYSOP_AVAILABLE)
+    	ChatToggle->Checked=true;
+    else
+    	ChatToggle->Checked=false;
+        
+    if(bbs_startup.options&BBS_OPT_MUTE)
+    	SoundToggle->Checked=false;
+    else
+    	SoundToggle->Checked=true;
 }
 //---------------------------------------------------------------------------
 
