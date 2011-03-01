@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.56 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.54 2011/03/01 20:26:37 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,12 +79,12 @@ bool sbbs_t::logon()
 		useron.rows=0;
 		useron.misc&=~(ANSI|RIP|WIP|NO_EXASCII|COLOR|HTML);
 		useron.misc|=autoterm;
-		if(!(useron.misc&ANSI) && text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
+		if(!(useron.misc&ANSI) && yesno(text[AnsiTerminalQ]))
 			useron.misc|=ANSI;
 		if(useron.misc&(RIP|WIP|HTML)
-			|| (useron.misc&ANSI && text[ColorTerminalQ][0] && yesno(text[ColorTerminalQ])))
+			|| (useron.misc&ANSI && yesno(text[ColorTerminalQ])))
 			useron.misc|=COLOR;
-		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
+		if(!yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		for(i=0;i<cfg.total_xedits;i++)
 			if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit)
@@ -344,10 +344,7 @@ bool sbbs_t::logon()
 						break; 
 				}
 			if(cfg.uq&UQ_PHONE && !useron.phone[0]) {
-				if(text[CallingFromNorthAmericaQ][0])
-					i=yesno(text[CallingFromNorthAmericaQ]);
-				else
-					i=0;
+				i=yesno(text[CallingFromNorthAmericaQ]);
 				while(online) {
 					bputs(text[EnterYourPhoneNumber]);
 					if(i) {
@@ -517,13 +514,13 @@ bool sbbs_t::logon()
 	sys_status&=~SS_PAUSEON;	/* Turn off the pause override flag */
 	if(online==ON_REMOTE)
 		rioctl(IOSM|ABORT);		/* Turn abort ability on */
-	if(text[ReadYourMailNowQ][0] && mailw) {
+	if(mailw) {
 		if(yesno(text[ReadYourMailNowQ]))
 			readmail(useron.number,MAIL_YOUR); 
 	}
-	if(usrgrps && useron.misc&ASK_NSCAN && text[NScanAllGrpsQ][0] && yesno(text[NScanAllGrpsQ]))
+	if(usrgrps && useron.misc&ASK_NSCAN && yesno(text[NScanAllGrpsQ]))
 		scanallsubs(SCAN_NEW);
-	if(usrgrps && useron.misc&ASK_SSCAN && text[SScanAllGrpsQ][0] && yesno(text[SScanAllGrpsQ]))
+	if(usrgrps && useron.misc&ASK_SSCAN && yesno(text[SScanAllGrpsQ]))
 		scanallsubs(SCAN_TOYOU);
 	return(true);
 }

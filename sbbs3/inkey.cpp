@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.43 2011/03/04 02:46:06 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.42 2011/02/12 00:39:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,18 +41,16 @@
 
 #define nosound()	
 
-int kbincom(sbbs_t* sbbs, unsigned long timeout)
-{
-	int	ch;
-
-	if(sbbs->keybuftop!=sbbs->keybufbot) { 
-		ch=sbbs->keybuf[sbbs->keybufbot++]; 
-		if(sbbs->keybufbot==KEY_BUFSIZE) 
-			sbbs->keybufbot=0; 
-	} else 
-		ch=sbbs->incom(timeout);
-
-	return ch;
+#define KBINCOM(ch, timeout) \
+{ \
+	if(keybuftop!=keybufbot) { \
+		ch=keybuf[keybufbot++]; \
+		if(keybufbot==KEY_BUFSIZE) \
+			keybufbot=0; \
+	} else \
+		ch=incom(timeout); \
+\
+	return ch; \
 }
 
 /****************************************************************************/
@@ -63,7 +61,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 {
 	uchar	ch=0;
 
-	ch=kbincom(this,timeout); 
+	KBINCOM(ch, timeout);
 
 	if(ch==0) {
 		// moved here from getkey() on AUG-29-2001
@@ -263,7 +261,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			hotkey_inside--;
 			return(0); 
 		case ESC:
-			i=kbincom(this, (mode&K_GETSTR) ? 3000:1000);
+			KBINCOM(i,mode&K_GETSTR ? 3000:1000);
 			if(i==NOINP)		// timed-out waiting for '['
 				return(ESC);
 			ch=i;
@@ -279,7 +277,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				putuserrec(&cfg,useron.number,U_MISC,8,ultoa(useron.misc,str,16)); 
 			}
 			while(i<10 && j<30) {		/* up to 3 seconds */
-				ch=kbincom(this, 100);
+				KBINCOM(ch, 100);
 				if(ch==(NOINP&0xff)) {
 					j++;
 					continue;
