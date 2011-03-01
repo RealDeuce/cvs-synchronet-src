@@ -2,13 +2,13 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.21 2011/09/21 03:16:11 rswindell Exp $ */
+/* $Id: login.cpp,v 1.17 2011/03/01 20:26:37 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -70,7 +70,7 @@ int sbbs_t::login(char *username, char *pw)
 		useron.number=matchuser(&cfg,str,FALSE);
 		if(!useron.number && (uchar)str[0]<0x7f && str[1]
 			&& isalpha(str[0]) && strchr(str,' ') && cfg.node_misc&NM_LOGON_R)
-			useron.number=userdatdupe(0,U_NAME,LEN_NAME,str);
+			useron.number=userdatdupe(0,U_NAME,LEN_NAME,str,0,0);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
 			if(useron.number && useron.misc&(DELETED|INACTIVE))
@@ -79,12 +79,11 @@ int sbbs_t::login(char *username, char *pw)
 
 	if(!useron.number) {
 		if(cfg.node_misc&NM_LOGON_P) {
-			SAFECOPY(useron.alias,str);
+			strcpy(useron.alias,str);
 			bputs(pw);
 			console|=CON_R_ECHOX;
 			getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
-			badlogin(useron.alias, str);
 			bputs(text[InvalidLogon]);	/* why does this always fail? */
 			if(cfg.sys_misc&SM_ECHO_PW) 
 				sprintf(tmp,"(%04u)  %-25s  FAILED Password attempt: '%s'"
@@ -117,7 +116,6 @@ int sbbs_t::login(char *username, char *pw)
 			return(LOGIC_FALSE); 
 		}
 		if(stricmp(useron.pass,str)) {
-			badlogin(useron.alias, str);
 			bputs(text[InvalidLogon]);
 			if(cfg.sys_misc&SM_ECHO_PW) 
 				sprintf(tmp,"(%04u)  %-25s  FAILED Password: '%s' Attempt: '%s'"
@@ -134,25 +132,8 @@ int sbbs_t::login(char *username, char *pw)
 			bputs(text[InvalidLogon]);
 			useron.number=0;
 			useron.misc=useron_misc;
-			return(LOGIC_FALSE); 
-		} 
+			return(LOGIC_FALSE); } 
 	}
 
 	return(LOGIC_TRUE);
-}
-
-void sbbs_t::badlogin(char* user, char* passwd)
-{
-	char reason[128];
-	ulong count;
-
-	SAFEPRINTF(reason,"%s LOGIN", connection);
-	count=loginFailure(startup->login_attempt_list, &client_addr, connection, user, passwd);
-	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold)
-		::hacklog(&cfg, reason, user, passwd, client_name, &client_addr);
-	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
-		filter_ip(&cfg, connection, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
-			,client_name, inet_ntoa(client_addr.sin_addr), user, /* fname: */NULL);
-
-	mswait(startup->login_attempt_delay);
 }
