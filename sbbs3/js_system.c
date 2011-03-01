@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.135 2011/08/25 19:23:31 rswindell Exp $ */
+/* $Id: js_system.c,v 1.131 2011/03/01 21:49:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -771,6 +771,7 @@ js_username(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+
 static JSBool
 js_matchuser(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -812,8 +813,7 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	int			len;
 	scfg_t*		cfg;
 	jsrefcount	rc;
-	BOOL		match_next=FALSE;
-	int 		argnum=2;
+	BOOL		match_all=FALSE;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -832,19 +832,45 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		return(JS_TRUE);
 	}
 
-	if(JSVAL_IS_NUMBER(argv[argnum]))
-		JS_ValueToInt32(cx, argv[argnum++], &usernumber);
-	if(JSVAL_IS_BOOLEAN(argv[argnum]))
-		JS_ValueToBoolean(cx, argv[argnum], &match_next);
+	if(argc>2)
+		JS_ValueToInt32(cx,argv[2],&usernumber);
 		
 	if((p=JS_GetStringBytes(js_str))==NULL) {
 		*rval = INT_TO_JSVAL(0);
 		return(JS_TRUE);
 	}
 	
-	rc=JS_SUSPENDREQUEST(cx);
-	*rval = INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next));
-	JS_RESUMEREQUEST(cx, rc);
+	if(argc > 3)
+		JS_ValueToBoolean(cx,argv[3],&match_all);
+	
+	if(match_all == FALSE) {
+		rc=JS_SUSPENDREQUEST(cx);
+		*rval = INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,FALSE));
+		JS_RESUMEREQUEST(cx, rc);
+	} else {
+		JSObject* 	array;
+		jsval		val;
+		int 		retval;
+		jsint 		line=0;
+		if((array=JS_NewArrayObject(cx,0,NULL))==NULL)
+			return(JS_FALSE);
+		while(1) {
+			rc=JS_SUSPENDREQUEST(cx);
+			retval=userdatdupe(cfg,usernumber++,offset,len,p,FALSE,TRUE);
+			if(retval > 0) {
+				val = INT_TO_JSVAL(retval);
+				if(!JS_SetElement(cx, array, line++, &val)) {
+					JS_RESUMEREQUEST(cx, rc);
+					break;
+				}
+				usernumber=retval;
+				retval=0;
+			} else
+				break;
+			JS_RESUMEREQUEST(cx, rc);
+		}
+		*rval = OBJECT_TO_JSVAL(array);
+	}
 	return(JS_TRUE);
 }
 
@@ -922,6 +948,7 @@ js_findstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+
 static JSBool
 js_zonestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -980,6 +1007,7 @@ js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
+
 
 /* Returns a mm/dd/yy or dd/mm/yy formated string */
 static JSBool
@@ -1199,6 +1227,7 @@ js_get_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
+
 
 static JSBool
 js_put_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -1530,14 +1559,14 @@ static jsSyncMethodSpec js_system_functions[] = {
 		" or 0 if not found, matches well-known sysop aliases by default")
 	,310
 	},		
-	{"matchuserdata",	js_matchuserdata,	2,	JSTYPE_NUMBER,	JSDOCSTR("field, data [,usernumber, match_next=<tt>false</tt>]")
-	,JSDOCSTR("search user database for data in a specific field (see <tt>U_*</tt> in <tt>sbbsdefs.js</tt>), "
+	{"matchuserdata",	js_matchuserdata,	2,	JSTYPE_ARRAY,	JSDOCSTR("field, data [,usernumber, match_all=<tt>false</tt>]")
+	,JSDOCSTR("search user database for data in a specific field (specified by offset), "
 		"returns first matching user record number, optional <i>usernumber</i> specifies user record to skip, "
-		"or record at which to begin searching if optional <i>match_next</i> is <tt>true</tt>")
+		"or record at which to begin searching if optional match_all is <i>true</i>")
 	,310
 	},
-	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("basename, find_string")
-	,JSDOCSTR("search <tt>text/<i>basename</i>.can</tt> for pseudo-regexp")
+	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
+	,JSDOCSTR("search text/filename.can for pseudo-regexp")
 	,310
 	},		
 	{"findstr",			js_findstr,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
@@ -1607,7 +1636,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,311
 	},
 	{"check_syspass",	js_chksyspass,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("password")
-	,JSDOCSTR("compares the supplied <i>password</i> against the system password and returns <i>true</i> if it matches")
+	,JSDOCSTR("compares the supplied <i>password</i> against the system password and return's <i>true</i> if it matches")
 	,311
 	},
 	{"check_name",		js_chkname,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("name/alias")

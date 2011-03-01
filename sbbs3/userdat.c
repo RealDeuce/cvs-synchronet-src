@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.133 2011/09/01 02:50:16 rswindell Exp $ */
+/* $Id: userdat.c,v 1.127 2011/03/01 20:26:37 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1371,9 +1371,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 			case AR_QUIET:
 			case AR_OS2:
 			case AR_DOS:
-			case AR_WIN32:
-			case AR_UNIX:
-			case AR_LINUX:
 				break;
 			default:
 				(*ptrptr)++;
@@ -1556,6 +1553,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 					result=!not;
 				else
 					result=not;
+				result=not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
 				break;
@@ -1685,42 +1683,42 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_ULS:
-				if(user==NULL || (equal && user->uls!=i) || (!equal && user->uls<i))
+				if((equal && user->uls!=i) || (!equal && user->uls<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_ULK:
-				if(user==NULL || (equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
+				if((equal && user->ulb/1024!=i) || (!equal && user->ulb/1024<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_ULM:
-				if(user==NULL || (equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
+				if((equal && user->ulb/(1024*1024)!=i) || (!equal && user->ulb/(1024*1024)<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLS:
-				if(user==NULL || (equal && user->dls!=i) || (!equal && user->dls<i))
+				if((equal && user->dls!=i) || (!equal && user->dls<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLK:
-				if(user==NULL || (equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
+				if((equal && user->dlb/1024!=i) || (!equal && user->dlb/1024<i))
 					result=not;
 				else
 					result=!not;
 				(*ptrptr)++;
 				break;
 			case AR_DLM:
-				if(user==NULL || (equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
+				if((equal && user->dlb/(1024*1024)!=i) || (!equal && user->dlb/(1024*1024)<i))
 					result=not;
 				else
 					result=!not;
@@ -2661,69 +2659,3 @@ BOOL DLLCALL check_name(scfg_t* cfg, const char* name)
  	return TRUE;
 } 
 
-/****************************************************************************/
-/* Login attempt/hack tracking												*/
-/****************************************************************************/
-
-/****************************************************************************/
-link_list_t* DLLCALL loginAttemptListInit(link_list_t* list)
-{
-	return listInit(list, LINK_LIST_MUTEX);
-}
-
-/****************************************************************************/
-BOOL DLLCALL loginAttemptListFree(link_list_t* list)
-{
-	return listFree(list);
-}
-
-/****************************************************************************/
-list_node_t* DLLCALL loginAttempted(link_list_t* list, SOCKADDR_IN* addr)
-{
-	list_node_t*		node;
-	login_attempt_t*	attempt;
-
-	for(node=listFirstNode(list); node!=NULL; node=listNextNode(node)) {
-		attempt=node->data;
-		if(memcmp(&attempt->addr,&addr->sin_addr,sizeof(attempt->addr))==0)
-			return node;
-	}
-	return NULL;
-}
-
-/****************************************************************************/
-void DLLCALL loginSuccess(link_list_t* list, SOCKADDR_IN* addr)
-{
-	list_node_t*		node;
-
-	if((node=loginAttempted(list, addr)) != NULL)
-		listRemoveNode(list, node, /* freeData: */TRUE);
-}
-
-/****************************************************************************/
-ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* prot, const char* user, const char* pass)
-{
-	list_node_t*		node;
-	login_attempt_t*	attempt;
-
-	if(list==NULL)
-		return 0;
-
-	if((node=loginAttempted(list, addr)) != NULL) {
-		attempt=node->data;
-		/* Don't count consecutive duplicate attempts (same name and password): */
-		if(strcmp(attempt->user,user)==0 && (pass==NULL || strcmp(attempt->pass,pass)==0))
-			return attempt->count;
-	}
-	else if((attempt=calloc(sizeof(login_attempt_t),sizeof(char))) != NULL)
-		listPushNode(list, attempt);
-	if(attempt==NULL)
-		return 0;
-	attempt->prot=prot;
-	attempt->time=time(NULL);
-	attempt->addr=addr->sin_addr;
-	SAFECOPY(attempt->user, user);
-	SAFECOPY(attempt->pass, pass);
-	attempt->count++;
-	return attempt->count;
-}
