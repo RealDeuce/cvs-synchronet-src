@@ -2,13 +2,13 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.111 2008/02/25 05:12:16 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.119 2010/11/19 04:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -526,37 +526,40 @@ char* iniSetFloat(str_list_t* list, const char* section, const char* key, double
 }
 
 char* iniSetBytes(str_list_t* list, const char* section, const char* key, ulong unit
-					,ulong value, ini_style_t* style)
+					,int64_t value, ini_style_t* style)
 {
 	char	str[INI_MAX_VALUE_LEN];
 	double	bytes;
 
-	switch(unit) {
-		case 1024*1024*1024:
-			SAFEPRINTF(str,"%luG",value);
-			break;
-		case 1024*1024:
-			SAFEPRINTF(str,"%luM",value);
-			break;
-		case 1024:
-			SAFEPRINTF(str,"%luK",value);
-			break;
-		default:
-			if(unit<1)
-				unit=1;
-			bytes=value*unit;
+	if(value==0)
+		SAFECOPY(str,"0");
+	else
+		switch(unit) {
+			case 1024*1024*1024:
+				SAFEPRINTF(str,"%"PRIi64"G",value);
+				break;
+			case 1024*1024:
+				SAFEPRINTF(str,"%"PRIi64"M",value);
+				break;
+			case 1024:
+				SAFEPRINTF(str,"%"PRIi64"K",value);
+				break;
+			default:
+				if(unit<1)
+					unit=1;
+				bytes=(double)(value*unit);
 
-			if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
-				SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
-			else if(fmod(bytes,1024*1024*1024)==0)
-				SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
-			else if(fmod(bytes,1024*1024)==0)
-				SAFEPRINTF(str,"%gM",bytes/(1024*1024));
-			else if(fmod(bytes,1024)==0)
-				SAFEPRINTF(str,"%gK",bytes/1024);
-			else
-				SAFEPRINTF(str,"%lu",(ulong)bytes);
-	}
+				if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
+					SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+				else if(fmod(bytes,1024*1024*1024)==0)
+					SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
+				else if(fmod(bytes,1024*1024)==0)
+					SAFEPRINTF(str,"%gM",bytes/(1024*1024));
+				else if(fmod(bytes,1024)==0)
+					SAFEPRINTF(str,"%gK",bytes/1024);
+				else
+					SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
+		}
 
 	return iniSetString(list, section, key, str, style);
 }
@@ -687,21 +690,11 @@ char* iniSetStringList(str_list_t* list, const char* section, const char* key
 					,const char* sep, str_list_t val_list, ini_style_t* style)
 {
 	char	value[INI_MAX_VALUE_LEN];
-	size_t	i;
-
-	value[0]=0;
 
 	if(sep==NULL)
 		sep=",";
 
-	if(val_list!=NULL)
-		for(i=0; val_list[i]!=NULL; i++) {
-			if(value[0])
-				strcat(value,sep);
-			strcat(value,val_list[i]);
-		}
-
-	return iniSetString(list, section, key, value, style);
+	return iniSetString(list, section, key, strListCombine(val_list, value, sizeof(value), sep), style);
 }
 
 static char* default_value(const char* deflt, char* value)
@@ -1008,21 +1001,20 @@ iniReadNamedStringList(FILE* fp, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	items=0;
-	named_string_t** lp;
+	named_string_t** lp=NULL;
 	named_string_t** np;
 
-	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
-		return(NULL);
-
-	*lp=NULL;
-
 	if(fp==NULL)
-		return(lp);
+		return(NULL);
 
 	rewind(fp);
 
 	if(!seek_section(fp,section))
-		return(lp);
+		return(NULL);
+
+	/* New behavior, if section exists but is empty, return single element array (terminator only) */
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
 
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
@@ -1057,18 +1049,21 @@ iniGetNamedStringList(str_list_t list, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	i,items=0;
-	named_string_t** lp;
+	named_string_t** lp=NULL;
 	named_string_t** np;
 
+	if(list==NULL)
+		return(NULL);
+
+	i=find_section(list,section);
+	if(list[i]==NULL)
+		return(NULL);
+
+	/* New behavior, if section exists but is empty, return single element array (terminator only) */
 	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
 		return(NULL);
 
-	*lp=NULL;
-
-	if(list==NULL)
-		return(lp);
-
-	for(i=find_section(list,section);list[i]!=NULL;i++) {
+	for(;list[i]!=NULL;i++) {
 		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			break;
@@ -1184,7 +1179,7 @@ ulong iniGetLongInt(str_list_t list, const char* section, const char* key, ulong
 	return(parseLongInteger(value));
 }
 
-static ulong parseBytes(const char* value, ulong unit)
+static int64_t parseBytes(const char* value, ulong unit)
 {
 	char*	p=NULL;
 	double	bytes;
@@ -1192,21 +1187,30 @@ static ulong parseBytes(const char* value, ulong unit)
 	bytes=strtod(value,&p);
 	if(p!=NULL) {
 		switch(toupper(*p)) {
+			case 'E':
+				bytes*=1024;
+				/* fall-through */
+			case 'P':
+				bytes*=1024;
+				/* fall-through */
 			case 'T':
 				bytes*=1024;
+				/* fall-through */
 			case 'G':
 				bytes*=1024;
+				/* fall-through */
 			case 'M':
 				bytes*=1024;
+				/* fall-through */
 			case 'K':
 				bytes*=1024;
 				break;
 		}
 	}
-	return((ulong)(unit>1 ? (bytes/unit):bytes));
+	return((int64_t)(unit>1 ? (bytes/unit):bytes));
 }
 
-ulong iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit, ulong deflt)
+int64_t iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit, int64_t deflt)
 {
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
@@ -1220,7 +1224,7 @@ ulong iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit, u
 	return(parseBytes(value,unit));
 }
 
-ulong iniGetBytes(str_list_t list, const char* section, const char* key, ulong unit, ulong deflt)
+int64_t iniGetBytes(str_list_t list, const char* section, const char* key, ulong unit, int64_t deflt)
 {
 	char	value[INI_MAX_VALUE_LEN];
 
@@ -1554,19 +1558,33 @@ time_t iniGetDateTime(str_list_t list, const char* section, const char* key, tim
 
 static unsigned parseEnum(const char* value, str_list_t names)
 {
-	unsigned i;
+	unsigned i,count;
+	char val[INI_MAX_VALUE_LEN];
+	char* p=val;
 
+	/* Strip trailing words (enums must be a single word with no white-space) */
+	/* to support comments following enum values */
+	SAFECOPY(val,value);
+	FIND_WHITESPACE(p);
+	*p=0;
+
+    if((count=strListCount(names)) == 0)
+        return 0;
+        
 	/* Look for exact matches first */
-	for(i=0; names[i]!=NULL; i++)
-		if(stricmp(names[i],value)==0)
+	for(i=0; i<count; i++)
+		if(stricmp(names[i],val)==0)
 			return(i);
 
 	/* Look for partial matches second */
-	for(i=0; names[i]!=NULL; i++)
-		if(strnicmp(names[i],value,strlen(value))==0)
+	for(i=0; i<count; i++)
+		if(strnicmp(names[i],val,strlen(val))==0)
 			return(i);
 
-	return(strtoul(value,NULL,0));
+    i=strtoul(val,NULL,0);
+    if(i>=count)
+        i=count-1;
+	return i;
 }
 
 unsigned* parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count)
