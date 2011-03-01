@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.126 2010/03/10 07:12:19 deuce Exp $ */
+/* $Id: sexyz.c,v 1.130 2010/03/13 17:18:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1436,9 +1436,7 @@ static const char* usage=
 
 #ifdef __unix__
 
-#ifdef __unix__
-	struct termios tio_default;				/* Initial term settings */
-#endif
+struct termios tio_default;				/* Initial term settings */
 
 #ifdef NEEDS_CFMAKERAW
 static void
@@ -1479,6 +1477,11 @@ static void init_stdio(void)
 	}
 }
 
+BOOL	RingBufIsEmpty(void *buf)
+{
+	return(RingBufFull(buf)==0);
+}
+
 #endif
 
 /***************/
@@ -1511,7 +1514,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.126 $", "%*s %s", revision);
+	sscanf("$Revision: 1.130 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1608,6 +1611,10 @@ int main(int argc, char **argv)
 
 #if !defined(RINGBUF_EVENT)
 	outbuf_empty=CreateEvent(NULL,/* ManualReset */TRUE, /*InitialState */TRUE,NULL);
+#ifdef __unix__
+	outbuf_empty->cbdata=&outbuf;
+	outbuf_empty->verify=RingBufIsEmpty;
+#endif
 #endif
 
 #if 0
@@ -1786,7 +1793,8 @@ int main(int argc, char **argv)
 		} 
 	}
 
-	fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
+	if(max_file_size)
+		fprintf(statfp,"Maximum receive file size: %"PRIi64"\n", max_file_size);
 
 	if(!(mode&(SEND|RECV))) {
 		fprintf(statfp,"!No command specified\n\n");
@@ -1895,7 +1903,9 @@ int main(int argc, char **argv)
 #if !SINGLE_THREADED
 	lprintf(LOG_DEBUG,"Waiting for output buffer to empty... ");
 	if(RingBufFull(&outbuf)) {
+#if !defined(RINGBUF_EVENT)
 		ResetEvent(outbuf_empty);
+#endif
 		if(WaitForEvent(outbuf_empty,5000)!=WAIT_OBJECT_0)
 			lprintf(LOG_DEBUG,"FAILURE");
 	}

@@ -2,13 +2,13 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.15 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: login.cpp,v 1.17 2011/03/01 20:26:37 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,7 +59,7 @@ int sbbs_t::login(char *username, char *pw)
 	else
 		qwklogon=0;
 
-	if(!(cfg.node_misc&NM_NO_NUM) && isdigit(str[0])) {
+	if(!(cfg.node_misc&NM_NO_NUM) && isdigit((uchar)str[0])) {
 		useron.number=atoi(str);
 		getuserdat(&cfg,&useron);
 		if(useron.number && useron.misc&(DELETED|INACTIVE))
@@ -70,7 +70,7 @@ int sbbs_t::login(char *username, char *pw)
 		useron.number=matchuser(&cfg,str,FALSE);
 		if(!useron.number && (uchar)str[0]<0x7f && str[1]
 			&& isalpha(str[0]) && strchr(str,' ') && cfg.node_misc&NM_LOGON_R)
-			useron.number=userdatdupe(0,U_NAME,LEN_NAME,str,0);
+			useron.number=userdatdupe(0,U_NAME,LEN_NAME,str,0,0);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
 			if(useron.number && useron.misc&(DELETED|INACTIVE))

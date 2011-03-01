@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.68 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.70 2011/03/01 20:26:37 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,7 @@ bool sbbs_t::answer()
 				,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str2 : str);
 			SAFECOPY(rlogin_pass
 				,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str : str2);
-			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
+			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0, 0);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
 				useron.misc&=~TERM_FLAGS;
@@ -192,7 +192,7 @@ bool sbbs_t::answer()
 		rlogin_pass[i]=0;
 		lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
 			,cfg.node_num, rlogin_name);
-		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0);
+		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name, 0, 0);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
 			useron.misc&=~TERM_FLAGS;
@@ -259,7 +259,7 @@ bool sbbs_t::answer()
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
-			"\2\2?HTML?"/* HTML? */
+			"\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm?
 			"\x1b[0m_"	/* "Normal" colors */
 			"\x1b[2J"	/* clear screen */
 			"\x1b[H"	/* home cursor */
@@ -317,10 +317,10 @@ bool sbbs_t::answer()
 				SAFECOPY(terminal,"RIP");
 			logline("@R",strstr(str,"RIPSCRIP"));
 			autoterm|=(RIP|COLOR|ANSI); }
-		else if(strstr(str,"!HTML!"))  {
+		else if(strstr(str,"Are you the gatekeeper?"))  {
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"HTML");
-			logline("@H",strstr(str,"!HTML!"));
+			logline("@H",strstr(str,"Are you the gatekeeper?"));
 			autoterm|=HTML;
 		} 
 	}
@@ -338,7 +338,7 @@ bool sbbs_t::answer()
 	/* AutoLogon via IP or Caller ID here */
 	if(!useron.number && !(sys_status&SS_RLOGIN)
 		&& startup->options&BBS_OPT_AUTO_LOGON && cid[0]) {
-		useron.number=userdatdupe(0, U_NOTE, LEN_NOTE, cid, 0);
+		useron.number=userdatdupe(0, U_NOTE, LEN_NOTE, cid, 0, 0);
 		if(useron.number) {
 			getuserdat(&cfg, &useron);
 			if(!(useron.misc&AUTOLOGON) || !(useron.exempt&FLAG('V')))

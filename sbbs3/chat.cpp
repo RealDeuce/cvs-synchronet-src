@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.57 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.59 2011/03/01 20:26:37 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -717,8 +717,7 @@ bool sbbs_t::sysop_page(void)
 		if(i<cfg.total_pages) {
 			bprintf(text[PagingGuru],cfg.sys_op);
 			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL)
-				,cfg.page[i]->misc&IO_INTS ? EX_OUTL|EX_OUTR|EX_INR
-					: EX_OUTL); 
+				,cfg.page[i]->misc&XTRN_STDIO ? EX_STDIO : 0); 
 		}
 		else if(cfg.sys_misc&SM_SHRTPAGE) {
 			bprintf(text[PagingGuru],cfg.sys_op);
@@ -1283,7 +1282,7 @@ int sbbs_t::getnodetopage(int all, int telegram)
 		return(-1);
 
 	if(str[0]=='\'') {
-		j=userdatdupe(0,U_HANDLE,LEN_HANDLE,str+1,0);
+		j=userdatdupe(0,U_HANDLE,LEN_HANDLE,str+1,0,0);
 		if(!j) {
 			bputs(text[UnknownUser]);
 			return(0); 
