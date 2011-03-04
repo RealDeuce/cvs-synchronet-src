@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.21 2009/03/24 10:30:54 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.26 2009/11/05 17:05:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@ int SMBCALL smb_findhash(smb_t* smb, hash_t** compare, hash_t* found_hash,
 	if(count && source_mask!=SMB_HASH_SOURCE_NONE) {
 
 		rewind(smb->hash_fp);
+		clearerr(smb->hash_fp);
 		while(!feof(smb->hash_fp)) {
 			if(smb_fread(smb,&hash,sizeof(hash),smb->hash_fp)!=sizeof(hash))
 				break;
@@ -85,13 +86,13 @@ int SMBCALL smb_findhash(smb_t* smb, hash_t** compare, hash_t* found_hash,
 					continue;	/* wrong pre-process flags */
 				if((compare[c]->flags&hash.flags&SMB_HASH_MASK)==0)	
 					continue;	/* no matching hashes */
-				if(compare[c]->flags&hash.flags&SMB_HASH_CRC16 
+				if((compare[c]->flags&hash.flags&SMB_HASH_CRC16)
 					&& compare[c]->crc16!=hash.crc16)
 					continue;	/* wrong crc-16 */
-				if(compare[c]->flags&hash.flags&SMB_HASH_CRC32
+				if((compare[c]->flags&hash.flags&SMB_HASH_CRC32)
 					&& compare[c]->crc32!=hash.crc32)
 					continue;	/* wrong crc-32 */
-				if(compare[c]->flags&hash.flags&SMB_HASH_MD5 
+				if((compare[c]->flags&hash.flags&SMB_HASH_MD5)
 					&& memcmp(compare[c]->md5,hash.md5,sizeof(hash.md5)))
 					continue;	/* wrong MD5 */
 				
@@ -189,6 +190,9 @@ hash_t* SMBCALL smb_hash(ulong msgnum, ulong t, unsigned source, unsigned flags
 {
 	hash_t*	hash;
 
+	if(length==0)		/* Don't hash 0-length sources (e.g. empty/blank message bodies) */
+		return(NULL);
+
 	if((hash=(hash_t*)malloc(sizeof(hash_t)))==NULL)
 		return(NULL);
 
@@ -259,10 +263,25 @@ hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body, long source_mas
 		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_FTN_ID, flags, msg->ftn_msgid))!=NULL)
 		hashes[h++]=hash;
 
-	flags|=SMB_HASH_STRIP_WSP|SMB_HASH_STRIP_CTRL_A;
 	if(body!=NULL && (source_mask&(1<<SMB_HASH_SOURCE_BODY)) &&
-		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_BODY, flags, body))!=NULL)
+		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_BODY, flags|SMB_HASH_STRIP_WSP|SMB_HASH_STRIP_CTRL_A, body))!=NULL)
 		hashes[h++]=hash;
+
+	if(msg->subj!=NULL && (source_mask&(1<<SMB_HASH_SOURCE_SUBJECT))) {
+		char*	p=msg->subj;
+		while(*p) {
+			char* tp=strchr(p,':');
+			char* sp=strchr(p,' ');
+			if(tp!=NULL && (sp==NULL || tp<sp)) {
+				p=tp+1;
+				SKIP_WHITESPACE(p);
+				continue;
+			}
+			break;
+		}
+		if((hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_SUBJECT, flags, p))!=NULL)
+			hashes[h++]=hash;
+	}
 
 	return(hashes);
 }
@@ -285,9 +304,9 @@ int SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL updat
 	if(smb->status.attr&(SMB_EMAIL|SMB_NOHASH))
 		return(SMB_SUCCESS);
 
-	hashes=smb_msghashes(msg,text,SMB_HASH_SOURCE_ALL);
+	hashes=smb_msghashes(msg,text,SMB_HASH_SOURCE_DUPE);
 
-	if(smb_findhash(smb, hashes, &found, SMB_HASH_SOURCE_ALL, update)==SMB_SUCCESS && !update) {
+	if(smb_findhash(smb, hashes, &found, SMB_HASH_SOURCE_DUPE, update)==SMB_SUCCESS && !update) {
 		retval=SMB_DUPE_MSG;
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"duplicate %s: %s found in message #%lu"
