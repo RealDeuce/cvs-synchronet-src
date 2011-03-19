@@ -13600,6 +13600,10 @@ object MainForm: TMainForm
         Width = 100
       end
       item
+        Text = 'Errors: 0'
+        Width = 100
+      end
+      item
         Text = 'Starting up...'
         Width = 100
       end>
@@ -13986,7 +13990,7 @@ object MainForm: TMainForm
         object MailViewSpamLog: TMenuItem
           Caption = 'Spam Log'
           Hint = 'SPAM.LOG'
-          OnClick = DataMenuItemClick
+          OnClick = ViewLogClick
         end
         object MailViewTodaysLog: TMenuItem
           Caption = 'Today'#39's Log'
@@ -14033,6 +14037,11 @@ object MainForm: TMainForm
           Hint = 'SPAMBLOCK.CFG'
           OnClick = CtrlMenuItemEditClick
         end
+        object SpamBlockExemptions: TMenuItem
+          Caption = 'Spam Block Exemptions'
+          Hint = 'SPAMBLOCK_EXEMPT.CFG'
+          OnClick = CtrlMenuItemEditClick
+        end
         object AllowedRelayList: TMenuItem
           Caption = 'Allowed Relay List'
           Hint = 'RELAY.CFG'
@@ -14056,7 +14065,7 @@ object MainForm: TMainForm
       end
     end
     object FtpMenuItem: TMenuItem
-      Caption = 'FTP'
+      Caption = 'FT&P'
       object FtpConfigureMenuItem: TMenuItem
         Action = FtpConfigure
         Caption = '&Configure'
@@ -14208,6 +14217,7 @@ object MainForm: TMainForm
       end
     end
     object ViewMenuItem: TMenuItem
+      AutoHotkeys = maManual
       Caption = '&View'
       object ViewNodesMenuItem: TMenuItem
         Action = ViewNodes
@@ -14257,16 +14267,17 @@ object MainForm: TMainForm
         OnClick = ViewStatusBarMenuItemClick
       end
       object ViewErrorLogMenuItem: TMenuItem
+        AutoHotkeys = maManual
         Caption = 'Error Log...'
         Hint = 'ERROR.LOG'
         ImageIndex = 29
-        OnClick = DataMenuItemClick
+        OnClick = ViewLogClick
       end
       object ViewHackAttemptLogMenuItem: TMenuItem
         AutoHotkeys = maManual
         Caption = 'Hack Attempt Log...'
         Hint = 'HACK.LOG'
-        OnClick = DataMenuItemClick
+        OnClick = ViewLogClick
       end
     end
     object HelpMenuItem: TMenuItem
