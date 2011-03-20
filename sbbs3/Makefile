@@ -6,7 +6,7 @@
 # @format.tab-size 4, @format.use-tabs true								#
 #########################################################################
 
-# $Id: Makefile,v 1.84 2009/08/17 08:10:48 rswindell Exp $
+# $Id: Makefile,v 1.85 2010/04/06 22:59:59 deuce Exp $
 
 SRC_ROOT	=	..
 !include $(SRC_ROOT)\build\Common.bmake
@@ -262,3 +262,8 @@ $(SMBACTIV): $(SMBACTIV_OBJS)
 $(SEXYZ): $(SEXYZ_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(MT_LDFLAGS) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV-MT_LIBS)
+
+# DSTSEDIT
+$(DSTSEDIT): $(DSTSEDIT_OBJS)
+	@echo Linking $@
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) -e$@ $** $(XPDEV_LIBS)
