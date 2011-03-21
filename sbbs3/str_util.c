@@ -2,13 +2,13 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.43 2009/03/19 07:28:02 rswindell Exp $ */
+/* $Id: str_util.c,v 1.46 2010/06/07 07:01:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -101,6 +101,19 @@ char* DLLCALL strip_exascii(const char *str, char* dest)
 	return dest;
 }
 
+char* DLLCALL strip_space(const char *str, char* dest)
+{
+	int	i,j;
+
+	if(dest==NULL && (dest=strdup(str))==NULL)
+		return NULL;
+	for(i=j=0;str[i];i++)
+		if(!isspace((unsigned char)str[i]))
+			dest[j++]=str[i];
+	dest[j]=0;
+	return dest;
+}
+
 char* DLLCALL prep_file_desc(const char *str, char* dest)
 {
 	int	i,j;
@@ -118,7 +131,7 @@ char* DLLCALL prep_file_desc(const char *str, char* dest)
 		}
 		else if(j && str[i]<=' ' && dest[j-1]==' ')
 			continue;
-		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
+		else if(i && !isalnum((unsigned char)str[i]) && str[i]==str[i-1])
 			continue;
 		else if((uchar)str[i]>=' ')
 			dest[j++]=str[i];
@@ -190,7 +203,7 @@ BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 }
 
 /****************************************************************************/
-/* Pattern matching string search of 'insearchof' in 'fname'.				*/
+/* Pattern matching string search of 'insearchof' in 'list'.				*/
 /****************************************************************************/
 BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 {
