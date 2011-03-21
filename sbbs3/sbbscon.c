@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.235 2010/06/03 05:50:46 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.236 2011/03/21 01:30:29 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1914,8 +1914,10 @@ int main(int argc, char** argv)
 	}
 
     if(!isatty(fileno(stdin)))  			/* redirected */
-	   	while(1)
+	   	while(1) {
 	    	select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
+		lputs(LOG_WARNING,"select(NULL) returned!");
+	}
 	else 								/* interactive */
 #endif
 	{
