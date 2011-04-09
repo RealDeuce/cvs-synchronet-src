@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.141 2011/08/30 23:37:28 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.139 2010/06/28 23:49:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -440,46 +440,17 @@ js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     JSString *	str;
 	char	 *	cstr;
-	char     *	p;
 	jsrefcount	rc;
-	char		instr[81]="y";
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
 	cstr = JS_GetStringBytes(str);
-	printf("%s (Y/n)? ", cstr);
 	rc=JS_SUSPENDREQUEST(cx);
-	fgets(instr,sizeof(instr),stdin);
+	printf("%s (Y/N)?", cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
-	p=instr;
-	SKIP_WHITESPACE(p);
-	*rval = BOOLEAN_TO_JSVAL(tolower(*p)!='n');
-	return(JS_TRUE);
-}
-
-static JSBool
-js_deny(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-    JSString *	str;
-	char	 *	cstr;
-	char     *	p;
-	jsrefcount	rc;
-	char		instr[81];
-
-	if((str=JS_ValueToString(cx, argv[0]))==NULL)
-	    return(JS_FALSE);
-
-	cstr = JS_GetStringBytes(str);
-	printf("%s (N/y)? ", cstr);
-	rc=JS_SUSPENDREQUEST(cx);
-	fgets(instr,sizeof(instr),stdin);
-	JS_RESUMEREQUEST(cx, rc);
-
-	p=instr;
-	SKIP_WHITESPACE(p);
-	*rval = BOOLEAN_TO_JSVAL(tolower(*p)!='y');
+	*rval = BOOLEAN_TO_JSVAL(FALSE);
 	return(JS_TRUE);
 }
 
@@ -562,7 +533,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"alert",			js_alert,			1},
 	{"prompt",			js_prompt,			1},
 	{"confirm",			js_confirm,			1},
-	{"deny",			js_deny,			1},
 	{"chdir",			js_chdir,			1},
 	{"putenv",			js_putenv,			1},
     {0}
@@ -958,7 +928,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.141 $", "%*s %s", revision);
+	sscanf("$Revision: 1.139 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1164,7 +1134,6 @@ int main(int argc, char **argv, char** environ)
 
 		result=js_exec(module,&argv[argn]);
 		JS_ENDREQUEST(js_cx);
-		YIELD();
 
 		if(result)
 			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
