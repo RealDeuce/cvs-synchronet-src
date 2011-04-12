@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.531 2011/04/09 20:05:31 deuce Exp $ */
+/* $Id: websrvr.c,v 1.532 2011/04/12 03:20:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1038,6 +1038,7 @@ static void safecat(char *dst, const char *append, size_t maxlen) {
 static BOOL send_headers(http_session_t *session, const char *status, int chunked)
 {
 	int		ret;
+	int		stat_code;
 	BOOL	send_file=TRUE;
 	time_t	ti;
 	size_t	idx;
@@ -1092,12 +1093,11 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			send_file=FALSE;
 		}
 
+		stat_code=atoi(status_line);
 		if(session->req.ld!=NULL)
-			session->req.ld->status=atoi(status_line);
+			session->req.ld->status=stat_code;
 
-		if(session->req.ld->status==304
-				|| session->req.ld->status==204
-				|| (session->req.ld->status >= 100 && session->req.ld->status<=199)) {
+		if(stat_code==304 || stat_code==204 || (stat_code >= 100 && stat_code<=199)) {
 			send_file=FALSE;
 			chunked=FALSE;
 		}
@@ -5209,7 +5209,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.531 $", "%*s %s", revision);
+	sscanf("$Revision: 1.532 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
