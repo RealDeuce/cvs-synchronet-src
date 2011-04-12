@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.241 2010/03/08 05:17:14 rswindell Exp $ */
+/* $Id: services.c,v 1.245 2010/04/02 23:23:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -654,66 +654,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	JS_RESUMEREQUEST(cx, rc);
 }
 
-#if 0
-
-/* Server Object Properites */
-enum {
-	 SERVER_PROP_TERMINATED
-	,SERVER_PROP_CLIENTS
-};
-
-
-static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
-{
-    jsint       tiny;
-	service_client_t* client;
-
-	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-    tiny = JSVAL_TO_INT(id);
-
-	switch(tiny) {
-		case SERVER_PROP_TERMINATED:
-#if 0
-			lprintf(LOG_DEBUG,"%s client->service->terminated=%d"
-				,client->service->protocol, client->service->terminated);
-#endif
-			*vp = BOOLEAN_TO_JSVAL(client->service->terminated);
-			break;
-		case SERVER_PROP_CLIENTS:
-			*vp = INT_TO_JSVAL(active_clients());
-			break;
-	}
-
-	return(JS_TRUE);
-}
-
-#define SERVER_PROP_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY
-
-static struct JSPropertySpec js_server_properties[] = {
-/*		 name				,tinyid					,flags,				getter,	setter	*/
-
-	{	"terminated"		,SERVER_PROP_TERMINATED	,SERVER_PROP_FLAGS,	NULL,NULL},
-	{	"clients"			,SERVER_PROP_CLIENTS	,SERVER_PROP_FLAGS,	NULL,NULL},
-	{0}
-};
-
-static JSClass js_server_class = {
-         "Server"			/* name			*/
-		,0					/* flags		*/
-        ,JS_PropertyStub	/* addProperty	*/
-		,JS_PropertyStub	/* delProperty	*/
-		,js_server_get		/* getProperty	*/
-		,JS_PropertyStub	/* setProperty	*/
-		,JS_EnumerateStub	/* enumerate	*/
-		,JS_ResolveStub		/* resolve		*/
-		,JS_ConvertStub		/* convert		*/
-		,JS_FinalizeStub	/* finalize		*/
-}; 
-
-#endif
-
 /* Server Methods */
 
 static JSBool
@@ -1005,6 +945,19 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	return js_CommonBranchCallback(cx,&client->branch);
 }
 
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline)
 {
 	char					argbuf[MAX_PATH+1];
@@ -1187,8 +1140,12 @@ static void js_service_thread(void* arg)
 	if(js_script==NULL) 
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
-		js_PrepareToExecute(js_cx, js_glob, spath);
+		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
+#ifdef USE_JS_OPERATION_CALLBACK
+		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1287,14 +1244,18 @@ static void js_static_service_thread(void* arg)
 		val = BOOLEAN_TO_JSVAL(JS_FALSE);
 		JS_SetProperty(js_cx, js_glob, "logged_in", &val);
 
+#ifdef USE_JS_OPERATION_CALLBACK
+		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 	
 		if((js_script=JS_CompileFile(js_cx, js_glob, spath))==NULL)  {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",service->socket,spath);
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, js_glob, spath);
+		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1675,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.241 $", "%*s %s", revision);
+	sscanf("$Revision: 1.245 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

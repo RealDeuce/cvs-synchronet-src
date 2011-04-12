@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.364 2009/12/09 19:00:36 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.371 2011/01/29 01:04:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -588,7 +588,7 @@ BOOL js_add_file(JSContext* js_cx, JSObject* array,
 	if(!JS_SetProperty(js_cx, file, "credits", &val))
 		return(FALSE);
 
-	JS_NewNumberValue(js_cx,time,&val);
+	JS_NewNumberValue(js_cx,(jsdouble)time,&val);
 	if(!JS_SetProperty(js_cx, file, "time", &val))
 		return(FALSE);
 
@@ -1011,7 +1011,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, parent, spath);
+		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -1405,7 +1405,7 @@ static void send_thread(void* arg)
 				str[0]=0;
 			lprintf(LOG_INFO,"%04d Sent %lu bytes (%lu total) of %s (%lu cps)%s"
 				,xfer.ctrl_sock,total,length,xfer.filename
-				,(total-last_total)/(now-last_report)
+				,(ulong)((total-last_total)/(now-last_report))
 				,str);
 			last_total=total;
 			last_report=now;
@@ -1501,7 +1501,7 @@ static void send_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d DATA socket closed",xfer.ctrl_sock);
 	
 	if(!error) {
-		dur=time(NULL)-start;
+		dur=(long)(time(NULL)-start);
 		cps=dur ? total/dur : total*2;
 		lprintf(LOG_INFO,"%04d Transfer successful: %lu bytes sent in %lu seconds (%lu cps)"
 			,xfer.ctrl_sock
@@ -1751,7 +1751,7 @@ static void receive_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d DATA socket %d closed",xfer.ctrl_sock,*xfer.data_sock);
 	
 	if(!error) {
-		dur=time(NULL)-start;
+		dur=(long)(time(NULL)-start);
 		cps=dur ? total/dur : total*2;
 		lprintf(LOG_INFO,"%04d Transfer successful: %lu bytes received in %lu seconds (%lu cps)"
 			,xfer.ctrl_sock
@@ -1790,15 +1790,20 @@ static void receive_thread(void* arg)
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
 					if(fexistcase(tmp))
 						remove(tmp);
-					system(cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd));
+					cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd);
+					lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
+					system(cmd);
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
 						if(fexistcase(tmp))
 							remove(tmp);
-						system(cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd)); 
+						cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd);
+						lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
+						system(cmd); 
 						fexistcase(tmp);	/* fixes filename case */
 					}
 					if((file=nopen(tmp,O_RDONLY))!=-1) {
+						lprintf(LOG_DEBUG,"%04d Parsing DIZ: %s",xfer.ctrl_sock,tmp);
 						memset(ext,0,sizeof(ext));
 						read(file,ext,sizeof(ext)-1);
 						for(i=sizeof(ext)-1;i;i--)	/* trim trailing spaces */
@@ -1817,7 +1822,8 @@ static void receive_thread(void* arg)
 						close(file);
 						remove(tmp);
 						f.misc|=FM_EXTDESC; 
-					} 
+					} else
+						lprintf(LOG_DEBUG,"%04d DIZ Does not exist: %s",xfer.ctrl_sock,tmp);
 				} 
 			} /* FILE_ID.DIZ support */
 
@@ -2354,7 +2360,7 @@ static void ctrl_thread(void* arg)
 	WORD		port;
 	uint32_t	ip_addr;
 	socklen_t	addr_len;
-	DWORD		h1,h2,h3,h4;
+	unsigned	h1,h2,h3,h4;
 	u_short		p1,p2;	/* For PORT command */
 	int			i;
 	int			rd;
@@ -2586,7 +2592,7 @@ static void ctrl_thread(void* arg)
 			sockprintf(sock," QUIT    REIN    PORT    PASV    LIST    NLST    NOOP    HELP");
 			sockprintf(sock," SIZE    MDTM    RETR    STOR    REST    ALLO    ABOR    SYST");
 			sockprintf(sock," TYPE    STRU    MODE    SITE    RNFR*   RNTO*   DELE*   DESC#");
-			sockprintf(sock," FEAT#   OPTS#");
+			sockprintf(sock," FEAT#   OPTS#   EPRT    EPSV");
 			sockprintf(sock,"214 Direct comments to sysop@%s.",scfg.sys_inetaddr);
 			continue;
 		}
@@ -2859,16 +2865,35 @@ static void ctrl_thread(void* arg)
 		}
 #endif
 
-		if(!strnicmp(cmd, "PORT ",5)) {
+		if(strnicmp(cmd, "PORT ",5)==0 || strnicmp(cmd, "EPRT ",5)==0) {
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
 
 			p=cmd+5;
 			SKIP_WHITESPACE(p);
-			sscanf(p,"%ld,%ld,%ld,%ld,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
-			data_addr.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
-			data_addr.sin_port=(u_short)((p1<<8)|p2);
+			if(strnicmp(cmd, "PORT ",5)==0) {
+				sscanf(p,"%u,%u,%u,%u,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
+				data_addr.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
+				data_addr.sin_port=(u_short)((p1<<8)|p2);
+			} else { /* EPRT */
+				char	delim = *p;
+				int		prot;
+
+				if(*p) p++;
+				prot=strtol(p,NULL,/* base: */10);
+				if(prot!=1) {
+					lprintf(LOG_WARNING,"%04d UNSUPPORTED protocol: %d", sock, prot);
+					sockprintf(sock,"522 Network protocol not supported, use (1)");
+					continue;
+				}
+				FIND_CHAR(p,delim);
+				if(*p) p++;
+				data_addr.sin_addr.s_addr=inet_addr(p);
+				FIND_CHAR(p,delim);
+				if(*p) p++;
+				data_addr.sin_port=atoi(p);
+			}
 			if(data_addr.sin_port< IPPORT_RESERVED) {	
 				lprintf(LOG_WARNING,"%04d !SUSPECTED BOUNCE ATTACK ATTEMPT by %s to %s port %u"
 					,sock,user.alias
@@ -2887,8 +2912,8 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 
-		if(!stricmp(cmd, "PASV") 
-			|| !stricmp(cmd, "P@SW")) {	/* Kludge required for SMC Barricade V1.2 */
+		if(stricmp(cmd, "PASV")==0 || stricmp(cmd, "P@SW")==0	/* Kludge required for SMC Barricade V1.2 */
+			|| stricmp(cmd, "EPSV")==0) {	
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -2965,14 +2990,17 @@ static void ctrl_thread(void* arg)
 					,ip_addr&0xff
 					);
 			port=ntohs(addr.sin_port);
-			sockprintf(sock,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
-				,(ip_addr>>24)&0xff
-				,(ip_addr>>16)&0xff
-				,(ip_addr>>8)&0xff
-				,ip_addr&0xff
-				,(port>>8)&0xff
-				,port&0xff
-				);
+			if(stricmp(cmd, "EPSV")==0)
+				sockprintf(sock,"229 Entering Extended Passive Mode (|||%hu|)", port);
+			else
+				sockprintf(sock,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
+					,(ip_addr>>24)&0xff
+					,(ip_addr>>16)&0xff
+					,(ip_addr>>8)&0xff
+					,ip_addr&0xff
+					,(port>>8)&0xff
+					,port&0xff
+					);
 			mode="passive";
 			continue;
 		}
@@ -3297,7 +3325,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				if(!strnicmp(cmd,"SIZE ",5)) {
-					sockprintf(sock,"213 %lu",flength(fname));
+					sockprintf(sock,"213 %"PRIuOFF,flength(fname));
 					continue;
 				}
 				if(!strnicmp(cmd,"MDTM ",5)) {
@@ -3321,7 +3349,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				/* RETR */
-				lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
+				lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
 					,sock,user.alias,fname,flength(fname)
 					,mode);
 				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
@@ -3534,7 +3562,7 @@ static void ctrl_thread(void* arg)
 								t=fdate(np);
 								if(localtime_r(&t,&tm)==NULL)
 									memset(&tm,0,sizeof(tm));
-								fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d %02d:%02d %s\r\n"
+								fprintf(fp,"-r--r--r--   1 %-*s %-8s %9"PRIdOFF" %s %2d %02d:%02d %s\r\n"
 									,NAME_LEN
 									,scfg.sys_id
 									,scfg.sys_id
@@ -3573,7 +3601,7 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=lib)
 						continue;
-					if(i!=scfg.sysop_dir && i!=scfg.upload_dir 
+					if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir 
 						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!wildmatchi(scfg.dir[i]->code_suffix, filespec, FALSE))
@@ -3773,7 +3801,7 @@ static void ctrl_thread(void* arg)
 				delfile=TRUE;
 				credits=FALSE;
 				if(!getsize && !getdate)
-					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%lu bytes) in %s mode"
+					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%"PRIuOFF" bytes) in %s mode"
 						,sock,user.alias,flength(fname)
 						,mode);
 			/* ASCII Index File */
@@ -3781,7 +3809,8 @@ static void ctrl_thread(void* arg)
 				&& !stricmp(p,startup->index_file_name)
 				&& !delecmd) {
 				if(getsize) {
-					sockprintf(sock, "500 Size not available for dynamically generated files");
+					/* Size not available for dynamically generated files */
+					sockprintf(sock, "213 0"); /* report size of 0 to be make Google Chrome happy */
 					continue;
 				}
 				if((fp=fopen(ftp_tmpfname(fname,"ndx",sock),"w+b"))==NULL) {
@@ -3859,7 +3888,7 @@ static void ctrl_thread(void* arg)
 						for(i=0;i<scfg.total_dirs;i++) {
 							if(scfg.dir[i]->lib!=lib)
 								continue;
-							if(i!=scfg.sysop_dir && i!=scfg.upload_dir
+							if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir
 								&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 								continue;
 							fprintf(fp,"%-*s %s\r\n"
@@ -3896,7 +3925,8 @@ static void ctrl_thread(void* arg)
 				&& !delecmd) {
 				success=TRUE;
 				if(getsize) {
-					sockprintf(sock, "500 Size not available for dynamically generated files");
+					/* Size not available for dynamically generated files */
+					sockprintf(sock, "213 0"); /* report size of 0 to be make Google Chrome happy */
 					continue;
 				}
 				else if(getdate)
@@ -4097,7 +4127,7 @@ static void ctrl_thread(void* arg)
 					if(fexistcase(fname)) {
 						success=TRUE;
 						if(!getsize && !getdate && !delecmd)
-							lprintf(LOG_INFO,"%04d %s downloading: %s (%lu bytes) in %s mode"
+							lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
 								,sock,user.alias,fname,flength(fname)
 								,mode);
 					} 
@@ -4108,7 +4138,7 @@ static void ctrl_thread(void* arg)
 #endif
 
 			if(getsize && success)
-				sockprintf(sock,"213 %lu", flength(fname));
+				sockprintf(sock,"213 %"PRIuOFF, flength(fname));
 			else if(getdate && success) {
 				if(file_date==0)
 					file_date = fdate(fname);
@@ -4213,7 +4243,7 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=lib)
 						continue;
-					if(i!=scfg.sysop_dir && i!=scfg.upload_dir 
+					if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir 
 						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.dir[i]->code_suffix,p))
@@ -4413,7 +4443,7 @@ static void ctrl_thread(void* arg)
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=curlib)
 						continue;
-					if(i!=scfg.sysop_dir && i!=scfg.upload_dir
+					if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir
 						&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
 						continue;
 					if(!stricmp(scfg.dir[i]->code_suffix,p))
@@ -4596,7 +4626,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.364 $", "%*s %s", revision);
+	sscanf("$Revision: 1.371 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
