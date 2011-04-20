@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.193 2009/02/06 02:13:25 deuce Exp $ */
+/* $Id: uifc32.c,v 1.196 2010/03/12 06:21:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -93,6 +93,8 @@ static int *last_menu_bar=NULL;
 static int save_menu_cur=-1;
 static int save_menu_bar=-1;
 static int save_menu_opts=-1;
+
+char* uifcYesNoOpts[]={"Yes","No",NULL};
 
 static void reset_dynamic(void) {
 	last_menu_cur=NULL;
@@ -491,7 +493,7 @@ static void truncsp(char *str)
 int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
-	uchar line[256],shade[256],*ptr
+	uchar line[MAX_COLS*2],shade[MAX_LINES*4],*ptr
 		,search[MAX_OPLN],bline=0,*win;
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
@@ -1644,8 +1646,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 int uinput(int mode, int left, int top, char *inprompt, char *str,
 	int max, int kmode)
 {
-	unsigned char save_buf[2048],in_win[2048]
-		,shade[160];
+	unsigned char save_buf[MAX_COLS*8],in_win[MAX_COLS*6]
+		,shade[MAX_COLS*2];
 	int	width;
 	int height=3;
 	int i,plen,slen,j;
@@ -2075,6 +2077,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						continue;
 					}
 				case CIO_KEY_DC:	/* delete */
+				case DEL:			/* sdl_getch() is returning 127 when keypad "Del" is hit */
 					if(i<j)
 					{
 						if(str[i]=='.')
@@ -2183,7 +2186,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
 {
 	va_list argptr;
-	char str[256],buf[512];
+	char str[MAX_COLS+1],buf[MAX_COLS*2];
 	int i,j;
 
     va_start(argptr,fmat);
