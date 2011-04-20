@@ -2,13 +2,13 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.42 2011/09/01 17:37:09 rswindell Exp $ */
+/* $Id: userdat.h,v 1.39 2011/03/01 20:26:37 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -125,24 +125,6 @@ DLLEXPORT BOOL	DLLCALL user_adjust_minutes(scfg_t* cfg, user_t* user, long amoun
 DLLEXPORT time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime);
 
 DLLEXPORT BOOL	DLLCALL check_name(scfg_t* cfg, const char* name);
-
-/* Login attempt/hack tracking */
-typedef struct {
-	IN_ADDR		addr;	/* host with consecutive failed login attmepts */
-	ulong		count;	/* number of consecutive failed login attempts */
-	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
-	time_t		time;	/* time of last attempt */
-	const char*	prot;	/* protocol used in last attempt */
-	char		user[128];
-	char		pass[128];
-} login_attempt_t;
-
-DLLEXPORT link_list_t*		DLLCALL	loginAttemptListInit(link_list_t*);
-DLLEXPORT BOOL				DLLCALL	loginAttemptListFree(link_list_t*);
-DLLEXPORT list_node_t*		DLLCALL loginAttempted(link_list_t*, SOCKADDR_IN*);
-DLLEXPORT ulong				DLLCALL loginAttempts(link_list_t*, SOCKADDR_IN*);
-DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, SOCKADDR_IN*);
-DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, SOCKADDR_IN*, const char* prot, const char* user, const char* pass);
 
 #ifdef __cplusplus
 }
