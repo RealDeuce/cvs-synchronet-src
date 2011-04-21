@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.548 2010/05/22 01:48:27 deuce Exp $ */
+/* $Id: main.cpp,v 1.549 2011/04/21 20:52:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,7 +294,7 @@ static BOOL winsock_startup(void)
 
 DLLEXPORT void DLLCALL sbbs_srand()
 {
-	DWORD seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
+	DWORD seed;
 
 	xp_randomize();
 #if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
@@ -304,6 +304,8 @@ DLLEXPORT void DLLCALL sbbs_srand()
 		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
+#else
+	seed = time(NULL) ^ (DWORD)GetCurrentThreadId()
 #endif
 
  	srand(seed);
