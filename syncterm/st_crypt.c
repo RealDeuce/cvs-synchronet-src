@@ -1,11 +1,7 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
 #include <stdio.h>	/* NULL */
-#ifdef _WIN32
-	#include <stdlib.h>
-#else
-	#include <unistd.h>	/* _exit() */
-#endif
+#include <unistd.h>	/* _exit() */
 #include "st_crypt.h"
 #include <xp_dl.h>
 
@@ -24,7 +20,6 @@ void exit_crypt()
 
 #else
 
-#ifdef __unix__
 /*
  * cryptlib calls fork() to gather entropy.
  * It then calls exit().
@@ -39,7 +34,6 @@ void exit(int code)
 {
 	_exit(code);
 }
-#endif
 
 struct crypt_funcs cl;
 
