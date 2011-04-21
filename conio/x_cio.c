@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.29 2008/09/28 01:59:34 deuce Exp $ */
+/* $Id: x_cio.c,v 1.30 2011/04/21 08:31:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -321,6 +321,14 @@ int x_init(void)
 		return(-1);
 	}
 	if((x11.XGetWindowAttributes=xp_dlsym(dl,XGetWindowAttributes))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XAllocWMHints=xp_dlsym(dl,XAllocWMHints))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XSetWMProperties=xp_dlsym(dl,XSetWMProperties))==NULL) {
 		xp_dlclose(dl);
 		return(-1);
 	}
