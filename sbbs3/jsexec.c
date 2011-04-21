@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.135 2010/03/13 08:32:10 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.139 2010/06/28 23:49:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@
 
 #include "sbbs.h"
 #include "ciolib.h"
+#include "ini_file.h"
 #include "js_rtpool.h"
 #include "js_request.h"
 
@@ -117,7 +118,7 @@ void usage(FILE* fp)
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
 		"\t-u<mask>       set file creation permissions mask (in octal)\n"
 		"\t-L<level>      set log level (default=%u)\n"
-		"\t-E<level>      set error log level threshold (default=%d)\n"
+		"\t-E<level>      set error log level threshold (default=%u)\n"
 		"\t-i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
 		"\t-f             use non-buffered stream for console messages\n"
 		"\t-a             append instead of overwriting message output files\n"
@@ -584,6 +585,19 @@ js_BranchCallback(JSContext *cx, JSScript *script)
     return(js_CommonBranchCallback(cx,&branch));
 }
 
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 {
 	char		name[256];
@@ -701,12 +715,17 @@ long js_exec(const char *fname, char** args)
 	long double	diff;
 
 	if(fname!=NULL) {
-		if(strcspn(fname,"/\\")==strlen(fname)) {
-			sprintf(path,"%s%s%s",scfg.mods_dir,fname,js_ext(fname));
-			if(scfg.mods_dir[0]==0 || !fexistcase(path))
-				sprintf(path,"%s%s%s",scfg.exec_dir,fname,js_ext(fname));
-		} else
+		if(isfullpath(fname)) {
 			SAFECOPY(path,fname);
+		}
+		else {
+			SAFEPRINTF3(path,"%s%s%s",orig_cwd,fname,js_ext(fname));
+			if(!fexistcase(path)) {
+				SAFEPRINTF3(path,"%s%s%s",scfg.mods_dir,fname,js_ext(fname));
+				if(scfg.mods_dir[0]==0 || !fexistcase(path))
+					SAFEPRINTF3(path,"%s%s%s",scfg.exec_dir,fname,js_ext(fname));
+			}
+		}
 
 		if(!fexistcase(path)) {
 			lprintf(LOG_ERR,"!Module file (%s) doesn't exist",path);
@@ -765,7 +784,11 @@ long js_exec(const char *fname, char** args)
 
 	branch.terminated=&terminated;
 
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 
 	if(fp==stdin) 	 /* Using stdin for script source */
 		SAFECOPY(path,"stdin");
@@ -852,6 +875,28 @@ BOOL WINAPI ControlHandler(unsigned long CtrlType)
 }
 #endif
 
+int parseLogLevel(const char* p)
+{
+	str_list_t logLevelStringList=iniLogLevelStringList();
+	int i;
+
+	if(isdigit(*p))
+		return strtol(p,NULL,0);
+
+	/* Exact match */
+	for(i=0;logLevelStringList[i]!=NULL;i++) {
+		if(stricmp(logLevelStringList[i],p)==0)
+			return i;
+	}
+	/* Partial match */
+	for(i=0;logLevelStringList[i]!=NULL;i++) {
+		if(strnicmp(logLevelStringList[i],p,strlen(p))==0)
+			return i;
+	}
+	return DEFAULT_LOG_LEVEL;
+}
+
+
 /*********************/
 /* Entry point (duh) */
 /*********************/
@@ -883,7 +928,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.135 $", "%*s %s", revision);
+	sscanf("$Revision: 1.139 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -893,6 +938,7 @@ int main(int argc, char **argv, char** environ)
 		return(do_bail(2));
 
 	getcwd(orig_cwd, sizeof(orig_cwd));
+	backslash(orig_cwd);
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
@@ -940,11 +986,11 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'L':
 					if(*p==0) p=argv[++argn];
-					log_level=strtol(p,NULL,0);
+					log_level=parseLogLevel(p);
 					break;
 				case 'E':
 					if(*p==0) p=argv[++argn];
-					err_level=strtol(p,NULL,0);
+					err_level=parseLogLevel(p);
 					break;
 				case 'e':
 					if(*p==0) p=argv[++argn];
