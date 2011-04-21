@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.87 2010/03/13 07:09:00 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.92 2011/03/01 22:27:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -553,6 +553,19 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	return(js_CommonBranchCallback(cx,&sbbs->js_branch));
 }
 
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static const char* js_ext(const char* fname)
 {
 	if(getfext(fname)==NULL)
@@ -560,7 +573,7 @@ static const char* js_ext(const char* fname)
 	return("");
 }
 
-long sbbs_t::js_execfile(const char *cmd)
+long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 {
 	ulong		stack_frame;
 	char*		p;
@@ -573,7 +586,6 @@ long sbbs_t::js_execfile(const char *cmd)
 	JSScript*	js_script=NULL;
 	jsval		rval;
 	int32		result=0;
-	BOOL		auto_terminate = js_branch.auto_terminate;
 	JSRuntime	*old_runtime=js_runtime;
 	JSContext	*old_context=js_cx;
 	JSObject	*old_glob=js_glob;
@@ -599,10 +611,15 @@ long sbbs_t::js_execfile(const char *cmd)
 	}
 	fname=cmdline;
 
+	path[0]=0;
 	if(strcspn(fname,"/\\")==strlen(fname)) {
-		SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
-		if(cfg.mods_dir[0]==0 || !fexistcase(path))
-			SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
+		if(startup_dir!=NULL && *startup_dir)
+			SAFEPRINTF3(path,"%s%s%s",startup_dir,fname,js_ext(fname));
+		if(path[0]==0 || !fexistcase(path)) {
+			SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
+			if(cfg.mods_dir[0]==0 || !fexistcase(path))
+				SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
+		}
 	} else
 		SAFECOPY(path,fname);
 
@@ -659,9 +676,13 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	js_branch.counter=0;	// Reset loop counter
 
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 
-	js_PrepareToExecute(js_cx, js_glob, path);
+	js_PrepareToExecute(js_cx, js_glob, path, startup_dir);
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
 
 	JS_GetProperty(js_cx, js_scope, "exit_code", &rval);
@@ -680,9 +701,6 @@ long sbbs_t::js_execfile(const char *cmd)
 
 	JS_ENDREQUEST(js_cx);
 
-	// Restore saved auto_terminate state
-	js_branch.auto_terminate = auto_terminate;
-
 reset_js:
 	js_cleanup(client_name);
 	js_runtime=old_runtime;
@@ -696,7 +714,7 @@ reset_js:
 #endif
 
 /* Important change as of Nov-16-2006, 'cmdline' may contain args */
-long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
+long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 {
     char    str[MAX_PATH+1];
 	char	mod[MAX_PATH+1];
@@ -718,11 +736,16 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 
 #ifdef JAVASCRIPT
 	if((p=getfext(mod))!=NULL && stricmp(p,".js")==0)
-		return(js_execfile(cmdline));
+		return(js_execfile(cmdline, startup_dir));
+	if(p==NULL && startup_dir!=NULL && *startup_dir) {
+		SAFEPRINTF2(str,"%s%s.js", startup_dir, mod);
+		if(fexistcase(str))
+			return(js_execfile(cmdline, startup_dir));
+	}
 	if(cfg.mods_dir[0]) {
 		SAFEPRINTF2(str,"%s%s.js",cfg.mods_dir,mod);
 		if(fexistcase(str)) 
-			return(js_execfile(cmdline));
+			return(js_execfile(cmdline, startup_dir));
 	}
 #endif
 
@@ -736,7 +759,7 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi)
 #ifdef JAVASCRIPT
 		SAFEPRINTF2(str,"%s%s.js",cfg.exec_dir,mod);
 		if(fexistcase(str)) 
-			return(js_execfile(cmdline));
+			return(js_execfile(cmdline, startup_dir));
 #endif
 
 		SAFEPRINTF2(str,"%s%s",cfg.exec_dir,modname);
@@ -1276,7 +1299,7 @@ int sbbs_t::exec(csi_t *csi)
 					exec_xtrn(i);
 				break;
 			case CS_EXEC_BIN:
-				exec_bin(cmdstr((char*)csi->ip,path,csi->str,(char*)buf),csi);
+				exec_bin(cmdstr((char*)csi->ip,path,csi->str,(char*)buf),csi,/* startup_dir: */NULL);
 				break;
 			case CS_YES_NO:
 				csi->logic=!yesno(cmdstr((char*)csi->ip,path,csi->str,(char*)buf));
@@ -1580,8 +1603,7 @@ int sbbs_t::exec(csi_t *csi)
 						if(trashcan(csi->str,"name"))
 							break;
 						if(cfg.uq&UQ_DUPREAL
-							&& userdatdupe(useron.number,U_NAME,LEN_NAME
-							,csi->str,0))
+							&& userdatdupe(useron.number,U_NAME,LEN_NAME,csi->str))
 							break;
 						sprintf(useron.name,"%.*s",LEN_NAME,csi->str);
 						putuserrec(&cfg,useron.number,U_NAME,LEN_NAME
@@ -1592,8 +1614,7 @@ int sbbs_t::exec(csi_t *csi)
 						if(trashcan(csi->str,"name"))
 							break;
 						if(cfg.uq&UQ_DUPHAND
-							&& userdatdupe(useron.number,U_HANDLE,LEN_HANDLE
-							,csi->str,0))
+							&& userdatdupe(useron.number,U_HANDLE,LEN_HANDLE,csi->str))
 							break;
 						sprintf(useron.handle,"%.*s",LEN_HANDLE,csi->str);
 						putuserrec(&cfg,useron.number,U_HANDLE,LEN_HANDLE
