@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.73 2010/05/24 05:08:36 rswindell Exp $
+# $Id: Common.gmake,v 1.74 2011/04/22 00:36:29 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -224,6 +224,7 @@ ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
  CFLAGS	+=	-DHAS_INTTYPES_H
 endif
 
+CCPRE := $(lastword $(subst /, ,$(CCPRE)))
 LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
 OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)
 MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
