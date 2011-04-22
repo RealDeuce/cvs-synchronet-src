@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.78 2011/08/30 22:12:01 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.77 2009/10/25 03:11:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -191,11 +191,6 @@
 #define SENDERPROTOCOL		0x09		/* for tracing */
 #define SENDERPORT_BIN		0x0a		/* deprecated */
 #define SENDERPORT			0x0b		/* for tracing */
-
-										/* Used for the SMTP Originator-Info header field: */
-#define SENDERUSERID		0x0c		/* user-id */
-#define SENDERTIME			0x0d		/* authentication/connection time */
-#define SENDERSERVER		0x0e		/* server hostname that authenticed user */
 
 #define AUTHOR				0x10
 #define AUTHORAGENT 		0x11
