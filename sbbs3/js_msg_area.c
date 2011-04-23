@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.55 2009/10/05 23:40:22 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.57 2009/11/11 01:49:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -305,7 +305,7 @@ static struct JSPropertySpec js_sub_properties[] = {
 
 	{	"scan_ptr"	,SUB_PROP_SCAN_PTR	,JSPROP_ENUMERATE|JSPROP_SHARED },
 	{	"scan_cfg"	,SUB_PROP_SCAN_CFG	,JSPROP_ENUMERATE|JSPROP_SHARED },
-	{	"lead_read"	,SUB_PROP_LAST_READ	,JSPROP_ENUMERATE|JSPROP_SHARED },
+	{	"last_read"	,SUB_PROP_LAST_READ	,JSPROP_ENUMERATE|JSPROP_SHARED },
 	{0}
 };
 
@@ -493,7 +493,7 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 			if(!JS_SetProperty(cx, subobj, "can_post", &val))
 				return(NULL);
 
-			if(user!=NULL)
+			if(user==NULL)
 				val=BOOLEAN_TO_JSVAL(JS_TRUE);
 			else
 				val=BOOLEAN_TO_JSVAL(is_user_subop(cfg,d,user,client));
