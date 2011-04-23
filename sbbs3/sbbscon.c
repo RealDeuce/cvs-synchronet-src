@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.233 2009/10/25 03:07:05 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.236 2011/03/21 01:30:29 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -251,7 +251,7 @@ static int lputs(int level, char *str)
 	printf("\r%*s\r",prompt_len,"");
 	if(str!=NULL) {
 		for(p=str; *p; p++) {
-			if(iscntrl(*p))
+			if(iscntrl((unsigned char)*p))
 				printf("^%c",'@'+*p);
 			else
 				printf("%c",*p);
@@ -374,6 +374,11 @@ BOOL do_setuid(BOOL force)
 	}
 
 	if(getuid() != new_uid || geteuid() != new_uid) {
+		if(initgroups(new_uid_name, new_gid)) {
+			lputs(LOG_ERR,"!initgroups FAILED");
+			lputs(LOG_ERR,strerror(errno));
+			result=FALSE;
+		}	
 		if(setreuid(new_uid,new_uid))
 		{
 			lputs(LOG_ERR,"!setuid FAILED");
@@ -1909,8 +1914,10 @@ int main(int argc, char** argv)
 	}
 
     if(!isatty(fileno(stdin)))  			/* redirected */
-	   	while(1)
+	   	while(1) {
 	    	select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
+		lputs(LOG_WARNING,"select(NULL) returned!");
+	}
 	else 								/* interactive */
 #endif
 	{
