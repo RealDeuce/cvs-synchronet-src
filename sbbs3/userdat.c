@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.128 2011/03/01 22:27:02 rswindell Exp $ */
+/* $Id: userdat.c,v 1.129 2011/04/27 00:52:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1553,7 +1553,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 					result=!not;
 				else
 					result=not;
-				result=not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
 				break;
