@@ -2,13 +2,13 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.40 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.42 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -682,7 +682,7 @@ int sbbs_t::searchup(char *search,int usernum)
 	if((file=nopen(userdat,O_RDONLY|O_DENYNONE))==-1)
 		return(usernum);
 
-	flen=filelength(file);
+	flen=(long)filelength(file);
 	lseek(file,(long)((long)usernum*U_LEN),0);
 
 	while((i*U_LEN)<=(ulong)flen) {
@@ -1039,7 +1039,7 @@ void sbbs_t::maindflts(user_t* user)
 					putuserrec(&cfg,user->number,U_PWMOD,8,ultoa(now,tmp,16));
 					bputs(text[PasswordChanged]);
 					SAFEPRINTF(str,"%s changed password",useron.alias);
-					logline(nulstr,str);
+					logline(LOG_NOTICE,nulstr,str);
 				}
 				SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,user->number);
 				if(fexist(str) && yesno(text[ViewSignatureQ]))
