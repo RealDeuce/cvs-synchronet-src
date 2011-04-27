@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.203 2011/08/30 22:56:54 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.201 2011/04/27 02:09:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1311,9 +1311,6 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 	ulong l,m;
 	area_t add_area,del_area;
 
-	lprintf(LOG_INFO,"Areafix Request received from %s"
-			,smb_faddrtoa(&addr,NULL));
-	
 	p=(char *)inbuf;
 
 	while(*p==CTRL_A) {			/* Skip kludge lines 11/05/95 */
@@ -1338,20 +1335,12 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 
 	i=matchnode(addr,0);
 	if(i>=cfg.nodecfgs) {
-		lprintf(LOG_NOTICE,"Areafix not configured for %s", smb_faddrtoa(&addr,NULL));
 		create_netmail(to,"Areafix Request"
 			,"Your node is not configured for Areafix, please contact your hub.\r\n",addr,FALSE);
 		sprintf(body,"An areafix request was made by node %s.\r\nThis node "
 			"is not currently configured for areafix.\r\n"
 			,smb_faddrtoa(&addr,NULL));
-		lprintf(LOG_DEBUG,"areafix debug, nodes=%u",cfg.nodecfgs);
-		{
-			int j;
-			for(j=0;j<cfg.nodecfgs;j++)
-				lprintf(LOG_DEBUG,smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL));
-		}
-		return(body); 
-	}
+		return(body); }
 
 	if(stricmp(cfg.nodecfg[i].password,password)) {
 		create_netmail(to,"Areafix Request","Invalid Password.",addr,FALSE);
@@ -2000,10 +1989,10 @@ ulong loadmsgs(post_t** post, ulong ptr)
 		if(idx.number==0)	/* invalid message number, ignore */
 			continue;
 
-		if(idx.number<=ptr || (idx.attr&MSG_DELETE))
+		if(idx.number<=ptr || idx.attr&MSG_DELETE)
 			continue;
 
-		if((idx.attr&MSG_MODERATED) && !(idx.attr&MSG_VALIDATED))
+		if(idx.attr&MSG_MODERATED && !(idx.attr&MSG_VALIDATED))
 			break;
 
 		(*post)[l++]=idx;
@@ -3152,7 +3141,7 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 			check_psb(&seenbys,area.uplink[j]))))
 			continue;
 		node=matchnode(area.uplink[j],0);
-		if(node<cfg.nodecfgs && (cfg.nodecfg[node].attr&ATTR_PASSIVE))
+		if(node<cfg.nodecfgs && cfg.nodecfg[node].attr&ATTR_PASSIVE)
 			continue;
 		sysaddr=getsysfaddr(area.uplink[j].zone);
 		printf("%s ",smb_faddrtoa(&area.uplink[j],NULL));
@@ -3390,11 +3379,11 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 			printf("Orphaned");
 			return(1); 
 		}
-		if((hdr.attr&FIDO_RECV) && !(misc&IGNORE_RECV)) {
+		if(hdr.attr&FIDO_RECV && !(misc&IGNORE_RECV)) {
 			printf("Already received");
 			return(3); 
 		}
-		if((hdr.attr&FIDO_LOCAL) && !(misc&LOCAL_NETMAIL)) {
+		if(hdr.attr&FIDO_LOCAL && !(misc&LOCAL_NETMAIL)) {
 			printf("Created locally");
 			return(4); 
 		}
@@ -3990,7 +3979,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.203 $", "%*s %s", revision);
+	sscanf("$Revision: 1.201 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4676,7 +4665,7 @@ int main(int argc, char **argv)
 					subnum[cur_smb]=cfg.area[i].sub;
 				}
 
-				if((hdr.attr&FIDO_PRIVATE) && !(scfg.sub[cfg.area[i].sub]->misc&SUB_PRIV)) {
+				if(hdr.attr&FIDO_PRIVATE && !(scfg.sub[cfg.area[i].sub]->misc&SUB_PRIV)) {
 					if(misc&IMPORT_PRIVATE)
 						hdr.attr&=~FIDO_PRIVATE;
 					else {
