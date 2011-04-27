@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.201 2011/04/27 02:09:28 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.202 2011/04/27 22:54:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1311,6 +1311,9 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 	ulong l,m;
 	area_t add_area,del_area;
 
+	lprintf(LOG_INFO,"Areafix Request received from %s"
+			,smb_faddrtoa(&addr,NULL));
+	
 	p=(char *)inbuf;
 
 	while(*p==CTRL_A) {			/* Skip kludge lines 11/05/95 */
@@ -1335,12 +1338,20 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 
 	i=matchnode(addr,0);
 	if(i>=cfg.nodecfgs) {
+		lprintf(LOG_NOTICE,"Areafix not configured for %s", smb_faddrtoa(&addr,NULL));
 		create_netmail(to,"Areafix Request"
 			,"Your node is not configured for Areafix, please contact your hub.\r\n",addr,FALSE);
 		sprintf(body,"An areafix request was made by node %s.\r\nThis node "
 			"is not currently configured for areafix.\r\n"
 			,smb_faddrtoa(&addr,NULL));
-		return(body); }
+		lprintf(LOG_DEBUG,"areafix debug, nodes=%u",cfg.nodecfgs);
+		{
+			int j;
+			for(j=0;j<cfg.nodecfgs;j++)
+				lprintf(LOG_DEBUG,smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL));
+		}
+		return(body); 
+	}
 
 	if(stricmp(cfg.nodecfg[i].password,password)) {
 		create_netmail(to,"Areafix Request","Invalid Password.",addr,FALSE);
@@ -3979,7 +3990,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.201 $", "%*s %s", revision);
+	sscanf("$Revision: 1.202 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
