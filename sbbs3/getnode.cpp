@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.39 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.42 2011/03/01 21:46:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,6 +91,9 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 
 	if(count==LOOP_NODEDAB) {
 		errormsg(WHERE,rd==sizeof(node_t) ? ERR_LOCK : ERR_READ,"node.dab",number+1);
+		if(nodefile!=-1)
+			close(nodefile);
+		nodefile=-1;
 		return(-2);
 	}
 	if(count>(LOOP_NODEDAB/2)) {
@@ -402,7 +405,7 @@ static char* node_connection_desc(sbbs_t* sbbs, ushort conn, char* str)
 {
 	switch(conn) {
 		case NODE_CONNECTION_LOCAL:
-			return " Locally";	/* obsolete */
+			return (char*)" Locally";	/* obsolete */
 		case NODE_CONNECTION_TELNET:
 			return sbbs->text[NodeConnectionTelnet];
 		case NODE_CONNECTION_RLOGIN:
