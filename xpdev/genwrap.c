@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.85 2011/05/12 21:06:08 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.81 2011/03/19 07:04:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -42,7 +42,6 @@
 #include <time.h>		/* clock() */
 #include <errno.h>		/* errno */
 #include <ctype.h>		/* toupper/tolower */
-#include <limits.h>		/* CHAR_BIT */
 
 #if defined(__unix__)
 	#include <sys/ioctl.h>		/* ioctl() */
@@ -319,20 +318,18 @@ void DLLCALL xp_randomize(void)
 /****************************************************************************/
 /* Return random number between 0 and n-1									*/
 /****************************************************************************/
-long DLLCALL xp_random(int n)
+int DLLCALL xp_random(int n)
 {
 #ifdef HAS_RANDOM_FUNC
-	long			curr;
-	unsigned long	limit;
+	int	curr;
+	int	limit=((1U<<31) / n) * n;
 
 	if(n<2)
 		return(0);
 
-	limit = ((1U<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
-
 	while(1) {
 		curr=random();
-		if(curr <= limit)
+		if(curr < limit)
 			return(curr % n);
 	}
 #else
