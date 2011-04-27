@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.35 2010/03/13 09:14:43 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.36 2010/06/10 00:39:28 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 	}
 
 	if(msg->hdr.when_written.zone && mode&QM_TZ)
-		size+=fprintf(qwk_fp,"@TZ: %04x%c",msg->hdr.when_written.zone,QWK_NEWLINE);
+		size+=fprintf(qwk_fp,"@TZ: %04hx%c",msg->hdr.when_written.zone,QWK_NEWLINE);
 
 	if(msg->replyto!=NULL && mode&QM_REPLYTO)
 		size+=fprintf(qwk_fp,"@REPLYTO: %s%c"
