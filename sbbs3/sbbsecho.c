@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.199 2010/03/13 09:32:54 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.200 2010/04/01 18:40:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3649,10 +3649,10 @@ void export_echomail(char *sub_code,faddr_t addr)
 				SAFECOPY(hdr.from,msg.from);
 
 				tt=msg.hdr.when_written.time;
-				tm=localtime(&tt);
-				sprintf(hdr.time,"%02u %3.3s %02u  %02u:%02u:%02u"
-					,tm->tm_mday,mon[tm->tm_mon],TM_YEAR(tm->tm_year)
-					,tm->tm_hour,tm->tm_min,tm->tm_sec);
+				if((tm=localtime(&tt)) != NULL)
+					sprintf(hdr.time,"%02u %3.3s %02u  %02u:%02u:%02u"
+						,tm->tm_mday,mon[tm->tm_mon],TM_YEAR(tm->tm_year)
+						,tm->tm_hour,tm->tm_min,tm->tm_sec);
 
 				SAFECOPY(hdr.to,msg.to);
 
@@ -3920,7 +3920,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.199 $", "%*s %s", revision);
+	sscanf("$Revision: 1.200 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
