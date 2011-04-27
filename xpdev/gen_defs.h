@@ -2,13 +2,13 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.44 2009/02/16 08:57:37 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.53 2010/05/20 04:08:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -63,6 +63,10 @@
 #include <sys/types.h>
 #ifdef HAS_INTTYPES_H
 #include <inttypes.h>
+#else
+#ifdef HAS_STDINT_H
+#include <stdint.h>
+#endif
 #endif
 
 									/* Control characters */
@@ -140,7 +144,7 @@ enum {
 	#endif
 #endif
 
-#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)
+#if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES) && !defined(HAS_STDINT_H)
 
 typedef char	int8_t;
 typedef short	int16_t;
@@ -149,10 +153,48 @@ typedef uchar	uint8_t;
 typedef ushort	uint16_t;
 typedef ulong	uint32_t;
 
+#if defined(_MSC_VER) || defined(__WATCOMC__)
+typedef signed __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+#define INTTYPES_H_64BIT_PREFIX		"I64"
+#else
+typedef signed long long int int64_t;
+typedef unsigned long long int uint64_t;
+#define INTTYPES_H_64BIT_PREFIX		"ll"
+#endif
+
+#define PRIi64	INTTYPES_H_64BIT_PREFIX"i"
+#define PRIu64	INTTYPES_H_64BIT_PREFIX"u"
+#define PRId64	INTTYPES_H_64BIT_PREFIX"d"
+#define PRIx64	INTTYPES_H_64BIT_PREFIX"x"
+#define PRIo64	INTTYPES_H_64BIT_PREFIX"o"
+
 #endif
 
 /* Legacy 32-bit time_t */
 typedef int32_t		time32_t;
+
+#if defined(_WIN32)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
+#    define	off_t		int64_t
+#    define PRIdOFF		PRId64
+#    define PRIuOFF		PRIu64
+#  else
+#    define PRIdOFF		"ld"
+#    define PRIuOFF		"lu"
+#  endif
+#elif defined(__linux__) || defined(__sun__)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
+#    define PRIdOFF		PRId64
+#    define PRIuOFF		PRIu64
+#  else
+#    define PRIdOFF		PRId32
+#    define PRIuOFF		PRIu32
+#  endif
+#else
+#  define PRIdOFF	PRId64
+#  define PRIuOFF	PRIu64
+#endif
 
 /* Windows Types */
 
@@ -281,20 +323,20 @@ typedef struct {
 #define REPLACE_CHARS(str,c1,c2,p)	for((p)=(str);*(p);(p)++) if(*(p)==(c1)) *(p)=(c2);
 
 /* ASCIIZ char* parsing helper macros */
-#define SKIP_WHITESPACE(p)			while(*(p) && isspace(*(p)))			(p)++;
-#define FIND_WHITESPACE(p)			while(*(p) && !isspace(*(p)))			(p)++;
-#define SKIP_CHAR(p,c)				while(*(p)==c)							(p)++;
-#define FIND_CHAR(p,c)				while(*(p) && *(p)!=c)					(p)++;
-#define SKIP_CHARSET(p,s)			while(*(p) && strchr(s,*(p))!=NULL)		(p)++;
-#define FIND_CHARSET(p,s)			while(*(p) && strchr(s,*(p))==NULL)		(p)++;
-#define SKIP_ALPHA(p)				while(*(p) && isalpha(*(p)))			(p)++;
-#define FIND_ALPHA(p)				while(*(p) && !isalpha(*(p)))			(p)++;
-#define SKIP_ALPHANUMERIC(p)		while(*(p) && isalnum(*(p)))			(p)++;
-#define FIND_ALPHANUMERIC(p)		while(*(p) && !isalnum(*(p)))			(p)++;
-#define SKIP_DIGIT(p)				while(*(p) && isdigit(*(p)))			(p)++;
-#define FIND_DIGIT(p)				while(*(p) && !isdigit(*(p)))			(p)++;
-#define SKIP_HEXDIGIT(p)			while(*(p) && isxdigit(*(p)))			(p)++;
-#define FIND_HEXDIGIT(p)			while(*(p) && !isxdigit(*(p)))			(p)++;
+#define SKIP_WHITESPACE(p)			while(*(p) && isspace((unsigned char)*(p)))			(p)++;
+#define FIND_WHITESPACE(p)			while(*(p) && !isspace((unsigned char)*(p)))		(p)++;
+#define SKIP_CHAR(p,c)				while(*(p)==c)										(p)++;
+#define FIND_CHAR(p,c)				while(*(p) && *(p)!=c)								(p)++;
+#define SKIP_CHARSET(p,s)			while(*(p) && strchr(s,*(p))!=NULL)					(p)++;
+#define FIND_CHARSET(p,s)			while(*(p) && strchr(s,*(p))==NULL)					(p)++;
+#define SKIP_ALPHA(p)				while(*(p) && isalpha((unsigned char)*(p)))			(p)++;
+#define FIND_ALPHA(p)				while(*(p) && !isalpha((unsigned char)*(p)))		(p)++;
+#define SKIP_ALPHANUMERIC(p)		while(*(p) && isalnum((unsigned char)*(p)))			(p)++;
+#define FIND_ALPHANUMERIC(p)		while(*(p) && !isalnum((unsigned char)*(p)))		(p)++;
+#define SKIP_DIGIT(p)				while(*(p) && isdigit((unsigned char)*(p)))			(p)++;
+#define FIND_DIGIT(p)				while(*(p) && !isdigit((unsigned char)*(p)))		(p)++;
+#define SKIP_HEXDIGIT(p)			while(*(p) && isxdigit((unsigned char)*(p)))		(p)++;
+#define FIND_HEXDIGIT(p)			while(*(p) && !isxdigit((unsigned char)*(p)))		(p)++;
 
 /* Variable/buffer initialization (with zeros) */
 #define ZERO_VAR(var)				memset(&(var),0,sizeof(var))
