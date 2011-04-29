@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.214 2011/09/08 02:11:07 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.212 2010/03/13 08:15:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -35,9 +35,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifdef __unix__
-	#define TTYDEFCHARS		// needed for ttydefchars definition
-#endif
 #include "sbbs.h"
 #include "cmdshell.h"
 #include "telnet.h"
@@ -46,6 +43,8 @@
 
 #ifdef __unix__
 	#include <sys/wait.h>	// WEXITSTATUS
+
+	#define TTYDEFCHARS		// needed for ttydefchars definition
 
 #if defined(__FreeBSD__)
 	#include <libutil.h>	// forkpty()
@@ -387,7 +386,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
 	unsigned long	rd;
-    unsigned long	wr;
+    DWORD	wr;
     unsigned long	len;
     DWORD	avail;
 	unsigned long	dummy;
