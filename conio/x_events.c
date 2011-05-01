@@ -4,7 +4,6 @@
  */
  
 #include <unistd.h>
-#include <stdbool.h>
 
 #include <fcntl.h>
 #include <limits.h>
@@ -64,8 +63,8 @@ static unsigned int depth=0;
 static int xfd;
 static unsigned long black;
 static unsigned long white;
-static int bitmap_width=0;
-static int bitmap_height=0;
+static int bitmap_width;
+static int bitmap_height;
 
 /* Array of Graphics Contexts */
 static GC gca[sizeof(dac_default)/sizeof(struct dac_colors)];
@@ -210,7 +209,7 @@ static int init_window()
 
     /* Create window, but defer setting a size and GC. */
     win = x11.XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0,
-			      640*vstat.scaling, 400*vstat.scaling, 2, black, black);
+			      1, 1, 2, black, black);
 
 	wmhints=x11.XAllocWMHints();
 	if(wmhints) {
@@ -248,10 +247,8 @@ static int init_window()
 	return(0);
 }
 
-/*
- * Actually maps (shows) the window
- */
-static void map_window()
+/* Resize the window. This function is called after a mode change. */
+static void resize_window()
 {
     XSizeHints *sh;
 
@@ -264,11 +261,12 @@ static void map_window()
 	sh->base_width = bitmap_width*vstat.scaling;
 	sh->base_height = bitmap_height*vstat.scaling;
 
-    sh->min_width = sh->width_inc = sh->min_aspect.x = sh->max_aspect.x = bitmap_width;
-    sh->min_height = sh->height_inc = sh->min_aspect.y = sh->max_aspect.y = bitmap_height;
-    sh->flags = USSize | PMinSize | PSize | PResizeInc | PAspect;
+    sh->min_width = bitmap_width;
+    sh->min_height = bitmap_height;
+    sh->flags = USSize | PMinSize | PSize;
 
     x11.XSetWMNormalHints(dpy, win, sh);
+    x11.XResizeWindow(dpy, win, sh->base_width, sh->base_height);
     x11.XMapWindow(dpy, win);
 
     x11.XFree(sh);
@@ -278,18 +276,9 @@ static void map_window()
     return;
 }
 
-/* Resize the window. This function is called after a mode change. */
-static void resize_window()
-{
-    x11.XResizeWindow(dpy, win, bitmap_width*vstat.scaling, bitmap_height*vstat.scaling);
-    return;
-}
-
 static int init_mode(int mode)
 {
     int oldcols=vstat.cols;
-	int oldwidth=bitmap_width;
-	int oldheight=bitmap_height;
 
 	bitmap_init_mode(mode, &bitmap_width, &bitmap_height);
 
@@ -304,11 +293,8 @@ static int init_mode(int mode)
 	if(vstat.scaling < 1)
 		vstat.scaling = 1;
 
-    map_window();
     /* Resize window if necessary. */
-	if((!(bitmap_width == 0 && bitmap_height == 0)) && (oldwidth != bitmap_width || oldheight != bitmap_height))
-		resize_window();
-	send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
+    resize_window();
 
 	sem_post(&mode_set);
     return(0);
@@ -319,11 +305,11 @@ static int video_init()
     /* If we are running under X, get a connection to the X server and create
        an empty window of size (1, 1). It makes a couple of init functions a
        lot easier. */
-	if(vstat.scaling<1)
-		vstat.scaling=1;
     if(init_window())
 		return(-1);
 
+	if(vstat.scaling<1)
+		vstat.scaling=1;
 	bitmap_init(x11_drawrect, x11_flush);
 
     /* Initialize mode 3 (text, 80x25, 16 colors) */
@@ -406,78 +392,51 @@ static void local_draw_rect(struct update_rect *rect)
 	free(rect->data);
 }
 
-static void handle_resize_event(int width, int height)
-{
-	int newFSH=1;
-	int newFSW=1;
-	int oldscaling=vstat.scaling;
-
-	// No change
-	if((width == vstat.charwidth * vstat.cols * vstat.scaling)
-			&& (height == vstat.charheight * vstat.rows * vstat.scaling))
-		return;
-
-	newFSH=width/bitmap_width;
-	newFSW=height/bitmap_height;
-	if(newFSW<1)
-		newFSW=1;
-	if(newFSH<1)
-		newFSH=1;
-	if(newFSH<newFSW)
-		vstat.scaling=newFSH;
-	else
-		vstat.scaling=newFSW;
-	if(vstat.scaling > 16)
-		vstat.scaling=16;
-	/*
-	 * We only need to resize if the width/height are not even multiples
-	 * Otherwise, we can simply resend everything
-	 */
-	if((width % (vstat.charwidth * vstat.cols) != 0)
-			|| (height % (vstat.charheight * vstat.rows) != 0))
-		resize_window();
-	send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
-}
-
-static void expose_rect(x,y,width,height)
-{
-	int sx,sy,ex,ey;
-
-	sx=x/vstat.scaling;
-	sy=y/vstat.scaling;
-
-	ex=x+width-1;
-	ey=y+height-1;
-	if((ex+1)%vstat.scaling) {
-		ex += vstat.scaling-(ex%vstat.scaling);
-	}
-	if((ey+1)%vstat.scaling) {
-		ey += vstat.scaling-(ey%vstat.scaling);
-	}
-	ex=ex/vstat.scaling;
-	ey=ey/vstat.scaling;
-
-	send_rectangle(sx, sy, ex-sx+1, ey-sy+1, TRUE);
-}
-
 static int x11_event(XEvent *ev)
 {
 	switch (ev->type) {
 		/* Graphics related events */
 		case ConfigureNotify:
-			x11_window_xpos=ev->xconfigure.x;
-			x11_window_ypos=ev->xconfigure.y;
-			x11_window_width=ev->xconfigure.width;
-			x11_window_height=ev->xconfigure.height;
-			handle_resize_event(ev->xconfigure.width, ev->xconfigure.height);
+			{
+				int newFSH=1;
+				int newFSW=1;
+
+				x11_window_xpos=ev->xconfigure.x;
+				x11_window_ypos=ev->xconfigure.y;
+				x11_window_width=ev->xconfigure.width;
+				x11_window_height=ev->xconfigure.height;
+				if((ev->xconfigure.width == vstat.charwidth * vstat.cols * vstat.scaling)
+						&& (ev->xconfigure.height == vstat.charheight * vstat.rows * vstat.scaling))
+					break;
+
+				newFSH=ev->xconfigure.width/bitmap_width;
+				newFSW=ev->xconfigure.height/bitmap_height;
+				if(newFSW<1)
+					newFSW=1;
+				if(newFSH<1)
+					newFSH=1;
+				if(newFSH<newFSW)
+					vstat.scaling=newFSH;
+				else
+					vstat.scaling=newFSW;
+				if(vstat.scaling > 16)
+					vstat.scaling=16;
+				resize_window();
+			}
 			break;
         case NoExpose:
                 break;
         case GraphicsExpose:
-			expose_rect(ev->xgraphicsexpose.x, ev->xgraphicsexpose.y, ev->xgraphicsexpose.width, ev->xgraphicsexpose.height);
+			send_rectangle(ev->xgraphicsexpose.x/vstat.scaling
+					,ev->xgraphicsexpose.y/vstat.scaling
+					,ev->xgraphicsexpose.width/vstat.scaling+(ev->xgraphicsexpose.width%vstat.scaling?1:0)
+					,ev->xgraphicsexpose.height/vstat.scaling,TRUE+(ev->xgraphicsexpose.height%vstat.scaling?1:0));
 			break;
         case Expose:
-			expose_rect(ev->xexpose.x, ev->xexpose.y, ev->xexpose.width, ev->xexpose.height);
+			send_rectangle(ev->xexpose.x/vstat.scaling
+					,ev->xexpose.y/vstat.scaling
+					,ev->xgraphicsexpose.width/vstat.scaling+(ev->xgraphicsexpose.width%vstat.scaling?1:0)
+					,ev->xgraphicsexpose.height/vstat.scaling,TRUE+(ev->xgraphicsexpose.height%vstat.scaling?1:0));
 			break;
 
 		/* Copy/Paste events */

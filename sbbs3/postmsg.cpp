@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.85 2011/08/30 22:51:21 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.84 2011/03/01 22:27:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -344,7 +344,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
-	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
@@ -410,28 +409,21 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 {
 	int		i;
 	char	port[16];
-	char	date[64];
 
 	if(client==NULL)
 		return(-1);
 
-	if(client->user!=NULL && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
-		return(i);
-	if((i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
-		,/* separators: */"","","", /* precision: */0
-		,date,sizeof(date))))!=SMB_SUCCESS)
-		return(i);
 	if((i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
 		return(i);
 	if((i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
 		return(i);
-	if(client->protocol!=NULL && (i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
+	if((i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
 		return(i);
 	SAFEPRINTF(port,"%u",client->port);
 	return smb_hfield_str(msg,SENDERPORT,port);
 }
 
-extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, const char* server, char* msgbuf)
+extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, char* msgbuf)
 {
 	char	pid[128];
 	char	msg_id[256];
@@ -527,8 +519,6 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 
 	if(client!=NULL)
 		msg_client_hfields(msg,client);
-	if(server!=NULL)
-		smb_hfield_str(msg,SENDERSERVER,server);
  
  	/* Generate RFC-822 Message-id  */
  	if(msg->id==NULL) {
