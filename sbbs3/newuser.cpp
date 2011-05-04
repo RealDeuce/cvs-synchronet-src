@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.57 2009/10/18 09:38:00 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.60 2011/03/01 22:27:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -68,7 +68,7 @@ BOOL sbbs_t::newuser()
 	getnodedat(cfg.node_num,&thisnode,0);
 	if(thisnode.misc&NODE_LOCK) {
 		bputs(text[NodeLocked]);
-		logline("N!","New user locked node logon attempt");
+		logline(LOG_WARNING,"N!","New user locked node logon attempt");
 		hangup();
 		return(FALSE); 
 	}
@@ -91,7 +91,7 @@ BOOL sbbs_t::newuser()
 			if(!strcmp(str,cfg.new_pass))
 				break;
 			sprintf(tmp,"NUP Attempted: '%s'",str);
-			logline("N!",tmp); 
+			logline(LOG_NOTICE,"N!",tmp); 
 		}
 		if(c==4) {
 			sprintf(str,"%snupguess.msg",cfg.text_dir);
@@ -115,10 +115,10 @@ BOOL sbbs_t::newuser()
 	useron.prot=cfg.new_prot;
 	SAFECOPY(useron.comp,client_name);	/* hostname or CID name */
 	SAFECOPY(useron.note,cid);			/* IP address or CID number */
-	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true))!=0) {	/* Duplicate IP address */
+	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid, /* del */true))!=0) {	/* Duplicate IP address */
 		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
-		logline("N!",useron.comment); 
+		logline(LOG_NOTICE,"N!",useron.comment); 
 	}
 
 	SAFECOPY(useron.alias,"New");     /* just for status line */
@@ -218,8 +218,7 @@ BOOL sbbs_t::newuser()
 				if (!check_name(&cfg,useron.name)
 					|| !strchr(useron.name,' ')
 					|| (cfg.uq&UQ_DUPREAL
-						&& userdatdupe(useron.number,U_NAME,LEN_NAME
-							,useron.name,0)))
+						&& userdatdupe(useron.number,U_NAME,LEN_NAME,useron.name)))
 					bputs(text[YouCantUseThatName]);
 				else
 					break; 
@@ -242,7 +241,7 @@ BOOL sbbs_t::newuser()
 				,K_LINE|K_EDIT|K_AUTODEL|(cfg.uq&UQ_NOEXASC))
 				|| strchr(useron.handle,0xff)
 				|| (cfg.uq&UQ_DUPHAND
-					&& userdatdupe(0,U_HANDLE,LEN_HANDLE,useron.handle,0))
+					&& userdatdupe(0,U_HANDLE,LEN_HANDLE,useron.handle))
 				|| trashcan(useron.handle,"name"))
 				bputs(text[YouCantUseThatName]);
 			else
@@ -408,9 +407,9 @@ BOOL sbbs_t::newuser()
 			else
 				sprintf(tmp,"%s FAILED Password verification"
 					,useron.alias);
-			logline(nulstr,tmp);
+			logline(LOG_NOTICE,nulstr,tmp);
 			if(++c==4) {
-				logline("N!","Couldn't figure out password.");
+				logline(LOG_NOTICE,"N!","Couldn't figure out password.");
 				hangup(); 
 			}
 			bputs(text[IncorrectPassword]);
@@ -466,7 +465,7 @@ BOOL sbbs_t::newuser()
 				} /* give 'em a 2nd try */
 			if(!useron.fbacks && !useron.emails) {
         		bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
-				logline("N!","Aborted feedback");
+				logline(LOG_NOTICE,"N!","Aborted feedback");
 				hangup();
 				putuserrec(&cfg,useron.number,U_COMMENT,60,"Didn't leave feedback");
 				putuserrec(&cfg,useron.number,U_MISC,8
