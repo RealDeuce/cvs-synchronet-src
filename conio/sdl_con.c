@@ -275,6 +275,8 @@ void yuv_fillrect(SDL_Overlay *overlay, SDL_Rect *r, int dac_entry)
 	int uplane,vplane;					/* Planar formats */
 	int y0pack, y1pack, u0pack, v0pack;	/* Packed formats */
 
+	if(!overlay)
+		return;
 	if(r->x > overlay->w || r->y > overlay->h)
 		return;
 	if(r->x + r->w > overlay->w)
@@ -619,6 +621,8 @@ int sdl_init(int mode)
 	}
 #endif
 	sdl_init_mode(3);
+	if(yuv.enabled && yuv.overlay==NULL)
+		sdl_init_good=0;
 	sdl_user_func_ret(SDL_USEREVENT_INIT);
 
 	if(sdl_init_good) {
@@ -1692,7 +1696,7 @@ int sdl_video_event_thread(void *data)
 										FREE_AND_NULL(sdl_pastebuf);
 									}
 									else if(sowner!=None) {
-										sdl_x11.XConvertSelection(wmi.info.x11.display, CONSOLE_CLIPBOARD, XA_STRING, None, wmi.info.x11.window, CurrentTime);
+										sdl_x11.XConvertSelection(wmi.info.x11.display, CONSOLE_CLIPBOARD, XA_STRING, XA_STRING, wmi.info.x11.window, CurrentTime);
 									}
 									else {
 										/* Set paste buffer */
@@ -1737,9 +1741,14 @@ int sdl_video_event_thread(void *data)
 										req=&(e->xselection);
 										if(req->requestor!=wmi.info.x11.window)
 											break;
-										sdl_x11.XGetWindowProperty(wmi.info.x11.display, wmi.info.x11.window, req->property, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&sdl_pastebuf));
-										if(bytes_left > 0 && format==8)
-											sdl_x11.XGetWindowProperty(wmi.info.x11.display, wmi.info.x11.window, req->property,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&sdl_pastebuf);
+										if(req->property) {
+											sdl_x11.XGetWindowProperty(wmi.info.x11.display, wmi.info.x11.window, req->property, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&sdl_pastebuf));
+											if(bytes_left > 0 && format==8)
+												sdl_x11.XGetWindowProperty(wmi.info.x11.display, wmi.info.x11.window, req->property,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&sdl_pastebuf);
+											else {
+												FREE_AND_NULL(sdl_pastebuf);
+											}
+										}
 										else {
 											FREE_AND_NULL(sdl_pastebuf);
 										}
@@ -1802,8 +1811,6 @@ int sdl_video_event_thread(void *data)
 int sdl_initciolib(int mode)
 {
 	if(init_sdl_video())
-		return(-1);
-	if(init_sdl_video()==-1)
 		return(-1);
 	sdl_key_pending=sdl.SDL_CreateSemaphore(0);
 	sdl_ufunc_ret=sdl.SDL_CreateSemaphore(0);
