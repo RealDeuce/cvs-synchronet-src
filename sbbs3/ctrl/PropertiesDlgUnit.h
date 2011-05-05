@@ -1,4 +1,4 @@
-/* $Id: PropertiesDlgUnit.h,v 1.15 2009/08/19 22:30:47 rswindell Exp $ */
+/* $Id: PropertiesDlgUnit.h,v 1.16 2009/10/25 05:05:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,6 +111,10 @@ __published:
     TLabel *LogLevelLabel;
     TLabel *Label16;
     TEdit *JS_LoadPathEdit;
+    TLabel *ErrorSoundLabel;
+    TEdit *ErrorSoundEdit;
+    TButton *ErrorSoundButton;
+    TOpenDialog *OpenDialog;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall TrayIconCheckBoxClick(TObject *Sender);
 	void __fastcall SourceComboBoxChange(TObject *Sender);
@@ -119,6 +123,7 @@ __published:
 	void __fastcall ApplyButtonClick(TObject *Sender);
     void __fastcall LogLevelComboBoxChange(TObject *Sender);
     void __fastcall LogFontButtonClick(TObject *Sender);
+    void __fastcall ErrorSoundButtonClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TPropertiesDlg(TComponent* AOwner);
