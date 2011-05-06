@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.74 2011/04/22 00:36:29 deuce Exp $
+# $Id: Common.gmake,v 1.75 2011/05/06 03:50:13 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -263,7 +263,6 @@ ifeq ($(os),openbsd)
 else
  ifeq ($(os),darwin)
   SOFILE =	.dylib
-  CFLAGS +=	-Wno-long-double
   RANLIB +=	-s
  endif
 endif
