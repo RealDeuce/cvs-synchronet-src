@@ -2,13 +2,13 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.28 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: data.cpp,v 1.27 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -212,7 +212,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 
 	now=time(NULL);
 
-	timeleft = (ulong)::gettimeleft(&cfg, &useron, starttime);
+	timeleft = ::gettimeleft(&cfg, &useron, starttime);
 
 	/* Timed event time reduction handler */
 	event_time=getnextevent(&cfg, &nextevent);
@@ -223,7 +223,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 		if(event_time<now)
 			timeleft=0;
 		else
-			timeleft=(ulong)(event_time-now); 
+			timeleft=event_time-now; 
 		if(!(sys_status&SS_EVENT)) {
 			lprintf(LOG_NOTICE,"Node %d Time reduced (to %s) due to upcoming event (%s) on %s"
 				,cfg.node_num,sectostr(timeleft,tmp),event_code,timestr(event_time));
@@ -281,7 +281,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 					useron.exempt=cfg.val_exempt[cfg.level_expireto[useron.level]];
 					useron.rest=cfg.val_rest[cfg.level_expireto[useron.level]];
 					if(cfg.val_expire[cfg.level_expireto[useron.level]])
-						useron.expire=(time32_t)now
+						useron.expire=now
 							+(cfg.val_expire[cfg.level_expireto[useron.level]]*24*60*60);
 					else
 						useron.expire=0;
@@ -305,7 +305,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 				putuserrec(&cfg,useron.number,U_FLAGS2,8,ultoa(useron.flags2,str,16));
 				putuserrec(&cfg,useron.number,U_FLAGS3,8,ultoa(useron.flags3,str,16));
 				putuserrec(&cfg,useron.number,U_FLAGS4,8,ultoa(useron.flags4,str,16));
-				putuserrec(&cfg,useron.number,U_EXPIRE,8,ultoa((ulong)useron.expire,str,16));
+				putuserrec(&cfg,useron.number,U_EXPIRE,8,ultoa(useron.expire,str,16));
 				putuserrec(&cfg,useron.number,U_EXEMPT,8,ultoa(useron.exempt,str,16));
 				putuserrec(&cfg,useron.number,U_REST,8,ultoa(useron.rest,str,16));
 				if(cfg.expire_mod[0])
