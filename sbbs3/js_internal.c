@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.44 2009/02/06 03:06:19 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.51 2010/04/02 23:35:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,6 +226,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 		return(JS_FALSE);
 	}
 
+#ifndef USE_JS_OPERATION_CALLBACK
 	/* Give up timeslices every once in a while */
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
 		jsrefcount	rc;
@@ -238,6 +239,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
 		JS_MaybeGC(cx), branch->gc_attempts++;
+#endif
 
     return(JS_TRUE);
 }
@@ -254,7 +256,9 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 	JSObject*		obj;
 	JSErrorReporter	reporter;
 #ifndef EVAL_BRANCH_CALLBACK
+#ifndef USE_JS_OPERATION_CALLBACK
 	JSBranchCallback callback;
+#endif
 #endif
 
 	if(argc<1)
@@ -276,12 +280,20 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 #ifdef EVAL_BRANCH_CALLBACK
 	JS_SetContextPrivate(cx, JS_GetPrivate(parent_cx, parent_obj));
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(cx, js_OperationCallback);
+#else
 	JS_SetBranchCallback(cx, js_BranchCallback);
+#endif
 #else	/* Use the branch callback from the parent context */
 	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(cx, JS_GetOperationCallback(parent_cx));
+#else
 	callback=JS_SetBranchCallback(parent_cx,NULL);
 	JS_SetBranchCallback(parent_cx, callback);
 	JS_SetBranchCallback(cx, callback);
+#endif
 #endif
 
 	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL
@@ -441,7 +453,7 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	branch->auto_terminate = auto_terminate;
 }
 
-JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch)
+JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch, js_startup_t* startup)
 {
 	JSObject*	obj;
 
@@ -452,10 +464,69 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	if(!JS_SetPrivate(cx, obj, branch))	/* Store a pointer to js_branch_t */
 		return(NULL);
 
+	if(startup!=NULL) {
+		JSObject*	load_path_list;
+		jsval		val;
+		str_list_t	load_path;
+
+		if((load_path_list=JS_NewArrayObject(cx, 0, NULL))==NULL) 
+			return(NULL);
+		val=OBJECT_TO_JSVAL(load_path_list);
+		if(!JS_SetProperty(cx, obj, JAVASCRIPT_LOAD_PATH_LIST, &val)) 
+			return(NULL);
+
+		if((load_path=strListSplitCopy(NULL, startup->load_path, ",")) != NULL) {
+			JSString*	js_str;
+			unsigned	i;
+
+			for(i=0; load_path[i]!=NULL; i++) {
+				if((js_str=JS_NewStringCopyZ(cx, load_path[i]))==NULL)
+					break;
+				val=STRING_TO_JSVAL(js_str);
+				if(!JS_SetElement(cx, load_path_list, i, &val))
+					break;
+			}
+			strListFree(&load_path);
+		}
+	}
+
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"JavaScript execution and garbage collection control object",311);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", prop_desc, JSPROP_READONLY);
 #endif
 
 	return(obj);
+}
+
+void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
+{
+	JSString*	str;
+	jsval		val;
+
+	if(JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val)) {
+		JSObject* js = JSVAL_TO_OBJECT(val);
+		char	dir[MAX_PATH+1];
+
+		if(filename!=NULL) {
+			char* p;
+
+			if((str=JS_NewStringCopyZ(cx, filename)) != NULL)
+				JS_DefineProperty(cx, js, "exec_path", STRING_TO_JSVAL(str)
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+			if((str=JS_NewStringCopyZ(cx, getfname(filename))) != NULL)
+				JS_DefineProperty(cx, js, "exec_file", STRING_TO_JSVAL(str)
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+			SAFECOPY(dir,filename);
+			p=getfname(dir);
+			*p=0;
+			if((str=JS_NewStringCopyZ(cx, dir)) != NULL)
+				JS_DefineProperty(cx, js, "exec_dir", STRING_TO_JSVAL(str)
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+		}
+		if(startup_dir==NULL)
+			startup_dir="";
+		if((str=JS_NewStringCopyZ(cx, startup_dir)) != NULL)
+			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
+				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+	}
 }
