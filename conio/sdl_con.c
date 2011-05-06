@@ -57,6 +57,7 @@ char *sdl_pastebuf=NULL;
 
 SDL_sem *sdl_ufunc_ret;
 int sdl_ufunc_retval;
+SDL_mutex	*funcret_mutex;
 
 SDL_sem	*sdl_flush_sem;
 int pending_updates=0;
@@ -275,6 +276,8 @@ void yuv_fillrect(SDL_Overlay *overlay, SDL_Rect *r, int dac_entry)
 	int uplane,vplane;					/* Planar formats */
 	int y0pack, y1pack, u0pack, v0pack;	/* Packed formats */
 
+	if(!overlay)
+		return;
 	if(r->x > overlay->w || r->y > overlay->h)
 		return;
 	if(r->x + r->w > overlay->w)
@@ -419,6 +422,7 @@ int sdl_user_func_ret(int func, ...)
 	SDL_Event	ev;
 	int		passed=FALSE;
 
+	sdl.mutexP(funcret_mutex);
 	ev.type=SDL_USEREVENT;
 	ev.user.data1=NULL;
 	ev.user.data2=NULL;
@@ -433,11 +437,13 @@ int sdl_user_func_ret(int func, ...)
 			passed=TRUE;
 			break;
 	}
-	if(passed)
+	if(passed) {
 		sdl.SemWait(sdl_ufunc_ret);
+	}
 	else
 		sdl_ufunc_retval=-1;
 	va_end(argptr);
+	sdl.mutexV(funcret_mutex);
 	return(sdl_ufunc_retval);
 }
 
@@ -596,8 +602,10 @@ int sdl_init(int mode)
 	const char *libnames[2]={"X11", NULL};
 #endif
 
-	if(init_sdl_video())
+	if(init_sdl_video()) {
+		fprintf(stderr, "SDL Video Init Failed\n");
 		return(-1);
+	}
 
 	bitmap_init(sdl_drawrect, sdl_flush);
 
@@ -619,6 +627,10 @@ int sdl_init(int mode)
 	}
 #endif
 	sdl_init_mode(3);
+	if(yuv.enabled && yuv.overlay==NULL) {
+		fprintf(stderr, "YUV Enabled, but overlay is NULL\n");
+		sdl_init_good=0;
+	}
 	sdl_user_func_ret(SDL_USEREVENT_INIT);
 
 	if(sdl_init_good) {
@@ -1613,7 +1625,7 @@ int sdl_video_event_thread(void *data)
 								sdl.SemPost(sdl_ufunc_ret);
 								break;
 							case SDL_USEREVENT_COPY:
-	#if (defined(__MACH__) && defined(__APPLE__))
+	#if (defined(__MACH__) && defined(__APPLE__)) && defined(USE_SCRAP_MANAGER)
 								if(!sdl_using_x11) {
 									ScrapRef	scrap;
 									sdl.mutexP(sdl_copybuf_mutex);
@@ -1642,7 +1654,7 @@ int sdl_video_event_thread(void *data)
 	#endif
 								break;
 							case SDL_USEREVENT_PASTE:
-	#if (defined(__MACH__) && defined(__APPLE__))
+	#if (defined(__MACH__) && defined(__APPLE__)) && defined(USE_SCRAP_MANAGER)
 								if(!sdl_using_x11) {
 									ScrapRef	scrap;
 									UInt32	fl;
@@ -1692,7 +1704,7 @@ int sdl_video_event_thread(void *data)
 										FREE_AND_NULL(sdl_pastebuf);
 									}
 									else if(sowner!=None) {
-										sdl_x11.XConvertSelection(wmi.info.x11.display, CONSOLE_CLIPBOARD, XA_STRING, None, wmi.info.x11.window, CurrentTime);
+										sdl_x11.XConvertSelection(wmi.info.x11.display, CONSOLE_CLIPBOARD, XA_STRING, XA_STRING, wmi.info.x11.window, CurrentTime);
 									}
 									else {
 										/* Set paste buffer */
@@ -1737,9 +1749,14 @@ int sdl_video_event_thread(void *data)
 										req=&(e->xselection);
 										if(req->requestor!=wmi.info.x11.window)
 											break;
-										sdl_x11.XGetWindowProperty(wmi.info.x11.display, wmi.info.x11.window, req->property, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&sdl_pastebuf));
-										if(bytes_left > 0 && format==8)
-											sdl_x11.XGetWindowProperty(wmi.info.x11.display, wmi.info.x11.window, req->property,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&sdl_pastebuf);
+										if(req->property) {
+											sdl_x11.XGetWindowProperty(wmi.info.x11.display, wmi.info.x11.window, req->property, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&sdl_pastebuf));
+											if(bytes_left > 0 && format==8)
+												sdl_x11.XGetWindowProperty(wmi.info.x11.display, wmi.info.x11.window, req->property,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&sdl_pastebuf);
+											else {
+												FREE_AND_NULL(sdl_pastebuf);
+											}
+										}
 										else {
 											FREE_AND_NULL(sdl_pastebuf);
 										}
@@ -1801,10 +1818,10 @@ int sdl_video_event_thread(void *data)
 
 int sdl_initciolib(int mode)
 {
-	if(init_sdl_video())
+	if(init_sdl_video()) {
+		fprintf(stderr,"SDL Video Initialization Failed\n");
 		return(-1);
-	if(init_sdl_video()==-1)
-		return(-1);
+	}
 	sdl_key_pending=sdl.SDL_CreateSemaphore(0);
 	sdl_ufunc_ret=sdl.SDL_CreateSemaphore(0);
 	sdl_keylock=sdl.SDL_CreateMutex();
@@ -1813,6 +1830,7 @@ int sdl_initciolib(int mode)
 	sdl_pastebuf_copied=sdl.SDL_CreateSemaphore(0);
 	sdl_copybuf_mutex=sdl.SDL_CreateMutex();
 #endif
+	funcret_mutex=sdl.SDL_CreateMutex();
 	yuv.mutex=sdl.SDL_CreateMutex();
 	run_sdl_drawing_thread(sdl_video_event_thread, exit_sdl_con);
 	return(sdl_init(mode));

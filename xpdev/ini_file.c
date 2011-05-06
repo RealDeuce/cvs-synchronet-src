@@ -2,7 +2,7 @@
 
 /* Functions to parse ini files */
 
-/* $Id: ini_file.c,v 1.117 2010/03/17 08:27:53 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.119 2010/11/19 04:08:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1005,12 +1005,16 @@ iniReadNamedStringList(FILE* fp, const char* section)
 	named_string_t** np;
 
 	if(fp==NULL)
-		return(lp);
+		return(NULL);
 
 	rewind(fp);
 
 	if(!seek_section(fp,section))
-		return(lp);
+		return(NULL);
+
+	/* New behavior, if section exists but is empty, return single element array (terminator only) */
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
 
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
@@ -1033,8 +1037,7 @@ iniReadNamedStringList(FILE* fp, const char* section)
 		items++;
 	}
 
-	if(items)
-		lp[items]=NULL;	/* terminate list */
+	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
@@ -1050,9 +1053,17 @@ iniGetNamedStringList(str_list_t list, const char* section)
 	named_string_t** np;
 
 	if(list==NULL)
-		return(lp);
+		return(NULL);
 
-	for(i=find_section(list,section);list[i]!=NULL;i++) {
+	i=find_section(list,section);
+	if(list[i]==NULL)
+		return(NULL);
+
+	/* New behavior, if section exists but is empty, return single element array (terminator only) */
+	if((lp=(named_string_t**)malloc(sizeof(named_string_t*)))==NULL)
+		return(NULL);
+
+	for(;list[i]!=NULL;i++) {
 		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			break;
@@ -1072,8 +1083,7 @@ iniGetNamedStringList(str_list_t list, const char* section)
 		items++;
 	}
 
-	if(items)
-		lp[items]=NULL;	/* terminate list */
+	lp[items]=NULL;	/* terminate list */
 
 	return(lp);
 }
@@ -1549,21 +1559,29 @@ time_t iniGetDateTime(str_list_t list, const char* section, const char* key, tim
 static unsigned parseEnum(const char* value, str_list_t names)
 {
 	unsigned i,count;
+	char val[INI_MAX_VALUE_LEN];
+	char* p=val;
+
+	/* Strip trailing words (enums must be a single word with no white-space) */
+	/* to support comments following enum values */
+	SAFECOPY(val,value);
+	FIND_WHITESPACE(p);
+	*p=0;
 
     if((count=strListCount(names)) == 0)
         return 0;
         
 	/* Look for exact matches first */
 	for(i=0; i<count; i++)
-		if(stricmp(names[i],value)==0)
+		if(stricmp(names[i],val)==0)
 			return(i);
 
 	/* Look for partial matches second */
 	for(i=0; i<count; i++)
-		if(strnicmp(names[i],value,strlen(value))==0)
+		if(strnicmp(names[i],val,strlen(val))==0)
 			return(i);
 
-    i=strtoul(value,NULL,0);
+    i=strtoul(val,NULL,0);
     if(i>=count)
         i=count-1;
 	return i;
