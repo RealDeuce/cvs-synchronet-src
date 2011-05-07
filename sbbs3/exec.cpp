@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.89 2010/03/15 18:42:38 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.92 2011/03/01 22:27:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -553,6 +553,19 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	return(js_CommonBranchCallback(cx,&sbbs->js_branch));
 }
 
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static const char* js_ext(const char* fname)
 {
 	if(getfext(fname)==NULL)
@@ -663,7 +676,11 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 
 	js_branch.counter=0;	// Reset loop counter
 
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 
 	js_PrepareToExecute(js_cx, js_glob, path, startup_dir);
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
@@ -1586,8 +1603,7 @@ int sbbs_t::exec(csi_t *csi)
 						if(trashcan(csi->str,"name"))
 							break;
 						if(cfg.uq&UQ_DUPREAL
-							&& userdatdupe(useron.number,U_NAME,LEN_NAME
-							,csi->str,0))
+							&& userdatdupe(useron.number,U_NAME,LEN_NAME,csi->str))
 							break;
 						sprintf(useron.name,"%.*s",LEN_NAME,csi->str);
 						putuserrec(&cfg,useron.number,U_NAME,LEN_NAME
@@ -1598,8 +1614,7 @@ int sbbs_t::exec(csi_t *csi)
 						if(trashcan(csi->str,"name"))
 							break;
 						if(cfg.uq&UQ_DUPHAND
-							&& userdatdupe(useron.number,U_HANDLE,LEN_HANDLE
-							,csi->str,0))
+							&& userdatdupe(useron.number,U_HANDLE,LEN_HANDLE,csi->str))
 							break;
 						sprintf(useron.handle,"%.*s",LEN_HANDLE,csi->str);
 						putuserrec(&cfg,useron.number,U_HANDLE,LEN_HANDLE
