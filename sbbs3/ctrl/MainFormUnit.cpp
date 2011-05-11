@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.183 2011/10/28 08:08:34 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.178 2010/03/20 05:08:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,7 +71,6 @@
 #include "PropertiesDlgUnit.h"
 #include "ConfigWizardUnit.h"
 #include "PreviewFormUnit.h"
-#include "LoginAttemptsFormUnit.h"
 
 #include "sbbs_ini.h"		// sbbs_read_ini()
 #include "userdat.h"		// lastuser()
@@ -152,7 +151,6 @@ link_list_t mail_log_list;
 link_list_t ftp_log_list;
 link_list_t web_log_list;
 link_list_t services_log_list;
-link_list_t	login_attempt_list;
 
 DWORD	MaxLogLen=20000;
 int     threads=1;
@@ -695,6 +693,33 @@ static void web_log_msg(log_msg_t* msg)
         MainForm->LogAttributes(msg->level, WebForm->Log->Color, WebForm->Log->Font));
 	WebForm->Log->Lines->Add(Line);
     SendMessage(WebForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+
+#if 0
+    if(MainForm->WebLogFile && MainForm->WebStop->Enabled) {
+        AnsiString LogFileName
+            =AnsiString(MainForm->cfg.logs_dir)
+            +"LOGS\\FS"
+            +SystemTimeToDateTime(msg->time).FormatString("mmddyy")
+            +".LOG";
+
+        if(!FileExists(LogFileName)) {
+            FileClose(FileCreate(LogFileName));
+            if(LogStream!=NULL) {
+                fclose(LogStream);
+                LogStream=NULL;
+            }
+        }
+        if(LogStream==NULL)
+            LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
+
+        if(LogStream!=NULL) {
+            Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
+            Line+=AnsiString(str).Trim();
+            Line+="\n";
+        	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
+        }
+	}
+#endif
 }
 
 static void web_status(void* p, const char *str)
@@ -718,7 +743,7 @@ static void web_clients(void* p, int clients)
     	mutex=CreateMutex(NULL,false,NULL);
 	WaitForSingleObject(mutex,INFINITE);
 
-    WebForm->ProgressBar->Max=MainForm->web_startup.max_clients;
+    WebForm->ProgressBar->Max=MainForm->ftp_startup.max_clients;
 	WebForm->ProgressBar->Position=clients;
 
     ReleaseMutex(mutex);
@@ -815,7 +840,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     SAFECOPY(global.ctrl_dir,"c:\\sbbs\\ctrl\\");
     global.js.max_bytes=JAVASCRIPT_MAX_BYTES;
     global.js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
-    global.js.time_limit=JAVASCRIPT_TIME_LIMIT;
+    global.js.branch_limit=JAVASCRIPT_BRANCH_LIMIT;
     global.js.gc_interval=JAVASCRIPT_GC_INTERVAL;
     global.js.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
     global.sem_chk_freq=5;		/* seconds */
@@ -827,8 +852,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     UndockableForms=false;
     UseFileAssociations=true;
     Initialized=false;
-
-	loginAttemptListInit(&login_attempt_list);
 
     char* p;
     if((p=getenv("SBBSCTRL"))!=NULL)
@@ -859,7 +882,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_startup.thread_up=thread_up;
     bbs_startup.client_on=client_on;
     bbs_startup.socket_open=socket_open;
-	bbs_startup.login_attempt_list=&login_attempt_list;
 
     memset(&mail_startup,0,sizeof(mail_startup));
     mail_startup.size=sizeof(mail_startup);
@@ -884,7 +906,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     mail_startup.lines_per_yield=10;
     mail_startup.max_clients=10;
     mail_startup.max_msg_size=10*1024*1024;
-	mail_startup.login_attempt_list=&login_attempt_list;
 
     memset(&ftp_startup,0,sizeof(ftp_startup));
     ftp_startup.size=sizeof(ftp_startup);
@@ -907,7 +928,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     strcpy(ftp_startup.index_file_name,"00index");
     strcpy(ftp_startup.html_index_file,"00index.html");
     strcpy(ftp_startup.html_index_script,"ftp-html.js");
-	ftp_startup.login_attempt_list=&login_attempt_list;
 
     memset(&web_startup,0,sizeof(web_startup));
     web_startup.size=sizeof(web_startup);
@@ -922,7 +942,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     web_startup.thread_up=thread_up;
     web_startup.client_on=client_on;
     web_startup.socket_open=socket_open;
-	web_startup.login_attempt_list=&login_attempt_list;
 
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
@@ -938,7 +957,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     services_startup.thread_up=thread_up;
     services_startup.client_on=client_on;
     services_startup.socket_open=socket_open;
-	services_startup.login_attempt_list=&login_attempt_list;
 
     bbs_log=INVALID_HANDLE_VALUE;
     event_log=INVALID_HANDLE_VALUE;
@@ -1142,6 +1160,18 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
 	ServiceStatusTimer->Enabled=false;
 	NodeForm->Timer->Enabled=false;
 	ClientForm->Timer->Enabled=false;
+#if 0
+    /* Extra time for callbacks to be called by child threads */
+    start=time(NULL);
+    while(time(NULL)<start+2) {
+        Application->ProcessMessages();
+        YIELD();
+    }
+#endif
+#if 0
+    if(hSCManager!=NULL)
+    	closeServiceHandle(hSCManager);
+#endif
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
@@ -1995,6 +2025,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             global.js.cx_stack=Registry->ReadInteger("JS_ContextStack");
         if(global.js.cx_stack==0)
             global.js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
+        if(Registry->ValueExists("JS_BranchLimit"))
+            global.js.branch_limit=Registry->ReadInteger("JS_BranchLimit");
         if(Registry->ValueExists("JS_GcInterval"))
             global.js.gc_interval=Registry->ReadInteger("JS_GcInterval");
         if(Registry->ValueExists("JS_YieldInterval"))
@@ -2172,6 +2204,66 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
 		if(SaveIniSettings(Sender))
             Registry->WriteBool("Imported",true);   /* Use the .ini file for these settings from now on */
+
+#if 0
+        /******************************************************/
+        /* Copy global values into each server startup struct */
+        /******************************************************/
+
+        /* used to be handled in bbs_start() */
+        SAFECOPY(bbs_startup.ctrl_dir,global.ctrl_dir);
+        SAFECOPY(bbs_startup.temp_dir,global.temp_dir);
+        SAFECOPY(bbs_startup.host_name,global.host_name);
+        bbs_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* JavaScript operational parameters */
+        bbs_startup.js_max_bytes=global.js.max_bytes;
+        bbs_startup.js_cx_stack=global.js.cx_stack;
+        bbs_startup.js_branch_limit=global.js.branch_limit;
+        bbs_startup.js_gc_interval=global.js.gc_interval;
+        bbs_startup.js_yield_interval=global.js.yield_interval;
+
+        /* used to be handled in mail_start() */
+        SAFECOPY(mail_startup.ctrl_dir
+            ,global.ctrl_dir);
+        SAFECOPY(mail_startup.host_name
+            ,global.host_name);
+        mail_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* used to be handled in ftp_start() */
+        SAFECOPY(ftp_startup.ctrl_dir
+            ,global.ctrl_dir);
+        SAFECOPY(ftp_startup.temp_dir
+            ,global.temp_dir);
+        SAFECOPY(ftp_startup.host_name
+            ,global.host_name);
+        ftp_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* JavaScript operational parameters */
+        ftp_startup.js_max_bytes=global.js.max_bytes;
+        ftp_startup.js_cx_stack=global.js.cx_stack;
+
+        /* used to be handled in web_start() */
+        SAFECOPY(web_startup.ctrl_dir,global.ctrl_dir);
+        SAFECOPY(web_startup.host_name,global.host_name);
+        web_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* JavaScript operational parameters */
+        web_startup.js_max_bytes=global.js.max_bytes;
+        web_startup.js_cx_stack=global.js.cx_stack;
+
+        /* used to be handled in ServicesStartExecute() */
+        SAFECOPY(services_startup.ctrl_dir,global.ctrl_dir);
+        SAFECOPY(services_startup.host_name,global.host_name);
+        services_startup.sem_chk_freq=global.sem_chk_freq;
+
+        /* JavaScript operational parameters */
+        services_startup.js_max_bytes=global.js.max_bytes;
+        services_startup.js_cx_stack=global.js.cx_stack;
+        services_startup.js_branch_limit=global.js.branch_limit;
+        services_startup.js_gc_interval=global.js.gc_interval;
+        services_startup.js_yield_interval=global.js.yield_interval;
+#endif
     }
 
     Registry->CloseKey();
@@ -2318,7 +2410,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     NodeForm->Timer->Enabled=true;
     ClientForm->Timer->Enabled=true;
 
-    SemFileTimer->Interval=global.sem_chk_freq*1000;
+    SemFileTimer->Interval=global.sem_chk_freq;
     SemFileTimer->Enabled=true;
 
     StatsTimer->Interval=cfg.node_stat_check*1000;
@@ -2995,6 +3087,15 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
+void __fastcall TMainForm::BBSViewErrorLogMenuItemClick(TObject *Sender)
+{
+	char filename[MAX_PATH+1];
+
+    sprintf(filename,"%sERROR.LOG"
+    	,MainForm->cfg.logs_dir);
+    ViewFile(filename,"Error Log");
+}
+//---------------------------------------------------------------------------
 
 void __fastcall TMainForm::ChatToggleExecute(TObject *Sender)
 {
@@ -3154,7 +3255,8 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->PasswordEdit->Text=Password;
     PropertiesDlg->JS_MaxBytesEdit->Text=IntToStr(global.js.max_bytes);
     PropertiesDlg->JS_ContextStackEdit->Text=IntToStr(global.js.cx_stack);
-    PropertiesDlg->JS_TimeLimitEdit->Text=IntToStr(global.js.time_limit);
+    PropertiesDlg->JS_ThreadStackEdit->Text=IntToStr(global.js.thread_stack);    
+    PropertiesDlg->JS_BranchLimitEdit->Text=IntToStr(global.js.branch_limit);
     PropertiesDlg->JS_GcIntervalEdit->Text=IntToStr(global.js.gc_interval);
     PropertiesDlg->JS_YieldIntervalEdit->Text=IntToStr(global.js.yield_interval);
     PropertiesDlg->JS_LoadPathEdit->Text=global.js.load_path;
@@ -3198,7 +3300,7 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         SAFECOPY(services_startup.host_name,global.host_name);
         SAFECOPY(services_startup.ctrl_dir,global.ctrl_dir);
         SAFECOPY(services_startup.temp_dir,global.temp_dir);
-        services_startup.sem_chk_freq=global.sem_chk_freq ;
+        services_startup.sem_chk_freq=global.sem_chk_freq;
 
         Password=PropertiesDlg->PasswordEdit->Text;
         NodeForm->Timer->Interval=PropertiesDlg->NodeIntUpDown->Position*1000;
@@ -3214,8 +3316,10 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         	=PropertiesDlg->JS_MaxBytesEdit->Text.ToIntDef(JAVASCRIPT_MAX_BYTES);
         global.js.cx_stack
         	=PropertiesDlg->JS_ContextStackEdit->Text.ToIntDef(JAVASCRIPT_CONTEXT_STACK);
-        global.js.time_limit
-        	=PropertiesDlg->JS_TimeLimitEdit->Text.ToIntDef(JAVASCRIPT_TIME_LIMIT);
+        global.js.thread_stack
+        	=PropertiesDlg->JS_ThreadStackEdit->Text.ToIntDef(JAVASCRIPT_THREAD_STACK);
+        global.js.branch_limit
+        	=PropertiesDlg->JS_BranchLimitEdit->Text.ToIntDef(JAVASCRIPT_BRANCH_LIMIT);
         global.js.gc_interval
         	=PropertiesDlg->JS_GcIntervalEdit->Text.ToIntDef(JAVASCRIPT_GC_INTERVAL);
         global.js.yield_interval
@@ -3811,33 +3915,9 @@ TFont* __fastcall TMainForm::LogAttributes(int log_level, TColor Color, TFont* F
     return LogFont[log_level];
 }
 //---------------------------------------------------------------------------
-void __fastcall TMainForm::ClearErrorsExecute(TObject *Sender)
-{
-    errors=0;
 
-    node_t node;
-    for(int i=0;i<cfg.sys_nodes;i++) {
-    	int file;
-       	if(NodeForm->getnodedat(i+1,&node,&file))
-            break;
-        node.errors=0;
-        if(NodeForm->putnodedat(i+1,&node,file))
-            break;
-    }
-}
-//---------------------------------------------------------------------------
-void __fastcall TMainForm::ViewErrorLogExecute(TObject *Sender)
-{
-	char filename[MAX_PATH+1];
 
-    sprintf(filename,"%sERROR.LOG"
-    	,MainForm->cfg.logs_dir);
-    ViewFile(filename,"Error Log");
-}
-//---------------------------------------------------------------------------
-void __fastcall TMainForm::ViewLoginAttemptsMenuItemClick(TObject *Sender)
-{
-    LoginAttemptsForm->Show();
-}
-//---------------------------------------------------------------------------
+
+
+
 

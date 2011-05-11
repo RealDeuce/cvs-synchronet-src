@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.86 2011/10/24 21:48:42 deuce Exp $ */
+/* $Id: genwrap.c,v 1.83 2011/05/11 00:46:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -42,7 +42,7 @@
 #include <time.h>		/* clock() */
 #include <errno.h>		/* errno */
 #include <ctype.h>		/* toupper/tolower */
-#include <limits.h>		/* CHAR_BIT */
+#include <linits.h>		/* CHAR_BIT */
 
 #if defined(__unix__)
 	#include <sys/ioctl.h>		/* ioctl() */
@@ -322,13 +322,11 @@ void DLLCALL xp_randomize(void)
 long DLLCALL xp_random(int n)
 {
 #ifdef HAS_RANDOM_FUNC
-	long			curr;
-	unsigned long	limit;
+	long	curr;
+	long	limit=((1U<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
 
 	if(n<2)
 		return(0);
-
-	limit = ((1U<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
 
 	while(1) {
 		curr=random();
@@ -477,7 +475,7 @@ char* DLLCALL truncsp(char* str)
 
 	if(str!=NULL) {
 		i=len=strlen(str);
-		while(i && isspace((unsigned char)str[i-1]))
+		while(i && isspace((unsigned char)str[i-1])) 
 			i--;
 		if(i!=len)
 			str[i]=0;	/* truncate */
@@ -499,8 +497,8 @@ char* DLLCALL truncsp_lines(char* dst)
 
 	for(sp=src, dp=dst; *sp!=0; sp++) {
 		if(*sp=='\n')
-			while(dp!=dst
-				&& (*(dp-1)==' ' || *(dp-1)=='\t' || *(dp-1)=='\r') && *(dp-1)!='\n')
+			while(dp!=dst 
+				&& (*(dp-1)==' ' || *(dp-1)=='\t' || *(dp-1)=='\r') && *(dp-1)!='\n') 
 					dp--;
 		*(dp++)=*sp;
 	}
@@ -519,7 +517,7 @@ char* DLLCALL truncnl(char* str)
 
 	if(str!=NULL) {
 		i=len=strlen(str);
-		while(i && (str[i-1]=='\r' || str[i-1]=='\n'))
+		while(i && (str[i-1]=='\r' || str[i-1]=='\n')) 
 			i--;
 		if(i!=len)
 			str[i]=0;	/* truncate */
@@ -584,7 +582,7 @@ BOOL DLLCALL check_pid(pid_t pid)
 
 	if((h=OpenProcess(PROCESS_QUERY_INFORMATION,/* inheritable: */FALSE, pid)) != NULL) {
 		DWORD	code;
-		if(GetExitCodeProcess(h,(PDWORD)&code)==TRUE && code==STILL_ACTIVE)
+		if(GetExitCodeProcess(h,&code)==TRUE && code==STILL_ACTIVE)
 			result=TRUE;
 		CloseHandle(h);
 	}
