@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.243 2010/03/15 21:54:53 rswindell Exp $ */
+/* $Id: services.c,v 1.246 2011/04/27 22:59:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -69,10 +69,10 @@
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
-static uint32_t	sockets=0;
-static BOOL		terminated=FALSE;
-static time_t	uptime=0;
-static uint32_t	served=0;
+static volatile ulong	sockets=0;
+static volatile BOOL	terminated=FALSE;
+static volatile time_t	uptime=0;
+static volatile ulong	served=0;
 static char		revision[16];
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
@@ -91,11 +91,11 @@ typedef struct {
 	js_startup_t	js;
 	js_server_props_t js_server_props;
 	/* These are run-time state and stat vars */
-	ulong		clients;
-	ulong		served;
-	SOCKET		socket;
-	BOOL		running;
-	BOOL		terminated;
+	volatile ulong		clients;
+	volatile ulong		served;
+	volatile SOCKET		socket;
+	volatile BOOL		running;
+	volatile BOOL		terminated;
 } service_t;
 
 typedef struct {
@@ -945,6 +945,19 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	return js_CommonBranchCallback(cx,&client->branch);
 }
 
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline)
 {
 	char					argbuf[MAX_PATH+1];
@@ -1128,7 +1141,11 @@ static void js_service_thread(void* arg)
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
+#ifdef USE_JS_OPERATION_CALLBACK
+		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 		JS_DestroyScript(js_cx, js_script);
@@ -1227,7 +1244,11 @@ static void js_static_service_thread(void* arg)
 		val = BOOLEAN_TO_JSVAL(JS_FALSE);
 		JS_SetProperty(js_cx, js_glob, "logged_in", &val);
 
+#ifdef USE_JS_OPERATION_CALLBACK
+		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 	
 		if((js_script=JS_CompileFile(js_cx, js_glob, spath))==NULL)  {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",service->socket,spath);
@@ -1615,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.243 $", "%*s %s", revision);
+	sscanf("$Revision: 1.246 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

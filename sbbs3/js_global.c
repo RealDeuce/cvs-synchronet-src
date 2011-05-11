@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.256 2010/03/19 01:20:59 deuce Exp $ */
+/* $Id: js_global.c,v 1.264 2010/12/21 21:38:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,6 +166,19 @@ static JSBool js_BranchCallback(JSContext *cx, JSScript* script)
 	return js_CommonBranchCallback(cx,&bg->branch);
 }
 
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static JSBool
 js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -298,7 +311,11 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		/* Set our branch callback (which calls the generic branch callback) */
 		JS_SetContextPrivate(bg->cx, bg);
+#ifdef USE_JS_OPERATION_CALLBACK
+		JS_SetOperationCallback(bg->cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(bg->cx, js_BranchCallback);
+#endif
 
 		/* Save parent's 'log' function (for later use by our log function) */
 		if(JS_GetProperty(cx, obj, "log", &val)) {
@@ -443,6 +460,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		bg->script = script;
 		*rval = OBJECT_TO_JSVAL(js_CreateQueueObject(cx, obj, NULL, bg->msg_queue));
 		JS_ENDREQUEST(bg->cx);
+		JS_ClearContextThread(bg->cx);
 		success = _beginthread(background_thread,0,bg)!=-1;
 
 	} else {
@@ -2775,7 +2793,6 @@ js_disksize(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     return(JS_TRUE);
 }
 
-
 static JSBool
 js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -2938,9 +2955,8 @@ js_strftime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	strcpy(str,"-Invalid time-");
 	t=i;
-	if(localtime_r(&t,&tm)==NULL)
-		memset(&tm,0,sizeof(tm));
-	strftime(str,sizeof(str),fmt,&tm);
+	if(localtime_r(&t,&tm)!=NULL)
+		strftime(str,sizeof(str),fmt,&tm);
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((js_str=JS_NewStringCopyZ(cx, str))==NULL)
