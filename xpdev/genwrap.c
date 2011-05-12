@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.84 2011/05/12 20:06:15 deuce Exp $ */
+/* $Id: genwrap.c,v 1.85 2011/05/12 21:06:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -42,7 +42,7 @@
 #include <time.h>		/* clock() */
 #include <errno.h>		/* errno */
 #include <ctype.h>		/* toupper/tolower */
-#include <linits.h>		/* CHAR_BIT */
+#include <limits.h>		/* CHAR_BIT */
 
 #if defined(__unix__)
 	#include <sys/ioctl.h>		/* ioctl() */
