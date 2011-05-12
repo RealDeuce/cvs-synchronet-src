@@ -2,13 +2,13 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.62 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: str.cpp,v 1.64 2010/11/19 06:36:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -149,7 +149,7 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 		answers[0]=0;
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if((buf=(char *)malloc(length))==0) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length);
@@ -250,15 +250,15 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 				cr=1;
 				m++; 
 			}
-			if(isdigit(buf[m+1])) {
+			if(isdigit((uchar)buf[m+1])) {
 				max=buf[++m]&0xf;
-				if(isdigit(buf[m+1]))
+				if(isdigit((uchar)buf[m+1]))
 					max=max*10+(buf[++m]&0xf); 
 			}
-			if(buf[m+1]=='.' && isdigit(buf[m+2])) {
+			if(buf[m+1]=='.' && isdigit((uchar)buf[m+2])) {
 				m++;
 				min=buf[++m]&0xf;
-				if(isdigit(buf[m+1]))
+				if(isdigit((uchar)buf[m+1]))
 					min=min*10+(buf[++m]&0xf); 
 			}
 			if(buf[m+1]=='"') {
@@ -316,7 +316,7 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 		answers[0]=0;
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if((buf=(char *)malloc(length))==0) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length);
@@ -396,15 +396,15 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 				cr=1;
 				m++; 
 			}
-			if(isdigit(buf[m+1])) {
+			if(isdigit((uchar)buf[m+1])) {
 				max=buf[++m]&0xf;
-				if(isdigit(buf[m+1]))
+				if(isdigit((uchar)buf[m+1]))
 					max=max*10+(buf[++m]&0xf); 
 			}
-			if(buf[m+1]=='.' && isdigit(buf[m+2])) {
+			if(buf[m+1]=='.' && isdigit((uchar)buf[m+2])) {
 				m++;
 				min=buf[++m]&0xf;
-				if(isdigit(buf[m+1]))
+				if(isdigit((uchar)buf[m+1]))
 					min=min*10+(buf[++m]&0xf); 
 			}
 			if(buf[m+1]=='"') {
@@ -465,7 +465,7 @@ void sbbs_t::read_sif_dat(char *siffile, char *datfile)
 		errormsg(WHERE,ERR_OPEN,datfile,O_RDONLY);
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if(!length) {
 		close(file);
 		return; 
@@ -536,9 +536,9 @@ size_t sbbs_t::gettmplt(char *strout, const char *templt, long mode)
 			}
 		}
 		else if(c<t) {
-			if(tmplt[c]=='N' && !isdigit(ch))
+			if(tmplt[c]=='N' && !isdigit((uchar)ch))
 				continue;
-			if(tmplt[c]=='A' && !isalpha(ch))
+			if(tmplt[c]=='A' && !isalpha((uchar)ch))
 				continue;
 			outchar(ch);
 			str[c++]=ch;
