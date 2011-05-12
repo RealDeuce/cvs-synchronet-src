@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.83 2011/05/11 00:46:32 deuce Exp $ */
+/* $Id: genwrap.c,v 1.84 2011/05/12 20:06:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -322,11 +322,13 @@ void DLLCALL xp_randomize(void)
 long DLLCALL xp_random(int n)
 {
 #ifdef HAS_RANDOM_FUNC
-	long	curr;
-	long	limit=((1U<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
+	long			curr;
+	unsigned long	limit;
 
 	if(n<2)
 		return(0);
+
+	limit = ((1U<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
 
 	while(1) {
 		curr=random();
