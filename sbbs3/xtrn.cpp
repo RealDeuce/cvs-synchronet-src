@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.217 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.212 2010/03/13 08:15:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,7 +45,7 @@
 	#include <sys/wait.h>	// WEXITSTATUS
 
 	#define TTYDEFCHARS		// needed for ttydefchars definition
-	#include <sys/ttydefaults.h>	// Linux - it's motherfucked.
+
 #if defined(__FreeBSD__)
 	#include <libutil.h>	// forkpty()
 #elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DARWIN__)
@@ -386,7 +386,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
 	unsigned long	rd;
-    unsigned long	wr;
+    DWORD	wr;
     unsigned long	len;
     DWORD	avail;
 	unsigned long	dummy;
@@ -907,16 +907,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					if(mode&EX_WWIV) {
                 		bp=wwiv_expand(buf, rd, wwiv_buf, rd, useron.misc, wwiv_flag);
 						if(rd>sizeof(wwiv_buf))
-							lprintf(LOG_ERR,"WWIV_BUF OVERRUN");
+							errorlog("WWIV_BUF OVERRUN");
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
                 		bp=telnet_expand(buf, rd, telnet_buf, rd);
 						if(rd>sizeof(telnet_buf))
-							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
+							errorlog("TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
-						lprintf(LOG_ERR,"output buffer overflow");
+						errorlog("output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
 					RingBufWrite(&outbuf, bp, rd);
@@ -974,16 +974,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					if(mode&EX_WWIV) {
                 		bp=wwiv_expand(buf, rd, wwiv_buf, rd, useron.misc, wwiv_flag);
 						if(rd>sizeof(wwiv_buf))
-							lprintf(LOG_ERR,"WWIV_BUF OVERRUN");
+							errorlog("WWIV_BUF OVERRUN");
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
                 		bp=telnet_expand(buf, rd, telnet_buf, rd);
 						if(rd>sizeof(telnet_buf))
-							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
+							errorlog("TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
-						lprintf(LOG_ERR,"output buffer overflow");
+						errorlog("output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
 					RingBufWrite(&outbuf, bp, rd);
@@ -1308,9 +1308,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	pid_t	pid;
 	int		in_pipe[2];
 	int		out_pipe[2];
-#ifdef XTERN_LOG_STDERR
 	int		err_pipe[2];
-#endif
 	fd_set ibits;
 	int	high_fd;
 	struct timeval timeout;
@@ -1659,7 +1657,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(pipe(err_pipe)!=0) {
 		errormsg(WHERE,ERR_CREATE,"err_pipe",0);
 		return(-1);
-	}
+}
 #endif
 
 	if((mode&EX_STDIO)==EX_STDIO)  {
@@ -1783,7 +1781,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	
 		execvp(argv[0],argv);
-		lprintf(LOG_ERR,"Node %d !ERROR %d executing %s",cfg.node_num,errno,argv[0]);
+		sprintf(str,"!ERROR %d executing %s",errno,argv[0]);
+		errorlog(str);
 		_exit(-1);	/* should never get here */
 	}
 
@@ -1908,13 +1907,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
-				lprintf(LOG_ERR,"OUTPUT_BUF OVERRUN");
+				errorlog("OUTPUT_BUF OVERRUN");
 				output_len=sizeof(output_buf);
 			}
 
 			/* Does expanded size fit in the ring buffer? */
 			if(output_len>RingBufFree(&outbuf)) {
-				lprintf(LOG_ERR,"output buffer overflow");
+				errorlog("output buffer overflow");
 				output_len=RingBufFree(&outbuf);
 			}
 
