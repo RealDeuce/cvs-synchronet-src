@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.76 2009/10/17 23:18:24 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.77 2009/10/25 03:11:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,6 +248,7 @@
 #define SMB_EXPIRATION		0x65
 #define SMB_PRIORITY		0x66
 #define SMB_COST			0x67
+#define	SMB_EDITOR			0x68
 
 #define FILEATTACH			0x70
 #define DESTFILE			0x71
