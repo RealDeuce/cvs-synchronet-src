@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.171 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.168 2011/04/27 22:59:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@
 /*************/
 
 #define VERSION 	"3.15"  /* Version: Major.minor  */
-#define REVISION	'c'     /* Revision: lowercase letter */
+#define REVISION	'a'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31500	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31500 + (tolower(REVISION)-'a'))
 
@@ -949,7 +949,7 @@ typedef struct {						/* Users information */
 			cdt,						/* Credits */
 			min,						/* Minutes */
 			freecdt;					/* Free credits (renewed daily) */
-	time32_t firston,					/* Date/Time first called */
+	time_t	firston,					/* Date/Time first called */
 			laston, 					/* Last logoff date/time */
 			expire, 					/* Expiration date */
 			pwmod,						/* Password last modified */

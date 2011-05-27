@@ -1,12 +1,12 @@
 /* scfgnode.c */
 
-/* $Id: scfgnode.c,v 1.27 2011/07/21 10:53:08 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.26 2006/05/03 00:27:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -129,8 +129,7 @@ If you want to abort the creation of this new node, hit  ESC .
 			str[strlen(str)-1]=0;
 		MKDIR(str);
 		cfg.node_num=++cfg.sys_nodes;
-		SAFEPRINTF(cfg.node_name,"Node %u",cfg.node_num);
-		SAFECOPY(cfg.node_phone,"N/A");
+		sprintf(cfg.node_name,"Node %u",cfg.node_num);
 		cfg.new_install=new_install;
 		write_node_cfg(&cfg,backup_level);
 		write_main_cfg(&cfg,backup_level);
@@ -184,7 +183,6 @@ void node_cfg()
 
 while(1) {
 	i=0;
-	sprintf(opt[i++],"%-27.27s%s","Phone Number",cfg.node_phone);
 	sprintf(opt[i++],"%-27.27s%.40s","Logon Requirements",cfg.node_arstr);
 	strcpy(opt[i++],"Toggle Options...");
 	strcpy(opt[i++],"Advanced Options...");
@@ -211,19 +209,10 @@ Options with a trailing ... will produce a sub-menu of more options.
 				return;
 			break;
 		case 0:
-SETHELP(WHERE);
-/*
-`Node Phone Number:`
-This is the phone number to access the selected node (e.g. for SEXPOTS).
-This value is used for documentary purposes only.
-*/
-            uifc.input(WIN_MID|WIN_SAV,0,10,"Phone Number",cfg.node_phone,sizeof(cfg.node_phone)-1,K_EDIT);
-            break;
-		case 1:
 			sprintf(str,"Node %u Logon",cfg.node_num);
 			getar(str,cfg.node_arstr);
 			break;
-		case 2:
+		case 1:
 			done=0;
 			while(!done) {
 				i=0;
@@ -418,7 +407,7 @@ option to No.
                         break;
 						} }
 			break;
-		case 3:
+		case 2:
 			done=0;
 			while(!done) {
 				i=0;
