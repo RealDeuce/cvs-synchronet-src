@@ -72,7 +72,7 @@ typedef struct
    clock_t Start;
    clock_t Duration;
 #elif defined(ODPLAT_NIX)
-   time_t Start;
+   long long Start;
    tODMilliSec Duration;
 #else /* !ODPLAT_DOS */
    tODMilliSec Start;
