@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.63 2011/09/10 22:47:55 deuce Exp $ */
+/* $Id: conn.c,v 1.62 2011/05/27 23:05:53 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -447,7 +447,7 @@ int conn_socket_connect(struct bbslist *bbs)
 				case EINPROGRESS:
 				case EINTR:
 				case EAGAIN:
-#if (EAGAIN!=EWOULDBLOCK)
+#if (!defined(EAGAIN) && defined(EWOULDBLOCK)) || (EAGAIN!=EWOULDBLOCK)
 				case EWOULDBLOCK:
 #endif
 					for(;;) {
