@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.129 2011/09/08 22:29:27 deuce Exp $ */
+/* $Id: cterm.c,v 1.128 2011/05/17 02:25:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,6 +173,10 @@ struct note_params {
 	int	foreground;
 };
 
+static int playnote_thread_running=FALSE;
+static link_list_t	notes;
+sem_t	playnote_thread_terminated;
+sem_t	note_completed_sem;
 
 void playnote_thread(void *args)
 {
@@ -182,19 +186,19 @@ void playnote_thread(void *args)
 	struct note_params *note;
 	int	device_open=FALSE;
 
-	cterm.playnote_thread_running=TRUE;
+	playnote_thread_running=TRUE;
 	while(1) {
 		if(device_open) {
-			if(!listSemTryWaitBlock(&cterm.notes,5000)) {
+			if(!listSemTryWaitBlock(&notes,5000)) {
 				xptone_close();
 				device_open=FALSE;
-				listSemWait(&cterm.notes);
+				listSemWait(&notes);
 			}
 		}
 		else
-			listSemWait(&cterm.notes);
+			listSemWait(&notes);
 		device_open=xptone_open();
-		note=listShiftNode(&cterm.notes);
+		note=listShiftNode(&notes);
 		if(note==NULL)
 			break;
 		if(note->dotted)
@@ -225,11 +229,11 @@ void playnote_thread(void *args)
 			SLEEP(duration);
 		SLEEP(pauselen);
 		if(note->foreground)
-			sem_post(&cterm.note_completed_sem);
+			sem_post(&note_completed_sem);
 		free(note);
 	}
-	cterm.playnote_thread_running=FALSE;
-	sem_post(&cterm.playnote_thread_terminated);
+	playnote_thread_running=FALSE;
+	sem_post(&playnote_thread_terminated);
 }
 
 void play_music(void)
@@ -415,7 +419,7 @@ void play_music(void)
 					np->tempo=cterm.tempo;
 					np->noteshape=cterm.noteshape;
 					np->foreground=cterm.musicfore;
-					listPushNode(&cterm.notes, np);
+					listPushNode(&notes, np);
 					if(cterm.musicfore)
 						fore_count++;
 				}
@@ -435,7 +439,7 @@ void play_music(void)
 	cterm.music=0;
 	cterm.musicbuf[0]=0;
 	while(fore_count) {
-		sem_wait(&cterm.note_completed_sem);
+		sem_wait(&note_completed_sem);
 		fore_count--;
 	}
 }
@@ -616,6 +620,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 							}
 							if(i>255)
 								break;
+							cterm.font_start_time=time(NULL);
 							cterm.font_read=0;
 							cterm.font_slot=i;
 							switch(j) {
@@ -1177,7 +1182,7 @@ void do_ansi(char *retbuf, size_t retsize, int *speed)
 
 void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.129 $";
+	char	*revision="$Revision: 1.128 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1229,20 +1234,20 @@ void cterm_init(int height, int width, int xpos, int ypos, int backlines, unsign
 	}
 	strcat(cterm.DA,"c");
 	/* Did someone call _init() without calling _end()? */
-	if(cterm.playnote_thread_running) {
-		if(sem_trywait(&cterm.playnote_thread_terminated)==-1) {
-			listSemPost(&cterm.notes);
-			sem_wait(&cterm.playnote_thread_terminated);
+	if(playnote_thread_running) {
+		if(sem_trywait(&playnote_thread_terminated)==-1) {
+			listSemPost(&notes);
+			sem_wait(&playnote_thread_terminated);
 		}
-		sem_destroy(&cterm.playnote_thread_terminated);
-		sem_destroy(&cterm.note_completed_sem);
-		listFree(&cterm.notes);
+		sem_destroy(&playnote_thread_terminated);
+		sem_destroy(&note_completed_sem);
+		listFree(&notes);
 	}
 	/* Fire up note playing thread */
-	if(!cterm.playnote_thread_running) {
-		listInit(&cterm.notes, LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
-		sem_init(&cterm.note_completed_sem,0,0);
-		sem_init(&cterm.playnote_thread_terminated,0,0);
+	if(!playnote_thread_running) {
+		listInit(&notes, LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
+		sem_init(&note_completed_sem,0,0);
+		sem_init(&playnote_thread_terminated,0,0);
 		_beginthread(playnote_thread, 0, NULL);
 	}
 
@@ -2079,13 +2084,13 @@ void cterm_end(void)
 		FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
 		FREE_AND_NULL(conio_fontdata[i].desc);
 	}
-	if(cterm.playnote_thread_running) {
-		if(sem_trywait(&cterm.playnote_thread_terminated)==-1) {
-			listSemPost(&cterm.notes);
-			sem_wait(&cterm.playnote_thread_terminated);
+	if(playnote_thread_running) {
+		if(sem_trywait(&playnote_thread_terminated)==-1) {
+			listSemPost(&notes);
+			sem_wait(&playnote_thread_terminated);
 		}
-		sem_destroy(&cterm.playnote_thread_terminated);
-		sem_destroy(&cterm.note_completed_sem);
-		listFree(&cterm.notes);
+		sem_destroy(&playnote_thread_terminated);
+		sem_destroy(&note_completed_sem);
+		listFree(&notes);
 	}
 }
