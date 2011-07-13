@@ -2,13 +2,13 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.136 2011/09/08 07:12:21 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.133 2010/03/08 00:58:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,10 +59,6 @@ static const char*	strBindRetryDelay="BindRetryDelay";
 static const char*	strAnswerSound="AnswerSound";
 static const char*	strHangupSound="HangupSound";
 static const char*	strHackAttemptSound="HackAttemptSound";
-static const char*	strLoginAttemptDelay="LoginAttemptDelay";
-static const char*	strLoginAttemptThrottle="LoginAttemptThrottle";
-static const char*	strLoginAttemptHackThreshold="LoginAttemptHackThreshold";
-static const char*	strLoginAttemptFilterThreshold="LoginAttemptFilterThreshold";
 static const char*	strJavaScriptMaxBytes		="JavaScriptMaxBytes";
 static const char*	strJavaScriptContextStack	="JavaScriptContextStack";
 static const char*	strJavaScriptThreadStack	="JavaScriptThreadStack";
@@ -76,10 +72,6 @@ static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 #define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
 #define DEFAULT_BIND_RETRY_COUNT	2
 #define DEFAULT_BIND_RETRY_DELAY	15
-#define DEFAULT_LOGIN_ATTEMPT_DELAY		5000	/* milliseconds */
-#define DEFAULT_LOGIN_ATTEMPT_THROTTLE	1000	/* milliseconds */
-#define DEFAULT_LOGIN_ATTEMPT_HACKLOG	10		/* write to hack.log after this many consecutive unique attempts */
-#define DEFAULT_LOGIN_ATTEMPT_FILTER	50		/* filter client IP address after this many consecutive unique attempts */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
@@ -228,10 +220,6 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	global->log_level=iniGetLogLevel(list,section,strLogLevel,DEFAULT_LOG_LEVEL);
 	global->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,DEFAULT_BIND_RETRY_COUNT);
 	global->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,DEFAULT_BIND_RETRY_DELAY);
-	global->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,DEFAULT_LOGIN_ATTEMPT_DELAY);
-	global->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,DEFAULT_LOGIN_ATTEMPT_THROTTLE);
-	global->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,DEFAULT_LOGIN_ATTEMPT_HACKLOG);
-	global->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,DEFAULT_LOGIN_ATTEMPT_FILTER);
 
 	/* Setup default values here */
 	global->js.max_bytes		= JAVASCRIPT_MAX_BYTES;
@@ -371,10 +359,6 @@ void sbbs_read_ini(
 
 		bbs->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		bbs->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		bbs->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		bbs->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		bbs->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
 	}
 
 	/***********************************************************************/
@@ -438,10 +422,6 @@ void sbbs_read_ini(
 
 		ftp->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		ftp->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		ftp->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		ftp->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		ftp->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		ftp->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
 	}
 
 	/***********************************************************************/
@@ -524,10 +504,6 @@ void sbbs_read_ini(
 
 		mail->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		mail->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		mail->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		mail->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		mail->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		mail->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
 	}
 
 	/***********************************************************************/
@@ -566,10 +542,6 @@ void sbbs_read_ini(
 
 		services->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		services->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		services->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		services->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		services->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		services->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
 	}
 
 	/***********************************************************************/
@@ -655,10 +627,6 @@ void sbbs_read_ini(
 
 		web->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		web->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		web->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		web->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		web->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		web->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
 	}
 
 	iniFreeStringList(list);
@@ -707,18 +675,42 @@ BOOL sbbs_write_ini(
 	if(global!=&global_buf) {
 		section = "Global";
 
-		iniSetString(lp,section,strCtrlDirectory,global->ctrl_dir,&style);
-		iniSetString(lp,section,strTempDirectory,global->temp_dir,&style);
-		iniSetString(lp,section,strHostName,global->host_name,&style);
-		iniSetShortInt(lp,section,strSemFileCheckFrequency,global->sem_chk_freq,&style);
-		iniSetIpAddress(lp,section,strInterface,global->interface_addr,&style);
-		iniSetLogLevel(lp,section,strLogLevel,global->log_level,&style);
-		iniSetInteger(lp,section,strBindRetryCount,global->bind_retry_count,&style);
-		iniSetInteger(lp,section,strBindRetryDelay,global->bind_retry_delay,&style);
-		iniSetInteger(lp,section,strLoginAttemptDelay,global->login_attempt_delay,&style);
-		iniSetInteger(lp,section,strLoginAttemptThrottle,global->login_attempt_throttle,&style);
-		iniSetInteger(lp,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold,&style);
-		iniSetInteger(lp,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold,&style);
+		if(global->ctrl_dir[0]==0)
+			iniRemoveKey(lp,section,strCtrlDirectory);
+		else
+			iniSetString(lp,section,strCtrlDirectory,global->ctrl_dir,&style);
+
+		if(global->temp_dir[0]==0)
+			iniRemoveKey(lp,section,strTempDirectory);
+		else
+			iniSetString(lp,section,strTempDirectory,global->temp_dir,&style);
+
+		if(global->host_name[0]==0)
+			iniRemoveKey(lp,section,strHostName);
+		else
+			iniSetString(lp,section,strHostName,global->host_name,&style);
+	
+		if(global->sem_chk_freq==0)
+			iniRemoveKey(lp,section,strSemFileCheckFrequency);
+		else
+			iniSetShortInt(lp,section,strSemFileCheckFrequency,global->sem_chk_freq,&style);
+		if(global->interface_addr==INADDR_ANY)
+			iniRemoveKey(lp,section,strInterface);
+		else
+			iniSetIpAddress(lp,section,strInterface,global->interface_addr,&style);
+		if(global->log_level==DEFAULT_LOG_LEVEL)
+			iniRemoveKey(lp,section,strLogLevel);
+		else
+			iniSetLogLevel(lp,section,strLogLevel,global->log_level,&style);
+
+		if(global->bind_retry_count==DEFAULT_BIND_RETRY_COUNT)
+			iniRemoveKey(lp,section,strBindRetryCount);
+		else
+			iniSetInteger(lp,section,strBindRetryCount,global->bind_retry_count,&style);
+		if(global->bind_retry_delay==DEFAULT_BIND_RETRY_DELAY)
+			iniRemoveKey(lp,section,strBindRetryDelay);
+		else
+			iniSetInteger(lp,section,strBindRetryDelay,global->bind_retry_delay,&style);
 
 		/* JavaScript operating parameters */
 		if(!sbbs_set_js_settings(lp,section,&global->js,NULL,&style))
