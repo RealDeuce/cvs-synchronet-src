@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.39 2011/10/19 02:42:56 deuce Exp $ */
+/* $Id: filewrap.c,v 1.37 2010/03/09 03:23:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,11 +278,11 @@ int DLLCALL unlock(int file, off_t offset, off_t size)
 #endif	/* !Unix && (MSVC || MinGW) */
 
 #ifdef __unix__
-FILE *_fsopen(const char *pszFilename, const char *pszMode, int shmode)
+FILE *_fsopen(char *pszFilename, char *pszMode, int shmode)
 {
 	int file;
 	int Mode=0;
-	const char *p;
+	char *p;
 	
 	for(p=pszMode;*p;p++)  {
 		switch (*p)  {
