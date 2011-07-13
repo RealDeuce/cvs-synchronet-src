@@ -29,6 +29,10 @@ C translation Copyright 2009 Stephen Hurd
 #include <stdbool.h>
 #include <inttypes.h>
 
+#include "IO.h"
+#include "Config.h"
+#include "Status.h"
+
 #include "macros.h"
 #include "files.h"
 #include "structs.h"
@@ -38,21 +42,21 @@ C translation Copyright 2009 Stephen Hurd
 
 static const char *name="Alchemist Store";
 static const char *expert_prompt="(B,S,T,R,?)";
-static void Failed_Quest(uint8_t level)
+static void Failed_Quest(int level)
 {
 	char *str;
 
-	if(asprintf(&str, " %s%s%s failed the %s test for the Secret Order.",uplc, player->name2, config.textcol1, commastr(level))<0)
+	if(asprintf(&str, " %s%s%s failed the %s test for the Secret Order.", config.plycolor, player->name2, config.textcolor, commastr(level))<0)
 		CRASH;
 
 	newsy(true, "Failed Challenge!", str, NULL);
 	free(str);
 
-	pbreak();
+	nl();
 	BAD("Oh No! You have failed the test! You may try again tomorrow...");
-	pbreak();
+	nl();
 	player->allowed=false;
-	reduce_player_resurrections(player, true);
+	Reduce_Player_Resurrections(player, true);
 	upause();
 	halt();
 }
@@ -60,7 +64,7 @@ static void Failed_Quest(uint8_t level)
 /*
  * Returns a string with info on how strong the current poison is
  */
-static const char *Alchemist_Poison(const struct player *rec)
+const char *Alchemist_Poison(const struct player *rec)
 {
 	if(rec->poison  > 80)
 		return "Deadly";
@@ -73,23 +77,23 @@ static const char *Alchemist_Poison(const struct player *rec)
 	return "None";
 }
 
-static void Meny()
+static void Meny(void *cbdata)
 {
-	newscreen();
-	pbreak();
+	clr();
+	nl();
 	HEADER("-*- Alchemists Heaven -*-");
-	pbreak();
+	nl();
 	TEXT("Scarred by the tooth of time, the old cottage doesn't look like "	// Added "like" at end
 		"much. Usilama the once so proud Druid is now the shopkeeper "
 		"of the Alchemists Heaven. Here you can buy the stuff "
 		"you need for expanding your knowledge of your profession. "
 		"Recipes can be learned and practiced. Always remember that "
 		"your skills as an Alchemist can be expanded beyond belief...");
-	pbreak();
+	nl();
 
-	dlc(config.textcolor, "Poison currently affecting your weapon : ", config.highlightcolor, Alchemist_Poison(player), D_DONE);
+	DL(config.textcolor, "Poison currently affecting your weapon : ", config.highlightcolor, Alchemist_Poison(player));
 
-	pbreak();
+	nl();
 	menu("(B)uy Poison");
 	menu("(T)he Secret Order");
 	menu("(S)tatus");
@@ -102,30 +106,30 @@ static void Join_Order(void)
 	struct monster	mon;
 	struct monster	*monsters[2]={&mon, NULL};
 
-	pbreak();
-	dlc(config.plycolor, "Usilama", config.textcolor, " looks at you very intensly.", D_DONE);
+	nl();
+	DL(config.plycolor, "Usilama", config.textcolor, " looks at you very intensly.");
 	SAY("I know that you are not a member of the Secret Order. "
 			"Since you have made some progress in your career, "
 			"an application for membership could be accepted...");
 	upause();
 
-	pbreak();
+	nl();
 	SAY("So you would like to join the secret order? "
 			"You have to pass some tests before you can be approved! "
 			"These tests are very dangerous and can easily have you killed!");
 	upause();
 
-	pbreak();
+	nl();
 	SAY("But if you want to become a member of this powerful order, you should not hesitate. "
 			"The benefits of the brotherhood cannot be measured...!");
 	upause();
 
-	pbreak();
+	nl();
 	if(confirm("Apply for membership",'N')) {
 		// Quest 1
-		pbreak();
+		nl();
 		SAY("Prepare for the first challenge!");
-		pbreak();
+		nl();
 		memset(&mon, 0, sizeof(mon));
 
 		switch(rand_num(3)) {
@@ -181,19 +185,19 @@ static void Join_Order(void)
 			Failed_Quest(2);
 
 		// Quest 2
-		pbreak();
-		pbreak();
+		nl();
+		nl();
 		GOOD("*****************");
 		GOOD("*   WELL DONE!  *");
 		GOOD("*  1st mission  *");
 		GOOD("*    cleared    *");
 		GOOD("*****************");
-		pbreak();
+		nl();
 		upause();
 
-		pbreak();
-		dlc(config.textcolor, "Prepare to face the wicked ", config.monstercolor, "Iceman", config.textcolor, "!", D_DONE);
-		pbreak();
+		nl();
+		DL(config.textcolor, "Prepare to face the wicked ", config.monstercolor, "Iceman", config.textcolor, "!");
+		nl();
 		NOTICE("** You are doing well so far **");
 		upause();
 
@@ -217,33 +221,33 @@ static void Join_Order(void)
 			Failed_Quest(1);
 
 		// Quest 3
-		pbreak();
-		pbreak();
+		nl();
+		nl();
 		GOOD("*****************");
 		GOOD("*   WELL DONE!  *");
 		GOOD("*  2nd mission  *");
 		GOOD("*    cleared    *");
 		GOOD("*****************");
-		pbreak();
+		nl();
 
-		if(asprintf(&str, " %s%s%s has been accepted as a member of the secret order.", uplc, player->name2, config.textcol1)<0)
+		if(asprintf(&str, " %s%s%s has been accepted as a member of the secret order.", config.plycolor, player->name2, config.textcolor)<0)
 			CRASH;
 		newsy(true, "** SECRET ORDER OF ALCHEMY EXPANDS **", str, NULL);
 		free(str);
 
-		pbreak();
+		nl();
 		player->amember=true;
 		user_save(player);
 
 		GOOD("\"WELL DONE! You have been accepted as a member of our secret society. As a member of this order you must follow certain rules. Neglecting to do so will lead to immediate excommunication from the order\".");
-		pbreak();
+		nl();
 		upause();
 	}
 	else {
-		pbreak();
+		nl();
 		TEXT("Usilama looks a bit disappointed.");
 		SAY("Well then, You are welcome to try again later.");
-		pbreak();
+		nl();
 	}
 }
 
@@ -254,8 +258,8 @@ static void Create_Poison(void)
 	int			strength;
 	char		ch;
 
-	pbreak();
-	pbreak();
+	nl();
+	nl();
 	HEADER("Create Poison");
 	TEXT("You can create 5 different poisons :");
 	menu("(1) Stone Breaker      ( 50,000)");
@@ -269,7 +273,7 @@ static void Create_Poison(void)
 		ch=toupper(gchar());
 	} while(strchr("A12345",ch)==NULL);
 
-	pbreak();
+	nl();
 
 	switch(ch) {
 		case '1':
@@ -306,25 +310,85 @@ static void Create_Poison(void)
 			decplayermoney(player,price);
 			
 			GOOD("Ok.");
-			dlc(config.goodcolor, "You are now in possession of the powerful ", config.objectcolor, "poison.");
+			DL(config.goodcolor, "You are now in possession of the powerful ", config.objectcolor, "poison.");
 		}
 		else
 			BAD("You can't afford it!");
 	}
 }
 
+static bool Chamber_Menu(void)
+{
+	char ch;
+	int		x,i;
+
+	if(onliner->location != ONLOC_Mystic) {
+		ch='?';
+		onliner->location = ONLOC_Mystic;
+		strcpy(onliner->doing, location_desc(onliner->location));
+	}
+	else {
+		PART("The Order (E,C,S,U,?) :");
+		ch=toupper(gchar());
+	}
+	switch(ch) {
+		case '?':
+			nl();
+			menu("(E)xamine book");
+			menu("(C)reate poison");
+			menu("(S)tatus");
+			menu("(U)p");
+			break;
+		case 'S':
+			clr();
+			Status(player);
+			break;
+		case 'C':
+			Create_Poison();
+			break;
+		case 'E':
+			nl();
+			nl();
+			TEXT("It's the list of all members");
+			nl();
+			DL(white, "**-- Members of the Order --**");
+			x = 0;
+			for(i=0; i<MAX_PLAYERS; i++) {
+				if(players[i].amember && !players[i].deleted) {
+					x++;
+					PLAYER(players[i].name2);
+					TEXT("");
+				}
+			}
+
+			for(i=0; i<MAX_NPCS; i++) {
+				if(npcs[i].amember && !npcs[i].deleted) {
+					x++;
+					PLAYER(npcs[i].name2);
+					TEXT("");
+				}
+			}
+
+			DL(config.textcolor, "The Order has a total of ", config.highlightcolor, commastr(x), config.textcolor, " members.");
+			break;
+		case 'U':
+			return false;
+	}
+	nl();
+	
+	return true;
+}
+
 static void Enter_Chamber(void)
 {
 	char	ch;
-	int		x,i;
-	char	str[256];
 
 	TEXT("You enter the secret chamber behind the counter. "
 			"You remove the old rug and open the trap-door. "
 			"You set fire to a torch and descend down the staircase...");
-	pbreak();
+	nl();
 	upause();
-	pbreak();
+	nl();
 	TITLE("The Secret Alchemist Order");
 	PART("You are standing in a chamber under the store. "
 			"The stones in the walls are black as night. Some of them have inscriptions on them."
@@ -335,63 +399,17 @@ static void Enter_Chamber(void)
 	TEXT(" is sitting in a rocking-chair. It looks if he's sleeping."
 			"The man is holding a poker in his right hand."
 			"There are two exits from here; up or down.");
-	pbreak();
+	nl();
 
 	ch='?';
 	onliner->location = ONLOC_Mystic;
 	strcpy(onliner->doing, location_desc(onliner->location));
 
-	do {
-		switch(ch) {
-			case '?':
-				pbreak();
-				menu("(E)xamine book");
-				menu("(C)reate poison");
-				menu("(S)tatus");
-				menu("(U)p");
-				break;
-			case 'S':
-				newscreen();
-				status(player);
-				break;
-			case 'C':
-				Create_Poison();
-				break;
-			case 'E':
-				pbreak();
-				pbreak();
-				TEXT("It's the list of all members");
-				pbreak();
-				dl(WHITE, "**-- Members of the Order --**", NULL);
-				x = 0;
-				for(i=0; i<MAX_PLAYERS; i++) {
-					if(players[i].amember && !players[i].deleted) {
-						x++;
-						PLAYER(players[i].name2);
-						TEXT("");
-					}
-				}
-
-				for(i=0; i<MAX_NPCS; i++) {
-					if(npcs[i].amember && !npcs[i].deleted) {
-						x++;
-						PLAYER(npcs[i].name2);
-						TEXT("");
-					}
-				}
-
-				dlc(config.textcolor, "The Order has a total of ", config.highlightcolor, scommastr(str, x), config.textcolor, " members.");
-				break;
-		}
-
-		PART("The Order (E,C,S,U,?) :");
-
-		ch=toupper(gchar());
-	} while(ch != 'U');
-	pbreak();
-	pbreak();
+	while(Chamber_Menu())
+		;
+	nl();
 	TEXT("You leave up...");
-	pbreak();
+	nl();
 	ch=' ';
 }
 
@@ -400,8 +418,8 @@ static void Buy_Poison(void)
 	char	*str;
 	int		x,xx,zz,i;
 
-	newscreen();
-	pbreak();
+	clr();
+	nl();
 	HEADER("Poisons currently available :");
 	HEADER("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-");
 
@@ -410,16 +428,16 @@ static void Buy_Poison(void)
 		if(player->level > x) {
 			x+=5;
 			xx++;
-			if(asprintf(&str, "%s. %.32s", commastr(i), commastr(poison[i].cost))<0)
+			if(asprintf(&str, "%s. %.32s %s", commastr(i+1), poison[i].name, commastr(poison[i].cost))<0)
 				CRASH;
-			dl(BRIGHT_BLUE, str, NULL);
+			DL(lblue, str);
 			free(str);
 		}
 	}
 
-	pbreak();
-	dl(GREY, "Enter number to buy (1-", commastr(xx), ")", NULL);
-	d(GREY, ":", NULL);
+	nl();
+	DL(lgray, "Enter number to buy (1-", commastr(xx), ")");
+	D(lgray, ":");
 
 	zz=get_number(0, xx);
 	if(zz > 0 && zz <= xx) {
@@ -432,17 +450,17 @@ static void Buy_Poison(void)
 				PART("You don't have enough ");
 				PART(config.moneytype);
 				TEXT("!");
-				pbreak();
+				nl();
 				upause();
 			}
 			else {
 				decplayermoney(player, poison[zz].cost);
 				player->poison=poison[zz].strength;
-				pbreak();
+				nl();
 				TEXT("You receive the ingredients for the poison.");
 				TEXT("After a few hours in the laboratory your poison is ready to be tested in the real world!");
-				pbreak();
-				if(asprintf(&str, " %s%s%s, the alchemist, bought poison!", uplc, player->name2, config.textcol1)<0)
+				nl();
+				if(asprintf(&str, " %s%s%s, the alchemist, bought poison!", config.plycolor, player->name2, config.textcolor)<0)
 					CRASH;
 				newsy(true, "Beware!", str, NULL);
 				free(str);
@@ -454,7 +472,7 @@ static void Buy_Poison(void)
 		}
 	}
 	else
-		pbreak();
+		nl();
 }
 
 static bool Menu(bool * refresh)
@@ -467,22 +485,19 @@ static bool Menu(bool * refresh)
 		onliner->location = ONLOC_Alchemist;
 		strcpy(onliner->doing, location_desc(onliner->location));
 	}
-	Display_Menu(true, true, refresh, name, expert_prompt, Meny);
+	Display_Menu(true, true, refresh, name, expert_prompt, Meny, NULL);
 
 	switch((ch=toupper(gchar()))) {
 		case '?':	// Display Menu
-			if(player->expert)
-				Display_Menu(true, false, refresh, name, expert_prompt, Meny);
-			else
-				Display_Menu(false, false, refresh, name, expert_prompt, Meny);
+			Display_Menu(player->expert, false, refresh, name, expert_prompt, Meny, NULL);
 			break;
 		case 'S':	// Status
-			newscreen();
-			status(player);
+			clr();
+			Status(player);
 			break;
 		case 'T':	// The Secret Order
-			pbreak();
-			pbreak();
+			nl();
+			nl();
 			if(player->level < 10) {
 				PLAYER("Usilama");
 				TEXT(" looks at you.");
@@ -509,7 +524,6 @@ static bool Menu(bool * refresh)
 
 void Alchemisty(void)
 {
-	char	ch;
 	bool	refresh=true;
 
 	while(Menu(&refresh))
