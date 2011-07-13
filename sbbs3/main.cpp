@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.545 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: main.cpp,v 1.550 2011/04/27 22:59:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -76,11 +76,11 @@
 	#define	SSH_END()
 #endif
 
-time_t	uptime=0;
-DWORD	served=0;
+volatile time_t	uptime=0;
+volatile ulong	served=0;
 
-static	ulong node_threads_running=0;
-static	ulong thread_count=0;
+static	volatile ulong node_threads_running=0;
+static	volatile ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
 RingBuf* node_inbuf[MAX_NODES];
@@ -294,7 +294,7 @@ static BOOL winsock_startup(void)
 
 DLLEXPORT void DLLCALL sbbs_srand()
 {
-	DWORD seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
+	DWORD seed;
 
 	xp_randomize();
 #if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
@@ -304,6 +304,8 @@ DLLEXPORT void DLLCALL sbbs_srand()
 		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
+#else
+	seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
 #endif
 
  	srand(seed);
@@ -1882,7 +1884,7 @@ void passthru_input_thread(void* arg)
 
 		if(i == 0)
 		{
-			lprintf(LOG_NOTICE,"Node %d passthru disconnected", sbbs->cfg.node_num);
+			lprintf(LOG_NOTICE,"Node %d SSH passthru disconnected", sbbs->cfg.node_num);
 			break;
 		}
 
@@ -4606,15 +4608,15 @@ void DLLCALL bbs_thread(void* arg)
 			/* Couldn't do that... create a new context and use the key from there... */
 
 			if(!cryptStatusOK(i=cryptCreateContext(&ssh_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
-				lprintf(LOG_ERR,"Cryptlib error %d creating context",i);
+				lprintf(LOG_ERR,"SSH Cryptlib error %d creating context",i);
 				goto NO_SSH;
 			}
 			if(!cryptStatusOK(i=cryptSetAttributeString(ssh_context, CRYPT_CTXINFO_LABEL, "ssh_server", 10))) {
-				lprintf(LOG_ERR,"Cryptlib error %d setting key label",i);
+				lprintf(LOG_ERR,"SSH Cryptlib error %d setting key label",i);
 				goto NO_SSH;
 			}
 			if(!cryptStatusOK(i=cryptGenerateKey(ssh_context))) {
-				lprintf(LOG_ERR,"Cryptlib error %d generating key",i);
+				lprintf(LOG_ERR,"SSH Cryptlib error %d generating key",i);
 				goto NO_SSH;
 			}
 
@@ -5028,32 +5030,63 @@ NO_SSH:
 		/* Do SSH stuff here */
 
 		if(ssh) {
+			int	ssh_failed=0;
 			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
-				lprintf(LOG_WARNING,"%04d Cryptlib error %d creating session", client_socket, i);
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d creating session", client_socket, i);
 				close_socket(client_socket);
 				continue;
 			}
 			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
-				lprintf(LOG_WARNING,"%04d Cryptlib error %d setting private key",client_socket, i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
-			/* Accept any credentials */
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
-				lprintf(LOG_WARNING,"%04d Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting private key",client_socket, i);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
 			}
 			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
-				lprintf(LOG_WARNING,"%04d Cryptlib error %d setting socket",client_socket, i);
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting socket",client_socket, i);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
 			}
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
-				lprintf(LOG_WARNING,"%04d Cryptlib error %d setting session active",client_socket, i);
+			for(ssh_failed=0; ssh_failed < 2; ssh_failed++) {
+				/* Accept any credentials */
+				if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
+					ssh_failed=1;
+					break;
+				}
+				if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
+					if(i != CRYPT_ENVELOPE_RESOURCE) {
+						ssh_failed=2;
+						break;
+					}
+				}
+				else {
+					ssh_failed=0;
+					break;
+				}
+			}
+			switch(ssh_failed) {
+				case 1:
+					lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
+					break;
+				case 2:
+					switch(i) {
+						case CRYPT_ERROR_BADDATA:
+							lprintf(LOG_NOTICE,"%04d SSH Bad/unrecognized data format", client_socket);
+							break;
+						case CRYPT_ERROR_READ:
+							lprintf(LOG_WARNING,"%04d SSH Read failure", client_socket);
+							break;
+						case CRYPT_ERROR_WRITE:
+							lprintf(LOG_WARNING,"%04d SSH Write failure", client_socket);
+							break;
+						default:
+							lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting session active",client_socket, i);
+							break;
+					}
+					break;
+			}
+			if(ssh_failed) {
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
