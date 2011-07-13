@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.48 2010/03/13 08:15:07 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.52 2011/07/13 09:47:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -135,7 +135,7 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	switch(tiny) {
 		case PROP_TERMINATED:
 			if(branch->terminated!=NULL)
-				JS_ValueToBoolean(cx, *vp, branch->terminated);
+				JS_ValueToBoolean(cx, *vp, (int *)branch->terminated);
 			break;
 		case PROP_AUTO_TERMINATE:
 			JS_ValueToBoolean(cx,*vp,&branch->auto_terminate);
@@ -226,6 +226,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 		return(JS_FALSE);
 	}
 
+#ifndef USE_JS_OPERATION_CALLBACK
 	/* Give up timeslices every once in a while */
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
 		jsrefcount	rc;
@@ -238,6 +239,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
 		JS_MaybeGC(cx), branch->gc_attempts++;
+#endif
 
     return(JS_TRUE);
 }
@@ -254,7 +256,9 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 	JSObject*		obj;
 	JSErrorReporter	reporter;
 #ifndef EVAL_BRANCH_CALLBACK
+#ifndef USE_JS_OPERATION_CALLBACK
 	JSBranchCallback callback;
+#endif
 #endif
 
 	if(argc<1)
@@ -276,12 +280,20 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 #ifdef EVAL_BRANCH_CALLBACK
 	JS_SetContextPrivate(cx, JS_GetPrivate(parent_cx, parent_obj));
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(cx, js_OperationCallback);
+#else
 	JS_SetBranchCallback(cx, js_BranchCallback);
+#endif
 #else	/* Use the branch callback from the parent context */
 	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(cx, JS_GetOperationCallback(parent_cx));
+#else
 	callback=JS_SetBranchCallback(parent_cx,NULL);
 	JS_SetBranchCallback(parent_cx, callback);
 	JS_SetBranchCallback(cx, callback);
+#endif
 #endif
 
 	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL
