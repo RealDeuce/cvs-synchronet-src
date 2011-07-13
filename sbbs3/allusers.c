@@ -1,4 +1,4 @@
-/* $Id: allusers.c,v 1.5 2011/07/13 11:27:37 rswindell Exp $ */
+/* $Id: allusers.c,v 1.4 2011/07/13 09:46:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+
+#include "dirwrap.h"
 
 #include "sbbs.h"
 
