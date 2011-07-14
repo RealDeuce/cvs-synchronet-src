@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.35 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: fixsmb.c,v 1.32 2008/02/24 08:31:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,8 +47,7 @@
 
 smb_t	smb;
 BOOL	renumber=FALSE;
-BOOL	smb_undelete=FALSE;
-char*	usage="usage: fixsmb [-renumber] [-undelete] <smb_file> [[smb_file] [...]]\n";
+char*	usage="usage: fixsmb [-renumber] <smb_file> [[smb_file] [...]]\n";
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
 {
@@ -194,10 +193,7 @@ int fixsmb(char* sub)
 			continue; 
 		}
 		size=smb_hdrblocks(smb_getmsghdrlen(&msg))*SHD_BLOCK_LEN;
-		printf("#%-5"PRIu32" (%06lX) %-25.25s ",msg.hdr.number,l,msg.from);
-
-		if(smb_undelete)
-			msg.hdr.attr&=~MSG_DELETE;
+		printf("#%-5lu (%06lX) %-25.25s ",msg.hdr.number,l,msg.from);
 
 		/* Create hash record */
 		if(msg.hdr.attr&MSG_DELETE)
@@ -274,7 +270,7 @@ int main(int argc, char **argv)
 	int 		i;
 	str_list_t	list;
 
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.32 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -285,8 +281,6 @@ int main(int argc, char **argv)
 		if(argv[i][0]=='-') {
 			if(!stricmp(argv[i],"-renumber"))
 				renumber=TRUE;
-			else if(!stricmp(argv[i],"-undelete"))
-				smb_undelete=TRUE;
 		} else
 			strListPush(&list,argv[i]);
 	}
