@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.44 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.42 2011/03/01 21:46:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ void sbbs_t::nodesync()
 	if(sys_status&SS_USERON) {
 
 		if(thisnode.status==NODE_WFC) {
-			lprintf(LOG_ERR, "Node %d NODE STATUS FIXUP", cfg.node_num);
+			errorlog("NODE STATUS FIXUP");
 			if(getnodedat(cfg.node_num,&thisnode,true)==0) {
 				thisnode.status=NODE_INUSE;
 				putnodedat(cfg.node_num,&thisnode); 
@@ -141,8 +141,8 @@ void sbbs_t::nodesync()
 
 		if(!(sys_status&SS_NEWDAY)) {
 			now=time(NULL);
-			unixtodstr(&cfg,(time32_t)logontime,str);
-			unixtodstr(&cfg,(time32_t)now,today);
+			unixtodstr(&cfg,logontime,str);
+			unixtodstr(&cfg,now,today);
 			if(strcmp(str,today)) { /* New day, clear "today" user vars */
 				sys_status|=SS_NEWDAY;	// So we don't keep doing this over&over
 				resetdailyuserdat(&cfg, &useron,/* write: */true);

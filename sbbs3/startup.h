@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.69 2011/10/28 08:05:34 rswindell Exp $ */
+/* $Id: startup.h,v 1.67 2009/10/25 03:05:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,17 +44,14 @@
 #include "semwrap.h"	/* sem_t */
 #include "ini_file.h"	/* INI_MAX_VALUE_LEN */
 #include "sbbsdefs.h"	/* LOG_* (syslog.h) values */
-#ifndef LINK_LIST_THREADSAFE
-	#define LINK_LIST_THREADSAFE
-#endif
-#include "link_list.h"
 
 typedef struct {
 	ulong	max_bytes;		/* max allocated bytes before garbage collection */
 	ulong	cx_stack;		/* bytes for script execution stack */
-	ulong	time_limit;		/* maximum number of ticks (for infinite loop detection) */
-	ulong	gc_interval;	/* number of ticks between garbage collection attempts */
-	ulong	yield_interval;	/* number of ticks between time-slice yields */
+	ulong	thread_stack;	/* limit of stack size for native execution thread */
+	ulong	branch_limit;	/* maximum number of branches (for infinite loop detection) */
+	ulong	gc_interval;	/* number of branches between garbage collection attempts */
+	ulong	yield_interval;	/* number of branches between time-slice yields */
 	char	load_path[INI_MAX_VALUE_LEN];	/* additional (comma-separated) directories to search for load()ed scripts */
 } js_startup_t;
 
@@ -69,10 +66,6 @@ typedef struct {
 	js_startup_t js;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
-	ulong	login_attempt_delay;
-	ulong	login_attempt_throttle;
-	ulong	login_attempt_hack_threshold;
-	ulong	login_attempt_filter_threshold;
 
 } global_startup_t;
 
@@ -132,13 +125,6 @@ typedef struct {
 
 	/* JavaScript operating parameters */
 	js_startup_t js;
-
-	/* Login Attempt parameters */
-	ulong	login_attempt_delay;
-	ulong	login_attempt_throttle;
-	ulong	login_attempt_hack_threshold;
-	ulong	login_attempt_filter_threshold;
-	link_list_t* login_attempt_list;
 
 } bbs_startup_t;
 
