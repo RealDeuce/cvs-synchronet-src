@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.95 2011/11/02 07:30:38 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.90 2010/03/12 18:24:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -465,7 +465,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 			removecase(msgtmp);
 		else {
 			qlen=(long)flength(msgtmp);
-			qtime=(long)fdate(msgtmp); 
+			qtime=fdate(msgtmp); 
 		}
 
 		CLS;
@@ -549,7 +549,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 			while(!feof(sig)) {
 				if(!fgets(str,sizeof(str),sig))
 					break;
-				l+=fprintf(stream,"%s\r\n",str);
+				fputs(str,stream);
+				l+=strlen(str);	/* byte counter */
 				lines++;		/* line counter */
 			}
 			fclose(sig);
@@ -890,7 +891,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 			else if(toupper(strin[1])=='L') {   /* list message */
 				if(line==lines)
 					free(str[line]);
-				if(lines && text[WithLineNumbersQ][0])
+				if(lines)
 					i=!noyes(text[WithLineNumbersQ]);
 				else
 					i=0;
@@ -1118,7 +1119,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	idxrec_t	idx=msg->idx;
 	time32_t	now32;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
 		return; 
 	}
@@ -1145,7 +1146,6 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 
 	/* Security logging */
 	msg_client_hfields(msg,&client);
-	smb_hfield_str(msg,SENDERSERVER,startup->host_name);
 
 	username(&cfg,usernumber,touser);
 	smb_hfield_str(msg,RECIPIENT,touser);
@@ -1153,7 +1153,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_hfield_str(msg,RECIPIENTEXT,str);
 	msg->idx.to=usernumber;
 
-	now32=time32(NULL);
+	now32=time(NULL);
 	smb_hfield(msg,FORWARDED,sizeof(time32_t),&now32);
 
 
