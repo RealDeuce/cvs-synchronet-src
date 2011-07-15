@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.55 2011/07/21 11:16:09 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.54 2011/07/13 02:55:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -818,14 +818,14 @@ void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 	if(l>=0)							  /* ptr specified */
 		subscan[subnum].ptr=l;
 	else if(l) {						  /* relative ptr specified */
-		getlastmsg(subnum,&last,/* time_t* */NULL);
+		getlastmsg(subnum,&last,0);
 		if(-l>(long)last)
 			subscan[subnum].ptr=0;
 		else
 			subscan[subnum].ptr=last+l; 
 	}
 	else if(reset)
-		getlastmsg(subnum,&(subscan[subnum].ptr),/* time_t* */NULL);
+		getlastmsg(subnum,&(subscan[subnum].ptr),0);
 }
 
 
