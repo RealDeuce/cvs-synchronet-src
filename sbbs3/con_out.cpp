@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.68 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.67 2009/02/27 06:15:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -465,7 +465,7 @@ void sbbs_t::ctrl_a(char x)
 			break;
 		case 'D':   /* Date */
 			now=time(NULL);
-			bputs(unixtodstr(&cfg,(time32_t)now,tmp1));
+			bputs(unixtodstr(&cfg,now,tmp1));
 			break;
 		case ',':   /* Delay 1/10 sec */
 			mswait(100);
