@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.19 2009/03/24 21:27:33 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.20 2009/10/25 03:11:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,6 +77,7 @@ char* SMBCALL smb_hfieldtype(ushort type)
 		case SMB_EXPIRATION:	return("Expiration");
 		case SMB_PRIORITY:		return("Priority");
 		case SMB_COST:			return("Cost");
+		case SMB_EDITOR:		return("Editor");
 		case FORWARDED:			return("Forwarded");
 
 		/* All X-FTN-* are RFC-compliant */
