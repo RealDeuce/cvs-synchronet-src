@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.546 2010/04/30 04:45:20 rswindell Exp $ */
+/* $Id: main.cpp,v 1.551 2011/07/16 02:39:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -76,11 +76,11 @@
 	#define	SSH_END()
 #endif
 
-time_t	uptime=0;
-DWORD	served=0;
+volatile time_t	uptime=0;
+volatile ulong	served=0;
 
-static	ulong node_threads_running=0;
-static	ulong thread_count=0;
+static	volatile ulong node_threads_running=0;
+static	volatile ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
 RingBuf* node_inbuf[MAX_NODES];
@@ -294,7 +294,7 @@ static BOOL winsock_startup(void)
 
 DLLEXPORT void DLLCALL sbbs_srand()
 {
-	DWORD seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
+	DWORD seed;
 
 	xp_randomize();
 #if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
@@ -304,6 +304,8 @@ DLLEXPORT void DLLCALL sbbs_srand()
 		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
+#else
+	seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
 #endif
 
  	srand(seed);
@@ -2234,7 +2236,7 @@ void event_thread(void* arg)
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
 					if(!fmutex(semfile,startup->host_name,24*60*60)) {
-						eprintf(LOG_DEBUG,"%s exists (unpack in process?)", semfile);
+						eprintf(LOG_INFO,"%s exists (unpack in progress?)", semfile);
 						continue;
 					}
 					sbbs->online=ON_LOCAL;
@@ -2257,11 +2259,11 @@ void event_thread(void* arg)
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc;i++) {
-				eprintf(LOG_DEBUG,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
+				eprintf(LOG_INFO,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,24*60*60)) {
-					eprintf(LOG_DEBUG,"%s exists (pack in process?)", semfile);
+					eprintf(LOG_INFO,"%s exists (pack in progress?)", semfile);
 					continue;
 				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
@@ -5028,6 +5030,7 @@ NO_SSH:
 		/* Do SSH stuff here */
 
 		if(ssh) {
+			int	ssh_failed=0;
 			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
 				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d creating session", client_socket, i);
 				close_socket(client_socket);
@@ -5039,24 +5042,51 @@ NO_SSH:
 				close_socket(client_socket);
 				continue;
 			}
-			/* Accept any credentials */
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
-				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
-				cryptDestroySession(sbbs->ssh_session);
-				close_socket(client_socket);
-				continue;
-			}
 			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
 				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting socket",client_socket, i);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
 			}
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
-				if(i==CRYPT_ERROR_BADDATA)
-					lprintf(LOG_NOTICE,"%04d SSH Bad/unrecognised data format", client_socket);
-				else
-					lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting session active",client_socket, i);
+			for(ssh_failed=0; ssh_failed < 2; ssh_failed++) {
+				/* Accept any credentials */
+				if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
+					ssh_failed=1;
+					break;
+				}
+				if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
+					if(i != CRYPT_ENVELOPE_RESOURCE) {
+						ssh_failed=2;
+						break;
+					}
+				}
+				else {
+					ssh_failed=0;
+					break;
+				}
+			}
+			switch(ssh_failed) {
+				case 1:
+					lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
+					break;
+				case 2:
+					switch(i) {
+						case CRYPT_ERROR_BADDATA:
+							lprintf(LOG_NOTICE,"%04d SSH Bad/unrecognized data format", client_socket);
+							break;
+						case CRYPT_ERROR_READ:
+							lprintf(LOG_WARNING,"%04d SSH Read failure", client_socket);
+							break;
+						case CRYPT_ERROR_WRITE:
+							lprintf(LOG_WARNING,"%04d SSH Write failure", client_socket);
+							break;
+						default:
+							lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting session active",client_socket, i);
+							break;
+					}
+					break;
+			}
+			if(ssh_failed) {
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
