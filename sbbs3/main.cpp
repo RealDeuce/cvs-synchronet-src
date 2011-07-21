@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.555 2011/09/14 03:09:44 rswindell Exp $ */
+/* $Id: main.cpp,v 1.551 2011/07/16 02:39:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,11 +110,10 @@ extern "C" {
 
 static bbs_startup_t* startup=NULL;
 
-static const char* status(const char* str)
+static void status(const char* str)
 {
 	if(startup!=NULL && startup->status!=NULL)
 	    startup->status(startup->cbdata,str);
-	return str;
 }
 
 static void update_clients()
@@ -893,26 +892,6 @@ js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_deny(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-    JSString *	str;
-	sbbs_t*		sbbs;
-	jsrefcount	rc;
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	if((str=JS_ValueToString(cx, argv[0]))==NULL)
-	    return(JS_FALSE);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	*rval = BOOLEAN_TO_JSVAL(sbbs->noyes(JS_GetStringBytes(str)));
-	JS_RESUMEREQUEST(cx, rc);
-	return(JS_TRUE);
-}
-
-
-static JSBool
 js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char		instr[81];
@@ -994,13 +973,8 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"confirm",			js_confirm,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("value")
 	,JSDOCSTR("displays a Yes/No prompt and returns <i>true</i> or <i>false</i> "
-		"based on user's confirmation (ala client-side JS, <i>true</i> = yes)")
+		"based on users confirmation (ala client-side JS)")
 	,310
-	},
-	{"deny",			js_deny,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("value")
-	,JSDOCSTR("displays a No/Yes prompt and returns <i>true</i> or <i>false</i> "
-		"based on user's denial (<i>true</i> = no)")
-	,31501
 	},
     {0}
 };
@@ -1337,16 +1311,13 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 
 				if(!(sbbs->telnet_mode&TELNET_MODE_GATE)) {
 					if(command==TELNET_DO || command==TELNET_DONT) {	/* local options */
-						if(sbbs->telnet_local_option[option]==command) 
-							SetEvent(sbbs->telnet_ack_event);
-						else {
+						if(sbbs->telnet_local_option[option]!=command) {
 							sbbs->telnet_local_option[option]=command;
 							sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
 						}
 					} else { /* WILL/WONT (remote options) */ 
-						if(sbbs->telnet_remote_option[option]==command)	
-							SetEvent(sbbs->telnet_ack_event);
-						else {
+						if(sbbs->telnet_remote_option[option]!=command) {	
+						
 							switch(option) {
 								case TELNET_BINARY_TX:
 								case TELNET_ECHO:
@@ -1442,23 +1413,18 @@ void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 	}
 }
 
-bool sbbs_t::request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack)
+void sbbs_t::request_telnet_opt(uchar cmd, uchar opt)
 {
 	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
 		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
-			return true;	/* already set in this mode, do nothing */
+			return;	/* already set in this mode, do nothing */
 		telnet_remote_option[opt]=telnet_opt_ack(cmd);
 	} else {	/* local option */
 		if(telnet_local_option[opt]==telnet_opt_ack(cmd))
-			return true;	/* already set in this mode, do nothing */
+			return;	/* already set in this mode, do nothing */
 		telnet_local_option[opt]=telnet_opt_ack(cmd);
 	}
-	if(waitforack)
-		ResetEvent(telnet_ack_event);
 	send_telnet_cmd(cmd,opt);
-	if(waitforack)
-		return WaitForEvent(telnet_ack_event, waitforack)==WAIT_OBJECT_0;
-	return true;
 }
 
 void input_thread(void *arg)
@@ -2818,7 +2784,7 @@ void event_thread(void* arg)
 
 
 //****************************************************************************
-sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
+sbbs_t::sbbs_t(ushort node_num, DWORD addr, const char* name, SOCKET sd,
 			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
 	char	nodestr[32];
@@ -2914,7 +2880,6 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
     telnet_cmdlen=0;
 	telnet_mode=0;
 	telnet_last_rxch=0;
-	telnet_ack_event=CreateEvent(NULL, /* Manual Reset: */FALSE,/* InitialState */FALSE,NULL);
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
@@ -3302,9 +3267,6 @@ sbbs_t::~sbbs_t()
 	if(!output_thread_running)
 		RingBufDispose(&outbuf);
 
-	if(telnet_ack_event!=NULL)
-		CloseEvent(telnet_ack_event);
-
 	/* Close all open files */
 	if(nodefile!=-1) {
 		close(nodefile);
@@ -3442,12 +3404,14 @@ int sbbs_t::nopen(char *str, int access)
 void sbbs_t::spymsg(const char* msg)
 {
 	char str[512];
+	struct in_addr addr;
 
 	if(cfg.node_num<1)
 		return;
 
+	addr.s_addr=client_addr;
 	SAFEPRINTF4(str,"\r\n\r\n*** Spy Message ***\r\nNode %d: %s [%s]\r\n*** %s ***\r\n\r\n"
-		,cfg.node_num,client_name,inet_ntoa(client_addr.sin_addr),msg);
+		,cfg.node_num,client_name,inet_ntoa(addr),msg);
 	if(startup->node_spybuf!=NULL 
 		&& startup->node_spybuf[cfg.node_num-1]!=NULL) {
 		RingBufWrite(startup->node_spybuf[cfg.node_num-1],(uchar*)str,strlen(str));
@@ -3874,7 +3838,6 @@ void node_thread(void* arg)
 	int				file;
 	uint			curshell=0;
 	node_t			node;
-	ulong			login_attempts;
 	sbbs_t*			sbbs = (sbbs_t*) arg;
 
 	update_clients();
@@ -3893,13 +3856,6 @@ void node_thread(void* arg)
 			lprintf(LOG_ERR,"Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
 	}
 #endif
-
-	if(startup->login_attempt_throttle
-		&& (login_attempts=loginAttempts(startup->login_attempt_list, &sbbs->client_addr)) > 1) {
-		lprintf(LOG_DEBUG,"Node %d Throttling suspicious connection from: %s (%u login attempts)"
-			,sbbs->cfg.node_num, inet_ntoa(sbbs->client_addr.sin_addr), login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
-	}
 
 	if(sbbs->answer()) {
 
@@ -4089,7 +4045,7 @@ void sbbs_t::daily_maint(void)
 		backup(str,sbbs->cfg.mail_backup_level,FALSE);
 	}
 
-	lputs(LOG_INFO,status("Checking for inactive/expired user records..."));
+	lputs(LOG_INFO,"Checking for inactive/expired user records...");
 	lastusernum=lastuser(&sbbs->cfg);
 	for(usernum=1;usernum<=lastusernum;usernum++) {
 
@@ -4182,7 +4138,7 @@ void sbbs_t::daily_maint(void)
 		}
 	}
 
-	lputs(LOG_INFO,status("Purging deleted/expired e-mail"));
+	lputs(LOG_INFO,"Purging deleted/expired e-mail");
 	SAFEPRINTF(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
 	sbbs->smb.retry_time=sbbs->cfg.smb_retry_time;
 	sbbs->smb.subnum=INVALID_SUB;
@@ -4205,7 +4161,6 @@ void sbbs_t::daily_maint(void)
 		sbbs->external(sbbs->cmdstr(sbbs->cfg.sys_daily,nulstr,nulstr,NULL)
 			,EX_OFFLINE); 
 	}
-	status(STATUS_WFC);
 }
 
 const char* DLLCALL js_ver(void)
@@ -4721,7 +4676,7 @@ void DLLCALL bbs_thread(void* arg)
 NO_SSH:
 #endif
 
-	sbbs = new sbbs_t(0, server_addr
+	sbbs = new sbbs_t(0, server_addr.sin_addr.s_addr
 		,"Terminal Server", telnet_socket, &scfg, text, NULL);
     sbbs->online = 0;
 	if(sbbs->init()==false) {
@@ -4732,7 +4687,7 @@ NO_SSH:
 	_beginthread(output_thread, 0, sbbs);
 
 	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
-		events = new sbbs_t(0, server_addr
+		events = new sbbs_t(0, server_addr.sin_addr.s_addr
 			,"BBS Events", INVALID_SOCKET, &scfg, text, NULL);
 		events->online = 0;
 		if(events->init()==false) {
@@ -5259,7 +5214,7 @@ NO_SSH:
 
         node_socket[i-1]=client_socket;
 
-		sbbs_t* new_node = new sbbs_t(i, client_addr, host_name
+		sbbs_t* new_node = new sbbs_t(i, client_addr.sin_addr.s_addr, host_name
         	,client_socket
 			,&scfg, text, &client);
 
