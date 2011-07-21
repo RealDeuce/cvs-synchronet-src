@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.159 2011/11/03 21:47:02 deuce Exp $ */
+/* $Id: jsexec.c,v 1.140 2011/04/27 22:48:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,14 +52,14 @@
 #define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
 
-js_startup_t	startup;
 JSRuntime*	js_runtime;
 JSContext*	js_cx;
 JSObject*	js_glob;
-js_callback_t	cb;
+js_branch_t	branch;
 scfg_t		scfg;
 ulong		js_max_bytes=JAVASCRIPT_MAX_BYTES;
 ulong		js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
+ulong		stack_limit=JAVASCRIPT_THREAD_STACK;
 FILE*		confp;
 FILE*		errfp;
 FILE*		nulfp;
@@ -111,7 +111,8 @@ void usage(FILE* fp)
 #endif
 		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
-		"\t-t<limit>      set time limit (default=%u, 0=unlimited)\n"
+		"\t-S<bytes>      set thread stack limit (default=%u, 0=unlimited)\n"
+		"\t-b<limit>      set branch limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
@@ -132,7 +133,8 @@ void usage(FILE* fp)
 		"\t-!             wait for keypress (pause) on error\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
-		,JAVASCRIPT_TIME_LIMIT
+		,JAVASCRIPT_THREAD_STACK
+		,JAVASCRIPT_BRANCH_LIMIT
 		,JAVASCRIPT_YIELD_INTERVAL
 		,JAVASCRIPT_GC_INTERVAL
 		,DEFAULT_LOG_LEVEL
@@ -284,56 +286,42 @@ void bail(int code)
 }
 
 static JSBool
-js_log(JSContext *cx, uintN argc, jsval *arglist)
+js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 	jsrefcount	rc;
-	char		*logstr;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
-		if(!JS_ValueToInt32(cx,argv[i++],&level))
-			return JS_FALSE;
-	}
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
+		JS_ValueToInt32(cx,argv[i++],&level);
 
 	for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, logstr, NULL);
-		if(logstr==NULL)
-			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
-		lprintf(level,"%s",logstr);
+		lprintf(level,"%s",JS_GetStringBytes(str));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
-	if(logstr==NULL)
-		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	if(str==NULL)
+		*rval = JSVAL_VOID;
 	else
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+		*rval = STRING_TO_JSVAL(str);
 
     return(JS_TRUE);
 }
 
 static JSBool
-js_read(JSContext *cx, uintN argc, jsval *arglist)
+js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*	buf;
 	int		rd;
 	int32	len=128;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
 
@@ -342,26 +330,21 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(rd>=0)
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd)));
+		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd));
 
     return(JS_TRUE);
 }
 
 static JSBool
-js_readln(JSContext *cx, uintN argc, jsval *arglist)
+js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*	buf;
 	char*	p;
 	int32	len=128;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 	if((buf=alloca(len+1))==NULL)
 		return(JS_TRUE);
 
@@ -370,49 +353,40 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(p!=NULL)
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p))));
+		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p)));
 
     return(JS_TRUE);
 }
 
 
 static JSBool
-js_write(JSContext *cx, uintN argc, jsval *arglist)
+js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
 	jsrefcount	rc;
-	char		*line;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
     for (i = 0; i < argc; i++) {
-		if((str=JS_ValueToString(cx, argv[0]))==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 		    return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, line, NULL);
-		if(line==NULL)
-			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
-		fprintf(confp,"%s",line);
+		fprintf(confp,"%s",JS_GetStringBytes(str));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
-		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+		*rval = JSVAL_VOID;
 	else
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+		*rval = STRING_TO_JSVAL(str);
     return(JS_TRUE);
 }
 
 static JSBool
-js_writeln(JSContext *cx, uintN argc, jsval *arglist)
+js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if(!js_write(cx,argc,arglist))
+	if(!js_write(cx,obj,argc,argv,rval))
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -422,13 +396,10 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_printf(JSContext *cx, uintN argc, jsval *arglist)
+js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
 	char* p;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((p = js_sprintf(cx, 0, argc, argv))==NULL) {
 		JS_ReportError(cx,"js_sprintf failed");
@@ -439,7 +410,7 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 	fprintf(confp,"%s",p);
 	JS_RESUMEREQUEST(cx, rc);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p)));
+	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p));
 
 	js_sprintf_free(p);
 
@@ -447,106 +418,62 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_alert(JSContext *cx, uintN argc, jsval *arglist)
+js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
+    JSString *	str;
 	jsrefcount	rc;
-	char		*line;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	JSVALUE_TO_STRING(cx, argv[0], line, NULL);
-	if(line==NULL)
+	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	fprintf(confp,"!%s\n",line);
+	fprintf(confp,"!%s\n",JS_GetStringBytes(str));
 	JS_RESUMEREQUEST(cx, rc);
 
-	JS_SET_RVAL(cx, arglist, argv[0]);
+	*rval = argv[0];
 
     return(JS_TRUE);
 }
 
 static JSBool
-js_confirm(JSContext *cx, uintN argc, jsval *arglist)
+js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
 	char	 *	cstr;
-	char     *	p;
 	jsrefcount	rc;
-	char		instr[81]="y";
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
-	printf("%s (Y/n)? ", cstr);
+	cstr = JS_GetStringBytes(str);
 	rc=JS_SUSPENDREQUEST(cx);
-	fgets(instr,sizeof(instr),stdin);
+	printf("%s (Y/N)?", cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
-	p=instr;
-	SKIP_WHITESPACE(p);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(tolower(*p)!='n'));
+	*rval = BOOLEAN_TO_JSVAL(FALSE);
 	return(JS_TRUE);
 }
 
 static JSBool
-js_deny(JSContext *cx, uintN argc, jsval *arglist)
+js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
-    JSString *	str;
-	char	 *	cstr;
-	char     *	p;
-	jsrefcount	rc;
 	char		instr[81];
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if((str=JS_ValueToString(cx, argv[0]))==NULL)
-	    return(JS_FALSE);
-
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
-	printf("%s (N/y)? ", cstr);
-	rc=JS_SUSPENDREQUEST(cx);
-	fgets(instr,sizeof(instr),stdin);
-	JS_RESUMEREQUEST(cx, rc);
-
-	p=instr;
-	SKIP_WHITESPACE(p);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(tolower(*p)!='y'));
-	return(JS_TRUE);
-}
-
-static JSBool
-js_prompt(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	char		instr[81];
+    JSString *	prompt;
     JSString *	str;
 	jsrefcount	rc;
-	char		*prstr;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if(argc>0 && !JSVAL_IS_VOID(argv[0])) {
-		JSVALUE_TO_STRING(cx, argv[0], prstr, NULL);
-		if(prstr==NULL)
+	if(!JSVAL_IS_VOID(argv[0])) {
+		if((prompt=JS_ValueToString(cx, argv[0]))==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
-		fprintf(confp,"%s: ",prstr);
+		fprintf(confp,"%s: ",JS_GetStringBytes(prompt));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], prstr, NULL);
-		if(prstr==NULL)
+		if((str=JS_ValueToString(cx, argv[1]))==NULL)
 		    return(JS_FALSE);
-		SAFECOPY(instr,prstr);
+		SAFECOPY(instr,JS_GetStringBytes(str));
 	} else
 		instr[0]=0;
 
@@ -560,43 +487,38 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_NewStringCopyZ(cx, truncnl(instr)))==NULL)
 	    return(JS_FALSE);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	*rval = STRING_TO_JSVAL(str);
     return(JS_TRUE);
 }
 
 static JSBool
-js_chdir(JSContext *cx, uintN argc, jsval *arglist)
+js_chdir(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
 
-	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
-	if(p==NULL) {
-		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
+	if((p=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) {
+		*rval = INT_TO_JSVAL(-1);
 		return(JS_TRUE);
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(chdir(p)==0));
+	*rval = BOOLEAN_TO_JSVAL(chdir(p)==0);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
 static JSBool
-js_putenv(JSContext *cx, uintN argc, jsval *arglist)
+js_putenv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p=NULL;
+	char*		p;
 
-	if(argc)
-		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
-	if(p==NULL) {
-		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
+	if((p=JS_GetStringBytes(JS_ValueToString(cx, argv[0])))==NULL) {
+		*rval = INT_TO_JSVAL(-1);
 		return(JS_TRUE);
 	}
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putenv(strdup(p))==0));
+	*rval = BOOLEAN_TO_JSVAL(putenv(p)==0);
 	return(JS_TRUE);
 }
 
@@ -611,7 +533,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"alert",			js_alert,			1},
 	{"prompt",			js_prompt,			1},
 	{"confirm",			js_confirm,			1},
-	{"deny",			js_deny,			1},
 	{"chdir",			js_chdir,			1},
 	{"putenv",			js_putenv,			1},
     {0}
@@ -659,15 +580,23 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static JSBool
+js_BranchCallback(JSContext *cx, JSScript *script)
+{
+    return(js_CommonBranchCallback(cx,&branch));
+}
+
+#ifdef USE_JS_OPERATION_CALLBACK
+static JSBool
 js_OperationCallback(JSContext *cx)
 {
 	JSBool	ret;
 
 	JS_SetOperationCallback(cx, NULL);
-	ret=js_CommonOperationCallback(cx, &cb);
+	ret=js_BranchCallback(cx, NULL);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 	return ret;
 }
+#endif
 
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 {
@@ -701,6 +630,8 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 
 static BOOL js_init(char** environ)
 {
+	js_startup_t	startup;
+
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
 
@@ -719,16 +650,19 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 	JS_BEGINREQUEST(js_cx);
 
+	if(stack_limit)
+		fprintf(statfp,"JavaScript: Thread stack limit: %lu bytes\n"
+			,stack_limit);
+
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
-	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
+	if((js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
-		,&cb,&startup						/* js */
+		,&branch,&startup						/* js */
 		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
-		,&js_glob
-		)) {
+		))==NULL) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -761,6 +695,7 @@ static const char* js_ext(const char* fname)
 
 long js_exec(const char *fname, char** args)
 {
+	ulong		stack_frame;
 	int			argc=0;
 	uint		line_no;
 	char		path[MAX_PATH+1];
@@ -769,7 +704,7 @@ long js_exec(const char *fname, char** args)
 	size_t		len;
 	char*		js_buf=NULL;
 	size_t		js_buflen;
-	JSObject*	js_script=NULL;
+	JSScript*	js_script=NULL;
 	JSString*	arg;
 	JSObject*	argv;
 	FILE*		fp=stdin;
@@ -803,6 +738,15 @@ long js_exec(const char *fname, char** args)
 		}
 	}
 	JS_ClearPendingException(js_cx);
+
+	if(stack_limit) {
+#if JS_STACK_GROWTH_DIRECTION > 0
+		stack_frame=((ulong)&stack_frame)+stack_limit;
+#else
+		stack_frame=((ulong)&stack_frame)-stack_limit;
+#endif
+		JS_SetThreadStackLimit(js_cx, stack_frame);
+	}
 
 	argv=JS_NewArrayObject(js_cx, 0, NULL);
 	JS_DefineProperty(js_cx, js_glob, "argv", OBJECT_TO_JSVAL(argv)
@@ -838,9 +782,13 @@ long js_exec(const char *fname, char** args)
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	cb.terminated=&terminated;
+	branch.terminated=&terminated;
 
+#ifdef USE_JS_OPERATION_CALLBACK
 	JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
+	JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 
 	if(fp==stdin) 	 /* Using stdin for script source */
 		SAFECOPY(path,"stdin");
@@ -883,13 +831,10 @@ long js_exec(const char *fname, char** args)
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-		char	*p;
-
-		JSVALUE_TO_STRING(js_cx, rval, p, NULL);
-		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
+		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
-	js_EvalOnExit(js_cx, js_glob, &cb);
+	js_EvalOnExit(js_cx, js_glob, &branch);
 
 	JS_ReportPendingException(js_cx);
 
@@ -897,6 +842,10 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
 			,path
 			,diff);
+
+	JS_DestroyScript(js_cx, js_script);
+
+	JS_GC(js_cx);
 
 	if(js_buf!=NULL)
 		free(js_buf);
@@ -914,7 +863,7 @@ void recycle_handler(int type)
 {
 	lprintf(LOG_NOTICE,"\n-> Recycled Locally (signal: %d)",type);
 	recycled=TRUE;
-	cb.terminated=&recycled;
+	branch.terminated=&recycled;
 }
 
 
@@ -974,12 +923,12 @@ int main(int argc, char **argv, char** environ)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	cb.limit=JAVASCRIPT_TIME_LIMIT;
-	cb.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
-	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
-	cb.auto_terminate=TRUE;
+	branch.limit=JAVASCRIPT_BRANCH_LIMIT;
+	branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
+	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
+	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.159 $", "%*s %s", revision);
+	sscanf("$Revision: 1.140 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1009,17 +958,21 @@ int main(int argc, char **argv, char** environ)
 					if(*p==0) p=argv[++argn];
 					js_cx_stack=strtoul(p,NULL,0);
 					break;
-				case 't':
+				case 'S':
 					if(*p==0) p=argv[++argn];
-					cb.limit=strtoul(p,NULL,0);
+					stack_limit=strtoul(p,NULL,0);
+					break;
+				case 'b':
+					if(*p==0) p=argv[++argn];
+					branch.limit=strtoul(p,NULL,0);
 					break;
 				case 'y':
 					if(*p==0) p=argv[++argn];
-					cb.yield_interval=strtoul(p,NULL,0);
+					branch.yield_interval=strtoul(p,NULL,0);
 					break;
 				case 'g':
 					if(*p==0) p=argv[++argn];
-					cb.gc_interval=strtoul(p,NULL,0);
+					branch.gc_interval=strtoul(p,NULL,0);
 					break;
 				case 'h':
 					if(*p==0)
@@ -1060,7 +1013,7 @@ int main(int argc, char **argv, char** environ)
 					statfp=nulfp;
 					break;
 				case 'x':
-					cb.auto_terminate=FALSE;
+					branch.auto_terminate=FALSE;
 					break;
 				case 'l':
 					loop=TRUE;
@@ -1180,7 +1133,6 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"\n");
 
 		result=js_exec(module,&argv[argn]);
-		JS_RemoveObjectRoot(js_cx, &js_glob);
 		JS_ENDREQUEST(js_cx);
 		YIELD();
 
