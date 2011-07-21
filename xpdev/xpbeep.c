@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.76 2009/01/14 07:06:30 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.78 2011/06/14 07:47:04 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -792,7 +792,7 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 		int written=0;
 
 		while(written < sample_size) {
-			ret=alsa_api->snd_pcm_writei(playback_handle, written, sample_size-written);
+			ret=alsa_api->snd_pcm_writei(playback_handle, sample+written, sample_size-written);
 			if(ret < 0) {
 				if(written==0) {
 					/* Go back and try OSS */
@@ -847,6 +847,19 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 	samples=S_RATE*duration/1000;
 	if(samples<=S_RATE/freq*2)
 		samples=S_RATE/freq*2;
+	if(samples > S_RATE/freq*2) {
+		int sample_len;
+
+		makewave(freq,wave,S_RATE*15/2,shape);
+		for(sample_len=S_RATE*15/2-1; sample_len && wave[sample_len]==128; sample_len--)
+			;
+		sample_len++;
+		while(samples > S_RATE*15/2) {
+			if(!xp_play_sample(wave, sample_len, TRUE))
+				return FALSE;
+			samples -= sample_len;
+		}
+	}
 	makewave(freq,wave,samples,shape);
 	return(xp_play_sample(wave, samples, FALSE));
 }

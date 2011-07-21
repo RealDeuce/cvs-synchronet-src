@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.50 2009/06/28 09:18:02 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.54 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -242,7 +242,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					padfname(tp,fd.name);
 					sprintf(str2,"%sfile/%04u.in/%s"  /* str2 is path/fname */
 						,cfg.data_dir,msg.idx.to,tp);
-					length=flength(str2);
+					length=(long)flength(str2);
 					if(length<1)
 						bputs(text[FileNotFound]);
 					else if(!(useron.exempt&FLAG('T')) && cur_cps && !SYSOP
@@ -251,7 +251,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					else {
 						sprintf(str3,text[DownloadAttachedFileQ]
 							,tp,ultoac(length,tmp));
-						if(length>0L && yesno(str3)) {
+						if(length>0L && text[DownloadAttachedFileQ][0] && yesno(str3)) {
 							{	/* Remote User */
 								xfer_prot_menu(XFER_DOWNLOAD);
 								mnemonics(text[ProtocolOrQuit]);
@@ -340,7 +340,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRT?<>[]{}-+");
+		sprintf(str,"ADKFLNQRT?<>[]{}-+");
 		if(SYSOP)
 			strcat(str,"CUSPH");
 		if(which!=MAIL_YOUR)
@@ -360,8 +360,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 				if(which==MAIL_SENT)
 					break;
-				if((msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP) {
-					bputs(text[CantReplyToAnonMsg]);
+				if((msg.hdr.attr&(MSG_NOREPLY|MSG_ANONYMOUS)) && !SYSOP) {
+					bputs(text[CantReplyToMsg]);
 					break; 
 				}
 
@@ -435,7 +435,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				/* Case 'D': must follow! */
 			case 'D':   /* Delete last piece (toggle) */
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bputs("\r\nPermanent message.\r\n");
+					bputs(text[CantDeleteMsg]);
 					domsg=0;
 					break; 
 				}
@@ -456,6 +456,12 @@ void sbbs_t::readmail(uint usernumber, int which)
 				}
 				if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 				else done=1;
+				break;
+			case 'K':	/* Kill All Mail */
+				SAFEPRINTF(str,text[DeleteMailQ],"everyone");
+				if(!noyes(str))
+					delallmail(usernumber, MAIL_YOUR, /* permanent: */false);
+				domsg=false;
 				break;
 			case 'F':  /* Forward last piece */
 				domsg=0;
@@ -723,13 +729,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	if(smb.msgs)
 		free(mail);
-
-	SAFEPRINTF(str,text[DeleteMailQ],"everyone");
-	if(which==MAIL_YOUR 
-		&& getmail(&cfg, usernumber, /* sent: */FALSE)
-		&& bputs(crlf)
-		&& !noyes(str))
-		delallmail(usernumber, MAIL_YOUR);
 
 	/***************************************/
 	/* Delete messages marked for deletion */
