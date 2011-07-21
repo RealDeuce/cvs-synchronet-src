@@ -1,4 +1,4 @@
-/* $Id: wordwrap.h,v 1.5 2011/11/04 08:39:53 deuce Exp $ */
+/* $Id: wordwrap.h,v 1.3 2010/03/12 18:23:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,16 +34,11 @@
 #ifndef _WORDWRAP_H_
 #define _WORDWRAP_H_
 
-#include "gen_defs.h"	// uint32_t
-
-#define WORDWRAP_FLAG_QUOTES	(1<<0)	// Handle quote prefixes
-#define	WORDWRAP_FLAG_BARELF	(1<<1)	// Treat bare LFs as a line break
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags);
+char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes);
 
 #ifdef __cplusplus
 }
