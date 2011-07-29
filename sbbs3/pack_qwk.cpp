@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.63 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.62 2011/07/21 11:28:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -728,7 +728,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		if(i)
 			errormsg(WHERE,ERR_EXEC,cmdstr(temp_cmd(),packet,tmp2,NULL),i);
 		else
-			lprintf(LOG_ERR, "Couldn't compress QWK packet");
+			errorlog("Couldn't compress QWK packet");
 		return(false); 
 	}
 
