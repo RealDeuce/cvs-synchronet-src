@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related command shell/module routines */
 
-/* $Id: execfile.cpp,v 1.13 2011/08/06 21:12:09 rswindell Exp $ */
+/* $Id: execfile.cpp,v 1.12 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -289,7 +289,6 @@ int sbbs_t::exec_file(csi_t *csi)
 			if(usrlibs) {
 				i=usrdir[curlib][curdir[curlib]];
 				if(cfg.upload_dir!=INVALID_DIR
-					&& !dir_op(i) && !(useron.exempt&FLAG('U'))
 					&& !chk_ar(cfg.dir[i]->ul_ar,&useron,&client))
 					i=cfg.upload_dir; 
 			} else
