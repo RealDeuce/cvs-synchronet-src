@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.54 2011/08/25 07:48:40 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.53 2011/07/21 11:28:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,7 +265,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				}
 			}
 
-			if(useron.etoday>=cfg.level_emailperday[useron.level] && !(useron.exempt&FLAG('M'))
+			if(useron.etoday>=cfg.level_emailperday[useron.level]
 				&& !(useron.rest&FLAG('Q'))) {
 				bputs(text[TooManyEmailsToday]);
 				continue; 
