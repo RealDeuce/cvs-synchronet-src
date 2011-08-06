@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.44 2011/09/10 01:45:21 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.43 2011/03/04 02:46:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,10 +157,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				attr(LIGHTGRAY);
 				CRLF; 
 			}
-			if(cfg.hotkey[i]->cmd[0]=='?')
-				js_execfile(cmdstr(cfg.hotkey[i]->cmd+1,nulstr,nulstr,NULL), /* startup_dir: */NULL, /* scope: */js_glob);
-			else
-				external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
+			external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
 			if(!(sys_status&SS_SPLITP)) {
 				CRLF;
 				RESTORELINE; 
