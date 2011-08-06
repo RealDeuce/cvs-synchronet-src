@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.138 2010/04/02 23:12:02 deuce Exp $ */
+/* $Id: jsexec.c,v 1.140 2011/04/27 22:48:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -715,15 +715,17 @@ long js_exec(const char *fname, char** args)
 	long double	diff;
 
 	if(fname!=NULL) {
-		if(strcspn(fname,"/\\")==strlen(fname)) {
+		if(isfullpath(fname)) {
+			SAFECOPY(path,fname);
+		}
+		else {
 			SAFEPRINTF3(path,"%s%s%s",orig_cwd,fname,js_ext(fname));
 			if(!fexistcase(path)) {
 				SAFEPRINTF3(path,"%s%s%s",scfg.mods_dir,fname,js_ext(fname));
 				if(scfg.mods_dir[0]==0 || !fexistcase(path))
 					SAFEPRINTF3(path,"%s%s%s",scfg.exec_dir,fname,js_ext(fname));
 			}
-		} else
-			SAFECOPY(path,fname);
+		}
 
 		if(!fexistcase(path)) {
 			lprintf(LOG_ERR,"!Module file (%s) doesn't exist",path);
@@ -926,7 +928,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.138 $", "%*s %s", revision);
+	sscanf("$Revision: 1.140 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1132,6 +1134,7 @@ int main(int argc, char **argv, char** environ)
 
 		result=js_exec(module,&argv[argn]);
 		JS_ENDREQUEST(js_cx);
+		YIELD();
 
 		if(result)
 			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
