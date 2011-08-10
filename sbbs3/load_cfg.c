@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.62 2011/10/24 17:25:39 deuce Exp $ */
+/* $Id: load_cfg.c,v 1.60 2010/04/01 21:16:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +49,8 @@ int 	lprintf(int level, const char *fmt, ...);	/* log output */
 BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 {
 	int		i;
-#ifdef SBBS
 	long	line=0L;
+#ifdef SBBS
 	FILE 	*instream;
 	char	str[256],fname[13];
 #endif
@@ -357,7 +357,7 @@ static void free_attr_cfg(scfg_t* cfg)
 	cfg->total_colors=0;
 }
 
-char* DLLCALL prep_dir(const char* base, char* path, size_t buflen)
+char* DLLCALL prep_dir(char* base, char* path, size_t buflen)
 {
 #ifdef __unix__
 	char	*p;
