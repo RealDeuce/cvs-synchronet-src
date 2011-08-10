@@ -2,7 +2,7 @@
 
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.11 2011/09/01 02:37:12 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.10 2009/01/15 08:02:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,7 @@
 #endif
 
 typedef struct _PACK {				/* Fidonet Packet Header				*/
-    int16_t orignode,				/* Origination Node of Packet			*/
+    int16_t orignode,					/* Origination Node of Packet			*/
           destnode,					/* Destination Node of Packet			*/
           year,						/* Year of Packet Creation e.g. 1995	*/
           month,					/* Month of Packet Creation 0-11		*/
@@ -92,7 +92,7 @@ typedef struct _PACK {				/* Fidonet Packet Header				*/
     uchar prodcode,					/* Product Code (00h is Fido)			*/
           sernum,					/* Binary Serial Number or NULL			*/
           password[FIDO_PASS_LEN];	/* Session Password or NULL				*/
-    int16_t origzone,				/* Origination Zone of Packet or NULL	*/
+    int16_t origzone,					/* Origination Zone of Packet or NULL	*/
           destzone;					/* Destination Zone of Packet or NULL	*/
 	union {							
 		char padding[20];			/* Fill Characters (Type 2.0)			*/
