@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.94 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.91 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -465,7 +465,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 			removecase(msgtmp);
 		else {
 			qlen=(long)flength(msgtmp);
-			qtime=(long)fdate(msgtmp); 
+			qtime=fdate(msgtmp); 
 		}
 
 		CLS;
@@ -1119,7 +1119,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	idxrec_t	idx=msg->idx;
 	time32_t	now32;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
 		bputs(text[TooManyEmailsToday]);
 		return; 
 	}
@@ -1146,7 +1146,6 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 
 	/* Security logging */
 	msg_client_hfields(msg,&client);
-	smb_hfield_str(msg,SENDERSERVER,startup->host_name);
 
 	username(&cfg,usernumber,touser);
 	smb_hfield_str(msg,RECIPIENT,touser);
@@ -1154,7 +1153,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_hfield_str(msg,RECIPIENTEXT,str);
 	msg->idx.to=usernumber;
 
-	now32=time32(NULL);
+	now32=time(NULL);
 	smb_hfield(msg,FORWARDED,sizeof(time32_t),&now32);
 
 
