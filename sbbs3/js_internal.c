@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.55 2011/08/31 22:01:27 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.53 2011/08/12 23:26:17 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,9 +38,7 @@
 #include "sbbs.h"
 #include "js_request.h"
 
-#ifdef _DEBUG
-	#include <jscntxt.h>	/* Needed for Context-private data structure */
-#endif
+#include <jscntxt.h>	/* Needed for Context-private data structure */
 
 enum {
 	 PROP_VERSION
@@ -448,8 +446,7 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 
 	strListFree(&branch->exit_func);
 
-	if(auto_terminate)
-		branch->auto_terminate = TRUE;
+	branch->auto_terminate = auto_terminate;
 }
 
 JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch, js_startup_t* startup)
