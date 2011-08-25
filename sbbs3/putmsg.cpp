@@ -2,7 +2,7 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.22 2010/03/08 10:27:14 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.23 2010/11/19 06:36:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,8 +101,8 @@ char sbbs_t::putmsg(const char *str, long mode)
 			// exatr=1;
 			l+=4; 
 		}
-		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit(str[l+1])
-			&& isdigit(str[l+2]) && !(useron.misc&(RIP|WIP))) {
+		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit((unsigned char)str[l+1])
+			&& isdigit((unsigned char)str[l+2]) && !(useron.misc&(RIP|WIP))) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			i=atoi(tmp2);
 			if(i>=16) { 				/* setting background */
@@ -174,7 +174,7 @@ char sbbs_t::putmsg(const char *str, long mode)
 			exatr=1;
 			l+=2;	/* Skip |x */
 		}  /* Skip second digit if it exists */
-		else if(cfg.sys_misc&SM_WWIV && str[l]==CTRL_C && isdigit(str[l+1])) {
+		else if(cfg.sys_misc&SM_WWIV && str[l]==CTRL_C && isdigit((unsigned char)str[l+1])) {
 			exatr=1;
 			switch(str[l+1]) {
 				default:
