@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.50 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: email.cpp,v 1.52 2011/08/25 07:48:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -64,7 +64,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	SAFECOPY(title,subj);
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -92,7 +92,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	if(l&NETMAIL && cfg.sys_misc&SM_FWDTONET) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
 		bprintf(text[UserNetMail],str);
-		if(yesno(text[ForwardMailQ])) /* Forward to netmail address */
+		if(text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
 			return(netmail(str,subj,mode));
 	}
 	bprintf(text[Emailing],username(&cfg,usernumber,tmp),usernumber);

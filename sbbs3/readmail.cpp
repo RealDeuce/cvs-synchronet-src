@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.53 2010/03/10 08:04:20 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.55 2011/08/25 19:24:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -251,7 +251,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					else {
 						sprintf(str3,text[DownloadAttachedFileQ]
 							,tp,ultoac(length,tmp));
-						if(length>0L && yesno(str3)) {
+						if(length>0L && text[DownloadAttachedFileQ][0] && yesno(str3)) {
 							{	/* Remote User */
 								xfer_prot_menu(XFER_DOWNLOAD);
 								mnemonics(text[ProtocolOrQuit]);
@@ -700,15 +700,24 @@ void sbbs_t::readmail(uint usernumber, int which)
 			case 'U':   /* user edit */
 				msg.hdr.number=msg.idx.number;
 				smb_getmsgidx(&smb,&msg);
-				useredit(which==MAIL_SENT ? msg.idx.to : msg.idx.from);
+				if((which==MAIL_SENT ? msg.idx.to : msg.idx.from) == 0) {
+					bputs(text[UnknownUser]);
+					domsg=false;
+				} else
+					useredit(which==MAIL_SENT ? msg.idx.to : msg.idx.from);
 				break;
 			case 'P':   /* Purge author and all mail to/from */
-				if(noyes(text[AreYouSureQ]))
+				if(noyes(text[UeditDeleteQ]))
 					break;
 				msg.hdr.number=msg.idx.number;
 				smb_getmsgidx(&smb,&msg);
-				purgeuser(msg.idx.from);
-				if(smb.curmsg<smb.msgs-1) smb.curmsg++;
+				if((which==MAIL_SENT ? msg.idx.to : msg.idx.from) == 0) {
+					bputs(text[UnknownUser]);
+					domsg=false;
+				} else {
+					purgeuser(msg.idx.from);
+					if(smb.curmsg<smb.msgs-1) smb.curmsg++;
+				}
 				break;
 			case '?':
 				strcpy(str,which==MAIL_YOUR ? "mailread" : which==MAIL_ALL
