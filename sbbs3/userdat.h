@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.37 2009/10/05 23:40:22 rswindell Exp $ */
+/* $Id: userdat.h,v 1.39 2011/03/01 20:26:37 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,7 @@ DLLEXPORT char* DLLCALL getnmsg(scfg_t* cfg, int node_num);
 DLLEXPORT int	DLLCALL putnmsg(scfg_t* cfg, int num, char *strin);
 
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen, char *dat
-							,BOOL del);
+							,BOOL del, BOOL next);
 
 DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t* cfg, uchar* str, user_t*, client_t*); /* checks access requirements */
 
@@ -104,7 +104,7 @@ DLLEXPORT int	DLLCALL getuserrec(scfg_t*, int usernumber, int start, int length,
 DLLEXPORT int	DLLCALL putuserrec(scfg_t*, int usernumber, int start, uint length, const char *str);
 DLLEXPORT ulong	DLLCALL adjustuserrec(scfg_t*, int usernumber, int start, int length, long adj);
 DLLEXPORT BOOL	DLLCALL logoutuserdat(scfg_t*, user_t*, time_t now, time_t logontime);
-DLLEXPORT void	DLLCALL resetdailyuserdat(scfg_t*, user_t*);
+DLLEXPORT void	DLLCALL resetdailyuserdat(scfg_t*, user_t*, BOOL write);
 DLLEXPORT void	DLLCALL subtract_cdt(scfg_t*, user_t*, long amt);
 DLLEXPORT int	DLLCALL user_rec_len(int offset);
 DLLEXPORT BOOL	DLLCALL can_user_access_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
