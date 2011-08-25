@@ -31,6 +31,7 @@ C translation Copyright 2009 Stephen Hurd
 
 #include "IO.h"
 #include "Config.h"
+#include "Status.h"
 
 #include "macros.h"
 #include "files.h"
@@ -45,7 +46,7 @@ static void Failed_Quest(int level)
 {
 	char *str;
 
-	if(asprintf(&str, " %s%s%s failed the %s test for the Secret Order.", config.plycolor, player->name2, config.textcol1, commastr(level))<0)
+	if(asprintf(&str, " %s%s%s failed the %s test for the Secret Order.", config.plycolor, player->name2, config.textcolor, commastr(level))<0)
 		CRASH;
 
 	newsy(true, "Failed Challenge!", str, NULL);
@@ -55,7 +56,7 @@ static void Failed_Quest(int level)
 	BAD("Oh No! You have failed the test! You may try again tomorrow...");
 	nl();
 	player->allowed=false;
-	reduce_player_resurrections(player, true);
+	Reduce_Player_Resurrections(player, true);
 	upause();
 	halt();
 }
@@ -229,7 +230,7 @@ static void Join_Order(void)
 		GOOD("*****************");
 		nl();
 
-		if(asprintf(&str, " %s%s%s has been accepted as a member of the secret order.", config.plycolor, player->name2, config.textcol1)<0)
+		if(asprintf(&str, " %s%s%s has been accepted as a member of the secret order.", config.plycolor, player->name2, config.textcolor)<0)
 			CRASH;
 		newsy(true, "** SECRET ORDER OF ALCHEMY EXPANDS **", str, NULL);
 		free(str);
@@ -459,7 +460,7 @@ static void Buy_Poison(void)
 				TEXT("You receive the ingredients for the poison.");
 				TEXT("After a few hours in the laboratory your poison is ready to be tested in the real world!");
 				nl();
-				if(asprintf(&str, " %s%s%s, the alchemist, bought poison!", config.plycolor, player->name2, config.textcol1)<0)
+				if(asprintf(&str, " %s%s%s, the alchemist, bought poison!", config.plycolor, player->name2, config.textcolor)<0)
 					CRASH;
 				newsy(true, "Beware!", str, NULL);
 				free(str);

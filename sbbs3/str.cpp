@@ -2,13 +2,13 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.62 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: str.cpp,v 1.65 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -149,7 +149,7 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 		answers[0]=0;
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if((buf=(char *)malloc(length))==0) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length);
@@ -250,15 +250,15 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 				cr=1;
 				m++; 
 			}
-			if(isdigit(buf[m+1])) {
+			if(isdigit((uchar)buf[m+1])) {
 				max=buf[++m]&0xf;
-				if(isdigit(buf[m+1]))
+				if(isdigit((uchar)buf[m+1]))
 					max=max*10+(buf[++m]&0xf); 
 			}
-			if(buf[m+1]=='.' && isdigit(buf[m+2])) {
+			if(buf[m+1]=='.' && isdigit((uchar)buf[m+2])) {
 				m++;
 				min=buf[++m]&0xf;
-				if(isdigit(buf[m+1]))
+				if(isdigit((uchar)buf[m+1]))
 					min=min*10+(buf[++m]&0xf); 
 			}
 			if(buf[m+1]=='"') {
@@ -316,7 +316,7 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 		answers[0]=0;
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if((buf=(char *)malloc(length))==0) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length);
@@ -396,15 +396,15 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 				cr=1;
 				m++; 
 			}
-			if(isdigit(buf[m+1])) {
+			if(isdigit((uchar)buf[m+1])) {
 				max=buf[++m]&0xf;
-				if(isdigit(buf[m+1]))
+				if(isdigit((uchar)buf[m+1]))
 					max=max*10+(buf[++m]&0xf); 
 			}
-			if(buf[m+1]=='.' && isdigit(buf[m+2])) {
+			if(buf[m+1]=='.' && isdigit((uchar)buf[m+2])) {
 				m++;
 				min=buf[++m]&0xf;
-				if(isdigit(buf[m+1]))
+				if(isdigit((uchar)buf[m+1]))
 					min=min*10+(buf[++m]&0xf); 
 			}
 			if(buf[m+1]=='"') {
@@ -465,7 +465,7 @@ void sbbs_t::read_sif_dat(char *siffile, char *datfile)
 		errormsg(WHERE,ERR_OPEN,datfile,O_RDONLY);
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if(!length) {
 		close(file);
 		return; 
@@ -536,9 +536,9 @@ size_t sbbs_t::gettmplt(char *strout, const char *templt, long mode)
 			}
 		}
 		else if(c<t) {
-			if(tmplt[c]=='N' && !isdigit(ch))
+			if(tmplt[c]=='N' && !isdigit((uchar)ch))
 				continue;
-			if(tmplt[c]=='A' && !isalpha(ch))
+			if(tmplt[c]=='A' && !isalpha((uchar)ch))
 				continue;
 			outchar(ch);
 			str[c++]=ch;
@@ -778,7 +778,7 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 /****************************************************************************/
 void sbbs_t::subinfo(uint subnum)
 {
-	char str[256];
+	char str[MAX_PATH+1];
 
 	bputs(text[SubInfoHdr]);
 	bprintf(text[SubInfoLongName],cfg.sub[subnum]->lname);
@@ -791,7 +791,7 @@ void sbbs_t::subinfo(uint subnum)
 		bprintf(text[SubInfoFidoNet]
 			,cfg.sub[subnum]->origline
 			,smb_faddrtoa(&cfg.sub[subnum]->faddr,str));
-	sprintf(str,"%s%s.msg",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	SAFEPRINTF2(str,"%s%s.msg",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	if(fexist(str) && yesno(text[SubInfoViewFileQ]))
 		printfile(str,0);
 }
@@ -801,7 +801,7 @@ void sbbs_t::subinfo(uint subnum)
 /****************************************************************************/
 void sbbs_t::dirinfo(uint dirnum)
 {
-	char str[256];
+	char str[MAX_PATH+1];
 
 	bputs(text[DirInfoHdr]);
 	bprintf(text[DirInfoLongName],cfg.dir[dirnum]->lname);
@@ -809,7 +809,7 @@ void sbbs_t::dirinfo(uint dirnum)
 	if(cfg.dir[dirnum]->exts[0])
 		bprintf(text[DirInfoAllowedExts],cfg.dir[dirnum]->exts);
 	bprintf(text[DirInfoMaxFiles],cfg.dir[dirnum]->maxfiles);
-	sprintf(str,"%s%s.msg",cfg.dir[dirnum]->data_dir,cfg.dir[dirnum]->code);
+	SAFEPRINTF2(str,"%s%s.msg",cfg.dir[dirnum]->data_dir,cfg.dir[dirnum]->code);
 	if(fexist(str) && yesno(text[DirInfoViewFileQ]))
 		printfile(str,0);
 }
@@ -855,22 +855,25 @@ void sbbs_t::sys_info()
 		bprintf(text[SiSysFaddr],smb_faddrtoa(&cfg.faddr[i],tmp));
 	if(cfg.sys_psname[0])				/* PostLink/PCRelay */
 		bprintf(text[SiSysPsite],cfg.sys_psname,cfg.sys_psnum);
-	bprintf(text[SiSysLocation],cfg.sys_location);
-	bprintf(text[SiSysop],cfg.sys_op);
+	if(cfg.sys_location[0])
+		bprintf(text[SiSysLocation],cfg.sys_location);
+	if(cfg.sys_op[0])
+		bprintf(text[SiSysop],cfg.sys_op);
 	bprintf(text[SiSysNodes],cfg.sys_nodes);
 //	bprintf(text[SiNodeNumberName],cfg.node_num,cfg.node_name);
-	bprintf(text[SiNodePhone],cfg.node_phone);
+	if(cfg.node_phone[0])
+		bprintf(text[SiNodePhone],cfg.node_phone);
 	bprintf(text[SiTotalLogons],ultoac(stats.logons,tmp));
 	bprintf(text[SiLogonsToday],ultoac(stats.ltoday,tmp));
 	bprintf(text[SiTotalTime],ultoac(stats.timeon,tmp));
 	bprintf(text[SiTimeToday],ultoac(stats.ttoday,tmp));
 	ver();
-	if(yesno(text[ViewSysInfoFileQ])) {
+	if(text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
 		CLS;
 		sprintf(tmp,"%ssystem.msg", cfg.text_dir);
 		printfile(tmp,0); 
 	}
-	if(yesno(text[ViewLogonMsgQ])) {
+	if(text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
 		CLS;
 		menu("logon"); 
 	}
