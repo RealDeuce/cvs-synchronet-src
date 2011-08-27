@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.344 2010/03/13 08:20:16 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.349 2011/08/27 21:22:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -135,6 +135,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "filewrap.h"
 #include "datewrap.h"
 #include "sockwrap.h"
+#include "eventwrap.h"
 #include "link_list.h"
 #include "msg_queue.h"
 #include "xpdatetime.h"
@@ -209,7 +210,7 @@ public:
 	uchar	telnet_local_option[0x100];
 	uchar	telnet_remote_option[0x100];
 	void	send_telnet_cmd(uchar cmd, uchar opt);
-	void	request_telnet_opt(uchar cmd, uchar opt);
+	bool	request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack=0);
 
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
@@ -217,6 +218,7 @@ public:
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
 	char	terminal[TELNET_TERM_MAXLEN+1];
+	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
 	char*	event_code;				// Internal code of next exclusive event
@@ -334,7 +336,7 @@ public:
 	char 	temp_uler[31];  /* User who uploaded the files to temp dir */
 	char 	temp_file[41];	/* Origin of extracted temp files */
 	long 	temp_cdt;		/* Credit value of file that was extracted */
-	char 	autohang;		/* Used for auto-hangup after transfer */
+	bool 	autohang;		/* Used for auto-hangup after transfer */
 	size_t 	logcol; 		/* Current column of log file */
 	uint 	criterrs; 		/* Critical error counter */
 
@@ -440,7 +442,7 @@ public:
 	uint	getusrgrp(uint subnum);
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
-				,bool del);
+				,bool del=false, bool next=false);
 	ulong	gettimeleft(bool handle_out_of_time=true);
 	bool	gettimeleft_inside;
 
@@ -741,6 +743,7 @@ public:
 
 	/* un_rep.cpp */
 	bool	unpack_rep(char* repfile=NULL);
+	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
 	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf, FILE* hdrs_dat);
@@ -969,7 +972,7 @@ extern "C" {
 		const char*	version_detail;
 		uint32_t*	interface_addr;
 		uint32_t*	options;
-		ulong*		clients;
+		volatile ulong* clients;
 	} js_server_props_t;
 
 	enum {
