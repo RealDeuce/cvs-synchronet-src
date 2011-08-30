@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.127 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_file.c,v 1.126 2011/07/16 07:57:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -476,7 +476,9 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					*rval = INT_TO_JSVAL(*w);
 					break;
 				case sizeof(DWORD):
-					*rval = UINT_TO_JSVAL(l);
+					JS_RESUMEREQUEST(cx, rc);
+					JS_NewNumberValue(cx,*l,rval);
+					rc=JS_SUSPENDREQUEST(cx);
 					break;
 			}
 		}
@@ -494,7 +496,7 @@ js_readbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					v = INT_TO_JSVAL(*(w++));
 					break;
 				case sizeof(DWORD):
-					v=UINT_TO_JSVAL(l++);
+					JS_NewNumberValue(cx,*(l++),&v);
 					break;
 			}
         	if(!JS_SetElement(cx, array, i, &v)) {
@@ -559,11 +561,8 @@ static jsval get_value(JSContext *cx, char* value)
 		else if(!isdigit(*p))
 			break;
 	}
-	if(*p==0) {
-		if(f)
-			val=DOUBLE_TO_JSVAL(atof(value));
-		else
-			val=DOUBLE_TO_JSVAL((double)strtoul(value,NULL,10));
+	if(*p==0) {	
+		JS_NewNumberValue(cx, f ? atof(value) : strtoul(value,NULL,10), &val);
 		return(val);
 	}
 	/* hexadecimal number? */
@@ -572,7 +571,7 @@ static jsval get_value(JSContext *cx, char* value)
 			if(!isxdigit(*p))
 				break;
 		if(*p==0) {	
-			val=DOUBLE_TO_JSVAL((double)strtoul(value,NULL,0));
+			JS_NewNumberValue(cx,strtoul(value,NULL,0),&val);
 			return(val);
 		}
 	}
@@ -634,7 +633,8 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 			rc=JS_SUSPENDREQUEST(cx);
 			dbl=iniReadFloat(p->fp,section,key,*JSVAL_TO_DOUBLE(dflt));
 			JS_RESUMEREQUEST(cx, rc);
-			*rval=DOUBLE_TO_JSVAL(dbl);
+			JS_NewNumberValue(cx
+				,dbl,rval);
 			break;
 		case JSVAL_OBJECT:
 			if((dflt_obj = JSVAL_TO_OBJECT(dflt))!=NULL && js_DateIsValid(cx, dflt_obj)) {
@@ -669,7 +669,7 @@ js_iniGetValue(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 				rc=JS_SUSPENDREQUEST(cx);
 				i=iniReadInteger(p->fp,section,key,i);
 				JS_RESUMEREQUEST(cx, rc);
-				*rval=INT_TO_JSVAL(i);
+				JS_NewNumberValue(cx,i,rval);
 			} else {
 				cstr=JS_GetStringBytes(JS_ValueToString(cx,dflt));
 				rc=JS_SUSPENDREQUEST(cx);
@@ -1846,7 +1846,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			rc=JS_SUSPENDREQUEST(cx);
 			tt=fdate(p->name);
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=DOUBLE_TO_JSVAL((double)tt);
+			JS_NewNumberValue(cx,tt,vp);
 			break;
 		case FILE_PROP_IS_OPEN:
 			*vp = BOOLEAN_TO_JSVAL(p->fp!=NULL);
@@ -1874,7 +1874,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 				rc=JS_SUSPENDREQUEST(cx);
 				lng=ftell(p->fp);
 				JS_RESUMEREQUEST(cx, rc);
-				*vp=DOUBLE_TO_JSVAL((double)lng);
+				JS_NewNumberValue(cx,(double)lng,vp);
 			}
 			else
 				*vp = INT_TO_JSVAL(-1);
@@ -1886,13 +1886,13 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			else
 				lng = flength(p->name);
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=DOUBLE_TO_JSVAL((double)lng);
+			JS_NewNumberValue(cx,(double)lng,vp);
 			break;
 		case FILE_PROP_ATTRIBUTES:
 			rc=JS_SUSPENDREQUEST(cx);
 			in=getfattr(p->name);
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=INT_TO_JSVAL(in);
+			JS_NewNumberValue(cx,in,vp);
 			break;
 		case FILE_PROP_DEBUG:
 			*vp = BOOLEAN_TO_JSVAL(p->debug);
@@ -1973,13 +1973,15 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			/* finalize */
 			switch(tiny) {
 				case FILE_PROP_CHKSUM:
-					*vp=DOUBLE_TO_JSVAL((double)sum);
+					JS_NewNumberValue(cx,sum,vp);
 					break;
 				case FILE_PROP_CRC16:
-					*vp=UINT_TO_JSVAL(c16);
+					if(!JS_NewNumberValue(cx,c16,vp))
+						*vp=JSVAL_ZERO;
 					break;
 				case FILE_PROP_CRC32:
-					*vp=UINT_TO_JSVAL(c32);
+					if(!JS_NewNumberValue(cx,~c32,vp))
+						*vp=JSVAL_ZERO;
 					break;
 				case FILE_PROP_MD5_HEX:
 				case FILE_PROP_MD5_B64:

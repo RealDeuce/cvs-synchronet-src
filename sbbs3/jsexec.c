@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.142 2011/10/08 18:12:56 deuce Exp $ */
+/* $Id: jsexec.c,v 1.140 2011/04/27 22:48:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -440,46 +440,17 @@ js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     JSString *	str;
 	char	 *	cstr;
-	char     *	p;
 	jsrefcount	rc;
-	char		instr[81]="y";
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
 	cstr = JS_GetStringBytes(str);
-	printf("%s (Y/n)? ", cstr);
 	rc=JS_SUSPENDREQUEST(cx);
-	fgets(instr,sizeof(instr),stdin);
+	printf("%s (Y/N)?", cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
-	p=instr;
-	SKIP_WHITESPACE(p);
-	*rval = BOOLEAN_TO_JSVAL(tolower(*p)!='n');
-	return(JS_TRUE);
-}
-
-static JSBool
-js_deny(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-    JSString *	str;
-	char	 *	cstr;
-	char     *	p;
-	jsrefcount	rc;
-	char		instr[81];
-
-	if((str=JS_ValueToString(cx, argv[0]))==NULL)
-	    return(JS_FALSE);
-
-	cstr = JS_GetStringBytes(str);
-	printf("%s (N/y)? ", cstr);
-	rc=JS_SUSPENDREQUEST(cx);
-	fgets(instr,sizeof(instr),stdin);
-	JS_RESUMEREQUEST(cx, rc);
-
-	p=instr;
-	SKIP_WHITESPACE(p);
-	*rval = BOOLEAN_TO_JSVAL(tolower(*p)!='y');
+	*rval = BOOLEAN_TO_JSVAL(FALSE);
 	return(JS_TRUE);
 }
 
@@ -562,7 +533,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"alert",			js_alert,			1},
 	{"prompt",			js_prompt,			1},
 	{"confirm",			js_confirm,			1},
-	{"deny",			js_deny,			1},
 	{"chdir",			js_chdir,			1},
 	{"putenv",			js_putenv,			1},
     {0}
@@ -615,7 +585,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
     return(js_CommonBranchCallback(cx,&branch));
 }
 
-#if JS_VERSION>180
+#ifdef USE_JS_OPERATION_CALLBACK
 static JSBool
 js_OperationCallback(JSContext *cx)
 {
@@ -814,7 +784,7 @@ long js_exec(const char *fname, char** args)
 
 	branch.terminated=&terminated;
 
-#if JS_VERSION>180
+#ifdef USE_JS_OPERATION_CALLBACK
 	JS_SetOperationCallback(js_cx, js_OperationCallback);
 #else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
@@ -958,7 +928,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.142 $", "%*s %s", revision);
+	sscanf("$Revision: 1.140 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.156 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.155 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -621,31 +621,31 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	if((idxobj=JS_NewObject(cx,NULL,proto,obj))==NULL)
 		return(JS_TRUE);
 
-	val=UINT_TO_JSVAL(msg.idx.number);
+	JS_NewNumberValue(cx, msg.idx.number	,&val);
 	JS_DefineProperty(cx, idxobj, "number"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.to;
+	JS_NewNumberValue(cx, msg.idx.to		,&val);
 	JS_DefineProperty(cx, idxobj, "to"		,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.from);
+	JS_NewNumberValue(cx, msg.idx.from		,&val);
 	JS_DefineProperty(cx, idxobj, "from"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.subj);
+	JS_NewNumberValue(cx, msg.idx.subj		,&val);
 	JS_DefineProperty(cx, idxobj, "subject"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.attr);
+	JS_NewNumberValue(cx, msg.idx.attr		,&val);
 	JS_DefineProperty(cx, idxobj, "attr"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.offset);
+	JS_NewNumberValue(cx, msg.offset		,&val);
 	JS_DefineProperty(cx, idxobj, "offset"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	val=UINT_TO_JSVAL(msg.idx.time);
+	JS_NewNumberValue(cx, msg.idx.time		,&val);
 	JS_DefineProperty(cx, idxobj, "time"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
@@ -656,7 +656,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 
 #define LAZY_INTEGER(PropName, PropValue, flags) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
-		v=UINT_TO_JSVAL((PropValue)); \
+		JS_NewNumberValue(cx,(PropValue),&v); \
 		JS_DefineProperty(cx, obj, (PropName), v, NULL,NULL,flags); \
 		if(name) return(JS_TRUE); \
 	}
@@ -664,7 +664,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 #define LAZY_INTEGER_EXPAND(PropName, PropValue, flags) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
 		if(p->expand_fields || (PropValue)) { \
-			val=UINT_TO_JSVAL((PropValue)); \
+			JS_NewNumberValue(cx,(PropValue),&v); \
 			JS_DefineProperty(cx, obj, (PropName), v, NULL,NULL,flags); \
 			if(name) return(JS_TRUE); \
 		} \
@@ -674,7 +674,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 #define LAZY_INTEGER_COND(PropName, Condition, PropValue, flags) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
 		if(Condition) { \
-			val=UINT_TO_JSVAL((PropValue)); \
+			JS_NewNumberValue(cx,(PropValue),&v); \
 			JS_DefineProperty(cx, obj, (PropName), v, NULL,NULL,flags); \
 			if(name) return(JS_TRUE); \
 		} \
@@ -1646,31 +1646,31 @@ static JSBool js_msgbase_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			memset(&idx,0,sizeof(idx));
 			smb_getfirstidx(&(p->smb),&idx);
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=UINT_TO_JSVAL(idx.number);
+			JS_NewNumberValue(cx,idx.number,vp);
 			break;
 		case SMB_PROP_LAST_MSG:
 			rc=JS_SUSPENDREQUEST(cx);
 			smb_getstatus(&(p->smb));
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=UINT_TO_JSVAL(p->smb.status.last_msg);
+			JS_NewNumberValue(cx,p->smb.status.last_msg,vp);
 			break;
 		case SMB_PROP_TOTAL_MSGS:
 			rc=JS_SUSPENDREQUEST(cx);
 			smb_getstatus(&(p->smb));
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=UINT_TO_JSVAL(p->smb.status.total_msgs);
+			JS_NewNumberValue(cx,p->smb.status.total_msgs,vp);
 			break;
 		case SMB_PROP_MAX_CRCS:
-			*vp=UINT_TO_JSVAL(p->smb.status.max_crcs);
+			JS_NewNumberValue(cx,p->smb.status.max_crcs,vp);
 			break;
 		case SMB_PROP_MAX_MSGS:
-			*vp=UINT_TO_JSVAL(p->smb.status.max_msgs);
+			JS_NewNumberValue(cx,p->smb.status.max_msgs,vp);
 			break;
 		case SMB_PROP_MAX_AGE:
-			*vp=UINT_TO_JSVAL(p->smb.status.max_age);
+			JS_NewNumberValue(cx,p->smb.status.max_age,vp);
 			break;
 		case SMB_PROP_ATTR:
-			*vp=UINT_TO_JSVAL(p->smb.status.attr);
+			JS_NewNumberValue(cx,p->smb.status.attr,vp);
 			break;
 		case SMB_PROP_SUBNUM:
 			*vp = INT_TO_JSVAL(p->smb.subnum);

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.58 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_msg_area.c,v 1.57 2009/11/11 01:49:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -205,7 +205,8 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
 
-	val=UINT_TO_JSVAL(sub->misc);
+	if(!JS_NewNumberValue(cx,sub->misc,&val))
+		return(FALSE);
 	if(!JS_DefineProperty(cx, subobj, "settings", val
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
@@ -259,13 +260,13 @@ static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
-			*vp=UINT_TO_JSVAL(scan->ptr);
+			JS_NewNumberValue(cx,scan->ptr,vp);
 			break;
 		case SUB_PROP_SCAN_CFG:
-			*vp=UINT_TO_JSVAL(scan->cfg);
+			JS_NewNumberValue(cx,scan->cfg,vp);
 			break;
 		case SUB_PROP_LAST_READ:
-			*vp=UINT_TO_JSVAL(scan->last);
+			JS_NewNumberValue(cx,scan->last,vp);
 			break;
 	}
 

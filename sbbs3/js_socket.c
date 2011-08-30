@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.138 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_socket.c,v 1.136 2011/05/12 17:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -705,7 +705,9 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 				if((rd=recvfrom(p->sock,(BYTE*)&l,len,0,(SOCKADDR*)&addr,&addrlen))==len) {
 					if(p->network_byte_order)
 						l=ntohl(l);
-					data_val=UINT_TO_JSVAL(l);
+					JS_RESUMEREQUEST(cx, rc);
+					JS_NewNumberValue(cx,l,&data_val);
+					rc=JS_SUSPENDREQUEST(cx);
 				}
 				break;
 		}
@@ -941,7 +943,9 @@ js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			if((rd=recv(p->sock,(BYTE*)&l,size,0))==size) {
 				if(p->network_byte_order)
 					l=ntohl(l);
-				rval = UINT_TO_JSVAL(l);
+				JS_RESUMEREQUEST(cx, rc);
+				JS_NewNumberValue(cx,l,rval);
+				rc=JS_SUSPENDREQUEST(cx);
 			}
 			break;
 	}
@@ -990,7 +994,9 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 			else
 				val = 0;
 		}
-		*rval = INT_TO_JSVAL(val);
+		JS_RESUMEREQUEST(cx, rc);
+		JS_NewNumberValue(cx,val,rval);
+		rc=JS_SUSPENDREQUEST(cx);
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "error %d getting option %d"
@@ -1067,7 +1073,7 @@ js_ioctlsocket(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	rc=JS_SUSPENDREQUEST(cx);
 	if(ioctlsocket(p->sock,cmd,(ulong*)&arg)==0) {
 		JS_RESUMEREQUEST(cx, rc);
-		*rval=INT_TO_JSVAL(arg);
+		JS_NewNumberValue(cx,arg,rval);
 	}
 	else {
 		*rval = INT_TO_JSVAL(-1);
@@ -1266,7 +1272,9 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case SOCK_PROP_NREAD:
 			cnt=0;
 			if(ioctlsocket(p->sock, FIONREAD, &cnt)==0) {
-				*vp=DOUBLE_TO_JSVAL((double)cnt);
+				JS_RESUMEREQUEST(cx, rc);
+				JS_NewNumberValue(cx,cnt,vp);
+				rc=JS_SUSPENDREQUEST(cx);
 			}
 			else
 				*vp = JSVAL_ZERO;
@@ -1276,6 +1284,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_DESCRIPTOR:
 			*vp = INT_TO_JSVAL(p->sock);
+			p->is_connected = TRUE;
 			break;
 		case SOCK_PROP_NONBLOCKING:
 			*vp = BOOLEAN_TO_JSVAL(p->nonblocking);

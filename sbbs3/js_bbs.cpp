@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.119 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.118 2011/08/25 19:22:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -625,7 +625,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			return(JS_FALSE);
 		*vp = STRING_TO_JSVAL(js_str);
 	} else
-		*vp = UINT_TO_JSVAL(val);
+		JS_NewNumberValue(cx,val,vp);
 
 	return(JS_TRUE);
 }
@@ -2857,7 +2857,7 @@ js_getnstime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	if(sbbs->inputnstime(&t)==true) {
 		JS_RESUMEREQUEST(cx, rc);
-		*rval=DOUBLE_TO_JSVAL((double)t);
+		JS_NewNumberValue(cx,t,rval);
 	}
 	else
 		JS_RESUMEREQUEST(cx, rc);

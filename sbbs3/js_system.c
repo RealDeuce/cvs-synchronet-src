@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.136 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_system.c,v 1.135 2011/08/25 19:23:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,7 +138,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			p=cfg->sys_id;
 			break;
 		case SYS_PROP_MISC:
-			*vp=UINT_TO_JSVAL(cfg->sys_misc);
+			JS_NewNumberValue(cx,cfg->sys_misc,vp);
 			break;
 		case SYS_PROP_PSNAME:
 			p=cfg->sys_psname;
@@ -182,7 +182,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			else
 				val = getfreediskspace(cfg->temp_dir,1024);
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=DOUBLE_TO_JSVAL((double)val);
+			JS_NewNumberValue(cx,val,vp);
 			break;
 
 		case SYS_PROP_NEW_PASS:
@@ -213,10 +213,10 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = INT_TO_JSVAL(cfg->new_exempt);
 			break;
 		case SYS_PROP_NEW_CDT:
-			*vp=UINT_TO_JSVAL(cfg->new_cdt);
+			JS_NewNumberValue(cx,cfg->new_cdt,vp);
 			break;
 		case SYS_PROP_NEW_MIN:
-			*vp=UINT_TO_JSVAL(cfg->new_min);
+			JS_NewNumberValue(cx,cfg->new_min,vp);
 			break;
 		case SYS_PROP_NEW_SHELL:
 			if(cfg->new_shell<cfg->total_shells)
@@ -226,17 +226,17 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			p=cfg->new_xedit;
 			break;
 		case SYS_PROP_NEW_MISC:
-			*vp=UINT_TO_JSVAL(cfg->new_misc);
+			JS_NewNumberValue(cx,cfg->new_misc,vp);
 			break;
 		case SYS_PROP_NEW_PROT:
 			sprintf(str,"%c",cfg->new_prot);
 			p=str;
 			break;
 		case SYS_PROP_NEW_EXPIRE:
-			*vp=UINT_TO_JSVAL(cfg->new_expire);
+			JS_NewNumberValue(cx,cfg->new_expire,vp);
 			break;
 		case SYS_PROP_NEW_UQ:
-			*vp=UINT_TO_JSVAL(cfg->uq);
+			JS_NewNumberValue(cx,cfg->uq,vp);
 			break;
 
 		case SYS_PROP_EXPIRED_LEVEL:
@@ -299,13 +299,13 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 
 		case SYS_PROP_CLOCK:
-			*vp=DOUBLE_TO_JSVAL((double)msclock());
+			JS_NewNumberValue(cx,msclock(),vp);
 			break;
 		case SYS_PROP_CLOCK_PER_SEC:
-			*vp=UINT_TO_JSVAL(MSCLOCKS_PER_SEC);
+			JS_NewNumberValue(cx,MSCLOCKS_PER_SEC,vp);
 			break;
 		case SYS_PROP_TIMER:
-			*vp=DOUBLE_TO_JSVAL(xp_timer());
+			JS_NewNumberValue(cx,xp_timer(),vp);
 			break;
 
 		case SYS_PROP_LOCAL_HOSTNAME:
@@ -564,40 +564,40 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case SYSSTAT_PROP_LOGONS:
-			*vp=UINT_TO_JSVAL(stats.logons);
+			JS_NewNumberValue(cx,stats.logons,vp);
 			break;
 		case SYSSTAT_PROP_LTODAY:
-			*vp=UINT_TO_JSVAL(stats.ltoday);
+			JS_NewNumberValue(cx,stats.ltoday,vp);
 			break;
 		case SYSSTAT_PROP_TIMEON:
-			*vp=UINT_TO_JSVAL(stats.timeon);
+			JS_NewNumberValue(cx,stats.timeon,vp);
 			break;
 		case SYSSTAT_PROP_TTODAY:
-			*vp=UINT_TO_JSVAL(stats.ttoday);
+			JS_NewNumberValue(cx,stats.ttoday,vp);
 			break;
 		case SYSSTAT_PROP_ULS:
-			*vp=UINT_TO_JSVAL(stats.uls);
+			JS_NewNumberValue(cx,stats.uls,vp);
 			break;
 		case SYSSTAT_PROP_ULB:
-			*vp=UINT_TO_JSVAL(stats.ulb);
+			JS_NewNumberValue(cx,stats.ulb,vp);
 			break;
 		case SYSSTAT_PROP_DLS:
-			*vp=UINT_TO_JSVAL(stats.dls);
+			JS_NewNumberValue(cx,stats.dls,vp);
 			break;
 		case SYSSTAT_PROP_DLB:
-			*vp=UINT_TO_JSVAL(stats.dlb);
+			JS_NewNumberValue(cx,stats.dlb,vp);
 			break;
 		case SYSSTAT_PROP_PTODAY:
-			*vp=UINT_TO_JSVAL(stats.ptoday);
+			JS_NewNumberValue(cx,stats.ptoday,vp);
 			break;
 		case SYSSTAT_PROP_ETODAY:
-			*vp=UINT_TO_JSVAL(stats.etoday);
+			JS_NewNumberValue(cx,stats.etoday,vp);
 			break;
 		case SYSSTAT_PROP_FTODAY:
-			*vp=UINT_TO_JSVAL(stats.ftoday);
+			JS_NewNumberValue(cx,stats.ftoday,vp);
 			break;
 		case SYSSTAT_PROP_NUSERS:
-			*vp=UINT_TO_JSVAL(stats.nusers);
+			JS_NewNumberValue(cx,stats.nusers,vp);
 			break;
 
 		case SYSSTAT_PROP_TOTALUSERS:
@@ -611,7 +611,7 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			for(i=0;i<cfg->total_subs;i++)
 				l+=getposts(cfg,i); 
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=DOUBLE_TO_JSVAL((double)l); 
+			JS_NewNumberValue(cx,l,vp); 
 			break;
 		case SYSSTAT_PROP_TOTALFILES:
 			l=0;
@@ -619,7 +619,7 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			for(i=0;i<cfg->total_dirs;i++)
 				l+=getfiles(cfg,i);
 			JS_RESUMEREQUEST(cx, rc);
-			*vp=DOUBLE_TO_JSVAL((double)l);
+			JS_NewNumberValue(cx,l,vp);
 			break;
 		case SYSSTAT_PROP_TOTALMAIL:
 			rc=JS_SUSPENDREQUEST(cx);
@@ -997,7 +997,7 @@ js_datestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		t=time(NULL);	/* use current time */
 	else {
 		if(JSVAL_IS_STRING(argv[0])) {	/* convert from string to time_t? */
-			*rval = DOUBLE_TO_JSVAL((double)dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
+			JS_NewNumberValue(cx,dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))),rval);
 			return(JS_TRUE);
 		}
 		JS_ValueToInt32(cx,argv[0],(int32*)&t);
@@ -1714,7 +1714,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = INT_TO_JSVAL((int)node.aux);
 			break;
 		case NODE_PROP_EXTAUX:	
-			*vp=UINT_TO_JSVAL(node.extaux);
+			JS_NewNumberValue(cx,node.extaux,vp);
 			break;
 		case NODE_PROP_DIR:
 			if((js_str=JS_NewStringCopyZ(cx, cfg->node_path[node_num-1]))==NULL)
@@ -1840,7 +1840,7 @@ static JSClass js_node_class = {
 
 #define LAZY_INTEGER(PropName, PropValue) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
-		val=UINT_TO_JSVAL((PropValue)); \
+		JS_NewNumberValue(cx,(PropValue),&val); \
 		JS_DefineProperty(cx, obj, (PropName), val, NULL,NULL,JSPROP_ENUMERATE); \
 		if(name) return(JS_TRUE); \
 	}
@@ -2054,7 +2054,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	/***********************/
 
-	val=DOUBLE_TO_JSVAL((double)uptime);
+	JS_NewNumberValue(cx,uptime,&val);
 	if(!JS_SetProperty(cx, sysobj, "uptime", &val))
 		return(NULL);
 

@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.12 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_conio.c,v 1.11 2009/08/14 07:45:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -882,7 +882,7 @@ js_conio_gettext(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		JS_RESUMEREQUEST(cx, rc);
 		array=JS_NewArrayObject(cx, 0, NULL);
 		for(i=0; i<size; i++) {
-			val=UINT_TO_JSVAL(result[i]);
+			JS_NewNumberValue(cx, result[i], &val);
 			if(!JS_SetElement(cx, array, i, &val)) {
 				free(result);
 				return(JS_FALSE);

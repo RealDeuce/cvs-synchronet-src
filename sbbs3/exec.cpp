@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.95 2011/10/08 18:12:56 deuce Exp $ */
+/* $Id: exec.cpp,v 1.93 2011/07/02 03:54:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -553,7 +553,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	return(js_CommonBranchCallback(cx,&sbbs->js_branch));
 }
 
-#if JS_VERSION>180
+#ifdef USE_JS_OPERATION_CALLBACK
 static JSBool
 js_OperationCallback(JSContext *cx)
 {
@@ -573,7 +573,7 @@ static const char* js_ext(const char* fname)
 	return("");
 }
 
-long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* scope)
+long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 {
 	char*		p;
 	char*		args=NULL;
@@ -581,7 +581,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	int			argc=0;
 	char		cmdline[MAX_PATH+1];
 	char		path[MAX_PATH+1];
-	JSObject*	js_scope=scope;
+	JSObject*	js_scope=NULL;
 	JSScript*	js_script=NULL;
 	jsval		rval;
 	int32		result=0;
@@ -618,8 +618,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	}
 
 	JS_BEGINREQUEST(js_cx);
-	if(js_scope==NULL)
-		js_scope=JS_NewObject(js_cx, NULL, NULL, js_glob);
+	js_scope=JS_NewObject(js_cx, NULL, NULL, js_glob);
 
 	if(js_scope!=NULL) {
 
@@ -662,33 +661,28 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		return -1;
 	}
 
-	if(scope==NULL) {
-		js_branch.counter=0;	// Reset loop counter
+	js_branch.counter=0;	// Reset loop counter
 
-#if JS_VERSION>180
-		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#ifdef USE_JS_OPERATION_CALLBACK
+	JS_SetOperationCallback(js_cx, js_OperationCallback);
 #else
-		JS_SetBranchCallback(js_cx, js_BranchCallback);
+	JS_SetBranchCallback(js_cx, js_BranchCallback);
 #endif
 
-		js_PrepareToExecute(js_cx, js_glob, path, startup_dir);
-	}
+	js_PrepareToExecute(js_cx, js_glob, path, startup_dir);
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
 
-	if(scope==NULL) {
-		JS_GetProperty(js_cx, js_scope, "exit_code", &rval);
-		if(rval!=JSVAL_VOID)
-			JS_ValueToInt32(js_cx,rval,&result);
+	JS_GetProperty(js_cx, js_scope, "exit_code", &rval);
+	if(rval!=JSVAL_VOID)
+		JS_ValueToInt32(js_cx,rval,&result);
 
-		js_EvalOnExit(js_cx, js_scope, &js_branch);
-	}
+	js_EvalOnExit(js_cx, js_scope, &js_branch);
 
 	JS_ReportPendingException(js_cx);	/* Added Dec-4-2005, rswindell */
 
 	JS_DestroyScript(js_cx, js_script);
 
-	if(scope==NULL)
-		JS_ClearScope(js_cx, js_scope);
+	JS_ClearScope(js_cx, js_scope);
 
 	JS_GC(js_cx);
 
