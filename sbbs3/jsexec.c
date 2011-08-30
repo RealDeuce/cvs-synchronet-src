@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.139 2010/06/28 23:49:06 deuce Exp $ */
+/* $Id: jsexec.c,v 1.140 2011/04/27 22:48:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -928,7 +928,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.139 $", "%*s %s", revision);
+	sscanf("$Revision: 1.140 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1134,6 +1134,7 @@ int main(int argc, char **argv, char** environ)
 
 		result=js_exec(module,&argv[argn]);
 		JS_ENDREQUEST(js_cx);
+		YIELD();
 
 		if(result)
 			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
