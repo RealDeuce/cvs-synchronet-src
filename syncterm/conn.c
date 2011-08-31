@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.64 2011/12/07 03:28:28 deuce Exp $ */
+/* $Id: conn.c,v 1.62 2011/05/27 23:05:53 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -409,7 +409,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	fd_set			wfd;
 	int				failcode=FAILURE_WHAT_FAILURE;
 	struct addrinfo	hints;
-	struct addrinfo	*res=NULL;
+	struct addrinfo	*res;
 	struct addrinfo	*cur;
 	char			portnum[6];
 
@@ -422,7 +422,6 @@ int conn_socket_connect(struct bbslist *bbs)
 	sprintf(portnum, "%hu", bbs->port);
 	if(getaddrinfo(bbs->addr, portnum, &hints, &res)!=0) {
 		failcode=FAILURE_RESOLVE;
-		res=NULL;
 		goto connect_failed;
 	}
 	uifc.pop(NULL);
@@ -448,7 +447,7 @@ int conn_socket_connect(struct bbslist *bbs)
 				case EINPROGRESS:
 				case EINTR:
 				case EAGAIN:
-#if (EAGAIN!=EWOULDBLOCK)
+#if (!defined(EAGAIN) && defined(EWOULDBLOCK)) || (EAGAIN!=EWOULDBLOCK)
 				case EWOULDBLOCK:
 #endif
 					for(;;) {
@@ -505,8 +504,7 @@ connected:
 	return(sock);
 
 connect_failed:
-	if(res)
-		freeaddrinfo(res);
+	freeaddrinfo(res);
 	{
 		char str[LIST_ADDR_MAX+40];
 
