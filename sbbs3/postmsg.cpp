@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.82 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.85 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -135,7 +135,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		if(stricmp(touser,"ALL")
 		&& !(cfg.sub[subnum]->misc&(SUB_PNET|SUB_FIDO|SUB_QNET|SUB_INET|SUB_ANON))) {
 			if(cfg.sub[subnum]->misc&SUB_NAME) {
-				if(!userdatdupe(useron.number,U_NAME,LEN_NAME,touser,0)) {
+				if(!userdatdupe(useron.number,U_NAME,LEN_NAME,touser)) {
 					bputs(text[UnknownUser]);
 					return(false); 
 				} 
@@ -344,6 +344,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
+	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
@@ -409,21 +410,28 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 {
 	int		i;
 	char	port[16];
+	char	date[64];
 
 	if(client==NULL)
 		return(-1);
 
+	if(client->user!=NULL && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
+		return(i);
+	if((i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
+		,/* separators: */"","","", /* precision: */0
+		,date,sizeof(date))))!=SMB_SUCCESS)
+		return(i);
 	if((i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
 		return(i);
 	if((i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
+	if(client->protocol!=NULL && (i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
 		return(i);
 	SAFEPRINTF(port,"%u",client->port);
 	return smb_hfield_str(msg,SENDERPORT,port);
 }
 
-extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, char* msgbuf)
+extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, const char* server, char* msgbuf)
 {
 	char	pid[128];
 	char	msg_id[256];
@@ -456,6 +464,21 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	}
 
 	if(smb->subnum==INVALID_SUB) {	/* e-mail */
+
+		/* exception here during recycle:
+
+	sbbs.dll!savemsg(scfg_t * cfg, smb_t * smb, smbmsg_t * msg, client_t * client, char * msgbuf)  Line 473 + 0xf bytes	C++
+ 	sbbs.dll!js_save_msg(JSContext * cx, JSObject * obj, unsigned int argc, long * argv, long * rval)  Line 1519 + 0x25 bytes	C
+ 	js32.dll!js_Invoke(JSContext * cx, unsigned int argc, unsigned int flags)  Line 1375 + 0x17 bytes	C
+ 	js32.dll!js_Interpret(JSContext * cx, unsigned char * pc, long * result)  Line 3944 + 0xf bytes	C
+ 	js32.dll!js_Execute(JSContext * cx, JSObject * chain, JSScript * script, JSStackFrame * down, unsigned int flags, long * result)  Line 1633 + 0x13 bytes	C
+ 	js32.dll!JS_ExecuteScript(JSContext * cx, JSObject * obj, JSScript * script, long * rval)  Line 4188 + 0x19 bytes	C
+ 	sbbs.dll!sbbs_t::js_execfile(const char * cmd, const char * startup_dir)  Line 686 + 0x27 bytes	C++
+ 	sbbs.dll!sbbs_t::external(const char * cmdline, long mode, const char * startup_dir)  Line 413 + 0x1e bytes	C++
+ 	sbbs.dll!event_thread(void * arg)  Line 2745 + 0x71 bytes	C++
+
+	apparently the event_thread is sharing an scfg_t* with another thread! */
+
 
 		smb->status.max_crcs=cfg->mail_maxcrcs;
 		smb->status.max_age=cfg->mail_maxage;
@@ -504,6 +527,8 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 
 	if(client!=NULL)
 		msg_client_hfields(msg,client);
+	if(server!=NULL)
+		smb_hfield_str(msg,SENDERSERVER,server);
  
  	/* Generate RFC-822 Message-id  */
  	if(msg->id==NULL) {
