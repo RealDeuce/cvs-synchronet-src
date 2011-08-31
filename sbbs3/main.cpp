@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.571 2011/10/21 11:20:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.553 2011/08/30 23:37:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,8 @@
 volatile time_t	uptime=0;
 volatile ulong	served=0;
 
-static	protected_uint32_t node_threads_running;
+static	volatile ulong node_threads_running=0;
+static	volatile ulong thread_count=0;
 		
 char 	lastuseron[LEN_ALIAS+1];  /* Name of user last online */
 RingBuf* node_inbuf[MAX_NODES];
@@ -109,17 +110,16 @@ extern "C" {
 
 static bbs_startup_t* startup=NULL;
 
-static const char* status(const char* str)
+static void status(const char* str)
 {
 	if(startup!=NULL && startup->status!=NULL)
 	    startup->status(startup->cbdata,str);
-	return str;
 }
 
 static void update_clients()
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,node_threads_running.value);
+		startup->clients(startup->cbdata,node_threads_running);
 }
 
 void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -136,12 +136,15 @@ static void client_off(SOCKET sock)
 
 static void thread_up(BOOL setuid)
 {
+	thread_count++;
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,TRUE,setuid);
 }
 
 static void thread_down()
 {
+	if(thread_count>0)
+		thread_count--;
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,FALSE,FALSE);
 }
@@ -302,7 +305,7 @@ DLLEXPORT void DLLCALL sbbs_srand()
 		close(rf);
 	}
 #else
-	seed = time32(NULL) ^ (DWORD)GetCurrentThreadId();
+	seed = time(NULL) ^ (DWORD)GetCurrentThreadId();
 #endif
 
  	srand(seed);
@@ -606,7 +609,8 @@ DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertyS
 	if(consts) {
 		for(i=0;consts[i].name;i++) {
 			if(name==NULL || strcmp(name, consts[i].name)==0) {
-				val=INT_TO_JSVAL(consts[i].val);
+	        	if(!JS_NewNumberValue(cx, consts[i].val, &val))
+					return(JS_FALSE);
 
 				if(!JS_DefineProperty(cx, obj, consts[i].name, val ,NULL, NULL, flags))
 					return(JS_FALSE);
@@ -630,7 +634,8 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 	jsval	val;
 
 	for(i=0;ints[i].name;i++) {
-		val=INT_TO_JSVAL(ints[i].val);
+        if(!JS_NewNumberValue(cx, ints[i].val, &val))
+			return(JS_FALSE);
 
 		if(!JS_DefineProperty(cx, obj, ints[i].name, val ,NULL, NULL, flags))
 			return(JS_FALSE);
@@ -639,18 +644,28 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 	return(JS_TRUE);
 }
 
-static JSBool
-js_log(JSContext *cx, uintN argc, jsval *arglist)
+char*
+DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
+	JSString* str;
+	
+	if((str=JS_ValueToString(cx, val))==NULL)
+		return(NULL);
+
+	if(len!=NULL)
+		*len = JS_GetStringLength(str);
+
+	return(JS_GetStringBytes(str));
+}
+
+static JSBool
+js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
     uintN		i=0;
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*line;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -659,38 +674,33 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ValueToInt32(cx,argv[i++],&level);
 
     for(; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL)
-			return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, line, NULL);
-		if(line==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+			JS_RESUMEREQUEST(cx, rc);
 		    return(JS_FALSE);
+		}
 		rc=JS_SUSPENDREQUEST(cx);
 		if(sbbs->online==ON_LOCAL) {
-			if(startup!=NULL && startup->event_lputs!=NULL && level <= startup->log_level) {
-				startup->event_lputs(startup->event_cbdata,level,line);
-			}
+			if(startup!=NULL && startup->event_lputs!=NULL && level <= startup->log_level)
+				startup->event_lputs(startup->event_cbdata,level,JS_GetStringBytes(str));
 		} else
-			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
+			lprintf(level,"Node %d %s", sbbs->cfg.node_num, JS_GetStringBytes(str));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
-		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+		*rval = JSVAL_VOID;
 	else
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+		*rval = STRING_TO_JSVAL(str);
     return(JS_TRUE);
 }
 
 static JSBool
-js_read(JSContext *cx, uintN argc, jsval *arglist)
+js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
 	uchar*		buf;
 	int32		len=128;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -706,22 +716,19 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(len>0)
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,(char*)buf,len)));
+		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,(char*)buf,len));
 
 	free(buf);
 	return(JS_TRUE);
 }
 
 static JSBool
-js_readln(JSContext *cx, uintN argc, jsval *arglist)
+js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*		buf;
 	int32		len=128;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -737,66 +744,55 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(len>0)
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,buf)));
+		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,buf));
 
 	free(buf);
 	return(JS_TRUE);
 }
 
 static JSBool
-js_write(JSContext *cx, uintN argc, jsval *arglist)
+js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*cstr;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
-			return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, cstr, NULL);
-		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		if(sbbs->online==ON_LOCAL)
-			eprintf(LOG_INFO,"%s",cstr);
+			eprintf(LOG_INFO,"%s",JS_GetStringBytes(str));
 		else
-			sbbs->bputs(cstr);
+			sbbs->bputs(JS_GetStringBytes(str));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
-		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+		*rval = JSVAL_VOID;
 	else
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+		*rval = STRING_TO_JSVAL(str);
     return(JS_TRUE);
 }
 
 static JSBool
-js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
+js_write_raw(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     char*	str=NULL;
 	size_t		len;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
-		JSVALUE_TO_STRING(cx, argv[i], str, &len);
-		if(str==NULL)
+		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->putcom(str, len);
@@ -807,17 +803,15 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_writeln(JSContext *cx, uintN argc, jsval *arglist)
+js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	js_write(cx,argc,arglist);
+	js_write(cx,obj,argc,argv,rval);
 	rc=JS_SUSPENDREQUEST(cx);
 	if(sbbs->online==ON_REMOTE)
 		sbbs->bputs(crlf);
@@ -827,14 +821,11 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_printf(JSContext *cx, uintN argc, jsval *arglist)
+js_printf(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -851,7 +842,7 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 		sbbs->bputs(p);
 	JS_RESUMEREQUEST(cx, rc);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p)));
+	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, p));
 
 	js_sprintf_free(p);
 
@@ -859,114 +850,94 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_alert(JSContext *cx, uintN argc, jsval *arglist)
+js_alert(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
+    JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*cstr;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
-	if(cstr==NULL)
+	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->attr(sbbs->cfg.color[clr_err]);
-	sbbs->bputs(cstr);
+	sbbs->bputs(JS_GetStringBytes(str));
 	sbbs->attr(LIGHTGRAY);
 	sbbs->bputs(crlf);
 	JS_RESUMEREQUEST(cx, rc);
-
-	JS_SET_RVAL(cx, arglist, argv[0]);
 
     return(JS_TRUE);
 }
 
 static JSBool
-js_confirm(JSContext *cx, uintN argc, jsval *arglist)
+js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
-	sbbs_t*		sbbs;
-	jsrefcount	rc;
-	char		*cstr;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
-	if(cstr==NULL)
-	    return(JS_FALSE);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(cstr)));
-	JS_RESUMEREQUEST(cx, rc);
-	return(JS_TRUE);
-}
-
-static JSBool
-js_deny(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	sbbs_t*		sbbs;
-	jsrefcount	rc;
-	char		*cstr;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
-	if(cstr==NULL)
-	    return(JS_FALSE);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(cstr)));
-	JS_RESUMEREQUEST(cx, rc);
-	return(JS_TRUE);
-}
-
-
-static JSBool
-js_prompt(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	char		instr[81];
     JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*cstr;
-    char 		*prompt;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], prompt, NULL);
-	if(prompt==NULL)
+	if((str=JS_ValueToString(cx, argv[0]))==NULL)
+	    return(JS_FALSE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	*rval = BOOLEAN_TO_JSVAL(sbbs->yesno(JS_GetStringBytes(str)));
+	JS_RESUMEREQUEST(cx, rc);
+	return(JS_TRUE);
+}
+
+static JSBool
+js_deny(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+    JSString *	str;
+	sbbs_t*		sbbs;
+	jsrefcount	rc;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	if((str=JS_ValueToString(cx, argv[0]))==NULL)
+	    return(JS_FALSE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	*rval = BOOLEAN_TO_JSVAL(sbbs->noyes(JS_GetStringBytes(str)));
+	JS_RESUMEREQUEST(cx, rc);
+	return(JS_TRUE);
+}
+
+
+static JSBool
+js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char		instr[81];
+    JSString *	prompt;
+    JSString *	str;
+	sbbs_t*		sbbs;
+	jsrefcount	rc;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	if((prompt=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
 	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
-		if(cstr==NULL)
+		if((str=JS_ValueToString(cx, argv[1]))==NULL)
 		    return(JS_FALSE);
-		SAFECOPY(instr,cstr);
+		SAFECOPY(instr,JS_GetStringBytes(str));
 	} else
 		instr[0]=0;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->bprintf("\1n\1y\1h%s\1w: ",prompt);
+	sbbs->bprintf("\1n\1y\1h%s\1w: ",JS_GetStringBytes(prompt));
 
 	if(!sbbs->getstr(instr,sizeof(instr)-1,K_EDIT)) {
-		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
+		*rval = JSVAL_NULL;
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -975,7 +946,7 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_NewStringCopyZ(cx, instr))==NULL)
 	    return(JS_FALSE);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	*rval = STRING_TO_JSVAL(str);
     return(JS_TRUE);
 }
 
@@ -2397,7 +2368,7 @@ void event_thread(void* arg)
 						sbbs->online=FALSE;
 					} 
 				}
-				lastprepack=(time32_t)now;
+				lastprepack=now;
 				SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
@@ -2568,7 +2539,7 @@ void event_thread(void* arg)
 				}
 				delfiles(sbbs->cfg.temp_dir,ALLFILES);
 
-				sbbs->cfg.qhub[i]->last=time32(NULL);
+				sbbs->cfg.qhub[i]->last=time(NULL);
 				SAFEPRINTF(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
@@ -2610,7 +2581,7 @@ void event_thread(void* arg)
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
 				&& sbbs->cfg.phub[i]->days&(1<<now_tm.tm_wday))) {
 
-				sbbs->cfg.phub[i]->last=time32(NULL);
+				sbbs->cfg.phub[i]->last=time(NULL);
 				SAFEPRINTF(str,"%spnet.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
 					sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
@@ -2693,7 +2664,7 @@ void event_thread(void* arg)
 							SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 							if((file=sbbs->nopen(str,O_RDONLY))==-1) {
 								sbbs->errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
-								sbbs->cfg.event[i]->last=(time32_t)now;
+								sbbs->cfg.event[i]->last=now;
 								continue; 
 							}
 							lseek(file,(long)i*4L,SEEK_SET);
@@ -2709,7 +2680,7 @@ void event_thread(void* arg)
 						SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 						if(fexistcase(str))
 							remove(str);
-						sbbs->cfg.event[i]->last=(time32_t)now;
+						sbbs->cfg.event[i]->last=now;
 					} else {	// Exclusive event to run on a node under our control
 						eprintf(LOG_INFO,"Waiting for all nodes to become inactive before "
 							"running timed event: %s",sbbs->cfg.event[i]->code);
@@ -2768,7 +2739,7 @@ void event_thread(void* arg)
 					|| sbbs->cfg.event[i]->node>last_node) {
 					eprintf(LOG_NOTICE,"Changing node status for nodes %d through %d to WFC"
 						,first_node,last_node);
-					sbbs->cfg.event[i]->last=(time32_t)now;
+					sbbs->cfg.event[i]->last=now;
 					for(j=first_node;j<=last_node;j++) {
 						node.status=NODE_INVALID_STATUS;
 						if(sbbs->getnodedat(j,&node,1)!=0)
@@ -2810,7 +2781,7 @@ void event_thread(void* arg)
 						if(!(ex_mode&EX_BG))
 							eprintf(LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
 					}
-					sbbs->cfg.event[i]->last=time32(NULL);
+					sbbs->cfg.event[i]->last=time(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 					if((file=sbbs->nopen(str,O_WRONLY))==-1) {
 						sbbs->errormsg(WHERE,ERR_OPEN,str,O_WRONLY);
@@ -2846,7 +2817,7 @@ void event_thread(void* arg)
 
 
 //****************************************************************************
-sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
+sbbs_t::sbbs_t(ushort node_num, DWORD addr, const char* name, SOCKET sd,
 			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
 	char	nodestr[32];
@@ -2926,6 +2897,7 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	event_time = 0;
 	event_code = nulstr;
 	nodesync_inside = false;
+	errorlog_inside = false;
 	errormsg_inside = false;
 	gettimeleft_inside = false;
 	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
@@ -3469,12 +3441,14 @@ int sbbs_t::nopen(char *str, int access)
 void sbbs_t::spymsg(const char* msg)
 {
 	char str[512];
+	struct in_addr addr;
 
 	if(cfg.node_num<1)
 		return;
 
+	addr.s_addr=client_addr;
 	SAFEPRINTF4(str,"\r\n\r\n*** Spy Message ***\r\nNode %d: %s [%s]\r\n*** %s ***\r\n\r\n"
-		,cfg.node_num,client_name,inet_ntoa(client_addr.sin_addr),msg);
+		,cfg.node_num,client_name,inet_ntoa(addr),msg);
 	if(startup->node_spybuf!=NULL 
 		&& startup->node_spybuf[cfg.node_num-1]!=NULL) {
 		RingBufWrite(startup->node_spybuf[cfg.node_num-1],(uchar*)str,strlen(str));
@@ -3872,8 +3846,8 @@ void sbbs_t::logoffstats()
 		read(file,&stats,sizeof(stats));  
 
 		if(!(useron.rest&FLAG('Q'))) {	/* Don't count QWKnet nodes */
-			stats.timeon+=(uint32_t)(now-logontime)/60;
-			stats.ttoday+=(uint32_t)(now-logontime)/60;
+			stats.timeon+=(now-logontime)/60;
+			stats.ttoday+=(now-logontime)/60;
 			stats.ptoday+=logon_posts;
 		}
 		stats.uls+=logon_uls;
@@ -3901,7 +3875,6 @@ void node_thread(void* arg)
 	int				file;
 	uint			curshell=0;
 	node_t			node;
-	ulong			login_attempts;
 	sbbs_t*			sbbs = (sbbs_t*) arg;
 
 	update_clients();
@@ -3920,13 +3893,6 @@ void node_thread(void* arg)
 			lprintf(LOG_ERR,"Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
 	}
 #endif
-
-	if(startup->login_attempt_throttle
-		&& (login_attempts=loginAttempts(startup->login_attempt_list, &sbbs->client_addr)) > 1) {
-		lprintf(LOG_DEBUG,"Node %d Throttling suspicious connection from: %s (%u login attempts)"
-			,sbbs->cfg.node_num, inet_ntoa(sbbs->client_addr.sin_addr), login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
-	}
 
 	if(sbbs->answer()) {
 
@@ -4061,11 +4027,10 @@ void node_thread(void* arg)
 /*	node.useron=0; needed for hang-ups while in multinode chat */
 	sbbs->putnodedat(sbbs->cfg.node_num,&node);
 
-	{
-		int32_t remain = protected_uint32_adjust(&node_threads_running, -1);
-		lprintf(LOG_INFO,"Node %d thread terminated (%u node threads remain, %lu clients served)"
-			,sbbs->cfg.node_num, remain, served);
-	}
+	if(node_threads_running>0)
+		node_threads_running--;
+	lprintf(LOG_INFO,"Node %d thread terminated (%u node threads remain, %lu clients served)"
+		,sbbs->cfg.node_num, node_threads_running, served);
     if(!sbbs->input_thread_running && !sbbs->output_thread_running)
 		delete sbbs;
     else
@@ -4117,7 +4082,7 @@ void sbbs_t::daily_maint(void)
 		backup(str,sbbs->cfg.mail_backup_level,FALSE);
 	}
 
-	lputs(LOG_INFO,status("Checking for inactive/expired user records..."));
+	lputs(LOG_INFO,"Checking for inactive/expired user records...");
 	lastusernum=lastuser(&sbbs->cfg);
 	for(usernum=1;usernum<=lastusernum;usernum++) {
 
@@ -4160,7 +4125,7 @@ void sbbs_t::daily_maint(void)
 				user.exempt=sbbs->cfg.val_exempt[sbbs->cfg.level_expireto[user.level]];
 				user.rest=sbbs->cfg.val_rest[sbbs->cfg.level_expireto[user.level]];
 				if(sbbs->cfg.val_expire[sbbs->cfg.level_expireto[user.level]])
-					user.expire=(time32_t)now
+					user.expire=now
 						+(sbbs->cfg.val_expire[sbbs->cfg.level_expireto[user.level]]*24*60*60);
 				else
 					user.expire=0;
@@ -4184,7 +4149,7 @@ void sbbs_t::daily_maint(void)
 			putuserrec(&sbbs->cfg,user.number,U_FLAGS2,8,ultoa(user.flags2,str,16));
 			putuserrec(&sbbs->cfg,user.number,U_FLAGS3,8,ultoa(user.flags3,str,16));
 			putuserrec(&sbbs->cfg,user.number,U_FLAGS4,8,ultoa(user.flags4,str,16));
-			putuserrec(&sbbs->cfg,user.number,U_EXPIRE,8,ultoa((ulong)user.expire,str,16));
+			putuserrec(&sbbs->cfg,user.number,U_EXPIRE,8,ultoa(user.expire,str,16));
 			putuserrec(&sbbs->cfg,user.number,U_EXEMPT,8,ultoa(user.exempt,str,16));
 			putuserrec(&sbbs->cfg,user.number,U_REST,8,ultoa(user.rest,str,16));
 			if(sbbs->cfg.expire_mod[0]) {
@@ -4210,7 +4175,7 @@ void sbbs_t::daily_maint(void)
 		}
 	}
 
-	lputs(LOG_INFO,status("Purging deleted/expired e-mail"));
+	lputs(LOG_INFO,"Purging deleted/expired e-mail");
 	SAFEPRINTF(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
 	sbbs->smb.retry_time=sbbs->cfg.smb_retry_time;
 	sbbs->smb.subnum=INVALID_SUB;
@@ -4233,7 +4198,6 @@ void sbbs_t::daily_maint(void)
 		sbbs->external(sbbs->cmdstr(sbbs->cfg.sys_daily,nulstr,nulstr,NULL)
 			,EX_OFFLINE); 
 	}
-	status(STATUS_WFC);
 }
 
 const char* DLLCALL js_ver(void)
@@ -4312,8 +4276,6 @@ static void cleanup(int code)
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 
-	protected_uint32_destroy(node_threads_running);
-
 #ifdef _WIN32
 	if(exec_mutex!=NULL) {
 		CloseHandle(exec_mutex);
@@ -4339,6 +4301,8 @@ static void cleanup(int code)
 	thread_down();
 	if(terminate_server || code)
 		lprintf(LOG_INFO,"Terminal Server thread terminated (%lu clients served)", served);
+	if(thread_count)
+		lprintf(LOG_WARNING,"!Terminal Server threads (%u) remain after termination", thread_count);
 	if(startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -4408,13 +4372,12 @@ void DLLCALL bbs_thread(void* arg)
 	ZERO_VAR(js_server_props);
 	SAFEPRINTF3(js_server_props.version,"%s %s%c",TELNET_SERVER,VERSION,REVISION);
 	js_server_props.version_detail=bbs_ver();
-	js_server_props.clients=&node_threads_running.value;
+	js_server_props.clients=&node_threads_running;
 	js_server_props.options=&startup->options;
 	js_server_props.interface_addr=&startup->telnet_interface;
 
 	uptime=0;
 	served=0;
-
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 	terminate_server=false;
@@ -4422,8 +4385,6 @@ void DLLCALL bbs_thread(void* arg)
 	SetThreadName("BBS");
 
 	do {
-
-	protected_uint32_init(&node_threads_running,0);
 
 	thread_up(FALSE /* setuid */);
 
@@ -4440,6 +4401,7 @@ void DLLCALL bbs_thread(void* arg)
 	memset(text, 0, sizeof(text));
     memset(&scfg, 0, sizeof(scfg));
 
+	node_threads_running=0;
 	lastuseron[0]=0;
 
 	char compiler[32];
@@ -4751,7 +4713,7 @@ void DLLCALL bbs_thread(void* arg)
 NO_SSH:
 #endif
 
-	sbbs = new sbbs_t(0, server_addr
+	sbbs = new sbbs_t(0, server_addr.sin_addr.s_addr
 		,"Terminal Server", telnet_socket, &scfg, text, NULL);
     sbbs->online = 0;
 	if(sbbs->init()==false) {
@@ -4762,7 +4724,7 @@ NO_SSH:
 	_beginthread(output_thread, 0, sbbs);
 
 	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
-		events = new sbbs_t(0, server_addr
+		events = new sbbs_t(0, server_addr.sin_addr.s_addr
 			,"BBS Events", INVALID_SOCKET, &scfg, text, NULL);
 		events->online = 0;
 		if(events->init()==false) {
@@ -4882,7 +4844,7 @@ NO_SSH:
 
 	while(!terminate_server) {
 
-		if(node_threads_running.value==0) {	/* check for re-run flags and recycle/shutdown sem files */
+		if(node_threads_running==0) {	/* check for re-run flags and recycle/shutdown sem files */
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 
 				bool rerun=false;
@@ -5103,7 +5065,7 @@ NO_SSH:
 #endif
 
 		/* Do SSH stuff here */
-#ifdef USE_CRYPTLIB
+
 		if(ssh) {
 			int	ssh_failed=0;
 			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
@@ -5168,7 +5130,7 @@ NO_SSH:
 			}
 			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 		}
-#endif
+
    		sbbs->client_socket=client_socket;	// required for output to the user
         sbbs->online=ON_REMOTE;
 
@@ -5236,7 +5198,7 @@ NO_SSH:
 		}
 		/* Initialize client display */
 		client.size=sizeof(client);
-		client.time=time32(NULL);
+		client.time=time(NULL);
 		SAFECOPY(client.addr,host_ip);
 		SAFECOPY(client.host,host_name);
 		client.port=ntohs(client_addr.sin_port);
@@ -5289,7 +5251,7 @@ NO_SSH:
 
         node_socket[i-1]=client_socket;
 
-		sbbs_t* new_node = new sbbs_t(i, client_addr, host_name
+		sbbs_t* new_node = new sbbs_t(i, client_addr.sin_addr.s_addr, host_name
         	,client_socket
 			,&scfg, text, &client);
 
@@ -5430,7 +5392,7 @@ NO_PASSTHRU:
 		}
 #endif
 
-	    protected_uint32_adjust(&node_threads_running, 1);
+	    node_threads_running++;
 		new_node->input_thread=(HANDLE)_beginthread(input_thread,0, new_node);
 		_beginthread(output_thread, 0, new_node);
 		_beginthread(node_thread, 0, new_node);
@@ -5466,13 +5428,13 @@ NO_PASSTHRU:
     sem_post(&sbbs->outbuf.sem);
 
     // Wait for all node threads to terminate
-	if(node_threads_running.value) {
-		lprintf(LOG_INFO,"Waiting for %d node threads to terminate...", node_threads_running.value);
+	if(node_threads_running) {
+		lprintf(LOG_INFO,"Waiting for %d node threads to terminate...", node_threads_running);
 		start=time(NULL);
-		while(node_threads_running.value) {
+		while(node_threads_running) {
 			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
 				lprintf(LOG_ERR,"!TIMEOUT waiting for %d node thread(s) to "
-            		"terminate", node_threads_running.value);
+            		"terminate", node_threads_running);
 				break;
 			}
 			mswait(100);
