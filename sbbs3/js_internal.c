@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.53 2011/08/12 23:26:17 sbbs Exp $ */
+/* $Id: js_internal.c,v 1.54 2011/08/31 21:24:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -446,7 +446,8 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 
 	strListFree(&branch->exit_func);
 
-	branch->auto_terminate = auto_terminate;
+	if(auto_terminate)
+		branch->auto_terminate = TRUE;
 }
 
 JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch, js_startup_t* startup)
