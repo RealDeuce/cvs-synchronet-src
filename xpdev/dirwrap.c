@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.84 2011/10/24 21:48:42 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.81 2010/06/03 01:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -74,7 +74,7 @@
 #if defined(__WATCOMC__)
 	#include <dos.h>
 #endif
-
+	
 #include <sys/types.h>	/* _dev_t */
 #include <sys/stat.h>	/* struct stat */
 
@@ -97,9 +97,9 @@ char* DLLCALL getfname(const char* path)
 	bslash=strrchr(path,'\\');
 	if(bslash>fname)
 		fname=bslash;
-	if(fname!=NULL)
+	if(fname!=NULL) 
 		fname++;
-	else
+	else 
 		fname=(char*)path;
 	return((char*)fname);
 }
@@ -114,7 +114,7 @@ char* DLLCALL getfext(const char* path)
 
 	fname=getfname(path);
 	fext=strrchr(fname,'.');
-	if(fext==NULL || fext==fname)
+	if(fext==NULL || fext==fname) 
 		return(NULL);
 	return(fext);
 }
@@ -175,7 +175,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 		glob->gl_pathv=NULL;
 	}
 
-	if(_dos_findfirst((char*)pattern,(flags&GLOB_PERIOD) ? _A_HIDDEN : _A_NORMAL,&ff)!=0)
+	if(_dos_findfirst((char*)pattern,_A_NORMAL,&ff)!=0)
 		return(GLOB_NOMATCH);
 
 	do {
@@ -236,7 +236,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 
 	ff_handle=_findfirst((char*)pattern,&ff);
 	while(ff_handle!=-1) {
-		if((flags&GLOB_PERIOD || (ff.name[0]!='.' && !(ff.attrib&_A_HIDDEN))) &&
+		if((flags&GLOB_PERIOD || ff.name[0]!='.') &&
 			(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR)) {
 			if((new_pathv=(char**)realloc(glob->gl_pathv
 				,(glob->gl_pathc+1)*sizeof(char*)))==NULL) {
@@ -264,8 +264,8 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 		}
 		if(_findnext(ff_handle, &ff)!=0) {
 			_findclose(ff_handle);
-			ff_handle=-1;
-		}
+			ff_handle=-1; 
+		} 
 	}
 
 	if(found==0)
@@ -299,36 +299,6 @@ void DLLCALL globfree(glob_t* glob)
 }
 
 #endif /* !defined(__unix__) */
-
-long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only)
-{
-	char		match[MAX_PATH+1];
-	glob_t		g;
-	unsigned	gi;
-	long		count=0;
-
-	if(!isdir(path))
-		return -1;
-
-	SAFECOPY(match,path);
-	backslash(match);
-	strcat(match,ALLFILES);
-	glob(match,GLOB_MARK,NULL,&g);
-	if(include_subdirs && !subdir_only)
-		count=g.gl_pathc;
-	else
-		for(gi=0;gi<g.gl_pathc;gi++) {
-			if(*lastchar(g.gl_pathv[gi])=='/') {
-				if(!include_subdirs)
-					continue;
-			} else
-				if(subdir_only)
-					continue;
-			count++;
-		}
-	globfree(&g);
-	return(count);
-}
 
 /****************************************************************************/
 /* POSIX directory operations using Microsoft _findfirst/next API.			*/
@@ -437,7 +407,7 @@ off_t DLLCALL flength(const char *filename)
 
 	return(f.size);
 
-#else
+#else 
 
 	struct stat st;
 
@@ -497,7 +467,7 @@ BOOL DLLCALL fexist(const char *filespec)
 	return(found);
 
 #else /* Unix or OS/2 */
-
+	
 	/* portion by cmartin */
 
 	glob_t g;
@@ -523,7 +493,7 @@ BOOL DLLCALL fexist(const char *filespec)
             return TRUE;
         }
     }
-
+        
     globfree(&g);
     return FALSE;
 
@@ -565,7 +535,7 @@ BOOL DLLCALL fexistcase(char *path)
 	char *p;
 	int  i;
 	glob_t	glb;
-
+	
 	if(path[0]==0)		/* work around glibc bug 574274 */
 		return FALSE;
 
@@ -592,7 +562,7 @@ BOOL DLLCALL fexistcase(char *path)
 
 	if(glob(globme,GLOB_MARK,NULL,&glb) != 0)
 		return(FALSE);
-
+	
 	if(glb.gl_pathc>0)  {
 		for(i=0;i<glb.gl_pathc;i++)  {
 			if(*lastchar(glb.gl_pathv[i]) != '/')
@@ -607,7 +577,7 @@ BOOL DLLCALL fexistcase(char *path)
 
 	globfree(&glb);
 	return FALSE;
-
+	
 #endif
 }
 
@@ -731,7 +701,7 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 /****************************************************************************/
 #if defined(_WIN32)
 typedef BOOL(WINAPI * GetDiskFreeSpaceEx_t)
-	(LPCTSTR,PULARGE_INTEGER,PULARGE_INTEGER,PULARGE_INTEGER);
+	(LPCTSTR,PULARGE_INTEGER,PULARGE_INTEGER,PULARGE_INTEGER); 
 
 static int bit_num(ulong val)
 {
@@ -761,9 +731,9 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 
 	if(hK32 == NULL)
 		hK32 = LoadLibrary("KERNEL32");
-	GetDiskFreeSpaceEx
+	GetDiskFreeSpaceEx 
 		= (GetDiskFreeSpaceEx_t)GetProcAddress(hK32,"GetDiskFreeSpaceExA");
-
+ 
 	if (GetDiskFreeSpaceEx!=NULL) {	/* Windows 95-OSR2 or later */
 		if(!GetDiskFreeSpaceEx(
 			path,		/* pointer to the directory name */
@@ -796,10 +766,10 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	sprintf(root,"%.3s",path);
 	if(!GetDiskFreeSpace(
 		root,					/* pointer to root path */
-		(PDWORD)&SectorsPerCluster,		/* pointer to sectors per cluster */
-		(PDWORD)&BytesPerSector,		/* pointer to bytes per sector */
-		(PDWORD)&NumberOfFreeClusters,	/* pointer to number of free clusters */
-		(PDWORD)&TotalNumberOfClusters  /* pointer to total number of clusters */
+		&SectorsPerCluster,		/* pointer to sectors per cluster */
+		&BytesPerSector,		/* pointer to bytes per sector */
+		&NumberOfFreeClusters,	/* pointer to number of free clusters */
+		&TotalNumberOfClusters  /* pointer to total number of clusters */
 		))
 		return(0);
 
@@ -826,7 +796,7 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	if(unit>1)
 		blocks/=unit;
     return fs.f_bsize * blocks;
-
+    
 /* statfs is also used under FreeBSD (Though it *supports* statvfs() now too) */
 #elif defined(__GLIBC__) || defined(BSD)
 
@@ -844,7 +814,7 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	if(unit>1)
 		blocks/=unit;
     return fs.f_bsize * blocks;
-
+    
 #else
 
 	fprintf(stderr,"\n*** !Missing getfreediskspace implementation ***\n");
@@ -901,7 +871,7 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 		}
 	}
 	strncat(target,path,size-1);
-
+	
 /*	if(stat(target,&sb))
 		return(NULL);
 	if(sb.st_mode&S_IFDIR)
@@ -966,7 +936,7 @@ BOOL DLLCALL isabspath(const char *filename)
 /****************************************************************************/
 BOOL DLLCALL isfullpath(const char* filename)
 {
-	return(filename[0]=='/'
+	return(filename[0]=='/' 
 #ifdef WIN32
 		|| filename[0]=='\\' || filename[1]==':'
 #endif
