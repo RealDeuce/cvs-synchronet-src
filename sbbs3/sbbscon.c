@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.235 2010/06/03 05:50:46 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.237 2011/07/18 00:39:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1914,8 +1914,10 @@ int main(int argc, char** argv)
 	}
 
     if(!isatty(fileno(stdin)))  			/* redirected */
-	   	while(1)
+	   	while(1) {
 	    	select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
+		lputs(LOG_WARNING,"select(NULL) returned!");
+	}
 	else 								/* interactive */
 #endif
 	{
@@ -1948,6 +1950,7 @@ int main(int argc, char** argv)
 			printf("%c\n",ch);
 			switch(ch) {
 				case 'q':
+#ifdef SBBSCON_PROMPT_ON_QUIT	/* This part of Quicksilver's mod doesn't work right on an active BBS (the prompt is usually quickly erased) */
                     /* default to no, prevent accidental quit */
                     printf("Confirm quit [y/N]: ");
                     fflush(stdout);
@@ -1958,6 +1961,9 @@ int main(int argc, char** argv)
                         default:
                             break;
                     }
+#else
+						terminated = TRUE;
+#endif
                      break;
 				case 'w':	/* who's online */
 					printf("\nNodes in use:\n");
