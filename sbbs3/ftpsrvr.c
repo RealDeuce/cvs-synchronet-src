@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.371 2011/01/29 01:04:04 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.378 2011/08/31 19:34:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,16 +79,17 @@
 static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
-static ulong	active_clients=0;
-static ulong	sockets=0;
-static ulong	thread_count=0;
-static time_t	uptime=0;
-static ulong	served=0;
-static BOOL		terminate_server=FALSE;
+static volatile ulong	active_clients=0;
+static volatile ulong	sockets=0;
+static volatile ulong	thread_count=0;
+static volatile time_t	uptime=0;
+static volatile ulong	served=0;
+static volatile BOOL	terminate_server=FALSE;
 static char		revision[16];
 static char 	*text[TOTAL_TEXT];
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
+static link_list_t	login_attempt_list;
 
 #ifdef SOCKET_DEBUG
 	static BYTE 	socket_debug[0x10000]={0};
@@ -124,7 +125,7 @@ BOOL direxist(char *dir)
 
 BOOL dir_op(scfg_t* cfg, user_t* user, client_t* client, uint dirnum)
 {
-	return(user->level>=SYSOP_LEVEL || user->exempt&FLAG('R')
+	return(user->level>=SYSOP_LEVEL
 		|| (cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user,client)));
 }
 
@@ -1658,7 +1659,7 @@ static void receive_thread(void* arg)
 				str[0]=0;
 			lprintf(LOG_INFO,"%04d Received %lu bytes of %s (%lu cps)%s"
 				,xfer.ctrl_sock,total,xfer.filename
-				,(total-last_total)/(now-last_report)
+				,(ulong)((total-last_total)/(now-last_report))
 				,str);
 			last_total=total;
 			last_report=now;
@@ -2096,8 +2097,8 @@ void parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curd
 	char*	p;
 	char*	tp;
 	char	path[MAX_PATH+1];
-	uint	dir=*curdir;
-	uint	lib=*curlib;
+	int		dir=*curdir;
+	int		lib=*curlib;
 
 	SAFECOPY(path,*pp);
 	p=path;
@@ -2314,9 +2315,43 @@ void ftp_printfile(SOCKET sock, const char* name, unsigned code)
 	}
 }
 
-static BOOL badlogin(SOCKET sock, ulong* login_attempts)
+static BOOL ftp_hacklog(char* prot, char* user, char* text, char* host, SOCKADDR_IN* addr)
 {
-	mswait(5000);	/* As recommended by RFC2577 */
+#ifdef _WIN32
+	if(startup->hack_sound[0] && !(startup->options&FTP_OPT_MUTE)) 
+		PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
+#endif
+
+	return hacklog(&scfg, prot, user, text, host, addr);
+}
+
+/****************************************************************************/
+/* Consecutive failed login (possible password hack) attempt tracking		*/
+/****************************************************************************/
+/* Counter is global so it is tracked between multiple connections.			*/
+/* Failed consecutive login attempts > 10 will generate a hacklog entry	and	*/
+/* immediately disconnect (after the usual failed-login delay).				*/
+/* A failed login from a different host resets the counter.					*/
+/* A successful login from the same host resets the counter.				*/
+/****************************************************************************/
+
+static BOOL badlogin(SOCKET sock, ulong* login_attempts, char* user, char* passwd, char* host, SOCKADDR_IN* addr)
+{
+	ulong count;
+
+	if(addr!=NULL) {
+		count=loginFailure(&login_attempt_list, addr, "FTP", user, passwd);
+		if(count>=LOGIN_ATTEMPT_HACKLOG)
+			ftp_hacklog("FTP LOGIN", user, passwd, host, addr);
+		if(count>=LOGIN_ATTEMPT_FILTER)
+			filter_ip(&scfg, "FTP", "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
+				,host, inet_ntoa(addr->sin_addr), user, /* fname: */NULL);
+		if(count > *login_attempts)
+			*login_attempts=count;
+	}
+
+	mswait(LOGIN_ATTEMPT_DELAY);	/* As recommended by RFC2577 */
+
 	if(++(*login_attempts)>=3) {
 		sockprintf(sock,"421 Too many failed login attempts.");
 		return(TRUE);
@@ -2425,6 +2460,7 @@ static void ctrl_thread(void* arg)
 	JSString*	js_str;
 	js_branch_t	js_branch;
 #endif
+	list_node_t*	login_attempt;
 
 	SetThreadName("FTP CTRL");
 	thread_up(TRUE /* setuid */);
@@ -2439,7 +2475,7 @@ static void ctrl_thread(void* arg)
 	
 	lprintf(LOG_DEBUG,"%04d CTRL thread started", sock);
 
-	free(arg);	/* unexplicable assertion here on July 26, 2001 */
+	free(arg);
 
 #ifdef _WIN32
 	if(startup->answer_sound[0] && !(startup->options&FTP_OPT_MUTE)) 
@@ -2519,6 +2555,12 @@ static void ctrl_thread(void* arg)
 	client.protocol="FTP";
 	client.user="<unknown>";
 	client_on(sock,&client,FALSE /* update */);
+
+	if((login_attempt=loginAttempted(&login_attempt_list, &ftp.client_addr)) != NULL
+		&& ((login_attempt_t*)login_attempt->data)->count > 1) {
+		lprintf(LOG_NOTICE,"%04d Delaying suspicious connection from: %s", sock, inet_ntoa(ftp.client_addr.sin_addr));
+		mswait(((login_attempt_t*)login_attempt->data)->count*1000);
+	}
 
 	sockprintf(sock,"220-%s (%s)",scfg.sys_name, startup->host_name);
 	sockprintf(sock," Synchronet FTP Server %s-%s Ready"
@@ -2643,7 +2685,7 @@ static void ctrl_thread(void* arg)
 					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: %s, Password: %s",sock,user.alias,p);
 				else
 					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: %s",sock,user.alias);
-				if(badlogin(sock,&login_attempts))
+				if(badlogin(sock, &login_attempts, user.alias, p, host_name, &ftp.client_addr))
 					break;
 				continue;
 			}
@@ -2658,7 +2700,7 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_WARNING,"%04d !DELETED or INACTIVE user #%d (%s)"
 					,sock,user.number,user.alias);
 				user.number=0;
-				if(badlogin(sock,&login_attempts))
+				if(badlogin(sock, &login_attempts, NULL, NULL, NULL, NULL))
 					break;
 				continue;
 			}
@@ -2666,7 +2708,7 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_WARNING,"%04d !T RESTRICTED user #%d (%s)"
 					,sock,user.number,user.alias);
 				user.number=0;
-				if(badlogin(sock,&login_attempts))
+				if(badlogin(sock, &login_attempts, NULL, NULL, NULL, NULL))
 					break;
 				continue;
 			}
@@ -2691,7 +2733,7 @@ static void ctrl_thread(void* arg)
 				if(trashcan(&scfg,password,"email")) {
 					lprintf(LOG_NOTICE,"%04d !BLOCKED e-mail address: %s",sock,password);
 					user.number=0;
-					if(badlogin(sock,&login_attempts))
+					if(badlogin(sock, &login_attempts, NULL, NULL, NULL, NULL))
 						break;
 					continue;
 				}
@@ -2710,20 +2752,20 @@ static void ctrl_thread(void* arg)
 					lprintf(LOG_WARNING,"%04d !FAILED Password attempt for user %s"
 						,sock, user.alias);
 				user.number=0;
-				if(badlogin(sock,&login_attempts))
+				if(badlogin(sock, &login_attempts, user.alias, password, host_name, &ftp.client_addr))
 					break;
 				continue;
 			}
 
 			/* Update client display */
-			if(user.pass[0])
+			if(user.pass[0]) {
 				client.user=user.alias;
-			else {	/* anonymous */
+				loginSuccess(&login_attempt_list, &ftp.client_addr);
+			} else {	/* anonymous */
 				sprintf(str,"%s <%.32s>",user.alias,password);
 				client.user=str;
 			}
 			client_on(sock,&client,TRUE /* update */);
-
 
 			lprintf(LOG_INFO,"%04d %s logged in (%u today, %u total)"
 				,sock,user.alias,user.ltoday+1, user.logons+1);
@@ -2898,12 +2940,8 @@ static void ctrl_thread(void* arg)
 				lprintf(LOG_WARNING,"%04d !SUSPECTED BOUNCE ATTACK ATTEMPT by %s to %s port %u"
 					,sock,user.alias
 					,inet_ntoa(data_addr.sin_addr),data_addr.sin_port);
-				hacklog(&scfg, "FTP", user.alias, cmd, host_name, &ftp.client_addr);
+				ftp_hacklog("FTP BOUNCE", user.alias, cmd, host_name, &ftp.client_addr);
 				sockprintf(sock,"504 Bad port number.");	
-#ifdef _WIN32
-				if(startup->hack_sound[0] && !(startup->options&FTP_OPT_MUTE)) 
-					PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
-#endif
 				continue; /* As recommended by RFC2577 */
 			}
 			data_addr.sin_port=htons(data_addr.sin_port);
@@ -4067,7 +4105,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 
-				if(delecmd && !dir_op(&scfg,&user,&client,dir)) {
+				if(delecmd && !dir_op(&scfg,&user,&client,dir) && !(user.exempt&FLAG('R'))) {
 					lprintf(LOG_WARNING,"%04d !%s has insufficient access to delete files in /%s/%s"
 						,sock,user.alias
 						,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -4118,11 +4156,7 @@ static void ctrl_thread(void* arg)
 					success=FALSE;
 					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
 						,sock,user.alias,p);
-					hacklog(&scfg, "FTP", user.alias, cmd, host_name, &ftp.client_addr);
-#ifdef _WIN32
-					if(startup->hack_sound[0] && !(startup->options&FTP_OPT_MUTE)) 
-						PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
-#endif
+					ftp_hacklog("FTP FILENAME", user.alias, cmd, host_name, &ftp.client_addr);
 				} else {
 					if(fexistcase(fname)) {
 						success=TRUE;
@@ -4270,13 +4304,25 @@ static void ctrl_thread(void* arg)
 
 				append=(strnicmp(cmd,"APPE",4)==0);
 			
-				if(!chk_ar(&scfg,scfg.dir[dir]->ul_ar,&user,&client)) {
-					lprintf(LOG_WARNING,"%04d !%s has insufficient access to upload to /%s/%s"
-						,sock,user.alias
-						,scfg.lib[scfg.dir[dir]->lib]->sname
-						,scfg.dir[dir]->code_suffix);
-					sockprintf(sock,"553 Insufficient access.");
-					continue;
+				if(!dir_op(&scfg,&user,&client,dir) && !(user.exempt&FLAG('U'))) {
+					if(!chk_ar(&scfg,scfg.dir[dir]->ul_ar,&user,&client)) {
+						lprintf(LOG_WARNING,"%04d !%s cannot upload to /%s/%s (insufficient access)"
+							,sock,user.alias
+							,scfg.lib[scfg.dir[dir]->lib]->sname
+							,scfg.dir[dir]->code_suffix);
+						sockprintf(sock,"553 Insufficient access.");
+						continue;
+					}
+
+					if(scfg.dir[dir]->maxfiles && getfiles(&scfg,dir)>=scfg.dir[dir]->maxfiles) {
+						lprintf(LOG_WARNING,"%04d !%s cannot upload to /%s/%s (directory full: %u files)"
+							,sock,user.alias
+							,scfg.lib[scfg.dir[dir]->lib]->sname
+							,scfg.dir[dir]->code_suffix
+							,getfiles(&scfg,dir));
+						sockprintf(sock,"553 Directory full.");
+						continue;
+					}
 				}
 				if(*p=='-'
 					|| strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)
@@ -4284,11 +4330,7 @@ static void ctrl_thread(void* arg)
 					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
 						,sock,user.alias,p);
 					sockprintf(sock,"553 Illegal filename attempt");
-					hacklog(&scfg, "FTP", user.alias, cmd, host_name, &ftp.client_addr);
-#ifdef _WIN32
-					if(startup->hack_sound[0] && !(startup->options&FTP_OPT_MUTE)) 
-						PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
-#endif
+					ftp_hacklog("FTP FILENAME", user.alias, cmd, host_name, &ftp.client_addr);
 					continue;
 				}
 				SAFEPRINTF2(fname,"%s%s",scfg.dir[dir]->path,p);
@@ -4484,11 +4526,7 @@ static void ctrl_thread(void* arg)
 			!strnicmp(cmd,"SITE EXEC",9)) {
 			lprintf(LOG_WARNING,"%04d !SUSPECTED HACK ATTEMPT by %s: '%s'"
 				,sock,user.alias,cmd);
-			hacklog(&scfg, "FTP", user.alias, cmd, host_name, &ftp.client_addr);
-#ifdef _WIN32
-			if(startup->hack_sound[0] && !(startup->options&FTP_OPT_MUTE)) 
-				PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
-#endif
+			ftp_hacklog("FTP", user.alias, cmd, host_name, &ftp.client_addr);
 		}		
 		sockprintf(sock,"500 Syntax error: '%s'",cmd);
 		lprintf(LOG_WARNING,"%04d !UNSUPPORTED COMMAND from %s: '%s'"
@@ -4590,9 +4628,24 @@ static void ctrl_thread(void* arg)
 
 static void cleanup(int code, int line)
 {
+	char				tmp[128];
+	login_attempt_t*	login_attempt;
+
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG,"0000 cleanup called from line %d",line);
 #endif
+
+	while((login_attempt=loginAttemptPop(&login_attempt_list)) != NULL) {
+		if(login_attempt->count > 1)
+			lprintf(LOG_NOTICE,"0000 Multiple (%u) failed login attempts from %s, last occurred on %.24s (user: %s, password: %s)"
+				,login_attempt->count, inet_ntoa(login_attempt->addr)
+				,ctime_r(&login_attempt->time, tmp)
+				,login_attempt->user
+				,login_attempt->pass
+				);
+		loginAttemptFree(login_attempt);
+	}
+	loginAttemptListFree(&login_attempt_list);
 	free_cfg(&scfg);
 	free_text(text);
 
@@ -4626,7 +4679,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.371 $", "%*s %s", revision);
+	sscanf("$Revision: 1.378 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4712,6 +4765,7 @@ void DLLCALL ftp_server(void* arg)
 	js_server_props.interface_addr=&startup->interface_addr;
 #endif
 
+	loginAttemptListInit(&login_attempt_list);
 
 	uptime=0;
 	served=0;
@@ -4956,7 +5010,7 @@ void DLLCALL ftp_server(void* arg)
 				ftp_close_socket(&client_socket,__LINE__);
 				continue;
 			}
-
+			
 			if(active_clients>=startup->max_clients) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
@@ -4978,7 +5032,7 @@ void DLLCALL ftp_server(void* arg)
 			ftp->socket=client_socket;
 			ftp->client_addr=client_addr;
 
-			_beginthread (ctrl_thread, 0, ftp);
+			_beginthread(ctrl_thread, 0, ftp);
 			served++;
 		}
 

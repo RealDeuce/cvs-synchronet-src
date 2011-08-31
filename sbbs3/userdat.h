@@ -2,13 +2,13 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.38 2009/11/21 20:42:47 rswindell Exp $ */
+/* $Id: userdat.h,v 1.40 2011/08/31 19:34:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -65,6 +65,19 @@
 	#define DLLCALL
 #endif
 
+typedef struct {
+	IN_ADDR		addr;	/* host with consecutive failed login attmepts */
+	ulong		count;	/* number of consectuive failed login attempts */
+	time_t		time;	/* time of last attempt */
+	const char*	prot;	/* protocol used in last attempt */
+	char		user[128];
+	char		pass[128];
+} login_attempt_t;
+
+#define LOGIN_ATTEMPT_DELAY		5000	/* milliseconds */
+#define LOGIN_ATTEMPT_HACKLOG	10		/* write to hack.log after this many consecutive unique attempts */
+#define LOGIN_ATTEMPT_FILTER	100		/* filter client IP address after this many consecutive unique attempts */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -96,7 +109,7 @@ DLLEXPORT char* DLLCALL getnmsg(scfg_t* cfg, int node_num);
 DLLEXPORT int	DLLCALL putnmsg(scfg_t* cfg, int num, char *strin);
 
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen, char *dat
-							,BOOL del);
+							,BOOL del, BOOL next);
 
 DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t* cfg, uchar* str, user_t*, client_t*); /* checks access requirements */
 
@@ -125,6 +138,15 @@ DLLEXPORT BOOL	DLLCALL user_adjust_minutes(scfg_t* cfg, user_t* user, long amoun
 DLLEXPORT time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime);
 
 DLLEXPORT BOOL	DLLCALL check_name(scfg_t* cfg, const char* name);
+
+/* Login attempt/hack tracking */
+DLLEXPORT link_list_t*		DLLCALL	loginAttemptListInit(link_list_t*);
+DLLEXPORT BOOL				DLLCALL	loginAttemptListFree(link_list_t*);
+DLLEXPORT list_node_t*		DLLCALL loginAttempted(link_list_t*, SOCKADDR_IN*);
+DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, SOCKADDR_IN*);
+DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, SOCKADDR_IN*, const char* prot, const char* user, const char* pass);
+DLLEXPORT login_attempt_t*	DLLCALL loginAttemptPop(link_list_t*);
+DLLEXPORT void				DLLCALL loginAttemptFree(void* data);
 
 #ifdef __cplusplus
 }
