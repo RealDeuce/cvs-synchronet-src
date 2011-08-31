@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.90 2010/04/02 23:12:02 deuce Exp $ */
+/* $Id: exec.cpp,v 1.93 2011/07/02 03:54:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -575,7 +575,6 @@ static const char* js_ext(const char* fname)
 
 long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 {
-	ulong		stack_frame;
 	char*		p;
 	char*		args=NULL;
 	char*		fname;
@@ -586,21 +585,11 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 	JSScript*	js_script=NULL;
 	jsval		rval;
 	int32		result=0;
-	JSRuntime	*old_runtime=js_runtime;
-	JSContext	*old_context=js_cx;
-	JSObject	*old_glob=js_glob;
-	js_branch_t	old_branch;
-
-	memcpy(&old_branch, &js_branch, sizeof(old_branch));
-
-	js_init(&stack_frame);
-	js_create_user_objects();
 
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
 		errormsg(WHERE,ERR_EXEC,cmd,0);
-		result=-1;
-		goto reset_js;
+		return -1;
 	}
 
 	SAFECOPY(cmdline,cmd);
@@ -625,8 +614,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 
 	if(!fexistcase(path)) {
 		errormsg(WHERE,ERR_OPEN,path,O_RDONLY);
-		result=-1;
-		goto reset_js;
+		return -1;
 	}
 
 	JS_BEGINREQUEST(js_cx);
@@ -670,8 +658,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 		JS_ReportPendingException(js_cx);	/* Added Feb-2-2006, rswindell */
 		JS_ENDREQUEST(js_cx);
 		errormsg(WHERE,"compiling",path,0);
-		result=-1;
-		goto reset_js;
+		return -1;
 	}
 
 	js_branch.counter=0;	// Reset loop counter
@@ -700,14 +687,6 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir)
 	JS_GC(js_cx);
 
 	JS_ENDREQUEST(js_cx);
-
-reset_js:
-	js_cleanup(client_name);
-	js_runtime=old_runtime;
-	js_cx=old_context;
-	js_glob=old_glob;
-
-	memcpy(&js_branch, &old_branch, sizeof(old_branch));
 
 	return(result);
 }
@@ -1603,8 +1582,7 @@ int sbbs_t::exec(csi_t *csi)
 						if(trashcan(csi->str,"name"))
 							break;
 						if(cfg.uq&UQ_DUPREAL
-							&& userdatdupe(useron.number,U_NAME,LEN_NAME
-							,csi->str,0))
+							&& userdatdupe(useron.number,U_NAME,LEN_NAME,csi->str))
 							break;
 						sprintf(useron.name,"%.*s",LEN_NAME,csi->str);
 						putuserrec(&cfg,useron.number,U_NAME,LEN_NAME
@@ -1615,8 +1593,7 @@ int sbbs_t::exec(csi_t *csi)
 						if(trashcan(csi->str,"name"))
 							break;
 						if(cfg.uq&UQ_DUPHAND
-							&& userdatdupe(useron.number,U_HANDLE,LEN_HANDLE
-							,csi->str,0))
+							&& userdatdupe(useron.number,U_HANDLE,LEN_HANDLE,csi->str))
 							break;
 						sprintf(useron.handle,"%.*s",LEN_HANDLE,csi->str);
 						putuserrec(&cfg,useron.number,U_HANDLE,LEN_HANDLE
