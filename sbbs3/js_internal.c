@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.54 2011/08/31 21:24:50 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.55 2011/08/31 22:01:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,9 @@
 #include "sbbs.h"
 #include "js_request.h"
 
-#include <jscntxt.h>	/* Needed for Context-private data structure */
+#ifdef _DEBUG
+	#include <jscntxt.h>	/* Needed for Context-private data structure */
+#endif
 
 enum {
 	 PROP_VERSION
