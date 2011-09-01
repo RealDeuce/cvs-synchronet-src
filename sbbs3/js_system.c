@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.132 2011/03/01 22:06:40 mcmlxxix Exp $ */
+/* $Id: js_system.c,v 1.135 2011/08/25 19:23:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -771,7 +771,6 @@ js_username(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-
 static JSBool
 js_matchuser(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -850,69 +849,6 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 }
 
 static JSBool
-js_matchallusers(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	char*		p;
-	JSString*	js_str;
-	int32		offset=0;
-	int32		usernumber=0;
-	int			len;
-	scfg_t*		cfg;
-	jsrefcount	rc;
-	JSObject* 	array;
-	jsval		val;
-	int 		result;
-	jsint 		line=0;
-
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_FALSE);
-
-	JS_ValueToInt32(cx,argv[0],&offset);
-	rc=JS_SUSPENDREQUEST(cx);
-	len=user_rec_len(offset);
-	JS_RESUMEREQUEST(cx, rc);
-	
-	if(len<0) {
-		JS_ReportError(cx,"Invalid user data offset: %d", offset);
-		return(JS_FALSE);
-	}
-
-	if((js_str=JS_ValueToString(cx, argv[1]))==NULL) {
-		*rval = INT_TO_JSVAL(0);
-		return(JS_TRUE);
-	}
-
-	if((p=JS_GetStringBytes(js_str))==NULL) {
-		*rval = INT_TO_JSVAL(0);
-		return(JS_TRUE);
-	}
-	
-	if((array=JS_NewArrayObject(cx,0,NULL))==NULL)
-		return(JS_FALSE);
-		
-	while(1) {
-		rc=JS_SUSPENDREQUEST(cx);
-		result=userdatdupe(cfg,usernumber,offset,len,p,FALSE,TRUE);
-		if(result > 0) {
-			val = INT_TO_JSVAL(result);
-			if(!JS_SetElement(cx, array, line++, &val)) {
-				JS_RESUMEREQUEST(cx, rc);
-				break;
-			}
-			usernumber=result;
-			result=0;
-		} else {
-			JS_RESUMEREQUEST(cx, rc);
-			break;
-		}
-		JS_RESUMEREQUEST(cx, rc);
-	}
-	
-	*rval = OBJECT_TO_JSVAL(array);
-	return(JS_TRUE);
-}
-
-static JSBool
 js_trashcan(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		str;
@@ -986,7 +922,6 @@ js_findstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-
 static JSBool
 js_zonestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -1045,7 +980,6 @@ js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
-
 
 /* Returns a mm/dd/yy or dd/mm/yy formated string */
 static JSBool
@@ -1265,7 +1199,6 @@ js_get_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	*rval = STRING_TO_JSVAL(js_str);
 	return(JS_TRUE);
 }
-
 
 static JSBool
 js_put_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -1603,13 +1536,8 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"or record at which to begin searching if optional <i>match_next</i> is <tt>true</tt>")
 	,310
 	},
-	{"matchallusers",	js_matchallusers,	2,	JSTYPE_ARRAY,	JSDOCSTR("field, data")
-	,JSDOCSTR("search user database for data in a specific field (see <tt>U_*</tt> in <tt>sbbsdefs.js</tt>), "
-		"returns an array of matching user record numbers")
-	,315
-	},
-	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
-	,JSDOCSTR("search text/filename.can for pseudo-regexp")
+	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("basename, find_string")
+	,JSDOCSTR("search <tt>text/<i>basename</i>.can</tt> for pseudo-regexp")
 	,310
 	},		
 	{"findstr",			js_findstr,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
