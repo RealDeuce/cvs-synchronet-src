@@ -51,7 +51,7 @@ object MainForm: TMainForm
   object HorizontalSplitter: TSplitter
     Left = 0
     Top = 164
-    Width = 624
+    Width = 632
     Height = 1
     Cursor = crVSplit
     Align = alTop
@@ -62,8 +62,8 @@ object MainForm: TMainForm
   object Logo: TImage
     Left = 0
     Top = 165
-    Width = 624
-    Height = 152
+    Width = 632
+    Height = 164
     Align = alClient
     AutoSize = True
     Center = True
@@ -13385,7 +13385,7 @@ object MainForm: TMainForm
   object Toolbar: TToolBar
     Left = 0
     Top = 0
-    Width = 624
+    Width = 632
     Height = 30
     BorderWidth = 1
     EdgeBorders = [ebTop, ebBottom]
@@ -13607,7 +13607,6 @@ object MainForm: TMainForm
         Text = 'Starting up...'
         Width = 100
       end>
-    PopupMenu = StatusBarPopupMenu
     SimplePanel = False
   end
   object MainMenu: TMainMenu
@@ -13704,9 +13703,6 @@ object MainForm: TMainForm
         ImageIndex = 25
         OnClick = ForceNetworkCalloutMenuItemClick
       end
-      object ClearErrorMenuItem: TMenuItem
-        Action = ClearErrors
-      end
       object N1: TMenuItem
         Caption = '-'
       end
@@ -13714,8 +13710,10 @@ object MainForm: TMainForm
         AutoHotkeys = maManual
         Caption = 'View'
         ImageIndex = 47
-        object BBSViewErrorLogMenuItem: TMenuItem
-          Action = ViewErrorLog
+        object ViewErrorLog: TMenuItem
+          Caption = 'Error Log'
+          ImageIndex = 29
+          OnClick = BBSViewErrorLogMenuItemClick
         end
         object ViewStatisticsLog: TMenuItem
           Caption = 'Statistics Log'
@@ -13804,20 +13802,15 @@ object MainForm: TMainForm
           Hint = 'WELCOME.MSG'
           OnClick = TextMenuItemEditClick
         end
-        object BBSEditFeedbackMsg: TMenuItem
-          Caption = 'New User Feedback Instructions'
-          Hint = 'FEEDBACK.MSG'
-          OnClick = TextMenuItemEditClick
-        end
         object BBSEditNupGuessMenuItem: TMenuItem
           Caption = 'New User Password Failure'
           Hint = 'NUPGUESS.MSG'
           OnClick = TextMenuItemEditClick
         end
-        object BBSEditModOptsMenuItem: TMenuItem
-          Caption = 'Module Options'
-          Hint = 'modopts.ini'
-          OnClick = CtrlMenuItemEditClick
+        object BBSEditFeedbackMsg: TMenuItem
+          Caption = 'New User Feedback Instructions'
+          Hint = 'FEEDBACK.MSG'
+          OnClick = TextMenuItemEditClick
         end
       end
       object BBSEditFilters: TMenuItem
@@ -13872,16 +13865,6 @@ object MainForm: TMainForm
         object BBSEditSubjectFilterMenuItem: TMenuItem
           Caption = 'E-mail Subject Filter'
           Hint = 'subject.can'
-          OnClick = TextMenuItemEditClick
-        end
-        object BBSEditPasswordFilterMenuItem: TMenuItem
-          Caption = 'Password Filter'
-          Hint = 'password.can'
-          OnClick = TextMenuItemEditClick
-        end
-        object BBSEditBadPasswordMessageMenuItem: TMenuItem
-          Caption = 'Password Filter Message'
-          Hint = 'badpassword.msg'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditFilenameFilter: TMenuItem
@@ -14284,8 +14267,11 @@ object MainForm: TMainForm
         OnClick = ViewStatusBarMenuItemClick
       end
       object ViewErrorLogMenuItem: TMenuItem
-        Action = ViewErrorLog
         AutoHotkeys = maManual
+        Caption = 'Error Log...'
+        Hint = 'ERROR.LOG'
+        ImageIndex = 29
+        OnClick = ViewLogClick
       end
       object ViewLoginAttemptsMenuItem: TMenuItem
         Caption = 'Login Attempts...'
@@ -14609,17 +14595,6 @@ object MainForm: TMainForm
       Hint = 'Configure Web Server'
       ImageIndex = 4
       OnExecute = WebConfigureExecute
-    end
-    object ClearErrors: TAction
-      Caption = 'Clear Error Counters'
-      ImageIndex = 31
-      OnExecute = ClearErrorsExecute
-    end
-    object ViewErrorLog: TAction
-      Caption = 'Error Log...'
-      Hint = 'error.log'
-      ImageIndex = 29
-      OnExecute = ViewErrorLogExecute
     end
   end
   object ImageList: TImageList
@@ -17245,16 +17220,5 @@ object MainForm: TMainForm
     OnTimer = SemFileTimerTick
     Left = 472
     Top = 40
-  end
-  object StatusBarPopupMenu: TPopupMenu
-    Left = 296
-    Top = 40
-    object ViewErrorLogPopupMenuItem: TMenuItem
-      Action = ViewErrorLog
-      Caption = 'View Error Log...'
-    end
-    object ClearErrorCounter: TMenuItem
-      Action = ClearErrors
-    end
   end
 end
