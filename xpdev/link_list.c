@@ -2,13 +2,13 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.37 2008/08/21 00:23:58 deuce Exp $ */
+/* $Id: link_list.c,v 1.39 2011/09/01 20:38:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -46,10 +46,10 @@
 	#define MUTEX_LOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_lock((pthread_mutex_t*)&list->mutex);		}
 	#define MUTEX_UNLOCK(list)	{ if(list->flags&LINK_LIST_MUTEX) pthread_mutex_unlock((pthread_mutex_t*)&list->mutex);		}
 #else
-	#define MUTEX_INIT(list)
-	#define MUTEX_DESTROY(list)
-	#define MUTEX_LOCK(list)
-	#define MUTEX_UNLOCK(list)
+	#define MUTEX_INIT(list)	(void)list
+	#define MUTEX_DESTROY(list)	(void)list
+	#define MUTEX_LOCK(list)	(void)list
+	#define MUTEX_UNLOCK(list)	(void)list
 #endif
 
 link_list_t* DLLCALL listInit(link_list_t* list, long flags)
@@ -310,6 +310,7 @@ str_list_t DLLCALL listSubStringList(const list_node_t* node, long max)
 {
 	long			count;
 	str_list_t		str_list;
+	link_list_t*	list;
 
 	if(node==NULL)
 		return(NULL);
@@ -317,14 +318,15 @@ str_list_t DLLCALL listSubStringList(const list_node_t* node, long max)
 	if((str_list=strListInit())==NULL)
 		return(NULL);
 
-	MUTEX_LOCK(node->list);
+	list=node->list;
+	MUTEX_LOCK(list);
 
 	for(count=0; count<max && node!=NULL; node=node->next) {
 		if(node->data!=NULL)
 			strListAppend(&str_list, (char*)node->data, count++);
 	}
 
-	MUTEX_UNLOCK(node->list);
+	MUTEX_UNLOCK(list);
 
 	return(str_list);
 }
