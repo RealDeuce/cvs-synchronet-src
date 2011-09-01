@@ -1,11 +1,11 @@
 #include <stdlib.h>	/* getenv()/exit()/atexit() */
 #include <stdio.h>	/* NULL */
 
-#include "gen_defs.h"
 #include <SDL.h>
 #ifndef main
  #define USE_REAL_MAIN
 #endif
+#include "gen_defs.h"
 #ifdef USE_REAL_MAIN
  #undef main
 #endif
@@ -38,7 +38,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	dll_handle	sdl_dll;
 	const char *libnames[]={"SDL", "SDL-1.2", "SDL-1.1", NULL};
 
-	putenv("SDL_VIDEO_ALLOW_SCREENSAVER=1");
 	sdlf->gotfuncs=0;
 	if((sdl_dll=xp_dlopen(libnames,RTLD_LAZY|RTLD_GLOBAL,SDL_PATCHLEVEL))==NULL)
 		return(-1);
