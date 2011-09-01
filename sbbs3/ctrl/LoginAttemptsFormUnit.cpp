@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: LoginAttemptsFormUnit.cpp,v 1.1 2011/09/01 02:50:44 rswindell Exp $ */
+/* $Id: LoginAttemptsFormUnit.cpp,v 1.2 2011/09/01 17:37:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,7 @@ void __fastcall TLoginAttemptsForm::FormShow(TObject *Sender)
         Item=ListView->Items->Add();
         Item->Caption=AnsiString(attempt->count);
         Item->Data=(void*)attempt->time;
+        Item->SubItems->Add(attempt->dupes);        
         Item->SubItems->Add(inet_ntoa(attempt->addr));
         Item->SubItems->Add(attempt->prot);
         Item->SubItems->Add(attempt->user);
@@ -116,14 +117,14 @@ void __fastcall TLoginAttemptsForm::ListViewCompare(TObject *Sender,
       TListItem *Item1, TListItem *Item2, int Data, int &Compare)
 {
     /* Decimal compare */
-    if (ColumnToSort == 0 || ColumnToSort == 5) {
+    if (ColumnToSort < 2 || ColumnToSort == 6) {
         int num1, num2;
-        if(ColumnToSort==0) {
-            num1=Item1->Caption.ToIntDef(0);
-            num2=Item2->Caption.ToIntDef(0);
-        } else  {    /* Date */
+        if(ColumnToSort==6) { /* Date */
             num1=(ulong)Item1->Data;
             num2=(ulong)Item2->Data;
+        } else {
+            num1=Item1->Caption.ToIntDef(0);
+            num2=Item2->Caption.ToIntDef(0);
         }
         if(SortBackwards)
             Compare=(num2-num1);
