@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.39 2011/09/01 20:38:10 rswindell Exp $ */
+/* $Id: link_list.c,v 1.40 2011/09/02 01:48:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,17 +223,11 @@ BOOL DLLCALL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 
 #endif
 
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
 void DLLCALL listLock(const link_list_t* list)
 {
 	MUTEX_LOCK(list);
 }
 
-#if defined(__BORLANDC__)
-	#pragma argsused
-#endif
 void DLLCALL listUnlock(const link_list_t* list)
 {
 	MUTEX_UNLOCK(list);
