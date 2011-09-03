@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.147 2009/11/11 00:02:08 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.155 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,7 +40,7 @@
 
 #ifdef JAVASCRIPT
 
-static scfg_t* scfg=NULL;
+static scfg_t* 		scfg=NULL;
 
 typedef struct
 {
@@ -573,6 +573,7 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	JSBool		by_offset=JS_FALSE;
 	private_t*	p;
 	jsrefcount	rc;
+	JSObject*	proto;
 
 	*rval = JSVAL_NULL;
 	
@@ -607,7 +608,17 @@ js_get_msg_index(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		}
 	}
 
-	if((idxobj=JS_NewObject(cx,NULL,NULL,obj))==NULL)
+	if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "MsgBase", &val) && !JSVAL_NULL_OR_VOID(val)) {
+		JS_ValueToObject(cx,val,&proto);
+		if(JS_GetProperty(cx, proto, "IndexPrototype", &val) && !JSVAL_NULL_OR_VOID(val))
+			JS_ValueToObject(cx,val,&proto);
+		else
+			proto=NULL;
+	}
+	else
+		proto=NULL;
+
+	if((idxobj=JS_NewObject(cx,NULL,proto,obj))==NULL)
 		return(JS_TRUE);
 
 	JS_NewNumberValue(cx, msg.idx.number	,&val);
@@ -711,6 +722,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	char			date[128];
 	char			msg_id[256];
 	char			reply_id[256];
+	char			tmp[128];
 	char*			val;
 	int				i;
 	smbmsg_t		remsg;
@@ -734,9 +746,9 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 		return(JS_TRUE);
 
 	LAZY_INTEGER("number", p->msg.hdr.number, JSPROP_ENUMERATE);
-	LAZY_INTEGER("offset", p->msg.offset, JSPROP_ENUMERATE, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP("to",p->msg.to, JSPROP_ENUMERATE, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP("from",p->msg.from, JSPROP_ENUMERATE, JSPROP_ENUMERATE);
+	LAZY_INTEGER("offset", p->msg.offset, JSPROP_ENUMERATE);
+	LAZY_STRING_TRUNCSP("to",p->msg.to, JSPROP_ENUMERATE);
+	LAZY_STRING_TRUNCSP("from",p->msg.from, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP("subject",p->msg.subj, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("summary", p->msg.summary, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("to_ext", p->msg.to_ext, JSPROP_ENUMERATE);
@@ -750,12 +762,12 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_INTEGER_EXPAND("from_agent", p->msg.from_agent, JSPROP_ENUMERATE);
 	LAZY_INTEGER_EXPAND("replyto_agent", p->msg.replyto_agent, JSPROP_ENUMERATE);
 	LAZY_INTEGER_EXPAND("to_net_type", p->msg.to_net.type, JSPROP_ENUMERATE);
-	LAZY_STRING_COND("to_net_addr", p->msg.to_net.type && p->msg.to_net.addr, smb_netaddr(&(p->msg).to_net), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("to_net_addr", p->msg.to_net.type && p->msg.to_net.addr, smb_netaddrstr(&(p->msg).to_net,tmp), JSPROP_ENUMERATE);
 	LAZY_INTEGER_EXPAND("from_net_type", p->msg.from_net.type, JSPROP_ENUMERATE);
 	/* exception here because p->msg.from_net is NULL */
-	LAZY_STRING_COND("from_net_addr", p->msg.from_net.type && p->msg.from_net.addr, smb_netaddr(&(p->msg).from_net), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("from_net_addr", p->msg.from_net.type && p->msg.from_net.addr, smb_netaddrstr(&(p->msg).from_net,tmp), JSPROP_ENUMERATE);
 	LAZY_INTEGER_EXPAND("replyto_net_type", p->msg.replyto_net.type, JSPROP_ENUMERATE);
-	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.type && p->msg.replyto_net.addr, smb_netaddr(&(p->msg).replyto_net), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.type && p->msg.replyto_net.addr, smb_netaddrstr(&(p->msg).replyto_net,tmp), JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_ip_addr", (val=smb_get_hfield(&(p->msg),SENDERIPADDR,NULL))!=NULL, val, JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_host_name", (val=smb_get_hfield(&(p->msg),SENDERHOSTNAME,NULL))!=NULL, val, JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_protocol", (val=smb_get_hfield(&(p->msg),SENDERPROTOCOL,NULL))!=NULL, val, JSPROP_ENUMERATE);
@@ -956,6 +968,8 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	jsrefcount	rc;
 	char*		cstr;
 	privatemsg_t*	p;
+	JSObject*	proto;
+	jsval		val;
 
 	*rval = JSVAL_NULL;
 
@@ -1031,7 +1045,17 @@ js_get_msg_header(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *
 	if((p->msg).hdr.number==0) /* No valid message number/id/offset specified */
 		return(JS_TRUE);
 
-	if((hdrobj=JS_NewObject(cx,&js_msghdr_class,NULL,obj))==NULL) {
+	if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "MsgBase", &val) && !JSVAL_NULL_OR_VOID(val)) {
+		JS_ValueToObject(cx,val,&proto);
+		if(JS_GetProperty(cx, proto, "HeaderPrototype", &val) && !JSVAL_NULL_OR_VOID(val))
+			JS_ValueToObject(cx,val,&proto);
+		else
+			proto=NULL;
+	}
+	else
+		proto=NULL;
+
+	if((hdrobj=JS_NewObject(cx,&js_msghdr_class,proto,obj))==NULL) {
 		smb_freemsgmem(&(p->msg));
 		return(JS_TRUE);
 	}
@@ -1453,7 +1477,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	memset(&msg,0,sizeof(msg));
 
 	for(n=0;n<argc;n++) {
-		if(JSVAL_IS_OBJECT(argv[n])) {
+		if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			objarg = JSVAL_TO_OBJECT(argv[n]);
 			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0) {
 				client=JS_GetPrivate(cx,objarg);
@@ -1493,7 +1517,7 @@ js_save_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		if(body[0])
 			truncsp(body);
-		if((p->status=savemsg(scfg, &(p->smb), &msg, client, body))==SMB_SUCCESS) {
+		if((p->status=savemsg(scfg, &(p->smb), &msg, client, /* ToDo server hostname: */NULL, body))==SMB_SUCCESS) {
 			*rval = JSVAL_TRUE;
 
 			if(rcpt_list!=NULL) {	/* Sending to a list of recipients */
@@ -1731,7 +1755,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	},
 	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [,strip_ctrl_a=<tt>false</tt>] "
 		"[,rfc822_encoded=<tt>false</tt>] [,include_tails=<tt>true</tt>]")
-	,JSDOCSTR("returns the body text of a specific message, <i>null</i> on failure. "
+	,JSDOCSTR("returns the entire body text of a specific message as a single String, <i>null</i> on failure. "
 		"The default behavior is to leave Ctrl-A codes intact, perform no RFC-822 encoding, and to include tails (if any) in the "
 		"returned body text."
 	)
@@ -2057,9 +2081,19 @@ $5 = {size = 23200, prepped = 1, grp = 0x0, total_grps = 3, sub = 0x0, total_sub
 	return(JS_TRUE);
 }
 
+static struct JSPropertySpec js_msgbase_static_properties[] = {
+/*		 name				,tinyid					,flags,				getter,	setter	*/
+
+	{	"IndexPrototype"		,0	,JSPROP_ENUMERATE|JSPROP_PERMANENT,	NULL,NULL},
+	{	"HeaderPrototype"		,0	,JSPROP_ENUMERATE|JSPROP_PERMANENT,	NULL,NULL},
+	{0}
+};
+
 JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg)
 {
 	JSObject*	obj;
+	JSObject*	constructor;
+	jsval		val;
 
 	scfg = cfg;
 	obj = JS_InitClass(cx, parent, NULL
@@ -2068,7 +2102,14 @@ JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t*
 		,1	/* number of constructor args */
 		,NULL /* js_msgbase_properties */
 		,NULL /* js_msgbase_functions */
-		,NULL,NULL);
+		,js_msgbase_static_properties,NULL);
+
+
+	if(JS_GetProperty(cx, parent, js_msgbase_class.name, &val) && !JSVAL_NULL_OR_VOID(val)) {
+		JS_ValueToObject(cx,val,&constructor);
+		JS_DefineObject(cx,constructor,"IndexPrototype",NULL,NULL,JSPROP_PERMANENT|JSPROP_ENUMERATE);
+		JS_DefineObject(cx,constructor,"HeaderPrototype",NULL,NULL,JSPROP_PERMANENT|JSPROP_ENUMERATE);
+	}
 
 	return(obj);
 }

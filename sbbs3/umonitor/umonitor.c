@@ -2,13 +2,13 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.71 2006/05/08 22:38:35 deuce Exp $ */
+/* $Id: umonitor.c,v 1.72 2010/02/24 02:06:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -716,14 +716,13 @@ int edit_cfg(scfg_t *cfg)
 	strcpy(opt[i++],"dns_blacklist.cfg");
 	strcpy(opt[i++],"dnsbl_exempt.cfg");
 	strcpy(opt[i++],"domains.cfg");
-	strcpy(opt[i++],"mailproc.cfg");
-	strcpy(opt[i++],"mime_types.cfg");
+	strcpy(opt[i++],"mailproc.ini");
+	strcpy(opt[i++],"mime_types.ini");
 	strcpy(opt[i++],"relay.cfg");
 	strcpy(opt[i++],"sbbsecho.cfg");
-	strcpy(opt[i++],"services.cfg");
 	strcpy(opt[i++],"services.ini");
 	strcpy(opt[i++],"ftpalias.cfg");
-	strcpy(opt[i++],"sockopts.cfg");
+	strcpy(opt[i++],"sockopts.ini");
 	strcpy(opt[i++],"spambait.cfg");
 	strcpy(opt[i++],"spamblock.cfg");
 	strcpy(opt[i++],"twitlist.cfg");
@@ -808,7 +807,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.71 $", "%*s %s", revision);
+	sscanf("$Revision: 1.72 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
