@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.532 2011/09/01 17:37:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.533 2011/09/03 02:11:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1953,7 +1953,10 @@ static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 	if(buf[0]<=' ' && *type!=UNKNOWN) {	/* folded header, append to previous */
 		p=buf;
 		truncsp(p);
-		smb_hfield_append_str(msg,*type,"\r\n");
+		if(*type==RFC822HEADER || *type==SMTPRECEIVED)
+			smb_hfield_append_str(msg,*type,"\r\n");
+		else /* Unfold other common header field types (e.g. Subject, From, To) */
+			smb_hfield_append_str(msg,*type," ");
 		return smb_hfield_append_str(msg, *type, p);
 	}
 
@@ -2788,7 +2791,7 @@ static void smtp_thread(void* arg)
 										,socket, startup->dnsbl_tag);
 								}
 							}
-							smb_hfield_str(&msg, SUBJECT, p);
+							smb_hfield_str(&msg, hfield_type=SUBJECT, p);
 							continue;
 						}
 						if(relay_user.number==0	&& stricmp(field, "FROM")==0
@@ -4781,7 +4784,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.532 $", "%*s %s", revision);
+	sscanf("$Revision: 1.533 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
