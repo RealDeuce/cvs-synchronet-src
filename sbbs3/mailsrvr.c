@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.533 2011/09/03 02:11:15 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.534 2011/09/03 02:20:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1955,8 +1955,10 @@ static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 		truncsp(p);
 		if(*type==RFC822HEADER || *type==SMTPRECEIVED)
 			smb_hfield_append_str(msg,*type,"\r\n");
-		else /* Unfold other common header field types (e.g. Subject, From, To) */
+		else { /* Unfold other common header field types (e.g. Subject, From, To) */
 			smb_hfield_append_str(msg,*type," ");
+			SKIP_WHITESPACE(p);
+		}
 		return smb_hfield_append_str(msg, *type, p);
 	}
 
@@ -4784,7 +4786,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.533 $", "%*s %s", revision);
+	sscanf("$Revision: 1.534 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
