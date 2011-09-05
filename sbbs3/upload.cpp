@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.57 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.56 2011/08/06 21:11:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -287,7 +287,8 @@ bool sbbs_t::upload(uint dirnum)
 
 	if(!isdir(path)) {
 		bprintf(text[DirectoryDoesNotExist], path);
-		lprintf(LOG_ERR,"File directory does not exist: %s", path);
+		SAFEPRINTF(str,"File directory does not exist: %s", path);
+		errorlog(str);
 		return(false);
 	}
 
@@ -295,7 +296,8 @@ bool sbbs_t::upload(uint dirnum)
 	space=getfreediskspace(path,1024);
 	if(space<(ulong)cfg.min_dspace) {
 		bputs(text[LowDiskSpace]);
-		lprintf(LOG_ERR,"Diskspace is low: %s (%lu kilobytes)",path,space);
+		sprintf(str,"Diskspace is low: %s (%lu kilobytes)",path,space);
+		errorlog(str);
 		if(!dir_op(dirnum))
 			return(false); 
 	}
