@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.44 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: download.cpp,v 1.43 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,8 +165,9 @@ void sbbs_t::notdownloaded(ulong size, time_t start, time_t end)
 	if(cfg.leech_pct && cur_cps                 /* leech detection */
 		&& end-start>=cfg.leech_sec
 		&& end-start>=(double)(size/cur_cps)*(double)cfg.leech_pct/100.0) {
-		lprintf(LOG_ERR, "Node %d Possible use of leech protocol (leech=%u  downloads=%u)"
-			,cfg.node_num, useron.leech+1,useron.dls);
+		sprintf(str,"Possible use of leech protocol (leech=%u  downloads=%u)"
+			,useron.leech+1,useron.dls);
+		errorlog(str);
 		useron.leech=(uchar)adjustuserrec(&cfg,useron.number,U_LEECH,2,1); 
 	}
 }

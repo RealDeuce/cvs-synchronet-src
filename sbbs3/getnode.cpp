@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.43 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.42 2011/03/01 21:46:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ void sbbs_t::nodesync()
 	if(sys_status&SS_USERON) {
 
 		if(thisnode.status==NODE_WFC) {
-			lprintf(LOG_ERR, "Node %d NODE STATUS FIXUP", cfg.node_num);
+			errorlog("NODE STATUS FIXUP");
 			if(getnodedat(cfg.node_num,&thisnode,true)==0) {
 				thisnode.status=NODE_INUSE;
 				putnodedat(cfg.node_num,&thisnode); 
