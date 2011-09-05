@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.542 2011/10/09 17:14:35 cyan Exp $ */
+/* $Id: websrvr.c,v 1.535 2011/07/16 07:55:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,7 +97,7 @@ enum {
 
 static scfg_t	scfg;
 static volatile BOOL	http_logging_thread_running=FALSE;
-static protected_int32_t active_clients;
+static volatile ulong	active_clients=0;
 static volatile ulong	sockets=0;
 static volatile BOOL	terminate_server=FALSE;
 static volatile BOOL	terminate_http_logging_thread=FALSE;
@@ -613,7 +613,7 @@ static void status(char* str)
 static void update_clients(void)
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,active_clients.value);
+		startup->clients(startup->cbdata,active_clients);
 }
 
 static void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -1793,10 +1793,10 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 	if(i>length)
 		i=length;
 
-	while(i>0 && buf[i-1]=='\r')
-		i--;
-
-	buf[i]=0;
+	if(i>0 && buf[i-1]=='\r')
+		buf[--i]=0;
+	else
+		buf[i]=0;
 
 	if(startup->options&WEB_OPT_DEBUG_RX) {
 		lprintf(LOG_DEBUG,"%04d RX: %s",session->socket,buf);
@@ -3957,10 +3957,8 @@ static void js_writebuf(http_session_t *session, const char *buf, size_t buflen)
 }
 
 static JSBool
-js_writefunc(JSContext *cx, uintN argc, jsval *arglist, BOOL writeln)
+js_writefunc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval, BOOL writeln)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
 	http_session_t* session;
@@ -4016,48 +4014,42 @@ js_writefunc(JSContext *cx, uintN argc, jsval *arglist, BOOL writeln)
 	}
 
 	if(str==NULL)
-		JS_SET_RVAL(cx,arglist,JSVAL_VOID);
+		*rval = JSVAL_VOID;
 	else
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+		*rval = STRING_TO_JSVAL(str);
 
 	return(JS_TRUE);
 }
 
 static JSBool
-js_write(JSContext *cx, uintN argc, jsval *arglist)
+js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	http_session_t* session;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	js_writefunc(cx, argc, arglist, FALSE);
+	js_writefunc(cx, obj, argc, argv, rval,FALSE);
 
 	return(JS_TRUE);
 }
 
 static JSBool
-js_writeln(JSContext *cx, uintN argc, jsval *arglist)
+js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	http_session_t* session;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	js_writefunc(cx, argc, arglist,TRUE);
+	js_writefunc(cx, obj, argc, argv, rval,TRUE);
 
 	return(JS_TRUE);
 }
 
 static JSBool
-js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
+js_set_cookie(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	char	header_buf[8192];
 	char	*header;
 	char	*p;
@@ -4066,8 +4058,6 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 	struct tm tm;
 	http_session_t* session;
 	time_t	tt;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -4109,18 +4099,14 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_log(JSContext *cx, uintN argc, jsval *arglist)
+js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[512];
     uintN		i=0;
 	int32		level=LOG_INFO;
     JSString*	js_str;
 	http_session_t* session;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -4143,16 +4129,14 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	lprintf(level,"%04d %s",session->socket,str);
 	JS_RESUMEREQUEST(cx, rc);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str)));
+	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
 
     return(JS_TRUE);
 }
 
 static JSBool
-js_login(JSContext *cx, uintN argc, jsval *arglist)
+js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	JSBool		inc_logons=JS_FALSE;
 	user_t		user;
@@ -4160,7 +4144,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	http_session_t*	session;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
+	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -4235,7 +4219,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(FALSE);
 	}
 
-	JS_SET_RVAL(cx, arglist,BOOLEAN_TO_JSVAL(JS_TRUE));
+	*rval=BOOLEAN_TO_JSVAL(JS_TRUE);
 
 	return(JS_TRUE);
 }
@@ -4357,18 +4341,14 @@ static int js_write_template_part(JSContext *cx, JSObject *obj, char *template, 
 }
 
 static JSBool
-js_write_template(JSContext *cx, uintN argc, jsval *arglist)
+js_write_template(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	JSString*	js_str;
 	char		*filename;
 	char		*template;
 	FILE		*tfile;
 	size_t		len;
 	http_session_t* session;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -4440,7 +4420,7 @@ static JSFunctionSpec js_global_functions[] = {
 };
 
 static JSBool
-js_BranchCallback(JSContext *cx, JSObject *script)
+js_BranchCallback(JSContext *cx, JSScript *script)
 {
 	http_session_t* session;
 
@@ -4450,7 +4430,7 @@ js_BranchCallback(JSContext *cx, JSObject *script)
     return(js_CommonBranchCallback(cx,&session->js_branch));
 }
 
-#if JS_VERSION>180
+#ifdef USE_JS_OPERATION_CALLBACK
 static JSBool
 js_OperationCallback(JSContext *cx)
 {
@@ -4479,7 +4459,7 @@ js_initcx(http_session_t *session)
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-#if JS_VERSION>180
+#ifdef USE_JS_OPERATION_CALLBACK
 	JS_SetOperationCallback(js_cx, js_OperationCallback);
 #else
 	JS_SetBranchCallback(js_cx, js_BranchCallback);
@@ -4580,7 +4560,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JS_GetProperty(session->js_cx,session->js_glob,"http_reply",&val);
 	reply = JSVAL_TO_OBJECT(val);
 	JS_GetProperty(session->js_cx,reply,"status",&val);
-	SAFECOPY(session->req.status,JS_GetStringBytes_dumbass(session->js_cx, JSVAL_TO_STRING(val)));
+	SAFECOPY(session->req.status,JS_GetStringBytes(JSVAL_TO_STRING(val)));
 	JS_GetProperty(session->js_cx,reply,"header",&val);
 	headers = JSVAL_TO_OBJECT(val);
 	heads=JS_Enumerate(session->js_cx,headers);
@@ -4588,9 +4568,9 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 		for(i=0;i<heads->length;i++)  {
 			JS_IdToValue(session->js_cx,heads->vector[i],&val);
 			js_str=JSVAL_TO_STRING(val);
-			JS_GetProperty(session->js_cx,headers,JS_GetStringBytes_dumbass(session->js_cx, js_str),&val);
+			JS_GetProperty(session->js_cx,headers,JS_GetStringBytes(js_str),&val);
 			safe_snprintf(str,sizeof(str),"%s: %s"
-				,JS_GetStringBytes_dumbass(session->js_cx, js_str),JS_GetStringBytes_dumbass(session->js_cx, JSVAL_TO_STRING(val)));
+				,JS_GetStringBytes(js_str),JS_GetStringBytes(JSVAL_TO_STRING(val)));
 			strListPush(&session->req.dynamic_heads,str);
 		}
 		JS_ClearScope(session->js_cx, headers);
@@ -4600,7 +4580,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 }
 
 static BOOL exec_ssjs(http_session_t* session, char* script)  {
-	JSObject*	js_script;
+	JSScript*	js_script;
 	jsval		rval;
 	char		path[MAX_PATH+1];
 	BOOL		retval=TRUE;
@@ -4946,7 +4926,6 @@ void http_session_thread(void* arg)
 	http_session_t	session;
 	int				loop_count;
 	BOOL			init_error;
-	int32_t			clients_remain;
 
 	SetThreadName("HTTP Session");
 	pthread_mutex_lock(&((http_session_t*)arg)->struct_filled);
@@ -5035,7 +5014,7 @@ void http_session_thread(void* arg)
 		return;
 	}
 
-	protected_int32_adjust(&active_clients, 1);
+	active_clients++;
 	update_clients();
 	SAFECOPY(session.username,unknown);
 
@@ -5160,7 +5139,7 @@ void http_session_thread(void* arg)
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
 
-	clients_remain=protected_int32_adjust(&active_clients, -1);
+	active_clients--;
 	update_clients();
 	client_off(socket);
 
@@ -5171,7 +5150,7 @@ void http_session_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d !!! ALL YOUR BASE ARE BELONG TO US !!!", socket);
 
 	lprintf(LOG_INFO,"%04d Session thread terminated (%u clients, %u threads remain, %lu served)"
-		,socket, clients_remain, thread_count, served);
+		,socket, active_clients, thread_count, served);
 
 }
 
@@ -5205,11 +5184,6 @@ static void cleanup(int code)
 		close_socket(&server_socket);
 	}
 
-	if(active_clients.value)
-		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", active_clients.value);
-	else
-		protected_int32_destroy(active_clients);
-
 	update_clients();
 
 #ifdef _WINSOCKAPI_
@@ -5234,7 +5208,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.542 $", "%*s %s", revision);
+	sscanf("$Revision: 1.535 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5429,7 +5403,7 @@ void DLLCALL web_server(void* arg)
 	ZERO_VAR(js_server_props);
 	SAFEPRINTF2(js_server_props.version,"%s %s",server_name,revision);
 	js_server_props.version_detail=web_ver();
-	js_server_props.clients=&active_clients.value;
+	js_server_props.clients=&active_clients;
 	js_server_props.options=&startup->options;
 	js_server_props.interface_addr=&startup->interface_addr;
 
@@ -5539,7 +5513,7 @@ void DLLCALL web_server(void* arg)
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		protected_int32_init(&active_clients,0);
+		active_clients=0;
 		update_clients();
 
 		/* open a socket and wait for a client */
@@ -5649,7 +5623,7 @@ void DLLCALL web_server(void* arg)
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
 			/* check for re-cycle/shutdown semaphores */
-			if(active_clients.value==0) {
+			if(active_clients==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
@@ -5769,7 +5743,7 @@ void DLLCALL web_server(void* arg)
 				continue;
 			}
 
-			if(startup->max_clients && active_clients.value>=startup->max_clients) {
+			if(startup->max_clients && active_clients>=startup->max_clients) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				mswait(3000);
@@ -5806,14 +5780,14 @@ void DLLCALL web_server(void* arg)
 		}
 
 		/* Wait for active clients to terminate */
-		if(active_clients.value) {
+		if(active_clients) {
 			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
-				,server_socket, active_clients.value);
+				,server_socket, active_clients);
 			start=time(NULL);
-			while(active_clients.value) {
+			while(active_clients) {
 				if(time(NULL)-start>startup->max_inactivity) {
 					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
-						,server_socket, active_clients.value);
+						,server_socket, active_clients);
 					break;
 				}
 				mswait(100);
