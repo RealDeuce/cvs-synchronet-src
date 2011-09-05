@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.52 2009/02/10 07:33:41 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.54 2011/09/05 20:18:32 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -15,6 +15,7 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)bulkmail$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)chat$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)chk_ar$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)comio$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)con_hi$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)con_out$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)dat_rec$(OFILE)\
@@ -42,6 +43,7 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ident$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_bbs$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_client$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_com$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_console$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_file$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_file_area$(OFILE)\
@@ -287,3 +289,9 @@ SMBACTIV_OBJS = \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
+
+DSTSEDIT_OBJS = \
+			$(OBJODIR)$(DIRSEP)dstsedit$(OFILE)\
+			$(OBJODIR)$(DIRSEP)date_str$(OFILE) \
+			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
+
