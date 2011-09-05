@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.36 2011/09/03 09:29:30 sbbs Exp $ */
+/* $Id: threadwrap.h,v 1.37 2011/09/05 17:54:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,11 +109,13 @@ pthread_mutex_t pthread_mutex_initializer(BOOL recursive);
 #define SetThreadName(c)
 #endif
 
+#if defined(__linux__)
 #if !defined(PTHREAD_MUTEX_RECURSIVE)
 	#define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
 #endif
 #if defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP) && !defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER)
 	#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+#endif
 #endif
 
 #else
