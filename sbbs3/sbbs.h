@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.346 2011/03/01 22:27:02 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.352 2011/09/05 20:18:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,14 +116,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include <cryptlib.h>
 #endif
 
-/***********************/
-/* Synchronet-specific */
-/***********************/
-#include "startup.h"
-#ifdef __cplusplus
-	#include "threadwrap.h"	/* pthread_mutex_t */
-#endif
-
 /* xpdev */
 #ifndef LINK_LIST_THREADSAFE
  #define LINK_LIST_THREADSAFE
@@ -135,9 +127,18 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "filewrap.h"
 #include "datewrap.h"
 #include "sockwrap.h"
+#include "eventwrap.h"
 #include "link_list.h"
 #include "msg_queue.h"
 #include "xpdatetime.h"
+
+/***********************/
+/* Synchronet-specific */
+/***********************/
+#include "startup.h"
+#ifdef __cplusplus
+	#include "threadwrap.h"	/* pthread_mutex_t */
+#endif
 
 #include "smblib.h"
 #include "ars_defs.h"
@@ -209,7 +210,7 @@ public:
 	uchar	telnet_local_option[0x100];
 	uchar	telnet_remote_option[0x100];
 	void	send_telnet_cmd(uchar cmd, uchar opt);
-	void	request_telnet_opt(uchar cmd, uchar opt);
+	bool	request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack=0);
 
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
@@ -217,6 +218,7 @@ public:
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
 	char	terminal[TELNET_TERM_MAXLEN+1];
+	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
 	char*	event_code;				// Internal code of next exclusive event
@@ -334,7 +336,7 @@ public:
 	char 	temp_uler[31];  /* User who uploaded the files to temp dir */
 	char 	temp_file[41];	/* Origin of extracted temp files */
 	long 	temp_cdt;		/* Credit value of file that was extracted */
-	char 	autohang;		/* Used for auto-hangup after transfer */
+	bool 	autohang;		/* Used for auto-hangup after transfer */
 	size_t 	logcol; 		/* Current column of log file */
 	uint 	criterrs; 		/* Critical error counter */
 
@@ -741,6 +743,7 @@ public:
 
 	/* un_rep.cpp */
 	bool	unpack_rep(char* repfile=NULL);
+	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
 	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf, FILE* hdrs_dat);
@@ -833,7 +836,7 @@ extern "C" {
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, char* msgbuf);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
 	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
@@ -969,7 +972,7 @@ extern "C" {
 		const char*	version_detail;
 		uint32_t*	interface_addr;
 		uint32_t*	options;
-		ulong*		clients;
+		volatile ulong* clients;
 	} js_server_props_t;
 
 	enum {
@@ -1091,6 +1094,10 @@ extern "C" {
 
 	/* js_conio.c */
 	JSObject* js_CreateConioObject(JSContext* cx, JSObject* parent);
+
+	/* js_com.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCOMClass(JSContext* cx, JSObject* parent);
+	DLLEXPORT JSObject* DLLCALL js_CreateCOMObject(JSContext* cx, JSObject* parent ,char *name, SOCKET sock);
 
 #endif
 
