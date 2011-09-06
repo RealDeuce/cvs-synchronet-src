@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.37 2011/09/05 17:54:20 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.38 2011/09/06 23:51:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,6 +66,7 @@ extern "C" {
 	/* POSIX threads */
 	typedef DWORD pthread_t;
 	#define pthread_self()				GetCurrentThreadId()
+	#define pthread_equal(t1,t2)		((t1)==(t2))
 
 	/* POSIX mutexes */
 	#ifdef PTHREAD_MUTEX_AS_WIN32_MUTEX	/* Much slower/heavier than critical sections */
