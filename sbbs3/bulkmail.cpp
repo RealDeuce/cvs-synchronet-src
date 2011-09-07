@@ -2,13 +2,13 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.28 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.31 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,6 +43,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	char		str[256],title[LEN_TITLE+1];
 	char		msgpath[MAX_PATH+1];
 	char*		msgbuf;
+	char*		editor=NULL;
 	char 		tmp[512];
 	int 		i,j,x;
 	long		msgs=0;
@@ -63,7 +64,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 		msg.hdr.attr|=MSG_ANONYMOUS;
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
-	if(!writemsg(msgpath,nulstr,title,WM_EMAIL,INVALID_SUB,"Bulk Mailing")) {
+	if(!writemsg(msgpath,nulstr,title,WM_EMAIL,INVALID_SUB,"Bulk Mailing",&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -73,7 +74,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 		return(false); 
 	}
 
-	if((length=filelength(fileno(fp)))<=0) {
+	if((length=(long)filelength(fileno(fp)))<=0) {
 		fclose(fp);
 		return(false);
 	}
@@ -104,9 +105,12 @@ bool sbbs_t::bulkmail(uchar *ar)
 	msg.hdr.when_written.time=time(NULL);
 	msg.hdr.when_written.zone=sys_timezone(&cfg);
 
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
+
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
-	i=savemsg(&cfg, &smb, &msg, &client, msgbuf);
+	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf);
 	free(msgbuf);
 	if(i!=0) {
 		smb_close(&smb);
