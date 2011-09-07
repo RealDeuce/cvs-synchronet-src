@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.141 2011/10/28 08:05:34 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.135 2011/09/01 17:34:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,22 +65,21 @@ static const char*	strLoginAttemptHackThreshold="LoginAttemptHackThreshold";
 static const char*	strLoginAttemptFilterThreshold="LoginAttemptFilterThreshold";
 static const char*	strJavaScriptMaxBytes		="JavaScriptMaxBytes";
 static const char*	strJavaScriptContextStack	="JavaScriptContextStack";
-static const char*	strJavaScriptTimeLimit		="JavaScriptTimeLimit";
+static const char*	strJavaScriptThreadStack	="JavaScriptThreadStack";
+static const char*	strJavaScriptBranchLimit	="JavaScriptBranchLimit";
 static const char*	strJavaScriptGcInterval		="JavaScriptGcInterval";
 static const char*	strJavaScriptYieldInterval	="JavaScriptYieldInterval";
 static const char*	strJavaScriptLoadPath		="JavaScriptLoadPath";
 static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 
-#define DEFAULT_LOG_LEVEL				LOG_DEBUG
-#define DEFAULT_MAX_MSG_SIZE			(20*1024*1024)	/* 20MB */
-#define DEFAULT_MAX_MSGS_WAITING		100
-#define DEFAULT_CONNECT_TIMEOUT			30		/* seconds */
-#define DEFAULT_BIND_RETRY_COUNT		2
-#define DEFAULT_BIND_RETRY_DELAY		15
+#define DEFAULT_LOG_LEVEL		LOG_DEBUG
+#define DEFAULT_MAX_MSG_SIZE    (10*1024*1024)	/* 10MB */
+#define DEFAULT_BIND_RETRY_COUNT	2
+#define DEFAULT_BIND_RETRY_DELAY	15
 #define DEFAULT_LOGIN_ATTEMPT_DELAY		5000	/* milliseconds */
 #define DEFAULT_LOGIN_ATTEMPT_THROTTLE	1000	/* milliseconds */
 #define DEFAULT_LOGIN_ATTEMPT_HACKLOG	10		/* write to hack.log after this many consecutive unique attempts */
-#define DEFAULT_LOGIN_ATTEMPT_FILTER	0		/* filter client IP address after this many consecutive unique attempts */
+#define DEFAULT_LOGIN_ATTEMPT_FILTER	50		/* filter client IP address after this many consecutive unique attempts */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
@@ -121,11 +120,12 @@ void sbbs_get_js_settings(
 
 	js->max_bytes		= (ulong)iniGetBytes(list,section,strJavaScriptMaxBytes		,/* unit: */1,defaults->max_bytes);
 	js->cx_stack		= (ulong)iniGetBytes(list,section,strJavaScriptContextStack	,/* unit: */1,defaults->cx_stack);
-	js->time_limit		= iniGetInteger(list,section,strJavaScriptTimeLimit		,defaults->time_limit);
+	js->thread_stack	= (ulong)iniGetBytes(list,section,strJavaScriptThreadStack	,/* unit: */1,defaults->thread_stack);
+	js->branch_limit	= iniGetInteger(list,section,strJavaScriptBranchLimit	,defaults->branch_limit);
 	js->gc_interval		= iniGetInteger(list,section,strJavaScriptGcInterval	,defaults->gc_interval);
 	js->yield_interval	= iniGetInteger(list,section,strJavaScriptYieldInterval	,defaults->yield_interval);
 
-	/* Get JavaScriptLoadPath, use default if key is missing, use blank if key value is blank */
+	/* Get JavaScriptLoadPath, use default is key is missing, use blank if key value is blank */
     if((p=iniGetExistingString(list, section, strJavaScriptLoadPath, nulstr, value)) == NULL) {
 		if(defaults!=js)
 			SAFECOPY(js->load_path, defaults->load_path);
@@ -146,7 +146,8 @@ BOOL sbbs_set_js_settings(
 	js_startup_t global_defaults = {
 			 JAVASCRIPT_MAX_BYTES
 			,JAVASCRIPT_CONTEXT_STACK
-			,JAVASCRIPT_TIME_LIMIT
+			,JAVASCRIPT_THREAD_STACK
+			,JAVASCRIPT_BRANCH_LIMIT
 			,JAVASCRIPT_GC_INTERVAL
 			,JAVASCRIPT_YIELD_INTERVAL
             ,JAVASCRIPT_LOAD_PATH
@@ -168,10 +169,15 @@ BOOL sbbs_set_js_settings(
 	else 
 		failure|=iniSetBytes(lp,section,strJavaScriptContextStack,/*unit: */1,js->cx_stack,style)==NULL;
 
-	if(js->time_limit==defaults->time_limit)
-		iniRemoveValue(lp,section,strJavaScriptTimeLimit);
+	if(js->thread_stack==defaults->thread_stack)
+		iniRemoveValue(lp,section,strJavaScriptThreadStack);
+	else 
+		failure|=iniSetBytes(lp,section,strJavaScriptThreadStack,/*unit: */1,js->thread_stack,style)==NULL;
+
+	if(js->branch_limit==defaults->branch_limit)
+		iniRemoveValue(lp,section,strJavaScriptBranchLimit);
 	else
-		failure|=iniSetInteger(lp,section,strJavaScriptTimeLimit,js->time_limit,style)==NULL;
+		failure|=iniSetInteger(lp,section,strJavaScriptBranchLimit,js->branch_limit,style)==NULL;
 
 	if(js->gc_interval==defaults->gc_interval)
 		iniRemoveValue(lp,section,strJavaScriptGcInterval);
@@ -230,7 +236,8 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	/* Setup default values here */
 	global->js.max_bytes		= JAVASCRIPT_MAX_BYTES;
 	global->js.cx_stack			= JAVASCRIPT_CONTEXT_STACK;
-	global->js.time_limit		= JAVASCRIPT_TIME_LIMIT;
+	global->js.thread_stack		= JAVASCRIPT_THREAD_STACK;
+	global->js.branch_limit		= JAVASCRIPT_BRANCH_LIMIT;
 	global->js.gc_interval		= JAVASCRIPT_GC_INTERVAL;
 	global->js.yield_interval	= JAVASCRIPT_YIELD_INTERVAL;
     SAFECOPY(global->js.load_path, JAVASCRIPT_LOAD_PATH);
@@ -471,10 +478,6 @@ void sbbs_read_ini(
 			=iniGetShortInt(list,section,"MaxRecipients",100);
 		mail->max_msg_size
 			=iniGetInteger(list,section,"MaxMsgSize",DEFAULT_MAX_MSG_SIZE);
-		mail->max_msgs_waiting
-			=iniGetInteger(list,section,"MaxMsgsWaiting",DEFAULT_MAX_MSGS_WAITING);
-		mail->connect_timeout
-			=iniGetInteger(list,section,"ConnectTimeout",DEFAULT_CONNECT_TIMEOUT);
 
 		SAFECOPY(mail->host_name
 			,iniGetString(list,section,strHostName,global->host_name,value));
@@ -704,14 +707,43 @@ BOOL sbbs_write_ini(
 	if(global!=&global_buf) {
 		section = "Global";
 
-		iniSetString(lp,section,strCtrlDirectory,global->ctrl_dir,&style);
-		iniSetString(lp,section,strTempDirectory,global->temp_dir,&style);
-		iniSetString(lp,section,strHostName,global->host_name,&style);
-		iniSetShortInt(lp,section,strSemFileCheckFrequency,global->sem_chk_freq,&style);
-		iniSetIpAddress(lp,section,strInterface,global->interface_addr,&style);
-		iniSetLogLevel(lp,section,strLogLevel,global->log_level,&style);
-		iniSetInteger(lp,section,strBindRetryCount,global->bind_retry_count,&style);
-		iniSetInteger(lp,section,strBindRetryDelay,global->bind_retry_delay,&style);
+		if(global->ctrl_dir[0]==0)
+			iniRemoveKey(lp,section,strCtrlDirectory);
+		else
+			iniSetString(lp,section,strCtrlDirectory,global->ctrl_dir,&style);
+
+		if(global->temp_dir[0]==0)
+			iniRemoveKey(lp,section,strTempDirectory);
+		else
+			iniSetString(lp,section,strTempDirectory,global->temp_dir,&style);
+
+		if(global->host_name[0]==0)
+			iniRemoveKey(lp,section,strHostName);
+		else
+			iniSetString(lp,section,strHostName,global->host_name,&style);
+	
+		if(global->sem_chk_freq==0)
+			iniRemoveKey(lp,section,strSemFileCheckFrequency);
+		else
+			iniSetShortInt(lp,section,strSemFileCheckFrequency,global->sem_chk_freq,&style);
+		if(global->interface_addr==INADDR_ANY)
+			iniRemoveKey(lp,section,strInterface);
+		else
+			iniSetIpAddress(lp,section,strInterface,global->interface_addr,&style);
+		if(global->log_level==DEFAULT_LOG_LEVEL)
+			iniRemoveKey(lp,section,strLogLevel);
+		else
+			iniSetLogLevel(lp,section,strLogLevel,global->log_level,&style);
+
+		if(global->bind_retry_count==DEFAULT_BIND_RETRY_COUNT)
+			iniRemoveKey(lp,section,strBindRetryCount);
+		else
+			iniSetInteger(lp,section,strBindRetryCount,global->bind_retry_count,&style);
+		if(global->bind_retry_delay==DEFAULT_BIND_RETRY_DELAY)
+			iniRemoveKey(lp,section,strBindRetryDelay);
+		else
+			iniSetInteger(lp,section,strBindRetryDelay,global->bind_retry_delay,&style);
+
 		iniSetInteger(lp,section,strLoginAttemptDelay,global->login_attempt_delay,&style);
 		iniSetInteger(lp,section,strLoginAttemptThrottle,global->login_attempt_throttle,&style);
 		iniSetInteger(lp,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold,&style);
@@ -934,10 +966,6 @@ BOOL sbbs_write_ini(
 		if(!iniSetShortInt(lp,section,"MaxRecipients",mail->max_recipients,&style))
 			break;
 		if(!iniSetInteger(lp,section,"MaxMsgSize",mail->max_msg_size,&style))
-			break;
-		if(!iniSetInteger(lp,section,"MaxMsgsWaiting",mail->max_msgs_waiting,&style))
-			break;
-		if(!iniSetInteger(lp,section,"ConnectTimeout",mail->connect_timeout,&style))
 			break;
 
 		if(strcmp(mail->host_name,global->host_name)==0

@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.25 2011/09/08 06:26:02 rswindell Exp $ */
+/* $Id: link_list.h,v 1.24 2011/09/05 17:54:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ DLLEXPORT list_node_t*	DLLCALL	listFindNode(link_list_t*, const void* data, size
 #define listFindTaggedNode(list, tag)	listFindNode(list, NULL, tag)
 
 /* Convenience functions */
-DLLEXPORT list_node_t*	DLLCALL	listFirstNode(link_list_t*);
+DLLEXPORT list_node_t*	DLLCALL	listFirstNode(const link_list_t*);
 DLLEXPORT list_node_t*	DLLCALL	listLastNode(link_list_t*);
 DLLEXPORT list_node_t*	DLLCALL	listNextNode(const list_node_t*);
 DLLEXPORT list_node_t*	DLLCALL	listPrevNode(const list_node_t*);
