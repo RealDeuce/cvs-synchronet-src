@@ -2,13 +2,13 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.34 2006/02/24 20:12:19 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.38 2011/09/06 23:51:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -66,6 +66,7 @@ extern "C" {
 	/* POSIX threads */
 	typedef DWORD pthread_t;
 	#define pthread_self()				GetCurrentThreadId()
+	#define pthread_equal(t1,t2)		((t1)==(t2))
 
 	/* POSIX mutexes */
 	#ifdef PTHREAD_MUTEX_AS_WIN32_MUTEX	/* Much slower/heavier than critical sections */
@@ -94,7 +95,7 @@ extern "C" {
 /* Wrappers for POSIX thread (pthread) mutexes								*/
 /****************************************************************************/
 
-pthread_mutex_t pthread_mutex_initializer(void);
+pthread_mutex_t pthread_mutex_initializer(BOOL recursive);
 
 #if defined(_POSIX_THREADS)
 
@@ -109,6 +110,15 @@ pthread_mutex_t pthread_mutex_initializer(void);
 #define SetThreadName(c)
 #endif
 
+#if defined(__linux__)
+#if !defined(PTHREAD_MUTEX_RECURSIVE)
+	#define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
+#endif
+#if defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP) && !defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER)
+	#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+#endif
+#endif
+
 #else
 
 int pthread_mutex_init(pthread_mutex_t*, void* attr);
@@ -117,9 +127,15 @@ int pthread_mutex_trylock(pthread_mutex_t*);
 int pthread_mutex_unlock(pthread_mutex_t*);
 int pthread_mutex_destroy(pthread_mutex_t*);
 
-#define PTHREAD_MUTEX_INITIALIZER	pthread_mutex_initializer()
 #define SetThreadName(c)
 
+#endif
+
+#if !defined(PTHREAD_MUTEX_INITIALIZER)
+	#define PTHREAD_MUTEX_INITIALIZER				pthread_mutex_initializer(/* recursive: */FALSE)
+#endif
+#if !defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER)
+	#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER		pthread_mutex_initializer(/* recursive: */TRUE)
 #endif
 
 #if defined(__cplusplus)
