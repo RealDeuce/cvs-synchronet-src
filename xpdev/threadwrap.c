@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.29 2011/09/03 09:51:29 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.30 2011/09/07 01:26:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,14 +104,18 @@ ulong _beginthread(void( *start_address )( void * )
 /****************************************************************************/
 /* Wrappers for POSIX thread (pthread) mutexes								*/
 /****************************************************************************/
-pthread_mutex_t pthread_mutex_initializer(BOOL recursive)
+pthread_mutex_t pthread_mutex_initializer_np(BOOL recursive)
 {
 	pthread_mutex_t	mutex;
 #if defined(_POSIX_THREADS)
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	if(recursive)
+#if defined(__linux__) && !defined(__USE_UNIX98)
+		pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE_NP);
+#else
 		pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
+#endif
 	pthread_mutex_init(&mutex, &attr);
 #else	/* Assumes recursive (e.g. Windows) */
 	(void)recursive;
