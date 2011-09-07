@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.53 2011/09/10 01:27:01 rswindell Exp $ */
+/* $Id: link_list.c,v 1.50 2011/09/07 01:35:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,10 +182,8 @@ void* DLLCALL listSetPrivateData(link_list_t* list, void* p)
 	if(list==NULL)
 		return(NULL);
 
-	listLock(list);
 	old=list->private_data;
 	list->private_data=p;
-	listUnlock(list);
 	return(old);
 }
 
@@ -239,7 +237,7 @@ BOOL DLLCALL listLock(link_list_t* list)
 	if(list==NULL)
 		return(FALSE);
 #if defined(LINK_LIST_THREADSAFE)
-	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_lock(&list->mutex))==0)
+	if((ret=pthread_mutex_lock(&list->mutex))==0)
 #endif
 		list->locks++;
 	return(ret);
@@ -259,7 +257,7 @@ BOOL DLLCALL listUnlock(link_list_t* list)
 	if(list==NULL)
 		return(FALSE);
 #if defined(LINK_LIST_THREADSAFE)
-	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_unlock(&list->mutex))==0)
+	if((ret=pthread_mutex_unlock(&list->mutex))==0)
 #endif
 		list->locks--;
 	return(ret);
@@ -366,18 +364,12 @@ void* DLLCALL listFreeStringList(str_list_t list)
 	return(list);
 }
 
-list_node_t* DLLCALL listFirstNode(link_list_t* list)
+list_node_t* DLLCALL listFirstNode(const link_list_t* list)
 {
-	list_node_t*	node;
-
 	if(list==NULL)
 		return(NULL);
 
-	listLock(list);
-	node=list->first;
-	listUnlock(list);
-
-	return(node);
+	return(list->first);
 }
 
 list_node_t* DLLCALL listLastNode(link_list_t* list)
@@ -388,12 +380,14 @@ list_node_t* DLLCALL listLastNode(link_list_t* list)
 	if(list==NULL)
 		return(NULL);
 
-	listLock(list);
 	if(list->last!=NULL)
-		last=list->last;
-	else
-		for(node=list->first; node!=NULL; node=node->next)
-			last=node;
+		return(list->last);
+
+	listLock(list);
+
+	for(node=list->first; node!=NULL; node=node->next)
+		last=node;
+
 	listUnlock(list);
 
 	return(last);
@@ -441,44 +435,26 @@ list_node_t* DLLCALL listNodeAt(link_list_t* list, long index)
 
 list_node_t* DLLCALL listNextNode(const list_node_t* node)
 {
-	list_node_t*	next;
-
 	if(node==NULL)
 		return(NULL);
 
-	listLock(node->list);
-	next=node->next;
-	listUnlock(node->list);
-
-	return(next);
+	return(node->next);
 }
 
 list_node_t* DLLCALL listPrevNode(const list_node_t* node)
 {
-	list_node_t*	prev;
-
 	if(node==NULL)
 		return(NULL);
 
-	listLock(node->list);
-	prev=node->prev;
-	listUnlock(node->list);
-
-	return(prev);
+	return(node->prev);
 }
 
 void* DLLCALL listNodeData(const list_node_t* node)
 {
-	void*	data;
-
 	if(node==NULL)
 		return(NULL);
 
-	listLock(node->list);
-	data=node->data;
-	listUnlock(node->list);
-
-	return(data);
+	return(node->data);
 }
 
 BOOL DLLCALL listNodeIsLocked(const list_node_t* node)
@@ -491,9 +467,7 @@ BOOL DLLCALL listLockNode(list_node_t* node)
 	if(node==NULL || (node->flags&LINK_LIST_LOCKED))
 		return(FALSE);
 
-	listLock(node->list);
 	node->flags|=LINK_LIST_LOCKED;
-	listUnlock(node->list);
 
 	return(TRUE);
 }
@@ -503,9 +477,7 @@ BOOL DLLCALL listUnlockNode(list_node_t* node)
 	if(!listNodeIsLocked(node))
 		return(FALSE);
 
-	listLock(node->list);
 	node->flags&=~LINK_LIST_LOCKED;
-	listUnlock(node->list);
 
 	return(TRUE);
 }
@@ -553,7 +525,7 @@ list_node_t* DLLCALL listAddNode(link_list_t* list, void* data, list_node_tag_t 
 {
 	list_node_t* node;
 
-	if(list==NULL)
+	if(list==NULL || data==NULL)
 		return(NULL);
 
 	if((node=(list_node_t*)malloc(sizeof(list_node_t)))==NULL)
