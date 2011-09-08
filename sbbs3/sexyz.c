@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.131 2011/04/27 02:09:28 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.132 2011/07/14 08:30:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1280,10 +1280,7 @@ static int receive_files(char** fname_list, int fnames)
 						break;
 					}
 
-					if(mode&GMODE)
-						return(-1);
-
-					if(++errors>xm.max_errors) {
+					if(++errors>xm.max_errors || (mode&GMODE)) {
 						lprintf(LOG_ERR,"Too many errors (%u)",errors);
 						xmodem_cancel(&xm);
 						break;
@@ -1514,7 +1511,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.131 $", "%*s %s", revision);
+	sscanf("$Revision: 1.132 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
