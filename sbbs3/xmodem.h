@@ -2,13 +2,13 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.19 2010/02/26 02:03:43 rswindell Exp $ */
+/* $Id: xmodem.h,v 1.22 2010/03/05 04:21:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -62,26 +62,29 @@ typedef struct {
 	unsigned	fallback_to_xmodem; /* fallback to Xmodem after this many Ymodem send attempts */
 	unsigned	g_delay;
 	ulong		total_files;
-	ulong		total_bytes;
+	int64_t		total_bytes;
 	unsigned	sent_files;
-	ulong		sent_bytes;
+	int64_t		sent_bytes;
+	int			*log_level;
 	int			(*lputs)(void*, int level, const char* str);
-	void		(*progress)(void*, unsigned block_num, ulong offset, ulong fsize, time_t t);
+	void		(*progress)(void*, unsigned block_num, int64_t offset, int64_t fsize, time_t t);
 	int			(*send_byte)(void*, uchar ch, unsigned timeout);
 	int			(*recv_byte)(void*, unsigned timeout);
 	BOOL		(*is_connected)(void*);
 	BOOL		(*is_cancelled)(void*);
+	void		(*flush)(void*);
 
 } xmodem_t;
 
 
 void		xmodem_init(xmodem_t*, void* cbdata, long* mode
 						,int	(*lputs)(void*, int level, const char* str)
-						,void	(*progress)(void* unused, unsigned block_num, ulong offset, ulong fsize, time_t t)
+						,void	(*progress)(void* unused, unsigned block_num, int64_t offset, int64_t fsize, time_t t)
 						,int	(*send_byte)(void*, uchar ch, unsigned timeout)
 						,int	(*recv_byte)(void*, unsigned timeout)
 						,BOOL	(*is_connected)(void*)
 						,BOOL	(*is_cancelled)(void*)
+						,void	(*flush)(void*)
 						);
 char*		xmodem_ver(char *buf);
 const char* xmodem_source(void);
@@ -93,6 +96,6 @@ int			xmodem_put_ack(xmodem_t*);
 int			xmodem_put_nak(xmodem_t*, unsigned block_num);
 int			xmodem_get_block(xmodem_t*, uchar* block, unsigned block_num);
 int			xmodem_put_block(xmodem_t*, uchar* block, unsigned block_size, unsigned block_num);
-BOOL		xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, ulong* sent);
+BOOL		xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, int64_t* sent);
 
 #endif	/* Don't add anything after this line */
