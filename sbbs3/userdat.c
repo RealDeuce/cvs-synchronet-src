@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.146 2011/11/11 06:42:52 sbbs Exp $ */
+/* $Id: userdat.c,v 1.135 2011/09/03 05:56:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,7 +359,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 		now=time(NULL);
 		if(localtime_r(&now, &now_tm)!=NULL 
-			&& localtime32(&user->logontime, &logon_tm)!=NULL) {
+			&& localtime_r(&user->logontime, &logon_tm)!=NULL) {
 			if(now_tm.tm_year!=logon_tm.tm_year
 				|| now_tm.tm_mon!=logon_tm.tm_mon
 				|| now_tm.tm_mday!=logon_tm.tm_mday)
@@ -431,10 +431,10 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	putrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	putrec(userdat,U_MODEM,LEN_MODEM,user->modem);
-	putrec(userdat,U_LASTON,8,ultoa((ulong)user->laston,str,16));
-	putrec(userdat,U_FIRSTON,8,ultoa((ulong)user->firston,str,16));
-	putrec(userdat,U_EXPIRE,8,ultoa((ulong)user->expire,str,16));
-	putrec(userdat,U_PWMOD,8,ultoa((ulong)user->pwmod,str,16));
+	putrec(userdat,U_LASTON,8,ultoa(user->laston,str,16));
+	putrec(userdat,U_FIRSTON,8,ultoa(user->firston,str,16));
+	putrec(userdat,U_EXPIRE,8,ultoa(user->expire,str,16));
+	putrec(userdat,U_PWMOD,8,ultoa(user->pwmod,str,16));
 	putrec(userdat,U_PWMOD+8,2,crlf);
 
 	putrec(userdat,U_LOGONS,5,ultoa(user->logons,str,10));
@@ -496,8 +496,8 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_QWK,8,ultoa(user->qwk,str,16));
 	putrec(userdat,U_TMPEXT,3,user->tmpext);
 	putrec(userdat,U_CHAT,8,ultoa(user->chat,str,16));
-	putrec(userdat,U_NS_TIME,8,ultoa((ulong)user->ns_time,str,16));
-	putrec(userdat,U_LOGONTIME,8,ultoa((ulong)user->logontime,str,16));
+	putrec(userdat,U_NS_TIME,8,ultoa(user->ns_time,str,16));
+	putrec(userdat,U_LOGONTIME,8,ultoa(user->logontime,str,16));
 
 	putrec(userdat,U_UNUSED,U_LEN-(U_UNUSED)-2,crlf);
 	putrec(userdat,U_UNUSED+(U_LEN-(U_UNUSED)-2),2,crlf);
@@ -1374,9 +1374,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 			case AR_WIN32:
 			case AR_UNIX:
 			case AR_LINUX:
-			case AR_ACTIVE:
-			case AR_INACTIVE:
-			case AR_DELETED:
 				break;
 			default:
 				(*ptrptr)++;
@@ -2135,7 +2132,7 @@ BOOL DLLCALL logoutuserdat(scfg_t* cfg, user_t* user, time_t now, time_t logonti
 	tused=(now-logontime)/60;
 	user->tlast=(ushort)(tused > USHRT_MAX ? USHRT_MAX : tused);
 
-	putuserrec(cfg,user->number,U_LASTON,8,ultoa((ulong)now,str,16));
+	putuserrec(cfg,user->number,U_LASTON,8,ultoa(now,str,16));
 	putuserrec(cfg,user->number,U_TLAST,5,ultoa(user->tlast,str,10));
 	adjustuserrec(cfg,user->number,U_TIMEON,5,user->tlast);
 	adjustuserrec(cfg,user->number,U_TTODAY,5,user->tlast);
@@ -2181,7 +2178,7 @@ void DLLCALL resetdailyuserdat(scfg_t* cfg, user_t* user, BOOL write)
 	if(write) putuserrec(cfg,user->number,U_TTODAY,5,"0");
 	/* extra time today */
 	user->textra=0;
-	if(write) putuserrec(cfg,user->number,U_TEXTRA,5,"0");
+	if(write) putuserrec(cfg,user->number,U_TEXTRA,5,"0");	
 }
 
 /****************************************************************************/
@@ -2530,41 +2527,10 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 }
 
 /****************************************************************************/
-/* Determine if the specified user can or cannot send email					*/
-/* 'reason' is an (optional) pointer to a text.dat item number				*/
-/* usernumber==0 for netmail												*/
-/****************************************************************************/
-BOOL DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint* reason)
-{
-	if(reason!=NULL)
-		*reason=R_Email;
-	if(user==NULL || user->number==0)
-		return FALSE;
-	if(usernumber>1 && user->rest&FLAG('E'))			/* local mail restriction? */
-		return FALSE;
-	if(reason!=NULL)
-		*reason=NoNetMailAllowed;
-	if(usernumber==0 && user->rest&FLAG('M'))			/* netmail restriction */
-		return FALSE;
-	if(reason!=NULL)
-		*reason=R_Feedback;
-	if(usernumber==1 && user->rest&FLAG('S'))			/* feedback restriction? */
-		return FALSE;
-	if(reason!=NULL)
-		*reason=TooManyEmailsToday;
-	if(user->etoday>=cfg->level_emailperday[user->level] && !(user->exempt&FLAG('M')))
-		return FALSE;
-
-	return TRUE;
-}
-
-/****************************************************************************/
 /* Determine if the specified user is a sub-board operator					*/
 /****************************************************************************/
 BOOL DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client)
 {
-	if(user==NULL)
-		return FALSE;
 	if(!can_user_access_sub(cfg, subnum, user, client))
 		return FALSE;
 	if(user->level>=SYSOP_LEVEL)
@@ -2604,13 +2570,13 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* 
 /* Add an IP address (with comment) to the IP filter/trashcan file			*/
 /* ToDo: Move somewhere more appropriate (filter.c?)						*/
 /****************************************************************************/
-BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const char* host
-					   ,const char* ip_addr, const char* username, const char* fname)
+BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
+					   ,char* ip_addr, char* username, char* fname)
 {
 	char	ip_can[MAX_PATH+1];
 	char	tstr[64];
     FILE*	fp;
-    time32_t now=time32(NULL);
+    time_t	now=time(NULL);
 
 	if(ip_addr==NULL)
 		return(FALSE);
@@ -2661,7 +2627,7 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 		if(tleft>cfg->level_timepercall[user->level]*60)
 			tleft=cfg->level_timepercall[user->level]*60;
 		tleft+=user->min*60L;
-		tleft-=(long)(now-starttime);
+		tleft-=now-starttime;
 		if(tleft>0x7fffL)
 			timeleft=0x7fff;
 		else
@@ -2729,7 +2695,7 @@ static list_node_t* login_attempted(link_list_t* list, SOCKADDR_IN* addr)
 	list_node_t*		node;
 	login_attempt_t*	attempt;
 
-	for(node=list->first; node!=NULL; node=node->next) {
+	for(node=listFirstNode(list); node!=NULL; node=listNextNode(node)) {
 		attempt=node->data;
 		if(memcmp(&attempt->addr,&addr->sin_addr,sizeof(attempt->addr))==0)
 			break;
@@ -2768,7 +2734,7 @@ void DLLCALL loginSuccess(link_list_t* list, SOCKADDR_IN* addr)
 ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* prot, const char* user, const char* pass)
 {
 	list_node_t*		node;
-	login_attempt_t		first = {0};
+	login_attempt_t		first={0};
 	login_attempt_t*	attempt=&first;
 	ulong				count=0;
 
@@ -2782,8 +2748,8 @@ ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* pro
 		if(strcmp(attempt->user,user)==0 && (pass==NULL || strcmp(attempt->pass,pass)==0))
 			attempt->dupes++;
 	}
-	SAFECOPY(attempt->prot,prot);
-	attempt->time=time32(NULL);
+	attempt->prot=prot;
+	attempt->time=time(NULL);
 	attempt->addr=addr->sin_addr;
 	SAFECOPY(attempt->user, user);
 	SAFECOPY(attempt->pass, pass);
