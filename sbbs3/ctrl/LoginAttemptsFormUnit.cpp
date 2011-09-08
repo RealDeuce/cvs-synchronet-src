@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: LoginAttemptsFormUnit.cpp,v 1.3 2011/09/14 04:25:01 rswindell Exp $ */
+/* $Id: LoginAttemptsFormUnit.cpp,v 1.2 2011/09/01 17:37:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
 
 #include "sbbs.h"
 #include <vcl.h>
-#include <vcl/Clipbrd.hpp>
 #pragma hdrstop
 
 #include "LoginAttemptsFormUnit.h"
@@ -54,7 +53,7 @@ __fastcall TLoginAttemptsForm::TLoginAttemptsForm(TComponent* Owner)
 {
 }
 //---------------------------------------------------------------------------
-void __fastcall TLoginAttemptsForm::FillListView(TObject *Sender)
+void __fastcall TLoginAttemptsForm::FormShow(TObject *Sender)
 {
     char                str[128];
     TListItem*          Item;
@@ -62,6 +61,8 @@ void __fastcall TLoginAttemptsForm::FillListView(TObject *Sender)
     struct tm			tm;
     login_attempt_t*    attempt;
 
+    ColumnToSort=0;
+    SortBackwards=false;
     Screen->Cursor=crAppStart;
 
     listLock(&login_attempt_list);
@@ -70,12 +71,12 @@ void __fastcall TLoginAttemptsForm::FillListView(TObject *Sender)
 
     ListView->Items->BeginUpdate();
 
-    for(node=login_attempt_list.first; node!=NULL; node=node->next) {
+    for(node=listFirstNode(&login_attempt_list); node!=NULL; node=listNextNode(node)) {
         attempt=(login_attempt_t*)node->data;
         if(attempt==NULL)
             continue;
         Item=ListView->Items->Add();
-        Item->Caption=AnsiString(attempt->count-attempt->dupes);
+        Item->Caption=AnsiString(attempt->count);
         Item->Data=(void*)attempt->time;
         Item->SubItems->Add(attempt->dupes);        
         Item->SubItems->Add(inet_ntoa(attempt->addr));
@@ -87,20 +88,11 @@ void __fastcall TLoginAttemptsForm::FillListView(TObject *Sender)
             ,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
         Item->SubItems->Add(str);
     }
-    ListView->AlphaSort();
     ListView->Items->EndUpdate();
 
     listUnlock(&login_attempt_list);
     Screen->Cursor=crDefault;
 }
-//---------------------------------------------------------------------------
-void __fastcall TLoginAttemptsForm::FormShow(TObject *Sender)
-{
-    ColumnToSort=0;
-    SortBackwards=true;
-    FillListView(Sender);
-}
-
 //---------------------------------------------------------------------------
 void __fastcall TLoginAttemptsForm::FormClose(TObject *Sender,
       TCloseAction &Action)
@@ -130,13 +122,9 @@ void __fastcall TLoginAttemptsForm::ListViewCompare(TObject *Sender,
         if(ColumnToSort==6) { /* Date */
             num1=(ulong)Item1->Data;
             num2=(ulong)Item2->Data;
-        } else if(ColumnToSort==0) {
+        } else {
             num1=Item1->Caption.ToIntDef(0);
             num2=Item2->Caption.ToIntDef(0);
-        } else {
-            int ix = ColumnToSort - 1;
-            num1=Item1->SubItems->Strings[ix].ToIntDef(0);
-            num2=Item2->SubItems->Strings[ix].ToIntDef(0);
         }
         if(SortBackwards)
             Compare=(num2-num1);
@@ -154,43 +142,3 @@ void __fastcall TLoginAttemptsForm::ListViewCompare(TObject *Sender,
 
 }
 //---------------------------------------------------------------------------
-static AnsiString ListItemString(TListItem* item)
-{
-    AnsiString str = item->Caption;
-    int i;
-
-    for(i=0;i<item->SubItems->Count;i++)
-        str += "\t" + item->SubItems->Strings[i];
-
-    return str + "\r\n";
-}
-//---------------------------------------------------------------------------
-void __fastcall TLoginAttemptsForm::CopyPopupClick(TObject *Sender)
-{
-    if(ListView->Selected==NULL)
-        return;
-    Clipboard()->SetTextBuf(ListItemString(ListView->Selected).c_str());
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TLoginAttemptsForm::CopyAllPopupClick(TObject *Sender)
-{
-    AnsiString buf;
-    int i;
-
-    for(i=0;i<ListView->Items->Count;i++)
-        buf += ListItemString(ListView->Items->Item[i]);
-
-    Clipboard()->SetTextBuf(buf.c_str());
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TLoginAttemptsForm::RefreshPopupClick(TObject *Sender)
-{
-    ListView->Items->BeginUpdate();
-    ListView->Items->Clear();
-    ListView->Items->EndUpdate();    
-    FillListView(Sender);
-}
-//---------------------------------------------------------------------------
-
