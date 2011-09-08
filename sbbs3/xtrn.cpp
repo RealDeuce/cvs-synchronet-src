@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.213 2011/07/13 11:29:51 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.214 2011/09/08 02:11:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#ifdef __unix__
+	#define TTYDEFCHARS		// needed for ttydefchars definition
+#endif
 #include "sbbs.h"
 #include "cmdshell.h"
 #include "telnet.h"
@@ -43,8 +46,6 @@
 
 #ifdef __unix__
 	#include <sys/wait.h>	// WEXITSTATUS
-
-	#define TTYDEFCHARS		// needed for ttydefchars definition
 
 #if defined(__FreeBSD__)
 	#include <libutil.h>	// forkpty()
