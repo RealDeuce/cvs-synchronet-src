@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.52 2011/07/13 09:47:51 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.55 2011/08/31 22:01:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,9 @@
 #include "sbbs.h"
 #include "js_request.h"
 
-#include <jscntxt.h>	/* Needed for Context-private data structure */
+#ifdef _DEBUG
+	#include <jscntxt.h>	/* Needed for Context-private data structure */
+#endif
 
 enum {
 	 PROP_VERSION
@@ -109,14 +111,10 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case PROP_MAXBYTES:
 			JS_NewNumberValue(cx,cx->runtime->gcMaxBytes,vp);
 			break;
-		case PROP_GLOBAL:
-			*vp = OBJECT_TO_JSVAL(cx->globalObject);
-			break;
-#else
-		case PROP_GLOBAL:
-			*vp = OBJECT_TO_JSVAL(JS_GetParent(cx,obj));
-			break;
 #endif
+		case PROP_GLOBAL:
+			*vp = OBJECT_TO_JSVAL(JS_GetGlobalObject(cx));	
+			break;
 	}
 
 	return(JS_TRUE);
@@ -450,7 +448,8 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 
 	strListFree(&branch->exit_func);
 
-	branch->auto_terminate = auto_terminate;
+	if(auto_terminate)
+		branch->auto_terminate = TRUE;
 }
 
 JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch, js_startup_t* startup)
