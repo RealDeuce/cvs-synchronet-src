@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.49 2007/05/31 09:47:39 deuce Exp $
+# $Id: Common.bmake,v 1.52 2011/07/14 17:19:00 rswindell Exp $
 #
 #############################################################################
 #																			#
@@ -107,7 +107,7 @@ UL_SUF	=	$(LIBFILE)
 !ifdef msc	# Microsoft Visual C++
 CC		=	cl
 LD		=	link
-CCPRE	=	msvc.win32
+CCPRE	=	msvc
 OUTPUT	=	-Fo
 LOUTPUT	=	-Fe
 CFLAGS  =	-nologo -MTd
@@ -137,6 +137,12 @@ MKSHLIB =       $(CC) -WD
 # Common compiler flags
 !ifdef DEBUG
 CFLAGS	=	$(CFLAGS) -Od -D_DEBUG 
+!endif
+
+# Required for Embarcadero C++Builder 2010
+!if $(__MAKE__) >= 0x0540
+	CCPRE	=	ecc6
+	CFLAGS	=	$(CFLAGS) -DHAS_STDINT_H -D_WIN32_WINNT=0x502
 !endif
 
 # Debug or release build?
