@@ -1,12 +1,6 @@
 XPDEV-MT_CFLAGS	+=	-DXPDEV_THREAD_SAFE
-ifneq ($(os),haiku)
- XPDEV_LIBS	+=	-lm
- XPDEV-MT_LIBS	+=	-lm
-endif
-ifeq ($(os),haiku)
- XPDEV_LIBS	+=	-lnetwork
- XPDEV-MT_LIBS	+=	-lnetwork
-endif
+XPDEV_LIBS	+=	-lm
+XPDEV-MT_LIBS	+=	-lm
 ifeq ($(os),netbsd)     # NetBSD
  XPDEV_LIBS	+=	-lossaudio
  XPDEV-MT_LIBS	+=	-lossaudio -lpthread
@@ -156,7 +150,6 @@ ifdef WITH_SDL_AUDIO
    XPDEV_CFLAGS	+=	-DWITH_SDL_AUDIO -DSTATIC_SDL
    XPDEV_CFLAGS	+=	-I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
    XPDEV_LIBS	+=	-F${SDL_FRAMEWORK_PATH} -framework SDL -framework Cocoa -framework Carbon -I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
-   XPDEV-MT_LDFLAGS += -Wl,-rpath,@executable_path/../Frameworks
   endif
  endif
 endif
@@ -178,9 +171,10 @@ else
    NO_X=1
   endif
  endif
- XPDEV-MT_CFLAGS	+=	-I$(X_HEADERS)
- XPDEV_CFLAGS	+=	-I$(X_HEADERS)
 endif
+
+XPDEV-MT_CFLAGS	+=	-I$(X_HEADERS)
+XPDEV_CFLAGS	+=	-I$(X_HEADERS)
 
 ifndef WITHOUT_PORTAUDIO
  PORTAUDIO_PATH ?=      $(shell if [ -f /usr/local/include/portaudio.h ]; then echo /usr/local ; elif [ -f /usr/include/portaudio.h ] ; then echo /usr ; else echo NOTFOUND ; fi)

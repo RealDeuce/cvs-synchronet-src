@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.58 2011/10/19 07:08:31 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.56 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -189,7 +189,7 @@ bool sbbs_t::logon()
 	logon_ml=useron.level;
 	logontime=time(NULL);
 	starttime=logontime;
-	useron.logontime=(time32_t)logontime;
+	useron.logontime=logontime;
 	last_ns_time=ns_time=useron.ns_time;
 	// ns_time-=(useron.tlast*60); /* file newscan time == last logon time */
 	delfiles(cfg.temp_dir,ALLFILES);
@@ -206,7 +206,7 @@ bool sbbs_t::logon()
 	CLS;
 	if(useron.rows)
 		rows=useron.rows;
-	unixtodstr(&cfg,(time32_t)logontime,str);
+	unixtodstr(&cfg,logontime,str);
 	if(!strncmp(str,useron.birth,5) && !(useron.rest&FLAG('Q'))) {
 		bputs(text[HappyBirthday]);
 		pause();
@@ -260,8 +260,8 @@ bool sbbs_t::logon()
 				break; 
 			}
 			strcpy(useron.pass,str);
-			useron.pwmod=time32(NULL);
-			putuserrec(&cfg,useron.number,U_PWMOD,8,ultoa((ulong)useron.pwmod,str,16));
+			useron.pwmod=time(NULL);
+			putuserrec(&cfg,useron.number,U_PWMOD,8,ultoa(useron.pwmod,str,16));
 			bputs(text[PasswordChanged]);
 			pause(); 
 		}
@@ -483,9 +483,11 @@ bool sbbs_t::logon()
 			}
 			if(node.status==NODE_INUSE && i!=cfg.node_num && node.useron==useron.number
 				&& !SYSOP && !(useron.exempt&FLAG('G'))) {
-				SAFEPRINTF2(str,"(%04u)  %-25s  On two nodes at the same time"
-					,useron.number,useron.alias);
+				strcpy(tmp,"On two nodes at the same time");
+				sprintf(str,"(%04u)  %-25s  %s"
+					,useron.number,useron.alias,tmp);
 				logline(LOG_NOTICE,"+!",str);
+				errorlog(tmp);
 				bputs(text[UserOnTwoNodes]);
 				hangup();
 				return(false); 
@@ -556,9 +558,9 @@ ulong sbbs_t::logonstats()
 	read(dsts,&stats.logons,4);		/* Total number of logons on system */
 	close(dsts);
 	now=time(NULL);
-	now32=(time32_t)now;
+	now32=now;
 	if(update_t>now+(24L*60L*60L)) /* More than a day in the future? */
-		errormsg(WHERE,ERR_CHK,"Daily stats time stamp",(ulong)update_t);
+		errormsg(WHERE,ERR_CHK,"Daily stats time stamp",update_t);
 	if(localtime_r(&update_t,&update_tm)==NULL)
 		return(0);
 	if(localtime_r(&now,&tm)==NULL)
