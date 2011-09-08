@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.168 2011/04/27 22:59:45 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.169 2011/07/14 02:32:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@
 /*************/
 
 #define VERSION 	"3.15"  /* Version: Major.minor  */
-#define REVISION	'a'     /* Revision: lowercase letter */
+#define REVISION	'b'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31500	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31500 + (tolower(REVISION)-'a'))
 
