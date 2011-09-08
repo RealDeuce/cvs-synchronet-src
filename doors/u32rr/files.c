@@ -1,4 +1,7 @@
+#include <sys/limits.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <string.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -9,12 +12,6 @@
 #include "files.h"
 
 #include "todo.h"
-
-struct map_file {
-	int		fd;
-	off_t	len;
-	void	*data;
-};
 
 struct map_file poison_map;
 struct poison	*poison;
@@ -30,11 +27,65 @@ struct map_file onliner_map;
 struct onliner	*onliner;
 struct onliner	*onliners;
 
-struct map_file object_map;
-struct object	*objects;
-
 struct map_file king_map;
 struct king		*king;
+
+struct map_file abody_map;
+struct object	*abody;
+
+struct map_file armor_map;
+struct armor	*armor;
+
+struct map_file arms_map;
+struct object	*arms;
+
+struct map_file body_map;
+struct object	*body;
+
+struct map_file drink_map;
+struct object	*drink;
+
+struct map_file face_map;
+struct object	*face;
+
+struct map_file feets_map;
+struct object	*feets;
+
+struct map_file food_map;
+struct object	*food;
+
+struct map_file hands_map;
+struct object	*hands;
+
+struct map_file head_map;
+struct object	*head;
+
+struct map_file legs_map;
+struct object	*legs;
+
+struct map_file neck_map;
+struct object	*neck;
+
+struct map_file rings_map;
+struct object	*rings;
+
+struct map_file shields_map;
+struct object	*shields;
+
+struct map_file waist_map;
+struct object	*waist;
+
+struct map_file weapons_map;
+struct object	*weapons;
+
+struct map_file weapon_map;
+struct weapon	*weapon;
+
+struct map_file monster_map;
+struct monster	*monster;
+
+struct map_file level_map;
+struct level	*levels;
 
 static size_t align(size_t val)
 {
@@ -45,9 +96,16 @@ static size_t align(size_t val)
 	return(val);
 }
 
-static void map_file(char *name, struct map_file *map, size_t len)
+void map_file(char *name, struct map_file *map, size_t len)
 {
+	struct stat st;
+
 	map->fd=open(name, O_RDWR);
+	if(len==SIZE_T_MAX) {
+		if(fstat(map->fd, &st)!=0)
+			CRASH;
+		len=st.st_size;
+	}
 	if(map->fd == -1)
 		CRASHF("Error opening map \"%s\"\n", name);
 	map->len=align(len);
@@ -56,116 +114,84 @@ static void map_file(char *name, struct map_file *map, size_t len)
 		CRASH;
 }
 
+void unmap_file(struct map_file *map)
+{
+	msync(map->data, map->len, MS_SYNC);
+	munmap(map->data, map->len);
+	close(map->fd);
+}
+
 void open_files(void)
 {
-	map_file("poison.bin", &poison_map, MAX_POISON * sizeof(struct poison));
-	poison=poison_map.data;
-	map_file("players.dat", &player_map, MAX_PLAYERS * sizeof(struct player));
-	players=player_map.data;
-	map_file("npcs.dat", &npc_map, MAX_NPCS * sizeof(struct player));
-	npcs=npc_map.data;
-	map_file("objects.dat", &object_map, MAX_OBJECTS * sizeof(struct object));
-	objects=object_map.data;
-	map_file("onliner.dat", &onliner_map, MAX_OBJECTS * sizeof(struct onliner));
-	onliners=onliner_map.data;
-	map_file("king.dat", &king_map, MAX_OBJECTS * sizeof(struct king));
+	map_file("abody.dat", &abody_map, SIZE_T_MAX);
+	abody=abody_map.data;
+
+	map_file("armor.dat", &armor_map, SIZE_T_MAX);
+	armor=armor_map.data;
+
+	map_file("arms.dat", &arms_map, SIZE_T_MAX);
+	arms=arms_map.data;
+
+	map_file("body.dat", &body_map, SIZE_T_MAX);
+	body=body_map.data;
+
+	map_file("drink.dat", &drink_map, SIZE_T_MAX);
+	drink=drink_map.data;
+
+	map_file("face.dat", &face_map, SIZE_T_MAX);
+	face=face_map.data;
+
+	map_file("feets.dat", &feets_map, SIZE_T_MAX);
+	feets=feets_map.data;
+
+	map_file("food.dat", &food_map, SIZE_T_MAX);
+	food=food_map.data;
+
+	map_file("hands.dat", &hands_map, SIZE_T_MAX);
+	hands=hands_map.data;
+
+	map_file("head.dat", &head_map, SIZE_T_MAX);
+	head=head_map.data;
+
+	map_file("king.dat", &king_map, SIZE_T_MAX);
 	king=king_map.data;
-}
 
-void create_poison_file(void)
-{
-	map_file("poison.bin", &poison_map, MAX_POISON * sizeof(struct poison));
+	map_file("legs.dat", &legs_map, SIZE_T_MAX);
+	legs=legs_map.data;
+
+	map_file("monsters.dat", &monster_map, SIZE_T_MAX);
+	monster=monster_map.data;
+
+	map_file("neck.dat", &neck_map, SIZE_T_MAX);
+	neck=neck_map.data;
+
+	map_file("npcs.dat", &npc_map, SIZE_T_MAX);
+	npcs=npc_map.data;
+
+	map_file("onliner.dat", &onliner_map, SIZE_T_MAX);
+	onliners=onliner_map.data;
+
+	map_file("players.dat", &player_map, SIZE_T_MAX);
+	players=player_map.data;
+
+	map_file("poison.dat", &poison_map, SIZE_T_MAX);
 	poison=poison_map.data;
-	strcpy(poison[0].name, "None");
-	poison[0].strength=0;
-	poison[0].cost=0;
 
-	strcpy(poison[1].name, "Snake Bite");
-	poison[1].strength=4;
-	poison[1].cost=1500;
+	map_file("rings.dat", &rings_map, SIZE_T_MAX);
+	rings=rings_map.data;
 
-	strcpy(poison[2].name, "Xaminah Stir");
-	poison[2].strength=10;
-	poison[2].cost=11000;
+	map_file("shields.dat", &shields_map, SIZE_T_MAX);
+	shields=shields_map.data;
 
-	strcpy(poison[3].name, "Zargothicia");
-	poison[3].strength=14;
-	poison[3].cost=25000;
+	map_file("waist.dat", &waist_map, SIZE_T_MAX);
+	waist=waist_map.data;
 
-	strcpy(poison[4].name, "Diamond Sting");
-	poison[4].strength=17;
-	poison[4].cost=100000;
+	map_file("weapon.dat", &weapon_map, SIZE_T_MAX);
+	weapon=weapon_map.data;
 
-	strcpy(poison[5].name, "Mynthia");
-	poison[5].strength=21;
-	poison[5].cost=300000;
+	map_file("weapons.dat", &weapons_map, SIZE_T_MAX);
+	weapons=weapons_map.data;
 
-	strcpy(poison[6].name, "Exxodus");
-	poison[6].strength=41;
-	poison[6].cost=550000;
-
-	strcpy(poison[7].name, "Wolf Spit");
-	poison[7].strength=51;
-	poison[7].cost=850000;
-
-	strcpy(poison[8].name, "Joy of Death");
-	poison[8].strength=71;
-	poison[8].cost=1250000;
-
-	strcpy(poison[9].name, "Eusebius Cure");
-	poison[9].strength=81;
-	poison[9].cost=1500000;
-
-	strcpy(poison[10].name, "Yxaxxiantha");
-	poison[10].strength=85;
-	poison[10].cost=1900000;
-
-	strcpy(poison[11].name, "Polluted Lung");
-	poison[11].strength=90;
-	poison[11].cost=3000000;
-
-	strcpy(poison[12].name, "Postheria");
-	poison[12].strength=96;
-	poison[12].cost=6000000;
-
-	strcpy(poison[13].name, "Red Sledge");
-	poison[13].strength=100;
-	poison[13].cost=9000000;
-
-	strcpy(poison[14].name, "Mullamia");
-	poison[14].strength=110;
-	poison[14].cost=9100000;
-
-	strcpy(poison[15].name, "Cobra High");
-	poison[15].strength=115;
-	poison[15].cost=9200000;
-
-	strcpy(poison[16].name, "Stomach Claw");
-	poison[16].strength=120;
-	poison[16].cost=9300000;
-
-	strcpy(poison[17].name, "Fasanathievh");
-	poison[17].strength=125;
-	poison[17].cost=9400000;
-
-	strcpy(poison[18].name, "Urpathxiaveth");
-	poison[18].strength=130;
-	poison[18].cost=9500000;
-
-	strcpy(poison[19].name, "Dragon Flame");
-	poison[19].strength=135;
-	poison[19].cost=9600000;
-
-	strcpy(poison[20].name, "Usilamahs Bite");
-	poison[20].strength=140;
-	poison[20].cost=9700000;
-
-	strcpy(poison[21].name, "Devils Cure");
-	poison[21].strength=145;
-	poison[21].cost=9900000;
-}
-
-void create_files(void)
-{
-	create_poison_file();
+	map_file("level.dat", &level_map, SIZE_T_MAX);
+	levels=level_map.data;
 }
