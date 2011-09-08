@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.533 2011/04/27 22:59:45 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.535 2011/07/16 07:55:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1553,7 +1553,6 @@ static BOOL check_ars(http_session_t * session)
 				char			ha2[MD5_DIGEST_SIZE*2+1];
 				char			*pass;
 				char			*p;
-				char			*last;
 				time32_t		nonce_time;
 				time32_t		now;
 				MD5				ctx;
@@ -2698,7 +2697,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 		if(len<0)
 			return(FALSE);
 		if(req_line[0])
-			lprintf(LOG_DEBUG,"%04d Request: %s",session->socket,req_line);
+			lprintf(LOG_INFO,"%04d Request: %s",session->socket,req_line);
 		if(session->req.ld!=NULL && session->req.ld->request==NULL)
 			/* FREE()d in http_logging_thread() */
 			session->req.ld->request=strdup(req_line);
@@ -3921,12 +3920,12 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
     }
 
 	if(report->filename)
-		sprintf(file," %s",report->filename);
+		SAFEPRINTF(file," %s",report->filename);
 	else
 		file[0]=0;
 
 	if(report->lineno)
-		sprintf(line," line %u",report->lineno);
+		SAFEPRINTF(line," line %u",report->lineno);
 	else
 		line[0]=0;
 
@@ -3941,7 +3940,8 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 		warning="";
 	}
 
-	lprintf(log_level,"%04d !JavaScript %s%s%s: %s",session->socket,warning,file,line,message);
+	lprintf(log_level,"%04d !JavaScript %s%s%s: %s, Request: %s"
+		,session->socket,warning,file,line,message, session->req.request_line);
 	if(session->req.fp!=NULL)
 		fprintf(session->req.fp,"!JavaScript %s%s%s: %s",warning,file,line,message);
 }
@@ -5208,7 +5208,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.533 $", "%*s %s", revision);
+	sscanf("$Revision: 1.535 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5669,7 +5669,7 @@ void DLLCALL web_server(void* arg)
 				/* FREE()d at the start of the session thread */
 				if((session=malloc(sizeof(http_session_t)))==NULL) {
 					lprintf(LOG_CRIT,"%04d !ERROR allocating %u bytes of memory for http_session_t"
-						,client_socket, sizeof(http_session_t));
+						,server_socket, sizeof(http_session_t));
 					mswait(3000);
 					continue;
 				}

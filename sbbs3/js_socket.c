@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.135 2011/04/27 02:15:36 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.136 2011/05/12 17:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1187,8 +1187,8 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	BOOL		b;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
+		// Prototype access
+		return(JS_TRUE);
 	}
 
     tiny = JSVAL_TO_INT(id);
@@ -1240,8 +1240,8 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
+		// Protoype access
+		return(JS_TRUE);
 	}
 
     tiny = JSVAL_TO_INT(id);
