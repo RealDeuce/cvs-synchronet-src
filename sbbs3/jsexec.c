@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.140 2011/04/27 22:48:27 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.141 2011/08/30 23:37:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -440,17 +440,46 @@ js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     JSString *	str;
 	char	 *	cstr;
+	char     *	p;
 	jsrefcount	rc;
+	char		instr[81]="y";
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
 	cstr = JS_GetStringBytes(str);
+	printf("%s (Y/n)? ", cstr);
 	rc=JS_SUSPENDREQUEST(cx);
-	printf("%s (Y/N)?", cstr);
+	fgets(instr,sizeof(instr),stdin);
 	JS_RESUMEREQUEST(cx, rc);
 
-	*rval = BOOLEAN_TO_JSVAL(FALSE);
+	p=instr;
+	SKIP_WHITESPACE(p);
+	*rval = BOOLEAN_TO_JSVAL(tolower(*p)!='n');
+	return(JS_TRUE);
+}
+
+static JSBool
+js_deny(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+    JSString *	str;
+	char	 *	cstr;
+	char     *	p;
+	jsrefcount	rc;
+	char		instr[81];
+
+	if((str=JS_ValueToString(cx, argv[0]))==NULL)
+	    return(JS_FALSE);
+
+	cstr = JS_GetStringBytes(str);
+	printf("%s (N/y)? ", cstr);
+	rc=JS_SUSPENDREQUEST(cx);
+	fgets(instr,sizeof(instr),stdin);
+	JS_RESUMEREQUEST(cx, rc);
+
+	p=instr;
+	SKIP_WHITESPACE(p);
+	*rval = BOOLEAN_TO_JSVAL(tolower(*p)!='y');
 	return(JS_TRUE);
 }
 
@@ -533,6 +562,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"alert",			js_alert,			1},
 	{"prompt",			js_prompt,			1},
 	{"confirm",			js_confirm,			1},
+	{"deny",			js_deny,			1},
 	{"chdir",			js_chdir,			1},
 	{"putenv",			js_putenv,			1},
     {0}
@@ -928,7 +958,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.140 $", "%*s %s", revision);
+	sscanf("$Revision: 1.141 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
