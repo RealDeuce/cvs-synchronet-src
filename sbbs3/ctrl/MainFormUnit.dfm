@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 538
-  Top = 491
+  Left = 290
+  Top = 545
   Width = 640
   Height = 400
   Caption = 'Synchronet Control Panel'
@@ -10,7 +10,7 @@ object MainForm: TMainForm
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -14
+  Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   Icon.Data = {
@@ -46,12 +46,12 @@ object MainForm: TMainForm
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnShow = FormShow
-  PixelsPerInch = 120
-  TextHeight = 16
+  PixelsPerInch = 96
+  TextHeight = 13
   object HorizontalSplitter: TSplitter
     Left = 0
-    Top = 195
-    Width = 632
+    Top = 164
+    Width = 624
     Height = 1
     Cursor = crVSplit
     Align = alTop
@@ -61,9 +61,9 @@ object MainForm: TMainForm
   end
   object Logo: TImage
     Left = 0
-    Top = 196
-    Width = 632
-    Height = 121
+    Top = 165
+    Width = 624
+    Height = 152
     Align = alClient
     AutoSize = True
     Center = True
@@ -13385,7 +13385,7 @@ object MainForm: TMainForm
   object Toolbar: TToolBar
     Left = 0
     Top = 0
-    Width = 632
+    Width = 624
     Height = 30
     BorderWidth = 1
     EdgeBorders = [ebTop, ebBottom]
@@ -13499,7 +13499,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 30
     Width = 632
-    Height = 165
+    Height = 134
     Align = alTop
     BevelOuter = bvNone
     Constraints.MinHeight = 100
@@ -13507,18 +13507,18 @@ object MainForm: TMainForm
     TabOrder = 1
     Visible = False
     object TopVerticalSplitter: TSplitter
-      Left = 289
+      Left = 235
       Top = 0
-      Width = 3
-      Height = 165
+      Width = 2
+      Height = 134
       Cursor = crHSplit
       MinSize = 1
     end
     object UpperLeftPageControl: TPageControl
       Left = 0
       Top = 0
-      Width = 289
-      Height = 165
+      Width = 235
+      Height = 134
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -13526,10 +13526,10 @@ object MainForm: TMainForm
       OnUnDock = PageControlUnDock
     end
     object UpperRightPageControl: TPageControl
-      Left = 292
+      Left = 237
       Top = 0
-      Width = 340
-      Height = 165
+      Width = 395
+      Height = 134
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -13539,26 +13539,26 @@ object MainForm: TMainForm
   end
   object BottomPanel: TPanel
     Left = 0
-    Top = 196
+    Top = 165
     Width = 632
-    Height = 121
+    Height = 164
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
     Visible = False
     object BottomVerticalSplitter: TSplitter
-      Left = 289
+      Left = 235
       Top = 0
-      Width = 3
-      Height = 121
+      Width = 2
+      Height = 164
       Cursor = crHSplit
       MinSize = 1
     end
     object LowerLeftPageControl: TPageControl
       Left = 0
       Top = 0
-      Width = 289
-      Height = 121
+      Width = 235
+      Height = 164
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -13566,10 +13566,10 @@ object MainForm: TMainForm
       OnUnDock = PageControlUnDock
     end
     object LowerRightPageControl: TPageControl
-      Left = 292
+      Left = 237
       Top = 0
-      Width = 340
-      Height = 121
+      Width = 395
+      Height = 164
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -13579,7 +13579,7 @@ object MainForm: TMainForm
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 317
+    Top = 329
     Width = 632
     Height = 25
     Panels = <
@@ -13600,9 +13600,14 @@ object MainForm: TMainForm
         Width = 100
       end
       item
+        Text = 'Errors: 0'
+        Width = 100
+      end
+      item
         Text = 'Starting up...'
         Width = 100
       end>
+    PopupMenu = StatusBarPopupMenu
     SimplePanel = False
   end
   object MainMenu: TMainMenu
@@ -13699,6 +13704,9 @@ object MainForm: TMainForm
         ImageIndex = 25
         OnClick = ForceNetworkCalloutMenuItemClick
       end
+      object ClearErrorMenuItem: TMenuItem
+        Action = ClearErrors
+      end
       object N1: TMenuItem
         Caption = '-'
       end
@@ -13706,10 +13714,8 @@ object MainForm: TMainForm
         AutoHotkeys = maManual
         Caption = 'View'
         ImageIndex = 47
-        object ViewErrorLog: TMenuItem
-          Caption = 'Error Log'
-          ImageIndex = 29
-          OnClick = BBSViewErrorLogMenuItemClick
+        object BBSViewErrorLogMenuItem: TMenuItem
+          Action = ViewErrorLog
         end
         object ViewStatisticsLog: TMenuItem
           Caption = 'Statistics Log'
@@ -13798,15 +13804,20 @@ object MainForm: TMainForm
           Hint = 'WELCOME.MSG'
           OnClick = TextMenuItemEditClick
         end
+        object BBSEditFeedbackMsg: TMenuItem
+          Caption = 'New User Feedback Instructions'
+          Hint = 'FEEDBACK.MSG'
+          OnClick = TextMenuItemEditClick
+        end
         object BBSEditNupGuessMenuItem: TMenuItem
           Caption = 'New User Password Failure'
           Hint = 'NUPGUESS.MSG'
           OnClick = TextMenuItemEditClick
         end
-        object BBSEditFeedbackMsg: TMenuItem
-          Caption = 'New User Feedback Instructions'
-          Hint = 'FEEDBACK.MSG'
-          OnClick = TextMenuItemEditClick
+        object BBSEditModOptsMenuItem: TMenuItem
+          Caption = 'Module Options'
+          Hint = 'modopts.ini'
+          OnClick = CtrlMenuItemEditClick
         end
       end
       object BBSEditFilters: TMenuItem
@@ -13861,6 +13872,16 @@ object MainForm: TMainForm
         object BBSEditSubjectFilterMenuItem: TMenuItem
           Caption = 'E-mail Subject Filter'
           Hint = 'subject.can'
+          OnClick = TextMenuItemEditClick
+        end
+        object BBSEditPasswordFilterMenuItem: TMenuItem
+          Caption = 'Password Filter'
+          Hint = 'password.can'
+          OnClick = TextMenuItemEditClick
+        end
+        object BBSEditBadPasswordMessageMenuItem: TMenuItem
+          Caption = 'Password Filter Message'
+          Hint = 'badpassword.msg'
           OnClick = TextMenuItemEditClick
         end
         object BBSEditFilenameFilter: TMenuItem
@@ -13986,7 +14007,7 @@ object MainForm: TMainForm
         object MailViewSpamLog: TMenuItem
           Caption = 'Spam Log'
           Hint = 'SPAM.LOG'
-          OnClick = DataMenuItemClick
+          OnClick = ViewLogClick
         end
         object MailViewTodaysLog: TMenuItem
           Caption = 'Today'#39's Log'
@@ -14033,6 +14054,11 @@ object MainForm: TMainForm
           Hint = 'SPAMBLOCK.CFG'
           OnClick = CtrlMenuItemEditClick
         end
+        object SpamBlockExemptions: TMenuItem
+          Caption = 'Spam Block Exemptions'
+          Hint = 'SPAMBLOCK_EXEMPT.CFG'
+          OnClick = CtrlMenuItemEditClick
+        end
         object AllowedRelayList: TMenuItem
           Caption = 'Allowed Relay List'
           Hint = 'RELAY.CFG'
@@ -14056,7 +14082,7 @@ object MainForm: TMainForm
       end
     end
     object FtpMenuItem: TMenuItem
-      Caption = 'FTP'
+      Caption = 'FT&P'
       object FtpConfigureMenuItem: TMenuItem
         Action = FtpConfigure
         Caption = '&Configure'
@@ -14208,6 +14234,7 @@ object MainForm: TMainForm
       end
     end
     object ViewMenuItem: TMenuItem
+      AutoHotkeys = maManual
       Caption = '&View'
       object ViewNodesMenuItem: TMenuItem
         Action = ViewNodes
@@ -14257,16 +14284,19 @@ object MainForm: TMainForm
         OnClick = ViewStatusBarMenuItemClick
       end
       object ViewErrorLogMenuItem: TMenuItem
-        Caption = 'Error Log...'
-        Hint = 'ERROR.LOG'
-        ImageIndex = 29
-        OnClick = DataMenuItemClick
+        Action = ViewErrorLog
+        AutoHotkeys = maManual
+      end
+      object ViewLoginAttemptsMenuItem: TMenuItem
+        Caption = 'Login Attempts...'
+        OnClick = ViewLoginAttemptsMenuItemClick
       end
       object ViewHackAttemptLogMenuItem: TMenuItem
         AutoHotkeys = maManual
         Caption = 'Hack Attempt Log...'
         Hint = 'HACK.LOG'
-        OnClick = DataMenuItemClick
+        ImageIndex = 31
+        OnClick = ViewLogClick
       end
     end
     object HelpMenuItem: TMenuItem
@@ -14276,19 +14306,24 @@ object MainForm: TMainForm
         Hint = 'http://www.synchro.net/docs/'
         OnClick = WebPageMenuItemClick
       end
-      object HelpSysopMenuItem: TMenuItem
-        Caption = 'Sysop Manual'
-        Hint = 'http://www.synchro.net/docs/sysop.html'
+      object HelpWikiMenuItem: TMenuItem
+        Caption = 'Wiki'
+        Hint = 'http://wiki.synchro.net'
         OnClick = WebPageMenuItemClick
       end
       object HelpFAQMenuItem: TMenuItem
         Caption = 'Frequently Asked Questions'
-        Hint = 'http://www.synchro.net/docs/v3cfgfaq.txt'
+        Hint = 'http://wiki.synchro.net/faq:'
+        OnClick = WebPageMenuItemClick
+      end
+      object HelpSysopMenuItem: TMenuItem
+        Caption = 'Sysop Manual (old)'
+        Hint = 'http://www.synchro.net/docs/sysop.html'
         OnClick = WebPageMenuItemClick
       end
       object HelpTechnicalSupportMenuItem: TMenuItem
         Caption = 'Technical Support'
-        Hint = 'http://www.synchro.net/docs/support.html'
+        Hint = 'http://wiki.synchro.net/howto:support'
         OnClick = WebPageMenuItemClick
       end
       object N7: TMenuItem
@@ -14574,6 +14609,17 @@ object MainForm: TMainForm
       Hint = 'Configure Web Server'
       ImageIndex = 4
       OnExecute = WebConfigureExecute
+    end
+    object ClearErrors: TAction
+      Caption = 'Clear Error Counters'
+      ImageIndex = 31
+      OnExecute = ClearErrorsExecute
+    end
+    object ViewErrorLog: TAction
+      Caption = 'Error Log...'
+      Hint = 'error.log'
+      ImageIndex = 29
+      OnExecute = ViewErrorLogExecute
     end
   end
   object ImageList: TImageList
@@ -17199,5 +17245,16 @@ object MainForm: TMainForm
     OnTimer = SemFileTimerTick
     Left = 472
     Top = 40
+  end
+  object StatusBarPopupMenu: TPopupMenu
+    Left = 296
+    Top = 40
+    object ViewErrorLogPopupMenuItem: TMenuItem
+      Action = ViewErrorLog
+      Caption = 'View Error Log...'
+    end
+    object ClearErrorCounter: TMenuItem
+      Action = ClearErrors
+    end
   end
 end
