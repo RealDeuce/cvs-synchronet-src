@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.58 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.56 2011/08/06 21:11:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,7 +195,7 @@ bool sbbs_t::uploadfile(file_t *f)
 	if(cfg.dir[f->dir]->misc&DIR_AONLY)  /* Forced anonymous */
 		f->misc|=FM_ANON;
 	f->cdt=length;
-	f->dateuled=time32(NULL);
+	f->dateuled=time(NULL);
 	f->timesdled=0;
 	f->datedled=0L;
 	f->opencount=0;
@@ -287,7 +287,8 @@ bool sbbs_t::upload(uint dirnum)
 
 	if(!isdir(path)) {
 		bprintf(text[DirectoryDoesNotExist], path);
-		lprintf(LOG_ERR,"File directory does not exist: %s", path);
+		SAFEPRINTF(str,"File directory does not exist: %s", path);
+		errorlog(str);
 		return(false);
 	}
 
@@ -295,7 +296,8 @@ bool sbbs_t::upload(uint dirnum)
 	space=getfreediskspace(path,1024);
 	if(space<(ulong)cfg.min_dspace) {
 		bputs(text[LowDiskSpace]);
-		lprintf(LOG_ERR,"Diskspace is low: %s (%lu kilobytes)",path,space);
+		sprintf(str,"Diskspace is low: %s (%lu kilobytes)",path,space);
+		errorlog(str);
 		if(!dir_op(dirnum))
 			return(false); 
 	}
@@ -425,7 +427,7 @@ bool sbbs_t::upload(uint dirnum)
 		now=time(NULL);
 		if(descbeg[0])
 			strcat(descbeg," ");
-		sprintf(str,"%s  ",unixtodstr(&cfg,(time32_t)now,tmp));
+		sprintf(str,"%s  ",unixtodstr(&cfg,now,tmp));
 		strcat(descbeg,str); 
 	}
 	if(cfg.dir[dirnum]->misc&DIR_MULT) {
