@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.83 2011/09/08 22:22:48 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.82 2011/09/08 03:21:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -313,19 +313,13 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 	SAFECOPY(match,path);
 	backslash(match);
 	strcat(match,ALLFILES);
-	glob(match,GLOB_MARK,NULL,&g);
-	if(include_subdirs && !subdir_only)
+	glob(match,subdir_only ? GLOB_ONLYDIR:GLOB_MARK,NULL,&g);
+	if(include_subdirs || subdir_only)
 		count=g.gl_pathc;
 	else
-		for(gi=0;gi<g.gl_pathc;gi++) {
-			if(*lastchar(g.gl_pathv[gi])=='/') {
-				if(!include_subdirs)
-					continue;
-			} else
-				if(subdir_only)
-					continue;
-			count++;
-		}
+   		for(gi=0;gi<g.gl_pathc;gi++)
+			if(*lastchar(g.gl_pathv[gi])!='/')
+				count++;
 	globfree(&g);
 	return(count);
 }
