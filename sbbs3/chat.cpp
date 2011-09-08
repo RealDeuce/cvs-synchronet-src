@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.60 2011/03/01 22:27:02 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.61 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -658,8 +658,8 @@ void sbbs_t::chatsection()
 				no_rip_menu=1;
 				if(sysop_page())
 					break;
-				if(cfg.total_gurus && chk_ar(cfg.guru[0]->ar,&useron,&client)) {
-					sprintf(str,text[ChatWithGuruInsteadQ],cfg.guru[0]->name);
+				if(cfg.total_gurus && chk_ar(cfg.guru[0]->ar,&useron,&client) && text[ChatWithGuruInsteadQ][0]) {
+					SAFEPRINTF(str,text[ChatWithGuruInsteadQ],cfg.guru[0]->name);
 					if(!yesno(str))
 						break; 
 				}
