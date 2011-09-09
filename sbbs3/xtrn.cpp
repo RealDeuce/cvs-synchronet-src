@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.213 2011/07/13 11:29:51 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.215 2011/09/08 02:25:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@
 	#include <sys/wait.h>	// WEXITSTATUS
 
 	#define TTYDEFCHARS		// needed for ttydefchars definition
-
+	#include <sys/ttydefaults.h>	// Linux - it's motherfucked.
 #if defined(__FreeBSD__)
 	#include <libutil.h>	// forkpty()
 #elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DARWIN__)
