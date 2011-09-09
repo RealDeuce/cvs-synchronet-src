@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.534 2011/04/29 20:17:13 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.537 2011/09/09 08:10:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,7 +97,7 @@ enum {
 
 static scfg_t	scfg;
 static volatile BOOL	http_logging_thread_running=FALSE;
-static volatile ulong	active_clients=0;
+static protected_int32_t active_clients;
 static volatile ulong	sockets=0;
 static volatile BOOL	terminate_server=FALSE;
 static volatile BOOL	terminate_http_logging_thread=FALSE;
@@ -613,7 +613,7 @@ static void status(char* str)
 static void update_clients(void)
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,active_clients);
+		startup->clients(startup->cbdata,active_clients.value);
 }
 
 static void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -1793,10 +1793,10 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 	if(i>length)
 		i=length;
 
-	if(i>0 && buf[i-1]=='\r')
-		buf[--i]=0;
-	else
-		buf[i]=0;
+	while(i>0 && buf[i-1]=='\r')
+		i--;
+
+	buf[i]=0;
 
 	if(startup->options&WEB_OPT_DEBUG_RX) {
 		lprintf(LOG_DEBUG,"%04d RX: %s",session->socket,buf);
@@ -2697,7 +2697,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 		if(len<0)
 			return(FALSE);
 		if(req_line[0])
-			lprintf(LOG_DEBUG,"%04d Request: %s",session->socket,req_line);
+			lprintf(LOG_INFO,"%04d Request: %s",session->socket,req_line);
 		if(session->req.ld!=NULL && session->req.ld->request==NULL)
 			/* FREE()d in http_logging_thread() */
 			session->req.ld->request=strdup(req_line);
@@ -3920,12 +3920,12 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
     }
 
 	if(report->filename)
-		sprintf(file," %s",report->filename);
+		SAFEPRINTF(file," %s",report->filename);
 	else
 		file[0]=0;
 
 	if(report->lineno)
-		sprintf(line," line %u",report->lineno);
+		SAFEPRINTF(line," line %u",report->lineno);
 	else
 		line[0]=0;
 
@@ -3940,7 +3940,8 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 		warning="";
 	}
 
-	lprintf(log_level,"%04d !JavaScript %s%s%s: %s",session->socket,warning,file,line,message);
+	lprintf(log_level,"%04d !JavaScript %s%s%s: %s, Request: %s"
+		,session->socket,warning,file,line,message, session->req.request_line);
 	if(session->req.fp!=NULL)
 		fprintf(session->req.fp,"!JavaScript %s%s%s: %s",warning,file,line,message);
 }
@@ -4925,6 +4926,7 @@ void http_session_thread(void* arg)
 	http_session_t	session;
 	int				loop_count;
 	BOOL			init_error;
+	int32_t			clients_remain;
 
 	SetThreadName("HTTP Session");
 	pthread_mutex_lock(&((http_session_t*)arg)->struct_filled);
@@ -5013,7 +5015,7 @@ void http_session_thread(void* arg)
 		return;
 	}
 
-	active_clients++;
+	protected_int32_adjust(&active_clients, 1);
 	update_clients();
 	SAFECOPY(session.username,unknown);
 
@@ -5138,7 +5140,7 @@ void http_session_thread(void* arg)
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
 
-	active_clients--;
+	clients_remain=protected_int32_adjust(&active_clients, -1);
 	update_clients();
 	client_off(socket);
 
@@ -5149,7 +5151,7 @@ void http_session_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d !!! ALL YOUR BASE ARE BELONG TO US !!!", socket);
 
 	lprintf(LOG_INFO,"%04d Session thread terminated (%u clients, %u threads remain, %lu served)"
-		,socket, active_clients, thread_count, served);
+		,socket, clients_remain, thread_count, served);
 
 }
 
@@ -5183,6 +5185,11 @@ static void cleanup(int code)
 		close_socket(&server_socket);
 	}
 
+	if(active_clients.value)
+		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", active_clients.value);
+	else
+		protected_uint32_destroy(active_clients);
+
 	update_clients();
 
 #ifdef _WINSOCKAPI_
@@ -5207,7 +5214,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.534 $", "%*s %s", revision);
+	sscanf("$Revision: 1.537 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5402,7 +5409,7 @@ void DLLCALL web_server(void* arg)
 	ZERO_VAR(js_server_props);
 	SAFEPRINTF2(js_server_props.version,"%s %s",server_name,revision);
 	js_server_props.version_detail=web_ver();
-	js_server_props.clients=&active_clients;
+	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
 	js_server_props.interface_addr=&startup->interface_addr;
 
@@ -5512,7 +5519,7 @@ void DLLCALL web_server(void* arg)
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		active_clients=0;
+		protected_int32_init(&active_clients,0);
 		update_clients();
 
 		/* open a socket and wait for a client */
@@ -5622,7 +5629,7 @@ void DLLCALL web_server(void* arg)
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
 			/* check for re-cycle/shutdown semaphores */
-			if(active_clients==0) {
+			if(active_clients.value==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
@@ -5742,7 +5749,7 @@ void DLLCALL web_server(void* arg)
 				continue;
 			}
 
-			if(startup->max_clients && active_clients>=startup->max_clients) {
+			if(startup->max_clients && active_clients.value>=startup->max_clients) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				mswait(3000);
@@ -5779,14 +5786,14 @@ void DLLCALL web_server(void* arg)
 		}
 
 		/* Wait for active clients to terminate */
-		if(active_clients) {
+		if(active_clients.value) {
 			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
-				,server_socket, active_clients);
+				,server_socket, active_clients.value);
 			start=time(NULL);
-			while(active_clients) {
+			while(active_clients.value) {
 				if(time(NULL)-start>startup->max_inactivity) {
 					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
-						,server_socket, active_clients);
+						,server_socket, active_clients.value);
 					break;
 				}
 				mswait(100);
