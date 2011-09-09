@@ -1,10 +1,10 @@
-/* $Id: wordwrap.c,v 1.8 2011/11/02 23:27:23 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.6 2010/05/26 04:54:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -31,7 +31,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <ctype.h>
 #include <genwrap.h>
 #include <stdlib.h>		/* realloc */
 #include "wordwrap.h"
@@ -191,15 +190,12 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 		return NULL;
 	outp=outbuf;
 
-	if((linebuf=(char*)malloc(inbuf_len+2))==NULL) { /* room for ^A codes */
-		free(outbuf);
+	if((linebuf=(char*)malloc(inbuf_len+2))==NULL) /* room for ^A codes */
 		return NULL;
-	}
 
 	if(handle_quotes) {
 		if((prefix=(char *)malloc(inbuf_len+1))==NULL) { /* room for ^A codes */
 			free(linebuf);
-			free(outbuf);
 			return NULL;
 		}
 		prefix[0]=0;

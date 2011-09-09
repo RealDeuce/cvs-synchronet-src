@@ -9,6 +9,7 @@
 	#define XP_WIN
 #endif
 
+#define JS_THREADSAFE
 #include <jsapi.h>
 #include "threadwrap.h"
 #include "js_request.h"
@@ -16,6 +17,7 @@
 #ifdef DEBUG_JS_REQUESTS
 
 #define DEBUG
+#include <jscntxt.h>
 
 enum last_request_type {
 	 LAST_REQUEST_TYPE_NONE
@@ -42,7 +44,6 @@ static char str[1024];
 
 static void logstr(void)
 {
-#if 0
 	FILE *f;
 
 	if((f=fopen("../data/logs/JS_RequestErrors.log", "a"))!=NULL) {
@@ -52,9 +53,6 @@ static void logstr(void)
 	else {
 		fputs(str, stderr);
 	}
-#else
-	fputs(str, stderr);
-#endif
 }
 
 static struct request_log *match_request(JSContext *cx)
@@ -108,16 +106,16 @@ void js_debug_beginrequest(JSContext *cx, const char *file, unsigned long line)
 	case LAST_REQUEST_TYPE_BEGIN:
 	case LAST_REQUEST_TYPE_SUSPEND:
 	case LAST_REQUEST_TYPE_RESUME:
-		sprintf(str,"Begin after %s from %s:%lu at %s:%lu (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"Begin after %s from %s:%u at %s:%u (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	}
-	switch(JS_RequestDepth(cx)) {
+	switch(cx->requestDepth) {
 	case 0:
 		break;
 	case 1:
 	default:
-		sprintf(str,"depth=%u at Begin after %s from %s:%lu at %s:%lu (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"depth=%u at Begin after %s from %s:%u at %s:%u (%p)\n",cx->requestDepth,type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	}
@@ -125,8 +123,8 @@ void js_debug_beginrequest(JSContext *cx, const char *file, unsigned long line)
 	req->type=LAST_REQUEST_TYPE_BEGIN;
 	req->file=file;
 	req->line=line;
-	pthread_mutex_unlock(&req_mutex);
 	JS_BeginRequest(cx);
+	pthread_mutex_unlock(&req_mutex);
 }
 
 void js_debug_endrequest(JSContext *cx, const char *file, unsigned long line)
@@ -146,7 +144,7 @@ void js_debug_endrequest(JSContext *cx, const char *file, unsigned long line)
 	case LAST_REQUEST_TYPE_BEGIN:
 		if(req->file) {
 			if(strcmp(req->file, file) != 0 || line < req->line) {
-				sprintf(str,"Suspicious End after %s from %s:%lu at %s:%lu (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
+				sprintf(str,"Suspicious End after %s from %s:%u at %s:%u (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
 			}
 			break;
 		}
@@ -155,25 +153,17 @@ void js_debug_endrequest(JSContext *cx, const char *file, unsigned long line)
 	case LAST_REQUEST_TYPE_NONE:
 	case LAST_REQUEST_TYPE_END:
 	case LAST_REQUEST_TYPE_SUSPEND:
-		sprintf(str,"End after %s from %s:%lu at %s:%lu (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"End after %s from %s:%u at %s:%u (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	}
-	switch(JS_RequestDepth(cx)) {
+	switch(cx->requestDepth) {
 	case 0:
 	default:
-		sprintf(str,"depth=%u at End after %s from %s:%lu at %s:%lu (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"depth=%u at End after %s from %s:%u at %s:%u (%p)\n",cx->requestDepth,type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	case 1:
-		break;
-	}
-	switch(JS_SuspendDepth(cx)) {
-	case 0:
-		break;
-	default:
-		sprintf(str,"Suspend depth=%u at End after %s from %s:%lu at %s:%lu (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
-		logstr();
 		break;
 	}
 
@@ -181,7 +171,7 @@ void js_debug_endrequest(JSContext *cx, const char *file, unsigned long line)
 	req->file=file;
 	req->line=line;
 	JS_EndRequest(cx);
-	if(JS_RequestDepth(cx)==0) {
+	if(cx->requestDepth==0) {
 		if(req->prev != NULL)
 			req->prev->next=req->next;
 		if(req->next != NULL)
@@ -220,28 +210,19 @@ jsrefcount js_debug_suspendrequest(JSContext *cx, const char *file, unsigned lon
 			break;
 	case LAST_REQUEST_TYPE_END:
 	case LAST_REQUEST_TYPE_SUSPEND:
-		sprintf(str,"Suspend after %s from %s:%lu at %s:%lu (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"Suspend after %s from %s:%u at %s:%u (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	}
-	switch(JS_RequestDepth(cx)) {
+	switch(cx->requestDepth) {
 	case 0:
 	default:
-		sprintf(str,"depth=%u at Suspend after %s from %s:%lu at %s:%lu (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"depth=%u at Suspend after %s from %s:%u at %s:%u (%p)\n",cx->requestDepth,type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	case 1:
 		break;
 	}
-	switch(JS_SuspendDepth(cx)) {
-	case 0:
-		break;
-	default:
-		sprintf(str,"Suspend depth=%u at Suspend after %s from %s:%lu at %s:%lu (%p)\n",JS_SuspendDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
-		logstr();
-		break;
-	}
-
 
 	req->type=LAST_REQUEST_TYPE_SUSPEND;
 	req->file=file;
@@ -271,35 +252,25 @@ void js_debug_resumerequest(JSContext *cx, jsrefcount rc, const char *file, unsi
 	case LAST_REQUEST_TYPE_END:
 	case LAST_REQUEST_TYPE_BEGIN:
 	case LAST_REQUEST_TYPE_RESUME:
-		sprintf(str,"Resume after %s from %s:%lu at %s:%lu (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"Resume after %s from %s:%u at %s:%u (%p)\n",type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	}
-	switch(JS_RequestDepth(cx)) {
-	case 0:
+	switch(cx->requestDepth) {
+	case 1:
 	default:
-		sprintf(str,"depth=%u at Resume after %s from %s:%lu at %s:%lu (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"depth=%u at Suspend after %s from %s:%u at %s:%u (%p)\n",cx->requestDepth,type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
-		break;
-	case 1:
-		break;
-	}
-	switch(JS_SuspendDepth(cx)) {
-	case 1:
 		break;
 	case 0:
-	default:
-		sprintf(str,"Suspend depth=%u at Resume after %s from %s:%lu at %s:%lu (%p)\n",JS_SuspendDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
-		logstr();
 		break;
 	}
-
 
 	req->type=LAST_REQUEST_TYPE_RESUME;
 	req->file=file;
 	req->line=line;
-	pthread_mutex_unlock(&req_mutex);
 	JS_ResumeRequest(cx, rc);
+	pthread_mutex_unlock(&req_mutex);
 }
 
 #endif
