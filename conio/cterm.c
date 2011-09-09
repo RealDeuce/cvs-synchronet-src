@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.134 2011/09/09 07:30:47 deuce Exp $ */
+/* $Id: cterm.c,v 1.135 2011/09/09 23:59:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1606,7 +1606,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.134 $";
+	char	*revision="$Revision: 1.135 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2538,26 +2538,28 @@ void cterm_end(struct cterminal *cterm)
 {
 	int i;
 
-	cterm_closelog(cterm);
+	if(cterm) {
+		cterm_closelog(cterm);
 #ifdef CTERM_WITHOUT_CONIO
-	FREE_AND_NULL(BD->vmem);
-	FREE_AND_NULL(BD);
+		FREE_AND_NULL(BD->vmem);
+		FREE_AND_NULL(BD);
 #else
-	for(i=CONIO_FIRST_FREE_FONT; i < 256; i++) {
-		FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
-		FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
-		FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
-		FREE_AND_NULL(conio_fontdata[i].desc);
-	}
-#endif
-	if(cterm->playnote_thread_running) {
-		if(sem_trywait(&cterm->playnote_thread_terminated)==-1) {
-			listSemPost(&cterm->notes);
-			sem_wait(&cterm->playnote_thread_terminated);
+		for(i=CONIO_FIRST_FREE_FONT; i < 256; i++) {
+			FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
+			FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
+			FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
+			FREE_AND_NULL(conio_fontdata[i].desc);
 		}
-		sem_destroy(&cterm->playnote_thread_terminated);
-		sem_destroy(&cterm->note_completed_sem);
-		listFree(&cterm->notes);
+#endif
+		if(cterm->playnote_thread_running) {
+			if(sem_trywait(&cterm->playnote_thread_terminated)==-1) {
+				listSemPost(&cterm->notes);
+				sem_wait(&cterm->playnote_thread_terminated);
+			}
+			sem_destroy(&cterm->playnote_thread_terminated);
+			sem_destroy(&cterm->note_completed_sem);
+			listFree(&cterm->notes);
+		}
+		free(cterm);
 	}
-	free(cterm);
 }
