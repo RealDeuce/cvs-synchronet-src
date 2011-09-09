@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.551 2011/07/16 02:39:04 rswindell Exp $ */
+/* $Id: main.cpp,v 1.553 2011/08/30 23:37:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -892,6 +892,26 @@ js_confirm(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
+js_deny(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+    JSString *	str;
+	sbbs_t*		sbbs;
+	jsrefcount	rc;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	if((str=JS_ValueToString(cx, argv[0]))==NULL)
+	    return(JS_FALSE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	*rval = BOOLEAN_TO_JSVAL(sbbs->noyes(JS_GetStringBytes(str)));
+	JS_RESUMEREQUEST(cx, rc);
+	return(JS_TRUE);
+}
+
+
+static JSBool
 js_prompt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char		instr[81];
@@ -973,8 +993,13 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"confirm",			js_confirm,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("value")
 	,JSDOCSTR("displays a Yes/No prompt and returns <i>true</i> or <i>false</i> "
-		"based on users confirmation (ala client-side JS)")
+		"based on user's confirmation (ala client-side JS, <i>true</i> = yes)")
 	,310
+	},
+	{"deny",			js_deny,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("value")
+	,JSDOCSTR("displays a No/Yes prompt and returns <i>true</i> or <i>false</i> "
+		"based on user's denial (<i>true</i> = no)")
+	,31501
 	},
     {0}
 };
@@ -1311,13 +1336,16 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 
 				if(!(sbbs->telnet_mode&TELNET_MODE_GATE)) {
 					if(command==TELNET_DO || command==TELNET_DONT) {	/* local options */
-						if(sbbs->telnet_local_option[option]!=command) {
+						if(sbbs->telnet_local_option[option]==command) 
+							SetEvent(sbbs->telnet_ack_event);
+						else {
 							sbbs->telnet_local_option[option]=command;
 							sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
 						}
 					} else { /* WILL/WONT (remote options) */ 
-						if(sbbs->telnet_remote_option[option]!=command) {	
-						
+						if(sbbs->telnet_remote_option[option]==command)	
+							SetEvent(sbbs->telnet_ack_event);
+						else {
 							switch(option) {
 								case TELNET_BINARY_TX:
 								case TELNET_ECHO:
@@ -1413,18 +1441,23 @@ void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 	}
 }
 
-void sbbs_t::request_telnet_opt(uchar cmd, uchar opt)
+bool sbbs_t::request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack)
 {
 	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
 		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
-			return;	/* already set in this mode, do nothing */
+			return true;	/* already set in this mode, do nothing */
 		telnet_remote_option[opt]=telnet_opt_ack(cmd);
 	} else {	/* local option */
 		if(telnet_local_option[opt]==telnet_opt_ack(cmd))
-			return;	/* already set in this mode, do nothing */
+			return true;	/* already set in this mode, do nothing */
 		telnet_local_option[opt]=telnet_opt_ack(cmd);
 	}
+	if(waitforack)
+		ResetEvent(telnet_ack_event);
 	send_telnet_cmd(cmd,opt);
+	if(waitforack)
+		return WaitForEvent(telnet_ack_event, waitforack)==WAIT_OBJECT_0;
+	return true;
 }
 
 void input_thread(void *arg)
@@ -2880,6 +2913,7 @@ sbbs_t::sbbs_t(ushort node_num, DWORD addr, const char* name, SOCKET sd,
     telnet_cmdlen=0;
 	telnet_mode=0;
 	telnet_last_rxch=0;
+	telnet_ack_event=CreateEvent(NULL, /* Manual Reset: */FALSE,/* InitialState */FALSE,NULL);
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
@@ -3266,6 +3300,9 @@ sbbs_t::~sbbs_t()
 		RingBufDispose(&inbuf);
 	if(!output_thread_running)
 		RingBufDispose(&outbuf);
+
+	if(telnet_ack_event!=NULL)
+		CloseEvent(telnet_ack_event);
 
 	/* Close all open files */
 	if(nodefile!=-1) {
