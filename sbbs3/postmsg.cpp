@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.90 2012/03/07 03:26:16 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.85 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -273,9 +273,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		return(false); 
 	}
 
-	/* ToDo: split body/tail */
-	/* ToDo: use smb_addmsg instead of the stuff below: */
-
 	setvbuf(instream,NULL,_IOFBF,2*1024);
 	fseek(smb.sdt_fp,offset,SEEK_SET);
 	xlat=XLAT_NONE;
@@ -314,7 +311,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	memset(&msg,0,sizeof(smbmsg_t));
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msgattr;
-	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
+	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	msg.hdr.number=smb.status.last_msg+1; /* this *should* be the new message number */
@@ -322,9 +319,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	if(remsg) {
 
 		msg.hdr.thread_back=remsg->hdr.number;	/* needed for threading backward */
-
-		if((msg.hdr.thread_id=remsg->hdr.thread_id) == 0)
-			msg.hdr.thread_id=remsg->hdr.number;
 
 		/* Add RFC-822 Reply-ID (generate if necessary) */
 		if(remsg->id!=NULL)
@@ -477,8 +471,8 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
  	sbbs.dll!js_save_msg(JSContext * cx, JSObject * obj, unsigned int argc, long * argv, long * rval)  Line 1519 + 0x25 bytes	C
  	js32.dll!js_Invoke(JSContext * cx, unsigned int argc, unsigned int flags)  Line 1375 + 0x17 bytes	C
  	js32.dll!js_Interpret(JSContext * cx, unsigned char * pc, long * result)  Line 3944 + 0xf bytes	C
- 	js32.dll!js_Execute(JSContext * cx, JSObject * chain, JSObject * script, JSStackFrame * down, unsigned int flags, long * result)  Line 1633 + 0x13 bytes	C
- 	js32.dll!JS_ExecuteScript(JSContext * cx, JSObject * obj, JSObject * script, long * rval)  Line 4188 + 0x19 bytes	C
+ 	js32.dll!js_Execute(JSContext * cx, JSObject * chain, JSScript * script, JSStackFrame * down, unsigned int flags, long * result)  Line 1633 + 0x13 bytes	C
+ 	js32.dll!JS_ExecuteScript(JSContext * cx, JSObject * obj, JSScript * script, long * rval)  Line 4188 + 0x19 bytes	C
  	sbbs.dll!sbbs_t::js_execfile(const char * cmd, const char * startup_dir)  Line 686 + 0x27 bytes	C++
  	sbbs.dll!sbbs_t::external(const char * cmdline, long mode, const char * startup_dir)  Line 413 + 0x1e bytes	C++
  	sbbs.dll!event_thread(void * arg)  Line 2745 + 0x71 bytes	C++
@@ -520,7 +514,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	}
 
 	if(msg->hdr.when_imported.time==0) {
-		msg->hdr.when_imported.time=time32(NULL);
+		msg->hdr.when_imported.time=time(NULL);
 		msg->hdr.when_imported.zone=sys_timezone(cfg);
 	}
 	if(msg->hdr.when_written.time==0)	/* Uninitialized */
