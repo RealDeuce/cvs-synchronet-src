@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.212 2010/04/02 00:12:47 deuce Exp $
+# $Id: GNUmakefile,v 1.213 2011/09/05 20:18:32 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -154,6 +154,9 @@ else
 endif
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS)
+CFLAGS	+=	-I../comio
+vpath %.c ../comio
+OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
