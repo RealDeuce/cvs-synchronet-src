@@ -1,10 +1,10 @@
-/* $Id: wordwrap.c,v 1.9 2011/11/04 01:19:56 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.6 2010/05/26 04:54:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -31,10 +31,8 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <ctype.h>
 #include <genwrap.h>
 #include <stdlib.h>		/* realloc */
-#include <stdbool.h>
 #include "wordwrap.h"
 
 static int get_prefix(const char *text, int *bytes, int *len, int maxlen)
@@ -169,10 +167,8 @@ static int compare_prefix(char *old_prefix, int old_prefix_bytes, const char *ne
 	return(0);
 }
 
-char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags)
+char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 {
-	bool		handle_quotes=flags&WORDWRAP_FLAG_QUOTES;
-	bool		lf_break=flags&WORDWRAP_FLAG_BARELF;
 	int			l;
 	int			crcount=0;
 	long		i,k,t;
@@ -194,15 +190,12 @@ char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags)
 		return NULL;
 	outp=outbuf;
 
-	if((linebuf=(char*)malloc(inbuf_len+2))==NULL) { /* room for ^A codes */
-		free(outbuf);
+	if((linebuf=(char*)malloc(inbuf_len+2))==NULL) /* room for ^A codes */
 		return NULL;
-	}
 
 	if(handle_quotes) {
 		if((prefix=(char *)malloc(inbuf_len+1))==NULL) { /* room for ^A codes */
 			free(linebuf);
-			free(outbuf);
 			return NULL;
 		}
 		prefix[0]=0;
@@ -244,12 +237,6 @@ char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags)
 				crcount++;
 				break;
 			case '\n':
-				if(!lf_break) {
-					if(i==0)
-						break;
-					if(inbuf[i-1] != '\r')
-						break;
-				}
 				if(handle_quotes && (quote_count=get_prefix(inbuf+i+1, &prefix_bytes, &prefix_len, len*2+2))!=0) {
 					/* Move the input pointer offset to the last char of the prefix */
 					i+=prefix_bytes;
