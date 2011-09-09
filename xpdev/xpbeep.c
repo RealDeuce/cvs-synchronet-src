@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.80 2012/06/20 08:55:48 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.78 2011/06/14 07:47:04 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -190,65 +190,60 @@ void makewave(double freq, unsigned char *wave, int samples, enum WAVE_SHAPE sha
 	double pos;
 	BOOL endhigh;
 
-	if(freq==0) {
-		memset(wave, 128, samples);
-	}
-	else {
-		midpoint=samples/2;
-		inc=8.0*atan(1.0);
-		inc *= ((double)freq / (double)S_RATE);
+	midpoint=samples/2;
+	inc=8.0*atan(1.0);
+	inc *= ((double)freq / (double)S_RATE);
 
-		for(i=0;i<samples;i++) {
-			pos=(inc*(double)i);
-			pos -= (int)(pos/WAVE_TPI)*WAVE_TPI;
-			switch(shape) {
-				case WAVE_SHAPE_SINE:
-					wave[i]=(sin (pos))*127+128;
-					break;
-				case WAVE_SHAPE_SINE_HARM:
-					wave[i]=(sin (pos))*64+128;
-					wave[i]=(sin ((inc*2)*(double)i))*24;
-					wave[i]=(sin ((inc*3)*(double)i))*16;
-					break;
-				case WAVE_SHAPE_SAWTOOTH:
-					wave[i]=(WAVE_TPI-pos)*40.5;
-					break;
-				case WAVE_SHAPE_SQUARE:
-					wave[i]=(pos<WAVE_PI)?255:0;
-					break;
-				case WAVE_SHAPE_SINE_SAW:
-					wave[i]=(((sin (pos))*127+128)+((WAVE_TPI-pos)*40.5))/2;
-					break;
-				case WAVE_SHAPE_SINE_SAW_CHORD:
-					wave[i]=(((sin (pos))*64+128)+((WAVE_TPI-pos)*6.2))/2;
-					wave[i]+=(sin ((inc/2)*(double)i))*24;
-					wave[i]+=(sin ((inc/3)*(double)i))*16;
-					break;
-				case WAVE_SHAPE_SINE_SAW_HARM:
-					wave[i]=(((sin (pos))*64+128)+((WAVE_TPI-pos)*6.2))/2;
-					wave[i]+=(sin ((inc*2)*(double)i))*24;
-					wave[i]+=(sin ((inc*3)*(double)i))*16;
-					break;
-			}
+	for(i=0;i<samples;i++) {
+		pos=(inc*(double)i);
+		pos -= (int)(pos/WAVE_TPI)*WAVE_TPI;
+		switch(shape) {
+			case WAVE_SHAPE_SINE:
+				wave[i]=(sin (pos))*127+128;
+				break;
+			case WAVE_SHAPE_SINE_HARM:
+				wave[i]=(sin (pos))*64+128;
+				wave[i]=(sin ((inc*2)*(double)i))*24;
+				wave[i]=(sin ((inc*3)*(double)i))*16;
+				break;
+			case WAVE_SHAPE_SAWTOOTH:
+				wave[i]=(WAVE_TPI-pos)*40.5;
+				break;
+			case WAVE_SHAPE_SQUARE:
+				wave[i]=(pos<WAVE_PI)?255:0;
+				break;
+			case WAVE_SHAPE_SINE_SAW:
+				wave[i]=(((sin (pos))*127+128)+((WAVE_TPI-pos)*40.5))/2;
+				break;
+			case WAVE_SHAPE_SINE_SAW_CHORD:
+				wave[i]=(((sin (pos))*64+128)+((WAVE_TPI-pos)*6.2))/2;
+				wave[i]+=(sin ((inc/2)*(double)i))*24;
+				wave[i]+=(sin ((inc/3)*(double)i))*16;
+				break;
+			case WAVE_SHAPE_SINE_SAW_HARM:
+				wave[i]=(((sin (pos))*64+128)+((WAVE_TPI-pos)*6.2))/2;
+				wave[i]+=(sin ((inc*2)*(double)i))*24;
+				wave[i]+=(sin ((inc*3)*(double)i))*16;
+				break;
 		}
+	}
 
-		/* Now we have a "perfect" wave... 
-		 * we must clean it up now to avoid click/pop
-		 */
-		if(wave[samples-1]>128)
-			endhigh=TRUE;
-		else
-			endhigh=FALSE;
-		/* Completely remove the last wave fragment */
-		i=samples-1;
-		if(wave[i]!=128) {
-			for(;i>midpoint;i--) {
-				if(endhigh && wave[i]<128)
-					break;
-				if(!endhigh && wave[i]>128)
-					break;
-				wave[i]=128;
-			}
+	/* Now we have a "perfect" wave... 
+	 * we must clean it up now to avoid click/pop
+	 */
+	if(wave[samples-1]>128)
+		endhigh=TRUE;
+	else
+		endhigh=FALSE;
+	/* Completely remove the last wave fragment */
+	i=samples-1;
+	if(wave[i]!=128) {
+		for(;i>midpoint;i--) {
+			if(endhigh && wave[i]<128)
+				break;
+			if(!endhigh && wave[i]>128)
+				break;
+			wave[i]=128;
 		}
 	}
 }
@@ -847,14 +842,12 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 	unsigned char	wave[S_RATE*15/2+1];
 	int samples;
 
-	if(freq<17 && freq != 0)
+	if(freq<17)
 		freq=17;
 	samples=S_RATE*duration/1000;
-	if(freq) {
-		if(samples<=S_RATE/freq*2)
-			samples=S_RATE/freq*2;
-	}
-	if(freq==0 || samples > S_RATE/freq*2) {
+	if(samples<=S_RATE/freq*2)
+		samples=S_RATE/freq*2;
+	if(samples > S_RATE/freq*2) {
 		int sample_len;
 
 		makewave(freq,wave,S_RATE*15/2,shape);
@@ -894,7 +887,7 @@ void DLLCALL unix_beep(int freq, int dur)
 	}
 #endif
 
-#if !defined(__GNU__) && !defined(__QNX__) && !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__APPLE__) && !defined(__CYGWIN__) && !defined(__HAIKU__)
+#if !defined(__GNU__) && !defined(__QNX__) && !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__APPLE__) && !defined(__CYGWIN__)
 	if(console_fd == -1) 
   		console_fd = open("/dev/console", O_NOCTTY);
 	
