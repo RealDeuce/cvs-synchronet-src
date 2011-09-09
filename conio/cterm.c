@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.136 2011/11/01 00:57:30 deuce Exp $ */
+/* $Id: cterm.c,v 1.133 2011/09/09 06:19:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -210,392 +210,9 @@ struct note_params {
 #endif
 
 #ifdef CTERM_WITHOUT_CONIO
-/***************************************************************/
-/* These funcions are used when conio is not                   */
-/* They are mostly copied from either ciolib.c or bitmap_con.c */
-/***************************************************************/
-#define BD	((struct buffer_data *)cterm->extra)
-#define CTERM_INIT()	while(BD==NULL) ciolib_init(cterm)
-
-struct buffer_data {
-	unsigned char	x;
-	unsigned char	y;
-	unsigned char	winleft;        /* left window coordinate */
-	unsigned char	wintop;         /* top window coordinate */
-	unsigned char	winright;       /* right window coordinate */
-	unsigned char	winbottom;      /* bottom window coordinate */
-	unsigned char	attr;    		  /* text attribute */
-	unsigned char	currmode;       /* current video mode */
-	unsigned char	cursor;
-	unsigned char 	*vmem;
-	int				vflags;
-};
-
-static void ciolib_init(struct cterminal *cterm)
-{
-	BD=malloc(sizeof(struct buffer_data));
-	if(!BD)
-		return
-	BD->x=1;
-	BD->y=1;
-	BD->winleft=1;
-	BD->wintop=1;
-	BD->winright=cterm->width;
-	BD->winbottom=cterm->height;
-	BD->attr=7;
-	BD->currmode=C80;	// TODO: Adjust based on size...
-	BD->cursor=_NORMALCURSOR;
-	BD->vmem=malloc(2*cterm->height*cterm->width);
-	if(BD->vmem==NULL) {
-		free(BD)
-		return;
-	}
-	BD->vflags=0;
-}
-
-static void ciolib_gotoxy(struct cterminal *cterm,int x,int y)
-{
-	CTERM_INIT();
-
-	if(x < 1
-			|| x > BD->winright-BD->winleft+1
-			|| y < 1
-			|| y > BD->winbottom-BD->wintop+1)
-		return;
-
-	BD->x=x;
-	BD->y=y;
-}
-
-static int ciolib_wherex(struct cterminal *cterm)
-{
-	CTERM_INIT();
-	return BD->x
-}
-
-static int ciolib_wherey(struct cterminal *cterm)
-{
-	CTERM_INIT();
-	return BD->y
-}
-
-static int ciolib_gettext(struct cterminal *cterm,int sx, int sy, int ex, int ey, void *fill)
-{
-	int x,y;
-	unsigned char *out;
-	WORD	sch;
-
-	CTERM_INIT();
-	if(		   sx < 1
-			|| sy < 1
-			|| ex < 1
-			|| ey < 1
-			|| sx > ex
-			|| sy > ey
-			|| ex > cterm->width
-			|| ey > cterm->height
-			|| fill==NULL)
-		return(0);
-
-	out=fill;
-	for(y=sy-1;y<ey;y++) {
-		for(x=sx-1;x<ex;x++) {
-			sch=BD->vmem[y*cio_textinfo.screenwidth+x];
-			*(out++)=sch & 0xff;
-			*(out++)=sch >> 8;
-		}
-	}
-	return(1);
-}
-
-static void ciolib_gettextinfo(struct cterminal *cterm,struct text_info *ti)
-{
-	CTERM_INIT();
-	ti->winleft=>BD->winleft;
-	ti->wintop=BD->wintop;
-	ti->winright=BD->winright;
-	ti->winbottom=BD->winbottom;
-	ti->attribute=BD->attr;
-	ti->normattr=7;
-	ti->currmode=BD->currmode;
-	ti->screenheight=cterm->height;
-	ti->screenwidth=cterm->width;
-	ti->curx=BD->x;
-	ti->cury=BD->y;
-}
-
-static void ciolib_textattr(struct cterminal *cterm,int attr)
-{
-	CTERM_INIT();
-	BD->attr=attr;
-}
-
-static void ciolib_setcursortype(struct cterminal *cterm,int cursor)
-{
-	CTERM_INIT();
-	BD->cursor=cursor;
-}
-
-static int ciolib_movetext(struct cterminal *cterm, int x, int y, int ex, int ey, int tox, int toy)
-{
-	int	direction=1;
-	int	cy;
-	int	sy;
-	int	destoffset;
-	int	sourcepos;
-	int width=ex-x+1;
-	int height=ey-y+1;
-
-	CTERM_INIT();
-	if(		   x<1
-			|| y<1
-			|| ex<1
-			|| ey<1
-			|| tox<1
-			|| toy<1
-			|| x>cterm->width
-			|| ex>cterm->width
-			|| tox>cterm->width
-			|| y>cterm->height
-			|| ey>cterm->height
-			|| toy>cterm->height)
-		return(0);
-
-	if(toy > y)
-		direction=-1;
-
-	sourcepos=(y-1)*cterm->width+(x-1);
-	destoffset=(((toy-1)*cterm->width+(tox-1))-sourcepos);
-
-	for(cy=(direction==-1?(height-1):0); cy<height && cy>=0; cy+=direction) {
-		sourcepos=((y-1)+cy)*cio_textinfo.screenwidth+(x-1);
-		memmove(&(BD->vmem[sourcepos+destoffset]), &(BD->vmem[sourcepos]), sizeof(BD->vmem[0])*width);
-	}
-	return(1);
-}
-
-static void conio_clreol(struct cterminal *cterm)
-{
-	int pos,x;
-	WORD fill=(BD->attr<<8)|space;
-
-	CTERM_INIT();
-	pos=(BD->y+BD->wintop-2)*cterm->width;
-	for(x=BD->x+BD->winleft-2; x<BD->right; x++)
-		BD->vmem[pos+x]=fill;
-}
-
-static void ciolib_clrscr(struct cterminal *cterm)
-{
-	int x,y;
-	WORD fill=(BD->attr<<8)|space;
-
-	CTERM_INIT();
-	for(y=cio_textinfo.wintop-1; y<cio_textinfo.winbottom; y++) {
-		for(x=BD->winleft-1; x<BD->winright; x++)
-			BD->vmem[y*cterm->width+x]=fill;
-	}
-}
-
-static void ciolib_setvideoflags(struct cterminal *cterm, int flags)
-{
-	CTERM_INIT();
-	BD->vflags=flags;
-}
-
-static int ciolib_getvideoflags(struct cterminal *cterm)
-{
-	CTERM_INIT();
-	return BD->vflags;
-}
-
-static void ciolib_wscroll(struct cterminal *cterm)
-{
-	int os;
-
-	CTERM_INIT();
-	MOVETEXT(BD->winleft
-			,BD->wintop+1
-			,BD->winright
-			,BD->winbottom
-			,BD->winleft
-			,BD->wintop);
-	GOTOXY(cterm, 1,BD->winbottom-BD->wintop+1);
-	os=_wscroll;
-	_wscroll=0;
-	CLREOL(cterm);
-	_wscroll=os;
-	GOTOXY(cterm, BD->x,BD->y);
-}
-
-static int ciolib_putch(struct cterminal *cterm,int a)
-{
-	unsigned char a1=a;
-	unsigned char buf[2];
-	int i;
-
-	CTERM_INIT();
-	buf[0]=a1;
-	buf[1]=BD->attr;
-
-	switch(a1) {
-		case '\r':
-			GOTOXY(1,cio_textinfo.cury);
-			break;
-		case '\n':
-			if(BD->y==BD->winbottom-BD->wintop+1)
-				ciolib_wscroll(cterm);
-			else
-				GOTOXY(BD->x, BD->y+1);
-			break;
-		case '\b':
-			if(BD->x>1) {
-				GOTOXY(BD->x-1,BD->y);
-				buf[0]=' ';
-				PUTTEXT(BD->x+BD->winleft-1
-						,BD->y+BD->wintop-1
-						,BD->x+BD->winleft-1
-						,BD->y+BD->wintop-1
-						,buf);
-			}
-			break;
-		case 7:		/* Bell */
-			break;
-		case '\t':
-			for(i=0;i<(sizeof(cterm_tabs)/sizeof(int));i++) {
-				if(cterm_tabs[i]>BD->x) {
-					buf[0]=' ';
-					while(BD->x<cterm_tabs[i]) {
-						PUTTEXT(BD->x+BD->winleft-1
-								,BD->y+BD->wintop-1
-								,BD->x+BD->winleft-1
-								,BD->y+BD->wintop-1
-								,buf);
-						GOTOXY(BD->x+1,BD->y);
-						if(BD->x==cterm->width)
-							break;
-					}
-					break;
-				}
-			}
-			if(BD->x==cterm->width) {
-				GOTOXY(1,BD->y);
-				if(BD->y==BD->winbottom-BD->wintop+1)
-					ciolib_wscroll(cterm);
-				else
-					GOTOXY(BD->x, BD->y+1);
-			}
-			break;
-		default:
-			if(BD->y==BD->winbottom-BD->wintop+1
-					&& BD->x==BD->winright-BD->winleft+1) {
-				PUTTEXT(WHEREX()+BD->winleft-1
-						,WHEREY()+BD->wintop-1
-						,WHEREX()+BD->winleft-1
-						,WHEREY()+BD->wintop-1
-						,buf);
-				ciolib_wscroll(cterm);
-				GOTOXY(1, BD->winbottom-BD->wintop+1);
-			}
-			else {
-				if(BD->x==BD->winright-BD->winleft+1) {
-					PUTTEXT(WHEREX()+BD->winleft-1
-							,WHEREY()+BD->wintop-1
-							,WHEREX()+BD->winleft-1
-							,WHEREY()+BD->wintop-1
-							,buf);
-					GOTOXY(1,BD->y+1);
-				}
-				else {
-					PUTTEXT(WHEREX()+BD->winleft-1
-							,WHEREY()+BD->wintop-1
-							,WHEREX()+BD->winleft-1
-							,WHEREY()+BD->wintop-1
-							,buf);
-					GOTOXY(BD->x+1, BD->y);
-				}
-			}
-			break;
-	}
-
-	return(a1);
-}
-
-static int ciolib_puttext(struct cterminal *cterm,int sx, int sy, int ex, int ey, void *fill)
-{
-	int x,y;
-	unsigned char *out;
-	WORD	sch;
-
-	CTERM_INIT();
-	if(		   sx < 1
-			|| sy < 1
-			|| ex < 1
-			|| ey < 1
-			|| sx > cterm->width
-			|| sy > cterm->height
-			|| sx > ex
-			|| sy > ey
-			|| ex > cterm->width
-			|| ey > cterm->height
-			|| fill==NULL)
-		return(0);
-
-	out=fill;
-	for(y=sy-1;y<ey;y++) {
-		for(x=sx-1;x<ex;x++) {
-			sch=*(out++);
-			sch |= (*(out++))<<8;
-			BD->vmem[y*cterm->width+x]=sch;
-		}
-	}
-	return(1);
-}
-
-static void ciolib_window(struct cterminal *cterm,int sx, int sy, int ex, int ey)
-{
-	CTERM_INIT();
-	if(		   sx < 1
-			|| sy < 1
-			|| ex < 1
-			|| ey < 1
-			|| sx > cterm->width
-			|| sy > cterm->height
-			|| sx > ex
-			|| sy > ey
-			|| ex > cterm->width
-			|| ey > cterm->height)
-		return;
-	BD->winleft=sx;
-	BD->wintop=sy;
-	BD->winright=ex;
-	BD->winbottom=ey;
-	GOTOXY(1,1);
-}
-
-static int ciolib_cputs(struct cterminal *cterm, char *str)
-{
-	int		pos;
-	int		ret=0;
-	int		olddmc;
-
-	CTERM_INIT();
-	for(pos=0;str[pos];pos++)
-	{
-		ret=str[pos];
-		if(str[pos]=='\n')
-			PUTCH('\r');
-		PUTCH(str[pos]);
-	}
-	GOTOXY(WHEREX(),WHEREY());
-	return(ret);
-}
-
-static int ciolib_setfont(struct cterminal *,int font, int force, int font_num)
-{
-	CTERM_INIT();
-	return -1;
-}
+/*********************************************/
+/* These funcions are used when conio is not */
+/*********************************************/
 #endif
 
 static void playnote_thread(void *args)
@@ -984,10 +601,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						}
 						break;
 					case 'h':
-						if(!strcmp(cterm->escbuf,"[?7l")) {
-							cterm->autowrap=true;
-							SETCURSORTYPE(cterm->cursor);
-						}
 						if(!strcmp(cterm->escbuf,"[?25h")) {
 							cterm->cursor=_NORMALCURSOR;
 							SETCURSORTYPE(cterm->cursor);
@@ -1011,10 +624,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							cterm->doorway_mode=1;
 						break;
 					case 'l':
-						if(!strcmp(cterm->escbuf,"[?7l")) {
-							cterm->autowrap=false;
-							SETCURSORTYPE(cterm->cursor);
-						}
 						if(!strcmp(cterm->escbuf,"[?25l")) {
 							cterm->cursor=_NOCURSOR;
 							SETCURSORTYPE(cterm->cursor);
@@ -1036,146 +645,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						}
 						if(!strcmp(cterm->escbuf,"[=255l"))
 							cterm->doorway_mode=0;
-						break;
-					case 's':
-						if(cterm->escbuf[1] == '?') {
-							*p=0;
-							p2=cterm->escbuf+2;
-							GETTEXTINFO(&ti);
-							i=GETVIDEOFLAGS();
-							if(p2>p) {
-								/* All the save stuff... */
-								cterm->saved_mode_mask |= (CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_DOORWAY);
-								cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_DOORWAY);
-								cterm->saved_mode |= (cterm->autowrap)?CTERM_SAVEMODE_AUTOWRAP:0;
-								cterm->saved_mode |= (cterm->cursor==_NORMALCURSOR)?CTERM_SAVEMODE_CURSOR:0;
-								cterm->saved_mode |= (i&CIOLIB_VIDEO_ALTCHARS)?CTERM_SAVEMODE_ALTCHARS:0;
-								cterm->saved_mode |= (i&CIOLIB_VIDEO_NOBRIGHT)?CTERM_SAVEMODE_NOBRIGHT:0;
-								cterm->saved_mode |= (i&CIOLIB_VIDEO_BGBRIGHT)?CTERM_SAVEMODE_BGBRIGHT:0;
-								cterm->saved_mode |= (cterm->doorway_mode)?CTERM_SAVEMODE_DOORWAY:0;
-								break;
-							}
-							while((p=strtok(p2,";"))!=NULL) {
-								p2=NULL;
-								if(!strcmp(cterm->escbuf,"?7")) {
-									cterm->saved_mode_mask |= CTERM_SAVEMODE_AUTOWRAP;
-									cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT);
-									cterm->saved_mode |= cterm->autowrap?CTERM_SAVEMODE_AUTOWRAP:0;
-								}
-								if(!strcmp(cterm->escbuf,"?25")) {
-									cterm->saved_mode_mask |= CTERM_SAVEMODE_CURSOR;
-									cterm->saved_mode &= ~(CTERM_SAVEMODE_CURSOR);
-									cterm->saved_mode |= (cterm->cursor==_NORMALCURSOR)?CTERM_SAVEMODE_CURSOR:0;
-								}
-								if(!strcmp(cterm->escbuf,"?31")) {
-									cterm->saved_mode_mask |= CTERM_SAVEMODE_ALTCHARS;
-									cterm->saved_mode &= ~(CTERM_SAVEMODE_ALTCHARS);
-									cterm->saved_mode |= (i&CIOLIB_VIDEO_ALTCHARS)?CTERM_SAVEMODE_ALTCHARS:0;
-								}
-								if(!strcmp(cterm->escbuf,"?32")) {
-									cterm->saved_mode_mask |= CTERM_SAVEMODE_NOBRIGHT;
-									cterm->saved_mode &= ~(CTERM_SAVEMODE_NOBRIGHT);
-									cterm->saved_mode |= (i&CIOLIB_VIDEO_NOBRIGHT)?CTERM_SAVEMODE_NOBRIGHT:0;
-								}
-								if(!strcmp(cterm->escbuf,"?33")) {
-									cterm->saved_mode_mask |= CTERM_SAVEMODE_BGBRIGHT;
-									cterm->saved_mode &= ~(CTERM_SAVEMODE_BGBRIGHT);
-									cterm->saved_mode |= (i&CIOLIB_VIDEO_BGBRIGHT)?CTERM_SAVEMODE_BGBRIGHT:0;
-								}
-								if(!strcmp(cterm->escbuf,"=255")) {
-									cterm->saved_mode_mask |= CTERM_SAVEMODE_DOORWAY;
-									cterm->saved_mode &= ~(CTERM_SAVEMODE_DOORWAY);
-									cterm->saved_mode |= (cterm->doorway_mode)?CTERM_SAVEMODE_DOORWAY:0;
-								}
-							}
-						}
-						break;
-					case 'u':
-						if(cterm->escbuf[1] == '?') {
-							*p=0;
-							p2=cterm->escbuf+2;
-							GETTEXTINFO(&ti);
-							i=GETVIDEOFLAGS();
-							if(p2>p) {
-								/* All the save stuff... */
-								if(cterm->saved_mode_mask & CTERM_SAVEMODE_AUTOWRAP)
-									cterm->autowrap=(cterm->saved_mode & CTERM_SAVEMODE_AUTOWRAP) ? true : false;
-								if(cterm->saved_mode_mask & CTERM_SAVEMODE_CURSOR) {
-									cterm->cursor = (cterm->saved_mode & CTERM_SAVEMODE_CURSOR) ? _NORMALCURSOR : _NOCURSOR;
-									SETCURSORTYPE(cterm->cursor);
-								}
-								if(cterm->saved_mode_mask & CTERM_SAVEMODE_ALTCHARS) {
-									if(cterm->saved_mode & CTERM_SAVEMODE_ALTCHARS)
-										i |= CIOLIB_VIDEO_ALTCHARS;
-									else
-										i &= ~CIOLIB_VIDEO_ALTCHARS;
-								}
-								if(cterm->saved_mode_mask & CTERM_SAVEMODE_NOBRIGHT) {
-									if(cterm->saved_mode & CTERM_SAVEMODE_NOBRIGHT)
-										i |= CIOLIB_VIDEO_NOBRIGHT;
-									else
-										i &= ~CIOLIB_VIDEO_NOBRIGHT;
-								}
-								if(cterm->saved_mode_mask & CTERM_SAVEMODE_BGBRIGHT) {
-									if(cterm->saved_mode & CTERM_SAVEMODE_BGBRIGHT)
-										i |= CIOLIB_VIDEO_BGBRIGHT;
-									else
-										i &= ~CIOLIB_VIDEO_BGBRIGHT;
-								}
-								if(cterm->saved_mode_mask & CTERM_SAVEMODE_DOORWAY) {
-									if(cterm->saved_mode & CTERM_SAVEMODE_DOORWAY)
-										cterm->doorway_mode = 1;
-									else
-										cterm->doorway_mode = 0;
-								}
-								SETVIDEOFLAGS(i);
-								break;
-							}
-							while((p=strtok(p2,";"))!=NULL) {
-								p2=NULL;
-								if(!strcmp(cterm->escbuf,"?7")) {
-									if(cterm->saved_mode_mask & CTERM_SAVEMODE_AUTOWRAP)
-										cterm->autowrap=(cterm->saved_mode & CTERM_SAVEMODE_AUTOWRAP) ? true : false;
-								}
-								if(!strcmp(cterm->escbuf,"?25")) {
-									if(cterm->saved_mode_mask & CTERM_SAVEMODE_CURSOR) {
-										cterm->cursor = (cterm->saved_mode & CTERM_SAVEMODE_CURSOR) ? _NORMALCURSOR : _NOCURSOR;
-										SETCURSORTYPE(cterm->cursor);
-									}
-								}
-								if(!strcmp(cterm->escbuf,"?31")) {
-									if(cterm->saved_mode_mask & CTERM_SAVEMODE_ALTCHARS) {
-										if(cterm->saved_mode & CTERM_SAVEMODE_ALTCHARS)
-											i |= CIOLIB_VIDEO_ALTCHARS;
-										else
-											i &= ~CIOLIB_VIDEO_ALTCHARS;
-										SETVIDEOFLAGS(i);
-									}
-								}
-								if(!strcmp(cterm->escbuf,"?32")) {
-									if(cterm->saved_mode_mask & CTERM_SAVEMODE_NOBRIGHT) {
-										if(cterm->saved_mode & CTERM_SAVEMODE_NOBRIGHT)
-											i |= CIOLIB_VIDEO_NOBRIGHT;
-										else
-											i &= ~CIOLIB_VIDEO_NOBRIGHT;
-										SETVIDEOFLAGS(i);
-									}
-								}
-								if(!strcmp(cterm->escbuf,"?33")) {
-									if(cterm->saved_mode_mask & CTERM_SAVEMODE_BGBRIGHT) {
-										if(cterm->saved_mode & CTERM_SAVEMODE_BGBRIGHT)
-											i |= CIOLIB_VIDEO_BGBRIGHT;
-										else
-											i &= ~CIOLIB_VIDEO_BGBRIGHT;
-										SETVIDEOFLAGS(i);
-									}
-								}
-								if(!strcmp(cterm->escbuf,"=255")) {
-									if(cterm->saved_mode_mask & CTERM_SAVEMODE_DOORWAY)
-										cterm->autowrap=(cterm->saved_mode & CTERM_SAVEMODE_DOORWAY) ? 1 : 0;
-								}
-							}
-						}
 						break;
 					case '{':
 						if(cterm->escbuf[1] == '=') {	/* Font loading */
@@ -1489,7 +958,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				case 'g':	/* ToDo?  VT100 Tabs */
 					break;
 				case 'h':	/* ToDo?  Scrolling region, word-wrap */
-					
 					break;
 				case 'i':	/* ToDo?  Printing */
 					break;
@@ -1755,7 +1223,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.136 $";
+	char	*revision="$Revision: 1.133 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1786,7 +1254,6 @@ struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int back
 	cterm->logfile=NULL;
 	cterm->emulation=emulation;
 	cterm->cursor=_NORMALCURSOR;
-	cterm->autowrap=true;
 	if(cterm->scrollback!=NULL)
 		memset(cterm->scrollback,0,cterm->width*2*cterm->backlines);
 	strcpy(cterm->DA,"\x1b[=67;84;101;114;109;");
@@ -1919,36 +1386,25 @@ static void ctputs(struct cterminal *cterm, char *buf)
 				GOTOXY(cx,cy);
 				break;
 			default:
-				if(cx==cterm->width && (!cterm->autowrap==false)) {
+				if(cy==cterm->height
+						&& cx==cterm->width) {
 					char ch;
 					ch=*(p+1);
 					*(p+1)=0;
 					CPUTS(outp);
 					*(p+1)=ch;
 					outp=p+1;
+					scrollup(cterm);
+					cx=1;
 					GOTOXY(cx,cy);
 				}
 				else {
-					if(cy==cterm->height
-							&& cx==cterm->width) {
-						char ch;
-						ch=*(p+1);
-						*(p+1)=0;
-						CPUTS(outp);
-						*(p+1)=ch;
-						outp=p+1;
-						scrollup(cterm);
+					if(cx==cterm->width) {
 						cx=1;
-						GOTOXY(cx,cy);
+						cy++;
 					}
 					else {
-						if(cx==cterm->width) {
-							cx=1;
-							cy++;
-						}
-						else {
-							cx++;
-						}
+						cx++;
 					}
 				}
 				break;
@@ -2699,28 +2155,23 @@ void cterm_end(struct cterminal *cterm)
 {
 	int i;
 
-	if(cterm) {
-		cterm_closelog(cterm);
-#ifdef CTERM_WITHOUT_CONIO
-		FREE_AND_NULL(BD->vmem);
-		FREE_AND_NULL(BD);
-#else
-		for(i=CONIO_FIRST_FREE_FONT; i < 256; i++) {
-			FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
-			FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
-			FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
-			FREE_AND_NULL(conio_fontdata[i].desc);
-		}
-#endif
-		if(cterm->playnote_thread_running) {
-			if(sem_trywait(&cterm->playnote_thread_terminated)==-1) {
-				listSemPost(&cterm->notes);
-				sem_wait(&cterm->playnote_thread_terminated);
-			}
-			sem_destroy(&cterm->playnote_thread_terminated);
-			sem_destroy(&cterm->note_completed_sem);
-			listFree(&cterm->notes);
-		}
-		free(cterm);
+	cterm_closelog(cterm);
+#ifndef CTERM_WITHOUT_CONIO
+	for(i=CONIO_FIRST_FREE_FONT; i < 256; i++) {
+		FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
+		FREE_AND_NULL(conio_fontdata[i].eight_by_fourteen);
+		FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
+		FREE_AND_NULL(conio_fontdata[i].desc);
 	}
+#endif
+	if(cterm->playnote_thread_running) {
+		if(sem_trywait(&cterm->playnote_thread_terminated)==-1) {
+			listSemPost(&cterm->notes);
+			sem_wait(&cterm->playnote_thread_terminated);
+		}
+		sem_destroy(&cterm->playnote_thread_terminated);
+		sem_destroy(&cterm->note_completed_sem);
+		listFree(&cterm->notes);
+	}
+	free(cterm);
 }
