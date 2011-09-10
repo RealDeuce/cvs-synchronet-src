@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.51 2011/09/08 06:26:02 rswindell Exp $ */
+/* $Id: link_list.c,v 1.52 2011/09/10 00:18:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -553,7 +553,7 @@ list_node_t* DLLCALL listAddNode(link_list_t* list, void* data, list_node_tag_t 
 {
 	list_node_t* node;
 
-	if(list==NULL || data==NULL)
+	if(list==NULL)
 		return(NULL);
 
 	if((node=(list_node_t*)malloc(sizeof(list_node_t)))==NULL)
