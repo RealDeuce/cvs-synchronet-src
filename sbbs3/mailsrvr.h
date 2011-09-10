@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.68 2011/09/01 02:50:16 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.69 2011/09/10 09:04:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,6 +58,7 @@ typedef struct {
     DWORD   interface_addr;
     DWORD	options;			/* See MAIL_OPT definitions */
     DWORD	max_msg_size;
+	DWORD	max_msgs_waiting;	/* Max unread msgs in user's inbox */
 
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
