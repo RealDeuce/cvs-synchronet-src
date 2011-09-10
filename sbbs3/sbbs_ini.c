@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.137 2011/09/10 09:04:00 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.138 2011/09/10 10:32:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 #define DEFAULT_LOG_LEVEL				LOG_DEBUG
 #define DEFAULT_MAX_MSG_SIZE			(20*1024*1024)	/* 20MB */
 #define DEFAULT_MAX_MSGS_WAITING		100
+#define DEFAULT_CONNECT_TIMEOUT			30		/* seconds */
 #define DEFAULT_BIND_RETRY_COUNT		2
 #define DEFAULT_BIND_RETRY_DELAY		15
 #define DEFAULT_LOGIN_ATTEMPT_DELAY		5000	/* milliseconds */
@@ -481,6 +482,8 @@ void sbbs_read_ini(
 			=iniGetInteger(list,section,"MaxMsgSize",DEFAULT_MAX_MSG_SIZE);
 		mail->max_msgs_waiting
 			=iniGetInteger(list,section,"MaxMsgsWaiting",DEFAULT_MAX_MSGS_WAITING);
+		mail->connect_timeout
+			=iniGetInteger(list,section,"ConnectTimeout",DEFAULT_CONNECT_TIMEOUT);
 
 		SAFECOPY(mail->host_name
 			,iniGetString(list,section,strHostName,global->host_name,value));
@@ -942,6 +945,8 @@ BOOL sbbs_write_ini(
 		if(!iniSetInteger(lp,section,"MaxMsgSize",mail->max_msg_size,&style))
 			break;
 		if(!iniSetInteger(lp,section,"MaxMsgsWaiting",mail->max_msgs_waiting,&style))
+			break;
+		if(!iniSetInteger(lp,section,"ConnectTimeout",mail->connect_timeout,&style))
 			break;
 
 		if(strcmp(mail->host_name,global->host_name)==0
