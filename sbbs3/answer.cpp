@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.74 2011/10/19 07:50:15 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.72 2011/09/08 23:28:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,11 +47,13 @@ bool sbbs_t::answer()
 	char 	path[MAX_PATH+1];
 	int		i,l,in;
 	struct tm tm;
+	struct in_addr addr;
 
 	useron.number=0;
 	answertime=logontime=starttime=now=time(NULL);
 	/* Caller ID is IP address */
-	SAFECOPY(cid,inet_ntoa(client_addr.sin_addr)); 
+	addr.s_addr=client_addr;
+	SAFECOPY(cid,inet_ntoa(addr)); 
 
 	memset(&tm,0,sizeof(tm));
     localtime_r(&now,&tm); 
@@ -116,7 +118,6 @@ bool sbbs_t::answer()
 						,rlogin_pass);
 					for(i=0;i<3;i++) {
 						if(stricmp(tmp,useron.pass)) {
-							badlogin(useron.alias, tmp);
 							rioctl(IOFI);       /* flush input buffer */
 							bputs(text[InvalidLogon]);
 							if(cfg.sys_misc&SM_ECHO_PW)
@@ -147,7 +148,6 @@ bool sbbs_t::answer()
 					}
 					if(i) {
 						if(stricmp(tmp,useron.pass)) {
-							badlogin(useron.alias, tmp);
 							bputs(text[InvalidLogon]);
 							if(cfg.sys_misc&SM_ECHO_PW)
 								sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
@@ -200,7 +200,6 @@ bool sbbs_t::answer()
 				,rlogin_pass);
 			for(i=0;i<3;i++) {
 				if(stricmp(tmp,useron.pass)) {
-					badlogin(useron.alias, tmp);
 					rioctl(IOFI);       /* flush input buffer */
 					bputs(text[InvalidLogon]);
 					if(cfg.sys_misc&SM_ECHO_PW)
@@ -237,7 +236,6 @@ bool sbbs_t::answer()
 			}
 			if(i) {
 				if(stricmp(tmp,useron.pass)) {
-					badlogin(useron.alias, tmp);
 					bputs(text[InvalidLogon]);
 					if(cfg.sys_misc&SM_ECHO_PW)
 						sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
@@ -267,7 +265,7 @@ bool sbbs_t::answer()
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
-			"\x1b[30;40m\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm? */
+			"\x1b[30;40m\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm?
 			"\x1b[0m_"	/* "Normal" colors */
 			"\x1b[2J"	/* clear screen */
 			"\x1b[H"	/* home cursor */
@@ -444,9 +442,6 @@ bool sbbs_t::answer()
 		hangup();
 		return(false); 
 	}
-
-	if(useron.pass[0])
-		loginSuccess(startup->login_attempt_list, &client_addr);
 
 	return(true);
 }
