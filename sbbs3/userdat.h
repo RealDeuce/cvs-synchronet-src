@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.45 2011/09/23 06:53:26 rswindell Exp $ */
+/* $Id: userdat.h,v 1.43 2011/09/03 05:56:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,8 +112,7 @@ DLLEXPORT BOOL	DLLCALL can_user_read_sub(scfg_t* cfg, uint subnum, user_t* user,
 DLLEXPORT BOOL	DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason);
 DLLEXPORT BOOL	DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* client);
-DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const char* host
-								  ,const char* ip_addr, const char* username, const char* fname);
+DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host, char* ip_addr, char* username, char* fname);
 
 /* New atomic numeric user field adjustment functions: */
 DLLEXPORT BOOL	DLLCALL user_posted_msg(scfg_t* cfg, user_t* user, int count);
@@ -133,7 +132,7 @@ typedef struct {
 	ulong		count;	/* number of consecutive failed login attempts */
 	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
 	time_t		time;	/* time of last attempt */
-	char		prot[32];	/* protocol used in last attempt */
+	const char*	prot;	/* protocol used in last attempt */
 	char		user[128];
 	char		pass[128];
 } login_attempt_t;
