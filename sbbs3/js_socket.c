@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.132 2010/02/01 19:22:35 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.137 2011/09/09 19:41:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -700,6 +700,7 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					data_val = INT_TO_JSVAL(w);
 				}
 				break;
+			default:
 			case sizeof(DWORD):
 				if((rd=recvfrom(p->sock,(BYTE*)&l,len,0,(SOCKADDR*)&addr,&addrlen))==len) {
 					if(p->network_byte_order)
@@ -849,7 +850,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(argc>1 && argv[1]!=JSVAL_VOID)
-		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
+		JS_ValueToInt32(cx,argv[1],&timeout);
 
 	start=time(NULL);
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1054,7 +1055,7 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 static JSBool
 js_ioctlsocket(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	int32		cmd;
+	int32		cmd=0;
 	int32		arg=0;
 	private_t*	p;
 	jsrefcount	rc;
@@ -1186,8 +1187,8 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	BOOL		b;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
+		// Prototype access
+		return(JS_TRUE);
 	}
 
     tiny = JSVAL_TO_INT(id);
@@ -1202,6 +1203,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_DESCRIPTOR:
 			JS_ValueToInt32(cx,*vp,(int32*)&(p->sock));
+			p->is_connected=TRUE;
 			break;
 		case SOCK_PROP_LAST_ERROR:
 			JS_ValueToInt32(cx,*vp,(int32*)&(p->last_error));
@@ -1238,8 +1240,8 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
+		// Protoype access
+		return(JS_TRUE);
 	}
 
     tiny = JSVAL_TO_INT(id);
@@ -1282,7 +1284,6 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_DESCRIPTOR:
 			*vp = INT_TO_JSVAL(p->sock);
-			p->is_connected = TRUE;
 			break;
 		case SOCK_PROP_NONBLOCKING:
 			*vp = BOOLEAN_TO_JSVAL(p->nonblocking);
