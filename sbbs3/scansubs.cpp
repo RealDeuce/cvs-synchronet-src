@@ -2,7 +2,7 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.17 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.16 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,7 +265,7 @@ void sbbs_t::new_scan_ptr_cfg()
 				if(j<99) outchar(' ');
 				t=getmsgtime(usrsub[i][j],subscan[usrsub[i][j]].ptr);
 				if(t>(long)l)
-					l=(uint32_t)t;
+					l=t;
 				bprintf(text[SubPtrLstFmt],j+1,cfg.sub[usrsub[i][j]]->lname
 					,timestr(t),nulstr); 
 			}
