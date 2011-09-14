@@ -31,6 +31,7 @@ C translation Copyright 2009 Stephen Hurd
 
 #include "IO.h"
 #include "Config.h"
+#include "Status.h"
 
 #include "macros.h"
 #include "files.h"
@@ -41,11 +42,11 @@ C translation Copyright 2009 Stephen Hurd
 
 static const char *name="Alchemist Store";
 static const char *expert_prompt="(B,S,T,R,?)";
-static void Failed_Quest(uint8_t level)
+static void Failed_Quest(int level)
 {
 	char *str;
 
-	if(asprintf(&str, " %s%s%s failed the %s test for the Secret Order.", config.plycolor, player->name2, config.textcol1, commastr(level))<0)
+	if(asprintf(&str, " %s%s%s failed the %s test for the Secret Order.", config.plycolor, player->name2, config.textcolor, commastr(level))<0)
 		CRASH;
 
 	newsy(true, "Failed Challenge!", str, NULL);
@@ -55,7 +56,7 @@ static void Failed_Quest(uint8_t level)
 	BAD("Oh No! You have failed the test! You may try again tomorrow...");
 	nl();
 	player->allowed=false;
-	reduce_player_resurrections(player, true);
+	Reduce_Player_Resurrections(player, true);
 	upause();
 	halt();
 }
@@ -63,7 +64,7 @@ static void Failed_Quest(uint8_t level)
 /*
  * Returns a string with info on how strong the current poison is
  */
-static const char *Alchemist_Poison(const struct player *rec)
+const char *Alchemist_Poison(const struct player *rec)
 {
 	if(rec->poison  > 80)
 		return "Deadly";
@@ -76,7 +77,7 @@ static const char *Alchemist_Poison(const struct player *rec)
 	return "None";
 }
 
-static void Meny()
+static void Meny(void *cbdata)
 {
 	clr();
 	nl();
@@ -229,7 +230,7 @@ static void Join_Order(void)
 		GOOD("*****************");
 		nl();
 
-		if(asprintf(&str, " %s%s%s has been accepted as a member of the secret order.", config.plycolor, player->name2, config.textcol1)<0)
+		if(asprintf(&str, " %s%s%s has been accepted as a member of the secret order.", config.plycolor, player->name2, config.textcolor)<0)
 			CRASH;
 		newsy(true, "** SECRET ORDER OF ALCHEMY EXPANDS **", str, NULL);
 		free(str);
@@ -340,7 +341,7 @@ static bool Chamber_Menu(void)
 			break;
 		case 'S':
 			clr();
-			status(player);
+			Status(player);
 			break;
 		case 'C':
 			Create_Poison();
@@ -459,7 +460,7 @@ static void Buy_Poison(void)
 				TEXT("You receive the ingredients for the poison.");
 				TEXT("After a few hours in the laboratory your poison is ready to be tested in the real world!");
 				nl();
-				if(asprintf(&str, " %s%s%s, the alchemist, bought poison!", config.plycolor, player->name2, config.textcol1)<0)
+				if(asprintf(&str, " %s%s%s, the alchemist, bought poison!", config.plycolor, player->name2, config.textcolor)<0)
 					CRASH;
 				newsy(true, "Beware!", str, NULL);
 				free(str);
@@ -484,18 +485,15 @@ static bool Menu(bool * refresh)
 		onliner->location = ONLOC_Alchemist;
 		strcpy(onliner->doing, location_desc(onliner->location));
 	}
-	Display_Menu(true, true, refresh, name, expert_prompt, Meny);
+	Display_Menu(true, true, refresh, name, expert_prompt, Meny, NULL);
 
 	switch((ch=toupper(gchar()))) {
 		case '?':	// Display Menu
-			if(player->expert)
-				Display_Menu(true, false, refresh, name, expert_prompt, Meny);
-			else
-				Display_Menu(false, false, refresh, name, expert_prompt, Meny);
+			Display_Menu(player->expert, false, refresh, name, expert_prompt, Meny, NULL);
 			break;
 		case 'S':	// Status
 			clr();
-			status(player);
+			Status(player);
 			break;
 		case 'T':	// The Secret Order
 			nl();

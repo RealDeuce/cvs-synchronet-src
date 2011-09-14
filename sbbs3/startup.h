@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.66 2009/08/18 23:24:28 rswindell Exp $ */
+/* $Id: startup.h,v 1.68 2011/09/01 02:50:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,6 +44,10 @@
 #include "semwrap.h"	/* sem_t */
 #include "ini_file.h"	/* INI_MAX_VALUE_LEN */
 #include "sbbsdefs.h"	/* LOG_* (syslog.h) values */
+#ifndef LINK_LIST_THREADSAFE
+	#define LINK_LIST_THREADSAFE
+#endif
+#include "link_list.h"
 
 typedef struct {
 	ulong	max_bytes;		/* max allocated bytes before garbage collection */
@@ -66,6 +70,10 @@ typedef struct {
 	js_startup_t js;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 
 } global_startup_t;
 
@@ -92,8 +100,9 @@ typedef struct {
 	void*	event_cbdata;			/* Private data passed to event_lputs callback */
 
 	/* Callbacks (NULL if unused) */
-	int 	(*lputs)(void*, int, const char*);			/* Log - put string					*/
+	int 	(*lputs)(void*, int , const char*);			/* Log - put string					*/
     int 	(*event_lputs)(void*, int, const char*);	/* Event log - put string			*/
+	void	(*errormsg)(void*, int level, const char* msg);
 	void	(*status)(void*, const char*);
     void	(*started)(void*);
 	void	(*recycle)(void*);
@@ -124,6 +133,13 @@ typedef struct {
 
 	/* JavaScript operating parameters */
 	js_startup_t js;
+
+	/* Login Attempt parameters */
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
+	link_list_t* login_attempt_list;
 
 } bbs_startup_t;
 
