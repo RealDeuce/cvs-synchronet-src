@@ -2,13 +2,13 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.43 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.41 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -84,7 +84,8 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	}
 	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
 	if(!fexistcase(str)) {
-		lprintf(LOG_WARNING,"%s doesn't contain MESSAGES.DAT (%s)",packet,str);
+		SAFEPRINTF2(tmp,"%s doesn't contain MESSAGES.DAT (%s)",packet,str);
+		errorlog(tmp);
 		return(false); 
 	}
 	if((qwk=fnopen(&file,str,O_RDONLY))==NULL) {
@@ -273,7 +274,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		if(j!=lastsub) {
 
 			if(msgs) {
-				t=(ulong)(time(NULL)-startsub);
+				t=time(NULL)-startsub;
 				if(t<1)
 					t=1;
 				eprintf(LOG_INFO,"Imported %lu QWK msgs in %lu seconds (%lu msgs/sec)", msgs,t,msgs/t);
@@ -371,7 +372,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	if(dir!=NULL)
 		closedir(dir);
 
-	t=(ulong)(time(NULL)-start);
+	t=time(NULL)-start;
 	if(tmsgs) {
 		if(t<1)
 			t=1;
