@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.251 2011/09/18 04:09:33 rswindell Exp $ */
+/* $Id: services.c,v 1.252 2011/09/18 21:58:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +90,7 @@ typedef struct {
 	js_startup_t	js;
 	js_server_props_t js_server_props;
 	/* These are run-time state and stat vars */
-	ulong		clients;
+	uint32_t	clients;
 	ulong		served;
 	SOCKET		socket;
 	BOOL		running;
@@ -1656,7 +1656,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.251 $", "%*s %s", revision);
+	sscanf("$Revision: 1.252 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
