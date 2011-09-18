@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.146 2011/07/21 10:49:42 rswindell Exp $ */
+/* $Id: smblib.c,v 1.147 2011/07/21 19:05:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1247,7 +1247,7 @@ int SMBCALL smb_hfield_append_str(smbmsg_t* msg, ushort type, const char* str)
 /****************************************************************************/
 /* Replaces an header field value (in memory only)							*/
 /****************************************************************************/
-int SMBCALL smb_hfield_replace(smbmsg_t* msg, ushort type, size_t length, const void* data)
+int SMBCALL smb_hfield_replace(smbmsg_t* msg, ushort type, size_t length, void* data)
 {
 	int		i;
 	void*	p;
