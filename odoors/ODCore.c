@@ -133,7 +133,7 @@ char *pchColorEndPos;
 BYTE btCurrentStatusLine = STATUS_NONE;
 OD_PERSONALITY_CALLBACK *pfCurrentPersonality = NULL;
 char szDesiredPersonality[33] = "";
-SET_PERSONALITY_FUNC *pfSetPersonality = NULL;
+extern SET_PERSONALITY_FUNC *pfSetPersonality = NULL;
 
 /* Commonly used character sequences. */
 char abtBlackBlock[2] = {' ', 0x07};
@@ -806,7 +806,7 @@ cleanup:
  *
  *     Return: void
  */
-ODAPIDEF void ODCALL od_disp(const char *pachBuffer, INT nSize, BOOL bLocalEcho)
+ODAPIDEF void ODCALL od_disp(char *pachBuffer, INT nSize, BOOL bLocalEcho)
 {
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_disp()");
@@ -851,7 +851,7 @@ ODAPIDEF void ODCALL od_disp(const char *pachBuffer, INT nSize, BOOL bLocalEcho)
  *
  *     Return: void
  */
-ODAPIDEF void ODCALL od_disp_str(const char *pszToDisplay)
+ODAPIDEF void ODCALL od_disp_str(char *pszToDisplay)
 {
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_disp_str()");
@@ -1368,7 +1368,7 @@ ODAPIDEF void ODCALL od_set_dtr(BOOL bHigh)
  *
  *     Return: void
  */
-ODAPIDEF char ODCALL od_get_answer(const char *pszOptions)
+ODAPIDEF char ODCALL od_get_answer(char *pszOptions)
 {
    char *pchPossibleOption;
    char chPressed;
