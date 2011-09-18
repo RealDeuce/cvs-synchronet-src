@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "[s]printf" implementation */
 
-/* $Id: js_sprintf.c,v 1.7 2011/10/11 05:05:56 deuce Exp $ */
+/* $Id: js_sprintf.c,v 1.3 2006/12/21 21:27:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,26 +41,24 @@
 char* DLLCALL
 js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 {
-	char*		p,*p2;
+	char*		p;
     JSString*	str;
 
-	JSVALUE_TO_STRING(cx, argv[argn++], p, NULL);
-	if(p==NULL)
+	if((p=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL)
 		return(NULL);
 
 	p=xp_asprintf_start(p);
     for(; argn<argc; argn++) {
 		if(JSVAL_IS_DOUBLE(argv[argn]))
-			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_DOUBLE,JSVAL_TO_DOUBLE(argv[argn]));
+			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_DOUBLE,*JSVAL_TO_DOUBLE(argv[argn]));
 		else if(JSVAL_IS_INT(argv[argn]))
 			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,JSVAL_TO_INT(argv[argn]));
 		else if(JSVAL_IS_BOOLEAN(argv[argn]) && xp_printf_get_type(p)!=XP_PRINTF_TYPE_CHARP)
 			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,JSVAL_TO_BOOLEAN(argv[argn]));
 		else {
-			JSVALUE_TO_STRING(cx, argv[argn], p2, NULL);
-			if(p2==NULL)
-				return NULL;
-			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,p2);
+			if((str=JS_ValueToString(cx, argv[argn]))==NULL)
+			    return(NULL);
+			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,JS_GetStringBytes(str));
 		}
 	}
 

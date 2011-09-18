@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.12 2011/10/14 00:57:39 deuce Exp $ */
+/* $Id: js_com.c,v 1.4 2011/09/09 19:58:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,14 +98,10 @@ static void js_finalize_com(JSContext *cx, JSObject *obj)
 /* COM Object Methods */
 
 static JSBool
-js_close(JSContext *cx, uintN argc, jsval *arglist)
+js_close(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -130,14 +126,10 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_open(JSContext *cx, uintN argc, jsval *arglist)
+js_open(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -152,7 +144,7 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->com==COM_HANDLE_INVALID) {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "connect failed with error %d",ERROR_VALUE);
-		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
+		*rval = JSVAL_FALSE;
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -160,7 +152,7 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	comSetBaudRate(p->com, p->baud_rate);
 
 	p->is_open = TRUE;
-	JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+	*rval = JSVAL_TRUE;
 	dbprintf(FALSE, p, "connected to port %s", p->dev);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -168,32 +160,29 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_send(JSContext *cx, uintN argc, jsval *arglist)
+js_send(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*		cp;
 	int			len;
 	JSString*	str;
 	private_t*	p;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
+	*rval = JSVAL_FALSE;
 
-	JSVALUE_TO_STRING(cx, argv[0], cp, NULL);
+	str = JS_ValueToString(cx, argv[0]);
+	cp	= JS_GetStringBytes(str);
 	len	= JS_GetStringLength(str);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(comWriteBuf(p->com,cp,len)==len) {
 		dbprintf(FALSE, p, "sent %u bytes",len);
-		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+		*rval = JSVAL_TRUE;
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes failed",len);
@@ -204,10 +193,8 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
+js_sendfile(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	long		len;
 	int			file;
 	char*		fname;
@@ -216,17 +203,15 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	jsrefcount	rc;
 	char		*buf;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
+	*rval = JSVAL_FALSE;
 
-	JSVALUE_TO_STRING(cx, argv[0], fname, NULL);
-	if(fname==NULL) {
+	if((str = JS_ValueToString(cx, argv[0]))==NULL
+		|| (fname=JS_GetStringBytes(str))==NULL) {
 		JS_ReportError(cx,"Failure reading filename");
 		return(JS_FALSE);
 	}
@@ -251,7 +236,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(comWriteBuf(p->com,buf,len)==len) {
 		dbprintf(FALSE, p, "sent %u bytes",len);
-		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+		*rval = JSVAL_TRUE;
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes failed",len);
@@ -263,10 +248,8 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
+js_sendbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	BYTE		b;
 	WORD		w;
 	DWORD		l;
@@ -276,14 +259,14 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
+	*rval = JSVAL_FALSE;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&val);
 	if(argc>1 && argv[1]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[1],(int32*)&size);
@@ -313,7 +296,7 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	if(wr==size) {
 		dbprintf(FALSE, p, "sent %u bytes (binary)",size);
-		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+		*rval = JSVAL_TRUE;
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes (binary) failed",size);
@@ -325,17 +308,13 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 
 
 static JSBool
-js_recv(JSContext *cx, uintN argc, jsval *arglist)
+js_recv(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*		buf;
 	int32		len=512;
 	JSString*	str;
 	jsrefcount	rc;
 	int32		timeout=30;	/* seconds */
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	private_t*	p;
 
@@ -360,7 +339,7 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	if(len<0) {
 		p->last_error=ERROR_VALUE;
-		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
+		*rval = JSVAL_NULL;
 		return(JS_TRUE);
 	}
 	buf[len]=0;
@@ -369,7 +348,7 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 	if(str==NULL)
 		return(JS_FALSE);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	*rval = STRING_TO_JSVAL(str);
 	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "received %u bytes",len);
 	JS_RESUMEREQUEST(cx, rc);
@@ -378,10 +357,8 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_recvline(JSContext *cx, uintN argc, jsval *arglist)
+js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	char*		buf;
 	int			i;
 	int32		len=512;
@@ -389,8 +366,6 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 	JSString*	str;
 	private_t*	p;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -422,7 +397,7 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 	if(str==NULL)
 		return(JS_FALSE);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	*rval = STRING_TO_JSVAL(str);
 	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "received %u bytes (recvline) lasterror=%d"
 		,i,ERROR_VALUE);
@@ -432,10 +407,8 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
+js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	BYTE		b;
 	WORD		w;
 	DWORD		l;
@@ -445,7 +418,7 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 	jsrefcount	rc;
 	int32		timeout=30;	/* seconds */
 
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
+	*rval = INT_TO_JSVAL(-1);
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -462,20 +435,22 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 	switch(size) {
 		case sizeof(BYTE):
 			if((rd=comReadBuf(p->com,(BYTE*)&b,size,NULL,timeout))==size)
-				JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(b));
+				*rval = INT_TO_JSVAL(b);
 			break;
 		case sizeof(WORD):
 			if((rd=comReadBuf(p->com,(BYTE*)&w,size,NULL,timeout))==size) {
 				if(p->network_byte_order)
 					w=ntohs(w);
-				JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(w));
+				*rval = INT_TO_JSVAL(w);
 			}
 			break;
 		case sizeof(DWORD):
 			if((rd=comReadBuf(p->com,(BYTE*)&l,size,NULL,timeout))==size) {
 				if(p->network_byte_order)
 					l=ntohl(l);
-				JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL(l));
+				JS_RESUMEREQUEST(cx, rc);
+				JS_NewNumberValue(cx,l,rval);
+				rc=JS_SUSPENDREQUEST(cx);
 			}
 			break;
 	}
@@ -522,9 +497,8 @@ static char* com_prop_desc[] = {
 };
 #endif
 
-static JSBool js_com_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
+static JSBool js_com_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
     jsint       tiny;
 	private_t*	p;
 	jsrefcount	rc;
@@ -535,8 +509,7 @@ static JSBool js_com_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 		return(JS_TRUE);
 	}
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "setting property %d",tiny);
@@ -581,9 +554,8 @@ static JSBool js_com_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 	return(JS_TRUE);
 }
 
-static JSBool js_com_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+static JSBool js_com_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
     jsint       tiny;
 	private_t*	p;
 	JSString*	js_str;
@@ -596,8 +568,7 @@ static JSBool js_com_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		return(JS_TRUE);
 	}
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	rc=JS_SUSPENDREQUEST(cx);
 #if 0 /* just too much */
@@ -626,7 +597,9 @@ static JSBool js_com_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case COM_PROP_BAUD_RATE:
 			baud_rate=comGetBaudRate(p->com);
-			*vp=UINT_TO_JSVAL(baud_rate);
+			JS_RESUMEREQUEST(cx, rc);
+			JS_NewNumberValue(cx,baud_rate,vp);
+			rc=JS_SUSPENDREQUEST(cx);
 			break;
 		case COM_PROP_DEVICE:
 			JS_RESUMEREQUEST(cx, rc);
@@ -724,23 +697,19 @@ static jsSyncMethodSpec js_com_functions[] = {
 	{0}
 };
 
-static JSBool js_com_resolve(JSContext *cx, JSObject *obj, jsid id)
+static JSBool js_com_resolve(JSContext *cx, JSObject *obj, jsval id)
 {
 	char*			name=NULL;
 
-	if(id != JSID_VOID && id != JSID_EMPTY) {
-		jsval idval;
-		
-		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-	}
+	if(id != JSVAL_NULL)
+		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
 
 	return(js_SyncResolve(cx, obj, name, js_com_properties, js_com_functions, NULL, 0));
 }
 
 static JSBool js_com_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_com_resolve(cx, obj, JSID_VOID));
+	return(js_com_resolve(cx, obj, JSVAL_NULL));
 }
 
 static JSClass js_com_class = {
@@ -759,20 +728,15 @@ static JSClass js_com_class = {
 /* COM Constructor (creates COM descriptor) */
 
 static JSBool
-js_com_constructor(JSContext *cx, uintN argc, jsval *arglist)
+js_com_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSObject *obj;
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t* p;
 	char*	protocol=NULL;
 	char*		fname;
 	JSString*	str;
 
-	obj=JS_NewObject(cx, &js_com_class, NULL, NULL);
-	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
-	if(argc > 0)
-		JSVALUE_TO_STRING(cx, argv[0], fname, NULL);
-	if(argc==0 || fname==NULL) {
+	if(argc==0 || (str = JS_ValueToString(cx, argv[0]))==NULL
+		|| (fname=JS_GetStringBytes(str))==NULL) {
 		JS_ReportError(cx,"Failure reading port name");
 		return(JS_FALSE);
 	}

@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.96 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: exec.cpp,v 1.94 2011/09/10 01:45:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -537,7 +537,7 @@ char * sbbs_t::copystrvar(csi_t *csi, char *p, char *str)
 #ifdef JAVASCRIPT
 
 static JSBool
-js_BranchCallback(JSContext *cx, JSObject *script)
+js_BranchCallback(JSContext *cx, JSScript *script)
 {
 	sbbs_t*		sbbs;
 
@@ -553,7 +553,7 @@ js_BranchCallback(JSContext *cx, JSObject *script)
 	return(js_CommonBranchCallback(cx,&sbbs->js_branch));
 }
 
-#if JS_VERSION>180
+#ifdef USE_JS_OPERATION_CALLBACK
 static JSBool
 js_OperationCallback(JSContext *cx)
 {
@@ -582,7 +582,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	char		cmdline[MAX_PATH+1];
 	char		path[MAX_PATH+1];
 	JSObject*	js_scope=scope;
-	JSObject*	js_script=NULL;
+	JSScript*	js_script=NULL;
 	jsval		rval;
 	int32		result=0;
 
@@ -665,7 +665,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	if(scope==NULL) {
 		js_branch.counter=0;	// Reset loop counter
 
-#if JS_VERSION>180
+#ifdef USE_JS_OPERATION_CALLBACK
 		JS_SetOperationCallback(js_cx, js_OperationCallback);
 #else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
