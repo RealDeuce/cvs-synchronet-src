@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.355 2011/09/14 03:09:44 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.356 2011/09/18 04:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -981,7 +981,7 @@ extern "C" {
 		const char*	version_detail;
 		uint32_t*	interface_addr;
 		uint32_t*	options;
-		volatile ulong* clients;
+		ulong*		clients;
 	} js_server_props_t;
 
 	enum {
