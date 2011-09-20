@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.216 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.215 2011/09/08 02:25:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -907,16 +907,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					if(mode&EX_WWIV) {
                 		bp=wwiv_expand(buf, rd, wwiv_buf, rd, useron.misc, wwiv_flag);
 						if(rd>sizeof(wwiv_buf))
-							lprintf(LOG_ERR,"WWIV_BUF OVERRUN");
+							errorlog("WWIV_BUF OVERRUN");
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
                 		bp=telnet_expand(buf, rd, telnet_buf, rd);
 						if(rd>sizeof(telnet_buf))
-							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
+							errorlog("TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
-						lprintf(LOG_ERR,"output buffer overflow");
+						errorlog("output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
 					RingBufWrite(&outbuf, bp, rd);
@@ -974,16 +974,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					if(mode&EX_WWIV) {
                 		bp=wwiv_expand(buf, rd, wwiv_buf, rd, useron.misc, wwiv_flag);
 						if(rd>sizeof(wwiv_buf))
-							lprintf(LOG_ERR,"WWIV_BUF OVERRUN");
+							errorlog("WWIV_BUF OVERRUN");
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
                 		bp=telnet_expand(buf, rd, telnet_buf, rd);
 						if(rd>sizeof(telnet_buf))
-							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
+							errorlog("TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
-						lprintf(LOG_ERR,"output buffer overflow");
+						errorlog("output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
 					RingBufWrite(&outbuf, bp, rd);
@@ -1781,7 +1781,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	
 		execvp(argv[0],argv);
-		lprintf(LOG_ERR,"Node %d !ERROR %d executing %s",cfg.node_num,errno,argv[0]);
+		sprintf(str,"!ERROR %d executing %s",errno,argv[0]);
+		errorlog(str);
 		_exit(-1);	/* should never get here */
 	}
 
@@ -1906,13 +1907,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
-				lprintf(LOG_ERR,"OUTPUT_BUF OVERRUN");
+				errorlog("OUTPUT_BUF OVERRUN");
 				output_len=sizeof(output_buf);
 			}
 
 			/* Does expanded size fit in the ring buffer? */
 			if(output_len>RingBufFree(&outbuf)) {
-				lprintf(LOG_ERR,"output buffer overflow");
+				errorlog("output buffer overflow");
 				output_len=RingBufFree(&outbuf);
 			}
 
