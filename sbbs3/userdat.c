@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.138 2011/09/23 06:53:26 rswindell Exp $ */
+/* $Id: userdat.c,v 1.137 2011/09/18 21:52:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2748,7 +2748,7 @@ ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* pro
 		if(strcmp(attempt->user,user)==0 && (pass==NULL || strcmp(attempt->pass,pass)==0))
 			attempt->dupes++;
 	}
-	SAFECOPY(attempt->prot,prot);
+	attempt->prot=prot;
 	attempt->time=time(NULL);
 	attempt->addr=addr->sin_addr;
 	SAFECOPY(attempt->user, user);
