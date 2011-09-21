@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.51 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: email.cpp,v 1.53 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	SAFECOPY(title,subj);
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -306,6 +306,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
+	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 

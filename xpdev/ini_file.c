@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.120 2011/07/21 10:47:44 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.121 2011/09/01 20:38:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -365,10 +365,9 @@ BOOL iniRemoveKey(str_list_t* list, const char* section, const char* key)
 
 BOOL iniRemoveValue(str_list_t* list, const char* section, const char* key)
 {
-	size_t	i;
 	char*	vp=NULL;
 
-	i=get_value(*list, section, key, NULL, &vp);
+	get_value(*list, section, key, NULL, &vp);
 
 	if(vp==NULL)
 		return(FALSE);
