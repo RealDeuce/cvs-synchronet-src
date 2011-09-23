@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.51 2011/07/21 11:28:23 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.52 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -388,9 +388,8 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 				set_qwk_flag(QWK_VIA);
 			if(route_circ(p,cfg.sys_id)) {
 				bprintf("\r\nCircular message path: %s\r\n",p);
-				SAFEPRINTF2(str,"Circular message path: %s from %s"
+				lprintf(LOG_ERR,"Circular message path: %s from %s"
 					,p,fromhub ? cfg.qhub[fromhub-1]->id:useron.alias);
-				errorlog(str);
 				strListFree(&kludges);
 				free(body);
 				free(tail);
