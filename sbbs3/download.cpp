@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.45 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: download.cpp,v 1.44 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +101,7 @@ void sbbs_t::downloadfile(file_t* f)
 	/*******************/
 	/* Update IXB File */
 	/*******************/
-	f->datedled=time32(NULL);
+	f->datedled=time(NULL);
 	sprintf(str,"%s%s.ixb",cfg.dir[f->dir]->data_dir,cfg.dir[f->dir]->code);
 	if((file=nopen(str,O_RDWR))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
@@ -160,7 +160,7 @@ void sbbs_t::notdownloaded(ulong size, time_t start, time_t end)
 
 	sprintf(str,"Estimated Time: %s  Transfer Time: %s"
 		,sectostr(cur_cps ? size/cur_cps : 0,tmp)
-		,sectostr((uint)(end-start),tmp2));
+		,sectostr((uint)end-start,tmp2));
 	logline(nulstr,str);
 	if(cfg.leech_pct && cur_cps                 /* leech detection */
 		&& end-start>=cfg.leech_sec
