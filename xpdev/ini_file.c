@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.124 2011/09/30 00:34:41 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.123 2011/09/29 23:55:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -282,7 +282,7 @@ static size_t get_value(str_list_t list, const char* section, const char* key, c
 		if(value!=NULL)
 			sprintf(value,"%.*s",INI_MAX_VALUE_LEN-1,vp);
 		if(vpp!=NULL)
-			*vpp=list[i] + (vp - str);
+			*vpp=list[i] + (str - vp);
 		return(i);
 	}
 
