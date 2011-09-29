@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.219 2011/10/26 09:00:06 deuce Exp $
+# $Id: GNUmakefile,v 1.213 2011/09/05 20:18:32 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -37,6 +37,8 @@ ifeq ($(os),qnx)
  LDFLAGS += -lsocket
 endif
 
+SBBS_LIBS	+=	-lcl
+
 ifdef PREFIX
  CFLAGS += -DPREFIX=$(PREFIX)
 endif
@@ -50,12 +52,70 @@ ifdef DONT_BLAME_SYNCHRONET
 endif
 
 ifeq ($(os),linux)
- SBBS_LIBS += -lutil
  ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
   CFLAGS += -DUSE_LINUX_CAPS
-  CON_LIBS += -lcap
+  SBBS_LIBS += -lcap
  endif
 endif
+
+# JS and NSPR setup stuff...
+ifeq ($(shell nspr-config --version > /dev/null 2>&1 && echo YES),YES)
+ NSPRDIR ?= $(shell nspr-config --libdir)
+ NSPRINCLUDE ?= $(shell nspr-config --includedir)
+endif
+
+ifeq ($(os),sunos)
+ ifeq ($(shell test -f /usr/sfw/lib/mozilla/libmozjs.so && echo "yes"),yes)
+  JSLIBDIR ?= /usr/sfw/lib/mozilla
+  JSLIB ?= mozjs
+ endif
+ ifeq ($(shell test -f /usr/sfw/lib/mozilla/libnspr4.so && echo "yes"),yes)
+  NSPRDIR ?= /usr/sfw/lib/mozilla
+  ifeq ($(shell test -d /usr/sfw/include/mozilla/nspr && echo "yes"),yes)
+   NSPRINCLUDE ?= /usr/sfw/include/mozilla/nspr
+  endif
+ endif
+endif
+
+CFLAGS += -DJAVASCRIPT
+ifdef JSINCLUDE
+ CFLAGS += -I$(JSINCLUDE)
+else
+ CFLAGS += -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)js
+endif
+ifdef NSPRINCLUDE
+ CFLAGS += -I$(NSPRINCLUDE)
+else
+ # Use local NSPR first...
+ CFLAGS += -I/usr/local/include -I$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)include$(DIRSEP)mozilla$(DIRSEP)nspr
+endif
+ifdef CRYPTLIBINCLUDE
+ CFLAGS += -I$(CRYPTLIBINCLUDE)
+else
+ CFLAGS += -I$(SRC_ROOT)/../include/cryptlib
+endif
+ifndef JSLIBDIR
+ JSLIBDIR := $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)js$(DIRSEP)$(machine).$(BUILD)
+endif
+ifndef JSLIB
+ JSLIB	:=	js
+endif
+ifndef NSPRDIR
+ NSPRDIR := $(SRC_ROOT)$(DIRSEP)..$(DIRSEP)lib$(DIRSEP)mozilla$(DIRSEP)nspr$(DIRSEP)$(machine).$(BUILD)
+endif
+JS_LDFLAGS += -L$(JSLIBDIR) -l$(JSLIB)
+#The following is needed for nspr support on Linux
+ifeq ($(os),linux)
+ JS_LDFLAGS	+=	-ldl
+endif
+JS_LDFLAGS	+=	-L/usr/local/lib -L$(NSPRDIR) -lnspr4
+CFLAGS	+=	$(JS_CFLAGS)
+LDFLAGS	+=	$(JS_LDFLAGS)
+
+ifndef CRYPTLIBDIR
+ CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(machine).release
+endif
+LDFLAGS	+=	-L$(CRYPTLIBDIR)
 
 include sbbsdefs.mk
 MT_CFLAGS	+=	$(SBBSDEFS)
@@ -93,21 +153,21 @@ else
  endif
 endif
 
-CFLAGS	+=	$(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) $(JS_CFLAGS) $(CRYPT_CFLAGS)
+CFLAGS	+=	$(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS)
 CFLAGS	+=	-I../comio
 vpath %.c ../comio
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS) $(CRYPT_LDFLAGS)
+LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 	@echo Linking $@
-	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $(MONO_OBJS) $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS) $(JS_LIBS) $(CRYPT_LIBS)
+	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $(MONO_OBJS) $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 
 # Synchronet BBS library Link Rule
-$(SBBS): $(JS_DEPS) $(CRYPT_DEPS) $(OBJS) $(LIBS) | $(LIBODIR)
+$(SBBS): $(OBJS) $(LIBS)
 	@echo Linking $@
-	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS) $(JS_LIBS) $(CRYPT_LIBS)
+	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS)
 
 # FTP Server Link Rule
 $(FTPSRVR): $(MTOBJODIR)/ftpsrvr.o
@@ -140,7 +200,7 @@ $(BAJA): $(BAJA_OBJS)
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(BAJA_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS)
 
 # UnBaja Utility
-$(UNBAJA): $(UNBAJA_OBJS) | $(OBJODIR) $(EXEODIR)
+$(UNBAJA): $(OBJODIR) $(EXEODIR) $(UNBAJA_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(UNBAJA_OBJS) $(XPDEV_LIBS) $(UTIL_LIBS)
 
