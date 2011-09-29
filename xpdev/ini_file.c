@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.121 2011/09/01 20:38:10 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.122 2011/09/29 23:46:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -257,7 +257,7 @@ static char* read_value(FILE* fp, const char* section, const char* key, char* va
 
 static size_t get_value(str_list_t list, const char* section, const char* key, char* value, char** vpp)
 {
-	char	str[INI_MAX_LINE_LEN];
+	char*	str;
 	char*	p;
 	char*	vp;
 	size_t	i;
@@ -270,7 +270,7 @@ static size_t get_value(str_list_t list, const char* section, const char* key, c
 		return 0;
 
 	for(i=find_section(list, section); list[i]!=NULL; i++) {
-		SAFECOPY(str, list[i]);
+		str=list[i];
 		if(is_eof(str))
 			break;
 		if((p=key_name(str,&vp))==NULL)
