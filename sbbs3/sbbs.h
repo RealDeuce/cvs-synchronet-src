@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.348 2011/07/21 11:28:23 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.358 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,14 +116,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include <cryptlib.h>
 #endif
 
-/***********************/
-/* Synchronet-specific */
-/***********************/
-#include "startup.h"
-#ifdef __cplusplus
-	#include "threadwrap.h"	/* pthread_mutex_t */
-#endif
-
 /* xpdev */
 #ifndef LINK_LIST_THREADSAFE
  #define LINK_LIST_THREADSAFE
@@ -135,10 +127,20 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "filewrap.h"
 #include "datewrap.h"
 #include "sockwrap.h"
+#include "eventwrap.h"
 #include "link_list.h"
 #include "msg_queue.h"
 #include "xpdatetime.h"
 
+/***********************/
+/* Synchronet-specific */
+/***********************/
+#include "startup.h"
+#ifdef __cplusplus
+	#include "threadwrap.h"	/* pthread_mutex_t */
+#endif
+
+#include "comio.h"
 #include "smblib.h"
 #include "ars_defs.h"
 #include "scfgdefs.h"
@@ -161,7 +163,7 @@ class sbbs_t
 
 public:
 
-	sbbs_t(ushort node_num, DWORD addr, const char* host_name, SOCKET
+	sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* host_name, SOCKET
 		,scfg_t*, char* text[], client_t* client_info);
 	~sbbs_t();
 
@@ -173,7 +175,7 @@ public:
 	client_t client;
 	SOCKET	client_socket;
 	SOCKET	client_socket_dup;
-	DWORD	client_addr;
+	SOCKADDR_IN	client_addr;
 	char	client_name[128];
 	char	client_ident[128];
 	DWORD	local_addr;
@@ -209,7 +211,7 @@ public:
 	uchar	telnet_local_option[0x100];
 	uchar	telnet_remote_option[0x100];
 	void	send_telnet_cmd(uchar cmd, uchar opt);
-	void	request_telnet_opt(uchar cmd, uchar opt);
+	bool	request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack=0);
 
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
@@ -217,6 +219,7 @@ public:
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
 	char	terminal[TELNET_TERM_MAXLEN+1];
+	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
 	char*	event_code;				// Internal code of next exclusive event
@@ -230,7 +233,7 @@ public:
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	js_branch_t	js_branch;
-	long		js_execfile(const char *fname, const char* startup_dir);
+	long		js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
 	bool		js_init(ulong* stack_frame);
 	void		js_cleanup(const char* node);
 	void		js_create_user_objects(void);
@@ -581,14 +584,22 @@ public:
 	int		putnodedat(uint number, node_t * node);
 	int		putnodeext(uint number, char * str);
 
-	/* logonoff.cpp */
-	bool	answer();
+	/* login.ccp */
 	int		login(char *str, char *pw);
+	void	badlogin(char* user, char* passwd);
+
+	/* answer.cpp */
+	bool	answer();
+
+	/* logon.ccp */
 	bool	logon(void);
+
+	/* logout.cpp */
 	void	logout(void);
-	void	logoff(void);
-	BOOL	newuser(void);					/* Get new user							*/
 	void	backout(void);
+
+	/* newuser.cpp */
+	BOOL	newuser(void);					/* Get new user							*/
 
 	/* text_sec.cpp */
 	int		text_sec(void);						/* Text sections */
@@ -713,11 +724,10 @@ public:
 	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
 	bool	syslog(const char* code, const char *entry);
-	void	errorlog(const char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
-	bool	errorlog_inside;
 	bool	errormsg_inside;
 	void	errormsg(int line, const char *file, const char* action, const char *object
 				,ulong access, const char *extinfo=NULL);
+	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
 	bool	qwklogon;
@@ -834,7 +844,7 @@ extern "C" {
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, char* msgbuf);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
 	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
@@ -970,7 +980,7 @@ extern "C" {
 		const char*	version_detail;
 		uint32_t*	interface_addr;
 		uint32_t*	options;
-		volatile ulong* clients;
+		uint32_t*	clients;
 	} js_server_props_t;
 
 	enum {
@@ -1092,6 +1102,10 @@ extern "C" {
 
 	/* js_conio.c */
 	JSObject* js_CreateConioObject(JSContext* cx, JSObject* parent);
+
+	/* js_com.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCOMClass(JSContext* cx, JSObject* parent);
+	DLLEXPORT JSObject* DLLCALL js_CreateCOMObject(JSContext* cx, JSObject* parent, const char *name, COM_HANDLE sock);
 
 #endif
 
