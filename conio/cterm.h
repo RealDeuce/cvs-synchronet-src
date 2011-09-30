@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.29 2011/09/30 22:05:38 deuce Exp $ */
+/* $Id: cterm.h,v 1.28 2011/09/30 03:18:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,23 +132,23 @@ struct cterminal {
 	int		(*ciolib_cputs)			(struct cterminal *,char *);
 	int		(*ciolib_setfont)		(struct cterminal *,int font, int force, int font_num);
 #else
-	void	CIOLIBCALL (*ciolib_gotoxy)		(int,int);
-	int		CIOLIBCALL (*ciolib_wherex)		(void);
-	int		CIOLIBCALL (*ciolib_wherey)		(void);
-	int		CIOLIBCALL (*ciolib_gettext)		(int,int,int,int,unsigned char *);
-	void	CIOLIBCALL (*ciolib_gettextinfo)	(struct text_info *);
-	void	CIOLIBCALL (*ciolib_textattr)		(int);
-	void	CIOLIBCALL (*ciolib_setcursortype)	(int);
-	int		CIOLIBCALL (*ciolib_movetext)		(int,int,int,int,int,int);
-	void	CIOLIBCALL (*ciolib_clreol)		(void);
-	void	CIOLIBCALL (*ciolib_clrscr)		(void);
-	void	CIOLIBCALL (*ciolib_setvideoflags)	(int flags);
-	int		CIOLIBCALL (*ciolib_getvideoflags)	(void);
-	int		CIOLIBCALL (*ciolib_putch)			(int);
-	int		CIOLIBCALL (*ciolib_puttext)		(int,int,int,int,unsigned char *);
-	void	CIOLIBCALL (*ciolib_window)		(int,int,int,int);
-	int		CIOLIBCALL (*ciolib_cputs)			(char *);
-	int		CIOLIBCALL (*ciolib_setfont)		(int font, int force, int font_num);
+	void	(*ciolib_gotoxy)		(int,int);
+	int		(*ciolib_wherex)		(void);
+	int		(*ciolib_wherey)		(void);
+	int		(*ciolib_gettext)		(int,int,int,int,unsigned char *);
+	void	(*ciolib_gettextinfo)	(struct text_info *);
+	void	(*ciolib_textattr)		(int);
+	void	(*ciolib_setcursortype)	(int);
+	int		(*ciolib_movetext)		(int,int,int,int,int,int);
+	void	(*ciolib_clreol)		(void);
+	void	(*ciolib_clrscr)		(void);
+	void	(*ciolib_setvideoflags)	(int flags);
+	int		(*ciolib_getvideoflags)	(void);
+	int		(*ciolib_putch)			(int);
+	int		(*ciolib_puttext)		(int,int,int,int,unsigned char *);
+	void	(*ciolib_window)		(int,int,int,int);
+	int		(*ciolib_cputs)			(char *);
+	int		(*ciolib_setfont)		(int font, int force, int font_num);
 #endif
 	int 	*_wscroll;
 	int		*puttext_can_move;
