@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.59 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: js_msg_area.c,v 1.58 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,17 +247,15 @@ enum {
 };
 
 
-static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
     jsint       tiny;
 	subscan_t*	scan;
 
 	if((scan=(subscan_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
@@ -274,9 +272,8 @@ static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	return(JS_TRUE);
 }
 
-static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
+static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-	jsval idval;
 	int32		val=0;
     jsint       tiny;
 	subscan_t*	scan;
@@ -284,8 +281,7 @@ static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 	if((scan=(subscan_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-    JS_IdToValue(cx, id, &idval);
-    tiny = JSVAL_TO_INT(idval);
+    tiny = JSVAL_TO_INT(id);
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:

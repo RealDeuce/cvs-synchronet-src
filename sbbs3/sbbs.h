@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.378 2011/10/16 10:15:39 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.360 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,45 +98,30 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #include <sys/stat.h>
 
-#ifdef __unix__
-	#define XP_UNIX
-#else
-	#define XP_PC
-	#define XP_WIN
+#ifdef JAVASCRIPT
+	#ifdef __unix__
+		#define XP_UNIX
+	#else
+		#define XP_PC
+		#define XP_WIN
+	#endif
+#ifndef __cplusplus
+	#include <stdbool.h>
+	#include <inttypes.h>
 #endif
-
-#if defined(JAVASCRIPT)
-#include "comio.h"			/* needed for COM_HANDLE definition only */
-#include <jsversion.h>
-#include <jsapi.h>
-#define JS_DestroyScript(cx,script)
-
-#define JSSTRING_TO_STRING(cx, str, ret, lenptr) \
-{ \
-	size_t			*JSSTSlenptr=lenptr; \
-	size_t			JSSTSlen; \
-	size_t			JSSTSpos; \
-	const jschar	*JSSTSstrval; \
-\
-	if(JSSTSlenptr==NULL) \
-		JSSTSlenptr=&JSSTSlen; \
-	(ret)=NULL; \
-	if((str) != NULL) { \
-		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
-			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
-				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
-					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
-				(ret)[*JSSTSlenptr]=0; \
-			} \
-		} \
-	} \
-}
-
-#define JSVALUE_TO_STRING(cx, val, ret, lenptr) \
-{ \
-	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
-	JSSTRING_TO_STRING((cx), JSVTSstr, (ret), lenptr); \
-}
+	#include <jsversion.h>
+#if JS_VERSION < 185
+	#define JS_THREADSAFE
+#endif
+	#include <jsapi.h>
+#if (JS_VERSION < 185) || (defined __cplusplus)
+	#include <jsprf.h>		/* JS-safe sprintf functions */
+	#include <jsnum.h>		/* JSDOUBLE_IS_NaN() */
+#endif
+#if JS_VERSION >= 185
+	#define JSScript					JSObject
+	#define JS_DestroyScript(cx,script)
+#endif
 
 #endif
 
@@ -168,6 +153,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
 
+#include "comio.h"
 #include "smblib.h"
 #include "ars_defs.h"
 #include "scfgdefs.h"
@@ -1034,8 +1020,9 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
+	DLLEXPORT char*		DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len);
 
-	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v))
+	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NaN(JSVAL_TO_DOUBLE(v))))
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1063,6 +1050,8 @@ extern "C" {
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
 	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
 	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
+	DLLEXPORT char*		DLLCALL JS_GetStringBytes_dumbass(JSContext *cx, JSString *str);
+	#define JS_GetStringBytes(str)	JS_GetStringBytes_dumbass(cx, str)
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
