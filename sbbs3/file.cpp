@@ -2,13 +2,13 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.26 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: file.cpp,v 1.28 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -198,7 +198,7 @@ void sbbs_t::closefile(file_t* f)
 		errormsg(WHERE,ERR_OPEN,str1,O_RDONLY);
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if((buf=(char *)malloc(length))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str1,length);
@@ -276,13 +276,12 @@ extern "C" BOOL filematch(const char *filename, const char *filespec)
 /*****************************************************************************/
 bool sbbs_t::checkfname(char *fname)
 {
-	char 	str[256];
     int		c=0,d;
 
 	if(fname[0]=='-'
 		|| strcspn(fname,ILLEGAL_FILENAME_CHARS)!=strlen(fname)) {
-		SAFEPRINTF(str,"Suspicious filename attempt: '%s'",fname);
-		errorlog(str);
+		lprintf(LOG_WARNING,"Suspicious filename attempt: '%s'",fname);
+		hacklog("Filename", fname);
 		return(false); 
 	}
 	if(strstr(fname,".."))

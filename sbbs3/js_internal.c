@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.47 2009/08/18 23:24:28 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.56 2011/10/08 18:12:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,9 @@
 #include "sbbs.h"
 #include "js_request.h"
 
-#include <jscntxt.h>	/* Needed for Context-private data structure */
+#ifdef _DEBUG
+	#include <jscntxt.h>	/* Needed for Context-private data structure */
+#endif
 
 enum {
 	 PROP_VERSION
@@ -109,14 +111,10 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case PROP_MAXBYTES:
 			JS_NewNumberValue(cx,cx->runtime->gcMaxBytes,vp);
 			break;
-		case PROP_GLOBAL:
-			*vp = OBJECT_TO_JSVAL(cx->globalObject);
-			break;
-#else
-		case PROP_GLOBAL:
-			*vp = OBJECT_TO_JSVAL(JS_GetParent(cx,obj));
-			break;
 #endif
+		case PROP_GLOBAL:
+			*vp = OBJECT_TO_JSVAL(JS_GetGlobalObject(cx));	
+			break;
 	}
 
 	return(JS_TRUE);
@@ -135,7 +133,7 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	switch(tiny) {
 		case PROP_TERMINATED:
 			if(branch->terminated!=NULL)
-				JS_ValueToBoolean(cx, *vp, branch->terminated);
+				JS_ValueToBoolean(cx, *vp, (int *)branch->terminated);
 			break;
 		case PROP_AUTO_TERMINATE:
 			JS_ValueToBoolean(cx,*vp,&branch->auto_terminate);
@@ -226,6 +224,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 		return(JS_FALSE);
 	}
 
+#ifndef USE_JS_OPERATION_CALLBACK
 	/* Give up timeslices every once in a while */
 	if(branch->yield_interval && (branch->counter%branch->yield_interval)==0) {
 		jsrefcount	rc;
@@ -238,6 +237,7 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
 	/* Periodic Garbage Collection */
 	if(branch->gc_interval && (branch->counter%branch->gc_interval)==0)
 		JS_MaybeGC(cx), branch->gc_attempts++;
+#endif
 
     return(JS_TRUE);
 }
@@ -254,7 +254,9 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 	JSObject*		obj;
 	JSErrorReporter	reporter;
 #ifndef EVAL_BRANCH_CALLBACK
+#ifndef USE_JS_OPERATION_CALLBACK
 	JSBranchCallback callback;
+#endif
 #endif
 
 	if(argc<1)
@@ -276,12 +278,20 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 #ifdef EVAL_BRANCH_CALLBACK
 	JS_SetContextPrivate(cx, JS_GetPrivate(parent_cx, parent_obj));
+#if JS_VERSION>180
+	JS_SetOperationCallback(cx, js_OperationCallback);
+#else
 	JS_SetBranchCallback(cx, js_BranchCallback);
+#endif
 #else	/* Use the branch callback from the parent context */
 	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
+#if JS_VERSION>180
+	JS_SetOperationCallback(cx, JS_GetOperationCallback(parent_cx));
+#else
 	callback=JS_SetBranchCallback(parent_cx,NULL);
 	JS_SetBranchCallback(parent_cx, callback);
 	JS_SetBranchCallback(cx, callback);
+#endif
 #endif
 
 	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL
@@ -419,6 +429,23 @@ static JSClass js_internal_class = {
 	,JS_FinalizeStub		/* finalize		*/
 };
 
+#if JS_VERSION >= 185
+char* DLLCALL js_getstring(JSContext *cx, JSString *str)
+{
+	size_t			len;
+	const jschar	*val;
+	char			*ret;
+
+	if(!(val=JS_GetStringCharsAndLength(cx, str, &len)))
+		return NULL;
+	if(!(ret=malloc(len+1))
+		return NULL;
+	memcpy(ret, val, len);
+	ret[len]=0;
+	return ret;
+}
+#endif
+
 void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 {
 	char*	p;
@@ -438,7 +465,8 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 
 	strListFree(&branch->exit_func);
 
-	branch->auto_terminate = auto_terminate;
+	if(auto_terminate)
+		branch->auto_terminate = TRUE;
 }
 
 JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_branch_t* branch, js_startup_t* startup)
@@ -486,7 +514,7 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	return(obj);
 }
 
-void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename)
+void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
 {
 	JSString*	str;
 	jsval		val;
@@ -511,5 +539,10 @@ void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filen
 				JS_DefineProperty(cx, js, "exec_dir", STRING_TO_JSVAL(str)
 					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 		}
+		if(startup_dir==NULL)
+			startup_dir="";
+		if((str=JS_NewStringCopyZ(cx, startup_dir)) != NULL)
+			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
+				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
 }
