@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.244 2011/10/16 12:31:44 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.243 2011/09/08 07:10:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,6 +70,11 @@
 #include <stdlib.h>  /* Is this included from somewhere else? */
 #include <syslog.h>
 
+#endif
+
+/* Services doesn't work without JavaScript support */
+#if !defined(JAVASCRIPT)
+	#define	NO_SERVICES
 #endif
 
 /* Global variables */
