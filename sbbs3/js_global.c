@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.252 2009/10/24 04:58:56 rswindell Exp $ */
+/* $Id: js_global.c,v 1.268 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -76,10 +76,10 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case GLOB_PROP_SOCKET_ERRNO:
-			JS_NewNumberValue(cx,ERROR_VALUE,vp);
+			*vp=DOUBLE_TO_JSVAL(ERROR_VALUE);
 			break;
 		case GLOB_PROP_ERRNO:
-			JS_NewNumberValue(cx,errno,vp);
+			*vp=INT_TO_JSVAL(errno);
 			break;
 		case GLOB_PROP_ERRNO_STR:
 			if((js_str=JS_NewStringCopyZ(cx, strerror(errno)))==NULL)
@@ -166,6 +166,19 @@ static JSBool js_BranchCallback(JSContext *cx, JSScript* script)
 	return js_CommonBranchCallback(cx,&bg->branch);
 }
 
+#if JS_VERSION>180
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
+	return ret;
+}
+#endif
+
 static JSBool
 js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -202,7 +215,7 @@ static jsval* js_CopyValue(JSContext* cx, jsval val, JSContext* new_cx, jsval* r
 	else if(JSVAL_IS_NUMBER(val)) {
 		jsdouble	d;
 		if(JS_ValueToNumber(cx,val,&d))
-			JS_NewNumberValue(new_cx,d,rval);
+			*rval=DOUBLE_TO_JSVAL(d);
 	}
 	else {
 		JSString*	str;
@@ -298,7 +311,11 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		/* Set our branch callback (which calls the generic branch callback) */
 		JS_SetContextPrivate(bg->cx, bg);
+#if JS_VERSION>180
+		JS_SetOperationCallback(bg->cx, js_OperationCallback);
+#else
 		JS_SetBranchCallback(bg->cx, js_BranchCallback);
+#endif
 
 		/* Save parent's 'log' function (for later use by our log function) */
 		if(JS_GetProperty(cx, obj, "log", &val)) {
@@ -350,14 +367,17 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		path[0]=0;	/* Empty path, indicates load file not found (yet) */
 
+		JS_RESUMEREQUEST(cx, rc);
 		if(JS_GetProperty(cx, obj, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val)) {
 			JSObject* js_obj = JSVAL_TO_OBJECT(val);
 			
 			/* if js.exec_dir is defined (location of executed script), search their first */
 			if(JS_GetProperty(cx, js_obj, "exec_dir", &val) && val!=JSVAL_VOID && JSVAL_IS_STRING(val)) {
 				SAFEPRINTF2(path,"%s%s",js_ValueToStringBytes(cx, val, NULL),filename);
+				rc=JS_SUSPENDREQUEST(cx);
 				if(!fexistcase(path))
 					path[0]=0;
+				JS_RESUMEREQUEST(cx, rc);
 			}
 			if(JS_GetProperty(cx, js_obj, JAVASCRIPT_LOAD_PATH_LIST, &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))
 				js_load_list = JSVAL_TO_OBJECT(val);
@@ -374,6 +394,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					if(prefix[0]==0)
 						continue;
 					backslash(prefix);
+					rc=JS_SUSPENDREQUEST(cx);
 					if(isfullpath(prefix)) {
 						SAFEPRINTF2(path,"%s%s",prefix,filename);
 						if(!fexistcase(path))
@@ -384,9 +405,11 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 						if(!fexistcase(path))
 							path[0]=0;
 					}
+					JS_RESUMEREQUEST(cx, rc);
 				}
 			}
 		}
+		rc=JS_SUSPENDREQUEST(cx);
 		/* if mods_dir is defined, search there next */
 		if(path[0]==0 && p->cfg->mods_dir[0]!=0) {
 			SAFEPRINTF2(path,"%s%s",p->cfg->mods_dir,filename);
@@ -399,9 +422,13 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			char		prefix[MAX_PATH+1];
 
 			for(i=0;path[0]==0;i++) {
-				if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID)
+				JS_RESUMEREQUEST(cx, rc);
+				if(!JS_GetElement(cx, js_load_list, i, &val) || val==JSVAL_VOID) {
+					rc=JS_SUSPENDREQUEST(cx);
 					break;
+				}
 				SAFECOPY(prefix,js_ValueToStringBytes(cx, val, NULL));
+				rc=JS_SUSPENDREQUEST(cx);
 				if(prefix[0]==0)
 					continue;
 				backslash(prefix);
@@ -433,6 +460,7 @@ js_load(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		bg->script = script;
 		*rval = OBJECT_TO_JSVAL(js_CreateQueueObject(cx, obj, NULL, bg->msg_queue));
 		JS_ENDREQUEST(bg->cx);
+		JS_ClearContextThread(bg->cx);
 		success = _beginthread(background_thread,0,bg)!=-1;
 
 	} else {
@@ -497,7 +525,7 @@ js_mswait(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	mswait(val);
 	JS_RESUMEREQUEST(cx, rc);
 
-	JS_NewNumberValue(cx,msclock()-start,rval);
+	*rval=UINT_TO_JSVAL(msclock()-start);
 
 	return(JS_TRUE);
 }
@@ -510,14 +538,14 @@ js_random(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc)
 		JS_ValueToInt32(cx,argv[0],&val);
 
-	JS_NewNumberValue(cx,sbbs_random(val),rval);
+	*rval=INT_TO_JSVAL(sbbs_random(val));
 	return(JS_TRUE);
 }
 
 static JSBool
 js_time(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JS_NewNumberValue(cx,time(NULL),rval);
+	*rval=UINT_TO_JSVAL(time(NULL));
 	return(JS_TRUE);
 }
 
@@ -585,7 +613,7 @@ js_crc32(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 	cs=crc32(p,len);
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_NewNumberValue(cx,cs,rval);
+	*rval=UINT_TO_JSVAL(cs);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -608,7 +636,7 @@ js_chksum(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	while(len--) sum+=*(p++);
 	JS_RESUMEREQUEST(cx, rc);
 
-	JS_NewNumberValue(cx,sum,rval);
+	*rval=DOUBLE_TO_JSVAL((double)sum);
 	return(JS_TRUE);
 }
 
@@ -851,14 +879,14 @@ js_quote_msg(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argc>2)
 		prefix=js_ValueToStringBytes(cx, argv[2], NULL);
 
-	if((outbuf=(char*)malloc((strlen(inbuf)*strlen(prefix))+1))==NULL)
+	if((outbuf=(char*)malloc((strlen(inbuf)*(strlen(prefix)+1))+1))==NULL)
 		return(JS_FALSE);
 
 	len-=strlen(prefix);
 	if(len<=0)
 		return(JS_FALSE);
 
-	if((linebuf=(char*)alloca(len*2+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
+	if((linebuf=(char*)alloca((len*3)+2))==NULL)	/* (Hopefully) Room for ^A codes.  ToDo */
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -2480,7 +2508,7 @@ js_fattr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	attr=getfattr(p);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,attr,rval);
+	*rval=INT_TO_JSVAL(attr);
 	return(JS_TRUE);
 }
 
@@ -2500,7 +2528,7 @@ js_fdate(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	fd=fdate(p);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,fd,rval);
+	*rval=DOUBLE_TO_JSVAL((double)fd);
 	return(JS_TRUE);
 }
 
@@ -2544,7 +2572,7 @@ static JSBool
 js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		p;
-	long		fl;
+	off_t		fl;
 	jsrefcount	rc;
 
 	if(JSVAL_IS_VOID(argv[0]))
@@ -2556,7 +2584,7 @@ js_flength(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	fl=flength(p);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,fl,rval);
+	*rval=DOUBLE_TO_JSVAL((double)fl);
 	return(JS_TRUE);
 }
 
@@ -2735,7 +2763,7 @@ js_freediskspace(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	rc=JS_SUSPENDREQUEST(cx);
 	fd=getfreediskspace(p,unit);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,fd,rval);
+	*rval=DOUBLE_TO_JSVAL((double)fd);
 
     return(JS_TRUE);
 }
@@ -2760,11 +2788,10 @@ js_disksize(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	ds=getdisksize(p,unit);
 	JS_RESUMEREQUEST(cx, rc);
-	JS_NewNumberValue(cx,ds,rval);
+	*rval=DOUBLE_TO_JSVAL((double)ds);
 
     return(JS_TRUE);
 }
-
 
 static JSBool
 js_socket_select(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2928,9 +2955,8 @@ js_strftime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	strcpy(str,"-Invalid time-");
 	t=i;
-	if(localtime_r(&t,&tm)==NULL)
-		memset(&tm,0,sizeof(tm));
-	strftime(str,sizeof(str),fmt,&tm);
+	if(localtime_r(&t,&tm)!=NULL)
+		strftime(str,sizeof(str),fmt,&tm);
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((js_str=JS_NewStringCopyZ(cx, str))==NULL)
@@ -3014,7 +3040,8 @@ js_list_named_queues(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	for(node=listFirstNode(&named_queues);node!=NULL;node=listNextNode(node)) {
+	listLock(&named_queues);
+	for(node=named_queues.first;node!=NULL;node=node->next) {
 		if((q=listNodeData(node))==NULL)
 			continue;
 		JS_RESUMEREQUEST(cx, rc);
@@ -3025,6 +3052,7 @@ js_list_named_queues(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 		}
 		rc=JS_SUSPENDREQUEST(cx);
 	}
+	listUnlock(&named_queues);
 	JS_RESUMEREQUEST(cx, rc);
 
     *rval = OBJECT_TO_JSVAL(array);
@@ -3048,7 +3076,7 @@ js_flags_str(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		if((p=JS_GetStringBytes(JSVAL_TO_STRING(argv[0])))==NULL) 
 			return(JS_FALSE);
 
-		JS_NewNumberValue(cx,aftol(p),rval);
+		*rval=DOUBLE_TO_JSVAL((double)aftol(p));
 		return(JS_TRUE);
 	}
 
@@ -3597,6 +3625,10 @@ JSObject* DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 	/* User class */
 	if(js_CreateUserClass(js_cx, js_glob, cfg)==NULL) 
+		return(NULL);
+
+	/* COM Class */
+	if(js_CreateCOMClass(js_cx, js_glob)==NULL)
 		return(NULL);
 
 	/* Area Objects */

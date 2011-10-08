@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.56 2009/10/06 03:10:10 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.58 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -205,8 +205,7 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
 
-	if(!JS_NewNumberValue(cx,sub->misc,&val))
-		return(FALSE);
+	val=UINT_TO_JSVAL(sub->misc);
 	if(!JS_DefineProperty(cx, subobj, "settings", val
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
@@ -260,13 +259,13 @@ static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
-			JS_NewNumberValue(cx,scan->ptr,vp);
+			*vp=UINT_TO_JSVAL(scan->ptr);
 			break;
 		case SUB_PROP_SCAN_CFG:
-			JS_NewNumberValue(cx,scan->cfg,vp);
+			*vp=UINT_TO_JSVAL(scan->cfg);
 			break;
 		case SUB_PROP_LAST_READ:
-			JS_NewNumberValue(cx,scan->last,vp);
+			*vp=UINT_TO_JSVAL(scan->last);
 			break;
 	}
 
@@ -305,7 +304,7 @@ static struct JSPropertySpec js_sub_properties[] = {
 
 	{	"scan_ptr"	,SUB_PROP_SCAN_PTR	,JSPROP_ENUMERATE|JSPROP_SHARED },
 	{	"scan_cfg"	,SUB_PROP_SCAN_CFG	,JSPROP_ENUMERATE|JSPROP_SHARED },
-	{	"lead_read"	,SUB_PROP_LAST_READ	,JSPROP_ENUMERATE|JSPROP_SHARED },
+	{	"last_read"	,SUB_PROP_LAST_READ	,JSPROP_ENUMERATE|JSPROP_SHARED },
 	{0}
 };
 

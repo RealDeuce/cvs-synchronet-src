@@ -2,13 +2,13 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.50 2009/10/25 02:55:51 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.53 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,7 +50,7 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,DEFFILEMODE))==-1)
 		return(FALSE);
 
-	sprintf(hdr,"SUSPECTED %s HACK ATTEMPT from %s on %.24s\r\nUsing port %u at %s [%s]\r\nDetails: "
+	sprintf(hdr,"SUSPECTED %s HACK ATTEMPT for user '%s' on %.24s\r\nUsing port %u at %s [%s]\r\nDetails: "
 		,prot
 		,user
 		,timestr(cfg,now,tstr)
@@ -65,6 +65,11 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 	close(file);
 
 	return(TRUE);
+}
+
+BOOL sbbs_t::hacklog(char* prot, char* text)
+{
+	return ::hacklog(&cfg, prot, useron.alias, text, client_name, &client_addr);
 }
 
 extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
@@ -182,15 +187,23 @@ bool sbbs_t::syslog(const char* code, const char *entry)
 }
 
 /****************************************************************************/
-/* Writes 'str' on it's own line in node.log								*/
+/* Writes 'str' on it's own line in node.log (using LOG_INFO level)			*/
 /****************************************************************************/
 void sbbs_t::logline(const char *code, const char *str)
 {
+	logline(LOG_INFO, code, str);
+}
+
+/****************************************************************************/
+/* Writes 'str' on it's own line in node.log								*/
+/****************************************************************************/
+void sbbs_t::logline(int level, const char *code, const char *str)
+{
 	if(strchr(str,'\n')==NULL) {	// Keep the console log pretty
 		if(online==ON_LOCAL)
-			eprintf(LOG_INFO,"%s",str);
+			eprintf(level,"%s",str);
 		else
-			lprintf(LOG_INFO,"Node %d %s", cfg.node_num, str);
+			lprintf(level,"Node %d %s", cfg.node_num, str);
 	}
 	if(logfile_fp==NULL || (online==ON_LOCAL && strcmp(code,"!!"))) return;
 	if(logcol!=1)
@@ -274,18 +287,6 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 		CRLF;
 	}
 	safe_snprintf(str,sizeof(str),"ERROR %s %s", action, object);
-	errorlog(str);
-	errormsg_inside=false;
-}
-
-/*****************************************************************************/
-/* Error logging to NODE.LOG and DATA\ERROR.LOG function                     */
-/*****************************************************************************/
-void sbbs_t::errorlog(const char *text)
-{
-	if(errorlog_inside)		/* let's not go recursive on this puppy */
-		return;
-	errorlog_inside=1;
 	if(cfg.node_num>0) {
 		getnodedat(cfg.node_num,&thisnode,1);
 		if(thisnode.errors<UCHAR_MAX)
@@ -298,10 +299,10 @@ void sbbs_t::errorlog(const char *text)
 	if(logfile_fp!=NULL) {
 		if(logcol!=1)
 			fprintf(logfile_fp,"\r\n");
-		fprintf(logfile_fp,"%!! %s\r\n",text);
+		fprintf(logfile_fp,"!! %s\r\n",str);
 		logcol=1;
 		fflush(logfile_fp);
 	}
-	errorlog_inside=0;
-}
 
+	errormsg_inside=false;
+}

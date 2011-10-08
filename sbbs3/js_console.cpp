@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.87 2009/07/19 02:45:18 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.88 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1448,7 +1448,7 @@ js_term_supports(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		rc=JS_SUSPENDREQUEST(cx);
 		flags=sbbs->term_supports();
 		JS_RESUMEREQUEST(cx, rc);
-		JS_NewNumberValue(cx,flags,rval);
+		*rval=INT_TO_JSVAL(flags);
 	}
 
     return(JS_TRUE);

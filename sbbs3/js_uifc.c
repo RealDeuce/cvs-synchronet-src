@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.15 2008/12/09 09:48:48 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.16 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,7 +77,7 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp=BOOLEAN_TO_JSVAL(uifc->initialized);
 			break;
 		case PROP_MODE:
-			JS_NewNumberValue(cx,uifc->mode,vp);
+			*vp=UINT_TO_JSVAL(uifc->mode);
 			break;
 		case PROP_CHANGES:
 			*vp=BOOLEAN_TO_JSVAL(uifc->changes);

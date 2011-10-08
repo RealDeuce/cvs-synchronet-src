@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.131 2009/01/09 00:25:57 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.138 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -700,13 +700,12 @@ js_recvfrom(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 					data_val = INT_TO_JSVAL(w);
 				}
 				break;
+			default:
 			case sizeof(DWORD):
 				if((rd=recvfrom(p->sock,(BYTE*)&l,len,0,(SOCKADDR*)&addr,&addrlen))==len) {
 					if(p->network_byte_order)
 						l=ntohl(l);
-					JS_RESUMEREQUEST(cx, rc);
-					JS_NewNumberValue(cx,l,&data_val);
-					rc=JS_SUSPENDREQUEST(cx);
+					data_val=UINT_TO_JSVAL(l);
 				}
 				break;
 		}
@@ -849,7 +848,7 @@ js_recvline(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(argc>1 && argv[1]!=JSVAL_VOID)
-		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
+		JS_ValueToInt32(cx,argv[1],&timeout);
 
 	start=time(NULL);
 	rc=JS_SUSPENDREQUEST(cx);
@@ -942,9 +941,7 @@ js_recvbin(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 			if((rd=recv(p->sock,(BYTE*)&l,size,0))==size) {
 				if(p->network_byte_order)
 					l=ntohl(l);
-				JS_RESUMEREQUEST(cx, rc);
-				JS_NewNumberValue(cx,l,rval);
-				rc=JS_SUSPENDREQUEST(cx);
+				rval = UINT_TO_JSVAL(l);
 			}
 			break;
 	}
@@ -993,9 +990,7 @@ js_getsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 			else
 				val = 0;
 		}
-		JS_RESUMEREQUEST(cx, rc);
-		JS_NewNumberValue(cx,val,rval);
-		rc=JS_SUSPENDREQUEST(cx);
+		*rval = INT_TO_JSVAL(val);
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "error %d getting option %d"
@@ -1054,7 +1049,7 @@ js_setsockopt(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 static JSBool
 js_ioctlsocket(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	int32		cmd;
+	int32		cmd=0;
 	int32		arg=0;
 	private_t*	p;
 	jsrefcount	rc;
@@ -1072,7 +1067,7 @@ js_ioctlsocket(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rva
 	rc=JS_SUSPENDREQUEST(cx);
 	if(ioctlsocket(p->sock,cmd,(ulong*)&arg)==0) {
 		JS_RESUMEREQUEST(cx, rc);
-		JS_NewNumberValue(cx,arg,rval);
+		*rval=INT_TO_JSVAL(arg);
 	}
 	else {
 		*rval = INT_TO_JSVAL(-1);
@@ -1186,8 +1181,8 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	BOOL		b;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
+		// Prototype access
+		return(JS_TRUE);
 	}
 
     tiny = JSVAL_TO_INT(id);
@@ -1202,6 +1197,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SOCK_PROP_DESCRIPTOR:
 			JS_ValueToInt32(cx,*vp,(int32*)&(p->sock));
+			p->is_connected=TRUE;
 			break;
 		case SOCK_PROP_LAST_ERROR:
 			JS_ValueToInt32(cx,*vp,(int32*)&(p->last_error));
@@ -1238,8 +1234,8 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	jsrefcount	rc;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
+		// Protoype access
+		return(JS_TRUE);
 	}
 
     tiny = JSVAL_TO_INT(id);
@@ -1270,9 +1266,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		case SOCK_PROP_NREAD:
 			cnt=0;
 			if(ioctlsocket(p->sock, FIONREAD, &cnt)==0) {
-				JS_RESUMEREQUEST(cx, rc);
-				JS_NewNumberValue(cx,cnt,vp);
-				rc=JS_SUSPENDREQUEST(cx);
+				*vp=DOUBLE_TO_JSVAL((double)cnt);
 			}
 			else
 				*vp = JSVAL_ZERO;

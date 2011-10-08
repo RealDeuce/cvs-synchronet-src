@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.126 2009/03/21 02:37:01 rswindell Exp $ */
+/* $Id: js_system.c,v 1.136 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -138,7 +138,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			p=cfg->sys_id;
 			break;
 		case SYS_PROP_MISC:
-			JS_NewNumberValue(cx,cfg->sys_misc,vp);
+			*vp=UINT_TO_JSVAL(cfg->sys_misc);
 			break;
 		case SYS_PROP_PSNAME:
 			p=cfg->sys_psname;
@@ -182,7 +182,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			else
 				val = getfreediskspace(cfg->temp_dir,1024);
 			JS_RESUMEREQUEST(cx, rc);
-			JS_NewNumberValue(cx,val,vp);
+			*vp=DOUBLE_TO_JSVAL((double)val);
 			break;
 
 		case SYS_PROP_NEW_PASS:
@@ -213,10 +213,10 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = INT_TO_JSVAL(cfg->new_exempt);
 			break;
 		case SYS_PROP_NEW_CDT:
-			JS_NewNumberValue(cx,cfg->new_cdt,vp);
+			*vp=UINT_TO_JSVAL(cfg->new_cdt);
 			break;
 		case SYS_PROP_NEW_MIN:
-			JS_NewNumberValue(cx,cfg->new_min,vp);
+			*vp=UINT_TO_JSVAL(cfg->new_min);
 			break;
 		case SYS_PROP_NEW_SHELL:
 			if(cfg->new_shell<cfg->total_shells)
@@ -226,17 +226,17 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			p=cfg->new_xedit;
 			break;
 		case SYS_PROP_NEW_MISC:
-			JS_NewNumberValue(cx,cfg->new_misc,vp);
+			*vp=UINT_TO_JSVAL(cfg->new_misc);
 			break;
 		case SYS_PROP_NEW_PROT:
 			sprintf(str,"%c",cfg->new_prot);
 			p=str;
 			break;
 		case SYS_PROP_NEW_EXPIRE:
-			JS_NewNumberValue(cx,cfg->new_expire,vp);
+			*vp=UINT_TO_JSVAL(cfg->new_expire);
 			break;
 		case SYS_PROP_NEW_UQ:
-			JS_NewNumberValue(cx,cfg->uq,vp);
+			*vp=UINT_TO_JSVAL(cfg->uq);
 			break;
 
 		case SYS_PROP_EXPIRED_LEVEL:
@@ -299,13 +299,13 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 
 		case SYS_PROP_CLOCK:
-			JS_NewNumberValue(cx,msclock(),vp);
+			*vp=DOUBLE_TO_JSVAL((double)msclock());
 			break;
 		case SYS_PROP_CLOCK_PER_SEC:
-			JS_NewNumberValue(cx,MSCLOCKS_PER_SEC,vp);
+			*vp=UINT_TO_JSVAL(MSCLOCKS_PER_SEC);
 			break;
 		case SYS_PROP_TIMER:
-			JS_NewNumberValue(cx,xp_timer(),vp);
+			*vp=DOUBLE_TO_JSVAL(xp_timer());
 			break;
 
 		case SYS_PROP_LOCAL_HOSTNAME:
@@ -503,6 +503,7 @@ static char* sys_prop_desc[] = {
 	,"Synchronet version number in decimal (e.g. 31301 for v3.13b)"
 	,"Synchronet version number in hexadecimal (e.g. 0x31301 for v3.13b)"
 	,"platform description (e.g. 'Win32', 'Linux', 'FreeBSD')"
+	,"architecture description (e.g. 'i386', 'i686', 'x86_64')"
 	,"socket library version information"
 	,"message base library version information"
 	,"compiler used to build Synchronet"
@@ -563,40 +564,40 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 	switch(tiny) {
 		case SYSSTAT_PROP_LOGONS:
-			JS_NewNumberValue(cx,stats.logons,vp);
+			*vp=UINT_TO_JSVAL(stats.logons);
 			break;
 		case SYSSTAT_PROP_LTODAY:
-			JS_NewNumberValue(cx,stats.ltoday,vp);
+			*vp=UINT_TO_JSVAL(stats.ltoday);
 			break;
 		case SYSSTAT_PROP_TIMEON:
-			JS_NewNumberValue(cx,stats.timeon,vp);
+			*vp=UINT_TO_JSVAL(stats.timeon);
 			break;
 		case SYSSTAT_PROP_TTODAY:
-			JS_NewNumberValue(cx,stats.ttoday,vp);
+			*vp=UINT_TO_JSVAL(stats.ttoday);
 			break;
 		case SYSSTAT_PROP_ULS:
-			JS_NewNumberValue(cx,stats.uls,vp);
+			*vp=UINT_TO_JSVAL(stats.uls);
 			break;
 		case SYSSTAT_PROP_ULB:
-			JS_NewNumberValue(cx,stats.ulb,vp);
+			*vp=UINT_TO_JSVAL(stats.ulb);
 			break;
 		case SYSSTAT_PROP_DLS:
-			JS_NewNumberValue(cx,stats.dls,vp);
+			*vp=UINT_TO_JSVAL(stats.dls);
 			break;
 		case SYSSTAT_PROP_DLB:
-			JS_NewNumberValue(cx,stats.dlb,vp);
+			*vp=UINT_TO_JSVAL(stats.dlb);
 			break;
 		case SYSSTAT_PROP_PTODAY:
-			JS_NewNumberValue(cx,stats.ptoday,vp);
+			*vp=UINT_TO_JSVAL(stats.ptoday);
 			break;
 		case SYSSTAT_PROP_ETODAY:
-			JS_NewNumberValue(cx,stats.etoday,vp);
+			*vp=UINT_TO_JSVAL(stats.etoday);
 			break;
 		case SYSSTAT_PROP_FTODAY:
-			JS_NewNumberValue(cx,stats.ftoday,vp);
+			*vp=UINT_TO_JSVAL(stats.ftoday);
 			break;
 		case SYSSTAT_PROP_NUSERS:
-			JS_NewNumberValue(cx,stats.nusers,vp);
+			*vp=UINT_TO_JSVAL(stats.nusers);
 			break;
 
 		case SYSSTAT_PROP_TOTALUSERS:
@@ -610,7 +611,7 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			for(i=0;i<cfg->total_subs;i++)
 				l+=getposts(cfg,i); 
 			JS_RESUMEREQUEST(cx, rc);
-			JS_NewNumberValue(cx,l,vp); 
+			*vp=DOUBLE_TO_JSVAL((double)l); 
 			break;
 		case SYSSTAT_PROP_TOTALFILES:
 			l=0;
@@ -618,7 +619,7 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			for(i=0;i<cfg->total_dirs;i++)
 				l+=getfiles(cfg,i);
 			JS_RESUMEREQUEST(cx, rc);
-			JS_NewNumberValue(cx,l,vp);
+			*vp=DOUBLE_TO_JSVAL((double)l);
 			break;
 		case SYSSTAT_PROP_TOTALMAIL:
 			rc=JS_SUSPENDREQUEST(cx);
@@ -770,7 +771,6 @@ js_username(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-
 static JSBool
 js_matchuser(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -812,6 +812,8 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	int			len;
 	scfg_t*		cfg;
 	jsrefcount	rc;
+	BOOL		match_next=FALSE;
+	int 		argnum=2;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -820,24 +822,28 @@ js_matchuserdata(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	rc=JS_SUSPENDREQUEST(cx);
 	len=user_rec_len(offset);
 	JS_RESUMEREQUEST(cx, rc);
-	if(len<0)
+	if(len<0) {
+		JS_ReportError(cx,"Invalid user data offset: %d", offset);
 		return(JS_FALSE);
+	}
 
 	if((js_str=JS_ValueToString(cx, argv[1]))==NULL) {
 		*rval = INT_TO_JSVAL(0);
 		return(JS_TRUE);
 	}
 
-	if(argc>2)
-		JS_ValueToInt32(cx,argv[2],&usernumber);
-
+	if(JSVAL_IS_NUMBER(argv[argnum]))
+		JS_ValueToInt32(cx, argv[argnum++], &usernumber);
+	if(JSVAL_IS_BOOLEAN(argv[argnum]))
+		JS_ValueToBoolean(cx, argv[argnum], &match_next);
+		
 	if((p=JS_GetStringBytes(js_str))==NULL) {
 		*rval = INT_TO_JSVAL(0);
 		return(JS_TRUE);
 	}
-
+	
 	rc=JS_SUSPENDREQUEST(cx);
-	*rval = INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE /* deleted users */));
+	*rval = INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -916,7 +922,6 @@ js_findstr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-
 static JSBool
 js_zonestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -976,7 +981,6 @@ js_timestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
-
 /* Returns a mm/dd/yy or dd/mm/yy formated string */
 static JSBool
 js_datestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -993,7 +997,7 @@ js_datestr(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		t=time(NULL);	/* use current time */
 	else {
 		if(JSVAL_IS_STRING(argv[0])) {	/* convert from string to time_t? */
-			JS_NewNumberValue(cx,dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))),rval);
+			*rval = DOUBLE_TO_JSVAL((double)dstrtounix(cfg,JS_GetStringBytes(JS_ValueToString(cx, argv[0]))));
 			return(JS_TRUE);
 		}
 		JS_ValueToInt32(cx,argv[0],(int32*)&t);
@@ -1196,7 +1200,6 @@ js_get_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval
 	return(JS_TRUE);
 }
 
-
 static JSBool
 js_put_node_message(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -1293,10 +1296,12 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char*		alias;
 	int			i;
+	uintN		n;
 	scfg_t*		cfg;
 	user_t		user;
 	JSObject*	userobj;
 	jsrefcount	rc;
+	client_t*	client=NULL;
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -1311,6 +1316,21 @@ js_new_user(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	memset(&user,0,sizeof(user));
+	for(n=0;n<argc;n++) {
+		if(JSVAL_IS_OBJECT(argv[n])) {
+			JSClass*	cl;
+			JSObject*	objarg = JSVAL_TO_OBJECT(argv[n]);
+			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0) {
+				client=JS_GetPrivate(cx,objarg);
+				continue;
+			}
+		}
+	}
+	if(client!=NULL) {
+		SAFECOPY(user.modem,client->protocol);
+		SAFECOPY(user.comp,client->host);
+		SAFECOPY(user.note,client->addr);
+	}
 
 	user.sex=' ';
 	SAFECOPY(user.alias,alias);
@@ -1455,6 +1475,47 @@ js_chkname(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	return(JS_TRUE);
 }
 
+static JSBool 
+js_chkpid(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	int32		pid=0;
+	jsrefcount	rc;
+
+	*rval = JSVAL_FALSE;
+
+	if(argc<1)
+		return(JS_TRUE);
+
+	JS_ValueToInt32(cx,argv[0],&pid);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	*rval = BOOLEAN_TO_JSVAL(check_pid(pid));
+	JS_RESUMEREQUEST(cx, rc);
+
+	return(JS_TRUE);
+}
+
+static JSBool 
+js_killpid(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	int32		pid=0;
+	jsrefcount	rc;
+
+	*rval = JSVAL_FALSE;
+
+	if(argc<1)
+		return(JS_TRUE);
+
+	JS_ValueToInt32(cx,argv[0],&pid);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	*rval = BOOLEAN_TO_JSVAL(terminate_pid(pid));
+	JS_RESUMEREQUEST(cx, rc);
+
+	return(JS_TRUE);
+}
+
+
 static jsSyncMethodSpec js_system_functions[] = {
 	{"username",		js_username,		1,	JSTYPE_STRING,	JSDOCSTR("number")
 	,JSDOCSTR("returns name of user in specified user record <i>number</i>, or empty string if not found")
@@ -1469,13 +1530,14 @@ static jsSyncMethodSpec js_system_functions[] = {
 		" or 0 if not found, matches well-known sysop aliases by default")
 	,310
 	},		
-	{"matchuserdata",	js_matchuserdata,	2,	JSTYPE_NUMBER,	JSDOCSTR("field, data [,usernumber]")
-	,JSDOCSTR("search user database for data in a specific field (specified by offset), "
-		"returns first matching user record number, optional <i>usernumber</i> specifies user record to skip")
+	{"matchuserdata",	js_matchuserdata,	2,	JSTYPE_NUMBER,	JSDOCSTR("field, data [,usernumber, match_next=<tt>false</tt>]")
+	,JSDOCSTR("search user database for data in a specific field (see <tt>U_*</tt> in <tt>sbbsdefs.js</tt>), "
+		"returns first matching user record number, optional <i>usernumber</i> specifies user record to skip, "
+		"or record at which to begin searching if optional <i>match_next</i> is <tt>true</tt>")
 	,310
 	},
-	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
-	,JSDOCSTR("search text/filename.can for pseudo-regexp")
+	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("basename, find_string")
+	,JSDOCSTR("search <tt>text/<i>basename</i>.can</tt> for pseudo-regexp")
 	,310
 	},		
 	{"findstr",			js_findstr,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename, find_string")
@@ -1530,9 +1592,9 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,310
 	},		
 	{"newuser",			js_new_user,		1,	JSTYPE_ALIAS },
-	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias")
+	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias [,client object]")
 	,JSDOCSTR("creates a new user record, returns a new <a href=#User>User</a> object representing the new user account, on success.<br>"
-	"returns an numeric error code on failure")
+	"returns an numeric error code on failure (optional <i>client</i> object argument added in v3.15a)")
 	,310
 	},
 	{"exec",			js_exec,			1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
@@ -1545,12 +1607,22 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,311
 	},
 	{"check_syspass",	js_chksyspass,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("password")
-	,JSDOCSTR("compares the supplied <i>password</i> against the system password and return's <i>true</i> if it matches")
+	,JSDOCSTR("compares the supplied <i>password</i> against the system password and returns <i>true</i> if it matches")
 	,311
 	},
 	{"check_name",		js_chkname,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("name/alias")
 	,JSDOCSTR("checks that the provided name/alias string is suitable for a new user account, "
 		"returns <i>true</i> if it is valid")
+	,315
+	},
+	{"check_pid",		js_chkpid,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("process-ID")
+	,JSDOCSTR("checks that the provided process ID is a valid executing process on the system, "
+		"returns <i>true</i> if it is valid")
+	,315
+	},
+	{"terminate_pid",	js_killpid,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("process-ID")
+	,JSDOCSTR("terminates executing process on the system with the specified process ID, "
+		"returns <i>true</i> on success")
 	,315
 	},
 	{0}
@@ -1642,7 +1714,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp = INT_TO_JSVAL((int)node.aux);
 			break;
 		case NODE_PROP_EXTAUX:	
-			JS_NewNumberValue(cx,node.extaux,vp);
+			*vp=UINT_TO_JSVAL(node.extaux);
 			break;
 		case NODE_PROP_DIR:
 			if((js_str=JS_NewStringCopyZ(cx, cfg->node_path[node_num-1]))==NULL)
@@ -1768,7 +1840,7 @@ static JSClass js_node_class = {
 
 #define LAZY_INTEGER(PropName, PropValue) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
-		JS_NewNumberValue(cx,(PropValue),&val); \
+		val=UINT_TO_JSVAL((PropValue)); \
 		JS_DefineProperty(cx, obj, (PropName), val, NULL,NULL,JSPROP_ENUMERATE); \
 		if(name) return(JS_TRUE); \
 	}
@@ -1843,6 +1915,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsval id)
 	LAZY_INTEGER("version_hex", VERSION_HEX);
 
 	LAZY_STRING("platform", PLATFORM_DESC);
+	LAZY_STRING("architecture", ARCHITECTURE_DESC);
 	LAZY_STRFUNC("msgbase_lib", sprintf(str,"SMBLIB %s",smb_lib_ver()), str);
 	LAZY_STRFUNC("compiled_with", DESCRIBE_COMPILER(str), str);
 	LAZY_STRFUNC("compiled_when", sprintf(str,"%s %.5s",__DATE__,__TIME__), str);
@@ -1981,7 +2054,7 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	/***********************/
 
-	JS_NewNumberValue(cx,uptime,&val);
+	val=DOUBLE_TO_JSVAL((double)uptime);
 	if(!JS_SetProperty(cx, sysobj, "uptime", &val))
 		return(NULL);
 

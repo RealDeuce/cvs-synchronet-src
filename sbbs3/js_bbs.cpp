@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.116 2009/04/08 22:39:19 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.119 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,6 +247,7 @@ enum {
 
 static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
+	char		tmp[128];
 	const char*	p=NULL;
 	const char*	nulstr="";
 	ulong		val=0;
@@ -478,7 +479,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(sbbs->current_msg==NULL || sbbs->current_msg->to_net.type==NET_NONE)
 				p=nulstr;
 			else
-				p=smb_netaddr(&sbbs->current_msg->to_net);
+				p=smb_netaddrstr(&sbbs->current_msg->to_net,tmp);
 			break;
 		case BBS_PROP_MSG_TO_AGENT:
 			if(sbbs->current_msg!=NULL)
@@ -500,7 +501,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(sbbs->current_msg==NULL || sbbs->current_msg->from_net.type==NET_NONE)
 				p=nulstr;
 			else
-				p=smb_netaddr(&sbbs->current_msg->from_net);
+				p=smb_netaddrstr(&sbbs->current_msg->from_net,tmp);
 			break;
 		case BBS_PROP_MSG_FROM_AGENT:
 			if(sbbs->current_msg!=NULL)
@@ -522,7 +523,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			if(sbbs->current_msg==NULL || sbbs->current_msg->replyto_net.type==NET_NONE)
 				p=nulstr;
 			else
-				p=smb_netaddr(&sbbs->current_msg->replyto_net);
+				p=smb_netaddrstr(&sbbs->current_msg->replyto_net,tmp);
 			break;
 		case BBS_PROP_MSG_REPLYTO_AGENT:
 			if(sbbs->current_msg!=NULL)
@@ -624,7 +625,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			return(JS_FALSE);
 		*vp = STRING_TO_JSVAL(js_str);
 	} else
-		JS_NewNumberValue(cx,val,vp);
+		*vp = UINT_TO_JSVAL(val);
 
 	return(JS_TRUE);
 }
@@ -2856,7 +2857,7 @@ js_getnstime(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	rc=JS_SUSPENDREQUEST(cx);
 	if(sbbs->inputnstime(&t)==true) {
 		JS_RESUMEREQUEST(cx, rc);
-		JS_NewNumberValue(cx,t,rval);
+		*rval=DOUBLE_TO_JSVAL((double)t);
 	}
 	else
 		JS_RESUMEREQUEST(cx, rc);
@@ -2907,6 +2908,32 @@ js_get_time_left(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 	*rval = INT_TO_JSVAL(sbbs->gettimeleft());
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
+}
+
+static JSBool
+js_chk_ar(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	uchar*		ar;
+	JSString*	js_str;
+	sbbs_t*		sbbs;
+	jsrefcount	rc;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return JS_FALSE;
+
+	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
+		return JS_FALSE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	ar = arstr(NULL,JS_GetStringBytes(js_str),&sbbs->cfg);
+
+	*rval = BOOLEAN_TO_JSVAL(sbbs->chk_ar(ar,&sbbs->useron,&sbbs->client));
+
+	if(ar!=NULL && ar!=nular)
+		free(ar);
+	JS_RESUMEREQUEST(cx, rc);
+
+	return JS_TRUE;
 }
 
 static jsSyncMethodSpec js_bbs_functions[] = {
@@ -3271,6 +3298,10 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	"This method will inform (and disconnect) the user when they are out of time")
 	,31401
 	},
+	{"compare_ars",		js_chk_ar,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string ars")
+	,JSDOCSTR("verify the current user online meets the specified Access Requirements String")
+	,315
+	},		
 	{0}
 };
 

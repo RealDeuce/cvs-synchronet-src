@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.5 2008/01/11 09:07:22 deuce Exp $ */
+/* $Id: js_server.c,v 1.6 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,11 +77,11 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			break;
 		case SERVER_PROP_OPTIONS:
 			if(p->options!=NULL)
-				JS_NewNumberValue(cx,*p->options,vp);
+				*vp=UINT_TO_JSVAL(*p->options);
 			break;
 		case SERVER_PROP_CLIENTS:
 			if(p->clients!=NULL)
-				JS_NewNumberValue(cx,*p->clients,vp);
+				*vp=UINT_TO_JSVAL(*p->clients);
 			break;
 	}
 
