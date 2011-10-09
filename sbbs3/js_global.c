@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.272 2011/10/09 05:43:37 deuce Exp $ */
+/* $Id: js_global.c,v 1.273 2011/10/09 05:54:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3665,7 +3665,7 @@ static JSClass js_global_class = {
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
 	,js_system_get			/* getProperty	*/
-	,JS_PropertyStub		/* setProperty	*/
+	,JS_StrictPropertyStub	/* setProperty	*/
 	,js_global_enumerate	/* enumerate	*/
 	,js_global_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/

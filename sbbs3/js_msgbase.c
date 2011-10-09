@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.158 2011/10/09 01:37:51 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.159 2011/10/09 05:54:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -960,7 +960,7 @@ static JSClass js_msghdr_class = {
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
 	,JS_PropertyStub		/* getProperty	*/
-	,JS_PropertyStub		/* setProperty	*/
+	,JS_StrictPropertyStub		/* setProperty	*/
 	,js_get_msg_header_enumerate		/* enumerate	*/
 	,js_get_msg_header_resolve			/* resolve		*/
 	,JS_ConvertStub			/* convert		*/

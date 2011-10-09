@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.28 2011/10/09 04:30:44 deuce Exp $ */
+/* $Id: js_queue.c,v 1.29 2011/10/09 05:54:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -455,7 +455,7 @@ static JSClass js_queue_class = {
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
 	,js_queue_get			/* getProperty	*/
-	,JS_PropertyStub		/* setProperty	*/
+	,JS_StrictPropertyStub	/* setProperty	*/
 	,js_queue_enumerate		/* enumerate	*/
 	,js_queue_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
