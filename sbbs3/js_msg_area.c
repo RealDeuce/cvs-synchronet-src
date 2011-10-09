@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.57 2009/11/11 01:49:18 deuce Exp $ */
+/* $Id: js_msg_area.c,v 1.59 2011/10/09 01:02:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -205,8 +205,7 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
 
-	if(!JS_NewNumberValue(cx,sub->misc,&val))
-		return(FALSE);
+	val=UINT_TO_JSVAL(sub->misc);
 	if(!JS_DefineProperty(cx, subobj, "settings", val
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
@@ -248,33 +247,36 @@ enum {
 };
 
 
-static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_sub_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
+	jsval idval;
     jsint       tiny;
 	subscan_t*	scan;
 
 	if((scan=(subscan_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
-			JS_NewNumberValue(cx,scan->ptr,vp);
+			*vp=UINT_TO_JSVAL(scan->ptr);
 			break;
 		case SUB_PROP_SCAN_CFG:
-			JS_NewNumberValue(cx,scan->cfg,vp);
+			*vp=UINT_TO_JSVAL(scan->cfg);
 			break;
 		case SUB_PROP_LAST_READ:
-			JS_NewNumberValue(cx,scan->last,vp);
+			*vp=UINT_TO_JSVAL(scan->last);
 			break;
 	}
 
 	return(JS_TRUE);
 }
 
-static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
+	jsval idval;
 	int32		val=0;
     jsint       tiny;
 	subscan_t*	scan;
@@ -282,7 +284,8 @@ static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	if((scan=(subscan_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
