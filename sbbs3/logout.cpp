@@ -2,13 +2,13 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.27 2011/10/19 07:08:31 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.26 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -124,7 +124,7 @@ void sbbs_t::logout()
 	putmsgptrs();
 	if(!REALSYSOP)
 		logofflist();
-	useron.laston=(time32_t)now;
+	useron.laston=now;
 
 	ttoday=useron.ttoday-useron.textra; 		/* billable time used prev calls */
 	if(ttoday>=cfg.level_timeperday[useron.level])
@@ -133,7 +133,7 @@ void sbbs_t::logout()
 		i=cfg.level_timeperday[useron.level]-ttoday;
 	if(i>cfg.level_timepercall[useron.level])      /* i=amount of time without min */
 		i=cfg.level_timepercall[useron.level];
-	j=(int)(now-starttime)/60;			/* j=billable time online in min */
+	j=(now-starttime)/60;			/* j=billable time online in min */
 	if(i<0) i=0;
 	if(j<0) j=0;
 
@@ -152,7 +152,7 @@ void sbbs_t::logout()
 		useron.textra+=(ushort)((starttime-logontime)/60);
 
 	putuserrec(&cfg,useron.number,U_TEXTRA,5,ultoa(useron.textra,str,10));
-	putuserrec(&cfg,useron.number,U_NS_TIME,8,ultoa((ulong)last_ns_time,str,16));
+	putuserrec(&cfg,useron.number,U_NS_TIME,8,ultoa(last_ns_time,str,16));
 
 	logoutuserdat(&cfg, &useron, now, logontime);
 

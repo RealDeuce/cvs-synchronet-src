@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.21 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: con_hi.cpp,v 1.20 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,6 +104,7 @@ int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const 
 bool sbbs_t::chksyspass()
 {
 	char	str[256],str2[256];
+	int 	orgcon=console;
 
 	if(online==ON_REMOTE && !(cfg.sys_misc&SM_R_SYSOP)) {
 		logline(LOG_NOTICE,"S!","Remote sysop access disabled");
