@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.370 2011/10/09 19:48:54 deuce Exp $ */
+/* $Id: sbbs.h,v 1.371 2011/10/09 19:52:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,7 +133,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), &JSSTSlen))) { \
 			if(((ret)=(char *)alloca(JSSTSlen+1))) { \
 				for(JSSTSpos=0; JSSTSpos<JSSTSlen; JSSTSpos++) \
-					(ret)[JSSTSpos]=JSSTSstrval[pos]; \
+					(ret)[JSSTSpos]=JSSTSstrval[JSSTSpos]; \
 				(ret)[JSSTSlen]=0; \
 			} \
 		} \
