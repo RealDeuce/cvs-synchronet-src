@@ -133,7 +133,7 @@ char *pchColorEndPos;
 BYTE btCurrentStatusLine = STATUS_NONE;
 OD_PERSONALITY_CALLBACK *pfCurrentPersonality = NULL;
 char szDesiredPersonality[33] = "";
-SET_PERSONALITY_FUNC *pfSetPersonality = NULL;
+extern SET_PERSONALITY_FUNC *pfSetPersonality = NULL;
 
 /* Commonly used character sequences. */
 char abtBlackBlock[2] = {' ', 0x07};
@@ -851,7 +851,7 @@ ODAPIDEF void ODCALL od_disp(char *pachBuffer, INT nSize, BOOL bLocalEcho)
  *
  *     Return: void
  */
-ODAPIDEF void ODCALL od_disp_str(const char *pszToDisplay)
+ODAPIDEF void ODCALL od_disp_str(char *pszToDisplay)
 {
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_disp_str()");
@@ -1059,11 +1059,6 @@ void ODStringToName(char *pszToConvert)
 
    /* Trim any newline character that may be at the end of the string. */
    if(pszToConvert[strlen(pszToConvert) - 1] == '\n')
-   {
-      pszToConvert[strlen(pszToConvert) - 1] = '\0';
-   }
-   /* Trim any CR character that may be at the end of the string. */
-   if(pszToConvert[strlen(pszToConvert) - 1] == '\r')
    {
       pszToConvert[strlen(pszToConvert) - 1] = '\0';
    }
@@ -1368,7 +1363,7 @@ ODAPIDEF void ODCALL od_set_dtr(BOOL bHigh)
  *
  *     Return: void
  */
-ODAPIDEF char ODCALL od_get_answer(const char *pszOptions)
+ODAPIDEF char ODCALL od_get_answer(char *pszOptions)
 {
    char *pchPossibleOption;
    char chPressed;
