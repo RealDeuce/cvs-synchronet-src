@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.339 2009/10/25 03:12:13 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.362 2011/10/09 04:30:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -105,23 +105,27 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 		#define XP_PC
 		#define XP_WIN
 	#endif
-	#define JS_THREADSAFE	/* Required! */
+#ifndef __cplusplus
+	#include <stdbool.h>
+	#include <inttypes.h>
+#endif
+	#include <jsversion.h>
+#if JS_VERSION < 185
+	#define JS_THREADSAFE
+#endif
 	#include <jsapi.h>
+#if (JS_VERSION < 185) || (defined __cplusplus)
 	#include <jsprf.h>		/* JS-safe sprintf functions */
-	#include <jsnum.h>		/* JSDOUBLE_IS_NaN() */
+	#include <math.h>		/* isnan() */
+#endif
+#if JS_VERSION >= 185
+	#define JS_DestroyScript(cx,script)
+#endif
 
 #endif
 
 #ifdef USE_CRYPTLIB
 #include <cryptlib.h>
-#endif
-
-/***********************/
-/* Synchronet-specific */
-/***********************/
-#include "startup.h"
-#ifdef __cplusplus
-	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
 
 /* xpdev */
@@ -135,10 +139,20 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "filewrap.h"
 #include "datewrap.h"
 #include "sockwrap.h"
+#include "eventwrap.h"
 #include "link_list.h"
 #include "msg_queue.h"
 #include "xpdatetime.h"
 
+/***********************/
+/* Synchronet-specific */
+/***********************/
+#include "startup.h"
+#ifdef __cplusplus
+	#include "threadwrap.h"	/* pthread_mutex_t */
+#endif
+
+#include "comio.h"
 #include "smblib.h"
 #include "ars_defs.h"
 #include "scfgdefs.h"
@@ -161,7 +175,7 @@ class sbbs_t
 
 public:
 
-	sbbs_t(ushort node_num, DWORD addr, const char* host_name, SOCKET
+	sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* host_name, SOCKET
 		,scfg_t*, char* text[], client_t* client_info);
 	~sbbs_t();
 
@@ -173,7 +187,7 @@ public:
 	client_t client;
 	SOCKET	client_socket;
 	SOCKET	client_socket_dup;
-	DWORD	client_addr;
+	SOCKADDR_IN	client_addr;
 	char	client_name[128];
 	char	client_ident[128];
 	DWORD	local_addr;
@@ -209,7 +223,7 @@ public:
 	uchar	telnet_local_option[0x100];
 	uchar	telnet_remote_option[0x100];
 	void	send_telnet_cmd(uchar cmd, uchar opt);
-	void	request_telnet_opt(uchar cmd, uchar opt);
+	bool	request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack=0);
 
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
@@ -217,6 +231,7 @@ public:
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
 	char	terminal[TELNET_TERM_MAXLEN+1];
+	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
 	char*	event_code;				// Internal code of next exclusive event
@@ -230,7 +245,7 @@ public:
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	js_branch_t	js_branch;
-	long		js_execfile(const char *fname);
+	long		js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
 	bool		js_init(ulong* stack_frame);
 	void		js_cleanup(const char* node);
 	void		js_create_user_objects(void);
@@ -334,7 +349,7 @@ public:
 	char 	temp_uler[31];  /* User who uploaded the files to temp dir */
 	char 	temp_file[41];	/* Origin of extracted temp files */
 	long 	temp_cdt;		/* Credit value of file that was extracted */
-	char 	autohang;		/* Used for auto-hangup after transfer */
+	bool 	autohang;		/* Used for auto-hangup after transfer */
 	size_t 	logcol; 		/* Current column of log file */
 	uint 	criterrs; 		/* Critical error counter */
 
@@ -395,7 +410,7 @@ public:
 	int		exec_net(csi_t *csi);
 	int		exec_msg(csi_t *csi);
 	int		exec_file(csi_t *csi);
-	long	exec_bin(const char *mod, csi_t *csi);
+	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir=NULL);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
 	char**	getstrvar(csi_t *bin, int32_t name);
@@ -440,7 +455,7 @@ public:
 	uint	getusrgrp(uint subnum);
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
-				,bool del);
+				,bool del=false, bool next=false);
 	ulong	gettimeleft(bool handle_out_of_time=true);
 	bool	gettimeleft_inside;
 
@@ -500,7 +515,7 @@ public:
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber, int which);
+	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
 	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
@@ -581,14 +596,22 @@ public:
 	int		putnodedat(uint number, node_t * node);
 	int		putnodeext(uint number, char * str);
 
-	/* logonoff.cpp */
-	bool	answer();
+	/* login.ccp */
 	int		login(char *str, char *pw);
+	void	badlogin(char* user, char* passwd);
+
+	/* answer.cpp */
+	bool	answer();
+
+	/* logon.ccp */
 	bool	logon(void);
+
+	/* logout.cpp */
 	void	logout(void);
-	void	logoff(void);
-	BOOL	newuser(void);					/* Get new user							*/
 	void	backout(void);
+
+	/* newuser.cpp */
+	BOOL	newuser(void);					/* Get new user							*/
 
 	/* text_sec.cpp */
 	int		text_sec(void);						/* Text sections */
@@ -709,14 +732,14 @@ public:
 	void	logentry(const char *code,const char *entry);
 	void	log(char *str);				/* Writes 'str' to node log */
 	void	logch(char ch, bool comma);	/* Writes 'ch' to node log */
-	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log */
+	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log (LOG_INFO level) */
+	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
 	bool	syslog(const char* code, const char *entry);
-	void	errorlog(const char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
-	bool	errorlog_inside;
 	bool	errormsg_inside;
 	void	errormsg(int line, const char *file, const char* action, const char *object
 				,ulong access, const char *extinfo=NULL);
+	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
 	bool	qwklogon;
@@ -740,6 +763,7 @@ public:
 
 	/* un_rep.cpp */
 	bool	unpack_rep(char* repfile=NULL);
+	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
 	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf, FILE* hdrs_dat);
@@ -832,7 +856,7 @@ extern "C" {
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, char* msgbuf);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
 	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
@@ -966,9 +990,9 @@ extern "C" {
 	typedef struct {
 		char		version[128];
 		const char*	version_detail;
-		DWORD*		interface_addr;
-		DWORD*		options;
-		DWORD*		clients;
+		uint32_t*	interface_addr;
+		uint32_t*	options;
+		uint32_t*	clients;
 	} js_server_props_t;
 
 	enum {
@@ -997,7 +1021,7 @@ extern "C" {
 														,const char* name, char* str[], uintN flags);
 	DLLEXPORT char*		DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len);
 
-	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NaN(*JSVAL_TO_DOUBLE(v))))
+	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !isnan(JSVAL_TO_DOUBLE(v))))
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1023,7 +1047,10 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
-	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
+	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
+	DLLEXPORT char*		DLLCALL JS_GetStringBytes_dumbass(JSContext *cx, JSString *str);
+	#define JS_GetStringBytes(str)	JS_GetStringBytes_dumbass(cx, str)
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -1090,6 +1117,10 @@ extern "C" {
 
 	/* js_conio.c */
 	JSObject* js_CreateConioObject(JSContext* cx, JSObject* parent);
+
+	/* js_com.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCOMClass(JSContext* cx, JSObject* parent);
+	DLLEXPORT JSObject* DLLCALL js_CreateCOMObject(JSContext* cx, JSObject* parent, const char *name, COM_HANDLE sock);
 
 #endif
 
