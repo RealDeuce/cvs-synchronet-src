@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.48 2011/11/11 04:30:58 rswindell Exp $ */
+/* $Id: userdat.h,v 1.45 2011/09/23 06:53:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,20 +50,15 @@
 #endif
 
 #ifdef _WIN32
-	#ifdef __MINGW32__
-		#define DLLEXPORT
-		#define DLLCALL
+	#ifdef SBBS_EXPORTS
+		#define DLLEXPORT __declspec(dllexport)
 	#else
-		#ifdef SBBS_EXPORTS
-			#define DLLEXPORT __declspec(dllexport)
-		#else
-			#define DLLEXPORT __declspec(dllimport)
-		#endif
-		#ifdef __BORLANDC__
-			#define DLLCALL __stdcall
-		#else
-			#define DLLCALL
-		#endif
+		#define DLLEXPORT __declspec(dllimport)
+	#endif
+	#ifdef __BORLANDC__
+		#define DLLCALL __stdcall
+	#else
+		#define DLLCALL
 	#endif
 #else
 	#define DLLEXPORT
@@ -115,7 +110,6 @@ DLLEXPORT int	DLLCALL user_rec_len(int offset);
 DLLEXPORT BOOL	DLLCALL can_user_access_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL can_user_read_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason);
-DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint* reason);
 DLLEXPORT BOOL	DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const char* host
@@ -138,7 +132,7 @@ typedef struct {
 	IN_ADDR		addr;	/* host with consecutive failed login attmepts */
 	ulong		count;	/* number of consecutive failed login attempts */
 	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
-	time32_t	time;	/* time of last attempt */
+	time_t		time;	/* time of last attempt */
 	char		prot[32];	/* protocol used in last attempt */
 	char		user[128];
 	char		pass[128];
