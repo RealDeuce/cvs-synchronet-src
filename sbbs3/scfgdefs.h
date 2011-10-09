@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.34 2009/11/11 05:30:06 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.35 2009/11/11 05:34:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -314,8 +314,8 @@ typedef struct {							/* QWK Network Hub */
 				node,						/* Node to do the call-out */
 				freq,						/* Frequency of call-outs */
 				subs,						/* Number Sub-boards carried */
-				*sub,						/* Number of local sub-board for ea. */
 				*conf;						/* Conference number of ea. */
+	ulong		*sub;						/* Number of local sub-board for ea. */
 	time32_t	last;						/* Last network attempt */
 
 } qhub_t;
