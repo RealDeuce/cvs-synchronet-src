@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.23 2008/12/20 04:00:47 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.31 2011/10/09 08:42:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,7 +96,7 @@ static size_t js_decode_value(JSContext *cx, JSObject *parent
 			*rval = BOOLEAN_TO_JSVAL(v->value.b);
 			break;
 		case JSTYPE_NUMBER:
-			JS_NewNumberValue(cx,v->value.n,rval);
+			*rval=DOUBLE_TO_JSVAL(v->value.n);
 			break;
 		case JSTYPE_STRING:
 			if(v->value.s) {
@@ -125,8 +125,10 @@ static size_t js_decode_value(JSContext *cx, JSObject *parent
 /* Queue Object Methods */
 
 static JSBool
-js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_poll(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	msg_queue_t*	q;
 	queued_value_t*	v;
 	int32 timeout=0;
@@ -144,18 +146,20 @@ js_poll(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	v=msgQueuePeek(q,timeout);
 	JS_RESUMEREQUEST(cx, rc);
 	if(v==NULL)
-		*rval = JSVAL_FALSE;
+		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 	else if(v->name!=NULL && v->name[0])
-		*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,v->name));
+		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,v->name)));
 	else
-		*rval = JSVAL_TRUE;
+		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 
 	return(JS_TRUE);
 }
 
 static JSBool
-js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_read(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	msg_queue_t* q;
 	queued_value_t	find_v;
 	queued_value_t*	v;
@@ -182,16 +186,21 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	}
 
 	if(v!=NULL) {
-		js_decode_value(cx, obj, v, rval, /* peek */FALSE);
+		jsval	rval;
+
+		js_decode_value(cx, obj, v, &rval, /* peek */FALSE);
 		free(v);
+		JS_SET_RVAL(cx, arglist, rval);
 	}
 
 	return(JS_TRUE);
 }
 
 static JSBool
-js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_peek(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	msg_queue_t*	q;
 	queued_value_t*	v;
 	int32 timeout=0;
@@ -209,7 +218,9 @@ js_peek(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	v=msgQueuePeek(q, timeout);
 	JS_RESUMEREQUEST(cx, rc);
 	if(v!=NULL) {
-		js_decode_value(cx, obj, v, rval, /* peek */TRUE);
+		jsval	rval;
+		js_decode_value(cx, obj, v, &rval, /* peek */TRUE);
+		JS_SET_RVAL(cx, arglist, rval);
 	}
 
 	return(JS_TRUE);
@@ -237,16 +248,15 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
 	if(name!=NULL)
 		SAFECOPY(nv->name,name);
 
-	switch(JSVAL_TAG(val)) {
-		case JSVAL_BOOLEAN:
-			nv->type=JSTYPE_BOOLEAN;
-			nv->value.b=JSVAL_TO_BOOLEAN(val);
-			break;
-		case JSVAL_OBJECT:
-			if(JSVAL_IS_NULL(val)) {
-				nv->type=JSTYPE_NULL;
-				break;
-			}
+	if(JSVAL_IS_BOOLEAN(val)) {
+		nv->type=JSTYPE_BOOLEAN;
+		nv->value.b=JSVAL_TO_BOOLEAN(val);
+	}
+	else if(JSVAL_IS_OBJECT(val)) {
+		if(JSVAL_IS_NULL(val)) {
+			nv->type=JSTYPE_NULL;
+		}
+		else {
 			nv->type=JSTYPE_OBJECT;
 			obj = JSVAL_TO_OBJECT(val);
 
@@ -273,18 +283,16 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
 			}
 			v=js_encode_value(cx,JSVAL_VOID,NULL,v,count);	/* terminate object */
 			JS_DestroyIdArray(cx,id_array);
-			break;
-		default:
-			if(JSVAL_IS_NUMBER(val)) {
-				nv->type = JSTYPE_NUMBER;
-				JS_ValueToNumber(cx,val,&nv->value.n);
-			} else if(JSVAL_IS_VOID(val)) {
-				nv->type = JSTYPE_VOID;
-			} else {
-				nv->type= JSTYPE_STRING;
-				nv->value.s = strdup(JS_GetStringBytes(JS_ValueToString(cx,val)));
-			}
-			break;
+		}
+	}
+	else if(JSVAL_IS_NUMBER(val)) {
+		nv->type = JSTYPE_NUMBER;
+		JS_ValueToNumber(cx,val,&nv->value.n);
+	} else if(JSVAL_IS_VOID(val)) {
+		nv->type = JSTYPE_VOID;
+	} else {
+		nv->type= JSTYPE_STRING;
+		nv->value.s = strdup(JS_GetStringBytes(JS_ValueToString(cx,val)));
 	}
 
 	return(v);
@@ -308,8 +316,10 @@ BOOL js_enqueue_value(JSContext *cx, msg_queue_t* q, jsval val, char* name)
 }
 
 static JSBool
-js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	uintN			argn=0;
 	msg_queue_t*	q;
 	jsval			val;
@@ -325,7 +335,7 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(argn < argc)
 		name=JS_GetStringBytes(JS_ValueToString(cx,argv[argn++]));
 
-	*rval = BOOLEAN_TO_JSVAL(js_enqueue_value(cx, q, val, name));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(js_enqueue_value(cx, q, val, name)));
 
 	return(JS_TRUE);
 }
@@ -348,8 +358,9 @@ static char* queue_prop_desc[] = {
 };
 #endif
 
-static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
+	jsval idval;
     jsint			tiny;
 	msg_queue_t*	q;
 	jsrefcount		rc;
@@ -359,7 +370,8 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 		return(JS_FALSE);
 	}
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case QUEUE_PROP_NAME:
@@ -422,19 +434,23 @@ static jsSyncMethodSpec js_queue_functions[] = {
 	{0}
 };
 
-static JSBool js_queue_resolve(JSContext *cx, JSObject *obj, jsval id)
+static JSBool js_queue_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
 
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if(id != JSID_VOID && id != JSID_EMPTY) {
+		jsval idval;
+		
+		JS_IdToValue(cx, id, &idval);
+		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
+	}
 
 	return(js_SyncResolve(cx, obj, name, js_queue_properties, js_queue_functions, NULL, 0));
 }
 
 static JSBool js_queue_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_queue_resolve(cx, obj, JSVAL_NULL));
+	return(js_queue_resolve(cx, obj, JSID_VOID));
 }
 
 static JSClass js_queue_class = {
@@ -443,7 +459,7 @@ static JSClass js_queue_class = {
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
 	,js_queue_get			/* getProperty	*/
-	,JS_PropertyStub		/* setProperty	*/
+	,JS_StrictPropertyStub	/* setProperty	*/
 	,js_queue_enumerate		/* enumerate	*/
 	,js_queue_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
@@ -453,8 +469,10 @@ static JSClass js_queue_class = {
 /* Queue Constructor (creates queue) */
 
 static JSBool
-js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_queue_constructor(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj;
+	jsval *argv=JS_ARGV(cx, arglist);
 	uintN			argn=0;
 	char*			name=NULL;
 	int32			flags=MSG_QUEUE_BIDIR;
@@ -462,7 +480,8 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 	list_node_t*	n;
 	jsrefcount		rc;
 
-	*rval = JSVAL_VOID;
+	obj=JS_NewObject(cx, &js_queue_class, NULL, NULL);
+	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
 
 #if 0	/* This doesn't appear to be doing anything but leaking memory */
 	if((q=(msg_queue_t*)malloc(sizeof(msg_queue_t)))==NULL) {
@@ -480,9 +499,11 @@ js_queue_constructor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsva
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(name!=NULL) {
-		for(n=listFirstNode(&named_queues);n!=NULL;n=listNextNode(n))
+		listLock(&named_queues);
+		for(n=named_queues.first;n!=NULL;n=n->next)
 			if((q=n->data)!=NULL && !stricmp(q->name,name))
 				break;
+		listUnlock(&named_queues);
 		if(n==NULL)
 			q=NULL;
 	}
