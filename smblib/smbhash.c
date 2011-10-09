@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.29 2012/10/28 01:42:45 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.26 2009/11/05 17:05:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -37,7 +37,6 @@
 
 #include <time.h>		/* time()	*/
 #include <string.h>		/* strdup() */
-#include <ctype.h>		/* isspace()*/
 #include "smblib.h"
 #include "md5.h"
 #include "crc16.h"
@@ -159,7 +158,7 @@ int SMBCALL smb_addhashes(smb_t* smb, hash_t** hashes, BOOL skip_marked)
 static char* strip_chars(uchar* dst, const uchar* src, uchar* set)
 {
 	while(*src) {
-		if(strchr((char *)set,*src)==NULL)
+		if(strchr(set,*src)==NULL)
 			*(dst++)=*src;
 		src++;
 	}
@@ -186,7 +185,7 @@ static char* strip_ctrla(uchar* dst, const uchar* src)
 
 /* Allocates and calculates hashes of data (based on flags)					*/
 /* Returns NULL on failure													*/
-hash_t* SMBCALL smb_hash(ulong msgnum, uint32_t t, unsigned source, unsigned flags
+hash_t* SMBCALL smb_hash(ulong msgnum, ulong t, unsigned source, unsigned flags
 						 ,const void* data, size_t length)
 {
 	hash_t*	hash;
@@ -216,28 +215,27 @@ hash_t* SMBCALL smb_hash(ulong msgnum, uint32_t t, unsigned source, unsigned fla
 /* Allocates and calculates hashes of data (based on flags)					*/
 /* Supports string hash "pre-processing" (e.g. lowercase, strip whitespace)	*/
 /* Returns NULL on failure													*/
-hash_t* SMBCALL smb_hashstr(ulong msgnum, uint32_t t, unsigned source, unsigned flags
+hash_t* SMBCALL smb_hashstr(ulong msgnum, ulong t, unsigned source, unsigned flags
 							,const char* str)
 {
-	char*	p=NULL;
+	char*	p=(char *)str;
 	hash_t*	hash;
 
 	if(flags&SMB_HASH_PROC_MASK) {	/* string pre-processing */
 		if((p=strdup(str))==NULL)
 			return(NULL);
 		if(flags&SMB_HASH_STRIP_CTRL_A)
-			strip_ctrla((uchar *)p,(uchar *)p);
+			strip_ctrla(p,p);
 		if(flags&SMB_HASH_STRIP_WSP)
-			strip_chars((uchar *)p,(uchar *)p,(uchar *)" \t\r\n");
+			strip_chars(p,p," \t\r\n");
 		if(flags&SMB_HASH_LOWERCASE)
 			strlwr(p);
 	}
+	
+	hash=smb_hash(msgnum, t, source, flags, p, strlen(p));
 
-	if(p!=NULL) {
-		hash=smb_hash(msgnum, t, source, flags, p, strlen(p));
+	if(p!=str)	/* duped string */
 		free(p);
-	} else
-		hash=smb_hash(msgnum, t, source, flags, str, strlen(str));
 
 	return(hash);
 }
@@ -258,15 +256,15 @@ hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body, long source_mas
 	memset(hashes, 0, sizeof(hash_t*)*(SMB_HASH_SOURCE_TYPES+1));
 
 	if(msg->id!=NULL && (source_mask&(1<<SMB_HASH_SOURCE_MSG_ID)) &&
-		(hash=smb_hashstr(msg->hdr.number, (uint32_t)t, SMB_HASH_SOURCE_MSG_ID, flags, msg->id))!=NULL)
+		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_MSG_ID, flags, msg->id))!=NULL)
 		hashes[h++]=hash;
 
 	if(msg->ftn_msgid!=NULL	&& (source_mask&(1<<SMB_HASH_SOURCE_FTN_ID)) &&
-		(hash=smb_hashstr(msg->hdr.number, (uint32_t)t, SMB_HASH_SOURCE_FTN_ID, flags, msg->ftn_msgid))!=NULL)
+		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_FTN_ID, flags, msg->ftn_msgid))!=NULL)
 		hashes[h++]=hash;
 
 	if(body!=NULL && (source_mask&(1<<SMB_HASH_SOURCE_BODY)) &&
-		(hash=smb_hashstr(msg->hdr.number, (uint32_t)t, SMB_HASH_SOURCE_BODY, flags|SMB_HASH_STRIP_WSP|SMB_HASH_STRIP_CTRL_A, (const char *)body))!=NULL)
+		(hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_BODY, flags|SMB_HASH_STRIP_WSP|SMB_HASH_STRIP_CTRL_A, body))!=NULL)
 		hashes[h++]=hash;
 
 	if(msg->subj!=NULL && (source_mask&(1<<SMB_HASH_SOURCE_SUBJECT))) {
@@ -281,7 +279,7 @@ hash_t** SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* body, long source_mas
 			}
 			break;
 		}
-		if((hash=smb_hashstr(msg->hdr.number, (uint32_t)t, SMB_HASH_SOURCE_SUBJECT, flags, p))!=NULL)
+		if((hash=smb_hashstr(msg->hdr.number, t, SMB_HASH_SOURCE_SUBJECT, flags, p))!=NULL)
 			hashes[h++]=hash;
 	}
 
