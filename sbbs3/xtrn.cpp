@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.210 2010/03/09 03:52:33 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.216 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,7 +45,7 @@
 	#include <sys/wait.h>	// WEXITSTATUS
 
 	#define TTYDEFCHARS		// needed for ttydefchars definition
-
+	#include <sys/ttydefaults.h>	// Linux - it's motherfucked.
 #if defined(__FreeBSD__)
 	#include <libutil.h>	// forkpty()
 #elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DARWIN__)
@@ -279,13 +279,13 @@ static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
     return(i<cfg->total_natvpgms);
 }
 
-#define XTRN_LOADABLE_MODULE								\
+#define XTRN_LOADABLE_MODULE(cmdline,startup_dir)			\
 	if(cmdline[0]=='*')		/* Baja module or JavaScript */	\
-		return(exec_bin(cmdline+1,&main_csi))				
+		return(exec_bin(cmdline+1,&main_csi,startup_dir))				
 #ifdef JAVASCRIPT
-	#define XTRN_LOADABLE_JS_MODULE							\
+	#define XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir)	\
 	if(cmdline[0]=='?') 	/* JavaScript */				\
-		return(js_execfile(cmdline+1))						
+		return(js_execfile(cmdline+1,startup_dir))						
 #else
 	#define XTRN_LOADABLE_JS_MODULE
 #endif
@@ -386,7 +386,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
 	unsigned long	rd;
-    DWORD	wr;
+    unsigned long	wr;
     unsigned long	len;
     DWORD	avail;
 	unsigned long	dummy;
@@ -409,8 +409,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		return -1;
 	}
 
-	XTRN_LOADABLE_MODULE;
-	XTRN_LOADABLE_JS_MODULE;
+	XTRN_LOADABLE_MODULE(cmdline,startup_dir);
+	XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir);
 
 	attr(cfg.color[clr_external]);		/* setup default attributes */
 
@@ -444,7 +444,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		return(GetLastError());
 	}
 
-	if(native && mode&EX_OUTR && !(mode&EX_OFFLINE))
+	if(native && mode&EX_STDOUT && !(mode&EX_OFFLINE))
 		use_pipes=true;
 
  	if(native) { // Native (32-bit) external
@@ -535,9 +535,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		if(!(mode&EX_OFFLINE) && nt) {	// Windows NT/2000
 			i=SBBSEXEC_MODE_FOSSIL;
-			if(mode&EX_INR)
+			if(mode&EX_STDIN)
            		i|=SBBSEXEC_MODE_DOS_IN;
-			if(mode&EX_OUTR)
+			if(mode&EX_STDOUT)
         		i|=SBBSEXEC_MODE_DOS_OUT;
 			sprintf(str," NT %u %u"
 				,cfg.node_num,i);
@@ -609,9 +609,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				start.event=start_event;
 
 			start.mode=SBBSEXEC_MODE_FOSSIL;
-			if(mode&EX_INR)
+			if(mode&EX_STDIN)
            		start.mode|=SBBSEXEC_MODE_DOS_IN;
-			if(mode&EX_OUTR)
+			if(mode&EX_STDOUT)
         		start.mode|=SBBSEXEC_MODE_DOS_OUT;
 
 			sprintf(str," 95 %u %u"
@@ -691,12 +691,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 	if(native && !(mode&EX_OFFLINE)) {
 
-		if(!(mode&EX_INR) && input_thread_running) {
+		if(!(mode&EX_STDIN) && input_thread_running) {
 			pthread_mutex_lock(&input_thread_mutex);
 			input_thread_mutex_locked=true;
 		}
 
-		if(!(mode&EX_OUTR)) {	 /* Native Socket I/O program */
+		if(!(mode&EX_STDOUT)) {	 /* Native Socket I/O program */
 			/* Enable the Nagle algorithm */
 			BOOL nodelay=FALSE;
 			setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
@@ -907,16 +907,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					if(mode&EX_WWIV) {
                 		bp=wwiv_expand(buf, rd, wwiv_buf, rd, useron.misc, wwiv_flag);
 						if(rd>sizeof(wwiv_buf))
-							errorlog("WWIV_BUF OVERRUN");
+							lprintf(LOG_ERR,"WWIV_BUF OVERRUN");
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
                 		bp=telnet_expand(buf, rd, telnet_buf, rd);
 						if(rd>sizeof(telnet_buf))
-							errorlog("TELNET_BUF OVERRUN");
+							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
-						errorlog("output buffer overflow");
+						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
 					RingBufWrite(&outbuf, bp, rd);
@@ -974,16 +974,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					if(mode&EX_WWIV) {
                 		bp=wwiv_expand(buf, rd, wwiv_buf, rd, useron.misc, wwiv_flag);
 						if(rd>sizeof(wwiv_buf))
-							errorlog("WWIV_BUF OVERRUN");
+							lprintf(LOG_ERR,"WWIV_BUF OVERRUN");
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
                 		bp=telnet_expand(buf, rd, telnet_buf, rd);
 						if(rd>sizeof(telnet_buf))
-							errorlog("TELNET_BUF OVERRUN");
+							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
-						errorlog("output buffer overflow");
+						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
 					RingBufWrite(&outbuf, bp, rd);
@@ -1324,8 +1324,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(startup_dir==NULL)
 		startup_dir=nulstr;
 
-	XTRN_LOADABLE_MODULE;
-	XTRN_LOADABLE_JS_MODULE;
+	XTRN_LOADABLE_MODULE(cmdline,startup_dir);
+	XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir);
 
 	attr(cfg.color[clr_external]);  /* setup default attributes */
 
@@ -1579,7 +1579,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		 * it's a timed event.
 		 */
 
-		if (!(mode&(EX_INR|EX_OUTR)) && online!=ON_LOCAL)
+		if (!(mode&(EX_STDIO)) && online!=ON_LOCAL)
 			SAFECOPY(virtualconf,"-I\"serial { virtual com 1 }\"");
 		else
 			virtualconf[0] = '\0';
@@ -1588,7 +1588,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		 * to intercept dos programs under Unix.
 		 */
 
-		mode |= (EX_INR|EX_OUTR);
+		mode |= EX_STDIO;
 
 		/* See if we have the dosemu link in the door's dir.  If so, use the dosemu
 		 * that it points to as our command to execute.  If not, use DOSemuPath.
@@ -1646,7 +1646,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	}
 
-	if(!(mode&EX_INR) && input_thread_running) {
+	if(!(mode&EX_STDIN) && input_thread_running) {
 		lprintf(LOG_DEBUG,"Locking input thread mutex"); 
 		if(pthread_mutex_lock(&input_thread_mutex)!=0)
 			errormsg(WHERE,ERR_LOCK,"input_thread_mutex",0);
@@ -1660,7 +1660,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 }
 #endif
 
-	if((mode&EX_INR) && (mode&EX_OUTR))  {
+	if((mode&EX_STDIO)==EX_STDIO)  {
 		struct winsize winsize;
 		struct termios term;
 		memset(&term,0,sizeof(term));
@@ -1689,12 +1689,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		out_pipe[0]=in_pipe[1];
 	}
 	else  {
-		if(mode&EX_INR)
+		if(mode&EX_STDIN)
 			if(pipe(in_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"in_pipe",0);
 				return(-1);
 			}
-		if(mode&EX_OUTR)
+		if(mode&EX_STDOUT)
 			if(pipe(out_pipe)!=0) {
 				errormsg(WHERE,ERR_CREATE,"out_pipe",0);
 				return(-1);
@@ -1754,13 +1754,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			argv[argc]=NULL;
 		}
 
-		if(mode&EX_INR && !(mode&EX_OUTR))  {
+		if(mode&EX_STDIN && !(mode&EX_STDOUT))  {
 			close(in_pipe[1]);		/* close write-end of pipe */
 			dup2(in_pipe[0],0);		/* redirect stdin */
 			close(in_pipe[0]);		/* close excess file descriptor */
 		}
 
-		if(mode&EX_OUTR && !(mode&EX_INR)) {
+		if(mode&EX_STDOUT && !(mode&EX_STDIN)) {
 			close(out_pipe[0]);		/* close read-end of pipe */
 			dup2(out_pipe[1],1);	/* stdout */
 #ifndef XTERN_LOG_STDERR
@@ -1781,8 +1781,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	
 		execvp(argv[0],argv);
-		sprintf(str,"!ERROR %d executing %s",errno,argv[0]);
-		errorlog(str);
+		lprintf(LOG_ERR,"Node %d !ERROR %d executing %s",cfg.node_num,errno,argv[0]);
 		_exit(-1);	/* should never get here */
 	}
 
@@ -1797,8 +1796,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	close(err_pipe[1]);	/* close write-end of pipe */
 #endif
 
-	if(mode&EX_OUTR) {
-		if(!(mode&EX_INR))
+	if(mode&EX_STDOUT) {
+		if(!(mode&EX_STDIN))
 			close(out_pipe[1]);	/* close write-end of pipe */
 		while(!terminated) {
 			if(waitpid(pid, &i, WNOHANG)!=0)	/* child exited */
@@ -1814,7 +1813,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			}
 
 			/* Input */	
-			if(mode&EX_INR && RingBufFull(&inbuf)) {
+			if(mode&EX_STDIN && RingBufFull(&inbuf)) {
 				if((wr=RingBufRead(&inbuf,buf,sizeof(buf)))!=0)
 					write(in_pipe[1],buf,wr);
 			}
@@ -1907,13 +1906,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
-				errorlog("OUTPUT_BUF OVERRUN");
+				lprintf(LOG_ERR,"OUTPUT_BUF OVERRUN");
 				output_len=sizeof(output_buf);
 			}
 
 			/* Does expanded size fit in the ring buffer? */
 			if(output_len>RingBufFree(&outbuf)) {
-				errorlog("output buffer overflow");
+				lprintf(LOG_ERR,"output buffer overflow");
 				output_len=RingBufFree(&outbuf);
 			}
 
@@ -1933,7 +1932,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				kill(pid, SIGKILL);				// terminate child process
 		}
 		/* close unneeded descriptors */
-		if(mode&EX_INR)
+		if(mode&EX_STDIN)
 			close(in_pipe[1]);
 		close(out_pipe[0]);
 	}

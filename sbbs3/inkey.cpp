@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.39 2009/02/19 09:28:45 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.44 2011/09/10 01:45:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,6 +41,20 @@
 
 #define nosound()	
 
+int kbincom(sbbs_t* sbbs, unsigned long timeout)
+{
+	int	ch;
+
+	if(sbbs->keybuftop!=sbbs->keybufbot) { 
+		ch=sbbs->keybuf[sbbs->keybufbot++]; 
+		if(sbbs->keybufbot==KEY_BUFSIZE) 
+			sbbs->keybufbot=0; 
+	} else 
+		ch=sbbs->incom(timeout);
+
+	return ch;
+}
+
 /****************************************************************************/
 /* Returns character if a key has been hit remotely and responds			*/
 /* Called from functions getkey, msgabort and main_sec						*/
@@ -49,12 +63,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 {
 	uchar	ch=0;
 
-	if(keybuftop!=keybufbot) {   
-		ch=keybuf[keybufbot++];   
-		if(keybufbot==KEY_BUFSIZE)   
-			keybufbot=0;   
-	} else 
-		ch=incom(timeout);
+	ch=kbincom(this,timeout); 
 
 	if(ch==0) {
 		// moved here from getkey() on AUG-29-2001
@@ -148,7 +157,10 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				attr(LIGHTGRAY);
 				CRLF; 
 			}
-			external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
+			if(cfg.hotkey[i]->cmd[0]=='?')
+				js_execfile(cmdstr(cfg.hotkey[i]->cmd+1,nulstr,nulstr,NULL), /* startup_dir: */NULL, /* scope: */js_glob);
+			else
+				external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
 			if(!(sys_status&SS_SPLITP)) {
 				CRLF;
 				RESTORELINE; 
@@ -254,7 +266,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			hotkey_inside--;
 			return(0); 
 		case ESC:
-			i=incom(mode&K_GETSTR ? 3000:1000);
+			i=kbincom(this, (mode&K_GETSTR) ? 3000:1000);
 			if(i==NOINP)		// timed-out waiting for '['
 				return(ESC);
 			ch=i;
@@ -270,7 +282,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				putuserrec(&cfg,useron.number,U_MISC,8,ultoa(useron.misc,str,16)); 
 			}
 			while(i<10 && j<30) {		/* up to 3 seconds */
-				ch=incom(100);
+				ch=kbincom(this, 100);
 				if(ch==(NOINP&0xff)) {
 					j++;
 					continue;
