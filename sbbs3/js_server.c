@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.10 2011/10/11 05:05:55 deuce Exp $ */
+/* $Id: js_server.c,v 1.8 2011/10/09 06:16:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,7 +146,7 @@ static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_server_properties, NULL, NULL, 0));

@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.97 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.91 2011/10/09 17:14:34 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,8 +73,8 @@ enum {
 
 static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-	jsval		idval;
-	int32		val;
+	jsval idval;
+	ulong		val;
     jsint       tiny;
 	JSString*	js_str;
 	sbbs_t*		sbbs;
@@ -123,7 +123,7 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			val=sbbs->cfg.sec_hangup;
 			break;
 		case CON_PROP_TIMEOUT:
-			val=(int32)sbbs->timeout;
+			val=sbbs->timeout;
 			break;
 		case CON_PROP_TIMELEFT_WARN:
 			val=sbbs->timeleft_warn;
@@ -183,7 +183,6 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 	sbbs_t*		sbbs;
 	JSString*	str;
 	jsrefcount	rc;
-	char		*sval;
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -206,10 +205,9 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			break;
 		case CON_PROP_ATTR:
 			if(JSVAL_IS_STRING(*vp)) {
-				JSVALUE_TO_STRING(cx, *vp, sval, NULL);
-				if(sval==NULL)
+				if((str=JS_ValueToString(cx, *vp))==NULL)
 					break;
-				val=attrstr(sval);
+				val=attrstr(JS_GetStringBytes(str));
 			}
 			rc=JS_SUSPENDREQUEST(cx);
 			sbbs->attr(val);
@@ -228,10 +226,9 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			sbbs->autoterm=val;
 			break;
 		case CON_PROP_TERMINAL:
-			JSVALUE_TO_STRING(cx, *vp, sval, NULL);
-			if(sval==NULL)
+			if((str=JS_ValueToString(cx, *vp))==NULL)
 				break;
-			SAFECOPY(sbbs->terminal,sval);
+			SAFECOPY(sbbs->terminal,JS_GetStringBytes(str));
 			break;
 		case CON_PROP_INACTIV_WARN:
 			sbbs->cfg.sec_warn = (uint16_t)val;
@@ -262,10 +259,9 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			sbbs->getstr_offset=val;
 			break;
 		case CON_PROP_QUESTION:
-			JSVALUE_TO_STRING(cx, *vp, sval, NULL);
-			if(sval==NULL)
+			if((str=JS_ValueToString(cx, *vp))==NULL)
 				break;
-			SAFECOPY(sbbs->question,sval);
+			SAFECOPY(sbbs->question,JS_GetStringBytes(str));
 			break;
 		case CON_PROP_CTRLKEY_PASSTHRU:
 			if(JSVAL_IS_STRING(*vp)) {
@@ -277,8 +273,7 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 				if((str=JS_ValueToString(cx, *vp))==NULL)
 					break;
 				val=sbbs->cfg.ctrlkey_passthru;
-				JSSTRING_TO_STRING(cx, str, s, NULL);
-				for(; *s; s++) {
+				for(s=JS_GetStringBytes(str); *s; s++) {
 					if(*s=='+')
 						op=1;
 					else if(*s=='-')
@@ -457,8 +452,8 @@ js_handle_ctrlkey(JSContext *cx, uintN argc, jsval *arglist)
 	char		key;
 	int32		mode=0;
 	sbbs_t*		sbbs;
+    JSString*	js_str;
 	jsrefcount	rc;
-	char		*keystr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
@@ -468,10 +463,9 @@ js_handle_ctrlkey(JSContext *cx, uintN argc, jsval *arglist)
 	if(JSVAL_IS_INT(argv[0]))
 		key=(char)JSVAL_TO_INT(argv[0]);
 	else {
-		JSVALUE_TO_STRING(cx, argv[0], keystr, NULL);
-		if(keystr==NULL)
+		if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 			return(JS_FALSE);
-		key=keystr[0];
+		key=*JS_GetStringBytes(js_str);
 	}
 
 	if(argc>1)
@@ -488,7 +482,7 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char		*p,*p2;
+	char		*p;
 	long		mode=0;
 	uintN		i;
 	size_t		maxlen=0;
@@ -521,10 +515,8 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 	if((p=(char *)calloc(1,maxlen+1))==NULL)
 		return(JS_FALSE);
 
-	if(js_str!=NULL) {
-		JSSTRING_TO_STRING(cx, js_str, p2, NULL);
-		sprintf(p,"%.*s",(int)maxlen,p2);
-	}
+	if(js_str!=NULL)
+		sprintf(p,"%.*s",(int)maxlen,JS_GetStringBytes(js_str));
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->getstr(p,maxlen,mode);
@@ -598,7 +590,7 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 	if(js_str==NULL)
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, js_str, cstr, NULL);
+	cstr=JS_GetStringBytes(js_str);
 	rc=JS_SUSPENDREQUEST(cx);
 	val=sbbs->getkeys(cstr,maxnum);
 	JS_RESUMEREQUEST(cx, rc);
@@ -653,12 +645,10 @@ js_gettemplate(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(js_str==NULL)
 		str[0]=0;
-	else {
-		JSSTRING_TO_STRING(cx, js_str, cstr, NULL);
-		SAFECOPY(str,cstr);
-	}
+	else
+		SAFECOPY(str,JS_GetStringBytes(js_str));
 
-	JSSTRING_TO_STRING(cx, js_fmt, cstr, NULL);
+	cstr=JS_GetStringBytes(js_fmt);
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->gettmplt(str,cstr,mode);
 	JS_RESUMEREQUEST(cx, rc);
@@ -688,7 +678,7 @@ js_ungetstr(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, js_str, p, NULL);
+	p=JS_GetStringBytes(js_str);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	while(p && *p)
@@ -715,7 +705,7 @@ js_yesno(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, js_str, cstr, NULL);
+	cstr=JS_GetStringBytes(js_str);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(cstr)));
 	JS_RESUMEREQUEST(cx, rc);
@@ -740,7 +730,7 @@ js_noyes(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, js_str, cstr, NULL);
+	cstr=JS_GetStringBytes(js_str);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(cstr)));
 	JS_RESUMEREQUEST(cx, rc);
@@ -765,7 +755,7 @@ js_mnemonics(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 	
-	JSSTRING_TO_STRING(cx, js_str, cstr, NULL);
+	cstr=JS_GetStringBytes(js_str);
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->mnemonics(cstr);
 	JS_RESUMEREQUEST(cx, rc);
@@ -776,13 +766,10 @@ static void
 js_set_attr(JSContext* cx, sbbs_t* sbbs, jsval val)
 {
 	int32		attr;
-	char		*as;
 	jsrefcount	rc;
 
-	if(JSVAL_IS_STRING(val)) {
-		JSVALUE_TO_STRING(cx, val, as, NULL);
-		attr=attrstr(as);
-	}
+	if(JSVAL_IS_STRING(val))
+		attr=attrstr(js_ValueToStringBytes(cx,val,NULL));
 	else
 		JS_ValueToInt32(cx, val, &attr);
 
@@ -944,8 +931,7 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
-		JSVALUE_TO_STRING(cx, argv[i], cstr, NULL);
-		if(cstr==NULL)
+		if((cstr=js_ValueToStringBytes(cx, argv[i], NULL))==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->bputs(cstr);
@@ -969,7 +955,7 @@ js_strlen(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
+	cstr=JS_GetStringBytes(str);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(bstrlen(cstr)));
 	JS_RESUMEREQUEST(cx, rc);
@@ -993,8 +979,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
-		JSVALUE_TO_STRING(cx, argv[i], str, &len);
-		if(str==NULL)
+		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->rputs(str, len);
@@ -1045,7 +1030,7 @@ js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc>1 && JSVAL_IS_NUMBER(argv[1]))
 		JS_ValueToInt32(cx,argv[1],(int32*)&mode);
 
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
+	cstr=JS_GetStringBytes(str);
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->putmsg(cstr,mode);
 	JS_RESUMEREQUEST(cx, rc);
@@ -1075,7 +1060,7 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc>1 && JSVAL_IS_NUMBER(argv[1]))
 		JS_ValueToInt32(cx,argv[1],(int32*)&mode);
 
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
+	cstr=JS_GetStringBytes(str);
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->printfile(cstr,mode);
 	JS_RESUMEREQUEST(cx, rc);
@@ -1116,7 +1101,7 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	if(!lines) 
 		lines=5;
 
-	JSSTRING_TO_STRING(cx, js_str, cstr, NULL);
+	cstr=JS_GetStringBytes(js_str);
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->printtail(cstr,lines,mode);
 	JS_RESUMEREQUEST(cx, rc);
@@ -1141,9 +1126,9 @@ js_editfile(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
+	cstr=JS_GetStringBytes(str);
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->editfile(cstr)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->editfile(JS_GetStringBytes(str))));
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1183,11 +1168,11 @@ js_uselect(JSContext *cx, uintN argc, jsval *arglist)
 			return(JS_FALSE);
 
 		if(title==NULL) 
-			JSSTRING_TO_STRING(cx, js_str, title, NULL)	// Magicsemicolon
+			title=JS_GetStringBytes(js_str);
 		else if(item==NULL)
-			JSSTRING_TO_STRING(cx, js_str, item, NULL)	// Magicsemicolon
+			item=JS_GetStringBytes(js_str);
 		else {
-			JSSTRING_TO_STRING(cx, js_str, ar_str, NULL);
+			ar_str=JS_GetStringBytes(js_str);
 			ar=arstr(NULL,ar_str,&sbbs->cfg);
 		}
 	}
@@ -1217,9 +1202,9 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
 	if (!str)
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
+	cstr=JS_GetStringBytes(str);
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->center(cstr);
+	sbbs->center(JS_GetStringBytes(str));
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1869,7 +1854,7 @@ static JSBool js_console_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_console_properties, js_console_functions, NULL, 0));
