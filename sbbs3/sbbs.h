@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.362 2011/10/09 04:30:44 deuce Exp $ */
+/* $Id: sbbs.h,v 1.363 2011/10/09 17:12:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,6 +121,22 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #if JS_VERSION >= 185
 	#define JS_DestroyScript(cx,script)
 #endif
+
+#define JSSTRING_TO_STRING(cx, str, ret) \
+{ \
+	size_t			len; \
+	size_t			pos; \
+	const jschar	*val; \
+\
+	ret[0]=0; \
+	if((val=JS_GetStringCharsAndLength(cx, str, &len))) { \
+		if((ret=alloca(len+1))) { \
+			for(pos=0; pos<len; pos++) \
+				ret[pos]=val[pos]; \
+			ret[len]=0; \
+		} \
+	} \
+} \
 
 #endif
 
