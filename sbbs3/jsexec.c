@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.143 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: jsexec.c,v 1.144 2011/10/09 04:48:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -396,7 +396,7 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
 
-	if(!js_write(cx,obj,argc,argv,rval))
+	if(!js_write(cx,argc,arglist))
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -885,7 +885,7 @@ long js_exec(const char *fname, char** args)
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes(JS_ValueToString(js_cx,rval)));
+		mfprintf(statfp,"Using JavaScript exit_code: %s",JS_GetStringBytes_dumbass(js_cx, JS_ValueToString(js_cx,rval)));
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
 	js_EvalOnExit(js_cx, js_glob, &branch);
@@ -982,7 +982,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.143 $", "%*s %s", revision);
+	sscanf("$Revision: 1.144 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
