@@ -2,13 +2,13 @@
 
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.26 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: mail.cpp,v 1.24 2010/03/10 08:04:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,8 +43,7 @@
 /****************************************************************************/
 int sbbs_t::delmail(uint usernumber, int which)
 {
-	ulong	i,l;
-	time_t	now;
+	ulong	 i,l,now;
 	idxrec_t *idxbuf;
 	smbmsg_t msg;
 
@@ -79,7 +78,7 @@ int sbbs_t::delmail(uint usernumber, int which)
 				|| (which==MAIL_YOUR && usernumber==msg.idx.to)
 				|| (which==MAIL_ANY	&& (usernumber==msg.idx.to || usernumber==msg.idx.from))
 				|| which==MAIL_ALL)) {
-			if(smb.status.max_age && (now<0?0:(uintmax_t)now)>msg.idx.time
+			if(smb.status.max_age && now>msg.idx.time
 				&& (now-msg.idx.time)/(24L*60L*60L)>smb.status.max_age)
 				msg.idx.attr|=MSG_DELETE;
 			else if(msg.idx.attr&MSG_KILLREAD && msg.idx.attr&MSG_READ)
@@ -163,11 +162,11 @@ void sbbs_t::telluser(smbmsg_t* msg)
 /************************************************************************/
 void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
 {
-	int 		i;
-	long		deleted=0;
-	uint32_t	msgs,u;
-	mail_t		*mail;
-	smbmsg_t 	msg;
+	int 	i;
+	long	l,deleted=0;
+	int32_t	msgs;
+	mail_t	*mail;
+	smbmsg_t msg;
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,"MAIL",i);
@@ -195,11 +194,11 @@ void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
 		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);	/* messes with the index */
 		return; 
 	}
-	for(u=0;u<msgs;u++) {
+	for(l=0;l<msgs;l++) {
 		msg.idx.offset=0;						/* search by number */
-		if((mail[u].attr&MSG_PERMANENT) && !permanent)
+		if((mail[l].attr&MSG_PERMANENT) && !permanent)
 			continue;
-		if(loadmsg(&msg,mail[u].number)) {	   /* message still there */
+		if(loadmsg(&msg,mail[l].number)) {	   /* message still there */
 			msg.hdr.attr|=MSG_DELETE;
 			msg.hdr.attr&=~MSG_PERMANENT;
 			msg.idx.attr=msg.hdr.attr;
