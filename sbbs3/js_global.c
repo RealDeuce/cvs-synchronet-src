@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.270 2011/10/09 04:30:44 deuce Exp $ */
+/* $Id: js_global.c,v 1.271 2011/10/09 05:05:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3659,7 +3659,7 @@ static JSBool js_global_enumerate(JSContext *cx, JSObject *obj)
 
 static JSClass js_global_class = {
      "Global"				/* name			*/
-    ,JSCLASS_HAS_PRIVATE	/* flags		*/
+    ,JSCLASS_HAS_PRIVATE|JSCLASS_GLOBAL_FLAGS	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
 	,js_system_get			/* getProperty	*/
