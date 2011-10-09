@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.17 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: js_client.c,v 1.18 2011/10/09 01:02:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,13 +63,15 @@ enum {
 	};
 #endif
 
-static JSBool js_client_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_client_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
+	jsval idval;
 	return(JS_FALSE);
 }
 
-static JSBool js_client_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_client_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
+	jsval idval;
 	const char*	p=NULL;
 	ulong		val=0;
     jsint       tiny;
@@ -79,7 +81,8 @@ static JSBool js_client_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	if((client=(client_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case CLIENT_PROP_ADDR: 
@@ -127,7 +130,7 @@ static jsSyncPropertySpec js_client_properties[] = {
 	{0}
 };
 
-static JSBool js_client_resolve(JSContext *cx, JSObject *obj, jsval id)
+static JSBool js_client_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
 

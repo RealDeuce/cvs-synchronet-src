@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.52 2009/02/10 07:33:41 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.55 2011/10/09 01:02:52 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -15,6 +15,7 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)bulkmail$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)chat$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)chk_ar$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)comio$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)con_hi$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)con_out$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)dat_rec$(OFILE)\
@@ -42,14 +43,10 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ident$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_bbs$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_client$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_com$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_console$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_file$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_file_area$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_global$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_internal$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_msg_area$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_msgbase$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_queue$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_request$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_rtpool$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_server$(OFILE)\
@@ -110,6 +107,11 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)xtrn$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)xtrn_sec$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)yenc$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_queue$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_msgbase$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_internal$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_global$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_file$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)ver$(OFILE)
 
 # Must add new additions to MONO_OBJS too!
@@ -287,3 +289,9 @@ SMBACTIV_OBJS = \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
+
+DSTSEDIT_OBJS = \
+			$(OBJODIR)$(DIRSEP)dstsedit$(OFILE)\
+			$(OBJODIR)$(DIRSEP)date_str$(OFILE) \
+			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
+
