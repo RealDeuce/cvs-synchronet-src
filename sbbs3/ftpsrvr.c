@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.389 2011/10/16 07:44:16 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.385 2011/10/09 04:30:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -384,9 +384,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str=NULL;
 	FILE*	fp;
 	jsrefcount	rc;
-	char		*p;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -395,9 +392,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		str = JS_ValueToString(cx, argv[i]);
 		if (!str)
 		    return JS_FALSE;
-		JSSTRING_TO_STRING(cx, str, p, NULL);
 		rc=JS_SUSPENDREQUEST(cx);
-		fprintf(fp,"%s", p);
+		fprintf(fp,"%s",JS_GetStringBytes(str));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -415,8 +411,6 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	FILE*	fp;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -1016,6 +1010,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 	} while(0);
 
+
+	if(js_script!=NULL) 
+		JS_DestroyScript(js_cx, js_script);
 
 	JS_DeleteProperty(js_cx, parent, "path");
 	JS_DeleteProperty(js_cx, parent, "sort");
@@ -4660,7 +4657,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.389 $", "%*s %s", revision);
+	sscanf("$Revision: 1.385 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.245 2011/10/17 23:19:29 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.243 2011/09/08 07:10:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,6 +70,11 @@
 #include <stdlib.h>  /* Is this included from somewhere else? */
 #include <syslog.h>
 
+#endif
+
+/* Services doesn't work without JavaScript support */
+#if !defined(JAVASCRIPT)
+	#define	NO_SERVICES
 #endif
 
 /* Global variables */
@@ -403,15 +408,15 @@ int change_user(void)
         
         pwent=getpwnam(new_uid_name);
         if(pwent != NULL) {
-            static char	uenv[128];
-            static char	henv[MAX_PATH+6];
+            char	uenv[128];
+            char	henv[MAX_PATH+6];
             sprintf(uenv,"USER=%s",pwent->pw_name);
             putenv(uenv);
             sprintf(henv,"HOME=%s",pwent->pw_dir);
             putenv(henv);
         }
         if(new_gid_name[0]) {
-            static char	genv[128];
+            char	genv[128];
             sprintf(genv,"GROUP=%s",new_gid_name);
             putenv(genv);
         }

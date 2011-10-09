@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.262 2011/10/16 12:32:24 rswindell Exp $ */
+/* $Id: services.c,v 1.255 2011/10/09 04:30:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -261,8 +261,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	service_client_t* client;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
@@ -297,8 +295,6 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	JSString*	str;
 	service_client_t* client;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -360,10 +356,9 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
 	char*		cp;
+	JSString*	str;
 	service_client_t* client;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -371,8 +366,9 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, argv[0]);
 
 	for(i=0; i<argc; i++) {
-		JSVALUE_TO_STRING(cx, argv[i], cp, NULL);
-		if(cp==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+			continue;
+		if((cp=JS_GetStringBytes(str))==NULL)
 			continue;
 		rc=JS_SUSPENDREQUEST(cx);
 		sendsocket(client->socket,cp,strlen(cp));
@@ -390,8 +386,6 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cp;
 	service_client_t* client;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -414,11 +408,9 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	char		str[512];
     uintN		i=0;
 	int32		level=LOG_INFO;
+    JSString*	js_str;
 	service_client_t* client;
 	jsrefcount	rc;
-	char		*line;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -431,10 +423,9 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		JSVALUE_TO_STRING(cx, argv[i], line, NULL);
-		if(line==NULL)
+		if((js_str=JS_ValueToString(cx, argv[i]))==NULL)
 		    return(JS_FALSE);
-		strncat(str,line,sizeof(str)/2);
+		strncat(str,JS_GetStringBytes(js_str),sizeof(str)/2);
 		strcat(str," ");
 	}
 
@@ -484,13 +475,11 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name or number */
-	JSVALUE_TO_STRING(cx, argv[0], user, NULL);
-	if(user==NULL) 
+	if((user=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
 		return(JS_FALSE);
 
 	/* Password */
-	JSVALUE_TO_STRING(cx, argv[1], pass, NULL);
-	if(pass==NULL) 
+	if((pass=js_ValueToStringBytes(cx, argv[1], NULL))==NULL) 
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -692,9 +681,6 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 	jsrefcount	rc;
-	char		*cstr;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -718,15 +704,11 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 		client.port=ntohs(addr.sin_port);
 	}
 
-	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
-		client.user=cstr;
-	}
+	if(argc>1)
+		client.user=JS_GetStringBytes(JS_ValueToString(cx,argv[1]));
 
-	if(argc>2) {
-		JSVALUE_TO_STRING(cx, argv[2], cstr, NULL);
-		SAFECOPY(client.host,cstr);
-	}
+	if(argc>2)
+		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
 	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ FALSE);
@@ -750,9 +732,6 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 	jsrefcount	rc;
-	char		*cstr;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -771,15 +750,11 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 		client.port=ntohs(addr.sin_port);
 	}
 
-	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
-		client.user=cstr;
-	}
+	if(argc>1)
+		client.user=JS_GetStringBytes(JS_ValueToString(cx,argv[1]));
 
-	if(argc>2) {
-		JSVALUE_TO_STRING(cx, argv[2], cstr, NULL);
-		SAFECOPY(client.host,cstr);
-	}
+	if(argc>2)
+		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
 
 	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ TRUE);
@@ -801,8 +776,6 @@ js_client_remove(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKET	sock=INVALID_SOCKET;
 	service_client_t* service_client;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -1207,6 +1180,7 @@ static void js_service_thread(void* arg)
 #endif
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
+		JS_DestroyScript(js_cx, js_script);
 	}
 	JS_ENDREQUEST(js_cx);
 	JS_DestroyContext(js_cx);	/* Free Context */
@@ -1316,6 +1290,7 @@ static void js_static_service_thread(void* arg)
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
+		JS_DestroyScript(js_cx, js_script);
 
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
@@ -1701,7 +1676,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.262 $", "%*s %s", revision);
+	sscanf("$Revision: 1.255 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

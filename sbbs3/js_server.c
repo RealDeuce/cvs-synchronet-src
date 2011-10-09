@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.10 2011/10/11 05:05:55 deuce Exp $ */
+/* $Id: js_server.c,v 1.7 2011/10/09 01:02:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,19 +142,15 @@ static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
 
-	if(id != JSID_VOID && id != JSID_EMPTY) {
-		jsval idval;
-		
-		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-	}
+	if(id != JSVAL_NULL)
+		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
 
 	return(js_SyncResolve(cx, obj, name, js_server_properties, NULL, NULL, 0));
 }
 
 static JSBool js_server_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_server_resolve(cx, obj, JSID_VOID));
+	return(js_server_resolve(cx, obj, JSVAL_NULL));
 }
 
 static JSClass js_server_class = {
