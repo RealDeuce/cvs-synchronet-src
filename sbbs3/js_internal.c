@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.55 2011/08/31 22:01:27 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.63 2011/10/09 17:14:34 cyan Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,10 +38,6 @@
 #include "sbbs.h"
 #include "js_request.h"
 
-#ifdef _DEBUG
-	#include <jscntxt.h>	/* Needed for Context-private data structure */
-#endif
-
 enum {
 	 PROP_VERSION
 	,PROP_TERMINATED
@@ -60,15 +56,17 @@ enum {
 	,PROP_GLOBAL
 };
 
-static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
+	jsval idval;
     jsint			tiny;
 	js_branch_t*	branch;
 
 	if((branch=(js_branch_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case PROP_VERSION:
@@ -84,32 +82,32 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 			*vp=BOOLEAN_TO_JSVAL(branch->auto_terminate);
 			break;
 		case PROP_BRANCH_COUNTER:
-			JS_NewNumberValue(cx,branch->counter,vp);
+			*vp=DOUBLE_TO_JSVAL((double)branch->counter);
 			break;
 		case PROP_BRANCH_LIMIT:
-			JS_NewNumberValue(cx,branch->limit,vp);
+			*vp=DOUBLE_TO_JSVAL(branch->limit);
 			break;
 		case PROP_YIELD_INTERVAL:
-			JS_NewNumberValue(cx,branch->yield_interval,vp);
+			*vp=DOUBLE_TO_JSVAL((double)branch->yield_interval);
 			break;
 		case PROP_GC_INTERVAL:
-			JS_NewNumberValue(cx,branch->gc_interval,vp);
+			*vp=DOUBLE_TO_JSVAL((double)branch->gc_interval);
 			break;
 		case PROP_GC_ATTEMPTS:
-			JS_NewNumberValue(cx,branch->gc_attempts,vp);
+			*vp=DOUBLE_TO_JSVAL((double)branch->gc_attempts);
 			break;
 #ifdef jscntxt_h___
 		case PROP_GC_COUNTER:
-			JS_NewNumberValue(cx,cx->runtime->gcNumber,vp);
+			*vp=UINT_TO_JSVAL(cx->runtime->gcNumber);
 			break;
 		case PROP_GC_LASTBYTES:
-			JS_NewNumberValue(cx,cx->runtime->gcLastBytes,vp);
+			*vp=DOUBLE_TO_JSVAL((double)cx->runtime->gcLastBytes);
 			break;
 		case PROP_BYTES:
-			JS_NewNumberValue(cx,cx->runtime->gcBytes,vp);
+			*vp=DOUBLE_TO_JSVAL((double)cx->runtime->gcBytes);
 			break;
 		case PROP_MAXBYTES:
-			JS_NewNumberValue(cx,cx->runtime->gcMaxBytes,vp);
+			*vp=DOUBLE_TO_JSVAL((double)cx->runtime->gcMaxBytes);
 			break;
 #endif
 		case PROP_GLOBAL:
@@ -120,15 +118,17 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	return(JS_TRUE);
 }
 
-static JSBool js_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
+	jsval idval;
     jsint			tiny;
 	js_branch_t*	branch;
 
 	if((branch=(js_branch_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case PROP_TERMINATED:
@@ -242,22 +242,29 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
     return(JS_TRUE);
 }
 
+static JSClass eval_class = {
+    "Global",  /* name */
+    JSCLASS_GLOBAL_FLAGS,  /* flags */
+    JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
+    JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub,
+    JSCLASS_NO_OPTIONAL_MEMBERS
+};
+
 /* Execute a string in its own context (away from Synchronet objects) */
 static JSBool
-js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsval *rval)
+js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 {
+	JSObject *parent_obj=JS_THIS_OBJECT(parent_cx, arglist);
+	jsval *argv=JS_ARGV(parent_cx, arglist);
 	char*			buf;
 	size_t			buflen;
 	JSString*		str;
-    JSScript*		script;
+    JSObject*		script;
 	JSContext*		cx;
 	JSObject*		obj;
 	JSErrorReporter	reporter;
-#ifndef EVAL_BRANCH_CALLBACK
-#ifndef USE_JS_OPERATION_CALLBACK
-	JSBranchCallback callback;
-#endif
-#endif
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc<1)
 		return(JS_TRUE);
@@ -278,14 +285,14 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 
 #ifdef EVAL_BRANCH_CALLBACK
 	JS_SetContextPrivate(cx, JS_GetPrivate(parent_cx, parent_obj));
-#ifdef USE_JS_OPERATION_CALLBACK
+#if JS_VERSION>180
 	JS_SetOperationCallback(cx, js_OperationCallback);
 #else
 	JS_SetBranchCallback(cx, js_BranchCallback);
 #endif
 #else	/* Use the branch callback from the parent context */
 	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
-#ifdef USE_JS_OPERATION_CALLBACK
+#if JS_VERSION>180
 	JS_SetOperationCallback(cx, JS_GetOperationCallback(parent_cx));
 #else
 	callback=JS_SetBranchCallback(parent_cx,NULL);
@@ -294,15 +301,18 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 #endif
 #endif
 
-	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL
+	if((obj=JS_NewCompartmentAndGlobalObject(cx, &eval_class, NULL))==NULL
 		|| !JS_InitStandardClasses(cx,obj)) {
 		JS_DestroyContext(cx);
 		return(JS_FALSE);
 	}
 
 	if((script=JS_CompileScript(cx, obj, buf, buflen, NULL, 0))!=NULL) {
-		JS_ExecuteScript(cx, obj, script, rval);
+		jsval	rval;
+
+		JS_ExecuteScript(cx, obj, script, &rval);
 		JS_DestroyScript(cx, script);
+		JS_SET_RVAL(cx, arglist, rval);
 	}
 
 	JS_DestroyContext(cx);
@@ -311,10 +321,14 @@ js_eval(JSContext *parent_cx, JSObject *parent_obj, uintN argc, jsval *argv, jsv
 }
 
 static JSBool
-js_gc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_gc(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	JSBool			forced=JS_TRUE;
 	js_branch_t*	branch;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((branch=(js_branch_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -333,9 +347,13 @@ js_gc(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_report_error(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_report_error(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	JS_ReportError(cx,"%s",JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>1 && argv[1]==JSVAL_TRUE)
 		return(JS_FALSE);	/* fatal */
@@ -344,9 +362,13 @@ js_report_error(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rv
 }
 
 static JSBool
-js_on_exit(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	js_branch_t*	branch;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((branch=(js_branch_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -360,15 +382,17 @@ js_on_exit(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_get_parent(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_get_parent(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject* child=NULL;
 	JSObject* parent;
 
 	if(JS_ValueToObject(cx, argv[0], &child)
 		&& child!=NULL
 		&& (parent=JS_GetParent(cx,child))!=NULL)
-		*rval = OBJECT_TO_JSVAL(parent);
+		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(parent));
 
 	return(JS_TRUE);
 }
@@ -401,19 +425,23 @@ static jsSyncMethodSpec js_functions[] = {
 	{0}
 };
 
-static JSBool js_internal_resolve(JSContext *cx, JSObject *obj, jsval id)
+static JSBool js_internal_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
 
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if(id != JSID_VOID && id != JSID_EMPTY) {
+		jsval idval;
+		
+		JS_IdToValue(cx, id, &idval);
+		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
+	}
 
 	return(js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0));
 }
 
 static JSBool js_internal_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_internal_resolve(cx, obj, JSVAL_NULL));
+	return(js_internal_resolve(cx, obj, JSID_VOID));
 }
 
 static JSClass js_internal_class = {
@@ -429,11 +457,30 @@ static JSClass js_internal_class = {
 	,JS_FinalizeStub		/* finalize		*/
 };
 
+#if JS_VERSION >= 185
+char* DLLCALL JS_GetStringBytes_dumbass(JSContext *cx, JSString *str)
+{
+	size_t			len;
+	size_t			pos;
+	const jschar	*val;
+	char			*ret;
+
+	if(!(val=JS_GetStringCharsAndLength(cx, str, &len)))
+		return NULL;
+	if(!(ret=malloc(len+1)))
+		return NULL;
+	for(pos=0; pos<len; pos++)
+		ret[pos]=val[pos];
+	ret[len]=0;
+	return ret;
+}
+#endif
+
 void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 {
 	char*	p;
 	jsval	rval;
-	JSScript* script;
+	JSObject* script;
 	BOOL	auto_terminate=branch->auto_terminate;
 
 	branch->auto_terminate=FALSE;

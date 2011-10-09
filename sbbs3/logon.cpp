@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.56 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.57 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -483,11 +483,9 @@ bool sbbs_t::logon()
 			}
 			if(node.status==NODE_INUSE && i!=cfg.node_num && node.useron==useron.number
 				&& !SYSOP && !(useron.exempt&FLAG('G'))) {
-				strcpy(tmp,"On two nodes at the same time");
-				sprintf(str,"(%04u)  %-25s  %s"
-					,useron.number,useron.alias,tmp);
+				SAFEPRINTF2(str,"(%04u)  %-25s  On two nodes at the same time"
+					,useron.number,useron.alias);
 				logline(LOG_NOTICE,"+!",str);
-				errorlog(tmp);
 				bputs(text[UserOnTwoNodes]);
 				hangup();
 				return(false); 
