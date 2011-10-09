@@ -2,12 +2,14 @@
 
 # Make 'include file' defining targets for Synchronet MenuEdit project
 
-# $Id: targets.mk,v 1.1 2004/07/20 02:09:21 rswindell Exp $
+# $Id: targets.mk,v 1.2 2011/05/27 06:03:31 deuce Exp $
 
-# EXEODIR, LIBODIR, SLASH, and EXEFILE must be pre-defined
+# EXEODIR, LIBODIR, DIRSEP, and EXEFILE must be pre-defined
 
-MENUEDIT=	$(EXEODIR)$(SLASH)menuedit$(EXEFILE) 
+MENUEDIT=	$(EXEODIR)$(DIRSEP)menuedit$(EXEFILE) 
 
-all:		$(EXEODIR) \
+all:		$(MTOBJODIR) \
+		$(EXEODIR) \
 		$(LIBODIR) \
+		xpdev-mt uifc-mt ciolib-mt \
 		$(MENUEDIT)
