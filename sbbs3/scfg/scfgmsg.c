@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.36 2011/10/21 11:19:23 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.35 2011/06/30 03:07:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,7 +124,7 @@ void msgs_cfg()
 	char*	tp;
     char	tmp[128];
 	char	tmp_code[32];
-	int		j,k,q,s;
+	int		j,k,l,q,s;
 	int		i,file,ptridx,n;
 	unsigned total_subs;
 	long	ported;
