@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.27 2012/10/23 07:59:36 deuce Exp $ */
+/* $Id: smbadd.c,v 1.22 2009/03/24 20:39:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -50,8 +50,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	long		lzhlen;
 	int			retval;
 	size_t		n;
-	size_t		l;
-	off_t		length;
+	size_t		l,length;
 	size_t		taillen=0;
 	size_t		bodylen=0;
 	size_t		chklen=0;
@@ -99,10 +98,10 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			}
 		}
 
-		if(tail!=NULL && (taillen=strlen((const char *)tail))>0)
+		if(tail!=NULL && (taillen=strlen(tail))>0)
 			taillen+=sizeof(xlat);	/* xlat string terminator */
 
-		if(body!=NULL && (bodylen=strlen((const char *)body))>0) {
+		if(body!=NULL && (bodylen=strlen(body))>0) {
 
 			/* Remove white-space from end of message text */
 			chklen=bodylen;
@@ -141,8 +140,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 		if(length) {
 
-			if(length >= 0x80000000 || length < 0) {
-				sprintf(smb->last_error,"message length: 0x%"PRIXMAX,(intmax_t)length);
+			if(length&0x80000000) {
+				sprintf(smb->last_error,"message length: 0x%lX",length);
 				retval=SMB_ERR_DAT_LEN;
 				break;
 			}
@@ -244,7 +243,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		}
 
 		if(msg->hdr.when_imported.time==0) {
-			msg->hdr.when_imported.time=(uint32_t)time(NULL);
+			msg->hdr.when_imported.time=time(NULL);
 			msg->hdr.when_imported.zone=0;	/* how do we detect system TZ? */
 		}
 		if(msg->hdr.when_written.time==0)	/* Uninitialized */
@@ -258,7 +257,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 		/* Look-up thread_back if FTN REPLY was specified */
 		if(msg->hdr.thread_back==0 && msg->ftn_reply!=NULL) {
-			if(smb_getmsgidx_by_ftnid(smb,&remsg,msg->ftn_reply)==SMB_SUCCESS)
+			if(smb_getmsghdr_by_ftnid(smb,&remsg,msg->ftn_reply)==SMB_SUCCESS)
 				msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
 		}
 
@@ -266,18 +265,13 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		if(msg->hdr.thread_back) {
 			memset(&remsg,0,sizeof(remsg));
 			remsg.hdr.number=msg->hdr.thread_back;
-			if(smb_getmsgidx(smb, &remsg)==SMB_SUCCESS	/* valid thread back */
+			if(smb_getmsgidx(smb, &remsg)==SMB_SUCCESS	/* valid thread origin */
 				&& smb_lockmsghdr(smb,&remsg)==SMB_SUCCESS) {
 
 				do { /* try */
 
 					if(smb_getmsghdr(smb, &remsg)!=SMB_SUCCESS)
 						break;
-
-					if(msg->hdr.thread_id==0) {	/* no thread_id pre-specified */
-						if((msg->hdr.thread_id=remsg.hdr.thread_id) == 0)
-							msg->hdr.thread_id=remsg.hdr.number;
-					}
 
 					/* Add RFC-822 Reply-ID if original message has RFC Message-ID */
 					if(msg->reply_id==NULL && remsg.id!=NULL
