@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.115 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: zmodem.c,v 1.113 2010/03/12 19:29:58 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1764,13 +1764,13 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 
 	p = zm->tx_data_subpacket;
 
-	SAFECOPY(zm->tx_data_subpacket,getfname(fname));
+	strcpy(p,getfname(fname));
 
 	p += strlen(p) + 1;
 
-	sprintf(p,"%"PRId64" %"PRIoMAX" 0 0 %u %"PRId64" 0"
+	sprintf(p,"%"PRId64" %lo 0 0 %u %"PRId64" 0"
 		,zm->current_file_size	/* use for estimating only, could be zero! */
-		,(uintmax_t)s.st_mtime
+		,s.st_mtime
 		,zm->files_remaining
 		,zm->bytes_remaining
 		);
@@ -2117,7 +2117,7 @@ void zmodem_parse_zfile_subpacket(zmodem_t* zm)
 	zm->files_remaining = 0;
 	zm->bytes_remaining = 0;
 
-	i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%"SCNd64" %lo %o %lo %u %"SCNd64
+	i=sscanf(zm->rx_data_subpacket+strlen(zm->rx_data_subpacket)+1,"%"PRId64" %lo %o %lo %u %"PRId64
 		,&zm->current_file_size	/* file size (decimal) */
 		,&tmptime				/* file time (octal unix format) */
 		,&mode					/* file mode */
@@ -2288,7 +2288,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.115 $", "%*s %s", buf);
+	sscanf("$Revision: 1.113 $", "%*s %s", buf);
 
 	return(buf);
 }
