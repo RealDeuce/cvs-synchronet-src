@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.365 2011/10/09 17:47:42 deuce Exp $ */
+/* $Id: sbbs.h,v 1.366 2011/10/09 19:10:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,13 +128,22 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	size_t			pos; \
 	const jschar	*val; \
 \
-	if((val=JS_GetStringCharsAndLength(cx, str, &len))) { \
-		if((ret=alloca(len+1))) { \
-			for(pos=0; pos<len; pos++) \
-				ret[pos]=val[pos]; \
-			ret[len]=0; \
+	ret=NULL; \
+	if(str != NULL) { \
+		if((val=JS_GetStringCharsAndLength(cx, str, &len))) { \
+			if((ret=(char *)alloca(len+1))) { \
+				for(pos=0; pos<len; pos++) \
+					ret[pos]=val[pos]; \
+				ret[len]=0; \
+			} \
 		} \
 	} \
+}
+
+#define JSVALUE_TO_STRING(cx, val, ret) \
+{ \
+	JSString	str=JS_ValueToString(cx, val); \
+	JSSTRING_TO_STRING(cx, str, ret); \
 }
 
 #endif
