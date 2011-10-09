@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.46 2011/09/05 17:54:20 deuce Exp $ */
+/* $Id: link_list.c,v 1.53 2011/09/10 01:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,50 +40,6 @@
 #include "link_list.h"
 #include "genwrap.h"
 
-#if defined(LINK_LIST_THREADSAFE)
-	#define MUTEX_DESTROY(list)	{ if(list->flags&LINK_LIST_MUTEX) { while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY) SLEEP(1);}	}
-	#define MUTEX_LOCK(list)	{ \
-		if(list->flags&LINK_LIST_MUTEX) { \
-			pthread_mutex_lock((pthread_mutex_t*)&list->mmutex); \
-			if(!pthread_equal(list->tid, pthread_self())) { \
-				pthread_mutex_lock((pthread_mutex_t*)&list->mutex); \
-				list->tid = pthread_self(); \
-			} \
-			list->locks++; \
-			pthread_mutex_unlock((pthread_mutex_t*)&list->mmutex); \
-		} \
-	}
-	#define MUTEX_UNLOCK(list)	{ \
-		if(list->flags&LINK_LIST_MUTEX) { \
-			pthread_mutex_lock((pthread_mutex_t*)&list->mmutex); \
-			if(!pthread_equal(list->tid, pthread_self())) { \
-				/* ERROR! */ \
-fprintf(stderr, "BAD UNLOCK (tid=%08x self=%08x)...\n", list->tid, pthread_self()); \
-				pthread_mutex_unlock((pthread_mutex_t*)&list->mmutex); \
-				return FALSE; \
-			} \
-			else if(list->locks == 0) { \
-fprintf(stderr, "Zero locks!...\n"); \
-				/* ERROR! */ \
-				pthread_mutex_unlock((pthread_mutex_t*)&list->mmutex); \
-				return FALSE; \
-			} \
-			else { \
-				list->locks--; \
-				if(list->locks == 0) { \
-					pthread_mutex_unlock((pthread_mutex_t*)&list->mutex); \
-					memset(&list->tid, 0xff, sizeof(list->tid)); \
-				} \
-			} \
-			pthread_mutex_unlock((pthread_mutex_t*)&list->mmutex); \
-		} \
-	}
-#else
-	#define MUTEX_DESTROY(list)	(void)list
-	#define MUTEX_LOCK(list)	(void)list
-	#define MUTEX_UNLOCK(list)	(void)list
-#endif
-
 #if defined(_WIN32) && defined(LINK_LIST_USE_HEAPALLOC)
 	#define malloc(size)	HeapAlloc(GetProcessHeap(), /* flags: */0, size)
 	#define free(ptr)		HeapFree(GetProcessHeap(), /* flags: */0, ptr)
@@ -103,8 +59,7 @@ link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_MUTEX) {
-		list->mmutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
-		list->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
+		list->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 		memset(&list->tid, 0xff, sizeof(list->tid));
 	}
 
@@ -136,7 +91,7 @@ long DLLCALL listFreeNodes(link_list_t* list)
 	if(list==NULL)
 		return(-1);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	for(node=list->first; node!=NULL; node=next) {
 
@@ -159,7 +114,7 @@ long DLLCALL listFreeNodes(link_list_t* list)
 	if(!list->count)
 		list->last = NULL;
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(list->count);
 }
@@ -172,9 +127,13 @@ BOOL DLLCALL listFree(link_list_t* list)
 	if(listFreeNodes(list))
 		return(FALSE);
 
-	MUTEX_DESTROY(list);
-
 #if defined(LINK_LIST_THREADSAFE)
+
+	if(list->flags&LINK_LIST_MUTEX) { 
+		while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY) 
+			SLEEP(1);
+	}
+
 	if(list->flags&LINK_LIST_SEMAPHORE) {
 		while(sem_destroy(&list->sem)==-1 && errno==EBUSY)
 			SLEEP(1);
@@ -193,9 +152,9 @@ long DLLCALL listAttach(link_list_t* list)
 	if(list==NULL)
 		return(-1);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 	list->refs++;
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(list->refs);
 }
@@ -207,11 +166,11 @@ long DLLCALL listDettach(link_list_t* list)
 	if(list==NULL || list->refs<1)
 		return(-1);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 	if((refs=--list->refs)==0)
 		listFree(list);
 	else
-		MUTEX_UNLOCK(list);
+		listUnlock(list);
 
 	return(refs);
 }
@@ -223,8 +182,10 @@ void* DLLCALL listSetPrivateData(link_list_t* list, void* p)
 	if(list==NULL)
 		return(NULL);
 
+	listLock(list);
 	old=list->private_data;
 	list->private_data=p;
+	listUnlock(list);
 	return(old);
 }
 
@@ -273,29 +234,35 @@ BOOL DLLCALL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 
 BOOL DLLCALL listLock(link_list_t* list)
 {
+	BOOL	ret=TRUE;
+
 	if(list==NULL)
 		return(FALSE);
-	MUTEX_LOCK(list);
-	return(TRUE);
+#if defined(LINK_LIST_THREADSAFE)
+	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_lock(&list->mutex))==0)
+#endif
+		list->locks++;
+	return(ret);
 }
 
 BOOL DLLCALL listIsLocked(const link_list_t* list)
 {
-	BOOL	ret;
 	if(list==NULL)
 		return(FALSE);
-	pthread_mutex_lock((pthread_mutex_t*)&list->mmutex);
-	ret = list->locks > 0 ? TRUE : FALSE;
-	pthread_mutex_unlock((pthread_mutex_t*)&list->mmutex);
-	return(ret);
+	return(list->locks > 0 ? TRUE : FALSE);
 }
 
 BOOL DLLCALL listUnlock(link_list_t* list)
 {
+	BOOL	ret=TRUE;
+
 	if(list==NULL)
 		return(FALSE);
-	MUTEX_UNLOCK(list);
-	return(TRUE);
+#if defined(LINK_LIST_THREADSAFE)
+	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_unlock(&list->mutex))==0)
+#endif
+		list->locks--;
+	return(ret);
 }
 
 long DLLCALL listCountNodes(link_list_t* list)
@@ -309,12 +276,12 @@ long DLLCALL listCountNodes(link_list_t* list)
 	if(list->count)
 		return(list->count);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	for(node=list->first; node!=NULL; node=node->next)
 		count++;
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(count);
 }
@@ -326,7 +293,7 @@ list_node_t* DLLCALL listFindNode(link_list_t* list, const void* data, size_t le
 	if(list==NULL)
 		return(NULL);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	for(node=list->first; node!=NULL; node=node->next) {
 		if(length==0) {
@@ -339,7 +306,7 @@ list_node_t* DLLCALL listFindNode(link_list_t* list, const void* data, size_t le
 			break;
 	}
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(node);
 }
@@ -356,14 +323,14 @@ str_list_t DLLCALL listStringList(link_list_t* list)
 	if((str_list=strListInit())==NULL)
 		return(NULL);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	for(node=list->first; node!=NULL; node=node->next) {
 		if(node->data!=NULL)
 			strListAppend(&str_list, (char*)node->data, count++);
 	}
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(str_list);
 }
@@ -381,14 +348,14 @@ str_list_t DLLCALL listSubStringList(const list_node_t* node, long max)
 		return(NULL);
 
 	list=node->list;
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	for(count=0; count<max && node!=NULL; node=node->next) {
 		if(node->data!=NULL)
 			strListAppend(&str_list, (char*)node->data, count++);
 	}
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(str_list);
 }
@@ -399,12 +366,18 @@ void* DLLCALL listFreeStringList(str_list_t list)
 	return(list);
 }
 
-list_node_t* DLLCALL listFirstNode(const link_list_t* list)
+list_node_t* DLLCALL listFirstNode(link_list_t* list)
 {
+	list_node_t*	node;
+
 	if(list==NULL)
 		return(NULL);
 
-	return(list->first);
+	listLock(list);
+	node=list->first;
+	listUnlock(list);
+
+	return(node);
 }
 
 list_node_t* DLLCALL listLastNode(link_list_t* list)
@@ -415,15 +388,13 @@ list_node_t* DLLCALL listLastNode(link_list_t* list)
 	if(list==NULL)
 		return(NULL);
 
+	listLock(list);
 	if(list->last!=NULL)
-		return(list->last);
-
-	MUTEX_LOCK(list);
-
-	for(node=list->first; node!=NULL; node=node->next)
-		last=node;
-
-	MUTEX_UNLOCK(list);
+		last=list->last;
+	else
+		for(node=list->first; node!=NULL; node=node->next)
+			last=node;
+	listUnlock(list);
 
 	return(last);
 }
@@ -436,13 +407,13 @@ long DLLCALL listNodeIndex(link_list_t* list, list_node_t* find_node)
 	if(list==NULL)
 		return(-1);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	for(node=list->first; node!=NULL; node=node->next)
 		if(node==find_node)
 			break;
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	if(node==NULL)
 		return(-1);
@@ -458,38 +429,56 @@ list_node_t* DLLCALL listNodeAt(link_list_t* list, long index)
 	if(list==NULL || index<0)
 		return(NULL);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	for(node=list->first; node!=NULL && i<index; node=node->next)
 		i++;
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(node);
 }
 
 list_node_t* DLLCALL listNextNode(const list_node_t* node)
 {
+	list_node_t*	next;
+
 	if(node==NULL)
 		return(NULL);
 
-	return(node->next);
+	listLock(node->list);
+	next=node->next;
+	listUnlock(node->list);
+
+	return(next);
 }
 
 list_node_t* DLLCALL listPrevNode(const list_node_t* node)
 {
+	list_node_t*	prev;
+
 	if(node==NULL)
 		return(NULL);
 
-	return(node->prev);
+	listLock(node->list);
+	prev=node->prev;
+	listUnlock(node->list);
+
+	return(prev);
 }
 
 void* DLLCALL listNodeData(const list_node_t* node)
 {
+	void*	data;
+
 	if(node==NULL)
 		return(NULL);
 
-	return(node->data);
+	listLock(node->list);
+	data=node->data;
+	listUnlock(node->list);
+
+	return(data);
 }
 
 BOOL DLLCALL listNodeIsLocked(const list_node_t* node)
@@ -502,7 +491,9 @@ BOOL DLLCALL listLockNode(list_node_t* node)
 	if(node==NULL || (node->flags&LINK_LIST_LOCKED))
 		return(FALSE);
 
+	listLock(node->list);
 	node->flags|=LINK_LIST_LOCKED;
+	listUnlock(node->list);
 
 	return(TRUE);
 }
@@ -512,7 +503,9 @@ BOOL DLLCALL listUnlockNode(list_node_t* node)
 	if(!listNodeIsLocked(node))
 		return(FALSE);
 
+	listLock(node->list);
 	node->flags&=~LINK_LIST_LOCKED;
+	listUnlock(node->list);
 
 	return(TRUE);
 }
@@ -522,7 +515,7 @@ static list_node_t* DLLCALL list_add_node(link_list_t* list, list_node_t* node, 
 	if(list==NULL)
 		return(NULL);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	node->list = list;
 	if(after==LAST_NODE)					/* e.g. listPushNode() */
@@ -546,7 +539,7 @@ static list_node_t* DLLCALL list_add_node(link_list_t* list, list_node_t* node, 
 
 	list->count++;
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_SEMAPHORE)
@@ -560,7 +553,7 @@ list_node_t* DLLCALL listAddNode(link_list_t* list, void* data, list_node_tag_t 
 {
 	list_node_t* node;
 
-	if(list==NULL || data==NULL)
+	if(list==NULL)
 		return(NULL);
 
 	if((node=(list_node_t*)malloc(sizeof(list_node_t)))==NULL)
@@ -737,11 +730,11 @@ void* DLLCALL listRemoveNode(link_list_t* list, list_node_t* node, BOOL free_dat
 	if(list==NULL)
 		return(NULL);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	data = list_remove_node(list, node, free_data);
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(data);
 }
@@ -754,12 +747,12 @@ void* DLLCALL listRemoveTaggedNode(link_list_t* list, list_node_tag_t tag, BOOL 
 	if(list==NULL)
 		return(NULL);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 		
 	if((node=listFindTaggedNode(list, tag)) != NULL)
 		data = list_remove_node(list, node, free_data);
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 
 	return(data);
 }
@@ -771,7 +764,7 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 	if(list==NULL)
 		return(-1);
 
-	MUTEX_LOCK(list);
+	listLock(list);
 
 	if(node==FIRST_NODE)
 		node=list->first;
@@ -780,7 +773,7 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 		if(listRemoveNode(list, node, free_data)==NULL)
 			break;
 
-	MUTEX_UNLOCK(list);
+	listUnlock(list);
 	
 	return(count);
 }
@@ -799,9 +792,9 @@ BOOL DLLCALL listSwapNodes(list_node_t* node1, list_node_t* node2)
 		return(FALSE);
 
 #if defined(LINK_LIST_THREADSAFE)
-	MUTEX_LOCK(node1->list);
+	listLock(node1->list);
 	if(node1->list != node2->list)
-		MUTEX_LOCK(node2->list);
+		listLock(node2->list);
 #endif
 
 	tmp=*node1;
@@ -813,9 +806,9 @@ BOOL DLLCALL listSwapNodes(list_node_t* node1, list_node_t* node2)
 	node2->flags=tmp.flags;
 
 #if defined(LINK_LIST_THREADSAFE)
-	MUTEX_UNLOCK(node1->list);
+	listUnlock(node1->list);
 	if(node1->list != node2->list)
-		MUTEX_UNLOCK(node2->list);
+		listUnlock(node2->list);
 #endif
 
 	return(TRUE);
