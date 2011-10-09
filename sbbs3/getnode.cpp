@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.37 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.43 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,6 +91,9 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 
 	if(count==LOOP_NODEDAB) {
 		errormsg(WHERE,rd==sizeof(node_t) ? ERR_LOCK : ERR_READ,"node.dab",number+1);
+		if(nodefile!=-1)
+			close(nodefile);
+		nodefile=-1;
 		return(-2);
 	}
 	if(count>(LOOP_NODEDAB/2)) {
@@ -129,7 +132,7 @@ void sbbs_t::nodesync()
 	if(sys_status&SS_USERON) {
 
 		if(thisnode.status==NODE_WFC) {
-			errorlog("NODE STATUS FIXUP");
+			lprintf(LOG_ERR, "Node %d NODE STATUS FIXUP", cfg.node_num);
 			if(getnodedat(cfg.node_num,&thisnode,true)==0) {
 				thisnode.status=NODE_INUSE;
 				putnodedat(cfg.node_num,&thisnode); 
@@ -142,7 +145,7 @@ void sbbs_t::nodesync()
 			unixtodstr(&cfg,now,today);
 			if(strcmp(str,today)) { /* New day, clear "today" user vars */
 				sys_status|=SS_NEWDAY;	// So we don't keep doing this over&over
-				resetdailyuserdat(&cfg,&useron);
+				resetdailyuserdat(&cfg, &useron,/* write: */true);
 			} 
 		}
 		if(thisnode.misc&NODE_UDAT && !(useron.rest&FLAG('G'))) {   /* not guest */
@@ -220,7 +223,7 @@ int sbbs_t::getnmsg()
 		**/
 		return(errno); 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if(!length) {
 		close(file);
 		return(0); 
@@ -329,7 +332,7 @@ int sbbs_t::getsmsg(int usernumber)
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return(errno); 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if((buf=(char *)malloc(length+1))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1);
@@ -402,7 +405,7 @@ static char* node_connection_desc(sbbs_t* sbbs, ushort conn, char* str)
 {
 	switch(conn) {
 		case NODE_CONNECTION_LOCAL:
-			return " Locally";	/* obsolete */
+			return (char*)" Locally";	/* obsolete */
 		case NODE_CONNECTION_TELNET:
 			return sbbs->text[NodeConnectionTelnet];
 		case NODE_CONNECTION_RLOGIN:
