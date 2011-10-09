@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.181 2011/09/01 06:37:25 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.182 2011/09/09 08:13:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -718,7 +718,7 @@ static void web_clients(void* p, int clients)
     	mutex=CreateMutex(NULL,false,NULL);
 	WaitForSingleObject(mutex,INFINITE);
 
-    WebForm->ProgressBar->Max=MainForm->ftp_startup.max_clients;
+    WebForm->ProgressBar->Max=MainForm->web_startup.max_clients;
 	WebForm->ProgressBar->Position=clients;
 
     ReleaseMutex(mutex);
