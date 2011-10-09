@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.89 2012/04/27 16:21:33 deuce Exp $ */
+/* $Id: genwrap.c,v 1.85 2011/05/12 21:06:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -336,17 +336,13 @@ long DLLCALL xp_random(int n)
 			return(curr % n);
 	}
 #else
-	double f=0;
-	int ret;
+	float f=0;
 
 	if(n<2)
 		return(0);
-	do {
-		f=(double)rand()/(double)(RAND_MAX+1);
-		ret=(n*f);
-	} while ret==n;
+	f=(float)rand()/(float)RAND_MAX;
 
-	return(ret);
+	return((int)(n*f));
 #endif
 }
 
@@ -481,7 +477,7 @@ char* DLLCALL truncsp(char* str)
 
 	if(str!=NULL) {
 		i=len=strlen(str);
-		while(i && isspace((unsigned char)str[i-1]))
+		while(i && isspace((unsigned char)str[i-1])) 
 			i--;
 		if(i!=len)
 			str[i]=0;	/* truncate */
@@ -490,8 +486,7 @@ char* DLLCALL truncsp(char* str)
 }
 
 /****************************************************************************/
-/* Truncates common white-space chars off end of \n-terminated lines in		*/
-/* 'dst' and retains original line break format	(e.g. \r\n or \n)			*/
+/* Truncates all white-space chars off end of \n-terminated lines in 'str'	*/
 /****************************************************************************/
 char* DLLCALL truncsp_lines(char* dst)
 {
@@ -503,13 +498,10 @@ char* DLLCALL truncsp_lines(char* dst)
 		return(dst);
 
 	for(sp=src, dp=dst; *sp!=0; sp++) {
-		if(*sp=='\n') {
-			while(dp!=dst
-				&& (*(dp-1)==' ' || *(dp-1)=='\t' || *(dp-1)=='\r'))
+		if(*sp=='\n')
+			while(dp!=dst 
+				&& (*(dp-1)==' ' || *(dp-1)=='\t' || *(dp-1)=='\r') && *(dp-1)!='\n') 
 					dp--;
-			if(sp!=src && *(sp-1)=='\r')
-				*(dp++)='\r';
-		}
 		*(dp++)=*sp;
 	}
 	*dp=0;
@@ -527,7 +519,7 @@ char* DLLCALL truncnl(char* str)
 
 	if(str!=NULL) {
 		i=len=strlen(str);
-		while(i && (str[i-1]=='\r' || str[i-1]=='\n'))
+		while(i && (str[i-1]=='\r' || str[i-1]=='\n')) 
 			i--;
 		if(i!=len)
 			str[i]=0;	/* truncate */
@@ -592,7 +584,7 @@ BOOL DLLCALL check_pid(pid_t pid)
 
 	if((h=OpenProcess(PROCESS_QUERY_INFORMATION,/* inheritable: */FALSE, pid)) != NULL) {
 		DWORD	code;
-		if(GetExitCodeProcess(h,(PDWORD)&code)==TRUE && code==STILL_ACTIVE)
+		if(GetExitCodeProcess(h,&code)==TRUE && code==STILL_ACTIVE)
 			result=TRUE;
 		CloseHandle(h);
 	}
