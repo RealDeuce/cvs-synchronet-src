@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.271 2011/10/09 05:05:18 deuce Exp $ */
+/* $Id: js_global.c,v 1.272 2011/10/09 05:43:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2084,8 +2084,10 @@ js_b64_decode(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_md5_calc(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+js_md5_calc(JSContext* cx, uintN argc, jsval* arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	BYTE		digest[MD5_DIGEST_SIZE];
 	JSBool		hex=JS_FALSE;
 	size_t		inbuf_len;
@@ -2094,7 +2096,7 @@ js_md5_calc(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	JSString*	js_str;
 	jsrefcount	rc;
 
-	*rval = JSVAL_NULL;
+	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
 	if(JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
@@ -2118,7 +2120,7 @@ js_md5_calc(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	if(js_str==NULL)
 		return(JS_FALSE);
 
-	*rval = STRING_TO_JSVAL(js_str);
+	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
 	return(JS_TRUE);
 }
 
@@ -3682,7 +3684,7 @@ JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethod
 	p->methods = methods;
 	p->startup = startup;
 
-	if((glob = JS_NewObject(cx, &js_global_class, NULL, NULL)) ==NULL)
+	if((glob = JS_NewGlobalObject(cx, &js_global_class)) ==NULL)
 		return(NULL);
 
 	if(!JS_SetPrivate(cx, glob, p))	/* Store a pointer to scfg_t and the new methods */
