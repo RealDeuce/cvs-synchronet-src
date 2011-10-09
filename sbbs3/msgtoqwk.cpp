@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.38 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.37 2011/07/21 11:28:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 
 	offset=(long)ftell(qwk_fp);
 	if(hdrs!=NULL) {
-		fprintf(hdrs,"[%lx]\n",offset);
+		fprintf(hdrs,"[%x]\n",offset);
 
 		/* Message-IDs */
 		fprintf(hdrs,"Message-ID:  %s\n",get_msgid(&cfg,subnum,msg,msgid,sizeof(msgid)));
@@ -89,7 +89,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 				,str,sizeof(str))
 			,sys_timezone(&cfg)
 			);
-		fprintf(hdrs,"ExportedFrom: %s %s %"PRIu32"\n"
+		fprintf(hdrs,"ExportedFrom: %s %s %lu\n"
 			,cfg.sys_id
 			,subnum==INVALID_SUB ? "mail":cfg.sub[subnum]->code
 			,msg->hdr.number
