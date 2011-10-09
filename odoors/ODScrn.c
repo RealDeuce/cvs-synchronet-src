@@ -93,7 +93,9 @@
 
 /* Private variables used by the screen I/O functions. */
 
+/* Segment address of video buffer. */
 #if defined(ODPLAT_DOS) || defined(ODPLAT_NIX)
+static WORD wBufferSegment;
 static void *pAllocatedBufferMemory;
 #endif /* ODPLAT_DOS */
 
@@ -116,12 +118,8 @@ static BYTE btCurrentAttribute;
 /* Is scrolling enabled. */
 static BOOL bScrollEnabled;
 
-#ifdef ODPLAT_DOS
-/* Segment address of video buffer. */
-static WORD wBufferSegment;
 /* Display page to use. */
 static BYTE btDisplayPage;
-#endif
 
 /* Is cursor currently on. */
 static BYTE bCaretOn;
@@ -946,6 +944,8 @@ tODResult ODScrnInitialize(void)
    BOOL bClear = TRUE;
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_NIX)
+   BYTE btDisplayMode;
+
    /* In silent mode, we perform all output in a block of memory that is */
    /* never displayed.                                                   */
    /* *nix is always in "silent mode"                                    */
@@ -969,8 +969,6 @@ tODResult ODScrnInitialize(void)
    }
    else
    {
-      BYTE btDisplayMode;
-
       /* Get current video mode. */
       ASM    push si
       ASM    push di
@@ -1854,7 +1852,7 @@ BOOL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
  *
  *     Return: void.
  */
-void ODScrnDisplayString(const char *pszString)
+void ODScrnDisplayString(char *pszString)
 {
    ODScrnDisplayBuffer(pszString, strlen(pszString));
 }
@@ -1875,9 +1873,9 @@ void ODScrnDisplayString(const char *pszString)
  *
  *     Return: void.
  */
-void ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay)
+void ODScrnDisplayBuffer(char *pBuffer, INT nCharsToDisplay)
 {
-   const char *pchCurrentChar = pBuffer;
+   char *pchCurrentChar = pBuffer;
    INT nCharsLeft = nCharsToDisplay;
    BYTE ODFAR *pDest;
    BYTE btLeftColumn;

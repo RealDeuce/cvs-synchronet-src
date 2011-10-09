@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.394 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.384 2011/10/09 01:02:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -378,14 +378,12 @@ js_server_props_t js_server_props;
 static JSBool
 js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
 	FILE*	fp;
 	jsrefcount	rc;
-	char		*p;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -394,9 +392,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		str = JS_ValueToString(cx, argv[i]);
 		if (!str)
 		    return JS_FALSE;
-		JSSTRING_TO_STRING(cx, str, p, NULL);
 		rc=JS_SUSPENDREQUEST(cx);
-		fprintf(fp,"%s", p);
+		fprintf(fp,"%s",JS_GetStringBytes(str));
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -410,15 +407,15 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	FILE*	fp;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	js_write(cx,argc,arglist);
+	js_write(cx,obj,argc,argv,rval);
 	rc=JS_SUSPENDREQUEST(cx);
 	fprintf(fp,"\r\n");
 	JS_RESUMEREQUEST(cx, rc);
@@ -477,11 +474,11 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static JSContext* 
-js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_callback_t* cb)
+js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_branch_t* branch)
 {
 	JSContext*	js_cx;
+	JSObject*	js_glob;
 	BOOL		success=FALSE;
-	BOOL		rooted=FALSE;
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)"
 		,sock,startup->js.cx_stack);
@@ -494,42 +491,42 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_c
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-	memset(cb, 0, sizeof(js_callback_t));
+	memset(branch, 0, sizeof(js_branch_t));
 
 	/* ToDo: call js_CreateCommonObjects() instead */
 
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing Global object",sock);
-		if(!js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js, glob))
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js))==NULL) 
 			break;
-		rooted=TRUE;
 
-		if(!JS_DefineFunctions(js_cx, *glob, js_global_functions)) 
+		if(!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
 			break;
 
 		/* Internal JS Object */
-		if(js_CreateInternalJsObject(js_cx, *glob, cb, &startup->js)==NULL)
+		if(js_CreateInternalJsObject(js_cx, js_glob, branch, &startup->js)==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing System object",sock);
-		if(js_CreateSystemObject(js_cx, *glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
+		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
 			break;
 
-		if((*ftp=JS_DefineObject(js_cx, *glob, "ftp", NULL
+		if((*ftp=JS_DefineObject(js_cx, js_glob, "ftp", NULL
 			,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
 			break;
 
-		if(js_CreateServerObject(js_cx,*glob,&js_server_props)==NULL)
+		if(js_CreateServerObject(js_cx,js_glob,&js_server_props)==NULL)
 			break;
+
+		if(glob!=NULL)
+			*glob=js_glob;
 
 		success=TRUE;
 
 	} while(0);
 
 	if(!success) {
-		if(rooted)
-			JS_RemoveObjectRoot(js_cx, glob);
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
@@ -583,11 +580,11 @@ BOOL js_add_file(JSContext* js_cx, JSObject* array,
 	if(!JS_SetProperty(js_cx, file, "time", &val))
 		return(FALSE);
 
-	val=INT_TO_JSVAL((int32)uploaded);
+	val=INT_TO_JSVAL(uploaded);
 	if(!JS_SetProperty(js_cx, file, "uploaded", &val))
 		return(FALSE);
 
-	val=INT_TO_JSVAL((int32)last_downloaded);
+	val=INT_TO_JSVAL(last_downloaded);
 	if(!JS_SetProperty(js_cx, file, "last_downloaded", &val))
 		return(FALSE);
 
@@ -1013,6 +1010,9 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 	} while(0);
 
+
+	if(js_script!=NULL) 
+		JS_DestroyScript(js_cx, js_script);
 
 	JS_DeleteProperty(js_cx, parent, "path");
 	JS_DeleteProperty(js_cx, parent, "sort");
@@ -1509,7 +1509,7 @@ static void send_thread(void* arg)
 			if(getfileixb(&scfg,&f)==TRUE && getfiledat(&scfg,&f)==TRUE) {
 				f.timesdled++;
 				putfiledat(&scfg,&f);
-				f.datedled=time32(NULL);
+				f.datedled=time(NULL);
 				putfileixb(&scfg,&f);
 
 				lprintf(LOG_INFO,"%04d %s downloaded: %s (%lu times total)"
@@ -1758,7 +1758,7 @@ static void receive_thread(void* arg)
 			if(scfg.dir[f.dir]->misc&DIR_AONLY)  /* Forced anonymous */
 				f.misc|=FM_ANON;
 			f.cdt=flength(xfer.filename);
-			f.dateuled=time32(NULL);
+			f.dateuled=time(NULL);
 
 			/* Desciption specified with DESC command? */
 			if(xfer.desc!=NULL && *xfer.desc!=0)	
@@ -2444,7 +2444,7 @@ static void ctrl_thread(void* arg)
 	JSObject*	js_glob;
 	JSObject*	js_ftp;
 	JSString*	js_str;
-	js_callback_t	js_callback;
+	js_branch_t	js_branch;
 #endif
 
 	SetThreadName("FTP CTRL");
@@ -2534,7 +2534,7 @@ static void ctrl_thread(void* arg)
 
 	/* Initialize client display */
 	client.size=sizeof(client);
-	client.time=time32(NULL);
+	client.time=time(NULL);
 	SAFECOPY(client.addr,host_ip);
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(ftp.client_addr.sin_port);
@@ -2757,7 +2757,7 @@ static void ctrl_thread(void* arg)
 			lprintf(LOG_INFO,"%04d %s logged in (%u today, %u total)"
 				,sock,user.alias,user.ltoday+1, user.logons+1);
 			logintime=time(NULL);
-			timeleft=(long)gettimeleft(&scfg,&user,logintime);
+			timeleft=gettimeleft(&scfg,&user,logintime);
 			ftp_printfile(sock,"hello",230);
 
 #ifdef JAVASCRIPT
@@ -2797,7 +2797,7 @@ static void ctrl_thread(void* arg)
 			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
 			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
 			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
-			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa((ulong)logintime,str,16));
+			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa(logintime,str,16));
 			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
@@ -2811,7 +2811,7 @@ static void ctrl_thread(void* arg)
 		if(!(user.rest&FLAG('G')))
 			getuserdat(&scfg, &user);	/* get current user data */
 
-		if((timeleft=(long)gettimeleft(&scfg,&user,logintime))<1L) {
+		if((timeleft=gettimeleft(&scfg,&user,logintime))<1L) {
 			sockprintf(sock,"421 Sorry, you've run out of time.");
 			lprintf(LOG_WARNING,"%04d Out of time, disconnecting",sock);
 			break;
@@ -2848,7 +2848,7 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 		if(!stricmp(cmd, "SITE UPTIME")) {
-			sockprintf(sock,"211 %s (%lu served)",sectostr((uint)(time(NULL)-uptime),str),served);
+			sockprintf(sock,"211 %s (%lu served)",sectostr(time(NULL)-uptime,str),served);
 			continue;
 		}
 		if(!stricmp(cmd, "SITE RECYCLE") && user.level>=SYSOP_LEVEL) {
@@ -3172,7 +3172,7 @@ static void ctrl_thread(void* arg)
 						t=fdate(g.gl_pathv[i]);
 						if(localtime_r(&t,&tm)==NULL)
 							memset(&tm,0,sizeof(tm));
-						fprintf(fp,"%crw-r--r--   1 %-8s local %9"PRId32" %s %2d "
+						fprintf(fp,"%crw-r--r--   1 %-8s local %9ld %s %2d "
 							,isdir(g.gl_pathv[i]) ? 'd':'-'
 							,scfg.sys_id
 							,f.size
@@ -3674,7 +3674,7 @@ static void ctrl_thread(void* arg)
 								dotname(f.uler,str);
 						} else
 							SAFECOPY(str,scfg.sys_id);
-						fprintf(fp,"-r--r--r--   1 %-*s %-8s %9"PRId32" %s %2d "
+						fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d "
 							,NAME_LEN
 							,str
 							,scfg.dir[dir]->code_suffix
@@ -3978,7 +3978,7 @@ static void ctrl_thread(void* arg)
 
 					if(js_cx==NULL) {	/* Context not yet created, create it now */
 						/* js_initcx() starts a request */
-						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_callback))==NULL)) {
+						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_branch))==NULL)) {
 							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
 							sockprintf(sock,"451 Error initializing JavaScript context");
 							filepos=0;
@@ -4575,9 +4575,6 @@ static void ctrl_thread(void* arg)
 #ifdef JAVASCRIPT
 	if(js_cx!=NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying context",sock);
-		JS_BEGINREQUEST(js_cx);
-		JS_RemoveObjectRoot(js_cx, &js_glob);
-		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
 	}
 
@@ -4660,7 +4657,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.394 $", "%*s %s", revision);
+	sscanf("$Revision: 1.384 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
