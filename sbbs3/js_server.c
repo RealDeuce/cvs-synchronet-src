@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.12 2011/10/29 03:53:58 deuce Exp $ */
+/* $Id: js_server.c,v 1.9 2011/10/10 02:04:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,10 +104,8 @@ static JSBool js_server_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 
 	switch(tiny) {
 		case SERVER_PROP_OPTIONS:
-			if(p->options!=NULL) {
-				if(!JS_ValueToInt32(cx, *vp, (int32*)p->options))
-					return JS_FALSE;
-			}
+			if(p->options!=NULL)
+				JS_ValueToInt32(cx, *vp, (int32*)p->options);
 			break;
 	}
 
@@ -148,8 +146,7 @@ static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval))
-			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_server_properties, NULL, NULL, 0));

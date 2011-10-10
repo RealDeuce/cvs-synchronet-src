@@ -1834,7 +1834,7 @@ tODResult ODComOpenFromExistingHandle(tPortHandle hPort,
 
 #ifdef INCLUDE_SOCKET_COM
 	if(pPortInfo->Method == kComMethodSocket) {
-		socklen_t delay=FALSE;
+		int delay=FALSE;
 
 		pPortInfo->socket = dwExistingHandle;
 
