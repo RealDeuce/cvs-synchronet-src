@@ -2,13 +2,13 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.39 2009/10/25 03:12:13 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.42 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -55,7 +55,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	FILE	*instream;
 	smbmsg_t msg;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -136,7 +136,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 		sprintf(tmp,"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(str2) && fexistcase(tmp))
 			mv(tmp,str2,0);
-		l=flength(str2);
+		l=(long)flength(str2);
 		if(l>0)
 			bprintf(text[FileNBytesReceived],title,ultoac(l,tmp));
 		else {
@@ -179,7 +179,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 		return(false); 
 	}
 
-	length=flength(msgpath)+2;	 /* +2 for translation string */
+	length=(long)flength(msgpath)+2;	 /* +2 for translation string */
 
 	if(length&0xfff00000UL) {
 		smb_unlocksmbhdr(&smb);
@@ -256,6 +256,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
+	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
@@ -312,7 +313,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	FILE	*instream;
 	smbmsg_t msg;
 
-	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP) {
+	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
@@ -389,7 +390,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 		return(false); 
 	}
 
-	length=flength(msgpath)+2;	 /* +2 for translation string */
+	length=(long)flength(msgpath)+2;	 /* +2 for translation string */
 
 	if(length&0xfff00000UL) {
 		smb_unlocksmbhdr(&smb);
@@ -463,6 +464,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 
 	/* Security logging */
 	msg_client_hfields(&msg,&client);
+	smb_hfield_str(&msg,SENDERSERVER,startup->host_name);
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
