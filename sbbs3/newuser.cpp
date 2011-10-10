@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.63 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.62 2011/08/30 22:56:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,10 +105,10 @@ BOOL sbbs_t::newuser()
 	/* Sets defaults per sysop config */
 	useron.misc|=(cfg.new_misc&~(DELETED|INACTIVE|QUIET|NETMAIL));
 	useron.qwk=QWK_DEFAULT;
-	useron.firston=useron.laston=useron.pwmod=time32(NULL);
+	useron.firston=useron.laston=useron.pwmod=time(NULL);
 	if(cfg.new_expire) {
 		now=time(NULL);
-		useron.expire=(time32_t)(now+((long)cfg.new_expire*24L*60L*60L)); 
+		useron.expire=now+((long)cfg.new_expire*24L*60L*60L); 
 	} else
 		useron.expire=0;
 	useron.sex=' ';
