@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.171 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.170 2011/10/09 22:39:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -949,7 +949,7 @@ typedef struct {						/* Users information */
 			cdt,						/* Credits */
 			min,						/* Minutes */
 			freecdt;					/* Free credits (renewed daily) */
-	time32_t firston,					/* Date/Time first called */
+	time_t	firston,					/* Date/Time first called */
 			laston, 					/* Last logoff date/time */
 			expire, 					/* Expiration date */
 			pwmod,						/* Password last modified */

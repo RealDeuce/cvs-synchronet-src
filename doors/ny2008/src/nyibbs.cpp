@@ -1,5 +1,4 @@
 #include "ny2008.h"
-#undef main
 
 tIBInfo         IBBSInfo;
 extern INT16      ibbsi;
@@ -16,10 +15,10 @@ glob_t          fff;
 glob_t          ff;
 char		**fname;
 //int           time_slice_value = 1500;
-const char           *ver = "0.10";
+char           *ver = "0.10";
 
 //this is this module version which is 0.10 beta2
-const char           *verinfo = "BETA 2";
+char           *verinfo = "BETA 2";
 //char          no_slices = FALSE;
 char            single_node = FALSE;
 
@@ -426,7 +425,7 @@ tIBResult       IBGet(tIBInfo * pInfo, char *pBuffer, INT16 nMaxBufferSize) {
 	return (eNoMoreMessages);
 }
 
-tIBResult       IBGetLen(tIBInfo * pInfo, INT32 *msgnum, INT16 *nBufferLen) {
+tIBResult       IBGetLen(tIBInfo * pInfo, long *msgnum, INT16 *nBufferLen) {
 	tIBResult       ToReturn;
 	glob_t          DirEntry;
 	DWORD           lwCurrentMsgNum;
@@ -1547,7 +1546,7 @@ ny_fread(void *ptr, size_t size, size_t n, FILE * stream) {
 	return (status);
 }
 
-FILE           *ShareFileOpen(const char *pszFileName, const char *pszMode) {
+FILE           *ShareFileOpen(char *pszFileName, char *pszMode) {
 	FILE           *fpFile = NULL;
 	time_t          StartTime = time(NULL);
 	//char numstr[14];
@@ -1591,7 +1590,7 @@ FILE           *ShareFileOpen(const char *pszFileName, const char *pszMode) {
 	return (fpFile);
 }
 
-FILE           *ShareFileOpenAR(const char *pszFileName, const char *pszMode) {
+FILE           *ShareFileOpenAR(char *pszFileName, char *pszMode) {
 	FILE           *fpFile = NULL;
 	time_t          StartTime = time(NULL);
 	//char numstr[14];
@@ -1639,7 +1638,7 @@ FILE           *ShareFileOpenAR(const char *pszFileName, const char *pszMode) {
 
 
 INT16
-ny_remove(const char *pszFileName) {
+ny_remove(char *pszFileName) {
 	//FILE * fpFile = NULL;
 	time_t          StartTime;
 	//char numstr[80];
@@ -1702,7 +1701,7 @@ ny_remove(const char *pszFileName) {
 
 
 /*
-   void ny_disp_emu(const char line[]) { int cnt;
+   void ny_disp_emu(char line[]) { int cnt;
 
 for(cnt=0;line[cnt]!=0;cnt++) { if(line[cnt]=='`') { cnt++;
 
@@ -1725,7 +1724,7 @@ if(line[cnt]==0) return; else if(line[cnt]=='`') od_putch('`'); else
 */
 
 INT16
-copyfile(const char *file1, const char *file2) {
+copyfile(char *file1, char *file2) {
 	FILE           *f1, *f2;
 	char           *buffer;
 	INT32            len1, x, y;
