@@ -2,13 +2,13 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.57 2010/03/07 22:10:25 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.60 2011/08/25 19:22:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -146,7 +146,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 
 	if(!strcmp(sp,"UPTIME")) {
-		extern time_t uptime;
+		extern volatile time_t uptime;
 		time_t up=time(NULL)-uptime;
 		if(up<0)
 			up=0;
@@ -164,7 +164,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 
 	if(!strcmp(sp,"SERVED")) {
-		extern DWORD served;
+		extern volatile ulong served;
 		safe_snprintf(str,maxlen,"%lu",served);
 		return(str);
 	}
@@ -238,10 +238,16 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(str);
 	}
 
+	if(!strcmp(sp,"TIMEZONE"))
+		return(smb_zonestr(sys_timezone(&cfg),str));
+
 	if(!strcmp(sp,"DATE") || !strcmp(sp,"SYSDATE")) {
 		now=time(NULL);
 		return(unixtodstr(&cfg,now,str));
 	}
+
+	if(!strcmp(sp,"DATETIME"))
+		return(timestr(time(NULL)));
 
 	if(!strcmp(sp,"TMSG")) {
 		l=0;
@@ -907,10 +913,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(nulstr);
 		if(current_msg->to_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg->to,current_msg->to_ext);
-		else if(current_msg->to_net.type!=NET_NONE)
+		else if(current_msg->to_net.type!=NET_NONE) {
+			char tmp[128];
 			safe_snprintf(str,maxlen,"%s (%s)",current_msg->to
-				,smb_netaddr(&current_msg->to_net));
-		else
+				,smb_netaddrstr(&current_msg->to_net,tmp));
+		} else
 			return(current_msg->to);
 		return(str);
 	}
@@ -922,7 +929,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(current_msg->to_ext);
 	}
 	if(!strcmp(sp,"MSG_TO_NET") && current_msg!=NULL)
-		return(smb_netaddr(&current_msg->to_net));
+		return(smb_netaddrstr(&current_msg->to_net,str));
 	if(!strcmp(sp,"MSG_FROM") && current_msg!=NULL) {
 		if(current_msg->from==NULL)
 			return(nulstr);
@@ -930,10 +937,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(text[Anonymous]);
 		if(current_msg->from_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg->from,current_msg->from_ext);
-		else if(current_msg->from_net.type!=NET_NONE)
+		else if(current_msg->from_net.type!=NET_NONE) {
+			char tmp[128];
 			safe_snprintf(str,maxlen,"%s (%s)",current_msg->from
-				,smb_netaddr(&current_msg->from_net));
-		else
+				,smb_netaddrstr(&current_msg->from_net,tmp));
+		} else
 			return(current_msg->from);
 		return(str);
 	}
@@ -953,7 +961,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_FROM_NET") && current_msg!=NULL) {
 		if(current_msg->from_net.type!=NET_NONE
 			&& (!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP))
-			return(smb_netaddr(&current_msg->from_net));
+			return(smb_netaddrstr(&current_msg->from_net,str));
 		return(nulstr);
 	}
 	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
