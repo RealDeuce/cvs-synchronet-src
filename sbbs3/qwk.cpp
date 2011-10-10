@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.55 2011/07/21 11:16:09 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.56 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -769,7 +769,7 @@ void sbbs_t::qwk_sec()
 					break;
 			if(k>=cfg.total_fextrs) {
 				bputs(text[QWKExtractionFailed]);
-				errorlog("Couldn't extract REP packet - configuration error");
+				lprintf(LOG_ERR, "Couldn't extract REP packet - configuration error");
 				continue; 
 			}
 
