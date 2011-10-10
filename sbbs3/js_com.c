@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.15 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_com.c,v 1.10 2011/10/10 02:04:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,6 +101,7 @@ static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -132,6 +133,7 @@ static JSBool
 js_open(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -172,6 +174,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		cp;
 	int			len;
+	JSString*	str;
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -184,7 +187,8 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], cp, &len);
+	JSVALUE_TO_STRING(cx, argv[0], cp);
+	len	= JS_GetStringLength(str);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(comWriteBuf(p->com,cp,len)==len) {
@@ -207,6 +211,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	long		len;
 	int			file;
 	char*		fname;
+	JSString*	str;
 	private_t*	p;
 	jsrefcount	rc;
 	char		*buf;
@@ -220,7 +225,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], fname, NULL);
+	JSVALUE_TO_STRING(cx, argv[0], fname);
 	if(fname==NULL) {
 		JS_ReportError(cx,"Failure reading filename");
 		return(JS_FALSE);
@@ -278,7 +283,7 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&val);
 	if(argc>1 && argv[1]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[1],(int32*)&size);
@@ -329,9 +334,10 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 	JSString*	str;
 	jsrefcount	rc;
 	int32		timeout=30;	/* seconds */
-	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -612,7 +618,8 @@ static JSBool js_com_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			*vp = BOOLEAN_TO_JSVAL(p->debug);
 			break;
 		case COM_PROP_DESCRIPTOR:
-			*vp = INT_TO_JSVAL((int)p->com);
+			*vp = INT_TO_JSVAL(p->com);
+			//p->is_open = TRUE;
 			break;
 		case COM_PROP_NETWORK_ORDER:
 			*vp = BOOLEAN_TO_JSVAL(p->network_byte_order);
@@ -725,7 +732,7 @@ static JSBool js_com_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_com_properties, js_com_functions, NULL, 0));
@@ -757,12 +764,14 @@ js_com_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj;
 	jsval *argv=JS_ARGV(cx, arglist);
 	private_t* p;
+	char*	protocol=NULL;
 	char*		fname;
+	JSString*	str;
 
 	obj=JS_NewObject(cx, &js_com_class, NULL, NULL);
 	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
 	if(argc > 0)
-		JSVALUE_TO_STRING(cx, argv[0], fname, NULL);
+		JSVALUE_TO_STRING(cx, argv[0], fname);
 	if(argc==0 || fname==NULL) {
 		JS_ReportError(cx,"Failure reading port name");
 		return(JS_FALSE);
