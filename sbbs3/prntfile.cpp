@@ -2,13 +2,13 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.19 2008/02/26 08:21:10 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.20 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -87,7 +87,7 @@ void sbbs_t::printfile(char *str, long mode)
 		return; 
 	}
 
-	length=filelength(file);
+	length=(long)filelength(file);
 	if(length<0) {
 		close(file);
 		errormsg(WHERE,ERR_CHK,str,length);
@@ -142,7 +142,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 		CRLF;
 		return; 
 	}
-	length=filelength(file);
+	length=(long)filelength(file);
 	if(length<0) {
 		close(file);
 		errormsg(WHERE,ERR_CHK,str,length);

@@ -2,13 +2,13 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.29 2009/10/25 03:12:13 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.31 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -74,7 +74,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 		return(false); 
 	}
 
-	if((length=filelength(fileno(fp)))<=0) {
+	if((length=(long)filelength(fileno(fp)))<=0) {
 		fclose(fp);
 		return(false);
 	}
@@ -110,7 +110,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
-	i=savemsg(&cfg, &smb, &msg, &client, msgbuf);
+	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf);
 	free(msgbuf);
 	if(i!=0) {
 		smb_close(&smb);
