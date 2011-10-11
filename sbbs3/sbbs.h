@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.353 2011/09/07 00:18:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.373 2011/10/11 05:05:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,10 +105,49 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 		#define XP_PC
 		#define XP_WIN
 	#endif
-	#define JS_THREADSAFE	/* Required! */
+#ifndef __cplusplus
+	#include <stdbool.h>
+	#include <inttypes.h>
+#endif
+	#include <jsversion.h>
+#if JS_VERSION < 185
+	#define JS_THREADSAFE
+#endif
 	#include <jsapi.h>
+#if (JS_VERSION < 185) || (defined __cplusplus)
 	#include <jsprf.h>		/* JS-safe sprintf functions */
-	#include <jsnum.h>		/* JSDOUBLE_IS_NaN() */
+	#include <math.h>		/* isnan() */
+#endif
+#if JS_VERSION >= 185
+	#define JS_DestroyScript(cx,script)
+#endif
+
+#define JSSTRING_TO_STRING(cx, str, ret, lenptr) \
+{ \
+	size_t			*JSSTSlenptr=lenptr; \
+	size_t			JSSTSlen; \
+	size_t			JSSTSpos; \
+	const jschar	*JSSTSstrval; \
+\
+	if(JSSTSlenptr==NULL) \
+		JSSTSlenptr=&JSSTSlen; \
+	(ret)=NULL; \
+	if((str) != NULL) { \
+		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
+			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
+				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
+					(ret)[JSSTSpos]=JSSTSstrval[JSSTSpos]; \
+				(ret)[*JSSTSlenptr]=0; \
+			} \
+		} \
+	} \
+}
+
+#define JSVALUE_TO_STRING(cx, val, ret, lenptr) \
+{ \
+	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
+	JSSTRING_TO_STRING((cx), JSVTSstr, (ret), lenptr); \
+}
 
 #endif
 
@@ -163,7 +202,7 @@ class sbbs_t
 
 public:
 
-	sbbs_t(ushort node_num, DWORD addr, const char* host_name, SOCKET
+	sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* host_name, SOCKET
 		,scfg_t*, char* text[], client_t* client_info);
 	~sbbs_t();
 
@@ -175,7 +214,7 @@ public:
 	client_t client;
 	SOCKET	client_socket;
 	SOCKET	client_socket_dup;
-	DWORD	client_addr;
+	SOCKADDR_IN	client_addr;
 	char	client_name[128];
 	char	client_ident[128];
 	DWORD	local_addr;
@@ -233,7 +272,7 @@ public:
 	JSContext*	js_cx;
 	JSObject*	js_glob;
 	js_branch_t	js_branch;
-	long		js_execfile(const char *fname, const char* startup_dir);
+	long		js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
 	bool		js_init(ulong* stack_frame);
 	void		js_cleanup(const char* node);
 	void		js_create_user_objects(void);
@@ -584,14 +623,22 @@ public:
 	int		putnodedat(uint number, node_t * node);
 	int		putnodeext(uint number, char * str);
 
-	/* logonoff.cpp */
-	bool	answer();
+	/* login.ccp */
 	int		login(char *str, char *pw);
+	void	badlogin(char* user, char* passwd);
+
+	/* answer.cpp */
+	bool	answer();
+
+	/* logon.ccp */
 	bool	logon(void);
+
+	/* logout.cpp */
 	void	logout(void);
-	void	logoff(void);
-	BOOL	newuser(void);					/* Get new user							*/
 	void	backout(void);
+
+	/* newuser.cpp */
+	BOOL	newuser(void);					/* Get new user							*/
 
 	/* text_sec.cpp */
 	int		text_sec(void);						/* Text sections */
@@ -716,11 +763,10 @@ public:
 	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
 	bool	syslog(const char* code, const char *entry);
-	void	errorlog(const char *text);			/* Logs errors to ERROR.LOG and NODE.LOG */
-	bool	errorlog_inside;
 	bool	errormsg_inside;
 	void	errormsg(int line, const char *file, const char* action, const char *object
 				,ulong access, const char *extinfo=NULL);
+	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
 	bool	qwklogon;
@@ -973,7 +1019,7 @@ extern "C" {
 		const char*	version_detail;
 		uint32_t*	interface_addr;
 		uint32_t*	options;
-		volatile ulong* clients;
+		uint32_t*	clients;
 	} js_server_props_t;
 
 	enum {
@@ -1002,7 +1048,7 @@ extern "C" {
 														,const char* name, char* str[], uintN flags);
 	DLLEXPORT char*		DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len);
 
-	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !JSDOUBLE_IS_NaN(*JSVAL_TO_DOUBLE(v))))
+	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !isnan(JSVAL_TO_DOUBLE(v))))
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1029,6 +1075,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
 	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
+	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
 
 	/* js_system.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
