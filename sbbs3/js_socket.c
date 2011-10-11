@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.147 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_socket.c,v 1.144 2011/10/11 05:05:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,6 +98,7 @@ static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -264,6 +265,7 @@ static JSBool
 js_accept(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	private_t*	new_p;
 	JSObject*	sockobj;
@@ -508,6 +510,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	char*		fname;
 	long		len;
 	int			file;
+	JSString*	str;
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -591,7 +594,7 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&val);
 	if(argc>1 && argv[1]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[1],(int32*)&size);
@@ -641,9 +644,10 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 	int32		len=512;
 	JSString*	str;
 	jsrefcount	rc;
-	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -701,9 +705,10 @@ js_recvfrom(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKADDR_IN	addr;
 	socklen_t	addrlen;
 	jsrefcount	rc;
-	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -822,9 +827,10 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 	int32		len=512;
 	JSString*	str;
 	jsrefcount	rc;
-	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -1120,7 +1126,7 @@ js_ioctlsocket(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&cmd);
 	if(argc>1 && argv[1]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[1],&arg);

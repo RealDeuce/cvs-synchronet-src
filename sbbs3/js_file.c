@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.141 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_file.c,v 1.136 2011/10/11 05:05:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,6 +247,7 @@ static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -526,6 +527,7 @@ static JSBool
 js_readall(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
     jsint       len=0;
     JSObject*	array;
 	private_t*	p;
@@ -639,15 +641,14 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
 	JSVALUE_TO_STRING(cx, argv[1], key, NULL);
 
-	if(argc < 3 || dflt==JSVAL_VOID) {	/* unspecified default value */
+	if(dflt==JSVAL_VOID) {	/* unspecified default value */
 		rc=JS_SUSPENDREQUEST(cx);
-		cstr=iniReadString(p->fp,section,key,NULL,buf);
+		JS_SET_RVAL(cx, arglist,get_value(cx,iniReadString(p->fp,section,key,NULL,buf)));
 		JS_RESUMEREQUEST(cx, rc);
-		JS_SET_RVAL(cx, arglist, get_value(cx, cstr));
 		return(JS_TRUE);
 	}
 
@@ -659,7 +660,7 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 		if((dflt_obj = JSVAL_TO_OBJECT(dflt))!=NULL && (strcmp("Date",JS_GetClass(cx, dflt_obj)->name)==0)) {
 			tt=(time_t)(js_DateGetMsecSinceEpoch(cx,dflt_obj)/1000.0);
 			rc=JS_SUSPENDREQUEST(cx);
-			dbl=(double)iniReadDateTime(p->fp,section,key,tt);
+			dbl=iniReadDateTime(p->fp,section,key,tt);
 			dbl *= 1000;
 			JS_RESUMEREQUEST(cx, rc);
 			date_obj = JS_NewDateObjectMsec(cx, dbl);
@@ -733,7 +734,7 @@ js_iniSetValue_internal(JSContext *cx, JSObject *obj, uintN argc, jsval* argv, j
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
 	JSVALUE_TO_STRING(cx, argv[1], key, NULL);
 
@@ -819,7 +820,7 @@ js_iniRemoveKey(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
 	JSVALUE_TO_STRING(cx, argv[1], key, NULL);
 
@@ -858,7 +859,7 @@ js_iniRemoveSection(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -945,7 +946,7 @@ js_iniGetKeys(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
     array = JS_NewArrayObject(cx, 0, NULL);
 
@@ -988,7 +989,7 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc>0 && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1159,17 +1160,6 @@ And July-22-2010:
  	websrvr.dll!http_session_thread(void * arg)  Line 5091 + 0xc bytes	C
 
 
-And Sept-17-2011:
-
-JS_SetElement(JSContext * 0x058b7138, JSObject * 0x0578cd78, long 2, long * 0x084cb338) line 3178 + 32 bytes
-js_iniGetAllObjects(JSContext * 0x058b7138, JSObject * 0x0578cd60, unsigned int 0, long * 0x063adfbc, long * 0x084cb460) line 1115 + 24 bytes
-js_Invoke(JSContext * 0x058b7138, unsigned int 0, unsigned int 0) line 1375 + 23 bytes
-js_Interpret(JSContext * 0x058b7138, unsigned char * 0x04e9298b, long * 0x084cc678) line 3944 + 15 bytes
-js_Execute(JSContext * 0x058b7138, JSObject * 0x057b4b48, JSScript * 0x04e92880, JSStackFrame * 0x00000000, unsigned int 0, long * 0x084cc860) line 1633 + 19 bytes
-JS_ExecuteScript(JSContext * 0x058b7138, JSObject * 0x057b4b48, JSScript * 0x04e92880, long * 0x084cc860) line 4188 + 25 bytes
-exec_ssjs(http_session_t * 0x084ce0f0, char * 0x084ce221) line 4644 + 36 bytes
-respond(http_session_t * 0x084ce0f0) line 4690 + 18 bytes
-http_session_thread(void * 0x00000000) line 5098 + 12 bytes
   */
         if(!JS_SetElement(cx, array, i, &val))
 			break;
@@ -1637,6 +1627,7 @@ static JSBool
 js_delete(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -1663,6 +1654,7 @@ static JSBool
 js_flush(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -1687,6 +1679,7 @@ static JSBool
 js_rewind(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -1745,6 +1738,7 @@ static JSBool
 js_clear_error(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 

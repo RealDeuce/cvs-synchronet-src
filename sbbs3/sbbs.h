@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.379 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.373 2011/10/11 05:05:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,18 +98,29 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #include <sys/stat.h>
 
-#ifdef __unix__
-	#define XP_UNIX
-#else
-	#define XP_PC
-	#define XP_WIN
+#ifdef JAVASCRIPT
+	#ifdef __unix__
+		#define XP_UNIX
+	#else
+		#define XP_PC
+		#define XP_WIN
+	#endif
+#ifndef __cplusplus
+	#include <stdbool.h>
+	#include <inttypes.h>
 #endif
-
-#if defined(JAVASCRIPT)
-#include "comio.h"			/* needed for COM_HANDLE definition only */
-#include <jsversion.h>
-#include <jsapi.h>
-#define JS_DestroyScript(cx,script)
+	#include <jsversion.h>
+#if JS_VERSION < 185
+	#define JS_THREADSAFE
+#endif
+	#include <jsapi.h>
+#if (JS_VERSION < 185) || (defined __cplusplus)
+	#include <jsprf.h>		/* JS-safe sprintf functions */
+	#include <math.h>		/* isnan() */
+#endif
+#if JS_VERSION >= 185
+	#define JS_DestroyScript(cx,script)
+#endif
 
 #define JSSTRING_TO_STRING(cx, str, ret, lenptr) \
 { \
@@ -125,7 +136,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
 			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
 				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
-					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
+					(ret)[JSSTSpos]=JSSTSstrval[JSSTSpos]; \
 				(ret)[*JSSTSlenptr]=0; \
 			} \
 		} \
@@ -168,6 +179,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
 
+#include "comio.h"
 #include "smblib.h"
 #include "ars_defs.h"
 #include "scfgdefs.h"
@@ -924,11 +936,11 @@ extern "C" {
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
-	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, char *str);
-	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time32_t, char *str);
+	DLLEXPORT time_t	DLLCALL dstrtounix(scfg_t*, char *str);
+	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
+	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
 
@@ -1034,8 +1046,9 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
+	DLLEXPORT char*		DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len);
 
-	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v))
+	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v) && (!JSVAL_IS_DOUBLE(v) || !isnan(JSVAL_TO_DOUBLE(v))))
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
