@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.26 2012/04/25 08:22:54 deuce Exp $ */
+/* $Id: uifcx.c,v 1.25 2010/02/27 04:02:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,7 +176,7 @@ static void truncsp(char *str)
 /****************************************************************************/
 /* Convert ASCIIZ string to upper case										*/
 /****************************************************************************/
-#if defined(__unix__) && !defined(__HAIKU__)
+#if defined(__unix__)
 static char* strupr(char* str)
 {
 	char*	p=str;
