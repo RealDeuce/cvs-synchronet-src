@@ -84,7 +84,7 @@ ODAPIDEF BOOL ODCALL od_puttext(INT nLeft, INT nTop, INT nRight, INT nBottom,
    INT nRowBytes = nRowLength * 2;
    char *pchTest;
    char *pchMemory;
-   char *pBuffer=NULL;
+   char *pBuffer;
    char *pchScreenBlock;
    INT nBlockRow = 0;
    INT nOutRow;
@@ -155,8 +155,7 @@ ODAPIDEF BOOL ODCALL od_puttext(INT nLeft, INT nTop, INT nRight, INT nBottom,
       pBlock))
    {
       od_control.od_error = ERR_PARAMETER;
-      if(pBuffer)
-         free(pBuffer);
+      free(pBuffer);
       OD_API_EXIT();
       return(FALSE);
    }
