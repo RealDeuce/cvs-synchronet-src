@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.12 2010/03/04 22:57:33 deuce Exp $ */
+/* $Id: xpevent.c,v 1.15 2010/03/11 01:14:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,7 @@ CreateEvent(void *sec, BOOL bManualReset, BOOL bInitialState, void *name)
 		errno = ENOSPC;
 		return(NULL);
 	}
+	memset(event,0,sizeof(struct xpevent));
 
 	/*
 	 * Initialize
@@ -162,18 +163,22 @@ WaitForEvent(xpevent_t event, DWORD ms)
 
 	if(ms && ms!=INFINITE) {
 		gettimeofday(&currtime,NULL);
-		abstime.tv_sec=currtime.tv_sec + (currtime.tv_usec/1000 + ms)/1000;
+		abstime.tv_sec=currtime.tv_sec + ((currtime.tv_usec/1000 + ms)/1000);
 		abstime.tv_nsec=(currtime.tv_usec*1000 + ms*1000000)%1000000000;
 	}
-	
+
 	pthread_mutex_lock(&event->lock);
 
-	while (!(event->value)) {
+	if(event->value)
+		retval=WAIT_OBJECT_0;
+
+	while ((!(event->value)) || (event->verify!=NULL && !event->verify(event->cbdata))) {
+		retval=WAIT_FAILED;
 		event->nwaiters++;
 		switch(ms) {
 			case 0:
 				if(event->value)
-					retval=0;
+					retval=WAIT_OBJECT_0;
 				else
 					retval=WAIT_TIMEOUT;
 				event->nwaiters--;
@@ -181,6 +186,12 @@ WaitForEvent(xpevent_t event, DWORD ms)
 				break;
 			case INFINITE:
 				retval=pthread_cond_wait(&event->gtzero, &event->lock);
+				if(retval) {
+					errno=retval;
+					retval=WAIT_FAILED;
+					event->nwaiters--;
+					goto DONE;
+				}
 				break;
 			default:
 				retval=pthread_cond_timedwait(&event->gtzero, &event->lock, &abstime);
@@ -200,8 +211,7 @@ WaitForEvent(xpevent_t event, DWORD ms)
 
   DONE:
 
-	if(retval==0) {
-		retval=WAIT_OBJECT_0;
+	if(retval==WAIT_OBJECT_0) {
 		if(!event->mreset)
 			event->value=FALSE;
 	}
