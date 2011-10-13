@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.42 2010/03/12 19:16:28 deuce Exp $ */
+/* $Id: download.cpp,v 1.44 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -165,9 +165,8 @@ void sbbs_t::notdownloaded(ulong size, time_t start, time_t end)
 	if(cfg.leech_pct && cur_cps                 /* leech detection */
 		&& end-start>=cfg.leech_sec
 		&& end-start>=(double)(size/cur_cps)*(double)cfg.leech_pct/100.0) {
-		sprintf(str,"Possible use of leech protocol (leech=%u  downloads=%u)"
-			,useron.leech+1,useron.dls);
-		errorlog(str);
+		lprintf(LOG_ERR, "Node %d Possible use of leech protocol (leech=%u  downloads=%u)"
+			,cfg.node_num, useron.leech+1,useron.dls);
 		useron.leech=(uchar)adjustuserrec(&cfg,useron.number,U_LEECH,2,1); 
 	}
 }
@@ -206,11 +205,13 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 	sprintf(protlog,"%sPROTOCOL.LOG",cfg.node_dir);
 	remove(protlog);                        /* Deletes the protocol log */
 	if(useron.misc&AUTOHANG)
-		autohang=1;
-	else
+		autohang=true;
+	else if(text[HangUpAfterXferQ][0])
 		autohang=yesno(text[HangUpAfterXferQ]);
+	else
+		autohang=false;
 	if(sys_status&SS_ABORT || !online) {	/* if ctrl-c or hangup */
-		autohang=0;
+		autohang=false;
 		return(-1); 
 	}
 	bputs(text[StartXferNow]);
