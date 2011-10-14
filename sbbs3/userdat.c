@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.136 2011/09/08 07:10:59 rswindell Exp $ */
+/* $Id: userdat.c,v 1.138 2011/09/23 06:53:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2570,8 +2570,8 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* 
 /* Add an IP address (with comment) to the IP filter/trashcan file			*/
 /* ToDo: Move somewhere more appropriate (filter.c?)						*/
 /****************************************************************************/
-BOOL DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host
-					   ,char* ip_addr, char* username, char* fname)
+BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const char* host
+					   ,const char* ip_addr, const char* username, const char* fname)
 {
 	char	ip_can[MAX_PATH+1];
 	char	tstr[64];
@@ -2748,7 +2748,7 @@ ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* pro
 		if(strcmp(attempt->user,user)==0 && (pass==NULL || strcmp(attempt->pass,pass)==0))
 			attempt->dupes++;
 	}
-	attempt->prot=prot;
+	SAFECOPY(attempt->prot,prot);
 	attempt->time=time(NULL);
 	attempt->addr=addr->sin_addr;
 	SAFECOPY(attempt->user, user);
