@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.137 2011/10/11 14:06:11 deuce Exp $ */
+/* $Id: js_file.c,v 1.138 2011/10/14 00:45:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -990,7 +990,7 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+	if(argc>0 && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
