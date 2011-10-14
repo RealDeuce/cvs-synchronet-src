@@ -2,7 +2,7 @@
 
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.5 2011/10/19 08:42:28 deuce Exp $ */
+/* $Id: msg_id.c,v 1.4 2008/02/25 08:25:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,14 +37,14 @@
 
 #include "sbbs.h"
 
-static uint32_t msg_number(smbmsg_t* msg)
+static msg_number(smbmsg_t* msg)
 {
 	if(msg->idx.number)
 		return(msg->idx.number);
 	return(msg->hdr.number);
 }
 
-static uint32_t msg_time(smbmsg_t* msg)
+static msg_time(smbmsg_t* msg)
 {
 	if(msg->idx.time)
 		return(msg->idx.time);

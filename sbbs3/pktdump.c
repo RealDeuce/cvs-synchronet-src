@@ -1,10 +1,9 @@
 /* pktdump.c */
 
-/* $Id: pktdump.c,v 1.6 2012/10/13 01:09:24 deuce Exp $ */
+/* $Id: pktdump.c,v 1.5 2010/01/27 08:46:16 rswindell Exp $ */
 
 #include "fidodefs.h"
 #include "sbbsdefs.h"	/* faddr_t */
-#include "xpendian.h"	/* swap */
 
 FILE* nulfp;
 FILE* bodyfp;
@@ -87,7 +86,7 @@ int pktdump(FILE* fp, const char* fname)
 
 	printf("%s Packet Type ", fname);
 
-	if(pkthdr.fill.two_plus.cword==BYTE_SWAP_16(pkthdr.fill.two_plus.cwcopy)  /* 2+ Packet Header */
+	if(pkthdr.fill.two_plus.cword==_rotr(pkthdr.fill.two_plus.cwcopy,8)  /* 2+ Packet Header */
 		&& pkthdr.fill.two_plus.cword&1) {
 		fprintf(stdout,"2+");
 		dest.point=pkthdr.fill.two_plus.destpoint;
@@ -161,7 +160,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
