@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.138 2011/09/10 10:32:07 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.139 2011/09/23 06:54:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,7 @@ static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 #define DEFAULT_LOGIN_ATTEMPT_DELAY		5000	/* milliseconds */
 #define DEFAULT_LOGIN_ATTEMPT_THROTTLE	1000	/* milliseconds */
 #define DEFAULT_LOGIN_ATTEMPT_HACKLOG	10		/* write to hack.log after this many consecutive unique attempts */
-#define DEFAULT_LOGIN_ATTEMPT_FILTER	50		/* filter client IP address after this many consecutive unique attempts */
+#define DEFAULT_LOGIN_ATTEMPT_FILTER	0		/* filter client IP address after this many consecutive unique attempts */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
