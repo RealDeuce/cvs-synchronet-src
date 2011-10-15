@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "[s]printf" implementation */
 
-/* $Id: js_sprintf.c,v 1.8 2011/10/16 12:27:01 rswindell Exp $ */
+/* $Id: js_sprintf.c,v 1.7 2011/10/11 05:05:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,6 +42,7 @@ char* DLLCALL
 js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 {
 	char*		p,*p2;
+    JSString*	str;
 
 	JSVALUE_TO_STRING(cx, argv[argn++], p, NULL);
 	if(p==NULL)
