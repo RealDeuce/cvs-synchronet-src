@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.264 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: services.c,v 1.260 2011/10/11 05:05:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,6 +254,7 @@ static void status(char* str)
 static JSBool
 js_read(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		buf;
 	int32		len=512;
@@ -284,6 +285,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_readln(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		ch;
 	char*		buf;
@@ -354,9 +356,11 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
 	char*		cp;
+	JSString*	str;
 	service_client_t* client;
 	jsrefcount	rc;
 
@@ -382,6 +386,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	char*		cp;
 	service_client_t* client;
 	jsrefcount	rc;
@@ -404,10 +410,12 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[512];
     uintN		i=0;
 	int32		level=LOG_INFO;
+    JSString*	js_str;
 	service_client_t* client;
 	jsrefcount	rc;
 	char		*line;
@@ -582,6 +590,7 @@ static JSBool
 js_logout(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	jsval val;
 	service_client_t* client;
 	jsrefcount	rc;
@@ -677,6 +686,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 static JSBool
 js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	client_t	client;
 	SOCKET		sock=INVALID_SOCKET;
@@ -698,7 +708,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	memset(&client,0,sizeof(client));
 	client.size=sizeof(client);
 	client.protocol=service_client->service->protocol;
-	client.time=time32(NULL);
+	client.time=time(NULL);
 	client.user="<unknown>";
 	SAFECOPY(client.host,client.user);
 	
@@ -734,6 +744,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	client_t	client;
 	SOCKET		sock=INVALID_SOCKET;
@@ -787,6 +798,7 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_client_remove(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	SOCKET	sock=INVALID_SOCKET;
 	service_client_t* service_client;
@@ -1125,7 +1137,7 @@ static void js_service_thread(void* arg)
 #endif
 
 	client.size=sizeof(client);
-	client.time=time32(NULL);
+	client.time=time(NULL);
 	SAFECOPY(client.addr,inet_ntoa(service_client.addr.sin_addr));
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(service_client.addr.sin_port);
@@ -1197,6 +1209,7 @@ static void js_service_thread(void* arg)
 #endif
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
+		JS_DestroyScript(js_cx, js_script);
 	}
 	JS_ENDREQUEST(js_cx);
 	JS_DestroyContext(js_cx);	/* Free Context */
@@ -1306,6 +1319,7 @@ static void js_static_service_thread(void* arg)
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
+		JS_DestroyScript(js_cx, js_script);
 
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
@@ -1470,7 +1484,7 @@ static void native_service_thread(void* arg)
 #endif
 
 	client.size=sizeof(client);
-	client.time=time32(NULL);
+	client.time=time(NULL);
 	SAFECOPY(client.addr,inet_ntoa(service_client.addr.sin_addr));
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(service_client.addr.sin_port);
@@ -1691,7 +1705,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.264 $", "%*s %s", revision);
+	sscanf("$Revision: 1.260 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

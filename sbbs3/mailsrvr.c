@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.547 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.544 2011/10/11 05:05:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -834,7 +834,7 @@ static void pop3_thread(void* arg)
 
 	/* Initialize client display */
 	client.size=sizeof(client);
-	client.time=time32(NULL);
+	client.time=time(NULL);
 	SAFECOPY(client.addr,host_ip);
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(pop3.client_addr.sin_port);
@@ -1501,7 +1501,7 @@ static void exempt_email_addr(const char* comment
 			if(fromext!=NULL)
 				fprintf(fp,"#%s ",fromext);
 			fprintf(fp,"%s on %s\n%s\n"
-				,fromaddr, timestr(&scfg,time32(NULL),tmp), to);
+				,fromaddr, timestr(&scfg,time(NULL),tmp), to);
 			fclose(fp);
 		}
 	}
@@ -1686,6 +1686,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
@@ -1900,6 +1901,8 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 		js_EvalOnExit(*js_cx, js_scope, &js_branch);
 
 		JS_GetProperty(*js_cx, *js_glob, "exit_code", &rval);
+
+		JS_DestroyScript(*js_cx, js_script);
 
 		JS_ClearScope(*js_cx, js_scope);
 
@@ -2489,7 +2492,7 @@ static void smtp_thread(void* arg)
 
 	/* Initialize client display */
 	client.size=sizeof(client);
-	client.time=time32(NULL);
+	client.time=time(NULL);
 	SAFECOPY(client.addr,host_ip);
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(smtp.client_addr.sin_port);
@@ -4873,7 +4876,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.547 $", "%*s %s", revision);
+	sscanf("$Revision: 1.544 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

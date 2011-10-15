@@ -2,13 +2,13 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.c,v 1.32 2011/10/18 11:31:36 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.28 2008/02/23 22:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -40,7 +40,7 @@
 #include "datewrap.h"
 
 /* Return difference (in seconds) in time() result from standard */
-time_t DLLCALL checktime(void)
+time_t checktime(void)
 {
 	time_t		t=0x2D24BD00L;	/* Correct time_t value on Jan-1-1994 */
 	struct tm	gmt;
@@ -53,7 +53,7 @@ time_t DLLCALL checktime(void)
 }
 
 /* Compensates for struct tm "weirdness" */
-time_t DLLCALL sane_mktime(struct tm* tm)
+time_t sane_mktime(struct tm* tm)
 {
 	if(tm->tm_year>=1900)
 		tm->tm_year-=1900;
@@ -63,36 +63,6 @@ time_t DLLCALL sane_mktime(struct tm* tm)
 
 	return mktime(tm);
 }
-
-time32_t DLLCALL time32(time32_t* tp)
-{
-	time_t t;
-
-	t=time(NULL);
-
-	if(tp!=NULL)
-		*tp=(time32_t)t;
-
-	return (time32_t)t;
-}
-
-time32_t DLLCALL mktime32(struct tm* tm)
-{
-	return (time32_t)sane_mktime(tm);
-}
-
-struct tm* DLLCALL localtime32(const time32_t* t32, struct tm* tm)
-{
-	time_t	t=*t32;
-	struct tm* tmp;
-
-	if((tmp=localtime(&t))==NULL)
-		return(NULL);
-
-	*tm = *tmp;
-	return(tm);
-}
-
 
 #if !defined(__BORLANDC__)
 
@@ -106,7 +76,7 @@ struct tm* DLLCALL localtime32(const time32_t* t32, struct tm* tm)
 	#include <sys/time.h>	/* stuct timeval, gettimeofday() */
 #endif
 
-void DLLCALL xp_getdate(struct date* nyd)
+void xp_getdate(struct date* nyd)
 {
 	time_t tim;
 	struct tm dte;
@@ -118,7 +88,7 @@ void DLLCALL xp_getdate(struct date* nyd)
 	nyd->da_mon=dte.tm_mon+1;
 }
 
-void DLLCALL gettime(struct time* nyt)
+void gettime(struct time* nyt)
 {
 #if defined(_WIN32)
 	SYSTEMTIME systime;
