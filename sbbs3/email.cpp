@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.54 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: email.cpp,v 1.53 2011/08/30 22:51:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,7 +264,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	msg.hdr.attr=msgattr;
 	if(mode&WM_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
-	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
+	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	if(cfg.mail_maxcrcs) {

@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.216 2011/10/19 02:00:15 deuce Exp $
+# $Id: GNUmakefile,v 1.214 2011/10/13 23:37:05 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -52,10 +52,9 @@ ifdef DONT_BLAME_SYNCHRONET
 endif
 
 ifeq ($(os),linux)
- SBBS_LIBS += -lutil
  ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
   CFLAGS += -DUSE_LINUX_CAPS
-  CON_LIBS += -lcap
+  SBBS_LIBS += -lcap
  endif
 endif
 

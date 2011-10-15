@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.147 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_socket.c,v 1.145 2011/10/14 00:57:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,6 +98,7 @@ static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -264,6 +265,7 @@ static JSBool
 js_accept(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	private_t*	new_p;
 	JSObject*	sockobj;
@@ -508,6 +510,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	char*		fname;
 	long		len;
 	int			file;
+	JSString*	str;
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -641,9 +644,10 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 	int32		len=512;
 	JSString*	str;
 	jsrefcount	rc;
-	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -701,9 +705,10 @@ js_recvfrom(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKADDR_IN	addr;
 	socklen_t	addrlen;
 	jsrefcount	rc;
-	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
@@ -822,9 +827,10 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 	int32		len=512;
 	JSString*	str;
 	jsrefcount	rc;
-	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
