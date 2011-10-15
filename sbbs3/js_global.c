@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.288 2011/10/14 23:30:15 deuce Exp $ */
+/* $Id: js_global.c,v 1.289 2011/10/15 00:28:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -326,18 +326,15 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 #endif
 
 		/* Save parent's 'log' function (for later use by our log function) */
-#if TODO
 		if(JS_GetProperty(cx, obj, "log", &val)) {
 			JSFunction* func;
-			if((func=JS_ValueToFunction(cx, val))!=NULL && !(JS_GetFunctionFlags(func)&JSFUN_INTERPRETED)) {
-				bg->log=func->u.n.native;
-				JS_DefineFunction(bg->cx, bg->obj
-					,"log", js_log, JS_GetFunctionArity(func), JS_GetFunctionFlags(func));
+			if((func=JS_ValueToFunction(cx, val))!=NULL) {
+				JSObject *obj;
+
+				obj=JS_CloneFunctionObject(bg->cx, JS_GetFunctionObject(func), bg->obj);
+				JS_DefineProperty(bg->cx, bg->obj, "log", OBJECT_TO_JSVAL(obj), NULL, NULL, JSPROP_ENUMERATE|JSPROP_PERMANENT);
 			}
 		}
-#else
-	#warning BACKGROUND LOG FUNCTION DEAD!
-#endif
 
 		exec_cx = bg->cx;
 		exec_obj = bg->obj;
