@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.548 2011/10/16 07:44:16 deuce Exp $ */
+/* $Id: websrvr.c,v 1.549 2011/10/16 12:33:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4106,7 +4106,6 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	char		str[512];
     uintN		i=0;
 	int32		level=LOG_INFO;
-    JSString*	js_str;
 	http_session_t* session;
 	jsrefcount	rc;
 	char		*val;
@@ -4148,7 +4147,6 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	char*		p;
 	JSBool		inc_logons=JS_FALSE;
 	user_t		user;
-	JSString*	js_str;
 	http_session_t*	session;
 	jsrefcount	rc;
 
@@ -4562,7 +4560,6 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSIdArray*	heads;
 	JSObject*	headers;
 	int			i;
-	JSString*	js_str;
 	char		str[MAX_REQUEST_LINE+1];
 	char		*p,*p2;
 
@@ -5223,7 +5220,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.548 $", "%*s %s", revision);
+	sscanf("$Revision: 1.549 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
