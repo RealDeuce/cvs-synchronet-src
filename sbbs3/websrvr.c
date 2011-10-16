@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.554 2011/10/19 08:55:12 deuce Exp $ */
+/* $Id: websrvr.c,v 1.548 2011/10/16 07:44:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,8 @@ static volatile ulong	sockets=0;
 static volatile BOOL	terminate_server=FALSE;
 static volatile BOOL	terminate_http_logging_thread=FALSE;
 static volatile	ulong	thread_count=0;
-static SOCKET	server_socket=INVALID_SOCKET;
+static volatile SOCKET	server_socket=INVALID_SOCKET;
+static volatile SOCKET	server_socket6=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
@@ -1045,7 +1046,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 	struct tm	tm;
 	char	*headers;
 	char	header[MAX_REQUEST_LINE+1];
-	BOOL	send_entity=TRUE;
 
 	if(session->socket==INVALID_SOCKET) {
 		session->req.sent_headers=TRUE;
@@ -1075,7 +1075,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			status_line="304 Not Modified";
 			ret=-1;
 			send_file=FALSE;
-			send_entity=FALSE;
 		}
 		if(!ret && session->req.if_range && (stats.st_mtime > session->req.if_range || session->req.dynamic)) {
 			status_line="200 OK";
@@ -1156,46 +1155,44 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 
 		/* DO NOT send a content-length for chunked */
-		if(send_entity) {
-			if(session->req.keep_alive && session->req.dynamic!=IS_CGI && (!chunked)) {
-				if(ret)  {
-					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
+		if(session->req.keep_alive && session->req.dynamic!=IS_CGI && (!chunked)) {
+			if(ret)  {
+				safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
+				safecat(headers,header,MAX_HEADERS_SIZE);
+			}
+			else  {
+				if((session->req.range_start || session->req.range_end) && atoi(status_line)==206) {
+					safe_snprintf(header,sizeof(header),"%s: %d",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
 					safecat(headers,header,MAX_HEADERS_SIZE);
 				}
-				else  {
-					if((session->req.range_start || session->req.range_end) && atoi(status_line)==206) {
-						safe_snprintf(header,sizeof(header),"%s: %d",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
-						safecat(headers,header,MAX_HEADERS_SIZE);
-					}
-					else {
-						safe_snprintf(header,sizeof(header),"%s: %d",get_header(HEAD_LENGTH),(int)stats.st_size);
-						safecat(headers,header,MAX_HEADERS_SIZE);
-					}
+				else {
+					safe_snprintf(header,sizeof(header),"%s: %d",get_header(HEAD_LENGTH),(int)stats.st_size);
+					safecat(headers,header,MAX_HEADERS_SIZE);
 				}
 			}
+		}
 
-			if(!ret && !session->req.dynamic)  {
-				safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_TYPE),session->req.mime_type);
-				safecat(headers,header,MAX_HEADERS_SIZE);
-				gmtime_r(&stats.st_mtime,&tm);
-				safe_snprintf(header,sizeof(header),"%s: %s, %02d %s %04d %02d:%02d:%02d GMT"
-					,get_header(HEAD_LASTMODIFIED)
-					,days[tm.tm_wday],tm.tm_mday,months[tm.tm_mon]
-					,tm.tm_year+1900,tm.tm_hour,tm.tm_min,tm.tm_sec);
-				safecat(headers,header,MAX_HEADERS_SIZE);
-			}
+		if(!ret && !session->req.dynamic)  {
+			safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_TYPE),session->req.mime_type);
+			safecat(headers,header,MAX_HEADERS_SIZE);
+			gmtime_r(&stats.st_mtime,&tm);
+			safe_snprintf(header,sizeof(header),"%s: %s, %02d %s %04d %02d:%02d:%02d GMT"
+				,get_header(HEAD_LASTMODIFIED)
+				,days[tm.tm_wday],tm.tm_mday,months[tm.tm_mon]
+				,tm.tm_year+1900,tm.tm_hour,tm.tm_min,tm.tm_sec);
+			safecat(headers,header,MAX_HEADERS_SIZE);
+		}
 
-			if(session->req.range_start || session->req.range_end) {
-				switch(atoi(status_line)) {
-					case 206:	/* Partial reply */
-						safe_snprintf(header,sizeof(header),"%s: bytes %d-%d/%d",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
-						safecat(headers,header,MAX_HEADERS_SIZE);
-						break;
-					default:
-						safe_snprintf(header,sizeof(header),"%s: *",get_header(HEAD_CONTENT_RANGE));
-						safecat(headers,header,MAX_HEADERS_SIZE);
-						break;
-				}
+		if(session->req.range_start || session->req.range_end) {
+			switch(atoi(status_line)) {
+				case 206:	/* Partial reply */
+					safe_snprintf(header,sizeof(header),"%s: bytes %d-%d/%d",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
+					safecat(headers,header,MAX_HEADERS_SIZE);
+					break;
+				default:
+					safe_snprintf(header,sizeof(header),"%s: *",get_header(HEAD_CONTENT_RANGE));
+					safecat(headers,header,MAX_HEADERS_SIZE);
+					break;
 			}
 		}
 	}
@@ -1322,7 +1319,7 @@ static void send_error(http_session_t * session, const char* message)
 				sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code);
 		}
 		else
-			sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code);
+			sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code,startup->ssjs_ext);
 		session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
 		send_headers(session,message,FALSE);
 		if(!stat(session->req.physical_path,&sb)) {
@@ -1378,7 +1375,7 @@ void http_logon(http_session_t * session, user_t *usr)
 		putuserrec(&scfg,session->user.number,U_MODEM,LEN_MODEM,"HTTP");
 		putuserrec(&scfg,session->user.number,U_COMP,LEN_COMP,session->host_name);
 		putuserrec(&scfg,session->user.number,U_NOTE,LEN_NOTE,session->host_ip);
-		putuserrec(&scfg,session->user.number,U_LOGONTIME,0,ultoa((ulong)session->logon_time,str,16));
+		putuserrec(&scfg,session->user.number,U_LOGONTIME,0,ultoa(session->logon_time,str,16));
 	}
 	session->client.user=session->username;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
@@ -2820,6 +2817,7 @@ static BOOL check_extra_path(http_session_t * session)
 						*end=0;
 						strcat(rpath,startup->index_file_name[i]);
 						if(!stat(rpath,&sb)) {
+							/* *end=0; /* Removed Wed, Aug 09, 2006 to allow is_dynamic_req to detect correctly */
 							SAFECOPY(session->req.extra_path_info,epath);
 							SAFECOPY(session->req.virtual_path,vpath);
 							strcat(session->req.virtual_path,"/");
@@ -3195,6 +3193,7 @@ static BOOL exec_cgi(http_session_t *session)
 	char	cmdline[MAX_PATH+256];
 	/* ToDo: Damn, that's WAY too many variables */
 	int		i=0;
+	int		j;
 	int		status=0;
 	pid_t	child=0;
 	int		out_pipe[2];
@@ -3217,8 +3216,11 @@ static BOOL exec_cgi(http_session_t *session)
 	time_t	start;
 	char	cgipath[MAX_PATH+1];
 	char	*p;
+	char	ch;
 	BOOL	orig_keep=FALSE;
+	size_t	idx;
 	str_list_t	tmpbuf;
+	size_t	tmpbuflen=0;
 	BOOL	no_chunked=FALSE;
 	BOOL	set_chunked=FALSE;
 
@@ -3957,6 +3959,7 @@ static void js_writebuf(http_session_t *session, const char *buf, size_t buflen)
 static JSBool
 js_writefunc(JSContext *cx, uintN argc, jsval *arglist, BOOL writeln)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
@@ -4041,6 +4044,7 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char	header_buf[8192];
 	char	*header;
@@ -4097,10 +4101,12 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[512];
     uintN		i=0;
 	int32		level=LOG_INFO;
+    JSString*	js_str;
 	http_session_t* session;
 	jsrefcount	rc;
 	char		*val;
@@ -4137,10 +4143,12 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	JSBool		inc_logons=JS_FALSE;
 	user_t		user;
+	JSString*	js_str;
 	http_session_t*	session;
 	jsrefcount	rc;
 
@@ -4554,6 +4562,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSIdArray*	heads;
 	JSObject*	headers;
 	int			i;
+	JSString*	js_str;
 	char		str[MAX_REQUEST_LINE+1];
 	char		*p,*p2;
 
@@ -5022,7 +5031,7 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.client.addr,session.host_ip);
 	SAFECOPY(session.client.host,session.host_name);
 	session.client.port=ntohs(session.addr.sin_port);
-	session.client.time=time32(NULL);
+	session.client.time=time(NULL);
 	session.client.protocol="HTTP";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
@@ -5214,7 +5223,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.554 $", "%*s %s", revision);
+	sscanf("$Revision: 1.548 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
