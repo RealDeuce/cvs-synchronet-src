@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.217 2011/10/21 21:44:42 deuce Exp $
+# $Id: GNUmakefile,v 1.214 2011/10/13 23:37:05 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -37,6 +37,8 @@ ifeq ($(os),qnx)
  LDFLAGS += -lsocket
 endif
 
+SBBS_LIBS	+=	-lcl
+
 ifdef PREFIX
  CFLAGS += -DPREFIX=$(PREFIX)
 endif
@@ -50,12 +52,22 @@ ifdef DONT_BLAME_SYNCHRONET
 endif
 
 ifeq ($(os),linux)
- SBBS_LIBS += -lutil
  ifeq ($(shell test -f /usr/include/sys/capability.h && echo "yes"),yes)
   CFLAGS += -DUSE_LINUX_CAPS
-  CON_LIBS += -lcap
+  SBBS_LIBS += -lcap
  endif
 endif
+
+ifdef CRYPTLIBINCLUDE
+ CFLAGS += -I$(CRYPTLIBINCLUDE)
+else
+ CFLAGS += -I$(SRC_ROOT)/../include/cryptlib
+endif
+
+ifndef CRYPTLIBDIR
+ CRYPTLIBDIR := $(SRC_ROOT)/../lib/cryptlib/$(machine).release
+endif
+LDFLAGS	+=	-L$(CRYPTLIBDIR)
 
 include sbbsdefs.mk
 MT_CFLAGS	+=	$(SBBSDEFS)
@@ -93,21 +105,21 @@ else
  endif
 endif
 
-CFLAGS	+=	$(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) $(JS_CFLAGS) $(CRYPT_CFLAGS)
+CFLAGS	+=	$(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) $(JS_CFLAGS)
 CFLAGS	+=	-I../comio
 vpath %.c ../comio
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS) $(CRYPT_LDFLAGS)
+LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 	@echo Linking $@
-	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $(MONO_OBJS) $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS) $(JS_LIBS) $(CRYPT_LIBS)
+	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $(MONO_OBJS) $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS) $(JS_LIBS)
 
 # Synchronet BBS library Link Rule
 $(SBBS): $(OBJS) $(LIBS)
 	@echo Linking $@
-	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS) $(CRYPT_LIBS)
+	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS)
 
 # FTP Server Link Rule
 $(FTPSRVR): $(MTOBJODIR)/ftpsrvr.o
@@ -140,7 +152,7 @@ $(BAJA): $(BAJA_OBJS)
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(BAJA_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS)
 
 # UnBaja Utility
-$(UNBAJA): $(UNBAJA_OBJS) | $(OBJODIR) $(EXEODIR)
+$(UNBAJA): $(OBJODIR) $(EXEODIR) $(UNBAJA_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(UTIL_LDFLAGS) -o $@ $(UNBAJA_OBJS) $(XPDEV_LIBS) $(UTIL_LIBS)
 
