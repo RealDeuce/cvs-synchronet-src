@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.149 2011/10/16 07:44:16 deuce Exp $ */
+/* $Id: jsexec.c,v 1.150 2011/10/16 17:39:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -598,9 +598,10 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p;
+	char*		p=NULL;
 
-	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
+	if(argc)
+		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
@@ -1018,7 +1019,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.149 $", "%*s %s", revision);
+	sscanf("$Revision: 1.150 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
