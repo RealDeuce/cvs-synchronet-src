@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.49 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: addfiles.c,v 1.46 2010/05/24 05:19:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ int lprintf(int level, const char *fmat, ...)
 	return(chcount);
 }
 
-void prep_desc(char *str)
+void prep_desc(uchar *str)
 {
 	char tmp[1024];
 	int i,j;
@@ -88,11 +88,11 @@ void prep_desc(char *str)
 	for(i=j=0;str[i] && j < sizeof(tmp)-1;i++) {
 		if(j && str[i]==' ' && tmp[j-1]==' ' && (mode&KEEP_SPACE))
 			tmp[j++]=str[i];
-		else if(j && str[i]<=' ' && str[i] > 0&& tmp[j-1]==' ')
+		else if(j && str[i]<=' ' && tmp[j-1]==' ')
 			continue;
-		else if(i && !isalnum((uchar)str[i]) && str[i]==str[i-1])
+		else if(i && !isalnum(str[i]) && str[i]==str[i-1])
 			continue;
-		else if(str[i]>=' ' || str[i]<0)
+		else if(str[i]>=' ')
 			tmp[j++]=str[i];
 		else if(str[i]==TAB || (str[i]==CR && str[i+1]==LF))
 			tmp[j++]=' ';
@@ -212,7 +212,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 	char filepath[MAX_PATH+1];
 	char curline[256],nextline[256];
 	char *p;
-	char ext[1024],tmpext[513];
+	uchar ext[1024],tmpext[513];
 	int i,file;
 	long l;
 	BOOL exist;
@@ -240,27 +240,27 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			f.desc[0]=0;
 			f.cdt=flength(filepath);
 			padfname(getfname(filepath),f.name);
-			printf("%s  %10"PRIu32"  %s\n"
-				,f.name,f.cdt,unixtodstr(&scfg,(time32_t)fdate(filepath),str));
+			printf("%s  %10lu  %s\n"
+				,f.name,f.cdt,unixtodstr(&scfg,fdate(filepath),str));
 			exist=findfile(&scfg,f.dir,f.name);
 			if(exist) {
 				if(mode&NO_UPDATE)
 					continue;
 				getfileixb(&scfg,&f);
 				if(mode&ULDATE_ONLY) {
-					f.dateuled=time32(NULL);
+					f.dateuled=time(NULL);
 					update_uldate(&scfg, &f);
 					continue; 
 				} 
 			}
 
 			if(mode&FILE_DATE) {		/* get the file date and put into desc */
-				unixtodstr(&scfg,(time32_t)fdate(filepath),f.desc);
+				unixtodstr(&scfg,fdate(filepath),f.desc);
 				strcat(f.desc,"  "); 
 			}
 
 			if(mode&TODAYS_DATE) {		/* put today's date in desc */
-				unixtodstr(&scfg,time32(NULL),f.desc);
+				unixtodstr(&scfg,time(NULL),f.desc);
 				strcat(f.desc,"  "); 
 			}
 
@@ -282,7 +282,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 						memset(ext,0,513);
 						read(file,ext,512);
 						for(i=512;i;i--)
-							if(ext[i-1]>' ' || ext[i-1]<0)
+							if(ext[i-1]>' ')
 								break;
 						ext[i]=0;
 						if(mode&ASCII_ONLY)
@@ -291,10 +291,10 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 							sprintf(tmpext,"%.256s",ext);
 							prep_desc(tmpext);
 							for(i=0;tmpext[i];i++)
-								if(isalpha((uchar)tmpext[i]))
+								if(isalpha(tmpext[i]))
 									break;
 							sprintf(f.desc,"%.*s",LEN_FDESC,tmpext+i);
-							for(i=0;(f.desc[i]>=' ' || f.desc[i]<0) && i<LEN_FDESC;i++)
+							for(i=0;f.desc[i]>=' ' && i<LEN_FDESC;i++)
 								;
 							f.desc[i]=0; }
 						close(file);
@@ -303,7 +303,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 				} 
 			}
 
-			f.dateuled=time32(NULL);
+			f.dateuled=time(NULL);
 			f.altpath=cur_altpath;
 			prep_desc(f.desc);
 			if(mode&ASCII_ONLY)
@@ -388,7 +388,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 				continue;
 			getfileixb(&scfg,&f);
 			if(mode&ULDATE_ONLY) {
-				f.dateuled=time32(NULL);
+				f.dateuled=time(NULL);
 				update_uldate(&scfg, &f);
 				continue; 
 			} 
@@ -398,13 +398,13 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			: scfg.dir[f.dir]->path,fname);
 
 		if(mode&FILE_DATE) {		/* get the file date and put into desc */
-			l=(time32_t)fdate(filepath);
+			l=fdate(filepath);
 			unixtodstr(&scfg,l,f.desc);
 			strcat(f.desc,"  "); 
 		}
 
 		if(mode&TODAYS_DATE) {		/* put today's date in desc */
-			l=time32(NULL);
+			l=time(NULL);
 			unixtodstr(&scfg,l,f.desc);
 			strcat(f.desc,"  "); 
 		}
@@ -428,7 +428,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			if(nextline[0]==' ') {
 				strcpy(str,nextline);				   /* tack on to end of desc */
 				p=str+dskip;
-				while(*p>0 && *p<=' ') p++;
+				while(*p && *p<=' ') p++;
 				i=LEN_FDESC-strlen(f.desc);
 				if(i>1) {
 					p[i-1]=0;
@@ -485,7 +485,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 					memset(ext,0,513);
 					read(file,ext,512);
 					for(i=512;i;i--)
-						if(ext[i-1]>' ' || ext[i-1]<0)
+						if(ext[i-1]>' ')
 							break;
 					ext[i]=0;
 					if(mode&ASCII_ONLY)
@@ -494,10 +494,10 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 						sprintf(tmpext,"%.256s",ext);
 						prep_desc(tmpext);
 						for(i=0;tmpext[i];i++)
-							if(isalpha((uchar)tmpext[i]))
+							if(isalpha(tmpext[i]))
 								break;
 						sprintf(f.desc,"%.*s",LEN_FDESC,tmpext+i);
-						for(i=0;(f.desc[i]>=' ' || f.desc[i]<0) && i<LEN_FDESC;i++)
+						for(i=0;f.desc[i]>=' ' && i<LEN_FDESC;i++)
 							;
 						f.desc[i]=0; 
 					}
@@ -508,7 +508,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		}
 
 		f.cdt=l;
-		f.dateuled=time32(NULL);
+		f.dateuled=time(NULL);
 		f.altpath=cur_altpath;
 		prep_desc(f.desc);
 		if(mode&ASCII_ONLY)
@@ -539,11 +539,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 void synclist(char *inpath, int dirnum)
 {
-	char	str[1024];
+	uchar	str[1024];
 	char	fname[MAX_PATH+1];
 	char	listpath[MAX_PATH+1];
 	uchar*	ixbbuf;
-	char*	p;
+	uchar*	p;
 	int		i,file,found;
 	long	l,m,length;
 	FILE*	stream;
@@ -668,15 +668,14 @@ int main(int argc, char **argv)
 	char revision[16];
 	char str[MAX_PATH+1];
 	char tmp[MAX_PATH+1];
-	char *p;
-	char exist,listgiven=0,namegiven=0,ext[513]
+	uchar *p,exist,listgiven=0,namegiven=0,ext[513]
 		,auto_name[MAX_PATH+1]="FILES.BBS";
 	int i,j,file;
 	uint desc_offset=0, size_offset=0;
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.49 $", "%*s %s", revision);
+	sscanf("$Revision: 1.46 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -722,7 +721,7 @@ int main(int argc, char **argv)
 		mode|=AUTO_ADD;
 		i=0; 
 	} else {
-		if(!isalnum((uchar)argv[1][0]) && argc==2) {
+		if(!isalnum(argv[1][0]) && argc==2) {
 			printf(usage);
 			return(1); 
 		}
@@ -815,7 +814,7 @@ int main(int argc, char **argv)
 						return(1); 
 			} 
 		}
-		else if(isdigit((uchar)argv[j][0])) {
+		else if(isdigit(argv[j][0])) {
 			if(desc_offset==0)
 				desc_offset=atoi(argv[j]);
 			else
@@ -825,9 +824,9 @@ int main(int argc, char **argv)
 		else if(argv[j][0]=='+') {      /* filelist - FILES.BBS */
 			listgiven=1;
 			if(argc > j+1
-				&& isdigit((uchar)argv[j+1][0])) { /* skip x characters before description */
+				&& isdigit(argv[j+1][0])) { /* skip x characters before description */
 				if(argc > j+2
-					&& isdigit((uchar)argv[j+2][0])) { /* skip x characters before size */
+					&& isdigit(argv[j+2][0])) { /* skip x characters before size */
 					addlist(argv[j]+1,f,atoi(argv[j+1]),atoi(argv[j+2]));
 					j+=2; 
 				}
@@ -862,9 +861,9 @@ int main(int argc, char **argv)
 			sprintf(str,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 				: scfg.dir[f.dir]->path,argv[j]);
 			if(mode&FILE_DATE)
-				sprintf(f.desc,"%s  ",unixtodstr(&scfg,(time32_t)fdate(str),tmp));
+				sprintf(f.desc,"%s  ",unixtodstr(&scfg,fdate(str),tmp));
 			if(mode&TODAYS_DATE)
-				sprintf(f.desc,"%s  ",unixtodstr(&scfg,time32(NULL),tmp));
+				sprintf(f.desc,"%s  ",unixtodstr(&scfg,time(NULL),tmp));
 			sprintf(tmp,"%.*s",(int)(LEN_FDESC-strlen(f.desc)),argv[++j]);
 			strcpy(f.desc,tmp);
 			l=flength(str);
@@ -878,18 +877,18 @@ int main(int argc, char **argv)
 					continue;
 				getfileixb(&scfg,&f);
 				if(mode&ULDATE_ONLY) {
-					f.dateuled=time32(NULL);
+					f.dateuled=time(NULL);
 					update_uldate(&scfg, &f);
 					continue; 
 				} 
 			}
 			f.cdt=l;
-			f.dateuled=time32(NULL);
+			f.dateuled=time(NULL);
 			f.altpath=cur_altpath;
 			prep_desc(f.desc);
 			if(mode&ASCII_ONLY)
 				strip_exascii(f.desc, f.desc);
-			printf("%s %7"PRIu32" %s\n",f.name,f.cdt,f.desc);
+			printf("%s %7lu %s\n",f.name,f.cdt,f.desc);
 			if(mode&FILE_ID) {
 				for(i=0;i<scfg.total_fextrs;i++)
 					if(!stricmp(scfg.fextr[i]->ext,f.name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,/* user: */NULL, /* client: */NULL))
@@ -909,7 +908,7 @@ int main(int argc, char **argv)
 						read(file,ext,512);
 						if(!(mode&KEEP_DESC)) {
 							sprintf(f.desc,"%.*s",LEN_FDESC,ext);
-							for(i=0;(f.desc[i]>=' ' || f.desc[i]<0) && i<LEN_FDESC;i++)
+							for(i=0;f.desc[i]>=' ' && i<LEN_FDESC;i++)
 								;
 							f.desc[i]=0; 
 						}
