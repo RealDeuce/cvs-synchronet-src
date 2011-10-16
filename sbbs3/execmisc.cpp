@@ -2,13 +2,13 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.52 2009/03/20 09:36:20 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.53 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -821,7 +821,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->ip+=4;
 					if(lp) {
 						if(pp && *pp)
-							*lp=flength(*pp);
+							*lp=(uint32_t)flength(*pp);
 						else
 							*lp=0; 
 					}
@@ -1259,7 +1259,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					lp2=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 					if(lp1 && (uint)*lp1<csi->files && lp2)
-						*lp2=filelength(fileno(csi->file[*lp1]));
+						*lp2=(uint32_t)filelength(fileno(csi->file[*lp1]));
 					return(0);
 				case FIO_GET_TIME:
 					lp1=getintvar(csi,*(int32_t *)csi->ip);
@@ -1295,7 +1295,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					lp2=getintvar(csi,*(int32_t *)csi->ip);
 					csi->ip+=4;
 					if(lp1 && (uint)*lp1<csi->files && lp2)
-						*lp2=ftell(csi->file[*lp1]);
+						*lp2=(uint32_t)ftell(csi->file[*lp1]);
 					return(0);
 				case FIO_SEEK:
 				case FIO_SEEK_VAR:
