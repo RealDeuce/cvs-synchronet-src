@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.112 2009/07/19 07:40:13 deuce Exp $ */
+/* $Id: ciolib.c,v 1.113 2011/05/07 22:00:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,7 +33,7 @@
 
 /* Icon file! */
 #ifdef __BORLANDC__
-#pragma resource "ciolib.res"
+#pragma resource "ciolib.res"		/* DO NOT REMOVE THE EXTRA \r! */
 #endif
 
 #include <stdarg.h>
