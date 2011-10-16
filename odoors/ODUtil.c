@@ -141,7 +141,7 @@ char *ODStringPascalToC(char *pszCString, char *psPascalString,
    if(*(BYTE *)psPascalString <= btMaxLength)
    {
       memcpy(pszCString, (char *)psPascalString + 1, *psPascalString);
-      pszCString[(int)psPascalString[0]] = '\0';
+      pszCString[*psPascalString] = '\0';
    }
    else
    {
