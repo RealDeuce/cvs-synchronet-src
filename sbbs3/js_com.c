@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.15 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_com.c,v 1.13 2011/10/16 09:04:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,6 +101,7 @@ static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -132,6 +133,7 @@ static JSBool
 js_open(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -172,6 +174,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		cp;
 	int			len;
+	JSString*	str;
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -184,7 +187,8 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], cp, &len);
+	JSVALUE_TO_STRING(cx, argv[0], cp, NULL);
+	len	= JS_GetStringLength(str);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(comWriteBuf(p->com,cp,len)==len) {
@@ -612,7 +616,8 @@ static JSBool js_com_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			*vp = BOOLEAN_TO_JSVAL(p->debug);
 			break;
 		case COM_PROP_DESCRIPTOR:
-			*vp = INT_TO_JSVAL((int)p->com);
+			*vp = INT_TO_JSVAL(p->com);
+			//p->is_open = TRUE;
 			break;
 		case COM_PROP_NETWORK_ORDER:
 			*vp = BOOLEAN_TO_JSVAL(p->network_byte_order);
@@ -757,7 +762,9 @@ js_com_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj;
 	jsval *argv=JS_ARGV(cx, arglist);
 	private_t* p;
+	char*	protocol=NULL;
 	char*		fname;
+	JSString*	str;
 
 	obj=JS_NewObject(cx, &js_com_class, NULL, NULL);
 	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
