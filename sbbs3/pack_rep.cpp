@@ -2,7 +2,7 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.39 2012/07/11 22:25:46 deuce Exp $ */
+/* $Id: pack_rep.cpp,v 1.38 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,7 +177,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			continue; 
 		}
 
-		post=loadposts(&posts,j,subscan[j].ptr,LP_BYSELF|LP_OTHERS|LP_PRIVATE|LP_REP,NULL);
+		post=loadposts(&posts,j,subscan[j].ptr,LP_BYSELF|LP_OTHERS|LP_PRIVATE|LP_REP);
 		eprintf(LOG_INFO,remove_ctrl_a(text[NScanStatusFmt],tmp)
 			,cfg.grp[cfg.sub[j]->grp]->sname
 			,cfg.sub[j]->lname,posts,msgs);
