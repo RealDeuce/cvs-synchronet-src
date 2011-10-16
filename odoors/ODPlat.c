@@ -63,7 +63,6 @@
 #include <glob.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #endif
 #include "ODGen.h"
 #include "ODCore.h"
@@ -580,7 +579,7 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
 
 #ifdef ODPLAT_NIX
    gettimeofday(&tv,NULL);
-   pTimer->Start=tv.tv_sec*1000+tv.tv_usec/1000;
+   pTimer->Start=(long long)tv.tv_sec*1000+tv.tv_usec/1000;
    pTimer->Duration = Duration;
 #endif
 }
@@ -598,6 +597,11 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
  */
 BOOL ODTimerElapsed(tODTimer *pTimer)
 {
+#ifdef ODPLAT_NIX
+   struct timeval tv;
+   struct timeval end;
+#endif
+
    ASSERT(pTimer != NULL);
 
 #ifdef ODPLAT_DOS
@@ -668,7 +672,7 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
 {
 #ifdef ODPLAT_NIX
    struct timeval tv;
-   time_t nowtick;
+   long long int nowtick;
 #endif
    ASSERT(pTimer != NULL);
 
@@ -690,10 +694,10 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
    }
 #elif defined(ODPLAT_NIX)
    gettimeofday(&tv,NULL);
-   nowtick=tv.tv_sec*1000+(tv.tv_usec/1000);
-   if(pTimer->Start+pTimer->Duration <= nowtick)
+   nowtick=(long long)tv.tv_sec*1000+(tv.tv_usec/1000);
+   if((long long)pTimer->Start+pTimer->Duration <= nowtick)
       return(0);
-   return((tODMilliSec)(pTimer->Start + pTimer->Duration - nowtick));
+   return((tODMilliSec)((long long)pTimer->Start + pTimer->Duration - nowtick));
 #else /* !ODPLAT_DOS */
    {
       tODMilliSec Now;
@@ -734,8 +738,8 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #ifdef ODPLAT_NIX
    struct timeval tv;
    struct timeval start;
-   time_t started;
-   time_t left
+   long long started;
+   long long left
 #endif
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_sleep()");
@@ -836,9 +840,7 @@ typedef struct
 
 
 /* Directory access private function prototypes. */
-#if defined(ODPLAT_DOS) || defined(ODPLAT_WIN32)
 static time_t DOSToCTime(WORD wDate, WORD wTime);
-#endif
 #ifdef ODPLAT_DOS
 static INT ODDirDOSFindFirst(CONST char *pszPath, tDOSDirEntry *pBlock,
    WORD wAttributes);
@@ -1128,7 +1130,6 @@ void ODDirClose(tODDirHandle hDir)
 }
 
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_WIN32)
 /* ----------------------------------------------------------------------------
  * DOSToCTime()                                        *** PRIVATE FUNCTION ***
  *
@@ -1153,7 +1154,6 @@ static time_t DOSToCTime(WORD wDate, WORD wTime)
 
    return(mktime(&TimeStruct));
 }
-#endif
 
 
 /* MS-DOS specific functions for directory access. */
