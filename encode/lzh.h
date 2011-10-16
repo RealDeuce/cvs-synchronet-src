@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.h,v 1.12 2012/08/24 22:28:16 deuce Exp $ */
+/* $Id: lzh.h,v 1.10 2002/10/13 09:44:18 rswindell Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -31,9 +31,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _LZH_H_
-#define _LZH_H_
-
 #ifdef LZHEXPORT
 	#undef LZHEXPORT
 #endif
@@ -58,13 +55,19 @@
 	#define LZHEXPORT
 #endif
 
-#include "gen_defs.h"
+#ifndef uchar
+	#if defined(TYPEDEF_UCHAR)
+		typedef unsigned char uchar;
+	#else
+		#define uchar unsigned char
+	#endif
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-LZHEXPORT int32_t LZHCALL lzh_encode(uint8_t *inbuf, int32_t inlen, uint8_t *outbuf);
-LZHEXPORT int32_t LZHCALL lzh_decode(uint8_t *inbuf, int32_t inlen, uint8_t *outbuf);
+LZHEXPORT long LZHCALL lzh_encode(uchar *inbuf, long inlen, uchar *outbuf);
+LZHEXPORT long LZHCALL lzh_decode(uchar *inbuf, long inlen, uchar *outbuf);
 #ifdef __cplusplus
 }
 #endif
@@ -73,5 +76,3 @@ LZHEXPORT int32_t LZHCALL lzh_decode(uint8_t *inbuf, int32_t inlen, uint8_t *out
 #pragma aux lzh_encode			"_*"
 #pragma aux lzh_decode          "_*"
 #endif
-
-#endif /* Do not add anything after this line */
