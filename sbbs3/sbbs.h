@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.376 2011/10/13 23:56:31 deuce Exp $ */
+/* $Id: sbbs.h,v 1.377 2011/10/16 07:35:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,10 +103,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #else
 	#define XP_PC
 	#define XP_WIN
-#endif
-#ifndef __cplusplus
-	#include <stdbool.h>
-	#include <inttypes.h>
 #endif
 #include <jsversion.h>
 #include <jsapi.h>
