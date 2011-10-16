@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.12 2011/10/14 00:57:39 deuce Exp $ */
+/* $Id: js_com.c,v 1.13 2011/10/16 09:04:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -211,7 +211,6 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	long		len;
 	int			file;
 	char*		fname;
-	JSString*	str;
 	private_t*	p;
 	jsrefcount	rc;
 	char		*buf;
@@ -334,10 +333,9 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 	JSString*	str;
 	jsrefcount	rc;
 	int32		timeout=30;	/* seconds */
+	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	private_t*	p;
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
