@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.46 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: userdat.h,v 1.45 2011/09/23 06:53:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,7 @@ typedef struct {
 	IN_ADDR		addr;	/* host with consecutive failed login attmepts */
 	ulong		count;	/* number of consecutive failed login attempts */
 	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
-	time32_t	time;	/* time of last attempt */
+	time_t		time;	/* time of last attempt */
 	char		prot[32];	/* protocol used in last attempt */
 	char		user[128];
 	char		pass[128];

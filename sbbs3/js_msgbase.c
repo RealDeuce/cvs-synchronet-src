@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.167 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.165 2011/10/16 08:12:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,6 +83,7 @@ static JSBool
 js_open(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t* p;
 	jsrefcount	rc;
 	
@@ -116,6 +117,7 @@ static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	private_t* p;
 	jsrefcount	rc;
 	
@@ -1516,6 +1518,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 	smbmsg_t	rcpt_msg;
 	smbmsg_t	msg;
 	client_t*	client=NULL;
+	jsval		open_rval;
 	private_t*	p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
