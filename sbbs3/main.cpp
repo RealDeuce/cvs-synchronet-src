@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.567 2011/10/16 12:28:48 rswindell Exp $ */
+/* $Id: main.cpp,v 1.568 2011/10/17 10:41:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4426,7 +4426,6 @@ void DLLCALL bbs_thread(void* arg)
 
 	uptime=0;
 	served=0;
-	protected_uint32_init(&node_threads_running,0);
 
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
@@ -4435,6 +4434,8 @@ void DLLCALL bbs_thread(void* arg)
 	SetThreadName("BBS");
 
 	do {
+
+	protected_uint32_init(&node_threads_running,0);
 
 	thread_up(FALSE /* setuid */);
 
