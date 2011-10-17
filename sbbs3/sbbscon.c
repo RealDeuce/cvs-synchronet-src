@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.244 2011/10/16 12:31:44 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.245 2011/10/17 23:19:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,15 +403,15 @@ int change_user(void)
         
         pwent=getpwnam(new_uid_name);
         if(pwent != NULL) {
-            char	uenv[128];
-            char	henv[MAX_PATH+6];
+            static char	uenv[128];
+            static char	henv[MAX_PATH+6];
             sprintf(uenv,"USER=%s",pwent->pw_name);
             putenv(uenv);
             sprintf(henv,"HOME=%s",pwent->pw_dir);
             putenv(henv);
         }
         if(new_gid_name[0]) {
-            char	genv[128];
+            static char	genv[128];
             sprintf(genv,"GROUP=%s",new_gid_name);
             putenv(genv);
         }
