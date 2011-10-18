@@ -226,7 +226,6 @@ char *input_line(char *dest,int maxlen)
 				}
 				started=1;
 				break;
-			case 8:
 			case KEY_BACKSPACE:
 				if(!started)
 				{
@@ -238,7 +237,7 @@ char *input_line(char *dest,int maxlen)
 				}
 				if(inspos>1)
 				{
-					sprintf(buf,"%.*s%s",inspos-2,dest,dest+inspos-1);
+					sprintf(buf,"%*.*s%s",inspos-2,inspos-2,dest,dest+inspos-1);
 					inspos--;
 					xpos--;
 				}
@@ -265,7 +264,7 @@ char *input_line(char *dest,int maxlen)
 				}
 				if(inspos<=strlen(dest))
 				{
-					sprintf(buf,"%.*s%s",inspos-1,dest,dest+inspos);
+					sprintf(buf,"%*s%s",inspos-1,dest,dest+inspos);
 				}
 				started=1;
 				break;
@@ -392,13 +391,13 @@ void EnterRegis(void)
 			return;
 	}
 
-	file=fopen("tp1.cfg","w");
+	file=fopen("tp1,cfg","w");
 
-	GetWord(a,"Registration Line 1 (Sysop name)\r\n: ", "0");
+	GetWord(a,"Registration Line 1\r\n: ", "0");
 	fputs(a, file);
 	fputs("\r\n",file);
 
-	GetWord(b,"Registration Line 2 (BBS name)\r\n: ", "0");
+	GetWord(b,"Registration Line 2\r\n: ", "0");
 	fputs(b, file);
 	fputs("\r\n",file);
 	fclose(file);
@@ -468,7 +467,7 @@ char *GetDrop(char *dest, char *a)
 		COLOR(4,0);
 		PRINT(" -=-=- ");
 		COLOR(12,0);
-	    PRINT("Paths almost always end with a '/' symbol.  Add it now? ");
+	    PRINT("Paths almost always end with a '\' symbol.  Add it now? ");
     	COLOR(14,0);
     	PRINT("(Y/N)");
 		str[0]=0;
@@ -524,8 +523,6 @@ int GetKey(int x, int Y)
 		COLOR(g,0);
 		PRINT("$");
 		a=getch();
-		if(a >= 'a' && a <= 'z')
-			a -= 32;
 		if(a == '\n' || a == '\r' || a == 32)
 		{
     		return(c);
@@ -1140,7 +1137,7 @@ void ViewEdit(void)
 	}
 	else
 	{
-		strcpy(Az1,"linkto.bbs");
+		strcpy(Az1,"linktp.bbs");
 		strcpy(Az2,"setup.cfg");
 	}
 
@@ -1402,7 +1399,7 @@ Billz:
 		}
 		else
 		{
-			strcpy(Az1,"linkto.bbs");
+			strcpy(Az1,"linktp.bbs");
 			strcpy(Az2,"setup.cfg");
 		}
     	NodeNum = b;
@@ -1429,7 +1426,7 @@ Billz:
 		}
 		else
 		{
-			strcpy(Az1,"linkto.bbs");
+			strcpy(Az1,"linktp.bbs");
 			strcpy(Az2,"setup.cfg");
 		}
     	GetLinkNums(Ptt2);
