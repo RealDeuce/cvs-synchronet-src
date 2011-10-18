@@ -2,7 +2,7 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.c,v 1.32 2011/10/18 11:31:36 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.30 2011/10/18 09:32:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,19 +80,6 @@ time32_t DLLCALL mktime32(struct tm* tm)
 {
 	return (time32_t)sane_mktime(tm);
 }
-
-struct tm* DLLCALL localtime32(const time32_t* t32, struct tm* tm)
-{
-	time_t	t=*t32;
-	struct tm* tmp;
-
-	if((tmp=localtime(&t))==NULL)
-		return(NULL);
-
-	*tm = *tmp;
-	return(tm);
-}
-
 
 #if !defined(__BORLANDC__)
 
