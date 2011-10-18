@@ -2,13 +2,13 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.c,v 1.29 2011/10/18 09:28:59 rswindell Exp $ */
+/* $Id: datewrap.c,v 1.30 2011/10/18 09:32:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -78,11 +78,7 @@ time32_t DLLCALL time32(time32_t* tp)
 
 time32_t DLLCALL mktime32(struct tm* tm)
 {
-	time_t t;
-
-	t=sane_mktime(tm);
-
-	return (time32_t)t;
+	return (time32_t)sane_mktime(tm);
 }
 
 #if !defined(__BORLANDC__)
