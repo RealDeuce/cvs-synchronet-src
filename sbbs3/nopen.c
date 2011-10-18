@@ -2,13 +2,13 @@
 
 /* Network open functions (nopen and fnopen) */
 
-/* $Id: nopen.c,v 1.26 2009/01/12 00:43:37 deuce Exp $ */
+/* $Id: nopen.c,v 1.28 2011/10/16 12:29:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -74,7 +74,7 @@ int nopen(const char* str, int access)
 /****************************************************************************/
 FILE* fnopen(int* fd, const char* str, int access)
 {
-	char	mode[128];
+	char*	mode;
 	int		file;
 	FILE *	stream;
 
@@ -86,19 +86,19 @@ FILE* fnopen(int* fd, const char* str, int access)
 
     if(access&O_APPEND) {
         if((access&O_RDWR)==O_RDWR)
-            strcpy(mode,"a+");
+            mode="a+";
         else
-            strcpy(mode,"a"); 
+            mode="a"; 
 	} else if(access&(O_TRUNC|O_WRONLY)) {
 		if((access&O_RDWR)==O_RDWR)
-			strcpy(mode,"w+");
+			mode="w+";
 		else
-			strcpy(mode,"w");
+			mode="w";
 	} else {
         if((access&O_RDWR)==O_RDWR)
-            strcpy(mode,"r+");
+            mode="r+";
         else
-            strcpy(mode,"r"); 
+            mode="r"; 
 	}
     stream=fdopen(file,mode);
     if(stream==NULL) {
@@ -129,7 +129,7 @@ BOOL ftouch(const char* fname)
 BOOL fmutex(const char* fname, const char* text, long max_age)
 {
 	int file;
-	long t;
+	time_t t;
 #if !defined(NO_SOCKET_SUPPORT)
 	char hostname[128];
 	if(text==NULL && gethostname(hostname,sizeof(hostname))==0)
