@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.39 2013/08/31 10:14:56 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.38 2010/05/24 01:13:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -193,8 +193,6 @@ int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
 				   ,int (*lprintf)(int level, const char *fmt, ...));
 int		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
-const char *inet_addrtop(SOCKADDR *in, char *dest, size_t size);
-uint16_t inet_addrport(SOCKADDR *in);
 
 #ifdef __cplusplus
 }
