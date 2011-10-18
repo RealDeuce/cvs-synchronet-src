@@ -2,7 +2,7 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.h,v 1.24 2011/10/18 11:31:36 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.22 2011/10/18 09:28:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,15 +45,14 @@ extern "C" {
 #endif
 
 /* Return difference (in seconds) in time() result from standard (0 on success) */
-DLLEXPORT time_t		DLLCALL		checktime(void);
+DLLEXPORT time_t	DLLCALL		checktime(void);
 
 /* Implementation of mktime() that handles common tm element conversions for you */
-DLLEXPORT time_t		DLLCALL		sane_mktime(struct tm*);
+DLLEXPORT time_t	DLLCALL		sane_mktime(struct tm*);
 
 /* Legacy (32-bit time_t) versions of time() and mktime() */
-DLLEXPORT time32_t		DLLCALL		time32(time32_t* tp);
-DLLEXPORT time32_t		DLLCALL		mktime32(struct tm*);
-DLLEXPORT struct tm*	DLLCALL		localtime32(const time32_t* t, struct tm* tm);
+DLLEXPORT time32_t	DLLCALL		time32(time32_t* tp);
+DLLEXPORT time32_t	DLLCALL		mktime32(struct tm*);
 
 /*********************************************************************************/
 /* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
