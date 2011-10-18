@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.77 2010/03/05 23:55:58 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.83 2011/09/08 22:22:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -175,7 +175,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 		glob->gl_pathv=NULL;
 	}
 
-	if(_dos_findfirst((char*)pattern,_A_NORMAL,&ff)!=0)
+	if(_dos_findfirst((char*)pattern,(flags&GLOB_PERIOD) ? _A_HIDDEN : _A_NORMAL,&ff)!=0)
 		return(GLOB_NOMATCH);
 
 	do {
@@ -236,7 +236,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 
 	ff_handle=_findfirst((char*)pattern,&ff);
 	while(ff_handle!=-1) {
-		if((flags&GLOB_PERIOD || ff.name[0]!='.') &&
+		if((flags&GLOB_PERIOD || (ff.name[0]!='.' && !(ff.attrib&_A_HIDDEN))) &&
 			(!(flags&GLOB_ONLYDIR) || ff.attrib&_A_SUBDIR)) {
 			if((new_pathv=(char**)realloc(glob->gl_pathv
 				,(glob->gl_pathc+1)*sizeof(char*)))==NULL) {
@@ -299,6 +299,36 @@ void DLLCALL globfree(glob_t* glob)
 }
 
 #endif /* !defined(__unix__) */
+
+long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only)
+{
+	char		match[MAX_PATH+1];
+	glob_t		g;
+	unsigned	gi;
+	long		count=0;
+
+	if(!isdir(path))
+		return -1;
+
+	SAFECOPY(match,path);
+	backslash(match);
+	strcat(match,ALLFILES);
+	glob(match,GLOB_MARK,NULL,&g);
+	if(include_subdirs && !subdir_only)
+		count=g.gl_pathc;
+	else
+		for(gi=0;gi<g.gl_pathc;gi++) {
+			if(*lastchar(g.gl_pathv[gi])=='/') {
+				if(!include_subdirs)
+					continue;
+			} else
+				if(subdir_only)
+					continue;
+			count++;
+		}
+	globfree(&g);
+	return(count);
+}
 
 /****************************************************************************/
 /* POSIX directory operations using Microsoft _findfirst/next API.			*/
@@ -390,7 +420,7 @@ int DLLCALL setfdate(const char* filename, time_t t)
 /* Returns the length of the file in 'filename'                             */
 /* or -1 if the file doesn't exist											*/
 /****************************************************************************/
-filelen_t DLLCALL flength(const char *filename)
+off_t DLLCALL flength(const char *filename)
 {
 #if defined(__BORLANDC__) && !defined(__unix__)	/* stat() doesn't work right */
 
@@ -536,6 +566,9 @@ BOOL DLLCALL fexistcase(char *path)
 	int  i;
 	glob_t	glb;
 	
+	if(path[0]==0)		/* work around glibc bug 574274 */
+		return FALSE;
+
 	if(!strchr(path,'*') && !strchr(path,'?') && fnameexist(path))
 		return(TRUE);
 
