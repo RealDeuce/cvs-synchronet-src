@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.57 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.56 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -208,7 +208,7 @@ void sbbs_t::update_qwkroute(char *via)
 			for(i=0;i<total_nodes;i++)
 				if(qwk_time[i]>t)
 					fprintf(stream,"%s %s:%s\r\n"
-						,unixtodstr(&cfg,(time32_t)qwk_time[i],str),qwk_node[i],qwk_path[i]);
+						,unixtodstr(&cfg,qwk_time[i],str),qwk_node[i],qwk_path[i]);
 			fclose(stream); 
 		}
 		else
@@ -806,12 +806,12 @@ void sbbs_t::qwk_sec()
 
 void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 {
-	long		l;
+	long	l;
 	uint32_t	last;
 
 	if(buf[2]=='/' && buf[5]=='/') {    /* date specified */
-		time_t t=dstrtounix(&cfg,buf);
-		subscan[subnum].ptr=getmsgnum(subnum,t);
+		l=dstrtounix(&cfg,buf);
+		subscan[subnum].ptr=getmsgnum(subnum,l);
 		return; 
 	}
 	l=atol(buf);
