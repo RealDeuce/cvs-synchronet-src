@@ -2,13 +2,13 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.60 2012/12/19 12:37:19 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.56 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -151,6 +151,7 @@ int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 		if(!fgets(str,256,stream))
 			break;
 		if(!strnicmp(str+9,node,strlen(node))) {
+			fclose(stream);
 			truncsp(str);
 			sprintf(fulladdr,"%s/%s",str+9+strlen(node),inaddr);
 			break; 
@@ -187,6 +188,10 @@ int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 /* Via is in format: NODE/NODE/... */
 void sbbs_t::update_qwkroute(char *via)
 {
+	static uint total_nodes;
+	static char **qwk_node;
+	static char **qwk_path;
+	static time_t *qwk_time;
 	char str[256],*p,*tp,node[9];
 	uint	i;
 	int		file;
@@ -194,26 +199,41 @@ void sbbs_t::update_qwkroute(char *via)
 	FILE *	stream;
 
 	if(via==NULL) {
-		if(!total_qwknodes)
+		if(!total_nodes)
 			return;
 		sprintf(str,"%sqnet/route.dat",cfg.data_dir);
 		if((stream=fnopen(&file,str,O_WRONLY|O_CREAT|O_TRUNC))!=NULL) {
 			t=time(NULL);
 			t-=(90L*24L*60L*60L);
-			for(i=0;i<total_qwknodes;i++)
-				if(qwknode[i].time>t)
+			for(i=0;i<total_nodes;i++)
+				if(qwk_time[i]>t)
 					fprintf(stream,"%s %s:%s\r\n"
-						,unixtodstr(&cfg,(time32_t)qwknode[i].time,str),qwknode[i].id,qwknode[i].path);
+						,unixtodstr(&cfg,qwk_time[i],str),qwk_node[i],qwk_path[i]);
 			fclose(stream); 
 		}
 		else
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
-		FREE_AND_NULL(qwknode);
-		total_qwknodes=0;
+		for(i=0;i<total_nodes;i++) {
+			free(qwk_node[i]);
+			free(qwk_path[i]); 
+		}
+		if(qwk_node) {
+			free(qwk_node);
+			qwk_node=NULL; 
+		}
+		if(qwk_path) {
+			free(qwk_path);
+			qwk_path=NULL; 
+		}
+		if(qwk_time) {
+			free(qwk_time);
+			qwk_time=NULL; 
+		}
+		total_nodes=0;
 		return; 
 	}
 
-	if(!total_qwknodes) {
+	if(!total_nodes) {
 		sprintf(str,"%sqnet/route.dat",cfg.data_dir);
 		if((stream=fnopen(&file,str,O_RDONLY))!=NULL) {
 			while(!feof(stream)) {
@@ -227,23 +247,39 @@ void sbbs_t::update_qwkroute(char *via)
 				sprintf(node,"%.8s",str+9);
 				tp=strchr(node,' '); 		/* change "node bbs:" to "node:" */
 				if(tp) *tp=0;
-				for(i=0;i<total_qwknodes;i++)
-					if(!stricmp(qwknode[i].id,node))
+				for(i=0;i<total_nodes;i++)
+					if(!stricmp(qwk_node[i],node))
 						break;
-				if(i<total_qwknodes && qwknode[i].time>t)
+				if(i<total_nodes && qwk_time[i]>t)
 					continue;
-				if(i==total_qwknodes) {
-					if((qwknode=(struct qwknode*)realloc(qwknode,sizeof(struct qwknode)*(i+1)))==NULL) {
-						errormsg(WHERE,ERR_ALLOC,str,sizeof(struct qwknode)*(i+1));
+				if(i==total_nodes) {
+					if((qwk_node=(char **)realloc(qwk_node,sizeof(char *)*(i+1)))==NULL) {
+						errormsg(WHERE,ERR_ALLOC,str,9*(i+1));
 						break; 
 					}
-					total_qwknodes++; 
+					if((qwk_path=(char **)realloc(qwk_path,sizeof(char *)*(i+1)))==NULL) {
+						errormsg(WHERE,ERR_ALLOC,str,sizeof(char*)*(i+1));
+						break; 
+					}
+					if((qwk_time=(time_t *)realloc(qwk_time,sizeof(time_t)*(i+1)))==NULL) {
+						errormsg(WHERE,ERR_ALLOC,str,sizeof(time_t)*(i+1));
+						break; 
+					}
+					if((qwk_node[i]=(char *)malloc(9))==NULL) {
+						errormsg(WHERE,ERR_ALLOC,str,9);
+						break; 
+					}
+					if((qwk_path[i]=(char *)malloc(MAX_PATH+1))==NULL) {
+						errormsg(WHERE,ERR_ALLOC,str,MAX_PATH+1);
+						break; 
+					}
+					total_nodes++; 
 				}
-				strcpy(qwknode[i].id,node);
+				strcpy(qwk_node[i],node);
 				p++;
 				while(*p && *p<=' ') p++;
-				sprintf(qwknode[i].path,"%.127s",p);
-				qwknode[i].time=t; 
+				sprintf(qwk_path[i],"%.127s",p);
+				qwk_time[i]=t; 
 			}
 			fclose(stream); 
 		}
@@ -261,22 +297,39 @@ void sbbs_t::update_qwkroute(char *via)
 		tp=strchr(node,' '); 		/* no spaces allowed */
 		if(tp) *tp=0;
 		truncsp(node);
-		for(i=0;i<total_qwknodes;i++)
-			if(!stricmp(qwknode[i].id,node))
+		for(i=0;i<total_nodes;i++)
+			if(!stricmp(qwk_node[i],node))
 				break;
-		if(i==total_qwknodes) {		/* Not in list */
-			if((qwknode=(struct qwknode*)realloc(qwknode,sizeof(struct qwknode)*(total_qwknodes+1)))==NULL) {
-				errormsg(WHERE,ERR_ALLOC,str,sizeof(struct qwknode)*(total_qwknodes+1));
+		if(i==total_nodes) {		/* Not in list */
+			if((qwk_node=(char **)realloc(qwk_node,sizeof(char *)*(total_nodes+1)))==NULL) {
+				errormsg(WHERE,ERR_ALLOC,str,9*(total_nodes+1));
 				break; 
 			}
-			total_qwknodes++; 
+			if((qwk_path=(char **)realloc(qwk_path,sizeof(char *)*(total_nodes+1)))==NULL) {
+				errormsg(WHERE,ERR_ALLOC,str,sizeof(char *)*(total_nodes+1));
+				break; 
+			}
+			if((qwk_time=(time_t *)realloc(qwk_time,sizeof(time_t)*(total_nodes+1)))
+				==NULL) {
+				errormsg(WHERE,ERR_ALLOC,str,sizeof(time_t)*(total_nodes+1));
+				break; 
+			}
+			if((qwk_node[total_nodes]=(char *)malloc(9))==NULL) {
+				errormsg(WHERE,ERR_ALLOC,str,9);
+				break; 
+			}
+			if((qwk_path[total_nodes]=(char *)malloc(MAX_PATH+1))==NULL) {
+				errormsg(WHERE,ERR_ALLOC,str,MAX_PATH+1);
+				break; 
+			}
+			total_nodes++; 
 		}
-		sprintf(qwknode[i].id,"%.8s",node);
-		sprintf(qwknode[i].path,"%.*s",(int)((p-1)-via),via);
-		qwknode[i].time=time(NULL);
+		sprintf(qwk_node[i],"%.8s",node);
+		sprintf(qwk_path[i],"%.*s",(int)((p-1)-via),via);
+		qwk_time[i]=time(NULL);
 		p=strchr(p,'/'); 
 	}
-}
+	}
 
 /****************************************************************************/
 /* Successful download of QWK packet										*/
@@ -285,8 +338,8 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 {
 	char	str[MAX_PATH+1];
 	int 	i;
-	long	deleted=0;
-	uint32_t	u,msgs;
+	long	l,deleted=0;
+	int32_t	msgs;
 	mail_t	*mail;
 	smbmsg_t msg;
 
@@ -345,12 +398,12 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 		}
 
 		/* Mark as READ and DELETE */
-		for(u=0;u<msgs;u++) {
-			if(mail[u].number>qwkmail_last)
+		for(l=0;l<msgs;l++) {
+			if(mail[l].number>qwkmail_last)
 				continue;
 			memset(&msg,0,sizeof(msg));
 			/* !IMPORTANT: search by number (do not initialize msg.idx.offset) */
-			if(!loadmsg(&msg,mail[u].number))
+			if(!loadmsg(&msg,mail[l].number))
 				continue;
 			if(!(msg.hdr.attr&MSG_READ)) {
 				if(thisnode.status==NODE_INUSE)
@@ -753,12 +806,12 @@ void sbbs_t::qwk_sec()
 
 void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 {
-	long		l;
+	long	l;
 	uint32_t	last;
 
 	if(buf[2]=='/' && buf[5]=='/') {    /* date specified */
-		time_t t=dstrtounix(&cfg,buf);
-		subscan[subnum].ptr=getmsgnum(subnum,t);
+		l=dstrtounix(&cfg,buf);
+		subscan[subnum].ptr=getmsgnum(subnum,l);
 		return; 
 	}
 	l=atol(buf);
