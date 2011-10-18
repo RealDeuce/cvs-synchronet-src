@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.17 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: js_client.c,v 1.22 2011/10/16 12:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -63,13 +63,14 @@ enum {
 	};
 #endif
 
-static JSBool js_client_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_client_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
 	return(JS_FALSE);
 }
 
-static JSBool js_client_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_client_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
+	jsval idval;
 	const char*	p=NULL;
 	ulong		val=0;
     jsint       tiny;
@@ -79,7 +80,8 @@ static JSBool js_client_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	if((client=(client_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case CLIENT_PROP_ADDR: 
@@ -127,19 +129,23 @@ static jsSyncPropertySpec js_client_properties[] = {
 	{0}
 };
 
-static JSBool js_client_resolve(JSContext *cx, JSObject *obj, jsval id)
+static JSBool js_client_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
 
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if(id != JSID_VOID && id != JSID_EMPTY) {
+		jsval idval;
+		
+		JS_IdToValue(cx, id, &idval);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+	}
 
 	return(js_SyncResolve(cx, obj, name, js_client_properties, NULL, NULL, 0));
 }
 
 static JSBool js_client_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_client_resolve(cx, obj, JSVAL_NULL));
+	return(js_client_resolve(cx, obj, JSID_VOID));
 }
 
 static JSClass js_client_class = {
