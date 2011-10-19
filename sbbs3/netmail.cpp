@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.42 2011/08/30 22:51:21 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.43 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,7 +234,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	msg.hdr.version=smb_ver();
 	if(mode&WM_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
-	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
+	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	msg.hdr.offset=offset;
@@ -445,7 +445,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	msg.hdr.version=smb_ver();
 	if(mode&WM_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
-	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
+	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	msg.hdr.offset=offset;

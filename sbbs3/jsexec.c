@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.146 2011/10/10 02:04:59 deuce Exp $ */
+/* $Id: jsexec.c,v 1.153 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,7 +288,6 @@ void bail(int code)
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
@@ -304,7 +303,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, logstr);
+		JSSTRING_TO_STRING(cx, str, logstr, NULL);
 		if(logstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -323,7 +322,6 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_read(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*	buf;
 	int		rd;
@@ -350,7 +348,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_readln(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*	buf;
 	char*	p;
@@ -378,7 +375,6 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
@@ -390,7 +386,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     for (i = 0; i < argc; i++) {
 		if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		    return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, line);
+		JSSTRING_TO_STRING(cx, str, line, NULL);
 		if(line==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -408,8 +404,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -426,7 +420,6 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_printf(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char* p;
 	jsrefcount	rc;
@@ -452,15 +445,13 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_alert(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-    JSString *	str;
 	jsrefcount	rc;
 	char		*line;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	JSVALUE_TO_STRING(cx, argv[0], line);
+	JSVALUE_TO_STRING(cx, argv[0], line, NULL);
 	if(line==NULL)
 	    return(JS_FALSE);
 
@@ -476,7 +467,6 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
 	char	 *	cstr;
@@ -489,7 +479,7 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, str, cstr);
+	JSSTRING_TO_STRING(cx, str, cstr, NULL);
 	printf("%s (Y/n)? ", cstr);
 	rc=JS_SUSPENDREQUEST(cx);
 	fgets(instr,sizeof(instr),stdin);
@@ -504,7 +494,6 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_deny(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
 	char	 *	cstr;
@@ -517,7 +506,7 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, str, cstr);
+	JSSTRING_TO_STRING(cx, str, cstr, NULL);
 	printf("%s (N/y)? ", cstr);
 	rc=JS_SUSPENDREQUEST(cx);
 	fgets(instr,sizeof(instr),stdin);
@@ -532,19 +521,17 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		instr[81];
-    JSString *	prompt;
     JSString *	str;
 	jsrefcount	rc;
 	char		*prstr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(!JSVAL_IS_VOID(argv[0])) {
-		JSVALUE_TO_STRING(cx, argv[0], prstr);
-		if(prompt==NULL)
+	if(argc>0 && !JSVAL_IS_VOID(argv[0])) {
+		JSVALUE_TO_STRING(cx, argv[0], prstr, NULL);
+		if(prstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(confp,"%s: ",prstr);
@@ -552,8 +539,8 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], prstr);
-		if(str==NULL)
+		JSVALUE_TO_STRING(cx, argv[1], prstr, NULL);
+		if(prstr==NULL)
 		    return(JS_FALSE);
 		SAFECOPY(instr,prstr);
 	} else
@@ -576,12 +563,11 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
 
-	JSVALUE_TO_STRING(cx, argv[0], p);
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
@@ -596,17 +582,17 @@ js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p;
+	char*		p=NULL;
 
-	JSVALUE_TO_STRING(cx, argv[0], p);
+	if(argc)
+		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
 	}
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putenv(p)==0));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putenv(strdup(p))==0));
 	return(JS_TRUE);
 }
 
@@ -922,7 +908,7 @@ long js_exec(const char *fname, char** args)
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
 		char	*p;
 
-		JSVALUE_TO_STRING(js_cx, rval, p);
+		JSVALUE_TO_STRING(js_cx, rval, p, NULL);
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
@@ -934,8 +920,6 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
 			,path
 			,diff);
-
-	JS_DestroyScript(js_cx, js_script);
 
 	JS_GC(js_cx);
 
@@ -1020,7 +1004,7 @@ int main(int argc, char **argv, char** environ)
 	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	branch.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.146 $", "%*s %s", revision);
+	sscanf("$Revision: 1.153 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));

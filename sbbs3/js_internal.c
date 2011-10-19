@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.64 2011/10/10 02:04:59 deuce Exp $ */
+/* $Id: js_internal.c,v 1.68 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,7 +254,6 @@ static JSClass eval_class = {
 static JSBool
 js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 {
-	JSObject *parent_obj=JS_THIS_OBJECT(parent_cx, arglist);
 	jsval *argv=JS_ARGV(parent_cx, arglist);
 	char*			buf;
 	size_t			buflen;
@@ -271,7 +270,7 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 
 	if((str=JS_ValueToString(parent_cx, argv[0]))==NULL)
 		return(JS_FALSE);
-	JSSTRING_TO_STRING(cx, str, buf);
+	JSSTRING_TO_STRING(parent_cx, str, buf, NULL);
 	if(buf==NULL)
 		return(JS_FALSE);
 	buflen=JS_GetStringLength(str);
@@ -312,7 +311,6 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 		jsval	rval;
 
 		JS_ExecuteScript(cx, obj, script, &rval);
-		JS_DestroyScript(cx, script);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
 
@@ -350,11 +348,10 @@ js_gc(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_report_error(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char	*p;
 
-	JSVALUE_TO_STRING(cx, argv[0], p);
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	JS_ReportError(cx,"%s",p);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -381,7 +378,7 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 	if(branch->exit_func==NULL)
 		branch->exit_func=strListInit();
 
-	JSVALUE_TO_STRING(cx, argv[0], p);
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	strListPush(&branch->exit_func,p);
 
 	return(JS_TRUE);
@@ -390,7 +387,6 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_get_parent(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject* child=NULL;
 	JSObject* parent;
@@ -439,7 +435,7 @@ static JSBool js_internal_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0));
@@ -475,7 +471,6 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	while((p=strListPop(&branch->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
 			JS_ExecuteScript(cx, obj, script, &rval);
-			JS_DestroyScript(cx, script);
 		}
 		free(p);
 	}
