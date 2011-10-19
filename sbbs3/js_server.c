@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.11 2011/10/26 22:44:20 deuce Exp $ */
+/* $Id: js_server.c,v 1.10 2011/10/11 05:05:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,10 +104,8 @@ static JSBool js_server_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 
 	switch(tiny) {
 		case SERVER_PROP_OPTIONS:
-			if(p->options!=NULL) {
-				if(!JS_ValueToInt32(cx, *vp, (int32*)p->options))
-					return JS_FALSE;
-			}
+			if(p->options!=NULL)
+				JS_ValueToInt32(cx, *vp, (int32*)p->options);
 			break;
 	}
 
