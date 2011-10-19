@@ -489,7 +489,7 @@ ODAPIDEF void ODCALL ODLogEnable(void);
 ODAPIDEF void ODCALL ODMPSEnable(void);
 
 /* Optional OpenDoors component settings. */
-typedef void ODFAR OD_COMPONENT;
+typedef void(ODFAR OD_COMPONENT)(void);
 #define INCLUDE_CONFIG_FILE   (OD_COMPONENT *)ODConfigInit
 #define NO_CONFIG_FILE        NULL
 #define INCLUDE_LOGFILE       (OD_COMPONENT *)ODLogEnable
@@ -504,7 +504,7 @@ ODAPIDEF void ODCALL pdef_ra(BYTE btOperation);
 ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation);
 
 /* Personality proc type. */
-typedef void OD_PERSONALITY_PROC;
+typedef void(ODFAR OD_PERSONALITY_PROC)(BYTE);
 
 /* Personality identifiers. */
 #define PER_OPENDOORS         (void *)pdef_opendoors
@@ -996,7 +996,7 @@ ODAPIDEF void ODCALL   od_parse_cmd_line(INT nArgCount,
 #endif /* !ODPLAT_WIN32 */
 ODAPIDEF INT ODCALL    od_popup_menu(char *pszTitle, char *pszText,
                           INT nLeft, INT nTop, INT nLevel, WORD uFlags);
-ODAPIDEF void ODVCALL  od_printf(char *pszFormat, ...);
+ODAPIDEF void ODVCALL  od_printf(const char *pszFormat, ...);
 ODAPIDEF void ODCALL   od_putch(char chToDisplay);
 ODAPIDEF BOOL ODCALL   od_puttext(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, void *pBlock);
