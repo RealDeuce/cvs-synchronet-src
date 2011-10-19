@@ -133,7 +133,7 @@ char *pchColorEndPos;
 BYTE btCurrentStatusLine = STATUS_NONE;
 OD_PERSONALITY_CALLBACK *pfCurrentPersonality = NULL;
 char szDesiredPersonality[33] = "";
-extern SET_PERSONALITY_FUNC *pfSetPersonality = NULL;
+SET_PERSONALITY_FUNC *pfSetPersonality = NULL;
 
 /* Commonly used character sequences. */
 char abtBlackBlock[2] = {' ', 0x07};
@@ -1062,6 +1062,11 @@ void ODStringToName(char *pszToConvert)
    {
       pszToConvert[strlen(pszToConvert) - 1] = '\0';
    }
+   /* Trim any CR character that may be at the end of the string. */
+   if(pszToConvert[strlen(pszToConvert) - 1] == '\r')
+   {
+      pszToConvert[strlen(pszToConvert) - 1] = '\0';
+   }
 
    /* Change the first character to lower case. */
    *pszToConvert = toupper(*pszToConvert);
@@ -1363,7 +1368,7 @@ ODAPIDEF void ODCALL od_set_dtr(BOOL bHigh)
  *
  *     Return: void
  */
-ODAPIDEF char ODCALL od_get_answer(char *pszOptions)
+ODAPIDEF char ODCALL od_get_answer(const char *pszOptions)
 {
    char *pchPossibleOption;
    char chPressed;

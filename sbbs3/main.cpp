@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.559 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: main.cpp,v 1.568 2011/10/17 10:41:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -639,20 +639,6 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 	return(JS_TRUE);
 }
 
-char*
-DLLCALL js_ValueToStringBytes(JSContext* cx, jsval val, size_t* len)
-{
-	JSString* str;
-	
-	if((str=JS_ValueToString(cx, val))==NULL)
-		return(NULL);
-
-	if(len!=NULL)
-		*len = JS_GetStringLength(str);
-
-	return(JS_GetStringBytes(str));
-}
-
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -663,6 +649,9 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str=NULL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	char		*line;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -671,16 +660,18 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ValueToInt32(cx,argv[i++],&level);
 
     for(; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-			JS_RESUMEREQUEST(cx, rc);
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+			return(JS_FALSE);
+		JSSTRING_TO_STRING(cx, str, line, NULL);
+		if(line==NULL)
 		    return(JS_FALSE);
-		}
 		rc=JS_SUSPENDREQUEST(cx);
 		if(sbbs->online==ON_LOCAL) {
-			if(startup!=NULL && startup->event_lputs!=NULL && level <= startup->log_level)
-				startup->event_lputs(startup->event_cbdata,level,JS_GetStringBytes(str));
+			if(startup!=NULL && startup->event_lputs!=NULL && level <= startup->log_level) {
+				startup->event_lputs(startup->event_cbdata,level,line);
+			}
 		} else
-			lprintf(level,"Node %d %s", sbbs->cfg.node_num, JS_GetStringBytes(str));
+			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -700,6 +691,8 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	int32		len=128;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -731,6 +724,8 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
@@ -760,18 +755,24 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str=NULL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	char		*cstr;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+			return(JS_FALSE);
+		JSSTRING_TO_STRING(cx, str, cstr, NULL);
+		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		if(sbbs->online==ON_LOCAL)
-			eprintf(LOG_INFO,"%s",JS_GetStringBytes(str));
+			eprintf(LOG_INFO,"%s",cstr);
 		else
-			sbbs->bputs(JS_GetStringBytes(str));
+			sbbs->bputs(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -793,11 +794,14 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
-		if((str=js_ValueToStringBytes(cx, argv[i], &len))==NULL)
+		JSVALUE_TO_STRING(cx, argv[i], str, &len);
+		if(str==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->putcom(str, len);
@@ -814,6 +818,8 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -835,6 +841,8 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 	char*		p;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -863,22 +871,27 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-    JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	char		*cstr;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if((str=JS_ValueToString(cx, argv[0]))==NULL)
+	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
+	if(cstr==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->attr(sbbs->cfg.color[clr_err]);
-	sbbs->bputs(JS_GetStringBytes(str));
+	sbbs->bputs(cstr);
 	sbbs->attr(LIGHTGRAY);
 	sbbs->bputs(crlf);
 	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, argv[0]);
 
     return(JS_TRUE);
 }
@@ -888,18 +901,21 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-    JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	char		*cstr;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if((str=JS_ValueToString(cx, argv[0]))==NULL)
+	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
+	if(cstr==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(JS_GetStringBytes(str))));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(cstr)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -909,18 +925,21 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-    JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	char		*cstr;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if((str=JS_ValueToString(cx, argv[0]))==NULL)
+	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
+	if(cstr==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(JS_GetStringBytes(str))));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(cstr)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -932,26 +951,31 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		instr[81];
-    JSString *	prompt;
     JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	char		*cstr;
+    char 		*prompt;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if((prompt=JS_ValueToString(cx, argv[0]))==NULL)
+	JSVALUE_TO_STRING(cx, argv[0], prompt, NULL);
+	if(prompt==NULL)
 	    return(JS_FALSE);
 
 	if(argc>1) {
-		if((str=JS_ValueToString(cx, argv[1]))==NULL)
+		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
+		if(cstr==NULL)
 		    return(JS_FALSE);
-		SAFECOPY(instr,JS_GetStringBytes(str));
+		SAFECOPY(instr,cstr);
 	} else
 		instr[0]=0;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->bprintf("\1n\1y\1h%s\1w: ",JS_GetStringBytes(prompt));
+	sbbs->bprintf("\1n\1y\1h%s\1w: ",prompt);
 
 	if(!sbbs->getstr(instr,sizeof(instr)-1,K_EDIT)) {
 		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
@@ -4402,7 +4426,6 @@ void DLLCALL bbs_thread(void* arg)
 
 	uptime=0;
 	served=0;
-	protected_uint32_init(&node_threads_running,0);
 
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
@@ -4411,6 +4434,8 @@ void DLLCALL bbs_thread(void* arg)
 	SetThreadName("BBS");
 
 	do {
+
+	protected_uint32_init(&node_threads_running,0);
 
 	thread_up(FALSE /* setuid */);
 

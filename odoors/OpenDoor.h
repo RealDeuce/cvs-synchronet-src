@@ -489,7 +489,7 @@ ODAPIDEF void ODCALL ODLogEnable(void);
 ODAPIDEF void ODCALL ODMPSEnable(void);
 
 /* Optional OpenDoors component settings. */
-typedef void ODFAR OD_COMPONENT;
+typedef void(ODFAR OD_COMPONENT)(void);
 #define INCLUDE_CONFIG_FILE   (OD_COMPONENT *)ODConfigInit
 #define NO_CONFIG_FILE        NULL
 #define INCLUDE_LOGFILE       (OD_COMPONENT *)ODLogEnable
@@ -504,7 +504,7 @@ ODAPIDEF void ODCALL pdef_ra(BYTE btOperation);
 ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation);
 
 /* Personality proc type. */
-typedef void OD_PERSONALITY_PROC;
+typedef void(ODFAR OD_PERSONALITY_PROC)(BYTE);
 
 /* Personality identifiers. */
 #define PER_OPENDOORS         (void *)pdef_opendoors
@@ -969,7 +969,7 @@ ODAPIDEF WORD ODCALL   od_edit_str(char *pszInput, char *pszFormat, INT nRow,
                           BYTE btHighlightColour, char chBlank,
                           WORD nFlags);
 ODAPIDEF void ODCALL   od_exit(INT nErrorLevel, BOOL bTermCall);
-ODAPIDEF char ODCALL   od_get_answer(char *pszOptions);
+ODAPIDEF char ODCALL   od_get_answer(const char *pszOptions);
 ODAPIDEF void ODCALL   od_get_cursor(INT *pnRow, INT *pnColumn);
 ODAPIDEF BOOL ODCALL   od_get_input(tODInputEvent *pInputEvent,
                           tODMilliSec TimeToWait, WORD wFlags);
@@ -996,7 +996,7 @@ ODAPIDEF void ODCALL   od_parse_cmd_line(INT nArgCount,
 #endif /* !ODPLAT_WIN32 */
 ODAPIDEF INT ODCALL    od_popup_menu(char *pszTitle, char *pszText,
                           INT nLeft, INT nTop, INT nLevel, WORD uFlags);
-ODAPIDEF void ODVCALL  od_printf(char *pszFormat, ...);
+ODAPIDEF void ODVCALL  od_printf(const char *pszFormat, ...);
 ODAPIDEF void ODCALL   od_putch(char chToDisplay);
 ODAPIDEF BOOL ODCALL   od_puttext(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, void *pBlock);
@@ -1005,7 +1005,7 @@ ODAPIDEF BOOL ODCALL   od_restore_screen(void *pBuffer);
 ODAPIDEF BOOL ODCALL   od_save_screen(void *pBuffer);
 ODAPIDEF BOOL ODCALL   od_scroll(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, INT nDistance, WORD nFlags);
-ODAPIDEF BOOL ODCALL   od_send_file(char *pszFileName);
+ODAPIDEF BOOL ODCALL   od_send_file(const char *pszFileName);
 ODAPIDEF BOOL ODCALL   od_send_file_section(char *pszFileName, char *pszSectionName);
 ODAPIDEF void ODCALL   od_set_attrib(INT nColour);
 ODAPIDEF void ODCALL   od_set_color(INT nForeground, INT nBackground);
