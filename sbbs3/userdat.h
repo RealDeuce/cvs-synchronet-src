@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.47 2011/10/24 21:46:45 deuce Exp $ */
+/* $Id: userdat.h,v 1.45 2011/09/23 06:53:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,20 +50,15 @@
 #endif
 
 #ifdef _WIN32
-	#ifdef __MINGW32__
-		#define DLLEXPORT
-		#define DLLCALL
+	#ifdef SBBS_EXPORTS
+		#define DLLEXPORT __declspec(dllexport)
 	#else
-		#ifdef SBBS_EXPORTS
-			#define DLLEXPORT __declspec(dllexport)
-		#else
-			#define DLLEXPORT __declspec(dllimport)
-		#endif
-		#ifdef __BORLANDC__
-			#define DLLCALL __stdcall
-		#else
-			#define DLLCALL
-		#endif
+		#define DLLEXPORT __declspec(dllimport)
+	#endif
+	#ifdef __BORLANDC__
+		#define DLLCALL __stdcall
+	#else
+		#define DLLCALL
 	#endif
 #else
 	#define DLLEXPORT
@@ -137,7 +132,7 @@ typedef struct {
 	IN_ADDR		addr;	/* host with consecutive failed login attmepts */
 	ulong		count;	/* number of consecutive failed login attempts */
 	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
-	time32_t	time;	/* time of last attempt */
+	time_t		time;	/* time of last attempt */
 	char		prot[32];	/* protocol used in last attempt */
 	char		user[128];
 	char		pass[128];
