@@ -2,13 +2,13 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.64 2014/01/02 09:42:38 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.61 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -56,7 +56,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 #endif
 
 	if(cfg->size!=sizeof(scfg_t)) {
-		sprintf(error,"cfg->size (%"PRIu32") != sizeof(scfg_t) (%d)"
+		sprintf(error,"cfg->size (%ld) != sizeof(scfg_t) (%d)"
 			,cfg->size,sizeof(scfg_t));
 		return(FALSE);
 	}
@@ -111,7 +111,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 		fclose(instream);
 
 		if(i<TOTAL_TEXT) {
-			sprintf(error,"line %d in %s: Less than TOTAL_TEXT (%u) strings defined in %s."
+			sprintf(error,"line %lu in %s: Less than TOTAL_TEXT (%u) strings defined in %s."
 				,i,fname
 				,TOTAL_TEXT,fname);
 			return(FALSE); 
@@ -207,19 +207,19 @@ void prep_cfg(scfg_t* cfg)
 			sprintf(cfg->dir[i]->data_dir,"%sdirs",cfg->data_dir);
 		prep_dir(cfg->ctrl_dir, cfg->dir[i]->data_dir, sizeof(cfg->dir[i]->data_dir));
 
-		/* A directory's internal code is the combination of the lib's code_prefix & the dir's code_suffix */
-		SAFEPRINTF2(cfg->dir[i]->code,"%s%s"
-			,cfg->lib[cfg->dir[i]->lib]->code_prefix
-			,cfg->dir[i]->code_suffix);
-
-		strlwr(cfg->dir[i]->code); 		/* data filenames are all lowercase */
-
 		if(!cfg->dir[i]->path[0])		/* no file storage path specified */
             sprintf(cfg->dir[i]->path,"%sdirs/%s/",cfg->data_dir,cfg->dir[i]->code);
 		else if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
 			prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 		else
 			prep_dir(cfg->ctrl_dir, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
+
+		/* A directory's internal code is the combination of the lib's code_prefix & the dir's code_suffix */
+		sprintf(cfg->dir[i]->code,"%s%s"
+			,cfg->lib[cfg->dir[i]->lib]->code_prefix
+			,cfg->dir[i]->code_suffix);
+
+		strlwr(cfg->dir[i]->code); 		/* data filenames are all lowercase */
 
 		prep_path(cfg->dir[i]->upload_sem);
 	}
@@ -357,7 +357,7 @@ static void free_attr_cfg(scfg_t* cfg)
 	cfg->total_colors=0;
 }
 
-char* DLLCALL prep_dir(const char* base, char* path, size_t buflen)
+char* DLLCALL prep_dir(char* base, char* path, size_t buflen)
 {
 #ifdef __unix__
 	char	*p;
