@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.61 2011/05/26 06:04:50 deuce Exp $ */
+/* $Id: conn.c,v 1.63 2011/09/10 22:47:55 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -10,6 +10,24 @@
 #include "genwrap.h"
 #include "sockwrap.h"
 #include "threadwrap.h"
+
+#ifdef _WIN32
+ #undef socklen_t
+ // Borland hack (broken header)
+ #ifdef __BORLANDC__
+  #define _MSC_VER 1
+ #endif
+ #include "ws2tcpip.h"
+ #ifdef __BORLANDC__
+  #undef _MSC_VER
+ #endif
+ #ifndef AI_ADDRCONFIG
+  #define AI_ADDRCONFIG 0x0400	// Vista or later.
+ #endif
+ #ifndef AI_NUMERICSERV
+  #define AI_NUMERICSERV 0		// No supported by Windows
+ #endif
+#endif
 
 #include "bbslist.h"
 #include "uifcinit.h"
@@ -429,7 +447,7 @@ int conn_socket_connect(struct bbslist *bbs)
 				case EINPROGRESS:
 				case EINTR:
 				case EAGAIN:
-#if (!defined(EAGAIN) && defined(EWOULDBLOCK)) || (EAGAIN!=EWOULDBLOCK)
+#if (EAGAIN!=EWOULDBLOCK)
 				case EWOULDBLOCK:
 #endif
 					for(;;) {
