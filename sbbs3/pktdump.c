@@ -1,11 +1,9 @@
 /* pktdump.c */
 
-/* $Id: pktdump.c,v 1.8 2013/10/05 08:03:23 rswindell Exp $ */
+/* $Id: pktdump.c,v 1.5 2010/01/27 08:46:16 rswindell Exp $ */
 
 #include "fidodefs.h"
-#include "xpendian.h"	/* swap */
-#include "dirwrap.h"	/* _PATH_DEVNULL */
-#include <stdio.h>
+#include "sbbsdefs.h"	/* faddr_t */
 
 FILE* nulfp;
 FILE* bodyfp;
@@ -13,7 +11,7 @@ FILE* bodyfp;
 /****************************************************************************/
 /* Returns an ASCII string for FidoNet address 'addr'                       */
 /****************************************************************************/
-char *faddrtoa(faddr4d_t* addr, char* outstr)
+char *faddrtoa(faddr_t* addr, char* outstr)
 {
 	static char str[64];
     char point[25];
@@ -49,7 +47,7 @@ char* freadstr(FILE* fp, char* str, size_t maxlen)
 
 int pktdump(FILE* fp, const char* fname)
 {
-	int			ch,lastch=0;
+	int			ch,lastch;
 	char		buf[128];
 	char		origdomn[16]="";
 	char		destdomn[16]="";
@@ -57,12 +55,12 @@ int pktdump(FILE* fp, const char* fname)
 	char		from[FIDO_NAME_LEN];
 	char		subj[FIDO_SUBJ_LEN];
 	long		offset;
-	faddr4d_t	orig;
-	faddr4d_t	dest;
+	faddr_t		orig;
+	faddr_t		dest;
 	fpkthdr_t	pkthdr;
 	fpkdmsg_t	pkdmsg;
 
-	if(fread(&pkthdr,sizeof(pkthdr),1,fp) != 1) {
+	if(fread(&pkthdr,sizeof(BYTE),sizeof(pkthdr),fp)!=sizeof(pkthdr)) {
 		fprintf(stderr,"%s !Error reading pkthdr (%u bytes)\n"
 			,fname,sizeof(pkthdr));
 		return(-1);
@@ -76,52 +74,39 @@ int pktdump(FILE* fp, const char* fname)
 //		return(-2);
 	}
 
-	printf("%s Packet Type ", fname);
-
-	if(pkthdr.type2.pkttype != 2) {
-		fprintf(stderr, "%u (unsupported packet type)\n", pkthdr.type2.pkttype);
-		return -3;
-	}
-
-	orig.zone=pkthdr.type2.origzone;
-	orig.net=pkthdr.type2.orignet;
-	orig.node=pkthdr.type2.orignode;
+	orig.zone=pkthdr.origzone;
+	orig.net=pkthdr.orignet;
+	orig.node=pkthdr.orignode;
 	orig.point=0;
 
-	dest.zone=pkthdr.type2.destzone;
-	dest.net=pkthdr.type2.destnet;
-	dest.node=pkthdr.type2.destnode;
+	dest.zone=pkthdr.destzone;
+	dest.net=pkthdr.destnet;
+	dest.node=pkthdr.destnode;
 	dest.point=0;				/* No point info in the 2.0 hdr! */
 
-	if(pkthdr.type2plus.cword==BYTE_SWAP_16(pkthdr.type2plus.cwcopy)  /* 2+ Packet Header */
-		&& pkthdr.type2plus.cword&1) {
-		fprintf(stdout,"2+ (prod: %02X%02X, rev: %u.%u)"
-			,pkthdr.type2plus.prodcodeHi	,pkthdr.type2plus.prodcodeLo
-			,pkthdr.type2plus.prodrevMajor	,pkthdr.type2plus.prodrevMinor);
-		dest.point=pkthdr.type2plus.destpoint;
-		if(pkthdr.type2plus.origpoint!=0 && orig.net==0xffff) {	/* see FSC-0048 for details */
-			orig.net=pkthdr.type2plus.auxnet;
-			orig.point=pkthdr.type2plus.origpoint;
+	printf("%s Packet Type ", fname);
+
+	if(pkthdr.fill.two_plus.cword==_rotr(pkthdr.fill.two_plus.cwcopy,8)  /* 2+ Packet Header */
+		&& pkthdr.fill.two_plus.cword&1) {
+		fprintf(stdout,"2+");
+		dest.point=pkthdr.fill.two_plus.destpoint;
+		if(pkthdr.fill.two_plus.origpoint!=0 && orig.net==0xffff) {	/* see FSC-0048 for details */
+			orig.net=pkthdr.fill.two_plus.auxnet;
+			orig.point=pkthdr.fill.two_plus.origpoint;
 		}
-		if(pkthdr.type2plus.origzone != orig.zone)
-			printf("!Warning: origination zone mistmatch in type 2+ packet header (%u != %u)\n"
-				,pkthdr.type2plus.origzone, orig.zone);
-		if(pkthdr.type2plus.destzone != dest.zone)
-			printf("!Warning: destination zone mistmatch in type 2+ packet header (%u != %u)\n"
-				,pkthdr.type2plus.destzone, dest.zone);
-	} else if(pkthdr.type2_2.subversion==2) {					/* Type 2.2 Packet Header (FSC-45) */
-		fprintf(stdout,"2.2 (prod: %02X, rev: %u)", pkthdr.type2_2.prodcode, pkthdr.type2_2.prodrev);
-		dest.point=pkthdr.type2_2.destpoint; 
-		sprintf(origdomn,"@%s",pkthdr.type2_2.origdomn);
-		sprintf(destdomn,"@%s",pkthdr.type2_2.destdomn);
+	} else if(pkthdr.baud==2) {					/* Type 2.2 Packet Header */
+		fprintf(stdout,"2.2");
+		dest.point=pkthdr.month; 
+		sprintf(origdomn,"@%s",pkthdr.fill.two_two.origdomn);
+		sprintf(destdomn,"@%s",pkthdr.fill.two_two.destdomn);
 	} else
-		fprintf(stdout,"2.0 (prod: %02X, serial: %u)", pkthdr.type2.prodcode, pkthdr.type2.sernum);
+		fprintf(stdout,"2.0");
 
 	printf(" from %s%s",faddrtoa(&orig,NULL),origdomn);
 	printf(" to %s%s\n"	,faddrtoa(&dest,NULL),destdomn);
 
-	if(pkthdr.type2.password[0])
-		fprintf(stdout,"Password: '%.*s'\n",sizeof(pkthdr.type2.password),pkthdr.type2.password);
+	if(pkthdr.password[0])
+		fprintf(stdout,"Password: '%.*s'\n",sizeof(pkthdr.password),pkthdr.password);
 
 	fseek(fp,sizeof(pkthdr),SEEK_SET);
 
@@ -175,7 +160,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 1.8 $", "%*s %s", revision);
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
