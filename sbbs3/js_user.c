@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.90 2011/10/19 07:37:47 deuce Exp $ */
+/* $Id: js_user.c,v 1.91 2011/10/19 08:39:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,8 +41,6 @@
 #ifdef JAVASCRIPT
 
 static scfg_t* scfg=NULL;
-
-static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 typedef struct
 {
