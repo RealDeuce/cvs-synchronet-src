@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.95 2010/06/03 01:34:41 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.97 2011/10/18 09:18:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -324,7 +324,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 
 /* Mimic the Borland randomize() and random() CRTL functions */
 DLLEXPORT void		DLLCALL xp_randomize(void);
-DLLEXPORT int		DLLCALL	xp_random(int);
+DLLEXPORT long		DLLCALL	xp_random(int);
 
 DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
