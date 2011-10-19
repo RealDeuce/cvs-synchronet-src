@@ -4,7 +4,7 @@
  * (C) Mattheij Computer Service 1994
  */
 
-/* $Id: zmodem.h,v 1.53 2012/10/24 19:03:14 deuce Exp $ */
+/* $Id: zmodem.h,v 1.52 2010/03/05 20:56:16 rswindell Exp $ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -315,7 +315,7 @@ BOOL		zmodem_get_crc(zmodem_t*, int32_t length, uint32_t* crc);
 void		zmodem_parse_zrinit(zmodem_t*);
 void		zmodem_parse_zfile_subpacket(zmodem_t* zm);
 int			zmodem_send_zfin(zmodem_t*);
-BOOL		zmodem_send_file(zmodem_t*, char* name, FILE* fp, BOOL request_init, time_t* start, uint64_t* bytes_sent);
+BOOL		zmodem_send_file(zmodem_t*, char* name, FILE* fp, BOOL request_init, time_t* start, int64_t* bytes_sent);
 int			zmodem_recv_files(zmodem_t* zm, const char* download_dir, int64_t* bytes_received);
 int			zmodem_recv_init(zmodem_t* zm);
 unsigned	zmodem_recv_file_data(zmodem_t*, FILE*, int64_t offset);
