@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.h,v 1.23 2012/10/24 19:03:14 deuce Exp $ */
+/* $Id: xmodem.h,v 1.22 2010/03/05 04:21:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,6 +96,6 @@ int			xmodem_put_ack(xmodem_t*);
 int			xmodem_put_nak(xmodem_t*, unsigned block_num);
 int			xmodem_get_block(xmodem_t*, uchar* block, unsigned block_num);
 int			xmodem_put_block(xmodem_t*, uchar* block, unsigned block_size, unsigned block_num);
-BOOL		xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, uint64_t* sent);
+BOOL		xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, int64_t* sent);
 
 #endif	/* Don't add anything after this line */

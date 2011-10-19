@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.39 2011/10/19 02:42:56 deuce Exp $ */
+/* $Id: filewrap.c,v 1.38 2011/10/19 02:37:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -282,7 +282,7 @@ FILE *_fsopen(const char *pszFilename, const char *pszMode, int shmode)
 {
 	int file;
 	int Mode=0;
-	const char *p;
+	char *p;
 	
 	for(p=pszMode;*p;p++)  {
 		switch (*p)  {
