@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.52 2009/11/21 20:36:30 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.57 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,12 +79,12 @@ bool sbbs_t::logon()
 		useron.rows=0;
 		useron.misc&=~(ANSI|RIP|WIP|NO_EXASCII|COLOR|HTML);
 		useron.misc|=autoterm;
-		if(!(useron.misc&ANSI) && yesno(text[AnsiTerminalQ]))
+		if(!(useron.misc&ANSI) && text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
 			useron.misc|=ANSI;
 		if(useron.misc&(RIP|WIP|HTML)
-			|| (useron.misc&ANSI && yesno(text[ColorTerminalQ])))
+			|| (useron.misc&ANSI && text[ColorTerminalQ][0] && yesno(text[ColorTerminalQ])))
 			useron.misc|=COLOR;
-		if(!yesno(text[ExAsciiTerminalQ]))
+		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		for(i=0;i<cfg.total_xedits;i++)
 			if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit)
@@ -301,7 +301,7 @@ bool sbbs_t::logon()
 							|| strchr(useron.name,0xff)
 							|| (cfg.uq&UQ_DUPREAL
 								&& userdatdupe(useron.number,U_NAME,LEN_NAME
-								,useron.name,0)))
+								,useron.name,0,0)))
 							bputs(text[YouCantUseThatName]);
 						else
 							break; 
@@ -318,7 +318,7 @@ bool sbbs_t::logon()
 						|| strchr(useron.handle,0xff)
 						|| (cfg.uq&UQ_DUPHAND
 							&& userdatdupe(useron.number,U_HANDLE,LEN_HANDLE
-							,useron.handle,0))
+							,useron.handle,0,0))
 						|| trashcan(useron.handle,"name"))
 						bputs(text[YouCantUseThatName]);
 					else
@@ -344,7 +344,10 @@ bool sbbs_t::logon()
 						break; 
 				}
 			if(cfg.uq&UQ_PHONE && !useron.phone[0]) {
-				i=yesno(text[CallingFromNorthAmericaQ]);
+				if(text[CallingFromNorthAmericaQ][0])
+					i=yesno(text[CallingFromNorthAmericaQ]);
+				else
+					i=0;
 				while(online) {
 					bputs(text[EnterYourPhoneNumber]);
 					if(i) {
@@ -428,7 +431,7 @@ bool sbbs_t::logon()
 	}
 
 	if(cfg.sys_logon[0])				/* execute system logon event */
-		external(cmdstr(cfg.sys_logon,nulstr,nulstr,NULL),EX_OUTR|EX_OUTL); /* EX_SH */
+		external(cmdstr(cfg.sys_logon,nulstr,nulstr,NULL),EX_STDOUT); /* EX_SH */
 
 	if(qwklogon)
 		return(true);
@@ -480,11 +483,9 @@ bool sbbs_t::logon()
 			}
 			if(node.status==NODE_INUSE && i!=cfg.node_num && node.useron==useron.number
 				&& !SYSOP && !(useron.exempt&FLAG('G'))) {
-				strcpy(tmp,"On two nodes at the same time");
-				sprintf(str,"(%04u)  %-25s  %s"
-					,useron.number,useron.alias,tmp);
+				SAFEPRINTF2(str,"(%04u)  %-25s  On two nodes at the same time"
+					,useron.number,useron.alias);
 				logline(LOG_NOTICE,"+!",str);
-				errorlog(tmp);
 				bputs(text[UserOnTwoNodes]);
 				hangup();
 				return(false); 
@@ -514,13 +515,13 @@ bool sbbs_t::logon()
 	sys_status&=~SS_PAUSEON;	/* Turn off the pause override flag */
 	if(online==ON_REMOTE)
 		rioctl(IOSM|ABORT);		/* Turn abort ability on */
-	if(mailw) {
+	if(text[ReadYourMailNowQ][0] && mailw) {
 		if(yesno(text[ReadYourMailNowQ]))
 			readmail(useron.number,MAIL_YOUR); 
 	}
-	if(usrgrps && useron.misc&ASK_NSCAN && yesno(text[NScanAllGrpsQ]))
+	if(usrgrps && useron.misc&ASK_NSCAN && text[NScanAllGrpsQ][0] && yesno(text[NScanAllGrpsQ]))
 		scanallsubs(SCAN_NEW);
-	if(usrgrps && useron.misc&ASK_SSCAN && yesno(text[SScanAllGrpsQ]))
+	if(usrgrps && useron.misc&ASK_SSCAN && text[SScanAllGrpsQ][0] && yesno(text[SScanAllGrpsQ]))
 		scanallsubs(SCAN_TOYOU);
 	return(true);
 }
