@@ -2,7 +2,7 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.47 2013/10/05 20:32:10 deuce Exp $ */
+/* $Id: ini_file.h,v 1.44 2011/07/21 10:47:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,8 +67,6 @@ extern "C" {
 /* Read all section names and return as an allocated string list */
 /* Optionally (if prefix!=NULL), returns a subset of section names */
 str_list_t	iniReadSectionList(FILE*, const char* prefix);
-/* Returns number (count) of sections */
-size_t		iniReadSectionCount(FILE*, const char* prefix);
 /* Read all key names and return as an allocated string list */
 str_list_t	iniReadKeyList(FILE*, const char* section);
 /* Read all key and value pairs and return as a named string list */
@@ -173,12 +171,6 @@ ulong		iniReadIpAddress(FILE*, const char* section, const char* key
 ulong		iniGetIpAddress(str_list_t, const char* section, const char* key
 					,ulong deflt);
 char*		iniSetIpAddress(str_list_t*, const char* section, const char* key, ulong value
-					,ini_style_t*);
-struct in6_addr	iniReadIp6Address(FILE*, const char* section, const char* key
-					,struct in6_addr deflt);
-struct in6_addr		iniGetIp6Address(str_list_t, const char* section, const char* key
-					,struct in6_addr deflt);
-char*		iniSetIp6Address(str_list_t*, const char* section, const char* key, struct in6_addr value
 					,ini_style_t*);
 int			iniGetSocketOptions(str_list_t, const char* section
 					,SOCKET sock, char* error, size_t errlen);
