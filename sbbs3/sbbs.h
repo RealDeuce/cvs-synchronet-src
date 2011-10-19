@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.382 2011/10/25 06:56:18 deuce Exp $ */
+/* $Id: sbbs.h,v 1.378 2011/10/16 10:15:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@
 #if defined(__cplusplus)
 	extern "C"
 #endif
-	HINSTANCE hK32;
+	extern HINSTANCE hK32;
 
 #elif defined(__unix__)		/* Unix-variant */
 
@@ -835,20 +835,15 @@ public:
 #undef DLLCALL
 #endif
 #ifdef _WIN32
-	#ifdef __MINGW32__
-		#define DLLEXPORT
-		#define DLLCALL
+	#ifdef SBBS_EXPORTS
+		#define DLLEXPORT	__declspec(dllexport)
 	#else
-		#ifdef SBBS_EXPORTS
-			#define DLLEXPORT	__declspec(dllexport)
-		#else
-			#define DLLEXPORT	__declspec(dllimport)
-		#endif
-		#ifdef __BORLANDC__
-			#define DLLCALL __stdcall
-		#else
-			#define DLLCALL
-		#endif
+		#define DLLEXPORT	__declspec(dllimport)
+	#endif
+	#ifdef __BORLANDC__
+		#define DLLCALL __stdcall
+	#else
+		#define DLLCALL
 	#endif
 #else	/* !_WIN32 */
 	#define DLLEXPORT
@@ -929,11 +924,11 @@ extern "C" {
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
-	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, const char *str);
-	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time32_t, char *str);
+	DLLEXPORT time_t	DLLCALL dstrtounix(scfg_t*, char *str);
+	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
+	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
 
@@ -958,7 +953,7 @@ extern "C" {
 
 
 	/* scfglib1.c */
-	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
+	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);

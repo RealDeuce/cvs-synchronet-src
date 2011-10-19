@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.91 2011/10/19 08:39:14 deuce Exp $ */
+/* $Id: js_user.c,v 1.88 2011/10/16 12:28:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,8 @@
 #ifdef JAVASCRIPT
 
 static scfg_t* scfg=NULL;
+
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 typedef struct
 {
@@ -142,7 +144,7 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	jsval idval;
 	char*		s=NULL;
 	char		tmp[128];
-	uint64_t	val=0;
+	ulong		val=0;
     jsint       tiny;
 	JSString*	js_str;
 	private_t*	p;
@@ -1095,7 +1097,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL((int32_t)gettimeleft(p->cfg, p->user, start_time)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(gettimeleft(p->cfg, p->user, (time_t)start_time)));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;

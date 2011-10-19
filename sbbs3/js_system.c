@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.144 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_system.c,v 1.142 2011/10/11 05:05:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -925,6 +925,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
 	char*		fname;
@@ -1002,6 +1003,7 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
 	int32		i=0;
+	time_t		t;
 	JSString*	js_str;
 	scfg_t*		cfg;
 	jsrefcount	rc;
@@ -1012,11 +1014,12 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc<1)
-		i=(int32_t)time(NULL);	/* use current time */
+		i=time(NULL);	/* use current time */
 	else
 		JS_ValueToInt32(cx,argv[0],&i);
+	t=i;
 	rc=JS_SUSPENDREQUEST(cx);
-	timestr(cfg,i,str);
+	timestr(cfg,t,str);
 	JS_RESUMEREQUEST(cx, rc);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
 		return(JS_FALSE);
@@ -1032,7 +1035,7 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
-	time32_t	t;
+	time_t		t;
 	JSString*	js_str;
 	scfg_t*		cfg;
 	char		*p;
@@ -1043,14 +1046,14 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc<1)
-		t=time32(NULL);	/* use current time */
+		t=time(NULL);	/* use current time */
 	else {
 		if(JSVAL_IS_STRING(argv[0])) {	/* convert from string to time_t? */
 			JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 			JS_SET_RVAL(cx, arglist, DOUBLE_TO_JSVAL((double)dstrtounix(cfg, p)));
 			return(JS_TRUE);
 		}
-		JS_ValueToInt32(cx,argv[0],&t);
+		JS_ValueToInt32(cx,argv[0],(int32*)&t);
 	}
 	unixtodstr(cfg,t,str);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
@@ -1063,6 +1066,7 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_secondstr(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
 	int32		t=0;
@@ -1417,7 +1421,7 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 	SAFECOPY(user.alias,alias);
 
 	/* statistics */
-	user.firston=user.laston=user.pwmod=time32(NULL);
+	user.firston=user.laston=user.pwmod=time(NULL);
 
 	/* security */
 	user.level=cfg->new_level;
@@ -1468,6 +1472,7 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_exec(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
 	char	*cmd;
@@ -1483,6 +1488,7 @@ js_exec(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_popen(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[1024];
 	char*		cmd;
@@ -1574,6 +1580,7 @@ js_chkname(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool 
 js_chkpid(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		pid=0;
 	jsrefcount	rc;
@@ -1595,6 +1602,7 @@ js_chkpid(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool 
 js_killpid(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		pid=0;
 	jsrefcount	rc;
