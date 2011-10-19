@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.557 2011/10/28 08:57:38 deuce Exp $ */
+/* $Id: websrvr.c,v 1.551 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,6 +103,7 @@ static volatile BOOL	terminate_server=FALSE;
 static volatile BOOL	terminate_http_logging_thread=FALSE;
 static volatile	ulong	thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
+static SOCKET	server_socket6=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
@@ -253,7 +254,7 @@ typedef struct  {
 	JSObject*		js_header;
 	JSObject*		js_cookie;
 	JSObject*		js_request;
-	js_callback_t	js_callback;
+	js_branch_t		js_branch;
 	subscan_t		*subscan;
 
 	/* Ring Buffer Stuff */
@@ -1322,7 +1323,7 @@ static void send_error(http_session_t * session, const char* message)
 				sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code);
 		}
 		else
-			sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code);
+			sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code,startup->ssjs_ext);
 		session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
 		send_headers(session,message,FALSE);
 		if(!stat(session->req.physical_path,&sb)) {
@@ -2820,6 +2821,7 @@ static BOOL check_extra_path(http_session_t * session)
 						*end=0;
 						strcat(rpath,startup->index_file_name[i]);
 						if(!stat(rpath,&sb)) {
+							/* *end=0; /* Removed Wed, Aug 09, 2006 to allow is_dynamic_req to detect correctly */
 							SAFECOPY(session->req.extra_path_info,epath);
 							SAFECOPY(session->req.virtual_path,vpath);
 							strcat(session->req.virtual_path,"/");
@@ -3195,6 +3197,7 @@ static BOOL exec_cgi(http_session_t *session)
 	char	cmdline[MAX_PATH+256];
 	/* ToDo: Damn, that's WAY too many variables */
 	int		i=0;
+	int		j;
 	int		status=0;
 	pid_t	child=0;
 	int		out_pipe[2];
@@ -3217,8 +3220,11 @@ static BOOL exec_cgi(http_session_t *session)
 	time_t	start;
 	char	cgipath[MAX_PATH+1];
 	char	*p;
+	char	ch;
 	BOOL	orig_keep=FALSE;
+	size_t	idx;
 	str_list_t	tmpbuf;
+	size_t	tmpbuflen=0;
 	BOOL	no_chunked=FALSE;
 	BOOL	set_chunked=FALSE;
 
@@ -3957,6 +3963,7 @@ static void js_writebuf(http_session_t *session, const char *buf, size_t buflen)
 static JSBool
 js_writefunc(JSContext *cx, uintN argc, jsval *arglist, BOOL writeln)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
@@ -4041,6 +4048,7 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char	header_buf[8192];
 	char	*header;
@@ -4069,8 +4077,7 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	header+=sprintf(header,"%s",p);
 	if(argc>2) {
-		if(!JS_ValueToInt32(cx,argv[2],&i))
-			return JS_FALSE;
+		JS_ValueToInt32(cx,argv[2],&i);
 		tt=i;
 		if(i && gmtime_r(&tt,&tm)!=NULL)
 			header += strftime(header,50,"; expires=%a, %d-%b-%Y %H:%M:%S GMT",&tm);
@@ -4098,6 +4105,7 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[512];
     uintN		i=0;
@@ -4114,10 +4122,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     if(startup==NULL || startup->lputs==NULL)
         return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
-		if(!JS_ValueToInt32(cx,argv[i++],&level))
-			return JS_FALSE;
-	}
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
+		JS_ValueToInt32(cx,argv[i++],&level);
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
@@ -4140,6 +4146,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	JSBool		inc_logons=JS_FALSE;
@@ -4424,20 +4431,28 @@ static JSFunctionSpec js_global_functions[] = {
 };
 
 static JSBool
-js_OperationCallback(JSContext *cx)
+js_BranchCallback(JSContext *cx, JSObject *script)
 {
-	JSBool	ret;
 	http_session_t* session;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JS_SetOperationCallback(cx, NULL);
-    ret=js_CommonOperationCallback(cx,&session->js_callback);
-	JS_SetOperationCallback(cx, js_OperationCallback);
+    return(js_CommonBranchCallback(cx,&session->js_branch));
+}
 
+#if JS_VERSION>180
+static JSBool
+js_OperationCallback(JSContext *cx)
+{
+	JSBool	ret;
+
+	JS_SetOperationCallback(cx, NULL);
+	ret=js_BranchCallback(cx, NULL);
+	JS_SetOperationCallback(cx, js_OperationCallback);
 	return ret;
 }
+#endif
 
 static JSContext* 
 js_initcx(http_session_t *session)
@@ -4455,23 +4470,25 @@ js_initcx(http_session_t *session)
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
+#if JS_VERSION>180
 	JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
+	JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Creating Global Objects and Classes",session->socket);
-	if(!js_CreateCommonObjects(js_cx, &scfg, NULL
+	if((session->js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL
 									,NULL						/* global */
 									,uptime						/* system */
 									,startup->host_name			/* system */
 									,SOCKLIB_DESC				/* system */
-									,&session->js_callback		/* js */
+									,&session->js_branch		/* js */
 									,&startup->js				/* js */
 									,&session->client			/* client */
 									,session->socket			/* client */
 									,&js_server_props			/* server */
-									,&session->js_glob
-		)
+		))==NULL
 		|| !JS_DefineFunctions(js_cx, session->js_glob, js_global_functions)) {
-		JS_RemoveObjectRoot(js_cx, &session->js_glob);
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
@@ -4622,14 +4639,13 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		/* RUN SCRIPT */
 		JS_ClearPendingException(session->js_cx);
 
-		session->js_callback.counter=0;
+		session->js_branch.counter=0;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Compiling script: %s",session->socket,script);
 		if((js_script=JS_CompileFile(session->js_cx, session->js_glob
 			,script))==NULL) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)"
 				,session->socket,script);
-			JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
 			JS_ENDREQUEST(session->js_cx);
 			return(FALSE);
 		}
@@ -4638,8 +4654,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		start=xp_timer();
 		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
-		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_callback);
-		JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
+		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_branch);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
 			,session->socket,script,xp_timer()-start);
 	} while(0);
@@ -5113,9 +5128,6 @@ void http_session_thread(void* arg)
 
 	if(session.js_cx!=NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying context",socket);
-		JS_BEGINREQUEST(session.js_cx);
-		JS_RemoveObjectRoot(session.js_cx, &session.js_glob);
-		JS_ENDREQUEST(session.js_cx);
 		JS_DestroyContext(session.js_cx);	/* Free Context */
 		session.js_cx=NULL;
 	}
@@ -5212,7 +5224,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.557 $", "%*s %s", revision);
+	sscanf("$Revision: 1.551 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5764,11 +5776,11 @@ void DLLCALL web_server(void* arg)
 			SAFECOPY(session->host_ip,host_ip);
 			session->addr=client_addr;
    			session->socket=client_socket;
-			session->js_callback.auto_terminate=TRUE;
-			session->js_callback.terminated=&terminate_server;
-			session->js_callback.limit=startup->js.time_limit;
-			session->js_callback.gc_interval=startup->js.gc_interval;
-			session->js_callback.yield_interval=startup->js.yield_interval;
+			session->js_branch.auto_terminate=TRUE;
+			session->js_branch.terminated=&terminate_server;
+			session->js_branch.limit=startup->js.branch_limit;
+			session->js_branch.gc_interval=startup->js.gc_interval;
+			session->js_branch.yield_interval=startup->js.yield_interval;
 #ifdef ONE_JS_RUNTIME
 			session->js_runtime=js_runtime;
 #endif
