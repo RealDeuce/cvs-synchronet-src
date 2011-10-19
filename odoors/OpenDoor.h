@@ -720,7 +720,7 @@ typedef struct
    char          od_cfg_text[48][33];
    char          od_cfg_lines[25][33];
    OD_COMPONENT  *od_config_file;
-   const char *  od_config_filename;
+   char *        od_config_filename;
    void          (*od_config_function)(char *keyword, char *options);
    char          od_color_char;
    char          od_color_delimiter;
@@ -948,7 +948,7 @@ od_control;
  *    od_sleep()              - Yield to other processes
  *    od_control_get()        - Returns a pointer to the od_control structure.
  */
-ODAPIDEF BOOL ODCALL   od_add_personality(const char *pszName, BYTE btOutputTop,
+ODAPIDEF BOOL ODCALL   od_add_personality(char *pszName, BYTE btOutputTop,
                           BYTE btOutputBottom,
                           OD_PERSONALITY_PROC *pfPerFunc);
 ODAPIDEF void ODCALL   od_autodetect(INT nFlags);
@@ -959,9 +959,9 @@ ODAPIDEF void ODCALL   od_clr_line(void);
 ODAPIDEF void ODCALL   od_clr_scr(void);
 ODAPIDEF BYTE ODCALL   od_color_config(char *pszColorDesc);
 ODAPIDEF tODControl *  ODCALL od_control_get(void);
-ODAPIDEF void ODCALL   od_disp(const char *pachBuffer, INT nSize, BOOL bLocalEcho);
-ODAPIDEF void ODCALL   od_disp_emu(const char *pszToDisplay, BOOL bRemoteEcho);
-ODAPIDEF void ODCALL   od_disp_str(const char *pszToDisplay);
+ODAPIDEF void ODCALL   od_disp(char *pachBuffer, INT nSize, BOOL bLocalEcho);
+ODAPIDEF void ODCALL   od_disp_emu(char *pszToDisplay, BOOL bRemoteEcho);
+ODAPIDEF void ODCALL   od_disp_str(char *pszToDisplay);
 ODAPIDEF BOOL ODCALL   od_draw_box(BYTE btLeft, BYTE btTop, BYTE btRight,
                           BYTE btBottom);
 ODAPIDEF WORD ODCALL   od_edit_str(char *pszInput, char *pszFormat, INT nRow,
@@ -969,7 +969,7 @@ ODAPIDEF WORD ODCALL   od_edit_str(char *pszInput, char *pszFormat, INT nRow,
                           BYTE btHighlightColour, char chBlank,
                           WORD nFlags);
 ODAPIDEF void ODCALL   od_exit(INT nErrorLevel, BOOL bTermCall);
-ODAPIDEF char ODCALL   od_get_answer(const char *pszOptions);
+ODAPIDEF char ODCALL   od_get_answer(char *pszOptions);
 ODAPIDEF void ODCALL   od_get_cursor(INT *pnRow, INT *pnColumn);
 ODAPIDEF BOOL ODCALL   od_get_input(tODInputEvent *pInputEvent,
                           tODMilliSec TimeToWait, WORD wFlags);
@@ -996,7 +996,7 @@ ODAPIDEF void ODCALL   od_parse_cmd_line(INT nArgCount,
 #endif /* !ODPLAT_WIN32 */
 ODAPIDEF INT ODCALL    od_popup_menu(char *pszTitle, char *pszText,
                           INT nLeft, INT nTop, INT nLevel, WORD uFlags);
-ODAPIDEF void ODVCALL  od_printf(const char *pszFormat, ...);
+ODAPIDEF void ODVCALL  od_printf(char *pszFormat, ...);
 ODAPIDEF void ODCALL   od_putch(char chToDisplay);
 ODAPIDEF BOOL ODCALL   od_puttext(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, void *pBlock);
@@ -1005,16 +1005,16 @@ ODAPIDEF BOOL ODCALL   od_restore_screen(void *pBuffer);
 ODAPIDEF BOOL ODCALL   od_save_screen(void *pBuffer);
 ODAPIDEF BOOL ODCALL   od_scroll(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, INT nDistance, WORD nFlags);
-ODAPIDEF BOOL ODCALL   od_send_file(const char *pszFileName);
+ODAPIDEF BOOL ODCALL   od_send_file(char *pszFileName);
 ODAPIDEF BOOL ODCALL   od_send_file_section(char *pszFileName, char *pszSectionName);
 ODAPIDEF void ODCALL   od_set_attrib(INT nColour);
 ODAPIDEF void ODCALL   od_set_color(INT nForeground, INT nBackground);
 ODAPIDEF void ODCALL   od_set_cursor(INT nRow, INT nColumn);
 ODAPIDEF void ODCALL   od_set_dtr(BOOL bHigh);
-ODAPIDEF BOOL ODCALL   od_set_personality(const char *pszName);
+ODAPIDEF BOOL ODCALL   od_set_personality(char *pszName);
 ODAPIDEF void ODCALL   od_set_statusline(INT nSetting);
 ODAPIDEF void ODCALL   od_sleep(tODMilliSec Milliseconds);
-ODAPIDEF BOOL ODCALL   od_spawn(const char *pszCommandLine);
+ODAPIDEF BOOL ODCALL   od_spawn(char *pszCommandLine);
 ODAPIDEF INT16 ODCALL  od_spawnvpe(INT16 nModeFlag, char *pszPath,
                           char *papszArg[], char *papszEnv[]);
 ODAPIDEF void * ODCALL od_window_create(INT nLeft, INT nTop, INT nRight,
