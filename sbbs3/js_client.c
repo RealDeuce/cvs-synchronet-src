@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.25 2013/02/07 00:49:49 deuce Exp $ */
+/* $Id: js_client.c,v 1.22 2011/10/16 12:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@ static JSBool js_client_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
 	jsval idval;
 	const char*	p=NULL;
-	int32		val=0;
+	ulong		val=0;
     jsint       tiny;
 	JSString*	js_str;
 	client_t*	client;
@@ -94,7 +94,7 @@ static JSBool js_client_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			val=client->port;
 			break;
 		case CLIENT_PROP_TIME:
-			val=(int32)client->time;
+			val=client->time;
 			break;
 		case CLIENT_PROP_PROTOCOL:
 			p=(char*)client->protocol;
@@ -132,23 +132,15 @@ static jsSyncPropertySpec js_client_properties[] = {
 static JSBool js_client_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
-	JSBool			ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval)) {
-			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			if(name==NULL)
-				return JS_FALSE;
-		}
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
-	ret=js_SyncResolve(cx, obj, name, js_client_properties, NULL, NULL, 0);
-	if(name)
-		free(name);
-	return ret;
+	return(js_SyncResolve(cx, obj, name, js_client_properties, NULL, NULL, 0));
 }
 
 static JSBool js_client_enumerate(JSContext *cx, JSObject *obj)

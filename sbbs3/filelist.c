@@ -4,7 +4,7 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.18 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: filelist.c,v 1.16 2011/09/07 22:17:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,11 +107,11 @@ int main(int argc, char **argv)
 	int 	i,j,file,dirnum,libnum,desc_off,lines,nots=0
 			,omode=O_WRONLY|O_CREAT|O_TRUNC;
 	ulong	l,m,n,cdt,misc=0,total_cdt=0,total_files=0,dir_files,datbuflen;
-	time32_t uld,dld,now;
+	time_t	uld,dld,now;
 	long	max_age=0;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.18 $", "%*s %s", revision);
+	sscanf("$Revision: 1.16 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 		exit(1); 
 	}
 
-	now=time32(NULL);
+	now=time(NULL);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
 			close(file);
 			if(misc&AUTO) fclose(out);
 			continue; }
-		if((ixbbuf=(uchar *)malloc(l))==NULL) {
+		if((ixbbuf=(char *)malloc(l))==NULL) {
 			close(file);
 			if(misc&AUTO) fclose(out);
 			printf("\7ERR_ALLOC %s %lu\n",str,l);
@@ -402,7 +402,7 @@ int main(int argc, char **argv)
 
 			if(misc&DFD) {
 				sprintf(str,"%s%s",scfg.dir[i]->path,fname);
-				fprintf(out,"%s ",unixtodstr(&scfg,(time32_t)fdate(str),str));
+				fprintf(out,"%s ",unixtodstr(&scfg,fdate(str),str));
 				desc_off+=9; }
 
 			if(misc&ULD) {
