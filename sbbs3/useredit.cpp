@@ -2,7 +2,7 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.44 2011/10/19 21:57:06 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.43 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1009,7 +1009,7 @@ void sbbs_t::maindflts(user_t* user)
 					console|=CON_R_ECHOX;
 					ch=getstr(str,LEN_PASS,K_UPPER);
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
-					if(stricmp(str,user->pass)) {
+					if(strcmp(str,user->pass)) {
 						bputs(text[WrongPassword]);
 						pause();
 						break; 
