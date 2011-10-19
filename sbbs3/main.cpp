@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.576 2011/10/28 09:02:06 rswindell Exp $ */
+/* $Id: main.cpp,v 1.569 2011/10/19 07:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -642,6 +642,7 @@ DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec* int
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
@@ -655,10 +656,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
-		if(!JS_ValueToInt32(cx,argv[i++],&level))
-			return JS_FALSE;
-	}
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
+		JS_ValueToInt32(cx,argv[i++],&level);
 
     for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
@@ -686,6 +685,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_read(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uchar*		buf;
 	int32		len=128;
@@ -697,10 +697,8 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(uchar*)malloc(len))==NULL)
 		return(JS_TRUE);
@@ -719,6 +717,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_readln(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		buf;
 	int32		len=128;
@@ -730,10 +729,8 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)malloc(len))==NULL)
 		return(JS_TRUE);
@@ -752,6 +749,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
@@ -788,6 +786,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     char*	str=NULL;
@@ -815,6 +814,8 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -835,6 +836,7 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_printf(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	sbbs_t*		sbbs;
@@ -867,6 +869,7 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_alert(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -896,6 +899,7 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -919,6 +923,7 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_deny(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -943,6 +948,7 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		instr[81];
     JSString *	str;
@@ -1119,15 +1125,14 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		return(false);
 	JS_BEGINREQUEST(js_cx);
 	
-	memset(&js_callback,0,sizeof(js_callback));
-	js_callback.limit = startup->js.time_limit;
-	js_callback.gc_interval = startup->js.gc_interval;
-	js_callback.yield_interval = startup->js.yield_interval;
-	js_callback.terminated = &terminated;
-	js_callback.auto_terminate = TRUE;
+	memset(&js_branch,0,sizeof(js_branch));
+	js_branch.limit = startup->js.branch_limit;
+	js_branch.gc_interval = startup->js.gc_interval;
+	js_branch.yield_interval = startup->js.yield_interval;
+	js_branch.terminated = &terminated;
+	js_branch.auto_terminate = TRUE;
 
 	bool success=false;
-	bool rooted=false;
 
 	do {
 
@@ -1136,16 +1141,14 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		JS_SetContextPrivate(js_cx, this);	/* Store a pointer to sbbs_t instance */
 
 		/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
-		if(!js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
+		if((js_glob=js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
-					,&js_callback								/* js */
+					,&js_branch									/* js */
 					,&startup->js
 					,&client, client_socket						/* client */
 					,&js_server_props							/* server */
-					,&js_glob
-			))
+			))==NULL)
 			break;
-		rooted=true;
 
 		/* BBS Object */
 		if(js_CreateBbsObject(js_cx, js_glob)==NULL)
@@ -1155,20 +1158,30 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
 			break;
 
+		if(startup->js.thread_stack) {
+			ulong stack_limit;
+
+#if JS_STACK_GROWTH_DIRECTION > 0
+			stack_limit=((ulong)stack_frame)+startup->js.thread_stack;
+#else
+			stack_limit=((ulong)stack_frame)-startup->js.thread_stack;
+#endif
+			JS_SetThreadStackLimit(js_cx, stack_limit);
+
+			lprintf(LOG_DEBUG,"%s JavaScript: Thread stack limit: %lu bytes"
+				,node, startup->js.thread_stack);
+		}
+
 		success=true;
 
 	} while(0);
 
+	JS_ENDREQUEST(js_cx);
 	if(!success) {
-		if(rooted)
-			JS_RemoveObjectRoot(js_cx, &js_glob);
-		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		js_cx=NULL;
 		return(false);
 	}
-	else
-		JS_ENDREQUEST(js_cx);
 
 	return(true);
 }
@@ -1178,9 +1191,6 @@ void sbbs_t::js_cleanup(const char* node)
 	/* Free Context */
 	if(js_cx!=NULL) {	
 		lprintf(LOG_DEBUG,"%s JavaScript: Destroying context",node);
-		JS_BEGINREQUEST(js_cx);
-		JS_RemoveObjectRoot(js_cx, &js_glob);
-		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		js_cx=NULL;
 	}
@@ -5105,7 +5115,7 @@ NO_SSH:
 #endif
 
 		/* Do SSH stuff here */
-#ifdef USE_CRYPTLIB
+
 		if(ssh) {
 			int	ssh_failed=0;
 			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
@@ -5170,7 +5180,7 @@ NO_SSH:
 			}
 			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 		}
-#endif
+
    		sbbs->client_socket=client_socket;	// required for output to the user
         sbbs->online=ON_REMOTE;
 

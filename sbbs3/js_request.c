@@ -16,6 +16,7 @@
 #ifdef DEBUG_JS_REQUESTS
 
 #define DEBUG
+#include <jscntxt.h>
 
 enum last_request_type {
 	 LAST_REQUEST_TYPE_NONE
@@ -108,12 +109,12 @@ void js_debug_beginrequest(JSContext *cx, const char *file, unsigned long line)
 		logstr();
 		break;
 	}
-	switch(JS_RequestDepth(cx)) {
+	switch(cx->requestDepth) {
 	case 0:
 		break;
 	case 1:
 	default:
-		sprintf(str,"depth=%u at Begin after %s from %s:%u at %s:%u (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"depth=%u at Begin after %s from %s:%u at %s:%u (%p)\n",cx->requestDepth,type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	}
@@ -155,10 +156,10 @@ void js_debug_endrequest(JSContext *cx, const char *file, unsigned long line)
 		logstr();
 		break;
 	}
-	switch(JS_RequestDepth(cx)) {
+	switch(cx->requestDepth) {
 	case 0:
 	default:
-		sprintf(str,"depth=%u at End after %s from %s:%u at %s:%u (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"depth=%u at End after %s from %s:%u at %s:%u (%p)\n",cx->requestDepth,type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	case 1:
@@ -169,7 +170,7 @@ void js_debug_endrequest(JSContext *cx, const char *file, unsigned long line)
 	req->file=file;
 	req->line=line;
 	JS_EndRequest(cx);
-	if(JS_RequestDepth(cx)==0) {
+	if(cx->requestDepth==0) {
 		if(req->prev != NULL)
 			req->prev->next=req->next;
 		if(req->next != NULL)
@@ -212,10 +213,10 @@ jsrefcount js_debug_suspendrequest(JSContext *cx, const char *file, unsigned lon
 		logstr();
 		break;
 	}
-	switch(JS_RequestDepth(cx)) {
+	switch(cx->requestDepth) {
 	case 0:
 	default:
-		sprintf(str,"depth=%u at Suspend after %s from %s:%u at %s:%u (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"depth=%u at Suspend after %s from %s:%u at %s:%u (%p)\n",cx->requestDepth,type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	case 1:
@@ -254,10 +255,10 @@ void js_debug_resumerequest(JSContext *cx, jsrefcount rc, const char *file, unsi
 		logstr();
 		break;
 	}
-	switch(JS_RequestDepth(cx)) {
+	switch(cx->requestDepth) {
 	case 1:
 	default:
-		sprintf(str,"depth=%u at Suspend after %s from %s:%u at %s:%u (%p)\n",JS_RequestDepth(cx),type_names[req->type],req->file,req->line,file,line,req->cx);
+		sprintf(str,"depth=%u at Suspend after %s from %s:%u at %s:%u (%p)\n",cx->requestDepth,type_names[req->type],req->file,req->line,file,line,req->cx);
 		logstr();
 		break;
 	case 0:

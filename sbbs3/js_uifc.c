@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.26 2011/10/26 22:44:20 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.24 2011/10/11 13:36:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,54 +135,56 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
 
-	if(tiny==PROP_CHANGES)
-		return JS_ValueToBoolean(cx,*vp,&uifc->changes);
-	else if(tiny==PROP_HELPBUF) {
-		JSVALUE_TO_STRING(cx, *vp, uifc->helpbuf, NULL);
-		return JS_TRUE;
-	}
-
-	if(!JS_ValueToInt32(cx, *vp, &i))
-		return JS_FALSE;
-
 	switch(tiny) {
-		case PROP_CHANGES:
-			uifc->changes=i;
-			break;
 		case PROP_MODE:
-			uifc->mode=i;
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->mode);
+			break;
+		case PROP_CHANGES:
+			JS_ValueToBoolean(cx,*vp,&uifc->changes);
 			break;
 		case PROP_SAVNUM:
-			uifc->savnum=i;
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->savnum);
 			break;
 		case PROP_SCRN_LEN:
-			uifc->scrn_len=i;
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->scrn_len);
 			break;
 		case PROP_SCRN_WIDTH:
-			uifc->scrn_width=i;
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->scrn_width);
 			break;
 		case PROP_ESC_DELAY:
-			uifc->esc_delay=i;
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->esc_delay);
+			break;
+		case PROP_HELPBUF:
+			JSVALUE_TO_STRING(cx, *vp, uifc->helpbuf, NULL);
 			break;
 		case PROP_LIST_HEIGHT:
-			uifc->list_height=i;
+			JS_ValueToInt32(cx, *vp, (int32*)&uifc->list_height);
 			break;
 		case PROP_HCOLOR:
-			uifc->hclr=(char)i;
-			break;
 		case PROP_LCOLOR:
-			uifc->lclr=(char)i;
-			break;
 		case PROP_BCOLOR:
-			uifc->bclr=(char)i;
-			break;
 		case PROP_CCOLOR:
-			uifc->cclr=(char)i;
-			break;
 		case PROP_LBCOLOR:
-			uifc->lbclr=(char)i;
+			JS_ValueToInt32(cx, *vp, &i);
+			switch(tiny) {
+				case PROP_HCOLOR:
+					uifc->hclr=(char)i;
+					break;
+				case PROP_LCOLOR:
+					uifc->lclr=(char)i;
+					break;
+				case PROP_BCOLOR:
+					uifc->bclr=(char)i;
+					break;
+				case PROP_CCOLOR:
+					uifc->cclr=(char)i;
+					break;
+				case PROP_LBCOLOR:
+					uifc->lbclr=(char)i;
+					break;
+			}
 			break;
-	}
+	}	
 
 	return(JS_TRUE);
 }
@@ -291,6 +293,7 @@ static JSBool
 js_uifc_bail(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	uifcapi_t* uifc;
 	jsrefcount	rc;
 
