@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.211 2010/03/12 08:27:57 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.216 2011/09/21 03:10:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,7 +45,7 @@
 	#include <sys/wait.h>	// WEXITSTATUS
 
 	#define TTYDEFCHARS		// needed for ttydefchars definition
-
+	#include <sys/ttydefaults.h>	// Linux - it's motherfucked.
 #if defined(__FreeBSD__)
 	#include <libutil.h>	// forkpty()
 #elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DARWIN__)
@@ -279,13 +279,13 @@ static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
     return(i<cfg->total_natvpgms);
 }
 
-#define XTRN_LOADABLE_MODULE								\
+#define XTRN_LOADABLE_MODULE(cmdline,startup_dir)			\
 	if(cmdline[0]=='*')		/* Baja module or JavaScript */	\
-		return(exec_bin(cmdline+1,&main_csi))				
+		return(exec_bin(cmdline+1,&main_csi,startup_dir))				
 #ifdef JAVASCRIPT
-	#define XTRN_LOADABLE_JS_MODULE							\
+	#define XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir)	\
 	if(cmdline[0]=='?') 	/* JavaScript */				\
-		return(js_execfile(cmdline+1))						
+		return(js_execfile(cmdline+1,startup_dir))						
 #else
 	#define XTRN_LOADABLE_JS_MODULE
 #endif
@@ -386,7 +386,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
     PROCESS_INFORMATION process_info;
 	DWORD	hVM;
 	unsigned long	rd;
-    DWORD	wr;
+    unsigned long	wr;
     unsigned long	len;
     DWORD	avail;
 	unsigned long	dummy;
@@ -409,8 +409,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		return -1;
 	}
 
-	XTRN_LOADABLE_MODULE;
-	XTRN_LOADABLE_JS_MODULE;
+	XTRN_LOADABLE_MODULE(cmdline,startup_dir);
+	XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir);
 
 	attr(cfg.color[clr_external]);		/* setup default attributes */
 
@@ -907,16 +907,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					if(mode&EX_WWIV) {
                 		bp=wwiv_expand(buf, rd, wwiv_buf, rd, useron.misc, wwiv_flag);
 						if(rd>sizeof(wwiv_buf))
-							errorlog("WWIV_BUF OVERRUN");
+							lprintf(LOG_ERR,"WWIV_BUF OVERRUN");
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
                 		bp=telnet_expand(buf, rd, telnet_buf, rd);
 						if(rd>sizeof(telnet_buf))
-							errorlog("TELNET_BUF OVERRUN");
+							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
-						errorlog("output buffer overflow");
+						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
 					RingBufWrite(&outbuf, bp, rd);
@@ -974,16 +974,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					if(mode&EX_WWIV) {
                 		bp=wwiv_expand(buf, rd, wwiv_buf, rd, useron.misc, wwiv_flag);
 						if(rd>sizeof(wwiv_buf))
-							errorlog("WWIV_BUF OVERRUN");
+							lprintf(LOG_ERR,"WWIV_BUF OVERRUN");
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
                 		bp=telnet_expand(buf, rd, telnet_buf, rd);
 						if(rd>sizeof(telnet_buf))
-							errorlog("TELNET_BUF OVERRUN");
+							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
-						errorlog("output buffer overflow");
+						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
 					RingBufWrite(&outbuf, bp, rd);
@@ -1324,8 +1324,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(startup_dir==NULL)
 		startup_dir=nulstr;
 
-	XTRN_LOADABLE_MODULE;
-	XTRN_LOADABLE_JS_MODULE;
+	XTRN_LOADABLE_MODULE(cmdline,startup_dir);
+	XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir);
 
 	attr(cfg.color[clr_external]);  /* setup default attributes */
 
@@ -1781,8 +1781,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	
 		execvp(argv[0],argv);
-		sprintf(str,"!ERROR %d executing %s",errno,argv[0]);
-		errorlog(str);
+		lprintf(LOG_ERR,"Node %d !ERROR %d executing %s",cfg.node_num,errno,argv[0]);
 		_exit(-1);	/* should never get here */
 	}
 
@@ -1907,13 +1906,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
-				errorlog("OUTPUT_BUF OVERRUN");
+				lprintf(LOG_ERR,"OUTPUT_BUF OVERRUN");
 				output_len=sizeof(output_buf);
 			}
 
 			/* Does expanded size fit in the ring buffer? */
 			if(output_len>RingBufFree(&outbuf)) {
-				errorlog("output buffer overflow");
+				lprintf(LOG_ERR,"output buffer overflow");
 				output_len=RingBufFree(&outbuf);
 			}
 
