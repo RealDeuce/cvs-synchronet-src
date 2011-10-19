@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.79 2011/10/19 07:30:20 deuce Exp $
+# $Id: Common.gmake,v 1.80 2011/10/19 08:22:54 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -384,7 +384,7 @@ endif
 ifdef DEBUG
  CFLAGS	+=	-ggdb
  CFLAGS	+=	-D_DEBUG
- CFLAGS +=	-Wall
+ CFLAGS +=	-Wall -Wno-char-subscripts
 else # RELEASE
  # -finline functions breaks the baja build badly.
  # This also means that -O3 won't work either.
