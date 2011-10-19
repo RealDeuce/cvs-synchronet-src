@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.60 2011/10/09 06:16:21 deuce Exp $ */
+/* $Id: js_internal.c,v 1.67 2011/10/16 12:24:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -242,6 +242,14 @@ js_CommonBranchCallback(JSContext *cx, js_branch_t* branch)
     return(JS_TRUE);
 }
 
+static JSClass eval_class = {
+    "Global",  /* name */
+    JSCLASS_GLOBAL_FLAGS,  /* flags */
+    JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
+    JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub,
+    JSCLASS_NO_OPTIONAL_MEMBERS
+};
+
 /* Execute a string in its own context (away from Synchronet objects) */
 static JSBool
 js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
@@ -256,12 +264,15 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 	JSObject*		obj;
 	JSErrorReporter	reporter;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if(argc<1)
 		return(JS_TRUE);
 
 	if((str=JS_ValueToString(parent_cx, argv[0]))==NULL)
 		return(JS_FALSE);
-	if((buf=JS_GetStringBytes(str))==NULL)
+	JSSTRING_TO_STRING(parent_cx, str, buf, NULL);
+	if(buf==NULL)
 		return(JS_FALSE);
 	buflen=JS_GetStringLength(str);
 
@@ -291,7 +302,7 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 #endif
 #endif
 
-	if((obj=JS_NewObject(cx, NULL, NULL, NULL))==NULL
+	if((obj=JS_NewCompartmentAndGlobalObject(cx, &eval_class, NULL))==NULL
 		|| !JS_InitStandardClasses(cx,obj)) {
 		JS_DestroyContext(cx);
 		return(JS_FALSE);
@@ -301,7 +312,6 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 		jsval	rval;
 
 		JS_ExecuteScript(cx, obj, script, &rval);
-		JS_DestroyScript(cx, script);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
 
@@ -317,6 +327,8 @@ js_gc(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSBool			forced=JS_TRUE;
 	js_branch_t*	branch;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((branch=(js_branch_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -339,7 +351,12 @@ js_report_error(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	JS_ReportError(cx,"%s",JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
+	char	*p;
+
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
+	JS_ReportError(cx,"%s",p);
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>1 && argv[1]==JSVAL_TRUE)
 		return(JS_FALSE);	/* fatal */
@@ -353,6 +370,9 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	js_branch_t*	branch;
+	char		*p;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((branch=(js_branch_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -360,7 +380,8 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 	if(branch->exit_func==NULL)
 		branch->exit_func=strListInit();
 
-	strListPush(&branch->exit_func,JS_GetStringBytes(JS_ValueToString(cx, argv[0])));
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
+	strListPush(&branch->exit_func,p);
 
 	return(JS_TRUE);
 }
@@ -417,7 +438,7 @@ static JSBool js_internal_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0));
@@ -441,25 +462,6 @@ static JSClass js_internal_class = {
 	,JS_FinalizeStub		/* finalize		*/
 };
 
-#if JS_VERSION >= 185
-char* DLLCALL JS_GetStringBytes_dumbass(JSContext *cx, JSString *str)
-{
-	size_t			len;
-	size_t			pos;
-	const jschar	*val;
-	char			*ret;
-
-	if(!(val=JS_GetStringCharsAndLength(cx, str, &len)))
-		return NULL;
-	if(!(ret=malloc(len+1)))
-		return NULL;
-	for(pos=0; pos<len; pos++)
-		ret[pos]=val[pos];
-	ret[len]=0;
-	return ret;
-}
-#endif
-
 void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 {
 	char*	p;
@@ -472,7 +474,6 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_branch_t* branch)
 	while((p=strListPop(&branch->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
 			JS_ExecuteScript(cx, obj, script, &rval);
-			JS_DestroyScript(cx, script);
 		}
 		free(p);
 	}
