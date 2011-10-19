@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.298 2013/08/20 07:36:04 deuce Exp $ */
+/* $Id: term.c,v 1.295 2011/09/08 23:25:30 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -263,26 +263,17 @@ static BOOL zmodem_check_abort(void* vp)
 	zmodem_t*				zm=zcb->zm;
 	static time_t			last_check=0;
 	time_t					now=time(NULL);
-	int						key;
 
 	if(last_check != now) {
 		last_check=now;
-		if(zm!=NULL) {
-			while(kbhit()) {
-				switch((key=getch())) {
-					case ESC:
-					case CTRL_C:
-					case CTRL_X:
+		if(zm!=NULL && kbhit()) {
+			switch(getch()) {
+				case ESC:
+				case CTRL_C:
+				case CTRL_X:
 						zm->cancelled=TRUE;
-						zm->local_abort=TRUE;
-						break;
-					case 0:
-					case 0xff:
-						key |= (getch() << 8);
-						if(key==CIO_KEY_MOUSE)
-							getmouse(NULL);
-						break;
-				}
+					zm->local_abort=TRUE;
+					break;
 			}
 		}
 	}
@@ -859,7 +850,6 @@ void guts_background_download(void *cbdata)
 	zmodem_t	zm;
 	ulong		bytes_received;
 
-	SetThreadName("GUTS Download");
 	zmodem_mode=ZMODEM_MODE_RECV;
 
 	transfer_buf_len=0;
@@ -886,7 +876,6 @@ void guts_background_upload(void *cbdata)
 	ulong	fsize;
 	FILE*	fp;
 
-	SetThreadName("GUTS Upload");
 	if((fp=fopen(gi.files[0],"rb"))==NULL) {
 		fprintf(stderr,"Error %d opening %s for read",errno,gi.files[0]);
 		return;
@@ -1207,25 +1196,16 @@ static BOOL xmodem_check_abort(void* vp)
 	xmodem_t* xm = (xmodem_t*)vp;
 	static time_t			last_check=0;
 	time_t					now=time(NULL);
-	int						key;
 
 	if(last_check != now) {
 		last_check=now;
-		if(xm!=NULL) {
-			while(kbhit()) {
-				switch((key=getch())) {
-					case ESC:
-					case CTRL_C:
-					case CTRL_X:
-						xm->cancelled=TRUE;
-						break;
-					case 0:
-					case 0xff:
-						key |= (getch() << 8);
-						if(key==CIO_KEY_MOUSE)
-							getmouse(NULL);
-						break;
-				}
+		if(xm!=NULL && kbhit()) {
+			switch(getch()) {
+				case ESC:
+				case CTRL_C:
+				case CTRL_X:
+					xm->cancelled=TRUE;
+					break;
 			}
 		}
 	}
@@ -1437,8 +1417,6 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 			,path,fsize/1024,(mode&GMODE)?"-g":"");
 	}
 	else {
-		fclose(fp);
-		conn_binary_mode_off();
 		return;
 	}
 
@@ -2493,12 +2471,6 @@ BOOL doterm(struct bbslist *bbs)
 							setup_mouse_events();
 							puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							free(p);
-							if(cterm->scrollback != scrollback_buf || cterm->backlines != settings.backlines) {
-								cterm->scrollback = scrollback_buf;
-								cterm->backlines = settings.backlines;
-								if(cterm->backpos>cterm->backlines)
-									cterm->backpos=cterm->backlines;
-							}
 							showmouse();
 							_setcursortype(_NORMALCURSOR);
 						}

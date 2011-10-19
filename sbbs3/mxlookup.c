@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.27 2013/09/03 23:39:10 deuce Exp $ */
+/* $Id: mxlookup.c,v 1.25 2008/03/09 20:18:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,9 @@
  ****************************************************************************/
 
 /* Platform-specific */
+#ifdef _WIN32
+	#include <windows.h>	/* avoid DWORD conflict */
+#endif
 
 /* ANSI */
 #include <stdio.h>
@@ -124,7 +127,7 @@ enum {
 	int mail_close_socket(SOCKET sock);
 #endif
 
-size_t dns_name(char* name, size_t* namelen, size_t maxlen, BYTE* srcbuf, char* p)
+size_t dns_name(BYTE* name, size_t* namelen, size_t maxlen, BYTE* srcbuf, BYTE* p)
 {
 	size_t	len=0;
 	size_t	plen;
@@ -137,7 +140,7 @@ size_t dns_name(char* name, size_t* namelen, size_t maxlen, BYTE* srcbuf, char* 
 			(*p)&=~0xC0;
 			offset=ntohs(*(WORD*)p);
 			(*p)|=0xC0;
-			dns_name(name, namelen, maxlen, srcbuf, (char*)srcbuf+offset);
+			dns_name(name, namelen, maxlen, srcbuf, srcbuf+offset);
 			return(len+2);
 		}
 		plen=(*p);
@@ -173,8 +176,8 @@ void dump(BYTE* buf, int len)
 int dns_getmx(char* name, char* mx, char* mx2
 			  ,DWORD intf, DWORD ip_addr, BOOL use_tcp, int timeout)
 {
-	char*			p;
-	char*			tp;
+	BYTE*			p;
+	BYTE*			tp;
 	char			hostname[128];
 	size_t			namelen;
 	WORD			pref;
@@ -337,9 +340,9 @@ int dns_getmx(char* name, char* mx, char* mx2
 			offset=sizeof(msghdr.length);
 
 		answers=ntohs(msghdr.ancount);
-		p=(char*)msg+len;	/* Skip the header and question portion */
+		p=msg+len;	/* Skip the header and question portion */
 
-		for(i=0;i<answers && p<(char*)msg+sizeof(msg);i++) {
+		for(i=0;i<answers && p<msg+sizeof(msg);i++) {
 			namelen=0;
 			p+=dns_name(hostname, &namelen, sizeof(hostname)-1, msg+offset, p);
 
