@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.68 2011/10/23 01:48:42 deuce Exp $ */
+/* $Id: str.cpp,v 1.67 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -440,7 +440,7 @@ void sbbs_t::create_sif_dat(char *siffile, char *datfile)
 		errormsg(WHERE,ERR_ALLOC,siffile,SIF_MAXBUF);
 		return; 
 	}
-	memset(buf,0,SIF_MAXBUF);	 /* initialize to null */
+	memset(buf,SIF_MAXBUF,0);	 /* initialize to null */
 	sif(siffile,buf,SIF_MAXBUF);
 	if((file=nopen(datfile,O_WRONLY|O_TRUNC|O_CREAT))==-1) {
 		free(buf);
