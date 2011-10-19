@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.55 2011/03/01 22:27:02 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.58 2011/10/19 07:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,12 +79,12 @@ bool sbbs_t::logon()
 		useron.rows=0;
 		useron.misc&=~(ANSI|RIP|WIP|NO_EXASCII|COLOR|HTML);
 		useron.misc|=autoterm;
-		if(!(useron.misc&ANSI) && yesno(text[AnsiTerminalQ]))
+		if(!(useron.misc&ANSI) && text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
 			useron.misc|=ANSI;
 		if(useron.misc&(RIP|WIP|HTML)
-			|| (useron.misc&ANSI && yesno(text[ColorTerminalQ])))
+			|| (useron.misc&ANSI && text[ColorTerminalQ][0] && yesno(text[ColorTerminalQ])))
 			useron.misc|=COLOR;
-		if(!yesno(text[ExAsciiTerminalQ]))
+		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		for(i=0;i<cfg.total_xedits;i++)
 			if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit)
@@ -189,7 +189,7 @@ bool sbbs_t::logon()
 	logon_ml=useron.level;
 	logontime=time(NULL);
 	starttime=logontime;
-	useron.logontime=logontime;
+	useron.logontime=(time32_t)logontime;
 	last_ns_time=ns_time=useron.ns_time;
 	// ns_time-=(useron.tlast*60); /* file newscan time == last logon time */
 	delfiles(cfg.temp_dir,ALLFILES);
@@ -206,7 +206,7 @@ bool sbbs_t::logon()
 	CLS;
 	if(useron.rows)
 		rows=useron.rows;
-	unixtodstr(&cfg,logontime,str);
+	unixtodstr(&cfg,(time32_t)logontime,str);
 	if(!strncmp(str,useron.birth,5) && !(useron.rest&FLAG('Q'))) {
 		bputs(text[HappyBirthday]);
 		pause();
@@ -260,8 +260,8 @@ bool sbbs_t::logon()
 				break; 
 			}
 			strcpy(useron.pass,str);
-			useron.pwmod=time(NULL);
-			putuserrec(&cfg,useron.number,U_PWMOD,8,ultoa(useron.pwmod,str,16));
+			useron.pwmod=time32(NULL);
+			putuserrec(&cfg,useron.number,U_PWMOD,8,ultoa((ulong)useron.pwmod,str,16));
 			bputs(text[PasswordChanged]);
 			pause(); 
 		}
@@ -344,7 +344,10 @@ bool sbbs_t::logon()
 						break; 
 				}
 			if(cfg.uq&UQ_PHONE && !useron.phone[0]) {
-				i=yesno(text[CallingFromNorthAmericaQ]);
+				if(text[CallingFromNorthAmericaQ][0])
+					i=yesno(text[CallingFromNorthAmericaQ]);
+				else
+					i=0;
 				while(online) {
 					bputs(text[EnterYourPhoneNumber]);
 					if(i) {
@@ -480,11 +483,9 @@ bool sbbs_t::logon()
 			}
 			if(node.status==NODE_INUSE && i!=cfg.node_num && node.useron==useron.number
 				&& !SYSOP && !(useron.exempt&FLAG('G'))) {
-				strcpy(tmp,"On two nodes at the same time");
-				sprintf(str,"(%04u)  %-25s  %s"
-					,useron.number,useron.alias,tmp);
+				SAFEPRINTF2(str,"(%04u)  %-25s  On two nodes at the same time"
+					,useron.number,useron.alias);
 				logline(LOG_NOTICE,"+!",str);
-				errorlog(tmp);
 				bputs(text[UserOnTwoNodes]);
 				hangup();
 				return(false); 
@@ -514,13 +515,13 @@ bool sbbs_t::logon()
 	sys_status&=~SS_PAUSEON;	/* Turn off the pause override flag */
 	if(online==ON_REMOTE)
 		rioctl(IOSM|ABORT);		/* Turn abort ability on */
-	if(mailw) {
+	if(text[ReadYourMailNowQ][0] && mailw) {
 		if(yesno(text[ReadYourMailNowQ]))
 			readmail(useron.number,MAIL_YOUR); 
 	}
-	if(usrgrps && useron.misc&ASK_NSCAN && yesno(text[NScanAllGrpsQ]))
+	if(usrgrps && useron.misc&ASK_NSCAN && text[NScanAllGrpsQ][0] && yesno(text[NScanAllGrpsQ]))
 		scanallsubs(SCAN_NEW);
-	if(usrgrps && useron.misc&ASK_SSCAN && yesno(text[SScanAllGrpsQ]))
+	if(usrgrps && useron.misc&ASK_SSCAN && text[SScanAllGrpsQ][0] && yesno(text[SScanAllGrpsQ]))
 		scanallsubs(SCAN_TOYOU);
 	return(true);
 }
@@ -555,9 +556,9 @@ ulong sbbs_t::logonstats()
 	read(dsts,&stats.logons,4);		/* Total number of logons on system */
 	close(dsts);
 	now=time(NULL);
-	now32=now;
+	now32=(time32_t)now;
 	if(update_t>now+(24L*60L*60L)) /* More than a day in the future? */
-		errormsg(WHERE,ERR_CHK,"Daily stats time stamp",update_t);
+		errormsg(WHERE,ERR_CHK,"Daily stats time stamp",(ulong)update_t);
 	if(localtime_r(&update_t,&update_tm)==NULL)
 		return(0);
 	if(localtime_r(&now,&tm)==NULL)
