@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.552 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: websrvr.c,v 1.553 2011/10/19 08:53:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1323,7 +1323,7 @@ static void send_error(http_session_t * session, const char* message)
 				sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code);
 		}
 		else
-			sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code,startup->ssjs_ext);
+			sprintf(session->req.physical_path,"%s%s.html",error_dir,error_code);
 		session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
 		send_headers(session,message,FALSE);
 		if(!stat(session->req.physical_path,&sb)) {
@@ -5216,7 +5216,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.552 $", "%*s %s", revision);
+	sscanf("$Revision: 1.553 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
