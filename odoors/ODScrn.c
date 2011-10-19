@@ -1854,7 +1854,7 @@ BOOL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
  *
  *     Return: void.
  */
-void ODScrnDisplayString(const char *pszString)
+void ODScrnDisplayString(char *pszString)
 {
    ODScrnDisplayBuffer(pszString, strlen(pszString));
 }
@@ -1875,9 +1875,9 @@ void ODScrnDisplayString(const char *pszString)
  *
  *     Return: void.
  */
-void ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay)
+void ODScrnDisplayBuffer(char *pBuffer, INT nCharsToDisplay)
 {
-   const char *pchCurrentChar = pBuffer;
+   char *pchCurrentChar = pBuffer;
    INT nCharsLeft = nCharsToDisplay;
    BYTE ODFAR *pDest;
    BYTE btLeftColumn;
