@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.44 2010/03/08 22:45:00 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.46 2010/03/09 03:53:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -549,7 +549,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 		xm->errors=0;
 		while(sent_bytes < st.st_size && xm->errors<=xm->max_errors && !is_cancelled(xm)
 			&& is_connected(xm)) {
-			fseek(fp,(fileoff_t)sent_bytes,SEEK_SET);
+			fseeko(fp,(off_t)sent_bytes,SEEK_SET);
 			memset(block,CPMEOF,xm->block_size);
 			if(!sent_header) {
 				if(xm->block_size>XMODEM_MIN_BLOCK_SIZE) {
@@ -563,18 +563,18 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			}
 			if((rd=fread(block,1,xm->block_size,fp))!=xm->block_size 
 				&& (sent_bytes + rd) != st.st_size) {
-				lprintf(xm,LOG_ERR,"ERROR %d reading %u bytes at file offset %"PRIu64
-					,errno,xm->block_size,(uint64_t)ftell(fp));
+				lprintf(xm,LOG_ERR,"ERROR %d reading %u bytes at file offset %"PRId64
+					,errno,xm->block_size,(int64_t)ftello(fp));
 				xm->errors++;
 				continue;
 			}
 			if(xm->progress!=NULL)
-				xm->progress(xm->cbdata,block_num,ftell(fp),st.st_size,startfile);
+				xm->progress(xm->cbdata,block_num,ftello(fp),st.st_size,startfile);
 			xmodem_put_block(xm, block, xm->block_size, block_num);
 			if(xmodem_get_ack(xm, /* tries: */5,block_num) != ACK) {
 				xm->errors++;
-				lprintf(xm,LOG_WARNING,"Block %u: Error #%d at offset %"PRIu64
-					,block_num, xm->errors,ftell(fp)-xm->block_size);
+				lprintf(xm,LOG_WARNING,"Block %u: Error #%d at offset %"PRId64
+					,block_num, xm->errors,(int64_t)(ftello(fp)-xm->block_size));
 				if(xm->errors==3 && block_num==1 && xm->block_size>XMODEM_MIN_BLOCK_SIZE) {
 					lprintf(xm,LOG_NOTICE,"Block %u: Falling back to 128-byte blocks", block_num);
 					xm->block_size=XMODEM_MIN_BLOCK_SIZE;
@@ -614,7 +614,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.44 $", "%*s %s", buf);
+	sscanf("$Revision: 1.46 $", "%*s %s", buf);
 
 	return(buf);
 }
