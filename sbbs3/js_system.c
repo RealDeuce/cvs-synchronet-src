@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.144 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_system.c,v 1.143 2011/10/19 07:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -925,6 +925,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
 	char*		fname;
@@ -1063,6 +1064,7 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_secondstr(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
 	int32		t=0;
@@ -1468,6 +1470,7 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_exec(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
 	char	*cmd;
@@ -1483,6 +1486,7 @@ js_exec(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_popen(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[1024];
 	char*		cmd;
@@ -1574,6 +1578,7 @@ js_chkname(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool 
 js_chkpid(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		pid=0;
 	jsrefcount	rc;
@@ -1595,6 +1600,7 @@ js_chkpid(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool 
 js_killpid(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		pid=0;
 	jsrefcount	rc;
