@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.386 2011/10/09 17:14:34 cyan Exp $ */
+/* $Id: ftpsrvr.c,v 1.390 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -384,6 +384,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str=NULL;
 	FILE*	fp;
 	jsrefcount	rc;
+	char		*p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -394,8 +395,9 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		str = JS_ValueToString(cx, argv[i]);
 		if (!str)
 		    return JS_FALSE;
+		JSSTRING_TO_STRING(cx, str, p, NULL);
 		rc=JS_SUSPENDREQUEST(cx);
-		fprintf(fp,"%s",JS_GetStringBytes(str));
+		fprintf(fp,"%s", p);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -584,11 +586,11 @@ BOOL js_add_file(JSContext* js_cx, JSObject* array,
 	if(!JS_SetProperty(js_cx, file, "time", &val))
 		return(FALSE);
 
-	val=INT_TO_JSVAL(uploaded);
+	val=INT_TO_JSVAL((int32)uploaded);
 	if(!JS_SetProperty(js_cx, file, "uploaded", &val))
 		return(FALSE);
 
-	val=INT_TO_JSVAL(last_downloaded);
+	val=INT_TO_JSVAL((int32)last_downloaded);
 	if(!JS_SetProperty(js_cx, file, "last_downloaded", &val))
 		return(FALSE);
 
@@ -1014,9 +1016,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 	} while(0);
 
-
-	if(js_script!=NULL) 
-		JS_DestroyScript(js_cx, js_script);
 
 	JS_DeleteProperty(js_cx, parent, "path");
 	JS_DeleteProperty(js_cx, parent, "sort");
@@ -1513,7 +1512,7 @@ static void send_thread(void* arg)
 			if(getfileixb(&scfg,&f)==TRUE && getfiledat(&scfg,&f)==TRUE) {
 				f.timesdled++;
 				putfiledat(&scfg,&f);
-				f.datedled=time(NULL);
+				f.datedled=time32(NULL);
 				putfileixb(&scfg,&f);
 
 				lprintf(LOG_INFO,"%04d %s downloaded: %s (%lu times total)"
@@ -1762,7 +1761,7 @@ static void receive_thread(void* arg)
 			if(scfg.dir[f.dir]->misc&DIR_AONLY)  /* Forced anonymous */
 				f.misc|=FM_ANON;
 			f.cdt=flength(xfer.filename);
-			f.dateuled=time(NULL);
+			f.dateuled=time32(NULL);
 
 			/* Desciption specified with DESC command? */
 			if(xfer.desc!=NULL && *xfer.desc!=0)	
@@ -2538,7 +2537,7 @@ static void ctrl_thread(void* arg)
 
 	/* Initialize client display */
 	client.size=sizeof(client);
-	client.time=time(NULL);
+	client.time=time32(NULL);
 	SAFECOPY(client.addr,host_ip);
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(ftp.client_addr.sin_port);
@@ -2761,7 +2760,7 @@ static void ctrl_thread(void* arg)
 			lprintf(LOG_INFO,"%04d %s logged in (%u today, %u total)"
 				,sock,user.alias,user.ltoday+1, user.logons+1);
 			logintime=time(NULL);
-			timeleft=gettimeleft(&scfg,&user,logintime);
+			timeleft=(long)gettimeleft(&scfg,&user,logintime);
 			ftp_printfile(sock,"hello",230);
 
 #ifdef JAVASCRIPT
@@ -2801,7 +2800,7 @@ static void ctrl_thread(void* arg)
 			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
 			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
 			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
-			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa(logintime,str,16));
+			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa((ulong)logintime,str,16));
 			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
@@ -2815,7 +2814,7 @@ static void ctrl_thread(void* arg)
 		if(!(user.rest&FLAG('G')))
 			getuserdat(&scfg, &user);	/* get current user data */
 
-		if((timeleft=gettimeleft(&scfg,&user,logintime))<1L) {
+		if((timeleft=(long)gettimeleft(&scfg,&user,logintime))<1L) {
 			sockprintf(sock,"421 Sorry, you've run out of time.");
 			lprintf(LOG_WARNING,"%04d Out of time, disconnecting",sock);
 			break;
@@ -2852,7 +2851,7 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 		if(!stricmp(cmd, "SITE UPTIME")) {
-			sockprintf(sock,"211 %s (%lu served)",sectostr(time(NULL)-uptime,str),served);
+			sockprintf(sock,"211 %s (%lu served)",sectostr((uint)(time(NULL)-uptime),str),served);
 			continue;
 		}
 		if(!stricmp(cmd, "SITE RECYCLE") && user.level>=SYSOP_LEVEL) {
@@ -4661,7 +4660,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.386 $", "%*s %s", revision);
+	sscanf("$Revision: 1.390 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
