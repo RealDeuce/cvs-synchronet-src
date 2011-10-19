@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.64 2012/12/19 07:04:36 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.60 2011/10/19 07:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #ifdef BUILD_JSDOCS
 
 static char* msg_area_prop_desc[] = {
-	  "message area settings (bitfield) - see <tt>MM_*</tt> in <tt>sbbsdefs.js</tt> for details"
+	,"message area settings (bitfield) - see <tt>MM_*</tt> in <tt>sbbsdefs.js</tt> for details"
 	,NULL
 };
 
@@ -55,7 +55,7 @@ static char* msg_grp_prop_desc[] = {
 	,NULL
 };
 
-static char* msg_sub_prop_desc[] = {
+static char* msg_area_prop_desc[] = {
 
 	 "index into sub_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
 	,"group's index into grp_list array <i>(introduced in v3.12)</i>"
@@ -232,7 +232,7 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		return(FALSE);
 
 #ifdef BUILD_JSDOCS
-	js_CreateArrayOfStrings(cx, subobj, "_property_desc_list", msg_sub_prop_desc, JSPROP_READONLY);
+	js_CreateArrayOfStrings(cx, subobj, "_property_desc_list", msg_area_prop_desc, JSPROP_READONLY);
 #endif
 
 	return(TRUE);
@@ -290,17 +290,14 @@ static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
-			if(!JS_ValueToInt32(cx, *vp, (int32*)&scan->ptr))
-				return JS_FALSE;
+			JS_ValueToInt32(cx, *vp, (int32*)&scan->ptr);
 			break;
 		case SUB_PROP_SCAN_CFG:
-			if(!JS_ValueToInt32(cx, *vp, &val))
-				return JS_FALSE;
+			JS_ValueToInt32(cx, *vp, &val);
 			scan->cfg=(ushort)val;
 			break;
 		case SUB_PROP_LAST_READ:
-			if(!JS_ValueToInt32(cx, *vp, (int32*)&scan->last))
-				return JS_FALSE;
+			JS_ValueToInt32(cx, *vp, (int32*)&scan->last);
 			break;
 	}
 
@@ -461,29 +458,6 @@ JSObject* DLLCALL js_CreateMsgAreaObject(JSContext* cx, JSObject* parent, scfg_t
 
 			if((subobj=JS_NewObject(cx, &js_sub_class, subobj_proto, NULL))==NULL)
 				return(NULL);
-/** Crash ^^^ Here in JSexec/ircd upon recycle/reload of script:
-
- 	mozjs185-1.0.dll!62e4a968() 	
- 	[Frames below may be incorrect and/or missing, no symbols loaded for mozjs185-1.0.dll]	
- 	mozjs185-1.0.dll!62eda4b2() 	
- 	mozjs185-1.0.dll!62e9cd4e() 	
- 	mozjs185-1.0.dll!62ea3cf0() 	
- 	mozjs185-1.0.dll!62e4e39e() 	
- 	mozjs185-1.0.dll!62edd884() 	
- 	mozjs185-1.0.dll!62e8010f() 	
- 	mozjs185-1.0.dll!62e5b0c9() 	
- 	mozjs185-1.0.dll!62e4b1ee() 	
->	sbbs.dll!js_CreateMsgAreaObject(JSContext * cx=0x07b33ce8, JSObject * parent=0x0a37f028, scfg_t * cfg=0x004a2b20, user_t * user=0x00000000, client_t * client=0x00000000, subscan_t * subscan=0x00000000)  Line 459 + 0x17 bytes	C
- 	sbbs.dll!js_CreateUserObjects(JSContext * cx=0x07b33ce8, JSObject * parent=0x0a37f028, scfg_t * cfg=0x004a2b20, user_t * user=0x00000000, client_t * client=0x00000000, char * html_index_file=0x00000000, subscan_t * subscan=0x00000000)  Line 1431 + 0x1d bytes	C
- 	sbbs.dll!js_CreateCommonObjects(JSContext * js_cx=0x07b33ce8, scfg_t * cfg=0x004a2b20, scfg_t * node_cfg=0x004a2b20, jsSyncMethodSpec * methods=0x00000000, __int64 uptime=0, char * host_name=0x101bdaa6, char * socklib_desc=0x101bdaa6, js_branch_t * branch=0x019c8f30, js_startup_t * js_startup=0x0012f7cc, client_t * client=0x00000000, unsigned int client_socket=4294967295, js_server_props_t * props=0x00000000)  Line 3858 + 0x1b bytes	C
- 	sbbs.dll!js_load(JSContext * cx=0x02e36300, unsigned int argc=3, unsigned __int64 * arglist=0x01d700d0)  Line 282 + 0x44 bytes	C
- 	mozjs185-1.0.dll!62e91dfd() 	
- 	jsexec.exe!__lock_fhandle(int fh=1240564)  Line 467	C
- 	7ffdf000()	
- 	ffff0007()	
- 	mozjs185-1.0.dll!62fe9c60() 	
-
-*/
 
 			if(subscan!=NULL)
 				JS_SetPrivate(cx,subobj,&subscan[d]);
