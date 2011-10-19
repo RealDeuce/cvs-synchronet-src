@@ -2,7 +2,7 @@
 
 /* Program to delete expired files from a Synchronet file database */
 
-/* $Id: delfiles.c,v 1.8 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: delfiles.c,v 1.6 2008/06/04 04:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 					/* strupr(str); */
 					if(!findfile(&cfg, i,str)) {
 						sprintf(str,"%s%s",tmp,gl.gl_pathv[j]);
-						printf("Removing %s (not in database)\n",gl.gl_pathv[j]);
+						printf("Removing %s (not in database)\n",gl.gl_pathv);
 						if(!(misc&REPORT) && remove(str))
 							printf("Error removing %s\n",str); } } }
 			globfree(&gl);
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 		if(!l) {
 			close(file);
 			continue; }
-		if((ixbbuf=malloc(l))==NULL) {
+		if((ixbbuf=(char *)malloc(l))==NULL) {
 			close(file);
 			printf("\7ERR_ALLOC %s %lu\n",str,l);
 			continue; }
