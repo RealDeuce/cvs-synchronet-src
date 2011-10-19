@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.23 2011/10/26 00:55:00 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.22 2011/10/16 12:20:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,9 +101,6 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 			case AR_WIN32:
 			case AR_UNIX:
 			case AR_LINUX:
-			case AR_ACTIVE:
-			case AR_INACTIVE:
-			case AR_DELETED:
 				break;
 			default:
 				(*ptrptr)++;
