@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.295 2011/10/26 22:44:20 deuce Exp $ */
+/* $Id: js_global.c,v 1.291 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,7 +122,6 @@ static void background_thread(void* arg)
 	SetThreadName("JS Background");
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
-	JS_SetThreadStackLimit(bg->cx, 0);
 	JS_BEGINREQUEST(bg->cx);
 	if(!JS_ExecuteScript(bg->cx, bg->obj, bg->script, &result)
 		&& JS_GetProperty(bg->cx, bg->obj, "exit_code", &exit_code))
@@ -178,6 +177,31 @@ js_OperationCallback(JSContext *cx)
 	return ret;
 }
 #endif
+
+static JSBool
+js_log(JSContext *cx, uintN argc, jsval *arglist)
+{
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
+	JSBool retval;
+	background_data_t* bg;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if((bg=(background_data_t*)JS_GetContextPrivate(cx))==NULL)
+		return JS_FALSE;
+
+	/* Use parent's context private data */
+	JS_SetContextPrivate(cx, JS_GetContextPrivate(bg->parent_cx));
+
+	/* Call parent's log() function */
+	retval = bg->log(cx, argc, arglist);
+
+	/* Restore our context private data */
+	JS_SetContextPrivate(cx, bg);
+
+	return retval;
+}
 
 /* Create a new value in the new context with a value from the original context */
 /* Note: objects (including arrays) not currently supported */
@@ -464,6 +488,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_format(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
     JSString*	str;
@@ -488,6 +513,7 @@ js_format(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_yield(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	BOOL forced=TRUE;
 	jsrefcount	rc;
@@ -510,15 +536,14 @@ js_yield(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_mswait(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32 val=1;
 	clock_t start=msclock();
 	jsrefcount	rc;
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&val))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&val);
 	rc=JS_SUSPENDREQUEST(cx);
 	mswait(val);
 	JS_RESUMEREQUEST(cx, rc);
@@ -531,13 +556,12 @@ js_mswait(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_random(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32 val=100;
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&val))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&val);
 
 	JS_SET_RVAL(cx, arglist,INT_TO_JSVAL(sbbs_random(val)));
 	return(JS_TRUE);
@@ -546,6 +570,8 @@ js_random(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_time(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL((uint32_t)time(NULL)));
 	return(JS_TRUE);
 }
@@ -554,6 +580,7 @@ js_time(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_beep(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32 freq=500;
 	int32 dur=500;
@@ -561,14 +588,10 @@ js_beep(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&freq))
-			return JS_FALSE;
-	}
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&dur))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&freq);
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&dur);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs_beep(freq,dur);
@@ -593,6 +616,7 @@ js_exit(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_crc16(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	size_t		len;
@@ -616,6 +640,7 @@ js_crc16(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_crc32(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	size_t		len;
@@ -641,6 +666,7 @@ js_crc32(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_chksum(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	ulong		sum=0;
 	char*		p;
@@ -667,6 +693,7 @@ js_chksum(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_ascii(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	char		str[2];
@@ -689,8 +716,7 @@ js_ascii(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	/* ascii-int to str */
-	if(!JS_ValueToInt32(cx,argv[0],&i))
-		return JS_FALSE;
+	JS_ValueToInt32(cx,argv[0],&i);
 	str[0]=(uchar)i;
 	str[1]=0;
 
@@ -704,6 +730,7 @@ js_ascii(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_ctrl(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		ch;
 	char*		p;
@@ -723,8 +750,7 @@ js_ctrl(JSContext *cx, uintN argc, jsval *arglist)
 			return(JS_FALSE);
 		ch=*p;
 	} else {
-		if(!JS_ValueToInt32(cx,argv[0],&i))
-			return JS_FALSE;
+		JS_ValueToInt32(cx,argv[0],&i);
 		ch=(char)i;
 	}
 
@@ -741,6 +767,7 @@ js_ctrl(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_ascii_str(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	char*		buf;
@@ -773,6 +800,7 @@ js_ascii_str(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_strip_ctrl(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	char*		buf;
@@ -801,6 +829,7 @@ js_strip_ctrl(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_strip_exascii(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	char*		buf;
@@ -829,6 +858,7 @@ js_strip_exascii(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_lfexpand(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	ulong		i,j;
 	char*		inbuf;
@@ -866,6 +896,7 @@ js_lfexpand(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		len=79;
 	int32		oldlen=79;
@@ -884,15 +915,11 @@ js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 	if(inbuf==NULL) 
 		return(JS_FALSE);
 
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&len))
-			return JS_FALSE;
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&len);
 
-	if(argc>2) {
-		if(!JS_ValueToInt32(cx,argv[2],&oldlen))
-			return JS_FALSE;
-	}
+	if(argc>2)
+		JS_ValueToInt32(cx,argv[2],&oldlen);
 
 	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
 		handle_quotes=JSVAL_TO_BOOLEAN(argv[3]);
@@ -916,6 +943,7 @@ js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_quote_msg(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		len=79;
 	int			i,l,clen;
@@ -935,10 +963,8 @@ js_quote_msg(JSContext *cx, uintN argc, jsval *arglist)
 	if(inbuf==NULL) 
 		return(JS_FALSE);
 
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&len))
-			return JS_FALSE;
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&len);
 
 	if(argc>2)
 		JSVALUE_TO_STRING(cx, argv[2], prefix, NULL);
@@ -991,6 +1017,7 @@ js_quote_msg(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_netaddr_type(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*	str;
 
@@ -1011,6 +1038,7 @@ js_netaddr_type(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_rot13(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	char*		str;
@@ -1291,55 +1319,35 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc>5 && JSVAL_IS_OBJECT(argv[5])) {
 		stateobj=JSVAL_TO_OBJECT(argv[5]);
 		JS_GetProperty(cx,stateobj,"fg",&val);
-		if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx, val, &fg))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_NUMBER(val))
+			fg=JS_ValueToInt32(cx, val, &fg);
 		JS_GetProperty(cx,stateobj,"bg",&val);
-		if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx, val, &bg))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_NUMBER(val))
+			fg=JS_ValueToInt32(cx, val, &bg);
 		JS_GetProperty(cx,stateobj,"lastcolor",&val);
-		if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx, val, &lastcolor))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_NUMBER(val))
+			fg=JS_ValueToInt32(cx, val, &lastcolor);
 		JS_GetProperty(cx,stateobj,"blink",&val);
-		if(JSVAL_IS_BOOLEAN(val)) {
-			if(!JS_ValueToBoolean(cx, val, &blink))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_BOOLEAN(val))
+			fg=JS_ValueToBoolean(cx, val, &blink);
 		JS_GetProperty(cx,stateobj,"bold",&val);
-		if(JSVAL_IS_BOOLEAN(val)) {
-			if(!JS_ValueToBoolean(cx, val, &bold))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_BOOLEAN(val))
+			fg=JS_ValueToBoolean(cx, val, &bold);
 		JS_GetProperty(cx,stateobj,"hpos",&val);
-		if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx, val, &hpos))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_NUMBER(val))
+			fg=JS_ValueToInt32(cx, val, &hpos);
 		JS_GetProperty(cx,stateobj,"currrow",&val);
-		if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx, val, &currrow))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_NUMBER(val))
+			fg=JS_ValueToInt32(cx, val, &currrow);
 		JS_GetProperty(cx,stateobj,"wraphpos",&val);
-		if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx, val, &wraphpos))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_NUMBER(val))
+			fg=JS_ValueToInt32(cx, val, &wraphpos);
 		JS_GetProperty(cx,stateobj,"wrapvpos",&val);
-		if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx, val, &wrapvpos))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_NUMBER(val))
+			fg=JS_ValueToInt32(cx, val, &wrapvpos);
 		JS_GetProperty(cx,stateobj,"wrappos",&val);
-		if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx, val, &wrappos))
-				return JS_FALSE;
-		}
+		if(JSVAL_IS_NUMBER(val))
+			fg=JS_ValueToInt32(cx, val, &wrappos);
 	}
 
 	if((tmpbuf=(char*)malloc((strlen(inbuf)*10)+1))==NULL)
@@ -1939,6 +1947,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int			ch;
 	int			val;
@@ -2046,6 +2055,7 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_b64_encode(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int			res;
 	size_t		len;
@@ -2090,6 +2100,7 @@ js_b64_encode(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_b64_decode(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int			res;
 	size_t		len;
@@ -2133,6 +2144,7 @@ js_b64_decode(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_md5_calc(JSContext* cx, uintN argc, jsval* arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	BYTE		digest[MD5_DIGEST_SIZE];
 	JSBool		hex=JS_FALSE;
@@ -2174,6 +2186,7 @@ js_md5_calc(JSContext* cx, uintN argc, jsval* arglist)
 static JSBool
 js_skipsp(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
 	JSString*	js_str;
@@ -2198,6 +2211,7 @@ js_skipsp(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_truncsp(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	char*		str;
@@ -2229,6 +2243,7 @@ js_truncsp(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_truncstr(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	char*		str;
@@ -2265,6 +2280,7 @@ js_truncstr(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		path[MAX_PATH+1];
 	char*		str;
@@ -2292,6 +2308,7 @@ js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_fullpath(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		path[MAX_PATH+1];
 	char*		str;
@@ -2323,6 +2340,7 @@ js_fullpath(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
 	JSString*	js_str;
@@ -2347,6 +2365,7 @@ js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
 	char*		p;
@@ -2375,6 +2394,7 @@ js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_getfcase(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
 	char		path[MAX_PATH+1];
@@ -2408,13 +2428,12 @@ js_getfcase(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_dosfname(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-#if defined(_WIN32)
 	char*		str;
 	char		path[MAX_PATH+1];
 	JSString*	js_str;
 	jsrefcount	rc;
-#endif
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -2451,6 +2470,7 @@ js_dosfname(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_cfgfname(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		path;
 	char*		fname;
@@ -2482,6 +2502,7 @@ js_cfgfname(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_fexist(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -2504,6 +2525,7 @@ js_fexist(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_removecase(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -2526,6 +2548,7 @@ js_removecase(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_remove(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -2548,6 +2571,7 @@ js_remove(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_rename(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		oldname;
 	char*		newname;
@@ -2575,6 +2599,7 @@ js_rename(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_fcopy(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		src;
 	char*		dest;
@@ -2602,6 +2627,7 @@ js_fcopy(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_fcompare(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		fn1;
 	char*		fn2;
@@ -2629,6 +2655,7 @@ js_fcompare(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_backup(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		fname;
 	int32		level=5;
@@ -2645,14 +2672,10 @@ js_backup(JSContext *cx, uintN argc, jsval *arglist)
 	if(fname==NULL)
 		return(JS_TRUE);
 
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&level))
-			return JS_FALSE;
-	}
-	if(argc>2) {
-		if(!JS_ValueToBoolean(cx,argv[2],&ren))
-			return JS_FALSE;
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&level);
+	if(argc>2)
+		JS_ValueToBoolean(cx,argv[2],&ren);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(backup(fname,level,ren)));
@@ -2663,6 +2686,7 @@ js_backup(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_isdir(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -2685,6 +2709,7 @@ js_isdir(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_fattr(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -2709,6 +2734,7 @@ js_fattr(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_fdate(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	time_t		fd;
@@ -2733,6 +2759,7 @@ js_fdate(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_utime(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*			fname;
 	int32			actime;
@@ -2756,12 +2783,8 @@ js_utime(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1) {
 		actime=modtime=(int32_t)ut.actime;
-		if(!JS_ValueToInt32(cx,argv[1],&actime))
-			return JS_FALSE;
-		if(argc>2) {
- 			if(!JS_ValueToInt32(cx,argv[2],&modtime))
-				return JS_FALSE;
-		}
+		JS_ValueToInt32(cx,argv[1],&actime);
+		JS_ValueToInt32(cx,argv[2],&modtime);
 		ut.actime=actime;
 		ut.modtime=modtime;
 	}
@@ -2777,6 +2800,7 @@ js_utime(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_flength(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	off_t		fl;
@@ -2802,6 +2826,7 @@ js_flength(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_ftouch(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		fname;
 	jsrefcount	rc;
@@ -2824,6 +2849,7 @@ js_ftouch(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		fname;
 	char*		text=NULL;
@@ -2841,10 +2867,8 @@ js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	if(argc > argn && JSVAL_IS_STRING(argv[argn]))
 		JSVALUE_TO_STRING(cx, argv[argn++], text, NULL);
-	if(argc > argn && JSVAL_IS_NUMBER(argv[argn])) {
-		if(!JS_ValueToInt32(cx, argv[argn++], &max_age))
-			return JS_FALSE;
-	}
+	if(argc > argn && JSVAL_IS_NUMBER(argv[argn]))
+		JS_ValueToInt32(cx, argv[argn++], &max_age);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(fmutex(fname,text,max_age)));
@@ -2855,6 +2879,7 @@ js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_sound(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -2888,6 +2913,7 @@ js_sound(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_directory(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int			i;
 	int32		flags=GLOB_MARK;
@@ -2910,10 +2936,8 @@ js_directory(JSContext *cx, uintN argc, jsval *arglist)
 	if(p==NULL) 
 		return(JS_FALSE);
 
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&flags))
-			return JS_FALSE;
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&flags);
 
     if((array = JS_NewArrayObject(cx, 0, NULL))==NULL)
 		return(JS_FALSE);
@@ -2940,6 +2964,7 @@ js_directory(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_wildmatch(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	BOOL		case_sensitive=FALSE;
 	BOOL		path=FALSE;
@@ -2979,6 +3004,7 @@ js_wildmatch(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_freediskspace(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		unit=0;
 	char*		p;
@@ -2994,10 +3020,8 @@ js_freediskspace(JSContext *cx, uintN argc, jsval *arglist)
 	if(p==NULL) 
 		return(JS_FALSE);
 
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&unit))
-			return JS_FALSE;
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&unit);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	fd=getfreediskspace(p,unit);
@@ -3010,6 +3034,7 @@ js_freediskspace(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_disksize(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		unit=0;
 	char*		p;
@@ -3025,10 +3050,8 @@ js_disksize(JSContext *cx, uintN argc, jsval *arglist)
 	if(p==NULL) 
 		return(JS_FALSE);
 
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&unit))
-			return JS_FALSE;
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&unit);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	ds=getdisksize(p,unit);
@@ -3041,6 +3064,7 @@ js_disksize(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	inarray=NULL;
 	JSObject*	rarray;
@@ -3126,6 +3150,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_mkdir(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -3148,6 +3173,7 @@ js_mkdir(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_mkpath(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -3170,6 +3196,7 @@ js_mkpath(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_rmdir(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -3193,6 +3220,7 @@ js_rmdir(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_strftime(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
 	char*		fmt;
@@ -3211,10 +3239,8 @@ js_strftime(JSContext *cx, uintN argc, jsval *arglist)
 	if(fmt==NULL) 
 		return(JS_FALSE);
 
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&i))
-			return JS_FALSE;
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],&i);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	strcpy(str,"-Invalid time-");
@@ -3233,6 +3259,7 @@ js_strftime(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_resolve_ip(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	struct in_addr addr;
 	JSString*	str;
@@ -3265,6 +3292,7 @@ js_resolve_ip(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_resolve_host(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	struct in_addr addr;
 	HOSTENT*	h;
@@ -3297,6 +3325,8 @@ extern link_list_t named_queues;	/* js_queue.c */
 static JSBool
 js_list_named_queues(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	array;
     jsint       len=0;
 	jsval		val;
@@ -3333,6 +3363,7 @@ js_list_named_queues(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_flags_str(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	char		str[64];

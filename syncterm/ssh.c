@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.12 2011/10/20 23:01:24 deuce Exp $ */
+/* $Id: ssh.c,v 1.10 2011/10/17 22:46:39 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -26,7 +26,7 @@ static void cryptlib_error_message(int status, char * msg)
 	char	*errmsg;
 	int		err_len;
 
-	sprintf(str,"Error %d %s\r\n\r\n",status, msg);
+	sprintf(str,"Error %d %s",status, msg);
 	cl.GetAttributeString(ssh_session, CRYPT_ATTRIBUTE_ERRORMESSAGE, NULL, &err_len);
 	errmsg=(char *)malloc(err_len+strlen(str)+5);
 	strcpy(errmsg, str);
@@ -97,7 +97,9 @@ void ssh_output_thread(void *args)
 	while(ssh_active && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
 		wr=conn_buf_wait_bytes(&conn_outbuf, 1, 100);
+		pthread_mutex_unlock(&(conn_outbuf.mutex));
 		if(wr) {
+			pthread_mutex_lock(&(conn_outbuf.mutex));
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
 			sent=0;
@@ -116,8 +118,6 @@ void ssh_output_thread(void *args)
 			if(sent)
 				cl.FlushData(ssh_session);
 		}
-		else
-			pthread_mutex_unlock(&(conn_outbuf.mutex));
 	}
 	conn_api.output_thread_running=0;
 }
