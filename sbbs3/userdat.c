@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.150 2013/09/15 08:39:47 rswindell Exp $ */
+/* $Id: userdat.c,v 1.139 2011/10/16 12:33:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -70,9 +70,11 @@ uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
 		return(1);
 
 	SAFEPRINTF(str,"%suser/name.dat",cfg->data_dir);
-	if((stream=fnopen(&file,str,O_RDONLY))==NULL)
+	if((file=nopen(str,O_RDONLY))==-1)
 		return(0);
 	length=(long)filelength(file);
+	if((stream=fdopen(file,"rb"))==NULL)
+		return(0);
 	for(l=0;l<length;l+=LEN_ALIAS+2) {
 		fread(dat,sizeof(dat),1,stream);
 		for(c=0;c<LEN_ALIAS;c++)
@@ -243,11 +245,6 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	unlock(file,(long)((long)(user_number-1)*U_LEN),U_LEN);
 	close(file);
-
-	/* The user number needs to be set here
-	   before calling chk_ar() below for user-number comparisons in AR strings to function correctly */
-	user->number=user_number;	/* Signal of success */
-
 	/* order of these function calls is irrelevant */
 	getrec(userdat,U_ALIAS,LEN_ALIAS,user->alias);
 	getrec(userdat,U_NAME,LEN_NAME,user->name);
@@ -352,6 +349,8 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	getrec(userdat,U_CHAT,8,str);
 	user->chat=ahtoul(str);
 
+	user->number=user_number;	/* Signal of success */
+
 	/* Reset daily stats if not already logged on today */
 	if(user->ltoday || user->etoday || user->ptoday || user->ttoday) {
 		time_t		now;
@@ -360,7 +359,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 		now=time(NULL);
 		if(localtime_r(&now, &now_tm)!=NULL 
-			&& localtime32(&user->logontime, &logon_tm)!=NULL) {
+			&& localtime_r(&user->logontime, &logon_tm)!=NULL) {
 			if(now_tm.tm_year!=logon_tm.tm_year
 				|| now_tm.tm_mon!=logon_tm.tm_mon
 				|| now_tm.tm_mday!=logon_tm.tm_mday)
@@ -951,10 +950,8 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 						,"paging node %u for private chat",node->aux);
                     break;
                 case NODE_PCHT:
-                    if(node->aux==0)
-                        sprintf(str+strlen(str)
-							,"in local chat with %s"
-							,cfg->sys_op);
+                    if(!node->aux)
+                        strcat(str,"in local chat with sysop");
                     else
                         sprintf(str+strlen(str)
 							,"in private chat with node %u"
@@ -1377,9 +1374,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 			case AR_WIN32:
 			case AR_UNIX:
 			case AR_LINUX:
-			case AR_ACTIVE:
-			case AR_INACTIVE:
-			case AR_DELETED:
 				break;
 			default:
 				(*ptrptr)++;
@@ -2184,7 +2178,7 @@ void DLLCALL resetdailyuserdat(scfg_t* cfg, user_t* user, BOOL write)
 	if(write) putuserrec(cfg,user->number,U_TTODAY,5,"0");
 	/* extra time today */
 	user->textra=0;
-	if(write) putuserrec(cfg,user->number,U_TEXTRA,5,"0");
+	if(write) putuserrec(cfg,user->number,U_TEXTRA,5,"0");	
 }
 
 /****************************************************************************/
@@ -2533,41 +2527,10 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 }
 
 /****************************************************************************/
-/* Determine if the specified user can or cannot send email					*/
-/* 'reason' is an (optional) pointer to a text.dat item number				*/
-/* usernumber==0 for netmail												*/
-/****************************************************************************/
-BOOL DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint* reason)
-{
-	if(reason!=NULL)
-		*reason=R_Email;
-	if(user==NULL || user->number==0)
-		return FALSE;
-	if(usernumber>1 && user->rest&FLAG('E'))			/* local mail restriction? */
-		return FALSE;
-	if(reason!=NULL)
-		*reason=NoNetMailAllowed;
-	if(usernumber==0 && user->rest&FLAG('M'))			/* netmail restriction */
-		return FALSE;
-	if(reason!=NULL)
-		*reason=R_Feedback;
-	if(usernumber==1 && user->rest&FLAG('S'))			/* feedback restriction? */
-		return FALSE;
-	if(reason!=NULL)
-		*reason=TooManyEmailsToday;
-	if(user->etoday>=cfg->level_emailperday[user->level] && !(user->exempt&FLAG('M')))
-		return FALSE;
-
-	return TRUE;
-}
-
-/****************************************************************************/
 /* Determine if the specified user is a sub-board operator					*/
 /****************************************************************************/
 BOOL DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client)
 {
-	if(user==NULL)
-		return FALSE;
 	if(!can_user_access_sub(cfg, subnum, user, client))
 		return FALSE;
 	if(user->level>=SYSOP_LEVEL)
@@ -2613,7 +2576,7 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const 
 	char	ip_can[MAX_PATH+1];
 	char	tstr[64];
     FILE*	fp;
-    time32_t now=time32(NULL);
+    time_t	now=time(NULL);
 
 	if(ip_addr==NULL)
 		return(FALSE);
@@ -2771,13 +2734,13 @@ void DLLCALL loginSuccess(link_list_t* list, SOCKADDR_IN* addr)
 ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* prot, const char* user, const char* pass)
 {
 	list_node_t*		node;
-	login_attempt_t		first;
+	login_attempt_t		first={0};
 	login_attempt_t*	attempt=&first;
 	ulong				count=0;
 
 	if(list==NULL)
 		return 0;
-	memset(&first, 0, sizeof(first));
+
 	listLock(list);
 	if((node=login_attempted(list, addr)) != NULL) {
 		attempt=node->data;
@@ -2786,7 +2749,7 @@ ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* pro
 			attempt->dupes++;
 	}
 	SAFECOPY(attempt->prot,prot);
-	attempt->time=time32(NULL);
+	attempt->time=time(NULL);
 	attempt->addr=addr->sin_addr;
 	SAFECOPY(attempt->user, user);
 	SAFECOPY(attempt->pass, pass);
