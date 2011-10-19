@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.29 2008/09/28 01:59:34 deuce Exp $ */
+/* $Id: x_cio.c,v 1.31 2011/04/21 09:41:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@
 #endif
 
 #include "ciolib.h"
+#include "keys.h"
 #include "x_cio.h"
 #include "x_events.h"
 
@@ -150,6 +151,18 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 		*ypos=x11_window_ypos;
 	
 	return(0);
+}
+
+/* Mouse event/keyboard thread */
+void x11_mouse_thread(void *data)
+{
+	//uint16_t	key=((CIO_KEY_MOUSE&0xFF)<<8)|((CIO_KEY_MOUSE>>8)&0xFF);
+	uint16_t	key=CIO_KEY_MOUSE;
+
+	while(1) {
+		if(mouse_wait())
+			write(key_pipe[1], &key, 2);
+	}
 }
 
 int x_init(void)
@@ -324,6 +337,14 @@ int x_init(void)
 		xp_dlclose(dl);
 		return(-1);
 	}
+	if((x11.XAllocWMHints=xp_dlsym(dl,XAllocWMHints))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XSetWMProperties=xp_dlsym(dl,XSetWMProperties))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
 
 	if(sem_init(&pastebuf_set, 0, 0))
 		return(-1);
@@ -352,6 +373,7 @@ int x_init(void)
 	}
 
 	_beginthread(x11_event_thread,1<<16,NULL);
+	_beginthread(x11_mouse_thread,1<<16,NULL);
 	sem_wait(&init_complete);
 	if(!x11_initialized) {
 		sem_destroy(&pastebuf_set);

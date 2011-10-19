@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.55 2009/02/12 07:19:36 deuce Exp $ */
+/* $Id: ciolib.h,v 1.56 2011/10/19 02:28:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,7 +252,7 @@ typedef struct {
 	void	(*window)		(int,int,int,int);
 	void	(*delline)		(void);
 	void	(*insline)		(void);
-	int		(*cprintf)		(char *,...);
+	int		(*cprintf)		(const char *,...);
 	int		(*cputs)		(char *);
 	void	(*textbackground)	(int);
 	void	(*textcolor)	(int);
@@ -307,7 +307,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gotoxy(int x, int y);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_cputs(char *str);
-CIOLIBEXPORT int	CIOLIBCALL ciolib_cprintf(char *fmat, ...);
+CIOLIBEXPORT int	CIOLIBCALL ciolib_cprintf(const char *fmat, ...);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textbackground(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textcolor(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_highvideo(void);

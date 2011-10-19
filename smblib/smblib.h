@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.68 2009/03/24 10:30:54 rswindell Exp $ */
+/* $Id: smblib.h,v 1.70 2011/10/16 09:53:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -126,6 +126,8 @@ SMBEXPORT int 		SMBCALL smb_addcrc(smb_t* smb, uint32_t crc);
 
 SMBEXPORT int 		SMBCALL smb_hfield_add(smbmsg_t* msg, ushort type, size_t length, void* data, BOOL insert);
 SMBEXPORT int		SMBCALL smb_hfield_add_str(smbmsg_t* msg, ushort type, const char* str, BOOL insert);
+SMBEXPORT int		SMBCALL	smb_hfield_replace(smbmsg_t* msg, ushort type, size_t length, void* data);
+SMBEXPORT int		SMBCALL	smb_hfield_replace_str(smbmsg_t* msg, ushort type, const char* str);
 SMBEXPORT int		SMBCALL smb_hfield_append(smbmsg_t* msg, ushort type, size_t length, void* data);
 SMBEXPORT int		SMBCALL smb_hfield_append_str(smbmsg_t* msg, ushort type, const char* data);
 SMBEXPORT int		SMBCALL smb_hfield_add_list(smbmsg_t* msg, hfield_t** hfield_list, void** hfield_dat, BOOL insert);
@@ -177,9 +179,9 @@ SMBEXPORT void		SMBCALL smb_freemsgtxt(char* buf);
 SMBEXPORT int		SMBCALL smb_findhash(smb_t* smb, hash_t** compare_list, hash_t* found
 										 ,long source_mask, BOOL mark);
 SMBEXPORT int		SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL update);
-SMBEXPORT hash_t*	SMBCALL	smb_hash(ulong msgnum, ulong time, unsigned source
+SMBEXPORT hash_t*	SMBCALL	smb_hash(ulong msgnum, uint32_t time, unsigned source
 								,unsigned flags, const void* data, size_t length);
-SMBEXPORT hash_t*	SMBCALL	smb_hashstr(ulong msgnum, ulong time, unsigned source
+SMBEXPORT hash_t*	SMBCALL	smb_hashstr(ulong msgnum, uint32_t time, unsigned source
 								,unsigned flags, const char* str);
 
 SMBEXPORT hash_t**	SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* text, long source_mask);
