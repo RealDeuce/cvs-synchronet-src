@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.85 2011/10/09 17:14:34 cyan Exp $ */
+/* $Id: js_user.c,v 1.89 2011/10/19 07:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -144,7 +144,7 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	jsval idval;
 	char*		s=NULL;
 	char		tmp[128];
-	ulong		val=0;
+	uint64_t	val=0;
     jsint       tiny;
 	JSString*	js_str;
 	private_t*	p;
@@ -412,7 +412,6 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	jsint		val;
 	ulong		usermisc;
     jsint       tiny;
-	JSString*	js_str;
 	private_t*	p;
 	int32		usernumber;
 	jsrefcount	rc;
@@ -420,10 +419,8 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_TRUE);
 
-	if((js_str=JS_ValueToString(cx,*vp))==NULL)
-		return(JS_FALSE);
-
-	if((str=JS_GetStringBytes(js_str))==NULL)
+	JSVALUE_TO_STRING(cx, *vp, str, NULL);
+	if(str==NULL)
 		return(JS_FALSE);
 
     JS_IdToValue(cx, id, &idval);
@@ -550,7 +547,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_NS_TIME:	 
 			JS_RESUMEREQUEST(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val))
-				putuserrec(p->cfg,p->user->number,U_NS_TIME,0,ultoa(p->user->ns_time=val,tmp,16));
+				putuserrec(p->cfg,p->user->number,U_NS_TIME,0,ultoa((ulong)(p->user->ns_time=val),tmp,16));
 			rc=JS_SUSPENDREQUEST(cx);
 			break;
 		case USER_PROP_PROT:	
@@ -560,7 +557,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_LOGONTIME:	 
 			JS_RESUMEREQUEST(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val))
-				putuserrec(p->cfg,p->user->number,U_LOGONTIME,0,ultoa(p->user->logontime=val,tmp,16));
+				putuserrec(p->cfg,p->user->number,U_LOGONTIME,0,ultoa((ulong)p->user->logontime=val,tmp,16));
 			rc=JS_SUSPENDREQUEST(cx);
 			break;
 			
@@ -572,7 +569,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_PWMOD:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val))
-				putuserrec(p->cfg,p->user->number,U_PWMOD,0,ultoa(p->user->pwmod=val,tmp,16));
+				putuserrec(p->cfg,p->user->number,U_PWMOD,0,ultoa((ulong)p->user->pwmod=val,tmp,16));
 			rc=JS_SUSPENDREQUEST(cx);
 			break;
 		case USER_PROP_LEVEL: 
@@ -634,7 +631,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_EXPIRE:  
 			JS_RESUMEREQUEST(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val))
-				putuserrec(p->cfg,p->user->number,U_EXPIRE,0,ultoa(p->user->expire=val,tmp,16));
+				putuserrec(p->cfg,p->user->number,U_EXPIRE,0,ultoa((ulong)p->user->expire=val,tmp,16));
 			rc=JS_SUSPENDREQUEST(cx);
 			break;
 
@@ -888,20 +885,21 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uchar*		ar;
-	JSString*	js_str;
 	private_t*	p;
 	jsrefcount	rc;
+	char		*ars;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
-	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
+	JSVALUE_TO_STRING(cx,argv[0], ars, NULL);
+	if(ars==NULL)
 		return JS_FALSE;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	ar = arstr(NULL,JS_GetStringBytes(js_str),p->cfg);
+	ar = arstr(NULL,ars,p->cfg);
 
 	js_getuserdat(p);
 
@@ -1099,7 +1097,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(gettimeleft(p->cfg, p->user, (time_t)start_time)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL((int32_t)gettimeleft(p->cfg, p->user, start_time)));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
@@ -1152,7 +1150,7 @@ static JSBool js_user_stats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_user_stats_properties, NULL, NULL, 0));
@@ -1171,7 +1169,7 @@ static JSBool js_user_security_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_user_security_properties, NULL, NULL, 0));
@@ -1190,7 +1188,7 @@ static JSBool js_user_limits_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_user_limits_properties, NULL, NULL, 0));
@@ -1253,7 +1251,7 @@ static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		name=JS_GetStringBytes(JSVAL_TO_STRING(idval));
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	if(name==NULL || strcmp(name, "stats")==0) {
