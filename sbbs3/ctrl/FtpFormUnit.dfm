@@ -1,26 +1,25 @@
 object FtpForm: TFtpForm
-  Left = 519
-  Top = 664
+  Left = 446
+  Top = 759
   Width = 525
   Height = 150
   Caption = 'FTP Server'
   Color = clBtnFace
-  DefaultMonitor = dmPrimary
   DragKind = dkDock
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -10
+  Font.Height = -13
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
   OnHide = FormHide
-  PixelsPerInch = 96
-  TextHeight = 13
+  PixelsPerInch = 120
+  TextHeight = 16
   object ToolBar: TToolBar
     Left = 0
     Top = 0
-    Width = 509
+    Width = 517
     Height = 25
     Caption = 'ToolBar'
     EdgeBorders = []
@@ -140,12 +139,12 @@ object FtpForm: TFtpForm
   object Log: TRichEdit
     Left = 0
     Top = 25
-    Width = 509
-    Height = 87
+    Width = 517
+    Height = 92
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -12
+    Font.Height = -14
     Font.Name = 'MS Sans Serif'
     Font.Style = []
     HideScrollBars = False
