@@ -5,21 +5,20 @@ object ServicesForm: TServicesForm
   Height = 208
   Caption = 'Services'
   Color = clBtnFace
-  DefaultMonitor = dmPrimary
   DragKind = dkDock
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -10
+  Font.Height = -13
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
   OnHide = FormHide
-  PixelsPerInch = 96
-  TextHeight = 13
+  PixelsPerInch = 120
+  TextHeight = 16
   object ToolBar: TToolBar
     Left = 0
     Top = 0
-    Width = 721
+    Width = 729
     Height = 25
     Caption = 'ToolBar'
     EdgeBorders = []
@@ -124,12 +123,12 @@ object ServicesForm: TServicesForm
   object Log: TRichEdit
     Left = 0
     Top = 25
-    Width = 721
-    Height = 145
+    Width = 729
+    Height = 150
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -12
+    Font.Height = -14
     Font.Name = 'MS Sans Serif'
     Font.Style = []
     HideScrollBars = False
