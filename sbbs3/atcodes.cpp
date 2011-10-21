@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.59 2011/04/27 22:59:44 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.61 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -242,8 +242,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(smb_zonestr(sys_timezone(&cfg),str));
 
 	if(!strcmp(sp,"DATE") || !strcmp(sp,"SYSDATE")) {
-		now=time(NULL);
-		return(unixtodstr(&cfg,now,str));
+		return(unixtodstr(&cfg,time32(NULL),str));
 	}
 
 	if(!strcmp(sp,"DATETIME"))
@@ -420,7 +419,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strcmp(sp,"TUSED")) {              /* Synchronet only */
 		now=time(NULL);
-		return(sectostr(now-logontime,str)+1);
+		return(sectostr((uint)(now-logontime),str)+1);
 	}
 
 	if(!strcmp(sp,"TLEFT")) {              /* Synchronet only */
@@ -453,7 +452,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strcmp(sp,"LASTTIMEON")) {
 		memset(&tm,0,sizeof(tm));
-		localtime_r(&useron.laston,&tm);
+		localtime32(&useron.laston,&tm);
 		safe_snprintf(str,maxlen,"%02d:%02d %s"
 			,tm.tm_hour==0 ? 12
 			: tm.tm_hour>12 ? tm.tm_hour-12
@@ -512,7 +511,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 
 	if(!strcmp(sp,"LASTNEW"))
-		return(unixtodstr(&cfg,ns_time,str));
+		return(unixtodstr(&cfg,(time32_t)ns_time,str));
 
 	if(!strcmp(sp,"NEWFILETIME"))
 		return(timestr(ns_time));
@@ -566,7 +565,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strcmp(sp,"EXPDAYS")) {
 		now=time(NULL);
-		l=useron.expire-now;
+		l=(long)(useron.expire-now);
 		if(l<0)
 			l=0;
 		safe_snprintf(str,maxlen,"%lu",l/(1440L*60L));
@@ -913,10 +912,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(nulstr);
 		if(current_msg->to_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg->to,current_msg->to_ext);
-		else if(current_msg->to_net.type!=NET_NONE)
+		else if(current_msg->to_net.type!=NET_NONE) {
+			char tmp[128];
 			safe_snprintf(str,maxlen,"%s (%s)",current_msg->to
-				,smb_netaddr(&current_msg->to_net));
-		else
+				,smb_netaddrstr(&current_msg->to_net,tmp));
+		} else
 			return(current_msg->to);
 		return(str);
 	}
@@ -928,7 +928,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(current_msg->to_ext);
 	}
 	if(!strcmp(sp,"MSG_TO_NET") && current_msg!=NULL)
-		return(smb_netaddr(&current_msg->to_net));
+		return(smb_netaddrstr(&current_msg->to_net,str));
 	if(!strcmp(sp,"MSG_FROM") && current_msg!=NULL) {
 		if(current_msg->from==NULL)
 			return(nulstr);
@@ -936,10 +936,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(text[Anonymous]);
 		if(current_msg->from_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg->from,current_msg->from_ext);
-		else if(current_msg->from_net.type!=NET_NONE)
+		else if(current_msg->from_net.type!=NET_NONE) {
+			char tmp[128];
 			safe_snprintf(str,maxlen,"%s (%s)",current_msg->from
-				,smb_netaddr(&current_msg->from_net));
-		else
+				,smb_netaddrstr(&current_msg->from_net,tmp));
+		} else
 			return(current_msg->from);
 		return(str);
 	}
@@ -959,7 +960,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_FROM_NET") && current_msg!=NULL) {
 		if(current_msg->from_net.type!=NET_NONE
 			&& (!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP))
-			return(smb_netaddr(&current_msg->from_net));
+			return(smb_netaddrstr(&current_msg->from_net,str));
 		return(nulstr);
 	}
 	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)

@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.168 2011/04/27 22:59:45 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.172 2011/10/21 02:54:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,10 +50,10 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.15"  /* Version: Major.minor  */
+#define VERSION 	"3.16"  /* Version: Major.minor  */
 #define REVISION	'a'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31500	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31500 + (tolower(REVISION)-'a'))
+#define VERSION_NUM	(31600	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31600 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
@@ -949,7 +949,7 @@ typedef struct {						/* Users information */
 			cdt,						/* Credits */
 			min,						/* Minutes */
 			freecdt;					/* Free credits (renewed daily) */
-	time_t	firston,					/* Date/Time first called */
+	time32_t firston,					/* Date/Time first called */
 			laston, 					/* Last logoff date/time */
 			expire, 					/* Expiration date */
 			pwmod,						/* Password last modified */
