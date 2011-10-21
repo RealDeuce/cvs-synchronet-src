@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.46 2013/01/11 17:56:38 deuce Exp $ */
+/* $Id: bbslist.h,v 1.45 2008/02/10 06:30:30 rswindell Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -18,8 +18,8 @@
 #define LIST_NAME_MAX	30
 #define LIST_ADDR_MAX	64
 #define MAX_USER_LEN	30
-#define MAX_PASSWD_LEN	128
-#define MAX_SYSPASS_LEN	128
+#define MAX_PASSWD_LEN	16
+#define MAX_SYSPASS_LEN	40
 
 enum {
 	 USER_BBSLIST
