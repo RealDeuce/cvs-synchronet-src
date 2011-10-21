@@ -8,15 +8,16 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include "dirwrap.h"
 #include "sbbs.h"
+#include "dirwrap.h"
 #include "nopen.h"
 #include "sbbsdefs.h"
+#include "conwrap.h"
 
 int 
 main(int argc, char **argv)
 {
-	char		ch, str[PATH_MAX+1], path[PATH_MAX + 1]
+	char		ch, str[MAX_PATH+1], path[MAX_PATH + 1]
 	               ,*lst = "%c) %-25s: %13lu\n"
 	               ,*nv = "\nNew value: ", *p;
 	int		file;
