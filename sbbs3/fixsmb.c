@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.36 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: fixsmb.c,v 1.34 2011/09/05 19:52:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -194,7 +194,7 @@ int fixsmb(char* sub)
 			continue; 
 		}
 		size=smb_hdrblocks(smb_getmsghdrlen(&msg))*SHD_BLOCK_LEN;
-		printf("#%-5"PRIu32" (%06lX) %-25.25s ",msg.hdr.number,l,msg.from);
+		printf("#%-5lu (%06lX) %-25.25s ",msg.hdr.number,l,msg.from);
 
 		if(smb_undelete)
 			msg.hdr.attr&=~MSG_DELETE;
@@ -204,7 +204,7 @@ int fixsmb(char* sub)
 			text=NULL;
 		else
 			text=smb_getmsgtxt(&smb,&msg,GETMSGTXT_BODY_ONLY);
-		i=smb_hashmsg(&smb,&msg,(uchar*)text,TRUE /* update */);
+		i=smb_hashmsg(&smb,&msg,text,TRUE /* update */);
 		if(i!=SMB_SUCCESS)
 			printf("!ERROR %d hashing message\n", i);
 		if(text!=NULL)
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 	int 		i;
 	str_list_t	list;
 
-	sscanf("$Revision: 1.36 $", "%*s %s", revision);
+	sscanf("$Revision: 1.34 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
