@@ -1,12 +1,12 @@
 /* scfgchat.c */
 
-/* $Id: scfgchat.c,v 1.13 2013/09/18 16:52:44 deuce Exp $ */
+/* $Id: scfgchat.c,v 1.10 2010/03/12 08:39:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -205,7 +205,7 @@ when running this chat pager, set this option to either `Standard` or ~Console~.
 void chan_cfg()
 {
 	static int chan_dflt,chan_bar,opt_dflt;
-	char str[128],code[128],done=0;
+	char str[81],code[9],done=0,*p;
 	int j,k;
 	uint i;
 	static chan_t savchan;
@@ -249,8 +249,10 @@ This is the name or description of the chat channel.
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Chat Channel Name",str,25
 			,K_EDIT)<1)
             continue;
-		SAFECOPY(code,str);
-		prep_code(code,/* prefix: */NULL);
+		sprintf(code,"%.8s",str);
+		p=strchr(code,' ');
+		if(p) *p=0;
+        strupr(code);
 		SETHELP(WHERE);
 /*
 `Chat Channel Internal Code:`
@@ -315,7 +317,7 @@ channel name.
 		k=0;
 		sprintf(opt[k++],"%-27.27s%s","Name",cfg.chan[i]->name);
 		sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.chan[i]->code);
-		sprintf(opt[k++],"%-27.27s%"PRIu32,"Cost in Credits",cfg.chan[i]->cost);
+		sprintf(opt[k++],"%-27.27s%lu","Cost in Credits",cfg.chan[i]->cost);
 		sprintf(opt[k++],"%-27.27s%.40s","Access Requirements"
 			,cfg.chan[i]->arstr);
 		sprintf(opt[k++],"%-27.27s%s","Password Protection"
@@ -611,7 +613,7 @@ This is the output string that results from this chat action.
 void guru_cfg()
 {
 	static int guru_dflt,guru_bar,opt_dflt;
-	char str[128],code[128],done=0;
+	char str[81],code[9],done=0,*p;
 	int j,k;
 	uint i;
 	static guru_t savguru;
@@ -654,8 +656,10 @@ This is the name of the selected Guru.
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Guru Name",str,25
 			,0)<1)
             continue;
-		SAFECOPY(code,str);
-		prep_code(code,/* prefix: */NULL);
+		sprintf(code,"%.8s",str);
+		p=strchr(code,' ');
+		if(p) *p=0;
+        strupr(code);
 		SETHELP(WHERE);
 /*
 `Guru Internal Code:`
