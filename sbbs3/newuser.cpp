@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.58 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.64 2011/10/19 21:54:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -105,17 +105,17 @@ BOOL sbbs_t::newuser()
 	/* Sets defaults per sysop config */
 	useron.misc|=(cfg.new_misc&~(DELETED|INACTIVE|QUIET|NETMAIL));
 	useron.qwk=QWK_DEFAULT;
-	useron.firston=useron.laston=useron.pwmod=time(NULL);
+	useron.firston=useron.laston=useron.pwmod=time32(NULL);
 	if(cfg.new_expire) {
 		now=time(NULL);
-		useron.expire=now+((long)cfg.new_expire*24L*60L*60L); 
+		useron.expire=(time32_t)(now+((long)cfg.new_expire*24L*60L*60L)); 
 	} else
 		useron.expire=0;
 	useron.sex=' ';
 	useron.prot=cfg.new_prot;
 	SAFECOPY(useron.comp,client_name);	/* hostname or CID name */
 	SAFECOPY(useron.note,cid);			/* IP address or CID number */
-	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid,true))!=0) {	/* Duplicate IP address */
+	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid, /* del */true))!=0) {	/* Duplicate IP address */
 		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
 		logline(LOG_NOTICE,"N!",useron.comment); 
@@ -160,14 +160,14 @@ BOOL sbbs_t::newuser()
 
 	while(online) {
 
-		if(autoterm || yesno(text[AutoTerminalQ])) {
+		if(autoterm || (text[AutoTerminalQ][0] && yesno(text[AutoTerminalQ]))) {
 			useron.misc|=AUTOTERM;
 			useron.misc|=autoterm; 
 		} else
 			useron.misc&=~AUTOTERM;
 
 		if(!(useron.misc&AUTOTERM)) {
-			if(yesno(text[AnsiTerminalQ]))
+			if(text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
 				useron.misc|=ANSI; 
 			else
 				useron.misc&=~ANSI;
@@ -175,14 +175,14 @@ BOOL sbbs_t::newuser()
 
 		if(useron.misc&ANSI) {
 			useron.rows=0;	/* Auto-rows */
-			if(useron.misc&(RIP|WIP|HTML) || yesno(text[ColorTerminalQ]))
+			if(useron.misc&(RIP|WIP|HTML) || text[ColorTerminalQ][0]==0 || yesno(text[ColorTerminalQ]))
 				useron.misc|=COLOR; 
 			else
 				useron.misc&=~COLOR;
 		}
 		else
 			useron.rows=24;
-		if(!yesno(text[ExAsciiTerminalQ]))
+		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		else
 			useron.misc&=~NO_EXASCII;
@@ -204,26 +204,25 @@ BOOL sbbs_t::newuser()
 			if (!check_name(&cfg,useron.alias)
 				|| (!(cfg.uq&UQ_ALIASES) && !strchr(useron.alias,' '))) {
 				bputs(text[YouCantUseThatName]);
-				if(!yesno(text[ContinueQ]))
+				if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
 					return(FALSE);
 				continue;
 			}
 			break; 
 		}
 		if(!online) return(FALSE);
-		if(cfg.uq&UQ_ALIASES && cfg.uq&UQ_REALNAME) {
+		if((cfg.uq&UQ_ALIASES) && (cfg.uq&UQ_REALNAME)) {
 			while(online) {
 				bputs(text[EnterYourRealName]);
 				getstr(useron.name,LEN_NAME,kmode);
 				if (!check_name(&cfg,useron.name)
 					|| !strchr(useron.name,' ')
-					|| (cfg.uq&UQ_DUPREAL
-						&& userdatdupe(useron.number,U_NAME,LEN_NAME
-							,useron.name,0)))
+					|| ((cfg.uq&UQ_DUPREAL)
+						&& userdatdupe(useron.number,U_NAME,LEN_NAME,useron.name)))
 					bputs(text[YouCantUseThatName]);
 				else
 					break; 
-				if(!yesno(text[ContinueQ]))
+				if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
 					return(FALSE);
 			} 
 		}
@@ -236,18 +235,18 @@ BOOL sbbs_t::newuser()
 		if(!online) return(FALSE);
 		if(!useron.handle[0])
 			sprintf(useron.handle,"%.*s",LEN_HANDLE,useron.alias);
-		while(cfg.uq&UQ_HANDLE && online) {
+		while((cfg.uq&UQ_HANDLE) && online) {
 			bputs(text[EnterYourHandle]);
 			if(!getstr(useron.handle,LEN_HANDLE
 				,K_LINE|K_EDIT|K_AUTODEL|(cfg.uq&UQ_NOEXASC))
 				|| strchr(useron.handle,0xff)
-				|| (cfg.uq&UQ_DUPHAND
-					&& userdatdupe(0,U_HANDLE,LEN_HANDLE,useron.handle,0))
+				|| ((cfg.uq&UQ_DUPHAND)
+					&& userdatdupe(0,U_HANDLE,LEN_HANDLE,useron.handle))
 				|| trashcan(useron.handle,"name"))
 				bputs(text[YouCantUseThatName]);
 			else
 				break; 
-			if(!yesno(text[ContinueQ]))
+			if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
 				return(FALSE);
 		}
 		if(!online) return(FALSE);
@@ -258,10 +257,10 @@ BOOL sbbs_t::newuser()
 					break; 
 			}
 		if(!online) return(FALSE);
-		while(cfg.uq&UQ_LOCATION && online) {
+		while((cfg.uq&UQ_LOCATION) && online) {
 			bputs(text[EnterYourCityState]);
 			if(getstr(useron.location,LEN_LOCATION,kmode)
-				&& (cfg.uq&UQ_NOCOMMAS || strchr(useron.location,',')))
+				&& ((cfg.uq&UQ_NOCOMMAS) || strchr(useron.location,',')))
 				break;
 			bputs(text[CommaInLocationRequired]);
 			useron.location[0]=0; 
@@ -275,8 +274,11 @@ BOOL sbbs_t::newuser()
 			}
 		if(!online) return(FALSE);
 		if(cfg.uq&UQ_PHONE) {
-			usa=yesno(text[CallingFromNorthAmericaQ]);
-			while(online) {
+			if(text[CallingFromNorthAmericaQ][0])
+				usa=yesno(text[CallingFromNorthAmericaQ]);
+			else
+				usa=false;
+			while(online && text[EnterYourPhoneNumber][0]) {
 				bputs(text[EnterYourPhoneNumber]);
 				if(!usa) {
 					if(getstr(useron.phone,LEN_PHONE
@@ -297,7 +299,7 @@ BOOL sbbs_t::newuser()
 			bputs(text[EnterYourSex]);
 			useron.sex=(char)getkeys("MF",0); 
 		}
-		while(cfg.uq&UQ_BIRTH && online) {
+		while((cfg.uq&UQ_BIRTH) && online) {
 			bprintf(text[EnterYourBirthday]
 				,cfg.sys_misc&SM_EURODATE ? "DD/MM/YY" : "MM/DD/YY");
 			if(gettmplt(useron.birth,"nn/nn/nn",K_EDIT)==8 && getage(&cfg,useron.birth))
@@ -310,11 +312,11 @@ BOOL sbbs_t::newuser()
 				&& !trashcan(useron.netmail,"email"))
 				break;
 		}
-		if(useron.netmail[0] && cfg.sys_misc&SM_FWDTONET && yesno(text[ForwardMailQ]))
+		if(useron.netmail[0] && cfg.sys_misc&SM_FWDTONET && text[ForwardMailQ][0] && yesno(text[ForwardMailQ]))
 			useron.misc|=NETMAIL;
 		else 
 			useron.misc&=~NETMAIL;
-		if(yesno(text[UserInfoCorrectQ]))
+		if(text[UserInfoCorrectQ][0]==0 || yesno(text[UserInfoCorrectQ]))
 			break; 
 	}
 	if(!online) return(FALSE);
@@ -346,7 +348,7 @@ BOOL sbbs_t::newuser()
 	if(i<cfg.total_xedits)
 		useron.xedit=i+1;
 
-	if(cfg.total_xedits && cfg.uq&UQ_XEDIT) {
+	if(cfg.total_xedits && (cfg.uq&UQ_XEDIT) && text[UseExternalEditorQ][0]) {
 		if(yesno(text[UseExternalEditorQ])) {
 			for(i=0;i<cfg.total_xedits;i++)
 				uselect(1,i,text[ExternalEditorHeading],cfg.xedit[i]->name,cfg.xedit[i]->ar);
@@ -356,7 +358,7 @@ BOOL sbbs_t::newuser()
 			useron.xedit=0;
 	}
 
-	if(cfg.total_shells>1 && cfg.uq&UQ_CMDSHELL) {
+	if(cfg.total_shells>1 && (cfg.uq&UQ_CMDSHELL)) {
 		for(i=0;i<cfg.total_shells;i++)
 			uselect(1,i,text[CommandShellHeading],cfg.shell[i]->name,cfg.shell[i]->ar);
 		if((int)(i=uselect(0,useron.shell,0,0,0))>=0)
@@ -366,6 +368,7 @@ BOOL sbbs_t::newuser()
 	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true)) {
 		CRLF;
 		SAFECOPY(useron.pass, rlogin_pass);
+		strupr(useron.pass);	/* passwords are case insensitive, but assumed (in some places) to be uppercase in the user database */
 	}
 	else {
 		c=0;
@@ -378,7 +381,7 @@ BOOL sbbs_t::newuser()
 
 		bprintf(text[YourPasswordIs],useron.pass);
 
-		if(cfg.sys_misc&SM_PWEDIT && yesno(text[NewPasswordQ]))
+		if(cfg.sys_misc&SM_PWEDIT && text[NewPasswordQ][0] && yesno(text[NewPasswordQ]))
 			while(online) {
 				bputs(text[NewPassword]);
 				getstr(str,LEN_PASS,K_UPPER|K_LINE);

@@ -2,13 +2,13 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.34 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: filedat.c,v 1.36 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -75,7 +75,7 @@ BOOL DLLCALL getfiledat(scfg_t* cfg, file_t* f)
 	if(!f->size) {					/* only read disk if this is null */
 			getfilepath(cfg,f,str);
 			if((f->size=(long)flength(str))>=0)
-				f->date=fdate(str);
+				f->date=(time32_t)fdate(str);
 	/*
 			}
 		else {
@@ -123,7 +123,7 @@ BOOL DLLCALL putfiledat(scfg_t* cfg, file_t* f)
 	putrec(buf,F_TIMESDLED+5,2,crlf);
 	putrec(buf,F_OPENCOUNT,3,ultoa(f->opencount,tmp,10));
 	putrec(buf,F_OPENCOUNT+3,2,crlf);
-	buf[F_MISC]=f->misc+' ';
+	buf[F_MISC]=(char)f->misc+' ';
 	putrec(buf,F_ALTPATH,2,hexplus(f->altpath,tmp));
 	putrec(buf,F_ALTPATH+2,2,crlf);
 	SAFEPRINTF2(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
@@ -187,7 +187,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 			read(file,&c,1);
 			if(c==ETX) break; 
 		}
-		if(l/F_LEN>=MAX_FILES || l/F_LEN>=cfg->dir[f->dir]->maxfiles) {
+		if(l/F_LEN>=MAX_FILES) {
 			close(file);
 			return(FALSE); 
 		} 
@@ -201,7 +201,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	putrec(fdat,F_TIMESDLED+5,2,crlf);
 	putrec(fdat,F_OPENCOUNT,3,ultoa(f->opencount,tmp,10));
 	putrec(fdat,F_OPENCOUNT+3,2,crlf);
-	fdat[F_MISC]=f->misc+' ';
+	fdat[F_MISC]=(char)f->misc+' ';
 	putrec(fdat,F_ALTPATH,2,hexplus(f->altpath,tmp));
 	putrec(fdat,F_ALTPATH+2,2,crlf);
 	f->datoffset=l;
