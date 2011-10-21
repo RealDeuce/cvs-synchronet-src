@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.15 2010/03/13 05:49:38 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.20 2011/10/19 06:54:02 rswindell Exp $ */
 
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
@@ -123,6 +123,30 @@ void DLLCALL jsrt_Release(JSRuntime *rt)
 			pthread_mutex_unlock(&jsrt_mutex);
 			sem_post(&jsrt_sem);
 		}
+	}
+#endif
+}
+
+void DLLCALL jsrt_TriggerAll(void)
+{
+#if JS_VERSION>180
+	int	i;
+	JSContext	*iterp,*cx;
+
+	if(!initialized)
+		return;
+	for(i=0; i<JSRT_QUEUE_SIZE; i++) {
+		pthread_mutex_lock(&jsrt_mutex);
+#ifdef SHARED_RUNTIMES
+		if(jsrt_queue[i].created) {
+#else
+		if(jsrt_queue[i].used) {
+#endif
+			iterp=NULL;
+			while((cx = JS_ContextIterator(jsrt_queue[i].rt, &iterp)) != NULL)
+				JS_TriggerOperationCallback(cx);
+		}
+		pthread_mutex_unlock(&jsrt_mutex);
 	}
 #endif
 }

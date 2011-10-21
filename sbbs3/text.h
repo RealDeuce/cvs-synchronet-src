@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.13 2009/10/18 09:38:00 rswindell Exp $ */
+/* $Id: text.h,v 1.14 2011/07/21 11:13:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -805,6 +805,7 @@ enum {
 	,CantReadSub
 	,CantPostMsg
 	,OperatorPrompt
+	,AddSubToNewScanQ
 
 	,TOTAL_TEXT
 };
