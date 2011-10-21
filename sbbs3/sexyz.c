@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.131 2011/04/27 02:09:28 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.133 2011/10/20 11:11:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -790,7 +790,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 
 	now=time(NULL);
 	if(now-last_progress>=progress_interval || offset >= fsize || newline) {
-		t=now-start;
+		t=(long)(now-start);
 		if(t<=0)
 			t=1;
 		if((cps=(unsigned)(offset/t))==0)
@@ -859,7 +859,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 
 	now=time(NULL);
 	if(now-last_progress>=progress_interval || current_pos >= zm.current_file_size || newline) {
-		t=now-zm.transfer_start_time;
+		t=(long)(now-zm.transfer_start_time);
 		if(t<=0)
 			t=1;
 		if(zm.transfer_start_pos>current_pos)
@@ -1280,10 +1280,7 @@ static int receive_files(char** fname_list, int fnames)
 						break;
 					}
 
-					if(mode&GMODE)
-						return(-1);
-
-					if(++errors>xm.max_errors) {
+					if(++errors>xm.max_errors || (mode&GMODE)) {
 						lprintf(LOG_ERR,"Too many errors (%u)",errors);
 						xmodem_cancel(&xm);
 						break;
@@ -1514,7 +1511,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.131 $", "%*s %s", revision);
+	sscanf("$Revision: 1.133 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
