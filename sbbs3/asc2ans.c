@@ -2,13 +2,13 @@
 
 /* Converts Synchronet Ctrl-A codes into ANSI escape sequences */
 
-/* $Id: asc2ans.c,v 1.6 2014/01/05 06:37:39 rswindell Exp $ */
+/* $Id: asc2ans.c,v 1.5 2009/02/16 02:52:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,51 +42,38 @@
 #define CTRL_A	'\1'
 #define ANSI	fprintf(out,"\x1b[")
 
-static void print_usage(const char* prog)
-{
-	char revision[16];
-
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
-
-	fprintf(stderr,"\nSynchronet Ctrl-A-Code to ANSI-Terminal-Sequence Conversion Utility v%s\n",revision);
-	fprintf(stderr,"\nusage: %s infile.asc [outfile.ans] [[option] [...]]\n",prog);
-	fprintf(stderr,"\noptions:\n\n");
-	fprintf(stderr,"-strip            strip Ctrl-A codes without ANSI equivalent, e.g. pause, delay\n");
-}
-
 int main(int argc, char **argv)
 {
+	char	revision[16];
 	int		ch;
-	int		i;
-	int		strip=0;
-	FILE*	in=stdin;
-	FILE*	out=stdout;
+	FILE*	in;
+	FILE*	out;
+
+	sscanf("$Revision: 1.5 $", "%*s %s", revision);
 
 	if(argc<2) {
-		print_usage(argv[0]);
+		fprintf(stderr,"\nasc2ans %s\n",revision);
+		fprintf(stderr,"\nusage: %s infile.asc [outfile.ans]\n",argv[0]);
 		return(0); 
 	}
 
-	for(i=1; i<argc; i++)  {
-		if(argv[i][0]=='-') {
-			if(strcmp(argv[i], "-strip") == 0)
-				strip = 1;
-			else {
-				print_usage(argv[0]);
-				return 0;
-			}
-		} else if(in==stdin) {
-			if((in=fopen(argv[i],"rb"))==NULL) {
-				perror(argv[i]);
-				return(1); 
-			}
-		} else if(out==stdout) {
-			if((out=fopen(argv[i],"wb"))==NULL) {
-				perror(argv[i]);
-				return(1);
-			}
+	if(strcmp(argv[1],"-")) {
+		if((in=fopen(argv[1],"rb"))==NULL) {
+			perror(argv[1]);
+			return(1);
 		}
 	}
+	else
+		in=stdin;
+
+	if(argc > 2 && (strcmp(argv[2],"-"))) {
+		if((out=fopen(argv[2],"wb"))==NULL) {
+			perror(argv[2]);
+			return(1);
+		}
+	}
+	else
+		out=stdout;
 
 	while((ch=fgetc(in))!=EOF) {
 		if(ch==CTRL_A) { /* ctrl-a */
@@ -203,8 +190,7 @@ int main(int argc, char **argv)
 					fprintf(out,"47m");
 					break;
 				default:
-					if(!strip)
-						fprintf(out,"\1%c",ch);
+					fprintf(out,"\1%c",ch);
 					break; 
 			} 
 		}
