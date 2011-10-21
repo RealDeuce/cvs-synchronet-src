@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.20 2011/10/24 05:48:39 deuce Exp $ */
+/* $Id: ars.c,v 1.19 2009/03/22 02:27:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,10 +58,10 @@ static BOOL ar_string_arg(int artype)
 #ifdef __BORLANDC__	/* Eliminate warning when buildling Baja */
 #pragma argsused
 #endif
-uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
+uchar* arstr(ushort* count, char* str, scfg_t* cfg)
 {
-	const char*	p;
-	const char*	np;
+	char*	p;
+	char*	np;
 	char	ch;
 	uchar	ar[1024],*ar_buf;
 	int		artype=AR_INVALID;
@@ -686,11 +686,8 @@ uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
 				break;
 		} 
 	}
-	if(!j) {
-		if(count)
-			(*count)=0;
+	if(!j)
 		return((uchar*)nular);	/* Save memory */
-	}
 
 	ar[j++]=AR_NULL;
 	/** DEBUG stuff
@@ -698,11 +695,8 @@ uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
 		lprintf(LOG_DEBUG,"%02X ",(uint)ar[i]);
 	lputs("\r\n");
 	***/
-	if((ar_buf=(uchar *)calloc(j+4,1))==NULL) {	/* Padded for ushort dereferencing */
-		if(count)
-			(*count)=0;
+	if((ar_buf=(uchar *)calloc(j+4,1))==NULL)	/* Padded for ushort dereferencing */
 		return(NULL);
-	}
 	memcpy(ar_buf,ar,j);
 	if(count)
 		(*count)=j;
