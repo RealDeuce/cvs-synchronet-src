@@ -1,4 +1,4 @@
-/* $Id: qwknodes.c,v 1.21 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: qwknodes.c,v 1.19 2008/06/04 04:38:47 deuce Exp $ */
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
@@ -43,9 +43,9 @@ unsigned _stklen=10000;
 smb_t		smb;
 scfg_t		cfg;
 
-void stripctrla(char *str)
+void stripctrla(uchar *str)
 {
-	char out[256];
+	uchar out[256];
 	int i,j;
 
 	for(i=j=0;str[i] && j<sizeof(out)-1;i++) {
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	char		*ctrl_dir;
 	char		revision[16];
 
-	sscanf("$Revision: 1.21 $", "%*s %s", revision);
+	sscanf("$Revision: 1.19 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List Generator v%s-%s\n"
 		,revision, PLATFORM_DESC);
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 			fseek(smb.sid_fp,msg.offset*sizeof(idxrec_t),SEEK_SET);
 			if(!fread(&msg.idx,1,sizeof(idxrec_t),smb.sid_fp))
 				break;
-			fprintf(stderr,"%-5u\r",msg.offset+1);
+			fprintf(stderr,"%-5lu\r",msg.offset+1);
 			if(msg.idx.to==smm || msg.idx.to==sbl)
 				continue;
 			if(max_age && now-msg.idx.time>((ulong)max_age*24UL*60UL*60UL))
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
 				if(msg.from_net.type!=NET_QWK)
 					msg.from_net.addr="";
 				if(cmd&USERS) {
-					sprintf(str,"%s%s",(char *)msg.from_net.addr,(char *)msg.from);
+					sprintf(str,"%s%s",msg.from_net.addr,msg.from);
 					curcrc=crc32(str,0); 
 				}
 				else
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
 						if(msg.from_net.type!=NET_QWK)
 							strcpy(str,cfg.sys_id);
 						else if(mode&FEED)
-							sprintf(str,"%s/%s",cfg.sys_id,(char *)msg.from_net.addr);
+							sprintf(str,"%s/%s",cfg.sys_id,msg.from_net.addr);
 						else
 							strcpy(str,msg.from_net.addr);
 						p=strrchr(str,'/');
@@ -388,7 +388,7 @@ int main(int argc, char **argv)
 						if(mode&TAGS)
 							gettag(msg,tag);
 						if(mode&FEED)
-							sprintf(str,"%s/%s",cfg.sys_id,(char *)msg.from_net.addr);
+							sprintf(str,"%s/%s",cfg.sys_id,msg.from_net.addr);
 						else
 							strcpy(str,msg.from_net.addr);
 						p=strrchr(str,'/');
