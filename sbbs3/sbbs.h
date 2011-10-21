@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.376 2011/10/13 23:56:31 deuce Exp $ */
+/* $Id: sbbs.h,v 1.379 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,10 +104,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#define XP_PC
 	#define XP_WIN
 #endif
-#ifndef __cplusplus
-	#include <stdbool.h>
-	#include <inttypes.h>
-#endif
+
+#if defined(JAVASCRIPT)
+#include "comio.h"			/* needed for COM_HANDLE definition only */
 #include <jsversion.h>
 #include <jsapi.h>
 #define JS_DestroyScript(cx,script)
@@ -126,7 +125,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
 			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
 				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
-					(ret)[JSSTSpos]=JSSTSstrval[JSSTSpos]; \
+					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
 				(ret)[*JSSTSlenptr]=0; \
 			} \
 		} \
@@ -138,6 +137,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
 	JSSTRING_TO_STRING((cx), JSVTSstr, (ret), lenptr); \
 }
+
+#endif
 
 #ifdef USE_CRYPTLIB
 #include <cryptlib.h>
@@ -167,7 +168,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	#include "threadwrap.h"	/* pthread_mutex_t */
 #endif
 
-#include "comio.h"
 #include "smblib.h"
 #include "ars_defs.h"
 #include "scfgdefs.h"
@@ -924,11 +924,11 @@ extern "C" {
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
-	DLLEXPORT time_t	DLLCALL dstrtounix(scfg_t*, char *str);
-	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
+	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, char *str);
+	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time32_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
+	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
 

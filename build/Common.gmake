@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.78 2011/10/13 23:36:51 deuce Exp $
+# $Id: Common.gmake,v 1.81 2011/10/21 06:58:17 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -109,7 +109,7 @@
 
 # Set VERSION
 ifndef VERSION
- VERSION	:=	3.15
+ VERSION	:=	3.16
 endif
 
 # Put local (optional) macro definitions in localdefs.mk
@@ -384,6 +384,7 @@ endif
 ifdef DEBUG
  CFLAGS	+=	-ggdb
  CFLAGS	+=	-D_DEBUG
+ CFLAGS +=	-Wall -Wno-char-subscripts
 else # RELEASE
  # -finline functions breaks the baja build badly.
  # This also means that -O3 won't work either.
