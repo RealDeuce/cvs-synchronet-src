@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.139 2011/09/23 06:54:39 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.140 2011/10/16 12:30:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -127,7 +127,7 @@ void sbbs_get_js_settings(
 	js->gc_interval		= iniGetInteger(list,section,strJavaScriptGcInterval	,defaults->gc_interval);
 	js->yield_interval	= iniGetInteger(list,section,strJavaScriptYieldInterval	,defaults->yield_interval);
 
-	/* Get JavaScriptLoadPath, use default is key is missing, use blank if key value is blank */
+	/* Get JavaScriptLoadPath, use default if key is missing, use blank if key value is blank */
     if((p=iniGetExistingString(list, section, strJavaScriptLoadPath, nulstr, value)) == NULL) {
 		if(defaults!=js)
 			SAFECOPY(js->load_path, defaults->load_path);
