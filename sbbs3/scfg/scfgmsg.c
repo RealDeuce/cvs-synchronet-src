@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.37 2013/09/18 16:39:00 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.35 2011/06/30 03:07:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
  ****************************************************************************/
 
 #include "scfg.h"
-#include "strwrap.h"	/* itoa() */
 
 char *utos(char *str)
 {
@@ -125,7 +124,7 @@ void msgs_cfg()
 	char*	tp;
     char	tmp[128];
 	char	tmp_code[32];
-	int		j,k,q,s;
+	int		j,k,l,q,s;
 	int		i,file,ptridx,n;
 	unsigned total_subs;
 	long	ported;
@@ -504,7 +503,7 @@ export the current message group into.
 						,cfg.sub[j]->post_arstr
 						,cfg.sub[j]->op_arstr
 						);
-					fprintf(stream,"%"PRIX32"\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
+					fprintf(stream,"%lX\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
 						,cfg.sub[j]->misc
 						,cfg.sub[j]->tagline
 						,cfg.sub[j]->origline
@@ -512,7 +511,7 @@ export the current message group into.
 						,cfg.sub[j]->newsgroup
 						,smb_faddrtoa(&cfg.sub[j]->faddr,tmp)
 						);
-					fprintf(stream,"%"PRIu32"\r\n%"PRIu32"\r\n%u\r\n%u\r\n%s\r\n"
+					fprintf(stream,"%lu\r\n%lu\r\n%u\r\n%u\r\n%s\r\n"
 						,cfg.sub[j]->maxmsgs
 						,cfg.sub[j]->maxcrcs
 						,cfg.sub[j]->maxage
@@ -781,7 +780,7 @@ void msg_opts()
 		sprintf(opt[i++],"%-33.33s%u seconds"
 			,"Maximum Retry Time",cfg.smb_retry_time);
 		if(cfg.max_qwkmsgs)
-			sprintf(str,"%"PRIu32,cfg.max_qwkmsgs);
+			sprintf(str,"%lu",cfg.max_qwkmsgs);
 		else
 			sprintf(str,"Unlimited");
 		sprintf(opt[i++],"%-33.33s%s"
@@ -804,7 +803,7 @@ void msg_opts()
 			strcpy(str,"Daily");
 		sprintf(opt[i++],"%-33.33s%s","Purge Deleted E-mail",str);
 		if(cfg.mail_maxcrcs)
-			sprintf(str,"Enabled (%"PRIu32" mail CRCs)",cfg.mail_maxcrcs);
+			sprintf(str,"Enabled (%lu mail CRCs)",cfg.mail_maxcrcs);
 		else
 			strcpy(str,"Disabled");
 		sprintf(opt[i++],"%-33.33s%s","Duplicate E-mail Checking",str);
@@ -1178,7 +1177,7 @@ day.
 				}
                 break;
 			case 8:
-				sprintf(str,"%"PRIu32,cfg.mail_maxcrcs);
+				sprintf(str,"%lu",cfg.mail_maxcrcs);
                 SETHELP(WHERE);
 /*
 `Maximum Number of Mail CRCs:`
