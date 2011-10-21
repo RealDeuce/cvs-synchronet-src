@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.13 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: ringbuf.h,v 1.12 2006/05/09 02:55:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ int 	RINGBUFCALL RingBufInit( RingBuf* rb, DWORD size
 void	RINGBUFCALL RingBufDispose( RingBuf* rb );
 DWORD	RINGBUFCALL RingBufFull( RingBuf* rb );
 DWORD	RINGBUFCALL RingBufFree( RingBuf* rb );
-DWORD	RINGBUFCALL RingBufWrite( RingBuf* rb, const BYTE *src,	DWORD cnt );
+DWORD	RINGBUFCALL RingBufWrite( RingBuf* rb, BYTE *src,	DWORD cnt );
 DWORD	RINGBUFCALL RingBufRead( RingBuf* rb, BYTE *dst,  DWORD cnt );
 DWORD	RINGBUFCALL RingBufPeek( RingBuf* rb, BYTE *dst,  DWORD cnt );
 void	RINGBUFCALL RingBufReInit( RingBuf* rb );
