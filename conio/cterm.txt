@@ -111,88 +111,68 @@ CSI = [ p1 [ ; p2 ] ] {
 	SOURCE: CTerm only.
 
 
-CSI = 255 h
+CSI [ = 255 h
 	NON-STANDARD EXTENSION
 	Enable DoorWay Mode
 
 	SOURCE: BANSI.TXT
 
-CSI ? 7 h
-	NON-STANDARD EXTENSION
-    Enable auto wrap.
-    
-    This is the normal mode in which a write to the last column of a
-    row will move the cursor to the start of the next line triggering a
-    scroll if required to create a new line.
-    
-    SOURCE: Digital VT102 User Guide
-
-CSI ? 25 h
+CSI [ ? 25 h
 	NON-STANDARD EXTENSION
 	Display the cursor
 
 	SOURCE: "Installing and Using the VT320 Video Terminal"
 
-CSI ? 31 h
+CSI [ ? 31 h
 	NON-STANDARD EXTENSION
 	Enable alt character set
 
 	With this mode set, the bright (1) graphic rendition selects characters
 	from an alternate character set.
 
-CSI ? 32 h
+CSI [ ? 32 h
 	NON-STANDARD EXTENSION
 	Bright Intensity Disable
 
 	With this mode set, the bright (1) graphic rendition does not cause
 	characters to be display in a bright colour
 
-CSI ? 33 h
+CSI [ ? 33 h
 	NON-STANDARD EXTENSION
 	Blink to Bright Intensity Background
 
 	With this mode set, the blink (5,6) graphic renditions cause the
 	background colour to be high intensity rather than causing blink
 
-CSI = 255 l
+CSI [ = 255 l
 	NON-STANDARD EXTENSION
 	Disable DoorWay Mode
 
 	SOURCE: BANSI.TXT
 
-CSI ? 25 l
+CSI [ ? 25 l
 	NON-STANDARD EXTENSION
 	Hide the cursor
 
 	SOURCE: "Installing and Using the VT320 Video Terminal"
 
-CSI ? 7 l
-	NON-STANDARD EXTENSION
-    Disable auto wrap.
-    
-    This mode causes a write to the last column of a to leave the
-    cursor where it was before the write occured, overwriting anything
-    which was previously written to the same position.
-    
-    SOURCE: Digital VT102 User Guide
-
-CSI ? 31 l
+CSI [ ? 31 l
 	NON-STANDARD EXTENSION
 	Disable alt character set
 
-	Reverses CSI ? 31 h
+	Reverses CSI [ ? 31 h
 
-CSI ? 32 l
+CSI [ ? 32 l
 	NON-STANDARD EXTENSION
 	Bright Intensity Enable
 
-	Reverses CSI ? 32 h
+	Reverses CSI [ ? 32 h
 
-CSI ? 33 l
+CSI [ ? 33 l
 	NON-STANDARD EXTENSION
 	Blink Normal
 
-	Reverses CSI ? 33 h
+	Reverses CSI [ ? 33 h
 
 CSI [ p1 [ ; p2 ] ] * r
 	NON-STANDARD EXTENSION.
@@ -537,32 +517,14 @@ CSI [ p1 ] n
 		(parameters 5 and 6 only)
 	SOURCE: BANSI.TXT (parameter 255)
 
-CSI ? [ p1 [ pX ... ] ] s
-	NON-STANDARD EXTENSION
-    Save Mode Setting
-    Saves the current mode states as specified by CSI l and CSI h.  If
-    p1 is omitted, saves all such states.  If pX is included, saves only
-    the specified states (arguments to CSI l/h).
-    
-    SOURCE: SyncTERM only
-
 CSI s
 	NON-STANDARD EXTENSION
 	Save Current Position
 	Saves the current cursor position for later restoring with CSI u
-	although this is non-standard, it's so widely used in the BBS world
-	that any terminal program MUST implement it.
+	although this is non-standard, it's so widely used in the BBS world that
+	any terminal program MUST implement it.
 
 	SOURCE: ANSI.SYS
-
-CSI ? [ p1 [ pX ... ] ]  u
-	NON-STANDARD EXTENSION
-    Restore Mode Setting
-    Saves the current mode states as specified by CSI l and CSI h.  If
-    p1 is omitted, saves all such states.  If pX is included, restores
-    all the specified states (arguments to CSI l/h)
-    
-    SOURCE: SyncTERM only
 
 CSI u
 	NON-STANDARD EXTENSION
@@ -581,12 +543,12 @@ playing music on a BBS conenction.  They decided to add an "unused" ANSI code
 and go their merry way.  Since their product didn't implement CSI M (Delete
 line) they assumed it was unused and blissfully broke the spec.  They defined
 "ANSI" music as:
-CSI M <music string> 0x0e
+CSI M <music string> 0x0a
 
 They used a subset of IBM BASICs PLAY statement functionality for ANSI music
 strings which oftem start with "MF" or "MB", so the M after the CSI was often
 considered as part of the music string.  You would see things such as:
-CSI MFABCD 0x0e and the F would not be played as a note.  This just added
+CSI MFABCD 0x0a and the F would not be played as a note.  This just added
 further confusion to the mess.
 
 Later on, BananaCom realized the conflict between delete line and music, so they
@@ -675,6 +637,6 @@ an excellent reason to change them (and more correct integer values for all
 notes) I am willing to do that assuming the notes still sound "right".
 
 !!!PLEASE NOTE!!! If you are playing some ANSI Music then ask the user if they
-heard it, ALWAYS follow it with an 0x0f 0x0e is the shift lock character which
+heard it, ALWAYS follow it with an 0x0b 0x0a is the shift lock character which
 *will* cause people with anything but an ANSI-BBS terminal (ie: *nix users using
-the bundled telnet app) to have their screen messed up.  0x0f "undoes" the 0x0e.
+the bundled telnet app) to have their screen messed up.  0x0b "undoes" the 0x0a.
