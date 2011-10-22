@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript branch and GC control */
 
-/* $Id: js_internal.c,v 1.66 2011/10/16 07:44:16 deuce Exp $ */
+/* $Id: js_internal.c,v 1.68 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,7 +254,6 @@ static JSClass eval_class = {
 static JSBool
 js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 {
-	JSObject *parent_obj=JS_THIS_OBJECT(parent_cx, arglist);
 	jsval *argv=JS_ARGV(parent_cx, arglist);
 	char*			buf;
 	size_t			buflen;
@@ -271,7 +270,7 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 
 	if((str=JS_ValueToString(parent_cx, argv[0]))==NULL)
 		return(JS_FALSE);
-	JSSTRING_TO_STRING(cx, str, buf, NULL);
+	JSSTRING_TO_STRING(parent_cx, str, buf, NULL);
 	if(buf==NULL)
 		return(JS_FALSE);
 	buflen=JS_GetStringLength(str);
@@ -349,7 +348,6 @@ js_gc(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_report_error(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char	*p;
 
@@ -389,7 +387,6 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_get_parent(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject* child=NULL;
 	JSObject* parent;
