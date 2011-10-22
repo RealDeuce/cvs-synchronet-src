@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.138 2011/09/23 06:53:26 rswindell Exp $ */
+/* $Id: userdat.c,v 1.142 2011/10/19 16:47:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,7 +359,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 		now=time(NULL);
 		if(localtime_r(&now, &now_tm)!=NULL 
-			&& localtime_r(&user->logontime, &logon_tm)!=NULL) {
+			&& localtime32(&user->logontime, &logon_tm)!=NULL) {
 			if(now_tm.tm_year!=logon_tm.tm_year
 				|| now_tm.tm_mon!=logon_tm.tm_mon
 				|| now_tm.tm_mday!=logon_tm.tm_mday)
@@ -431,10 +431,10 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	putrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	putrec(userdat,U_MODEM,LEN_MODEM,user->modem);
-	putrec(userdat,U_LASTON,8,ultoa(user->laston,str,16));
-	putrec(userdat,U_FIRSTON,8,ultoa(user->firston,str,16));
-	putrec(userdat,U_EXPIRE,8,ultoa(user->expire,str,16));
-	putrec(userdat,U_PWMOD,8,ultoa(user->pwmod,str,16));
+	putrec(userdat,U_LASTON,8,ultoa((ulong)user->laston,str,16));
+	putrec(userdat,U_FIRSTON,8,ultoa((ulong)user->firston,str,16));
+	putrec(userdat,U_EXPIRE,8,ultoa((ulong)user->expire,str,16));
+	putrec(userdat,U_PWMOD,8,ultoa((ulong)user->pwmod,str,16));
 	putrec(userdat,U_PWMOD+8,2,crlf);
 
 	putrec(userdat,U_LOGONS,5,ultoa(user->logons,str,10));
@@ -496,8 +496,8 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_QWK,8,ultoa(user->qwk,str,16));
 	putrec(userdat,U_TMPEXT,3,user->tmpext);
 	putrec(userdat,U_CHAT,8,ultoa(user->chat,str,16));
-	putrec(userdat,U_NS_TIME,8,ultoa(user->ns_time,str,16));
-	putrec(userdat,U_LOGONTIME,8,ultoa(user->logontime,str,16));
+	putrec(userdat,U_NS_TIME,8,ultoa((ulong)user->ns_time,str,16));
+	putrec(userdat,U_LOGONTIME,8,ultoa((ulong)user->logontime,str,16));
 
 	putrec(userdat,U_UNUSED,U_LEN-(U_UNUSED)-2,crlf);
 	putrec(userdat,U_UNUSED+(U_LEN-(U_UNUSED)-2),2,crlf);
@@ -2132,7 +2132,7 @@ BOOL DLLCALL logoutuserdat(scfg_t* cfg, user_t* user, time_t now, time_t logonti
 	tused=(now-logontime)/60;
 	user->tlast=(ushort)(tused > USHRT_MAX ? USHRT_MAX : tused);
 
-	putuserrec(cfg,user->number,U_LASTON,8,ultoa(now,str,16));
+	putuserrec(cfg,user->number,U_LASTON,8,ultoa((ulong)now,str,16));
 	putuserrec(cfg,user->number,U_TLAST,5,ultoa(user->tlast,str,10));
 	adjustuserrec(cfg,user->number,U_TIMEON,5,user->tlast);
 	adjustuserrec(cfg,user->number,U_TTODAY,5,user->tlast);
@@ -2576,7 +2576,7 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const 
 	char	ip_can[MAX_PATH+1];
 	char	tstr[64];
     FILE*	fp;
-    time_t	now=time(NULL);
+    time32_t now=time32(NULL);
 
 	if(ip_addr==NULL)
 		return(FALSE);
@@ -2627,7 +2627,7 @@ time_t DLLCALL gettimeleft(scfg_t* cfg, user_t* user, time_t starttime)
 		if(tleft>cfg->level_timepercall[user->level]*60)
 			tleft=cfg->level_timepercall[user->level]*60;
 		tleft+=user->min*60L;
-		tleft-=now-starttime;
+		tleft-=(long)(now-starttime);
 		if(tleft>0x7fffL)
 			timeleft=0x7fff;
 		else
@@ -2734,7 +2734,7 @@ void DLLCALL loginSuccess(link_list_t* list, SOCKADDR_IN* addr)
 ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* prot, const char* user, const char* pass)
 {
 	list_node_t*		node;
-	login_attempt_t		first={0};
+	login_attempt_t		first = {0};
 	login_attempt_t*	attempt=&first;
 	ulong				count=0;
 
@@ -2749,7 +2749,7 @@ ulong DLLCALL loginFailure(link_list_t* list, SOCKADDR_IN* addr, const char* pro
 			attempt->dupes++;
 	}
 	SAFECOPY(attempt->prot,prot);
-	attempt->time=time(NULL);
+	attempt->time=time32(NULL);
 	attempt->addr=addr->sin_addr;
 	SAFECOPY(attempt->user, user);
 	SAFECOPY(attempt->pass, pass);
