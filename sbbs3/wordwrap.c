@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.6 2010/05/26 04:54:37 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.7 2011/10/19 08:49:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,6 +31,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <ctype.h>
 #include <genwrap.h>
 #include <stdlib.h>		/* realloc */
 #include "wordwrap.h"

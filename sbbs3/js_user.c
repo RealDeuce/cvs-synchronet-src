@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.87 2011/10/11 05:05:56 deuce Exp $ */
+/* $Id: js_user.c,v 1.91 2011/10/19 08:39:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,8 +41,6 @@
 #ifdef JAVASCRIPT
 
 static scfg_t* scfg=NULL;
-
-static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 typedef struct
 {
@@ -144,7 +142,7 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	jsval idval;
 	char*		s=NULL;
 	char		tmp[128];
-	ulong		val=0;
+	uint64_t	val=0;
     jsint       tiny;
 	JSString*	js_str;
 	private_t*	p;
@@ -412,7 +410,6 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	jsint		val;
 	ulong		usermisc;
     jsint       tiny;
-	JSString*	js_str;
 	private_t*	p;
 	int32		usernumber;
 	jsrefcount	rc;
@@ -548,7 +545,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_NS_TIME:	 
 			JS_RESUMEREQUEST(cx, rc);
 			if(JS_ValueToInt32(cx,*vp,&val))
-				putuserrec(p->cfg,p->user->number,U_NS_TIME,0,ultoa(p->user->ns_time=val,tmp,16));
+				putuserrec(p->cfg,p->user->number,U_NS_TIME,0,ultoa((ulong)(p->user->ns_time=val),tmp,16));
 			rc=JS_SUSPENDREQUEST(cx);
 			break;
 		case USER_PROP_PROT:	
@@ -886,7 +883,6 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uchar*		ar;
-	JSString*	js_str;
 	private_t*	p;
 	jsrefcount	rc;
 	char		*ars;
@@ -897,7 +893,7 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 
 	JSVALUE_TO_STRING(cx,argv[0], ars, NULL);
-	if(arstr==NULL)
+	if(ars==NULL)
 		return JS_FALSE;
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1099,7 +1095,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(p);
 
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(gettimeleft(p->cfg, p->user, (time_t)start_time)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL((int32_t)gettimeleft(p->cfg, p->user, start_time)));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
