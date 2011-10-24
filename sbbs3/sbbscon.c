@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.243 2011/09/08 07:10:59 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.247 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,11 +70,6 @@
 #include <stdlib.h>  /* Is this included from somewhere else? */
 #include <syslog.h>
 
-#endif
-
-/* Services doesn't work without JavaScript support */
-#if !defined(JAVASCRIPT)
-	#define	NO_SERVICES
 #endif
 
 /* Global variables */
@@ -403,20 +398,19 @@ int change_user(void)
         lputs(LOG_ERR,"!Setting new user_id failed!  (Does the user exist?)");
         return(-1);
 	} else {
-        char str[256];
         struct passwd *pwent;
         
         pwent=getpwnam(new_uid_name);
         if(pwent != NULL) {
-            char	uenv[128];
-            char	henv[MAX_PATH+6];
+            static char	uenv[128];
+            static char	henv[MAX_PATH+6];
             sprintf(uenv,"USER=%s",pwent->pw_name);
             putenv(uenv);
             sprintf(henv,"HOME=%s",pwent->pw_dir);
             putenv(henv);
         }
         if(new_gid_name[0]) {
-            char	genv[128];
+            static char	genv[128];
             sprintf(genv,"GROUP=%s",new_gid_name);
             putenv(genv);
         }
@@ -1067,7 +1061,6 @@ BOOL WINAPI ControlHandler(unsigned long CtrlType)
 #ifdef __unix__
 void _sighandler_quit(int sig)
 {
-	char	str[1024];
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
 
@@ -2119,7 +2112,7 @@ int main(int argc, char** argv)
 						count=0;
 						for(node=login_attempt_list.first; node!=NULL; node=node->next) {
 							login_attempt=node->data;
-							localtime_r(&login_attempt->time,&tm);
+							localtime32(&login_attempt->time,&tm);
 							printf("%u attempts (%u duplicate) from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
 								,login_attempt->count
 								,login_attempt->dupes
@@ -2145,7 +2138,6 @@ int main(int argc, char** argv)
 				case 'c':	/* Show connected clients: */
 					printf("\nConnected clients:\n\n");
 					{
-						unsigned long		total=0;
 						struct tm			tm;
 						list_node_t*		node;
 						client_t*			client;
@@ -2154,7 +2146,7 @@ int main(int argc, char** argv)
 						count=0;
 						for(node=client_list.first; node!=NULL; node=node->next) {
 							client=node->data;
-							localtime_r(&client->time,&tm);
+							localtime32(&client->time,&tm);
 							printf("%04d %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
 								,node->tag
 								,client->protocol
