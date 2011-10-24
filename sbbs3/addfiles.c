@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.45 2009/08/07 17:20:49 deuce Exp $ */
+/* $Id: addfiles.c,v 1.47 2011/10/20 11:11:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -241,26 +241,26 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			f.cdt=flength(filepath);
 			padfname(getfname(filepath),f.name);
 			printf("%s  %10lu  %s\n"
-				,f.name,f.cdt,unixtodstr(&scfg,fdate(filepath),str));
+				,f.name,f.cdt,unixtodstr(&scfg,(time32_t)fdate(filepath),str));
 			exist=findfile(&scfg,f.dir,f.name);
 			if(exist) {
 				if(mode&NO_UPDATE)
 					continue;
 				getfileixb(&scfg,&f);
 				if(mode&ULDATE_ONLY) {
-					f.dateuled=time(NULL);
+					f.dateuled=time32(NULL);
 					update_uldate(&scfg, &f);
 					continue; 
 				} 
 			}
 
 			if(mode&FILE_DATE) {		/* get the file date and put into desc */
-				unixtodstr(&scfg,fdate(filepath),f.desc);
+				unixtodstr(&scfg,(time32_t)fdate(filepath),f.desc);
 				strcat(f.desc,"  "); 
 			}
 
 			if(mode&TODAYS_DATE) {		/* put today's date in desc */
-				unixtodstr(&scfg,time(NULL),f.desc);
+				unixtodstr(&scfg,time32(NULL),f.desc);
 				strcat(f.desc,"  "); 
 			}
 
@@ -303,7 +303,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 				} 
 			}
 
-			f.dateuled=time(NULL);
+			f.dateuled=time32(NULL);
 			f.altpath=cur_altpath;
 			prep_desc(f.desc);
 			if(mode&ASCII_ONLY)
@@ -388,7 +388,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 				continue;
 			getfileixb(&scfg,&f);
 			if(mode&ULDATE_ONLY) {
-				f.dateuled=time(NULL);
+				f.dateuled=time32(NULL);
 				update_uldate(&scfg, &f);
 				continue; 
 			} 
@@ -398,13 +398,13 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			: scfg.dir[f.dir]->path,fname);
 
 		if(mode&FILE_DATE) {		/* get the file date and put into desc */
-			l=fdate(filepath);
+			l=(time32_t)fdate(filepath);
 			unixtodstr(&scfg,l,f.desc);
 			strcat(f.desc,"  "); 
 		}
 
 		if(mode&TODAYS_DATE) {		/* put today's date in desc */
-			l=time(NULL);
+			l=time32(NULL);
 			unixtodstr(&scfg,l,f.desc);
 			strcat(f.desc,"  "); 
 		}
@@ -508,7 +508,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		}
 
 		f.cdt=l;
-		f.dateuled=time(NULL);
+		f.dateuled=time32(NULL);
 		f.altpath=cur_altpath;
 		prep_desc(f.desc);
 		if(mode&ASCII_ONLY)
@@ -636,22 +636,22 @@ char *usage="\nusage: addfiles code [.alt_path] [-opts] +list "
 	"\n   or: addfiles code [.alt_path] [-opts] file "
 		"\"description\"\n"
 	"\navailable opts:"
-	"\n       a         import ASCII only (no extended ASCII)"
-	"\n       b         synchronize database with file list (use with caution)"
-	"\n       c         do not remove extra spaces from file description"
-	"\n       d         delete list after import"
-	"\n       e         do not import extended descriptions"
-	"\n       f         include file date in descriptions"
-	"\n       t         include today's date in descriptions"
-	"\n       i         include added files in upload statistics"
-	"\n       n         do not update information for existing files"
-	"\n       o         update upload date only for existing files"
-	"\n       u         do not update upload date for existing files"
-	"\n       z         check for and import FILE_ID.DIZ and DESC.SDI"
-	"\n       k         keep original short description (not DIZ)"
-	"\n       s         search directory for files (no file list)"
-	"\n       l<lib>    specify library (short name) to Auto-ADD"
-	"\n       x<name>   specify uploader's user name (may require quotes)"
+	"\n      -a         import ASCII only (no extended ASCII)"
+	"\n      -b         synchronize database with file list (use with caution)"
+	"\n      -c         do not remove extra spaces from file description"
+	"\n      -d         delete list after import"
+	"\n      -e         do not import extended descriptions"
+	"\n      -f         include file date in descriptions"
+	"\n      -t         include today's date in descriptions"
+	"\n      -i         include added files in upload statistics"
+	"\n      -n         do not update information for existing files"
+	"\n      -o         update upload date only for existing files"
+	"\n      -u         do not update upload date for existing files"
+	"\n      -z         check for and import FILE_ID.DIZ and DESC.SDI"
+	"\n      -k         keep original short description (not DIZ)"
+	"\n      -s         search directory for files (no file list)"
+	"\n      -l <lib>   specify library (short name) to Auto-ADD"
+	"\n      -x <name>  specify uploader's user name (may require quotes)"
 	"\n"
 	"\nAuto-ADD:   use - in place of code for Auto-ADD of FILES.BBS"
 	"\n            use -filename to Auto-ADD a different filename"
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.45 $", "%*s %s", revision);
+	sscanf("$Revision: 1.47 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -861,9 +861,9 @@ int main(int argc, char **argv)
 			sprintf(str,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 				: scfg.dir[f.dir]->path,argv[j]);
 			if(mode&FILE_DATE)
-				sprintf(f.desc,"%s  ",unixtodstr(&scfg,fdate(str),tmp));
+				sprintf(f.desc,"%s  ",unixtodstr(&scfg,(time32_t)fdate(str),tmp));
 			if(mode&TODAYS_DATE)
-				sprintf(f.desc,"%s  ",unixtodstr(&scfg,time(NULL),tmp));
+				sprintf(f.desc,"%s  ",unixtodstr(&scfg,time32(NULL),tmp));
 			sprintf(tmp,"%.*s",(int)(LEN_FDESC-strlen(f.desc)),argv[++j]);
 			strcpy(f.desc,tmp);
 			l=flength(str);
@@ -877,13 +877,13 @@ int main(int argc, char **argv)
 					continue;
 				getfileixb(&scfg,&f);
 				if(mode&ULDATE_ONLY) {
-					f.dateuled=time(NULL);
+					f.dateuled=time32(NULL);
 					update_uldate(&scfg, &f);
 					continue; 
 				} 
 			}
 			f.cdt=l;
-			f.dateuled=time(NULL);
+			f.dateuled=time32(NULL);
 			f.altpath=cur_altpath;
 			prep_desc(f.desc);
 			if(mode&ASCII_ONLY)
