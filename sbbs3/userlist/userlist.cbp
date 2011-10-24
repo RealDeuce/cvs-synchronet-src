@@ -18,7 +18,7 @@
 			</Target>
 			<Target title="Release">
 				<Option output="gcc.freebsd.exe.release/SBBS User List" prefix_auto="1" extension_auto="1" />
-				<Option object_output="gcc.freebsd.obj.release/" />
+				<Option object_output="gcc.freebsd.exe.release/" />
 				<Option type="0" />
 				<Option compiler="gcc" />
 				<Option projectLinkerOptionsRelation="2" />
@@ -32,14 +32,14 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="`wx-config --unicode --cflags`" />
+			<Add option="`wx-config --cflags`" />
 			<Add option="-DHAS_INTTYPES_H=1" />
 			<Add directory=".." />
 			<Add directory="../../xpdev" />
 			<Add directory="../../smblib" />
 		</Compiler>
 		<Linker>
-			<Add option="`wx-config --unicode --libs`" />
+			<Add option="`wx-config --libs`" />
 			<Add library="xpdev" />
 			<Add directory="../../xpdev/gcc.freebsd.lib.release" />
 		</Linker>
