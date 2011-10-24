@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.386 2011/11/02 09:07:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.379 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@
 #if defined(__cplusplus)
 	extern "C"
 #endif
-	HINSTANCE hK32;
+	extern HINSTANCE hK32;
 
 #elif defined(__unix__)		/* Unix-variant */
 
@@ -256,14 +256,14 @@ public:
 
 #ifdef JAVASCRIPT
 
-	JSRuntime*		js_runtime;
-	JSContext*		js_cx;
-	JSObject*		js_glob;
-	js_callback_t	js_callback;
-	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
-	bool			js_init(ulong* stack_frame);
-	void			js_cleanup(const char* node);
-	void			js_create_user_objects(void);
+	JSRuntime*	js_runtime;
+	JSContext*	js_cx;
+	JSObject*	js_glob;
+	js_branch_t	js_branch;
+	long		js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
+	bool		js_init(ulong* stack_frame);
+	void		js_cleanup(const char* node);
+	void		js_create_user_objects(void);
 
 #endif
 
@@ -508,7 +508,7 @@ public:
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
-	bool	editfile(char *path, bool msg=false);
+	bool	editfile(char *path);
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	ushort	chmsgattr(ushort attr);
 	void	show_msgattr(ushort attr);
@@ -521,8 +521,8 @@ public:
 				,uint subnum);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
-	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
-	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
+	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines);
+	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines);
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
@@ -835,20 +835,15 @@ public:
 #undef DLLCALL
 #endif
 #ifdef _WIN32
-	#ifdef __MINGW32__
-		#define DLLEXPORT
-		#define DLLCALL
+	#ifdef SBBS_EXPORTS
+		#define DLLEXPORT	__declspec(dllexport)
 	#else
-		#ifdef SBBS_EXPORTS
-			#define DLLEXPORT	__declspec(dllexport)
-		#else
-			#define DLLEXPORT	__declspec(dllimport)
-		#endif
-		#ifdef __BORLANDC__
-			#define DLLCALL __stdcall
-		#else
-			#define DLLCALL
-		#endif
+		#define DLLEXPORT	__declspec(dllimport)
+	#endif
+	#ifdef __BORLANDC__
+		#define DLLCALL __stdcall
+	#else
+		#define DLLCALL
 	#endif
 #else	/* !_WIN32 */
 	#define DLLEXPORT
@@ -929,7 +924,7 @@ extern "C" {
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
-	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, const char *str);
+	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, char *str);
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time32_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
@@ -958,7 +953,7 @@ extern "C" {
 
 
 	/* scfglib1.c */
-	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
+	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
@@ -1040,31 +1035,32 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
 
+	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v))
+
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
 										,js_server_props_t* props);
 
 	/* js_global.c */
-	DLLEXPORT BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*, JSObject**);
-	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
+	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*);
+	DLLEXPORT JSObject*	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
 													,jsSyncMethodSpec* methods	/* global */
 													,time_t uptime				/* system */
 													,char* host_name			/* system */
 													,char* socklib_desc			/* system */
-													,js_callback_t*				/* js */
+													,js_branch_t*				/* js */
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
 													,js_server_props_t* props	/* server */
-													,JSObject** glob
 													);
 
 	/* js_internal.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_callback_t*, js_startup_t*);
-	DLLEXPORT JSBool	DLLCALL js_CommonOperationCallback(JSContext*, js_callback_t*);
-	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_callback_t*);
+	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t*, js_startup_t*);
+	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
+	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
 	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
 	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
 
