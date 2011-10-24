@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.144 2011/11/09 23:52:55 rswindell Exp $ */
+/* $Id: userdat.c,v 1.142 2011/10/19 16:47:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1374,9 +1374,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 			case AR_WIN32:
 			case AR_UNIX:
 			case AR_LINUX:
-			case AR_ACTIVE:
-			case AR_INACTIVE:
-			case AR_DELETED:
 				break;
 			default:
 				(*ptrptr)++;
@@ -2534,8 +2531,6 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 /****************************************************************************/
 BOOL DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client)
 {
-	if(user==NULL)
-		return FALSE;
 	if(!can_user_access_sub(cfg, subnum, user, client))
 		return FALSE;
 	if(user->level>=SYSOP_LEVEL)
