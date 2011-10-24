@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.146 2011/11/09 20:24:55 deuce Exp $ */
+/* $Id: js_system.c,v 1.144 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -698,8 +698,7 @@ static JSBool js_sysstats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval))
-			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_sysstats_properties, NULL, NULL, 0));
@@ -1002,7 +1001,7 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
-	jsdouble	ti;
+	int32		i=0;
 	JSString*	js_str;
 	scfg_t*		cfg;
 	jsrefcount	rc;
@@ -1013,11 +1012,11 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc<1)
-		ti=(jsdouble)time(NULL);	/* use current time */
+		i=(int32_t)time(NULL);	/* use current time */
 	else
-		JS_ValueToNumber(cx,argv[0],&ti);
+		JS_ValueToInt32(cx,argv[0],&i);
 	rc=JS_SUSPENDREQUEST(cx);
-	timestr(cfg,(time32_t)ti,str);
+	timestr(cfg,i,str);
 	JS_RESUMEREQUEST(cx, rc);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
 		return(JS_FALSE);
@@ -1921,8 +1920,7 @@ static JSBool js_node_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval))
-			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_node_properties, NULL, NULL, 0));
@@ -1997,8 +1995,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval))
-			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	/****************************/
