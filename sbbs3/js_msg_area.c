@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.61 2011/10/26 22:44:20 deuce Exp $ */
+/* $Id: js_msg_area.c,v 1.60 2011/10/19 07:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -290,17 +290,14 @@ static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
-			if(!JS_ValueToInt32(cx, *vp, (int32*)&scan->ptr))
-				return JS_FALSE;
+			JS_ValueToInt32(cx, *vp, (int32*)&scan->ptr);
 			break;
 		case SUB_PROP_SCAN_CFG:
-			if(!JS_ValueToInt32(cx, *vp, &val))
-				return JS_FALSE;
+			JS_ValueToInt32(cx, *vp, &val);
 			scan->cfg=(ushort)val;
 			break;
 		case SUB_PROP_LAST_READ:
-			if(!JS_ValueToInt32(cx, *vp, (int32*)&scan->last))
-				return JS_FALSE;
+			JS_ValueToInt32(cx, *vp, (int32*)&scan->last);
 			break;
 	}
 
