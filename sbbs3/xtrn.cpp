@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.220 2014/01/09 12:40:47 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.217 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -837,10 +837,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 							,OPEN_EXISTING
 							,FILE_ATTRIBUTE_NORMAL
 							,(HANDLE) NULL);
-						if(wrslot==INVALID_HANDLE_VALUE)
-							lprintf(LOG_DEBUG,"Node %d !ERROR %u opening %s", cfg.node_num, GetLastError(), str);
-						else
-							lprintf(LOG_DEBUG,"Node %d CreateFile(%s)=0x%x", cfg.node_num, str, wrslot);
+#if 0
+						if(wrslot==INVALID_HANDLE_VALUE) {
+							errormsg(WHERE,ERR_OPEN,str,0);
+							break;
+						}
+#endif
 					}
 					
 					/* CR expansion */
@@ -849,25 +851,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					else
 						bp=buf;
 
-					len=0;
-					if(wrslot==INVALID_HANDLE_VALUE)
-						lprintf(LOG_WARNING,"Node %d VDD Open failed (not loaded yet?)",cfg.node_num);
-					else if(!WriteFile(wrslot,bp,wr,&len,NULL)) {
-						lprintf(LOG_ERR,"Node %d !VDD WriteFile(0x%x, %u) FAILURE (Error=%u)", cfg.node_num, wrslot, wr, GetLastError());
-						if(GetMailslotInfo(wrslot,&wr,NULL,NULL,NULL))
-							lprintf(LOG_DEBUG,"Node %d !VDD MailSlot max_msg_size=%u", cfg.node_num, wr);
-						else
-							lprintf(LOG_DEBUG,"Node %d !GetMailslotInfo(0x%x)=%u", cfg.node_num, wrslot, GetLastError());
-					} else {
-						if(len!=wr)
-							lprintf(LOG_WARNING,"Node %d VDD short write (%u instead of %u)",cfg.node_num,len,wr);
+					if(wrslot!=INVALID_HANDLE_VALUE
+						&& WriteFile(wrslot,bp,wr,&len,NULL)==TRUE) {
 						RingBufRead(&inbuf, NULL, len);
+						wr=len;
 						if(use_pipes && !(mode&EX_NOECHO)) {
 							/* echo */
-							RingBufWrite(&outbuf, bp, len);
+							RingBufWrite(&outbuf, bp, wr);
 						}
-					}
-					wr=len;
+					} else		// VDD not loaded yet
+						wr=0;
 				}
 
 				/* Read from VDD */
@@ -1778,21 +1771,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			close(out_pipe[1]);		/* close excess file descriptor */
 		}
 
-		if(!(mode & EX_STDIO)) {
-			int fd;
-
-			/* Redirect stdio to /dev/null */
-			if ((fd = open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
-				dup2(fd, STDIN_FILENO);
-				dup2(fd, STDOUT_FILENO);
-#ifndef XTERN_LOG_STDERR
-				dup2(fd, STDERR_FILENO);
-#endif
-				if (fd > 2)
-					close(fd);
-			}
-		}
-
 		if(mode&EX_BG)	/* background execution, detach child */
 		{
 			lprintf(LOG_INFO,"Detaching external process");
@@ -1993,7 +1971,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			lprintf(LOG_NOTICE,"%.*s",i,buf);
 	}
 #else
-	waitpid(pid, &i, 0);
+	waitpid(pid, &i, 0)==0;
 #endif
 
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
