@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.112 2009/07/19 07:40:13 deuce Exp $ */
+/* $Id: ciolib.c,v 1.114 2011/10/19 02:28:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,7 +33,7 @@
 
 /* Icon file! */
 #ifdef __BORLANDC__
-#pragma resource "ciolib.res"
+#pragma resource "ciolib.res"		/* DO NOT REMOVE THE EXTRA \r! */
 #endif
 
 #include <stdarg.h>
@@ -93,7 +93,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gotoxy(int x, int y);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_cputs(char *str);
-CIOLIBEXPORT int	CIOLIBCALL ciolib_cprintf(char *fmat, ...);
+CIOLIBEXPORT int	CIOLIBCALL ciolib_cprintf(const char *fmat, ...);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textbackground(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textcolor(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_highvideo(void);
@@ -846,7 +846,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_insline(void)
 }
 
 /* Not overridable due to varargs */
-CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(char *fmat, ...)
+CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(const char *fmat, ...)
 {
     va_list argptr;
 	int		ret;
