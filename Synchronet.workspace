@@ -2,9 +2,8 @@
 <CodeBlocks_workspace_file>
 	<Workspace title="Synchronet">
 		<Project filename="xpdev/xpdev.cbp" />
-		<Project filename="sbbs3/userlist/userlist.cbp">
+		<Project filename="sbbs3/userlist/userlist.cbp" active="1">
 			<Depends filename="xpdev/xpdev.cbp" />
 		</Project>
-		<Project filename="smblib/smblib.cbp" active="1" />
 	</Workspace>
 </CodeBlocks_workspace_file>
