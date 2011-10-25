@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.128 2013/09/12 22:35:05 deuce Exp $ */
+/* $Id: ini_file.c,v 1.125 2011/10/24 21:48:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -931,33 +931,6 @@ size_t iniGetSectionCount(str_list_t list, const char* prefix)
 	return(items);
 }
 
-size_t iniReadSectionCount(FILE* fp, const char* prefix)
-{
-	char*	p;
-	char	str[INI_MAX_LINE_LEN];
-	ulong	items=0;
-
-	if(fp==NULL)
-		return(0);
-
-	rewind(fp);
-
-	while(!feof(fp)) {
-		if(fgets(str,sizeof(str),fp)==NULL)
-			break;
-		if(is_eof(str))
-			break;
-		if((p=section_name(str))==NULL)
-			continue;
-		if(prefix!=NULL)
-			if(strnicmp(p,prefix,strlen(prefix))!=0)
-				continue;
-		items++;
-	}
-
-	return(items);
-}
-
 
 str_list_t iniReadKeyList(FILE* fp, const char* section)
 {
@@ -1031,7 +1004,7 @@ iniReadNamedStringList(FILE* fp, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	items=0;
-	named_string_t** lp;
+	named_string_t** lp=NULL;
 	named_string_t** np;
 
 	if(fp==NULL)
@@ -1079,7 +1052,7 @@ iniGetNamedStringList(str_list_t list, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	i,items=0;
-	named_string_t** lp;
+	named_string_t** lp=NULL;
 	named_string_t** np;
 
 	if(list==NULL)
@@ -1279,31 +1252,10 @@ int iniGetSocketOptions(str_list_t list, const char* section, SOCKET sock
 	int			option;
 	int			level;
 	int			value;
-	int			type;
 	LINGER		linger;
 	socket_option_t* socket_options=getSocketOptionList();
-	union xp_sockaddr	addr;
 
-	len=sizeof(type);
-	if((result=getsockopt(sock, SOL_SOCKET, SO_TYPE, &type, &len)) != 0) {
-		safe_snprintf(error,errlen,"%d getting socket type", ERROR_VALUE);
-		return(result);
-	}
-#ifdef IPPROTO_IPV6
-	len=sizeof(addr);
-	if((result=getsockname(sock, &addr.addr, &len)) != 0) {
-		safe_snprintf(error,errlen,"%d getting socket name", ERROR_VALUE);
-		return(result);
-	}
-#endif
 	for(i=0;socket_options[i].name!=NULL;i++) {
-		if(socket_options[i].type != 0 
-				&& socket_options[i].type != type)
-			continue;
-#ifdef IPPROTO_IPV6
-		if(addr.addr.sa_family != AF_INET6 && socket_options[i].level == IPPROTO_IPV6)
-			continue;
-#endif
 		name = socket_options[i].name;
 		if(!iniValueExists(list, section, name))
 			continue;
@@ -1864,7 +1816,7 @@ ulong iniReadBitField(FILE* fp, const char* section, const char* key,
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
 
-	if((value=read_value(fp,section,key,buf))==NULL)	/* missing key */
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	return(parseBitField(value,bitdesc));
@@ -1877,7 +1829,7 @@ ulong iniGetBitField(str_list_t list, const char* section, const char* key,
 
 	get_value(list, section, key, NULL, &vp);
 
-	if(vp==NULL)		/* missing key */
+	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
 
 	return(parseBitField(vp,bitdesc));
