@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.21 2011/08/30 22:12:06 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.22 2011/08/31 04:12:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -300,6 +300,7 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 
 /****************************************************************************/
 /* Returns ASCIIZ representation of network address (net_t)					*/
+/* NOT THREAD-SAFE!															*/
 /****************************************************************************/
 char* SMBCALL smb_netaddr(net_t* net)
 {

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.48 2011/08/06 21:11:31 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.49 2011/10/08 23:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,13 +125,11 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 		return(NULL);
 
 	/* file_area.properties */
-	if(!JS_NewNumberValue(cx,cfg->min_dspace,&val))
-		return(NULL);
+	val=UINT_TO_JSVAL(cfg->min_dspace);
 	if(!JS_SetProperty(cx, areaobj, "min_diskspace", &val)) 
 		return(NULL);
 
-	if(!JS_NewNumberValue(cx,cfg->file_misc,&val))
-		return(NULL);
+	val=UINT_TO_JSVAL(cfg->file_misc);
 	if(!JS_SetProperty(cx, areaobj, "settings", &val)) 
 		return(NULL);
 
@@ -369,8 +367,7 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 			if(!JS_SetProperty(cx, dirobj, "data_dir", &val))
 				return(NULL);
 
-			if(!JS_NewNumberValue(cx,cfg->dir[d]->misc,&val))
-				return(NULL);
+			val=UINT_TO_JSVAL(cfg->dir[d]->misc);
 			if(!JS_SetProperty(cx, dirobj, "settings", &val))
 				return(NULL);
 
