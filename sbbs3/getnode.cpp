@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.41 2010/11/19 06:39:24 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.44 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,7 +91,8 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 
 	if(count==LOOP_NODEDAB) {
 		errormsg(WHERE,rd==sizeof(node_t) ? ERR_LOCK : ERR_READ,"node.dab",number+1);
-		close(nodefile);
+		if(nodefile!=-1)
+			close(nodefile);
 		nodefile=-1;
 		return(-2);
 	}
@@ -131,7 +132,7 @@ void sbbs_t::nodesync()
 	if(sys_status&SS_USERON) {
 
 		if(thisnode.status==NODE_WFC) {
-			errorlog("NODE STATUS FIXUP");
+			lprintf(LOG_ERR, "Node %d NODE STATUS FIXUP", cfg.node_num);
 			if(getnodedat(cfg.node_num,&thisnode,true)==0) {
 				thisnode.status=NODE_INUSE;
 				putnodedat(cfg.node_num,&thisnode); 
@@ -140,8 +141,8 @@ void sbbs_t::nodesync()
 
 		if(!(sys_status&SS_NEWDAY)) {
 			now=time(NULL);
-			unixtodstr(&cfg,logontime,str);
-			unixtodstr(&cfg,now,today);
+			unixtodstr(&cfg,(time32_t)logontime,str);
+			unixtodstr(&cfg,(time32_t)now,today);
 			if(strcmp(str,today)) { /* New day, clear "today" user vars */
 				sys_status|=SS_NEWDAY;	// So we don't keep doing this over&over
 				resetdailyuserdat(&cfg, &useron,/* write: */true);
