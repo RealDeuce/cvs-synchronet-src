@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.176 2011/11/12 00:01:04 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.172 2011/10/21 02:54:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,8 @@
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
-#define JAVASCRIPT_TIME_LIMIT		(24*60*600)			/* in 100ms ticks */
+#define JAVASCRIPT_THREAD_STACK		(256*1024)
+#define JAVASCRIPT_BRANCH_LIMIT		99999999
 #define JAVASCRIPT_YIELD_INTERVAL	10000
 #define JAVASCRIPT_GC_INTERVAL		100 
 #define JAVASCRIPT_LOAD_PATH		"load"
@@ -87,7 +88,7 @@ typedef struct {
 	BOOL	auto_terminate;
 	volatile BOOL*	terminated;
 	str_list_t	exit_func;
-} js_callback_t;
+} js_branch_t;
 
 #define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
 
@@ -124,12 +125,12 @@ typedef struct {
 #define UQ_LOCATION		(1L<<1) 	/* Ask for location 					*/
 #define UQ_ADDRESS		(1L<<2) 	/* Ask for address						*/
 #define UQ_PHONE		(1L<<3) 	/* Ask for phone number 				*/
-#define UQ_HANDLE		(1L<<4) 	/* Ask for chat handle / HAM callsign	*/
+#define UQ_HANDLE		(1L<<4) 	/* Ask for chat handle					*/
 #define UQ_DUPHAND		(1L<<5) 	/* Search for duplicate handles 		*/
 #define UQ_SEX			(1L<<6) 	/* Ask for sex :)						*/
 #define UQ_BIRTH		(1L<<7) 	/* Ask for birth date					*/
-#define UQ_UNUSED1 		(1L<<8) 	/* was UQ_COMP							*/
-#define UQ_UNUSED2		(1L<<9) 	/* was UQ_MC_COMP						*/
+#define UQ_COMP 		(1L<<8) 	/* Ask for computer type				*/
+#define UQ_MC_COMP		(1L<<9) 	/* Multiple choice computer type		*/
 #define UQ_REALNAME		(1L<<10)	/* Ask for real name					*/
 #define UQ_DUPREAL		(1L<<11)	/* Search for duplicate real names		*/
 #define UQ_COMPANY		(1L<<12)	/* Ask for company name 				*/
@@ -392,13 +393,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_SH			(1<<18)		/* Use command shell to execute			*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
-#define WORDWRAP80		(1<<21)		/* Word-wrap editor to 80 columns		*/
-#define WORDWRAPTERM	(1<<22)		/* Word-wrap editor to terminal width	*/
-#define WORDWRAPLONG	(WORDWRAP80|WORDWRAPTERM)	/* word-wrap to maxlen	*/
-#define WORDWRAPNONE	0			/* No word-wrapping on editor in/ouput	*/
-#define WORDWRAPMASK	WORDWRAPLONG
+#define QUOTEWRAP		(1<<21)		/* Word-wrap the quoted text			*/
 #define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
-#define QUOTEWRAP		WORDWRAP80	/* for temporary backwards compat.		*/
 
 
 									/* Bits in cfg.xtrn_misc				*/
@@ -703,7 +699,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_NOPAUSE	(1<<4)		/* Disable screen pause						*/
 #define P_HTML		(1<<5)		/* Message is HTML							*/
 #define P_NOCRLF	(1<<6)		/* Don't prepend a CRLF	in printfile()		*/
-#define P_WORDWRAP	(1<<7)		/* Word-wrap long lines for user's terminal	*/
 								
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
