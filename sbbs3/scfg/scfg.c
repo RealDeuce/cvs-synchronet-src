@@ -2,13 +2,13 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.75 2012/12/19 12:19:00 rswindell Exp $ */
+/* $Id: scfg.c,v 1.73 2011/06/30 03:07:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -217,11 +217,7 @@ int main(int argc, char **argv)
             SAFECOPY(cfg.ctrl_dir,argv[i]);
     }
 
-#ifdef _WIN32
 	FULLPATH(exepath,argv[0],sizeof(exepath));	/* Must do this before chdir */
-#else
-	exepath[0]=0;
-#endif
 
 	if(chdir(cfg.ctrl_dir)!=0) {
 		printf("!ERROR %d changing current directory to: %s\n"
@@ -618,7 +614,7 @@ configuration before deciding, hit ~ ESC ~.
 void txt_cfg()
 {
 	static int txt_dflt,bar;
-	char str[128],code[128],done=0,*p;
+	char str[81],code[9],done=0,*p;
 	int j,k;
 	uint i;
 	static txtsec_t savtxtsec;
@@ -674,8 +670,10 @@ This is the name of this text section.
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Text Section Name",str,40
 				,K_EDIT)<1)
 				continue;
-			SAFECOPY(code,str);
-			prep_code(code,/* prefix: */NULL);
+			sprintf(code,"%.8s",str);
+			p=strchr(code,' ');
+			if(p) *p=0;
+			strupr(code);
 			SETHELP(WHERE);
 /*
 `Text Section Internal Code:`
@@ -786,7 +784,7 @@ abreviation of the name.
 void shell_cfg()
 {
 	static int shell_dflt,shell_bar;
-	char str[128],code[128],done=0,*p;
+	char str[81],code[9],done=0,*p;
 	int j,k;
 	uint i;
 	static shell_t savshell;
@@ -841,8 +839,10 @@ This is the descriptive name of this command shell.
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Command Shell Name",str,40
 				,K_EDIT)<1)
 				continue;
-			SAFECOPY(code,str);
-			prep_code(code,/* prefix: */NULL);
+			sprintf(code,"%.8s",str);
+			p=strchr(code,' ');
+			if(p) *p=0;
+			strupr(code);
 			SETHELP(WHERE);
 /*
 `Command Shell Internal Code:`
@@ -1970,7 +1970,6 @@ char* prep_code(char *str, const char* prefix)
 		tmp[j]=0;
 		strcpy(str,tmp);
 	}
-	str[LEN_CODE]=0;
 	return(str);
 }
 
