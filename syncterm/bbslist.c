@@ -7,6 +7,7 @@
 #include <ini_file.h>
 #include <uifc.h>
 #include "filepick.h"
+#include "allfonts.h"
 
 #include "syncterm.h"
 #include "fonts.h"
@@ -14,6 +15,8 @@
 #include "uifcinit.h"
 #include "conn.h"
 #include "ciolib.h"
+#include "keys.h"
+#include "mouse.h"
 #include "cterm.h"
 #include "window.h"
 #include "term.h"
@@ -151,12 +154,6 @@ struct sort_order_info sort_order[] = {
 		,sizeof(((struct bbslist *)NULL)->music)
 	}
 	,{
-		 "Address Family"
-		,0
-		,offsetof(struct bbslist, address_family)
-		,sizeof(((struct bbslist *)NULL)->address_family)
-	}
-	,{
 		 "Font"
 		,SORT_ORDER_STRING
 		,offsetof(struct bbslist, font)
@@ -182,14 +179,6 @@ char *rate_names[]={"300", "600", "1200", "2400", "4800", "9600", "19200", "3840
 int rates[]={300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 76800, 115200, 0};
 
 char *music_names[]={"ESC [ | only", "BANSI Style", "All ANSI Music enabled", NULL};
-char *address_families[]={"PerDNS", "IPv4", "IPv6", NULL};
-char *address_family_names[]={"As per DNS", "IPv4 only", "IPv6 only", NULL};
-
-char *address_family_help =	"`Address Family`\n\n"
-							"Select the address family to resolve\n\n"
-							"`As per DNS`..: Uses what is in the DNS system\n"
-							"`IPv4 only`...: Only uses IPv4 addresses.\n"
-							"`IPv6 only`...: Only uses IPv6 addresses.\n";
 
 char *address_help=	
 #ifdef __unix__
@@ -655,7 +644,6 @@ void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id
 
 	entry->bpsrate=iniGetInteger(section,NULL,"BPSRate",0);
 	entry->music=iniGetInteger(section,NULL,"ANSIMusic",CTERM_MUSIC_BANSI);
-	entry->address_family=iniGetEnum(section,NULL,"AddressFamily",address_families, ADDRESS_FAMILY_UNSPEC);
 	iniGetString(section,NULL,"Font","Codepage 437 English",entry->font);
 	entry->type=type;
 	entry->id=id;
@@ -742,8 +730,8 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 
 int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault)
 {
-	char	opt[20][80];	/* <- Beware of magic number! */
-	char	*opts[(sizeof(opt)/sizeof(opt[0]))+1];
+	char	opt[19][80];	/* <- Beware of magic number! */
+	char	*opts[20];		/* <- Beware of magic number! */
 	int		changed=0;
 	int		copt=0,i,j;
 	int		bar=0;
@@ -754,7 +742,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 	char	*itemname;
 	char	*YesNo[3]={"Yes","No",""};
 
-	for(i=0;i<sizeof(opt)/sizeof(opt[0]);i++)
+	for(i=0;i<19;i++)		/* <- Beware of magic number! */
 		opts[i]=opt[i];
 	if(item->type==SYSTEM_BBSLIST) {
 		uifc.helpbuf=	"`Copy from system directory`\n\n"
@@ -817,7 +805,6 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 			strcpy(str,"Current");
 		sprintf(opt[i++], "Comm Rate         %s",str);
 		sprintf(opt[i++], "ANSI Music        %s",music_names[item->music]);
-		sprintf(opt[i++], "Address Family    %s",address_family_names[item->address_family]);
 		sprintf(opt[i++], "Font              %s",item->font);
 		opt[i][0]=0;
 		uifc.changes=0;
@@ -1100,15 +1087,6 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				}
 				break;
 			case 17:
-				uifc.helpbuf=address_family_help;
-				i=item->address_family;
-				if(uifc.list(WIN_SAV, 0, 0, 0, &i, NULL, "Address Family", address_family_names)!=-1) {
-					item->address_family=i;
-					iniSetEnum(&inifile, itemname, "AddressFamily", address_families, item->address_family, &ini_style);
-					changed=1;
-				}
-				break;
-			case 18:
 				uifc.helpbuf=	"`Font`\n\n"
 								"Select the desired font for this connection.\n\n"
 								"Some fonts do not allow some modes.  When this is the case, an\n"
@@ -1168,7 +1146,6 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	iniSetBool(&inifile,bbs->name,"AppendLogFile",bbs->append_logfile,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"BPSRate",bbs->bpsrate,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"ANSIMusic",bbs->music,&ini_style);
-	iniSetEnum(&inifile, bbs->name, "AddressFamily", address_families, bbs->address_family, &ini_style);
 	iniSetString(&inifile,bbs->name,"Font",bbs->font,&ini_style);
 	if((listfile=fopen(listpath,"w"))!=NULL) {
 		iniWriteFile(listfile,inifile);
