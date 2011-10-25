@@ -89,6 +89,7 @@ int refresh_globals(void)
 int read_config(void)
 {
 	char	ctrl_dir[MAX_PATH+1];
+	char	str[1024];
 	char	*p;
 
 	p=getenv("SBBSCTRL");
