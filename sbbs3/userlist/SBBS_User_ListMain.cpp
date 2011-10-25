@@ -13,10 +13,7 @@
 #include <wx/dataobj.h>
 
 //(*InternalHeaders(SBBS_User_ListFrame)
-#include <wx/bitmap.h>
-#include <wx/icon.h>
 #include <wx/intl.h>
-#include <wx/image.h>
 #include <wx/string.h>
 //*)
 
@@ -56,72 +53,19 @@ const long SBBS_User_ListFrame::ID_QVCHOICE = wxNewId();
 const long SBBS_User_ListFrame::ID_REFRESHBUTTON = wxNewId();
 const long SBBS_User_ListFrame::ID_EDITBUTTON = wxNewId();
 const long SBBS_User_ListFrame::ID_PANEL1 = wxNewId();
+const long SBBS_User_ListFrame::idMenuQuit = wxNewId();
+const long SBBS_User_ListFrame::idMenuAbout = wxNewId();
+const long SBBS_User_ListFrame::ID_STATUSBAR1 = wxNewId();
 const long SBBS_User_ListFrame::ID_EDITUSER = wxNewId();
 const long SBBS_User_ListFrame::ID_COPY = wxNewId();
 const long SBBS_User_ListFrame::ID_COPYALL = wxNewId();
 const long SBBS_User_ListFrame::ID_REFRESH = wxNewId();
 //*)
 
-struct sortData {
-	int			sort;
-	wxListCtrl	*UserList;
-};
-
 BEGIN_EVENT_TABLE(SBBS_User_ListFrame,wxFrame)
     //(*EventTable(SBBS_User_ListFrame)
     //*)
 END_EVENT_TABLE()
-
-int wxCALLBACK SortCallBack(wxIntPtr item1_data, wxIntPtr item2_data, wxIntPtr data)
-{
-	struct sortData	*sd=(struct sortData *)data;
-	long			item1=sd->UserList->FindItem(-1, item1_data);
-	long			item2=sd->UserList->FindItem(-1, item2_data);
-	wxString		val1,val2;
-	wxListItem		li;
-	long			v1, v2;
-	int				ret;
-
-	li.m_itemId = (sd->sort & 0x100) ? item2 : item1;
-	li.m_col = sd->sort & 0xff;
-	li.m_mask = wxLIST_MASK_TEXT;
-	if(!sd->UserList->GetItem(li))
-		return 0;
-	val1 = li.m_text;
-
-	li.m_itemId = (sd->sort & 0x100) ? item1 : item2;
-	li.m_mask = wxLIST_MASK_TEXT;
-	if(!sd->UserList->GetItem(li))
-		return 0;
-	val2 = li.m_text;
-
-	switch(sd->sort & 0xff) {
-		// Numbers:
-		case 0:
-		case 3:
-		case 4:
-		case 12:
-			if(!val1.ToLong(&v1))
-				return 0;
-			if(!val2.ToLong(&v2))
-				return 0;
-			ret = v1-v2;
-			break;
-		// Dates:
-		case 13:
-		case 14:
-			v1=dstrtounix(&App->cfg, val1.mb_str(wxConvUTF8));
-			v2=dstrtounix(&App->cfg, val2.mb_str(wxConvUTF8));
-			ret = v1-v2;
-			break;
-		// Strings
-		default:
-			ret=val1.CmpNoCase(val2);
-	}
-	if(ret==0)
-		return item1_data-item2_data;
-	return ret;
-}
 
 void SBBS_User_ListFrame::fillUserList(void)
 {
@@ -132,7 +76,6 @@ void SBBS_User_ListFrame::fillUserList(void)
     wxString    buf;
     char        datebuf[9];
     long        topitem=UserList->GetTopItem();
-	struct sortData sd;
 
     UserList->Freeze();
     UserList->DeleteAllItems();
@@ -171,28 +114,9 @@ void SBBS_User_ListFrame::fillUserList(void)
         unixtodstr(&App->cfg, user.laston, datebuf);
         UserList->SetItem(item,14, wxString::From8BitData(datebuf));
     }
-	sd.sort=sort;
-	sd.UserList=UserList;
-	UserList->SortItems(SortCallBack, (wxIntPtr)&sd);
     UserList->EnsureVisible(item);
     UserList->EnsureVisible(topitem);
 	UserList->Thaw();
-}
-
-void SBBS_User_ListFrame::applyARS(void)
-{
-    static uchar    *last_ars=NULL;
-    static ushort   last_ars_count=0;
-    ushort          count;
-
-    ars=arstr(&count, ARSFilter->GetValue().mb_str(wxConvUTF8), &App->cfg);
-    if(count != last_ars_count || memcmp(last_ars, ars, count)) {
-        if(last_ars != nular)
-            FREE_AND_NULL(last_ars);
-        last_ars=ars;
-        last_ars_count=count;
-        fillUserList();
-    }
 }
 
 SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
@@ -200,34 +124,34 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
     //(*Initialize(SBBS_User_ListFrame)
     wxBoxSizer* BoxSizer4;
     wxBoxSizer* BoxSizer5;
+    wxMenuItem* MenuItem2;
+    wxMenuItem* MenuItem1;
     wxBoxSizer* BoxSizer2;
+    wxMenu* Menu1;
     wxBoxSizer* BoxSizer1;
+    wxMenuBar* MenuBar1;
     wxBoxSizer* BoxSizer3;
+    wxMenu* Menu2;
 
-    Create(parent, id, _("SBBS User List"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE, _T("id"));
-    {
-    wxIcon FrameIcon;
-    FrameIcon.CopyFromBitmap(wxBitmap(wxImage(_T("../../conio/syncicon64.ico"))));
-    SetIcon(FrameIcon);
-    }
+    Create(parent, id, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE, _T("id"));
     Panel1 = new wxPanel(this, ID_PANEL1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL1"));
     BoxSizer1 = new wxBoxSizer(wxVERTICAL);
     BoxSizer2 = new wxBoxSizer(wxHORIZONTAL);
     StaticText1 = new wxStaticText(Panel1, ID_STATICTEXT1, _("ARS Filter"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT1"));
     BoxSizer2->Add(StaticText1, 0, wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, 5);
-    ARSFilter = new wxTextCtrl(Panel1, ID_ARSTEXTCTRL, _("ACTIVE NOT DELETED"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_ARSTEXTCTRL"));
+    ARSFilter = new wxTextCtrl(Panel1, ID_ARSTEXTCTRL, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_ARSTEXTCTRL"));
     ARSFilter->SetToolTip(_("Enter an ARS string to filter users with"));
     BoxSizer2->Add(ARSFilter, 1, wxALL|wxALIGN_LEFT|wxALIGN_TOP, 5);
     ClearButton = new wxButton(Panel1, ID_CLEARBUTTON, _("Clear"), wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, _T("ID_CLEARBUTTON"));
     ClearButton->SetToolTip(_("Clears the ARS filter"));
     BoxSizer2->Add(ClearButton, 0, wxALL|wxALIGN_LEFT|wxALIGN_TOP, 5);
     BoxSizer1->Add(BoxSizer2, 0, wxALL|wxEXPAND|wxALIGN_LEFT|wxALIGN_TOP, 5);
-    UserList = new wxListCtrl(Panel1, ID_USERLISTCTRL, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(-1,128)), wxLC_REPORT|wxLC_HRULES, wxDefaultValidator, _T("ID_USERLISTCTRL"));
+    UserList = new wxListCtrl(Panel1, ID_USERLISTCTRL, wxDefaultPosition, wxDefaultSize, wxLC_REPORT|wxLC_HRULES, wxDefaultValidator, _T("ID_USERLISTCTRL"));
     BoxSizer1->Add(UserList, 1, wxALL|wxEXPAND|wxALIGN_LEFT|wxALIGN_TOP, 5);
     BoxSizer3 = new wxBoxSizer(wxHORIZONTAL);
     BoxSizer4 = new wxBoxSizer(wxHORIZONTAL);
     StaticText2 = new wxStaticText(Panel1, ID_STATICTEXT2, _("Quick Validation Sets"), wxDefaultPosition, wxDefaultSize, 0, _T("ID_STATICTEXT2"));
-    BoxSizer4->Add(StaticText2, 0, wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 5);
+    BoxSizer4->Add(StaticText2, 0, wxALL|wxALIGN_LEFT|wxALIGN_TOP, 5);
     QVChoice = new wxChoice(Panel1, ID_QVCHOICE, wxDefaultPosition, wxDefaultSize, 0, 0, 0, wxDefaultValidator, _T("ID_QVCHOICE"));
     QVChoice->SetSelection( QVChoice->Append(_("Select a set")) );
     QVChoice->Disable();
@@ -245,14 +169,30 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
     Panel1->SetSizer(BoxSizer1);
     BoxSizer1->Fit(Panel1);
     BoxSizer1->SetSizeHints(Panel1);
-    MenuItem3 = new wxMenuItem((&ContextMenu), ID_EDITUSER, _("Edit User"), wxEmptyString, wxITEM_NORMAL);
+    MenuBar1 = new wxMenuBar();
+    Menu1 = new wxMenu();
+    MenuItem1 = new wxMenuItem(Menu1, idMenuQuit, _("Quit\tAlt-F4"), _("Quit the application"), wxITEM_NORMAL);
+    Menu1->Append(MenuItem1);
+    MenuBar1->Append(Menu1, _("&File"));
+    Menu2 = new wxMenu();
+    MenuItem2 = new wxMenuItem(Menu2, idMenuAbout, _("About\tF1"), _("Show info about this application"), wxITEM_NORMAL);
+    Menu2->Append(MenuItem2);
+    MenuBar1->Append(Menu2, _("Help"));
+    SetMenuBar(MenuBar1);
+    StatusBar1 = new wxStatusBar(this, ID_STATUSBAR1, 0, _T("ID_STATUSBAR1"));
+    int __wxStatusBarWidths_1[1] = { -1 };
+    int __wxStatusBarStyles_1[1] = { wxSB_NORMAL };
+    StatusBar1->SetFieldsCount(1,__wxStatusBarWidths_1);
+    StatusBar1->SetStatusStyles(1,__wxStatusBarStyles_1);
+    SetStatusBar(StatusBar1);
+    MenuItem3 = new wxMenuItem((&ContextMenu), ID_EDITUSER, _("Edit User\tE"), wxEmptyString, wxITEM_NORMAL);
     ContextMenu.Append(MenuItem3);
     MenuItem3->Enable(false);
-    MenuItem4 = new wxMenuItem((&ContextMenu), ID_COPY, _("Copy"), wxEmptyString, wxITEM_NORMAL);
+    MenuItem4 = new wxMenuItem((&ContextMenu), ID_COPY, _("Copy\tC"), wxEmptyString, wxITEM_NORMAL);
     ContextMenu.Append(MenuItem4);
-    MenuItem5 = new wxMenuItem((&ContextMenu), ID_COPYALL, _("Copy All"), wxEmptyString, wxITEM_NORMAL);
+    MenuItem5 = new wxMenuItem((&ContextMenu), ID_COPYALL, _("Copy All\tA"), wxEmptyString, wxITEM_NORMAL);
     ContextMenu.Append(MenuItem5);
-    MenuItem6 = new wxMenuItem((&ContextMenu), ID_REFRESH, _("Refresh"), wxEmptyString, wxITEM_NORMAL);
+    MenuItem6 = new wxMenuItem((&ContextMenu), ID_REFRESH, _("Refresh\tR"), wxEmptyString, wxITEM_NORMAL);
     ContextMenu.Append(MenuItem6);
 
     Connect(ID_ARSTEXTCTRL,wxEVT_COMMAND_TEXT_UPDATED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnARSFilterText);
@@ -260,17 +200,23 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
     Connect(ID_USERLISTCTRL,wxEVT_COMMAND_LIST_ITEM_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnUserListItemSelect);
     Connect(ID_USERLISTCTRL,wxEVT_COMMAND_LIST_ITEM_DESELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnUserListItemSelect);
     Connect(ID_USERLISTCTRL,wxEVT_COMMAND_LIST_ITEM_RIGHT_CLICK,(wxObjectEventFunction)&SBBS_User_ListFrame::OnUserListItemRClick);
-    Connect(ID_USERLISTCTRL,wxEVT_COMMAND_LIST_COL_CLICK,(wxObjectEventFunction)&SBBS_User_ListFrame::OnUserListColumnClick);
     Connect(ID_QVCHOICE,wxEVT_COMMAND_CHOICE_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnQVChoiceSelect);
     Connect(ID_REFRESHBUTTON,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnRefreshButtonClick);
+    Connect(idMenuQuit,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnQuit);
+    Connect(idMenuAbout,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnAbout);
     Connect(ID_COPY,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::CopyMenuItemSelected);
     Connect(ID_COPYALL,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::CopyAllMenuItemSelected);
     Connect(ID_REFRESH,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnRefreshButtonClick);
     //*)
 
-	this->ars=NULL;
-	UserList->InsertColumn(0, wxString(_("Num \x25BC")));
-	this->sort=0;
+	// Stupid Windows Dance
+	wxListItem itemCol;
+	itemCol.SetText(_("Num"));
+	itemCol.SetImage(-1);
+	UserList->InsertColumn(0, itemCol);
+	UserList->DeleteColumn(0);
+
+	UserList->InsertColumn(0, wxString(_("Num")));
 	UserList->InsertColumn(1, wxString(_("Alias")));
 	UserList->InsertColumn(2, wxString(_("Name")));
 	UserList->InsertColumn(3, wxString(_("Level")));
@@ -285,7 +231,7 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
 	UserList->InsertColumn(12, wxString(_("Logons")));
 	UserList->InsertColumn(13, wxString(_("First On")));
 	UserList->InsertColumn(14, wxString(_("Last On")));
-    applyARS();
+	fillUserList();
 	UserList->SetColumnWidth(0, wxLIST_AUTOSIZE);
 	UserList->SetColumnWidth(1, wxLIST_AUTOSIZE);
 	UserList->SetColumnWidth(2, wxLIST_AUTOSIZE);
@@ -302,6 +248,10 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
 	UserList->SetColumnWidth(13, wxLIST_AUTOSIZE);
 	UserList->SetColumnWidth(14, wxLIST_AUTOSIZE);
 
+    /*
+     * Ideally this would go right after QVChoice->SetSelection
+     */
+
 	for(int i=0;i<10;i++) {
 		wxString    str;
 		wxString    fstr;
@@ -314,7 +264,6 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
 	}
 
 	BoxSizer1->SetSizeHints(this);
-	this->SetName(this->GetTitle());
 }
 
 SBBS_User_ListFrame::~SBBS_User_ListFrame()
@@ -341,15 +290,27 @@ void SBBS_User_ListFrame::OnRefreshButtonClick(wxCommandEvent& event)
 
 void SBBS_User_ListFrame::OnARSFilterText(wxCommandEvent& event)
 {
+    static uchar    *last_ars=NULL;
+    static ushort   last_ars_count=0;
+    ushort          count;
+
     if(!ARSFilter->IsModified())
         return;
-	applyARS();
+
+    ars=arstr(&count, ARSFilter->GetValue().mb_str(wxConvUTF8), &App->cfg);
+    if(count != last_ars_count || memcmp(last_ars, ars, count)) {
+        if(last_ars != nular)
+            FREE_AND_NULL(last_ars);
+        last_ars=ars;
+        last_ars_count=count;
+        fillUserList();
+    }
 }
 
 void SBBS_User_ListFrame::OnClearButtonClick(wxCommandEvent& event)
 {
     ARSFilter->SetValue(_(""));
-    applyARS();
+    OnARSFilterText(event);
 }
 
 void SBBS_User_ListFrame::OnUserListItemSelect(wxListEvent& event)
@@ -416,12 +377,12 @@ void SBBS_User_ListFrame::CopyItems(int state)
 {
 	long		item=UserList->GetNextItem(-1, wxLIST_NEXT_ALL, state);
 	int			cols=UserList->GetColumnCount();
+	int			rows=UserList->GetSelectedItemCount();
 	wxString	cp;
 	wxListItem	li;
 
 	for(;;) {
 		for(int i=0; i<cols; i++) {
-			li.m_mask = wxLIST_MASK_TEXT;
 			li.m_itemId = item;
 			li.m_col = i;
 			if(UserList->GetItem(li))
@@ -449,38 +410,5 @@ void SBBS_User_ListFrame::CopyMenuItemSelected(wxCommandEvent& event)
 
 void SBBS_User_ListFrame::CopyAllMenuItemSelected(wxCommandEvent& event)
 {
-	CopyItems(wxLIST_STATE_DONTCARE);
-}
-
-void SBBS_User_ListFrame::OnUserListColumnClick(wxListEvent& event)
-{
-	struct sortData sd;
-	wxListItem		li;
-	int				column=event.GetColumn();
-
-	sd.UserList=UserList;
-
-	UserList->Freeze();
-	// First, remove char from old sort column
-	li.m_mask = wxLIST_MASK_TEXT;
-	UserList->GetColumn(sort & 0xff, li);
-	li.m_text = li.m_text.Left(li.m_text.Length()-2);
-	UserList->SetColumn(sort & 0xff, li);
-	// Now, set new sort
-	if((sort & 0xff)==column)
-		sort ^= 0x100;
-	else
-		sort=column;
-	sd.sort=sort;
-	/* Add char to new sort column */
-	li.m_mask = wxLIST_MASK_TEXT;
-	UserList->GetColumn(sort & 0xff, li);
-	if(sort & 0x100)
-		li.m_text += _T(" \x25b2");
-	else
-		li.m_text += _T(" \x25bc");
-	UserList->SetColumn(sort & 0xff, li);
-
-	UserList->SortItems(SortCallBack, (wxIntPtr)&sd);
-	UserList->Thaw();
+	CopyItems(wxLIST_STATE_DONTCARE	);
 }

@@ -2,7 +2,7 @@
 
 /* Synchronet date/time string conversion routines */
 
-/* $Id: date_str.c,v 1.28 2011/10/25 06:56:18 deuce Exp $ */
+/* $Id: date_str.c,v 1.27 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,12 +44,12 @@ const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
 /****************************************************************************/
 /* Converts a date string in format MM/DD/YY into unix time format			*/
 /****************************************************************************/
-time32_t DLLCALL dstrtounix(scfg_t* cfg, const char *instr)
+time32_t DLLCALL dstrtounix(scfg_t* cfg, char *instr)
 {
-	const char*	p;
-	const char*	day;
-	char		str[16];
-	struct tm	tm;
+	char*	p;
+	char*	day;
+	char	str[16];
+	struct tm tm;
 
 	if(!instr[0] || !strncmp(instr,"00/00/00",8))
 		return(0);
