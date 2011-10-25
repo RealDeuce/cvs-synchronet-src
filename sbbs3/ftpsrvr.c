@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.394 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.391 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -477,11 +477,11 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static JSContext* 
-js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_callback_t* cb)
+js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_branch_t* branch)
 {
 	JSContext*	js_cx;
+	JSObject*	js_glob;
 	BOOL		success=FALSE;
-	BOOL		rooted=FALSE;
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)"
 		,sock,startup->js.cx_stack);
@@ -494,42 +494,42 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_c
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-	memset(cb, 0, sizeof(js_callback_t));
+	memset(branch, 0, sizeof(js_branch_t));
 
 	/* ToDo: call js_CreateCommonObjects() instead */
 
 	do {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing Global object",sock);
-		if(!js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js, glob))
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &startup->js))==NULL) 
 			break;
-		rooted=TRUE;
 
-		if(!JS_DefineFunctions(js_cx, *glob, js_global_functions)) 
+		if(!JS_DefineFunctions(js_cx, js_glob, js_global_functions)) 
 			break;
 
 		/* Internal JS Object */
-		if(js_CreateInternalJsObject(js_cx, *glob, cb, &startup->js)==NULL)
+		if(js_CreateInternalJsObject(js_cx, js_glob, branch, &startup->js)==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing System object",sock);
-		if(js_CreateSystemObject(js_cx, *glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
+		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
 			break;
 
-		if((*ftp=JS_DefineObject(js_cx, *glob, "ftp", NULL
+		if((*ftp=JS_DefineObject(js_cx, js_glob, "ftp", NULL
 			,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
 			break;
 
-		if(js_CreateServerObject(js_cx,*glob,&js_server_props)==NULL)
+		if(js_CreateServerObject(js_cx,js_glob,&js_server_props)==NULL)
 			break;
+
+		if(glob!=NULL)
+			*glob=js_glob;
 
 		success=TRUE;
 
 	} while(0);
 
 	if(!success) {
-		if(rooted)
-			JS_RemoveObjectRoot(js_cx, glob);
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
@@ -2444,7 +2444,7 @@ static void ctrl_thread(void* arg)
 	JSObject*	js_glob;
 	JSObject*	js_ftp;
 	JSString*	js_str;
-	js_callback_t	js_callback;
+	js_branch_t	js_branch;
 #endif
 
 	SetThreadName("FTP CTRL");
@@ -3172,7 +3172,7 @@ static void ctrl_thread(void* arg)
 						t=fdate(g.gl_pathv[i]);
 						if(localtime_r(&t,&tm)==NULL)
 							memset(&tm,0,sizeof(tm));
-						fprintf(fp,"%crw-r--r--   1 %-8s local %9"PRId32" %s %2d "
+						fprintf(fp,"%crw-r--r--   1 %-8s local %9ld %s %2d "
 							,isdir(g.gl_pathv[i]) ? 'd':'-'
 							,scfg.sys_id
 							,f.size
@@ -3674,7 +3674,7 @@ static void ctrl_thread(void* arg)
 								dotname(f.uler,str);
 						} else
 							SAFECOPY(str,scfg.sys_id);
-						fprintf(fp,"-r--r--r--   1 %-*s %-8s %9"PRId32" %s %2d "
+						fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d "
 							,NAME_LEN
 							,str
 							,scfg.dir[dir]->code_suffix
@@ -3978,7 +3978,7 @@ static void ctrl_thread(void* arg)
 
 					if(js_cx==NULL) {	/* Context not yet created, create it now */
 						/* js_initcx() starts a request */
-						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_callback))==NULL)) {
+						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_branch))==NULL)) {
 							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
 							sockprintf(sock,"451 Error initializing JavaScript context");
 							filepos=0;
@@ -4575,9 +4575,6 @@ static void ctrl_thread(void* arg)
 #ifdef JAVASCRIPT
 	if(js_cx!=NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying context",sock);
-		JS_BEGINREQUEST(js_cx);
-		JS_RemoveObjectRoot(js_cx, &js_glob);
-		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
 	}
 
@@ -4660,7 +4657,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.394 $", "%*s %s", revision);
+	sscanf("$Revision: 1.391 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
