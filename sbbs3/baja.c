@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.47 2013/09/03 23:35:50 deuce Exp $ */
+/* $Id: baja.c,v 1.44 2007/07/11 01:28:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,9 @@
 #ifndef __unix__
 	#include <io.h>
 	#include <share.h>
+#endif
+#ifdef _WIN32
+	#include <windows.h>
 #endif
 
 /* ANSI */
@@ -148,7 +151,7 @@ int32_t val(char *src, char *p)
 	static int inside;
 	int32_t l;
 
-	if(isdigit((uchar)*p) || *p=='-')      /* Dec, Hex, or Oct */
+	if(isdigit(*p) || *p=='-')      /* Dec, Hex, or Oct */
 		l=strtol(p,&p,0);
 	else if(*p=='\'') {  /* Char */
 		p++;
@@ -216,7 +219,7 @@ int32_t val(char *src, char *p)
 }
 
 
-void writecstr(char *p)
+void writecstr(uchar *p)
 {
 	char str[1024];
 	int j=0,inquotes=0;
@@ -230,11 +233,11 @@ void writecstr(char *p)
 			continue; }
 		if(*p=='\\')    { /* escape */
 			p++;
-			if(isdigit((uchar)*p)) {
+			if(isdigit(*p)) {
 				sprintf(tmp,"%.3s",p);
 				str[j]=atoi(tmp); 		/* decimal, NOT octal */
-				if(isdigit((uchar)*(++p))) 	/* skip up to 3 digits */
-					if(isdigit((uchar)*(++p)))
+				if(isdigit(*(++p))) 	/* skip up to 3 digits */
+					if(isdigit(*(++p)))
 						p++;
 				j++;
 				continue; }
@@ -242,7 +245,7 @@ void writecstr(char *p)
 				case 'x':
 					tmp[0]=*(p++);
 					tmp[1]=0;
-					if(isxdigit((uchar)*p)) {	/* if another hex digit, skip too */
+					if(isxdigit(*p)) {	/* if another hex digit, skip too */
 						tmp[1]=*(p++);
 						tmp[2]=0; }
 					str[j]=(char)ahtoul(tmp);
@@ -281,7 +284,7 @@ void writecstr(char *p)
 	fwrite(str,1,j+1,out);
 }
 
-void writestr(char *p)
+void writestr(uchar *p)
 {
 	char str[1024];
 	int j=0;
@@ -306,12 +309,12 @@ void cvttab(char *str)
 			str[i]=' ';
 }
 
-void newvar(char* src, char *in)
+void newvar(uchar* src, uchar *in)
 {
-	char name[128];
+	uchar name[128];
 	int32_t i,l;
 
-	if(isdigit((uchar)*in)) {
+	if(isdigit(*in)) {
 		printf("!SYNTAX ERROR (illegal variable name):\n");
 		printf(linestr,src,line,(char*)in);
 		bail(1); 
@@ -331,18 +334,18 @@ void newvar(char* src, char *in)
 			return;
 	}
 	if((var_name=(uint32_t *)realloc(var_name,sizeof(int32_t)*(vars+1)))==NULL) {
-		printf("Too many (%"PRIu32") variables!\n",vars);
+		printf("Too many (%lu) variables!\n",vars);
 		bail(1); }
 	var_name[vars]=l;
 	if(display)
-		printf("newvar(%08"PRIX32")=%s\n",l,in);
+		printf("newvar(%08lX)=%s\n",l,in);
 	vars++;
 }
 
-void writecrc(char *src, char *in)
+void writecrc(uchar *src, uchar *in)
 {
-	char	name[128];
-	char*	p;
+	uchar	name[128];
+	uchar*	p;
 	int32_t	l;
 	int		i;
 
@@ -372,12 +375,12 @@ void writecrc(char *src, char *in)
 	fwrite(&l,4,1,out);
 }
 
-int32_t isvar(char *arg)
+int32_t isvar(uchar *arg)
 {
-	char name[128],*p;
+	uchar name[128],*p;
 	int32_t i,l;
 
-	if(!arg || !(*arg) || isdigit((uchar)*arg))
+	if(!arg || !(*arg) || isdigit(*arg))
 		return(0);
 
 	sprintf(name,"%.80s",arg);
@@ -404,9 +407,9 @@ int str_cmp(char *s1, char *s2)
 	return(stricmp(s1,s2));
 }
 
-void expdefs(char *line)
+void expdefs(uchar *line)
 {
-	char str[512],*p,*sp,sav[2]={0};
+	uchar str[512],*p,*sp,sav[2]={0};
 	int i;
 
 	str[0]=0;
@@ -426,7 +429,7 @@ void expdefs(char *line)
 			continue; }
 
 		for(sp=p;*sp;sp++)
-			if(!isalnum((uchar)*sp) && *sp!='_')
+			if(!isalnum(*sp) && *sp!='_')
 				break;
 		sav[0]=*sp; 		/* Save delimiter */
 		sav[1]=0;
@@ -447,12 +450,10 @@ void expdefs(char *line)
 }
 
 
-#define SKIPCTRLSP(p) while(*(p)<=' ' && *(p)>0) (p)++
 
 void compile(char *src)
 {
-	char *str,*save,*p,*sp,*tp,*arg,*arg2,*arg3,*arg4,ch;
-	uchar *ar;
+	uchar *str,*save,*p,*sp,*tp,*arg,*arg2,*arg3,*arg4,*ar,ch;
 	char path[MAX_PATH+1];
 	uint16_t i;
     uint16_t j;
@@ -483,7 +484,8 @@ void compile(char *src)
 		line++;
 		strcpy(save,str);
 		p=str;
-		SKIPCTRLSP(p);   /* look for beginning of command */
+		while(*p && *p<=' ')   /* look for beginning of command */
+			p++;
 		if((*p)==0)
 			continue;
 		if(*p=='#')             /* remarks start with # */
@@ -496,23 +498,19 @@ void compile(char *src)
 		if(sp) {
 			*sp=0;
 			arg=sp+1;
-			SKIPCTRLSP(arg);
+			while(*arg && *arg<=' ') arg++;
 			sp=strchr(arg,' ');
 			if(sp) {
 				arg2=sp+1;
-				SKIPCTRLSP(arg2);
+				while(*arg2 && *arg2<=' ') arg2++;
 				sp=strchr(arg2,' ');
 				if(sp) {
 					arg3=sp+1;
-					SKIPCTRLSP(arg3);
+					while(*arg3 && *arg3<=' ') arg3++; 
 					sp=strchr(arg3,' ');
 					if(sp) {
 						arg4=sp+1;
-						SKIPCTRLSP(arg4);
-					}
-				}
-			}
-		}
+						while(*arg4 && *arg4<=' ') arg4++; } } } }
 
 		if(!stricmp(p,"!INCLUDE")) {
 			savline=line;
@@ -565,15 +563,15 @@ void compile(char *src)
 				if(!sp)
 					break;
 				p=sp+1;
-				SKIPCTRLSP(p);
-			}
+				while(*p && *p<=' ')
+					p++; }
 			continue; }
 
 		if(!stricmp(p,"PATCH")) {
 			if(!(*arg)) break;
 			p=arg;
 			while(*p) {
-				SKIPCTRLSP(p);
+				while(*p && *p<=' ') p++;
 				tmp[0]=*p++;
 				tmp[1]=*p++;
 				tmp[2]=0;
@@ -834,7 +832,7 @@ void compile(char *src)
 				ch=toupper(*arg);
 			if(ch=='/')
 				ch=*(arg+1)|0x80;   /* high bit indicates slash required */
-			else if(ch=='^' && (*(arg+1)>=0x40))
+			else if(ch=='^' && *(arg+1)>=0x40)
 				ch=*(arg+1)-0x40;   /* ctrl char */
 			else if(ch=='\\')
 				ch=cesc(*(arg+1));
@@ -871,8 +869,8 @@ void compile(char *src)
 				if(!sp)
 					break;
 				p=sp+1;
-				SKIPCTRLSP(p);
-			}
+				while(*p && *p<=' ')
+					p++; }
 			continue; }
 		if(!stricmp(p,"DEFINE_INT_VAR") || !stricmp(p,"INT")) {
 			if(!(*arg)) break;
@@ -886,8 +884,8 @@ void compile(char *src)
 				if(!sp)
 					break;
 				p=sp+1;
-				SKIPCTRLSP(p);
-			}
+				while(*p && *p<=' ')
+					p++; }
 			continue; }
 		if(!stricmp(p,"DEFINE_GLOBAL_STR_VAR") || !stricmp(p,"GLOBAL_STR")) {
 			if(!(*arg)) break;
@@ -901,8 +899,8 @@ void compile(char *src)
 				if(!sp)
 					break;
 				p=sp+1;
-				SKIPCTRLSP(p);
-			}
+				while(*p && *p<=' ')
+					p++; }
 			continue; }
 		if(!stricmp(p,"DEFINE_GLOBAL_INT_VAR") || !stricmp(p,"GLOBAL_INT")) {
 			if(!(*arg)) break;
@@ -916,8 +914,8 @@ void compile(char *src)
 				if(!sp)
 					break;
 				p=sp+1;
-				SKIPCTRLSP(p);
-			}
+				while(*p && *p<=' ')
+					p++; }
 			continue; }
 
 		if(!stricmp(p,"LOGIN")) {
@@ -1019,14 +1017,14 @@ void compile(char *src)
 			*p=0;
 			writecrc(src,arg);					/* Write destination variable */
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			arg=p;
 			p=strrchr(arg,'"');
 			if(!p)
 				break;
 			*p=0;
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			writecstr(arg);                 /* Write string */
 			l=ftell(out);
 			fputc(0,out);                   /* Write total number of args */
@@ -1054,7 +1052,7 @@ void compile(char *src)
 			*p=0;
 			writecrc(src,arg);					/* Write destination variable */
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			arg=p;
 			p=strrchr(arg,'"');
 			if(!p)
@@ -1062,7 +1060,7 @@ void compile(char *src)
 			*p=0;
 			writecstr(arg);                 /* Write string */
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			writecrc(src,p);
 			continue; }
 
@@ -1149,7 +1147,7 @@ void compile(char *src)
 				break;
 			*p=0;
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			writecrc(src,arg2);
 			writecstr(p);
 			continue; }
@@ -1175,14 +1173,14 @@ void compile(char *src)
 				break;
 			*p=0;
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			writecrc(src,arg2);
 			writecrc(src,p);
 			continue; }
 
 		if(!stricmp(p,"COMPARE_INT_VAR") ||
 			(!stricmp(p,"COMPARE")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 
 			fputc(CS_VAR_INSTRUCTION,out);
@@ -1287,7 +1285,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"ADD_INT_VAR")
 			|| (!stricmp(p,"ADD")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(ADD_INT_VAR,out);
@@ -1315,7 +1313,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"SUB_INT_VAR")
 			|| (!stricmp(p,"SUB")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(SUB_INT_VAR,out);
@@ -1343,7 +1341,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"MUL_INT_VAR")
 			|| (!stricmp(p,"MUL")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(MUL_INT_VAR,out);
@@ -1371,7 +1369,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"DIV_INT_VAR")
 			|| (!stricmp(p,"DIV")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(DIV_INT_VAR,out);
@@ -1399,7 +1397,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"MOD_INT_VAR")
 			|| (!stricmp(p,"MOD")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(MOD_INT_VAR,out);
@@ -1427,7 +1425,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"AND_INT_VAR")
 			|| (!stricmp(p,"AND")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(AND_INT_VAR,out);
@@ -1471,7 +1469,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"OR_INT_VAR")
 			|| (!stricmp(p,"OR")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(OR_INT_VAR,out);
@@ -1497,7 +1495,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"NOT_INT_VAR")
 			|| (!stricmp(p,"NOT")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(NOT_INT_VAR,out);
@@ -1523,7 +1521,7 @@ void compile(char *src)
 
 		if(!stricmp(p,"XOR_INT_VAR")
 			|| (!stricmp(p,"XOR")
-				&& (isdigit((uchar)*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
+				&& (isdigit(*arg2) || atol(arg2) || *arg2=='\'' || *arg2=='.'))) {
 			if(!(*arg)) break;
 			fputc(CS_VAR_INSTRUCTION,out);
 			fputc(XOR_INT_VAR,out);
@@ -1608,7 +1606,7 @@ void compile(char *src)
 				break;
 			*p=0;
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			writecstr(arg);                 /* Write string */
 			l=ftell(out);
 			fputc(0,out);                   /* Write total number of args */
@@ -1653,7 +1651,7 @@ void compile(char *src)
 			*p=0;
 			p++;
 			fwrite(&i,2,1,out);
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			if(*p=='"')
 				writestr(p);
 			else
@@ -1675,7 +1673,7 @@ void compile(char *src)
 			if(!(*arg)) break;
 
 			fputc(CS_FIO_FUNCTION,out);
-			if(!(*arg3) || isdigit((uchar)*arg3) || atoi(arg3))
+			if(!(*arg3) || isdigit(*arg3) || atoi(arg3))
 				fputc(FIO_READ,out);
 			else
 				fputc(FIO_READ_VAR,out);
@@ -1688,7 +1686,7 @@ void compile(char *src)
 			if(p)
 				*p=0;
 			writecrc(src,arg2); 		/* Variable */
-			if(isdigit((uchar)*arg3))
+			if(isdigit(*arg3))
 				i=val(src,arg3);	 /* Length */
 			else
 				i=0;
@@ -1700,7 +1698,7 @@ void compile(char *src)
 		if(!stricmp(p,"FWRITE")) {
 			if(!(*arg)) break;
 			fputc(CS_FIO_FUNCTION,out);
-			if(!(*arg3) || isdigit((uchar)*arg3) || atoi(arg3))
+			if(!(*arg3) || isdigit(*arg3) || atoi(arg3))
 				fputc(FIO_WRITE,out);
 			else
 				fputc(FIO_WRITE_VAR,out);
@@ -1713,7 +1711,7 @@ void compile(char *src)
 			if(p)
 				*p=0;
 			writecrc(src,arg2); 		/* Variable */
-			if(isdigit((uchar)*arg3))
+			if(isdigit(*arg3))
 				i=val(src,arg3);	 /* Length */
 			else
 				i=0;
@@ -1766,7 +1764,7 @@ void compile(char *src)
 		if(!stricmp(p,"FSET_POS") || !stricmp(p,"FSEEK")) {
 			if(!(*arg)) break;
 			fputc(CS_FIO_FUNCTION,out);
-			if(isdigit((uchar)*arg2) || atol(arg2))
+			if(isdigit(*arg2) || atol(arg2))
 				fputc(FIO_SEEK,out);
 			else
 				fputc(FIO_SEEK_VAR,out);
@@ -1778,7 +1776,7 @@ void compile(char *src)
 			p=strchr(arg2,' ');
 			if(p)
 				*p=0;
-			if(atol(arg2) || isdigit((uchar)*arg2)) {
+			if(atol(arg2) || isdigit(*arg2)) {
 				l=val(src,arg2);
 				fwrite(&l,4,1,out); }
 			else
@@ -1786,7 +1784,7 @@ void compile(char *src)
 			i=0;
 			if(p) {
 				p++;
-				SKIPCTRLSP(p);
+				while(*p && *p<=' ') p++;
 				i=atoi(p);
 				if(!stricmp(p,"CUR"))
 					i=SEEK_CUR;
@@ -1797,7 +1795,7 @@ void compile(char *src)
 		if(!stricmp(p,"FLOCK")) {
 			if(!(*arg)) break;
 			fputc(CS_FIO_FUNCTION,out);
-			if(isdigit((uchar)*arg2) || atol(arg2))
+			if(isdigit(*arg2) || atol(arg2))
 				fputc(FIO_LOCK,out);
 			else
 				fputc(FIO_LOCK_VAR,out);
@@ -1806,7 +1804,7 @@ void compile(char *src)
 				break;
 			*p=0;
 			writecrc(src,arg);			/* File handle */
-			if(atol(arg2) || isdigit((uchar)*arg2)) {
+			if(atol(arg2) || isdigit(*arg2)) {
 				l=val(src,arg2);
 				if(!l)
 					break;
@@ -1817,7 +1815,7 @@ void compile(char *src)
 		if(!stricmp(p,"FUNLOCK")) {
 			if(!(*arg)) break;
 			fputc(CS_FIO_FUNCTION,out);
-			if(isdigit((uchar)*arg2) || atol(arg2))
+			if(isdigit(*arg2) || atol(arg2))
 				fputc(FIO_UNLOCK,out);
 			else
 				fputc(FIO_UNLOCK_VAR,out);
@@ -1826,7 +1824,7 @@ void compile(char *src)
 				break;
 			*p=0;
 			writecrc(src,arg);			/* File handle */
-			if(atol(arg2) || isdigit((uchar)*arg2)) {
+			if(atol(arg2) || isdigit(*arg2)) {
 				l=val(src,arg2);
 				if(!l)
 					break;
@@ -1837,7 +1835,7 @@ void compile(char *src)
 		if(!stricmp(p,"FSET_LENGTH")) {
 			if(!(*arg)) break;
 			fputc(CS_FIO_FUNCTION,out);
-			if(isdigit((uchar)*arg2) || atol(arg2))
+			if(isdigit(*arg2) || atol(arg2))
 				fputc(FIO_SET_LENGTH,out);
 			else
 				fputc(FIO_SET_LENGTH_VAR,out);
@@ -1846,7 +1844,7 @@ void compile(char *src)
 				break;
 			*p=0;
 			writecrc(src,arg);			/* File handle */
-			if(atol(arg2) || isdigit((uchar)*arg2)) {
+			if(atol(arg2) || isdigit(*arg2)) {
 				l=val(src,arg2);
 				fwrite(&l,4,1,out); }
 			else
@@ -1862,14 +1860,14 @@ void compile(char *src)
 			*p=0;
 			writecrc(src,arg);					/* Write destination variable */
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			arg=p;
 			p=strrchr(arg,'"');
 			if(!p)
 				break;
 			*p=0;
 			p++;
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			writecstr(arg);                 /* Write string */
 			l=ftell(out);
 			fputc(0,out);                   /* Write total number of args */
@@ -2545,7 +2543,7 @@ void compile(char *src)
 		if(!stricmp(p,"GETSTR")) {
 			p=strchr(arg,' ');
 			if(p) *p=0;
-			if((!(*arg) || isdigit((uchar)*arg) || !stricmp(arg,"STR")) && !(*arg3))
+			if((!(*arg) || isdigit(*arg) || !stricmp(arg,"STR")) && !(*arg3))
 				fprintf(out,"%c%c",CS_GETSTR,atoi(arg) ? atoi(arg)
 					: *arg2 ? atoi(arg2) : 128);
 			else {
@@ -2574,7 +2572,7 @@ void compile(char *src)
 			if(!(*arg)) break;
 			p=strchr(arg,' ');
 			if(p) *p=0;
-			if(isdigit((uchar)*arg)) {
+			if(isdigit(*arg)) {
 				i=val(src,arg);
 				fprintf(out,"%c",CS_GETNUM);
 				fwrite(&i,2,1,out); }
@@ -2609,7 +2607,7 @@ void compile(char *src)
 		if(!stricmp(p,"GETLINE")) {
 			p=strchr(arg,' ');
 			if(p) *p=0;
-			if(!(*arg) || isdigit((uchar)*arg))
+			if(!(*arg) || isdigit(*arg))
 				fprintf(out,"%c%c",CS_GETLINE,*arg ? atoi(arg) :128);
 			else {
 				if((l=isvar(arg2))!=0) {
@@ -2629,7 +2627,7 @@ void compile(char *src)
 		if(!stricmp(p,"GETSTRUPR")) {
 			p=strchr(arg,' ');
 			if(p) *p=0;
-			if(!(*arg) || isdigit((uchar)*arg))
+			if(!(*arg) || isdigit(*arg))
 				fprintf(out,"%c%c",CS_GETSTRUPR,*arg ? atoi(arg) :128);
 			else {
 				if((l=isvar(arg2))!=0) {
@@ -2649,7 +2647,7 @@ void compile(char *src)
 		if(!stricmp(p,"GETNAME")) {
 			p=strchr(arg,' ');
 			if(p) *p=0;
-			if(!(*arg) || isdigit((uchar)*arg))
+			if(!(*arg) || isdigit(*arg))
 				fprintf(out,"%c%c",CS_GETNAME,*arg ? atoi(arg) :25);
 			else {
 				if((l=isvar(arg2))!=0) {
@@ -2670,7 +2668,7 @@ void compile(char *src)
 			if(!(*arg)) break;
 			p=strchr(arg,' ');
 			if(p) *p=0;
-			if(isdigit((uchar)*arg))
+			if(isdigit(*arg))
 				fprintf(out,"%c%c",CS_SHIFT_STR,atoi(arg));
 			else {
 				if((l=isvar(arg2))!=0) {
@@ -2846,7 +2844,7 @@ void compile(char *src)
 			if(!(*arg)) break;
 			p=arg;
 			fprintf(out,"%c%c",CS_TOGGLE_USER_FLAG,toupper(*p++));
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			fprintf(out,"%c",toupper(*p));
 			continue; }
 
@@ -3412,7 +3410,7 @@ int main(int argc, char **argv)
 	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision: 1.47 $", "%*s %s", revision);
+	sscanf("$Revision: 1.44 $", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
