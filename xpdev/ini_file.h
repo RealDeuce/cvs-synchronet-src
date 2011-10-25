@@ -2,7 +2,7 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.45 2011/11/04 07:15:46 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.44 2011/07/21 10:47:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,8 +67,6 @@ extern "C" {
 /* Read all section names and return as an allocated string list */
 /* Optionally (if prefix!=NULL), returns a subset of section names */
 str_list_t	iniReadSectionList(FILE*, const char* prefix);
-/* Returns number (count) of sections */
-size_t		iniReadSectionCount(FILE*, const char* prefix);
 /* Read all key names and return as an allocated string list */
 str_list_t	iniReadKeyList(FILE*, const char* section);
 /* Read all key and value pairs and return as a named string list */
