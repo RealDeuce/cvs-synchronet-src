@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.24 2011/10/11 13:36:38 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.25 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -293,7 +293,6 @@ static JSBool
 js_uifc_bail(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	uifcapi_t* uifc;
 	jsrefcount	rc;
 
