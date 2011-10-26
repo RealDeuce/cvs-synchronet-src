@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.3 2011/10/26 09:09:21 deuce Exp $
+# $Id: GNUmakefile,v 1.4 2011/10/26 16:38:34 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -22,12 +22,6 @@ include ../Common.gmake
 CFLAGS	+=	$(SBBS_CFLAGS) $(SMBLIB_CFLAGS) $(XPDEV-MT_CFLAGS) `wx-config --unicode --cflags`
 CXXFLAGS	+= $(CFLAGS)
 LDFLAGS	+=	`wx-config --unicode --libs` $(SMBLIB_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS) $(SBBS_LDFLAGS) 
-ifdef SBBSDIR
-LD_RUN_PATH	:=	$(SBBSDIR)/exec:$(SBBS_SRC)/$(LIBODIR)
-else
-LD_RUN_PATH	:=	$(SBBS_SRC)/$(LIBODIR)
-endif
-export LD_RUN_PATH
 
 $(USERLIST): $(SBBS) $(OBJS)
 	@echo Linking $@
