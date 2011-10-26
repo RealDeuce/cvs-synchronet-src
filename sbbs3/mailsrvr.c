@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.548 2011/10/26 22:44:20 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.549 2011/10/26 23:14:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1779,7 +1779,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 				,sock, log_prefix, startup->js.max_bytes);
 
 			if((*js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
-				break;
+				return FALSE;
 		}
 
 		if(*js_cx==NULL) {
@@ -1787,7 +1787,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 				,sock, log_prefix, startup->js.cx_stack);
 
 			if((*js_cx = JS_NewContext(*js_runtime, startup->js.cx_stack))==NULL)
-				break;
+				return FALSE;
 		}
 		JS_BEGINREQUEST(*js_cx);
 
@@ -1897,11 +1897,14 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 
 		success=JS_ExecuteScript(*js_cx, js_scope, js_script, &rval);
 
-		JS_ReportPendingException(*js_cx);
+		JS_GetProperty(*js_cx, *js_glob, "exit_code", &rval);
+
+		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval))
+			JS_ValueToInt32(*js_cx,rval,result);
 
 		js_EvalOnExit(*js_cx, js_scope, &js_branch);
 
-		JS_GetProperty(*js_cx, *js_glob, "exit_code", &rval);
+		JS_ReportPendingException(*js_cx);
 
 		JS_ClearScope(*js_cx, js_scope);
 
@@ -1909,13 +1912,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 
 	} while(0);
 
-	if(*js_cx!=NULL) {
-
-		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval))
-			JS_ValueToInt32(*js_cx,rval,result);
-
-		JS_ENDREQUEST(*js_cx);
-	}
+	JS_ENDREQUEST(*js_cx);
 
 	return(success);
 }
@@ -4875,7 +4872,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.548 $", "%*s %s", revision);
+	sscanf("$Revision: 1.549 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
