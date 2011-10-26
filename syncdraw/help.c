@@ -1,4 +1,5 @@
 #include <ciolib.h>
+#include <keys.h>
 
 #include "key.h"
 #include "miscfunctions.h"
