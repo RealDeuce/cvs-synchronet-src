@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.2 2011/10/26 09:06:23 deuce Exp $
+# $Id: GNUmakefile,v 1.3 2011/10/26 09:09:21 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -32,4 +32,3 @@ export LD_RUN_PATH
 $(USERLIST): $(SBBS) $(OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ -lsbbs $(SMBLIB_LIBS) $(XPDEV-MT_LIBS) $(SBBS_LIBS)
-	$(QUIET)cd $(EXEODIR) && ln -s ../gtkuserlist.glade .
