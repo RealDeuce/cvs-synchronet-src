@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.100 2012/04/25 07:52:50 deuce Exp $ */
+/* $Id: genwrap.h,v 1.98 2011/10/24 19:18:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,8 +156,6 @@ extern "C" {
 	#define PLATFORM_DESC	"QNX"
 #elif defined(__unix__)
 	#define PLATFORM_DESC	"Unix"
-#elif defined(__HAIKU__)
-	#define PLATFORM_DESC	"Haiku"
 #else
 	#error "Need to describe target platform"
 #endif
@@ -263,7 +261,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define	MAYBE_YIELD()	DosSleep(0)
 	#define SLEEP(x)		DosSleep(x)
 
-#elif defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
+#elif defined(__unix__) || defined(__APPLE__)
 
 	#if defined(_PTH_PTHREAD_H_)
 		#define SLEEP(x)		({ int sleep_msecs=x; struct timeval tv; \
