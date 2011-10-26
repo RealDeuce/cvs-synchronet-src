@@ -13,10 +13,7 @@
 #include <wx/dataobj.h>
 
 //(*InternalHeaders(SBBS_User_ListFrame)
-#include <wx/bitmap.h>
-#include <wx/icon.h>
 #include <wx/intl.h>
-#include <wx/image.h>
 #include <wx/string.h>
 //*)
 
@@ -56,6 +53,9 @@ const long SBBS_User_ListFrame::ID_QVCHOICE = wxNewId();
 const long SBBS_User_ListFrame::ID_REFRESHBUTTON = wxNewId();
 const long SBBS_User_ListFrame::ID_EDITBUTTON = wxNewId();
 const long SBBS_User_ListFrame::ID_PANEL1 = wxNewId();
+const long SBBS_User_ListFrame::idMenuQuit = wxNewId();
+const long SBBS_User_ListFrame::idMenuAbout = wxNewId();
+const long SBBS_User_ListFrame::ID_STATUSBAR1 = wxNewId();
 const long SBBS_User_ListFrame::ID_EDITUSER = wxNewId();
 const long SBBS_User_ListFrame::ID_COPY = wxNewId();
 const long SBBS_User_ListFrame::ID_COPYALL = wxNewId();
@@ -200,16 +200,16 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
     //(*Initialize(SBBS_User_ListFrame)
     wxBoxSizer* BoxSizer4;
     wxBoxSizer* BoxSizer5;
+    wxMenuItem* MenuItem2;
+    wxMenuItem* MenuItem1;
     wxBoxSizer* BoxSizer2;
+    wxMenu* Menu1;
     wxBoxSizer* BoxSizer1;
+    wxMenuBar* MenuBar1;
     wxBoxSizer* BoxSizer3;
+    wxMenu* Menu2;
 
-    Create(parent, id, _("SBBS User List"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE, _T("id"));
-    {
-    wxIcon FrameIcon;
-    FrameIcon.CopyFromBitmap(wxBitmap(wxImage(_T("../../conio/syncicon64.ico"))));
-    SetIcon(FrameIcon);
-    }
+    Create(parent, id, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE, _T("id"));
     Panel1 = new wxPanel(this, ID_PANEL1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL1"));
     BoxSizer1 = new wxBoxSizer(wxVERTICAL);
     BoxSizer2 = new wxBoxSizer(wxHORIZONTAL);
@@ -222,7 +222,7 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
     ClearButton->SetToolTip(_("Clears the ARS filter"));
     BoxSizer2->Add(ClearButton, 0, wxALL|wxALIGN_LEFT|wxALIGN_TOP, 5);
     BoxSizer1->Add(BoxSizer2, 0, wxALL|wxEXPAND|wxALIGN_LEFT|wxALIGN_TOP, 5);
-    UserList = new wxListCtrl(Panel1, ID_USERLISTCTRL, wxDefaultPosition, wxDLG_UNIT(Panel1,wxSize(-1,128)), wxLC_REPORT|wxLC_HRULES, wxDefaultValidator, _T("ID_USERLISTCTRL"));
+    UserList = new wxListCtrl(Panel1, ID_USERLISTCTRL, wxDefaultPosition, wxDefaultSize, wxLC_REPORT|wxLC_HRULES, wxDefaultValidator, _T("ID_USERLISTCTRL"));
     BoxSizer1->Add(UserList, 1, wxALL|wxEXPAND|wxALIGN_LEFT|wxALIGN_TOP, 5);
     BoxSizer3 = new wxBoxSizer(wxHORIZONTAL);
     BoxSizer4 = new wxBoxSizer(wxHORIZONTAL);
@@ -245,6 +245,22 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
     Panel1->SetSizer(BoxSizer1);
     BoxSizer1->Fit(Panel1);
     BoxSizer1->SetSizeHints(Panel1);
+    MenuBar1 = new wxMenuBar();
+    Menu1 = new wxMenu();
+    MenuItem1 = new wxMenuItem(Menu1, idMenuQuit, _("Quit\tAlt-F4"), _("Quit the application"), wxITEM_NORMAL);
+    Menu1->Append(MenuItem1);
+    MenuBar1->Append(Menu1, _("&File"));
+    Menu2 = new wxMenu();
+    MenuItem2 = new wxMenuItem(Menu2, idMenuAbout, _("About\tF1"), _("Show info about this application"), wxITEM_NORMAL);
+    Menu2->Append(MenuItem2);
+    MenuBar1->Append(Menu2, _("Help"));
+    SetMenuBar(MenuBar1);
+    StatusBar1 = new wxStatusBar(this, ID_STATUSBAR1, 0, _T("ID_STATUSBAR1"));
+    int __wxStatusBarWidths_1[1] = { -1 };
+    int __wxStatusBarStyles_1[1] = { wxSB_NORMAL };
+    StatusBar1->SetFieldsCount(1,__wxStatusBarWidths_1);
+    StatusBar1->SetStatusStyles(1,__wxStatusBarStyles_1);
+    SetStatusBar(StatusBar1);
     MenuItem3 = new wxMenuItem((&ContextMenu), ID_EDITUSER, _("Edit User"), wxEmptyString, wxITEM_NORMAL);
     ContextMenu.Append(MenuItem3);
     MenuItem3->Enable(false);
@@ -263,6 +279,8 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
     Connect(ID_USERLISTCTRL,wxEVT_COMMAND_LIST_COL_CLICK,(wxObjectEventFunction)&SBBS_User_ListFrame::OnUserListColumnClick);
     Connect(ID_QVCHOICE,wxEVT_COMMAND_CHOICE_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnQVChoiceSelect);
     Connect(ID_REFRESHBUTTON,wxEVT_COMMAND_BUTTON_CLICKED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnRefreshButtonClick);
+    Connect(idMenuQuit,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnQuit);
+    Connect(idMenuAbout,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnAbout);
     Connect(ID_COPY,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::CopyMenuItemSelected);
     Connect(ID_COPYALL,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::CopyAllMenuItemSelected);
     Connect(ID_REFRESH,wxEVT_COMMAND_MENU_SELECTED,(wxObjectEventFunction)&SBBS_User_ListFrame::OnRefreshButtonClick);
@@ -302,6 +320,10 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
 	UserList->SetColumnWidth(13, wxLIST_AUTOSIZE);
 	UserList->SetColumnWidth(14, wxLIST_AUTOSIZE);
 
+    /*
+     * Ideally this would go right after QVChoice->SetSelection
+     */
+
 	for(int i=0;i<10;i++) {
 		wxString    str;
 		wxString    fstr;
@@ -314,7 +336,6 @@ SBBS_User_ListFrame::SBBS_User_ListFrame(wxWindow* parent,wxWindowID id)
 	}
 
 	BoxSizer1->SetSizeHints(this);
-	this->SetName(this->GetTitle());
 }
 
 SBBS_User_ListFrame::~SBBS_User_ListFrame()

@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <wxsmith>
 	<object class="wxFrame" name="SBBS_User_ListFrame">
-		<title>SBBS User List</title>
-		<icon>../../../conio/syncicon64.ico</icon>
 		<object class="wxPanel" name="ID_PANEL1" variable="Panel1" member="yes">
 			<object class="wxBoxSizer" variable="BoxSizer1" member="no">
 				<orient>wxVERTICAL</orient>
@@ -40,7 +38,6 @@
 				</object>
 				<object class="sizeritem">
 					<object class="wxListCtrl" name="ID_USERLISTCTRL" variable="UserList" member="yes">
-						<size>-1,128d</size>
 						<style>wxLC_REPORT|wxLC_HRULES</style>
 						<handler function="OnUserListItemSelect" entry="EVT_LIST_ITEM_SELECTED" />
 						<handler function="OnUserListItemSelect" entry="EVT_LIST_ITEM_DESELECTED" />
@@ -107,6 +104,31 @@
 					<border>5</border>
 				</object>
 			</object>
+		</object>
+		<object class="wxMenuBar" variable="MenuBar1" member="no">
+			<object class="wxMenu" variable="Menu1" member="no">
+				<label>&amp;File</label>
+				<object class="wxMenuItem" name="idMenuQuit" variable="MenuItem1" member="no">
+					<label>Quit</label>
+					<accel>Alt-F4</accel>
+					<help>Quit the application</help>
+					<handler function="OnQuit" entry="EVT_MENU" />
+				</object>
+			</object>
+			<object class="wxMenu" variable="Menu2" member="no">
+				<label>Help</label>
+				<object class="wxMenuItem" name="idMenuAbout" variable="MenuItem2" member="no">
+					<label>About</label>
+					<accel>F1</accel>
+					<help>Show info about this application</help>
+					<handler function="OnAbout" entry="EVT_MENU" />
+				</object>
+			</object>
+		</object>
+		<object class="wxStatusBar" name="ID_STATUSBAR1" variable="StatusBar1" member="yes">
+			<fields>1</fields>
+			<widths>-1</widths>
+			<styles>wxSB_NORMAL</styles>
 		</object>
 		<object class="wxMenu" variable="ContextMenu" member="yes">
 			<object class="wxMenuItem" name="ID_EDITUSER" variable="MenuItem3" member="yes">
