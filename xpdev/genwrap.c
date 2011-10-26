@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.87 2011/11/04 09:25:37 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.86 2011/10/24 21:48:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -486,8 +486,7 @@ char* DLLCALL truncsp(char* str)
 }
 
 /****************************************************************************/
-/* Truncates common white-space chars off end of \n-terminated lines in		*/
-/* 'dst' and retains original line break format	(e.g. \r\n or \n)			*/
+/* Truncates all white-space chars off end of \n-terminated lines in 'str'	*/
 /****************************************************************************/
 char* DLLCALL truncsp_lines(char* dst)
 {
@@ -499,13 +498,10 @@ char* DLLCALL truncsp_lines(char* dst)
 		return(dst);
 
 	for(sp=src, dp=dst; *sp!=0; sp++) {
-		if(*sp=='\n') {
+		if(*sp=='\n')
 			while(dp!=dst
-				&& (*(dp-1)==' ' || *(dp-1)=='\t' || *(dp-1)=='\r'))
+				&& (*(dp-1)==' ' || *(dp-1)=='\t' || *(dp-1)=='\r') && *(dp-1)!='\n')
 					dp--;
-			if(sp!=src && *(sp-1)=='\r')
-				*(dp++)='\r';
-		}
 		*(dp++)=*sp;
 	}
 	*dp=0;
