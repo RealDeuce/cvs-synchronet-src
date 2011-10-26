@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.93 2011/08/30 22:51:21 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.94 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -465,7 +465,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 			removecase(msgtmp);
 		else {
 			qlen=(long)flength(msgtmp);
-			qtime=fdate(msgtmp); 
+			qtime=(long)fdate(msgtmp); 
 		}
 
 		CLS;
@@ -1154,7 +1154,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_hfield_str(msg,RECIPIENTEXT,str);
 	msg->idx.to=usernumber;
 
-	now32=time(NULL);
+	now32=time32(NULL);
 	smb_hfield(msg,FORWARDED,sizeof(time32_t),&now32);
 
 
