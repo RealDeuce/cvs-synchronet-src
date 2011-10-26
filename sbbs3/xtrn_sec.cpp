@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.77 2013/09/15 07:32:48 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.71 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -430,7 +430,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,str,strlen(str));
 
 		sprintf(str,"%s\n%s\n%d\n%s\n%lu\n%s\n%s\n%s\n%s\n"
-			"%"PRIx32"\n%d\n"
+			"%lx\n%d\n"
 			,ltoaf(useron.flags3,tmp)			/* Flag set #3 */
 			,ltoaf(useron.flags4,tmp2)			/* Flag set #4 */
 			,0									/* Time-slice type */
@@ -473,7 +473,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
 
-		sprintf(str,"%lu\n%s\n%lu\n%ld\n%u\n%u\n%u\n%ld\n%u\n"
+		sprintf(str,"%lu\n%s\n%u\n%lu\n%u\n%u\n%u\n%u\n%u\n"
 			,useron.cdt+useron.freecdt			/* Gold */
 			,unixtodstr(&cfg,useron.laston,tmp)	/* User last on date */
 			,cols 								/* User screen width */
@@ -556,7 +556,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,8									/* 03: Data bits */
 			,cfg.node_num						/* 04: Node number */
 			,dte_rate							/* 05: DTE rate */
-			,'Y'								/* 06: Screen display */
+			,console&CON_L_ECHO ? 'Y':'N'       /* 06: Screen display */
 			,'Y'                                /* 07: Printer toggle */
 			,'Y'                                /* 08: Page bell */
 			,'Y');                              /* 09: Caller alarm */
@@ -682,7 +682,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			*(p++)=0;
 		else
 			p=nulstr;
-		sprintf(str,"%s\n%s\n%s\n%ld\n%u\n%lu\n"
+		sprintf(str,"%s\n%s\n%s\n%u\n%u\n%lu\n"
 			,tmp								/* User's firstname */
 			,p									/* User's lastname */
 			,useron.location					/* User's city */
@@ -1024,7 +1024,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		l=0L;
 		write(file,&l,4);						/* Memorized message number */
 
-		sprintf(str,"%d%c%c%ld%s%c%c%d%d%d%c%c"
+		sprintf(str,"%d%c%c%d%s%c%c%d%d%d%c%c"
 			,cfg.com_port						/* COM Port number */
 			,' ' 								/* Reserved */
 			,' ' 								/* "" */
@@ -1161,7 +1161,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		if((p=strchr(tmp,' '))!=NULL)
 			*p=0;
 
-		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%"PRId32"\n"
+		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%lu\n"
 			,useron.number						/* User number */
 			,name								/* User name */
 			,useron.pass						/* Password */
@@ -1180,7 +1180,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			l=((((long)tm.tm_hour*60L)+(long)tm.tm_min)*60L)
 				+(long)tm.tm_sec;
 
-		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%"PRId32"\n%lu\n%s\n"
+		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%lu\n%lu\n%s\n"
 			"%s\n%s\n%lu\n%s\n%u\n%u\n%u\n%u\n%u\n%lu\n%u\n"
 			"%lu\n%lu\n%s\n%s\n"
 			,dropdir
@@ -1248,7 +1248,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"%s\n%ld\n%d\n%lu\n%lu\n%u\n%lu\n"
+		sprintf(str,"%s\n%d\n%d\n%lu\n%lu\n%u\n%lu\n"
 			,name								/* Complete name of user */
 			,term_supports(ANSI)	 			/* ANSI ? */
 			,term_supports(NO_EXASCII) ? 0:1	/* IBM characters ? */
@@ -1313,8 +1313,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"%d\n%d\n%lu\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
-			"%ld\n%d\n"
+		sprintf(str,"%d\n%d\n%u\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
+			"%d\n%d\n"
 			,misc&(XTRN_STDIO|XTRN_CONIO) ? 0 /* Local */ : 2 /* Telnet */
 			,misc&(XTRN_STDIO|XTRN_CONIO) ? INVALID_SOCKET : client_socket_dup
 			,dte_rate
@@ -1674,12 +1674,10 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_LWRCASE)
 		strlwr(name);
 	strcat(path,name);
-	if(action!=NODE_PCHT) {
-		getnodedat(cfg.node_num,&thisnode,1);
-		thisnode.action=NODE_XTRN;
-		thisnode.aux=xtrnnum+1;
-		putnodedat(cfg.node_num,&thisnode);
-	}
+	getnodedat(cfg.node_num,&thisnode,1);
+	thisnode.aux=xtrnnum+1;
+	thisnode.action=NODE_XTRN;
+	putnodedat(cfg.node_num,&thisnode);
 	putuserrec(&cfg,useron.number,U_CURXTRN,8,cfg.xtrn[xtrnnum]->code);
 
 	if(cfg.xtrn[xtrnnum]->misc&REALNAME)
@@ -1762,8 +1760,10 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
 			return(false); 
 		}
+		getnodedat(cfg.node_num,&thisnode,0);
 		now=time(NULL);
-		SAFEPRINTF3(str,hungupstr,useron.alias,cfg.xtrn[xtrnnum]->name,timestr(now));
+		sprintf(str,hungupstr,useron.alias,thisnode.aux ? cfg.xtrn[thisnode.aux-1]->name : "External Program"
+			,timestr(now));
 		write(file,str,strlen(str));
 		close(file); 
 	} 
@@ -1790,7 +1790,6 @@ bool sbbs_t::user_event(user_event_t event)
 		if(cfg.xtrn[i]->event!=event)
 			continue;
 		if(!chk_ar(cfg.xtrn[i]->ar,&useron,&client)
-			|| !chk_ar(cfg.xtrn[i]->run_ar,&useron,&client)
 			|| !chk_ar(cfg.xtrnsec[cfg.xtrn[i]->sec]->ar,&useron,&client))
 			continue;
 		success=exec_xtrn(i); 
