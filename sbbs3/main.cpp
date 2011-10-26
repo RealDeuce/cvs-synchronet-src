@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.571 2011/10/21 11:20:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.572 2011/10/26 07:08:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1159,6 +1159,8 @@ bool sbbs_t::js_init(ulong* stack_frame)
 			lprintf(LOG_DEBUG,"%s JavaScript: Thread stack limit: %lu bytes"
 				,node, startup->js.thread_stack);
 		}
+		else
+			JS_SetThreadStackLimit(js_cx, 0);
 
 		success=true;
 
