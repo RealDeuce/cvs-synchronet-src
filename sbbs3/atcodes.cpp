@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.62 2011/11/13 01:17:03 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.61 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -228,8 +228,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		memset(&tm,0,sizeof(tm));
 		localtime_r(&now,&tm);
 		if(cfg.sys_misc&SM_MILITARY)
-			safe_snprintf(str,maxlen,"%02d:%02d:%02d"
-		        	,tm.tm_hour,tm.tm_min,tm.tm_sec);
+			safe_snprintf(str,maxlen,"%02d:%02d"
+		        	,tm.tm_hour,tm.tm_min);
 		else
 			safe_snprintf(str,maxlen,"%02d:%02d %s"
 				,tm.tm_hour==0 ? 12
@@ -453,14 +453,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"LASTTIMEON")) {
 		memset(&tm,0,sizeof(tm));
 		localtime32(&useron.laston,&tm);
-		if(cfg.sys_misc&SM_MILITARY)
-			safe_snprintf(str,maxlen,"%02d:%02d:%02d"
-				,tm.tm_hour, tm.tm_min, tm.tm_sec);
-		else
-			safe_snprintf(str,maxlen,"%02d:%02d %s"
-				,tm.tm_hour==0 ? 12
-				: tm.tm_hour>12 ? tm.tm_hour-12
-				: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
+		safe_snprintf(str,maxlen,"%02d:%02d %s"
+			,tm.tm_hour==0 ? 12
+			: tm.tm_hour>12 ? tm.tm_hour-12
+			: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
 		return(str);
 	}
 
