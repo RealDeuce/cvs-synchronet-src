@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.88 2011/11/04 03:23:41 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.87 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,9 +272,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
 	}
-
-	/* ToDo: split body/tail */
-	/* ToDo: use smb_addmsg instead of the stuff below: */
 
 	setvbuf(instream,NULL,_IOFBF,2*1024);
 	fseek(smb.sdt_fp,offset,SEEK_SET);

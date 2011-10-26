@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.17 2011/10/29 03:53:58 deuce Exp $ */
+/* $Id: js_com.c,v 1.15 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,14 +278,10 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) {
-		if(!JS_ValueToInt32(cx,argv[0],&val))
-			return JS_FALSE;
-	}
-	if(argc>1 && argv[1]!=JSVAL_VOID)  {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&size))
-			return JS_FALSE;
-	}
+	if(argc && argv[0]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[0],&val);
+	if(argc>1 && argv[1]!=JSVAL_VOID) 
+		JS_ValueToInt32(cx,argv[1],(int32*)&size);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	switch(size) {
@@ -342,15 +338,11 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return JS_FALSE;
-	}
+	if(argc && argv[0]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[0],&len);
 
-	if(argc>1 && argv[1]!=JSVAL_VOID) {
-		if(!JS_ValueToInt32(cx,argv[1],&timeout))
-			return JS_FALSE;
-	}
+	if(argc>1 && argv[1]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[1],&timeout);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
@@ -399,20 +391,16 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return JS_FALSE;
-	}
+	if(argc && argv[0]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[0],&len);
 
 	if((buf=(char*)alloca(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
 
-	if(argc>1 && argv[1]!=JSVAL_VOID) {
-		if(!JS_ValueToInt32(cx,argv[1],&timeout))
-			return JS_FALSE;
-	}
+	if(argc>1 && argv[1]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[1],&timeout);
 
 	rc=JS_SUSPENDREQUEST(cx);
 
@@ -458,15 +446,11 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) {
-		if(!JS_ValueToInt32(cx,argv[0],(int32*)&size))
-			return JS_FALSE;
-	}
+	if(argc && argv[0]!=JSVAL_VOID) 
+		JS_ValueToInt32(cx,argv[0],(int32*)&size);
 
-	if(argc>1 && argv[1]!=JSVAL_VOID) {
-		if(!JS_ValueToInt32(cx,argv[1],&timeout));
-			return JS_FALSE;
-	}
+	if(argc>1 && argv[1]!=JSVAL_VOID)
+		JS_ValueToInt32(cx,argv[1],&timeout);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	switch(size) {
@@ -557,13 +541,11 @@ static JSBool js_com_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 			JS_ValueToBoolean(cx,*vp,&(p->debug));
 			break;
 		case COM_PROP_DESCRIPTOR:
-			if(!JS_ValueToInt32(cx,*vp,(int32*)&(p->com)))
-				return JS_FALSE;
+			JS_ValueToInt32(cx,*vp,(int32*)&(p->com));
 			p->is_open=TRUE;
 			break;
 		case COM_PROP_LAST_ERROR:
-			if(!JS_ValueToInt32(cx,*vp,(int32*)&(p->last_error)))
-				return JS_FALSE;
+			JS_ValueToInt32(cx,*vp,(int32*)&(p->last_error));
 			break;
 		case COM_PROP_BAUD_RATE:
 			JS_ValueToNumber(cx,*vp,&d);
@@ -743,8 +725,7 @@ static JSBool js_com_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval))
-			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_com_properties, js_com_functions, NULL, 0));
