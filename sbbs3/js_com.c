@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.14 2011/10/16 12:27:01 rswindell Exp $ */
+/* $Id: js_com.c,v 1.15 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +101,6 @@ static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -133,7 +132,6 @@ static JSBool
 js_open(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -759,7 +757,6 @@ js_com_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj;
 	jsval *argv=JS_ARGV(cx, arglist);
 	private_t* p;
-	char*	protocol=NULL;
 	char*		fname;
 
 	obj=JS_NewObject(cx, &js_com_class, NULL, NULL);
