@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.249 2011/09/01 17:37:09 rswindell Exp $ */
+/* $Id: services.c,v 1.265 2011/10/26 22:44:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,10 +69,9 @@
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
-static volatile ulong	sockets=0;
 static volatile BOOL	terminated=FALSE;
-static volatile time_t	uptime=0;
-static volatile ulong	served=0;
+static time_t	uptime=0;
+static ulong	served=0;
 static char		revision[16];
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
@@ -91,11 +90,11 @@ typedef struct {
 	js_startup_t	js;
 	js_server_props_t js_server_props;
 	/* These are run-time state and stat vars */
-	volatile ulong		clients;
-	volatile ulong		served;
-	volatile SOCKET		socket;
-	volatile BOOL		running;
-	volatile BOOL		terminated;
+	uint32_t	clients;
+	ulong		served;
+	SOCKET		socket;
+	BOOL		running;
+	BOOL		terminated;
 } service_t;
 
 typedef struct {
@@ -220,14 +219,9 @@ static SOCKET open_socket(int type, const char* protocol)
 	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
 	if(sock!=INVALID_SOCKET) {
-		sockets++;
 		SAFEPRINTF(section,"services|%s", protocol);
 		if(set_socket_options(&scfg, sock, section, error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock, error);
-
-#if 0 /*def _DEBUG */
-		lprintf(LOG_DEBUG,"%04d Socket opened (%d sockets in use)",sock,sockets);
-#endif
 	}
 	return(sock);
 }
@@ -243,13 +237,8 @@ static int close_socket(SOCKET sock)
 	result=closesocket(sock);
 	if(startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,FALSE);
-	sockets--;
 	if(result!=0)
 		lprintf(LOG_WARNING,"%04d !ERROR %d closing socket",sock, ERROR_VALUE);
-#if 0 /*def _DEBUG */
-	else 
-		lprintf(LOG_DEBUG,"%04d Socket closed (%d sockets in use)",sock,sockets);
-#endif
 
 	return(result);
 }
@@ -263,18 +252,23 @@ static void status(char* str)
 /* Global JavaScript Methods */
 
 static JSBool
-js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_read(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	char*		buf;
 	int32		len=512;
 	service_client_t* client;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToInt32(cx,argv[0],&len);
+	if(argc) {
+		if(!JS_ValueToInt32(cx,argv[0],&len))
+			return JS_FALSE;
+	}
 	
 	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
@@ -284,14 +278,15 @@ js_read(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(len>0)
-		*rval = STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len));
+		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len)));
 
 	return(JS_TRUE);
 }
 
 static JSBool
-js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_readln(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	char		ch;
 	char*		buf;
 	int			i;
@@ -303,19 +298,25 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	service_client_t* client;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToInt32(cx,argv[0],&len);
+	if(argc) {
+		if(!JS_ValueToInt32(cx,argv[0],&len))
+			return JS_FALSE;
+	}
 
 	if((buf=(char*)alloca(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
 
-	if(argc>1)
-		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
+	if(argc>1) {
+		if(!JS_ValueToInt32(cx,argv[1],(int32*)&timeout))
+			return JS_FALSE;
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	start=time(NULL);
@@ -326,7 +327,7 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 		if(!rd) {
 			if(time(NULL)-start>timeout) {
-				*rval = JSVAL_NULL;
+				JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 				JS_RESUMEREQUEST(cx, rc);
 				return(JS_TRUE);	/* time-out */
 			}
@@ -351,29 +352,30 @@ js_readln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(str==NULL)
 		return(JS_FALSE);
 
-	*rval = STRING_TO_JSVAL(str);
+	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
 		
 	return(JS_TRUE);
 }
 
 static JSBool
-js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
 	char*		cp;
-	JSString*	str;
 	service_client_t* client;
 	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	*rval = argv[0];
+	JS_SET_RVAL(cx, arglist, argv[0]);
 
 	for(i=0; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL)
-			continue;
-		if((cp=JS_GetStringBytes(str))==NULL)
+		JSVALUE_TO_STRING(cx, argv[i], cp, NULL);
+		if(cp==NULL)
 			continue;
 		rc=JS_SUSPENDREQUEST(cx);
 		sendsocket(client->socket,cp,strlen(cp));
@@ -384,16 +386,18 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 {
 	char*		cp;
 	service_client_t* client;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 	
-	js_write(cx,obj,argc,argv,rval);
+	js_write(cx,argc,arglist);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	cp="\r\n";
@@ -404,14 +408,17 @@ js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 }
 
 static JSBool
-js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[512];
     uintN		i=0;
 	int32		level=LOG_INFO;
-    JSString*	js_str;
 	service_client_t* client;
 	jsrefcount	rc;
+	char		*line;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -419,14 +426,17 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     if(startup==NULL || startup->lputs==NULL)
         return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
-		JS_ValueToInt32(cx,argv[i++],&level);
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
+		if(!JS_ValueToInt32(cx,argv[i++],&level))
+			return JS_FALSE;
+	}
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		if((js_str=JS_ValueToString(cx, argv[i]))==NULL)
+		JSVALUE_TO_STRING(cx, argv[i], line, NULL);
+		if(line==NULL)
 		    return(JS_FALSE);
-		strncat(str,JS_GetStringBytes(js_str),sizeof(str)/2);
+		strncat(str,line,sizeof(str)/2);
 		strcat(str," ");
 	}
 
@@ -437,7 +447,7 @@ js_log(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		lprintf(level,"%04d %s %s",client->socket,client->service->protocol,str);
 	JS_RESUMEREQUEST(cx, rc);
 
-	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str));
+	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx, str)));
 
     return(JS_TRUE);
 }
@@ -459,8 +469,10 @@ static void badlogin(SOCKET sock, char* prot, char* user, char* passwd, char* ho
 }
 
 static JSBool
-js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	char*		user;
 	char*		pass;
 	JSBool		inc_logons=JS_FALSE;
@@ -468,17 +480,19 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	service_client_t* client;
 	jsrefcount	rc;
 
-	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
 	/* User name or number */
-	if((user=js_ValueToStringBytes(cx, argv[0], NULL))==NULL) 
+	JSVALUE_TO_STRING(cx, argv[0], user, NULL);
+	if(user==NULL) 
 		return(JS_FALSE);
 
 	/* Password */
-	if((pass=js_ValueToStringBytes(cx, argv[1], NULL))==NULL) 
+	JSVALUE_TO_STRING(cx, argv[1], pass, NULL);
+	if(pass==NULL) 
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -567,19 +581,20 @@ js_login(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	if(client->user.pass[0])
 		loginSuccess(startup->login_attempt_list, &client->addr);
 
-	*rval=BOOLEAN_TO_JSVAL(JS_TRUE);
+	JS_SET_RVAL(cx, arglist,BOOLEAN_TO_JSVAL(JS_TRUE));
 
 	return(JS_TRUE);
 }
 
 static JSBool
-js_logout(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_logout(JSContext *cx, uintN argc, jsval *arglist)
 {
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval val;
 	service_client_t* client;
 	jsrefcount	rc;
 
-	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -600,7 +615,7 @@ js_logout(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 	val = BOOLEAN_TO_JSVAL(JS_FALSE);
 	JS_SetProperty(cx, obj, "logged_in", &val);
 
-	*rval=BOOLEAN_TO_JSVAL(JS_TRUE);
+	JS_SET_RVAL(cx, arglist,BOOLEAN_TO_JSVAL(JS_TRUE));
 
 	return(JS_TRUE);
 }
@@ -668,14 +683,18 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 /* Server Methods */
 
 static JSBool
-js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	client_t	client;
 	SOCKET		sock=INVALID_SOCKET;
 	socklen_t	addr_len;
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 	jsrefcount	rc;
+	char		*cstr;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -687,7 +706,7 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 	memset(&client,0,sizeof(client));
 	client.size=sizeof(client);
 	client.protocol=service_client->service->protocol;
-	client.time=time(NULL);
+	client.time=time32(NULL);
 	client.user="<unknown>";
 	SAFECOPY(client.host,client.user);
 	
@@ -699,11 +718,15 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 		client.port=ntohs(addr.sin_port);
 	}
 
-	if(argc>1)
-		client.user=JS_GetStringBytes(JS_ValueToString(cx,argv[1]));
+	if(argc>1) {
+		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
+		client.user=cstr;
+	}
 
-	if(argc>2)
-		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
+	if(argc>2) {
+		JSVALUE_TO_STRING(cx, argv[2], cstr, NULL);
+		SAFECOPY(client.host,cstr);
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ FALSE);
@@ -717,14 +740,18 @@ js_client_add(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval
 }
 
 static JSBool
-js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	client_t	client;
 	SOCKET		sock=INVALID_SOCKET;
 	socklen_t	addr_len;
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 	jsrefcount	rc;
+	char		*cstr;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -743,11 +770,15 @@ js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 		client.port=ntohs(addr.sin_port);
 	}
 
-	if(argc>1)
-		client.user=JS_GetStringBytes(JS_ValueToString(cx,argv[1]));
+	if(argc>1) {
+		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
+		client.user=cstr;
+	}
 
-	if(argc>2)
-		SAFECOPY(client.host,JS_GetStringBytes(JS_ValueToString(cx,argv[2])));
+	if(argc>2) {
+		JSVALUE_TO_STRING(cx, argv[2], cstr, NULL);
+		SAFECOPY(client.host,cstr);
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ TRUE);
@@ -762,11 +793,14 @@ js_client_update(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *r
 
 
 static JSBool
-js_client_remove(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_client_remove(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	SOCKET	sock=INVALID_SOCKET;
 	service_client_t* service_client;
 	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((service_client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -849,6 +883,10 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		/* Queue Class */
 		if(js_CreateQueueClass(js_cx, js_glob)==NULL)
+			break;
+
+		/* COM Class */
+		if(js_CreateCOMClass(js_cx, js_glob)==NULL)
 			break;
 
 		/* user-specific objects */
@@ -939,7 +977,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 }
 
 static JSBool
-js_BranchCallback(JSContext *cx, JSScript *script)
+js_BranchCallback(JSContext *cx, JSObject *script)
 {
 	service_client_t* client;
 
@@ -956,7 +994,7 @@ js_BranchCallback(JSContext *cx, JSScript *script)
 	return js_CommonBranchCallback(cx,&client->branch);
 }
 
-#ifdef USE_JS_OPERATION_CALLBACK
+#if JS_VERSION>180
 static JSBool
 js_OperationCallback(JSContext *cx)
 {
@@ -1023,7 +1061,7 @@ static void js_service_thread(void* arg)
 	char					fname[MAX_PATH+1];
 	JSString*				datagram;
 	JSObject*				js_glob;
-	JSScript*				js_script;
+	JSObject*				js_script;
 	JSRuntime*				js_runtime;
 	JSContext*				js_cx;
 	jsval					val;
@@ -1095,7 +1133,7 @@ static void js_service_thread(void* arg)
 #endif
 
 	client.size=sizeof(client);
-	client.time=time(NULL);
+	client.time=time32(NULL);
 	SAFECOPY(client.addr,inet_ntoa(service_client.addr.sin_addr));
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(service_client.addr.sin_port);
@@ -1160,14 +1198,13 @@ static void js_service_thread(void* arg)
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
-#ifdef USE_JS_OPERATION_CALLBACK
+#if JS_VERSION>180
 		JS_SetOperationCallback(js_cx, js_OperationCallback);
 #else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
 #endif
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
-		JS_DestroyScript(js_cx, js_script);
 	}
 	JS_ENDREQUEST(js_cx);
 	JS_DestroyContext(js_cx);	/* Free Context */
@@ -1195,7 +1232,7 @@ static void js_service_thread(void* arg)
 
 	thread_down();
 	lprintf(LOG_INFO,"%04d %s service thread terminated (%u clients remain, %d total, %lu served)"
-		, socket, service->protocol, service->clients, active_clients(), service->served);
+		,socket, service->protocol, service->clients, active_clients(), service->served);
 
 	client_off(socket);
 	close_socket(socket);
@@ -1210,7 +1247,7 @@ static void js_static_service_thread(void* arg)
 	SOCKET					socket;
 	/* JavaScript-specific */
 	JSObject*				js_glob;
-	JSScript*				js_script;
+	JSObject*				js_script;
 	JSRuntime*				js_runtime;
 	JSContext*				js_cx;
 	jsval					val;
@@ -1263,7 +1300,7 @@ static void js_static_service_thread(void* arg)
 		val = BOOLEAN_TO_JSVAL(JS_FALSE);
 		JS_SetProperty(js_cx, js_glob, "logged_in", &val);
 
-#ifdef USE_JS_OPERATION_CALLBACK
+#if JS_VERSION>180
 		JS_SetOperationCallback(js_cx, js_OperationCallback);
 #else
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
@@ -1277,7 +1314,6 @@ static void js_static_service_thread(void* arg)
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
-		JS_DestroyScript(js_cx, js_script);
 
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
@@ -1442,7 +1478,7 @@ static void native_service_thread(void* arg)
 #endif
 
 	client.size=sizeof(client);
-	client.time=time(NULL);
+	client.time=time32(NULL);
 	SAFECOPY(client.addr,inet_ntoa(service_client.addr.sin_addr));
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(service_client.addr.sin_port);
@@ -1663,7 +1699,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.249 $", "%*s %s", revision);
+	sscanf("$Revision: 1.265 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -2107,10 +2143,6 @@ void DLLCALL services_thread(void* arg)
 #endif
 						continue;
 					}
-					sockets++;
-#if 0 /*def _DEBUG */
-					lprintf(LOG_DEBUG,"%04d Socket opened (%d sockets in use)",client_socket,sockets);
-#endif
 					if(startup->socket_open!=NULL)	/* Callback, increments socket counter */
 						startup->socket_open(startup->cbdata,TRUE);	
 				}
