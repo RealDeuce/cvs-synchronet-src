@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.273 2014/01/08 02:41:22 rswindell Exp $ */
+/* $Id: services.c,v 1.264 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -75,7 +75,6 @@ static ulong	served=0;
 static char		revision[16];
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
-static protected_uint32_t threads_pending_start;
 
 typedef struct {
 	/* These are sysop-configurable */
@@ -105,7 +104,7 @@ typedef struct {
 	user_t			user;
 	client_t*		client;
 	service_t*		service;
-	js_callback_t	callback;
+	js_branch_t		branch;
 	/* Initial UDP datagram */
 	BYTE*			udp_buf;
 	int				udp_len;
@@ -266,13 +265,11 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 	
-	if((buf=malloc(len))==NULL)
-		return(JS_FALSE);
+	if((buf=alloca(len))==NULL)
+		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	len=recv(client->socket,buf,len,0);
@@ -280,7 +277,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(len>0)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len)));
-	free(buf);
 
 	return(JS_TRUE);
 }
@@ -305,22 +301,16 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0],&len))
-			return JS_FALSE;
-	}
+	if(argc)
+		JS_ValueToInt32(cx,argv[0],&len);
 
-	if((buf=(char*)malloc(len+1))==NULL) {
+	if((buf=(char*)alloca(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
 
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&timeout)) {
-			free(buf);
-			return JS_FALSE;
-		}
-	}
+	if(argc>1)
+		JS_ValueToInt32(cx,argv[1],(int32*)&timeout);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	start=time(NULL);
@@ -333,7 +323,6 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			if(time(NULL)-start>timeout) {
 				JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 				JS_RESUMEREQUEST(cx, rc);
-				free(buf);
 				return(JS_TRUE);	/* time-out */
 			}
 			continue;	/* no data */
@@ -354,7 +343,6 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	str = JS_NewStringCopyZ(cx, buf);
-	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -368,9 +356,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
-	char*		cp=NULL;
-	size_t		cp_sz=0;
-	size_t		len;
+	char*		cp;
 	service_client_t* client;
 	jsrefcount	rc;
 
@@ -382,15 +368,13 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, argv[0]);
 
 	for(i=0; i<argc; i++) {
-		JSVALUE_TO_RASTRING(cx, argv[i], cp, &cp_sz, &len);
+		JSVALUE_TO_STRING(cx, argv[i], cp, NULL);
 		if(cp==NULL)
 			continue;
 		rc=JS_SUSPENDREQUEST(cx);
-		sendsocket(client->socket,cp,len);
+		sendsocket(client->socket,cp,strlen(cp));
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	if(cp)
-		free(cp);
 
 	return(JS_TRUE);
 }
@@ -436,19 +420,15 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     if(startup==NULL || startup->lputs==NULL)
         return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
-		if(!JS_ValueToInt32(cx,argv[i++],&level))
-			return JS_FALSE;
-	}
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
+		JS_ValueToInt32(cx,argv[i++],&level);
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		JSVALUE_TO_MSTRING(cx, argv[i], line, NULL);
-		HANDLE_PENDING(cx);
+		JSVALUE_TO_STRING(cx, argv[i], line, NULL);
 		if(line==NULL)
 		    return(JS_FALSE);
 		strncat(str,line,sizeof(str)/2);
-		free(line);
 		strcat(str," ");
 	}
 
@@ -498,12 +478,12 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name or number */
-	JSVALUE_TO_ASTRING(cx, argv[0], user, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
-	if(user==NULL)
+	JSVALUE_TO_STRING(cx, argv[0], user, NULL);
+	if(user==NULL) 
 		return(JS_FALSE);
 
 	/* Password */
-	JSVALUE_TO_ASTRING(cx, argv[1], pass, LEN_PASS+2, NULL);
+	JSVALUE_TO_STRING(cx, argv[1], pass, NULL);
 	if(pass==NULL) 
 		return(JS_FALSE);
 
@@ -704,7 +684,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 	jsrefcount	rc;
-	char		*cstr=NULL;
+	char		*cstr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -731,13 +711,14 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	if(argc>1) {
-		JSVALUE_TO_MSTRING(cx, argv[1], cstr, NULL);
-		HANDLE_PENDING(cx);
+		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
 		client.user=cstr;
 	}
 
-	if(argc>2)
-		JSVALUE_TO_STRBUF(cx, argv[2], client.host, sizeof(client.host), NULL);
+	if(argc>2) {
+		JSVALUE_TO_STRING(cx, argv[2], cstr, NULL);
+		SAFECOPY(client.host,cstr);
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ FALSE);
@@ -746,8 +727,6 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 		,service_client->service->socket,service_client->service->protocol
 		,sock,client.user,client.host);
 #endif
-	if(cstr)
-		free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -762,7 +741,7 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 	jsrefcount	rc;
-	char		*cstr=NULL;
+	char		*cstr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -784,12 +763,14 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	if(argc>1) {
-		JSVALUE_TO_MSTRING(cx, argv[1], cstr, NULL);
+		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
 		client.user=cstr;
 	}
 
-	if(argc>2)
-		JSVALUE_TO_STRBUF(cx, argv[2], client.host, sizeof(client.host), NULL);
+	if(argc>2) {
+		JSVALUE_TO_STRING(cx, argv[2], cstr, NULL);
+		SAFECOPY(client.host,cstr);
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ TRUE);
@@ -798,8 +779,6 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 		,service_client->service->socket,service_client->service->protocol
 		,sock,client.user,client.host);
 #endif
-	if(cstr)
-		free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -845,10 +824,11 @@ js_client_remove(JSContext *cx, uintN argc, jsval *arglist)
 static JSContext* 
 js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, JSObject** glob)
 {
+	ulong		stack_frame;
 	JSContext*	js_cx;
+	JSObject*	js_glob;
 	JSObject*	server;
 	BOOL		success=FALSE;
-	BOOL		rooted=FALSE;
 
     if((js_cx = JS_NewContext(js_runtime, service_client->service->js.cx_stack))==NULL)
 		return(NULL);
@@ -862,51 +842,50 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		JS_SetContextPrivate(js_cx, service_client);
 
-		if(!js_CreateGlobalObject(js_cx, &scfg, NULL, &service_client->service->js, glob))
+		if((js_glob=js_CreateGlobalObject(js_cx, &scfg, NULL, &service_client->service->js))==NULL) 
 			break;
-		rooted=TRUE;
 
-		if (!JS_DefineFunctions(js_cx, *glob, js_global_functions))
+		if (!JS_DefineFunctions(js_cx, js_glob, js_global_functions))
 			break;
 
 		/* Internal JS Object */
-		if(js_CreateInternalJsObject(js_cx, *glob, &service_client->callback, &service_client->service->js)==NULL)
+		if(js_CreateInternalJsObject(js_cx, js_glob, &service_client->branch, &service_client->service->js)==NULL)
 			break;
 
 		/* Client Object */
 		if(service_client->client!=NULL)
-			if(js_CreateClientObject(js_cx, *glob, "client", service_client->client, sock)==NULL)
+			if(js_CreateClientObject(js_cx, js_glob, "client", service_client->client, sock)==NULL)
 				break;
 
 		/* User Class */
-		if(js_CreateUserClass(js_cx, *glob, &scfg)==NULL) 
+		if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
 			break;
 
 		/* Socket Class */
-		if(js_CreateSocketClass(js_cx, *glob)==NULL)
+		if(js_CreateSocketClass(js_cx, js_glob)==NULL)
 			break;
 
 		/* MsgBase Class */
-		if(js_CreateMsgBaseClass(js_cx, *glob, &scfg)==NULL)
+		if(js_CreateMsgBaseClass(js_cx, js_glob, &scfg)==NULL)
 			break;
 
 		/* File Class */
-		if(js_CreateFileClass(js_cx, *glob)==NULL)
+		if(js_CreateFileClass(js_cx, js_glob)==NULL)
 			break;
 
 		/* Queue Class */
-		if(js_CreateQueueClass(js_cx, *glob)==NULL)
+		if(js_CreateQueueClass(js_cx, js_glob)==NULL)
 			break;
 
 		/* COM Class */
-		if(js_CreateCOMClass(js_cx, *glob)==NULL)
+		if(js_CreateCOMClass(js_cx, js_glob)==NULL)
 			break;
 
 		/* user-specific objects */
-		if(!js_CreateUserObjects(js_cx, *glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
+		if(!js_CreateUserObjects(js_cx, js_glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
 
-		if(js_CreateSystemObject(js_cx, *glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
+		if(js_CreateSystemObject(js_cx, js_glob, &scfg, uptime, startup->host_name, SOCKLIB_DESC)==NULL) 
 			break;
 #if 0		
 		char		ver[256];
@@ -914,7 +893,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		jsval		val;
 
 		/* server object */
-		if((server=JS_DefineObject(js_cx, *glob, "server", &js_server_class
+		if((server=JS_DefineObject(js_cx, js_glob, "server", &js_server_class
 			,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))==NULL)
 			break;
 
@@ -949,7 +928,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 				&service_client->service->options;
 		}
 
-		if((server=js_CreateServerObject(js_cx,*glob
+		if((server=js_CreateServerObject(js_cx,js_glob
 			,&service_client->service->js_server_props))==NULL)
 			break;
 #endif
@@ -962,14 +941,25 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		JS_DefineFunction(js_cx, server, "client_update", js_client_update,	1, 0);
 		JS_DefineFunction(js_cx, server, "client_remove", js_client_remove, 1, 0);
 
+
+		if(glob!=NULL)
+			*glob=js_glob;
+
+		if(service_client->service->js.thread_stack) {
+#if JS_STACK_GROWTH_DIRECTION > 0
+			stack_frame=((ulong)&stack_frame)+service_client->service->js.thread_stack;
+#else
+			stack_frame=((ulong)&stack_frame)-service_client->service->js.thread_stack;
+#endif
+			JS_SetThreadStackLimit(js_cx, stack_frame);
+		}
+
 		success=TRUE;
 
 	} while(0);
 
 
 	if(!success) {
-		if(rooted)
-			JS_RemoveObjectRoot(js_cx, glob);
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
@@ -979,30 +969,35 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 }
 
 static JSBool
+js_BranchCallback(JSContext *cx, JSObject *script)
+{
+	service_client_t* client;
+
+	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	/* Terminated? */ 
+	if(client->branch.auto_terminate && terminated) {
+		JS_ReportWarning(cx,"Terminated");
+		client->branch.counter=0;
+		return(JS_FALSE);
+	}
+
+	return js_CommonBranchCallback(cx,&client->branch);
+}
+
+#if JS_VERSION>180
+static JSBool
 js_OperationCallback(JSContext *cx)
 {
 	JSBool	ret;
-	service_client_t* client;
 
 	JS_SetOperationCallback(cx, NULL);
-	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL) {
-		JS_SetOperationCallback(cx, js_OperationCallback);
-		return(JS_FALSE);
-	}
-
-	/* Terminated? */ 
-	if(client->callback.auto_terminate && terminated) {
-		JS_ReportWarning(cx,"Terminated");
-		client->callback.counter=0;
-		JS_SetOperationCallback(cx, js_OperationCallback);
-		return(JS_FALSE);
-	}
-
-	ret=js_CommonOperationCallback(cx,&client->callback);
+	ret=js_BranchCallback(cx, NULL);
 	JS_SetOperationCallback(cx, js_OperationCallback);
-
 	return ret;
 }
+#endif
 
 static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline)
 {
@@ -1076,7 +1071,6 @@ static void js_service_thread(void* arg)
 
 	SetThreadName("JS Service");
 	thread_up(TRUE /* setuid */);
-	protected_uint32_adjust(&threads_pending_start, -1);
 
 	/* Host name lookup and filtering */
 	if(service->options&BBS_OPT_NO_HOST_LOOKUP 
@@ -1178,7 +1172,7 @@ static void js_service_thread(void* arg)
 	if(service->options&SERVICE_OPT_UDP 
 		&& service_client.udp_buf != NULL
 		&& service_client.udp_len > 0) {
-		datagram = JS_NewStringCopyN(js_cx, (char*)service_client.udp_buf, service_client.udp_len);
+		datagram = JS_NewStringCopyN(js_cx, service_client.udp_buf, service_client.udp_len);
 		if(datagram==NULL)
 			val=JSVAL_VOID;
 		else
@@ -1196,11 +1190,14 @@ static void js_service_thread(void* arg)
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
+#if JS_VERSION>180
 		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
+		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
-		js_EvalOnExit(js_cx, js_glob, &service_client.callback);
+		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
 	}
-	JS_RemoveObjectRoot(js_cx, &js_glob);
 	JS_ENDREQUEST(js_cx);
 	JS_DestroyContext(js_cx);	/* Free Context */
 
@@ -1258,16 +1255,15 @@ static void js_static_service_thread(void* arg)
 
 	SetThreadName("JS Static Service");
 	thread_up(TRUE /* setuid */);
-	protected_uint32_adjust(&threads_pending_start, -1);
 
 	memset(&service_client,0,sizeof(service_client));
 	service_client.socket = service->socket;
 	service_client.service = service;
-	service_client.callback.limit = service->js.time_limit;
-	service_client.callback.gc_interval = service->js.gc_interval;
-	service_client.callback.yield_interval = service->js.yield_interval;
-	service_client.callback.terminated = &service->terminated;
-	service_client.callback.auto_terminate = TRUE;
+	service_client.branch.limit = service->js.branch_limit;
+	service_client.branch.gc_interval = service->js.gc_interval;
+	service_client.branch.yield_interval = service->js.yield_interval;
+	service_client.branch.terminated = &service->terminated;
+	service_client.branch.auto_terminate = TRUE;
 
 	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000, __FILE__, __LINE__))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript runtime"
@@ -1296,7 +1292,11 @@ static void js_static_service_thread(void* arg)
 		val = BOOLEAN_TO_JSVAL(JS_FALSE);
 		JS_SetProperty(js_cx, js_glob, "logged_in", &val);
 
+#if JS_VERSION>180
 		JS_SetOperationCallback(js_cx, js_OperationCallback);
+#else
+		JS_SetBranchCallback(js_cx, js_BranchCallback);
+#endif
 	
 		if((js_script=JS_CompileFile(js_cx, js_glob, spath))==NULL)  {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",service->socket,spath);
@@ -1305,15 +1305,14 @@ static void js_static_service_thread(void* arg)
 
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
-		js_EvalOnExit(js_cx, js_glob, &service_client.callback);
-		JS_RemoveObjectRoot(js_cx, &js_glob);
+		js_EvalOnExit(js_cx, js_glob, &service_client.branch);
+
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
 		js_cx=NULL;
 	} while(!service->terminated && service->options&SERVICE_OPT_STATIC_LOOP);
 
 	if(js_cx!=NULL) {
-		JS_RemoveObjectRoot(js_cx, &js_glob);
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);	/* Free Context */
 	}
@@ -1353,7 +1352,6 @@ static void native_static_service_thread(void* arg)
 
 	SetThreadName("Static Service");
 	thread_up(TRUE /* setuid */);
-	protected_uint32_adjust(&threads_pending_start, -1);
 
 #ifdef _WIN32
 	if(!DuplicateHandle(GetCurrentProcess(),
@@ -1418,7 +1416,6 @@ static void native_service_thread(void* arg)
 
 	SetThreadName("Native Service");
 	thread_up(TRUE /* setuid */);
-	protected_uint32_adjust(&threads_pending_start, -1);
 
 	/* Host name lookup and filtering */
 	if(service->options&BBS_OPT_NO_HOST_LOOKUP 
@@ -1664,12 +1661,6 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 
 static void cleanup(int code)
 {
-	while(protected_uint32_value(threads_pending_start)) {
-		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
-		SLEEP(1000);
-	}
-	protected_uint32_destroy(threads_pending_start);
-
 	FREE_AND_NULL(service);
 	services=0;
 
@@ -1681,11 +1672,8 @@ static void cleanup(int code)
 	update_clients();
 
 #ifdef _WINSOCKAPI_	
-	if(WSAInitialized) {
-		if(WSACleanup()!=0) 
-			lprintf(LOG_ERR,"0000 !WSACleanup ERROR %d",ERROR_VALUE);
-		WSAInitialized = FALSE;
-	}
+	if(WSAInitialized && WSACleanup()!=0) 
+		lprintf(LOG_ERR,"0000 !WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 
 	thread_down();
@@ -1703,7 +1691,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.273 $", "%*s %s", revision);
+	sscanf("$Revision: 1.264 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1942,8 +1930,6 @@ void DLLCALL services_thread(void* arg)
 			return;
 		}
 
-		protected_uint32_init(&threads_pending_start,0);
-
 		/* Setup static service threads */
 		for(i=0;i<(int)services;i++) {
 			if(!(service[i].options&SERVICE_OPT_STATIC))
@@ -1952,7 +1938,6 @@ void DLLCALL services_thread(void* arg)
 				continue;
 
 			/* start thread here */
-			protected_uint32_adjust(&threads_pending_start, 1);
 			if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
 				_beginthread(native_static_service_thread, service[i].stack_size, &service[i]);
 			else										/* JavaScript */
@@ -1983,7 +1968,7 @@ void DLLCALL services_thread(void* arg)
 		/* Main Server Loop */
 		while(!terminated) {
 
-			if(active_clients()==0 && protected_uint32_value(threads_pending_start)==0) {
+			if(active_clients()==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
@@ -2204,15 +2189,14 @@ void DLLCALL services_thread(void* arg)
 				client->service->clients++;		/* this should be mutually exclusive */
 				client->udp_buf=udp_buf;
 				client->udp_len=udp_len;
-				client->callback.limit			= service[i].js.time_limit;
-				client->callback.gc_interval	= service[i].js.gc_interval;
-				client->callback.yield_interval	= service[i].js.yield_interval;
-				client->callback.terminated		= &client->service->terminated;
-				client->callback.auto_terminate	= TRUE;
+				client->branch.limit			= service[i].js.branch_limit;
+				client->branch.gc_interval		= service[i].js.gc_interval;
+				client->branch.yield_interval	= service[i].js.yield_interval;
+				client->branch.terminated		= &client->service->terminated;
+				client->branch.auto_terminate	= TRUE;
 
 				udp_buf = NULL;
 
-				protected_uint32_adjust(&threads_pending_start, 1);
 				if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
 					_beginthread(native_service_thread, service[i].stack_size, client);
 				else										/* JavaScript */

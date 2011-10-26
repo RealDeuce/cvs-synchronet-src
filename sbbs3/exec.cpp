@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.98 2011/11/03 21:22:06 deuce Exp $ */
+/* $Id: exec.cpp,v 1.96 2011/10/09 01:02:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -537,28 +537,34 @@ char * sbbs_t::copystrvar(csi_t *csi, char *p, char *str)
 #ifdef JAVASCRIPT
 
 static JSBool
+js_BranchCallback(JSContext *cx, JSObject *script)
+{
+	sbbs_t*		sbbs;
+
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	if(sbbs->js_branch.auto_terminate && !sbbs->online) {
+		JS_ReportWarning(cx,"Disconnected");
+		sbbs->js_branch.counter=0;
+		return(JS_FALSE);
+	}
+
+	return(js_CommonBranchCallback(cx,&sbbs->js_branch));
+}
+
+#if JS_VERSION>180
+static JSBool
 js_OperationCallback(JSContext *cx)
 {
 	JSBool	ret;
-	sbbs_t*		sbbs;
 
 	JS_SetOperationCallback(cx, NULL);
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL) {
-		JS_SetOperationCallback(cx, js_OperationCallback);
-		return(JS_FALSE);
-	}
-
-	if(sbbs->js_callback.auto_terminate && !sbbs->online) {
-		JS_ReportWarning(cx,"Disconnected");
-		sbbs->js_callback.counter=0;
-		JS_SetOperationCallback(cx, js_OperationCallback);
-		return(JS_FALSE);
-	}
-
-	ret=js_CommonOperationCallback(cx,&sbbs->js_callback);
+	ret=js_BranchCallback(cx, NULL);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 	return ret;
 }
+#endif
 
 static const char* js_ext(const char* fname)
 {
@@ -657,7 +663,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	}
 
 	if(scope==NULL) {
-		js_callback.counter=0;	// Reset loop counter
+		js_branch.counter=0;	// Reset loop counter
 
 #if JS_VERSION>180
 		JS_SetOperationCallback(js_cx, js_OperationCallback);
@@ -674,7 +680,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		if(rval!=JSVAL_VOID)
 			JS_ValueToInt32(js_cx,rval,&result);
 
-		js_EvalOnExit(js_cx, js_scope, &js_callback);
+		js_EvalOnExit(js_cx, js_scope, &js_branch);
 	}
 
 	JS_ReportPendingException(js_cx);	/* Added Dec-4-2005, rswindell */
