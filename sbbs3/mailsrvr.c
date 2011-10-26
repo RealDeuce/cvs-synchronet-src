@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.555 2011/11/10 00:21:36 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.549 2011/10/26 23:14:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1753,12 +1753,12 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 	JSObject*	argv;
 	jsuint		argc;
 	JSObject*	js_script;
-	js_callback_t	js_callback;
+	js_branch_t	js_branch;
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 	private_t	priv;
 
-	ZERO_VAR(js_callback);
+	ZERO_VAR(js_branch);
 
 	SAFECOPY(fname,cmdline);
 	truncstr(fname," \t");
@@ -1800,14 +1800,13 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 
 		if(*js_glob==NULL) {
 			/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
-			if(!js_CreateCommonObjects(*js_cx, &scfg, &scfg, NULL
+			if((*js_glob=js_CreateCommonObjects(*js_cx, &scfg, &scfg, NULL
 						,uptime, startup->host_name, SOCKLIB_DESC	/* system */
-						,&js_callback									/* js */
+						,&js_branch									/* js */
 						,&startup->js
 						,client, sock								/* client */
 						,&js_server_props							/* server */
-						,js_glob
-				))
+				))==NULL)
 				break;
 
 			if(!JS_DefineFunctions(*js_cx, *js_glob, js_global_functions))
@@ -1896,7 +1895,6 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 		if(js_script==NULL)
 			break;
 
-		/* ToDo: Set operational callback */
 		success=JS_ExecuteScript(*js_cx, js_scope, js_script, &rval);
 
 		JS_GetProperty(*js_cx, *js_glob, "exit_code", &rval);
@@ -1904,7 +1902,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval))
 			JS_ValueToInt32(*js_cx,rval,result);
 
-		js_EvalOnExit(*js_cx, js_scope, &js_callback);
+		js_EvalOnExit(*js_cx, js_scope, &js_branch);
 
 		JS_ReportPendingException(*js_cx);
 
@@ -1919,14 +1917,10 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 	return(success);
 }
 
-void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx, JSObject** js_glob)
+void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx)
 {
-	if(js_cx!=NULL) {
-		JS_BEGINREQUEST(js_cx);
-		JS_RemoveObjectRoot(js_cx, js_glob);
-		JS_ENDREQUEST(js_cx);
+	if(js_cx!=NULL)
 		JS_DestroyContext(js_cx);
-	}
 	if(js_runtime!=NULL)
 		jsrt_Release(js_runtime);
 }
@@ -2625,7 +2619,6 @@ static void smtp_thread(void* arg)
 				fclose(rcptlst), rcptlst=NULL;
 
 				/* External Mail Processing here */
-				mailproc=NULL;
 				msg_handled=FALSE;
 				if(mailproc_count) {
 					SAFEPRINTF2(proc_err_fname,"%sSBBS_SMTP.%s.err", scfg.temp_dir, session_id);
@@ -2747,16 +2740,9 @@ static void smtp_thread(void* arg)
 					continue;
 				}
 			
-				if(!msg_handled && subnum==INVALID_SUB && iniReadSectionCount(rcptlst,NULL) < 1) {
-					lprintf(LOG_DEBUG,"%04d SMTP No recipients in recipient list file (message handled by external mail processor?)"
-						,socket);
-					sockprintf(socket,ok_rsp);
-					msg_handled=TRUE;
-				}
 				if(msg_handled) {
-					if(mailproc!=NULL)
-						lprintf(LOG_NOTICE,"%04d SMTP Message handled by external mail processor (%s, %u total)"
-							,socket, mailproc->name, ++mailproc->handled);
+					lprintf(LOG_NOTICE,"%04d SMTP Message handled by external mail processor (%s, %u total)"
+						,socket, mailproc->name, ++mailproc->handled);
 					continue;
 				}
 
@@ -3132,7 +3118,7 @@ static void smtp_thread(void* arg)
 					sender_ext[0]=0;
 					if(msg.from_ext!=NULL)
 						SAFEPRINTF(sender_ext," #%s",msg.from_ext);
-					lprintf(LOG_INFO,"%04d SMTP Created message #%ld from %s%s [%s] to %s [%s]"
+					lprintf(LOG_INFO,"%04d SMTP Created message #%ld from %s%s %s to %s [%s]"
 						,socket, newmsg.hdr.number, sender, sender_ext, smb_netaddrstr(&msg.from_net,tmp), rcpt_name, rcpt_addr);
 					if(relay_user.number!=0)
 						user_sent_email(&scfg, &relay_user, 1, usernum==1);
@@ -4065,7 +4051,7 @@ static void smtp_thread(void* arg)
 	remove(rcptlst_fname);
 	if(spy!=NULL)
 		fclose(spy);
-	js_cleanup(js_runtime, js_cx, &js_glob);
+	js_cleanup(js_runtime, js_cx);
 
 	status(STATUS_WFC);
 
@@ -4856,22 +4842,22 @@ static void cleanup(int code)
 	status("Down");
 	if(terminate_server || code) {
 		char str[1024];
-		sprintf(str,"%lu connections served", stats.connections_served);
+		sprintf(str,"%u connections served", stats.connections_served);
 		if(stats.connections_refused)
-			sprintf(str+strlen(str),", %lu refused", stats.connections_refused);
+			sprintf(str+strlen(str),", %u refused", stats.connections_refused);
 		if(stats.connections_ignored)
-			sprintf(str+strlen(str),", %lu ignored", stats.connections_refused);
+			sprintf(str+strlen(str),", %u ignored", stats.connections_refused);
 		if(stats.sessions_refused)
-			sprintf(str+strlen(str),", %lu sessions refused", stats.sessions_refused);
-		sprintf(str+strlen(str),", %lu messages received", stats.msgs_received);
+			sprintf(str+strlen(str),", %u sessions refused", stats.sessions_refused);
+		sprintf(str+strlen(str),", %u messages received", stats.msgs_received);
 		if(stats.msgs_refused)
-			sprintf(str+strlen(str),", %lu refused", stats.msgs_refused);
+			sprintf(str+strlen(str),", %u refused", stats.msgs_refused);
 		if(stats.msgs_ignored)
-			sprintf(str+strlen(str),", %lu ignored", stats.msgs_ignored);
+			sprintf(str+strlen(str),", %u ignored", stats.msgs_ignored);
 		if(stats.errors)
-			sprintf(str+strlen(str),", %lu errors", stats.errors);
+			sprintf(str+strlen(str),", %u errors", stats.errors);
 		if(stats.crit_errors)
-			sprintf(str+strlen(str),", %lu critcal", stats.crit_errors);
+			sprintf(str+strlen(str),", %u critcal", stats.crit_errors);
 
 		lprintf(LOG_INFO,"#### Mail Server thread terminated (%s)",str);
 	}
@@ -4886,7 +4872,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.555 $", "%*s %s", revision);
+	sscanf("$Revision: 1.549 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
