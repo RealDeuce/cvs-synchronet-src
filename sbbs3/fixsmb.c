@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.33 2011/08/25 09:42:20 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.34 2011/09/05 19:52:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 
 smb_t	smb;
 BOOL	renumber=FALSE;
-BOOL	undelete=FALSE;
+BOOL	smb_undelete=FALSE;
 char*	usage="usage: fixsmb [-renumber] [-undelete] <smb_file> [[smb_file] [...]]\n";
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
@@ -196,7 +196,7 @@ int fixsmb(char* sub)
 		size=smb_hdrblocks(smb_getmsghdrlen(&msg))*SHD_BLOCK_LEN;
 		printf("#%-5lu (%06lX) %-25.25s ",msg.hdr.number,l,msg.from);
 
-		if(undelete)
+		if(smb_undelete)
 			msg.hdr.attr&=~MSG_DELETE;
 
 		/* Create hash record */
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 	int 		i;
 	str_list_t	list;
 
-	sscanf("$Revision: 1.33 $", "%*s %s", revision);
+	sscanf("$Revision: 1.34 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
 			if(!stricmp(argv[i],"-renumber"))
 				renumber=TRUE;
 			else if(!stricmp(argv[i],"-undelete"))
-				undelete=TRUE;
+				smb_undelete=TRUE;
 		} else
 			strListPush(&list,argv[i]);
 	}
