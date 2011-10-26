@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.238 2011/09/01 02:50:16 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.247 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,11 +72,6 @@
 
 #endif
 
-/* Services doesn't work without JavaScript support */
-#if !defined(JAVASCRIPT)
-	#define	NO_SERVICES
-#endif
-
 /* Global variables */
 BOOL				terminated=FALSE;
 
@@ -107,13 +102,13 @@ BOOL				has_web=FALSE;
 web_startup_t		web_startup;
 ulong				thread_count=1;
 ulong				socket_count=0;
-ulong				client_count=0;
 ulong				error_count=0;
 int					prompt_len=0;
 static scfg_t		scfg;					/* To allow rerun */
 static ulong		served=0;
 char				ini_file[MAX_PATH+1];
 link_list_t			login_attempt_list;
+link_list_t			client_list;
 
 #ifdef __unix__
 char				new_uid_name[32];
@@ -261,7 +256,7 @@ static int lputs(int level, char *str)
 	}
 	/* re-display prompt with current stats */
 	if(prompt!=NULL)
-		prompt_len = printf(prompt, thread_count, socket_count, client_count, served, error_count);
+		prompt_len = printf(prompt, thread_count, socket_count, client_list.count, served, error_count);
 	fflush(stdout);
 	pthread_mutex_unlock(&mutex);
 
@@ -403,20 +398,19 @@ int change_user(void)
         lputs(LOG_ERR,"!Setting new user_id failed!  (Does the user exist?)");
         return(-1);
 	} else {
-        char str[256];
         struct passwd *pwent;
         
         pwent=getpwnam(new_uid_name);
         if(pwent != NULL) {
-            char	uenv[128];
-            char	henv[MAX_PATH+6];
+            static char	uenv[128];
+            static char	henv[MAX_PATH+6];
             sprintf(uenv,"USER=%s",pwent->pw_name);
             putenv(uenv);
             sprintf(henv,"HOME=%s",pwent->pw_dir);
             putenv(henv);
         }
         if(new_gid_name[0]) {
-            char	genv[128];
+            static char	genv[128];
             sprintf(genv,"GROUP=%s",new_gid_name);
             putenv(genv);
         }
@@ -590,21 +584,21 @@ static void socket_open(void* p, BOOL open)
 
 static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
 {
-   	static pthread_mutex_t mutex;
-	static BOOL mutex_initialized;
+	if(on) {
+		if(update) {
+			list_node_t*	node;
 
-	if(!mutex_initialized) {
-		pthread_mutex_init(&mutex,NULL);
-		mutex_initialized=TRUE;
-	}
+			listLock(&client_list);
+			if((node=listFindTaggedNode(&client_list, sock)) != NULL)
+				memcpy(node->data, client, sizeof(client_t));
+			listUnlock(&client_list);
+		} else {
+			served++;
+			listAddNodeData(&client_list, client, sizeof(client_t), sock, LAST_NODE);
+		}
+	} else
+		listRemoveTaggedNode(&client_list, sock, /* free_data: */TRUE);
 
-	pthread_mutex_lock(&mutex);
-	if(on && !update) {
-		client_count++;
-	    served++;
-	} else if(!on && client_count>0)
-		client_count--;
-	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
 
@@ -1067,7 +1061,6 @@ BOOL WINAPI ControlHandler(unsigned long CtrlType)
 #ifdef __unix__
 void _sighandler_quit(int sig)
 {
-	char	str[1024];
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
 
@@ -1212,6 +1205,7 @@ int main(int argc, char** argv)
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
 	SetThreadName("Main");
+	listInit(&client_list, LINK_LIST_MUTEX);
 	loginAttemptListInit(&login_attempt_list);
 	atexit(cleanup);
 
@@ -2116,24 +2110,55 @@ int main(int argc, char** argv)
 
 					    listLock(&login_attempt_list);
 						count=0;
-						for(node=listFirstNode(&login_attempt_list); node!=NULL; node=listNextNode(node)) {
+						for(node=login_attempt_list.first; node!=NULL; node=node->next) {
 							login_attempt=node->data;
-							localtime_r(&login_attempt->time,&tm);
-							printf("%u unique attempts from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
-								,login_attempt->count, inet_ntoa(login_attempt->addr)
+							localtime32(&login_attempt->time,&tm);
+							printf("%u attempts (%u duplicate) from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
+								,login_attempt->count
+								,login_attempt->dupes
+								,inet_ntoa(login_attempt->addr)
 								,login_attempt->prot
 								,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec
 								,login_attempt->user
 								,login_attempt->pass
 								);
 							count++;
-							total+=login_attempt->count;
+							total+=(login_attempt->count-login_attempt->dupes);
 						}
 						listUnlock(&login_attempt_list);
 						if(count)
 							printf("==\n");
 						printf("%u failed login attempters (potential password hackers)\n", count);
 						printf("%u total unique failed login attempts (potential password hack attempts)\n", total);
+					}
+					break;
+				case 'A':
+					printf("\n%u login attempts cleared\n", loginAttemptListClear(&login_attempt_list));
+					break;
+				case 'c':	/* Show connected clients: */
+					printf("\nConnected clients:\n\n");
+					{
+						struct tm			tm;
+						list_node_t*		node;
+						client_t*			client;
+
+					    listLock(&client_list);
+						count=0;
+						for(node=client_list.first; node!=NULL; node=node->next) {
+							client=node->data;
+							localtime32(&client->time,&tm);
+							printf("%04d %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
+								,node->tag
+								,client->protocol
+								,client->user
+								,client->addr
+								,client->host
+								,client->port
+								,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec
+								);
+							count++;
+						}
+						listUnlock(&client_list);
 					}
 					break;
                 case '?': /* only print help if user requests it */
@@ -2145,6 +2170,7 @@ int main(int argc, char** argv)
 					printf("d   = down node (toggle)\n");
 					printf("i   = interrupt node (toggle)\n");
 					printf("a   = show failed login attempts\n");
+					printf("c   = show connected clients\n");
 					printf("r   = recycle servers (when not in use)\n");
 					printf("s   = shutdown servers (when not in use)\n");
 					printf("t   = terminate servers (immediately)\n");
