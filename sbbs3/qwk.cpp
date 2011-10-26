@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.58 2011/11/06 03:58:57 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.57 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,6 +151,7 @@ int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 		if(!fgets(str,256,stream))
 			break;
 		if(!strnicmp(str+9,node,strlen(node))) {
+			fclose(stream);
 			truncsp(str);
 			sprintf(fulladdr,"%s/%s",str+9+strlen(node),inaddr);
 			break; 
