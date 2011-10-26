@@ -2,13 +2,13 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.42 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.43 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -273,7 +273,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		if(j!=lastsub) {
 
 			if(msgs) {
-				t=time(NULL)-startsub;
+				t=(ulong)(time(NULL)-startsub);
 				if(t<1)
 					t=1;
 				eprintf(LOG_INFO,"Imported %lu QWK msgs in %lu seconds (%lu msgs/sec)", msgs,t,msgs/t);
@@ -371,7 +371,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	if(dir!=NULL)
 		closedir(dir);
 
-	t=time(NULL)-start;
+	t=(ulong)(time(NULL)-start);
 	if(tmsgs) {
 		if(t<1)
 			t=1;
