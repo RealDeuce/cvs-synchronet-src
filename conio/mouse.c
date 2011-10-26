@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.39 2012/10/18 17:48:16 deuce Exp $ */
+/* $Id: mouse.c,v 1.37 2008/06/08 01:42:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -206,7 +206,6 @@ void ciolib_mouse_thread(void *data)
 	int delay;
 	clock_t	ttime=0;
 
-	SetThreadName("Mouse");
 	init_mouse();
 	while(1) {
 		timedout=0;
@@ -485,21 +484,18 @@ int ciolib_getmouse(struct mouse_event *mevent)
 		out=listShiftNode(&state.output);
 		if(out==NULL)
 			return(-1);
-		if(mevent != NULL) {
-			mevent->event=out->event;
-			mevent->bstate=out->bstate;
-			mevent->kbsm=out->kbsm;
-			mevent->startx=out->startx;
-			mevent->starty=out->starty;
-			mevent->endx=out->endx;
-			mevent->endy=out->endy;
-		}
+		mevent->event=out->event;
+		mevent->bstate=out->bstate;
+		mevent->kbsm=out->kbsm;
+		mevent->startx=out->startx;
+		mevent->starty=out->starty;
+		mevent->endx=out->endx;
+		mevent->endy=out->endy;
 		free(out);
 	}
 	else {
 		fprintf(stderr,"WARNING: attempt to get a mouse key when none pending!\n");
-		if(mevent != NULL)
-			memset(mevent,0,sizeof(struct mouse_event));
+		memset(mevent,0,sizeof(struct mouse_event));
 		retval=-1;
 	}
 	return(retval);
