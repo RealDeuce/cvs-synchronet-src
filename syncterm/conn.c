@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.66 2012/02/15 19:41:45 deuce Exp $ */
+/* $Id: conn.c,v 1.63 2011/09/10 22:47:55 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -409,7 +409,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	fd_set			wfd;
 	int				failcode=FAILURE_WHAT_FAILURE;
 	struct addrinfo	hints;
-	struct addrinfo	*res=NULL;
+	struct addrinfo	*res;
 	struct addrinfo	*cur;
 	char			portnum[6];
 
@@ -418,14 +418,10 @@ int conn_socket_connect(struct bbslist *bbs)
 	hints.ai_flags=PF_UNSPEC;
 	hints.ai_socktype=SOCK_STREAM;
 	hints.ai_protocol=IPPROTO_TCP;
-	hints.ai_flags=AI_NUMERICSERV;
-#ifdef AI_ADDRCONFIG
-	hints.ai_flags|=AI_ADDRCONFIG;
-#endif
+	hints.ai_flags=AI_ADDRCONFIG|AI_NUMERICSERV;
 	sprintf(portnum, "%hu", bbs->port);
 	if(getaddrinfo(bbs->addr, portnum, &hints, &res)!=0) {
 		failcode=FAILURE_RESOLVE;
-		res=NULL;
 		goto connect_failed;
 	}
 	uifc.pop(NULL);
@@ -497,7 +493,6 @@ int conn_socket_connect(struct bbslist *bbs)
 
 connected:
 	freeaddrinfo(res);
-	res=NULL;
 	nonblock=0;
 	ioctlsocket(sock, FIONBIO, &nonblock);
 	if(!socket_check(sock, NULL, NULL, 0)) {
@@ -509,8 +504,7 @@ connected:
 	return(sock);
 
 connect_failed:
-	if(res)
-		freeaddrinfo(res);
+	freeaddrinfo(res);
 	{
 		char str[LIST_ADDR_MAX+40];
 
