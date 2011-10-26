@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.13 2012/03/07 03:10:50 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.11 2009/03/24 09:33:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -67,7 +67,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 	int i;
 	time_t	tt;
 
-	fprintf(fp,"%-20.20s %"PRId32"\n"		,"number"			,msg->hdr.number);
+	fprintf(fp,"%-20.20s %ld\n"		,"number"			,msg->hdr.number);
 
 	/* convenience strings */
 	if(msg->subj)
@@ -120,28 +120,26 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 	fprintf(fp,"%-20.20s %04Xh\n"	,"type"				,msg->hdr.type);
 	fprintf(fp,"%-20.20s %04Xh\n"	,"version"			,msg->hdr.version);
 	fprintf(fp,"%-20.20s %04Xh\n"	,"attr"				,msg->hdr.attr);
-	fprintf(fp,"%-20.20s %08"PRIX32"h\n"	,"auxattr"			,msg->hdr.auxattr);
-	fprintf(fp,"%-20.20s %08"PRIX32"h\n"	,"netattr"			,msg->hdr.netattr);
+	fprintf(fp,"%-20.20s %08lXh\n"	,"auxattr"			,msg->hdr.auxattr);
+	fprintf(fp,"%-20.20s %08lXh\n"	,"netattr"			,msg->hdr.netattr);
 
 	/* optional fixed fields */
-	if(msg->hdr.thread_id)
-		fprintf(fp,"%-20.20s %"PRId32"\n"	,"thread_id"		,msg->hdr.thread_id);
 	if(msg->hdr.thread_back)
-		fprintf(fp,"%-20.20s %"PRId32"\n"	,"thread_back"		,msg->hdr.thread_back);
+		fprintf(fp,"%-20.20s %ld\n"	,"thread_back"		,msg->hdr.thread_back);
 	if(msg->hdr.thread_next)
-		fprintf(fp,"%-20.20s %"PRId32"\n"	,"thread_next"		,msg->hdr.thread_next);
+		fprintf(fp,"%-20.20s %ld\n"	,"thread_next"		,msg->hdr.thread_next);
 	if(msg->hdr.thread_first)
-		fprintf(fp,"%-20.20s %"PRId32"\n"	,"thread_first"		,msg->hdr.thread_first);
+		fprintf(fp,"%-20.20s %ld\n"	,"thread_first"		,msg->hdr.thread_first);
 	if(msg->hdr.delivery_attempts)
 		fprintf(fp,"%-20.20s %hu\n"	,"delivery_attempts",msg->hdr.delivery_attempts);
 	if(msg->hdr.times_downloaded)
-		fprintf(fp,"%-20.20s %"PRIu32"\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
+		fprintf(fp,"%-20.20s %lu\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
 	if(msg->hdr.last_downloaded) {
 		tt=msg->hdr.last_downloaded;
 		fprintf(fp,"%-20.20s %.24s\n"	,"last_downloaded"	,ctime(&tt));
 	}
 
-	fprintf(fp,"%-20.20s %06"PRIX32"h\n"	,"header offset"	,msg->idx.offset);
+	fprintf(fp,"%-20.20s %06lXh\n"	,"header offset"	,msg->idx.offset);
 	fprintf(fp,"%-20.20s %u\n"		,"header length"	,msg->hdr.length);
 	fprintf(fp,"%-20.20s %lu\n"		,"calculated length",smb_getmsghdrlen(msg));
 
@@ -152,9 +150,9 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 			,binstr((uchar *)msg->hfield_dat[i],msg->hfield[i].length));
 
 	/* data fields */
-	fprintf(fp,"%-20.20s %06"PRIX32"h\n"	,"data offset"		,msg->hdr.offset);
+	fprintf(fp,"%-20.20s %06lXh\n"	,"data offset"		,msg->hdr.offset);
 	for(i=0;i<msg->hdr.total_dfields;i++)
-		fprintf(fp,"data field[%u]        %s, offset %"PRIu32", length %"PRIu32"\n"
+		fprintf(fp,"data field[%u]        %s, offset %lu, length %lu\n"
 			,i
 			,smb_dfieldtype(msg->dfield[i].type)
 			,msg->dfield[i].offset
