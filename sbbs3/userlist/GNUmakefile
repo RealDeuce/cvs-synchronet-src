@@ -11,18 +11,17 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.5 2011/10/26 16:57:55 deuce Exp $
+# $Id: GNUmakefile,v 1.4 2011/10/26 16:38:34 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
-include $(SRC_ROOT)/build/wxWidgets.gmake
 include $(SRC_ROOT)/sbbs3/sbbsdefs.mk
 include ../Common.make
 include ../Common.gmake
 
-CFLAGS	+=	$(SBBS_CFLAGS) $(SMBLIB_CFLAGS) $(XPDEV-MT_CFLAGS) `$(WX_CONFIG) $(WX_CONFFLAGS) --cflags`
+CFLAGS	+=	$(SBBS_CFLAGS) $(SMBLIB_CFLAGS) $(XPDEV-MT_CFLAGS) `wx-config --unicode --cflags`
 CXXFLAGS	+= $(CFLAGS)
-LDFLAGS	+=	`$(WX_CONFIG) $(WX_CONFFLAGS) --libs` $(SMBLIB_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS) $(SBBS_LDFLAGS) 
+LDFLAGS	+=	`wx-config --unicode --libs` $(SMBLIB_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS) $(SBBS_LDFLAGS) 
 
 $(USERLIST): $(SBBS) $(OBJS)
 	@echo Linking $@
