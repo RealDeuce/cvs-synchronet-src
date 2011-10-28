@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.167 2010/03/12 08:27:57 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.173 2011/10/28 08:05:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,16 +50,16 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.15"  /* Version: Major.minor  */
+#define VERSION 	"3.16"  /* Version: Major.minor  */
 #define REVISION	'a'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31500	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31500 + (tolower(REVISION)-'a'))
+#define VERSION_NUM	(31600	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31600 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2010 Rob Swindell"
-#define COPYRIGHT_CRC		0xA053FC9F
+#define COPYRIGHT_NOTICE	"Copyright 2011 Rob Swindell"
+#define COPYRIGHT_CRC		0x3D5C1DE9
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -72,8 +72,7 @@
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
-#define JAVASCRIPT_THREAD_STACK		(256*1024)
-#define JAVASCRIPT_BRANCH_LIMIT		99999999
+#define JAVASCRIPT_TIME_LIMIT		(24*60*600)			/* in 100ms ticks */
 #define JAVASCRIPT_YIELD_INTERVAL	10000
 #define JAVASCRIPT_GC_INTERVAL		100 
 #define JAVASCRIPT_LOAD_PATH		"load"
@@ -86,9 +85,9 @@ typedef struct {
 	ulong	gc_interval;
 	ulong	gc_attempts;
 	BOOL	auto_terminate;
-	BOOL*	terminated;
+	volatile BOOL*	terminated;
 	str_list_t	exit_func;
-} js_branch_t;
+} js_callback_t;
 
 #define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
 
@@ -949,7 +948,7 @@ typedef struct {						/* Users information */
 			cdt,						/* Credits */
 			min,						/* Minutes */
 			freecdt;					/* Free credits (renewed daily) */
-	time_t	firston,					/* Date/Time first called */
+	time32_t firston,					/* Date/Time first called */
 			laston, 					/* Last logoff date/time */
 			expire, 					/* Expiration date */
 			pwmod,						/* Password last modified */
