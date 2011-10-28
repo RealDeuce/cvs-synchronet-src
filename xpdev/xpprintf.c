@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.38 2013/10/13 06:12:21 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.36 2008/01/21 07:33:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@
 #endif
 
 #include "xpprintf.h"
-#include "gen_defs.h"
 
 /* MSVC Sucks - can't tell the required len of a *printf() */
 #define MAX_ARG_LEN		1024			/* MAX_ARG_LEN is the maximum length
@@ -670,6 +669,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 					switch(type) {
 						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
+							i=i;
 							break;
 						case XP_PRINTF_TYPE_UINT:
 							i=ui;
@@ -712,6 +712,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 					switch(type) {
 						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
+							i=i;
 							break;
 						case XP_PRINTF_TYPE_UINT:
 							i=ui;
@@ -754,6 +755,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ui=i;
 							break;
 						case XP_PRINTF_TYPE_UINT:
+							ui=ui;
 							break;
 						case XP_PRINTF_TYPE_LONG:
 							ui=l;
@@ -796,6 +798,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							l=ui;
 							break;
 						case XP_PRINTF_TYPE_LONG:
+							l=l;
 							break;
 						case XP_PRINTF_TYPE_ULONG:
 							l=ul;
@@ -838,6 +841,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ul=l;
 							break;
 						case XP_PRINTF_TYPE_ULONG:
+							ul=ul;
 							break;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
 						case XP_PRINTF_TYPE_LONGLONG:
@@ -881,6 +885,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ll=ul;
 							break;
 						case XP_PRINTF_TYPE_LONGLONG:
+							ll=ll;
 							break;
 						case XP_PRINTF_TYPE_ULONGLONG:
 							ll=ull;
@@ -895,7 +900,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ll=ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
-							ll=(long long)((intptr_t)pntr);
+							ll=(long long)pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
 							ll=s;
@@ -921,6 +926,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ull=ll;
 							break;
 						case XP_PRINTF_TYPE_ULONGLONG:
+							ull=ull;
 							break;
 						case XP_PRINTF_TYPE_CHARP:
 							ull=strtoull(cp, NULL, 0);
@@ -932,7 +938,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ull=ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
-							ull=(unsigned long long int)((uintptr_t)pntr);
+							ull=(unsigned long long int)pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
 							ull=s;
@@ -973,6 +979,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							break;
 #endif
 						case XP_PRINTF_TYPE_CHARP:
+							cp=cp;
 							break;
 						case XP_PRINTF_TYPE_DOUBLE:
 							sprintf(num_str, "%f", d);
@@ -1020,6 +1027,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							d=strtod(cp, NULL);
 							break;
 						case XP_PRINTF_TYPE_DOUBLE:
+							d=d;
 							break;
 						case XP_PRINTF_TYPE_LONGDOUBLE:
 							d=ld;
@@ -1063,6 +1071,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ld=d;
 							break;
 						case XP_PRINTF_TYPE_LONGDOUBLE:
+							ld=ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
 							ld=(long double)((long int)pntr);
@@ -1090,10 +1099,10 @@ char *xp_asprintf_next(char *format, int type, ...)
 							break;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
 						case XP_PRINTF_TYPE_LONGLONG:
-							pntr=(void *)((intptr_t)ll);
+							pntr=(void *)ll;
 							break;
 						case XP_PRINTF_TYPE_ULONGLONG:
-							pntr=(void *)((uintptr_t)ull);
+							pntr=(void *)ull;
 							break;
 #endif
 						case XP_PRINTF_TYPE_CHARP:
@@ -1106,6 +1115,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							pntr=(void *)(long int)ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
+							pntr=pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
 							pntr=(void *)s;
@@ -1148,6 +1158,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 							s=(size_t)pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
+							s=s;
 							break;
 					}
 					break;
