@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.380 2011/09/01 17:37:09 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.392 2011/10/28 08:05:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,9 +79,7 @@
 static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
-static volatile ulong	active_clients=0;
-static volatile ulong	sockets=0;
-static volatile ulong	thread_count=0;
+static protected_int32_t active_clients;
 static volatile time_t	uptime=0;
 static volatile ulong	served=0;
 static volatile BOOL	terminate_server=FALSE;
@@ -192,7 +190,7 @@ static void status(char* str)
 static void update_clients(void)
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,active_clients);
+		startup->clients(startup->cbdata,active_clients.value);
 }
 
 static void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -209,15 +207,12 @@ static void client_off(SOCKET sock)
 
 static void thread_up(BOOL setuid)
 {
-	thread_count++;
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,TRUE, setuid);
 }
 
 static void thread_down(void)
 {
-	if(thread_count>0)
-		thread_count--;
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,FALSE, FALSE);
 }
@@ -233,10 +228,6 @@ static SOCKET ftp_open_socket(int type)
 	if(sock!=INVALID_SOCKET) {
 		if(set_socket_options(&scfg, sock, "FTP", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock, error);
-		sockets++;
-#ifdef SOCKET_DEBUG
-		lprintf(LOG_DEBUG,"%04d Socket opened (%u sockets in use)",sock,sockets);
-#endif
 	}
 	return(sock);
 }
@@ -259,17 +250,10 @@ static int ftp_close_socket(SOCKET* sock, int line)
 	if(startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,FALSE);
 
-	sockets--;
-
 	if(result!=0) {
 		if(ERROR_VALUE!=ENOTSOCK)
 			lprintf(LOG_WARNING,"%04d !ERROR %d closing socket from line %u",*sock,ERROR_VALUE,line);
-	} else if(sock==&server_socket || *sock==server_socket)
-		lprintf(LOG_DEBUG,"%04d Server socket closed (%u sockets in use) from line %u",*sock,sockets,line);
-#ifdef SOCKET_DEBUG
-	else 
-		lprintf(LOG_DEBUG,"%04d Socket closed (%u sockets in use) from line %u",*sock,sockets,line);
-#endif
+	}
 	*sock=INVALID_SOCKET;
 
 	return(result);
@@ -392,12 +376,16 @@ int getdir(char* p, user_t* user, client_t* client)
 js_server_props_t js_server_props;
 
 static JSBool
-js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
 	FILE*	fp;
 	jsrefcount	rc;
+	char		*p;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
@@ -406,28 +394,31 @@ js_write(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 		str = JS_ValueToString(cx, argv[i]);
 		if (!str)
 		    return JS_FALSE;
+		JSSTRING_TO_STRING(cx, str, p, NULL);
 		rc=JS_SUSPENDREQUEST(cx);
-		fprintf(fp,"%s",JS_GetStringBytes(str));
+		fprintf(fp,"%s", p);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(str==NULL)
-		*rval = JSVAL_VOID;
+		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
-		*rval = STRING_TO_JSVAL(str);
+		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
 	return(JS_TRUE);
 }
 
 static JSBool
-js_writeln(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 {
 	FILE*	fp;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((fp=(FILE*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	js_write(cx,obj,argc,argv,rval);
+	js_write(cx,argc,arglist);
 	rc=JS_SUSPENDREQUEST(cx);
 	fprintf(fp,"\r\n");
 	JS_RESUMEREQUEST(cx, rc);
@@ -486,7 +477,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static JSContext* 
-js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_branch_t* branch)
+js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_callback_t* cb)
 {
 	JSContext*	js_cx;
 	JSObject*	js_glob;
@@ -503,7 +494,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_b
 
     JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
-	memset(branch, 0, sizeof(js_branch_t));
+	memset(cb, 0, sizeof(js_callback_t));
 
 	/* ToDo: call js_CreateCommonObjects() instead */
 
@@ -517,7 +508,7 @@ js_initcx(JSRuntime* runtime, SOCKET sock, JSObject** glob, JSObject** ftp, js_b
 			break;
 
 		/* Internal JS Object */
-		if(js_CreateInternalJsObject(js_cx, js_glob, branch, &startup->js)==NULL)
+		if(js_CreateInternalJsObject(js_cx, js_glob, cb, &startup->js)==NULL)
 			break;
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing System object",sock);
@@ -588,15 +579,15 @@ BOOL js_add_file(JSContext* js_cx, JSObject* array,
 	if(!JS_SetProperty(js_cx, file, "credits", &val))
 		return(FALSE);
 
-	JS_NewNumberValue(js_cx,(jsdouble)time,&val);
+	val=DOUBLE_TO_JSVAL((double)time);
 	if(!JS_SetProperty(js_cx, file, "time", &val))
 		return(FALSE);
 
-	val=INT_TO_JSVAL(uploaded);
+	val=INT_TO_JSVAL((int32)uploaded);
 	if(!JS_SetProperty(js_cx, file, "uploaded", &val))
 		return(FALSE);
 
-	val=INT_TO_JSVAL(last_downloaded);
+	val=INT_TO_JSVAL((int32)last_downloaded);
 	if(!JS_SetProperty(js_cx, file, "last_downloaded", &val))
 		return(FALSE);
 
@@ -653,7 +644,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 	JSObject*	dir_obj=NULL;
 	JSObject*	file_array=NULL;
 	JSObject*	dir_array=NULL;
-	JSScript*	js_script=NULL;
+	JSObject*	js_script=NULL;
 	JSString*	js_str;
 	long double		start=xp_timer();
 	jsrefcount	rc;
@@ -1022,9 +1013,6 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 	} while(0);
 
-
-	if(js_script!=NULL) 
-		JS_DestroyScript(js_cx, js_script);
 
 	JS_DeleteProperty(js_cx, parent, "path");
 	JS_DeleteProperty(js_cx, parent, "sort");
@@ -1521,7 +1509,7 @@ static void send_thread(void* arg)
 			if(getfileixb(&scfg,&f)==TRUE && getfiledat(&scfg,&f)==TRUE) {
 				f.timesdled++;
 				putfiledat(&scfg,&f);
-				f.datedled=time(NULL);
+				f.datedled=time32(NULL);
 				putfileixb(&scfg,&f);
 
 				lprintf(LOG_INFO,"%04d %s downloaded: %s (%lu times total)"
@@ -1770,7 +1758,7 @@ static void receive_thread(void* arg)
 			if(scfg.dir[f.dir]->misc&DIR_AONLY)  /* Forced anonymous */
 				f.misc|=FM_ANON;
 			f.cdt=flength(xfer.filename);
-			f.dateuled=time(NULL);
+			f.dateuled=time32(NULL);
 
 			/* Desciption specified with DESC command? */
 			if(xfer.desc!=NULL && *xfer.desc!=0)	
@@ -1917,7 +1905,6 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 		}
 		if(startup->socket_open!=NULL)
 			startup->socket_open(startup->cbdata,TRUE);
-		sockets++;
 		if(startup->options&FTP_OPT_DEBUG_DATA)
 			lprintf(LOG_DEBUG,"%04d DATA socket %d opened",ctrl_sock,*data_sock);
 
@@ -2017,7 +2004,6 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 		}
 		if(startup->socket_open!=NULL)
 			startup->socket_open(startup->cbdata,TRUE);
-		sockets++;
 		if(startup->options&FTP_OPT_DEBUG_DATA)
 			lprintf(LOG_DEBUG,"%04d PASV DATA socket %d connected to %s port %u"
 				,ctrl_sock,*data_sock,inet_ntoa(addr->sin_addr),ntohs(addr->sin_port));
@@ -2458,7 +2444,7 @@ static void ctrl_thread(void* arg)
 	JSObject*	js_glob;
 	JSObject*	js_ftp;
 	JSString*	js_str;
-	js_branch_t	js_branch;
+	js_callback_t	js_callback;
 #endif
 
 	SetThreadName("FTP CTRL");
@@ -2543,11 +2529,12 @@ static void ctrl_thread(void* arg)
 		return;
 	} 
 
-	active_clients++, update_clients();
+	protected_int32_adjust(&active_clients, 1), 
+	update_clients();
 
 	/* Initialize client display */
 	client.size=sizeof(client);
-	client.time=time(NULL);
+	client.time=time32(NULL);
 	SAFECOPY(client.addr,host_ip);
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(ftp.client_addr.sin_port);
@@ -2770,7 +2757,7 @@ static void ctrl_thread(void* arg)
 			lprintf(LOG_INFO,"%04d %s logged in (%u today, %u total)"
 				,sock,user.alias,user.ltoday+1, user.logons+1);
 			logintime=time(NULL);
-			timeleft=gettimeleft(&scfg,&user,logintime);
+			timeleft=(long)gettimeleft(&scfg,&user,logintime);
 			ftp_printfile(sock,"hello",230);
 
 #ifdef JAVASCRIPT
@@ -2810,7 +2797,7 @@ static void ctrl_thread(void* arg)
 			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
 			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
 			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
-			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa(logintime,str,16));
+			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa((ulong)logintime,str,16));
 			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
@@ -2824,7 +2811,7 @@ static void ctrl_thread(void* arg)
 		if(!(user.rest&FLAG('G')))
 			getuserdat(&scfg, &user);	/* get current user data */
 
-		if((timeleft=gettimeleft(&scfg,&user,logintime))<1L) {
+		if((timeleft=(long)gettimeleft(&scfg,&user,logintime))<1L) {
 			sockprintf(sock,"421 Sorry, you've run out of time.");
 			lprintf(LOG_WARNING,"%04d Out of time, disconnecting",sock);
 			break;
@@ -2853,7 +2840,7 @@ static void ctrl_thread(void* arg)
 				if(node.status==NODE_INUSE)
 					sockprintf(sock," Node %3d: %s",i+1, username(&scfg,node.useron,str));
 			}
-			sockprintf(sock,"211 End (%d active FTP clients)", active_clients);
+			sockprintf(sock,"211 End (%d active FTP clients)", active_clients.value);
 			continue;
 		}
 		if(!stricmp(cmd, "SITE VER")) {
@@ -2861,7 +2848,7 @@ static void ctrl_thread(void* arg)
 			continue;
 		}
 		if(!stricmp(cmd, "SITE UPTIME")) {
-			sockprintf(sock,"211 %s (%lu served)",sectostr(time(NULL)-uptime,str),served);
+			sockprintf(sock,"211 %s (%lu served)",sectostr((uint)(time(NULL)-uptime),str),served);
 			continue;
 		}
 		if(!stricmp(cmd, "SITE RECYCLE") && user.level>=SYSOP_LEVEL) {
@@ -3991,7 +3978,7 @@ static void ctrl_thread(void* arg)
 
 					if(js_cx==NULL) {	/* Context not yet created, create it now */
 						/* js_initcx() starts a request */
-						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_branch))==NULL)) {
+						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_callback))==NULL)) {
 							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
 							sockprintf(sock,"451 Error initializing JavaScript context");
 							filepos=0;
@@ -4618,12 +4605,14 @@ static void ctrl_thread(void* arg)
 	tmp_sock=sock;
 	ftp_close_socket(&tmp_sock,__LINE__);
 
-	if(active_clients)
-		active_clients--, update_clients();
+	{
+		int32_t	remain = protected_int32_adjust(&active_clients, -1);
+		update_clients();
 
-	thread_down();
-	lprintf(LOG_INFO,"%04d CTRL thread terminated (%d clients, %u threads remain, %lu served)"
-		,sock, active_clients, thread_count, served);
+		thread_down();
+		lprintf(LOG_INFO,"%04d CTRL thread terminated (%ld clients remain, %lu served)"
+			,sock, remain, served);
+	}
 }
 
 static void cleanup(int code, int line)
@@ -4641,6 +4630,11 @@ static void cleanup(int code, int line)
 	if(server_socket!=INVALID_SOCKET)
 		ftp_close_socket(&server_socket,__LINE__);
 
+	if(active_clients.value)
+		lprintf(LOG_WARNING,"#### !FTP Server terminating with %ld active clients", active_clients.value);
+	else
+		protected_int32_destroy(active_clients);
+
 	update_clients();
 
 #ifdef _WINSOCKAPI_
@@ -4652,8 +4646,6 @@ static void cleanup(int code, int line)
 	status("Down");
 	if(terminate_server || code)
 		lprintf(LOG_INFO,"#### FTP Server thread terminated (%lu clients served)", served);
-	if(thread_count)
-		lprintf(LOG_WARNING,"#### !FTP Server threads (%u) remain after termination", thread_count);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -4665,7 +4657,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.380 $", "%*s %s", revision);
+	sscanf("$Revision: 1.392 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4746,7 +4738,7 @@ void DLLCALL ftp_server(void* arg)
 	ZERO_VAR(js_server_props);
 	SAFEPRINTF2(js_server_props.version,"%s %s",FTP_SERVER,revision);
 	js_server_props.version_detail=ftp_ver();
-	js_server_props.clients=&active_clients;
+	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
 	js_server_props.interface_addr=&startup->interface_addr;
 #endif
@@ -4851,7 +4843,8 @@ void DLLCALL ftp_server(void* arg)
 
 		lprintf(LOG_DEBUG,"Maximum inactivity: %d seconds",startup->max_inactivity);
 
-		active_clients=0, update_clients();
+		protected_int32_init(&active_clients, 0);
+		update_clients();
 
 		strlwr(scfg.sys_id); /* Use lower-case unix-looking System ID for group name */
 
@@ -4922,7 +4915,7 @@ void DLLCALL ftp_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
-			if(active_clients==0) {
+			if(active_clients.value==0) {
 				if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
@@ -4988,14 +4981,13 @@ void DLLCALL ftp_server(void* arg)
 			}
 			if(startup->socket_open!=NULL)
 				startup->socket_open(startup->cbdata,TRUE);
-			sockets++;
 
 			if(trashcan(&scfg,inet_ntoa(client_addr.sin_addr),"ip-silent")) {
 				ftp_close_socket(&client_socket,__LINE__);
 				continue;
 			}
 			
-			if(active_clients>=startup->max_clients) {
+			if(active_clients.value>=startup->max_clients) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				sockprintf(client_socket,"421 Maximum active clients reached, please try again later.");
@@ -5024,28 +5016,14 @@ void DLLCALL ftp_server(void* arg)
 		lprintf(LOG_DEBUG,"0000 server_socket: %d",server_socket);
 		lprintf(LOG_DEBUG,"0000 terminate_server: %d",terminate_server);
 #endif
-		if(active_clients) {
+		if(active_clients.value) {
 			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
-				,server_socket, active_clients);
+				,server_socket, active_clients.value);
 			start=time(NULL);
-			while(active_clients) {
+			while(active_clients.value) {
 				if(time(NULL)-start>startup->max_inactivity) {
 					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
-						,server_socket, active_clients);
-					break;
-				}
-				mswait(100);
-			}
-		}
-
-		if(thread_count>1) {
-			lprintf(LOG_DEBUG,"%04d Waiting for %d threads to terminate..."
-				,server_socket, thread_count-1);
-			start=time(NULL);
-			while(thread_count>1) {
-				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d threads"
-						,server_socket, thread_count-1);
+						,server_socket, active_clients.value);
 					break;
 				}
 				mswait(100);
