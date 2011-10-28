@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.546 2011/10/19 07:08:31 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.551 2011/10/28 08:57:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1686,7 +1686,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
@@ -1700,8 +1699,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	if((p=(private_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(JSVAL_IS_NUMBER(argv[i]))
-		JS_ValueToInt32(cx,argv[i++],&level);
+	if(JSVAL_IS_NUMBER(argv[i])) {
+		if(!JS_ValueToInt32(cx,argv[i++],&level))
+			return JS_FALSE;
+	}
 
 	for(; i<argc; i++) {
 		JSVALUE_TO_STRING(cx, argv[i], lstr, NULL);
@@ -1752,12 +1753,12 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 	JSObject*	argv;
 	jsuint		argc;
 	JSObject*	js_script;
-	js_branch_t	js_branch;
+	js_callback_t	js_callback;
 	jsval		val;
 	jsval		rval=JSVAL_VOID;
 	private_t	priv;
 
-	ZERO_VAR(js_branch);
+	ZERO_VAR(js_callback);
 
 	SAFECOPY(fname,cmdline);
 	truncstr(fname," \t");
@@ -1778,7 +1779,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 				,sock, log_prefix, startup->js.max_bytes);
 
 			if((*js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
-				break;
+				return FALSE;
 		}
 
 		if(*js_cx==NULL) {
@@ -1786,7 +1787,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 				,sock, log_prefix, startup->js.cx_stack);
 
 			if((*js_cx = JS_NewContext(*js_runtime, startup->js.cx_stack))==NULL)
-				break;
+				return FALSE;
 		}
 		JS_BEGINREQUEST(*js_cx);
 
@@ -1799,13 +1800,14 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 
 		if(*js_glob==NULL) {
 			/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
-			if((*js_glob=js_CreateCommonObjects(*js_cx, &scfg, &scfg, NULL
+			if(!js_CreateCommonObjects(*js_cx, &scfg, &scfg, NULL
 						,uptime, startup->host_name, SOCKLIB_DESC	/* system */
-						,&js_branch									/* js */
+						,&js_callback									/* js */
 						,&startup->js
 						,client, sock								/* client */
 						,&js_server_props							/* server */
-				))==NULL)
+						,js_glob
+				))
 				break;
 
 			if(!JS_DefineFunctions(*js_cx, *js_glob, js_global_functions))
@@ -1894,13 +1896,17 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 		if(js_script==NULL)
 			break;
 
+		/* ToDo: Set operational callback */
 		success=JS_ExecuteScript(*js_cx, js_scope, js_script, &rval);
 
-		JS_ReportPendingException(*js_cx);
-
-		js_EvalOnExit(*js_cx, js_scope, &js_branch);
-
 		JS_GetProperty(*js_cx, *js_glob, "exit_code", &rval);
+
+		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval))
+			JS_ValueToInt32(*js_cx,rval,result);
+
+		js_EvalOnExit(*js_cx, js_scope, &js_callback);
+
+		JS_ReportPendingException(*js_cx);
 
 		JS_ClearScope(*js_cx, js_scope);
 
@@ -1908,21 +1914,19 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 
 	} while(0);
 
-	if(*js_cx!=NULL) {
-
-		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval))
-			JS_ValueToInt32(*js_cx,rval,result);
-
-		JS_ENDREQUEST(*js_cx);
-	}
+	JS_ENDREQUEST(*js_cx);
 
 	return(success);
 }
 
-void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx)
+void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx, JSObject** js_glob)
 {
-	if(js_cx!=NULL)
+	if(js_cx!=NULL) {
+		JS_BEGINREQUEST(js_cx);
+		JS_RemoveObjectRoot(js_cx, js_glob);
+		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
+	}
 	if(js_runtime!=NULL)
 		jsrt_Release(js_runtime);
 }
@@ -4053,7 +4057,7 @@ static void smtp_thread(void* arg)
 	remove(rcptlst_fname);
 	if(spy!=NULL)
 		fclose(spy);
-	js_cleanup(js_runtime, js_cx);
+	js_cleanup(js_runtime, js_cx, &js_glob);
 
 	status(STATUS_WFC);
 
@@ -4874,7 +4878,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.546 $", "%*s %s", revision);
+	sscanf("$Revision: 1.551 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
