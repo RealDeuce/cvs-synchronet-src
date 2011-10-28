@@ -1,11 +1,10 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.h,v 1.7 2013/08/17 01:25:47 deuce Exp $ */
+/* $Id: telnet_io.h,v 1.6 2007/11/13 01:37:56 deuce Exp $ */
 
 #ifndef _TELNET_IO_H_
 #define _TELNET_IO_H_
 
-#define TELNET_NO_DLL
 #include "telnet.h"
 
 extern uchar	telnet_local_option[0x100];
