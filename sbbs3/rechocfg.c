@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.31 2013/11/05 07:07:05 deuce Exp $ */
+/* $Id: rechocfg.c,v 1.25 2011/07/20 02:41:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -176,13 +176,9 @@ int matchnode(faddr_t addr, int exact)
 	return(i);
 }
 
-#define SKIPCTRLSP(p)	while(*p>0 && *p<=' ') p++
-#define SKIPCODE(p)		while(*p<0 || *p>' ') p++
 void read_echo_cfg()
 {
-	char *str = NULL;
-	size_t str_size;
-	char tmp[512],*p,*tp;
+	uchar str[1025],tmp[512],*p,*tp;
 	short attr=0;
 	int i,j,file;
 	FILE *stream;
@@ -202,15 +198,13 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
-	cfg.zone_blind=FALSE;
-	SAFECOPY(cfg.sysop_alias,"SYSOP");
 
 	while(1) {
-		if(getdelim(&str,&str_size,'\n',stream)==-1)
+		if(!fgets(str,256,stream))
 			break;
 		truncsp(str);
 		p=str;
-		SKIPCTRLSP(p);
+		while(*p && *p<=' ') p++;
 		if(*p==';')
 			continue;
 		sprintf(tmp,"%-.25s",p);
@@ -220,13 +214,9 @@ void read_echo_cfg()
 #if 0
 		strupr(tmp);                            /* Convert code to uppercase */
 #endif
-		SKIPCODE(p);                       /* Skip code */
-		SKIPCTRLSP(p);                /* Skip white space */
+		while(*p>' ') p++;                       /* Skip code */
+		while(*p && *p<=' ') p++;                /* Skip white space */
 
-		if(!stricmp(tmp,"SYSOP_ALIAS")) {
-			SAFECOPY(cfg.sysop_alias, p);
-			continue;
-		}
 		if(!stricmp(tmp,"PACKER")) {             /* Archive Definition */
 			if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
 				,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
@@ -237,27 +227,27 @@ void read_echo_cfg()
 			tp=cfg.arcdef[cfg.arcdefs].name;
 			while(*tp && *tp>' ') tp++;
 			*tp=0;
-			SKIPCODE(p);
-			SKIPCTRLSP(p);
+			while(*p && *p>' ') p++;
+			while(*p && *p<=' ') p++;
 			cfg.arcdef[cfg.arcdefs].byteloc=atoi(p);
-			SKIPCODE(p);
-			SKIPCTRLSP(p);
+			while(*p && *p>' ') p++;
+			while(*p && *p<=' ') p++;
 			SAFECOPY(cfg.arcdef[cfg.arcdefs].hexid,p);
 			tp=cfg.arcdef[cfg.arcdefs].hexid;
-			SKIPCODE(tp);
+			while(*tp && *tp>' ') tp++;
 			*tp=0;
-			while((getdelim(&str,&str_size,'\n',stream) != -1) && strnicmp(str,"END",3)) {
+			while(fgets(str,256,stream) && strnicmp(str,"END",3)) {
 				p=str;
-				SKIPCTRLSP(p);
+				while(*p && *p<=' ') p++;
 				if(!strnicmp(p,"PACK ",5)) {
 					p+=5;
-					SKIPCTRLSP(p);
+					while(*p && *p<=' ') p++;
 					SAFECOPY(cfg.arcdef[cfg.arcdefs].pack,p);
 					truncsp(cfg.arcdef[cfg.arcdefs].pack);
 					continue; }
 				if(!strnicmp(p,"UNPACK ",7)) {
 					p+=7;
-					SKIPCTRLSP(p);
+					while(*p && *p<=' ') p++;
 					SAFECOPY(cfg.arcdef[cfg.arcdefs].unpack,p);
 					truncsp(cfg.arcdef[cfg.arcdefs].unpack); } }
 			++cfg.arcdefs;
@@ -268,11 +258,6 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"NOPATHCHECK")) {
 			cfg.check_path=FALSE;
-			continue;
-		}
-
-		if(!stricmp(tmp,"ZONE_BLIND")) {
-			cfg.zone_blind=TRUE;
 			continue;
 		}
 
@@ -378,9 +363,9 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"USEPACKER")) {          /* Which packer to use */
 			if(!*p)
 				continue;
-			strcpy(str,p);
+			SAFECOPY(str,p);
 			p=str;
-			SKIPCODE(p);
+			while(*p && *p>' ') p++;
 			if(!*p)
 				continue;
 			*p=0;
@@ -392,11 +377,11 @@ void read_echo_cfg()
 			if(i==cfg.arcdefs)				/* i = number of arcdef til done */
 				i=0xffff;					/* Uncompressed type if not found */
 			while(*p) {
-				SKIPCTRLSP(p);
+				while(*p && *p<=' ') p++;
 				if(!*p)
 					break;
 				addr=atofaddr(p);
-				SKIPCODE(p);
+				while(*p && *p>' ') p++;
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
@@ -413,8 +398,8 @@ void read_echo_cfg()
 			if(!*p)
 				continue;
 			addr=atofaddr(p);
-			SKIPCODE(p);         /* Skip address */
-			SKIPCTRLSP(p);        /* Find beginning of password */
+			while(*p && *p>' ') p++;         /* Skip address */
+			while(*p && *p<=' ') p++;        /* Find beginning of password */
 			j=matchnode(addr,1);
 			if(j==cfg.nodecfgs) {
 				cfg.nodecfgs++;
@@ -430,17 +415,17 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"PKTTYPE")) {            /* Packet Type to Use */
 			if(!*p)
 				continue;
-			strcpy(str,p);
+			SAFECOPY(str,p);
 			p=str;
-			SKIPCODE(p);
+			while(*p && *p>' ') p++;
 			*p=0;
 			p++;
 			while(*p) {
-				SKIPCTRLSP(p);
+				while(*p && *p<=' ') p++;
 				if(!*p)
 					break;
 				addr=atofaddr(p);
-				SKIPCODE(p);
+				while(*p && *p>' ') p++;
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
@@ -460,11 +445,11 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"SEND_NOTIFY")) {    /* Nodes to send notify lists to */
 			while(*p) {
-				SKIPCTRLSP(p);
+				while(*p && *p<=' ') p++;
 				if(!*p)
 					break;
 				addr=atofaddr(p);
-				SKIPCODE(p);
+				while(*p && *p>' ') p++;
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
@@ -490,11 +475,11 @@ void read_echo_cfg()
 			else if(!stricmp(tmp,"DIRECT"))
 				attr=ATTR_DIRECT;
 			while(*p) {
-				SKIPCTRLSP(p);
+				while(*p && *p<=' ') p++;
 				if(!*p)
 					break;
 				addr=atofaddr(p);
-				SKIPCODE(p);
+				while(*p && *p>' ') p++;
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
@@ -508,16 +493,16 @@ void read_echo_cfg()
 				cfg.nodecfg[j].attr|=attr; } }
 
 		if(!stricmp(tmp,"ROUTE_TO")) {
-			SKIPCTRLSP(p);
+			while(*p && *p<=' ') p++;
 			if(*p) {
 				route_addr=atofaddr(p);
-				SKIPCODE(p); }
+				while(*p && *p>' ') p++; }
 			while(*p) {
-				SKIPCTRLSP(p);
+				while(*p && *p<=' ') p++;
 				if(!*p)
 					break;
 				addr=atofaddr(p);
-				SKIPCODE(p);
+				while(*p && *p>' ') p++;
 				j=matchnode(addr,1);
 				if(j==cfg.nodecfgs) {
 					cfg.nodecfgs++;
@@ -545,19 +530,19 @@ void read_echo_cfg()
 				memset(&cfg.nodecfg[i],0,sizeof(nodecfg_t));
 				cfg.nodecfg[i].faddr=addr; }
 			cfg.nodecfg[i].flag=NULL;
-			SKIPCODE(p); 		/* Get to the end of the address */
-			SKIPCTRLSP(p);		/* Skip over whitespace chars */
+			while(*p && *p>' ') p++; 		/* Get to the end of the address */
+			while(*p && *p<=' ') p++;		/* Skip over whitespace chars */
 			tp=p;
-			SKIPCODE(p); 		/* Find end of password 	*/
+			while(*p && *p>' ') p++; 		/* Find end of password 	*/
 			*p=0;							/* and terminate the string */
 			++p;
 			SAFECOPY(cfg.nodecfg[i].password,tp);
-			SKIPCTRLSP(p);		/* Search for more chars */
+			while(*p && *p<=' ') p++;		/* Search for more chars */
 			if(!*p) 						/* Nothing else there */
 				continue;
 			while(*p) {
 				tp=p;
-				SKIPCODE(p); 	/* Find end of this flag */
+				while(*p && *p>' ') p++; 	/* Find end of this flag */
 				*p=0;						/* and terminate it 	 */
 				++p;
 				for(j=0;j<cfg.nodecfg[i].numflags;j++)
@@ -573,7 +558,7 @@ void read_echo_cfg()
 						bail(1); }
 					cfg.nodecfg[i].numflags++;
 					SAFECOPY(cfg.nodecfg[i].flag[j].flag,tp); }
-				SKIPCTRLSP(p); } }
+				while(*p && *p<=' ') p++; } }
 
 		if(!stricmp(tmp,"ECHOLIST")) {           /* Echolists go here */
 			if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
@@ -587,35 +572,35 @@ void read_echo_cfg()
 			if(!strnicmp(p,"FORWARD ",8) || !strnicmp(p,"HUB ",4)) {
 				if(!strnicmp(p,"HUB ",4))
 					cfg.listcfg[cfg.listcfgs-1].misc|=NOFWD;
-				SKIPCODE(p);
-				SKIPCTRLSP(p);
+				while(*p && *p>' ') p++;
+				while(*p && *p<=' ') p++;
 				if(*p)
 					cfg.listcfg[cfg.listcfgs-1].forward=atofaddr(p);
-				SKIPCODE(p);
-				SKIPCTRLSP(p);
+				while(*p && *p>' ') p++;
+				while(*p && *p<=' ') p++;
 				if(*p && !(cfg.listcfg[cfg.listcfgs-1].misc&NOFWD)) {
 					tp=p;
-					SKIPCODE(p);
+					while(*p && *p>' ') p++;
 					*p=0;
 					++p;
-					SKIPCTRLSP(p);
+					while(*p && *p<=' ') p++;
 					SAFECOPY(cfg.listcfg[cfg.listcfgs-1].password,tp); } }
 			else
 				cfg.listcfg[cfg.listcfgs-1].misc|=NOFWD;
 			if(!*p)
 				continue;
 			tp=p;
-			SKIPCODE(p);
+			while(*p && *p>' ') p++;
 			*p=0;
 			p++;
 
 			SAFECOPY(cfg.listcfg[cfg.listcfgs-1].listpath,tp);
 			cfg.listcfg[cfg.listcfgs-1].numflags=0;
 			cfg.listcfg[cfg.listcfgs-1].flag=NULL;
-			SKIPCTRLSP(p);		/* Skip over whitespace chars */
+			while(*p && *p<=' ') p++;		/* Skip over whitespace chars */
 			while(*p) {
 				tp=p;
-				SKIPCODE(p); 	/* Find end of this flag */
+				while(*p && *p>' ') p++; 	/* Find end of this flag */
 				*p=0;						/* and terminate it 	 */
 				++p;
 				for(j=0;j<cfg.listcfg[cfg.listcfgs-1].numflags;j++)
@@ -631,21 +616,12 @@ void read_echo_cfg()
 						bail(1); }
 					cfg.listcfg[cfg.listcfgs-1].numflags++;
 					SAFECOPY(cfg.listcfg[cfg.listcfgs-1].flag[j].flag,tp); }
-				SKIPCTRLSP(p); } }
+				while(*p && *p<=' ') p++; } }
 
 		/* Message disabled why?  ToDo */
 		/* printf("Unrecognized line in SBBSECHO.CFG file.\n"); */
 	}
 	fclose(stream);
-
-	/* make sure we have some sane "maximum" size values here: */
-	if(cfg.maxpktsize<1024)
-		cfg.maxpktsize=DFLT_PKT_SIZE;
-	if(cfg.maxbdlsize<1024)
-		cfg.maxbdlsize=DFLT_BDL_SIZE;
-
-	if(str)
-		free(str);
 	printf("\n");
 }
 
