@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.545 2011/10/16 07:44:16 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.549 2011/10/26 23:14:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -834,7 +834,7 @@ static void pop3_thread(void* arg)
 
 	/* Initialize client display */
 	client.size=sizeof(client);
-	client.time=time(NULL);
+	client.time=time32(NULL);
 	SAFECOPY(client.addr,host_ip);
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(pop3.client_addr.sin_port);
@@ -1501,7 +1501,7 @@ static void exempt_email_addr(const char* comment
 			if(fromext!=NULL)
 				fprintf(fp,"#%s ",fromext);
 			fprintf(fp,"%s on %s\n%s\n"
-				,fromaddr, timestr(&scfg,time(NULL),tmp), to);
+				,fromaddr, timestr(&scfg,time32(NULL),tmp), to);
 			fclose(fp);
 		}
 	}
@@ -1686,7 +1686,6 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
@@ -1700,8 +1699,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	if((p=(private_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(JSVAL_IS_NUMBER(argv[i]))
-		JS_ValueToInt32(cx,argv[i++],&level);
+	if(JSVAL_IS_NUMBER(argv[i])) {
+		if(!JS_ValueToInt32(cx,argv[i++],&level))
+			return JS_FALSE;
+	}
 
 	for(; i<argc; i++) {
 		JSVALUE_TO_STRING(cx, argv[i], lstr, NULL);
@@ -1778,7 +1779,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 				,sock, log_prefix, startup->js.max_bytes);
 
 			if((*js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
-				break;
+				return FALSE;
 		}
 
 		if(*js_cx==NULL) {
@@ -1786,7 +1787,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 				,sock, log_prefix, startup->js.cx_stack);
 
 			if((*js_cx = JS_NewContext(*js_runtime, startup->js.cx_stack))==NULL)
-				break;
+				return FALSE;
 		}
 		JS_BEGINREQUEST(*js_cx);
 
@@ -1896,11 +1897,14 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 
 		success=JS_ExecuteScript(*js_cx, js_scope, js_script, &rval);
 
-		JS_ReportPendingException(*js_cx);
+		JS_GetProperty(*js_cx, *js_glob, "exit_code", &rval);
+
+		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval))
+			JS_ValueToInt32(*js_cx,rval,result);
 
 		js_EvalOnExit(*js_cx, js_scope, &js_branch);
 
-		JS_GetProperty(*js_cx, *js_glob, "exit_code", &rval);
+		JS_ReportPendingException(*js_cx);
 
 		JS_ClearScope(*js_cx, js_scope);
 
@@ -1908,13 +1912,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 
 	} while(0);
 
-	if(*js_cx!=NULL) {
-
-		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval))
-			JS_ValueToInt32(*js_cx,rval,result);
-
-		JS_ENDREQUEST(*js_cx);
-	}
+	JS_ENDREQUEST(*js_cx);
 
 	return(success);
 }
@@ -2490,7 +2488,7 @@ static void smtp_thread(void* arg)
 
 	/* Initialize client display */
 	client.size=sizeof(client);
-	client.time=time(NULL);
+	client.time=time32(NULL);
 	SAFECOPY(client.addr,host_ip);
 	SAFECOPY(client.host,host_name);
 	client.port=ntohs(smtp.client_addr.sin_port);
@@ -4874,7 +4872,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.545 $", "%*s %s", revision);
+	sscanf("$Revision: 1.549 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
