@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.85 2012/04/25 07:59:04 deuce Exp $
+# $Id: Common.gmake,v 1.83 2011/10/26 08:54:43 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -288,9 +288,6 @@ endif
 ifeq ($(os),netbsd)	# NetBSD
  CFLAGS	+=	-D__unix__ -I/usr/pkg/include
 endif
-ifeq ($(os),haiku)
- CFLAGS	+=	-D__unix__
-endif
 ifeq ($(os),darwin)
  CFLAGS +=  -D__unix__ -fno-common -D__DARWIN__
 endif
@@ -302,6 +299,7 @@ ifeq ($(os),linux)    # Linux
  endif
 endif
 MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
+CFLAGS    += -D_THREAD_SAFE -D_REENTRANT -D__EXTENSIONS__
 ifeq ($(os),freebsd)    # FreeBSD
  MT_CFLAGS    += -DUSE_XP_SEMAPHORES
  MT_LDFLAGS    +=    -pthread
@@ -331,7 +329,7 @@ else
       MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
       # This makes ctime_r() be the correct one.
-      #CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
+      CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
      else            # Linux / Other UNIX
       XP_SEM :=    1
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
