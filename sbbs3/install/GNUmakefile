@@ -11,12 +11,12 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.18 2006/01/11 02:16:26 deuce Exp $
+# $Id: GNUmakefile,v 1.22 2011/10/19 07:42:11 sbbs Exp $
 
 SRC_ROOT	= ../..
 include $(SRC_ROOT)/build/Common.gmake
 
-CFLAGS	+=	-I../
+CFLAGS	+=	-I../ -I../../comio
 
 ifdef STATIC
  LDFLAGS	+=	-static
