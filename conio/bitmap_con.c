@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.35 2012/10/24 19:02:38 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.33 2009/02/24 06:07:03 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -73,7 +73,6 @@ static void blinker_thread(void *data)
 {
 	int count=0;
 
-	SetThreadName("Blinker");
 	while(1) {
 		do {
 			SLEEP(10);
@@ -299,6 +298,7 @@ int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 {
 	int	direction=1;
 	int	cy;
+	int	sy;
 	int	destoffset;
 	int	sourcepos;
 	int width=ex-x+1;
