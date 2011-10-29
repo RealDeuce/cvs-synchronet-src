@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.160 2011/11/12 02:18:32 deuce Exp $ */
+/* $Id: jsexec.c,v 1.157 2011/10/28 09:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@
 #define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
 
-js_startup_t	startup;
 JSRuntime*	js_runtime;
 JSContext*	js_cx;
 JSObject*	js_glob;
@@ -603,10 +602,7 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 static jsSyncMethodSpec js_global_functions[] = {
 	{"log",				js_log,				1},
 	{"read",			js_read,            1},
-	{"readln",			js_readln,			0,	JSTYPE_STRING,	JSDOCSTR("[count]")
-	,JSDOCSTR("read a single line, up to count characters, from input stream")
-	,311
-	},
+	{"readln",			js_readln,          1},
     {"write",           js_write,           0},
     {"writeln",         js_writeln,         0},
     {"print",           js_writeln,         0},
@@ -704,6 +700,8 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 
 static BOOL js_init(char** environ)
 {
+	js_startup_t	startup;
+
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
 
@@ -901,6 +899,8 @@ long js_exec(const char *fname, char** args)
 			,path
 			,diff);
 
+	JS_GC(js_cx);
+
 	if(js_buf!=NULL)
 		free(js_buf);
 
@@ -982,7 +982,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.160 $", "%*s %s", revision);
+	sscanf("$Revision: 1.157 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
