@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.43 2011/11/12 00:50:10 deuce Exp $ */
+/* $Id: js_queue.c,v 1.40 2011/10/29 03:53:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -302,8 +302,10 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	msg_queue_t*	q;
 	jsrefcount		rc;
 
-	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL)
-		return JS_FALSE;
+	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return(JS_FALSE);
+	}
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
@@ -377,7 +379,7 @@ static JSBool js_queue_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval))
+		if(JSVAL_IS_STRING(jdval))
 			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
