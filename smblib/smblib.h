@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.69 2011/07/21 10:49:43 rswindell Exp $ */
+/* $Id: smblib.h,v 1.70 2011/10/16 09:53:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,9 +179,9 @@ SMBEXPORT void		SMBCALL smb_freemsgtxt(char* buf);
 SMBEXPORT int		SMBCALL smb_findhash(smb_t* smb, hash_t** compare_list, hash_t* found
 										 ,long source_mask, BOOL mark);
 SMBEXPORT int		SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL update);
-SMBEXPORT hash_t*	SMBCALL	smb_hash(ulong msgnum, ulong time, unsigned source
+SMBEXPORT hash_t*	SMBCALL	smb_hash(ulong msgnum, uint32_t time, unsigned source
 								,unsigned flags, const void* data, size_t length);
-SMBEXPORT hash_t*	SMBCALL	smb_hashstr(ulong msgnum, ulong time, unsigned source
+SMBEXPORT hash_t*	SMBCALL	smb_hashstr(ulong msgnum, uint32_t time, unsigned source
 								,unsigned flags, const char* str);
 
 SMBEXPORT hash_t**	SMBCALL smb_msghashes(smbmsg_t* msg, const uchar* text, long source_mask);
