@@ -2,13 +2,13 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.h,v 1.5 2005/05/09 09:01:28 rswindell Exp $ */
+/* $Id: msg_queue.h,v 1.6 2011/09/01 20:37:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -39,6 +39,7 @@
 #define _MSG_QUEUE_H
 
 #include "link_list.h"
+#include "threadwrap.h"
 
 #if defined(__cplusplus)
 extern "C" {
