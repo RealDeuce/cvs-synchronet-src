@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.79 2012/04/25 08:07:52 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.78 2011/06/14 07:47:04 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -887,7 +887,7 @@ void DLLCALL unix_beep(int freq, int dur)
 	}
 #endif
 
-#if !defined(__GNU__) && !defined(__QNX__) && !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__APPLE__) && !defined(__CYGWIN__) && !defined(__HAIKU__)
+#if !defined(__GNU__) && !defined(__QNX__) && !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__APPLE__) && !defined(__CYGWIN__)
 	if(console_fd == -1) 
   		console_fd = open("/dev/console", O_NOCTTY);
 	
