@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.395 2012/03/06 02:14:11 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.393 2011/10/28 08:57:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1160,6 +1160,140 @@ int sockreadline(SOCKET socket, char* buf, int len, time_t* lastactive)
 	
 	return(rd);
 }
+
+#if 0	/* now exported from in xtrn.cpp */
+/*****************************************************************************/
+/* Returns command line generated from instr with %c replacments             */
+/*****************************************************************************/
+static char* cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *cmd)
+{
+	char	str[256];
+    int		i,j,len;
+#ifdef _WIN32
+	char sfpath[MAX_PATH+1];
+#endif
+
+    len=strlen(instr);
+    for(i=j=0;i<len;i++) {
+        if(instr[i]=='%') {
+            i++;
+            cmd[j]=0;
+            switch(toupper(instr[i])) {
+                case 'A':   /* User alias */
+                    strcat(cmd,user->alias);
+                    break;
+                case 'B':   /* Baud (DTE) Rate */
+                case 'C':   /* Connect Description */
+                case 'D':   /* Connect (DCE) Rate */
+                case 'E':   /* Estimated Rate */
+                case 'H':   /* Port Handle or Hardware Flow Control */
+                case 'P':   /* COM Port */
+                case 'R':   /* Rows */
+                case 'T':   /* Time left in seconds */
+                case '&':   /* Address of msr */
+                case 'Y':	/* COMSPEC */
+					/* UNSUPPORTED */
+					break;
+                case 'F':   /* File path */
+                    strcat(cmd,fpath);
+                    break;
+                case 'G':   /* Temp directory */
+                    strcat(cmd,scfg.temp_dir);
+                    break;
+                case 'I':   /* UART IRQ Line */
+                    strcat(cmd,ultoa(scfg.com_irq,str,10));
+                    break;
+                case 'J':
+                    strcat(cmd,scfg.data_dir);
+                    break;
+                case 'K':
+                    strcat(cmd,scfg.ctrl_dir);
+                    break;
+                case 'L':   /* Lines per message */
+                    strcat(cmd,ultoa(scfg.level_linespermsg[user->level],str,10));
+                    break;
+                case 'M':   /* Minutes (credits) for user */
+                    strcat(cmd,ultoa(user->min,str,10));
+                    break;
+                case 'N':   /* Node Directory (same as SBBSNODE environment var) */
+                    strcat(cmd,scfg.node_dir);
+                    break;
+                case 'O':   /* SysOp */
+                    strcat(cmd,scfg.sys_op);
+                    break;
+                case 'Q':   /* QWK ID */
+                    strcat(cmd,scfg.sys_id);
+                    break;
+                case 'S':   /* File Spec */
+                    strcat(cmd,fspec);
+                    break;
+                case 'U':   /* UART I/O Address (in hex) */
+                    strcat(cmd,ultoa(scfg.com_base,str,16));
+                    break;
+                case 'V':   /* Synchronet Version */
+                    sprintf(str,"%s%c",VERSION,REVISION);
+                    break;
+                case 'W':   /* Time-slice API type (mswtype) */
+                    break;
+                case 'X':
+                    strcat(cmd,scfg.shell[user->shell]->code);
+                    break;
+                case 'Z':
+                    strcat(cmd,scfg.text_dir);
+                    break;
+				case '~':	/* DOS-compatible (8.3) filename */
+#ifdef _WIN32
+					SAFECOPY(sfpath,fpath);
+					GetShortPathName(fpath,sfpath,sizeof(sfpath));
+					strcat(cmd,sfpath);
+#else
+                    strcat(cmd,fpath);
+#endif			
+					break;
+                case '!':   /* EXEC Directory */
+                    strcat(cmd,scfg.exec_dir);
+                    break;
+                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
+#ifndef __unix__
+                    strcat(cmd,scfg.exec_dir);
+#endif
+                    break;
+                case '#':   /* Node number (same as SBBSNNUM environment var) */
+                    sprintf(str,"%u",scfg.node_num);
+                    strcat(cmd,str);
+                    break;
+                case '*':
+                    sprintf(str,"%03u",scfg.node_num);
+                    strcat(cmd,str);
+                    break;
+                case '$':   /* Credits */
+                    strcat(cmd,ultoa(user->cdt+user->freecdt,str,10));
+                    break;
+                case '%':   /* %% for percent sign */
+                    strcat(cmd,"%");
+                    break;
+				case '?':	/* Platform */
+#ifdef __OS2__
+					SAFECOPY(str,"OS2");
+#else
+					SAFECOPY(str,PLATFORM_DESC);
+#endif
+					strlwr(str);
+					strcat(cmd,str);
+					break;
+                default:    /* unknown specification */
+                    if(isdigit(instr[i])) {
+                        sprintf(str,"%0*d",instr[i]&0xf,user->number);
+                        strcat(cmd,str); }
+                    break; }
+            j=strlen(cmd); }
+        else
+            cmd[j++]=instr[i]; }
+    cmd[j]=0;
+
+    return(cmd);
+}
+#endif
 
 void DLLCALL ftp_terminate(void)
 {
@@ -3038,7 +3172,7 @@ static void ctrl_thread(void* arg)
 						t=fdate(g.gl_pathv[i]);
 						if(localtime_r(&t,&tm)==NULL)
 							memset(&tm,0,sizeof(tm));
-						fprintf(fp,"%crw-r--r--   1 %-8s local %9"PRId32" %s %2d "
+						fprintf(fp,"%crw-r--r--   1 %-8s local %9ld %s %2d "
 							,isdir(g.gl_pathv[i]) ? 'd':'-'
 							,scfg.sys_id
 							,f.size
@@ -3540,7 +3674,7 @@ static void ctrl_thread(void* arg)
 								dotname(f.uler,str);
 						} else
 							SAFECOPY(str,scfg.sys_id);
-						fprintf(fp,"-r--r--r--   1 %-*s %-8s %9"PRId32" %s %2d "
+						fprintf(fp,"-r--r--r--   1 %-*s %-8s %9ld %s %2d "
 							,NAME_LEN
 							,str
 							,scfg.dir[dir]->code_suffix
@@ -4526,7 +4660,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.395 $", "%*s %s", revision);
+	sscanf("$Revision: 1.393 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
