@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.63 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.64 2011/10/19 21:54:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -368,6 +368,7 @@ BOOL sbbs_t::newuser()
 	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true)) {
 		CRLF;
 		SAFECOPY(useron.pass, rlogin_pass);
+		strupr(useron.pass);	/* passwords are case insensitive, but assumed (in some places) to be uppercase in the user database */
 	}
 	else {
 		c=0;
