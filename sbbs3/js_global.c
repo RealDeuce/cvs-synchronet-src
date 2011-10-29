@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.302 2011/10/29 03:53:58 deuce Exp $ */
+/* $Id: js_global.c,v 1.303 2011/10/29 04:13:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,10 +201,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 /* Create a new value in the new context with a value from the original context */
 static jsval* js_CopyValue(JSContext* cx, jsval val, JSContext* new_cx, jsval* rval)
 {
-	*rval = JSVAL_VOID;
 	size_t	size;
 	uint64	*nval;
 
+	*rval = JSVAL_VOID;
 	if(JS_WriteStructuredClone(cx, val, &nval, &size, NULL, NULL)) {
 		JS_ReadStructuredClone(new_cx, nval, size, JS_STRUCTURED_CLONE_VERSION, rval, NULL, NULL);
 		JS_free(cx, nval);
