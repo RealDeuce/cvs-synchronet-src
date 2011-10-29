@@ -1,12 +1,12 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.32 2012/06/04 05:32:15 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.31 2011/09/08 03:25:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -547,7 +547,6 @@ command: `DIR /ON /AD /B > DIRS.RAW`
 						p+=5;
 						while(*p && *p<=' ') p++;
 						SAFECOPY(tmp_code,p);
-						truncstr(tmp_code," \t");
 						while(*p>' ') p++;			/* Skip areaname */
 						while(*p && *p<=' ') p++;	/* Skip space */
 						while(*p>' ') p++;			/* Skip level */
