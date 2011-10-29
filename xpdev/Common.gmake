@@ -1,12 +1,6 @@
 XPDEV-MT_CFLAGS	+=	-DXPDEV_THREAD_SAFE
-ifneq ($(os),haiku)
- XPDEV_LIBS	+=	-lm
- XPDEV-MT_LIBS	+=	-lm
-endif
-ifeq ($(os),haiku)
- XPDEV_LIBS	+=	-lnet
- XPDEV-MT_LIBS	+=	-lnet
-endif
+XPDEV_LIBS	+=	-lm
+XPDEV-MT_LIBS	+=	-lm
 ifeq ($(os),netbsd)     # NetBSD
  XPDEV_LIBS	+=	-lossaudio
  XPDEV-MT_LIBS	+=	-lossaudio -lpthread
@@ -156,7 +150,6 @@ ifdef WITH_SDL_AUDIO
    XPDEV_CFLAGS	+=	-DWITH_SDL_AUDIO -DSTATIC_SDL
    XPDEV_CFLAGS	+=	-I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
    XPDEV_LIBS	+=	-F${SDL_FRAMEWORK_PATH} -framework SDL -framework Cocoa -framework Carbon -I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
-   XPDEV-MT_LDFLAGS += -Wl,-rpath,@executable_path/../Frameworks
   endif
  endif
 endif
