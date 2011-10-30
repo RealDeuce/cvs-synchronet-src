@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.39 2011/08/25 19:22:44 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.40 2011/10/29 23:02:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 		return(0); 
 	}
 	if((i=smb_getmsghdr(&smb,msg))!=SMB_SUCCESS) {
-		sprintf(str,"(%06lX) #%lu/%lu %s",msg->idx.offset,msg->idx.number
+		sprintf(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
 			,number,smb.file);
 		smb_unlockmsghdr(&smb,msg);
 		errormsg(WHERE,ERR_READ,str,i,smb.last_error);
