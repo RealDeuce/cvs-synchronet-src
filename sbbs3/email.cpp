@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.58 2012/12/19 07:03:04 rswindell Exp $ */
+/* $Id: email.cpp,v 1.54 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -89,10 +89,10 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		bputs(text[UnknownUser]);
 		return(false); 
 	}
-	if((l&NETMAIL) && (cfg.sys_misc&SM_FWDTONET)) {
+	if(l&NETMAIL && cfg.sys_misc&SM_FWDTONET) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
 		bprintf(text[UserNetMail],str);
-		if((mode & WM_FORCEFWD) || text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
+		if(text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
 			return(netmail(str,subj,mode));
 	}
 	bprintf(text[Emailing],username(&cfg,usernumber,tmp),usernumber);
@@ -100,7 +100,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	nodesync();
 
 	sprintf(str,"%sfeedback.*", cfg.exec_dir);
-	if(usernumber==cfg.node_valuser && useron.fbacks && fexist(str)) {
+	if(usernumber==1 && useron.fbacks && fexist(str)) {
 		exec_bin("feedback",&main_csi);
 		if(main_csi.logic!=LOGIC_TRUE)
 			return(false); 
@@ -155,7 +155,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			if(x<cfg.total_prots)	/* This should be always */
 				protocol(cfg.prot[x],XFER_UPLOAD,str2,nulstr,true); 
 		}
-		safe_snprintf(tmp,sizeof(tmp),"%s%s",cfg.temp_dir,title);
+		sprintf(tmp,"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(str2) && fexistcase(tmp))
 			mv(tmp,str2,0);
 		l=(long)flength(str2);
@@ -226,7 +226,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		offset=smb_allocdat(&smb,length,1);
 	smb_close_da(&smb);
 
-	if((instream=fnopen(&file,msgpath,O_RDONLY|O_BINARY))==NULL) {
+	if((file=open(msgpath,O_RDONLY|O_BINARY))==-1
+		|| (instream=fdopen(file,"rb"))==NULL) {
 		smb_freemsgdat(&smb,offset,length,1);
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
@@ -287,7 +288,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	sprintf(str,"%u",usernumber);
 	smb_hfield_str(&msg,RECIPIENTEXT,str);
 
-	SAFECOPY(str,useron.alias);
+	strcpy(str,useron.alias);
 	smb_hfield_str(&msg,SENDER,str);
 
 	sprintf(str,"%u",useron.number);
@@ -334,7 +335,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		logon_emails++;
 	user_sent_email(&cfg, &useron, 1, usernumber==1);
 	bprintf(text[Emailed],username(&cfg,usernumber,tmp),usernumber);
-	safe_snprintf(str,sizeof(str),"%s sent e-mail to %s #%d"
+	sprintf(str,"%s sent e-mail to %s #%d"
 		,useron.alias,username(&cfg,usernumber,tmp),usernumber);
 	logline("E+",str);
 	if(mode&WM_FILE && online==ON_REMOTE)
@@ -345,13 +346,13 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		getnodedat(i,&node,0);
 		if(node.useron==usernumber && !(node.misc&NODE_POFF)
 			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)) {
-			safe_snprintf(str,sizeof(str),text[EmailNodeMsg],cfg.node_num,useron.alias);
+			sprintf(str,text[EmailNodeMsg],cfg.node_num,useron.alias);
 			putnmsg(&cfg,i,str);
 			break; 
 		} 
 	}
 	if(i>cfg.sys_nodes) {	/* User wasn't online, so leave short msg */
-		safe_snprintf(str,sizeof(str),text[UserSentYouMail],useron.alias);
+		sprintf(str,text[UserSentYouMail],useron.alias);
 		putsmsg(&cfg,usernumber,str); 
 	}
 	return(true);
