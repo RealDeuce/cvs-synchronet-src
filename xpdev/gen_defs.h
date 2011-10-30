@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.61 2013/09/04 00:22:44 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.57 2011/10/30 00:43:26 rswindell Exp $ */
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
@@ -62,9 +62,6 @@
 
 #include <sys/types.h>
 #ifdef HAS_INTTYPES_H
-#if defined __cplusplus
-#define __STDC_FORMAT_MACROS
-#endif
 #include <inttypes.h>
 #else
 #ifdef HAS_STDINT_H
@@ -170,11 +167,6 @@ typedef unsigned long long int uint64_t;
 #define INTTYPES_H_64BIT_PREFIX         "ll"
 #endif
 
-typedef uint64_t	uintmax_t;
-#define _UINTMAX_T_DECLARED
-typedef int64_t		intmax_t;
-#define _INTMAX_T_DECLARED
-
 /* printf integer formatters: */
 
 #define PRId32	"d"
@@ -250,7 +242,6 @@ typedef int32_t         time32_t;
 
 /* Windows Types */
 
-#ifndef _WIN32
 #ifndef BYTE
 #define BYTE    uint8_t
 #endif
@@ -268,13 +259,11 @@ typedef int32_t         time32_t;
 #define TRUE    1
 #define FALSE   0
 #endif
-#ifndef HANDLE
-#define HANDLE  void*
-#endif
-#endif
-
 #ifndef INT_TO_BOOL
 #define INT_TO_BOOL(x)  ((x)?TRUE:FALSE)
+#endif
+#ifndef HANDLE
+#define HANDLE  void*
 #endif
 
 /* Custom Types */

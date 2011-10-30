@@ -2,7 +2,7 @@
 
 /* Program to delete expired files from a Synchronet file database */
 
-/* $Id: delfiles.c,v 1.8 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: delfiles.c,v 1.7 2011/10/29 22:17:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 		if(!l) {
 			close(file);
 			continue; }
-		if((ixbbuf=malloc(l))==NULL) {
+		if((ixbbuf=(char *)malloc(l))==NULL) {
 			close(file);
 			printf("\7ERR_ALLOC %s %lu\n",str,l);
 			continue; }
