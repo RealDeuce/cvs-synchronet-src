@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.148 2012/06/01 23:49:08 rswindell Exp $ */
+/* $Id: js_system.c,v 1.145 2011/10/29 03:53:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1002,7 +1002,7 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
-	jsdouble	ti;
+	int32		i=0;
 	JSString*	js_str;
 	scfg_t*		cfg;
 	jsrefcount	rc;
@@ -1013,11 +1013,11 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc<1)
-		ti=(jsdouble)time(NULL);	/* use current time */
+		i=(int32_t)time(NULL);	/* use current time */
 	else
-		JS_ValueToNumber(cx,argv[0],&ti);
+		JS_ValueToInt32(cx,argv[0],&i);
 	rc=JS_SUSPENDREQUEST(cx);
-	timestr(cfg,(time32_t)ti,str);
+	timestr(cfg,i,str);
 	JS_RESUMEREQUEST(cx, rc);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
 		return(JS_FALSE);
@@ -1387,11 +1387,6 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
-
-	if(argc<1 || JSVAL_NULL_OR_VOID(argv[0])) {
-		JS_ReportError(cx,"Missing or invalid argument");
-		return JS_FALSE;
-	}
 
 	JSVALUE_TO_STRING(cx, argv[0], alias, NULL);
 
@@ -2074,10 +2069,6 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 			return(JS_FALSE);
 
 		JS_SetPrivate(cx, newobj, cfg);	/* Store a pointer to scfg_t */
-#ifdef BUILD_JSDOCS
-		js_DescribeSyncObject(cx,newobj,"System statistics",310);
-		js_CreateArrayOfStrings(cx, newobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
-#endif
 	}
 
 	/* node_list property */
@@ -2183,6 +2174,15 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,sysobj,"Global system-related properties and methods",310);
 	js_CreateArrayOfStrings(cx, sysobj, "_property_desc_list", sys_prop_desc, JSPROP_READONLY);
+#endif
+
+#ifdef BUILD_JSDOCS
+	{
+		JSObject*	statsobj;
+
+		js_DescribeSyncObject(cx,statsobj,"System statistics",310);
+		js_CreateArrayOfStrings(cx, statsobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
+	}
 #endif
 
 	return(sysobj);

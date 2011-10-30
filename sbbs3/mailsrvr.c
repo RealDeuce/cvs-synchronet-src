@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.557 2012/06/13 09:17:27 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.552 2011/10/29 23:02:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1496,11 +1496,11 @@ static void exempt_email_addr(const char* comment
 			lprintf(LOG_ERR,"0000 !Error opening file: %s", fname);
 		else {
 			lprintf(LOG_INFO,"0000 %s: %s", comment, to);
-			fprintf(fp,"\n;%s from \"%s\""
+			fprintf(fp,"\n;%s from \"%s\" "
 				,comment, fromname);
 			if(fromext!=NULL)
-				fprintf(fp,"%s",fromext);
-			fprintf(fp," %s on %s\n%s\n"
+				fprintf(fp,"#%s ",fromext);
+			fprintf(fp,"%s on %s\n%s\n"
 				,fromaddr, timestr(&scfg,time32(NULL),tmp), to);
 			fclose(fp);
 		}
@@ -2625,7 +2625,6 @@ static void smtp_thread(void* arg)
 				fclose(rcptlst), rcptlst=NULL;
 
 				/* External Mail Processing here */
-				mailproc=NULL;
 				msg_handled=FALSE;
 				if(mailproc_count) {
 					SAFEPRINTF2(proc_err_fname,"%sSBBS_SMTP.%s.err", scfg.temp_dir, session_id);
@@ -2747,16 +2746,9 @@ static void smtp_thread(void* arg)
 					continue;
 				}
 			
-				if(!msg_handled && subnum==INVALID_SUB && iniReadSectionCount(rcptlst,NULL) < 1) {
-					lprintf(LOG_DEBUG,"%04d SMTP No recipients in recipient list file (message handled by external mail processor?)"
-						,socket);
-					sockprintf(socket,ok_rsp);
-					msg_handled=TRUE;
-				}
 				if(msg_handled) {
-					if(mailproc!=NULL)
-						lprintf(LOG_NOTICE,"%04d SMTP Message handled by external mail processor (%s, %u total)"
-							,socket, mailproc->name, ++mailproc->handled);
+					lprintf(LOG_NOTICE,"%04d SMTP Message handled by external mail processor (%s, %u total)"
+						,socket, mailproc->name, ++mailproc->handled);
 					continue;
 				}
 
@@ -3132,7 +3124,7 @@ static void smtp_thread(void* arg)
 					sender_ext[0]=0;
 					if(msg.from_ext!=NULL)
 						SAFEPRINTF(sender_ext," #%s",msg.from_ext);
-					lprintf(LOG_INFO,"%04d SMTP Created message #%ld from %s%s [%s] to %s [%s]"
+					lprintf(LOG_INFO,"%04d SMTP Created message #%ld from %s%s %s to %s [%s]"
 						,socket, newmsg.hdr.number, sender, sender_ext, smb_netaddrstr(&msg.from_net,tmp), rcpt_name, rcpt_addr);
 					if(relay_user.number!=0)
 						user_sent_email(&scfg, &relay_user, 1, usernum==1);
@@ -3817,7 +3809,8 @@ static void smtp_thread(void* arg)
 
 				if(findstr_in_list(p, mailproc_list[i].to)) {
 					mailproc_to_match[i]=TRUE;
-					break;
+					if(!mailproc_list[i].passthru)
+						break;
 				}
 			}
 			mailproc_match=i;
@@ -4885,7 +4878,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.557 $", "%*s %s", revision);
+	sscanf("$Revision: 1.552 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
