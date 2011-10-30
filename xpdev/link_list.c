@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.51 2011/09/08 06:26:02 rswindell Exp $ */
+/* $Id: link_list.c,v 1.53 2011/09/10 01:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,7 +239,7 @@ BOOL DLLCALL listLock(link_list_t* list)
 	if(list==NULL)
 		return(FALSE);
 #if defined(LINK_LIST_THREADSAFE)
-	if((ret=pthread_mutex_lock(&list->mutex))==0)
+	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_lock(&list->mutex))==0)
 #endif
 		list->locks++;
 	return(ret);
@@ -259,7 +259,7 @@ BOOL DLLCALL listUnlock(link_list_t* list)
 	if(list==NULL)
 		return(FALSE);
 #if defined(LINK_LIST_THREADSAFE)
-	if((ret=pthread_mutex_unlock(&list->mutex))==0)
+	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_unlock(&list->mutex))==0)
 #endif
 		list->locks--;
 	return(ret);
@@ -553,7 +553,7 @@ list_node_t* DLLCALL listAddNode(link_list_t* list, void* data, list_node_tag_t 
 {
 	list_node_t* node;
 
-	if(list==NULL || data==NULL)
+	if(list==NULL)
 		return(NULL);
 
 	if((node=(list_node_t*)malloc(sizeof(list_node_t)))==NULL)
