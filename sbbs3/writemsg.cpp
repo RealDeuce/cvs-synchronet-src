@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.94 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.95 2011/11/02 07:30:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -549,8 +549,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 			while(!feof(sig)) {
 				if(!fgets(str,sizeof(str),sig))
 					break;
-				fputs(str,stream);
-				l+=strlen(str);	/* byte counter */
+				l+=fprintf(stream,"%s\r\n",str);
 				lines++;		/* line counter */
 			}
 			fclose(sig);
