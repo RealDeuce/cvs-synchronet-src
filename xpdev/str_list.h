@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.23 2013/10/05 19:57:35 deuce Exp $ */
+/* $Id: str_list.h,v 1.22 2009/08/14 10:02:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,12 +124,6 @@ char*		strListCopyBlock(char* block);
 char*		strListAppendBlock(char* block, str_list_t);
 size_t		strListBlockLength(char* block);
 void		strListFreeBlock(char*);
-
-/* Duplicates a list */
-str_list_t	strListDup(str_list_t list);
-
-/* Compares two lists */
-int			strListCmp(str_list_t list1, str_list_t list2);
 
 /************/
 /* File I/O */
