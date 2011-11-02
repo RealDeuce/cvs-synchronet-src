@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.558 2011/11/03 21:22:06 deuce Exp $ */
+/* $Id: websrvr.c,v 1.557 2011/10/28 08:57:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4429,12 +4429,10 @@ js_OperationCallback(JSContext *cx)
 	JSBool	ret;
 	http_session_t* session;
 
-	JS_SetOperationCallback(cx, NULL);
-	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL) {
-		JS_SetOperationCallback(cx, js_OperationCallback);
+	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
-	}
 
+	JS_SetOperationCallback(cx, NULL);
     ret=js_CommonOperationCallback(cx,&session->js_callback);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 
@@ -5214,7 +5212,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.558 $", "%*s %s", revision);
+	sscanf("$Revision: 1.557 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
