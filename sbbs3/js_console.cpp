@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.101 2012/06/17 19:16:50 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.100 2011/10/29 03:53:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,10 +271,37 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			break;
 		case CON_PROP_CTRLKEY_PASSTHRU:
 			if(JSVAL_IS_STRING(*vp)) {
+				/* op can be 0 for replace, + for add, or - for remove */
+				int op=0;
 				char *s;
+				char ctrl;
 
+				if((str=JS_ValueToString(cx, *vp))==NULL)
+					break;
+				val=sbbs->cfg.ctrlkey_passthru;
 				JSSTRING_TO_STRING(cx, str, s, NULL);
-				val=str_to_bits(sbbs->cfg.ctrlkey_passthru, s);
+				for(; *s; s++) {
+					if(*s=='+')
+						op=1;
+					else if(*s=='-')
+						op=2;
+					else {
+						if(!op) {
+							val=0;
+							op=1;
+						}
+						ctrl=toupper(*s);
+						ctrl&=0x1f;			/* Ensure it fits */
+						switch(op) {
+							case 1:		/* Add to the set */
+								val |= 1<<ctrl;
+								break;
+							case 2:		/* Remove from the set */
+								val &= ~(1<<ctrl);
+								break;
+						}
+					}
+				}
 			}
 			sbbs->cfg.ctrlkey_passthru=val;
 			break;
