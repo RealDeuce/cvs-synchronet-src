@@ -2,13 +2,13 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.38 2010/03/06 00:13:04 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.41 2011/11/02 23:30:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,7 +80,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 		return(0); 
 	}
 	if((i=smb_getmsghdr(&smb,msg))!=SMB_SUCCESS) {
-		sprintf(str,"(%06lX) #%lu/%lu %s",msg->idx.offset,msg->idx.number
+		sprintf(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
 			,number,smb.file);
 		smb_unlockmsghdr(&smb,msg);
 		errormsg(WHERE,ERR_READ,str,i,smb.last_error);
@@ -144,13 +144,13 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	if(msg->to_ext)
 		bprintf(text[MsgToExt],msg->to_ext);
 	if(msg->to_net.addr)
-		bprintf(text[MsgToNet],smb_netaddr(&msg->to_net));
+		bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 	if(!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP) {
 		bprintf(text[MsgFrom],msg->from);
 		if(msg->from_ext)
 			bprintf(text[MsgFromExt],msg->from_ext);
 		if(msg->from_net.addr && !strchr(msg->from,'@'))
-			bprintf(text[MsgFromNet],smb_netaddr(&msg->from_net)); 
+			bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str)); 
 	}
 	bprintf(text[MsgDate]
 		,timestr(msg->hdr.when_written.time)
@@ -188,7 +188,7 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 
 	if((text=smb_getmsgtxt(&smb,msg,GETMSGTXT_ALL))!=NULL) {
 		truncsp_lines(text);
-		putmsg(text, mode);
+		putmsg(text, mode|P_WORDWRAP);
 		smb_freemsgtxt(text);
 	}
 }
@@ -199,6 +199,7 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 {
 	char	*buf;
+	char	tmp[128];
 	int 	i;
 	FILE	*out;
 
@@ -213,12 +214,12 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 		if(msg->to_ext)
 			fprintf(out," #%s",msg->to_ext);
 		if(msg->to_net.addr)
-			fprintf(out," (%s)",smb_netaddr(&msg->to_net));
+			fprintf(out," (%s)",smb_netaddrstr(&msg->to_net,tmp));
 		fprintf(out,"\r\nFrom : %s",msg->from);
 		if(msg->from_ext && !(msg->hdr.attr&MSG_ANONYMOUS))
 			fprintf(out," #%s",msg->from_ext);
 		if(msg->from_net.addr)
-			fprintf(out," (%s)",smb_netaddr(&msg->from_net));
+			fprintf(out," (%s)",smb_netaddrstr(&msg->from_net,tmp));
 		fprintf(out,"\r\nDate : %.24s %s"
 			,timestr(msg->hdr.when_written.time)
 			,smb_zonestr(msg->hdr.when_written.zone,NULL));
