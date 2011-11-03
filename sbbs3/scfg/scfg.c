@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.74 2012/06/14 22:39:25 deuce Exp $ */
+/* $Id: scfg.c,v 1.73 2011/06/30 03:07:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,11 +217,7 @@ int main(int argc, char **argv)
             SAFECOPY(cfg.ctrl_dir,argv[i]);
     }
 
-#ifdef _WIN32
 	FULLPATH(exepath,argv[0],sizeof(exepath));	/* Must do this before chdir */
-#else
-	exepath[0]=0;
-#endif
 
 	if(chdir(cfg.ctrl_dir)!=0) {
 		printf("!ERROR %d changing current directory to: %s\n"
