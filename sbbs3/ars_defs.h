@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement Strings (ARS) constants */
 
-/* $Id: ars_defs.h,v 1.10 2009/03/20 08:51:08 rswindell Exp $ */
+/* $Id: ars_defs.h,v 1.11 2011/10/24 05:48:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,7 @@
 #ifdef __cplusplus
 extern "C"
 #endif
-uchar *arstr(ushort* count, char* str, scfg_t* cfg);
+uchar *arstr(ushort* count, const char* str, scfg_t* cfg);
 
 #define AR_INVALID	-1				/* Unspecified keyword */
 
