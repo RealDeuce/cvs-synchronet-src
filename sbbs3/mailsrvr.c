@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.552 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.553 2011/11/04 07:20:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2746,7 +2746,7 @@ static void smtp_thread(void* arg)
 					continue;
 				}
 			
-				if(msg_handled) {
+				if(msg_handled || iniReadSectionCount(rcptlst,NULL) < 1) {
 					lprintf(LOG_NOTICE,"%04d SMTP Message handled by external mail processor (%s, %u total)"
 						,socket, mailproc->name, ++mailproc->handled);
 					continue;
@@ -4878,7 +4878,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.552 $", "%*s %s", revision);
+	sscanf("$Revision: 1.553 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
