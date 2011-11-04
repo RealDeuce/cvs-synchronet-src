@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.309 2011/11/04 01:46:10 deuce Exp $ */
+/* $Id: js_global.c,v 1.310 2011/11/04 01:49:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -449,9 +449,16 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 
 		for(i=argn; i<argc; i++) {
 			jsval *copy;
-			brc=JS_SUSPENDREQUEST(bg->cx);
-			copy=js_CopyValue(cx,&rc,argv[i],exec_cx,&brc,&val);
-			JS_RESUMEREQUEST(bg->cx, brc);
+			if(background) {
+				brc=JS_SUSPENDREQUEST(bg->cx);
+				copy=js_CopyValue(cx,&rc,argv[i],exec_cx,&brc,&val);
+				JS_RESUMEREQUEST(bg->cx, brc);
+			}
+			else {
+				rc=JS_SUSPENDREQUEST(cx);
+				copy=js_CopyValue(cx,&rc,argv[i],exec_cx,&rc,&val);
+				JS_RESUMEREQUEST(cx, rc);
+			}
 			JS_SetElement(exec_cx, js_argv, i-argn, copy);
 		}
 
