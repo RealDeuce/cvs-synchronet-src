@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.248 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.249 2011/11/04 05:58:00 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,10 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#ifdef USE_LINUX_CAPS
+#define _GNU_SOURCE
+#endif
+
 /* ANSI headers */
 #include <stdio.h>
 #include <string.h>
@@ -60,6 +64,7 @@
 
 #ifdef USE_LINUX_CAPS
 #include <sys/capability.h>
+#include <sys/prctl.h>
 #endif
 
 #include <sys/types.h>
@@ -444,7 +449,6 @@ void list_caps(void)
 
 static int linux_keepcaps(void)
 {
-	char strbuf[100];
 	/*
 	 * Ask the kernel to allow us to keep our capabilities after we
 	 * setuid().
