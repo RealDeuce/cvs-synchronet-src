@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.50 2012/06/30 13:31:30 deuce Exp $ */
+/* $Id: str_util.c,v 1.47 2011/10/24 17:00:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -699,37 +699,6 @@ char* replace_keyed_values(const char* src
 	return(buf);
 }
 
-uint32_t DLLCALL str_to_bits(uint32_t val, const char *str)
-{
-	/* op can be 0 for replace, + for add, or - for remove */
-	int op=0;
-	const char *s;
-	char ctrl;
-
-	for(s=str; *s; s++) {
-		if(*s=='+')
-			op=1;
-		else if(*s=='-')
-			op=2;
-		else {
-			if(!op) {
-				val=0;
-				op=1;
-			}
-			ctrl=toupper(*s);
-			ctrl&=0x1f;			/* Ensure it fits */
-			switch(op) {
-				case 1:		/* Add to the set */
-					val |= 1<<ctrl;
-					break;
-				case 2:		/* Remove from the set */
-					val &= ~(1<<ctrl);
-					break;
-			}
-		}
-	}
-	return val;
-}
 
 #if 0	/* replace_*_values test */
 
