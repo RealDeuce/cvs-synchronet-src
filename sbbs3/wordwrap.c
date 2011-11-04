@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.12 2011/11/04 09:20:03 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.13 2011/11/04 09:21:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -277,9 +277,10 @@ char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags)
 					linebuf[l++]=inbuf[i];
 					break;
 				}
-				if(0) {	// This is a very ugly thing... figure this out before editing!!!
+				if(0) 	// This is a very ugly thing... figure this out before editing!!!
+						// See that brace?  It's IMPORTANT!
+			case '\n': {
 				BOOL	ignore=FALSE;
-			case '\n':
 				if(!lf_break) {
 					if(i==0)
 						break;
