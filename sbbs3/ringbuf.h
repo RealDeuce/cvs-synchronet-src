@@ -2,13 +2,13 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.h,v 1.12 2006/05/09 02:55:38 rswindell Exp $ */
+/* $Id: ringbuf.h,v 1.11 2005/01/15 04:46:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,8 +43,6 @@
 #ifndef _RINGBUF_H_
 #define _RINGBUF_H_
 
-#include "gen_defs.h"
-
 #ifdef RINGBUF_SEM
 	#include "semwrap.h"	/* sem_t */
 #endif
@@ -53,6 +51,14 @@
 #endif
 #ifdef RINGBUF_MUTEX
 	#include "threadwrap.h"	/* pthread_mutex_t */
+#endif
+
+#ifndef DWORD
+#define DWORD unsigned long
+#endif
+
+#ifndef BYTE
+#define BYTE unsigned char
 #endif
 
 #ifndef NULL

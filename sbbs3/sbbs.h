@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.390 2012/06/19 08:18:02 deuce Exp $ */
+/* $Id: sbbs.h,v 1.386 2011/11/02 09:07:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,7 +226,6 @@ public:
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
 	bool	input_thread_mutex_locked;	// by someone other than the input_thread
-	pthread_mutex_t	ssh_mutex;
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
@@ -922,7 +921,6 @@ extern "C" {
 	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
 	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
 	DLLEXPORT char *	DLLCALL rot13(char* str);
-	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
@@ -1047,15 +1045,6 @@ extern "C" {
 										,js_server_props_t* props);
 
 	/* js_global.c */
-	typedef struct {
-		scfg_t*				cfg;
-		jsSyncMethodSpec*	methods;
-		js_startup_t*		startup;
-		unsigned			bg_count;
-		sem_t				bg_sem;
-		str_list_t			exit_func;
-	} global_private_t;
-	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, uintN argc, uintN min);
 	DLLEXPORT BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*, JSObject**);
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
