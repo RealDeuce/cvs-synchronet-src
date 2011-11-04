@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.43 2011/11/06 03:54:14 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.42 2011/11/04 10:23:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,9 +187,7 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 	show_msghdr(msg);
 
 	if((text=smb_getmsgtxt(&smb,msg,GETMSGTXT_ALL))!=NULL) {
-		if(!(console&CON_RAW_IN))
-			mode|=P_WORDWRAP;
-		putmsg(text, mode);
+		putmsg(text, mode|P_WORDWRAP);
 		smb_freemsgtxt(text);
 	}
 }
