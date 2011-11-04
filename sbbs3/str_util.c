@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.46 2010/06/07 07:01:21 rswindell Exp $ */
+/* $Id: str_util.c,v 1.47 2011/10/24 17:00:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -553,7 +553,7 @@ char DLLCALL exascii_to_ascii_char(uchar ch)
 /****************************************************************************/
 char* DLLCALL ascii_str(uchar* str)
 {
-	char*	p=str;
+	uchar*	p=str;
 
 	while(*p) {
 		if((*p)&0x80)
