@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.66 2011/08/25 07:56:25 rswindell Exp $ */
+/* $Id: str.cpp,v 1.68 2011/10/23 01:48:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -440,7 +440,7 @@ void sbbs_t::create_sif_dat(char *siffile, char *datfile)
 		errormsg(WHERE,ERR_ALLOC,siffile,SIF_MAXBUF);
 		return; 
 	}
-	memset(buf,SIF_MAXBUF,0);	 /* initialize to null */
+	memset(buf,0,SIF_MAXBUF);	 /* initialize to null */
 	sif(siffile,buf,SIF_MAXBUF);
 	if((file=nopen(datfile,O_WRONLY|O_TRUNC|O_CREAT))==-1) {
 		free(buf);
@@ -566,7 +566,7 @@ bool sbbs_t::inputnstime32(time32_t *dt)
 	time_t	tmptime=*dt;
 
 	retval=inputnstime(&tmptime);
-	*dt=tmptime;
+	*dt=(time32_t)tmptime;
 	return(retval);
 }
 
@@ -838,7 +838,7 @@ bool sbbs_t::trashcan(const char *insearchof, const char *name)
 
 char* sbbs_t::timestr(time_t intime)
 {
-	return(::timestr(&cfg,intime,timestr_output));
+	return(::timestr(&cfg,(time32_t)intime,timestr_output));
 }
 
 void sbbs_t::sys_info()
@@ -889,7 +889,7 @@ void sbbs_t::user_info()
 
 	bprintf(text[UserStats],useron.alias,useron.number);
 
-	if(localtime_r(&useron.laston,&tm)!=NULL)
+	if(localtime32(&useron.laston,&tm)!=NULL)
 		bprintf(text[UserDates]
 			,unixtodstr(&cfg,useron.firston,str)
 			,unixtodstr(&cfg,useron.expire,tmp)
@@ -1132,7 +1132,7 @@ void sbbs_t::time_bank(void)
 		if(s<0) s=0;
 		if(s>cfg.level_timepercall[useron.level])
 			s=cfg.level_timepercall[useron.level];
-		s-=(now-starttime)/60;
+		s-=(int)(now-starttime)/60;
 		if(s<0) s=0;
 		bprintf(text[FreeMinLeft],s);
 		bprintf(text[UserMinutes],ultoac(useron.min,tmp));
