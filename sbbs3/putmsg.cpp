@@ -2,13 +2,13 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.26 2011/11/04 01:19:56 deuce Exp $ */
+/* $Id: putmsg.cpp,v 1.27 2011/11/04 09:55:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -67,7 +67,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 		putcom("\x02\x02");
 	if(mode&P_WORDWRAP) {
 		char *wrapped;
-		if((wrapped=::wordwrap((char*)buf, cols-4, cols-1, WORDWRAP_FLAG_QUOTES)) == NULL)
+		if((wrapped=::wordwrap((char*)buf, cols-1, 79, WORDWRAP_FLAG_QUOTES)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else
 			str=wrapped;
