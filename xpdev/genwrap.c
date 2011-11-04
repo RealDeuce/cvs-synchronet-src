@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.90 2012/04/30 03:49:10 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.86 2011/10/24 21:48:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -177,14 +177,15 @@ char* DLLCALL c_escape_char(char ch)
 char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_only)
 {
 	const char*	s;
-	char*		d;
-	const char*	e;
+	char*	d;
+	char*	e;
 
-	for(s=src,d=dst;*s && (size_t)(d-dst)<maxlen;s++) {
+	for(s=src,d=dst;*s && (size_t)(d-dst)<maxlen;s++,d++) {
 		if((!ctrl_only || (uchar)*s < ' ') && (e=c_escape_char(*s))!=NULL) {
-			strncpy(d,e,maxlen-(d-dst));
-			d+=strlen(d);
-		} else *d++=*s;
+			*d=0;
+			strncat(dst,e,maxlen-(d-dst));
+			d++;
+		} else *d=*s;
 	}
 	*d=0;
 
@@ -335,17 +336,13 @@ long DLLCALL xp_random(int n)
 			return(curr % n);
 	}
 #else
-	double f=0;
-	int ret;
+	float f=0;
 
 	if(n<2)
 		return(0);
-	do {
-		f=(double)rand()/(double)(RAND_MAX+1);
-		ret=(int)(n*f);
-	} while(ret==n);
+	f=(float)rand()/(float)RAND_MAX;
 
-	return(ret);
+	return((int)(n*f));
 #endif
 }
 
@@ -489,8 +486,7 @@ char* DLLCALL truncsp(char* str)
 }
 
 /****************************************************************************/
-/* Truncates common white-space chars off end of \n-terminated lines in		*/
-/* 'dst' and retains original line break format	(e.g. \r\n or \n)			*/
+/* Truncates all white-space chars off end of \n-terminated lines in 'str'	*/
 /****************************************************************************/
 char* DLLCALL truncsp_lines(char* dst)
 {
@@ -502,13 +498,10 @@ char* DLLCALL truncsp_lines(char* dst)
 		return(dst);
 
 	for(sp=src, dp=dst; *sp!=0; sp++) {
-		if(*sp=='\n') {
+		if(*sp=='\n')
 			while(dp!=dst
-				&& (*(dp-1)==' ' || *(dp-1)=='\t' || *(dp-1)=='\r'))
+				&& (*(dp-1)==' ' || *(dp-1)=='\t' || *(dp-1)=='\r') && *(dp-1)!='\n')
 					dp--;
-			if(sp!=src && *(sp-1)=='\r')
-				*(dp++)='\r';
-		}
 		*(dp++)=*sp;
 	}
 	*dp=0;
