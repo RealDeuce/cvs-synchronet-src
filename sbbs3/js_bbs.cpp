@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.133 2011/11/04 23:58:57 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.134 2011/11/05 15:27:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2334,7 +2334,7 @@ js_email(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc < 1)
 		return JS_FALSE;
 
-	if(SVAL_IS_NUMBER(argv[0])) {
+	if(JSVAL_IS_NUMBER(argv[0])) {
 		if(!JS_ValueToInt32(cx,argv[0],&usernumber))
 			return JS_FALSE;
 	}
