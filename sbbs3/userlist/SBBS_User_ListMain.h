@@ -16,10 +16,10 @@
 #include <wx/stattext.h>
 #include <wx/menu.h>
 #include <wx/textctrl.h>
+#include <wx/panel.h>
 #include <wx/choice.h>
 #include <wx/button.h>
 #include <wx/frame.h>
-#include <wx/statusbr.h>
 //*)
 
 #include "SBBS_User_ListApp.h"
@@ -33,37 +33,59 @@ class SBBS_User_ListFrame: public wxFrame
 
     private:
 
+        void fillUserList(void);
+		void CopyItems(int state);
+		void applyARS(void);
+		int	sort;
+
         //(*Handlers(SBBS_User_ListFrame)
         void OnQuit(wxCommandEvent& event);
         void OnAbout(wxCommandEvent& event);
+        void OnRefreshButtonClick(wxCommandEvent& event);
+        void OnARSFilterText(wxCommandEvent& event);
+        void OnClearButtonClick(wxCommandEvent& event);
+        void OnUserListItemSelect(wxListEvent& event);
+        void OnQVChoiceSelect(wxCommandEvent& event);
+        void OnUserListItemRClick(wxListEvent& event);
+        void CopyMenuItemSelected(wxCommandEvent& event);
+        void CopyAllMenuItemSelected(wxCommandEvent& event);
+        void OnUserListColumnClick(wxListEvent& event);
         //*)
 
         //(*Identifiers(SBBS_User_ListFrame)
         static const long ID_STATICTEXT1;
-        static const long ID_TEXTCTRL1;
+        static const long ID_ARSTEXTCTRL;
         static const long ID_CLEARBUTTON;
         static const long ID_USERLISTCTRL;
         static const long ID_STATICTEXT2;
-        static const long ID_CHOICE1;
+        static const long ID_QVCHOICE;
         static const long ID_REFRESHBUTTON;
         static const long ID_EDITBUTTON;
-        static const long idMenuQuit;
-        static const long idMenuAbout;
-        static const long ID_STATUSBAR1;
+        static const long ID_PANEL1;
+        static const long ID_EDITUSER;
+        static const long ID_COPY;
+        static const long ID_COPYALL;
+        static const long ID_REFRESH;
         //*)
 
         //(*Declarations(SBBS_User_ListFrame)
         wxButton* RefreshButton;
+        wxMenuItem* MenuItem5;
         wxStaticText* StaticText2;
+        wxMenuItem* MenuItem4;
+        wxPanel* Panel1;
         wxStaticText* StaticText1;
+        wxMenu ContextMenu;
         wxListCtrl* UserList;
-        wxStatusBar* StatusBar1;
+        wxMenuItem* MenuItem3;
+        wxMenuItem* MenuItem6;
         wxButton* ClearButton;
-        wxTextCtrl* TextCtrl1;
+        wxChoice* QVChoice;
         wxButton* EditButton;
-        wxChoice* Choice1;
+        wxTextCtrl* ARSFilter;
         //*)
 
+        unsigned char *ars;
         DECLARE_EVENT_TABLE()
 };
 
