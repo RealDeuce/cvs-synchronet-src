@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.19 2011/09/14 03:09:44 rswindell Exp $ */
+/* $Id: login.cpp,v 1.21 2011/09/21 03:16:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,11 +79,12 @@ int sbbs_t::login(char *username, char *pw)
 
 	if(!useron.number) {
 		if(cfg.node_misc&NM_LOGON_P) {
-			strcpy(useron.alias,str);
+			SAFECOPY(useron.alias,str);
 			bputs(pw);
 			console|=CON_R_ECHOX;
 			getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
+			badlogin(useron.alias, str);
 			bputs(text[InvalidLogon]);	/* why does this always fail? */
 			if(cfg.sys_misc&SM_ECHO_PW) 
 				sprintf(tmp,"(%04u)  %-25s  FAILED Password attempt: '%s'"
@@ -148,7 +149,7 @@ void sbbs_t::badlogin(char* user, char* passwd)
 	SAFEPRINTF(reason,"%s LOGIN", connection);
 	count=loginFailure(startup->login_attempt_list, &client_addr, connection, user, passwd);
 	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold)
-		hacklog(&cfg, reason, user, passwd, client_name, &client_addr);
+		::hacklog(&cfg, reason, user, passwd, client_name, &client_addr);
 	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
 		filter_ip(&cfg, connection, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
 			,client_name, inet_ntoa(client_addr.sin_addr), user, /* fname: */NULL);
