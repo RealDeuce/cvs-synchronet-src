@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.136 2012/02/24 01:46:45 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.134 2011/10/29 23:02:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -93,7 +93,6 @@ BOOL	dszlog_short=FALSE;				/* Log Micros~1 short filename		*/
 BOOL	dszlog_quotes=FALSE;			/* Quote filenames in DSZLOG		*/
 int		log_level=LOG_INFO;
 BOOL	use_syslog=FALSE;
-BOOL	lc_filenames=FALSE;
 int64_t	max_file_size=MAX_FILE_SIZE;
 
 xmodem_t xm;
@@ -1225,10 +1224,6 @@ static int receive_files(char** fname_list, int fnames)
 			return(1); 
 		}
 
-		if(lc_filenames) {
-			strlwr(str);
-		}
-
 		if((fp=fnopen(NULL,str,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY))==NULL
 			&& (fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
@@ -1390,7 +1385,8 @@ static int receive_files(char** fname_list, int fnames)
 
 void bail(int code)
 {
-	fcloseall();
+	if(logfp!=NULL)
+		fclose(logfp);
 	if(pause_on_exit || (pause_on_abend && code!=0)) {
 		printf("Hit enter to continue...");
 		getchar();
@@ -1418,7 +1414,6 @@ static const char* usage=
 	"         -8  set maximum Zmodem block size to 8K (ZedZap)\n"
 	"         -m# set maximum receive file size to # bytes (0=unlimited, default=%u)\n"
 	"         -!  to pause after abnormal exit (error)\n"
-	"         -l  lowercase received filenames\n"
 #ifdef __unix__
 	"         -telnet to enable Telnet mode (the default except in stdio mode)\n"
 #else
@@ -1517,7 +1512,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.136 $", "%*s %s", revision);
+	sscanf("$Revision: 1.134 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1754,9 +1749,6 @@ int main(int argc, char **argv)
 						break;
 					case 'M':	/* MaxFileSize */
 						max_file_size=strtoul(arg++,NULL,0);	/* TODO: use strtoull() ? */
-						break;
-					case 'L':	/* Lowercase received filenames */
-						lc_filenames=TRUE;
 						break;
 				}
 			}
