@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.571 2011/10/21 11:20:14 rswindell Exp $ */
+/* $Id: main.cpp,v 1.578 2011/11/06 23:02:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -655,8 +655,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
-		JS_ValueToInt32(cx,argv[i++],&level);
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
+		if(!JS_ValueToInt32(cx,argv[i++],&level))
+			return JS_FALSE;
+	}
 
     for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
@@ -695,8 +697,10 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToInt32(cx,argv[0],&len);
+	if(argc) {
+		if(!JS_ValueToInt32(cx,argv[0],&len))
+			return JS_FALSE;
+	}
 
 	if((buf=(uchar*)malloc(len))==NULL)
 		return(JS_TRUE);
@@ -726,8 +730,10 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JS_ValueToInt32(cx,argv[0],&len);
+	if(argc) {
+		if(!JS_ValueToInt32(cx,argv[0],&len))
+			return JS_FALSE;
+	}
 
 	if((buf=(char*)malloc(len))==NULL)
 		return(JS_TRUE);
@@ -1113,14 +1119,15 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		return(false);
 	JS_BEGINREQUEST(js_cx);
 	
-	memset(&js_branch,0,sizeof(js_branch));
-	js_branch.limit = startup->js.branch_limit;
-	js_branch.gc_interval = startup->js.gc_interval;
-	js_branch.yield_interval = startup->js.yield_interval;
-	js_branch.terminated = &terminated;
-	js_branch.auto_terminate = TRUE;
+	memset(&js_callback,0,sizeof(js_callback));
+	js_callback.limit = startup->js.time_limit;
+	js_callback.gc_interval = startup->js.gc_interval;
+	js_callback.yield_interval = startup->js.yield_interval;
+	js_callback.terminated = &terminated;
+	js_callback.auto_terminate = TRUE;
 
 	bool success=false;
+	bool rooted=false;
 
 	do {
 
@@ -1129,14 +1136,16 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		JS_SetContextPrivate(js_cx, this);	/* Store a pointer to sbbs_t instance */
 
 		/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
-		if((js_glob=js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
+		if(!js_CreateCommonObjects(js_cx, &scfg, &cfg, js_global_functions
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
-					,&js_branch									/* js */
+					,&js_callback								/* js */
 					,&startup->js
 					,&client, client_socket						/* client */
 					,&js_server_props							/* server */
-			))==NULL)
+					,&js_glob
+			))
 			break;
+		rooted=true;
 
 		/* BBS Object */
 		if(js_CreateBbsObject(js_cx, js_glob)==NULL)
@@ -1146,30 +1155,20 @@ bool sbbs_t::js_init(ulong* stack_frame)
 		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
 			break;
 
-		if(startup->js.thread_stack) {
-			ulong stack_limit;
-
-#if JS_STACK_GROWTH_DIRECTION > 0
-			stack_limit=((ulong)stack_frame)+startup->js.thread_stack;
-#else
-			stack_limit=((ulong)stack_frame)-startup->js.thread_stack;
-#endif
-			JS_SetThreadStackLimit(js_cx, stack_limit);
-
-			lprintf(LOG_DEBUG,"%s JavaScript: Thread stack limit: %lu bytes"
-				,node, startup->js.thread_stack);
-		}
-
 		success=true;
 
 	} while(0);
 
-	JS_ENDREQUEST(js_cx);
 	if(!success) {
+		if(rooted)
+			JS_RemoveObjectRoot(js_cx, &js_glob);
+		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		js_cx=NULL;
 		return(false);
 	}
+	else
+		JS_ENDREQUEST(js_cx);
 
 	return(true);
 }
@@ -1179,6 +1178,9 @@ void sbbs_t::js_cleanup(const char* node)
 	/* Free Context */
 	if(js_cx!=NULL) {	
 		lprintf(LOG_DEBUG,"%s JavaScript: Destroying context",node);
+		JS_BEGINREQUEST(js_cx);
+		JS_RemoveObjectRoot(js_cx, &js_glob);
+		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		js_cx=NULL;
 	}
@@ -2019,7 +2021,7 @@ void output_thread(void* arg)
 	}
 #endif
 
-	while(sbbs->client_socket!=INVALID_SOCKET && !terminate_server) {
+	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET && !terminate_server) {
 		/*
 		 * I'd like to check the linear buffer against the highwater
 		 * at this point, but it would get too clumsy imho - Deuce
@@ -2099,7 +2101,6 @@ void output_thread(void* arg)
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
-				i=-1;
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
 			}
@@ -2108,7 +2109,7 @@ void output_thread(void* arg)
 		}
 		else
 #endif
-		i=sendsocket(sbbs->client_socket, (char*)buf+bufbot, buftop-bufbot);
+			i=sendsocket(sbbs->client_socket, (char*)buf+bufbot, buftop-bufbot);
 		if(i==SOCKET_ERROR) {
         	if(ERROR_VALUE == ENOTSOCK)
                 lprintf(LOG_NOTICE,"%s client socket closed on send", node);
@@ -3251,8 +3252,8 @@ bool sbbs_t::init()
 			return(false);
 		}
 		for(i=0;i<cfg.max_batup;i++) {
-			if((batup_desc[i]=(char *)malloc(59))==NULL) {
-				errormsg(WHERE, ERR_ALLOC, "batup_desc[x]", 59);
+			if((batup_desc[i]=(char *)malloc(LEN_FDESC+1))==NULL) {
+				errormsg(WHERE, ERR_ALLOC, "batup_desc[x]", LEN_FDESC+1);
 				return(false);
 			}
 			if((batup_name[i]=(char *)malloc(13))==NULL) {
@@ -4082,15 +4083,18 @@ void sbbs_t::daily_maint(void)
 	uint			i;
 	uint			usernum;
 	uint			lastusernum;
-	node_t			node;
 	user_t			user;
 
 	now=time(NULL);
 
-	sbbs->getnodedat(sbbs->cfg.node_num,&node,1);
-	node.status=NODE_EVENT_RUNNING;
-	sbbs->putnodedat(sbbs->cfg.node_num,&node);
-
+	if(sbbs->cfg.node_num) {
+		if((i=sbbs->getnodedat(sbbs->cfg.node_num,&sbbs->thisnode,true)) != 0)
+			sbbs->errormsg(WHERE,ERR_LOCK,"node file",i);
+		else {
+			sbbs->thisnode.status=NODE_EVENT_RUNNING;
+			sbbs->putnodedat(sbbs->cfg.node_num,&sbbs->thisnode);
+		}
+	}
 	sbbs->logentry("!:","Ran system daily maintenance");
 
 	if(sbbs->cfg.user_backup_level) {
@@ -4753,7 +4757,6 @@ NO_SSH:
 
 	sbbs = new sbbs_t(0, server_addr
 		,"Terminal Server", telnet_socket, &scfg, text, NULL);
-    sbbs->online = 0;
 	if(sbbs->init()==false) {
 		lputs(LOG_CRIT,"!BBS initialization failed");
 		cleanup(1);
@@ -4764,7 +4767,6 @@ NO_SSH:
 	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
 		events = new sbbs_t(0, server_addr
 			,"BBS Events", INVALID_SOCKET, &scfg, text, NULL);
-		events->online = 0;
 		if(events->init()==false) {
 			lputs(LOG_CRIT,"!Events initialization failed");
 			cleanup(1);
@@ -5423,7 +5425,7 @@ NO_PASSTHRU:
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
-			while(RingBufFull(&sbbs->outbuf))
+			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
 			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 			sbbs->ssh_mode=false;
