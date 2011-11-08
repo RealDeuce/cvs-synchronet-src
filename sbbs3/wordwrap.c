@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.14 2011/11/08 02:48:16 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.15 2011/11/08 02:53:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,6 +231,9 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 		old_prefix_bytes=prefix_bytes;
 	}
 	for(; inbuf[i]; i++) {
+		if(oldlen == 0)
+			icol=-256;
+
 		if(l>=len*2+2) {
 			l-=4;
 			linebuf[l]=0;
