@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.103 2013/05/07 08:49:57 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.98 2011/11/06 03:52:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,7 +91,7 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 	if((buf=smb_getmsgtxt(&smb,msg,tails)) != NULL) {
 		strip_invalid_attr(buf);
 		if(useron.xedit && (cfg.xedit[useron.xedit-1]->misc&QUOTEWRAP))
-			wrapped=::wordwrap(buf, cols-4, cols-1, /* handle_quotes: */TRUE);
+			wrapped=::wordwrap(buf, cols-4, cols-1, WORDWRAP_FLAG_QUOTES);
 		if(wrapped!=NULL) {
 			fputs(wrapped,fp);
 			free(wrapped);
@@ -133,7 +133,7 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 				break;
 			continue;
 		}
-		if(!(mode&(WM_EMAIL|WM_NETMAIL|WM_EDIT))
+		if(!(mode&(WM_EMAIL|WM_NETMAIL))
 			&& (!l || buf[l-1]==LF)
 			&& buf[l]=='-' && buf[l+1]=='-' && buf[l+2]=='-'
 			&& (buf[l+3]==' ' || buf[l+3]==TAB || buf[l+3]==CR))
@@ -188,7 +188,7 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 /* message and 'title' is the title (70chars max) for the message.          */
 /* 'dest' contains a text description of where the message is going.        */
 /****************************************************************************/
-bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode, uint subnum
+bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode, int subnum
 	,const char *dest, char** editor)
 {
 	char	str[256],quote[128],c,*buf,*p,*tp
@@ -408,8 +408,6 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 		free(buf);
 		return(false); 
 	}
-
-	smb.subnum = subnum;	/* Allow JS msgeditors to use bbs.smb_sub* */
 
 	if(console&CON_RAW_IN) {
 		bprintf(text[EnterMsgNowRaw]
@@ -1027,7 +1025,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 		rioctl(IOCM|PAUSE|ABORT);
 		if(external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir)!=0)
 			return false;
-		l=process_edited_file(msgtmp, path, /* mode: */WM_EDIT, &lines,maxlines);
+		l=process_edited_file(msgtmp, path, /* mode: */0, &lines,maxlines);
 		if(l>0) {
 			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 				,useron.alias, path, l, lines);
@@ -1073,7 +1071,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 		free(buf);
 		return false; 
 	}
-	l=process_edited_text(buf,stream,/* mode: */WM_EDIT,&lines,maxlines);
+	l=process_edited_text(buf,stream,/* mode: */0,&lines,maxlines);
 	bprintf(text[SavedNBytes],l,lines);
 	fclose(stream);
 	free(buf);
@@ -1495,8 +1493,8 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 		,cfg.grp[usrgrp[newgrp]]->sname,cfg.sub[newsub]->lname);
 	safe_snprintf(str,sizeof(str),"%s moved message from %s %s to %s %s"
 		,useron.alias
-		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname
-		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname);
+		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname
+		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 	logline("M+",str);
 	signal_sub_sem(&cfg,newsub);
 
