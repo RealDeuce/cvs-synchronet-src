@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.203 2011/08/30 22:56:54 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.204 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -335,7 +335,7 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 	char ch;
 	char searchstr[MAX_PATH+1];
 	ushort attr=0;
-	int i,file;
+	int i;
 	FILE *stream;
 
 	i=matchnode(dest,0);
@@ -614,8 +614,8 @@ void notify_list(void)
 void netmail_arealist(int type, faddr_t addr, char* to)
 {
 	FILE *stream,*tmpf;
-	char str[256],temp[256],title[128],match,*p,*tp;
-	int file,i,j,k,x,y;
+	char str[256],title[128],match,*p,*tp;
+	int i,j,k,x,y;
 
 	if(!type)
 		strcpy(title,"List of Available Areas");
@@ -711,7 +711,7 @@ int check_elists(char *areatag,faddr_t addr)
 {
 	FILE *stream;
 	char str[1025],quit=0,*p,*tp;
-	int i,j,k,x,file,match=0;
+	int i,j,k,x,match=0;
 
 	i=matchnode(addr,0);
 	if(i<cfg.nodecfgs) {
@@ -1002,7 +1002,7 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 	FILE *outfile,*cfgfile;
 	char str[257],outpath[MAX_PATH+1],tmp[257],tmp2[257],*outname,*p,*tp
 		,match=0;
-	int i,j,k,file;
+	int i,j,k;
 	faddr_t taddr;
 
 	i=matchnode(addr,0);				  /* i = config number from here on */
@@ -2270,14 +2270,14 @@ char* getfmsg(FILE *stream, ulong *outlen)
 /****************************************************************************/
 int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 {
-	uchar	ch,*sbody,stail[MAX_TAILLEN+1],*outbuf
+	uchar	ch,*sbody,stail[MAX_TAILLEN+1]
 				,*p,str[128];
 	char	msg_id[256];
 	BOOL	done,esc,cr;
 	int 	i,storage=SMB_SELFPACK;
 	uint	col;
 	ushort	xlat=XLAT_NONE,net;
-	ulong	l,m,length,bodylen,taillen,crc;
+	ulong	l,m,length,bodylen,taillen;
 	ulong	save;
 	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	faddr_t faddr,origaddr,destaddr;
@@ -3990,7 +3990,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.203 $", "%*s %s", revision);
+	sscanf("$Revision: 1.204 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
