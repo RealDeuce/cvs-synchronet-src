@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.312 2011/11/08 02:50:31 rswindell Exp $ */
+/* $Id: js_global.c,v 1.313 2011/11/09 10:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3356,7 +3356,7 @@ js_strftime(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
 	char*		fmt;
-	int32		i=(int32_t)time(NULL);
+	jsdouble	jst=(jsdouble)time(NULL);
 	time_t		t;
 	struct tm	tm;
 	JSString*	js_str;
@@ -3372,13 +3372,13 @@ js_strftime(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&i))
+		if(!JS_ValueToNumber(cx,argv[1],&jst))
 			return JS_FALSE;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	strcpy(str,"-Invalid time-");
-	t=i;
+	t=(time_t)jst;
 	if(localtime_r(&t,&tm)!=NULL)
 		strftime(str,sizeof(str),fmt,&tm);
 	JS_RESUMEREQUEST(cx, rc);
