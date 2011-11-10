@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.62 2012/03/07 06:47:45 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.61 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1543,14 +1543,12 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 	j=strlen(line);
 	k=0;
 	for(i=0;i<j;i++) {
-		if(line[i]<0 || !isalnum(line[i])) {
-			if(!k)	/* beginning non-alphanumeric */
-				continue;
-			if(line[i]==line[i+1])	/* redundant non-alnum */
-				continue;
-			if(line[i+1]=='?')	/* fix "WHAT ?" */
-				continue;
-		}
+		if(!isalnum(line[i]) && !k)	/* beginning non-alphanumeric */
+			continue;
+		if(!isalnum(line[i]) && line[i]==line[i+1])	/* redundant non-alnum */
+			continue;
+		if(!isalnum(line[i]) && line[i+1]=='?')	/* fix "WHAT ?" */
+			continue;
 		cstr[k++]=line[i]; 
 	}
 	cstr[k]=0;
