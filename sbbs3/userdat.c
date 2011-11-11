@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.145 2011/11/11 04:30:58 rswindell Exp $ */
+/* $Id: userdat.c,v 1.146 2011/11/11 06:42:52 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2548,7 +2548,7 @@ BOOL DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint
 		return FALSE;
 	if(reason!=NULL)
 		*reason=R_Feedback;
-	if(usernumber==1 && useron.rest&FLAG('S'))			/* feedback restriction? */
+	if(usernumber==1 && user->rest&FLAG('S'))			/* feedback restriction? */
 		return FALSE;
 	if(reason!=NULL)
 		*reason=TooManyEmailsToday;
