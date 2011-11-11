@@ -6,23 +6,22 @@ object MailForm: TMailForm
   Caption = 'Mail Server'
   Color = clBtnFace
   UseDockManager = True
-  DefaultMonitor = dmPrimary
   DragKind = dkDock
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
+  Font.Height = -14
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
   Position = poDefault
   OnHide = FormHide
-  PixelsPerInch = 96
-  TextHeight = 13
+  PixelsPerInch = 120
+  TextHeight = 16
   object ToolBar: TToolBar
     Left = 0
     Top = 0
-    Width = 464
+    Width = 472
     Height = 25
     Caption = 'ToolBar'
     EdgeBorders = []
@@ -143,12 +142,12 @@ object MailForm: TMailForm
   object Log: TRichEdit
     Left = 0
     Top = 25
-    Width = 464
-    Height = 87
+    Width = 472
+    Height = 92
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -12
+    Font.Height = -14
     Font.Name = 'MS Sans Serif'
     Font.Style = []
     HideScrollBars = False
