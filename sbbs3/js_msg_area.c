@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.63 2011/11/11 23:30:56 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.62 2011/11/11 22:42:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,11 +41,6 @@
 
 #ifdef BUILD_JSDOCS
 
-static char* msg_area_prop_desc[] = {
-	  "message area settings (bitfield) - see <tt>MM_*</tt> in <tt>sbbsdefs.js</tt> for details"
-	,NULL
-};
-
 static char* msg_grp_prop_desc[] = {
 	 "index into grp_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
 	,"unique number for this message group"
@@ -55,7 +50,7 @@ static char* msg_grp_prop_desc[] = {
 	,NULL
 };
 
-static char* msg_sub_prop_desc[] = {
+static char* msg_area_prop_desc[] = {
 
 	 "index into sub_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
 	,"group's index into grp_list array <i>(introduced in v3.12)</i>"
@@ -232,7 +227,7 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		return(FALSE);
 
 #ifdef BUILD_JSDOCS
-	js_CreateArrayOfStrings(cx, subobj, "_property_desc_list", msg_sub_prop_desc, JSPROP_READONLY);
+	js_CreateArrayOfStrings(cx, subobj, "_property_desc_list", msg_area_prop_desc, JSPROP_READONLY);
 #endif
 
 	return(TRUE);
