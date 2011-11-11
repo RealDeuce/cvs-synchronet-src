@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.146 2011/11/09 20:24:55 deuce Exp $ */
+/* $Id: js_system.c,v 1.147 2011/11/11 23:56:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2069,6 +2069,10 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 			return(JS_FALSE);
 
 		JS_SetPrivate(cx, newobj, cfg);	/* Store a pointer to scfg_t */
+#ifdef BUILD_JSDOCS
+		js_DescribeSyncObject(cx,newobj,"System statistics",310);
+		js_CreateArrayOfStrings(cx, newobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
+#endif
 	}
 
 	/* node_list property */
@@ -2174,15 +2178,6 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,sysobj,"Global system-related properties and methods",310);
 	js_CreateArrayOfStrings(cx, sysobj, "_property_desc_list", sys_prop_desc, JSPROP_READONLY);
-#endif
-
-#ifdef BUILD_JSDOCS
-	{
-		JSObject*	statsobj;
-
-		js_DescribeSyncObject(cx,statsobj,"System statistics",310);
-		js_CreateArrayOfStrings(cx, statsobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
-	}
 #endif
 
 	return(sysobj);
