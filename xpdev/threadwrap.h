@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.42 2012/10/18 18:14:38 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.40 2011/09/09 08:06:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,16 +99,15 @@ pthread_mutex_t pthread_mutex_initializer_np(BOOL recursive);
 
 #if defined(_POSIX_THREADS)
 
+#ifdef _DEBUG
 #if defined (__FreeBSD__) || defined (__OpenBSD__)
- #include <pthread_np.h>
- #define	SetThreadName(c)	pthread_set_name_np(pthread_self(),c)
-#elsif defined(__GLIBC__)
- #include <features.h>
- #if (__GLIBC__ > 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 12))
-  #define	SetThreadName(c)	pthread_setname_np(pthread_self(),c)
- #endif
+#include <pthread_np.h>
+#define	SetThreadName(c)	pthread_set_name_np(pthread_self(),c)
 #else
- #define SetThreadName(c)
+#define SetThreadName(c)
+#endif
+#else
+#define SetThreadName(c)
 #endif
 
 #else
