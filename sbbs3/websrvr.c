@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.559 2012/10/14 20:13:48 deuce Exp $ */
+/* $Id: websrvr.c,v 1.558 2011/11/03 21:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5036,6 +5036,16 @@ void http_session_thread(void* arg)
 	    memset(&(session.req), 0, sizeof(session.req));
 		redirp=NULL;
 		loop_count=0;
+		if(session.req.ld) {
+			FREE_AND_NULL(session.req.ld->hostname);
+			FREE_AND_NULL(session.req.ld->ident);
+			FREE_AND_NULL(session.req.ld->user);
+			FREE_AND_NULL(session.req.ld->request);
+			FREE_AND_NULL(session.req.ld->referrer);
+			FREE_AND_NULL(session.req.ld->agent);
+			FREE_AND_NULL(session.req.ld->vhost);
+			FREE_AND_NULL(session.req.ld);
+		}
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
 			/* FREE()d in http_logging_thread... passed there by close_request() */
 			if((session.req.ld=(struct log_data*)malloc(sizeof(struct log_data)))==NULL)
@@ -5204,7 +5214,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.559 $", "%*s %s", revision);
+	sscanf("$Revision: 1.558 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
