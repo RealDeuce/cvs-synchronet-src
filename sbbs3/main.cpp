@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.579 2011/11/09 07:03:20 rswindell Exp $ */
+/* $Id: main.cpp,v 1.580 2011/11/12 02:11:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -399,10 +399,11 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
+	"null",
+	"xml",
 	"array",
 	"alias",
-	"undefined",
-	"null"
+	"undefined"
 };
 
 JSBool
