@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.48 2012/02/24 01:48:12 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.47 2011/10/29 23:02:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -485,6 +485,7 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 	time_t		startfile;
 	struct		stat st;
 	BOOL		sent_header=FALSE;
+	uintmax_t	tmptime;
 
 	if(sent!=NULL)	
 		*sent=0;
@@ -614,7 +615,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.48 $", "%*s %s", buf);
+	sscanf("$Revision: 1.47 $", "%*s %s", buf);
 
 	return(buf);
 }
