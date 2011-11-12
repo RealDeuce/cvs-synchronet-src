@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include <ciolib.h>
+#include <keys.h>
 
 #include "crt.h"
 #include "key.h"
