@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.60 2012/02/18 00:13:38 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.58 2011/10/31 05:17:57 deuce Exp $ */
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
@@ -169,11 +169,6 @@ typedef signed long long int int64_t;
 typedef unsigned long long int uint64_t;
 #define INTTYPES_H_64BIT_PREFIX         "ll"
 #endif
-
-typedef uint64_t	uintmax_t;
-#define _UINTMAX_T_DECLARED
-typedef int64_t		intmax_t;
-#define _INTMAX_T_DECLARED
 
 /* printf integer formatters: */
 

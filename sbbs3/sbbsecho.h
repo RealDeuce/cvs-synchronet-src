@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.16 2012/07/22 23:22:51 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.14 2009/01/15 08:02:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,7 +37,7 @@
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
-#define SBBSECHO_VER "2.14"
+#define SBBSECHO_VER "2.12"
 
 #define IMPORT_NETMAIL  (1L<<0)
 #define IMPORT_PACKETS	(1L<<1)
@@ -167,9 +167,9 @@ typedef struct {
 	} area_t;
 
 typedef struct {
-	FILE *stream;				/* The stream associated with this packet (NULL if not-open) */
+	FILE *stream;				/* The stream associated with this packet */
 	faddr_t uplink; 			/* The current uplink for this packet */
-	uchar filename[MAX_PATH+1];	/* Name of the file */
+	uchar filename[128],curopen;/* Name of the file and if it's open or not */
     } outpkt_t;
 
 typedef struct {
