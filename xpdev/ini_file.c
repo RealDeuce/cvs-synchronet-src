@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.125 2011/10/24 21:48:42 deuce Exp $ */
+/* $Id: ini_file.c,v 1.126 2011/11/04 07:15:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -918,6 +918,33 @@ size_t iniGetSectionCount(str_list_t list, const char* prefix)
 
 	for(i=0; list[i]!=NULL; i++) {
 		SAFECOPY(str,list[i]);
+		if(is_eof(str))
+			break;
+		if((p=section_name(str))==NULL)
+			continue;
+		if(prefix!=NULL)
+			if(strnicmp(p,prefix,strlen(prefix))!=0)
+				continue;
+		items++;
+	}
+
+	return(items);
+}
+
+size_t iniReadSectionCount(FILE* fp, const char* prefix)
+{
+	char*	p;
+	char	str[INI_MAX_LINE_LEN];
+	ulong	items=0;
+
+	if(fp==NULL)
+		return(0);
+
+	rewind(fp);
+
+	while(!feof(fp)) {
+		if(fgets(str,sizeof(str),fp)==NULL)
+			break;
 		if(is_eof(str))
 			break;
 		if((p=section_name(str))==NULL)
