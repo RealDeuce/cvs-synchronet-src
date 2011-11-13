@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.57 2012/02/18 00:11:24 deuce Exp $ */
+/* $Id: ciolib.h,v 1.56 2011/10/19 02:28:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -402,7 +402,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 #endif
 
 #ifdef WITH_SDL
-	#include <gen_defs.h>
 	#include <SDL.h>
 
 	#ifdef main
