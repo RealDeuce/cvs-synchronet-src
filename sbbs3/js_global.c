@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.313 2011/11/09 10:38:47 deuce Exp $ */
+/* $Id: js_global.c,v 1.314 2011/11/13 01:17:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1934,10 +1934,14 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 					case 'T':
 						now=time(NULL);
 						localtime_r(&now,&tm);
-						j+=sprintf(outbuf+j,"%02d:%02d %s"
-							,tm.tm_hour==0 ? 12
-							: tm.tm_hour>12 ? tm.tm_hour-12
-							: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
+						if(p->cfg->sys_misc&SM_MILITARY)
+							j+=sprintf(outbuf+j,"%02d:%02d:%02d"
+								,tm.tm_hour, tm.tm_min, tm.tm_sec);
+						else
+							j+=sprintf(outbuf+j,"%02d:%02d %s"
+								,tm.tm_hour==0 ? 12
+								: tm.tm_hour>12 ? tm.tm_hour-12
+								: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
 						break;
 						
 					case 'L':
