@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.315 2012/03/15 09:17:49 deuce Exp $ */
+/* $Id: js_global.c,v 1.314 2011/11/13 01:17:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,14 @@
 #define MAX_ANSI_PARAMS	8
 
 #ifdef JAVASCRIPT
+
+typedef struct {
+	scfg_t*				cfg;
+	jsSyncMethodSpec*	methods;
+	js_startup_t*		startup;
+	unsigned			bg_count;
+	sem_t				bg_sem;
+} private_t;
 
 /* Global Object Properites */
 enum {
@@ -233,12 +241,12 @@ static jsval* js_CopyValue(JSContext* cx, jsrefcount *cx_rc, jsval val, JSContex
 JSBool BGContextCallback(JSContext *cx, uintN contextOp)
 {
 	JSObject	*gl=JS_GetGlobalObject(cx);
-	global_private_t*	p;
+	private_t*	p;
 
 	if(!gl)
 		return JS_TRUE;
 
-	if((p=(global_private_t*)JS_GetPrivate(cx,gl))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,gl))==NULL)
 		return(JS_TRUE);
 
 	switch(contextOp) {
@@ -267,7 +275,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 	uintN		argn=0;
     char*		filename;
     JSObject*	script;
-	global_private_t*	p;
+	private_t*	p;
 	jsval		val;
 	JSObject*	js_argv;
 	JSObject*	exec_obj;
@@ -281,7 +289,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist,JSVAL_VOID);
 
-	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	exec_obj=JS_GetScopeChain(cx);
@@ -345,7 +353,6 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		if((bg->logobj=JS_NewObjectWithGivenProto(bg->cx, NULL, NULL, bg->obj))==NULL) {
-			JS_RemoveObjectRoot(bg->cx, &bg->obj);
 			JS_ENDREQUEST(bg->cx);
 			JS_DestroyContext(bg->cx);
 			jsrt_Release(bg->runtime);
@@ -1405,7 +1412,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	struct		tm tm;
 	time_t		now;
 	BOOL		nodisplay=FALSE;
-	global_private_t*	p;
+	private_t*	p;
 	uchar   	attr_stack[64]; /* Saved attributes (stack) */
 	int     	attr_sp=0;                /* Attribute stack pointer */
 	ulong		clear_screen=0;
@@ -1418,7 +1425,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
 		return(JS_FALSE);
 
 	JSVALUE_TO_STRING(cx, argv[0], inbuf, NULL);
@@ -3917,9 +3924,9 @@ static jsConstIntSpec js_global_const_ints[] = {
 
 static void js_global_finalize(JSContext *cx, JSObject *obj)
 {
-	global_private_t* p;
+	private_t* p;
 
-	p=(global_private_t*)JS_GetPrivate(cx,obj);
+	p=(private_t*)JS_GetPrivate(cx,obj);
 
 	if(p!=NULL)
 		free(p);
@@ -3931,10 +3938,10 @@ static void js_global_finalize(JSContext *cx, JSObject *obj)
 static JSBool js_global_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*		name=NULL;
-	global_private_t*	p;
+	private_t*	p;
 	JSBool		ret=JS_TRUE;
 
-	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if(id != JSID_VOID && id != JSID_EMPTY && id != JS_DEFAULT_XML_NAMESPACE_ID) {
@@ -3974,15 +3981,14 @@ static JSClass js_global_class = {
 
 BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t* startup, JSObject**glob)
 {
-	global_private_t*	p;
+	private_t*	p;
 
-	if((p = (global_private_t*)malloc(sizeof(global_private_t)))==NULL)
+	if((p = (private_t*)malloc(sizeof(private_t)))==NULL)
 		return(FALSE);
 
 	p->cfg = cfg;
 	p->methods = methods;
 	p->startup = startup;
-	p->exit_func=NULL;
 
 	if((*glob = JS_NewCompartmentAndGlobalObject(cx, &js_global_class, NULL)) ==NULL)
 		return(FALSE);
