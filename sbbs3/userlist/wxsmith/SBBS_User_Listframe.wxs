@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <wxsmith>
 	<object class="wxFrame" name="SBBS_User_ListFrame">
+		<title>SBBS User List</title>
+		<icon>../../../conio/syncicon64.ico</icon>
 		<object class="wxPanel" name="ID_PANEL1" variable="Panel1" member="yes">
 			<object class="wxBoxSizer" variable="BoxSizer1" member="no">
 				<orient>wxVERTICAL</orient>
@@ -15,6 +17,7 @@
 						</object>
 						<object class="sizeritem">
 							<object class="wxTextCtrl" name="ID_ARSTEXTCTRL" variable="ARSFilter" member="yes">
+								<value>ACTIVE NOT DELETED</value>
 								<tooltip>Enter an ARS string to filter users with</tooltip>
 								<handler function="OnARSFilterText" entry="EVT_TEXT" />
 							</object>
@@ -37,10 +40,12 @@
 				</object>
 				<object class="sizeritem">
 					<object class="wxListCtrl" name="ID_USERLISTCTRL" variable="UserList" member="yes">
+						<size>-1,128d</size>
 						<style>wxLC_REPORT|wxLC_HRULES</style>
 						<handler function="OnUserListItemSelect" entry="EVT_LIST_ITEM_SELECTED" />
 						<handler function="OnUserListItemSelect" entry="EVT_LIST_ITEM_DESELECTED" />
 						<handler function="OnUserListItemRClick" entry="EVT_LIST_ITEM_RIGHT_CLICK" />
+						<handler function="OnUserListColumnClick" entry="EVT_LIST_COL_CLICK" />
 					</object>
 					<flag>wxALL|wxEXPAND|wxALIGN_LEFT|wxALIGN_TOP</flag>
 					<border>5</border>
@@ -54,7 +59,7 @@
 									<object class="wxStaticText" name="ID_STATICTEXT2" variable="StaticText2" member="yes">
 										<label>Quick Validation Sets</label>
 									</object>
-									<flag>wxALL|wxALIGN_LEFT|wxALIGN_TOP</flag>
+									<flag>wxALL|wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL</flag>
 									<border>5</border>
 								</object>
 								<object class="sizeritem">
@@ -103,50 +108,21 @@
 				</object>
 			</object>
 		</object>
-		<object class="wxMenuBar" variable="MenuBar1" member="no">
-			<object class="wxMenu" variable="Menu1" member="no">
-				<label>&amp;File</label>
-				<object class="wxMenuItem" name="idMenuQuit" variable="MenuItem1" member="no">
-					<label>Quit</label>
-					<accel>Alt-F4</accel>
-					<help>Quit the application</help>
-					<handler function="OnQuit" entry="EVT_MENU" />
-				</object>
-			</object>
-			<object class="wxMenu" variable="Menu2" member="no">
-				<label>Help</label>
-				<object class="wxMenuItem" name="idMenuAbout" variable="MenuItem2" member="no">
-					<label>About</label>
-					<accel>F1</accel>
-					<help>Show info about this application</help>
-					<handler function="OnAbout" entry="EVT_MENU" />
-				</object>
-			</object>
-		</object>
-		<object class="wxStatusBar" name="ID_STATUSBAR1" variable="StatusBar1" member="yes">
-			<fields>1</fields>
-			<widths>-1</widths>
-			<styles>wxSB_NORMAL</styles>
-		</object>
 		<object class="wxMenu" variable="ContextMenu" member="yes">
 			<object class="wxMenuItem" name="ID_EDITUSER" variable="MenuItem3" member="yes">
 				<label>Edit User</label>
-				<accel>E</accel>
 				<enabled>0</enabled>
 			</object>
 			<object class="wxMenuItem" name="ID_COPY" variable="MenuItem4" member="yes">
 				<label>Copy</label>
-				<accel>C</accel>
 				<handler function="CopyMenuItemSelected" entry="EVT_MENU" />
 			</object>
 			<object class="wxMenuItem" name="ID_COPYALL" variable="MenuItem5" member="yes">
 				<label>Copy All</label>
-				<accel>A</accel>
 				<handler function="CopyAllMenuItemSelected" entry="EVT_MENU" />
 			</object>
 			<object class="wxMenuItem" name="ID_REFRESH" variable="MenuItem6" member="yes">
 				<label>Refresh</label>
-				<accel>R</accel>
 				<handler function="OnRefreshButtonClick" entry="EVT_MENU" />
 			</object>
 		</object>
