@@ -20,7 +20,6 @@
 #include <wx/choice.h>
 #include <wx/button.h>
 #include <wx/frame.h>
-#include <wx/statusbr.h>
 //*)
 
 #include "SBBS_User_ListApp.h"
@@ -36,6 +35,7 @@ class SBBS_User_ListFrame: public wxFrame
 
         void fillUserList(void);
 		void CopyItems(int state);
+		void applyARS(void);
 		int	sort;
 
         //(*Handlers(SBBS_User_ListFrame)
@@ -62,9 +62,6 @@ class SBBS_User_ListFrame: public wxFrame
         static const long ID_REFRESHBUTTON;
         static const long ID_EDITBUTTON;
         static const long ID_PANEL1;
-        static const long idMenuQuit;
-        static const long idMenuAbout;
-        static const long ID_STATUSBAR1;
         static const long ID_EDITUSER;
         static const long ID_COPY;
         static const long ID_COPYALL;
@@ -81,7 +78,6 @@ class SBBS_User_ListFrame: public wxFrame
         wxMenu ContextMenu;
         wxListCtrl* UserList;
         wxMenuItem* MenuItem3;
-        wxStatusBar* StatusBar1;
         wxMenuItem* MenuItem6;
         wxButton* ClearButton;
         wxChoice* QVChoice;
