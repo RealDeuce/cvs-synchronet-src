@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.24 2012/08/03 21:42:55 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.23 2011/10/29 23:02:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -566,12 +566,8 @@ int main(int argc, char **argv)
 							case 10:
 	uifc.helpbuf=
 	"~ Route To ~\r\n\r\n"
-	"When using a FLO type mailer, this is an fido address to route mail\r\n"
-	"for this node to.\r\n"
-	"\r\n"
-	"This option is normally only used with wildcard type node entries\r\n"
-	"(e.g. `ALL`, or `1:ALL`, `2:ALL`, etc.) and is used to route non-direct\r\n"
-	"netmail packets to your uplink (hub).\r\n";
+	"When using a FLO type mailer, this is the node number of an address\r\n"
+	"to route mail to for this node.\r\n";
 								strcpy(str,wcfaddrtoa(&cfg.nodecfg[i].route));
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Node Address to Route To",str
