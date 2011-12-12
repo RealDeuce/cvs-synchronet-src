@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.33 2011/12/13 00:00:13 deuce Exp $ */
+/* $Id: cterm.h,v 1.31 2011/12/12 23:33:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,12 +35,8 @@
 #define _CTERM_H_
 
 #include <stdio.h>	/* FILE* */
-#if !(defined __BORLANDC__ || defined _MSC_VER)
-#include <stdbool.h>
-#else
 #define bool int
 enum { false, true };
-#endif
 #include <link_list.h>
 #include <semwrap.h>
 

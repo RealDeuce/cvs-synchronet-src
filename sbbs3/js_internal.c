@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.77 2012/03/15 10:42:57 deuce Exp $ */
+/* $Id: js_internal.c,v 1.73 2011/11/12 01:54:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -372,40 +372,21 @@ js_report_error(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *scope=JS_GetScopeChain(cx);
-	JSObject *glob=JS_GetGlobalObject(cx);
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	global_private_t*	pd;
-	str_list_t	list;
-	str_list_t	oldlist;
+	js_callback_t*	cb;
 	char		*p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(glob==scope) {
-		if((pd=(global_private_t*)JS_GetPrivate(cx,glob))==NULL)
-			return(JS_FALSE);
-		if(pd->exit_func==NULL)
-			pd->exit_func=strListInit();
-		list=pd->exit_func;
-	}
-	else {
-		list=(str_list_t)JS_GetPrivate(cx,scope);
-		if(list==NULL) {
-			list=strListInit();
-			JS_SetPrivate(cx,scope,list);
-		}
-	}
+	if((cb=(js_callback_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
+
+	if(cb->exit_func==NULL)
+		cb->exit_func=strListInit();
 
 	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
-	oldlist=list;
-	strListPush(&list,p);
-	if(oldlist != list) {
-		if(glob==scope)
-			pd->exit_func=list;
-		else
-			JS_SetPrivate(cx,scope,list);
-	}
+	strListPush(&cb->exit_func,p);
 
 	return(JS_TRUE);
 }
@@ -492,31 +473,17 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_callback_t* cb)
 	jsval	rval;
 	JSObject* script;
 	BOOL	auto_terminate=cb->auto_terminate;
-	JSObject	*glob=JS_GetGlobalObject(cx);
-	global_private_t *pt;
-	str_list_t	list;
-
-	if(glob==obj) {
-		pt=(global_private_t *)JS_GetPrivate(cx,JS_GetGlobalObject(cx));		
-		list=pt->exit_func;
-	}
-	else
-		list=JS_GetPrivate(cx,obj);
 
 	cb->auto_terminate=FALSE;
 
-	while((p=strListPop(&list))!=NULL) {
+	while((p=strListPop(&cb->exit_func))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
 			JS_ExecuteScript(cx, obj, script, &rval);
 		}
 		free(p);
 	}
 
-	strListFree(&list);
-	if(glob != obj)
-		JS_SetPrivate(cx,obj,NULL);
-	else
-		pt->exit_func=NULL;
+	strListFree(&cb->exit_func);
 
 	if(auto_terminate)
 		cb->auto_terminate = TRUE;
