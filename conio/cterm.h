@@ -1,10 +1,10 @@
-/* $Id: cterm.h,v 1.29 2011/09/30 22:05:38 deuce Exp $ */
+/* $Id: cterm.h,v 1.32 2011/12/12 23:46:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,6 +35,11 @@
 #define _CTERM_H_
 
 #include <stdio.h>	/* FILE* */
+#include <stdbool.h>
+#ifndef __bool_true_false_are_defined
+#define bool int
+enum { false, true };
+#endif
 #include <link_list.h>
 #include <semwrap.h>
 
@@ -78,6 +83,15 @@ struct cterminal {
 	char				*scrollback;
 	int					backlines;		// Number of lines in scrollback
 	char				DA[1024];		// Device Attributes
+	bool				autowrap;
+#define	CTERM_SAVEMODE_AUTOWRAP		0x01
+#define CTERM_SAVEMODE_CURSOR		0x02
+#define	CTERM_SAVEMODE_ALTCHARS		0x04
+#define CTERM_SAVEMODE_NOBRIGHT		0x08
+#define CTERM_SAVEMODE_BGBRIGHT		0x10
+#define CTERM_SAVEMODE_DOORWAY		0x20
+	int32_t				saved_mode;
+	int32_t				saved_mode_mask;
 
 	/* emulation state */
 	int					started;		// Indicates that conio functions are being called
