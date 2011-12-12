@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.37 2014/02/09 13:27:34 deuce Exp $ */
+/* $Id: cterm.h,v 1.31 2011/12/12 23:33:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,15 +35,10 @@
 #define _CTERM_H_
 
 #include <stdio.h>	/* FILE* */
-#if !(defined __BORLANDC__ || defined _MSC_VER)
-#include <stdbool.h>
-#else
 #define bool int
 enum { false, true };
-#endif
 #include <link_list.h>
 #include <semwrap.h>
-#include "ciolib.h"
 
 typedef enum {
 	 CTERM_MUSIC_NORMAL
@@ -81,21 +76,17 @@ struct cterminal {
 	cterm_emulation_t	emulation;
 	int					height;			// Height of the terminal buffer
 	int					width;			// Width of the terminal buffer
-	int					top_margin;
-	int					bottom_margin;
 	int					quiet;			// No sounds are made
-	unsigned char				*scrollback;
+	char				*scrollback;
 	int					backlines;		// Number of lines in scrollback
 	char				DA[1024];		// Device Attributes
 	bool				autowrap;
-	bool				origin_mode;
 #define	CTERM_SAVEMODE_AUTOWRAP		0x01
 #define CTERM_SAVEMODE_CURSOR		0x02
 #define	CTERM_SAVEMODE_ALTCHARS		0x04
 #define CTERM_SAVEMODE_NOBRIGHT		0x08
 #define CTERM_SAVEMODE_BGBRIGHT		0x10
 #define CTERM_SAVEMODE_DOORWAY		0x20
-#define CTERM_SAVEMODE_ORIGIN		0x40
 	int32_t				saved_mode;
 	int32_t				saved_mode_mask;
 
@@ -130,14 +121,14 @@ struct cterminal {
 	int					font_size;		// Bytes
 	int					doorway_mode;
 	int					doorway_char;	// Indicates next char is a "doorway" mode char
-	int					cursor;			// Current cursor mode (Normal or None)z
+	int					cursor;			// Current cursor mode (Normal or None)
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
 	void	(*ciolib_gotoxy)		(struct cterminal *,int,int);
 	int		(*ciolib_wherex)		(struct cterminal *);
 	int		(*ciolib_wherey)		(struct cterminal *);
-	int		(*ciolib_gettext)		(struct cterminal *,int,int,int,int,void *);
+	int		(*ciolib_gettext)		(struct cterminal *,int,int,int,int,unsigned char *);
 	void	(*ciolib_gettextinfo)	(struct cterminal *,struct text_info *);
 	void	(*ciolib_textattr)		(struct cterminal *,int);
 	void	(*ciolib_setcursortype)	(struct cterminal *,int);
@@ -146,10 +137,8 @@ struct cterminal {
 	void	(*ciolib_clrscr)		(struct cterminal *);
 	void	(*ciolib_setvideoflags)	(struct cterminal *,int flags);
 	int		(*ciolib_getvideoflags)	(struct cterminal *);
-	void	(*ciolib_setscaling)	(struct cterminal *,int new_value);
-	int		(*ciolib_getscaling)	(struct cterminal *);
 	int		(*ciolib_putch)			(struct cterminal *,int);
-	int		(*ciolib_puttext)		(struct cterminal *,int,int,int,int,void *);
+	int		(*ciolib_puttext)		(struct cterminal *,int,int,int,int,unsigned char *);
 	void	(*ciolib_window)		(struct cterminal *,int,int,int,int);
 	int		(*ciolib_cputs)			(struct cterminal *,char *);
 	int		(*ciolib_setfont)		(struct cterminal *,int font, int force, int font_num);
@@ -157,7 +146,7 @@ struct cterminal {
 	void	CIOLIBCALL (*ciolib_gotoxy)		(int,int);
 	int		CIOLIBCALL (*ciolib_wherex)		(void);
 	int		CIOLIBCALL (*ciolib_wherey)		(void);
-	int		CIOLIBCALL (*ciolib_gettext)		(int,int,int,int,void *);
+	int		CIOLIBCALL (*ciolib_gettext)		(int,int,int,int,unsigned char *);
 	void	CIOLIBCALL (*ciolib_gettextinfo)	(struct text_info *);
 	void	CIOLIBCALL (*ciolib_textattr)		(int);
 	void	CIOLIBCALL (*ciolib_setcursortype)	(int);
@@ -166,10 +155,8 @@ struct cterminal {
 	void	CIOLIBCALL (*ciolib_clrscr)		(void);
 	void	CIOLIBCALL (*ciolib_setvideoflags)	(int flags);
 	int		CIOLIBCALL (*ciolib_getvideoflags)	(void);
-	void	CIOLIBCALL (*ciolib_setscaling)		(int new_value);
-	int		CIOLIBCALL (*ciolib_getscaling)		(void);
 	int		CIOLIBCALL (*ciolib_putch)			(int);
-	int		CIOLIBCALL (*ciolib_puttext)		(int,int,int,int,void *);
+	int		CIOLIBCALL (*ciolib_puttext)		(int,int,int,int,unsigned char *);
 	void	CIOLIBCALL (*ciolib_window)		(int,int,int,int);
 	int		CIOLIBCALL (*ciolib_cputs)			(char *);
 	int		CIOLIBCALL (*ciolib_setfont)		(int font, int force, int font_num);
@@ -184,13 +171,13 @@ struct cterminal {
 extern "C" {
 #endif
 
-CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation);
-CIOLIBEXPORT char CIOLIBCALL *cterm_write(struct cterminal *cterm, const unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed);
-CIOLIBEXPORT int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype);
-CIOLIBEXPORT void CIOLIBCALL cterm_closelog(struct cterminal *cterm);
-CIOLIBEXPORT void CIOLIBCALL cterm_end(struct cterminal *cterm);
-CIOLIBEXPORT void CIOLIBCALL cterm_clearscreen(struct cterminal *cterm, char attr);
-CIOLIBEXPORT void CIOLIBCALL cterm_start(struct cterminal *cterm);
+struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation);
+char *cterm_write(struct cterminal *cterm, const unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed);
+int cterm_openlog(struct cterminal *cterm, char *logfile, int logtype);
+void cterm_closelog(struct cterminal *cterm);
+void cterm_end(struct cterminal *cterm);
+void cterm_clearscreen(struct cterminal *cterm, char attr);
+void cterm_start(struct cterminal *cterm);
 #ifdef __cplusplus
 }
 #endif
