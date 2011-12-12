@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.561 2012/10/21 20:19:39 deuce Exp $ */
+/* $Id: websrvr.c,v 1.558 2011/11/03 21:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,10 +43,7 @@
  * Add in support to pass connections through to a different webserver...
  *      probobly in access.ars... with like a simplified mod_rewrite.
  *      This would allow people to run apache and Synchronet as the same site.
- * 
- * Add support for multipart/form-data
- * 
- */p
+ */
 
 //#define ONE_JS_RUNTIME
 
@@ -72,7 +69,6 @@
 #include "md5.h"
 #include "js_rtpool.h"
 #include "js_request.h"
-#include "xpmap.h"
 
 static const char*	server_name="Synchronet Web Server";
 static const char*	newline="\r\n";
@@ -199,7 +195,6 @@ typedef struct  {
 	str_list_t	headers;
 	char		status[MAX_REQUEST_LINE+1];
 	char *		post_data;
-	struct xpmapping *post_map;
 	size_t		post_len;
 	int			dynamic;
 	char		xjs_handler[MAX_PATH+1];
@@ -902,11 +897,6 @@ static void close_request(http_session_t * session)
 	strListFree(&session->req.headers);
 	strListFree(&session->req.dynamic_heads);
 	strListFree(&session->req.cgi_env);
-	if(session->req.post_map != NULL) {
-		xpunmap(session->req.post_map);
-		session->req.post_data=NULL;
-		session->req.post_map=NULL;
-	}
 	FREE_AND_NULL(session->req.post_data);
 	FREE_AND_NULL(session->req.error_dir);
 	FREE_AND_NULL(session->req.cgi_dir);
@@ -2004,7 +1994,7 @@ static void js_add_cookieval(http_session_t * session, char *key, char *value)
 	JS_SetElement(session->js_cx, keyarray, alen, &val);
 }
 
-static void js_add_request_prop(http_session_t * session, char *key, char *value)
+static void js_add_request_prop(http_session_t * session, char *key, char *value)  
 {
 	JSString*	js_str;
 
@@ -4625,10 +4615,8 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		js_parse_query(session,session->req.query_str);
 	}
 	if(session->req.post_data && session->req.post_data[0]) {
-		if(session->req.post_len <= MAX_POST_LEN) {
-			js_add_request_prop(session,"post_data",session->req.post_data);
-			js_parse_query(session,session->req.post_data);
-		}
+		js_add_request_prop(session,"post_data",session->req.post_data);
+		js_parse_query(session,session->req.post_data);
 	}
 	parse_js_headers(session);
 
@@ -4727,60 +4715,9 @@ static void respond(http_session_t * session)
 	session->req.finished=TRUE;
 }
 
-BOOL post_to_file(http_session_t *session, FILE*fp, size_t ch_len)
-{
-	char		buf[20*1024];
-	size_t		k;
-	int			bytes_read;
-
-	for(k=0; k<ch_len;) {
-		bytes_read=recvbufsocket(&session->socket,buf,(ch_len-k)>sizeof(buf)?sizeof(buf):(ch_len-k));
-		if(!bytes_read) {
-			send_error(session,error_500);
-			fclose(fp);
-			return(FALSE);
-		}
-		if(fwrite(buf, bytes_read, 1, fp)!=1) {
-			send_error(session,error_500);
-			fclose(fp);
-			return(FALSE);
-		}
-		k+=bytes_read;
-		session->req.post_len+=bytes_read;
-	}
-	return TRUE;
-}
-
-FILE *open_post_file(http_session_t *session)
-{
-	char	path[MAX_PATH+1];
-	FILE	*fp;
-
-	// Create temporary file for post data.
-	sprintf(path,"%sSBBS_POST.%u.%u.html",temp_dir,getpid(),session->socket);
-	if((fp=fopen(path,"wb"))==NULL) {
-		lprintf(LOG_ERR,"%04d !ERROR %d opening/creating %s", session->socket, errno, path);
-		return fp;
-	}
-	if(session->req.cleanup_file[CLEANUP_POST_DATA]) {
-		remove(session->req.cleanup_file[CLEANUP_POST_DATA]);
-		free(session->req.cleanup_file[CLEANUP_POST_DATA]);
-	}
-	/* remove()d in close_request() */
-	session->req.cleanup_file[CLEANUP_POST_DATA]=strdup(path);
-	if(fwrite(session->req.post_data, session->req.post_len, 1, fp)!=1) {
-		lprintf(LOG_ERR,"%04d !ERROR writeing to %s", session->socket, path);
-		fclose(fp);
-		return(FALSE);
-	}
-	FREE_AND_NULL(session->req.post_data);
-	return fp;
-}
-
 int read_post_data(http_session_t * session)
 {
-	unsigned	i=0;
-	FILE		*fp=NULL;
+	unsigned i=0;
 
 	if(session->req.dynamic!=IS_CGI && (session->req.post_len || session->req.read_chunked))  {
 		if(session->req.read_chunked) {
@@ -4797,7 +4734,6 @@ int read_post_data(http_session_t * session)
 				}
 				else {
 					send_error(session,error_500);
-					if(fp) fclose(fp);
 					return(FALSE);
 				}
 				if(ch_len==0)
@@ -4805,50 +4741,28 @@ int read_post_data(http_session_t * session)
 				/* Check size */
 				i += ch_len;
 				if(i > MAX_POST_LEN) {
-					if(i > SIZE_T_MAX) {
-						send_error(session,"413 Request entity too large");
-						if(fp) fclose(fp);
-						return(FALSE);
-					}
-					if(fp==NULL) {
-						fp=open_post_file(session);
-						if(fp==NULL)
-							return(FALSE);
-					}
-					if(!post_to_file(session, fp, ch_len))
-						return(FALSE);
-				}
-				else {
-					/* realloc() to new size */
-					/* FREE()d in close_request */
-					p=realloc(session->req.post_data, i);
-					if(p==NULL) {
-						lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,session->req.post_len);
-						send_error(session,"413 Request entity too large");
-						if(fp) fclose(fp);
-						return(FALSE);
-					}
-					session->req.post_data=p;
-					/* read new data */
-					bytes_read=recvbufsocket(&session->socket,session->req.post_data+session->req.post_len,ch_len);
-					if(!bytes_read) {
-						send_error(session,error_500);
-						if(fp) fclose(fp);
-						return(FALSE);
-					}
-					session->req.post_len+=bytes_read;
-					/* Read chunk terminator */
-					if(sockreadline(session,ch_lstr,sizeof(ch_lstr)-1)>0)
-						send_error(session,error_500);
-				}
-			}
-			if(fp) {
-				fclose(fp);
-				FREE_AND_NULL(session->req.post_data);
-				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_READ);
-				if(!session->req.post_map)
+					send_error(session,"413 Request entity too large");
 					return(FALSE);
-				session->req.post_data=session->req.post_map->addr;
+				}
+				/* realloc() to new size */
+				/* FREE()d in close_request */
+				p=realloc(session->req.post_data, i);
+				if(p==NULL) {
+					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,session->req.post_len);
+					send_error(session,"413 Request entity too large");
+					return(FALSE);
+				}
+				session->req.post_data=p;
+				/* read new data */
+				bytes_read=recvbufsocket(&session->socket,session->req.post_data+session->req.post_len,ch_len);
+				if(!bytes_read) {
+					send_error(session,error_500);
+					return(FALSE);
+				}
+				session->req.post_len+=bytes_read;
+				/* Read chunk terminator */
+				if(sockreadline(session,ch_lstr,sizeof(ch_lstr)-1)>0)
+					send_error(session,error_500);
 			}
 			/* Read more headers! */
 			if(!get_request_headers(session))
@@ -4859,27 +4773,13 @@ int read_post_data(http_session_t * session)
 		else {
 			i = session->req.post_len;
 			FREE_AND_NULL(session->req.post_data);
-			if(i > MAX_POST_LEN) {
-				fp=open_post_file(session);
-				if(fp==NULL)
-					return(FALSE);
-				if(!post_to_file(session, fp, i))
-					return(FALSE);
-				fclose(fp);
-				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_READ);
-				if(!session->req.post_map)
-					return(FALSE);
-				session->req.post_data=session->req.post_map->addr;
-			}
-			else {
-				/* FREE()d in close_request()  */
-				if(i < (MAX_POST_LEN+1) && (session->req.post_data=malloc(i+1)) != NULL)
-					session->req.post_len=recvbufsocket(&session->socket,session->req.post_data,i);
-				else  {
-					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,i);
-					send_error(session,"413 Request entity too large");
-					return(FALSE);
-				}
+			/* FREE()d in close_request()  */
+			if(i < (MAX_POST_LEN+1) && (session->req.post_data=malloc(i+1)) != NULL)
+				session->req.post_len=recvbufsocket(&session->socket,session->req.post_data,i);
+			else  {
+				lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,i);
+				send_error(session,"413 Request entity too large");
+				return(FALSE);
 			}
 		}
 		if(session->req.post_len != i)
@@ -5136,6 +5036,16 @@ void http_session_thread(void* arg)
 	    memset(&(session.req), 0, sizeof(session.req));
 		redirp=NULL;
 		loop_count=0;
+		if(session.req.ld) {
+			FREE_AND_NULL(session.req.ld->hostname);
+			FREE_AND_NULL(session.req.ld->ident);
+			FREE_AND_NULL(session.req.ld->user);
+			FREE_AND_NULL(session.req.ld->request);
+			FREE_AND_NULL(session.req.ld->referrer);
+			FREE_AND_NULL(session.req.ld->agent);
+			FREE_AND_NULL(session.req.ld->vhost);
+			FREE_AND_NULL(session.req.ld);
+		}
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
 			/* FREE()d in http_logging_thread... passed there by close_request() */
 			if((session.req.ld=(struct log_data*)malloc(sizeof(struct log_data)))==NULL)
@@ -5304,7 +5214,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.561 $", "%*s %s", revision);
+	sscanf("$Revision: 1.558 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
