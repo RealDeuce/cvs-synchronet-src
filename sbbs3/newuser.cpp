@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.62 2011/08/30 22:56:53 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.64 2011/10/19 21:54:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,10 +105,10 @@ BOOL sbbs_t::newuser()
 	/* Sets defaults per sysop config */
 	useron.misc|=(cfg.new_misc&~(DELETED|INACTIVE|QUIET|NETMAIL));
 	useron.qwk=QWK_DEFAULT;
-	useron.firston=useron.laston=useron.pwmod=time(NULL);
+	useron.firston=useron.laston=useron.pwmod=time32(NULL);
 	if(cfg.new_expire) {
 		now=time(NULL);
-		useron.expire=now+((long)cfg.new_expire*24L*60L*60L); 
+		useron.expire=(time32_t)(now+((long)cfg.new_expire*24L*60L*60L)); 
 	} else
 		useron.expire=0;
 	useron.sex=' ';
@@ -368,6 +368,7 @@ BOOL sbbs_t::newuser()
 	if(rlogin_pass[0] && chkpass(rlogin_pass,&useron,true)) {
 		CRLF;
 		SAFECOPY(useron.pass, rlogin_pass);
+		strupr(useron.pass);	/* passwords are case insensitive, but assumed (in some places) to be uppercase in the user database */
 	}
 	else {
 		c=0;
