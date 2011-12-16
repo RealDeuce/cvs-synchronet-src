@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.161 2012/10/22 03:43:35 deuce Exp $ */
+/* $Id: jsexec.c,v 1.160 2011/11/12 02:18:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,6 @@ pthread_mutex_t output_mutex;
 BOOL		daemonize=FALSE;
 #endif
 char		orig_cwd[MAX_PATH+1];
-BOOL		debugger=FALSE;
 
 void banner(FILE* fp)
 {
@@ -951,9 +950,6 @@ int parseLogLevel(const char* p)
 	return DEFAULT_LOG_LEVEL;
 }
 
-void debug_promopt()
-{
-}
 
 /*********************/
 /* Entry point (duh) */
@@ -986,7 +982,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.161 $", "%*s %s", revision);
+	sscanf("$Revision: 1.160 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1005,17 +1001,42 @@ int main(int argc, char **argv, char** environ)
 				case 'a':
 					omode="a";
 					break;
-				case 'c':
+				case 'f':
+					nonbuffered_con=TRUE;
+					break;
+				case 'm':
 					if(*p==0) p=argv[++argn];
-					SAFECOPY(scfg.ctrl_dir,p);
+					js_max_bytes=strtoul(p,NULL,0);
 					break;
-#if defined(__unix__)
-				case 'd':
-					daemonize=TRUE;
+				case 's':
+					if(*p==0) p=argv[++argn];
+					js_cx_stack=strtoul(p,NULL,0);
 					break;
-#endif
-				case 'D':
-					debugger=TRUE;
+				case 't':
+					if(*p==0) p=argv[++argn];
+					cb.limit=strtoul(p,NULL,0);
+					break;
+				case 'y':
+					if(*p==0) p=argv[++argn];
+					cb.yield_interval=strtoul(p,NULL,0);
+					break;
+				case 'g':
+					if(*p==0) p=argv[++argn];
+					cb.gc_interval=strtoul(p,NULL,0);
+					break;
+				case 'h':
+					if(*p==0)
+						gethostname(host_name=host_name_buf,sizeof(host_name_buf));
+					else
+						host_name=p;
+					break;
+				case 'u':
+					if(*p==0) p=argv[++argn];
+					umask(strtol(p,NULL,8));
+					break;
+				case 'L':
+					if(*p==0) p=argv[++argn];
+					log_level=parseLogLevel(p);
 					break;
 				case 'E':
 					if(*p==0) p=argv[++argn];
@@ -1028,37 +1049,6 @@ int main(int argc, char **argv, char** environ)
 						return(do_bail(1));
 					}
 					break;
-				case 'f':
-					nonbuffered_con=TRUE;
-					break;
-				case 'g':
-					if(*p==0) p=argv[++argn];
-					cb.gc_interval=strtoul(p,NULL,0);
-					break;
-				case 'h':
-					if(*p==0)
-						gethostname(host_name=host_name_buf,sizeof(host_name_buf));
-					else
-						host_name=p;
-					break;
-				case 'i':
-					if(*p==0) p=argv[++argn];
-					load_path_list=p;
-					break;
-				case 'L':
-					if(*p==0) p=argv[++argn];
-					log_level=parseLogLevel(p);
-					break;
-				case 'l':
-					loop=TRUE;
-					break;
-				case 'm':
-					if(*p==0) p=argv[++argn];
-					js_max_bytes=strtoul(p,NULL,0);
-					break;
-				case 'n':
-					statfp=nulfp;
-					break;
 				case 'o':
 					if(*p==0) p=argv[++argn];
 					if((confp=fopen(p,omode))==NULL) {
@@ -1066,38 +1056,41 @@ int main(int argc, char **argv, char** environ)
 						return(do_bail(1));
 					}
 					break;
-				case 'p':
-					pause_on_exit=TRUE;
-					break;
 				case 'q':
 					confp=nulfp;
 					break;
-				case 's':
-					if(*p==0) p=argv[++argn];
-					js_cx_stack=strtoul(p,NULL,0);
+				case 'n':
+					statfp=nulfp;
 					break;
-				case 't':
-					if(*p==0) p=argv[++argn];
-					cb.limit=strtoul(p,NULL,0);
+				case 'x':
+					cb.auto_terminate=FALSE;
 					break;
-				case 'u':
+				case 'l':
+					loop=TRUE;
+					break;
+				case 'p':
+					pause_on_exit=TRUE;
+					break;
+				case '!':
+					pause_on_error=TRUE;
+					break;
+				case 'c':
 					if(*p==0) p=argv[++argn];
-					umask(strtol(p,NULL,8));
+					SAFECOPY(scfg.ctrl_dir,p);
+					break;
+				case 'i':
+					if(*p==0) p=argv[++argn];
+					load_path_list=p;
 					break;
 				case 'v':
 					banner(statfp);
 					fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 					return(do_bail(0));
-				case 'x':
-					cb.auto_terminate=FALSE;
+#if defined(__unix__)
+				case 'd':
+					daemonize=TRUE;
 					break;
-				case 'y':
-					if(*p==0) p=argv[++argn];
-					cb.yield_interval=strtoul(p,NULL,0);
-					break;
-				case '!':
-					pause_on_error=TRUE;
-					break;
+#endif
 				default:
 					fprintf(errfp,"\n!Unsupported option: %s\n",argv[argn]);
 				case '?':
