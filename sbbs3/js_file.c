@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.141 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_file.c,v 1.144 2011/11/12 02:37:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1931,17 +1931,11 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	off_t		lng;
 	int			in;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
-	}
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
-
-#if 0 /* just too much */
-	dbprintf(FALSE, sock, "getting property %d",tiny);
-#endif
 
 	switch(tiny) {
 		case FILE_PROP_NAME:
@@ -2394,7 +2388,8 @@ static JSBool js_file_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_file_properties, js_file_functions, NULL, 0));
@@ -2488,9 +2483,9 @@ js_file_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent)
 {
-	JSObject*	sockobj;
+	JSObject*	obj;
 
-	sockobj = JS_InitClass(cx, parent, NULL
+	obj = JS_InitClass(cx, parent, NULL
 		,&js_file_class
 		,js_file_constructor
 		,1		/* number of constructor args */
@@ -2498,7 +2493,7 @@ JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent)
 		,NULL	/* funcs, set in constructor */
 		,NULL,NULL);
 
-	return(sockobj);
+	return(obj);
 }
 
 JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp)
