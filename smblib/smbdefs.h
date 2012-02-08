@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.81 2013/09/12 09:33:06 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.78 2011/08/30 22:12:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -479,7 +479,7 @@ enum {
 								/* These are the hash sources stored/compared for duplicate message detection: */
 #define SMB_HASH_SOURCE_DUPE	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_MSG_ID)|(1<<SMB_HASH_SOURCE_FTN_ID))
 								/* These are the hash sources stored/compared for SPAM message detection: */
-#define SMB_HASH_SOURCE_SPAM	((1<<SMB_HASH_SOURCE_BODY))
+#define SMB_HASH_SOURCE_SPAM	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_SUBJECT))
 
 typedef struct _PACK {
 
@@ -531,10 +531,9 @@ typedef struct _PACK {		/* Message header */
     /* 28 */ uint32_t	thread_next;		/* Next message in thread */
     /* 2c */ uint32_t	thread_first;		/* First reply to this message */
 	/* 30 */ uint16_t	delivery_attempts;	/* Delivery attempt counter */
-	/* 32 */ uchar		reserved[2];		/* Reserved for future use */
-	/* 34 */ uint32_t	thread_id;			/* Number of original message in thread (or 0 if unknown) */
-	/* 38 */ uint32_t	times_downloaded;	/* Total number of times downloaded (moved Mar-6-2012) */
-	/* 3c */ uint32_t	last_downloaded;	/* Date/time of last download (moved Mar-6-2012) */
+	/* 32 */ uint32_t	times_downloaded;	/* Total number of times downloaded */
+	/* 36 */ uint32_t	last_downloaded;	/* Date/time of last download */
+	/* 3a */ uchar		reserved[6];		/* Reserved for future use */
     /* 40 */ uint32_t	offset;				/* Offset for buffer into data file (0 or mod 256) */
 	/* 44 */ uint16_t	total_dfields;		/* Total number of data fields */
 
@@ -644,8 +643,8 @@ typedef struct {			/* Message base */
 
 	/* Private member variables (not initialized by or used by smblib) */
 	uint32_t	subnum;			/* Sub-board number */
-	uint32_t	msgs;			/* Number of messages loaded (for user) */
-	uint32_t	curmsg;			/* Current message number (for user) */
+	int32_t		msgs;			/* Number of messages loaded (for user) */
+	int32_t		curmsg;			/* Current message number (for user) */
 
 } smb_t;
 
