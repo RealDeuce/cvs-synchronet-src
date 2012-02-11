@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.67 2012/04/25 09:11:01 deuce Exp $ */
+/* $Id: conn.c,v 1.65 2012/02/11 10:28:28 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -35,9 +35,7 @@
 #include "rlogin.h"
 #include "raw.h"
 #include "ssh.h"
-#ifndef __HAIKU__
 #include "modem.h"
-#endif
 #ifdef __unix__
 #include "conn_pty.h"
 #endif
@@ -344,7 +342,6 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.close=ssh_close;
 			break;
 #endif
-#ifndef __HAIKU__
 		case CONN_TYPE_SERIAL:
 			conn_api.connect=modem_connect;
 			conn_api.close=serial_close;
@@ -353,7 +350,6 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=modem_connect;
 			conn_api.close=modem_close;
 			break;
-#endif
 #ifdef __unix__
 		case CONN_TYPE_SHELL:
 			conn_api.connect=pty_connect;
@@ -422,10 +418,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	hints.ai_flags=PF_UNSPEC;
 	hints.ai_socktype=SOCK_STREAM;
 	hints.ai_protocol=IPPROTO_TCP;
-	hints.ai_flags=AI_NUMERICSERV;
-#ifdef AI_ADDRCONFIG
-	hints.ai_flags|=AI_ADDRCONFIG;
-#endif
+	hints.ai_flags=AI_ADDRCONFIG|AI_NUMERICSERV;
 	sprintf(portnum, "%hu", bbs->port);
 	if(getaddrinfo(bbs->addr, portnum, &hints, &res)!=0) {
 		failcode=FAILURE_RESOLVE;
