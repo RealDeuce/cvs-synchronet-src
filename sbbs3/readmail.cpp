@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.55 2011/08/25 19:24:46 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.56 2011/09/03 06:00:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 	int		i,j;
 	int		error;
 	int		mismatches=0,act;
+	uint	unum;
     long    length,l,lm_mode;
 	ulong	last;
 	bool	replied;
@@ -700,11 +701,13 @@ void sbbs_t::readmail(uint usernumber, int which)
 			case 'U':   /* user edit */
 				msg.hdr.number=msg.idx.number;
 				smb_getmsgidx(&smb,&msg);
-				if((which==MAIL_SENT ? msg.idx.to : msg.idx.from) == 0) {
+				if((unum=(which==MAIL_SENT ? msg.idx.to : msg.idx.from)) == 0)
+					unum=(which==MAIL_SENT ? msg.idx.from : msg.idx.to);
+				if(unum == 0 || unum > lastuser(&cfg)) {
 					bputs(text[UnknownUser]);
 					domsg=false;
 				} else
-					useredit(which==MAIL_SENT ? msg.idx.to : msg.idx.from);
+					useredit(unum);
 				break;
 			case 'P':   /* Purge author and all mail to/from */
 				if(noyes(text[UeditDeleteQ]))

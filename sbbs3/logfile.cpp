@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.52 2011/08/31 19:31:26 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.54 2011/10/19 07:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 	char	tstr[64];
 	char	fname[MAX_PATH+1];
 	int		file;
-	time_t	now=time(NULL);
+	time32_t now=time32(NULL);
 
 	sprintf(fname,"%shack.log",cfg->logs_dir);
 
@@ -67,6 +67,11 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 	return(TRUE);
 }
 
+BOOL sbbs_t::hacklog(char* prot, char* text)
+{
+	return ::hacklog(&cfg, prot, useron.alias, text, client_name, &client_addr);
+}
+
 extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 								,char* reason, char* host, char* ip_addr
 								,char* to, char* from)
@@ -76,7 +81,7 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 	char	tstr[64];
 	char	fname[MAX_PATH+1];
 	int		file;
-	time_t	now=time(NULL);
+	time32_t now=time32(NULL);
 
 	sprintf(fname,"%sspam.log",cfg->logs_dir);
 
@@ -119,7 +124,7 @@ extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text)
 	sprintf(path,"%serror.log",cfg->logs_dir);
 	if((fp=fnopen(NULL,path,O_WRONLY|O_CREAT|O_APPEND))==NULL)
 		return -1; 
-	fprintf(fp,"%s %s\r\n%s\r\n\r\n", timestr(cfg,time(NULL),buf), host==NULL ? "":host, text);
+	fprintf(fp,"%s %s\r\n%s\r\n\r\n", timestr(cfg,time32(NULL),buf), host==NULL ? "":host, text);
 	fclose(fp);
 	return 0;
 }
@@ -282,18 +287,6 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 		CRLF;
 	}
 	safe_snprintf(str,sizeof(str),"ERROR %s %s", action, object);
-	errorlog(str);
-	errormsg_inside=false;
-}
-
-/*****************************************************************************/
-/* Error logging to NODE.LOG and DATA\ERROR.LOG function                     */
-/*****************************************************************************/
-void sbbs_t::errorlog(const char *text)
-{
-	if(errorlog_inside)		/* let's not go recursive on this puppy */
-		return;
-	errorlog_inside=1;
 	if(cfg.node_num>0) {
 		getnodedat(cfg.node_num,&thisnode,1);
 		if(thisnode.errors<UCHAR_MAX)
@@ -306,10 +299,10 @@ void sbbs_t::errorlog(const char *text)
 	if(logfile_fp!=NULL) {
 		if(logcol!=1)
 			fprintf(logfile_fp,"\r\n");
-		fprintf(logfile_fp,"%!! %s\r\n",text);
+		fprintf(logfile_fp,"!! %s\r\n",str);
 		logcol=1;
 		fflush(logfile_fp);
 	}
-	errorlog_inside=0;
-}
 
+	errormsg_inside=false;
+}
