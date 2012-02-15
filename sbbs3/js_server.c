@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.6 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_server.c,v 1.12 2011/10/29 03:53:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,8 +46,9 @@ enum {
 	,SERVER_PROP_CLIENTS
 };
 
-static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_server_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
+	jsval idval;
 	char*		ip;
     jsint       tiny;
 	struct in_addr in_addr;
@@ -56,7 +57,8 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	if((p=(js_server_props_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case SERVER_PROP_VER:
@@ -88,20 +90,24 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 	return(JS_TRUE);
 }
 
-static JSBool js_server_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+static JSBool js_server_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
+	jsval idval;
     jsint				tiny;
 	js_server_props_t*	p;
 
 	if((p=(js_server_props_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-    tiny = JSVAL_TO_INT(id);
+    JS_IdToValue(cx, id, &idval);
+    tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
 		case SERVER_PROP_OPTIONS:
-			if(p->options!=NULL)
-				JS_ValueToInt32(cx, *vp, (int32*)p->options);
+			if(p->options!=NULL) {
+				if(!JS_ValueToInt32(cx, *vp, (int32*)p->options))
+					return JS_FALSE;
+			}
 			break;
 	}
 
@@ -134,19 +140,24 @@ static char* server_prop_desc[] = {
 };
 #endif
 
-static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsval id)
+static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
 
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if(id != JSID_VOID && id != JSID_EMPTY) {
+		jsval idval;
+		
+		JS_IdToValue(cx, id, &idval);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+	}
 
 	return(js_SyncResolve(cx, obj, name, js_server_properties, NULL, NULL, 0));
 }
 
 static JSBool js_server_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_server_resolve(cx, obj, JSVAL_NULL));
+	return(js_server_resolve(cx, obj, JSID_VOID));
 }
 
 static JSClass js_server_class = {
