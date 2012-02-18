@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.34 2014/02/06 10:58:00 deuce Exp $ */
+/* $Id: x_cio.c,v 1.32 2011/12/07 03:29:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@
 #endif
 
 #include "ciolib.h"
+#include "keys.h"
 #include "x_cio.h"
 #include "x_events.h"
 
@@ -158,7 +159,6 @@ void x11_mouse_thread(void *data)
 	//uint16_t	key=((CIO_KEY_MOUSE&0xFF)<<8)|((CIO_KEY_MOUSE>>8)&0xFF);
 	uint16_t	key=CIO_KEY_MOUSE;
 
-	SetThreadName("X11 Mouse");
 	while(1) {
 		if(mouse_wait())
 			write(key_pipe[1], &key, 2);
