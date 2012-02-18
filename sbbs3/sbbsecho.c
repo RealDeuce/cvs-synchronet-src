@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.205 2012/02/17 03:44:10 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.206 2012/02/18 00:39:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,7 @@ char		revision[16];
 char		compiler[32];
 
 BOOL pause_on_exit=FALSE;
+BOOL pause_on_abend=FALSE;
 
 #ifndef __NT__
 #define delfile(x) remove(x)
@@ -2010,7 +2011,8 @@ ulong loadmsgs(post_t** post, ulong ptr)
 
 void bail(int code)
 {
-	if(code || pause_on_exit) {
+	if((code && pause_on_abend) || pause_on_exit) {
+		fcloseall();
 		fprintf(stderr,"\nHit any key...");
 		getch();
 		fprintf(stderr,"\n");
@@ -3959,7 +3961,8 @@ int main(int argc, char **argv)
 	"y: import netmail for unknown users to sysop\n"
 	"o: import all netmail regardless of destination address\n"
 	"s: import private echomail override (strip private status)\n"
-	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n";
+	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n"
+	"                                         $: prompt for key upon abnormal exit\n";
 
 	if((email=(smb_t *)malloc(sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for email.\n");
@@ -3982,7 +3985,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.205 $", "%*s %s", revision);
+	sscanf("$Revision: 1.206 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4076,6 +4079,9 @@ int main(int argc, char **argv)
 						break;
 					case '@':
 						pause_on_exit=TRUE;
+						break;
+					case '$':
+						pause_on_abend=TRUE;
 						break;
 					case 'Q':
 						bail(0);
