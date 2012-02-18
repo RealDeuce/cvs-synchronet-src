@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.27 2012/10/23 07:59:36 deuce Exp $ */
+/* $Id: smbadd.c,v 1.25 2011/10/30 09:03:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -99,10 +99,10 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			}
 		}
 
-		if(tail!=NULL && (taillen=strlen((const char *)tail))>0)
+		if(tail!=NULL && (taillen=strlen(tail))>0)
 			taillen+=sizeof(xlat);	/* xlat string terminator */
 
-		if(body!=NULL && (bodylen=strlen((const char *)body))>0) {
+		if(body!=NULL && (bodylen=strlen(body))>0) {
 
 			/* Remove white-space from end of message text */
 			chklen=bodylen;
@@ -258,7 +258,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 		/* Look-up thread_back if FTN REPLY was specified */
 		if(msg->hdr.thread_back==0 && msg->ftn_reply!=NULL) {
-			if(smb_getmsgidx_by_ftnid(smb,&remsg,msg->ftn_reply)==SMB_SUCCESS)
+			if(smb_getmsghdr_by_ftnid(smb,&remsg,msg->ftn_reply)==SMB_SUCCESS)
 				msg->hdr.thread_back=remsg.idx.number;	/* needed for threading backward */
 		}
 
@@ -266,18 +266,13 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		if(msg->hdr.thread_back) {
 			memset(&remsg,0,sizeof(remsg));
 			remsg.hdr.number=msg->hdr.thread_back;
-			if(smb_getmsgidx(smb, &remsg)==SMB_SUCCESS	/* valid thread back */
+			if(smb_getmsgidx(smb, &remsg)==SMB_SUCCESS	/* valid thread origin */
 				&& smb_lockmsghdr(smb,&remsg)==SMB_SUCCESS) {
 
 				do { /* try */
 
 					if(smb_getmsghdr(smb, &remsg)!=SMB_SUCCESS)
 						break;
-
-					if(msg->hdr.thread_id==0) {	/* no thread_id pre-specified */
-						if((msg->hdr.thread_id=remsg.hdr.thread_id) == 0)
-							msg->hdr.thread_id=remsg.hdr.number;
-					}
 
 					/* Add RFC-822 Reply-ID if original message has RFC Message-ID */
 					if(msg->reply_id==NULL && remsg.id!=NULL

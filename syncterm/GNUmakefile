@@ -59,8 +59,6 @@ endif
 
 ifdef WITHOUT_CRYPTLIB
  CFLAGS += -DWITHOUT_CRYPTLIB
- CRYPT_LDFLAGS :=
- CRYPT_DEPS :=
 else
  OBJS += $(MTOBJODIR)$(DIRSEP)ssh$(OFILE)
  CFLAGS	+=	$(CRYPT_CFLAGS)
@@ -77,10 +75,6 @@ ifeq ($(os),darwin)
  endif
  EXTRA_LIBS += -framework CoreServices
  STATIC_CRYPTLIB ?= 1
-endif
-
-ifdef STATIC_CRYPTLIB
- CFLAGS += -DSTATIC_CRYPTLIB
 endif
 
 ifeq ($(os),linux)
@@ -119,18 +113,12 @@ else
 endif
 INSTALL_DATA	?=	install -m 0444
 
-ifneq ($(os),haiku)
- OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE) \
-           $(MTOBJODIR)$(DIRSEP)modem$(OFILE) \
-           $(MTOBJODIR)$(DIRSEP)comio$(OFILE)
-endif
-OBJS += $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
+OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
+OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
 ifndef bcc
  ifneq ($(os),sunos)
   ifneq ($(os),darwin)
-    ifneq ($(os),haiku)
-      EXTRA_LIBS   +=  -lutil
-	endif
+   LDFLAGS   +=  -lutil
   endif
  endif
 endif
@@ -138,7 +126,7 @@ endif
 
 $(SYNCTERM): $(CRYPT_DEPS) $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(EXTRA_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS)
+	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS) $(EXTRA_LIBS)
 ifeq ($(os),darwin)
 	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app
 	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents

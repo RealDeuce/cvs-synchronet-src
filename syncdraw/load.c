@@ -617,22 +617,22 @@ LoadFile(char *Name)
 		/* Check for "known" extensions */
 		ext=getfext(Name);
 		if(ext) {
-			if(stricmp(ext,".asc")==0) {
+			if(stricmp(ext,".asc")) {
 				PCB=FALSE;
 				ANSI=FALSE;
 				AVATAR=FALSE;
 			}
-			else if(stricmp(ext,".ans")==0) {
+			else if(stricmp(ext,".ans")) {
 				PCB=FALSE;
 				AVATAR=FALSE;
 				SYNC=FALSE;
 			}
-			else if(stricmp(ext,".avt")==0) {
+			else if(stricmp(ext,".avt")) {
 				PCB=FALSE;
 				ANSI=FALSE;
 				SYNC=FALSE;
 			}
-			else if(stricmp(ext,".pcb")==0) {
+			else if(stricmp(ext,".pcb")) {
 				ANSI=FALSE;
 				AVATAR=FALSE;
 				SYNC=FALSE;
