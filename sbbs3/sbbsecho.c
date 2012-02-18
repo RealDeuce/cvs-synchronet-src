@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.207 2012/02/18 02:26:02 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.208 2012/02/18 03:00:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3968,7 +3968,7 @@ int main(int argc, char **argv)
 	"o: import all netmail regardless of destination address\n"
 	"s: import private echomail override (strip private status)\n"
 	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n"
-	"                                         $: prompt for key upon abnormal exit\n";
+	"                                         W: prompt for key upon abnormal exit\n";
 
 	if((email=(smb_t *)malloc(sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for email.\n");
@@ -3991,7 +3991,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.207 $", "%*s %s", revision);
+	sscanf("$Revision: 1.208 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4086,7 +4086,7 @@ int main(int argc, char **argv)
 					case '@':
 						pause_on_exit=TRUE;
 						break;
-					case '$':
+					case 'W':
 						pause_on_abend=TRUE;
 						break;
 					case 'Q':
