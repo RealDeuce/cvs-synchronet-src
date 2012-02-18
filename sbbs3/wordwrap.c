@@ -1,10 +1,10 @@
-/* $Id: wordwrap.c,v 1.7 2011/10/19 08:49:46 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.16 2011/11/30 03:18:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -191,12 +191,15 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 		return NULL;
 	outp=outbuf;
 
-	if((linebuf=(char*)malloc(inbuf_len+2))==NULL) /* room for ^A codes */
+	if((linebuf=(char*)malloc(inbuf_len+2))==NULL) { /* room for ^A codes */
+		free(outbuf);
 		return NULL;
+	}
 
 	if(handle_quotes) {
 		if((prefix=(char *)malloc(inbuf_len+1))==NULL) { /* room for ^A codes */
 			free(linebuf);
+			free(outbuf);
 			return NULL;
 		}
 		prefix[0]=0;
@@ -228,6 +231,9 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 		old_prefix_bytes=prefix_bytes;
 	}
 	for(; inbuf[i]; i++) {
+		if(oldlen == 0)
+			icol=-256;
+
 		if(l>=len*2+2) {
 			l-=4;
 			linebuf[l]=0;
@@ -272,7 +278,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 					ocol=prefix_len+1;
 					old_prefix_bytes=prefix_bytes;
 				}
-				else if(isspace((unsigned char)inbuf[i+1]) && inbuf[i+1] != '\n' && inbuf[i+1] != '\r') {	/* Next line starts with whitespace.  This is a "hard" CR. */
+				else if(isspace((unsigned char)inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
 					linebuf[l++]='\r';
 					linebuf[l++]='\n';
 					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
