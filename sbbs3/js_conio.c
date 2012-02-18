@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.20 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_conio.c,v 1.22 2011/10/29 03:53:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,41 +185,49 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval
 			JS_ValueToBoolean(cx, *vp, &puttext_can_move);
 			break;
 		case PROP_ESCDELAY:
-			if(cio_api.ESCDELAY)
-				JS_ValueToInt32(cx, *vp, (int32*)cio_api.ESCDELAY);
+			if(cio_api.ESCDELAY) {
+				if(!JS_ValueToInt32(cx, *vp, (int32*)cio_api.ESCDELAY))
+					return JS_FALSE;
+			}
 			break;
 		case PROP_TEXTATTR:
-			JS_ValueToInt32(cx, *vp, &i);
+			if(!JS_ValueToInt32(cx, *vp, &i))
+				return JS_FALSE;
 			rc=JS_SUSPENDREQUEST(cx);
 			textattr(i);
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case PROP_WHEREX:
-			JS_ValueToInt32(cx, *vp, &i);
+			if(!JS_ValueToInt32(cx, *vp, &i))
+				return JS_FALSE;
 			rc=JS_SUSPENDREQUEST(cx);
 			gotoxy(i, cio_textinfo.cury);
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case PROP_WHEREY:
-			JS_ValueToInt32(cx, *vp, &i);
+			if(!JS_ValueToInt32(cx, *vp, &i))
+				return JS_FALSE;
 			rc=JS_SUSPENDREQUEST(cx);
 			gotoxy(cio_textinfo.curx, i);
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case PROP_TEXTMODE:
-			JS_ValueToInt32(cx, *vp, &i);
+			if(!JS_ValueToInt32(cx, *vp, &i))
+				return JS_FALSE;
 			rc=JS_SUSPENDREQUEST(cx);
 			textmode(i);
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case PROP_TEXTBACKGROUND:
-			JS_ValueToInt32(cx, *vp, &i);
+			if(!JS_ValueToInt32(cx, *vp, &i))
+				return JS_FALSE;
 			rc=JS_SUSPENDREQUEST(cx);
 			textbackground(i);
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case PROP_TEXTCOLOR:
-			JS_ValueToInt32(cx, *vp, &i);
+			if(!JS_ValueToInt32(cx, *vp, &i))
+				return JS_FALSE;
 			rc=JS_SUSPENDREQUEST(cx);
 			textcolor(i);
 			JS_RESUMEREQUEST(cx, rc);
@@ -1105,7 +1113,8 @@ static JSBool js_conio_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0));
