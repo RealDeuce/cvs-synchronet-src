@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.23 2011/10/16 09:53:10 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.25 2011/10/30 09:03:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	long		lzhlen;
 	int			retval;
 	size_t		n;
-	size_t		l,length;
+	size_t		l;
+	off_t		length;
 	size_t		taillen=0;
 	size_t		bodylen=0;
 	size_t		chklen=0;
@@ -140,8 +141,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 		if(length) {
 
-			if(length&0x80000000) {
-				sprintf(smb->last_error,"message length: 0x%lX",length);
+			if(length >= 0x80000000 || length < 0) {
+				sprintf(smb->last_error,"message length: 0x%"PRIXMAX,(intmax_t)length);
 				retval=SMB_ERR_DAT_LEN;
 				break;
 			}
