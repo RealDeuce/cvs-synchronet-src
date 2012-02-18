@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.79 2014/02/10 00:48:01 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.75 2011/04/21 20:34:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,14 @@
 	struct termios tio_default;				/* Initial term settings */
 #endif
 
-#include <ciolib.h>
+#if (defined CIOLIB_IMPORTS)
+ #undef CIOLIB_IMPORTS
+#endif
+#if (defined CIOLIB_EXPORTS)
+ #undef CIOLIB_EXPORTS
+#endif
+
+#include "ciolib.h"
 #include "ansi_cio.h"
 
 int	CIOLIB_ANSI_TIMEOUT=500;
@@ -632,7 +639,6 @@ static void ansi_keyparse(void *par)
 	int		timedout=0;
 	int		unknown=0;
 
-	SetThreadName("ANSI Keyparse");
 	seq[0]=0;
 	for(;;) {
 		if(ansi_got_row)
@@ -802,7 +808,6 @@ static void ansi_keythread(void *params)
 {
 	int	sval=1;
 
-	SetThreadName("ANSI Key");
 	_beginthread(ansi_keyparse,1024,NULL);
 
 	for(;;) {
@@ -938,7 +943,12 @@ int ansi_initio_cb(void)
 	if (isatty(STDIN_FILENO))  {
 		tcgetattr(STDIN_FILENO,&tio_default);
 		tio_raw = tio_default;
-		cfmakeraw(&tio_raw);
+		/* cfmakeraw(&tio_raw); */
+		tio_raw.c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+		tio_raw.c_oflag &= ~OPOST;
+		tio_raw.c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+		tio_raw.c_cflag &= ~(CSIZE|PARENB);
+		tio_raw.c_cflag |= CS8;
 		tcsetattr(STDIN_FILENO,TCSANOW,&tio_raw);
 		setvbuf(stdout, NULL, _IONBF, 0);
 		atexit(ansi_fixterm);
