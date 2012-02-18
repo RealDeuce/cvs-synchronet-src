@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.204 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: sbbsecho.c,v 1.207 2012/02/18 02:26:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -86,6 +86,7 @@ char		revision[16];
 char		compiler[32];
 
 BOOL pause_on_exit=FALSE;
+BOOL pause_on_abend=FALSE;
 
 #ifndef __NT__
 #define delfile(x) remove(x)
@@ -378,7 +379,7 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 	if(findstr(searchstr,fname))	/* file already in FLO file */
 		return(0);
 	if((stream=fopen(fname,"a"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,fname,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,fname);
 		return(-1); 
 	}
 	fprintf(stream,"%s\n",searchstr);
@@ -445,11 +446,13 @@ int create_netmail(char *to, char *subject, char *body, faddr_t dest, BOOL file_
 		}
 		if(!i) {
 			lprintf(LOG_WARNING,"Directory full: %s",scfg.netmail_dir);
-			return(-1); }
+			return(-1); 
+		}
 		startmsg=i+1;
 		if((fstream=fnopen(&fmsg,fname,O_RDWR|O_CREAT))==NULL) {
-			lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,fname,strerror(errno));
-			return(-1); }
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,fname);
+			return(-1); 
+		}
 
 		faddr=getsysfaddr(dest.zone);
 		memset(&hdr,0,sizeof(fmsghdr_t));
@@ -651,9 +654,8 @@ void netmail_arealist(int type, faddr_t addr, char* to)
 						if(!stricmp(cfg.listcfg[j].flag[k].flag
 							,cfg.nodecfg[i].flag[x].flag)) {
 							if((stream=fopen(cfg.listcfg[j].listpath,"r"))==NULL) {
-								lprintf(LOG_ERR,"ERROR line %d couldn't open %s %s"
-									,__LINE__,cfg.listcfg[j].listpath
-									,strerror(errno));
+								lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
+									,errno,strerror(errno),__LINE__,cfg.listcfg[j].listpath);
 								match=1;
 								break; }
 							while(!feof(stream)) {
@@ -723,8 +725,8 @@ int check_elists(char *areatag,faddr_t addr)
 					if(!stricmp(cfg.listcfg[j].flag[k].flag
 						,cfg.nodecfg[i].flag[x].flag)) {
 						if((stream=fopen(cfg.listcfg[j].listpath,"r"))==NULL) {
-							lprintf(LOG_ERR,"ERROR line %d opening %s"
-								,__LINE__,cfg.listcfg[j].listpath);
+							lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
+								,errno,strerror(errno),__LINE__,cfg.listcfg[j].listpath);
 							quit=1;
 							break; }
 						while(!feof(stream)) {
@@ -769,14 +771,12 @@ void alter_areas(area_t* add_area, area_t* del_area, faddr_t addr, char* to)
 		free(outname);
 		return; }
 	if((afileout=fopen(outname,"w+"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,outname
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,outname);
 		fclose(nmfile);
 		free(outname);
 		return; }
 	if((afilein=fopen(cfg.areafile,"r"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,cfg.areafile
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.areafile);
 		fclose(afileout);
 		fclose(nmfile);
 		free(outname);
@@ -925,8 +925,8 @@ void alter_areas(area_t* add_area, area_t* del_area, faddr_t addr, char* to)
 								match=1;
 								break; }
 							if((afilein=fopen(cfg.listcfg[j].listpath,"r"))==NULL) {
-								lprintf(LOG_ERR,"ERROR line %d opening %s"
-									,__LINE__,cfg.listcfg[j].listpath);
+								lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
+									,errno,strerror(errno),__LINE__,cfg.listcfg[j].listpath);
 								fclose(fwdfile);
 								match=1;
 								break; }
@@ -1012,13 +1012,11 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 		lprintf(LOG_ERR,"ERROR tempnam(%s,CFG)",outpath);
 		return; }
 	if((outfile=fopen(outname,"w+"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,outname
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,outname);
 		free(outname);
 		return; }
 	if((cfgfile=fopen(cfg.cfgfile,"r"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,cfg.cfgfile
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.cfgfile);
 		fclose(outfile);
 		free(outname);
 		return; }
@@ -1137,8 +1135,7 @@ void command(char* instr, faddr_t addr, char* to)
 		if(!fexistcase(str))
 			return;
 		if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
-			lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,str
-				,strerror(errno));
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,str);
 			return; 
 		}
 		l=filelength(file);
@@ -1453,8 +1450,7 @@ int unpack(char *infile)
 	int i,j,ch,file;
 
 	if((stream=fnopen(&file,infile,O_RDONLY))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,infile
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,infile);
 		bail(1); 
 		return -1;
 	}
@@ -1530,7 +1526,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 	}
 	sprintf(fname,"%sBUNDLES.SBE",cfg.outbound);
 	if((stream=fnopen(&file,fname,O_RDWR|O_CREAT))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,fname,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,fname);
 		return(1); 
 	}
 
@@ -1567,8 +1563,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 			path=g.gl_pathv[f];
 
 			if((fidomsg=fnopen(&fmsg,path,O_RDWR))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,path
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,path);
 				continue; 
 			}
 			if(filelength(fmsg)<sizeof(fmsghdr_t)) {
@@ -1892,24 +1887,24 @@ int mv(char *src, char *dest, BOOL copy)
 		/* rename failed, so attempt copy */
 	}
 	if((ind=nopen(src,O_RDONLY))==-1) {
-		lprintf(LOG_ERR,"MV ERROR: ERR_OPEN %s",src);
+		lprintf(LOG_ERR,"MV ERROR %u (%s) opening %s",errno,strerror(errno),src);
 		return(-1); 
 	}
 	if((inp=fdopen(ind,"rb"))==NULL) {
 		close(ind);
-		lprintf(LOG_ERR,"MV ERROR: ERR_FDOPEN %s",str);
+		lprintf(LOG_ERR,"MV ERROR %u (%s) fdopening %s",errno,strerror(errno),str);
 		return(-1); 
 	}
 	setvbuf(inp,NULL,_IOFBF,8*1024);
 	if((outd=nopen(dest,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 		fclose(inp);
-		lprintf(LOG_ERR,"MV ERROR: ERR_OPEN %s",dest);
+		lprintf(LOG_ERR,"MV ERROR %u (%s) opening %s",errno,strerror(errno),dest);
 		return(-1); 
 	}
 	if((outp=fdopen(outd,"wb"))==NULL) {
 		close(outd);
 		fclose(inp);
-		lprintf(LOG_ERR,"MV ERROR: ERR_FDOPEN %s",str);
+		lprintf(LOG_ERR,"MV ERROR %u (%s) fdopening %s",errno,strerror(errno),str);
 		return(-1); 
 	}
 	setvbuf(outp,NULL,_IOFBF,8*1024);
@@ -2016,7 +2011,8 @@ ulong loadmsgs(post_t** post, ulong ptr)
 
 void bail(int code)
 {
-	if(code || pause_on_exit) {
+	if((code && pause_on_abend) || pause_on_exit) {
+		fcloseall();
 		fprintf(stderr,"\nHit any key...");
 		getch();
 		fprintf(stderr,"\n");
@@ -2646,15 +2642,15 @@ char *pktname(BOOL temp)
     struct tm *tm;
 
 	now=time(NULL);
-	for(i=0;i<MAX_TOTAL_PKTS*2;i++) {
+	for(i=0;i>=0;i++) {
 		now++;
 		tm=localtime(&now);
 		sprintf(str,"%s%02u%02u%02u%02u.%s",cfg.outbound,tm->tm_mday,tm->tm_hour
 			,tm->tm_min,tm->tm_sec,temp ? "pk_" : "pkt");
 		if(!fexist(str))				/* Add 1 second if name exists */
-			break; 
+			return(str); 
 	}
-	return(str);
+	return(NULL);	/* This should never happen */
 }
 /******************************************************************************
  This function puts a message into a Fido packet, writing both the header
@@ -3048,11 +3044,11 @@ void attach_bundles(void)
 
 		printf("%21s: %s ","Outbound Packet",packet);
 		if((fmsg=sopen(packet,O_RDWR|O_BINARY,SH_DENYRW))==-1) {
-			lprintf(LOG_ERR,"ERROR %d line %d opening %s",errno,__LINE__,packet);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,packet);
 			continue; }
 		if((fidomsg=fdopen(fmsg,"r+b"))==NULL) {
 			close(fmsg);
-			lprintf(LOG_ERR,"ERROR line %d fdopening %s",__LINE__,packet);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d fdopening %s",errno,strerror(errno),__LINE__,packet);
 			continue; }
 		if(filelength(fmsg)<sizeof(pkthdr_t)) {
 			lprintf(LOG_ERR,"ERROR line %d invalid length of %lu bytes for %s"
@@ -3116,20 +3112,19 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 				lprintf(LOG_ERR,"MAX_TOTAL_PKTS (%d) REACHED!",MAX_TOTAL_PKTS);
 				break;
 			}
-			if(outpkt[i].curopen) {
-				terminate_packet(outpkt[i].stream);
-				fclose(outpkt[i].stream); }
+			if(outpkt[i].stream==NULL)
+				outpkt[i].stream=fnopen(&file,outpkt[i].filename,O_WRONLY|O_APPEND);
+				
+			if(outpkt[i].stream==NULL)
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s for termination",errno,strerror(errno),__LINE__,outpkt[i].filename);
 			else {
-				if((outpkt[i].stream=fnopen(&file,outpkt[i].filename
-					,O_WRONLY|O_APPEND))==NULL) {
-					lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__
-						,outpkt[i].filename,strerror(errno));
-					continue; }
 				terminate_packet(outpkt[i].stream);
-				fclose(outpkt[i].stream); }
-			  /* pack_nundle() disabled.  Why?  ToDo */
+				fclose(outpkt[i].stream); 
+			}
+			  /* pack_bundle() disabled.  Why?  ToDo */
 			  /* pack_bundle(outpkt[i].filename,outpkt[i].uplink); */
-			memset(&outpkt[i],0,sizeof(outpkt_t)); }
+			memset(&outpkt[i],0,sizeof(outpkt_t)); 
+		}
 		totalpkts=openpkts=0;
 		attach_bundles();
 		if(!(misc&FLO_MAILER))
@@ -3162,21 +3157,22 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 				break;
 			}
 			if(!memcmp(&area.uplink[j],&outpkt[i].uplink,sizeof(faddr_t))) {
-				if(!outpkt[i].curopen) {
-					if(openpkts==DFLT_OPEN_PKTS)
+				if(outpkt[i].stream==NULL) {
+					if(openpkts==DFLT_OPEN_PKTS) {
 						for(k=0;k<totalpkts;k++) {
-							if(outpkt[k].curopen) {
+							if(outpkt[k].stream!=NULL) {
 								fclose(outpkt[k].stream);
-								outpkt[k].curopen=0;
-								break; } }
+								outpkt[k].stream=NULL;
+								break; 
+							} 
+						}
+					}
 					if((outpkt[i].stream=fnopen(&file,outpkt[i].filename
 						,O_WRONLY|O_APPEND))==NULL) {
-						lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__
-							,outpkt[i].filename,strerror(errno));
-						bail(1); 
-						return;
+						lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,outpkt[i].filename);
+						continue;
 					}
-					outpkt[i].curopen=1; }
+				}
 				if((strlen((char *)fbuf)+1+ftell(outpkt[i].stream))
 					<=cfg.maxpktsize) {
 					fmsghdr.destnode=area.uplink[j].node;
@@ -3200,20 +3196,24 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 			} 
 		}
 		if(i==totalpkts) {
-			if(openpkts==DFLT_OPEN_PKTS)
+			if(openpkts==DFLT_OPEN_PKTS) {
 				for(k=0;k<totalpkts;k++) {
-					if(outpkt[k].curopen) {
+					if(outpkt[k].stream!=NULL) {
 						fclose(outpkt[k].stream);
-						outpkt[k].curopen=0;
+						outpkt[k].stream=NULL;
 						--openpkts;
-						break; } }
-			strcpy(outpkt[i].filename,pktname(/* temp? */ TRUE));
+						break; 
+					} 
+				}
+			}
+			SAFECOPY(outpkt[i].filename,pktname(/* temp? */ TRUE));
 			now=time(NULL);
 			tm=localtime(&now);
 			if((outpkt[i].stream=fnopen(&file,outpkt[i].filename
 				,O_WRONLY|O_CREAT))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s"
-					,__LINE__,outpkt[i].filename,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
+					,errno,strerror(errno),__LINE__,outpkt[i].filename);	/* failhere */
+				lprintf(LOG_DEBUG,"i=%d, totalpkts=%d, openpkts=%d", i, totalpkts, openpkts);
 				bail(1); 
 				return;
 			}
@@ -3271,13 +3271,13 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 			}
 			fwrite(&pkthdr,sizeof(pkthdr_t),1,outpkt[totalpkts].stream);
 			putfmsg(outpkt[totalpkts].stream,fbuf,fmsghdr,area,seenbys,paths);
-			outpkt[totalpkts].curopen=1;
 			memcpy(&outpkt[totalpkts].uplink,&area.uplink[j]
 				,sizeof(faddr_t));
 			++openpkts;
 			++totalpkts;
 			if(totalpkts>=MAX_TOTAL_PKTS) {
 				fclose(outpkt[totalpkts-1].stream);
+				outpkt[totalpkts-1].stream=NULL;
 				/* pack_bundle() disabled.  Why?  ToDo */
 				/* pack_bundle(outpkt[totalpkts-1].filename
 					  ,outpkt[totalpkts-1].uplink); */
@@ -3314,7 +3314,7 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, char* info)
 			return(-1); 
 		}
 		if((file=nopen(path,O_WRONLY|O_CREAT))==-1) {
-			lprintf(LOG_ERR,"ERROR %u line %d creating %s",errno,__LINE__,path);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d creating %s",errno,strerror(errno),__LINE__,path);
 			return(-1);
 		}
 		write(file,hdr,sizeof(fmsghdr_t));
@@ -3629,8 +3629,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 					lprintf(LOG_DEBUG,"Fixing new-scan pointer.");
 					sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
 					if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
-						lprintf(LOG_ERR,"ERROR %d line %d opening/creating %s"
-							,errno,__LINE__,str); }
+						lprintf(LOG_ERR,"ERROR %d (%s) line %d opening/creating %s"
+							,errno,strerror(errno),__LINE__,str); }
 					else {
 						write(file,&lastmsg,4);
 						close(file); } }
@@ -3864,8 +3864,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 			if(!addr.zone && !(misc&LEAVE_MSGPTRS) && lastmsg>ptr) {
 				sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
 				if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
-					lprintf(LOG_ERR,"ERROR %d line %d opening/creating %s"
-						,errno,__LINE__,str); }
+					lprintf(LOG_ERR,"ERROR %d (%s) line %d opening/creating %s"
+						,errno,strerror(errno),__LINE__,str); }
 				else {
 					write(file,&lastmsg,4);
 					close(file); } } }
@@ -3967,7 +3967,8 @@ int main(int argc, char **argv)
 	"y: import netmail for unknown users to sysop\n"
 	"o: import all netmail regardless of destination address\n"
 	"s: import private echomail override (strip private status)\n"
-	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n";
+	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n"
+	"                                         $: prompt for key upon abnormal exit\n";
 
 	if((email=(smb_t *)malloc(sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for email.\n");
@@ -3990,7 +3991,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.204 $", "%*s %s", revision);
+	sscanf("$Revision: 1.207 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4085,6 +4086,9 @@ int main(int argc, char **argv)
 					case '@':
 						pause_on_exit=TRUE;
 						break;
+					case '$':
+						pause_on_abend=TRUE;
+						break;
 					case 'Q':
 						bail(0);
 					default:
@@ -4145,7 +4149,7 @@ int main(int argc, char **argv)
 
 	if(misc&LOGFILE)
 		if((fidologfile=fopen(cfg.logfile,"a"))==NULL) {
-			fprintf(stderr,"\7ERROR line %d opening %s\n",__LINE__,cfg.logfile);
+			fprintf(stderr,"ERROR %u (%s) line %d opening %s\n",errno,strerror(errno),__LINE__,cfg.logfile);
 			bail(1); 
 			return -1;
 		}
@@ -4154,8 +4158,8 @@ int main(int argc, char **argv)
 
 	printf("Reading %s",cfg.areafile);
 	if((stream=fopen(cfg.areafile,"r"))==NULL) {
-		fprintf(stderr,"\nError opening %s for read: %s\n"
-			,cfg.areafile,strerror(errno));
+		fprintf(stderr,"\nERROR %u (%s) opening %s\n"
+			,errno,strerror(errno),cfg.areafile);
 		bail(1); 
 		return -1;
 	}
@@ -4266,11 +4270,11 @@ int main(int argc, char **argv)
 
 		lprintf(LOG_DEBUG,"%21s: %s ","Outbound Packet",packet);
 		if((fmsg=sopen(packet,O_RDWR|O_BINARY,SH_DENYRW))==-1) {
-			lprintf(LOG_ERR,"ERROR line %d opening %s",__LINE__,packet);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,packet);
 			continue; }
 		if((fidomsg=fdopen(fmsg,"r+b"))==NULL) {
 			close(fmsg);
-			lprintf(LOG_ERR,"ERROR line %d fdopening %s",__LINE__,packet);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d fdopening %s",errno,strerror(errno),__LINE__,packet);
 			continue; }
 		if(filelength(fmsg)<sizeof(pkthdr_t)) {
 			lprintf(LOG_ERR,"ERROR line %d invalid length of %lu bytes for %s"
@@ -4344,8 +4348,7 @@ int main(int argc, char **argv)
 			SAFECOPY(packet,g.gl_pathv[f]);
 
 			if((fidomsg=fnopen(&fmsg,packet,O_RDWR))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,packet
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,packet);
 				continue; 
 			}
 			if(filelength(fmsg)<sizeof(pkthdr_t)) {
@@ -4809,8 +4812,7 @@ int main(int argc, char **argv)
 			SAFECOPY(path,g.gl_pathv[f]);
 
 			if((fidomsg=fnopen(&fmsg,path,O_RDWR))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,path
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,path);
 				continue; }
 			if(filelength(fmsg)<sizeof(fmsghdr_t)) {
 				lprintf(LOG_ERR,"ERROR line %d invalid length of %lu bytes for %s",__LINE__
@@ -4867,8 +4869,7 @@ int main(int argc, char **argv)
 			SAFECOPY(path,g.gl_pathv[f]);
 
 			if((fidomsg=fnopen(&fmsg,path,O_RDWR))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,path
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,path);
 				continue; }
 			if(filelength(fmsg)<sizeof(fmsghdr_t)) {
 				lprintf(LOG_WARNING,"%s Invalid length of %lu bytes",path,filelength(fmsg));
@@ -4951,15 +4952,15 @@ int main(int argc, char **argv)
 					if(write_flofile(hdr.subj,addr,FALSE /* !bundle */))
 						bail(1); 
 			}
-			else
+			else {
 				SAFECOPY(packet,pktname(/* Temp? */ FALSE));
+			}
 
 			lprintf(LOG_DEBUG,"NetMail packet: %s", packet);
 			now=time(NULL);
 			tm=localtime(&now);
 			if((stream=fnopen(&file,packet,O_RDWR|O_CREAT))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,packet
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,packet);
 				bail(1); 
 				return -1;
 			}
@@ -5038,8 +5039,8 @@ int main(int argc, char **argv)
 					getlastmsg(i,&l,0);
 					sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
 					if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
-						lprintf(LOG_ERR,"ERROR %d line %d opening/creating %s"
-							,errno,__LINE__,str); }
+						lprintf(LOG_ERR,"ERROR %u (%s) line %d opening/creating %s"
+							,errno,strerror(errno),__LINE__,str); }
 					else {
 						write(file,&l,4);
 						close(file); 
@@ -5053,7 +5054,7 @@ int main(int argc, char **argv)
 		now=time(NULL);
 		sprintf(str,"%ssbbsecho.msg",scfg.text_dir);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
-			lprintf(LOG_ERR,"ERROR line %d opening %s",__LINE__,str);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,str);
 			bail(1); 
 			return -1;
 		}
