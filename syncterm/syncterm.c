@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.170 2012/02/20 08:52:18 deuce Exp $ */
+/* $Id: syncterm.c,v 1.171 2012/02/20 15:52:01 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1180,7 +1180,7 @@ void load_settings(struct syncterm_settings *set)
 	strListFree(&sortby);
 
 	/* Shell TERM settings */
-	iniReadString(inifile, "SyncTERM", "TERM", "ansi", set->TERM);
+	iniReadString(inifile, "SyncTERM", "TERM", "syncterm", set->TERM);
 
 	if(inifile)
 		fclose(inifile);
