@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.13 2012/02/20 15:52:01 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.14 2012/02/20 16:26:55 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -440,6 +440,12 @@ int pty_connect(struct bbslist *bbs)
 				":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:sr=\\E[T:up=\\E[A:ve=\\E[?25h"
 				":vi=\\E[?25l:",ws.ws_col,ws.ws_row);
 		setenv("TERMCAP",termcap,1);
+		xp_asprintf_free(termcap);
+		termcap=xp_asprintf("%d",ws.ws_col);
+		setenv("COLUMNS",termcap,1);
+		xp_asprintf_free(termcap);
+		termcap=xp_asprintf("%d",ws.ws_row);
+		setenv("LINES",termcap,1);
 		xp_asprintf_free(termcap);
 		if(bbs->addr[0])
 			execl("/bin/sh", "/bin/sh", "-c", bbs->addr, (char *)0);
