@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.181 2014/02/09 11:07:59 deuce Exp $ */
+/* $Id: syncterm.c,v 1.171 2012/02/20 15:52:01 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -14,7 +14,7 @@
 #include <shlobj.h>
 #ifndef REFKNOWNFOLDERID
 typedef GUID KNOWNFOLDERID;
-#define REFKNOWNFOLDERID const KNOWNFOLDERID*
+#define REFKNOWNFOLDERID KNOWNFOLDERID*
 // Not shared
 static const KNOWNFOLDERID FOLDERID_Downloads =			{0x374DE290,0x123F,0x4565,{0x91,0x64,0x39,0xC4,0x92,0x5E,0x46,0x7B}};
 static const KNOWNFOLDERID FOLDERID_RoamingAppData =	{0x3EB685DB,0x65F9,0x4CF6,{0xA0,0x3A,0xE3,0xEF,0x65,0x72,0x9F,0x3D}};
@@ -35,9 +35,13 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 
 #include <ini_file.h>
 #include <dirwrap.h>
-#include <filewrap.h>	// STDOUT_FILENO
 
-#include <cterm.h>
+#include "ciolib.h"
+#ifdef HAS_VSTAT
+#include "bitmap_con.h"
+#endif
+#include "cterm.h"
+#include "allfonts.h"
 
 #include "st_crypt.h"
 #include "fonts.h"
@@ -797,19 +801,8 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		SAFECOPY(bbs->user,p1);
 		p1=p3+1;
 	}
-	p2 = p1;
-	if(*p1=='[') {
-		p2=strchr(p1, ']');
-		if(p2 != NULL) {
-			p1++;
-			*p2=0;
-			p2++;
-		}
-		else
-			p2 = p1;
-	}
 	SAFECOPY(bbs->name,p1);
-	p2=strrchr(p2,':');
+	p2=strchr(p1,':');
 	if(p2!=NULL) {
 		*p2=0;
 		p2++;
@@ -908,11 +901,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	char	*home;
 	static	dll_handle	shell32=NULL;
 	BOOL	we_got_this=FALSE;
-	static HRESULT(__stdcall *GKFP)(REFKNOWNFOLDERID rfid, DWORD dwFlags, HANDLE hToken, PWSTR *ppszPath)=NULL;
+	static	HRESULT(*GKFP)(REFKNOWNFOLDERID rfid, DWORD dwFlags, HANDLE hToken, PWSTR *ppszPath)=NULL;
 	const char *shell32dll[]={"Shell32", NULL};
 
 	static	dll_handle	ole32=NULL;
-	static	int (__stdcall *CTMF)(LPVOID)=NULL;
+	static	int (*CTMF)(LPVOID)=NULL;
 	const char *ole32dll[]={"OLE32", NULL};
 
 	home=getenv("HOME");
@@ -1169,7 +1162,9 @@ void load_settings(struct syncterm_settings *set)
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
-	setscaling(set->scaling_factor);
+#ifdef HAS_VSTAT
+	vstat.scaling=set->scaling_factor;
+#endif
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1211,10 +1206,11 @@ int main(int argc, char **argv)
 	int		conn_type=CONN_TYPE_TELNET;
 	int		text_mode;
 	BOOL	override_conn=FALSE;
-	int		addr_family=PF_UNSPEC;
 	char	*last_bbs=NULL;
-	const char syncterm_termcap[]="\n# terminfo database entry for SyncTERM\n"
-				"syncterm|SyncTERM 80x25,\n"
+
+	if(argc==2 && strcmp(argv[1],"-T")==0) {
+		puts("\n# terminfo database entry for SyncTERM\n"
+				"syncterm|SyncTERM,\n"
 				"	am,bce,mir,msgr,\n"
 				"	cols#80,it#8,lines#24,colors#8,pairs#64,\n"
 				"	acsc=l\\332m\\300k\\277j\\331u\\264t\\303v\\301w\\302q\\304x\\263n\\305`\\004a\\260f\\370g\\361~\\371.\\031-\\030h\\261i^U0\\333y\\363z\\362,\n"
@@ -1234,49 +1230,7 @@ int main(int argc, char **argv)
 				"	il=\\E[%p1%dL,cub=\\E[%p1%dD,cuf=\\E[%p1%dC,rin=\\E[%p1%dT,cuu=\\E[%p1%dA,\n"
 				"	rc=\\E[u,sc=\\E[s,ind=\\E[S,ri=\\E[T,setab=\\E[4%p1%dm,setaf=\\E[3%p1%dm,\n"
 				"	sgr=\\E[0%?%p1%p6%|%t;1%;%?%p4%|%t;5%;%?%p1%p3%|%t;7%;%?%p7%|%t;8%;m,\n"
-				"	smso=\\E[0;1;7m,csr=\\E[%i%p1%d;%p2%dr\n"
-				"syncterm-25|SyncTERM No Status Line,\n"
-				"	lines#25,use=syncterm,\n"
-				"syncterm-27|SyncTERM 80x28 With Status,\n"
-				"	lines#27,use=syncterm,\n"
-				"syncterm-28|SyncTERM 80x28 No Status Line,\n"
-				"	lines#28,use=syncterm,\n"
-				"syncterm-42|SyncTERM 80x23,\n"
-				"	lines#42,use=syncterm,\n"
-				"syncterm-43|SyncTERM 80x23 No Status Line,\n"
-				"	lines#43,use=syncterm,\n"
-				"syncterm-49|SyncTERM 80x50,\n"
-				"	lines#49,use=syncterm,\n"
-				"syncterm-50|SyncTERM 80x50 No Status Line,\n"
-				"	lines#50,use=syncterm,\n"
-				"syncterm-59|SyncTERM 80x60,\n"
-				"	lines#59,use=syncterm,\n"
-				"syncterm-60|SyncTERM 80x60 No Status Line,\n"
-				"	lines#60,use=syncterm,\n"
-				"syncterm-w|SyncTERM Wide,\n"
-				"	cols#132,use=syncterm,\n"
-				"syncterm-25-w|SyncTERM No Status Line,\n"
-				"	cols#132,lines#25,use=syncterm,\n"
-				"syncterm-27-w|SyncTERM 132x28 With Status,\n"
-				"	cols#132,lines#27,use=syncterm,\n"
-				"syncterm-28-w|SyncTERM 132x28 No Status Line,\n"
-				"	cols#132,lines#28,use=syncterm,\n"
-				"syncterm-42-w|SyncTERM 132x23,\n"
-				"	cols#132,lines#42,use=syncterm,\n"
-				"syncterm-43-w|SyncTERM 132x23 No Status Line,\n"
-				"	cols#132,lines#43,use=syncterm,\n"
-				"syncterm-49-w|SyncTERM 132x50,\n"
-				"	cols#132,lines#49,use=syncterm,\n"
-				"syncterm-50-w|SyncTERM 132x50 No Status Line,\n"
-				"	cols#132,lines#50,use=syncterm,\n"
-				"syncterm-59-w|SyncTERM 132x60,\n"
-				"	cols#132,lines#59,use=syncterm,\n"
-				"syncterm-60-w|SyncTERM 132x60 No Status Line,\n"
-				"	cols#132,lines#60,use=syncterm,\n";
-
-	SetThreadName("Main Thread");
-	if(argc==2 && strcmp(argv[1],"-T")==0) {
-		write(STDOUT_FILENO, syncterm_termcap, strlen(syncterm_termcap));
+				"	smso=\\E[0;1;7m,\n");
 		return 0;
 	}
 
@@ -1306,12 +1260,6 @@ int main(int argc, char **argv)
 #endif
             )
             switch(toupper(argv[i][1])) {
-				case '6':
-					addr_family=ADDRESS_FAMILY_INET6;
-					break;
-				case '4':
-					addr_family=ADDRESS_FAMILY_INET;
-					break;
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
@@ -1461,8 +1409,6 @@ int main(int argc, char **argv)
 			parse_url(url, bbs, conn_type, FALSE);
 			strListFree(&inilines);
 		}
-		if(addr_family != ADDRESS_FAMILY_UNSPEC)
-			bbs->address_family=addr_family;
 		if(bbs->port==0)
 			goto USAGE;
 	}
@@ -1562,7 +1508,8 @@ int main(int argc, char **argv)
 		bbs=NULL;
 	}
 	// Save changed settings
-	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
+#ifdef HAS_VSTAT
+	if(vstat.scaling > 0 && vstat.scaling != settings.scaling_factor) {
 		char	inipath[MAX_PATH+1];
 		FILE	*inifile;
 		str_list_t	inicontents;
@@ -1575,12 +1522,13 @@ int main(int argc, char **argv)
 		else {
 			inicontents=strListInit();
 		}
-		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",getscaling(),&ini_style);
+		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",vstat.scaling,&ini_style);
 		if((inifile=fopen(inipath,"w"))!=NULL) {
 			iniWriteFile(inifile,inicontents);
 			fclose(inifile);
 		}
 	}
+#endif
 	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
@@ -1610,8 +1558,6 @@ int main(int argc, char **argv)
 		"-t  =  use telnet mode if URL does not include the scheme\n"
 		"-r  =  use rlogin mode if URL does not include the scheme\n"
 		"-h  =  use SSH mode if URL does not include the scheme\n"
-		"-4  =  Only resolve IPv4 addresses\n"
-		"-6  =  Only resolve IPv6 addresses\n"
 		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
 		"-T  =  when the ONLY argument, dumps the terminfo entry to stdout and exits\n"
 		"\n"
