@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.60 2011/10/19 07:27:19 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.63 2011/11/11 23:30:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #ifdef BUILD_JSDOCS
 
 static char* msg_area_prop_desc[] = {
-	,"message area settings (bitfield) - see <tt>MM_*</tt> in <tt>sbbsdefs.js</tt> for details"
+	  "message area settings (bitfield) - see <tt>MM_*</tt> in <tt>sbbsdefs.js</tt> for details"
 	,NULL
 };
 
@@ -55,7 +55,7 @@ static char* msg_grp_prop_desc[] = {
 	,NULL
 };
 
-static char* msg_area_prop_desc[] = {
+static char* msg_sub_prop_desc[] = {
 
 	 "index into sub_list array (or -1 if not in array) <i>(introduced in v3.12)</i>"
 	,"group's index into grp_list array <i>(introduced in v3.12)</i>"
@@ -232,7 +232,7 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		return(FALSE);
 
 #ifdef BUILD_JSDOCS
-	js_CreateArrayOfStrings(cx, subobj, "_property_desc_list", msg_area_prop_desc, JSPROP_READONLY);
+	js_CreateArrayOfStrings(cx, subobj, "_property_desc_list", msg_sub_prop_desc, JSPROP_READONLY);
 #endif
 
 	return(TRUE);
@@ -290,14 +290,17 @@ static JSBool js_sub_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 
 	switch(tiny) {
 		case SUB_PROP_SCAN_PTR:
-			JS_ValueToInt32(cx, *vp, (int32*)&scan->ptr);
+			if(!JS_ValueToInt32(cx, *vp, (int32*)&scan->ptr))
+				return JS_FALSE;
 			break;
 		case SUB_PROP_SCAN_CFG:
-			JS_ValueToInt32(cx, *vp, &val);
+			if(!JS_ValueToInt32(cx, *vp, &val))
+				return JS_FALSE;
 			scan->cfg=(ushort)val;
 			break;
 		case SUB_PROP_LAST_READ:
-			JS_ValueToInt32(cx, *vp, (int32*)&scan->last);
+			if(!JS_ValueToInt32(cx, *vp, (int32*)&scan->last))
+				return JS_FALSE;
 			break;
 	}
 
