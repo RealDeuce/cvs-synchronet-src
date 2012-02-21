@@ -4,13 +4,13 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.15 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: filelist.c,v 1.17 2011/10/20 11:11:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,7 +39,7 @@
 
 #include "sbbs.h"
 
-#define FILELIST_VER "3.10"
+#define FILELIST_VER "3.15"
 
 #define MAX_NOTS 25
 
@@ -107,11 +107,11 @@ int main(int argc, char **argv)
 	int 	i,j,file,dirnum,libnum,desc_off,lines,nots=0
 			,omode=O_WRONLY|O_CREAT|O_TRUNC;
 	ulong	l,m,n,cdt,misc=0,total_cdt=0,total_files=0,dir_files,datbuflen;
-	time_t	uld,dld,now;
+	time32_t uld,dld,now;
 	long	max_age=0;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.15 $", "%*s %s", revision);
+	sscanf("$Revision: 1.17 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 		|| strcmp(argv[1],"--help")==0 
 		|| strcmp(argv[1],"/?")==0
 		) {
-		printf("\n   usage: FILELIST <dir_code or * for ALL> [switches] [outfile]\n");
+		printf("\n   usage: FILELIST <dir_code or - for ALL> [switches] [outfile]\n");
 		printf("\n");
 		printf("switches: -lib name All directories of specified library\n");
 		printf("          -not code Exclude specific directory\n");
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 		exit(1); 
 	}
 
-	now=time(NULL);
+	now=time32(NULL);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 	dirnum=libnum=-1;
-	if(argv[1][0]=='*')
+	if(argv[1][0]=='*' || strcmp(argv[1],"-")==0)
 		misc|=ALL;
 	else if(argv[1][0]!='-') {
 		strupr(argv[1]);
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 			misc|=(HDR|PAD|CDT_|PLUS|MINUS);
 
 		else if(i!=1) {
-			if(argv[i][0]=='*') {
+			if(argv[i][0]=='*' || strcmp(argv[i],"-")==0) {
 				misc|=AUTO;
 				continue; }
 			if((j=nopen(argv[i],omode))==-1) {
@@ -402,7 +402,7 @@ int main(int argc, char **argv)
 
 			if(misc&DFD) {
 				sprintf(str,"%s%s",scfg.dir[i]->path,fname);
-				fprintf(out,"%s ",unixtodstr(&scfg,fdate(str),str));
+				fprintf(out,"%s ",unixtodstr(&scfg,(time32_t)fdate(str),str));
 				desc_off+=9; }
 
 			if(misc&ULD) {
