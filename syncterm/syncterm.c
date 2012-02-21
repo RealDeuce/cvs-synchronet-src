@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.174 2012/02/21 01:53:41 deuce Exp $ */
+/* $Id: syncterm.c,v 1.175 2012/02/21 01:55:33 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -35,6 +35,7 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 
 #include <ini_file.h>
 #include <dirwrap.h>
+#include <filewrap.h>	// STDOUT_FILENO
 
 #include "ciolib.h"
 #ifdef HAS_VSTAT
