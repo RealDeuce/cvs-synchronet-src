@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.41 2011/09/01 02:50:16 rswindell Exp $ */
+/* $Id: userdat.h,v 1.48 2011/11/11 04:30:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,15 +50,20 @@
 #endif
 
 #ifdef _WIN32
-	#ifdef SBBS_EXPORTS
-		#define DLLEXPORT __declspec(dllexport)
-	#else
-		#define DLLEXPORT __declspec(dllimport)
-	#endif
-	#ifdef __BORLANDC__
-		#define DLLCALL __stdcall
-	#else
+	#ifdef __MINGW32__
+		#define DLLEXPORT
 		#define DLLCALL
+	#else
+		#ifdef SBBS_EXPORTS
+			#define DLLEXPORT __declspec(dllexport)
+		#else
+			#define DLLEXPORT __declspec(dllimport)
+		#endif
+		#ifdef __BORLANDC__
+			#define DLLCALL __stdcall
+		#else
+			#define DLLCALL
+		#endif
 	#endif
 #else
 	#define DLLEXPORT
@@ -110,9 +115,11 @@ DLLEXPORT int	DLLCALL user_rec_len(int offset);
 DLLEXPORT BOOL	DLLCALL can_user_access_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL can_user_read_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason);
+DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint* reason);
 DLLEXPORT BOOL	DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* client);
-DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t* cfg, char* prot, char* reason, char* host, char* ip_addr, char* username, char* fname);
+DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const char* host
+								  ,const char* ip_addr, const char* username, const char* fname);
 
 /* New atomic numeric user field adjustment functions: */
 DLLEXPORT BOOL	DLLCALL user_posted_msg(scfg_t* cfg, user_t* user, int count);
@@ -129,16 +136,18 @@ DLLEXPORT BOOL	DLLCALL check_name(scfg_t* cfg, const char* name);
 /* Login attempt/hack tracking */
 typedef struct {
 	IN_ADDR		addr;	/* host with consecutive failed login attmepts */
-	ulong		count;	/* number of consectuive failed login attempts */
-	time_t		time;	/* time of last attempt */
-	const char*	prot;	/* protocol used in last attempt */
+	ulong		count;	/* number of consecutive failed login attempts */
+	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
+	time32_t	time;	/* time of last attempt */
+	char		prot[32];	/* protocol used in last attempt */
 	char		user[128];
 	char		pass[128];
 } login_attempt_t;
 
 DLLEXPORT link_list_t*		DLLCALL	loginAttemptListInit(link_list_t*);
 DLLEXPORT BOOL				DLLCALL	loginAttemptListFree(link_list_t*);
-DLLEXPORT list_node_t*		DLLCALL loginAttempted(link_list_t*, SOCKADDR_IN*);
+DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
+DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, SOCKADDR_IN*);
 DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, SOCKADDR_IN*);
 DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, SOCKADDR_IN*, const char* prot, const char* user, const char* pass);
 
