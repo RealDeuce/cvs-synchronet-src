@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.133 2011/10/20 11:11:34 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.136 2012/02/24 01:46:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -93,6 +93,7 @@ BOOL	dszlog_short=FALSE;				/* Log Micros~1 short filename		*/
 BOOL	dszlog_quotes=FALSE;			/* Quote filenames in DSZLOG		*/
 int		log_level=LOG_INFO;
 BOOL	use_syslog=FALSE;
+BOOL	lc_filenames=FALSE;
 int64_t	max_file_size=MAX_FILE_SIZE;
 
 xmodem_t xm;
@@ -722,7 +723,7 @@ static void output_thread(void* arg)
     }
 
 	if(total_sent)
-		sprintf(stats,"(sent %"PRIu64" bytes in %"PRIu64" blocks, %"PRIu64" average, %lu short, %lu errors)"
+		sprintf(stats,"(sent %"PRIu64" bytes in %"PRIu64" blocks, %"PRIu64" average, %lu short, %u errors)"
 			,total_sent, total_pkts, total_sent/total_pkts, short_sends, select_errors);
 	else
 		stats[0]=0;
@@ -800,7 +801,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 		if(l<0) l=0;
 		if(mode&SEND) {
 			total_blocks=num_blocks(block_num,offset,fsize,xm.block_size);
-			fprintf(statfp,"\rBlock (%lu%s): %lu/%"PRId64"  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %u/%"PRId64"  Byte: %"PRId64"  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -815,7 +816,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else if(mode&YMODEM) {
-			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %u  Byte: %"PRId64"  "
 				"Time: %lu:%02lu/%lu:%02lu  %u cps  %lu%% "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -829,7 +830,7 @@ void xmodem_progress(void* unused, unsigned block_num, int64_t offset, int64_t f
 				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 		} else { /* XModem receive */
-			fprintf(statfp,"\rBlock (%lu%s): %lu  Byte: %"PRId64"  "
+			fprintf(statfp,"\rBlock (%lu%s): %u  Byte: %"PRId64"  "
 				"Time: %lu:%02lu  %u cps "
 				,xm.block_size%1024L ? xm.block_size: xm.block_size/1024L
 				,xm.block_size%1024L ? "" : "K"
@@ -997,7 +998,7 @@ static int send_files(char** fname, uint fnames)
 			/* DSZLOG entry */
 			if(logfp) {
 				lprintf(LOG_DEBUG,"Updating DSZLOG: %s", dszlog);
-				fprintf(logfp,"%c %7"PRId64" %5u bps %6lu cps %3u errors %5u %4u "
+				fprintf(logfp,"%c %7"PRId64" %5u bps %6u cps %3u errors %5u %4u "
 					"%s -1\n"
 					,(mode&ZMODEM && zm.file_skipped) ? 's' 
 						: success ? (mode&ZMODEM ? 'z':'S') 
@@ -1077,7 +1078,8 @@ static int receive_files(char** fname_list, int fnames)
 	int64_t	file_bytes=0,file_bytes_left=0;
 	int64_t	total_bytes=0;
 	FILE*	fp;
-	time_t	t,startfile,ftime;
+	time_t	t,startfile;
+	uintmax_t	ftime;
 
 	if(fnames>1)
 		lprintf(LOG_INFO,"Receiving %u files",fnames);
@@ -1119,7 +1121,7 @@ static int receive_files(char** fname_list, int fnames)
 				}
 				ftime=total_files=0;
 				total_bytes=0;
-				i=sscanf(block+strlen(block)+1,"%"PRId64" %lo %lo %lo %u %"PRId64
+				i=sscanf(block+strlen(block)+1,"%"SCNd64" %"SCNoMAX" %lo %lo %u %"SCNd64
 					,&file_bytes			/* file size (decimal) */
 					,&ftime 				/* file time (octal unix format) */
 					,&fmode 				/* file mode (not used) */
@@ -1221,6 +1223,10 @@ static int receive_files(char** fname_list, int fnames)
 			}
 			xmodem_cancel(&xm);
 			return(1); 
+		}
+
+		if(lc_filenames) {
+			strlwr(str);
 		}
 
 		if((fp=fnopen(NULL,str,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY))==NULL
@@ -1342,8 +1348,8 @@ static int receive_files(char** fname_list, int fnames)
 
 		if(logfp) {
 			lprintf(LOG_DEBUG,"Updating DSZLOG: %s", dszlog);
-			fprintf(logfp,"%c %6lu %5u bps %4lu cps %3u errors %5u %4u "
-				"%s %d\n"
+			fprintf(logfp,"%c %6"PRId64" %5u bps %4"PRId64" cps %3u errors %5u %4u "
+				"%s %ld\n"
 				,success ? (mode&ZMODEM ? 'Z' : 'R') : 'E'
 				,file_bytes
 				,115200	/* baud */
@@ -1384,8 +1390,7 @@ static int receive_files(char** fname_list, int fnames)
 
 void bail(int code)
 {
-	if(logfp!=NULL)
-		fclose(logfp);
+	fcloseall();
 	if(pause_on_exit || (pause_on_abend && code!=0)) {
 		printf("Hit enter to continue...");
 		getchar();
@@ -1413,6 +1418,7 @@ static const char* usage=
 	"         -8  set maximum Zmodem block size to 8K (ZedZap)\n"
 	"         -m# set maximum receive file size to # bytes (0=unlimited, default=%u)\n"
 	"         -!  to pause after abnormal exit (error)\n"
+	"         -l  lowercase received filenames\n"
 #ifdef __unix__
 	"         -telnet to enable Telnet mode (the default except in stdio mode)\n"
 #else
@@ -1511,7 +1517,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.133 $", "%*s %s", revision);
+	sscanf("$Revision: 1.136 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1603,7 +1609,7 @@ int main(int argc, char **argv)
 	else if(outbuf_size > MAX_OUTBUF_SIZE)
 		outbuf_size = MAX_OUTBUF_SIZE;
 	
-	fprintf(statfp,"Output buffer size: %u\n", outbuf_size);
+	fprintf(statfp,"Output buffer size: %lu\n", outbuf_size);
 	RingBufInit(&outbuf, outbuf_size);
 
 #if !defined(RINGBUF_EVENT)
@@ -1748,6 +1754,9 @@ int main(int argc, char **argv)
 						break;
 					case 'M':	/* MaxFileSize */
 						max_file_size=strtoul(arg++,NULL,0);	/* TODO: use strtoull() ? */
+						break;
+					case 'L':	/* Lowercase received filenames */
+						lc_filenames=TRUE;
 						break;
 				}
 			}

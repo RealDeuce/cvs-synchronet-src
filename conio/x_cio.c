@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.31 2011/04/21 09:41:26 deuce Exp $ */
+/* $Id: x_cio.c,v 1.32 2011/12/07 03:29:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,6 +169,7 @@ int x_init(void)
 {
 	dll_handle	dl;
 	const char *libnames[]={"X11",NULL};
+	Status (*xit)(void);
 
 	/* Ensure we haven't already initialized */
 	if(x11_initialized)
@@ -185,6 +186,8 @@ int x_init(void)
 	/* Load X11 functions */
 	if((dl=xp_dlopen(libnames,RTLD_LAZY,7))==NULL)
 		return(-1);
+	if((xit=xp_dlsym(dl,XInitThreads))!=NULL)
+		xit();
 	if((x11.XChangeGC=xp_dlsym(dl,XChangeGC))==NULL) {
 		xp_dlclose(dl);
 		return(-1);
