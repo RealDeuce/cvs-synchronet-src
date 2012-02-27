@@ -2,7 +2,7 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.44 2011/09/10 01:45:21 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.45 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -238,7 +238,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			bprintf(text[TiLogon],timestr(logontime));
 			bprintf(text[TiNow],timestr(now));
 			bprintf(text[TiTimeon]
-				,sectostr(now-logontime,tmp));
+				,sectostr((uint)(now-logontime),tmp));
 			bprintf(text[TiTimeLeft]
 				,sectostr(timeleft,tmp));
 			SYNC;
