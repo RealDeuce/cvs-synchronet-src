@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.89 2012/03/07 03:22:51 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.90 2012/03/07 03:26:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -323,7 +323,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 		msg.hdr.thread_back=remsg->hdr.number;	/* needed for threading backward */
 
-		if((msg.hdr.thread_id=remsg->hdr.thread_id)) == 0)
+		if((msg.hdr.thread_id=remsg->hdr.thread_id) == 0)
 			msg.hdr.thread_id=remsg->hdr.number;
 
 		/* Add RFC-822 Reply-ID (generate if necessary) */
