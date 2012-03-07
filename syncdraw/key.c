@@ -1,4 +1,5 @@
 #include <ciolib.h>
+#include <keys.h>
 
 int 
 newgetch(void)
