@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.28 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: file.cpp,v 1.29 2011/10/09 06:30:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,7 +281,7 @@ bool sbbs_t::checkfname(char *fname)
 	if(fname[0]=='-'
 		|| strcspn(fname,ILLEGAL_FILENAME_CHARS)!=strlen(fname)) {
 		lprintf(LOG_WARNING,"Suspicious filename attempt: '%s'",fname);
-		hacklog("Filename", fname);
+		hacklog((char *)"Filename", fname);
 		return(false); 
 	}
 	if(strstr(fname,".."))
