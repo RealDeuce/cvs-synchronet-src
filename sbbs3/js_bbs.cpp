@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.148 2014/03/07 22:51:33 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.137 2011/12/06 02:33:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -85,7 +85,6 @@ enum {
 	,BBS_PROP_CONNECTION		/* READ ONLY */
 	,BBS_PROP_RLOGIN_NAME
 	,BBS_PROP_RLOGIN_PASS
-	,BBS_PROP_RLOGIN_TERM
 	,BBS_PROP_CLIENT_NAME
 
 	,BBS_PROP_ALTUL
@@ -130,7 +129,6 @@ enum {
 	,BBS_PROP_MSG_NUMBER
 	,BBS_PROP_MSG_EXPIRATION
 	,BBS_PROP_MSG_FORWARDED
-	,BBS_PROP_MSG_THREAD_ID
 	,BBS_PROP_MSG_THREAD_BACK
 	,BBS_PROP_MSG_THREAD_NEXT
 	,BBS_PROP_MSG_THREAD_FIRST
@@ -229,13 +227,12 @@ enum {
 	,"message auxillary attributes"
 	,"message network attributes"
 	,"message header offset"
-	,"message number (unique, monotonically incrementing)"
+	,"message number"
 	,"message expiration"
 	,"message forwarded"
-	,"message thread identifier (0 if unknown)"
-	,"message thread, back message number"
+	,"message thread, back message number (AKA msg_thread_orig)"
 	,"message thread, next message number"
-	,"message thread, message number of first reply to this message"
+	,"message thread, first reply to this message"
 	,"message identifier"
 	,"message replied-to identifier"
 	,"message delivery attempt counter"
@@ -394,9 +391,6 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case BBS_PROP_RLOGIN_PASS:
 			p=sbbs->rlogin_pass;
-			break;
-		case BBS_PROP_RLOGIN_TERM:
-			p=sbbs->rlogin_term;
 			break;
 		case BBS_PROP_CLIENT_NAME:
 			p=sbbs->client_name;
@@ -593,10 +587,6 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			if(sbbs->current_msg!=NULL)
 				val=sbbs->current_msg->forwarded;
 			break;
-		case BBS_PROP_MSG_THREAD_ID:
-			if(sbbs->current_msg!=NULL)
-				val=sbbs->current_msg->hdr.thread_id;
-			break;
 		case BBS_PROP_MSG_THREAD_BACK:
 			if(sbbs->current_msg!=NULL)
 				val=sbbs->current_msg->hdr.thread_back;
@@ -673,8 +663,7 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 	else if(JSVAL_IS_STRING(*vp)) {
 		if((js_str = JS_ValueToString(cx, *vp))==NULL)
 			return(JS_FALSE);
-		JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
-		HANDLE_PENDING(cx);
+		JSSTRING_TO_STRING(cx, js_str, p, NULL);
 	}
 
 	switch(tiny) {
@@ -811,9 +800,6 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 		case BBS_PROP_RLOGIN_PASS:
 			SAFECOPY(sbbs->rlogin_pass,p);
 			break;
-		case BBS_PROP_RLOGIN_TERM:
-			SAFECOPY(sbbs->rlogin_term,p);
-			break;
 		case BBS_PROP_CLIENT_NAME:
 			SAFECOPY(sbbs->client_name,p);
 			break;
@@ -828,13 +814,8 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 			break;
 
 		default:
-			if(p)
-				free(p);
 			return(JS_TRUE);
 	}
-
-	if(p)
-		free(p);
 
 	if(sbbs->usrgrps)
 		sbbs->cursubnum=sbbs->usrsub[sbbs->curgrp][sbbs->cursub[sbbs->curgrp]];		/* Used for ARS */
@@ -890,7 +871,6 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"connection"		,BBS_PROP_CONNECTION	,PROP_READONLY		,310},
 	{	"rlogin_name"		,BBS_PROP_RLOGIN_NAME	,JSPROP_ENUMERATE	,310},
 	{	"rlogin_password"	,BBS_PROP_RLOGIN_PASS	,JSPROP_ENUMERATE	,315},
-	{	"rlogin_terminal"	,BBS_PROP_RLOGIN_TERM	,JSPROP_ENUMERATE	,316},
 	{	"client_name"		,BBS_PROP_CLIENT_NAME	,JSPROP_ENUMERATE	,310},
 	{	"alt_ul_dir"		,BBS_PROP_ALTUL			,JSPROP_ENUMERATE	,310},
 	{	"errorlevel"		,BBS_PROP_ERRORLEVEL	,PROP_READONLY		,312},
@@ -931,7 +911,6 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"msg_number"		,BBS_PROP_MSG_NUMBER		,PROP_READONLY	,310},
 	{	"msg_expiration"	,BBS_PROP_MSG_EXPIRATION	,PROP_READONLY	,310},
 	{	"msg_forwarded"		,BBS_PROP_MSG_FORWARDED		,PROP_READONLY	,310},
-	{	"msg_thread_id"		,BBS_PROP_MSG_THREAD_BACK	,PROP_READONLY	,316},
 	{	"msg_thread_back"	,BBS_PROP_MSG_THREAD_BACK	,PROP_READONLY	,312},
 	{	"msg_thread_orig"	,BBS_PROP_MSG_THREAD_BACK	,JSPROP_READONLY,310},	/* alias */
 	{	"msg_thread_next"	,BBS_PROP_MSG_THREAD_NEXT	,PROP_READONLY	,310},
@@ -956,15 +935,13 @@ static uint get_subnum(JSContext* cx, sbbs_t* sbbs, jsval *argv, int argc, int p
 	if(argc>pos && JSVAL_IS_STRING(argv[pos])) {
 		char * p;
 
-		JSSTRING_TO_ASTRING(cx, JSVAL_TO_STRING(argv[pos]), p, LEN_EXTCODE+2, NULL);
+		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(argv[pos]), p, NULL);
 		for(subnum=0;subnum<sbbs->cfg.total_subs;subnum++)
 			if(!stricmp(sbbs->cfg.sub[subnum]->code,p))
 				break;
 	} else if(argc>pos && JSVAL_IS_NUMBER(argv[pos])) {
-		int32 i;
-		if(!JS_ValueToInt32(cx,argv[pos],&i))
+		if(!JS_ValueToInt32(cx,argv[pos],(int32*)&subnum))
 			return JS_FALSE;
-		subnum = i;
 	}
 	else if(sbbs->usrgrps>0)
 		subnum=sbbs->usrsub[sbbs->curgrp][sbbs->cursub[sbbs->curgrp]];
@@ -982,15 +959,13 @@ static uint get_dirnum(JSContext* cx, sbbs_t* sbbs, jsval val, bool dflt)
 	if(!dflt) {
 		if(JSVAL_IS_STRING(val)) {
 			char	*p;
-			JSSTRING_TO_ASTRING(cx, JSVAL_TO_STRING(val), p, LEN_EXTCODE+2, NULL);
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(val), p, NULL);
 			for(dirnum=0;dirnum<sbbs->cfg.total_dirs;dirnum++)
 				if(!stricmp(sbbs->cfg.dir[dirnum]->code,p))
 					break;
 		} else if(JSVAL_IS_NUMBER(val)) {
-			int32 i;
-			if(!JS_ValueToInt32(cx,val,&i))
+			if(!JS_ValueToInt32(cx,val,(int32*)&dirnum))
 				return JS_FALSE;
-			dirnum = i;
 		}
 		else if(sbbs->usrlibs>0)
 			dirnum=sbbs->usrdir[sbbs->curlib][sbbs->curdir[sbbs->curlib]];
@@ -1022,12 +997,9 @@ js_menu(JSContext *cx, uintN argc, jsval *arglist)
  	if (!str)
  		return(JS_FALSE);
  
-	JSSTRING_TO_MSTRING(cx, str, menu, NULL);
-	if(!menu)
-		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
+	JSSTRING_TO_STRING(cx, str, menu, NULL);
 	sbbs->menu(menu);
-	free(menu);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -1105,20 +1077,12 @@ js_exec(JSContext *cx, uintN argc, jsval *arglist)
 			startup_dir=JS_ValueToString(cx,argv[i]);
 	}
 
-	if(startup_dir!=NULL) {
-		JSSTRING_TO_MSTRING(cx, startup_dir, p_startup_dir, NULL);
-		if(p_startup_dir==NULL)
-			return JS_FALSE;
-	}
+	if(startup_dir!=NULL)
+		JSSTRING_TO_STRING(cx, startup_dir, p_startup_dir, NULL);
 
-	JSSTRING_TO_MSTRING(cx, cmd, cstr, NULL);
-	if(cstr==NULL)
-		return JS_FALSE;
+	JSSTRING_TO_STRING(cx, cmd, cstr, NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->external(cstr,mode,p_startup_dir)));
-	free(cstr);
-	if(p_startup_dir)
-		free(p_startup_dir);
 	JS_RESUMEREQUEST(cx, rc);
 
     return(JS_TRUE);
@@ -1140,7 +1104,7 @@ js_exec_xtrn(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc) {
 		if(JSVAL_IS_STRING(argv[0])) {
-			JSVALUE_TO_ASTRING(cx,argv[0],code, LEN_CODE+2, NULL);
+			JSVALUE_TO_STRING(cx,argv[0],code, NULL);
 			if(code==NULL)
 				return(JS_FALSE);
 
@@ -1222,7 +1186,7 @@ js_chkpass(JSContext *cx, uintN argc, jsval *arglist)
  
 	JSString* str=JS_ValueToString(cx,argv[0]);
 
-	JSSTRING_TO_ASTRING(cx, str, cstr, LEN_PASS+2, NULL);
+	JSSTRING_TO_STRING(cx, str, cstr, NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->chkpass(cstr,&sbbs->useron,true)));
 	JS_RESUMEREQUEST(cx, rc);
@@ -1289,17 +1253,22 @@ js_replace_text(JSContext *cx, uintN argc, jsval *arglist)
 	if(sbbs->text[i]!=sbbs->text_sav[i] && sbbs->text[i]!=nulstr)
 		free(sbbs->text[i]);
 
-	JSVALUE_TO_MSTRING(cx, argv[1], p, NULL);
+	JSVALUE_TO_STRING(cx, argv[1], p, NULL);
 	if(p==NULL)
-		return(JS_FALSE);
+		return(JS_TRUE);
 
 	len=strlen(p);
 	if(!len) {
 		sbbs->text[i]=nulstr;
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	} else {
-		sbbs->text[i]=p;
-		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+		sbbs->text[i]=(char *)malloc(len+1);
+		if(sbbs->text[i]==NULL) {
+			sbbs->text[i]=sbbs->text_sav[i];
+		} else {
+			strcpy(sbbs->text[i],p);
+			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+		}
 	}
 
 	return(JS_TRUE);
@@ -1364,9 +1333,7 @@ js_load_text(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 		return(JS_TRUE);
 	}
-	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
-	if(!cstr)
-		return JS_FALSE;
+	JSSTRING_TO_STRING(cx, js_str, cstr, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	for(i=0;i<TOTAL_TEXT;i++) {
@@ -1378,7 +1345,6 @@ js_load_text(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	sprintf(path,"%s%s.dat"
 		,sbbs->cfg.ctrl_dir,cstr);
-	free(cstr);
 
 	if((stream=fnopen(NULL,path,O_RDONLY))==NULL) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
@@ -1417,7 +1383,7 @@ js_atcode(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
 	char	str[128],str2[128],*p;
 	char	*instr;
-	size_t	disp_len;
+	int		disp_len;
 	bool	padded_left=false;
 	bool	padded_right=false;
 	const char *cp;
@@ -1431,7 +1397,7 @@ js_atcode(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], instr, NULL);
+	JSVALUE_TO_STRING(cx, argv[0], instr, NULL);
 	if(instr==NULL)
 		return(JS_FALSE);
 
@@ -1451,7 +1417,6 @@ js_atcode(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	cp=sbbs->atcode(instr,str2,sizeof(str2));
-	free(instr);
 	JS_RESUMEREQUEST(cx, rc);
 	if(cp==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
@@ -1496,7 +1461,7 @@ js_logkey(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc>1)
 		JS_ValueToBoolean(cx,argv[1],&comma);
 
-	JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
+	JSSTRING_TO_STRING(cx, js_str, p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 		return(JS_TRUE);
@@ -1506,7 +1471,6 @@ js_logkey(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs->logch(*p
 		,comma ? true:false	// This is a dumb bool conversion to make BC++ happy
 		);
-	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
@@ -1535,7 +1499,7 @@ js_logstr(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
+	JSSTRING_TO_STRING(cx, js_str, p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 		return(JS_TRUE);
@@ -1543,7 +1507,6 @@ js_logstr(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->log(p);
-	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
@@ -1572,7 +1535,7 @@ js_finduser(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
+	JSSTRING_TO_STRING(cx, js_str, p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
 		return(JS_TRUE);
@@ -1580,7 +1543,6 @@ js_finduser(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->finduser(p)));
-	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -1614,23 +1576,20 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_MSTRING(cx, js_can, can, NULL);
+	JSSTRING_TO_STRING(cx, js_can, can, NULL);
 	if(can==NULL) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_MSTRING(cx, js_str, str, NULL);
+	JSSTRING_TO_STRING(cx, js_str, str, NULL);
 	if(str==NULL) {
-		free(can);
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 		return(JS_TRUE);
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->trashcan(str,can)));
-	free(can);
-	free(str);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -1694,18 +1653,17 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_pw=JS_ValueToString(cx, argv[1]))==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_ASTRING(cx, js_name, name, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
+	JSSTRING_TO_STRING(cx, js_name, name, NULL);
 	if(name==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_pw, pw, NULL);
+	JSSTRING_TO_STRING(cx, js_pw, pw, NULL);
 	if(pw==NULL) 
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->login(name,pw)==LOGIC_TRUE ? JS_TRUE:JS_FALSE));
 	JS_RESUMEREQUEST(cx, rc);
-	free(pw);
 	return(JS_TRUE);
 }
 
@@ -1916,12 +1874,9 @@ js_batchaddlist(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
-	if(cstr==NULL)
-		return JS_FALSE;
+	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->batch_add_list(cstr);
-	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -1946,17 +1901,14 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
  
 	if(argc>1) {
-		JSVALUE_TO_ASTRING(cx, argv[1], p, 2, NULL);
+		JSVALUE_TO_STRING(cx, argv[1], p, NULL);
 		if(p!=NULL)
 			prot=*p;
 	}
 
-	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
-	if(cstr==NULL)
-		return JS_FALSE;
+	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->sendfile(cstr,prot)));
-	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -1981,17 +1933,14 @@ js_recvfile(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
  
 	if(argc>1) {
-		JSVALUE_TO_ASTRING(cx, argv[1], p, 2, NULL);
+		JSVALUE_TO_STRING(cx, argv[1], p, NULL);
  		if(p!=NULL)
 			prot=*p;
 	}
 
-	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
-	if(cstr==NULL)
-		return JS_FALSE;
+	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->recvfile(cstr,prot)));
-	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2379,9 +2328,8 @@ js_email(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		usernumber=1;
 	int32		mode=WM_EMAIL;
-	const char	*def="";
-	char*		top=(char *)def;
-	char*		subj=(char *)def;
+	char*		top=(char *)"";
+	char*		subj=(char *)"";
 	JSString*	js_top=NULL;
 	JSString*	js_subj=NULL;
 	sbbs_t*		sbbs;
@@ -2411,20 +2359,12 @@ js_email(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	if(js_top!=NULL)
-		JSSTRING_TO_MSTRING(cx, js_top, top, NULL);
-	if(top==NULL)
-		return JS_FALSE;
+		JSSTRING_TO_STRING(cx, js_top, top, NULL);
 	if(js_subj!=NULL)
-		JSSTRING_TO_MSTRING(cx, js_subj, subj, NULL);
-	if(subj==NULL)
-		return JS_FALSE;
+		JSSTRING_TO_STRING(cx, js_subj, subj, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->email(usernumber,top,subj,mode)));
-	if(top != def)
-		free(top);
-	if(subj != def)
-		free(subj);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -2433,8 +2373,7 @@ js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
-	const char	*def="";
-	char*		subj=(char *)def;
+	char*		subj=(char *)"";
 	JSString*	js_to;
 	JSString*	js_subj=NULL;
 	sbbs_t*		sbbs;
@@ -2461,23 +2400,12 @@ js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 			js_subj=JS_ValueToString(cx,argv[i]);
 	}
 
-	if(js_subj!=NULL) {
-		JSSTRING_TO_MSTRING(cx, js_subj, subj, NULL);
-		if(subj==NULL)
-			return JS_FALSE;
-	}
+	if(js_subj!=NULL)
+		JSSTRING_TO_STRING(cx, js_subj, subj, NULL);
 
-	JSSTRING_TO_MSTRING(cx, js_to, cstr, NULL);
-	if(cstr==NULL) {
-		if(subj != def)
-			free(subj);
-		return JS_FALSE;
-	}
+	JSSTRING_TO_STRING(cx, js_to, cstr, NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->netmail(cstr,subj,mode)));
-	if(subj != def)
-		free(subj);
-	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -2497,11 +2425,10 @@ js_bulkmail(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc) {
-		JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
+		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 		if(p==NULL)
 			return(JS_FALSE);
 		ar=arstr(NULL, p, &sbbs->cfg);
-		free(p);
 	}
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->bulkmail(ar);
@@ -2614,87 +2541,20 @@ js_telnet_gate(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_addr=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_addr, addr, NULL);
+	JSSTRING_TO_STRING(cx, js_addr, addr, NULL);
 	if(addr==NULL) 
 		return(JS_FALSE);
 
 	if(argc>1 && JSVAL_IS_NUMBER(argv[1])) {
-		if(!JS_ValueToInt32(cx,argv[1],&mode)) {
-			free(addr);
+		if(!JS_ValueToInt32(cx,argv[1],&mode))
 			return JS_FALSE;
-		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->telnet_gate(addr,mode);
-	free(addr);
 	JS_RESUMEREQUEST(cx, rc);
 	
 	return(JS_TRUE);
-}
-
-static JSBool
-js_rlogin_gate(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval*		argv=JS_ARGV(cx, arglist);
-	uintN		argn;
-	char*		addr;
-	char*		client_user_name=NULL;
-	char*		server_user_name=NULL;
-	char*		term_type=NULL;
-	bool		fail = false;
-	int32		mode = 0;
-	JSString*	js_str;
-	sbbs_t*		sbbs;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
- 	if(!js_argc(cx, argc, 1))
-		return(JS_FALSE);
- 
-	if((sbbs=js_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) 
-		return(JS_FALSE);
-
-	JSSTRING_TO_MSTRING(cx, js_str, addr, NULL);
-	if(addr==NULL) 
-		return(JS_FALSE);
-
-	/* Parse optional arguments if provided */
-	for(argn=1; argn<argc; argn++) {
-		if(JSVAL_IS_STRING(argv[argn])) {
-			if((js_str=JS_ValueToString(cx, argv[argn]))==NULL) {
-				fail = true;
-				break;
-			}
-			if(client_user_name==NULL) {	
-				JSSTRING_TO_MSTRING(cx, js_str, client_user_name, NULL);
-			} else if(server_user_name==NULL) {
-				JSSTRING_TO_MSTRING(cx, js_str, server_user_name, NULL);
-			} else if(term_type==NULL) {
-				JSSTRING_TO_MSTRING(cx, js_str, term_type, NULL);
-			}
-		} else if(JSVAL_IS_NUMBER(argv[argn])) {
-			if(!JS_ValueToInt32(cx,argv[argn],&mode)) {
-				fail = true;
-				break;
-			}
-		}
-	}
-	if(!fail) {
-		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->telnet_gate(addr,mode|TG_RLOGIN,client_user_name,server_user_name,term_type);
-		JS_RESUMEREQUEST(cx, rc);
-	}
-	FREE_AND_NULL(addr);
-	FREE_AND_NULL(client_user_name);
-	FREE_AND_NULL(server_user_name);
-	FREE_AND_NULL(term_type);
-	
-	return(fail ? JS_FALSE : JS_TRUE);
 }
 
 static JSBool
@@ -2843,13 +2703,12 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_msg=JS_ValueToString(cx, argv[1]))==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
+	JSSTRING_TO_STRING(cx, js_msg, msg, NULL);
 	if(msg==NULL) 
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putnmsg(&sbbs->cfg,node,msg)==0));
-	free(msg);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2909,13 +2768,12 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_msg=JS_ValueToString(cx, argv[1]))==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
+	JSSTRING_TO_STRING(cx, js_msg, msg, NULL);
 	if(msg==NULL) 
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putsmsg(&sbbs->cfg,usernumber,msg)==0));
-	free(msg);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2926,9 +2784,8 @@ js_cmdstr(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
-	const char	*def="";
-	char*		fpath=(char *)def;
-	char*		fspec=(char *)def;
+	char*		fpath=(char *)"";
+	char*		fspec=(char *)"";
 	JSString*	js_str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -2945,30 +2802,20 @@ js_cmdstr(JSContext *cx, uintN argc, jsval *arglist)
  	if (!js_str)
  		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
+	JSSTRING_TO_STRING(cx, js_str, p, NULL);
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
-			if(fpath==def) {
-				JSSTRING_TO_MSTRING(cx, js_str, fpath, NULL);
-				if(fpath==NULL)
-					return JS_FALSE;
-			}
-			else if(fspec==def) {
-				JSSTRING_TO_MSTRING(cx, js_str, fspec, NULL);
-				if(fspec==NULL)
-					return JS_FALSE;
-			}
+			if(fpath==NULL)
+				JSSTRING_TO_STRING(cx, js_str, fpath, NULL)	// Magic
+			else
+				JSSTRING_TO_STRING(cx, js_str, fspec, NULL);
 		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	p=sbbs->cmdstr(p,fpath,fspec,NULL);
-	if(fpath != def)
-		free(fpath);
-	if(fspec != def)
-		free(fspec);
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((js_str=JS_NewStringCopyZ(cx, p))==NULL)
@@ -3010,9 +2857,7 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
-	const char	*def=ALLFILES;
-	char*		afspec=NULL;
-	char*		fspec=(char *)def;
+	char*		fspec=(char *)ALLFILES;
 	char		buf[MAX_PATH+1];
 	uint		dirnum;
     JSString*	js_str;
@@ -3038,10 +2883,7 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
-			JSSTRING_TO_MSTRING(cx, js_str, afspec, NULL);
-			if(afspec==NULL)
-				return JS_FALSE;
-			fspec=afspec;
+			JSSTRING_TO_STRING(cx, js_str, fspec, NULL);
 		}
 	}
 
@@ -3050,8 +2892,6 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 		fspec=padfname(fspec,buf);
 
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->listfiles(dirnum,fspec,0 /* tofile */,mode)));
-	if(afspec)
-		free(afspec);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -3062,8 +2902,7 @@ js_listfileinfo(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=FI_INFO;
-	const char	*def=ALLFILES;
-	char*		fspec=(char *)def;
+	char*		fspec=(char *)ALLFILES;
 	char		buf[MAX_PATH+1];
 	uint		dirnum;
     JSString*	js_str;
@@ -3089,16 +2928,12 @@ js_listfileinfo(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
-			JSSTRING_TO_MSTRING(cx, js_str, fspec, NULL);
-			if(fspec==NULL)
-				return JS_FALSE;
+			JSSTRING_TO_STRING(cx, js_str, fspec, NULL);
 		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->listfileinfo(dirnum,padfname(fspec,buf),mode)));
-	if(fspec != def)
-		free(fspec);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -3286,8 +3121,7 @@ static JSBool
 js_scanposts(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	const char	*def="";
-	char*		find=(char *)def;
+	char*		find=(char *)"";
 	int32		mode=0;
 	uint		subnum;
 	sbbs_t*		sbbs;
@@ -3310,11 +3144,8 @@ js_scanposts(JSContext *cx, uintN argc, jsval *arglist)
 			if(!JS_ValueToInt32(cx,argv[i],&mode))
 				return JS_FALSE;
 		}
-		else if(JSVAL_IS_STRING(argv[i]) && find==def) {
-			JSVALUE_TO_MSTRING(cx, argv[i], find, NULL);
-			if(find==NULL)
-				return JS_FALSE;
-		}
+		else if(JSVAL_IS_STRING(argv[i]))
+			JSVALUE_TO_STRING(cx, argv[i], find, NULL);
 	}
 
 	if(*find)
@@ -3322,8 +3153,6 @@ js_scanposts(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->scanposts(subnum,mode,find)==0));
-	if(find != def)
-		free(find);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -3332,8 +3161,7 @@ static JSBool
 js_listmsgs(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	const char	*def="";
-	char*		find=(char *)def;
+	char*		find=(char *)"";
 	int32		mode=0;
 	int32		start=0;
 	uint		subnum;
@@ -3361,16 +3189,11 @@ js_listmsgs(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[argn++],&start))
 			return JS_FALSE;
 	}
-	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], find, NULL);
-		if(find==NULL)
-			return JS_FALSE;
-	}
+	if(argc > argn && JSVAL_IS_STRING(argv[argn]))
+		JSVALUE_TO_STRING(cx, argv[argn++], find, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->listsub(subnum,mode,start,find)));
-	if(find != def)
-		free(find);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -3389,10 +3212,8 @@ js_getnstime(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc && JSVAL_IS_NUMBER(argv[0])) {
-		int32 i;
-		if(!JS_ValueToInt32(cx,argv[0],&i))
+		if(!JS_ValueToInt32(cx,argv[0],(int32*)&t))
 			return JS_FALSE;
-		t = i;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -3471,13 +3292,12 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(p==NULL)
 		return JS_FALSE;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	ar = arstr(NULL,p,&sbbs->cfg);
-	free(p);
 
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->chk_ar(ar,&sbbs->useron,&sbbs->client)));
 
@@ -3761,12 +3581,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	{"telnet_gate",		js_telnet_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,mode=<tt>TG_NONE</tt>]")
-	,JSDOCSTR("external Telnet gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
+	,JSDOCSTR("external telnet/rlogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
 	,310
-	},		
-	{"rlogin_gate",		js_rlogin_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,client-user-name=<tt>user.alias</tt>, server-user-name=<tt>user.name</tt>, terminal=<tt>console.terminal</tt>] [,mode=<tt>TG_NONE</tt>]")
-	,JSDOCSTR("external RLogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
-	,316
 	},		
 	/* security */
 	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
@@ -3864,22 +3680,16 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 static JSBool js_bbs_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
-	JSBool			ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval)) {
-			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
-		}
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
-	ret=js_SyncResolve(cx, obj, name, js_bbs_properties, js_bbs_functions, NULL, 0);
-	if(name)
-		free(name);
-	return ret;
+	return(js_SyncResolve(cx, obj, name, js_bbs_properties, js_bbs_functions, NULL, 0));
 }
 
 static JSBool js_bbs_enumerate(JSContext *cx, JSObject *obj)
