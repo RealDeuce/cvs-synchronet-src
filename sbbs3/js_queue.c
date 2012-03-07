@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.28 2011/10/09 04:30:44 deuce Exp $ */
+/* $Id: js_queue.c,v 1.43 2011/11/12 00:50:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,13 +41,9 @@
 
 typedef struct
 {
-	char	name[128];
-	int		type;
-	union {
-		JSBool		b;
-		jsdouble	n;
-		char*		s;
-	} value;
+	char		name[128];
+	size_t		size;
+	uint64		*value;
 } queued_value_t;
 
 link_list_t named_queues;
@@ -74,51 +70,15 @@ static size_t js_decode_value(JSContext *cx, JSObject *parent
 							   ,queued_value_t* v, jsval* rval, BOOL peek)
 {
 	size_t			count=1;
-	size_t			decoded;
-	queued_value_t* pv;
-	queued_value_t	term;
-	jsval	prop_val;
-	jsuint	index=0;
-	JSObject *obj;
-
-	ZERO_VAR(term);
 
 	*rval = JSVAL_VOID;
 
-	if(v==NULL || v->type==JSTYPE_VOID)
+	if(v==NULL)
 		return(count);
 
-	switch(v->type) {
-		case JSTYPE_NULL:
-			*rval = JSVAL_NULL;
-			break;
-		case JSTYPE_BOOLEAN:
-			*rval = BOOLEAN_TO_JSVAL(v->value.b);
-			break;
-		case JSTYPE_NUMBER:
-			*rval=DOUBLE_TO_JSVAL(v->value.n);
-			break;
-		case JSTYPE_STRING:
-			if(v->value.s) {
-				*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,v->value.s));
-				if(!peek)
-					free(v->value.s);
-			}
-			break;
-		case JSTYPE_ARRAY:
-		case JSTYPE_OBJECT:
-			obj = JS_DefineObject(cx, parent, v->name, NULL, NULL
-				,JSPROP_ENUMERATE);
-			for(pv=v+1,count++;memcmp(pv,&term,sizeof(term));pv+=decoded,count+=decoded) {
-				decoded=js_decode_value(cx,obj,pv,&prop_val,peek);
-				if(v->type==JSTYPE_ARRAY)
-					JS_SetElement(cx,obj,index++,&prop_val);
-				else
-					JS_DefineProperty(cx, obj, pv->name, prop_val,NULL,NULL,JSPROP_ENUMERATE);
-			}
-			*rval = OBJECT_TO_JSVAL(obj);
-			break;
-	}
+	JS_ReadStructuredClone(cx, v->value, v->size, JS_STRUCTURED_CLONE_VERSION, rval, NULL, NULL);
+	free(v->value);
+
 	return(count);
 }
 
@@ -134,13 +94,17 @@ js_poll(JSContext *cx, uintN argc, jsval *arglist)
 	int32 timeout=0;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	if(argc && JSVAL_IS_NUMBER(argv[0])) 	/* timeout specified */
-		JS_ValueToInt32(cx,argv[0],&timeout);
+	if(argc && JSVAL_IS_NUMBER(argv[0])) { 	/* timeout specified */
+		if(!JS_ValueToInt32(cx,argv[0],&timeout))
+			return JS_FALSE;
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	v=msgQueuePeek(q,timeout);
@@ -165,21 +129,27 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	queued_value_t*	v;
 	int32 timeout=0;
 	jsrefcount	rc;
+	char	*p;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	if(JSVAL_IS_STRING(argv[0])) {	/* value named specified */
+	if(argc && JSVAL_IS_STRING(argv[0])) {	/* value named specified */
 		ZERO_VAR(find_v);
-		SAFECOPY(find_v.name,JS_GetStringBytes(JS_ValueToString(cx,argv[0])));
+		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
+		SAFECOPY(find_v.name,p);
 		rc=JS_SUSPENDREQUEST(cx);
 		v=msgQueueFind(q,&find_v,sizeof(find_v.name));
 		JS_RESUMEREQUEST(cx, rc);
 	} else {
-		if(JSVAL_IS_NUMBER(argv[0]))
-			JS_ValueToInt32(cx,argv[0],&timeout);
+		if(argc && JSVAL_IS_NUMBER(argv[0])) {
+			if(!JS_ValueToInt32(cx,argv[0],&timeout))
+				return JS_FALSE;
+		}
 		rc=JS_SUSPENDREQUEST(cx);
 		v=msgQueueRead(q, timeout);
 		JS_RESUMEREQUEST(cx, rc);
@@ -206,13 +176,17 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 	int32 timeout=0;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
-	if(argc && JSVAL_IS_NUMBER(argv[0])) 	/* timeout specified */
-		JS_ValueToInt32(cx,argv[0],&timeout);
+	if(argc && JSVAL_IS_NUMBER(argv[0])) { 	/* timeout specified */
+		if(!JS_ValueToInt32(cx,argv[0],&timeout))
+			return JS_FALSE;
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	v=msgQueuePeek(q, timeout);
@@ -229,12 +203,8 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
 									   ,queued_value_t* v, size_t* count)
 {
-	jsint       i;
-	jsval		prop_name;
-	jsval		prop_val;
-    JSObject*	obj;
-	JSIdArray*	id_array;
 	queued_value_t* nv;
+	uint64			*nval;
 
 	if((nv=realloc(v,((*count)+1)*sizeof(queued_value_t)))==NULL) {
 		if(v) free(v);
@@ -248,52 +218,17 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
 	if(name!=NULL)
 		SAFECOPY(nv->name,name);
 
-	if(JSVAL_IS_BOOLEAN(val)) {
-		nv->type=JSTYPE_BOOLEAN;
-		nv->value.b=JSVAL_TO_BOOLEAN(val);
+	if(!JS_WriteStructuredClone(cx, val, &nval, &nv->size, NULL, NULL)) {
+		free(v);
+		return NULL;
 	}
-	else if(JSVAL_IS_OBJECT(val)) {
-		if(JSVAL_IS_NULL(val)) {
-			nv->type=JSTYPE_NULL;
-		}
-		else {
-			nv->type=JSTYPE_OBJECT;
-			obj = JSVAL_TO_OBJECT(val);
-
-			if(JS_IsArrayObject(cx, obj))
-				nv->type=JSTYPE_ARRAY;
-
-			if((id_array=JS_Enumerate(cx,obj))==NULL) {
-				free(v);
-				return(NULL);
-			}
-			for(i=0; i<id_array->length; i++)  {
-				/* property name */
-				JS_IdToValue(cx,id_array->vector[i],&prop_name);
-				if(JSVAL_IS_STRING(prop_name)) {
-					name=JS_GetStringBytes(JSVAL_TO_STRING(prop_name));
-					/* value */
-					JS_GetProperty(cx,obj,name,&prop_val);
-				} else {
-					name=NULL;
-					JS_GetElement(cx,obj,i,&prop_val);
-				}
-				if((v=js_encode_value(cx,prop_val,name,v,count))==NULL)
-					break;
-			}
-			v=js_encode_value(cx,JSVAL_VOID,NULL,v,count);	/* terminate object */
-			JS_DestroyIdArray(cx,id_array);
-		}
+	if((nv->value=(uint64 *)malloc(nv->size))==NULL) {
+		JS_free(cx, nval);
+		free(v);
+		return NULL;
 	}
-	else if(JSVAL_IS_NUMBER(val)) {
-		nv->type = JSTYPE_NUMBER;
-		JS_ValueToNumber(cx,val,&nv->value.n);
-	} else if(JSVAL_IS_VOID(val)) {
-		nv->type = JSTYPE_VOID;
-	} else {
-		nv->type= JSTYPE_STRING;
-		nv->value.s = strdup(JS_GetStringBytes(JS_ValueToString(cx,val)));
-	}
+	memcpy(nv->value, nval, nv->size);
+	JS_free(cx, nval);
 
 	return(v);
 }
@@ -325,6 +260,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	jsval			val;
 	char*			name=NULL;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
@@ -333,7 +270,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	val = argv[argn++];
 
 	if(argn < argc)
-		name=JS_GetStringBytes(JS_ValueToString(cx,argv[argn++]));
+		JSVALUE_TO_STRING(cx, argv[argn++], name, NULL);
 
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(js_enqueue_value(cx, q, val, name)));
 
@@ -365,10 +302,8 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	msg_queue_t*	q;
 	jsrefcount		rc;
 
-	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
+	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL)
+		return JS_FALSE;
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
@@ -438,15 +373,20 @@ static JSBool js_queue_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
 
-	if(id != JSVAL_NULL)
-		name=JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if(id != JSID_VOID && id != JSID_EMPTY) {
+		jsval idval;
+		
+		JS_IdToValue(cx, id, &idval);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+	}
 
 	return(js_SyncResolve(cx, obj, name, js_queue_properties, js_queue_functions, NULL, 0));
 }
 
 static JSBool js_queue_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_queue_resolve(cx, obj, JSVAL_NULL));
+	return(js_queue_resolve(cx, obj, JSID_VOID));
 }
 
 static JSClass js_queue_class = {
@@ -455,7 +395,7 @@ static JSClass js_queue_class = {
 	,JS_PropertyStub		/* addProperty	*/
 	,JS_PropertyStub		/* delProperty	*/
 	,js_queue_get			/* getProperty	*/
-	,JS_PropertyStub		/* setProperty	*/
+	,JS_StrictPropertyStub	/* setProperty	*/
 	,js_queue_enumerate		/* enumerate	*/
 	,js_queue_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
@@ -467,7 +407,7 @@ static JSClass js_queue_class = {
 static JSBool
 js_queue_constructor(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	JSObject *obj;
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN			argn=0;
 	char*			name=NULL;
@@ -476,7 +416,8 @@ js_queue_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	list_node_t*	n;
 	jsrefcount		rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	obj=JS_NewObject(cx, &js_queue_class, NULL, NULL);
+	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
 
 #if 0	/* This doesn't appear to be doing anything but leaking memory */
 	if((q=(msg_queue_t*)malloc(sizeof(msg_queue_t)))==NULL) {
@@ -487,10 +428,12 @@ js_queue_constructor(JSContext *cx, uintN argc, jsval *arglist)
 #endif
 
 	if(argn<argc && JSVAL_IS_STRING(argv[argn]))
-		name=JS_GetStringBytes(JS_ValueToString(cx,argv[argn++]));
+		JSVALUE_TO_STRING(cx, argv[argn++], name, NULL);
 
-	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]))
-		JS_ValueToInt32(cx,argv[argn++],&flags);
+	if(argn<argc && JSVAL_IS_NUMBER(argv[argn])) {
+		if(!JS_ValueToInt32(cx,argv[argn++],&flags))
+			return JS_FALSE;
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(name!=NULL) {

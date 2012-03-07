@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.86 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: postmsg.cpp,v 1.89 2012/03/07 03:22:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -273,6 +273,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		return(false); 
 	}
 
+	/* ToDo: split body/tail */
+	/* ToDo: use smb_addmsg instead of the stuff below: */
+
 	setvbuf(instream,NULL,_IOFBF,2*1024);
 	fseek(smb.sdt_fp,offset,SEEK_SET);
 	xlat=XLAT_NONE;
@@ -311,7 +314,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	memset(&msg,0,sizeof(smbmsg_t));
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msgattr;
-	msg.hdr.when_written.time=msg.hdr.when_imported.time=time(NULL);
+	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
 	msg.hdr.number=smb.status.last_msg+1; /* this *should* be the new message number */
@@ -319,6 +322,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	if(remsg) {
 
 		msg.hdr.thread_back=remsg->hdr.number;	/* needed for threading backward */
+
+		if((msg.hdr.thread_id=remsg->hdr.thread_id)) == 0)
+			msg.hdr.thread_id=remsg->hdr.number;
 
 		/* Add RFC-822 Reply-ID (generate if necessary) */
 		if(remsg->id!=NULL)
@@ -514,7 +520,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	}
 
 	if(msg->hdr.when_imported.time==0) {
-		msg->hdr.when_imported.time=time(NULL);
+		msg->hdr.when_imported.time=time32(NULL);
 		msg->hdr.when_imported.zone=sys_timezone(cfg);
 	}
 	if(msg->hdr.when_written.time==0)	/* Uninitialized */
