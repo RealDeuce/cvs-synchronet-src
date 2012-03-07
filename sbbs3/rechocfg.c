@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.25 2011/07/20 02:41:42 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.26 2012/02/18 03:19:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -622,6 +622,13 @@ void read_echo_cfg()
 		/* printf("Unrecognized line in SBBSECHO.CFG file.\n"); */
 	}
 	fclose(stream);
+
+	/* make sure we have some sane "maximum" size values here: */
+	if(cfg.maxpktsize<1024)
+		cfg.maxpktsize=DFLT_PKT_SIZE;
+	if(cfg.maxbdlsize<1024)
+		cfg.maxbdlsize=DFLT_BDL_SIZE;
+
 	printf("\n");
 }
 
