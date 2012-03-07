@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.27 2014/03/13 08:22:57 rswindell Exp $ */
+/* $Id: js_rtpool.c,v 1.25 2012/03/07 06:49:07 rswindell Exp $ */
 
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
@@ -20,7 +20,7 @@
 #define RT_UNIQUE	0
 #define RT_SHARED	1
 #define RT_SINGLE	2
-#define RT_TYPE		RT_UNIQUE
+#define RT_TYPE		RT_SHARED
 
 struct jsrt_queue {
 	JSRuntime       *rt;
@@ -37,7 +37,7 @@ struct jsrt_queue {
 #if (RT_TYPE == RT_SINGLE)
 #define JSRT_QUEUE_SIZE		1
 #else
-#define JSRT_QUEUE_SIZE		256
+#define JSRT_QUEUE_SIZE		128
 #endif
 struct jsrt_queue jsrt_queue[JSRT_QUEUE_SIZE];
 static pthread_mutex_t		jsrt_mutex;
@@ -51,7 +51,6 @@ static void trigger_thread(void *args)
 {
 	int	i;
 
-	SetThreadName("JSRT Trigger");
 	for(;;) {
 		pthread_mutex_lock(&jsrt_mutex);
 		for(i=0; i<JSRT_QUEUE_SIZE; i++) {
