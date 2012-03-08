@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.147 2011/10/19 08:20:16 deuce Exp $ */
+/* $Id: js_socket.c,v 1.150 2011/11/12 02:48:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1218,9 +1218,13 @@ enum {
 
 #ifdef BUILD_JSDOCS
 static char* socket_prop_desc[] = {
-	 "error status for the last socket operation that failed - <small>READ ONLY</small>"
+	/* statically-defined properties: */
+	 "array of socket option names supported by the current platform"
+	/* Regular properties */
+	,"error status for the last socket operation that failed - <small>READ ONLY</small>"
 	,"<i>true</i> if socket is in a connected state - <small>READ ONLY</small>"
 	,"<i>true</i> if socket can accept written data - Setting to false will shutdown the write end of the socket."
+	,"alias for is_writeable"
 	,"<i>true</i> if data is waiting to be read from socket - <small>READ ONLY</small>"
 	,"number of bytes waiting to be read - <small>READ ONLY</small>"
 	,"enable debug logging"
@@ -1232,8 +1236,6 @@ static char* socket_prop_desc[] = {
 	,"remote TCP or UDP port number"
 	,"socket type, <tt>SOCK_STREAM</tt> (TCP) or <tt>SOCK_DGRAM</tt> (UDP)"
 	,"<i>true</i> if binary data is to be sent in Network Byte Order (big end first), default is <i>true</i>"
-	/* statically-defined properties: */
-	,"array of socket option names supported by the current platform"
 	,NULL
 };
 #endif
@@ -1527,7 +1529,8 @@ static JSBool js_socket_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_socket_properties, js_socket_functions, NULL, 0));
