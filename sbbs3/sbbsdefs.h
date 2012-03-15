@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.176 2011/11/12 00:01:04 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.177 2012/03/15 09:17:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,7 +86,6 @@ typedef struct {
 	ulong	gc_attempts;
 	BOOL	auto_terminate;
 	volatile BOOL*	terminated;
-	str_list_t	exit_func;
 } js_callback_t;
 
 #define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
