@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.74 2012/03/15 09:17:49 deuce Exp $ */
+/* $Id: js_internal.c,v 1.75 2012/03/15 09:38:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -382,7 +382,7 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(thisobj==parent) {
+	if(glob==parent) {
 		if((pd=(global_private_t*)JS_GetPrivate(cx,glob))==NULL)
 			return(JS_FALSE);
 		if(pd->exit_func==NULL)
