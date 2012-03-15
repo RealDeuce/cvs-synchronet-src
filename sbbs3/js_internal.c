@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.77 2012/03/15 10:42:57 deuce Exp $ */
+/* $Id: js_internal.c,v 1.76 2012/03/15 10:38:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -398,14 +398,11 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
-	oldlist=list;
 	strListPush(&list,p);
-	if(oldlist != list) {
-		if(glob==scope)
-			pd->exit_func=list;
-		else
-			JS_SetPrivate(cx,scope,list);
-	}
+	if(glob==scope)
+		pd->exit_func=list;
+	else
+		JS_SetPrivate(cx,scope,list);
 
 	return(JS_TRUE);
 }
