@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.177 2012/03/15 09:17:49 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.178 2012/03/19 23:31:17 echicken Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -775,6 +775,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
+#define TG_SENDPASS	(1<<9)	/* Send password instead of real name (RLogin)	*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
