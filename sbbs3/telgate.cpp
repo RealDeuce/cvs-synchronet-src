@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.30 2011/08/27 21:22:07 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.31 2012/03/19 23:31:59 echicken Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,7 +123,11 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 		*(p++)=0;
 		p+=sprintf(p,"%s",useron.alias);
 		p++;	// Add NULL
-		p+=sprintf(p,"%s",useron.name);
+		if(mode&TG_SENDPASS) {
+			p+=sprintf(p,"%s",useron.pass);
+		} else {
+			p+=sprintf(p,"%s",useron.name);
+		}
 		p++;	// Add NULL
 		p+=sprintf(p,"%s/57600",terminal);
 		p++;	// Add NULL
