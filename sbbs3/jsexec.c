@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.155 2011/10/28 08:05:34 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.160 2011/11/12 02:18:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,7 @@
 #define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
 
+js_startup_t	startup;
 JSRuntime*	js_runtime;
 JSContext*	js_cx;
 JSObject*	js_glob;
@@ -602,7 +603,10 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 static jsSyncMethodSpec js_global_functions[] = {
 	{"log",				js_log,				1},
 	{"read",			js_read,            1},
-	{"readln",			js_readln,          1},
+	{"readln",			js_readln,			0,	JSTYPE_STRING,	JSDOCSTR("[count]")
+	,JSDOCSTR("read a single line, up to count characters, from input stream")
+	,311
+	},
     {"write",           js_write,           0},
     {"writeln",         js_writeln,         0},
     {"print",           js_writeln,         0},
@@ -663,11 +667,11 @@ js_OperationCallback(JSContext *cx)
 	JSBool	ret;
 
 	JS_SetOperationCallback(cx, NULL);
-	ret=js_CommonOperationCallback(cx, NULL);
+	ret=js_CommonOperationCallback(cx, &cb);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 	return ret;
 }
-#endif
+
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 {
 	char		name[256];
@@ -700,8 +704,6 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 
 static BOOL js_init(char** environ)
 {
-	js_startup_t	startup;
-
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
 
@@ -723,12 +725,13 @@ static BOOL js_init(char** environ)
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
-	if((js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
+	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
 		,&cb,&startup						/* js */
 		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
-		))==NULL) {
+		,&js_glob
+		)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -898,8 +901,6 @@ long js_exec(const char *fname, char** args)
 			,path
 			,diff);
 
-	JS_GC(js_cx);
-
 	if(js_buf!=NULL)
 		free(js_buf);
 
@@ -981,7 +982,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.155 $", "%*s %s", revision);
+	sscanf("$Revision: 1.160 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1182,6 +1183,7 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"\n");
 
 		result=js_exec(module,&argv[argn]);
+		JS_RemoveObjectRoot(js_cx, &js_glob);
 		JS_ENDREQUEST(js_cx);
 		YIELD();
 

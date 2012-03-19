@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.556 2011/10/28 08:05:34 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.558 2011/11/03 21:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4429,10 +4429,12 @@ js_OperationCallback(JSContext *cx)
 	JSBool	ret;
 	http_session_t* session;
 
-	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
 	JS_SetOperationCallback(cx, NULL);
+	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL) {
+		JS_SetOperationCallback(cx, js_OperationCallback);
+		return(JS_FALSE);
+	}
+
     ret=js_CommonOperationCallback(cx,&session->js_callback);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 
@@ -4458,7 +4460,7 @@ js_initcx(http_session_t *session)
 	JS_SetOperationCallback(js_cx, js_OperationCallback);
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Creating Global Objects and Classes",session->socket);
-	if((session->js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL
+	if(!js_CreateCommonObjects(js_cx, &scfg, NULL
 									,NULL						/* global */
 									,uptime						/* system */
 									,startup->host_name			/* system */
@@ -4468,8 +4470,10 @@ js_initcx(http_session_t *session)
 									,&session->client			/* client */
 									,session->socket			/* client */
 									,&js_server_props			/* server */
-		))==NULL
+									,&session->js_glob
+		)
 		|| !JS_DefineFunctions(js_cx, session->js_glob, js_global_functions)) {
+		JS_RemoveObjectRoot(js_cx, &session->js_glob);
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
@@ -4627,6 +4631,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 			,script))==NULL) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)"
 				,session->socket,script);
+			JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
 			JS_ENDREQUEST(session->js_cx);
 			return(FALSE);
 		}
@@ -4636,6 +4641,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_callback);
+		JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
 			,session->socket,script,xp_timer()-start);
 	} while(0);
@@ -5109,6 +5115,9 @@ void http_session_thread(void* arg)
 
 	if(session.js_cx!=NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying context",socket);
+		JS_BEGINREQUEST(session.js_cx);
+		JS_RemoveObjectRoot(session.js_cx, &session.js_glob);
+		JS_ENDREQUEST(session.js_cx);
 		JS_DestroyContext(session.js_cx);	/* Free Context */
 		session.js_cx=NULL;
 	}
@@ -5205,7 +5214,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.556 $", "%*s %s", revision);
+	sscanf("$Revision: 1.558 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

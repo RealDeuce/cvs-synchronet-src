@@ -2,13 +2,13 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.26 2011/10/26 22:44:20 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.29 2011/11/12 03:52:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -206,6 +206,25 @@ static jsSyncPropertySpec js_properties[] = {
 	{	"lightbar_color",	PROP_LBCOLOR,		JSPROP_ENUMERATE,	314 },
 	{0}
 };
+
+#ifdef BUILD_JSDOCS
+static char* uifc_prop_desc[] = {
+	 "uifc has been initialized"
+	,"current mode bits (see uifcdefs.js)"
+	,"a change has occured in an input call.  You are expected to set this to false before calling the input if you care about it."
+	,"save buffer depth (advanced)"
+	,"current screen length"
+	,"current screen width"
+	,"when WIN_FIXEDHEIGHT is set, specifies the hight used by a list method"
+	,"delay before a single ESC char is parsed and assumed to not be an ANSI sequence (advanced)"
+	,"text that will be displayed if F1 is pressed"
+	,"background colour"
+	,"frame colour"
+	,"text colour"
+	,"inverse colour"
+	,"lightbar colour"
+};
+#endif
 
 /* Convenience functions */
 static uifcapi_t* get_uifc(JSContext *cx, JSObject *obj)
@@ -546,7 +565,8 @@ static JSBool js_uifc_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0));
@@ -588,6 +608,11 @@ JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent)
 
 	if(!JS_SetPrivate(cx, obj, api))	/* Store a pointer to uifcapi_t */
 		return(NULL);
+
+#ifdef BUILD_JSDOCS
+	js_DescribeSyncObject(cx,obj,"User InterFaCe object - used for jsexec menus" ,314);
+	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", uifc_prop_desc, JSPROP_READONLY);
+#endif
 
 	return(obj);
 }
