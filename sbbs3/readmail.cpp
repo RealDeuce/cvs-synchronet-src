@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.57 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: readmail.cpp,v 1.56 2011/09/03 06:00:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,8 +45,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 	char	str[256],str2[256],str3[256],done=0,domsg=1
 			,*p,*tp,*sp,ch;
 	char 	tmp[512];
-	int		i;
-	uint32_t u,v;
+	int		i,j;
 	int		error;
 	int		mismatches=0,act;
 	uint	unum;
@@ -519,23 +518,23 @@ void sbbs_t::readmail(uint usernumber, int which)
 					bputs(text[MailOnSystemLstHdr]);
 				else
 					bputs(text[MailWaitingLstHdr]);
-				for(;u<smb.msgs && !msgabort();u++) {
+				for(;i<smb.msgs && !msgabort();i++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
-					msg.idx.offset=mail[u].offset;
-					if(!loadmsg(&msg,mail[u].number))
+					msg.idx.offset=mail[i].offset;
+					if(!loadmsg(&msg,mail[i].number))
 						continue;
 					smb_unlockmsghdr(&smb,&msg);
 					if(which==MAIL_ALL)
 						bprintf(text[MailOnSystemLstFmt]
-							,u+1,msg.from,msg.to
+							,i+1,msg.from,msg.to
 							,msg.hdr.attr&MSG_DELETE ? '-' : msg.hdr.attr&MSG_REPLIED ? 'R'
 								: msg.hdr.attr&MSG_READ ? ' '
 								: msg.from_net.type || msg.to_net.type ? 'N':'*'
 							,msg.subj);
 					else
-						bprintf(text[MailWaitingLstFmt],u+1
+						bprintf(text[MailWaitingLstFmt],i+1
 							,which==MAIL_SENT ? msg.to
 							: (msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP
 							? text[Anonymous] : msg.from
@@ -569,11 +568,11 @@ void sbbs_t::readmail(uint usernumber, int which)
 				}
 				break;
 			case '>':
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(mail[u].subj==msg.idx.subj)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(mail[i].subj==msg.idx.subj)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				break;
@@ -588,62 +587,52 @@ void sbbs_t::readmail(uint usernumber, int which)
 				break;
 			case '}':   /* Search Author forward */
 				strcpy(str,msg.from);
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(mail[u].from==msg.idx.from)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(mail[i].from==msg.idx.from)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				break;
 			case 'N':   /* Got to next un-read message */
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(!(mail[u].attr&MSG_READ))
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(!(mail[i].attr&MSG_READ))
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				break;
 			case '{':   /* Search Author backward */
 				strcpy(str,msg.from);
-				if(smb.curmsg > 0) {
-					for(u=smb.curmsg-1;;u--) {
-						if(mail[u].from==msg.idx.from) {
-							smb.curmsg=u;
-							break;
-						}
-						if(u==0) {
-							domsg=0;
-							break;
-						}
-					}
-				}
+				for(i=smb.curmsg-1;i>-1;i--)
+					if(mail[i].from==msg.idx.from)
+						break;
+				if(i>-1)
+					smb.curmsg=i;
+				else
+					domsg=0;
 				break;
 			case ']':   /* Search To User forward */
 				strcpy(str,msg.to);
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(mail[u].to==msg.idx.to)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(mail[i].to==msg.idx.to)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				break;
 			case '[':   /* Search To User backward */
 				strcpy(str,msg.to);
-				if(smb.curmsg > 0) {
-					for(u=smb.curmsg-1;;u--) {
-						if(mail[u].to==msg.idx.to) {
-							smb.curmsg=u;
-							break;
-						}
-						if(u==0) {
-							domsg=0;
-							break;
-						}
-					}
-				}
+				for(i=smb.curmsg-1;i>-1;i--)
+					if(mail[i].to==msg.idx.to)
+						break;
+				if(i>-1)
+					smb.curmsg=i;
+				else
+					domsg=0;
 				break;
 			case 0:
 			case '+':
@@ -668,11 +657,11 @@ void sbbs_t::readmail(uint usernumber, int which)
 				break;
 			case 'T':
 				domsg=0;
-				u=smb.curmsg;
-				if(u) u++;
-				v=u+10;
-				if(v>smb.msgs)
-					v=smb.msgs;
+				i=smb.curmsg;
+				if(i) i++;
+				j=i+10;
+				if(j>smb.msgs)
+					j=smb.msgs;
 
 				if(which==MAIL_SENT)
 					bputs(text[MailSentLstHdr]);
@@ -680,23 +669,23 @@ void sbbs_t::readmail(uint usernumber, int which)
 					bputs(text[MailOnSystemLstHdr]);
 				else
 					bputs(text[MailWaitingLstHdr]);
-				for(;u<v;u++) {
+				for(;i<j;i++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
-					msg.idx.offset=mail[u].offset;
-					if(!loadmsg(&msg,mail[u].number))
+					msg.idx.offset=mail[i].offset;
+					if(!loadmsg(&msg,mail[i].number))
 						continue;
 					smb_unlockmsghdr(&smb,&msg);
 					if(which==MAIL_ALL)
 						bprintf(text[MailOnSystemLstFmt]
-							,u+1,msg.from,msg.to
+							,i+1,msg.from,msg.to
 							,msg.hdr.attr&MSG_DELETE ? '-' : msg.hdr.attr&MSG_REPLIED ? 'R'
 								: msg.hdr.attr&MSG_READ ? ' ' 
 								: msg.from_net.type || msg.to_net.type ? 'N':'*'
 							,msg.subj);
 					else
-						bprintf(text[MailWaitingLstFmt],u+1
+						bprintf(text[MailWaitingLstFmt],i+1
 							,which==MAIL_SENT ? msg.to
 							: (msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP
 							? text[Anonymous] : msg.from
@@ -707,7 +696,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					smb_freemsgmem(&msg);
 					msg.total_hfields=0; 
 				}
-				smb.curmsg=(u-1);
+				smb.curmsg=(i-1);
 				break;
 			case 'U':   /* user edit */
 				msg.hdr.number=msg.idx.number;
