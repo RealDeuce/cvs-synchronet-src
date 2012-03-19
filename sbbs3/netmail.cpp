@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.44 2012/10/20 20:49:37 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.43 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,7 +202,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 		offset=smb_allocdat(&smb,length,1);
 	smb_close_da(&smb);
 
-	if((instream=fnopen(&file,msgpath,O_RDONLY|O_BINARY))==NULL) {
+	if((file=open(msgpath,O_RDONLY|O_BINARY))==-1
+		|| (instream=fdopen(file,"rb"))==NULL) {
 		smb_freemsgdat(&smb,offset,length,1);
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
@@ -412,7 +413,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 		offset=smb_allocdat(&smb,length,1);
 	smb_close_da(&smb);
 
-	if((instream=fnopen(&file,msgpath,O_RDONLY|O_BINARY))==NULL) {
+	if((file=open(msgpath,O_RDONLY|O_BINARY))==-1
+		|| (instream=fdopen(file,"rb"))==NULL) {
 		smb_freemsgdat(&smb,offset,length,1);
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
