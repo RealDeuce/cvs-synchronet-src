@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.12 2011/10/20 23:01:24 deuce Exp $ */
+/* $Id: ssh.c,v 1.13 2012/04/09 06:25:39 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -19,10 +19,10 @@ static SOCKET	sock;
 CRYPT_SESSION	ssh_session;
 int				ssh_active=FALSE;
 
-static void cryptlib_error_message(int status, char * msg)
+static void cryptlib_error_message(int status, const char * msg)
 {
-	char	str[32];
-	char	str2[32];
+	char	str[64];
+	char	str2[64];
 	char	*errmsg;
 	int		err_len;
 
