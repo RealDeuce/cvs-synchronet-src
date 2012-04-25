@@ -8,6 +8,7 @@
 #include <dirwrap.h>
 #include <gen_defs.h>
 #include <ciolib.h>
+#include <keys.h>
 
 #include "key.h"
 #include "options.h"
