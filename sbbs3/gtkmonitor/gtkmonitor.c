@@ -3,16 +3,12 @@
 
 #include "events.h"
 #include "gtkmonitor.h"
-#include "gtkmonitor.h"
-#include "util_funcs.h"
 
 scfg_t		cfg;
+GladeXML	*xml;
 int			nodes=0;
 GtkListStore	*store = NULL;
 GtkTreeSelection *sel;
-int				quickslots=0;
-GtkListStore	*quickstore = NULL;
-GtkBuilder*	builder;
 struct gtkmonitor_config gtkm_conf;
 char			glade_path[MAX_PATH+1];
 
@@ -68,9 +64,6 @@ void refresh_events(void)
 	int		i;
 	GtkWidget	*w;
 	GtkWidget	*menu;
-	GtkComboBox	*cb;
-	GtkTreeIter	curr;
-	GtkCellRenderer *column;
 	char	str[1024];
 	char	flags[33];
 
@@ -82,7 +75,7 @@ void refresh_events(void)
 	}
 
 	/* Update timed events */
-	w = GTK_WIDGET(gtk_builder_get_object (builder, "force_timed_event1"));
+	w=glade_xml_get_widget(xml, "force_timed_event1");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get timed event widget\n");
 	else {
@@ -105,7 +98,7 @@ void refresh_events(void)
 	}
 
 	/* Update network call-outs */
-	w=GTK_WIDGET (gtk_builder_get_object (builder, "force_network_callout1"));
+	w=glade_xml_get_widget(xml, "force_network_callout1");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get network callout widget\n");
 	else {
@@ -129,31 +122,14 @@ void refresh_events(void)
 	refresh_data(NULL);
 
 	/* Set up quick validation values */
-	cb=GTK_COMBO_BOX (gtk_builder_get_object (builder, "cNodeQuickValidate"));
-	/* Fist call... set up grid */
-	if(quickstore == NULL) {
-		quickstore = gtk_list_store_new(1, G_TYPE_STRING);
-		gtk_combo_box_set_model(cb, GTK_TREE_MODEL(quickstore));
-		gtk_list_store_insert(quickstore, &curr, 0);
-		gtk_list_store_set(quickstore, &curr, 0, "Quick Validation Sets", -1);
-		column = gtk_cell_renderer_text_new();
-		gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(cb), column, TRUE);
-		gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(cb), column,
-				"text", 0,
-				NULL
-		);
-		gtk_combo_box_set_active(GTK_COMBO_BOX(cb), 0);
-	}
-
-	gtk_list_store_move_after(quickstore, &curr, 0);
-	for(i=1; i<=10; i++) {
-		if(i > quickslots) {
-			gtk_list_store_append(quickstore, &curr);
-			quickslots++;
-		}
-		sprintf(str,"%-2d  SL: %-2d  F1: %s",i,cfg.val_level[i],ltoaf(cfg.val_flags1[i],flags));
-		gtk_list_store_set(quickstore, &curr, 0, str, -1);
-		gtk_tree_model_iter_next(GTK_TREE_MODEL(quickstore), &curr);
+	w=glade_xml_get_widget(xml, "cNodeQuickValidate");
+	for(i=0; i<=10; i++)
+		gtk_combo_box_remove_text(GTK_COMBO_BOX(w),0);
+	gtk_combo_box_append_text(GTK_COMBO_BOX(w), "Quick Validation Sets");
+	gtk_combo_box_set_active(GTK_COMBO_BOX(w), 0);
+	for(i=0;i<10;i++) {
+		sprintf(str,"%d  SL: %-2d  F1: %s",i,cfg.val_level[i],ltoaf(cfg.val_flags1[i],flags));
+		gtk_combo_box_append_text(GTK_COMBO_BOX(w), str);
 	}
 }
 
@@ -185,16 +161,19 @@ int refresh_data(gpointer data)
 	char		str[1024];
 	char		str2[1024];
 	char		str3[1024];
+	char		*p;
 	GtkWidget	*w;
 	int			i,j;
 	GtkTreeIter	curr;
+	GtkTreeModel	*model;
 	node_t	node;
 	stats_t	sstats;
 	stats_t	nstats;
+	stats_t	stats;
 	int		shownodes;
 
 	/* Update the node list stuff */
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "lNodeList"));
+	w=glade_xml_get_widget(xml, "lNodeList");
 
 	/* Fist call... set up grid */
 	if(store == NULL) {
@@ -242,17 +221,17 @@ int refresh_data(gpointer data)
 				,&nstats);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "locknodebutton"));
+	w=glade_xml_get_widget(xml,"locknodebutton");
 	gtk_widget_set_sensitive(w, shownodes>0);
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "downnodebutton"));
+	w=glade_xml_get_widget(xml,"downnodebutton");
 	gtk_widget_set_sensitive(w, shownodes>0);
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "interruptnodebutton"));
+	w=glade_xml_get_widget(xml,"interruptnodebutton");
 	gtk_widget_set_sensitive(w, shownodes>0);
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "bRerunNode"));
+	w=glade_xml_get_widget(xml,"bRerunNode");
 	gtk_widget_set_sensitive(w, shownodes>0);
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "bRerunNode"));
+	w=glade_xml_get_widget(xml,"bRerunNode");
 	gtk_widget_set_sensitive(w, shownodes>0);
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "bClearErrors"));
+	w=glade_xml_get_widget(xml,"bClearErrors");
 	gtk_widget_set_sensitive(w, shownodes>0);
 	if(shownodes==1) {
 		gtk_tree_selection_selected_foreach(sel
@@ -264,29 +243,27 @@ int refresh_data(gpointer data)
 		}
 		j=(node.status==NODE_QUIET || node.status==NODE_INUSE);
 
-		w=GTK_WIDGET(gtk_builder_get_object (builder, "bChatWithUser"));
+		w=glade_xml_get_widget(xml,"bChatWithUser");
 		gtk_widget_set_sensitive(w, j);
-		w=GTK_WIDGET(gtk_builder_get_object (builder, "bSendMessageToUser"));
+		w=glade_xml_get_widget(xml,"bSendMessageToUser");
 		gtk_widget_set_sensitive(w, j);
-		w=GTK_WIDGET(gtk_builder_get_object (builder, "bEditUser"));
+		w=glade_xml_get_widget(xml,"bEditUser");
 		gtk_widget_set_sensitive(w, j);
-		w=GTK_WIDGET(gtk_builder_get_object (builder, "cNodeQuickValidate"));
-//		gtk_widget_set_sensitive(w, j);
-gtk_widget_set_sensitive(w, TRUE);
+		w=glade_xml_get_widget(xml,"cNodeQuickValidate");
+		gtk_widget_set_sensitive(w, j);
 	}
 	else {
-		w=GTK_WIDGET(gtk_builder_get_object (builder, "bChatWithUser"));
+		w=glade_xml_get_widget(xml,"bChatWithUser");
 		gtk_widget_set_sensitive(w, FALSE);
-		w=GTK_WIDGET(gtk_builder_get_object (builder, "bSendMessageToUser"));
+		w=glade_xml_get_widget(xml,"bSendMessageToUser");
 		gtk_widget_set_sensitive(w, FALSE);
-		w=GTK_WIDGET(gtk_builder_get_object (builder, "bEditUser"));
+		w=glade_xml_get_widget(xml,"bEditUser");
 		gtk_widget_set_sensitive(w, FALSE);
-		w=GTK_WIDGET(gtk_builder_get_object (builder, "cNodeQuickValidate"));
-//		gtk_widget_set_sensitive(w, FALSE);
-gtk_widget_set_sensitive(w, TRUE);
+		w=glade_xml_get_widget(xml,"cNodeQuickValidate");
+		gtk_widget_set_sensitive(w, FALSE);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eLogonsToday"));
+	w=glade_xml_get_widget(xml, "eLogonsToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get logons today widget\n");
 	else {
@@ -297,7 +274,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eTimeToday"));
+	w=glade_xml_get_widget(xml, "eTimeToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get time today widget\n");
 	else {
@@ -308,7 +285,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eEmailToday"));
+	w=glade_xml_get_widget(xml, "eEmailToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get e-mail today widget\n");
 	else {
@@ -319,7 +296,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eFeedbackToday"));
+	w=glade_xml_get_widget(xml, "eFeedbackToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get feedback today widget\n");
 	else {
@@ -330,7 +307,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eNewUsersToday"));
+	w=glade_xml_get_widget(xml, "eNewUsersToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get new users today widget\n");
 	else {
@@ -341,7 +318,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "ePostsToday"));
+	w=glade_xml_get_widget(xml, "ePostsToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get posts today widget\n");
 	else {
@@ -352,7 +329,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eLogonsTotal"));
+	w=glade_xml_get_widget(xml, "eLogonsTotal");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get logons total widget\n");
 	else {
@@ -363,7 +340,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eTimeTotal"));
+	w=glade_xml_get_widget(xml, "eTimeTotal");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get time total widget\n");
 	else {
@@ -374,7 +351,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eEmailTotal"));
+	w=glade_xml_get_widget(xml, "eEmailTotal");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get email total widget\n");
 	else {
@@ -382,7 +359,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eFeedbackTotal"));
+	w=glade_xml_get_widget(xml, "eFeedbackTotal");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get feedback total widget\n");
 	else {
@@ -390,7 +367,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eUsersTotal"));
+	w=glade_xml_get_widget(xml, "eUsersTotal");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get users total widget\n");
 	else {
@@ -398,7 +375,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eFilesUploadedToday"));
+	w=glade_xml_get_widget(xml, "eFilesUploadedToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get files uploaded today widget\n");
 	else {
@@ -406,7 +383,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eBytesUploadedToday"));
+	w=glade_xml_get_widget(xml, "eBytesUploadedToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get bytes uploaded today widget\n");
 	else {
@@ -414,7 +391,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eFilesDownloadedToday"));
+	w=glade_xml_get_widget(xml, "eFilesDownloadedToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get files downloaded today widget\n");
 	else {
@@ -422,7 +399,7 @@ gtk_widget_set_sensitive(w, TRUE);
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
-	w=GTK_WIDGET(gtk_builder_get_object (builder, "eBytesDownloadedToday"));
+	w=glade_xml_get_widget(xml, "eBytesDownloadedToday");
 	if(w==NULL)
 		fprintf(stderr,"Cannot get bytes downloaded today widget\n");
 	else {
@@ -469,27 +446,16 @@ int read_config(void)
 }
 
 int main(int argc, char *argv[]) {
-	GError* error = NULL;
-	GtkWindow*	xml;
-
     gtk_init(&argc, &argv);
+    glade_init();
 
     /* load the interface */
 	strcpy(glade_path, argv[0]);
 	strcpy(getfname(glade_path), "gtkmonitor.glade");
-
-	builder = gtk_builder_new ();
-	if (!gtk_builder_add_from_file (builder, glade_path, &error)) {
-		g_warning ("Couldn't load builder file: %s", error->message);
-		g_error_free (error);
-	}
+    xml = glade_xml_new(glade_path, "MainWindow", NULL);
 
     /* connect the signals in the interface */
-	gtk_builder_connect_signals (builder, NULL);
-
-	/* Get MainWindow and display it */
-	xml = GTK_WINDOW (gtk_builder_get_object (builder, "MainWindow"));
-	gtk_window_present(xml);
+    glade_xml_signal_autoconnect(xml);
 
 	/* Set up the global config stuff. */
 	memset(&cfg, 0, sizeof(cfg));
