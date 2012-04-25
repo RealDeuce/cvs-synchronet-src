@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.147 2013/02/07 07:04:35 deuce Exp $ */
+/* $Id: js_file.c,v 1.144 2011/11/12 02:37:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -130,6 +130,7 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
+	char*		mode="w+";	/* default mode */
 	BOOL		shareable=FALSE;
 	int			file;
 	uintN		i;
@@ -148,38 +149,32 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp!=NULL)  
 		return(JS_TRUE);
 
-	SAFECOPY(p->mode,"w+");		/* default mode */
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_STRING(argv[i])) {	/* mode */
 			if((str = JS_ValueToString(cx, argv[i]))==NULL) {
 				JS_ReportError(cx,"Invalid mode specified: %s",str);
 				return(JS_TRUE);
 			}
-			JSSTRING_TO_STRBUF(cx, str, p->mode, sizeof(p->mode), NULL);
-		}
-		else if(JSVAL_IS_BOOLEAN(argv[i]))	/* shareable */
+			JSSTRING_TO_STRING(cx, str, mode, NULL);
+		} else if(JSVAL_IS_BOOLEAN(argv[i]))	/* shareable */
 			shareable=JSVAL_TO_BOOLEAN(argv[i]);
 		else if(JSVAL_IS_NUMBER(argv[i])) {	/* bufsize */
 			if(!JS_ValueToInt32(cx,argv[i],&bufsize))
 				return(JS_FALSE);
 		}
 	}
+	SAFECOPY(p->mode,mode);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(shareable)
 		p->fp=fopen(p->name,p->mode);
 	else {
 		if((file=nopen(p->name,fopenflags(p->mode)))!=-1) {
-			char *fdomode=strdup(p->mode);
-			char *e=fdomode;
-
-			if(fdomode && e) {
-				for(e=strchr(fdomode, 'e'); e ; e=strchr(e, 'e'))
-					memmove(e, e+1, strlen(e));
-				if((p->fp=fdopen(file,fdomode))==NULL)
-					close(file);
-			}
-			free(fdomode);
+			char fdomode[4];
+			SAFECOPY(fdomode,p->mode);
+			fdomode[strspn(fdomode,"abrwt+")]=0;	/* MSVC10 fdopen() asserts when passed a mode with an unsupported char (e.g. 'e') */
+			if((p->fp=fdopen(file,fdomode))==NULL)
+				close(file);
 		}
 	}
 	if(p->fp!=NULL) {
@@ -200,6 +195,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
+	char*		mode="r+";	/* default mode */
 	uintN		i;
 	jsint		bufsize=2*1024;
 	JSString*	str;
@@ -216,20 +212,20 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp!=NULL)  
 		return(JS_TRUE);
 
-	SAFECOPY(p->mode,"r+");	/* default mode */
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_STRING(argv[i])) {	/* mode */
 			if((str = JS_ValueToString(cx, argv[i]))==NULL) {
 				JS_ReportError(cx,"Invalid mode specified: %s",str);
 				return(JS_TRUE);
 			}
-			JSSTRING_TO_STRBUF(cx, str, p->mode, sizeof(p->mode), NULL);
+			JSSTRING_TO_STRING(cx, str, mode, NULL);
 		}
 		else if(JSVAL_IS_NUMBER(argv[i])) {	/* bufsize */
 			if(!JS_ValueToInt32(cx,argv[i],&bufsize))
 				return(JS_FALSE);
 		}
 	}
+	SAFECOPY(p->mode,mode);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	p->fp=popen(p->name,p->mode);
@@ -640,6 +636,9 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
+	if(p->fp==NULL)
+		return(JS_TRUE);
+
 	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
 	JSVALUE_TO_STRING(cx, argv[1], key, NULL);
@@ -670,12 +669,9 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		else {
 		    array = JS_NewArrayObject(cx, 0, NULL);
-			JSVALUE_TO_MSTRING(cx, dflt, cstr, NULL);
-			HANDLE_PENDING(cx);
+			JSVALUE_TO_STRING(cx, dflt, cstr, NULL);
 			rc=JS_SUSPENDREQUEST(cx);
 			list=iniReadStringList(p->fp,section,key,",",cstr);
-			if(cstr)
-				free(cstr);
 			JS_RESUMEREQUEST(cx, rc);
 			for(i=0;list && list[i];i++) {
 				val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,list[i]));
@@ -702,12 +698,9 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 		JS_RESUMEREQUEST(cx, rc);
 		JS_SET_RVAL(cx, arglist,INT_TO_JSVAL(i));
 	} else {
-		JSVALUE_TO_MSTRING(cx, dflt, cstr, NULL);
-		HANDLE_PENDING(cx);
+		JSVALUE_TO_STRING(cx, dflt, cstr, NULL);
 		rc=JS_SUSPENDREQUEST(cx);
 		cstr2=iniReadString(p->fp,section,key,cstr,buf);
-		if(cstr)
-			free(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cstr2)));
 	}
@@ -776,12 +769,9 @@ js_iniSetValue_internal(JSContext *cx, JSObject *obj, uintN argc, jsval* argv, j
 		result = iniSetDateTime(&list,section,key,/* include_time */TRUE, tt,NULL);
 		JS_RESUMEREQUEST(cx, rc);
 	} else {
-		JSVALUE_TO_MSTRING(cx, value, cstr, NULL);
-		HANDLE_PENDING(cx);
+		JSVALUE_TO_STRING(cx, value, cstr, NULL);
 		rc=JS_SUSPENDREQUEST(cx);
 		result = iniSetString(&list,section,key, cstr,NULL);
-		if(cstr)
-			free(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -2110,9 +2100,9 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				case FILE_PROP_MD5_B64:
 					MD5_close(&md5_ctx,digest);
 					if(tiny==FILE_PROP_MD5_HEX)
-						MD5_hex((BYTE*)str,digest);
+						MD5_hex(str,digest);
 					else 
-						b64_encode(str,sizeof(str)-1,(char *)digest,sizeof(digest));
+						b64_encode(str,sizeof(str)-1,digest,sizeof(digest));
 					js_str=JS_NewStringCopyZ(cx, str);
 					break;
 			}

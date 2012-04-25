@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.67 2012/06/15 21:52:14 deuce Exp $ */
+/* $Id: newuser.cpp,v 1.64 2011/10/19 21:54:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -90,11 +90,11 @@ BOOL sbbs_t::newuser()
 			getstr(str,40,K_UPPER);
 			if(!strcmp(str,cfg.new_pass))
 				break;
-			SAFEPRINTF(tmp,"NUP Attempted: '%s'",str);
+			sprintf(tmp,"NUP Attempted: '%s'",str);
 			logline(LOG_NOTICE,"N!",tmp); 
 		}
 		if(c==4) {
-			SAFEPRINTF(str,"%snupguess.msg",cfg.text_dir);
+			sprintf(str,"%snupguess.msg",cfg.text_dir);
 			if(fexist(str))
 				printfile(str,P_NOABORT);
 			hangup();
@@ -116,7 +116,7 @@ BOOL sbbs_t::newuser()
 	SAFECOPY(useron.comp,client_name);	/* hostname or CID name */
 	SAFECOPY(useron.note,cid);			/* IP address or CID number */
 	if((i=userdatdupe(0,U_NOTE,LEN_NOTE,cid, /* del */true))!=0) {	/* Duplicate IP address */
-		SAFEPRINTF2(useron.comment,"Warning: same IP address as user #%d %s"
+		sprintf(useron.comment,"Warning: same IP address as user #%d %s"
 			,i,username(&cfg,i,str));
 		logline(LOG_NOTICE,"N!",useron.comment); 
 	}
@@ -234,7 +234,7 @@ BOOL sbbs_t::newuser()
 			SAFECOPY(useron.name,useron.alias);
 		if(!online) return(FALSE);
 		if(!useron.handle[0])
-			SAFECOPY(useron.handle,useron.alias);
+			sprintf(useron.handle,"%.*s",LEN_HANDLE,useron.alias);
 		while((cfg.uq&UQ_HANDLE) && online) {
 			bputs(text[EnterYourHandle]);
 			if(!getstr(useron.handle,LEN_HANDLE
@@ -320,21 +320,21 @@ BOOL sbbs_t::newuser()
 			break; 
 	}
 	if(!online) return(FALSE);
-	SAFEPRINTF(str,"New user: %s",useron.alias);
+	sprintf(str,"New user: %s",useron.alias);
 	logline("N",str);
 	if(!online) return(FALSE);
 	CLS;
-	SAFEPRINTF(str,"%ssbbs.msg",cfg.text_dir);
+	sprintf(str,"%ssbbs.msg",cfg.text_dir);
 	printfile(str,P_NOABORT);
 	if(lncntr)
 		pause();
 	CLS;
-	SAFEPRINTF(str,"%ssystem.msg",cfg.text_dir);
+	sprintf(str,"%ssystem.msg",cfg.text_dir);
 	printfile(str,P_NOABORT);
 	if(lncntr)
 		pause();
 	CLS;
-	SAFEPRINTF(str,"%snewuser.msg",cfg.text_dir);
+	sprintf(str,"%snewuser.msg",cfg.text_dir);
 	printfile(str,P_NOABORT);
 	if(lncntr)
 		pause();
@@ -404,12 +404,12 @@ BOOL sbbs_t::newuser()
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(!strcmp(str,useron.pass)) break;
 			if(cfg.sys_misc&SM_ECHO_PW) 
-				SAFEPRINTF3(tmp,"%s FAILED Password verification: '%s' instead of '%s'"
+				sprintf(tmp,"%s FAILED Password verification: '%s' instead of '%s'"
 					,useron.alias
 					,str
 					,useron.pass);
 			else
-				SAFEPRINTF(tmp,"%s FAILED Password verification"
+				sprintf(tmp,"%s FAILED Password verification"
 					,useron.alias);
 			logline(LOG_NOTICE,nulstr,tmp);
 			if(++c==4) {
@@ -428,7 +428,7 @@ BOOL sbbs_t::newuser()
 		getstr(str,50,K_UPPER);
 		if(strcmp(str,cfg.new_magic)) {
 			bputs(text[FailedMagicWord]);
-			SAFEPRINTF2(tmp,"%s failed magic word: '%s'",useron.alias,str);
+			sprintf(tmp,"%s failed magic word: '%s'",useron.alias,str);
 			logline("N!",tmp);
 			hangup(); 
 		}
@@ -438,15 +438,15 @@ BOOL sbbs_t::newuser()
 	bputs(text[CheckingSlots]);
 
 	if((i=newuserdat(&cfg,&useron))!=0) {
-		SAFEPRINTF(str,"user record #%u",useron.number);
+		sprintf(str,"user record #%u",useron.number);
 		errormsg(WHERE,ERR_CREATE,str,i);
 		hangup();
 		return(FALSE); 
 	}
-	SAFEPRINTF2(str,"Created user record #%u: %s",useron.number,useron.alias);
+	sprintf(str,"Created user record #%u: %s",useron.number,useron.alias);
 	logline(nulstr,str);
 	if(cfg.new_sif[0]) {
-		SAFEPRINTF2(str,"%suser/%4.4u.dat",cfg.data_dir,useron.number);
+		sprintf(str,"%suser/%4.4u.dat",cfg.data_dir,useron.number);
 		create_sif_dat(cfg.new_sif,str); 
 	}
 	if(!(cfg.uq&UQ_NODEF))
@@ -455,17 +455,17 @@ BOOL sbbs_t::newuser()
 	delallmail(useron.number, MAIL_ANY);
 
 	if(useron.number!=1 && cfg.node_valuser) {
-		SAFEPRINTF(str,"%sfeedback.msg",cfg.text_dir);
+		sprintf(str,"%sfeedback.msg",cfg.text_dir);
 		CLS;
 		printfile(str,P_NOABORT);
-		safe_snprintf(str,sizeof(str),text[NewUserFeedbackHdr]
+		sprintf(str,text[NewUserFeedbackHdr]
 			,nulstr,getage(&cfg,useron.birth),useron.sex,useron.birth
 			,useron.name,useron.phone,useron.comp,useron.modem);
-		email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO|WM_FORCEFWD);
+		email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO);
 		if(!useron.fbacks && !useron.emails) {
 			if(online) {						/* didn't hang up */
 				bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
-				email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO|WM_FORCEFWD);
+				email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO);
 				} /* give 'em a 2nd try */
 			if(!useron.fbacks && !useron.emails) {
         		bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));

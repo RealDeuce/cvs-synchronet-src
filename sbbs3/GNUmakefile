@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.221 2012/06/01 06:33:01 deuce Exp $
+# $Id: GNUmakefile,v 1.220 2012/03/15 09:09:38 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -108,7 +108,7 @@ $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 # Synchronet BBS library Link Rule
 $(SBBS): $(JS_DEPS) $(CRYPT_DEPS) $(OBJS) $(LIBS) | $(LIBODIR)
 	@echo Linking $@
-	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS) $(JS_LIBS) $(CRYPT_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS) $(JS_LIBS) $(CRYPT_LIBS)
 
 # FTP Server Link Rule
 $(FTPSRVR): $(MTOBJODIR)/ftpsrvr.o
