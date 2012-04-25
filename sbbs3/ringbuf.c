@@ -2,7 +2,7 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.30 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: ringbuf.c,v 1.29 2011/04/21 20:52:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,7 +163,7 @@ DWORD RINGBUFCALL RingBufFree( RingBuf* rb )
 	return(retval);
 }
 
-DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, const BYTE* src,  DWORD cnt )
+DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, BYTE* src,  DWORD cnt )
 {
 	DWORD max, first, remain;
 
