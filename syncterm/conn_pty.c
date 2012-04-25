@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.19 2012/04/25 09:04:21 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.14 2012/02/20 16:26:55 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -105,11 +105,7 @@
 #endif
 
 #ifndef TTYDEF_IFLAG
-	#ifndef IMAXBEL
-		#define TTYDEF_IFLAG    (BRKINT | ICRNL | IXON | IXANY)
-	#else
-		#define TTYDEF_IFLAG    (BRKINT | ICRNL | IMAXBEL | IXON | IXANY)
-	#endif
+	#define TTYDEF_IFLAG    (BRKINT | ICRNL | IMAXBEL | IXON | IXANY)
 #endif
 #ifndef TTYDEF_OFLAG
 	#define TTYDEF_OFLAG    (OPOST | ONLCR)
@@ -120,7 +116,7 @@
 #ifndef TTYDEF_CFLAG
 	#define TTYDEF_CFLAG    (CREAD | CS8 | HUPCL)
 #endif
-#if defined(__QNX__) || defined(__solaris__) || defined(__NetBSD__) || defined(__HAIKU__)
+#if defined(__QNX__) || defined(__solaris__) || defined(__NetBSD__)
 	static cc_t     ttydefchars[NCCS] = {
         CEOF,   CEOL,   CEOL,   CERASE, CWERASE, CKILL, CREPRINT,
         CERASE2, CINTR, CQUIT,  CSUSP,  CDSUSP, CSTART, CSTOP,  CLNEXT,
@@ -203,7 +199,7 @@ daemon(int nochdir, int noclose)
 }
 #endif
 
-static int openpty(int *amaster, int *aslave, char *name, struct termios *termp, struct winsize *winp)
+static int openpty(int *amaster, int *aslave, char *name, struct termios *termp, winsize *winp)
 {
 	char line[] = "/dev/ptyXX";
 	const char *cp1, *cp2;
@@ -250,7 +246,7 @@ static int openpty(int *amaster, int *aslave, char *name, struct termios *termp,
 	return (-1);
 }
 
-static int forkpty(int *amaster, char *name, struct termios *termp, struct winsize *winp)
+static int forkpty(int *amaster, char *name, termios *termp, winsize *winp)
 {
 	int master, slave, pid;
 

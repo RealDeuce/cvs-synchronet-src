@@ -1,6 +1,6 @@
 /* md5.c - RSA Data Security, Inc., MD5 Message-Digest Algorithm */
 
-/* $Id: md5.c,v 1.7 2012/10/23 07:59:36 deuce Exp $ */
+/* $Id: md5.c,v 1.6 2007/08/12 19:29:04 deuce Exp $ */
 
 /* NOTE: Numerous changes have been made; the following notice is
 included to satisfy legal requirements.
@@ -210,7 +210,7 @@ void MD5CALL MD5_digest(MD5 *md5, const void *input, size_t inputLen)
     memcpy(&md5->buffer[index], input, partLen);
     MD5Transform(md5->state, md5->buffer);
     for (i = partLen; i + 63 < inputLen; i += 64)
-      MD5Transform(md5->state, (BYTE *) input + i);
+      MD5Transform(md5->state, (char *) input + i);
     index = 0;
   }
   else
