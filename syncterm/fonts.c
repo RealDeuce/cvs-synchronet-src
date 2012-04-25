@@ -7,6 +7,7 @@
 #include "ini_file.h"
 
 #include "ciolib.h"
+#include "allfonts.h"
 
 #include "uifc.h"
 #include "filepick.h"

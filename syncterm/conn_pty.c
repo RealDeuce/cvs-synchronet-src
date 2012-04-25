@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.21 2014/01/23 01:27:39 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.17 2012/04/25 08:52:50 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -203,7 +203,7 @@ daemon(int nochdir, int noclose)
 }
 #endif
 
-static int openpty(int *amaster, int *aslave, char *name, struct termios *termp, struct winsize *winp)
+static int openpty(int *amaster, int *aslave, char *name, struct termios *termp, winsize *winp)
 {
 	char line[] = "/dev/ptyXX";
 	const char *cp1, *cp2;
@@ -250,7 +250,7 @@ static int openpty(int *amaster, int *aslave, char *name, struct termios *termp,
 	return (-1);
 }
 
-static int forkpty(int *amaster, char *name, struct termios *termp, struct winsize *winp)
+static int forkpty(int *amaster, char *name, termios *termp, winsize *winp)
 {
 	int master, slave, pid;
 
@@ -289,9 +289,8 @@ void pty_input_thread(void *args)
 	int		rd;
 	int	buffered;
 	size_t	buffer;
-	int i;
+int i;
 
-	SetThreadName("PTY Input");
 	conn_api.input_thread_running=1;
 	while(master != -1 && !conn_api.terminate) {
 		if((i=waitpid(child_pid, &status, WNOHANG)))
@@ -339,7 +338,6 @@ void pty_output_thread(void *args)
 	int		ret;
 	int	sent;
 
-	SetThreadName("PTY Output");
 	conn_api.output_thread_running=1;
 	while(master != -1 && !conn_api.terminate) {
 		if(waitpid(child_pid, &status, WNOHANG))
@@ -432,7 +430,7 @@ int pty_connect(struct bbslist *bbs)
 				":@7=\\E[K:AB=\\E[4%%dm:AF=\\E[3%%dm:AL=\\E[%%dL:DC=\\E[%%dP"
 				":DL=\\E[%%dM:DO=\\E[%%dB:F1=\\E[23~:F2=\\E[24~:IC=\\E[%%d@"
 				":LE=\\E[%%dD:RA=\\E[7l:RI=\\E[%%dC:SA=\\E[?7h:SF=\\E[%%dS"
-				":SR=\\E[%%dT:UP=\\E[%%dA:cs=\E[%i%d;%dr"
+				":SR=\\E[%%dT:UP=\\E[%%dA"
 				":ac=-\\030.^Y0\\333`\\004a\\260f\\370g\\361h\\261i\\025j\\331k\\277l\\332m\\300n\\305q\\304t\\303u\\264v\\301w\\302x\\263y\\363z\\362~\\371"
 				":al=\\E[L:bl=^G:bt=\\E[Z:cb=\\E[1K:cd=\\E[J:ce=\\E[K:cl=\\E[2J"
 				":cm=\\E[%%i%%d;%%dH:cr=^M:dc=\\E[P:dl=\\E[M:do=^J:ec=\\E[%%dX:ei="
