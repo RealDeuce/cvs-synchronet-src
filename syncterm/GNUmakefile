@@ -1,8 +1,6 @@
 SRC_ROOT	:=	..
 include ${SRC_ROOT}/build/Common.gmake
 
-CFLAGS	+=	-I/usr/local/include	# cryptlib.h lives here by default
-CFLAGS	+=	-I../../include/cryptlib	# cryptlib.h lives here in CVS
 ifdef WITHOUT_OOII
  CFLAGS	+= -DWITHOUT_OOII=1
 else
@@ -61,18 +59,16 @@ endif
 
 ifdef WITHOUT_CRYPTLIB
  CFLAGS += -DWITHOUT_CRYPTLIB
+ CRYPT_LDFLAGS :=
+ CRYPT_DEPS :=
 else
  OBJS += $(MTOBJODIR)$(DIRSEP)ssh$(OFILE)
+ CFLAGS	+=	$(CRYPT_CFLAGS)
+ EXTRA_LIBS	+=	$(CRYPT_LIB)
 endif
 
 ifdef STATIC
  STATIC_CRYPTLIB	:= true
-endif
-
-ifdef STATIC_CRYPTLIB
- CFLAGS += -DSTATIC_CRYPTLIB
- LDFLAGS += -lz
- EXTRA_LIBS += $(SRC_ROOT)/../lib/cryptlib/$(machine).release/libcl.a
 endif
 
 ifeq ($(os),darwin)
@@ -81,6 +77,10 @@ ifeq ($(os),darwin)
  endif
  EXTRA_LIBS += -framework CoreServices
  STATIC_CRYPTLIB ?= 1
+endif
+
+ifdef STATIC_CRYPTLIB
+ CFLAGS += -DSTATIC_CRYPTLIB
 endif
 
 ifeq ($(os),linux)
@@ -108,7 +108,7 @@ endif
 CFLAGS	+=	-DSYSTEM_LIST_DIR=\"${SYSTEM_LIST_DIR}\"
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) -I../sbbs3 -I../smblib -I../comio
-LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS)
+LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(CRYPT_LDFLAGS)
 
 vpath %.c ../sbbs3 ../smblib ../uifc ../guts ../comio
 
@@ -119,20 +119,24 @@ else
 endif
 INSTALL_DATA	?=	install -m 0444
 
-OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
+ifneq ($(os),haiku)
+ OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE) \
+           $(MTOBJODIR)$(DIRSEP)modem$(OFILE) \
+           $(MTOBJODIR)$(DIRSEP)comio$(OFILE)
+endif
+OBJS += $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
 ifndef bcc
  ifneq ($(os),sunos)
   ifneq ($(os),darwin)
-   LDFLAGS   +=  -lutil
+   EXTRA_LIBS   +=  -lutil
   endif
  endif
 endif
 
 
-$(SYNCTERM): $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
+$(SYNCTERM): $(CRYPT_DEPS) $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS) $(EXTRA_LIBS)
+	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(EXTRA_LIBS) $(CIOLIB-MT_LIBS) $(WXLIBS) $(XPDEV-MT_LIBS)
 ifeq ($(os),darwin)
 	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app
 	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents
