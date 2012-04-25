@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.19 2012/10/23 08:19:49 deuce Exp $ */
+/* $Id: js_com.c,v 1.17 2011/10/29 03:53:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,7 +171,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		cp;
-	size_t		len;
+	int			len;
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -182,15 +182,12 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(!js_argc(cx, argc, 1))
-		return JS_FALSE;
-
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
 	JSVALUE_TO_STRING(cx, argv[0], cp, &len);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(comWriteBuf(p->com,(uint8_t *)cp,len)==len) {
+	if(comWriteBuf(p->com,cp,len)==len) {
 		dbprintf(FALSE, p, "sent %u bytes",len);
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	} else {
@@ -221,9 +218,6 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(!js_argc(cx, argc, 1))
-		return JS_FALSE;
-
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
 	JSVALUE_TO_STRING(cx, argv[0], fname, NULL);
@@ -250,7 +244,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	close(file);
 
-	if(comWriteBuf(p->com,(uint8_t *)buf,len)==len) {
+	if(comWriteBuf(p->com,buf,len)==len) {
 		dbprintf(FALSE, p, "sent %u bytes",len);
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	} else {
@@ -284,14 +278,14 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(!js_argc(cx, argc, 1))
-		return JS_FALSE;
-
-	if(!JS_ValueToInt32(cx,argv[0],&val))
-		return JS_FALSE;
-
-	if(!JS_ValueToInt32(cx,argv[1],(int32*)&size))
-		return JS_FALSE;
+	if(argc && argv[0]!=JSVAL_VOID) {
+		if(!JS_ValueToInt32(cx,argv[0],&val))
+			return JS_FALSE;
+	}
+	if(argc>1 && argv[1]!=JSVAL_VOID)  {
+		if(!JS_ValueToInt32(cx,argv[1],(int32*)&size))
+			return JS_FALSE;
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	switch(size) {
@@ -348,12 +342,12 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc) {
+	if(argc && argv[0]!=JSVAL_VOID) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
 
-	if(argc>1) {
+	if(argc>1 && argv[1]!=JSVAL_VOID) {
 		if(!JS_ValueToInt32(cx,argv[1],&timeout))
 			return JS_FALSE;
 	}
@@ -405,7 +399,7 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc) {
+	if(argc && argv[0]!=JSVAL_VOID) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
@@ -415,7 +409,7 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc>1) {
+	if(argc>1 && argv[1]!=JSVAL_VOID) {
 		if(!JS_ValueToInt32(cx,argv[1],&timeout))
 			return JS_FALSE;
 	}
@@ -464,12 +458,12 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc) {
+	if(argc && argv[0]!=JSVAL_VOID) {
 		if(!JS_ValueToInt32(cx,argv[0],(int32*)&size))
 			return JS_FALSE;
 	}
 
-	if(argc>1) {
+	if(argc>1 && argv[1]!=JSVAL_VOID) {
 		if(!JS_ValueToInt32(cx,argv[1],&timeout));
 			return JS_FALSE;
 	}
@@ -477,18 +471,18 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	switch(size) {
 		case sizeof(BYTE):
-			if((rd=comReadBuf(p->com,(char*)&b,size,NULL,timeout))==size)
+			if((rd=comReadBuf(p->com,(BYTE*)&b,size,NULL,timeout))==size)
 				JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(b));
 			break;
 		case sizeof(WORD):
-			if((rd=comReadBuf(p->com,(char*)&w,size,NULL,timeout))==size) {
+			if((rd=comReadBuf(p->com,(BYTE*)&w,size,NULL,timeout))==size) {
 				if(p->network_byte_order)
 					w=ntohs(w);
 				JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(w));
 			}
 			break;
 		case sizeof(DWORD):
-			if((rd=comReadBuf(p->com,(char*)&l,size,NULL,timeout))==size) {
+			if((rd=comReadBuf(p->com,(BYTE*)&l,size,NULL,timeout))==size) {
 				if(p->network_byte_order)
 					l=ntohl(l);
 				JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL(l));
