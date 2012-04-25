@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.77 2011/08/11 19:13:22 deuce Exp $
+# $Id: Common.gmake,v 1.85 2012/04/25 07:59:04 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -41,6 +41,7 @@
 #																			#
 # Common Build Macros REQUIRED:												#
 #  SRC_ROOT			- *MUST* be set to the src dir							#
+#  3RDP_ROOT		- If not set, defaults to $(SRC_ROOT)/../3rdp			#
 #																			#
 # Common Build Macros Used:													#
 #  DEBUG			- Create a debug build									#
@@ -109,7 +110,7 @@
 
 # Set VERSION
 ifndef VERSION
- VERSION	:=	3.15
+ VERSION	:=	3.16
 endif
 
 # Put local (optional) macro definitions in localdefs.mk
@@ -287,6 +288,9 @@ endif
 ifeq ($(os),netbsd)	# NetBSD
  CFLAGS	+=	-D__unix__ -I/usr/pkg/include
 endif
+ifeq ($(os),haiku)
+ CFLAGS	+=	-D__unix__
+endif
 ifeq ($(os),darwin)
  CFLAGS +=  -D__unix__ -fno-common -D__DARWIN__
 endif
@@ -298,7 +302,6 @@ ifeq ($(os),linux)    # Linux
  endif
 endif
 MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
-CFLAGS    += -D_THREAD_SAFE -D_REENTRANT -D__EXTENSIONS__
 ifeq ($(os),freebsd)    # FreeBSD
  MT_CFLAGS    += -DUSE_XP_SEMAPHORES
  MT_LDFLAGS    +=    -pthread
@@ -328,7 +331,7 @@ else
       MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
       # This makes ctime_r() be the correct one.
-      CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
+      #CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
      else            # Linux / Other UNIX
       XP_SEM :=    1
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
@@ -360,6 +363,8 @@ XPDEV_SRC	:=	$(SRC_ROOT)$(DIRSEP)xpdev
 CIOLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)conio
 SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
+3RDP_ROOT	?=	$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)3rdp
+3RDP_BUILD	:=	$(3RDP_ROOT)$(DIRSEP)build
 
 # SDL ciolib enabled by default for the moment.
 ifndef WITHOUT_SDL
@@ -377,10 +382,13 @@ endif
 -include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
 -include		$(UIFC_SRC)$(DIRSEP)Common.make
 -include		$(UIFC_SRC)$(DIRSEP)Common.gmake
+-include		$(3RDP_BUILD)$(DIRSEP)Common.make
+-include		$(3RDP_BUILD)$(DIRSEP)Common.gmake
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb
  CFLAGS	+=	-D_DEBUG
+ CFLAGS +=	-Wall -Wno-char-subscripts
 else # RELEASE
  # -finline functions breaks the baja build badly.
  # This also means that -O3 won't work either.
@@ -392,22 +400,22 @@ endif
 -include objects.mk		# defines $(OBJS)
 
 # Implicit C Compile Rule
-$(OBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS)
+$(OBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS) | $(OBJODIR)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
 
 # Implicit C++ Compile Rule
-$(OBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS)
+$(OBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS) | $(OBJODIR)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ -c $<
 
 # Implicit MT C Compile Rule
-$(MTOBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS)
+$(MTOBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS) | $(MTOBJODIR)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) $(MT_CFLAGS) -o $@ -c $<
 
 # Implicit MT C++ Compile Rule
-$(MTOBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS)
+$(MTOBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS) | $(MTOBJODIR)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) $(MT_CFLAGS) -o $@ -c $<
 
@@ -452,3 +460,11 @@ uifc:
 $(UIFCLIB-MT): uifc-mt
 uifc-mt:
 	$(MAKE) -C $(UIFC_SRC) mtlib
+
+$(JS_LIB):  $(JS_DEPS)
+js:
+	$(MAKE) -C $(3RDPBUILDDIR) jslib
+
+$(CRYPT_LIB):  $(CRYPT_DEPS)
+cl:
+	$(MAKE) -C $(3RDPBUILDDIR) cryptlib
