@@ -2,13 +2,13 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.47 2014/02/09 11:37:07 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.40 2011/09/09 08:06:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -99,27 +99,24 @@ pthread_mutex_t pthread_mutex_initializer_np(BOOL recursive);
 
 #if defined(_POSIX_THREADS)
 
+#ifdef _DEBUG
 #if defined (__FreeBSD__) || defined (__OpenBSD__)
- #include <pthread_np.h>
- #define	SetThreadName(c)	pthread_set_name_np(pthread_self(),c)
-#elif defined(__GLIBC__)
- #include <features.h>
- #if (__GLIBC__ > 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 12))
-  #define	SetThreadName(c)	pthread_setname_np(pthread_self(),c)
- #else
-  #define SetThreadName(c)
- #endif
+#include <pthread_np.h>
+#define	SetThreadName(c)	pthread_set_name_np(pthread_self(),c)
 #else
- #define SetThreadName(c)
+#define SetThreadName(c)
+#endif
+#else
+#define SetThreadName(c)
 #endif
 
 #else
 
-DLLEXPORT int DLLCALL pthread_mutex_init(pthread_mutex_t*, void* attr);
-DLLEXPORT int DLLCALL pthread_mutex_lock(pthread_mutex_t*);
-DLLEXPORT int DLLCALL pthread_mutex_trylock(pthread_mutex_t*);
-DLLEXPORT int DLLCALL pthread_mutex_unlock(pthread_mutex_t*);
-DLLEXPORT int DLLCALL pthread_mutex_destroy(pthread_mutex_t*);
+int pthread_mutex_init(pthread_mutex_t*, void* attr);
+int pthread_mutex_lock(pthread_mutex_t*);
+int pthread_mutex_trylock(pthread_mutex_t*);
+int pthread_mutex_unlock(pthread_mutex_t*);
+int pthread_mutex_destroy(pthread_mutex_t*);
 
 #define SetThreadName(c)
 
@@ -162,20 +159,16 @@ typedef struct {
 } protected_uint64_t;
 
 /* Return 0 on success, non-zero on failure (see pthread_mutex_init): */
-DLLEXPORT int DLLCALL protected_int32_init(protected_int32_t*,	int32_t value);
+int			protected_int32_init(protected_int32_t*,	int32_t value);
 #define protected_uint32_init(i, val)	protected_int32_init((protected_int32_t*)i, val)
-DLLEXPORT int DLLCALL protected_int64_init(protected_int64_t*,	int64_t value);
+int			protected_int64_init(protected_int64_t*,	int64_t value);
 #define protected_uint64_init(i, val)	protected_int64_init((protected_int64_t*)i, val)
 
 /* Return new value: */
-DLLEXPORT int32_t DLLCALL protected_int32_adjust(protected_int32_t*,	int32_t adjustment);
-#define protected_int32_value(i)		protected_int32_adjust(&i,0)
-DLLEXPORT uint32_t DLLCALL protected_uint32_adjust(protected_uint32_t*,int32_t adjustment);
-#define protected_uint32_value(i)		protected_uint32_adjust(&i,0)
-DLLEXPORT int64_t DLLCALL protected_int64_adjust(protected_int64_t*,	int64_t adjustment);
-#define protected_int64_value(i)		protected_int64_adjust(&i,0)
-DLLEXPORT uint64_t DLLCALL protected_uint64_adjust(protected_uint64_t*,int64_t adjustment);
-#define protected_uint64_value(i)		protected_uint64_adjust(&i,0)
+int32_t		protected_int32_adjust(protected_int32_t*,	int32_t adjustment);
+uint32_t	protected_uint32_adjust(protected_uint32_t*,int32_t adjustment);
+int64_t		protected_int64_adjust(protected_int64_t*,	int64_t adjustment);
+uint64_t	protected_uint64_adjust(protected_uint64_t*,int64_t adjustment);
 
 /* Return 0 on success, non-zero on failure (see pthread_mutex_destroy): */
 #define protected_int32_destroy(i)	pthread_mutex_destroy(&i.mutex)
