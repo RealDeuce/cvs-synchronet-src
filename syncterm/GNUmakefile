@@ -119,18 +119,12 @@ else
 endif
 INSTALL_DATA	?=	install -m 0444
 
-ifneq ($(os),haiku)
- OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE) \
-           $(MTOBJODIR)$(DIRSEP)modem$(OFILE) \
-           $(MTOBJODIR)$(DIRSEP)comio$(OFILE)
-endif
-OBJS += $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
+OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
+OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
 ifndef bcc
  ifneq ($(os),sunos)
   ifneq ($(os),darwin)
-    ifneq ($(os),haiku)
-      EXTRA_LIBS   +=  -lutil
-	endif
+   EXTRA_LIBS   +=  -lutil
   endif
  endif
 endif
