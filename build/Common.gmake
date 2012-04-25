@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.85 2012/04/25 07:59:04 deuce Exp $
+# $Id: Common.gmake,v 1.86 2012/04/25 08:03:13 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -231,6 +231,10 @@ endif
 
 ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
  CFLAGS	+=	-DHAS_INTTYPES_H
+else
+ ifeq ($(shell if [ -f /boot/develop/headers/posix/inttypes.h ] ; then echo YES ; fi),YES)
+  CFLAGS	+=	-DHAS_INTTYPES_H
+ endif
 endif
 
 CCPRE := $(lastword $(subst /, ,$(CCPRE)))
