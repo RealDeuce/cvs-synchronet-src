@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.57 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: scfgsave.c,v 1.56 2012/03/07 06:35:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1036,8 +1036,7 @@ BOOL DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level)
 /****************************************************************************/
 BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 {
-	char	str[MAX_PATH+1];
-	uchar	c;
+	uchar	str[MAX_PATH+1],c;
 	int 	i,j,sec,file;
 	uint16_t	n;
 	FILE	*stream;
