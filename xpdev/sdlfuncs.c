@@ -6,7 +6,6 @@
  #define USE_REAL_MAIN
 #endif
 #include "gen_defs.h"
-#include "threadwrap.h"
 #ifdef USE_REAL_MAIN
  #undef main
 #endif
@@ -20,7 +19,7 @@ struct sdlfuncs sdl;
 #ifdef STATIC_SDL
 #define STATIC_LINK
 #endif
-#include "xp_dl.h"
+#include <xp_dl.h>
 
 static int sdl_funcs_loaded=0;
 static int sdl_initialized=0;
@@ -75,10 +74,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->SemWait=xp_dlsym(sdl_dll, SDL_SemWait))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->SemWaitTimeout=xp_dlsym(sdl_dll, SDL_SemWaitTimeout))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -407,7 +402,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 		}
 	}
 	if(sdl_video_initialized) {
-		SetThreadName("SDL Main");
 		atexit(sdl.Quit);
 		sdl_main_sem=sdl.SDL_CreateSemaphore(0);
 		sdl_exit_sem=sdl.SDL_CreateSemaphore(0);
