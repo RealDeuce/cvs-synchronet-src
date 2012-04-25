@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.15 2012/04/25 08:48:24 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.16 2012/04/25 08:50:25 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -105,11 +105,7 @@
 #endif
 
 #ifndef TTYDEF_IFLAG
-	#ifndef IMAXBEL
-		#define TTYDEF_IFLAG    (BRKINT | ICRNL | IXON | IXANY)
-	#else
-		#define TTYDEF_IFLAG    (BRKINT | ICRNL | IMAXBEL | IXON | IXANY)
-	#endif
+	#define TTYDEF_IFLAG    (BRKINT | ICRNL | IMAXBEL | IXON | IXANY)
 #endif
 #ifndef TTYDEF_OFLAG
 	#define TTYDEF_OFLAG    (OPOST | ONLCR)
