@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.576 2011/10/28 09:02:06 rswindell Exp $ */
+/* $Id: main.cpp,v 1.581 2011/12/06 20:37:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -399,10 +399,11 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
+	"null",
+	"xml",
 	"array",
 	"alias",
-	"undefined",
-	"null"
+	"undefined"
 };
 
 JSBool
@@ -1613,19 +1614,18 @@ void input_thread(void *arg)
 
     	rd=RingBufFree(&sbbs->inbuf);
 
-		if(!rd) { // input buffer full
+		if(rd==0) { // input buffer full
 			lprintf(LOG_WARNING,"Node %d !WARNING input buffer full", sbbs->cfg.node_num);
         	// wait up to 5 seconds to empty (1 byte min)
 			time_t start=time(NULL);
-            while((rd=RingBufFree(&sbbs->inbuf))==0) {
-            	if(time(NULL)-start>=5) {
-                	rd=1;
-					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
-                	break;
-                }
+            while((rd=RingBufFree(&sbbs->inbuf))==0 && time(NULL)-start<5) {
                 YIELD();
             }
+			if(rd==0) {	/* input buffer still full */
+				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
+					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+				continue;
+			}
 		}
 		
 	    if(rd > (int)sizeof(inbuf))
@@ -2021,6 +2021,7 @@ void output_thread(void* arg)
 	}
 #endif
 
+	/* Note: do not terminate when online==FALSE, that is expected for the terminal server output_thread */
 	while(sbbs->client_socket!=INVALID_SOCKET && !terminate_server) {
 		/*
 		 * I'd like to check the linear buffer against the highwater
@@ -2101,7 +2102,6 @@ void output_thread(void* arg)
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
-				i=-1;
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
 			}
@@ -2110,7 +2110,7 @@ void output_thread(void* arg)
 		}
 		else
 #endif
-		i=sendsocket(sbbs->client_socket, (char*)buf+bufbot, buftop-bufbot);
+			i=sendsocket(sbbs->client_socket, (char*)buf+bufbot, buftop-bufbot);
 		if(i==SOCKET_ERROR) {
         	if(ERROR_VALUE == ENOTSOCK)
                 lprintf(LOG_NOTICE,"%s client socket closed on send", node);
@@ -3253,8 +3253,8 @@ bool sbbs_t::init()
 			return(false);
 		}
 		for(i=0;i<cfg.max_batup;i++) {
-			if((batup_desc[i]=(char *)malloc(59))==NULL) {
-				errormsg(WHERE, ERR_ALLOC, "batup_desc[x]", 59);
+			if((batup_desc[i]=(char *)malloc(LEN_FDESC+1))==NULL) {
+				errormsg(WHERE, ERR_ALLOC, "batup_desc[x]", LEN_FDESC+1);
 				return(false);
 			}
 			if((batup_name[i]=(char *)malloc(13))==NULL) {
@@ -4084,15 +4084,18 @@ void sbbs_t::daily_maint(void)
 	uint			i;
 	uint			usernum;
 	uint			lastusernum;
-	node_t			node;
 	user_t			user;
 
 	now=time(NULL);
 
-	sbbs->getnodedat(sbbs->cfg.node_num,&node,1);
-	node.status=NODE_EVENT_RUNNING;
-	sbbs->putnodedat(sbbs->cfg.node_num,&node);
-
+	if(sbbs->cfg.node_num) {
+		if((i=sbbs->getnodedat(sbbs->cfg.node_num,&sbbs->thisnode,true)) != 0)
+			sbbs->errormsg(WHERE,ERR_LOCK,"node file",i);
+		else {
+			sbbs->thisnode.status=NODE_EVENT_RUNNING;
+			sbbs->putnodedat(sbbs->cfg.node_num,&sbbs->thisnode);
+		}
+	}
 	sbbs->logentry("!:","Ran system daily maintenance");
 
 	if(sbbs->cfg.user_backup_level) {
@@ -4755,7 +4758,6 @@ NO_SSH:
 
 	sbbs = new sbbs_t(0, server_addr
 		,"Terminal Server", telnet_socket, &scfg, text, NULL);
-    sbbs->online = 0;
 	if(sbbs->init()==false) {
 		lputs(LOG_CRIT,"!BBS initialization failed");
 		cleanup(1);
@@ -4766,7 +4768,6 @@ NO_SSH:
 	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
 		events = new sbbs_t(0, server_addr
 			,"BBS Events", INVALID_SOCKET, &scfg, text, NULL);
-		events->online = 0;
 		if(events->init()==false) {
 			lputs(LOG_CRIT,"!Events initialization failed");
 			cleanup(1);
@@ -5425,7 +5426,7 @@ NO_PASSTHRU:
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
-			while(RingBufFull(&sbbs->outbuf))
+			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
 			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 			sbbs->ssh_mode=false;
