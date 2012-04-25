@@ -1,11 +1,11 @@
 #include <stdlib.h>	/* getenv()/exit()/atexit() */
 #include <stdio.h>	/* NULL */
 
+#include "gen_defs.h"
 #include <SDL.h>
 #ifndef main
  #define USE_REAL_MAIN
 #endif
-#include "gen_defs.h"
 #ifdef USE_REAL_MAIN
  #undef main
 #endif
@@ -316,6 +316,12 @@ void run_sdl_drawing_thread(int (*drawing_thread)(void *data), void (*exit_drawi
 	sdl.SemPost(sdl_main_sem);
 }
 
+static void QuitWrap(void)
+{
+	if(sdl.Quit)
+		sdl.Quit();
+}
+
 #ifndef main
 int main(int argc, char **argv, char **env)
 #else
@@ -402,7 +408,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 		}
 	}
 	if(sdl_video_initialized) {
-		atexit(sdl.Quit);
+		atexit(QuitWrap);
 		sdl_main_sem=sdl.SDL_CreateSemaphore(0);
 		sdl_exit_sem=sdl.SDL_CreateSemaphore(0);
 		main_thread=sdl.CreateThread(sdl_run_main,&ma);
