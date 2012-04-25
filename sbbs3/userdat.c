@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.148 2012/10/20 20:49:37 rswindell Exp $ */
+/* $Id: userdat.c,v 1.146 2011/11/11 06:42:52 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -70,9 +70,11 @@ uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
 		return(1);
 
 	SAFEPRINTF(str,"%suser/name.dat",cfg->data_dir);
-	if((stream=fnopen(&file,str,O_RDONLY))==NULL)
+	if((file=nopen(str,O_RDONLY))==-1)
 		return(0);
 	length=(long)filelength(file);
+	if((stream=fdopen(file,"rb"))==NULL)
+		return(0);
 	for(l=0;l<length;l+=LEN_ALIAS+2) {
 		fread(dat,sizeof(dat),1,stream);
 		for(c=0;c<LEN_ALIAS;c++)
@@ -243,11 +245,6 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	unlock(file,(long)((long)(user_number-1)*U_LEN),U_LEN);
 	close(file);
-
-	/* The user number needs to be set here
-	   before calling chk_ar() below for user-number comparisons in AR strings to function correctly */
-	user->number=user_number;	/* Signal of success */
-
 	/* order of these function calls is irrelevant */
 	getrec(userdat,U_ALIAS,LEN_ALIAS,user->alias);
 	getrec(userdat,U_NAME,LEN_NAME,user->name);
@@ -351,6 +348,8 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	getrec(userdat,U_CHAT,8,str);
 	user->chat=ahtoul(str);
+
+	user->number=user_number;	/* Signal of success */
 
 	/* Reset daily stats if not already logged on today */
 	if(user->ltoday || user->etoday || user->ptoday || user->ttoday) {
