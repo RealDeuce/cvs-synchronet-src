@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.92 2014/03/12 09:23:38 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.87 2011/11/04 09:25:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -48,10 +48,7 @@
 	#include <sys/ioctl.h>		/* ioctl() */
 	#include <sys/utsname.h>	/* uname() */
 	#include <signal.h>
-#elif defined(_WIN32)
-	#include <Windows.h>
-	#include <LM.h>		/* NetWkstaGetInfo() */
-#endif
+#endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
 #include "xpendian.h"	/* BYTE_SWAP */
@@ -180,14 +177,15 @@ char* DLLCALL c_escape_char(char ch)
 char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_only)
 {
 	const char*	s;
-	char*		d;
-	const char*	e;
+	char*	d;
+	char*	e;
 
-	for(s=src,d=dst;*s && (size_t)(d-dst)<maxlen;s++) {
+	for(s=src,d=dst;*s && (size_t)(d-dst)<maxlen;s++,d++) {
 		if((!ctrl_only || (uchar)*s < ' ') && (e=c_escape_char(*s))!=NULL) {
-			strncpy(d,e,maxlen-(d-dst));
-			d+=strlen(d);
-		} else *d++=*s;
+			*d=0;
+			strncat(dst,e,maxlen-(d-dst));
+			d++;
+		} else *d=*s;
 	}
 	*d=0;
 
@@ -330,7 +328,7 @@ long DLLCALL xp_random(int n)
 	if(n<2)
 		return(0);
 
-	limit = ((1UL<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
+	limit = ((1U<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
 
 	while(1) {
 		curr=random();
@@ -338,17 +336,13 @@ long DLLCALL xp_random(int n)
 			return(curr % n);
 	}
 #else
-	double f=0;
-	int ret;
+	float f=0;
 
 	if(n<2)
 		return(0);
-	do {
-		f=(double)rand()/(double)(RAND_MAX+1);
-		ret=(int)(n*f);
-	} while(ret==n);
+	f=(float)rand()/(float)RAND_MAX;
 
-	return(ret);
+	return((int)(n*f));
 #endif
 }
 
@@ -407,23 +401,10 @@ char* DLLCALL os_version(char *str)
 			break;
 	}
 
-	/* Work-around Microsoft Windows 8.1 stupidity where GetVersionEx() lies about the current OS version */
-	if(winver.dwMajorVersion == 6 && winver.dwMinorVersion == 2) {
-		WKSTA_INFO_100* wksta_info;
-		if(NetWkstaGetInfo(NULL, 100, (LPBYTE*)&wksta_info) == NERR_Success) {
-			winver.dwMajorVersion = wksta_info->wki100_ver_major;
-			winver.dwMinorVersion = wksta_info->wki100_ver_minor;
-			winver.dwBuildNumber = 0;
-		}
-	}
-
-	sprintf(str,"Windows %sVersion %u.%u"
+	sprintf(str,"Windows %sVersion %u.%u (Build %u) %s"
 			,winflavor
-			,winver.dwMajorVersion, winver.dwMinorVersion);
-	if(winver.dwBuildNumber)
-		sprintf(str+strlen(str), " (Build %u)", winver.dwBuildNumber);
-	if(winver.szCSDVersion[0])
-		sprintf(str+strlen(str), " %s", winver.szCSDVersion);
+			,winver.dwMajorVersion, winver.dwMinorVersion
+			,winver.dwBuildNumber,winver.szCSDVersion);
 
 #elif defined(__unix__)
 
