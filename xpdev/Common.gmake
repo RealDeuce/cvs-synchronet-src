@@ -28,9 +28,6 @@ endif
 ifeq ($(os),linux)	# Linux
  XPDEV-MT_LIBS	+=	-lpthread
 endif
-ifeq ($(os),win32)	# MinGW32
- XPDEV-MT_LIBS	+=	-lws2_32 -lwinmm
-endif
 ifeq ($(shell if [ -c /dev/urandom ] ; then echo YES ; fi),YES)
  XPDEV-MT_CFLAGS	+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
  XPDEV_CFLAGS		+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
@@ -190,13 +187,5 @@ ifndef WITHOUT_PORTAUDIO
 
  ifneq ($(PORTAUDIO_PATH),NOTFOUND)
   XPDEV_CFLAGS += -DWITH_PORTAUDIO
-  ifeq ($(os),linux)
-   XPDEV-MT_LIBS += -ldl
-   XPDEV_LIBS += -ldl
-  endif
  endif
-endif
-ifeq ($(shell if [ -f /usr/include/alsa/asoundlib.h ] ; then echo YES ; fi),YES)
- XPDEV-MT_LIBS += -ldl
- XPDEV_LIBS += -ldl
 endif
