@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.44 2007/07/11 01:28:15 deuce Exp $ */
+/* $Id: baja.c,v 1.45 2011/10/29 23:02:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,11 +334,11 @@ void newvar(uchar* src, uchar *in)
 			return;
 	}
 	if((var_name=(uint32_t *)realloc(var_name,sizeof(int32_t)*(vars+1)))==NULL) {
-		printf("Too many (%lu) variables!\n",vars);
+		printf("Too many (%"PRIu32") variables!\n",vars);
 		bail(1); }
 	var_name[vars]=l;
 	if(display)
-		printf("newvar(%08lX)=%s\n",l,in);
+		printf("newvar(%08"PRIX32")=%s\n",l,in);
 	vars++;
 }
 
@@ -3410,7 +3410,7 @@ int main(int argc, char **argv)
 	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision: 1.44 $", "%*s %s", revision);
+	sscanf("$Revision: 1.45 $", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
