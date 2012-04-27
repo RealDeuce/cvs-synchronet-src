@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.88 2012/04/27 16:18:57 deuce Exp $ */
+/* $Id: genwrap.c,v 1.89 2012/04/27 16:21:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -342,7 +342,7 @@ long DLLCALL xp_random(int n)
 	if(n<2)
 		return(0);
 	do {
-		f=(double)rand()/(double)RAND_MAX;
+		f=(double)rand()/(double)(RAND_MAX+1);
 		ret=(n*f);
 	} while ret==n;
 
