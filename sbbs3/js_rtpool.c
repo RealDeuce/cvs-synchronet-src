@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.26 2012/10/18 17:36:04 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.25 2012/03/07 06:49:07 rswindell Exp $ */
 
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
@@ -51,7 +51,6 @@ static void trigger_thread(void *args)
 {
 	int	i;
 
-	SetThreadName("JSRT Trigger");
 	for(;;) {
 		pthread_mutex_lock(&jsrt_mutex);
 		for(i=0; i<JSRT_QUEUE_SIZE; i++) {
