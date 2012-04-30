@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.77 2013/09/15 07:32:48 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.73 2012/04/11 04:08:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -556,7 +556,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,8									/* 03: Data bits */
 			,cfg.node_num						/* 04: Node number */
 			,dte_rate							/* 05: DTE rate */
-			,'Y'								/* 06: Screen display */
+			,console&CON_L_ECHO ? 'Y':'N'       /* 06: Screen display */
 			,'Y'                                /* 07: Printer toggle */
 			,'Y'                                /* 08: Page bell */
 			,'Y');                              /* 09: Caller alarm */
@@ -1674,12 +1674,10 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_LWRCASE)
 		strlwr(name);
 	strcat(path,name);
-	if(action!=NODE_PCHT) {
-		getnodedat(cfg.node_num,&thisnode,1);
-		thisnode.action=NODE_XTRN;
-		thisnode.aux=xtrnnum+1;
-		putnodedat(cfg.node_num,&thisnode);
-	}
+	getnodedat(cfg.node_num,&thisnode,1);
+	thisnode.aux=xtrnnum+1;
+	thisnode.action=NODE_XTRN;
+	putnodedat(cfg.node_num,&thisnode);
 	putuserrec(&cfg,useron.number,U_CURXTRN,8,cfg.xtrn[xtrnnum]->code);
 
 	if(cfg.xtrn[xtrnnum]->misc&REALNAME)
@@ -1790,7 +1788,6 @@ bool sbbs_t::user_event(user_event_t event)
 		if(cfg.xtrn[i]->event!=event)
 			continue;
 		if(!chk_ar(cfg.xtrn[i]->ar,&useron,&client)
-			|| !chk_ar(cfg.xtrn[i]->run_ar,&useron,&client)
 			|| !chk_ar(cfg.xtrnsec[cfg.xtrn[i]->sec]->ar,&useron,&client))
 			continue;
 		success=exec_xtrn(i); 
