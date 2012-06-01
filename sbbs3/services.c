@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.269 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: services.c,v 1.268 2011/11/03 21:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1164,7 +1164,7 @@ static void js_service_thread(void* arg)
 	if(service->options&SERVICE_OPT_UDP 
 		&& service_client.udp_buf != NULL
 		&& service_client.udp_len > 0) {
-		datagram = JS_NewStringCopyN(js_cx, (char*)service_client.udp_buf, service_client.udp_len);
+		datagram = JS_NewStringCopyN(js_cx, service_client.udp_buf, service_client.udp_len);
 		if(datagram==NULL)
 			val=JSVAL_VOID;
 		else
@@ -1677,7 +1677,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.269 $", "%*s %s", revision);
+	sscanf("$Revision: 1.268 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
