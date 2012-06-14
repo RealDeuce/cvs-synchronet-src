@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.71 2011/10/29 03:53:58 deuce Exp $ */
+/* $Id: js_internal.c,v 1.77 2012/03/15 10:42:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,6 +207,19 @@ static char* prop_desc[] = {
 	,"maximum number of bytes available for heap"
 #endif
 	,"global (top level) object - <small>READ ONLY</small>"
+	/* New properties go here... */
+	,"load() search path array.<br>For relative load paths (e.g. not beginning with '/' or '\'), "
+		"the path is assumed to be a sub-directory of the (configurable) mods or exec directories "
+		"and is searched accordingly. "
+		"So, by default, load(\"somefile.js\") will search in this order:<br>"
+		"mods/load/somefile.js<br>"
+		"exec/load/somefile.js<br>"
+		"mods/somefile.js<br>"
+		"exec/somefile.js<br>"
+	,"full path and filename of JS file executed"
+	,"directory of executed JS file"
+	,"JS filename executed (with no path)"
+	,"Either the configure startup directory in SCFG (for externals) or the cwd when jsexec is started"
 	,NULL
 };
 #endif
@@ -239,6 +252,9 @@ js_CommonOperationCallback(JSContext *cx, js_callback_t* cb)
 		YIELD();
 		JS_RESUMEREQUEST(cx, rc);
 	}
+
+	/* Permit other contexts to run GC */
+	JS_YieldRequest(cx);
 
 	/* Periodic Garbage Collection */
 	if(cb->gc_interval && (cb->counter%cb->gc_interval)==0)
@@ -356,21 +372,40 @@ js_report_error(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	JSObject *scope=JS_GetScopeChain(cx);
+	JSObject *glob=JS_GetGlobalObject(cx);
 	jsval *argv=JS_ARGV(cx, arglist);
-	js_callback_t*	cb;
+	global_private_t*	pd;
+	str_list_t	list;
+	str_list_t	oldlist;
 	char		*p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cb=(js_callback_t*)JS_GetPrivate(cx,obj))==NULL)
-		return(JS_FALSE);
-
-	if(cb->exit_func==NULL)
-		cb->exit_func=strListInit();
+	if(glob==scope) {
+		if((pd=(global_private_t*)JS_GetPrivate(cx,glob))==NULL)
+			return(JS_FALSE);
+		if(pd->exit_func==NULL)
+			pd->exit_func=strListInit();
+		list=pd->exit_func;
+	}
+	else {
+		list=(str_list_t)JS_GetPrivate(cx,scope);
+		if(list==NULL) {
+			list=strListInit();
+			JS_SetPrivate(cx,scope,list);
+		}
+	}
 
 	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
-	strListPush(&cb->exit_func,p);
+	oldlist=list;
+	strListPush(&list,p);
+	if(oldlist != list) {
+		if(glob==scope)
+			pd->exit_func=list;
+		else
+			JS_SetPrivate(cx,scope,list);
+	}
 
 	return(JS_TRUE);
 }
@@ -457,17 +492,31 @@ void DLLCALL js_EvalOnExit(JSContext *cx, JSObject *obj, js_callback_t* cb)
 	jsval	rval;
 	JSObject* script;
 	BOOL	auto_terminate=cb->auto_terminate;
+	JSObject	*glob=JS_GetGlobalObject(cx);
+	global_private_t *pt;
+	str_list_t	list;
+
+	if(glob==obj) {
+		pt=(global_private_t *)JS_GetPrivate(cx,JS_GetGlobalObject(cx));		
+		list=pt->exit_func;
+	}
+	else
+		list=JS_GetPrivate(cx,obj);
 
 	cb->auto_terminate=FALSE;
 
-	while((p=strListPop(&cb->exit_func))!=NULL) {
+	while((p=strListPop(&list))!=NULL) {
 		if((script=JS_CompileScript(cx, obj, p, strlen(p), NULL, 0))!=NULL) {
 			JS_ExecuteScript(cx, obj, script, &rval);
 		}
 		free(p);
 	}
 
-	strListFree(&cb->exit_func);
+	strListFree(&list);
+	if(glob != obj)
+		JS_SetPrivate(cx,obj,NULL);
+	else
+		pt->exit_func=NULL;
 
 	if(auto_terminate)
 		cb->auto_terminate = TRUE;
