@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.37 2013/09/19 14:46:16 deuce Exp $ */
+/* $Id: scfgxfr2.c,v 1.32 2012/06/04 05:32:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,7 @@ static void append_dir_list(const char* parent, const char* dir, FILE* fp, int d
 	char*		p;
 	glob_t		g;
 	unsigned	gi;
+	BOOL		empty=TRUE;
 
 	SAFECOPY(path,dir);
 	backslash(path);
@@ -439,7 +440,7 @@ export to.
 						,cfg.dir[j]->dl_arstr
 						,cfg.dir[j]->op_arstr
 						);
-					fprintf(stream,"%s\r\n%s\r\n%u\r\n%s\r\n%"PRIX32"\r\n%u\r\n"
+					fprintf(stream,"%s\r\n%s\r\n%u\r\n%s\r\n%lX\r\n%u\r\n"
 							"%u\r\n"
 						,cfg.dir[j]->path
 						,cfg.dir[j]->upload_sem
@@ -665,7 +666,7 @@ command: `DIR /ON /AD /B > DIRS.RAW`
 				}
 				fclose(stream);
 				uifc.pop(0);
-				sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
+				sprintf(str,"%lu File Areas Imported Successfully (%u added)",ported, added);
                 uifc.msg(str);
                 break;
 
@@ -678,7 +679,7 @@ command: `DIR /ON /AD /B > DIRS.RAW`
 void dir_cfg(uint libnum)
 {
 	static int dflt,bar,tog_dflt,tog_bar,adv_dflt,opt_dflt;
-	char str[128],str2[128],code[128],path[MAX_PATH+1],done=0;
+	char str[81],str2[81],code[9],path[MAX_PATH+1],done=0,*p;
 	char data_dir[MAX_PATH+1];
 	int j,n;
 	uint i,dirnum[MAX_OPTS+1];
@@ -718,7 +719,7 @@ To configure a directory, select it with the arrow keys and hit ~ ENTER ~.
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		strcpy(str,"My Brand-New File Directory");
+		strcpy(str,"Games");
 		SETHELP(WHERE);
 /*
 `Directory Long Name:`
@@ -740,8 +741,10 @@ the file transfer prompt.
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Directory Short Name",str2,LEN_SSNAME
 			,K_EDIT)<1)
             continue;
-		SAFECOPY(code,str2);
-		prep_code(code,/* prefix: */NULL);
+		sprintf(code,"%.8s",str2);
+		p=strchr(code,' ');
+		if(p) *p=0;
+		strupr(code);
 		SETHELP(WHERE);
 /*
 `Directory Internal Code Suffix:`
