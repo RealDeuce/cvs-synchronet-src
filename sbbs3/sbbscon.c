@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.248 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.250 2012/03/01 08:18:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -35,6 +35,10 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#ifdef USE_LINUX_CAPS
+#define _GNU_SOURCE
+#endif
+
 /* ANSI headers */
 #include <stdio.h>
 #include <string.h>
@@ -60,6 +64,7 @@
 
 #ifdef USE_LINUX_CAPS
 #include <sys/capability.h>
+#include <sys/prctl.h>
 #endif
 
 #include <sys/types.h>
@@ -444,7 +449,6 @@ void list_caps(void)
 
 static int linux_keepcaps(void)
 {
-	char strbuf[100];
 	/*
 	 * Ask the kernel to allow us to keep our capabilities after we
 	 * setuid().
@@ -1098,15 +1102,13 @@ static void handle_sigs(void)
 	SetThreadName("Signal Handler");
 	thread_up(NULL,TRUE,TRUE);
 
-	if (is_daemon) {
-		/* Write the standard .pid file if running as a daemon */
-		/* Must be here so signals are sent to the correct thread */
+	/* Write the standard .pid file if created/open */
+	/* Must be here so signals are sent to the correct thread */
 
-		if(pidf!=NULL) {
-			fprintf(pidf,"%d",getpid());
-			fclose(pidf);
-			pidf=NULL;
-		}
+	if(pidf!=NULL) {
+		fprintf(pidf,"%d",getpid());
+		fclose(pidf);
+		pidf=NULL;
 	}
 
 	/* Set up blocked signals */
@@ -1743,10 +1745,10 @@ int main(int argc, char** argv)
 			lprintf(LOG_ERR,"!ERROR %d running as daemon",errno);
 			is_daemon=FALSE;
 		}
-
-		/* Open here to use startup permissions to create the file */
-		pidf=fopen(pid_fname,"w");
 	}
+	/* Open here to use startup permissions to create the file */
+	pidf=fopen(pid_fname,"w");
+
 	old_uid = getuid();
 	if((pw_entry=getpwnam(new_uid_name))!=0)
 	{
