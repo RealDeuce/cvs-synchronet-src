@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.136 2011/11/01 00:57:30 deuce Exp $ */
+/* $Id: cterm.c,v 1.138 2012/02/18 10:58:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1573,6 +1573,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								cterm->attr&=248;
 								cterm->attr|=7;
 								break;
+							case 49:
 							case 40:
 								cterm->attr&=143;
 								break;
@@ -1601,7 +1602,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								cterm->attr|=3<<4;
 								break;
 							case 47:
-							case 49:
 								cterm->attr&=143;
 								cterm->attr|=7<<4;
 								break;
@@ -1755,7 +1755,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.136 $";
+	char	*revision="$Revision: 1.138 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1919,7 +1919,7 @@ static void ctputs(struct cterminal *cterm, char *buf)
 				GOTOXY(cx,cy);
 				break;
 			default:
-				if(cx==cterm->width && (!cterm->autowrap==false)) {
+				if(cx==cterm->width && (!cterm->autowrap)) {
 					char ch;
 					ch=*(p+1);
 					*(p+1)=0;
