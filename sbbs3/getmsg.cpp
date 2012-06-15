@@ -2,13 +2,13 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.45 2013/05/12 07:34:56 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.43 2011/11/06 03:54:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -122,6 +122,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	char	*sender=NULL;
 	int 	i;
 
+	current_msg=msg;
 	attr(LIGHTGRAY);
 	if(useron.misc&CLRSCRN)
 		outchar(FF);
@@ -131,6 +132,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	sprintf(str,"%smenu/msghdr.*", cfg.text_dir);
 	if(fexist(str)) {
 		menu("msghdr");
+		current_msg=NULL;
 		return; 
 	}
 
@@ -163,7 +165,16 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 			bprintf(text[ForwardedFrom],sender
 				,timestr(*(time32_t *)msg->hfield_dat[i])); 
 	}
+
+	/* Debug stuff
+	if(SYSOP) {
+		bprintf("\1n\1c\r\nAux  : \1h%08lX",msg->hdr.auxattr);
+		bprintf("\1n\1c\r\nNum  : \1h%lu",msg->hdr.number); 
+		}
+	*/
+
 	CRLF;
+	current_msg=NULL;
 }
 
 /****************************************************************************/
@@ -175,14 +186,10 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 
 	show_msghdr(msg);
 
-	if((text=smb_getmsgtxt(&smb,msg,/* body and hfields: */0))!=NULL) {
+	if((text=smb_getmsgtxt(&smb,msg,GETMSGTXT_ALL))!=NULL) {
 		if(!(console&CON_RAW_IN))
 			mode|=P_WORDWRAP;
 		putmsg(text, mode);
-		smb_freemsgtxt(text);
-	}
-	if((text=smb_getmsgtxt(&smb,msg,GETMSGTXT_TAIL_ONLY))!=NULL) {
-		putmsg(text, mode&(~P_WORDWRAP));
 		smb_freemsgtxt(text);
 	}
 }

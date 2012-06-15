@@ -2,13 +2,13 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.30 2014/03/18 19:33:53 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.28 2012/03/16 05:14:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -67,11 +67,7 @@ char	mdm_init[INI_MAX_VALUE_LEN]		= "AT&F";
 char	mdm_autoans[INI_MAX_VALUE_LEN]	= "ATS0=1";
 char	mdm_cid[INI_MAX_VALUE_LEN]		= "AT+VCID=1";
 char	mdm_cleanup[INI_MAX_VALUE_LEN]	= "ATS0=0";
-char	mdm_answer[INI_MAX_VALUE_LEN]	= "ATA";
-char	mdm_ring[INI_MAX_VALUE_LEN]		= "RING";
 BOOL	mdm_null=FALSE;
-BOOL	mdm_manswer=FALSE;		/* Manual Answer */
-
 int		mdm_timeout=5;			/* seconds */
 int		mdm_reinit=60;			/* minutes */
 int		mdm_cmdretry=2;			/* command retries (total attempts-1) */
@@ -805,7 +801,7 @@ BOOL wait_for_call(COM_HANDLE com_handle)
 			if(!modem_command(com_handle, mdm_init))
 				return FALSE;
 		}
-		if(!mdm_manswer && mdm_autoans[0]) {
+		if(mdm_autoans[0]) {
 			lprintf(LOG_INFO,"Setting modem to auto-answer:");
 			if(!modem_command(com_handle, mdm_autoans))
 				return FALSE;
@@ -817,14 +813,12 @@ BOOL wait_for_call(COM_HANDLE com_handle)
 		}
 	}
 
-	lprintf(LOG_INFO,"Waiting for incoming call (%s) ...", mdm_manswer ? "Ring Indication" : "Carrier Detect");
+	lprintf(LOG_INFO,"Waiting for incoming call (Carrier Detect) ...");
 	while(1) {
 		if(terminated)
 			return FALSE;
 		if(comReadLine(com_handle, str, sizeof(str), /* timeout (ms): */250) > 0) {
 			truncsp(str);
-			if(str[0]==0)
-				continue;
 			lprintf(LOG_DEBUG,"Received from modem: '%s'", str);
 			p=str;
 			SKIP_WHITESPACE(p);
@@ -853,12 +847,6 @@ BOOL wait_for_call(COM_HANDLE com_handle)
 				else if(strcmp(p,"NO CARRIER")==0) {
 					ZERO_VAR(cid_name);
 					ZERO_VAR(cid_number);
-				}
-				else if(mdm_ring[0] && strcmp(p,mdm_ring)==0 && mdm_manswer && mdm_answer[0]) {
-					if(!modem_send(com_handle, mdm_answer)) {
-						lprintf(LOG_ERR,"ERROR %u sending modem command (%s) on %s"
-							,COM_ERROR_VALUE, mdm_answer, com_dev);
-					}
 				}
 			}
 			continue;	/* don't check DCD until we've received all the modem msgs */
@@ -1290,19 +1278,8 @@ BOOL handle_call(void)
 				lprintf(LOG_WARNING,"Socket Disconnected");
 				break;
 			}
-			if(ERROR_VALUE == EAGAIN)
-				continue;
-        	else if(ERROR_VALUE == ENOTSOCK)
-   	            lprintf(LOG_WARNING,"Socket closed by peer on receive");
-       	    else if(ERROR_VALUE==ECONNRESET) 
-				lprintf(LOG_WARNING,"Connection reset by peer on receive");
-			else if(ERROR_VALUE==ESHUTDOWN)
-				lprintf(LOG_WARNING,"Socket shutdown on receive");
-       	    else if(ERROR_VALUE==ECONNABORTED) 
-				lprintf(LOG_WARNING,"Connection aborted by peer on receive");
-			else
-				lprintf(LOG_ERR,"SOCKET RECV ERROR %d",ERROR_VALUE);
-			break;
+			lprintf(LOG_ERR,"SOCKET RECV ERROR %d",ERROR_VALUE);
+			continue;
 		}
 
 		if(telnet)
@@ -1425,12 +1402,9 @@ void parse_ini_file(const char* ini_fname)
 	iniGetExistingWord(list, section, "AutoAnswer", "", mdm_autoans);
 	iniGetExistingWord(list, section, "Cleanup", "", mdm_cleanup);
 	iniGetExistingWord(list, section, "EnableCallerID", "", mdm_cid);
-	iniGetExistingWord(list, section, "Answer", "", mdm_answer);
-	iniGetExistingWord(list, section, "Ring", "", mdm_ring);
 	mdm_timeout     = iniGetInteger(list, section, "Timeout", mdm_timeout);
 	mdm_reinit		= iniGetInteger(list, section, "ReInit", mdm_reinit);
 	mdm_cmdretry	= iniGetInteger(list, section, "CmdRetry", mdm_cmdretry);
-	mdm_manswer		= iniGetBool(list,section,"ManualAnswer", mdm_manswer);
 
 	/* [TCP] Section */
 	section="TCP";
@@ -1627,7 +1601,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.30 $", "%*s %s", revision);
+	sscanf("$Revision: 1.28 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
