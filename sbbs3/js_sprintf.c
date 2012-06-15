@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "[s]printf" implementation */
 
-/* $Id: js_sprintf.c,v 1.11 2013/02/10 16:56:39 deuce Exp $ */
+/* $Id: js_sprintf.c,v 1.8 2011/10/16 12:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,18 +41,12 @@
 char* DLLCALL
 js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 {
-	char*		op;
-	char*		p;
-	char		*p2=NULL;
-	size_t		p2_sz;
+	char*		p,*p2;
 
-	JSVALUE_TO_MSTRING(cx, argv[argn++], op, NULL);
-	if(JS_IsExceptionPending(cx))
-		JS_ClearPendingException(cx);
-	if(op==NULL)
+	JSVALUE_TO_STRING(cx, argv[argn++], p, NULL);
+	if(p==NULL)
 		return(NULL);
 
-	p=op;
 	p=xp_asprintf_start(p);
     for(; argn<argc; argn++) {
 		if(JSVAL_IS_DOUBLE(argv[argn]))
@@ -62,22 +56,15 @@ js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 		else if(JSVAL_IS_BOOLEAN(argv[argn]) && xp_printf_get_type(p)!=XP_PRINTF_TYPE_CHARP)
 			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,JSVAL_TO_BOOLEAN(argv[argn]));
 		else {
-			JSVALUE_TO_RASTRING(cx, argv[argn], p2, &p2_sz, NULL);
-			if(JS_IsExceptionPending(cx))
-				JS_ClearPendingException(cx);
-			if(p2==NULL) {
-				free(p);
+			JSVALUE_TO_STRING(cx, argv[argn], p2, NULL);
+			if(p2==NULL)
 				return NULL;
-			}
 			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,p2);
 		}
 	}
 
-	if(p2)
-		free(p2);
-	p2=xp_asprintf_end(p, NULL);
-	free(op);
-	return p2;
+	return xp_asprintf_end(p, NULL);
+
 }
 
 void DLLCALL
