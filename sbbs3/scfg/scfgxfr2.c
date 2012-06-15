@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.32 2012/06/04 05:32:15 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.33 2012/06/15 00:50:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -719,7 +719,7 @@ To configure a directory, select it with the arrow keys and hit ~ ENTER ~.
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		strcpy(str,"Games");
+		strcpy(str,"My Brand-New File Directory");
 		SETHELP(WHERE);
 /*
 `Directory Long Name:`
