@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.141 2011/10/10 02:04:59 deuce Exp $ */
+/* $Id: js_system.c,v 1.150 2012/06/15 20:38:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -698,7 +698,8 @@ static JSBool js_sysstats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_sysstats_properties, NULL, NULL, 0));
@@ -743,7 +744,7 @@ js_alias(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_STRING(cx, js_str, p);
+	JSSTRING_TO_STRING(cx, js_str, p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
 		return(JS_TRUE);
@@ -814,7 +815,7 @@ js_matchuser(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc>1)
 		JS_ValueToBoolean(cx,argv[1],&sysop_alias);
 
-	JSSTRING_TO_STRING(cx, js_str, p);
+	JSSTRING_TO_STRING(cx, js_str, p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
 		return(JS_TRUE);
@@ -865,7 +866,7 @@ js_matchuserdata(JSContext *cx, uintN argc, jsval *arglist)
 	if(JSVAL_IS_BOOLEAN(argv[argnum]))
 		JS_ValueToBoolean(cx, argv[argnum], &match_next);
 	
-	JSSTRING_TO_STRING(cx, js_str, p);
+	JSSTRING_TO_STRING(cx, js_str, p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
 		return(JS_TRUE);
@@ -904,13 +905,13 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_STRING(cx, js_can, can);
+	JSSTRING_TO_STRING(cx, js_can, can, NULL);
 	if(can==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_STRING(cx, js_str, str);
+	JSSTRING_TO_STRING(cx, js_str, str, NULL);
 	if(str==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -925,7 +926,6 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
 	char*		fname;
@@ -943,13 +943,13 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_STRING(cx, js_fname, fname);
+	JSSTRING_TO_STRING(cx, js_fname, fname, NULL);
 	if(fname==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
 	}
 
-	JSSTRING_TO_STRING(cx, js_str, str);
+	JSSTRING_TO_STRING(cx, js_str, str, NULL);
 	if(str==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -1002,8 +1002,7 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
-	int32		i=0;
-	time_t		t;
+	jsdouble	ti;
 	JSString*	js_str;
 	scfg_t*		cfg;
 	jsrefcount	rc;
@@ -1014,12 +1013,11 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc<1)
-		i=time(NULL);	/* use current time */
+		ti=(jsdouble)time(NULL);	/* use current time */
 	else
-		JS_ValueToInt32(cx,argv[0],&i);
-	t=i;
+		JS_ValueToNumber(cx,argv[0],&ti);
 	rc=JS_SUSPENDREQUEST(cx);
-	timestr(cfg,t,str);
+	timestr(cfg,(time32_t)ti,str);
 	JS_RESUMEREQUEST(cx, rc);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
 		return(JS_FALSE);
@@ -1035,7 +1033,7 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
-	time_t		t;
+	time32_t	t;
 	JSString*	js_str;
 	scfg_t*		cfg;
 	char		*p;
@@ -1046,14 +1044,14 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc<1)
-		t=time(NULL);	/* use current time */
+		t=time32(NULL);	/* use current time */
 	else {
 		if(JSVAL_IS_STRING(argv[0])) {	/* convert from string to time_t? */
-			JSVALUE_TO_STRING(cx, argv[0], p);
+			JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 			JS_SET_RVAL(cx, arglist, DOUBLE_TO_JSVAL((double)dstrtounix(cfg, p)));
 			return(JS_TRUE);
 		}
-		JS_ValueToInt32(cx,argv[0],(int32*)&t);
+		JS_ValueToInt32(cx,argv[0],&t);
 	}
 	unixtodstr(cfg,t,str);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
@@ -1066,7 +1064,6 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_secondstr(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
 	int32		t=0;
@@ -1111,7 +1108,7 @@ js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 	for(i=0;i<argc;i++) {
 		if(!JSVAL_IS_STRING(argv[i]))
 			continue;
-		JSVALUE_TO_STRING(cx, argv[i], p);
+		JSVALUE_TO_STRING(cx, argv[i], p, NULL);
 		if(p==NULL)
 			continue;
 		if(prot==NULL)
@@ -1168,7 +1165,7 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		if(!JSVAL_IS_STRING(argv[i]))
 			continue;
-		JSVALUE_TO_STRING(cx, argv[i], p);
+		JSVALUE_TO_STRING(cx, argv[i], p, NULL);
 		if(p==NULL)
 			continue;
 		if(prot==NULL)
@@ -1210,7 +1207,7 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 	for(i=0;i<argc;i++) {
 		if(!JSVAL_IS_STRING(argv[i]))
 			continue;
-		JSVALUE_TO_STRING(cx, argv[i], p);
+		JSVALUE_TO_STRING(cx, argv[i], p, NULL);
 		if(p==NULL)
 			continue;
 		if(prot==NULL)
@@ -1292,7 +1289,7 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_msg=JS_ValueToString(cx, argv[1]))==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, js_msg, msg);
+	JSSTRING_TO_STRING(cx, js_msg, msg, NULL);
 	if(msg==NULL) 
 		return(JS_FALSE);
 
@@ -1361,7 +1358,7 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_msg=JS_ValueToString(cx, argv[1]))==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, js_msg, msg);
+	JSSTRING_TO_STRING(cx, js_msg, msg, NULL);
 	if(msg==NULL) 
 		return(JS_FALSE);
 
@@ -1391,7 +1388,12 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], alias);
+	if(argc<1 || JSVAL_NULL_OR_VOID(argv[0])) {
+		JS_ReportError(cx,"Missing or invalid argument");
+		return JS_FALSE;
+	}
+
+	JSVALUE_TO_STRING(cx, argv[0], alias, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(!check_name(cfg,alias)) {
@@ -1421,7 +1423,7 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 	SAFECOPY(user.alias,alias);
 
 	/* statistics */
-	user.firston=user.laston=user.pwmod=time(NULL);
+	user.firston=user.laston=user.pwmod=time32(NULL);
 
 	/* security */
 	user.level=cfg->new_level;
@@ -1470,14 +1472,41 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_exec(JSContext *cx, uintN argc, jsval *arglist)
+js_del_user(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
+	int32		n;
+	scfg_t*		cfg;
+	user_t		user;
+	char		str[128];
+
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
+
+	if(!JS_ValueToInt32(cx,argv[0],&n))
+		return(JS_FALSE);
+	user.number=n;
+	rc=JS_SUSPENDREQUEST(cx);
+	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);	/* fail, by default */
+	if(getuserdat(cfg, &user)==0
+		&& putuserrec(cfg,n,U_MISC,8,ultoa(user.misc|DELETED,str,16))==0
+		&& putusername(cfg,n,nulstr)==0)
+		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);	/* success */
+	JS_RESUMEREQUEST(cx, rc);
+	
+	return(JS_TRUE);
+}
+
+static JSBool
+js_exec(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	jsrefcount	rc;
 	char	*cmd;
 
-	JSVALUE_TO_STRING(cx, argv[0], cmd);
+	JSVALUE_TO_STRING(cx, argv[0], cmd, NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(system(cmd)));
 	JS_RESUMEREQUEST(cx, rc);
@@ -1488,7 +1517,6 @@ js_exec(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_popen(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[1024];
 	char*		cmd;
@@ -1507,7 +1535,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 	if((array=JS_NewArrayObject(cx,0,NULL))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], cmd);
+	JSVALUE_TO_STRING(cx, argv[0], cmd, NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	if((fp=popen(cmd,"r"))==NULL) {
 		JS_RESUMEREQUEST(cx, rc);
@@ -1549,7 +1577,7 @@ js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], pass);
+	JSVALUE_TO_STRING(cx, argv[0], pass, NULL);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(stricmp(pass,cfg->sys_pass)==0));
 
 	return(JS_TRUE);
@@ -1566,7 +1594,7 @@ js_chkname(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	JSVALUE_TO_STRING(cx, argv[0], str);
+	JSVALUE_TO_STRING(cx, argv[0], str, NULL);
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
@@ -1580,7 +1608,6 @@ js_chkname(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool 
 js_chkpid(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		pid=0;
 	jsrefcount	rc;
@@ -1602,7 +1629,6 @@ js_chkpid(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool 
 js_killpid(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		pid=0;
 	jsrefcount	rc;
@@ -1702,6 +1728,10 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,JSDOCSTR("creates a new user record, returns a new <a href=#User>User</a> object representing the new user account, on success.<br>"
 	"returns an numeric error code on failure (optional <i>client</i> object argument added in v3.15a)")
 	,310
+	},
+	{"del_user",		js_del_user,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("number")
+	,JSDOCSTR("delete the specified user account")
+	,316
 	},
 	{"exec",			js_exec,			1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
 	,JSDOCSTR("executes a native system/shell command-line, returns <i>0</i> on success")
@@ -1928,7 +1958,8 @@ static JSBool js_node_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_node_properties, NULL, NULL, 0));
@@ -2003,7 +2034,8 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	/****************************/
@@ -2074,6 +2106,10 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 			return(JS_FALSE);
 
 		JS_SetPrivate(cx, newobj, cfg);	/* Store a pointer to scfg_t */
+#ifdef BUILD_JSDOCS
+		js_DescribeSyncObject(cx,newobj,"System statistics",310);
+		js_CreateArrayOfStrings(cx, newobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
+#endif
 	}
 
 	/* node_list property */
@@ -2179,15 +2215,6 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,sysobj,"Global system-related properties and methods",310);
 	js_CreateArrayOfStrings(cx, sysobj, "_property_desc_list", sys_prop_desc, JSPROP_READONLY);
-#endif
-
-#ifdef BUILD_JSDOCS
-	{
-		JSObject*	statsobj;
-
-		js_DescribeSyncObject(cx,statsobj,"System statistics",310);
-		js_CreateArrayOfStrings(cx, statsobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
-	}
 #endif
 
 	return(sysobj);
