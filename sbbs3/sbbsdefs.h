@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.182 2012/12/19 07:02:19 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.179 2012/06/13 08:54:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2012 Rob Swindell"
-#define COPYRIGHT_CRC		0x413D3832
+#define COPYRIGHT_NOTICE	"Copyright 2011 Rob Swindell"
+#define COPYRIGHT_CRC		0x3D5C1DE9
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -724,7 +724,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_PRIVATE	(1<<8)		/* Private (for creating MSGINF file)		*/
 #define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
 #define WM_EDIT		(1<<10)		/* Editing existing message					*/
-#define WM_FORCEFWD	(1<<11)		/* Force "yes" to ForwardMailQ for email	*/
 								
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
@@ -761,7 +760,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define EX_STDIO	(EX_STDIN|EX_STDOUT)
 #define EX_CONIO	(1<<31)		/* Intercept Windows console I/O (doorway)	*/
 
-#if defined(__unix__)
+#if defined(__unix)
 #define EX_WILDCARD	EX_SH		/* Expand wildcards using 'sh' on Unix		*/
 #else
 #define EX_WILDCARD	0
