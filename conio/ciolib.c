@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.121 2014/04/23 10:15:51 deuce Exp $ */
+/* $Id: ciolib.c,v 1.114 2011/10/19 02:28:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,8 +99,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textcolor(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_highvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_lowvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e);
-CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e);
+CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,unsigned char *e);
+CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,unsigned char *e);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textattr(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a);
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a);
@@ -113,8 +113,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt);
 CIOLIBEXPORT void CIOLIBCALL ciolib_copytext(const char *text, size_t buflen);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int new_value);
-CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
 
 #define CIOLIB_INIT()		{ if(initialized != 1) initciolib(CIOLIB_MODE_AUTO); }
 
@@ -154,8 +152,6 @@ int try_sdl_init(int mode)
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
 		cio_api.get_window_info=sdl_get_window_info;
-		cio_api.setscaling=bitmap_setscaling;
-		cio_api.getscaling=bitmap_getscaling;
 		return(1);
 	}
 	return(0);
@@ -193,8 +189,6 @@ int try_x_init(int mode)
 		cio_api.copytext=x_copytext;
 		cio_api.getcliptext=x_getcliptext;
 		cio_api.get_window_info=x_get_window_info;
-		cio_api.setscaling=bitmap_setscaling;
-		cio_api.getscaling=bitmap_getscaling;
 		return(1);
 	}
 	return(0);
@@ -416,7 +410,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getche(void)
 		ciolib_putch(ch);
 		return(ch);
 	}
-	if(cio_api.getche)
+	if(cio_api.getche())
 		return(cio_api.getche());
 	else {
 		while(1) {
@@ -489,6 +483,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				if(ciolib_getche()==1)
 					goto early_return;
 				break;
+			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
+				break;
 			case '\b':
 				if(len==0) {
 					ciolib_putch(7);
@@ -518,7 +514,7 @@ early_return:
 	return(&str[2]);
 }
 
-#if defined(_MSC_VER) && (_MSC_VER < 1800)	/* Use lame vsscanf() implementation */
+#ifdef _MSC_VER	/* Use lame vsscanf() implementation */
 /* This is a way to do _vsscanf without using fancy stack tricks or using the
  * "_input" method provided by Microsoft, which is no longer exported as of .NET.
  * The function has a limit of 25 arguments (or less if you run out of stack space),
@@ -1020,7 +1016,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void)
 }
 
 /* **MUST** be implemented */
-CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e)
+CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,unsigned char *e)
 {
 	CIOLIB_INIT();
 	
@@ -1028,7 +1024,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e)
 }
 
 /* **MUST** be implemented */
-CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e)
+CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,unsigned char *e)
 {
 	CIOLIB_INIT();
 	
@@ -1324,19 +1320,4 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void)
 	if(cio_api.getvideoflags)
 		return(cio_api.getvideoflags());
 	return(0);
-}
-
-/* Optional */
-CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int new_value)
-{
-	if(cio_api.setscaling)
-		cio_api.setscaling(new_value);
-}
-
-/* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void)
-{
-	if(cio_api.getscaling)
-		return(cio_api.getscaling());
-	return(1);
 }
