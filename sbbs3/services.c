@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.267 2011/10/28 08:57:38 deuce Exp $ */
+/* $Id: services.c,v 1.268 2011/11/03 21:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -971,17 +971,20 @@ js_OperationCallback(JSContext *cx)
 	JSBool	ret;
 	service_client_t* client;
 
-	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
+	JS_SetOperationCallback(cx, NULL);
+	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL) {
+		JS_SetOperationCallback(cx, js_OperationCallback);
 		return(JS_FALSE);
+	}
 
 	/* Terminated? */ 
 	if(client->callback.auto_terminate && terminated) {
 		JS_ReportWarning(cx,"Terminated");
 		client->callback.counter=0;
+		JS_SetOperationCallback(cx, js_OperationCallback);
 		return(JS_FALSE);
 	}
 
-	JS_SetOperationCallback(cx, NULL);
 	ret=js_CommonOperationCallback(cx,&client->callback);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 
@@ -1674,7 +1677,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.267 $", "%*s %s", revision);
+	sscanf("$Revision: 1.268 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

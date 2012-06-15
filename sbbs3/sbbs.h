@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.385 2011/10/28 08:57:38 deuce Exp $ */
+/* $Id: sbbs.h,v 1.388 2012/03/15 09:17:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -508,7 +508,7 @@ public:
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
-	bool	editfile(char *path);
+	bool	editfile(char *path, bool msg=false);
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	ushort	chmsgattr(ushort attr);
 	void	show_msgattr(ushort attr);
@@ -521,8 +521,8 @@ public:
 				,uint subnum);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
-	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines);
-	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines);
+	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
+	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
@@ -1045,6 +1045,15 @@ extern "C" {
 										,js_server_props_t* props);
 
 	/* js_global.c */
+	typedef struct {
+		scfg_t*				cfg;
+		jsSyncMethodSpec*	methods;
+		js_startup_t*		startup;
+		unsigned			bg_count;
+		sem_t				bg_sem;
+		str_list_t			exit_func;
+	} global_private_t;
+	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, uintN argc, uintN min);
 	DLLEXPORT BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*, JSObject**);
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
