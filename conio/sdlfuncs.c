@@ -2,7 +2,6 @@
 #include <stdio.h>	/* NULL */
 
 #include "gen_defs.h"
-#include "threadwrap.h"
 #include <SDL.h>
 #ifndef main
  #define USE_REAL_MAIN
@@ -33,11 +32,6 @@ static SDL_sem *sdl_main_sem;
 SDL_sem *sdl_exit_sem;
 
 int CIOLIB_main(int argc, char **argv, char **enviro);
-int XPDEV_main(int argc, char **argv, char **enviro)
-{
-	return CIOLIB_main(argc, argv, enviro);
-}
-
 
 int load_sdl_funcs(struct sdlfuncs *sdlf)
 {
@@ -80,10 +74,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->SemWait=xp_dlsym(sdl_dll, SDL_SemWait))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->SemWaitTimeout=xp_dlsym(sdl_dll, SDL_SemWaitTimeout))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -341,7 +331,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 	char	drivername[64];
 	struct main_args ma;
 	SDL_Thread	*main_thread;
-	int		main_ret=0;
+	int		main_ret;
 	int		use_sdl_video=FALSE;
 #ifdef _WIN32
 	char		*driver_env=NULL;
@@ -418,7 +408,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 		}
 	}
 	if(sdl_video_initialized) {
-		SetThreadName("SDL Main");
 		atexit(QuitWrap);
 		sdl_main_sem=sdl.SDL_CreateSemaphore(0);
 		sdl_exit_sem=sdl.SDL_CreateSemaphore(0);
