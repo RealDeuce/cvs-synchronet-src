@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.58 2012/12/19 07:03:04 rswindell Exp $ */
+/* $Id: email.cpp,v 1.55 2012/06/15 21:24:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,7 +92,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	if((l&NETMAIL) && (cfg.sys_misc&SM_FWDTONET)) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
 		bprintf(text[UserNetMail],str);
-		if((mode & WM_FORCEFWD) || text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
+		if(usernumber==cfg.node_valuser || text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
 			return(netmail(str,subj,mode));
 	}
 	bprintf(text[Emailing],username(&cfg,usernumber,tmp),usernumber);
@@ -226,7 +226,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		offset=smb_allocdat(&smb,length,1);
 	smb_close_da(&smb);
 
-	if((instream=fnopen(&file,msgpath,O_RDONLY|O_BINARY))==NULL) {
+	if((file=open(msgpath,O_RDONLY|O_BINARY))==-1
+		|| (instream=fdopen(file,"rb"))==NULL) {
 		smb_freemsgdat(&smb,offset,length,1);
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
@@ -345,7 +346,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		getnodedat(i,&node,0);
 		if(node.useron==usernumber && !(node.misc&NODE_POFF)
 			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)) {
-			safe_snprintf(str,sizeof(str),text[EmailNodeMsg],cfg.node_num,useron.alias);
+			safe_snprintf(str,sizeof(str)),text[EmailNodeMsg],cfg.node_num,useron.alias);
 			putnmsg(&cfg,i,str);
 			break; 
 		} 
