@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.56 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.58 2012/06/16 07:23:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -140,6 +140,8 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	bprintf("%-16.16s %u\r\n"	 ,"header length"	,msg->hdr.length);
 
 	/* optional fixed fields */
+	if(msg->hdr.thread_id)
+		bprintf("%-16.16s %ld\r\n"	,"thread_id"		,msg->hdr.thread_id);
 	if(msg->hdr.thread_back)
 		bprintf("%-16.16s %ld\r\n"	,"thread_back"		,msg->hdr.thread_back);
 	if(msg->hdr.thread_next)
@@ -937,9 +939,9 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					if(!(useron.misc&EXPERT))
 						menu("sysmscan");
 					bputs(text[OperatorPrompt]);
-					strcpy(str,"?CEHMPQUV");
+					strcpy(str,"?CEHMQUV");
 					if(SYSOP)
-						strcat(str,"S");
+						strcat(str,"SP");
 					switch(getkeys(str,0)) {
 						case '?':
 							if(useron.misc&EXPERT)
