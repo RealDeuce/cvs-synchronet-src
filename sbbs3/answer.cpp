@@ -2,13 +2,13 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.72 2011/09/08 23:28:05 deuce Exp $ */
+/* $Id: answer.cpp,v 1.77 2012/06/19 08:18:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,28 +47,26 @@ bool sbbs_t::answer()
 	char 	path[MAX_PATH+1];
 	int		i,l,in;
 	struct tm tm;
-	struct in_addr addr;
 
 	useron.number=0;
 	answertime=logontime=starttime=now=time(NULL);
 	/* Caller ID is IP address */
-	addr.s_addr=client_addr;
-	SAFECOPY(cid,inet_ntoa(addr)); 
+	SAFECOPY(cid,inet_ntoa(client_addr.sin_addr)); 
 
 	memset(&tm,0,sizeof(tm));
     localtime_r(&now,&tm); 
 
-	sprintf(str,"%s  %s %s %02d %u            Node %3u"
+	safe_snprintf(str,sizeof(str),"%s  %s %s %02d %u            Node %3u"
 		,hhmmtostr(&cfg,&tm,str2)
 		,wday[tm.tm_wday]
         ,mon[tm.tm_mon],tm.tm_mday,tm.tm_year+1900,cfg.node_num);
 	logline("@ ",str);
 
-	sprintf(str,"%s  %s [%s]", connection, client_name, cid);
+	safe_snprintf(str,sizeof(str),"%s  %s [%s]", connection, client_name, cid);
 	logline("@+:",str);
 
 	if(client_ident[0]) {
-		sprintf(str,"Identity: %s",client_ident);
+		safe_snprintf(str,sizeof(str),"Identity: %s",client_ident);
 		logline("@*",str);
 	}
 
@@ -118,15 +116,16 @@ bool sbbs_t::answer()
 						,rlogin_pass);
 					for(i=0;i<3;i++) {
 						if(stricmp(tmp,useron.pass)) {
+							badlogin(useron.alias, tmp);
 							rioctl(IOFI);       /* flush input buffer */
 							bputs(text[InvalidLogon]);
 							if(cfg.sys_misc&SM_ECHO_PW)
-								sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
+								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
 									,0,useron.alias,tmp);
 							else
-								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
+								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
-								logline(LOG_NOTICE,"+!",str);
+							logline(LOG_NOTICE,"+!",str);
 							bputs(text[PasswordPrompt]);
 							console|=CON_R_ECHOX;
 							getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
@@ -148,14 +147,15 @@ bool sbbs_t::answer()
 					}
 					if(i) {
 						if(stricmp(tmp,useron.pass)) {
+							badlogin(useron.alias, tmp);
 							bputs(text[InvalidLogon]);
 							if(cfg.sys_misc&SM_ECHO_PW)
-								sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
+								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
 									,0,useron.alias,tmp);
 							else
-								sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
+								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
-								logline(LOG_NOTICE,"+!",str);
+							logline(LOG_NOTICE,"+!",str);
 						}
 						lprintf(LOG_WARNING,"Node %d !CLIENT IP NOT LISTED in %s"
 							,cfg.node_num,path);
@@ -183,12 +183,17 @@ bool sbbs_t::answer()
 		request_telnet_opt(TELNET_DO,TELNET_TERM_SPEED);
 		request_telnet_opt(TELNET_DO,TELNET_SEND_LOCATION);
 		request_telnet_opt(TELNET_DO,TELNET_NEGOTIATE_WINDOW_SIZE);
+#ifdef SBBS_TELNET_ENVIRON_SUPPORT
+		request_telnet_opt(TELNET_DO,TELNET_NEW_ENVIRON);
+#endif
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
+		pthread_mutex_lock(&ssh_mutex);
 		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, rlogin_name, &i);
 		rlogin_name[i]=0;
 		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_PASSWORD, rlogin_pass, &i);
+		pthread_mutex_unlock(&ssh_mutex);
 		rlogin_pass[i]=0;
 		lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
 			,cfg.node_num, rlogin_name);
@@ -200,13 +205,14 @@ bool sbbs_t::answer()
 				,rlogin_pass);
 			for(i=0;i<3;i++) {
 				if(stricmp(tmp,useron.pass)) {
+					badlogin(useron.alias, tmp);
 					rioctl(IOFI);       /* flush input buffer */
 					bputs(text[InvalidLogon]);
 					if(cfg.sys_misc&SM_ECHO_PW)
-						sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
+						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
 							,0,useron.alias,tmp);
 					else
-						sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
+						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
 							,0,useron.alias);
 					/* crash here Sept-12-2010
 					   str	0x06b3fc4c "(0000)  Guest                      FAILED Password attempt: 'alex2010@sdf.lonestar.org'"
@@ -236,14 +242,15 @@ bool sbbs_t::answer()
 			}
 			if(i) {
 				if(stricmp(tmp,useron.pass)) {
+					badlogin(useron.alias, tmp);
 					bputs(text[InvalidLogon]);
 					if(cfg.sys_misc&SM_ECHO_PW)
-						sprintf(str,"(%04u)  %-25s  FAILED Password attempt: '%s'"
+						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
 							,0,useron.alias,tmp);
 					else
-						sprintf(str,"(%04u)  %-25s  FAILED Password attempt"
+						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
 							,0,useron.alias);
-						logline(LOG_NOTICE,"+!",str);
+					logline(LOG_NOTICE,"+!",str);
 				}
 				useron.number=0;
 				hangup();
@@ -265,7 +272,7 @@ bool sbbs_t::answer()
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
-			"\x1b[30;40m\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm?
+			"\x1b[30;40m\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm? */
 			"\x1b[0m_"	/* "Normal" colors */
 			"\x1b[2J"	/* clear screen */
 			"\x1b[H"	/* home cursor */
@@ -275,9 +282,7 @@ bool sbbs_t::answer()
 	i=l=0;
 	tos=1;
 	lncntr=0;
-	strcpy(str,VERSION_NOTICE);
-	strcat(str,"  ");
-	strcat(str,COPYRIGHT_NOTICE);
+	safe_snprintf(str, sizeof(str), "%s  %s", VERSION_NOTICE, COPYRIGHT_NOTICE);
 	strip_ctrl(str, str);
 	center(str);
 
@@ -397,21 +402,27 @@ bool sbbs_t::answer()
 	if(!useron.number) {	/* manual/regular logon */
 
 		/* Display ANSWER screen */
-		sprintf(str,"%sanswer",cfg.text_dir);
-		sprintf(tmp,"%s.rip",str);
-		sprintf(path,"%s.html",str);
-		sprintf(str2,"%s.ans",str);
-		if(autoterm&RIP && fexist(tmp))
-			strcat(str,".rip");
-		else if(autoterm&HTML && fexist(path))
-			strcat(str,".html");
-		else if(autoterm&ANSI && fexist(str2))
-			strcat(str,".ans");
-		else
-			strcat(str,".asc");
 		rioctl(IOSM|PAUSE);
 		sys_status|=SS_PAUSEON;
-		printfile(str,P_NOABORT);
+		SAFEPRINTF(str,"%sanswer",cfg.text_dir);
+		SAFEPRINTF(path,"%s.rip",str);
+		if((autoterm&RIP) && fexistcase(path))
+			printfile(path,P_NOABORT);
+		else {
+			SAFEPRINTF(path,"%s.html",str);
+			if((autoterm&HTML) && fexistcase(path))
+				printfile(path,P_NOABORT);
+			else {
+				SAFEPRINTF(path,"%s.ans",str);
+				if((autoterm&ANSI) && fexistcase(path))
+					printfile(path,P_NOABORT);
+				else {
+					SAFEPRINTF(path,"%s.asc",str);
+					if(fexistcase(path))
+						printfile(path, P_NOABORT);
+				}
+			}
+		}
 		sys_status&=~SS_PAUSEON;
 		exec_bin(cfg.login_mod,&main_csi);
 	} else	/* auto logon here */
@@ -442,6 +453,9 @@ bool sbbs_t::answer()
 		hangup();
 		return(false); 
 	}
+
+	if(useron.pass[0])
+		loginSuccess(startup->login_attempt_list, &client_addr);
 
 	return(true);
 }
