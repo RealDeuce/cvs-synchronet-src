@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.243 2011/09/08 07:10:59 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.250 2012/03/01 08:18:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -35,6 +35,10 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#ifdef USE_LINUX_CAPS
+#define _GNU_SOURCE
+#endif
+
 /* ANSI headers */
 #include <stdio.h>
 #include <string.h>
@@ -60,6 +64,7 @@
 
 #ifdef USE_LINUX_CAPS
 #include <sys/capability.h>
+#include <sys/prctl.h>
 #endif
 
 #include <sys/types.h>
@@ -70,11 +75,6 @@
 #include <stdlib.h>  /* Is this included from somewhere else? */
 #include <syslog.h>
 
-#endif
-
-/* Services doesn't work without JavaScript support */
-#if !defined(JAVASCRIPT)
-	#define	NO_SERVICES
 #endif
 
 /* Global variables */
@@ -403,20 +403,19 @@ int change_user(void)
         lputs(LOG_ERR,"!Setting new user_id failed!  (Does the user exist?)");
         return(-1);
 	} else {
-        char str[256];
         struct passwd *pwent;
         
         pwent=getpwnam(new_uid_name);
         if(pwent != NULL) {
-            char	uenv[128];
-            char	henv[MAX_PATH+6];
+            static char	uenv[128];
+            static char	henv[MAX_PATH+6];
             sprintf(uenv,"USER=%s",pwent->pw_name);
             putenv(uenv);
             sprintf(henv,"HOME=%s",pwent->pw_dir);
             putenv(henv);
         }
         if(new_gid_name[0]) {
-            char	genv[128];
+            static char	genv[128];
             sprintf(genv,"GROUP=%s",new_gid_name);
             putenv(genv);
         }
@@ -450,7 +449,6 @@ void list_caps(void)
 
 static int linux_keepcaps(void)
 {
-	char strbuf[100];
 	/*
 	 * Ask the kernel to allow us to keep our capabilities after we
 	 * setuid().
@@ -1067,7 +1065,6 @@ BOOL WINAPI ControlHandler(unsigned long CtrlType)
 #ifdef __unix__
 void _sighandler_quit(int sig)
 {
-	char	str[1024];
 	static pthread_mutex_t mutex;
 	static BOOL mutex_initialized;
 
@@ -1105,15 +1102,13 @@ static void handle_sigs(void)
 	SetThreadName("Signal Handler");
 	thread_up(NULL,TRUE,TRUE);
 
-	if (is_daemon) {
-		/* Write the standard .pid file if running as a daemon */
-		/* Must be here so signals are sent to the correct thread */
+	/* Write the standard .pid file if created/open */
+	/* Must be here so signals are sent to the correct thread */
 
-		if(pidf!=NULL) {
-			fprintf(pidf,"%d",getpid());
-			fclose(pidf);
-			pidf=NULL;
-		}
+	if(pidf!=NULL) {
+		fprintf(pidf,"%d",getpid());
+		fclose(pidf);
+		pidf=NULL;
 	}
 
 	/* Set up blocked signals */
@@ -1408,16 +1403,16 @@ int main(int argc, char** argv)
 			printf("Telnet server port:\t%u\n",bbs_startup.telnet_port);
 			printf("Terminal first node:\t%u\n",bbs_startup.first_node);
 			printf("Terminal last node:\t%u\n",bbs_startup.last_node);
-			printf("Terminal server options:\t0x%08lX\n",bbs_startup.options);
+			printf("Terminal server options:\t0x%08"PRIX32"\n",bbs_startup.options);
 			printf("FTP server port:\t%u\n",ftp_startup.port);
-			printf("FTP server options:\t0x%08lX\n",ftp_startup.options);
+			printf("FTP server options:\t0x%08"PRIX32"\n",ftp_startup.options);
 			printf("Mail SMTP server port:\t%u\n",mail_startup.smtp_port);
 			printf("Mail SMTP relay port:\t%u\n",mail_startup.relay_port);
 			printf("Mail POP3 server port:\t%u\n",mail_startup.pop3_port);
-			printf("Mail server options:\t0x%08lX\n",mail_startup.options);
-			printf("Services options:\t0x%08lX\n",services_startup.options);
+			printf("Mail server options:\t0x%08"PRIX32"\n",mail_startup.options);
+			printf("Services options:\t0x%08"PRIX32"\n",services_startup.options);
 			printf("Web server port:\t%u\n",web_startup.port);
-			printf("Web server options:\t0x%08lX\n",web_startup.options);
+			printf("Web server options:\t0x%08"PRIX32"\n",web_startup.options);
 			return(0);
 		}
 		switch(toupper(*(arg++))) {
@@ -1750,10 +1745,10 @@ int main(int argc, char** argv)
 			lprintf(LOG_ERR,"!ERROR %d running as daemon",errno);
 			is_daemon=FALSE;
 		}
-
-		/* Open here to use startup permissions to create the file */
-		pidf=fopen(pid_fname,"w");
 	}
+	/* Open here to use startup permissions to create the file */
+	pidf=fopen(pid_fname,"w");
+
 	old_uid = getuid();
 	if((pw_entry=getpwnam(new_uid_name))!=0)
 	{
@@ -2119,8 +2114,8 @@ int main(int argc, char** argv)
 						count=0;
 						for(node=login_attempt_list.first; node!=NULL; node=node->next) {
 							login_attempt=node->data;
-							localtime_r(&login_attempt->time,&tm);
-							printf("%u attempts (%u duplicate) from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
+							localtime32(&login_attempt->time,&tm);
+							printf("%lu attempts (%lu duplicate) from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
 								,login_attempt->count
 								,login_attempt->dupes
 								,inet_ntoa(login_attempt->addr)
@@ -2136,16 +2131,15 @@ int main(int argc, char** argv)
 						if(count)
 							printf("==\n");
 						printf("%u failed login attempters (potential password hackers)\n", count);
-						printf("%u total unique failed login attempts (potential password hack attempts)\n", total);
+						printf("%lu total unique failed login attempts (potential password hack attempts)\n", total);
 					}
 					break;
 				case 'A':
-					printf("\n%u login attempts cleared\n", loginAttemptListClear(&login_attempt_list));
+					printf("\n%lu login attempts cleared\n", loginAttemptListClear(&login_attempt_list));
 					break;
 				case 'c':	/* Show connected clients: */
 					printf("\nConnected clients:\n\n");
 					{
-						unsigned long		total=0;
 						struct tm			tm;
 						list_node_t*		node;
 						client_t*			client;
@@ -2154,8 +2148,8 @@ int main(int argc, char** argv)
 						count=0;
 						for(node=client_list.first; node!=NULL; node=node->next) {
 							client=node->data;
-							localtime_r(&client->time,&tm);
-							printf("%04d %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
+							localtime32(&client->time,&tm);
+							printf("%04ld %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
 								,node->tag
 								,client->protocol
 								,client->user
