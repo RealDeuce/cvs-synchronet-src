@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.84 2012/10/23 08:07:08 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.81 2012/06/21 01:12:30 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -74,15 +74,9 @@ static size_t sample_size;
 #endif
 
 static BOOL sound_device_open_failed=FALSE;
-#ifdef USE_ALSA_SOUND
 static BOOL alsa_device_open_failed=FALSE;
-#endif
-#ifdef WITH_SDL_AUDIO
 static BOOL sdl_device_open_failed=FALSE;
-#endif
-#ifdef WITH_PORTAUDIO
 static BOOL portaudio_device_open_failed=FALSE;
-#endif
 
 enum {
 	 SOUND_DEVICE_CLOSED
@@ -577,8 +571,7 @@ void xptone_complete(void)
 
 #ifdef WITH_SDL_AUDIO
 	else if(handle_type==SOUND_DEVICE_SDL) {
-		while(sdl.GetAudioStatus()==SDL_AUDIO_PLAYING)
-			SLEEP(1);
+		// TODO: How?
 	}
 #endif
 
@@ -608,7 +601,7 @@ void xptone_complete(void)
 
 #ifdef AFMT_U8
 	else if(handle_type==SOUND_DEVICE_OSS) {
-		ioctl(dsp, SNDCTL_DSP_SYNC, NULL);
+		close(dsp);
 	}
 #endif
 
@@ -650,15 +643,8 @@ BOOL xptone_close(void)
 #endif
 	handle_type=SOUND_DEVICE_CLOSED;
 	sound_device_open_failed=FALSE;
-#ifdef USE_ALSA_SOUND
 	alsa_device_open_failed=FALSE;
-#endif
-#ifdef WITH_SDL_AUDIO
 	sdl_device_open_failed=FALSE;
-#endif
-#ifdef WITH_PORTAUDIO
-	portaudio_device_open_failed=FALSE;
-#endif
 
 	return(TRUE);
 }
@@ -677,7 +663,6 @@ void xp_play_sample_thread(void *data)
 	int	i;
 #endif
 
-	SetThreadName("Sample Play");
 	sample_thread_running=TRUE;
 	while(1) {
 		if(!waited) {
