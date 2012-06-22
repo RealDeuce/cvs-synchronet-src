@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.101 2012/06/17 19:16:50 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.102 2012/06/22 09:10:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,6 +273,8 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			if(JSVAL_IS_STRING(*vp)) {
 				char *s;
 
+				if((str=JS_ValueToString(cx, *vp))==NULL)
+					break;
 				JSSTRING_TO_STRING(cx, str, s, NULL);
 				val=str_to_bits(sbbs->cfg.ctrlkey_passthru, s);
 			}
