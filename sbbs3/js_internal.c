@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.79 2013/03/16 09:36:41 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.77 2012/03/15 10:42:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,9 +37,6 @@
 
 #include "sbbs.h"
 #include "js_request.h"
-
-/* SpiderMonkey: */
-#include <jsdbgapi.h>
 
 enum {
 	 PROP_VERSION
@@ -222,7 +219,7 @@ static char* prop_desc[] = {
 	,"full path and filename of JS file executed"
 	,"directory of executed JS file"
 	,"JS filename executed (with no path)"
-	,"Either the configured startup directory in SCFG (for externals) or the cwd when jsexec is started"
+	,"Either the configure startup directory in SCFG (for externals) or the cwd when jsexec is started"
 	,NULL
 };
 #endif
@@ -294,15 +291,13 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 
 	if((str=JS_ValueToString(parent_cx, argv[0]))==NULL)
 		return(JS_FALSE);
-	JSSTRING_TO_MSTRING(parent_cx, str, buf, &buflen);
-	HANDLE_PENDING(parent_cx);
+	JSSTRING_TO_STRING(parent_cx, str, buf, NULL);
 	if(buf==NULL)
-		return(JS_TRUE);
-
-	if((cx=JS_NewContext(JS_GetRuntime(parent_cx),JAVASCRIPT_CONTEXT_STACK))==NULL) {
-		free(buf);
 		return(JS_FALSE);
-	}
+	buflen=JS_GetStringLength(str);
+
+	if((cx=JS_NewContext(JS_GetRuntime(parent_cx),JAVASCRIPT_CONTEXT_STACK))==NULL)
+		return(JS_FALSE);
 
 	/* Use the error reporter from the parent context */
 	reporter=JS_SetErrorReporter(parent_cx,NULL);
@@ -316,7 +311,6 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 	if((obj=JS_NewCompartmentAndGlobalObject(cx, &eval_class, NULL))==NULL
 		|| !JS_InitStandardClasses(cx,obj)) {
 		JS_DestroyContext(cx);
-		free(buf);
 		return(JS_FALSE);
 	}
 
@@ -326,7 +320,6 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 		JS_ExecuteScript(cx, obj, script, &rval);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
-	free(buf);
 
 	JS_DestroyContext(cx);
 
@@ -365,14 +358,8 @@ js_report_error(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char	*p;
 
-	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx);
-	if(p==NULL)
-		JS_ReportError(cx,"NULL");
-	else {
-		JS_ReportError(cx,"%s",p);
-		free(p);
-	}
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
+	JS_ReportError(cx,"%s",p);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -410,13 +397,9 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 		}
 	}
 
-	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx);
-	if(!p)
-		return JS_TRUE;
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	oldlist=list;
 	strListPush(&list,p);
-	free(p);
 	if(oldlist != list) {
 		if(glob==scope)
 			pd->exit_func=list;
@@ -439,35 +422,6 @@ js_get_parent(JSContext *cx, uintN argc, jsval *arglist)
 		&& (parent=JS_GetParent(cx,child))!=NULL)
 		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(parent));
 
-	return(JS_TRUE);
-}
-
-static JSBool js_getsize(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval	*argv=JS_ARGV(cx, arglist);
-	JSObject* tmp_obj;
-
-	if(!JSVAL_IS_OBJECT(argv[0])) {
-		JS_ReportError(cx, "get_size() error!  Parameter is not an object.");
-		return(JS_FALSE);
-	}
-	tmp_obj=JSVAL_TO_OBJECT(argv[0]);
-	if(!tmp_obj)
-		return(JS_FALSE);
-	JS_SET_RVAL(cx, arglist, DOUBLE_TO_JSVAL(JS_GetObjectTotalSize(cx, tmp_obj)));
-	return(JS_TRUE);
-}
-
-static JSBool js_flatten(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval	*argv=JS_ARGV(cx, arglist);
-
-	if(!JSVAL_IS_STRING(argv[0])) {
-		JS_ReportError(cx, "get_size() error!  Parameter is not a string.");
-		return(JS_FALSE);
-	}
-	JS_FlattenString(cx, JSVAL_TO_STRING(argv[0]));
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	return(JS_TRUE);
 }
 
@@ -496,36 +450,22 @@ static jsSyncMethodSpec js_functions[] = {
 	,JSDOCSTR("return the parent of the specified object")
 	,314
 	},
-	{"get_size",		js_getsize,			1,	JSTYPE_NUMBER,	JSDOCSTR("[object]")
-	,JSDOCSTR("return the size in bytes the object uses in memory (forces GC) ")
-	,316
-	},
-	{"flatten_string",	js_flatten,			1,	JSTYPE_VOID,	JSDOCSTR("[string]")
-	,JSDOCSTR("flattens a string, optimizing allocated memory used for concatenated strings")
-	,316
-	},
 	{0}
 };
 
 static JSBool js_internal_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
-	JSBool			ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval)) {
-			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
-		}
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
-	ret=js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0);
-	if(name)
-		free(name);
-	return(ret);
+	return(js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0));
 }
 
 static JSBool js_internal_enumerate(JSContext *cx, JSObject *obj)
@@ -620,7 +560,7 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	}
 
 #ifdef BUILD_JSDOCS
-	js_DescribeSyncObject(cx,obj,"JavaScript engine internal control object",311);
+	js_DescribeSyncObject(cx,obj,"JavaScript execution and garbage collection control object",311);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", prop_desc, JSPROP_READONLY);
 #endif
 
