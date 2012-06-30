@@ -2,7 +2,7 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.35 2013/05/04 04:41:34 deuce Exp $ */
+/* $Id: telgate.cpp,v 1.31 2012/03/19 23:31:59 echicken Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
