@@ -2,7 +2,7 @@
 
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.50 2012/06/30 13:31:30 deuce Exp $ */
+/* $Id: str_util.c,v 1.49 2012/06/30 13:28:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -703,7 +703,7 @@ uint32_t DLLCALL str_to_bits(uint32_t val, const char *str)
 {
 	/* op can be 0 for replace, + for add, or - for remove */
 	int op=0;
-	const char *s;
+	char *s;
 	char ctrl;
 
 	for(s=str; *s; s++) {
