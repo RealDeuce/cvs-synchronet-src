@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.563 2013/02/11 22:52:13 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.558 2012/06/14 02:33:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,8 +90,8 @@ static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
 static SOCKET	submission_socket=INVALID_SOCKET;
 static SOCKET	pop3_socket=INVALID_SOCKET;
-static protected_uint32_t active_clients;
-static protected_uint32_t thread_count;
+static protected_int32_t active_clients;
+static protected_int32_t thread_count;
 static volatile int		active_sendmail=0;
 static volatile BOOL	sendmail_running=FALSE;
 static volatile BOOL	terminate_server=FALSE;
@@ -218,7 +218,7 @@ static void client_off(SOCKET sock)
 
 static int32_t thread_up(BOOL setuid)
 {
-	int32_t	count =	protected_uint32_adjust(&thread_count,1);
+	int32_t	count =	protected_int32_adjust(&thread_count,1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,TRUE,setuid);
 	return count;
@@ -226,7 +226,7 @@ static int32_t thread_up(BOOL setuid)
 
 static int32_t thread_down(void)
 {
-	int32_t count = protected_uint32_adjust(&thread_count,-1);
+	int32_t count = protected_int32_adjust(&thread_count,-1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,FALSE,FALSE);
 	return count;
@@ -471,7 +471,7 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	char		msgid[256];
 	char		date[64];
 	uchar*		p;
-	char*		np;
+	uchar*		np;
 	char*		content_type=NULL;
 	int			i;
 	int			s;
@@ -600,24 +600,24 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 
 	/* MESSAGE BODY */
 	lines=0;
-	np=msgtxt;
-	while(*np && lines<maxlines) {
+	p=msgtxt;
+	while(*p && lines<maxlines) {
 		len=0;
-		while(len<MAX_LINE_LEN && *(np+len)!=0 && *(np+len)!='\n')
+		while(len<MAX_LINE_LEN && *(p+len)!=0 && *(p+len)!='\n')
 			len++;
 
 		tlen=len;
-		while(tlen && *(np+(tlen-1))<=' ') /* Takes care of '\r' or spaces */
+		while(tlen && *(p+(tlen-1))<=' ') /* Takes care of '\r' or spaces */
 			tlen--;
 
-		if(!sockprintf(socket, "%s%.*s", *np=='.' ? ".":"", tlen, np))
+		if(!sockprintf(socket, "%s%.*s", *p=='.' ? ".":"", tlen, p))
 			break;
 		lines++;
-		if(*(np+len)=='\r')
+		if(*(p+len)=='\r')
 			len++;
-		if(*(np+len)=='\n')
+		if(*(p+len)=='\n')
 			len++;
-		np+=len;
+		p+=len;
 		/* release time-slices every x lines */
 		if(startup->lines_per_yield
 			&& !(lines%startup->lines_per_yield))	
@@ -756,7 +756,7 @@ static void pop3_thread(void* arg)
 	char		username[128];
 	char		password[128];
 	char		challenge[256];
-	uchar		digest[MD5_DIGEST_SIZE];
+	char		digest[MD5_DIGEST_SIZE];
 	char*		response="";
 	char*		msgtxt;
 	int			i;
@@ -767,7 +767,7 @@ static void pop3_thread(void* arg)
 	ulong		lines;
 	ulong		lines_sent;
 	ulong		login_attempts;
-	uint32_t	msgs;
+	int32_t		msgs;
 	long		msgnum;
 	ulong		bytes;
 	SOCKET		socket;
@@ -832,7 +832,7 @@ static void pop3_thread(void* arg)
 		return;
 	}
 
-	protected_uint32_adjust(&active_clients, 1);
+	protected_int32_adjust(&active_clients, 1);
 	update_clients();
 
 	/* Initialize client display */
@@ -932,7 +932,7 @@ static void pop3_thread(void* arg)
 			strlwr(user.pass);	/* this is case-sensitive, so convert to lowercase */
 			strcat(challenge,user.pass);
 			MD5_calc(digest,challenge,strlen(challenge));
-			MD5_hex((BYTE*)str,digest);
+			MD5_hex(str,digest);
 			if(strcmp(str,response)) {
 				lprintf(LOG_NOTICE,"%04d !POP3 %s FAILED APOP authentication"
 					,socket,username);
@@ -1354,7 +1354,7 @@ static void pop3_thread(void* arg)
 	smb_freemsgmem(&msg);
 	smb_close(&smb);
 
-	protected_uint32_adjust(&active_clients, -1);
+	protected_int32_adjust(&active_clients, -1);
 	update_clients();
 	client_off(socket);
 
@@ -1692,10 +1692,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
+    JSString*	str=NULL;
 	private_t*	p;
 	jsrefcount	rc;
-	char		*lstr=NULL;
-	size_t		lstr_sz=0;
+	char		*lstr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -1708,18 +1708,19 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	for(; i<argc; i++) {
-		JSVALUE_TO_RASTRING(cx, argv[i], lstr, &lstr_sz, NULL);
-		HANDLE_PENDING(cx);
+		JSVALUE_TO_STRING(cx, argv[i], lstr, NULL);
 		if(lstr==NULL)
-			return(JS_TRUE);
+			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%04d %s %s %s"
 			,p->sock,p->log_prefix,p->proc_name,lstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
-	if(lstr)
-		free(lstr);
+	if(str==NULL)
+		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	else
+		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
 
     return(JS_TRUE);
 }
@@ -1934,9 +1935,9 @@ void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx, JSObject** js_glob)
 }
 #endif
 
-static char* get_header_field(char* buf, char* name, size_t maxlen)
+static uchar* get_header_field(uchar* buf, char* name, size_t maxlen)
 {
-	char*	p;
+	uchar*	p;
 	size_t	len;
 
 	if(buf[0]<=' ')	/* folded header */
@@ -1956,7 +1957,7 @@ static char* get_header_field(char* buf, char* name, size_t maxlen)
 	return p;
 }
 
-static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
+static int parse_header_field(uchar* buf, smbmsg_t* msg, ushort* type)
 {
 	char*	p;
 	char*	tp;
@@ -2121,10 +2122,10 @@ static void parse_mail_address(char* p
 /* Decode quoted-printable content-transfer-encoded text */
 /* Ignores (strips) unsupported ctrl chars and non-ASCII chars */
 /* Does not enforce 76 char line length limit */
-static char* qp_decode(char* buf)
+static char* qp_decode(uchar* buf)
 {
-	uchar*	p=(uchar*)buf;
-	uchar*	dest=p;
+	uchar*	p=buf;
+	uchar*	dest=buf;
 
 	for(;;p++) {
 		if(*p==0) {
@@ -2252,7 +2253,7 @@ static void smtp_thread(void* arg)
 	char		response[128];
 	char		secret[64];
 	char		md5_data[384];
-	uchar		digest[MD5_DIGEST_SIZE];
+	char		digest[MD5_DIGEST_SIZE];
 	char		dest_host[128];
 	char*		errmsg;
 	ushort		dest_port;
@@ -2359,7 +2360,7 @@ static void smtp_thread(void* arg)
 		return;
 	} 
 
-	if((mailproc_to_match=malloc(sizeof(BOOL)*mailproc_count))==NULL) {
+	if((mailproc_to_match=alloca(sizeof(BOOL)*mailproc_count))==NULL) {
 		lprintf(LOG_CRIT,"%04d !SMTP ERROR allocating memory for mailproc_to_match", socket);
 		sockprintf(socket,sys_error);
 		mail_close_socket(socket);
@@ -2393,7 +2394,7 @@ static void smtp_thread(void* arg)
 	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP))
 		lprintf(LOG_INFO,"%04d SMTP Hostname: %s", socket, host_name);
 
-	protected_uint32_adjust(&active_clients, 1);
+	protected_int32_adjust(&active_clients, 1);
 	update_clients();
 
 	SAFECOPY(hello_name,host_name);
@@ -2414,9 +2415,8 @@ static void smtp_thread(void* arg)
 			sockprintf(socket,"550 CLIENT IP ADDRESS BLOCKED: %s", host_ip);
 			mail_close_socket(socket);
 			thread_down();
-			protected_uint32_adjust(&active_clients, -1);
+			protected_int32_adjust(&active_clients, -1);
 			update_clients();
-			free(mailproc_to_match);
 			return;
 		}
 
@@ -2427,9 +2427,8 @@ static void smtp_thread(void* arg)
 			sockprintf(socket,"550 CLIENT HOSTNAME BLOCKED: %s", host_name);
 			mail_close_socket(socket);
 			thread_down();
-			protected_uint32_adjust(&active_clients, -1);
+			protected_int32_adjust(&active_clients, -1);
 			update_clients();
-			free(mailproc_to_match);
 			return;
 		}
 
@@ -2448,9 +2447,8 @@ static void smtp_thread(void* arg)
 				lprintf(LOG_NOTICE,"%04d !SMTP REFUSED SESSION from blacklisted server (%u total)"
 					,socket, ++stats.sessions_refused);
 				thread_down();
-				protected_uint32_adjust(&active_clients, -1);
+				protected_int32_adjust(&active_clients, -1);
 				update_clients();
-				free(mailproc_to_match);
 				return;
 			}
 		}
@@ -2463,9 +2461,8 @@ static void smtp_thread(void* arg)
 		sockprintf(socket,sys_unavail);
 		mail_close_socket(socket);
 		thread_down();
-		protected_uint32_adjust(&active_clients, -1);
+		protected_int32_adjust(&active_clients, -1);
 		update_clients();
-		free(mailproc_to_match);
 		return;
 	}
 	SAFEPRINTF(spam.file,"%sspam",scfg.data_dir);
@@ -2487,9 +2484,8 @@ static void smtp_thread(void* arg)
 		sockprintf(socket,sys_error);
 		mail_close_socket(socket);
 		thread_down();
-		protected_uint32_adjust(&active_clients, -1);
+		protected_int32_adjust(&active_clients, -1);
 		update_clients();
-		free(mailproc_to_match);
 		return;
 	}
 
@@ -2838,7 +2834,7 @@ static void smtp_thread(void* arg)
 							break;
 						}
 					}
-					if((smb_error=parse_header_field((char*)buf,&msg,&hfield_type))!=SMB_SUCCESS) {
+					if((smb_error=parse_header_field(buf,&msg,&hfield_type))!=SMB_SUCCESS) {
 						if(smb_error==SMB_ERR_HDR_LEN)
 							lprintf(LOG_WARNING,"%04d !SMTP MESSAGE HEADER EXCEEDS %u BYTES"
 								,socket, SMB_MAX_HDR_LEN);
@@ -2992,7 +2988,7 @@ static void smtp_thread(void* arg)
 						sources&=~(1<<SMB_HASH_SOURCE_SUBJECT);
 					lprintf(LOG_DEBUG,"%04d SMTP Calculating message hashes (sources=%lx, msglen=%u)"
 						,socket, sources, strlen(msgbuf));
-					if((hashes=smb_msghashes(&msg, (uchar*)msgbuf, sources)) != NULL) {
+					if((hashes=smb_msghashes(&msg, msgbuf, sources)) != NULL) {
 						hash_t	found;
 
 						for(i=0;hashes[i];i++)
@@ -3447,7 +3443,7 @@ static void smtp_thread(void* arg)
 				md5_data[i]=secret[i]^0x5c;	/* opad */
 			memcpy(md5_data+i,digest,sizeof(digest));
 			MD5_calc(digest,md5_data,sizeof(secret)+sizeof(digest));
-			MD5_hex((BYTE*)str,digest);
+			MD5_hex(str,digest);
 			if(strcmp(p,str)) {
 				lprintf(LOG_WARNING,"%04d !SMTP %s FAILED CRAM-MD5 authentication"
 					,socket,relay_user.alias);
@@ -4075,7 +4071,7 @@ static void smtp_thread(void* arg)
 
 	status(STATUS_WFC);
 
-	protected_uint32_adjust(&active_clients, -1);
+	protected_int32_adjust(&active_clients, -1);
 	update_clients();
 	client_off(socket);
 
@@ -4084,7 +4080,6 @@ static void smtp_thread(void* arg)
 		lprintf(LOG_INFO,"%04d SMTP Session thread terminated (%u threads remain, %lu clients served)"
 			,socket, remain, ++stats.smtp_served);
 	}
-	free(mailproc_to_match);
 
 	/* Must be last */
 	mail_close_socket(socket);
@@ -4259,7 +4254,7 @@ static void sendmail_thread(void* arg)
 	char		challenge[256];
 	char		secret[64];
 	char		md5_data[384];
-	uchar		digest[MD5_DIGEST_SIZE];
+	char		digest[MD5_DIGEST_SIZE];
 	char		numeric_ip[16];
 	char		domain_list[MAX_PATH+1];
 	char		dns_server[16];
@@ -4282,8 +4277,8 @@ static void sendmail_thread(void* arg)
 	smb_t		smb;
 	smbmsg_t	msg;
 	mail_t*		mail;
-	uint32_t	msgs;
-	uint32_t	u;
+	int32_t		msgs;
+	long		l;
 	size_t		len;
 	BOOL		sending_locally=FALSE;
 	link_list_t	failed_server_list;
@@ -4351,7 +4346,7 @@ static void sendmail_thread(void* arg)
 		last_msg=smb.status.last_msg;
 		last_scan=time(NULL);
 		mail=loadmail(&smb,&msgs,/* to network */0,MAIL_YOUR,0);
-		for(u=0; u<msgs; u++) {
+		for(l=0; l<msgs; l++) {
 			if(active_sendmail!=0)
 				active_sendmail=0, update_clients();
 
@@ -4370,10 +4365,10 @@ static void sendmail_thread(void* arg)
 
 			smb_freemsgmem(&msg);
 
-			msg.hdr.number=mail[u].number;
+			msg.hdr.number=mail[l].number;
 			if((i=smb_getmsgidx(&smb,&msg))!=SMB_SUCCESS) {
 				lprintf(LOG_ERR,"0000 !SEND ERROR %d (%s) getting message index #%lu"
-					,i, smb.last_error, mail[u].number);
+					,i, smb.last_error, mail[l].number);
 				break;
 			}
 			if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) {
@@ -4414,9 +4409,9 @@ static void sendmail_thread(void* arg)
 			truncstr(fromaddr," ");
 
 			lprintf(LOG_INFO,"0000 SEND Message #%lu (%u of %u) from %s%s %s to %s [%s]"
-				,msg.hdr.number, u+1, msgs, msg.from, fromext, fromaddr
+				,msg.hdr.number, l+1, msgs, msg.from, fromext, fromaddr
 				,msg.to, msg.to_net.addr);
-			SAFEPRINTF2(str,"Sending (%u of %u)", u+1, msgs);
+			SAFEPRINTF2(str,"Sending (%u of %u)", l+1, msgs);
 			status(str);
 #ifdef _WIN32
 			if(startup->outbound_sound[0] && !(startup->options&MAIL_OPT_MUTE)) 
@@ -4676,7 +4671,7 @@ static void sendmail_thread(void* arg)
 							memcpy(md5_data+i,digest,sizeof(digest));
 							MD5_calc(digest,md5_data,sizeof(secret)+sizeof(digest));
 							
-							safe_snprintf(buf,sizeof(buf),"%s %s",startup->relay_user,MD5_hex((BYTE*)str,digest));
+							safe_snprintf(buf,sizeof(buf),"%s %s",startup->relay_user,MD5_hex(str,digest));
 							b64_encode(p=resp,sizeof(resp),buf,0);
 							break;
 						default:
@@ -4848,17 +4843,10 @@ static void cleanup(int code)
 		pop3_socket=INVALID_SOCKET;
 	}
 
-	if(thread_count.value > 1) {
-		lprintf(LOG_DEBUG,"#### Waiting for %d child threads to terminate", thread_count.value-1);
-		while(thread_count.value > 1) {
-			mswait(100);
-		}
-	}
-
 	if(active_clients.value)
 		lprintf(LOG_WARNING,"#### !Mail Server terminating with %ld active clients", active_clients.value);
 	else
-		protected_uint32_destroy(active_clients);
+		protected_int32_destroy(active_clients);
 
 	update_clients();
 
@@ -4868,6 +4856,12 @@ static void cleanup(int code)
 #endif
 
 	thread_down();
+
+	if(thread_count.value)
+		lprintf(LOG_WARNING,"#### !Mail Server threads (%ld) remain after termination", thread_count.value);
+
+	protected_int32_destroy(thread_count);
+
 	status("Down");
 	if(terminate_server || code) {
 		char str[1024];
@@ -4901,7 +4895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.563 $", "%*s %s", revision);
+	sscanf("$Revision: 1.558 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4997,9 +4991,10 @@ void DLLCALL mail_server(void* arg)
 	terminate_server=FALSE;
 
 	SetThreadName("Mail Server");
-	protected_uint32_init(&thread_count, 0);
 
 	do {
+
+		protected_int32_init(&thread_count, 0);
 
 		thread_up(FALSE /* setuid */);
 
@@ -5123,7 +5118,7 @@ void DLLCALL mail_server(void* arg)
 
 		lprintf(LOG_DEBUG,"Maximum inactivity: %u seconds",startup->max_inactivity);
 
-		protected_uint32_init(&active_clients, 0);
+		protected_int32_init(&active_clients, 0);
 		update_clients();
 
 		/* open a socket and wait for a client */
@@ -5547,6 +5542,4 @@ void DLLCALL mail_server(void* arg)
 		}
 
 	} while(!terminate_server);
-
-	protected_uint32_destroy(thread_count);
 }
