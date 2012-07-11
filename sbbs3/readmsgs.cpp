@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.56 2011/07/21 11:19:22 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.60 2012/07/11 22:25:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -140,6 +140,8 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	bprintf("%-16.16s %u\r\n"	 ,"header length"	,msg->hdr.length);
 
 	/* optional fixed fields */
+	if(msg->hdr.thread_id)
+		bprintf("%-16.16s %ld\r\n"	,"thread_id"		,msg->hdr.thread_id);
 	if(msg->hdr.thread_back)
 		bprintf("%-16.16s %ld\r\n"	,"thread_back"		,msg->hdr.thread_back);
 	if(msg->hdr.thread_next)
@@ -173,7 +175,7 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 /****************************************************************************/
 /****************************************************************************/
-post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode)
+post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num)
 {
 	char name[128];
 	ushort aliascrc,namecrc,sysop;
@@ -220,6 +222,10 @@ post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode)
 		errormsg(WHERE,ERR_ALLOC,smb.file,sizeof(post_t *)*cfg.sub[subnum]->maxmsgs);
 		return(NULL); 
 	}
+
+	if(unvalidated_num)
+		*unvalidated_num=ULONG_MAX;
+
 	while(!feof(smb.sid_fp)) {
 		skip=0;
 		if(smb_fread(&smb, &idx,sizeof(idx),smb.sid_fp) != sizeof(idx))
@@ -247,9 +253,12 @@ post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode)
 				continue; 
 		}
 
-		if(idx.attr&MSG_MODERATED && !(idx.attr&MSG_VALIDATED)
-			&& (mode&LP_REP || !sub_op(subnum)))
-			break;
+		if(idx.attr&MSG_MODERATED && !(idx.attr&MSG_VALIDATED)) {
+			if(mode&LP_REP || !sub_op(subnum))
+				break;
+			if(unvalidated_num && *unvalidated_num > idx.number)
+				*unvalidated_num=idx.number;
+		}
 
 		if(idx.attr&MSG_PRIVATE && !(mode&LP_PRIVATE)
 			&& !sub_op(subnum) && !(useron.rest&FLAG('Q'))) {
@@ -354,7 +363,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	uint 	usub,ugrp,reads=0;
 	uint	lp=0;
 	long	org_mode=mode;
-	ulong	msgs,l;
+	ulong	msgs,l,unvalidated;
 	uint32_t last;
 	post_t	*post;
 	smbmsg_t	msg;
@@ -404,7 +413,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		lp=LP_BYSELF|LP_OTHERS;
 	if(mode&SCAN_TOYOU)
 		lp|=LP_UNREAD;
-	post=loadposts(&smb.msgs,subnum,0,lp);
+	post=loadposts(&smb.msgs,subnum,0,lp,&unvalidated);
 	if(mode&SCAN_NEW) { 		  /* Scanning for new messages */
 		for(smb.curmsg=0;smb.curmsg<smb.msgs;smb.curmsg++)
 			if(subscan[subnum].ptr<post[smb.curmsg].number)
@@ -490,7 +499,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			break;
 
 		if(post==NULL)	/* Been unloaded */
-			post=loadposts(&smb.msgs,subnum,0,lp);   /* So re-load */
+			post=loadposts(&smb.msgs,subnum,0,lp,&unvalidated);   /* So re-load */
 
 		if(!smb.msgs) {
 			done=1;
@@ -530,7 +539,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			if(post) {
 				free((void *)post); 
 			}
-			post=loadposts(&smb.msgs,subnum,0,lp);   /* So re-load */
+			post=loadposts(&smb.msgs,subnum,0,lp,&unvalidated);   /* So re-load */
 			if(!smb.msgs)
 				break;
 			for(smb.curmsg=0;smb.curmsg<smb.msgs;smb.curmsg++)
@@ -552,7 +561,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			}
 			if(post)
 				free(post);
-			post=loadposts(&smb.msgs,subnum,0,lp);
+			post=loadposts(&smb.msgs,subnum,0,lp,&unvalidated);
 			if(!smb.msgs)
 				break;
 			if(smb.curmsg>(smb.msgs-1))
@@ -642,11 +651,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				uint16_t msg_attr = msg.hdr.attr;
 				SAFEPRINTF2(str,text[ValidatePostQ],msg.hdr.number,msg.subj);
 				if(!noyes(str))
-					msg.hdr.attr|=MSG_VALIDATED;
+					msg_attr|=MSG_VALIDATED;
 				else {
 					SAFEPRINTF2(str,text[DeletePostQ],msg.hdr.number,msg.subj);
 					if(yesno(str))
-						msg.hdr.attr|=MSG_DELETE;
+						msg_attr|=MSG_DELETE;
 				}
 				if(msg_attr!=msg.hdr.attr) {
 					if(msg.total_hfields)
@@ -679,6 +688,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		if(useron.misc&WIP)
 			menu("msgscan");
 		ASYNC;
+		if(unvalidated < smb.curmsg+1)
+			bprintf(text[UnvalidatedWarning],unvalidated);
 		bprintf(text[ReadingSub],ugrp,cfg.grp[cfg.sub[subnum]->grp]->sname
 			,usub,cfg.sub[subnum]->sname,smb.curmsg+1,smb.msgs);
 		sprintf(str,"ABCDEFILMPQRTY?<>[]{}-+.,");
@@ -937,9 +948,9 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					if(!(useron.misc&EXPERT))
 						menu("sysmscan");
 					bputs(text[OperatorPrompt]);
-					strcpy(str,"?CEHMPQUV");
+					strcpy(str,"?CEHMQUV");
 					if(SYSOP)
-						strcat(str,"S");
+						strcat(str,"SP");
 					switch(getkeys(str,0)) {
 						case '?':
 							if(useron.misc&EXPERT)
@@ -1185,7 +1196,7 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 		smb_stack(&smb,SMB_STACK_POP);
 		return(0); 
 	}
-	post=loadposts(&posts,subnum,0,LP_BYSELF|LP_OTHERS);
+	post=loadposts(&posts,subnum,0,LP_BYSELF|LP_OTHERS,NULL);
 	bprintf(text[SearchSubFmt]
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,posts /* total? */);
 	if(mode&SCAN_FIND)
