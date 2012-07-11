@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.66 2014/04/04 00:17:52 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.60 2012/02/18 00:13:38 deuce Exp $ */
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
@@ -137,12 +137,14 @@ enum {
 
 /* Unsigned type short-hands    */
 #ifndef uchar
-    #define uchar   unsigned char
+        #define uchar   unsigned char
 #endif
-#ifndef ushort
-	#define ushort  unsigned short
-	typedef unsigned int uint;			/* Incompatible with Spidermonkey header files when #define'd */
-	#define ulong   unsigned long
+#ifndef __GLIBC__
+        #ifndef ushort
+        #define ushort  unsigned short
+        typedef unsigned int uint;			/* Incompatible with Spidermonkey header files when #define'd */
+        #define ulong   unsigned long
+        #endif
 #endif
 
 #if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)
@@ -172,11 +174,6 @@ typedef uint64_t	uintmax_t;
 #define _UINTMAX_T_DECLARED
 typedef int64_t		intmax_t;
 #define _INTMAX_T_DECLARED
-
-#if !defined(HAS_STDINT_H) && !defined(_UINTPTR_T_DEFINED)
-typedef uintmax_t	uintptr_t;
-typedef intmax_t	intptr_t;
-#endif
 
 /* printf integer formatters: */
 
@@ -253,7 +250,6 @@ typedef int32_t         time32_t;
 
 /* Windows Types */
 
-#ifndef _WIN32
 #ifndef BYTE
 #define BYTE    uint8_t
 #endif
@@ -271,13 +267,11 @@ typedef int32_t         time32_t;
 #define TRUE    1
 #define FALSE   0
 #endif
-#ifndef HANDLE
-#define HANDLE  void*
-#endif
-#endif
-
 #ifndef INT_TO_BOOL
 #define INT_TO_BOOL(x)  ((x)?TRUE:FALSE)
+#endif
+#ifndef HANDLE
+#define HANDLE  void*
 #endif
 
 /* Custom Types */
