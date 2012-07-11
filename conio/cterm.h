@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.34 2012/10/24 19:02:38 deuce Exp $ */
+/* $Id: cterm.h,v 1.33 2011/12/13 00:00:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,7 @@ struct cterminal {
 	int					height;			// Height of the terminal buffer
 	int					width;			// Width of the terminal buffer
 	int					quiet;			// No sounds are made
-	unsigned char				*scrollback;
+	char				*scrollback;
 	int					backlines;		// Number of lines in scrollback
 	char				DA[1024];		// Device Attributes
 	bool				autowrap;
@@ -125,14 +125,14 @@ struct cterminal {
 	int					font_size;		// Bytes
 	int					doorway_mode;
 	int					doorway_char;	// Indicates next char is a "doorway" mode char
-	int					cursor;			// Current cursor mode (Normal or None)z
+	int					cursor;			// Current cursor mode (Normal or None)
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
 	void	(*ciolib_gotoxy)		(struct cterminal *,int,int);
 	int		(*ciolib_wherex)		(struct cterminal *);
 	int		(*ciolib_wherey)		(struct cterminal *);
-	int		(*ciolib_gettext)		(struct cterminal *,int,int,int,int,void *);
+	int		(*ciolib_gettext)		(struct cterminal *,int,int,int,int,unsigned char *);
 	void	(*ciolib_gettextinfo)	(struct cterminal *,struct text_info *);
 	void	(*ciolib_textattr)		(struct cterminal *,int);
 	void	(*ciolib_setcursortype)	(struct cterminal *,int);
@@ -142,7 +142,7 @@ struct cterminal {
 	void	(*ciolib_setvideoflags)	(struct cterminal *,int flags);
 	int		(*ciolib_getvideoflags)	(struct cterminal *);
 	int		(*ciolib_putch)			(struct cterminal *,int);
-	int		(*ciolib_puttext)		(struct cterminal *,int,int,int,int,void *);
+	int		(*ciolib_puttext)		(struct cterminal *,int,int,int,int,unsigned char *);
 	void	(*ciolib_window)		(struct cterminal *,int,int,int,int);
 	int		(*ciolib_cputs)			(struct cterminal *,char *);
 	int		(*ciolib_setfont)		(struct cterminal *,int font, int force, int font_num);
@@ -150,7 +150,7 @@ struct cterminal {
 	void	CIOLIBCALL (*ciolib_gotoxy)		(int,int);
 	int		CIOLIBCALL (*ciolib_wherex)		(void);
 	int		CIOLIBCALL (*ciolib_wherey)		(void);
-	int		CIOLIBCALL (*ciolib_gettext)		(int,int,int,int,void *);
+	int		CIOLIBCALL (*ciolib_gettext)		(int,int,int,int,unsigned char *);
 	void	CIOLIBCALL (*ciolib_gettextinfo)	(struct text_info *);
 	void	CIOLIBCALL (*ciolib_textattr)		(int);
 	void	CIOLIBCALL (*ciolib_setcursortype)	(int);
@@ -160,7 +160,7 @@ struct cterminal {
 	void	CIOLIBCALL (*ciolib_setvideoflags)	(int flags);
 	int		CIOLIBCALL (*ciolib_getvideoflags)	(void);
 	int		CIOLIBCALL (*ciolib_putch)			(int);
-	int		CIOLIBCALL (*ciolib_puttext)		(int,int,int,int,void *);
+	int		CIOLIBCALL (*ciolib_puttext)		(int,int,int,int,unsigned char *);
 	void	CIOLIBCALL (*ciolib_window)		(int,int,int,int);
 	int		CIOLIBCALL (*ciolib_cputs)			(char *);
 	int		CIOLIBCALL (*ciolib_setfont)		(int font, int force, int font_num);
