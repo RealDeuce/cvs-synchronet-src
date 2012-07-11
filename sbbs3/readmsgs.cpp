@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.67 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: readmsgs.cpp,v 1.60 2012/07/11 22:25:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -175,7 +175,7 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 /****************************************************************************/
 /****************************************************************************/
-post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num)
+post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num)
 {
 	char name[128];
 	ushort aliascrc,namecrc,sysop;
@@ -256,6 +256,8 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 		if(idx.attr&MSG_MODERATED && !(idx.attr&MSG_VALIDATED)) {
 			if(mode&LP_REP || !sub_op(subnum))
 				break;
+			if(unvalidated_num && *unvalidated_num > idx.number)
+				*unvalidated_num=idx.number;
 		}
 
 		if(idx.attr&MSG_PRIVATE && !(mode&LP_PRIVATE)
@@ -316,13 +318,8 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 				continue; 
 		}
 
-		if(idx.attr&MSG_MODERATED && !(idx.attr&MSG_VALIDATED)) {
-			if(unvalidated_num && *unvalidated_num > l)
-				*unvalidated_num=l;
-		}
-
 		memcpy(&post[l],&idx,sizeof(idx));
-		l++;
+		l++; 
 	}
 	smb_unlocksmbhdr(&smb);
 	if(!l)
@@ -332,9 +329,9 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 	return(post);
 }
 
-static uint32_t get_start_msg(sbbs_t* sbbs, smb_t* smb)
+static int get_start_msg(sbbs_t* sbbs, smb_t* smb)
 {
-	uint32_t	i,j=smb->curmsg+1;
+	int i,j=smb->curmsg+1;
 
 	if(j<smb->msgs)
 		j++;
@@ -368,7 +365,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	long	org_mode=mode;
 	ulong	msgs,l,unvalidated;
 	uint32_t last;
-	uint32_t u;
 	post_t	*post;
 	smbmsg_t	msg;
 
@@ -653,11 +649,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 			if(sub_op(subnum) && (msg.hdr.attr&(MSG_MODERATED|MSG_VALIDATED)) == MSG_MODERATED) {
 				uint16_t msg_attr = msg.hdr.attr;
-				SAFEPRINTF2(str,text[ValidatePostQ],smb.curmsg+1,msg.subj);
+				SAFEPRINTF2(str,text[ValidatePostQ],msg.hdr.number,msg.subj);
 				if(!noyes(str))
 					msg_attr|=MSG_VALIDATED;
 				else {
-					SAFEPRINTF2(str,text[DeletePostQ],smb.curmsg+1,msg.subj);
+					SAFEPRINTF2(str,text[DeletePostQ],msg.hdr.number,msg.subj);
 					if(yesno(str))
 						msg_attr|=MSG_DELETE;
 				}
@@ -675,23 +671,12 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 						}
 						smb_unlocksmbhdr(&smb); 
 					}
-					if(msg_attr & MSG_DELETE) {
-						if(cfg.sys_misc&SM_SYSVDELM)
-							domsg=0;	// If you can view deleted messages, don't redisplay.
-					}
-					else {
-						domsg=0;		// If you just validated, don't redisplay.
-					}
-					if(post)
-						free(post);
-					post=loadposts(&smb.msgs,subnum,0,lp,&unvalidated);
-					if(!smb.msgs)
-						break;
-					if(smb.curmsg>(smb.msgs-1))
-						smb.curmsg=(smb.msgs-1);
-					mismatches++;
-					continue; 
+					if(!msg.total_hfields) {				/* unsuccessful reload */
+						domsg=0;
+						continue; 
+					} 
 				}
+
 			}
 		}
 		else domsg=1;
@@ -703,8 +688,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		if(useron.misc&WIP)
 			menu("msgscan");
 		ASYNC;
-		if(unvalidated < smb.curmsg)
-			bprintf(text[UnvalidatedWarning],unvalidated+1);
+		if(unvalidated < smb.curmsg+1)
+			bprintf(text[UnvalidatedWarning],unvalidated);
 		bprintf(text[ReadingSub],ugrp,cfg.grp[cfg.sub[subnum]->grp]->sname
 			,usub,cfg.sub[subnum]->sname,smb.curmsg+1,smb.msgs);
 		sprintf(str,"ABCDEFILMPQRTY?<>[]{}-+.,");
@@ -942,11 +927,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					 done=1;
 					 break; 
 				}
-				u=smb.curmsg+11;
-				if(u>smb.msgs)
-					u=smb.msgs;
-				listmsgs(subnum,0,post,smb.curmsg+1,u);
-				smb.curmsg=u-1;
+				i=smb.curmsg+11;
+				if(i>smb.msgs)
+					i=smb.msgs;
+				listmsgs(subnum,0,post,smb.curmsg+1,i);
+				smb.curmsg=i-1;
 				if(subscan[subnum].ptr<post[smb.curmsg].number)
 					subscan[subnum].ptr=post[smb.curmsg].number;
 				break;
@@ -1073,11 +1058,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					domsg=0;
 					break; 
 				}
-				for(u=0;u<smb.msgs;u++)
-					if(l==post[u].number)
+				for(i=0;i<smb.msgs;i++)
+					if(l==post[i].number)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				do_find=false;
 				break;
 			case ',':   /* Thread backwards */
@@ -1085,19 +1070,19 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					domsg=0;
 					break; 
 				}
-				for(u=0;u<smb.msgs;u++)
-					if(msg.hdr.thread_back==post[u].number)
+				for(i=0;i<smb.msgs;i++)
+					if(msg.hdr.thread_back==post[i].number)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				do_find=false;
 				break;
 			case '>':   /* Search Title forward */
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(post[u].subj==msg.idx.subj)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(post[i].subj==msg.idx.subj)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				do_find=false;
@@ -1114,11 +1099,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case '}':   /* Search Author forward */
 				strcpy(str,msg.from);
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(post[u].from==msg.idx.from)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(post[i].from==msg.idx.from)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				do_find=false;
@@ -1136,11 +1121,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case ']':   /* Search To User forward */
 				strcpy(str,msg.to);
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(post[u].to==msg.idx.to)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(post[i].to==msg.idx.to)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				do_find=false;
@@ -1195,7 +1180,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 {
 	int 	i;
-	uint32_t	posts;
+	int32_t	posts;
 	long	displayed;
 	post_t	*post;
 
