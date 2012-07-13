@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.32 2011/07/13 11:24:14 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.33 2011/10/19 02:37:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,7 +172,7 @@ extern "C" {
 #endif
 
 #if defined(__unix__)
-	DLLEXPORT FILE * DLLCALL _fsopen(char *pszFilename, char *pszMode, int shmode);
+	DLLEXPORT FILE * DLLCALL _fsopen(const char *pszFilename, const char *pszMode, int shmode);
 #endif
 
 #if defined(_MSC_VER) && (_MSC_VER < 1300)	/* missing prototypes */
