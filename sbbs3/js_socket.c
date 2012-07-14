@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.152 2012/07/13 22:25:18 deuce Exp $ */
+/* $Id: js_socket.c,v 1.153 2012/07/14 07:55:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,15 +39,6 @@
 
 #include "sbbs.h"
 #include "js_request.h"
-
-#ifdef unix
-    #include <unistd.h> /* _exit() */
-
-void exit(int code)
-{
-    _exit(code);
-}
-#endif
 
 #ifdef JAVASCRIPT
 
