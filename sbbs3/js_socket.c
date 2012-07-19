@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.155 2012/07/19 23:41:38 deuce Exp $ */
+/* $Id: js_socket.c,v 1.156 2012/07/19 23:45:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1488,24 +1488,24 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 //								if((ret=cryptSetAttribute(p->session, CRYPT_SESSINFO_VERSION, 0))==CRYPT_OK) {
 									if((ret=cryptSetAttributeString(p->session, CRYPT_SESSINFO_SERVER_NAME, p->hostname, strlen(p->hostname)))==CRYPT_OK) {
 										if((ret=cryptSetAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK) {
-											fprintf(stderr,"cryptSetAttribute(CRYPT_SESSINFO_ACTIVE) Error %d\n",ret);
+											lprintf(LOG_ERR,"cryptSetAttribute(CRYPT_SESSINFO_ACTIVE) Error %d\n",ret);
 											cryptDestroySession(p->session);
 											p->session=-1;
 											ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
 										}
 									}
-									else fprintf(stderr,"cryptSetAttributeString(CRYPT_SESSINFO_SERVER_NAME) Error %d\n",ret);
+									else lprintf(LOG_ERR,"cryptSetAttributeString(CRYPT_SESSINFO_SERVER_NAME) Error %d\n",ret);
 //								}
-//								else fprintf(stderr,"cryptSetAttributeString(CRYPT_SESSINFO_VERSION) Error %d\n",ret);
+//								else lprintf(LOG_ERR,"cryptSetAttributeString(CRYPT_SESSINFO_VERSION) Error %d\n",ret);
 							}
 							else {
-								fprintf(stderr,"cryptSetAttribute(CRYPT_SESSINFO_NETWORKSOCKET) Error %d\n",ret);
+								lprintf(LOG_ERR,"cryptSetAttribute(CRYPT_SESSINFO_NETWORKSOCKET) Error %d\n",ret);
 								cryptDestroySession(p->session);
 								p->session=-1;
 								ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
 							}
 						}
-						else fprintf(stderr,"cryptCreateSession() Error %d\n",ret);
+						else lprintf(LOG_ERR,"cryptCreateSession() Error %d\n",ret);
 					}
 				}
 			}
