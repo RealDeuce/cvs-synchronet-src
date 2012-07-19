@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.175 2011/11/04 03:21:58 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.180 2012/06/15 21:34:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -86,7 +86,6 @@ typedef struct {
 	ulong	gc_attempts;
 	BOOL	auto_terminate;
 	volatile BOOL*	terminated;
-	str_list_t	exit_func;
 } js_callback_t;
 
 #define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
@@ -124,12 +123,12 @@ typedef struct {
 #define UQ_LOCATION		(1L<<1) 	/* Ask for location 					*/
 #define UQ_ADDRESS		(1L<<2) 	/* Ask for address						*/
 #define UQ_PHONE		(1L<<3) 	/* Ask for phone number 				*/
-#define UQ_HANDLE		(1L<<4) 	/* Ask for chat handle					*/
+#define UQ_HANDLE		(1L<<4) 	/* Ask for chat handle / HAM callsign	*/
 #define UQ_DUPHAND		(1L<<5) 	/* Search for duplicate handles 		*/
 #define UQ_SEX			(1L<<6) 	/* Ask for sex :)						*/
 #define UQ_BIRTH		(1L<<7) 	/* Ask for birth date					*/
-#define UQ_COMP 		(1L<<8) 	/* Ask for computer type				*/
-#define UQ_MC_COMP		(1L<<9) 	/* Multiple choice computer type		*/
+#define UQ_UNUSED1 		(1L<<8) 	/* was UQ_COMP							*/
+#define UQ_UNUSED2		(1L<<9) 	/* was UQ_MC_COMP						*/
 #define UQ_REALNAME		(1L<<10)	/* Ask for real name					*/
 #define UQ_DUPREAL		(1L<<11)	/* Search for duplicate real names		*/
 #define UQ_COMPANY		(1L<<12)	/* Ask for company name 				*/
@@ -724,6 +723,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_QWKNET	(1<<7)		/* Writing QWK NetMail (25 char title)		*/
 #define WM_PRIVATE	(1<<8)		/* Private (for creating MSGINF file)		*/
 #define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
+#define WM_EDIT		(1<<10)		/* Editing existing message					*/
+#define WM_FORCEFWD	(1<<11)		/* Force "yes" to ForwardMailQ for email	*/
 								
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
@@ -776,6 +777,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
+#define TG_SENDPASS	(1<<9)	/* Send password instead of real name (RLogin)	*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */

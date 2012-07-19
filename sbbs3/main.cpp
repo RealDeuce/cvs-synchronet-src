@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.577 2011/11/04 03:25:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.584 2012/06/19 08:18:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,7 +71,7 @@
 #endif // _WIN32
 
 #ifdef USE_CRYPTLIB
-	#define SSH_END()	if(ssh)	cryptDestroySession(sbbs->ssh_session);
+	#define SSH_END()	if(ssh) { pthread_mutex_lock(&sbbs->ssh_mutex); cryptDestroySession(sbbs->ssh_session); pthread_mutex_unlock(&sbbs->ssh_mutex); }
 #else
 	#define	SSH_END()
 #endif
@@ -399,10 +399,11 @@ static const char *js_type_str[] = {
     "string",
     "number",
     "boolean",
+	"null",
+	"xml",
 	"array",
 	"alias",
-	"undefined",
-	"null"
+	"undefined"
 };
 
 JSBool
@@ -1300,19 +1301,22 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,speed);
 						sbbs->cur_rate=atoi(speed);
 						sbbs->cur_cps=sbbs->cur_rate/10;
-#if 0
+#ifdef SBBS_TELNET_ENVIRON_SUPPORT
 					} else if(option==TELNET_NEW_ENVIRON
 						&& sbbs->telnet_cmd[3]==TELNET_ENVIRON_IS) {
 						BYTE*	p;
 						BYTE*   end=sbbs->telnet_cmd+(sbbs->telnet_cmdlen-2);
 						for(p=sbbs->telnet_cmd+4; p < end; ) {
-							if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR) {
+							if(*p==TELNET_ENVIRON_VAR) {
+								char tmp[128];
 								p++;
-								lprintf(LOG_DEBUG,"Node %d %s telnet environment var/val: %.*s"
+								c_escape_str((char*)p,tmp,sizeof(tmp),TRUE);
+								lprintf(LOG_DEBUG,"Node %d %s telnet environment var/val: %.*s (%s)"
 	                				,sbbs->cfg.node_num
 									,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 									,end-p
-									,p);
+									,p
+									,tmp);
 								p+=strlen((char*)p);
 							} else
 								p++;
@@ -1341,10 +1345,11 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							sbbs->cols=cols;
 
 					} else if(startup->options&BBS_OPT_DEBUG_TELNET)
-            			lprintf(LOG_DEBUG,"Node %d %s unsupported telnet sub-negotiation cmd: %s"
+            			lprintf(LOG_DEBUG,"Node %d %s unsupported telnet sub-negotiation cmd: %s, 0x%02X"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-                			,telnet_opt_desc(option));
+                			,telnet_opt_desc(option)
+							,sbbs->telnet_cmd[3]);
 					sbbs->telnet_cmdlen=0;
 				}
 			}
@@ -1385,6 +1390,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								case TELNET_SUP_GA:
 								case TELNET_NEGOTIATE_WINDOW_SIZE:
 								case TELNET_SEND_LOCATION:
+#ifdef SBBS_TELNET_ENVIRON_SUPPORT
+								case TELNET_NEW_ENVIRON:
+#endif
 									sbbs->telnet_remote_option[option]=command;
 									sbbs->send_telnet_cmd(telnet_opt_ack(command),option);
 									break;
@@ -1419,14 +1427,14 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								,TELNET_IAC,TELNET_SE);
 							sbbs->putcom(buf,6);
 						}
-#if 0
+#ifdef SBBS_TELNET_ENVIRON_SUPPORT
 						else if(command==TELNET_WILL && option==TELNET_NEW_ENVIRON) {
 							if(startup->options&BBS_OPT_DEBUG_TELNET)
 								lprintf(LOG_DEBUG,"Node %d requesting USER environment variable value"
 									,sbbs->cfg.node_num);
 
 							char	buf[64];
-							int len=sprintf(buf,"%c%c%c%c%cUSER%c%c"
+							int len=sprintf(buf,"%c%c%c%c%c%c%c"
 								,TELNET_IAC,TELNET_SB
 								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND,TELNET_ENVIRON_VAR
 								,TELNET_IAC,TELNET_SE);
@@ -1513,6 +1521,7 @@ void input_thread(void *arg)
 #endif
 
 	pthread_mutex_init(&sbbs->input_thread_mutex,NULL);
+	pthread_mutex_init(&sbbs->ssh_mutex,NULL);
     sbbs->input_thread_running = true;
 	sbbs->console|=CON_R_INPUT;
 
@@ -1613,19 +1622,18 @@ void input_thread(void *arg)
 
     	rd=RingBufFree(&sbbs->inbuf);
 
-		if(!rd) { // input buffer full
+		if(rd==0) { // input buffer full
 			lprintf(LOG_WARNING,"Node %d !WARNING input buffer full", sbbs->cfg.node_num);
         	// wait up to 5 seconds to empty (1 byte min)
 			time_t start=time(NULL);
-            while((rd=RingBufFree(&sbbs->inbuf))==0) {
-            	if(time(NULL)-start>=5) {
-                	rd=1;
-					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
-						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
-                	break;
-                }
+            while((rd=RingBufFree(&sbbs->inbuf))==0 && time(NULL)-start<5) {
                 YIELD();
             }
+			if(rd==0) {	/* input buffer still full */
+				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
+					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+				continue;
+			}
 		}
 		
 	    if(rd > (int)sizeof(inbuf))
@@ -1634,7 +1642,9 @@ void input_thread(void *arg)
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode && sock==sbbs->client_socket) {
 			int err;
+			pthread_mutex_lock(&sbbs->ssh_mutex);
 			if(!cryptStatusOK((err=cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))) {
+				pthread_mutex_unlock(&sbbs->ssh_mutex);
 				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
 					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 				if(err==CRYPT_ERROR_TIMEOUT)
@@ -1644,6 +1654,7 @@ void input_thread(void *arg)
 				break;
 			}
 			else {
+				pthread_mutex_unlock(&sbbs->ssh_mutex);
 				if(!i) {
 					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
 						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
@@ -1749,6 +1760,8 @@ void input_thread(void *arg)
 	if(node_socket[sbbs->cfg.node_num-1]==INVALID_SOCKET)	// Shutdown locally
 		sbbs->terminated = true;	// Signal JS to stop execution
 
+	while(pthread_mutex_destroy(&sbbs->ssh_mutex)==EBUSY)
+		mswait(1);
 	while(pthread_mutex_destroy(&sbbs->input_thread_mutex)==EBUSY)
 		mswait(1);
 
@@ -1827,13 +1840,17 @@ void passthru_output_thread(void* arg)
 
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
+			pthread_mutex_lock(&sbbs->ssh_mutex);
 			if(!cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))
 				rd=0;
 			else {
-				if(!i)
+				if(!i) {
+					pthread_mutex_unlock(&sbbs->ssh_mutex);
 					continue;
+				}
 				rd=i;
 			}
+			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		else
 #endif
@@ -2021,7 +2038,8 @@ void output_thread(void* arg)
 	}
 #endif
 
-	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET && !terminate_server) {
+	/* Note: do not terminate when online==FALSE, that is expected for the terminal server output_thread */
+	while(sbbs->client_socket!=INVALID_SOCKET && !terminate_server) {
 		/*
 		 * I'd like to check the linear buffer against the highwater
 		 * at this point, but it would get too clumsy imho - Deuce
@@ -2098,6 +2116,7 @@ void output_thread(void* arg)
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
 			int err;
+			pthread_mutex_lock(&sbbs->ssh_mutex);
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
@@ -2106,6 +2125,7 @@ void output_thread(void* arg)
 			}
 			else
 				cryptFlushData(sbbs->ssh_session);
+			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		else
 #endif
@@ -2792,8 +2812,6 @@ void event_thread(void* arg)
 						node.status=NODE_EVENT_RUNNING;
 						sbbs->putnodedat(sbbs->cfg.event[i]->node,&node);
 					}
-					strcpy(str,sbbs->cfg.event[i]->code);
-					eprintf(LOG_INFO,"Running timed event: %s",strupr(str));
 					int ex_mode = EX_OFFLINE;
 					if(!(sbbs->cfg.event[i]->misc&EVENT_EXCL)
 						&& sbbs->cfg.event[i]->misc&EX_BG)
@@ -2802,6 +2820,11 @@ void event_thread(void* arg)
 						ex_mode |= EX_SH;
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
+					strcpy(str,sbbs->cfg.event[i]->code);
+					eprintf(LOG_INFO,"Running %s%stimed event: %s"
+						,(ex_mode&EX_NATIVE)	? "native ":""
+						,(ex_mode&EX_BG)		? "background ":""
+						,strupr(str));
 					{
 						int result=
 						sbbs->external(
@@ -4083,15 +4106,18 @@ void sbbs_t::daily_maint(void)
 	uint			i;
 	uint			usernum;
 	uint			lastusernum;
-	node_t			node;
 	user_t			user;
 
 	now=time(NULL);
 
-	sbbs->getnodedat(sbbs->cfg.node_num,&node,1);
-	node.status=NODE_EVENT_RUNNING;
-	sbbs->putnodedat(sbbs->cfg.node_num,&node);
-
+	if(sbbs->cfg.node_num) {
+		if((i=sbbs->getnodedat(sbbs->cfg.node_num,&sbbs->thisnode,true)) != 0)
+			sbbs->errormsg(WHERE,ERR_LOCK,"node file",i);
+		else {
+			sbbs->thisnode.status=NODE_EVENT_RUNNING;
+			sbbs->putnodedat(sbbs->cfg.node_num,&sbbs->thisnode);
+		}
+	}
 	sbbs->logentry("!:","Ran system daily maintenance");
 
 	if(sbbs->cfg.user_backup_level) {
@@ -4427,6 +4453,8 @@ void DLLCALL bbs_thread(void* arg)
 	protected_uint32_init(&node_threads_running,0);
 
 	thread_up(FALSE /* setuid */);
+	if(startup->seteuid!=NULL)
+		startup->seteuid(TRUE);
 
 	status("Initializing");
 
@@ -5422,7 +5450,7 @@ NO_PASSTHRU:
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
-			while(RingBufFull(&sbbs->outbuf))
+			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
 			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 			sbbs->ssh_mode=false;
