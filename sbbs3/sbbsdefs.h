@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.183 2013/05/07 00:22:42 mcmlxxix Exp $ */
+/* $Id: sbbsdefs.h,v 1.180 2012/06/15 21:34:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2012 Rob Swindell"
-#define COPYRIGHT_CRC		0x413D3832
+#define COPYRIGHT_NOTICE	"Copyright 2011 Rob Swindell"
+#define COPYRIGHT_CRC		0x3D5C1DE9
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -761,7 +761,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define EX_STDIO	(EX_STDIN|EX_STDOUT)
 #define EX_CONIO	(1<<31)		/* Intercept Windows console I/O (doorway)	*/
 
-#if defined(__unix__)
+#if defined(__unix)
 #define EX_WILDCARD	EX_SH		/* Expand wildcards using 'sh' on Unix		*/
 #else
 #define EX_WILDCARD	0
@@ -777,6 +777,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
+#define TG_SENDPASS	(1<<9)	/* Send password instead of real name (RLogin)	*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
