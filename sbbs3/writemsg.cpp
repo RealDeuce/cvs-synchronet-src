@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.97 2011/11/04 01:19:56 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.100 2012/06/13 08:54:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,7 +91,7 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 	if((buf=smb_getmsgtxt(&smb,msg,tails)) != NULL) {
 		strip_invalid_attr(buf);
 		if(useron.xedit && (cfg.xedit[useron.xedit-1]->misc&QUOTEWRAP))
-			wrapped=::wordwrap(buf, cols-4, cols-1, WORDWRAP_FLAG_QUOTES);
+			wrapped=::wordwrap(buf, cols-4, cols-1, /* handle_quotes: */TRUE);
 		if(wrapped!=NULL) {
 			fputs(wrapped,fp);
 			free(wrapped);
@@ -133,7 +133,7 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 				break;
 			continue;
 		}
-		if(!(mode&(WM_EMAIL|WM_NETMAIL))
+		if(!(mode&(WM_EMAIL|WM_NETMAIL|WM_EDIT))
 			&& (!l || buf[l-1]==LF)
 			&& buf[l]=='-' && buf[l+1]=='-' && buf[l+2]=='-'
 			&& (buf[l+3]==' ' || buf[l+3]==TAB || buf[l+3]==CR))
@@ -546,10 +546,11 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 		|| (subnum!=INVALID_SUB && !(cfg.sub[subnum]->misc&SUB_NOUSERSIG))) {
 		SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,useron.number);
 		FILE* sig;
-		if(fexist(str) && (sig=fopen(str,"rb"))!=NULL) {
+		if(fexist(str) && (sig=fopen(str,"r"))!=NULL) {
 			while(!feof(sig)) {
 				if(!fgets(str,sizeof(str),sig))
 					break;
+				truncsp(str);
 				l+=fprintf(stream,"%s\r\n",str);
 				lines++;		/* line counter */
 			}
@@ -1024,7 +1025,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 		rioctl(IOCM|PAUSE|ABORT);
 		if(external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir)!=0)
 			return false;
-		l=process_edited_file(msgtmp, path, /* mode: */0, &lines,maxlines);
+		l=process_edited_file(msgtmp, path, /* mode: */WM_EDIT, &lines,maxlines);
 		if(l>0) {
 			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 				,useron.alias, path, l, lines);
@@ -1070,7 +1071,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 		free(buf);
 		return false; 
 	}
-	l=process_edited_text(buf,stream,/* mode: */0,&lines,maxlines);
+	l=process_edited_text(buf,stream,/* mode: */WM_EDIT,&lines,maxlines);
 	bprintf(text[SavedNBytes],l,lines);
 	fclose(stream);
 	free(buf);
