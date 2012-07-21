@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.14 2011/11/08 02:48:16 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.16 2011/11/30 03:18:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,6 +231,9 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 		old_prefix_bytes=prefix_bytes;
 	}
 	for(; inbuf[i]; i++) {
+		if(oldlen == 0)
+			icol=-256;
+
 		if(l>=len*2+2) {
 			l-=4;
 			linebuf[l]=0;
@@ -275,7 +278,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 					ocol=prefix_len+1;
 					old_prefix_bytes=prefix_bytes;
 				}
-				else if(isspace((unsigned char)inbuf[i+1]) && inbuf[i+1] != '\n' && inbuf[i+1] != '\r') {	/* Next line starts with whitespace.  This is a "hard" CR. */
+				else if(isspace((unsigned char)inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
 					linebuf[l++]='\r';
 					linebuf[l++]='\n';
 					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
