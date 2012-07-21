@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.161 2012/07/21 21:24:18 deuce Exp $ */
+/* $Id: js_socket.c,v 1.162 2012/07/21 21:30:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ int do_cryptInit(void)
 	int ret;
 
 	if(!cryptInitialized) {
-		do_cryptAttribute(CRYPT_UNUSED, CRYPT_OPTION_MISC_ASYNCINIT, FALSE);
+//		do_cryptAttribute(CRYPT_UNUSED, CRYPT_OPTION_MISC_ASYNCINIT, FALSE);
 		if((ret=cryptInit())==CRYPT_OK) {
 			cryptAddRandom(NULL,CRYPT_RANDOM_SLOWPOLL);
 			cryptInitialized=1;
