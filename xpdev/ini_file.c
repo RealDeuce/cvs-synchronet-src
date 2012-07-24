@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.126 2011/11/04 07:15:46 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.127 2011/12/16 09:50:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1031,7 +1031,7 @@ iniReadNamedStringList(FILE* fp, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	items=0;
-	named_string_t** lp=NULL;
+	named_string_t** lp;
 	named_string_t** np;
 
 	if(fp==NULL)
@@ -1079,7 +1079,7 @@ iniGetNamedStringList(str_list_t list, const char* section)
 	char*	value;
 	char	str[INI_MAX_LINE_LEN];
 	ulong	i,items=0;
-	named_string_t** lp=NULL;
+	named_string_t** lp;
 	named_string_t** np;
 
 	if(list==NULL)
@@ -1843,7 +1843,7 @@ ulong iniReadBitField(FILE* fp, const char* section, const char* key,
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
 
-	if((value=read_value(fp,section,key,buf))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)	/* missing key */
 		return(deflt);
 
 	return(parseBitField(value,bitdesc));
@@ -1856,7 +1856,7 @@ ulong iniGetBitField(str_list_t list, const char* section, const char* key,
 
 	get_value(list, section, key, NULL, &vp);
 
-	if(vp==NULL || *vp==0)		/* blank value or missing key */
+	if(vp==NULL)		/* missing key */
 		return(deflt);
 
 	return(parseBitField(vp,bitdesc));

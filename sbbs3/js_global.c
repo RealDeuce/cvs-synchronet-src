@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.312 2011/11/08 02:50:31 rswindell Exp $ */
+/* $Id: js_global.c,v 1.315 2012/03/15 09:17:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,14 +51,6 @@
 #define MAX_ANSI_PARAMS	8
 
 #ifdef JAVASCRIPT
-
-typedef struct {
-	scfg_t*				cfg;
-	jsSyncMethodSpec*	methods;
-	js_startup_t*		startup;
-	unsigned			bg_count;
-	sem_t				bg_sem;
-} private_t;
 
 /* Global Object Properites */
 enum {
@@ -241,12 +233,12 @@ static jsval* js_CopyValue(JSContext* cx, jsrefcount *cx_rc, jsval val, JSContex
 JSBool BGContextCallback(JSContext *cx, uintN contextOp)
 {
 	JSObject	*gl=JS_GetGlobalObject(cx);
-	private_t*	p;
+	global_private_t*	p;
 
 	if(!gl)
 		return JS_TRUE;
 
-	if((p=(private_t*)JS_GetPrivate(cx,gl))==NULL)
+	if((p=(global_private_t*)JS_GetPrivate(cx,gl))==NULL)
 		return(JS_TRUE);
 
 	switch(contextOp) {
@@ -275,7 +267,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 	uintN		argn=0;
     char*		filename;
     JSObject*	script;
-	private_t*	p;
+	global_private_t*	p;
 	jsval		val;
 	JSObject*	js_argv;
 	JSObject*	exec_obj;
@@ -289,7 +281,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist,JSVAL_VOID);
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	exec_obj=JS_GetScopeChain(cx);
@@ -353,6 +345,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		if((bg->logobj=JS_NewObjectWithGivenProto(bg->cx, NULL, NULL, bg->obj))==NULL) {
+			JS_RemoveObjectRoot(bg->cx, &bg->obj);
 			JS_ENDREQUEST(bg->cx);
 			JS_DestroyContext(bg->cx);
 			jsrt_Release(bg->runtime);
@@ -1412,7 +1405,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	struct		tm tm;
 	time_t		now;
 	BOOL		nodisplay=FALSE;
-	private_t*	p;
+	global_private_t*	p;
 	uchar   	attr_stack[64]; /* Saved attributes (stack) */
 	int     	attr_sp=0;                /* Attribute stack pointer */
 	ulong		clear_screen=0;
@@ -1425,7 +1418,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
+	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
 		return(JS_FALSE);
 
 	JSVALUE_TO_STRING(cx, argv[0], inbuf, NULL);
@@ -1934,10 +1927,14 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 					case 'T':
 						now=time(NULL);
 						localtime_r(&now,&tm);
-						j+=sprintf(outbuf+j,"%02d:%02d %s"
-							,tm.tm_hour==0 ? 12
-							: tm.tm_hour>12 ? tm.tm_hour-12
-							: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
+						if(p->cfg->sys_misc&SM_MILITARY)
+							j+=sprintf(outbuf+j,"%02d:%02d:%02d"
+								,tm.tm_hour, tm.tm_min, tm.tm_sec);
+						else
+							j+=sprintf(outbuf+j,"%02d:%02d %s"
+								,tm.tm_hour==0 ? 12
+								: tm.tm_hour>12 ? tm.tm_hour-12
+								: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
 						break;
 						
 					case 'L':
@@ -3356,7 +3353,7 @@ js_strftime(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
 	char*		fmt;
-	int32		i=(int32_t)time(NULL);
+	jsdouble	jst=(jsdouble)time(NULL);
 	time_t		t;
 	struct tm	tm;
 	JSString*	js_str;
@@ -3372,13 +3369,13 @@ js_strftime(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&i))
+		if(!JS_ValueToNumber(cx,argv[1],&jst))
 			return JS_FALSE;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	strcpy(str,"-Invalid time-");
-	t=i;
+	t=(time_t)jst;
 	if(localtime_r(&t,&tm)!=NULL)
 		strftime(str,sizeof(str),fmt,&tm);
 	JS_RESUMEREQUEST(cx, rc);
@@ -3920,9 +3917,9 @@ static jsConstIntSpec js_global_const_ints[] = {
 
 static void js_global_finalize(JSContext *cx, JSObject *obj)
 {
-	private_t* p;
+	global_private_t* p;
 
-	p=(private_t*)JS_GetPrivate(cx,obj);
+	p=(global_private_t*)JS_GetPrivate(cx,obj);
 
 	if(p!=NULL)
 		free(p);
@@ -3934,10 +3931,10 @@ static void js_global_finalize(JSContext *cx, JSObject *obj)
 static JSBool js_global_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*		name=NULL;
-	private_t*	p;
+	global_private_t*	p;
 	JSBool		ret=JS_TRUE;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	if(id != JSID_VOID && id != JSID_EMPTY && id != JS_DEFAULT_XML_NAMESPACE_ID) {
@@ -3977,14 +3974,15 @@ static JSClass js_global_class = {
 
 BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t* startup, JSObject**glob)
 {
-	private_t*	p;
+	global_private_t*	p;
 
-	if((p = (private_t*)malloc(sizeof(private_t)))==NULL)
+	if((p = (global_private_t*)malloc(sizeof(global_private_t)))==NULL)
 		return(FALSE);
 
 	p->cfg = cfg;
 	p->methods = methods;
 	p->startup = startup;
+	p->exit_func=NULL;
 
 	if((*glob = JS_NewCompartmentAndGlobalObject(cx, &js_global_class, NULL)) ==NULL)
 		return(FALSE);
