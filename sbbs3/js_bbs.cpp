@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.136 2011/11/07 01:31:09 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.138 2012/03/07 03:22:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -129,6 +129,7 @@ enum {
 	,BBS_PROP_MSG_NUMBER
 	,BBS_PROP_MSG_EXPIRATION
 	,BBS_PROP_MSG_FORWARDED
+	,BBS_PROP_MSG_THREAD_ID
 	,BBS_PROP_MSG_THREAD_BACK
 	,BBS_PROP_MSG_THREAD_NEXT
 	,BBS_PROP_MSG_THREAD_FIRST
@@ -227,12 +228,13 @@ enum {
 	,"message auxillary attributes"
 	,"message network attributes"
 	,"message header offset"
-	,"message number"
+	,"message number (unique, monotonically incrementing)"
 	,"message expiration"
 	,"message forwarded"
-	,"message thread, back message number (AKA msg_thread_orig)"
+	,"message thread identifier (0 if unknown)"
+	,"message thread, back message number"
 	,"message thread, next message number"
-	,"message thread, first reply to this message"
+	,"message thread, message number of first reply to this message"
 	,"message identifier"
 	,"message replied-to identifier"
 	,"message delivery attempt counter"
@@ -587,6 +589,10 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			if(sbbs->current_msg!=NULL)
 				val=sbbs->current_msg->forwarded;
 			break;
+		case BBS_PROP_MSG_THREAD_ID:
+			if(sbbs->current_msg!=NULL)
+				val=sbbs->current_msg->hdr.thread_id;
+			break;
 		case BBS_PROP_MSG_THREAD_BACK:
 			if(sbbs->current_msg!=NULL)
 				val=sbbs->current_msg->hdr.thread_back;
@@ -911,6 +917,7 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"msg_number"		,BBS_PROP_MSG_NUMBER		,PROP_READONLY	,310},
 	{	"msg_expiration"	,BBS_PROP_MSG_EXPIRATION	,PROP_READONLY	,310},
 	{	"msg_forwarded"		,BBS_PROP_MSG_FORWARDED		,PROP_READONLY	,310},
+	{	"msg_thread_id"		,BBS_PROP_MSG_THREAD_BACK	,PROP_READONLY	,316},
 	{	"msg_thread_back"	,BBS_PROP_MSG_THREAD_BACK	,PROP_READONLY	,312},
 	{	"msg_thread_orig"	,BBS_PROP_MSG_THREAD_BACK	,JSPROP_READONLY,310},	/* alias */
 	{	"msg_thread_next"	,BBS_PROP_MSG_THREAD_NEXT	,PROP_READONLY	,310},
@@ -2054,7 +2061,7 @@ js_dir_info(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	uint dirnum=get_dirnum(cx,sbbs,argv[0],argc > 0);
+	uint dirnum=get_dirnum(cx,sbbs,argv[0],argc == 0);
 	rc=JS_SUSPENDREQUEST(cx);
 	if(dirnum<sbbs->cfg.total_dirs)
 		sbbs->dirinfo(dirnum);
@@ -2452,7 +2459,7 @@ js_upload_file(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	dirnum=get_dirnum(cx,sbbs,argv[0], argc > 0);
+	dirnum=get_dirnum(cx,sbbs,argv[0], argc == 0);
 
 	if(dirnum>=sbbs->cfg.total_dirs) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
@@ -2479,7 +2486,7 @@ js_bulkupload(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	dirnum=get_dirnum(cx,sbbs,argv[0], argc > 0);
+	dirnum=get_dirnum(cx,sbbs,argv[0], argc == 0);
 
 	if(dirnum>=sbbs->cfg.total_dirs) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
@@ -2505,7 +2512,7 @@ js_resort_dir(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	dirnum=get_dirnum(cx,sbbs,argv[0], argc > 0);
+	dirnum=get_dirnum(cx,sbbs,argv[0], argc == 0);
 
 	if(dirnum>=sbbs->cfg.total_dirs) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
@@ -2869,7 +2876,7 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	dirnum=get_dirnum(cx,sbbs,argv[0], argc > 0);
+	dirnum=get_dirnum(cx,sbbs,argv[0], argc == 0);
 
 	if(dirnum>=sbbs->cfg.total_dirs) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
@@ -2914,7 +2921,7 @@ js_listfileinfo(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	dirnum=get_dirnum(cx,sbbs,argv[0], argc > 0);
+	dirnum=get_dirnum(cx,sbbs,argv[0], argc == 0);
 
 	if(dirnum>=sbbs->cfg.total_dirs) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
