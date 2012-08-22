@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.159 2011/11/03 21:47:02 deuce Exp $ */
+/* $Id: jsexec.c,v 1.160 2011/11/12 02:18:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -603,7 +603,10 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 static jsSyncMethodSpec js_global_functions[] = {
 	{"log",				js_log,				1},
 	{"read",			js_read,            1},
-	{"readln",			js_readln,          1},
+	{"readln",			js_readln,			0,	JSTYPE_STRING,	JSDOCSTR("[count]")
+	,JSDOCSTR("read a single line, up to count characters, from input stream")
+	,311
+	},
     {"write",           js_write,           0},
     {"writeln",         js_writeln,         0},
     {"print",           js_writeln,         0},
@@ -979,7 +982,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.159 $", "%*s %s", revision);
+	sscanf("$Revision: 1.160 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
