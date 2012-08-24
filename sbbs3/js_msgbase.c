@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.177 2011/11/09 23:52:48 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.179 2012/03/07 03:22:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -704,6 +704,11 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		msg->hdr.when_imported.zone=(short)i32;
 	}
 
+	if(JS_GetProperty(cx, hdr, "thread_id", &val) && !JSVAL_NULL_OR_VOID(val)) {
+		if(!JS_ValueToInt32(cx,val,&i32))
+			return FALSE;
+		msg->hdr.thread_id=i32;
+	}
 	if((JS_GetProperty(cx, hdr, "thread_orig", &val) 
 			|| JS_GetProperty(cx, hdr, "thread_back", &val)) && !JSVAL_NULL_OR_VOID(val)) {
 		if(!JS_ValueToInt32(cx,val,&i32))
@@ -1045,8 +1050,9 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER("when_imported_time", p->msg.hdr.when_imported.time, JSPROP_ENUMERATE);
 	LAZY_INTEGER("when_imported_zone", p->msg.hdr.when_imported.zone, JSPROP_ENUMERATE);
 	LAZY_INTEGER("when_imported_zone_offset", smb_tzutc(p->msg.hdr.when_imported.zone), JSPROP_ENUMERATE|JSPROP_READONLY);
+	LAZY_UINTEGER("thread_id", p->msg.hdr.thread_id, JSPROP_ENUMERATE);
 	LAZY_UINTEGER("thread_back", p->msg.hdr.thread_back, JSPROP_ENUMERATE);
-	LAZY_UINTEGER("thread_orig", p->msg.hdr.thread_back, JSPROP_ENUMERATE);
+	LAZY_UINTEGER("thread_orig", p->msg.hdr.thread_back, 0);
 	LAZY_UINTEGER("thread_next", p->msg.hdr.thread_next, JSPROP_ENUMERATE);
 	LAZY_UINTEGER("thread_first", p->msg.hdr.thread_first, JSPROP_ENUMERATE);
 	LAZY_UINTEGER("delivery_attempts", p->msg.hdr.delivery_attempts, JSPROP_ENUMERATE);
@@ -2033,10 +2039,8 @@ static JSBool js_msgbase_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	private_t*	p;
 	jsrefcount	rc;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
-	}
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
@@ -2253,6 +2257,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>when_imported_time</tt><td>Date/time message was imported"
 	"<tr><td align=top><tt>when_imported_zone</tt><td>Time zone (in SMB format)"
 	"<tr><td align=top><tt>when_imported_zone_offset</tt><td>Time zone in minutes east of UTC"
+	"<tr><td align=top><tt>thread_id</tt><td>Thread identifier (originating message number)"
 	"<tr><td align=top><tt>thread_back</tt><td>Message number that this message is a reply to"
 	"<tr><td align=top><tt>thread_next</tt><td>Message number of the next reply to the original message in this thread"
 	"<tr><td align=top><tt>thread_first</tt><td>Message number of the first reply to this message"

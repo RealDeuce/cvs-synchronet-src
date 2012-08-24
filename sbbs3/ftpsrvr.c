@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.394 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.397 2012/08/22 08:05:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,6 +80,7 @@ static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
 static protected_int32_t active_clients;
+static protected_int32_t thread_count;
 static volatile time_t	uptime=0;
 static volatile ulong	served=0;
 static volatile BOOL	terminate_server=FALSE;
@@ -205,16 +206,20 @@ static void client_off(SOCKET sock)
 		startup->client_on(startup->cbdata,FALSE,sock,NULL,FALSE);
 }
 
-static void thread_up(BOOL setuid)
+static int32_t thread_up(BOOL setuid)
 {
+	int32_t	count =	protected_int32_adjust(&thread_count,1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,TRUE, setuid);
+	return count;
 }
 
-static void thread_down(void)
+static int32_t thread_down(void)
 {
+	int32_t count = protected_int32_adjust(&thread_count,-1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,FALSE, FALSE);
+	return count;
 }
 
 static SOCKET ftp_open_socket(int type)
@@ -1160,140 +1165,6 @@ int sockreadline(SOCKET socket, char* buf, int len, time_t* lastactive)
 	
 	return(rd);
 }
-
-#if 0	/* now exported from in xtrn.cpp */
-/*****************************************************************************/
-/* Returns command line generated from instr with %c replacments             */
-/*****************************************************************************/
-static char* cmdstr(user_t* user, char *instr, char *fpath, char *fspec, char *cmd)
-{
-	char	str[256];
-    int		i,j,len;
-#ifdef _WIN32
-	char sfpath[MAX_PATH+1];
-#endif
-
-    len=strlen(instr);
-    for(i=j=0;i<len;i++) {
-        if(instr[i]=='%') {
-            i++;
-            cmd[j]=0;
-            switch(toupper(instr[i])) {
-                case 'A':   /* User alias */
-                    strcat(cmd,user->alias);
-                    break;
-                case 'B':   /* Baud (DTE) Rate */
-                case 'C':   /* Connect Description */
-                case 'D':   /* Connect (DCE) Rate */
-                case 'E':   /* Estimated Rate */
-                case 'H':   /* Port Handle or Hardware Flow Control */
-                case 'P':   /* COM Port */
-                case 'R':   /* Rows */
-                case 'T':   /* Time left in seconds */
-                case '&':   /* Address of msr */
-                case 'Y':	/* COMSPEC */
-					/* UNSUPPORTED */
-					break;
-                case 'F':   /* File path */
-                    strcat(cmd,fpath);
-                    break;
-                case 'G':   /* Temp directory */
-                    strcat(cmd,scfg.temp_dir);
-                    break;
-                case 'I':   /* UART IRQ Line */
-                    strcat(cmd,ultoa(scfg.com_irq,str,10));
-                    break;
-                case 'J':
-                    strcat(cmd,scfg.data_dir);
-                    break;
-                case 'K':
-                    strcat(cmd,scfg.ctrl_dir);
-                    break;
-                case 'L':   /* Lines per message */
-                    strcat(cmd,ultoa(scfg.level_linespermsg[user->level],str,10));
-                    break;
-                case 'M':   /* Minutes (credits) for user */
-                    strcat(cmd,ultoa(user->min,str,10));
-                    break;
-                case 'N':   /* Node Directory (same as SBBSNODE environment var) */
-                    strcat(cmd,scfg.node_dir);
-                    break;
-                case 'O':   /* SysOp */
-                    strcat(cmd,scfg.sys_op);
-                    break;
-                case 'Q':   /* QWK ID */
-                    strcat(cmd,scfg.sys_id);
-                    break;
-                case 'S':   /* File Spec */
-                    strcat(cmd,fspec);
-                    break;
-                case 'U':   /* UART I/O Address (in hex) */
-                    strcat(cmd,ultoa(scfg.com_base,str,16));
-                    break;
-                case 'V':   /* Synchronet Version */
-                    sprintf(str,"%s%c",VERSION,REVISION);
-                    break;
-                case 'W':   /* Time-slice API type (mswtype) */
-                    break;
-                case 'X':
-                    strcat(cmd,scfg.shell[user->shell]->code);
-                    break;
-                case 'Z':
-                    strcat(cmd,scfg.text_dir);
-                    break;
-				case '~':	/* DOS-compatible (8.3) filename */
-#ifdef _WIN32
-					SAFECOPY(sfpath,fpath);
-					GetShortPathName(fpath,sfpath,sizeof(sfpath));
-					strcat(cmd,sfpath);
-#else
-                    strcat(cmd,fpath);
-#endif			
-					break;
-                case '!':   /* EXEC Directory */
-                    strcat(cmd,scfg.exec_dir);
-                    break;
-                case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
-#ifndef __unix__
-                    strcat(cmd,scfg.exec_dir);
-#endif
-                    break;
-                case '#':   /* Node number (same as SBBSNNUM environment var) */
-                    sprintf(str,"%u",scfg.node_num);
-                    strcat(cmd,str);
-                    break;
-                case '*':
-                    sprintf(str,"%03u",scfg.node_num);
-                    strcat(cmd,str);
-                    break;
-                case '$':   /* Credits */
-                    strcat(cmd,ultoa(user->cdt+user->freecdt,str,10));
-                    break;
-                case '%':   /* %% for percent sign */
-                    strcat(cmd,"%");
-                    break;
-				case '?':	/* Platform */
-#ifdef __OS2__
-					SAFECOPY(str,"OS2");
-#else
-					SAFECOPY(str,PLATFORM_DESC);
-#endif
-					strlwr(str);
-					strcat(cmd,str);
-					break;
-                default:    /* unknown specification */
-                    if(isdigit(instr[i])) {
-                        sprintf(str,"%0*d",instr[i]&0xf,user->number);
-                        strcat(cmd,str); }
-                    break; }
-            j=strlen(cmd); }
-        else
-            cmd[j++]=instr[i]; }
-    cmd[j]=0;
-
-    return(cmd);
-}
-#endif
 
 void DLLCALL ftp_terminate(void)
 {
@@ -3834,8 +3705,7 @@ static void ctrl_thread(void* arg)
 				&& !stricmp(p,startup->index_file_name)
 				&& !delecmd) {
 				if(getsize) {
-					/* Size not available for dynamically generated files */
-					sockprintf(sock, "213 0"); /* report size of 0 to be make Google Chrome happy */
+					sockprintf(sock, "550 Size not available for dynamically generated files");
 					continue;
 				}
 				if((fp=fopen(ftp_tmpfname(fname,"ndx",sock),"w+b"))==NULL) {
@@ -3950,8 +3820,7 @@ static void ctrl_thread(void* arg)
 				&& !delecmd) {
 				success=TRUE;
 				if(getsize) {
-					/* Size not available for dynamically generated files */
-					sockprintf(sock, "213 0"); /* report size of 0 to be make Google Chrome happy */
+					sockprintf(sock, "550 Size not available for dynamically generated files");
 					continue;
 				}
 				else if(getdate)
@@ -4609,12 +4478,12 @@ static void ctrl_thread(void* arg)
 	ftp_close_socket(&tmp_sock,__LINE__);
 
 	{
-		int32_t	remain = protected_int32_adjust(&active_clients, -1);
+		int32_t	clients = protected_int32_adjust(&active_clients, -1);
+		int32_t	threads = thread_down();
 		update_clients();
 
-		thread_down();
-		lprintf(LOG_INFO,"%04d CTRL thread terminated (%ld clients remain, %lu served)"
-			,sock, remain, served);
+		lprintf(LOG_INFO,"%04d CTRL thread terminated (%ld clients and %ld threads remain, %lu served)"
+			,sock, clients, threads, served);
 	}
 }
 
@@ -4632,6 +4501,13 @@ static void cleanup(int code, int line)
 
 	if(server_socket!=INVALID_SOCKET)
 		ftp_close_socket(&server_socket,__LINE__);
+
+	if(thread_count.value > 1) {
+		lprintf(LOG_DEBUG,"#### Waiting for %d child threads to terminate", thread_count.value-1);
+		while(thread_count.value > 1) {
+			mswait(100);
+		}
+	}
 
 	if(active_clients.value)
 		lprintf(LOG_WARNING,"#### !FTP Server terminating with %ld active clients", active_clients.value);
@@ -4660,7 +4536,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.394 $", "%*s %s", revision);
+	sscanf("$Revision: 1.397 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4751,6 +4627,7 @@ void DLLCALL ftp_server(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
+	protected_int32_init(&thread_count, 0);
 
 	do {
 
@@ -4777,7 +4654,7 @@ void DLLCALL ftp_server(void* arg)
 
 		if(!winsock_startup()) {
 			cleanup(1,__LINE__);
-			return;
+			break;
 		}
 
 		t=time(NULL);
@@ -4796,7 +4673,7 @@ void DLLCALL ftp_server(void* arg)
 			lprintf(LOG_CRIT,"!ERROR %s",error);
 			lprintf(LOG_CRIT,"!Failed to load configuration files");
 			cleanup(1,__LINE__);
-			return;
+			break;
 		}
 
 		if(startup->host_name[0]==0)
@@ -4819,7 +4696,7 @@ void DLLCALL ftp_server(void* arg)
 		if(!isdir(scfg.temp_dir)) {
 			lprintf(LOG_CRIT,"!Invalid temp directory: %s", scfg.temp_dir);
 			cleanup(1,__LINE__);
-			return;
+			break;
 		}
 
 		if(!startup->max_clients) {
@@ -4860,7 +4737,7 @@ void DLLCALL ftp_server(void* arg)
 		if((server_socket=ftp_open_socket(SOCK_STREAM))==INVALID_SOCKET) {
 			lprintf(LOG_CRIT,"!ERROR %d opening socket", ERROR_VALUE);
 			cleanup(1,__LINE__);
-			return;
+			break;
 		}
 
 		lprintf(LOG_DEBUG,"%04d FTP Server socket opened",server_socket);
@@ -4887,14 +4764,14 @@ void DLLCALL ftp_server(void* arg)
 		if(result!=0) {
 			lprintf(LOG_CRIT,"%04d %s", server_socket, BIND_FAILURE_HELP);
 			cleanup(1,__LINE__);
-			return;
+			break;
 		}
 
 		if((result=listen(server_socket, 1))!= 0) {
 			lprintf(LOG_CRIT,"%04d !ERROR %d (%d) listening on socket"
 				,server_socket, result, ERROR_VALUE);
 			cleanup(1,__LINE__);
-			return;
+			break;
 		}
 
 		lprintf(LOG_INFO,"%04d FTP Server listening on port %u",server_socket,startup->port);
@@ -4918,7 +4795,7 @@ void DLLCALL ftp_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
-			if(active_clients.value==0) {
+			if(thread_count.value <= 1) {
 				if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
@@ -5043,4 +4920,6 @@ void DLLCALL ftp_server(void* arg)
 		}
 
 	} while(!terminate_server);
+
+	protected_int32_destroy(thread_count);
 }
