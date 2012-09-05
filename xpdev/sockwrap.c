@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.61 2014/04/24 06:22:06 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.42 2011/09/19 03:08:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,13 +138,10 @@ static socket_option_t socket_options[] = {
 #ifdef TCP_NOOPT			
 	{ "TCP_NOOPT",			SOCK_STREAM,	IPPROTO_TCP,	TCP_NOOPT			},
 #endif
-#if defined(IPV6_V6ONLY) && defined(IPPROTO_IPV6)
-	{ "IPV6_V6ONLY",		0,				IPPROTO_IPV6,	IPV6_V6ONLY			},
-#endif
 	{ NULL }
 };
 
-int DLLCALL getSocketOptionByName(const char* name, int* level)
+int getSocketOptionByName(const char* name, int* level)
 {
 	int i;
 
@@ -162,12 +159,12 @@ int DLLCALL getSocketOptionByName(const char* name, int* level)
 	return(strtol(name,NULL,0));
 }
 
-socket_option_t* DLLCALL getSocketOptionList(void)
+socket_option_t* getSocketOptionList(void)
 {
 	return(socket_options);
 }
 
-int DLLCALL sendfilesocket(int sock, int file, off_t *offset, off_t count)
+int sendfilesocket(int sock, int file, off_t *offset, off_t count)
 {
 	char		buf[1024*16];
 	off_t		len;
@@ -229,7 +226,7 @@ int DLLCALL sendfilesocket(int sock, int file, off_t *offset, off_t count)
 	return(total);
 }
 
-int DLLCALL recvfilesocket(int sock, int file, off_t *offset, off_t count)
+int recvfilesocket(int sock, int file, off_t *offset, off_t count)
 {
 	/* Writes a file from a socket -
 	 *
@@ -255,36 +252,30 @@ int DLLCALL recvfilesocket(int sock, int file, off_t *offset, off_t count)
 		return(-1);
 	}
 		
-	if((buf=(char*)malloc((size_t)count))==NULL) {
+	if((buf=(char*)alloca((size_t)count))==NULL) {
 		errno=ENOMEM;
 		return(-1);
 	}
 
-	if(offset!=NULL) {
-		if(lseek(file,*offset,SEEK_SET)<0) {
-			free(buf);
+	if(offset!=NULL)
+		if(lseek(file,*offset,SEEK_SET)<0)
 			return(-1);
-		}
-	}
 
 	rd=read(sock,buf,(size_t)count);
-	if(rd!=count) {
-		free(buf);
+	if(rd!=count)
 		return(-1);
-	}
 
 	wr=write(file,buf,rd);
 
 	if(offset!=NULL)
 		(*offset)+=wr;
 
-	free(buf);
 	return(wr);
 }
 
 
 /* Return true if connected, optionally sets *rd_p to true if read data available */
-BOOL DLLCALL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
+BOOL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
 {
 	char	ch;
 	int		i,rd;
@@ -343,7 +334,7 @@ BOOL DLLCALL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
 	return(FALSE);
 }
 
-int DLLCALL retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
+int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 			   ,uint retries, uint wait_secs
 			   ,const char* prot
 			   ,int (*lprintf)(int level, const char *fmt, ...))
@@ -353,7 +344,7 @@ int DLLCALL retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 	uint	i;
 
 	if(addr->sa_family==AF_INET)
-		SAFEPRINTF(port_str," to port %u",ntohs(((SOCKADDR_IN *)(addr))->sin_port));
+		SAFEPRINTF(port_str," to port %u",ntohs(((SOCKADDR_IN *)(addr))->sin_port)); 
 	else
 		port_str[0]=0;
 	for(i=0;i<=retries;i++) {
@@ -372,107 +363,23 @@ int DLLCALL retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 	return(result);
 }
 
-int DLLCALL nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigned timeout)
+int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigned timeout)
 {
 	int result;
 
 	result=connect(sock, addr, size);
 
-	if(result==SOCKET_ERROR) {
-		result=ERROR_VALUE;
-		if(result==EWOULDBLOCK || result==EINPROGRESS) {
-			fd_set		wsocket_set;
-			fd_set		esocket_set;
-			struct		timeval tv;
-			socklen_t	optlen=sizeof(result);
-			tv.tv_sec = timeout;
-			tv.tv_usec = 0;
-			FD_ZERO(&wsocket_set);
-			FD_SET(sock,&wsocket_set);
-			FD_ZERO(&esocket_set);
-			FD_SET(sock,&esocket_set);
-			switch(select(sock+1,NULL,&wsocket_set,&esocket_set,&tv)) {
-				case 1:
-					if(getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen)==SOCKET_ERROR)
-						result=ERROR_VALUE;
-					break;
-				case 0:
-					break;
-				case SOCKET_ERROR:
-					result=ERROR_VALUE;
-					break;
-			}
-		}
+	if(result==SOCKET_ERROR
+		&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
+		fd_set		socket_set;
+		struct		timeval tv;
+		socklen_t	optlen=sizeof(result);
+		tv.tv_sec = timeout;
+		tv.tv_usec = 0;
+		FD_ZERO(&socket_set);
+		FD_SET(sock,&socket_set);
+		if(select(sock+1,NULL,&socket_set,NULL,&tv)==1)
+			getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen);
 	}
 	return result;
-}
-
-
-union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr, size_t size)
-{
-    struct addrinfo hints = {0};
-    struct addrinfo *res, *cur;
-
-    hints.ai_flags = AI_NUMERICHOST|AI_PASSIVE;
-    if(getaddrinfo(addr_str, NULL, &hints, &res))
-        return NULL;
-    
-    for(cur = res; cur; cur++) {
-        if(cur->ai_addr->sa_family == AF_INET6)
-            break;
-    }
-    if(!cur) {
-        freeaddrinfo(res);
-        return NULL;
-    }
-    memcpy(&addr, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, size);
-    freeaddrinfo(res);
-    return addr;
-}
-
-const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
-{
-#ifdef _WIN32
-	if(getnameinfo(addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
-		strncpy(dest, "<Unable to convert address>", size);
-	return dest;
-#else
-	switch(addr->addr.sa_family) {
-		case AF_INET:
-			return inet_ntop(addr->in.sin_family, &addr->in.sin_addr, dest, size);
-		case AF_INET6:
-			return inet_ntop(addr->in6.sin6_family, &addr->in6.sin6_addr, dest, size);
-		case AF_UNIX:
-			strncpy(dest, addr->un.sun_path, size);
-			dest[size-1]=0;
-			return dest;
-		default:
-			safe_snprintf(dest, size, "<unknown address>");
-			return NULL;
-	}
-#endif
-}
-
-uint16_t DLLCALL inet_addrport(union xp_sockaddr *addr)
-{
-	switch(addr->addr.sa_family) {
-		case AF_INET:
-			return ntohs(addr->in.sin_port);
-		case AF_INET6:
-			return ntohs(addr->in6.sin6_port);
-		default:
-			return 0;
-	}
-}
-
-void DLLCALL inet_setaddrport(union xp_sockaddr *addr, uint16_t port)
-{
-	switch(addr->addr.sa_family) {
-		case AF_INET:
-			addr->in.sin_port = htons(port);
-			break;
-		case AF_INET6:
-			addr->in6.sin6_port = htons(port);
-			break;
-	}
 }
