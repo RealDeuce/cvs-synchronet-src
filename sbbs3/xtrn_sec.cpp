@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.70 2010/03/12 08:27:57 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.73 2012/04/11 04:08:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -430,7 +430,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,str,strlen(str));
 
 		sprintf(str,"%s\n%s\n%d\n%s\n%lu\n%s\n%s\n%s\n%s\n"
-			"%lx\n%d\n"
+			"%"PRIx32"\n%d\n"
 			,ltoaf(useron.flags3,tmp)			/* Flag set #3 */
 			,ltoaf(useron.flags4,tmp2)			/* Flag set #4 */
 			,0									/* Time-slice type */
@@ -473,7 +473,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
 
-		sprintf(str,"%lu\n%s\n%u\n%lu\n%u\n%u\n%u\n%u\n%u\n"
+		sprintf(str,"%lu\n%s\n%lu\n%ld\n%u\n%u\n%u\n%ld\n%u\n"
 			,useron.cdt+useron.freecdt			/* Gold */
 			,unixtodstr(&cfg,useron.laston,tmp)	/* User last on date */
 			,cols 								/* User screen width */
@@ -625,7 +625,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,str,strlen(str));
 
 		localtime_r(&logontime,&tm);
-		localtime_r(&useron.laston,&tl);
+		localtime32(&useron.laston,&tl);
 		sprintf(str,"%02d:%02d\n%02d:%02d\n%u\n%u\n%lu\n"
 			"%lu\n%s\n%u\n%u\n"
 			,tm.tm_hour							/* 44: Time of this call */
@@ -682,7 +682,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			*(p++)=0;
 		else
 			p=nulstr;
-		sprintf(str,"%s\n%s\n%s\n%u\n%u\n%lu\n"
+		sprintf(str,"%s\n%s\n%s\n%ld\n%u\n%lu\n"
 			,tmp								/* User's firstname */
 			,p									/* User's lastname */
 			,useron.location					/* User's city */
@@ -725,7 +725,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		str2pas(useron.phone,str);
 		write(file,str,13); 					/* DataPhone */
 		write(file,str,13); 					/* HomePhone */
-		localtime_r(&useron.laston,&tm);
+		localtime32(&useron.laston,&tm);
 		sprintf(tmp,"%02d:%02d",tm.tm_hour,tm.tm_min);
 		str2pas(tmp,str);
 		write(file,str,6);						/* LastTime */
@@ -790,7 +790,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		sprintf(tmp,"%02d:%02d",tm.tm_hour,tm.tm_min);
 		str2pas(tmp,str);
 		write(file,str,6);						/* LoginTime */
-		unixtodstr(&cfg,logontime,tmp);
+		unixtodstr(&cfg,(time32_t)logontime,tmp);
 		str2pas(tmp,str);
 		write(file,str,9);						/* LoginDate */
 		write(file,&cfg.level_timepercall[useron.level],sizeof(int16_t));  /* TmLimit */
@@ -887,7 +887,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		lfexpand(str,misc);
 		write(file,str,strlen(str));
 
-		localtime_r(&useron.laston,&tm);
+		localtime32(&useron.laston,&tm);
 		sprintf(str,"%u\n%u\n%u\n%u\n%s\n%s %02u:%02u\n"
 			,0									/* Daily download total */
 			,0									/* Max download files */
@@ -982,7 +982,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,&i,2);						/* Logon time in min since mid */
 
 		now=time(NULL);
-		i=-(((now-starttime)/60)+useron.ttoday);/* Negative minutes used */
+		i=-(int16_t)(((now-starttime)/60)+(time_t)useron.ttoday);/* Negative minutes used */
 		write(file,&i,2);
 
 		sprintf(str,"%02d:%02d",tm.tm_hour,tm.tm_min);
@@ -1024,7 +1024,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		l=0L;
 		write(file,&l,4);						/* Memorized message number */
 
-		sprintf(str,"%d%c%c%d%s%c%c%d%d%d%c%c"
+		sprintf(str,"%d%c%c%ld%s%c%c%d%d%d%c%c"
 			,cfg.com_port						/* COM Port number */
 			,' ' 								/* Reserved */
 			,' ' 								/* "" */
@@ -1084,7 +1084,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,useron.phone,14);	/* Home or Voice Phone */
 		i=unixtojulian(useron.laston);
 		write(file,&i,2);				/* Date last on */
-		localtime_r(&useron.laston,&tm);
+		localtime32(&useron.laston,&tm);
 		sprintf(str,"%02d:%02d",tm.tm_hour,tm.tm_min);
 		write(file,str,6);				/* Last time on */
 		if(useron.misc&EXPERT)
@@ -1112,7 +1112,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,&l,4);				/* Number of download bytes today */
 		write(file,&useron.note,31);	/* Comment #1 */
 		write(file,&useron.comp,31);	/* Comment #2 */
-		i=(now-starttime)/60;
+		i=(int16_t)(now-starttime)/60;
 		write(file,&i,2);				/* Minutes online (this logon?) */
 		i=unixtojulian(useron.expire);
 		write(file,&i,2);				/* Expiration date */
@@ -1161,7 +1161,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		if((p=strchr(tmp,' '))!=NULL)
 			*p=0;
 
-		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%lu\n"
+		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%"PRId32"\n"
 			,useron.number						/* User number */
 			,name								/* User name */
 			,useron.pass						/* Password */
@@ -1180,7 +1180,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			l=((((long)tm.tm_hour*60L)+(long)tm.tm_min)*60L)
 				+(long)tm.tm_sec;
 
-		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%lu\n%lu\n%s\n"
+		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%"PRId32"\n%lu\n%s\n"
 			"%s\n%s\n%lu\n%s\n%u\n%u\n%u\n%u\n%u\n%lu\n%u\n"
 			"%lu\n%lu\n%s\n%s\n"
 			,dropdir
@@ -1248,7 +1248,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"%s\n%d\n%d\n%lu\n%lu\n%u\n%lu\n"
+		sprintf(str,"%s\n%ld\n%d\n%lu\n%lu\n%u\n%lu\n"
 			,name								/* Complete name of user */
 			,term_supports(ANSI)	 			/* ANSI ? */
 			,term_supports(NO_EXASCII) ? 0:1	/* IBM characters ? */
@@ -1313,8 +1313,8 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			return; 
 		}
 
-		sprintf(str,"%d\n%d\n%u\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
-			"%d\n%d\n"
+		sprintf(str,"%d\n%d\n%lu\n%s%c\n%d\n%s\n%s\n%d\n%ld\n"
+			"%ld\n%d\n"
 			,misc&(XTRN_STDIO|XTRN_CONIO) ? 0 /* Local */ : 2 /* Telnet */
 			,misc&(XTRN_STDIO|XTRN_CONIO) ? INVALID_SOCKET : client_socket_dup
 			,dte_rate
@@ -1402,8 +1402,8 @@ void sbbs_t::moduserdat(uint xtrnnum)
 				&& isdigit(str[3]) && isdigit(str[4])
 				&& (str[5]=='/' || str[5]=='-')
 				&& isdigit(str[6]) && isdigit(str[7])) { /* valid expire date */
-				useron.expire=dstrtounix(&cfg,str);
-				putuserrec(&cfg,useron.number,U_EXPIRE,8,ultoa(useron.expire,tmp,16)); 
+				useron.expire=(ulong)dstrtounix(&cfg,str);
+				putuserrec(&cfg,useron.number,U_EXPIRE,8,ultoa((ulong)useron.expire,tmp,16)); 
 			}
 
 			for(;i<29;i++)					/* line 29, total downloaded files */
@@ -1454,8 +1454,8 @@ void sbbs_t::moduserdat(uint xtrnnum)
 				}
 				lseek(file,75,SEEK_CUR);	/* read in expiration date */
 				read(file,&i,2);			/* convert from julian to unix */
-				useron.expire=juliantounix(i);
-				putuserrec(&cfg,useron.number,U_EXPIRE,8,ultoa(useron.expire,tmp,16)); 
+				useron.expire=(ulong)juliantounix(i);
+				putuserrec(&cfg,useron.number,U_EXPIRE,8,ultoa((ulong)useron.expire,tmp,16)); 
 			}
 			close(file); 
 		}
@@ -1760,10 +1760,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
 			return(false); 
 		}
-		getnodedat(cfg.node_num,&thisnode,0);
 		now=time(NULL);
-		sprintf(str,hungupstr,useron.alias,thisnode.aux ? cfg.xtrn[thisnode.aux-1]->name : "External Program"
-			,timestr(now));
+		SAFEPRINTF3(str,hungupstr,useron.alias,cfg.xtrn[xtrnnum]->name,timestr(now));
 		write(file,str,strlen(str));
 		close(file); 
 	} 
