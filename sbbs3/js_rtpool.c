@@ -1,7 +1,8 @@
-/* $Id: js_rtpool.c,v 1.18 2010/04/03 00:16:53 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.26 2012/10/18 17:36:04 deuce Exp $ */
 
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
+#include <genwrap.h>		/* SLEEP() */
 
 #ifdef DLLCALL
 #undef DLLCALL
@@ -16,12 +17,15 @@
 	#define DLLCALL
 #endif
 
-#define SHARED_RUNTIMES
+#define RT_UNIQUE	0
+#define RT_SHARED	1
+#define RT_SINGLE	2
+#define RT_TYPE		RT_SHARED
 
 struct jsrt_queue {
 	JSRuntime       *rt;
 	int			created;
-#ifdef SHARED_RUNTIMES
+#if (RT_TYPE==RT_SHARED)
 	const char*	file;
 	long		line;
 #else
@@ -30,21 +34,53 @@ struct jsrt_queue {
 #endif
 };
 
+#if (RT_TYPE == RT_SINGLE)
+#define JSRT_QUEUE_SIZE		1
+#else
 #define JSRT_QUEUE_SIZE		128
+#endif
 struct jsrt_queue jsrt_queue[JSRT_QUEUE_SIZE];
 static pthread_mutex_t		jsrt_mutex;
 static int			initialized=0;
-#ifndef SHARED_RUNTIMES
+#if (RT_TYPE == RT_UNIQUE)
 static sem_t			jsrt_sem;
 #endif
 
+#define TRIGGER_THREAD_STACK_SIZE	(256*1024)
+static void trigger_thread(void *args)
+{
+	int	i;
+
+	SetThreadName("JSRT Trigger");
+	for(;;) {
+		pthread_mutex_lock(&jsrt_mutex);
+		for(i=0; i<JSRT_QUEUE_SIZE; i++) {
+			if(jsrt_queue[i].created)
+				JS_TriggerAllOperationCallbacks(jsrt_queue[i].rt);
+		}
+		pthread_mutex_unlock(&jsrt_mutex);
+		SLEEP(100);
+	}
+}
+
 JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char *filename, long line)
 {
-#ifdef SHARED_RUNTIMES
+#if (RT_TYPE==RT_SINGLE)
+	if(!initialized) {
+		pthread_mutex_init(&jsrt_mutex, NULL);
+		jsrt_queue[0].rt=JS_NewRuntime(128*1024*1024 /* 128 MB total for all scripts? */);
+		jsrt_queue[0].created=1;
+		_beginthread(trigger_thread, TRIGGER_THREAD_STACK_SIZE, NULL);
+		initialized=TRUE;
+	}
+
+	return jsrt_queue[0].rt;
+#elif (RT_TYPE==RT_SHARED)
 	int	i;
 
 	if(!initialized) {
 		pthread_mutex_init(&jsrt_mutex, NULL);
+		_beginthread(trigger_thread, TRIGGER_THREAD_STACK_SIZE, NULL);
 		initialized=TRUE;
 	}
 
@@ -66,13 +102,14 @@ JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char 
 	pthread_mutex_unlock(&jsrt_mutex);
 
 	return(NULL);
-#else
+#elif (RT_TYPE==RT_UNIQUE)
 	int	i;
 	int	last_unused=-1;
 
 	if(!initialized) {
 		pthread_mutex_init(&jsrt_mutex, NULL);
 		sem_init(&jsrt_sem, 0, JSRT_QUEUE_SIZE);
+		_beginthread(trigger_thread, TRIGGER_THREAD_STACK_SIZE, NULL);
 		initialized=TRUE;
 	}
 
@@ -111,8 +148,7 @@ JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char 
 
 void DLLCALL jsrt_Release(JSRuntime *rt)
 {
-#ifdef SHARED_RUNTIMES
-#else
+#if (RT_TYPE==RT_UNIQUE)
 	int	i;
 
 	for(i=0; i<JSRT_QUEUE_SIZE; i++) {
@@ -123,31 +159,6 @@ void DLLCALL jsrt_Release(JSRuntime *rt)
 			pthread_mutex_unlock(&jsrt_mutex);
 			sem_post(&jsrt_sem);
 		}
-	}
-#endif
-}
-
-void DLLCALL jsrt_TriggerAll(void)
-{
-#ifdef USE_JS_OPERATION_CALLBACK
-	int	i;
-	int j;
-	JSContext	*iterp,*cx;
-
-	if(!initialized)
-		return;
-	for(i=0; i<JSRT_QUEUE_SIZE; i++) {
-		pthread_mutex_lock(&jsrt_mutex);
-#ifdef SHARED_RUNTIMES
-		if(jsrt_queue[i].created) {
-#else
-		if(jsrt_queue[i].used) {
-#endif
-			iterp=NULL;
-			while((cx = JS_ContextIterator(jsrt_queue[i].rt, &iterp)) != NULL)
-				JS_TriggerOperationCallback(cx);
-		}
-		pthread_mutex_unlock(&jsrt_mutex);
 	}
 #endif
 }
