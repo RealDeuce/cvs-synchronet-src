@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.90 2013/08/17 01:25:11 deuce Exp $
+# $Id: Common.gmake,v 1.87 2012/04/25 08:58:32 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -191,11 +191,6 @@ else
 endif
 BUILDPATH	?=	$(BUILD)
 
-gcc_machine		:= $(shell ${CC} -dumpmachine)
-ifeq ($(gcc_machine),mingw32)
- os		:= Win32
-endif
-
 # Get OS
 ifndef os
  os		:=	$(shell uname)
@@ -262,11 +257,7 @@ endif
 LIBPREFIX	:= lib
 DIRSEP		:= /
 OFILE		:= .o
-ifeq ($(os),win32)
- EXEFILE		:= .exe
-else
- EXEFILE		:=
-endif
+EXEFILE		:=
 SOFILE		:= .so
 LIBFILE		:= .a
 UL_PRE		:=	-l
@@ -290,7 +281,9 @@ else
 endif
 
 # OS Specific Flags
-ifeq ($(os),sunos)    # Solaris CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_CFMAKERAW # Solaris 10 provides setenv()
+ifeq ($(os),sunos)    # Solaris
+ CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_CFMAKERAW
+ # Solaris 10 provides setenv()
  ifeq ($(shell if [ `uname -r | sed 's/\.//'` -lt 510 ] ; then echo "Yes" ; else echo "No" ; fi),Yes)
   CFLAGS += -DNEEDS_SETENV
  endif
@@ -343,14 +336,9 @@ else
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
       # This makes ctime_r() be the correct one.
       #CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
-     else
-      ifeq ($(os),win32) # Windows
-       CFLAGS		+= -D_WIN32 -D_WIN32_WINNT=0x0501 -DWINVER=0x0501 -D_WIN32_IE=0x0500
-       MT_CFLAGS	+= -D_WIN32
-      else           # Linux / Other UNIX
-       XP_SEM :=    1
-       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
-      endif
+     else            # Linux / Other UNIX
+      XP_SEM :=    1
+      MT_CFLAGS    += -DUSE_XP_SEMAPHORES
      endif
     endif
    endif
