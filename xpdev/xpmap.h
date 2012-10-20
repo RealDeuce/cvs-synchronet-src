@@ -2,7 +2,7 @@
 
 /* mmap() style cross-platform development wrappers */
 
-/* $Id: xpmap.h,v 1.3 2012/10/21 00:11:41 deuce Exp $ */
+/* $Id: xpmap.h,v 1.1 2012/10/20 23:15:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,8 @@
 
 #include "gen_defs.h"
 
+void *xpmap(const char *filename, int flags);
+
 enum xpmap_type {
 	XPMAP_READ,
 	XPMAP_WRITE,
@@ -67,10 +69,5 @@ struct xpmapping {
 #else
 
 	#error "Need mmap wrappers."
-
-#endif
-
-struct xpmapping *xpmap(const char *filename, enum xpmap_type type);
-void xpunmap(struct xpmapping *map);
 
 #endif
