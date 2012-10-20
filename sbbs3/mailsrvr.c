@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.555 2011/11/10 00:21:36 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.559 2012/09/05 09:08:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -401,8 +401,8 @@ static int sockreadline(SOCKET socket, char* buf, int len)
 
 		if(i<1) {
 			if(i==0) {
-				if((time(NULL)-start)>startup->max_inactivity) {
-					lprintf(LOG_WARNING,"%04d !SOCKET INACTIVE",socket);
+				if(startup->max_inactivity && (time(NULL)-start)>startup->max_inactivity) {
+					lprintf(LOG_WARNING,"%04d !TIMEOUT in sockreadline (%u seconds):  INACTIVE SOCKET",socket,startup->max_inactivity);
 					return(-1);
 				}
 				continue;
@@ -433,8 +433,11 @@ static BOOL sockgetrsp(SOCKET socket, char* rsp, char *buf, int len)
 
 	while(1) {
 		rd = sockreadline(socket, buf, len);
-		if(rd<1) 
+		if(rd<1) {
+			if(rd==0)
+				lprintf(LOG_WARNING,"%04d !RECEIVED BLANK RESPONSE, Expected '%s'", socket, rsp);
 			return(FALSE);
+		}
 		if(buf[3]=='-')	{ /* Multi-line response */
 			if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
 				lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
@@ -1496,11 +1499,11 @@ static void exempt_email_addr(const char* comment
 			lprintf(LOG_ERR,"0000 !Error opening file: %s", fname);
 		else {
 			lprintf(LOG_INFO,"0000 %s: %s", comment, to);
-			fprintf(fp,"\n;%s from \"%s\" "
+			fprintf(fp,"\n;%s from \"%s\""
 				,comment, fromname);
 			if(fromext!=NULL)
-				fprintf(fp,"#%s ",fromext);
-			fprintf(fp,"%s on %s\n%s\n"
+				fprintf(fp,"%s",fromext);
+			fprintf(fp," %s on %s\n%s\n"
 				,fromaddr, timestr(&scfg,time32(NULL),tmp), to);
 			fclose(fp);
 		}
@@ -3817,8 +3820,7 @@ static void smtp_thread(void* arg)
 
 				if(findstr_in_list(p, mailproc_list[i].to)) {
 					mailproc_to_match[i]=TRUE;
-					if(!mailproc_list[i].passthru)
-						break;
+					break;
 				}
 			}
 			mailproc_match=i;
@@ -4265,6 +4267,7 @@ static void sendmail_thread(void* arg)
 	ulong		ip_addr;
 	ulong		dns;
 	ulong		lines;
+	ulong		bytes;
 	BOOL		success;
 	BOOL		first_cycle=TRUE;
 	SOCKET		sock=INVALID_SOCKET;
@@ -4740,16 +4743,22 @@ static void sendmail_thread(void* arg)
 				bounce(sock, &smb,&msg,err,/* immediate: */buf[0]=='5');
 				continue;
 			}
-			lprintf(LOG_DEBUG,"%04d SEND sending message text (%u bytes)"
-				,sock, strlen(msgtxt));
+			bytes=strlen(msgtxt);
+			lprintf(LOG_DEBUG,"%04d SEND sending message text (%u bytes) begin"
+				,sock, bytes);
 			lines=sockmsgtxt(sock,&msg,msgtxt,-1);
+			lprintf(LOG_DEBUG,"%04d SEND send of message text (%u bytes, %u lines) complete, waiting for acknowledgement (250)"
+				,sock, bytes, lines);
 			if(!sockgetrsp(sock,"250", buf, sizeof(buf))) {
-				remove_msg_intransit(&smb,&msg);
-				SAFEPRINTF3(err,badrsp_err,server,buf,"250");
-				bounce(sock, &smb,&msg,err,/* immediate: */buf[0]=='5');
-				continue;
+				/* Wait doublely-long for the acknowledgement */
+				if(buf[0] || !sockgetrsp(sock,"250", buf, sizeof(buf))) {
+					remove_msg_intransit(&smb,&msg);
+					SAFEPRINTF3(err,badrsp_err,server,buf,"250");
+					bounce(sock, &smb,&msg,err,/* immediate: */buf[0]=='5');
+					continue;
+				}
 			}
-			lprintf(LOG_INFO,"%04d SEND message transfer complete (%lu lines)", sock, lines);
+			lprintf(LOG_INFO,"%04d SEND message transfer complete (%u bytes, %lu lines)", sock, bytes, lines);
 
 			/* Now lets mark this message for deletion without corrupting the index */
 			msg.hdr.attr|=MSG_DELETE;
@@ -4834,6 +4843,13 @@ static void cleanup(int code)
 		pop3_socket=INVALID_SOCKET;
 	}
 
+	if(thread_count.value > 1) {
+		lprintf(LOG_DEBUG,"#### Waiting for %d child threads to terminate", thread_count.value-1);
+		while(thread_count.value > 1) {
+			mswait(100);
+		}
+	}
+
 	if(active_clients.value)
 		lprintf(LOG_WARNING,"#### !Mail Server terminating with %ld active clients", active_clients.value);
 	else
@@ -4847,12 +4863,6 @@ static void cleanup(int code)
 #endif
 
 	thread_down();
-
-	if(thread_count.value)
-		lprintf(LOG_WARNING,"#### !Mail Server threads (%ld) remain after termination", thread_count.value);
-
-	protected_int32_destroy(thread_count);
-
 	status("Down");
 	if(terminate_server || code) {
 		char str[1024];
@@ -4886,7 +4896,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.555 $", "%*s %s", revision);
+	sscanf("$Revision: 1.559 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4982,10 +4992,9 @@ void DLLCALL mail_server(void* arg)
 	terminate_server=FALSE;
 
 	SetThreadName("Mail Server");
+	protected_int32_init(&thread_count, 0);
 
 	do {
-
-		protected_int32_init(&thread_count, 0);
 
 		thread_up(FALSE /* setuid */);
 
@@ -5489,9 +5498,9 @@ void DLLCALL mail_server(void* arg)
 				,server_socket, active_clients.value);
 			start=time(NULL);
 			while(active_clients.value) {
-				if(time(NULL)-start>startup->max_inactivity) {
-					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
-						,server_socket, active_clients.value);
+				if(startup->max_inactivity && time(NULL)-start>startup->max_inactivity) {
+					lprintf(LOG_WARNING,"%04d !TIMEOUT (%u seconds) waiting for %d active clients"
+						,server_socket, startup->max_inactivity, active_clients.value);
 					break;
 				}
 				mswait(100);
@@ -5533,4 +5542,6 @@ void DLLCALL mail_server(void* arg)
 		}
 
 	} while(!terminate_server);
+
+	protected_int32_destroy(thread_count);
 }
