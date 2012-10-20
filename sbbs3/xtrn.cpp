@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.221 2014/03/12 09:37:59 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.218 2011/12/06 20:41:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -415,11 +415,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	attr(cfg.color[clr_external]);		/* setup default attributes */
 
 	native = native_executable(&cfg, cmdline, mode);
-
-	if(!native && (startup->options&BBS_OPT_NO_DOS)) {
-		bprintf("Sorry, DOS programs are not supported on this node.\r\n");
-		return -1;
-	}
 
 	if(mode&EX_SH || strcspn(cmdline,"<>|")!=strlen(cmdline)) 
 		sprintf(comspec_str,"%s /C ", comspec);
@@ -1369,10 +1364,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
         	errormsg(WHERE,ERR_WRITE,"environment",0);
 
 	} else {
-		if(startup->options&BBS_OPT_NO_DOS) {
-			bprintf("Sorry, DOS programs are not supported on this node.\r\n");
-			return -1;
-		}
 #if defined(__FreeBSD__)
 		/* ToDo: This seems to work for every door except Iron Ox
 		   ToDo: Iron Ox is unique in that it runs perfectly from
@@ -1787,21 +1778,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			close(out_pipe[1]);		/* close excess file descriptor */
 		}
 
-		if(!(mode & EX_STDIO)) {
-			int fd;
-
-			/* Redirect stdio to /dev/null */
-			if ((fd = open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
-				dup2(fd, STDIN_FILENO);
-				dup2(fd, STDOUT_FILENO);
-#ifndef XTERN_LOG_STDERR
-				dup2(fd, STDERR_FILENO);
-#endif
-				if (fd > 2)
-					close(fd);
-			}
-		}
-
 		if(mode&EX_BG)	/* background execution, detach child */
 		{
 			lprintf(LOG_INFO,"Detaching external process");
@@ -2002,7 +1978,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			lprintf(LOG_NOTICE,"%.*s",i,buf);
 	}
 #else
-	waitpid(pid, &i, 0);
+	waitpid(pid, &i, 0)==0;
 #endif
 
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
