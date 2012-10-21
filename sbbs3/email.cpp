@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.58 2012/12/19 07:03:04 rswindell Exp $ */
+/* $Id: email.cpp,v 1.57 2012/06/15 21:47:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,7 +226,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		offset=smb_allocdat(&smb,length,1);
 	smb_close_da(&smb);
 
-	if((instream=fnopen(&file,msgpath,O_RDONLY|O_BINARY))==NULL) {
+	if((file=open(msgpath,O_RDONLY|O_BINARY))==-1
+		|| (instream=fdopen(file,"rb"))==NULL) {
 		smb_freemsgdat(&smb,offset,length,1);
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
