@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.567 2013/06/12 15:08:37 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.562 2012/10/21 20:53:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,7 +73,6 @@
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "xpmap.h"
-#include "xpprintf.h"
 
 static const char*	server_name="Synchronet Web Server";
 static const char*	newline="\r\n";
@@ -102,7 +101,7 @@ enum {
 
 static scfg_t	scfg;
 static volatile BOOL	http_logging_thread_running=FALSE;
-static protected_uint32_t active_clients;
+static protected_int32_t active_clients;
 static volatile ulong	sockets=0;
 static volatile BOOL	terminate_server=FALSE;
 static volatile BOOL	terminate_http_logging_thread=FALSE;
@@ -525,7 +524,7 @@ static int writebuf(http_session_t	*session, const char *buf, size_t len)
 		}
 		if(avail > len-sent)
 			avail=len-sent;
-		sent+=RingBufWrite(&(session->outbuf), ((const BYTE *)buf)+sent, avail);
+		sent+=RingBufWrite(&(session->outbuf), ((char *)buf)+sent, avail);
 	}
 	return(sent);
 }
@@ -666,13 +665,16 @@ static void add_env(http_session_t *session, const char *name,const char *value)
 		if(*p=='-')
 			*p='_';
 	}
-	p=xp_asprintf("%s=%s",newname,value);
+	p=(char *)alloca(strlen(name)+strlen(value)+2);
 	if(p==NULL) {
 		lprintf(LOG_WARNING,"%04d Cannot allocate memory for string", session->socket);
 		return;
 	}
+#if 0	/* this is way too verbose for every request */
+	lprintf(LOG_DEBUG,"%04d Adding CGI environment variable %s=%s",session->socket,newname,value);
+#endif
+	sprintf(p,"%s=%s",newname,value);
 	strListPush(&session->req.cgi_env,p);
-	free(p);
 }
 
 /***************************************/
@@ -1067,7 +1069,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			session->req.ld->status=atoi(status);
 		return(TRUE);
 	}
-	headers=malloc(MAX_HEADERS_SIZE);
+	headers=alloca(MAX_HEADERS_SIZE);
 	if(headers==NULL)  {
 		lprintf(LOG_CRIT,"Could not allocate memory for response headers.");
 		return(FALSE);
@@ -1221,7 +1223,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 	send_file = (bufprint(session,headers) && send_file);
 	drain_outbuf(session);
 	session->req.write_chunked=chunked;
-	free(headers);
 	return(send_file);
 }
 
@@ -1598,7 +1599,7 @@ static BOOL check_ars(http_session_t * session)
 				MD5_digest(&ctx, ":", 1);
 				MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
 				MD5_close(&ctx, digest);
-				MD5_hex((BYTE*)ha1, digest);
+				MD5_hex(ha1, digest);
 
 				/* H(A1)l */
 				pass=strdup(thisuser.pass);
@@ -1610,7 +1611,7 @@ static BOOL check_ars(http_session_t * session)
 				MD5_digest(&ctx, ":", 1);
 				MD5_digest(&ctx, pass, strlen(pass));
 				MD5_close(&ctx, digest);
-				MD5_hex((BYTE*)ha1l, digest);
+				MD5_hex(ha1l, digest);
 
 				/* H(A1)u */
 				strupr(pass);
@@ -1621,7 +1622,7 @@ static BOOL check_ars(http_session_t * session)
 				MD5_digest(&ctx, ":", 1);
 				MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
 				MD5_close(&ctx, digest);
-				MD5_hex((BYTE*)ha1u, digest);
+				MD5_hex(ha1u, digest);
 				free(pass);
 
 				/* H(A2) */
@@ -1634,7 +1635,7 @@ static BOOL check_ars(http_session_t * session)
 				if(session->req.auth.qop_value == QOP_AUTH_INT)
 					return(FALSE);
 				MD5_close(&ctx, digest);
-				MD5_hex((BYTE*)ha2, digest);
+				MD5_hex(ha2, digest);
 
 				/* Check password as in user.dat */
 				calculate_digest(session, ha1, ha2, digest);
@@ -1924,7 +1925,7 @@ static void unescape(char *p)
 	
 	dst=p;
 	for(;*p;p++) {
-		if(*p=='%' && isxdigit((uchar)*(p+1)) && isxdigit((uchar)*(p+2))) {
+		if(*p=='%' && isxdigit(*(p+1)) && isxdigit(*(p+2))) {
 			sprintf(code,"%.2s",p+1);
 			*(dst++)=(char)strtol(code,NULL,16);
 			p+=2;
@@ -2022,15 +2023,15 @@ static void js_add_header(http_session_t * session, char *key, char *value)
 	JSString*	js_str;
 	char		*lckey;
 
-	if((lckey=strdup(key))==NULL)
+	if((lckey=(char *)alloca(strlen(key)+1))==NULL)
 		return;
+	strcpy(lckey,key);
 	strlwr(lckey);
 	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL) {
 		return;
 	}
 	JS_DefineProperty(session->js_cx, session->js_header, lckey, STRING_TO_JSVAL(js_str)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-	free(lckey);
 }
 
 #if 0
@@ -2869,7 +2870,7 @@ static BOOL check_request(http_session_t * session)
 {
 	char	path[MAX_PATH+1];
 	char	curdir[MAX_PATH+1];
-	char	str[MAX_PATH+1];			/* Apr-7-2013: bounds of str can be exceeded, e.g. "s:\sbbs\web\root\http:\vert.synchro.net\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\webctrl.ini"	char [261] */
+	char	str[MAX_PATH+1];
 	char	last_ch;
 	char*	last_slash;
 	char*	p;
@@ -3971,8 +3972,7 @@ js_writefunc(JSContext *cx, uintN argc, jsval *arglist, BOOL writeln)
     JSString*	str=NULL;
 	http_session_t* session;
 	jsrefcount	rc;
-	char		*cstr=NULL;
-	size_t		cstr_sz=0;
+	char		*cstr;
 	size_t		len;
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
@@ -4015,8 +4015,8 @@ js_writefunc(JSContext *cx, uintN argc, jsval *arglist, BOOL writeln)
     for(i=0; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			continue;
-		JSSTRING_TO_RASTRING(cx, str, cstr, &cstr_sz, &len);
-		HANDLE_PENDING(cx);
+		len=JS_GetStringLength(str);
+		JSSTRING_TO_STRING(cx, str, cstr, NULL);
 		rc=JS_SUSPENDREQUEST(cx);
 		js_writebuf(session, cstr, len);
 		if(writeln)
@@ -4024,8 +4024,6 @@ js_writefunc(JSContext *cx, uintN argc, jsval *arglist, BOOL writeln)
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
-	if(cstr)
-		free(cstr);
 	if(str==NULL)
 		JS_SET_RVAL(cx,arglist,JSVAL_VOID);
 	else
@@ -4072,18 +4070,14 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	header=header_buf;
-	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx);
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(!p)
 		return(JS_FALSE);
 	header+=sprintf(header,"Set-Cookie: %s=",p);
-	free(p);
-	JSVALUE_TO_MSTRING(cx, argv[1], p, NULL);
-	HANDLE_PENDING(cx);
+	JSVALUE_TO_STRING(cx, argv[1], p, NULL);
 	if(!p)
 		return(JS_FALSE);
 	header+=sprintf(header,"%s",p);
-	free(p);
 	if(argc>2) {
 		if(!JS_ValueToInt32(cx,argv[2],&i))
 			return JS_FALSE;
@@ -4092,18 +4086,14 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 			header += strftime(header,50,"; expires=%a, %d-%b-%Y %H:%M:%S GMT",&tm);
 	}
 	if(argc>3) {
-		JSVALUE_TO_MSTRING(cx, argv[3], p, NULL);
-		if(p!=NULL && *p) {
+		JSVALUE_TO_STRING(cx, argv[3], p, NULL);
+		if(p!=NULL && *p)
 			header += sprintf(header,"; domain=%s",p);
-			free(p);
-		}
 	}
 	if(argc>4) {
-		JSVALUE_TO_MSTRING(cx, argv[4], p, NULL);
-		if(p!=NULL && *p) {
+		JSVALUE_TO_STRING(cx, argv[4], p, NULL);
+		if(p!=NULL && *p)
 			header += sprintf(header,"; path=%s",p);
-			free(p);
-		}
 	}
 	if(argc>5) {
 		JS_ValueToBoolean(cx, argv[5], &b);
@@ -4124,6 +4114,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	int32		level=LOG_INFO;
 	http_session_t* session;
 	jsrefcount	rc;
+	char		*val;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -4140,7 +4131,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		JSVALUE_TO_STRBUF(cx, argv[i], strchr(str, 0), sizeof(str)/2, NULL);
+		JSVALUE_TO_STRING(cx, argv[i], val, NULL);
+		if(val==NULL)
+		    return(JS_FALSE);
+		strncat(str,val,sizeof(str)/2);
 		strcat(str," ");
 	}
 
@@ -4169,7 +4163,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name */
-	JSVALUE_TO_ASTRING(cx, argv[0], p, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(p==NULL) 
 		return(JS_FALSE);
 
@@ -4177,7 +4171,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	memset(&user,0,sizeof(user));
 
-	if(isdigit((uchar)*p))
+	if(isdigit(*p))
 		user.number=atoi(p);
 	else if(*p)
 		user.number=matchuser(&scfg,p,FALSE);
@@ -4199,7 +4193,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	/* Password */
 	if(user.pass[0]) {
-		JSVALUE_TO_ASTRING(cx, argv[1], p, LEN_PASS+2, NULL);
+		JSVALUE_TO_STRING(cx, argv[1], p, NULL);
 		if(p==NULL) 
 			return(JS_FALSE);
 
@@ -4375,31 +4369,27 @@ js_write_template(JSContext *cx, uintN argc, jsval *arglist)
 	if(session->req.fp==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], filename, NULL);
+	JSVALUE_TO_STRING(cx, argv[0], filename, NULL);
 	if(filename==NULL)
 		return(JS_FALSE);
 
 	if(!fexist(filename)) {
-		free(filename);
 		JS_ReportError(cx, "Template file %s does not exist.", filename);
 		return(JS_FALSE);
 	}
 	len=flength(filename);
 
 	if((tfile=fopen(filename,"r"))==NULL) {
-		free(filename);
 		JS_ReportError(cx, "Unable to open template %s for read.", filename);
 		return(JS_FALSE);
 	}
-	free(filename);
 
-	if((template=(char *)malloc(len))==NULL) {
+	if((template=(char *)alloca(len))==NULL) {
 		JS_ReportError(cx, "Unable to allocate %u bytes for template.", len);
 		return(JS_FALSE);
 	}
 
 	if(fread(template, 1, len, tfile) != len) {
-		free(template);
 		fclose(tfile);
 		JS_ReportError(cx, "Unable to read %u bytes from template %s.", len, filename);
 		return(JS_FALSE);
@@ -4408,10 +4398,8 @@ js_write_template(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((!session->req.prev_write) && (!session->req.sent_headers)) {
 		if(session->http_ver>=HTTP_1_1 && session->req.keep_alive) {
-			if(!ssjs_send_headers(session,TRUE)) {
-				free(template);
+			if(!ssjs_send_headers(session,TRUE))
 				return(JS_FALSE);
-			}
 		}
 		else {
 			/* "Fast Mode" requested? */
@@ -4422,17 +4410,14 @@ js_write_template(JSContext *cx, uintN argc, jsval *arglist)
 			JS_GetProperty(cx, reply, "fast", &val);
 			if(JSVAL_IS_BOOLEAN(val) && JSVAL_TO_BOOLEAN(val)) {
 				session->req.keep_alive=FALSE;
-				if(!ssjs_send_headers(session,FALSE)) {
-					free(template);
+				if(!ssjs_send_headers(session,FALSE))
 					return(JS_FALSE);
-				}
 			}
 		}
 	}
 
 	session->req.prev_write=TRUE;
 	js_write_template_part(cx, obj, template, len, NULL);
-	free(template);
 
 	return(JS_TRUE);
 }
@@ -4575,44 +4560,26 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSObject*	headers;
 	int			i;
 	char		str[MAX_REQUEST_LINE+1];
-	char		*p=NULL,*p2=NULL;
-	size_t		p_sz=0, p2_sz=0;
+	char		*p,*p2;
 
 	JS_BEGINREQUEST(session->js_cx);
 	JS_GetProperty(session->js_cx,session->js_glob,"http_reply",&val);
 	reply = JSVAL_TO_OBJECT(val);
 	JS_GetProperty(session->js_cx,reply,"status",&val);
-	JSVALUE_TO_STRBUF(session->js_cx, val, session->req.status, sizeof(session->req.status), NULL);
+	JSVALUE_TO_STRING(session->js_cx, val, p, NULL);
+	SAFECOPY(session->req.status,p);
 	JS_GetProperty(session->js_cx,reply,"header",&val);
 	headers = JSVAL_TO_OBJECT(val);
 	heads=JS_Enumerate(session->js_cx,headers);
 	if(heads != NULL) {
 		for(i=0;i<heads->length;i++)  {
 			JS_IdToValue(session->js_cx,heads->vector[i],&val);
-			JSVALUE_TO_RASTRING(session->js_cx, val, p, &p_sz, NULL);
-			if(p==NULL) {
-				if(p)
-					free(p);
-				if(p2)
-					free(p2);
-				return FALSE;
-			}
+			JSVALUE_TO_STRING(session->js_cx, val, p, NULL);
 			JS_GetProperty(session->js_cx,headers,p,&val);
-			JSVALUE_TO_RASTRING(session->js_cx, val, p2, &p2_sz, NULL);
-			if(JS_IsExceptionPending(session->js_cx)) {
-				if(p)
-					free(p);
-				if(p2)
-					free(p2);
-				return FALSE;
-			}
+			JSVALUE_TO_STRING(session->js_cx, val, p2, NULL);
 			safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
 			strListPush(&session->req.dynamic_heads,str);
 		}
-		if(p)
-			free(p);
-		if(p2)
-			free(p2);
 		JS_ClearScope(session->js_cx, headers);
 	}
 	JS_ENDREQUEST(session->js_cx);
@@ -5025,7 +4992,7 @@ void http_output_thread(void *arg)
 		}
 
 		pthread_mutex_lock(&session->outbuf_write);
-        RingBufRead(obuf, (uchar*)bufdata, avail);
+        RingBufRead(obuf, bufdata, avail);
 		if(chunked) {
 			bufdata+=avail;
 			*(bufdata++)='\r';
@@ -5145,7 +5112,7 @@ void http_session_thread(void* arg)
 		return;
 	}
 
-	protected_uint32_adjust(&active_clients, 1);
+	protected_int32_adjust(&active_clients, 1);
 	update_clients();
 	SAFECOPY(session.username,unknown);
 
@@ -5162,7 +5129,7 @@ void http_session_thread(void* arg)
 	session.last_js_user_num=-1;
 	session.logon_time=0;
 
-	session.subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
+	session.subscan=(subscan_t*)alloca(sizeof(subscan_t)*scfg.total_subs);
 
 	while(!session.finished) {
 		init_error=FALSE;
@@ -5262,9 +5229,8 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
-	free(session.subscan);
 
-	clients_remain=protected_uint32_adjust(&active_clients, -1);
+	clients_remain=protected_int32_adjust(&active_clients, -1);
 	update_clients();
 	client_off(socket);
 
@@ -5312,7 +5278,7 @@ static void cleanup(int code)
 	if(active_clients.value)
 		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", active_clients.value);
 	else
-		protected_uint32_destroy(active_clients);
+		protected_int32_destroy(active_clients);
 
 	update_clients();
 
@@ -5338,7 +5304,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.567 $", "%*s %s", revision);
+	sscanf("$Revision: 1.562 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5643,7 +5609,7 @@ void DLLCALL web_server(void* arg)
 		if(uptime==0)
 			uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
-		protected_uint32_init(&active_clients,0);
+		protected_int32_init(&active_clients,0);
 		update_clients();
 
 		/* open a socket and wait for a client */

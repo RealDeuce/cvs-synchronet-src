@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.184 2013/08/06 02:01:24 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.181 2012/10/18 01:11:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2012 Rob Swindell"
-#define COPYRIGHT_CRC		0x413D3832
+#define COPYRIGHT_NOTICE	"Copyright 2011 Rob Swindell"
+#define COPYRIGHT_CRC		0x3D5C1DE9
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -777,8 +777,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
-#define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin)	*/
-#define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
+#define TG_SENDPASS	(1<<9)	/* Send password instead of real name (RLogin)	*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
