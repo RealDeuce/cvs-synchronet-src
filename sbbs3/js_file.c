@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.139 2011/10/14 00:57:39 deuce Exp $ */
+/* $Id: js_file.c,v 1.144 2011/11/12 02:37:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,7 +247,6 @@ static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -527,7 +526,6 @@ static JSBool
 js_readall(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
     jsint       len=0;
     JSObject*	array;
 	private_t*	p;
@@ -661,7 +659,7 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 		if((dflt_obj = JSVAL_TO_OBJECT(dflt))!=NULL && (strcmp("Date",JS_GetClass(cx, dflt_obj)->name)==0)) {
 			tt=(time_t)(js_DateGetMsecSinceEpoch(cx,dflt_obj)/1000.0);
 			rc=JS_SUSPENDREQUEST(cx);
-			dbl=iniReadDateTime(p->fp,section,key,tt);
+			dbl=(double)iniReadDateTime(p->fp,section,key,tt);
 			dbl *= 1000;
 			JS_RESUMEREQUEST(cx, rc);
 			date_obj = JS_NewDateObjectMsec(cx, dbl);
@@ -1161,6 +1159,17 @@ And July-22-2010:
  	websrvr.dll!http_session_thread(void * arg)  Line 5091 + 0xc bytes	C
 
 
+And Sept-17-2011:
+
+JS_SetElement(JSContext * 0x058b7138, JSObject * 0x0578cd78, long 2, long * 0x084cb338) line 3178 + 32 bytes
+js_iniGetAllObjects(JSContext * 0x058b7138, JSObject * 0x0578cd60, unsigned int 0, long * 0x063adfbc, long * 0x084cb460) line 1115 + 24 bytes
+js_Invoke(JSContext * 0x058b7138, unsigned int 0, unsigned int 0) line 1375 + 23 bytes
+js_Interpret(JSContext * 0x058b7138, unsigned char * 0x04e9298b, long * 0x084cc678) line 3944 + 15 bytes
+js_Execute(JSContext * 0x058b7138, JSObject * 0x057b4b48, JSScript * 0x04e92880, JSStackFrame * 0x00000000, unsigned int 0, long * 0x084cc860) line 1633 + 19 bytes
+JS_ExecuteScript(JSContext * 0x058b7138, JSObject * 0x057b4b48, JSScript * 0x04e92880, long * 0x084cc860) line 4188 + 25 bytes
+exec_ssjs(http_session_t * 0x084ce0f0, char * 0x084ce221) line 4644 + 36 bytes
+respond(http_session_t * 0x084ce0f0) line 4690 + 18 bytes
+http_session_thread(void * 0x00000000) line 5098 + 12 bytes
   */
         if(!JS_SetElement(cx, array, i, &val))
 			break;
@@ -1628,7 +1637,6 @@ static JSBool
 js_delete(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -1655,7 +1663,6 @@ static JSBool
 js_flush(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -1680,7 +1687,6 @@ static JSBool
 js_rewind(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -1739,7 +1745,6 @@ static JSBool
 js_clear_error(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	private_t*	p;
 	jsrefcount	rc;
 
@@ -1926,17 +1931,11 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	off_t		lng;
 	int			in;
 
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
-	}
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
-
-#if 0 /* just too much */
-	dbprintf(FALSE, sock, "getting property %d",tiny);
-#endif
 
 	switch(tiny) {
 		case FILE_PROP_NAME:
@@ -2389,7 +2388,8 @@ static JSBool js_file_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_file_properties, js_file_functions, NULL, 0));
@@ -2483,9 +2483,9 @@ js_file_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent)
 {
-	JSObject*	sockobj;
+	JSObject*	obj;
 
-	sockobj = JS_InitClass(cx, parent, NULL
+	obj = JS_InitClass(cx, parent, NULL
 		,&js_file_class
 		,js_file_constructor
 		,1		/* number of constructor args */
@@ -2493,7 +2493,7 @@ JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent)
 		,NULL	/* funcs, set in constructor */
 		,NULL,NULL);
 
-	return(sockobj);
+	return(obj);
 }
 
 JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp)
