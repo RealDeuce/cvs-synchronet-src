@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.22 2011/07/20 02:40:37 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.24 2012/08/03 21:42:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -566,8 +566,12 @@ int main(int argc, char **argv)
 							case 10:
 	uifc.helpbuf=
 	"~ Route To ~\r\n\r\n"
-	"When using a FLO type mailer, this is the node number of an address\r\n"
-	"to route mail to for this node.\r\n";
+	"When using a FLO type mailer, this is an fido address to route mail\r\n"
+	"for this node to.\r\n"
+	"\r\n"
+	"This option is normally only used with wildcard type node entries\r\n"
+	"(e.g. `ALL`, or `1:ALL`, `2:ALL`, etc.) and is used to route non-direct\r\n"
+	"netmail packets to your uplink (hub).\r\n";
 								strcpy(str,wcfaddrtoa(&cfg.nodecfg[i].route));
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Node Address to Route To",str
@@ -1187,7 +1191,7 @@ int main(int argc, char **argv)
 						fprintf(stream,"LOG NONE\n");
 					else
 						fprintf(stream,"LOG %08lX\n",cfg.log); }
-				fprintf(stream,"LOG_LEVEL %u\n",cfg.log_level);
+				fprintf(stream,"LOG_LEVEL %lu\n",cfg.log_level);
 				if(cfg.inbound[0])
 					fprintf(stream,"INBOUND %s\n",cfg.inbound);
 				if(cfg.secure[0])
