@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.22 2011/10/29 03:53:58 deuce Exp $ */
+/* $Id: js_conio.c,v 1.23 2012/06/15 21:26:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -510,7 +510,7 @@ js_conio_gotoxy(JSContext *cx, uintN argc, jsval *arglist)
 	int32	x,y;
 	jsrefcount	rc;
 
-	if(argc==2 && JSVAL_IS_NUMBER(argv[0]) && JS_ValueToInt32(cx,argv[0],&x)
+	if(argc >= 2 && JSVAL_IS_NUMBER(argv[0]) && JS_ValueToInt32(cx,argv[0],&x)
 				&& JSVAL_IS_NUMBER(argv[1]) && JS_ValueToInt32(cx,argv[1],&y)) {
 		rc=JS_SUSPENDREQUEST(cx);
 		gotoxy(x,y);
@@ -518,6 +518,7 @@ js_conio_gotoxy(JSContext *cx, uintN argc, jsval *arglist)
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
+	JS_ReportError(cx, "Insufficient Arguments");
 
 	return(JS_FALSE);
 }

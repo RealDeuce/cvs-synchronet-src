@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.17 2011/10/29 03:53:58 deuce Exp $ */
+/* $Id: js_com.c,v 1.18 2012/06/15 21:26:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,6 +182,9 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
+	if(!js_argc(cx, argc, 1))
+		return JS_FALSE;
+
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
 	JSVALUE_TO_STRING(cx, argv[0], cp, &len);
@@ -217,6 +220,9 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
+
+	if(!js_argc(cx, argc, 1))
+		return JS_FALSE;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
@@ -278,14 +284,14 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) {
-		if(!JS_ValueToInt32(cx,argv[0],&val))
-			return JS_FALSE;
-	}
-	if(argc>1 && argv[1]!=JSVAL_VOID)  {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&size))
-			return JS_FALSE;
-	}
+	if(!js_argc(cx, argc, 1))
+		return JS_FALSE;
+
+	if(!JS_ValueToInt32(cx,argv[0],&val))
+		return JS_FALSE;
+
+	if(!JS_ValueToInt32(cx,argv[1],(int32*)&size))
+		return JS_FALSE;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	switch(size) {
@@ -342,12 +348,12 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
 
-	if(argc>1 && argv[1]!=JSVAL_VOID) {
+	if(argc>1) {
 		if(!JS_ValueToInt32(cx,argv[1],&timeout))
 			return JS_FALSE;
 	}
@@ -399,7 +405,7 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
@@ -409,7 +415,7 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc>1 && argv[1]!=JSVAL_VOID) {
+	if(argc>1) {
 		if(!JS_ValueToInt32(cx,argv[1],&timeout))
 			return JS_FALSE;
 	}
@@ -458,12 +464,12 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],(int32*)&size))
 			return JS_FALSE;
 	}
 
-	if(argc>1 && argv[1]!=JSVAL_VOID) {
+	if(argc>1) {
 		if(!JS_ValueToInt32(cx,argv[1],&timeout));
 			return JS_FALSE;
 	}
