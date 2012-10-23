@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.29 2012/10/28 01:42:45 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.28 2012/10/23 07:59:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -232,12 +232,10 @@ hash_t* SMBCALL smb_hashstr(ulong msgnum, uint32_t t, unsigned source, unsigned 
 		if(flags&SMB_HASH_LOWERCASE)
 			strlwr(p);
 	}
+	
+	hash=smb_hash(msgnum, t, source, flags, p?p:str, strlen(p));
 
-	if(p!=NULL) {
-		hash=smb_hash(msgnum, t, source, flags, p, strlen(p));
-		free(p);
-	} else
-		hash=smb_hash(msgnum, t, source, flags, str, strlen(str));
+	FREE_AND_NULL(p);
 
 	return(hash);
 }
