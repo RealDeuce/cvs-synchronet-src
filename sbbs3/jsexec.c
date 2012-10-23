@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.149 2011/10/16 07:44:16 deuce Exp $ */
+/* $Id: jsexec.c,v 1.164 2012/10/23 05:06:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,18 +48,19 @@
 #include "ini_file.h"
 #include "js_rtpool.h"
 #include "js_request.h"
+#include <jsdbgapi.h>
 
 #define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
 
+js_startup_t	startup;
 JSRuntime*	js_runtime;
 JSContext*	js_cx;
 JSObject*	js_glob;
-js_branch_t	branch;
+js_callback_t	cb;
 scfg_t		scfg;
 ulong		js_max_bytes=JAVASCRIPT_MAX_BYTES;
 ulong		js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
-ulong		stack_limit=JAVASCRIPT_THREAD_STACK;
 FILE*		confp;
 FILE*		errfp;
 FILE*		nulfp;
@@ -80,6 +81,7 @@ pthread_mutex_t output_mutex;
 BOOL		daemonize=FALSE;
 #endif
 char		orig_cwd[MAX_PATH+1];
+BOOL		debugger=FALSE;
 
 void banner(FILE* fp)
 {
@@ -111,8 +113,7 @@ void usage(FILE* fp)
 #endif
 		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
 		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
-		"\t-S<bytes>      set thread stack limit (default=%u, 0=unlimited)\n"
-		"\t-b<limit>      set branch limit (default=%u, 0=unlimited)\n"
+		"\t-t<limit>      set time limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
@@ -131,10 +132,10 @@ void usage(FILE* fp)
 		"\t-l             loop until intentionally terminated\n"
 		"\t-p             wait for keypress (pause) on exit\n"
 		"\t-!             wait for keypress (pause) on error\n"
+		"\t-D             debugs the script\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
-		,JAVASCRIPT_THREAD_STACK
-		,JAVASCRIPT_BRANCH_LIMIT
+		,JAVASCRIPT_TIME_LIMIT
 		,JAVASCRIPT_YIELD_INTERVAL
 		,JAVASCRIPT_GC_INTERVAL
 		,DEFAULT_LOG_LEVEL
@@ -288,7 +289,6 @@ void bail(int code)
 static JSBool
 js_log(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
@@ -298,8 +298,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc > 1 && JSVAL_IS_NUMBER(argv[i]))
-		JS_ValueToInt32(cx,argv[i++],&level);
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
+		if(!JS_ValueToInt32(cx,argv[i++],&level))
+			return JS_FALSE;
+	}
 
 	for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
@@ -323,7 +325,6 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_read(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*	buf;
 	int		rd;
@@ -332,8 +333,10 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc)
-		JS_ValueToInt32(cx,argv[0],&len);
+	if(argc) {
+		if(!JS_ValueToInt32(cx,argv[0],&len))
+			return JS_FALSE;
+	}
 	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
 
@@ -350,7 +353,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_readln(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*	buf;
 	char*	p;
@@ -359,8 +361,10 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc)
-		JS_ValueToInt32(cx,argv[0],&len);
+	if(argc) {
+		if(!JS_ValueToInt32(cx,argv[0],&len))
+			return JS_FALSE;
+	}
 	if((buf=alloca(len+1))==NULL)
 		return(JS_TRUE);
 
@@ -378,7 +382,6 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
     JSString*	str=NULL;
@@ -408,8 +411,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -424,9 +425,8 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_printf(JSContext *cx, uintN argc, jsval *arglist)
+jse_printf(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char* p;
 	jsrefcount	rc;
@@ -452,9 +452,7 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_alert(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-    JSString *	str;
 	jsrefcount	rc;
 	char		*line;
 
@@ -476,7 +474,6 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
 	char	 *	cstr;
@@ -504,7 +501,6 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_deny(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
 	char	 *	cstr;
@@ -532,10 +528,8 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		instr[81];
-    JSString *	prompt;
     JSString *	str;
 	jsrefcount	rc;
 	char		*prstr;
@@ -544,7 +538,7 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>0 && !JSVAL_IS_VOID(argv[0])) {
 		JSVALUE_TO_STRING(cx, argv[0], prstr, NULL);
-		if(prompt==NULL)
+		if(prstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(confp,"%s: ",prstr);
@@ -553,7 +547,7 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1) {
 		JSVALUE_TO_STRING(cx, argv[1], prstr, NULL);
-		if(str==NULL)
+		if(prstr==NULL)
 		    return(JS_FALSE);
 		SAFECOPY(instr,prstr);
 	} else
@@ -576,7 +570,6 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
@@ -596,28 +589,31 @@ js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p;
+	char*		p=NULL;
 
-	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
+	if(argc)
+		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
 	}
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putenv(p)==0));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putenv(strdup(p))==0));
 	return(JS_TRUE);
 }
 
 static jsSyncMethodSpec js_global_functions[] = {
 	{"log",				js_log,				1},
 	{"read",			js_read,            1},
-	{"readln",			js_readln,          1},
+	{"readln",			js_readln,			0,	JSTYPE_STRING,	JSDOCSTR("[count]")
+	,JSDOCSTR("read a single line, up to count characters, from input stream")
+	,311
+	},
     {"write",           js_write,           0},
     {"writeln",         js_writeln,         0},
     {"print",           js_writeln,         0},
-    {"printf",          js_printf,          1},	
+    {"printf",          jse_printf,          1},	
 	{"alert",			js_alert,			1},
 	{"prompt",			js_prompt,			1},
 	{"confirm",			js_confirm,			1},
@@ -669,23 +665,15 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 }
 
 static JSBool
-js_BranchCallback(JSContext *cx, JSObject *script)
-{
-    return(js_CommonBranchCallback(cx,&branch));
-}
-
-#if JS_VERSION>180
-static JSBool
 js_OperationCallback(JSContext *cx)
 {
 	JSBool	ret;
 
 	JS_SetOperationCallback(cx, NULL);
-	ret=js_BranchCallback(cx, NULL);
+	ret=js_CommonOperationCallback(cx, &cb);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 	return ret;
 }
-#endif
 
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 {
@@ -719,8 +707,6 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 
 static BOOL js_init(char** environ)
 {
-	js_startup_t	startup;
-
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
 
@@ -739,19 +725,16 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 	JS_BEGINREQUEST(js_cx);
 
-	if(stack_limit)
-		fprintf(statfp,"JavaScript: Thread stack limit: %lu bytes\n"
-			,stack_limit);
-
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
-	if((js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
+	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
-		,&branch,&startup						/* js */
+		,&cb,&startup						/* js */
 		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
-		))==NULL) {
+		,&js_glob
+		)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -782,9 +765,365 @@ static const char* js_ext(const char* fname)
 	return("");
 }
 
+/*
+ * This doesn't belong here and is done wrong...
+ * mcmlxxix should love it.
+ */
+#include <link_list.h>
+link_list_t	breakpoints;
+link_list_t	scripts;
+enum debug_action {
+	DEBUG_CONTINUE,
+	DEBUG_EXIT
+};
+static JSTrapStatus trap_handler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, jsval closure);
+static JSTrapStatus throw_handler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, void *closure);
+static enum debug_action debug_prompt(JSContext *cx, JSScript *script);
+
+struct breakpoint {
+	uintN		line;
+	char		name[];
+};
+
+struct cur_script {
+	JSScript	*script;
+	char		*fname;
+	uintN		firstline;
+	uintN		lastline;
+};
+
+static void newscript_handler(JSContext  *cx,
+                    const char *filename,  /* URL of script */
+                    uintN      lineno,     /* first line */
+                    JSScript   *script,
+                    JSFunction *fun,
+                    void       *callerdata)
+{
+	const char			*fname=NULL;
+	struct cur_script	*cs;
+	list_node_t			*node;
+	struct breakpoint	*bp;
+	jsbytecode			*pc;
+
+	cs=(struct cur_script *)malloc(sizeof(struct cur_script));
+	if(!cs) {
+		fputs("Error allocated script struct", stderr);
+		return;
+	}
+	fname=JS_GetScriptFilename(cx, script);
+	cs->fname=strdup(fname);
+	if(cs->fname)
+		fname=getfname(fname);
+	cs->firstline=lineno;
+	cs->lastline=lineno+JS_GetScriptLineExtent(cx, script);
+	cs->script=script;
+
+	// Loop through breakpoints.
+	for(node=listFirstNode(&breakpoints); node; node=listNextNode(node)) {
+		bp=(struct breakpoint *)node->data;
+		if(strcmp(fname, bp->name)==0 || strcmp(cs->fname, bp->name)==0) {
+			if(bp->line >= cs->firstline && bp->line <= cs->lastline) {
+				pc=JS_LineNumberToPC(cx, script, bp->line);
+				if(pc==NULL) {
+					fprintf(stderr, "NEWSCRIPT: Unable to locate line %u\n", bp->line);
+					break;
+				}
+				if(JS_PCToLineNumber(cx, script, pc)!=bp->line) {
+					continue;
+				}
+				if(!JS_SetTrap(cx, script, pc, trap_handler, JSVAL_VOID)) {
+					fprintf(stderr, "NEWSCRIPT: Unable to set breakpoint at line %u\n",bp->line);
+				}
+			}
+		}
+	}
+	listPushNode(&scripts, cs);
+}
+
+static void killscript_handler(JSContext *cx, JSScript *script, void *callerdata)
+{
+	list_node_t			*node;
+	list_node_t			*pnode;
+	struct cur_script	*cs;
+
+	for(node=listFirstNode(&scripts); node; node=listNextNode(node)) {
+		cs=(struct cur_script *)node->data;
+
+		if(cs->script == script) {
+			pnode=listPrevNode(node);
+			free(cs->fname);
+			listRemoveNode(&scripts, node, TRUE);
+		}
+	}
+}
+
+static void init_debugger(JSRuntime *rt, JSContext *cx)
+{
+	JS_SetDebugMode(cx, JS_TRUE);
+	JS_SetThrowHook(js_runtime, throw_handler, NULL);
+	listInit(&breakpoints,LINK_LIST_MUTEX);
+	listInit(&scripts,LINK_LIST_MUTEX);
+	JS_SetNewScriptHook(rt, newscript_handler, NULL);
+	JS_SetDestroyScriptHook(rt, killscript_handler, NULL);
+}
+
+static enum debug_action debug_prompt(JSContext *cx, JSScript *script)
+{
+	char			line[1024];
+	const char		*fpath;
+	const char		*fname;
+	JSStackFrame	*fp;
+	JSFunction		*fn;
+	jsbytecode		*pc;
+	char			*cp;
+	jsrefcount		rc;
+
+	fp=JS_GetScriptedCaller(cx, NULL);
+	while(1) {
+		if(JS_IsExceptionPending(cx))
+			fputs("!", stdout);
+		fpath=JS_GetScriptFilename(cx, script);
+		if(fpath) {
+			fname=getfname(fpath);
+			fputs(fname, stdout);
+			if(fp) {
+				pc=JS_GetFramePC(cx, fp);
+				if(pc)
+					fprintf(stdout, ":%u",JS_PCToLineNumber(cx, script, pc));
+				fn=JS_GetFrameFunction(cx, fp);
+				if(fn) {
+					JSString	*name;
+
+					name=JS_GetFunctionId(fn);
+					if(name) {
+						JSSTRING_TO_STRING(cx, name, cp, NULL);
+						fprintf(stdout, " %s()", cp);
+					}
+				}
+			}
+		}
+		fputs("> ", stdout);
+
+		rc=JS_SUSPENDREQUEST(cx);
+		if(fgets(line, sizeof(line), stdin)==NULL) {
+			fputs("Error readin input\n",stderr);
+			JS_RESUMEREQUEST(cx, rc);
+			continue;
+		}
+		JS_RESUMEREQUEST(cx, rc);
+		if(strncmp(line, "break ", 6)==0) {
+			ulong				linenum=0;
+			jsbytecode			*pc;
+			const char			*sname;
+			struct cur_script	*cs;
+			list_node_t			*node;
+			struct breakpoint	*bp;
+			const char			*text;
+			char				*num;
+
+			text=line+6;
+			if(isdigit(*text) && strchr(text,'.')==NULL) {
+				linenum=strtoul(text, NULL, 10);
+				text=fpath;
+			}
+			else {
+				num=strchr(text,':');
+				if(num) {
+					*num=0;
+					num++;
+					if(!(isdigit(*num))) {
+						fputs("Unable to parse breakpoint\n",stderr);
+						continue;
+					}
+					linenum=strtoul(num, NULL, 10);
+				}
+			}
+			if(linenum==ULONG_MAX) {
+				fputs("Unable to parse line number\n",stderr);
+				continue;
+			}
+			for(node=listFirstNode(&scripts); node; node=listNextNode(node)) {
+				cs=(struct cur_script *)node->data;
+				sname=getfname(cs->fname);
+				if(strcmp(sname, text)==0 || strcmp(cs->fname, text)==0) {
+					pc=JS_LineNumberToPC(cx, cs->script, linenum);
+					if(JS_PCToLineNumber(cx, cs->script, pc)!=linenum)
+						continue;
+					if(pc==NULL) {
+						fprintf(stderr, "Unable to locate line %lu\n", linenum);
+						continue;
+					}
+					if(!JS_SetTrap(cx, cs->script, pc, trap_handler, JSVAL_VOID)) {
+						fprintf(stderr, "Unable to set breakpoint at line %lu\n",linenum);
+					}
+				}
+			}
+			bp=(struct breakpoint *)malloc(sizeof(uintN)+strlen(text)+1);
+			if(!bp) {
+				fputs("Unable to allocate breakpoint\n",stderr);
+				continue;
+			}
+			bp->line=linenum;
+			strcpy(bp->name, text);
+			listPushNode(&breakpoints, bp);
+			continue;
+		}
+		if(strncmp(line, "r", 1)==0) {
+			return DEBUG_CONTINUE;
+		}
+		if(strncmp(line, "eval ", 5)==0 || 
+				strncmp(line, "e ", 2)==0
+				) {
+			jsval			ret;
+			jsval			oldexcept;
+			BOOL			has_old=FALSE;
+			int				cmdlen=5;
+
+			if(line[1]==' ')
+				cmdlen=2;
+			if(JS_IsExceptionPending(cx)) {
+				if(JS_GetPendingException(cx, &oldexcept))
+					has_old=TRUE;
+				JS_ClearPendingException(cx);
+			}
+
+			if(!fp) {
+				if(has_old)
+					JS_SetPendingException(cx, oldexcept);
+				fputs("Unable to get frame pointer\n", stderr);
+				continue;
+			}
+			if(!JS_EvaluateInStackFrame(cx, fp, line+cmdlen, strlen(line)-cmdlen, "eval-d statement", 1, &ret)) {
+				if(JS_IsExceptionPending(cx)) {
+					JS_SetErrorReporter(cx, js_ErrorReporter);
+					JS_ReportPendingException(cx);
+					JS_ClearPendingException(cx);
+				}
+			}
+			else {
+				// TODO: Check ret...
+			}
+			if(has_old)
+				JS_SetPendingException(cx, oldexcept);
+			continue;
+		}
+		if(strncmp(line, "clear", 5)==0) {
+			JS_ClearPendingException(cx);
+			continue;
+		}
+		if(strncmp(line, "bt", 2)==0
+				|| strncmp(line, "backtrace", 9)==0) {
+			JSScript		*fs;
+			JSStackFrame	*fpi=NULL;
+			int				fnum=0;
+
+			while(JS_FrameIterator(cx, &fpi)) {
+				fs=JS_GetFrameScript(cx, fpi);
+				fname=JS_GetScriptFilename(cx, fs);
+				if(fname==NULL)
+					fname="No name";
+				fname=getfname(fname);
+				pc=JS_GetFramePC(cx, fpi);
+				fprintf(stdout, "%c#%-2u %p ",fpi==fp?'*':' ',fnum,pc);
+				fn=JS_GetFrameFunction(cx, fpi);
+				if(fn) {
+					JSString	*name;
+
+					name=JS_GetFunctionId(fn);
+					if(name) {
+						JSSTRING_TO_STRING(cx, name, cp, NULL);
+						fprintf(stdout, "in %s() ", cp);
+					}
+				}
+				fputs("at ",stdout);
+				fputs(fname, stdout);
+				if(pc)
+					fprintf(stdout, ":%u",JS_PCToLineNumber(cx, fs, pc));
+				fputs("\n", stdout);
+				fnum++;
+			}
+			continue;
+		}
+		if(strncmp(line,"up", 2)==0) {
+			JSStackFrame	*fpn=fp;
+
+			JS_FrameIterator(cx, &fpn);
+			if(fpn==NULL) {
+				fputs("No frame above this one...\n",stderr);
+				continue;
+			}
+			fp=fpn;
+			script=JS_GetFrameScript(cx, fp);
+			continue;
+		}
+		if(strncmp(line,"down", 4)==0) {
+			JSStackFrame	*fpi=NULL;
+			JSStackFrame	*fpp=NULL;
+
+			while(JS_FrameIterator(cx, &fpi)) {
+				if(fpi==fp) {
+					if(fpp==NULL) {
+						fputs("Already at deepest stack frame\n",stderr);
+						break;
+					}
+					fp=fpp;
+					script=JS_GetFrameScript(cx, fp);
+					break;
+				}
+				fpp=fpi;
+			}
+			if(fpi==NULL)
+				fputs("A strange amd mysterious error occured!\n",stderr);
+			continue;
+		}
+		fputs("Unrecognized command:\n"
+			  "break [file:]#### - Sets a breakpoint at line #### in file\n"
+			  "                    If no file is specified, uses the current one\n"
+			  "r                 - Runs the script\n"
+			  "eval <statement>  - eval() <statement> in the current frame\n"
+			  "e <statement>     - eval() <statement> in the current frame\n"
+			  "clear             - Clears pending exceptions (doesn't seem to help)\n"
+			  "bt                - Prints a backtrace\n"
+			  "backtrace         - Alias for bt\n"
+			  "up                - Move to the previous stack frame\n"
+			  "down              - Move to the next stack frame\n"
+			  "\n",stderr);
+	}
+	return DEBUG_CONTINUE;
+}
+
+static JSTrapStatus trap_handler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, jsval closure)
+{
+    JS_GC(cx);
+
+	fputs("Breakpoint reached\n",stdout);
+
+    switch(debug_prompt(cx, script)) {
+		case DEBUG_CONTINUE:
+			return JSTRAP_CONTINUE;
+		case DEBUG_EXIT:
+			return JSTRAP_ERROR;
+	}
+	return JSTRAP_CONTINUE;
+}
+
+static JSTrapStatus throw_handler(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval, void *closure)
+{
+    JS_GC(cx);
+
+	fputs("Exception thrown\n",stdout);
+
+    switch(debug_prompt(cx, script)) {
+		case DEBUG_CONTINUE:
+			return JSTRAP_CONTINUE;
+		case DEBUG_EXIT:
+			return JSTRAP_ERROR;
+	}
+	return JSTRAP_CONTINUE;
+}
+
 long js_exec(const char *fname, char** args)
 {
-	ulong		stack_frame;
 	int			argc=0;
 	uint		line_no;
 	char		path[MAX_PATH+1];
@@ -828,15 +1167,6 @@ long js_exec(const char *fname, char** args)
 	}
 	JS_ClearPendingException(js_cx);
 
-	if(stack_limit) {
-#if JS_STACK_GROWTH_DIRECTION > 0
-		stack_frame=((ulong)&stack_frame)+stack_limit;
-#else
-		stack_frame=((ulong)&stack_frame)-stack_limit;
-#endif
-		JS_SetThreadStackLimit(js_cx, stack_frame);
-	}
-
 	argv=JS_NewArrayObject(js_cx, 0, NULL);
 	JS_DefineProperty(js_cx, js_glob, "argv", OBJECT_TO_JSVAL(argv)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
@@ -871,13 +1201,9 @@ long js_exec(const char *fname, char** args)
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	branch.terminated=&terminated;
+	cb.terminated=&terminated;
 
-#if JS_VERSION>180
 	JS_SetOperationCallback(js_cx, js_OperationCallback);
-#else
-	JS_SetBranchCallback(js_cx, js_BranchCallback);
-#endif
 
 	if(fp==stdin) 	 /* Using stdin for script source */
 		SAFECOPY(path,"stdin");
@@ -906,6 +1232,8 @@ long js_exec(const char *fname, char** args)
 		fclose(fp);
 
 	start=xp_timer();
+	if(debugger)
+		init_debugger(js_runtime, js_cx);
 	if((js_script=JS_CompileScript(js_cx, js_glob, js_buf, js_buflen, fname==NULL ? NULL : path, 1))==NULL) {
 		lprintf(LOG_ERR,"!Error compiling script from %s",path);
 		return(-1);
@@ -917,6 +1245,8 @@ long js_exec(const char *fname, char** args)
 
 	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path, orig_cwd);
 	start=xp_timer();
+	if(debugger)
+		debug_prompt(js_cx, JS_GetScriptFromObject(js_script));
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
@@ -926,7 +1256,7 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
-	js_EvalOnExit(js_cx, js_glob, &branch);
+	js_EvalOnExit(js_cx, js_glob, &cb);
 
 	JS_ReportPendingException(js_cx);
 
@@ -934,8 +1264,6 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
 			,path
 			,diff);
-
-	JS_GC(js_cx);
 
 	if(js_buf!=NULL)
 		free(js_buf);
@@ -953,7 +1281,7 @@ void recycle_handler(int type)
 {
 	lprintf(LOG_NOTICE,"\n-> Recycled Locally (signal: %d)",type);
 	recycled=TRUE;
-	branch.terminated=&recycled;
+	cb.terminated=&recycled;
 }
 
 
@@ -986,7 +1314,6 @@ int parseLogLevel(const char* p)
 	return DEFAULT_LOG_LEVEL;
 }
 
-
 /*********************/
 /* Entry point (duh) */
 /*********************/
@@ -1013,12 +1340,12 @@ int main(int argc, char **argv, char** environ)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	branch.limit=JAVASCRIPT_BRANCH_LIMIT;
-	branch.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
-	branch.gc_interval=JAVASCRIPT_GC_INTERVAL;
-	branch.auto_terminate=TRUE;
+	cb.limit=JAVASCRIPT_TIME_LIMIT;
+	cb.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
+	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
+	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.149 $", "%*s %s", revision);
+	sscanf("$Revision: 1.164 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1037,46 +1364,17 @@ int main(int argc, char **argv, char** environ)
 				case 'a':
 					omode="a";
 					break;
-				case 'f':
-					nonbuffered_con=TRUE;
-					break;
-				case 'm':
+				case 'c':
 					if(*p==0) p=argv[++argn];
-					js_max_bytes=strtoul(p,NULL,0);
+					SAFECOPY(scfg.ctrl_dir,p);
 					break;
-				case 's':
-					if(*p==0) p=argv[++argn];
-					js_cx_stack=strtoul(p,NULL,0);
+#if defined(__unix__)
+				case 'd':
+					daemonize=TRUE;
 					break;
-				case 'S':
-					if(*p==0) p=argv[++argn];
-					stack_limit=strtoul(p,NULL,0);
-					break;
-				case 'b':
-					if(*p==0) p=argv[++argn];
-					branch.limit=strtoul(p,NULL,0);
-					break;
-				case 'y':
-					if(*p==0) p=argv[++argn];
-					branch.yield_interval=strtoul(p,NULL,0);
-					break;
-				case 'g':
-					if(*p==0) p=argv[++argn];
-					branch.gc_interval=strtoul(p,NULL,0);
-					break;
-				case 'h':
-					if(*p==0)
-						gethostname(host_name=host_name_buf,sizeof(host_name_buf));
-					else
-						host_name=p;
-					break;
-				case 'u':
-					if(*p==0) p=argv[++argn];
-					umask(strtol(p,NULL,8));
-					break;
-				case 'L':
-					if(*p==0) p=argv[++argn];
-					log_level=parseLogLevel(p);
+#endif
+				case 'D':
+					debugger=TRUE;
 					break;
 				case 'E':
 					if(*p==0) p=argv[++argn];
@@ -1089,6 +1387,37 @@ int main(int argc, char **argv, char** environ)
 						return(do_bail(1));
 					}
 					break;
+				case 'f':
+					nonbuffered_con=TRUE;
+					break;
+				case 'g':
+					if(*p==0) p=argv[++argn];
+					cb.gc_interval=strtoul(p,NULL,0);
+					break;
+				case 'h':
+					if(*p==0)
+						gethostname(host_name=host_name_buf,sizeof(host_name_buf));
+					else
+						host_name=p;
+					break;
+				case 'i':
+					if(*p==0) p=argv[++argn];
+					load_path_list=p;
+					break;
+				case 'L':
+					if(*p==0) p=argv[++argn];
+					log_level=parseLogLevel(p);
+					break;
+				case 'l':
+					loop=TRUE;
+					break;
+				case 'm':
+					if(*p==0) p=argv[++argn];
+					js_max_bytes=strtoul(p,NULL,0);
+					break;
+				case 'n':
+					statfp=nulfp;
+					break;
 				case 'o':
 					if(*p==0) p=argv[++argn];
 					if((confp=fopen(p,omode))==NULL) {
@@ -1096,41 +1425,38 @@ int main(int argc, char **argv, char** environ)
 						return(do_bail(1));
 					}
 					break;
-				case 'q':
-					confp=nulfp;
-					break;
-				case 'n':
-					statfp=nulfp;
-					break;
-				case 'x':
-					branch.auto_terminate=FALSE;
-					break;
-				case 'l':
-					loop=TRUE;
-					break;
 				case 'p':
 					pause_on_exit=TRUE;
 					break;
-				case '!':
-					pause_on_error=TRUE;
+				case 'q':
+					confp=nulfp;
 					break;
-				case 'c':
+				case 's':
 					if(*p==0) p=argv[++argn];
-					SAFECOPY(scfg.ctrl_dir,p);
+					js_cx_stack=strtoul(p,NULL,0);
 					break;
-				case 'i':
+				case 't':
 					if(*p==0) p=argv[++argn];
-					load_path_list=p;
+					cb.limit=strtoul(p,NULL,0);
+					break;
+				case 'u':
+					if(*p==0) p=argv[++argn];
+					umask(strtol(p,NULL,8));
 					break;
 				case 'v':
 					banner(statfp);
 					fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 					return(do_bail(0));
-#if defined(__unix__)
-				case 'd':
-					daemonize=TRUE;
+				case 'x':
+					cb.auto_terminate=FALSE;
 					break;
-#endif
+				case 'y':
+					if(*p==0) p=argv[++argn];
+					cb.yield_interval=strtoul(p,NULL,0);
+					break;
+				case '!':
+					pause_on_error=TRUE;
+					break;
 				default:
 					fprintf(errfp,"\n!Unsupported option: %s\n",argv[argn]);
 				case '?':
@@ -1223,6 +1549,7 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"\n");
 
 		result=js_exec(module,&argv[argn]);
+		JS_RemoveObjectRoot(js_cx, &js_glob);
 		JS_ENDREQUEST(js_cx);
 		YIELD();
 
