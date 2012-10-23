@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.68 2013/05/12 07:34:56 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.66 2012/07/11 23:38:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -175,7 +175,7 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 /****************************************************************************/
 /****************************************************************************/
-post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num)
+post_t * sbbs_t::loadposts(int32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num)
 {
 	char name[128];
 	ushort aliascrc,namecrc,sysop;
@@ -332,9 +332,9 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 	return(post);
 }
 
-static uint32_t get_start_msg(sbbs_t* sbbs, smb_t* smb)
+static int get_start_msg(sbbs_t* sbbs, smb_t* smb)
 {
-	uint32_t	i,j=smb->curmsg+1;
+	int i,j=smb->curmsg+1;
 
 	if(j<smb->msgs)
 		j++;
@@ -368,7 +368,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	long	org_mode=mode;
 	ulong	msgs,l,unvalidated;
 	uint32_t last;
-	uint32_t u;
 	post_t	*post;
 	smbmsg_t	msg;
 
@@ -495,7 +494,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		thisnode.action=NODE_RMSG;
 		putnodedat(cfg.node_num,&thisnode); 
 	}
-	current_msg=&msg;	/* For MSG_* @-codes and bbs.msg_* property values */
 	while(online && !done) {
 
 		action=NODE_RMSG;
@@ -754,7 +752,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					free(post);
 				smb_close(&smb);
 				smb_stack(&smb,SMB_STACK_POP);
-				current_msg=NULL;
 				return(0);
 			case 'C':   /* Continuous */
 				mode|=SCAN_CONST;
@@ -944,11 +941,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					 done=1;
 					 break; 
 				}
-				u=smb.curmsg+11;
-				if(u>smb.msgs)
-					u=smb.msgs;
-				listmsgs(subnum,0,post,smb.curmsg+1,u);
-				smb.curmsg=u-1;
+				i=smb.curmsg+11;
+				if(i>smb.msgs)
+					i=smb.msgs;
+				listmsgs(subnum,0,post,smb.curmsg+1,i);
+				smb.curmsg=i-1;
 				if(subscan[subnum].ptr<post[smb.curmsg].number)
 					subscan[subnum].ptr=post[smb.curmsg].number;
 				break;
@@ -1075,11 +1072,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					domsg=0;
 					break; 
 				}
-				for(u=0;u<smb.msgs;u++)
-					if(l==post[u].number)
+				for(i=0;i<smb.msgs;i++)
+					if(l==post[i].number)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				do_find=false;
 				break;
 			case ',':   /* Thread backwards */
@@ -1087,19 +1084,19 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					domsg=0;
 					break; 
 				}
-				for(u=0;u<smb.msgs;u++)
-					if(msg.hdr.thread_back==post[u].number)
+				for(i=0;i<smb.msgs;i++)
+					if(msg.hdr.thread_back==post[i].number)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				do_find=false;
 				break;
 			case '>':   /* Search Title forward */
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(post[u].subj==msg.idx.subj)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(post[i].subj==msg.idx.subj)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				do_find=false;
@@ -1116,11 +1113,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case '}':   /* Search Author forward */
 				strcpy(str,msg.from);
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(post[u].from==msg.idx.from)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(post[i].from==msg.idx.from)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				do_find=false;
@@ -1138,11 +1135,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case ']':   /* Search To User forward */
 				strcpy(str,msg.to);
-				for(u=smb.curmsg+1;u<smb.msgs;u++)
-					if(post[u].to==msg.idx.to)
+				for(i=smb.curmsg+1;i<smb.msgs;i++)
+					if(post[i].to==msg.idx.to)
 						break;
-				if(u<smb.msgs)
-					smb.curmsg=u;
+				if(i<smb.msgs)
+					smb.curmsg=i;
 				else
 					domsg=0;
 				do_find=false;
@@ -1187,7 +1184,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		subscan[subnum].cfg|=SUB_CFG_NSCAN;
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
-	current_msg=NULL;
 	return(quit);
 }
 
@@ -1198,7 +1194,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 {
 	int 	i;
-	uint32_t	posts;
+	int32_t	posts;
 	long	displayed;
 	post_t	*post;
 
