@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.137 2012/01/19 06:50:37 deuce Exp $ */
+/* $Id: cterm.c,v 1.141 2012/10/18 17:48:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -598,6 +598,14 @@ static int ciolib_setfont(struct cterminal *,int font, int force, int font_num)
 }
 #endif
 
+static void tone_or_beep(double freq, int duration, int device_open)
+{
+	if(device_open)
+		xptone(freq,duration,WAVE_SHAPE_SINE_SAW_HARM);
+	else
+		xpbeep(freq,duration);
+}
+
 static void playnote_thread(void *args)
 {
 	/* Tempo is quarter notes per minute */
@@ -608,6 +616,7 @@ static void playnote_thread(void *args)
 	struct cterminal *cterm=(struct cterminal *)args;
 
 
+	SetThreadName("PlayNote");
 	cterm->playnote_thread_running=TRUE;
 	while(1) {
 		if(device_open) {
@@ -641,15 +650,12 @@ static void playnote_thread(void *args)
 				break;
 		}
 		duration-=pauselen;
-		if(note->notenum < 72 && note->notenum >= 0) {
-			if(device_open)
-				xptone(((double)note_frequency[note->notenum])/1000,duration,WAVE_SHAPE_SINE_SAW_HARM);
-			else
-				xpbeep(((double)note_frequency[note->notenum])/1000,duration);
-		}
+		if(note->notenum < 72 && note->notenum >= 0)
+			tone_or_beep(((double)note_frequency[note->notenum])/1000,duration,device_open);
 		else
-			SLEEP(duration);
-		SLEEP(pauselen);
+			tone_or_beep(0,duration,device_open);
+		if(pauselen)
+			tone_or_beep(0,pauselen,device_open);
 		if(note->foreground)
 			sem_post(&cterm->note_completed_sem);
 		free(note);
@@ -864,6 +870,7 @@ static void play_music(struct cterminal *cterm)
 		sem_wait(&cterm->note_completed_sem);
 		fore_count--;
 	}
+	xptone_complete();
 }
 
 static void scrolldown(struct cterminal *cterm)
@@ -1573,6 +1580,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								cterm->attr&=248;
 								cterm->attr|=7;
 								break;
+							case 49:
 							case 40:
 								cterm->attr&=143;
 								break;
@@ -1601,7 +1609,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								cterm->attr|=3<<4;
 								break;
 							case 47:
-							case 49:
 								cterm->attr&=143;
 								cterm->attr|=7<<4;
 								break;
@@ -1755,7 +1762,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.137 $";
+	char	*revision="$Revision: 1.141 $";
 	char *in;
 	char	*out;
 	int		i;
