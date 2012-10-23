@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.137 2011/12/06 02:33:49 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.139 2012/10/23 08:13:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -129,6 +129,7 @@ enum {
 	,BBS_PROP_MSG_NUMBER
 	,BBS_PROP_MSG_EXPIRATION
 	,BBS_PROP_MSG_FORWARDED
+	,BBS_PROP_MSG_THREAD_ID
 	,BBS_PROP_MSG_THREAD_BACK
 	,BBS_PROP_MSG_THREAD_NEXT
 	,BBS_PROP_MSG_THREAD_FIRST
@@ -227,12 +228,13 @@ enum {
 	,"message auxillary attributes"
 	,"message network attributes"
 	,"message header offset"
-	,"message number"
+	,"message number (unique, monotonically incrementing)"
 	,"message expiration"
 	,"message forwarded"
-	,"message thread, back message number (AKA msg_thread_orig)"
+	,"message thread identifier (0 if unknown)"
+	,"message thread, back message number"
 	,"message thread, next message number"
-	,"message thread, first reply to this message"
+	,"message thread, message number of first reply to this message"
 	,"message identifier"
 	,"message replied-to identifier"
 	,"message delivery attempt counter"
@@ -587,6 +589,10 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			if(sbbs->current_msg!=NULL)
 				val=sbbs->current_msg->forwarded;
 			break;
+		case BBS_PROP_MSG_THREAD_ID:
+			if(sbbs->current_msg!=NULL)
+				val=sbbs->current_msg->hdr.thread_id;
+			break;
 		case BBS_PROP_MSG_THREAD_BACK:
 			if(sbbs->current_msg!=NULL)
 				val=sbbs->current_msg->hdr.thread_back;
@@ -911,6 +917,7 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"msg_number"		,BBS_PROP_MSG_NUMBER		,PROP_READONLY	,310},
 	{	"msg_expiration"	,BBS_PROP_MSG_EXPIRATION	,PROP_READONLY	,310},
 	{	"msg_forwarded"		,BBS_PROP_MSG_FORWARDED		,PROP_READONLY	,310},
+	{	"msg_thread_id"		,BBS_PROP_MSG_THREAD_BACK	,PROP_READONLY	,316},
 	{	"msg_thread_back"	,BBS_PROP_MSG_THREAD_BACK	,PROP_READONLY	,312},
 	{	"msg_thread_orig"	,BBS_PROP_MSG_THREAD_BACK	,JSPROP_READONLY,310},	/* alias */
 	{	"msg_thread_next"	,BBS_PROP_MSG_THREAD_NEXT	,PROP_READONLY	,310},
@@ -1383,7 +1390,7 @@ js_atcode(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
 	char	str[128],str2[128],*p;
 	char	*instr;
-	int		disp_len;
+	size_t	disp_len;
 	bool	padded_left=false;
 	bool	padded_right=false;
 	const char *cp;
