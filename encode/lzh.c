@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.c,v 1.11 2012/10/23 07:59:36 deuce Exp $ */
+/* $Id: lzh.c,v 1.10 2012/08/01 05:02:46 rswindell Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -314,7 +314,7 @@ static uint8_t lzh_d_len[256] = {
 };
 
 
-static int lzh_getbit(lzh_t* lzh, uint8_t *inbuf, int32_t *incnt, long inlen)    /* get one bit */
+static int lzh_getbit(lzh_t* lzh, uint8_t *inbuf, long *incnt, long inlen)    /* get one bit */
 {
 	short int i;
 
@@ -332,7 +332,7 @@ static int lzh_getbit(lzh_t* lzh, uint8_t *inbuf, int32_t *incnt, long inlen)   
 	return (i < 0);
 }
 
-static short int lzh_getbyte(lzh_t* lzh, uint8_t *inbuf, int32_t *incnt, long inlen)   /* get a byte */
+static short int lzh_getbyte(lzh_t* lzh, uint8_t *inbuf, long *incnt, long inlen)   /* get a byte */
 {
 	unsigned short i;
 
@@ -352,7 +352,7 @@ static short int lzh_getbyte(lzh_t* lzh, uint8_t *inbuf, int32_t *incnt, long in
 
 
 /* output c bits */
-static void lzh_putcode(lzh_t* lzh, short int l, unsigned short c, uint8_t *outbuf, int32_t *outlen)
+static void lzh_putcode(lzh_t* lzh, short int l, unsigned short c, uint8_t *outbuf, long *outlen)
 {
 	lzh->putbuf |= c >> lzh->putlen;
 	if ((lzh->putlen += l) >= 8) {
@@ -471,7 +471,7 @@ static void lzh_update(lzh_t* lzh, short int c)
 	} while ((c = lzh->prnt[c]) != 0);	/* do it until reaching the root */
 }
 
-static void lzh_encode_char(lzh_t* lzh, unsigned short c, uint8_t *outbuf, int32_t *outlen)
+static void lzh_encode_char(lzh_t* lzh, unsigned short c, uint8_t *outbuf, long *outlen)
 {
 	unsigned short i;
 	short int j, k;
@@ -498,7 +498,7 @@ static void lzh_encode_char(lzh_t* lzh, unsigned short c, uint8_t *outbuf, int32
 	lzh_update(lzh,c);
 }
 
-static void lzh_encode_position(lzh_t* lzh, unsigned short c, uint8_t *outbuf, int32_t *outlen)
+static void lzh_encode_position(lzh_t* lzh, unsigned short c, uint8_t *outbuf, long *outlen)
 {
 	unsigned short i;
 
@@ -510,14 +510,14 @@ static void lzh_encode_position(lzh_t* lzh, unsigned short c, uint8_t *outbuf, i
 	lzh_putcode(lzh, 6, (unsigned short)((c & 0x3f) << 10), outbuf, outlen);
 }
 
-static void lzh_encode_end(lzh_t* lzh, uint8_t *outbuf, int32_t *outlen)
+static void lzh_encode_end(lzh_t* lzh, uint8_t *outbuf, long *outlen)
 {
 	if (lzh->putlen) {
 		outbuf[(*outlen)++]=(lzh->putbuf >> 8);
 	}
 }
 
-static short int lzh_decode_char(lzh_t* lzh, uint8_t *inbuf, int32_t *incnt, long inlen)
+static short int lzh_decode_char(lzh_t* lzh, uint8_t *inbuf, long *incnt, long inlen)
 {
 	unsigned short c;
 
@@ -537,7 +537,7 @@ static short int lzh_decode_char(lzh_t* lzh, uint8_t *inbuf, int32_t *incnt, lon
 	return c;
 }
 
-static short int lzh_decode_position(lzh_t* lzh, uint8_t *inbuf, int32_t *incnt, long inlen)
+static short int lzh_decode_position(lzh_t* lzh, uint8_t *inbuf, long *incnt, long inlen)
 {
 	unsigned short i, j, c;
 

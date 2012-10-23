@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.142 2012/10/24 19:02:38 deuce Exp $ */
+/* $Id: cterm.c,v 1.141 2012/10/18 17:48:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1762,7 +1762,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.142 $";
+	char	*revision="$Revision: 1.141 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2009,34 +2009,34 @@ char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen
 					cterm->fontbuf[cterm->font_read++]=ch[0];
 					if(cterm->font_read == cterm->font_size) {
 #ifndef CTERM_WITHOUT_CONIO
-						char *buf2;
+						char *buf;
 
-						if((buf2=(char *)malloc(cterm->font_size))!=NULL) {
-							memcpy(buf2,cterm->fontbuf,cterm->font_size);
+						if((buf=(char *)malloc(cterm->font_size))!=NULL) {
+							memcpy(buf,cterm->fontbuf,cterm->font_size);
 							if(cterm->font_slot >= CONIO_FIRST_FREE_FONT) {
 								switch(cterm->font_size) {
 									case 4096:
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_sixteen);
-										conio_fontdata[cterm->font_slot].eight_by_sixteen=buf2;
+										conio_fontdata[cterm->font_slot].eight_by_sixteen=buf;
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
 										conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
 										break;
 									case 3586:
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_fourteen);
-										conio_fontdata[cterm->font_slot].eight_by_fourteen=buf2;
+										conio_fontdata[cterm->font_slot].eight_by_fourteen=buf;
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
 										conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
 										break;
 									case 2048:
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_eight);
-										conio_fontdata[cterm->font_slot].eight_by_eight=buf2;
+										conio_fontdata[cterm->font_slot].eight_by_eight=buf;
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
 										conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
 										break;
 								}
 							}
 							else
-								FREE_AND_NULL(buf2);
+								FREE_AND_NULL(buf);
 						}
 #endif
 						cterm->font_size=0;
