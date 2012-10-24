@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.15 2012/02/18 02:26:02 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.16 2012/07/22 23:22:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
-#define SBBSECHO_VER "2.13"
+#define SBBSECHO_VER "2.14"
 
 #define IMPORT_NETMAIL  (1L<<0)
 #define IMPORT_PACKETS	(1L<<1)
