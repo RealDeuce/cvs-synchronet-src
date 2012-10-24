@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.28 2012/11/22 04:55:16 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.27 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,6 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
-	SAFECOPY(cfg.sysop_alias,"SYSOP");
 
 	while(1) {
 		if(!fgets(str,256,stream))
@@ -220,10 +219,6 @@ void read_echo_cfg()
 		SKIPCODE(p);                       /* Skip code */
 		SKIPCTRLSP(p);                /* Skip white space */
 
-		if(!stricmp(tmp,"SYSOP_ALIAS")) {
-			SAFECOPY(cfg.sysop_alias, p);
-			continue;
-		}
 		if(!stricmp(tmp,"PACKER")) {             /* Archive Definition */
 			if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
 				,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
