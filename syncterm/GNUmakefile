@@ -59,6 +59,8 @@ endif
 
 ifdef WITHOUT_CRYPTLIB
  CFLAGS += -DWITHOUT_CRYPTLIB
+ CRYPT_LDFLAGS :=
+ CRYPT_DEPS :=
 else
  OBJS += $(MTOBJODIR)$(DIRSEP)ssh$(OFILE)
  CFLAGS	+=	$(CRYPT_CFLAGS)
@@ -117,12 +119,18 @@ else
 endif
 INSTALL_DATA	?=	install -m 0444
 
-OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
+ifneq ($(os),haiku)
+ OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE) \
+           $(MTOBJODIR)$(DIRSEP)modem$(OFILE) \
+           $(MTOBJODIR)$(DIRSEP)comio$(OFILE)
+endif
+OBJS += $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
 ifndef bcc
  ifneq ($(os),sunos)
   ifneq ($(os),darwin)
-   EXTRA_LIBS   +=  -lutil
+    ifneq ($(os),haiku)
+      EXTRA_LIBS   +=  -lutil
+	endif
   endif
  endif
 endif

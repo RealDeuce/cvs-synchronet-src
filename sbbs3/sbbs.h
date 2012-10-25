@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.387 2011/11/07 01:31:09 deuce Exp $ */
+/* $Id: sbbs.h,v 1.392 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,6 +226,7 @@ public:
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
 	bool	input_thread_mutex_locked;	// by someone other than the input_thread
+	pthread_mutex_t	ssh_mutex;
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
@@ -498,7 +499,7 @@ public:
 
 	/* writemsg.cpp */
 	void	automsg(void);
-	bool	writemsg(const char *str, const char *top, char *title, long mode, int subnum
+	bool	writemsg(const char *str, const char *top, char *title, long mode, uint subnum
 				,const char *dest, char** editor=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
@@ -533,7 +534,7 @@ public:
 	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
-	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
+	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -781,7 +782,7 @@ public:
 	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf, FILE* hdrs_dat);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat);
 
 	/* qwktomsg.cpp */
 	void	qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
@@ -870,7 +871,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, int32_t* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
@@ -921,6 +922,7 @@ extern "C" {
 	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
 	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
 	DLLEXPORT char *	DLLCALL rot13(char* str);
+	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
@@ -1045,6 +1047,14 @@ extern "C" {
 										,js_server_props_t* props);
 
 	/* js_global.c */
+	typedef struct {
+		scfg_t*				cfg;
+		jsSyncMethodSpec*	methods;
+		js_startup_t*		startup;
+		unsigned			bg_count;
+		sem_t				bg_sem;
+		str_list_t			exit_func;
+	} global_private_t;
 	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, uintN argc, uintN min);
 	DLLEXPORT BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*, JSObject**);
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx

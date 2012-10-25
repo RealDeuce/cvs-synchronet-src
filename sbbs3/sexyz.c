@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.136 2012/02/24 01:46:45 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.138 2012/10/24 19:03:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1121,7 +1121,7 @@ static int receive_files(char** fname_list, int fnames)
 				}
 				ftime=total_files=0;
 				total_bytes=0;
-				i=sscanf(block+strlen(block)+1,"%"SCNd64" %"SCNoMAX" %lo %lo %u %"SCNd64
+				i=sscanf((char*)block+strlen((char*)block)+1,"%"SCNd64" %"SCNoMAX" %lo %lo %u %"SCNd64
 					,&file_bytes			/* file size (decimal) */
 					,&ftime 				/* file time (octal unix format) */
 					,&fmode 				/* file mode (not used) */
@@ -1129,8 +1129,8 @@ static int receive_files(char** fname_list, int fnames)
 					,&total_files			/* remaining files to be sent */
 					,&total_bytes			/* remaining bytes to be sent */
 					);
-				lprintf(LOG_DEBUG,"YMODEM header (%u fields): %s", i, block+strlen(block)+1);
-				SAFECOPY(fname,block);
+				lprintf(LOG_DEBUG,"YMODEM header (%u fields): %s", i, block+strlen((char*)block)+1);
+				SAFECOPY(fname,(char*)block);
 
 			} else {	/* Zmodem */
 				lprintf(LOG_INFO,"Waiting for ZMODEM sender...");
@@ -1390,7 +1390,6 @@ static int receive_files(char** fname_list, int fnames)
 
 void bail(int code)
 {
-	fcloseall();
 	if(pause_on_exit || (pause_on_abend && code!=0)) {
 		printf("Hit enter to continue...");
 		getchar();
@@ -1517,7 +1516,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.136 $", "%*s %s", revision);
+	sscanf("$Revision: 1.138 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
