@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 2.0 2013/05/16 00:08:59 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.138 2012/10/24 19:03:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1167,7 +1167,7 @@ static int receive_files(char** fname_list, int fnames)
 			lprintf(LOG_DEBUG,"Incoming filename: %.64s ",fname);
 
 			if(mode&RECVDIR)
-				SAFEPRINTF2(str,"%s%s",fname_list[0],getfname(fname));
+				sprintf(str,"%s%s",fname_list[0],getfname(fname));
 			else {
 				SAFECOPY(str,getfname(fname));
 				for(i=0;i<fnames;i++) {
@@ -1516,7 +1516,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 2.0 $", "%*s %s", revision);
+	sscanf("$Revision: 1.138 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1767,7 +1767,7 @@ int main(int argc, char **argv)
 				bail(1); 
 				return -1;
 			}
-			SAFEPRINTF(str,"%s",argv[i]+1);
+			sprintf(str,"%s",argv[i]+1);
 			if((fp=fopen(str,"r"))==NULL) {
 				fprintf(statfp,"!Error %d opening filelist: %s\n",errno,str);
 				bail(1); 
