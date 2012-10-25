@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.53 2013/09/04 23:06:52 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.42 2011/09/19 03:08:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,7 +252,7 @@ int recvfilesocket(int sock, int file, off_t *offset, off_t count)
 		return(-1);
 	}
 		
-	if((buf=(char*)malloc((size_t)count))==NULL) {
+	if((buf=(char*)alloca((size_t)count))==NULL) {
 		errno=ENOMEM;
 		return(-1);
 	}
@@ -262,17 +262,14 @@ int recvfilesocket(int sock, int file, off_t *offset, off_t count)
 			return(-1);
 
 	rd=read(sock,buf,(size_t)count);
-	if(rd!=count) {
-		free(buf);
+	if(rd!=count)
 		return(-1);
-	}
 
 	wr=write(file,buf,rd);
 
 	if(offset!=NULL)
 		(*offset)+=wr;
 
-	free(buf);
 	return(wr);
 }
 
@@ -347,7 +344,7 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 	uint	i;
 
 	if(addr->sa_family==AF_INET)
-		SAFEPRINTF(port_str," to port %u",ntohs(((SOCKADDR_IN *)(addr))->sin_port));
+		SAFEPRINTF(port_str," to port %u",ntohs(((SOCKADDR_IN *)(addr))->sin_port)); 
 	else
 		port_str[0]=0;
 	for(i=0;i<=retries;i++) {
@@ -385,72 +382,4 @@ int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigne
 			getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen);
 	}
 	return result;
-}
-
-const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
-{
-#ifdef _WIN32
-	static INT (WSAAPI *a2s)(LPSOCKADDR, DWORD, LPWSAPROTOCOL_INFO, LPTSTR, LPDWORD)=NULL;
-	static BOOL searched=FALSE;
-
-	if(!searched) {
-		HMODULE hMod = LoadLibrary("ws2_32.dll");
-
-		searched = TRUE;
-		if(hMod)
-			a2s=(INT (WSAAPI *)(LPSOCKADDR, DWORD, LPWSAPROTOCOL_INFO, LPTSTR, LPDWORD))GetProcAddress(hMod, "WSAAddressToString");
-	}
-
-	if(a2s) {
-		DWORD	dsize=size;
-
-		if(a2s(&addr->addr, SOCK_MAXADDRLEN, NULL, dest, &dsize)==SOCKET_ERROR)
-			return NULL;
-		return dest;
-	}
-	if(addr->addr.sa_family != AF_INET)
-		strncpy(dest, "<Address Family Not Supported>", size);
-	else
-		strncpy(dest, inet_ntoa(addr->in.sin_addr), size);
-	dest[size-1]=0;
-	return dest;
-#else
-	switch(addr->addr.sa_family) {
-		case AF_INET:
-			return inet_ntop(addr->in.sin_family, &addr->in.sin_addr, dest, size);
-		case AF_INET6:
-			return inet_ntop(addr->in6.sin6_family, &addr->in6.sin6_addr, dest, size);
-		case AF_UNIX:
-			strncpy(dest, addr->un.sun_path, size);
-			dest[size-1]=0;
-			return dest;
-		default:
-			safe_snprintf(dest, size, "<unknown address>");
-			return NULL;
-	}
-#endif
-}
-
-uint16_t inet_addrport(union xp_sockaddr *addr)
-{
-	switch(addr->addr.sa_family) {
-		case AF_INET:
-			return ntohs(addr->in.sin_port);
-		case AF_INET6:
-			return ntohs(addr->in6.sin6_port);
-		default:
-			return 0;
-	}
-}
-
-void inet_setaddrport(union xp_sockaddr *addr, uint16_t port)
-{
-	switch(addr->addr.sa_family) {
-		case AF_INET:
-			addr->in.sin_port = htons(port);
-			break;
-		case AF_INET6:
-			addr->in6.sin6_port = htons(port);
-			break;
-	}
 }
