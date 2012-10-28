@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.32 2014/01/15 02:28:01 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.27 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -180,9 +180,7 @@ int matchnode(faddr_t addr, int exact)
 #define SKIPCODE(p)		while(*p<0 || *p>' ') p++
 void read_echo_cfg()
 {
-	char *str = NULL;
-	size_t str_size;
-	char tmp[512],*p,*tp;
+	char str[1025],tmp[512],*p,*tp;
 	short attr=0;
 	int i,j,file;
 	FILE *stream;
@@ -202,12 +200,9 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
-	cfg.zone_blind=FALSE;
-	cfg.zone_blind_threshold=0xffff;
-	SAFECOPY(cfg.sysop_alias,"SYSOP");
 
 	while(1) {
-		if(getdelim(&str,&str_size,'\n',stream)==-1)
+		if(!fgets(str,256,stream))
 			break;
 		truncsp(str);
 		p=str;
@@ -224,10 +219,6 @@ void read_echo_cfg()
 		SKIPCODE(p);                       /* Skip code */
 		SKIPCTRLSP(p);                /* Skip white space */
 
-		if(!stricmp(tmp,"SYSOP_ALIAS")) {
-			SAFECOPY(cfg.sysop_alias, p);
-			continue;
-		}
 		if(!stricmp(tmp,"PACKER")) {             /* Archive Definition */
 			if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
 				,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
@@ -247,7 +238,7 @@ void read_echo_cfg()
 			tp=cfg.arcdef[cfg.arcdefs].hexid;
 			SKIPCODE(tp);
 			*tp=0;
-			while((getdelim(&str,&str_size,'\n',stream) != -1) && strnicmp(str,"END",3)) {
+			while(fgets(str,256,stream) && strnicmp(str,"END",3)) {
 				p=str;
 				SKIPCTRLSP(p);
 				if(!strnicmp(p,"PACK ",5)) {
@@ -269,13 +260,6 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"NOPATHCHECK")) {
 			cfg.check_path=FALSE;
-			continue;
-		}
-
-		if(!stricmp(tmp,"ZONE_BLIND")) {
-			cfg.zone_blind=TRUE;
-			if(*p && isdigit(*p))	/* threshold specified (zones > this threshold will be treated normally/separately) */
-				cfg.zone_blind_threshold=atoi(p);
 			continue;
 		}
 
@@ -381,7 +365,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"USEPACKER")) {          /* Which packer to use */
 			if(!*p)
 				continue;
-			strcpy(str,p);
+			SAFECOPY(str,p);
 			p=str;
 			SKIPCODE(p);
 			if(!*p)
@@ -433,7 +417,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"PKTTYPE")) {            /* Packet Type to Use */
 			if(!*p)
 				continue;
-			strcpy(str,p);
+			SAFECOPY(str,p);
 			p=str;
 			SKIPCODE(p);
 			*p=0;
@@ -647,8 +631,6 @@ void read_echo_cfg()
 	if(cfg.maxbdlsize<1024)
 		cfg.maxbdlsize=DFLT_BDL_SIZE;
 
-	if(str)
-		free(str);
 	printf("\n");
 }
 
