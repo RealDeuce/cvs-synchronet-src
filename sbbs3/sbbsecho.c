@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.213 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: sbbsecho.c,v 1.214 2012/10/29 04:49:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1704,8 +1704,8 @@ void pack_bundle(char *infile,faddr_t dest)
 			return; 
 		}
 
-	if(dest.point && !(misc&FLO_MAILER))
-		sprintf(fname,"%s%04hxp%03hx.%s",outbound,0,(short)dest.point,day);
+	if(dest.point)
+		sprintf(fname,"%s0000p%03hx.%s",outbound,(short)dest.point,day);
 	else
 		sprintf(fname,"%s%04hx%04hx.%s",outbound,(short)(sys_faddr.net-dest.net)
 			,(short)(sys_faddr.node-dest.node),day);
@@ -4018,7 +4018,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.213 $", "%*s %s", revision);
+	sscanf("$Revision: 1.214 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
