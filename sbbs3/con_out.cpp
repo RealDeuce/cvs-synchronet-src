@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.67 2009/02/27 06:15:24 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.69 2011/11/13 01:17:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -458,14 +458,18 @@ void sbbs_t::ctrl_a(char x)
 		case 'T':   /* Time */
 			now=time(NULL);
 			localtime_r(&now,&tm);
-			bprintf("%02d:%02d %s"
-				,tm.tm_hour==0 ? 12
-				: tm.tm_hour>12 ? tm.tm_hour-12
-				: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
+			if(cfg.sys_misc&SM_MILITARY)
+				bprintf("%02u:%02u:%02u"
+					,tm.tm_hour, tm.tm_min, tm.tm_sec);
+			else
+				bprintf("%02d:%02d %s"
+					,tm.tm_hour==0 ? 12
+					: tm.tm_hour>12 ? tm.tm_hour-12
+					: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
 			break;
 		case 'D':   /* Date */
 			now=time(NULL);
-			bputs(unixtodstr(&cfg,now,tmp1));
+			bputs(unixtodstr(&cfg,(time32_t)now,tmp1));
 			break;
 		case ',':   /* Delay 1/10 sec */
 			mswait(100);

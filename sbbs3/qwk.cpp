@@ -2,7 +2,7 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.56 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.59 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,7 +151,6 @@ int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 		if(!fgets(str,256,stream))
 			break;
 		if(!strnicmp(str+9,node,strlen(node))) {
-			fclose(stream);
 			truncsp(str);
 			sprintf(fulladdr,"%s/%s",str+9+strlen(node),inaddr);
 			break; 
@@ -208,7 +207,7 @@ void sbbs_t::update_qwkroute(char *via)
 			for(i=0;i<total_nodes;i++)
 				if(qwk_time[i]>t)
 					fprintf(stream,"%s %s:%s\r\n"
-						,unixtodstr(&cfg,qwk_time[i],str),qwk_node[i],qwk_path[i]);
+						,unixtodstr(&cfg,(time32_t)qwk_time[i],str),qwk_node[i],qwk_path[i]);
 			fclose(stream); 
 		}
 		else
@@ -338,8 +337,8 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 {
 	char	str[MAX_PATH+1];
 	int 	i;
-	long	l,deleted=0;
-	int32_t	msgs;
+	long	deleted=0;
+	uint32_t	u,msgs;
 	mail_t	*mail;
 	smbmsg_t msg;
 
@@ -398,12 +397,12 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 		}
 
 		/* Mark as READ and DELETE */
-		for(l=0;l<msgs;l++) {
-			if(mail[l].number>qwkmail_last)
+		for(u=0;u<msgs;u++) {
+			if(mail[u].number>qwkmail_last)
 				continue;
 			memset(&msg,0,sizeof(msg));
 			/* !IMPORTANT: search by number (do not initialize msg.idx.offset) */
-			if(!loadmsg(&msg,mail[l].number))
+			if(!loadmsg(&msg,mail[u].number))
 				continue;
 			if(!(msg.hdr.attr&MSG_READ)) {
 				if(thisnode.status==NODE_INUSE)
@@ -806,12 +805,12 @@ void sbbs_t::qwk_sec()
 
 void sbbs_t::qwksetptr(uint subnum, char *buf, int reset)
 {
-	long	l;
+	long		l;
 	uint32_t	last;
 
 	if(buf[2]=='/' && buf[5]=='/') {    /* date specified */
-		l=dstrtounix(&cfg,buf);
-		subscan[subnum].ptr=getmsgnum(subnum,l);
+		time_t t=dstrtounix(&cfg,buf);
+		subscan[subnum].ptr=getmsgnum(subnum,t);
 		return; 
 	}
 	l=atol(buf);
