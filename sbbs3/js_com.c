@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.25 2013/02/11 22:35:02 deuce Exp $ */
+/* $Id: js_com.c,v 1.19 2012/10/23 08:19:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,19 +187,16 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], cp, &len);
-	HANDLE_PENDING(cx);
+	JSVALUE_TO_STRING(cx, argv[0], cp, &len);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(cp && comWriteBuf(p->com,(uint8_t *)cp,len)==len) {
+	if(comWriteBuf(p->com,(uint8_t *)cp,len)==len) {
 		dbprintf(FALSE, p, "sent %u bytes",len);
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes failed",len);
 	}
-	if(cp)
-		free(cp);
 	JS_RESUMEREQUEST(cx, rc);
 		
 	return(JS_TRUE);
@@ -229,8 +226,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL);
-	HANDLE_PENDING(cx);
+	JSVALUE_TO_STRING(cx, argv[0], fname, NULL);
 	if(fname==NULL) {
 		JS_ReportError(cx,"Failure reading filename");
 		return(JS_FALSE);
@@ -239,11 +235,9 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if((file=nopen(fname,O_RDONLY|O_BINARY))==-1) {
 		JS_RESUMEREQUEST(cx, rc);
-		free(fname);
 		return(JS_TRUE);
 	}
 
-	free(fname);
 	len=filelength(file);
 	if((buf=malloc(len))==NULL) {
 		close(file);
@@ -364,7 +358,7 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 	}
 
-	if((buf=(char*)malloc(len+1))==NULL) {
+	if((buf=(char*)alloca(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
@@ -374,14 +368,12 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	if(len<0) {
 		p->last_error=ERROR_VALUE;
-		free(buf);
 		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 		return(JS_TRUE);
 	}
 	buf[len]=0;
 
 	str = JS_NewStringCopyN(cx, buf, len);
-	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -418,16 +410,14 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 	}
 
-	if((buf=(char*)malloc(len+1))==NULL) {
+	if((buf=(char*)alloca(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
 
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&timeout)) {
-			free(buf);
+		if(!JS_ValueToInt32(cx,argv[1],&timeout))
 			return JS_FALSE;
-		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -441,7 +431,6 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_RESUMEREQUEST(cx, rc);
 	str = JS_NewStringCopyZ(cx, buf);
-	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -755,22 +744,16 @@ static jsSyncMethodSpec js_com_functions[] = {
 static JSBool js_com_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
-	JSBool			ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		if(JSVAL_IS_STRING(idval)) {
-			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
-		}
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
-	ret=js_SyncResolve(cx, obj, name, js_com_properties, js_com_functions, NULL, 0);
-	if(name)
-		free(name);
-	return ret;
+	return(js_SyncResolve(cx, obj, name, js_com_properties, js_com_functions, NULL, 0));
 }
 
 static JSBool js_com_enumerate(JSContext *cx, JSObject *obj)
@@ -803,10 +786,8 @@ js_com_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 	obj=JS_NewObject(cx, &js_com_class, NULL, NULL);
 	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
-	if(argc > 0) {
-		JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL);
-		HANDLE_PENDING(cx);
-	}
+	if(argc > 0)
+		JSVALUE_TO_STRING(cx, argv[0], fname, NULL);
 	if(argc==0 || fname==NULL) {
 		JS_ReportError(cx,"Failure reading port name");
 		return(JS_FALSE);
@@ -814,12 +795,11 @@ js_com_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((p=(private_t*)malloc(sizeof(private_t)))==NULL) {
 		JS_ReportError(cx,"malloc failed");
-		free(fname);
 		return(JS_FALSE);
 	}
 	memset(p,0,sizeof(private_t));
 
-	p->dev=fname;
+	p->dev=strdup(fname);
 	p->network_byte_order = TRUE;
 	p->baud_rate = 9600;
 	p->com = COM_HANDLE_INVALID;
