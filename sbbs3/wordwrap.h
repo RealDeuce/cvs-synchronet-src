@@ -1,4 +1,4 @@
-/* $Id: wordwrap.h,v 1.3 2010/03/12 18:23:24 rswindell Exp $ */
+/* $Id: wordwrap.h,v 1.6 2011/11/08 02:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
