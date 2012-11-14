@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.20 2013/08/20 07:36:04 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.19 2012/04/25 09:04:21 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -289,9 +289,8 @@ void pty_input_thread(void *args)
 	int		rd;
 	int	buffered;
 	size_t	buffer;
-	int i;
+int i;
 
-	SetThreadName("PTY Input");
 	conn_api.input_thread_running=1;
 	while(master != -1 && !conn_api.terminate) {
 		if((i=waitpid(child_pid, &status, WNOHANG)))
@@ -339,7 +338,6 @@ void pty_output_thread(void *args)
 	int		ret;
 	int	sent;
 
-	SetThreadName("PTY Output");
 	conn_api.output_thread_running=1;
 	while(master != -1 && !conn_api.terminate) {
 		if(waitpid(child_pid, &status, WNOHANG))
