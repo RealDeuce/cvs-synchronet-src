@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.19 2012/11/22 04:55:16 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.18 2012/10/30 06:48:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,8 +221,7 @@ typedef struct {
 			   ,outbound[82]		/* Outbound directory */
 			   ,areafile[128]		/* AREAS.BBS path/filename */
 			   ,logfile[128]		/* LOG path/filename */
-			   ,cfgfile[128]		/* Configuration path/filename */
-			   ,sysop_alias[FIDO_NAME_LEN];
+			   ,cfgfile[128];		/* Configuration path/filename */
 	ulong		maxpktsize			/* Maximum size for packets */
 			   ,maxbdlsize			/* Maximum size for bundles */
 			   ,log					/* What do we log? */
