@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.138 2012/03/07 03:22:51 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.139 2012/10/23 08:13:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1390,7 +1390,7 @@ js_atcode(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
 	char	str[128],str2[128],*p;
 	char	*instr;
-	int		disp_len;
+	size_t	disp_len;
 	bool	padded_left=false;
 	bool	padded_right=false;
 	const char *cp;
