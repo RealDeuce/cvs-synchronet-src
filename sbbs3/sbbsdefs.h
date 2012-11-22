@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.178 2012/03/19 23:31:17 echicken Exp $ */
+/* $Id: sbbsdefs.h,v 1.181 2012/10/18 01:11:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -723,6 +723,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_QWKNET	(1<<7)		/* Writing QWK NetMail (25 char title)		*/
 #define WM_PRIVATE	(1<<8)		/* Private (for creating MSGINF file)		*/
 #define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
+#define WM_EDIT		(1<<10)		/* Editing existing message					*/
+#define WM_FORCEFWD	(1<<11)		/* Force "yes" to ForwardMailQ for email	*/
 								
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
@@ -759,7 +761,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define EX_STDIO	(EX_STDIN|EX_STDOUT)
 #define EX_CONIO	(1<<31)		/* Intercept Windows console I/O (doorway)	*/
 
-#if defined(__unix)
+#if defined(__unix__)
 #define EX_WILDCARD	EX_SH		/* Expand wildcards using 'sh' on Unix		*/
 #else
 #define EX_WILDCARD	0
