@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.320 2012/11/22 06:30:19 rswindell Exp $ */
+/* $Id: js_global.c,v 1.321 2012/11/22 06:52:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1537,9 +1537,9 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 					j--;
 				break;
 			default:
-				if(((uchar)inbuf[i])&0x80) {
+				if(inbuf[i]&0x80) {
 					if(exascii) {
-						ch=((uchar)inbuf[i])^0x80;
+						ch=inbuf[i]^'\x80';
 						if(exasctbl[ch].name!=NULL)
 							j+=sprintf(tmpbuf+j,"&%s;",exasctbl[ch].name);
 						else
