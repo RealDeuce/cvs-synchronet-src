@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.322 2012/11/22 07:03:15 deuce Exp $ */
+/* $Id: js_global.c,v 1.323 2012/11/22 07:20:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1547,13 +1547,13 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 					} else
 						tmpbuf[j++]=inbuf[i];
 				}
-				else if((uchar)inbuf[i]>=' ' && (uchar)inbuf[i]<DEL)
+				else if(inbuf[i]>=' ' && inbuf[i]<DEL)
 					tmpbuf[j++]=inbuf[i];
 #if 0		/* ASCII 127 - Not displayed? */
 				else if(inbuf[i]==DEL && exascii)
 					j+=sprintf(tmpbuf+j,"&#8962;",exasctbl[ch].value);
 #endif
-				else if((uchar)inbuf[i]<' ') /* unknown control chars */
+				else if(inbuf[i]<' ' && inbuf[i] > 0) /* unknown control chars */
 				{
 					if(ansi && inbuf[i]==ESC)
 					{
@@ -1803,7 +1803,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 				{
 					j+=sprintf(outbuf+j,"%s%s%s",HTML_COLOR_PREFIX,htmlansi[0],HTML_COLOR_SUFFIX);
 					lastcolor=0;
-					l=tmpbuf[i+1]-0x7f;
+					l=(tmpbuf[i+1] ^ '\x80')+1;
 					if(l>81-hpos)
 						l=81-hpos;
 					for(k=0; k<l; k++)
