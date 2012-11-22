@@ -1,10 +1,12 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.301 2014/10/06 21:47:46 deuce Exp $ */
+/* $Id: term.c,v 1.297 2012/07/19 06:18:26 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
+#include <mouse.h>
+#include <keys.h>
 
 #include "threadwrap.h"
 #include "filewrap.h"
@@ -363,7 +365,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 {
 	char		orig[128];
 	unsigned	cps;
-	int		l;
+	time_t		l;
 	time_t		t;
 	time_t		now;
 	static time_t last_progress=0;
@@ -391,7 +393,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 			zm->transfer_start_pos=0;
 		if((cps=(unsigned)((current_pos-zm->transfer_start_pos)/t))==0)
 			cps=1;		/* cps so far */
-		l=zm->current_file_size/cps;	/* total transfer est time */
+		l=(time_t)(zm->current_file_size/cps);	/* total transfer est time */
 		l-=t;			/* now, it's est time left */
 		if(l<0) l=0;
 		cprintf("File (%u of %u): %-.*s"
@@ -407,10 +409,10 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 		clreol();
 		cputs("\r\n");
 		cprintf("Time: %lu:%02lu  ETA: %lu:%02lu  Block: %u/CRC-%u  %u cps"
-			,(unsigned long)(t/60L)
-			,(unsigned long)(t%60L)
-			,(unsigned long)(l/60L)
-			,(unsigned long)(l%60L)
+			,t/60L
+			,t%60L
+			,l/60L
+			,l%60L
 			,zm->block_size
 			,zmodem_mode==ZMODEM_MODE_RECV ? (zm->receive_32bit_data ? 32:16) : 
 				(zm->can_fcs_32 && !zm->want_fcs_16) ? 32:16
@@ -434,7 +436,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
-				, (int)(60-l), "");
+				, 60-l, "");
 		last_progress=now;
 		hold_update = FALSE;
 		gotoxy(wherex(), wherey());
@@ -787,7 +789,7 @@ static BOOL is_connected(void* unused)
 static int guts_lputs(void* cbdata, int level, const char* str)
 {
 	struct GUTS_info *gi=cbdata;
-	/* ToDo: Do something useful here. */
+	/* ToDo: Do something usefull here. */
 	/* fprintf(stderr,"%s\n",str); */
 	return(0);
 }
@@ -795,7 +797,7 @@ static int guts_lputs(void* cbdata, int level, const char* str)
 void guts_zmodem_progress(void* cbdata, ulong current_pos)
 {
 	struct GUTS_info *gi=cbdata;
-	/* ToDo: Do something useful here. */
+	/* ToDo: Do something usefull here. */
 	return;
 }
 
@@ -857,7 +859,6 @@ void guts_background_download(void *cbdata)
 	zmodem_t	zm;
 	ulong		bytes_received;
 
-	SetThreadName("GUTS Download");
 	zmodem_mode=ZMODEM_MODE_RECV;
 
 	transfer_buf_len=0;
@@ -884,7 +885,6 @@ void guts_background_upload(void *cbdata)
 	ulong	fsize;
 	FILE*	fp;
 
-	SetThreadName("GUTS Upload");
 	if((fp=fopen(gi.files[0],"rb"))==NULL) {
 		fprintf(stderr,"Error %d opening %s for read",errno,gi.files[0]);
 		return;
@@ -1950,7 +1950,7 @@ void capture_control(struct bbslist *bbs)
 		uifc.helpbuf="`Capture Type`\n\n"
 					"~ ASCII ~ Strips out ANSI sequences\n"
 					"~ Raw ~   Leaves ANSI sequences in\n\n"
-					"Raw is useful for stealing ANSI screens from other systems.\n"
+					"Raw is usefull for stealing ANSI screens from other systems.\n"
 					"Don't do that though.  :-)";
 		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Type",opts)!=-1) {
 			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, NULL, UIFC_FP_ALLOWENTRY);
