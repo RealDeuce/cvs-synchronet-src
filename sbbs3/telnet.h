@@ -2,7 +2,7 @@
 
 /* Synchronet telnet-related constants and function prototypes */
 
-/* $Id: telnet.h,v 1.15 2013/08/17 01:25:30 deuce Exp $ */
+/* $Id: telnet.h,v 1.14 2012/04/11 04:10:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,7 +146,7 @@ enum {
 #undef DLLCALL
 #endif
 
-#if defined(_WIN32) && !defined(TELNET_NO_DLL)
+#ifdef _WIN32
 	#ifdef SBBS_EXPORTS
 		#define DLLEXPORT __declspec(dllexport)
 	#else
