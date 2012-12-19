@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 1.139 2012/12/19 08:57:31 rswindell Exp $ */
+/* $Id: sexyz.c,v 1.140 2012/12/19 20:54:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1167,7 +1167,7 @@ static int receive_files(char** fname_list, int fnames)
 			lprintf(LOG_DEBUG,"Incoming filename: %.64s ",fname);
 
 			if(mode&RECVDIR)
-				SAFEPRINTF(str,"%s%s",fname_list[0],getfname(fname));
+				SAFEPRINTF2(str,"%s%s",fname_list[0],getfname(fname));
 			else {
 				SAFECOPY(str,getfname(fname));
 				for(i=0;i<fnames;i++) {
@@ -1516,7 +1516,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 1.139 $", "%*s %s", revision);
+	sscanf("$Revision: 1.140 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
