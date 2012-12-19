@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.168 2013/02/11 22:52:13 deuce Exp $ */
+/* $Id: jsexec.c,v 1.165 2012/10/26 05:37:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -295,8 +295,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 	jsrefcount	rc;
-	char		*logstr=NULL;
-	size_t		logstr_sz=0;
+	char		*logstr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -308,7 +307,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		JSSTRING_TO_RASTRING(cx, str, logstr, &logstr_sz, NULL);
+		JSSTRING_TO_STRING(cx, str, logstr, NULL);
 		if(logstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -320,7 +319,6 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
-	free(logstr);
 
     return(JS_TRUE);
 }
@@ -340,7 +338,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
-	if((buf=malloc(len))==NULL)
+	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -349,7 +347,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(rd>=0)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd)));
-	free(buf);
 
     return(JS_TRUE);
 }
@@ -369,7 +366,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
-	if((buf=malloc(len+1))==NULL)
+	if((buf=alloca(len+1))==NULL)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -378,7 +375,6 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(p!=NULL)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p))));
-	free(buf);
 
     return(JS_TRUE);
 }
@@ -391,15 +387,14 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     uintN		i;
     JSString*	str=NULL;
 	jsrefcount	rc;
-	char		*line=NULL;
-	size_t		line_sz=0;
+	char		*line;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
     for (i = 0; i < argc; i++) {
 		if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		    return(JS_FALSE);
-		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
+		JSSTRING_TO_STRING(cx, str, line, NULL);
 		if(line==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -411,8 +406,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
-	if(line)
-		free(line);
     return(JS_TRUE);
 }
 
@@ -466,13 +459,12 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], line, NULL);
+	JSVALUE_TO_STRING(cx, argv[0], line, NULL);
 	if(line==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	fprintf(confp,"!%s\n",line);
-	free(line);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, argv[0]);
@@ -495,13 +487,9 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	HANDLE_PENDING(cx);
-	if(cstr==NULL)
-		return JS_TRUE;
-	rc=JS_SUSPENDREQUEST(cx);
+	JSSTRING_TO_STRING(cx, str, cstr, NULL);
 	printf("%s (Y/n)? ", cstr);
-	free(cstr);
+	rc=JS_SUSPENDREQUEST(cx);
 	fgets(instr,sizeof(instr),stdin);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -526,13 +514,9 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	HANDLE_PENDING(cx);
-	if(cstr==NULL)
-		return JS_TRUE;
-	rc=JS_SUSPENDREQUEST(cx);
+	JSSTRING_TO_STRING(cx, str, cstr, NULL);
 	printf("%s (N/y)? ", cstr);
-	free(cstr);
+	rc=JS_SUSPENDREQUEST(cx);
 	fgets(instr,sizeof(instr),stdin);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -554,19 +538,19 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>0 && !JSVAL_IS_VOID(argv[0])) {
-		JSVALUE_TO_MSTRING(cx, argv[0], prstr, NULL);
-		HANDLE_PENDING(cx);
+		JSVALUE_TO_STRING(cx, argv[0], prstr, NULL);
 		if(prstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(confp,"%s: ",prstr);
-		free(prstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(argc>1) {
-		JSVALUE_TO_STRBUF(cx, argv[1], instr, sizeof(instr), NULL);
-		HANDLE_PENDING(cx);
+		JSVALUE_TO_STRING(cx, argv[1], prstr, NULL);
+		if(prstr==NULL)
+		    return(JS_FALSE);
+		SAFECOPY(instr,prstr);
 	} else
 		instr[0]=0;
 
@@ -590,20 +574,16 @@ js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
-	BOOL		ret;
 
-	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx);
+	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	ret=chdir(p)==0;
-	free(p);
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(chdir(p)==0));
 	JS_RESUMEREQUEST(cx, rc);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(ret));
 	return(JS_TRUE);
 }
 
@@ -612,23 +592,15 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p=NULL;
-	BOOL		ret;
-	jsrefcount	rc;
 
-	if(argc) {
-		JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-		HANDLE_PENDING(cx);
-	}
+	if(argc)
+		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
 	}
 
-	rc=JS_SUSPENDREQUEST(cx);
-	ret=putenv(strdup(p))==0;
-	free(p);
-	JS_RESUMEREQUEST(cx, rc);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(ret));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putenv(strdup(p))==0));
 	return(JS_TRUE);
 }
 
@@ -913,9 +885,10 @@ long js_exec(const char *fname, char** args)
 		if(!fgets(line,sizeof(line),fp))
 			break;
 		line_no++;
-		/* Support Unix Shell Scripts that start with #!/path/to/jsexec */
+#if defined(__unix__)	/* Support Unix Shell Scripts that start with #!/path/to/jsexec */
 		if(line_no==1 && strncmp(line,"#!",2)==0)
 			strcpy(line,"\n");	/* To keep line count correct */
+#endif
 		len=strlen(line);
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
 			lprintf(LOG_ERR,"!Error allocating %u bytes of memory"
@@ -949,9 +922,8 @@ long js_exec(const char *fname, char** args)
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
 		char	*p;
 
-		JSVALUE_TO_MSTRING(js_cx, rval, p, NULL);
+		JSVALUE_TO_STRING(js_cx, rval, p, NULL);
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
-		free(p);
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
 	js_EvalOnExit(js_cx, js_glob, &cb);
@@ -1043,7 +1015,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.168 $", "%*s %s", revision);
+	sscanf("$Revision: 1.165 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
