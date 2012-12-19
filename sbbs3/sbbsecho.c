@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.218 2013/09/16 03:08:11 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.216 2012/11/22 04:55:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,6 +36,10 @@
  ****************************************************************************/
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
+
+#ifdef _WIN32
+	#include <windows.h>
+#endif
 
 #include <time.h>
 #include <errno.h>
@@ -2711,7 +2715,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	if(area.name && addr.zone!=fmsghdr.destzone)	/* Zone Gate */
 		fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
 
-	if(area.name /* && addr.zone==fmsghdr.destzone */) {	/* Not NetMail */
+	if(area.name && addr.zone==fmsghdr.destzone) {	/* Not NetMail */
 		fprintf(stream,"SEEN-BY:");
 		for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
 			strcpy(seenby," ");
@@ -4035,7 +4039,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.218 $", "%*s %s", revision);
+	sscanf("$Revision: 1.216 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
