@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.61 2013/05/12 07:34:56 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.57 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -134,17 +134,15 @@ void sbbs_t::readmail(uint usernumber, int which)
 		ASYNC;
 		if(!(sys_status&SS_ABORT)) {
 			bprintf(text[StartWithN],1L);
-			l=getnum(smb.msgs);
-			if(l>0)
-				smb.curmsg=l-1;
-			else if(l==-1) {
+			if((long)(smb.curmsg=getnum(smb.msgs))>0)
+				smb.curmsg--;
+			else if((long)smb.curmsg==-1) {
 				free(mail);
 				smb_close(&smb);
 				smb_stack(&smb,SMB_STACK_POP);
-				return;
+				return; 
 			}
-			else
-				smb.curmsg=l;
+			
 		}
 		sys_status&=~SS_ABORT; 
 	}
@@ -168,7 +166,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 			"allmail" : "sentmail");
 		menu(str); 
 	}
-	current_msg=&msg;	/* For MSG_* @-codes and bbs.msg_* property values */
 	while(online && !done) {
 		action=act;
 
@@ -522,7 +519,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					bputs(text[MailOnSystemLstHdr]);
 				else
 					bputs(text[MailWaitingLstHdr]);
-				for(u=i;u<smb.msgs && !msgabort();u++) {
+				for(;u<smb.msgs && !msgabort();u++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
@@ -769,6 +766,5 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
-	current_msg=NULL;
 }
 
