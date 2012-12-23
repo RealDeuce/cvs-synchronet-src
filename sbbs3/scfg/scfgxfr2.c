@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.35 2013/09/18 16:39:00 deuce Exp $ */
+/* $Id: scfgxfr2.c,v 1.34 2012/12/19 12:19:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -440,7 +440,7 @@ export to.
 						,cfg.dir[j]->dl_arstr
 						,cfg.dir[j]->op_arstr
 						);
-					fprintf(stream,"%s\r\n%s\r\n%u\r\n%s\r\n%"PRIX32"\r\n%u\r\n"
+					fprintf(stream,"%s\r\n%s\r\n%u\r\n%s\r\n%lX\r\n%u\r\n"
 							"%u\r\n"
 						,cfg.dir[j]->path
 						,cfg.dir[j]->upload_sem
@@ -666,7 +666,7 @@ command: `DIR /ON /AD /B > DIRS.RAW`
 				}
 				fclose(stream);
 				uifc.pop(0);
-				sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
+				sprintf(str,"%lu File Areas Imported Successfully (%u added)",ported, added);
                 uifc.msg(str);
                 break;
 

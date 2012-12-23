@@ -1,6 +1,6 @@
 /* scfgchat.c */
 
-/* $Id: scfgchat.c,v 1.12 2013/09/18 16:39:00 deuce Exp $ */
+/* $Id: scfgchat.c,v 1.11 2012/12/19 12:19:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -315,7 +315,7 @@ channel name.
 		k=0;
 		sprintf(opt[k++],"%-27.27s%s","Name",cfg.chan[i]->name);
 		sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.chan[i]->code);
-		sprintf(opt[k++],"%-27.27s%"PRIu32,"Cost in Credits",cfg.chan[i]->cost);
+		sprintf(opt[k++],"%-27.27s%lu","Cost in Credits",cfg.chan[i]->cost);
 		sprintf(opt[k++],"%-27.27s%.40s","Access Requirements"
 			,cfg.chan[i]->arstr);
 		sprintf(opt[k++],"%-27.27s%s","Password Protection"
