@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.144 2011/11/12 02:37:34 rswindell Exp $ */
+/* $Id: js_file.c,v 1.145 2012/10/23 08:22:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2100,9 +2100,9 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				case FILE_PROP_MD5_B64:
 					MD5_close(&md5_ctx,digest);
 					if(tiny==FILE_PROP_MD5_HEX)
-						MD5_hex(str,digest);
+						MD5_hex((BYTE*)str,digest);
 					else 
-						b64_encode(str,sizeof(str)-1,digest,sizeof(digest));
+						b64_encode(str,sizeof(str)-1,(char *)digest,sizeof(digest));
 					js_str=JS_NewStringCopyZ(cx, str);
 					break;
 			}
