@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.75 2011/04/21 20:34:19 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.77 2012/10/18 17:48:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -640,6 +640,7 @@ static void ansi_keyparse(void *par)
 	int		unknown=0;
 
 	seq[0]=0;
+	SetThreadName("ANSI Keyparse");
 	for(;;) {
 		if(ansi_got_row)
 			sem_wait(&goahead);
@@ -943,12 +944,7 @@ int ansi_initio_cb(void)
 	if (isatty(STDIN_FILENO))  {
 		tcgetattr(STDIN_FILENO,&tio_default);
 		tio_raw = tio_default;
-		/* cfmakeraw(&tio_raw); */
-		tio_raw.c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-		tio_raw.c_oflag &= ~OPOST;
-		tio_raw.c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-		tio_raw.c_cflag &= ~(CSIZE|PARENB);
-		tio_raw.c_cflag |= CS8;
+		cfmakeraw(&tio_raw);
 		tcsetattr(STDIN_FILENO,TCSANOW,&tio_raw);
 		setvbuf(stdout, NULL, _IONBF, 0);
 		atexit(ansi_fixterm);
