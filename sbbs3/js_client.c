@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.22 2011/10/16 12:27:01 rswindell Exp $ */
+/* $Id: js_client.c,v 1.24 2011/10/29 03:53:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,7 +72,7 @@ static JSBool js_client_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
 	jsval idval;
 	const char*	p=NULL;
-	ulong		val=0;
+	int32		val=0;
     jsint       tiny;
 	JSString*	js_str;
 	client_t*	client;
@@ -94,7 +94,7 @@ static JSBool js_client_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			val=client->port;
 			break;
 		case CLIENT_PROP_TIME:
-			val=client->time;
+			val=(int32)client->time;
 			break;
 		case CLIENT_PROP_PROTOCOL:
 			p=(char*)client->protocol;
@@ -137,7 +137,8 @@ static JSBool js_client_resolve(JSContext *cx, JSObject *obj, jsid id)
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval))
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 	}
 
 	return(js_SyncResolve(cx, obj, name, js_client_properties, NULL, NULL, 0));
