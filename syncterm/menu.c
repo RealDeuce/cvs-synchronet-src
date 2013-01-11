@@ -1,10 +1,11 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.50 2014/02/06 11:46:50 deuce Exp $ */
+/* $Id: menu.c,v 1.49 2012/07/19 06:24:15 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
+#include <keys.h>
 
 #include "cterm.h"
 #include "term.h"
