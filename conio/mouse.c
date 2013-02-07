@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.38 2011/12/04 15:51:40 deuce Exp $ */
+/* $Id: mouse.c,v 1.39 2012/10/18 17:48:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -206,6 +206,7 @@ void ciolib_mouse_thread(void *data)
 	int delay;
 	clock_t	ttime=0;
 
+	SetThreadName("Mouse");
 	init_mouse();
 	while(1) {
 		timedout=0;
