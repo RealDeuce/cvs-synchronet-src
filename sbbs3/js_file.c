@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.144 2011/11/12 02:37:34 rswindell Exp $ */
+/* $Id: js_file.c,v 1.146 2012/12/24 11:17:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -635,9 +635,6 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
-
-	if(p->fp==NULL)
-		return(JS_TRUE);
 
 	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_STRING(cx, argv[0], section, NULL);
@@ -2100,9 +2097,9 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				case FILE_PROP_MD5_B64:
 					MD5_close(&md5_ctx,digest);
 					if(tiny==FILE_PROP_MD5_HEX)
-						MD5_hex(str,digest);
+						MD5_hex((BYTE*)str,digest);
 					else 
-						b64_encode(str,sizeof(str)-1,digest,sizeof(digest));
+						b64_encode(str,sizeof(str)-1,(char *)digest,sizeof(digest));
 					js_str=JS_NewStringCopyZ(cx, str);
 					break;
 			}
