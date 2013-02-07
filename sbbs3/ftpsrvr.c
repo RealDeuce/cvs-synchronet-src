@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.401 2013/02/07 06:20:21 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.398 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,7 +389,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	FILE*	fp;
 	jsrefcount	rc;
 	char		*p;
-	size_t		len;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -400,13 +399,9 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		str = JS_ValueToString(cx, argv[i]);
 		if (!str)
 		    return JS_FALSE;
-		JSSTRING_TO_MSTRING(cx, str, p, &len);
-		HANDLE_PENDING(cx);
+		JSSTRING_TO_STRING(cx, str, p, NULL);
 		rc=JS_SUSPENDREQUEST(cx);
-		if(p) {
-			fwrite(p, len, 1, fp);
-			free(p);
-		}
+		fprintf(fp,"%s", p);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -4541,7 +4536,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.401 $", "%*s %s", revision);
+	sscanf("$Revision: 1.398 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
