@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.70 2013/09/04 23:04:12 deuce Exp $ */
+/* $Id: startup.h,v 1.69 2011/10/28 08:05:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,8 +87,8 @@ typedef struct {
 	WORD	outbuf_highwater_mark;	/* output block size control */
 	WORD	outbuf_drain_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
-    uint32_t   telnet_interface;
-    uint32_t	options;			/* See BBS_OPT definitions */
+    DWORD   telnet_interface;
+    DWORD	options;			/* See BBS_OPT definitions */
     DWORD	rlogin_interface;
 	DWORD	ssh_interface;
     RingBuf** node_spybuf;			/* Spy output buffer (each node)	*/
