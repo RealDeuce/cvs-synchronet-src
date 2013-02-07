@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.57 2012/02/18 00:11:24 deuce Exp $ */
+/* $Id: ciolib.h,v 1.58 2012/10/24 19:02:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -313,8 +313,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textcolor(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_highvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_lowvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,unsigned char *e);
-CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,unsigned char *e);
+CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e);
+CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textattr(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a);
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a);

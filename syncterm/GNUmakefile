@@ -124,11 +124,13 @@ ifneq ($(os),haiku)
            $(MTOBJODIR)$(DIRSEP)modem$(OFILE) \
            $(MTOBJODIR)$(DIRSEP)comio$(OFILE)
 endif
-OBJS	+= $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
+OBJS += $(MTOBJODIR)$(DIRSEP)conn_pty$(OFILE)
 ifndef bcc
  ifneq ($(os),sunos)
   ifneq ($(os),darwin)
-   EXTRA_LIBS   +=  -lutil
+    ifneq ($(os),haiku)
+      EXTRA_LIBS   +=  -lutil
+	endif
   endif
  endif
 endif
