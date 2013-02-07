@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.43 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.44 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,8 +141,8 @@ void sbbs_t::nodesync()
 
 		if(!(sys_status&SS_NEWDAY)) {
 			now=time(NULL);
-			unixtodstr(&cfg,logontime,str);
-			unixtodstr(&cfg,now,today);
+			unixtodstr(&cfg,(time32_t)logontime,str);
+			unixtodstr(&cfg,(time32_t)now,today);
 			if(strcmp(str,today)) { /* New day, clear "today" user vars */
 				sys_status|=SS_NEWDAY;	// So we don't keep doing this over&over
 				resetdailyuserdat(&cfg, &useron,/* write: */true);

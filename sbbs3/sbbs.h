@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.378 2011/10/16 10:15:39 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.394 2013/02/07 00:27:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -64,7 +64,7 @@
 #if defined(__cplusplus)
 	extern "C"
 #endif
-	extern HINSTANCE hK32;
+	HINSTANCE hK32;
 
 #elif defined(__unix__)		/* Unix-variant */
 
@@ -110,6 +110,33 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include <jsversion.h>
 #include <jsapi.h>
 #define JS_DestroyScript(cx,script)
+
+#define JSSTRING_TO_MSTRING(cx, str, ret, lenptr) \
+{ \
+	size_t			*JSSTSlenptr=lenptr; \
+	size_t			JSSTSlen; \
+	size_t			JSSTSpos; \
+	const jschar	*JSSTSstrval; \
+\
+	if(JSSTSlenptr==NULL) \
+		JSSTSlenptr=&JSSTSlen; \
+	(ret)=NULL; \
+	if((str) != NULL) { \
+		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
+			if(((ret)=(char *)malloc(*JSSTSlenptr+1))) { \
+				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
+					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
+				(ret)[*JSSTSlenptr]=0; \
+			} \
+		} \
+	} \
+}
+
+#define JSVALUE_TO_MSTRING(cx, val, ret, lenptr) \
+{ \
+	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
+	JSSTRING_TO_MSTRING((cx), JSVTSstr, (ret), lenptr); \
+}
 
 #define JSSTRING_TO_STRING(cx, str, ret, lenptr) \
 { \
@@ -226,6 +253,7 @@ public:
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
 	bool	input_thread_mutex_locked;	// by someone other than the input_thread
+	pthread_mutex_t	ssh_mutex;
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
@@ -256,14 +284,14 @@ public:
 
 #ifdef JAVASCRIPT
 
-	JSRuntime*	js_runtime;
-	JSContext*	js_cx;
-	JSObject*	js_glob;
-	js_branch_t	js_branch;
-	long		js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
-	bool		js_init(ulong* stack_frame);
-	void		js_cleanup(const char* node);
-	void		js_create_user_objects(void);
+	JSRuntime*		js_runtime;
+	JSContext*		js_cx;
+	JSObject*		js_glob;
+	js_callback_t	js_callback;
+	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
+	bool			js_init(ulong* stack_frame);
+	void			js_cleanup(const char* node);
+	void			js_create_user_objects(void);
 
 #endif
 
@@ -498,7 +526,7 @@ public:
 
 	/* writemsg.cpp */
 	void	automsg(void);
-	bool	writemsg(const char *str, const char *top, char *title, long mode, int subnum
+	bool	writemsg(const char *str, const char *top, char *title, long mode, uint subnum
 				,const char *dest, char** editor=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
@@ -508,7 +536,7 @@ public:
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
-	bool	editfile(char *path);
+	bool	editfile(char *path, bool msg=false);
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	ushort	chmsgattr(ushort attr);
 	void	show_msgattr(ushort attr);
@@ -521,8 +549,8 @@ public:
 				,uint subnum);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
-	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines);
-	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines);
+	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
+	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
@@ -533,7 +561,7 @@ public:
 	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
-	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode);
+	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -761,6 +789,12 @@ public:
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
 	int		qwk_route(char *inaddr, char *fulladdr);
+	uint	total_qwknodes;
+	struct qwknode {
+		char	id[LEN_QWKID+1];
+		char	path[MAX_PATH+1];
+		time_t	time;
+	}* qwknode;
 	void	update_qwkroute(char *via);
 	void	qwk_success(ulong msgcnt, char bi, char prepack);
 	void	qwksetptr(uint subnum, char *buf, int reset);
@@ -781,7 +815,7 @@ public:
 	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf, FILE* hdrs_dat);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat);
 
 	/* qwktomsg.cpp */
 	void	qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
@@ -835,15 +869,20 @@ public:
 #undef DLLCALL
 #endif
 #ifdef _WIN32
-	#ifdef SBBS_EXPORTS
-		#define DLLEXPORT	__declspec(dllexport)
-	#else
-		#define DLLEXPORT	__declspec(dllimport)
-	#endif
-	#ifdef __BORLANDC__
-		#define DLLCALL __stdcall
-	#else
+	#ifdef __MINGW32__
+		#define DLLEXPORT
 		#define DLLCALL
+	#else
+		#ifdef SBBS_EXPORTS
+			#define DLLEXPORT	__declspec(dllexport)
+		#else
+			#define DLLEXPORT	__declspec(dllimport)
+		#endif
+		#ifdef __BORLANDC__
+			#define DLLCALL __stdcall
+		#else
+			#define DLLCALL
+		#endif
 	#endif
 #else	/* !_WIN32 */
 	#define DLLEXPORT
@@ -865,7 +904,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, int32_t* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
@@ -916,6 +955,7 @@ extern "C" {
 	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
 	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
 	DLLEXPORT char *	DLLCALL rot13(char* str);
+	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
@@ -924,11 +964,11 @@ extern "C" {
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
-	DLLEXPORT time_t	DLLCALL dstrtounix(scfg_t*, char *str);
-	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time_t, char *str);
+	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, const char *str);
+	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time32_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
-	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time_t intime, char* str);
+	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
 
@@ -953,7 +993,7 @@ extern "C" {
 
 
 	/* scfglib1.c */
-	DLLEXPORT char *	DLLCALL prep_dir(char* base, char* dir, size_t buflen);
+	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
@@ -1035,32 +1075,40 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], uintN flags);
 
-	#define JSVAL_IS_NUM(v)		(JSVAL_IS_NUMBER(v))
-
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
 										,js_server_props_t* props);
 
 	/* js_global.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*);
-	DLLEXPORT JSObject*	DLLCALL js_CreateCommonObjects(JSContext* cx
+	typedef struct {
+		scfg_t*				cfg;
+		jsSyncMethodSpec*	methods;
+		js_startup_t*		startup;
+		unsigned			bg_count;
+		sem_t				bg_sem;
+		str_list_t			exit_func;
+	} global_private_t;
+	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, uintN argc, uintN min);
+	DLLEXPORT BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*, JSObject**);
+	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
 													,jsSyncMethodSpec* methods	/* global */
 													,time_t uptime				/* system */
 													,char* host_name			/* system */
 													,char* socklib_desc			/* system */
-													,js_branch_t*				/* js */
+													,js_callback_t*				/* js */
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
 													,js_server_props_t* props	/* server */
+													,JSObject** glob
 													);
 
 	/* js_internal.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_branch_t*, js_startup_t*);
-	DLLEXPORT JSBool	DLLCALL js_CommonBranchCallback(JSContext*, js_branch_t*);
-	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_branch_t*);
+	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_callback_t*, js_startup_t*);
+	DLLEXPORT JSBool	DLLCALL js_CommonOperationCallback(JSContext*, js_callback_t*);
+	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_callback_t*);
 	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
 	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
 
