@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.222 2013/09/30 00:16:21 deuce Exp $
+# $Id: GNUmakefile,v 1.221 2012/06/01 06:33:01 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -48,10 +48,6 @@ endif
 
 ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
-endif
-
-ifdef BUILD_JSDOCS
- CFLAGS += -DBUILD_JSDOCS
 endif
 
 ifeq ($(os),linux)

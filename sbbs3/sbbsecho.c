@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.221 2013/09/28 01:04:40 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.216 2012/11/22 04:55:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,6 +36,10 @@
  ****************************************************************************/
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
+
+#ifdef _WIN32
+	#include <windows.h>
+#endif
 
 #include <time.h>
 #include <errno.h>
@@ -1824,13 +1828,10 @@ BOOL unpack_bundle(void)
 		}
 		if(gi<g.gl_pathc) {
 			SAFECOPY(fname,g.gl_pathv[gi]);
-			gi++;
 			lprintf(LOG_DEBUG,"Unpacking bundle: %s",fname);
 			if(unpack(fname)) {	/* failure */
 				lprintf(LOG_ERR,"!Unpack failure");
-				if(fdate(fname)+(48L*60L*60L)<time(NULL)) {	
-					/* If bundle file older than 48 hours, give up and rename
-					   to "*.?_?" or (if it exists) "*.?-?" */
+				if(fdate(fname)+(48L*60L*60L)>time(NULL)) {
 					SAFECOPY(str,fname);
 					str[strlen(str)-2]='_';
 					if(fexistcase(str))
@@ -1840,13 +1841,15 @@ BOOL unpack_bundle(void)
 					if(rename(fname,str))
 						lprintf(LOG_ERR,"ERROR line %d renaming %s to %s"
 							,__LINE__,fname,str); 
-				}
-				continue;
+				} 
 			}
-			lprintf(LOG_DEBUG,"Deleting bundle: %s", fname);
-			if(delfile(fname))	/* successful, so delete bundle */
-				lprintf(LOG_ERR,"ERROR line %d removing %s %s",__LINE__,fname
-					,strerror(errno));
+			else {
+				lprintf(LOG_DEBUG,"Deleting bundle: %s", fname);
+				if(delfile(fname))	/* successful, so delete bundle */
+					lprintf(LOG_ERR,"ERROR line %d removing %s %s",__LINE__,fname
+						,strerror(errno));
+			}
+			gi++;
 			return(TRUE); 
 		} 
 	}
@@ -2712,7 +2715,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	if(area.name && addr.zone!=fmsghdr.destzone)	/* Zone Gate */
 		fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
 
-	if(area.name /* && addr.zone==fmsghdr.destzone */) {	/* Not NetMail */
+	if(area.name && addr.zone==fmsghdr.destzone) {	/* Not NetMail */
 		fprintf(stream,"SEEN-BY:");
 		for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
 			strcpy(seenby," ");
@@ -3336,7 +3339,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	ulong length;
 	faddr_t addr;
 
-	hdr.destzone=sys_faddr.zone;
+	hdr.destzone=hdr.origzone=sys_faddr.zone;
 	hdr.destpoint=hdr.origpoint=0;
 	getzpt(fidomsg,&hdr);				/* use kludge if found */
 	for(match=0;match<scfg.total_faddrs;match++)
@@ -4036,7 +4039,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.221 $", "%*s %s", revision);
+	sscanf("$Revision: 1.216 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4419,13 +4422,6 @@ int main(int argc, char **argv)
 				continue; 
 			}
 
-			if(pkthdr.pkttype != 2) {
-				fclose(fidomsg);
-				lprintf(LOG_WARNING,"%s is not a type 2 packet (type=%u)"
-					,packet, pkthdr.pkttype);
-				continue; 
-			}
-
 			pkt_faddr.zone=pkthdr.origzone ? pkthdr.origzone:sys_faddr.zone;
 			pkt_faddr.net=pkthdr.orignet;
 			pkt_faddr.node=pkthdr.orignode;
@@ -4434,18 +4430,18 @@ int main(int argc, char **argv)
 			printf("%21s: %s "
 				,secure ? "Importing Secure Pkt" : "Importing Packet",packet+offset);
 			memcpy(&two_plus,&pkthdr.empty,sizeof(two_plus));
-			if(two_plus.cword==_rotr(two_plus.cwcopy,8)  /* 2+ Packet Header (see FSC-48 for explanation of this insanity) */
+			if(two_plus.cword==_rotr(two_plus.cwcopy,8)  /* 2+ Packet Header */
 				&& two_plus.cword && two_plus.cword&1) {
 				pkt_type=PKT_TWO_PLUS;
-				pkt_faddr.point=two_plus.origpoint;
-				if(pkt_faddr.point != 0 && pkthdr.orignet == -1)
-					pkt_faddr.net=two_plus.auxnet ? two_plus.auxnet:sys_faddr.net;
+				pkt_faddr.point=two_plus.origpoint ? two_plus.origpoint:0;
+				if(pkt_faddr.point && pkthdr.orignet==-1)
+					pkt_faddr.net=two_plus.auxnet ? two_plus.auxnet:sys_faddr.zone;
 				printf("(Type 2+)");
 				if(cfg.log&LOG_PACKETS)
 					logprintf("Importing %s%s (Type 2+) from %s"
 						,secure ? "(secure) ":"",packet+offset,smb_faddrtoa(&pkt_faddr,NULL)); 
 			}
-			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header (FSC-45) */
+			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header */
 				pkt_type=PKT_TWO_TWO;
 				memcpy(&two_two,&pkthdr.empty,sizeof(two_two));
 				pkt_faddr.point=pkthdr.year ? pkthdr.year:0;
@@ -4454,7 +4450,7 @@ int main(int argc, char **argv)
 					logprintf("Importing %s%s (Type 2.2) from %s"
 						,secure ? "(secure) ":"",packet+offset,smb_faddrtoa(&pkt_faddr,NULL)); 
 			}
-			else {	/* Type 2.0, FTS-1 */
+			else {
 				pkt_type=PKT_TWO;
 				printf("(Type 2)");
 				if(cfg.log&LOG_PACKETS)
@@ -4485,10 +4481,6 @@ int main(int argc, char **argv)
 
 				memset(&hdr,0,sizeof(fmsghdr_t));
 
-				/* Sept-16-2013: copy the origin zone from the packet header
-				   as packed message headers don't have the zone information */
-				hdr.origzone=pkt_faddr.zone;
-
 				if(start_tick)
 					import_ticks+=msclock()-start_tick;
 				start_tick=msclock();
@@ -4499,6 +4491,45 @@ int main(int argc, char **argv)
 				}
 
 				grunged=FALSE;
+
+#if 0	/* Old way */
+
+				if(!fread(&ch,1,1,fidomsg)) 		 /* Message type (0200h) */
+					break;
+				if(ch!=02)
+					continue;
+				if(!fread(&ch,1,1,fidomsg))
+					break;
+				if(ch!=00)
+					continue;
+				fread(&hdr.orignode,2,1,fidomsg);
+				fread(&hdr.destnode,2,1,fidomsg);
+				fread(&hdr.orignet,2,1,fidomsg);
+				fread(&hdr.destnet,2,1,fidomsg);
+				fread(&hdr.attr,2,1,fidomsg);
+				fread(&hdr.cost,2,1,fidomsg);
+
+				for(i=0;i<sizeof(hdr.time);i++) 		/* Read in the Date/Time */
+					if(!fread(hdr.time+i,1,1,fidomsg) || !hdr.time[i])
+						break;
+				if(i==sizeof(hdr.time)) grunged=1;
+
+				for(i=0;!grunged && i<sizeof(hdr.to);i++) /* Read in the 'To' Field */
+					if(!fread(hdr.to+i,1,1,fidomsg) || !hdr.to[i])
+						break;
+				if(i==sizeof(hdr.to)) grunged=1;
+
+				for(i=0;!grunged && i<sizeof(hdr.from);i++) /* Read in 'From' Field */
+					if(!fread(hdr.from+i,1,1,fidomsg) || !hdr.from[i])
+						break;
+				if(i==sizeof(hdr.from)) grunged=1;
+
+				for(i=0;!grunged && i<sizeof(hdr.subj);i++) /* Read in 'Subj' Field */
+					if(!fread(hdr.subj+i,1,1,fidomsg) || !hdr.subj[i])
+						break;
+				if(i==sizeof(hdr.subj)) grunged=1;
+
+#else	/* New way */
 
 				/* Read fixed-length header fields */
 				if(fread(&pkdmsg,sizeof(BYTE),sizeof(pkdmsg),fidomsg)!=sizeof(pkdmsg))
@@ -4521,6 +4552,7 @@ int main(int argc, char **argv)
 					freadstr(fidomsg,hdr.from,sizeof(hdr.from));
 					freadstr(fidomsg,hdr.subj,sizeof(hdr.subj));
 				}
+#endif
 				hdr.attr&=~FIDO_LOCAL;	/* Strip local bit, obviously not created locally */
 
 				str[0]=0;
