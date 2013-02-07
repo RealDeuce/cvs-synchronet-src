@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.24 2013/02/07 00:37:50 deuce Exp $ */
+/* $Id: js_conio.c,v 1.25 2013/02/07 00:45:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1137,7 +1137,8 @@ static JSBool js_conio_resolve(JSContext *cx, JSObject *obj, jsid id)
 	}
 
 	ret=js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0);
-	free(name);
+	if(name)
+		free(name);
 	return ret;
 }
 
