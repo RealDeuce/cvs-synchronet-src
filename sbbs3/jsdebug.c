@@ -122,14 +122,13 @@ static void killscript_handler(JSContext *cx, JSScript *script, void *callerdata
 
 	if(dbg==NULL)
 		return;
-	for(node=listFirstNode(&scripts); node; node==NULL?listFirstNode(&scripts):listNextNode(node)) {
+	for(node=listFirstNode(&scripts); node; node=listNextNode(node)) {
 		cs=(struct cur_script *)node->data;
 
 		if(cs->script == script) {
 			pnode=listPrevNode(node);
 			free(cs->fname);
 			listRemoveNode(&scripts, node, TRUE);
-			node = pnode;
 		}
 	}
 }
@@ -216,7 +215,7 @@ static enum debug_action script_debug_prompt(struct debugger *dbg, JSScript *scr
 
 					name=JS_GetFunctionId(fn);
 					if(name) {
-						JSSTRING_TO_ASTRING(dbg->cx, name, cp, 128, NULL);
+						JSSTRING_TO_STRING(dbg->cx, name, cp, NULL);
 						msg=xp_asprintf(" %s()", cp);
 						if(msg) {
 							dbg->puts(msg);
@@ -368,7 +367,7 @@ static enum debug_action script_debug_prompt(struct debugger *dbg, JSScript *scr
 
 					name=JS_GetFunctionId(fn);
 					if(name) {
-						JSSTRING_TO_ASTRING(dbg->cx, name, cp, 128, NULL);
+						JSSTRING_TO_STRING(dbg->cx, name, cp, NULL);
 						msg=xp_asprintf("in %s() ", cp);
 						if(msg) {
 							dbg->puts(msg);
