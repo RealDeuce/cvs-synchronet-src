@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.17 2012/04/25 08:52:50 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.19 2012/04/25 09:04:21 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -203,7 +203,7 @@ daemon(int nochdir, int noclose)
 }
 #endif
 
-static int openpty(int *amaster, int *aslave, char *name, struct termios *termp, winsize *winp)
+static int openpty(int *amaster, int *aslave, char *name, struct termios *termp, struct winsize *winp)
 {
 	char line[] = "/dev/ptyXX";
 	const char *cp1, *cp2;
@@ -250,7 +250,7 @@ static int openpty(int *amaster, int *aslave, char *name, struct termios *termp,
 	return (-1);
 }
 
-static int forkpty(int *amaster, char *name, termios *termp, winsize *winp)
+static int forkpty(int *amaster, char *name, struct termios *termp, struct winsize *winp)
 {
 	int master, slave, pid;
 
