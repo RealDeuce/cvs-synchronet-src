@@ -5,9 +5,7 @@
 
 #include <ciolib.h>
 #include <gen_defs.h>
-#if defined(_WIN32)
- #include <malloc.h>	/* alloca() on Win32 */
-#endif
+#include <keys.h>
 
 #include "crt.h"
 #include "syncdraw.h"

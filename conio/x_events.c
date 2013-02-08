@@ -20,8 +20,10 @@
 #include <dirwrap.h>
 
 #include "vidmodes.h"
+#include "allfonts.h"
 
-#include "ciolib.h"
+#include "keys.h"
+#include "mouse.h"
 #include "bitmap_con.h"
 #include "link_list.h"
 #include "x_events.h"
