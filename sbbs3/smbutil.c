@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.105 2014/03/20 07:38:39 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.103 2012/10/24 19:03:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -641,34 +641,6 @@ void maint(void)
 			,beep,i,smb.last_error);
 		return; 
 	}
-	if(smb_open_hash(&smb) == SMB_SUCCESS)
-	{
-		ulong max_hashes=0;
-
-		printf("Maintaining %s hash file\r\n", smb.file);
-
-		if((smb.status.attr&(SMB_EMAIL|SMB_NOHASH)) == 0) {
-			max_hashes = smb.status.max_msgs;
-			if(smb.status.max_crcs > max_hashes)
-				max_hashes = smb.status.max_crcs;
-		}
-		if(!max_hashes) {
-			CHSIZE_FP(smb.hash_fp,0);
-		} else if(filelength(fileno(smb.hash_fp)) > (long)(max_hashes * SMB_HASH_SOURCE_TYPES * sizeof(hash_t))) {
-			if(fseek(smb.hash_fp, -((long)(max_hashes * SMB_HASH_SOURCE_TYPES * sizeof(hash_t))), SEEK_END) == 0) {
-				hash_t*	hashes = malloc(max_hashes * SMB_HASH_SOURCE_TYPES * sizeof(hash_t));
-				if(hashes != NULL) {
-					if(fread(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp) == max_hashes * SMB_HASH_SOURCE_TYPES) {
-						CHSIZE_FP(smb.hash_fp,0);
-						rewind(smb.hash_fp);
-						fwrite(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp);
-					}
-					free(hashes);
-				}
-			}
-		}
-		smb_close_hash(&smb);
-	}
 	if(!smb.status.total_msgs) {
 		smb_unlocksmbhdr(&smb);
 		printf("Empty\n");
@@ -713,7 +685,7 @@ void maint(void)
 				idx[m].attr|=MSG_DELETE; 
 			} 
 		}  /* mark for deletion */
-		printf("\r100%% (%lu flagged for deletion due to age)\n",f); 
+		printf("\r100%% (%lu flagged for deletion)\n",f); 
 	}
 
 	printf("Scanning for read messages to be killed...\n");
@@ -727,7 +699,7 @@ void maint(void)
 			idx[m].attr|=MSG_DELETE; 
 		} 
 	}
-	printf("\r100%% (%lu flagged for deletion due to read status)\n",f);
+	printf("\r100%% (%lu flagged for deletion)\n",f);
 
 	if(smb.status.max_msgs && l-flagged>smb.status.max_msgs) {
 		printf("Flagging excess messages for deletion...\n");
@@ -947,7 +919,7 @@ void packmsgs(ulong packable)
 		}
 
 		if(packable && (m*SDT_BLOCK_LEN)+(n*SHD_BLOCK_LEN)<packable*1024L) {
-			printf("\r%lu less than %lu compressible bytes.\n\n",(m*SDT_BLOCK_LEN)+(n*SHD_BLOCK_LEN), packable*1024L);
+			printf("\rLess than %luk compressible bytes.\n\n",packable);
 			smb_close_ha(&smb);
 			smb_close_da(&smb);
 			smb_unlocksmbhdr(&smb);
@@ -1002,7 +974,7 @@ void packmsgs(ulong packable)
 		}
 
 		if(packable && (n*SDT_BLOCK_LEN)+(m*SHD_BLOCK_LEN)<packable*1024L) {
-			printf("\r%lu less than %lu compressible bytes.\n\n",(n*SDT_BLOCK_LEN)+(m*SHD_BLOCK_LEN), packable*1024);
+			printf("\rLess than %luk compressible bytes.\n\n",packable);
 			smb_unlocksmbhdr(&smb);
 			return; 
 		}
@@ -1482,7 +1454,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.105 $", "%*s %s", revision);
+	sscanf("$Revision: 1.103 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
