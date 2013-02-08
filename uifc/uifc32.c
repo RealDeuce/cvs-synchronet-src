@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.202 2014/04/23 09:33:38 deuce Exp $ */
+/* $Id: uifc32.c,v 1.197 2011/04/23 17:42:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,7 @@
 #endif
 
 #include "ciolib.h"
+#include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
 
@@ -146,7 +147,7 @@ int inkey(void)
 	return(c);
 }
 
-int UIFCCALL uifcini32(uifcapi_t* uifcapi)
+int uifcini32(uifcapi_t* uifcapi)
 {
 	unsigned	i;
 	struct	text_info txtinfo;
@@ -493,8 +494,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
 	uchar line[MAX_COLS*2],shade[MAX_LINES*4],*ptr
-		,bline=0,*win;
-    char search[MAX_OPLN];
+		,search[MAX_OPLN],bline=0,*win;
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
 	int	is_redraw=0;
@@ -666,7 +666,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					puttext(sav[api->savnum].left,sav[api->savnum].top,sav[api->savnum].right,sav[api->savnum].bot
 						,sav[api->savnum].buf);	/* put original window back */
 					FREE_AND_NULL(sav[api->savnum].buf);
-					if((sav[api->savnum].buf=malloc((width+3)*(height+2)*2))==NULL) {
+					if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
 						cprintf("UIFC line %d: error allocating %u bytes."
 							,__LINE__,(width+3)*(height+2)*2);
 						free(title);
@@ -691,7 +691,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			}
 		}
 		else {
-			if((sav[api->savnum].buf=malloc((width+3)*(height+2)*2))==NULL) {
+			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
@@ -977,8 +977,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(api->timedisplay != NULL)
 			api->timedisplay(/* force? */FALSE);
 		gotkey=0;
-		textattr(((api->lbclr)&0x0f)|((api->lbclr >> 4)&0x0f));
-		gotoxy(s_left+lbrdrwidth+2+left, s_top+y);
 		if(kbwait() || (mode&(WIN_POP|WIN_SEL))) {
 			if(mode&WIN_POP)
 				gotkey=ESC;
@@ -1008,7 +1006,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_ACT) {
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if((win=alloca((width+3)*(height+2)*2))==NULL) {
+							if((win=(char *)alloca((width+3)*(height+2)*2))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
 								return(-1);
@@ -1872,16 +1870,16 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 /****************************************************************************/
 int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int *lastkey)
 {
-	char   *str,ins=0;
+	uchar   *str,ins=0;
 	int	ch;
 	int     i,j,k,f=0;	/* i=offset, j=length */
 	BOOL	gotdecimal=FALSE;
 	int	soffset=0;
 	struct mouse_event	mevnt;
-	char	*pastebuf=NULL;
+	unsigned char	*pastebuf=NULL;
 	unsigned char	*pb=NULL;
 
-	if((str=alloca(max+1))==NULL) {
+	if((str=(uchar *)alloca(max+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(max+1));
 		_setcursortype(cursor);
@@ -1942,7 +1940,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					if(i>j)
 						i=j;
 					pastebuf=getcliptext();
-					pb=(unsigned char *)pastebuf;
+					pb=pastebuf;
 					f=0;
 				}
 			}
@@ -2020,7 +2018,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						if(i>j)
 							i=j;
 						pastebuf=getcliptext();
-						pb=(unsigned char *)pastebuf;
+						pb=pastebuf;
 						ch=0;
 					}
 				}
@@ -2086,7 +2084,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						}
 						continue;
 					}
-					/* Fall-through at beginning of string */
 				case CIO_KEY_DC:	/* delete */
 				case DEL:			/* sdl_getch() is returning 127 when keypad "Del" is hit */
 					if(i<j)
@@ -2481,7 +2478,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		}
 		for(i=2;i<(width-j);i+=2)
    		      tmp_buffer2[i]='Ä';
-		if((api->mode&UIFC_MOUSE) && (!(mode&WIN_DYN))) {
+		if(api->mode&UIFC_MOUSE && !mode&WIN_DYN) {
 			tmp_buffer2[2]='[';
 			tmp_buffer2[3]=api->hclr|(api->bclr<<4);
 			/* tmp_buffer2[4]='þ'; */
