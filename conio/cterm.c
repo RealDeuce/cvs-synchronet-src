@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.138 2012/02/18 10:58:04 deuce Exp $ */
+/* $Id: cterm.c,v 1.142 2012/10/24 19:02:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -598,6 +598,14 @@ static int ciolib_setfont(struct cterminal *,int font, int force, int font_num)
 }
 #endif
 
+static void tone_or_beep(double freq, int duration, int device_open)
+{
+	if(device_open)
+		xptone(freq,duration,WAVE_SHAPE_SINE_SAW_HARM);
+	else
+		xpbeep(freq,duration);
+}
+
 static void playnote_thread(void *args)
 {
 	/* Tempo is quarter notes per minute */
@@ -608,6 +616,7 @@ static void playnote_thread(void *args)
 	struct cterminal *cterm=(struct cterminal *)args;
 
 
+	SetThreadName("PlayNote");
 	cterm->playnote_thread_running=TRUE;
 	while(1) {
 		if(device_open) {
@@ -641,15 +650,12 @@ static void playnote_thread(void *args)
 				break;
 		}
 		duration-=pauselen;
-		if(note->notenum < 72 && note->notenum >= 0) {
-			if(device_open)
-				xptone(((double)note_frequency[note->notenum])/1000,duration,WAVE_SHAPE_SINE_SAW_HARM);
-			else
-				xpbeep(((double)note_frequency[note->notenum])/1000,duration);
-		}
+		if(note->notenum < 72 && note->notenum >= 0)
+			tone_or_beep(((double)note_frequency[note->notenum])/1000,duration,device_open);
 		else
-			SLEEP(duration);
-		SLEEP(pauselen);
+			tone_or_beep(0,duration,device_open);
+		if(pauselen)
+			tone_or_beep(0,pauselen,device_open);
 		if(note->foreground)
 			sem_post(&cterm->note_completed_sem);
 		free(note);
@@ -864,6 +870,7 @@ static void play_music(struct cterminal *cterm)
 		sem_wait(&cterm->note_completed_sem);
 		fore_count--;
 	}
+	xptone_complete();
 }
 
 static void scrolldown(struct cterminal *cterm)
@@ -1755,7 +1762,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.138 $";
+	char	*revision="$Revision: 1.142 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2002,34 +2009,34 @@ char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen
 					cterm->fontbuf[cterm->font_read++]=ch[0];
 					if(cterm->font_read == cterm->font_size) {
 #ifndef CTERM_WITHOUT_CONIO
-						char *buf;
+						char *buf2;
 
-						if((buf=(char *)malloc(cterm->font_size))!=NULL) {
-							memcpy(buf,cterm->fontbuf,cterm->font_size);
+						if((buf2=(char *)malloc(cterm->font_size))!=NULL) {
+							memcpy(buf2,cterm->fontbuf,cterm->font_size);
 							if(cterm->font_slot >= CONIO_FIRST_FREE_FONT) {
 								switch(cterm->font_size) {
 									case 4096:
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_sixteen);
-										conio_fontdata[cterm->font_slot].eight_by_sixteen=buf;
+										conio_fontdata[cterm->font_slot].eight_by_sixteen=buf2;
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
 										conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
 										break;
 									case 3586:
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_fourteen);
-										conio_fontdata[cterm->font_slot].eight_by_fourteen=buf;
+										conio_fontdata[cterm->font_slot].eight_by_fourteen=buf2;
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
 										conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
 										break;
 									case 2048:
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_eight);
-										conio_fontdata[cterm->font_slot].eight_by_eight=buf;
+										conio_fontdata[cterm->font_slot].eight_by_eight=buf2;
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
 										conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
 										break;
 								}
 							}
 							else
-								FREE_AND_NULL(buf);
+								FREE_AND_NULL(buf2);
 						}
 #endif
 						cterm->font_size=0;
