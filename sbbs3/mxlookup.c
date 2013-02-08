@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.27 2013/09/03 23:39:10 deuce Exp $ */
+/* $Id: mxlookup.c,v 1.26 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,9 @@
  ****************************************************************************/
 
 /* Platform-specific */
+#ifdef _WIN32
+	#include <windows.h>	/* avoid DWORD conflict */
+#endif
 
 /* ANSI */
 #include <stdio.h>
