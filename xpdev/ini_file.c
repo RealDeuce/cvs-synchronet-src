@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.130 2013/10/05 20:32:10 deuce Exp $ */
+/* $Id: ini_file.c,v 1.127 2011/12/16 09:50:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -572,15 +572,6 @@ char* iniSetIpAddress(str_list_t* list, const char* section, const char* key, ul
 	struct in_addr in_addr;
 	in_addr.s_addr=htonl(value);
 	return iniSetString(list, section, key, inet_ntoa(in_addr), style);
-}
-
-char* iniSetIp6Address(str_list_t* list, const char* section, const char* key, struct in6_addr value
-					,ini_style_t* style)
-{
-	char	addr[INET6_ADDRSTRLEN];
-
-	inet_ntop(AF_INET6, &value, addr, sizeof(addr));
-	return iniSetString(list, section, key, addr, style);
 }
 #endif
 
@@ -1288,31 +1279,10 @@ int iniGetSocketOptions(str_list_t list, const char* section, SOCKET sock
 	int			option;
 	int			level;
 	int			value;
-	int			type;
 	LINGER		linger;
 	socket_option_t* socket_options=getSocketOptionList();
-	union xp_sockaddr	addr;
 
-	len=sizeof(type);
-	if((result=getsockopt(sock, SOL_SOCKET, SO_TYPE, &type, &len)) != 0) {
-		safe_snprintf(error,errlen,"%d getting socket type", ERROR_VALUE);
-		return(result);
-	}
-#ifdef IPPROTO_IPV6
-	len=sizeof(addr);
-	if((result=getsockname(sock, &addr.addr, &len)) != 0) {
-		safe_snprintf(error,errlen,"%d getting socket name", ERROR_VALUE);
-		return(result);
-	}
-#endif
 	for(i=0;socket_options[i].name!=NULL;i++) {
-		if(socket_options[i].type != 0 
-				&& socket_options[i].type != type)
-			continue;
-#ifdef IPPROTO_IPV6
-		if(addr.addr.sa_family != AF_INET6 && socket_options[i].level == IPPROTO_IPV6)
-			continue;
-#endif
 		name = socket_options[i].name;
 		if(!iniValueExists(list, section, name))
 			continue;
@@ -1353,14 +1323,6 @@ static ulong parseIpAddress(const char* value)
 	return(ntohl(inet_addr(value)));
 }
 
-static struct in6_addr parseIp6Address(const char* value)
-{
-	struct in6_addr ret;
-
-	inet_pton(AF_INET6, value, &ret);
-	return ret;
-}
-
 ulong iniReadIpAddress(FILE* fp, const char* section, const char* key, ulong deflt)
 {
 	char	buf[INI_MAX_VALUE_LEN];
@@ -1375,20 +1337,6 @@ ulong iniReadIpAddress(FILE* fp, const char* section, const char* key, ulong def
 	return(parseIpAddress(value));
 }
 
-struct in6_addr iniReadIp6Address(FILE* fp, const char* section, const char* key, struct in6_addr deflt)
-{
-	char	buf[INI_MAX_VALUE_LEN];
-	char*	value;
-
-	if((value=read_value(fp,section,key,buf))==NULL)
-		return(deflt);
-
-	if(*value==0)		/* blank value */
-		return(deflt);
-
-	return(parseIp6Address(value));
-}
-
 ulong iniGetIpAddress(str_list_t list, const char* section, const char* key, ulong deflt)
 {
 	char*	vp=NULL;
@@ -1399,18 +1347,6 @@ ulong iniGetIpAddress(str_list_t list, const char* section, const char* key, ulo
 		return(deflt);
 
 	return(parseIpAddress(vp));
-}
-
-struct in6_addr iniGetIp6Address(str_list_t list, const char* section, const char* key, struct in6_addr deflt)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, NULL, &vp);
-
-	if(vp==NULL || *vp==0)		/* blank value or missing key */
-		return(deflt);
-
-	return(parseIp6Address(vp));
 }
 
 #endif	/* !NO_SOCKET_SUPPORT */
