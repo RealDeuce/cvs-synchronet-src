@@ -4,8 +4,8 @@ ifneq ($(os),haiku)
  XPDEV-MT_LIBS	+=	-lm
 endif
 ifeq ($(os),haiku)
- XPDEV_LIBS	+=	-lnet
- XPDEV-MT_LIBS	+=	-lnet
+ XPDEV_LIBS	+=	-lnetwork
+ XPDEV-MT_LIBS	+=	-lnetwork
 endif
 ifeq ($(os),netbsd)     # NetBSD
  XPDEV_LIBS	+=	-lossaudio
@@ -187,5 +187,13 @@ ifndef WITHOUT_PORTAUDIO
 
  ifneq ($(PORTAUDIO_PATH),NOTFOUND)
   XPDEV_CFLAGS += -DWITH_PORTAUDIO
+  ifeq ($(os),linux)
+   XPDEV-MT_LIBS += -ldl
+   XPDEV_LIBS += -ldl
+  endif
  endif
+endif
+ifeq ($(shell if [ -f /usr/include/alsa/asoundlib.h ] ; then echo YES ; fi),YES)
+ XPDEV-MT_LIBS += -ldl
+ XPDEV_LIBS += -ldl
 endif
