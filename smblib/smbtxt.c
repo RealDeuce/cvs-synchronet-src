@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.17 2007/08/12 19:24:08 deuce Exp $ */
+/* $Id: smbtxt.c,v 1.18 2012/10/23 07:59:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,7 +125,7 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 				return(buf); 
 			}
 			buf=p;
-			lzh_decode((char*)lzhbuf,length,(char*)buf+l);
+			lzh_decode((uint8_t *)lzhbuf,length,(uint8_t *)buf+l);
 			free(lzhbuf);
 			l+=lzhlen; 
 		}
