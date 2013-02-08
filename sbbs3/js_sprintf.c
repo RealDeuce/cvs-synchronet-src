@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "[s]printf" implementation */
 
-/* $Id: js_sprintf.c,v 1.4 2011/10/09 01:02:52 deuce Exp $ */
+/* $Id: js_sprintf.c,v 1.9 2013/02/08 06:13:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,9 +42,13 @@ char* DLLCALL
 js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 {
 	char*		p;
-    JSString*	str;
+	char		*p2=NULL;
+	size_t		p2_sz;
 
-	if((p=js_ValueToStringBytes(cx, argv[argn++], NULL))==NULL)
+	JSVALUE_TO_MSTRING(cx, argv[argn++], p, NULL);
+	if(JS_IsExceptionPending(cx))
+		JS_ClearPendingException(cx);
+	if(p==NULL)
 		return(NULL);
 
 	p=xp_asprintf_start(p);
@@ -56,14 +60,22 @@ js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 		else if(JSVAL_IS_BOOLEAN(argv[argn]) && xp_printf_get_type(p)!=XP_PRINTF_TYPE_CHARP)
 			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_INT,JSVAL_TO_BOOLEAN(argv[argn]));
 		else {
-			if((str=JS_ValueToString(cx, argv[argn]))==NULL)
-			    return(NULL);
-			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,JS_GetStringBytes(str));
+			JSVALUE_TO_RASTRING(cx, argv[argn], p2, &p2_sz, NULL);
+			if(JS_IsExceptionPending(cx))
+				JS_ClearPendingException(cx);
+			if(p2==NULL) {
+				free(p);
+				return NULL;
+			}
+			p=xp_asprintf_next(p,XP_PRINTF_CONVERT|XP_PRINTF_TYPE_CHARP,p2);
 		}
 	}
 
-	return xp_asprintf_end(p, NULL);
-
+	if(p2)
+		free(p2);
+	p2=xp_asprintf_end(p, NULL);
+	free(p);
+	return p2;
 }
 
 void DLLCALL
