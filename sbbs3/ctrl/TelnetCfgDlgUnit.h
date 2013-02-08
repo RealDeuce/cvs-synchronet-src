@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.h,v 1.15 2014/03/12 09:39:16 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.h,v 1.13 2006/12/29 02:51:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -88,6 +88,7 @@ __published:
     TEdit *RLoginInterfaceEdit;
     TCheckBox *RLoginEnabledCheckBox;
     TButton *RLoginIPallowButton;
+    TCheckBox *RLogin2ndNameCheckBox;
         TCheckBox *QWKEventsCheckBox;
     TCheckBox *JavaScriptCheckBox;
     TCheckBox *IdentityCheckBox;
@@ -98,7 +99,6 @@ __published:
     TCheckBox *SshEnabledCheckBox;
     TLabel *SshInterfaceLabel;
     TEdit *SshInterfaceEdit;
-        TCheckBox *DosSupportCheckBox;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);
