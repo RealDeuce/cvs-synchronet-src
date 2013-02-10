@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.30 2013/02/10 03:38:28 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.31 2013/02/10 21:14:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,7 +140,7 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval
 	else if(tiny==PROP_HELPBUF) {
 		if(uifc->helpbuf)
 			free(uifc->helpbuf);
-		JSVALUE_TO_STRING(cx, *vp, uifc->helpbuf, NULL);
+		JSVALUE_TO_MSTRING(cx, *vp, uifc->helpbuf, NULL);
 		HANDLE_PENDING(cx);
 		return JS_TRUE;
 	}
@@ -428,7 +428,7 @@ js_uifc_input(JSContext *cx, uintN argc, jsval *arglist)
 			return(JS_TRUE);
 	}
 	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_STRING(cx, argv[argn++], org, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn++], org, NULL);
 		if(JS_IsExceptionPending(cx)) {
 			if(prompt)
 				free(prompt);
