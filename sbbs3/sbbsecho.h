@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.15 2012/02/18 02:26:02 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.19 2012/11/22 04:55:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
-#define SBBSECHO_VER "2.13"
+#define SBBSECHO_VER "2.20"
 
 #define IMPORT_NETMAIL  (1L<<0)
 #define IMPORT_PACKETS	(1L<<1)
@@ -140,9 +140,9 @@ typedef struct {						/* Type 2+ Packet Header Info */
 	} two_plus_t;
 
 typedef struct {						/* Type 2.2 Packet Header Info */
-	uchar origdomn[8],					/* Origination Domain */
-		  destdomn[8],					/* Destination Domain */
-		  empty[4]; 					/* Product Specific Data */
+	char origdomn[8],					/* Origination Domain */
+		  destdomn[8];					/* Destination Domain */
+	uchar	  empty[4]; 					/* Product Specific Data */
 	} two_two_t;
 
 typedef struct {
@@ -169,7 +169,7 @@ typedef struct {
 typedef struct {
 	FILE *stream;				/* The stream associated with this packet (NULL if not-open) */
 	faddr_t uplink; 			/* The current uplink for this packet */
-	uchar filename[MAX_PATH+1];	/* Name of the file */
+	char filename[MAX_PATH+1];	/* Name of the file */
     } outpkt_t;
 
 typedef struct {
@@ -221,7 +221,8 @@ typedef struct {
 			   ,outbound[82]		/* Outbound directory */
 			   ,areafile[128]		/* AREAS.BBS path/filename */
 			   ,logfile[128]		/* LOG path/filename */
-			   ,cfgfile[128];		/* Configuration path/filename */
+			   ,cfgfile[128]		/* Configuration path/filename */
+			   ,sysop_alias[FIDO_NAME_LEN];
 	ulong		maxpktsize			/* Maximum size for packets */
 			   ,maxbdlsize			/* Maximum size for bundles */
 			   ,log					/* What do we log? */
