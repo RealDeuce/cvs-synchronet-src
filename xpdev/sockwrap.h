@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.45 2013/10/11 15:42:25 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.38 2010/05/24 01:13:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,17 +48,8 @@
 #ifndef _WINSOCKAPI_
 	#include <winsock2.h>	/* socket/bind/etc. */
 	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
-#if defined(__BORLANDC__)
-// Borland C++ builder 6 comes with a broken ws2tcpip.h header for GCC.
-#define _MSC_VER 7
-#endif
-    #include <ws2tcpip.h>	/* More stuff */
-#if defined(__BORLANDC__)
-#undef _MSC_VER
-#endif
-	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
-	#define _WINSOCKAPI_
+	#define _WINSOCKAPI_	
 #endif
 
 #elif defined __unix__		/* Unix-variant */
@@ -66,7 +57,6 @@
 #include <netdb.h>			/* gethostbyname */
 #include <sys/types.h>		/* For u_int32_t on FreeBSD */
 #include <netinet/in.h>		/* IPPROTO_IP */
-#include <sys/un.h>
 /* define _BSD_SOCKLEN_T_ in order to define socklen_t on darwin */
 #ifdef __DARWIN__
 #define _BSD_SOCKLEN_T_	int
@@ -93,23 +83,6 @@ typedef struct {
 	int		level;
 	int		value;
 } socket_option_t;
-
-/*
- * Fancy sockaddr_* union
- */
-union xp_sockaddr {
-	struct sockaddr			addr;
-	struct sockaddr_in		in;
-	struct sockaddr_in6		in6;
-#ifndef _WIN32
-	struct sockaddr_un		un;
-#endif
-	struct sockaddr_storage	store;
-};
-
-#define xp_sockaddr_len(a) ((((struct sockaddr *)a)->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : ((struct sockaddr *)a)->sa_len)
-
- 
 
 /**********************************/
 /* Socket Implementation-specific */
@@ -177,17 +150,11 @@ union xp_sockaddr {
 
 #define s_addr			S_un.S_addr
 
+#define socklen_t		int
+
 static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
 #define sendsocket(s,b,l)	send(s,b,l,0)
-
-/* For getaddrinfo() */
-#ifndef AI_ADDRCONFIG
-# define AI_ADDRCONFIG 0x400 // Vista or later
-#endif
-#ifndef AI_NUMERICSERV
-# define AI_NUMERICSERV 0		// Not supported by Win32
-#endif
 
 #else	/* BSD sockets */
 
@@ -226,9 +193,6 @@ int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
 				   ,int (*lprintf)(int level, const char *fmt, ...));
 int		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
-const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size);
-uint16_t inet_addrport(union xp_sockaddr *addr);
-void inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
 
 #ifdef __cplusplus
 }
