@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.82 2013/10/08 02:09:47 deuce Exp $ */
+/* $Id: js_internal.c,v 1.78 2013/02/08 02:41:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,9 +37,6 @@
 
 #include "sbbs.h"
 #include "js_request.h"
-
-/* SpiderMonkey: */
-#include <jsdbgapi.h>
 
 enum {
 	 PROP_VERSION
@@ -198,8 +195,8 @@ static char* prop_desc[] = {
 	 "JavaScript engine version information (AKA system.js_version)"
 	,"set to <i>false</i> to disable the automatic termination of the script upon external request"
 	,"termination has been requested (stop execution as soon as possible)"
-	,"number of operation callbacks performed in this runtime"
-	,"maximum number of operation callbacks, used for infinite-loop detection (0=disabled)"
+	,"number of branch operations performed in this runtime"
+	,"maximum number of branches, used for infinite-loop detection (0=disabled)"
 	,"interval of periodic time-slice yields (lower number=higher frequency, 0=disabled)"
 	,"interval of periodic garbage collection attempts (lower number=higher frequency, 0=disabled)"
 	,"number of garbage collections attempted in this runtime - <small>READ ONLY</small>"
@@ -220,9 +217,9 @@ static char* prop_desc[] = {
 		"mods/somefile.js<br>"
 		"exec/somefile.js<br>"
 	,"full path and filename of JS file executed"
-	,"JS filename executed (with no path)"
 	,"directory of executed JS file"
-	,"Either the configured startup directory in SCFG (for externals) or the cwd when jsexec is started"
+	,"JS filename executed (with no path)"
+	,"Either the configure startup directory in SCFG (for externals) or the cwd when jsexec is started"
 	,NULL
 };
 #endif
@@ -242,7 +239,7 @@ js_CommonOperationCallback(JSContext *cx, js_callback_t* cb)
 
 	/* Infinite loop? */
 	if(cb->limit && cb->counter > cb->limit) {
-		JS_ReportError(cx,"Infinite loop (%lu operation callbacks) detected",cb->counter);
+		JS_ReportError(cx,"Infinite loop (%lu branches) detected",cb->counter);
 		cb->counter=0;
 		return(JS_FALSE);
 	}
@@ -309,7 +306,7 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 	JS_SetErrorReporter(parent_cx,reporter);
 	JS_SetErrorReporter(cx,reporter);
 
-	/* Use the operation callback from the parent context */
+	/* Use the branch callback from the parent context */
 	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
 	JS_SetOperationCallback(cx, JS_GetOperationCallback(parent_cx));
 
@@ -442,35 +439,6 @@ js_get_parent(JSContext *cx, uintN argc, jsval *arglist)
 	return(JS_TRUE);
 }
 
-static JSBool js_getsize(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval	*argv=JS_ARGV(cx, arglist);
-	JSObject* tmp_obj;
-
-	if(!JSVAL_IS_OBJECT(argv[0])) {
-		JS_ReportError(cx, "get_size() error!  Parameter is not an object.");
-		return(JS_FALSE);
-	}
-	tmp_obj=JSVAL_TO_OBJECT(argv[0]);
-	if(!tmp_obj)
-		return(JS_FALSE);
-	JS_SET_RVAL(cx, arglist, DOUBLE_TO_JSVAL(JS_GetObjectTotalSize(cx, tmp_obj)));
-	return(JS_TRUE);
-}
-
-static JSBool js_flatten(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval	*argv=JS_ARGV(cx, arglist);
-
-	if(!JSVAL_IS_STRING(argv[0])) {
-		JS_ReportError(cx, "get_size() error!  Parameter is not a string.");
-		return(JS_FALSE);
-	}
-	JS_FlattenString(cx, JSVAL_TO_STRING(argv[0]));
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-	return(JS_TRUE);
-}
-
 static jsSyncMethodSpec js_functions[] = {
 	{"eval",            js_eval,            0,	JSTYPE_UNDEF,	JSDOCSTR("script")
 	,JSDOCSTR("evaluate a JavaScript string in its own (secure) context, returning the result")
@@ -495,14 +463,6 @@ static jsSyncMethodSpec js_functions[] = {
 	{"get_parent",		js_get_parent,		1,	JSTYPE_OBJECT,	JSDOCSTR("object")
 	,JSDOCSTR("return the parent of the specified object")
 	,314
-	},
-	{"get_size",		js_getsize,			1,	JSTYPE_NUMBER,	JSDOCSTR("[object]")
-	,JSDOCSTR("return the size in bytes the object uses in memory (forces GC) ")
-	,316
-	},
-	{"flatten_string",	js_flatten,			1,	JSTYPE_VOID,	JSDOCSTR("[string]")
-	,JSDOCSTR("flattens a string, optimizing allocated memory used for concatenated strings")
-	,316
 	},
 	{0}
 };
@@ -620,22 +580,12 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	}
 
 #ifdef BUILD_JSDOCS
-	js_DescribeSyncObject(cx,obj,"JavaScript engine internal control object",311);
+	js_DescribeSyncObject(cx,obj,"JavaScript execution and garbage collection control object",311);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", prop_desc, JSPROP_READONLY);
 #endif
 
 	return(obj);
 }
-
-#if defined(_MSC_VER)
-void msvc_invalid_parameter_handler(const wchar_t* expression,
-   const wchar_t* function, 
-   const wchar_t* file, 
-   unsigned int line, 
-   uintptr_t pReserved)
-{
-}
-#endif
 
 void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
 {
@@ -668,7 +618,4 @@ void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filen
 			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
-#if defined(_MSC_VER)
-	_set_invalid_parameter_handler(msvc_invalid_parameter_handler);
-#endif
 }
