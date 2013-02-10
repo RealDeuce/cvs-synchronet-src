@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.400 2013/02/08 03:13:03 deuce Exp $ */
+/* $Id: sbbs.h,v 1.401 2013/02/10 21:15:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -243,33 +243,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 { \
 	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
 	JSSTRING_TO_ASTRING((cx), JSVTSstr, (ret), (maxsize), (lenptr)); \
-}
-
-#define JSSTRING_TO_STRING(cx, str, ret, lenptr) \
-{ \
-	size_t			*JSSTSlenptr=lenptr; \
-	size_t			JSSTSlen; \
-	size_t			JSSTSpos; \
-	const jschar	*JSSTSstrval; \
-\
-	if(JSSTSlenptr==NULL) \
-		JSSTSlenptr=&JSSTSlen; \
-	(ret)=NULL; \
-	if((str) != NULL) { \
-		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
-			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
-				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
-					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
-				(ret)[*JSSTSlenptr]=0; \
-			} \
-		} \
-	} \
-}
-
-#define JSVALUE_TO_STRING(cx, val, ret, lenptr) \
-{ \
-	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
-	JSSTRING_TO_STRING((cx), JSVTSstr, (ret), lenptr); \
 }
 
 #endif
