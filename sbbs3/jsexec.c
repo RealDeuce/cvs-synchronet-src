@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.168 2013/02/11 22:52:13 deuce Exp $ */
+/* $Id: jsexec.c,v 1.167 2013/02/10 04:19:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -340,7 +340,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
-	if((buf=malloc(len))==NULL)
+	if((buf=alloca(len))==NULL)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -349,7 +349,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(rd>=0)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd)));
-	free(buf);
 
     return(JS_TRUE);
 }
@@ -369,7 +368,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
-	if((buf=malloc(len+1))==NULL)
+	if((buf=alloca(len+1))==NULL)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -378,7 +377,6 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(p!=NULL)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p))));
-	free(buf);
 
     return(JS_TRUE);
 }
@@ -1043,7 +1041,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.168 $", "%*s %s", revision);
+	sscanf("$Revision: 1.167 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
