@@ -2,7 +2,6 @@
 #include <stdio.h>	/* NULL */
 
 #include "gen_defs.h"
-#include "threadwrap.h"
 #include <SDL.h>
 #ifndef main
  #define USE_REAL_MAIN
@@ -75,10 +74,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->SemWait=xp_dlsym(sdl_dll, SDL_SemWait))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->SemWaitTimeout=xp_dlsym(sdl_dll, SDL_SemWaitTimeout))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -413,7 +408,6 @@ int SDL_main_env(int argc, char **argv, char **env)
 		}
 	}
 	if(sdl_video_initialized) {
-		SetThreadName("SDL Main");
 		atexit(QuitWrap);
 		sdl_main_sem=sdl.SDL_CreateSemaphore(0);
 		sdl_exit_sem=sdl.SDL_CreateSemaphore(0);
