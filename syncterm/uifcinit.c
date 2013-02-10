@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.31 2015/02/09 07:18:58 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.30 2009/02/10 20:32:04 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -13,6 +13,7 @@
 
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 static int uifc_initialized=0;
+int uifc_old_font=0;
 
 #define UIFC_INIT	(1<<0)
 #define WITH_SCRN	(1<<1)
@@ -27,10 +28,12 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 
     gettextinfo(&txtinfo);
 	if(!uifc_initialized) {
+		/* Get old font... */
+		uifc_old_font=getfont();
+		if(uifc_old_font >= 32 && uifc_old_font <= 36)
+			setfont(0, FALSE,1);
 		/* Set scrn_len to 0 to prevent textmode() call */
 		uifc.scrn_len=0;
-		ciolib_xlat = TRUE;
-		uifc.chars = NULL;
 		if((i=uifcini32(&uifc))!=0) {
 			fprintf(stderr,"uifc library init returned error %d\n",i);
 			return(-1);
@@ -72,7 +75,8 @@ void uifcbail(void)
 {
 	if(uifc_initialized) {
 		uifc.bail();
-		ciolib_xlat = FALSE;
+		if(uifc_old_font != getfont())
+			setfont(uifc_old_font, FALSE,1);
 	}
 	uifc_initialized=0;
 }
