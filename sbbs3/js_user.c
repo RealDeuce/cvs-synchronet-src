@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.98 2013/02/10 21:13:35 deuce Exp $ */
+/* $Id: js_user.c,v 1.97 2013/02/10 03:49:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1297,7 +1297,7 @@ static JSBool js_user_limits_resolve(JSContext *cx, JSObject *obj, jsid id)
 		
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
-			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+			JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 			HANDLE_PENDING(cx);
 		}
 	}
