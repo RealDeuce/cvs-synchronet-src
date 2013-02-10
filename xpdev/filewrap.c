@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.40 2013/10/29 01:52:48 deuce Exp $ */
+/* $Id: filewrap.c,v 1.39 2011/10/19 02:42:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -273,85 +273,6 @@ int DLLCALL unlock(int file, off_t offset, off_t size)
 	if(offset!=pos)
 		lseek(file, pos, SEEK_SET);
 	return(i);
-}
-
-static inline size_t
-p2roundup(size_t n)
-{
-        if(n & (n-1)) {	// If n isn't a power of two already...
-		n--;
-		n |= n >> 1;
-		n |= n >> 2;
-		n |= n >> 4;
-		n |= n >> 8;
-		n |= n >> 16;
-#if SIZE_T_MAX > 0xffffffffU
-		n |= n >> 32;
-#endif
-		n++;
-	}
-	return (n);
-}
-
-static inline int expandtofit(char **linep, size_t len, size_t *linecapp)
-{
-	char	*newline;
-	size_t	newcap;
-
-	if(len > LONG_MAX + 1)
-		return -1;
-	if(len > *linecapp) {
-		if(len == LONG_MAX + 1)
-			newcap = LONG_MAX + 1;
-		else
-			newcap = p2roundup(len);
-		newline = realloc(*linep, newcap);
-		if(newline == NULL)
-			return -1;
-		*linecapp = newcap;
-		*linep = newline;
-	}
-	return 0;
-}
-
-long getdelim(char **linep, size_t *linecapp, int delimiter, FILE *stream)
-{
-	size_t	linelen;
-	char	lbuf[1024];
-	size_t	bc;
-	char	*term = NULL;
-	long	pos = ftell(stream);
-
-	if(linep == NULL || linecapp == NULL)
-		return -1;
-	if(*linep == NULL)
-		*linecapp = 0;
-	if(feof(stream)) {
-		if(expandtofit(linep, 1, linecapp))
-			return -1;
-		(*linep)[0]=0;
-		return -1;
-	}
-
-	linelen = 0;
-	for(;;) {
-		bc = fread(lbuf, 1, sizeof(lbuf), stream);
-		if(expandtofit(linep, linelen+bc, linecapp))
-			return -1;
-		memcpy(*linep+linelen, lbuf, bc);
-		term = strchr(*linep+linelen, delimiter);
-		linelen += bc;
-		if(bc < sizeof(lbuf))
-			break;
-		if(term)
-			break;
-	}
-	if(term) {
-		linelen = term - *linep;
-		linelen++;
-		fseek(stream, pos+linelen, SEEK_SET);
-	}
-	return linelen;
 }
 
 #endif	/* !Unix && (MSVC || MinGW) */

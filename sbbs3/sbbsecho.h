@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.23 2013/10/09 05:36:42 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.19 2012/11/22 04:55:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,10 +37,7 @@
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
-#define SBBSECHO_VERSION_MAJOR		2
-#define SBBSECHO_VERSION_MINOR		23
-
-#define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
+#define SBBSECHO_VER "2.20"
 
 #define IMPORT_NETMAIL  (1L<<0)
 #define IMPORT_PACKETS	(1L<<1)
@@ -241,7 +238,6 @@ typedef struct {
 	echolist_t *listcfg;			/* Each echolist configuration */
 	areasbbs_t *area;				/* Each area configuration */
 	BOOL		check_path;			/* Enable circular path detection */
-	BOOL		zone_blind;			/* Pretend zones don't matter when parsing and constructing PATH and SEEN-BY lines (per Wilfred van Velzen, 2:280/464) */
 	} config_t;
 
 #ifdef __WATCOMC__

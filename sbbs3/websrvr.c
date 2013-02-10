@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.569 2013/09/14 20:42:46 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.564 2013/02/10 05:04:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,7 +73,6 @@
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "xpmap.h"
-#include "xpprintf.h"
 
 static const char*	server_name="Synchronet Web Server";
 static const char*	newline="\r\n";
@@ -666,13 +665,16 @@ static void add_env(http_session_t *session, const char *name,const char *value)
 		if(*p=='-')
 			*p='_';
 	}
-	p=xp_asprintf("%s=%s",newname,value);
+	p=(char *)alloca(strlen(name)+strlen(value)+2);
 	if(p==NULL) {
 		lprintf(LOG_WARNING,"%04d Cannot allocate memory for string", session->socket);
 		return;
 	}
+#if 0	/* this is way too verbose for every request */
+	lprintf(LOG_DEBUG,"%04d Adding CGI environment variable %s=%s",session->socket,newname,value);
+#endif
+	sprintf(p,"%s=%s",newname,value);
 	strListPush(&session->req.cgi_env,p);
-	free(p);
 }
 
 /***************************************/
@@ -1067,7 +1069,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			session->req.ld->status=atoi(status);
 		return(TRUE);
 	}
-	headers=malloc(MAX_HEADERS_SIZE);
+	headers=alloca(MAX_HEADERS_SIZE);
 	if(headers==NULL)  {
 		lprintf(LOG_CRIT,"Could not allocate memory for response headers.");
 		return(FALSE);
@@ -1221,7 +1223,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 	send_file = (bufprint(session,headers) && send_file);
 	drain_outbuf(session);
 	session->req.write_chunked=chunked;
-	free(headers);
 	return(send_file);
 }
 
@@ -1924,7 +1925,7 @@ static void unescape(char *p)
 	
 	dst=p;
 	for(;*p;p++) {
-		if(*p=='%' && isxdigit((uchar)*(p+1)) && isxdigit((uchar)*(p+2))) {
+		if(*p=='%' && isxdigit(*(p+1)) && isxdigit(*(p+2))) {
 			sprintf(code,"%.2s",p+1);
 			*(dst++)=(char)strtol(code,NULL,16);
 			p+=2;
@@ -2022,15 +2023,15 @@ static void js_add_header(http_session_t * session, char *key, char *value)
 	JSString*	js_str;
 	char		*lckey;
 
-	if((lckey=strdup(key))==NULL)
+	if((lckey=(char *)alloca(strlen(key)+1))==NULL)
 		return;
+	strcpy(lckey,key);
 	strlwr(lckey);
 	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL) {
 		return;
 	}
 	JS_DefineProperty(session->js_cx, session->js_header, lckey, STRING_TO_JSVAL(js_str)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-	free(lckey);
 }
 
 #if 0
@@ -2869,7 +2870,7 @@ static BOOL check_request(http_session_t * session)
 {
 	char	path[MAX_PATH+1];
 	char	curdir[MAX_PATH+1];
-	char	str[MAX_PATH+1];			/* Apr-7-2013: bounds of str can be exceeded, e.g. "s:\sbbs\web\root\http:\vert.synchro.net\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\webctrl.ini"	char [261] */
+	char	str[MAX_PATH+1];
 	char	last_ch;
 	char*	last_slash;
 	char*	p;
@@ -4140,10 +4141,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		char* tp=strchr(str, 0);
-		JSVALUE_TO_STRBUF(cx, argv[i], tp, sizeof(str)/2, NULL);
+		JSVALUE_TO_STRBUF(cx, argv[i], strchr(str, 0), sizeof(str)/2, NULL);
 		strcat(str," ");
 	}
+
 	rc=JS_SUSPENDREQUEST(cx);
 	lprintf(level,"%04d %s",session->socket,str);
 	JS_RESUMEREQUEST(cx, rc);
@@ -4177,7 +4178,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	memset(&user,0,sizeof(user));
 
-	if(isdigit((uchar)*p))
+	if(isdigit(*p))
 		user.number=atoi(p);
 	else if(*p)
 		user.number=matchuser(&scfg,p,FALSE);
@@ -5162,7 +5163,7 @@ void http_session_thread(void* arg)
 	session.last_js_user_num=-1;
 	session.logon_time=0;
 
-	session.subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
+	session.subscan=(subscan_t*)alloca(sizeof(subscan_t)*scfg.total_subs);
 
 	while(!session.finished) {
 		init_error=FALSE;
@@ -5262,7 +5263,6 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
-	free(session.subscan);
 
 	clients_remain=protected_uint32_adjust(&active_clients, -1);
 	update_clients();
@@ -5338,7 +5338,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.569 $", "%*s %s", revision);
+	sscanf("$Revision: 1.564 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
