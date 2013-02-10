@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.583 2012/06/13 09:23:53 rswindell Exp $ */
+/* $Id: main.cpp,v 1.588 2012/12/19 12:37:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,6 +41,7 @@
 #include "netwrap.h"
 #include "js_rtpool.h"
 #include "js_request.h"
+#include "js_socket.h"
 
 #ifdef __unix__
 	#include <sys/un.h>
@@ -71,7 +72,7 @@
 #endif // _WIN32
 
 #ifdef USE_CRYPTLIB
-	#define SSH_END()	if(ssh)	cryptDestroySession(sbbs->ssh_session);
+	#define SSH_END()	if(ssh) { pthread_mutex_lock(&sbbs->ssh_mutex); cryptDestroySession(sbbs->ssh_session); pthread_mutex_unlock(&sbbs->ssh_mutex); }
 #else
 	#define	SSH_END()
 #endif
@@ -1521,6 +1522,7 @@ void input_thread(void *arg)
 #endif
 
 	pthread_mutex_init(&sbbs->input_thread_mutex,NULL);
+	pthread_mutex_init(&sbbs->ssh_mutex,NULL);
     sbbs->input_thread_running = true;
 	sbbs->console|=CON_R_INPUT;
 
@@ -1641,7 +1643,9 @@ void input_thread(void *arg)
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode && sock==sbbs->client_socket) {
 			int err;
+			pthread_mutex_lock(&sbbs->ssh_mutex);
 			if(!cryptStatusOK((err=cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))) {
+				pthread_mutex_unlock(&sbbs->ssh_mutex);
 				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
 					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 				if(err==CRYPT_ERROR_TIMEOUT)
@@ -1651,6 +1655,7 @@ void input_thread(void *arg)
 				break;
 			}
 			else {
+				pthread_mutex_unlock(&sbbs->ssh_mutex);
 				if(!i) {
 					if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
 						sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
@@ -1756,6 +1761,8 @@ void input_thread(void *arg)
 	if(node_socket[sbbs->cfg.node_num-1]==INVALID_SOCKET)	// Shutdown locally
 		sbbs->terminated = true;	// Signal JS to stop execution
 
+	while(pthread_mutex_destroy(&sbbs->ssh_mutex)==EBUSY)
+		mswait(1);
 	while(pthread_mutex_destroy(&sbbs->input_thread_mutex)==EBUSY)
 		mswait(1);
 
@@ -1834,13 +1841,17 @@ void passthru_output_thread(void* arg)
 
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
+			pthread_mutex_lock(&sbbs->ssh_mutex);
 			if(!cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))
 				rd=0;
 			else {
-				if(!i)
+				if(!i) {
+					pthread_mutex_unlock(&sbbs->ssh_mutex);
 					continue;
+				}
 				rd=i;
 			}
+			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		else
 #endif
@@ -2106,6 +2117,7 @@ void output_thread(void* arg)
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
 			int err;
+			pthread_mutex_lock(&sbbs->ssh_mutex);
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
@@ -2114,6 +2126,7 @@ void output_thread(void* arg)
 			}
 			else
 				cryptFlushData(sbbs->ssh_session);
+			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		else
 #endif
@@ -3022,6 +3035,10 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	batdn_alt=NULL;
 	batdn_cdt=NULL;
 
+	/* used by update_qwkroute(): */
+	qwknode=NULL;	
+	total_qwknodes=0;
+
 	spymsg("Connected");
 }
 
@@ -3056,6 +3073,7 @@ bool sbbs_t::init()
 			errormsg(WHERE,ERR_CREATE,"duplicate socket handle",client_socket);
 			return(false);
 		}
+		lprintf(LOG_DEBUG,"Node %d socket %u duplicated as %u", cfg.node_num, client_socket, client_socket_dup);
 #else
 		client_socket_dup = client_socket;
 #endif
@@ -4683,8 +4701,8 @@ void DLLCALL bbs_thread(void* arg)
 
 		CRYPT_KEYSET	ssh_keyset;
 
-		cryptInit();
-		cryptAddRandom(NULL,CRYPT_RANDOM_SLOWPOLL);
+		if(!do_cryptInit())
+			goto NO_SSH;
 		/* Get the private key... first try loading it from a file... */
 		SAFEPRINTF2(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
 		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
