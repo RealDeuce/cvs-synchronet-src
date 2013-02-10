@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.75 2012/02/08 23:06:37 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.77 2012/06/19 08:18:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,12 +183,17 @@ bool sbbs_t::answer()
 		request_telnet_opt(TELNET_DO,TELNET_TERM_SPEED);
 		request_telnet_opt(TELNET_DO,TELNET_SEND_LOCATION);
 		request_telnet_opt(TELNET_DO,TELNET_NEGOTIATE_WINDOW_SIZE);
+#ifdef SBBS_TELNET_ENVIRON_SUPPORT
+		request_telnet_opt(TELNET_DO,TELNET_NEW_ENVIRON);
+#endif
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
+		pthread_mutex_lock(&ssh_mutex);
 		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, rlogin_name, &i);
 		rlogin_name[i]=0;
 		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_PASSWORD, rlogin_pass, &i);
+		pthread_mutex_unlock(&ssh_mutex);
 		rlogin_pass[i]=0;
 		lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
 			,cfg.node_num, rlogin_name);
