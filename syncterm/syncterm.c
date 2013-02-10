@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.176 2013/08/20 07:36:04 deuce Exp $ */
+/* $Id: syncterm.c,v 1.175 2012/02/21 01:55:33 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1269,7 +1269,6 @@ int main(int argc, char **argv)
 				"syncterm-60-w|SyncTERM 132x60 No Status Line,\n"
 				"	cols#132,lines#60,use=syncterm,\n";
 
-	SetThreadName("Main Thread");
 	if(argc==2 && strcmp(argv[1],"-T")==0) {
 		write(STDOUT_FILENO, syncterm_termcap, strlen(syncterm_termcap));
 		return 0;
