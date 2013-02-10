@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.296 2011/12/06 02:44:25 deuce Exp $ */
+/* $Id: term.c,v 1.297 2012/07/19 06:18:26 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2491,6 +2491,12 @@ BOOL doterm(struct bbslist *bbs)
 							setup_mouse_events();
 							puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							free(p);
+							if(cterm->scrollback != scrollback_buf || cterm->backlines != settings.backlines) {
+								cterm->scrollback = scrollback_buf;
+								cterm->backlines = settings.backlines;
+								if(cterm->backpos>cterm->backlines)
+									cterm->backpos=cterm->backlines;
+							}
 							showmouse();
 							_setcursortype(_NORMALCURSOR);
 						}
