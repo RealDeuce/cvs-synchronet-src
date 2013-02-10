@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.63 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.65 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +49,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	int 	mode;
 	uint	i,j,k,conf;
 	long	l,size,msgndx,ex;
-	int32_t	posts;
-	int32_t	mailmsgs=0;
+	uint32_t posts;
+	uint32_t mailmsgs=0;
+	uint32_t u;
 	ulong	totalcdt,totaltime
 			,files,submsgs,msgs,netfiles=0,preqwk=0;
 	uint32_t	lastmsg;
@@ -362,15 +363,15 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			else
 				mode&=~QM_TO_QNET;
 
-			for(l=0;l<mailmsgs;l++) {
+			for(u=0;u<mailmsgs;u++) {
 				bprintf("\b\b\b\b\b\b\b\b\b\b\b\b%4lu of %-4lu"
-					,l+1,mailmsgs);
+					,u+1,mailmsgs);
 
 				memset(&msg,0,sizeof(msg));
-				msg.idx=mail[l];
+				msg.idx=mail[u];
 				if(msg.idx.number>qwkmail_last)
 					qwkmail_last=msg.idx.number;
-				if(!loadmsg(&msg,mail[l].number))
+				if(!loadmsg(&msg,mail[u].number))
 					continue;
 
 				if(msg.hdr.auxattr&MSG_FILEATTACH && useron.qwk&QWK_ATTACH) {
@@ -449,7 +450,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					k|=LP_BYSELF;
 				if(useron.rest&FLAG('Q') || !(subscan[usrsub[i][j]].cfg&SUB_CFG_YSCAN))
 					k|=LP_OTHERS;
-				post=loadposts(&posts,usrsub[i][j],subscan[usrsub[i][j]].ptr,k);
+				post=loadposts(&posts,usrsub[i][j],subscan[usrsub[i][j]].ptr,k,NULL);
 
 				bprintf(text[NScanStatusFmt]
 					,cfg.grp[cfg.sub[usrsub[i][j]]->grp]->sname
@@ -481,15 +482,15 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				else
 					ndx=NULL;
 
-				for(l=0;l<posts && !msgabort();l++) {
-					bprintf("\b\b\b\b\b%-5lu",l+1);
+				for(u=0;u<posts && !msgabort();u++) {
+					bprintf("\b\b\b\b\b%-5lu",u+1);
 
-					subscan[usrsub[i][j]].ptr=post[l].number;	/* set ptr */
-					subscan[usrsub[i][j]].last=post[l].number; /* set last read */
+					subscan[usrsub[i][j]].ptr=post[u].number;	/* set ptr */
+					subscan[usrsub[i][j]].last=post[u].number; /* set last read */
 
 					memset(&msg,0,sizeof(msg));
-					msg.idx=post[l];
-					if(!loadmsg(&msg,post[l].number))
+					msg.idx=post[u];
+					if(!loadmsg(&msg,post[u].number))
 						continue;
 
 					if(useron.rest&FLAG('Q')) {
@@ -539,7 +540,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						bputs(text[QWKmsgLimitReached]);
 						break; 
 					} 
-					if(!(l%50))
+					if(!(u%50))
 						YIELD();	/* yield */
 				}
 				if(!(sys_status&SS_ABORT))
@@ -552,7 +553,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				}
 				smb_close(&smb);
 				free(post);
-				if(l<posts)
+				if(u<posts)
 					break; 
 				YIELD();	/* yield */
 			}
