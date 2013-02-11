@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.94 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.102 2013/01/06 23:29:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,8 @@
 #include "sbbs.h"
 #include "wordwrap.h"
 
-#define MAX_LINE_LEN 82L
+#define MAX_LINES		10000
+#define MAX_LINE_LEN	82	/* not strictly enforced, mostly used as a multiplier */
 
 const char *quote_fmt=" > %.*s\r\n";
 void quotestr(char *str);
@@ -90,7 +91,7 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 	if((buf=smb_getmsgtxt(&smb,msg,tails)) != NULL) {
 		strip_invalid_attr(buf);
 		if(useron.xedit && (cfg.xedit[useron.xedit-1]->misc&QUOTEWRAP))
-			wrapped=::wordwrap(buf, cols-4, cols-1, /* handle_quotes */TRUE);
+			wrapped=::wordwrap(buf, cols-4, cols-1, /* handle_quotes: */TRUE);
 		if(wrapped!=NULL) {
 			fputs(wrapped,fp);
 			free(wrapped);
@@ -104,12 +105,12 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 
 /****************************************************************************/
 /****************************************************************************/
-int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines)
+int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines)
 {
-	int i,l;
+	unsigned i,l;
 	int	len=0;
 
-	for(l=i=0;buf[l] && i<cfg.level_linespermsg[useron.level];l++) {
+	for(l=i=0;buf[l] && i<maxlines;l++) {
 		if((uchar)buf[l]==141 && useron.xedit
     		&& cfg.xedit[useron.xedit-1]->misc&QUICKBBS) {
 			len+=fwrite(crlf,1,2,stream);
@@ -132,7 +133,7 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 				break;
 			continue;
 		}
-		if(!(mode&(WM_EMAIL|WM_NETMAIL))
+		if(!(mode&(WM_EMAIL|WM_NETMAIL|WM_EDIT))
 			&& (!l || buf[l-1]==LF)
 			&& buf[l]=='-' && buf[l+1]=='-' && buf[l+2]=='-'
 			&& (buf[l+3]==' ' || buf[l+3]==TAB || buf[l+3]==CR))
@@ -144,7 +145,7 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 	}
 
 	if(buf[l])
-		bputs(text[NoMoreLines]);
+		bprintf(text[NoMoreLines], i);
 
 	if(lines!=NULL)
 		*lines=i;
@@ -153,7 +154,7 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 
 /****************************************************************************/
 /****************************************************************************/
-int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, unsigned* lines)
+int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines)
 {
 	char*	buf;
 	long	len;
@@ -173,7 +174,7 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 	fclose(fp);
 
 	if((fp=fopen(dest,"wb"))!=NULL) {
-		len=process_edited_text(buf, fp, mode, lines);
+		len=process_edited_text(buf, fp, mode, lines, maxlines);
 		fclose(fp);
 	}
 	free(buf);
@@ -187,7 +188,7 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 /* message and 'title' is the title (70chars max) for the message.          */
 /* 'dest' contains a text description of where the message is going.        */
 /****************************************************************************/
-bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode, int subnum
+bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode, uint subnum
 	,const char *dest, char** editor)
 {
 	char	str[256],quote[128],c,*buf,*p,*tp
@@ -538,19 +539,19 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 		free(buf);
 		return(false); 
 	}
-	l=process_edited_text(buf,stream,mode,&lines);
+	l=process_edited_text(buf,stream,mode,&lines,cfg.level_linespermsg[useron_level]);
 
 	/* Signature file */
 	if((subnum==INVALID_SUB && cfg.msg_misc&MM_EMAILSIG)
 		|| (subnum!=INVALID_SUB && !(cfg.sub[subnum]->misc&SUB_NOUSERSIG))) {
 		SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,useron.number);
 		FILE* sig;
-		if(fexist(str) && (sig=fopen(str,"rb"))!=NULL) {
+		if(fexist(str) && (sig=fopen(str,"r"))!=NULL) {
 			while(!feof(sig)) {
 				if(!fgets(str,sizeof(str),sig))
 					break;
-				fputs(str,stream);
-				l+=strlen(str);	/* byte counter */
+				truncsp(str);
+				l+=fprintf(stream,"%s\r\n",str);
 				lines++;		/* line counter */
 			}
 			fclose(sig);
@@ -782,7 +783,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		}
 		if(line>(maxlines-10)) {
 			if(line==maxlines)
-				bputs(text[NoMoreLines]);
+				bprintf(text[NoMoreLines],line);
 			else
 				bprintf(text[OnlyNLinesLeft],maxlines-line); 
 		}
@@ -982,7 +983,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 /****************************************************************************/
 /* Edits an existing file or creates a new one in MSG format                */
 /****************************************************************************/
-bool sbbs_t::editfile(char *fname)
+bool sbbs_t::editfile(char *fname, bool msg)
 {
 	char *buf,path[MAX_PATH+1];
 	char msgtmp[MAX_PATH+1];
@@ -992,7 +993,10 @@ bool sbbs_t::editfile(char *fname)
 	FILE*	stream;
 	unsigned lines;
 
-	maxlines=cfg.level_linespermsg[useron.level];
+	if(msg)
+		maxlines=cfg.level_linespermsg[useron.level];
+	else
+		maxlines=MAX_LINES;
 	quotes_fname(useron.xedit, path, sizeof(path));
 	removecase(path);
 
@@ -1021,7 +1025,7 @@ bool sbbs_t::editfile(char *fname)
 		rioctl(IOCM|PAUSE|ABORT);
 		if(external(cmdstr(cfg.xedit[useron.xedit-1]->rcmd,msgtmp,nulstr,NULL),mode,cfg.node_dir)!=0)
 			return false;
-		l=process_edited_file(msgtmp, path, /* mode: */0, &lines);
+		l=process_edited_file(msgtmp, path, /* mode: */WM_EDIT, &lines,maxlines);
 		if(l>0) {
 			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 				,useron.alias, path, l, lines);
@@ -1067,7 +1071,7 @@ bool sbbs_t::editfile(char *fname)
 		free(buf);
 		return false; 
 	}
-	l=process_edited_text(buf,stream,/* mode: */0,&lines);
+	l=process_edited_text(buf,stream,/* mode: */WM_EDIT,&lines,maxlines);
 	bprintf(text[SavedNBytes],l,lines);
 	fclose(stream);
 	free(buf);
@@ -1297,7 +1301,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 	removecase(msgtmp);
 	msgtotxt(msg,msgtmp,0,1);
-	if(!editfile(msgtmp))
+	if(!editfile(msgtmp, /* msg: */true))
 		return;
 	length=(long)flength(msgtmp);
 	if(length<1L)
@@ -1489,8 +1493,8 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 		,cfg.grp[usrgrp[newgrp]]->sname,cfg.sub[newsub]->lname);
 	safe_snprintf(str,sizeof(str),"%s moved message from %s %s to %s %s"
 		,useron.alias
-		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname
-		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
+		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname
+		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname);
 	logline("M+",str);
 	signal_sub_sem(&cfg,newsub);
 
