@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.54 2014/03/12 05:34:23 rswindell Exp $ */
+/* $Id: link_list.c,v 1.53 2011/09/10 01:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,14 +132,12 @@ BOOL DLLCALL listFree(link_list_t* list)
 	if(list->flags&LINK_LIST_MUTEX) { 
 		while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY) 
 			SLEEP(1);
-		list->flags&=~LINK_LIST_MUTEX;
 	}
 
 	if(list->flags&LINK_LIST_SEMAPHORE) {
 		while(sem_destroy(&list->sem)==-1 && errno==EBUSY)
 			SLEEP(1);
 		//list->sem=(sem_t)NULL; /* Removed 08-20-08 - list->sem is never checked and this causes an error with gcc 4.1.2 (ThetaSigma) */
-		list->flags&=~LINK_LIST_SEMAPHORE;
 	}
 #endif
 
