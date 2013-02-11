@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.103 2014/04/29 09:16:31 deuce Exp $ */
+/* $Id: genwrap.h,v 1.100 2012/04/25 07:52:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,20 +81,6 @@
 extern "C" {
 #endif
 
-/*
- * The alloca() function can't be implemented in C, and on some
- * platforms it can't be implemented at all as a callable function.
- * The GNU C compiler provides a built-in alloca() which we can use;
- * On platforms where alloca() is not in libc, programs which use
- * it will fail to link when compiled with non-GNU compilers.
- */
-#if __GNUC__ >= 2 || defined(__INTEL_COMPILER)
-#undef  alloca  /* some GNU bits try to get cute and define this on their own */
-#define alloca(sz) __builtin_alloca(sz)
-#elif defined(_WIN32)
-#include <malloc.h>
-#endif
-
 /*********************/
 /* Compiler-specific */
 /*********************/
@@ -108,16 +94,6 @@ extern "C" {
 #elif defined(_MSC_VER)
 
 	#define DESCRIBE_COMPILER(str) SAFEPRINTF(str,"MSC %u", _MSC_VER);
-
-#elif defined(__clang__) && defined(__clang_patchlevel__)
-
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF3(str,"Clang %u.%u.%u" \
-		,__clang_major__,__clang_minor__,__clang_patchlevel__);
-
-#elif defined(__clang__) && defined(__clang_minor__)
-
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF2(str,"Clang %u.%u" \
-		,__clang_major__,__clang_minor__);
 
 #elif defined(__GNUC__) && defined(__GNUC_PATCHLEVEL__)
 
