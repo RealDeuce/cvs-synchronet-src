@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.59 2013/02/13 00:49:40 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.60 2013/02/13 02:58:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -521,8 +521,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					bputs(text[MailOnSystemLstHdr]);
 				else
 					bputs(text[MailWaitingLstHdr]);
-				u=i;
-				for(;u<smb.msgs && !msgabort();u++) {
+				for(u=i;u<smb.msgs && !msgabort();u++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
