@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.298 2013/08/20 07:36:04 deuce Exp $ */
+/* $Id: term.c,v 1.297 2012/07/19 06:18:26 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -859,7 +859,6 @@ void guts_background_download(void *cbdata)
 	zmodem_t	zm;
 	ulong		bytes_received;
 
-	SetThreadName("GUTS Download");
 	zmodem_mode=ZMODEM_MODE_RECV;
 
 	transfer_buf_len=0;
@@ -886,7 +885,6 @@ void guts_background_upload(void *cbdata)
 	ulong	fsize;
 	FILE*	fp;
 
-	SetThreadName("GUTS Upload");
 	if((fp=fopen(gi.files[0],"rb"))==NULL) {
 		fprintf(stderr,"Error %d opening %s for read",errno,gi.files[0]);
 		return;
