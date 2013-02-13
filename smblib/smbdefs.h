@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.81 2013/09/12 09:33:06 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.80 2012/10/24 19:02:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -479,7 +479,7 @@ enum {
 								/* These are the hash sources stored/compared for duplicate message detection: */
 #define SMB_HASH_SOURCE_DUPE	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_MSG_ID)|(1<<SMB_HASH_SOURCE_FTN_ID))
 								/* These are the hash sources stored/compared for SPAM message detection: */
-#define SMB_HASH_SOURCE_SPAM	((1<<SMB_HASH_SOURCE_BODY))
+#define SMB_HASH_SOURCE_SPAM	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_SUBJECT))
 
 typedef struct _PACK {
 
