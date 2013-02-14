@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.c,v 1.12 2014/01/03 00:39:46 deuce Exp $ */
+/* $Id: lzh.c,v 1.11 2012/10/23 07:59:36 deuce Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -468,7 +468,7 @@ static void lzh_update(lzh_t* lzh, short int c)
 
 			c = l;
 		}
-	} while (((c = lzh->prnt[c]) != 0) && c < (sizeof(lzh->son)/sizeof(lzh->son[0])));	/* do it until reaching the root */
+	} while ((c = lzh->prnt[c]) != 0);	/* do it until reaching the root */
 }
 
 static void lzh_encode_char(lzh_t* lzh, unsigned short c, uint8_t *outbuf, int32_t *outlen)
