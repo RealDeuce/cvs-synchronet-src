@@ -2,13 +2,13 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.100 2012/06/13 08:54:33 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.102 2013/01/06 23:29:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -188,7 +188,7 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 /* message and 'title' is the title (70chars max) for the message.          */
 /* 'dest' contains a text description of where the message is going.        */
 /****************************************************************************/
-bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode, int subnum
+bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode, uint subnum
 	,const char *dest, char** editor)
 {
 	char	str[256],quote[128],c,*buf,*p,*tp
@@ -1493,8 +1493,8 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 		,cfg.grp[usrgrp[newgrp]]->sname,cfg.sub[newsub]->lname);
 	safe_snprintf(str,sizeof(str),"%s moved message from %s %s to %s %s"
 		,useron.alias
-		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname
-		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
+		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname
+		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname);
 	logline("M+",str);
 	signal_sub_sem(&cfg,newsub);
 
