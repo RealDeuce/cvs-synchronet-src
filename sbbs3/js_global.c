@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.326 2013/03/16 08:50:24 deuce Exp $ */
+/* $Id: js_global.c,v 1.327 2013/03/16 09:00:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4058,11 +4058,11 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"get_size",		js_getsize,			1,	JSTYPE_NUMBER,	JSDOCSTR("[number]")
 	,JSDOCSTR("Gets the size in bytes the object uses in memory (forces GC) ")
-	,315
+	,316
 	},
 	{"flatten",			js_flatten,			1,	JSTYPE_NUMBER,	JSDOCSTR("[null]")
 	,JSDOCSTR("Flattens a string ")
-	,315
+	,316
 	},
 	{0}
 };
