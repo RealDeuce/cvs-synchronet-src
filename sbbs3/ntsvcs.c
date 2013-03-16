@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.43 2013/05/06 20:19:55 mcmlxxix Exp $ */
+/* $Id: ntsvcs.c,v 1.42 2013/02/11 22:52:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -721,7 +721,7 @@ static DWORD get_service_info(SC_HANDLE hSCManager, char* name, DWORD* state)
 		return(-1);
 	}
     CloseServiceHandle(hService);
-	ret=service_config->dwStartType;
+	ret=service_config->dwStartType
 	free(service_config);
 
 	return ret;
