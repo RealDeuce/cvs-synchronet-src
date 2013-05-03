@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.339 2014/11/18 06:11:30 deuce Exp $ */
+/* $Id: js_global.c,v 1.329 2013/03/16 09:36:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -241,6 +241,33 @@ static jsval* js_CopyValue(JSContext* cx, jsrefcount *cx_rc, jsval val, JSContex
 	return rval;
 }
 
+JSBool BGContextCallback(JSContext *cx, uintN contextOp)
+{
+	JSObject	*gl=JS_GetGlobalObject(cx);
+	global_private_t*	p;
+
+	if(!gl)
+		return JS_TRUE;
+
+	if((p=(global_private_t*)JS_GetPrivate(cx,gl))==NULL)
+		return(JS_TRUE);
+
+	switch(contextOp) {
+		case JSCONTEXT_DESTROY:
+			while(p->bg_count) {
+				while(p->bg_count && sem_trywait(&p->bg_sem)==0)
+					p->bg_count--;
+				if(!p->bg_count)
+					break;
+
+				if(sem_wait(&p->bg_sem)==0)
+					p->bg_count--;
+			}
+			break;
+	}
+	return JS_TRUE;
+}
+
 static JSBool
 js_load(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -397,8 +424,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		return(JS_FALSE);
 	}
-	JSVALUE_TO_MSTRING(cx, argv[argn], filename, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], filename, NULL);
 	if(filename==NULL) {	// This handles the pending error as well as a null JS string.
 		if(background) {
 			rc=JS_SUSPENDREQUEST(cx);
@@ -586,6 +612,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		success = _beginthread(background_thread,0,bg)!=-1;
 		JS_RESUMEREQUEST(cx, rc);
 		if(success) {
+			JS_SetContextCallback(JS_GetRuntime(cx), BGContextCallback);
 			p->bg_count++;
 		}
 
@@ -839,7 +866,7 @@ js_ascii(JSContext *cx, uintN argc, jsval *arglist)
 	str[0]=(uchar)i;
 	str[1]=0;
 
-	if((js_str = JS_NewStringCopyN(cx, str, 1))==NULL)
+	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
@@ -2423,30 +2450,21 @@ js_md5_calc(JSContext* cx, uintN argc, jsval* arglist)
 }
 
 static JSBool
-js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *), unsigned extra_bytes)
+js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *))
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		str, *rastr;
+	char*		str;
 	JSString*	js_str;
-	size_t		strlen;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], str, &strlen);
+	JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
 	HANDLE_PENDING(cx);
 	if(str==NULL) 
 		return(JS_TRUE);
-	if(extra_bytes) {
-		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
-		if(rastr==NULL) {
-			free(str);
-			return JS_TRUE;
-		}
-		str=rastr;
-	}
 
 	js_str = JS_NewStringCopyZ(cx, func(str));
 	free(str);
@@ -2460,37 +2478,37 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 static JSBool
 js_rot13(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, rot13, 0);
+	return js_internal_charfunc(cx, argc, arglist, rot13);
 }
 
 static JSBool
 js_skipsp(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, skipsp, 0);
+	return js_internal_charfunc(cx, argc, arglist, skipsp);
 }
 
 static JSBool
 js_truncsp(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, truncsp, 0);
+	return js_internal_charfunc(cx, argc, arglist, truncsp);
 }
 
 static JSBool
 js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, backslash, 1);
+	return js_internal_charfunc(cx, argc, arglist, backslash);
 }
 
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfname, 0);
+	return js_internal_charfunc(cx, argc, arglist, getfname);
 }
 
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfext, 0);
+	return js_internal_charfunc(cx, argc, arglist, getfext);
 }
 
 static JSBool
@@ -3108,14 +3126,12 @@ js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	JSVALUE_TO_MSTRING(cx, argv[argn], fname, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], fname, NULL);
 	HANDLE_PENDING(cx);
 	if(fname==NULL) 
 		return(JS_TRUE);
 	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], text, NULL);
-		argn++;
+		JSVALUE_TO_MSTRING(cx, argv[argn++], text, NULL);
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
 			return JS_FALSE;
@@ -3246,15 +3262,13 @@ js_wildmatch(JSContext *cx, uintN argc, jsval *arglist)
 	if(JSVAL_IS_BOOLEAN(argv[argn]))
 		JS_ValueToBoolean(cx, argv[argn++], &case_sensitive);
 
-	JSVALUE_TO_MSTRING(cx, argv[argn], fname, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], fname, NULL);
 	HANDLE_PENDING(cx);
 	if(fname==NULL)
 		return(JS_TRUE);
 
 	if(argn<argc && argv[argn]!=JSVAL_VOID) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], spec, NULL);
-		argn++;
+		JSVALUE_TO_MSTRING(cx, argv[argn++], spec, NULL);
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
 			return JS_FALSE;
@@ -4100,14 +4114,8 @@ static void js_global_finalize(JSContext *cx, JSObject *obj)
 
 	p=(global_private_t*)JS_GetPrivate(cx,obj);
 
-	if(p!=NULL) {
-		while(p->bg_count) { 
-			if(sem_wait(&p->bg_sem)==0) 
-				p->bg_count--; 
-		}
-		sem_destroy(&p->bg_sem);
+	if(p!=NULL)
 		free(p);
-	}
 
 	p=NULL;
 	JS_SetPrivate(cx,obj,p);
@@ -4164,10 +4172,6 @@ static JSClass js_global_class = {
 BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t* startup, JSObject**glob)
 {
 	global_private_t*	p;
-	JSRuntime*			rt;
-
-	if((rt=JS_GetRuntime(cx)) != NULL)
-		JS_SetRuntimePrivate(rt, cfg);
 
 	if((p = (global_private_t*)malloc(sizeof(global_private_t)))==NULL)
 		return(FALSE);
@@ -4277,10 +4281,6 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* COM Class */
 		if(js_CreateCOMClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptContext Class */
-		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
