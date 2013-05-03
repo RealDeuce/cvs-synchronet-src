@@ -2,13 +2,13 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.45 2014/01/04 09:38:39 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.39 2011/10/19 02:42:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -51,8 +51,6 @@
 /* ANSI */
 #include <sys/types.h>	/* _dev_t */
 #include <sys/stat.h>	/* struct stat */
-#include <limits.h>	/* struct stat */
-#include <stdlib.h>		/* realloc() */
 
 #include "filewrap.h"	/* Verify prototypes */
 
@@ -278,80 +276,6 @@ int DLLCALL unlock(int file, off_t offset, off_t size)
 }
 
 #endif	/* !Unix && (MSVC || MinGW) */
-
-#if defined(_WIN32 )
-static size_t
-p2roundup(size_t n)
-{
-	if(n & (n-1)) {	// If n isn't a power of two already...
-		n--;
-		n |= n >> 1;
-		n |= n >> 2;
-		n |= n >> 4;
-		n |= n >> 8;
-		n |= n >> 16;
-#if SIZE_T_MAX > 0xffffffffU
-		n |= n >> 32;
-#endif
-		n++;
-	}
-	return (n);
-}
-
-static int expandtofit(char **linep, size_t len, size_t *linecapp)
-{
-	char	*newline;
-	size_t	newcap;
-
-	if(len+1 >= LONG_MAX)
-		return -1;
-	if(len > *linecapp) {
-		if(len == LONG_MAX)
-			newcap = LONG_MAX;
-		else
-			newcap = p2roundup(len);
-		newline = (char *)realloc(*linep, newcap);
-		if(newline == NULL)
-			return -1;
-		*linecapp = newcap;
-		*linep = newline;
-	}
-	return 0;
-}
-
-long DLLCALL getdelim(char **linep, size_t *linecapp, int delimiter, FILE *stream)
-{
-	size_t	linelen;
-	int		ch;
-
-	if(linep == NULL || linecapp == NULL)
-		return -1;
-	if(*linep == NULL)
-		*linecapp = 0;
-	if(feof(stream)) {
-		if(expandtofit(linep, 1, linecapp))
-			return -1;
-		(*linep)[0]=0;
-		return -1;
-	}
-
-	linelen = 0;
-	for(;;) {
-		ch = fgetc(stream);
-		if(ch == EOF)
-			break;
-		if(expandtofit(linep, linelen+2, linecapp))
-			return -1;
-		(*linep)[linelen++]=ch;
-		if(ch == delimiter)
-			break;
-	}
-	(*linep)[linelen]=0;
-	if(linelen==0)
-		return -1;
-	return linelen;
-}
-#endif
 
 #ifdef __unix__
 FILE *_fsopen(const char *pszFilename, const char *pszMode, int shmode)

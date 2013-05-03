@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.335 2013/05/19 00:29:12 rswindell Exp $ */
+/* $Id: js_global.c,v 1.329 2013/03/16 09:36:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -424,8 +424,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		return(JS_FALSE);
 	}
-	JSVALUE_TO_MSTRING(cx, argv[argn], filename, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], filename, NULL);
 	if(filename==NULL) {	// This handles the pending error as well as a null JS string.
 		if(background) {
 			rc=JS_SUSPENDREQUEST(cx);
@@ -2451,30 +2450,21 @@ js_md5_calc(JSContext* cx, uintN argc, jsval* arglist)
 }
 
 static JSBool
-js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *), unsigned extra_bytes)
+js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *))
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		str, *rastr;
+	char*		str;
 	JSString*	js_str;
-	size_t		strlen;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], str, &strlen);
+	JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
 	HANDLE_PENDING(cx);
 	if(str==NULL) 
 		return(JS_TRUE);
-	if(extra_bytes) {
-		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
-		if(rastr==NULL) {
-			free(str);
-			return JS_TRUE;
-		}
-		str=rastr;
-	}
 
 	js_str = JS_NewStringCopyZ(cx, func(str));
 	free(str);
@@ -2488,37 +2478,37 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 static JSBool
 js_rot13(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, rot13, 0);
+	return js_internal_charfunc(cx, argc, arglist, rot13);
 }
 
 static JSBool
 js_skipsp(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, skipsp, 0);
+	return js_internal_charfunc(cx, argc, arglist, skipsp);
 }
 
 static JSBool
 js_truncsp(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, truncsp, 0);
+	return js_internal_charfunc(cx, argc, arglist, truncsp);
 }
 
 static JSBool
 js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, backslash, 1);
+	return js_internal_charfunc(cx, argc, arglist, backslash);
 }
 
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfname, 0);
+	return js_internal_charfunc(cx, argc, arglist, getfname);
 }
 
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfext, 0);
+	return js_internal_charfunc(cx, argc, arglist, getfext);
 }
 
 static JSBool
@@ -3136,14 +3126,12 @@ js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	JSVALUE_TO_MSTRING(cx, argv[argn], fname, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], fname, NULL);
 	HANDLE_PENDING(cx);
 	if(fname==NULL) 
 		return(JS_TRUE);
 	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], text, NULL);
-		argn++;
+		JSVALUE_TO_MSTRING(cx, argv[argn++], text, NULL);
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
 			return JS_FALSE;
@@ -3274,15 +3262,13 @@ js_wildmatch(JSContext *cx, uintN argc, jsval *arglist)
 	if(JSVAL_IS_BOOLEAN(argv[argn]))
 		JS_ValueToBoolean(cx, argv[argn++], &case_sensitive);
 
-	JSVALUE_TO_MSTRING(cx, argv[argn], fname, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], fname, NULL);
 	HANDLE_PENDING(cx);
 	if(fname==NULL)
 		return(JS_TRUE);
 
 	if(argn<argc && argv[argn]!=JSVAL_VOID) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], spec, NULL);
-		argn++;
+		JSVALUE_TO_MSTRING(cx, argv[argn++], spec, NULL);
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
 			return JS_FALSE;
