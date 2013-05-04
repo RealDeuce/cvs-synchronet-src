@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.18 2014/09/13 01:20:18 deuce Exp $ */
+/* $Id: ssh.c,v 1.14 2012/06/19 07:47:48 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -12,7 +12,6 @@
 #include "bbslist.h"
 #include "conn.h"
 #include "uifcinit.h"
-#include "ciolib.h"
 
 #include "st_crypt.h"
 
@@ -51,7 +50,6 @@ void ssh_input_thread(void *args)
 	size_t	buffer;
 	struct timeval tv;
 
-	SetThreadName("SSH Input");
 	conn_api.input_thread_running=1;
 	while(ssh_active && !conn_api.terminate) {
 		FD_ZERO(&rds);
@@ -77,7 +75,6 @@ void ssh_input_thread(void *args)
 					break;
 				}
 				cryptlib_error_message(status, "recieving data");
-				ssh_active=FALSE;
 				break;
 			}
 			else {
@@ -101,7 +98,6 @@ void ssh_output_thread(void *args)
 	size_t	sent;
 	int		status;
 
-	SetThreadName("SSH Output");
 	conn_api.output_thread_running=1;
 	while(ssh_active && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
@@ -120,7 +116,6 @@ void ssh_output_thread(void *args)
 						break;
 					}
 					cryptlib_error_message(status, "sending data");
-					ssh_active=FALSE;
 					break;
 				}
 				sent += ret;
@@ -143,8 +138,6 @@ int ssh_connect(struct bbslist *bbs)
 	int status;
 	char password[MAX_PASSWD_LEN+1];
 	char username[MAX_USER_LEN+1];
-	int	rows,cols;
-	struct text_info ti;
 
 	init_uifc(TRUE, TRUE);
 	pthread_mutex_init(&ssh_mutex, NULL);
@@ -231,38 +224,6 @@ int ssh_connect(struct bbslist *bbs)
 		uifc.pop(NULL);
 		return(-1);
 	}
-
-	uifc.pop(NULL);
-	uifc.pop("Setting Terminal Type");
-	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_SSH_TERMINAL, "syncterm", 8);
-
-	/* Horrible way to determine the screen size */
-	textmode(screen_to_ciolib(bbs->screen_mode));
-
-	gettextinfo(&ti);
-	if(ti.screenwidth < 80)
-		cols=40;
-	else {
-		if(ti.screenwidth < 132)
-			cols=80;
-		else
-			cols=132;
-	}
-	rows=ti.screenheight;
-	if(!bbs->nostatus)
-		rows--;
-	if(rows<24)
-		rows=24;
-
-	uifc.pop(NULL);
-	uifc.pop("Setting Terminal Width");
-	/* Pass socket to cryptlib */
-	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_WIDTH, cols);
-
-	uifc.pop(NULL);
-	uifc.pop("Setting Terminal Height");
-	/* Pass socket to cryptlib */
-	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_HEIGHT, rows);
 
 	/* Activate the session */
 	uifc.pop(NULL);
