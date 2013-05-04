@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.590 2013/02/10 21:17:46 deuce Exp $ */
+/* $Id: main.cpp,v 1.591 2013/05/04 21:37:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1488,6 +1488,9 @@ void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 
 bool sbbs_t::request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack)
 {
+	if(telnet_mode&TELNET_MODE_OFF)	
+		return false;
+
 	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
 		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
 			return true;	/* already set in this mode, do nothing */
