@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.591 2013/05/04 21:37:28 deuce Exp $ */
+/* $Id: main.cpp,v 1.592 2013/05/07 00:20:10 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -957,7 +957,6 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
     JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*cstr;
     char 		*prompt;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
