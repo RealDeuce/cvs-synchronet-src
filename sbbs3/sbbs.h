@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.402 2013/04/29 15:42:37 deuce Exp $ */
+/* $Id: sbbs.h,v 1.403 2013/05/07 00:22:42 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -939,6 +939,7 @@ public:
 
 	/* telgate.cpp */
 	void	telnet_gate(char* addr, ulong mode);	// See TG_* for mode bits
+	void	rlogin_gate(char* addr, char* alias, char* pw, ulong mode);	// See TG_* for mode bits
 
 };
 
