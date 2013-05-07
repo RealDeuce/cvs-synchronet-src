@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.156 2014/04/06 06:20:15 rswindell Exp $ */
+/* $Id: js_system.c,v 1.152 2013/04/27 02:49:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -341,7 +341,7 @@ static JSBool js_system_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 
 	switch(tiny) {
 		case SYS_PROP_MISC:
-			JS_ValueToInt32(cx, *vp, &cfg->sys_misc);
+			JS_ValueToInt32(cx, *vp, (int32*)&cfg->sys_misc);
 			break;
 	}
 
@@ -499,23 +499,24 @@ static char* sys_prop_desc[] = {
 
 	/* Manually created (non-tabled) properties */
 	,"public host name that uniquely identifies this system on the Internet (usually the same as <i>system.inet_addr</i>)"
-	,"socket library version information"
-	,"time/date system was brought online (in time_t format)"
-	,"Synchronet full version information (e.g. '3.10k Beta Debug')"
-	,"date and time compiled"
 	,"Synchronet version number (e.g. '3.10')"
 	,"Synchronet revision letter (e.g. 'k')"
 	,"Synchronet alpha/beta designation (e.g. ' beta')"
+	,"Synchronet full version information (e.g. '3.10k Beta Debug')"
 	,"Synchronet version notice (includes version and platform)"
 	,"Synchronet version number in decimal (e.g. 31301 for v3.13b)"
 	,"Synchronet version number in hexadecimal (e.g. 0x31301 for v3.13b)"
 	,"platform description (e.g. 'Win32', 'Linux', 'FreeBSD')"
 	,"architecture description (e.g. 'i386', 'i686', 'x86_64')"
+	,"socket library version information"
 	,"message base library version information"
 	,"compiler used to build Synchronet"
+	,"date and time compiled"
 	,"Synchronet copyright display"
 	,"JavaScript engine version information"
 	,"operating system version information"
+	,"time/date system was brought online (in time_t format)"
+
 	,"array of FidoNet Technology Network (FTN) addresses associated with this system"
 	,NULL
 };
@@ -1842,8 +1843,8 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,JSDOCSTR("log a suspected hack attempt")
 	,310
 	},
-	{"filter_ip",		js_filter_ip,		4,	JSTYPE_BOOLEAN,	JSDOCSTR("[protocol, reason, host, ip, username, filename]")
-	,JSDOCSTR("add an IP address (with comment) to an IP filter file. If filename is not specified, the ip.can file is used")
+	{"filter_ip",		js_filter_ip,		4,	JSTYPE_BOOLEAN,	JSDOCSTR("[protocol, reason, host, ip, username]")
+	,JSDOCSTR("add an IP address (with comment) to the system's IP filter file")
 	,311
 	},		
 	{"get_node_message",js_get_node_message,0,	JSTYPE_STRING,	JSDOCSTR("node_number")
@@ -2337,7 +2338,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 
 static JSBool js_system_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_system_resolve(cx, obj, JSID_VOID));
+	return(js_node_resolve(cx, obj, JSID_VOID));
 }
 
 static JSClass js_system_class = {
