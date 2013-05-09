@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.391 2012/07/11 22:25:46 deuce Exp $ */
+/* $Id: sbbs.h,v 1.403 2013/05/07 00:22:42 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -111,9 +111,51 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include <jsapi.h>
 #define JS_DestroyScript(cx,script)
 
-#define JSSTRING_TO_STRING(cx, str, ret, lenptr) \
+#define JSSTRING_TO_RASTRING(cx, str, ret, sizeptr, lenptr) \
 { \
-	size_t			*JSSTSlenptr=lenptr; \
+	size_t			*JSSTSlenptr=(lenptr); \
+	size_t			JSSTSlen; \
+	size_t			JSSTSpos; \
+	const jschar	*JSSTSstrval; \
+	char			*JSSTStmpptr; \
+\
+	if(JSSTSlenptr==NULL) \
+		JSSTSlenptr=&JSSTSlen; \
+	if((str) != NULL) { \
+		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
+			if((*(sizeptr) < (*JSSTSlenptr+1 )) || (ret)==NULL) { \
+				*(sizeptr) = *JSSTSlenptr+1; \
+				if((JSSTStmpptr=(char *)realloc((ret), *(sizeptr)))==NULL) { \
+					JS_ReportError(cx, "Error reallocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
+					(ret)=NULL; \
+					free(ret); \
+				} \
+				else { \
+					(ret)=JSSTStmpptr; \
+				} \
+			} \
+			if(ret) { \
+				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
+					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
+				(ret)[*JSSTSlenptr]=0; \
+			} \
+		} \
+	} \
+	else { \
+		if(ret) \
+			*(ret)=0; \
+	} \
+}
+
+#define JSVALUE_TO_RASTRING(cx, val, ret, sizeptr, lenptr) \
+{ \
+	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
+	JSSTRING_TO_RASTRING((cx), JSVTSstr, (ret), (sizeptr), (lenptr)); \
+}
+
+#define JSSTRING_TO_MSTRING(cx, str, ret, lenptr) \
+{ \
+	size_t			*JSSTSlenptr=(lenptr); \
 	size_t			JSSTSlen; \
 	size_t			JSSTSpos; \
 	const jschar	*JSSTSstrval; \
@@ -123,19 +165,86 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	(ret)=NULL; \
 	if((str) != NULL) { \
 		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
-			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
+			if(((ret)=(char *)malloc(*JSSTSlenptr+1))) { \
 				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
 					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
 				(ret)[*JSSTSlenptr]=0; \
 			} \
+			else JS_ReportError((cx), "Error allocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
 		} \
 	} \
 }
 
-#define JSVALUE_TO_STRING(cx, val, ret, lenptr) \
+#define JSVALUE_TO_MSTRING(cx, val, ret, lenptr) \
 { \
 	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
-	JSSTRING_TO_STRING((cx), JSVTSstr, (ret), lenptr); \
+	JSSTRING_TO_MSTRING((cx), JSVTSstr, (ret), lenptr); \
+}
+
+#define JSSTRING_TO_STRBUF(cx, str, ret, bufsize, lenptr) \
+{ \
+	size_t			*JSSTSlenptr=(lenptr); \
+	size_t			JSSTSlen; \
+	size_t			JSSTSpos; \
+	const jschar	*JSSTSstrval; \
+\
+	if(JSSTSlenptr==NULL) \
+		JSSTSlenptr=&JSSTSlen; \
+	if((bufsize) < 1 || (str)==NULL) \
+		*JSSTSlenptr = 0; \
+	else { \
+		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
+			if(*JSSTSlenptr >= (bufsize)) \
+				*JSSTSlenptr = (bufsize)-1; \
+			for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
+				(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
+		} \
+		else \
+			*JSSTSlenptr=0; \
+	} \
+	(ret)[*JSSTSlenptr]=0; \
+}
+
+#define JSVALUE_TO_STRBUF(cx, val, ret, bufsize, lenptr) \
+{ \
+	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
+	JSSTRING_TO_STRBUF((cx), JSVTSstr, (ret), (bufsize), lenptr); \
+}
+
+#define HANDLE_PENDING(cx) \
+	if(JS_IsExceptionPending(cx)) \
+		return JS_FALSE;
+
+#define JSSTRING_TO_ASTRING(cx, str, ret, maxsize, lenptr) \
+{ \
+	size_t			*JSSTSlenptr=(lenptr); \
+	size_t			JSSTSlen; \
+	size_t			JSSTSpos; \
+	const jschar	*JSSTSstrval; \
+\
+	if(JSSTSlenptr==NULL) \
+		JSSTSlenptr=&JSSTSlen; \
+	(ret)=NULL; \
+	if((str) != NULL) { \
+		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
+			if(*JSSTSlenptr >= (maxsize)) { \
+				*JSSTSlenptr = (maxsize)-1; \
+			} \
+			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
+				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) { \
+					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
+				} \
+				(ret)[*JSSTSlenptr]=0; \
+			} \
+			else JS_ReportError((cx), "Error allocating %lu bytes on stack at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
+		} \
+	} \
+}
+
+#define JSVALUE_TO_ASTRING(cx, val, ret, maxsize, lenptr) \
+{ \
+	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
+	JSSTRING_TO_ASTRING((cx), JSVTSstr, (ret), (maxsize), (lenptr)); \
 }
 
 #endif
@@ -499,7 +608,7 @@ public:
 
 	/* writemsg.cpp */
 	void	automsg(void);
-	bool	writemsg(const char *str, const char *top, char *title, long mode, int subnum
+	bool	writemsg(const char *str, const char *top, char *title, long mode, uint subnum
 				,const char *dest, char** editor=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
@@ -534,7 +643,7 @@ public:
 	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
-	post_t* loadposts(int32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num);
+	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -762,6 +871,12 @@ public:
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
 	int		qwk_route(char *inaddr, char *fulladdr);
+	uint	total_qwknodes;
+	struct qwknode {
+		char	id[LEN_QWKID+1];
+		char	path[MAX_PATH+1];
+		time_t	time;
+	}* qwknode;
 	void	update_qwkroute(char *via);
 	void	qwk_success(ulong msgcnt, char bi, char prepack);
 	void	qwksetptr(uint subnum, char *buf, int reset);
@@ -782,7 +897,7 @@ public:
 	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum, int conf, FILE* hdrs_dat);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat);
 
 	/* qwktomsg.cpp */
 	void	qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
@@ -824,6 +939,7 @@ public:
 
 	/* telgate.cpp */
 	void	telnet_gate(char* addr, ulong mode);	// See TG_* for mode bits
+	void	rlogin_gate(char* addr, char* alias, char* pw, ulong mode);	// See TG_* for mode bits
 
 };
 
@@ -871,7 +987,7 @@ extern "C" {
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
-	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, int32_t* msgs, uint usernumber
+	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
 	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);

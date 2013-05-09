@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.268 2011/11/03 21:22:06 deuce Exp $ */
+/* $Id: services.c,v 1.271 2013/02/11 22:52:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,8 +270,8 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 	}
 	
-	if((buf=alloca(len))==NULL)
-		return(JS_TRUE);
+	if((buf=malloc(len))==NULL)
+		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	len=recv(client->socket,buf,len,0);
@@ -279,6 +279,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(len>0)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len)));
+	free(buf);
 
 	return(JS_TRUE);
 }
@@ -308,14 +309,16 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 	}
 
-	if((buf=(char*)alloca(len+1))==NULL) {
+	if((buf=(char*)malloc(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
 
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&timeout))
+		if(!JS_ValueToInt32(cx,argv[1],(int32*)&timeout)) {
+			free(buf);
 			return JS_FALSE;
+		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -329,6 +332,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			if(time(NULL)-start>timeout) {
 				JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 				JS_RESUMEREQUEST(cx, rc);
+				free(buf);
 				return(JS_TRUE);	/* time-out */
 			}
 			continue;	/* no data */
@@ -349,6 +353,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	str = JS_NewStringCopyZ(cx, buf);
+	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -362,7 +367,9 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
-	char*		cp;
+	char*		cp=NULL;
+	size_t		cp_sz=0;
+	size_t		len;
 	service_client_t* client;
 	jsrefcount	rc;
 
@@ -374,13 +381,15 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, argv[0]);
 
 	for(i=0; i<argc; i++) {
-		JSVALUE_TO_STRING(cx, argv[i], cp, NULL);
+		JSVALUE_TO_RASTRING(cx, argv[i], cp, &cp_sz, &len);
 		if(cp==NULL)
 			continue;
 		rc=JS_SUSPENDREQUEST(cx);
-		sendsocket(client->socket,cp,strlen(cp));
+		sendsocket(client->socket,cp,len);
 		JS_RESUMEREQUEST(cx, rc);
 	}
+	if(cp)
+		free(cp);
 
 	return(JS_TRUE);
 }
@@ -433,10 +442,12 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		JSVALUE_TO_STRING(cx, argv[i], line, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[i], line, NULL);
+		HANDLE_PENDING(cx);
 		if(line==NULL)
 		    return(JS_FALSE);
 		strncat(str,line,sizeof(str)/2);
+		free(line);
 		strcat(str," ");
 	}
 
@@ -486,12 +497,12 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name or number */
-	JSVALUE_TO_STRING(cx, argv[0], user, NULL);
-	if(user==NULL) 
+	JSVALUE_TO_ASTRING(cx, argv[0], user, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
+	if(user==NULL)
 		return(JS_FALSE);
 
 	/* Password */
-	JSVALUE_TO_STRING(cx, argv[1], pass, NULL);
+	JSVALUE_TO_ASTRING(cx, argv[1], pass, LEN_PASS+2, NULL);
 	if(pass==NULL) 
 		return(JS_FALSE);
 
@@ -692,7 +703,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 	jsrefcount	rc;
-	char		*cstr;
+	char		*cstr=NULL;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -719,14 +730,13 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[1], cstr, NULL);
+		HANDLE_PENDING(cx);
 		client.user=cstr;
 	}
 
-	if(argc>2) {
-		JSVALUE_TO_STRING(cx, argv[2], cstr, NULL);
-		SAFECOPY(client.host,cstr);
-	}
+	if(argc>2)
+		JSVALUE_TO_STRBUF(cx, argv[2], client.host, sizeof(client.host), NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ FALSE);
@@ -735,6 +745,8 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 		,service_client->service->socket,service_client->service->protocol
 		,sock,client.user,client.host);
 #endif
+	if(cstr)
+		free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -749,7 +761,7 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 	SOCKADDR_IN	addr;
 	service_client_t* service_client;
 	jsrefcount	rc;
-	char		*cstr;
+	char		*cstr=NULL;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -771,14 +783,12 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[1], cstr, NULL);
 		client.user=cstr;
 	}
 
-	if(argc>2) {
-		JSVALUE_TO_STRING(cx, argv[2], cstr, NULL);
-		SAFECOPY(client.host,cstr);
-	}
+	if(argc>2)
+		JSVALUE_TO_STRBUF(cx, argv[2], client.host, sizeof(client.host), NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	client_on(sock, &client, /* update? */ TRUE);
@@ -787,6 +797,8 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 		,service_client->service->socket,service_client->service->protocol
 		,sock,client.user,client.host);
 #endif
+	if(cstr)
+		free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -1164,7 +1176,7 @@ static void js_service_thread(void* arg)
 	if(service->options&SERVICE_OPT_UDP 
 		&& service_client.udp_buf != NULL
 		&& service_client.udp_len > 0) {
-		datagram = JS_NewStringCopyN(js_cx, service_client.udp_buf, service_client.udp_len);
+		datagram = JS_NewStringCopyN(js_cx, (char*)service_client.udp_buf, service_client.udp_len);
 		if(datagram==NULL)
 			val=JSVAL_VOID;
 		else
@@ -1677,7 +1689,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.268 $", "%*s %s", revision);
+	sscanf("$Revision: 1.271 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
