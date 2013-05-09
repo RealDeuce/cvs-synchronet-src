@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.82 2012/06/21 05:48:49 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.84 2012/10/23 08:07:08 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -74,9 +74,15 @@ static size_t sample_size;
 #endif
 
 static BOOL sound_device_open_failed=FALSE;
+#ifdef USE_ALSA_SOUND
 static BOOL alsa_device_open_failed=FALSE;
+#endif
+#ifdef WITH_SDL_AUDIO
 static BOOL sdl_device_open_failed=FALSE;
+#endif
+#ifdef WITH_PORTAUDIO
 static BOOL portaudio_device_open_failed=FALSE;
+#endif
 
 enum {
 	 SOUND_DEVICE_CLOSED
@@ -644,8 +650,15 @@ BOOL xptone_close(void)
 #endif
 	handle_type=SOUND_DEVICE_CLOSED;
 	sound_device_open_failed=FALSE;
+#ifdef USE_ALSA_SOUND
 	alsa_device_open_failed=FALSE;
+#endif
+#ifdef WITH_SDL_AUDIO
 	sdl_device_open_failed=FALSE;
+#endif
+#ifdef WITH_PORTAUDIO
+	portaudio_device_open_failed=FALSE;
+#endif
 
 	return(TRUE);
 }
@@ -664,6 +677,7 @@ void xp_play_sample_thread(void *data)
 	int	i;
 #endif
 
+	SetThreadName("Sample Play");
 	sample_thread_running=TRUE;
 	while(1) {
 		if(!waited) {
