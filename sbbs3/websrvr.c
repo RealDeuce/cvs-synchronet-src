@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.570 2014/01/04 09:49:30 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.566 2013/02/11 23:43:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1924,7 +1924,7 @@ static void unescape(char *p)
 	
 	dst=p;
 	for(;*p;p++) {
-		if(*p=='%' && isxdigit((uchar)*(p+1)) && isxdigit((uchar)*(p+2))) {
+		if(*p=='%' && isxdigit(*(p+1)) && isxdigit(*(p+2))) {
 			sprintf(code,"%.2s",p+1);
 			*(dst++)=(char)strtol(code,NULL,16);
 			p+=2;
@@ -2869,7 +2869,7 @@ static BOOL check_request(http_session_t * session)
 {
 	char	path[MAX_PATH+1];
 	char	curdir[MAX_PATH+1];
-	char	str[MAX_PATH+1];			/* Apr-7-2013: bounds of str can be exceeded, e.g. "s:\sbbs\web\root\http:\vert.synchro.net\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\webctrl.ini"	char [261] */
+	char	str[MAX_PATH+1];
 	char	last_ch;
 	char*	last_slash;
 	char*	p;
@@ -4140,10 +4140,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		char* tp=strchr(str, 0);
-		JSVALUE_TO_STRBUF(cx, argv[i], tp, sizeof(str)/2, NULL);
+		JSVALUE_TO_STRBUF(cx, argv[i], strchr(str, 0), sizeof(str)/2, NULL);
 		strcat(str," ");
 	}
+
 	rc=JS_SUSPENDREQUEST(cx);
 	lprintf(level,"%04d %s",session->socket,str);
 	JS_RESUMEREQUEST(cx, rc);
@@ -4177,7 +4177,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	memset(&user,0,sizeof(user));
 
-	if(isdigit((uchar)*p))
+	if(isdigit(*p))
 		user.number=atoi(p);
 	else if(*p)
 		user.number=matchuser(&scfg,p,FALSE);
@@ -4956,7 +4956,7 @@ void http_output_thread(void *arg)
 	if(!obuf->highwater_mark) {
 		socklen_t   sl;
 		sl=sizeof(i);
-		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, (char*)&i, &sl)) {
+		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, &i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
 				obuf->highwater_mark=i-12;
@@ -5338,7 +5338,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.570 $", "%*s %s", revision);
+	sscanf("$Revision: 1.566 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

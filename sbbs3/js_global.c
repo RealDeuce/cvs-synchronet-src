@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.335 2013/05/19 00:29:12 rswindell Exp $ */
+/* $Id: js_global.c,v 1.331 2013/05/09 20:26:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -424,8 +424,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		return(JS_FALSE);
 	}
-	JSVALUE_TO_MSTRING(cx, argv[argn], filename, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], filename, NULL);
 	if(filename==NULL) {	// This handles the pending error as well as a null JS string.
 		if(background) {
 			rc=JS_SUSPENDREQUEST(cx);
@@ -2468,16 +2467,13 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 	if(str==NULL) 
 		return(JS_TRUE);
 	if(extra_bytes) {
-		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
-		if(rastr==NULL) {
-			free(str);
+		rastr=realloc(str, strlen+extra_bytes);
+		if(rastr==NULL)
 			return JS_TRUE;
-		}
-		str=rastr;
 	}
 
 	js_str = JS_NewStringCopyZ(cx, func(str));
-	free(str);
+	free(str);	/* MSVC detected heap corruption here! */
 	if(js_str==NULL)
 		return(JS_FALSE);
 
@@ -3136,14 +3132,12 @@ js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	JSVALUE_TO_MSTRING(cx, argv[argn], fname, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], fname, NULL);
 	HANDLE_PENDING(cx);
 	if(fname==NULL) 
 		return(JS_TRUE);
 	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], text, NULL);
-		argn++;
+		JSVALUE_TO_MSTRING(cx, argv[argn++], text, NULL);
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
 			return JS_FALSE;
@@ -3274,15 +3268,13 @@ js_wildmatch(JSContext *cx, uintN argc, jsval *arglist)
 	if(JSVAL_IS_BOOLEAN(argv[argn]))
 		JS_ValueToBoolean(cx, argv[argn++], &case_sensitive);
 
-	JSVALUE_TO_MSTRING(cx, argv[argn], fname, NULL);
-	argn++;
+	JSVALUE_TO_MSTRING(cx, argv[argn++], fname, NULL);
 	HANDLE_PENDING(cx);
 	if(fname==NULL)
 		return(JS_TRUE);
 
 	if(argn<argc && argv[argn]!=JSVAL_VOID) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], spec, NULL);
-		argn++;
+		JSVALUE_TO_MSTRING(cx, argv[argn++], spec, NULL);
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
 			return JS_FALSE;
