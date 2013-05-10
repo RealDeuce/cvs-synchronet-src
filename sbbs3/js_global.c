@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.335 2013/05/19 00:29:12 rswindell Exp $ */
+/* $Id: js_global.c,v 1.332 2013/05/10 18:10:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2468,16 +2468,13 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 	if(str==NULL) 
 		return(JS_TRUE);
 	if(extra_bytes) {
-		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
-		if(rastr==NULL) {
-			free(str);
+		rastr=realloc(str, strlen+extra_bytes);
+		if(rastr==NULL)
 			return JS_TRUE;
-		}
-		str=rastr;
 	}
 
 	js_str = JS_NewStringCopyZ(cx, func(str));
-	free(str);
+	free(str);	/* MSVC detected heap corruption here! */
 	if(js_str==NULL)
 		return(JS_FALSE);
 

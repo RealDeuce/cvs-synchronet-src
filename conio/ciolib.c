@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.116 2013/08/15 23:56:38 deuce Exp $ */
+/* $Id: ciolib.c,v 1.115 2012/10/24 19:02:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -410,7 +410,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getche(void)
 		ciolib_putch(ch);
 		return(ch);
 	}
-	if(cio_api.getche)
+	if(cio_api.getche())
 		return(cio_api.getche());
 	else {
 		while(1) {

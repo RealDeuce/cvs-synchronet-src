@@ -2,13 +2,13 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.402 2014/01/07 12:27:12 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.401 2013/02/07 06:20:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -208,9 +208,10 @@ static void client_off(SOCKET sock)
 
 static int32_t thread_up(BOOL setuid)
 {
+	int32_t	count =	protected_uint32_adjust(&thread_count,1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,TRUE, setuid);
-	return thread_count.value;
+	return count;
 }
 
 static int32_t thread_down(void)
@@ -1917,7 +1918,6 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 		xfer->dir=dir;
 		xfer->desc=desc;
 		SAFECOPY(xfer->filename,filename);
-		protected_uint32_adjust(&thread_count,1);
 		if(receiving)
 			result=_beginthread(receive_thread,0,(void*)xfer);
 		else
@@ -4541,7 +4541,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.402 $", "%*s %s", revision);
+	sscanf("$Revision: 1.401 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4636,7 +4636,6 @@ void DLLCALL ftp_server(void* arg)
 
 	do {
 
-		protected_uint32_adjust(&thread_count,1);
 		thread_up(FALSE /* setuid */);
 
 		status("Initializing");
@@ -4894,7 +4893,6 @@ void DLLCALL ftp_server(void* arg)
 			ftp->socket=client_socket;
 			ftp->client_addr=client_addr;
 
-			protected_uint32_adjust(&thread_count,1);
 			_beginthread(ctrl_thread, 0, ftp);
 			served++;
 		}
