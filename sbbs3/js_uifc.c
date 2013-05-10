@@ -2,13 +2,13 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.23 2011/10/11 05:05:56 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.32 2013/05/07 07:22:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -135,56 +135,57 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
 
+	if(tiny==PROP_CHANGES)
+		return JS_ValueToBoolean(cx,*vp,&uifc->changes);
+	else if(tiny==PROP_HELPBUF) {
+		if(uifc->helpbuf)
+			free(uifc->helpbuf);
+		JSVALUE_TO_MSTRING(cx, *vp, uifc->helpbuf, NULL);
+		HANDLE_PENDING(cx);
+		return JS_TRUE;
+	}
+
+	if(!JS_ValueToInt32(cx, *vp, &i))
+		return JS_FALSE;
+
 	switch(tiny) {
-		case PROP_MODE:
-			JS_ValueToInt32(cx, *vp, (int32*)&uifc->mode);
-			break;
 		case PROP_CHANGES:
-			JS_ValueToBoolean(cx,*vp,&uifc->changes);
+			uifc->changes=i;
+			break;
+		case PROP_MODE:
+			uifc->mode=i;
 			break;
 		case PROP_SAVNUM:
-			JS_ValueToInt32(cx, *vp, (int32*)&uifc->savnum);
+			uifc->savnum=i;
 			break;
 		case PROP_SCRN_LEN:
-			JS_ValueToInt32(cx, *vp, (int32*)&uifc->scrn_len);
+			uifc->scrn_len=i;
 			break;
 		case PROP_SCRN_WIDTH:
-			JS_ValueToInt32(cx, *vp, (int32*)&uifc->scrn_width);
+			uifc->scrn_width=i;
 			break;
 		case PROP_ESC_DELAY:
-			JS_ValueToInt32(cx, *vp, (int32*)&uifc->esc_delay);
-			break;
-		case PROP_HELPBUF:
-			uifc->helpbuf=js_ValueToStringBytes(cx, *vp, NULL);
+			uifc->esc_delay=i;
 			break;
 		case PROP_LIST_HEIGHT:
-			JS_ValueToInt32(cx, *vp, (int32*)&uifc->list_height);
+			uifc->list_height=i;
 			break;
 		case PROP_HCOLOR:
-		case PROP_LCOLOR:
-		case PROP_BCOLOR:
-		case PROP_CCOLOR:
-		case PROP_LBCOLOR:
-			JS_ValueToInt32(cx, *vp, &i);
-			switch(tiny) {
-				case PROP_HCOLOR:
-					uifc->hclr=(char)i;
-					break;
-				case PROP_LCOLOR:
-					uifc->lclr=(char)i;
-					break;
-				case PROP_BCOLOR:
-					uifc->bclr=(char)i;
-					break;
-				case PROP_CCOLOR:
-					uifc->cclr=(char)i;
-					break;
-				case PROP_LBCOLOR:
-					uifc->lbclr=(char)i;
-					break;
-			}
+			uifc->hclr=(char)i;
 			break;
-	}	
+		case PROP_LCOLOR:
+			uifc->lclr=(char)i;
+			break;
+		case PROP_BCOLOR:
+			uifc->bclr=(char)i;
+			break;
+		case PROP_CCOLOR:
+			uifc->cclr=(char)i;
+			break;
+		case PROP_LBCOLOR:
+			uifc->lbclr=(char)i;
+			break;
+	}
 
 	return(JS_TRUE);
 }
@@ -208,6 +209,25 @@ static jsSyncPropertySpec js_properties[] = {
 	{	"lightbar_color",	PROP_LBCOLOR,		JSPROP_ENUMERATE,	314 },
 	{0}
 };
+
+#ifdef BUILD_JSDOCS
+static char* uifc_prop_desc[] = {
+	 "uifc has been initialized"
+	,"current mode bits (see uifcdefs.js)"
+	,"a change has occured in an input call.  You are expected to set this to false before calling the input if you care about it."
+	,"save buffer depth (advanced)"
+	,"current screen length"
+	,"current screen width"
+	,"when WIN_FIXEDHEIGHT is set, specifies the hight used by a list method"
+	,"delay before a single ESC char is parsed and assumed to not be an ANSI sequence (advanced)"
+	,"text that will be displayed if F1 is pressed"
+	,"background colour"
+	,"frame colour"
+	,"text colour"
+	,"inverse colour"
+	,"lightbar colour"
+};
+#endif
 
 /* Convenience functions */
 static uifcapi_t* get_uifc(JSContext *cx, JSObject *obj)
@@ -233,7 +253,8 @@ js_uifc_init(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
-	char*	title="Synchronet";
+	const char*	title_def="Synchronet";
+	char*	title=(char *)title_def;
 	char*	mode;
 	uifcapi_t* uifc;
 	jsrefcount	rc;
@@ -243,42 +264,57 @@ js_uifc_init(JSContext *cx, uintN argc, jsval *arglist)
 	if((uifc=(uifcapi_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
-	if(argc && (title=js_ValueToStringBytes(cx, argv[0], NULL))==NULL)
-		return(JS_FALSE);
+	if(argc) {
+		JSVALUE_TO_MSTRING(cx, argv[0], title, NULL);
+		HANDLE_PENDING(cx);
+		if(title==NULL)
+			return(JS_TRUE);
+	}
 
-	if(argc>1 && (mode=js_ValueToStringBytes(cx, argv[1], NULL))!=NULL) {
-		if(!stricmp(mode,"STDIO"))
-			ciolib_mode=-1;
-		else if(!stricmp(mode,"AUTO"))
-			ciolib_mode=CIOLIB_MODE_AUTO;
-		else if(!stricmp(mode,"X"))
-			ciolib_mode=CIOLIB_MODE_X;
-		else if(!stricmp(mode,"ANSI"))
-			ciolib_mode=CIOLIB_MODE_ANSI;
-		else if(!stricmp(mode,"CONIO"))
-			ciolib_mode=CIOLIB_MODE_CONIO;
+	if(argc>1) {
+		JSVALUE_TO_ASTRING(cx, argv[1], mode, 7, NULL);
+		if(mode != NULL) {
+			if(!stricmp(mode,"STDIO"))
+				ciolib_mode=-1;
+			else if(!stricmp(mode,"AUTO"))
+				ciolib_mode=CIOLIB_MODE_AUTO;
+			else if(!stricmp(mode,"X"))
+				ciolib_mode=CIOLIB_MODE_X;
+			else if(!stricmp(mode,"ANSI"))
+				ciolib_mode=CIOLIB_MODE_ANSI;
+			else if(!stricmp(mode,"CONIO"))
+				ciolib_mode=CIOLIB_MODE_CONIO;
+		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(ciolib_mode==-1) {
 		if(uifcinix(uifc)) {
 			JS_RESUMEREQUEST(cx, rc);
+			if(title != title_def)
+				free(title);
 			return(JS_TRUE);
 		}
 	} else {
 		if(initciolib(ciolib_mode)) {
 			JS_RESUMEREQUEST(cx, rc);
+			if(title != title_def)
+				free(title);
 			return(JS_TRUE);
 		}
 
 		if(uifcini32(uifc)) {
 			JS_RESUMEREQUEST(cx, rc);
+			if(title != title_def)
+				free(title);
 			return(JS_TRUE);
 		}
 	}
 
 	JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	uifc->scrn(title);
+	if(title != title_def)
+		free(title);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -287,7 +323,6 @@ static JSBool
 js_uifc_bail(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	uifcapi_t* uifc;
 	jsrefcount	rc;
 
@@ -316,12 +351,14 @@ js_uifc_msg(JSContext *cx, uintN argc, jsval *arglist)
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], str, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
+	HANDLE_PENDING(cx);
 	if(str==NULL)
-		return(JS_FALSE);
+		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	uifc->msg(str);
+	free(str);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -340,11 +377,15 @@ js_uifc_pop(JSContext *cx, uintN argc, jsval *arglist)
 	if((uifc=get_uifc(cx,obj))==NULL)
 		return(JS_FALSE);
 
-	if(argc)
-		JSVALUE_TO_STRING(cx, argv[0], str, NULL);
+	if(argc) {
+		JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
+		HANDLE_PENDING(cx);
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	uifc->pop(str);
+	if(str)
+		free(str);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -380,35 +421,70 @@ js_uifc_input(JSContext *cx, uintN argc, jsval *arglist)
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
 		&& !JS_ValueToInt32(cx,argv[argn++],&top))
 		return(JS_FALSE);
-	if(argn<argc && JSVAL_IS_STRING(argv[argn]) 
-		&& (prompt=js_ValueToStringBytes(cx,argv[argn++],NULL))==NULL)
-		return(JS_FALSE);
-	if(argn<argc && JSVAL_IS_STRING(argv[argn]) 
-		&& (org=js_ValueToStringBytes(cx,argv[argn++],NULL))==NULL)
-		return(JS_FALSE);
+	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
+		JSVALUE_TO_MSTRING(cx, argv[argn++], prompt, NULL);
+		HANDLE_PENDING(cx);
+		if(prompt==NULL)
+			return(JS_TRUE);
+	}
+	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
+		JSVALUE_TO_MSTRING(cx, argv[argn++], org, NULL);
+		if(JS_IsExceptionPending(cx)) {
+			if(prompt)
+				free(prompt);
+			return JS_FALSE;
+		}
+		if(org==NULL)
+			return(JS_TRUE);
+	}
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
-		&& !JS_ValueToInt32(cx,argv[argn++],&maxlen))
+		&& !JS_ValueToInt32(cx,argv[argn++],&maxlen)) {
+		if(prompt)
+			free(prompt);
+		if(org)
+			free(org);
 		return(JS_FALSE);
+	}
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
-		&& !JS_ValueToInt32(cx,argv[argn++],&kmode))
+		&& !JS_ValueToInt32(cx,argv[argn++],&kmode)) {
+		if(prompt)
+			free(prompt);
+		if(org)
+			free(org);
 		return(JS_FALSE);
+	}
 
 	if(!maxlen)
 		maxlen=40;
 
-	if((str=(char*)alloca(maxlen+1))==NULL)
+	if((str=(char*)malloc(maxlen+1))==NULL) {
+		if(prompt)
+			free(prompt);
+		if(org)
+			free(org);
 		return(JS_FALSE);
+	}
 
 	memset(str,0,maxlen+1);
 
-	if(org)
+	if(org) {
 		strncpy(str,org,maxlen);
+		free(org);
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(uifc->input(mode, left, top, prompt, str, maxlen, kmode)<0) {
 		JS_RESUMEREQUEST(cx, rc);
+		if(prompt)
+			free(prompt);
+		if(str)
+			free(str);
 		return(JS_TRUE);
 	}
+	if(prompt)
+		free(prompt);
+	if(str)
+		free(str);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,str)));
@@ -435,6 +511,8 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 	jsuint      i;
 	jsuint		numopts;
 	str_list_t	opts=NULL;
+	char		*opt=NULL;
+	size_t		opt_sz=0;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -460,9 +538,10 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
 		&& !JS_ValueToInt32(cx,argv[argn++],&bar))
 		return(JS_FALSE);
-	if(argn<argc && JSVAL_IS_STRING(argv[argn]) 
-		&& (title=js_ValueToStringBytes(cx,argv[argn++],NULL))==NULL)
-		return(JS_FALSE);
+	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
+		JSVALUE_TO_MSTRING(cx, argv[argn++], title, NULL);
+		HANDLE_PENDING(cx);
+	}
 	if(argn<argc && JSVAL_IS_OBJECT(argv[argn])) {
 		if((objarg = JSVAL_TO_OBJECT(argv[argn++]))==NULL)
 			return(JS_FALSE);
@@ -473,8 +552,15 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 			for(i=0;i<numopts;i++) {
 				if(!JS_GetElement(cx, objarg, i, &val))
 					break;
-				strListPush(&opts,js_ValueToStringBytes(cx,val,NULL));
+				JSVALUE_TO_RASTRING(cx, val, opt, &opt_sz, NULL);
+				if(JS_IsExceptionPending(cx)) {
+					if(title)
+						free(title);
+				}
+				strListPush(&opts,opt);
 			}
+			if(opt)
+				free(opt);
 		}
 	}
 
@@ -530,15 +616,22 @@ static jsSyncMethodSpec js_functions[] = {
 static JSBool js_uifc_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
+	JSBool			ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval)) {
+			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+			HANDLE_PENDING(cx);
+		}
 	}
 
-	return(js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0));
+	ret=js_SyncResolve(cx, obj, name, js_properties, js_functions, NULL, 0);
+	if(name)
+		free(name);
+	return ret;
 }
 
 static JSBool js_uifc_enumerate(JSContext *cx, JSObject *obj)
@@ -577,6 +670,11 @@ JSObject* js_CreateUifcObject(JSContext* cx, JSObject* parent)
 
 	if(!JS_SetPrivate(cx, obj, api))	/* Store a pointer to uifcapi_t */
 		return(NULL);
+
+#ifdef BUILD_JSDOCS
+	js_DescribeSyncObject(cx,obj,"User InterFaCe object - used for jsexec menus" ,314);
+	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", uifc_prop_desc, JSPROP_READONLY);
+#endif
 
 	return(obj);
 }
