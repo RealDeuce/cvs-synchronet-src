@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.153 2013/05/10 18:10:31 deuce Exp $ */
+/* $Id: js_system.c,v 1.154 2013/05/10 18:28:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -822,7 +822,6 @@ js_matchuser(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ValueToBoolean(cx,argv[1],&sysop_alias);
 
 	JSSTRING_TO_ASTRING(cx, js_str, p, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2:LEN_NAME+2, NULL);
-fprintf(stderr,"p=%p (%s)\n",p,p?p:"(null)");
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
 		return(JS_TRUE);
