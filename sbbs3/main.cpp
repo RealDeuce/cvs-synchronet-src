@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.593 2013/05/11 22:35:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.594 2013/05/12 00:05:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1529,7 +1529,6 @@ void input_thread(void *arg)
 #endif
 
 	pthread_mutex_init(&sbbs->input_thread_mutex,NULL);
-	pthread_mutex_init(&sbbs->ssh_mutex,NULL);
     sbbs->input_thread_running = true;
 	sbbs->console|=CON_R_INPUT;
 
@@ -5385,6 +5384,7 @@ NO_SSH:
 			new_node->sys_status|=SS_RLOGIN;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // RLogin does not use Telnet commands
 		}
+		pthread_mutex_init(&new_node->ssh_mutex,NULL);
 #ifdef USE_CRYPTLIB
 		if(ssh) {
 			SOCKET	tmp_sock;
