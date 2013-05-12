@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.586 2012/07/20 08:17:12 deuce Exp $ */
+/* $Id: main.cpp,v 1.594 2013/05/12 00:05:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -650,7 +650,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str=NULL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*line;
+	char		*line=NULL;
+	size_t		line_sz=0;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -665,7 +666,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, line, NULL);
+		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -677,6 +678,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
+	free(line);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -759,7 +761,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str=NULL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*cstr;
+	char		*cstr=NULL;
+	size_t		cstr_sz=0;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -769,7 +772,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     for (i = 0; i < argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, cstr, NULL);
+		JSSTRING_TO_RASTRING(cx, str, cstr, &cstr_sz, NULL);
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -792,7 +795,8 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i;
-    char*	str=NULL;
+    char*		str=NULL;
+    size_t		str_sz=0;
 	size_t		len;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -803,7 +807,7 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
-		JSVALUE_TO_STRING(cx, argv[i], str, &len);
+		JSVALUE_TO_RASTRING(cx, argv[i], str, &str_sz, &len);
 		if(str==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -879,13 +883,14 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
 	if(cstr==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->attr(sbbs->cfg.color[clr_err]);
 	sbbs->bputs(cstr);
+	free(cstr);
 	sbbs->attr(LIGHTGRAY);
 	sbbs->bputs(crlf);
 	JS_RESUMEREQUEST(cx, rc);
@@ -908,12 +913,13 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
 	if(cstr==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(cstr)));
+	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -931,12 +937,13 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], cstr, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
 	if(cstr==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(cstr)));
+	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -950,7 +957,6 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
     JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*cstr;
     char 		*prompt;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -958,20 +964,18 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_STRING(cx, argv[0], prompt, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[0], prompt, NULL);
 	if(prompt==NULL)
 	    return(JS_FALSE);
 
 	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], cstr, NULL);
-		if(cstr==NULL)
-		    return(JS_FALSE);
-		SAFECOPY(instr,cstr);
+		JSVALUE_TO_STRBUF(cx, argv[1], instr, sizeof(instr), NULL);
 	} else
 		instr[0]=0;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->bprintf("\1n\1y\1h%s\1w: ",prompt);
+	free(prompt);
 
 	if(!sbbs->getstr(instr,sizeof(instr)-1,K_EDIT)) {
 		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
@@ -1483,6 +1487,9 @@ void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 
 bool sbbs_t::request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack)
 {
+	if(telnet_mode&TELNET_MODE_OFF)	
+		return false;
+
 	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
 		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
 			return true;	/* already set in this mode, do nothing */
@@ -1522,7 +1529,6 @@ void input_thread(void *arg)
 #endif
 
 	pthread_mutex_init(&sbbs->input_thread_mutex,NULL);
-	pthread_mutex_init(&sbbs->ssh_mutex,NULL);
     sbbs->input_thread_running = true;
 	sbbs->console|=CON_R_INPUT;
 
@@ -2117,7 +2123,21 @@ void output_thread(void* arg)
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
 			int err;
-			pthread_mutex_lock(&sbbs->ssh_mutex);
+			pthread_mutex_lock(&sbbs->ssh_mutex);	/* exception here May-11-2013:
+
+ 	sbbs.dll!pthread_mutex_lock(_RTL_CRITICAL_SECTION * mutex=0x070b3a74)  Line 147 + 0xc bytes	C
+>	sbbs.dll!output_thread(void * arg=0x070add80)  Line 2127 + 0x11 bytes	C++
+ 	sbbs.dll!_callthreadstart()  Line 259 + 0xf bytes	C
+ 	sbbs.dll!_threadstart(void * ptd=0x03daaa18)  Line 243	C
+
+-		&sbbs->ssh_mutex	0x070b3a74 {DebugInfo=0x00000000 LockCount=-4 RecursionCount=0 ...}	_RTL_CRITICAL_SECTION *
++		DebugInfo	0x00000000 {Type=??? CreatorBackTraceIndex=??? CriticalSection=??? ...}	_RTL_CRITICAL_SECTION_DEBUG *
+		LockCount	-4	long
+		RecursionCount	0	long
+		OwningThread	0x00000000	void *
+		LockSemaphore	0x00002028	void *
+		SpinCount	0	unsigned long
+*/
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
@@ -3035,6 +3055,10 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	batdn_alt=NULL;
 	batdn_cdt=NULL;
 
+	/* used by update_qwkroute(): */
+	qwknode=NULL;	
+	total_qwknodes=0;
+
 	spymsg("Connected");
 }
 
@@ -3069,6 +3093,7 @@ bool sbbs_t::init()
 			errormsg(WHERE,ERR_CREATE,"duplicate socket handle",client_socket);
 			return(false);
 		}
+		lprintf(LOG_DEBUG,"Node %d socket %u duplicated as %u", cfg.node_num, client_socket, client_socket_dup);
 #else
 		client_socket_dup = client_socket;
 #endif
@@ -5359,6 +5384,7 @@ NO_SSH:
 			new_node->sys_status|=SS_RLOGIN;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // RLogin does not use Telnet commands
 		}
+		pthread_mutex_init(&new_node->ssh_mutex,NULL);
 #ifdef USE_CRYPTLIB
 		if(ssh) {
 			SOCKET	tmp_sock;
