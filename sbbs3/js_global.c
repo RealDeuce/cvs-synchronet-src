@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.335 2013/05/19 00:29:12 rswindell Exp $ */
+/* $Id: js_global.c,v 1.333 2013/05/13 15:40:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2468,16 +2468,17 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 	if(str==NULL) 
 		return(JS_TRUE);
 	if(extra_bytes) {
-		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
-		if(rastr==NULL) {
-			free(str);
+		rastr=realloc(str, strlen+extra_bytes);
+		if(rastr==NULL)
 			return JS_TRUE;
-		}
-		str=rastr;
 	}
 
 	js_str = JS_NewStringCopyZ(cx, func(str));
-	free(str);
+	free(str);	/* MSVC detected heap corruption here (again):
+ 	sbbs.dll!free(void * pUserData=0x08cdc6b0)  Line 49 + 0xb bytes	C++
+>	sbbs.dll!js_internal_charfunc(JSContext * cx=0x0a594488, unsigned int argc=1, unsigned __int64 * arglist=0x0c3a0150, char * (char *)* func=0x10153fb0, unsigned int extra_bytes=1)  Line 2477 + 0x9 bytes	C
+ 	sbbs.dll!js_backslash(JSContext * cx=0x0a594488, unsigned int argc=1, unsigned __int64 * arglist=0x0c3a0150)  Line 2506 + 0x18 bytes	C
+	*/
 	if(js_str==NULL)
 		return(JS_FALSE);
 
