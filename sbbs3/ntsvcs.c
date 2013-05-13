@@ -2,13 +2,13 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.44 2014/01/09 09:51:59 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.43 2013/05/06 20:19:55 mcmlxxix Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -916,7 +916,7 @@ static void control_service(SC_HANDLE hSCManager, char* name, char* disp_name, D
 		return;
 
     /* try to stop the service */
-    if(!ControlService( hService, ctrl, &status)) {
+    if(!ControlService( hService, SERVICE_CONTROL_STOP, &status)) {
 		if((err=GetLastError())==ERROR_SERVICE_NOT_ACTIVE)
 			printf("Not active\n");
 		else
