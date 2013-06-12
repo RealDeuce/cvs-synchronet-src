@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.23 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: js_client.c,v 1.25 2013/02/07 00:49:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,15 +132,23 @@ static jsSyncPropertySpec js_client_properties[] = {
 static JSBool js_client_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
+	JSBool			ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval)) {
+			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+			if(name==NULL)
+				return JS_FALSE;
+		}
 	}
 
-	return(js_SyncResolve(cx, obj, name, js_client_properties, NULL, NULL, 0));
+	ret=js_SyncResolve(cx, obj, name, js_client_properties, NULL, NULL, 0);
+	if(name)
+		free(name);
+	return ret;
 }
 
 static JSBool js_client_enumerate(JSContext *cx, JSObject *obj)
