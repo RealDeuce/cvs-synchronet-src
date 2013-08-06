@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.46 2015/02/18 10:30:45 deuce Exp $ */
+/* $Id: js_queue.c,v 1.45 2013/05/10 18:10:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,6 +77,7 @@ static size_t js_decode_value(JSContext *cx, JSObject *parent
 		return(count);
 
 	JS_ReadStructuredClone(cx, v->value, v->size, JS_STRUCTURED_CLONE_VERSION, rval, NULL, NULL);
+	free(v->value);
 
 	return(count);
 }
@@ -156,7 +157,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 		jsval	rval;
 
 		js_decode_value(cx, obj, v, &rval, /* peek */FALSE);
-		free(v->value);
 		free(v);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
