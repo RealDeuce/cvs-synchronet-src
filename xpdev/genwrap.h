@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.96 2011/05/11 00:46:32 deuce Exp $ */
+/* $Id: genwrap.h,v 1.100 2012/04/25 07:52:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -60,7 +60,9 @@
 	#endif
 #elif defined(_WIN32)
 	#include <process.h>	/* getpid() */
-	typedef DWORD pid_t;
+	#ifndef __MINGW32__
+        typedef DWORD pid_t;
+	#endif
 #endif
 
 #if !defined(_WIN32)
@@ -87,7 +89,7 @@ extern "C" {
 #if defined(__BORLANDC__)
 
 	#define DESCRIBE_COMPILER(str) SAFEPRINTF2(str,"BCC %X.%02X" \
-		,__BORLANDC__>>8,__BORLANDC__&0xff);	
+		,__BORLANDC__>>8,__BORLANDC__&0xff);
 
 #elif defined(_MSC_VER)
 
@@ -111,7 +113,7 @@ extern "C" {
 #elif defined(__DMC__)	/* Digital Mars C/C++ */
 
 	#define DESCRIBE_COMPILER(str) SAFEPRINTF(str,"DMC %X.%02X" \
-		,__DMC__>>8,__DMC__&0xff);	
+		,__DMC__>>8,__DMC__&0xff);
 
 #else /* Unknown compiler */
 
@@ -154,6 +156,8 @@ extern "C" {
 	#define PLATFORM_DESC	"QNX"
 #elif defined(__unix__)
 	#define PLATFORM_DESC	"Unix"
+#elif defined(__HAIKU__)
+	#define PLATFORM_DESC	"Haiku"
 #else
 	#error "Need to describe target platform"
 #endif
@@ -259,7 +263,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define	MAYBE_YIELD()	DosSleep(0)
 	#define SLEEP(x)		DosSleep(x)
 
-#elif defined(__unix__) || defined(__APPLE__)
+#elif defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
 
 	#if defined(_PTH_PTHREAD_H_)
 		#define SLEEP(x)		({ int sleep_msecs=x; struct timeval tv; \
@@ -317,7 +321,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 #endif
 
 /* Win32 implementations of recursive (thread-safe) std C time functions on Unix */
-#if !defined(__unix__)	
+#if !defined(__unix__)
 
 	DLLEXPORT char*			DLLCALL		strtok_r(char *str, const char *delim, char **last);
 #endif
