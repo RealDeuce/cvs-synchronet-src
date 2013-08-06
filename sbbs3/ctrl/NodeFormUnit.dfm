@@ -6,23 +6,22 @@ object NodeForm: TNodeForm
   Caption = 'Nodes'
   Color = clBtnFace
   UseDockManager = True
-  DefaultMonitor = dmPrimary
   DragKind = dkDock
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
+  Font.Height = -14
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
   Position = poDefault
   OnHide = FormHide
-  PixelsPerInch = 96
-  TextHeight = 13
+  PixelsPerInch = 120
+  TextHeight = 16
   object Toolbar: TToolBar
     Left = 0
     Top = 0
-    Width = 261
+    Width = 269
     Height = 25
     Caption = 'Toolbar'
     EdgeBorders = []
@@ -107,10 +106,10 @@ object NodeForm: TNodeForm
   object ListBox: TListBox
     Left = 0
     Top = 25
-    Width = 261
-    Height = 151
+    Width = 269
+    Height = 156
     Align = alClient
-    ItemHeight = 13
+    ItemHeight = 16
     MultiSelect = True
     PopupMenu = PopupMenu
     TabOrder = 1
