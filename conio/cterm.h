@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.35 2014/01/22 22:01:15 deuce Exp $ */
+/* $Id: cterm.h,v 1.34 2012/10/24 19:02:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,21 +80,17 @@ struct cterminal {
 	cterm_emulation_t	emulation;
 	int					height;			// Height of the terminal buffer
 	int					width;			// Width of the terminal buffer
-	int					top_margin;
-	int					bottom_margin;
 	int					quiet;			// No sounds are made
 	unsigned char				*scrollback;
 	int					backlines;		// Number of lines in scrollback
 	char				DA[1024];		// Device Attributes
 	bool				autowrap;
-	bool				origin_mode;
 #define	CTERM_SAVEMODE_AUTOWRAP		0x01
 #define CTERM_SAVEMODE_CURSOR		0x02
 #define	CTERM_SAVEMODE_ALTCHARS		0x04
 #define CTERM_SAVEMODE_NOBRIGHT		0x08
 #define CTERM_SAVEMODE_BGBRIGHT		0x10
 #define CTERM_SAVEMODE_DOORWAY		0x20
-#define CTERM_SAVEMODE_ORIGIN		0x40
 	int32_t				saved_mode;
 	int32_t				saved_mode_mask;
 
