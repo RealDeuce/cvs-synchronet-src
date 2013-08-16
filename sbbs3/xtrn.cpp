@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.220 2014/01/09 12:40:47 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.219 2012/10/24 19:03:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1776,21 +1776,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			dup2(out_pipe[1],2);	/* stderr */
 #endif
 			close(out_pipe[1]);		/* close excess file descriptor */
-		}
-
-		if(!(mode & EX_STDIO)) {
-			int fd;
-
-			/* Redirect stdio to /dev/null */
-			if ((fd = open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
-				dup2(fd, STDIN_FILENO);
-				dup2(fd, STDOUT_FILENO);
-#ifndef XTERN_LOG_STDERR
-				dup2(fd, STDERR_FILENO);
-#endif
-				if (fd > 2)
-					close(fd);
-			}
 		}
 
 		if(mode&EX_BG)	/* background execution, detach child */

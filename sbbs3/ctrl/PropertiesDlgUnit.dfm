@@ -102,7 +102,7 @@ object PropertiesDlg: TPropertiesDlg
         Top = 10
         Width = 137
         Height = 24
-        Hint = 'Login command-line or URL (default = telnet://127.0.0.1)'
+        Hint = 'Login command-line or URL (default = telnet://localhost)'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 0
