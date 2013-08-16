@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.218 2011/12/06 20:41:52 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.219 2012/10/24 19:03:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1978,7 +1978,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			lprintf(LOG_NOTICE,"%.*s",i,buf);
 	}
 #else
-	waitpid(pid, &i, 0)==0;
+	waitpid(pid, &i, 0);
 #endif
 
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
