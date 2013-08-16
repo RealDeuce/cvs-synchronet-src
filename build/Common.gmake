@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.78 2011/10/13 23:36:51 deuce Exp $
+# $Id: Common.gmake,v 1.88 2013/08/16 23:32:05 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -41,6 +41,7 @@
 #																			#
 # Common Build Macros REQUIRED:												#
 #  SRC_ROOT			- *MUST* be set to the src dir							#
+#  3RDP_ROOT		- If not set, defaults to $(SRC_ROOT)/../3rdp			#
 #																			#
 # Common Build Macros Used:													#
 #  DEBUG			- Create a debug build									#
@@ -109,7 +110,7 @@
 
 # Set VERSION
 ifndef VERSION
- VERSION	:=	3.15
+ VERSION	:=	3.16
 endif
 
 # Put local (optional) macro definitions in localdefs.mk
@@ -190,6 +191,11 @@ else
 endif
 BUILDPATH	?=	$(BUILD)
 
+gcc_machine		:= $(shell ${CC} -dumpmachine)
+ifeq ($(gcc_machine),mingw32)
+ os		:= Win32
+endif
+
 # Get OS
 ifndef os
  os		:=	$(shell uname)
@@ -230,6 +236,10 @@ endif
 
 ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
  CFLAGS	+=	-DHAS_INTTYPES_H
+else
+ ifeq ($(shell if [ -f /boot/develop/headers/posix/inttypes.h ] ; then echo YES ; fi),YES)
+  CFLAGS	+=	-DHAS_INTTYPES_H
+ endif
 endif
 
 CCPRE := $(lastword $(subst /, ,$(CCPRE)))
@@ -276,9 +286,7 @@ else
 endif
 
 # OS Specific Flags
-ifeq ($(os),sunos)    # Solaris
- CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_CFMAKERAW
- # Solaris 10 provides setenv()
+ifeq ($(os),sunos)    # Solaris CFLAGS	+= -D__solaris__ -DNEEDS_DAEMON -DNEEDS_FORKPTY -DNEEDS_CFMAKERAW # Solaris 10 provides setenv()
  ifeq ($(shell if [ `uname -r | sed 's/\.//'` -lt 510 ] ; then echo "Yes" ; else echo "No" ; fi),Yes)
   CFLAGS += -DNEEDS_SETENV
  endif
@@ -286,6 +294,9 @@ ifeq ($(os),sunos)    # Solaris
 endif
 ifeq ($(os),netbsd)	# NetBSD
  CFLAGS	+=	-D__unix__ -I/usr/pkg/include
+endif
+ifeq ($(os),haiku)
+ CFLAGS	+=	-D__unix__ -DNEEDS_FORKPTY
 endif
 ifeq ($(os),darwin)
  CFLAGS +=  -D__unix__ -fno-common -D__DARWIN__
@@ -298,7 +309,6 @@ ifeq ($(os),linux)    # Linux
  endif
 endif
 MT_CFLAGS    += -D_THREAD_SAFE -D_REENTRANT
-CFLAGS    += -D_THREAD_SAFE -D_REENTRANT -D__EXTENSIONS__
 ifeq ($(os),freebsd)    # FreeBSD
  MT_CFLAGS    += -DUSE_XP_SEMAPHORES
  MT_LDFLAGS    +=    -pthread
@@ -328,10 +338,15 @@ else
       MT_CFLAGS    +=    -D_POSIX_PTHREAD_SEMANTICS
       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
       # This makes ctime_r() be the correct one.
-      CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
-     else            # Linux / Other UNIX
-      XP_SEM :=    1
-      MT_CFLAGS    += -DUSE_XP_SEMAPHORES
+      #CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
+     else
+      ifeq ($(os),win32) # Windows
+       CFLAGS		+= -D_WIN32 -D_WIN32_WINNT=0x0500 -DWINVER=0x0500 -D_WIN32_IE=0x0500
+       MT_CFLAGS	+= -D_WIN32
+      else           # Linux / Other UNIX
+       XP_SEM :=    1
+       MT_CFLAGS    += -DUSE_XP_SEMAPHORES
+      endif
      endif
     endif
    endif
@@ -360,7 +375,8 @@ XPDEV_SRC	:=	$(SRC_ROOT)$(DIRSEP)xpdev
 CIOLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)conio
 SMBLIB_SRC	:=	$(SRC_ROOT)$(DIRSEP)smblib
 UIFC_SRC	:=	$(SRC_ROOT)$(DIRSEP)uifc
-JS_SRC		:=	$(SRC_ROOT)$(DIRSEP)js
+3RDP_ROOT	?=	$(SRC_ROOT)$(DIRSEP)..$(DIRSEP)3rdp
+3RDP_BUILD	:=	$(3RDP_ROOT)$(DIRSEP)build
 
 # SDL ciolib enabled by default for the moment.
 ifndef WITHOUT_SDL
@@ -378,12 +394,13 @@ endif
 -include		$(CIOLIB_SRC)$(DIRSEP)Common.gmake
 -include		$(UIFC_SRC)$(DIRSEP)Common.make
 -include		$(UIFC_SRC)$(DIRSEP)Common.gmake
--include		$(JS_SRC)$(DIRSEP)Common.make
--include		$(JS_SRC)$(DIRSEP)Common.gmake
+-include		$(3RDP_BUILD)$(DIRSEP)Common.make
+-include		$(3RDP_BUILD)$(DIRSEP)Common.gmake
 
 ifdef DEBUG
  CFLAGS	+=	-ggdb
  CFLAGS	+=	-D_DEBUG
+ CFLAGS +=	-Wall -Wno-char-subscripts
 else # RELEASE
  # -finline functions breaks the baja build badly.
  # This also means that -O3 won't work either.
@@ -395,22 +412,22 @@ endif
 -include objects.mk		# defines $(OBJS)
 
 # Implicit C Compile Rule
-$(OBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS)
+$(OBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS) | $(OBJODIR)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
 
 # Implicit C++ Compile Rule
-$(OBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS)
+$(OBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS) | $(OBJODIR)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ -c $<
 
 # Implicit MT C Compile Rule
-$(MTOBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS)
+$(MTOBJODIR)/%$(OFILE) : %.c $(BUILD_DEPENDS) | $(MTOBJODIR)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) $(MT_CFLAGS) -o $@ -c $<
 
 # Implicit MT C++ Compile Rule
-$(MTOBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS)
+$(MTOBJODIR)/%$(OFILE) : %.cpp $(BUILD_DEPENDS) | $(MTOBJODIR)
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CXX) $(CFLAGS) $(CXXFLAGS) $(MT_CFLAGS) -o $@ -c $<
 
@@ -458,4 +475,8 @@ uifc-mt:
 
 $(JS_LIB):  $(JS_DEPS)
 js:
-	$(MAKE) -C $(JS_SRC) lib
+	$(MAKE) -C $(3RDPBUILDDIR) jslib
+
+$(CRYPT_LIB):  $(CRYPT_DEPS)
+cl:
+	$(MAKE) -C $(3RDPBUILDDIR) cryptlib
