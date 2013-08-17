@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.189 2015/02/19 10:03:27 deuce Exp $ */
+/* $Id: syncterm.c,v 1.175 2012/02/21 01:55:33 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -37,7 +37,12 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include <dirwrap.h>
 #include <filewrap.h>	// STDOUT_FILENO
 
-#include <cterm.h>
+#include "ciolib.h"
+#ifdef HAS_VSTAT
+#include "bitmap_con.h"
+#endif
+#include "cterm.h"
+#include "allfonts.h"
 
 #include "st_crypt.h"
 #include "fonts.h"
@@ -48,46 +53,11 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 1.0b"
+char* syncterm_version = "SyncTERM 0.9.5b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
 	;
-
-char	*usage = 
-		"\nusage: syncterm [options] [URL]"
-        "\n\noptions:\n\n"
-        "-e# =  set escape delay to #msec\n"
-		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
-		"       S[W|F] = SDL surface mode W for windowed and F for fullscreen\n"
-		"       O[W|F] = SDL overlay mode (hardware scaled)\n"
-#ifdef __unix__
-		"       X = X11 mode\n"
-		"       C = Curses mode\n"
-		"       F = Curses mode with forced IBM charset\n"
-#else
-		"       W[F] = Win32 native mode, F for fullscreen\n"
-#endif
-		"       A = ANSI mode\n"
-        "-l# =  set screen lines to # (default=auto-detect)\n"
-		"-t  =  use telnet mode if URL does not include the scheme\n"
-		"-r  =  use rlogin mode if URL does not include the scheme\n"
-		"-h  =  use SSH mode if URL does not include the scheme\n"
-		"-4  =  Only resolve IPv4 addresses\n"
-		"-6  =  Only resolve IPv6 addresses\n"
-		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
-		"-T  =  when the ONLY argument, dumps the terminfo entry to stdout and exits\n"
-		"\n"
-		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
-		"raw:// URLs MUST include a port.\n"
-		"shell:command URLs are supported on *nix.\n"
-		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
-		"          telnet://deuce@nix.synchro.net\n"
-		"          nix.synchro.net\n"
-		"          telnet://nix.synchro.net\n"
-		"          raw://nix.synchro.net:23\n"
-		"          shell:/usr/bin/sh\n"
-		;
 
 char *inpath=NULL;
 int default_font=0;
@@ -100,7 +70,6 @@ unsigned int  scrollback_cols=80;
 int	safe_mode=0;
 FILE* log_fp;
 extern ini_style_t ini_style;
-BOOL quitting=FALSE;
 
 #ifdef _WINSOCKAPI_
 
@@ -771,19 +740,6 @@ char *output_enum[]={
 	,"SDLOverlayFullscreen"
 ,NULL};
 
-BOOL check_exit(BOOL force)
-{
-	if (force || (uifc.exit_flags & UIFC_XF_QUIT)) {
-		if (settings.confirm_close) {
-			if (!confirm("Are you sure you want to exit?",NULL))
-				return false;
-		}
-		quitting=TRUE;
-		return TRUE;
-	}
-	return FALSE;
-}
-
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
@@ -826,11 +782,13 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
+#ifdef __unix__
 	else if(!strnicmp("shell:",url,6)) {
 		bbs->conn_type=CONN_TYPE_SHELL;
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
+#endif
 	/* ToDo: RFC2806 */
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
@@ -844,19 +802,8 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		SAFECOPY(bbs->user,p1);
 		p1=p3+1;
 	}
-	p2 = p1;
-	if(*p1=='[') {
-		p2=strchr(p1, ']');
-		if(p2 != NULL) {
-			p1++;
-			*p2=0;
-			p2++;
-		}
-		else
-			p2 = p1;
-	}
 	SAFECOPY(bbs->name,p1);
-	p2=strrchr(p2,':');
+	p2=strchr(p1,':');
 	if(p2!=NULL) {
 		*p2=0;
 		p2++;
@@ -906,7 +853,7 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
 			return(NULL);
 		backslash(fn);
-		strncat(fn, "SyncTERM", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM", fnlen);
 		backslash(fn);
 		if(!isdir(fn)) {
 			if(MKDIR(fn))
@@ -937,10 +884,10 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 	case SYNCTERM_PATH_INI:
-		strncat(fn, "SyncTERM.ini", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM.ini", fnlen);
 		return(fn);
 	case SYNCTERM_PATH_LIST:
-		strncat(fn, "SyncTERM.lst", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM.lst", fnlen);
 		return(fn);
 	}
 	return(NULL);
@@ -1072,15 +1019,15 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	switch(type) {
 		case SYNCTERM_PATH_INI:
 			backslash(fn);
-			strncat(fn,"syncterm.ini",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.ini",fnlen);
 			break;
 		case SYNCTERM_PATH_LIST:
 			backslash(fn);
-			strncat(fn,"syncterm.lst",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.lst",fnlen);
 			break;
 		case SYNCTERM_PATH_CACHE:
 			backslash(fn);
-			strncat(fn,"SyncTERM",fnlen-strlen(fn)-1);
+			strncat(fn,"SyncTERM",fnlen);
 			backslash(fn);
 			if(!isdir(fn)) {
 				if(MKDIR(fn)) {
@@ -1088,7 +1035,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 				}
 			}
-			strncat(fn,"cache",fnlen-strlen(fn)-1);
+			strncat(fn,"cache",fnlen);
 			backslash(fn);
 			if(!isdir(fn)) {
 				if(MKDIR(fn))
@@ -1131,7 +1078,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		backslash(oldlst);
 		strcat(oldlst,"syncterm.lst");
 		sprintf(fn,"%.*s",fnlen,home);
-		strncat(fn, "/.syncterm", fnlen-strlen(fn)-1);
+		strncat(fn, "/.syncterm", fnlen);
 		backslash(fn);
 	}
 
@@ -1154,13 +1101,13 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 		case SYNCTERM_PATH_INI:
-			strncat(fn,"syncterm.ini",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.ini",fnlen);
 			break;
 		case SYNCTERM_PATH_LIST:
-			strncat(fn,"syncterm.lst",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.lst",fnlen);
 			break;
 		case SYNCTERM_PATH_CACHE:
-			strncat(fn,"cache",fnlen-strlen(fn)-1);
+			strncat(fn,"cache",fnlen);
 			backslash(fn);
 #if !(defined(__APPLE__) && defined(__MACH__))
 			if(!isdir(fn)) {
@@ -1216,7 +1163,9 @@ void load_settings(struct syncterm_settings *set)
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
-	setscaling(set->scaling_factor);
+#ifdef HAS_VSTAT
+	vstat.scaling=set->scaling_factor;
+#endif
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1258,9 +1207,7 @@ int main(int argc, char **argv)
 	int		conn_type=CONN_TYPE_TELNET;
 	int		text_mode;
 	BOOL	override_conn=FALSE;
-	int		addr_family=PF_UNSPEC;
 	char	*last_bbs=NULL;
-	char	*p, *lp;
 	const char syncterm_termcap[]="\n# terminfo database entry for SyncTERM\n"
 				"syncterm|SyncTERM 80x25,\n"
 				"	am,bce,mir,msgr,\n"
@@ -1282,7 +1229,7 @@ int main(int argc, char **argv)
 				"	il=\\E[%p1%dL,cub=\\E[%p1%dD,cuf=\\E[%p1%dC,rin=\\E[%p1%dT,cuu=\\E[%p1%dA,\n"
 				"	rc=\\E[u,sc=\\E[s,ind=\\E[S,ri=\\E[T,setab=\\E[4%p1%dm,setaf=\\E[3%p1%dm,\n"
 				"	sgr=\\E[0%?%p1%p6%|%t;1%;%?%p4%|%t;5%;%?%p1%p3%|%t;7%;%?%p7%|%t;8%;m,\n"
-				"	smso=\\E[0;1;7m,csr=\\E[%i%p1%d;%p2%dr\n"
+				"	smso=\\E[0;1;7m,\n"
 				"syncterm-25|SyncTERM No Status Line,\n"
 				"	lines#25,use=syncterm,\n"
 				"syncterm-27|SyncTERM 80x28 With Status,\n"
@@ -1322,7 +1269,6 @@ int main(int argc, char **argv)
 				"syncterm-60-w|SyncTERM 132x60 No Status Line,\n"
 				"	cols#132,lines#60,use=syncterm,\n";
 
-	SetThreadName("Main Thread");
 	if(argc==2 && strcmp(argv[1],"-T")==0) {
 		write(STDOUT_FILENO, syncterm_termcap, strlen(syncterm_termcap));
 		return 0;
@@ -1354,12 +1300,6 @@ int main(int argc, char **argv)
 #endif
             )
             switch(toupper(argv[i][1])) {
-				case '6':
-					addr_family=ADDRESS_FAMILY_INET6;
-					break;
-				case '4':
-					addr_family=ADDRESS_FAMILY_INET;
-					break;
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
@@ -1466,7 +1406,6 @@ int main(int argc, char **argv)
 
 	if(initciolib(ciolib_mode))
 		return(1);
-	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
 	textmode(text_mode);
 
@@ -1510,8 +1449,6 @@ int main(int argc, char **argv)
 			parse_url(url, bbs, conn_type, FALSE);
 			strListFree(&inilines);
 		}
-		if(addr_family != ADDRESS_FAMILY_UNSPEC)
-			bbs->address_family=addr_family;
 		if(bbs->port==0)
 			goto USAGE;
 	}
@@ -1520,7 +1457,7 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while((!quitting) && (bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL)) {
+	while(bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		FREE_AND_NULL(last_bbs);
 		if(!conn_connect(bbs)) {
@@ -1562,8 +1499,7 @@ int main(int argc, char **argv)
 				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
 			}
 
-			if(doterm(bbs))
-				quitting=TRUE;
+			exit_now=doterm(bbs);
 			setvideoflags(0);
 
 			if(log_fp!=NULL) {
@@ -1583,7 +1519,7 @@ int main(int argc, char **argv)
 			}
 			settitle("SyncTERM");
 		}
-		if(quitting || url[0]) {
+		if(exit_now || url[0]) {
 			if(bbs != NULL && bbs->id==-1) {
 				if(!safe_mode) {
 					if(settings.prompt_save) {
@@ -1612,7 +1548,8 @@ int main(int argc, char **argv)
 		bbs=NULL;
 	}
 	// Save changed settings
-	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
+#ifdef HAS_VSTAT
+	if(vstat.scaling > 0 && vstat.scaling != settings.scaling_factor) {
 		char	inipath[MAX_PATH+1];
 		FILE	*inifile;
 		str_list_t	inicontents;
@@ -1625,47 +1562,61 @@ int main(int argc, char **argv)
 		else {
 			inicontents=strListInit();
 		}
-		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",getscaling(),&ini_style);
+		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",vstat.scaling,&ini_style);
 		if((inifile=fopen(inipath,"w"))!=NULL) {
 			iniWriteFile(inifile,inicontents);
 			fclose(inifile);
 		}
 	}
+#endif
 	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
+		atexit(exit_crypt);
 	return(0);
 
 	USAGE:
 	uifcbail();
 	clrscr();
-    gettextinfo(&txtinfo);
-    p=lp=usage;
-    textattr(LIGHTGRAY);
-	gettextinfo(&txtinfo);
-	i=0;
-	for(lp=usage; *lp; p=strchr(lp, '\n')) {
-		if(p==NULL)
-			p=strchr(lp, 0)-1;
-		cprintf("%.*s", p-lp+1, lp);
-		lp = p+1;
-		i++;
-		if(i >= txtinfo.screenheight-1) {
-			textattr(WHITE);
-			cputs("<Press A Key>");
-			getch();
-			textattr(LIGHTGRAY);
-			gotoxy(1, txtinfo.screenheight);
-			delline();
-			i=0;
-		}
-	}
-	textattr(WHITE);
-	cputs("<Press A Key to Exit>");
+    cprintf("\nusage: syncterm [options] [URL]"
+        "\n\noptions:\n\n"
+        "-e# =  set escape delay to #msec\n"
+		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
+		"       S[W|F] = SDL surface mode W for windowed and F for fullscreen\n"
+		"       O[W|F] = SDL overlay mode (hardware scaled)\n"
+#ifdef __unix__
+		"       X = X11 mode\n"
+		"       C = Curses mode\n"
+		"       F = Curses mode with forced IBM charset\n"
+#else
+		"       W[F] = Win32 native mode, F for fullscreen\n"
+#endif
+		"       A = ANSI mode\n"
+        "-l# =  set screen lines to # (default=auto-detect)\n"
+		"-t  =  use telnet mode if URL does not include the scheme\n"
+		"-r  =  use rlogin mode if URL does not include the scheme\n"
+		"-h  =  use SSH mode if URL does not include the scheme\n"
+		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
+		"-T  =  when the ONLY argument, dumps the terminfo entry to stdout and exits\n"
+		"\n"
+		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
+		"raw:// URLs MUST include a port.\n"
+#ifdef __unix__
+		"shell:command URLs are also supported.\n"
+#endif
+		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
+		"          telnet://deuce@nix.synchro.net\n"
+		"          nix.synchro.net\n"
+		"          telnet://nix.synchro.net\n"
+		"          raw://nix.synchro.net:23\n"
+#ifdef __unix__
+		"          shell:/usr/bin/sh\n"
+#endif
+		"\nPress any key to exit..."
+        );
 	getch();
-	textattr(LIGHTGRAY);
 	return(0);
 }
 
