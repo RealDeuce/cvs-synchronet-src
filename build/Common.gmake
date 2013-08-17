@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.91 2013/08/17 02:02:07 deuce Exp $
+# $Id: Common.gmake,v 1.90 2013/08/17 01:25:11 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -183,7 +183,6 @@ else
  AR				?=	ar
  RANLIB			?=	ranlib
 endif
-WINDRES	?=	windres
 
 ifdef DEBUG
  BUILD	=	debug
