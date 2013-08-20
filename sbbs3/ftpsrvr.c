@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.397 2012/08/22 08:05:22 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.401 2013/02/07 06:20:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,8 +79,8 @@
 static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
 static SOCKET	server_socket=INVALID_SOCKET;
-static protected_int32_t active_clients;
-static protected_int32_t thread_count;
+static protected_uint32_t active_clients;
+static protected_uint32_t thread_count;
 static volatile time_t	uptime=0;
 static volatile ulong	served=0;
 static volatile BOOL	terminate_server=FALSE;
@@ -208,7 +208,7 @@ static void client_off(SOCKET sock)
 
 static int32_t thread_up(BOOL setuid)
 {
-	int32_t	count =	protected_int32_adjust(&thread_count,1);
+	int32_t	count =	protected_uint32_adjust(&thread_count,1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,TRUE, setuid);
 	return count;
@@ -216,7 +216,7 @@ static int32_t thread_up(BOOL setuid)
 
 static int32_t thread_down(void)
 {
-	int32_t count = protected_int32_adjust(&thread_count,-1);
+	int32_t count = protected_uint32_adjust(&thread_count,-1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,FALSE, FALSE);
 	return count;
@@ -389,6 +389,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	FILE*	fp;
 	jsrefcount	rc;
 	char		*p;
+	size_t		len;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -399,9 +400,13 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		str = JS_ValueToString(cx, argv[i]);
 		if (!str)
 		    return JS_FALSE;
-		JSSTRING_TO_STRING(cx, str, p, NULL);
+		JSSTRING_TO_MSTRING(cx, str, p, &len);
+		HANDLE_PENDING(cx);
 		rc=JS_SUSPENDREQUEST(cx);
-		fprintf(fp,"%s", p);
+		if(p) {
+			fwrite(p, len, 1, fp);
+			free(p);
+		}
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -2400,7 +2405,7 @@ static void ctrl_thread(void* arg)
 		return;
 	} 
 
-	protected_int32_adjust(&active_clients, 1), 
+	protected_uint32_adjust(&active_clients, 1), 
 	update_clients();
 
 	/* Initialize client display */
@@ -4478,7 +4483,7 @@ static void ctrl_thread(void* arg)
 	ftp_close_socket(&tmp_sock,__LINE__);
 
 	{
-		int32_t	clients = protected_int32_adjust(&active_clients, -1);
+		int32_t	clients = protected_uint32_adjust(&active_clients, -1);
 		int32_t	threads = thread_down();
 		update_clients();
 
@@ -4512,7 +4517,7 @@ static void cleanup(int code, int line)
 	if(active_clients.value)
 		lprintf(LOG_WARNING,"#### !FTP Server terminating with %ld active clients", active_clients.value);
 	else
-		protected_int32_destroy(active_clients);
+		protected_uint32_destroy(active_clients);
 
 	update_clients();
 
@@ -4536,7 +4541,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.397 $", "%*s %s", revision);
+	sscanf("$Revision: 1.401 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4627,7 +4632,7 @@ void DLLCALL ftp_server(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
-	protected_int32_init(&thread_count, 0);
+	protected_uint32_init(&thread_count, 0);
 
 	do {
 
@@ -4723,7 +4728,7 @@ void DLLCALL ftp_server(void* arg)
 
 		lprintf(LOG_DEBUG,"Maximum inactivity: %d seconds",startup->max_inactivity);
 
-		protected_int32_init(&active_clients, 0);
+		protected_uint32_init(&active_clients, 0);
 		update_clients();
 
 		strlwr(scfg.sys_id); /* Use lower-case unix-looking System ID for group name */
@@ -4921,5 +4926,5 @@ void DLLCALL ftp_server(void* arg)
 
 	} while(!terminate_server);
 
-	protected_int32_destroy(thread_count);
+	protected_uint32_destroy(thread_count);
 }
