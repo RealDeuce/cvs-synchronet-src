@@ -2,7 +2,7 @@
 
 /* mmap() style cross-platform development wrappers */
 
-/* $Id: xpmap.c,v 1.2 2012/10/21 00:11:41 deuce Exp $ */
+/* $Id: xpmap.c,v 1.4 2012/10/22 18:33:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,10 +36,10 @@
  ****************************************************************************/
 
 #include "xpmap.h"
+#include <stdlib.h>	// malloc()
 
 #if defined(__unix__)
 
-#include <stdlib.h>	// malloc()
 #include <unistd.h>	// close()
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -98,15 +98,14 @@ void xpunmap(struct xpmapping *map)
 	free(map);
 }
 
-#elif defined(_WIN32)	
+#elif defined(_WIN32)
 
 struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 {
-	HANDLE				fd;
+	HFILE				fd;
 	HANDLE				md;
 	OFSTRUCT			of;
 	UINT				oflags;
-	DWORD				mattrs;
 	DWORD				mprot;
 	DWORD				maccess;
 	DWORD				size;
@@ -117,19 +116,16 @@ struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 		case XPMAP_READ:
 			oflags=OF_READ|OF_SHARE_DENY_NONE;
 			mprot=PAGE_READONLY;
-			mattrs=0;
 			maccess=FILE_MAP_READ;
 			break;
 		case XPMAP_WRITE:
 			oflags=OF_READWRITE|OF_SHARE_DENY_NONE;
 			mprot=PAGE_READWRITE;
-			mflags=0;
 			maccess=FILE_MAP_WRITE;
 			break;
 		case XPMAP_COPY:
 			oflags=OF_READ|OF_SHARE_DENY_NONE;
 			mprot=PAGE_WRITECOPY;
-			mflags=0;
 			maccess=FILE_MAP_COPY;
 			break;
 	}
@@ -137,9 +133,9 @@ struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 	fd=OpenFile(filename, &of, oflags);
 	if(fd == HFILE_ERROR)
 		return NULL;
-	if((size=GetFileSize(fd, NULL))==INVALID_FILE_SIZE)
+	if((size=GetFileSize((HANDLE)fd, NULL))==INVALID_FILE_SIZE)
 		return NULL;
-	md=CreateFileMapping(fd, NULL, mprot, 0, size, NULL);
+	md=CreateFileMapping((HANDLE)fd, NULL, mprot, 0, size, NULL);
 	if(md==NULL)
 		return NULL;
 	addr=MapViewOfFile(md, maccess, 0, 0, size);
@@ -147,7 +143,7 @@ struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 	if(ret==NULL)
 		return NULL;
 	ret->addr=addr;
-	ret->fd=fd;
+	ret->fd=(HANDLE)fd;
 	ret->md=md;
 	ret->size=size;
 	return ret;
