@@ -2,13 +2,13 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.24 2012/08/03 21:42:55 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.25 2012/11/22 04:55:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1180,6 +1180,7 @@ int main(int argc, char **argv)
 				if(misc&TRUNC_BUNDLES)
 					fprintf(stream,"TRUNC_BUNDLES\n");
 
+				fprintf(stream,"SYSOP_ALIAS %s\n", cfg.sysop_alias);
 				if(cfg.areafile[0])
 					fprintf(stream,"AREAFILE %s\n",cfg.areafile);
 				if(cfg.logfile[0])

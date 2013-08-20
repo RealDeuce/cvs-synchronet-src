@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: rlogin.c,v 1.31 2010/03/03 07:09:35 deuce Exp $ */
+/* $Id: rlogin.c,v 1.32 2013/08/20 07:36:04 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -22,6 +22,7 @@ void rlogin_input_thread(void *args)
 	int	buffered;
 	size_t	buffer;
 
+	SetThreadName("RLogin Input");
 	conn_api.input_thread_running=1;
 	while(sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
@@ -67,6 +68,7 @@ void rlogin_output_thread(void *args)
 	int		ret;
 	int	sent;
 
+	SetThreadName("RLogin Output");
 	conn_api.output_thread_running=1;
 	while(sock != INVALID_SOCKET && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
