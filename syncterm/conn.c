@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.69 2014/01/23 08:46:56 deuce Exp $ */
+/* $Id: conn.c,v 1.67 2012/04/25 09:11:01 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -420,18 +420,6 @@ int conn_socket_connect(struct bbslist *bbs)
 	uifc.pop("Looking up host");
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags=PF_UNSPEC;
-	switch(bbs->address_family) {
-		case ADDRESS_FAMILY_INET:
-			hints.ai_family=PF_INET;
-			break;
-		case ADDRESS_FAMILY_INET6:
-			hints.ai_family=PF_INET6;
-			break;
-		case ADDRESS_FAMILY_UNSPEC:
-		default:
-			hints.ai_family=PF_UNSPEC;
-			break;
-	}
 	hints.ai_socktype=SOCK_STREAM;
 	hints.ai_protocol=IPPROTO_TCP;
 	hints.ai_flags=AI_NUMERICSERV;
@@ -451,7 +439,6 @@ int conn_socket_connect(struct bbslist *bbs)
 	while(kbhit())
 		getch();
 	for(cur=res; cur && failcode==FAILURE_WHAT_FAILURE; cur=cur->ai_next) {
-fprintf(stderr, "Looping...\n");
 		if(sock==INVALID_SOCKET) {
 			sock=socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
 			if(sock==INVALID_SOCKET) {
@@ -471,7 +458,7 @@ fprintf(stderr, "Looping...\n");
 #if (EAGAIN!=EWOULDBLOCK)
 				case EWOULDBLOCK:
 #endif
-					for(;sock!=INVALID_SOCKET;) {
+					for(;;) {
 						tv.tv_sec=1;
 						tv.tv_usec=0;
 
@@ -489,11 +476,7 @@ fprintf(stderr, "Looping...\n");
 								sock=INVALID_SOCKET;
 								continue;
 							case 1:
-								if(socket_check(sock, NULL, NULL, 0))
-									goto connected;
-								closesocket(sock);
-								sock=INVALID_SOCKET;
-								continue;
+								goto connected;
 							default:
 								break;
 						}
