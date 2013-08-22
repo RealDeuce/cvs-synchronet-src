@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.85 2014/02/05 10:19:21 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.84 2012/10/23 08:07:08 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -505,7 +505,7 @@ BOOL xptone_open(void)
 				alsa_device_open_failed=TRUE;
 		}
 		if(alsa_api!=NULL) {
-			unsigned int rate=S_RATE;
+			int rate=S_RATE;
 			if((alsa_api->snd_pcm_open(&playback_handle, "default", SND_PCM_STREAM_PLAYBACK, 0)<0)
 					|| (alsa_api->snd_pcm_hw_params_malloc(&hw_params)<0)
 					|| (alsa_api->snd_pcm_hw_params_any(playback_handle, hw_params)<0)

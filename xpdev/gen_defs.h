@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.62 2014/02/06 08:17:02 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.60 2012/02/18 00:13:38 deuce Exp $ */
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
@@ -157,8 +157,6 @@ typedef long    int32_t;
 typedef uchar   uint8_t;
 typedef ushort  uint16_t;
 typedef ulong   uint32_t;
-typedef long	intptr_t;
-typedef ulong	uintptr_t;
 
 #endif
 
@@ -252,7 +250,6 @@ typedef int32_t         time32_t;
 
 /* Windows Types */
 
-#ifndef _WIN32
 #ifndef BYTE
 #define BYTE    uint8_t
 #endif
@@ -270,13 +267,11 @@ typedef int32_t         time32_t;
 #define TRUE    1
 #define FALSE   0
 #endif
-#ifndef HANDLE
-#define HANDLE  void*
-#endif
-#endif
-
 #ifndef INT_TO_BOOL
 #define INT_TO_BOOL(x)  ((x)?TRUE:FALSE)
+#endif
+#ifndef HANDLE
+#define HANDLE  void*
 #endif
 
 /* Custom Types */
