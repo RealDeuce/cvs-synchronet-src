@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.31 2011/04/21 09:41:26 deuce Exp $ */
+/* $Id: x_cio.c,v 1.33 2012/10/18 17:48:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,6 +159,7 @@ void x11_mouse_thread(void *data)
 	//uint16_t	key=((CIO_KEY_MOUSE&0xFF)<<8)|((CIO_KEY_MOUSE>>8)&0xFF);
 	uint16_t	key=CIO_KEY_MOUSE;
 
+	SetThreadName("X11 Mouse");
 	while(1) {
 		if(mouse_wait())
 			write(key_pipe[1], &key, 2);
@@ -169,6 +170,7 @@ int x_init(void)
 {
 	dll_handle	dl;
 	const char *libnames[]={"X11",NULL};
+	Status (*xit)(void);
 
 	/* Ensure we haven't already initialized */
 	if(x11_initialized)
@@ -185,6 +187,8 @@ int x_init(void)
 	/* Load X11 functions */
 	if((dl=xp_dlopen(libnames,RTLD_LAZY,7))==NULL)
 		return(-1);
+	if((xit=xp_dlsym(dl,XInitThreads))!=NULL)
+		xit();
 	if((x11.XChangeGC=xp_dlsym(dl,XChangeGC))==NULL) {
 		xp_dlclose(dl);
 		return(-1);
