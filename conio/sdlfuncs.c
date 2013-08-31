@@ -33,11 +33,6 @@ static SDL_sem *sdl_main_sem;
 SDL_sem *sdl_exit_sem;
 
 int CIOLIB_main(int argc, char **argv, char **enviro);
-int XPDEV_main(int argc, char **argv, char **enviro)
-{
-	return CIOLIB_main(argc, argv, enviro);
-}
-
 
 int load_sdl_funcs(struct sdlfuncs *sdlf)
 {
@@ -328,7 +323,7 @@ void run_sdl_drawing_thread(int (*drawing_thread)(void *data), void (*exit_drawi
 
 static void QuitWrap(void)
 {
-	if(sdl.Quit && sdl_initialized)
+	if(sdl.Quit)
 		sdl.Quit();
 }
 
@@ -341,7 +336,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 	char	drivername[64];
 	struct main_args ma;
 	SDL_Thread	*main_thread;
-	int		main_ret=0;
+	int		main_ret;
 	int		use_sdl_video=FALSE;
 #ifdef _WIN32
 	char		*driver_env=NULL;
