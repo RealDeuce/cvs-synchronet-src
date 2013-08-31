@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.253 2015/02/23 07:12:57 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.250 2012/03/01 08:18:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -183,6 +183,7 @@ static const char* telnet_usage  = "Terminal server settings:\n\n"
 							"\ttl<node>   set last node number\n"
 							"\ttp<port>   set Telnet server port\n"
 							"\trp<port>   set RLogin server port (and enable RLogin server)\n"
+							"\tr2         use second RLogin name in BSD RLogin\n"
 							"\tto<value>  set Terminal server options value (advanced)\n"
 							"\tta         enable auto-logon via IP address\n"
 							"\ttd         enable Telnet command debug output\n"
@@ -1162,6 +1163,13 @@ static void show_usage(char *cmd)
 		printf(web_usage);
 }
 
+#if SBBS_MAGIC_FILENAMES
+static int command_is(char *cmdline, char *cmd)
+{
+	return(strnicmp(getfname(cmdline),cmd,strlen(cmd))==0);
+}
+#endif
+
 /****************************************************************************/
 /* Main Entry Point															*/
 /****************************************************************************/
@@ -1194,8 +1202,6 @@ int main(int argc, char** argv)
 #ifdef __unix__
 	setsid();	/* Disassociate from controlling terminal */
 	umask(077);
-#elif defined(_WIN32)
-	CreateMutex(NULL, FALSE, "sbbs_running");	/* For use by Inno Setup */
 #endif
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
@@ -1345,7 +1351,44 @@ int main(int argc, char** argv)
 
 	read_startup_ini(/* recycle? */FALSE
 		,&bbs_startup, &ftp_startup, &web_startup, &mail_startup, &services_startup);
+
+#if SBBS_MAGIC_FILENAMES	/* This stuff is just broken */
+
+	if(!command_is(argv[0],"sbbs"))  {
+		run_bbs=has_bbs=FALSE;
+		run_ftp=has_ftp=FALSE;
+		run_mail=has_mail=FALSE;
+		run_services=has_services=FALSE;
+		run_web=has_web=FALSE;
+	}
+	if(command_is(argv[0],"sbbs_ftp"))
+		run_ftp=has_ftp=TRUE;
+	else if(command_is(argv[0],"sbbs_mail"))
+		run_mail=has_mail=TRUE;
+	else if(command_is(argv[0],"sbbs_bbs"))
+		run_bbs=has_bbs=TRUE;
+#ifndef NO_SERVICES
+	else if(command_is(argv[0],"sbbs_srvc"))
+		run_services=has_services=TRUE;
+#endif
+#ifndef NO_WEB_SERVER
+	else if(command_is(argv[0],"sbbs_web"))
+		run_web=has_web=TRUE;
+#endif
+	else {
+		run_bbs=has_bbs=TRUE;
+		run_ftp=has_ftp=TRUE;
+		run_mail=has_mail=TRUE;
+#ifndef NO_SERVICES
+		run_services=has_services=TRUE;
+#endif
+#ifndef NO_WEB_SERVER
+		run_web=has_web=TRUE;
+#endif
+	}
+#else
 	has_web=has_bbs=has_ftp=has_mail=has_services=TRUE;
+#endif	/* Removed broken stuff */
 
 	/* Post-INI command-line switches */
 	for(i=1;i<argc;i++) {
@@ -1419,6 +1462,9 @@ int main(int argc, char** argv)
 				switch(toupper(*(arg++))) {
 					case 'P':
 						bbs_startup.rlogin_port=atoi(arg);
+						break;
+					case '2':
+						bbs_startup.options|=BBS_OPT_USE_2ND_RLOGIN;
 						break;
 					default:
 						show_usage(argv[0]);
