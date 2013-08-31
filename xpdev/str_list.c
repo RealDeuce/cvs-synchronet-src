@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.37 2009/08/14 10:02:22 rswindell Exp $ */
+/* $Id: str_list.c,v 1.38 2013/02/11 23:42:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,7 +412,7 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 	if(fp!=NULL) {
 		count=strListCount(*lp);
 		while(!feof(fp)) {
-			if(buf==NULL && (buf=(char*)alloca(max_line_len+1))==NULL)
+			if(buf==NULL && (buf=(char*)malloc(max_line_len+1))==NULL)
 				return(NULL);
 			
 			if(fgets(buf,max_line_len+1,fp)==NULL)
@@ -420,6 +420,8 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 			strListAppend(lp, buf, count++);
 		}
 	}
+	if(buf)
+		free(buf);
 
 	return(*lp);
 }
