@@ -2,7 +2,7 @@
 
 /* Synchronet text data access routines (exported) */
 
-/* $Id: dat_rec.h,v 1.2 2008/06/04 04:38:47 deuce Exp $ */
+/* $Id: dat_rec.h,v 1.3 2011/10/24 21:45:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,15 +46,20 @@
 #endif
 
 #ifdef _WIN32
-	#ifdef SBBS_EXPORTS
-		#define DLLEXPORT __declspec(dllexport)
-	#else
-		#define DLLEXPORT __declspec(dllimport)
-	#endif
-	#ifdef __BORLANDC__
-		#define DLLCALL __stdcall
-	#else
+	#ifdef __MINGW32__
+		#define DLLEXPORT
 		#define DLLCALL
+	#else
+		#ifdef SBBS_EXPORTS
+			#define DLLEXPORT __declspec(dllexport)
+		#else
+			#define DLLEXPORT __declspec(dllimport)
+		#endif
+		#ifdef __BORLANDC__
+			#define DLLCALL __stdcall
+		#else
+			#define DLLCALL
+		#endif
 	#endif
 #else
 	#define DLLEXPORT
