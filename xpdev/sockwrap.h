@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.38 2010/05/24 01:13:52 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.40 2013/09/01 06:15:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,10 @@
 #ifndef _WINSOCKAPI_
 	#include <winsock2.h>	/* socket/bind/etc. */
 	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
+    #include <ws2tcpip.h>	/* More stuff */
+	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
-	#define _WINSOCKAPI_	
+	#define _WINSOCKAPI_
 #endif
 
 #elif defined __unix__		/* Unix-variant */
@@ -150,11 +152,17 @@ typedef struct {
 
 #define s_addr			S_un.S_addr
 
-#define socklen_t		int
-
 static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
 #define sendsocket(s,b,l)	send(s,b,l,0)
+
+/* For getaddrinfo() */
+#ifndef AI_ADDRCONFIG
+# define AI_ADDRCONFIG 0x400 // Vista or later
+#endif
+#ifndef AI_NUMERICSERV
+# define AI_NUMERICSERV 0		// Not supported by Win32
+#endif
 
 #else	/* BSD sockets */
 
@@ -193,6 +201,8 @@ int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
 				   ,int (*lprintf)(int level, const char *fmt, ...));
 int		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
+const char *inet_addrtop(SOCKADDR *in, char *dest, size_t size);
+uint16_t inet_addrport(SOCKADDR *in);
 
 #ifdef __cplusplus
 }

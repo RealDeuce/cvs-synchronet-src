@@ -2,13 +2,13 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.22 2011/07/20 02:40:37 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.25 2012/11/22 04:55:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -566,8 +566,12 @@ int main(int argc, char **argv)
 							case 10:
 	uifc.helpbuf=
 	"~ Route To ~\r\n\r\n"
-	"When using a FLO type mailer, this is the node number of an address\r\n"
-	"to route mail to for this node.\r\n";
+	"When using a FLO type mailer, this is an fido address to route mail\r\n"
+	"for this node to.\r\n"
+	"\r\n"
+	"This option is normally only used with wildcard type node entries\r\n"
+	"(e.g. `ALL`, or `1:ALL`, `2:ALL`, etc.) and is used to route non-direct\r\n"
+	"netmail packets to your uplink (hub).\r\n";
 								strcpy(str,wcfaddrtoa(&cfg.nodecfg[i].route));
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Node Address to Route To",str
@@ -1176,6 +1180,7 @@ int main(int argc, char **argv)
 				if(misc&TRUNC_BUNDLES)
 					fprintf(stream,"TRUNC_BUNDLES\n");
 
+				fprintf(stream,"SYSOP_ALIAS %s\n", cfg.sysop_alias);
 				if(cfg.areafile[0])
 					fprintf(stream,"AREAFILE %s\n",cfg.areafile);
 				if(cfg.logfile[0])
@@ -1187,7 +1192,7 @@ int main(int argc, char **argv)
 						fprintf(stream,"LOG NONE\n");
 					else
 						fprintf(stream,"LOG %08lX\n",cfg.log); }
-				fprintf(stream,"LOG_LEVEL %u\n",cfg.log_level);
+				fprintf(stream,"LOG_LEVEL %lu\n",cfg.log_level);
 				if(cfg.inbound[0])
 					fprintf(stream,"INBOUND %s\n",cfg.inbound);
 				if(cfg.secure[0])
