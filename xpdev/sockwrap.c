@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.46 2013/09/01 03:54:56 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.47 2013/09/01 05:44:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,8 @@
 #include <stdio.h>		/* SEEK_SET */
 #include <string.h>
 #if defined(_WIN32)
+ #undef socklen_t
+ #include <ws2tcpip.h>
  #include <malloc.h>	/* alloca() on Win32 */
 #endif
 
