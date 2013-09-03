@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.48 2013/10/29 17:25:47 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.40 2013/09/01 06:15:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,15 +48,7 @@
 #ifndef _WINSOCKAPI_
 	#include <winsock2.h>	/* socket/bind/etc. */
 	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
-#if defined(__BORLANDC__)
-// Borland C++ builder 6 comes with a broken ws2tcpip.h header for GCC.
-#define _MSC_VER 7
-#endif
     #include <ws2tcpip.h>	/* More stuff */
-#if defined(__BORLANDC__)
-#undef _MSC_VER
-#endif
-	#include <wspiapi.h>	/* getaddrinfo() for Windows 2k */
 	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
 	#define _WINSOCKAPI_
@@ -67,7 +59,6 @@
 #include <netdb.h>			/* gethostbyname */
 #include <sys/types.h>		/* For u_int32_t on FreeBSD */
 #include <netinet/in.h>		/* IPPROTO_IP */
-#include <sys/un.h>
 /* define _BSD_SOCKLEN_T_ in order to define socklen_t on darwin */
 #ifdef __DARWIN__
 #define _BSD_SOCKLEN_T_	int
@@ -94,23 +85,6 @@ typedef struct {
 	int		level;
 	int		value;
 } socket_option_t;
-
-/*
- * Fancy sockaddr_* union
- */
-union xp_sockaddr {
-	struct sockaddr			addr;
-	struct sockaddr_in		in;
-	struct sockaddr_in6		in6;
-#ifndef _WIN32
-	struct sockaddr_un		un;
-#endif
-	struct sockaddr_storage	store;
-};
-
-#define xp_sockaddr_len(a) ((((struct sockaddr *)a)->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : ((struct sockaddr *)a)->sa_len)
-
- 
 
 /**********************************/
 /* Socket Implementation-specific */
@@ -227,9 +201,8 @@ int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
 				   ,int (*lprintf)(int level, const char *fmt, ...));
 int		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
-const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size);
-uint16_t inet_addrport(union xp_sockaddr *addr);
-void inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
+const char *inet_addrtop(SOCKADDR *in, char *dest, size_t size);
+uint16_t inet_addrport(SOCKADDR *in);
 
 #ifdef __cplusplus
 }
