@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.42 2011/09/19 03:08:56 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.48 2013/09/01 06:15:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,7 +252,7 @@ int recvfilesocket(int sock, int file, off_t *offset, off_t count)
 		return(-1);
 	}
 		
-	if((buf=(char*)alloca((size_t)count))==NULL) {
+	if((buf=(char*)malloc((size_t)count))==NULL) {
 		errno=ENOMEM;
 		return(-1);
 	}
@@ -262,14 +262,17 @@ int recvfilesocket(int sock, int file, off_t *offset, off_t count)
 			return(-1);
 
 	rd=read(sock,buf,(size_t)count);
-	if(rd!=count)
+	if(rd!=count) {
+		free(buf);
 		return(-1);
+	}
 
 	wr=write(file,buf,rd);
 
 	if(offset!=NULL)
 		(*offset)+=wr;
 
+	free(buf);
 	return(wr);
 }
 
@@ -344,7 +347,7 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 	uint	i;
 
 	if(addr->sa_family==AF_INET)
-		SAFEPRINTF(port_str," to port %u",ntohs(((SOCKADDR_IN *)(addr))->sin_port)); 
+		SAFEPRINTF(port_str," to port %u",ntohs(((SOCKADDR_IN *)(addr))->sin_port));
 	else
 		port_str[0]=0;
 	for(i=0;i<=retries;i++) {
@@ -382,4 +385,37 @@ int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigne
 			getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen);
 	}
 	return result;
+}
+
+const char *inet_addrtop(SOCKADDR *in, char *dest, size_t size)
+{
+#ifdef _WIN32
+	DWORD	dsize=size;
+
+	if(WSAAddressToString(in, SOCK_MAXADDRLEN, NULL, dest, &dsize)==SOCKET_ERROR)
+		return NULL;
+	return dest;
+#else
+	switch(in->sa_family) {
+		case AF_INET:
+			return inet_ntop(in->sa_family, &((struct sockaddr_in *)in)->sin_addr, dest, size);
+		case AF_INET6:
+			return inet_ntop(in->sa_family, &((struct sockaddr_in6 *)in)->sin6_addr, dest, size);
+		default:
+			safe_snprintf(dest, size, "<unknown address>");
+			return NULL;
+	}
+#endif
+}
+
+uint16_t inet_addrport(SOCKADDR *in)
+{
+	switch(in->sa_family) {
+		case AF_INET:
+			return ntohs(((struct sockaddr_in *)in)->sin_port);
+		case AF_INET6:
+			return ntohs(((struct sockaddr_in6 *)in)->sin6_port);
+		default:
+			return 0;
+	}
 }
