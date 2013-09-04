@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.42 2009/03/20 08:51:08 rswindell Exp $ */
+/* $Id: unbaja.c,v 1.44 2012/10/24 19:03:14 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -210,19 +210,19 @@ void add_bruted(unsigned long name, char good, char *val, int save)
 	if(*val && save) {
 		cache=fopen("unbaja.brute","a");
 		if(cache!=NULL) {
-			fprintf(cache,"%08x,%hhd,%s\n",name,good,val);
+			fprintf(cache,"%08lx,%hhd,%s\n",name,good,val);
 			fclose(cache);
 		}
 	}
 }
 
-int check_bruted(long name,char *val)
+int check_bruted(long name,unsigned char *val)
 {
 	int i;
 
 	for(i=0; i<bruted_len; i++) {
 		if(*(int32_t *)bruted[i]==name) {
-			if(!strcmp(val,bruted[i]+5))
+			if(!strcmp((char*)val,bruted[i]+5))
 				return(*(bruted[i]+4));
 		}
 	}
@@ -258,7 +258,7 @@ char* bruteforce(unsigned long name)
 	}
 	memset(brute_buf,0,brute_len+1);
 	memset(brute_crc_buf,0,brute_len*sizeof(int32_t));
-	printf("Brute forcing var_%08x\n",name);
+	printf("Brute forcing var_%08lx\n",name);
 	this_crc=crc32((char *)brute_buf,0);
 	for(;;) {
 		pos=brute_buf+l;
@@ -307,7 +307,7 @@ LOOP_END:
 				case 0:
 					break;
 				case 2:
-					add_bruted(name,1,brute_buf,1);
+					add_bruted(name,1,(char*)brute_buf,1);
 				case 1:
 					goto BRUTE_DONE;
 			}
@@ -320,7 +320,7 @@ LOOP_END:
 
 BRUTE_DONE:
 	printf("\r%s Found!\n",brute_buf);
-	return(brute_buf);
+	return((char*)brute_buf);
 }
 
 /* comparison function for var_table */
@@ -346,7 +346,7 @@ char *getvar(long name)
 		if(brute)
 			strcpy(varname,brute);
 		else
-			sprintf(varname,"var_%08x",name);
+			sprintf(varname,"var_%08lx",name);
 	}
 
 	return(varname);
@@ -384,7 +384,7 @@ void write_lng(FILE *bin, char *src)
 	int32_t lng;
 
 	fread(&lng,4,1,bin);
-	sprintf(strchr(src,0),"%ld ",lng);
+	sprintf(strchr(src,0),"%"PRId32" ",lng);
 }
 
 void write_short(FILE *bin, char *src)
@@ -1538,7 +1538,7 @@ void decompile(FILE *bin, FILE *srcfile)
 							sprintf(strchr(src,0),"%s ",getvar(var));
 							usevar=FALSE;
 						} else {
-							sprintf(strchr(src,0),"%ld ",lng);
+							sprintf(strchr(src,0),"%"PRId32" ",lng);
 						}
 						eol(src);
 						break;
@@ -1551,7 +1551,7 @@ void decompile(FILE *bin, FILE *srcfile)
 							sprintf(strchr(src,0),"%s ",getvar(var));
 							usevar=FALSE;
 						} else {
-							sprintf(strchr(src,0),"%ld ",lng);
+							sprintf(strchr(src,0),"%"PRId32" ",lng);
 						}
 						eol(src);
 						break;
@@ -2329,7 +2329,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.42 $", "%*s %s", revision);
+	sscanf("$Revision: 1.44 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
@@ -2338,7 +2338,7 @@ int main(int argc, char **argv)
 		if(!strncmp(argv[f],"-b",2)) {
 			brute_len=atoi(argv[f]+2);
 			if(brute_len) {
-				brute_buf=(char *)malloc(brute_len+1);
+				brute_buf=malloc(brute_len+1);
 				if(!brute_buf)
 					brute_len=0;
 				brute_crc_buf=(uint32_t *)malloc(brute_len*sizeof(uint32_t));
