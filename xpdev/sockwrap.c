@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.48 2013/09/01 06:15:19 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.49 2013/09/04 00:24:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,10 +390,29 @@ int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigne
 const char *inet_addrtop(SOCKADDR *in, char *dest, size_t size)
 {
 #ifdef _WIN32
-	DWORD	dsize=size;
+	static INT (WSAAPI *a2s)(LPSOCKADDR, DWORD, LPWSAPROTOCOL_INFO, LPTSTR, LPDWORD)=NULL;
+	static BOOL searched=FALSE;
 
-	if(WSAAddressToString(in, SOCK_MAXADDRLEN, NULL, dest, &dsize)==SOCKET_ERROR)
-		return NULL;
+	if(!searched) {
+		HMODULE hMod = LoadLibrary("ws2_32.dll");
+
+		searched = TRUE;
+		if(hMod)
+			a2s=(INT (WSAAPI *)(LPSOCKADDR, DWORD, LPWSAPROTOCOL_INFO, LPTSTR, LPDWORD))GetProcAddress(hMod, "WSAAddressToString");
+	}
+
+	if(a2s) {
+		DWORD	dsize=size;
+
+		if(a2s(in, SOCK_MAXADDRLEN, NULL, dest, &dsize)==SOCKET_ERROR)
+			return NULL;
+		return dest;
+	}
+	if(in->sa_family != AF_INET)
+		strncpy(dest, "<Address Family Not Supported>", size);
+	else
+		strncpy(dest, inet_ntoa(((struct sockaddr_in *)in)->sin_addr), size);
+	dest[size-1]=0;
 	return dest;
 #else
 	switch(in->sa_family) {
