@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.54 2013/09/12 22:35:05 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.52 2013/09/04 09:07:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,9 +137,6 @@ static socket_option_t socket_options[] = {
 #endif						
 #ifdef TCP_NOOPT			
 	{ "TCP_NOOPT",			SOCK_STREAM,	IPPROTO_TCP,	TCP_NOOPT			},
-#endif
-#if defined(IPV6_V6ONLY) && defined(IPPROTO_IPV6)
-	{ "IPV6_V6ONLY",		0,				IPPROTO_IPV6,	IPV6_V6ONLY			},
 #endif
 	{ NULL }
 };
@@ -411,7 +408,7 @@ const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
 			return NULL;
 		return dest;
 	}
-	if(addr->addr.sa_family != AF_INET)
+	if(addr->in.sa_family != AF_INET)
 		strncpy(dest, "<Address Family Not Supported>", size);
 	else
 		strncpy(dest, inet_ntoa(addr->in.sin_addr), size);
