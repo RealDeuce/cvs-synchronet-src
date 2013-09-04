@@ -2,7 +2,7 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.22 2009/10/25 02:58:06 rswindell Exp $ */
+/* $Id: node.c,v 1.23 2011/10/29 23:02:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -438,7 +438,7 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.22 $", "%*s %s", revision);
+	sscanf("$Revision: 1.23 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
@@ -628,7 +628,7 @@ int main(int argc, char **argv)
 							printf("conn=%u\n",node.connection);
 							printf("misc=%u\n",node.misc);
 							printf("aux=%u\n",node.aux);
-							printf("extaux=%lu\n",node.extaux); 
+							printf("extaux=%"PRIu32"\n",node.extaux); 
 						}  /* debug */
 
 						if(pause) {
