@@ -1,7 +1,6 @@
 #include <stdlib.h>
 
 #include <ciolib.h>
-#include <genwrap.h>	// For alloca()
 
 #include "attrs.h"
 

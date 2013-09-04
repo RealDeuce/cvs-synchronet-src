@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include <ciolib.h>
-#include <genwrap.h>	// For alloca()
+#include <keys.h>
 
 #include "crt.h"
 #include "key.h"
