@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.50 2013/09/04 07:21:28 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.51 2013/09/04 07:58:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -420,6 +420,10 @@ const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
 			return inet_ntop(addr->in.sin_family, &addr->in.sin_addr, dest, size);
 		case AF_INET6:
 			return inet_ntop(addr->in6.sin6_family, &addr->in6.sin6_addr, dest, size);
+		case AF_UNIX:
+			strncpy(dest, addr->un.sun_path, size);
+			dest[size-1]=0;
+			return dest;
 		default:
 			safe_snprintf(dest, size, "<unknown address>");
 			return NULL;
