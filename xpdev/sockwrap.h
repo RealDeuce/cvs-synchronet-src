@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.48 2013/10/29 17:25:47 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.43 2013/09/04 09:07:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,15 +48,7 @@
 #ifndef _WINSOCKAPI_
 	#include <winsock2.h>	/* socket/bind/etc. */
 	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
-#if defined(__BORLANDC__)
-// Borland C++ builder 6 comes with a broken ws2tcpip.h header for GCC.
-#define _MSC_VER 7
-#endif
     #include <ws2tcpip.h>	/* More stuff */
-#if defined(__BORLANDC__)
-#undef _MSC_VER
-#endif
-	#include <wspiapi.h>	/* getaddrinfo() for Windows 2k */
 	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
 	#define _WINSOCKAPI_
@@ -107,9 +99,6 @@ union xp_sockaddr {
 #endif
 	struct sockaddr_storage	store;
 };
-
-#define xp_sockaddr_len(a) ((((struct sockaddr *)a)->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : ((struct sockaddr *)a)->sa_len)
-
  
 
 /**********************************/
