@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.188 2014/01/04 10:41:06 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.184 2013/08/06 02:01:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2014 Rob Swindell"
-#define COPYRIGHT_CRC		0xB9FF7384
+#define COPYRIGHT_NOTICE	"Copyright 2012 Rob Swindell"
+#define COPYRIGHT_CRC		0x413D3832
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -79,12 +79,12 @@
 #define JAVASCRIPT_LOAD_PATH_LIST	"load_path_list"
 
 typedef struct {
-	uint32_t		counter;
-	uint32_t		limit;
-	uint32_t		yield_interval;
-	uint32_t		gc_interval;
-	uint32_t		gc_attempts;
-	BOOL			auto_terminate;
+	ulong	counter;
+	ulong	limit;
+	ulong	yield_interval;
+	ulong	gc_interval;
+	ulong	gc_attempts;
+	BOOL	auto_terminate;
 	volatile BOOL*	terminated;
 } js_callback_t;
 
@@ -356,7 +356,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 	,EVENT_POST						/* Execute after posting a message		*/
 	,EVENT_UPLOAD					/* Execute after uploading a file		*/
 	,EVENT_DOWNLOAD					/* Execute after downloading a file		*/
-	,EVENT_LOCAL_CHAT				/* Execute upon local/sysop chat		*/
 } user_event_t;																
 																			
 									/* Misc bits for event_t.misc			*/
