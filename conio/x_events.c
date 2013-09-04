@@ -20,8 +20,10 @@
 #include <dirwrap.h>
 
 #include "vidmodes.h"
+#include "allfonts.h"
 
-#include "ciolib.h"
+#include "keys.h"
+#include "mouse.h"
 #include "bitmap_con.h"
 #include "link_list.h"
 #include "x_events.h"
@@ -54,7 +56,6 @@ int x11_initialized=0;
 
 /* Sets the atom to be used for copy/paste operations */
 #define CONSOLE_CLIPBOARD	XA_PRIMARY
-static Atom WM_DELETE_WINDOW=0;
 
 static Display *dpy=NULL;
 static Window win;
@@ -65,8 +66,6 @@ static unsigned long black;
 static unsigned long white;
 static int bitmap_width=0;
 static int bitmap_height=0;
-static int old_scaling = 0;
-
 
 /* Array of Graphics Contexts */
 static GC gca[sizeof(dac_default)/sizeof(struct dac_colors)];
@@ -221,8 +220,6 @@ static int init_window()
 		x11.XSetWMProperties(dpy, win, NULL, NULL, 0, 0, NULL, wmhints, NULL);
 	}
 
-	WM_DELETE_WINDOW = x11.XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-
 	gcv.function = GXcopy;
     gcv.foreground = white;
     gcv.background = black;
@@ -247,7 +244,6 @@ static int init_window()
 
     x11.XStoreName(dpy, win, "SyncConsole");
 	depth = DefaultDepth(dpy, DefaultScreen(dpy));
-	x11.XSetWMProtocols(dpy, win, &WM_DELETE_WINDOW, 1);
 
 	return(0);
 }
@@ -430,7 +426,6 @@ static void handle_resize_event(int width, int height)
 		vstat.scaling=newFSH;
 	else
 		vstat.scaling=newFSW;
-	old_scaling = vstat.scaling;
 	if(vstat.scaling > 16)
 		vstat.scaling=16;
 	/*
@@ -467,12 +462,6 @@ static void expose_rect(x,y,width,height)
 static int x11_event(XEvent *ev)
 {
 	switch (ev->type) {
-		case ClientMessage:
-			if (ev->xclient.format == 32 && ev->xclient.data.l[0] == WM_DELETE_WINDOW) {
-				uint16_t key=CIO_KEY_QUIT;
-				write(key_pipe[1], &key, 2);
-			}
-			break;
 		/* Graphics related events */
 		case ConfigureNotify:
 			x11_window_xpos=ev->xconfigure.x;
@@ -817,14 +806,6 @@ static int x11_event(XEvent *ev)
 	return(0);
 }
 
-void check_scaling(void)
-{
-	if (old_scaling != vstat.scaling) {
-		resize_window();
-		old_scaling = vstat.scaling;
-	}
-}
-
 void x11_event_thread(void *args)
 {
 	int x;
@@ -847,8 +828,6 @@ void x11_event_thread(void *args)
 		high_fd=xfd;
 
 	for (;;) {
-		check_scaling();
-
 		tv.tv_sec=0;
 		tv.tv_usec=54925; /* was 54925 (was also 10) */ 
 
