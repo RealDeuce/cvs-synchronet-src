@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.57 2011/09/21 03:10:53 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.58 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,7 +195,7 @@ bool sbbs_t::uploadfile(file_t *f)
 	if(cfg.dir[f->dir]->misc&DIR_AONLY)  /* Forced anonymous */
 		f->misc|=FM_ANON;
 	f->cdt=length;
-	f->dateuled=time(NULL);
+	f->dateuled=time32(NULL);
 	f->timesdled=0;
 	f->datedled=0L;
 	f->opencount=0;
@@ -425,7 +425,7 @@ bool sbbs_t::upload(uint dirnum)
 		now=time(NULL);
 		if(descbeg[0])
 			strcat(descbeg," ");
-		sprintf(str,"%s  ",unixtodstr(&cfg,now,tmp));
+		sprintf(str,"%s  ",unixtodstr(&cfg,(time32_t)now,tmp));
 		strcat(descbeg,str); 
 	}
 	if(cfg.dir[dirnum]->misc&DIR_MULT) {
