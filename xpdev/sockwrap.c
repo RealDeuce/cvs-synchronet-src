@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.52 2013/09/04 09:07:43 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.53 2013/09/04 23:06:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -408,7 +408,7 @@ const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
 			return NULL;
 		return dest;
 	}
-	if(addr->in.sa_family != AF_INET)
+	if(addr->addr.sa_family != AF_INET)
 		strncpy(dest, "<Address Family Not Supported>", size);
 	else
 		strncpy(dest, inet_ntoa(addr->in.sin_addr), size);
