@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.596 2013/05/29 22:48:01 deuce Exp $ */
+/* $Id: main.cpp,v 1.597 2013/09/04 23:05:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2024,7 +2024,11 @@ void output_thread(void* arg)
 	if(!sbbs->outbuf.highwater_mark) {
 		socklen_t	sl;
 		sl=sizeof(i);
-		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, &i, &sl)) {
+		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, 
+#ifdef _WIN32
+			(char *)
+#endif
+			&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
 				sbbs->outbuf.highwater_mark=i;
