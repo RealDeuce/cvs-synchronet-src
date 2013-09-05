@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.43 2013/09/04 09:07:43 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.44 2013/09/05 23:25:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,14 @@
 #ifndef _WINSOCKAPI_
 	#include <winsock2.h>	/* socket/bind/etc. */
 	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
+#if defined(__BORLANDC__)
+// Borland C++ builder 6 comes with a broken ws2tcpip.h header for GCC.
+#define _MSC_VER 7
+#endif
     #include <ws2tcpip.h>	/* More stuff */
+#if defined(__BORLANDC__)
+#undef _MSC_VER
+#endif
 	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
 	#define _WINSOCKAPI_
