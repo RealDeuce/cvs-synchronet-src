@@ -24,7 +24,9 @@
 #endif
 
 #include "ciolib.h"
+#include "keys.h"
 #include "vidmodes.h"
+#include "allfonts.h"
 #include "bitmap_con.h"
 
 #include "SDL.h"
@@ -553,16 +555,12 @@ void sdl_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 
 	if(sdl_init_good) {
 		rect=(struct update_rect *)malloc(sizeof(struct update_rect));
-		if(rect) {
-			rect->x=xoffset;
-			rect->y=yoffset;
-			rect->width=width;
-			rect->height=height;
-			rect->data=data;
-			sdl_user_func(SDL_USEREVENT_UPDATERECT, rect);
-		}
-		else
-			free(data);
+		rect->x=xoffset;
+		rect->y=yoffset;
+		rect->width=width;
+		rect->height=height;
+		rect->data=data;
+		sdl_user_func(SDL_USEREVENT_UPDATERECT, rect);
 	}
 	else
 		free(data);
@@ -1247,7 +1245,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 						expect=sdl_keyval[i].shift;
 				}
 				else {
-					if(mod & KMOD_CAPS && (toupper(sdl_keyval[i].key) == sdl_keyval[i].shift))
+					if(mod & KMOD_CAPS)
 						expect=sdl_keyval[i].shift;
 					else
 						expect=sdl_keyval[i].key;
@@ -1487,15 +1485,13 @@ int sdl_video_event_thread(void *data)
 								force_redraws=1;
 							}
 							else {
-								if(upd_rects) {
-									upd_rects[0].x=0;
-									upd_rects[0].y=0;
-									upd_rects[0].w=new_rect->w;
-									upd_rects[0].h=new_rect->h;
-									sdl.BlitSurface(new_rect, upd_rects, win, upd_rects);
-									sdl.UpdateRects(win,1,upd_rects);
-									rectsused=0;
-								}
+								upd_rects[0].x=0;
+								upd_rects[0].y=0;
+								upd_rects[0].w=new_rect->w;
+								upd_rects[0].h=new_rect->h;
+								sdl.BlitSurface(new_rect, upd_rects, win, upd_rects);
+								sdl.UpdateRects(win,1,upd_rects);
+								rectsused=0;
 							}
 						}
 						break;
@@ -1512,7 +1508,7 @@ int sdl_video_event_thread(void *data)
 									SDL_Rect r;
 									int x,y,offset;
 
-									if(!win || !upd_rects) {
+									if(!win) {
 										free(rect->data);
 										free(rect);
 										break;
