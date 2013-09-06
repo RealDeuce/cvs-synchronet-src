@@ -2,8 +2,6 @@
 
 #include <ciolib.h>
 
-#include "attrs.h"
-
 void 
 DrawBox(int x1, int y1, int x2, int y2)
 {				/* Draws a nice looking box ... */
@@ -15,36 +13,50 @@ DrawBox(int x1, int y1, int x2, int y2)
 	width=x2-x1+3;
 	height=y2-y1+1;
 	if(width>height)
-		buf=(char *)alloca(width*2);
+		buf=(char *)malloc(width*2);
 	else
-		buf=(char *)alloca(height*2);
+		buf=(char *)malloc(height*2);
 
 	i=0;
-	buf[i++]=218;
-	buf[i++]=ATTR_NORM_HIGH;
-	for(x=2;x<=width-4;x++) {
-		buf[i++]=196;
-		buf[i++]=ATTR_NORM_HIGH;
+	buf[i++]=220;
+	buf[i++]=2;
+	buf[i++]=254;
+	buf[i++]=10;
+	for(x=3;x<=width-4;x++) {
+		buf[i++]=223;
+		buf[i++]=10;
 	}
-	buf[i++]=196;
-	buf[i++]=ATTR_NORM_HIGH;
-	buf[i++]=191;
-	buf[i++]=ATTR_NORM_HIGH;
+	buf[i++]=254;
+	buf[i++]=10;
+	buf[i++]=220;
+	buf[i]=2;
 	puttext(x1,y1,x2,y1,buf);
-	buf[i-2]=217;
-	buf[0]=192;
+	i=4;
+	for(x=3;x<=width-4;x++) {
+		buf[i++]=220;
+		buf[i++]=2;
+	}
+	i+=2;
+	buf[i]=223;
+	buf[0]=223;
 	puttext(x1,y2,x2,y2,buf);
 
 	i=0;
 	for(y=1; y<=height-2;y++) {
-		buf[i++]=179;
+		buf[i++]=221;
 		if(y==1 || y==height-2)
-			buf[i++]=ATTR_NORM_HIGH;
+			buf[i++]=10;
 		else if (y==2 || y==height-3)
-			buf[i++]=ATTR_NORM_FADE1;
+			buf[i++]=7;
 		else
-			buf[i++]=ATTR_NORM_FADE2;
+			buf[i++]=8;
 	}
 	puttext(x1,y1+1,x1,y2-1,buf);
+	i=0;
+	for(y=1; y<=height-2;y++) {
+		buf[i++]=222;
+		i++;
+	}
 	puttext(x2,y1+1,x2,y2-1,buf);
+	free(buf);
 }
