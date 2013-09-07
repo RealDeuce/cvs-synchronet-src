@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.47 2014/01/23 08:31:40 deuce Exp $ */
+/* $Id: bbslist.h,v 1.46 2013/01/11 17:56:38 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -53,12 +53,6 @@ enum {
 	,SCREEN_MODE_TERMINATOR
 };
 
-enum {
-	 ADDRESS_FAMILY_UNSPEC
-	,ADDRESS_FAMILY_INET
-	,ADDRESS_FAMILY_INET6
-};
-
 /* NOTE: changing this may require updating sort_order in bbslist.c */
 struct bbslist {
 	char			name[LIST_NAME_MAX+1];
@@ -83,7 +77,6 @@ struct bbslist {
 	int				telnet_loglevel;
 	int				bpsrate;
 	int				music;
-	int				address_family;
 	char			font[80];
 };
 

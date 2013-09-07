@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.96 2014/04/28 05:19:11 deuce Exp $ */
+/* $Id: genwrap.c,v 1.90 2012/04/30 03:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,10 +48,7 @@
 	#include <sys/ioctl.h>		/* ioctl() */
 	#include <sys/utsname.h>	/* uname() */
 	#include <signal.h>
-#elif defined(_WIN32)
-	#include <windows.h>
-	#include <lm.h>		/* NetWkstaGetInfo() */
-#endif
+#endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
 #include "xpendian.h"	/* BYTE_SWAP */
@@ -281,17 +278,15 @@ char* DLLCALL strtok_r(char *str, const char *delim, char **last)
 /****************************************************************************/
 void DLLCALL xp_randomize(void)
 {
-#if !(defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC))
 	unsigned seed=~0;
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	int		rf;
-#endif
 #endif
 
 #if defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC)
 	srandomdev();
 	return;
-#else
+#endif
 
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
@@ -318,7 +313,6 @@ void DLLCALL xp_randomize(void)
 #else
  	srand(seed);
 #endif
-#endif
 }
 
 /****************************************************************************/
@@ -333,7 +327,7 @@ long DLLCALL xp_random(int n)
 	if(n<2)
 		return(0);
 
-	limit = ((1UL<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
+	limit = ((1U<<((sizeof(long)*CHAR_BIT)-1)) / n) * n - 1;
 
 	while(1) {
 		curr=random();
@@ -410,23 +404,10 @@ char* DLLCALL os_version(char *str)
 			break;
 	}
 
-	/* Work-around Microsoft Windows 8.1 stupidity where GetVersionEx() lies about the current OS version */
-	if(winver.dwMajorVersion == 6 && winver.dwMinorVersion == 2) {
-		WKSTA_INFO_100* wksta_info;
-		if(NetWkstaGetInfo(NULL, 100, (LPBYTE*)&wksta_info) == NERR_Success) {
-			winver.dwMajorVersion = wksta_info->wki100_ver_major;
-			winver.dwMinorVersion = wksta_info->wki100_ver_minor;
-			winver.dwBuildNumber = 0;
-		}
-	}
-
-	sprintf(str,"Windows %sVersion %u.%u"
+	sprintf(str,"Windows %sVersion %u.%u (Build %u) %s"
 			,winflavor
-			,winver.dwMajorVersion, winver.dwMinorVersion);
-	if(winver.dwBuildNumber)
-		sprintf(str+strlen(str), " (Build %u)", winver.dwBuildNumber);
-	if(winver.szCSDVersion[0])
-		sprintf(str+strlen(str), " %s", winver.szCSDVersion);
+			,winver.dwMajorVersion, winver.dwMinorVersion
+			,winver.dwBuildNumber,winver.szCSDVersion);
 
 #elif defined(__unix__)
 
@@ -476,7 +457,7 @@ clock_t DLLCALL msclock(void)
 	struct timeval tv;
 	if(gettimeofday(&tv,NULL)==1)
 		return(-1);
-	usecs=((long long int)tv.tv_sec)*((long long int)1000000)+tv.tv_usec;
+	usecs=tv.tv_sec*1000000+tv.tv_usec;
 	return((clock_t)(usecs/(1000000/MSCLOCKS_PER_SEC)));
 }
 #endif

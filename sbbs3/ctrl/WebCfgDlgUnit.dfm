@@ -78,7 +78,7 @@ object WebCfgDlg: TWebCfgDlg
         Top = 108
         Width = 48
         Height = 24
-        Hint = 'Maximum number of simultaneous clients (0=unlimited)'
+        Hint = 'Maximum number of simultaneous clients (default=10)'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 4
@@ -474,7 +474,7 @@ object WebCfgDlg: TWebCfgDlg
         Top = 76
         Width = 192
         Height = 24
-        Hint = 'Sound file to play when hack attempts are detected'
+        Hint = 'Sound file to play when users disconnect'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 4
