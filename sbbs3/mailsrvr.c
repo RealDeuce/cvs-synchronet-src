@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.560 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.564 2013/09/12 09:14:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1692,10 +1692,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
     uintN		i=0;
 	int32		level=LOG_INFO;
-    JSString*	str=NULL;
 	private_t*	p;
 	jsrefcount	rc;
-	char		*lstr;
+	char		*lstr=NULL;
+	size_t		lstr_sz=0;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -1708,19 +1708,18 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	for(; i<argc; i++) {
-		JSVALUE_TO_STRING(cx, argv[i], lstr, NULL);
+		JSVALUE_TO_RASTRING(cx, argv[i], lstr, &lstr_sz, NULL);
+		HANDLE_PENDING(cx);
 		if(lstr==NULL)
-			return(JS_FALSE);
+			return(JS_TRUE);
 		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%04d %s %s %s"
 			,p->sock,p->log_prefix,p->proc_name,lstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
-	if(str==NULL)
-		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-	else
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	if(lstr)
+		free(lstr);
 
     return(JS_TRUE);
 }
@@ -2360,7 +2359,7 @@ static void smtp_thread(void* arg)
 		return;
 	} 
 
-	if((mailproc_to_match=alloca(sizeof(BOOL)*mailproc_count))==NULL) {
+	if((mailproc_to_match=malloc(sizeof(BOOL)*mailproc_count))==NULL) {
 		lprintf(LOG_CRIT,"%04d !SMTP ERROR allocating memory for mailproc_to_match", socket);
 		sockprintf(socket,sys_error);
 		mail_close_socket(socket);
@@ -2417,6 +2416,7 @@ static void smtp_thread(void* arg)
 			thread_down();
 			protected_uint32_adjust(&active_clients, -1);
 			update_clients();
+			free(mailproc_to_match);
 			return;
 		}
 
@@ -2429,6 +2429,7 @@ static void smtp_thread(void* arg)
 			thread_down();
 			protected_uint32_adjust(&active_clients, -1);
 			update_clients();
+			free(mailproc_to_match);
 			return;
 		}
 
@@ -2449,6 +2450,7 @@ static void smtp_thread(void* arg)
 				thread_down();
 				protected_uint32_adjust(&active_clients, -1);
 				update_clients();
+				free(mailproc_to_match);
 				return;
 			}
 		}
@@ -2463,6 +2465,7 @@ static void smtp_thread(void* arg)
 		thread_down();
 		protected_uint32_adjust(&active_clients, -1);
 		update_clients();
+		free(mailproc_to_match);
 		return;
 	}
 	SAFEPRINTF(spam.file,"%sspam",scfg.data_dir);
@@ -2486,6 +2489,7 @@ static void smtp_thread(void* arg)
 		thread_down();
 		protected_uint32_adjust(&active_clients, -1);
 		update_clients();
+		free(mailproc_to_match);
 		return;
 	}
 
@@ -3734,7 +3738,6 @@ static void smtp_thread(void* arg)
 				SAFEPRINTF(domain_list,"%sdomains.cfg",scfg.ctrl_dir);
 				if((stricmp(dest_host,scfg.sys_inetaddr)!=0
 						&& stricmp(dest_host,startup->host_name)!=0
-						&& resolve_ip(dest_host)!=server_addr.sin_addr.s_addr
 						&& findstr(dest_host,domain_list)==FALSE)
 					|| dest_port!=server_addr.sin_port) {
 
@@ -4080,6 +4083,7 @@ static void smtp_thread(void* arg)
 		lprintf(LOG_INFO,"%04d SMTP Session thread terminated (%u threads remain, %lu clients served)"
 			,socket, remain, ++stats.smtp_served);
 	}
+	free(mailproc_to_match);
 
 	/* Must be last */
 	mail_close_socket(socket);
@@ -4896,7 +4900,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.560 $", "%*s %s", revision);
+	sscanf("$Revision: 1.564 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
