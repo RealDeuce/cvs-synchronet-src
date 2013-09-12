@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.597 2013/09/04 23:05:10 deuce Exp $ */
+/* $Id: main.cpp,v 1.598 2013/09/12 09:10:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,7 +252,7 @@ u_long resolve_ip(char *addr)
 		return((u_long)INADDR_NONE);
 
 	for(p=addr;*p;p++)
-		if(*p!='.' && !isdigit(*p))
+		if(*p!='.' && !isdigit((uchar)*p))
 			break;
 	if(!(*p))
 		return(inet_addr(addr));
