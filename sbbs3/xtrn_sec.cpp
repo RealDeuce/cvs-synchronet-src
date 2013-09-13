@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.73 2012/04/11 04:08:29 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.75 2013/09/13 08:22:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -556,7 +556,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,8									/* 03: Data bits */
 			,cfg.node_num						/* 04: Node number */
 			,dte_rate							/* 05: DTE rate */
-			,console&CON_L_ECHO ? 'Y':'N'       /* 06: Screen display */
+			,'Y'								/* 06: Screen display */
 			,'Y'                                /* 07: Printer toggle */
 			,'Y'                                /* 08: Page bell */
 			,'Y');                              /* 09: Caller alarm */
@@ -1676,7 +1676,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	strcat(path,name);
 	getnodedat(cfg.node_num,&thisnode,1);
 	thisnode.aux=xtrnnum+1;
-	thisnode.action=NODE_XTRN;
+	if(action!=NODE_PCHT)
+		thisnode.action=NODE_XTRN;
 	putnodedat(cfg.node_num,&thisnode);
 	putuserrec(&cfg,useron.number,U_CURXTRN,8,cfg.xtrn[xtrnnum]->code);
 
