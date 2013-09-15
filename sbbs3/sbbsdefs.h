@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.185 2013/09/13 06:13:58 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.186 2013/09/15 10:13:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,11 +79,11 @@
 #define JAVASCRIPT_LOAD_PATH_LIST	"load_path_list"
 
 typedef struct {
-	ulong	counter;
-	ulong	limit;
-	ulong	yield_interval;
-	ulong	gc_interval;
-	ulong	gc_attempts;
+	uint32	counter;
+	uint32	limit;
+	uint32	yield_interval;
+	uint32	gc_interval;
+	uint32	gc_attempts;
 	BOOL	auto_terminate;
 	volatile BOOL*	terminated;
 } js_callback_t;
