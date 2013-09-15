@@ -2,13 +2,13 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.23 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: node.c,v 1.24 2013/09/15 07:35:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -336,7 +336,7 @@ void printnodedat(int number, node_t node)
 					printf("logging on");
 					break;
 				case NODE_LCHT:
-					printf("in local chat with sysop");
+					printf("in local chat with sysop (deprecated)");
 					break;
 				case NODE_MCHT:
 					if(node.aux) {
@@ -351,7 +351,10 @@ void printnodedat(int number, node_t node)
 					printf("paging node %u for private chat",node.aux);
 					break;
 				case NODE_PCHT:
-					printf("in private chat with node %u",node.aux);
+					if(node.aux==0)
+						printf("in local chat with sysop");
+					else
+						printf("in private chat with node %u",node.aux);
 					break;
 				case NODE_GCHT:
 					printf("chatting with The Guru");
@@ -438,7 +441,7 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.23 $", "%*s %s", revision);
+	sscanf("$Revision: 1.24 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
