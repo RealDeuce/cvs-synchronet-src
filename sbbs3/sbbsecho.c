@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.216 2012/11/22 04:55:16 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.217 2013/09/03 23:32:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,10 +36,6 @@
  ****************************************************************************/
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
-
-#ifdef _WIN32
-	#include <windows.h>
-#endif
 
 #include <time.h>
 #include <errno.h>
@@ -4039,7 +4035,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.216 $", "%*s %s", revision);
+	sscanf("$Revision: 1.217 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
