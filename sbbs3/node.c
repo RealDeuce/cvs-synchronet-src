@@ -2,7 +2,7 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.26 2013/10/05 14:30:48 deuce Exp $ */
+/* $Id: node.c,v 1.24 2013/09/15 07:35:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -441,12 +441,12 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.26 $", "%*s %s", revision);
+	sscanf("$Revision: 1.24 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
-		printf("COMPILER ERROR: sizeof(node_t)=%u instead of %d\n"
+		printf("COMPILER ERROR: sizeof(node_t)=%d instead of %d\n"
 			,sizeof(node_t),SIZEOF_NODE_T);
 		return(-1);
 	}
