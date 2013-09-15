@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.148 2012/10/20 20:49:37 rswindell Exp $ */
+/* $Id: userdat.c,v 1.149 2013/09/15 07:37:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -951,8 +951,10 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 						,"paging node %u for private chat",node->aux);
                     break;
                 case NODE_PCHT:
-                    if(!node->aux)
-                        strcat(str,"in local chat with sysop");
+                    if(node->aux==0)
+                        sprintf(str+strlen(str)
+							,"in local chat with %s"
+							,cfg->sys_op);
                     else
                         sprintf(str+strlen(str)
 							,"in private chat with node %u"

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.215 2012/10/30 06:48:46 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.217 2013/09/03 23:32:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,10 +36,6 @@
  ****************************************************************************/
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
-
-#ifdef _WIN32
-	#include <windows.h>
-#endif
 
 #include <time.h>
 #include <errno.h>
@@ -3461,7 +3457,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	}
 
 	usernumber=atoi(hdr.to);
-	if(!stricmp(hdr.to,"SYSOP"))  /* NetMail to "sysop" goes to #1 */
+	if(cfg.sysop_alias[0] && stricmp(hdr.to,cfg.sysop_alias)==0)  /* NetMail to configured SYSOP_ALIAS goes to user #1 */
 		usernumber=1;
 	if(!usernumber && match<scfg.total_faddrs)
 		usernumber=matchname(hdr.to);
@@ -4039,7 +4035,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.215 $", "%*s %s", revision);
+	sscanf("$Revision: 1.217 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
