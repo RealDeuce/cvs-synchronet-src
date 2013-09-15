@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.49 2014/02/07 08:59:15 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.44 2013/09/05 23:25:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,6 @@
 #if defined(__BORLANDC__)
 #undef _MSC_VER
 #endif
-	#include <wspiapi.h>	/* getaddrinfo() for Windows 2k */
 	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
 	#define _WINSOCKAPI_
@@ -107,9 +106,6 @@ union xp_sockaddr {
 #endif
 	struct sockaddr_storage	store;
 };
-
-#define xp_sockaddr_len(a) ((((struct sockaddr *)a)->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in))
-
  
 
 /**********************************/
@@ -177,7 +173,6 @@ union xp_sockaddr {
 #define SHUT_RDWR		SD_BOTH
 
 #define s_addr			S_un.S_addr
-#define sa_family_t		ushort
 
 static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
@@ -228,7 +223,6 @@ int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
 				   ,int (*lprintf)(int level, const char *fmt, ...));
 int		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
-union xp_sockaddr *inet_ptoaddr(char *addr_str, union xp_sockaddr *addr, size_t size);
 const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size);
 uint16_t inet_addrport(union xp_sockaddr *addr);
 void inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
