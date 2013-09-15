@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.32 2014/02/06 10:58:00 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.30 2008/06/07 09:42:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,8 @@
 
 #include "ciolib.h"
 #include "curs_cio.h"
+#include "keys.h"
+#include "mouse.h"
 #include "vidmodes.h"
 
 static unsigned char curs_nextgetch=0;

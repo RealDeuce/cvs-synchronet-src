@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.64 2013/09/18 16:24:39 deuce Exp $ */
+/* $Id: chat.cpp,v 1.63 2013/09/13 06:13:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,8 +106,7 @@ void sbbs_t::multinodechat(int channel)
 		if(node.aux && (node.aux&0xff)!=channel)
 			continue;
 		printnodedat(i,&node);
-		preusr[usrs]=(char)i;
-		usr[usrs++]=(char)i; 
+		preusr[usrs]=usr[usrs++]=(char)i; 
 	}
 	preusrs=usrs;
 	if(gurubuf)
@@ -219,8 +218,7 @@ void sbbs_t::multinodechat(int channel)
 							if(strcmp(str,unpackchatpass(tmp,&node)))
 								break;
 								bputs(text[CorrectPassword]);  }
-						preusr[usrs]=(char)i;
-						usr[usrs++]=(char)i; 
+						preusr[usrs]=usr[usrs++]=(char)i; 
 					}
 					if(i<=cfg.sys_nodes) {	/* failed password */
 						bputs(text[WrongPassword]);
@@ -293,8 +291,7 @@ void sbbs_t::multinodechat(int channel)
 								|| node.status!=NODE_INUSE)
 								continue;
 							printnodedat(i,&node);
-							preusr[usrs]=(char)i;
-							usr[usrs++]=(char)i; 
+							preusr[usrs]=usr[usrs++]=(char)i; 
 						}
 						preusrs=usrs;
 						if(getnodedat(cfg.node_num,&thisnode,true)==0) {
