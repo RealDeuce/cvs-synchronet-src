@@ -1,6 +1,6 @@
 #include <stdio.h>		/* NULL */
 
-#include "ciolib.h"
+#include "allfonts.h"
 
 #ifdef NO_FONTS
 struct conio_font_data_struct conio_fontdata[257];
