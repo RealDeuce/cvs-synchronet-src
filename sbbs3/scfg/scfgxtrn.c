@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.49 2013/09/18 16:52:44 deuce Exp $ */
+/* $Id: scfgxtrn.c,v 1.47 2013/09/14 05:02:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -781,7 +781,7 @@ re-initialized, set this option to ~Yes~.
 void xtrn_cfg(uint section)
 {
 	static int ext_dflt,ext_bar,sub_bar,opt_dflt,time_dflt;
-	char str[128],code[128],done=0;
+	char str[128],code[128],done=0,*p;
 	int j,k;
 	uint i,n,xtrnnum[MAX_OPTS+1];
 	static xtrn_t savxtrn;
@@ -904,7 +904,7 @@ online program name.
 		sprintf(opt[k++],"%-27.27s%.40s","Command Line",cfg.xtrn[i]->cmd);
 		sprintf(opt[k++],"%-27.27s%.40s","Clean-up Command Line",cfg.xtrn[i]->clean);
 		if(cfg.xtrn[i]->cost)
-			sprintf(str,"%"PRIu32" credits",cfg.xtrn[i]->cost);
+			sprintf(str,"%lu credits",cfg.xtrn[i]->cost);
 		else
 			strcpy(str,"None");
 		sprintf(opt[k++],"%-27.27s%s","Execution Cost",str);
@@ -1507,7 +1507,7 @@ option to `Yes`.
 void xedit_cfg()
 {
 	static int dflt,dfltopt,bar;
-	char str[81],code[81],done=0;
+	char str[81],code[81],done=0,*p;
 	int j,k;
 	uint i;
 	static xedit_t savxedit;
@@ -2079,7 +2079,7 @@ return(0);
 void xtrnsec_cfg()
 {
 	static int xtrnsec_dflt,xtrnsec_opt;
-	char str[128],code[128],done=0;
+	char str[128],code[128],done=0,*p;
 	int j,k;
 	uint i;
 	static xtrnsec_t savxtrnsec;
