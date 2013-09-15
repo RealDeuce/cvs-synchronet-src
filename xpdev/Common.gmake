@@ -1,6 +1,12 @@
 XPDEV-MT_CFLAGS	+=	-DXPDEV_THREAD_SAFE
-XPDEV_LIBS	+=	-lm
-XPDEV-MT_LIBS	+=	-lm
+ifneq ($(os),haiku)
+ XPDEV_LIBS	+=	-lm
+ XPDEV-MT_LIBS	+=	-lm
+endif
+ifeq ($(os),haiku)
+ XPDEV_LIBS	+=	-lnetwork
+ XPDEV-MT_LIBS	+=	-lnetwork
+endif
 ifeq ($(os),netbsd)     # NetBSD
  XPDEV_LIBS	+=	-lossaudio
  XPDEV-MT_LIBS	+=	-lossaudio -lpthread
@@ -21,6 +27,9 @@ ifeq ($(os),qnx)	# QNX
 endif
 ifeq ($(os),linux)	# Linux
  XPDEV-MT_LIBS	+=	-lpthread
+endif
+ifeq ($(os),win32)	# MinGW32
+ XPDEV-MT_LIBS	+=	-lws2_32 -lwinmm
 endif
 ifeq ($(shell if [ -c /dev/urandom ] ; then echo YES ; fi),YES)
  XPDEV-MT_CFLAGS	+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
@@ -150,6 +159,7 @@ ifdef WITH_SDL_AUDIO
    XPDEV_CFLAGS	+=	-DWITH_SDL_AUDIO -DSTATIC_SDL
    XPDEV_CFLAGS	+=	-I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
    XPDEV_LIBS	+=	-F${SDL_FRAMEWORK_PATH} -framework SDL -framework Cocoa -framework Carbon -I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
+   XPDEV-MT_LDFLAGS += -Wl,-rpath,@executable_path/../Frameworks
   endif
  endif
 endif
@@ -180,5 +190,13 @@ ifndef WITHOUT_PORTAUDIO
 
  ifneq ($(PORTAUDIO_PATH),NOTFOUND)
   XPDEV_CFLAGS += -DWITH_PORTAUDIO
+  ifeq ($(os),linux)
+   XPDEV-MT_LIBS += -ldl
+   XPDEV_LIBS += -ldl
+  endif
  endif
+endif
+ifeq ($(shell if [ -f /usr/include/alsa/asoundlib.h ] ; then echo YES ; fi),YES)
+ XPDEV-MT_LIBS += -ldl
+ XPDEV_LIBS += -ldl
 endif
