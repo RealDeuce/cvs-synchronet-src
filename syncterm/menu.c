@@ -1,10 +1,11 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.51 2015/02/09 07:34:23 deuce Exp $ */
+/* $Id: menu.c,v 1.49 2012/07/19 06:24:15 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
+#include <keys.h>
 
 #include "cterm.h"
 #include "term.h"
@@ -45,11 +46,27 @@ void viewscroll(void)
 		if(top>cterm->backpos)
 			top=cterm->backpos;
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
-		ciolib_xlat = TRUE;
-		cputs("Scrollback");
+		switch(cterm->emulation) {
+		case CTERM_EMULATION_ATASCII:
+			cputs("3crollback");
+			break;
+		case CTERM_EMULATION_PETASCII:
+			cputs("SCROLLBACK");
+			break;
+		default:
+			cputs("Scrollback");
+		}
 		gotoxy(cterm->width-9,1);
-		cputs("Scrollback");
-		ciolib_xlat = FALSE;
+		switch(cterm->emulation) {
+		case CTERM_EMULATION_ATASCII:
+			cputs("3crollback");
+			break;
+		case CTERM_EMULATION_PETASCII:
+			cputs("SCROLLBACK");
+			break;
+		default:
+			cputs("Scrollback");
+		}
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
