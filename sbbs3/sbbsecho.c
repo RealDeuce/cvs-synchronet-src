@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.216 2012/11/22 04:55:16 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.219 2013/09/17 04:56:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,10 +36,6 @@
  ****************************************************************************/
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
-
-#ifdef _WIN32
-	#include <windows.h>
-#endif
 
 #include <time.h>
 #include <errno.h>
@@ -2715,7 +2711,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	if(area.name && addr.zone!=fmsghdr.destzone)	/* Zone Gate */
 		fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
 
-	if(area.name && addr.zone==fmsghdr.destzone) {	/* Not NetMail */
+	if(area.name /* && addr.zone==fmsghdr.destzone */) {	/* Not NetMail */
 		fprintf(stream,"SEEN-BY:");
 		for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
 			strcpy(seenby," ");
@@ -4039,7 +4035,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.216 $", "%*s %s", revision);
+	sscanf("$Revision: 1.219 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4435,7 +4431,7 @@ int main(int argc, char **argv)
 				pkt_type=PKT_TWO_PLUS;
 				pkt_faddr.point=two_plus.origpoint ? two_plus.origpoint:0;
 				if(pkt_faddr.point && pkthdr.orignet==-1)
-					pkt_faddr.net=two_plus.auxnet ? two_plus.auxnet:sys_faddr.zone;
+					pkt_faddr.net=two_plus.auxnet ? two_plus.auxnet:sys_faddr.zone;	/* is this right? should be .net? */
 				printf("(Type 2+)");
 				if(cfg.log&LOG_PACKETS)
 					logprintf("Importing %s%s (Type 2+) from %s"
@@ -4481,6 +4477,10 @@ int main(int argc, char **argv)
 
 				memset(&hdr,0,sizeof(fmsghdr_t));
 
+				/* Sept-16-2013: copy the origin zone from the packet header
+				   as packed message headers don't have the zone information */
+				hdr.origzone=pkt_faddr.zone;
+
 				if(start_tick)
 					import_ticks+=msclock()-start_tick;
 				start_tick=msclock();
@@ -4491,45 +4491,6 @@ int main(int argc, char **argv)
 				}
 
 				grunged=FALSE;
-
-#if 0	/* Old way */
-
-				if(!fread(&ch,1,1,fidomsg)) 		 /* Message type (0200h) */
-					break;
-				if(ch!=02)
-					continue;
-				if(!fread(&ch,1,1,fidomsg))
-					break;
-				if(ch!=00)
-					continue;
-				fread(&hdr.orignode,2,1,fidomsg);
-				fread(&hdr.destnode,2,1,fidomsg);
-				fread(&hdr.orignet,2,1,fidomsg);
-				fread(&hdr.destnet,2,1,fidomsg);
-				fread(&hdr.attr,2,1,fidomsg);
-				fread(&hdr.cost,2,1,fidomsg);
-
-				for(i=0;i<sizeof(hdr.time);i++) 		/* Read in the Date/Time */
-					if(!fread(hdr.time+i,1,1,fidomsg) || !hdr.time[i])
-						break;
-				if(i==sizeof(hdr.time)) grunged=1;
-
-				for(i=0;!grunged && i<sizeof(hdr.to);i++) /* Read in the 'To' Field */
-					if(!fread(hdr.to+i,1,1,fidomsg) || !hdr.to[i])
-						break;
-				if(i==sizeof(hdr.to)) grunged=1;
-
-				for(i=0;!grunged && i<sizeof(hdr.from);i++) /* Read in 'From' Field */
-					if(!fread(hdr.from+i,1,1,fidomsg) || !hdr.from[i])
-						break;
-				if(i==sizeof(hdr.from)) grunged=1;
-
-				for(i=0;!grunged && i<sizeof(hdr.subj);i++) /* Read in 'Subj' Field */
-					if(!fread(hdr.subj+i,1,1,fidomsg) || !hdr.subj[i])
-						break;
-				if(i==sizeof(hdr.subj)) grunged=1;
-
-#else	/* New way */
 
 				/* Read fixed-length header fields */
 				if(fread(&pkdmsg,sizeof(BYTE),sizeof(pkdmsg),fidomsg)!=sizeof(pkdmsg))
@@ -4552,7 +4513,6 @@ int main(int argc, char **argv)
 					freadstr(fidomsg,hdr.from,sizeof(hdr.from));
 					freadstr(fidomsg,hdr.subj,sizeof(hdr.subj));
 				}
-#endif
 				hdr.attr&=~FIDO_LOCAL;	/* Strip local bit, obviously not created locally */
 
 				str[0]=0;
