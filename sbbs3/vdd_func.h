@@ -2,13 +2,13 @@
 
 /* Synchronet WinNT VDD FOSSIL constant/type definitions */
 
-/* $Id: vdd_func.h,v 1.9 2006/06/20 21:48:40 rswindell Exp $ */
+/* $Id: vdd_func.h,v 1.2 2001/07/18 20:03:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,25 +37,20 @@
 
 
 enum {
-	 VDD_OPEN				=0
-	,VDD_CLOSE				=1
-	,VDD_READ				=2
-	,VDD_PEEK				=3
-	,VDD_WRITE				=4
-	,VDD_STATUS				=5
-	,VDD_INBUF_PURGE		=6
-	,VDD_INBUF_FULL			=7
-	,VDD_INBUF_SIZE			=8
-	,VDD_OUTBUF_PURGE		=9
-	,VDD_OUTBUF_FULL		=10
-	,VDD_OUTBUF_SIZE		=11
-	,VDD_ONLINE				=12
-	,VDD_YIELD				=13
-	,VDD_MAYBE_YIELD		=14
-	,VDD_LOAD_INI_FILE		=15
-	,VDD_LOAD_INI_SECTION	=16
-	,VDD_DEBUG_OUTPUT		=17
-	,VDD_HANGUP				=18
+	 VDD_OPEN
+	,VDD_CLOSE
+	,VDD_READ
+	,VDD_PEEK
+	,VDD_WRITE
+	,VDD_STATUS
+	,VDD_INBUF_PURGE
+	,VDD_INBUF_FULL
+	,VDD_INBUF_SIZE
+	,VDD_OUTBUF_PURGE
+	,VDD_OUTBUF_FULL
+	,VDD_OUTBUF_SIZE
+	,VDD_ONLINE
+	,VDD_YIELD
 };
 
 typedef struct {
