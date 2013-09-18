@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.393 2012/12/19 12:37:19 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.404 2013/08/06 02:01:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -111,9 +111,51 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include <jsapi.h>
 #define JS_DestroyScript(cx,script)
 
-#define JSSTRING_TO_STRING(cx, str, ret, lenptr) \
+#define JSSTRING_TO_RASTRING(cx, str, ret, sizeptr, lenptr) \
 { \
-	size_t			*JSSTSlenptr=lenptr; \
+	size_t			*JSSTSlenptr=(lenptr); \
+	size_t			JSSTSlen; \
+	size_t			JSSTSpos; \
+	const jschar	*JSSTSstrval; \
+	char			*JSSTStmpptr; \
+\
+	if(JSSTSlenptr==NULL) \
+		JSSTSlenptr=&JSSTSlen; \
+	if((str) != NULL) { \
+		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
+			if((*(sizeptr) < (*JSSTSlenptr+1 )) || (ret)==NULL) { \
+				*(sizeptr) = *JSSTSlenptr+1; \
+				if((JSSTStmpptr=(char *)realloc((ret), *(sizeptr)))==NULL) { \
+					JS_ReportError(cx, "Error reallocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
+					(ret)=NULL; \
+					free(ret); \
+				} \
+				else { \
+					(ret)=JSSTStmpptr; \
+				} \
+			} \
+			if(ret) { \
+				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
+					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
+				(ret)[*JSSTSlenptr]=0; \
+			} \
+		} \
+	} \
+	else { \
+		if(ret) \
+			*(ret)=0; \
+	} \
+}
+
+#define JSVALUE_TO_RASTRING(cx, val, ret, sizeptr, lenptr) \
+{ \
+	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
+	JSSTRING_TO_RASTRING((cx), JSVTSstr, (ret), (sizeptr), (lenptr)); \
+}
+
+#define JSSTRING_TO_MSTRING(cx, str, ret, lenptr) \
+{ \
+	size_t			*JSSTSlenptr=(lenptr); \
 	size_t			JSSTSlen; \
 	size_t			JSSTSpos; \
 	const jschar	*JSSTSstrval; \
@@ -123,19 +165,86 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	(ret)=NULL; \
 	if((str) != NULL) { \
 		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
-			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
+			if(((ret)=(char *)malloc(*JSSTSlenptr+1))) { \
 				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
 					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
 				(ret)[*JSSTSlenptr]=0; \
 			} \
+			else JS_ReportError((cx), "Error allocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
 		} \
 	} \
 }
 
-#define JSVALUE_TO_STRING(cx, val, ret, lenptr) \
+#define JSVALUE_TO_MSTRING(cx, val, ret, lenptr) \
 { \
 	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
-	JSSTRING_TO_STRING((cx), JSVTSstr, (ret), lenptr); \
+	JSSTRING_TO_MSTRING((cx), JSVTSstr, (ret), lenptr); \
+}
+
+#define JSSTRING_TO_STRBUF(cx, str, ret, bufsize, lenptr) \
+{ \
+	size_t			*JSSTSlenptr=(lenptr); \
+	size_t			JSSTSlen; \
+	size_t			JSSTSpos; \
+	const jschar	*JSSTSstrval; \
+\
+	if(JSSTSlenptr==NULL) \
+		JSSTSlenptr=&JSSTSlen; \
+	if((bufsize) < 1 || (str)==NULL) \
+		*JSSTSlenptr = 0; \
+	else { \
+		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
+			if(*JSSTSlenptr >= (bufsize)) \
+				*JSSTSlenptr = (bufsize)-1; \
+			for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) \
+				(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
+		} \
+		else \
+			*JSSTSlenptr=0; \
+	} \
+	(ret)[*JSSTSlenptr]=0; \
+}
+
+#define JSVALUE_TO_STRBUF(cx, val, ret, bufsize, lenptr) \
+{ \
+	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
+	JSSTRING_TO_STRBUF((cx), JSVTSstr, (ret), (bufsize), lenptr); \
+}
+
+#define HANDLE_PENDING(cx) \
+	if(JS_IsExceptionPending(cx)) \
+		return JS_FALSE;
+
+#define JSSTRING_TO_ASTRING(cx, str, ret, maxsize, lenptr) \
+{ \
+	size_t			*JSSTSlenptr=(lenptr); \
+	size_t			JSSTSlen; \
+	size_t			JSSTSpos; \
+	const jschar	*JSSTSstrval; \
+\
+	if(JSSTSlenptr==NULL) \
+		JSSTSlenptr=&JSSTSlen; \
+	(ret)=NULL; \
+	if((str) != NULL) { \
+		if((JSSTSstrval=JS_GetStringCharsAndLength((cx), (str), JSSTSlenptr))) { \
+			if(*JSSTSlenptr >= (maxsize)) { \
+				*JSSTSlenptr = (maxsize)-1; \
+			} \
+			if(((ret)=(char *)alloca(*JSSTSlenptr+1))) { \
+				for(JSSTSpos=0; JSSTSpos<*JSSTSlenptr; JSSTSpos++) { \
+					(ret)[JSSTSpos]=(char)JSSTSstrval[JSSTSpos]; \
+				} \
+				(ret)[*JSSTSlenptr]=0; \
+			} \
+			else JS_ReportError((cx), "Error allocating %lu bytes on stack at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
+		} \
+	} \
+}
+
+#define JSVALUE_TO_ASTRING(cx, val, ret, maxsize, lenptr) \
+{ \
+	JSString	*JSVTSstr=JS_ValueToString((cx), (val)); \
+	JSSTRING_TO_ASTRING((cx), JSVTSstr, (ret), (maxsize), (lenptr)); \
 }
 
 #endif
@@ -829,7 +938,7 @@ public:
 	void	catsyslog(int crash);
 
 	/* telgate.cpp */
-	void	telnet_gate(char* addr, ulong mode);	// See TG_* for mode bits
+	void	telnet_gate(char* addr, ulong mode, char* name=NULL, char* passwd=NULL);	// See TG_* for mode bits
 
 };
 
