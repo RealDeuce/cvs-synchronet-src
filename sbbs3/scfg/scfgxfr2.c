@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.38 2014/02/16 06:28:52 deuce Exp $ */
+/* $Id: scfgxfr2.c,v 1.35 2013/09/18 16:39:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,7 @@ static void append_dir_list(const char* parent, const char* dir, FILE* fp, int d
 	char*		p;
 	glob_t		g;
 	unsigned	gi;
+	BOOL		empty=TRUE;
 
 	SAFECOPY(path,dir);
 	backslash(path);
@@ -117,22 +118,23 @@ while(1) {
 		j|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savlib.sname[0])
 		j|=WIN_PUT;
-	uifc.helpbuf=
-		"`File Libraries:`\n"
-		"\n"
-		"This is a listing of file libraries for your BBS. File Libraries are\n"
-		"used to logically separate your file `directories` into groups. Every\n"
-		"directory belongs to a file library.\n"
-		"\n"
-		"One popular use for file libraries is to separate CD-ROM and hard disk\n"
-		"directories. One might have an `Uploads` file library that contains\n"
-		"uploads to the hard disk directories and also have a `PC-SIG` file\n"
-		"library that contains directories from a PC-SIG CD-ROM. Some sysops\n"
-		"separate directories into more specific areas such as `Main`, `Graphics`,\n"
-		"or `Adult`. If you have many directories that have a common subject\n"
-		"denominator, you may want to have a separate file library for those\n"
-		"directories for a more organized file structure.\n"
-	;
+	SETHELP(WHERE);
+/*
+`File Libraries:`
+
+This is a listing of file libraries for your BBS. File Libraries are
+used to logically separate your file `directories` into groups. Every
+directory belongs to a file library.
+
+One popular use for file libraries is to separate CD-ROM and hard disk
+directories. One might have an `Uploads` file library that contains
+uploads to the hard disk directories and also have a `PC-SIG` file
+library that contains directories from a PC-SIG CD-ROM. Some sysops
+separate directories into more specific areas such as `Main`, `Graphics`,
+or `Adult`. If you have many directories that have a common subject
+denominator, you may want to have a separate file library for those
+directories for a more organized file structure.
+*/
 	i=uifc.list(j,0,0,45,&libs_dflt,&libs_bar,"File Libraries",opt);
 	if((signed)i==-1) {
 		j=save_changes(WIN_MID);
@@ -146,22 +148,24 @@ while(1) {
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
 		strcpy(str,"Main");
-		uifc.helpbuf=
-			"`Library Long Name:`\n"
-			"\n"
-			"This is a description of the file library which is displayed when a\n"
-			"user of the system uses the `/*` command from the file transfer menu.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Library Long Name:`
+
+This is a description of the file library which is displayed when a
+user of the system uses the `/*` command from the file transfer menu.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Library Long Name",str,LEN_GLNAME
 			,K_EDIT)<1)
 			continue;
 		sprintf(str2,"%.*s",LEN_GSNAME,str);
-		uifc.helpbuf=
-			"`Library Short Name:`\n"
-			"\n"
-			"This is a short description of the file library which is used for the\n"
-			"file transfer menu prompt.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Library Short Name:`
+
+This is a short description of the file library which is used for the
+file transfer menu prompt.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Library Short Name",str2,LEN_GSNAME
 			,K_EDIT)<1)
 			continue;
@@ -188,12 +192,13 @@ while(1) {
 		continue; }
 	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`Delete All Data in Library:`\n"
-			"\n"
-			"If you wish to delete the database files for all directories in this\n"
-			"library, select `Yes`.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Delete All Data in Library:`
+
+If you wish to delete the database files for all directories in this
+library, select `Yes`.
+*/
 		j=1;
 		strcpy(opt[0],"Yes");
 		strcpy(opt[1],"No");
@@ -258,65 +263,70 @@ while(1) {
 		strcpy(opt[j++],"File Directories...");
 		opt[j][0]=0;
 		sprintf(str,"%s Library",cfg.lib[i]->sname);
-		uifc.helpbuf=
-			"`File Library Configuration:`\n"
-			"\n"
-			"This menu allows you to configure the security requirments for access\n"
-			"to this file library. You can also add, delete, and configure the\n"
-			"directories of this library by selecting the `File Directories...` option.\n"
-		;
+		SETHELP(WHERE);
+/*
+`File Library Configuration:`
+
+This menu allows you to configure the security requirments for access
+to this file library. You can also add, delete, and configure the
+directories of this library by selecting the `File Directories...` option.
+*/
 		switch(uifc.list(WIN_ACT,6,4,60,&dflt,0,str,opt)) {
 			case -1:
 				done=1;
 				break;
 			case 0:
-				uifc.helpbuf=
-					"`Library Long Name:`\n"
-					"\n"
-					"This is a description of the file library which is displayed when a\n"
-					"user of the system uses the `/*` command from the file transfer menu.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Library Long Name:`
+
+This is a description of the file library which is displayed when a
+user of the system uses the `/*` command from the file transfer menu.
+*/
 				strcpy(str,cfg.lib[i]->lname);	/* save */
 				if(!uifc.input(WIN_MID|WIN_SAV,0,0,"Name to use for Listings"
 					,cfg.lib[i]->lname,LEN_GLNAME,K_EDIT))
 					strcpy(cfg.lib[i]->lname,str);	/* restore */
 				break;
 			case 1:
-				uifc.helpbuf=
-					"`Library Short Name:`\n"
-					"\n"
-					"This is a short description of the file librarly which is used for the\n"
-					"file transfer menu prompt.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Library Short Name:`
+
+This is a short description of the file librarly which is used for the
+file transfer menu prompt.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Name to use for Prompts"
 					,cfg.lib[i]->sname,LEN_GSNAME,K_EDIT);
 				break;
 			case 2:
-				uifc.helpbuf=
-					"`Internal Code Prefix:`\n"
-					"\n"
-					"This is an `optional` code prefix that may be used to help generate unique\n"
-					"internal codes for the directories in this file library. If this option\n"
-					"is used, directory internal codes will be constructed from this prefix and\n"
-					"the specified code suffix for each directory.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Internal Code Prefix:`
+
+This is an `optional` code prefix that may be used to help generate unique
+internal codes for the directories in this file library. If this option
+is used, directory internal codes will be constructed from this prefix and
+the specified code suffix for each directory.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code Prefix"
 					,cfg.lib[i]->code_prefix,LEN_CODE,K_EDIT|K_UPPER);
 				break;
 			case 3:
-				uifc.helpbuf=
-					"`Parent Directory:`\n"
-					"\n"
-					"This an optional path to be used as the physical \"parent\" directory for \n"
-					"all logical directories in this library. This parent directory will be\n"
-					"used in combination with each directory's storage path to create the\n"
-					"full physical storage path for files in this directory.\n"
-					"\n"
-					"This option is convenient for adding libraries with many directories\n"
-					"that share a common parent directory (e.g. CD-ROMs) and gives you the\n"
-					"option of easily changing the common parent directory location later, if\n"
-					"desired.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Parent Directory:`
+
+This an optional path to be used as the physical "parent" directory for 
+all logical directories in this library. This parent directory will be
+used in combination with each directory's storage path to create the
+full physical storage path for files in this directory.
+
+This option is convenient for adding libraries with many directories
+that share a common parent directory (e.g. CD-ROMs) and gives you the
+option of easily changing the common parent directory location later, if
+desired.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Parent Directory"
 					,cfg.lib[i]->parent_path,sizeof(cfg.lib[i]->parent_path)-1,K_EDIT);
 				break;
@@ -329,17 +339,18 @@ while(1) {
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
-				uifc.helpbuf=
-					"`Clone Directory Options:`\n"
-					"\n"
-					"If you want to clone the options of the first directory of this library\n"
-					"into all directories of this library, select `Yes`.\n"
-					"\n"
-					"The options cloned are upload requirments, download requirments,\n"
-					"operator requirements, exempted user requirements, toggle options,\n"
-					"maximum number of files, allowed file extensions, default file\n"
-					"extension, and sort type.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Clone Directory Options:`
+
+If you want to clone the options of the first directory of this library
+into all directories of this library, select `Yes`.
+
+The options cloned are upload requirments, download requirments,
+operator requirements, exempted user requirements, toggle options,
+maximum number of files, allowed file extensions, default file
+extension, and sort type.
+*/
 				j=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0
 					,"Clone Options of First Directory into All of Library"
 					,opt);
@@ -373,12 +384,13 @@ while(1) {
 				strcpy(opt[k++],"DIRS.TXT    (Synchronet)");
 				strcpy(opt[k++],"FILEBONE.NA (Fido)");
 				opt[k][0]=0;
-				uifc.helpbuf=
-					"`Export Area File Format:`\n"
-					"\n"
-					"This menu allows you to choose the format of the area file you wish to\n"
-					"export to.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Export Area File Format:`
+
+This menu allows you to choose the format of the area file you wish to
+export to.
+*/
 				k=0;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Export Area File Format",opt);
@@ -455,15 +467,16 @@ while(1) {
 			case 7:
 				ported=added=0;
 				k=0;
-				uifc.helpbuf=
-					"`Import Area File Format:`\n"
-					"\n"
-					"This menu allows you to choose the format of the area file you wish to\n"
-					"import into the current file library.\n"
-					"\n"
-					"A \"raw\" directory listing can be created in DOS with the following\n"
-					"command: `DIR /ON /AD /B > DIRS.RAW`\n"
-				;
+				SETHELP(WHERE);
+/*
+`Import Area File Format:`
+
+This menu allows you to choose the format of the area file you wish to
+import into the current file library.
+
+A "raw" directory listing can be created in DOS with the following
+command: `DIR /ON /AD /B > DIRS.RAW`
+*/
 				strcpy(opt[k++],"DIRS.TXT    (Synchronet)");
                 strcpy(opt[k++],"FILEBONE.NA (Fido)");
 				strcpy(opt[k++],"DIRS.RAW    (Raw)");
@@ -666,7 +679,7 @@ while(1) {
 void dir_cfg(uint libnum)
 {
 	static int dflt,bar,tog_dflt,tog_bar,adv_dflt,opt_dflt;
-	char str[128],str2[128],code[128],path[MAX_PATH+1],done=0;
+	char str[128],str2[128],code[128],path[MAX_PATH+1],done=0,*p;
 	char data_dir[MAX_PATH+1];
 	int j,n;
 	uint i,dirnum[MAX_OPTS+1];
@@ -687,56 +700,60 @@ while(1) {
 		i|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savdir.sname[0])
 		i|=WIN_PUT;
-	uifc.helpbuf=
-		"`File Directories:`\n"
-		"\n"
-		"This is a list of file directories that have been configured for the\n"
-		"selected file library.\n"
-		"\n"
-		"To add a directory, select the desired position with the arrow keys and\n"
-		"hit ~ INS ~.\n"
-		"\n"
-		"To delete a directory, select it with the arrow keys and hit ~ DEL ~.\n"
-		"\n"
-		"To configure a directory, select it with the arrow keys and hit ~ ENTER ~.\n"
-	;
+	SETHELP(WHERE);
+/*
+`File Directories:`
+
+This is a list of file directories that have been configured for the
+selected file library.
+
+To add a directory, select the desired position with the arrow keys and
+hit ~ INS ~.
+
+To delete a directory, select it with the arrow keys and hit ~ DEL ~.
+
+To configure a directory, select it with the arrow keys and hit ~ ENTER ~.
+*/
 	i=uifc.list(i,24,1,45,&dflt,&bar,str,opt);
 	if((signed)i==-1)
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
 		strcpy(str,"My Brand-New File Directory");
-		uifc.helpbuf=
-			"`Directory Long Name:`\n"
-			"\n"
-			"This is a description of the file directory which is displayed in all\n"
-			"directory listings.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Directory Long Name:`
+
+This is a description of the file directory which is displayed in all
+directory listings.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Directory Long Name",str,LEN_SLNAME
 			,K_EDIT)<1)
 			continue;
 		sprintf(str2,"%.*s",LEN_SSNAME,str);
-		uifc.helpbuf=
-			"`Directory Short Name:`\n"
-			"\n"
-			"This is a short description of the file directory which is displayed at\n"
-			"the file transfer prompt.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Directory Short Name:`
+
+This is a short description of the file directory which is displayed at
+the file transfer prompt.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Directory Short Name",str2,LEN_SSNAME
 			,K_EDIT)<1)
             continue;
 		SAFECOPY(code,str2);
 		prep_code(code,/* prefix: */NULL);
-		uifc.helpbuf=
-			"`Directory Internal Code Suffix:`\n"
-			"\n"
-			"Every directory must have its own unique code for Synchronet to refer to\n"
-			"it internally. This code should be descriptive of the directory's\n"
-			"contents, usually an abreviation of the directory's name.\n"
-			"\n"
-			"`Note:` The internal code is onstructed from the file library's code prefix\n"
-			"(if present) and the directory's code suffix.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Directory Internal Code Suffix:`
+
+Every directory must have its own unique code for Synchronet to refer to
+it internally. This code should be descriptive of the directory's
+contents, usually an abreviation of the directory's name.
+
+`Note:` The internal code is onstructed from the file library's code prefix
+(if present) and the directory's code suffix.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Directory Internal Code Suffix",code,LEN_CODE
 			,K_EDIT|K_UPPER)<1)
             continue;
@@ -749,12 +766,13 @@ while(1) {
 			SAFECOPY(path,code);
 		else
 			sprintf(path,"%sdirs/%s",cfg.data_dir,code);
-		uifc.helpbuf=
-			"`Directory File Path:`\n"
-			"\n"
-			"This is the drive and directory where your uploads to and downloads from\n"
-			"this directory will be stored. Example: `C:\\XFER\\GAMES`\n"
-		;
+		SETHELP(WHERE);
+/*
+`Directory File Path:`
+
+This is the drive and directory where your uploads to and downloads from
+this directory will be stored. Example: `C:\XFER\GAMES`
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Directory File Path",path,50
 			,K_EDIT)<1)
 			continue;
@@ -786,12 +804,13 @@ while(1) {
 		continue; }
 	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`Delete Directory Data Files:`\n"
-			"\n"
-			"If you want to delete all the database files for this directory,\n"
-			"select `Yes`.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Delete Directory Data Files:`
+
+If you want to delete all the database files for this directory,
+select `Yes`.
+*/
 		j=1;
 		strcpy(opt[0],"Yes");
 		strcpy(opt[1],"No");
@@ -866,51 +885,55 @@ while(1) {
 		strcpy(opt[n++],"Advanced Options...");
 		opt[n][0]=0;
 		sprintf(str,"%s Directory",cfg.dir[i]->sname);
-		uifc.helpbuf=
-			"`Directory Configuration:`\n"
-			"\n"
-			"This menu allows you to configure the individual selected directory.\n"
-			"Options with a trailing `...` provide a sub-menu of more options.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Directory Configuration:`
+
+This menu allows you to configure the individual selected directory.
+Options with a trailing `...` provide a sub-menu of more options.
+*/
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_RHT|WIN_BOT
 			,0,0,60,&opt_dflt,0,str,opt)) {
 			case -1:
 				done=1;
 				break;
 			case 0:
-				uifc.helpbuf=
-					"`Directory Long Name:`\n"
-					"\n"
-					"This is a description of the file directory which is displayed in all\n"
-					"directory listings.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Directory Long Name:`
+
+This is a description of the file directory which is displayed in all
+directory listings.
+*/
 				strcpy(str,cfg.dir[i]->lname);	/* save */
 				if(!uifc.input(WIN_L2R|WIN_SAV,0,17,"Name to use for Listings"
 					,cfg.dir[i]->lname,LEN_SLNAME,K_EDIT))
 					strcpy(cfg.dir[i]->lname,str);
 				break;
 			case 1:
-				uifc.helpbuf=
-					"`Directory Short Name:`\n"
-					"\n"
-					"This is a short description of the file directory which is displayed at\n"
-					"the file transfer prompt.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Directory Short Name:`
+
+This is a short description of the file directory which is displayed at
+the file transfer prompt.
+*/
 				uifc.input(WIN_L2R|WIN_SAV,0,17,"Name to use for Prompts"
 					,cfg.dir[i]->sname,LEN_SSNAME,K_EDIT);
 				break;
 			case 2:
-                uifc.helpbuf=
-	                "`Directory Internal Code Suffix:`\n"
-	                "\n"
-	                "Every directory must have its own unique code for Synchronet to refer to\n"
-	                "it internally. This code should be descriptive of the directory's\n"
-	                "contents, usually an abreviation of the directory's name.\n"
-	                "\n"
-	                "`Note:` The internal code displayed is the complete internal code\n"
-	                "constructed from the file library's code prefix and the directory's code\n"
-	                "suffix.\n"
-                ;
+                SETHELP(WHERE);
+/*
+`Directory Internal Code Suffix:`
+
+Every directory must have its own unique code for Synchronet to refer to
+it internally. This code should be descriptive of the directory's
+contents, usually an abreviation of the directory's name.
+
+`Note:` The internal code displayed is the complete internal code
+constructed from the file library's code prefix and the directory's code
+suffix.
+*/
                 strcpy(str,cfg.dir[i]->code_suffix);
                 uifc.input(WIN_L2R|WIN_SAV,0,17,"Internal Code Suffix (unique)"
                     ,str,LEN_CODE,K_EDIT|K_UPPER);
@@ -943,26 +966,28 @@ while(1) {
 				getar(str,cfg.dir[i]->ex_arstr);
                 break;
 			case 8:
-				uifc.helpbuf=
-					"`File Path:`\n"
-					"\n"
-					"This is the default storage path for files uploaded to this directory.\n"
-					"If this path is blank, files are stored in a directory off of the\n"
-					"DATA\\DIRS directory using the internal code of this directory as the\n"
-					"name of the dirdirectory (i.e. DATA\\DIRS\\<CODE>).\n"
-					"\n"
-					"This path can be overridden on a per file basis using `Alternate File\n"
-					"Paths`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`File Path:`
+
+This is the default storage path for files uploaded to this directory.
+If this path is blank, files are stored in a directory off of the
+DATA\DIRS directory using the internal code of this directory as the
+name of the dirdirectory (i.e. DATA\DIRS\<CODE>).
+
+This path can be overridden on a per file basis using `Alternate File
+Paths`.
+*/
 				uifc.input(WIN_L2R|WIN_SAV,0,17,"File Path"
 					,cfg.dir[i]->path,sizeof(cfg.dir[i]->path)-1,K_EDIT);
 				break;
 			case 9:
-				uifc.helpbuf=
-					"`Maximum Number of Files:`\n"
-					"\n"
-					"This value is the maximum number of files allowed in this directory.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Maximum Number of Files:`
+
+This value is the maximum number of files allowed in this directory.
+*/
 				sprintf(str,"%u",cfg.dir[i]->maxfiles);
 				uifc.input(WIN_L2R|WIN_SAV,0,17,"Maximum Number of Files"
 					,str,5,K_EDIT|K_NUMBER);
@@ -975,48 +1000,51 @@ while(1) {
 				break;
 			case 10:
 				sprintf(str,"%u",cfg.dir[i]->maxage);
-                uifc.helpbuf=
-	                "`Maximum Age of Files:`\n"
-	                "\n"
-	                "This value is the maximum number of days that files will be kept in\n"
-	                "the directory based on the date the file was uploaded or last\n"
-	                "downloaded (If the `Purge by Last Download` toggle option is used).\n"
-	                "\n"
-	                "The Synchronet file base maintenance program (`DELFILES`) must be used\n"
-	                "to automatically remove files based on age.\n"
-                ;
+                SETHELP(WHERE);
+/*
+`Maximum Age of Files:`
+
+This value is the maximum number of days that files will be kept in
+the directory based on the date the file was uploaded or last
+downloaded (If the `Purge by Last Download` toggle option is used).
+
+The Synchronet file base maintenance program (`DELFILES`) must be used
+to automatically remove files based on age.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Age of Files (in days)"
                     ,str,5,K_EDIT|K_NUMBER);
 				cfg.dir[i]->maxage=atoi(str);
                 break;
 			case 11:
-uifc.helpbuf=
-	"`Percentage of Credits to Credit Uploader on Upload:`\n"
-	"\n"
-	"This is the percentage of a file's credit value that is given to users\n"
-	"when they upload files. Most often, this value will be set to `100` to\n"
-	"give full credit value (100%) for uploads.\n"
-	"\n"
-	"If you want uploaders to receive no credits upon upload, set this value\n"
-	"to `0`.\n"
-;
+SETHELP(WHERE);
+/*
+`Percentage of Credits to Credit Uploader on Upload:`
+
+This is the percentage of a file's credit value that is given to users
+when they upload files. Most often, this value will be set to `100` to
+give full credit value (100%) for uploads.
+
+If you want uploaders to receive no credits upon upload, set this value
+to `0`.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"Percentage of Credits to Credit Uploader on Upload"
 					,ultoa(cfg.dir[i]->up_pct,tmp,10),4,K_EDIT|K_NUMBER);
 				cfg.dir[i]->up_pct=atoi(tmp);
 				break;
 			case 12:
-uifc.helpbuf=
-	"`Percentage of Credits to Credit Uploader on Download:`\n"
-	"\n"
-	"This is the percentage of a file's credit value that is given to users\n"
-	"who upload a file that is later downloaded by another user. This is an\n"
-	"award type system where more popular files will generate more credits\n"
-	"for the uploader.\n"
-	"\n"
-	"If you do not want uploaders to receive credit when files they upload\n"
-	"are later downloaded, set this value to `0`.\n"
-;
+SETHELP(WHERE);
+/*
+`Percentage of Credits to Credit Uploader on Download:`
+
+This is the percentage of a file's credit value that is given to users
+who upload a file that is later downloaded by another user. This is an
+award type system where more popular files will generate more credits
+for the uploader.
+
+If you do not want uploaders to receive credit when files they upload
+are later downloaded, set this value to `0`.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"Percentage of Credits to Credit Uploader on Download"
 					,ultoa(cfg.dir[i]->dn_pct,tmp,10),4,K_EDIT|K_NUMBER);
@@ -1071,14 +1099,15 @@ uifc.helpbuf=
 					sprintf(opt[n++],"%-27.27s%s","Include Transfers In Stats"
 						,cfg.dir[i]->misc&DIR_NOSTAT ? "No":"Yes");
 					opt[n][0]=0;
-					uifc.helpbuf=
-						"`Directory Toggle Options:`\n"
-						"\n"
-						"This is the toggle options menu for the selected file directory.\n"
-						"\n"
-						"The available options from this menu can all be toggled between two or\n"
-						"more states, such as `Yes` and `No`.\n"
-					;
+					SETHELP(WHERE);
+/*
+`Directory Toggle Options:`
+
+This is the toggle options menu for the selected file directory.
+
+The available options from this menu can all be toggled between two or
+more states, such as `Yes` and `No`.
+*/
 					n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,2,36,&tog_dflt
 						,&tog_bar,"Toggle Options",opt);
 					if(n==-1)
@@ -1089,15 +1118,16 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Check for File Existence When Listing:`\n"
-								"\n"
-								"If you want the actual existence of files to be verified while listing\n"
-								"directories, set this value to `Yes`.\n"
-								"\n"
-								"Directories with files located on CD-ROM or other slow media should have\n"
-								"this option set to `No`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Check for File Existence When Listing:`
+
+If you want the actual existence of files to be verified while listing
+directories, set this value to `Yes`.
+
+Directories with files located on CD-ROM or other slow media should have
+this option set to `No`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Check for File Existence When Listing",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_FCHK)) {
@@ -1112,18 +1142,19 @@ uifc.helpbuf=
                             strcpy(opt[0],"Yes");
                             strcpy(opt[1],"No");
                             opt[2][0]=0;
-							uifc.helpbuf=
-								"`Slow Media Device:`\n"
-								"\n"
-								"If this directory contains files located on CD-ROM or other slow media\n"
-								"device, you should set this option to `Yes`. Each slow media device on\n"
-								"your system should have a unique `Device Number`. If you only have one\n"
-								"slow media device, then this number should be set to `1`.\n"
-								"\n"
-								"`CD-ROM multidisk changers` are considered `one` device and all the\n"
-								"directories on all the CD-ROMs in each changer should be set to the same\n"
-								"device number.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Slow Media Device:`
+
+If this directory contains files located on CD-ROM or other slow media
+device, you should set this option to `Yes`. Each slow media device on
+your system should have a unique `Device Number`. If you only have one
+slow media device, then this number should be set to `1`.
+
+`CD-ROM multidisk changers` are considered `one` device and all the
+directories on all the CD-ROMs in each changer should be set to the same
+device number.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Slow Media Device"
 								,opt);
@@ -1146,12 +1177,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Force Content Ratings in Descriptions:`\n"
-								"\n"
-								"If you would like all uploads to this directory to be prompted for\n"
-								"content rating (G, R, or X), set this value to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Force Content Ratings in Descriptions:`
+
+If you would like all uploads to this directory to be prompted for
+content rating (G, R, or X), set this value to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Force Content Ratings in Descriptions",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_RATE)) {
@@ -1166,13 +1198,14 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Include Upload Date in File Descriptions:`\n"
-								"\n"
-								"If you wish the upload date of each file in this directory to be\n"
-								"automatically included in the file description, set this option to\n"
-								"`Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Include Upload Date in File Descriptions:`
+
+If you wish the upload date of each file in this directory to be
+automatically included in the file description, set this option to
+`Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Include Upload Date in Descriptions",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_ULDATE)) {
@@ -1187,12 +1220,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Ask for Multiple File Numberings:`\n"
-								"\n"
-								"If you would like uploads to this directory to be prompted for multiple\n"
-								"file (disk) numbers, set this value to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Ask for Multiple File Numberings:`
+
+If you would like uploads to this directory to be prompted for multiple
+file (disk) numbers, set this value to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Ask for Multiple File Numberings",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_MULT)) {
@@ -1207,12 +1241,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Search Directory for Duplicate Filenames:`\n"
-								"\n"
-								"If you would like to have this directory searched for duplicate\n"
-								"filenames when a user attempts to upload a file, set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Search Directory for Duplicate Filenames:`
+
+If you would like to have this directory searched for duplicate
+filenames when a user attempts to upload a file, set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Search for Duplicate Filenames",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_DUPES)) {
@@ -1227,17 +1262,18 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Search Directory for New Files:`\n"
-								"\n"
-								"If you would like to have this directory searched for newly uploaded\n"
-								"files when a user scans `All` libraries for new files, set this option to\n"
-								"`Yes`.\n"
-								"\n"
-								"If this directory is located on `CD-ROM` or other read only media\n"
-								"(where uploads are unlikely to occur), it will improve new file scans\n"
-								"if this option is set to `No`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Search Directory for New Files:`
+
+If you would like to have this directory searched for newly uploaded
+files when a user scans `All` libraries for new files, set this option to
+`Yes`.
+
+If this directory is located on `CD-ROM` or other read only media
+(where uploads are unlikely to occur), it will improve new file scans
+if this option is set to `No`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Search for New files",opt);
 							if(n==0 && cfg.dir[i]->misc&DIR_NOSCAN) {
@@ -1252,13 +1288,14 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Search Directory for Auto-ADDFILES:`\n"
-								"\n"
-								"If you would like to have this directory searched for a file list to\n"
-								"import automatically when using the `ADDFILES *` (Auto-ADD) feature,\n"
-								"set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Search Directory for Auto-ADDFILES:`
+
+If you would like to have this directory searched for a file list to
+import automatically when using the `ADDFILES *` (Auto-ADD) feature,
+set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Search for Auto-ADDFILES",opt);
 							if(n==0 && cfg.dir[i]->misc&DIR_NOAUTO) {
@@ -1273,13 +1310,14 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Import FILE_ID.DIZ and DESC.SDI Descriptions:`\n"
-								"\n"
-								"If you would like archived descriptions (`FILE_ID.DIZ` and `DESC.SDI`)\n"
-								"of uploaded files to be automatically imported as the extended\n"
-								"description, set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Import FILE_ID.DIZ and DESC.SDI Descriptions:`
+
+If you would like archived descriptions (`FILE_ID.DIZ` and `DESC.SDI`)
+of uploaded files to be automatically imported as the extended
+description, set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Import FILE_ID.DIZ and DESC.SDI",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_DIZ)) {
@@ -1294,12 +1332,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Downloads are Free:`\n"
-								"\n"
-								"If you would like all downloads from this directory to be free (cost\n"
-								"no credits), set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Downloads are Free:`
+
+If you would like all downloads from this directory to be free (cost
+no credits), set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Downloads are Free",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_FREE)) {
@@ -1314,12 +1353,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Free Download Time:`\n"
-								"\n"
-								"If you would like all downloads from this directory to not subtract\n"
-								"time from the user, set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Free Download Time:`
+
+If you would like all downloads from this directory to not subtract
+time from the user, set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Free Download Time",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_TFREE)) {
@@ -1334,12 +1374,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Deduct Upload Time:`\n"
-								"\n"
-								"If you would like all uploads to this directory to have the time spent\n"
-								"uploading subtracted from their time online, set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Deduct Upload Time:`
+
+If you would like all uploads to this directory to have the time spent
+uploading subtracted from their time online, set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Deduct Upload Time",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_ULTIME)) {
@@ -1354,12 +1395,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Give Credit for Uploads:`\n"
-								"\n"
-								"If you want users who upload to this directory to get credit for their\n"
-								"initial upload, set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Give Credit for Uploads:`
+
+If you want users who upload to this directory to get credit for their
+initial upload, set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Give Credit for Uploads",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_CDTUL)) {
@@ -1374,12 +1416,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Give Uploader Credit for Downloads:`\n"
-								"\n"
-								"If you want users who upload to this directory to get credit when their\n"
-								"files are downloaded, set this optin to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Give Uploader Credit for Downloads:`
+
+If you want users who upload to this directory to get credit when their
+files are downloaded, set this optin to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Give Uploader Credit for Downloads",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_CDTDL)) {
@@ -1394,12 +1437,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Credit Uploader with Minutes instead of Credits:`\n"
-								"\n"
-								"If you wish to give the uploader of files to this directory minutes,\n"
-								"intead of credits, set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Credit Uploader with Minutes instead of Credits:`
+
+If you wish to give the uploader of files to this directory minutes,
+intead of credits, set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Credit Uploader with Minutes",opt);
 							if(n==0 && !(cfg.dir[i]->misc&DIR_CDTMIN)) {
@@ -1414,12 +1458,13 @@ uifc.helpbuf=
 							strcpy(opt[0],"Yes");
 							strcpy(opt[1],"No");
 							opt[2][0]=0;
-							uifc.helpbuf=
-								"`Send Download Notifications:`\n"
-								"\n"
-								"If you wish the BBS to send download notification messages to the\n"
-								"uploader of a file to this directory, set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Send Download Notifications:`
+
+If you wish the BBS to send download notification messages to the
+uploader of a file to this directory, set this option to `Yes`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Send Download Notifications",opt);
 							if(n==1 && !(cfg.dir[i]->misc&DIR_QUIET)) {
@@ -1438,13 +1483,14 @@ uifc.helpbuf=
 							strcpy(opt[1],"No");
 							strcpy(opt[2],"Only");
 							opt[3][0]=0;
-							uifc.helpbuf=
-								"`Allow Anonymous Uploads:`\n"
-								"\n"
-								"If you want users with the `A` exemption to be able to upload anonymously\n"
-								"to this directory, set this option to `Yes`. If you want all uploads to\n"
-								"this directory to be forced anonymous, set this option to `Only`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Allow Anonymous Uploads:`
+
+If you want users with the `A` exemption to be able to upload anonymously
+to this directory, set this option to `Yes`. If you want all uploads to
+this directory to be forced anonymous, set this option to `Only`.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Allow Anonymous Uploads",opt);
 							if(n==0 && (cfg.dir[i]->misc&(DIR_ANON|DIR_AONLY))
@@ -1465,14 +1511,15 @@ uifc.helpbuf=
                             strcpy(opt[0],"Yes");
                             strcpy(opt[1],"No");
                             opt[2][0]=0;
-                            uifc.helpbuf=
-	                            "`Purge Files Based on Date of Last Download:`\n"
-	                            "\n"
-	                            "Using the Synchronet file base maintenance utility (`DELFILES`), you can\n"
-	                            "have files removed based on the number of days since last downloaded\n"
-	                            "rather than the number of days since the file was uploaded (default),\n"
-	                            "by setting this option to `Yes`.\n"
-                            ;
+                            SETHELP(WHERE);
+/*
+`Purge Files Based on Date of Last Download:`
+
+Using the Synchronet file base maintenance utility (`DELFILES`), you can
+have files removed based on the number of days since last downloaded
+rather than the number of days since the file was uploaded (default),
+by setting this option to `Yes`.
+*/
                             n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Purge Files Based on Date of Last Download"
                                 ,opt);
@@ -1488,13 +1535,14 @@ uifc.helpbuf=
                             strcpy(opt[0],"Yes");
                             strcpy(opt[1],"No");
                             opt[2][0]=0;
-                            uifc.helpbuf=
-	                            "`Mark Moved Files as New:`\n"
-	                            "\n"
-	                            "If this option is set to `Yes`, then all files moved `from` this directory\n"
-	                            "will have their upload date changed to the current date so the file will\n"
-	                            "appear in users' new-file scans again.\n"
-                            ;
+                            SETHELP(WHERE);
+/*
+`Mark Moved Files as New:`
+
+If this option is set to `Yes`, then all files moved `from` this directory
+will have their upload date changed to the current date so the file will
+appear in users' new-file scans again.
+*/
                             n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Mark Moved Files as New"
                                 ,opt);
@@ -1510,13 +1558,14 @@ uifc.helpbuf=
                             strcpy(opt[0],"Yes");
                             strcpy(opt[1],"No");
                             opt[2][0]=0;
-                            uifc.helpbuf=
-	                            "`Include Transfers In System Statistics:`\n"
-	                            "\n"
-	                            "If this option is set to ~Yes~, then all files uploaded to or downloaded\n"
-	                            "from this directory will be included in the system's daily and\n"
-	                            "cumulative statistics.\n"
-                            ;
+                            SETHELP(WHERE);
+/*
+`Include Transfers In System Statistics:`
+
+If this option is set to ~Yes~, then all files uploaded to or downloaded
+from this directory will be included in the system's daily and
+cumulative statistics.
+*/
                             n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Include Transfers In System Statistics"
                                 ,opt);
@@ -1550,46 +1599,50 @@ uifc.helpbuf=
 					: cfg.dir[i]->sort==SORT_DATE_A ? "Date Ascending"
 					: "Date Descending");
 				opt[n][0]=0;
-				uifc.helpbuf=
-					"`Directory Advanced Options:`\n"
-					"\n"
-					"This is the advanced options menu for the selected file directory.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Directory Advanced Options:`
+
+This is the advanced options menu for the selected file directory.
+*/
 					n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,4,60,&adv_dflt,0
 						,"Advanced Options",opt);
 					if(n==-1)
                         break;
                     switch(n) {
 						case 0:
-							uifc.helpbuf=
-								"`File Extensions Allowed:`\n"
-								"\n"
-								"This option allows you to limit the types of files uploaded to this\n"
-								"directory. This is a list of file extensions that are allowed, each\n"
-								"separated by a comma (Example: `ZIP,EXE`). If this option is left\n"
-								"blank, all file extensions will be allowed to be uploaded.\n"
-							;
+							SETHELP(WHERE);
+/*
+`File Extensions Allowed:`
+
+This option allows you to limit the types of files uploaded to this
+directory. This is a list of file extensions that are allowed, each
+separated by a comma (Example: `ZIP,EXE`). If this option is left
+blank, all file extensions will be allowed to be uploaded.
+*/
 							uifc.input(WIN_L2R|WIN_SAV,0,17
 								,"File Extensions Allowed"
 								,cfg.dir[i]->exts,sizeof(cfg.dir[i]->exts)-1,K_EDIT);
 							break;
 						case 1:
-uifc.helpbuf=
-	"`Data Directory:`\n"
-	"\n"
-	"Use this if you wish to place the data directory for this directory\n"
-	"on another drive or in another directory besides the default setting.\n"
-;
+SETHELP(WHERE);
+/*
+`Data Directory:`
+
+Use this if you wish to place the data directory for this directory
+on another drive or in another directory besides the default setting.
+*/
 							uifc.input(WIN_MID|WIN_SAV,0,17,"Data"
 								,cfg.dir[i]->data_dir,sizeof(cfg.dir[i]->data_dir)-1,K_EDIT);
 							break;
 						case 2:
-uifc.helpbuf=
-	"`Upload Semaphore File:`\n"
-	"\n"
-	"This is a filename that will be used as a semaphore (signal) to your\n"
-	"FidoNet front-end that new files are ready to be hatched for export.\n"
-;
+SETHELP(WHERE);
+/*
+`Upload Semaphore File:`
+
+This is a filename that will be used as a semaphore (signal) to your
+FidoNet front-end that new files are ready to be hatched for export.
+*/
 							uifc.input(WIN_MID|WIN_SAV,0,17,"Upload Semaphore"
 								,cfg.dir[i]->upload_sem,sizeof(cfg.dir[i]->upload_sem)-1,K_EDIT);
 							break;
@@ -1600,15 +1653,16 @@ uifc.helpbuf=
 							strcpy(opt[2],"Date Ascending");
 							strcpy(opt[3],"Date Descending");
 							opt[4][0]=0;
-							uifc.helpbuf=
-								"`Sort Value and Direction:`\n"
-								"\n"
-								"This option allows you to determine the sort value and direction. Files\n"
-								"that are uploaded are automatically sorted by filename or upload date,\n"
-								"ascending or descending. If you change the sort value or direction after\n"
-								"a directory already has files in it, use the sysop transfer menu `;RESORT`\n"
-								"command to resort the directory with the new sort parameters.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Sort Value and Direction:`
+
+This option allows you to determine the sort value and direction. Files
+that are uploaded are automatically sorted by filename or upload date,
+ascending or descending. If you change the sort value or direction after
+a directory already has files in it, use the sysop transfer menu `;RESORT`
+command to resort the directory with the new sort parameters.
+*/
 							n=uifc.list(WIN_MID|WIN_SAV,0,0,0,&n,0
 								,"Sort Value and Direction",opt);
 							if(n==0 && cfg.dir[i]->sort!=SORT_NAME_A) {

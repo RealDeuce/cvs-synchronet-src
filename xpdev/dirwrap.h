@@ -2,7 +2,7 @@
 
 /* Directory system-call wrappers */
 
-/* $Id: dirwrap.h,v 1.46 2014/02/09 23:48:59 deuce Exp $ */
+/* $Id: dirwrap.h,v 1.45 2011/09/08 03:21:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,10 +156,10 @@ extern "C" {
 
 	/* Prototypes.
 	 */
-	DLLEXPORT DIR* DLLCALL opendir  (const char *__dirname);
-	DLLEXPORT struct dirent* DLLCALL readdir  (DIR *__dir);
-	DLLEXPORT int DLLCALL closedir (DIR *__dir);
-	DLLEXPORT void DLLCALL rewinddir(DIR *__dir);
+	DIR            *	opendir  (const char *__dirname);
+	struct dirent  *	readdir  (DIR *__dir);
+	int                 closedir (DIR *__dir);
+	void                rewinddir(DIR *__dir);
 #elif !defined(__WATCOMC__)
 	#include <dirent.h>	/* POSIX directory functions */
 #endif
