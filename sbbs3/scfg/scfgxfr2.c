@@ -1,12 +1,12 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.31 2011/09/08 03:25:16 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.35 2013/09/18 16:39:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -440,7 +440,7 @@ export to.
 						,cfg.dir[j]->dl_arstr
 						,cfg.dir[j]->op_arstr
 						);
-					fprintf(stream,"%s\r\n%s\r\n%u\r\n%s\r\n%lX\r\n%u\r\n"
+					fprintf(stream,"%s\r\n%s\r\n%u\r\n%s\r\n%"PRIX32"\r\n%u\r\n"
 							"%u\r\n"
 						,cfg.dir[j]->path
 						,cfg.dir[j]->upload_sem
@@ -547,6 +547,7 @@ command: `DIR /ON /AD /B > DIRS.RAW`
 						p+=5;
 						while(*p && *p<=' ') p++;
 						SAFECOPY(tmp_code,p);
+						truncstr(tmp_code," \t");
 						while(*p>' ') p++;			/* Skip areaname */
 						while(*p && *p<=' ') p++;	/* Skip space */
 						while(*p>' ') p++;			/* Skip level */
@@ -665,7 +666,7 @@ command: `DIR /ON /AD /B > DIRS.RAW`
 				}
 				fclose(stream);
 				uifc.pop(0);
-				sprintf(str,"%lu File Areas Imported Successfully (%u added)",ported, added);
+				sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
                 uifc.msg(str);
                 break;
 
@@ -678,7 +679,7 @@ command: `DIR /ON /AD /B > DIRS.RAW`
 void dir_cfg(uint libnum)
 {
 	static int dflt,bar,tog_dflt,tog_bar,adv_dflt,opt_dflt;
-	char str[81],str2[81],code[9],path[MAX_PATH+1],done=0,*p;
+	char str[128],str2[128],code[128],path[MAX_PATH+1],done=0,*p;
 	char data_dir[MAX_PATH+1];
 	int j,n;
 	uint i,dirnum[MAX_OPTS+1];
@@ -718,7 +719,7 @@ To configure a directory, select it with the arrow keys and hit ~ ENTER ~.
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		strcpy(str,"Games");
+		strcpy(str,"My Brand-New File Directory");
 		SETHELP(WHERE);
 /*
 `Directory Long Name:`
@@ -740,10 +741,8 @@ the file transfer prompt.
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Directory Short Name",str2,LEN_SSNAME
 			,K_EDIT)<1)
             continue;
-		sprintf(code,"%.8s",str2);
-		p=strchr(code,' ');
-		if(p) *p=0;
-		strupr(code);
+		SAFECOPY(code,str2);
+		prep_code(code,/* prefix: */NULL);
 		SETHELP(WHERE);
 /*
 `Directory Internal Code Suffix:`

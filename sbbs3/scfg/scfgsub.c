@@ -1,12 +1,12 @@
 /* scfgsub.c */
 
-/* $Id: scfgsub.c,v 1.29 2011/06/30 03:07:04 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.31 2013/09/18 16:39:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 void sub_cfg(uint grpnum)
 {
 	static int dflt,tog_dflt,opt_dflt,net_dflt,adv_dflt,bar;
-	char str[81],str2[81],done=0,code[9],*p;
+	char str[128],str2[128],done=0,code[128],*p;
 	char path[MAX_PATH+1];
 	char data_dir[MAX_PATH+1];
 	int j,m,n,ptridx,q,s;
@@ -119,10 +119,8 @@ This is the name of the sub-board used for QWK off-line readers.
             ,K_EDIT)<1)
             continue;
 #endif
-		sprintf(code,"%.8s",str2);
-		p=strchr(code,' ');
-		if(p) *p=0;
-		strupr(code);
+		SAFECOPY(code,str2);
+		prep_code(code,/* prefix: */NULL);
 		SETHELP(WHERE);
 /*
 `Sub-board Internal Code Suffix:`
@@ -265,7 +263,7 @@ If you want to delete all the messages for this sub-board, select `Yes`.
 			,cfg.sub[i]->op_arstr);
 		sprintf(opt[n++],"%-27.27s%.40s","Moderated Posting User"
 			,cfg.sub[i]->mod_arstr);
-		sprintf(opt[n++],"%-27.27s%lu","Maximum Messages"
+		sprintf(opt[n++],"%-27.27s%"PRIu32,"Maximum Messages"
             ,cfg.sub[i]->maxmsgs);
 		if(cfg.sub[i]->maxage)
             sprintf(str,"Enabled (%u days old)",cfg.sub[i]->maxage);
@@ -273,7 +271,7 @@ If you want to delete all the messages for this sub-board, select `Yes`.
             strcpy(str,"Disabled");
 		sprintf(opt[n++],"%-27.27s%s","Purge by Age",str);
 		if(cfg.sub[i]->maxcrcs)
-			sprintf(str,"Enabled (%lu message CRCs)",cfg.sub[i]->maxcrcs);
+			sprintf(str,"Enabled (%"PRIu32" message CRCs)",cfg.sub[i]->maxcrcs);
 		else
 			strcpy(str,"Disabled");
 		sprintf(opt[n++],"%-27.27s%s","Duplicate Checking",str);
@@ -386,7 +384,7 @@ sub-board's name and group name.
 				getar(str,cfg.sub[i]->mod_arstr);
                 break;
 			case 10:
-				sprintf(str,"%lu",cfg.sub[i]->maxmsgs);
+				sprintf(str,"%"PRIu32,cfg.sub[i]->maxmsgs);
                 SETHELP(WHERE);
 /*
 `Maximum Number of Messages:`
@@ -416,7 +414,7 @@ the sub-board.
                 cfg.sub[i]->misc|=SUB_HDRMOD;
 				break;
 			case 12:
-				sprintf(str,"%lu",cfg.sub[i]->maxcrcs);
+				sprintf(str,"%"PRIu32,cfg.sub[i]->maxcrcs);
 				SETHELP(WHERE);
 /*
 `Maximum Number of CRCs:`
