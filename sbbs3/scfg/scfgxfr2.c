@@ -1,6 +1,6 @@
 /* scfgxfr2.c */
 
-/* $Id: scfgxfr2.c,v 1.36 2013/09/18 16:52:44 deuce Exp $ */
+/* $Id: scfgxfr2.c,v 1.37 2013/09/19 14:46:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,6 @@ static void append_dir_list(const char* parent, const char* dir, FILE* fp, int d
 	char*		p;
 	glob_t		g;
 	unsigned	gi;
-	BOOL		empty=TRUE;
 
 	SAFECOPY(path,dir);
 	backslash(path);
