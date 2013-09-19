@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.191 2015/04/29 06:56:41 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.187 2013/09/15 10:15:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2014 Rob Swindell"
-#define COPYRIGHT_CRC		0xB9FF7384
+#define COPYRIGHT_NOTICE	"Copyright 2012 Rob Swindell"
+#define COPYRIGHT_CRC		0x413D3832
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -118,7 +118,7 @@ typedef struct {
 #define LEN_SSNAME	25		/* Sub/Dir short name						*/
 #define LEN_SLNAME	40		/* Sub/Dir long name						*/
 						
-									/* User Questions (e.g. for new users)	*/
+									/* User Questions						*/
 #define UQ_ALIASES		(1L<<0) 	/* Ask for alias						*/
 #define UQ_LOCATION		(1L<<1) 	/* Ask for location 					*/
 #define UQ_ADDRESS		(1L<<2) 	/* Ask for address						*/
@@ -139,7 +139,6 @@ typedef struct {
 #define UQ_NOCOMMAS		(1L<<17)	/* Do not require commas in location	*/
 #define UQ_NONETMAIL	(1L<<18)	/* Don't ask for e-mail/netmail address	*/
 #define UQ_NOUPRLWR		(1L<<19)	/* Don't force upper/lower case strings */
-#define UQ_COLORTERM	(1L<<20)	/* Ask if new user has color terminal	*/
 						
 						
 									/* Different bits in sys_misc				*/
@@ -779,7 +778,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
-#define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin) - DEPRECATED	(it sent the password as the server user name) */
+#define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin)	*/
 #define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
 								
 enum {							/* Values for 'mode' in listfileinfo        */
@@ -810,6 +809,7 @@ enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
 #define SCAN_BACK	(1<<2)		/* Scan the last message if no new			*/
 #define SCAN_TOYOU	(1<<3)		/* Scan for messages to you 				*/
 #define SCAN_FIND	(1<<4)		/* Scan for text in messages				*/
+#define SCAN_UNREAD (1<<5)		/* Find un-read messages to you 			*/
 								
 								/* Bits in misc of chan_t					*/
 #define CHAN_PW 	(1<<0)		/* Can be password protected				*/
