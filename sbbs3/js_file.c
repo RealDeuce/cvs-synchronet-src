@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.157 2014/01/06 06:09:19 rswindell Exp $ */
+/* $Id: js_file.c,v 1.155 2013/09/18 10:14:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -577,7 +577,7 @@ static jsval get_value(JSContext *cx, char* value)
 	for(p=value;*p;p++) {
 		if(*p=='.' && !f)
 			f=TRUE;
-		else if(!isdigit((uchar)*p))
+		else if(!isdigit(*p))
 			break;
 	}
 	if(*p==0) {
@@ -590,7 +590,7 @@ static jsval get_value(JSContext *cx, char* value)
 	/* hexadecimal number? */
 	if(!strncmp(value,"0x",2)) {	
 		for(p=value+2;*p;p++)
-			if(!isxdigit((uchar)*p))
+			if(!isxdigit(*p))
 				break;
 		if(*p==0) {	
 			val=DOUBLE_TO_JSVAL((double)strtoul(value,NULL,0));
@@ -742,9 +742,9 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		rc=JS_SUSPENDREQUEST(cx);
 		cstr2=iniReadString(p->fp,section,key,cstr,buf);
+		FREE_AND_NULL(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cstr2)));
-		FREE_AND_NULL(cstr);
 	}
 	FREE_AND_NULL(section);
 	FREE_AND_NULL(key);
