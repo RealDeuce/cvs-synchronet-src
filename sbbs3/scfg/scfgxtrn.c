@@ -1,12 +1,12 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.46 2012/12/19 12:19:00 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.49 2013/09/18 16:52:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -781,7 +781,7 @@ re-initialized, set this option to ~Yes~.
 void xtrn_cfg(uint section)
 {
 	static int ext_dflt,ext_bar,sub_bar,opt_dflt,time_dflt;
-	char str[128],code[128],done=0,*p;
+	char str[128],code[128],done=0;
 	int j,k;
 	uint i,n,xtrnnum[MAX_OPTS+1];
 	static xtrn_t savxtrn;
@@ -904,7 +904,7 @@ online program name.
 		sprintf(opt[k++],"%-27.27s%.40s","Command Line",cfg.xtrn[i]->cmd);
 		sprintf(opt[k++],"%-27.27s%.40s","Clean-up Command Line",cfg.xtrn[i]->clean);
 		if(cfg.xtrn[i]->cost)
-			sprintf(str,"%lu credits",cfg.xtrn[i]->cost);
+			sprintf(str,"%"PRIu32" credits",cfg.xtrn[i]->cost);
 		else
 			strcpy(str,"None");
 		sprintf(opt[k++],"%-27.27s%s","Execution Cost",str);
@@ -947,6 +947,9 @@ online program name.
 				break;
 			case EVENT_DOWNLOAD:
 				strcpy(str,"File Downloaded");
+				break;
+			case EVENT_LOCAL_CHAT:
+				strcpy(str,"Local/Sysop Chat");
 				break;
 			default:
 				strcpy(str,"No");
@@ -1120,10 +1123,10 @@ set this option to `No`.
 						k=(cfg.xtrn[i]->misc&WWIVCOLOR) ? 0:1;
 						SETHELP(WHERE);
 /*
-.Program Uses WWIV Color Codes:.
+`Program Uses WWIV Color Codes:`
 
-If this program was written for use exclusively under WWIV, set this
-option to .Yes..
+If this program was written for use exclusively under ~WWIV~ BBS
+software, set this option to ~Yes~.
 */
 						k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 							,"Program Uses WWIV Color Codes"
@@ -1241,6 +1244,7 @@ modify the data of users who run the program, set this option to `Yes`.
 				strcpy(opt[k++],"Message Posted");
 				strcpy(opt[k++],"File Uploaded");
 				strcpy(opt[k++],"File Downloaded");
+				strcpy(opt[k++],"Local/Sysop Chat");
 				opt[k][0]=0;
 				k=cfg.xtrn[i]->event;
 				SETHELP(WHERE);
@@ -1503,7 +1507,7 @@ option to `Yes`.
 void xedit_cfg()
 {
 	static int dflt,dfltopt,bar;
-	char str[81],code[81],done=0,*p;
+	char str[81],code[81],done=0;
 	int j,k;
 	uint i;
 	static xedit_t savxedit;
@@ -2075,7 +2079,7 @@ return(0);
 void xtrnsec_cfg()
 {
 	static int xtrnsec_dflt,xtrnsec_opt;
-	char str[128],code[128],done=0,*p;
+	char str[128],code[128],done=0;
 	int j,k;
 	uint i;
 	static xtrnsec_t savxtrnsec;
