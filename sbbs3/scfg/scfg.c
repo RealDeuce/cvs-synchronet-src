@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.75 2012/12/19 12:19:00 rswindell Exp $ */
+/* $Id: scfg.c,v 1.76 2013/09/18 16:52:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -618,7 +618,7 @@ configuration before deciding, hit ~ ESC ~.
 void txt_cfg()
 {
 	static int txt_dflt,bar;
-	char str[128],code[128],done=0,*p;
+	char str[128],code[128],done=0;
 	int j,k;
 	uint i;
 	static txtsec_t savtxtsec;
@@ -786,7 +786,7 @@ abreviation of the name.
 void shell_cfg()
 {
 	static int shell_dflt,shell_bar;
-	char str[128],code[128],done=0,*p;
+	char str[128],code[128],done=0;
 	int j,k;
 	uint i;
 	static shell_t savshell;
