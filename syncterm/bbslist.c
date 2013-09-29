@@ -7,6 +7,7 @@
 #include <ini_file.h>
 #include <uifc.h>
 #include "filepick.h"
+#include "allfonts.h"
 
 #include "syncterm.h"
 #include "fonts.h"
@@ -14,6 +15,8 @@
 #include "uifcinit.h"
 #include "conn.h"
 #include "ciolib.h"
+#include "keys.h"
+#include "mouse.h"
 #include "cterm.h"
 #include "window.h"
 #include "term.h"
@@ -151,12 +154,6 @@ struct sort_order_info sort_order[] = {
 		,sizeof(((struct bbslist *)NULL)->music)
 	}
 	,{
-		 "Address Family"
-		,0
-		,offsetof(struct bbslist, address_family)
-		,sizeof(((struct bbslist *)NULL)->address_family)
-	}
-	,{
 		 "Font"
 		,SORT_ORDER_STRING
 		,offsetof(struct bbslist, font)
@@ -175,7 +172,6 @@ int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
 char *sort_orders[]={"Entry Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
 
 char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
-char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col", "C128-80col", "Atari", "Atari-XEP80", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -183,21 +179,18 @@ char *rate_names[]={"300", "600", "1200", "2400", "4800", "9600", "19200", "3840
 int rates[]={300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 76800, 115200, 0};
 
 char *music_names[]={"ESC [ | only", "BANSI Style", "All ANSI Music enabled", NULL};
-char *address_families[]={"PerDNS", "IPv4", "IPv6", NULL};
-char *address_family_names[]={"As per DNS", "IPv4 only", "IPv6 only", NULL};
-
-char *address_family_help =	"`Address Family`\n\n"
-							"Select the address family to resolve\n\n"
-							"`As per DNS`..: Uses what is in the DNS system\n"
-							"`IPv4 only`...: Only uses IPv4 addresses.\n"
-							"`IPv6 only`...: Only uses IPv6 addresses.\n";
 
 char *address_help=	
+#ifdef __unix__
 					"`Address`, `Phone Number`, `Serial Port`, or `Command`\n\n"
 					"Enter the hostname, IP address, phone number, or serial port device of\n"
 					"the system to connect to. Example: `nix.synchro.net`\n\n"
-					"In the case of the Shell type, enter the command to run.\n"
-					"Shell types are only functional under *nix\n";
+					"In the case of the Shell type, enter the command to run.";
+#else
+					"`Address`, `Phone Number`, or `Serial Port`\n\n"
+					"Enter the hostname, IP address, phone number, or serial port device of\n"
+					"the system to connect to. Example: `nix.synchro.net`";
+#endif
 char *conn_type_help=			"`Connection Type`\n\n"
 								"Select the type of connection you wish to make:\n\n"
 								"`RLogin`...........: Auto-login with RLogin protocol\n"
@@ -207,8 +200,11 @@ char *conn_type_help=			"`Connection Type`\n\n"
 								"`SSH`..............: Connect using the Secure Shell (SSH-2) protocol\n"
 								"`Modem`............: Connect using a dial-up modem\n"
 								"`Serial`...........: Connect directly to a serial communications port\n"
-								"`Shell`............: Connect to a local PTY (*nix only)\n";
+#ifdef __unix__
+								"`Shell`............: Connect to a local PTY\n";
+#else
 								;
+#endif
 
 ini_style_t ini_style = {
 	/* key_len */ 15, 
@@ -260,11 +256,33 @@ void viewofflinescroll(void)
 				,(sbtxtinfo.screenwidth-scrollback_cols)/2+scrollback_cols
 				,sbtxtinfo.screenheight
 				,scrollback_buf+(scrollback_cols*2*top));
-		ciolib_xlat=TRUE;
-		cputs("Scrollback");
+		switch(ciolib_to_screen(scrollback_mode)) {
+		case SCREEN_MODE_ATARI:
+		case SCREEN_MODE_ATARI_XEP80:
+			cputs("3crollback");
+			break;
+		case SCREEN_MODE_C64:
+		case SCREEN_MODE_C128_40:
+		case SCREEN_MODE_C128_80:
+			cputs("SCROLLBACK");
+			break;
+		default:
+			cputs("Scrollback");
+		}
 		gotoxy(scrollback_cols-9,1);
-		cputs("Scrollback");
-		ciolib_xlat=FALSE;
+		switch(ciolib_to_screen(scrollback_mode)) {
+		case SCREEN_MODE_ATARI:
+		case SCREEN_MODE_ATARI_XEP80:
+			cputs("3crollback");
+			break;
+		case SCREEN_MODE_C64:
+		case SCREEN_MODE_C128_40:
+		case SCREEN_MODE_C128_80:
+			cputs("SCROLLBACK");
+			break;
+		default:
+			cputs("Scrollback");
+		}
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -498,10 +516,10 @@ void edit_sorting(struct bbslist **list, int *listcount, int *ocur, int *obar, c
 	int		ret,sret;
 	int		i,j;
 
-	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info);i++)
+	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info)+1;i++)
 		opts[i]=opt[i];
 	opts[i]=NULL;
-	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info);i++)
+	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info)+1;i++)
 		sopts[i]=sopt[i];
 	sopts[i]=NULL;
 
@@ -603,7 +621,7 @@ void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id
 	}
 	section=iniGetSection(listfile,bbsname);
 	iniGetString(section,NULL,"Address","",entry->addr);
-	entry->conn_type=iniGetEnum(section,NULL,"ConnectionType",conn_types_enum,CONN_TYPE_RLOGIN);
+	entry->conn_type=iniGetEnum(section,NULL,"ConnectionType",conn_types,CONN_TYPE_RLOGIN);
 	entry->port=iniGetShortInt(section,NULL,"Port",conn_ports[entry->conn_type]);
 	entry->added=iniGetDateTime(section,NULL,"Added",0);
 	entry->connected=iniGetDateTime(section,NULL,"LastConnected",0);
@@ -613,7 +631,7 @@ void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id
 	iniGetString(section,NULL,"SystemPassword","",entry->syspass);
 	if(iniGetBool(section,NULL,"BeDumb",FALSE))	/* Legacy */
 		entry->conn_type=CONN_TYPE_RAW;
-	entry->screen_mode=iniGetEnum(section,NULL,"ScreenMode",screen_modes_enum,SCREEN_MODE_CURRENT);
+	entry->screen_mode=iniGetEnum(section,NULL,"ScreenMode",screen_modes,SCREEN_MODE_CURRENT);
 	entry->nostatus=iniGetBool(section,NULL,"NoStatus",FALSE);
 	iniGetString(section,NULL,"DownloadPath",home,entry->dldir);
 	iniGetString(section,NULL,"UploadPath",home,entry->uldir);
@@ -626,7 +644,6 @@ void read_item(str_list_t listfile, struct bbslist *entry, char *bbsname, int id
 
 	entry->bpsrate=iniGetInteger(section,NULL,"BPSRate",0);
 	entry->music=iniGetInteger(section,NULL,"ANSIMusic",CTERM_MUSIC_BANSI);
-	entry->address_family=iniGetEnum(section,NULL,"AddressFamily",address_families, ADDRESS_FAMILY_UNSPEC);
 	iniGetString(section,NULL,"Font","Codepage 437 English",entry->font);
 	entry->type=type;
 	entry->id=id;
@@ -713,8 +730,8 @@ void read_list(char *listpath, struct bbslist **list, struct bbslist *defaults, 
 
 int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault)
 {
-	char	opt[20][80];	/* <- Beware of magic number! */
-	char	*opts[(sizeof(opt)/sizeof(opt[0]))+1];
+	char	opt[19][80];	/* <- Beware of magic number! */
+	char	*opts[20];		/* <- Beware of magic number! */
 	int		changed=0;
 	int		copt=0,i,j;
 	int		bar=0;
@@ -725,7 +742,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 	char	*itemname;
 	char	*YesNo[3]={"Yes","No",""};
 
-	for(i=0;i<sizeof(opt)/sizeof(opt[0]);i++)
+	for(i=0;i<19;i++)		/* <- Beware of magic number! */
 		opts[i]=opt[i];
 	if(item->type==SYSTEM_BBSLIST) {
 		uifc.helpbuf=	"`Copy from system directory`\n\n"
@@ -757,14 +774,18 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				sprintf(opt[i++], "Phone Number      %s",item->addr);
 			else if(item->conn_type==CONN_TYPE_SERIAL)
 				sprintf(opt[i++], "Device Name       %s",item->addr);
+#ifdef __unix__
 			else if(item->conn_type==CONN_TYPE_SHELL)
 				sprintf(opt[i++], "Command           %s",item->addr);
+#endif
 			else
 				sprintf(opt[i++], "Address           %s",item->addr);
 		}
 		sprintf(opt[i++], "Connection Type   %s",conn_types[item->conn_type]);
 		if(item->conn_type!=CONN_TYPE_MODEM && item->conn_type!=CONN_TYPE_SERIAL
+#ifdef __unix__
 			&& item->conn_type!=CONN_TYPE_SHELL
+#endif
 			)
 			sprintf(opt[i++], "TCP Port          %hu",item->port);
 		sprintf(opt[i++], "Username          %s",item->user);
@@ -784,7 +805,6 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 			strcpy(str,"Current");
 		sprintf(opt[i++], "Comm Rate         %s",str);
 		sprintf(opt[i++], "ANSI Music        %s",music_names[item->music]);
-		sprintf(opt[i++], "Address Family    %s",address_family_names[item->address_family]);
 		sprintf(opt[i++], "Font              %s",item->font);
 		opt[i][0]=0;
 		uifc.changes=0;
@@ -805,7 +825,9 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 		if(i>=0 && isdefault)
 			i+=2;
 		if(i>=3 && (item->conn_type==CONN_TYPE_MODEM || item->conn_type==CONN_TYPE_SERIAL
+#ifdef __unix__
 				|| item->conn_type==CONN_TYPE_SHELL
+#endif
 				))
 			i++;	/* no port number */
 		switch(i) {
@@ -856,7 +878,9 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,item->conn_type==CONN_TYPE_MODEM ? "Phone Number"
 					:item->conn_type==CONN_TYPE_SERIAL ? "Device Name"
+#ifdef __unix__
 					:item->conn_type==CONN_TYPE_SHELL ? "Command"
+#endif
 					: "Address"
 					,item->addr,LIST_ADDR_MAX,K_EDIT);
 				iniSetString(&inifile,itemname,"Address",item->addr,&ini_style);
@@ -912,10 +936,12 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 						break;
 					default:
 						item->conn_type++;
-						iniSetEnum(&inifile,itemname,"ConnectionType",conn_types_enum,item->conn_type,&ini_style);
+						iniSetEnum(&inifile,itemname,"ConnectionType",conn_types,item->conn_type,&ini_style);
 
 						if(item->conn_type!=CONN_TYPE_MODEM && item->conn_type!=CONN_TYPE_SERIAL
+#ifdef __unix__
 								&& item->conn_type!=CONN_TYPE_SHELL
+#endif
 								) {
 							/* Set the port too */
 							j=conn_ports[item->conn_type];
@@ -938,7 +964,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 						item->screen_mode=i;
 						break;
 					default:
-						iniSetEnum(&inifile,itemname,"ScreenMode",screen_modes_enum,item->screen_mode,&ini_style);
+						iniSetEnum(&inifile,itemname,"ScreenMode",screen_modes,item->screen_mode,&ini_style);
 						if(item->screen_mode == SCREEN_MODE_C64) {
 							strcpy(item->font,font_names[33]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
@@ -1017,7 +1043,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 			case 15:
 				uifc.helpbuf=	"`Comm Rate (in bits-per-second)`\n\n"
 								"`For TCP connections:`\n"
-								"Select the rate which received characters will be displayed.\n\n"
+								"Select the rate which recieved characters will be displayed.\n\n"
 								"This allows animated ANSI and some games to work as intended.\n\n"
 								"`For Modem/Direct COM port connections:`\n"
 								"Select the `DTE Rate` to use."
@@ -1061,15 +1087,6 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				}
 				break;
 			case 17:
-				uifc.helpbuf=address_family_help;
-				i=item->address_family;
-				if(uifc.list(WIN_SAV, 0, 0, 0, &i, NULL, "Address Family", address_family_names)!=-1) {
-					item->address_family=i;
-					iniSetEnum(&inifile, itemname, "AddressFamily", address_families, item->address_family, &ini_style);
-					changed=1;
-				}
-				break;
-			case 18:
 				uifc.helpbuf=	"`Font`\n\n"
 								"Select the desired font for this connection.\n\n"
 								"Some fonts do not allow some modes.  When this is the case, an\n"
@@ -1118,8 +1135,8 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	iniSetString(&inifile,bbs->name,"UserName",bbs->user,&ini_style);
 	iniSetString(&inifile,bbs->name,"Password",bbs->password,&ini_style);
 	iniSetString(&inifile,bbs->name,"SystemPassword",bbs->syspass,&ini_style);
-	iniSetEnum(&inifile,bbs->name,"ConnectionType",conn_types_enum,bbs->conn_type,&ini_style);
-	iniSetEnum(&inifile,bbs->name,"ScreenMode",screen_modes_enum,bbs->screen_mode,&ini_style);
+	iniSetEnum(&inifile,bbs->name,"ConnectionType",conn_types,bbs->conn_type,&ini_style);
+	iniSetEnum(&inifile,bbs->name,"ScreenMode",screen_modes,bbs->screen_mode,&ini_style);
 	iniSetBool(&inifile,bbs->name,"NoStatus",bbs->nostatus,&ini_style);
 	iniSetString(&inifile,bbs->name,"DownloadPath",bbs->dldir,&ini_style);
 	iniSetString(&inifile,bbs->name,"UploadPath",bbs->uldir,&ini_style);
@@ -1129,7 +1146,6 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	iniSetBool(&inifile,bbs->name,"AppendLogFile",bbs->append_logfile,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"BPSRate",bbs->bpsrate,&ini_style);
 	iniSetInteger(&inifile,bbs->name,"ANSIMusic",bbs->music,&ini_style);
-	iniSetEnum(&inifile, bbs->name, "AddressFamily", address_families, bbs->address_family, &ini_style);
 	iniSetString(&inifile,bbs->name,"Font",bbs->font,&ini_style);
 	if((listfile=fopen(listpath,"w"))!=NULL) {
 		iniWriteFile(listfile,inifile);
@@ -1218,7 +1234,11 @@ void change_settings(void)
 		sprintf(opts[7],"Modem Init String       %s",settings.mdm.init_string);
 		sprintf(opts[8],"Modem Dial String       %s",settings.mdm.dial_string);
 		sprintf(opts[9],"List Path               %s",settings.list_path);
+#ifdef __unix__
 		sprintf(opts[10],"TERM For Shell          %s",settings.TERM);
+#else
+		opts[10][0]=0;
+#endif
 		switch(uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&cur,NULL,"Program Settings",opt)) {
 			case -1:
 				goto write_ini;
@@ -1239,7 +1259,7 @@ void change_settings(void)
 						continue;
 					default:
 						settings.startup_mode=j;
-						iniSetEnum(&inicontents,"SyncTERM","ScreenMode",screen_modes_enum,settings.startup_mode,&ini_style);
+						iniSetEnum(&inicontents,"SyncTERM","ScreenMode",screen_modes,settings.startup_mode,&ini_style);
 						break;
 				}
 				break;
@@ -1404,6 +1424,7 @@ void change_settings(void)
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"List Path",settings.list_path,MAX_PATH,K_EDIT)>=0)
 					iniSetString(&inicontents,"SyncTERM","ListPath",settings.list_path,&ini_style);
 				break;
+#ifdef __unix__
 			case 10:
 				uifc.helpbuf=   "`TERM For Shell`\n\n"
 								"The value to set the TERM envirnonment variable to goes here.\n\n"
@@ -1411,6 +1432,7 @@ void change_settings(void)
 				if(uifc.input(WIN_MID|WIN_SAV,0,0,"TERM",settings.TERM,LIST_NAME_MAX,K_EDIT)>=0)
 					iniSetString(&inicontents,"SyncTERM","TERM",settings.TERM,&ini_style);
 				break;
+#endif
 		}
 	}
 write_ini:
@@ -1647,7 +1669,9 @@ struct bbslist *show_bbslist(char *current, int connected)
 								list[listcount-1]->conn_type++;
 								if(list[listcount-1]->conn_type!=CONN_TYPE_MODEM
 									&& list[listcount-1]->conn_type!=CONN_TYPE_SERIAL
+#ifdef __unix__
 									&& list[listcount-1]->conn_type!=CONN_TYPE_SHELL
+#endif
 									) {
 									/* Set the port too */
 									j=conn_ports[list[listcount-1]->conn_type];
@@ -1664,7 +1688,9 @@ struct bbslist *show_bbslist(char *current, int connected)
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,list[listcount-1]->conn_type==CONN_TYPE_MODEM ? "Phone Number"
 									:list[listcount-1]->conn_type==CONN_TYPE_SERIAL ? "Device Name"
+#ifdef __unix__
 									:list[listcount-1]->conn_type==CONN_TYPE_SHELL ? "Command"
+#endif
 									:"Address"
 									,list[listcount-1]->addr,LIST_ADDR_MAX,K_EDIT);
 							}
