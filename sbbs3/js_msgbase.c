@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.188 2014/11/08 20:18:59 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.183 2013/09/30 22:38:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,6 +40,8 @@
 #include "userdat.h"
 
 #ifdef JAVASCRIPT
+
+static scfg_t* 		scfg=NULL;
 
 typedef struct
 {
@@ -748,8 +750,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			goto err;
 		msg->hdr.thread_id=i32;
 	}
-	if((JS_GetProperty(cx, hdr, "thread_orig", &val) && (!JSVAL_NULL_OR_VOID(val)))
-			|| (JS_GetProperty(cx, hdr, "thread_back", &val) && !JSVAL_NULL_OR_VOID(val))) {
+	if((JS_GetProperty(cx, hdr, "thread_orig", &val) 
+			|| JS_GetProperty(cx, hdr, "thread_back", &val)) && !JSVAL_NULL_OR_VOID(val)) {
 		if(!JS_ValueToInt32(cx,val,&i32))
 			goto err;
 		msg->hdr.thread_back=i32;
@@ -1043,9 +1045,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	privatemsg_t*	p;
 	char*			name=NULL;
 	jsrefcount		rc;
-	scfg_t*			scfg;
-
-	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
@@ -1491,15 +1490,16 @@ static JSBool
 js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	hdrobj;
+	JSBool		by_offset=JS_FALSE;
 	jsrefcount	rc;
 	privatemsg_t*	p;
 	private_t*	priv;
 	JSObject*	proto;
 	jsval		val;
 	uint32_t	off;
-    JSObject*	retobj;
-	char		numstr[16];
+    JSObject*	array;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
@@ -1511,8 +1511,8 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 	if(!SMB_IS_OPEN(&(priv->smb)))
 		return(JS_TRUE);
 
-    retobj = JS_NewObject(cx, NULL, NULL, obj);
-    JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(retobj));
+    array = JS_NewArrayObject(cx, 0, NULL);
+    JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(array));
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if((priv->status=smb_locksmbhdr(&(priv->smb)))!=SMB_SUCCESS) {
@@ -1574,8 +1574,7 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		val=OBJECT_TO_JSVAL(hdrobj);
-		sprintf(numstr,"%"PRIu32, p->msg.hdr.number);
-		JS_SetProperty(cx, retobj, numstr, &val);
+		JS_SetElement(cx, array, off, &val);
 	}
 	smb_unlocksmbhdr(&(priv->smb));
 
@@ -2049,9 +2048,6 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	JSBool		ret=JS_TRUE;
 	jsrefcount	rc;
-	scfg_t*			scfg;
-
-	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
@@ -2368,7 +2364,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,312
 	},
 	{"get_all_msg_headers", js_get_all_msg_headers, 0, JSTYPE_ARRAY, JSDOCSTR("")
-	,JSDOCSTR("returns an object of all message headers indexed by message number.")
+	,JSDOCSTR("returns an array of all message headers.")
 	,316
 	},
 	{"put_msg_header",	js_put_msg_header,	2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number, object header")
@@ -2521,16 +2517,13 @@ static JSClass js_msgbase_class = {
 static JSBool
 js_msgbase_constructor(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *		obj;
-	jsval *			argv=JS_ARGV(cx, arglist);
-	JSString*		js_str;
-	JSObject*		cfgobj;
-	char*			base;
-	private_t*		p;
-	scfg_t*			scfg;
+	JSObject *obj;
+	jsval *argv=JS_ARGV(cx, arglist);
+	JSString*	js_str;
+	JSObject*	cfgobj;
+	char*		base;
+	private_t*	p;
 
-	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
-	
 	obj=JS_NewObject(cx, &js_msgbase_class, NULL, NULL);
 	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
 	if((p=(private_t*)malloc(sizeof(private_t)))==NULL) {
@@ -2747,6 +2740,7 @@ JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t*
 	JSObject*	constructor;
 	jsval		val;
 
+	scfg = cfg;
 	obj = JS_InitClass(cx, parent, NULL
 		,&js_msgbase_class
 		,js_msgbase_constructor
