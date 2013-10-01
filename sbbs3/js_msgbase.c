@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.184 2013/10/01 01:48:32 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.185 2013/10/01 02:03:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1574,7 +1574,7 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		val=OBJECT_TO_JSVAL(hdrobj);
-		sprintf(numstr,"%u", off);
+		sprintf(numstr,"%"PRIu32, p->msg.hdr.number);
 		JS_SetProperty(cx, retobj, numstr, &val);
 	}
 	smb_unlocksmbhdr(&(priv->smb));
