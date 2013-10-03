@@ -2,6 +2,7 @@
 #define _GTKMONITOR_H_
 
 #include <gtk/gtk.h>
+#include <glade/glade.h>
 
 #include "sbbs.h"
 
@@ -15,10 +16,10 @@ struct gtkmonitor_config {
 
 extern struct gtkmonitor_config gtkm_conf;
 extern scfg_t			cfg;
-extern GtkBuilder*		builder;
+extern GladeXML			*xml;
 extern int				nodes;
-extern GtkListStore*	store;
-extern GtkTreeSelection*sel;
+extern GtkListStore		*store;
+extern GtkTreeSelection *sel;
 extern char				glade_path[MAX_PATH+1];
 
 int refresh_data(gpointer data);
