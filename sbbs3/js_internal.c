@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.80 2013/09/13 10:25:14 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.81 2013/10/03 00:36:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -627,6 +627,16 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	return(obj);
 }
 
+#if defined(_MSC_VER)
+void msvc_invalid_parameter_handler(const wchar_t* expression,
+   const wchar_t* function, 
+   const wchar_t* file, 
+   unsigned int line, 
+   uintptr_t pReserved)
+{
+}
+#endif
+
 void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
 {
 	JSString*	str;
@@ -658,4 +668,7 @@ void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filen
 			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
+#if defined(_MSC_VER)
+	_set_invalid_parameter_handler(msvc_invalid_parameter_handler);
+#endif
 }
