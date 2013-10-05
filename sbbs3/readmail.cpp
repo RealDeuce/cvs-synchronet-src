@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.58 2013/01/06 06:54:11 deuce Exp $ */
+/* $Id: readmail.cpp,v 1.61 2013/05/12 07:34:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -168,6 +168,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			"allmail" : "sentmail");
 		menu(str); 
 	}
+	current_msg=&msg;	/* For MSG_* @-codes and bbs.msg_* property values */
 	while(online && !done) {
 		action=act;
 
@@ -521,7 +522,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					bputs(text[MailOnSystemLstHdr]);
 				else
 					bputs(text[MailWaitingLstHdr]);
-				for(;u<smb.msgs && !msgabort();u++) {
+				for(u=i;u<smb.msgs && !msgabort();u++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
@@ -768,5 +769,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
+	current_msg=NULL;
 }
 
