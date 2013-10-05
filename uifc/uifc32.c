@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.201 2014/02/09 12:48:26 deuce Exp $ */
+/* $Id: uifc32.c,v 1.198 2013/05/10 17:20:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,7 @@
 #endif
 
 #include "ciolib.h"
+#include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
 
@@ -146,7 +147,7 @@ int inkey(void)
 	return(c);
 }
 
-int UIFCCALL uifcini32(uifcapi_t* uifcapi)
+int uifcini32(uifcapi_t* uifcapi)
 {
 	unsigned	i;
 	struct	text_info txtinfo;
@@ -977,8 +978,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(api->timedisplay != NULL)
 			api->timedisplay(/* force? */FALSE);
 		gotkey=0;
-		textattr(((api->lbclr)&0x0f)|((api->lbclr >> 4)&0x0f));
-		gotoxy(s_left+lbrdrwidth+2+left, s_top+y);
 		if(kbwait() || (mode&(WIN_POP|WIN_SEL))) {
 			if(mode&WIN_POP)
 				gotkey=ESC;
