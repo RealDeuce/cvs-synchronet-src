@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.185 2013/10/01 02:03:27 deuce Exp $ */
+/* $Id: js_msgbase.c,v 1.186 2013/10/05 14:29:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1490,7 +1490,6 @@ static JSBool
 js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	hdrobj;
 	jsrefcount	rc;
 	privatemsg_t*	p;
