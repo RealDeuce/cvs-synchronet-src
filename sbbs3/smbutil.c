@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.103 2012/10/24 19:03:14 deuce Exp $ */
+/* $Id: smbutil.c,v 1.104 2013/09/17 10:27:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -685,7 +685,7 @@ void maint(void)
 				idx[m].attr|=MSG_DELETE; 
 			} 
 		}  /* mark for deletion */
-		printf("\r100%% (%lu flagged for deletion)\n",f); 
+		printf("\r100%% (%lu flagged for deletion due to age)\n",f); 
 	}
 
 	printf("Scanning for read messages to be killed...\n");
@@ -699,7 +699,7 @@ void maint(void)
 			idx[m].attr|=MSG_DELETE; 
 		} 
 	}
-	printf("\r100%% (%lu flagged for deletion)\n",f);
+	printf("\r100%% (%lu flagged for deletion due to read status)\n",f);
 
 	if(smb.status.max_msgs && l-flagged>smb.status.max_msgs) {
 		printf("Flagging excess messages for deletion...\n");
@@ -1454,7 +1454,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.103 $", "%*s %s", revision);
+	sscanf("$Revision: 1.104 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
