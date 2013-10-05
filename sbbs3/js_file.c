@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.157 2014/01/06 06:09:19 rswindell Exp $ */
+/* $Id: js_file.c,v 1.156 2013/09/29 02:05:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -742,9 +742,9 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		rc=JS_SUSPENDREQUEST(cx);
 		cstr2=iniReadString(p->fp,section,key,cstr,buf);
+		FREE_AND_NULL(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx, cstr2)));
-		FREE_AND_NULL(cstr);
 	}
 	FREE_AND_NULL(section);
 	FREE_AND_NULL(key);
