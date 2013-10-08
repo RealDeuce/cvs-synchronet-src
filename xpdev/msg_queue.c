@@ -2,13 +2,13 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.13 2015/05/11 03:32:52 rswindell Exp $ */
+/* $Id: msg_queue.c,v 1.11 2005/05/09 09:01:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -42,7 +42,7 @@
 #include "threadwrap.h"	/* pthread_self */
 #include "msg_queue.h"
 
-msg_queue_t* DLLCALL msgQueueInit(msg_queue_t* q, long flags)
+msg_queue_t* msgQueueInit(msg_queue_t* q, long flags)
 {
 	if(q==NULL) {
 		if((q=(msg_queue_t*)malloc(sizeof(msg_queue_t)))==NULL)
@@ -63,15 +63,7 @@ msg_queue_t* DLLCALL msgQueueInit(msg_queue_t* q, long flags)
 	return(q);
 }
 
-BOOL DLLCALL msgQueueOwner(msg_queue_t* q)
-{
-	if(q==NULL)
-		return(FALSE);
-
-	return q->owner_thread_id == pthread_self();
-}
-
-BOOL DLLCALL msgQueueFree(msg_queue_t* q)
+BOOL msgQueueFree(msg_queue_t* q)
 {
 	if(q==NULL)
 		return(FALSE);
@@ -85,7 +77,7 @@ BOOL DLLCALL msgQueueFree(msg_queue_t* q)
 	return(TRUE);
 }
 
-long DLLCALL msgQueueAttach(msg_queue_t* q)
+long msgQueueAttach(msg_queue_t* q)
 {
 	if(q==NULL)
 		return(-1);
@@ -95,7 +87,7 @@ long DLLCALL msgQueueAttach(msg_queue_t* q)
 	return(q->refs);
 }
 
-long DLLCALL msgQueueDetach(msg_queue_t* q)
+long msgQueueDetach(msg_queue_t* q)
 {
 	int refs;
 
@@ -108,7 +100,7 @@ long DLLCALL msgQueueDetach(msg_queue_t* q)
 	return(refs);
 }
 
-void* DLLCALL msgQueueSetPrivateData(msg_queue_t* q, void* p)
+void* msgQueueSetPrivateData(msg_queue_t* q, void* p)
 {
 	void* old;
 
@@ -120,7 +112,7 @@ void* DLLCALL msgQueueSetPrivateData(msg_queue_t* q, void* p)
 	return(old);
 }
 
-void* DLLCALL msgQueueGetPrivateData(msg_queue_t* q)
+void* msgQueueGetPrivateData(msg_queue_t* q)
 {
 	if(q==NULL)
 		return(NULL);
@@ -149,7 +141,7 @@ static link_list_t* msgQueueWriteList(msg_queue_t* q)
 	return(&q->in);
 }
 
-long DLLCALL msgQueueReadLevel(msg_queue_t* q)
+long msgQueueReadLevel(msg_queue_t* q)
 {
 	return listCountNodes(msgQueueReadList(q));
 }
@@ -179,7 +171,7 @@ static BOOL list_wait(link_list_t* list, long timeout)
 #endif
 }
 
-BOOL DLLCALL msgQueueWait(msg_queue_t* q, long timeout)
+BOOL msgQueueWait(msg_queue_t* q, long timeout)
 {
 	BOOL			result;
 	link_list_t*	list = msgQueueReadList(q);
@@ -193,7 +185,7 @@ BOOL DLLCALL msgQueueWait(msg_queue_t* q, long timeout)
 	return(result);
 }
 
-void* DLLCALL msgQueueRead(msg_queue_t* q, long timeout)
+void* msgQueueRead(msg_queue_t* q, long timeout)
 {
 	link_list_t*	list = msgQueueReadList(q);
 
@@ -202,7 +194,7 @@ void* DLLCALL msgQueueRead(msg_queue_t* q, long timeout)
 	return listShiftNode(list);
 }
 
-void* DLLCALL msgQueuePeek(msg_queue_t* q, long timeout)
+void* msgQueuePeek(msg_queue_t* q, long timeout)
 {
 	link_list_t*	list = msgQueueReadList(q);
 
@@ -212,10 +204,10 @@ void* DLLCALL msgQueuePeek(msg_queue_t* q, long timeout)
 #endif
 		;
 
-	return  listNodeData(listFirstNode(list));
+	return listNodeData(listFirstNode(list));
 }
 
-void* DLLCALL msgQueueFind(msg_queue_t* q, const void* data, size_t length)
+void* msgQueueFind(msg_queue_t* q, const void* data, size_t length)
 {
 	link_list_t*	list = msgQueueReadList(q);
 	list_node_t*	node;
@@ -225,22 +217,22 @@ void* DLLCALL msgQueueFind(msg_queue_t* q, const void* data, size_t length)
 	return listRemoveNode(list,node,/* Free Data? */FALSE);
 }
 
-list_node_t* DLLCALL msgQueueFirstNode(msg_queue_t* q)
+list_node_t* msgQueueFirstNode(msg_queue_t* q)
 {
 	return listFirstNode(msgQueueReadList(q));
 }
 
-list_node_t* DLLCALL msgQueueLastNode(msg_queue_t* q)
+list_node_t* msgQueueLastNode(msg_queue_t* q)
 {
 	return listLastNode(msgQueueReadList(q));
 }
 
-long DLLCALL msgQueueWriteLevel(msg_queue_t* q)
+long msgQueueWriteLevel(msg_queue_t* q)
 {
 	return listCountNodes(msgQueueWriteList(q));
 }
 
-BOOL DLLCALL msgQueueWrite(msg_queue_t* q, const void* data, size_t length)
+BOOL msgQueueWrite(msg_queue_t* q, const void* data, size_t length)
 {
 	return listPushNodeData(msgQueueWriteList(q),data,length)!=NULL;
 }
