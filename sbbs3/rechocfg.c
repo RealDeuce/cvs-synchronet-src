@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.28 2012/11/22 04:55:16 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.29 2013/10/09 05:36:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,6 +200,7 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
+	cfg.zone_blind=FALSE;
 	SAFECOPY(cfg.sysop_alias,"SYSOP");
 
 	while(1) {
@@ -265,6 +266,11 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"NOPATHCHECK")) {
 			cfg.check_path=FALSE;
+			continue;
+		}
+
+		if(!stricmp(tmp,"ZONE_BLIND")) {
+			cfg.zone_blind=TRUE;
 			continue;
 		}
 
