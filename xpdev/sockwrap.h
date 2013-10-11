@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.44 2013/09/05 23:25:45 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.45 2013/10/11 15:42:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,6 +106,9 @@ union xp_sockaddr {
 #endif
 	struct sockaddr_storage	store;
 };
+
+#define xp_sockaddr_len(a) ((((struct sockaddr *)a)->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : ((struct sockaddr *)a)->sa_len)
+
  
 
 /**********************************/
