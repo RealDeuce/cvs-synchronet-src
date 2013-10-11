@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.27 2013/10/13 06:13:31 deuce Exp $ */
+/* $Id: js_com.c,v 1.26 2013/09/15 10:12:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -481,7 +481,7 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],&timeout))
+		if(!JS_ValueToInt32(cx,argv[1],&timeout));
 			return JS_FALSE;
 	}
 
