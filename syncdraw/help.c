@@ -1,4 +1,5 @@
 #include <ciolib.h>
+#include <keys.h>
 
 #include "key.h"
 #include "miscfunctions.h"
@@ -258,8 +259,6 @@ help(void)
 		switch (ch) {
 		case CIO_KEY_MOUSE:
 			getmouse(&me);
-			if(me.event==CIOLIB_BUTTON_3_CLICK)
-				ch=27;
 			break;
 		case CIO_KEY_UP:
 			if (page > 0)
