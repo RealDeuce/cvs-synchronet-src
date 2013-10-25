@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.270 2013/02/10 04:41:24 deuce Exp $ */
+/* $Id: services.c,v 1.271 2013/02/11 22:52:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,8 +270,8 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 	}
 	
-	if((buf=alloca(len))==NULL)
-		return(JS_TRUE);
+	if((buf=malloc(len))==NULL)
+		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	len=recv(client->socket,buf,len,0);
@@ -279,6 +279,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(len>0)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,len)));
+	free(buf);
 
 	return(JS_TRUE);
 }
@@ -308,14 +309,16 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 	}
 
-	if((buf=(char*)alloca(len+1))==NULL) {
+	if((buf=(char*)malloc(len+1))==NULL) {
 		JS_ReportError(cx,"Error allocating %u bytes",len+1);
 		return(JS_FALSE);
 	}
 
 	if(argc>1) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&timeout))
+		if(!JS_ValueToInt32(cx,argv[1],(int32*)&timeout)) {
+			free(buf);
 			return JS_FALSE;
+		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -329,6 +332,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			if(time(NULL)-start>timeout) {
 				JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 				JS_RESUMEREQUEST(cx, rc);
+				free(buf);
 				return(JS_TRUE);	/* time-out */
 			}
 			continue;	/* no data */
@@ -349,6 +353,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	str = JS_NewStringCopyZ(cx, buf);
+	free(buf);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -1684,7 +1689,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.270 $", "%*s %s", revision);
+	sscanf("$Revision: 1.271 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
