@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.72 2015/02/09 08:29:21 deuce Exp $ */
+/* $Id: conn.c,v 1.67 2012/04/25 09:11:01 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -44,11 +44,6 @@
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types_enum[]={"Unknown","RLogin","RLoginReversed","Telnet","Raw","SSH","Modem","Serial"
-#ifdef __unix__
-,"Shell"
-#endif
-,NULL};
 char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial"
 #ifdef __unix__
 ,"Shell"
@@ -416,7 +411,6 @@ int conn_socket_connect(struct bbslist *bbs)
 	int				nonblock;
 	struct timeval	tv;
 	fd_set			wfd;
-	fd_set			efd;
 	int				failcode=FAILURE_WHAT_FAILURE;
 	struct addrinfo	hints;
 	struct addrinfo	*res=NULL;
@@ -426,18 +420,6 @@ int conn_socket_connect(struct bbslist *bbs)
 	uifc.pop("Looking up host");
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags=PF_UNSPEC;
-	switch(bbs->address_family) {
-		case ADDRESS_FAMILY_INET:
-			hints.ai_family=PF_INET;
-			break;
-		case ADDRESS_FAMILY_INET6:
-			hints.ai_family=PF_INET6;
-			break;
-		case ADDRESS_FAMILY_UNSPEC:
-		default:
-			hints.ai_family=PF_UNSPEC;
-			break;
-	}
 	hints.ai_socktype=SOCK_STREAM;
 	hints.ai_protocol=IPPROTO_TCP;
 	hints.ai_flags=AI_NUMERICSERV;
@@ -476,15 +458,13 @@ int conn_socket_connect(struct bbslist *bbs)
 #if (EAGAIN!=EWOULDBLOCK)
 				case EWOULDBLOCK:
 #endif
-					for(;sock!=INVALID_SOCKET;) {
+					for(;;) {
 						tv.tv_sec=1;
 						tv.tv_usec=0;
 
 						FD_ZERO(&wfd);
 						FD_SET(sock, &wfd);
-						FD_ZERO(&efd);
-						FD_SET(sock, &efd);
-						switch(select(sock+1, NULL, &wfd, &efd, &tv)) {
+						switch(select(sock+1, NULL, &wfd, NULL, &tv)) {
 							case 0:
 								if(kbhit()) {
 									failcode=FAILURE_ABORTED;
@@ -496,18 +476,7 @@ int conn_socket_connect(struct bbslist *bbs)
 								sock=INVALID_SOCKET;
 								continue;
 							case 1:
-								if(FD_ISSET(sock, &efd)) {
-									closesocket(sock);
-									sock=INVALID_SOCKET;
-									continue;
-								}
-								else {
-									if(socket_check(sock, NULL, NULL, 0))
-										goto connected;
-									closesocket(sock);
-									sock=INVALID_SOCKET;
-									continue;
-								}
+								goto connected;
 							default:
 								break;
 						}
