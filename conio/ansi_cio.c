@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.77 2012/10/18 17:48:16 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.78 2013/08/20 07:24:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -639,8 +639,8 @@ static void ansi_keyparse(void *par)
 	int		timedout=0;
 	int		unknown=0;
 
-	seq[0]=0;
 	SetThreadName("ANSI Keyparse");
+	seq[0]=0;
 	for(;;) {
 		if(ansi_got_row)
 			sem_wait(&goahead);
@@ -809,6 +809,7 @@ static void ansi_keythread(void *params)
 {
 	int	sval=1;
 
+	SetThreadName("ANSI Key");
 	_beginthread(ansi_keyparse,1024,NULL);
 
 	for(;;) {
