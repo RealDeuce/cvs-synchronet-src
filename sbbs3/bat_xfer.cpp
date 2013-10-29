@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.35 2015/04/28 10:55:11 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.34 2011/07/21 11:19:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@ void sbbs_t::batchmenu()
 {
     char	str[129],tmp2[250],done=0,ch;
 	char 	tmp[512];
-	char	keys[32];
 	uint	i,n,xfrprot,xfrdir;
     ulong	totalcdt,totalsize,totaltime;
     time_t	start,end;
@@ -71,19 +70,18 @@ void sbbs_t::batchmenu()
 		}
 		ASYNC;
 		bputs(text[BatchMenuPrompt]);
-		sprintf(keys,"BCDLRU?\r%c", text[YNQP][2]);
-		ch=(char)getkeys(keys,0);
+		ch=(char)getkeys("BCDLQRU?\r",0);
 		if(ch>' ')
 			logch(ch,0);
-		if(ch==text[YNQP][2] || ch=='\r') {	/* Quit */
-			lncntr=0;
-			done=1;
-			break;
-		}
 		switch(ch) {
 			case '?':
 				if(useron.misc&(EXPERT|RIP|WIP|HTML))
 					menu("batchxfr");
+				break;
+			case CR:
+			case 'Q':
+				lncntr=0;
+				done=1;
 				break;
 			case 'B':   /* Bi-directional transfers */
 				if(useron.rest&FLAG('D')) {
@@ -122,7 +120,7 @@ void sbbs_t::batchmenu()
 				xfer_prot_menu(XFER_BIDIR);
 				SYNC;
 				mnemonics(text[ProtocolOrQuit]);
-				sprintf(tmp2,"%c",text[YNQP][2]);
+				strcpy(tmp2,"Q");
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->bicmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 						sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
@@ -130,7 +128,7 @@ void sbbs_t::batchmenu()
 					}
 				ungetkey(useron.prot);
 				ch=(char)getkeys(tmp2,0);
-				if(ch==text[YNQP][2])
+				if(ch=='Q')
 					break;
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->bicmd[0] && cfg.prot[i]->mnemonic==ch
@@ -295,14 +293,14 @@ void sbbs_t::batchmenu()
 					break;
 				ASYNC;
 				mnemonics(text[ProtocolOrQuit]);
-				sprintf(str,"%c",text[YNQP][2]);
+				strcpy(str,"Q");
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->batulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 						sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
 						strcat(str,tmp); 
 					}
 				ch=(char)getkeys(str,0);
-				if(ch==text[YNQP][2])
+				if(ch=='Q')
 					break;
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->batulcmd[0] && cfg.prot[i]->mnemonic==ch
@@ -383,7 +381,7 @@ BOOL sbbs_t::start_batch_download()
 	xfer_prot_menu(XFER_BATCH_DOWNLOAD);
 	ASYNC;
 	mnemonics(text[ProtocolOrQuit]);
-	sprintf(str,"%c",text[YNQP][2]);
+	strcpy(str,"Q");
 	for(i=0;i<cfg.total_prots;i++)
 		if(cfg.prot[i]->batdlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 			sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
@@ -391,7 +389,7 @@ BOOL sbbs_t::start_batch_download()
 		}
 	ungetkey(useron.prot);
 	ch=(char)getkeys(str,0);
-	if(ch==text[YNQP][2] || sys_status&SS_ABORT)
+	if(ch=='Q' || sys_status&SS_ABORT)
 		return(FALSE);
 	for(i=0;i<cfg.total_prots;i++)
 		if(cfg.prot[i]->batdlcmd[0] && cfg.prot[i]->mnemonic==ch
