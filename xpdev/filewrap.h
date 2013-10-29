@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.34 2013/10/29 01:52:48 deuce Exp $ */
+/* $Id: filewrap.h,v 1.35 2013/10/29 02:03:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,7 +167,7 @@ extern "C" {
 #endif
 
 #if (defined(_MSC_VER) || defined(__MINGW32__) || defined(__DMC__)) && !defined(__unix__)
-	long getdelim(char **linep, size_t *linecapp, int delimiter, FILE *stream)
+	long getdelim(char **linep, size_t *linecapp, int delimiter, FILE *stream);
 #endif
 
 #if !defined(__BORLANDC__) && defined(__unix__)
