@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.228 2013/10/28 21:24:43 deuce Exp $ */
+/* $Id: sbbsecho.c,v 1.229 2013/10/29 00:25:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1185,7 +1185,11 @@ void command(char* instr, faddr_t addr, char* to)
 			fclose(tmpf);
 			return; 
 		}
-		alter_config(addr,cfg.arcdef[cfg.nodecfg[node].arctype].name
+		if(cfg.nodecfg[node].arctype >= 0 && cfg.nodecfg[node].arctype < cfg.arcdefs)
+			buf = cfg.arcdef[cfg.nodecfg[node].arctype].name;
+		else
+			buf = "NONE";
+		alter_config(addr,buf
 			,(i>=0 && i<cfg.arcdefs)?cfg.arcdef[i].name:p,0);
 		cfg.nodecfg[node].arctype=i;
 		sprintf(str,"Compression type changed to %s.",(i>=0 && i<cfg.arcdefs)?cfg.arcdef[i].name:p);
@@ -4060,7 +4064,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.228 $", "%*s %s", revision);
+	sscanf("$Revision: 1.229 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
