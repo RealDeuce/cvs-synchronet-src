@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.35 2013/10/29 02:03:53 deuce Exp $ */
+/* $Id: filewrap.h,v 1.36 2013/10/29 20:03:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,8 +166,8 @@ extern "C" {
 	DLLEXPORT int	DLLCALL unlock(int fd, off_t pos, off_t len);
 #endif
 
-#if (defined(_MSC_VER) || defined(__MINGW32__) || defined(__DMC__)) && !defined(__unix__)
-	long getdelim(char **linep, size_t *linecapp, int delimiter, FILE *stream);
+#if defined(_WIN32 )
+	DLLEXPORT long	DLLCALL getdelim(char **linep, size_t *linecapp, int delimiter, FILE *stream);
 #endif
 
 #if !defined(__BORLANDC__) && defined(__unix__)
