@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.68 2011/09/01 02:50:16 rswindell Exp $ */
+/* $Id: startup.h,v 1.70 2013/09/04 23:04:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,10 +52,9 @@
 typedef struct {
 	ulong	max_bytes;		/* max allocated bytes before garbage collection */
 	ulong	cx_stack;		/* bytes for script execution stack */
-	ulong	thread_stack;	/* limit of stack size for native execution thread */
-	ulong	branch_limit;	/* maximum number of branches (for infinite loop detection) */
-	ulong	gc_interval;	/* number of branches between garbage collection attempts */
-	ulong	yield_interval;	/* number of branches between time-slice yields */
+	ulong	time_limit;		/* maximum number of ticks (for infinite loop detection) */
+	ulong	gc_interval;	/* number of ticks between garbage collection attempts */
+	ulong	yield_interval;	/* number of ticks between time-slice yields */
 	char	load_path[INI_MAX_VALUE_LEN];	/* additional (comma-separated) directories to search for load()ed scripts */
 } js_startup_t;
 
@@ -88,8 +87,8 @@ typedef struct {
 	WORD	outbuf_highwater_mark;	/* output block size control */
 	WORD	outbuf_drain_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
-    DWORD   telnet_interface;
-    DWORD	options;			/* See BBS_OPT definitions */
+    uint32_t   telnet_interface;
+    uint32_t	options;			/* See BBS_OPT definitions */
     DWORD	rlogin_interface;
 	DWORD	ssh_interface;
     RingBuf** node_spybuf;			/* Spy output buffer (each node)	*/

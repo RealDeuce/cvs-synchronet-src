@@ -11,21 +11,22 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.4 2011/09/08 22:09:37 sbbs Exp $
+# $Id: GNUmakefile,v 1.5 2012/03/08 18:17:42 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
 include $(SRC_ROOT)/sbbs3/sbbsdefs.mk
 
 ifeq ($(os),sunos)
- LDFLAGS	+=	-lnsl
+ EXTRA_LIBS	+=	-lnsl
 endif
 
 vpath %.c ..
 
 CFLAGS	+=	$(SBBSDEFS) -I.. -I../../comio $(SMBLIB_CFLAGS) $(XPDEV-MT_CFLAGS) `pkg-config libglade-2.0 --cflags`
 # Hopefully, -Wl,-E exports all symbols dynamically everywhere.
-LDFLAGS	+=	-Wl,-E -L../$(LIBODIR) `pkg-config libglade-2.0 --libs` $(SMBLIB_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS)
+LDFLAGS	+=	-Wl,-E -L../$(LIBODIR) $(SMBLIB_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS)
+EXTRA_LIBS += `pkg-config libglade-2.0 --libs`
 
 # Because pkg-config for libglade uses --rpath, we need to also, LD_RUN_PATH
 # won't work.  :-(
@@ -40,5 +41,5 @@ endif
 
 $(GTKUSERLIST): $(OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ -lsbbs $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ $(EXTRA_LIBS) -lsbbs $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 	$(QUIET)cd $(EXEODIR) && ln -s ../gtkuserlist.glade .
