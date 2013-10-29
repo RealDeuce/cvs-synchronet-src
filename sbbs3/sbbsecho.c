@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.234 2014/01/20 04:11:00 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.229 2013/10/29 00:25:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -995,140 +995,113 @@ void alter_areas(area_t* add_area, area_t* del_area, faddr_t addr, char* to)
 void alter_config(faddr_t addr, char *old, char *new, int option)
 {
 	FILE *outfile,*cfgfile;
-	char outpath[MAX_PATH+1],cmd[32],arcname[32],*outname,*p,*tp
+	char str[257],outpath[MAX_PATH+1],tmp[257],tmp2[257],*outname,*p,*tp
 		,match=0;
-	char *afline=NULL;
-	size_t afline_size;
-	int cfgnum;
-	int j,k;
+	int i,j,k;
 	faddr_t taddr;
 
-	cfgnum=matchnode(addr,0);
+	i=matchnode(addr,0);				  /* i = config number from here on */
 	SAFECOPY(outpath,cfg.cfgfile);
 	*getfname(outpath)=0;
 	if((outname=tempname(outpath,"CFG"))==NULL) {
 		lprintf(LOG_ERR,"ERROR tempnam(%s,CFG)",outpath);
-		return;
-	}
+		return; }
 	if((outfile=fopen(outname,"w+"))==NULL) {
 		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,outname);
 		free(outname);
-		return;
-	}
+		return; }
 	if((cfgfile=fopen(cfg.cfgfile,"r"))==NULL) {
 		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.cfgfile);
 		fclose(outfile);
 		free(outname);
-		return;
-	}
+		return; }
 
 	while(!feof(cfgfile)) {
-		if(getdelim(&afline, &afline_size, '\n', cfgfile)==-1)
+		if(!fgets(str,sizeof(str),cfgfile))
 			break;
-		truncsp(afline);
-		p=afline;
+		truncsp(str);
+		p=str;
 		SKIP_WHITESPACE(p);
 		if(*p==';') {
-			fprintf(outfile,"%s\n",afline);
-			continue;
-		}
-		sprintf(cmd,"%-.25s",p);
-		tp=strchr(cmd,' ');
+			fprintf(outfile,"%s\n",str);
+			continue; }
+		sprintf(tmp,"%-.25s",p);
+		tp=strchr(tmp,' ');
 		if(tp)
 			*tp=0;								/* Chop off at space */
-		strupr(cmd);							/* Convert code to uppercase */
+		strupr(tmp);							/* Convert code to uppercase */
 		FIND_WHITESPACE(p);						/* Skip code */
 		SKIP_WHITESPACE(p);						/* Skip white space */
 
-		if(option==0 && !strcmp(cmd,"USEPACKER")) {     /* Change Compression */
-			if(*p) {
-				sprintf(arcname, "%-.25s", p);
-				tp=strchr(arcname,' ');
-				if(tp)
-					*tp = 0;
-				strupr(arcname);
-				FIND_WHITESPACE(p);
-				if(*p)
-					p++;
-				if(!stricmp(new,arcname)) {   /* Add to new definition */
-					if(!match) {
-						fprintf(outfile,"%-10s %s %s %s\n",cmd,arcname
-							,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL)
-							,p);
-						match=1;
-					}
-				}
-				else if(!stricmp(old,arcname)) {	/* Remove from old def */
-					for(j=k=0;j<cfg.nodecfgs;j++) {
-						if(j==cfgnum)
-							continue;
-						if(cfg.nodecfg[j].arctype < cfg.arcdefs)
-							tp = cfg.arcdef[cfg.nodecfg[j].arctype].name;
-						else
-							tp = "NONE";
-						if(!stricmp(tp,arcname)) {
-							if(!k) {
-								fprintf(outfile,"%-10s %s",cmd,arcname);
-								k++;
-							}
-							fprintf(outfile," %s"
-								,smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL));
-						}
-					}
-					fprintf(outfile,"\n");
-				}
-			}
-		}
-		else if(option==1 && !strcmp(cmd,"AREAFIX")) {       /* Change Password */
-			if(*p) {
-				taddr=smb_atofaddr(&sys_faddr,p);
-				if(!memcmp(&cfg.nodecfg[cfgnum].faddr,&taddr,sizeof(faddr_t))) {
-					FIND_WHITESPACE(p); /* Skip over address */
-					SKIP_WHITESPACE(p);	/* Skip over whitespace */
-					FIND_WHITESPACE(p); /* Skip over password */
-					SKIP_WHITESPACE(p);	/* Skip over whitespace */
-					fprintf(outfile,"%-10s %s %s %s\n",cmd
-						,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL),new,p);
-				}
-			}
-		}
-		else if(option>1 && !strcmp(cmd,"PASSIVE")) {        /* Toggle Passive Areas */
+		if(option==0 && !strcmp(tmp,"USEPACKER")) {     /* Change Compression */
+			if(!*p)
+				continue;
+			strcpy(tmp2,p);
+			p=tmp2;
+			FIND_WHITESPACE(p);
+			*p=0;
+			p++;
+			if(!stricmp(new,tmp2)) {   /* Add to new definition */
+				fprintf(outfile,"%-10s %s %s %s\n",tmp,tmp2
+					,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL)
+					,(*p) ? p : "");
+				match=1;
+				continue; }
+			else if(!stricmp(old,tmp2)) {	/* Remove from old def */
+				for(j=k=0;j<cfg.nodecfgs;j++) {
+					if(j==i)
+						continue;
+					if(cfg.nodecfg[j].arctype < cfg.arcdefs)
+						tp = cfg.arcdef[cfg.nodecfg[j].arctype].name;
+					else
+						tp = "NONE";
+					if(!stricmp(tp,tmp2)) {
+						if(!k) {
+							fprintf(outfile,"%-10s %s",tmp,tmp2);
+							k++; }
+						fprintf(outfile," %s"
+							,smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL)); } }
+				fprintf(outfile,"\n");
+				continue; } }
+
+		if(option==1 && !strcmp(tmp,"AREAFIX")) {       /* Change Password */
+			if(!*p)
+				continue;
+			taddr=smb_atofaddr(&sys_faddr,p);
+			if(!memcmp(&cfg.nodecfg[i].faddr,&taddr,sizeof(faddr_t))) {
+				FIND_WHITESPACE(p); /* Skip over address */
+				SKIP_WHITESPACE(p);	/* Skip over whitespace */
+				FIND_WHITESPACE(p); /* Skip over password */
+				SKIP_WHITESPACE(p);	/* Skip over whitespace */
+				fprintf(outfile,"%-10s %s %s %s\n",tmp
+					,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL),new,p);
+				continue; } }
+
+		if(option>1 && !strcmp(tmp,"PASSIVE")) {        /* Toggle Passive Areas */
 			match=1;
 			for(j=k=0;j<cfg.nodecfgs;j++) {
-				if(option==2 && j==cfgnum) {
-					if(!k)
-						fprintf(outfile,"%-10s",cmd);
+				if(option==2 && j==i) {
+					if(!k) fprintf(outfile,"%-10s",tmp);
 					fprintf(outfile," %s",smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL));
 					k++;
-					continue;
-				}
-				if(option==3 && j==cfgnum)
+					continue; }
+				if(option==3 && j==i)
 					continue;
 				if(cfg.nodecfg[j].attr&ATTR_PASSIVE) {
-					if(!k)
-						fprintf(outfile,"%-10s",cmd);
+					if(!k) fprintf(outfile,"%-10s",tmp);
 					fprintf(outfile," %s",smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL));
-					k++;
-				}
-			}
-			if(k)
-				fprintf(outfile,"\n");
-		}
-		else
-			fprintf(outfile,"%s\n",afline);
-	}
+					k++; } }
+			if(k) fprintf(outfile,"\n");
+			continue; }
+		fprintf(outfile,"%s\n",str); }
 
 	if(!match) {
 		if(option==0)
 			fprintf(outfile,"%-10s %s %s\n","USEPACKER",new
-				,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL));
+				,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL));
 		if(option==2)
 			fprintf(outfile,"%-10s %s\n","PASSIVE"
-				,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL));
-	}
-
-	if(afline != NULL)
-		free(afline);
+				,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL)); }
 
 	fclose(cfgfile);
 	fclose(outfile);
@@ -1139,7 +1112,6 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 		lprintf(LOG_ERR,"ERROR line %d renaming %s to %s",__LINE__,outname,cfg.cfgfile);
 	free(outname);
 }
-
 /******************************************************************************
  Used by AREAFIX to process any '%' commands that come in via netmail
 ******************************************************************************/
@@ -1213,7 +1185,7 @@ void command(char* instr, faddr_t addr, char* to)
 			fclose(tmpf);
 			return; 
 		}
-		if(cfg.nodecfg[node].arctype < cfg.arcdefs)
+		if(cfg.nodecfg[node].arctype >= 0 && cfg.nodecfg[node].arctype < cfg.arcdefs)
 			buf = cfg.arcdef[cfg.nodecfg[node].arctype].name;
 		else
 			buf = "NONE";
@@ -2682,14 +2654,6 @@ char *pktname(BOOL temp)
 	}
 	return(NULL);	/* This should never happen */
 }
-
-BOOL foreign_zone(uint16_t zone1, uint16_t zone2)
-{
-	if(cfg.zone_blind && zone1 <= cfg.zone_blind_threshold && zone2 <= cfg.zone_blind_threshold)
-		return FALSE;
-	return zone1!=zone2;
-}
-
 /******************************************************************************
  This function puts a message into a Fido packet, writing both the header
  information and the message body
@@ -2751,13 +2715,13 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	}
 			
 	if(area.name) { /* EchoMail, Not NetMail */
-		if(foreign_zone(addr.zone, fmsghdr.destzone))	/* Zone Gate */
+		if(!cfg.zone_blind && addr.zone!=fmsghdr.destzone)	/* Zone Gate */
 			fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
 		else {
 			fprintf(stream,"SEEN-BY:");
 			for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
 				strcpy(seenby," ");
-				if(foreign_zone(addr.zone, seenbys.addr[i].zone))
+				if(!cfg.zone_blind && seenbys.addr[i].zone!=addr.zone)
 					continue;
 				if(seenbys.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
@@ -2780,11 +2744,8 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 			}
 
 			for(i=0;i<area.uplinks;i++) {			/* Add all uplinks to SEEN-BYs */
-				int node=matchnode(area.uplink[i],0);
-				if(node<cfg.nodecfgs && (cfg.nodecfg[node].attr&ATTR_PASSIVE))
-					continue;
 				strcpy(seenby," ");
-				if(foreign_zone(addr.zone, area.uplink[i].zone) || area.uplink[i].point)
+				if((!cfg.zone_blind && area.uplink[i].zone!=addr.zone) || area.uplink[i].point)
 					continue;
 				for(j=0;j<seenbys.addrs;j++)
 					if(!memcmp(&area.uplink[i],&seenbys.addr[j],sizeof(faddr_t)))
@@ -2813,7 +2774,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 
 			for(i=0;i<scfg.total_faddrs;i++) {				/* Add AKAs to SEEN-BYs */
 				strcpy(seenby," ");
-				if(foreign_zone(addr.zone, scfg.faddr[i].zone) || scfg.faddr[i].point)
+				if((!cfg.zone_blind && scfg.faddr[i].zone!=addr.zone) || scfg.faddr[i].point)
 					continue;
 				for(j=0;j<seenbys.addrs;j++)
 					if(!memcmp(&scfg.faddr[i],&seenbys.addr[j],sizeof(faddr_t)))
@@ -2844,10 +2805,8 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 			fprintf(stream,"\r\1PATH:");
 			addr=getsysfaddr(fmsghdr.destzone);
 			for(i=0;i<paths.addrs;i++) {			  /* Put back the original PATH */
-				if(paths.addr[i].net == 0)
-					continue;	// Invalid node number/address, don't include "0/0" in PATH
 				strcpy(seenby," ");
-				if(foreign_zone(addr.zone, paths.addr[i].zone) || paths.addr[i].point)
+				if((!cfg.zone_blind && paths.addr[i].zone!=addr.zone) || paths.addr[i].point)
 					continue;
 				if(paths.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
@@ -2871,7 +2830,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 
 			strcpy(seenby," ");         /* Add first address with same zone to PATH */
 			sysaddr=getsysfaddr(fmsghdr.destzone);
-			if(sysaddr.net!=0 && sysaddr.point==0) {
+			if(!sysaddr.point) {
 				if(sysaddr.net!=addr.net || !net_exists) {
 					net_exists=1;
 					addr.net=sysaddr.net;
@@ -3067,7 +3026,7 @@ BOOL check_psb(addrlist_t* addrlist, faddr_t compaddr)
 	int i;
 
 	for(i=0;i<addrlist->addrs;i++) {
-		if(foreign_zone(compaddr.zone, addrlist->addr[i].zone))
+		if(!cfg.zone_blind && compaddr.zone != addrlist->addr[i].zone)
 			continue;
 		if(compaddr.net != addrlist->addr[i].net)
 			continue;
@@ -4105,7 +4064,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.234 $", "%*s %s", revision);
+	sscanf("$Revision: 1.229 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
