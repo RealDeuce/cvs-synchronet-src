@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.25 2008/01/21 06:40:03 deuce Exp $ */
+/* $Id: modem.c,v 1.26 2013/08/20 07:36:04 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -24,6 +24,7 @@ void modem_input_thread(void *args)
 	size_t	buffer;
 	BOOL	monitor_dsr=TRUE;
 
+	SetThreadName("Modem Input");
 	conn_api.input_thread_running=1;
 	if(args != NULL) {
 		if((comGetModemStatus(com)&COM_DSR) == 0)
@@ -59,6 +60,7 @@ void modem_output_thread(void *args)
 	int	sent;
 	BOOL	monitor_dsr=TRUE;
 
+	SetThreadName("Modem Output");
 	conn_api.output_thread_running=1;
 	if(args != NULL) {
 		if((comGetModemStatus(com)&COM_DSR) == 0)
