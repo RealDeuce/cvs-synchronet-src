@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.203 2011/08/30 22:56:54 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.229 2013/10/29 00:25:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,10 +36,6 @@
  ****************************************************************************/
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
-
-#ifdef _WIN32
-	#include <windows.h>
-#endif
 
 #include <time.h>
 #include <errno.h>
@@ -75,8 +71,6 @@ ulong netmail=0;
 char tmp[256],pkt_type=0;
 int secure,cur_smb=0;
 FILE *fidologfile=NULL;
-two_two_t two_two;
-two_plus_t two_plus;
 BOOL twit_list;
 
 faddr_t		sys_faddr = {1,1,1,0};		/* Default system address: 1:1/1.0 */
@@ -86,6 +80,7 @@ char		revision[16];
 char		compiler[32];
 
 BOOL pause_on_exit=FALSE;
+BOOL pause_on_abend=FALSE;
 
 #ifndef __NT__
 #define delfile(x) remove(x)
@@ -161,6 +156,7 @@ void logprintf(char *str, ...)
 	vsnprintf(buf,sizeof(buf),str,argptr);
 	buf[sizeof(buf)-1]=0;
 	va_end(argptr);
+	strip_ctrl(buf, buf);
 	now=time(NULL);
 	gm=localtime(&now);
 	fprintf(fidologfile,"%02u/%02u/%02u %02u:%02u:%02u %s\n"
@@ -335,7 +331,7 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 	char ch;
 	char searchstr[MAX_PATH+1];
 	ushort attr=0;
-	int i,file;
+	int i;
 	FILE *stream;
 
 	i=matchnode(dest,0);
@@ -367,7 +363,7 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 		sprintf(fname,"%s%08x.%clo",outbound,dest.point,ch);
 	else
 		sprintf(fname,"%s%04x%04x.%clo",outbound,dest.net,dest.node,ch);
-	if(bundle && misc&TRUNC_BUNDLES)
+	if(bundle && (misc&TRUNC_BUNDLES))
 		ch='#';
 	else
 		ch='^';
@@ -378,7 +374,7 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 	if(findstr(searchstr,fname))	/* file already in FLO file */
 		return(0);
 	if((stream=fopen(fname,"a"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,fname,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,fname);
 		return(-1); 
 	}
 	fprintf(stream,"%s\n",searchstr);
@@ -445,11 +441,13 @@ int create_netmail(char *to, char *subject, char *body, faddr_t dest, BOOL file_
 		}
 		if(!i) {
 			lprintf(LOG_WARNING,"Directory full: %s",scfg.netmail_dir);
-			return(-1); }
+			return(-1); 
+		}
 		startmsg=i+1;
 		if((fstream=fnopen(&fmsg,fname,O_RDWR|O_CREAT))==NULL) {
-			lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,fname,strerror(errno));
-			return(-1); }
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,fname);
+			return(-1); 
+		}
 
 		faddr=getsysfaddr(dest.zone);
 		memset(&hdr,0,sizeof(fmsghdr_t));
@@ -614,8 +612,8 @@ void notify_list(void)
 void netmail_arealist(int type, faddr_t addr, char* to)
 {
 	FILE *stream,*tmpf;
-	char str[256],temp[256],title[128],match,*p,*tp;
-	int file,i,j,k,x,y;
+	char str[256],title[128],match,*p,*tp;
+	int i,j,k,x,y;
 
 	if(!type)
 		strcpy(title,"List of Available Areas");
@@ -651,9 +649,8 @@ void netmail_arealist(int type, faddr_t addr, char* to)
 						if(!stricmp(cfg.listcfg[j].flag[k].flag
 							,cfg.nodecfg[i].flag[x].flag)) {
 							if((stream=fopen(cfg.listcfg[j].listpath,"r"))==NULL) {
-								lprintf(LOG_ERR,"ERROR line %d couldn't open %s %s"
-									,__LINE__,cfg.listcfg[j].listpath
-									,strerror(errno));
+								lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
+									,errno,strerror(errno),__LINE__,cfg.listcfg[j].listpath);
 								match=1;
 								break; }
 							while(!feof(stream)) {
@@ -711,7 +708,7 @@ int check_elists(char *areatag,faddr_t addr)
 {
 	FILE *stream;
 	char str[1025],quit=0,*p,*tp;
-	int i,j,k,x,file,match=0;
+	int i,j,k,x,match=0;
 
 	i=matchnode(addr,0);
 	if(i<cfg.nodecfgs) {
@@ -723,8 +720,8 @@ int check_elists(char *areatag,faddr_t addr)
 					if(!stricmp(cfg.listcfg[j].flag[k].flag
 						,cfg.nodecfg[i].flag[x].flag)) {
 						if((stream=fopen(cfg.listcfg[j].listpath,"r"))==NULL) {
-							lprintf(LOG_ERR,"ERROR line %d opening %s"
-								,__LINE__,cfg.listcfg[j].listpath);
+							lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
+								,errno,strerror(errno),__LINE__,cfg.listcfg[j].listpath);
 							quit=1;
 							break; }
 						while(!feof(stream)) {
@@ -769,14 +766,12 @@ void alter_areas(area_t* add_area, area_t* del_area, faddr_t addr, char* to)
 		free(outname);
 		return; }
 	if((afileout=fopen(outname,"w+"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,outname
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,outname);
 		fclose(nmfile);
 		free(outname);
 		return; }
 	if((afilein=fopen(cfg.areafile,"r"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,cfg.areafile
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.areafile);
 		fclose(afileout);
 		fclose(nmfile);
 		free(outname);
@@ -877,7 +872,7 @@ void alter_areas(area_t* add_area, area_t* del_area, faddr_t addr, char* to)
 							fprintf(afileout,"%s\n",fields);
 							fprintf(nmfile,"%s already connected.\r\n",field2);
 							break; }
-						if(misc&ELIST_ONLY && !check_elists(field2,addr)) {
+						if((misc&ELIST_ONLY) && !check_elists(field2,addr)) {
 							fprintf(afileout,"%s\n",fields);
 							break; }
 
@@ -925,8 +920,8 @@ void alter_areas(area_t* add_area, area_t* del_area, faddr_t addr, char* to)
 								match=1;
 								break; }
 							if((afilein=fopen(cfg.listcfg[j].listpath,"r"))==NULL) {
-								lprintf(LOG_ERR,"ERROR line %d opening %s"
-									,__LINE__,cfg.listcfg[j].listpath);
+								lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
+									,errno,strerror(errno),__LINE__,cfg.listcfg[j].listpath);
 								fclose(fwdfile);
 								match=1;
 								break; }
@@ -1002,7 +997,7 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 	FILE *outfile,*cfgfile;
 	char str[257],outpath[MAX_PATH+1],tmp[257],tmp2[257],*outname,*p,*tp
 		,match=0;
-	int i,j,k,file;
+	int i,j,k;
 	faddr_t taddr;
 
 	i=matchnode(addr,0);				  /* i = config number from here on */
@@ -1012,13 +1007,11 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 		lprintf(LOG_ERR,"ERROR tempnam(%s,CFG)",outpath);
 		return; }
 	if((outfile=fopen(outname,"w+"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,outname
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,outname);
 		free(outname);
 		return; }
 	if((cfgfile=fopen(cfg.cfgfile,"r"))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,cfg.cfgfile
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.cfgfile);
 		fclose(outfile);
 		free(outname);
 		return; }
@@ -1058,7 +1051,11 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 				for(j=k=0;j<cfg.nodecfgs;j++) {
 					if(j==i)
 						continue;
-					if(!stricmp(cfg.arcdef[cfg.nodecfg[j].arctype].name,tmp2)) {
+					if(cfg.nodecfg[j].arctype < cfg.arcdefs)
+						tp = cfg.arcdef[cfg.nodecfg[j].arctype].name;
+					else
+						tp = "NONE";
+					if(!stricmp(tp,tmp2)) {
 						if(!k) {
 							fprintf(outfile,"%-10s %s",tmp,tmp2);
 							k++; }
@@ -1137,8 +1134,7 @@ void command(char* instr, faddr_t addr, char* to)
 		if(!fexistcase(str))
 			return;
 		if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
-			lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,str
-				,strerror(errno));
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,str);
 			return; 
 		}
 		l=filelength(file);
@@ -1189,10 +1185,14 @@ void command(char* instr, faddr_t addr, char* to)
 			fclose(tmpf);
 			return; 
 		}
-		alter_config(addr,cfg.arcdef[cfg.nodecfg[node].arctype].name
-			,cfg.arcdef[i].name,0);
+		if(cfg.nodecfg[node].arctype >= 0 && cfg.nodecfg[node].arctype < cfg.arcdefs)
+			buf = cfg.arcdef[cfg.nodecfg[node].arctype].name;
+		else
+			buf = "NONE";
+		alter_config(addr,buf
+			,(i>=0 && i<cfg.arcdefs)?cfg.arcdef[i].name:p,0);
 		cfg.nodecfg[node].arctype=i;
-		sprintf(str,"Compression type changed to %s.",cfg.arcdef[i].name);
+		sprintf(str,"Compression type changed to %s.",(i>=0 && i<cfg.arcdefs)?cfg.arcdef[i].name:p);
 		create_netmail(to,"Compression Type Change",str,addr,FALSE);
 		return; 
 	}
@@ -1368,7 +1368,7 @@ char* process_areafix(faddr_t addr, char* inbuf, char* password, char* to)
 	del_area.tags=0;
 	del_area.tag=NULL;
 	for(l=0;l<m;l++) { 
-		while(*(p+l) && isspace(*(p+l))) l++;
+		while(*(p+l) && isspace((uchar)*(p+l))) l++;
 		while(*(p+l)==CTRL_A) {				/* Ignore kludge lines June-13-2004 */
 			while(*(p+l) && *(p+l)!='\r') l++;
 			continue;
@@ -1453,8 +1453,7 @@ int unpack(char *infile)
 	int i,j,ch,file;
 
 	if((stream=fnopen(&file,infile,O_RDONLY))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,infile
-			,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,infile);
 		bail(1); 
 		return -1;
 	}
@@ -1530,7 +1529,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 	}
 	sprintf(fname,"%sBUNDLES.SBE",cfg.outbound);
 	if((stream=fnopen(&file,fname,O_RDWR|O_CREAT))==NULL) {
-		lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,fname,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,fname);
 		return(1); 
 	}
 
@@ -1567,8 +1566,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 			path=g.gl_pathv[f];
 
 			if((fidomsg=fnopen(&fmsg,path,O_RDWR))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,path
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,path);
 				continue; 
 			}
 			if(filelength(fmsg)<sizeof(fmsghdr_t)) {
@@ -1611,7 +1609,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 					break;
 			if(crcidx==num_mfncrc)
 				if(create_netmail(/* To: */NULL,str
-					,misc&TRUNC_BUNDLES ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
+					,(misc&TRUNC_BUNDLES) ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
 					,attach.dest,TRUE))
 					error=1; 
 		}
@@ -1702,14 +1700,14 @@ void pack_bundle(char *infile,faddr_t dest)
 				i=write_flofile(infile,dest,TRUE /* bundle */);
 			else
 				i=create_netmail(/* To: */NULL,infile
-					,misc&TRUNC_BUNDLES ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
+					,(misc&TRUNC_BUNDLES) ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
 					,dest,TRUE);
 			if(i) bail(1);
 			return; 
 		}
 
-	if(dest.point && !(misc&FLO_MAILER))
-		sprintf(fname,"%s%04hxp%03hx.%s",outbound,0,(short)dest.point,day);
+	if(dest.point)
+		sprintf(fname,"%s0000p%03hx.%s",outbound,(short)dest.point,day);
 	else
 		sprintf(fname,"%s%04hx%04hx.%s",outbound,(short)(sys_faddr.net-dest.net)
 			,(short)(sys_faddr.node-dest.node),day);
@@ -1726,7 +1724,7 @@ void pack_bundle(char *infile,faddr_t dest)
 					,strerror(errno));
 		}
 		if(fexistcase(str)) {
-			if(flength(str)>=cfg.maxbdlsize)
+			if(i!='Z' && flength(str)>=cfg.maxbdlsize)
 				continue;
 			file=sopen(str,O_WRONLY,SH_DENYRW);
 			if(file==-1)		/* Can't open?!? Probably being sent */
@@ -1755,9 +1753,11 @@ void pack_bundle(char *infile,faddr_t dest)
 			return; 
 		} 
 	}
-
+	lprintf(LOG_WARNING,"All bundle files for %s already exist, adding to: %s"
+		,smb_faddrtoa(&dest,NULL), str);
 	pack(infile,str,dest);	/* Won't get here unless all bundles are full */
 }
+
 /******************************************************************************
  This function checks the inbound directory for the first bundle it finds, it
  will then unpack and delete the bundle.  If no bundles exist this function
@@ -1830,10 +1830,13 @@ BOOL unpack_bundle(void)
 		}
 		if(gi<g.gl_pathc) {
 			SAFECOPY(fname,g.gl_pathv[gi]);
+			gi++;
 			lprintf(LOG_DEBUG,"Unpacking bundle: %s",fname);
 			if(unpack(fname)) {	/* failure */
 				lprintf(LOG_ERR,"!Unpack failure");
-				if(fdate(fname)+(48L*60L*60L)>time(NULL)) {
+				if(fdate(fname)+(48L*60L*60L)<time(NULL)) {	
+					/* If bundle file older than 48 hours, give up and rename
+					   to "*.?_?" or (if it exists) "*.?-?" */
 					SAFECOPY(str,fname);
 					str[strlen(str)-2]='_';
 					if(fexistcase(str))
@@ -1843,15 +1846,13 @@ BOOL unpack_bundle(void)
 					if(rename(fname,str))
 						lprintf(LOG_ERR,"ERROR line %d renaming %s to %s"
 							,__LINE__,fname,str); 
-				} 
+				}
+				continue;
 			}
-			else {
-				lprintf(LOG_DEBUG,"Deleting bundle: %s", fname);
-				if(delfile(fname))	/* successful, so delete bundle */
-					lprintf(LOG_ERR,"ERROR line %d removing %s %s",__LINE__,fname
-						,strerror(errno));
-			}
-			gi++;
+			lprintf(LOG_DEBUG,"Deleting bundle: %s", fname);
+			if(delfile(fname))	/* successful, so delete bundle */
+				lprintf(LOG_ERR,"ERROR line %d removing %s %s",__LINE__,fname
+					,strerror(errno));
 			return(TRUE); 
 		} 
 	}
@@ -1892,24 +1893,24 @@ int mv(char *src, char *dest, BOOL copy)
 		/* rename failed, so attempt copy */
 	}
 	if((ind=nopen(src,O_RDONLY))==-1) {
-		lprintf(LOG_ERR,"MV ERROR: ERR_OPEN %s",src);
+		lprintf(LOG_ERR,"MV ERROR %u (%s) opening %s",errno,strerror(errno),src);
 		return(-1); 
 	}
 	if((inp=fdopen(ind,"rb"))==NULL) {
 		close(ind);
-		lprintf(LOG_ERR,"MV ERROR: ERR_FDOPEN %s",str);
+		lprintf(LOG_ERR,"MV ERROR %u (%s) fdopening %s",errno,strerror(errno),str);
 		return(-1); 
 	}
 	setvbuf(inp,NULL,_IOFBF,8*1024);
 	if((outd=nopen(dest,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 		fclose(inp);
-		lprintf(LOG_ERR,"MV ERROR: ERR_OPEN %s",dest);
+		lprintf(LOG_ERR,"MV ERROR %u (%s) opening %s",errno,strerror(errno),dest);
 		return(-1); 
 	}
 	if((outp=fdopen(outd,"wb"))==NULL) {
 		close(outd);
 		fclose(inp);
-		lprintf(LOG_ERR,"MV ERROR: ERR_FDOPEN %s",str);
+		lprintf(LOG_ERR,"MV ERROR %u (%s) fdopening %s",errno,strerror(errno),str);
 		return(-1); 
 	}
 	setvbuf(outp,NULL,_IOFBF,8*1024);
@@ -1932,10 +1933,8 @@ int mv(char *src, char *dest, BOOL copy)
 }
 
 /****************************************************************************/
-/* Returns the total number of msgs in the sub-board and sets 'ptr' to the  */
-/* date of the last message in the sub (0) if no messages.					*/
 /****************************************************************************/
-ulong getlastmsg(uint subnum, ulong *ptr, time_t *t)
+ulong getlastmsg(uint subnum, uint32_t *ptr, /* unused: */time_t *t)
 {
 	int i;
 	smb_t smbfile;
@@ -2016,7 +2015,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 
 void bail(int code)
 {
-	if(code || pause_on_exit) {
+	if((code && pause_on_abend) || pause_on_exit) {
 		fprintf(stderr,"\nHit any key...");
 		getch();
 		fprintf(stderr,"\n");
@@ -2117,7 +2116,7 @@ time_t fmsgtime(char *str)
 	memset(&tm,0,sizeof(tm));
 	tm.tm_isdst=-1;	/* Do not adjust for DST */
 
-	if(isdigit(str[1])) {	/* Regular format: "01 Jan 86  02:34:56" */
+	if(isdigit((uchar)str[1])) {	/* Regular format: "01 Jan 86  02:34:56" */
 		tm.tm_mday=atoi(str);
 		sprintf(month,"%3.3s",str+3);
 		if(!stricmp(month,"jan"))
@@ -2199,9 +2198,9 @@ static short fmsgzone(char* p)
 	else
 		west=FALSE;
 
-	if(strlen(p)>=2)
+	if(strlen((char*)p)>=2)
 		sprintf(hr,"%.2s",p);
-	if(strlen(p+2)>=2)
+	if(strlen((char*)p+2)>=2)
 		sprintf(min,"%.2s",p+2);
 
 	val=atoi(hr)*60;
@@ -2228,7 +2227,7 @@ static short fmsgzone(char* p)
 
 char* getfmsg(FILE *stream, ulong *outlen)
 {
-	uchar* fbuf;
+	char* fbuf;
 	int ch;
 	ulong l,length,start;
 
@@ -2268,16 +2267,15 @@ char* getfmsg(FILE *stream, ulong *outlen)
 /* Coverts a FidoNet message into a Synchronet message						*/
 /* Returns 0 on success, 1 dupe, 2 filtered, 3 empty, or other SMB error	*/
 /****************************************************************************/
-int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
+int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 {
-	uchar	ch,*sbody,stail[MAX_TAILLEN+1],*outbuf
-				,*p,str[128];
-	char	msg_id[256];
+	uchar	ch,stail[MAX_TAILLEN+1],*sbody;
+	char	msg_id[256],str[128],*p;
 	BOOL	done,esc,cr;
 	int 	i,storage=SMB_SELFPACK;
 	uint	col;
 	ushort	xlat=XLAT_NONE,net;
-	ulong	l,m,length,bodylen,taillen,crc;
+	ulong	l,m,length,bodylen,taillen;
 	ulong	save;
 	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	faddr_t faddr,origaddr,destaddr;
@@ -2331,7 +2329,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		return(-1); 
 	}
 	length=strlen((char *)fbuf);
-	if((sbody=(char*)malloc((length+1)*2))==NULL) {
+	if((sbody=(uchar*)malloc((length+1)*2))==NULL) {
 		lprintf(LOG_ERR,"ERROR line %d allocating %lu bytes for body",__LINE__
 			,(length+1)*2L);
 		smb_freemsgmem(&msg);
@@ -2343,10 +2341,10 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		if(!l && !strncmp((char *)fbuf,"AREA:",5)) {
 			save=l;
 			l+=5;
-			while(l<length && fbuf[l]<=' ') l++;
+			while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 			m=l;
 			while(m<length && fbuf[m]!='\r') m++;
-			while(m && fbuf[m-1]<=' ') m--;
+			while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 			if(m>l)
 				smb_hfield(&msg,FIDOAREA,(ushort)(m-l),fbuf+l);
 			while(l<length && fbuf[l]!='\r') l++;
@@ -2380,77 +2378,77 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 
 			else if(!strncmp((char *)fbuf+l+1,"MSGID:",6)) {
 				l+=7;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ') m--;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOMSGID,(ushort)(m-l),fbuf+l); }
 
 			else if(!strncmp((char *)fbuf+l+1,"REPLY:",6)) {
 				l+=7;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ') m--;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOREPLYID,(ushort)(m-l),fbuf+l); }
 
 			else if(!strncmp((char *)fbuf+l+1,"FLAGS ",6)		/* correct */
 				||  !strncmp((char *)fbuf+l+1,"FLAGS:",6)) {	/* incorrect */
 				l+=7;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ') m--;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOFLAGS,(ushort)(m-l),fbuf+l); }
 
 			else if(!strncmp((char *)fbuf+l+1,"PATH:",5)) {
 				l+=6;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ') m--;
-				if(m>l && misc&STORE_PATH)
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
+				if(m>l && (misc&STORE_PATH))
 					smb_hfield(&msg,FIDOPATH,(ushort)(m-l),fbuf+l); }
 
 			else if(!strncmp((char *)fbuf+l+1,"PID:",4)) {
 				l+=5;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ') m--;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOPID,(ushort)(m-l),fbuf+l); }
 
 			else if(!strncmp((char *)fbuf+l+1,"TID:",4)) {
 				l+=5;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ') m--;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOTID,(ushort)(m-l),fbuf+l); }
 
 			else if(!strncmp((char *)fbuf+l+1,"TZUTC:",6)) {		/* FSP-1001 */
 				l+=7;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				msg.hdr.when_written.zone = fmsgzone(fbuf+l);
 			}
 
 			else if(!strncmp((char *)fbuf+l+1,"TZUTCINFO:",10)) {	/* non-standard */
 				l+=11;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				msg.hdr.when_written.zone = fmsgzone(fbuf+l);
 			}
 
 			else {		/* Unknown kludge line */
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ') m--;
-				if(m>l && misc&STORE_KLUDGE)
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
+				if(m>l && (misc&STORE_KLUDGE))
 					smb_hfield(&msg,FIDOCTRL,(ushort)(m-l),fbuf+l); }
 
 			while(l<length && fbuf[l]!='\r') l++;
@@ -2462,11 +2460,11 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 				done=1; 			/* tear line and down go into tail */
 			if(done && cr && !strncmp((char *)fbuf+l,"SEEN-BY:",8)) {
 				l+=8;
-				while(l<length && fbuf[l]<=' ') l++;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ') m--;
-				if(m>l && misc&STORE_SEENBY)
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
+				if(m>l && (misc&STORE_SEENBY))
 					smb_hfield(&msg,FIDOSEENBY,(ushort)(m-l),fbuf+l);
 				while(l<length && fbuf[l]!='\r') l++;
 				continue; }
@@ -2487,7 +2485,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 			else {
 				cr=0;
 				if(col==1 && !strncmp((char *)fbuf+l," * Origin: ",11)) {
-					p=(char *)fbuf+l+11;
+					p=(char*)fbuf+l+11;
 					while(*p && *p!='\r') p++;	 /* Find CR */
 					while(p && *p!='(') p--;     /* rewind to '(' */
 					if(p)
@@ -2499,7 +2497,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 				if(ch==ESC) esc=1;		/* ANSI codes */
 				if(ch==' ' && col>40 && !esc) {	/* word wrap */
 					for(m=l+1;m<length;m++) 	/* find next space */
-						if(fbuf[m]<=' ')
+						if(fbuf[m]<=' ' && fbuf[m]>=0)
 							break;
 					if(m<length && m-l>80-col) {  /* if it's beyond the eol */
 						sbody[bodylen++]='\r';
@@ -2515,7 +2513,7 @@ int fmsgtosmsg(uchar* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		taillen--;
 	stail[taillen]=0;
 
-	if(subnum==INVALID_SUB && !bodylen && !taillen && misc&KILL_EMPTY_MAIL) {
+	if(subnum==INVALID_SUB && !bodylen && !taillen && (misc&KILL_EMPTY_MAIL)) {
 		lprintf(LOG_INFO,"Empty NetMail - Ignored ");
 		smb_freemsgmem(&msg);
 		free(sbody);
@@ -2646,21 +2644,21 @@ char *pktname(BOOL temp)
     struct tm *tm;
 
 	now=time(NULL);
-	for(i=0;i<MAX_TOTAL_PKTS*2;i++) {
+	for(i=0;i>=0;i++) {
 		now++;
 		tm=localtime(&now);
 		sprintf(str,"%s%02u%02u%02u%02u.%s",cfg.outbound,tm->tm_mday,tm->tm_hour
 			,tm->tm_min,tm->tm_sec,temp ? "pk_" : "pkt");
 		if(!fexist(str))				/* Add 1 second if name exists */
-			break; 
+			return(str); 
 	}
-	return(str);
+	return(NULL);	/* This should never happen */
 }
 /******************************************************************************
  This function puts a message into a Fido packet, writing both the header
  information and the message body
 ******************************************************************************/
-void putfmsg(FILE *stream,uchar *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
+void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	,addrlist_t seenbys,addrlist_t paths)
 {
 	char str[256],seenby[256];
@@ -2705,7 +2703,7 @@ void putfmsg(FILE *stream,uchar *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 		t=time(NULL);
 		tm=gmtime(&t);
 		fprintf(stream,"\1Via %s @%04u%02u%02u.%02u%02u%02u.UTC "
-			"SBBSecho %s-%s r%s\r"
+			"SBBSecho %u.%02u-%s r%s\r"
 			,smb_faddrtoa(&addr,NULL)
 			,tm->tm_year+1900
 			,tm->tm_mon+1
@@ -2713,124 +2711,144 @@ void putfmsg(FILE *stream,uchar *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 			,tm->tm_hour
 			,tm->tm_min
 			,tm->tm_sec
-			,SBBSECHO_VER,PLATFORM_DESC,revision);
+			,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC,revision);
 	}
 			
-
-	if(area.name && addr.zone!=fmsghdr.destzone)	/* Zone Gate */
-		fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
-
-	if(area.name && addr.zone==fmsghdr.destzone) {	/* Not NetMail */
-		fprintf(stream,"SEEN-BY:");
-		for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
-			strcpy(seenby," ");
-			if(seenbys.addr[i].zone!=addr.zone)
-				continue;
-			if(seenbys.addr[i].net!=addr.net || !net_exists) {
-				net_exists=1;
-				addr.net=seenbys.addr[i].net;
-				sprintf(str,"%d/",addr.net);
-				strcat(seenby,str); }
-			sprintf(str,"%d",seenbys.addr[i].node);
-			strcat(seenby,str);
-			if(lastlen+strlen(seenby)<80) {
-				fwrite(seenby,strlen(seenby),1,stream);
-				lastlen+=strlen(seenby); }
-			else {
-				--i;
-				lastlen=9; /* +strlen(seenby); */
-				net_exists=0;
-				fprintf(stream,"\rSEEN-BY:"); } }
-
-		for(i=0;i<area.uplinks;i++) {			/* Add all uplinks to SEEN-BYs */
-			strcpy(seenby," ");
-			if(area.uplink[i].zone!=addr.zone || area.uplink[i].point)
-				continue;
-			for(j=0;j<seenbys.addrs;j++)
-				if(!memcmp(&area.uplink[i],&seenbys.addr[j],sizeof(faddr_t)))
-					break;
-			if(j==seenbys.addrs) {
-				if(area.uplink[i].net!=addr.net || !net_exists) {
+	if(area.name) { /* EchoMail, Not NetMail */
+		if(!cfg.zone_blind && addr.zone!=fmsghdr.destzone)	/* Zone Gate */
+			fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
+		else {
+			fprintf(stream,"SEEN-BY:");
+			for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
+				strcpy(seenby," ");
+				if(!cfg.zone_blind && seenbys.addr[i].zone!=addr.zone)
+					continue;
+				if(seenbys.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
-					addr.net=area.uplink[i].net;
+					addr.net=seenbys.addr[i].net;
 					sprintf(str,"%d/",addr.net);
-					strcat(seenby,str); }
-				sprintf(str,"%d",area.uplink[i].node);
+					strcat(seenby,str); 
+				}
+				sprintf(str,"%d",seenbys.addr[i].node);
 				strcat(seenby,str);
 				if(lastlen+strlen(seenby)<80) {
 					fwrite(seenby,strlen(seenby),1,stream);
-					lastlen+=strlen(seenby); }
+					lastlen+=strlen(seenby); 
+				}
 				else {
 					--i;
 					lastlen=9; /* +strlen(seenby); */
 					net_exists=0;
-					fprintf(stream,"\rSEEN-BY:"); } } }
+					fprintf(stream,"\rSEEN-BY:"); 
+				} 
+			}
 
-		for(i=0;i<scfg.total_faddrs;i++) {				/* Add AKAs to SEEN-BYs */
-			strcpy(seenby," ");
-			if(scfg.faddr[i].zone!=addr.zone || scfg.faddr[i].point)
-				continue;
-			for(j=0;j<seenbys.addrs;j++)
-				if(!memcmp(&scfg.faddr[i],&seenbys.addr[j],sizeof(faddr_t)))
-					break;
-			if(j==seenbys.addrs) {
-				if(scfg.faddr[i].net!=addr.net || !net_exists) {
+			for(i=0;i<area.uplinks;i++) {			/* Add all uplinks to SEEN-BYs */
+				strcpy(seenby," ");
+				if((!cfg.zone_blind && area.uplink[i].zone!=addr.zone) || area.uplink[i].point)
+					continue;
+				for(j=0;j<seenbys.addrs;j++)
+					if(!memcmp(&area.uplink[i],&seenbys.addr[j],sizeof(faddr_t)))
+						break;
+				if(j==seenbys.addrs) {
+					if(area.uplink[i].net!=addr.net || !net_exists) {
+						net_exists=1;
+						addr.net=area.uplink[i].net;
+						sprintf(str,"%d/",addr.net);
+						strcat(seenby,str); 
+					}
+					sprintf(str,"%d",area.uplink[i].node);
+					strcat(seenby,str);
+					if(lastlen+strlen(seenby)<80) {
+						fwrite(seenby,strlen(seenby),1,stream);
+						lastlen+=strlen(seenby); 
+					}
+					else {
+						--i;
+						lastlen=9; /* +strlen(seenby); */
+						net_exists=0;
+						fprintf(stream,"\rSEEN-BY:"); 
+					} 
+				} 
+			}
+
+			for(i=0;i<scfg.total_faddrs;i++) {				/* Add AKAs to SEEN-BYs */
+				strcpy(seenby," ");
+				if((!cfg.zone_blind && scfg.faddr[i].zone!=addr.zone) || scfg.faddr[i].point)
+					continue;
+				for(j=0;j<seenbys.addrs;j++)
+					if(!memcmp(&scfg.faddr[i],&seenbys.addr[j],sizeof(faddr_t)))
+						break;
+				if(j==seenbys.addrs) {
+					if(scfg.faddr[i].net!=addr.net || !net_exists) {
+						net_exists=1;
+						addr.net=scfg.faddr[i].net;
+						sprintf(str,"%d/",addr.net);
+						strcat(seenby,str); }
+					sprintf(str,"%d",scfg.faddr[i].node);
+					strcat(seenby,str);
+					if(lastlen+strlen(seenby)<80) {
+						fwrite(seenby,strlen(seenby),1,stream);
+						lastlen+=strlen(seenby); 
+					}
+					else {
+						--i;
+						lastlen=9; /* +strlen(seenby); */
+						net_exists=0;
+						fprintf(stream,"\rSEEN-BY:"); 
+					} 
+				} 
+			}
+
+			lastlen=7;
+			net_exists=0;
+			fprintf(stream,"\r\1PATH:");
+			addr=getsysfaddr(fmsghdr.destzone);
+			for(i=0;i<paths.addrs;i++) {			  /* Put back the original PATH */
+				strcpy(seenby," ");
+				if((!cfg.zone_blind && paths.addr[i].zone!=addr.zone) || paths.addr[i].point)
+					continue;
+				if(paths.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
-					addr.net=scfg.faddr[i].net;
+					addr.net=paths.addr[i].net;
 					sprintf(str,"%d/",addr.net);
-					strcat(seenby,str); }
-				sprintf(str,"%d",scfg.faddr[i].node);
+					strcat(seenby,str); 
+				}
+				sprintf(str,"%d",paths.addr[i].node);
 				strcat(seenby,str);
 				if(lastlen+strlen(seenby)<80) {
 					fwrite(seenby,strlen(seenby),1,stream);
-					lastlen+=strlen(seenby); }
+					lastlen+=strlen(seenby); 
+				}
 				else {
 					--i;
-					lastlen=9; /* +strlen(seenby); */
+					lastlen=7; /* +strlen(seenby); */
 					net_exists=0;
-					fprintf(stream,"\rSEEN-BY:"); } } }
+					fprintf(stream,"\r\1PATH:"); 
+				} 
+			}
 
-		lastlen=7;
-		net_exists=0;
-		fprintf(stream,"\r\1PATH:");
-		addr=getsysfaddr(fmsghdr.destzone);
-		for(i=0;i<paths.addrs;i++) {			  /* Put back the original PATH */
-			strcpy(seenby," ");
-			if(paths.addr[i].zone!=addr.zone || paths.addr[i].point)
-				continue;
-			if(paths.addr[i].net!=addr.net || !net_exists) {
-				net_exists=1;
-				addr.net=paths.addr[i].net;
-				sprintf(str,"%d/",addr.net);
-				strcat(seenby,str); }
-			sprintf(str,"%d",paths.addr[i].node);
-			strcat(seenby,str);
-			if(lastlen+strlen(seenby)<80) {
-				fwrite(seenby,strlen(seenby),1,stream);
-				lastlen+=strlen(seenby); }
-			else {
-				--i;
-				lastlen=7; /* +strlen(seenby); */
-				net_exists=0;
-				fprintf(stream,"\r\1PATH:"); } }
-
-		strcpy(seenby," ");         /* Add first address with same zone to PATH */
-		sysaddr=getsysfaddr(fmsghdr.destzone);
-		if(!sysaddr.point) {
-			if(sysaddr.net!=addr.net || !net_exists) {
-				net_exists=1;
-				addr.net=sysaddr.net;
-				sprintf(str,"%d/",addr.net);
-				strcat(seenby,str); }
-			sprintf(str,"%d",sysaddr.node);
-			strcat(seenby,str);
-			if(lastlen+strlen(seenby)<80)
-				fwrite(seenby,strlen(seenby),1,stream);
-			else {
-				fprintf(stream,"\r\1PATH:");
-				fwrite(seenby,strlen(seenby),1,stream); } }
-
-		fputc('\r',stream); }
+			strcpy(seenby," ");         /* Add first address with same zone to PATH */
+			sysaddr=getsysfaddr(fmsghdr.destzone);
+			if(!sysaddr.point) {
+				if(sysaddr.net!=addr.net || !net_exists) {
+					net_exists=1;
+					addr.net=sysaddr.net;
+					sprintf(str,"%d/",addr.net);
+					strcat(seenby,str); 
+				}
+				sprintf(str,"%d",sysaddr.node);
+				strcat(seenby,str);
+				if(lastlen+strlen(seenby)<80)
+					fwrite(seenby,strlen(seenby),1,stream);
+				else {
+					fprintf(stream,"\r\1PATH:");
+					fwrite(seenby,strlen(seenby),1,stream); 
+				} 
+			}
+			fputc('\r',stream); 
+		}
+	}
 
 	fputc(FIDO_PACKED_MSG_TERMINATOR, stream);
 }
@@ -3000,19 +3018,27 @@ void gen_psb(addrlist_t *seenbys,addrlist_t *paths,char *inbuf
 
 /******************************************************************************
  This function takes the addrs passed to it and compares them to the address
- passed in inaddr.	1 is returned if inaddr matches any of the addrs
- otherwise a 0 is returned.
+ passed in compaddr.	TRUE is returned if inaddr matches any of the addrs
+ otherwise FALSE is returned.
 ******************************************************************************/
-int check_psb(addrlist_t* addrlist,faddr_t inaddr)
+BOOL check_psb(addrlist_t* addrlist, faddr_t compaddr)
 {
 	int i;
 
 	for(i=0;i<addrlist->addrs;i++) {
-		if(!memcmp(&addrlist->addr[i],&inaddr,sizeof(faddr_t)))
-			return(1); 
+		if(!cfg.zone_blind && compaddr.zone != addrlist->addr[i].zone)
+			continue;
+		if(compaddr.net != addrlist->addr[i].net)
+			continue;
+		if(compaddr.node != addrlist->addr[i].node)
+			continue;
+		if(compaddr.point != addrlist->addr[i].point)
+			continue;
+		return(TRUE); /* match found */
 	}
-	return(0);
+	return(FALSE);	/* match not found */
 }
+
 /******************************************************************************
  This function strips the message seen-bys and path from inbuf.
 ******************************************************************************/
@@ -3039,6 +3065,7 @@ void attach_bundles(void)
 	pkthdr_t pkthdr;
 	size_t	f;
 	glob_t	g;
+	two_plus_t* two_plus;
 
 	sprintf(path,"%s*.pk_",cfg.outbound);
 	glob(path,0,NULL,&g);
@@ -3048,11 +3075,11 @@ void attach_bundles(void)
 
 		printf("%21s: %s ","Outbound Packet",packet);
 		if((fmsg=sopen(packet,O_RDWR|O_BINARY,SH_DENYRW))==-1) {
-			lprintf(LOG_ERR,"ERROR %d line %d opening %s",errno,__LINE__,packet);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,packet);
 			continue; }
 		if((fidomsg=fdopen(fmsg,"r+b"))==NULL) {
 			close(fmsg);
-			lprintf(LOG_ERR,"ERROR line %d fdopening %s",__LINE__,packet);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d fdopening %s",errno,strerror(errno),__LINE__,packet);
 			continue; }
 		if(filelength(fmsg)<sizeof(pkthdr_t)) {
 			lprintf(LOG_ERR,"ERROR line %d invalid length of %lu bytes for %s"
@@ -3075,13 +3102,12 @@ void attach_bundles(void)
 			pkt_faddr.net=pkthdr.destnet;
 			pkt_faddr.node=pkthdr.destnode;
 			pkt_faddr.point=0;				/* No point info in the 2.0 hdr! */
-			memcpy(&two_plus,&pkthdr.empty,sizeof(pkthdr.empty));
-			if(two_plus.cword==_rotr(two_plus.cwcopy,8)  /* 2+ Packet Header */
-				&& two_plus.cword && two_plus.cword&1)
-				pkt_faddr.point=two_plus.destpoint;
-			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header */
-				memcpy(&two_two,&pkthdr.empty,sizeof(pkthdr.empty));
-				pkt_faddr.point=pkthdr.month; }
+			two_plus = (two_plus_t*)&pkthdr.empty;
+			if(two_plus->cword==_rotr(two_plus->cwcopy,8)  /* 2+ Packet Header */
+				&& (two_plus->cword&1))
+				pkt_faddr.point=two_plus->destpoint;
+			else if(pkthdr.baud==2) 				/* Type 2.2 Packet Header */
+				pkt_faddr.point=pkthdr.month; 
 			lprintf(LOG_INFO,"Sending to %s",smb_faddrtoa(&pkt_faddr,NULL));
 			pack_bundle(packet,pkt_faddr); 
 		} else
@@ -3095,7 +3121,7 @@ void attach_bundles(void)
  parameter to 1 to force all the remaining packets closed and stuff them into
  a bundle.
 ******************************************************************************/
-void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
+void pkt_to_pkt(char *fbuf,areasbbs_t area,faddr_t faddr
 	,fmsghdr_t fmsghdr,addrlist_t seenbys,addrlist_t paths, int cleanup)
 {
 	int i,j,k,file;
@@ -3106,9 +3132,7 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 	static ushort openpkts,totalpkts;
 	static outpkt_t outpkt[MAX_TOTAL_PKTS];
 	faddr_t sysaddr;
-	two_two_t two;
-	two_plus_t two_p;
-
+	two_plus_t* two_plus;
 
 	if(cleanup==1) {
 		for(i=0;i<totalpkts;i++) {
@@ -3116,20 +3140,19 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 				lprintf(LOG_ERR,"MAX_TOTAL_PKTS (%d) REACHED!",MAX_TOTAL_PKTS);
 				break;
 			}
-			if(outpkt[i].curopen) {
-				terminate_packet(outpkt[i].stream);
-				fclose(outpkt[i].stream); }
+			if(outpkt[i].stream==NULL)
+				outpkt[i].stream=fnopen(&file,outpkt[i].filename,O_WRONLY|O_APPEND);
+				
+			if(outpkt[i].stream==NULL)
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s for termination",errno,strerror(errno),__LINE__,outpkt[i].filename);
 			else {
-				if((outpkt[i].stream=fnopen(&file,outpkt[i].filename
-					,O_WRONLY|O_APPEND))==NULL) {
-					lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__
-						,outpkt[i].filename,strerror(errno));
-					continue; }
 				terminate_packet(outpkt[i].stream);
-				fclose(outpkt[i].stream); }
-			  /* pack_nundle() disabled.  Why?  ToDo */
+				fclose(outpkt[i].stream); 
+			}
+			  /* pack_bundle() disabled.  Why?  ToDo */
 			  /* pack_bundle(outpkt[i].filename,outpkt[i].uplink); */
-			memset(&outpkt[i],0,sizeof(outpkt_t)); }
+			memset(&outpkt[i],0,sizeof(outpkt_t)); 
+		}
 		totalpkts=openpkts=0;
 		attach_bundles();
 		if(!(misc&FLO_MAILER))
@@ -3162,21 +3185,22 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 				break;
 			}
 			if(!memcmp(&area.uplink[j],&outpkt[i].uplink,sizeof(faddr_t))) {
-				if(!outpkt[i].curopen) {
-					if(openpkts==DFLT_OPEN_PKTS)
+				if(outpkt[i].stream==NULL) {
+					if(openpkts==DFLT_OPEN_PKTS) {
 						for(k=0;k<totalpkts;k++) {
-							if(outpkt[k].curopen) {
+							if(outpkt[k].stream!=NULL) {
 								fclose(outpkt[k].stream);
-								outpkt[k].curopen=0;
-								break; } }
+								outpkt[k].stream=NULL;
+								break; 
+							} 
+						}
+					}
 					if((outpkt[i].stream=fnopen(&file,outpkt[i].filename
 						,O_WRONLY|O_APPEND))==NULL) {
-						lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__
-							,outpkt[i].filename,strerror(errno));
-						bail(1); 
-						return;
+						lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,outpkt[i].filename);
+						continue;
 					}
-					outpkt[i].curopen=1; }
+				}
 				if((strlen((char *)fbuf)+1+ftell(outpkt[i].stream))
 					<=cfg.maxpktsize) {
 					fmsghdr.destnode=area.uplink[j].node;
@@ -3200,33 +3224,35 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 			} 
 		}
 		if(i==totalpkts) {
-			if(openpkts==DFLT_OPEN_PKTS)
+			if(openpkts==DFLT_OPEN_PKTS) {
 				for(k=0;k<totalpkts;k++) {
-					if(outpkt[k].curopen) {
+					if(outpkt[k].stream!=NULL) {
 						fclose(outpkt[k].stream);
-						outpkt[k].curopen=0;
+						outpkt[k].stream=NULL;
 						--openpkts;
-						break; } }
-			strcpy(outpkt[i].filename,pktname(/* temp? */ TRUE));
+						break; 
+					} 
+				}
+			}
+			SAFECOPY(outpkt[i].filename,pktname(/* temp? */ TRUE));
 			now=time(NULL);
 			tm=localtime(&now);
 			if((outpkt[i].stream=fnopen(&file,outpkt[i].filename
 				,O_WRONLY|O_CREAT))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s"
-					,__LINE__,outpkt[i].filename,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
+					,errno,strerror(errno),__LINE__,outpkt[i].filename);	/* failhere */
+				lprintf(LOG_DEBUG,"i=%d, totalpkts=%d, openpkts=%d", i, totalpkts, openpkts);
 				bail(1); 
 				return;
 			}
+			memset(&pkthdr, 0, sizeof(pkthdr));
 			pkthdr.orignode=sysaddr.node;
 			fmsghdr.destnode=pkthdr.destnode=area.uplink[j].node;
 			if(node<cfg.nodecfgs && cfg.nodecfg[node].pkt_type==PKT_TWO_TWO) {
 				pkthdr.year=sysaddr.point;
 				pkthdr.month=area.uplink[j].point;
-				pkthdr.day=0;
-				pkthdr.hour=0;
-				pkthdr.min=0;
-				pkthdr.sec=0;
-				pkthdr.baud=0x0002; }
+				pkthdr.baud=0x0002;	/* Indicates 2.2 */
+			}
 			else {
 				pkthdr.year=tm->tm_year+1900;
 				pkthdr.month=tm->tm_mon;
@@ -3234,50 +3260,47 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 				pkthdr.hour=tm->tm_hour;
 				pkthdr.min=tm->tm_min;
 				pkthdr.sec=tm->tm_sec;
-				pkthdr.baud=0; }
+			}
 			pkthdr.pkttype=0x0002;
 			pkthdr.orignet=sysaddr.net;
 			fmsghdr.destnet=pkthdr.destnet=area.uplink[j].net;
-			pkthdr.prodcode=0;
-			pkthdr.sernum=0;
+			pkthdr.prodcode=SBBSECHO_PRODUCT_CODE&0xff;
+			pkthdr.sernum=SBBSECHO_VERSION_MAJOR;
 			if(node<cfg.nodecfgs)
 				memcpy(pkthdr.password,cfg.nodecfg[node].pktpwd,sizeof(pkthdr.password));
-			else
-				memset(pkthdr.password,0,sizeof(pkthdr.password));
 			pkthdr.origzone=sysaddr.zone;
 			fmsghdr.destzone=pkthdr.destzone=area.uplink[j].zone;
-			memset(pkthdr.empty,0,sizeof(two_two_t));
 
 			if(node<cfg.nodecfgs) {
 				if(cfg.nodecfg[node].pkt_type==PKT_TWO_TWO) {
-					memset(&two,0,sizeof(two));
-					strcpy(two.origdomn,"fidonet");
-					strcpy(two.destdomn,"fidonet");
-					memcpy(&pkthdr.empty,&two,sizeof(pkthdr.empty)); }
+					strcpy(((two_two_t*)&pkthdr.empty)->origdomn,"fidonet");
+					strcpy(((two_two_t*)&pkthdr.empty)->destdomn,"fidonet");
+				}
 				else if(cfg.nodecfg[node].pkt_type==PKT_TWO_PLUS) {
-					memset(&two_p,0,sizeof(two_p));
+					two_plus=(two_plus_t*)&pkthdr.empty;
 					if(sysaddr.point) {
 						pkthdr.orignet=-1;
-						two_p.auxnet=sysaddr.net; }
-					two_p.cwcopy=0x0100;
-					two_p.prodcode=pkthdr.prodcode;
-					two_p.revision=pkthdr.sernum;
-					two_p.cword=0x0001;
-					two_p.origzone=pkthdr.origzone;
-					two_p.destzone=pkthdr.destzone;
-					two_p.origpoint=sysaddr.point;
-					two_p.destpoint=area.uplink[j].point;
-					memcpy(&pkthdr.empty,&two_p,sizeof(pkthdr.empty)); }
+						two_plus->auxnet=sysaddr.net; 
+					}
+					two_plus->cwcopy=0x0100;
+					two_plus->prodcode=SBBSECHO_PRODUCT_CODE>>8;
+					two_plus->revision=SBBSECHO_VERSION_MINOR;
+					two_plus->cword=0x0001;
+					two_plus->origzone=pkthdr.origzone;
+					two_plus->destzone=pkthdr.destzone;
+					two_plus->origpoint=sysaddr.point;
+					two_plus->destpoint=area.uplink[j].point;
+				}
 			}
 			fwrite(&pkthdr,sizeof(pkthdr_t),1,outpkt[totalpkts].stream);
 			putfmsg(outpkt[totalpkts].stream,fbuf,fmsghdr,area,seenbys,paths);
-			outpkt[totalpkts].curopen=1;
 			memcpy(&outpkt[totalpkts].uplink,&area.uplink[j]
 				,sizeof(faddr_t));
 			++openpkts;
 			++totalpkts;
 			if(totalpkts>=MAX_TOTAL_PKTS) {
 				fclose(outpkt[totalpkts-1].stream);
+				outpkt[totalpkts-1].stream=NULL;
 				/* pack_bundle() disabled.  Why?  ToDo */
 				/* pack_bundle(outpkt[totalpkts-1].filename
 					  ,outpkt[totalpkts-1].uplink); */
@@ -3291,7 +3314,7 @@ void pkt_to_pkt(uchar *fbuf,areasbbs_t area,faddr_t faddr
 int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, char* info)
 {
 	char path[MAX_PATH+1];
-	uchar* fmsgbuf;
+	char* fmsgbuf;
 	int i,file;
 	ulong l;
 
@@ -3300,7 +3323,7 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, char* info)
 		return(-1); 
 	}
 
-	if(!l && misc&KILL_EMPTY_MAIL)
+	if(!l && (misc&KILL_EMPTY_MAIL))
 		printf("Empty NetMail");
 	else {
 		printf("Exporting: ");
@@ -3314,7 +3337,7 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, char* info)
 			return(-1); 
 		}
 		if((file=nopen(path,O_WRONLY|O_CREAT))==-1) {
-			lprintf(LOG_ERR,"ERROR %u line %d creating %s",errno,__LINE__,path);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d creating %s",errno,strerror(errno),__LINE__,path);
 			return(-1);
 		}
 		write(file,hdr,sizeof(fmsghdr_t));
@@ -3334,22 +3357,22 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, char* info)
 /**************************************/
 int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 {
-	uchar info[512],str[256],tmp[256],subj[256]
+	char info[512],str[256],tmp[256],subj[256]
 		,*fmsgbuf=NULL,*p,*tp,*sp;
 	int i,match,usernumber;
 	ulong length;
 	faddr_t addr;
 
-	hdr.destzone=hdr.origzone=sys_faddr.zone;
+	hdr.destzone=sys_faddr.zone;
 	hdr.destpoint=hdr.origpoint=0;
 	getzpt(fidomsg,&hdr);				/* use kludge if found */
 	for(match=0;match<scfg.total_faddrs;match++)
-		if((hdr.destzone==scfg.faddr[match].zone || misc&FUZZY_ZONE)
+		if((hdr.destzone==scfg.faddr[match].zone || (misc&FUZZY_ZONE))
 			&& hdr.destnet==scfg.faddr[match].net
 			&& hdr.destnode==scfg.faddr[match].node
 			&& hdr.destpoint==scfg.faddr[match].point)
 			break;
-	if(match<scfg.total_faddrs && misc&FUZZY_ZONE)
+	if(match<scfg.total_faddrs && (misc&FUZZY_ZONE))
 		hdr.origzone=hdr.destzone=scfg.faddr[match].zone;
 	if(hdr.origpoint)
 		sprintf(tmp,".%hu",hdr.origpoint);
@@ -3462,7 +3485,7 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	}
 
 	usernumber=atoi(hdr.to);
-	if(!stricmp(hdr.to,"SYSOP"))  /* NetMail to "sysop" goes to #1 */
+	if(cfg.sysop_alias[0] && stricmp(hdr.to,cfg.sysop_alias)==0)  /* NetMail to configured SYSOP_ALIAS goes to user #1 */
 		usernumber=1;
 	if(!usernumber && match<scfg.total_faddrs)
 		usernumber=matchname(hdr.to);
@@ -3558,6 +3581,52 @@ int import_netmail(char *path,fmsghdr_t hdr, FILE *fidomsg)
 	return(0);
 }
 
+static uint32_t read_export_ptr(int subnum, const char* tag)
+{
+	char		path[MAX_PATH+1];
+	char		key[INI_MAX_VALUE_LEN];
+	int			file;
+	FILE*		fp;
+	uint32_t	ptr=0;
+
+	/* New way (July-21-2012): */
+	safe_snprintf(path,sizeof(path),"%s%s.ini",scfg.sub[subnum]->data_dir,scfg.sub[subnum]->code);
+	if((fp=iniOpenFile(path, /* create: */FALSE)) != NULL) {
+		safe_snprintf(key, sizeof(key), "%s.export_ptr", tag);
+		if((ptr=iniReadLongInt(fp, "SBBSecho", key, 0)) == 0)
+			ptr=iniReadLongInt(fp, "SBBSecho", "export_ptr", 0);	/* the previous .ini method (did not support gating) */
+		iniCloseFile(fp);
+	}
+	if(ptr)	return ptr;
+	/* Old way: */
+	safe_snprintf(path,sizeof(path),"%s%s.sfp",scfg.sub[subnum]->data_dir,scfg.sub[subnum]->code);
+	if((file=nopen(path,O_RDONLY)) != -1) {
+		read(file,&ptr,sizeof(ptr));
+		close(file); 
+	}
+	return ptr;
+}
+
+static void write_export_ptr(int subnum, uint32_t ptr, const char* tag)
+{
+	char		path[MAX_PATH+1];
+	char		key[INI_MAX_VALUE_LEN];
+	FILE*		fp;
+	str_list_t	ini_file;
+
+	/* New way (July-21-2012): */
+	safe_snprintf(path,sizeof(path),"%s%s.ini",scfg.sub[subnum]->data_dir,scfg.sub[subnum]->code);
+	if((fp=iniOpenFile(path, /* create: */TRUE)) != NULL) {
+		safe_snprintf(key, sizeof(key), "%s.export_ptr", tag);
+		ini_file = iniReadFile(fp);
+		iniSetLongInt(&ini_file, "SBBSecho", key, ptr, /* style (default): */NULL);
+		iniSetLongInt(&ini_file, "SBBSecho", "export_ptr", ptr, /* style (default): */NULL);
+		iniWriteFile(fp, ini_file);
+		iniCloseFile(fp);
+		strListFree(&ini_file);
+	}
+}
+
 /******************************************************************************
  This is where we export echomail.	This was separated from function main so
  it could be used for the remote rescan function.  Passing anything but an
@@ -3570,11 +3639,13 @@ void export_echomail(char *sub_code,faddr_t addr)
 	char	msgid[256];
 	char*	buf=NULL;
 	char*	minus;
-	uchar*	fmsgbuf=NULL;
+	char*	fmsgbuf=NULL;
 	ulong	fmsgbuflen;
 	int		tzone;
-	int		g,i,j,k=0,file;
-	ulong	f,l,m,exp,ptr,msgs,lastmsg,posts,exported=0;
+	int		area;
+	int		i,j,k=0;
+	ulong	f,l,m,exp,exported=0;
+	uint32_t ptr,msgs,lastmsg,posts;
 	float	export_time;
 	smbmsg_t msg;
 	smbmsg_t orig_msg;
@@ -3596,279 +3667,280 @@ void export_echomail(char *sub_code,faddr_t addr)
 
 	lprintf(LOG_DEBUG,"\nScanning for Outbound EchoMail...");
 
-	for(g=0;g<scfg.total_grps;g++)
-	for(i=0;i<scfg.total_subs;i++)
-		if(scfg.sub[i]->misc&SUB_FIDO && scfg.sub[i]->grp==g) {
-			for(j=0;j<cfg.areas;j++)	/* Skip areas with no uplinks */
-				if(cfg.area[j].sub==i)
+	for(area=0; area<cfg.areas; area++) {
+		const char* tag=cfg.area[area].name;
+		if(area==cfg.badecho)		/* Don't scan the bad-echo area */
+			continue;
+		if(!cfg.area[area].uplinks)
+			continue;
+		i=cfg.area[area].sub;
+		if(i<0 || i>=scfg.total_subs)	/* Don't scan pass-through areas */
+			continue;
+		if(addr.zone) { 		/* Skip areas not meant for this address */
+			for(k=0;k<cfg.area[area].uplinks;k++)
+				if(!memcmp(&cfg.area[area].uplink[k],&addr,sizeof(faddr_t)))
 					break;
-			if(j==cfg.areas || (j<cfg.areas && !cfg.area[j].uplinks))
-				continue;
-			if(addr.zone) { 		/* Skip areas not meant for this address */
-				if(j<cfg.areas)
-					for(k=0;k<cfg.area[j].uplinks;k++)
-						if(!memcmp(&cfg.area[j].uplink[k],&addr,sizeof(faddr_t)))
-							break;
-				if(k==cfg.area[j].uplinks)
-					continue; }
-			if(sub_code[0] && stricmp(sub_code,scfg.sub[i]->code))
-				continue;
-			lprintf(LOG_DEBUG,"\nScanning %-15.15s %s"
-				,scfg.grp[scfg.sub[i]->grp]->sname,scfg.sub[i]->lname);
-			ptr=0;
-			if(!addr.zone && !(misc&IGNORE_MSGPTRS)) {
-				sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
-				if((file=nopen(str,O_RDONLY))!=-1) {
-					read(file,&ptr,4);
-					close(file); } }
+			if(k==cfg.area[area].uplinks)
+				continue; 
+		}
+		if(sub_code[0] && stricmp(sub_code,scfg.sub[i]->code))
+			continue;
+		lprintf(LOG_DEBUG,"\nScanning %-*.*s -> %s"
+			,LEN_EXTCODE,LEN_EXTCODE,scfg.sub[i]->code
+			,tag);
+		ptr=0;
+		if(!addr.zone && !(misc&IGNORE_MSGPTRS))
+			ptr=read_export_ptr(i, tag);
 
-			msgs=getlastmsg(i,&lastmsg,0);
-			if(!msgs || (!addr.zone && !(misc&IGNORE_MSGPTRS) && ptr>=lastmsg)) {
-				lprintf(LOG_DEBUG,"No new messages.");
-				if(ptr>lastmsg && !addr.zone && !(misc&LEAVE_MSGPTRS)) {
-					lprintf(LOG_DEBUG,"Fixing new-scan pointer.");
-					sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
-					if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
-						lprintf(LOG_ERR,"ERROR %d line %d opening/creating %s"
-							,errno,__LINE__,str); }
-					else {
-						write(file,&lastmsg,4);
-						close(file); } }
-				continue; }
+		msgs=getlastmsg(i,&lastmsg,0);
+		if(!msgs || (!addr.zone && !(misc&IGNORE_MSGPTRS) && ptr>=lastmsg)) {
+			lprintf(LOG_DEBUG,"No new messages.");
+			if(ptr>lastmsg && !addr.zone && !(misc&LEAVE_MSGPTRS)) {
+				lprintf(LOG_DEBUG,"Fixing new-scan pointer.");
+				write_export_ptr(i, lastmsg, tag);
+			}
+			continue; 
+		}
 
-			sprintf(smb[cur_smb].file,"%s%s"
-				,scfg.sub[i]->data_dir,scfg.sub[i]->code);
-			smb[cur_smb].retry_time=scfg.smb_retry_time;
-			if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
-				lprintf(LOG_ERR,"ERROR %d line %d opening %s",j,__LINE__
-					,smb[cur_smb].file);
-				continue; }
+		sprintf(smb[cur_smb].file,"%s%s"
+			,scfg.sub[i]->data_dir,scfg.sub[i]->code);
+		smb[cur_smb].retry_time=scfg.smb_retry_time;
+		if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
+			lprintf(LOG_ERR,"ERROR %d line %d opening %s",j,__LINE__
+				,smb[cur_smb].file);
+			continue; 
+		}
 
-			post=NULL;
-			posts=loadmsgs(&post,ptr);
+		post=NULL;
+		posts=loadmsgs(&post,ptr);
 
-			if(!posts)	{ /* no new messages */
-				smb_close(&smb[cur_smb]);
-				FREE_AND_NULL(post);
+		if(!posts)	{ /* no new messages */
+			smb_close(&smb[cur_smb]);
+			FREE_AND_NULL(post);
+			continue; 
+		}
+
+		if(start_tick)
+			export_ticks+=msclock()-start_tick;
+		start_tick=msclock();
+
+		for(m=exp=0;m<posts;m++) {
+			printf("\r%8s %5lu of %-5"PRIu32"  "
+				,scfg.sub[i]->code,m+1,posts);
+			memset(&msg,0,sizeof(msg));
+			msg.idx=post[m];
+			if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+				lprintf(LOG_ERR,"ERROR %d line %d locking %s msghdr"
+					,k,__LINE__,smb[cur_smb].file);
+				continue; 
+			}
+			k=smb_getmsghdr(&smb[cur_smb],&msg);
+			if(k || msg.hdr.number!=post[m].number) {
+				smb_unlockmsghdr(&smb[cur_smb],&msg);
+				smb_freemsgmem(&msg);
+
+				msg.hdr.number=post[m].number;
+				if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					lprintf(LOG_ERR,"ERROR %d line %d reading %s index",k,__LINE__
+						,smb[cur_smb].file);
+					continue; 
+				}
+				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					lprintf(LOG_ERR,"ERROR %d line %d locking %s msghdr",k,__LINE__
+						,smb[cur_smb].file);
+					continue; 
+				}
+				if((k=smb_getmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+					smb_unlockmsghdr(&smb[cur_smb],&msg);
+					lprintf(LOG_ERR,"ERROR %d line %d reading %s msghdr",k,__LINE__
+						,smb[cur_smb].file);
+					continue; 
+				} 
+			}
+
+			if((!addr.zone && !(misc&EXPORT_ALL)
+				&& (msg.from_net.type==NET_FIDO || msg.from_net.type==NET_FIDO_ASCII))
+				|| !strnicmp(msg.subj,"NE:",3)) {   /* no echo */
+				smb_unlockmsghdr(&smb[cur_smb],&msg);
+				smb_freemsgmem(&msg);
+				continue;   /* From a Fido node, ignore it */
+			}
+
+			if(msg.from_net.type!=NET_NONE 
+				&& msg.from_net.type!=NET_FIDO
+				&& msg.from_net.type!=NET_FIDO_ASCII
+				&& !(scfg.sub[i]->misc&SUB_GATE)) {
+				smb_unlockmsghdr(&smb[cur_smb],&msg);
+				smb_freemsgmem(&msg);
 				continue; 
 			}
 
-			if(start_tick)
-				export_ticks+=msclock()-start_tick;
-			start_tick=msclock();
+			memset(&hdr,0,sizeof(fmsghdr_t));	 /* Zero the header */
+			hdr.origzone=scfg.sub[i]->faddr.zone;
+			hdr.orignet=scfg.sub[i]->faddr.net;
+			hdr.orignode=scfg.sub[i]->faddr.node;
+			hdr.origpoint=scfg.sub[i]->faddr.point;
 
-			for(m=exp=0;m<posts;m++) {
-				printf("\r%8s %5lu of %-5lu  "
-					,scfg.sub[i]->code,m+1,posts);
-				memset(&msg,0,sizeof(msg));
-				msg.idx=post[m];
-				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
-					lprintf(LOG_ERR,"ERROR %d line %d locking %s msghdr"
-						,k,__LINE__,smb[cur_smb].file);
-					continue; 
-				}
-				k=smb_getmsghdr(&smb[cur_smb],&msg);
-				if(k || msg.hdr.number!=post[m].number) {
-					smb_unlockmsghdr(&smb[cur_smb],&msg);
-					smb_freemsgmem(&msg);
+			hdr.attr=FIDO_LOCAL;
+			if(msg.hdr.attr&MSG_PRIVATE)
+				hdr.attr|=FIDO_PRIVATE;
 
-					msg.hdr.number=post[m].number;
-					if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
-						lprintf(LOG_ERR,"ERROR %d line %d reading %s index",k,__LINE__
-							,smb[cur_smb].file);
-						continue; }
-					if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
-						lprintf(LOG_ERR,"ERROR %d line %d locking %s msghdr",k,__LINE__
-							,smb[cur_smb].file);
-						continue; }
-					if((k=smb_getmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
-						smb_unlockmsghdr(&smb[cur_smb],&msg);
-						lprintf(LOG_ERR,"ERROR %d line %d reading %s msghdr",k,__LINE__
-							,smb[cur_smb].file);
-						continue; } }
+			SAFECOPY(hdr.from,msg.from);
 
-				if((!addr.zone && !(misc&EXPORT_ALL)
-					&& (msg.from_net.type==NET_FIDO || msg.from_net.type==NET_FIDO_ASCII))
-					|| !strnicmp(msg.subj,"NE:",3)) {   /* no echo */
-					smb_unlockmsghdr(&smb[cur_smb],&msg);
-					smb_freemsgmem(&msg);
-					continue; }  /* From a Fido node, ignore it */
+			tt=msg.hdr.when_written.time;
+			if((tm=localtime(&tt)) != NULL)
+				sprintf(hdr.time,"%02u %3.3s %02u  %02u:%02u:%02u"
+					,tm->tm_mday,mon[tm->tm_mon],TM_YEAR(tm->tm_year)
+					,tm->tm_hour,tm->tm_min,tm->tm_sec);
 
-				if(msg.from_net.type!=NET_NONE 
-					&& msg.from_net.type!=NET_FIDO
-					&& msg.from_net.type!=NET_FIDO_ASCII
-					&& !(scfg.sub[i]->misc&SUB_GATE)) {
-					smb_unlockmsghdr(&smb[cur_smb],&msg);
-					smb_freemsgmem(&msg);
-					continue; }
+			SAFECOPY(hdr.to,msg.to);
 
-				memset(&hdr,0,sizeof(fmsghdr_t));	 /* Zero the header */
-				hdr.origzone=scfg.sub[i]->faddr.zone;
-				hdr.orignet=scfg.sub[i]->faddr.net;
-				hdr.orignode=scfg.sub[i]->faddr.node;
-				hdr.origpoint=scfg.sub[i]->faddr.point;
+			SAFECOPY(hdr.subj,msg.subj);
 
-				hdr.attr=FIDO_LOCAL;
-				if(msg.hdr.attr&MSG_PRIVATE)
-					hdr.attr|=FIDO_PRIVATE;
-
-				SAFECOPY(hdr.from,msg.from);
-
-				tt=msg.hdr.when_written.time;
-				if((tm=localtime(&tt)) != NULL)
-					sprintf(hdr.time,"%02u %3.3s %02u  %02u:%02u:%02u"
-						,tm->tm_mday,mon[tm->tm_mon],TM_YEAR(tm->tm_year)
-						,tm->tm_hour,tm->tm_min,tm->tm_sec);
-
-				SAFECOPY(hdr.to,msg.to);
-
-				SAFECOPY(hdr.subj,msg.subj);
-
-				buf=smb_getmsgtxt(&smb[cur_smb],&msg,GETMSGTXT_ALL);
-				if(!buf) {
-					smb_unlockmsghdr(&smb[cur_smb],&msg);
-					smb_freemsgmem(&msg);
-					continue; 
-				}
-				fmsgbuflen=strlen((char *)buf)+4096; /* over alloc for kludge lines */
-				fmsgbuf=malloc(fmsgbuflen);
-				if(!fmsgbuf) {
-					lprintf(LOG_ERR,"ERROR line %d allocating %lu bytes for fmsgbuf"
-						,__LINE__,fmsgbuflen);
-					smb_unlockmsghdr(&smb[cur_smb],&msg);
-					smb_freemsgmem(&msg);
-					continue; 
-				}
-				fmsgbuflen-=1024;	/* give us a bit of a guard band here */
-
-				tear=0;
-				f=0;
-
-				tzone=smb_tzutc(msg.hdr.when_written.zone);
-				if(tzone<0) {
-					minus="-";
-					tzone=-tzone;
-				} else
-					minus="";
-				f+=sprintf(fmsgbuf+f,"\1TZUTC: %s%02d%02u\r"		/* TZUTC (FSP-1001) */
-					,minus,tzone/60,tzone%60);
-
-				if(msg.ftn_flags!=NULL)
-					f+=sprintf(fmsgbuf+f,"\1FLAGS %.256s\r", msg.ftn_flags);
-
-				f+=sprintf(fmsgbuf+f,"\1MSGID: %.256s\r"
-					,ftn_msgid(scfg.sub[i],&msg,msgid,sizeof(msgid)));
-
-				if(msg.ftn_reply!=NULL)			/* use original REPLYID */
-					f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
-				else if(msg.hdr.thread_back) {	/* generate REPLYID */
-					memset(&orig_msg,0,sizeof(orig_msg));
-					orig_msg.hdr.number=msg.hdr.thread_back;
-					if(smb_getmsgidx(&smb[cur_smb], &orig_msg))
-						f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb[cur_smb].last_error);
-					else {
-						smb_lockmsghdr(&smb[cur_smb],&orig_msg);
-						smb_getmsghdr(&smb[cur_smb],&orig_msg);
-						smb_unlockmsghdr(&smb[cur_smb],&orig_msg);
-						f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r"
-							,ftn_msgid(scfg.sub[i],&orig_msg,msgid,sizeof(msgid)));	
-					}
-				}
-				if(msg.ftn_pid!=NULL)	/* use original PID */
-					f+=sprintf(fmsgbuf+f,"\1PID: %.256s\r", msg.ftn_pid);
-				if(msg.ftn_tid!=NULL)	/* use original TID */
-					f+=sprintf(fmsgbuf+f,"\1TID: %.256s\r", msg.ftn_tid);
-				else					/* generate TID */
-					f+=sprintf(fmsgbuf+f,"\1TID: SBBSecho %s-%s r%s %s %s\r"
-						,SBBSECHO_VER,PLATFORM_DESC,revision,__DATE__,compiler);
-
-				/* Unknown kludge lines are added here */
-				for(l=0;l<msg.total_hfields && f<fmsgbuflen;l++)
-					if(msg.hfield[l].type == FIDOCTRL)
-						f+=sprintf(fmsgbuf+f,"\1%.512s\r",(char*)msg.hfield_dat[l]);
-
-				for(l=0,cr=1;buf[l] && f<fmsgbuflen;l++) {
-					if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
-						char ch;
-						l++;
-						if(buf[l]==0 || toupper(buf[l])=='Z')	/* EOF */
-							break;
-						if((ch=ctrl_a_to_ascii_char(buf[l])) != 0)
-							fmsgbuf[f++]=ch;
-						continue; 
-					}
-					
-					/* Need to support converting sole-LFs to Hard-CR and soft-CR (0x8D) as well */
-					if(misc&STRIP_LF && buf[l]=='\n')	/* Ignore line feeds */
-						continue;
-
-					if(cr) {
-						if(buf[l]=='-' && buf[l+1]=='-'
-							&& buf[l+2]=='-'
-							&& (buf[l+3]==' ' || buf[l+3]=='\r')) {
-							if(misc&CONVERT_TEAR)	/* Convert to === */
-								buf[l]=buf[l+1]=buf[l+2]='=';
-							else
-								tear=1; }
-						else if(!strncmp((char *)buf+l," * Origin: ",11))
-							buf[l+1]='#'; } /* Convert * Origin into # Origin */
-
-					if(buf[l]=='\r')
-						cr=1;
-					else
-						cr=0;
-					if((scfg.sub[i]->misc&SUB_ASCII) || (misc&ASCII_ONLY)) {
-						if(buf[l]<' ' && buf[l]!='\r'
-							&& buf[l]!='\n')			/* Ctrl ascii */
-							buf[l]='.';             /* converted to '.' */
-						if((uchar)buf[l]&0x80)		/* extended ASCII */
-							buf[l]=exascii_to_ascii_char(buf[l]);
-					}
-
-					fmsgbuf[f++]=buf[l]; }
-
-				FREE_AND_NULL(buf);
-				fmsgbuf[f]=0;
-
-				if(!(scfg.sub[i]->misc&SUB_NOTAG)) {
-					if(!tear) {  /* No previous tear line */
-						sprintf(str,"--- SBBSecho %s-%s\r"
-							,SBBSECHO_VER,PLATFORM_DESC);
-						strcat((char *)fmsgbuf,str); }
-
-					sprintf(str," * Origin: %s (%s)\r"
-						,scfg.sub[i]->origline[0] ? scfg.sub[i]->origline : scfg.origline
-						,smb_faddrtoa(&scfg.sub[i]->faddr,NULL));
-					strcat((char *)fmsgbuf,str); }
-
-				for(k=0;k<cfg.areas;k++)
-					if(cfg.area[k].sub==i) {
-						cfg.area[k].exported++;
-						pkt_to_pkt(fmsgbuf,cfg.area[k]
-							,(addr.zone) ? addr:pkt_faddr,hdr,msg_seen
-							,msg_path,(addr.zone) ? 2:0);
-						break; }
-				FREE_AND_NULL(fmsgbuf);
-				exported++;
-				exp++;
-				printf("Exp: %lu ",exp);
+			buf=smb_getmsgtxt(&smb[cur_smb],&msg,GETMSGTXT_ALL);
+			if(!buf) {
 				smb_unlockmsghdr(&smb[cur_smb],&msg);
-				smb_freemsgmem(&msg); }
+				smb_freemsgmem(&msg);
+				continue; 
+			}
+			fmsgbuflen=strlen((char *)buf)+4096; /* over alloc for kludge lines */
+			fmsgbuf=malloc(fmsgbuflen);
+			if(!fmsgbuf) {
+				lprintf(LOG_ERR,"ERROR line %d allocating %lu bytes for fmsgbuf"
+					,__LINE__,fmsgbuflen);
+				smb_unlockmsghdr(&smb[cur_smb],&msg);
+				smb_freemsgmem(&msg);
+				continue; 
+			}
+			fmsgbuflen-=1024;	/* give us a bit of a guard band here */
 
-			smb_close(&smb[cur_smb]);
-			FREE_AND_NULL(post);
+			tear=0;
+			f=0;
 
-			/***********************/
-			/* Update FIDO_PTR.DAB */
-			/***********************/
-			if(!addr.zone && !(misc&LEAVE_MSGPTRS) && lastmsg>ptr) {
-				sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
-				if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
-					lprintf(LOG_ERR,"ERROR %d line %d opening/creating %s"
-						,errno,__LINE__,str); }
+			tzone=smb_tzutc(msg.hdr.when_written.zone);
+			if(tzone<0) {
+				minus="-";
+				tzone=-tzone;
+			} else
+				minus="";
+			f+=sprintf(fmsgbuf+f,"\1TZUTC: %s%02d%02u\r"		/* TZUTC (FSP-1001) */
+				,minus,tzone/60,tzone%60);
+
+			if(msg.ftn_flags!=NULL)
+				f+=sprintf(fmsgbuf+f,"\1FLAGS %.256s\r", msg.ftn_flags);
+
+			f+=sprintf(fmsgbuf+f,"\1MSGID: %.256s\r"
+				,ftn_msgid(scfg.sub[i],&msg,msgid,sizeof(msgid)));
+
+			if(msg.ftn_reply!=NULL)			/* use original REPLYID */
+				f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
+			else if(msg.hdr.thread_back) {	/* generate REPLYID (from original message's MSG-ID, if it had one) */
+				memset(&orig_msg,0,sizeof(orig_msg));
+				orig_msg.hdr.number=msg.hdr.thread_back;
+				if(smb_getmsgidx(&smb[cur_smb], &orig_msg))
+					f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb[cur_smb].last_error);
 				else {
-					write(file,&lastmsg,4);
-					close(file); } } }
+					smb_lockmsghdr(&smb[cur_smb],&orig_msg);
+					smb_getmsghdr(&smb[cur_smb],&orig_msg);
+					smb_unlockmsghdr(&smb[cur_smb],&orig_msg);
+					if(orig_msg.ftn_msgid != NULL && orig_msg.ftn_msgid[0])
+						f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r",orig_msg.ftn_msgid);	
+				}
+			}
+			if(msg.ftn_pid!=NULL)	/* use original PID */
+				f+=sprintf(fmsgbuf+f,"\1PID: %.256s\r", msg.ftn_pid);
+			if(msg.ftn_tid!=NULL)	/* use original TID */
+				f+=sprintf(fmsgbuf+f,"\1TID: %.256s\r", msg.ftn_tid);
+			else					/* generate TID */
+				f+=sprintf(fmsgbuf+f,"\1TID: SBBSecho %u.%02u-%s r%s %s %s\r"
+					,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC,revision,__DATE__,compiler);
+
+			/* Unknown kludge lines are added here */
+			for(l=0;l<msg.total_hfields && f<fmsgbuflen;l++)
+				if(msg.hfield[l].type == FIDOCTRL)
+					f+=sprintf(fmsgbuf+f,"\1%.512s\r",(char*)msg.hfield_dat[l]);
+
+			for(l=0,cr=1;buf[l] && f<fmsgbuflen;l++) {
+				if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
+					char ch;
+					l++;
+					if(buf[l]==0 || toupper(buf[l])=='Z')	/* EOF */
+						break;
+					if((ch=ctrl_a_to_ascii_char(buf[l])) != 0)
+						fmsgbuf[f++]=ch;
+					continue; 
+				}
+					
+				/* Need to support converting sole-LFs to Hard-CR and soft-CR (0x8D) as well */
+				if((misc&STRIP_LF) && buf[l]=='\n')	/* Ignore line feeds */
+					continue;
+
+				if(cr) {
+					if(buf[l]=='-' && buf[l+1]=='-'
+						&& buf[l+2]=='-'
+						&& (buf[l+3]==' ' || buf[l+3]=='\r')) {
+						if(misc&CONVERT_TEAR)	/* Convert to === */
+							buf[l]=buf[l+1]=buf[l+2]='=';
+						else
+							tear=1; 
+					}
+					else if(!strncmp((char *)buf+l," * Origin: ",11))
+						buf[l+1]='#'; 
+				} /* Convert * Origin into # Origin */
+
+				if(buf[l]=='\r')
+					cr=1;
+				else
+					cr=0;
+				if((scfg.sub[i]->misc&SUB_ASCII) || (misc&ASCII_ONLY)) {
+					if(buf[l]<' ' && buf[l]>=0 && buf[l]!='\r'
+						&& buf[l]!='\n')			/* Ctrl ascii */
+						buf[l]='.';             /* converted to '.' */
+					if((uchar)buf[l]&0x80)		/* extended ASCII */
+						buf[l]=exascii_to_ascii_char(buf[l]);
+				}
+
+				fmsgbuf[f++]=buf[l]; 
+			}
+
+			FREE_AND_NULL(buf);
+			fmsgbuf[f]=0;
+
+			if(!(scfg.sub[i]->misc&SUB_NOTAG)) {
+				if(!tear) {  /* No previous tear line */
+					sprintf(str,"--- SBBSecho %u.%02u-%s\r"
+						,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC);
+					strcat((char *)fmsgbuf,str); 
+				}
+
+				sprintf(str," * Origin: %s (%s)\r"
+					,scfg.sub[i]->origline[0] ? scfg.sub[i]->origline : scfg.origline
+					,smb_faddrtoa(&scfg.sub[i]->faddr,NULL));
+				strcat((char *)fmsgbuf,str); 
+			}
+
+			for(k=0;k<cfg.areas;k++)
+				if(cfg.area[k].sub==i) {
+					cfg.area[k].exported++;
+					pkt_to_pkt(fmsgbuf,cfg.area[k]
+						,(addr.zone) ? addr:pkt_faddr,hdr,msg_seen
+						,msg_path,(addr.zone) ? 2:0);
+					break; 
+				}
+			FREE_AND_NULL(fmsgbuf);
+			exported++;
+			exp++;
+			printf("Exp: %lu ",exp);
+			smb_unlockmsghdr(&smb[cur_smb],&msg);
+			smb_freemsgmem(&msg); 
+		}
+
+		smb_close(&smb[cur_smb]);
+		FREE_AND_NULL(post);
+
+		if(!addr.zone && !(misc&LEAVE_MSGPTRS) && lastmsg>ptr)
+			write_export_ptr(i, lastmsg, tag);
+	}
 
 	printf("\n");
 	if(start_tick)	/* Last possible increment of export_ticks */
@@ -3879,8 +3951,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 	if(!addr.zone && cfg.log&LOG_AREA_TOTALS && exported)
 		for(i=0;i<cfg.areas;i++)
 			if(cfg.area[i].exported)
-				lprintf(LOG_INFO,"Exported: %5u msgs %8s -> %s"
-					,cfg.area[i].exported,scfg.sub[cfg.area[i].sub]->code
+				lprintf(LOG_INFO,"Exported: %5u msgs %*s -> %s"
+					,cfg.area[i].exported,LEN_EXTCODE,scfg.sub[cfg.area[i].sub]->code
 					,cfg.area[i].name);
 
 	export_time=((float)export_ticks)/(float)MSCLOCKS_PER_SEC;
@@ -3925,12 +3997,12 @@ int main(int argc, char **argv)
 			,*p,*tp
 			,areatagstr[128],outbound[128]
 			,password[16];
-	uchar	*fmsgbuf=NULL;
+	char	*fmsgbuf=NULL;
 	ushort	attr;
-	int 	i,j,k,file,fmsg,grp,node;
+	int 	i,j,k,file,fmsg,node;
 	BOOL	grunged;
 	uint	subnum[MAX_OPEN_SMBS]={INVALID_SUB};
-	ulong	echomail=0,l,m/* f, */,areatag;
+	ulong	echomail=0,m/* f, */,areatag;
 	time_t	now;
 	time_t	ftime;
 	float	import_time;
@@ -3944,6 +4016,7 @@ int main(int argc, char **argv)
 	faddr_t addr,pkt_faddr;
 	FILE	*stream;
 	pkthdr_t pkthdr;
+	two_plus_t* two_plus;
 	addrlist_t msg_seen,msg_path;
 	areasbbs_t fakearea,curarea;
 	char *usage="\n"
@@ -3967,7 +4040,8 @@ int main(int argc, char **argv)
 	"y: import netmail for unknown users to sysop\n"
 	"o: import all netmail regardless of destination address\n"
 	"s: import private echomail override (strip private status)\n"
-	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n";
+	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n"
+	"                                         W: prompt for key upon abnormal exit\n";
 
 	if((email=(smb_t *)malloc(sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for email.\n");
@@ -3990,13 +4064,13 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.203 $", "%*s %s", revision);
+	sscanf("$Revision: 1.229 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
-	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
+	printf("\nSBBSecho v%u.%02u-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
-		,SBBSECHO_VER
+		,SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR
 		,PLATFORM_DESC
 		,revision
 		);
@@ -4085,6 +4159,9 @@ int main(int argc, char **argv)
 					case '@':
 						pause_on_exit=TRUE;
 						break;
+					case 'W':
+						pause_on_abend=TRUE;
+						break;
 					case 'Q':
 						bail(0);
 					default:
@@ -4098,7 +4175,7 @@ int main(int argc, char **argv)
 			if(strchr(argv[i],'\\') || strchr(argv[i],'/') 
 				|| argv[i][1]==':' || strchr(argv[i],'.'))
 				SAFECOPY(cfg.cfgfile,argv[i]);
-			else if(isdigit(argv[i][0]))
+			else if(isdigit((uchar)argv[i][0]))
 				addr=atofaddr(argv[i]);
 			else
 				SAFECOPY(sub_code,argv[i]); 
@@ -4145,7 +4222,7 @@ int main(int argc, char **argv)
 
 	if(misc&LOGFILE)
 		if((fidologfile=fopen(cfg.logfile,"a"))==NULL) {
-			fprintf(stderr,"\7ERROR line %d opening %s\n",__LINE__,cfg.logfile);
+			fprintf(stderr,"ERROR %u (%s) line %d opening %s\n",errno,strerror(errno),__LINE__,cfg.logfile);
 			bail(1); 
 			return -1;
 		}
@@ -4154,8 +4231,7 @@ int main(int argc, char **argv)
 
 	printf("Reading %s",cfg.areafile);
 	if((stream=fopen(cfg.areafile,"r"))==NULL) {
-		fprintf(stderr,"\nError opening %s for read: %s\n"
-			,cfg.areafile,strerror(errno));
+		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.areafile);
 		bail(1); 
 		return -1;
 	}
@@ -4171,7 +4247,7 @@ int main(int argc, char **argv)
 			continue;
 		if((cfg.area=(areasbbs_t *)realloc(cfg.area,sizeof(areasbbs_t)*
 			(cfg.areas+1)))==NULL) {
-			fprintf(stderr,"ERROR allocating memory for area #%u.\n",cfg.areas+1);
+			lprintf(LOG_ERR,"ERROR allocating memory for area #%u.",cfg.areas+1);
 			bail(1); 
 			return -1;
 		}
@@ -4200,7 +4276,7 @@ int main(int argc, char **argv)
 		if(tmp[0]=='*')         /* UNKNOWN-ECHO area */
 			cfg.badecho=cfg.areas;
 		if((cfg.area[cfg.areas].name=(char *)malloc(strlen(tmp)+1))==NULL) {
-			fprintf(stderr,"ERROR allocating memory for area #%u tag name.\n"
+			lprintf(LOG_ERR,"ERROR allocating memory for area #%u tag name."
 				,cfg.areas+1);
 			bail(1); 
 			return -1;
@@ -4216,7 +4292,7 @@ int main(int argc, char **argv)
 			if((cfg.area[cfg.areas].uplink=(faddr_t *)
 				realloc(cfg.area[cfg.areas].uplink
 				,sizeof(faddr_t)*(cfg.area[cfg.areas].uplinks+1)))==NULL) {
-				fprintf(stderr,"ERROR allocating memory for area #%u uplinks.\n"
+				lprintf(LOG_ERR,"ERROR allocating memory for area #%u uplinks."
 					,cfg.areas+1);
 				bail(1); 
 				return -1;
@@ -4266,11 +4342,11 @@ int main(int argc, char **argv)
 
 		lprintf(LOG_DEBUG,"%21s: %s ","Outbound Packet",packet);
 		if((fmsg=sopen(packet,O_RDWR|O_BINARY,SH_DENYRW))==-1) {
-			lprintf(LOG_ERR,"ERROR line %d opening %s",__LINE__,packet);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,packet);
 			continue; }
 		if((fidomsg=fdopen(fmsg,"r+b"))==NULL) {
 			close(fmsg);
-			lprintf(LOG_ERR,"ERROR line %d fdopening %s",__LINE__,packet);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d fdopening %s",errno,strerror(errno),__LINE__,packet);
 			continue; }
 		if(filelength(fmsg)<sizeof(pkthdr_t)) {
 			lprintf(LOG_ERR,"ERROR line %d invalid length of %lu bytes for %s"
@@ -4300,15 +4376,15 @@ int main(int argc, char **argv)
 			pkt_faddr.net=pkthdr.destnet;
 			pkt_faddr.node=pkthdr.destnode;
 			pkt_faddr.point=0;				/* No point info in the 2.0 hdr! */
-			memcpy(&two_plus,&pkthdr.empty,sizeof(two_plus));
-			if(two_plus.cword==_rotr(two_plus.cwcopy,8)  /* 2+ Packet Header */
-				&& two_plus.cword && two_plus.cword&1)
-				pkt_faddr.point=two_plus.destpoint;
-			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header */
-				memcpy(&two_two,&pkthdr.empty,sizeof(two_two));
-				pkt_faddr.point=pkthdr.month; }
+			two_plus = (two_plus_t*)&pkthdr.empty;
+			if(two_plus->cword==_rotr(two_plus->cwcopy,8)  /* 2+ Packet Header */
+				&& two_plus->cword && (two_plus->cword&1))
+				pkt_faddr.point=two_plus->destpoint;
+			else if(pkthdr.baud==2) 				/* Type 2.2 Packet Header */
+				pkt_faddr.point=pkthdr.month; 
 			lprintf(LOG_DEBUG,"Sending to %s",smb_faddrtoa(&pkt_faddr,NULL));
-			pack_bundle(packet,pkt_faddr); }
+			pack_bundle(packet,pkt_faddr); 
+		}
 		else {
 			fclose(fidomsg);
 			lprintf(LOG_WARNING,"Stray Outbound Packet (%s) possibly still in use (ftime: %.24s)"
@@ -4330,6 +4406,7 @@ int main(int argc, char **argv)
 			if(secure && !cfg.secure[0])
 				break;
 		do {
+
 		/****** START OF IMPORT PKT ROUTINE ******/
 
 		offset=strlen(secure ? cfg.secure : cfg.inbound);
@@ -4344,8 +4421,7 @@ int main(int argc, char **argv)
 			SAFECOPY(packet,g.gl_pathv[f]);
 
 			if((fidomsg=fnopen(&fmsg,packet,O_RDWR))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,packet
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,packet);
 				continue; 
 			}
 			if(filelength(fmsg)<sizeof(pkthdr_t)) {
@@ -4372,6 +4448,13 @@ int main(int argc, char **argv)
 				continue; 
 			}
 
+			if(pkthdr.pkttype != 2) {
+				fclose(fidomsg);
+				lprintf(LOG_WARNING,"%s is not a type 2 packet (type=%u)"
+					,packet, pkthdr.pkttype);
+				continue; 
+			}
+
 			pkt_faddr.zone=pkthdr.origzone ? pkthdr.origzone:sys_faddr.zone;
 			pkt_faddr.net=pkthdr.orignet;
 			pkt_faddr.node=pkthdr.orignode;
@@ -4379,28 +4462,27 @@ int main(int argc, char **argv)
 
 			printf("%21s: %s "
 				,secure ? "Importing Secure Pkt" : "Importing Packet",packet+offset);
-			memcpy(&two_plus,&pkthdr.empty,sizeof(two_plus));
-			if(two_plus.cword==_rotr(two_plus.cwcopy,8)  /* 2+ Packet Header */
-				&& two_plus.cword && two_plus.cword&1) {
+			two_plus = (two_plus_t*)&pkthdr.empty;
+			if(two_plus->cword==_rotr(two_plus->cwcopy,8)  /* 2+ Packet Header (see FSC-39 and FSC-48 for explanation of this insanity) */
+				&& (two_plus->cword&1)) {
 				pkt_type=PKT_TWO_PLUS;
-				pkt_faddr.point=two_plus.origpoint ? two_plus.origpoint:0;
-				if(pkt_faddr.point && pkthdr.orignet==-1)
-					pkt_faddr.net=two_plus.auxnet ? two_plus.auxnet:sys_faddr.zone;
+				pkt_faddr.point=two_plus->origpoint;
+				if(pkt_faddr.point != 0 && pkthdr.orignet == -1)
+					pkt_faddr.net=two_plus->auxnet ? two_plus->auxnet:sys_faddr.net;
 				printf("(Type 2+)");
 				if(cfg.log&LOG_PACKETS)
 					logprintf("Importing %s%s (Type 2+) from %s"
 						,secure ? "(secure) ":"",packet+offset,smb_faddrtoa(&pkt_faddr,NULL)); 
 			}
-			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header */
+			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header (FSC-45) */
 				pkt_type=PKT_TWO_TWO;
-				memcpy(&two_two,&pkthdr.empty,sizeof(two_two));
 				pkt_faddr.point=pkthdr.year ? pkthdr.year:0;
 				printf("(Type 2.2)");
 				if(cfg.log&LOG_PACKETS)
 					logprintf("Importing %s%s (Type 2.2) from %s"
 						,secure ? "(secure) ":"",packet+offset,smb_faddrtoa(&pkt_faddr,NULL)); 
 			}
-			else {
+			else {	/* Type 2.0, FTS-1 */
 				pkt_type=PKT_TWO;
 				printf("(Type 2)");
 				if(cfg.log&LOG_PACKETS)
@@ -4431,6 +4513,10 @@ int main(int argc, char **argv)
 
 				memset(&hdr,0,sizeof(fmsghdr_t));
 
+				/* Sept-16-2013: copy the origin zone from the packet header
+				   as packed message headers don't have the zone information */
+				hdr.origzone=pkt_faddr.zone;
+
 				if(start_tick)
 					import_ticks+=msclock()-start_tick;
 				start_tick=msclock();
@@ -4441,45 +4527,6 @@ int main(int argc, char **argv)
 				}
 
 				grunged=FALSE;
-
-#if 0	/* Old way */
-
-				if(!fread(&ch,1,1,fidomsg)) 		 /* Message type (0200h) */
-					break;
-				if(ch!=02)
-					continue;
-				if(!fread(&ch,1,1,fidomsg))
-					break;
-				if(ch!=00)
-					continue;
-				fread(&hdr.orignode,2,1,fidomsg);
-				fread(&hdr.destnode,2,1,fidomsg);
-				fread(&hdr.orignet,2,1,fidomsg);
-				fread(&hdr.destnet,2,1,fidomsg);
-				fread(&hdr.attr,2,1,fidomsg);
-				fread(&hdr.cost,2,1,fidomsg);
-
-				for(i=0;i<sizeof(hdr.time);i++) 		/* Read in the Date/Time */
-					if(!fread(hdr.time+i,1,1,fidomsg) || !hdr.time[i])
-						break;
-				if(i==sizeof(hdr.time)) grunged=1;
-
-				for(i=0;!grunged && i<sizeof(hdr.to);i++) /* Read in the 'To' Field */
-					if(!fread(hdr.to+i,1,1,fidomsg) || !hdr.to[i])
-						break;
-				if(i==sizeof(hdr.to)) grunged=1;
-
-				for(i=0;!grunged && i<sizeof(hdr.from);i++) /* Read in 'From' Field */
-					if(!fread(hdr.from+i,1,1,fidomsg) || !hdr.from[i])
-						break;
-				if(i==sizeof(hdr.from)) grunged=1;
-
-				for(i=0;!grunged && i<sizeof(hdr.subj);i++) /* Read in 'Subj' Field */
-					if(!fread(hdr.subj+i,1,1,fidomsg) || !hdr.subj[i])
-						break;
-				if(i==sizeof(hdr.subj)) grunged=1;
-
-#else	/* New way */
 
 				/* Read fixed-length header fields */
 				if(fread(&pkdmsg,sizeof(BYTE),sizeof(pkdmsg),fidomsg)!=sizeof(pkdmsg))
@@ -4502,7 +4549,6 @@ int main(int argc, char **argv)
 					freadstr(fidomsg,hdr.from,sizeof(hdr.from));
 					freadstr(fidomsg,hdr.subj,sizeof(hdr.subj));
 				}
-#endif
 				hdr.attr&=~FIDO_LOCAL;	/* Strip local bit, obviously not created locally */
 
 				str[0]=0;
@@ -4558,7 +4604,7 @@ int main(int argc, char **argv)
 						else
 							printf("(Passthru) ");
 						fmsgbuf=getfmsg(fidomsg,NULL);
-						gen_psb(&msg_seen,&msg_path,fmsgbuf,pkthdr.destzone);
+						gen_psb(&msg_seen,&msg_path,fmsgbuf,pkthdr.origzone);	/* was destzone */
 						break; 
 					}
 
@@ -4571,7 +4617,7 @@ int main(int argc, char **argv)
 						else
 							printf("(Passthru) ");
 						fmsgbuf=getfmsg(fidomsg,NULL);
-						gen_psb(&msg_seen,&msg_path,fmsgbuf,pkthdr.destzone); 
+						gen_psb(&msg_seen,&msg_path,fmsgbuf,pkthdr.origzone);	/* was destzone */
 					}
 					else {
 						start_tick=0;
@@ -4581,7 +4627,7 @@ int main(int argc, char **argv)
 					} 
 				}
 
-				if(misc&SECURE && cfg.area[i].sub!=INVALID_SUB) {
+				if((misc&SECURE) && cfg.area[i].sub!=INVALID_SUB) {
 					for(j=0;j<cfg.area[i].uplinks;j++)
 						if(!memcmp(&cfg.area[i].uplink[j],&pkt_faddr,sizeof(faddr_t)))
 							break;
@@ -4693,7 +4739,7 @@ int main(int argc, char **argv)
 					} 
 				}
 
-				if(!(hdr.attr&FIDO_PRIVATE) && scfg.sub[cfg.area[i].sub]->misc&SUB_PONLY)
+				if(!(hdr.attr&FIDO_PRIVATE) && (scfg.sub[cfg.area[i].sub]->misc&SUB_PONLY))
 					hdr.attr|=MSG_PRIVATE;
 
 				/**********************/
@@ -4721,7 +4767,7 @@ int main(int argc, char **argv)
 					echomail++;
 					cfg.area[i].imported++;
 					/* Should this check if the user has access to the echo in question? */
-					if(i!=cfg.badecho && misc&NOTIFY_RECEIPT && (m=matchname(hdr.to))!=0) {
+					if(i!=cfg.badecho && (misc&NOTIFY_RECEIPT) && (m=matchname(hdr.to))!=0) {
 						sprintf(str
 						,"\7\1n\1hSBBSecho: \1m%.*s \1n\1msent you EchoMail on "
 							"\1h%s \1n\1m%s\1n\r\n"
@@ -4809,8 +4855,7 @@ int main(int argc, char **argv)
 			SAFECOPY(path,g.gl_pathv[f]);
 
 			if((fidomsg=fnopen(&fmsg,path,O_RDWR))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,path
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,path);
 				continue; }
 			if(filelength(fmsg)<sizeof(fmsghdr_t)) {
 				lprintf(LOG_ERR,"ERROR line %d invalid length of %lu bytes for %s",__LINE__
@@ -4867,8 +4912,7 @@ int main(int argc, char **argv)
 			SAFECOPY(path,g.gl_pathv[f]);
 
 			if((fidomsg=fnopen(&fmsg,path,O_RDWR))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,path
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,path);
 				continue; }
 			if(filelength(fmsg)<sizeof(fmsghdr_t)) {
 				lprintf(LOG_WARNING,"%s Invalid length of %lu bytes",path,filelength(fmsg));
@@ -4951,15 +4995,15 @@ int main(int argc, char **argv)
 					if(write_flofile(hdr.subj,addr,FALSE /* !bundle */))
 						bail(1); 
 			}
-			else
+			else {
 				SAFECOPY(packet,pktname(/* Temp? */ FALSE));
+			}
 
 			lprintf(LOG_DEBUG,"NetMail packet: %s", packet);
 			now=time(NULL);
 			tm=localtime(&now);
 			if((stream=fnopen(&file,packet,O_RDWR|O_CREAT))==NULL) {
-				lprintf(LOG_ERR,"ERROR line %d opening %s %s",__LINE__,packet
-					,strerror(errno));
+				lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,packet);
 				bail(1); 
 				return -1;
 			}
@@ -4986,20 +5030,19 @@ int main(int argc, char **argv)
 				pkthdr.destzone=addr.zone;
 				if(node<cfg.nodecfgs) {
 					if(cfg.nodecfg[node].pkt_type==PKT_TWO_PLUS) {
-						memset(&two_plus,0,sizeof(two_plus));
+						two_plus = (two_plus_t*)&pkthdr.empty;
 						if(hdr.origpoint) {
 							pkthdr.orignet=-1;
-							two_plus.auxnet=hdr.orignet; 
+							two_plus->auxnet=hdr.orignet; 
 						}
-						two_plus.cwcopy=0x0100;
-						two_plus.prodcode=pkthdr.prodcode;
-						two_plus.revision=pkthdr.sernum;
-						two_plus.cword=0x0001;
-						two_plus.origzone=pkthdr.origzone;
-						two_plus.destzone=pkthdr.destzone;
-						two_plus.origpoint=hdr.origpoint;
-						two_plus.destpoint=addr.point;
-						memcpy(&pkthdr.empty,&two_plus,sizeof(pkthdr.empty)); 
+						two_plus->cwcopy=0x0100;
+						two_plus->prodcode=pkthdr.prodcode;
+						two_plus->revision=pkthdr.sernum;
+						two_plus->cword=0x0001;
+						two_plus->origzone=pkthdr.origzone;
+						two_plus->destzone=pkthdr.destzone;
+						two_plus->origpoint=hdr.origpoint;
+						two_plus->destpoint=addr.point;
 					}
 					memcpy(pkthdr.password,cfg.nodecfg[node].pktpwd,sizeof(pkthdr.password));
 				}
@@ -5030,37 +5073,32 @@ int main(int argc, char **argv)
 
 		lprintf(LOG_DEBUG,"\nUpdating Message Pointers to Last Posted Message...");
 
-		for(grp=0;grp<scfg.total_grps;grp++) {
-			for(i=0;i<scfg.total_subs;i++) {
-				if(scfg.sub[i]->misc&SUB_FIDO && scfg.sub[i]->grp==grp) {
-					lprintf(LOG_DEBUG,"\n%-15.15s %s"
-						,scfg.grp[scfg.sub[i]->grp]->sname,scfg.sub[i]->lname);
-					getlastmsg(i,&l,0);
-					sprintf(str,"%s%s.sfp",scfg.sub[i]->data_dir,scfg.sub[i]->code);
-					if((file=nopen(str,O_WRONLY|O_CREAT))==-1) {
-						lprintf(LOG_ERR,"ERROR %d line %d opening/creating %s"
-							,errno,__LINE__,str); }
-					else {
-						write(file,&l,4);
-						close(file); 
-					} 
-				}
-			}
+		for(j=0; j<cfg.areas; j++) {
+			uint32_t lastmsg;
+			if(j==cfg.badecho)	/* Don't scan the bad-echo area */
+				continue;
+			i=cfg.area[j].sub;
+			if(i<0 || i>=scfg.total_subs)	/* Don't scan pass-through areas */
+				continue;
+			lprintf(LOG_DEBUG,"\n%-*.*s -> %s"
+				,LEN_EXTCODE, LEN_EXTCODE, scfg.sub[i]->code, cfg.area[j].name);
+			getlastmsg(i,&lastmsg,0);
+			write_export_ptr(i, lastmsg, cfg.area[j].name);
 		}
 	}
 
-	if(misc&(IMPORT_NETMAIL|IMPORT_ECHOMAIL) && misc&REPORT) {
+	if(misc&(IMPORT_NETMAIL|IMPORT_ECHOMAIL) && (misc&REPORT)) {
 		now=time(NULL);
 		sprintf(str,"%ssbbsecho.msg",scfg.text_dir);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
-			lprintf(LOG_ERR,"ERROR line %d opening %s",__LINE__,str);
+			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,str);
 			bail(1); 
 			return -1;
 		}
 		sprintf(fname,"\1c\1h               "
-			"‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹\r\n");
+			"\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\xdc\r\n");
 		sprintf(path,"\1c\1h               "
-			"ﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂﬂ\r\n");
+			"\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\xdf\r\n");
 		write(file,fname,strlen(fname));
 		sprintf(str,"               \1n\1k\0016"
 			" Last FidoNet Transfer on %.24s \1n\r\n",ctime(&now));
