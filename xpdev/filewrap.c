@@ -2,13 +2,13 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.45 2014/01/04 09:38:39 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.42 2013/10/29 20:03:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -303,11 +303,11 @@ static int expandtofit(char **linep, size_t len, size_t *linecapp)
 	char	*newline;
 	size_t	newcap;
 
-	if(len+1 >= LONG_MAX)
+	if(len > LONG_MAX + 1)
 		return -1;
 	if(len > *linecapp) {
-		if(len == LONG_MAX)
-			newcap = LONG_MAX;
+		if(len == LONG_MAX + 1)
+			newcap = LONG_MAX + 1;
 		else
 			newcap = p2roundup(len);
 		newline = (char *)realloc(*linep, newcap);
@@ -340,7 +340,7 @@ long DLLCALL getdelim(char **linep, size_t *linecapp, int delimiter, FILE *strea
 		ch = fgetc(stream);
 		if(ch == EOF)
 			break;
-		if(expandtofit(linep, linelen+2, linecapp))
+		if(expandtofit(linep, linelen+1, linecapp))
 			return -1;
 		(*linep)[linelen++]=ch;
 		if(ch == delimiter)
