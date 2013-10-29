@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.40 2014/02/06 03:13:53 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.38 2013/10/13 06:12:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1077,16 +1077,16 @@ char *xp_asprintf_next(char *format, int type, ...)
 					switch(type) {
 						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
-							pntr=(void *)((intptr_t)i);
+							pntr=(void *)i;
 							break;
 						case XP_PRINTF_TYPE_UINT:
-							pntr=(void *)((uintptr_t)ui);
+							pntr=(void *)ui;
 							break;
 						case XP_PRINTF_TYPE_LONG:
-							pntr=(void *)((intptr_t)l);
+							pntr=(void *)l;
 							break;
 						case XP_PRINTF_TYPE_ULONG:
-							pntr=(void *)((uintptr_t)ul);
+							pntr=(void *)ul;
 							break;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
 						case XP_PRINTF_TYPE_LONGLONG:
@@ -1097,18 +1097,18 @@ char *xp_asprintf_next(char *format, int type, ...)
 							break;
 #endif
 						case XP_PRINTF_TYPE_CHARP:
-							pntr=(void *)(cp);
+							pntr=(void *)cp;
 							break;
 						case XP_PRINTF_TYPE_DOUBLE:
-							pntr=(void *)((intptr_t)d);
+							pntr=(void *)(long int)d;
 							break;
 						case XP_PRINTF_TYPE_LONGDOUBLE:
-							pntr=(void *)((intptr_t)ld);
+							pntr=(void *)(long int)ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
 							break;
 						case XP_PRINTF_TYPE_SIZET:
-							pntr=(void *)((intptr_t)s);
+							pntr=(void *)s;
 							break;
 					}
 					break;

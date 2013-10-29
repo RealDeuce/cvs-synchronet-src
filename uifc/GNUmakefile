@@ -1,14 +1,14 @@
-# uifc/Makefile
+# smblib/Makefile
 
 #########################################################################
-# Makefile for Synchronet User Interface Library (UIFC)					#
-# For use with GNU make for *nix								        #
+# Makefile for Synchronet Message Base Library (SMBLIB)					#
+# For use with Borland C++ Builder 5+ or Borland C++ 5.5 for Win32      #
 # @format.tab-size 4													#
 #																		#
 # usage: make															#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.13 2014/02/06 10:46:42 deuce Exp $
+# $Id: GNUmakefile,v 1.11 2005/06/04 01:54:48 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
@@ -17,7 +17,7 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
 
-CFLAGS += -DWRAPPER_IMPORTS -I$(XPDEV_SRC) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS)
+CFLAGS += -DWRAPPER_IMPORTS -I$(XPDEV_SRC) $(CIOLIB-MT_CFLAGS)
 
 # UIFC Library Link Rule
 $(UIFCLIB_BUILD): $(OBJS)
