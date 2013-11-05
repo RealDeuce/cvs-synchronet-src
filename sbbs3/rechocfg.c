@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.30 2013/10/29 20:18:01 deuce Exp $ */
+/* $Id: rechocfg.c,v 1.31 2013/11/05 07:07:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -378,7 +378,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"USEPACKER")) {          /* Which packer to use */
 			if(!*p)
 				continue;
-			SAFECOPY(str,p);
+			strcpy(str,p);
 			p=str;
 			SKIPCODE(p);
 			if(!*p)
@@ -430,7 +430,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"PKTTYPE")) {            /* Packet Type to Use */
 			if(!*p)
 				continue;
-			SAFECOPY(str,p);
+			strcpy(str,p);
 			p=str;
 			SKIPCODE(p);
 			*p=0;
