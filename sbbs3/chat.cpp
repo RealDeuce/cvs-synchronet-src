@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.62 2012/03/07 06:47:45 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.64 2013/09/18 16:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -106,7 +106,8 @@ void sbbs_t::multinodechat(int channel)
 		if(node.aux && (node.aux&0xff)!=channel)
 			continue;
 		printnodedat(i,&node);
-		preusr[usrs]=usr[usrs++]=(char)i; 
+		preusr[usrs]=(char)i;
+		usr[usrs++]=(char)i; 
 	}
 	preusrs=usrs;
 	if(gurubuf)
@@ -218,7 +219,8 @@ void sbbs_t::multinodechat(int channel)
 							if(strcmp(str,unpackchatpass(tmp,&node)))
 								break;
 								bputs(text[CorrectPassword]);  }
-						preusr[usrs]=usr[usrs++]=(char)i; 
+						preusr[usrs]=(char)i;
+						usr[usrs++]=(char)i; 
 					}
 					if(i<=cfg.sys_nodes) {	/* failed password */
 						bputs(text[WrongPassword]);
@@ -291,7 +293,8 @@ void sbbs_t::multinodechat(int channel)
 								|| node.status!=NODE_INUSE)
 								continue;
 							printnodedat(i,&node);
-							preusr[usrs]=usr[usrs++]=(char)i; 
+							preusr[usrs]=(char)i;
+							usr[usrs++]=(char)i; 
 						}
 						preusrs=usrs;
 						if(getnodedat(cfg.node_num,&thisnode,true)==0) {
@@ -856,6 +859,12 @@ void sbbs_t::privchat(bool local)
 
 	if(!online || sys_status&SS_ABORT)
 		return;
+
+	if(local) {
+		/* If an external sysop chat event handler is installed, just run that and do nothing else */
+		if(user_event(EVENT_LOCAL_CHAT))
+			return;
+	}
 
 	if(((sys_status&SS_USERON && useron.chat&CHAT_SPLITP) || !(sys_status&SS_USERON))
 		&& term_supports(ANSI) && rows>=24 && cols>=80)

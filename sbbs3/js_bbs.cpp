@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.140 2013/02/10 20:09:49 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.146 2013/09/15 10:12:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -953,8 +953,10 @@ static uint get_subnum(JSContext* cx, sbbs_t* sbbs, jsval *argv, int argc, int p
 			if(!stricmp(sbbs->cfg.sub[subnum]->code,p))
 				break;
 	} else if(argc>pos && JSVAL_IS_NUMBER(argv[pos])) {
-		if(!JS_ValueToInt32(cx,argv[pos],(int32*)&subnum))
+		int32 i;
+		if(!JS_ValueToInt32(cx,argv[pos],&i))
 			return JS_FALSE;
+		subnum = i;
 	}
 	else if(sbbs->usrgrps>0)
 		subnum=sbbs->usrsub[sbbs->curgrp][sbbs->cursub[sbbs->curgrp]];
@@ -977,8 +979,10 @@ static uint get_dirnum(JSContext* cx, sbbs_t* sbbs, jsval val, bool dflt)
 				if(!stricmp(sbbs->cfg.dir[dirnum]->code,p))
 					break;
 		} else if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx,val,(int32*)&dirnum))
+			int32 i;
+			if(!JS_ValueToInt32(cx,val,&i))
 				return JS_FALSE;
+			dirnum = i;
 		}
 		else if(sbbs->usrlibs>0)
 			dirnum=sbbs->usrdir[sbbs->curlib][sbbs->curdir[sbbs->curlib]];
@@ -1686,13 +1690,14 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	if(name==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_ASTRING(cx, js_pw, pw, LEN_PASS+2, NULL);
+	JSSTRING_TO_MSTRING(cx, js_pw, pw, NULL);
 	if(pw==NULL) 
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->login(name,pw)==LOGIC_TRUE ? JS_TRUE:JS_FALSE));
 	JS_RESUMEREQUEST(cx, rc);
+	free(pw);
 	return(JS_TRUE);
 }
 
@@ -2621,6 +2626,80 @@ js_telnet_gate(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
+js_rlogin_gate(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		addr;
+	char*		alias=NULL;
+	char*		pass=NULL;
+	bool		fail;
+	int32		mode = 0;
+	JSString*	js_addr;
+	JSString*	js_alias;
+	JSString*	js_pass;
+	sbbs_t*		sbbs;
+	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+ 	if(!js_argc(cx, argc, 1))
+		return(JS_FALSE);
+ 
+	if((sbbs=js_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	if((js_addr=JS_ValueToString(cx, argv[0]))==NULL) 
+		return(JS_FALSE);
+
+	JSSTRING_TO_MSTRING(cx, js_addr, addr, NULL);
+	if(addr==NULL) 
+		return(JS_FALSE);
+
+	/* if remote username & password supplied */
+	if(argc>2) {
+	
+		if((js_alias=JS_ValueToString(cx, argv[1]))==NULL) {
+			fail = true;
+		}
+			
+		if((js_pass=JS_ValueToString(cx, argv[2]))==NULL) {
+			fail = true;
+		}
+
+		JSSTRING_TO_MSTRING(cx, js_alias, alias, NULL);
+		JSSTRING_TO_MSTRING(cx, js_pass, pass, NULL);
+		
+		if(argc>3 && JSVAL_IS_NUMBER(argv[3])) {
+			if(!JS_ValueToInt32(cx,argv[3],&mode)) {
+				fail = true;
+			}
+		}
+	}
+	else if(argc>1 && JSVAL_IS_NUMBER(argv[1])) {
+		if(!JS_ValueToInt32(cx,argv[1],&mode)) {
+			fail = true;
+		}
+	}
+	
+	if(fail == true) {
+		lprintf(LOG_NOTICE,"fail!");
+		free(addr);
+		free(alias);
+		free(pass);
+		return JS_FALSE;
+	}
+
+	rc=JS_SUSPENDREQUEST(cx);
+	sbbs->telnet_gate(addr,mode|TG_RLOGIN,alias,pass);
+	free(addr);
+	free(alias);
+	free(pass);
+	JS_RESUMEREQUEST(cx, rc);
+	
+	return(JS_TRUE);
+}
+
+static JSBool
 js_pagesysop(JSContext *cx, uintN argc, jsval *arglist)
 {
 	sbbs_t*		sbbs;
@@ -2934,6 +3013,7 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
 	const char	*def=ALLFILES;
+	char*		afspec=NULL;
 	char*		fspec=(char *)def;
 	char		buf[MAX_PATH+1];
 	uint		dirnum;
@@ -2960,9 +3040,10 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
-			JSSTRING_TO_MSTRING(cx, js_str, fspec, NULL);
-			if(fspec==NULL)
+			JSSTRING_TO_MSTRING(cx, js_str, afspec, NULL);
+			if(afspec==NULL)
 				return JS_FALSE;
+			fspec=afspec;
 		}
 	}
 
@@ -2971,8 +3052,8 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 		fspec=padfname(fspec,buf);
 
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->listfiles(dirnum,fspec,0 /* tofile */,mode)));
-	if(fspec != def)
-		free(fspec);
+	if(afspec)
+		free(afspec);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -3310,8 +3391,10 @@ js_getnstime(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],(int32*)&t))
+		int32 i;
+		if(!JS_ValueToInt32(cx,argv[0],&i))
 			return JS_FALSE;
+		t = i;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -3682,6 +3765,10 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	{"telnet_gate",		js_telnet_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,mode=<tt>TG_NONE</tt>]")
 	,JSDOCSTR("external telnet/rlogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
 	,310
+	},		
+	{"rlogin_gate",		js_rlogin_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,user=<tt>user.alias</tt>,pass=<tt>user.pass</tt>,mode=<tt>TG_NONE</tt>]")
+	,JSDOCSTR("external RLogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
+	,316
 	},		
 	/* security */
 	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")

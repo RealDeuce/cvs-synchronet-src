@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.28 2012/11/22 04:55:16 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.31 2013/11/05 07:07:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -180,7 +180,9 @@ int matchnode(faddr_t addr, int exact)
 #define SKIPCODE(p)		while(*p<0 || *p>' ') p++
 void read_echo_cfg()
 {
-	char str[1025],tmp[512],*p,*tp;
+	char *str = NULL;
+	size_t str_size;
+	char tmp[512],*p,*tp;
 	short attr=0;
 	int i,j,file;
 	FILE *stream;
@@ -200,10 +202,11 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
+	cfg.zone_blind=FALSE;
 	SAFECOPY(cfg.sysop_alias,"SYSOP");
 
 	while(1) {
-		if(!fgets(str,256,stream))
+		if(getdelim(&str,&str_size,'\n',stream)==-1)
 			break;
 		truncsp(str);
 		p=str;
@@ -243,7 +246,7 @@ void read_echo_cfg()
 			tp=cfg.arcdef[cfg.arcdefs].hexid;
 			SKIPCODE(tp);
 			*tp=0;
-			while(fgets(str,256,stream) && strnicmp(str,"END",3)) {
+			while((getdelim(&str,&str_size,'\n',stream) != -1) && strnicmp(str,"END",3)) {
 				p=str;
 				SKIPCTRLSP(p);
 				if(!strnicmp(p,"PACK ",5)) {
@@ -265,6 +268,11 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"NOPATHCHECK")) {
 			cfg.check_path=FALSE;
+			continue;
+		}
+
+		if(!stricmp(tmp,"ZONE_BLIND")) {
+			cfg.zone_blind=TRUE;
 			continue;
 		}
 
@@ -370,7 +378,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"USEPACKER")) {          /* Which packer to use */
 			if(!*p)
 				continue;
-			SAFECOPY(str,p);
+			strcpy(str,p);
 			p=str;
 			SKIPCODE(p);
 			if(!*p)
@@ -422,7 +430,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"PKTTYPE")) {            /* Packet Type to Use */
 			if(!*p)
 				continue;
-			SAFECOPY(str,p);
+			strcpy(str,p);
 			p=str;
 			SKIPCODE(p);
 			*p=0;
@@ -636,6 +644,8 @@ void read_echo_cfg()
 	if(cfg.maxbdlsize<1024)
 		cfg.maxbdlsize=DFLT_BDL_SIZE;
 
+	if(str)
+		free(str);
 	printf("\n");
 }
 
