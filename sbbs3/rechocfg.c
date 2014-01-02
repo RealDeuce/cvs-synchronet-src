@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.33 2015/04/24 05:47:41 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.31 2013/11/05 07:07:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -202,9 +202,7 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
-	cfg.fwd_circular=TRUE;
 	cfg.zone_blind=FALSE;
-	cfg.zone_blind_threshold=0xffff;
 	SAFECOPY(cfg.sysop_alias,"SYSOP");
 
 	while(1) {
@@ -272,15 +270,9 @@ void read_echo_cfg()
 			cfg.check_path=FALSE;
 			continue;
 		}
-		if(!stricmp(tmp,"NOCIRCULARFWD")) {
-			cfg.fwd_circular=FALSE;
-			continue;
-		}
 
 		if(!stricmp(tmp,"ZONE_BLIND")) {
 			cfg.zone_blind=TRUE;
-			if(*p && isdigit(*p))	/* threshold specified (zones > this threshold will be treated normally/separately) */
-				cfg.zone_blind_threshold=atoi(p);
 			continue;
 		}
 
