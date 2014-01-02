@@ -2,7 +2,7 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.68 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.69 2011/11/13 01:17:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -458,10 +458,14 @@ void sbbs_t::ctrl_a(char x)
 		case 'T':   /* Time */
 			now=time(NULL);
 			localtime_r(&now,&tm);
-			bprintf("%02d:%02d %s"
-				,tm.tm_hour==0 ? 12
-				: tm.tm_hour>12 ? tm.tm_hour-12
-				: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
+			if(cfg.sys_misc&SM_MILITARY)
+				bprintf("%02u:%02u:%02u"
+					,tm.tm_hour, tm.tm_min, tm.tm_sec);
+			else
+				bprintf("%02d:%02d %s"
+					,tm.tm_hour==0 ? 12
+					: tm.tm_hour>12 ? tm.tm_hour-12
+					: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
 			break;
 		case 'D':   /* Date */
 			now=time(NULL);
