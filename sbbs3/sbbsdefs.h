@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.171 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.187 2013/09/15 10:15:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,16 +50,16 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.15"  /* Version: Major.minor  */
-#define REVISION	'c'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31500	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31500 + (tolower(REVISION)-'a'))
+#define VERSION 	"3.16"  /* Version: Major.minor  */
+#define REVISION	'a'     /* Revision: lowercase letter */
+#define VERSION_NUM	(31600	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31600 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2011 Rob Swindell"
-#define COPYRIGHT_CRC		0x3D5C1DE9
+#define COPYRIGHT_NOTICE	"Copyright 2012 Rob Swindell"
+#define COPYRIGHT_CRC		0x413D3832
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -72,23 +72,21 @@
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
-#define JAVASCRIPT_THREAD_STACK		(256*1024)
-#define JAVASCRIPT_BRANCH_LIMIT		99999999
+#define JAVASCRIPT_TIME_LIMIT		(24*60*600)			/* in 100ms ticks */
 #define JAVASCRIPT_YIELD_INTERVAL	10000
 #define JAVASCRIPT_GC_INTERVAL		100 
 #define JAVASCRIPT_LOAD_PATH		"load"
 #define JAVASCRIPT_LOAD_PATH_LIST	"load_path_list"
 
 typedef struct {
-	ulong	counter;
-	ulong	limit;
-	ulong	yield_interval;
-	ulong	gc_interval;
-	ulong	gc_attempts;
-	BOOL	auto_terminate;
+	uint32_t		counter;
+	uint32_t		limit;
+	uint32_t		yield_interval;
+	uint32_t		gc_interval;
+	uint32_t		gc_attempts;
+	BOOL			auto_terminate;
 	volatile BOOL*	terminated;
-	str_list_t	exit_func;
-} js_branch_t;
+} js_callback_t;
 
 #define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
 
@@ -125,12 +123,12 @@ typedef struct {
 #define UQ_LOCATION		(1L<<1) 	/* Ask for location 					*/
 #define UQ_ADDRESS		(1L<<2) 	/* Ask for address						*/
 #define UQ_PHONE		(1L<<3) 	/* Ask for phone number 				*/
-#define UQ_HANDLE		(1L<<4) 	/* Ask for chat handle					*/
+#define UQ_HANDLE		(1L<<4) 	/* Ask for chat handle / HAM callsign	*/
 #define UQ_DUPHAND		(1L<<5) 	/* Search for duplicate handles 		*/
 #define UQ_SEX			(1L<<6) 	/* Ask for sex :)						*/
 #define UQ_BIRTH		(1L<<7) 	/* Ask for birth date					*/
-#define UQ_COMP 		(1L<<8) 	/* Ask for computer type				*/
-#define UQ_MC_COMP		(1L<<9) 	/* Multiple choice computer type		*/
+#define UQ_UNUSED1 		(1L<<8) 	/* was UQ_COMP							*/
+#define UQ_UNUSED2		(1L<<9) 	/* was UQ_MC_COMP						*/
 #define UQ_REALNAME		(1L<<10)	/* Ask for real name					*/
 #define UQ_DUPREAL		(1L<<11)	/* Search for duplicate real names		*/
 #define UQ_COMPANY		(1L<<12)	/* Ask for company name 				*/
@@ -358,6 +356,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 	,EVENT_POST						/* Execute after posting a message		*/
 	,EVENT_UPLOAD					/* Execute after uploading a file		*/
 	,EVENT_DOWNLOAD					/* Execute after downloading a file		*/
+	,EVENT_LOCAL_CHAT				/* Execute upon local/sysop chat		*/
 } user_event_t;																
 																			
 									/* Misc bits for event_t.misc			*/
@@ -393,8 +392,13 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_SH			(1<<18)		/* Use command shell to execute			*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
-#define QUOTEWRAP		(1<<21)		/* Word-wrap the quoted text			*/
+#define WORDWRAP80		(1<<21)		/* Word-wrap editor to 80 columns		*/
+#define WORDWRAPTERM	(1<<22)		/* Word-wrap editor to terminal width	*/
+#define WORDWRAPLONG	(WORDWRAP80|WORDWRAPTERM)	/* word-wrap to maxlen	*/
+#define WORDWRAPNONE	0			/* No word-wrapping on editor in/ouput	*/
+#define WORDWRAPMASK	WORDWRAPLONG
 #define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
+#define QUOTEWRAP		WORDWRAP80	/* for temporary backwards compat.		*/
 
 
 									/* Bits in cfg.xtrn_misc				*/
@@ -699,6 +703,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_NOPAUSE	(1<<4)		/* Disable screen pause						*/
 #define P_HTML		(1<<5)		/* Message is HTML							*/
 #define P_NOCRLF	(1<<6)		/* Don't prepend a CRLF	in printfile()		*/
+#define P_WORDWRAP	(1<<7)		/* Word-wrap long lines for user's terminal	*/
 								
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -719,6 +724,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_QWKNET	(1<<7)		/* Writing QWK NetMail (25 char title)		*/
 #define WM_PRIVATE	(1<<8)		/* Private (for creating MSGINF file)		*/
 #define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
+#define WM_EDIT		(1<<10)		/* Editing existing message					*/
+#define WM_FORCEFWD	(1<<11)		/* Force "yes" to ForwardMailQ for email	*/
 								
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
@@ -755,7 +762,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define EX_STDIO	(EX_STDIN|EX_STDOUT)
 #define EX_CONIO	(1<<31)		/* Intercept Windows console I/O (doorway)	*/
 
-#if defined(__unix)
+#if defined(__unix__)
 #define EX_WILDCARD	EX_SH		/* Expand wildcards using 'sh' on Unix		*/
 #else
 #define EX_WILDCARD	0
@@ -771,6 +778,8 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
+#define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin)	*/
+#define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
