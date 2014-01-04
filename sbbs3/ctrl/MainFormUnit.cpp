@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.185 2014/01/07 22:51:50 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.184 2014/01/04 10:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -821,7 +821,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     global.sem_chk_freq=5;		/* seconds */
 
     /* These are SBBSCTRL-specific */
-    LoginCommand="telnet://127.0.0.1";
+    LoginCommand="telnet://localhost";
     ConfigCommand="%sscfg.exe %s -l25";
     MinimizeToSysTray=false;
     UndockableForms=false;
