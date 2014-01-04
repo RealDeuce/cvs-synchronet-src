@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.45 2014/01/04 09:38:39 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.44 2014/01/04 09:34:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -306,8 +306,8 @@ static int expandtofit(char **linep, size_t len, size_t *linecapp)
 	if(len+1 >= LONG_MAX)
 		return -1;
 	if(len > *linecapp) {
-		if(len == LONG_MAX)
-			newcap = LONG_MAX;
+		if(len == LONG_MAX + 1)
+			newcap = LONG_MAX + 1;
 		else
 			newcap = p2roundup(len);
 		newline = (char *)realloc(*linep, newcap);
