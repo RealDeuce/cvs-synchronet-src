@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.79 2013/03/16 09:36:41 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.82 2013/10/08 02:09:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,8 +198,8 @@ static char* prop_desc[] = {
 	 "JavaScript engine version information (AKA system.js_version)"
 	,"set to <i>false</i> to disable the automatic termination of the script upon external request"
 	,"termination has been requested (stop execution as soon as possible)"
-	,"number of branch operations performed in this runtime"
-	,"maximum number of branches, used for infinite-loop detection (0=disabled)"
+	,"number of operation callbacks performed in this runtime"
+	,"maximum number of operation callbacks, used for infinite-loop detection (0=disabled)"
 	,"interval of periodic time-slice yields (lower number=higher frequency, 0=disabled)"
 	,"interval of periodic garbage collection attempts (lower number=higher frequency, 0=disabled)"
 	,"number of garbage collections attempted in this runtime - <small>READ ONLY</small>"
@@ -220,8 +220,8 @@ static char* prop_desc[] = {
 		"mods/somefile.js<br>"
 		"exec/somefile.js<br>"
 	,"full path and filename of JS file executed"
-	,"directory of executed JS file"
 	,"JS filename executed (with no path)"
+	,"directory of executed JS file"
 	,"Either the configured startup directory in SCFG (for externals) or the cwd when jsexec is started"
 	,NULL
 };
@@ -242,7 +242,7 @@ js_CommonOperationCallback(JSContext *cx, js_callback_t* cb)
 
 	/* Infinite loop? */
 	if(cb->limit && cb->counter > cb->limit) {
-		JS_ReportError(cx,"Infinite loop (%lu branches) detected",cb->counter);
+		JS_ReportError(cx,"Infinite loop (%lu operation callbacks) detected",cb->counter);
 		cb->counter=0;
 		return(JS_FALSE);
 	}
@@ -309,7 +309,7 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 	JS_SetErrorReporter(parent_cx,reporter);
 	JS_SetErrorReporter(cx,reporter);
 
-	/* Use the branch callback from the parent context */
+	/* Use the operation callback from the parent context */
 	JS_SetContextPrivate(cx, JS_GetContextPrivate(parent_cx));
 	JS_SetOperationCallback(cx, JS_GetOperationCallback(parent_cx));
 
@@ -627,6 +627,16 @@ JSObject* DLLCALL js_CreateInternalJsObject(JSContext* cx, JSObject* parent, js_
 	return(obj);
 }
 
+#if defined(_MSC_VER)
+void msvc_invalid_parameter_handler(const wchar_t* expression,
+   const wchar_t* function, 
+   const wchar_t* file, 
+   unsigned int line, 
+   uintptr_t pReserved)
+{
+}
+#endif
+
 void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
 {
 	JSString*	str;
@@ -658,4 +668,7 @@ void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filen
 			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
+#if defined(_MSC_VER)
+	_set_invalid_parameter_handler(msvc_invalid_parameter_handler);
+#endif
 }
