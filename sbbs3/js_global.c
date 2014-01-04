@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.326 2013/03/16 08:50:24 deuce Exp $ */
+/* $Id: js_global.c,v 1.335 2013/05/19 00:29:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -424,7 +424,8 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		return(JS_FALSE);
 	}
-	JSVALUE_TO_MSTRING(cx, argv[argn++], filename, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[argn], filename, NULL);
+	argn++;
 	if(filename==NULL) {	// This handles the pending error as well as a null JS string.
 		if(background) {
 			rc=JS_SUSPENDREQUEST(cx);
@@ -2450,21 +2451,30 @@ js_md5_calc(JSContext* cx, uintN argc, jsval* arglist)
 }
 
 static JSBool
-js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *))
+js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *), unsigned extra_bytes)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		str;
+	char*		str, *rastr;
 	JSString*	js_str;
+	size_t		strlen;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[0], str, &strlen);
 	HANDLE_PENDING(cx);
 	if(str==NULL) 
 		return(JS_TRUE);
+	if(extra_bytes) {
+		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
+		if(rastr==NULL) {
+			free(str);
+			return JS_TRUE;
+		}
+		str=rastr;
+	}
 
 	js_str = JS_NewStringCopyZ(cx, func(str));
 	free(str);
@@ -2478,37 +2488,37 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 static JSBool
 js_rot13(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, rot13);
+	return js_internal_charfunc(cx, argc, arglist, rot13, 0);
 }
 
 static JSBool
 js_skipsp(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, skipsp);
+	return js_internal_charfunc(cx, argc, arglist, skipsp, 0);
 }
 
 static JSBool
 js_truncsp(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, truncsp);
+	return js_internal_charfunc(cx, argc, arglist, truncsp, 0);
 }
 
 static JSBool
 js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, backslash);
+	return js_internal_charfunc(cx, argc, arglist, backslash, 1);
 }
 
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfname);
+	return js_internal_charfunc(cx, argc, arglist, getfname, 0);
 }
 
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfext);
+	return js_internal_charfunc(cx, argc, arglist, getfext, 0);
 }
 
 static JSBool
@@ -3126,12 +3136,14 @@ js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	JSVALUE_TO_MSTRING(cx, argv[argn++], fname, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[argn], fname, NULL);
+	argn++;
 	HANDLE_PENDING(cx);
 	if(fname==NULL) 
 		return(JS_TRUE);
 	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], text, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], text, NULL);
+		argn++;
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
 			return JS_FALSE;
@@ -3262,13 +3274,15 @@ js_wildmatch(JSContext *cx, uintN argc, jsval *arglist)
 	if(JSVAL_IS_BOOLEAN(argv[argn]))
 		JS_ValueToBoolean(cx, argv[argn++], &case_sensitive);
 
-	JSVALUE_TO_MSTRING(cx, argv[argn++], fname, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[argn], fname, NULL);
+	argn++;
 	HANDLE_PENDING(cx);
 	if(fname==NULL)
 		return(JS_TRUE);
 
 	if(argn<argc && argv[argn]!=JSVAL_VOID) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], spec, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], spec, NULL);
+		argn++;
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
 			return JS_FALSE;
@@ -3679,36 +3693,6 @@ js_list_named_queues(JSContext *cx, uintN argc, jsval *arglist)
     return(JS_TRUE);
 }
 
-static JSBool js_getsize(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval	*argv=JS_ARGV(cx, arglist);
-	JSObject* tmp_obj;
-
-	if(!JSVAL_IS_OBJECT(argv[0])) {
-		JS_ReportError(cx, "get_size() error!  Parameter is not an object.");
-		return(JS_FALSE);
-	}
-	tmp_obj=JSVAL_TO_OBJECT(argv[0]);
-	if(!tmp_obj)
-		return(JS_FALSE);
-	JS_SET_RVAL(cx, arglist, DOUBLE_TO_JSVAL(JS_GetObjectTotalSize(cx, tmp_obj)));
-	return(JS_TRUE);
-}
-
-static JSBool js_flatten(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval	*argv=JS_ARGV(cx, arglist);
-
-	if(!JSVAL_IS_STRING(argv[0])) {
-		JS_ReportError(cx, "get_size() error!  Parameter is not a string.");
-		return(JS_FALSE);
-	}
-	JS_FlattenString(cx, JSVAL_TO_STRING(argv[0]));
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-	return(JS_TRUE);
-}
-
-
 static JSBool
 js_flags_str(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -4055,14 +4039,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("convert a string of security flags (letters) into their numeric value or vice-versa "
 	"(returns number OR string) - (added in v3.13)")
 	,313
-	},
-	{"get_size",		js_getsize,			1,	JSTYPE_NUMBER,	JSDOCSTR("[number]")
-	,JSDOCSTR("Gets the size in bytes the object uses in memory (forces GC) ")
-	,315
-	},
-	{"flatten",			js_flatten,			1,	JSTYPE_NUMBER,	JSDOCSTR("[null]")
-	,JSDOCSTR("Flattens a string ")
-	,315
 	},
 	{0}
 };
