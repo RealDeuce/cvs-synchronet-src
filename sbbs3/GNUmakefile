@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.221 2012/06/01 06:33:01 deuce Exp $
+# $Id: GNUmakefile,v 1.223 2013/09/30 02:10:07 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -48,6 +48,12 @@ endif
 
 ifdef DONT_BLAME_SYNCHRONET
  CFLAGS += -DDONT_BLAME_SYNCHRONET
+endif
+
+ifdef BUILD_JSDOCS
+ CFLAGS += -DBUILD_JSDOCS
+ SBBS_LIBS += ${UIFC-MT_LDFLAGS} ${UIFC-MT_LIBS} $(CIOLIB-MT_LDFLAGS) ${CIOLIB-MT_LIBS}
+ OBJS += $(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE)
 endif
 
 ifeq ($(os),linux)

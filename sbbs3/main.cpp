@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.590 2013/02/10 21:17:46 deuce Exp $ */
+/* $Id: main.cpp,v 1.599 2013/09/24 09:15:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -252,7 +252,7 @@ u_long resolve_ip(char *addr)
 		return((u_long)INADDR_NONE);
 
 	for(p=addr;*p;p++)
-		if(*p!='.' && !isdigit(*p))
+		if(*p!='.' && !isdigit((uchar)*p))
 			break;
 	if(!(*p))
 		return(inet_addr(addr));
@@ -957,7 +957,6 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
     JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-	char		*cstr;
     char 		*prompt;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -1488,6 +1487,9 @@ void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 
 bool sbbs_t::request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack)
 {
+	if(telnet_mode&TELNET_MODE_OFF)	
+		return false;
+
 	if(cmd==TELNET_DO || cmd==TELNET_DONT) {	/* remote option */
 		if(telnet_remote_option[opt]==telnet_opt_ack(cmd))
 			return true;	/* already set in this mode, do nothing */
@@ -1526,8 +1528,6 @@ void input_thread(void *arg)
 	lprintf(LOG_DEBUG,"Node %d input thread started",sbbs->cfg.node_num);
 #endif
 
-	pthread_mutex_init(&sbbs->input_thread_mutex,NULL);
-	pthread_mutex_init(&sbbs->ssh_mutex,NULL);
     sbbs->input_thread_running = true;
 	sbbs->console|=CON_R_INPUT;
 
@@ -1765,11 +1765,6 @@ void input_thread(void *arg)
     sbbs->input_thread_running = false;
 	if(node_socket[sbbs->cfg.node_num-1]==INVALID_SOCKET)	// Shutdown locally
 		sbbs->terminated = true;	// Signal JS to stop execution
-
-	while(pthread_mutex_destroy(&sbbs->ssh_mutex)==EBUSY)
-		mswait(1);
-	while(pthread_mutex_destroy(&sbbs->input_thread_mutex)==EBUSY)
-		mswait(1);
 
 	thread_down();
 	lprintf(LOG_DEBUG,"Node %d input thread terminated (received %lu bytes in %lu blocks)"
@@ -2029,7 +2024,11 @@ void output_thread(void* arg)
 	if(!sbbs->outbuf.highwater_mark) {
 		socklen_t	sl;
 		sl=sizeof(i);
-		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, &i, &sl)) {
+		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, 
+#ifdef _WIN32
+			(char *)
+#endif
+			&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
 				sbbs->outbuf.highwater_mark=i;
@@ -2122,7 +2121,20 @@ void output_thread(void* arg)
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
 			int err;
-			pthread_mutex_lock(&sbbs->ssh_mutex);
+			pthread_mutex_lock(&sbbs->ssh_mutex);	/* exception here May-22-2013:
+ 	sbbs.dll!pthread_mutex_lock(_RTL_CRITICAL_SECTION * mutex=0x0a45e95c)  Line 147 + 0xc bytes	C
+>	sbbs.dll!output_thread(void * arg=0x0a458c68)  Line 2126 + 0x11 bytes	C++
+ 	sbbs.dll!_callthreadstart()  Line 259 + 0xf bytes	C
+ 	sbbs.dll!_threadstart(void * ptd=0x04b20c40)  Line 243	C
+
+-		sbbs->ssh_mutex	{DebugInfo=0x00000000 LockCount=-4 RecursionCount=0 ...}	_RTL_CRITICAL_SECTION
++		DebugInfo	0x00000000 {Type=??? CreatorBackTraceIndex=??? CriticalSection=??? ...}	_RTL_CRITICAL_SECTION_DEBUG *
+		LockCount	-4	long
+		RecursionCount	0	long
+		OwningThread	0x00000000	void *
+		LockSemaphore	0x00006354	void *
+		SpinCount	0	unsigned long
+*/
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
@@ -2551,7 +2563,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
 				|| ((sbbs->cfg.qhub[i]->freq
-					&& (now-sbbs->cfg.qhub[i]->last)/60>sbbs->cfg.qhub[i]->freq)
+					&& (now-sbbs->cfg.qhub[i]->last)/60>=sbbs->cfg.qhub[i]->freq)
 					|| (sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -2631,7 +2643,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.phub[i]->last==-1
 				|| (((sbbs->cfg.phub[i]->freq								/* or frequency */
-					&& (now-sbbs->cfg.phub[i]->last)/60>sbbs->cfg.phub[i]->freq)
+					&& (now-sbbs->cfg.phub[i]->last)/60>=sbbs->cfg.phub[i]->freq)
 				|| (sbbs->cfg.phub[i]->time
 					&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.phub[i]->time
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -2680,7 +2692,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.event[i]->last==-1 ||
 				(((sbbs->cfg.event[i]->freq 
-					&& (now-sbbs->cfg.event[i]->last)/60>sbbs->cfg.event[i]->freq)
+					&& (now-sbbs->cfg.event[i]->last)/60>=sbbs->cfg.event[i]->freq)
 				|| 	(!sbbs->cfg.event[i]->freq 
 					&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.event[i]->time
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -3330,6 +3342,9 @@ bool sbbs_t::init()
 			} 
 	}
 
+	pthread_mutex_init(&ssh_mutex,NULL);
+	pthread_mutex_init(&input_thread_mutex,NULL);
+
 	reset_logon_vars();
 
 	online=ON_REMOTE;
@@ -3454,6 +3469,11 @@ sbbs_t::~sbbs_t()
 	FREE_AND_NULL(batdn_size);
 	FREE_AND_NULL(batdn_cdt);
 	FREE_AND_NULL(batdn_alt);
+
+	while(pthread_mutex_destroy(&ssh_mutex)==EBUSY)
+		mswait(1);
+	while(pthread_mutex_destroy(&input_thread_mutex)==EBUSY)
+		mswait(1);
 
 #if 0 && defined(_WIN32) && defined(_DEBUG) && defined(_MSC_VER)
 	if(!_CrtCheckMemory())
