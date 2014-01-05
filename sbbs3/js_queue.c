@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.37 2011/10/28 05:07:39 deuce Exp $ */
+/* $Id: js_queue.c,v 1.45 2013/05/10 18:10:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@ typedef struct
 {
 	char		name[128];
 	size_t		size;
-	uint64_t	*value;
+	uint64		*value;
 } queued_value_t;
 
 link_list_t named_queues;
@@ -77,7 +77,7 @@ static size_t js_decode_value(JSContext *cx, JSObject *parent
 		return(count);
 
 	JS_ReadStructuredClone(cx, v->value, v->size, JS_STRUCTURED_CLONE_VERSION, rval, NULL, NULL);
-	js_free(v->value);
+	free(v->value);
 
 	return(count);
 }
@@ -129,7 +129,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	queued_value_t*	v;
 	int32 timeout=0;
 	jsrefcount	rc;
-	char	*p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -140,8 +139,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc && JSVAL_IS_STRING(argv[0])) {	/* value named specified */
 		ZERO_VAR(find_v);
-		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
-		SAFECOPY(find_v.name,p);
+		JSVALUE_TO_STRBUF(cx, argv[0], find_v.name, sizeof(find_v.name), NULL);
 		rc=JS_SUSPENDREQUEST(cx);
 		v=msgQueueFind(q,&find_v,sizeof(find_v.name));
 		JS_RESUMEREQUEST(cx, rc);
@@ -204,6 +202,7 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
 									   ,queued_value_t* v, size_t* count)
 {
 	queued_value_t* nv;
+	uint64			*nval;
 
 	if((nv=realloc(v,((*count)+1)*sizeof(queued_value_t)))==NULL) {
 		if(v) free(v);
@@ -217,10 +216,17 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
 	if(name!=NULL)
 		SAFECOPY(nv->name,name);
 
-	if(!JS_WriteStructuredClone(cx, val, &nv->value, &nv->size, NULL, NULL)) {
+	if(!JS_WriteStructuredClone(cx, val, &nval, &nv->size, NULL, NULL)) {
 		free(v);
 		return NULL;
 	}
+	if((nv->value=(uint64 *)malloc(nv->size))==NULL) {
+		JS_free(cx, nval);
+		free(v);
+		return NULL;
+	}
+	memcpy(nv->value, nval, nv->size);
+	JS_free(cx, nval);
 
 	return(v);
 }
@@ -261,10 +267,15 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 
 	val = argv[argn++];
 
-	if(argn < argc)
-		JSVALUE_TO_STRING(cx, argv[argn++], name, NULL);
+	if(argn < argc) {
+		JSVALUE_TO_MSTRING(cx, argv[argn], name, NULL);
+		argn++;
+		HANDLE_PENDING(cx);
+	}
 
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(js_enqueue_value(cx, q, val, name)));
+	if(name)
+		free(name);
 
 	return(JS_TRUE);
 }
@@ -294,10 +305,8 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	msg_queue_t*	q;
 	jsrefcount		rc;
 
-	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return(JS_FALSE);
-	}
+	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL)
+		return JS_FALSE;
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
@@ -366,15 +375,22 @@ static jsSyncMethodSpec js_queue_functions[] = {
 static JSBool js_queue_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
+	JSBool			ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
 		
 		JS_IdToValue(cx, id, &idval);
-		JSSTRING_TO_STRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+		if(JSVAL_IS_STRING(idval)) {
+			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
+			HANDLE_PENDING(cx);
+		}
 	}
 
-	return(js_SyncResolve(cx, obj, name, js_queue_properties, js_queue_functions, NULL, 0));
+	ret=js_SyncResolve(cx, obj, name, js_queue_properties, js_queue_functions, NULL, 0);
+	if(name)
+		free(name);
+	return ret;
 }
 
 static JSBool js_queue_enumerate(JSContext *cx, JSObject *obj)
@@ -420,8 +436,10 @@ js_queue_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	memset(q,0,sizeof(msg_queue_t));
 #endif
 
-	if(argn<argc && JSVAL_IS_STRING(argv[argn]))
-		JSVALUE_TO_STRING(cx, argv[argn++], name, NULL);
+	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
+		JSVALUE_TO_ASTRING(cx, argv[argn], name, sizeof(q->name), NULL);
+		argn++;
+	}
 
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn])) {
 		if(!JS_ValueToInt32(cx,argv[argn++],&flags))
