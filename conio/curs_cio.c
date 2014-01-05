@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.33 2015/02/12 05:44:13 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.30 2008/06/07 09:42:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,8 @@
 
 #include "ciolib.h"
 #include "curs_cio.h"
+#include "keys.h"
+#include "mouse.h"
 #include "vidmodes.h"
 
 static unsigned char curs_nextgetch=0;
@@ -241,9 +243,6 @@ static int _putch(unsigned char ch, BOOL refresh_now)
 				break;
 			case 219:
 				cha=ACS_BLOCK;
-				break;
-			case 254:
-				cha=ACS_BULLET;
 				break;
 			default:
 				cha=ch;
