@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.186 2014/10/30 08:56:21 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.184 2014/01/04 10:49:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -821,7 +821,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     global.sem_chk_freq=5;		/* seconds */
 
     /* These are SBBSCTRL-specific */
-    LoginCommand="telnet://127.0.0.1";
+    LoginCommand="telnet://localhost";
     ConfigCommand="%sscfg.exe %s -l25";
     MinimizeToSysTray=false;
     UndockableForms=false;
@@ -3188,12 +3188,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->JS_YieldIntervalEdit->Text=IntToStr(global.js.yield_interval);
     PropertiesDlg->JS_LoadPathEdit->Text=global.js.load_path;
     PropertiesDlg->ErrorSoundEdit->Text=ErrorSoundFile;
-    PropertiesDlg->LoginAttemptDelayEdit->Text=IntToStr(global.login_attempt_delay);
-    PropertiesDlg->LoginAttemptThrottleEdit->Text=IntToStr(global.login_attempt_throttle);
-    PropertiesDlg->LoginAttemptHackThresholdEdit->Text
-        =global.login_attempt_hack_threshold ? IntToStr(global.login_attempt_hack_threshold) : AnsiString("<disabled>");
-    PropertiesDlg->LoginAttemptFilterThresholdEdit->Text
-        =global.login_attempt_filter_threshold ? IntToStr(global.login_attempt_filter_threshold) : AnsiString("<disabled>");
 
     if(MaxLogLen==0)
 		PropertiesDlg->MaxLogLenEdit->Text="<unlimited>";
@@ -3263,12 +3257,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         if(memcmp(&web_startup.js,&js,sizeof(js))==0)       web_startup.js=global.js;
         if(memcmp(&mail_startup.js,&js,sizeof(js))==0)      mail_startup.js=global.js;
         if(memcmp(&services_startup.js,&js,sizeof(js))==0)  services_startup.js=global.js;
-
-        /* Security parameters */
-        global.login_attempt_delay = PropertiesDlg->LoginAttemptDelayEdit->Text.ToIntDef(0);
-        global.login_attempt_throttle = PropertiesDlg->LoginAttemptThrottleEdit->Text.ToIntDef(0);
-        global.login_attempt_hack_threshold = PropertiesDlg->LoginAttemptHackThresholdEdit->Text.ToIntDef(0);
-        global.login_attempt_filter_threshold = PropertiesDlg->LoginAttemptFilterThresholdEdit->Text.ToIntDef(0);
 
         MaxLogLen
         	=PropertiesDlg->MaxLogLenEdit->Text.ToIntDef(0);
