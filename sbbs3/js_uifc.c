@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.32 2013/05/07 07:22:44 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.34 2013/05/10 18:25:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -422,13 +422,15 @@ js_uifc_input(JSContext *cx, uintN argc, jsval *arglist)
 		&& !JS_ValueToInt32(cx,argv[argn++],&top))
 		return(JS_FALSE);
 	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], prompt, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], prompt, NULL);
+		argn++;
 		HANDLE_PENDING(cx);
 		if(prompt==NULL)
 			return(JS_TRUE);
 	}
 	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], org, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], org, NULL);
+		argn++;
 		if(JS_IsExceptionPending(cx)) {
 			if(prompt)
 				free(prompt);
@@ -483,11 +485,11 @@ js_uifc_input(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	if(prompt)
 		free(prompt);
-	if(str)
-		free(str);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,str)));
+	if(str)
+		free(str);
 
 	return(JS_TRUE);
 }
@@ -539,7 +541,8 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 		&& !JS_ValueToInt32(cx,argv[argn++],&bar))
 		return(JS_FALSE);
 	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], title, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], title, NULL);
+		argn++;
 		HANDLE_PENDING(cx);
 	}
 	if(argn<argc && JSVAL_IS_OBJECT(argv[argn])) {
