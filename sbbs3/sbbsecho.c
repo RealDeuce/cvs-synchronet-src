@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.234 2014/01/20 04:11:00 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.232 2014/01/05 01:07:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2682,14 +2682,6 @@ char *pktname(BOOL temp)
 	}
 	return(NULL);	/* This should never happen */
 }
-
-BOOL foreign_zone(uint16_t zone1, uint16_t zone2)
-{
-	if(cfg.zone_blind && zone1 <= cfg.zone_blind_threshold && zone2 <= cfg.zone_blind_threshold)
-		return FALSE;
-	return zone1!=zone2;
-}
-
 /******************************************************************************
  This function puts a message into a Fido packet, writing both the header
  information and the message body
@@ -2751,13 +2743,13 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 	}
 			
 	if(area.name) { /* EchoMail, Not NetMail */
-		if(foreign_zone(addr.zone, fmsghdr.destzone))	/* Zone Gate */
+		if(!cfg.zone_blind && addr.zone!=fmsghdr.destzone)	/* Zone Gate */
 			fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
 		else {
 			fprintf(stream,"SEEN-BY:");
 			for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
 				strcpy(seenby," ");
-				if(foreign_zone(addr.zone, seenbys.addr[i].zone))
+				if(!cfg.zone_blind && seenbys.addr[i].zone!=addr.zone)
 					continue;
 				if(seenbys.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
@@ -2784,7 +2776,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 				if(node<cfg.nodecfgs && (cfg.nodecfg[node].attr&ATTR_PASSIVE))
 					continue;
 				strcpy(seenby," ");
-				if(foreign_zone(addr.zone, area.uplink[i].zone) || area.uplink[i].point)
+				if((!cfg.zone_blind && area.uplink[i].zone!=addr.zone) || area.uplink[i].point)
 					continue;
 				for(j=0;j<seenbys.addrs;j++)
 					if(!memcmp(&area.uplink[i],&seenbys.addr[j],sizeof(faddr_t)))
@@ -2813,7 +2805,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 
 			for(i=0;i<scfg.total_faddrs;i++) {				/* Add AKAs to SEEN-BYs */
 				strcpy(seenby," ");
-				if(foreign_zone(addr.zone, scfg.faddr[i].zone) || scfg.faddr[i].point)
+				if((!cfg.zone_blind && scfg.faddr[i].zone!=addr.zone) || scfg.faddr[i].point)
 					continue;
 				for(j=0;j<seenbys.addrs;j++)
 					if(!memcmp(&scfg.faddr[i],&seenbys.addr[j],sizeof(faddr_t)))
@@ -2844,10 +2836,8 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 			fprintf(stream,"\r\1PATH:");
 			addr=getsysfaddr(fmsghdr.destzone);
 			for(i=0;i<paths.addrs;i++) {			  /* Put back the original PATH */
-				if(paths.addr[i].net == 0)
-					continue;	// Invalid node number/address, don't include "0/0" in PATH
 				strcpy(seenby," ");
-				if(foreign_zone(addr.zone, paths.addr[i].zone) || paths.addr[i].point)
+				if((!cfg.zone_blind && paths.addr[i].zone!=addr.zone) || paths.addr[i].point)
 					continue;
 				if(paths.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
@@ -2871,7 +2861,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 
 			strcpy(seenby," ");         /* Add first address with same zone to PATH */
 			sysaddr=getsysfaddr(fmsghdr.destzone);
-			if(sysaddr.net!=0 && sysaddr.point==0) {
+			if(!sysaddr.point) {
 				if(sysaddr.net!=addr.net || !net_exists) {
 					net_exists=1;
 					addr.net=sysaddr.net;
@@ -3067,7 +3057,7 @@ BOOL check_psb(addrlist_t* addrlist, faddr_t compaddr)
 	int i;
 
 	for(i=0;i<addrlist->addrs;i++) {
-		if(foreign_zone(compaddr.zone, addrlist->addr[i].zone))
+		if(!cfg.zone_blind && compaddr.zone != addrlist->addr[i].zone)
 			continue;
 		if(compaddr.net != addrlist->addr[i].net)
 			continue;
@@ -4105,7 +4095,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.234 $", "%*s %s", revision);
+	sscanf("$Revision: 1.232 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
