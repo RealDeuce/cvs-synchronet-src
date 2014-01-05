@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "[s]printf" implementation */
 
-/* $Id: js_sprintf.c,v 1.12 2013/05/07 07:22:44 rswindell Exp $ */
+/* $Id: js_sprintf.c,v 1.13 2013/05/10 18:10:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,8 @@ js_sprintf(JSContext *cx, uint argn, uintN argc, jsval *argv)
 	char		*p2=NULL;
 	size_t		p2_sz=0;
 
-	JSVALUE_TO_MSTRING(cx, argv[argn++], op, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[argn], op, NULL);
+	argn++;
 	if(JS_IsExceptionPending(cx))
 		JS_ClearPendingException(cx);
 	if(op==NULL)
