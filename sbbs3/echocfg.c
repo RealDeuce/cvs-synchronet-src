@@ -2,13 +2,13 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.22 2011/07/20 02:40:37 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.27 2013/10/09 05:36:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -121,8 +121,8 @@ int main(int argc, char **argv)
 	BOOL door_mode=FALSE;
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
 
-	fprintf(stderr,"\nSBBSecho Configuration  Version %s  Copyright 2003 "
-		"Rob Swindell\n\n",SBBSECHO_VER);
+	fprintf(stderr,"\nSBBSecho Configuration  Version %u.%02u  Copyright %s "
+		"Rob Swindell\n\n",SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR, __DATE__+7);
 
 	memset(&cfg,0,sizeof(config_t));
 	str[0]=0;
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 		if(argv[i][0]=='-')
 			switch(toupper(argv[i][1])) {
                 case 'D':
-					printf("NOTICE: The -d option is depreciated, use -id instead\r\n");
+					printf("NOTICE: The -d option is deprecated, use -id instead\r\n");
 					SLEEP(2000);
                     door_mode=TRUE;
                     break;
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
 						case 0:
-							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
+							printf("NOTICE: The -i option is deprecated, use -if instead\r\n");
 							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	sprintf(str,"SBBSecho Configuration v%s",SBBSECHO_VER);
+	sprintf(str,"SBBSecho Configuration v%u.%02u",SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR);
 	uifc.scrn(str);
 
 	dflt=0;
@@ -566,8 +566,12 @@ int main(int argc, char **argv)
 							case 10:
 	uifc.helpbuf=
 	"~ Route To ~\r\n\r\n"
-	"When using a FLO type mailer, this is the node number of an address\r\n"
-	"to route mail to for this node.\r\n";
+	"When using a FLO type mailer, this is an fido address to route mail\r\n"
+	"for this node to.\r\n"
+	"\r\n"
+	"This option is normally only used with wildcard type node entries\r\n"
+	"(e.g. `ALL`, or `1:ALL`, `2:ALL`, etc.) and is used to route non-direct\r\n"
+	"netmail packets to your uplink (hub).\r\n";
 								strcpy(str,wcfaddrtoa(&cfg.nodecfg[i].route));
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Node Address to Route To",str
@@ -805,6 +809,8 @@ int main(int argc, char **argv)
 						,cfg.check_path ? "Enabled" : "Disabled");
 					sprintf(opt[i++],"%-50.50s%s","Bundle Attachments"
 						,misc&TRUNC_BUNDLES ? "Truncate" : "Kill");
+					sprintf(opt[i++],"%-50.50s%s","Zone Blind SEEN-BY and PATH Lines"
+						,cfg.zone_blind ? "Enabled" : "Disabled");
 					opt[i][0]=0;
 					j=uifc.list(0,0,0,65,&j,0,"Toggle Options",opt);
 					if(j==-1)
@@ -843,6 +849,10 @@ int main(int argc, char **argv)
 						case 10:
 							misc^=TRUNC_BUNDLES;
 							break;
+						case 11:
+							cfg.zone_blind=!cfg.zone_blind;
+							break;
+
 					} 
 				}
 				break;
@@ -1151,6 +1161,8 @@ int main(int argc, char **argv)
 				}
 				if(!cfg.check_path)
 					fprintf(stream,"NOPATHCHECK\n");
+				if(cfg.zone_blind)
+					fprintf(stream,"ZONE_BLIND\n");
 				if(cfg.notify)
 					fprintf(stream,"NOTIFY %u\n",cfg.notify);
 				if(misc&CONVERT_TEAR)
@@ -1176,6 +1188,7 @@ int main(int argc, char **argv)
 				if(misc&TRUNC_BUNDLES)
 					fprintf(stream,"TRUNC_BUNDLES\n");
 
+				fprintf(stream,"SYSOP_ALIAS %s\n", cfg.sysop_alias);
 				if(cfg.areafile[0])
 					fprintf(stream,"AREAFILE %s\n",cfg.areafile);
 				if(cfg.logfile[0])
@@ -1187,7 +1200,7 @@ int main(int argc, char **argv)
 						fprintf(stream,"LOG NONE\n");
 					else
 						fprintf(stream,"LOG %08lX\n",cfg.log); }
-				fprintf(stream,"LOG_LEVEL %u\n",cfg.log_level);
+				fprintf(stream,"LOG_LEVEL %lu\n",cfg.log_level);
 				if(cfg.inbound[0])
 					fprintf(stream,"INBOUND %s\n",cfg.inbound);
 				if(cfg.secure[0])
