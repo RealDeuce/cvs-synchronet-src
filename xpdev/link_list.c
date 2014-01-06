@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.55 2015/02/12 11:03:12 deuce Exp $ */
+/* $Id: link_list.c,v 1.53 2011/09/10 01:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,14 +132,12 @@ BOOL DLLCALL listFree(link_list_t* list)
 	if(list->flags&LINK_LIST_MUTEX) { 
 		while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY) 
 			SLEEP(1);
-		list->flags&=~LINK_LIST_MUTEX;
 	}
 
 	if(list->flags&LINK_LIST_SEMAPHORE) {
 		while(sem_destroy(&list->sem)==-1 && errno==EBUSY)
 			SLEEP(1);
 		//list->sem=(sem_t)NULL; /* Removed 08-20-08 - list->sem is never checked and this causes an error with gcc 4.1.2 (ThetaSigma) */
-		list->flags&=~LINK_LIST_SEMAPHORE;
 	}
 #endif
 
@@ -761,7 +759,6 @@ void* DLLCALL listRemoveTaggedNode(link_list_t* list, list_node_tag_t tag, BOOL 
 
 long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOOL free_data)
 {
-	list_node_t	*next_node;
 	long count;
 
 	if(list==NULL)
@@ -772,11 +769,9 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 	if(node==FIRST_NODE)
 		node=list->first;
 
-	for(count=0; node!=NULL && count<max; node=next_node, count++) {
-		next_node = node->next;
+	for(count=0; node!=NULL && count<max; node=node->next, count++)
 		if(listRemoveNode(list, node, free_data)==NULL)
 			break;
-	}
 
 	listUnlock(list);
 	
