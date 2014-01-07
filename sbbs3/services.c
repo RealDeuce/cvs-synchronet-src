@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.273 2014/01/08 02:41:22 rswindell Exp $ */
+/* $Id: services.c,v 1.272 2014/01/07 11:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1664,8 +1664,8 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 
 static void cleanup(int code)
 {
-	while(protected_uint32_value(threads_pending_start)) {
-		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
+	while(threads_pending_start.value) {
+		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",threads_pending_start.value);
 		SLEEP(1000);
 	}
 	protected_uint32_destroy(threads_pending_start);
@@ -1703,7 +1703,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.273 $", "%*s %s", revision);
+	sscanf("$Revision: 1.272 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1983,7 +1983,7 @@ void DLLCALL services_thread(void* arg)
 		/* Main Server Loop */
 		while(!terminated) {
 
-			if(active_clients()==0 && protected_uint32_value(threads_pending_start)==0) {
+			if(active_clients()==0 && threads_pending_start.value==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
