@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.408 2014/11/18 06:11:30 deuce Exp $ */
+/* $Id: sbbs.h,v 1.404 2013/08/06 02:01:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -335,9 +335,7 @@ public:
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
 	bool	input_thread_mutex_locked;	// by someone other than the input_thread
-	bool	input_thread_mutex_created;
 	pthread_mutex_t	ssh_mutex;
-	bool	ssh_mutex_created;
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
@@ -387,7 +385,6 @@ public:
 	smb_t	smb;			/* Currently open message base */
 	char	rlogin_name[LEN_ALIAS+1];
 	char	rlogin_pass[LEN_PASS+1];
-	char	rlogin_term[TELNET_TERM_MAXLEN+1];	/* RLogin passed terminal type/speed (e.g. "xterm/57600") */
 
 	uint	temp_dirnum;
 
@@ -941,7 +938,7 @@ public:
 	void	catsyslog(int crash);
 
 	/* telgate.cpp */
-	void	telnet_gate(char* addr, ulong mode, char* client_user_name=NULL, char* server_user_name=NULL, char* term_type=NULL);	// See TG_* for mode bits
+	void	telnet_gate(char* addr, ulong mode, char* name=NULL, char* passwd=NULL);	// See TG_* for mode bits
 
 };
 
@@ -1266,9 +1263,6 @@ extern "C" {
 	/* js_com.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCOMClass(JSContext* cx, JSObject* parent);
 	DLLEXPORT JSObject* DLLCALL js_CreateCOMObject(JSContext* cx, JSObject* parent, const char *name, COM_HANDLE sock);
-
-	/* js_cryptcon.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
 
 #endif
 
