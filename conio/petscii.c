@@ -1,4 +1,4 @@
-#include "ciolib.h"
+#include "keys.h"
 
 struct ascii_trans {
 	unsigned char	native;
