@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.104 2013/05/07 07:22:44 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.106 2013/09/15 10:12:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -476,9 +476,9 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		*p,*p2;
-	long		mode=0;
+	int32		mode=0;
 	uintN		i;
-	size_t		maxlen=0;
+	int32		maxlen=0;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
 	jsrefcount	rc;
@@ -491,11 +491,11 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			if(!maxlen) {
-				if(!JS_ValueToInt32(cx,argv[i],(int32*)&maxlen))
+				if(!JS_ValueToInt32(cx,argv[i],&maxlen))
 					return JS_FALSE;
 			}
 			else {
-				if(!JS_ValueToInt32(cx,argv[i],(int32*)&mode))
+				if(!JS_ValueToInt32(cx,argv[i],&mode))
 					return JS_FALSE;
 			}
 			continue;
@@ -539,8 +539,8 @@ static JSBool
 js_getnum(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	ulong		maxnum=~0;
-	ulong		dflt=0;
+	uint32_t	maxnum=~0;
+	int32_t		dflt=0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -554,7 +554,7 @@ js_getnum(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 	}
 	if(argc>1 && JSVAL_IS_NUMBER(argv[1])) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&dflt))
+		if(!JS_ValueToInt32(cx,argv[1],&dflt))
 			return JS_FALSE;
 	}
 
@@ -570,8 +570,8 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		key[2];
 	uintN		i;
-	long		val;
-	ulong		maxnum=~0;
+	int32		val;
+	uint32		maxnum=~0;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
 	char*		cstr;
@@ -624,7 +624,7 @@ js_gettemplate(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[128];
-	long		mode=0;
+	int32		mode=0;
 	uintN		i;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
@@ -1053,7 +1053,7 @@ static JSBool
 js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	long		mode=0;
+	int32		mode=0;
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
@@ -1069,7 +1069,7 @@ js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc>1 && JSVAL_IS_NUMBER(argv[1])) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&mode))
+		if(!JS_ValueToInt32(cx,argv[1],&mode))
 			return JS_FALSE;
 	}
 
@@ -1087,7 +1087,7 @@ static JSBool
 js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	long		mode=0;
+	int32		mode=0;
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
@@ -1103,7 +1103,7 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc>1 && JSVAL_IS_NUMBER(argv[1])) {
-		if(!JS_ValueToInt32(cx,argv[1],(int32*)&mode))
+		if(!JS_ValueToInt32(cx,argv[1],&mode))
 			return JS_FALSE;
 	}
 
@@ -1121,8 +1121,8 @@ static JSBool
 js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int			lines=0;
-	long		mode=0;
+	int32		lines=0;
+	int32		mode=0;
 	uintN		i;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
@@ -1137,11 +1137,11 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			if(!lines) {
-				if(!JS_ValueToInt32(cx,argv[i],(int32*)&lines))
+				if(!JS_ValueToInt32(cx,argv[i],&lines))
 					return JS_FALSE;
 			}
 			else {
-				if(!JS_ValueToInt32(cx,argv[i],(int32*)&mode))
+				if(!JS_ValueToInt32(cx,argv[i],&mode))
 					return JS_FALSE;
 			}
 		} else if(JSVAL_IS_STRING(argv[i]))

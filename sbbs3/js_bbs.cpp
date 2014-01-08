@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.144 2013/05/09 06:09:05 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.146 2013/09/15 10:12:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -953,8 +953,10 @@ static uint get_subnum(JSContext* cx, sbbs_t* sbbs, jsval *argv, int argc, int p
 			if(!stricmp(sbbs->cfg.sub[subnum]->code,p))
 				break;
 	} else if(argc>pos && JSVAL_IS_NUMBER(argv[pos])) {
-		if(!JS_ValueToInt32(cx,argv[pos],(int32*)&subnum))
+		int32 i;
+		if(!JS_ValueToInt32(cx,argv[pos],&i))
 			return JS_FALSE;
+		subnum = i;
 	}
 	else if(sbbs->usrgrps>0)
 		subnum=sbbs->usrsub[sbbs->curgrp][sbbs->cursub[sbbs->curgrp]];
@@ -977,8 +979,10 @@ static uint get_dirnum(JSContext* cx, sbbs_t* sbbs, jsval val, bool dflt)
 				if(!stricmp(sbbs->cfg.dir[dirnum]->code,p))
 					break;
 		} else if(JSVAL_IS_NUMBER(val)) {
-			if(!JS_ValueToInt32(cx,val,(int32*)&dirnum))
+			int32 i;
+			if(!JS_ValueToInt32(cx,val,&i))
 				return JS_FALSE;
+			dirnum = i;
 		}
 		else if(sbbs->usrlibs>0)
 			dirnum=sbbs->usrdir[sbbs->curlib][sbbs->curdir[sbbs->curlib]];
@@ -2626,8 +2630,8 @@ js_rlogin_gate(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		addr;
-	char*		alias;
-	char*		pass;
+	char*		alias=NULL;
+	char*		pass=NULL;
 	bool		fail;
 	int32		mode = 0;
 	JSString*	js_addr;
@@ -2686,7 +2690,7 @@ js_rlogin_gate(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->rlogin_gate(addr,alias,pass,mode);
+	sbbs->telnet_gate(addr,mode|TG_RLOGIN,alias,pass);
 	free(addr);
 	free(alias);
 	free(pass);
@@ -3387,8 +3391,10 @@ js_getnstime(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],(int32*)&t))
+		int32 i;
+		if(!JS_ValueToInt32(cx,argv[0],&i))
 			return JS_FALSE;
+		t = i;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -3760,9 +3766,9 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("external telnet/rlogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
 	,310
 	},		
-	{"rlogin_gate",		js_rlogin_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [user=<tt>user.alias</tt>,pass=<tt>user.pass</tt>,mode=<tt>TG_NONE</tt>]")
-	,JSDOCSTR("external rlogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
-	,310
+	{"rlogin_gate",		js_rlogin_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,user=<tt>user.alias</tt>,pass=<tt>user.pass</tt>,mode=<tt>TG_NONE</tt>]")
+	,JSDOCSTR("external RLogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
+	,316
 	},		
 	/* security */
 	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
