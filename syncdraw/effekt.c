@@ -3,9 +3,7 @@
 #include <stdlib.h>
 
 #include <ciolib.h>
-#if defined(_WIN32)
- #include <malloc.h>	/* alloca() on Win32 */
-#endif
+#include <keys.h>
 
 #include "crt.h"
 #include "key.h"
@@ -24,7 +22,7 @@ draweffekt(int xpos, int ypos, int effekt, char *blabla, int highlite)
 
 	col = effect.Colortable[1][1];
 	l=strlen(blabla);
-	buf=(char *)alloca(l*2);
+	buf=(char *)malloc(l*2);
 
 	p=0;
 	for (x = 0; x < l; x++) {
@@ -78,6 +76,7 @@ draweffekt(int xpos, int ypos, int effekt, char *blabla, int highlite)
 		buf[p++]=col+(highlite?16:0);
 	}
 	puttext(xpos,ypos,xpos+l-1,ypos,buf);
+	free(buf);
 }
 
 void 
@@ -264,7 +263,7 @@ select_effekt(void)
 				draweffekt(12,11+x,x, "ABCabc123!@# Sample", 0);
 		}
 		ch = newgetch();
-		switch (ch) {
+		switch (tolower(ch)) {
 		case CIO_KEY_MOUSE:
 			getmouse(&me);
 			if(me.event==CIOLIB_BUTTON_3_CLICK)
@@ -279,7 +278,6 @@ select_effekt(void)
 					changecolor(y);
 			}
 			break;
-		case 'C':
 		case 'c':
 			changecolor(y);
 			break;
