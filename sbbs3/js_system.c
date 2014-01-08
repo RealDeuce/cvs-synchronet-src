@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.153 2013/05/10 18:10:31 deuce Exp $ */
+/* $Id: js_system.c,v 1.155 2013/09/30 01:42:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -499,24 +499,23 @@ static char* sys_prop_desc[] = {
 
 	/* Manually created (non-tabled) properties */
 	,"public host name that uniquely identifies this system on the Internet (usually the same as <i>system.inet_addr</i>)"
+	,"socket library version information"
+	,"time/date system was brought online (in time_t format)"
+	,"Synchronet full version information (e.g. '3.10k Beta Debug')"
+	,"date and time compiled"
 	,"Synchronet version number (e.g. '3.10')"
 	,"Synchronet revision letter (e.g. 'k')"
 	,"Synchronet alpha/beta designation (e.g. ' beta')"
-	,"Synchronet full version information (e.g. '3.10k Beta Debug')"
 	,"Synchronet version notice (includes version and platform)"
 	,"Synchronet version number in decimal (e.g. 31301 for v3.13b)"
 	,"Synchronet version number in hexadecimal (e.g. 0x31301 for v3.13b)"
 	,"platform description (e.g. 'Win32', 'Linux', 'FreeBSD')"
 	,"architecture description (e.g. 'i386', 'i686', 'x86_64')"
-	,"socket library version information"
 	,"message base library version information"
 	,"compiler used to build Synchronet"
-	,"date and time compiled"
 	,"Synchronet copyright display"
 	,"JavaScript engine version information"
 	,"operating system version information"
-	,"time/date system was brought online (in time_t format)"
-
 	,"array of FidoNet Technology Network (FTN) addresses associated with this system"
 	,NULL
 };
@@ -822,7 +821,6 @@ js_matchuser(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ValueToBoolean(cx,argv[1],&sysop_alias);
 
 	JSSTRING_TO_ASTRING(cx, js_str, p, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2:LEN_NAME+2, NULL);
-fprintf(stderr,"p=%p (%s)\n",p,p?p:"(null)");
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
 		return(JS_TRUE);
@@ -2339,7 +2337,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 
 static JSBool js_system_enumerate(JSContext *cx, JSObject *obj)
 {
-	return(js_node_resolve(cx, obj, JSID_VOID));
+	return(js_system_resolve(cx, obj, JSID_VOID));
 }
 
 static JSClass js_system_class = {
