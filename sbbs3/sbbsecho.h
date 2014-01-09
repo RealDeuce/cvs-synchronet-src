@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.29 2015/04/24 05:47:42 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.25 2014/01/05 01:08:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
 #define SBBSECHO_VERSION_MAJOR		2
-#define SBBSECHO_VERSION_MINOR		27
+#define SBBSECHO_VERSION_MINOR		25
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -165,6 +165,11 @@ typedef struct {
 	} flag_t;
 
 typedef struct {
+	uint tags;					/* Number of area tags */
+	char **tag; 				/* Name of each area tag */
+	} area_t;
+
+typedef struct {
 	FILE *stream;				/* The stream associated with this packet (NULL if not-open) */
 	faddr_t uplink; 			/* The current uplink for this packet */
 	char filename[MAX_PATH+1];	/* Name of the file */
@@ -236,9 +241,7 @@ typedef struct {
 	echolist_t *listcfg;			/* Each echolist configuration */
 	areasbbs_t *area;				/* Each area configuration */
 	BOOL		check_path;			/* Enable circular path detection */
-	BOOL		fwd_circular;		/* Allow the forwrarding of circular messages to links (defaults to true, only applicable if check_path is also true) */
 	BOOL		zone_blind;			/* Pretend zones don't matter when parsing and constructing PATH and SEEN-BY lines (per Wilfred van Velzen, 2:280/464) */
-	uint16_t	zone_blind_threshold;	/* Zones below this number (e.g. 4) will be treated as the same zone when zone_blind is enabled */
 	} config_t;
 
 #ifdef __WATCOMC__
