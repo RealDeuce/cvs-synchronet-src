@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.596 2013/05/29 22:48:01 deuce Exp $ */
+/* $Id: main.cpp,v 1.601 2014/01/08 10:17:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -120,7 +120,7 @@ static const char* status(const char* str)
 static void update_clients()
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,node_threads_running.value);
+		startup->clients(startup->cbdata,protected_uint32_value(node_threads_running));
 }
 
 void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -252,7 +252,7 @@ u_long resolve_ip(char *addr)
 		return((u_long)INADDR_NONE);
 
 	for(p=addr;*p;p++)
-		if(*p!='.' && !isdigit(*p))
+		if(*p!='.' && !isdigit((uchar)*p))
 			break;
 	if(!(*p))
 		return(inet_addr(addr));
@@ -1528,7 +1528,6 @@ void input_thread(void *arg)
 	lprintf(LOG_DEBUG,"Node %d input thread started",sbbs->cfg.node_num);
 #endif
 
-    sbbs->input_thread_running = true;
 	sbbs->console|=CON_R_INPUT;
 
 	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET
@@ -1796,8 +1795,6 @@ void passthru_output_thread(void* arg)
 	SetThreadName("Passthrough Output");
 	thread_up(FALSE /* setuid */);
 
-    sbbs->passthru_output_thread_running = true;
-
 	while(sbbs->client_socket!=INVALID_SOCKET && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
 		if(!sbbs->input_thread_mutex_locked) {
 			SLEEP(1);
@@ -1912,8 +1909,6 @@ void passthru_input_thread(void* arg)
 	SetThreadName("Passthrough Input");
 	thread_up(FALSE /* setuid */);
 
-	sbbs->passthru_input_thread_running = true;
-
 	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
 		tv.tv_sec=1;
 		tv.tv_usec=0;
@@ -2013,7 +2008,6 @@ void output_thread(void* arg)
 	lprintf(LOG_DEBUG,"%s output thread started",node);
 #endif
 
-    sbbs->output_thread_running = true;
 	sbbs->console|=CON_R_ECHO;
 
 #ifdef TCP_MAXSEG
@@ -2024,7 +2018,11 @@ void output_thread(void* arg)
 	if(!sbbs->outbuf.highwater_mark) {
 		socklen_t	sl;
 		sl=sizeof(i);
-		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, &i, &sl)) {
+		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, 
+#ifdef _WIN32
+			(char *)
+#endif
+			&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
 				sbbs->outbuf.highwater_mark=i;
@@ -2230,8 +2228,6 @@ void event_thread(void* arg)
 
 	eprintf(LOG_INFO,"BBS Events thread started");
 
-	sbbs->event_thread_running = true;
-
 	sbbs_srand();	/* Seed random number generator */
 
 	SetThreadName("BBS Events");
@@ -2327,7 +2323,7 @@ void event_thread(void* arg)
 			offset=strlen(str);
 			strcat(str,"*.rep");
 			glob(str,0,NULL,&g);
-			for(i=0;i<(int)g.gl_pathc;i++) {
+			for(i=0;i<(int)g.gl_pathc && !sbbs->terminated;i++) {
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
@@ -2355,7 +2351,7 @@ void event_thread(void* arg)
 			SAFEPRINTF(str,"%spack*.now",sbbs->cfg.data_dir);
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
-			for(i=0;i<(int)g.gl_pathc;i++) {
+			for(i=0;i<(int)g.gl_pathc && !sbbs->terminated;i++) {
 				eprintf(LOG_INFO,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
@@ -2519,7 +2515,7 @@ void event_thread(void* arg)
 		}
 
 		/* QWK Networking Call-out Events */
-		for(i=0;i<sbbs->cfg.total_qhubs;i++) {
+		for(i=0;i<sbbs->cfg.total_qhubs && !sbbs->terminated;i++) {
 			if(sbbs->cfg.qhub[i]->node<first_node ||
 				sbbs->cfg.qhub[i]->node>last_node)
 				continue;
@@ -2559,7 +2555,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
 				|| ((sbbs->cfg.qhub[i]->freq
-					&& (now-sbbs->cfg.qhub[i]->last)/60>sbbs->cfg.qhub[i]->freq)
+					&& (now-sbbs->cfg.qhub[i]->last)/60>=sbbs->cfg.qhub[i]->freq)
 					|| (sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -2629,7 +2625,7 @@ void event_thread(void* arg)
 		}
 
 		/* PostLink Networking Call-out Events */
-		for(i=0;i<sbbs->cfg.total_phubs;i++) {
+		for(i=0;i<sbbs->cfg.total_phubs && !sbbs->terminated;i++) {
 			if(sbbs->cfg.phub[i]->node<first_node 
 				|| sbbs->cfg.phub[i]->node>last_node)
 				continue;
@@ -2639,7 +2635,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.phub[i]->last==-1
 				|| (((sbbs->cfg.phub[i]->freq								/* or frequency */
-					&& (now-sbbs->cfg.phub[i]->last)/60>sbbs->cfg.phub[i]->freq)
+					&& (now-sbbs->cfg.phub[i]->last)/60>=sbbs->cfg.phub[i]->freq)
 				|| (sbbs->cfg.phub[i]->time
 					&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.phub[i]->time
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -2670,7 +2666,7 @@ void event_thread(void* arg)
 		}
 
 		/* Timed Events */
-		for(i=0;i<sbbs->cfg.total_events;i++) {
+		for(i=0;i<sbbs->cfg.total_events && !sbbs->terminated;i++) {
 			if(!sbbs->cfg.event[i]->node 
 				|| sbbs->cfg.event[i]->node>sbbs->cfg.sys_nodes)
 				continue;	// ignore events for invalid nodes
@@ -2688,7 +2684,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.event[i]->last==-1 ||
 				(((sbbs->cfg.event[i]->freq 
-					&& (now-sbbs->cfg.event[i]->last)/60>sbbs->cfg.event[i]->freq)
+					&& (now-sbbs->cfg.event[i]->last)/60>=sbbs->cfg.event[i]->freq)
 				|| 	(!sbbs->cfg.event[i]->freq 
 					&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.event[i]->time
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -4814,6 +4810,7 @@ NO_SSH:
 		cleanup(1);
 		return;
 	}
+    sbbs->output_thread_running = true;
 	_beginthread(output_thread, 0, sbbs);
 
 	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
@@ -4824,6 +4821,7 @@ NO_SSH:
 			cleanup(1);
 			return;
 		}
+		events->event_thread_running = true;
 		_beginthread(event_thread, 0, events);
 	}
 
@@ -4936,7 +4934,7 @@ NO_SSH:
 
 	while(!terminate_server) {
 
-		if(node_threads_running.value==0) {	/* check for re-run flags and recycle/shutdown sem files */
+		if(protected_uint32_value(node_threads_running)==0) {	/* check for re-run flags and recycle/shutdown sem files */
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 
 				bool rerun=false;
@@ -5467,7 +5465,9 @@ NO_SSH:
 				goto NO_PASSTHRU;
 			}
 			close_socket(tmp_sock);
+			new_node->passthru_output_thread_running = true;
 			_beginthread(passthru_output_thread, 0, new_node);
+			new_node->passthru_input_thread_running = true;
 			_beginthread(passthru_input_thread, 0, new_node);
 
 NO_PASSTHRU:
@@ -5485,7 +5485,9 @@ NO_PASSTHRU:
 #endif
 
 	    protected_uint32_adjust(&node_threads_running, 1);
+	    new_node->input_thread_running = true;
 		new_node->input_thread=(HANDLE)_beginthread(input_thread,0, new_node);
+	    new_node->output_thread_running = true;
 		_beginthread(output_thread, 0, new_node);
 		_beginthread(node_thread, 0, new_node);
 		served++;
@@ -5520,13 +5522,13 @@ NO_PASSTHRU:
     sem_post(&sbbs->outbuf.sem);
 
     // Wait for all node threads to terminate
-	if(node_threads_running.value) {
-		lprintf(LOG_INFO,"Waiting for %d node threads to terminate...", node_threads_running.value);
+	if(protected_uint32_value(node_threads_running)) {
+		lprintf(LOG_INFO,"Waiting for %d node threads to terminate...", protected_uint32_value(node_threads_running));
 		start=time(NULL);
-		while(node_threads_running.value) {
+		while(protected_uint32_value(node_threads_running)) {
 			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
 				lprintf(LOG_ERR,"!TIMEOUT waiting for %d node thread(s) to "
-            		"terminate", node_threads_running.value);
+            		"terminate", protected_uint32_value(node_threads_running));
 				break;
 			}
 			mswait(100);
