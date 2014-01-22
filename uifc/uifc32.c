@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.197 2011/04/23 17:42:19 deuce Exp $ */
+/* $Id: uifc32.c,v 1.199 2014/01/22 18:32:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -494,7 +494,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
 	uchar line[MAX_COLS*2],shade[MAX_LINES*4],*ptr
-		,search[MAX_OPLN],bline=0,*win;
+		,bline=0,*win;
+    char search[MAX_OPLN];
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
 	int	is_redraw=0;
@@ -666,7 +667,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					puttext(sav[api->savnum].left,sav[api->savnum].top,sav[api->savnum].right,sav[api->savnum].bot
 						,sav[api->savnum].buf);	/* put original window back */
 					FREE_AND_NULL(sav[api->savnum].buf);
-					if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
+					if((sav[api->savnum].buf=malloc((width+3)*(height+2)*2))==NULL) {
 						cprintf("UIFC line %d: error allocating %u bytes."
 							,__LINE__,(width+3)*(height+2)*2);
 						free(title);
@@ -691,7 +692,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			}
 		}
 		else {
-			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
+			if((sav[api->savnum].buf=malloc((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
@@ -977,6 +978,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(api->timedisplay != NULL)
 			api->timedisplay(/* force? */FALSE);
 		gotkey=0;
+		textattr(((api->lbclr)&0x0f)|((api->lbclr >> 4)&0x0f));
+		gotoxy(s_left+lbrdrwidth+2+left, s_top+y);
 		if(kbwait() || (mode&(WIN_POP|WIN_SEL))) {
 			if(mode&WIN_POP)
 				gotkey=ESC;
@@ -1006,7 +1009,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_ACT) {
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if((win=(char *)alloca((width+3)*(height+2)*2))==NULL) {
+							if((win=alloca((width+3)*(height+2)*2))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
 								return(-1);
@@ -1870,16 +1873,16 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 /****************************************************************************/
 int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int *lastkey)
 {
-	uchar   *str,ins=0;
+	char   *str,ins=0;
 	int	ch;
 	int     i,j,k,f=0;	/* i=offset, j=length */
 	BOOL	gotdecimal=FALSE;
 	int	soffset=0;
 	struct mouse_event	mevnt;
-	unsigned char	*pastebuf=NULL;
+	char	*pastebuf=NULL;
 	unsigned char	*pb=NULL;
 
-	if((str=(uchar *)alloca(max+1))==NULL) {
+	if((str=alloca(max+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(max+1));
 		_setcursortype(cursor);
@@ -1940,7 +1943,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					if(i>j)
 						i=j;
 					pastebuf=getcliptext();
-					pb=pastebuf;
+					pb=(unsigned char *)pastebuf;
 					f=0;
 				}
 			}
@@ -2018,7 +2021,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						if(i>j)
 							i=j;
 						pastebuf=getcliptext();
-						pb=pastebuf;
+						pb=(unsigned char *)pastebuf;
 						ch=0;
 					}
 				}
