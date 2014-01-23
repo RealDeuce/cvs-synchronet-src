@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.143 2014/01/22 22:01:15 deuce Exp $ */
+/* $Id: cterm.c,v 1.144 2014/01/23 02:05:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -890,7 +890,7 @@ static void scrolldown(struct cterminal *cterm)
 static void scrollup(struct cterminal *cterm)
 {
 	int top = cterm->y+cterm->top_margin-1;
-	int height = cterm->bottom_margin;
+	int height = cterm->bottom_margin-cterm->top_margin+1;
 	int x,y;
 
 	cterm->backpos++;
@@ -912,7 +912,7 @@ static void scrollup(struct cterminal *cterm)
 static void dellines(struct cterminal * cterm, int lines)
 {
 	int top = cterm->y+cterm->top_margin-1;
-	int height = cterm->bottom_margin;
+	int height = cterm->bottom_margin-cterm->top_marging+1;
 	int i;
 	int linestomove;
 	int x,y;
@@ -1822,7 +1822,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.143 $";
+	char	*revision="$Revision: 1.144 $";
 	char *in;
 	char	*out;
 	int		i;
