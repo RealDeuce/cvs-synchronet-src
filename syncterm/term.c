@@ -1,10 +1,12 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.299 2014/02/06 11:46:50 deuce Exp $ */
+/* $Id: term.c,v 1.298 2013/08/20 07:36:04 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
+#include <mouse.h>
+#include <keys.h>
 
 #include "threadwrap.h"
 #include "filewrap.h"
