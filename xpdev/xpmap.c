@@ -2,7 +2,7 @@
 
 /* mmap() style cross-platform development wrappers */
 
-/* $Id: xpmap.c,v 1.5 2014/02/10 09:20:44 deuce Exp $ */
+/* $Id: xpmap.c,v 1.4 2012/10/22 18:33:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type)
+struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 {
 	int					fd;
 	void				*addr=NULL;
@@ -91,7 +91,7 @@ struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type)
 	return ret;
 }
 
-void DLLCALL xpunmap(struct xpmapping *map)
+void xpunmap(struct xpmapping *map)
 {
 	munmap(map->addr, map->size);
 	close(map->fd);
@@ -100,7 +100,7 @@ void DLLCALL xpunmap(struct xpmapping *map)
 
 #elif defined(_WIN32)
 
-struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type)
+struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 {
 	HFILE				fd;
 	HANDLE				md;
@@ -149,7 +149,7 @@ struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type)
 	return ret;
 }
 
-void DLLCALL xpunmap(struct xpmapping *map)
+void xpunmap(struct xpmapping *map)
 {
 	UnmapViewOfFile(map->addr);
 	CloseHandle(map->md);
