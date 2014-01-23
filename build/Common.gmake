@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.88 2013/08/16 23:32:05 deuce Exp $
+# $Id: Common.gmake,v 1.91 2013/08/17 02:02:07 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -183,6 +183,7 @@ else
  AR				?=	ar
  RANLIB			?=	ranlib
 endif
+WINDRES	?=	windres
 
 ifdef DEBUG
  BUILD	=	debug
@@ -262,7 +263,11 @@ endif
 LIBPREFIX	:= lib
 DIRSEP		:= /
 OFILE		:= .o
-EXEFILE		:=
+ifeq ($(os),win32)
+ EXEFILE		:= .exe
+else
+ EXEFILE		:=
+endif
 SOFILE		:= .so
 LIBFILE		:= .a
 UL_PRE		:=	-l
@@ -341,7 +346,7 @@ else
       #CFLAGS	   += -D_POSIX_PTHREAD_SEMANTICS
      else
       ifeq ($(os),win32) # Windows
-       CFLAGS		+= -D_WIN32 -D_WIN32_WINNT=0x0500 -DWINVER=0x0500 -D_WIN32_IE=0x0500
+       CFLAGS		+= -D_WIN32 -D_WIN32_WINNT=0x0501 -DWINVER=0x0501 -D_WIN32_IE=0x0500
        MT_CFLAGS	+= -D_WIN32
       else           # Linux / Other UNIX
        XP_SEM :=    1
