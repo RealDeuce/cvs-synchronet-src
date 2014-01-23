@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.609 2015/04/10 22:50:49 sbbs Exp $ */
+/* $Id: main.cpp,v 1.601 2014/01/08 10:17:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,6 @@
 	#endif
 #endif
 
-//#define SBBS_TELNET_ENVIRON_SUPPORT 1
 //---------------------------------------------------------------------------
 
 #define TELNET_SERVER "Synchronet Terminal Server"
@@ -297,15 +296,15 @@ DLLEXPORT void DLLCALL sbbs_srand()
 
 	xp_randomize();
 #if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
-	int     rf,rd=0;
+	int     rf;
 
-	if((rf=open(RANDOM_DEV, O_RDONLY|O_NONBLOCK))!=-1) {
-		rd=read(rf, &seed, sizeof(seed));
+	if((rf=open(RANDOM_DEV, O_RDONLY))!=-1) {
+		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
-	if(rd != sizeof(seed))
+#else
+	seed = time32(NULL) ^ (DWORD)GetCurrentThreadId();
 #endif
-		seed = time32(NULL) ^ (DWORD)GetCurrentThreadId();
 
  	srand(seed);
 	sbbs_random(10);	/* Throw away first number */
@@ -1291,7 +1290,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
-						safe_snprintf(sbbs->terminal,sizeof(sbbs->terminal),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						sprintf(sbbs->terminal,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal type: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1300,7 +1299,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					} else if(option==TELNET_TERM_SPEED
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
 						char speed[128];
-						safe_snprintf(speed,sizeof(speed),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						sprintf(speed,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal speed: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1313,34 +1312,17 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 						BYTE*	p;
 						BYTE*   end=sbbs->telnet_cmd+(sbbs->telnet_cmdlen-2);
 						for(p=sbbs->telnet_cmd+4; p < end; ) {
-							if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR) {
-								BYTE type=*p++;
-								char* name=(char*)p;
-								/* RFC 1572: The characters following a "type" up to the next "type" or VALUE specify the variable name. */
-								while(p < end) {
-									if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR || *p == TELNET_ENVIRON_VALUE)
-										break;
-									p++;
-								}
-								if(p < end) {
-									char* value=(char*)p+1;
-									*(p++)=0;
-									while(p < end) {
-										if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR || *p == TELNET_ENVIRON_VALUE)
-											break;
-										p++;
-									}
-									*p=0;
-									lprintf(LOG_DEBUG,"Node %d telnet %s %s environment variable '%s' = '%s'"
-	                					,sbbs->cfg.node_num
-										,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-										,type==TELNET_ENVIRON_VAR ? "well-known" : "user-defined"
-										,name
-										,value);
-									if(strcmp(name,"USER") == 0) {
-										SAFECOPY(sbbs->rlogin_name, value);
-									}
-								}
+							if(*p==TELNET_ENVIRON_VAR) {
+								char tmp[128];
+								p++;
+								c_escape_str((char*)p,tmp,sizeof(tmp),TRUE);
+								lprintf(LOG_DEBUG,"Node %d %s telnet environment var/val: %.*s (%s)"
+	                				,sbbs->cfg.node_num
+									,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+									,end-p
+									,p
+									,tmp);
+								p+=strlen((char*)p);
 							} else
 								p++;
 						}
@@ -1457,9 +1439,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 									,sbbs->cfg.node_num);
 
 							char	buf[64];
-							int len=sprintf(buf,"%c%c%c%c%c%c"
+							int len=sprintf(buf,"%c%c%c%c%c%c%c"
 								,TELNET_IAC,TELNET_SB
-								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND //,TELNET_ENVIRON_VAR
+								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND,TELNET_ENVIRON_VAR
 								,TELNET_IAC,TELNET_SE);
 							sbbs->putcom(buf,len);
 						}
@@ -2209,7 +2191,7 @@ void output_thread(void* arg)
     sbbs->output_thread_running = false;
 
 	if(total_sent)
-		safe_snprintf(stats,sizeof(stats),"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
+		sprintf(stats,"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
 			,total_sent, total_pkts, total_sent/total_pkts, short_sends);
 	else
 		stats[0]=0;
@@ -2959,14 +2941,11 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	terminal[0]=0;
 	rlogin_name[0]=0;
 	rlogin_pass[0]=0;
-	rlogin_term[0]=0;
 
 	/* Init some important variables */
 
-	input_thread_mutex_created = false;
 #ifdef USE_CRYPTLIB
 	ssh_mode=false;
-	ssh_mutex_created=false;
     passthru_input_thread_running = false;
     passthru_output_thread_running = false;
 #endif
@@ -3172,7 +3151,7 @@ bool sbbs_t::init()
 			now=time(NULL);
 			struct tm tm;
 			localtime_r(&now,&tm);
-			safe_snprintf(str,sizeof(str),"%s  %s %s %02d %u  "
+			sprintf(str,"%s  %s %s %02d %u  "
 				"End of preexisting log entry (possible crash)"
 				,hhmmtostr(&cfg,&tm,tmp)
 				,wday[tm.tm_wday]
@@ -3355,12 +3334,8 @@ bool sbbs_t::init()
 			} 
 	}
 
-#ifdef USE_CRYPTLIB
 	pthread_mutex_init(&ssh_mutex,NULL);
-	ssh_mutex_created = true;
-#endif
 	pthread_mutex_init(&input_thread_mutex,NULL);
-	input_thread_mutex_created = true;
 
 	reset_logon_vars();
 
@@ -3487,11 +3462,9 @@ sbbs_t::~sbbs_t()
 	FREE_AND_NULL(batdn_cdt);
 	FREE_AND_NULL(batdn_alt);
 
-#ifdef USE_CRYPTLIB
-	while(ssh_mutex_created && pthread_mutex_destroy(&ssh_mutex)==EBUSY)
+	while(pthread_mutex_destroy(&ssh_mutex)==EBUSY)
 		mswait(1);
-#endif
-	while(input_thread_mutex_created && pthread_mutex_destroy(&input_thread_mutex)==EBUSY)
+	while(pthread_mutex_destroy(&input_thread_mutex)==EBUSY)
 		mswait(1);
 
 #if 0 && defined(_WIN32) && defined(_DEBUG) && defined(_MSC_VER)
@@ -4331,7 +4304,7 @@ const char* DLLCALL bbs_ver(void)
 	if(ver[0]==0) {	/* uninitialized */
 		DESCRIBE_COMPILER(compiler);
 
-		safe_snprintf(ver,sizeof(ver),"%s %s%c%s  SMBLIB %s  Compiled %s %s with %s"
+		sprintf(ver,"%s %s%c%s  SMBLIB %s  Compiled %s %s with %s"
 			,TELNET_SERVER
 			,VERSION, REVISION
 #ifdef _DEBUG
