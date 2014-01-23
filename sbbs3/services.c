@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.275 2014/11/18 06:11:30 deuce Exp $ */
+/* $Id: services.c,v 1.273 2014/01/08 02:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -902,10 +902,6 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateCOMClass(js_cx, *glob)==NULL)
 			break;
 
-		/* CryptContext Class */
-		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
-			break;
-
 		/* user-specific objects */
 		if(!js_CreateUserObjects(js_cx, *glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
@@ -1707,7 +1703,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.275 $", "%*s %s", revision);
+	sscanf("$Revision: 1.273 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1809,8 +1805,6 @@ void DLLCALL services_thread(void* arg)
 
 		sbbs_srand();	/* Seed random number generator */
 
-		protected_uint32_init(&threads_pending_start,0);
-
 		if(!winsock_startup()) {
 			cleanup(1);
 			return;
@@ -1869,10 +1863,9 @@ void DLLCALL services_thread(void* arg)
 
 		/* Open and Bind Listening Sockets */
 		total_sockets=0;
-		for(i=0;i<(int)services;i++)
-			service[i].socket=INVALID_SOCKET;
+		for(i=0;i<(int)services;i++) {
 
-		for(i=0;i<(int)services && !startup->shutdown_now;i++) {
+			service[i].socket=INVALID_SOCKET;
 
 			if((socket = open_socket(
 				(service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
@@ -1948,6 +1941,8 @@ void DLLCALL services_thread(void* arg)
 			cleanup(1);
 			return;
 		}
+
+		protected_uint32_init(&threads_pending_start,0);
 
 		/* Setup static service threads */
 		for(i=0;i<(int)services;i++) {
