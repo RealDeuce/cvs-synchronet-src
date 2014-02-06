@@ -3,6 +3,7 @@
 #include "dirwrap.h"
 #include "uifc.h"
 #include "ciolib.h"
+#include "mouse.h"
 
 #include "filepick.h"
 

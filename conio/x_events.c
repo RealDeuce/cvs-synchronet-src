@@ -20,6 +20,7 @@
 #include <dirwrap.h>
 
 #include "vidmodes.h"
+#include "allfonts.h"
 
 #include "ciolib.h"
 #include "bitmap_con.h"
