@@ -151,10 +151,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->PollEvent=xp_dlsym(sdl_dll, SDL_PollEvent))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
 	if((sdlf->SetVideoMode=xp_dlsym(sdl_dll, SDL_SetVideoMode))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
@@ -332,7 +328,7 @@ void run_sdl_drawing_thread(int (*drawing_thread)(void *data), void (*exit_drawi
 
 static void QuitWrap(void)
 {
-	if(sdl.Quit && sdl_initialized)
+	if(sdl.Quit)
 		sdl.Quit();
 }
 
@@ -345,7 +341,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 	char	drivername[64];
 	struct main_args ma;
 	SDL_Thread	*main_thread;
-	int		main_ret=0;
+	int		main_ret;
 	int		use_sdl_video=FALSE;
 #ifdef _WIN32
 	char		*driver_env=NULL;
