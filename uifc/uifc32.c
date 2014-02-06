@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.201 2014/02/09 12:48:26 deuce Exp $ */
+/* $Id: uifc32.c,v 1.199 2014/01/22 18:32:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,7 @@
 #endif
 
 #include "ciolib.h"
+#include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
 
@@ -146,7 +147,7 @@ int inkey(void)
 	return(c);
 }
 
-int UIFCCALL uifcini32(uifcapi_t* uifcapi)
+int uifcini32(uifcapi_t* uifcapi)
 {
 	unsigned	i;
 	struct	text_info txtinfo;
