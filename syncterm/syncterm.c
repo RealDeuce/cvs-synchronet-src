@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.181 2014/02/09 11:07:59 deuce Exp $ */
+/* $Id: syncterm.c,v 1.178 2014/02/06 11:46:50 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -37,7 +37,12 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include <dirwrap.h>
 #include <filewrap.h>	// STDOUT_FILENO
 
-#include <cterm.h>
+#include "ciolib.h"
+#undef HAS_VSTAT
+#ifdef HAS_VSTAT
+#include "bitmap_con.h"
+#endif
+#include "cterm.h"
 
 #include "st_crypt.h"
 #include "fonts.h"
@@ -797,19 +802,8 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		SAFECOPY(bbs->user,p1);
 		p1=p3+1;
 	}
-	p2 = p1;
-	if(*p1=='[') {
-		p2=strchr(p1, ']');
-		if(p2 != NULL) {
-			p1++;
-			*p2=0;
-			p2++;
-		}
-		else
-			p2 = p1;
-	}
 	SAFECOPY(bbs->name,p1);
-	p2=strrchr(p2,':');
+	p2=strchr(p1,':');
 	if(p2!=NULL) {
 		*p2=0;
 		p2++;
@@ -1169,7 +1163,9 @@ void load_settings(struct syncterm_settings *set)
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
-	setscaling(set->scaling_factor);
+#ifdef HAS_VSTAT
+	vstat.scaling=set->scaling_factor;
+#endif
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1562,7 +1558,8 @@ int main(int argc, char **argv)
 		bbs=NULL;
 	}
 	// Save changed settings
-	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
+#ifdef HAS_VSTAT
+	if(vstat.scaling > 0 && vstat.scaling != settings.scaling_factor) {
 		char	inipath[MAX_PATH+1];
 		FILE	*inifile;
 		str_list_t	inicontents;
@@ -1575,12 +1572,13 @@ int main(int argc, char **argv)
 		else {
 			inicontents=strListInit();
 		}
-		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",getscaling(),&ini_style);
+		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",vstat.scaling,&ini_style);
 		if((inifile=fopen(inipath,"w"))!=NULL) {
 			iniWriteFile(inifile,inicontents);
 			fclose(inifile);
 		}
 	}
+#endif
 	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
