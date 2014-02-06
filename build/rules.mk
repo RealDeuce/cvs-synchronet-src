@@ -2,7 +2,7 @@
 #
 # Global build targets for all make systems
 #
-# $Id: rules.mk,v 1.5 2004/09/13 02:54:26 rswindell Exp $
+# $Id: rules.mk,v 1.6 2011/10/21 21:44:27 deuce Exp $
 
 $(OBJODIR):
 	$(QUIET)$(IFNOTEXIST) mkdir $(OBJODIR)
@@ -16,6 +16,7 @@ $(LIBODIR):
 $(EXEODIR):
 	$(QUIET)$(IFNOTEXIST) mkdir $(EXEODIR)
 
+clean:
 clean:
 	@echo Deleting $(OBJODIR)$(DIRSEP)
 	-$(QUIET)$(DELETE) $(OBJODIR)$(DIRSEP)*
