@@ -2,6 +2,7 @@
 #define _EVENTS_H_
 
 #include <gtk/gtk.h>
+#include <glade/glade.h>
 
 void update_userlist_sensitive_callback(GtkTreeSelection *wiggy, gpointer data);
 void update_userlist_callback(GtkWidget *wiggy, gpointer data);
