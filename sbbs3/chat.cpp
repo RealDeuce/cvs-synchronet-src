@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.65 2014/03/19 04:10:56 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.64 2013/09/18 16:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1823,9 +1823,8 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 /****************************************************************************/
 bool sbbs_t::guruexp(char **ptrptr, char *line)
 {
-	char	*cp,str[256];
+	char	c,*cp,str[256];
 	int		nest;
-	unsigned c;
 	bool	result=false,_and=false,_or=false;
 	uchar	*ar;
 
