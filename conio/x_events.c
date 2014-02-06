@@ -22,8 +22,7 @@
 #include "vidmodes.h"
 #include "allfonts.h"
 
-#include "keys.h"
-#include "mouse.h"
+#include "ciolib.h"
 #include "bitmap_con.h"
 #include "link_list.h"
 #include "x_events.h"
@@ -410,7 +409,6 @@ static void handle_resize_event(int width, int height)
 {
 	int newFSH=1;
 	int newFSW=1;
-	int oldscaling=vstat.scaling;
 
 	// No change
 	if((width == vstat.charwidth * vstat.cols * vstat.scaling)
@@ -815,6 +813,7 @@ void x11_event_thread(void *args)
 	XEvent ev;
 	static struct timeval tv;
 
+	SetThreadName("X11 Events");
 	if(video_init()) {
 		sem_post(&init_complete);
 		return;

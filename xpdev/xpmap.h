@@ -1,10 +1,14 @@
-/* $Id: keys.h,v 1.7 2009/02/10 09:15:29 deuce Exp $ */
+/* xpmap.h */
+
+/* mmap() style cross-platform development wrappers */
+
+/* $Id: xpmap.h,v 1.3 2012/10/21 00:11:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -31,18 +35,42 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#define CIO_KEY_HOME      (0x47 << 8)
-#define CIO_KEY_UP        (72   << 8)
-#define CIO_KEY_END       (0x4f << 8)
-#define CIO_KEY_DOWN      (80   << 8)
-#define CIO_KEY_F(x)      ((x<11)?((0x3a+x) << 8):((0x7a+x) << 8))
-#define CIO_KEY_IC        (0x52 << 8)
-#define CIO_KEY_DC        (0x53 << 8)
-#define CIO_KEY_LEFT      (0x4b << 8)
-#define CIO_KEY_RIGHT     (0x4d << 8)
-#define CIO_KEY_PPAGE     (0x49 << 8)
-#define CIO_KEY_NPAGE     (0x51 << 8)
-#define CIO_KEY_ALT_F(x)      ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
+#ifndef _XPMAP_H
+#define _XPMAP_H
 
-#define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards
-#define CIO_KEY_ABORTED   0x01E0	// ESC key by scancode
+#include "gen_defs.h"
+
+enum xpmap_type {
+	XPMAP_READ,
+	XPMAP_WRITE,
+	XPMAP_COPY
+};
+
+#if defined(__unix__)
+
+#include <sys/mman.h>
+struct xpmapping {
+	void	*addr;
+	int		fd;
+	size_t	size;
+};
+
+#elif defined(_WIN32)
+
+struct xpmapping {
+	void		*addr;
+	HANDLE		fd;
+	HANDLE		md;
+	uint64_t	size;
+};
+
+#else
+
+	#error "Need mmap wrappers."
+
+#endif
+
+struct xpmapping *xpmap(const char *filename, enum xpmap_type type);
+void xpunmap(struct xpmapping *map);
+
+#endif
