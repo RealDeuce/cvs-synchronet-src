@@ -4,6 +4,7 @@
 
 #include <gen_defs.h>
 #include <ciolib.h>
+#include <keys.h>
 
 #include "effekt.h"
 #include "key.h"
