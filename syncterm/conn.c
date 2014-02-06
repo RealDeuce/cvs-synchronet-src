@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.63 2011/09/10 22:47:55 deuce Exp $ */
+/* $Id: conn.c,v 1.69 2014/01/23 08:46:56 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -35,7 +35,9 @@
 #include "rlogin.h"
 #include "raw.h"
 #include "ssh.h"
+#ifndef __HAIKU__
 #include "modem.h"
+#endif
 #ifdef __unix__
 #include "conn_pty.h"
 #endif
@@ -342,6 +344,7 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.close=ssh_close;
 			break;
 #endif
+#ifndef __HAIKU__
 		case CONN_TYPE_SERIAL:
 			conn_api.connect=modem_connect;
 			conn_api.close=serial_close;
@@ -350,6 +353,7 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=modem_connect;
 			conn_api.close=modem_close;
 			break;
+#endif
 #ifdef __unix__
 		case CONN_TYPE_SHELL:
 			conn_api.connect=pty_connect;
@@ -409,19 +413,35 @@ int conn_socket_connect(struct bbslist *bbs)
 	fd_set			wfd;
 	int				failcode=FAILURE_WHAT_FAILURE;
 	struct addrinfo	hints;
-	struct addrinfo	*res;
+	struct addrinfo	*res=NULL;
 	struct addrinfo	*cur;
 	char			portnum[6];
 
 	uifc.pop("Looking up host");
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags=PF_UNSPEC;
+	switch(bbs->address_family) {
+		case ADDRESS_FAMILY_INET:
+			hints.ai_family=PF_INET;
+			break;
+		case ADDRESS_FAMILY_INET6:
+			hints.ai_family=PF_INET6;
+			break;
+		case ADDRESS_FAMILY_UNSPEC:
+		default:
+			hints.ai_family=PF_UNSPEC;
+			break;
+	}
 	hints.ai_socktype=SOCK_STREAM;
 	hints.ai_protocol=IPPROTO_TCP;
-	hints.ai_flags=AI_ADDRCONFIG|AI_NUMERICSERV;
+	hints.ai_flags=AI_NUMERICSERV;
+#ifdef AI_ADDRCONFIG
+	hints.ai_flags|=AI_ADDRCONFIG;
+#endif
 	sprintf(portnum, "%hu", bbs->port);
 	if(getaddrinfo(bbs->addr, portnum, &hints, &res)!=0) {
 		failcode=FAILURE_RESOLVE;
+		res=NULL;
 		goto connect_failed;
 	}
 	uifc.pop(NULL);
@@ -431,6 +451,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	while(kbhit())
 		getch();
 	for(cur=res; cur && failcode==FAILURE_WHAT_FAILURE; cur=cur->ai_next) {
+fprintf(stderr, "Looping...\n");
 		if(sock==INVALID_SOCKET) {
 			sock=socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
 			if(sock==INVALID_SOCKET) {
@@ -450,7 +471,7 @@ int conn_socket_connect(struct bbslist *bbs)
 #if (EAGAIN!=EWOULDBLOCK)
 				case EWOULDBLOCK:
 #endif
-					for(;;) {
+					for(;sock!=INVALID_SOCKET;) {
 						tv.tv_sec=1;
 						tv.tv_usec=0;
 
@@ -468,7 +489,11 @@ int conn_socket_connect(struct bbslist *bbs)
 								sock=INVALID_SOCKET;
 								continue;
 							case 1:
-								goto connected;
+								if(socket_check(sock, NULL, NULL, 0))
+									goto connected;
+								closesocket(sock);
+								sock=INVALID_SOCKET;
+								continue;
 							default:
 								break;
 						}
@@ -493,6 +518,7 @@ int conn_socket_connect(struct bbslist *bbs)
 
 connected:
 	freeaddrinfo(res);
+	res=NULL;
 	nonblock=0;
 	ioctlsocket(sock, FIONBIO, &nonblock);
 	if(!socket_check(sock, NULL, NULL, 0)) {
@@ -504,7 +530,8 @@ connected:
 	return(sock);
 
 connect_failed:
-	freeaddrinfo(res);
+	if(res)
+		freeaddrinfo(res);
 	{
 		char str[LIST_ADDR_MAX+40];
 
