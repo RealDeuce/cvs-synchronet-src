@@ -24,7 +24,9 @@
 #endif
 
 #include "ciolib.h"
+#include "keys.h"
 #include "vidmodes.h"
+#include "allfonts.h"
 #include "bitmap_con.h"
 
 #include "SDL.h"
