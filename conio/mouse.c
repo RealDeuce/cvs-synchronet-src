@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.39 2012/10/18 17:48:16 deuce Exp $ */
+/* $Id: mouse.c,v 1.40 2014/02/06 10:40:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 #include <threadwrap.h>
 #include <link_list.h>
 
-#include "mouse.h"
+#include "ciolib.h"
 
 #define MSEC_CLOCK()	(msclock()*MSCLOCKS_PER_SEC/1000)
 
