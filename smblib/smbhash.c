@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.30 2014/04/23 10:12:52 deuce Exp $ */
+/* $Id: smbhash.c,v 1.29 2012/10/28 01:42:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -329,21 +329,21 @@ int SMBCALL smb_getmsgidx_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
 								 ,unsigned flags, const void* data, size_t length)
 {
 	int			retval;
-	size_t		n=2;
+	size_t		n;
 	hash_t**	hashes;
 	hash_t		found;
 
-	if((hashes=(hash_t**)calloc(n, sizeof(hash_t*)))==NULL)
+	if((hashes=(hash_t**)malloc(sizeof(hash_t*)*2))==NULL)
 		return(SMB_ERR_MEM);
 
 	if(length==0)
 		hashes[0]=smb_hashstr(0,0,source,flags,data);
 	else
 		hashes[0]=smb_hash(0,0,source,flags,data,length);
-	if(hashes[0]==NULL) {
-		FREE_LIST(hashes,n);
+	if(hashes[0]==NULL)
 		return(SMB_ERR_MEM);
-	}
+
+	hashes[1]=NULL;	/* terminate list */
 
 	if((retval=smb_findhash(smb, hashes, &found, 1<<source, FALSE))==SMB_SUCCESS) {
 		if(found.number==0)
