@@ -2,7 +2,7 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.37 2011/07/21 11:28:22 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.39 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@
 /* Converts message 'msg' to QWK format, writing to file 'qwk_fp'.          */
 /* mode determines how to handle Ctrl-A codes								*/
 /****************************************************************************/
-ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
+ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 	, int conf, FILE* hdrs)
 {
 	char	str[512],from[512],to[512],ch=0,tear=0,tearwatch=0,*buf,*p;
@@ -60,7 +60,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 
 	offset=(long)ftell(qwk_fp);
 	if(hdrs!=NULL) {
-		fprintf(hdrs,"[%x]\n",offset);
+		fprintf(hdrs,"[%lx]\n",offset);
 
 		/* Message-IDs */
 		fprintf(hdrs,"Message-ID:  %s\n",get_msgid(&cfg,subnum,msg,msgid,sizeof(msgid)));
@@ -89,7 +89,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, int subnum
 				,str,sizeof(str))
 			,sys_timezone(&cfg)
 			);
-		fprintf(hdrs,"ExportedFrom: %s %s %lu\n"
+		fprintf(hdrs,"ExportedFrom: %s %s %"PRIu32"\n"
 			,cfg.sys_id
 			,subnum==INVALID_SUB ? "mail":cfg.sub[subnum]->code
 			,msg->hdr.number
