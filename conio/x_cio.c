@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.34 2014/02/06 10:58:00 deuce Exp $ */
+/* $Id: x_cio.c,v 1.33 2012/10/18 17:48:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@
 #endif
 
 #include "ciolib.h"
+#include "keys.h"
 #include "x_cio.h"
 #include "x_events.h"
 
