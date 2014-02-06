@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.56 2011/10/19 02:28:48 deuce Exp $ */
+/* $Id: ciolib.h,v 1.60 2014/02/06 10:41:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
 #define _CIOLIB_H_
 
 #include <string.h>	/* size_t */
-#include "mouse.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -220,6 +219,16 @@ struct text_info {
 
 extern struct text_info cio_textinfo;
 
+struct mouse_event {
+	int event;
+	int bstate;
+	int kbsm;
+	int startx;
+	int starty;
+	int endx;
+	int endy;
+};
+
 typedef struct {
 	int		mode;
 	int		mouse;
@@ -313,8 +322,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textcolor(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_highvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_lowvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,unsigned char *e);
-CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,unsigned char *e);
+CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e);
+CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textattr(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a);
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a);
@@ -402,12 +411,85 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 #endif
 
 #ifdef WITH_SDL
+	#include <gen_defs.h>
 	#include <SDL.h>
 
 	#ifdef main
 		#undef main
 	#endif
 	#define	main	CIOLIB_main
+#endif
+
+#define CIOLIB_BUTTON_1	1
+#define CIOLIB_BUTTON_2	2
+#define CIOLIB_BUTTON_3	4
+
+#define CIOLIB_BUTTON(x)	(1<<(x-1))
+
+enum {
+	 CIOLIB_MOUSE_MOVE				/* 0 */
+	,CIOLIB_BUTTON_1_PRESS
+	,CIOLIB_BUTTON_1_RELEASE
+	,CIOLIB_BUTTON_1_CLICK
+	,CIOLIB_BUTTON_1_DBL_CLICK
+	,CIOLIB_BUTTON_1_TRPL_CLICK
+	,CIOLIB_BUTTON_1_QUAD_CLICK
+	,CIOLIB_BUTTON_1_DRAG_START
+	,CIOLIB_BUTTON_1_DRAG_MOVE
+	,CIOLIB_BUTTON_1_DRAG_END
+	,CIOLIB_BUTTON_2_PRESS			/* 10 */
+	,CIOLIB_BUTTON_2_RELEASE
+	,CIOLIB_BUTTON_2_CLICK
+	,CIOLIB_BUTTON_2_DBL_CLICK
+	,CIOLIB_BUTTON_2_TRPL_CLICK
+	,CIOLIB_BUTTON_2_QUAD_CLICK
+	,CIOLIB_BUTTON_2_DRAG_START
+	,CIOLIB_BUTTON_2_DRAG_MOVE
+	,CIOLIB_BUTTON_2_DRAG_END
+	,CIOLIB_BUTTON_3_PRESS
+	,CIOLIB_BUTTON_3_RELEASE		/* 20 */
+	,CIOLIB_BUTTON_3_CLICK
+	,CIOLIB_BUTTON_3_DBL_CLICK
+	,CIOLIB_BUTTON_3_TRPL_CLICK
+	,CIOLIB_BUTTON_3_QUAD_CLICK
+	,CIOLIB_BUTTON_3_DRAG_START
+	,CIOLIB_BUTTON_3_DRAG_MOVE
+	,CIOLIB_BUTTON_3_DRAG_END		/* 27 */
+};
+
+#define CIOLIB_BUTTON_PRESS(x)		((x-1)*9+1)
+#define CIOLIB_BUTTON_RELEASE(x)	((x-1)*9+2)
+#define CIOLIB_BUTTON_CLICK(x)		((x-1)*9+3)
+#define CIOLIB_BUTTON_DBL_CLICK(x)	((x-1)*9+4)
+#define CIOLIB_BUTTON_TRPL_CLICK(x)	((x-1)*9+5)
+#define CIOLIB_BUTTON_QUAD_CLICK(x)	((x-1)*9+6)
+#define CIOLIB_BUTTON_DRAG_START(x)	((x-1)*9+7)
+#define CIOLIB_BUTTON_DRAG_MOVE(x)	((x-1)*9+8)
+#define CIOLIB_BUTTON_DRAG_END(x)	((x-1)*9+9)
+
+#define CIOLIB_BUTTON_NUMBER(x)		((x+8)/9)
+
+#define CIOLIB_BUTTON_BASE(x)		(x!=CIOLIB_MOUSE_MOVE?x-9*(CIOLIB_BUTTON_NUMBER(x)-1):CIOLIB_MOUSE_MOVE)
+
+extern int ciolib_mouse_initialized;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+void ciomouse_gotevent(int event, int x, int y);
+int mouse_trywait(void);
+int mouse_wait(void);
+int mouse_pending(void);
+int ciolib_getmouse(struct mouse_event *mevent);
+int ciolib_ungetmouse(struct mouse_event *mevent);
+void ciolib_mouse_thread(void *data);
+int ciomouse_setevents(int events);
+int ciomouse_addevents(int events);
+int ciomouse_delevents(int events);
+int ciomouse_addevent(int event);
+int ciomouse_delevent(int event);
+#ifdef __cplusplus
+}
 #endif
 
 #endif	/* Do not add anything after this line */
