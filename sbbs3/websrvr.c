@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.579 2014/12/11 11:11:29 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.572 2014/01/26 03:13:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1360,6 +1360,8 @@ static void send_error(http_session_t * session, const char* message)
 
 void http_logon(http_session_t * session, user_t *usr)
 {
+	char	str[128];
+
 	if(usr==NULL)
 		getuserdat(&scfg, &session->user);
 	else
@@ -1379,11 +1381,10 @@ void http_logon(http_session_t * session, user_t *usr)
 	else {
 		SAFECOPY(session->username,session->user.alias);
 		/* Adjust Connect and host */
-		SAFECOPY(session->user.modem, session->client.protocol);
-		SAFECOPY(session->user.comp, session->host_name);
-		SAFECOPY(session->user.note, session->host_ip);
-		session->user.logontime = (time32_t)session->logon_time;
-		putuserdat(&scfg, &session->user);
+		putuserrec(&scfg,session->user.number,U_MODEM,LEN_MODEM,"HTTP");
+		putuserrec(&scfg,session->user.number,U_COMP,LEN_COMP,session->host_name);
+		putuserrec(&scfg,session->user.number,U_NOTE,LEN_NOTE,session->host_ip);
+		putuserrec(&scfg,session->user.number,U_LOGONTIME,0,ultoa((ulong)session->logon_time,str,16));
 	}
 	session->client.user=session->username;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
@@ -1467,176 +1468,6 @@ static void calculate_digest(http_session_t * session, char *ha1, char *ha2, uns
 	MD5_close(&ctx, digest);
 }
 
-static BOOL digest_authentication(http_session_t* session, int auth_allowed, user_t thisuser, char** reason)
-{
-	unsigned char	digest[MD5_DIGEST_SIZE];
-	char			ha1[MD5_DIGEST_SIZE*2+1];
-	char			ha1l[MD5_DIGEST_SIZE*2+1];
-	char			ha1u[MD5_DIGEST_SIZE*2+1];
-	char			ha2[MD5_DIGEST_SIZE*2+1];
-	char			*pass;
-	char			*p;
-	time32_t		nonce_time;
-	time32_t		now;
-	MD5				ctx;
-
-	if((auth_allowed & (1<<AUTHENTICATION_DIGEST))==0) {
-		*reason="digest auth not allowed";
-		return(FALSE);
-	}
-	if(session->req.auth.qop_value==QOP_UNKNOWN) {
-		*reason="QOP unknown";
-		return(FALSE);
-	}
-	if(session->req.auth.algorithm==ALGORITHM_UNKNOWN) {
-		*reason="algorithm unknown";
-		return(FALSE);
-	}
-	/* Validate rules from RFC-2617 */
-	if(session->req.auth.qop_value==QOP_AUTH
-			|| session->req.auth.qop_value==QOP_AUTH_INT) {
-		if(session->req.auth.cnonce==NULL) {
-			*reason="no cnonce";
-			return(FALSE);
-		}
-		if(session->req.auth.nonce_count==NULL) {
-			*reason="no nonce count";
-			return(FALSE);
-		}
-	}
-	else {
-		if(session->req.auth.cnonce!=NULL) {
-			*reason="unexpected cnonce present";
-			return(FALSE);
-		}
-		if(session->req.auth.nonce_count!=NULL) {
-			*reason="unexpected nonce count present";
-			return(FALSE);
-		}
-	}
-
-	/* H(A1) */
-	MD5_open(&ctx);
-	MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-	MD5_digest(&ctx, ":", 1);
-	MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-	MD5_digest(&ctx, ":", 1);
-	MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
-	MD5_close(&ctx, digest);
-	MD5_hex((BYTE*)ha1, digest);
-
-	/* H(A1)l */
-	pass=strdup(thisuser.pass);
-	strlwr(pass);
-	MD5_open(&ctx);
-	MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-	MD5_digest(&ctx, ":", 1);
-	MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-	MD5_digest(&ctx, ":", 1);
-	MD5_digest(&ctx, pass, strlen(pass));
-	MD5_close(&ctx, digest);
-	MD5_hex((BYTE*)ha1l, digest);
-
-	/* H(A1)u */
-	strupr(pass);
-	MD5_open(&ctx);
-	MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-	MD5_digest(&ctx, ":", 1);
-	MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-	MD5_digest(&ctx, ":", 1);
-	MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
-	MD5_close(&ctx, digest);
-	MD5_hex((BYTE*)ha1u, digest);
-	free(pass);
-
-	/* H(A2) */
-	MD5_open(&ctx);
-	MD5_digest(&ctx, methods[session->req.method], strlen(methods[session->req.method]));
-	MD5_digest(&ctx, ":", 1);
-	/* exception here, session->req.auth.digest_uri==NULL */
-	MD5_digest(&ctx, session->req.auth.digest_uri, strlen(session->req.auth.digest_uri));
-	/* TODO QOP==AUTH_INT */
-	if(session->req.auth.qop_value == QOP_AUTH_INT) {
-		*reason="QOP value";
-		return(FALSE);
-	}
-	MD5_close(&ctx, digest);
-	MD5_hex((BYTE*)ha2, digest);
-
-	/* Check password as in user.dat */
-	calculate_digest(session, ha1, ha2, digest);
-	if(thisuser.pass[0]) {	// Zero-length password is "special" (any password will work)
-		if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-			/* Check against lower-case password */
-			calculate_digest(session, ha1l, ha2, digest);
-			if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-				/* Check against upper-case password */
-				calculate_digest(session, ha1u, ha2, digest);
-				if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-					*reason="digest mismatch";
-					return(FALSE);
-				}
-			}
-		}
-	}
-
-	/* Validate nonce */
-	p=strchr(session->req.auth.nonce, '@');
-	if(p==NULL) {
-		session->req.auth.stale=TRUE;
-		*reason="nonce lacks @";
-		return(FALSE);
-	}
-	*p=0;
-	if(strcmp(session->req.auth.nonce, session->client.addr)) {
-		session->req.auth.stale=TRUE;
-		*reason="nonce doesn't match client IP address";
-		return(FALSE);
-	}
-	*p='@';
-	p++;
-	nonce_time=strtoul(p, &p, 10);
-	if(*p) {
-		session->req.auth.stale=TRUE;
-		*reason="unexpected data after nonce time";
-		return(FALSE);
-	}
-	now=(time32_t)time(NULL);
-	if(nonce_time > now) {
-		session->req.auth.stale=TRUE;
-		*reason="nonce time in the future";
-		return(FALSE);
-	}
-	if(nonce_time < now-1800) {
-		session->req.auth.stale=TRUE;
-		*reason="stale nonce time";
-		return(FALSE);
-	}
-
-	return(TRUE);
-}
-
-static void badlogin(SOCKET sock, const char* prot, const char* user, const char* passwd, const char* host, const SOCKADDR_IN* addr)
-{
-	char reason[128];
-	ulong count;
-
-	SAFEPRINTF(reason,"%s LOGIN", prot);
-	count=loginFailure(startup->login_attempt_list, addr, prot, user, passwd);
-	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold) {
-		hacklog(&scfg, reason, user, passwd, host, addr);
-#ifdef _WIN32
-		if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
-			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
-#endif
-	}
-	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
-		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
-			,host, inet_ntoa(addr->sin_addr), user, /* fname: */NULL);
-	if(count>1)
-		mswait(startup->login_attempt_delay);
-}
-
 static BOOL check_ars(http_session_t * session)
 {
 	uchar	*ar;
@@ -1686,10 +1517,10 @@ static BOOL check_ars(http_session_t * session)
 		if(!http_checkuser(session))
 			return(FALSE);
 		if(scfg.sys_misc&SM_ECHO_PW && session->req.auth.type==AUTHENTICATION_BASIC)
-			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: '%s' (password: %s)"
+			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: %s, Password: %s"
 				,session->socket,session->req.auth.username,session->req.auth.password);
 		else
-			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: '%s'"
+			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: %s"
 				,session->socket,session->req.auth.username);
 		return(FALSE);
 	}
@@ -1708,27 +1539,143 @@ static BOOL check_ars(http_session_t * session)
 				}
 				if(!http_checkuser(session))
 					return(FALSE);
+				/* Should go to the hack log? */
 				if(scfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_WARNING,"%04d !BASIC AUTHENTICATION FAILURE for user '%s' (password: %s)"
-						,session->socket,session->req.auth.username,session->req.auth.password);
+					lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s: '%s' expected '%s'"
+						,session->socket,session->req.auth.username,session->req.auth.password,thisuser.pass);
 				else
-					lprintf(LOG_WARNING,"%04d !BASIC AUTHENTICATION FAILURE for user '%s'"
+					lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s"
 						,session->socket,session->req.auth.username);
-				badlogin(session->socket,session->client.protocol, session->req.auth.username, session->req.auth.password, session->host_name, &session->addr);
+		#ifdef _WIN32
+				if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
+					PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
+		#endif
 				return(FALSE);
 			}
 			break;
 		case AUTHENTICATION_DIGEST:
-		{
-			char* reason="unknown";
-			if(!digest_authentication(session, auth_allowed, thisuser, &reason)) {
-				lprintf(LOG_NOTICE,"%04d !DIGEST AUTHENTICATION FAILURE (reason: %s) for user '%s'"
-						,session->socket,reason,session->req.auth.username);
-				badlogin(session->socket,session->client.protocol, session->req.auth.username, "<digest>", session->host_name, &session->addr);
-				return(FALSE);
+			{
+				unsigned char	digest[MD5_DIGEST_SIZE];
+				char			ha1[MD5_DIGEST_SIZE*2+1];
+				char			ha1l[MD5_DIGEST_SIZE*2+1];
+				char			ha1u[MD5_DIGEST_SIZE*2+1];
+				char			ha2[MD5_DIGEST_SIZE*2+1];
+				char			*pass;
+				char			*p;
+				time32_t		nonce_time;
+				time32_t		now;
+				MD5				ctx;
+
+				if((auth_allowed & (1<<AUTHENTICATION_DIGEST))==0)
+					return(FALSE);
+				if(session->req.auth.qop_value==QOP_UNKNOWN)
+					return(FALSE);
+				if(session->req.auth.algorithm==ALGORITHM_UNKNOWN)
+					return(FALSE);
+				/* Validate rules from RFC-2617 */
+				if(session->req.auth.qop_value==QOP_AUTH
+						|| session->req.auth.qop_value==QOP_AUTH_INT) {
+					if(session->req.auth.cnonce==NULL)
+						return(FALSE);
+					if(session->req.auth.nonce_count==NULL)
+						return(FALSE);
+				}
+				else {
+					if(session->req.auth.cnonce!=NULL)
+						return(FALSE);
+					if(session->req.auth.nonce_count!=NULL)
+						return(FALSE);
+				}
+
+				/* H(A1) */
+				MD5_open(&ctx);
+				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
+				MD5_digest(&ctx, ":", 1);
+				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
+				MD5_digest(&ctx, ":", 1);
+				MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
+				MD5_close(&ctx, digest);
+				MD5_hex((BYTE*)ha1, digest);
+
+				/* H(A1)l */
+				pass=strdup(thisuser.pass);
+				strlwr(pass);
+				MD5_open(&ctx);
+				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
+				MD5_digest(&ctx, ":", 1);
+				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
+				MD5_digest(&ctx, ":", 1);
+				MD5_digest(&ctx, pass, strlen(pass));
+				MD5_close(&ctx, digest);
+				MD5_hex((BYTE*)ha1l, digest);
+
+				/* H(A1)u */
+				strupr(pass);
+				MD5_open(&ctx);
+				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
+				MD5_digest(&ctx, ":", 1);
+				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
+				MD5_digest(&ctx, ":", 1);
+				MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
+				MD5_close(&ctx, digest);
+				MD5_hex((BYTE*)ha1u, digest);
+				free(pass);
+
+				/* H(A2) */
+				MD5_open(&ctx);
+				MD5_digest(&ctx, methods[session->req.method], strlen(methods[session->req.method]));
+				MD5_digest(&ctx, ":", 1);
+				/* exception here, session->req.auth.digest_uri==NULL */
+				MD5_digest(&ctx, session->req.auth.digest_uri, strlen(session->req.auth.digest_uri));
+				/* TODO QOP==AUTH_INT */
+				if(session->req.auth.qop_value == QOP_AUTH_INT)
+					return(FALSE);
+				MD5_close(&ctx, digest);
+				MD5_hex((BYTE*)ha2, digest);
+
+				/* Check password as in user.dat */
+				calculate_digest(session, ha1, ha2, digest);
+				if(thisuser.pass[0]) {	// Zero-length password is "special" (any password will work)
+					if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
+						/* Check against lower-case password */
+						calculate_digest(session, ha1l, ha2, digest);
+						if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
+							/* Check against upper-case password */
+							calculate_digest(session, ha1u, ha2, digest);
+							if(memcmp(digest, session->req.auth.digest, sizeof(digest)))
+								return(FALSE);
+						}
+					}
+				}
+
+				/* Validate nonce */
+				p=strchr(session->req.auth.nonce, '@');
+				if(p==NULL) {
+					session->req.auth.stale=TRUE;
+					return(FALSE);
+				}
+				*p=0;
+				if(strcmp(session->req.auth.nonce, session->client.addr)) {
+					session->req.auth.stale=TRUE;
+					return(FALSE);
+				}
+				*p='@';
+				p++;
+				nonce_time=strtoul(p, &p, 10);
+				if(*p) {
+					session->req.auth.stale=TRUE;
+					return(FALSE);
+				}
+				now=(time32_t)time(NULL);
+				if(nonce_time > now) {
+					session->req.auth.stale=TRUE;
+					return(FALSE);
+				}
+				if(nonce_time < now-1800) {
+					session->req.auth.stale=TRUE;
+					return(FALSE);
+				}
 			}
-			break;
-		}
 	}
 
 	if(i != session->last_user_num) {
@@ -1761,9 +1708,6 @@ static BOOL check_ars(http_session_t * session)
 		}
 		/* Should use real name if set to do so somewhere ToDo */
 		add_env(session,"REMOTE_USER",session->user.alias);
-
-		if(thisuser.pass[0])
-			loginSuccess(startup->login_attempt_list, &session->addr);
 
 		return(TRUE);
 	}
@@ -3152,7 +3096,7 @@ static BOOL check_request(http_session_t * session)
 					break;
 				case AUTHENTICATION_DIGEST:
 					snprintf(p,sizeof(str)-(p-str),"%s%s: Digest realm=\"%s\", nonce=\"%s@%u\", qop=\"auth\"%s"
-							,newline,get_header(HEAD_WWWAUTH),session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name),session->client.addr,(unsigned)time(NULL),session->req.auth.stale?", stale=true":"");
+							,newline,get_header(HEAD_WWWAUTH),session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name),session->client.addr,time(NULL),session->req.auth.stale?", stale=true":"");
 					str[sizeof(str)-1]=0;
 					break;
 			}
@@ -4258,7 +4202,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 		if(stricmp(user.pass,p)) { /* Wrong password */
 			rc=JS_SUSPENDREQUEST(cx);
-			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: '%s'"
+			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: %s"
 				,session->socket,user.alias);
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
@@ -5110,7 +5054,6 @@ void http_session_thread(void* arg)
 	char			*redirp;
 	http_session_t	session;
 	int				loop_count;
-	ulong			login_attempts=0;
 	BOOL			init_error;
 	int32_t			clients_remain;
 
@@ -5212,13 +5155,6 @@ void http_session_thread(void* arg)
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
-
-	if(startup->login_attempt_throttle
-		&& (login_attempts=loginAttempts(startup->login_attempt_list, &session.addr)) > 1) {
-		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
-			,socket, session.client.protocol, session.host_ip, login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
-	}
 
 	session.last_user_num=-1;
 	session.last_js_user_num=-1;
@@ -5399,7 +5335,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.579 $", "%*s %s", revision);
+	sscanf("$Revision: 1.572 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5582,8 +5518,8 @@ void DLLCALL web_server(void* arg)
 	if(startup->default_auth_list[0]==0)	SAFECOPY(startup->default_auth_list,WEB_DEFAULT_AUTH_LIST);
 	if(startup->cgi_dir[0]==0)				SAFECOPY(startup->cgi_dir,WEB_DEFAULT_CGI_DIR);
 	if(startup->default_cgi_content[0]==0)	SAFECOPY(startup->default_cgi_content,WEB_DEFAULT_CGI_CONTENT);
-	if(startup->max_inactivity==0) 			startup->max_inactivity=WEB_DEFAULT_MAX_INACTIVITY; /* seconds */
-	if(startup->max_cgi_inactivity==0) 		startup->max_cgi_inactivity=WEB_DEFAULT_MAX_CGI_INACTIVITY; /* seconds */
+	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
+	if(startup->max_cgi_inactivity==0) 		startup->max_cgi_inactivity=120; /* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2; /* seconds */
 	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
