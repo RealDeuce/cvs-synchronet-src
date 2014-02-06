@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.84 2015/04/25 08:26:15 deuce Exp $ */
+/* $Id: js_internal.c,v 1.82 2013/10/08 02:09:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,7 +223,6 @@ static char* prop_desc[] = {
 	,"JS filename executed (with no path)"
 	,"directory of executed JS file"
 	,"Either the configured startup directory in SCFG (for externals) or the cwd when jsexec is started"
-	,"global scope for this script"
 	,NULL
 };
 #endif
@@ -638,7 +637,7 @@ void msvc_invalid_parameter_handler(const wchar_t* expression,
 }
 #endif
 
-void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir, JSObject *scope)
+void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
 {
 	JSString*	str;
 	jsval		val;
@@ -668,11 +667,7 @@ void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filen
 		if((str=JS_NewStringCopyZ(cx, startup_dir)) != NULL)
 			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_DefineProperty(cx, js, "scope", OBJECT_TO_JSVAL(scope)
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
-	JS_DefineProperty(cx, scope, "exit_code", JSVAL_NULL
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_PERMANENT);
 #if defined(_MSC_VER)
 	_set_invalid_parameter_handler(msvc_invalid_parameter_handler);
 #endif
