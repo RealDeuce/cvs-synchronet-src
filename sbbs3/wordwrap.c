@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.10 2011/11/04 08:28:52 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.16 2011/11/30 03:18:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,10 +168,8 @@ static int compare_prefix(char *old_prefix, int old_prefix_bytes, const char *ne
 	return(0);
 }
 
-char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags)
+char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 {
-	BOOL		handle_quotes=flags&WORDWRAP_FLAG_QUOTES;
-	BOOL		lf_break=flags&WORDWRAP_FLAG_BARELF;
 	int			l;
 	int			crcount=0;
 	long		i,k,t;
@@ -233,6 +231,9 @@ char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags)
 		old_prefix_bytes=prefix_bytes;
 	}
 	for(; inbuf[i]; i++) {
+		if(oldlen == 0)
+			icol=-256;
+
 		if(l>=len*2+2) {
 			l-=4;
 			linebuf[l]=0;
@@ -243,12 +244,6 @@ char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags)
 				crcount++;
 				break;
 			case '\n':
-				if(!lf_break) {
-					if(i==0)
-						break;
-					if(inbuf[i-1] != '\r')
-						break;
-				}
 				if(handle_quotes && (quote_count=get_prefix(inbuf+i+1, &prefix_bytes, &prefix_len, len*2+2))!=0) {
 					/* Move the input pointer offset to the last char of the prefix */
 					i+=prefix_bytes;
@@ -283,7 +278,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, uint32_t flags)
 					ocol=prefix_len+1;
 					old_prefix_bytes=prefix_bytes;
 				}
-				else if(isspace((unsigned char)inbuf[i+1]) && inbuf[i+1] != '\n' && inbuf[i+1] != '\r') {	/* Next line starts with whitespace.  This is a "hard" CR. */
+				else if(isspace((unsigned char)inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
 					linebuf[l++]='\r';
 					linebuf[l++]='\n';
 					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
