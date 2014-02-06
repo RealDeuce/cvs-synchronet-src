@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.35 2012/10/24 19:02:38 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.37 2014/02/06 11:23:21 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -20,9 +20,7 @@
 #endif
 
 #include "ciolib.h"
-#include "keys.h"
 #include "vidmodes.h"
-#include "allfonts.h"
 #include "bitmap_con.h"
 
 static char *screen=NULL;
