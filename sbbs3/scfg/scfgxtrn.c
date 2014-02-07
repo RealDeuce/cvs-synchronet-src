@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.50 2014/02/16 06:28:52 deuce Exp $ */
+/* $Id: scfgxtrn.c,v 1.49 2013/09/18 16:52:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,12 +188,13 @@ while(1) {
 	strcpy(opt[i++],"Global Hot Key Events");
 	strcpy(opt[i++],"Online Programs (Doors)");
 	opt[i][0]=0;
-	uifc.helpbuf=
-		"`Online External Programs:`\n"
-		"\n"
-		"From this menu, you can configure external events, external editors, or\n"
-		"online external programs (doors).\n"
-	;
+	SETHELP(WHERE);
+/*
+`Online External Programs:`
+
+From this menu, you can configure external events, external editors, or
+online external programs (doors).
+*/
 	switch(uifc.list(WIN_ORG|WIN_CHE|WIN_ACT,0,0,0,&xprogs_dflt,0
 		,"External Programs",opt)) {
 		case -1:
@@ -240,52 +241,56 @@ while(1) {
 	sprintf(opt[i++],"%-32.32s%.40s","Logout Event",cfg.sys_logout);
 	sprintf(opt[i++],"%-32.32s%.40s","Daily Event",cfg.sys_daily);
 	opt[i][0]=0;
-	uifc.helpbuf=
-		"`External Events:`\n"
-		"\n"
-		"From this menu, you can configure the logon and logout events, and the\n"
-		"system daily event.\n"
-	;
+	SETHELP(WHERE);
+/*
+`External Events:`
+
+From this menu, you can configure the logon and logout events, and the
+system daily event.
+*/
 	switch(uifc.list(WIN_ACT|WIN_SAV|WIN_CHE|WIN_BOT|WIN_RHT,0,0,60,&event_dflt,0
 		,"Fixed Events",opt)) {
 		case -1:
 			return;
 		case 0:
-			uifc.helpbuf=
-				"`Logon Event:`\n"
-				"\n"
-				"This is the command line for a program that will execute during the\n"
-				"logon sequence of every user. The program cannot have user interaction.\n"
-				"The program will be executed after the LOGON message is displayed and\n"
-				"before the logon user list is displayed. If you wish to place a program\n"
-				"in the logon sequence of users that includes interaction or requires\n"
-				"account information, you probably want to use an online external\n"
-				"program configured to run as a logon event.\n"
-			;
+			SETHELP(WHERE);
+/*
+`Logon Event:`
+
+This is the command line for a program that will execute during the
+logon sequence of every user. The program cannot have user interaction.
+The program will be executed after the LOGON message is displayed and
+before the logon user list is displayed. If you wish to place a program
+in the logon sequence of users that includes interaction or requires
+account information, you probably want to use an online external
+program configured to run as a logon event.
+*/
 			uifc.input(WIN_MID|WIN_SAV,0,0,"Logon Event"
 				,cfg.sys_logon,sizeof(cfg.sys_logon)-1,K_EDIT);
 			break;
 		case 1:
-			uifc.helpbuf=
-				"`Logout Event:`\n"
-				"\n"
-				"This is the command line for a program that will execute during the\n"
-				"logout sequence of every user. This program cannot have user\n"
-				"interaction because it is executed after carrier is dropped. If you\n"
-				"wish to have a program execute before carrier is dropped, you probably\n"
-				"want to use an `Online External Program` configured to run as a logoff\n"
-				"event.\n"
-			;
+			SETHELP(WHERE);
+/*
+`Logout Event:`
+
+This is the command line for a program that will execute during the
+logout sequence of every user. This program cannot have user
+interaction because it is executed after carrier is dropped. If you
+wish to have a program execute before carrier is dropped, you probably
+want to use an `Online External Program` configured to run as a logoff
+event.
+*/
 			uifc.input(WIN_MID|WIN_SAV,0,0,"Logout Event"
 				,cfg.sys_logout,sizeof(cfg.sys_logout)-1,K_EDIT);
 			break;
 		case 2:
-			uifc.helpbuf=
-				"`Daily Event:`\n"
-				"\n"
-				"This is the command line for a program that will run after the first\n"
-				"user that logs on after midnight, logs off (regardless of what node).\n"
-			;
+			SETHELP(WHERE);
+/*
+`Daily Event:`
+
+This is the command line for a program that will run after the first
+user that logs on after midnight, logs off (regardless of what node).
+*/
 			uifc.input(WIN_MID|WIN_SAV,0,0,"Daily Event"
 				,cfg.sys_daily,sizeof(cfg.sys_daily)-1,K_EDIT);
 
@@ -313,27 +318,29 @@ while(1) {
 		j|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savevent.code[0])
 		j|=WIN_PUT;
-	uifc.helpbuf=
-		"`Timed Events:`\n"
-		"\n"
-		"This is a list of the configured timed external events.\n"
-		"\n"
-		"To add an event hit ~ INS ~.\n"
-		"\n"
-		"To delete an event, select it and hit ~ DEL ~.\n"
-		"\n"
-		"To configure an event, select it and hit ~ ENTER ~.\n"
-	;
+	SETHELP(WHERE);
+/*
+`Timed Events:`
+
+This is a list of the configured timed external events.
+
+To add an event hit ~ INS ~.
+
+To delete an event, select it and hit ~ DEL ~.
+
+To configure an event, select it and hit ~ ENTER ~.
+*/
 	i=uifc.list(j,0,0,45,&dflt,&bar,"Timed Events",opt);
 	if((signed)i==-1)
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i=cfg.total_events;
-		uifc.helpbuf=
-			"`Timed Event Internal Code:`\n"
-			"\n"
-			"This is the internal code for the timed event.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Timed Event Internal Code:`
+
+This is the internal code for the timed event.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Event Internal Code",str,LEN_CODE
 			,K_UPPER)<1)
             continue;
@@ -412,18 +419,19 @@ while(1) {
 			,cfg.event[i]->misc&EVENT_INIT ? "Yes":"No");
 
 		opt[k][0]=0;
-		uifc.helpbuf=
-			"`Timed Event:`\n"
-			"\n"
-			"This is the configuration menu for a timed event. An event is an\n"
-			"external program that performs some type of automated function on the\n"
-			"system. Use this menu to configure how and when this event will be\n"
-			"executed.\n"
-			"\n"
-			"If you need the BBS to swap out of memory for this event (to make more\n"
-			"available memory), add the program name (first word of the command line)\n"
-			"to `Global Swap List` from the `External Programs` menu.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Timed Event:`
+
+This is the configuration menu for a timed event. An event is an
+external program that performs some type of automated function on the
+system. Use this menu to configure how and when this event will be
+executed.
+
+If you need the BBS to swap out of memory for this event (to make more
+available memory), add the program name (first word of the command line)
+to `Global Swap List` from the `External Programs` menu.
+*/
 		sprintf(str,"%s Timed Event",cfg.event[i]->code);
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,70,&dfltopt,0
 			,str,opt)) {
@@ -432,13 +440,14 @@ while(1) {
 				break;
 			case 0:
 				strcpy(str,cfg.event[i]->code);
-				uifc.helpbuf=
-					"`Timed Event Internal Code:`\n"
-					"\n"
-					"Every timed event must have its own unique internal code for Synchronet\n"
-					"to reference it by. It is helpful if this code is an abreviation of the\n"
-					"command line.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Timed Event Internal Code:`
+
+Every timed event must have its own unique internal code for Synchronet
+to reference it by. It is helpful if this code is an abreviation of the
+command line.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
 					,str,LEN_CODE,K_EDIT|K_UPPER);
 				if(code_ok(str))
@@ -450,38 +459,41 @@ while(1) {
 				}
                 break;
 			case 1:
-				uifc.helpbuf=
-					"`Timed Event Start-up Directory:`\n"
-					"\n"
-					"This is the DOS drive/directory where the event program is located.\n"
-					"If a path is specified here, it will be made the current directory\n"
-					"before the event's command line is executed. This eliminates the need\n"
-					"for batch files that just change the current drive and directory before\n"
-					"executing the event.\n"
-					"\n"
-					"If this option is not used, the current NODE's directory will be the\n"
-					"current DOS drive/directory before the command line is executed.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Timed Event Start-up Directory:`
+
+This is the DOS drive/directory where the event program is located.
+If a path is specified here, it will be made the current directory
+before the event's command line is executed. This eliminates the need
+for batch files that just change the current drive and directory before
+executing the event.
+
+If this option is not used, the current NODE's directory will be the
+current DOS drive/directory before the command line is executed.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,10,"Directory"
 					,cfg.event[i]->dir,sizeof(cfg.event[i]->dir)-1,K_EDIT);
                 break;
 			case 2:
-				uifc.helpbuf=
-					"`Timed Event Command Line:`\n"
-					"\n"
-					"This is the command line to execute upon this timed event.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Timed Event Command Line:`
+
+This is the command line to execute upon this timed event.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 					,cfg.event[i]->cmd,sizeof(cfg.event[i]->cmd)-1,K_EDIT);
 				break;
 
 			case 3:
 				k=(cfg.event[i]->misc&EVENT_DISABLED) ? 1:0;
-				uifc.helpbuf=
-					"`Event Enabled:`\n"
-					"\n"
-					"If you want disable this event from executing, set this option to ~No~.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Event Enabled:`
+
+If you want disable this event from executing, set this option to ~No~.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Enabled",uifcYesNoOpts);
 				if((k==0 && cfg.event[i]->misc&EVENT_DISABLED) 
@@ -492,23 +504,25 @@ while(1) {
                 break;
 
 			case 4:
-				uifc.helpbuf=
-					"`Timed Event Node:`\n"
-					"\n"
-					"This is the node number to execute the timed event.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Timed Event Node:`
+
+This is the node number to execute the timed event.
+*/
 				sprintf(str,"%u",cfg.event[i]->node);
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Node Number"
 					,str,3,K_EDIT|K_NUMBER);
 				cfg.event[i]->node=atoi(str);
 				break;
 			case 5:
-				uifc.helpbuf=
-					"`Months to Execute Event:`\n"
-					"\n"
-					"Specifies the months (`Jan`-`Dec`, separated by spaces) on which \n"
-					"to execute this event, or `Any` to execute event for any/all months.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Months to Execute Event:`
+
+Specifies the months (`Jan`-`Dec`, separated by spaces) on which 
+to execute this event, or `Any` to execute event for any/all months.
+*/
 				SAFECOPY(str,monthstr(cfg.event[i]->months));
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Months to Execute Event (or Any)"
 					,str,50,K_EDIT);
@@ -530,13 +544,14 @@ while(1) {
 				}
 				break;
 			case 6:
-				uifc.helpbuf=
-					"`Days of Month to Execute Event:`\n"
-					"\n"
-					"Specifies the days of the month (`1-31`, separated by spaces) on which \n"
-					"to execute this event, or `Any` to execute event on any and all days of\n"
-					"the month.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Days of Month to Execute Event:`
+
+Specifies the days of the month (`1-31`, separated by spaces) on which 
+to execute this event, or `Any` to execute event on any and all days of
+the month.
+*/
 				SAFECOPY(str,mdaystr(cfg.event[i]->mdays));
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Days of Month to Execute Event (or Any)"
 					,str,16,K_EDIT);
@@ -558,11 +573,12 @@ while(1) {
 					strcpy(opt[k++],"All");
 					strcpy(opt[k++],"None");
 					opt[k][0]=0;
-					uifc.helpbuf=
-						"`Days of Week to Execute Event:`\n"
-						"\n"
-						"These are the days of the week that this event will be executed.\n"
-					;
+					SETHELP(WHERE);
+/*
+`Days of Week to Execute Event:`
+
+These are the days of the week that this event will be executed.
+*/
 					k=uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&j,0
 						,"Days of Week to Execute Event",opt);
 					if(k==-1)
@@ -581,23 +597,25 @@ while(1) {
                     k=0;
                 else
                     k=1;
-                uifc.helpbuf=
-	                "`Execute Event at a Specific Time:`\n"
-	                "\n"
-	                "If you want the system execute this event at a specific time, set\n"
-	                "this option to `Yes`. If you want the system to execute this event more\n"
-	                "than once a day at predetermined intervals, set this option to `No`.\n"
-                ;
+                SETHELP(WHERE);
+/*
+`Execute Event at a Specific Time:`
+
+If you want the system execute this event at a specific time, set
+this option to `Yes`. If you want the system to execute this event more
+than once a day at predetermined intervals, set this option to `No`.
+*/
                 k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
                     ,"Execute Event at a Specific Time",uifcYesNoOpts);
                 if(k==0) {
                     sprintf(str,"%2.2u:%2.2u",cfg.event[i]->time/60
                         ,cfg.event[i]->time%60);
-                    uifc.helpbuf=
-	                    "`Time to Execute Event:`\n"
-	                    "\n"
-	                    "This is the time (in 24 hour HH:MM format) to execute the event.\n"
-                    ;
+                    SETHELP(WHERE);
+/*
+`Time to Execute Event:`
+
+This is the time (in 24 hour HH:MM format) to execute the event.
+*/
                     if(uifc.input(WIN_MID|WIN_SAV,0,0
                         ,"Time to Execute Event (HH:MM)"
                         ,str,5,K_UPPER|K_EDIT)>0) {
@@ -611,12 +629,13 @@ while(1) {
                     sprintf(str,"%u"
                         ,cfg.event[i]->freq && cfg.event[i]->freq<=1440
                             ? 1440/cfg.event[i]->freq : 0);
-                    uifc.helpbuf=
-	                    "`Number of Executions Per Day:`\n"
-	                    "\n"
-	                    "This is the maximum number of times the system will execute this event\n"
-	                    "per day.\n"
-                    ;
+                    SETHELP(WHERE);
+/*
+`Number of Executions Per Day:`
+
+This is the maximum number of times the system will execute this event
+per day.
+*/
                     if(uifc.input(WIN_MID|WIN_SAV,0,0
                         ,"Number of Executions Per Day"
                         ,str,4,K_NUMBER|K_EDIT)>0) {
@@ -631,12 +650,13 @@ while(1) {
                 break;
 			case 9:
 				k=(cfg.event[i]->misc&EVENT_EXCL) ? 0:1;
-				uifc.helpbuf=
-					"`Exclusive Event Execution:`\n"
-					"\n"
-					"If this event must be run exclusively (all nodes inactive), set this\n"
-					"option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Exclusive Event Execution:`
+
+If this event must be run exclusively (all nodes inactive), set this
+option to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Exclusive Execution"
 					,uifcYesNoOpts);
 				if(!k && !(cfg.event[i]->misc&EVENT_EXCL)) {
@@ -650,12 +670,13 @@ while(1) {
                 break;
 			case 10:
 				k=(cfg.event[i]->misc&EVENT_FORCE) ? 0:1;
-				uifc.helpbuf=
-					"`Force Users Off-line for Event:`\n"
-					"\n"
-					"If you want to have your users' on-line time reduced so the event can\n"
-					"execute precisely on time, set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Force Users Off-line for Event:`
+
+If you want to have your users' on-line time reduced so the event can
+execute precisely on time, set this option to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Force Users Off-line for Event",uifcYesNoOpts);
 				if(!k && !(cfg.event[i]->misc&EVENT_FORCE)) {
@@ -670,12 +691,13 @@ while(1) {
 
 			case 11:
 				k=(cfg.event[i]->misc&EX_NATIVE) ? 0:1;
-				uifc.helpbuf=
-					"`Native Executable:`\n"
-					"\n"
-					"If this event program is a native (e.g. non-DOS) executable,\n"
-					"set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Native Executable:`
+
+If this event program is a native (e.g. non-DOS) executable,
+set this option to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Native",uifcYesNoOpts);
 				if(!k && !(cfg.event[i]->misc&EX_NATIVE)) {
@@ -690,12 +712,13 @@ while(1) {
 
 			case 12:
 				k=(cfg.event[i]->misc&XTRN_SH) ? 0:1;
-				uifc.helpbuf=
-					"`Use Shell to Execute Command:`\n"
-					"\n"
-					"If this command-line requires the system command shell to execute, (Unix \n"
-					"shell script or DOS batch file), set this option to ~Yes~.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Use Shell to Execute Command:`
+
+If this command-line requires the system command shell to execute, (Unix 
+shell script or DOS batch file), set this option to ~Yes~.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Use Shell",uifcYesNoOpts);
 				if(!k && !(cfg.event[i]->misc&XTRN_SH)) {
@@ -710,12 +733,13 @@ while(1) {
 
 			case 13:
 				k=(cfg.event[i]->misc&EX_BG) ? 0:1;
-				uifc.helpbuf=
-					"`Execute Event in Background (Asynchronously):`\n"
-					"\n"
-					"If you would like this event to run simultaneously with other events,\n"
-					"set this option to `Yes`. Exclusive events will not run in the background.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Execute Event in Background (Asynchronously):`
+
+If you would like this event to run simultaneously with other events,
+set this option to `Yes`. Exclusive events will not run in the background.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Background (Asynchronous) Execution",uifcYesNoOpts);
 				if(!k && !(cfg.event[i]->misc&EX_BG)) {
@@ -730,12 +754,13 @@ while(1) {
 
 			case 14:
 				k=(cfg.event[i]->misc&EVENT_INIT) ? 0:1;
-				uifc.helpbuf=
-					"`Always Run After Initialization or Re-initialization:`\n"
-					"\n"
-					"If you want this event to always run after the BBS is initialized or\n"
-					"re-initialized, set this option to ~Yes~.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Always Run After Initialization or Re-initialization:`
+
+If you want this event to always run after the BBS is initialized or
+re-initialized, set this option to ~Yes~.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Always Run After Initialization or Re-initialization",uifcYesNoOpts);
 				if(!k && !(cfg.event[i]->misc&EVENT_INIT)) {
@@ -779,41 +804,44 @@ while(1) {
 		i|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savxtrn.name[0])
 		i|=WIN_PUT;
-	uifc.helpbuf=
-		"`Online External Programs:`\n"
-		"\n"
-		"This is a list of the configured online external programs (doors).\n"
-		"\n"
-		"To add a program, select the desired location with the arrow keys and\n"
-		"hit ~ INS ~.\n"
-		"\n"
-		"To delete a program, select it with the arrow keys and hit ~ DEL ~.\n"
-		"\n"
-		"To configure a program, select it with the arrow keys and hit ~ ENTER ~.\n"
-	;
+	SETHELP(WHERE);
+/*
+`Online External Programs:`
+
+This is a list of the configured online external programs (doors).
+
+To add a program, select the desired location with the arrow keys and
+hit ~ INS ~.
+
+To delete a program, select it with the arrow keys and hit ~ DEL ~.
+
+To configure a program, select it with the arrow keys and hit ~ ENTER ~.
+*/
 	sprintf(str,"%s Online Programs",cfg.xtrnsec[section]->name);
 	i=uifc.list(i,0,0,45,&ext_dflt,&ext_bar,str,opt);
 	if((signed)i==-1)
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`Online Program Name:`\n"
-			"\n"
-			"This is the name or description of the online program (door).\n"
-		;
+		SETHELP(WHERE);
+/*
+`Online Program Name:`
+
+This is the name or description of the online program (door).
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Online Program Name",str,25
 			,0)<1)
             continue;
 		SAFECOPY(code,str);
 		prep_code(code,/* prefix: */NULL);
-		uifc.helpbuf=
-			"`Online Program Internal Code:`\n"
-			"\n"
-			"Every online program must have its own unique code for Synchronet to\n"
-			"refer to it internally. This code is usually an abreviation of the\n"
-			"online program name.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Online Program Internal Code:`
+
+Every online program must have its own unique code for Synchronet to
+refer to it internally. This code is usually an abreviation of the
+online program name.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Internal Code"
 			,code,LEN_CODE,K_EDIT|K_UPPER)<1)
 			continue;
@@ -939,35 +967,38 @@ while(1) {
 			,cfg.xtrn[i]->misc&STARTUPDIR ? "Start-Up Directory":"Node Directory");
 		sprintf(opt[k++],"Time Options...");
 		opt[k][0]=0;
-		uifc.helpbuf=
-			"`Online Program Configuration:`\n"
-			"\n"
-			"This menu is for configuring the selected online program.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Online Program Configuration:`
+
+This menu is for configuring the selected online program.
+*/
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_MID,0,0,60,&opt_dflt,&sub_bar,cfg.xtrn[i]->name
 			,opt)) {
 			case -1:
 				done=1;
 				break;
 			case 0:
-				uifc.helpbuf=
-					"`Online Program Name:`\n"
-					"\n"
-					"This is the name or description of the online program (door).\n"
-				;
+				SETHELP(WHERE);
+/*
+`Online Program Name:`
+
+This is the name or description of the online program (door).
+*/
 				strcpy(str,cfg.xtrn[i]->name);
 				if(!uifc.input(WIN_MID|WIN_SAV,0,10,"Online Program Name"
 					,cfg.xtrn[i]->name,sizeof(cfg.xtrn[i]->name)-1,K_EDIT))
 					strcpy(cfg.xtrn[i]->name,str);
 				break;
 			case 1:
-				uifc.helpbuf=
-					"`Online Program Internal Code:`\n"
-					"\n"
-					"Every online program must have its own unique code for Synchronet to\n"
-					"refer to it internally. This code is usually an abreviation of the\n"
-					"online program name.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Online Program Internal Code:`
+
+Every online program must have its own unique code for Synchronet to
+refer to it internally. This code is usually an abreviation of the
+online program name.
+*/
 				strcpy(str,cfg.xtrn[i]->code);
 				uifc.input(WIN_MID|WIN_SAV,0,10,"Internal Code"
 					,str,LEN_CODE,K_UPPER|K_EDIT);
@@ -980,49 +1011,53 @@ while(1) {
 				}
                 break;
 			case 2:
-                uifc.helpbuf=
-	                "`Online Program Start-up Directory:`\n"
-	                "\n"
-	                "This is the DOS drive/directory where the online program is located.\n"
-	                "If a path is specified here, it will be made the current directory\n"
-	                "before the program's command line is executed. This eliminates the need\n"
-	                "for batch files that just change the current drive and directory before\n"
-	                "executing the program.\n"
-	                "\n"
-	                "If this option is not used, the current NODE's directory will be the\n"
-	                "current DOS drive/directory before the command line is executed.\n"
-                ;
+                SETHELP(WHERE);
+/*
+`Online Program Start-up Directory:`
+
+This is the DOS drive/directory where the online program is located.
+If a path is specified here, it will be made the current directory
+before the program's command line is executed. This eliminates the need
+for batch files that just change the current drive and directory before
+executing the program.
+
+If this option is not used, the current NODE's directory will be the
+current DOS drive/directory before the command line is executed.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,10,""
 					,cfg.xtrn[i]->path,sizeof(cfg.xtrn[i]->path)-1,K_EDIT);
                 break;
 			case 3:
-				uifc.helpbuf=
-					"`Online Program Command Line:`\n"
-					"\n"
-					"This is the command line to execute to run the online program.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Online Program Command Line:`
+
+This is the command line to execute to run the online program.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 					,cfg.xtrn[i]->cmd,sizeof(cfg.xtrn[i]->cmd)-1,K_EDIT);
 				break;
 			case 4:
-				uifc.helpbuf=
-					"`Online Program Clean-up Command:`\n"
-					"\n"
-					"This is the command line to execute after the main command line. This\n"
-					"option is usually only used for multiuser online programs.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Online Program Clean-up Command:`
+
+This is the command line to execute after the main command line. This
+option is usually only used for multiuser online programs.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,10,"Clean-up"
 					,cfg.xtrn[i]->clean,sizeof(cfg.xtrn[i]->clean)-1,K_EDIT);
                 break;
 			case 5:
                 ultoa(cfg.xtrn[i]->cost,str,10);
-                uifc.helpbuf=
-	                "`Online Program Cost to Run:`\n"
-	                "\n"
-	                "If you want users to be charged credits to run this online program,\n"
-	                "set this value to the number of credits to charge. If you want this\n"
-	                "online program to be free, set this value to `0`.\n"
-                ;
+                SETHELP(WHERE);
+/*
+`Online Program Cost to Run:`
+
+If you want users to be charged credits to run this online program,
+set this value to the number of credits to charge. If you want this
+online program to be free, set this value to `0`.
+*/
                 uifc.input(WIN_MID|WIN_SAV,0,0,"Cost to Run (in Credits)"
                     ,str,10,K_EDIT|K_NUMBER);
                 cfg.xtrn[i]->cost=atol(str);
@@ -1037,12 +1072,13 @@ while(1) {
                 break;
 			case 8:
 				k=(cfg.xtrn[i]->misc&MULTIUSER) ? 0:1;
-				uifc.helpbuf=
-					"`Supports Multiple Users:`\n"
-					"\n"
-					"If this online program supports multiple simultaneous users (nodes),\n"
-					"set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Supports Multiple Users:`
+
+If this online program supports multiple simultaneous users (nodes),
+set this option to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Supports Multiple Users"
 					,uifcYesNoOpts);
 				if(!k && !(cfg.xtrn[i]->misc&MULTIUSER)) {
@@ -1069,12 +1105,13 @@ while(1) {
 				strcpy(opt[1],"Console");
 				strcpy(opt[2],"No");
 				opt[3][0]=0;
-				uifc.helpbuf=
-					"`Intercept I/O:`\n"
-					"\n"
-					"If this online program uses a FOSSIL driver or SOCKET communications,\n"
-					"set this option to `No`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Intercept I/O:`
+
+If this online program uses a FOSSIL driver or SOCKET communications,
+set this option to `No`.
+*/
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Intercept I/O"
 					,opt)) {
 					case 0: /* Standard I/O */
@@ -1084,12 +1121,13 @@ while(1) {
 							uifc.changes=1;
 						}
 						k=(cfg.xtrn[i]->misc&WWIVCOLOR) ? 0:1;
-						uifc.helpbuf=
-							"`Program Uses WWIV Color Codes:`\n"
-							"\n"
-							"If this program was written for use exclusively under ~WWIV~ BBS\n"
-							"software, set this option to ~Yes~.\n"
-						;
+						SETHELP(WHERE);
+/*
+`Program Uses WWIV Color Codes:`
+
+If this program was written for use exclusively under ~WWIV~ BBS
+software, set this option to ~Yes~.
+*/
 						k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 							,"Program Uses WWIV Color Codes"
 							,uifcYesNoOpts);
@@ -1102,12 +1140,13 @@ while(1) {
 							uifc.changes=TRUE; 
 						}
 						k=(cfg.xtrn[i]->misc&XTRN_NOECHO) ? 1:0;
-						uifc.helpbuf=
-							"`Echo Input:`\n"
-							"\n"
-							"If you want the BBS to copy (\"echo\") all keyboard input to the screen\n"
-							"output, set this option to ~Yes~ (for native Win32 programs only).\n"
-						;
+						SETHELP(WHERE);
+/*
+`Echo Input:`
+
+If you want the BBS to copy ("echo") all keyboard input to the screen
+output, set this option to ~Yes~ (for native Win32 programs only).
+*/
 						k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 							,"Echo Keyboard Input"
 							,uifcYesNoOpts);
@@ -1136,12 +1175,13 @@ while(1) {
 				break;
 			case 10:
 				k=(cfg.xtrn[i]->misc&XTRN_NATIVE) ? 0:1;
-				uifc.helpbuf=
-					"`Native Executable:`\n"
-					"\n"
-					"If this online program is a native (e.g. non-DOS) executable,\n"
-					"set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Native Executable:`
+
+If this online program is a native (e.g. non-DOS) executable,
+set this option to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Native",uifcYesNoOpts);
 				if(!k && !(cfg.xtrn[i]->misc&XTRN_NATIVE)) {
@@ -1155,12 +1195,13 @@ while(1) {
 				break;
 			case 11:
 				k=(cfg.xtrn[i]->misc&XTRN_SH) ? 0:1;
-				uifc.helpbuf=
-					"`Use Shell to Execute Command:`\n"
-					"\n"
-					"If this command-line requires the system command shell to execute, (Unix \n"
-					"shell script or DOS batch file), set this option to ~Yes~.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Use Shell to Execute Command:`
+
+If this command-line requires the system command shell to execute, (Unix 
+shell script or DOS batch file), set this option to ~Yes~.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Use Shell",uifcYesNoOpts);
 				if(!k && !(cfg.xtrn[i]->misc&XTRN_SH)) {
@@ -1174,13 +1215,14 @@ while(1) {
 				break;
 			case 12:
 				k=(cfg.xtrn[i]->misc&MODUSERDAT) ? 0:1;
-				uifc.helpbuf=
-					"`Program Can Modify User Data:`\n"
-					"\n"
-					"If this online programs recognizes the Synchronet MODUSER.DAT format\n"
-					"or the RBBS/QuickBBS EXITINFO.BBS format and you want it to be able to\n"
-					"modify the data of users who run the program, set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Program Can Modify User Data:`
+
+If this online programs recognizes the Synchronet MODUSER.DAT format
+or the RBBS/QuickBBS EXITINFO.BBS format and you want it to be able to
+modify the data of users who run the program, set this option to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Program Can Modify User Data",uifcYesNoOpts);
 				if(!k && !(cfg.xtrn[i]->misc&MODUSERDAT)) {
@@ -1205,12 +1247,13 @@ while(1) {
 				strcpy(opt[k++],"Local/Sysop Chat");
 				opt[k][0]=0;
 				k=cfg.xtrn[i]->event;
-				uifc.helpbuf=
-					"`Execute Online Program on Event:`\n"
-					"\n"
-					"If you would like this online program to automatically execute on a\n"
-					"specific user event, select the event. Otherwise, select `No`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Execute Online Program on Event:`
+
+If you would like this online program to automatically execute on a
+specific user event, select the event. Otherwise, select `No`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Execute on Event",opt);
 				if(k==-1)
@@ -1227,13 +1270,14 @@ while(1) {
 					break;
 				}
 				k=(cfg.xtrn[i]->misc&EVENTONLY) ? 0:1;
-				uifc.helpbuf=
-					"`Execute Online Program as Event Only:`\n"
-					"\n"
-					"If you would like this online program to execute as an event only\n"
-					"(not available to users on the online program menu), set this option\n"
-					"to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Execute Online Program as Event Only:`
+
+If you would like this online program to execute as an event only
+(not available to users on the online program menu), set this option
+to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k
 					,0,"Execute as Event Only"
                     ,uifcYesNoOpts);
@@ -1248,15 +1292,16 @@ while(1) {
                 break;
 			case 14:
 				k=(cfg.xtrn[i]->misc&XTRN_PAUSE) ? 0:1;
-				uifc.helpbuf=
-					"`Pause Screen After Execution:`\n"
-					"\n"
-					"Set this option to ~Yes~ if you would like an automatic screen pause\n"
-					"(`[Hit a key]` prompt) to appear after the program executes.\n"
-					"\n"
-					"This can be useful if the program displays information just before exiting\n"
-					"or you want to debug a program with a program not running correctly.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Pause Screen After Execution:`
+
+Set this option to ~Yes~ if you would like an automatic screen pause
+(`[Hit a key]` prompt) to appear after the program executes.
+
+This can be useful if the program displays information just before exiting
+or you want to debug a program with a program not running correctly.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Pause After Execution",uifcYesNoOpts);
 				if((!k && !(cfg.xtrn[i]->misc&XTRN_PAUSE))
@@ -1282,12 +1327,13 @@ while(1) {
 				sprintf(opt[k++],"%-15s %s","Mystic","DOOR32.SYS");
 				opt[k][0]=0;
 				k=cfg.xtrn[i]->type;
-				uifc.helpbuf=
-					"`Online Program BBS Drop File Type:`\n"
-					"\n"
-					"If this online program requires a specific BBS data (drop) file\n"
-					"format, select the file format from the list.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Online Program BBS Drop File Type:`
+
+If this online program requires a specific BBS data (drop) file
+format, select the file format from the list.
+*/
 				k=uifc.list(WIN_MID|WIN_ACT,0,0,0,&k,0
 					,"BBS Drop File Type",opt);
 				if(k==-1)
@@ -1328,12 +1374,13 @@ while(1) {
 				strcpy(opt[0],"Node Directory");
 				strcpy(opt[1],"Start-up Directory");
 				opt[2][0]=0;
-				uifc.helpbuf=
-					"`Directory for Drop File:`\n"
-					"\n"
-					"You can have the data file created in the current `Node Directory` or the\n"
-					"`Start-up Directory` (if one is specified).\n"
-				;
+				SETHELP(WHERE);
+/*
+`Directory for Drop File:`
+
+You can have the data file created in the current `Node Directory` or the
+`Start-up Directory` (if one is specified).
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Create Drop File In"
                     ,opt);
 				if(!k && cfg.xtrn[i]->misc&STARTUPDIR) {
@@ -1363,12 +1410,13 @@ while(1) {
 					sprintf(opt[k++],"%-25.25s%s","Monitor Time Left"
 						,cfg.xtrn[i]->misc&XTRN_CHKTIME ? "Yes" : "No");
 					opt[k][0]=0;
-					uifc.helpbuf=
-						"`Online Program Time Options:`\n"
-						"\n"
-						"This sub-menu allows you to define specific preferences regarding the\n"
-						"time users spend running this program.\n"
-					;
+					SETHELP(WHERE);
+/*
+`Online Program Time Options:`
+
+This sub-menu allows you to define specific preferences regarding the
+time users spend running this program.
+*/
 					k=uifc.list(WIN_SAV|WIN_ACT|WIN_RHT|WIN_BOT,0,0,40
 						,&time_dflt,0
 						,"Online Program Time Options",opt);
@@ -1377,13 +1425,14 @@ while(1) {
 					switch(k) {
 						case 0:
 							ultoa(cfg.xtrn[i]->textra,str,10);
-							uifc.helpbuf=
-								"`Extra Time to Give User in Program:`\n"
-								"\n"
-								"If you want to give users extra time while in this online program,\n"
-								"set this value to the number of minutes to add to their current time\n"
-								"left online.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Extra Time to Give User in Program:`
+
+If you want to give users extra time while in this online program,
+set this value to the number of minutes to add to their current time
+left online.
+*/
 							uifc.input(WIN_MID|WIN_SAV,0,0
 								,"Extra Time to Give User (in minutes)"
 								,str,2,K_EDIT|K_NUMBER);
@@ -1391,15 +1440,16 @@ while(1) {
 							break;
 						case 1:
 							ultoa(cfg.xtrn[i]->maxtime,str,10);
-							uifc.helpbuf=
-								"`Maximum Time Allowed in Program:`\n"
-								"\n"
-								"If this program supports a drop file that contains the number of minutes\n"
-								"left online for the current user, this option allows the sysop to set\n"
-								"the maximum number of minutes that will be allowed in the drop file.\n"
-								"\n"
-								"Setting this option to `0`, disables this feature.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Maximum Time Allowed in Program:`
+
+If this program supports a drop file that contains the number of minutes
+left online for the current user, this option allows the sysop to set
+the maximum number of minutes that will be allowed in the drop file.
+
+Setting this option to `0`, disables this feature.
+*/
 							uifc.input(WIN_MID|WIN_SAV,0,0
 								,"Maximum Time (in minutes, 0=disabled)"
 								,str,2,K_EDIT|K_NUMBER);
@@ -1407,12 +1457,13 @@ while(1) {
 							break;
 						case 2:
 							k=(cfg.xtrn[i]->misc&FREETIME) ? 0:1;
-							uifc.helpbuf=
-								"`Suspended (Free) Time:`\n"
-								"\n"
-								"If you want the user's time online to be suspended while running this\n"
-								"online program (e.g. Free Time), set this option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Suspended (Free) Time:`
+
+If you want the user's time online to be suspended while running this
+online program (e.g. Free Time), set this option to `Yes`.
+*/
 							k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Suspended (Free) Time",uifcYesNoOpts);
 							if(!k && !(cfg.xtrn[i]->misc&FREETIME)) {
@@ -1426,13 +1477,14 @@ while(1) {
 							break; 
 						case 3:
 							k=(cfg.xtrn[i]->misc&XTRN_CHKTIME) ? 0:1;
-							uifc.helpbuf=
-								"`Monitor Time Left:`\n"
-								"\n"
-								"If you want Synchronet to monitor the user's time left online while this\n"
-								"program runs (and disconnect the user if their time runs out), set this\n"
-								"option to `Yes`.\n"
-							;
+							SETHELP(WHERE);
+/*
+`Monitor Time Left:`
+
+If you want Synchronet to monitor the user's time left online while this
+program runs (and disconnect the user if their time runs out), set this
+option to `Yes`.
+*/
 							k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Monitor Time Left",uifcYesNoOpts);
 							if(!k && !(cfg.xtrn[i]->misc&XTRN_CHKTIME)) {
@@ -1471,37 +1523,40 @@ while(1) {
 		j|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savxedit.name[0])
 		j|=WIN_PUT;
-	uifc.helpbuf=
-		"`External Editors:`\n"
-		"\n"
-		"This is a list of the configured external editors.\n"
-		"\n"
-		"To add an editor, select the desired location and hit ~ INS ~.\n"
-		"\n"
-		"To delete an editor, select it and hit ~ DEL ~.\n"
-		"\n"
-		"To configure an editor, select it and hit ~ ENTER ~.\n"
-	;
+	SETHELP(WHERE);
+/*
+`External Editors:`
+
+This is a list of the configured external editors.
+
+To add an editor, select the desired location and hit ~ INS ~.
+
+To delete an editor, select it and hit ~ DEL ~.
+
+To configure an editor, select it and hit ~ ENTER ~.
+*/
 	i=uifc.list(j,0,0,45,&dflt,&bar,"External Editors",opt);
 	if((signed)i==-1)
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`External Editor Name:`\n"
-			"\n"
-			"This is the name or description of the external editor.\n"
-		;
+		SETHELP(WHERE);
+/*
+`External Editor Name:`
+
+This is the name or description of the external editor.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"External Editor Name",str,40
 			,0)<1)
             continue;
 		SAFECOPY(code,str);
 		prep_code(code,/* prefix: */NULL);
-		uifc.helpbuf=
-			"`External Editor Internal Code:`\n"
-			"\n"
-			"This is the internal code for the external editor.\n"
-		;
+		SETHELP(WHERE);
+/*
+`External Editor Internal Code:`
+
+This is the internal code for the external editor.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"External Editor Internal Code",code,8
 			,K_UPPER|K_EDIT)<1)
             continue;
@@ -1583,14 +1638,15 @@ while(1) {
 		sprintf(opt[k++],"%-32.32s%s","BBS Drop File Type"
 			,dropfile(cfg.xedit[i]->type,cfg.xedit[i]->misc));
         opt[k][0]=0;
-		uifc.helpbuf=
-			"`External Editor Configuration:`\n"
-			"\n"
-			"This menu allows you to change the settings for the selected external\n"
-			"message editor. External message editors are very common on BBSs. Some\n"
-			"popular editors include `SyncEdit`, `WWIVedit`, `FEdit`, `GEdit`, `IceEdit`,\n"
-			"and many others.\n"
-		;
+		SETHELP(WHERE);
+/*
+`External Editor Configuration:`
+
+This menu allows you to change the settings for the selected external
+message editor. External message editors are very common on BBSs. Some
+popular editors include `SyncEdit`, `WWIVedit`, `FEdit`, `GEdit`, `IceEdit`,
+and many others.
+*/
 
 		sprintf(str,"%s Editor",cfg.xedit[i]->name);
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,70,&dfltopt,0
@@ -1599,11 +1655,12 @@ while(1) {
 				done=1;
 				break;
 			case 0:
-				uifc.helpbuf=
-					"`External Editor Name:`\n"
-					"\n"
-					"This is the name or description of the external editor.\n"
-				;
+				SETHELP(WHERE);
+/*
+`External Editor Name:`
+
+This is the name or description of the external editor.
+*/
 				strcpy(str,cfg.xedit[i]->name);
 				if(!uifc.input(WIN_MID|WIN_SAV,0,10,"External Editor Name"
 					,cfg.xedit[i]->name,sizeof(cfg.xedit[i]->name)-1,K_EDIT))
@@ -1611,13 +1668,14 @@ while(1) {
 				break;
 			case 1:
 				strcpy(str,cfg.xedit[i]->code);
-				uifc.helpbuf=
-					"`External Editor Internal Code:`\n"
-					"\n"
-					"Every external editor must have its own unique internal code for\n"
-					"Synchronet to reference it by. It is helpful if this code is an\n"
-					"abreviation of the name.\n"
-				;
+				SETHELP(WHERE);
+/*
+`External Editor Internal Code:`
+
+Every external editor must have its own unique internal code for
+Synchronet to reference it by. It is helpful if this code is an
+abreviation of the name.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
 					,str,LEN_CODE,K_EDIT|K_UPPER);
 				if(code_ok(str))
@@ -1629,11 +1687,12 @@ while(1) {
 				}
                 break;
 		   case 2:
-				uifc.helpbuf=
-					"`External Editor Command Line:`\n"
-					"\n"
-					"This is the command line to execute when using this editor.\n"
-				;
+				SETHELP(WHERE);
+/*
+`External Editor Command Line:`
+
+This is the command line to execute when using this editor.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 					,cfg.xedit[i]->rcmd,sizeof(cfg.xedit[i]->rcmd)-1,K_EDIT);
 				break;
@@ -1657,12 +1716,13 @@ while(1) {
 				strcpy(opt[1],"Console");
 				strcpy(opt[2],"No");
 				opt[3][0]=0;
-				uifc.helpbuf=
-					"`Intercept I/O:`\n"
-					"\n"
-					"If this program uses FOSSIL, Socket, or UART communications,\n"
-					"set this option to `No`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Intercept I/O:`
+
+If this program uses FOSSIL, Socket, or UART communications,
+set this option to `No`.
+*/
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Intercept I/O"	,opt)) {
 					case 0: /* Standard */
 						if((cfg.xedit[i]->misc&(XTRN_STDIO|XTRN_CONIO)) != XTRN_STDIO) {
@@ -1671,12 +1731,13 @@ while(1) {
 							uifc.changes=TRUE; 
 						}
 						k=(cfg.xedit[i]->misc&WWIVCOLOR) ? 0:1;
-						uifc.helpbuf=
-							".Editor Uses WWIV Color Codes:.\n"
-							"\n"
-							"If this editor was written for use exclusively under WWIV, set this\n"
-							"option to .Yes..\n"
-						;
+						SETHELP(WHERE);
+/*
+.Editor Uses WWIV Color Codes:.
+
+If this editor was written for use exclusively under WWIV, set this
+option to .Yes..
+*/
 						k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 							,"Editor Uses WWIV Color Codes",uifcYesNoOpts);
 						if(!k && !(cfg.xedit[i]->misc&WWIVCOLOR)) {
@@ -1705,11 +1766,12 @@ while(1) {
 				break;
 			case 5:
 				k=(cfg.xedit[i]->misc&XTRN_NATIVE) ? 0:1;
-				uifc.helpbuf=
-					"`Native Executable:`\n"
-					"\n"
-					"If this editor is a native (non-DOS) executable, set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Native Executable:`
+
+If this editor is a native (non-DOS) executable, set this option to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Native",uifcYesNoOpts);
 				if(!k && !(cfg.xedit[i]->misc&XTRN_NATIVE)) {
@@ -1723,12 +1785,13 @@ while(1) {
 				break;
 			case 6:
 				k=(cfg.xedit[i]->misc&XTRN_SH) ? 0:1;
-				uifc.helpbuf=
-					"`Use Shell to Execute Command:`\n"
-					"\n"
-					"If this command-line requires the system command shell to execute, (Unix \n"
-					"shell script or DOS batch file), set this option to ~Yes~.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Use Shell to Execute Command:`
+
+If this command-line requires the system command shell to execute, (Unix 
+shell script or DOS batch file), set this option to ~Yes~.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Use Shell",uifcYesNoOpts);
 				if(!k && !(cfg.xedit[i]->misc&XTRN_SH)) {
@@ -1741,11 +1804,12 @@ while(1) {
 				break;
 			case 7:
 				k=(cfg.xedit[i]->misc&QUOTEWRAP) ? 0:1;
-				uifc.helpbuf=
-					"`Word Wrap Quoted Text:`\n"
-					"\n"
-					"FIXME\n"
-				;
+				SETHELP(WHERE);
+/*
+`Word Wrap Quoted Text:`
+
+FIXME
+*/
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Word Wrap Quoted Text",uifcYesNoOpts)) {
 					case 0:
@@ -1778,19 +1842,20 @@ while(1) {
 				strcpy(opt[1],"None");
 				strcpy(opt[2],"Prompt User");
 				opt[3][0]=0;
-				uifc.helpbuf=
-					"`Automatically Quoted Text:`\n"
-					"\n"
-					"If you want all the message text to be automatically entered into the\n"
-					"message input file (e.g. `INPUT.MSG` or `MSGTMP`), select `All`.\n"
-					"\n"
-					"If you want the user to be prompted for which lines to quote before\n"
-					"running the editor, select `Prompt User`.\n"
-					"\n"
-					"If you want none of the lines to be automatically quoted, select `None`.\n"
-					"This option is mainly for use with editors that support the `QUOTES.TXT`\n"
-					"drop file (like `SyncEdit v2.x`).\n"
-				;
+				SETHELP(WHERE);
+/*
+`Automatically Quoted Text:`
+
+If you want all the message text to be automatically entered into the
+message input file (e.g. `INPUT.MSG` or `MSGTMP`), select `All`.
+
+If you want the user to be prompted for which lines to quote before
+running the editor, select `Prompt User`.
+
+If you want none of the lines to be automatically quoted, select `None`.
+This option is mainly for use with editors that support the `QUOTES.TXT`
+drop file (like `SyncEdit v2.x`).
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Automatically Quoted Text"
 					,opt);
 				if(!k && !(cfg.xedit[i]->misc&QUOTEALL)) {
@@ -1813,12 +1878,13 @@ while(1) {
 				strcpy(opt[0],"QuickBBS MSGINF/MSGTMP");
 				strcpy(opt[1],"WWIV EDITOR.INF/RESULT.ED");
 				opt[2][0]=0;
-				uifc.helpbuf=
-					"`Editor Information File:`\n"
-					"\n"
-					"If this external editor uses the QuickBBS style MSGTMP interface, set\n"
-					"this option to ~QuickBBS MSGINF/MSGTMP~, otherwise set to ~WWIV EDITOR.INF/RESULT.ED~.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Editor Information File:`
+
+If this external editor uses the QuickBBS style MSGTMP interface, set
+this option to ~QuickBBS MSGINF/MSGTMP~, otherwise set to ~WWIV EDITOR.INF/RESULT.ED~.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Editor Information Files"
 					,opt);
 				if(!k && !(cfg.xedit[i]->misc&QUICKBBS)) {
@@ -1832,12 +1898,13 @@ while(1) {
 				break;
 			case 10:
 				k=(cfg.xedit[i]->misc&EXPANDLF) ? 0:1;
-				uifc.helpbuf=
-					"`Expand Line Feeds to Carriage Return/Line Feed Pairs:`\n"
-					"\n"
-					"If this external editor saves new lines as a single line feed character\n"
-					"instead of a carriage return/line feed pair, set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Expand Line Feeds to Carriage Return/Line Feed Pairs:`
+
+If this external editor saves new lines as a single line feed character
+instead of a carriage return/line feed pair, set this option to `Yes`.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Expand LF to CRLF"
 					,uifcYesNoOpts);
 				if(!k && !(cfg.xedit[i]->misc&EXPANDLF)) {
@@ -1851,12 +1918,13 @@ while(1) {
 				break;
 			case 11:
 				k=(cfg.xedit[i]->misc&STRIPKLUDGE) ? 0:1;
-				uifc.helpbuf=
-					"`Strip FidoNet Kludge Lines From Messages:`\n"
-					"\n"
-					"If this external editor adds FidoNet Kludge lines to the message text,\n"
-					"set this option to `Yes` to strip those lines from the message.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Strip FidoNet Kludge Lines From Messages:`
+
+If this external editor adds FidoNet Kludge lines to the message text,
+set this option to `Yes` to strip those lines from the message.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
                 	,"Strip FidoNet Kludge Lines"
 					,uifcYesNoOpts);
@@ -1886,12 +1954,13 @@ while(1) {
 				sprintf(opt[k++],"%-15s %s","Mystic","DOOR32.SYS");
 				opt[k][0]=0;
 				k=cfg.xedit[i]->type;
-				uifc.helpbuf=
-					"`External Program BBS Drop File Type:`\n"
-					"\n"
-					"If this external editor requires a specific BBS data (drop) file\n"
-					"format, select the file format from the list.\n"
-				;
+				SETHELP(WHERE);
+/*
+`External Program BBS Drop File Type:`
+
+If this external editor requires a specific BBS data (drop) file
+format, select the file format from the list.
+*/
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"BBS Drop File Type",opt);
 				if(k==-1)
@@ -1936,28 +2005,30 @@ while(1) {
 		j|=WIN_DEL;
 	if(cfg.total_natvpgms<MAX_OPTS)
 		j|=WIN_INS|WIN_INSACT|WIN_XTR;
-	uifc.helpbuf=
-		"`Native Program List:`\n"
-		"\n"
-		"This is a list of all native (non-DOS) external program (executable file)\n"
-		"names that you may execute under `Synchronet`. This list is not\n"
-		"used in Synchronet for DOS. Any programs not listed here will be assumed\n"
-		"to be DOS programs and executed accordingly.\n"
-		"\n"
-		"Use ~ INS ~ and ~ DELETE ~ to add and remove native program names.\n"
-		"\n"
-		"To change the filename of a program, hit ~ ENTER ~.\n"
-	;
+	SETHELP(WHERE);
+/*
+`Native Program List:`
+
+This is a list of all native (non-DOS) external program (executable file)
+names that you may execute under `Synchronet`. This list is not
+used in Synchronet for DOS. Any programs not listed here will be assumed
+to be DOS programs and executed accordingly.
+
+Use ~ INS ~ and ~ DELETE ~ to add and remove native program names.
+
+To change the filename of a program, hit ~ ENTER ~.
+*/
 	i=uifc.list(j,0,0,30,&dflt,&bar,"Native Program List",opt);
 	if((signed)i==-1)
 		break;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`Native Program Name:`\n"
-			"\n"
-			"This is the executable filename of the native external program.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Native Program Name:`
+
+This is the executable filename of the native external program.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Native Program Name",str,12
 			,0)<1)
             continue;
@@ -1990,11 +2061,12 @@ while(1) {
 		uifc.changes=TRUE;
 		continue; 
 	}
-	uifc.helpbuf=
-		"`Native Program Name:`\n"
-		"\n"
-		"This is the executable filename of the Native external program.\n"
-	;
+	SETHELP(WHERE);
+/*
+`Native Program Name:`
+
+This is the executable filename of the Native external program.
+*/
 	strcpy(str,cfg.natvpgm[i]->name);
 	if(uifc.input(WIN_MID|WIN_SAV,0,5,"Native Program Name",str,12
 		,K_EDIT)>0)
@@ -2023,40 +2095,43 @@ while(1) {
 		j|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savxtrnsec.name[0])
 		j|=WIN_PUT;
-	uifc.helpbuf=
-		"`Online Program Sections:`\n"
-		"\n"
-		"This is a list of `Online Program Sections` configured for your system.\n"
-		"\n"
-		"To add an online program section, select the desired location with the\n"
-		"arrow keys and hit ~ INS ~.\n"
-		"\n"
-		"To delete an online program section, select it and hit ~ DEL ~.\n"
-		"\n"
-		"To configure an online program section, select it and hit ~ ENTER ~.\n"
-	;
+	SETHELP(WHERE);
+/*
+`Online Program Sections:`
+
+This is a list of `Online Program Sections` configured for your system.
+
+To add an online program section, select the desired location with the
+arrow keys and hit ~ INS ~.
+
+To delete an online program section, select it and hit ~ DEL ~.
+
+To configure an online program section, select it and hit ~ ENTER ~.
+*/
 	i=uifc.list(j,0,0,45,&xtrnsec_dflt,0,"Online Program Sections",opt);
 	if((signed)i==-1)
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`Online Program Section Name:`\n"
-			"\n"
-			"This is the name of this section.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Online Program Section Name:`
+
+This is the name of this section.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Online Program Section Name",str,40
 			,0)<1)
             continue;
 		SAFECOPY(code,str);
 		prep_code(code,/* prefix: */NULL);
-		uifc.helpbuf=
-			"`Online Program Section Internal Code:`\n"
-			"\n"
-			"Every online program section must have its own unique internal code\n"
-			"for Synchronet to reference it by. It is helpful if this code is an\n"
-			"abreviation of the name.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Online Program Section Internal Code:`
+
+Every online program section must have its own unique internal code
+for Synchronet to reference it by. It is helpful if this code is an
+abreviation of the name.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Online Program Section Internal Code"
 			,code,LEN_CODE,K_EDIT|K_UPPER)<1)
 			continue;
@@ -2146,11 +2221,12 @@ while(1) {
 				done=1;
 				break;
 			case 0:
-				uifc.helpbuf=
-					"`Online Program Section Name:`\n"
-					"\n"
-					"This is the name of this section.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Online Program Section Name:`
+
+This is the name of this section.
+*/
 				strcpy(str,cfg.xtrnsec[i]->name);	 /* save */
 				if(!uifc.input(WIN_MID|WIN_SAV,0,10
 					,"Program Section Name"
@@ -2159,13 +2235,14 @@ while(1) {
 				break;
 			case 1:
 				strcpy(str,cfg.xtrnsec[i]->code);
-				uifc.helpbuf=
-					"`Online Program Section Internal Code:`\n"
-					"\n"
-					"Every online program section must have its own unique internal code\n"
-					"for Synchronet to reference it by. It is helpful if this code is an\n"
-					"abreviation of the name.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Online Program Section Internal Code:`
+
+Every online program section must have its own unique internal code
+for Synchronet to reference it by. It is helpful if this code is an
+abreviation of the name.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
 					,str,LEN_CODE,K_EDIT|K_UPPER);
 				if(code_ok(str))
@@ -2208,29 +2285,31 @@ while(1) {
 		j|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savhotkey.cmd[0])
 		j|=WIN_PUT;
-	uifc.helpbuf=
-		"`Global Hot Key Events:`\n"
-		"\n"
-		"This is a list of programs or loadable modules that can be executed by\n"
-		"anyone on the BBS at any time (while the BBS has control of user input).\n"
-		"\n"
-		"To add a hot key event, select the desired location and hit ~ INS ~.\n"
-		"\n"
-		"To delete a hot key event, select it and hit ~ DEL ~.\n"
-		"\n"
-		"To configure a hot key event, select it and hit ~ ENTER ~.\n"
-	;
+	SETHELP(WHERE);
+/*
+`Global Hot Key Events:`
+
+This is a list of programs or loadable modules that can be executed by
+anyone on the BBS at any time (while the BBS has control of user input).
+
+To add a hot key event, select the desired location and hit ~ INS ~.
+
+To delete a hot key event, select it and hit ~ DEL ~.
+
+To configure a hot key event, select it and hit ~ ENTER ~.
+*/
 	i=uifc.list(j,0,0,45,&dflt,&bar,"Global Hot Key Events",opt);
 	if((signed)i==-1)
 		return;
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`Global Hot Key:`\n"
-			"\n"
-			"This is the control key used to trigger the hot key event. Example, A\n"
-			"indicates a Ctrl-A hot key event.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Global Hot Key:`
+
+This is the control key used to trigger the hot key event. Example, A
+indicates a Ctrl-A hot key event.
+*/
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Control Key",str,1
 			,K_UPPER)<1)
             continue;
@@ -2282,13 +2361,14 @@ while(1) {
             ,cfg.hotkey[i]->key+'@');
 		sprintf(opt[k++],"%-27.27s%.40s","Command Line",cfg.hotkey[i]->cmd);
         opt[k][0]=0;
-		uifc.helpbuf=
-			"`Global Hot Key Event:`\n"
-			"\n"
-			"This menu allows you to change the settings for the selected global\n"
-			"hot key event. Hot key events are control characters that are used to\n"
-			"execute an external program or module anywhere in the BBS.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Global Hot Key Event:`
+
+This menu allows you to change the settings for the selected global
+hot key event. Hot key events are control characters that are used to
+execute an external program or module anywhere in the BBS.
+*/
 		sprintf(str,"Ctrl-%c Hot Key Event",cfg.hotkey[i]->key+'@');
 		switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,60,&dfltopt,0
 			,str,opt)) {
@@ -2296,22 +2376,24 @@ while(1) {
 				done=1;
 				break;
 			case 0:
-				uifc.helpbuf=
-					"`Global Hot-Ctrl Key:`\n"
-					"\n"
-					"This is the global control key used to execute this event.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Global Hot-Ctrl Key:`
+
+This is the global control key used to execute this event.
+*/
 				sprintf(str,"%c",cfg.hotkey[i]->key+'@');
 				if(uifc.input(WIN_MID|WIN_SAV,0,10,"Global Hot Ctrl-Key"
 					,str,1,K_EDIT|K_UPPER)>0)
 					cfg.hotkey[i]->key=str[0]-'@';
 				break;
 		   case 1:
-				uifc.helpbuf=
-					"`Hot Key Event Command Line:`\n"
-					"\n"
-					"This is the command line to execute when this hot key is pressed.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Hot Key Event Command Line:`
+
+This is the command line to execute when this hot key is pressed.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 					,cfg.hotkey[i]->cmd,sizeof(cfg.hotkey[i]->cmd)-1,K_EDIT);
 				break;
