@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.54 2013/09/12 22:35:05 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.55 2014/02/07 08:59:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -388,6 +388,29 @@ int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigne
 			getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen);
 	}
 	return result;
+}
+
+
+union xp_sockaddr *inet_ptoaddr(char *addr_str, union xp_sockaddr *addr, size_t size)
+{
+    struct addrinfo hints = {0};
+    struct addrinfo *res, *cur;
+
+    hints.ai_flags = AI_NUMERICHOST|AI_PASSIVE;
+    if(getaddrinfo(addr_str, NULL, &hints, &res))
+        return NULL;
+    
+    for(cur = res; cur; cur++) {
+        if(cur->ai_addr->sa_family == AF_INET6)
+            break;
+    }
+    if(!cur) {
+        freeaddrinfo(res);
+        return NULL;
+    }
+    memcpy(&addr, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, size);
+    freeaddrinfo(res);
+    return addr;
 }
 
 const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
