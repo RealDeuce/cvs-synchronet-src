@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.55 2014/02/07 08:59:15 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.56 2014/02/07 19:55:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -424,7 +424,7 @@ const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
 
 		searched = TRUE;
 		if(hMod)
-			a2s=(INT (WSAAPI *)(LPSOCKADDR, DWORD, LPWSAPROTOCOL_INFO, LPTSTR, LPDWORD))GetProcAddress(hMod, "WSAAddressToString");
+			a2s=(INT (WSAAPI *)(LPSOCKADDR, DWORD, LPWSAPROTOCOL_INFO, LPTSTR, LPDWORD))GetProcAddress(hMod, "WSAAddressToStringA");
 	}
 
 	if(a2s) {
