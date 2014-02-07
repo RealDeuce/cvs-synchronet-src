@@ -3,9 +3,6 @@
 #include <stdlib.h>
 
 #include <ciolib.h>
-#if defined(_WIN32)
- #include <malloc.h>	/* alloca() on Win32 */
-#endif
 
 #include "crt.h"
 #include "key.h"
