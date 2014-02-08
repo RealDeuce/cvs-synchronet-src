@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.72 2015/02/27 10:42:08 deuce Exp $ */
+/* $Id: ciolib.h,v 1.62 2014/02/06 11:23:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,11 +116,9 @@ enum {
 #define BLINK 128
 #endif
 
-#define CIOLIB_VIDEO_ALTCHARS		(1<<0)	// Attribute bit 3 selects alternate char set
-#define CIOLIB_VIDEO_NOBRIGHT		(1<<1)	// Attribute bit 3 does not increase intensity
-#define CIOLIB_VIDEO_BGBRIGHT		(1<<2)	// Attribute bit 7 selects high intensity background, not blink
-#define CIOLIB_VIDEO_BLINKALTCHARS	(1<<3)	// Attribute bit 7 selects alternate char set
-#define CIOLIB_VIDEO_NOBLINK		(1<<4)	// Attribute bit 7 has no effect
+#define CIOLIB_VIDEO_ALTCHARS	(1<<0)	// Attribute bit 3 selects alternate char set
+#define CIOLIB_VIDEO_NOBRIGHT	(1<<1)	// Attribute bit 3 does not increase intensity
+#define CIOLIB_VIDEO_BGBRIGHT	(1<<2)	// Attribute bit 7 selects high intensity background, not blink
 
 enum text_modes
 {
@@ -219,7 +217,7 @@ struct text_info {
 	unsigned char cury;           /* y-coordinate in current window */
 };
 
-CIOLIBEXPORTVAR struct text_info cio_textinfo;
+extern struct text_info cio_textinfo;
 
 struct mouse_event {
 	int event;
@@ -232,16 +230,15 @@ struct mouse_event {
 };
 
 struct conio_font_data_struct {
-        char 	*eight_by_sixteen;
-        char 	*eight_by_fourteen;
-        char 	*eight_by_eight;
-        char	*put_xlat;
-        char 	*desc;
+        char *eight_by_sixteen;
+        char *eight_by_fourteen;
+        char *eight_by_eight;
+        char *desc;
 };
 
-CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
+extern struct conio_font_data_struct conio_fontdata[257];
 
-#define CONIO_FIRST_FREE_FONT	43
+#define CONIO_FIRST_FREE_FONT	41
 
 typedef struct {
 	int		mode;
@@ -298,8 +295,6 @@ typedef struct {
 	void	(*setcustomcursor)	(int startline, int endline, int range, int blink, int visible);
 	void	(*setvideoflags)	(int flags);
 	int		(*getvideoflags)	(void);
-	void	(*setscaling)	(int new_value);
-	int		(*getscaling)	(void);
 	int		*ESCDELAY;
 } cioapi_t;
 
@@ -308,8 +303,6 @@ CIOLIBEXPORTVAR int _wscroll;
 CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
-CIOLIBEXPORTVAR int ciolib_xlat;
-CIOLIBEXPORTVAR int ciolib_reaper;
 
 #define _conio_kbhit()		kbhit()
 
@@ -367,8 +360,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_getcustomcursor(int *startline, int *endline
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcustomcursor(int startline, int endline, int range, int blink, int visible);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int flags);
-CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -428,8 +419,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define setcustomcursor(a,b,c,d,e)	ciolib_setcustomcursor(a,b,c,d,e)
 	#define setvideoflags(a)		ciolib_setvideoflags(a)
 	#define getvideoflags()			ciolib_getvideoflags()
-	#define setscaling(a)			ciolib_setscaling(a)
-	#define getscaling()			ciolib_getscaling()
 #endif
 
 #ifdef WITH_SDL
@@ -498,18 +487,18 @@ extern int ciolib_mouse_initialized;
 #ifdef __cplusplus
 extern "C" {
 #endif
-CIOLIBEXPORT void CIOLIBCALL ciomouse_gotevent(int event, int x, int y);
-CIOLIBEXPORT int CIOLIBCALL mouse_trywait(void);
-CIOLIBEXPORT int CIOLIBCALL mouse_wait(void);
-CIOLIBEXPORT int CIOLIBCALL mouse_pending(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent);
-CIOLIBEXPORT int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent);
-CIOLIBEXPORT void CIOLIBCALL ciolib_mouse_thread(void *data);
-CIOLIBEXPORT int CIOLIBCALL ciomouse_setevents(int events);
-CIOLIBEXPORT int CIOLIBCALL ciomouse_addevents(int events);
-CIOLIBEXPORT int CIOLIBCALL ciomouse_delevents(int events);
-CIOLIBEXPORT int CIOLIBCALL ciomouse_addevent(int event);
-CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
+void ciomouse_gotevent(int event, int x, int y);
+int mouse_trywait(void);
+int mouse_wait(void);
+int mouse_pending(void);
+int ciolib_getmouse(struct mouse_event *mevent);
+int ciolib_ungetmouse(struct mouse_event *mevent);
+void ciolib_mouse_thread(void *data);
+int ciomouse_setevents(int events);
+int ciomouse_addevents(int events);
+int ciomouse_delevents(int events);
+int ciomouse_addevent(int event);
+int ciomouse_delevent(int event);
 #ifdef __cplusplus
 }
 #endif
@@ -525,10 +514,9 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)
 #define CIO_KEY_NPAGE     (0x51 << 8)
-#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
+#define CIO_KEY_ALT_F(x)      ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
 
-#define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards "F-14"
-#define CIO_KEY_QUIT	  0x7e00	// "F-15"
+#define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards
 #define CIO_KEY_ABORTED   0x01E0	// ESC key by scancode
 
 #endif	/* Do not add anything after this line */
