@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.149 2015/04/29 22:09:48 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.146 2013/09/15 10:12:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -85,7 +85,6 @@ enum {
 	,BBS_PROP_CONNECTION		/* READ ONLY */
 	,BBS_PROP_RLOGIN_NAME
 	,BBS_PROP_RLOGIN_PASS
-	,BBS_PROP_RLOGIN_TERM
 	,BBS_PROP_CLIENT_NAME
 
 	,BBS_PROP_ALTUL
@@ -188,7 +187,6 @@ enum {
 	,"remote connection type"
 	,"login name given during RLogin negotiation"
 	,"password specified during RLogin negotiation"
-	,"terminal specified during RLogin negotiation"
 	,"client name"
 
 	,"current alternate upload path number"
@@ -395,9 +393,6 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case BBS_PROP_RLOGIN_PASS:
 			p=sbbs->rlogin_pass;
-			break;
-		case BBS_PROP_RLOGIN_TERM:
-			p=sbbs->rlogin_term;
 			break;
 		case BBS_PROP_CLIENT_NAME:
 			p=sbbs->client_name;
@@ -812,9 +807,6 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 		case BBS_PROP_RLOGIN_PASS:
 			SAFECOPY(sbbs->rlogin_pass,p);
 			break;
-		case BBS_PROP_RLOGIN_TERM:
-			SAFECOPY(sbbs->rlogin_term,p);
-			break;
 		case BBS_PROP_CLIENT_NAME:
 			SAFECOPY(sbbs->client_name,p);
 			break;
@@ -891,7 +883,6 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"connection"		,BBS_PROP_CONNECTION	,PROP_READONLY		,310},
 	{	"rlogin_name"		,BBS_PROP_RLOGIN_NAME	,JSPROP_ENUMERATE	,310},
 	{	"rlogin_password"	,BBS_PROP_RLOGIN_PASS	,JSPROP_ENUMERATE	,315},
-	{	"rlogin_terminal"	,BBS_PROP_RLOGIN_TERM	,JSPROP_ENUMERATE	,316},
 	{	"client_name"		,BBS_PROP_CLIENT_NAME	,JSPROP_ENUMERATE	,310},
 	{	"alt_ul_dir"		,BBS_PROP_ALTUL			,JSPROP_ENUMERATE	,310},
 	{	"errorlevel"		,BBS_PROP_ERRORLEVEL	,PROP_READONLY		,312},
@@ -2637,15 +2628,15 @@ js_telnet_gate(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_rlogin_gate(JSContext *cx, uintN argc, jsval *arglist)
 {
-	jsval*		argv=JS_ARGV(cx, arglist);
-	uintN		argn;
+	jsval *argv=JS_ARGV(cx, arglist);
 	char*		addr;
-	char*		client_user_name=NULL;
-	char*		server_user_name=NULL;
-	char*		term_type=NULL;
-	bool		fail = false;
+	char*		alias=NULL;
+	char*		pass=NULL;
+	bool		fail;
 	int32		mode = 0;
-	JSString*	js_str;
+	JSString*	js_addr;
+	JSString*	js_alias;
+	JSString*	js_pass;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2657,45 +2648,55 @@ js_rlogin_gate(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) 
+	if((js_addr=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_str, addr, NULL);
+	JSSTRING_TO_MSTRING(cx, js_addr, addr, NULL);
 	if(addr==NULL) 
 		return(JS_FALSE);
 
-	/* Parse optional arguments if provided */
-	for(argn=1; argn<argc; argn++) {
-		if(JSVAL_IS_STRING(argv[argn])) {
-			if((js_str=JS_ValueToString(cx, argv[argn]))==NULL) {
+	/* if remote username & password supplied */
+	if(argc>2) {
+	
+		if((js_alias=JS_ValueToString(cx, argv[1]))==NULL) {
+			fail = true;
+		}
+			
+		if((js_pass=JS_ValueToString(cx, argv[2]))==NULL) {
+			fail = true;
+		}
+
+		JSSTRING_TO_MSTRING(cx, js_alias, alias, NULL);
+		JSSTRING_TO_MSTRING(cx, js_pass, pass, NULL);
+		
+		if(argc>3 && JSVAL_IS_NUMBER(argv[3])) {
+			if(!JS_ValueToInt32(cx,argv[3],&mode)) {
 				fail = true;
-				break;
-			}
-			if(client_user_name==NULL) {	
-				JSSTRING_TO_MSTRING(cx, js_str, client_user_name, NULL);
-			} else if(server_user_name==NULL) {
-				JSSTRING_TO_MSTRING(cx, js_str, server_user_name, NULL);
-			} else if(term_type==NULL) {
-				JSSTRING_TO_MSTRING(cx, js_str, term_type, NULL);
-			}
-		} else if(JSVAL_IS_NUMBER(argv[argn])) {
-			if(!JS_ValueToInt32(cx,argv[argn],&mode)) {
-				fail = true;
-				break;
 			}
 		}
 	}
-	if(!fail) {
-		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->telnet_gate(addr,mode|TG_RLOGIN,client_user_name,server_user_name,term_type);
-		JS_RESUMEREQUEST(cx, rc);
+	else if(argc>1 && JSVAL_IS_NUMBER(argv[1])) {
+		if(!JS_ValueToInt32(cx,argv[1],&mode)) {
+			fail = true;
+		}
 	}
-	FREE_AND_NULL(addr);
-	FREE_AND_NULL(client_user_name);
-	FREE_AND_NULL(server_user_name);
-	FREE_AND_NULL(term_type);
 	
-	return(fail ? JS_FALSE : JS_TRUE);
+	if(fail == true) {
+		lprintf(LOG_NOTICE,"fail!");
+		free(addr);
+		free(alias);
+		free(pass);
+		return JS_FALSE;
+	}
+
+	rc=JS_SUSPENDREQUEST(cx);
+	sbbs->telnet_gate(addr,mode|TG_RLOGIN,alias,pass);
+	free(addr);
+	free(alias);
+	free(pass);
+	JS_RESUMEREQUEST(cx, rc);
+	
+	return(JS_TRUE);
 }
 
 static JSBool
@@ -3762,10 +3763,10 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},		
 	{"telnet_gate",		js_telnet_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,mode=<tt>TG_NONE</tt>]")
-	,JSDOCSTR("external Telnet gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
+	,JSDOCSTR("external telnet/rlogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
 	,310
 	},		
-	{"rlogin_gate",		js_rlogin_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,client-user-name=<tt>user.alias</tt>, server-user-name=<tt>user.name</tt>, terminal=<tt>console.terminal</tt>] [,mode=<tt>TG_NONE</tt>]")
+	{"rlogin_gate",		js_rlogin_gate,		1,	JSTYPE_VOID,	JSDOCSTR("address [,user=<tt>user.alias</tt>,pass=<tt>user.pass</tt>,mode=<tt>TG_NONE</tt>]")
 	,JSDOCSTR("external RLogin gateway (see <tt>TG_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>mode</i> bits)")
 	,316
 	},		
