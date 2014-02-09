@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.34 2015/08/22 06:47:43 deuce Exp $ */
+/* $Id: rechocfg.c,v 1.32 2014/01/15 02:28:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -202,7 +202,6 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
-	cfg.fwd_circular=TRUE;
 	cfg.zone_blind=FALSE;
 	cfg.zone_blind_threshold=0xffff;
 	SAFECOPY(cfg.sysop_alias,"SYSOP");
@@ -232,7 +231,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"PACKER")) {             /* Archive Definition */
 			if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
 				,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
-				printf("\nError allocating %" XP_PRIsize_t "u bytes of memory for arcdef #%u.\n"
+				printf("\nError allocating %u bytes of memory for arcdef #%u.\n"
 					,sizeof(arcdef_t)*(cfg.arcdefs+1),cfg.arcdefs+1);
 				bail(1); }
 			SAFECOPY(cfg.arcdef[cfg.arcdefs].name,p);
@@ -270,10 +269,6 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"NOPATHCHECK")) {
 			cfg.check_path=FALSE;
-			continue;
-		}
-		if(!stricmp(tmp,"NOCIRCULARFWD")) {
-			cfg.fwd_circular=FALSE;
 			continue;
 		}
 
