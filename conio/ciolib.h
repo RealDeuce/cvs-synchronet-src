@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.66 2014/02/13 09:17:48 deuce Exp $ */
+/* $Id: ciolib.h,v 1.64 2014/02/09 12:07:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,7 @@ struct text_info {
 	unsigned char cury;           /* y-coordinate in current window */
 };
 
-CIOLIBEXPORTVAR struct text_info cio_textinfo;
+extern struct text_info cio_textinfo;
 
 struct mouse_event {
 	int event;
@@ -236,7 +236,7 @@ struct conio_font_data_struct {
         char *desc;
 };
 
-CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
+extern struct conio_font_data_struct conio_fontdata[257];
 
 #define CONIO_FIRST_FREE_FONT	41
 
