@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.37 2009/08/14 10:02:22 rswindell Exp $ */
+/* $Id: str_list.c,v 1.39 2013/10/05 19:57:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -379,6 +379,47 @@ void strListSortAlphaCaseReverse(str_list_t list)
 	qsort(list,strListCount(list),sizeof(char*),strListCompareAlphaCaseReverse);
 }
 
+str_list_t strListDup(str_list_t list)
+{
+	str_list_t	ret;
+	size_t		count=0;
+
+	ret = strListInit();
+	for(; *list; list++)
+		strListAppend(&ret, *list, count++);
+	return ret;
+}
+
+int strListCmp(str_list_t list1, str_list_t list2)
+{
+	str_list_t	l1=strListDup(list1);
+	str_list_t	l2=strListDup(list2);
+	int			tmp;
+
+	if(*l1 == NULL && *l2 == NULL)
+		return 0;
+	if(*l1 == NULL)
+		return -1;
+	if(*l2 == NULL)
+		return 1;
+
+	strListSortAlphaCase(l1);
+	strListSortAlphaCase(l2);
+
+	for(; *l1; l1++) {
+		l2++;
+		if(*l2==NULL)
+			return 1;
+		tmp = strcmp(*l1, *l2);
+		if(tmp != 0)
+			return tmp;
+	}
+	l2++;
+	if(*l2==NULL)
+		return 0;
+	return -1;
+}
+
 void strListFreeStrings(str_list_t list)
 {
 	size_t i;
@@ -412,7 +453,7 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 	if(fp!=NULL) {
 		count=strListCount(*lp);
 		while(!feof(fp)) {
-			if(buf==NULL && (buf=(char*)alloca(max_line_len+1))==NULL)
+			if(buf==NULL && (buf=(char*)malloc(max_line_len+1))==NULL)
 				return(NULL);
 			
 			if(fgets(buf,max_line_len+1,fp)==NULL)
@@ -420,6 +461,8 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 			strListAppend(lp, buf, count++);
 		}
 	}
+	if(buf)
+		free(buf);
 
 	return(*lp);
 }
