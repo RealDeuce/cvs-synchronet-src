@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.24 2011/11/02 03:01:49 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.26 2012/10/18 17:36:04 deuce Exp $ */
 
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
@@ -46,10 +46,12 @@ static int			initialized=0;
 static sem_t			jsrt_sem;
 #endif
 
+#define TRIGGER_THREAD_STACK_SIZE	(256*1024)
 static void trigger_thread(void *args)
 {
 	int	i;
 
+	SetThreadName("JSRT Trigger");
 	for(;;) {
 		pthread_mutex_lock(&jsrt_mutex);
 		for(i=0; i<JSRT_QUEUE_SIZE; i++) {
@@ -68,7 +70,7 @@ JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char 
 		pthread_mutex_init(&jsrt_mutex, NULL);
 		jsrt_queue[0].rt=JS_NewRuntime(128*1024*1024 /* 128 MB total for all scripts? */);
 		jsrt_queue[0].created=1;
-		_beginthread(trigger_thread, 65536, NULL);
+		_beginthread(trigger_thread, TRIGGER_THREAD_STACK_SIZE, NULL);
 		initialized=TRUE;
 	}
 
@@ -78,7 +80,7 @@ JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char 
 
 	if(!initialized) {
 		pthread_mutex_init(&jsrt_mutex, NULL);
-		_beginthread(trigger_thread, 65536, NULL);
+		_beginthread(trigger_thread, TRIGGER_THREAD_STACK_SIZE, NULL);
 		initialized=TRUE;
 	}
 
@@ -107,7 +109,7 @@ JSRuntime * DLLCALL jsrt_GetNew(int maxbytes, unsigned long timeout, const char 
 	if(!initialized) {
 		pthread_mutex_init(&jsrt_mutex, NULL);
 		sem_init(&jsrt_sem, 0, JSRT_QUEUE_SIZE);
-		_beginthread(trigger_thread, 65536, NULL);
+		_beginthread(trigger_thread, TRIGGER_THREAD_STACK_SIZE, NULL);
 		initialized=TRUE;
 	}
 
