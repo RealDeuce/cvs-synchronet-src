@@ -1,10 +1,9 @@
-/* $Id: xpbeep.h,v 1.15 2014/02/10 02:00:07 deuce Exp $ */
+/* $Id: xpbeep.h,v 1.14 2014/02/09 11:37:07 deuce Exp $ */
 
 #ifndef _XPBEEP_H_
 #define _XPBEEP_H_
 
 #include "gen_defs.h"
-#include "wrapdll.h"
 
 #if defined(_WIN32)
 	#if 0
