@@ -2,13 +2,13 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.40 2011/09/09 08:06:15 rswindell Exp $ */
+/* $Id: threadwrap.h,v 1.46 2014/01/08 00:24:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -99,15 +99,18 @@ pthread_mutex_t pthread_mutex_initializer_np(BOOL recursive);
 
 #if defined(_POSIX_THREADS)
 
-#ifdef _DEBUG
 #if defined (__FreeBSD__) || defined (__OpenBSD__)
-#include <pthread_np.h>
-#define	SetThreadName(c)	pthread_set_name_np(pthread_self(),c)
+ #include <pthread_np.h>
+ #define	SetThreadName(c)	pthread_set_name_np(pthread_self(),c)
+#elif defined(__GLIBC__)
+ #include <features.h>
+ #if (__GLIBC__ > 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 12))
+  #define	SetThreadName(c)	pthread_setname_np(pthread_self(),c)
+ #else
+  #define SetThreadName(c)
+ #endif
 #else
-#define SetThreadName(c)
-#endif
-#else
-#define SetThreadName(c)
+ #define SetThreadName(c)
 #endif
 
 #else
@@ -166,9 +169,13 @@ int			protected_int64_init(protected_int64_t*,	int64_t value);
 
 /* Return new value: */
 int32_t		protected_int32_adjust(protected_int32_t*,	int32_t adjustment);
+#define protected_int32_value(i)		protected_int32_adjust(&i,0)
 uint32_t	protected_uint32_adjust(protected_uint32_t*,int32_t adjustment);
+#define protected_uint32_value(i)		protected_uint32_adjust(&i,0)
 int64_t		protected_int64_adjust(protected_int64_t*,	int64_t adjustment);
+#define protected_int64_value(i)		protected_int64_adjust(&i,0)
 uint64_t	protected_uint64_adjust(protected_uint64_t*,int64_t adjustment);
+#define protected_uint64_value(i)		protected_uint64_adjust(&i,0)
 
 /* Return 0 on success, non-zero on failure (see pthread_mutex_destroy): */
 #define protected_int32_destroy(i)	pthread_mutex_destroy(&i.mutex)
