@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.120 2014/02/09 07:51:03 deuce Exp $ */
+/* $Id: ciolib.c,v 1.119 2014/02/09 07:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1340,5 +1340,5 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void)
 {
 	if(cio_api.getscaling)
 		return(cio_api.getscaling());
-	return(1);
+	return(0);
 }
