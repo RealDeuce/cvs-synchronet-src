@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.221 2013/09/28 01:04:40 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.234 2014/01/20 04:11:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -71,8 +71,6 @@ ulong netmail=0;
 char tmp[256],pkt_type=0;
 int secure,cur_smb=0;
 FILE *fidologfile=NULL;
-two_two_t two_two;
-two_plus_t two_plus;
 BOOL twit_list;
 
 faddr_t		sys_faddr = {1,1,1,0};		/* Default system address: 1:1/1.0 */
@@ -997,109 +995,140 @@ void alter_areas(area_t* add_area, area_t* del_area, faddr_t addr, char* to)
 void alter_config(faddr_t addr, char *old, char *new, int option)
 {
 	FILE *outfile,*cfgfile;
-	char str[257],outpath[MAX_PATH+1],tmp[257],tmp2[257],*outname,*p,*tp
+	char outpath[MAX_PATH+1],cmd[32],arcname[32],*outname,*p,*tp
 		,match=0;
-	int i,j,k;
+	char *afline=NULL;
+	size_t afline_size;
+	int cfgnum;
+	int j,k;
 	faddr_t taddr;
 
-	i=matchnode(addr,0);				  /* i = config number from here on */
+	cfgnum=matchnode(addr,0);
 	SAFECOPY(outpath,cfg.cfgfile);
 	*getfname(outpath)=0;
 	if((outname=tempname(outpath,"CFG"))==NULL) {
 		lprintf(LOG_ERR,"ERROR tempnam(%s,CFG)",outpath);
-		return; }
+		return;
+	}
 	if((outfile=fopen(outname,"w+"))==NULL) {
 		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,outname);
 		free(outname);
-		return; }
+		return;
+	}
 	if((cfgfile=fopen(cfg.cfgfile,"r"))==NULL) {
 		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.cfgfile);
 		fclose(outfile);
 		free(outname);
-		return; }
+		return;
+	}
 
 	while(!feof(cfgfile)) {
-		if(!fgets(str,sizeof(str),cfgfile))
+		if(getdelim(&afline, &afline_size, '\n', cfgfile)==-1)
 			break;
-		truncsp(str);
-		p=str;
+		truncsp(afline);
+		p=afline;
 		SKIP_WHITESPACE(p);
 		if(*p==';') {
-			fprintf(outfile,"%s\n",str);
-			continue; }
-		sprintf(tmp,"%-.25s",p);
-		tp=strchr(tmp,' ');
+			fprintf(outfile,"%s\n",afline);
+			continue;
+		}
+		sprintf(cmd,"%-.25s",p);
+		tp=strchr(cmd,' ');
 		if(tp)
 			*tp=0;								/* Chop off at space */
-		strupr(tmp);							/* Convert code to uppercase */
+		strupr(cmd);							/* Convert code to uppercase */
 		FIND_WHITESPACE(p);						/* Skip code */
 		SKIP_WHITESPACE(p);						/* Skip white space */
 
-		if(option==0 && !strcmp(tmp,"USEPACKER")) {     /* Change Compression */
-			if(!*p)
-				continue;
-			strcpy(tmp2,p);
-			p=tmp2;
-			FIND_WHITESPACE(p);
-			*p=0;
-			p++;
-			if(!stricmp(new,tmp2)) {   /* Add to new definition */
-				fprintf(outfile,"%-10s %s %s %s\n",tmp,tmp2
-					,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL)
-					,(*p) ? p : "");
-				match=1;
-				continue; }
-			else if(!stricmp(old,tmp2)) {	/* Remove from old def */
-				for(j=k=0;j<cfg.nodecfgs;j++) {
-					if(j==i)
-						continue;
-					if(!stricmp(cfg.arcdef[cfg.nodecfg[j].arctype].name,tmp2)) {
-						if(!k) {
-							fprintf(outfile,"%-10s %s",tmp,tmp2);
-							k++; }
-						fprintf(outfile," %s"
-							,smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL)); } }
-				fprintf(outfile,"\n");
-				continue; } }
-
-		if(option==1 && !strcmp(tmp,"AREAFIX")) {       /* Change Password */
-			if(!*p)
-				continue;
-			taddr=smb_atofaddr(&sys_faddr,p);
-			if(!memcmp(&cfg.nodecfg[i].faddr,&taddr,sizeof(faddr_t))) {
-				FIND_WHITESPACE(p); /* Skip over address */
-				SKIP_WHITESPACE(p);	/* Skip over whitespace */
-				FIND_WHITESPACE(p); /* Skip over password */
-				SKIP_WHITESPACE(p);	/* Skip over whitespace */
-				fprintf(outfile,"%-10s %s %s %s\n",tmp
-					,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL),new,p);
-				continue; } }
-
-		if(option>1 && !strcmp(tmp,"PASSIVE")) {        /* Toggle Passive Areas */
+		if(option==0 && !strcmp(cmd,"USEPACKER")) {     /* Change Compression */
+			if(*p) {
+				sprintf(arcname, "%-.25s", p);
+				tp=strchr(arcname,' ');
+				if(tp)
+					*tp = 0;
+				strupr(arcname);
+				FIND_WHITESPACE(p);
+				if(*p)
+					p++;
+				if(!stricmp(new,arcname)) {   /* Add to new definition */
+					if(!match) {
+						fprintf(outfile,"%-10s %s %s %s\n",cmd,arcname
+							,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL)
+							,p);
+						match=1;
+					}
+				}
+				else if(!stricmp(old,arcname)) {	/* Remove from old def */
+					for(j=k=0;j<cfg.nodecfgs;j++) {
+						if(j==cfgnum)
+							continue;
+						if(cfg.nodecfg[j].arctype < cfg.arcdefs)
+							tp = cfg.arcdef[cfg.nodecfg[j].arctype].name;
+						else
+							tp = "NONE";
+						if(!stricmp(tp,arcname)) {
+							if(!k) {
+								fprintf(outfile,"%-10s %s",cmd,arcname);
+								k++;
+							}
+							fprintf(outfile," %s"
+								,smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL));
+						}
+					}
+					fprintf(outfile,"\n");
+				}
+			}
+		}
+		else if(option==1 && !strcmp(cmd,"AREAFIX")) {       /* Change Password */
+			if(*p) {
+				taddr=smb_atofaddr(&sys_faddr,p);
+				if(!memcmp(&cfg.nodecfg[cfgnum].faddr,&taddr,sizeof(faddr_t))) {
+					FIND_WHITESPACE(p); /* Skip over address */
+					SKIP_WHITESPACE(p);	/* Skip over whitespace */
+					FIND_WHITESPACE(p); /* Skip over password */
+					SKIP_WHITESPACE(p);	/* Skip over whitespace */
+					fprintf(outfile,"%-10s %s %s %s\n",cmd
+						,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL),new,p);
+				}
+			}
+		}
+		else if(option>1 && !strcmp(cmd,"PASSIVE")) {        /* Toggle Passive Areas */
 			match=1;
 			for(j=k=0;j<cfg.nodecfgs;j++) {
-				if(option==2 && j==i) {
-					if(!k) fprintf(outfile,"%-10s",tmp);
+				if(option==2 && j==cfgnum) {
+					if(!k)
+						fprintf(outfile,"%-10s",cmd);
 					fprintf(outfile," %s",smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL));
 					k++;
-					continue; }
-				if(option==3 && j==i)
+					continue;
+				}
+				if(option==3 && j==cfgnum)
 					continue;
 				if(cfg.nodecfg[j].attr&ATTR_PASSIVE) {
-					if(!k) fprintf(outfile,"%-10s",tmp);
+					if(!k)
+						fprintf(outfile,"%-10s",cmd);
 					fprintf(outfile," %s",smb_faddrtoa(&cfg.nodecfg[j].faddr,NULL));
-					k++; } }
-			if(k) fprintf(outfile,"\n");
-			continue; }
-		fprintf(outfile,"%s\n",str); }
+					k++;
+				}
+			}
+			if(k)
+				fprintf(outfile,"\n");
+		}
+		else
+			fprintf(outfile,"%s\n",afline);
+	}
 
 	if(!match) {
 		if(option==0)
 			fprintf(outfile,"%-10s %s %s\n","USEPACKER",new
-				,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL));
+				,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL));
 		if(option==2)
 			fprintf(outfile,"%-10s %s\n","PASSIVE"
-				,smb_faddrtoa(&cfg.nodecfg[i].faddr,NULL)); }
+				,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL));
+	}
+
+	if(afline != NULL)
+		free(afline);
 
 	fclose(cfgfile);
 	fclose(outfile);
@@ -1110,6 +1139,7 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 		lprintf(LOG_ERR,"ERROR line %d renaming %s to %s",__LINE__,outname,cfg.cfgfile);
 	free(outname);
 }
+
 /******************************************************************************
  Used by AREAFIX to process any '%' commands that come in via netmail
 ******************************************************************************/
@@ -1183,10 +1213,14 @@ void command(char* instr, faddr_t addr, char* to)
 			fclose(tmpf);
 			return; 
 		}
-		alter_config(addr,cfg.arcdef[cfg.nodecfg[node].arctype].name
-			,cfg.arcdef[i].name,0);
+		if(cfg.nodecfg[node].arctype < cfg.arcdefs)
+			buf = cfg.arcdef[cfg.nodecfg[node].arctype].name;
+		else
+			buf = "NONE";
+		alter_config(addr,buf
+			,(i>=0 && i<cfg.arcdefs)?cfg.arcdef[i].name:p,0);
 		cfg.nodecfg[node].arctype=i;
-		sprintf(str,"Compression type changed to %s.",cfg.arcdef[i].name);
+		sprintf(str,"Compression type changed to %s.",(i>=0 && i<cfg.arcdefs)?cfg.arcdef[i].name:p);
 		create_netmail(to,"Compression Type Change",str,addr,FALSE);
 		return; 
 	}
@@ -2648,6 +2682,14 @@ char *pktname(BOOL temp)
 	}
 	return(NULL);	/* This should never happen */
 }
+
+BOOL foreign_zone(uint16_t zone1, uint16_t zone2)
+{
+	if(cfg.zone_blind && zone1 <= cfg.zone_blind_threshold && zone2 <= cfg.zone_blind_threshold)
+		return FALSE;
+	return zone1!=zone2;
+}
+
 /******************************************************************************
  This function puts a message into a Fido packet, writing both the header
  information and the message body
@@ -2697,7 +2739,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 		t=time(NULL);
 		tm=gmtime(&t);
 		fprintf(stream,"\1Via %s @%04u%02u%02u.%02u%02u%02u.UTC "
-			"SBBSecho %s-%s r%s\r"
+			"SBBSecho %u.%02u-%s r%s\r"
 			,smb_faddrtoa(&addr,NULL)
 			,tm->tm_year+1900
 			,tm->tm_mon+1
@@ -2705,124 +2747,149 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 			,tm->tm_hour
 			,tm->tm_min
 			,tm->tm_sec
-			,SBBSECHO_VER,PLATFORM_DESC,revision);
+			,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC,revision);
 	}
 			
-
-	if(area.name && addr.zone!=fmsghdr.destzone)	/* Zone Gate */
-		fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
-
-	if(area.name /* && addr.zone==fmsghdr.destzone */) {	/* Not NetMail */
-		fprintf(stream,"SEEN-BY:");
-		for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
-			strcpy(seenby," ");
-			if(seenbys.addr[i].zone!=addr.zone)
-				continue;
-			if(seenbys.addr[i].net!=addr.net || !net_exists) {
-				net_exists=1;
-				addr.net=seenbys.addr[i].net;
-				sprintf(str,"%d/",addr.net);
-				strcat(seenby,str); }
-			sprintf(str,"%d",seenbys.addr[i].node);
-			strcat(seenby,str);
-			if(lastlen+strlen(seenby)<80) {
-				fwrite(seenby,strlen(seenby),1,stream);
-				lastlen+=strlen(seenby); }
-			else {
-				--i;
-				lastlen=9; /* +strlen(seenby); */
-				net_exists=0;
-				fprintf(stream,"\rSEEN-BY:"); } }
-
-		for(i=0;i<area.uplinks;i++) {			/* Add all uplinks to SEEN-BYs */
-			strcpy(seenby," ");
-			if(area.uplink[i].zone!=addr.zone || area.uplink[i].point)
-				continue;
-			for(j=0;j<seenbys.addrs;j++)
-				if(!memcmp(&area.uplink[i],&seenbys.addr[j],sizeof(faddr_t)))
-					break;
-			if(j==seenbys.addrs) {
-				if(area.uplink[i].net!=addr.net || !net_exists) {
+	if(area.name) { /* EchoMail, Not NetMail */
+		if(foreign_zone(addr.zone, fmsghdr.destzone))	/* Zone Gate */
+			fprintf(stream,"SEEN-BY: %d/%d\r",fmsghdr.destnet,fmsghdr.destnode);
+		else {
+			fprintf(stream,"SEEN-BY:");
+			for(i=0;i<seenbys.addrs;i++) {			  /* Put back original SEEN-BYs */
+				strcpy(seenby," ");
+				if(foreign_zone(addr.zone, seenbys.addr[i].zone))
+					continue;
+				if(seenbys.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
-					addr.net=area.uplink[i].net;
+					addr.net=seenbys.addr[i].net;
 					sprintf(str,"%d/",addr.net);
-					strcat(seenby,str); }
-				sprintf(str,"%d",area.uplink[i].node);
+					strcat(seenby,str); 
+				}
+				sprintf(str,"%d",seenbys.addr[i].node);
 				strcat(seenby,str);
 				if(lastlen+strlen(seenby)<80) {
 					fwrite(seenby,strlen(seenby),1,stream);
-					lastlen+=strlen(seenby); }
+					lastlen+=strlen(seenby); 
+				}
 				else {
 					--i;
 					lastlen=9; /* +strlen(seenby); */
 					net_exists=0;
-					fprintf(stream,"\rSEEN-BY:"); } } }
+					fprintf(stream,"\rSEEN-BY:"); 
+				} 
+			}
 
-		for(i=0;i<scfg.total_faddrs;i++) {				/* Add AKAs to SEEN-BYs */
-			strcpy(seenby," ");
-			if(scfg.faddr[i].zone!=addr.zone || scfg.faddr[i].point)
-				continue;
-			for(j=0;j<seenbys.addrs;j++)
-				if(!memcmp(&scfg.faddr[i],&seenbys.addr[j],sizeof(faddr_t)))
-					break;
-			if(j==seenbys.addrs) {
-				if(scfg.faddr[i].net!=addr.net || !net_exists) {
+			for(i=0;i<area.uplinks;i++) {			/* Add all uplinks to SEEN-BYs */
+				int node=matchnode(area.uplink[i],0);
+				if(node<cfg.nodecfgs && (cfg.nodecfg[node].attr&ATTR_PASSIVE))
+					continue;
+				strcpy(seenby," ");
+				if(foreign_zone(addr.zone, area.uplink[i].zone) || area.uplink[i].point)
+					continue;
+				for(j=0;j<seenbys.addrs;j++)
+					if(!memcmp(&area.uplink[i],&seenbys.addr[j],sizeof(faddr_t)))
+						break;
+				if(j==seenbys.addrs) {
+					if(area.uplink[i].net!=addr.net || !net_exists) {
+						net_exists=1;
+						addr.net=area.uplink[i].net;
+						sprintf(str,"%d/",addr.net);
+						strcat(seenby,str); 
+					}
+					sprintf(str,"%d",area.uplink[i].node);
+					strcat(seenby,str);
+					if(lastlen+strlen(seenby)<80) {
+						fwrite(seenby,strlen(seenby),1,stream);
+						lastlen+=strlen(seenby); 
+					}
+					else {
+						--i;
+						lastlen=9; /* +strlen(seenby); */
+						net_exists=0;
+						fprintf(stream,"\rSEEN-BY:"); 
+					} 
+				} 
+			}
+
+			for(i=0;i<scfg.total_faddrs;i++) {				/* Add AKAs to SEEN-BYs */
+				strcpy(seenby," ");
+				if(foreign_zone(addr.zone, scfg.faddr[i].zone) || scfg.faddr[i].point)
+					continue;
+				for(j=0;j<seenbys.addrs;j++)
+					if(!memcmp(&scfg.faddr[i],&seenbys.addr[j],sizeof(faddr_t)))
+						break;
+				if(j==seenbys.addrs) {
+					if(scfg.faddr[i].net!=addr.net || !net_exists) {
+						net_exists=1;
+						addr.net=scfg.faddr[i].net;
+						sprintf(str,"%d/",addr.net);
+						strcat(seenby,str); }
+					sprintf(str,"%d",scfg.faddr[i].node);
+					strcat(seenby,str);
+					if(lastlen+strlen(seenby)<80) {
+						fwrite(seenby,strlen(seenby),1,stream);
+						lastlen+=strlen(seenby); 
+					}
+					else {
+						--i;
+						lastlen=9; /* +strlen(seenby); */
+						net_exists=0;
+						fprintf(stream,"\rSEEN-BY:"); 
+					} 
+				} 
+			}
+
+			lastlen=7;
+			net_exists=0;
+			fprintf(stream,"\r\1PATH:");
+			addr=getsysfaddr(fmsghdr.destzone);
+			for(i=0;i<paths.addrs;i++) {			  /* Put back the original PATH */
+				if(paths.addr[i].net == 0)
+					continue;	// Invalid node number/address, don't include "0/0" in PATH
+				strcpy(seenby," ");
+				if(foreign_zone(addr.zone, paths.addr[i].zone) || paths.addr[i].point)
+					continue;
+				if(paths.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
-					addr.net=scfg.faddr[i].net;
+					addr.net=paths.addr[i].net;
 					sprintf(str,"%d/",addr.net);
-					strcat(seenby,str); }
-				sprintf(str,"%d",scfg.faddr[i].node);
+					strcat(seenby,str); 
+				}
+				sprintf(str,"%d",paths.addr[i].node);
 				strcat(seenby,str);
 				if(lastlen+strlen(seenby)<80) {
 					fwrite(seenby,strlen(seenby),1,stream);
-					lastlen+=strlen(seenby); }
+					lastlen+=strlen(seenby); 
+				}
 				else {
 					--i;
-					lastlen=9; /* +strlen(seenby); */
+					lastlen=7; /* +strlen(seenby); */
 					net_exists=0;
-					fprintf(stream,"\rSEEN-BY:"); } } }
+					fprintf(stream,"\r\1PATH:"); 
+				} 
+			}
 
-		lastlen=7;
-		net_exists=0;
-		fprintf(stream,"\r\1PATH:");
-		addr=getsysfaddr(fmsghdr.destzone);
-		for(i=0;i<paths.addrs;i++) {			  /* Put back the original PATH */
-			strcpy(seenby," ");
-			if(paths.addr[i].zone!=addr.zone || paths.addr[i].point)
-				continue;
-			if(paths.addr[i].net!=addr.net || !net_exists) {
-				net_exists=1;
-				addr.net=paths.addr[i].net;
-				sprintf(str,"%d/",addr.net);
-				strcat(seenby,str); }
-			sprintf(str,"%d",paths.addr[i].node);
-			strcat(seenby,str);
-			if(lastlen+strlen(seenby)<80) {
-				fwrite(seenby,strlen(seenby),1,stream);
-				lastlen+=strlen(seenby); }
-			else {
-				--i;
-				lastlen=7; /* +strlen(seenby); */
-				net_exists=0;
-				fprintf(stream,"\r\1PATH:"); } }
-
-		strcpy(seenby," ");         /* Add first address with same zone to PATH */
-		sysaddr=getsysfaddr(fmsghdr.destzone);
-		if(!sysaddr.point) {
-			if(sysaddr.net!=addr.net || !net_exists) {
-				net_exists=1;
-				addr.net=sysaddr.net;
-				sprintf(str,"%d/",addr.net);
-				strcat(seenby,str); }
-			sprintf(str,"%d",sysaddr.node);
-			strcat(seenby,str);
-			if(lastlen+strlen(seenby)<80)
-				fwrite(seenby,strlen(seenby),1,stream);
-			else {
-				fprintf(stream,"\r\1PATH:");
-				fwrite(seenby,strlen(seenby),1,stream); } }
-
-		fputc('\r',stream); }
+			strcpy(seenby," ");         /* Add first address with same zone to PATH */
+			sysaddr=getsysfaddr(fmsghdr.destzone);
+			if(sysaddr.net!=0 && sysaddr.point==0) {
+				if(sysaddr.net!=addr.net || !net_exists) {
+					net_exists=1;
+					addr.net=sysaddr.net;
+					sprintf(str,"%d/",addr.net);
+					strcat(seenby,str); 
+				}
+				sprintf(str,"%d",sysaddr.node);
+				strcat(seenby,str);
+				if(lastlen+strlen(seenby)<80)
+					fwrite(seenby,strlen(seenby),1,stream);
+				else {
+					fprintf(stream,"\r\1PATH:");
+					fwrite(seenby,strlen(seenby),1,stream); 
+				} 
+			}
+			fputc('\r',stream); 
+		}
+	}
 
 	fputc(FIDO_PACKED_MSG_TERMINATOR, stream);
 }
@@ -2992,19 +3059,27 @@ void gen_psb(addrlist_t *seenbys,addrlist_t *paths,char *inbuf
 
 /******************************************************************************
  This function takes the addrs passed to it and compares them to the address
- passed in inaddr.	1 is returned if inaddr matches any of the addrs
- otherwise a 0 is returned.
+ passed in compaddr.	TRUE is returned if inaddr matches any of the addrs
+ otherwise FALSE is returned.
 ******************************************************************************/
-int check_psb(addrlist_t* addrlist,faddr_t inaddr)
+BOOL check_psb(addrlist_t* addrlist, faddr_t compaddr)
 {
 	int i;
 
 	for(i=0;i<addrlist->addrs;i++) {
-		if(!memcmp(&addrlist->addr[i],&inaddr,sizeof(faddr_t)))
-			return(1); 
+		if(foreign_zone(compaddr.zone, addrlist->addr[i].zone))
+			continue;
+		if(compaddr.net != addrlist->addr[i].net)
+			continue;
+		if(compaddr.node != addrlist->addr[i].node)
+			continue;
+		if(compaddr.point != addrlist->addr[i].point)
+			continue;
+		return(TRUE); /* match found */
 	}
-	return(0);
+	return(FALSE);	/* match not found */
 }
+
 /******************************************************************************
  This function strips the message seen-bys and path from inbuf.
 ******************************************************************************/
@@ -3031,6 +3106,7 @@ void attach_bundles(void)
 	pkthdr_t pkthdr;
 	size_t	f;
 	glob_t	g;
+	two_plus_t* two_plus;
 
 	sprintf(path,"%s*.pk_",cfg.outbound);
 	glob(path,0,NULL,&g);
@@ -3067,13 +3143,12 @@ void attach_bundles(void)
 			pkt_faddr.net=pkthdr.destnet;
 			pkt_faddr.node=pkthdr.destnode;
 			pkt_faddr.point=0;				/* No point info in the 2.0 hdr! */
-			memcpy(&two_plus,&pkthdr.empty,sizeof(pkthdr.empty));
-			if(two_plus.cword==_rotr(two_plus.cwcopy,8)  /* 2+ Packet Header */
-				&& two_plus.cword && two_plus.cword&1)
-				pkt_faddr.point=two_plus.destpoint;
-			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header */
-				memcpy(&two_two,&pkthdr.empty,sizeof(pkthdr.empty));
-				pkt_faddr.point=pkthdr.month; }
+			two_plus = (two_plus_t*)&pkthdr.empty;
+			if(two_plus->cword==_rotr(two_plus->cwcopy,8)  /* 2+ Packet Header */
+				&& (two_plus->cword&1))
+				pkt_faddr.point=two_plus->destpoint;
+			else if(pkthdr.baud==2) 				/* Type 2.2 Packet Header */
+				pkt_faddr.point=pkthdr.month; 
 			lprintf(LOG_INFO,"Sending to %s",smb_faddrtoa(&pkt_faddr,NULL));
 			pack_bundle(packet,pkt_faddr); 
 		} else
@@ -3098,9 +3173,7 @@ void pkt_to_pkt(char *fbuf,areasbbs_t area,faddr_t faddr
 	static ushort openpkts,totalpkts;
 	static outpkt_t outpkt[MAX_TOTAL_PKTS];
 	faddr_t sysaddr;
-	two_two_t two;
-	two_plus_t two_p;
-
+	two_plus_t* two_plus;
 
 	if(cleanup==1) {
 		for(i=0;i<totalpkts;i++) {
@@ -3213,16 +3286,14 @@ void pkt_to_pkt(char *fbuf,areasbbs_t area,faddr_t faddr
 				bail(1); 
 				return;
 			}
+			memset(&pkthdr, 0, sizeof(pkthdr));
 			pkthdr.orignode=sysaddr.node;
 			fmsghdr.destnode=pkthdr.destnode=area.uplink[j].node;
 			if(node<cfg.nodecfgs && cfg.nodecfg[node].pkt_type==PKT_TWO_TWO) {
 				pkthdr.year=sysaddr.point;
 				pkthdr.month=area.uplink[j].point;
-				pkthdr.day=0;
-				pkthdr.hour=0;
-				pkthdr.min=0;
-				pkthdr.sec=0;
-				pkthdr.baud=0x0002; }
+				pkthdr.baud=0x0002;	/* Indicates 2.2 */
+			}
 			else {
 				pkthdr.year=tm->tm_year+1900;
 				pkthdr.month=tm->tm_mon;
@@ -3230,40 +3301,37 @@ void pkt_to_pkt(char *fbuf,areasbbs_t area,faddr_t faddr
 				pkthdr.hour=tm->tm_hour;
 				pkthdr.min=tm->tm_min;
 				pkthdr.sec=tm->tm_sec;
-				pkthdr.baud=0; }
+			}
 			pkthdr.pkttype=0x0002;
 			pkthdr.orignet=sysaddr.net;
 			fmsghdr.destnet=pkthdr.destnet=area.uplink[j].net;
-			pkthdr.prodcode=0;
-			pkthdr.sernum=0;
+			pkthdr.prodcode=SBBSECHO_PRODUCT_CODE&0xff;
+			pkthdr.sernum=SBBSECHO_VERSION_MAJOR;
 			if(node<cfg.nodecfgs)
 				memcpy(pkthdr.password,cfg.nodecfg[node].pktpwd,sizeof(pkthdr.password));
-			else
-				memset(pkthdr.password,0,sizeof(pkthdr.password));
 			pkthdr.origzone=sysaddr.zone;
 			fmsghdr.destzone=pkthdr.destzone=area.uplink[j].zone;
-			memset(pkthdr.empty,0,sizeof(two_two_t));
 
 			if(node<cfg.nodecfgs) {
 				if(cfg.nodecfg[node].pkt_type==PKT_TWO_TWO) {
-					memset(&two,0,sizeof(two));
-					strcpy(two.origdomn,"fidonet");
-					strcpy(two.destdomn,"fidonet");
-					memcpy(&pkthdr.empty,&two,sizeof(pkthdr.empty)); }
+					strcpy(((two_two_t*)&pkthdr.empty)->origdomn,"fidonet");
+					strcpy(((two_two_t*)&pkthdr.empty)->destdomn,"fidonet");
+				}
 				else if(cfg.nodecfg[node].pkt_type==PKT_TWO_PLUS) {
-					memset(&two_p,0,sizeof(two_p));
+					two_plus=(two_plus_t*)&pkthdr.empty;
 					if(sysaddr.point) {
 						pkthdr.orignet=-1;
-						two_p.auxnet=sysaddr.net; }
-					two_p.cwcopy=0x0100;
-					two_p.prodcode=pkthdr.prodcode;
-					two_p.revision=pkthdr.sernum;
-					two_p.cword=0x0001;
-					two_p.origzone=pkthdr.origzone;
-					two_p.destzone=pkthdr.destzone;
-					two_p.origpoint=sysaddr.point;
-					two_p.destpoint=area.uplink[j].point;
-					memcpy(&pkthdr.empty,&two_p,sizeof(pkthdr.empty)); }
+						two_plus->auxnet=sysaddr.net; 
+					}
+					two_plus->cwcopy=0x0100;
+					two_plus->prodcode=SBBSECHO_PRODUCT_CODE>>8;
+					two_plus->revision=SBBSECHO_VERSION_MINOR;
+					two_plus->cword=0x0001;
+					two_plus->origzone=pkthdr.origzone;
+					two_plus->destzone=pkthdr.destzone;
+					two_plus->origpoint=sysaddr.point;
+					two_plus->destpoint=area.uplink[j].point;
+				}
 			}
 			fwrite(&pkthdr,sizeof(pkthdr_t),1,outpkt[totalpkts].stream);
 			putfmsg(outpkt[totalpkts].stream,fbuf,fmsghdr,area,seenbys,paths);
@@ -3825,8 +3893,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 			if(msg.ftn_tid!=NULL)	/* use original TID */
 				f+=sprintf(fmsgbuf+f,"\1TID: %.256s\r", msg.ftn_tid);
 			else					/* generate TID */
-				f+=sprintf(fmsgbuf+f,"\1TID: SBBSecho %s-%s r%s %s %s\r"
-					,SBBSECHO_VER,PLATFORM_DESC,revision,__DATE__,compiler);
+				f+=sprintf(fmsgbuf+f,"\1TID: SBBSecho %u.%02u-%s r%s %s %s\r"
+					,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC,revision,__DATE__,compiler);
 
 			/* Unknown kludge lines are added here */
 			for(l=0;l<msg.total_hfields && f<fmsgbuflen;l++)
@@ -3881,8 +3949,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 
 			if(!(scfg.sub[i]->misc&SUB_NOTAG)) {
 				if(!tear) {  /* No previous tear line */
-					sprintf(str,"--- SBBSecho %s-%s\r"
-						,SBBSECHO_VER,PLATFORM_DESC);
+					sprintf(str,"--- SBBSecho %u.%02u-%s\r"
+						,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC);
 					strcat((char *)fmsgbuf,str); 
 				}
 
@@ -3989,6 +4057,7 @@ int main(int argc, char **argv)
 	faddr_t addr,pkt_faddr;
 	FILE	*stream;
 	pkthdr_t pkthdr;
+	two_plus_t* two_plus;
 	addrlist_t msg_seen,msg_path;
 	areasbbs_t fakearea,curarea;
 	char *usage="\n"
@@ -4036,13 +4105,13 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.221 $", "%*s %s", revision);
+	sscanf("$Revision: 1.234 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
-	printf("\nSBBSecho v%s-%s (rev %s) - Synchronet FidoNet Packet "
+	printf("\nSBBSecho v%u.%02u-%s (rev %s) - Synchronet FidoNet Packet "
 		"Tosser\n"
-		,SBBSECHO_VER
+		,SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR
 		,PLATFORM_DESC
 		,revision
 		);
@@ -4348,15 +4417,15 @@ int main(int argc, char **argv)
 			pkt_faddr.net=pkthdr.destnet;
 			pkt_faddr.node=pkthdr.destnode;
 			pkt_faddr.point=0;				/* No point info in the 2.0 hdr! */
-			memcpy(&two_plus,&pkthdr.empty,sizeof(two_plus));
-			if(two_plus.cword==_rotr(two_plus.cwcopy,8)  /* 2+ Packet Header */
-				&& two_plus.cword && two_plus.cword&1)
-				pkt_faddr.point=two_plus.destpoint;
-			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header */
-				memcpy(&two_two,&pkthdr.empty,sizeof(two_two));
-				pkt_faddr.point=pkthdr.month; }
+			two_plus = (two_plus_t*)&pkthdr.empty;
+			if(two_plus->cword==_rotr(two_plus->cwcopy,8)  /* 2+ Packet Header */
+				&& two_plus->cword && (two_plus->cword&1))
+				pkt_faddr.point=two_plus->destpoint;
+			else if(pkthdr.baud==2) 				/* Type 2.2 Packet Header */
+				pkt_faddr.point=pkthdr.month; 
 			lprintf(LOG_DEBUG,"Sending to %s",smb_faddrtoa(&pkt_faddr,NULL));
-			pack_bundle(packet,pkt_faddr); }
+			pack_bundle(packet,pkt_faddr); 
+		}
 		else {
 			fclose(fidomsg);
 			lprintf(LOG_WARNING,"Stray Outbound Packet (%s) possibly still in use (ftime: %.24s)"
@@ -4378,6 +4447,7 @@ int main(int argc, char **argv)
 			if(secure && !cfg.secure[0])
 				break;
 		do {
+
 		/****** START OF IMPORT PKT ROUTINE ******/
 
 		offset=strlen(secure ? cfg.secure : cfg.inbound);
@@ -4433,13 +4503,13 @@ int main(int argc, char **argv)
 
 			printf("%21s: %s "
 				,secure ? "Importing Secure Pkt" : "Importing Packet",packet+offset);
-			memcpy(&two_plus,&pkthdr.empty,sizeof(two_plus));
-			if(two_plus.cword==_rotr(two_plus.cwcopy,8)  /* 2+ Packet Header (see FSC-48 for explanation of this insanity) */
-				&& two_plus.cword && two_plus.cword&1) {
+			two_plus = (two_plus_t*)&pkthdr.empty;
+			if(two_plus->cword==_rotr(two_plus->cwcopy,8)  /* 2+ Packet Header (see FSC-39 and FSC-48 for explanation of this insanity) */
+				&& (two_plus->cword&1)) {
 				pkt_type=PKT_TWO_PLUS;
-				pkt_faddr.point=two_plus.origpoint;
+				pkt_faddr.point=two_plus->origpoint;
 				if(pkt_faddr.point != 0 && pkthdr.orignet == -1)
-					pkt_faddr.net=two_plus.auxnet ? two_plus.auxnet:sys_faddr.net;
+					pkt_faddr.net=two_plus->auxnet ? two_plus->auxnet:sys_faddr.net;
 				printf("(Type 2+)");
 				if(cfg.log&LOG_PACKETS)
 					logprintf("Importing %s%s (Type 2+) from %s"
@@ -4447,7 +4517,6 @@ int main(int argc, char **argv)
 			}
 			else if(pkthdr.baud==2) {				/* Type 2.2 Packet Header (FSC-45) */
 				pkt_type=PKT_TWO_TWO;
-				memcpy(&two_two,&pkthdr.empty,sizeof(two_two));
 				pkt_faddr.point=pkthdr.year ? pkthdr.year:0;
 				printf("(Type 2.2)");
 				if(cfg.log&LOG_PACKETS)
@@ -4576,7 +4645,7 @@ int main(int argc, char **argv)
 						else
 							printf("(Passthru) ");
 						fmsgbuf=getfmsg(fidomsg,NULL);
-						gen_psb(&msg_seen,&msg_path,fmsgbuf,pkthdr.destzone);
+						gen_psb(&msg_seen,&msg_path,fmsgbuf,pkthdr.origzone);	/* was destzone */
 						break; 
 					}
 
@@ -4589,7 +4658,7 @@ int main(int argc, char **argv)
 						else
 							printf("(Passthru) ");
 						fmsgbuf=getfmsg(fidomsg,NULL);
-						gen_psb(&msg_seen,&msg_path,fmsgbuf,pkthdr.destzone); 
+						gen_psb(&msg_seen,&msg_path,fmsgbuf,pkthdr.origzone);	/* was destzone */
 					}
 					else {
 						start_tick=0;
@@ -5002,20 +5071,19 @@ int main(int argc, char **argv)
 				pkthdr.destzone=addr.zone;
 				if(node<cfg.nodecfgs) {
 					if(cfg.nodecfg[node].pkt_type==PKT_TWO_PLUS) {
-						memset(&two_plus,0,sizeof(two_plus));
+						two_plus = (two_plus_t*)&pkthdr.empty;
 						if(hdr.origpoint) {
 							pkthdr.orignet=-1;
-							two_plus.auxnet=hdr.orignet; 
+							two_plus->auxnet=hdr.orignet; 
 						}
-						two_plus.cwcopy=0x0100;
-						two_plus.prodcode=pkthdr.prodcode;
-						two_plus.revision=pkthdr.sernum;
-						two_plus.cword=0x0001;
-						two_plus.origzone=pkthdr.origzone;
-						two_plus.destzone=pkthdr.destzone;
-						two_plus.origpoint=hdr.origpoint;
-						two_plus.destpoint=addr.point;
-						memcpy(&pkthdr.empty,&two_plus,sizeof(pkthdr.empty)); 
+						two_plus->cwcopy=0x0100;
+						two_plus->prodcode=pkthdr.prodcode;
+						two_plus->revision=pkthdr.sernum;
+						two_plus->cword=0x0001;
+						two_plus->origzone=pkthdr.origzone;
+						two_plus->destzone=pkthdr.destzone;
+						two_plus->origpoint=hdr.origpoint;
+						two_plus->destpoint=addr.point;
 					}
 					memcpy(pkthdr.password,cfg.nodecfg[node].pktpwd,sizeof(pkthdr.password));
 				}

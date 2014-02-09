@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.128 2013/09/12 22:35:05 deuce Exp $ */
+/* $Id: ini_file.c,v 1.134 2014/01/04 09:26:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,9 @@
 #include "dirwrap.h"	/* fexist */
 #include "filewrap.h"	/* chsize */
 #include "ini_file.h"
+#if !defined(NO_SOCKET_SUPPORT)
+#include "sockwrap.h"
+#endif
 
 /* Maximum length of entire line, includes '\0' */
 #define INI_MAX_LINE_LEN		(INI_MAX_VALUE_LEN*2)
@@ -572,6 +575,18 @@ char* iniSetIpAddress(str_list_t* list, const char* section, const char* key, ul
 	struct in_addr in_addr;
 	in_addr.s_addr=htonl(value);
 	return iniSetString(list, section, key, inet_ntoa(in_addr), style);
+}
+
+char* iniSetIp6Address(str_list_t* list, const char* section, const char* key, struct in6_addr value
+					,ini_style_t* style)
+{
+	char				addrstr[INET6_ADDRSTRLEN];
+	union xp_sockaddr	addr = {0};
+
+	addr.in6.sin6_addr = value;
+	addr.in6.sin6_family = AF_INET6;
+	inet_addrtop(&addr, addrstr, sizeof(addrstr));
+	return iniSetString(list, section, key, addrstr, style);
 }
 #endif
 
@@ -1285,7 +1300,7 @@ int iniGetSocketOptions(str_list_t list, const char* section, SOCKET sock
 	union xp_sockaddr	addr;
 
 	len=sizeof(type);
-	if((result=getsockopt(sock, SOL_SOCKET, SO_TYPE, &type, &len)) != 0) {
+	if((result=getsockopt(sock, SOL_SOCKET, SO_TYPE, (char*)&type, &len)) != 0) {
 		safe_snprintf(error,errlen,"%d getting socket type", ERROR_VALUE);
 		return(result);
 	}
@@ -1344,6 +1359,29 @@ static ulong parseIpAddress(const char* value)
 	return(ntohl(inet_addr(value)));
 }
 
+static struct in6_addr parseIp6Address(const char* value)
+{
+	struct addrinfo hints = {0};
+	struct addrinfo *res, *cur;
+	struct in6_addr ret = {0};
+
+	hints.ai_flags = AI_NUMERICHOST|AI_PASSIVE;
+	if(getaddrinfo(value, NULL, &hints, &res))
+		return ret;
+
+	for(cur = res; cur; cur++) {
+		if(cur->ai_addr->sa_family == AF_INET6)
+			break;
+	}
+	if(!cur) {
+		freeaddrinfo(res);
+		return ret;
+	}
+	memcpy(&ret, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, sizeof(ret));
+	freeaddrinfo(res);
+	return ret;
+}
+
 ulong iniReadIpAddress(FILE* fp, const char* section, const char* key, ulong deflt)
 {
 	char	buf[INI_MAX_VALUE_LEN];
@@ -1358,6 +1396,20 @@ ulong iniReadIpAddress(FILE* fp, const char* section, const char* key, ulong def
 	return(parseIpAddress(value));
 }
 
+struct in6_addr iniReadIp6Address(FILE* fp, const char* section, const char* key, struct in6_addr deflt)
+{
+	char	buf[INI_MAX_VALUE_LEN];
+	char*	value;
+
+	if((value=read_value(fp,section,key,buf))==NULL)
+		return(deflt);
+
+	if(*value==0)		/* blank value */
+		return(deflt);
+
+	return(parseIp6Address(value));
+}
+
 ulong iniGetIpAddress(str_list_t list, const char* section, const char* key, ulong deflt)
 {
 	char*	vp=NULL;
@@ -1368,6 +1420,18 @@ ulong iniGetIpAddress(str_list_t list, const char* section, const char* key, ulo
 		return(deflt);
 
 	return(parseIpAddress(vp));
+}
+
+struct in6_addr iniGetIp6Address(str_list_t list, const char* section, const char* key, struct in6_addr deflt)
+{
+	char*	vp=NULL;
+
+	get_value(list, section, key, NULL, &vp);
+
+	if(vp==NULL || *vp==0)		/* blank value or missing key */
+		return(deflt);
+
+	return(parseIp6Address(vp));
 }
 
 #endif	/* !NO_SOCKET_SUPPORT */
