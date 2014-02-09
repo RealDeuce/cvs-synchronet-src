@@ -9,7 +9,7 @@
 #include "multisock.h"
 #include <stdarg.h>
 
-struct xpms_set* DLLCALL xpms_create(unsigned int retries, unsigned int wait_secs,
+struct xpms_set *xpms_create(unsigned int retries, unsigned int wait_secs,
 	int (*lprintf)(int level, const char *fmt, ...))
 {
 	struct xpms_set *ret=(struct xpms_set *)calloc(1, sizeof(struct xpms_set));
@@ -22,7 +22,7 @@ struct xpms_set* DLLCALL xpms_create(unsigned int retries, unsigned int wait_sec
 	return ret;
 }
 
-void DLLCALL xpms_destroy(struct xpms_set *xpms_set, void (*sock_destroy)(SOCKET, void *), void *cbdata)
+void xpms_destroy(struct xpms_set *xpms_set, void (*sock_destroy)(SOCKET, void *), void *cbdata)
 {
 	int		i;
 
@@ -46,7 +46,7 @@ void DLLCALL xpms_destroy(struct xpms_set *xpms_set, void (*sock_destroy)(SOCKET
 	free(xpms_set);
 }
 
-BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
+BOOL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 	int protocol, const char *addr, uint16_t port, const char *prot, 
 	void (*sock_init)(SOCKET, void *), int(*bind_init)(BOOL), void *cbdata)
 {
@@ -168,7 +168,7 @@ BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 	return FALSE;
 }
 
-BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
+BOOL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 	int protocol, str_list_t list, uint16_t default_port, const char *prot, 
 	void (*sock_init)(SOCKET, void *), int(*bind_init)(BOOL), void *cbdata)
 {
@@ -212,7 +212,7 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 	return one_good;
 }
 
-SOCKET DLLCALL xpms_accept(struct xpms_set *xpms_set, union xp_sockaddr * addr, 
+SOCKET xpms_accept(struct xpms_set *xpms_set, union xp_sockaddr * addr, 
 	socklen_t * addrlen, unsigned int timeout, void **cb_data)
 {
 	fd_set			read_fs;
