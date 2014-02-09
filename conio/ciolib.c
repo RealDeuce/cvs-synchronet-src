@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.116 2013/08/15 23:56:38 deuce Exp $ */
+/* $Id: ciolib.c,v 1.119 2014/02/09 07:48:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,6 +113,8 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getpass(const char *prompt);
 CIOLIBEXPORT void CIOLIBCALL ciolib_copytext(const char *text, size_t buflen);
 CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int new_value);
+CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
 
 #define CIOLIB_INIT()		{ if(initialized != 1) initciolib(CIOLIB_MODE_AUTO); }
 
@@ -152,6 +154,8 @@ int try_sdl_init(int mode)
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
 		cio_api.get_window_info=sdl_get_window_info;
+		cio_api.setscaling=bitmap_setscaling;
+		cio_api.getscaling=bitmap_getscaling;
 		return(1);
 	}
 	return(0);
@@ -189,6 +193,8 @@ int try_x_init(int mode)
 		cio_api.copytext=x_copytext;
 		cio_api.getcliptext=x_getcliptext;
 		cio_api.get_window_info=x_get_window_info;
+		cio_api.setscaling=bitmap_setscaling;
+		cio_api.getscaling=bitmap_getscaling;
 		return(1);
 	}
 	return(0);
@@ -514,7 +520,7 @@ early_return:
 	return(&str[2]);
 }
 
-#ifdef _MSC_VER	/* Use lame vsscanf() implementation */
+#if defined(_MSC_VER) && (_MSC_VER < 1800)	/* Use lame vsscanf() implementation */
 /* This is a way to do _vsscanf without using fancy stack tricks or using the
  * "_input" method provided by Microsoft, which is no longer exported as of .NET.
  * The function has a limit of 25 arguments (or less if you run out of stack space),
@@ -1319,5 +1325,20 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void)
 {
 	if(cio_api.getvideoflags)
 		return(cio_api.getvideoflags());
+	return(0);
+}
+
+/* Optional */
+CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int new_value)
+{
+	if(cio_api.setscaling)
+		cio_api.setscaling(new_value);
+}
+
+/* Optional */
+CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void)
+{
+	if(cio_api.getscaling)
+		return(cio_api.getscaling());
 	return(0);
 }
