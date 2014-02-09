@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "External Program Area" Object */
 
-/* $Id: js_xtrn_area.c,v 1.27 2009/03/20 00:39:46 rswindell Exp $ */
+/* $Id: js_xtrn_area.c,v 1.28 2011/11/12 01:59:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,6 +87,7 @@ static char* event_prop_desc[] = {
 	,"frequency to execute"
 	,"days of week to execute (bitfield)"
 	,"days of month to execute (bitfield)"
+	,"months of year to execute (bitfield)"
 	,"date/time last run (in time_t format)"
 	,"toggle options (bitfield)"
 	,NULL
