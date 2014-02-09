@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.116 2013/08/15 23:56:38 deuce Exp $ */
+/* $Id: ciolib.c,v 1.118 2014/02/07 08:53:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -514,7 +514,7 @@ early_return:
 	return(&str[2]);
 }
 
-#ifdef _MSC_VER	/* Use lame vsscanf() implementation */
+#if defined(_MSC_VER) && (_MSC_VER < 1800)	/* Use lame vsscanf() implementation */
 /* This is a way to do _vsscanf without using fancy stack tricks or using the
  * "_input" method provided by Microsoft, which is no longer exported as of .NET.
  * The function has a limit of 25 arguments (or less if you run out of stack space),
