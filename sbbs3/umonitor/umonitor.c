@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.72 2010/02/24 02:06:14 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.73 2014/02/06 20:35:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,6 @@
 #include <unistd.h>
 
 #include "ciolib.h"
-#include "keys.h"
 #define __COLORS		/* Disable the colour macros in sbbsdefs.h ToDo */
 #include "sbbs.h"
 #include "genwrap.h"
@@ -807,7 +806,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.72 $", "%*s %s", revision);
+	sscanf("$Revision: 1.73 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
