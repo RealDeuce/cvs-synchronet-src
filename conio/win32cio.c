@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.96 2009/08/21 08:54:34 deuce Exp $ */
+/* $Id: win32cio.c,v 1.97 2014/02/06 10:58:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,6 @@
 #endif
 
 #include "ciolib.h"
-#include "keys.h"
 #include "vidmodes.h"
 #include "win32cio.h"
 
