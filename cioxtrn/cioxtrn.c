@@ -32,7 +32,7 @@ struct keyvals {
 };
 
 /* Get this from win32cio.c */
-CIOLIBEXPORTVAR const struct keyvals keyval[];
+extern const struct keyvals keyval[];
 
 void frobkey(int press, int release, int scan, int key, int ascii)
 {
