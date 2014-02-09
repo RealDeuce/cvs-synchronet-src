@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.54 2013/09/12 22:35:05 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.57 2014/02/08 03:21:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,32 +390,34 @@ int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigne
 	return result;
 }
 
+
+union xp_sockaddr *inet_ptoaddr(char *addr_str, union xp_sockaddr *addr, size_t size)
+{
+    struct addrinfo hints = {0};
+    struct addrinfo *res, *cur;
+
+    hints.ai_flags = AI_NUMERICHOST|AI_PASSIVE;
+    if(getaddrinfo(addr_str, NULL, &hints, &res))
+        return NULL;
+    
+    for(cur = res; cur; cur++) {
+        if(cur->ai_addr->sa_family == AF_INET6)
+            break;
+    }
+    if(!cur) {
+        freeaddrinfo(res);
+        return NULL;
+    }
+    memcpy(&addr, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, size);
+    freeaddrinfo(res);
+    return addr;
+}
+
 const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
 {
 #ifdef _WIN32
-	static INT (WSAAPI *a2s)(LPSOCKADDR, DWORD, LPWSAPROTOCOL_INFO, LPTSTR, LPDWORD)=NULL;
-	static BOOL searched=FALSE;
-
-	if(!searched) {
-		HMODULE hMod = LoadLibrary("ws2_32.dll");
-
-		searched = TRUE;
-		if(hMod)
-			a2s=(INT (WSAAPI *)(LPSOCKADDR, DWORD, LPWSAPROTOCOL_INFO, LPTSTR, LPDWORD))GetProcAddress(hMod, "WSAAddressToString");
-	}
-
-	if(a2s) {
-		DWORD	dsize=size;
-
-		if(a2s(&addr->addr, SOCK_MAXADDRLEN, NULL, dest, &dsize)==SOCKET_ERROR)
-			return NULL;
-		return dest;
-	}
-	if(addr->addr.sa_family != AF_INET)
-		strncpy(dest, "<Address Family Not Supported>", size);
-	else
-		strncpy(dest, inet_ntoa(addr->in.sin_addr), size);
-	dest[size-1]=0;
+	if(getnameinfo(addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
+		strncpy(dest, "<Unable to convert address>", size);
 	return dest;
 #else
 	switch(addr->addr.sa_family) {
