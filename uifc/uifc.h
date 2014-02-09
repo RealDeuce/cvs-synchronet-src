@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.82 2014/02/10 04:52:19 deuce Exp $ */
+/* $Id: uifc.h,v 1.81 2014/02/09 12:48:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -448,7 +448,7 @@ UIFCEXPORTVAR char* uifcYesNoOpts[];
 /* Returns 0 on success, non-zero on failure.								*/
 /****************************************************************************/
 int uifcini(uifcapi_t*);	/* Original implementation based on conio		*/
-UIFCEXPORT int UIFCCALL uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
+int uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
 UIFCEXPORT int UIFCCALL uifcini32(uifcapi_t*);	/* modern implementation	*/
 /****************************************************************************/
 

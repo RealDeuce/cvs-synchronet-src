@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.71 2014/03/07 09:23:46 deuce Exp $ */
+/* $Id: conn.c,v 1.70 2014/02/06 12:07:53 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -411,7 +411,6 @@ int conn_socket_connect(struct bbslist *bbs)
 	int				nonblock;
 	struct timeval	tv;
 	fd_set			wfd;
-	fd_set			efd;
 	int				failcode=FAILURE_WHAT_FAILURE;
 	struct addrinfo	hints;
 	struct addrinfo	*res=NULL;
@@ -477,9 +476,7 @@ int conn_socket_connect(struct bbslist *bbs)
 
 						FD_ZERO(&wfd);
 						FD_SET(sock, &wfd);
-						FD_ZERO(&efd);
-						FD_SET(sock, &efd);
-						switch(select(sock+1, NULL, &wfd, &efd, &tv)) {
+						switch(select(sock+1, NULL, &wfd, NULL, &tv)) {
 							case 0:
 								if(kbhit()) {
 									failcode=FAILURE_ABORTED;
@@ -491,18 +488,11 @@ int conn_socket_connect(struct bbslist *bbs)
 								sock=INVALID_SOCKET;
 								continue;
 							case 1:
-								if(FD_ISSET(sock, &efd)) {
-									closesocket(sock);
-									sock=INVALID_SOCKET;
-									continue;
-								}
-								else {
-									if(socket_check(sock, NULL, NULL, 0))
-										goto connected;
-									closesocket(sock);
-									sock=INVALID_SOCKET;
-									continue;
-								}
+								if(socket_check(sock, NULL, NULL, 0))
+									goto connected;
+								closesocket(sock);
+								sock=INVALID_SOCKET;
+								continue;
 							default:
 								break;
 						}
