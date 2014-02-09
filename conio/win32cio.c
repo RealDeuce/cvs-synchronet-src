@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.99 2014/02/10 02:18:18 deuce Exp $ */
+/* $Id: win32cio.c,v 1.97 2014/02/06 10:58:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,13 @@
  #include <malloc.h>	/* alloca() on Win32 */
 #endif
 
+#if (defined CIOLIB_IMPORTS)
+ #undef CIOLIB_IMPORTS
+#endif
+#if (defined CIOLIB_EXPORTS)
+ #undef CIOLIB_EXPORTS
+#endif
+
 #include "ciolib.h"
 #include "vidmodes.h"
 #include "win32cio.h"
@@ -50,7 +57,7 @@ struct keyvals {
 		,ALT;
 };
 
-CIOLIBEXPORTVAR const struct keyvals keyval[] =
+const struct keyvals keyval[] =
 {
 	{VK_BACK, 0x08, 0x08, 0x7f, 0x0e00},
 	{VK_TAB, 0x09, 0x0f00, 0x9400, 0xa500},
