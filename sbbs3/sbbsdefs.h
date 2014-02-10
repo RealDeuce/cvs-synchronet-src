@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.194 2015/08/17 07:06:26 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.188 2014/01/04 10:41:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,15 +51,15 @@
 /*************/
 
 #define VERSION 	"3.16"  /* Version: Major.minor  */
-#define REVISION	'd'     /* Revision: lowercase letter */
+#define REVISION	'a'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31600	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31600 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2015 Rob Swindell"
-#define COPYRIGHT_CRC		0x24F092F2
+#define COPYRIGHT_NOTICE	"Copyright 2014 Rob Swindell"
+#define COPYRIGHT_CRC		0xB9FF7384
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -118,7 +118,7 @@ typedef struct {
 #define LEN_SSNAME	25		/* Sub/Dir short name						*/
 #define LEN_SLNAME	40		/* Sub/Dir long name						*/
 						
-									/* User Questions (e.g. for new users)	*/
+									/* User Questions						*/
 #define UQ_ALIASES		(1L<<0) 	/* Ask for alias						*/
 #define UQ_LOCATION		(1L<<1) 	/* Ask for location 					*/
 #define UQ_ADDRESS		(1L<<2) 	/* Ask for address						*/
@@ -139,7 +139,6 @@ typedef struct {
 #define UQ_NOCOMMAS		(1L<<17)	/* Do not require commas in location	*/
 #define UQ_NONETMAIL	(1L<<18)	/* Don't ask for e-mail/netmail address	*/
 #define UQ_NOUPRLWR		(1L<<19)	/* Don't force upper/lower case strings */
-#define UQ_COLORTERM	(1L<<20)	/* Ask if new user has color terminal	*/
 						
 						
 									/* Different bits in sys_misc				*/
@@ -779,7 +778,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
-#define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin) - DEPRECATED	(it sent the password as the server user name) */
+#define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin)	*/
 #define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
 								
 enum {							/* Values for 'mode' in listfileinfo        */
@@ -810,7 +809,7 @@ enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
 #define SCAN_BACK	(1<<2)		/* Scan the last message if no new			*/
 #define SCAN_TOYOU	(1<<3)		/* Scan for messages to you 				*/
 #define SCAN_FIND	(1<<4)		/* Scan for text in messages				*/
-#define SCAN_UNREAD	(1<<5)		/* Display un-read messages only			*/
+#define SCAN_UNREAD (1<<5)		/* Find un-read messages to you 			*/
 								
 								/* Bits in misc of chan_t					*/
 #define CHAN_PW 	(1<<0)		/* Can be password protected				*/
@@ -987,10 +986,7 @@ typedef struct {						/* File (transfers) Data */
 
 } file_t;
 
-typedef struct {
-	idxrec_t	idx;					/* defined in smbdefs.h */
-	uint32_t	num;					/* 1-based offset */
-} post_t;
+typedef idxrec_t post_t;				/* defined in smbdefs.h */
 typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
 
