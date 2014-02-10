@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gen_defs.h>
-#include <sockwrap.h>
-#include <dirwrap.h>
-#include <multisock.h>
+#include "gen_defs.h"
+#include "sockwrap.h"
+#include "dirwrap.h"
+#include "multisock.h"
 #include <stdarg.h>
 
 struct xpms_set *xpms_create(unsigned int retries, unsigned int wait_secs,
@@ -22,7 +22,7 @@ struct xpms_set *xpms_create(unsigned int retries, unsigned int wait_secs,
 	return ret;
 }
 
-void xpms_destroy(struct xpms_set *xpms_set)
+void xpms_destroy(struct xpms_set *xpms_set, void (*sock_destroy)(SOCKET, void *), void *cbdata)
 {
 	int		i;
 
@@ -35,6 +35,8 @@ void xpms_destroy(struct xpms_set *xpms_set)
 						, xpms_set->socks[i].sock, xpms_set->socks[i].prot?xpms_set->socks[i].prot:"unknown"
 						, xpms_set->socks[i].port);
 			closesocket(xpms_set->socks[i].sock);
+			if(sock_destroy)
+				sock_destroy(xpms_set->socks[i].sock, cbdata);
 		}
 		xpms_set->socks[i].sock = INVALID_SOCKET;
 		FREE_AND_NULL(xpms_set->socks[i].address);
@@ -86,7 +88,9 @@ BOOL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 		hints.ai_socktype=type;
 		hints.ai_protocol=protocol;
 		hints.ai_flags|=AI_NUMERICSERV;
+#ifdef AI_ADDRCONFIG
 		hints.ai_flags|=AI_ADDRCONFIG;
+#endif
 		sprintf(port_str, "%hu", port);
 		if((ret=getaddrinfo(addr, port_str, &hints, &res))!=0) {
 			if(xpms_set->lprintf)
