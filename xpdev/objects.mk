@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for xpdev "wrappers"
 
-# $Id: objects.mk,v 1.16 2008/09/28 02:00:08 deuce Exp $
+# $Id: objects.mk,v 1.18 2013/08/31 02:40:37 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -15,6 +15,7 @@ OBJS	= \
 	$(OBJODIR)$(DIRSEP)genwrap$(OFILE) \
 	$(OBJODIR)$(DIRSEP)ini_file$(OFILE) \
 	$(OBJODIR)$(DIRSEP)link_list$(OFILE) \
+	$(OBJODIR)$(DIRSEP)multisock$(OFILE) \
 	$(OBJODIR)$(DIRSEP)netwrap$(OFILE) \
 	$(OBJODIR)$(DIRSEP)sockwrap$(OFILE) \
 	$(OBJODIR)$(DIRSEP)semfile$(OFILE) \
@@ -23,6 +24,7 @@ OBJS	= \
 	$(OBJODIR)$(DIRSEP)xp_dl$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xpbeep$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xpdatetime$(OFILE) \
+	$(OBJODIR)$(DIRSEP)xpmap$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xpprintf$(OFILE)
 
 
@@ -36,6 +38,7 @@ MTOBJS	= \
 	$(MTOBJODIR)$(DIRSEP)ini_file$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)link_list$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)msg_queue$(OFILE) \
+	$(MTOBJODIR)$(DIRSEP)multisock$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)semwrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)netwrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)sockwrap$(OFILE) \
@@ -46,6 +49,7 @@ MTOBJS	= \
 	$(MTOBJODIR)$(DIRSEP)xp_dl$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xpbeep$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xpdatetime$(OFILE) \
+	$(MTOBJODIR)$(DIRSEP)xpmap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xpprintf$(OFILE)
 
 TESTOBJS = \
