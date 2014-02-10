@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.47 2013/10/29 01:52:48 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.50 2014/02/09 13:37:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,6 @@
 #ifndef _WINSOCKAPI_
 	#include <winsock2.h>	/* socket/bind/etc. */
 	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
-	#include <wspiapi.h>	/* getaddrinfo() for Windows 2000 apparently */
 #if defined(__BORLANDC__)
 // Borland C++ builder 6 comes with a broken ws2tcpip.h header for GCC.
 #define _MSC_VER 7
@@ -88,6 +87,7 @@
 #endif
 
 #include <errno.h>		/* errno */
+#include "wrapdll.h"	/* DLLEXPORT/DLLCALL */
 
 typedef struct {
 	char*	name;
@@ -109,7 +109,7 @@ union xp_sockaddr {
 	struct sockaddr_storage	store;
 };
 
-#define xp_sockaddr_len(a) ((((struct sockaddr *)a)->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : ((struct sockaddr *)a)->sa_len)
+#define xp_sockaddr_len(a) ((((struct sockaddr *)a)->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in))
 
  
 
@@ -178,6 +178,7 @@ union xp_sockaddr {
 #define SHUT_RDWR		SD_BOTH
 
 #define s_addr			S_un.S_addr
+#define sa_family_t		ushort
 
 static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
@@ -217,20 +218,21 @@ static  int wsa_error;
 extern "C" {
 #endif
 
-socket_option_t*
+DLLEXPORT socket_option_t* DLLCALL
 		getSocketOptionList(void);
-int		getSocketOptionByName(const char* name, int* level);
+DLLEXPORT int DLLCALL		getSocketOptionByName(const char* name, int* level);
 
-int		sendfilesocket(int sock, int file, off_t* offset, off_t count);
-int		recvfilesocket(int sock, int file, off_t* offset, off_t count);
-BOOL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
-int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
+DLLEXPORT int DLLCALL		sendfilesocket(int sock, int file, off_t* offset, off_t count);
+DLLEXPORT int DLLCALL		recvfilesocket(int sock, int file, off_t* offset, off_t count);
+DLLEXPORT BOOL DLLCALL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
+DLLEXPORT int DLLCALL 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
 				   ,int (*lprintf)(int level, const char *fmt, ...));
-int		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
-const char *inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size);
-uint16_t inet_addrport(union xp_sockaddr *addr);
-void inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
+DLLEXPORT int DLLCALL		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
+DLLEXPORT union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr, size_t size);
+DLLEXPORT const char* DLLCALLinet_addrtop(union xp_sockaddr *addr, char *dest, size_t size);
+DLLEXPORT uint16_t DLLCALL inet_addrport(union xp_sockaddr *addr);
+DLLEXPORT void DLLCALL inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
 
 #ifdef __cplusplus
 }
