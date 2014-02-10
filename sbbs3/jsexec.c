@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.155 2011/10/28 08:05:34 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.168 2013/02/11 22:52:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,7 @@
 #endif
 
 #ifdef __unix__
+#define _WITH_GETLINE
 #include <signal.h>
 #endif
 
@@ -48,10 +49,12 @@
 #include "ini_file.h"
 #include "js_rtpool.h"
 #include "js_request.h"
+#include "jsdebug.h"
 
 #define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
 
+js_startup_t	startup;
 JSRuntime*	js_runtime;
 JSContext*	js_cx;
 JSObject*	js_glob;
@@ -79,6 +82,7 @@ pthread_mutex_t output_mutex;
 BOOL		daemonize=FALSE;
 #endif
 char		orig_cwd[MAX_PATH+1];
+BOOL		debugger=FALSE;
 
 void banner(FILE* fp)
 {
@@ -129,6 +133,7 @@ void usage(FILE* fp)
 		"\t-l             loop until intentionally terminated\n"
 		"\t-p             wait for keypress (pause) on exit\n"
 		"\t-!             wait for keypress (pause) on error\n"
+		"\t-D             debugs the script\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
 		,JAVASCRIPT_TIME_LIMIT
@@ -290,7 +295,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	int32		level=LOG_INFO;
     JSString*	str=NULL;
 	jsrefcount	rc;
-	char		*logstr;
+	char		*logstr=NULL;
+	size_t		logstr_sz=0;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -302,7 +308,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	for(; i<argc; i++) {
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, logstr, NULL);
+		JSSTRING_TO_RASTRING(cx, str, logstr, &logstr_sz, NULL);
 		if(logstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -314,6 +320,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	free(logstr);
 
     return(JS_TRUE);
 }
@@ -333,7 +340,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
-	if((buf=alloca(len))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -342,6 +349,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(rd>=0)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyN(cx,buf,rd)));
+	free(buf);
 
     return(JS_TRUE);
 }
@@ -361,7 +369,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return JS_FALSE;
 	}
-	if((buf=alloca(len+1))==NULL)
+	if((buf=malloc(len+1))==NULL)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -370,6 +378,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(p!=NULL)
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,truncnl(p))));
+	free(buf);
 
     return(JS_TRUE);
 }
@@ -382,14 +391,15 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     uintN		i;
     JSString*	str=NULL;
 	jsrefcount	rc;
-	char		*line;
+	char		*line=NULL;
+	size_t		line_sz=0;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
     for (i = 0; i < argc; i++) {
 		if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		    return(JS_FALSE);
-		JSSTRING_TO_STRING(cx, str, line, NULL);
+		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -401,6 +411,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	if(line)
+		free(line);
     return(JS_TRUE);
 }
 
@@ -421,7 +433,7 @@ js_writeln(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_printf(JSContext *cx, uintN argc, jsval *arglist)
+jse_printf(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char* p;
@@ -454,12 +466,13 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	JSVALUE_TO_STRING(cx, argv[0], line, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[0], line, NULL);
 	if(line==NULL)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	fprintf(confp,"!%s\n",line);
+	free(line);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, argv[0]);
@@ -482,9 +495,13 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
-	printf("%s (Y/n)? ", cstr);
+	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
+	HANDLE_PENDING(cx);
+	if(cstr==NULL)
+		return JS_TRUE;
 	rc=JS_SUSPENDREQUEST(cx);
+	printf("%s (Y/n)? ", cstr);
+	free(cstr);
 	fgets(instr,sizeof(instr),stdin);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -509,9 +526,13 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 	    return(JS_FALSE);
 
-	JSSTRING_TO_STRING(cx, str, cstr, NULL);
-	printf("%s (N/y)? ", cstr);
+	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
+	HANDLE_PENDING(cx);
+	if(cstr==NULL)
+		return JS_TRUE;
 	rc=JS_SUSPENDREQUEST(cx);
+	printf("%s (N/y)? ", cstr);
+	free(cstr);
 	fgets(instr,sizeof(instr),stdin);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -533,19 +554,19 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>0 && !JSVAL_IS_VOID(argv[0])) {
-		JSVALUE_TO_STRING(cx, argv[0], prstr, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[0], prstr, NULL);
+		HANDLE_PENDING(cx);
 		if(prstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(confp,"%s: ",prstr);
+		free(prstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
 	if(argc>1) {
-		JSVALUE_TO_STRING(cx, argv[1], prstr, NULL);
-		if(prstr==NULL)
-		    return(JS_FALSE);
-		SAFECOPY(instr,prstr);
+		JSVALUE_TO_STRBUF(cx, argv[1], instr, sizeof(instr), NULL);
+		HANDLE_PENDING(cx);
 	} else
 		instr[0]=0;
 
@@ -569,16 +590,20 @@ js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	jsrefcount	rc;
+	BOOL		ret;
 
-	JSVALUE_TO_STRING(cx, argv[0], p, NULL);
+	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
+	HANDLE_PENDING(cx);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(chdir(p)==0));
+	ret=chdir(p)==0;
+	free(p);
 	JS_RESUMEREQUEST(cx, rc);
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(ret));
 	return(JS_TRUE);
 }
 
@@ -587,26 +612,37 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p=NULL;
+	BOOL		ret;
+	jsrefcount	rc;
 
-	if(argc)
-		JSVALUE_TO_STRING(cx, argv[0], p, NULL);
+	if(argc) {
+		JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
+		HANDLE_PENDING(cx);
+	}
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
 	}
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(putenv(strdup(p))==0));
+	rc=JS_SUSPENDREQUEST(cx);
+	ret=putenv(strdup(p))==0;
+	free(p);
+	JS_RESUMEREQUEST(cx, rc);
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(ret));
 	return(JS_TRUE);
 }
 
 static jsSyncMethodSpec js_global_functions[] = {
 	{"log",				js_log,				1},
 	{"read",			js_read,            1},
-	{"readln",			js_readln,          1},
+	{"readln",			js_readln,			0,	JSTYPE_STRING,	JSDOCSTR("[count]")
+	,JSDOCSTR("read a single line, up to count characters, from input stream")
+	,311
+	},
     {"write",           js_write,           0},
     {"writeln",         js_writeln,         0},
     {"print",           js_writeln,         0},
-    {"printf",          js_printf,          1},	
+    {"printf",          jse_printf,          1},	
 	{"alert",			js_alert,			1},
 	{"prompt",			js_prompt,			1},
 	{"confirm",			js_confirm,			1},
@@ -663,11 +699,11 @@ js_OperationCallback(JSContext *cx)
 	JSBool	ret;
 
 	JS_SetOperationCallback(cx, NULL);
-	ret=js_CommonOperationCallback(cx, NULL);
+	ret=js_CommonOperationCallback(cx, &cb);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 	return ret;
 }
-#endif
+
 static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 {
 	char		name[256];
@@ -700,8 +736,6 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 
 static BOOL js_init(char** environ)
 {
-	js_startup_t	startup;
-
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
 
@@ -723,12 +757,13 @@ static BOOL js_init(char** environ)
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
-	if((js_glob=js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
+	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
 		,&cb,&startup						/* js */
 		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
-		))==NULL) {
+		,&js_glob
+		)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -757,6 +792,32 @@ static const char* js_ext(const char* fname)
 	if(strchr(fname,'.')==NULL)
 		return(".js");
 	return("");
+}
+
+void dbg_puts(const char *msg)
+{
+	fprintf(stderr, msg);
+}
+
+char *dbg_getline(void)
+{
+#ifdef __unix__
+	char	*line=NULL;
+	size_t	linecap=0;
+
+	if(getline(&line, &linecap, stdin)>=0)
+		return line;
+	if(line)
+		free(line);
+	return NULL;
+#else
+	// I assume Windows sucks.
+	char	buf[1025];
+
+	if(fgets(buf,sizeof(buf),stdin))
+		return strdup(buf);
+	return NULL;
+#endif
 }
 
 long js_exec(const char *fname, char** args)
@@ -852,10 +913,9 @@ long js_exec(const char *fname, char** args)
 		if(!fgets(line,sizeof(line),fp))
 			break;
 		line_no++;
-#if defined(__unix__)	/* Support Unix Shell Scripts that start with #!/path/to/jsexec */
+		/* Support Unix Shell Scripts that start with #!/path/to/jsexec */
 		if(line_no==1 && strncmp(line,"#!",2)==0)
 			strcpy(line,"\n");	/* To keep line count correct */
-#endif
 		len=strlen(line);
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
 			lprintf(LOG_ERR,"!Error allocating %u bytes of memory"
@@ -869,6 +929,8 @@ long js_exec(const char *fname, char** args)
 		fclose(fp);
 
 	start=xp_timer();
+	if(debugger)
+		init_debugger(js_runtime, js_cx, dbg_puts, dbg_getline);
 	if((js_script=JS_CompileScript(js_cx, js_glob, js_buf, js_buflen, fname==NULL ? NULL : path, 1))==NULL) {
 		lprintf(LOG_ERR,"!Error compiling script from %s",path);
 		return(-1);
@@ -880,13 +942,16 @@ long js_exec(const char *fname, char** args)
 
 	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path, orig_cwd);
 	start=xp_timer();
+	if(debugger)
+		debug_prompt(js_cx, js_script);
 	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
 		char	*p;
 
-		JSVALUE_TO_STRING(js_cx, rval, p, NULL);
+		JSVALUE_TO_MSTRING(js_cx, rval, p, NULL);
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
+		free(p);
 		JS_ValueToInt32(js_cx,rval,&result);
 	}
 	js_EvalOnExit(js_cx, js_glob, &cb);
@@ -897,8 +962,6 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
 			,path
 			,diff);
-
-	JS_GC(js_cx);
 
 	if(js_buf!=NULL)
 		free(js_buf);
@@ -949,7 +1012,6 @@ int parseLogLevel(const char* p)
 	return DEFAULT_LOG_LEVEL;
 }
 
-
 /*********************/
 /* Entry point (duh) */
 /*********************/
@@ -981,7 +1043,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.155 $", "%*s %s", revision);
+	sscanf("$Revision: 1.168 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1000,42 +1062,17 @@ int main(int argc, char **argv, char** environ)
 				case 'a':
 					omode="a";
 					break;
-				case 'f':
-					nonbuffered_con=TRUE;
-					break;
-				case 'm':
+				case 'c':
 					if(*p==0) p=argv[++argn];
-					js_max_bytes=strtoul(p,NULL,0);
+					SAFECOPY(scfg.ctrl_dir,p);
 					break;
-				case 's':
-					if(*p==0) p=argv[++argn];
-					js_cx_stack=strtoul(p,NULL,0);
+#if defined(__unix__)
+				case 'd':
+					daemonize=TRUE;
 					break;
-				case 't':
-					if(*p==0) p=argv[++argn];
-					cb.limit=strtoul(p,NULL,0);
-					break;
-				case 'y':
-					if(*p==0) p=argv[++argn];
-					cb.yield_interval=strtoul(p,NULL,0);
-					break;
-				case 'g':
-					if(*p==0) p=argv[++argn];
-					cb.gc_interval=strtoul(p,NULL,0);
-					break;
-				case 'h':
-					if(*p==0)
-						gethostname(host_name=host_name_buf,sizeof(host_name_buf));
-					else
-						host_name=p;
-					break;
-				case 'u':
-					if(*p==0) p=argv[++argn];
-					umask(strtol(p,NULL,8));
-					break;
-				case 'L':
-					if(*p==0) p=argv[++argn];
-					log_level=parseLogLevel(p);
+#endif
+				case 'D':
+					debugger=TRUE;
 					break;
 				case 'E':
 					if(*p==0) p=argv[++argn];
@@ -1048,6 +1085,37 @@ int main(int argc, char **argv, char** environ)
 						return(do_bail(1));
 					}
 					break;
+				case 'f':
+					nonbuffered_con=TRUE;
+					break;
+				case 'g':
+					if(*p==0) p=argv[++argn];
+					cb.gc_interval=strtoul(p,NULL,0);
+					break;
+				case 'h':
+					if(*p==0)
+						gethostname(host_name=host_name_buf,sizeof(host_name_buf));
+					else
+						host_name=p;
+					break;
+				case 'i':
+					if(*p==0) p=argv[++argn];
+					load_path_list=p;
+					break;
+				case 'L':
+					if(*p==0) p=argv[++argn];
+					log_level=parseLogLevel(p);
+					break;
+				case 'l':
+					loop=TRUE;
+					break;
+				case 'm':
+					if(*p==0) p=argv[++argn];
+					js_max_bytes=strtoul(p,NULL,0);
+					break;
+				case 'n':
+					statfp=nulfp;
+					break;
 				case 'o':
 					if(*p==0) p=argv[++argn];
 					if((confp=fopen(p,omode))==NULL) {
@@ -1055,41 +1123,38 @@ int main(int argc, char **argv, char** environ)
 						return(do_bail(1));
 					}
 					break;
-				case 'q':
-					confp=nulfp;
-					break;
-				case 'n':
-					statfp=nulfp;
-					break;
-				case 'x':
-					cb.auto_terminate=FALSE;
-					break;
-				case 'l':
-					loop=TRUE;
-					break;
 				case 'p':
 					pause_on_exit=TRUE;
 					break;
-				case '!':
-					pause_on_error=TRUE;
+				case 'q':
+					confp=nulfp;
 					break;
-				case 'c':
+				case 's':
 					if(*p==0) p=argv[++argn];
-					SAFECOPY(scfg.ctrl_dir,p);
+					js_cx_stack=strtoul(p,NULL,0);
 					break;
-				case 'i':
+				case 't':
 					if(*p==0) p=argv[++argn];
-					load_path_list=p;
+					cb.limit=strtoul(p,NULL,0);
+					break;
+				case 'u':
+					if(*p==0) p=argv[++argn];
+					umask(strtol(p,NULL,8));
 					break;
 				case 'v':
 					banner(statfp);
 					fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 					return(do_bail(0));
-#if defined(__unix__)
-				case 'd':
-					daemonize=TRUE;
+				case 'x':
+					cb.auto_terminate=FALSE;
 					break;
-#endif
+				case 'y':
+					if(*p==0) p=argv[++argn];
+					cb.yield_interval=strtoul(p,NULL,0);
+					break;
+				case '!':
+					pause_on_error=TRUE;
+					break;
 				default:
 					fprintf(errfp,"\n!Unsupported option: %s\n",argv[argn]);
 				case '?':
@@ -1168,6 +1233,8 @@ int main(int argc, char **argv, char** environ)
 
 	pthread_mutex_init(&output_mutex,NULL);
 
+	setup_debugger();
+
 	do {
 
 		if(exec_count++)
@@ -1182,6 +1249,7 @@ int main(int argc, char **argv, char** environ)
 		fprintf(statfp,"\n");
 
 		result=js_exec(module,&argv[argn]);
+		JS_RemoveObjectRoot(js_cx, &js_glob);
 		JS_ENDREQUEST(js_cx);
 		YIELD();
 
