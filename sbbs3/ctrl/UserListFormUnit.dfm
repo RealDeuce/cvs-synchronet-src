@@ -22,7 +22,7 @@ object UserListForm: TUserListForm
     Left = 0
     Top = 0
     Width = 854
-    Height = 601
+    Height = 602
     Align = alClient
     Columns = <
       item
@@ -85,7 +85,6 @@ object UserListForm: TUserListForm
         Caption = 'Last On'
         Width = 57
       end>
-    ReadOnly = True
     RowSelect = True
     PopupMenu = PopupMenu
     TabOrder = 0
