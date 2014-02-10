@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.99 2014/02/10 02:18:18 deuce Exp $ */
+/* $Id: win32cio.c,v 1.98 2014/02/10 00:48:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
  #include <malloc.h>	/* alloca() on Win32 */
 #endif
 
-#include "ciolib.h"
+#include <ciolib.h>
 #include "vidmodes.h"
 #include "win32cio.h"
 
