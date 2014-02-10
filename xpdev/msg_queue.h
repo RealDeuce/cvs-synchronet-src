@@ -2,13 +2,13 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.h,v 1.8 2015/05/11 03:32:52 rswindell Exp $ */
+/* $Id: msg_queue.h,v 1.6 2011/09/01 20:37:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -40,7 +40,6 @@
 
 #include "link_list.h"
 #include "threadwrap.h"
-#include "wrapdll.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -59,30 +58,29 @@ typedef struct {
 #define MSG_QUEUE_MALLOC		(1<<0)	/* Queue allocated with malloc() */
 #define MSG_QUEUE_BIDIR			(1<<1)	/* Bi-directional message queue */
 
-DLLEXPORT msg_queue_t*	DLLCALL msgQueueInit(msg_queue_t*, long flags);
-DLLEXPORT BOOL			DLLCALL msgQueueFree(msg_queue_t*);
+msg_queue_t*	msgQueueInit(msg_queue_t*, long flags);
+BOOL			msgQueueFree(msg_queue_t*);
 
-DLLEXPORT long			DLLCALL msgQueueAttach(msg_queue_t*);
-DLLEXPORT long			DLLCALL msgQueueDetach(msg_queue_t*);
-DLLEXPORT BOOL			DLLCALL msgQueueOwner(msg_queue_t*);
+long			msgQueueAttach(msg_queue_t*);
+long			msgQueueDetach(msg_queue_t*);
 
 /* Get/Set queue private data */
-DLLEXPORT void*			DLLCALL msgQueueSetPrivateData(msg_queue_t*, void*);
-DLLEXPORT void*			DLLCALL msgQueueGetPrivateData(msg_queue_t*);
+void*			msgQueueSetPrivateData(msg_queue_t*, void*);
+void*			msgQueueGetPrivateData(msg_queue_t*);
 
-DLLEXPORT BOOL			DLLCALL msgQueueWait(msg_queue_t* q, long timeout);
-DLLEXPORT long			DLLCALL msgQueueReadLevel(msg_queue_t*);
-DLLEXPORT void*			DLLCALL msgQueueRead(msg_queue_t*, long timeout);
-DLLEXPORT void*			DLLCALL msgQueuePeek(msg_queue_t*, long timeout);
-DLLEXPORT void*			DLLCALL msgQueueFind(msg_queue_t*, const void*, size_t length);
-DLLEXPORT list_node_t*	DLLCALL msgQueueFirstNode(msg_queue_t*);
-DLLEXPORT list_node_t*	DLLCALL msgQueueLastNode(msg_queue_t*);
+BOOL			msgQueueWait(msg_queue_t* q, long timeout);
+long			msgQueueReadLevel(msg_queue_t*);
+void*			msgQueueRead(msg_queue_t*, long timeout);
+void*			msgQueuePeek(msg_queue_t*, long timeout);
+void*			msgQueueFind(msg_queue_t*, const void*, size_t length);
+list_node_t*	msgQueueFirstNode(msg_queue_t*);
+list_node_t*	msgQueueLastNode(msg_queue_t*);
 #define			msgQueueNextNode(node)			listNextNode(node)
 #define			msgQueuePrevNode(node)			listPrevNode(node)
 #define			msgQueueNodeData(node)			listNodeData(node)
 
-DLLEXPORT long			DLLCALL msgQueueWriteLevel(msg_queue_t*);
-DLLEXPORT BOOL			DLLCALL msgQueueWrite(msg_queue_t*, const void*, size_t length);
+long			msgQueueWriteLevel(msg_queue_t*);
+BOOL			msgQueueWrite(msg_queue_t*, const void*, size_t length);
 
 #if defined(__cplusplus)
 }
