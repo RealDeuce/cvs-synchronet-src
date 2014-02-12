@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.33 2009/02/24 06:07:03 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.38 2014/02/09 07:48:48 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -20,9 +20,7 @@
 #endif
 
 #include "ciolib.h"
-#include "keys.h"
 #include "vidmodes.h"
-#include "allfonts.h"
 #include "bitmap_con.h"
 
 static char *screen=NULL;
@@ -73,6 +71,7 @@ static void blinker_thread(void *data)
 {
 	int count=0;
 
+	SetThreadName("Blinker");
 	while(1) {
 		do {
 			SLEEP(10);
@@ -298,7 +297,6 @@ int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 {
 	int	direction=1;
 	int	cy;
-	int	sy;
 	int	destoffset;
 	int	sourcepos;
 	int width=ex-x+1;
@@ -577,6 +575,17 @@ error_return:
 int bitmap_getfont(void)
 {
 	return(current_font);
+}
+
+void bitmap_setscaling(int new_value)
+{
+	if(new_value > 0)
+		vstat.scaling = new_value;
+}
+
+int bitmap_getscaling(void)
+{
+	return vstat.scaling;
 }
 
 /* Called from event thread only */
