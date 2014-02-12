@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.26 2012/03/07 03:10:50 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.27 2012/10/23 07:59:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,10 +99,10 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			}
 		}
 
-		if(tail!=NULL && (taillen=strlen(tail))>0)
+		if(tail!=NULL && (taillen=strlen((const char *)tail))>0)
 			taillen+=sizeof(xlat);	/* xlat string terminator */
 
-		if(body!=NULL && (bodylen=strlen(body))>0) {
+		if(body!=NULL && (bodylen=strlen((const char *)body))>0) {
 
 			/* Remove white-space from end of message text */
 			chklen=bodylen;
