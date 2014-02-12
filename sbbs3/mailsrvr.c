@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.566 2014/01/08 02:41:22 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.567 2014/01/08 10:37:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4811,7 +4811,7 @@ static void cleanup(int code)
 {
 	int					i;
 
-	if(protected_uint32_value(thread_count)) {
+	if(protected_uint32_value(thread_count) > 1) {
 		lprintf(LOG_DEBUG,"#### Waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
 		while(protected_uint32_value(thread_count) > 1) {
 			mswait(100);
@@ -4894,7 +4894,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.566 $", "%*s %s", revision);
+	sscanf("$Revision: 1.567 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5298,7 +5298,7 @@ void DLLCALL mail_server(void* arg)
 
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
-			if(protected_uint32_value(active_clients)==0 && protected_uint32_value(thread_count) <= 1) {
+			if(protected_uint32_value(thread_count) <= 1) {
 				if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
