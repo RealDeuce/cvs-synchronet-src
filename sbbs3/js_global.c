@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.336 2014/04/06 06:18:28 rswindell Exp $ */
+/* $Id: js_global.c,v 1.335 2013/05/19 00:29:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4186,10 +4186,6 @@ static JSClass js_global_class = {
 BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t* startup, JSObject**glob)
 {
 	global_private_t*	p;
-	JSRuntime*			rt;
-
-	if((rt=JS_GetRuntime(cx)) != NULL)
-		JS_SetRuntimePrivate(rt, cfg);
 
 	if((p = (global_private_t*)malloc(sizeof(global_private_t)))==NULL)
 		return(FALSE);
