@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.235 2014/04/03 05:17:37 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.234 2014/01/20 04:11:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -609,44 +609,36 @@ void notify_list(void)
  This function creates a netmail to addr showing a list of available areas (0),
  a list of connected areas (1), or a list of removed areas (2).
 ******************************************************************************/
-enum arealist_type {
-	 AREALIST_ALL			// %LIST
-	,AREALIST_CONNECTED		// %QUERY
-	,AREALIST_UNLINKED		// %UNLINKED
-};
-void netmail_arealist(enum arealist_type type, faddr_t addr, char* to)
+void netmail_arealist(int type, faddr_t addr, char* to)
 {
 	FILE *stream,*tmpf;
 	char str[256],title[128],match,*p,*tp;
 	int i,j,k,x,y;
 
-	if(type == AREALIST_ALL)
+	if(!type)
 		strcpy(title,"List of Available Areas");
-	else if(type == AREALIST_CONNECTED)
+	else if(type==1)
 		strcpy(title,"List of Connected Areas");
 	else
 		strcpy(title,"List of Unlinked Areas");
 
 	if((tmpf=tmpfile())==NULL) {
 		lprintf(LOG_ERR,"ERROR line %d couldn't open tmpfile",__LINE__);
-		return; 
-	}
+		return; }
 
-	if(type == AREALIST_CONNECTED || !(misc&ELIST_ONLY)) {
+	if(type==1 || !(misc&ELIST_ONLY)) {
 		for(i=0;i<cfg.areas;i++) {
-			if(type != AREALIST_ALL) {
+			if(type) {
 				for(j=0;j<cfg.area[i].uplinks;j++)
 					if(!memcmp(&addr,&cfg.area[i].uplink[j],sizeof(faddr_t)))
 						break;
-				if((type == AREALIST_CONNECTED && j<cfg.area[i].uplinks) ||
-					(type == AREALIST_UNLINKED && j==cfg.area[i].uplinks))
-						fprintf(tmpf,"%s\r\n",cfg.area[i].name); 
-			} else
-				fprintf(tmpf,"%s\r\n",cfg.area[i].name); 
-		} 
-	}
+				if((type==1 && j<cfg.area[i].uplinks) ||
+					(type==2 && j==cfg.area[i].uplinks))
+						fprintf(tmpf,"%s\r\n",cfg.area[i].name); }
+			else
+				fprintf(tmpf,"%s\r\n",cfg.area[i].name); } }
 
-	if(type == AREALIST_ALL) {
+	if(!type) {
 		i=matchnode(addr,0);
 		if(i<cfg.nodecfgs) {
 			for(j=0;j<cfg.listcfgs;j++) {
@@ -660,8 +652,7 @@ void netmail_arealist(enum arealist_type type, faddr_t addr, char* to)
 								lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s"
 									,errno,strerror(errno),__LINE__,cfg.listcfg[j].listpath);
 								match=1;
-								break; 
-							}
+								break; }
 							while(!feof(stream)) {
 								if(!fgets(str,sizeof(str),stream))
 									break;
@@ -677,19 +668,12 @@ void netmail_arealist(enum arealist_type type, faddr_t addr, char* to)
 										if(!stricmp(cfg.area[y].name,p))
 											break;
 									if(y==cfg.areas)
-										fprintf(tmpf,"%s\r\n",p); 
-								}
+										fprintf(tmpf,"%s\r\n",p); }
 								else
-									fprintf(tmpf,"%s\r\n",p); 
-							}
+									fprintf(tmpf,"%s\r\n",p); }
 							fclose(stream);
 							match=1;
-							break; 
-						} 
-				} 
-			} 
-		} 
-	}
+							break; } } } } }
 
 	if(!ftell(tmpf))
 		create_netmail(to,title,"None.",addr,FALSE);
@@ -697,7 +681,6 @@ void netmail_arealist(enum arealist_type type, faddr_t addr, char* to)
 		file_to_netmail(tmpf,title,addr,to);
 	fclose(tmpf);
 }
-
 /******************************************************************************
  Imitation of Borland's tempnam function because Watcom doesn't have it
 ******************************************************************************/
@@ -1196,17 +1179,17 @@ void command(char* instr, faddr_t addr, char* to)
 	}
 
 	if((p=strstr(instr,"LIST"))!=NULL) {
-		netmail_arealist(AREALIST_ALL,addr,to);
+		netmail_arealist(0,addr,to);
 		return; 
 	}
 
 	if((p=strstr(instr,"QUERY"))!=NULL) {
-		netmail_arealist(AREALIST_CONNECTED,addr,to);
+		netmail_arealist(1,addr,to);
 		return; 
 	}
 
 	if((p=strstr(instr,"UNLINKED"))!=NULL) {
-		netmail_arealist(AREALIST_UNLINKED,addr,to);
+		netmail_arealist(2,addr,to);
 		return; 
 	}
 
@@ -4122,7 +4105,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.235 $", "%*s %s", revision);
+	sscanf("$Revision: 1.234 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
