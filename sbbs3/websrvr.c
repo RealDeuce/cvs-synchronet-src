@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.571 2014/01/08 02:41:22 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.572 2014/01/26 03:13:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -428,8 +428,8 @@ time_gm(struct tm *tm)
         /* save value in case *tm is overwritten by gmtime() */
         sec = tm->tm_sec;
 
-        tm2 = gmtime(&t);
-        if ((t2 = sub_mkgmt(tm2)) == (time_t) -1)
+        tm2 = gmtime(&t);	/* why not use gmtime_r instead? */
+        if (tm2 == NULL || (t2 = sub_mkgmt(tm2)) == (time_t) -1)
                 return (time_t) -1;
 
         if (t2 < t || tm2->tm_sec != sec) {
@@ -5335,7 +5335,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.571 $", "%*s %s", revision);
+	sscanf("$Revision: 1.572 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
