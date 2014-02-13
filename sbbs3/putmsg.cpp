@@ -2,13 +2,13 @@
 
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.25 2011/11/03 00:56:03 sbbs Exp $ */
+/* $Id: putmsg.cpp,v 1.31 2013/07/10 04:30:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,6 +51,7 @@
 char sbbs_t::putmsg(const char *buf, long mode)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
+	char	ret;
 	char*	str=(char*)buf;
 	uchar	exatr=0;
 	int 	orgcon=console,i;
@@ -67,10 +68,12 @@ char sbbs_t::putmsg(const char *buf, long mode)
 		putcom("\x02\x02");
 	if(mode&P_WORDWRAP) {
 		char *wrapped;
-		if((wrapped=::wordwrap((char*)buf, cols-4, cols-1, /* handle_quotes */TRUE)) == NULL)
+		if((wrapped=::wordwrap((char*)buf, cols, 79, /* handle_quotes: */TRUE)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
-		else
+		else {
+			truncsp_lines(wrapped);
 			str=wrapped;
+		}
 	}
 
 	while(str[l] && (mode&P_NOABORT || !msgabort()) && online) {
@@ -78,7 +81,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
 				l+=2;
 				i=0;
-				while(i<(int)sizeof(tmp2)-1 && isprint(str[l]) && str[l]!='\\' && str[l]!='/')
+				while(i<(int)sizeof(tmp2)-1 && isprint((unsigned char)str[l]) && str[l]!='\\' && str[l]!='/')
 					tmp2[i++]=str[l++];
 				tmp2[i]=0;
 				sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
@@ -98,14 +101,14 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			l++; 
 		}
 		else if(cfg.sys_misc&SM_PCBOARD && str[l]=='@' && str[l+1]=='X'
-			&& isxdigit(str[l+2]) && isxdigit(str[l+3])) {
+			&& isxdigit((unsigned char)str[l+2]) && isxdigit((unsigned char)str[l+3])) {
 			sprintf(tmp2,"%.2s",str+l+2);
 			attr(ahtoul(tmp2));
 			exatr=1;
 			l+=4; 
 		}
 		else if(cfg.sys_misc&SM_WILDCAT && str[l]=='@' && str[l+3]=='@'
-			&& isxdigit(str[l+1]) && isxdigit(str[l+2])) {
+			&& isxdigit((unsigned char)str[l+1]) && isxdigit((unsigned char)str[l+2])) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			attr(ahtoul(tmp2));
 			// exatr=1;
@@ -126,7 +129,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			exatr=1;
 			l+=3;	/* Skip |xx */
 		}	
-		else if(cfg.sys_misc&SM_CELERITY && str[l]=='|' && isalpha(str[l+1])
+		else if(cfg.sys_misc&SM_CELERITY && str[l]=='|' && isalpha((unsigned char)str[l+1])
 			&& !(useron.misc&(RIP|WIP))) {
 			switch(str[l+1]) {
 				case 'k':
@@ -290,12 +293,13 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			pause();
 	}
 
+	ret=str[l];
 	if(str!=buf)	/* malloc'd copy of buffer */
 		free(str);
 
 	/* Restore original settings of Forced Pause On/Off */
 	sys_status&=~(SS_PAUSEOFF|SS_PAUSEON);
 	sys_status|=(sys_status_sav&(SS_PAUSEOFF|SS_PAUSEON));
-	return(str[l]);
+	return(ret);
 }
 
