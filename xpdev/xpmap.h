@@ -2,7 +2,7 @@
 
 /* mmap() style cross-platform development wrappers */
 
-/* $Id: xpmap.h,v 1.3 2012/10/21 00:11:41 deuce Exp $ */
+/* $Id: xpmap.h,v 1.4 2014/02/10 09:20:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #define _XPMAP_H
 
 #include "gen_defs.h"
+#include "wrapdll.h"
 
 enum xpmap_type {
 	XPMAP_READ,
@@ -70,7 +71,7 @@ struct xpmapping {
 
 #endif
 
-struct xpmapping *xpmap(const char *filename, enum xpmap_type type);
-void xpunmap(struct xpmapping *map);
+DLLEXPORT struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type);
+DLLEXPORT void DLLCALL xpunmap(struct xpmapping *map);
 
 #endif
