@@ -1,4 +1,4 @@
-/* $Id: qwknodes.c,v 1.20 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: qwknodes.c,v 1.21 2012/10/24 19:03:13 deuce Exp $ */
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
@@ -43,9 +43,9 @@ unsigned _stklen=10000;
 smb_t		smb;
 scfg_t		cfg;
 
-void stripctrla(uchar *str)
+void stripctrla(char *str)
 {
-	uchar out[256];
+	char out[256];
 	int i,j;
 
 	for(i=j=0;str[i] && j<sizeof(out)-1;i++) {
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	char		*ctrl_dir;
 	char		revision[16];
 
-	sscanf("$Revision: 1.20 $", "%*s %s", revision);
+	sscanf("$Revision: 1.21 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List Generator v%s-%s\n"
 		,revision, PLATFORM_DESC);
