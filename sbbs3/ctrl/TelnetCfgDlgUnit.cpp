@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.22 2015/08/20 05:20:37 deuce Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.19 2006/12/29 02:51:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -55,37 +55,37 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
 {
     char str[128];
 
-    if(MainForm->bbs_startup.outgoing4.s_addr==0)
+    if(MainForm->bbs_startup.telnet_interface==0)
         TelnetInterfaceEdit->Text="<ANY>";
     else {
         sprintf(str,"%d.%d.%d.%d"
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>24)&0xff
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>16)&0xff
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>8)&0xff
-            ,MainForm->bbs_startup.outgoing4.s_addr&0xff
+            ,(MainForm->bbs_startup.telnet_interface>>24)&0xff
+            ,(MainForm->bbs_startup.telnet_interface>>16)&0xff
+            ,(MainForm->bbs_startup.telnet_interface>>8)&0xff
+            ,MainForm->bbs_startup.telnet_interface&0xff
         );
         TelnetInterfaceEdit->Text=AnsiString(str);
     }
-    if(MainForm->bbs_startup.outgoing4.s_addr==0)
+    if(MainForm->bbs_startup.rlogin_interface==0)
         RLoginInterfaceEdit->Text="<ANY>";
     else {
         sprintf(str,"%d.%d.%d.%d"
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>24)&0xff
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>16)&0xff
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>8)&0xff
-            ,MainForm->bbs_startup.outgoing4.s_addr&0xff
+            ,(MainForm->bbs_startup.rlogin_interface>>24)&0xff
+            ,(MainForm->bbs_startup.rlogin_interface>>16)&0xff
+            ,(MainForm->bbs_startup.rlogin_interface>>8)&0xff
+            ,MainForm->bbs_startup.rlogin_interface&0xff
         );
         RLoginInterfaceEdit->Text=AnsiString(str);
     }
 
-    if(MainForm->bbs_startup.outgoing4.s_addr==0)
+    if(MainForm->bbs_startup.ssh_interface==0)
         SshInterfaceEdit->Text="<ANY>";
     else {
         sprintf(str,"%d.%d.%d.%d"
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>24)&0xff
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>16)&0xff
-            ,(MainForm->bbs_startup.outgoing4.s_addr>>8)&0xff
-            ,MainForm->bbs_startup.outgoing4.s_addr&0xff
+            ,(MainForm->bbs_startup.ssh_interface>>24)&0xff
+            ,(MainForm->bbs_startup.ssh_interface>>16)&0xff
+            ,(MainForm->bbs_startup.ssh_interface>>8)&0xff
+            ,MainForm->bbs_startup.ssh_interface&0xff
         );
         SshInterfaceEdit->Text=AnsiString(str);
     }
@@ -108,11 +108,11 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
         =!(MainForm->bbs_startup.options&BBS_OPT_NO_HOST_LOOKUP);
     IdentityCheckBox->Checked
         =MainForm->bbs_startup.options&BBS_OPT_GET_IDENT;
-    DosSupportCheckBox->Checked
-        =!(MainForm->bbs_startup.options&BBS_OPT_NO_DOS);
 
     RLoginEnabledCheckBox->Checked
         =MainForm->bbs_startup.options&BBS_OPT_ALLOW_RLOGIN;
+    RLogin2ndNameCheckBox->Checked
+        =MainForm->bbs_startup.options&BBS_OPT_USE_2ND_RLOGIN;
     SshEnabledCheckBox->Checked
         =MainForm->bbs_startup.options&BBS_OPT_ALLOW_SSH;
 
@@ -148,9 +148,9 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
         while(*p && *p!='.') p++;
         if(*p=='.') p++;
         addr|=atoi(p);
-        MainForm->bbs_startup.outgoing4.s_addr=addr;
+        MainForm->bbs_startup.telnet_interface=addr;
     } else
-        MainForm->bbs_startup.outgoing4.s_addr=0;
+        MainForm->bbs_startup.telnet_interface=0;
 
     SAFECOPY(str,RLoginInterfaceEdit->Text.c_str());
     p=str;
@@ -166,9 +166,9 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
         while(*p && *p!='.') p++;
         if(*p=='.') p++;
         addr|=atoi(p);
-        MainForm->bbs_startup.outgoing4.s_addr=addr;
+        MainForm->bbs_startup.rlogin_interface=addr;
     } else
-        MainForm->bbs_startup.outgoing4.s_addr=0;
+        MainForm->bbs_startup.rlogin_interface=0;
 
     SAFECOPY(str,SshInterfaceEdit->Text.c_str());
     p=str;
@@ -184,9 +184,9 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
         while(*p && *p!='.') p++;
         if(*p=='.') p++;
         addr|=atoi(p);
-        MainForm->bbs_startup.outgoing4.s_addr=addr;
+        MainForm->bbs_startup.ssh_interface=addr;
     } else
-        MainForm->bbs_startup.outgoing4.s_addr=0;
+        MainForm->bbs_startup.ssh_interface=0;
 
     MainForm->bbs_startup.telnet_port=TelnetPortEdit->Text.ToIntDef(23);
     MainForm->bbs_startup.rlogin_port=RLoginPortEdit->Text.ToIntDef(513);
@@ -220,10 +220,6 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
         MainForm->bbs_startup.options&=~BBS_OPT_NO_JAVASCRIPT;
     else
         MainForm->bbs_startup.options|=BBS_OPT_NO_JAVASCRIPT;
-    if(DosSupportCheckBox->Checked==true)
-        MainForm->bbs_startup.options&=~BBS_OPT_NO_DOS;
-    else
-        MainForm->bbs_startup.options|=BBS_OPT_NO_DOS;
 
     if(AutoLogonCheckBox->Checked==true)
     	MainForm->bbs_startup.options|=BBS_OPT_AUTO_LOGON;
@@ -246,6 +242,10 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->bbs_startup.options|=BBS_OPT_ALLOW_RLOGIN;
     else
 	    MainForm->bbs_startup.options&=~BBS_OPT_ALLOW_RLOGIN;
+	if(RLogin2ndNameCheckBox->Checked==true)
+    	MainForm->bbs_startup.options|=BBS_OPT_USE_2ND_RLOGIN;
+    else
+	    MainForm->bbs_startup.options&=~BBS_OPT_USE_2ND_RLOGIN;
 
 	if(SshEnabledCheckBox->Checked==true)
     	MainForm->bbs_startup.options|=BBS_OPT_ALLOW_SSH;
@@ -281,6 +281,7 @@ void __fastcall TTelnetCfgDlg::RLoginEnabledCheckBoxClick(TObject *Sender)
     RLoginPortEdit->Enabled = RLoginEnabledCheckBox->Checked;
     RLoginInterfaceEdit->Enabled = RLoginEnabledCheckBox->Checked;
     RLoginIPallowButton->Enabled = RLoginEnabledCheckBox->Checked;
+    RLogin2ndNameCheckBox->Enabled = RLoginEnabledCheckBox->Checked;
     RLoginPortLabel->Enabled = RLoginEnabledCheckBox->Checked;
     RLoginInterfaceLabel->Enabled = RLoginEnabledCheckBox->Checked;
 }
