@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.40 2015/08/27 00:29:26 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.37 2013/09/18 16:39:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,8 +68,7 @@ void clearptrs(int subnum)
 {
 	char str[256];
 	ushort idx,scancfg;
-	int file, i;
-	size_t gi;
+	int file,i,gi;
 	long l=0L;
 	glob_t g;
 
@@ -86,7 +85,7 @@ void clearptrs(int subnum)
             }
             while(filelength(file)<(long)(cfg.sub[subnum]->ptridx)*10) {
                 lseek(file,0L,SEEK_END);
-                idx=(ushort)(tell(file)/10);
+                idx=tell(file)/10;
                 for(i=0;i<cfg.total_subs;i++)
                     if(cfg.sub[i]->ptridx==idx)
                         break;
@@ -128,7 +127,6 @@ void msgs_cfg()
 	char	tmp_code[32];
 	int		j,k,q,s;
 	int		i,file,ptridx,n;
-	unsigned u;
 	unsigned total_subs;
 	long	ported;
 	sub_t	tmpsub;
@@ -146,23 +144,24 @@ while(1) {
 		j|=WIN_INS|WIN_INSACT|WIN_XTR;
 	if(savgrp.sname[0])
 		j|=WIN_PUT;
-	uifc.helpbuf=
-		"`Message Groups:`\n"
-		"\n"
-		"This is a listing of message groups for your BBS. Message groups are\n"
-		"used to logically separate your message `sub-boards` into groups. Every\n"
-		"sub-board belongs to a message group. You must have at least one message\n"
-		"group and one sub-board configured.\n"
-		"\n"
-		"One popular use for message groups is to separate local sub-boards and\n"
-		"networked sub-boards. One might have a `Local` message group that contains\n"
-		"non-networked sub-boards of various topics and also have a `FidoNet`\n"
-		"message group that contains sub-boards that are echoed across FidoNet.\n"
-		"Some sysops separate sub-boards into more specific areas such as `Main`,\n"
-		"`Technical`, or `Adult`. If you have many sub-boards that have a common\n"
-		"subject denominator, you may want to have a separate message group for\n"
-		"those sub-boards for a more organized message structure.\n"
-	;
+	SETHELP(WHERE);
+/*
+`Message Groups:`
+
+This is a listing of message groups for your BBS. Message groups are
+used to logically separate your message `sub-boards` into groups. Every
+sub-board belongs to a message group. You must have at least one message
+group and one sub-board configured.
+
+One popular use for message groups is to separate local sub-boards and
+networked sub-boards. One might have a `Local` message group that contains
+non-networked sub-boards of various topics and also have a `FidoNet`
+message group that contains sub-boards that are echoed across FidoNet.
+Some sysops separate sub-boards into more specific areas such as `Main`,
+`Technical`, or `Adult`. If you have many sub-boards that have a common
+subject denominator, you may want to have a separate message group for
+those sub-boards for a more organized message structure.
+*/
 	i=uifc.list(j,0,0,45,&msgs_dflt,&bar,"Message Groups",opt);
 	if(i==-1) {
 		j=save_changes(WIN_MID);
@@ -176,22 +175,24 @@ while(1) {
     }
 	if((i&MSK_ON)==MSK_INS) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`Group Long Name:`\n"
-			"\n"
-			"This is a description of the message group which is displayed when a\n"
-			"user of the system uses the `/*` command from the main menu.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Group Long Name:`
+
+This is a description of the message group which is displayed when a
+user of the system uses the `/*` command from the main menu.
+*/
 		strcpy(str,"Main");
 		if(uifc.input(WIN_MID|WIN_SAV,0,0,"Group Long Name",str,LEN_GLNAME
 			,K_EDIT)<1)
 			continue;
-		uifc.helpbuf=
-			"`Group Short Name:`\n"
-			"\n"
-			"This is a short description of the message group which is used for the\n"
-			"main menu and reading message prompts.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Group Short Name:`
+
+This is a short description of the message group which is used for the
+main menu and reading message prompts.
+*/
 		sprintf(str2,"%.*s",LEN_GSNAME,str);
 		if(uifc.input(WIN_MID,0,0,"Group Short Name",str2,LEN_GSNAME,K_EDIT)<1)
 			continue;
@@ -223,12 +224,13 @@ while(1) {
 	}
 	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		uifc.helpbuf=
-			"`Delete All Data in Group:`\n"
-			"\n"
-			"If you wish to delete the messages in all the sub-boards in this group,\n"
-			"select `Yes`.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Delete All Data in Group:`
+
+If you wish to delete the messages in all the sub-boards in this group,
+select `Yes`.
+*/
 		j=1;
 		strcpy(opt[0],"Yes");
 		strcpy(opt[1],"No");
@@ -303,48 +305,52 @@ while(1) {
 		strcpy(opt[j++],"Message Sub-boards...");
 		opt[j][0]=0;
 		sprintf(str,"%s Group",cfg.grp[i]->sname);
-		uifc.helpbuf=
-			"`Message Group Configuration:`\n"
-			"\n"
-			"This menu allows you to configure the security requirements for access\n"
-			"to this message group. You can also add, delete, and configure the\n"
-			"sub-boards of this group by selecting the `Messages Sub-boards...` option.\n"
-		;
+		SETHELP(WHERE);
+/*
+`Message Group Configuration:`
+
+This menu allows you to configure the security requirements for access
+to this message group. You can also add, delete, and configure the
+sub-boards of this group by selecting the `Messages Sub-boards...` option.
+*/
 		switch(uifc.list(WIN_ACT,6,4,60,&dflt,0,str,opt)) {
 			case -1:
 				done=1;
 				break;
 			case 0:
-				uifc.helpbuf=
-					"`Group Long Name:`\n"
-					"\n"
-					"This is a description of the message group which is displayed when a\n"
-					"user of the system uses the `/*` command from the main menu.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Group Long Name:`
+
+This is a description of the message group which is displayed when a
+user of the system uses the `/*` command from the main menu.
+*/
 				strcpy(str,cfg.grp[i]->lname);	/* save incase setting to null */
 				if(!uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Listings"
 					,cfg.grp[i]->lname,LEN_GLNAME,K_EDIT))
 					strcpy(cfg.grp[i]->lname,str);
 				break;
 			case 1:
-				uifc.helpbuf=
-					"`Group Short Name:`\n"
-					"\n"
-					"This is a short description of the message group which is used for\n"
-					"main menu and reading messages prompts.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Group Short Name:`
+
+This is a short description of the message group which is used for
+main menu and reading messages prompts.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Prompts"
 					,cfg.grp[i]->sname,LEN_GSNAME,K_EDIT);
 				break;
 			case 2:
-				uifc.helpbuf=
-					"`Internal Code Prefix:`\n"
-					"\n"
-					"This is an `optional` code prefix used to help generate unique internal\n"
-					"codes for the sub-boards in this message group. If this option\n"
-					"is used, sub-board internal codes will be constructed from this prefix\n"
-					"and the specified code suffix for each sub-board.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Internal Code Prefix:`
+
+This is an `optional` code prefix used to help generate unique internal
+codes for the sub-boards in this message group. If this option
+is used, sub-board internal codes will be constructed from this prefix
+and the specified code suffix for each sub-board.
+*/
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code Prefix"
 					,cfg.grp[i]->code_prefix,LEN_CODE,K_EDIT|K_UPPER);
 				break;
@@ -357,18 +363,19 @@ while(1) {
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
-				uifc.helpbuf=
-					"`Clone Sub-board Options:`\n"
-					"\n"
-					"If you want to clone the options of the first sub-board of this group\n"
-					"into all sub-boards of this group, select `Yes`.\n"
-					"\n"
-					"The options cloned are posting requirements, reading requirements,\n"
-					"operator requirments, moderated user requirments, toggle options,\n"
-					"network options (including EchoMail origin line, EchoMail address,\n"
-					"and QWK Network tagline), maximum number of messages, maximum number\n"
-					"of CRCs, maximum age of messages, storage method, and data directory.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Clone Sub-board Options:`
+
+If you want to clone the options of the first sub-board of this group
+into all sub-boards of this group, select `Yes`.
+
+The options cloned are posting requirements, reading requirements,
+operator requirments, moderated user requirments, toggle options,
+network options (including EchoMail origin line, EchoMail address,
+and QWK Network tagline), maximum number of messages, maximum number
+of CRCs, maximum age of messages, storage method, and data directory.
+*/
 				j=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0
 					,"Clone Options of First Sub-board into All of Group",opt);
 				if(j==0) {
@@ -406,12 +413,13 @@ while(1) {
 				strcpy(opt[k++],"AREAS.BBS   (SBBSecho)");
 				strcpy(opt[k++],"FIDONET.NA  (Fido)");
 				opt[k][0]=0;
-				uifc.helpbuf=
-					"`Export Area File Format:`\n"
-					"\n"
-					"This menu allows you to choose the format of the area file you wish to\n"
-					"export the current message group into.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Export Area File Format:`
+
+This menu allows you to choose the format of the area file you wish to
+export the current message group into.
+*/
 				k=0;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Export Area File Format",opt);
@@ -527,12 +535,13 @@ while(1) {
 				strcpy(opt[k++],"AREAS.BBS   (SBBSecho)");
 				strcpy(opt[k++],"FIDONET.NA  (Fido)");
 				opt[k][0]=0;
-				uifc.helpbuf=
-					"`Import Area File Format:`\n"
-					"\n"
-					"This menu allows you to choose the format of the area file you wish to\n"
-					"import into the current message group.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Import Area File Format:`
+
+This menu allows you to choose the format of the area file you wish to
+import into the current message group.
+*/
 				k=0;
 				k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Import Area File Format",opt);
@@ -569,7 +578,7 @@ while(1) {
 						memset(&tmpsub,0,sizeof(sub_t));
 						tmpsub.misc|=
 							(SUB_FIDO|SUB_NAME|SUB_TOUSER|SUB_QUOTE|SUB_HYPER);
-						if(k==1) {		/* AREAS.BBS Generic/.MSG */
+						if(k==1) {		/* AREAS.BBS Generic/*.MSG */
 							p=str;
 							SKIP_WHITESPACE(p);			/* Find path	*/
 							FIND_WHITESPACE(p);			/* Skip path	*/
@@ -688,10 +697,10 @@ while(1) {
 						|| tmpsub.qwkname[0]==0)
 						continue;
 
-					for(u=0;u<total_subs;u++) {
-						if(cfg.sub[u]->grp!=i)
+					for(j=0;j<total_subs;j++) {
+						if(cfg.sub[j]->grp!=i)
 							continue;
-						if(!stricmp(cfg.sub[u]->code_suffix,tmpsub.code_suffix))
+						if(!stricmp(cfg.sub[j]->code_suffix,tmpsub.code_suffix))
 							break; 
 					}
 					if(j==total_subs) {
@@ -729,10 +738,10 @@ while(1) {
 					}
 					if(j==cfg.total_subs) {	/* adding new sub-board */
 						for(;ptridx<USHRT_MAX;ptridx++) {
-							for(u=0;u<total_subs;u++)
-								if(cfg.sub[u]->ptridx==ptridx)
+							for(n=0;n<total_subs;n++)
+								if(cfg.sub[n]->ptridx==ptridx)
 									break;
-							if(u==total_subs)
+							if(n==total_subs)
 								break; 
 						}
 						cfg.sub[j]->ptridx=ptridx;	/* use new ptridx */
@@ -818,12 +827,13 @@ void msg_opts()
 				? "Sysops Only":"No");
 		strcpy(opt[i++],"Extra Attribute Codes...");
 		opt[i][0]=0;
-		uifc.helpbuf=
-			"`Message Options:`\n"
-			"\n"
-			"This is a menu of system-wide message related options. Messages include\n"
-			"E-mail and public posts (on sub-boards).\n"
-		;
+		SETHELP(WHERE);
+/*
+`Message Options:`
+
+This is a menu of system-wide message related options. Messages include
+E-mail and public posts (on sub-boards).
+*/
 
 		switch(uifc.list(WIN_ORG|WIN_ACT|WIN_MID|WIN_CHE,0,0,72,&msg_dflt,0
 			,"Message Options",opt)) {
@@ -840,18 +850,19 @@ void msg_opts()
 				return;
 			case 0:
 				strcpy(str,cfg.sys_id);
-				uifc.helpbuf=
-					"`BBS ID for QWK Packets:`\n"
-					"\n"
-					"This is a short system ID for your BBS that is used for QWK packets.\n"
-					"It should be an abbreviation of your BBS name or other related string.\n"
-					"This ID will be used for your outgoing and incoming QWK packets. If\n"
-					"you plan on networking via QWK packets with another Synchronet BBS,\n"
-					"this ID should not begin with a number. The maximum length of the ID\n"
-					"is eight characters and cannot contain spaces or other invalid DOS\n"
-					"filename characters. In a QWK packet network, each system must have\n"
-					"a unique QWK system ID.\n"
-				;
+				SETHELP(WHERE);
+/*
+`BBS ID for QWK Packets:`
+
+This is a short system ID for your BBS that is used for QWK packets.
+It should be an abbreviation of your BBS name or other related string.
+This ID will be used for your outgoing and incoming QWK packets. If
+you plan on networking via QWK packets with another Synchronet BBS,
+this ID should not begin with a number. The maximum length of the ID
+is eight characters and cannot contain spaces or other invalid DOS
+filename characters. In a QWK packet network, each system must have
+a unique QWK system ID.
+*/
 
 				uifc.input(WIN_MID|WIN_SAV,0,0,"BBS ID for QWK Packets"
 					,str,LEN_QWKID,K_EDIT|K_UPPER);
@@ -865,11 +876,12 @@ void msg_opts()
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
 				i=0;
-				uifc.helpbuf=
-					"`United States Time Zone:`\n"
-					"\n"
-					"If your local time zone is the United States, select `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`United States Time Zone:`
+
+If your local time zone is the United States, select `Yes`.
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"United States Time Zone",opt);
@@ -1061,13 +1073,14 @@ void msg_opts()
 						}
                 break;
 			case 2:
-				uifc.helpbuf=
-					"`Maximum Message Base Retry Time:`\n"
-					"\n"
-					"This is the maximum number of seconds to allow while attempting to open\n"
-					"or lock a message base (a value in the range of 10 to 45 seconds should\n"
-					"be fine).\n"
-				;
+				SETHELP(WHERE);
+/*
+`Maximum Message Base Retry Time:`
+
+This is the maximum number of seconds to allow while attempting to open
+or lock a message base (a value in the range of 10 to 45 seconds should
+be fine).
+*/
 				ultoa(cfg.smb_retry_time,str,10);
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"Maximum Message Base Retry Time (in seconds)"
@@ -1075,13 +1088,14 @@ void msg_opts()
 				cfg.smb_retry_time=atoi(str);
 				break;
 			case 3:
-				uifc.helpbuf=
-					"`Maximum Messages Per QWK Packet:`\n"
-					"\n"
-					"This is the maximum number of messages (excluding E-mail), that a user\n"
-					"can have in one QWK packet for download. This limit does not effect\n"
-					"QWK network nodes (`Q` restriction). If set to `0`, no limit is imposed.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Maximum Messages Per QWK Packet:`
+
+This is the maximum number of messages (excluding E-mail), that a user
+can have in one QWK packet for download. This limit does not effect
+QWK network nodes (`Q` restriction). If set to `0`, no limit is imposed.
+*/
 
 				ultoa(cfg.max_qwkmsgs,str,10);
 				uifc.input(WIN_MID|WIN_SAV,0,0
@@ -1090,13 +1104,14 @@ void msg_opts()
 				cfg.max_qwkmsgs=atol(str);
                 break;
 			case 4:
-				uifc.helpbuf=
-					"`Maximum Age of Messages Imported From QWK Packets:`\n"
-					"\n"
-					"This is the maximum age of messages (in days), allowed for messages in\n"
-					"QWK packets. Messages with an age older than this value will not be\n"
-					"imported. If set to `0`, no age limit is imposed.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Maximum Age of Messages Imported From QWK Packets:`
+
+This is the maximum age of messages (in days), allowed for messages in
+QWK packets. Messages with an age older than this value will not be
+imported. If set to `0`, no age limit is imposed.
+*/
 
 				itoa(cfg.max_qwkmsgage,str,10);
 				uifc.input(WIN_MID|WIN_SAV,0,0
@@ -1105,27 +1120,29 @@ void msg_opts()
 				cfg.max_qwkmsgage=atoi(str);
                 break;
 			case 5:
-				uifc.helpbuf=
-					"`Pre-pack QWK Requirements:`\n"
-					"\n"
-					"ALL user accounts on the BBS meeting this requirmenet will have a QWK\n"
-					"packet automatically created for them every day after midnight\n"
-					"(during the internal daily event).\n"
-					"\n"
-					"This is mainly intended for QWK network nodes that wish to save connect\n"
-					"time by having their packets pre-packed. If a large number of users meet\n"
-					"this requirement, it can take up a large amount of disk space on your\n"
-					"system (in the `DATA\\FILE` directory).\n"
-				;
+				SETHELP(WHERE);
+/*
+`Pre-pack QWK Requirements:`
+
+ALL user accounts on the BBS meeting this requirmenet will have a QWK
+packet automatically created for them every day after midnight
+(during the internal daily event).
+
+This is mainly intended for QWK network nodes that wish to save connect
+time by having their packets pre-packed. If a large number of users meet
+this requirement, it can take up a large amount of disk space on your
+system (in the `DATA\FILE` directory).
+*/
 				getar("Pre-pack QWK (Use with caution!)",cfg.preqwk_arstr);
 				break;
 			case 6:
 				sprintf(str,"%u",cfg.mail_maxage);
-                uifc.helpbuf=
-	                "`Maximum Age of Mail:`\n"
-	                "\n"
-	                "This value is the maximum number of days that mail will be kept.\n"
-                ;
+                SETHELP(WHERE);
+/*
+`Maximum Age of Mail:`
+
+This value is the maximum number of days that mail will be kept.
+*/
                 uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Age of Mail "
                     "(in days)",str,5,K_EDIT|K_NUMBER);
                 cfg.mail_maxage=atoi(str);
@@ -1135,18 +1152,19 @@ void msg_opts()
 				strcpy(opt[1],"Immediately");
 				opt[2][0]=0;
 				i=cfg.sys_misc&SM_DELEMAIL ? 0:1;
-				uifc.helpbuf=
-					"`Purge Deleted E-mail:`\n"
-					"\n"
-					"If you wish to have deleted e-mail physically (and permanently) removed\n"
-					"from your e-mail database immediately after a users exits the reading\n"
-					"e-mail prompt, set this option to `Immediately`.\n"
-					"\n"
-					"For the best system performance and to avoid delays when deleting e-mail\n"
-					"from a large e-mail database, set this option to `Daily` (the default).\n"
-					"Your system maintenance will automatically purge deleted e-mail once a\n"
-					"day.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Purge Deleted E-mail:`
+
+If you wish to have deleted e-mail physically (and permanently) removed
+from your e-mail database immediately after a users exits the reading
+e-mail prompt, set this option to `Immediately`.
+
+For the best system performance and to avoid delays when deleting e-mail
+from a large e-mail database, set this option to `Daily` (the default).
+Your system maintenance will automatically purge deleted e-mail once a
+day.
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"Purge Deleted E-mail",opt);
@@ -1161,13 +1179,14 @@ void msg_opts()
                 break;
 			case 8:
 				sprintf(str,"%"PRIu32,cfg.mail_maxcrcs);
-                uifc.helpbuf=
-	                "`Maximum Number of Mail CRCs:`\n"
-	                "\n"
-	                "This value is the maximum number of CRCs that will be kept for duplicate\n"
-	                "mail checking. Once this maximum number of CRCs is reached, the oldest\n"
-	                "CRCs will be automatically purged.\n"
-                ;
+                SETHELP(WHERE);
+/*
+`Maximum Number of Mail CRCs:`
+
+This value is the maximum number of CRCs that will be kept for duplicate
+mail checking. Once this maximum number of CRCs is reached, the oldest
+CRCs will be automatically purged.
+*/
                 uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Number of Mail "
                     "CRCs",str,5,K_EDIT|K_NUMBER);
                 cfg.mail_maxcrcs=atol(str);
@@ -1177,12 +1196,13 @@ void msg_opts()
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
 				i=cfg.sys_misc&SM_ANON_EM ? 0:1;
-				uifc.helpbuf=
-					"`Allow Anonymous E-mail:`\n"
-					"\n"
-					"If you want users with the `A` exemption to be able to send E-mail\n"
-					"anonymously, set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Allow Anonymous E-mail:`
+
+If you want users with the `A` exemption to be able to send E-mail
+anonymously, set this option to `Yes`.
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"Allow Anonymous E-mail",opt);
@@ -1200,12 +1220,13 @@ void msg_opts()
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
 				i=cfg.sys_misc&SM_QUOTE_EM ? 0:1;
-				uifc.helpbuf=
-					"`Allow Quoting in E-mail:`\n"
-					"\n"
-					"If you want your users to be allowed to use message quoting when\n"
-					"responding in E-mail, set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Allow Quoting in E-mail:`
+
+If you want your users to be allowed to use message quoting when
+responding in E-mail, set this option to `Yes`.
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"Allow Quoting in E-mail",opt);
@@ -1223,12 +1244,13 @@ void msg_opts()
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
 				i=cfg.sys_misc&SM_FILE_EM ? 0:1;
-				uifc.helpbuf=
-					"`Allow File Attachment Uploads in E-mail:`\n"
-					"\n"
-					"If you want your users to be allowed to attach an uploaded file to\n"
-					"an E-mail message, set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Allow File Attachment Uploads in E-mail:`
+
+If you want your users to be allowed to attach an uploaded file to
+an E-mail message, set this option to `Yes`.
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"Allow File Attachment Uploads in E-mail",opt);
@@ -1246,13 +1268,14 @@ void msg_opts()
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
 				i=cfg.sys_misc&SM_FWDTONET ? 0:1;
-				uifc.helpbuf=
-					"`Allow Users to Have Their E-mail Forwarded to NetMail:`\n"
-					"\n"
-					"If you want your users to be able to have any e-mail sent to them\n"
-					"optionally (at the sender's discretion) forwarded to a NetMail address,\n"
-					"set this option to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Allow Users to Have Their E-mail Forwarded to NetMail:`
+
+If you want your users to be able to have any e-mail sent to them
+optionally (at the sender's discretion) forwarded to a NetMail address,
+set this option to `Yes`.
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"Allow Forwarding of E-mail to NetMail",opt);
@@ -1270,12 +1293,13 @@ void msg_opts()
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
 				i=cfg.sys_misc&SM_DELREADM ? 0:1;
-				uifc.helpbuf=
-					"`Kill Read E-mail Automatically:`\n"
-					"\n"
-					"If this option is set to `Yes`, e-mail that has been read will be\n"
-					"automatically deleted when message base maintenance is run.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Kill Read E-mail Automatically:`
+
+If this option is set to `Yes`, e-mail that has been read will be
+automatically deleted when message base maintenance is run.
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"Kill Read E-mail Automatically",opt);
@@ -1293,12 +1317,13 @@ void msg_opts()
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
 				i=cfg.msg_misc&MM_REALNAME ? 0:1;
-				uifc.helpbuf=
-					"`Receive E-mail by Real Name:`\n"
-					"\n"
-					"If this option is set to ~Yes~, e-mail messages may be received when\n"
-					"addressed to a user's real name (rather than their alias).\n"
-				;
+				SETHELP(WHERE);
+/*
+`Receive E-mail by Real Name:`
+
+If this option is set to ~Yes~, e-mail messages may be received when
+addressed to a user's real name (rather than their alias).
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"Receive E-mail by Real Name",opt);
@@ -1316,12 +1341,13 @@ void msg_opts()
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
-				uifc.helpbuf=
-					"`Include User Signatures in E-mail:`\n"
-					"\n"
-					"If you wish to have user signatures automatically appended to e-mail\n"
-					"messages, set this option to ~Yes~.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Include User Signatures in E-mail:`
+
+If you wish to have user signatures automatically appended to e-mail
+messages, set this option to ~Yes~.
+*/
 				n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
 					,"Include User Signatures in E-mail",opt);
 				if(n==-1)
@@ -1342,20 +1368,21 @@ void msg_opts()
 				strcpy(opt[2],"Sysops Only");
 				opt[3][0]=0;
 				i=1;
-				uifc.helpbuf=
-					"`Users Can View Deleted Messages:`\n"
-					"\n"
-					"If this option is set to `Yes`, then users will be able to view messages\n"
-					"they've sent and deleted or messages sent to them and they've deleted\n"
-					"with the option of un-deleting the message before the message is\n"
-					"physically purged from the e-mail database.\n"
-					"\n"
-					"If this option is set to `No`, then when a message is deleted, it is no\n"
-					"longer viewable (with SBBS) by anyone.\n"
-					"\n"
-					"If this option is set to `Sysops Only`, then only sysops and sub-ops (when\n"
-					"appropriate) can view deleted messages.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Users Can View Deleted Messages:`
+
+If this option is set to `Yes`, then users will be able to view messages
+they've sent and deleted or messages sent to them and they've deleted
+with the option of un-deleting the message before the message is
+physically purged from the e-mail database.
+
+If this option is set to `No`, then when a message is deleted, it is no
+longer viewable (with SBBS) by anyone.
+
+If this option is set to `Sysops Only`, then only sysops and sub-ops (when
+appropriate) can view deleted messages.
+*/
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 					,"Users Can View Deleted Messages",opt);
@@ -1376,14 +1403,15 @@ void msg_opts()
 				}
                 break;
 			case 17:
-				uifc.helpbuf=
-					"`Extra Attribute Codes...`\n"
-					"\n"
-					"Synchronet can suppport the native text attribute codes of other BBS\n"
-					"programs in messages (menus, posts, e-mail, etc.) To enable the extra\n"
-					"attribute codes for another BBS program, set the corresponding option\n"
-					"to `Yes`.\n"
-				;
+				SETHELP(WHERE);
+/*
+`Extra Attribute Codes...`
+
+Synchronet can suppport the native text attribute codes of other BBS
+programs in messages (menus, posts, e-mail, etc.) To enable the extra
+attribute codes for another BBS program, set the corresponding option
+to `Yes`.
+*/
 
 				j=0;
 				while(1) {
