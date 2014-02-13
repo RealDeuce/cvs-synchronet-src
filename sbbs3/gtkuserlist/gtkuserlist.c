@@ -7,7 +7,6 @@
 scfg_t		cfg;
 uchar		*arbuf=NULL;
 GtkBuilder*	builder;
-extern const char builder_interface[];
 
 int main(int argc, char **argv)
 {
@@ -17,6 +16,7 @@ int main(int argc, char **argv)
 	char			flags[33];
 	GtkListStore	*lstore = NULL;
 	GtkTreeSelection *lsel;
+	char			glade_path[MAX_PATH+1];
 	char	*p;
 	GtkListStore	*quickstore = NULL;
 	GtkTreeIter		curr;
@@ -46,8 +46,15 @@ int main(int argc, char **argv)
         return(-1);
 	}
 
+    /* load the interface */
+	strcpy(glade_path, argv[0]);
+	strcpy(getfname(glade_path), "gtkuserlist.glade");
+
 	builder = gtk_builder_new ();
-	gtk_builder_add_from_string(builder, builder_interface, -1, NULL);
+	if (!gtk_builder_add_from_file (builder, glade_path, &error)) {
+		g_warning ("Couldn't load builder file: %s", error->message);
+		g_error_free (error);
+	}
 
     /* connect the signals in the interface */
 	gtk_builder_connect_signals (builder, NULL);
