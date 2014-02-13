@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.65 2014/03/18 19:36:52 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.64 2014/02/06 20:37:32 deuce Exp $ */
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
@@ -175,7 +175,7 @@ typedef uint64_t	uintmax_t;
 typedef int64_t		intmax_t;
 #define _INTMAX_T_DECLARED
 
-#if !defined(HAS_STDINT_H) && !defined(_UINTPTR_T_DEFINED)
+#if !defined(HAS_STDINT_H)
 typedef uintmax_t	uintptr_t;
 typedef intmax_t	intptr_t;
 #endif
