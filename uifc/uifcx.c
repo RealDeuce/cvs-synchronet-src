@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.26 2012/04/25 08:22:54 deuce Exp $ */
+/* $Id: uifcx.c,v 1.27 2014/02/10 04:52:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@ static void sethelp(int line, char* file);
 /* Initialization function, see uifc.h for details.							*/
 /* Returns 0 on success.													*/
 /****************************************************************************/
-int uifcinix(uifcapi_t* uifcapi)
+int UIFCCALL uifcinix(uifcapi_t* uifcapi)
 {
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
