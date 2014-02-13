@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.410 2015/08/18 02:16:25 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.403 2014/01/08 02:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1010,7 +1010,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL, parent);
+		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -1175,14 +1175,6 @@ void DLLCALL ftp_terminate(void)
 	terminate_server=TRUE;
 }
 
-int ftp_remove(SOCKET sock, int line, const char* fname)
-{
-	int ret=0;
-
-	if(fexist(fname) && (ret=remove(fname))!=0)
-		lprintf(LOG_ERR,"%04d !ERROR %d (line %d) removing file: %s", sock, ret, line, fname);
-	return ret;
-}
 
 typedef struct {
 	SOCKET		ctrl_sock;
@@ -1245,7 +1237,7 @@ static void send_thread(void* arg)
 		lprintf(LOG_ERR,"%04d !DATA ERROR %d opening %s",xfer.ctrl_sock,errno,xfer.filename);
 		sockprintf(xfer.ctrl_sock,"450 ERROR %d opening %s.",errno,xfer.filename);
 		if(xfer.tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-			ftp_remove(xfer.ctrl_sock, __LINE__, xfer.filename);
+			remove(xfer.filename);
 		ftp_close_socket(xfer.data_sock,__LINE__);
 		*xfer.inprogress=FALSE;
 		thread_down();
@@ -1451,10 +1443,10 @@ static void send_thread(void* arg)
 		*xfer.inprogress=FALSE;
 	if(xfer.tmpfile) {
 		if(!(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-			ftp_remove(xfer.ctrl_sock, __LINE__, xfer.filename);
+			remove(xfer.filename);
 	} 
 	else if(xfer.delfile && !error)
-		ftp_remove(xfer.ctrl_sock, __LINE__, xfer.filename);
+		remove(xfer.filename);
 
 #if defined(SOCKET_DEBUG_SENDTHREAD)
 			socket_debug[xfer.ctrl_sock]&=~SOCKET_DEBUG_SENDTHREAD;
@@ -1532,13 +1524,6 @@ static void receive_thread(void* arg)
 				,str);
 			last_total=total;
 			last_report=now;
-		}
-		if(startup->max_fsize && (xfer.filepos+total) > startup->max_fsize) {
-			lprintf(LOG_WARNING,"%04d !DATA received %lu bytes of %s exceeds maximum allowed (%lu bytes)"
-				,xfer.ctrl_sock, xfer.filepos+total, xfer.filename, startup->max_fsize);
-			sockprintf(xfer.ctrl_sock,"552 File size exceeds maximum allowed (%lu bytes)", startup->max_fsize);
-			error=TRUE;
-			break;
 		}
 		if(*xfer.aborted==TRUE) {
 			lprintf(LOG_WARNING,"%04d !DATA Transfer aborted",xfer.ctrl_sock);
@@ -1627,15 +1612,7 @@ static void receive_thread(void* arg)
 	if(error && startup->options&FTP_OPT_DEBUG_DATA)
 		lprintf(LOG_DEBUG,"%04d DATA socket %d closed",xfer.ctrl_sock,*xfer.data_sock);
 	
-	if(xfer.filepos+total < startup->min_fsize) {
-		lprintf(LOG_WARNING,"%04d DATA received %lu bytes for %s, less than minimum required (%lu bytes)"
-			,xfer.ctrl_sock, xfer.filepos+total, xfer.filename, startup->min_fsize);
-		error=TRUE;
-	}
-	if(error) {
-		if(!xfer.append)
-			ftp_remove(xfer.ctrl_sock, __LINE__, xfer.filename);
-	} else {
+	if(!error) {
 		dur=(long)(time(NULL)-start);
 		cps=dur ? total/dur : total*2;
 		lprintf(LOG_INFO,"%04d Transfer successful: %lu bytes received in %lu seconds (%lu cps)"
@@ -1657,7 +1634,7 @@ static void receive_thread(void* arg)
 			f.cdt=flength(xfer.filename);
 			f.dateuled=time32(NULL);
 
-			/* Description specified with DESC command? */
+			/* Desciption specified with DESC command? */
 			if(xfer.desc!=NULL && *xfer.desc!=0)	
 				SAFECOPY(f.desc,xfer.desc);
 
@@ -1674,14 +1651,14 @@ static void receive_thread(void* arg)
 				if(i<scfg.total_fextrs) {
 					sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
 					if(fexistcase(tmp))
-						ftp_remove(xfer.ctrl_sock, __LINE__, tmp);
+						remove(tmp);
 					cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd);
 					lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
 					system(cmd);
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
 						if(fexistcase(tmp))
-							ftp_remove(xfer.ctrl_sock, __LINE__, tmp);
+							remove(tmp);
 						cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd);
 						lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
 						system(cmd); 
@@ -1705,7 +1682,7 @@ static void receive_thread(void* arg)
 							SAFECOPY(f.desc,desc+i); 
 						}
 						close(file);
-						ftp_remove(xfer.ctrl_sock, __LINE__, tmp);
+						remove(tmp);
 						f.misc|=FM_EXTDESC; 
 					} else
 						lprintf(LOG_DEBUG,"%04d DIZ Does not exist: %s",xfer.ctrl_sock,tmp);
@@ -1782,7 +1759,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 		lprintf(LOG_WARNING,"%04d !TRANSFER already in progress",ctrl_sock);
 		sockprintf(ctrl_sock,"425 Transfer already in progress.");
 		if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-			ftp_remove(ctrl_sock, __LINE__, filename);
+			remove(filename);
 		return;
 	}
 	*inprogress=TRUE;
@@ -1796,7 +1773,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 			lprintf(LOG_ERR,"%04d !DATA ERROR %d opening socket", ctrl_sock, ERROR_VALUE);
 			sockprintf(ctrl_sock,"425 Error %d opening socket",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-				ftp_remove(ctrl_sock, __LINE__, filename);
+				remove(filename);
 			*inprogress=FALSE;
 			return;
 		}
@@ -1825,7 +1802,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 				,ctrl_sock, result, ERROR_VALUE, *data_sock);
 			sockprintf(ctrl_sock,"425 Error %d binding socket",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-				ftp_remove(ctrl_sock, __LINE__, filename);
+				remove(filename);
 			*inprogress=FALSE;
 			ftp_close_socket(data_sock,__LINE__);
 			return;
@@ -1838,7 +1815,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 					,inet_ntoa(addr->sin_addr),ntohs(addr->sin_port),*data_sock);
 			sockprintf(ctrl_sock,"425 Error %d connecting to socket",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-				ftp_remove(ctrl_sock, __LINE__, filename);
+				remove(filename);
 			*inprogress=FALSE;
 			ftp_close_socket(data_sock,__LINE__);
 			return;
@@ -1877,7 +1854,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 			lprintf(LOG_WARNING,"%04d !PASV select returned %d (error: %d)",ctrl_sock,result,ERROR_VALUE);
 			sockprintf(ctrl_sock,"425 Error %d selecting socket for connection",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-				ftp_remove(ctrl_sock, __LINE__, filename);
+				remove(filename);
 			*inprogress=FALSE;
 			return;
 		}
@@ -1895,7 +1872,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 				,ctrl_sock,ERROR_VALUE,pasv_sock);
 			sockprintf(ctrl_sock,"425 Error %d accepting connection",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-				ftp_remove(ctrl_sock, __LINE__, filename);
+				remove(filename);
 			*inprogress=FALSE;
 			return;
 		}
@@ -1952,7 +1929,7 @@ static void filexfer(SOCKADDR_IN* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCK
 
 	/* failure */
 	if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-		ftp_remove(ctrl_sock, __LINE__, filename);
+		remove(filename);
 	*inprogress=FALSE;
 }
 
@@ -2210,6 +2187,12 @@ static BOOL ftp_hacklog(char* prot, char* user, char* text, char* host, SOCKADDR
 
 /****************************************************************************/
 /* Consecutive failed login (possible password hack) attempt tracking		*/
+/****************************************************************************/
+/* Counter is global so it is tracked between multiple connections.			*/
+/* Failed consecutive login attempts > 10 will generate a hacklog entry	and	*/
+/* immediately disconnect (after the usual failed-login delay).				*/
+/* A failed login from a different host resets the counter.					*/
+/* A successful login from the same host resets the counter.				*/
 /****************************************************************************/
 
 static BOOL badlogin(SOCKET sock, ulong* login_attempts, char* user, char* passwd, char* host, SOCKADDR_IN* addr)
@@ -2561,9 +2544,9 @@ static void ctrl_thread(void* arg)
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
 			if(!user.number) {
 				if(scfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: '%s' (password: %s)",sock,user.alias,p);
+					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: %s, Password: %s",sock,user.alias,p);
 				else
-					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: '%s'",sock,user.alias);
+					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: %s",sock,user.alias);
 				if(badlogin(sock, &login_attempts, user.alias, p, host_name, &ftp.client_addr))
 					break;
 				continue;
@@ -2684,13 +2667,13 @@ static void ctrl_thread(void* arg)
 			sprintf(qwkfile,"%sfile/%04d.qwk",scfg.data_dir,user.number);
 
 			/* Adjust User Total Logons/Logons Today */
-			user.logons++;
-			user.ltoday++;
-			SAFECOPY(user.modem,"FTP");
-			SAFECOPY(user.comp,host_name);
-			SAFECOPY(user.note,host_ip);
-			user.logontime=logintime;
-			putuserdat(&scfg, &user);
+			adjustuserrec(&scfg,user.number,U_LOGONS,5,1);
+			putuserrec(&scfg,user.number,U_LTODAY,5,ultoa(user.ltoday+1,str,10));
+			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
+			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
+			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
+			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa((ulong)logintime,str,16));
+			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
 		}
@@ -2861,8 +2844,6 @@ static void ctrl_thread(void* arg)
 				pasv_addr.sin_port = htons(port);
 
 				if((result=bind(pasv_sock, (struct sockaddr *) &pasv_addr,sizeof(pasv_addr)))==0)
-					break;
-				if(port==startup->pasv_port_high)
 					break;
 			}
 			if(result!= 0) {
@@ -3257,7 +3238,7 @@ static void ctrl_thread(void* arg)
 					continue;
 				}
 				if(!strnicmp(cmd,"DELE ",5)) {
-					if((i=ftp_remove(sock, __LINE__, fname))==0) {
+					if((i=remove(fname))==0) {
 						sockprintf(sock,"250 \"%s\" removed successfully.",fname);
 						lprintf(LOG_NOTICE,"%04d %s deleted file: %s",sock,user.alias,fname);
 					} else {
@@ -3698,13 +3679,13 @@ static void ctrl_thread(void* arg)
 						mswait(1000);
 					}
 					if(!socket_check(sock,NULL,NULL,0)) {
-						ftp_remove(sock, __LINE__, str);
+						remove(str);
 						continue;
 					}
 					if(fexist(str)) {
 						lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
 						sockprintf(sock,"451 Time-out waiting for packet creation.");
-						ftp_remove(sock, __LINE__, str);
+						remove(str);
 						filepos=0;
 						continue;
 					}
@@ -4455,7 +4436,7 @@ static void ctrl_thread(void* arg)
 			lprintf(LOG_ERR,"%04d !ERROR in logoutuserdat",sock);
 		/* Remove QWK-pack semaphore file (if left behind) */
 		sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
-		ftp_remove(sock, __LINE__, str);
+		remove(str);
 		lprintf(LOG_INFO,"%04d %s logged off",sock,user.alias);
 	}
 
@@ -4559,7 +4540,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.410 $", "%*s %s", revision);
+	sscanf("$Revision: 1.403 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4621,8 +4602,8 @@ void DLLCALL ftp_server(void* arg)
 
 	/* Setup intelligent defaults */
 	if(startup->port==0)					startup->port=IPPORT_FTP;
-	if(startup->qwk_timeout==0)				startup->qwk_timeout=FTP_DEFAULT_QWK_TIMEOUT;		/* seconds */
-	if(startup->max_inactivity==0)			startup->max_inactivity=FTP_DEFAULT_MAX_INACTIVITY;	/* seconds */
+	if(startup->qwk_timeout==0)				startup->qwk_timeout=600;		/* seconds */
+	if(startup->max_inactivity==0)			startup->max_inactivity=300;	/* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;		/* seconds */
 	if(startup->index_file_name[0]==0)		SAFECOPY(startup->index_file_name,"00index");
 	if(startup->html_index_file[0]==0)		SAFECOPY(startup->html_index_file,"00index.html");
