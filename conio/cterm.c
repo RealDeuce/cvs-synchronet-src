@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.143 2014/01/22 22:01:15 deuce Exp $ */
+/* $Id: cterm.c,v 1.150 2014/02/09 13:27:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,18 +46,9 @@
 #endif
 #include <threadwrap.h>
 
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
-#endif
-
 #include "ciolib.h"
-#include "keys.h"
 
 #include "cterm.h"
-#include "allfonts.h"
 
 #define	BUFSIZE	2048
 
@@ -890,7 +881,7 @@ static void scrolldown(struct cterminal *cterm)
 static void scrollup(struct cterminal *cterm)
 {
 	int top = cterm->y+cterm->top_margin-1;
-	int height = cterm->bottom_margin;
+	int height = cterm->bottom_margin-cterm->top_margin+1;
 	int x,y;
 
 	cterm->backpos++;
@@ -912,7 +903,7 @@ static void scrollup(struct cterminal *cterm)
 static void dellines(struct cterminal * cterm, int lines)
 {
 	int top = cterm->y+cterm->top_margin-1;
-	int height = cterm->bottom_margin;
+	int height = cterm->bottom_margin-cterm->top_margin+1;
 	int i;
 	int linestomove;
 	int x,y;
@@ -948,7 +939,7 @@ static void clear2bol(struct cterminal * cterm)
 	PUTTEXT(cterm->x,cterm->y+WHEREY()-1,cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,buf);
 }
 
-void cterm_clearscreen(struct cterminal *cterm, char attr)
+void CIOLIBCALL cterm_clearscreen(struct cterminal *cterm, char attr)
 {
 	if(!cterm->started)
 		cterm_start(cterm);
@@ -1352,7 +1343,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						max_row = cterm->bottom_margin - cterm->top_margin + 1;
 					col=1;
 					*p=0;
-					if(strlen(cterm->escbuf)>1) {
+					if(strlen(cterm->escbuf)>2) {
 						if((p=strtok(cterm->escbuf+1,";"))!=NULL) {
 							row=strtoul(p,NULL,10);
 							if((p=strtok(NULL,";"))!=NULL) {
@@ -1769,7 +1760,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					else {
 						row = 1;
 						max_row = cterm->height;
-						if(strlen(cterm->escbuf)>1) {
+						if(strlen(cterm->escbuf)>2) {
 							if((p=strtok(cterm->escbuf+1,";"))!=NULL) {
 								row=strtoul(p,NULL,10);
 								if((p=strtok(NULL,";"))!=NULL) {
@@ -1820,9 +1811,9 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 	cterm->sequence=0;
 }
 
-struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
+struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.143 $";
+	char	*revision="$Revision: 1.150 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1898,6 +1889,8 @@ struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int back
 	cterm->ciolib_clrscr=ciolib_clrscr;
 	cterm->ciolib_setvideoflags=ciolib_setvideoflags;
 	cterm->ciolib_getvideoflags=ciolib_getvideoflags;
+	cterm->ciolib_setscaling=ciolib_setscaling;
+	cterm->ciolib_getscaling=ciolib_getscaling;
 	cterm->ciolib_putch=ciolib_putch;
 	cterm->ciolib_puttext=ciolib_puttext;
 	cterm->ciolib_window=ciolib_window;
@@ -1911,7 +1904,7 @@ struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int back
 	return cterm;
 }
 
-void cterm_start(struct cterminal *cterm)
+void CIOLIBCALL cterm_start(struct cterminal *cterm)
 {
 	struct text_info ti;
 
@@ -2028,7 +2021,7 @@ static void ctputs(struct cterminal *cterm, char *buf)
 	*cterm->_wscroll=oldscroll;
 }
 
-char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed)
+char* CIOLIBCALL cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed)
 {
 	unsigned char ch[2];
 	unsigned char prn[BUFSIZE];
@@ -2747,7 +2740,7 @@ char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen
 	return(retbuf);
 }
 
-int cterm_openlog(struct cterminal *cterm, char *logfile, int logtype)
+int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype)
 {
 	if(!cterm->started)
 		cterm_start(cterm);
@@ -2759,7 +2752,7 @@ int cterm_openlog(struct cterminal *cterm, char *logfile, int logtype)
 	return(1);
 }
 
-void cterm_closelog(struct cterminal *cterm)
+void CIOLIBCALL cterm_closelog(struct cterminal *cterm)
 {
 	if(!cterm->started)
 		cterm_start(cterm);
@@ -2770,7 +2763,7 @@ void cterm_closelog(struct cterminal *cterm)
 	cterm->log=CTERM_LOG_NONE;
 }
 
-void cterm_end(struct cterminal *cterm)
+void CIOLIBCALL cterm_end(struct cterminal *cterm)
 {
 	int i;
 
