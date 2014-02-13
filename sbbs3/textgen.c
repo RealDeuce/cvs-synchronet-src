@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dirwrap.h"	// MAX_PATH
 #include "gen_defs.h"
 
 /****************************************************************************/
@@ -198,7 +197,7 @@ int main(int argc, char **argv)
 	fputs("\n",text_h);
 	fputs("/* Synchronet static text string constants */\n",text_h);
 	fputs("\n",text_h);
-	fputs("/* $Id: textgen.c,v 1.6 2014/02/13 09:09:18 deuce Exp $ */\n",text_h);
+	fputs("/* $Id: textgen.c,v 1.5 2009/10/20 06:52:32 rswindell Exp $ */\n",text_h);
 	fputs("\n",text_h);
 	fputs("/****************************************************************************\n",text_h);
 	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_h);
@@ -248,7 +247,7 @@ int main(int argc, char **argv)
 		perror(path);
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.6 2014/02/13 09:09:18 deuce Exp $ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.5 2009/10/20 06:52:32 rswindell Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
@@ -263,7 +262,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Can't open text_defaults.c!\n");
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.6 2014/02/13 09:09:18 deuce Exp $ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.5 2009/10/20 06:52:32 rswindell Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
