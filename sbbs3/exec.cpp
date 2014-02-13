@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.97 2011/10/28 08:05:34 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.98 2011/11/03 21:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -542,16 +542,19 @@ js_OperationCallback(JSContext *cx)
 	JSBool	ret;
 	sbbs_t*		sbbs;
 
-	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
+	JS_SetOperationCallback(cx, NULL);
+	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL) {
+		JS_SetOperationCallback(cx, js_OperationCallback);
 		return(JS_FALSE);
+	}
 
 	if(sbbs->js_callback.auto_terminate && !sbbs->online) {
 		JS_ReportWarning(cx,"Disconnected");
 		sbbs->js_callback.counter=0;
+		JS_SetOperationCallback(cx, js_OperationCallback);
 		return(JS_FALSE);
 	}
 
-	JS_SetOperationCallback(cx, NULL);
 	ret=js_CommonOperationCallback(cx,&sbbs->js_callback);
 	JS_SetOperationCallback(cx, js_OperationCallback);
 	return ret;
