@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.68 2014/01/23 08:31:40 deuce Exp $ */
+/* $Id: conn.c,v 1.70 2014/02/06 12:07:53 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -470,7 +470,7 @@ int conn_socket_connect(struct bbslist *bbs)
 #if (EAGAIN!=EWOULDBLOCK)
 				case EWOULDBLOCK:
 #endif
-					for(;;) {
+					for(;sock!=INVALID_SOCKET;) {
 						tv.tv_sec=1;
 						tv.tv_usec=0;
 
@@ -488,7 +488,11 @@ int conn_socket_connect(struct bbslist *bbs)
 								sock=INVALID_SOCKET;
 								continue;
 							case 1:
-								goto connected;
+								if(socket_check(sock, NULL, NULL, 0))
+									goto connected;
+								closesocket(sock);
+								sock=INVALID_SOCKET;
+								continue;
 							default:
 								break;
 						}
