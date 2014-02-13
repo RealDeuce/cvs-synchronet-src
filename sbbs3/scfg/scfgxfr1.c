@@ -1,6 +1,6 @@
 /* scfgxfr1.c */
 
-/* $Id: scfgxfr1.c,v 1.19 2014/02/16 06:28:52 deuce Exp $ */
+/* $Id: scfgxfr1.c,v 1.18 2006/01/26 04:14:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,12 +91,13 @@ while(1) {
 	strcpy(opt[i++],"Transfer Protocols...");
 	strcpy(opt[i++],"Alternate File Paths...");
 	opt[i][0]=0;
-	uifc.helpbuf=
-		"File Transfer Configuration:\n"
-		"\n"
-		"This menu has options and sub-menus that pertain specifically to the\n"
-		"file transfer section of the BBS.\n"
-	;
+	SETHELP(WHERE);
+/*
+File Transfer Configuration:
+
+This menu has options and sub-menus that pertain specifically to the
+file transfer section of the BBS.
+*/
 	switch(uifc.list(WIN_ORG|WIN_ACT|WIN_CHE,0,0,72,&xfr_dflt,0
 		,"File Transfer Configuration",opt)) {
 		case -1:
@@ -109,70 +110,76 @@ while(1) {
             }
             return;
 		case 0:
-			uifc.helpbuf=
-				"Minimum Kilobytes Free Disk Space to Allow Uploads:\n"
-				"\n"
-				"This is the minimum free space in a file directory to allow user\n"
-				"uploads.\n"
-			;
+			SETHELP(WHERE);
+/*
+Minimum Kilobytes Free Disk Space to Allow Uploads:
+
+This is the minimum free space in a file directory to allow user
+uploads.
+*/
 			uifc.input(WIN_MID,0,0
 				,"Minimum Kilobytes Free Disk Space to Allow Uploads"
 				,ultoa(cfg.min_dspace,tmp,10),5,K_EDIT|K_NUMBER);
 			cfg.min_dspace=atoi(tmp);
 			break;
 		case 1:
-			uifc.helpbuf=
-				"Maximum Files in Batch Upload Queue:\n"
-				"\n"
-				"This is the maximum number of files that can be placed in the batch\n"
-				"upload queue.\n"
-			;
+			SETHELP(WHERE);
+/*
+Maximum Files in Batch Upload Queue:
+
+This is the maximum number of files that can be placed in the batch
+upload queue.
+*/
 			uifc.input(WIN_MID,0,0,"Maximum Files in Batch Upload Queue"
 				,ultoa(cfg.max_batup,tmp,10),5,K_EDIT|K_NUMBER);
 			cfg.max_batup=atoi(tmp);
             break;
 		case 2:
-			uifc.helpbuf=
-				"Maximum Files in Batch Download Queue:\n"
-				"\n"
-				"This is the maximum number of files that can be placed in the batch\n"
-				"download queue.\n"
-			;
+			SETHELP(WHERE);
+/*
+Maximum Files in Batch Download Queue:
+
+This is the maximum number of files that can be placed in the batch
+download queue.
+*/
 			uifc.input(WIN_MID,0,0,"Maximum Files in Batch Download Queue"
 				,ultoa(cfg.max_batdn,tmp,10),5,K_EDIT|K_NUMBER);
 			cfg.max_batdn=atoi(tmp);
             break;
 		case 3:
-			uifc.helpbuf=
-				"Maximum Destination Users in User to User Transfer:\n"
-				"\n"
-				"This is the maximum number of users allowed in the destination user list\n"
-				"of a user to user upload.\n"
-			;
+			SETHELP(WHERE);
+/*
+Maximum Destination Users in User to User Transfer:
+
+This is the maximum number of users allowed in the destination user list
+of a user to user upload.
+*/
 			uifc.input(WIN_MID,0,0
 				,"Maximum Destination Users in User to User Transfers"
 				,ultoa(cfg.max_userxfer,tmp,10),5,K_EDIT|K_NUMBER);
 			cfg.max_userxfer=atoi(tmp);
 			break;
 		case 4:
-uifc.helpbuf=
-	"Default Percentage of Credits to Credit Uploader on Upload:\n"
-	"\n"
-	"This is the default setting that will be used when new file\n"
-	"directories are created.\n"
-;
+SETHELP(WHERE);
+/*
+Default Percentage of Credits to Credit Uploader on Upload:
+
+This is the default setting that will be used when new file
+directories are created.
+*/
 			uifc.input(WIN_MID,0,0
 				,"Default Percentage of Credits to Credit Uploader on Upload"
 				,ultoa(cfg.cdt_up_pct,tmp,10),4,K_EDIT|K_NUMBER);
 			cfg.cdt_up_pct=atoi(tmp);
 			break;
 		case 5:
-uifc.helpbuf=
-	"Default Percentage of Credits to Credit Uploader on Download:\n"
-	"\n"
-	"This is the default setting that will be used when new file\n"
-	"directories are created.\n"
-;
+SETHELP(WHERE);
+/*
+Default Percentage of Credits to Credit Uploader on Download:
+
+This is the default setting that will be used when new file
+directories are created.
+*/
 			uifc.input(WIN_MID,0,0
 				,"Default Percentage of Credits to Credit Uploader on Download"
 				,ultoa(cfg.cdt_dn_pct,tmp,10),4,K_EDIT|K_NUMBER);
@@ -183,13 +190,14 @@ uifc.helpbuf=
             strcpy(opt[1],"No");
             opt[2][0]=0;
             i=0;
-            uifc.helpbuf=
-	            "Long Filenames in File Listings:\n"
-	            "\n"
-	            "If you want long filenames to be displayed in the BBS file listings, set\n"
-	            "this option to Yes. Note: This feature requires Windows 98, Windows 2000\n"
-	            "or later.\n"
-            ;
+            SETHELP(WHERE);
+/*
+Long Filenames in File Listings:
+
+If you want long filenames to be displayed in the BBS file listings, set
+this option to Yes. Note: This feature requires Windows 98, Windows 2000
+or later.
+*/
             i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
                 ,"Long Filenames in Listings (Win98/Win2K)",opt);
             if(!i && cfg.file_misc&FM_NO_LFN) {
@@ -202,30 +210,32 @@ uifc.helpbuf=
             break;
 
 		case 7:
-			uifc.helpbuf=
-				"Leech Protocol Detection Percentage:\n"
-				"\n"
-				"This value is the sensitivity of the leech protocol detection feature of\n"
-				"Synchronet. If the transfer is apparently unsuccessful, but the transfer\n"
-				"time was at least this percentage of the estimated transfer time (based\n"
-				"on the estimated CPS of the connection result code), then a leech\n"
-				"protocol error is issued and the user's leech download counter is\n"
-				"incremented. Setting this value to 0 disables leech protocol detection.\n"
-			;
+			SETHELP(WHERE);
+/*
+Leech Protocol Detection Percentage:
+
+This value is the sensitivity of the leech protocol detection feature of
+Synchronet. If the transfer is apparently unsuccessful, but the transfer
+time was at least this percentage of the estimated transfer time (based
+on the estimated CPS of the connection result code), then a leech
+protocol error is issued and the user's leech download counter is
+incremented. Setting this value to 0 disables leech protocol detection.
+*/
 			uifc.input(WIN_MID|WIN_SAV,0,0
 				,"Leech Protocol Detection Percentage (0=Disabled)"
 				,ultoa(cfg.leech_pct,tmp,10),3,K_EDIT|K_NUMBER);
 			cfg.leech_pct=atoi(tmp);
 			if(!cfg.leech_pct)
 				break;
-			uifc.helpbuf=
-				"Leech Protocol Minimum Time (in Seconds):\n"
-				"\n"
-				"This option allows you to adjust the sensitivity of the leech protocol\n"
-				"detection feature. This value is the minimum length of transfer time\n"
-				"(in seconds) that must elapse before an aborted tranfser will be\n"
-				"considered a possible leech attempt.\n"
-			;
+			SETHELP(WHERE);
+/*
+Leech Protocol Minimum Time (in Seconds):
+
+This option allows you to adjust the sensitivity of the leech protocol
+detection feature. This value is the minimum length of transfer time
+(in seconds) that must elapse before an aborted tranfser will be
+considered a possible leech attempt.
+*/
 			uifc.input(WIN_MID,0,0
 				,"Leech Protocol Minimum Time (in Seconds)"
 				,ultoa(cfg.leech_sec,tmp,10),3,K_EDIT|K_NUMBER);
@@ -243,13 +253,14 @@ uifc.helpbuf=
 					i|=WIN_DEL|WIN_GET;
 				if(savfview.cmd[0])
 					i|=WIN_PUT;
-				uifc.helpbuf=
-					"Viewable File Types:\n"
-					"\n"
-					"This is a list of file types that have content information that can be\n"
-					"viewed through the execution of an external program. Here are a couple of\n"
-					"command line examples for a few file types.\n"
-				;
+				SETHELP(WHERE);
+/*
+Viewable File Types:
+
+This is a list of file types that have content information that can be
+viewed through the execution of an external program. Here are a couple of
+command line examples for a few file types.
+*/
 				i=uifc.list(i,0,0,50,&fview_dflt,NULL,"Viewable File Types",opt);
 				if(i==-1)
 					break;
@@ -345,22 +356,23 @@ uifc.helpbuf=
 					i|=WIN_DEL|WIN_GET;
 				if(savftest.cmd[0])
 					i|=WIN_PUT;
-				uifc.helpbuf=
-					"Testable File Types:\n"
-					"\n"
-					"This is a list of file types that will have a command line executed to\n"
-					"test the file integrity upon their upload. The file types are specified\n"
-					"by extension and if one file extension is listed more than once, each\n"
-					"command line will be executed. The command lines must return a DOS error\n"
-					"code of 0 (no error) in order for the file to pass the test. This method\n"
-					"of file testing upon upload is also known as an upload event. This test\n"
-					"or event, can do more than just test the file, it can perform any\n"
-					"function that the sysop wishes. Such as adding comments to an archived\n"
-					"file, or extracting an archive and performing a virus scan. While the\n"
-					"external program is executing, a text string is displayed to the user.\n"
-					"This working string can be set for each file type and command line\n"
-					"listed.\n"
-				;
+				SETHELP(WHERE);
+/*
+Testable File Types:
+
+This is a list of file types that will have a command line executed to
+test the file integrity upon their upload. The file types are specified
+by extension and if one file extension is listed more than once, each
+command line will be executed. The command lines must return a DOS error
+code of 0 (no error) in order for the file to pass the test. This method
+of file testing upon upload is also known as an upload event. This test
+or event, can do more than just test the file, it can perform any
+function that the sysop wishes. Such as adding comments to an archived
+file, or extracting an archive and performing a virus scan. While the
+external program is executing, a text string is displayed to the user.
+This working string can be set for each file type and command line
+listed.
+*/
 				i=uifc.list(i,0,0,50,&ftest_dflt,NULL,"Testable File Types",opt);
 				if(i==-1)
 					break;
@@ -464,21 +476,22 @@ uifc.helpbuf=
 					i|=WIN_DEL|WIN_GET;
 				if(savdlevent.cmd[0])
 					i|=WIN_PUT;
-				uifc.helpbuf=
-					"Download Events:\n"
-					"\n"
-					"This is a list of file types that will have a command line executed to\n"
-					"perform an event upon their download (e.g. trigger a download event).\n"
-					"The file types are specified by extension and if one file extension\n"
-					"is listed more than once, each command line will be executed. The\n"
-					"command lines must return a DOS error code of 0 (no error) in order\n"
-					"for the file to pass the test. This test or event, can do more than\n"
-					"just test the file, it can perform any function that the sysop wishes.\n"
-					"Such as adding comments to an archived file, or extracting an archive\n"
-					"and performing a virus scan. While the external program is executing,\n"
-					"a text string is displayed to the user. This working string can be set\n"
-					"for each file type and command line listed.\n"
-				;
+				SETHELP(WHERE);
+/*
+Download Events:
+
+This is a list of file types that will have a command line executed to
+perform an event upon their download (e.g. trigger a download event).
+The file types are specified by extension and if one file extension
+is listed more than once, each command line will be executed. The
+command lines must return a DOS error code of 0 (no error) in order
+for the file to pass the test. This test or event, can do more than
+just test the file, it can perform any function that the sysop wishes.
+Such as adding comments to an archived file, or extracting an archive
+and performing a virus scan. While the external program is executing,
+a text string is displayed to the user. This working string can be set
+for each file type and command line listed.
+*/
 				i=uifc.list(i,0,0,50,&dlevent_dflt,NULL,"Download Events",opt);
 				if(i==-1)
 					break;
@@ -583,14 +596,15 @@ uifc.helpbuf=
                     i|=WIN_DEL|WIN_GET;
 				if(savfextr.cmd[0])
                     i|=WIN_PUT;
-                uifc.helpbuf=
-	                "Extractable File Types:\n"
-	                "\n"
-	                "This is a list of archive file types that can be extracted to the temp\n"
-	                "directory by an external program. The file types are specified by their\n"
-	                "extension. For each file type you must specify the command line used to\n"
-	                "extract the file(s).\n"
-                ;
+                SETHELP(WHERE);
+/*
+Extractable File Types:
+
+This is a list of archive file types that can be extracted to the temp
+directory by an external program. The file types are specified by their
+extension. For each file type you must specify the command line used to
+extract the file(s).
+*/
 				i=uifc.list(i,0,0,50,&fextr_dflt,NULL,"Extractable File Types",opt);
                 if(i==-1)
                     break;
@@ -687,13 +701,14 @@ uifc.helpbuf=
 					i|=WIN_DEL|WIN_GET;
 				if(savfcomp.cmd[0])
 					i|=WIN_PUT;
-				uifc.helpbuf=
-					"Compressable File Types:\n"
-					"\n"
-					"This is a list of compression methods available for different file types.\n"
-					"These will be used for items such as creating QWK packets, temporary\n"
-					"files from the transfer section, and more.\n"
-				;
+				SETHELP(WHERE);
+/*
+Compressable File Types:
+
+This is a list of compression methods available for different file types.
+These will be used for items such as creating QWK packets, temporary
+files from the transfer section, and more.
+*/
 				i=uifc.list(i,0,0,50,&fcomp_dflt,NULL,"Compressable File Types",opt);
 				if(i==-1)
 					break;
@@ -790,20 +805,21 @@ uifc.helpbuf=
 					i|=WIN_DEL|WIN_GET;
 				if(savprot.mnemonic)
 					i|=WIN_PUT;
-				uifc.helpbuf=
-					"File Transfer Protocols:\n"
-					"\n"
-					"This is a list of file transfer protocols that can be used to transfer\n"
-					"files either to or from a remote user. For each protocol, you can\n"
-					"specify the mnemonic (hot-key) to use to specify that protocol, the\n"
-					"command line to use for uploads, downloads, batch uploads, batch\n"
-					"downloads, bi-directional file transfers, support of DSZLOG, and (for\n"
-					"*nix only) if it uses socket I/O or the more common stdio.\n"
-					"\n"
-					"If the protocol doesn't support a certain method of transfer, or you\n"
-					"don't wish it to be available for a certain method of transfer, leave\n"
-					"the command line for that method blank.\n"
-				;
+				SETHELP(WHERE);
+/*
+File Transfer Protocols:
+
+This is a list of file transfer protocols that can be used to transfer
+files either to or from a remote user. For each protocol, you can
+specify the mnemonic (hot-key) to use to specify that protocol, the
+command line to use for uploads, downloads, batch uploads, batch
+downloads, bi-directional file transfers, support of DSZLOG, and (for
+*nix only) if it uses socket I/O or the more common stdio.
+
+If the protocol doesn't support a certain method of transfer, or you
+don't wish it to be available for a certain method of transfer, leave
+the command line for that method blank.
+*/
 				i=uifc.list(i,0,0,50,&prot_dflt,NULL,"File Transfer Protocols",opt);
 				if(i==-1)
 					break;
@@ -984,15 +1000,16 @@ uifc.helpbuf=
 					i|=WIN_DEL|WIN_GET;
 				if(savaltpath[0])
 					i|=WIN_PUT;
-				uifc.helpbuf=
-					"Alternate File Paths:\n"
-					"\n"
-					"This option allows the sysop to add and configure alternate file paths\n"
-					"for files stored on drives and directories other than the configured\n"
-					"storage path for a file directory. This command is useful for those who\n"
-					"have file directories where they wish to have files listed from\n"
-					"multiple CD-ROMs or hard disks.\n"
-				;
+				SETHELP(WHERE);
+/*
+Alternate File Paths:
+
+This option allows the sysop to add and configure alternate file paths
+for files stored on drives and directories other than the configured
+storage path for a file directory. This command is useful for those who
+have file directories where they wish to have files listed from
+multiple CD-ROMs or hard disks.
+*/
 				i=uifc.list(i,0,0,50,&altpath_dflt,NULL,"Alternate File Paths",opt);
 				if(i==-1)
 					break;
