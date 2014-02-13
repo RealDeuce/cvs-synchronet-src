@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.47 2015/08/22 00:58:31 deuce Exp $ */
+/* $Id: websrvr.h,v 1.44 2011/09/01 02:50:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,21 +43,14 @@
 #include "semwrap.h"			/* sem_t */
 
 typedef struct {
-	DWORD		size;				/* sizeof(web_startup_t) */
-	WORD		max_clients;
-#define WEB_DEFAULT_MAX_CLIENTS			0	/* 0=unlimited */
-	WORD		max_inactivity;
-#define WEB_DEFAULT_MAX_INACTIVITY		120	/* seconds */
-	WORD		max_cgi_inactivity;
-#define WEB_DEFAULT_MAX_CGI_INACTIVITY	120	/* seconds */
-	WORD		sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
-    DWORD		options;
-	WORD		port;
-	WORD		tls_port;
-	struct in_addr outgoing4;
-	struct in6_addr	outgoing6;
-    char	interfaces[INI_MAX_VALUE_LEN];
-    char	tls_interfaces[INI_MAX_VALUE_LEN];
+	DWORD	size;				/* sizeof(web_startup_t) */
+	WORD	port;
+	WORD	max_clients;
+	WORD	max_inactivity;
+	WORD	max_cgi_inactivity;
+	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
+    DWORD   interface_addr;
+    DWORD	options;
 	
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
@@ -118,9 +111,7 @@ typedef struct {
 /* startup options that requires re-initialization/recycle when changed */
 static struct init_field web_init_fields[] = { 
 	 OFFSET_AND_SIZE(web_startup_t,port)
-	,OFFSET_AND_SIZE(web_startup_t,interfaces)
-	,OFFSET_AND_SIZE(web_startup_t,outgoing4)
-	,OFFSET_AND_SIZE(web_startup_t,outgoing6)
+	,OFFSET_AND_SIZE(web_startup_t,interface_addr)
 	,OFFSET_AND_SIZE(web_startup_t,ctrl_dir)
 	,OFFSET_AND_SIZE(web_startup_t,root_dir)
 	,OFFSET_AND_SIZE(web_startup_t,error_dir)
@@ -165,7 +156,7 @@ static ini_bitdesc_t web_options[] = {
 #define WEB_DEFAULT_ROOT_DIR		"../web/root"
 #define WEB_DEFAULT_ERROR_DIR		"error"
 #define WEB_DEFAULT_CGI_DIR			"cgi-bin"
-#define WEB_DEFAULT_AUTH_LIST		"Basic,Digest,TLS-PSK"
+#define WEB_DEFAULT_AUTH_LIST		"Basic,Digest"
 #define WEB_DEFAULT_CGI_CONTENT		"text/plain"
 
 #ifdef DLLEXPORT
