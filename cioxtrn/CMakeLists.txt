@@ -6,7 +6,8 @@ INCLUDE(../build/SynchronetMacros.cmake)
 
 if(WIN32)
 	add_executable(cioxtrn WIN32 cioxtrn.c)
-	require_libs(cioxtrn xpdev ciolib)
+	require_lib(cioxtrn xpdev)
+	require_lib_dir(cioxtrn ciolob conio)
 
 	install(TARGETS cioxtrn DESTINATION bin)
 endif()
