@@ -7,7 +7,6 @@
 #include <ini_file.h>
 #include <uifc.h>
 #include "filepick.h"
-#include "allfonts.h"
 
 #include "syncterm.h"
 #include "fonts.h"
@@ -15,8 +14,6 @@
 #include "uifcinit.h"
 #include "conn.h"
 #include "ciolib.h"
-#include "keys.h"
-#include "mouse.h"
 #include "cterm.h"
 #include "window.h"
 #include "term.h"
@@ -530,10 +527,10 @@ void edit_sorting(struct bbslist **list, int *listcount, int *ocur, int *obar, c
 	int		ret,sret;
 	int		i,j;
 
-	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info)+1;i++)
+	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info);i++)
 		opts[i]=opt[i];
 	opts[i]=NULL;
-	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info)+1;i++)
+	for(i=0;i<sizeof(sort_order)/sizeof(struct sort_order_info);i++)
 		sopts[i]=sopt[i];
 	sopts[i]=NULL;
 
