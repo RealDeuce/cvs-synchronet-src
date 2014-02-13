@@ -2,7 +2,7 @@
 
 /* Synchronet External Plain Old Telephone System (POTS) support */
 
-/* $Id: sexpots.c,v 1.30 2014/03/18 19:33:53 rswindell Exp $ */
+/* $Id: sexpots.c,v 1.29 2013/09/21 06:29:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1290,19 +1290,8 @@ BOOL handle_call(void)
 				lprintf(LOG_WARNING,"Socket Disconnected");
 				break;
 			}
-			if(ERROR_VALUE == EAGAIN)
-				continue;
-        	else if(ERROR_VALUE == ENOTSOCK)
-   	            lprintf(LOG_WARNING,"Socket closed by peer on receive");
-       	    else if(ERROR_VALUE==ECONNRESET) 
-				lprintf(LOG_WARNING,"Connection reset by peer on receive");
-			else if(ERROR_VALUE==ESHUTDOWN)
-				lprintf(LOG_WARNING,"Socket shutdown on receive");
-       	    else if(ERROR_VALUE==ECONNABORTED) 
-				lprintf(LOG_WARNING,"Connection aborted by peer on receive");
-			else
-				lprintf(LOG_ERR,"SOCKET RECV ERROR %d",ERROR_VALUE);
-			break;
+			lprintf(LOG_ERR,"SOCKET RECV ERROR %d",ERROR_VALUE);
+			continue;
 		}
 
 		if(telnet)
@@ -1627,7 +1616,7 @@ int main(int argc, char** argv)
 	/*******************************/
 	/* Generate and display banner */
 	/*******************************/
-	sscanf("$Revision: 1.30 $", "%*s %s", revision);
+	sscanf("$Revision: 1.29 $", "%*s %s", revision);
 
 	sprintf(banner,"\n%s v%s-%s"
 		" Copyright %s Rob Swindell"
