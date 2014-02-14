@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.35 2014/08/13 09:13:23 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.34 2013/05/10 18:25:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,7 +226,6 @@ static char* uifc_prop_desc[] = {
 	,"text colour"
 	,"inverse colour"
 	,"lightbar colour"
-	,NULL
 };
 #endif
 
