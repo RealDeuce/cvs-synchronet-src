@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.37 2014/02/06 11:23:21 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.38 2014/02/09 07:48:48 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -575,6 +575,17 @@ error_return:
 int bitmap_getfont(void)
 {
 	return(current_font);
+}
+
+void bitmap_setscaling(int new_value)
+{
+	if(new_value > 0)
+		vstat.scaling = new_value;
+}
+
+int bitmap_getscaling(void)
+{
+	return vstat.scaling;
 }
 
 /* Called from event thread only */
