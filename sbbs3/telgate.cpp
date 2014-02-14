@@ -2,13 +2,13 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.31 2012/03/19 23:31:59 echicken Exp $ */
+/* $Id: telgate.cpp,v 1.38 2013/08/09 05:13:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "telnet.h" 
 
-void sbbs_t::telnet_gate(char* destaddr, ulong mode)
+void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* name, char* passwd)
 {
 	char*	p;
 	uchar	buf[512];
@@ -121,9 +121,11 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	if(mode&TG_RLOGIN) {
 		p=(char*)buf;
 		*(p++)=0;
-		p+=sprintf(p,"%s",useron.alias);
+		p+=sprintf(p,"%s",name==NULL ? useron.alias : name);
 		p++;	// Add NULL
-		if(mode&TG_SENDPASS) {
+		if(passwd!=NULL)
+			p+=sprintf(p,"%s",passwd);
+		else if(mode&TG_SENDPASS) {
 			p+=sprintf(p,"%s",useron.pass);
 		} else {
 			p+=sprintf(p,"%s",useron.name);
@@ -142,7 +144,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 	/* Text/NVT mode by default */
 	request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX, 3000);
 
-	if(mode&(TG_PASSTHRU|TG_RLOGIN))
+	if(!(telnet_mode&TELNET_MODE_OFF) && (mode&TG_PASSTHRU))
 		telnet_mode|=TELNET_MODE_GATE;	// Pass-through telnet commands
 
 	while(online) {
@@ -209,21 +211,25 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode)
 				}
 				if(mode&TG_CRLF && buf[rd-1]=='\r')
 					buf[rd++]='\n';
-				if(!gotline && mode&TG_ECHO) {
+				else if(mode&TG_NOLF && buf[rd-1]=='\n')
+					rd--;
+				if(!gotline && (mode&TG_ECHO) && rd) {
 					RingBufWrite(&outbuf,buf,rd);
 				}
 			}
-			for(attempts=0;attempts<60 && online; attempts++) /* added retry loop here, Jan-20-2003 */
-			{
-				if((i=sendsocket(remote_socket,(char*)buf,rd))>=0)
+			if(rd > 0) {
+				for(attempts=0;attempts<60 && online; attempts++) /* added retry loop here, Jan-20-2003 */
+				{
+					if((i=sendsocket(remote_socket,(char*)buf,rd))>=0)
+						break;
+					if(ERROR_VALUE!=EWOULDBLOCK)
+						break;
+					mswait(500);
+				} 
+				if(i<0) {
+					lprintf(LOG_NOTICE,"!TELGATE ERROR %d sending on socket %d",ERROR_VALUE,remote_socket);
 					break;
-				if(ERROR_VALUE!=EWOULDBLOCK)
-					break;
-				mswait(500);
-			} 
-			if(i<0) {
-				lprintf(LOG_NOTICE,"!TELGATE ERROR %d sending on socket %d",ERROR_VALUE,remote_socket);
-				break;
+				}
 			}
 		}
 		rd=recv(remote_socket,(char*)buf,sizeof(buf),0);
