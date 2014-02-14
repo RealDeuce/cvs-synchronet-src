@@ -25,5 +25,3 @@ target_include_directories(uedit PRIVATE ..)
 if(CURSES_FOUND)
 	target_compile_definitions(uedit PRIVATE HAS_CURSES)
 endif()
-
-install(TARGETS uedit DESTINATION bin)
