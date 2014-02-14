@@ -64,7 +64,6 @@ BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 
 	if(domain == AF_UNIX) {
 		memset(&dummy, 0, sizeof(dummy));
-		memset(&un_addr, 0, sizeof(un_addr));
 		dummy.ai_family = AF_UNIX;
 		dummy.ai_socktype = type;
 		dummy.ai_addr = (struct sockaddr *)&un_addr;
@@ -72,17 +71,13 @@ BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 
 		if(strlen(addr) >= sizeof(un_addr.sun_path)) {
 			if(xpms_set->lprintf)
-				xpms_set->lprintf(LOG_ERR, "!ERROR %s is too long for a portable AF_UNIX socket", addr);
+				xpms_set->lprintf(LOG_ERR, "!ERROR %s is too long for a AF_UNIX socket", addr);
 			return FALSE;
 		}
 		strcpy(un_addr.sun_path,addr);
-#ifdef SUN_LEN
-		dummy.ai_addrlen = SUN_LEN(&un_addr);
-#else
-		dummy.ai_addrlen = offsetof(struct sockaddr_un, un_addr.sun_path) + strlen(addr) + 1;
-#endif
 		if(fexist(addr))
 			unlink(addr);
+		dummy.ai_addrlen = sizeof(un_addr);
 		res = &dummy;
 	}
 #endif
