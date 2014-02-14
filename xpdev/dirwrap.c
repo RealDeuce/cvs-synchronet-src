@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.86 2014/04/24 06:08:37 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.85 2014/02/09 23:48:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -882,20 +882,16 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	if(*path != '/')  {
 		if(*path == '~') {
 			p=getenv("HOME");
-			if(p==NULL || strlen(p)+strlen(path)>=size) {
-				free(target);
+			if(p==NULL || strlen(p)+strlen(path)>=size)
 				return(NULL);
-			}
 			strcpy(target,p);
 			out=strrchr(target,'\0');
 			path++;
 		}
 		else {
 			p=getcwd(NULL,size);
-			if(p==NULL || strlen(p)+strlen(path)>=size) {
-				free(target);
+			if(p==NULL || strlen(p)+strlen(path)>=size)
 				return(NULL);
-			}
 			strcpy(target,p);
 			free(p);
 			out=strrchr(target,'\0');
