@@ -2,7 +2,7 @@
 
 /* mmap() style cross-platform development wrappers */
 
-/* $Id: xpmap.c,v 1.6 2014/04/24 06:40:22 deuce Exp $ */
+/* $Id: xpmap.c,v 1.5 2014/02/10 09:20:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,20 +77,14 @@ struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type)
 	fd=open(filename, oflags);
 	if(fd == -1)
 		return NULL;
-	if(fstat(fd, &sb)==-1) {
-		close(fd);
+	if(fstat(fd, &sb)==-1)
 		return NULL;
-	}
 	addr=mmap(NULL, sb.st_size, mprot, mflags, fd, 0);
-	if(addr==MAP_FAILED) {
-		close(fd);
+	if(addr==MAP_FAILED)
 		return NULL;
-	}
 	ret=(struct xpmapping *)malloc(sizeof(struct xpmapping));
-	if(ret==NULL) {
-		close(fd);
+	if(ret==NULL)
 		return NULL;
-	}
 	ret->addr=addr;
 	ret->fd=fd;
 	ret->size=sb.st_size;

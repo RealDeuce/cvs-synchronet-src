@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.28 2014/04/23 10:02:07 deuce Exp $ */
+/* $Id: uifcx.c,v 1.27 2014/02/10 04:52:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -411,19 +411,15 @@ void help()
                 p++;
             l=-1L;
             while(!feof(fp)) {
-                if(fread(str,12,1,fp)!=1)
+                if(!fread(str,12,1,fp))
                     break;
                 str[12]=0;
-                if(fread(&line,2,1,fp)!=1);
+                fread(&line,2,1,fp);
                 if(stricmp(str,p) || line!=helpline) {
-                    if(fseek(fp,4,SEEK_CUR)==0)
-						break;
-                    continue;
-                }
-                if(fread(&l,4,1,fp)!=1)
-					l=-1L;
-                break;
-            }
+                    fseek(fp,4,SEEK_CUR);
+                    continue; }
+                fread(&l,4,1,fp);
+                break; }
             fclose(fp);
             if(l==-1L)
                 sprintf(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
@@ -433,31 +429,21 @@ void help()
                     sprintf(hbuf,"ERROR: Cannot open help file: %s"
                         ,api->helpdatfile);
                 else {
-                    if(fseek(fp,l,SEEK_SET)!=0) {
-						sprintf(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %s"
-							,p,helpline,l,api->helpixbfile);
-					}
-					else {
-						if(fread(hbuf,1,HELPBUF_SIZE,fp)<1) {
-							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
-								,p,helpline,l,api->helpixbfile);
-						}
-					}
-					fclose(fp); 
-				}
-			}
-		}
-		uputs(hbuf);
-		if(strlen(hbuf)>200) {
-			printf("Hit enter");
-			getstr(str,sizeof(str)-1);
-		}
+                    fseek(fp,l,SEEK_SET);
+                    fread(hbuf,HELPBUF_SIZE,1,fp);
+                    fclose(fp); 
+				} 
+			} 
+		} 
 	}
-    else {
-		uputs(api->helpbuf);
-		if(strlen(api->helpbuf)>200) {
-			printf("Hit enter");
-			getstr(str,sizeof(str)-1);
-		}
-	}
+    else
+        strcpy(hbuf,api->helpbuf);
+
+    uputs(hbuf);
+    if(strlen(hbuf)>200) {
+        printf("Hit enter");
+        getstr(str,sizeof(str)-1);
+    }
 }
+
+
