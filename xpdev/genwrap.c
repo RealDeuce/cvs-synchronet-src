@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.97 2015/09/28 06:58:12 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.91 2014/02/05 10:17:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -48,10 +48,7 @@
 	#include <sys/ioctl.h>		/* ioctl() */
 	#include <sys/utsname.h>	/* uname() */
 	#include <signal.h>
-#elif defined(_WIN32)
-	#include <windows.h>
-	#include <lm.h>		/* NetWkstaGetInfo() */
-#endif
+#endif	/* __unix__ */
 
 #include "genwrap.h"	/* Verify prototypes */
 #include "xpendian.h"	/* BYTE_SWAP */
@@ -194,43 +191,6 @@ char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_
 	return(dst);
 }
 
-/* Returns a byte count parsed from the 'str' argument, supporting power-of-2
- * short-hands (e.g. 'K' for kibibytes).
- * If 'unit' is specified (greater than 1), result is divided by this amount.
- * 
- * Moved from ini_file.c/parseBytes()
- */
-int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
-{
-	char*	p=NULL;
-	double	bytes;
-
-	bytes=strtod(str,&p);
-	if(p!=NULL) {
-		switch(toupper(*p)) {
-			case 'E':
-				bytes*=1024;
-				/* fall-through */
-			case 'P':
-				bytes*=1024;
-				/* fall-through */
-			case 'T':
-				bytes*=1024;
-				/* fall-through */
-			case 'G':
-				bytes*=1024;
-				/* fall-through */
-			case 'M':
-				bytes*=1024;
-				/* fall-through */
-			case 'K':
-				bytes*=1024;
-				break;
-		}
-	}
-	return((int64_t)(unit>1 ? (bytes/unit):bytes));
-}
-
 /****************************************************************************/
 /* Convert ASCIIZ string to upper case										*/
 /****************************************************************************/
@@ -318,17 +278,15 @@ char* DLLCALL strtok_r(char *str, const char *delim, char **last)
 /****************************************************************************/
 void DLLCALL xp_randomize(void)
 {
-#if !(defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC))
 	unsigned seed=~0;
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	int		rf;
-#endif
 #endif
 
 #if defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC)
 	srandomdev();
 	return;
-#else
+#endif
 
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
@@ -354,7 +312,6 @@ void DLLCALL xp_randomize(void)
  	srandom(seed);
 #else
  	srand(seed);
-#endif
 #endif
 }
 
@@ -447,23 +404,10 @@ char* DLLCALL os_version(char *str)
 			break;
 	}
 
-	/* Work-around Microsoft Windows 8.1 stupidity where GetVersionEx() lies about the current OS version */
-	if(winver.dwMajorVersion == 6 && winver.dwMinorVersion == 2) {
-		WKSTA_INFO_100* wksta_info;
-		if(NetWkstaGetInfo(NULL, 100, (LPBYTE*)&wksta_info) == NERR_Success) {
-			winver.dwMajorVersion = wksta_info->wki100_ver_major;
-			winver.dwMinorVersion = wksta_info->wki100_ver_minor;
-			winver.dwBuildNumber = 0;
-		}
-	}
-
-	sprintf(str,"Windows %sVersion %u.%u"
+	sprintf(str,"Windows %sVersion %u.%u (Build %u) %s"
 			,winflavor
-			,winver.dwMajorVersion, winver.dwMinorVersion);
-	if(winver.dwBuildNumber)
-		sprintf(str+strlen(str), " (Build %u)", winver.dwBuildNumber);
-	if(winver.szCSDVersion[0])
-		sprintf(str+strlen(str), " %s", winver.szCSDVersion);
+			,winver.dwMajorVersion, winver.dwMinorVersion
+			,winver.dwBuildNumber,winver.szCSDVersion);
 
 #elif defined(__unix__)
 
@@ -513,7 +457,7 @@ clock_t DLLCALL msclock(void)
 	struct timeval tv;
 	if(gettimeofday(&tv,NULL)==1)
 		return(-1);
-	usecs=((long long int)tv.tv_sec)*((long long int)1000000)+tv.tv_usec;
+	usecs=tv.tv_sec*1000000+tv.tv_usec;
 	return((clock_t)(usecs/(1000000/MSCLOCKS_PER_SEC)));
 }
 #endif
