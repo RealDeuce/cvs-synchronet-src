@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.66 2014/04/04 00:17:52 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.64 2014/02/06 20:37:32 deuce Exp $ */
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
@@ -137,12 +137,14 @@ enum {
 
 /* Unsigned type short-hands    */
 #ifndef uchar
-    #define uchar   unsigned char
+        #define uchar   unsigned char
 #endif
-#ifndef ushort
-	#define ushort  unsigned short
-	typedef unsigned int uint;			/* Incompatible with Spidermonkey header files when #define'd */
-	#define ulong   unsigned long
+#ifndef __GLIBC__
+        #ifndef ushort
+        #define ushort  unsigned short
+        typedef unsigned int uint;			/* Incompatible with Spidermonkey header files when #define'd */
+        #define ulong   unsigned long
+        #endif
 #endif
 
 #if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)
@@ -173,7 +175,7 @@ typedef uint64_t	uintmax_t;
 typedef int64_t		intmax_t;
 #define _INTMAX_T_DECLARED
 
-#if !defined(HAS_STDINT_H) && !defined(_UINTPTR_T_DEFINED)
+#if !defined(HAS_STDINT_H)
 typedef uintmax_t	uintptr_t;
 typedef intmax_t	intptr_t;
 #endif
