@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.53 2015/09/28 20:34:54 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.41 2014/02/10 09:11:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,32 +39,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "genwrap.h"    /* alloca() */
+#if defined(_WIN32)
+ #include <malloc.h>    /* alloca() on Win32 */
+#endif
 
 #include "xpprintf.h"
 #include "gen_defs.h"
 
-#if defined(_MSC_VER) || defined(__MSVCRT__)
-int asprintf(char **strptr, char *format, ...)
-{
-	va_list	va;
-	va_list	va2;
-	int		ret;
-
-	if (strptr == NULL)
-		return -1;
-	va_start(va, format);
-	va_copy(va2, va);
-	ret = _vscprintf(format, va);
-	*strptr = (char *)malloc(ret+1);
-	if (*strptr == NULL)
-		return -1;
-	ret = vsprintf(*strptr, format, va2);
-	va_end(va);
-	va_end(va2);
-	return ret;
-}
-#endif
+/* MSVC Sucks - can't tell the required len of a *printf() */
+#define MAX_ARG_LEN		1024			/* MAX_ARG_LEN is the maximum length
+										 * possible as a result of a format
+										 * which is not %s
+										 */
 
 /* Maximum length of a format specifier including the % */
 #define MAX_FORMAT_LEN	256
@@ -79,7 +65,7 @@ int DLLCALL xp_printf_get_type(const char *format)
 	const char	*p;
 	int		modifier=0;
 	int		j;
-	int		correct_type=0;
+	int		correct_type;
 
 	if(!*(size_t *)format)
 		return(0);
@@ -138,7 +124,7 @@ int DLLCALL xp_printf_get_type(const char *format)
 			}
 			break;
 		case 'l':
-			modifier='l';
+			modifier='h';
 			p++;
 			if(*p=='l') {
 				p++;
@@ -296,7 +282,7 @@ int DLLCALL xp_printf_get_type(const char *format)
  *
  * Does not currently support the $ argument selector.
  *
- * Currently, the type is not overly useful, but this could be used for
+ * Currently, the type is not overly usefull, but this could be used for
  * automatic type conversions (ie: int to char *).  Right now it just assures
  * that the type passed to sprintf() is the type passed to
  * xp_asprintf_next().
@@ -306,24 +292,24 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	va_list vars;
 	char			*p;
 	char			*newbuf;
-	int				i=0,j;
-	unsigned int	ui=0;
-	long int		l=0;
-	unsigned long int	ul=0;
+	int				i,j;
+	unsigned int	ui;
+	long int		l;
+	unsigned long int	ul;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
-	long long int	ll=0;
-	unsigned long long int	ull=0;
+	long long int	ll;
+	unsigned long long int	ull;
 #endif
-	double			d=0;
-	long double		ld=0;
-	char*			cp=NULL;
-	void*			pntr=NULL;
-	size_t			s=0;
+	double			d;
+	long double		ld;
+	char*			cp;
+	void*			pntr;
+	size_t			s;
 	unsigned long	offset=0;
 	unsigned long	offset2=0;
 	size_t			format_len;
 	size_t			this_format_len;
-	char			int_buf[MAX_FORMAT_LEN];
+	char			entry_buf[MAX_ARG_LEN];
 	char			*entry;
 	char			this_format[MAX_FORMAT_LEN];
 	char			*fmt;
@@ -382,7 +368,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	 */
 	if(*p=='*') {		/* The argument is this width */
 		va_start(vars, type);
-		i=sprintf(int_buf,"%d", va_arg(vars, int));
+		i=sprintf(entry_buf,"%d", va_arg(vars, int));
 		va_end(vars);
 		if(i > 1) {
 			/*
@@ -400,11 +386,11 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 			 * is so it can be overwritten
 			 */
 			memmove(p+i, p+1, format-p+format_len);
-			memcpy(p, int_buf, i);
+			memcpy(p, entry_buf, i);
 			*(size_t *)(format+sizeof(size_t))+=i-1;
 		}
 		else
-			*p=int_buf[0];
+			*p=entry_buf[0];
 		p=format+offset;
 		*(size_t *)format=p-format;
 		return(format);
@@ -423,7 +409,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		 */
 		if(*p=='*') {
 			va_start(vars, type);
-			i=sprintf(int_buf,"%d", va_arg(vars, int));
+			i=sprintf(entry_buf,"%d", va_arg(vars, int));
 			va_end(vars);
 			if(i > 1) {
 				/*
@@ -441,11 +427,11 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 				 * is so it can be overwritten
 				 */
 				memmove(p+i, p+1, format-p+format_len);
-				memcpy(p, int_buf, i);
+				memcpy(p, entry_buf, i);
 				*(size_t *)(format+sizeof(size_t))+=i-1;
 			}
 			else
-				*p=int_buf[0];
+				*p=entry_buf[0];
 			p=format+offset;
 			*(size_t *)format=p-format;
 			return(format);
@@ -474,7 +460,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 			}
 			break;
 		case 'l':
-			modifier='l';
+			modifier='h';
 			*(fmt++)=*(p++);
 			if(*p=='l') {
 				*(fmt++)=*(p++);
@@ -1170,60 +1156,60 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		}
 	}
 
-	/* The next char is now the type... check the length required to spore the printf()ed string */
+	/* The next char is now the type... perform native sprintf() using it */
 	*(fmt++)=*p;
 	*fmt=0;
-	entry=NULL;
+	entry=entry_buf;
 	switch(type) {
 		case XP_PRINTF_TYPE_CHAR:	/* Also includes char and short */
 		case XP_PRINTF_TYPE_INT:	/* Also includes char and short */
-			j=asprintf(&entry, this_format, i);
+			j=sprintf(entry, this_format, i);
 			break;
 		case XP_PRINTF_TYPE_UINT:	/* Also includes char and short */
-			j=asprintf(&entry, this_format, ui);
+			j=sprintf(entry, this_format, ui);
 			break;
 		case XP_PRINTF_TYPE_LONG:
-			j=asprintf(&entry, this_format, l);
+			j=sprintf(entry, this_format, l);
 			break;
 		case XP_PRINTF_TYPE_ULONG:
-			j=asprintf(&entry, this_format, ul);
+			j=sprintf(entry, this_format, ul);
 			break;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
 		case XP_PRINTF_TYPE_LONGLONG:
-			j=asprintf(&entry, this_format, ll);
+			j=sprintf(entry, this_format, ll);
 			break;
 		case XP_PRINTF_TYPE_ULONGLONG:
-			j=asprintf(&entry, this_format, ull);
+			j=sprintf(entry, this_format, ull);
 			break;
 #endif
 		case XP_PRINTF_TYPE_CHARP:
 			if(cp==NULL)
-				j=asprintf(&entry, this_format, "<null>");
-			else
-				j=asprintf(&entry, this_format, cp);
+				j=sprintf(entry, this_format, "<null>");
+			else {
+				s=strlen(cp);
+				if(s<width)
+					s=width;
+				if(s<precision)
+					s=precision;
+				if(s>=MAX_ARG_LEN)
+					entry=(char *)alloca(s+1);
+				if(entry==NULL)
+					return(NULL);
+				j=sprintf(entry, this_format, cp);
+			}
 			break;
 		case XP_PRINTF_TYPE_DOUBLE:
-			j=asprintf(&entry, this_format, d);
+			j=sprintf(entry, this_format, d);
 			break;
 		case XP_PRINTF_TYPE_LONGDOUBLE:
-			j=asprintf(&entry, this_format, ld);
+			j=sprintf(entry, this_format, ld);
 			break;
 		case XP_PRINTF_TYPE_VOIDP:
-			j=asprintf(&entry, this_format, pntr);
+			j=sprintf(entry, this_format, pntr);
 			break;
 		case XP_PRINTF_TYPE_SIZET:
-			j=asprintf(&entry, this_format, s);
+			j=sprintf(entry, this_format, s);
 			break;
-		default:
-			j = -1;
-			entry = NULL;
-			break;
-	}
-
-	if (j<0) {
-		FREE_AND_NULL(entry);
-		entry = strdup("<error>");
-		j=strlen(entry);
 	}
 
 	this_format_len=strlen(this_format);
@@ -1246,7 +1232,6 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	}
 	else
 		p=format+offset+this_format_len;
-	FREE_AND_NULL(entry);
 
 	*(size_t *)(format+sizeof(size_t))=format_len-this_format_len+j-sizeof(size_t)*2-1;
 
