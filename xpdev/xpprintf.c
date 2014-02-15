@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.46 2014/04/24 07:58:06 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.41 2014/02/10 09:11:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +65,7 @@ int DLLCALL xp_printf_get_type(const char *format)
 	const char	*p;
 	int		modifier=0;
 	int		j;
-	int		correct_type=0;
+	int		correct_type;
 
 	if(!*(size_t *)format)
 		return(0);
@@ -124,7 +124,7 @@ int DLLCALL xp_printf_get_type(const char *format)
 			}
 			break;
 		case 'l':
-			modifier='l';
+			modifier='h';
 			p++;
 			if(*p=='l') {
 				p++;
@@ -292,19 +292,19 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	va_list vars;
 	char			*p;
 	char			*newbuf;
-	int				i=0,j;
-	unsigned int	ui=0;
-	long int		l=0;
-	unsigned long int	ul=0;
+	int				i,j;
+	unsigned int	ui;
+	long int		l;
+	unsigned long int	ul;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
-	long long int	ll=0;
-	unsigned long long int	ull=0;
+	long long int	ll;
+	unsigned long long int	ull;
 #endif
-	double			d=0;
-	long double		ld=0;
-	char*			cp=NULL;
-	void*			pntr=NULL;
-	size_t			s=0;
+	double			d;
+	long double		ld;
+	char*			cp;
+	void*			pntr;
+	size_t			s;
 	unsigned long	offset=0;
 	unsigned long	offset2=0;
 	size_t			format_len;
@@ -460,7 +460,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 			}
 			break;
 		case 'l':
-			modifier='l';
+			modifier='h';
 			*(fmt++)=*(p++);
 			if(*p=='l') {
 				*(fmt++)=*(p++);
