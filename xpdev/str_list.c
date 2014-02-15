@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.41 2014/04/24 06:19:08 deuce Exp $ */
+/* $Id: str_list.c,v 1.40 2014/02/09 13:37:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,49 +394,30 @@ int DLLCALL strListCmp(str_list_t list1, str_list_t list2)
 {
 	str_list_t	l1=strListDup(list1);
 	str_list_t	l2=strListDup(list2);
-	str_list_t	ol1=l1;
-	str_list_t	ol2=l2;
 	int			tmp;
-	int			ret;
 
-	if(*l1 == NULL && *l2 == NULL) {
-		ret=0;
-		goto early_return;
-	}
-	if(*l1 == NULL) {
-		ret = -1;
-		goto early_return;
-	}
-	if(*l2 == NULL) {
-		ret = 1;
-		goto early_return;
-	}
+	if(*l1 == NULL && *l2 == NULL)
+		return 0;
+	if(*l1 == NULL)
+		return -1;
+	if(*l2 == NULL)
+		return 1;
 
 	strListSortAlphaCase(l1);
 	strListSortAlphaCase(l2);
 
 	for(; *l1; l1++) {
 		l2++;
-		if(*l2==NULL) {
-			ret=1;
-			goto early_return;
-		}
+		if(*l2==NULL)
+			return 1;
 		tmp = strcmp(*l1, *l2);
-		if(tmp != 0) {
-			ret=tmp;
-			goto early_return;
-		}
+		if(tmp != 0)
+			return tmp;
 	}
 	l2++;
 	if(*l2==NULL)
-		ret=0;
-	else
-		ret=-1;
-
-early_return:
-	strListFree(&ol1);
-	strListFree(&ol2);
-	return ret;
+		return 0;
+	return -1;
 }
 
 void DLLCALL strListFreeStrings(str_list_t list)
