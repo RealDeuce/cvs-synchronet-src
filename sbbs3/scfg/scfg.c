@@ -2,7 +2,7 @@
 
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.79 2015/08/22 10:33:24 deuce Exp $ */
+/* $Id: scfg.c,v 1.77 2014/02/16 06:28:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,6 +271,11 @@ int main(int argc, char **argv)
 		else 
 	   		sprintf(str,"%s../exec",cfg.ctrl_dir);
 	}
+	FULLPATH(uifc.helpdatfile,str,sizeof(uifc.helpdatfile));
+	backslash(uifc.helpdatfile);
+	SAFECOPY(uifc.helpixbfile,uifc.helpdatfile);
+	strcat(uifc.helpdatfile,"scfghelp.dat");
+	strcat(uifc.helpixbfile,"scfghelp.ixb");
 
 	sprintf(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
 	if(uifc.scrn(str)) {
@@ -278,6 +283,14 @@ int main(int argc, char **argv)
 		bail(1);
 	}
 
+	if(!fexist(uifc.helpdatfile)) {
+		sprintf(errormsg,"Help file (%s) missing!",uifc.helpdatfile);
+		uifc.msg(errormsg);
+	}
+	if(!fexist(uifc.helpixbfile)) {
+		sprintf(errormsg,"Help file (%s) missing!",uifc.helpixbfile);
+		uifc.msg(errormsg);
+	}
 	sprintf(str,"%smain.cnf",cfg.ctrl_dir);
 	if(!fexist(str)) {
 		sprintf(errormsg,"Main configuration file (%s) missing!",str);
@@ -604,7 +617,7 @@ void txt_cfg()
 	static int txt_dflt,bar;
 	char str[128],code[128],done=0;
 	int j,k;
-	uint i,u;
+	uint i;
 	static txtsec_t savtxtsec;
 
 	while(1) {
@@ -680,8 +693,8 @@ void txt_cfg()
 				bail(1);
 				continue; }
 			if(cfg.total_txtsecs)
-				for(u=cfg.total_txtsecs;u>i;u--)
-					cfg.txtsec[u]=cfg.txtsec[u-1];
+				for(j=cfg.total_txtsecs;j>i;j--)
+					cfg.txtsec[j]=cfg.txtsec[j-1];
 			if((cfg.txtsec[i]=(txtsec_t *)malloc(sizeof(txtsec_t)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(txtsec_t));
 				continue; }
@@ -767,7 +780,7 @@ void shell_cfg()
 	static int shell_dflt,shell_bar;
 	char str[128],code[128],done=0;
 	int j,k;
-	uint i,u;
+	uint i;
 	static shell_t savshell;
 
 	while(1) {
@@ -846,8 +859,8 @@ void shell_cfg()
 				bail(1);
 				continue; }
 			if(cfg.total_shells)
-				for(u=cfg.total_shells;u>i;u--)
-					cfg.shell[u]=cfg.shell[u-1];
+				for(j=cfg.total_shells;j>i;j--)
+					cfg.shell[j]=cfg.shell[j-1];
 			if((cfg.shell[i]=(shell_t *)malloc(sizeof(shell_t)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(shell_t));
 				continue; }
