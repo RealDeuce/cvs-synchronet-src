@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.35 2011/10/29 23:02:53 deuce Exp $ */
+/* $Id: fixsmb.c,v 1.36 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -204,7 +204,7 @@ int fixsmb(char* sub)
 			text=NULL;
 		else
 			text=smb_getmsgtxt(&smb,&msg,GETMSGTXT_BODY_ONLY);
-		i=smb_hashmsg(&smb,&msg,text,TRUE /* update */);
+		i=smb_hashmsg(&smb,&msg,(uchar*)text,TRUE /* update */);
 		if(i!=SMB_SUCCESS)
 			printf("!ERROR %d hashing message\n", i);
 		if(text!=NULL)
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 	int 		i;
 	str_list_t	list;
 
-	sscanf("$Revision: 1.35 $", "%*s %s", revision);
+	sscanf("$Revision: 1.36 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
