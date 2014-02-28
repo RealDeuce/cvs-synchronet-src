@@ -2,13 +2,13 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.59 2015/08/18 00:53:46 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.55 2011/10/19 07:08:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -250,25 +250,22 @@ int sbbs_t::listfiles(uint dirnum, const char *filespec, int tofile, long mode)
 						bputs(hdr);
 						for(c=bstrlen(hdr);c<d;c++)
 							outchar(' ');
-						attr(cfg.color[clr_filelsthdrbox]);
 						bputs("º\r\nº ");
 						sprintf(hdr,text[BoxHdrDir],j+1,cfg.dir[dirnum]->lname);
 						bputs(hdr);
 						for(c=bstrlen(hdr);c<d;c++)
 							outchar(' ');
-						attr(cfg.color[clr_filelsthdrbox]);
 						bputs("º\r\nº ");
 						sprintf(hdr,text[BoxHdrFiles],l/F_IXBSIZE);
 						bputs(hdr);
 						for(c=bstrlen(hdr);c<d;c++)
 							outchar(' ');
-						attr(cfg.color[clr_filelsthdrbox]);
 						bputs("º\r\nÈÍ");
 						for(c=0;c<d;c++)
 							outchar('Í');
 						bputs("¼\r\n"); 
-					}
-				}
+					} 
+				} 
 			}
 			else {					/* short header */
 				if(tofile) {
@@ -433,8 +430,6 @@ bool sbbs_t::listfile(const char *fname, const char *buf, uint dirnum
     uchar	alt;
     int		i,j;
     ulong	cdt;
-	off_t	size;
-	int		size_attr=clr_filecdt;
 
 	if(buf[F_MISC]!=ETX && (buf[F_MISC]-' ')&FM_EXTDESC && useron.misc&EXTDESC) {
 		getextdesc(&cfg,dirnum,datoffset,ext);
@@ -462,44 +457,36 @@ bool sbbs_t::listfile(const char *fname, const char *buf, uint dirnum
 		attr(cfg.color[clr_filedesc]);
 		bprintf("%c",letter); 
 	}
+	if(cfg.dir[dirnum]->misc&DIR_FCHK && !fexistcase(path)) {
+		exist=0;
+		attr(cfg.color[clr_err]); 
+	}
+	else
+		attr(cfg.color[clr_filecdt]);
 	getrec(buf,F_CDT,LEN_FCDT,str);
 	cdt=atol(str);
-	if(cfg.dir[dirnum]->misc&DIR_FCHK) {
-		if(!fexistcase(path)) {
-			exist=0;
-			size_attr = clr_err; 
-		}
-		else if((cfg.dir[dirnum]->misc&DIR_FREE) && (size=flength(path)) >= 0)
-			cdt = size;
-	}
-	attr(cfg.color[size_attr]);
 	if(useron.misc&BATCHFLAG) {
-		if(!cdt && !(cfg.dir[dirnum]->misc&DIR_FREE)) {
+		if(!cdt) {
 			attr(curatr^(HIGH|BLINK));
 			bputs("  FREE"); 
 		}
-		else if(cdt>=(1024*1024*1024))
-			bprintf("%5.1fG",cdt/(1024.0*1024.0*1024.0));
-		else if(cdt>=(1024*1024))
-			bprintf("%5.1fM",cdt/(1024.0*1024.0));
-		else if(cdt>=1024)
-			bprintf("%5.1fK",cdt/1024.0); 
-		else
-			bprintf("%5luB", cdt);
+		else {
+			if(cdt<1024)    /* 1k is smallest size */
+				cdt=1024;
+			if(cdt>(99999*1024))
+				bprintf("%5luM",cdt/(1024*1024));
+			else
+				bprintf("%5luk",cdt/1024L); } 
 	}
 	else {
-		if(!cdt && !(cfg.dir[dirnum]->misc&DIR_FREE)) {  /* FREE file */
+		if(!cdt) {  /* FREE file */
 			attr(curatr^(HIGH|BLINK));
 			bputs("   FREE"); 
 		}
-		else if(cdt>=(1024*1024*1024))
-			bprintf("%6.1fG",cdt/(1024.0*1024.0*1024.0));
-		else if(cdt>=(1024*1024))
-			bprintf("%6.1fM",cdt/(1024.0*1024.0));
-		else if(cdt>=1024)
-			bprintf("%6.1fK",cdt/1024.0); 
+		else if(cdt>9999999L)
+			bprintf("%6luk",cdt/1024L);
 		else
-			bprintf("%6luB", cdt);
+			bprintf("%7lu",cdt); 
 	}
 	if(exist)
 		outchar(' ');
@@ -699,7 +686,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 				pause();
 			return(2); 
 		}
-		if(ch==text[YNQP][2] || sys_status&SS_ABORT)
+		if(ch=='Q' || sys_status&SS_ABORT)
 			return(-1);
 		if(ch=='S')
 			return(0);
@@ -1362,7 +1349,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 			openfile(&f);
 			SYNC;
 			mnemonics(text[ProtocolBatchQuitOrNext]);
-			sprintf(str,"B%c\r",text[YNQP][2]);
+			strcpy(str,"BQ\r");
 			for(i=0;i<cfg.total_prots;i++)
 				if(cfg.prot[i]->dlcmd[0]
 					&& chk_ar(cfg.prot[i]->ar,&useron,&client)) {
@@ -1371,7 +1358,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 				}
 	//		  ungetkey(useron.prot);
 			ch=(char)getkeys(str,0);
-			if(ch==text[YNQP][2]) {
+			if(ch=='Q') {
 				found=-1;
 				done=1; 
 			}
