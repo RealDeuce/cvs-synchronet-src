@@ -2,13 +2,13 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.42 2015/08/22 06:18:31 deuce Exp $ */
+/* $Id: telgate.cpp,v 1.39 2014/03/06 21:30:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "telnet.h" 
 
-void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, char* server_user_name, char* term_type)
+void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* name, char* passwd)
 {
 	char*	p;
 	uchar	buf[512];
@@ -77,7 +77,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 	}
 
 	memset(&addr,0,sizeof(addr));
-	addr.sin_addr.s_addr = htonl(startup->outgoing4.s_addr);
+	addr.sin_addr.s_addr = htonl(startup->telnet_interface);
 	addr.sin_family = AF_INET;
 
 	if((i=bind(remote_socket, (struct sockaddr *) &addr, sizeof (addr)))!=0) {
@@ -121,14 +121,17 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 	if(mode&TG_RLOGIN) {
 		p=(char*)buf;
 		*(p++)=0;
-		p+=sprintf(p,"%s",client_user_name==NULL ? useron.alias : client_user_name);
+		p+=sprintf(p,"%s",name==NULL ? useron.alias : name);
 		p++;	// Add NULL
-		p+=sprintf(p,"%s",server_user_name==NULL ? useron.name : server_user_name);
+		if(passwd!=NULL)
+			p+=sprintf(p,"%s",passwd);
+		else if(mode&TG_SENDPASS) {
+			p+=sprintf(p,"%s",useron.pass);
+		} else {
+			p+=sprintf(p,"%s",useron.name);
+		}
 		p++;	// Add NULL
-		if(term_type!=NULL)
-			p+=sprintf(p,"%s",term_type);
-		else
-			p+=sprintf(p,"%s/%lu",terminal, cur_rate);
+		p+=sprintf(p,"%s/57600",terminal);
 		p++;	// Add NULL
 		l=p-(char*)buf;
 		sendsocket(remote_socket,(char*)buf,l);
