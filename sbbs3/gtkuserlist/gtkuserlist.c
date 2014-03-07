@@ -4,9 +4,10 @@
 #include "events.h"
 #include "gtkuserlist.h"
 
-GladeXML	*lxml;
 scfg_t		cfg;
 uchar		*arbuf=NULL;
+GtkBuilder*	builder;
+extern const char builder_interface[];
 
 int main(int argc, char **argv)
 {
@@ -16,11 +17,14 @@ int main(int argc, char **argv)
 	char			flags[33];
 	GtkListStore	*lstore = NULL;
 	GtkTreeSelection *lsel;
-	char			glade_path[MAX_PATH+1];
 	char	*p;
+	GtkListStore	*quickstore = NULL;
+	GtkTreeIter		curr;
+	GtkCellRenderer *column;
+	GtkWindow*	xml;
+	GError* error = NULL;
 
     gtk_init(&argc, &argv);
-    glade_init();
 
     /* Read .cfg files here */
     memset(&cfg,0,sizeof(cfg));
@@ -39,23 +43,21 @@ int main(int argc, char **argv)
 
     if(!load_cfg(&cfg, NULL, TRUE, str)) {
 		fprintf(stderr,"Cannot load configuration data (%s)",str);
-        return;
+        return(-1);
 	}
 
-    /* load the interface */
-	strcpy(glade_path, argv[0]);
-	strcpy(getfname(glade_path), "gtkuserlist.glade");
+	builder = gtk_builder_new ();
+	gtk_builder_add_from_string(builder, builder_interface, -1, NULL);
 
-    lxml = glade_xml_new(glade_path, "UserListWindow", NULL);
-	if(lxml==NULL) {
-		fprintf(stderr,"Could not locate UserListWindow widget\n");
-		return;
-	}
     /* connect the signals in the interface */
-    glade_xml_signal_autoconnect(lxml);
+	gtk_builder_connect_signals (builder, NULL);
+
+	/* Get MainWindow and display it */
+	xml = GTK_WINDOW (gtk_builder_get_object (builder, "MainWindow"));
+	gtk_window_present(xml);
 
 	/* Set up user list */
-	w=glade_xml_get_widget(lxml, "lUserList");
+	w=GTK_WIDGET(gtk_builder_get_object(builder, "lUserList"));
 	lstore = gtk_list_store_new(17
 			,G_TYPE_INT
 			,G_TYPE_STRING
@@ -295,14 +297,32 @@ int main(int argc, char **argv)
 	update_userlist_sensitive_callback(lsel, NULL);
 
 	/* Set up quick validation values */
-	w=glade_xml_get_widget(lxml, "cQuickValidate");
-	gtk_combo_box_set_active(GTK_COMBO_BOX(w), 0);
-	for(i=0;i<10;i++) {
-		sprintf(str,"%d  SL: %-2d  F1: %s",i,cfg.val_level[i],ltoaf(cfg.val_flags1[i],flags));
-		gtk_combo_box_append_text(GTK_COMBO_BOX(w), str);
+	w=GTK_WIDGET(gtk_builder_get_object(builder, "cQuickValidate"));
+	/* Fist call... set up grid */
+	if(quickstore == NULL) {
+		quickstore = gtk_list_store_new(1, G_TYPE_STRING);
+		gtk_combo_box_set_model(GTK_COMBO_BOX(w), GTK_TREE_MODEL(quickstore));
+		gtk_list_store_insert(quickstore, &curr, 0);
+		gtk_list_store_set(quickstore, &curr, 0, "Quick Validation Sets", -1);
+		column = gtk_cell_renderer_text_new();
+		gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(w), column, TRUE);
+		gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(w), column,
+				"text", 0,
+				NULL
+		);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(w), 0);
+	}
+
+	gtk_list_store_move_after(quickstore, &curr, 0);
+	for(i=1; i<=10; i++) {
+		gtk_list_store_append(quickstore, &curr);
+		sprintf(str,"%-2d  SL: %-2d  F1: %s",i,cfg.val_level[i],ltoaf(cfg.val_flags1[i],flags));
+		gtk_list_store_set(quickstore, &curr, 0, str, -1);
+		gtk_tree_model_iter_next(GTK_TREE_MODEL(quickstore), &curr);
 	}
 
 	/* Show 'er to the user */
-	gtk_window_present(GTK_WINDOW(glade_xml_get_widget(lxml, "UserListWindow")));
+	gtk_window_present(GTK_WINDOW(gtk_builder_get_object(builder, "UserListWindow")));
 	gtk_main();
+	return 0;
 }
