@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.601 2014/01/08 10:17:54 rswindell Exp $ */
+/* $Id: main.cpp,v 1.602 2014/03/07 22:51:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2941,6 +2941,7 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	terminal[0]=0;
 	rlogin_name[0]=0;
 	rlogin_pass[0]=0;
+	rlogin_term[0]=0;
 
 	/* Init some important variables */
 
