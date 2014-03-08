@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.406 2014/05/01 08:12:27 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.405 2014/03/07 22:51:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -336,7 +336,6 @@ public:
 	pthread_mutex_t	input_thread_mutex;
 	bool	input_thread_mutex_locked;	// by someone other than the input_thread
 	pthread_mutex_t	ssh_mutex;
-	bool	ssh_mutex_created;
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
