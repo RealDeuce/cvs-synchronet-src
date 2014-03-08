@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.601 2014/01/08 10:17:54 rswindell Exp $ */
+/* $Id: main.cpp,v 1.603 2014/03/08 02:06:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1290,7 +1290,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
-						sprintf(sbbs->terminal,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						safe_snprintf(sbbs->terminal,sizeof(sbbs->terminal),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal type: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1299,7 +1299,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					} else if(option==TELNET_TERM_SPEED
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
 						char speed[128];
-						sprintf(speed,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						safe_snprintf(speed,sizeof(speed),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal speed: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -2191,7 +2191,7 @@ void output_thread(void* arg)
     sbbs->output_thread_running = false;
 
 	if(total_sent)
-		sprintf(stats,"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
+		safe_snprintf(stats,sizeof(stats),"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
 			,total_sent, total_pkts, total_sent/total_pkts, short_sends);
 	else
 		stats[0]=0;
@@ -2941,6 +2941,7 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	terminal[0]=0;
 	rlogin_name[0]=0;
 	rlogin_pass[0]=0;
+	rlogin_term[0]=0;
 
 	/* Init some important variables */
 
@@ -3151,7 +3152,7 @@ bool sbbs_t::init()
 			now=time(NULL);
 			struct tm tm;
 			localtime_r(&now,&tm);
-			sprintf(str,"%s  %s %s %02d %u  "
+			safe_snprintf(str,sizeof(str),"%s  %s %s %02d %u  "
 				"End of preexisting log entry (possible crash)"
 				,hhmmtostr(&cfg,&tm,tmp)
 				,wday[tm.tm_wday]
@@ -4304,7 +4305,7 @@ const char* DLLCALL bbs_ver(void)
 	if(ver[0]==0) {	/* uninitialized */
 		DESCRIBE_COMPILER(compiler);
 
-		sprintf(ver,"%s %s%c%s  SMBLIB %s  Compiled %s %s with %s"
+		safe_snprintf(ver,sizeof(ver),"%s %s%c%s  SMBLIB %s  Compiled %s %s with %s"
 			,TELNET_SERVER
 			,VERSION, REVISION
 #ifdef _DEBUG
