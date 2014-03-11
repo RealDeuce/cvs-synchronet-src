@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.h,v 1.15 2014/03/12 09:39:16 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.h,v 1.14 2014/03/07 22:55:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,7 +98,6 @@ __published:
     TCheckBox *SshEnabledCheckBox;
     TLabel *SshInterfaceLabel;
     TEdit *SshInterfaceEdit;
-        TCheckBox *DosSupportCheckBox;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall OKBtnClick(TObject *Sender);
 	void __fastcall AnswerSoundButtonClick(TObject *Sender);

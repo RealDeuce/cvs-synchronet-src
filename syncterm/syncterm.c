@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.184 2014/06/25 09:22:19 deuce Exp $ */
+/* $Id: syncterm.c,v 1.181 2014/02/09 11:07:59 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -48,7 +48,7 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 1.0b"
+char* syncterm_version = "SyncTERM 0.9.5b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -1586,6 +1586,7 @@ int main(int argc, char **argv)
 	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
+		atexit(exit_crypt);
 	return(0);
 
 	USAGE:
