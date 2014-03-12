@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.75 2015/08/22 01:37:51 deuce Exp $ */
+/* $Id: startup.h,v 1.72 2014/03/12 09:37:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,9 +64,7 @@ typedef struct {
 	char	temp_dir[INI_MAX_VALUE_LEN];
 	char	host_name[INI_MAX_VALUE_LEN];
 	ushort	sem_chk_freq;
-	struct in_addr		outgoing4;
-	struct in6_addr	outgoing6;
-	str_list_t		interfaces;
+	ulong	interface_addr;
 	int		log_level;
 	js_startup_t js;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
@@ -89,12 +87,10 @@ typedef struct {
 	WORD	outbuf_highwater_mark;	/* output block size control */
 	WORD	outbuf_drain_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
-	struct in_addr outgoing4;
-	struct in6_addr	outgoing6;
-    str_list_t	telnet_interfaces;
+    uint32_t   telnet_interface;
     uint32_t	options;			/* See BBS_OPT definitions */
-    str_list_t	rlogin_interfaces;
-    str_list_t	ssh_interfaces;
+    DWORD	rlogin_interface;
+	DWORD	ssh_interface;
     RingBuf** node_spybuf;			/* Spy output buffer (each node)	*/
     RingBuf** node_inbuf;			/* User input buffer (each node)	*/
     sem_t**	node_spysem;			/* Spy output semaphore (each node)	*/
@@ -158,9 +154,8 @@ static struct init_field {
 	,OFFSET_AND_SIZE(bbs_startup_t,last_node)
 	,OFFSET_AND_SIZE(bbs_startup_t,telnet_port)
 	,OFFSET_AND_SIZE(bbs_startup_t,rlogin_port)
-	,OFFSET_AND_SIZE(bbs_startup_t,telnet_interfaces)
-	,OFFSET_AND_SIZE(bbs_startup_t,rlogin_interfaces)
-	,OFFSET_AND_SIZE(bbs_startup_t,ssh_interfaces)
+	,OFFSET_AND_SIZE(bbs_startup_t,telnet_interface)
+	,OFFSET_AND_SIZE(bbs_startup_t,rlogin_interface)
 	,OFFSET_AND_SIZE(bbs_startup_t,ctrl_dir)
 	,OFFSET_AND_SIZE(bbs_startup_t,temp_dir)
 	,{ 0,0 }	/* terminator */
