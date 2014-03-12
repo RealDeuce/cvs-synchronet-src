@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.569 2014/03/12 09:36:28 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.568 2014/03/11 07:07:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3276,8 +3276,7 @@ static void smtp_thread(void* arg)
 			sockprintf(socket,"250-SOML");
 			sockprintf(socket,"250-SAML");
 			sockprintf(socket,"250-8BITMIME");
-			if(startup->max_msg_size)
-				sockprintf(socket,"250 SIZE %lu", startup->max_msg_size);
+			sockprintf(socket,"250 SIZE %lu", startup->max_msg_size);
 			esmtp=TRUE;
 			state=SMTP_STATE_HELO;
 			cmd=SMTP_CMD_NONE;
@@ -4895,7 +4894,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.569 $", "%*s %s", revision);
+	sscanf("$Revision: 1.568 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
