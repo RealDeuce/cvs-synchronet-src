@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.570 2014/09/01 08:48:08 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.569 2014/03/12 09:36:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2635,51 +2635,55 @@ static void smtp_thread(void* arg)
 					SAFEPRINTF2(proc_err_fname,"%sSBBS_SMTP.%s.err", scfg.temp_dir, session_id);
 					remove(proc_err_fname);
 
-					for(i=0;i<mailproc_count && !msg_handled;i++) {
-						struct mailproc* mp=&mailproc_list[i];
-						if(mp->disabled)
+					for(i=0;i<mailproc_count;i++) {
+	
+						mailproc=&mailproc_list[i];
+						if(mailproc->disabled)
 							continue;
 
-						if(!mp->process_dnsbl && dnsbl_result.s_addr)
+						if(!mailproc->process_dnsbl && dnsbl_result.s_addr)
 							continue;
 
-						if(!mp->process_spam && spam_bait_result)
+						if(!mailproc->process_spam && spam_bait_result)
 							continue;
 
-						if(!chk_ar(&scfg,mp->ar,&relay_user,&client))
+						if(!chk_ar(&scfg,mailproc->ar,&relay_user,&client))
 							continue;
 
-						if(mp->to!=NULL && !mailproc_to_match[i])
+						if(mailproc->to!=NULL && !mailproc_to_match[i])
 							continue;
 
-						if(mp->from!=NULL 
-							&& !findstr_in_list(sender_addr, mp->from))
+						if(mailproc->from!=NULL 
+							&& !findstr_in_list(sender_addr, mailproc->from))
 							continue;
 
-						mailcmdstr(mp->cmdline
+						if(!mailproc->passthru)
+							msg_handled=TRUE;
+
+						mailcmdstr(mailproc->cmdline
 							,msgtxt_fname, newtxt_fname, logtxt_fname
 							,rcptlst_fname, proc_err_fname
 							,host_name, host_ip, relay_user.number
 							,rcpt_addr
 							,sender, sender_addr, reverse_path, str);
 						lprintf(LOG_INFO,"%04d SMTP Executing external mail processor: %s"
-							,socket, mp->name);
+							,socket, mailproc->name);
 
-						if(mp->native) {
+						if(mailproc->native) {
 							lprintf(LOG_DEBUG,"%04d SMTP Executing external command: %s"
 								,socket, str);
 							if((j=system(str))!=0) {
 								lprintf(LOG_NOTICE,"%04d SMTP system(%s) returned %d (errno: %d)"
 									,socket, str, j, errno);
-								if(mp->ignore_on_error) {
+								if(mailproc->ignore_on_error) {
 									lprintf(LOG_WARNING,"%04d !SMTP IGNORED MAIL due to mail processor (%s) error: %d"
-										,socket, mp->name, j);
+										,socket, mailproc->name, j);
 									msg_handled=TRUE;
 								}
 							}
 						} else {  /* JavaScript */
 							if(!js_mailproc(socket, &client, &relay_user
-								,mp
+								,mailproc
 								,str /* cmdline */
 								,msgtxt_fname, newtxt_fname, logtxt_fname
 								,rcpt_addr
@@ -2698,16 +2702,13 @@ static void smtp_thread(void* arg)
 #endif
 							}
 						}
-						if(!mp->passthru || flength(proc_err_fname)>0 || !fexist(msgtxt_fname) || !fexist(rcptlst_fname)) {
-							mailproc=mp;
-							msg_handled=TRUE;
+						if(flength(proc_err_fname)>0)
 							break;
-						}
+						if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname))
+							break;
 					}
 					if(flength(proc_err_fname)>0 
 						&& (proc_err=fopen(proc_err_fname,"r"))!=NULL) {
-						lprintf(LOG_WARNING,"%04d !SMTP External mail processor (%s) created: %s"
-								,socket, mailproc->name, proc_err_fname);
 						while(!feof(proc_err)) {
 							int n;
 							if(!fgets(str,sizeof(str),proc_err))
@@ -4894,7 +4895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.570 $", "%*s %s", revision);
+	sscanf("$Revision: 1.569 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

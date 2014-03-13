@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.137 2014/08/20 10:18:36 deuce Exp $ */
+/* $Id: ini_file.c,v 1.135 2014/02/09 13:37:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1294,7 +1294,7 @@ int DLLCALL iniGetSocketOptions(str_list_t list, const char* section, SOCKET soc
 	int			option;
 	int			level;
 	int			value;
-	int			type=0;	// Assignment is to silence Valgrind.
+	int			type;
 	LINGER		linger;
 	socket_option_t* socket_options=getSocketOptionList();
 	union xp_sockaddr	addr;
@@ -1721,10 +1721,8 @@ unsigned* DLLCALL parseEnumList(const char* values, const char* sep, str_list_t 
 
 	free(vals);
 
-	if((*count=strListCount(list)) < 1) {
-		strListFree(&list);
+	if((*count=strListCount(list)) < 1)
 		return NULL;
-	}
 
 	if((enum_list=(unsigned *)malloc((*count)*sizeof(unsigned)))!=NULL) {
 		for(i=0;i<*count;i++)
