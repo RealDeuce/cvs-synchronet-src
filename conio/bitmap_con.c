@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.39 2014/04/23 10:31:51 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.38 2014/02/09 07:48:48 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -533,10 +533,6 @@ int bitmap_setfont(int font, int force, int font_num)
 			gettext(1,1,ow,oh,old);
 			textmode(newmode);
 			new=malloc(ti.screenwidth*ti.screenheight*2);
-			if(!new) {
-				free(old);
-				return -1;
-			}
 			pold=old;
 			pnew=new;
 			for(row=0; row<ti.screenheight; row++) {
