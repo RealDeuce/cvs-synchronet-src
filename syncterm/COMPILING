@@ -17,6 +17,11 @@ src/syncterm/*
 src/uifc/*
 src/xpdev/*
 src/comio/*
+3rdp/build/Common.gmake
+3rdp/build/Common.make
+3rdp/build/GNUmakefile
+3rdp/build/targets.mk
+3rdp/dist/cryptlib.zip
 
 The directory structure under src *must* be kept intact.  Once you have all
 this in place, a simple "make" should build everything you need.  If you're
@@ -39,4 +44,7 @@ make USE_SDL_AUDIO=1 STATIC_SDL=1 RELEASE=1 PREFIX=/usr
 
 The package is generated and copied do a disk image which is then converted
 with the following command:
-hdiutil convert ~/Desktop/SyncTERM.dmg -format UDRO -o /synchronet/sbbs/web/root/syncterm.bbsdev.net/SyncTERM.dmg
+hdiutil convert ~/Desktop/SyncTERM.dmg -format UDRO -o /Volumes/Synchronet/sbbs/web/root/syncterm.bbsdev.net/SyncTERM.dmg
+
+Release builds for Win32 using MinGW32 use the following command line:
+gmake DONT_CLOBBER_CC=yes CC=mingw32-gcc VERBOSE=please AR=mingw32-ar RANLIB=mingw32-ranlib RELEASE=1 CXX=mingw32-g++ WINDRES=mingw32-windres
