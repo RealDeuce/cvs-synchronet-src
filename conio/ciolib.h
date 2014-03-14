@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.65 2014/02/09 13:27:34 deuce Exp $ */
+/* $Id: ciolib.h,v 1.66 2014/02/13 09:17:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,7 @@ struct text_info {
 	unsigned char cury;           /* y-coordinate in current window */
 };
 
-extern struct text_info cio_textinfo;
+CIOLIBEXPORTVAR struct text_info cio_textinfo;
 
 struct mouse_event {
 	int event;
