@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.151 2014/04/23 10:43:40 deuce Exp $ */
+/* $Id: cterm.c,v 1.150 2014/02/09 13:27:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1813,7 +1813,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.151 $";
+	char	*revision="$Revision: 1.150 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2088,9 +2088,6 @@ char* CIOLIBCALL cterm_write(struct cterminal * cterm, const unsigned char *buf,
 										conio_fontdata[cterm->font_slot].eight_by_eight=buf2;
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
 										conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
-										break;
-									default:
-										FREE_AND_NULL(buf2);
 										break;
 								}
 							}
