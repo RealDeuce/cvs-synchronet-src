@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.144 2014/04/06 06:19:18 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.143 2014/03/13 07:07:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -466,7 +466,7 @@ void sbbs_read_ini(
 		mail->max_recipients
 			=iniGetShortInt(list,section,"MaxRecipients",100);
 		mail->max_msg_size
-			=(DWORD)iniGetBytes(list,section,"MaxMsgSize",/* units: */1,DEFAULT_MAX_MSG_SIZE);
+			=iniGetBytes(list,section,"MaxMsgSize",/* units: */1,DEFAULT_MAX_MSG_SIZE);
 		mail->max_msgs_waiting
 			=iniGetInteger(list,section,"MaxMsgsWaiting",DEFAULT_MAX_MSGS_WAITING);
 		mail->connect_timeout
