@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.19 2015/05/02 03:20:55 rswindell Exp $ */
+/* $Id: text.h,v 1.16 2014/03/13 07:17:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -763,7 +763,7 @@ enum {
 	,NodeActionPrivateChat
 	,NodeActionPaging
 	,NodeActionRetrieving
-	,YNQP /* (Yes/No/Quit/Password chars) */
+	,YN /* (Yes/No/Quit/Password chars) */
 	,ViewSignatureQ
 	,DeleteSignatureQ
 	,CreateEditSignatureQ
@@ -808,9 +808,6 @@ enum {
 	,AddSubToNewScanQ
 	,UnvalidatedWarning
 	,StartingNewUserRegistration
-	,GetStrMenu
-	,DisplayUnreadMessagesOnlyQ
-	,NoMessagesFound
 
 	,TOTAL_TEXT
 };
