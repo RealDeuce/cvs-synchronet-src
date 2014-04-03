@@ -2,13 +2,13 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.41 2011/09/01 02:50:16 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.44 2014/01/09 09:51:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -678,6 +678,7 @@ static DWORD get_service_info(SC_HANDLE hSCManager, char* name, DWORD* state)
     SC_HANDLE		hService;
 	DWORD			size;
 	DWORD			err;
+	DWORD			ret;
 	SERVICE_STATUS	status;
 	LPQUERY_SERVICE_CONFIG service_config;
 
@@ -704,7 +705,7 @@ static DWORD get_service_info(SC_HANDLE hSCManager, char* name, DWORD* state)
 	if(state!=NULL && QueryServiceStatus(hService,&status))
 		*state=status.dwCurrentState;
 
-	if((service_config=alloca(size))==NULL) {
+	if((service_config=malloc(size))==NULL) {
 		printf("\n!ERROR allocating %u bytes of memory\n", size);
 		return(-1);
 	}
@@ -716,11 +717,14 @@ static DWORD get_service_info(SC_HANDLE hSCManager, char* name, DWORD* state)
 		&size			/* address of variable for bytes needed */
 		)) {
 		printf("\n!QueryServiceConfig ERROR %u\n",GetLastError());
+		free(service_config);
 		return(-1);
 	}
     CloseServiceHandle(hService);
+	ret=service_config->dwStartType;
+	free(service_config);
 
-	return(service_config->dwStartType);
+	return ret;
 }
 
 /****************************************************************************/
@@ -912,7 +916,7 @@ static void control_service(SC_HANDLE hSCManager, char* name, char* disp_name, D
 		return;
 
     /* try to stop the service */
-    if(!ControlService( hService, SERVICE_CONTROL_STOP, &status)) {
+    if(!ControlService( hService, ctrl, &status)) {
 		if((err=GetLastError())==ERROR_SERVICE_NOT_ACTIVE)
 			printf("Not active\n");
 		else
