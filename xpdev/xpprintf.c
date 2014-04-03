@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.37 2012/10/23 08:07:08 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.41 2014/02/10 09:11:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,12 +55,12 @@
 /* Maximum length of a format specifier including the % */
 #define MAX_FORMAT_LEN	256
 
-void xp_asprintf_free(char *format)
+void DLLCALL xp_asprintf_free(char *format)
 {
 	free(format);
 }
 
-int xp_printf_get_type(const char *format)
+int DLLCALL xp_printf_get_type(const char *format)
 {
 	const char	*p;
 	int		modifier=0;
@@ -287,7 +287,7 @@ int xp_printf_get_type(const char *format)
  * that the type passed to sprintf() is the type passed to
  * xp_asprintf_next().
  */
-char *xp_asprintf_next(char *format, int type, ...)
+char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 {
 	va_list vars;
 	char			*p;
@@ -670,7 +670,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					switch(type) {
 						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
-							i=i;
 							break;
 						case XP_PRINTF_TYPE_UINT:
 							i=ui;
@@ -713,7 +712,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 					switch(type) {
 						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
-							i=i;
 							break;
 						case XP_PRINTF_TYPE_UINT:
 							i=ui;
@@ -756,7 +754,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ui=i;
 							break;
 						case XP_PRINTF_TYPE_UINT:
-							ui=ui;
 							break;
 						case XP_PRINTF_TYPE_LONG:
 							ui=l;
@@ -799,7 +796,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							l=ui;
 							break;
 						case XP_PRINTF_TYPE_LONG:
-							l=l;
 							break;
 						case XP_PRINTF_TYPE_ULONG:
 							l=ul;
@@ -842,7 +838,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ul=l;
 							break;
 						case XP_PRINTF_TYPE_ULONG:
-							ul=ul;
 							break;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
 						case XP_PRINTF_TYPE_LONGLONG:
@@ -886,7 +881,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ll=ul;
 							break;
 						case XP_PRINTF_TYPE_LONGLONG:
-							ll=ll;
 							break;
 						case XP_PRINTF_TYPE_ULONGLONG:
 							ll=ull;
@@ -927,7 +921,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ull=ll;
 							break;
 						case XP_PRINTF_TYPE_ULONGLONG:
-							ull=ull;
 							break;
 						case XP_PRINTF_TYPE_CHARP:
 							ull=strtoull(cp, NULL, 0);
@@ -980,7 +973,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							break;
 #endif
 						case XP_PRINTF_TYPE_CHARP:
-							cp=cp;
 							break;
 						case XP_PRINTF_TYPE_DOUBLE:
 							sprintf(num_str, "%f", d);
@@ -1028,7 +1020,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							d=strtod(cp, NULL);
 							break;
 						case XP_PRINTF_TYPE_DOUBLE:
-							d=d;
 							break;
 						case XP_PRINTF_TYPE_LONGDOUBLE:
 							d=ld;
@@ -1072,7 +1063,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							ld=d;
 							break;
 						case XP_PRINTF_TYPE_LONGDOUBLE:
-							ld=ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
 							ld=(long double)((long int)pntr);
@@ -1087,16 +1077,16 @@ char *xp_asprintf_next(char *format, int type, ...)
 					switch(type) {
 						case XP_PRINTF_TYPE_CHAR:
 						case XP_PRINTF_TYPE_INT:
-							pntr=(void *)i;
+							pntr=(void *)((intptr_t)i);
 							break;
 						case XP_PRINTF_TYPE_UINT:
-							pntr=(void *)ui;
+							pntr=(void *)((uintptr_t)ui);
 							break;
 						case XP_PRINTF_TYPE_LONG:
-							pntr=(void *)l;
+							pntr=(void *)((intptr_t)l);
 							break;
 						case XP_PRINTF_TYPE_ULONG:
-							pntr=(void *)ul;
+							pntr=(void *)((uintptr_t)ul);
 							break;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
 						case XP_PRINTF_TYPE_LONGLONG:
@@ -1107,19 +1097,18 @@ char *xp_asprintf_next(char *format, int type, ...)
 							break;
 #endif
 						case XP_PRINTF_TYPE_CHARP:
-							pntr=(void *)cp;
+							pntr=(void *)(cp);
 							break;
 						case XP_PRINTF_TYPE_DOUBLE:
-							pntr=(void *)(long int)d;
+							pntr=(void *)((intptr_t)d);
 							break;
 						case XP_PRINTF_TYPE_LONGDOUBLE:
-							pntr=(void *)(long int)ld;
+							pntr=(void *)((intptr_t)ld);
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
-							pntr=pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
-							pntr=(void *)s;
+							pntr=(void *)((intptr_t)s);
 							break;
 					}
 					break;
@@ -1159,7 +1148,6 @@ char *xp_asprintf_next(char *format, int type, ...)
 							s=(size_t)pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
-							s=s;
 							break;
 					}
 					break;
@@ -1267,7 +1255,7 @@ char *xp_asprintf_next(char *format, int type, ...)
 	return(format);
 }
 
-char *xp_asprintf_start(const char *format)
+char* DLLCALL xp_asprintf_start(const char *format)
 {
 	char	*ret;
 	char	*p;
@@ -1298,7 +1286,7 @@ char *xp_asprintf_start(const char *format)
 	return(ret);
 }
 
-char *xp_asprintf_end(char *format, size_t *lenret)
+char* DLLCALL xp_asprintf_end(char *format, size_t *lenret)
 {
 	char	*p;
 	size_t	len;
@@ -1318,7 +1306,7 @@ char *xp_asprintf_end(char *format, size_t *lenret)
 	return(format);
 }
 
-char *xp_vasprintf(const char *format, va_list va)
+char* DLLCALL xp_vasprintf(const char *format, va_list va)
 {
 	char	*working;
 	char	*next;
@@ -1385,7 +1373,7 @@ char *xp_vasprintf(const char *format, va_list va)
 	return(next);
 }
 
-char *xp_asprintf(const char *format, ...)
+char* DLLCALL xp_asprintf(const char *format, ...)
 {
 	char	*ret;
 	va_list	va;
