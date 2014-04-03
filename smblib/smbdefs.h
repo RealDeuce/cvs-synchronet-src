@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.79 2012/03/07 03:10:50 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.81 2013/09/12 09:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -479,7 +479,7 @@ enum {
 								/* These are the hash sources stored/compared for duplicate message detection: */
 #define SMB_HASH_SOURCE_DUPE	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_MSG_ID)|(1<<SMB_HASH_SOURCE_FTN_ID))
 								/* These are the hash sources stored/compared for SPAM message detection: */
-#define SMB_HASH_SOURCE_SPAM	((1<<SMB_HASH_SOURCE_BODY)|(1<<SMB_HASH_SOURCE_SUBJECT))
+#define SMB_HASH_SOURCE_SPAM	((1<<SMB_HASH_SOURCE_BODY))
 
 typedef struct _PACK {
 
@@ -644,8 +644,8 @@ typedef struct {			/* Message base */
 
 	/* Private member variables (not initialized by or used by smblib) */
 	uint32_t	subnum;			/* Sub-board number */
-	int32_t		msgs;			/* Number of messages loaded (for user) */
-	int32_t		curmsg;			/* Current message number (for user) */
+	uint32_t	msgs;			/* Number of messages loaded (for user) */
+	uint32_t	curmsg;			/* Current message number (for user) */
 
 } smb_t;
 
