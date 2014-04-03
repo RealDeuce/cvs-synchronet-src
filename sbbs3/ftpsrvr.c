@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.407 2014/11/20 05:13:38 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.403 2014/01/08 02:41:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2188,6 +2188,12 @@ static BOOL ftp_hacklog(char* prot, char* user, char* text, char* host, SOCKADDR
 /****************************************************************************/
 /* Consecutive failed login (possible password hack) attempt tracking		*/
 /****************************************************************************/
+/* Counter is global so it is tracked between multiple connections.			*/
+/* Failed consecutive login attempts > 10 will generate a hacklog entry	and	*/
+/* immediately disconnect (after the usual failed-login delay).				*/
+/* A failed login from a different host resets the counter.					*/
+/* A successful login from the same host resets the counter.				*/
+/****************************************************************************/
 
 static BOOL badlogin(SOCKET sock, ulong* login_attempts, char* user, char* passwd, char* host, SOCKADDR_IN* addr)
 {
@@ -2538,9 +2544,9 @@ static void ctrl_thread(void* arg)
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
 			if(!user.number) {
 				if(scfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: '%s' (password: %s)",sock,user.alias,p);
+					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: %s, Password: %s",sock,user.alias,p);
 				else
-					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: '%s'",sock,user.alias);
+					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: %s",sock,user.alias);
 				if(badlogin(sock, &login_attempts, user.alias, p, host_name, &ftp.client_addr))
 					break;
 				continue;
@@ -2838,8 +2844,6 @@ static void ctrl_thread(void* arg)
 				pasv_addr.sin_port = htons(port);
 
 				if((result=bind(pasv_sock, (struct sockaddr *) &pasv_addr,sizeof(pasv_addr)))==0)
-					break;
-				if(port==startup->pasv_port_high)
 					break;
 			}
 			if(result!= 0) {
@@ -4536,7 +4540,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.407 $", "%*s %s", revision);
+	sscanf("$Revision: 1.403 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4598,8 +4602,8 @@ void DLLCALL ftp_server(void* arg)
 
 	/* Setup intelligent defaults */
 	if(startup->port==0)					startup->port=IPPORT_FTP;
-	if(startup->qwk_timeout==0)				startup->qwk_timeout=FTP_DEFAULT_QWK_TIMEOUT;		/* seconds */
-	if(startup->max_inactivity==0)			startup->max_inactivity=FTP_DEFAULT_MAX_INACTIVITY;	/* seconds */
+	if(startup->qwk_timeout==0)				startup->qwk_timeout=600;		/* seconds */
+	if(startup->max_inactivity==0)			startup->max_inactivity=300;	/* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;		/* seconds */
 	if(startup->index_file_name[0]==0)		SAFECOPY(startup->index_file_name,"00index");
 	if(startup->html_index_file[0]==0)		SAFECOPY(startup->html_index_file,"00index.html");
