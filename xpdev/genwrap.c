@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.91 2014/02/05 10:17:28 deuce Exp $ */
+/* $Id: genwrap.c,v 1.92 2014/03/12 09:23:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,10 @@
 	#include <sys/ioctl.h>		/* ioctl() */
 	#include <sys/utsname.h>	/* uname() */
 	#include <signal.h>
-#endif	/* __unix__ */
+#elif defined(_WIN32)
+	#include <Windows.h>
+	#include <LM.h>		/* NetWkstaGetInfo() */
+#endif
 
 #include "genwrap.h"	/* Verify prototypes */
 #include "xpendian.h"	/* BYTE_SWAP */
@@ -404,10 +407,23 @@ char* DLLCALL os_version(char *str)
 			break;
 	}
 
-	sprintf(str,"Windows %sVersion %u.%u (Build %u) %s"
+	/* Work-around Microsoft Windows 8.1 stupidity where GetVersionEx() lies about the current OS version */
+	if(winver.dwMajorVersion == 6 && winver.dwMinorVersion == 2) {
+		WKSTA_INFO_100* wksta_info;
+		if(NetWkstaGetInfo(NULL, 100, (LPBYTE*)&wksta_info) == NERR_Success) {
+			winver.dwMajorVersion = wksta_info->wki100_ver_major;
+			winver.dwMinorVersion = wksta_info->wki100_ver_minor;
+			winver.dwBuildNumber = 0;
+		}
+	}
+
+	sprintf(str,"Windows %sVersion %u.%u"
 			,winflavor
-			,winver.dwMajorVersion, winver.dwMinorVersion
-			,winver.dwBuildNumber,winver.szCSDVersion);
+			,winver.dwMajorVersion, winver.dwMinorVersion);
+	if(winver.dwBuildNumber)
+		sprintf(str+strlen(str), " (Build %u)", winver.dwBuildNumber);
+	if(winver.szCSDVersion[0])
+		sprintf(str+strlen(str), " %s", winver.szCSDVersion);
 
 #elif defined(__unix__)
 
