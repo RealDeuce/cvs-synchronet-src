@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.35 2015/08/22 10:16:56 deuce Exp $ */
+/* $Id: rechocfg.c,v 1.32 2014/01/15 02:28:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -137,7 +137,7 @@ faddr_t atofaddr(char *instr)
  ******************************************************************************/
 int matchnode(faddr_t addr, int exact)
 {
-	uint i;
+	int i;
 
 	if(exact!=2) {
 		for(i=0;i<cfg.nodecfgs;i++) 				/* Look for exact match */
@@ -185,7 +185,6 @@ void read_echo_cfg()
 	char tmp[512],*p,*tp;
 	short attr=0;
 	int i,j,file;
-	uint u;
 	FILE *stream;
 	faddr_t addr,route_addr;
 
@@ -203,7 +202,6 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
-	cfg.fwd_circular=TRUE;
 	cfg.zone_blind=FALSE;
 	cfg.zone_blind_threshold=0xffff;
 	SAFECOPY(cfg.sysop_alias,"SYSOP");
@@ -233,7 +231,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"PACKER")) {             /* Archive Definition */
 			if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
 				,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
-				printf("\nError allocating %" XP_PRIsize_t "u bytes of memory for arcdef #%u.\n"
+				printf("\nError allocating %u bytes of memory for arcdef #%u.\n"
 					,sizeof(arcdef_t)*(cfg.arcdefs+1),cfg.arcdefs+1);
 				bail(1); }
 			SAFECOPY(cfg.arcdef[cfg.arcdefs].name,p);
@@ -271,10 +269,6 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"NOPATHCHECK")) {
 			cfg.check_path=FALSE;
-			continue;
-		}
-		if(!stricmp(tmp,"NOCIRCULARFWD")) {
-			cfg.fwd_circular=FALSE;
 			continue;
 		}
 
@@ -394,12 +388,12 @@ void read_echo_cfg()
 				continue;
 			*p=0;
 			p++;
-			for(u=0;u<cfg.arcdefs;u++)
-				if(!strnicmp(cfg.arcdef[u].name,str
-					,strlen(cfg.arcdef[u].name)))
+			for(i=0;i<cfg.arcdefs;i++)
+				if(!strnicmp(cfg.arcdef[i].name,str
+					,strlen(cfg.arcdef[i].name)))
 					break;
-			if(u==cfg.arcdefs)				/* i = number of arcdef til done */
-				u=0xffff;					/* Uncompressed type if not found */
+			if(i==cfg.arcdefs)				/* i = number of arcdef til done */
+				i=0xffff;					/* Uncompressed type if not found */
 			while(*p) {
 				SKIPCTRLSP(p);
 				if(!*p)
@@ -416,7 +410,7 @@ void read_echo_cfg()
 						bail(1); }
 					memset(&cfg.nodecfg[j],0,sizeof(nodecfg_t));
 					cfg.nodecfg[j].faddr=addr; }
-				cfg.nodecfg[j].arctype=u; } }
+				cfg.nodecfg[j].arctype=i; } }
 
 		if(!stricmp(tmp,"PKTPWD")) {         /* Packet Password */
 			if(!*p)
@@ -627,19 +621,19 @@ void read_echo_cfg()
 				SKIPCODE(p); 	/* Find end of this flag */
 				*p=0;						/* and terminate it 	 */
 				++p;
-				for(u=0;u<cfg.listcfg[cfg.listcfgs-1].numflags;u++)
-					if(!strnicmp(cfg.listcfg[cfg.listcfgs-1].flag[u].flag,tp
-						,strlen(cfg.listcfg[cfg.listcfgs-1].flag[u].flag)))
+				for(j=0;j<cfg.listcfg[cfg.listcfgs-1].numflags;j++)
+					if(!strnicmp(cfg.listcfg[cfg.listcfgs-1].flag[j].flag,tp
+						,strlen(cfg.listcfg[cfg.listcfgs-1].flag[j].flag)))
 						break;
-				if(u==cfg.listcfg[cfg.listcfgs-1].numflags) {
+				if(j==cfg.listcfg[cfg.listcfgs-1].numflags) {
 					if((cfg.listcfg[cfg.listcfgs-1].flag=
 						(flag_t *)realloc(cfg.listcfg[cfg.listcfgs-1].flag
-						,sizeof(flag_t)*(u+1)))==NULL) {
+						,sizeof(flag_t)*(j+1)))==NULL) {
 						printf("\nError allocating memory for listcfg #%u "
-							"flag #%u.\n",cfg.listcfgs,u+1);
+							"flag #%u.\n",cfg.listcfgs,j+1);
 						bail(1); }
 					cfg.listcfg[cfg.listcfgs-1].numflags++;
-					SAFECOPY(cfg.listcfg[cfg.listcfgs-1].flag[u].flag,tp); }
+					SAFECOPY(cfg.listcfg[cfg.listcfgs-1].flag[j].flag,tp); }
 				SKIPCTRLSP(p); } }
 
 		/* Message disabled why?  ToDo */
