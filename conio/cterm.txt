@@ -149,6 +149,13 @@ CSI ? 31 h
 	With this mode set, the bright (1) graphic rendition selects characters
 	from an alternate character set.
 
+CSI ? 32 h
+	NON-STANDARD EXTENSION
+	Bright Intensity Disable
+
+	With this mode set, the bright (1) graphic rendition does not cause
+	characters to be display in a bright colour
+
 CSI ? 33 h
 	NON-STANDARD EXTENSION
 	Blink to Bright Intensity Background
@@ -195,7 +202,7 @@ CSI ? 31 l
 
 CSI ? 32 l
 	NON-STANDARD EXTENSION
-	Bright Intensity Disable
+	Bright Intensity Enable
 
 	Reverses CSI ? 32 h
 
