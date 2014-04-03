@@ -553,12 +553,16 @@ void sdl_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 
 	if(sdl_init_good) {
 		rect=(struct update_rect *)malloc(sizeof(struct update_rect));
-		rect->x=xoffset;
-		rect->y=yoffset;
-		rect->width=width;
-		rect->height=height;
-		rect->data=data;
-		sdl_user_func(SDL_USEREVENT_UPDATERECT, rect);
+		if(rect) {
+			rect->x=xoffset;
+			rect->y=yoffset;
+			rect->width=width;
+			rect->height=height;
+			rect->data=data;
+			sdl_user_func(SDL_USEREVENT_UPDATERECT, rect);
+		}
+		else
+			free(data);
 	}
 	else
 		free(data);
@@ -1483,13 +1487,15 @@ int sdl_video_event_thread(void *data)
 								force_redraws=1;
 							}
 							else {
-								upd_rects[0].x=0;
-								upd_rects[0].y=0;
-								upd_rects[0].w=new_rect->w;
-								upd_rects[0].h=new_rect->h;
-								sdl.BlitSurface(new_rect, upd_rects, win, upd_rects);
-								sdl.UpdateRects(win,1,upd_rects);
-								rectsused=0;
+								if(upd_rects) {
+									upd_rects[0].x=0;
+									upd_rects[0].y=0;
+									upd_rects[0].w=new_rect->w;
+									upd_rects[0].h=new_rect->h;
+									sdl.BlitSurface(new_rect, upd_rects, win, upd_rects);
+									sdl.UpdateRects(win,1,upd_rects);
+									rectsused=0;
+								}
 							}
 						}
 						break;
@@ -1506,7 +1512,7 @@ int sdl_video_event_thread(void *data)
 									SDL_Rect r;
 									int x,y,offset;
 
-									if(!win) {
+									if(!win || !upd_rects) {
 										free(rect->data);
 										free(rect);
 										break;
