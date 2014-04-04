@@ -9,7 +9,6 @@
 #include <link_list.h>
 #include <dirwrap.h>
 #include <jsdbgapi.h>
-#include <stdbool.h>
 #include <xpprintf.h>
 
 struct breakpoint {
@@ -141,15 +140,15 @@ void setup_debugger(void)
 	listInit(&debuggers,LINK_LIST_MUTEX);
 }
 
-bool init_debugger(JSRuntime *rt, JSContext *cx,void (*puts)(const char *), char *(*getline)(void))
+BOOL init_debugger(JSRuntime *rt, JSContext *cx,void (*puts)(const char *), char *(*getline)(void))
 {
 	struct debugger	*dbg;
 
 	if(get_debugger(cx))
-		return false;
+		return FALSE;
 	dbg=malloc(sizeof(struct debugger));
 	if(!dbg)
-		return false;
+		return FALSE;
 	dbg->cx=cx;
 	dbg->puts=puts;
 	dbg->getline=getline;
@@ -158,7 +157,7 @@ bool init_debugger(JSRuntime *rt, JSContext *cx,void (*puts)(const char *), char
 	JS_SetThrowHook(rt, throw_handler, NULL);
 	JS_SetNewScriptHook(rt, newscript_handler, NULL);
 	JS_SetDestroyScriptHook(rt, killscript_handler, NULL);
-	return true;
+	return TRUE;
 }
 
 void end_debugger(JSRuntime *rt, JSContext *cx)
@@ -216,7 +215,7 @@ static enum debug_action script_debug_prompt(struct debugger *dbg, JSScript *scr
 
 					name=JS_GetFunctionId(fn);
 					if(name) {
-						JSSTRING_TO_STRING(dbg->cx, name, cp, NULL);
+						JSSTRING_TO_ASTRING(dbg->cx, name, cp, 128, NULL);
 						msg=xp_asprintf(" %s()", cp);
 						if(msg) {
 							dbg->puts(msg);
@@ -368,7 +367,7 @@ static enum debug_action script_debug_prompt(struct debugger *dbg, JSScript *scr
 
 					name=JS_GetFunctionId(fn);
 					if(name) {
-						JSSTRING_TO_STRING(dbg->cx, name, cp, NULL);
+						JSSTRING_TO_ASTRING(dbg->cx, name, cp, 128, NULL);
 						msg=xp_asprintf("in %s() ", cp);
 						if(msg) {
 							dbg->puts(msg);
