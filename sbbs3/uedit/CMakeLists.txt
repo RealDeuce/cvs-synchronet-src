@@ -20,11 +20,10 @@ add_executable(uedit
 	../userdat.c
 	uedit.c
 )
-double_require_lib(uedit xpdev)
-double_require_lib_dir(uedit ciolib conio)
-double_require_lib(uedit smblib)
-double_require_lib(uedit uifc)
+double_require_libs(uedit xpdev ciolib smblib uifc)
 target_include_directories(uedit PRIVATE ..)
 if(CURSES_FOUND)
 	target_compile_definitions(uedit PRIVATE HAS_CURSES)
 endif()
+
+install(TARGETS uedit DESTINATION bin)
