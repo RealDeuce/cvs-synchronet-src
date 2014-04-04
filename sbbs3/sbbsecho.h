@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.28 2014/04/17 07:08:02 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.27 2014/04/03 06:54:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -163,6 +163,11 @@ typedef struct {
 typedef struct {
 	char flag[5];
 	} flag_t;
+
+typedef struct {
+	uint tags;					/* Number of area tags */
+	char **tag; 				/* Name of each area tag */
+	} area_t;
 
 typedef struct {
 	FILE *stream;				/* The stream associated with this packet (NULL if not-open) */
