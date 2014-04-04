@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.121 2014/04/23 10:15:51 deuce Exp $ */
+/* $Id: ciolib.c,v 1.125 2014/06/23 08:46:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -854,7 +854,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(const char *fmat, ...)
 {
     va_list argptr;
 	int		ret;
-#ifdef _MSC_VER		/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
+#if defined(_MSC_VER) || defined(__MSVCRT__)	/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
 	char	str[16384];
 #else
 	char	*str;
@@ -874,9 +874,10 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(const char *fmat, ...)
 	else
 		ret=EOF;
 	free(str);
+    va_end(argptr);
 #else
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MSVCRT__)
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
 
@@ -894,7 +895,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(const char *fmat, ...)
 	ret=vsprintf(str,fmat,argptr2);
 #endif
     va_end(argptr);
-#ifndef _MSC_VER
+#if !(defined(_MSC_VER) || defined(__MSVCRT__))
     va_end(argptr2);
 #endif
 	if(ret>=0)
