@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.26 2014/01/15 02:28:03 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.27 2014/04/03 06:54:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
 #define SBBSECHO_VERSION_MAJOR		2
-#define SBBSECHO_VERSION_MINOR		26
+#define SBBSECHO_VERSION_MINOR		27
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
