@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.55 2015/11/26 08:34:34 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.50 2011/10/19 06:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -162,7 +162,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	truncsp(to);				/* Truncate off space */
 
 	memset(&hdr,0,sizeof(hdr));   /* Initialize header to null */
-	SAFECOPY(hdr.from, cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
+	strcpy(hdr.from,cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
 	SAFECOPY(hdr.to,to);
 
 	/* Look-up in nodelist? */
@@ -213,10 +213,10 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(cfg.netmail_misc&NMAIL_KILL)  hdr.attr|=FIDO_KILLSENT;
 	if(mode&WM_FILE) hdr.attr|=FIDO_FILE;
 
-	SAFEPRINTF(str,"%snetmail.msg", cfg.node_dir);
-	removecase(str);	/* Just incase it's already there */
+	sprintf(str,"%sNETMAIL.MSG", cfg.node_dir);
+	remove(str);	/* Just incase it's already there */
 	// mode&=~WM_FILE;
-	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into,hdr.from)) {
+	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -237,14 +237,14 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		{ /* Remote */
 			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
-			sprintf(str,"%c",text[YNQP][2]);
+			strcpy(str,"Q");
 			for(x=0;x<cfg.total_prots;x++)
 				if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
 					sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
 					strcat(str,tmp); 
 				}
 			ch=(char)getkeys(str,0);
-			if(ch==text[YNQP][2] || sys_status&SS_ABORT) {
+			if(ch=='Q' || sys_status&SS_ABORT) {
 				bputs(text[Aborted]);
 				return(false); 
 			}
@@ -298,8 +298,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 
 	SAFECOPY(hdr.subj,p);
 
-	SAFEPRINTF(str,"%snetmail.msg", cfg.node_dir);
-	fexistcase(str);
+	sprintf(str,"%sNETMAIL.MSG", cfg.node_dir);
 	if((file=nopen(str,O_RDONLY))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 		return(false); 
@@ -331,19 +330,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		}
 		write(fido,&hdr,sizeof(hdr));
 
-		SAFEPRINTF(str,"\1PID: %s\r", msg_program_id(tmp));
-		write(fido, str, strlen(str));
-
 		pt_zone_kludge(hdr,fido);
-		/* TZUTC (FSP-1001) */
-		int tzone=smb_tzutc(sys_timezone(&cfg));
-		const char* minus="";
-		if(tzone<0) {
-			minus="-";
-			tzone=-tzone;
-		}
-		SAFEPRINTF3(str,"\1TZUTC: %s%02d%02u\r", minus, tzone/60, tzone%60);
-		write(fido, str, strlen(str));
 
 		if(cfg.netmail_misc&NMAIL_DIRECT) {
 			SAFECOPY(str,"\1FLAGS DIR\r\n");
