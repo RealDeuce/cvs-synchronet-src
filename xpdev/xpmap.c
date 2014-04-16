@@ -2,7 +2,7 @@
 
 /* mmap() style cross-platform development wrappers */
 
-/* $Id: xpmap.c,v 1.6 2014/04/24 06:40:22 deuce Exp $ */
+/* $Id: xpmap.c,v 1.7 2014/04/24 06:42:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,7 @@ struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type)
 	}
 	ret=(struct xpmapping *)malloc(sizeof(struct xpmapping));
 	if(ret==NULL) {
+		munmap(addr, sb.st_size);
 		close(fd);
 		return NULL;
 	}

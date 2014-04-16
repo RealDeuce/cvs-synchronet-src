@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.136 2014/04/24 06:04:59 deuce Exp $ */
+/* $Id: ini_file.c,v 1.137 2014/08/20 10:18:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1294,7 +1294,7 @@ int DLLCALL iniGetSocketOptions(str_list_t list, const char* section, SOCKET soc
 	int			option;
 	int			level;
 	int			value;
-	int			type;
+	int			type=0;	// Assignment is to silence Valgrind.
 	LINGER		linger;
 	socket_option_t* socket_options=getSocketOptionList();
 	union xp_sockaddr	addr;
