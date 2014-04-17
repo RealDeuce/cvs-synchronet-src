@@ -1,12 +1,10 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.296 2011/12/06 02:44:25 deuce Exp $ */
+/* $Id: term.c,v 1.299 2014/02/06 11:46:50 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
-#include <mouse.h>
-#include <keys.h>
 
 #include "threadwrap.h"
 #include "filewrap.h"
@@ -859,6 +857,7 @@ void guts_background_download(void *cbdata)
 	zmodem_t	zm;
 	ulong		bytes_received;
 
+	SetThreadName("GUTS Download");
 	zmodem_mode=ZMODEM_MODE_RECV;
 
 	transfer_buf_len=0;
@@ -885,6 +884,7 @@ void guts_background_upload(void *cbdata)
 	ulong	fsize;
 	FILE*	fp;
 
+	SetThreadName("GUTS Upload");
 	if((fp=fopen(gi.files[0],"rb"))==NULL) {
 		fprintf(stderr,"Error %d opening %s for read",errno,gi.files[0]);
 		return;
@@ -2491,6 +2491,12 @@ BOOL doterm(struct bbslist *bbs)
 							setup_mouse_events();
 							puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							free(p);
+							if(cterm->scrollback != scrollback_buf || cterm->backlines != settings.backlines) {
+								cterm->scrollback = scrollback_buf;
+								cterm->backlines = settings.backlines;
+								if(cterm->backpos>cterm->backlines)
+									cterm->backpos=cterm->backlines;
+							}
 							showmouse();
 							_setcursortype(_NORMALCURSOR);
 						}

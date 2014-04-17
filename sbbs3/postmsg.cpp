@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.90 2012/03/07 03:26:16 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.91 2012/10/20 20:49:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,8 +264,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		smb_close_da(&smb); 
 	}
 
-	if((file=open(str,O_RDONLY|O_BINARY))==-1
-		|| (instream=fdopen(file,"rb"))==NULL) {
+	if((instream=fnopen(&file,str,O_RDONLY|O_BINARY))==NULL) {
 		smb_freemsgdat(&smb,offset,length,1);
 		smb_close(&smb);
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY|O_BINARY);
