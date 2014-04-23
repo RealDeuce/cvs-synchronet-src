@@ -2,13 +2,13 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.56 2015/02/18 08:32:04 rswindell Exp $ */
+/* $Id: link_list.c,v 1.54 2014/03/12 05:34:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -236,7 +236,7 @@ BOOL DLLCALL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 
 BOOL DLLCALL listLock(link_list_t* list)
 {
-	int	ret=0;
+	BOOL	ret=TRUE;
 
 	if(list==NULL)
 		return(FALSE);
@@ -244,7 +244,7 @@ BOOL DLLCALL listLock(link_list_t* list)
 	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_lock(&list->mutex))==0)
 #endif
 		list->locks++;
-	return(ret==0);
+	return(ret);
 }
 
 BOOL DLLCALL listIsLocked(const link_list_t* list)
@@ -256,7 +256,7 @@ BOOL DLLCALL listIsLocked(const link_list_t* list)
 
 BOOL DLLCALL listUnlock(link_list_t* list)
 {
-	int	ret=0;
+	BOOL	ret=TRUE;
 
 	if(list==NULL)
 		return(FALSE);
@@ -264,7 +264,7 @@ BOOL DLLCALL listUnlock(link_list_t* list)
 	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_unlock(&list->mutex))==0)
 #endif
 		list->locks--;
-	return(ret==0);
+	return(ret);
 }
 
 long DLLCALL listCountNodes(link_list_t* list)
@@ -761,7 +761,6 @@ void* DLLCALL listRemoveTaggedNode(link_list_t* list, list_node_tag_t tag, BOOL 
 
 long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOOL free_data)
 {
-	list_node_t	*next_node;
 	long count;
 
 	if(list==NULL)
@@ -772,11 +771,9 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 	if(node==FIRST_NODE)
 		node=list->first;
 
-	for(count=0; node!=NULL && count<max; node=next_node, count++) {
-		next_node = node->next;
+	for(count=0; node!=NULL && count<max; node=node->next, count++)
 		if(listRemoveNode(list, node, free_data)==NULL)
 			break;
-	}
 
 	listUnlock(list);
 	
