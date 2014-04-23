@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.96 2009/08/21 08:54:34 deuce Exp $ */
+/* $Id: win32cio.c,v 1.100 2014/09/24 00:18:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,15 +38,7 @@
  #include <malloc.h>	/* alloca() on Win32 */
 #endif
 
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
-#endif
-
 #include "ciolib.h"
-#include "keys.h"
 #include "vidmodes.h"
 #include "win32cio.h"
 
@@ -58,7 +50,7 @@ struct keyvals {
 		,ALT;
 };
 
-const struct keyvals keyval[] =
+CIOLIBEXPORTVAR const struct keyvals keyval[] =
 {
 	{VK_BACK, 0x08, 0x08, 0x7f, 0x0e00},
 	{VK_TAB, 0x09, 0x0f00, 0x9400, 0xa500},
@@ -643,18 +635,23 @@ void win32_textmode(int mode)
 		if(vparams[i].mode==mode)
 			modeidx=i;
 	}
-	sz.X=vparams[modeidx].cols;
-	sz.Y=vparams[modeidx].rows;
+	sz.X = cio_textinfo.screenwidth > vparams[modeidx].cols ? cio_textinfo.screenwidth : vparams[modeidx].cols;
+	sz.Y = cio_textinfo.screenheight > vparams[modeidx].rows ? cio_textinfo.screenheight : vparams[modeidx].rows;
 	rc.Left=0;
 	rc.Right=vparams[modeidx].cols-1;
 	rc.Top=0;
 	rc.Bottom=vparams[modeidx].rows-1;
 
-	if((h=GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE) {
-		SetConsoleScreenBufferSize(h,sz);
-		SetConsoleWindowInfo(h,TRUE,&rc);
-		SetConsoleScreenBufferSize(h,sz);
-	}
+	if ((h=GetStdHandle(STD_OUTPUT_HANDLE)) == INVALID_HANDLE_VALUE)
+		return;
+	if (!SetConsoleScreenBufferSize(h,sz))
+		return;
+	if (!SetConsoleWindowInfo(h,TRUE,&rc))
+		return;
+	sz.X=vparams[modeidx].cols;
+	sz.Y=vparams[modeidx].rows;
+	if (!SetConsoleScreenBufferSize(h,sz))
+		return;
 
 	cio_textinfo.attribute=7;
 	cio_textinfo.normattr=7;
