@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.120 2014/02/09 07:51:03 deuce Exp $ */
+/* $Id: ciolib.c,v 1.121 2014/04/23 10:15:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -488,8 +488,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 			case 0xe0:	/* Skip extended keys */
 				if(ciolib_getche()==1)
 					goto early_return;
-				break;
-			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
 				break;
 			case '\b':
 				if(len==0) {
