@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.89 2014/04/24 06:37:11 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.90 2014/04/24 07:56:29 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -699,6 +699,7 @@ void DLLCALL xp_play_sample_thread(void *data)
 			}
 		}
 		this_sample_size=sample_size;
+		FREE_AND_NULL(sample);
 		sample=(unsigned char *)malloc(sample_size);
 		if(sample==NULL) {
 				sem_post(&sample_complete_sem);
