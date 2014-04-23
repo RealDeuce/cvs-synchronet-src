@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.201 2014/02/09 12:48:26 deuce Exp $ */
+/* $Id: uifc32.c,v 1.203 2014/04/23 10:02:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2086,6 +2086,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						}
 						continue;
 					}
+					/* Fall-through at beginning of string */
 				case CIO_KEY_DC:	/* delete */
 				case DEL:			/* sdl_getch() is returning 127 when keypad "Del" is hit */
 					if(i<j)
@@ -2480,7 +2481,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		}
 		for(i=2;i<(width-j);i+=2)
    		      tmp_buffer2[i]='Ä';
-		if(api->mode&UIFC_MOUSE && !mode&WIN_DYN) {
+		if((api->mode&UIFC_MOUSE) && (!(mode&WIN_DYN))) {
 			tmp_buffer2[2]='[';
 			tmp_buffer2[3]=api->hclr|(api->bclr<<4);
 			/* tmp_buffer2[4]='þ'; */
@@ -2701,50 +2702,59 @@ static void help(void)
 
 	_setcursortype(_NOCURSOR);
 
-	if(api->helpbuf!=NULL)
-		strcpy(hbuf,api->helpbuf);
-	else {
-		if((fp=fopen(api->helpixbfile,"rb"))==NULL) {
-			sprintf(hbuf,"\2 ERROR \2 Cannot open help index:\r\n          %s"
-				,api->helpixbfile);
-		}
-		else {
-			p=strrchr(helpfile,'/');
-			if(p==NULL)
-				p=strrchr(helpfile,'\\');
-			if(p==NULL)
-				p=helpfile;
-			else
-				p++;
-			l=-1L;
-			while(!feof(fp)) {
-				if(!fread(str,12,1,fp))
-					break;
-				str[12]=0;
-				fread(&line,sizeof(line),1,fp);
-				if(stricmp(str,p) || line!=helpline) {
-					fseek(fp,sizeof(l),SEEK_CUR);
-					continue; 
-				}
-				fread(&l,sizeof(l),1,fp);
-				break;
-			}
-			fclose(fp);
-			if(l==-1L)
-				sprintf(hbuf,"\2 ERROR \2 Cannot locate help key (%s:%u) in:\r\n"
-					"         %s",p,helpline,api->helpixbfile);
-			else {
-				if((fp=fopen(api->helpdatfile,"rb"))==NULL)
-					sprintf(hbuf,"\2 ERROR \2 Cannot open help file:\r\n          %s"
-						,api->helpdatfile);
-				else {
-					fseek(fp,l,SEEK_SET);
-					fread(hbuf,HELPBUF_SIZE,1,fp);
+    if(!api->helpbuf) {
+        if((fp=fopen(api->helpixbfile,"rb"))==NULL)
+            sprintf(hbuf,"ERROR: Cannot open help index: %s"
+                ,api->helpixbfile);
+        else {
+            p=strrchr(helpfile,'/');
+            if(p==NULL)
+                p=strrchr(helpfile,'\\');
+            if(p==NULL)
+                p=helpfile;
+            else
+                p++;
+            l=-1L;
+            while(!feof(fp)) {
+                if(fread(str,12,1,fp)!=1)
+                    break;
+                str[12]=0;
+                if(fread(&line,2,1,fp)!=1);
+                if(stricmp(str,p) || line!=helpline) {
+                    if(fseek(fp,4,SEEK_CUR)==0)
+						break;
+                    continue;
+                }
+                if(fread(&l,4,1,fp)!=1)
+					l=-1L;
+                break;
+            }
+            fclose(fp);
+            if(l==-1L)
+                sprintf(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
+                    ,p,helpline,api->helpixbfile);
+            else {
+                if((fp=fopen(api->helpdatfile,"rb"))==NULL)
+                    sprintf(hbuf,"ERROR: Cannot open help file: %s"
+                        ,api->helpdatfile);
+                else {
+                    if(fseek(fp,l,SEEK_SET)!=0) {
+						sprintf(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %s"
+							,p,helpline,l,api->helpixbfile);
+					}
+					else {
+						if(fread(hbuf,1,HELPBUF_SIZE,fp)<1) {
+							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
+								,p,helpline,l,api->helpixbfile);
+						}
+					}
 					fclose(fp); 
 				}
 			}
 		}
+		showbuf(WIN_MID|WIN_HLP, 0, 0, 76, api->scrn_len, "Online Help", hbuf, NULL, NULL);
 	}
-
-	showbuf(WIN_MID|WIN_HLP, 0, 0, 76, api->scrn_len, "Online Help", hbuf, NULL, NULL);
+    else {
+		showbuf(WIN_MID|WIN_HLP, 0, 0, 76, api->scrn_len, "Online Help", api->helpbuf, NULL, NULL);
+	}
 }
