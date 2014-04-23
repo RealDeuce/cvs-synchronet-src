@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.77 2012/10/18 17:48:16 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.80 2014/02/10 02:18:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,13 +42,6 @@
 #ifdef __unix__
 	#include <termios.h>
 	struct termios tio_default;				/* Initial term settings */
-#endif
-
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
 #endif
 
 #include "ciolib.h"
@@ -639,8 +632,8 @@ static void ansi_keyparse(void *par)
 	int		timedout=0;
 	int		unknown=0;
 
-	seq[0]=0;
 	SetThreadName("ANSI Keyparse");
+	seq[0]=0;
 	for(;;) {
 		if(ansi_got_row)
 			sem_wait(&goahead);
@@ -809,6 +802,7 @@ static void ansi_keythread(void *params)
 {
 	int	sval=1;
 
+	SetThreadName("ANSI Key");
 	_beginthread(ansi_keyparse,1024,NULL);
 
 	for(;;) {
