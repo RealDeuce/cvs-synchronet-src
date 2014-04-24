@@ -2,7 +2,7 @@
 
 /* Functions to deal with comma (CSV) and tab-delimited files and lists */
 
-/* $Id: dat_file.c,v 1.5 2006/08/14 22:55:48 rswindell Exp $ */
+/* $Id: dat_file.c,v 1.6 2014/04/24 06:24:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -253,8 +253,10 @@ str_list_t* dataParseList(const str_list_t records, str_list_t* columns, dataLin
 		return(NULL);
 
 	if(columns!=NULL) {
-		if((*columns=lineParser(records[ri++]))==NULL)
+		if((*columns=lineParser(records[ri++]))==NULL) {
+			free(list);
 			return(NULL);
+		}
 	}
 
 	while(records[ri]!=NULL)
