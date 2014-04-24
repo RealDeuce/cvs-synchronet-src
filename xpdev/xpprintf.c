@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.41 2014/02/10 09:11:28 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.42 2014/04/24 05:46:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -460,7 +460,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 			}
 			break;
 		case 'l':
-			modifier='h';
+			modifier='l';
 			*(fmt++)=*(p++);
 			if(*p=='l') {
 				*(fmt++)=*(p++);
