@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.93 2014/04/23 10:59:03 deuce Exp $ */
+/* $Id: genwrap.c,v 1.94 2014/04/24 06:49:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -289,7 +289,7 @@ void DLLCALL xp_randomize(void)
 #if defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC)
 	srandomdev();
 	return;
-#endif
+#else
 
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
@@ -315,6 +315,7 @@ void DLLCALL xp_randomize(void)
  	srandom(seed);
 #else
  	srand(seed);
+#endif
 #endif
 }
 
