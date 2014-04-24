@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.135 2014/02/09 13:37:21 deuce Exp $ */
+/* $Id: ini_file.c,v 1.136 2014/04/24 06:04:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1721,8 +1721,10 @@ unsigned* DLLCALL parseEnumList(const char* values, const char* sep, str_list_t 
 
 	free(vals);
 
-	if((*count=strListCount(list)) < 1)
+	if((*count=strListCount(list)) < 1) {
+		strListFree(&list);
 		return NULL;
+	}
 
 	if((enum_list=(unsigned *)malloc((*count)*sizeof(unsigned)))!=NULL) {
 		for(i=0;i<*count;i++)
