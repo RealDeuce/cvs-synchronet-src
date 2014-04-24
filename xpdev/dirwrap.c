@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.84 2011/10/24 21:48:42 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.87 2014/04/24 06:11:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,7 +334,7 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 /* POSIX directory operations using Microsoft _findfirst/next API.			*/
 /****************************************************************************/
 #if defined(_MSC_VER) || defined(__DMC__)
-DIR* opendir(const char* dirname)
+DIR* DLLCALL opendir(const char* dirname)
 {
 	DIR*	dir;
 
@@ -354,7 +354,7 @@ DIR* opendir(const char* dirname)
 	}
 	return(dir);
 }
-struct dirent* readdir(DIR* dir)
+struct dirent* DLLCALL readdir(DIR* dir)
 {
 	if(dir==NULL)
 		return(NULL);
@@ -367,7 +367,7 @@ struct dirent* readdir(DIR* dir)
 		dir->end=TRUE;
 	return(&dir->dirent);
 }
-int closedir (DIR* dir)
+int DLLCALL closedir (DIR* dir)
 {
 	if(dir==NULL)
 		return(-1);
@@ -375,7 +375,7 @@ int closedir (DIR* dir)
 	free(dir);
 	return(0);
 }
-void rewinddir(DIR* dir)
+void DLLCALL rewinddir(DIR* dir)
 {
 	if(dir==NULL)
 		return;
@@ -870,11 +870,13 @@ ulong DLLCALL getdisksize(const char* path, ulong unit)
 char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	char	*out;
 	char	*p;
+	BOOL	target_alloced=FALSE;
 
 	if(target==NULL)  {
 		if((target=malloc(MAX_PATH+1))==NULL) {
 			return(NULL);
 		}
+		target_alloced=TRUE;
 	}
 	out=target;
 	*out=0;
@@ -882,16 +884,22 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	if(*path != '/')  {
 		if(*path == '~') {
 			p=getenv("HOME");
-			if(p==NULL || strlen(p)+strlen(path)>=size)
+			if(p==NULL || strlen(p)+strlen(path)>=size) {
+				if(target_alloced)
+					free(target);
 				return(NULL);
+			}
 			strcpy(target,p);
 			out=strrchr(target,'\0');
 			path++;
 		}
 		else {
 			p=getcwd(NULL,size);
-			if(p==NULL || strlen(p)+strlen(path)>=size)
+			if(p==NULL || strlen(p)+strlen(path)>=size) {
+				if(target_alloced)
+					free(target);
 				return(NULL);
+			}
 			strcpy(target,p);
 			free(p);
 			out=strrchr(target,'\0');
