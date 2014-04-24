@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.127 2015/02/10 09:43:32 deuce Exp $ */
+/* $Id: ciolib.c,v 1.122 2014/04/23 10:52:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,6 @@ CIOLIBEXPORT int _wscroll=1;
 CIOLIBEXPORT int directvideo=0;
 CIOLIBEXPORT int hold_update=0;
 CIOLIBEXPORT int puttext_can_move=0;
-CIOLIBEXPORT int ciolib_xlat=0;
 static int initialized=0;
 
 CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
@@ -855,7 +854,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(const char *fmat, ...)
 {
     va_list argptr;
 	int		ret;
-#if defined(_MSC_VER) || defined(__MSVCRT__)	/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
+#ifdef _MSC_VER		/* Can't figure out a way to allocate a "big enough" buffer for Win32. */
 	char	str[16384];
 #else
 	char	*str;
@@ -878,7 +877,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(const char *fmat, ...)
     va_end(argptr);
 #else
 
-#if defined(_MSC_VER) || defined(__MSVCRT__)
+#ifdef _MSC_VER
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
 
@@ -896,7 +895,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(const char *fmat, ...)
 	ret=vsprintf(str,fmat,argptr2);
 #endif
     va_end(argptr);
-#if !(defined(_MSC_VER) || defined(__MSVCRT__))
+#ifndef _MSC_VER
     va_end(argptr2);
 #endif
 	if(ret>=0)
@@ -1024,63 +1023,17 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void)
 /* **MUST** be implemented */
 CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e)
 {
-	char	*buf=e;
-	int		i;
-	int		font;
-	int		ret;
 	CIOLIB_INIT();
-
-	if(ciolib_xlat) {
-		font = ciolib_getfont();
-		if (font >= 0) {
-			buf=malloc((c-a+1)*(d-b+1)*2);
-			if (conio_fontdata[font].put_xlat == NULL) {
-				memcpy(buf, e, (c-a+1)*(d-b+1)*2);
-			}
-			else {
-				for (i=0; i<(c-a+1)*(d-b+1)*2; i+=2) {
-					if (((char *)e)[i] > 31 && ((char *)e)[i] < 127)
-						buf[i] = conio_fontdata[font].put_xlat[((char *)e)[i]-32];
-					else
-						buf[i] = ((char *)e)[i];
-					buf[i+1]=((char *)e)[i+1];
-				}
-			}
-		}
-	}
-	ret = cio_api.puttext(a,b,c,d,(void *)buf);
-	if (buf != e)
-		free(buf);
-	return ret;
+	
+	return(cio_api.puttext(a,b,c,d,e));
 }
 
 /* **MUST** be implemented */
 CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e)
 {
-	char	*ch;
-	char	xlat;
-	int		i;
-	int		font;
-	int		ret;
 	CIOLIB_INIT();
-
-	ret = cio_api.gettext(a,b,c,d,e);
-	if(ciolib_xlat) {
-		font = ciolib_getfont();
-		if (font >= 0) {
-			if (conio_fontdata[font].put_xlat) {
-				for (i=0; i<(c-a+1)*(d-b+1)*2; i+=2) {
-					xlat = ((char *)e)[i];
-					if (xlat > 31 && xlat < 127) {
-						if ((ch = memchr(conio_fontdata[font].put_xlat, ((char *)e)[i], 128))!=NULL)
-							xlat = (char)(ch-conio_fontdata[font].put_xlat)+32;
-					}
-					((char *)e)[i] = xlat;
-				}
-			}
-		}
-	}
-	return ret;
+	
+	return(cio_api.gettext(a,b,c,d,e));
 }
 
 /* Optional */
