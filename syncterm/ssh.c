@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.14 2012/06/19 07:47:48 deuce Exp $ */
+/* $Id: ssh.c,v 1.15 2013/08/20 07:36:04 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -50,6 +50,7 @@ void ssh_input_thread(void *args)
 	size_t	buffer;
 	struct timeval tv;
 
+	SetThreadName("SSH Input");
 	conn_api.input_thread_running=1;
 	while(ssh_active && !conn_api.terminate) {
 		FD_ZERO(&rds);
@@ -98,6 +99,7 @@ void ssh_output_thread(void *args)
 	size_t	sent;
 	int		status;
 
+	SetThreadName("SSH Output");
 	conn_api.output_thread_running=1;
 	while(ssh_active && !conn_api.terminate) {
 		pthread_mutex_lock(&(conn_outbuf.mutex));
