@@ -2,13 +2,13 @@
 
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.63 2015/12/03 10:40:14 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.60 2012/12/19 12:37:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -81,9 +81,9 @@ bool route_circ(char *via, char *id)
 	return(false);
 }
 
-extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr, size_t maxlen)
+int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 {
-	char node[10],str[256],path[MAX_PATH+1],*p;
+	char node[10],str[256],*p;
 	int file,i;
 	FILE *stream;
 
@@ -92,47 +92,47 @@ extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr
 	p=strrchr(str,'/');
 	if(p) p++;
 	else p=str;
-	SAFECOPY(node,p);                 /* node = destination node */
+	sprintf(node,"%.8s",p);                 /* node = destination node */
 	truncsp(node);
 
-	for(i=0;i<cfg->total_qhubs;i++)			/* Check if destination is our hub */
-		if(!stricmp(cfg->qhub[i]->id,node))
+	for(i=0;i<cfg.total_qhubs;i++)			/* Check if destination is our hub */
+		if(!stricmp(cfg.qhub[i]->id,node))
 			break;
-	if(i<cfg->total_qhubs) {
-		strncpy(fulladdr,node,maxlen);
+	if(i<cfg.total_qhubs) {
+		strcpy(fulladdr,node);
 		return(0); 
 	}
 
-	i=matchuser(cfg,node,FALSE);			/* Check if destination is a node */
+	i=matchuser(&cfg,node,FALSE);			/* Check if destination is a node */
 	if(i) {
-		getuserrec(cfg,i,U_REST,8,str);
+		getuserrec(&cfg,i,U_REST,8,str);
 		if(ahtoul(str)&FLAG('Q')) {
-			strncpy(fulladdr,node,maxlen);
+			strcpy(fulladdr,node);
 			return(i); 
 		}
 		
 	}
 
-	SAFECOPY(node,inaddr);            /* node = next hop */
+	sprintf(node,"%.8s",inaddr);            /* node = next hop */
 	p=strchr(node,'/');
 	if(p) *p=0;
 	truncsp(node);							
 
 	if(strchr(inaddr,'/')) {                /* Multiple hops */
 
-		for(i=0;i<cfg->total_qhubs;i++)			/* Check if next hop is our hub */
-			if(!stricmp(cfg->qhub[i]->id,node))
+		for(i=0;i<cfg.total_qhubs;i++)			/* Check if next hop is our hub */
+			if(!stricmp(cfg.qhub[i]->id,node))
 				break;
-		if(i<cfg->total_qhubs) {
-			strncpy(fulladdr,inaddr,maxlen);
+		if(i<cfg.total_qhubs) {
+			strcpy(fulladdr,inaddr);
 			return(0); 
 		}
 
-		i=matchuser(cfg,node,FALSE);			/* Check if next hop is a node */
+		i=matchuser(&cfg,node,FALSE);			/* Check if next hop is a node */
 		if(i) {
-			getuserrec(cfg,i,U_REST,8,str);
+			getuserrec(&cfg,i,U_REST,8,str);
 			if(ahtoul(str)&FLAG('Q')) {
-				strncpy(fulladdr,inaddr,maxlen);
+				strcpy(fulladdr,inaddr);
 				return(i); 
 			}
 		}
@@ -141,18 +141,18 @@ extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr
 	p=strchr(node,' ');
 	if(p) *p=0;
 
-	SAFEPRINTF(path,"%sqnet/route.dat",cfg->data_dir);
-	if((stream=fnopen(&file,path,O_RDONLY))==NULL)
+	sprintf(str,"%sqnet/route.dat",cfg.data_dir);
+	if((stream=fnopen(&file,str,O_RDONLY))==NULL)
 		return(0);
 
 	strcat(node,":");
 	fulladdr[0]=0;
 	while(!feof(stream)) {
-		if(!fgets(str,sizeof(str),stream))
+		if(!fgets(str,256,stream))
 			break;
 		if(!strnicmp(str+9,node,strlen(node))) {
 			truncsp(str);
-			safe_snprintf(fulladdr,maxlen,"%s/%s",str+9+strlen(node),inaddr);
+			sprintf(fulladdr,"%s/%s",str+9+strlen(node),inaddr);
 			break; 
 		}
 		
@@ -162,26 +162,27 @@ extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr
 	if(!fulladdr[0])			/* First hop not found in ROUTE.DAT */
 		return(0);
 
-	SAFECOPY(node, fulladdr);
+	sprintf(node,"%.8s",fulladdr);
 	p=strchr(node,'/');
 	if(p) *p=0;
 	truncsp(node);
 
-	for(i=0;i<cfg->total_qhubs;i++)				/* Check if first hop is our hub */
-		if(!stricmp(cfg->qhub[i]->id,node))
+	for(i=0;i<cfg.total_qhubs;i++)				/* Check if first hop is our hub */
+		if(!stricmp(cfg.qhub[i]->id,node))
 			break;
-	if(i<cfg->total_qhubs)
+	if(i<cfg.total_qhubs)
 		return(0);
 
-	i=matchuser(cfg,node,FALSE);				/* Check if first hop is a node */
+	i=matchuser(&cfg,node,FALSE);				/* Check if first hop is a node */
 	if(i) {
-		getuserrec(cfg,i,U_REST,8,str);
+		getuserrec(&cfg,i,U_REST,8,str);
 		if(ahtoul(str)&FLAG('Q'))
 			return(i); 
 	}
 	fulladdr[0]=0;
 	return(0);
 }
+
 
 /* Via is in format: NODE/NODE/... */
 void sbbs_t::update_qwkroute(char *via)
@@ -216,7 +217,7 @@ void sbbs_t::update_qwkroute(char *via)
 		sprintf(str,"%sqnet/route.dat",cfg.data_dir);
 		if((stream=fnopen(&file,str,O_RDONLY))!=NULL) {
 			while(!feof(stream)) {
-				if(!fgets(str,sizeof(str),stream))
+				if(!fgets(str,255,stream))
 					break;
 				truncsp(str);
 				t=dstrtounix(&cfg,str);
@@ -418,13 +419,13 @@ void sbbs_t::qwk_sec()
 		action=NODE_TQWK;
 		ASYNC;
 		bputs(text[QWKPrompt]);
-		sprintf(str,"?UDCSP\r%c",text[YNQP][2]);
+		strcpy(str,"?UDCSPQ\r");
 		if(bi)
 			strcat(str,"B");
 		ch=(char)getkeys(str,0);
 		if(ch>' ')
 			logch(ch,0);
-		if(sys_status&SS_ABORT || ch==text[YNQP][2] || ch==CR || !online)
+		if(sys_status&SS_ABORT || ch=='Q' || ch==CR || !online)
 			break;
 		if(ch=='?') {
 			if((useron.misc&(WIP|RIP|HTML) || !(useron.misc&EXPERT))
@@ -568,14 +569,14 @@ void sbbs_t::qwk_sec()
 			bprintf(text[UploadingREP],cfg.sys_id);
 			xfer_prot_menu(XFER_BIDIR);
 			mnemonics(text[ProtocolOrQuit]);
-			sprintf(tmp2,"%c",text[YNQP][2]);
+			strcpy(tmp2,"Q");
 			for(i=0;i<cfg.total_prots;i++)
 				if(cfg.prot[i]->bicmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 					sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
 					strcat(tmp2,tmp); 
 				}
 			ch=(char)getkeys(tmp2,0);
-			if(ch==text[YNQP][2] || sys_status&SS_ABORT || !online) {
+			if(ch=='Q' || sys_status&SS_ABORT || !online) {
 				for(i=0;i<cfg.total_subs;i++)
 					subscan[i].ptr=sav_ptr[i];	/* re-load saved pointers */
 				last_ns_time=ns_time;
@@ -658,7 +659,7 @@ void sbbs_t::qwk_sec()
 			/***************/
 			xfer_prot_menu(XFER_DOWNLOAD);
 			mnemonics(text[ProtocolOrQuit]);
-			sprintf(tmp2,"%c",text[YNQP][2]);
+			strcpy(tmp2,"Q");
 			for(i=0;i<cfg.total_prots;i++)
 				if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 					sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
@@ -666,7 +667,7 @@ void sbbs_t::qwk_sec()
 				}
 			ungetkey(useron.prot);
 			ch=(char)getkeys(tmp2,0);
-			if(ch==text[YNQP][2] || sys_status&SS_ABORT || !online) {
+			if(ch=='Q' || sys_status&SS_ABORT || !online) {
 				for(i=0;i<cfg.total_subs;i++)
 					subscan[i].ptr=sav_ptr[i];   /* re-load saved pointers */
 				last_ns_time=ns_time;
@@ -724,14 +725,14 @@ void sbbs_t::qwk_sec()
 			/******************/
 			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
-			sprintf(tmp2,"%c",text[YNQP][2]);
+			strcpy(tmp2,"Q");
 			for(i=0;i<cfg.total_prots;i++)
 				if(cfg.prot[i]->ulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 					sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
 					strcat(tmp2,tmp); 
 				}
 			ch=(char)getkeys(tmp2,0);
-			if(ch==text[YNQP][2] || sys_status&SS_ABORT || !online)
+			if(ch=='Q' || sys_status&SS_ABORT || !online)
 				continue;
 			for(i=0;i<cfg.total_prots;i++)
 				if(cfg.prot[i]->ulcmd[0] && cfg.prot[i]->mnemonic==ch
