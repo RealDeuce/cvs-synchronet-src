@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.86 2014/02/09 11:37:07 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.87 2014/04/23 10:56:46 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -961,6 +961,8 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 	int samples;
 
 	wave=(unsigned char *)malloc(S_RATE*15/2+1);
+	if(!wave)
+		return FALSE;
 	if(freq<17 && freq != 0)
 		freq=17;
 	samples=S_RATE*duration/1000;
