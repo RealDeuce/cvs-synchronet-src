@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.403 2014/01/08 02:41:22 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.404 2014/04/20 07:35:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2845,6 +2845,8 @@ static void ctrl_thread(void* arg)
 
 				if((result=bind(pasv_sock, (struct sockaddr *) &pasv_addr,sizeof(pasv_addr)))==0)
 					break;
+				if(port==startup->pasv_port_high)
+					break;
 			}
 			if(result!= 0) {
 				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) binding socket to port %u"
@@ -4540,7 +4542,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.403 $", "%*s %s", revision);
+	sscanf("$Revision: 1.404 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
