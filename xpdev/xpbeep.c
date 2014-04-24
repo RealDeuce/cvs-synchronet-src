@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.86 2014/02/09 11:37:07 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.88 2014/04/24 05:54:12 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -811,10 +811,12 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t size, BOOL backg
 			return(FALSE);
 		pthread_mutex_lock(&sample_mutex);
 		if(sem_init(&sample_pending_sem, 0, 0)!=0) {
+			pthread_mutex_unlock(&sample_mutex);
 			pthread_mutex_destroy(&sample_mutex);
 			return(FALSE);
 		}
 		if(sem_init(&sample_complete_sem, 0, 1)!=0) {
+			pthread_mutex_unlock(&sample_mutex);
 			pthread_mutex_destroy(&sample_mutex);
 			sem_destroy(&sample_pending_sem);
 			return(FALSE);
@@ -961,6 +963,8 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 	int samples;
 
 	wave=(unsigned char *)malloc(S_RATE*15/2+1);
+	if(!wave)
+		return FALSE;
 	if(freq<17 && freq != 0)
 		freq=17;
 	samples=S_RATE*duration/1000;
