@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.601 2014/01/08 10:17:54 rswindell Exp $ */
+/* $Id: main.cpp,v 1.606 2014/04/24 19:54:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,7 @@
 	#endif
 #endif
 
+//#define SBBS_TELNET_ENVIRON_SUPPORT 1
 //---------------------------------------------------------------------------
 
 #define TELNET_SERVER "Synchronet Terminal Server"
@@ -1290,7 +1291,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
-						sprintf(sbbs->terminal,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						safe_snprintf(sbbs->terminal,sizeof(sbbs->terminal),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal type: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1299,7 +1300,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					} else if(option==TELNET_TERM_SPEED
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
 						char speed[128];
-						sprintf(speed,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						safe_snprintf(speed,sizeof(speed),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal speed: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1312,17 +1313,34 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 						BYTE*	p;
 						BYTE*   end=sbbs->telnet_cmd+(sbbs->telnet_cmdlen-2);
 						for(p=sbbs->telnet_cmd+4; p < end; ) {
-							if(*p==TELNET_ENVIRON_VAR) {
-								char tmp[128];
-								p++;
-								c_escape_str((char*)p,tmp,sizeof(tmp),TRUE);
-								lprintf(LOG_DEBUG,"Node %d %s telnet environment var/val: %.*s (%s)"
-	                				,sbbs->cfg.node_num
-									,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-									,end-p
-									,p
-									,tmp);
-								p+=strlen((char*)p);
+							if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR) {
+								BYTE type=*p++;
+								char* name=(char*)p;
+								/* RFC 1572: The characters following a "type" up to the next "type" or VALUE specify the variable name. */
+								while(p < end) {
+									if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR || *p == TELNET_ENVIRON_VALUE)
+										break;
+									p++;
+								}
+								if(p < end) {
+									char* value=(char*)p+1;
+									*(p++)=0;
+									while(p < end) {
+										if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR || *p == TELNET_ENVIRON_VALUE)
+											break;
+										p++;
+									}
+									*p=0;
+									lprintf(LOG_DEBUG,"Node %d telnet %s %s environment variable '%s' = '%s'"
+	                					,sbbs->cfg.node_num
+										,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+										,type==TELNET_ENVIRON_VAR ? "well-known" : "user-defined"
+										,name
+										,value);
+									if(strcmp(name,"USER") == 0) {
+										SAFECOPY(sbbs->rlogin_name, value);
+									}
+								}
 							} else
 								p++;
 						}
@@ -1439,9 +1457,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 									,sbbs->cfg.node_num);
 
 							char	buf[64];
-							int len=sprintf(buf,"%c%c%c%c%c%c%c"
+							int len=sprintf(buf,"%c%c%c%c%c%c"
 								,TELNET_IAC,TELNET_SB
-								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND,TELNET_ENVIRON_VAR
+								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND //,TELNET_ENVIRON_VAR
 								,TELNET_IAC,TELNET_SE);
 							sbbs->putcom(buf,len);
 						}
@@ -2191,7 +2209,7 @@ void output_thread(void* arg)
     sbbs->output_thread_running = false;
 
 	if(total_sent)
-		sprintf(stats,"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
+		safe_snprintf(stats,sizeof(stats),"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
 			,total_sent, total_pkts, total_sent/total_pkts, short_sends);
 	else
 		stats[0]=0;
@@ -2941,6 +2959,7 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	terminal[0]=0;
 	rlogin_name[0]=0;
 	rlogin_pass[0]=0;
+	rlogin_term[0]=0;
 
 	/* Init some important variables */
 
@@ -3151,7 +3170,7 @@ bool sbbs_t::init()
 			now=time(NULL);
 			struct tm tm;
 			localtime_r(&now,&tm);
-			sprintf(str,"%s  %s %s %02d %u  "
+			safe_snprintf(str,sizeof(str),"%s  %s %s %02d %u  "
 				"End of preexisting log entry (possible crash)"
 				,hhmmtostr(&cfg,&tm,tmp)
 				,wday[tm.tm_wday]
@@ -4304,7 +4323,7 @@ const char* DLLCALL bbs_ver(void)
 	if(ver[0]==0) {	/* uninitialized */
 		DESCRIBE_COMPILER(compiler);
 
-		sprintf(ver,"%s %s%c%s  SMBLIB %s  Compiled %s %s with %s"
+		safe_snprintf(ver,sizeof(ver),"%s %s%c%s  SMBLIB %s  Compiled %s %s with %s"
 			,TELNET_SERVER
 			,VERSION, REVISION
 #ifdef _DEBUG
