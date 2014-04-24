@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.38 2010/05/24 01:13:52 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.51 2014/02/10 05:39:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,18 @@
 #ifndef _WINSOCKAPI_
 	#include <winsock2.h>	/* socket/bind/etc. */
 	#include <mswsock.h>	/* Microsoft WinSock2 extensions */
+#if defined(__BORLANDC__)
+// Borland C++ builder 6 comes with a broken ws2tcpip.h header for GCC.
+#define _MSC_VER 7
+#endif
+    #include <ws2tcpip.h>	/* More stuff */
+#if defined(__BORLANDC__)
+#undef _MSC_VER
+#endif
+	#include <wspiapi.h>	/* getaddrinfo() for Windows 2k */
+	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
-	#define _WINSOCKAPI_	
+	#define _WINSOCKAPI_
 #endif
 
 #elif defined __unix__		/* Unix-variant */
@@ -57,6 +67,7 @@
 #include <netdb.h>			/* gethostbyname */
 #include <sys/types.h>		/* For u_int32_t on FreeBSD */
 #include <netinet/in.h>		/* IPPROTO_IP */
+#include <sys/un.h>
 /* define _BSD_SOCKLEN_T_ in order to define socklen_t on darwin */
 #ifdef __DARWIN__
 #define _BSD_SOCKLEN_T_	int
@@ -76,6 +87,7 @@
 #endif
 
 #include <errno.h>		/* errno */
+#include "wrapdll.h"	/* DLLEXPORT/DLLCALL */
 
 typedef struct {
 	char*	name;
@@ -83,6 +95,23 @@ typedef struct {
 	int		level;
 	int		value;
 } socket_option_t;
+
+/*
+ * Fancy sockaddr_* union
+ */
+union xp_sockaddr {
+	struct sockaddr			addr;
+	struct sockaddr_in		in;
+	struct sockaddr_in6		in6;
+#ifndef _WIN32
+	struct sockaddr_un		un;
+#endif
+	struct sockaddr_storage	store;
+};
+
+#define xp_sockaddr_len(a) ((((struct sockaddr *)a)->sa_family == AF_INET6) ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in))
+
+ 
 
 /**********************************/
 /* Socket Implementation-specific */
@@ -149,12 +178,19 @@ typedef struct {
 #define SHUT_RDWR		SD_BOTH
 
 #define s_addr			S_un.S_addr
-
-#define socklen_t		int
+#define sa_family_t		ushort
 
 static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
 #define sendsocket(s,b,l)	send(s,b,l,0)
+
+/* For getaddrinfo() */
+#ifndef AI_ADDRCONFIG
+# define AI_ADDRCONFIG 0x400 // Vista or later
+#endif
+#ifndef AI_NUMERICSERV
+# define AI_NUMERICSERV 0		// Not supported by Win32
+#endif
 
 #else	/* BSD sockets */
 
@@ -182,17 +218,21 @@ static  int wsa_error;
 extern "C" {
 #endif
 
-socket_option_t*
+DLLEXPORT socket_option_t* DLLCALL
 		getSocketOptionList(void);
-int		getSocketOptionByName(const char* name, int* level);
+DLLEXPORT int DLLCALL		getSocketOptionByName(const char* name, int* level);
 
-int		sendfilesocket(int sock, int file, off_t* offset, off_t count);
-int		recvfilesocket(int sock, int file, off_t* offset, off_t count);
-BOOL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
-int 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
+DLLEXPORT int DLLCALL		sendfilesocket(int sock, int file, off_t* offset, off_t count);
+DLLEXPORT int DLLCALL		recvfilesocket(int sock, int file, off_t* offset, off_t count);
+DLLEXPORT BOOL DLLCALL	socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout);
+DLLEXPORT int DLLCALL 	retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 				   ,uint retries, uint wait_secs, const char* prot
 				   ,int (*lprintf)(int level, const char *fmt, ...));
-int		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
+DLLEXPORT int DLLCALL		nonblocking_connect(SOCKET, struct sockaddr*, size_t, unsigned timeout /* seconds */);
+DLLEXPORT union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr, size_t size);
+DLLEXPORT const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size);
+DLLEXPORT uint16_t DLLCALL inet_addrport(union xp_sockaddr *addr);
+DLLEXPORT void DLLCALL inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
 
 #ifdef __cplusplus
 }
