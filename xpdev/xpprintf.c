@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.47 2014/04/29 09:24:39 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.45 2014/04/24 07:52:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "genwrap.h"    /* alloca() */
+#if defined(_WIN32)
+ #include <malloc.h>    /* alloca() on Win32 */
+#endif
 
 #include "xpprintf.h"
 #include "gen_defs.h"
@@ -290,7 +292,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	va_list vars;
 	char			*p;
 	char			*newbuf;
-	int				i=0,j;
+	int				i,j;
 	unsigned int	ui=0;
 	long int		l=0;
 	unsigned long int	ul=0;
