@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.608 2014/09/01 07:01:04 rswindell Exp $ */
+/* $Id: main.cpp,v 1.605 2014/03/13 08:15:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@
 	#endif
 #endif
 
-//#define SBBS_TELNET_ENVIRON_SUPPORT 1
+#define SBBS_TELNET_ENVIRON_SUPPORT 1
 //---------------------------------------------------------------------------
 
 #define TELNET_SERVER "Synchronet Terminal Server"
@@ -2963,10 +2963,8 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 
 	/* Init some important variables */
 
-	input_thread_mutex_created = false;
 #ifdef USE_CRYPTLIB
 	ssh_mode=false;
-	ssh_mutex_created=false;
     passthru_input_thread_running = false;
     passthru_output_thread_running = false;
 #endif
@@ -3355,12 +3353,8 @@ bool sbbs_t::init()
 			} 
 	}
 
-#ifdef USE_CRYPTLIB
 	pthread_mutex_init(&ssh_mutex,NULL);
-	ssh_mutex_created = true;
-#endif
 	pthread_mutex_init(&input_thread_mutex,NULL);
-	input_thread_mutex_created = true;
 
 	reset_logon_vars();
 
@@ -3487,11 +3481,9 @@ sbbs_t::~sbbs_t()
 	FREE_AND_NULL(batdn_cdt);
 	FREE_AND_NULL(batdn_alt);
 
-#ifdef USE_CRYPTLIB
-	while(ssh_mutex_created && pthread_mutex_destroy(&ssh_mutex)==EBUSY)
+	while(pthread_mutex_destroy(&ssh_mutex)==EBUSY)
 		mswait(1);
-#endif
-	while(input_thread_mutex_created && pthread_mutex_destroy(&input_thread_mutex)==EBUSY)
+	while(pthread_mutex_destroy(&input_thread_mutex)==EBUSY)
 		mswait(1);
 
 #if 0 && defined(_WIN32) && defined(_DEBUG) && defined(_MSC_VER)
