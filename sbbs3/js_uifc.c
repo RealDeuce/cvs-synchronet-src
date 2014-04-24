@@ -2,13 +2,13 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.31 2013/02/10 21:14:41 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.35 2014/08/13 09:13:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -226,6 +226,7 @@ static char* uifc_prop_desc[] = {
 	,"text colour"
 	,"inverse colour"
 	,"lightbar colour"
+	,NULL
 };
 #endif
 
@@ -422,13 +423,15 @@ js_uifc_input(JSContext *cx, uintN argc, jsval *arglist)
 		&& !JS_ValueToInt32(cx,argv[argn++],&top))
 		return(JS_FALSE);
 	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], prompt, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], prompt, NULL);
+		argn++;
 		HANDLE_PENDING(cx);
 		if(prompt==NULL)
 			return(JS_TRUE);
 	}
 	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], org, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], org, NULL);
+		argn++;
 		if(JS_IsExceptionPending(cx)) {
 			if(prompt)
 				free(prompt);
@@ -483,11 +486,11 @@ js_uifc_input(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	if(prompt)
 		free(prompt);
-	if(str)
-		free(str);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,str)));
+	if(str)
+		free(str);
 
 	return(JS_TRUE);
 }
@@ -512,7 +515,7 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 	jsuint		numopts;
 	str_list_t	opts=NULL;
 	char		*opt=NULL;
-	size_t		opt_sz;
+	size_t		opt_sz=0;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -539,7 +542,8 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 		&& !JS_ValueToInt32(cx,argv[argn++],&bar))
 		return(JS_FALSE);
 	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], title, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], title, NULL);
+		argn++;
 		HANDLE_PENDING(cx);
 	}
 	if(argn<argc && JSVAL_IS_OBJECT(argv[argn])) {
