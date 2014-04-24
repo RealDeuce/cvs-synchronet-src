@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.97 2015/09/28 06:58:12 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.93 2014/04/23 10:59:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -49,8 +49,8 @@
 	#include <sys/utsname.h>	/* uname() */
 	#include <signal.h>
 #elif defined(_WIN32)
-	#include <windows.h>
-	#include <lm.h>		/* NetWkstaGetInfo() */
+	#include <Windows.h>
+	#include <LM.h>		/* NetWkstaGetInfo() */
 #endif
 
 #include "genwrap.h"	/* Verify prototypes */
@@ -194,43 +194,6 @@ char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_
 	return(dst);
 }
 
-/* Returns a byte count parsed from the 'str' argument, supporting power-of-2
- * short-hands (e.g. 'K' for kibibytes).
- * If 'unit' is specified (greater than 1), result is divided by this amount.
- * 
- * Moved from ini_file.c/parseBytes()
- */
-int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
-{
-	char*	p=NULL;
-	double	bytes;
-
-	bytes=strtod(str,&p);
-	if(p!=NULL) {
-		switch(toupper(*p)) {
-			case 'E':
-				bytes*=1024;
-				/* fall-through */
-			case 'P':
-				bytes*=1024;
-				/* fall-through */
-			case 'T':
-				bytes*=1024;
-				/* fall-through */
-			case 'G':
-				bytes*=1024;
-				/* fall-through */
-			case 'M':
-				bytes*=1024;
-				/* fall-through */
-			case 'K':
-				bytes*=1024;
-				break;
-		}
-	}
-	return((int64_t)(unit>1 ? (bytes/unit):bytes));
-}
-
 /****************************************************************************/
 /* Convert ASCIIZ string to upper case										*/
 /****************************************************************************/
@@ -318,17 +281,15 @@ char* DLLCALL strtok_r(char *str, const char *delim, char **last)
 /****************************************************************************/
 void DLLCALL xp_randomize(void)
 {
-#if !(defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC))
 	unsigned seed=~0;
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	int		rf;
-#endif
 #endif
 
 #if defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC)
 	srandomdev();
 	return;
-#else
+#endif
 
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
@@ -354,7 +315,6 @@ void DLLCALL xp_randomize(void)
  	srandom(seed);
 #else
  	srand(seed);
-#endif
 #endif
 }
 
