@@ -1,11 +1,10 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.48 2011/09/08 23:25:30 deuce Exp $ */
+/* $Id: menu.c,v 1.50 2014/02/06 11:46:50 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
-#include <keys.h>
 
 #include "cterm.h"
 #include "term.h"
@@ -31,6 +30,8 @@ void viewscroll(void)
     gettextinfo(&txtinfo);
 	/* too large for alloca() */
 	scrollback=(char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
+	if(scrollback==NULL)
+		return;
 	if(cterm->scrollback != NULL)
 		memcpy(scrollback,cterm->scrollback,term.width*2*settings.backlines);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width*2);
