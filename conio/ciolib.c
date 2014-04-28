@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.120 2014/02/09 07:51:03 deuce Exp $ */
+/* $Id: ciolib.c,v 1.122 2014/04/23 10:52:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -489,8 +489,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_cgets(char *str)
 				if(ciolib_getche()==1)
 					goto early_return;
 				break;
-			case '\r':	/* Skip \r (ToDo: Should this be treated as a \n? */
-				break;
 			case '\b':
 				if(len==0) {
 					ciolib_putch(7);
@@ -876,6 +874,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_cprintf(const char *fmat, ...)
 	else
 		ret=EOF;
 	free(str);
+    va_end(argptr);
 #else
 
 #ifdef _MSC_VER
