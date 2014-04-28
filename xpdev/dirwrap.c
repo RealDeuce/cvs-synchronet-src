@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.90 2015/11/26 08:27:19 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.88 2014/04/24 16:31:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 /* This code _may_ work on other DOS-based platforms (e.g. OS/2)			*/
 /****************************************************************************/
 #if !defined(__unix__)
-static int __cdecl glob_compare( const void *arg1, const void *arg2 )
+static int _cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
    return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
@@ -694,13 +694,12 @@ int removecase(const char *path)
 	}
 	*p=0;
 
-	return(delfiles(inpath,fname) >=1 ? 0 : -1);
+	return(delfiles(inpath,fname)?-1:0);
 }
 #endif
 
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
-/* Returns number of files deleted or negative on error						*/
 /****************************************************************************/
 ulong DLLCALL delfiles(const char *inpath, const char *spec)
 {
@@ -716,7 +715,7 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 		lastch=inpath[inpath_len-1];
 	path=(char *)malloc(inpath_len+1/*Delim*/+strlen(spec)+1/*Terminator*/);
 	if(path==NULL)
-		return -1;
+		return 0;
 	if(!IS_PATH_DELIM(lastch) && lastch)
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
