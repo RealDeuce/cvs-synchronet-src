@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.42 2014/04/23 10:27:13 deuce Exp $ */
+/* $Id: mouse.c,v 1.43 2014/04/23 10:38:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,13 +148,15 @@ void CIOLIBCALL ciomouse_gotevent(int event, int x, int y)
 	while(!ciolib_mouse_initialized)
 		SLEEP(1);
 	ime=(struct in_mouse_event *)malloc(sizeof(struct in_mouse_event));
-	ime->ts=MSEC_CLOCK();
-	ime->event=event;
-	ime->x=x;
-	ime->y=y;
-	ime->nextevent=NULL;
+	if(ime) {
+		ime->ts=MSEC_CLOCK();
+		ime->event=event;
+		ime->x=x;
+		ime->y=y;
+		ime->nextevent=NULL;
 
-	listPushNode(&state.input,ime);
+		listPushNode(&state.input,ime);
+	}
 }
 
 void CIOLIBCALL add_outevent(int event, int x, int y)
@@ -166,17 +168,19 @@ void CIOLIBCALL add_outevent(int event, int x, int y)
 		return;
 	ome=(struct out_mouse_event *)malloc(sizeof(struct out_mouse_event));
 
-	but=CIOLIB_BUTTON_NUMBER(event);
-	ome->event=event;
-	ome->bstate=state.buttonstate;
-	ome->kbsm=state.knownbuttonstatemask;
-	ome->startx=but?state.button_x[but-1]:state.curx;
-	ome->starty=but?state.button_y[but-1]:state.cury;
-	ome->endx=x;
-	ome->endy=y;
-	ome->nextevent=(struct out_mouse_event *)NULL;
+	if(ome) {
+		but=CIOLIB_BUTTON_NUMBER(event);
+		ome->event=event;
+		ome->bstate=state.buttonstate;
+		ome->kbsm=state.knownbuttonstatemask;
+		ome->startx=but?state.button_x[but-1]:state.curx;
+		ome->starty=but?state.button_y[but-1]:state.cury;
+		ome->endx=x;
+		ome->endy=y;
+		ome->nextevent=(struct out_mouse_event *)NULL;
 
-	listPushNode(&state.output,ome);
+		listPushNode(&state.output,ome);
+	}
 }
 
 int CIOLIBCALL more_multies(int button, int clicks)
