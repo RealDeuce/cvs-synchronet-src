@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.252 2014/05/07 03:52:07 deuce Exp $ */
+/* $Id: sbbsecho.c,v 1.250 2014/04/17 07:11:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1103,10 +1103,7 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 				if(*p)
 					p++;
 				if(!stricmp(new,arcname)) {   /* Add to new definition */
-					if(match) {
-						fprintf(outfile,"%-10s %s %s\n", cmd, arcname, p);
-					}
-					else {
+					if(!match) {
 						fprintf(outfile,"%-10s %s %s %s\n",cmd,arcname
 							,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL)
 							,p);
@@ -1145,8 +1142,6 @@ void alter_config(faddr_t addr, char *old, char *new, int option)
 					fprintf(outfile,"%-10s %s %s %s\n",cmd
 						,smb_faddrtoa(&cfg.nodecfg[cfgnum].faddr,NULL),new,p);
 				}
-				else
-					fprintf(outfile,"%-10s %s\n", cmd, p);
 			}
 		}
 		else if(option>1 && !strcmp(cmd,"PASSIVE")) {        /* Toggle Passive Areas */
@@ -4161,7 +4156,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.252 $", "%*s %s", revision);
+	sscanf("$Revision: 1.250 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
