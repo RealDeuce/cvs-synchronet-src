@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.607 2014/05/01 08:12:27 rswindell Exp $ */
+/* $Id: main.cpp,v 1.606 2014/04/24 19:54:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2965,7 +2965,6 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 
 #ifdef USE_CRYPTLIB
 	ssh_mode=false;
-	ssh_mutex_created=false;
     passthru_input_thread_running = false;
     passthru_output_thread_running = false;
 #endif
@@ -3354,10 +3353,7 @@ bool sbbs_t::init()
 			} 
 	}
 
-#ifdef USE_CRYPTLIB
 	pthread_mutex_init(&ssh_mutex,NULL);
-	ssh_mutex_created = true;
-#endif
 	pthread_mutex_init(&input_thread_mutex,NULL);
 
 	reset_logon_vars();
@@ -3485,10 +3481,8 @@ sbbs_t::~sbbs_t()
 	FREE_AND_NULL(batdn_cdt);
 	FREE_AND_NULL(batdn_alt);
 
-#ifdef USE_CRYPTLIB
-	while(ssh_mutex_created && pthread_mutex_destroy(&ssh_mutex)==EBUSY)
+	while(pthread_mutex_destroy(&ssh_mutex)==EBUSY)
 		mswait(1);
-#endif
 	while(pthread_mutex_destroy(&input_thread_mutex)==EBUSY)
 		mswait(1);
 
