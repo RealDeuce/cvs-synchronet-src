@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.402 2013/04/29 15:42:37 deuce Exp $ */
+/* $Id: sbbs.h,v 1.407 2014/09/01 07:06:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -335,7 +335,9 @@ public:
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
 	bool	input_thread_mutex_locked;	// by someone other than the input_thread
+	bool	input_thread_mutex_created;
 	pthread_mutex_t	ssh_mutex;
+	bool	ssh_mutex_created;
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
@@ -385,6 +387,7 @@ public:
 	smb_t	smb;			/* Currently open message base */
 	char	rlogin_name[LEN_ALIAS+1];
 	char	rlogin_pass[LEN_PASS+1];
+	char	rlogin_term[TELNET_TERM_MAXLEN+1];	/* RLogin passed terminal type/speed (e.g. "xterm/57600") */
 
 	uint	temp_dirnum;
 
@@ -938,7 +941,7 @@ public:
 	void	catsyslog(int crash);
 
 	/* telgate.cpp */
-	void	telnet_gate(char* addr, ulong mode);	// See TG_* for mode bits
+	void	telnet_gate(char* addr, ulong mode, char* client_user_name=NULL, char* server_user_name=NULL, char* term_type=NULL);	// See TG_* for mode bits
 
 };
 
