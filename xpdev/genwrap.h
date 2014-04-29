@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.104 2014/06/23 11:04:41 deuce Exp $ */
+/* $Id: genwrap.h,v 1.101 2014/04/29 08:47:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,8 +91,6 @@ extern "C" {
 #if __GNUC__ >= 2 || defined(__INTEL_COMPILER)
 #undef  alloca  /* some GNU bits try to get cute and define this on their own */
 #define alloca(sz) __builtin_alloca(sz)
-#elif defined(_WIN32)
-#include <malloc.h>
 #endif
 
 /*********************/
@@ -108,16 +106,6 @@ extern "C" {
 #elif defined(_MSC_VER)
 
 	#define DESCRIBE_COMPILER(str) SAFEPRINTF(str,"MSC %u", _MSC_VER);
-
-#elif defined(__clang__) && defined(__clang_patchlevel__)
-
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF3(str,"Clang %u.%u.%u" \
-		,__clang_major__,__clang_minor__,__clang_patchlevel__);
-
-#elif defined(__clang__) && defined(__clang_minor__)
-
-	#define DESCRIBE_COMPILER(str) SAFEPRINTF2(str,"Clang %u.%u" \
-		,__clang_major__,__clang_minor__);
 
 #elif defined(__GNUC__) && defined(__GNUC_PATCHLEVEL__)
 
@@ -277,7 +265,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#if !(defined(_MSC_VER) || defined(__MSVCRT__))	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
+	#if !defined(_MSC_VER)	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
 		#define tzname			_tzname
 	#endif
 
