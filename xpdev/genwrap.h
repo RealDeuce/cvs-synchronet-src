@@ -2,13 +2,13 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.105 2015/09/28 06:58:12 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.102 2014/04/29 08:51:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -91,8 +91,6 @@ extern "C" {
 #if __GNUC__ >= 2 || defined(__INTEL_COMPILER)
 #undef  alloca  /* some GNU bits try to get cute and define this on their own */
 #define alloca(sz) __builtin_alloca(sz)
-#elif defined(_WIN32)
-#include <malloc.h>
 #endif
 
 /*********************/
@@ -277,7 +275,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#if !(defined(_MSC_VER) || defined(__MSVCRT__))	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
+	#if !defined(_MSC_VER)	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
 		#define tzname			_tzname
 	#endif
 
@@ -366,9 +364,6 @@ DLLEXPORT char*		DLLCALL c_escape_char(char ch);
 DLLEXPORT char*		DLLCALL c_unescape_str(char* str);
 DLLEXPORT char		DLLCALL c_unescape_char_ptr(const char* str, char** endptr);
 DLLEXPORT char		DLLCALL c_unescape_char(char ch);
-
-/* Power-of-2 byte count string parser (e.g. "100K" returns 102400 if unit is 1) */
-DLLEXPORT int64_t	DLLCALL	parse_byte_count(const char*, ulong unit);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
 typedef		clock_t				msclock_t;
