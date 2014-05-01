@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.19 2015/08/20 05:19:43 deuce Exp $ */
+/* $Id: putnode.cpp,v 1.18 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,7 +69,7 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 				,getage(&cfg,useron.birth)
 				,useron.sex
 				,useron.comp
-				,useron.ipaddr
+				,useron.note
 				,unixtodstr(&cfg,useron.firston,firston)
 				,node->aux&0xff
 				,node->connection
