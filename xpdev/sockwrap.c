@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.60 2014/04/24 05:30:28 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.61 2014/04/24 06:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -260,9 +260,12 @@ int DLLCALL recvfilesocket(int sock, int file, off_t *offset, off_t count)
 		return(-1);
 	}
 
-	if(offset!=NULL)
-		if(lseek(file,*offset,SEEK_SET)<0)
+	if(offset!=NULL) {
+		if(lseek(file,*offset,SEEK_SET)<0) {
+			free(buf);
 			return(-1);
+		}
+	}
 
 	rd=read(sock,buf,(size_t)count);
 	if(rd!=count) {
