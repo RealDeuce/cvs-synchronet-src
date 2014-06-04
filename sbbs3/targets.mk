@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.38 2015/10/28 01:38:41 deuce Exp $
+# $Id: targets.mk,v 1.36 2011/10/13 23:37:30 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -14,7 +14,6 @@ SERVICES	= $(LIBODIR)$(DIRSEP)$(LIBPREFIX)services$(SOFILE)
 SBBSCON		= $(EXEODIR)$(DIRSEP)sbbs$(EXEFILE)
 SBBSMONO	= $(EXEODIR)$(DIRSEP)sbbsmono$(EXEFILE)
 JSEXEC		= $(EXEODIR)$(DIRSEP)jsexec$(EXEFILE)
-JSDOOR		= $(EXEODIR)$(DIRSEP)jsdoor$(EXEFILE)
 NODE		= $(EXEODIR)$(DIRSEP)node$(EXEFILE)
 BAJA		= $(EXEODIR)$(DIRSEP)baja$(EXEFILE)
 UNBAJA		= $(EXEODIR)$(DIRSEP)unbaja$(EXEFILE)
@@ -51,7 +50,7 @@ all:	dlls utils console
 console:	$(JS_DEPS) xpdev-mt smblib \
 		$(MTOBJODIR) $(LIBODIR) $(EXEODIR) \
 		dlls \
-		$(SBBSCON) $(JSEXEC) ${JSDOOR}
+		$(SBBSCON) $(JSEXEC)
 
 utils:	smblib xpdev-mt xpdev ciolib-mt uifc-mt \
 		$(LIBODIR) $(OBJODIR) $(MTOBJODIR) $(EXEODIR) \
@@ -65,9 +64,6 @@ mono:	xpdev-mt smblib \
 		$(MTOBJODIR) $(EXEODIR) \
 		$(SBBSMONO)
 
-.PHONY: sexyz
-sexyz:	$(SEXYZ)
-
 
 # Library dependencies
 $(SBBS): 
@@ -78,7 +74,6 @@ $(SERVICES):
 $(SBBSCON): $(XPDEV-MT_LIB) $(SMBLIB)
 $(SBBSMONO): $(XPDEV-MT_LIB) $(SMBLIB)
 $(JSEXEC): $(XPDEV-MT_LIB) $(SMBLIB)
-$(JSDOOR): $(XPDEV-MT_LIB)
 $(NODE): $(XPDEV_LIB)
 $(BAJA): $(XPDEV_LIB) $(SMBLIB)
 $(UNBAJA): $(XPDEV_LIB)
