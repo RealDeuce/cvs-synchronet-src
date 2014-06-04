@@ -297,8 +297,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	int		listwidth;
 	char	**dir_list=NULL;
 	char	**file_list=NULL;
-	int		currfield;
-	int		lastfield;
+	int		currfield=DIR_LIST;
+	int		lastfield=DIR_LIST;
 	int		i;
 	int		root=0;						/* Is this the root of the file system? */
 										/* On *nix, this just means no .. on Win32,
@@ -331,11 +331,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	if((opts & UIFC_FP_MULTI)==UIFC_FP_MULTI && (opts & (UIFC_FP_ALLOWENTRY|UIFC_FP_OVERPROMPT|UIFC_FP_CREATPROMPT)))
 		return(-1);
 
-	if (opts & UIFC_FP_DIRSEL)
-		currfield = lastfield = DIR_LIST;
-	else
-		currfield = lastfield = FILE_LIST;
-
 	fp->files=0;
 	fp->selected=NULL;
 
@@ -352,7 +347,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	else {
 		SAFECOPY(cmsk,msk);
 	}
-	sprintf(cfile,"%s%s",cpath,cmsk);
 	listwidth=SCRN_RIGHT-SCRN_LEFT+1;
 	listwidth-=listwidth%2;
 	listwidth-=3;
@@ -436,12 +430,12 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 			hold_update = FALSE;
 			switch(currfield) {
 				case DIR_LIST:
-					i=api->list(WIN_DYN|WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE|WIN_REDRAW,1,3,listwidth,&dircur,&dirbar,NULL,dir_list);
+					i=api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE,1,3,listwidth,&dircur,&dirbar,NULL,dir_list);
 					if(i==-1) {		/* ESC */
 						retval=fp->files=0;
 						goto cleanup;
 					}
-					if(i==-2-'\t' || i==-2-CIO_KEY_RIGHT)	/* TAB */
+					if(i==-2-'\t')	/* TAB */
 						fieldmove=1;
 					if(i==-3842)	/* Backtab */
 						fieldmove=-1;
@@ -456,7 +450,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					}
 					break;
 				case FILE_LIST:
-					i=api->list(WIN_DYN|WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE|WIN_REDRAW,1+listwidth+1,3,listwidth,&filecur,&filebar,NULL,file_list);
+					i=api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE,1+listwidth+1,3,listwidth,&filecur,&filebar,NULL,file_list);
 					if(i==-1) {
 						retval=fp->files=0;
 						goto cleanup;
@@ -484,7 +478,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					}
 					if(i==-2-'\t')
 						fieldmove=1;
-					if(i==-3842 || i==-2-CIO_KEY_LEFT)	/* Backtab */
+					if(i==-3842)	/* Backtab */
 						fieldmove=-1;
 					if(i==-2-CIO_KEY_MOUSE)
 						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
