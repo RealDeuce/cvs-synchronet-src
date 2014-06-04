@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.254 2014/08/28 02:25:40 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.252 2014/05/07 03:52:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1711,7 +1711,7 @@ void pack_bundle(char *infile,faddr_t dest)
 	sprintf(day,"%-.2s",ctime(&now));
 	strupr(day);
 	if(misc&FLO_MAILER) {
-		if(node<cfg.nodecfgs && !(cfg.nodecfg[node].attr&ATTR_DIRECT) && cfg.nodecfg[node].route.zone) {
+		if(node<cfg.nodecfgs && cfg.nodecfg[node].route.zone) {
 			dest=cfg.nodecfg[node].route;
 			if(cfg.log&LOG_ROUTING)
 				lprintf(LOG_NOTICE,"Routing %s to %s",infile,smb_faddrtoa(&dest,NULL));
@@ -3973,20 +3973,16 @@ void export_echomail(char *sub_code,faddr_t addr)
 					continue;
 
 				if(cr) {
-					char *tp = (char*)buf+l;
-					/* Bugfixed: handle tear line detection/conversion and origin line detection/conversion even when line-feeds exist and aren't stripped */
-					if(*tp == '\n')	
-						tp++;
-					if(*tp=='-' && *(tp+1)=='-'
-						&& *(tp+2)=='-'
-						&& (*(tp+3)==' ' || *(tp+3)=='\r')) {
+					if(buf[l]=='-' && buf[l+1]=='-'
+						&& buf[l+2]=='-'
+						&& (buf[l+3]==' ' || buf[l+3]=='\r')) {
 						if(misc&CONVERT_TEAR)	/* Convert to === */
-							*tp=*(tp+1)=*(tp+2)='=';
+							buf[l]=buf[l+1]=buf[l+2]='=';
 						else
 							tear=1; 
 					}
-					else if(!strncmp(tp," * Origin: ",11))
-						*(tp+1)='#'; 
+					else if(!strncmp((char *)buf+l," * Origin: ",11))
+						buf[l+1]='#'; 
 				} /* Convert * Origin into # Origin */
 
 				if(buf[l]=='\r')
@@ -4165,7 +4161,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.254 $", "%*s %s", revision);
+	sscanf("$Revision: 1.252 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
