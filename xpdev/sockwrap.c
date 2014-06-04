@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.64 2015/08/26 07:32:47 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.61 2014/04/24 06:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * CopyrightRob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -425,12 +425,7 @@ union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr,
         freeaddrinfo(res);
         return NULL;
     }
-    if (size < sizeof(struct sockaddr_in6)) {
-        freeaddrinfo(res);
-        return NULL;
-	}
-	size = sizeof(struct sockaddr_in6);
-    memcpy(addr, ((struct sockaddr_in6 *)(cur->ai_addr)), size);
+    memcpy(&addr, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, size);
     freeaddrinfo(res);
     return addr;
 }
@@ -438,8 +433,8 @@ union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr,
 const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
 {
 #ifdef _WIN32
-	if(getnameinfo(&addr->addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
-		safe_snprintf(dest, size, "<Error %u converting address, family=%u>", WSAGetLastError(), addr->addr.sa_family);
+	if(getnameinfo(addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
+		strncpy(dest, "<Unable to convert address>", size);
 	return dest;
 #else
 	switch(addr->addr.sa_family) {
@@ -452,7 +447,7 @@ const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t siz
 			dest[size-1]=0;
 			return dest;
 		default:
-			safe_snprintf(dest, size, "<unknown address family: %u>", addr->addr.sa_family);
+			safe_snprintf(dest, size, "<unknown address>");
 			return NULL;
 	}
 #endif
