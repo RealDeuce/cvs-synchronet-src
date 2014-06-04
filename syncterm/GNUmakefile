@@ -64,7 +64,7 @@ ifdef WITHOUT_CRYPTLIB
 else
  OBJS += $(MTOBJODIR)$(DIRSEP)ssh$(OFILE)
  CFLAGS	+=	$(CRYPT_CFLAGS)
- EXTRA_LIBS	+=	$(CRYPT_LIBS)
+ EXTRA_LIBS	+=	$(CRYPT_LIB)
 endif
 
 ifdef STATIC
@@ -123,8 +123,7 @@ INSTALL_DATA	?=	install -m 0444
 ifeq ($(os),win32)
  OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_win32$(OFILE) \
            $(MTOBJODIR)$(DIRSEP)modem$(OFILE) \
-           $(MTOBJODIR)$(DIRSEP)comio$(OFILE) \
-           $(MTOBJODIR)$(DIRSEP)ciolib_res$(OFILE)
+           $(MTOBJODIR)$(DIRSEP)comio$(OFILE)
 else
  ifneq ($(os),haiku)
   OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE) \
@@ -145,8 +144,6 @@ ifndef bcc
  endif
 endif
 
-$(MTOBJODIR)$(DIRSEP)ciolib_res$(OFILE):
-	cd ${MTOBJODIR} && $(AR) -x ../${CIOLIB-MT} ciolib_res$(OFILE)
 
 $(SYNCTERM): $(CRYPT_DEPS) $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
