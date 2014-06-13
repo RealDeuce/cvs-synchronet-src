@@ -3,6 +3,9 @@
 #include <stdlib.h>
 
 #include <ciolib.h>
+#if defined(_WIN32)
+ #include <malloc.h>	/* alloca() on Win32 */
+#endif
 
 #include "crt.h"
 #include "key.h"
@@ -21,9 +24,7 @@ draweffekt(int xpos, int ypos, int effekt, char *blabla, int highlite)
 
 	col = effect.Colortable[1][1];
 	l=strlen(blabla);
-	buf=(char *)malloc(l*2);
-	if (!buf)
-		exit(1);
+	buf=(char *)alloca(l*2);
 
 	p=0;
 	for (x = 0; x < l; x++) {
@@ -77,7 +78,6 @@ draweffekt(int xpos, int ypos, int effekt, char *blabla, int highlite)
 		buf[p++]=col+(highlite?16:0);
 	}
 	puttext(xpos,ypos,xpos+l-1,ypos,buf);
-	free(buf);
 }
 
 void 
