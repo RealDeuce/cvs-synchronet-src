@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.38 2011/12/04 15:51:40 deuce Exp $ */
+/* $Id: mouse.c,v 1.43 2014/04/23 10:38:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 #include <threadwrap.h>
 #include <link_list.h>
 
-#include "mouse.h"
+#include "ciolib.h"
 
 #define MSEC_CLOCK()	(msclock()*MSCLOCKS_PER_SEC/1000)
 
@@ -100,7 +100,7 @@ int ciolib_mouse_initialized=0;
 static int ungot=0;
 pthread_mutex_t unget_mutex;
 
-void init_mouse(void)
+void CIOLIBCALL init_mouse(void)
 {
 	memset(&state,0,sizeof(state));
 	state.click_timeout=0;
@@ -111,53 +111,55 @@ void init_mouse(void)
 	ciolib_mouse_initialized=1;
 }
 
-int ciomouse_setevents(int events)
+int CIOLIBCALL ciomouse_setevents(int events)
 {
 	mouse_events=events;
 	return mouse_events;
 }
 
-int ciomouse_addevents(int events)
+int CIOLIBCALL ciomouse_addevents(int events)
 {
 	mouse_events |= events;
 	return mouse_events;
 }
 
-int ciomouse_delevents(int events)
+int CIOLIBCALL ciomouse_delevents(int events)
 {
 	mouse_events &= ~events;
 	return mouse_events;
 }
 
-int ciomouse_addevent(int event)
+int CIOLIBCALL ciomouse_addevent(int event)
 {
 	mouse_events |= (1<<event);
 	return mouse_events;
 }
 
-int ciomouse_delevent(int event)
+int CIOLIBCALL ciomouse_delevent(int event)
 {
 	mouse_events &= ~(1<<event);
 	return mouse_events;
 }
 
-void ciomouse_gotevent(int event, int x, int y)
+void CIOLIBCALL ciomouse_gotevent(int event, int x, int y)
 {
 	struct in_mouse_event *ime;
 
 	while(!ciolib_mouse_initialized)
 		SLEEP(1);
 	ime=(struct in_mouse_event *)malloc(sizeof(struct in_mouse_event));
-	ime->ts=MSEC_CLOCK();
-	ime->event=event;
-	ime->x=x;
-	ime->y=y;
-	ime->nextevent=NULL;
+	if(ime) {
+		ime->ts=MSEC_CLOCK();
+		ime->event=event;
+		ime->x=x;
+		ime->y=y;
+		ime->nextevent=NULL;
 
-	listPushNode(&state.input,ime);
+		listPushNode(&state.input,ime);
+	}
 }
 
-void add_outevent(int event, int x, int y)
+void CIOLIBCALL add_outevent(int event, int x, int y)
 {
 	struct out_mouse_event *ome;
 	int	but;
@@ -166,39 +168,45 @@ void add_outevent(int event, int x, int y)
 		return;
 	ome=(struct out_mouse_event *)malloc(sizeof(struct out_mouse_event));
 
-	but=CIOLIB_BUTTON_NUMBER(event);
-	ome->event=event;
-	ome->bstate=state.buttonstate;
-	ome->kbsm=state.knownbuttonstatemask;
-	ome->startx=but?state.button_x[but-1]:state.curx;
-	ome->starty=but?state.button_y[but-1]:state.cury;
-	ome->endx=x;
-	ome->endy=y;
-	ome->nextevent=(struct out_mouse_event *)NULL;
+	if(ome) {
+		but=CIOLIB_BUTTON_NUMBER(event);
+		ome->event=event;
+		ome->bstate=state.buttonstate;
+		ome->kbsm=state.knownbuttonstatemask;
+		ome->startx=but?state.button_x[but-1]:state.curx;
+		ome->starty=but?state.button_y[but-1]:state.cury;
+		ome->endx=x;
+		ome->endy=y;
+		ome->nextevent=(struct out_mouse_event *)NULL;
 
-	listPushNode(&state.output,ome);
+		listPushNode(&state.output,ome);
+	}
 }
 
-int more_multies(int button, int clicks)
+int CIOLIBCALL more_multies(int button, int clicks)
 {
 	switch(clicks) {
 		case 0:
 			if(mouse_events & (1<<CIOLIB_BUTTON_CLICK(button)))
 				return(1);
+			/* Fall-through */
 		case 1:
 			if(mouse_events & (1<<CIOLIB_BUTTON_DBL_CLICK(button)))
 				return(1);
+			/* Fall-through */
 		case 2:
 			if(mouse_events & (1<<CIOLIB_BUTTON_TRPL_CLICK(button)))
 				return(1);
+			/* Fall-through */
 		case 3:
 			if(mouse_events & (1<<CIOLIB_BUTTON_QUAD_CLICK(button)))
 				return(1);
+			/* Fall-through */
 	}
 	return(0);
 }
 
-void ciolib_mouse_thread(void *data)
+void CIOLIBCALL ciolib_mouse_thread(void *data)
 {
 	int	timedout;
 	int timeout_button=0;
@@ -206,6 +214,7 @@ void ciolib_mouse_thread(void *data)
 	int delay;
 	clock_t	ttime=0;
 
+	SetThreadName("Mouse");
 	init_mouse();
 	while(1) {
 		timedout=0;
@@ -430,7 +439,7 @@ void ciolib_mouse_thread(void *data)
 	}
 }
 
-int mouse_trywait(void)
+int CIOLIBCALL mouse_trywait(void)
 {
 	int	result;
 
@@ -448,7 +457,7 @@ int mouse_trywait(void)
 	}
 }
 
-int mouse_wait(void)
+int CIOLIBCALL mouse_wait(void)
 {
 	int result;
 
@@ -466,14 +475,14 @@ int mouse_wait(void)
 	}
 }
 
-int mouse_pending(void)
+int CIOLIBCALL mouse_pending(void)
 {
 	while(!ciolib_mouse_initialized)
 		SLEEP(1);
 	return(listCountNodes(&state.output));
 }
 
-int ciolib_getmouse(struct mouse_event *mevent)
+int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent)
 {
 	int retval=0;
 
@@ -504,7 +513,7 @@ int ciolib_getmouse(struct mouse_event *mevent)
 	return(retval);
 }
 
-int ciolib_ungetmouse(struct mouse_event *mevent)
+int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent)
 {
 	struct mouse_event *me;
 
