@@ -1,12 +1,12 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.42 2015/11/23 10:01:58 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.38 2014/02/16 06:28:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -68,8 +68,7 @@ void clearptrs(int subnum)
 {
 	char str[256];
 	ushort idx,scancfg;
-	int file, i;
-	size_t gi;
+	int file,i,gi;
 	long l=0L;
 	glob_t g;
 
@@ -86,7 +85,7 @@ void clearptrs(int subnum)
             }
             while(filelength(file)<(long)(cfg.sub[subnum]->ptridx)*10) {
                 lseek(file,0L,SEEK_END);
-                idx=(ushort)(tell(file)/10);
+                idx=tell(file)/10;
                 for(i=0;i<cfg.total_subs;i++)
                     if(cfg.sub[i]->ptridx==idx)
                         break;
@@ -128,7 +127,6 @@ void msgs_cfg()
 	char	tmp_code[32];
 	int		j,k,q,s;
 	int		i,file,ptridx,n;
-	unsigned u;
 	unsigned total_subs;
 	long	ported;
 	sub_t	tmpsub;
@@ -402,6 +400,7 @@ while(1) {
 				ported=0;
 				q=uifc.changes;
 				strcpy(opt[k++],"SUBS.TXT    (Synchronet)");
+				strcpy(opt[k++],"AREAS.BBS   (MSG)");
 				strcpy(opt[k++],"AREAS.BBS   (SBBSecho)");
 				strcpy(opt[k++],"FIDONET.NA  (Fido)");
 				opt[k][0]=0;
@@ -419,10 +418,12 @@ while(1) {
 				if(k==0)
 					sprintf(str,"%sSUBS.TXT",cfg.ctrl_dir);
 				else if(k==1)
-					sprintf(str,"%sAREAS.BBS",cfg.data_dir);
+					sprintf(str,"AREAS.BBS");
 				else if(k==2)
+					sprintf(str,"%sAREAS.BBS",cfg.data_dir);
+				else if(k==3)
 					sprintf(str,"FIDONET.NA");
-				if(k==1)
+				if(k && k<3)
 					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Uplinks"
 						,str2,sizeof(str2)-1,0)<=0) {
 						uifc.changes=q;
@@ -459,7 +460,16 @@ while(1) {
 					if(cfg.sub[j]->grp!=i)
 						continue;
 					ported++;
-					if(k==1) {		/* AREAS.BBS SBBSecho */
+					if(k==1) {		/* AREAS.BBS *.MSG */
+						sprintf(str,"%s%s%s/"
+							,cfg.echomail_dir
+							,cfg.grp[cfg.sub[j]->grp]->code_prefix
+							,cfg.sub[j]->code_suffix);
+						fprintf(stream,"%-30s %-20s %s\r\n"
+							,str,stou(cfg.sub[j]->sname),str2);
+						continue; 
+					}
+					if(k==2) {		/* AREAS.BBS SBBSecho */
 						fprintf(stream,"%s%-30s %-20s %s\r\n"
 							,cfg.grp[cfg.sub[j]->grp]->code_prefix
 							,cfg.sub[j]->code_suffix
@@ -467,7 +477,7 @@ while(1) {
 							,str2);
 						continue; 
 					}
-					if(k==2) {		/* FIDONET.NA */
+					if(k==3) {		/* FIDONET.NA */
 						fprintf(stream,"%-20s %s\r\n"
 							,stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
 						continue; 
@@ -557,7 +567,7 @@ while(1) {
 						memset(&tmpsub,0,sizeof(sub_t));
 						tmpsub.misc|=
 							(SUB_FIDO|SUB_NAME|SUB_TOUSER|SUB_QUOTE|SUB_HYPER);
-						if(k==1) {		/* AREAS.BBS Generic/.MSG */
+						if(k==1) {		/* AREAS.BBS Generic/*.MSG */
 							p=str;
 							SKIP_WHITESPACE(p);			/* Find path	*/
 							FIND_WHITESPACE(p);			/* Skip path	*/
@@ -676,13 +686,12 @@ while(1) {
 						|| tmpsub.qwkname[0]==0)
 						continue;
 
-					for(u=0;u<total_subs;u++) {
-						if(cfg.sub[u]->grp!=i)
+					for(j=0;j<total_subs;j++) {
+						if(cfg.sub[j]->grp!=i)
 							continue;
-						if(!stricmp(cfg.sub[u]->code_suffix,tmpsub.code_suffix))
+						if(!stricmp(cfg.sub[j]->code_suffix,tmpsub.code_suffix))
 							break; 
 					}
-					j=u;
 					if(j==total_subs) {
 						j=cfg.total_subs;
 						if((cfg.sub=(sub_t **)realloc(cfg.sub
@@ -718,10 +727,10 @@ while(1) {
 					}
 					if(j==cfg.total_subs) {	/* adding new sub-board */
 						for(;ptridx<USHRT_MAX;ptridx++) {
-							for(u=0;u<total_subs;u++)
-								if(cfg.sub[u]->ptridx==ptridx)
+							for(n=0;n<total_subs;n++)
+								if(cfg.sub[n]->ptridx==ptridx)
 									break;
-							if(u==total_subs)
+							if(n==total_subs)
 								break; 
 						}
 						cfg.sub[j]->ptridx=ptridx;	/* use new ptridx */
