@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.33 2013/05/10 18:10:31 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.35 2014/08/13 09:13:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,6 +226,7 @@ static char* uifc_prop_desc[] = {
 	,"text colour"
 	,"inverse colour"
 	,"lightbar colour"
+	,NULL
 };
 #endif
 
@@ -485,11 +486,11 @@ js_uifc_input(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	if(prompt)
 		free(prompt);
-	if(str)
-		free(str);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,str)));
+	if(str)
+		free(str);
 
 	return(JS_TRUE);
 }

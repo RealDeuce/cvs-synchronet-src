@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.592 2013/05/07 00:20:10 mcmlxxix Exp $ */
+/* $Id: main.cpp,v 1.607 2014/05/01 08:12:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,6 +51,7 @@
 	#endif
 #endif
 
+//#define SBBS_TELNET_ENVIRON_SUPPORT 1
 //---------------------------------------------------------------------------
 
 #define TELNET_SERVER "Synchronet Terminal Server"
@@ -120,7 +121,7 @@ static const char* status(const char* str)
 static void update_clients()
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,node_threads_running.value);
+		startup->clients(startup->cbdata,protected_uint32_value(node_threads_running));
 }
 
 void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -252,7 +253,7 @@ u_long resolve_ip(char *addr)
 		return((u_long)INADDR_NONE);
 
 	for(p=addr;*p;p++)
-		if(*p!='.' && !isdigit(*p))
+		if(*p!='.' && !isdigit((uchar)*p))
 			break;
 	if(!(*p))
 		return(inet_addr(addr));
@@ -1290,7 +1291,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
-						sprintf(sbbs->terminal,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						safe_snprintf(sbbs->terminal,sizeof(sbbs->terminal),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal type: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1299,7 +1300,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					} else if(option==TELNET_TERM_SPEED
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
 						char speed[128];
-						sprintf(speed,"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						safe_snprintf(speed,sizeof(speed),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal speed: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1312,17 +1313,34 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 						BYTE*	p;
 						BYTE*   end=sbbs->telnet_cmd+(sbbs->telnet_cmdlen-2);
 						for(p=sbbs->telnet_cmd+4; p < end; ) {
-							if(*p==TELNET_ENVIRON_VAR) {
-								char tmp[128];
-								p++;
-								c_escape_str((char*)p,tmp,sizeof(tmp),TRUE);
-								lprintf(LOG_DEBUG,"Node %d %s telnet environment var/val: %.*s (%s)"
-	                				,sbbs->cfg.node_num
-									,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-									,end-p
-									,p
-									,tmp);
-								p+=strlen((char*)p);
+							if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR) {
+								BYTE type=*p++;
+								char* name=(char*)p;
+								/* RFC 1572: The characters following a "type" up to the next "type" or VALUE specify the variable name. */
+								while(p < end) {
+									if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR || *p == TELNET_ENVIRON_VALUE)
+										break;
+									p++;
+								}
+								if(p < end) {
+									char* value=(char*)p+1;
+									*(p++)=0;
+									while(p < end) {
+										if(*p==TELNET_ENVIRON_VAR || *p==TELNET_ENVIRON_USERVAR || *p == TELNET_ENVIRON_VALUE)
+											break;
+										p++;
+									}
+									*p=0;
+									lprintf(LOG_DEBUG,"Node %d telnet %s %s environment variable '%s' = '%s'"
+	                					,sbbs->cfg.node_num
+										,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+										,type==TELNET_ENVIRON_VAR ? "well-known" : "user-defined"
+										,name
+										,value);
+									if(strcmp(name,"USER") == 0) {
+										SAFECOPY(sbbs->rlogin_name, value);
+									}
+								}
 							} else
 								p++;
 						}
@@ -1439,9 +1457,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 									,sbbs->cfg.node_num);
 
 							char	buf[64];
-							int len=sprintf(buf,"%c%c%c%c%c%c%c"
+							int len=sprintf(buf,"%c%c%c%c%c%c"
 								,TELNET_IAC,TELNET_SB
-								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND,TELNET_ENVIRON_VAR
+								,TELNET_NEW_ENVIRON,TELNET_ENVIRON_SEND //,TELNET_ENVIRON_VAR
 								,TELNET_IAC,TELNET_SE);
 							sbbs->putcom(buf,len);
 						}
@@ -1528,9 +1546,6 @@ void input_thread(void *arg)
 	lprintf(LOG_DEBUG,"Node %d input thread started",sbbs->cfg.node_num);
 #endif
 
-	pthread_mutex_init(&sbbs->input_thread_mutex,NULL);
-	pthread_mutex_init(&sbbs->ssh_mutex,NULL);
-    sbbs->input_thread_running = true;
 	sbbs->console|=CON_R_INPUT;
 
 	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET
@@ -1768,11 +1783,6 @@ void input_thread(void *arg)
 	if(node_socket[sbbs->cfg.node_num-1]==INVALID_SOCKET)	// Shutdown locally
 		sbbs->terminated = true;	// Signal JS to stop execution
 
-	while(pthread_mutex_destroy(&sbbs->ssh_mutex)==EBUSY)
-		mswait(1);
-	while(pthread_mutex_destroy(&sbbs->input_thread_mutex)==EBUSY)
-		mswait(1);
-
 	thread_down();
 	lprintf(LOG_DEBUG,"Node %d input thread terminated (received %lu bytes in %lu blocks)"
 		,sbbs->cfg.node_num, total_recv, total_pkts);
@@ -1802,8 +1812,6 @@ void passthru_output_thread(void* arg)
 
 	SetThreadName("Passthrough Output");
 	thread_up(FALSE /* setuid */);
-
-    sbbs->passthru_output_thread_running = true;
 
 	while(sbbs->client_socket!=INVALID_SOCKET && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
 		if(!sbbs->input_thread_mutex_locked) {
@@ -1919,8 +1927,6 @@ void passthru_input_thread(void* arg)
 	SetThreadName("Passthrough Input");
 	thread_up(FALSE /* setuid */);
 
-	sbbs->passthru_input_thread_running = true;
-
 	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
 		tv.tv_sec=1;
 		tv.tv_usec=0;
@@ -2020,7 +2026,6 @@ void output_thread(void* arg)
 	lprintf(LOG_DEBUG,"%s output thread started",node);
 #endif
 
-    sbbs->output_thread_running = true;
 	sbbs->console|=CON_R_ECHO;
 
 #ifdef TCP_MAXSEG
@@ -2031,7 +2036,11 @@ void output_thread(void* arg)
 	if(!sbbs->outbuf.highwater_mark) {
 		socklen_t	sl;
 		sl=sizeof(i);
-		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, &i, &sl)) {
+		if(!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_MAXSEG, 
+#ifdef _WIN32
+			(char *)
+#endif
+			&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
 				sbbs->outbuf.highwater_mark=i;
@@ -2124,7 +2133,20 @@ void output_thread(void* arg)
 #ifdef USE_CRYPTLIB
 		if(sbbs->ssh_mode) {
 			int err;
-			pthread_mutex_lock(&sbbs->ssh_mutex);
+			pthread_mutex_lock(&sbbs->ssh_mutex);	/* exception here May-22-2013:
+ 	sbbs.dll!pthread_mutex_lock(_RTL_CRITICAL_SECTION * mutex=0x0a45e95c)  Line 147 + 0xc bytes	C
+>	sbbs.dll!output_thread(void * arg=0x0a458c68)  Line 2126 + 0x11 bytes	C++
+ 	sbbs.dll!_callthreadstart()  Line 259 + 0xf bytes	C
+ 	sbbs.dll!_threadstart(void * ptd=0x04b20c40)  Line 243	C
+
+-		sbbs->ssh_mutex	{DebugInfo=0x00000000 LockCount=-4 RecursionCount=0 ...}	_RTL_CRITICAL_SECTION
++		DebugInfo	0x00000000 {Type=??? CreatorBackTraceIndex=??? CriticalSection=??? ...}	_RTL_CRITICAL_SECTION_DEBUG *
+		LockCount	-4	long
+		RecursionCount	0	long
+		OwningThread	0x00000000	void *
+		LockSemaphore	0x00006354	void *
+		SpinCount	0	unsigned long
+*/
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on Cryptlib session", node, err);
@@ -2187,7 +2209,7 @@ void output_thread(void* arg)
     sbbs->output_thread_running = false;
 
 	if(total_sent)
-		sprintf(stats,"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
+		safe_snprintf(stats,sizeof(stats),"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
 			,total_sent, total_pkts, total_sent/total_pkts, short_sends);
 	else
 		stats[0]=0;
@@ -2223,8 +2245,6 @@ void event_thread(void* arg)
 	struct tm	tm;
 
 	eprintf(LOG_INFO,"BBS Events thread started");
-
-	sbbs->event_thread_running = true;
 
 	sbbs_srand();	/* Seed random number generator */
 
@@ -2321,7 +2341,7 @@ void event_thread(void* arg)
 			offset=strlen(str);
 			strcat(str,"*.rep");
 			glob(str,0,NULL,&g);
-			for(i=0;i<(int)g.gl_pathc;i++) {
+			for(i=0;i<(int)g.gl_pathc && !sbbs->terminated;i++) {
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
@@ -2349,7 +2369,7 @@ void event_thread(void* arg)
 			SAFEPRINTF(str,"%spack*.now",sbbs->cfg.data_dir);
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
-			for(i=0;i<(int)g.gl_pathc;i++) {
+			for(i=0;i<(int)g.gl_pathc && !sbbs->terminated;i++) {
 				eprintf(LOG_INFO,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
@@ -2513,7 +2533,7 @@ void event_thread(void* arg)
 		}
 
 		/* QWK Networking Call-out Events */
-		for(i=0;i<sbbs->cfg.total_qhubs;i++) {
+		for(i=0;i<sbbs->cfg.total_qhubs && !sbbs->terminated;i++) {
 			if(sbbs->cfg.qhub[i]->node<first_node ||
 				sbbs->cfg.qhub[i]->node>last_node)
 				continue;
@@ -2553,7 +2573,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
 				|| ((sbbs->cfg.qhub[i]->freq
-					&& (now-sbbs->cfg.qhub[i]->last)/60>sbbs->cfg.qhub[i]->freq)
+					&& (now-sbbs->cfg.qhub[i]->last)/60>=sbbs->cfg.qhub[i]->freq)
 					|| (sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -2623,7 +2643,7 @@ void event_thread(void* arg)
 		}
 
 		/* PostLink Networking Call-out Events */
-		for(i=0;i<sbbs->cfg.total_phubs;i++) {
+		for(i=0;i<sbbs->cfg.total_phubs && !sbbs->terminated;i++) {
 			if(sbbs->cfg.phub[i]->node<first_node 
 				|| sbbs->cfg.phub[i]->node>last_node)
 				continue;
@@ -2633,7 +2653,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.phub[i]->last==-1
 				|| (((sbbs->cfg.phub[i]->freq								/* or frequency */
-					&& (now-sbbs->cfg.phub[i]->last)/60>sbbs->cfg.phub[i]->freq)
+					&& (now-sbbs->cfg.phub[i]->last)/60>=sbbs->cfg.phub[i]->freq)
 				|| (sbbs->cfg.phub[i]->time
 					&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.phub[i]->time
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -2664,7 +2684,7 @@ void event_thread(void* arg)
 		}
 
 		/* Timed Events */
-		for(i=0;i<sbbs->cfg.total_events;i++) {
+		for(i=0;i<sbbs->cfg.total_events && !sbbs->terminated;i++) {
 			if(!sbbs->cfg.event[i]->node 
 				|| sbbs->cfg.event[i]->node>sbbs->cfg.sys_nodes)
 				continue;	// ignore events for invalid nodes
@@ -2682,7 +2702,7 @@ void event_thread(void* arg)
 				memset(&tm,0,sizeof(tm));
 			if(sbbs->cfg.event[i]->last==-1 ||
 				(((sbbs->cfg.event[i]->freq 
-					&& (now-sbbs->cfg.event[i]->last)/60>sbbs->cfg.event[i]->freq)
+					&& (now-sbbs->cfg.event[i]->last)/60>=sbbs->cfg.event[i]->freq)
 				|| 	(!sbbs->cfg.event[i]->freq 
 					&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.event[i]->time
 				&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
@@ -2939,11 +2959,13 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	terminal[0]=0;
 	rlogin_name[0]=0;
 	rlogin_pass[0]=0;
+	rlogin_term[0]=0;
 
 	/* Init some important variables */
 
 #ifdef USE_CRYPTLIB
 	ssh_mode=false;
+	ssh_mutex_created=false;
     passthru_input_thread_running = false;
     passthru_output_thread_running = false;
 #endif
@@ -3149,7 +3171,7 @@ bool sbbs_t::init()
 			now=time(NULL);
 			struct tm tm;
 			localtime_r(&now,&tm);
-			sprintf(str,"%s  %s %s %02d %u  "
+			safe_snprintf(str,sizeof(str),"%s  %s %s %02d %u  "
 				"End of preexisting log entry (possible crash)"
 				,hhmmtostr(&cfg,&tm,tmp)
 				,wday[tm.tm_wday]
@@ -3332,6 +3354,12 @@ bool sbbs_t::init()
 			} 
 	}
 
+#ifdef USE_CRYPTLIB
+	pthread_mutex_init(&ssh_mutex,NULL);
+	ssh_mutex_created = true;
+#endif
+	pthread_mutex_init(&input_thread_mutex,NULL);
+
 	reset_logon_vars();
 
 	online=ON_REMOTE;
@@ -3456,6 +3484,13 @@ sbbs_t::~sbbs_t()
 	FREE_AND_NULL(batdn_size);
 	FREE_AND_NULL(batdn_cdt);
 	FREE_AND_NULL(batdn_alt);
+
+#ifdef USE_CRYPTLIB
+	while(ssh_mutex_created && pthread_mutex_destroy(&ssh_mutex)==EBUSY)
+		mswait(1);
+#endif
+	while(pthread_mutex_destroy(&input_thread_mutex)==EBUSY)
+		mswait(1);
 
 #if 0 && defined(_WIN32) && defined(_DEBUG) && defined(_MSC_VER)
 	if(!_CrtCheckMemory())
@@ -4294,7 +4329,7 @@ const char* DLLCALL bbs_ver(void)
 	if(ver[0]==0) {	/* uninitialized */
 		DESCRIBE_COMPILER(compiler);
 
-		sprintf(ver,"%s %s%c%s  SMBLIB %s  Compiled %s %s with %s"
+		safe_snprintf(ver,sizeof(ver),"%s %s%c%s  SMBLIB %s  Compiled %s %s with %s"
 			,TELNET_SERVER
 			,VERSION, REVISION
 #ifdef _DEBUG
@@ -4800,6 +4835,7 @@ NO_SSH:
 		cleanup(1);
 		return;
 	}
+    sbbs->output_thread_running = true;
 	_beginthread(output_thread, 0, sbbs);
 
 	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
@@ -4810,6 +4846,7 @@ NO_SSH:
 			cleanup(1);
 			return;
 		}
+		events->event_thread_running = true;
 		_beginthread(event_thread, 0, events);
 	}
 
@@ -4922,7 +4959,7 @@ NO_SSH:
 
 	while(!terminate_server) {
 
-		if(node_threads_running.value==0) {	/* check for re-run flags and recycle/shutdown sem files */
+		if(protected_uint32_value(node_threads_running)==0) {	/* check for re-run flags and recycle/shutdown sem files */
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 
 				bool rerun=false;
@@ -5453,7 +5490,9 @@ NO_SSH:
 				goto NO_PASSTHRU;
 			}
 			close_socket(tmp_sock);
+			new_node->passthru_output_thread_running = true;
 			_beginthread(passthru_output_thread, 0, new_node);
+			new_node->passthru_input_thread_running = true;
 			_beginthread(passthru_input_thread, 0, new_node);
 
 NO_PASSTHRU:
@@ -5471,7 +5510,9 @@ NO_PASSTHRU:
 #endif
 
 	    protected_uint32_adjust(&node_threads_running, 1);
+	    new_node->input_thread_running = true;
 		new_node->input_thread=(HANDLE)_beginthread(input_thread,0, new_node);
+	    new_node->output_thread_running = true;
 		_beginthread(output_thread, 0, new_node);
 		_beginthread(node_thread, 0, new_node);
 		served++;
@@ -5506,13 +5547,13 @@ NO_PASSTHRU:
     sem_post(&sbbs->outbuf.sem);
 
     // Wait for all node threads to terminate
-	if(node_threads_running.value) {
-		lprintf(LOG_INFO,"Waiting for %d node threads to terminate...", node_threads_running.value);
+	if(protected_uint32_value(node_threads_running)) {
+		lprintf(LOG_INFO,"Waiting for %d node threads to terminate...", protected_uint32_value(node_threads_running));
 		start=time(NULL);
-		while(node_threads_running.value) {
+		while(protected_uint32_value(node_threads_running)) {
 			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
 				lprintf(LOG_ERR,"!TIMEOUT waiting for %d node thread(s) to "
-            		"terminate", node_threads_running.value);
+            		"terminate", protected_uint32_value(node_threads_running));
 				break;
 			}
 			mswait(100);

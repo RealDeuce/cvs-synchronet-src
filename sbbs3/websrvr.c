@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.566 2013/02/11 23:43:59 deuce Exp $ */
+/* $Id: websrvr.c,v 1.576 2014/11/03 01:48:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -103,10 +103,10 @@ enum {
 static scfg_t	scfg;
 static volatile BOOL	http_logging_thread_running=FALSE;
 static protected_uint32_t active_clients;
+static protected_uint32_t thread_count;
 static volatile ulong	sockets=0;
 static volatile BOOL	terminate_server=FALSE;
 static volatile BOOL	terminate_http_logging_thread=FALSE;
-static volatile	ulong	thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
@@ -122,7 +122,6 @@ static js_server_props_t js_server_props;
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
 static str_list_t cgi_env;
-static volatile ulong session_threads=0;
 
 static named_string_t** mime_types;
 static named_string_t** cgi_handlers;
@@ -429,8 +428,8 @@ time_gm(struct tm *tm)
         /* save value in case *tm is overwritten by gmtime() */
         sec = tm->tm_sec;
 
-        tm2 = gmtime(&t);
-        if ((t2 = sub_mkgmt(tm2)) == (time_t) -1)
+        tm2 = gmtime(&t);	/* why not use gmtime_r instead? */
+        if (tm2 == NULL || (t2 = sub_mkgmt(tm2)) == (time_t) -1)
                 return (time_t) -1;
 
         if (t2 < t || tm2->tm_sec != sec) {
@@ -618,7 +617,7 @@ static void status(char* str)
 static void update_clients(void)
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,active_clients.value);
+		startup->clients(startup->cbdata,protected_uint32_value(active_clients));
 }
 
 static void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -635,15 +634,13 @@ static void client_off(SOCKET sock)
 
 static void thread_up(BOOL setuid)
 {
-	thread_count++;
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,TRUE, setuid);
 }
 
 static void thread_down(void)
 {
-	if(thread_count>0)
-		thread_count--;
+	protected_uint32_adjust(&thread_count,-1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,FALSE, FALSE);
 }
@@ -1471,6 +1468,176 @@ static void calculate_digest(http_session_t * session, char *ha1, char *ha2, uns
 	MD5_close(&ctx, digest);
 }
 
+static BOOL digest_authentication(http_session_t* session, int auth_allowed, user_t thisuser, char** reason)
+{
+	unsigned char	digest[MD5_DIGEST_SIZE];
+	char			ha1[MD5_DIGEST_SIZE*2+1];
+	char			ha1l[MD5_DIGEST_SIZE*2+1];
+	char			ha1u[MD5_DIGEST_SIZE*2+1];
+	char			ha2[MD5_DIGEST_SIZE*2+1];
+	char			*pass;
+	char			*p;
+	time32_t		nonce_time;
+	time32_t		now;
+	MD5				ctx;
+
+	if((auth_allowed & (1<<AUTHENTICATION_DIGEST))==0) {
+		*reason="digest auth not allowed";
+		return(FALSE);
+	}
+	if(session->req.auth.qop_value==QOP_UNKNOWN) {
+		*reason="QOP unknown";
+		return(FALSE);
+	}
+	if(session->req.auth.algorithm==ALGORITHM_UNKNOWN) {
+		*reason="algorithm unknown";
+		return(FALSE);
+	}
+	/* Validate rules from RFC-2617 */
+	if(session->req.auth.qop_value==QOP_AUTH
+			|| session->req.auth.qop_value==QOP_AUTH_INT) {
+		if(session->req.auth.cnonce==NULL) {
+			*reason="no cnonce";
+			return(FALSE);
+		}
+		if(session->req.auth.nonce_count==NULL) {
+			*reason="no nonce count";
+			return(FALSE);
+		}
+	}
+	else {
+		if(session->req.auth.cnonce!=NULL) {
+			*reason="unexpected cnonce present";
+			return(FALSE);
+		}
+		if(session->req.auth.nonce_count!=NULL) {
+			*reason="unexpected nonce count present";
+			return(FALSE);
+		}
+	}
+
+	/* H(A1) */
+	MD5_open(&ctx);
+	MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
+	MD5_digest(&ctx, ":", 1);
+	MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
+	MD5_digest(&ctx, ":", 1);
+	MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
+	MD5_close(&ctx, digest);
+	MD5_hex((BYTE*)ha1, digest);
+
+	/* H(A1)l */
+	pass=strdup(thisuser.pass);
+	strlwr(pass);
+	MD5_open(&ctx);
+	MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
+	MD5_digest(&ctx, ":", 1);
+	MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
+	MD5_digest(&ctx, ":", 1);
+	MD5_digest(&ctx, pass, strlen(pass));
+	MD5_close(&ctx, digest);
+	MD5_hex((BYTE*)ha1l, digest);
+
+	/* H(A1)u */
+	strupr(pass);
+	MD5_open(&ctx);
+	MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
+	MD5_digest(&ctx, ":", 1);
+	MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
+	MD5_digest(&ctx, ":", 1);
+	MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
+	MD5_close(&ctx, digest);
+	MD5_hex((BYTE*)ha1u, digest);
+	free(pass);
+
+	/* H(A2) */
+	MD5_open(&ctx);
+	MD5_digest(&ctx, methods[session->req.method], strlen(methods[session->req.method]));
+	MD5_digest(&ctx, ":", 1);
+	/* exception here, session->req.auth.digest_uri==NULL */
+	MD5_digest(&ctx, session->req.auth.digest_uri, strlen(session->req.auth.digest_uri));
+	/* TODO QOP==AUTH_INT */
+	if(session->req.auth.qop_value == QOP_AUTH_INT) {
+		*reason="QOP value";
+		return(FALSE);
+	}
+	MD5_close(&ctx, digest);
+	MD5_hex((BYTE*)ha2, digest);
+
+	/* Check password as in user.dat */
+	calculate_digest(session, ha1, ha2, digest);
+	if(thisuser.pass[0]) {	// Zero-length password is "special" (any password will work)
+		if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
+			/* Check against lower-case password */
+			calculate_digest(session, ha1l, ha2, digest);
+			if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
+				/* Check against upper-case password */
+				calculate_digest(session, ha1u, ha2, digest);
+				if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
+					*reason="digest mismatch";
+					return(FALSE);
+				}
+			}
+		}
+	}
+
+	/* Validate nonce */
+	p=strchr(session->req.auth.nonce, '@');
+	if(p==NULL) {
+		session->req.auth.stale=TRUE;
+		*reason="nonce lacks @";
+		return(FALSE);
+	}
+	*p=0;
+	if(strcmp(session->req.auth.nonce, session->client.addr)) {
+		session->req.auth.stale=TRUE;
+		*reason="nonce doesn't match client IP address";
+		return(FALSE);
+	}
+	*p='@';
+	p++;
+	nonce_time=strtoul(p, &p, 10);
+	if(*p) {
+		session->req.auth.stale=TRUE;
+		*reason="unexpected data after nonce time";
+		return(FALSE);
+	}
+	now=(time32_t)time(NULL);
+	if(nonce_time > now) {
+		session->req.auth.stale=TRUE;
+		*reason="nonce time in the future";
+		return(FALSE);
+	}
+	if(nonce_time < now-1800) {
+		session->req.auth.stale=TRUE;
+		*reason="stale nonce time";
+		return(FALSE);
+	}
+
+	return(TRUE);
+}
+
+static void badlogin(SOCKET sock, const char* prot, const char* user, const char* passwd, const char* host, const SOCKADDR_IN* addr)
+{
+	char reason[128];
+	ulong count;
+
+	SAFEPRINTF(reason,"%s LOGIN", prot);
+	count=loginFailure(startup->login_attempt_list, addr, prot, user, passwd);
+	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold) {
+		hacklog(&scfg, reason, user, passwd, host, addr);
+#ifdef _WIN32
+		if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
+			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
+#endif
+	}
+	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
+		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
+			,host, inet_ntoa(addr->sin_addr), user, /* fname: */NULL);
+	if(count>1)
+		mswait(startup->login_attempt_delay);
+}
+
 static BOOL check_ars(http_session_t * session)
 {
 	uchar	*ar;
@@ -1520,10 +1687,10 @@ static BOOL check_ars(http_session_t * session)
 		if(!http_checkuser(session))
 			return(FALSE);
 		if(scfg.sys_misc&SM_ECHO_PW && session->req.auth.type==AUTHENTICATION_BASIC)
-			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: %s, Password: %s"
+			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: '%s' (password: %s)"
 				,session->socket,session->req.auth.username,session->req.auth.password);
 		else
-			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: %s"
+			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: '%s'"
 				,session->socket,session->req.auth.username);
 		return(FALSE);
 	}
@@ -1542,143 +1709,27 @@ static BOOL check_ars(http_session_t * session)
 				}
 				if(!http_checkuser(session))
 					return(FALSE);
-				/* Should go to the hack log? */
 				if(scfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s: '%s' expected '%s'"
-						,session->socket,session->req.auth.username,session->req.auth.password,thisuser.pass);
+					lprintf(LOG_WARNING,"%04d !BASIC AUTHENTICATION FAILURE for user '%s' (password: %s)"
+						,session->socket,session->req.auth.username,session->req.auth.password);
 				else
-					lprintf(LOG_WARNING,"%04d !PASSWORD FAILURE for user %s"
+					lprintf(LOG_WARNING,"%04d !BASIC AUTHENTICATION FAILURE for user '%s'"
 						,session->socket,session->req.auth.username);
-		#ifdef _WIN32
-				if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
-					PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
-		#endif
+				badlogin(session->socket,session->client.protocol, session->req.auth.username, session->req.auth.password, session->host_name, &session->addr);
 				return(FALSE);
 			}
 			break;
 		case AUTHENTICATION_DIGEST:
-			{
-				unsigned char	digest[MD5_DIGEST_SIZE];
-				char			ha1[MD5_DIGEST_SIZE*2+1];
-				char			ha1l[MD5_DIGEST_SIZE*2+1];
-				char			ha1u[MD5_DIGEST_SIZE*2+1];
-				char			ha2[MD5_DIGEST_SIZE*2+1];
-				char			*pass;
-				char			*p;
-				time32_t		nonce_time;
-				time32_t		now;
-				MD5				ctx;
-
-				if((auth_allowed & (1<<AUTHENTICATION_DIGEST))==0)
-					return(FALSE);
-				if(session->req.auth.qop_value==QOP_UNKNOWN)
-					return(FALSE);
-				if(session->req.auth.algorithm==ALGORITHM_UNKNOWN)
-					return(FALSE);
-				/* Validate rules from RFC-2617 */
-				if(session->req.auth.qop_value==QOP_AUTH
-						|| session->req.auth.qop_value==QOP_AUTH_INT) {
-					if(session->req.auth.cnonce==NULL)
-						return(FALSE);
-					if(session->req.auth.nonce_count==NULL)
-						return(FALSE);
-				}
-				else {
-					if(session->req.auth.cnonce!=NULL)
-						return(FALSE);
-					if(session->req.auth.nonce_count!=NULL)
-						return(FALSE);
-				}
-
-				/* H(A1) */
-				MD5_open(&ctx);
-				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
-				MD5_close(&ctx, digest);
-				MD5_hex((BYTE*)ha1, digest);
-
-				/* H(A1)l */
-				pass=strdup(thisuser.pass);
-				strlwr(pass);
-				MD5_open(&ctx);
-				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, pass, strlen(pass));
-				MD5_close(&ctx, digest);
-				MD5_hex((BYTE*)ha1l, digest);
-
-				/* H(A1)u */
-				strupr(pass);
-				MD5_open(&ctx);
-				MD5_digest(&ctx, session->req.auth.username, strlen(session->req.auth.username));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name), strlen(session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name)));
-				MD5_digest(&ctx, ":", 1);
-				MD5_digest(&ctx, thisuser.pass, strlen(thisuser.pass));
-				MD5_close(&ctx, digest);
-				MD5_hex((BYTE*)ha1u, digest);
-				free(pass);
-
-				/* H(A2) */
-				MD5_open(&ctx);
-				MD5_digest(&ctx, methods[session->req.method], strlen(methods[session->req.method]));
-				MD5_digest(&ctx, ":", 1);
-				/* exception here, session->req.auth.digest_uri==NULL */
-				MD5_digest(&ctx, session->req.auth.digest_uri, strlen(session->req.auth.digest_uri));
-				/* TODO QOP==AUTH_INT */
-				if(session->req.auth.qop_value == QOP_AUTH_INT)
-					return(FALSE);
-				MD5_close(&ctx, digest);
-				MD5_hex((BYTE*)ha2, digest);
-
-				/* Check password as in user.dat */
-				calculate_digest(session, ha1, ha2, digest);
-				if(thisuser.pass[0]) {	// Zero-length password is "special" (any password will work)
-					if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-						/* Check against lower-case password */
-						calculate_digest(session, ha1l, ha2, digest);
-						if(memcmp(digest, session->req.auth.digest, sizeof(digest))) {
-							/* Check against upper-case password */
-							calculate_digest(session, ha1u, ha2, digest);
-							if(memcmp(digest, session->req.auth.digest, sizeof(digest)))
-								return(FALSE);
-						}
-					}
-				}
-
-				/* Validate nonce */
-				p=strchr(session->req.auth.nonce, '@');
-				if(p==NULL) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				*p=0;
-				if(strcmp(session->req.auth.nonce, session->client.addr)) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				*p='@';
-				p++;
-				nonce_time=strtoul(p, &p, 10);
-				if(*p) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				now=(time32_t)time(NULL);
-				if(nonce_time > now) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
-				if(nonce_time < now-1800) {
-					session->req.auth.stale=TRUE;
-					return(FALSE);
-				}
+		{
+			char* reason="unknown";
+			if(!digest_authentication(session, auth_allowed, thisuser, &reason)) {
+				lprintf(LOG_NOTICE,"%04d !DIGEST AUTHENTICATION FAILURE (reason: %s) for user '%s'"
+						,session->socket,reason,session->req.auth.username);
+				badlogin(session->socket,session->client.protocol, session->req.auth.username, "<digest>", session->host_name, &session->addr);
+				return(FALSE);
 			}
+			break;
+		}
 	}
 
 	if(i != session->last_user_num) {
@@ -1711,6 +1762,9 @@ static BOOL check_ars(http_session_t * session)
 		}
 		/* Should use real name if set to do so somewhere ToDo */
 		add_env(session,"REMOTE_USER",session->user.alias);
+
+		if(thisuser.pass[0])
+			loginSuccess(startup->login_attempt_list, &session->addr);
 
 		return(TRUE);
 	}
@@ -1924,7 +1978,7 @@ static void unescape(char *p)
 	
 	dst=p;
 	for(;*p;p++) {
-		if(*p=='%' && isxdigit(*(p+1)) && isxdigit(*(p+2))) {
+		if(*p=='%' && isxdigit((uchar)*(p+1)) && isxdigit((uchar)*(p+2))) {
 			sprintf(code,"%.2s",p+1);
 			*(dst++)=(char)strtol(code,NULL,16);
 			p+=2;
@@ -2869,7 +2923,7 @@ static BOOL check_request(http_session_t * session)
 {
 	char	path[MAX_PATH+1];
 	char	curdir[MAX_PATH+1];
-	char	str[MAX_PATH+1];
+	char	str[MAX_PATH+1];			/* Apr-7-2013: bounds of str can be exceeded, e.g. "s:\sbbs\web\root\http:\vert.synchro.net\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\todolist.ssjs\webctrl.ini"	char [261] */
 	char	last_ch;
 	char*	last_slash;
 	char*	p;
@@ -3099,7 +3153,7 @@ static BOOL check_request(http_session_t * session)
 					break;
 				case AUTHENTICATION_DIGEST:
 					snprintf(p,sizeof(str)-(p-str),"%s%s: Digest realm=\"%s\", nonce=\"%s@%u\", qop=\"auth\"%s"
-							,newline,get_header(HEAD_WWWAUTH),session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name),session->client.addr,time(NULL),session->req.auth.stale?", stale=true":"");
+							,newline,get_header(HEAD_WWWAUTH),session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name),session->client.addr,(unsigned)time(NULL),session->req.auth.stale?", stale=true":"");
 					str[sizeof(str)-1]=0;
 					break;
 			}
@@ -4140,10 +4194,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		JSVALUE_TO_STRBUF(cx, argv[i], strchr(str, 0), sizeof(str)/2, NULL);
+		char* tp=strchr(str, 0);
+		JSVALUE_TO_STRBUF(cx, argv[i], tp, sizeof(str)/2, NULL);
 		strcat(str," ");
 	}
-
 	rc=JS_SUSPENDREQUEST(cx);
 	lprintf(level,"%04d %s",session->socket,str);
 	JS_RESUMEREQUEST(cx, rc);
@@ -4177,7 +4231,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	memset(&user,0,sizeof(user));
 
-	if(isdigit(*p))
+	if(isdigit((uchar)*p))
 		user.number=atoi(p);
 	else if(*p)
 		user.number=matchuser(&scfg,p,FALSE);
@@ -4205,7 +4259,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 		if(stricmp(user.pass,p)) { /* Wrong password */
 			rc=JS_SUSPENDREQUEST(cx);
-			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: %s"
+			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: '%s'"
 				,session->socket,user.alias);
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
@@ -4939,11 +4993,14 @@ void http_output_thread(void *arg)
 	unsigned mss=OUTBUF_LEN;
 
 	SetThreadName("HTTP Output");
+	thread_up(TRUE /* setuid */);
+
 	obuf=&(session->outbuf);
 	/* Destroyed at end of function */
 	if((i=pthread_mutex_init(&session->outbuf_write,NULL))!=0) {
 		lprintf(LOG_DEBUG,"Error %d initializing outbuf mutex",i);
 		close_socket(&session->socket);
+		thread_down();
 		return;
 	}
 	session->outbuf_write_initialized=1;
@@ -4956,7 +5013,7 @@ void http_output_thread(void *arg)
 	if(!obuf->highwater_mark) {
 		socklen_t   sl;
 		sl=sizeof(i);
-		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, &i, &sl)) {
+		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, (char*)&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
 				obuf->highwater_mark=i-12;
@@ -4973,7 +5030,6 @@ void http_output_thread(void *arg)
 	}
 #endif
 
-	thread_up(TRUE /* setuid */);
 	/*
 	 * Do *not* exit on terminate_server... wait for session thread
 	 * to close the socket and set it to INVALID_SOCKET
@@ -5055,6 +5111,7 @@ void http_session_thread(void* arg)
 	char			*redirp;
 	http_session_t	session;
 	int				loop_count;
+	ulong			login_attempts=0;
 	BOOL			init_error;
 	int32_t			clients_remain;
 
@@ -5066,9 +5123,11 @@ void http_session_thread(void* arg)
 	session=*(http_session_t*)arg;	/* copies arg BEFORE it's freed */
 	FREE_AND_NULL(arg);
 
+	thread_up(TRUE /* setuid */);
+
 	socket=session.socket;
 	if(socket==INVALID_SOCKET) {
-		session_threads--;
+		thread_down();
 		return;
 	}
 	lprintf(LOG_DEBUG,"%04d Session thread started", session.socket);
@@ -5081,7 +5140,6 @@ void http_session_thread(void* arg)
 		PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
-	thread_up(TRUE /* setuid */);
 	session.finished=FALSE;
 
 	/* Start up the output buffer */
@@ -5090,12 +5148,12 @@ void http_session_thread(void* arg)
 		lprintf(LOG_ERR,"%04d Canot create output ringbuffer!", session.socket);
 		close_socket(&session.socket);
 		thread_down();
-		session_threads--;
 		return;
 	}
 
 	/* Destroyed in this block (before all returns) */
 	sem_init(&session.output_thread_terminated,0,0);
+	protected_uint32_adjust(&thread_count,1);
 	_beginthread(http_output_thread, 0, &session);
 
 	sbbs_srand();	/* Seed random number generator */
@@ -5128,7 +5186,6 @@ void http_session_thread(void* arg)
 			sem_destroy(&session.output_thread_terminated);
 			RingBufDispose(&session.outbuf);
 			thread_down();
-			session_threads--;
 			return;
 		}
 	}
@@ -5141,7 +5198,6 @@ void http_session_thread(void* arg)
 		sem_destroy(&session.output_thread_terminated);
 		RingBufDispose(&session.outbuf);
 		thread_down();
-		session_threads--;
 		return;
 	}
 
@@ -5157,6 +5213,13 @@ void http_session_thread(void* arg)
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
+
+	if(startup->login_attempt_throttle
+		&& (login_attempts=loginAttempts(startup->login_attempt_list, &session.addr)) > 1) {
+		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
+			,socket, session.client.protocol, session.host_ip, login_attempts);
+		mswait(login_attempts*startup->login_attempt_throttle);
+	}
 
 	session.last_user_num=-1;
 	session.last_js_user_num=-1;
@@ -5268,14 +5331,13 @@ void http_session_thread(void* arg)
 	update_clients();
 	client_off(socket);
 
-	session_threads--;
 	thread_down();
 
 	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
 		lprintf(LOG_DEBUG,"%04d !!! ALL YOUR BASE ARE BELONG TO US !!!", socket);
 
 	lprintf(LOG_INFO,"%04d Session thread terminated (%u clients, %u threads remain, %lu served)"
-		,socket, clients_remain, thread_count, served);
+		,socket, clients_remain, protected_uint32_value(thread_count), served);
 
 }
 
@@ -5287,9 +5349,11 @@ void DLLCALL web_terminate(void)
 
 static void cleanup(int code)
 {
-	while(session_threads) {
-		lprintf(LOG_INFO,"#### Web Server waiting on %d active session threads",session_threads);
-		SLEEP(1000);
+	if(protected_uint32_value(thread_count) > 1) {
+		lprintf(LOG_DEBUG,"#### Web Server waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
+		while(protected_uint32_value(thread_count) > 1) {
+			mswait(100);
+		}
 	}
 	free_cfg(&scfg);
 
@@ -5309,12 +5373,12 @@ static void cleanup(int code)
 		close_socket(&server_socket);
 	}
 
-	if(active_clients.value)
-		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", active_clients.value);
+	update_clients();	/* active_clients is destroyed below */
+
+	if(protected_uint32_value(active_clients))
+		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", protected_uint32_value(active_clients));
 	else
 		protected_uint32_destroy(active_clients);
-
-	update_clients();
 
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
@@ -5325,8 +5389,6 @@ static void cleanup(int code)
 	status("Down");
 	if(terminate_server || code)
 		lprintf(LOG_INFO,"#### Web Server thread terminated (%lu clients served)", served);
-	if(thread_count)
-		lprintf(LOG_WARNING,"#### !Web Server threads (%u) remain after termination", thread_count);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -5338,7 +5400,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.566 $", "%*s %s", revision);
+	sscanf("$Revision: 1.576 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5361,7 +5423,6 @@ void http_logging_thread(void* arg)
 	char	newfilename[MAX_PATH+1];
 	FILE*	logfile=NULL;
 
-	http_logging_thread_running=TRUE;
 	terminate_http_logging_thread=FALSE;
 
 	SAFECOPY(base,arg);
@@ -5542,9 +5603,11 @@ void DLLCALL web_server(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
+	protected_uint32_init(&thread_count, 0);
 
 	do {
 
+		protected_uint32_adjust(&thread_count,1);
 		thread_up(FALSE /* setuid */);
 
 		status("Initializing");
@@ -5712,6 +5775,8 @@ void DLLCALL web_server(void* arg)
 			/********************/
 			/* Start log thread */
 			/********************/
+			http_logging_thread_running=TRUE;
+			protected_uint32_adjust(&thread_count,1);
 			_beginthread(http_logging_thread, 0, startup->logfile_base);
 		}
 
@@ -5753,7 +5818,7 @@ void DLLCALL web_server(void* arg)
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
 			/* check for re-cycle/shutdown semaphores */
-			if(active_clients.value==0) {
+			if(protected_uint32_value(thread_count) <= (2 /* web_server() and http_output_thread() */ + http_logging_thread_running)) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
@@ -5764,10 +5829,6 @@ void DLLCALL web_server(void* arg)
 						}
 						break;
 					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_INFO,"%04d Recycle semaphore signaled",server_socket);
 						startup->recycle_now=FALSE;
@@ -5808,7 +5869,7 @@ void DLLCALL web_server(void* arg)
 				/* Destroyed in http_session_thread */
 				pthread_mutex_init(&session->struct_filled,NULL);
 				pthread_mutex_lock(&session->struct_filled);
-				session_threads++;
+				protected_uint32_adjust(&thread_count,1);
 				_beginthread(http_session_thread, 0, session);
 			}
 
@@ -5873,7 +5934,7 @@ void DLLCALL web_server(void* arg)
 				continue;
 			}
 
-			if(startup->max_clients && active_clients.value>=startup->max_clients) {
+			if(startup->max_clients && protected_uint32_value(active_clients)>=startup->max_clients) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				mswait(3000);
@@ -5910,14 +5971,14 @@ void DLLCALL web_server(void* arg)
 		}
 
 		/* Wait for active clients to terminate */
-		if(active_clients.value) {
+		if(protected_uint32_value(active_clients)) {
 			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
-				,server_socket, active_clients.value);
+				,server_socket, protected_uint32_value(active_clients));
 			start=time(NULL);
-			while(active_clients.value) {
+			while(protected_uint32_value(active_clients)) {
 				if(time(NULL)-start>startup->max_inactivity) {
 					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
-						,server_socket, active_clients.value);
+						,server_socket, protected_uint32_value(active_clients));
 					break;
 				}
 				mswait(100);
@@ -5961,4 +6022,6 @@ void DLLCALL web_server(void* arg)
 		}
 
 	} while(!terminate_server);
+
+	protected_uint32_destroy(thread_count);
 }
