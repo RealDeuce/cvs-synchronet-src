@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.20 2014/03/07 22:55:58 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.21 2014/03/12 09:39:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,6 +108,8 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
         =!(MainForm->bbs_startup.options&BBS_OPT_NO_HOST_LOOKUP);
     IdentityCheckBox->Checked
         =MainForm->bbs_startup.options&BBS_OPT_GET_IDENT;
+    DosSupportCheckBox->Checked
+        =!(MainForm->bbs_startup.options&BBS_OPT_NO_DOS);
 
     RLoginEnabledCheckBox->Checked
         =MainForm->bbs_startup.options&BBS_OPT_ALLOW_RLOGIN;
@@ -218,6 +220,10 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
         MainForm->bbs_startup.options&=~BBS_OPT_NO_JAVASCRIPT;
     else
         MainForm->bbs_startup.options|=BBS_OPT_NO_JAVASCRIPT;
+    if(DosSupportCheckBox->Checked==true)
+        MainForm->bbs_startup.options&=~BBS_OPT_NO_DOS;
+    else
+        MainForm->bbs_startup.options|=BBS_OPT_NO_DOS;
 
     if(AutoLogonCheckBox->Checked==true)
     	MainForm->bbs_startup.options|=BBS_OPT_AUTO_LOGON;
