@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.187 2015/02/12 12:02:58 deuce Exp $ */
+/* $Id: syncterm.c,v 1.183 2014/06/04 09:18:27 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -53,41 +53,6 @@ char* syncterm_version = "SyncTERM 1.0b"
 	" Debug ("__DATE__")"
 #endif
 	;
-
-char	*usage = 
-		"\nusage: syncterm [options] [URL]"
-        "\n\noptions:\n\n"
-        "-e# =  set escape delay to #msec\n"
-		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
-		"       S[W|F] = SDL surface mode W for windowed and F for fullscreen\n"
-		"       O[W|F] = SDL overlay mode (hardware scaled)\n"
-#ifdef __unix__
-		"       X = X11 mode\n"
-		"       C = Curses mode\n"
-		"       F = Curses mode with forced IBM charset\n"
-#else
-		"       W[F] = Win32 native mode, F for fullscreen\n"
-#endif
-		"       A = ANSI mode\n"
-        "-l# =  set screen lines to # (default=auto-detect)\n"
-		"-t  =  use telnet mode if URL does not include the scheme\n"
-		"-r  =  use rlogin mode if URL does not include the scheme\n"
-		"-h  =  use SSH mode if URL does not include the scheme\n"
-		"-4  =  Only resolve IPv4 addresses\n"
-		"-6  =  Only resolve IPv6 addresses\n"
-		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
-		"-T  =  when the ONLY argument, dumps the terminfo entry to stdout and exits\n"
-		"\n"
-		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
-		"raw:// URLs MUST include a port.\n"
-		"shell:command URLs are supported on *nix.\n"
-		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
-		"          telnet://deuce@nix.synchro.net\n"
-		"          nix.synchro.net\n"
-		"          telnet://nix.synchro.net\n"
-		"          raw://nix.synchro.net:23\n"
-		"          shell:/usr/bin/sh\n"
-		;
 
 char *inpath=NULL;
 int default_font=0;
@@ -812,11 +777,13 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
+#ifdef __unix__
 	else if(!strnicmp("shell:",url,6)) {
 		bbs->conn_type=CONN_TYPE_SHELL;
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
+#endif
 	/* ToDo: RFC2806 */
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
@@ -892,7 +859,7 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
 			return(NULL);
 		backslash(fn);
-		strncat(fn, "SyncTERM", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM", fnlen);
 		backslash(fn);
 		if(!isdir(fn)) {
 			if(MKDIR(fn))
@@ -923,10 +890,10 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 	case SYNCTERM_PATH_INI:
-		strncat(fn, "SyncTERM.ini", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM.ini", fnlen);
 		return(fn);
 	case SYNCTERM_PATH_LIST:
-		strncat(fn, "SyncTERM.lst", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM.lst", fnlen);
 		return(fn);
 	}
 	return(NULL);
@@ -1058,15 +1025,15 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	switch(type) {
 		case SYNCTERM_PATH_INI:
 			backslash(fn);
-			strncat(fn,"syncterm.ini",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.ini",fnlen);
 			break;
 		case SYNCTERM_PATH_LIST:
 			backslash(fn);
-			strncat(fn,"syncterm.lst",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.lst",fnlen);
 			break;
 		case SYNCTERM_PATH_CACHE:
 			backslash(fn);
-			strncat(fn,"SyncTERM",fnlen-strlen(fn)-1);
+			strncat(fn,"SyncTERM",fnlen);
 			backslash(fn);
 			if(!isdir(fn)) {
 				if(MKDIR(fn)) {
@@ -1074,7 +1041,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 				}
 			}
-			strncat(fn,"cache",fnlen-strlen(fn)-1);
+			strncat(fn,"cache",fnlen);
 			backslash(fn);
 			if(!isdir(fn)) {
 				if(MKDIR(fn))
@@ -1117,7 +1084,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		backslash(oldlst);
 		strcat(oldlst,"syncterm.lst");
 		sprintf(fn,"%.*s",fnlen,home);
-		strncat(fn, "/.syncterm", fnlen-strlen(fn)-1);
+		strncat(fn, "/.syncterm", fnlen);
 		backslash(fn);
 	}
 
@@ -1140,13 +1107,13 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 		case SYNCTERM_PATH_INI:
-			strncat(fn,"syncterm.ini",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.ini",fnlen);
 			break;
 		case SYNCTERM_PATH_LIST:
-			strncat(fn,"syncterm.lst",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.lst",fnlen);
 			break;
 		case SYNCTERM_PATH_CACHE:
-			strncat(fn,"cache",fnlen-strlen(fn)-1);
+			strncat(fn,"cache",fnlen);
 			backslash(fn);
 #if !(defined(__APPLE__) && defined(__MACH__))
 			if(!isdir(fn)) {
@@ -1246,7 +1213,6 @@ int main(int argc, char **argv)
 	BOOL	override_conn=FALSE;
 	int		addr_family=PF_UNSPEC;
 	char	*last_bbs=NULL;
-	char	*p, *lp;
 	const char syncterm_termcap[]="\n# terminfo database entry for SyncTERM\n"
 				"syncterm|SyncTERM 80x25,\n"
 				"	am,bce,mir,msgr,\n"
@@ -1620,36 +1586,51 @@ int main(int argc, char **argv)
 	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
+		atexit(exit_crypt);
 	return(0);
 
 	USAGE:
 	uifcbail();
 	clrscr();
-    gettextinfo(&txtinfo);
-    p=lp=usage;
-    textattr(LIGHTGRAY);
-	gettextinfo(&txtinfo);
-	i=0;
-	for(lp=usage; *lp; p=strchr(lp, '\n')) {
-		if(p==NULL)
-			p=strchr(lp, 0)-1;
-		cprintf("%.*s", p-lp+1, lp);
-		lp = p+1;
-		i++;
-		if(i >= txtinfo.screenheight-1) {
-			textattr(WHITE);
-			cputs("<Press A Key>");
-			getch();
-			textattr(LIGHTGRAY);
-			gotoxy(1, txtinfo.screenheight);
-			delline();
-			i=0;
-		}
-	}
-	textattr(WHITE);
-	cputs("<Press A Key to Exit>");
+    cprintf("\nusage: syncterm [options] [URL]"
+        "\n\noptions:\n\n"
+        "-e# =  set escape delay to #msec\n"
+		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
+		"       S[W|F] = SDL surface mode W for windowed and F for fullscreen\n"
+		"       O[W|F] = SDL overlay mode (hardware scaled)\n"
+#ifdef __unix__
+		"       X = X11 mode\n"
+		"       C = Curses mode\n"
+		"       F = Curses mode with forced IBM charset\n"
+#else
+		"       W[F] = Win32 native mode, F for fullscreen\n"
+#endif
+		"       A = ANSI mode\n"
+        "-l# =  set screen lines to # (default=auto-detect)\n"
+		"-t  =  use telnet mode if URL does not include the scheme\n"
+		"-r  =  use rlogin mode if URL does not include the scheme\n"
+		"-h  =  use SSH mode if URL does not include the scheme\n"
+		"-4  =  Only resolve IPv4 addresses\n"
+		"-6  =  Only resolve IPv6 addresses\n"
+		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
+		"-T  =  when the ONLY argument, dumps the terminfo entry to stdout and exits\n"
+		"\n"
+		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
+		"raw:// URLs MUST include a port.\n"
+#ifdef __unix__
+		"shell:command URLs are also supported.\n"
+#endif
+		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
+		"          telnet://deuce@nix.synchro.net\n"
+		"          nix.synchro.net\n"
+		"          telnet://nix.synchro.net\n"
+		"          raw://nix.synchro.net:23\n"
+#ifdef __unix__
+		"          shell:/usr/bin/sh\n"
+#endif
+		"\nPress any key to exit..."
+        );
 	getch();
-	textattr(LIGHTGRAY);
 	return(0);
 }
 
