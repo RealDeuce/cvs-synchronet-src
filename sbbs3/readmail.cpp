@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.59 2013/02/13 00:49:40 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.61 2013/05/12 07:34:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,6 +168,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 			"allmail" : "sentmail");
 		menu(str); 
 	}
+	current_msg=&msg;	/* For MSG_* @-codes and bbs.msg_* property values */
 	while(online && !done) {
 		action=act;
 
@@ -521,8 +522,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					bputs(text[MailOnSystemLstHdr]);
 				else
 					bputs(text[MailWaitingLstHdr]);
-				u=i;
-				for(;u<smb.msgs && !msgabort();u++) {
+				for(u=i;u<smb.msgs && !msgabort();u++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
 					msg.total_hfields=0;
@@ -769,5 +769,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
+	current_msg=NULL;
 }
 

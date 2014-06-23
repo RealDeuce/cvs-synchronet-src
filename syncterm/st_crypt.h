@@ -4,12 +4,12 @@
 #define _ST_CRYPT_H_
 
 #ifndef WITHOUT_CRYPTLIB
-#include"cryptlib.h"
+#include <cryptlib.h>
 #if CRYPTLIB_VERSION < 3400
 #define CRYPT_ATTRIBUTE_ERRORMESSAGE	CRYPT_ATTRIBUTE_INT_ERRORMESSAGE
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MSVCRT__)
 	#undef C_RET 
 	#define C_RET int
 #endif
