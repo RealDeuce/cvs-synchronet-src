@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.18 2014/09/13 01:20:18 deuce Exp $ */
+/* $Id: ssh.c,v 1.16 2014/06/21 03:44:13 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -77,7 +77,6 @@ void ssh_input_thread(void *args)
 					break;
 				}
 				cryptlib_error_message(status, "recieving data");
-				ssh_active=FALSE;
 				break;
 			}
 			else {
@@ -120,7 +119,6 @@ void ssh_output_thread(void *args)
 						break;
 					}
 					cryptlib_error_message(status, "sending data");
-					ssh_active=FALSE;
 					break;
 				}
 				sent += ret;
@@ -143,7 +141,7 @@ int ssh_connect(struct bbslist *bbs)
 	int status;
 	char password[MAX_PASSWD_LEN+1];
 	char username[MAX_USER_LEN+1];
-	int	rows,cols;
+	struct winsize ws;
 	struct text_info ti;
 
 	init_uifc(TRUE, TRUE);
@@ -241,28 +239,28 @@ int ssh_connect(struct bbslist *bbs)
 
 	gettextinfo(&ti);
 	if(ti.screenwidth < 80)
-		cols=40;
+		ws.ws_col=40;
 	else {
 		if(ti.screenwidth < 132)
-			cols=80;
+			ws.ws_col=80;
 		else
-			cols=132;
+			ws.ws_col=132;
 	}
-	rows=ti.screenheight;
+	ws.ws_row=ti.screenheight;
 	if(!bbs->nostatus)
-		rows--;
-	if(rows<24)
-		rows=24;
+		ws.ws_row--;
+	if(ws.ws_row<24)
+		ws.ws_row=24;
 
 	uifc.pop(NULL);
 	uifc.pop("Setting Terminal Width");
 	/* Pass socket to cryptlib */
-	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_WIDTH, cols);
+	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_WIDTH, ws.ws_col);
 
 	uifc.pop(NULL);
 	uifc.pop("Setting Terminal Height");
 	/* Pass socket to cryptlib */
-	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_HEIGHT, rows);
+	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_HEIGHT, ws.ws_row);
 
 	/* Activate the session */
 	uifc.pop(NULL);
