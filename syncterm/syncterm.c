@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.175 2012/02/21 01:55:33 deuce Exp $ */
+/* $Id: syncterm.c,v 1.184 2014/06/25 09:22:19 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -37,12 +37,7 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include <dirwrap.h>
 #include <filewrap.h>	// STDOUT_FILENO
 
-#include "ciolib.h"
-#ifdef HAS_VSTAT
-#include "bitmap_con.h"
-#endif
-#include "cterm.h"
-#include "allfonts.h"
+#include <cterm.h>
 
 #include "st_crypt.h"
 #include "fonts.h"
@@ -53,7 +48,7 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 0.9.5b"
+char* syncterm_version = "SyncTERM 1.0b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -802,8 +797,19 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		SAFECOPY(bbs->user,p1);
 		p1=p3+1;
 	}
+	p2 = p1;
+	if(*p1=='[') {
+		p2=strchr(p1, ']');
+		if(p2 != NULL) {
+			p1++;
+			*p2=0;
+			p2++;
+		}
+		else
+			p2 = p1;
+	}
 	SAFECOPY(bbs->name,p1);
-	p2=strchr(p1,':');
+	p2=strrchr(p2,':');
 	if(p2!=NULL) {
 		*p2=0;
 		p2++;
@@ -1163,9 +1169,7 @@ void load_settings(struct syncterm_settings *set)
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
-#ifdef HAS_VSTAT
-	vstat.scaling=set->scaling_factor;
-#endif
+	setscaling(set->scaling_factor);
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1207,6 +1211,7 @@ int main(int argc, char **argv)
 	int		conn_type=CONN_TYPE_TELNET;
 	int		text_mode;
 	BOOL	override_conn=FALSE;
+	int		addr_family=PF_UNSPEC;
 	char	*last_bbs=NULL;
 	const char syncterm_termcap[]="\n# terminfo database entry for SyncTERM\n"
 				"syncterm|SyncTERM 80x25,\n"
@@ -1229,7 +1234,7 @@ int main(int argc, char **argv)
 				"	il=\\E[%p1%dL,cub=\\E[%p1%dD,cuf=\\E[%p1%dC,rin=\\E[%p1%dT,cuu=\\E[%p1%dA,\n"
 				"	rc=\\E[u,sc=\\E[s,ind=\\E[S,ri=\\E[T,setab=\\E[4%p1%dm,setaf=\\E[3%p1%dm,\n"
 				"	sgr=\\E[0%?%p1%p6%|%t;1%;%?%p4%|%t;5%;%?%p1%p3%|%t;7%;%?%p7%|%t;8%;m,\n"
-				"	smso=\\E[0;1;7m,\n"
+				"	smso=\\E[0;1;7m,csr=\\E[%i%p1%d;%p2%dr\n"
 				"syncterm-25|SyncTERM No Status Line,\n"
 				"	lines#25,use=syncterm,\n"
 				"syncterm-27|SyncTERM 80x28 With Status,\n"
@@ -1269,6 +1274,7 @@ int main(int argc, char **argv)
 				"syncterm-60-w|SyncTERM 132x60 No Status Line,\n"
 				"	cols#132,lines#60,use=syncterm,\n";
 
+	SetThreadName("Main Thread");
 	if(argc==2 && strcmp(argv[1],"-T")==0) {
 		write(STDOUT_FILENO, syncterm_termcap, strlen(syncterm_termcap));
 		return 0;
@@ -1300,6 +1306,12 @@ int main(int argc, char **argv)
 #endif
             )
             switch(toupper(argv[i][1])) {
+				case '6':
+					addr_family=ADDRESS_FAMILY_INET6;
+					break;
+				case '4':
+					addr_family=ADDRESS_FAMILY_INET;
+					break;
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
@@ -1449,6 +1461,8 @@ int main(int argc, char **argv)
 			parse_url(url, bbs, conn_type, FALSE);
 			strListFree(&inilines);
 		}
+		if(addr_family != ADDRESS_FAMILY_UNSPEC)
+			bbs->address_family=addr_family;
 		if(bbs->port==0)
 			goto USAGE;
 	}
@@ -1548,8 +1562,7 @@ int main(int argc, char **argv)
 		bbs=NULL;
 	}
 	// Save changed settings
-#ifdef HAS_VSTAT
-	if(vstat.scaling > 0 && vstat.scaling != settings.scaling_factor) {
+	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
 		char	inipath[MAX_PATH+1];
 		FILE	*inifile;
 		str_list_t	inicontents;
@@ -1562,19 +1575,17 @@ int main(int argc, char **argv)
 		else {
 			inicontents=strListInit();
 		}
-		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",vstat.scaling,&ini_style);
+		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",getscaling(),&ini_style);
 		if((inifile=fopen(inipath,"w"))!=NULL) {
 			iniWriteFile(inifile,inicontents);
 			fclose(inifile);
 		}
 	}
-#endif
 	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
-		atexit(exit_crypt);
 	return(0);
 
 	USAGE:
@@ -1598,6 +1609,8 @@ int main(int argc, char **argv)
 		"-t  =  use telnet mode if URL does not include the scheme\n"
 		"-r  =  use rlogin mode if URL does not include the scheme\n"
 		"-h  =  use SSH mode if URL does not include the scheme\n"
+		"-4  =  Only resolve IPv4 addresses\n"
+		"-6  =  Only resolve IPv6 addresses\n"
 		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
 		"-T  =  when the ONLY argument, dumps the terminfo entry to stdout and exits\n"
 		"\n"
