@@ -11,22 +11,17 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.8 2014/10/14 05:01:22 deuce Exp $
+# $Id: GNUmakefile,v 1.1 2006/05/13 08:33:28 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
-
-ifeq ($(os),sunos)
- EXTRA_LIBS	+=	-lnsl
-endif
+include $(SRC_ROOT)/sbbs3/sbbsdefs.mk
 
 vpath %.c ..
 
-CFLAGS	+=	-I.. -I../../comio $(SMBLIB_CFLAGS) $(XPDEV-MT_CFLAGS) $(JS_CFLAGS) $(CRYPT_CFLAGS) `pkg-config gtk+-2.0 --cflags`
-LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS)
-EXTRA_LIBS += `pkg-config gtk+-2.0 --libs`
+CFLAGS	+=	$(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS)
+LDFLAGS	+=	$(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS)
 
-$(GTKCHAT): $(OBJS)
+$(SYNCVIEW): $(OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ $(EXTRA_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
-	$(QUIET)cd $(EXEODIR) && ln -s ../gtk-chat.glade .
+	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
