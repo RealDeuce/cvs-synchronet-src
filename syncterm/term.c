@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.305 2015/02/10 10:41:11 deuce Exp $ */
+/* $Id: term.c,v 1.299 2014/02/06 11:46:50 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -168,29 +168,10 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	static int lastupd=0;
 	static int oldspeed=0;
 	int	timeon;
-	char sep;
-	int old_xlat = ciolib_xlat;
 
-	switch(getfont()) {
-			case 0:
-			case 17:
-			case 18:
-			case 19:
-			case 25:
-			case 26:
-			case 27:
-			case 28:
-			case 29:
-			case 31:
-				sep = 0xb3;
-				break;
-			default:
-				sep = '|';
-	}
 	now=time(NULL);
 	if(now==lastupd && speed==oldspeed)
 		return;
-	ciolib_xlat = TRUE;
 	lastupd=now;
 	oldspeed=speed;
 	timeon=now - bbs->connected;
@@ -227,15 +208,15 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 		case CIOLIB_MODE_CURSES_IBM:
 		case CIOLIB_MODE_ANSI:
 			if(timeon>359999)
-				cprintf(" %-29.29s %c %-6.6s %c Connected: Too Long %c CTRL-S for menu ",nbuf,sep,conn_types[bbs->conn_type],sep,sep);
+				cprintf(" %-29.29s \263 %-6.6s \263 Connected: Too Long \263 CTRL-S for menu ",nbuf,conn_types[bbs->conn_type]);
 			else
-				cprintf(" %-29.29s %c %-6.6s %c Connected: %02d:%02d:%02d %c CTRL-S for menu ",nbuf,sep,conn_types[bbs->conn_type],sep,timeon/3600,(timeon/60)%60,timeon%60,sep);
+				cprintf(" %-29.29s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 CTRL-S for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break;
 		default:
 			if(timeon>359999)
-				cprintf(" %-30.30s %c %-6.6s %c Connected: Too Long %c "ALT_KEY_NAME3CH"-Z for menu ",nbuf,sep,conn_types[bbs->conn_type],sep,sep);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 "ALT_KEY_NAME3CH"-Z for menu ",nbuf,conn_types[bbs->conn_type]);
 			else
-				cprintf(" %-30.30s %c %-6.6s %c Connected: %02d:%02d:%02d %c "ALT_KEY_NAME3CH"-Z for menu ",nbuf,sep,conn_types[bbs->conn_type],sep,timeon/3600,(timeon/60)%60,timeon%60,sep);
+				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 "ALT_KEY_NAME3CH"-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
 			break; /*    1+29     +3    +6    +3    +11        +3+3+2        +3    +6    +4  +5 */
 	}
 	if(wherex()>=80)
@@ -245,7 +226,6 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
-	ciolib_xlat = old_xlat;
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -383,7 +363,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 {
 	char		orig[128];
 	unsigned	cps;
-	int		l;
+	time_t		l;
 	time_t		t;
 	time_t		now;
 	static time_t last_progress=0;
@@ -411,7 +391,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 			zm->transfer_start_pos=0;
 		if((cps=(unsigned)((current_pos-zm->transfer_start_pos)/t))==0)
 			cps=1;		/* cps so far */
-		l=zm->current_file_size/cps;	/* total transfer est time */
+		l=(time_t)(zm->current_file_size/cps);	/* total transfer est time */
 		l-=t;			/* now, it's est time left */
 		if(l<0) l=0;
 		cprintf("File (%u of %u): %-.*s"
@@ -427,10 +407,10 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 		clreol();
 		cputs("\r\n");
 		cprintf("Time: %lu:%02lu  ETA: %lu:%02lu  Block: %u/CRC-%u  %u cps"
-			,(unsigned long)(t/60L)
-			,(unsigned long)(t%60L)
-			,(unsigned long)(l/60L)
-			,(unsigned long)(l%60L)
+			,t/60L
+			,t%60L
+			,l/60L
+			,l%60L
 			,zm->block_size
 			,zmodem_mode==ZMODEM_MODE_RECV ? (zm->receive_32bit_data ? 32:16) : 
 				(zm->can_fcs_32 && !zm->want_fcs_16) ? 32:16
@@ -454,7 +434,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
-				, (int)(60-l), "");
+				, 60-l, "");
 		last_progress=now;
 		hold_update = FALSE;
 		gotoxy(wherex(), wherey());
@@ -807,7 +787,7 @@ static BOOL is_connected(void* unused)
 static int guts_lputs(void* cbdata, int level, const char* str)
 {
 	struct GUTS_info *gi=cbdata;
-	/* ToDo: Do something useful here. */
+	/* ToDo: Do something usefull here. */
 	/* fprintf(stderr,"%s\n",str); */
 	return(0);
 }
@@ -815,7 +795,7 @@ static int guts_lputs(void* cbdata, int level, const char* str)
 void guts_zmodem_progress(void* cbdata, ulong current_pos)
 {
 	struct GUTS_info *gi=cbdata;
-	/* ToDo: Do something useful here. */
+	/* ToDo: Do something usefull here. */
 	return;
 }
 
@@ -1897,7 +1877,6 @@ void font_control(struct bbslist *bbs)
 	char *buf;
 	struct	text_info txtinfo;
 	int i,j,k;
-	int enable_xlat = 0;
 
 	if(safe_mode)
 		return;
@@ -1925,22 +1904,20 @@ void font_control(struct bbslist *bbs)
 					struct file_pick fpick;
 					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-					if(j!=-1 && fpick.files>=1)
+					if(j!=-1 && fpick.files>=1) {
 						loadfont(fpick.selected[0]);
+						uifc_old_font=getfont();
+					}
 					filepick_free(&fpick);
 				}
 				else {
 					setfont(i,FALSE,1);
-					if (i >=32 && i<= 35 && cterm->emulation != CTERM_EMULATION_PETASCII)
-						enable_xlat = TRUE;
-					if (i==36 && cterm->emulation != CTERM_EMULATION_ATASCII)
-						enable_xlat = TRUE;
+					uifc_old_font=getfont();
 				}
 			}
 		break;
 	}
 	uifcbail();
-	ciolib_xlat = enable_xlat;
 	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
@@ -1973,7 +1950,7 @@ void capture_control(struct bbslist *bbs)
 		uifc.helpbuf="`Capture Type`\n\n"
 					"~ ASCII ~ Strips out ANSI sequences\n"
 					"~ Raw ~   Leaves ANSI sequences in\n\n"
-					"Raw is useful for stealing ANSI screens from other systems.\n"
+					"Raw is usefull for stealing ANSI screens from other systems.\n"
 					"Don't do that though.  :-)";
 		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Type",opts)!=-1) {
 			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, NULL, UIFC_FP_ALLOWENTRY);
