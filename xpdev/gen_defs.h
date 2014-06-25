@@ -2,7 +2,7 @@
 
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.68 2015/08/22 04:41:15 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.66 2014/04/04 00:17:52 deuce Exp $ */
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
@@ -143,13 +143,6 @@ enum {
 	#define ushort  unsigned short
 	typedef unsigned int uint;			/* Incompatible with Spidermonkey header files when #define'd */
 	#define ulong   unsigned long
-#endif
-
-/* Printf format specifiers... */
-#if defined(_MSC_VER) || defined(__WATCOMC__) || defined(__BORLANDC__)
-#define XP_PRIsize_t					"I"
-#else
-#define XP_PRIsize_t					"z"
 #endif
 
 #if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)

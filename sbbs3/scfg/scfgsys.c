@@ -1,12 +1,12 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.39 2015/04/29 07:04:37 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.35 2014/03/13 07:52:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1383,9 +1383,6 @@ while(1) {
 				sprintf(opt[i++],"%-16.16s%s","Logout",cfg.logout_mod);
 				sprintf(opt[i++],"%-16.16s%s","New User",cfg.newuser_mod);
 				sprintf(opt[i++],"%-16.16s%s","Expired User",cfg.expire_mod);
-				sprintf(opt[i++],"%-16.16s%s","Read Mail",cfg.readmail_mod);
-				sprintf(opt[i++],"%-16.16s%s","Scan Msgs",cfg.scanposts_mod);
-				sprintf(opt[i++],"%-16.16s%s","Scan Subs",cfg.scansubs_mod);
 				opt[i][0]=0;
 				uifc.helpbuf=
 					"`Loadable Modules:`\n"
@@ -1393,21 +1390,15 @@ while(1) {
 					"Baja modules (`.bin` files) or JavaScript modules (`.js` files) can be\n"
 					"automatically loaded and executed during certain Terminal Server\n"
 					"operations. The name (root filename) of the module can be specified for\n"
-					"each of the available operations listed below:\n"
+					"each of the available operations listed here:\n"
 					"\n"
 					"`Login`        Required module for interactive terminal logins (answer)\n"
 					"`Logon`        Executed during terminal logon procedure\n"
-					"`Sync`         Executed when terminal nodes are periodically synchronized\n"
-					"`Logoff`       Executed during terminal logoff procedure (interactive)\n"
-					"`Logout`       Executed during terminal logout procedure (offline)\n"
-					"`New User`     Executed at end of new terminal user creation process\n"
-					"`Expired User` Executed during daily event when user expires (offline)\n"
-					"\n"
-					"Full module command-lines may be used for the operations listed below:\n"
-					"\n"
-					"`Read Mail`    Executed when a user reads email/netmail\n"
-					"`Scan Msgs`    Executed when a user reads or scans a message sub-board\n"
-					"`Scan Subs`    Executed when a user scans one or more sub-boards for msgs\n"
+					"`Sync          Executed when terminal nodes are periodically synchronized\n"
+					"`Logoff        Executed during terminal logoff procedure (interactive)\n"
+					"`Logout        Executed during terminal logout procedure (offline)\n"
+					"`New User      Executed at end of new terminal user creation process\n"
+					"`Expired User  Executed during daily event when user expires (offline)\n"
 					"\n"
 					"`Note:` JavaScript modules take precedence over Baja modules if both exist\n"
 					"in your `exec` or `mods` directories.\n"
@@ -1447,18 +1438,7 @@ while(1) {
 						uifc.input(WIN_MID|WIN_SAV,0,0,"Expired User Module"
 							,cfg.expire_mod,sizeof(cfg.expire_mod)-1,K_EDIT);
                         break;
-					case 7:
-						uifc.input(WIN_MID|WIN_SAV,0,0,"Read Mail Command"
-							,cfg.readmail_mod,sizeof(cfg.readmail_mod)-1,K_EDIT);
-                        break;
-					case 8:
-						uifc.input(WIN_MID|WIN_SAV,0,0,"Scan Msgs Command"
-							,cfg.scanposts_mod,sizeof(cfg.scanposts_mod)-1,K_EDIT);
-                        break;
-					case 9:
-						uifc.input(WIN_MID|WIN_SAV,0,0,"Scan Subs Command"
-							,cfg.scansubs_mod,sizeof(cfg.scansubs_mod)-1,K_EDIT);
-                        break;
+
 				} 
 			}
 			break;
@@ -1487,14 +1467,14 @@ while(1) {
 					"This menu allows you to change the security options for every possible\n"
 					"security level from 0 to 99. The available options for each level are:\n"
 					"\n"
-					"    Time Per Day           Maximum online time per day\n"
-					"    Time Per Call          Maximum online time per call\n"
-					"    Calls Per Day          Maximum number of calls per day\n"
-					"    Email Per Day          Maximum number of email per day\n"
-					"    Posts Per Day          Maximum number of posts per day\n"
-					"    Lines Per Message      Maximum number of lines per message\n"
+					"    Time Per Da            Maximum online time per day\n"
+					"    Time Per Cal           Maximum online time per call\n"
+					"    Calls Per Da           Maximum number of calls per day\n"
+					"    Email Per Da           Maximum number of email per day\n"
+					"    Posts Per Da           Maximum number of posts per day\n"
+					"    Lines Per Messag       Maximum number of lines per message\n"
 					"    Free Credits Per Day   Number of free credits per day\n"
-					"    Expire To              Level or validation set to Expire to\n"
+					"    Expire T               Level or validation set to Expire to\n"
 				;
 				i=uifc.list(WIN_RHT|WIN_ACT,0,3,0,&dflt,&bar
 					,"Level   T/D   T/C   C/D   E/D   P/D   L/M   F/D   "
