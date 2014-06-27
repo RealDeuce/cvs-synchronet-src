@@ -1,6 +1,9 @@
 #include <stdlib.h>
 
 #include <ciolib.h>
+#if defined(_WIN32)
+ #include <malloc.h>	/* alloca() on Win32 */
+#endif
 
 #include "attrs.h"
 
@@ -15,11 +18,9 @@ DrawBox(int x1, int y1, int x2, int y2)
 	width=x2-x1+3;
 	height=y2-y1+1;
 	if(width>height)
-		buf=(char *)malloc(width*2);
+		buf=(char *)alloca(width*2);
 	else
-		buf=(char *)malloc(height*2);
-	if (!buf)
-		exit(1);
+		buf=(char *)alloca(height*2);
 
 	i=0;
 	buf[i++]=218;
@@ -49,5 +50,4 @@ DrawBox(int x1, int y1, int x2, int y2)
 	}
 	puttext(x1,y1+1,x1,y2-1,buf);
 	puttext(x2,y1+1,x2,y2-1,buf);
-	free(buf);
 }
