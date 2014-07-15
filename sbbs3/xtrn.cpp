@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.224 2015/02/10 03:04:02 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.221 2014/03/12 09:37:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1934,14 +1934,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				}
 				else
    	       			bp=telnet_expand(buf, rd, output_buf, output_len);
-			} else if ((mode & EX_STDIO) != EX_STDIO) {
-				/* LF to CRLF expansion */
+			} else			/* LF to CRLF expansion */
 				bp=lf_expand(buf, rd, output_buf, output_len);
-			}
-			else {
-				bp=buf;
-				output_len=rd;
-			}
 
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
