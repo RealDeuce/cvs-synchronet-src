@@ -1,4 +1,4 @@
-/* $Id: PropertiesDlgUnit.h,v 1.17 2011/10/28 08:08:34 rswindell Exp $ */
+/* $Id: PropertiesDlgUnit.h,v 1.18 2014/10/30 08:56:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,6 +113,16 @@ __published:
     TEdit *ErrorSoundEdit;
     TButton *ErrorSoundButton;
     TOpenDialog *OpenDialog;
+    TTabSheet *SecurityTabSheet;
+    TGroupBox *FailedLoginAttemptGroupBox;
+    TLabel *LoginAttemptDelayLabel;
+    TEdit *LoginAttemptDelayEdit;
+    TLabel *LoginAttemptThrottleLabel;
+    TEdit *LoginAttemptThrottleEdit;
+    TLabel *LoginAttemptHackThreshold;
+    TEdit *LoginAttemptHackThresholdEdit;
+    TLabel *LoginAttemptFilterThresholdLabel;
+    TEdit *LoginAttemptFilterThresholdEdit;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall TrayIconCheckBoxClick(TObject *Sender);
 	void __fastcall SourceComboBoxChange(TObject *Sender);
