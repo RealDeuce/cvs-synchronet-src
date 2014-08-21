@@ -2,13 +2,13 @@
 
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.41 2015/05/02 03:20:55 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.40 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -194,8 +194,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 	//		bprintf("\b\b\b\b\b%-5lu",u+1);
 
 			memset(&msg,0,sizeof(msg));
-			msg.idx=post[u].idx;
-			if(!loadmsg(&msg,post[u].idx.number))
+			msg.idx=post[u];
+			if(!loadmsg(&msg,post[u].number))
 				continue;
 
 			if(msg.from_net.type && msg.from_net.type!=NET_QWK &&
