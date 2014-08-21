@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.46 2014/04/24 07:58:06 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.47 2014/04/29 09:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,9 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(_WIN32)
- #include <malloc.h>    /* alloca() on Win32 */
-#endif
+#include "genwrap.h"    /* alloca() */
 
 #include "xpprintf.h"
 #include "gen_defs.h"
