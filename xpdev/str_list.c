@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.37 2009/08/14 10:02:22 rswindell Exp $ */
+/* $Id: str_list.c,v 1.42 2014/04/28 05:17:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 #include "genwrap.h"	/* stricmp */
 #include "str_list.h"
 
-str_list_t strListInit(void)
+str_list_t DLLCALL strListInit(void)
 {
 	str_list_t list;
 
@@ -54,7 +54,7 @@ str_list_t strListInit(void)
 	return(list);
 }
 
-size_t strListCount(const str_list_t list)
+size_t DLLCALL strListCount(const str_list_t list)
 {
 	size_t i;
 
@@ -63,7 +63,7 @@ size_t strListCount(const str_list_t list)
 	return(i);
 }
 
-int strListIndexOf(const str_list_t list, const char* str)
+int DLLCALL strListIndexOf(const str_list_t list, const char* str)
 {
 	size_t		i;
 
@@ -114,7 +114,7 @@ static char* str_list_insert(str_list_t* list, char* str, size_t index)
 	return(str);
 }
 
-char* strListRemove(str_list_t* list, size_t index)
+char* DLLCALL strListRemove(str_list_t* list, size_t index)
 {
 	char*	str;
 	size_t	i;
@@ -142,7 +142,7 @@ char* strListRemove(str_list_t* list, size_t index)
 	return(str);
 }
 
-BOOL strListDelete(str_list_t* list, size_t index)
+BOOL DLLCALL strListDelete(str_list_t* list, size_t index)
 {
 	char*	str;
 
@@ -154,7 +154,7 @@ BOOL strListDelete(str_list_t* list, size_t index)
 	return(TRUE);
 }
 
-char* strListReplace(const str_list_t list, size_t index, const char* str)
+char* DLLCALL strListReplace(const str_list_t list, size_t index, const char* str)
 {
 	char*	buf;
 	size_t	count;
@@ -179,7 +179,7 @@ char* strListReplace(const str_list_t list, size_t index, const char* str)
 	return(buf);
 }
 
-BOOL strListSwap(const str_list_t list, size_t index1, size_t index2)
+BOOL DLLCALL strListSwap(const str_list_t list, size_t index1, size_t index2)
 {
 	char*	tmp;
 	size_t	count;
@@ -202,7 +202,7 @@ BOOL strListSwap(const str_list_t list, size_t index1, size_t index2)
 	return(TRUE);
 }
 
-char* strListAppend(str_list_t* list, const char* str, size_t index)
+char* DLLCALL strListAppend(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
 
@@ -218,7 +218,7 @@ char* strListAppend(str_list_t* list, const char* str, size_t index)
 	return(str_list_append(list,buf,index));
 }
 
-size_t	strListAppendList(str_list_t* list, const str_list_t add_list)
+size_t DLLCALL	strListAppendList(str_list_t* list, const str_list_t add_list)
 {
 	size_t	i;
 	size_t	count;
@@ -230,7 +230,7 @@ size_t	strListAppendList(str_list_t* list, const str_list_t add_list)
 	return(count);
 }
 
-char* strListInsert(str_list_t* list, const char* str, size_t index)
+char* DLLCALL strListInsert(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
 
@@ -243,7 +243,7 @@ char* strListInsert(str_list_t* list, const char* str, size_t index)
 	return(str_list_insert(list,buf,index));
 }
 
-size_t strListInsertList(str_list_t* list, const str_list_t add_list, size_t index)
+size_t DLLCALL strListInsertList(str_list_t* list, const str_list_t add_list, size_t index)
 {
 	size_t	i;
 
@@ -254,7 +254,7 @@ size_t strListInsertList(str_list_t* list, const str_list_t add_list, size_t ind
 	return(i);
 }
 
-str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
+str_list_t DLLCALL strListSplit(str_list_t* lp, char* str, const char* delimit)
 {
 	size_t	count;
 	char*	token;
@@ -279,7 +279,7 @@ str_list_t strListSplit(str_list_t* lp, char* str, const char* delimit)
 	return(*lp);
 }
 
-str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delimit)
+str_list_t DLLCALL strListSplitCopy(str_list_t* list, const char* str, const char* delimit)
 {
 	char*		buf;
 	str_list_t	new_list;
@@ -300,7 +300,7 @@ str_list_t strListSplitCopy(str_list_t* list, const char* str, const char* delim
 	return(new_list);
 }
 
-size_t strListMerge(str_list_t* list, str_list_t add_list)
+size_t DLLCALL strListMerge(str_list_t* list, str_list_t add_list)
 {
 	size_t	i;
 	size_t	count;
@@ -312,7 +312,7 @@ size_t strListMerge(str_list_t* list, str_list_t add_list)
 	return(i);
 }
 
-char* strListCombine(str_list_t list, char* buf, size_t maxlen, const char* delimit)
+char* DLLCALL strListCombine(str_list_t list, char* buf, size_t maxlen, const char* delimit)
 {
 	size_t	i;
 	char*	end;
@@ -334,7 +334,7 @@ char* strListCombine(str_list_t list, char* buf, size_t maxlen, const char* deli
 }
 
 #if defined(_WIN32)
-	#define QSORT_CALLBACK_TYPE	_cdecl
+	#define QSORT_CALLBACK_TYPE	__cdecl
 #else
 	#define QSORT_CALLBACK_TYPE
 #endif
@@ -359,34 +359,94 @@ static int QSORT_CALLBACK_TYPE strListCompareAlphaCaseReverse(const void *arg1, 
    return strcmp(*(char**)arg2, *(char**)arg1);
 }
 
-void strListSortAlpha(str_list_t list)
+void DLLCALL strListSortAlpha(str_list_t list)
 {
 	qsort(list,strListCount(list),sizeof(char*),strListCompareAlpha);
 }
 
-void strListSortAlphaReverse(str_list_t list)
+void DLLCALL strListSortAlphaReverse(str_list_t list)
 {
 	qsort(list,strListCount(list),sizeof(char*),strListCompareAlphaReverse);
 }
 
-void strListSortAlphaCase(str_list_t list)
+void DLLCALL strListSortAlphaCase(str_list_t list)
 {
 	qsort(list,strListCount(list),sizeof(char*),strListCompareAlphaCase);
 }
 
-void strListSortAlphaCaseReverse(str_list_t list)
+void DLLCALL strListSortAlphaCaseReverse(str_list_t list)
 {
 	qsort(list,strListCount(list),sizeof(char*),strListCompareAlphaCaseReverse);
 }
 
-void strListFreeStrings(str_list_t list)
+str_list_t DLLCALL strListDup(str_list_t list)
+{
+	str_list_t	ret;
+	size_t		count=0;
+
+	ret = strListInit();
+	for(; *list; list++)
+		strListAppend(&ret, *list, count++);
+	return ret;
+}
+
+int DLLCALL strListCmp(str_list_t list1, str_list_t list2)
+{
+	str_list_t	l1=strListDup(list1);
+	str_list_t	l2=strListDup(list2);
+	str_list_t	ol1=l1;
+	str_list_t	ol2=l2;
+	int			tmp;
+	int			ret;
+
+	if(*l1 == NULL && *l2 == NULL) {
+		ret=0;
+		goto early_return;
+	}
+	if(*l1 == NULL) {
+		ret = -1;
+		goto early_return;
+	}
+	if(*l2 == NULL) {
+		ret = 1;
+		goto early_return;
+	}
+
+	strListSortAlphaCase(l1);
+	strListSortAlphaCase(l2);
+
+	for(; *l1; l1++) {
+		l2++;
+		if(*l2==NULL) {
+			ret=1;
+			goto early_return;
+		}
+		tmp = strcmp(*l1, *l2);
+		if(tmp != 0) {
+			ret=tmp;
+			goto early_return;
+		}
+	}
+	l2++;
+	if(*l2==NULL)
+		ret=0;
+	else
+		ret=-1;
+
+early_return:
+	strListFree(&ol1);
+	strListFree(&ol2);
+	return ret;
+}
+
+void DLLCALL strListFreeStrings(str_list_t list)
 {
 	size_t i;
 
 	FREE_LIST_ITEMS(list,i);
 }
 
-void strListFree(str_list_t* list)
+void DLLCALL strListFree(str_list_t* list)
 {
 	if(*list!=NULL) {
 		strListFreeStrings(*list);
@@ -412,7 +472,7 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 	if(fp!=NULL) {
 		count=strListCount(*lp);
 		while(!feof(fp)) {
-			if(buf==NULL && (buf=(char*)alloca(max_line_len+1))==NULL)
+			if(buf==NULL && (buf=(char*)malloc(max_line_len+1))==NULL)
 				return(NULL);
 			
 			if(fgets(buf,max_line_len+1,fp)==NULL)
@@ -420,11 +480,13 @@ static str_list_t str_list_read_file(FILE* fp, str_list_t* lp, size_t max_line_l
 			strListAppend(lp, buf, count++);
 		}
 	}
+	if(buf)
+		free(buf);
 
 	return(*lp);
 }
 
-size_t strListInsertFile(FILE* fp, str_list_t* lp, size_t index, size_t max_line_len)
+size_t DLLCALL strListInsertFile(FILE* fp, str_list_t* lp, size_t index, size_t max_line_len)
 {
 	str_list_t	list;
 	size_t		count;
@@ -439,12 +501,12 @@ size_t strListInsertFile(FILE* fp, str_list_t* lp, size_t index, size_t max_line
 	return(count);
 }
 
-str_list_t strListReadFile(FILE* fp, str_list_t* lp, size_t max_line_len)
+str_list_t DLLCALL strListReadFile(FILE* fp, str_list_t* lp, size_t max_line_len)
 {
 	return str_list_read_file(fp,lp,max_line_len);
 }
 
-size_t strListWriteFile(FILE* fp, const str_list_t list, const char* separator)
+size_t DLLCALL strListWriteFile(FILE* fp, const str_list_t list, const char* separator)
 {
 	size_t		i;
 
@@ -461,7 +523,7 @@ size_t strListWriteFile(FILE* fp, const str_list_t list, const char* separator)
 	return(i);
 }
 
-size_t strListBlockLength(char* block)
+size_t DLLCALL strListBlockLength(char* block)
 {
 	char*	p=block;
 	size_t	str_len;
@@ -483,7 +545,7 @@ size_t strListBlockLength(char* block)
 	return(block_len);
 }
 
-char* strListCopyBlock(char* block)
+char* DLLCALL strListCopyBlock(char* block)
 {
 	char*	p;
 	size_t	block_len;
@@ -497,7 +559,7 @@ char* strListCopyBlock(char* block)
 	return(p);
 }
 
-char* strListAppendBlock(char* block, str_list_t list)
+char* DLLCALL strListAppendBlock(char* block, str_list_t list)
 {
 	char*	p;
 	size_t	str_len;
@@ -534,12 +596,12 @@ char* strListAppendBlock(char* block, str_list_t list)
 	return(block);
 }
 
-char* strListCreateBlock(str_list_t list)
+char* DLLCALL strListCreateBlock(str_list_t list)
 {
 	return(strListAppendBlock(NULL,list));
 }
 
-void strListFreeBlock(char* block)
+void DLLCALL strListFreeBlock(char* block)
 {
 	if(block!=NULL)
 		free(block);	/* this must be done here for Windows-DLL reasons */
