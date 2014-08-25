@@ -1,12 +1,12 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.34 2014/02/16 06:28:52 deuce Exp $ */
+/* $Id: scfgsys.c,v 1.36 2014/08/25 21:44:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -840,6 +840,7 @@ while(1) {
 							"options available.\n"
 						;
 						j=0;
+						k=0;
                         while(1) {
                             i=0;
 							sprintf(opt[i++],"%-27.27s %-3.3s"
@@ -879,7 +880,7 @@ while(1) {
 								,"Auto Hang-up After Xfer"
 								,cfg.new_misc&AUTOHANG ? "Yes":"No");
 							opt[i][0]=0;
-							j=uifc.list(WIN_BOT|WIN_RHT,2,1,0,&j,0
+							j=uifc.list(WIN_BOT|WIN_RHT,2,1,0,&j,&k
 								,"Default Toggle Options",opt);
                             if(j==-1)
                                 break;
@@ -933,6 +934,7 @@ while(1) {
 							"user.\n"
 						;
 						j=0;
+						k=0;
                         while(1) {
                             i=0;
 							sprintf(opt[i++],"%-27.27s %-3.3s"
@@ -948,10 +950,10 @@ while(1) {
 								,"Company Name"
 								,cfg.uq&UQ_COMPANY ? "Yes":"No");
 							sprintf(opt[i++],"%-27.27s %-3.3s"
-								,"Multinode Chat Handle"
+								,"Chat Handle / Call Sign"
 								,cfg.uq&UQ_HANDLE ? "Yes":"No");
 							sprintf(opt[i++],"%-27.27s %-3.3s"
-								,"Force Unique Chat Handle"
+								,"Force Unique Handle / Call Sign"
 								,cfg.uq&UQ_DUPHAND ? "Yes":"No");
                             sprintf(opt[i++],"%-27.27s %-3.3s"
                                 ,"E-mail/NetMail Address"
@@ -986,8 +988,11 @@ while(1) {
 							sprintf(opt[i++],"%-27.27s %-3.3s"
 								,"Default Settings"
 								,cfg.uq&UQ_NODEF ? "No":"Yes");
+							sprintf(opt[i++],"%-27.27s %-3.3s"
+								,"Color Terminal"
+								,cfg.uq&UQ_COLORTERM ? "Yes":"No");
 							opt[i][0]=0;
-							j=uifc.list(WIN_BOT|WIN_RHT|WIN_SAV,2,1,0,&j,0
+							j=uifc.list(WIN_BOT|WIN_RHT,2,1,0,&j,&k
 								,"New User Questions",opt);
                             if(j==-1)
                                 break;
@@ -1044,6 +1049,9 @@ while(1) {
 								case 16:
 									cfg.uq^=UQ_NODEF;
                                     break;
+								case 17:
+									cfg.uq^=UQ_COLORTERM;
+									break;
 							} 
 						}
 					break; 
@@ -1459,14 +1467,14 @@ while(1) {
 					"This menu allows you to change the security options for every possible\n"
 					"security level from 0 to 99. The available options for each level are:\n"
 					"\n"
-					"    Time Per Da            Maximum online time per day\n"
-					"    Time Per Cal           Maximum online time per call\n"
-					"    Calls Per Da           Maximum number of calls per day\n"
-					"    Email Per Da           Maximum number of email per day\n"
-					"    Posts Per Da           Maximum number of posts per day\n"
-					"    Lines Per Messag       Maximum number of lines per message\n"
+					"    Time Per Day           Maximum online time per day\n"
+					"    Time Per Call          Maximum online time per call\n"
+					"    Calls Per Day          Maximum number of calls per day\n"
+					"    Email Per Day          Maximum number of email per day\n"
+					"    Posts Per Day          Maximum number of posts per day\n"
+					"    Lines Per Message      Maximum number of lines per message\n"
 					"    Free Credits Per Day   Number of free credits per day\n"
-					"    Expire T               Level or validation set to Expire to\n"
+					"    Expire To              Level or validation set to Expire to\n"
 				;
 				i=uifc.list(WIN_RHT|WIN_ACT,0,3,0,&dflt,&bar
 					,"Level   T/D   T/C   C/D   E/D   P/D   L/M   F/D   "
