@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.31 2015/12/06 11:08:41 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.30 2014/04/23 10:12:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
