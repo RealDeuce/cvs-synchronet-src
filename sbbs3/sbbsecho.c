@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.253 2014/08/28 00:07:10 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.254 2014/08/28 02:25:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3973,16 +3973,20 @@ void export_echomail(char *sub_code,faddr_t addr)
 					continue;
 
 				if(cr) {
-					if(buf[l]=='-' && buf[l+1]=='-'
-						&& buf[l+2]=='-'
-						&& (buf[l+3]==' ' || buf[l+3]=='\r')) {
+					char *tp = (char*)buf+l;
+					/* Bugfixed: handle tear line detection/conversion and origin line detection/conversion even when line-feeds exist and aren't stripped */
+					if(*tp == '\n')	
+						tp++;
+					if(*tp=='-' && *(tp+1)=='-'
+						&& *(tp+2)=='-'
+						&& (*(tp+3)==' ' || *(tp+3)=='\r')) {
 						if(misc&CONVERT_TEAR)	/* Convert to === */
-							buf[l]=buf[l+1]=buf[l+2]='=';
+							*tp=*(tp+1)=*(tp+2)='=';
 						else
 							tear=1; 
 					}
-					else if(!strncmp((char *)buf+l," * Origin: ",11))
-						buf[l+1]='#'; 
+					else if(!strncmp(tp," * Origin: ",11))
+						*(tp+1)='#'; 
 				} /* Convert * Origin into # Origin */
 
 				if(buf[l]=='\r')
@@ -4161,7 +4165,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.253 $", "%*s %s", revision);
+	sscanf("$Revision: 1.254 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
