@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.186 2015/02/10 22:06:15 deuce Exp $ */
+/* $Id: syncterm.c,v 1.185 2014/06/27 10:28:36 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -80,13 +80,17 @@ char	*usage =
 		"\n"
 		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
 		"raw:// URLs MUST include a port.\n"
-		"shell:command URLs are supported on *nix.\n"
+#ifdef __unix__
+		"shell:command URLs are also supported.\n"
+#endif
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
 		"          telnet://deuce@nix.synchro.net\n"
 		"          nix.synchro.net\n"
 		"          telnet://nix.synchro.net\n"
 		"          raw://nix.synchro.net:23\n"
+#ifdef __unix__
 		"          shell:/usr/bin/sh\n"
+#endif
 		;
 
 char *inpath=NULL;
@@ -812,11 +816,13 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
+#ifdef __unix__
 	else if(!strnicmp("shell:",url,6)) {
 		bbs->conn_type=CONN_TYPE_SHELL;
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
+#endif
 	/* ToDo: RFC2806 */
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
