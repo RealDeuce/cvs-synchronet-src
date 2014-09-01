@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.256 2014/09/05 02:08:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.255 2014/09/01 08:43:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4167,7 +4167,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.256 $", "%*s %s", revision);
+	sscanf("$Revision: 1.255 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5049,7 +5049,7 @@ int main(int argc, char **argv)
 			}
 			printf("\n%s to %s ",getfname(path),smb_faddrtoa(&addr,NULL));
 			if(cfg.log&LOG_PACKING)
-				logprintf("Packing %s (%s) attr=%04hX",path,smb_faddrtoa(&addr,NULL),hdr.attr);
+				logprintf("Packing %s (%s)",path,smb_faddrtoa(&addr,NULL));
 			fmsgbuf=getfmsg(fidomsg,NULL);
 			if(!fmsgbuf) {
 				lprintf(LOG_ERR,"ERROR line %d allocating memory for NetMail fmsgbuf"

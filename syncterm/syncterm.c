@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.189 2015/02/19 10:03:27 deuce Exp $ */
+/* $Id: syncterm.c,v 1.185 2014/06/27 10:28:36 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -80,13 +80,17 @@ char	*usage =
 		"\n"
 		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
 		"raw:// URLs MUST include a port.\n"
-		"shell:command URLs are supported on *nix.\n"
+#ifdef __unix__
+		"shell:command URLs are also supported.\n"
+#endif
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
 		"          telnet://deuce@nix.synchro.net\n"
 		"          nix.synchro.net\n"
 		"          telnet://nix.synchro.net\n"
 		"          raw://nix.synchro.net:23\n"
+#ifdef __unix__
 		"          shell:/usr/bin/sh\n"
+#endif
 		;
 
 char *inpath=NULL;
@@ -100,7 +104,6 @@ unsigned int  scrollback_cols=80;
 int	safe_mode=0;
 FILE* log_fp;
 extern ini_style_t ini_style;
-BOOL quitting=FALSE;
 
 #ifdef _WINSOCKAPI_
 
@@ -771,19 +774,6 @@ char *output_enum[]={
 	,"SDLOverlayFullscreen"
 ,NULL};
 
-BOOL check_exit(BOOL force)
-{
-	if (force || (uifc.exit_flags & UIFC_XF_QUIT)) {
-		if (settings.confirm_close) {
-			if (!confirm("Are you sure you want to exit?",NULL))
-				return false;
-		}
-		quitting=TRUE;
-		return TRUE;
-	}
-	return FALSE;
-}
-
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
@@ -826,11 +816,13 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
+#ifdef __unix__
 	else if(!strnicmp("shell:",url,6)) {
 		bbs->conn_type=CONN_TYPE_SHELL;
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
+#endif
 	/* ToDo: RFC2806 */
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
@@ -906,7 +898,7 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
 			return(NULL);
 		backslash(fn);
-		strncat(fn, "SyncTERM", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM", fnlen);
 		backslash(fn);
 		if(!isdir(fn)) {
 			if(MKDIR(fn))
@@ -937,10 +929,10 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 	case SYNCTERM_PATH_INI:
-		strncat(fn, "SyncTERM.ini", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM.ini", fnlen);
 		return(fn);
 	case SYNCTERM_PATH_LIST:
-		strncat(fn, "SyncTERM.lst", fnlen-strlen(fn)-1);
+		strncat(fn, "SyncTERM.lst", fnlen);
 		return(fn);
 	}
 	return(NULL);
@@ -1072,15 +1064,15 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	switch(type) {
 		case SYNCTERM_PATH_INI:
 			backslash(fn);
-			strncat(fn,"syncterm.ini",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.ini",fnlen);
 			break;
 		case SYNCTERM_PATH_LIST:
 			backslash(fn);
-			strncat(fn,"syncterm.lst",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.lst",fnlen);
 			break;
 		case SYNCTERM_PATH_CACHE:
 			backslash(fn);
-			strncat(fn,"SyncTERM",fnlen-strlen(fn)-1);
+			strncat(fn,"SyncTERM",fnlen);
 			backslash(fn);
 			if(!isdir(fn)) {
 				if(MKDIR(fn)) {
@@ -1088,7 +1080,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 				}
 			}
-			strncat(fn,"cache",fnlen-strlen(fn)-1);
+			strncat(fn,"cache",fnlen);
 			backslash(fn);
 			if(!isdir(fn)) {
 				if(MKDIR(fn))
@@ -1131,7 +1123,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		backslash(oldlst);
 		strcat(oldlst,"syncterm.lst");
 		sprintf(fn,"%.*s",fnlen,home);
-		strncat(fn, "/.syncterm", fnlen-strlen(fn)-1);
+		strncat(fn, "/.syncterm", fnlen);
 		backslash(fn);
 	}
 
@@ -1154,13 +1146,13 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 		case SYNCTERM_PATH_INI:
-			strncat(fn,"syncterm.ini",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.ini",fnlen);
 			break;
 		case SYNCTERM_PATH_LIST:
-			strncat(fn,"syncterm.lst",fnlen-strlen(fn)-1);
+			strncat(fn,"syncterm.lst",fnlen);
 			break;
 		case SYNCTERM_PATH_CACHE:
-			strncat(fn,"cache",fnlen-strlen(fn)-1);
+			strncat(fn,"cache",fnlen);
 			backslash(fn);
 #if !(defined(__APPLE__) && defined(__MACH__))
 			if(!isdir(fn)) {
@@ -1466,7 +1458,6 @@ int main(int argc, char **argv)
 
 	if(initciolib(ciolib_mode))
 		return(1);
-	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
 	textmode(text_mode);
 
@@ -1520,7 +1511,7 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while((!quitting) && (bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL)) {
+	while(bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		FREE_AND_NULL(last_bbs);
 		if(!conn_connect(bbs)) {
@@ -1562,8 +1553,7 @@ int main(int argc, char **argv)
 				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
 			}
 
-			if(doterm(bbs))
-				quitting=TRUE;
+			exit_now=doterm(bbs);
 			setvideoflags(0);
 
 			if(log_fp!=NULL) {
@@ -1583,7 +1573,7 @@ int main(int argc, char **argv)
 			}
 			settitle("SyncTERM");
 		}
-		if(quitting || url[0]) {
+		if(exit_now || url[0]) {
 			if(bbs != NULL && bbs->id==-1) {
 				if(!safe_mode) {
 					if(settings.prompt_save) {
