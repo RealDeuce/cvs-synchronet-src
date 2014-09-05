@@ -2,7 +2,7 @@
 
 /* mmap() style cross-platform development wrappers */
 
-/* $Id: xpmap.c,v 1.2 2012/10/21 00:11:41 deuce Exp $ */
+/* $Id: xpmap.c,v 1.7 2014/04/24 06:42:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,17 +36,17 @@
  ****************************************************************************/
 
 #include "xpmap.h"
+#include <stdlib.h>	// malloc()
 
 #if defined(__unix__)
 
-#include <stdlib.h>	// malloc()
 #include <unistd.h>	// close()
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
+struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type)
 {
 	int					fd;
 	void				*addr=NULL;
@@ -77,36 +77,42 @@ struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 	fd=open(filename, oflags);
 	if(fd == -1)
 		return NULL;
-	if(fstat(fd, &sb)==-1)
+	if(fstat(fd, &sb)==-1) {
+		close(fd);
 		return NULL;
+	}
 	addr=mmap(NULL, sb.st_size, mprot, mflags, fd, 0);
-	if(addr==MAP_FAILED)
+	if(addr==MAP_FAILED) {
+		close(fd);
 		return NULL;
+	}
 	ret=(struct xpmapping *)malloc(sizeof(struct xpmapping));
-	if(ret==NULL)
+	if(ret==NULL) {
+		munmap(addr, sb.st_size);
+		close(fd);
 		return NULL;
+	}
 	ret->addr=addr;
 	ret->fd=fd;
 	ret->size=sb.st_size;
 	return ret;
 }
 
-void xpunmap(struct xpmapping *map)
+void DLLCALL xpunmap(struct xpmapping *map)
 {
 	munmap(map->addr, map->size);
 	close(map->fd);
 	free(map);
 }
 
-#elif defined(_WIN32)	
+#elif defined(_WIN32)
 
-struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
+struct xpmapping* DLLCALL xpmap(const char *filename, enum xpmap_type type)
 {
-	HANDLE				fd;
+	HFILE				fd;
 	HANDLE				md;
 	OFSTRUCT			of;
 	UINT				oflags;
-	DWORD				mattrs;
 	DWORD				mprot;
 	DWORD				maccess;
 	DWORD				size;
@@ -117,19 +123,16 @@ struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 		case XPMAP_READ:
 			oflags=OF_READ|OF_SHARE_DENY_NONE;
 			mprot=PAGE_READONLY;
-			mattrs=0;
 			maccess=FILE_MAP_READ;
 			break;
 		case XPMAP_WRITE:
 			oflags=OF_READWRITE|OF_SHARE_DENY_NONE;
 			mprot=PAGE_READWRITE;
-			mflags=0;
 			maccess=FILE_MAP_WRITE;
 			break;
 		case XPMAP_COPY:
 			oflags=OF_READ|OF_SHARE_DENY_NONE;
 			mprot=PAGE_WRITECOPY;
-			mflags=0;
 			maccess=FILE_MAP_COPY;
 			break;
 	}
@@ -137,9 +140,9 @@ struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 	fd=OpenFile(filename, &of, oflags);
 	if(fd == HFILE_ERROR)
 		return NULL;
-	if((size=GetFileSize(fd, NULL))==INVALID_FILE_SIZE)
+	if((size=GetFileSize((HANDLE)fd, NULL))==INVALID_FILE_SIZE)
 		return NULL;
-	md=CreateFileMapping(fd, NULL, mprot, 0, size, NULL);
+	md=CreateFileMapping((HANDLE)fd, NULL, mprot, 0, size, NULL);
 	if(md==NULL)
 		return NULL;
 	addr=MapViewOfFile(md, maccess, 0, 0, size);
@@ -147,13 +150,13 @@ struct xpmapping *xpmap(const char *filename, enum xpmap_type type)
 	if(ret==NULL)
 		return NULL;
 	ret->addr=addr;
-	ret->fd=fd;
+	ret->fd=(HANDLE)fd;
 	ret->md=md;
 	ret->size=size;
 	return ret;
 }
 
-void xpunmap(struct xpmapping *map)
+void DLLCALL xpunmap(struct xpmapping *map)
 {
 	UnmapViewOfFile(map->addr);
 	CloseHandle(map->md);
