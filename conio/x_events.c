@@ -20,10 +20,8 @@
 #include <dirwrap.h>
 
 #include "vidmodes.h"
-#include "allfonts.h"
 
-#include "keys.h"
-#include "mouse.h"
+#include "ciolib.h"
 #include "bitmap_con.h"
 #include "link_list.h"
 #include "x_events.h"
@@ -410,7 +408,6 @@ static void handle_resize_event(int width, int height)
 {
 	int newFSH=1;
 	int newFSW=1;
-	int oldscaling=vstat.scaling;
 
 	// No change
 	if((width == vstat.charwidth * vstat.cols * vstat.scaling)
