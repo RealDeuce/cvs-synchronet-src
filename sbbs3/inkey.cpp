@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.48 2015/02/21 02:32:57 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.46 2014/10/03 08:29:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -107,7 +107,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			backspace();
 		return(0); 
 	}
-	if(ch==CTRL_Z && !(mode&(K_MSG|K_GETSTR))
+	if(ch==CTRL_Z && !(mode&K_MSG|K_GETSTR)
 		&& action!=NODE_PCHT) {	 /* Ctrl-Z toggle raw input mode */
 		if(hotkey_inside>1)	/* only allow so much recursion */
 			return(0);
@@ -246,7 +246,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			lncntr=0;
 			hotkey_inside--;
 			return(0); 
-		case CTRL_K:  /*  Ctrl-K Control key menu */
+		case CTRL_K:  /*  Ctrl-k Control key menu */
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
@@ -259,10 +259,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			SAVELINE;
 			attr(LIGHTGRAY);
 			lncntr=0;
-			if(mode&K_GETSTR)
-				bputs(text[GetStrMenu]);
-			else
-				bputs(text[ControlKeyMenu]);
+			bputs(text[ControlKeyMenu]);
 			ASYNC;
 			RESTORELINE;
 			lncntr=0;

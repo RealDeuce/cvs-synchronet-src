@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.48 2014/10/06 21:45:36 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.47 2014/04/29 09:24:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -280,7 +280,7 @@ int DLLCALL xp_printf_get_type(const char *format)
  *
  * Does not currently support the $ argument selector.
  *
- * Currently, the type is not overly useful, but this could be used for
+ * Currently, the type is not overly usefull, but this could be used for
  * automatic type conversions (ie: int to char *).  Right now it just assures
  * that the type passed to sprintf() is the type passed to
  * xp_asprintf_next().
