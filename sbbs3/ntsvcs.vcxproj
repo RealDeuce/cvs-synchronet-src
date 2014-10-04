@@ -36,7 +36,6 @@
     <Import Project="..\smblib\smblib.props" />
     <Import Project="..\build\undeprecate.props" />
     <Import Project="..\build\target_ia32.props" />
-    <Import Project="..\xpdev\xpdev_mt.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -45,7 +44,6 @@
     <Import Project="..\smblib\smblib.props" />
     <Import Project="..\build\undeprecate.props" />
     <Import Project="..\build\target_ia32.props" />
-    <Import Project="..\xpdev\xpdev_mt.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -56,12 +54,6 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.exe.release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.release\ntsvcs\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <TargetName>sbbsNTsvcs</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <TargetName>sbbsNTsvcs</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -82,7 +74,7 @@
       <ProgramDataBaseFileName>.\msvc.win32.debug\ntsvcs/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
