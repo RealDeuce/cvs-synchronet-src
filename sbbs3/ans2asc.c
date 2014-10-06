@@ -2,13 +2,13 @@
 
 /* Convert ANSI messages to Synchronet .asc (Ctrl-A code) format */
 
-/* $Id: ans2asc.c,v 1.10 2015/11/25 12:32:40 rswindell Exp $ */
+/* $Id: ans2asc.c,v 1.9 2014/01/05 05:20:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,7 +44,7 @@ static void print_usage(const char* prog)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.10 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet ANSI-Terminal-Sequence to Ctrl-A-Code Conversion Utility v%s\n",revision);
 	fprintf(stderr,"\nusage: %s infile.ans [outfile.asc] [[option] [...]]\n",prog);
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 									fputc('i',out);
 									break;
 								case 8: 				/* concealed */
-									fputc('e',out);		/* Elite-text, long unsupported (but should be resurrected?) */
+									fputc('e',out);
 									break;
 								case 30:
 									fputc('k',out);
