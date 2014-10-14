@@ -2,7 +2,7 @@
 
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.55 2015/02/12 11:03:12 deuce Exp $ */
+/* $Id: link_list.c,v 1.54 2014/03/12 05:34:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -761,7 +761,6 @@ void* DLLCALL listRemoveTaggedNode(link_list_t* list, list_node_tag_t tag, BOOL 
 
 long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOOL free_data)
 {
-	list_node_t	*next_node;
 	long count;
 
 	if(list==NULL)
@@ -772,11 +771,9 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 	if(node==FIRST_NODE)
 		node=list->first;
 
-	for(count=0; node!=NULL && count<max; node=next_node, count++) {
-		next_node = node->next;
+	for(count=0; node!=NULL && count<max; node=node->next, count++)
 		if(listRemoveNode(list, node, free_data)==NULL)
 			break;
-	}
 
 	listUnlock(list);
 	
