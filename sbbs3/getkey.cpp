@@ -2,13 +2,13 @@
 
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.44 2015/04/28 10:55:12 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.42 2009/11/09 02:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -49,9 +49,7 @@ char sbbs_t::getkey(long mode)
 	char	ch,coldkey,c=0,spin=sbbs_random(5);
 	time_t	last_telnet_cmd=0;
 
-	if(online==ON_REMOTE && !input_thread_running)
-		online=FALSE;
-	if(!online) {
+	if(!online || !input_thread_running) {
 		YIELD();	// just in case someone is looping on getkey() when they shouldn't
 		return(0);
 	}
@@ -363,16 +361,16 @@ bool sbbs_t::yesno(const char *str)
 	bprintf(text[YesNoQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
-			ch=text[YNQP][1];
+			ch=text[YN][1];
 		else
 			ch=getkey(K_UPPER|K_COLD);
-		if(ch==text[YNQP][0] || ch==CR) {
+		if(ch==text[YN][0] || ch==CR) {
 			if(bputs(text[Yes]))
 				CRLF;
 			lncntr=0;
 			return(true); 
 		}
-		if(ch==text[YNQP][1]) {
+		if(ch==text[YN][1]) {
 			if(bputs(text[No]))
 				CRLF;
 			lncntr=0;
@@ -396,16 +394,16 @@ bool sbbs_t::noyes(const char *str)
 	bprintf(text[NoYesQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
-			ch=text[YNQP][1];
+			ch=text[YN][1];
 		else
 			ch=getkey(K_UPPER|K_COLD);
-		if(ch==text[YNQP][1] || ch==CR) {
+		if(ch==text[YN][1] || ch==CR) {
 			if(bputs(text[No]))
 				CRLF;
 			lncntr=0;
 			return(true); 
 		}
-		if(ch==text[YNQP][0]) {
+		if(ch==text[YN][0]) {
 			if(bputs(text[Yes]))
 				CRLF;
 			lncntr=0;
@@ -511,7 +509,7 @@ void sbbs_t::pause()
 		&& !(cfg.node_misc&NM_NOPAUSESPIN))
 		l|=K_SPIN;
 	ch=getkey(l);
-	if(ch==text[YNQP][1] || ch==text[YNQP][2])
+	if(ch==text[YN][1] || ch=='Q')
 		sys_status|=SS_ABORT;
 	else if(ch==LF)	// down arrow == display one more line
 		lncntr=rows-2;
