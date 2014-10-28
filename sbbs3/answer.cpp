@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.82 2014/03/08 07:42:35 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.83 2014/10/28 19:55:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,8 +70,6 @@ bool sbbs_t::answer()
 		safe_snprintf(str,sizeof(str),"Identity: %s",client_ident);
 		logline("@*",str);
 	}
-
-	online=ON_REMOTE;
 
 	if(sys_status&SS_RLOGIN) {
 		if(incom(1000)==0) {
