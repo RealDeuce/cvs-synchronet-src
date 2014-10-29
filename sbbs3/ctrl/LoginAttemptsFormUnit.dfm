@@ -22,38 +22,35 @@ object LoginAttemptsForm: TLoginAttemptsForm
     Left = 0
     Top = 0
     Width = 480
-    Height = 754
+    Height = 755
     Align = alClient
     Columns = <
       item
-        Caption = 'Unique Attempts'
+        Caption = 'Unique'
       end
       item
-        Caption = 'Duplicate Attempts'
-      end
-      item
-        AutoSize = True
-        Caption = 'Client Address'
+        Caption = 'Dupes'
       end
       item
         AutoSize = True
-        Caption = 'Protocol Last Attempted'
+        Caption = 'Address'
       end
       item
         AutoSize = True
-        Caption = 'Username Last Attempted'
+        Caption = 'Protocol'
       end
       item
         AutoSize = True
-        Caption = 'Password Last Attempted'
+        Caption = 'User'
       end
       item
         AutoSize = True
-        Caption = 'Time of Last Attempt'
+        Caption = 'Password'
+      end
+      item
+        AutoSize = True
+        Caption = 'Time'
       end>
-    MultiSelect = True
-    ReadOnly = True
-    RowSelect = True
     PopupMenu = PopupMenu
     TabOrder = 0
     ViewStyle = vsReport
@@ -77,14 +74,6 @@ object LoginAttemptsForm: TLoginAttemptsForm
       Caption = 'Refresh'
       ShortCut = 116
       OnClick = RefreshPopupClick
-    end
-    object ResolveHostnameMenuItem: TMenuItem
-      Caption = 'Lookup Hostname'
-      OnClick = ResolveHostnameMenuItemClick
-    end
-    object FilterIpMenuItem: TMenuItem
-      Caption = 'Filter IP Address'
-      OnClick = FilterIpMenuItemClick
     end
   end
 end
