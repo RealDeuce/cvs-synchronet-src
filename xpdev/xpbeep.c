@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.93 2015/02/12 11:33:57 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.90 2014/04/24 07:56:29 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -360,7 +360,7 @@ BOOL DLLCALL xptone_open(void)
 #ifdef WITH_PORTAUDIO
 	if(!portaudio_device_open_failed) {
 		if(pa_api==NULL) {
-			dll_handle dl=NULL;
+			dll_handle dl;
 			const char *libnames[]={"portaudio",NULL};
 			if(((pa_api=(struct portaudio_api_struct *)malloc(sizeof(struct portaudio_api_struct)))==NULL)
 					|| ((dl=xp_dlopen(libnames,RTLD_LAZY,0))==NULL)
@@ -477,7 +477,7 @@ BOOL DLLCALL xptone_open(void)
 #ifdef USE_ALSA_SOUND
 	if(!alsa_device_open_failed) {
 		if(alsa_api==NULL) {
-			dll_handle dl=NULL;
+			dll_handle dl;
 			const char *libnames[]={"asound", NULL};
 			if(((alsa_api=(struct alsa_api_struct *)malloc(sizeof(struct alsa_api_struct)))==NULL)
 					|| ((dl=xp_dlopen(libnames,RTLD_LAZY,2))==NULL)
@@ -666,7 +666,7 @@ BOOL DLLCALL xptone_close(void)
 #ifdef XPDEV_THREAD_SAFE
 void DLLCALL xp_play_sample_thread(void *data)
 {
-	BOOL			must_close;
+	BOOL			must_close=FALSE;
 	BOOL			posted_last=TRUE;
 	BOOL			waited=FALSE;
 	unsigned char	*sample=NULL;
@@ -680,7 +680,6 @@ void DLLCALL xp_play_sample_thread(void *data)
 	SetThreadName("Sample Play");
 	sample_thread_running=TRUE;
 	while(1) {
-		must_close = FALSE;
 		if(!waited) {
 			if(sem_wait(&sample_pending_sem)!=0)
 				goto error_return;
@@ -735,9 +734,7 @@ void DLLCALL xp_play_sample_thread(void *data)
 			sdl_audio_buf_pos=0;
 			sdl_audio_buf_len=this_sample_size;
 			sdl.UnlockAudio();
-			sdl.PauseAudio(FALSE);
 			sdl.SemWait(sdlToneDone);
-			sdl.PauseAudio(TRUE);
 		}
 	#endif
 
@@ -901,9 +898,7 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 		sdl_audio_buf_pos=0;
 		sdl_audio_buf_len=sample_size;
 		sdl.UnlockAudio();
-		sdl.PauseAudio(FALSE);
 		sdl.SemWait(sdlToneDone);
-		sdl.PauseAudio(TRUE);
 		if(must_close)
 			xptone_close();
 		return TRUE;
