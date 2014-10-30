@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.568 2013/08/22 04:34:17 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.573 2014/10/29 06:57:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -103,10 +103,10 @@ enum {
 static scfg_t	scfg;
 static volatile BOOL	http_logging_thread_running=FALSE;
 static protected_uint32_t active_clients;
+static protected_uint32_t thread_count;
 static volatile ulong	sockets=0;
 static volatile BOOL	terminate_server=FALSE;
 static volatile BOOL	terminate_http_logging_thread=FALSE;
-static volatile	ulong	thread_count=0;
 static SOCKET	server_socket=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
@@ -122,7 +122,6 @@ static js_server_props_t js_server_props;
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
 static str_list_t cgi_env;
-static volatile ulong session_threads=0;
 
 static named_string_t** mime_types;
 static named_string_t** cgi_handlers;
@@ -429,8 +428,8 @@ time_gm(struct tm *tm)
         /* save value in case *tm is overwritten by gmtime() */
         sec = tm->tm_sec;
 
-        tm2 = gmtime(&t);
-        if ((t2 = sub_mkgmt(tm2)) == (time_t) -1)
+        tm2 = gmtime(&t);	/* why not use gmtime_r instead? */
+        if (tm2 == NULL || (t2 = sub_mkgmt(tm2)) == (time_t) -1)
                 return (time_t) -1;
 
         if (t2 < t || tm2->tm_sec != sec) {
@@ -618,7 +617,7 @@ static void status(char* str)
 static void update_clients(void)
 {
 	if(startup!=NULL && startup->clients!=NULL)
-		startup->clients(startup->cbdata,active_clients.value);
+		startup->clients(startup->cbdata,protected_uint32_value(active_clients));
 }
 
 static void client_on(SOCKET sock, client_t* client, BOOL update)
@@ -635,15 +634,13 @@ static void client_off(SOCKET sock)
 
 static void thread_up(BOOL setuid)
 {
-	thread_count++;
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,TRUE, setuid);
 }
 
 static void thread_down(void)
 {
-	if(thread_count>0)
-		thread_count--;
+	protected_uint32_adjust(&thread_count,-1);
 	if(startup!=NULL && startup->thread_up!=NULL)
 		startup->thread_up(startup->cbdata,FALSE, FALSE);
 }
@@ -1520,10 +1517,10 @@ static BOOL check_ars(http_session_t * session)
 		if(!http_checkuser(session))
 			return(FALSE);
 		if(scfg.sys_misc&SM_ECHO_PW && session->req.auth.type==AUTHENTICATION_BASIC)
-			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: %s, Password: %s"
+			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: '%s' (password: %s)"
 				,session->socket,session->req.auth.username,session->req.auth.password);
 		else
-			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: %s"
+			lprintf(LOG_NOTICE,"%04d !UNKNOWN USER: '%s'"
 				,session->socket,session->req.auth.username);
 		return(FALSE);
 	}
@@ -4140,37 +4137,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
-		JSVALUE_TO_STRBUF(cx, argv[i], strchr(str, 0), sizeof(str)/2, NULL);
+		char* tp=strchr(str, 0);
+		JSVALUE_TO_STRBUF(cx, argv[i], tp, sizeof(str)/2, NULL);
 		strcat(str," ");
 	}
-
-	/* Exception here, Aug-21-2013:
-
-	websrvr.dll!js_log(JSContext * cx=0x0249fd34, unsigned int argc=129351904, unsigned __int64 * arglist=0x024004e8)  Line 4147 + 0xc bytes
- 	mozjs185-1.0.dll!0f788fa6() 	
- 	mozjs185-1.0.dll!0f754780() 	
- 	mozjs185-1.0.dll!0f6f6078() 	
- 	sbbs.dll!js_PrepareToExecute(JSContext * cx=0x024004e8, JSObject * obj=0x07bc2028, const char * filename=0x020b2060, const char * startup_dir=0x00000000)  Line 659 + 0x29 bytes
- 	mozjs185-1.0.dll!0f6f82b2() 	
- 	websrvr.dll!exec_ssjs(http_session_t * session=0x05888550, char * script=0x0071a540)  Line 4687 + 0x24 bytes
- 	075fdfa4()	
- 	websrvr.dll!http_session_thread(void * arg=0x00000000)  Line 5218 + 0xc bytes
- 	websrvr.dll!_callthreadstart()  Line 259 + 0xf bytes
- 	websrvr.dll!_threadstart(void * ptd=0x05889300)  Line 243
-
-	Locals:
-
-	cx	0x0249fd34	JSContext *
-		argc	129351904	unsigned int
-+		arglist	0x024004e8	unsigned __int64 *
-+		str	0x075fd680 "$w$ó}˜é…
-é"	char [512]
-+		argv	0x075fd894	unsigned __int64 *
-		i	63	unsigned int
-+		session	0xffff0001 {socket=??? addr={...} socket6=??? ...}	http_session_t *
-		rc	123720936	int
-		level	176547499	int
-*/
 	rc=JS_SUSPENDREQUEST(cx);
 	lprintf(level,"%04d %s",session->socket,str);
 	JS_RESUMEREQUEST(cx, rc);
@@ -4232,7 +4202,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 		if(stricmp(user.pass,p)) { /* Wrong password */
 			rc=JS_SUSPENDREQUEST(cx);
-			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: %s"
+			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: '%s'"
 				,session->socket,user.alias);
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
@@ -4966,11 +4936,14 @@ void http_output_thread(void *arg)
 	unsigned mss=OUTBUF_LEN;
 
 	SetThreadName("HTTP Output");
+	thread_up(TRUE /* setuid */);
+
 	obuf=&(session->outbuf);
 	/* Destroyed at end of function */
 	if((i=pthread_mutex_init(&session->outbuf_write,NULL))!=0) {
 		lprintf(LOG_DEBUG,"Error %d initializing outbuf mutex",i);
 		close_socket(&session->socket);
+		thread_down();
 		return;
 	}
 	session->outbuf_write_initialized=1;
@@ -4983,7 +4956,7 @@ void http_output_thread(void *arg)
 	if(!obuf->highwater_mark) {
 		socklen_t   sl;
 		sl=sizeof(i);
-		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, &i, &sl)) {
+		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, (char*)&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
 				obuf->highwater_mark=i-12;
@@ -5000,7 +4973,6 @@ void http_output_thread(void *arg)
 	}
 #endif
 
-	thread_up(TRUE /* setuid */);
 	/*
 	 * Do *not* exit on terminate_server... wait for session thread
 	 * to close the socket and set it to INVALID_SOCKET
@@ -5093,9 +5065,11 @@ void http_session_thread(void* arg)
 	session=*(http_session_t*)arg;	/* copies arg BEFORE it's freed */
 	FREE_AND_NULL(arg);
 
+	thread_up(TRUE /* setuid */);
+
 	socket=session.socket;
 	if(socket==INVALID_SOCKET) {
-		session_threads--;
+		thread_down();
 		return;
 	}
 	lprintf(LOG_DEBUG,"%04d Session thread started", session.socket);
@@ -5108,7 +5082,6 @@ void http_session_thread(void* arg)
 		PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
-	thread_up(TRUE /* setuid */);
 	session.finished=FALSE;
 
 	/* Start up the output buffer */
@@ -5117,12 +5090,12 @@ void http_session_thread(void* arg)
 		lprintf(LOG_ERR,"%04d Canot create output ringbuffer!", session.socket);
 		close_socket(&session.socket);
 		thread_down();
-		session_threads--;
 		return;
 	}
 
 	/* Destroyed in this block (before all returns) */
 	sem_init(&session.output_thread_terminated,0,0);
+	protected_uint32_adjust(&thread_count,1);
 	_beginthread(http_output_thread, 0, &session);
 
 	sbbs_srand();	/* Seed random number generator */
@@ -5155,7 +5128,6 @@ void http_session_thread(void* arg)
 			sem_destroy(&session.output_thread_terminated);
 			RingBufDispose(&session.outbuf);
 			thread_down();
-			session_threads--;
 			return;
 		}
 	}
@@ -5168,7 +5140,6 @@ void http_session_thread(void* arg)
 		sem_destroy(&session.output_thread_terminated);
 		RingBufDispose(&session.outbuf);
 		thread_down();
-		session_threads--;
 		return;
 	}
 
@@ -5295,14 +5266,13 @@ void http_session_thread(void* arg)
 	update_clients();
 	client_off(socket);
 
-	session_threads--;
 	thread_down();
 
 	if(startup->index_file_name==NULL || startup->cgi_ext==NULL)
 		lprintf(LOG_DEBUG,"%04d !!! ALL YOUR BASE ARE BELONG TO US !!!", socket);
 
 	lprintf(LOG_INFO,"%04d Session thread terminated (%u clients, %u threads remain, %lu served)"
-		,socket, clients_remain, thread_count, served);
+		,socket, clients_remain, protected_uint32_value(thread_count), served);
 
 }
 
@@ -5314,9 +5284,11 @@ void DLLCALL web_terminate(void)
 
 static void cleanup(int code)
 {
-	while(session_threads) {
-		lprintf(LOG_INFO,"#### Web Server waiting on %d active session threads",session_threads);
-		SLEEP(1000);
+	if(protected_uint32_value(thread_count) > 1) {
+		lprintf(LOG_DEBUG,"#### Web Server waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
+		while(protected_uint32_value(thread_count) > 1) {
+			mswait(100);
+		}
 	}
 	free_cfg(&scfg);
 
@@ -5336,12 +5308,12 @@ static void cleanup(int code)
 		close_socket(&server_socket);
 	}
 
-	if(active_clients.value)
-		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", active_clients.value);
+	update_clients();	/* active_clients is destroyed below */
+
+	if(protected_uint32_value(active_clients))
+		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", protected_uint32_value(active_clients));
 	else
 		protected_uint32_destroy(active_clients);
-
-	update_clients();
 
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
@@ -5352,8 +5324,6 @@ static void cleanup(int code)
 	status("Down");
 	if(terminate_server || code)
 		lprintf(LOG_INFO,"#### Web Server thread terminated (%lu clients served)", served);
-	if(thread_count)
-		lprintf(LOG_WARNING,"#### !Web Server threads (%u) remain after termination", thread_count);
 	if(startup!=NULL && startup->terminated!=NULL)
 		startup->terminated(startup->cbdata,code);
 }
@@ -5365,7 +5335,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.568 $", "%*s %s", revision);
+	sscanf("$Revision: 1.573 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5388,7 +5358,6 @@ void http_logging_thread(void* arg)
 	char	newfilename[MAX_PATH+1];
 	FILE*	logfile=NULL;
 
-	http_logging_thread_running=TRUE;
 	terminate_http_logging_thread=FALSE;
 
 	SAFECOPY(base,arg);
@@ -5569,9 +5538,11 @@ void DLLCALL web_server(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
+	protected_uint32_init(&thread_count, 0);
 
 	do {
 
+		protected_uint32_adjust(&thread_count,1);
 		thread_up(FALSE /* setuid */);
 
 		status("Initializing");
@@ -5739,6 +5710,8 @@ void DLLCALL web_server(void* arg)
 			/********************/
 			/* Start log thread */
 			/********************/
+			http_logging_thread_running=TRUE;
+			protected_uint32_adjust(&thread_count,1);
 			_beginthread(http_logging_thread, 0, startup->logfile_base);
 		}
 
@@ -5780,7 +5753,7 @@ void DLLCALL web_server(void* arg)
 		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
 			/* check for re-cycle/shutdown semaphores */
-			if(active_clients.value==0) {
+			if(protected_uint32_value(thread_count) <= (2 /* web_server() and http_output_thread() */ + http_logging_thread_running)) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
@@ -5791,10 +5764,6 @@ void DLLCALL web_server(void* arg)
 						}
 						break;
 					}
-#if 0	/* unused */
-					if(startup->recycle_sem!=NULL && sem_trywait(&startup->recycle_sem)==0)
-						startup->recycle_now=TRUE;
-#endif
 					if(startup->recycle_now==TRUE) {
 						lprintf(LOG_INFO,"%04d Recycle semaphore signaled",server_socket);
 						startup->recycle_now=FALSE;
@@ -5835,7 +5804,7 @@ void DLLCALL web_server(void* arg)
 				/* Destroyed in http_session_thread */
 				pthread_mutex_init(&session->struct_filled,NULL);
 				pthread_mutex_lock(&session->struct_filled);
-				session_threads++;
+				protected_uint32_adjust(&thread_count,1);
 				_beginthread(http_session_thread, 0, session);
 			}
 
@@ -5900,7 +5869,7 @@ void DLLCALL web_server(void* arg)
 				continue;
 			}
 
-			if(startup->max_clients && active_clients.value>=startup->max_clients) {
+			if(startup->max_clients && protected_uint32_value(active_clients)>=startup->max_clients) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
 				mswait(3000);
@@ -5937,14 +5906,14 @@ void DLLCALL web_server(void* arg)
 		}
 
 		/* Wait for active clients to terminate */
-		if(active_clients.value) {
+		if(protected_uint32_value(active_clients)) {
 			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
-				,server_socket, active_clients.value);
+				,server_socket, protected_uint32_value(active_clients));
 			start=time(NULL);
-			while(active_clients.value) {
+			while(protected_uint32_value(active_clients)) {
 				if(time(NULL)-start>startup->max_inactivity) {
 					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
-						,server_socket, active_clients.value);
+						,server_socket, protected_uint32_value(active_clients));
 					break;
 				}
 				mswait(100);
@@ -5988,4 +5957,6 @@ void DLLCALL web_server(void* arg)
 		}
 
 	} while(!terminate_server);
+
+	protected_uint32_destroy(thread_count);
 }
