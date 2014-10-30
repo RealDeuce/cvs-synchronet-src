@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.574 2014/10/30 08:46:41 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.575 2014/10/30 16:06:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1762,6 +1762,9 @@ static BOOL check_ars(http_session_t * session)
 		}
 		/* Should use real name if set to do so somewhere ToDo */
 		add_env(session,"REMOTE_USER",session->user.alias);
+
+		if(thisuser.pass[0])
+			loginSuccess(startup->login_attempt_list, &session->addr);
 
 		return(TRUE);
 	}
@@ -5389,7 +5392,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.574 $", "%*s %s", revision);
+	sscanf("$Revision: 1.575 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
