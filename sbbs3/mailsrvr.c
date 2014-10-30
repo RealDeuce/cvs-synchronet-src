@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.575 2015/03/03 20:53:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.572 2014/10/29 06:57:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -703,7 +703,7 @@ static u_long resolve_ip(char *inaddr)
 		return((u_long)INADDR_NONE);
 
 	for(p=addr;*p;p++)
-		if(*p!='.' && !isdigit((uchar)*p))
+		if(*p!='.' && !isdigit(*p))
 			break;
 	if(!(*p))
 		return(inet_addr(addr));
@@ -1077,7 +1077,7 @@ static void pop3_thread(void* arg)
 			if(!strnicmp(buf, "LIST",4) || !strnicmp(buf,"UIDL",4)) {
 				p=buf+4;
 				SKIP_WHITESPACE(p);
-				if(isdigit((uchar)*p)) {
+				if(isdigit(*p)) {
 					msgnum=atol(p);
 					if(msgnum<1 || msgnum>msgs) {
 						lprintf(LOG_NOTICE,"%04d !POP3 INVALID message #%ld"
@@ -1712,7 +1712,6 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%04d %s %s %s"
 			,p->sock,p->log_prefix,p->proc_name,lstr);
-		JS_SET_RVAL(cx, arglist, argv[i]);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -3882,7 +3881,7 @@ static void smtp_thread(void* arg)
 			}
 
 			if((p==alias_buf || p==name_alias_buf || startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER)
-				&& isdigit((uchar)*p)) {
+				&& isdigit(*p)) {
 				usernum=atoi(p);			/* RX by user number */
 				/* verify usernum */
 				username(&scfg,usernum,str);
@@ -4895,7 +4894,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.575 $", "%*s %s", revision);
+	sscanf("$Revision: 1.572 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4967,9 +4966,9 @@ void DLLCALL mail_server(void* arg)
 	if(startup->submission_port==0)			startup->submission_port=IPPORT_SUBMISSION;
 	if(startup->smtp_port==0)				startup->smtp_port=IPPORT_SMTP;
 	if(startup->pop3_port==0)				startup->pop3_port=IPPORT_POP3;
-	if(startup->rescan_frequency==0)		startup->rescan_frequency=MAIL_DEFAULT_RESCAN_FREQUENCY;
-	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=MAIL_DEFAULT_MAX_DELIVERY_ATTEMPTS;
-	if(startup->max_inactivity==0) 			startup->max_inactivity=MAIL_DEFAULT_MAX_INACTIVITY; /* seconds */
+	if(startup->rescan_frequency==0)		startup->rescan_frequency=3600;	/* 60 minutes */
+	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=50;
+	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 
 #ifdef JAVASCRIPT
