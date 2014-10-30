@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.155 2013/09/30 01:42:38 deuce Exp $ */
+/* $Id: js_system.c,v 1.157 2014/08/19 01:14:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -341,7 +341,7 @@ static JSBool js_system_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 
 	switch(tiny) {
 		case SYS_PROP_MISC:
-			JS_ValueToInt32(cx, *vp, (int32*)&cfg->sys_misc);
+			JS_ValueToInt32(cx, *vp, &cfg->sys_misc);
 			break;
 	}
 
@@ -431,7 +431,7 @@ static char* sys_prop_desc[] = {
 	 "BBS name"
 	,"operator name"
 	,"system QWK-ID (for QWK packets)"
-	,"settings bitfield (see <tt>SS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
+	,"settings bitfield (see <tt>SYS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"PostLink name"
 	,"PostLink system number"
 	,"Internet address (host or domain name)"
@@ -1842,8 +1842,8 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,JSDOCSTR("log a suspected hack attempt")
 	,310
 	},
-	{"filter_ip",		js_filter_ip,		4,	JSTYPE_BOOLEAN,	JSDOCSTR("[protocol, reason, host, ip, username]")
-	,JSDOCSTR("add an IP address (with comment) to the system's IP filter file")
+	{"filter_ip",		js_filter_ip,		4,	JSTYPE_BOOLEAN,	JSDOCSTR("[protocol, reason, host, ip, username, filename]")
+	,JSDOCSTR("add an IP address (with comment) to an IP filter file. If filename is not specified, the ip.can file is used")
 	,311
 	},		
 	{"get_node_message",js_get_node_message,0,	JSTYPE_STRING,	JSDOCSTR("node_number")
