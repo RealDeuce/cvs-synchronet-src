@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.339 2014/11/18 06:11:30 deuce Exp $ */
+/* $Id: js_global.c,v 1.338 2014/11/08 11:02:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4277,10 +4277,6 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* COM Class */
 		if(js_CreateCOMClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptContext Class */
-		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
