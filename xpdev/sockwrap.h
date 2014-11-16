@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id$ */
+/* $Id: sockwrap.h,v 1.52 2014/11/16 02:58:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -240,6 +240,9 @@ DLLEXPORT void DLLCALL inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
 
 #ifndef IPPORT_HTTP
 #define IPPORT_HTTP			80
+#endif
+#ifndef IPPORT_HTTPS
+#define IPPORT_HTTPS			443
 #endif
 #ifndef IPPORT_FTP
 #define IPPORT_FTP			21
