@@ -2,13 +2,13 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.48 2015/12/03 10:40:14 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.44 2012/10/20 20:49:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,8 +96,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,/* from: */your_addr,&editor)) {
+	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
+	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -114,14 +114,14 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 		{ /* Remote */
 			xfer_prot_menu(XFER_UPLOAD);
 			mnemonics(text[ProtocolOrQuit]);
-			sprintf(str,"%c",text[YNQP][2]);
+			strcpy(str,"Q");
 			for(x=0;x<cfg.total_prots;x++)
 				if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
 					sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
 					strcat(str,tmp); 
 				}
 			ch=(char)getkeys(str,0);
-			if(ch==text[YNQP][2] || sys_status&SS_ABORT) {
+			if(ch=='Q' || sys_status&SS_ABORT) {
 				bputs(text[Aborted]);
 				remove(msgpath);
 				return(false); 
@@ -334,7 +334,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	addr++;
 	strupr(addr);
 	truncsp(addr);
-	touser=qwk_route(&cfg,addr,fulladdr,sizeof(fulladdr)-1);
+	touser=qwk_route(addr,fulladdr);
 	if(!fulladdr[0]) {
 		bputs(text[InvalidNetMailAddr]);
 		return(false); 
@@ -350,8 +350,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,/* from: */useron.alias,&editor)) {
+	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
+	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
