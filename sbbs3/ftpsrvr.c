@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.408 2014/12/11 01:09:34 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.407 2014/11/20 05:13:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2661,13 +2661,13 @@ static void ctrl_thread(void* arg)
 			sprintf(qwkfile,"%sfile/%04d.qwk",scfg.data_dir,user.number);
 
 			/* Adjust User Total Logons/Logons Today */
-			user.logons++;
-			user.ltoday++;
-			SAFECOPY(user.modem,"FTP");
-			SAFECOPY(user.comp,host_name);
-			SAFECOPY(user.note,host_ip);
-			user.logontime=logintime;
-			putuserdat(&scfg, &user);
+			adjustuserrec(&scfg,user.number,U_LOGONS,5,1);
+			putuserrec(&scfg,user.number,U_LTODAY,5,ultoa(user.ltoday+1,str,10));
+			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
+			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
+			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
+			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa((ulong)logintime,str,16));
+			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
 		}
@@ -4536,7 +4536,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.408 $", "%*s %s", revision);
+	sscanf("$Revision: 1.407 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
