@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.197 2011/04/23 17:42:19 deuce Exp $ */
+/* $Id: uifc32.c,v 1.205 2014/04/29 09:23:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,12 +45,11 @@
 #elif defined(_WIN32)
 	#include <share.h>
 	#include <windows.h>
-	#include <malloc.h>
 	#define mswait(x) Sleep(x)
 #endif
+#include <genwrap.h>	// for alloca()
 
 #include "ciolib.h"
-#include "keys.h"
 #include "uifc.h"
 #define MAX_GETSTR	5120
 
@@ -147,7 +146,7 @@ int inkey(void)
 	return(c);
 }
 
-int uifcini32(uifcapi_t* uifcapi)
+int UIFCCALL uifcini32(uifcapi_t* uifcapi)
 {
 	unsigned	i;
 	struct	text_info txtinfo;
@@ -477,7 +476,7 @@ static void timedisplay(BOOL force)
 /****************************************************************************/
 /* Truncates white-space chars off end of 'str'								*/
 /****************************************************************************/
-static void truncsp(char *str)
+static void truncspctrl(char *str)
 {
 	uint c;
 
@@ -494,7 +493,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
 	uchar line[MAX_COLS*2],shade[MAX_LINES*4],*ptr
-		,search[MAX_OPLN],bline=0,*win;
+		,bline=0,*win;
+    char search[MAX_OPLN];
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
 	int	is_redraw=0;
@@ -579,7 +579,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		width=title_len+hbrdrsize+2;
 		for(i=0;i<opts;i++) {
 			if(option[i]!=NULL) {
-				truncsp(option[i]);
+				truncspctrl(option[i]);
 				if((j=strlen(option[i])+hbrdrsize+2+1)>width)
 					width=j;
 			}
@@ -666,7 +666,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					puttext(sav[api->savnum].left,sav[api->savnum].top,sav[api->savnum].right,sav[api->savnum].bot
 						,sav[api->savnum].buf);	/* put original window back */
 					FREE_AND_NULL(sav[api->savnum].buf);
-					if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
+					if((sav[api->savnum].buf=malloc((width+3)*(height+2)*2))==NULL) {
 						cprintf("UIFC line %d: error allocating %u bytes."
 							,__LINE__,(width+3)*(height+2)*2);
 						free(title);
@@ -691,7 +691,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			}
 		}
 		else {
-			if((sav[api->savnum].buf=(char *)malloc((width+3)*(height+2)*2))==NULL) {
+			if((sav[api->savnum].buf=malloc((width+3)*(height+2)*2))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
 					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
@@ -977,6 +977,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(api->timedisplay != NULL)
 			api->timedisplay(/* force? */FALSE);
 		gotkey=0;
+		textattr(((api->lbclr)&0x0f)|((api->lbclr >> 4)&0x0f));
+		gotoxy(s_left+lbrdrwidth+2+left, s_top+y);
 		if(kbwait() || (mode&(WIN_POP|WIN_SEL))) {
 			if(mode&WIN_POP)
 				gotkey=ESC;
@@ -1006,7 +1008,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_ACT) {
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if((win=(char *)alloca((width+3)*(height+2)*2))==NULL) {
+							if((win=alloca((width+3)*(height+2)*2))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
 								return(-1);
@@ -1870,16 +1872,16 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 /****************************************************************************/
 int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int *lastkey)
 {
-	uchar   *str,ins=0;
+	char   *str,ins=0;
 	int	ch;
 	int     i,j,k,f=0;	/* i=offset, j=length */
 	BOOL	gotdecimal=FALSE;
 	int	soffset=0;
 	struct mouse_event	mevnt;
-	unsigned char	*pastebuf=NULL;
+	char	*pastebuf=NULL;
 	unsigned char	*pb=NULL;
 
-	if((str=(uchar *)alloca(max+1))==NULL) {
+	if((str=alloca(max+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(max+1));
 		_setcursortype(cursor);
@@ -1891,7 +1893,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	str[0]=0;
 	if(mode&K_EDIT && outstr[0]) {
 	/***
-		truncsp(outstr);
+		truncspctrl(outstr);
 	***/
 		outstr[max]=0;
 		i=j=strlen(outstr);
@@ -1940,7 +1942,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					if(i>j)
 						i=j;
 					pastebuf=getcliptext();
-					pb=pastebuf;
+					pb=(unsigned char *)pastebuf;
 					f=0;
 				}
 			}
@@ -2018,7 +2020,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						if(i>j)
 							i=j;
 						pastebuf=getcliptext();
-						pb=pastebuf;
+						pb=(unsigned char *)pastebuf;
 						ch=0;
 					}
 				}
@@ -2084,6 +2086,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						}
 						continue;
 					}
+					/* Fall-through at beginning of string */
 				case CIO_KEY_DC:	/* delete */
 				case DEL:			/* sdl_getch() is returning 127 when keypad "Del" is hit */
 					if(i<j)
@@ -2171,7 +2174,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	str[j]=0;
 	if(mode&K_EDIT)
 	{
-		truncsp(str);
+		truncspctrl(str);
 		if(strcmp(outstr,str))
 			api->changes=1;
 	}
@@ -2478,7 +2481,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		}
 		for(i=2;i<(width-j);i+=2)
    		      tmp_buffer2[i]='Ä';
-		if(api->mode&UIFC_MOUSE && !mode&WIN_DYN) {
+		if((api->mode&UIFC_MOUSE) && (!(mode&WIN_DYN))) {
 			tmp_buffer2[2]='[';
 			tmp_buffer2[3]=api->hclr|(api->bclr<<4);
 			/* tmp_buffer2[4]='þ'; */
@@ -2699,50 +2702,60 @@ static void help(void)
 
 	_setcursortype(_NOCURSOR);
 
-	if(api->helpbuf!=NULL)
-		strcpy(hbuf,api->helpbuf);
-	else {
-		if((fp=fopen(api->helpixbfile,"rb"))==NULL) {
-			sprintf(hbuf,"\2 ERROR \2 Cannot open help index:\r\n          %s"
-				,api->helpixbfile);
-		}
-		else {
-			p=strrchr(helpfile,'/');
-			if(p==NULL)
-				p=strrchr(helpfile,'\\');
-			if(p==NULL)
-				p=helpfile;
-			else
-				p++;
-			l=-1L;
-			while(!feof(fp)) {
-				if(!fread(str,12,1,fp))
+    if(!api->helpbuf) {
+        if((fp=fopen(api->helpixbfile,"rb"))==NULL)
+            sprintf(hbuf,"ERROR: Cannot open help index: %s"
+                ,api->helpixbfile);
+        else {
+            p=strrchr(helpfile,'/');
+            if(p==NULL)
+                p=strrchr(helpfile,'\\');
+            if(p==NULL)
+                p=helpfile;
+            else
+                p++;
+            l=-1L;
+            while(!feof(fp)) {
+                if(fread(str,12,1,fp)!=1)
+                    break;
+                str[12]=0;
+                if(fread(&line,2,1,fp)!=1)
 					break;
-				str[12]=0;
-				fread(&line,sizeof(line),1,fp);
-				if(stricmp(str,p) || line!=helpline) {
-					fseek(fp,sizeof(l),SEEK_CUR);
-					continue; 
-				}
-				fread(&l,sizeof(l),1,fp);
-				break;
-			}
-			fclose(fp);
-			if(l==-1L)
-				sprintf(hbuf,"\2 ERROR \2 Cannot locate help key (%s:%u) in:\r\n"
-					"         %s",p,helpline,api->helpixbfile);
-			else {
-				if((fp=fopen(api->helpdatfile,"rb"))==NULL)
-					sprintf(hbuf,"\2 ERROR \2 Cannot open help file:\r\n          %s"
-						,api->helpdatfile);
-				else {
-					fseek(fp,l,SEEK_SET);
-					fread(hbuf,HELPBUF_SIZE,1,fp);
+                if(stricmp(str,p) || line!=helpline) {
+                    if(fseek(fp,4,SEEK_CUR)==0)
+						break;
+                    continue;
+                }
+                if(fread(&l,4,1,fp)!=1)
+					l=-1L;
+                break;
+            }
+            fclose(fp);
+            if(l==-1L)
+                sprintf(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
+                    ,p,helpline,api->helpixbfile);
+            else {
+                if((fp=fopen(api->helpdatfile,"rb"))==NULL)
+                    sprintf(hbuf,"ERROR: Cannot open help file: %s"
+                        ,api->helpdatfile);
+                else {
+                    if(fseek(fp,l,SEEK_SET)!=0) {
+						sprintf(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %s"
+							,p,helpline,l,api->helpixbfile);
+					}
+					else {
+						if(fread(hbuf,1,HELPBUF_SIZE,fp)<1) {
+							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
+								,p,helpline,l,api->helpixbfile);
+						}
+					}
 					fclose(fp); 
 				}
 			}
 		}
+		showbuf(WIN_MID|WIN_HLP, 0, 0, 76, api->scrn_len, "Online Help", hbuf, NULL, NULL);
 	}
-
-	showbuf(WIN_MID|WIN_HLP, 0, 0, 76, api->scrn_len, "Online Help", hbuf, NULL, NULL);
+    else {
+		showbuf(WIN_MID|WIN_HLP, 0, 0, 76, api->scrn_len, "Online Help", api->helpbuf, NULL, NULL);
+	}
 }
