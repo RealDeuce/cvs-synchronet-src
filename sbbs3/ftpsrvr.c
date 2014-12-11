@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.409 2015/04/25 06:10:16 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.407 2014/11/20 05:13:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1010,7 +1010,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL, parent);
+		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -2661,13 +2661,13 @@ static void ctrl_thread(void* arg)
 			sprintf(qwkfile,"%sfile/%04d.qwk",scfg.data_dir,user.number);
 
 			/* Adjust User Total Logons/Logons Today */
-			user.logons++;
-			user.ltoday++;
-			SAFECOPY(user.modem,"FTP");
-			SAFECOPY(user.comp,host_name);
-			SAFECOPY(user.note,host_ip);
-			user.logontime=logintime;
-			putuserdat(&scfg, &user);
+			adjustuserrec(&scfg,user.number,U_LOGONS,5,1);
+			putuserrec(&scfg,user.number,U_LTODAY,5,ultoa(user.ltoday+1,str,10));
+			putuserrec(&scfg,user.number,U_MODEM,LEN_MODEM,"FTP");
+			putuserrec(&scfg,user.number,U_COMP,LEN_COMP,host_name);
+			putuserrec(&scfg,user.number,U_NOTE,LEN_NOTE,host_ip);
+			putuserrec(&scfg,user.number,U_LOGONTIME,0,ultoa((ulong)logintime,str,16));
+			getuserdat(&scfg, &user);	/* make user current */
 
 			continue;
 		}
@@ -4536,7 +4536,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.409 $", "%*s %s", revision);
+	sscanf("$Revision: 1.407 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
