@@ -2,7 +2,7 @@
 
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.23 2016/05/18 10:15:12 rswindell Exp $ */
+/* $Id: login.cpp,v 1.21 2011/09/21 03:16:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,11 +148,11 @@ void sbbs_t::badlogin(char* user, char* passwd)
 
 	SAFEPRINTF(reason,"%s LOGIN", connection);
 	count=loginFailure(startup->login_attempt_list, &client_addr, connection, user, passwd);
-	if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold)
+	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold)
 		::hacklog(&cfg, reason, user, passwd, client_name, &client_addr);
-	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold)
+	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
 		filter_ip(&cfg, connection, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
-			,client_name, client_ipaddr, user, /* fname: */NULL);
+			,client_name, inet_ntoa(client_addr.sin_addr), user, /* fname: */NULL);
 
-	mswait(startup->login_attempt.delay);
+	mswait(startup->login_attempt_delay);
 }
