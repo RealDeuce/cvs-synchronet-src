@@ -2,13 +2,13 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.68 2011/10/23 01:48:42 deuce Exp $ */
+/* $Id: str.cpp,v 1.69 2014/09/04 04:29:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1100,7 +1100,8 @@ bool sbbs_t::spy(uint i /* node_num */)
 			}
 			ansi_seq[ansi_len++]=ch;
 			if(isalpha(ch)) {
-				RingBufWrite(node_inbuf[i-1],(uchar*)ansi_seq,ansi_len);
+				if(node_inbuf[i-1]!=NULL) 
+					RingBufWrite(node_inbuf[i-1],(uchar*)ansi_seq,ansi_len);
 				ansi_len=0;
 			}
 			continue;
