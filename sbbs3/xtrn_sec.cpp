@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.76 2013/09/15 07:25:53 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.77 2013/09/15 07:32:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1790,6 +1790,7 @@ bool sbbs_t::user_event(user_event_t event)
 		if(cfg.xtrn[i]->event!=event)
 			continue;
 		if(!chk_ar(cfg.xtrn[i]->ar,&useron,&client)
+			|| !chk_ar(cfg.xtrn[i]->run_ar,&useron,&client)
 			|| !chk_ar(cfg.xtrnsec[cfg.xtrn[i]->sec]->ar,&useron,&client))
 			continue;
 		success=exec_xtrn(i); 
