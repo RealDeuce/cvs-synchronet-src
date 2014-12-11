@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id$ */
+/* $Id: js_socket.c,v 1.166 2014/12/11 11:06:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,7 +112,7 @@ static ptrdiff_t js_socket_recv(private_t *p, void *buf, size_t len, int flags, 
 	int	copied,ret;
 	
 	if(p->session==-1)
-		return(recv(p->sock, buf, len, flags));
+		return(recv(p->sock, buf, len, flags));	/* Blocked here, indefinitely, in MSP-UDP service */
 	if(p->nonblocking) {
 		do_cryptAttribute(p->session, CRYPT_OPTION_NET_READTIMEOUT, 0);
 	}
