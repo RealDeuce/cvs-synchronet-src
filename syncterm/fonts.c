@@ -78,7 +78,6 @@ void save_font_files(struct font_files *fonts)
 	else {
 		uifc.helpbuf="There was an error writing the INI file.\nCheck permissions and try again.\n";
 		uifc.msg("Cannot write to the .ini file!");
-		check_exit(FALSE);
 	}
 
 	strListFree(&fontnames);
@@ -101,7 +100,7 @@ struct font_files *read_font_files(int *count)
 		return(ret);
 	}
 	fonts=iniReadSectionList(inifile, "Font:");
-	while((fontid=strListRemove(&fonts, 0))!=NULL) {
+	while((fontid=strListPop(&fonts))!=NULL) {
 		if(!fontid[5]) {
 			free(fontid);
 			continue;
@@ -153,7 +152,7 @@ void load_font_files(void)
 		else
 			continue;
 		if(ff[i].path8x8 && ff[i].path8x8[0]) {
-			if((fontfile=fopen(ff[i].path8x8,"rb"))!=NULL) {
+			if((fontfile=fopen(ff[i].path8x8,"r"))!=NULL) {
 				if((fontdata=(char *)malloc(2048))!=NULL) {
 					if(fread(fontdata, 1, 2048, fontfile)==2048) {
 						conio_fontdata[nextfont].eight_by_eight=fontdata;
@@ -166,7 +165,7 @@ void load_font_files(void)
 			}
 		}
 		if(ff[i].path8x14 && ff[i].path8x14[0]) {
-			if((fontfile=fopen(ff[i].path8x14,"rb"))!=NULL) {
+			if((fontfile=fopen(ff[i].path8x14,"r"))!=NULL) {
 				if((fontdata=(char *)malloc(3584))!=NULL) {
 					if(fread(fontdata, 1, 3584, fontfile)==3584) {
 						conio_fontdata[nextfont].eight_by_fourteen=fontdata;
@@ -179,7 +178,7 @@ void load_font_files(void)
 			}
 		}
 		if(ff[i].path8x16 && ff[i].path8x16[0]) {
-			if((fontfile=fopen(ff[i].path8x16,"rb"))!=NULL) {
+			if((fontfile=fopen(ff[i].path8x16,"r"))!=NULL) {
 				if((fontdata=(char *)malloc(4096))!=NULL) {
 					if(fread(fontdata, 1, 4096, fontfile)==4096) {
 						conio_fontdata[nextfont].eight_by_sixteen=fontdata;
@@ -239,15 +238,13 @@ void font_management(void)
 	fonts=read_font_files(&count);
 	opts[4][0]=0;
 
-	for(;!quitting;) {
+	for(;;) {
 		uifc.helpbuf=	"`Font Management`\n\n"
 						"Allows you to add and remove font files to/from the default font set.\n\n"
 						"`INS` Adds a new font.\n"
 						"`DEL` Removes an existing font.\n\n"
-						"Selecting a font allows you to set the files for all three font sizes:\n\n"
-						"`8x8`  Used for screen modes with 35 or more lines and all C64/C128 modes\n"
-						"`8x14` Used for screen modes with 28 and 34 lines\n"
-						"`8x16` Used for screen modes with 30 lines or fewer than 28 lines.";
+						"Selecting a font allows you to set the files for all three font sizes:\n"
+						"8x8, 8x14, and 8x16.";
 		if(fonts) {
 			for(j=0;fonts[j].name && fonts[j].name[0]; j++)
 				opt[j]=fonts[j].name;
@@ -259,12 +256,11 @@ void font_management(void)
 		}
 		i=uifc.list(WIN_SAV|WIN_INS|WIN_INSACT|WIN_DEL|WIN_XTR|WIN_ACT,0,0,0,&cur,&bar,"Font Management",opt);
 		if(i==-1) {
-			check_exit(FALSE);
 			save_font_files(fonts);
 			free_font_files(fonts);
 			return;
 		}
-		for(;!quitting;) {
+		for(;;) {
 			char 	*fontmask;
 			int		show_filepick=0;
 			char	**path;
@@ -280,16 +276,13 @@ void font_management(void)
 			}
 			if(i&MSK_INS) {
 				str[0]=0;
-				uifc.helpbuf="Enter the name of the font as you want it to appear in menus.";
-				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,0)==-1) {
-					check_exit(FALSE);
+				uifc.helpbuf="Enter the name of the font as you want it to appear\nin menus.";
+				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,0)==-1)
 					break;
-				}
 				count++;
 				tmp=(struct font_files *)realloc(fonts, sizeof(struct font_files)*(count+1));
 				if(tmp==NULL) {
 					uifc.msg("realloc() failure, cannot add font.");
-					check_exit(FALSE);
 					count--;
 					break;
 				}
@@ -303,31 +296,23 @@ void font_management(void)
 			}
 			for(i=0; i<5; i++)
 				opt[i]=opts[i];
-			uifc.helpbuf="`Font Details`\n\n"
-						"`8x8`  Used for screen modes with 35 or more lines and all C64/C128 modes\n"
-						"`8x14` Used for screen modes with 28 and 34 lines\n"
-						"`8x16` Used for screen modes with 30 lines or fewer than 28 lines.";
+			uifc.helpbuf="Font Details\n";
 			sprintf(opts[0],"Name: %.50s",fonts[cur].name?fonts[cur].name:"<undefined>");
 			sprintf(opts[1],"8x8   %.50s",fonts[cur].path8x8?fonts[cur].path8x8:"<undefined>");
 			sprintf(opts[2],"8x14  %.50s",fonts[cur].path8x14?fonts[cur].path8x14:"<undefined>");
 			sprintf(opts[3],"8x16  %.50s",fonts[cur].path8x16?fonts[cur].path8x16:"<undefined>");
 			opts[4][0]=0;
 			i=uifc.list(WIN_SAV|WIN_ACT|WIN_INS|WIN_INSACT|WIN_DEL|WIN_RHT|WIN_BOT,0,0,0,&fcur,&fbar,"Font Details",opt);
-			if(i==-1) {
-				check_exit(FALSE);
+			if(i==-1)
 				break;
-			}
 			switch(i) {
 				case 0:
 					SAFECOPY(str,fonts[cur].name);
+					FREE_AND_NULL(fonts[cur].name);
 					uifc.helpbuf="Enter the name of the font as you want it to appear\nin menus.";
-					if (uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,K_EDIT)==-1)
-						check_exit(FALSE);
-					else {
-						FREE_AND_NULL(fonts[cur].name);
-						fonts[cur].name=strdup(str);
-						show_filepick=0;
-					}
+					uifc.input(WIN_SAV|WIN_MID,0,0,"Font Name",str,50,K_EDIT);
+					fonts[cur].name=strdup(str);
+					show_filepick=0;
 					break;
 				case 1:
 					sprintf(str,"8x8 %.50s",fonts[cur].name);
@@ -359,7 +344,6 @@ void font_management(void)
 				if(savbuf==NULL) {
 					uifc.helpbuf="malloc() has failed.  Available Memory is dangerously low.";
 					uifc.msg("malloc() failure.");
-					check_exit(FALSE);
 					continue;
 				}
 				gettext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
@@ -368,8 +352,6 @@ void font_management(void)
 					FREE_AND_NULL(*path);
 					*(path)=strdup(fpick.selected[0]);
 				}
-				else
-					check_exit(FALSE);
 				filepick_free(&fpick);
 				puttext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
 			}
