@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.303 2015/02/09 07:34:23 deuce Exp $ */
+/* $Id: term.c,v 1.301 2014/10/06 21:47:46 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -172,7 +172,6 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	now=time(NULL);
 	if(now==lastupd && speed==oldspeed)
 		return;
-	ciolib_xlat = TRUE;
 	lastupd=now;
 	oldspeed=speed;
 	timeon=now - bbs->connected;
@@ -227,7 +226,6 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
-	ciolib_xlat = FALSE;
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -1906,12 +1904,16 @@ void font_control(struct bbslist *bbs)
 					struct file_pick fpick;
 					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-					if(j!=-1 && fpick.files>=1)
+					if(j!=-1 && fpick.files>=1) {
 						loadfont(fpick.selected[0]);
+						uifc_old_font=getfont();
+					}
 					filepick_free(&fpick);
 				}
-				else
+				else {
 					setfont(i,FALSE,1);
+					uifc_old_font=getfont();
+				}
 			}
 		break;
 	}
