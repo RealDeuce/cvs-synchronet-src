@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.142 2012/10/24 19:02:38 deuce Exp $ */
+/* $Id: cterm.c,v 1.151 2014/04/23 10:43:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,18 +46,9 @@
 #endif
 #include <threadwrap.h>
 
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
-#endif
-
 #include "ciolib.h"
-#include "keys.h"
 
 #include "cterm.h"
-#include "allfonts.h"
 
 #define	BUFSIZE	2048
 
@@ -875,18 +866,22 @@ static void play_music(struct cterminal *cterm)
 
 static void scrolldown(struct cterminal *cterm)
 {
+	int top = cterm->y+cterm->top_margin-1;
+	int height = cterm->bottom_margin;
 	int x,y;
 
-	MOVETEXT(cterm->x,cterm->y,cterm->x+cterm->width-1,cterm->y+cterm->height-2,cterm->x,cterm->y+1);
+	MOVETEXT(cterm->x,top,cterm->x+cterm->width-1,top+height-2,cterm->x,top+1);
 	x=WHEREX();
 	y=WHEREY();
-	GOTOXY(1,1);
+	GOTOXY(1,top);
 	CLREOL();
 	GOTOXY(x,y);
 }
 
 static void scrollup(struct cterminal *cterm)
 {
+	int top = cterm->y+cterm->top_margin-1;
+	int height = cterm->bottom_margin-cterm->top_margin+1;
 	int x,y;
 
 	cterm->backpos++;
@@ -895,18 +890,20 @@ static void scrollup(struct cterminal *cterm)
 			memmove(cterm->scrollback,cterm->scrollback+cterm->width*2,cterm->width*2*(cterm->backlines-1));
 			cterm->backpos--;
 		}
-		GETTEXT(cterm->x, cterm->y, cterm->x+cterm->width-1, cterm->y, cterm->scrollback+(cterm->backpos-1)*cterm->width*2);
+		GETTEXT(cterm->x, top, cterm->x+cterm->width-1, top, cterm->scrollback+(cterm->backpos-1)*cterm->width*2);
 	}
-	MOVETEXT(cterm->x,cterm->y+1,cterm->x+cterm->width-1,cterm->y+cterm->height-1,cterm->x,cterm->y);
+	MOVETEXT(cterm->x,top+1,cterm->x+cterm->width-1,top+height-1,cterm->x,top);
 	x=WHEREX();
 	y=WHEREY();
-	GOTOXY(1,cterm->height);
+	GOTOXY(1,top+height-1);
 	CLREOL();
 	GOTOXY(x,y);
 }
 
 static void dellines(struct cterminal * cterm, int lines)
 {
+	int top = cterm->y+cterm->top_margin-1;
+	int height = cterm->bottom_margin-cterm->top_margin+1;
 	int i;
 	int linestomove;
 	int x,y;
@@ -914,10 +911,10 @@ static void dellines(struct cterminal * cterm, int lines)
 	if(lines<1)
 		return;
 	linestomove=cterm->height-WHEREY();
-	MOVETEXT(cterm->x,cterm->y+WHEREY()-1+lines,cterm->x+cterm->width-1,cterm->y+cterm->height-1,cterm->x,cterm->y+WHEREY()-1);
+	MOVETEXT(cterm->x,top+WHEREY()-1+lines,cterm->x+cterm->width-1,top+height-1,cterm->x,top+WHEREY()-1);
 	x=WHEREX();
 	y=WHEREY();
-	for(i=cterm->height-lines+1; i<=cterm->height; i++) {
+	for(i=height-lines+1; i<=height; i++) {
 		GOTOXY(1,i);
 		CLREOL();
 	}
@@ -942,7 +939,7 @@ static void clear2bol(struct cterminal * cterm)
 	PUTTEXT(cterm->x,cterm->y+WHEREY()-1,cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,buf);
 }
 
-void cterm_clearscreen(struct cterminal *cterm, char attr)
+void CIOLIBCALL cterm_clearscreen(struct cterminal *cterm, char attr)
 {
 	if(!cterm->started)
 		cterm_start(cterm);
@@ -956,7 +953,10 @@ void cterm_clearscreen(struct cterminal *cterm, char attr)
 		GETTEXT(cterm->x,cterm->y,cterm->x+cterm->width-1,cterm->y+cterm->height-1,cterm->scrollback+(cterm->backpos-cterm->height)*cterm->width*2);
 	}
 	CLRSCR();
-	GOTOXY(1,1);
+	if(cterm->origin_mode)
+		GOTOXY(1,cterm->top_margin);
+	else
+		GOTOXY(1,1);
 }
 
 static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *speed)
@@ -966,6 +966,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 	char	tmp[1024];
 	int		i,j,k,l;
 	int		row,col;
+	int		max_row;
 	struct text_info ti;
 
 	switch(cterm->escbuf[0]) {
@@ -991,9 +992,12 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						}
 						break;
 					case 'h':
-						if(!strcmp(cterm->escbuf,"[?7l")) {
+						if(!strcmp(cterm->escbuf,"[?6h")) {
+							cterm->origin_mode=true;
+							GOTOXY(1,cterm->top_margin);
+						}
+						if(!strcmp(cterm->escbuf,"[?7h")) {
 							cterm->autowrap=true;
-							SETCURSORTYPE(cterm->cursor);
 						}
 						if(!strcmp(cterm->escbuf,"[?25h")) {
 							cterm->cursor=_NORMALCURSOR;
@@ -1018,9 +1022,12 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							cterm->doorway_mode=1;
 						break;
 					case 'l':
+						if(!strcmp(cterm->escbuf,"[?6l")) {
+							cterm->origin_mode=false;
+							GOTOXY(1,1);
+						}
 						if(!strcmp(cterm->escbuf,"[?7l")) {
 							cterm->autowrap=false;
-							SETCURSORTYPE(cterm->cursor);
 						}
 						if(!strcmp(cterm->escbuf,"[?25l")) {
 							cterm->cursor=_NOCURSOR;
@@ -1052,18 +1059,24 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							i=GETVIDEOFLAGS();
 							if(p2>p) {
 								/* All the save stuff... */
-								cterm->saved_mode_mask |= (CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_DOORWAY);
-								cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_DOORWAY);
+								cterm->saved_mode_mask |= (CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_DOORWAY|CTERM_SAVEMODE_ORIGIN);
+								cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_DOORWAY|CTERM_SAVEMODE_ORIGIN);
 								cterm->saved_mode |= (cterm->autowrap)?CTERM_SAVEMODE_AUTOWRAP:0;
 								cterm->saved_mode |= (cterm->cursor==_NORMALCURSOR)?CTERM_SAVEMODE_CURSOR:0;
 								cterm->saved_mode |= (i&CIOLIB_VIDEO_ALTCHARS)?CTERM_SAVEMODE_ALTCHARS:0;
 								cterm->saved_mode |= (i&CIOLIB_VIDEO_NOBRIGHT)?CTERM_SAVEMODE_NOBRIGHT:0;
 								cterm->saved_mode |= (i&CIOLIB_VIDEO_BGBRIGHT)?CTERM_SAVEMODE_BGBRIGHT:0;
 								cterm->saved_mode |= (cterm->doorway_mode)?CTERM_SAVEMODE_DOORWAY:0;
+								cterm->saved_mode |= (cterm->origin_mode)?CTERM_SAVEMODE_ORIGIN:0;
 								break;
 							}
 							while((p=strtok(p2,";"))!=NULL) {
 								p2=NULL;
+								if(!strcmp(cterm->escbuf,"?6")) {
+									cterm->saved_mode_mask |= CTERM_SAVEMODE_ORIGIN;
+									cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_ORIGIN);
+									cterm->saved_mode |= cterm->origin_mode?CTERM_SAVEMODE_ORIGIN:0;
+								}
 								if(!strcmp(cterm->escbuf,"?7")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_AUTOWRAP;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT);
@@ -1105,6 +1118,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							i=GETVIDEOFLAGS();
 							if(p2>p) {
 								/* All the save stuff... */
+								if(cterm->saved_mode_mask & CTERM_SAVEMODE_ORIGIN)
+									cterm->origin_mode=(cterm->saved_mode & CTERM_SAVEMODE_ORIGIN) ? true : false;
 								if(cterm->saved_mode_mask & CTERM_SAVEMODE_AUTOWRAP)
 									cterm->autowrap=(cterm->saved_mode & CTERM_SAVEMODE_AUTOWRAP) ? true : false;
 								if(cterm->saved_mode_mask & CTERM_SAVEMODE_CURSOR) {
@@ -1140,6 +1155,10 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							}
 							while((p=strtok(p2,";"))!=NULL) {
 								p2=NULL;
+								if(!strcmp(cterm->escbuf,"?6")) {
+									if(cterm->saved_mode_mask & CTERM_SAVEMODE_ORIGIN)
+										cterm->origin_mode=(cterm->saved_mode & CTERM_SAVEMODE_ORIGIN) ? true : false;
+								}
 								if(!strcmp(cterm->escbuf,"?7")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_AUTOWRAP)
 										cterm->autowrap=(cterm->saved_mode & CTERM_SAVEMODE_AUTOWRAP) ? true : false;
@@ -1240,8 +1259,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					if(i==0)
 						i=1;
 					i=WHEREY()-i;
-					if(i<1)
-						i=1;
+					if(i<cterm->top_margin)
+						i=cterm->top_margin;
 					GOTOXY(WHEREX(),i);
 					break;
 				case 'B':	/* Cursor Down */
@@ -1249,8 +1268,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					if(i==0)
 						i=1;
 					i=WHEREY()+i;
-					if(i>cterm->height)
-						i=cterm->height;
+					if(i>cterm->bottom_margin)
+						i=cterm->bottom_margin;
 					GOTOXY(WHEREX(),i);
 					break;
 				case 'C':	/* Cursor Right */
@@ -1295,8 +1314,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					if(i==0)
 						i=1;
 					i=WHEREY()+i;
-					if(i>cterm->height)
-						i=cterm->height;
+					if(i>cterm->bottom_margin)
+						i=cterm->bottom_margin;
 					GOTOXY(1,i);
 					break;
 				case 'F':	/* Cursor preceding line */
@@ -1304,8 +1323,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					if(i==0)
 						i=1;
 					i=WHEREY()-i;
-					if(i<1)
-						i=1;
+					if(i<cterm->top_margin)
+						i=cterm->top_margin;
 					GOTOXY(1,i);
 					break;
 				case 'G':
@@ -1319,9 +1338,12 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				case 'f':
 				case 'H':
 					row=1;
+					max_row = cterm->height;
+					if(cterm->origin_mode)
+						max_row = cterm->bottom_margin - cterm->top_margin + 1;
 					col=1;
 					*p=0;
-					if(strlen(cterm->escbuf)>1) {
+					if(strlen(cterm->escbuf)>2) {
 						if((p=strtok(cterm->escbuf+1,";"))!=NULL) {
 							row=strtoul(p,NULL,10);
 							if((p=strtok(NULL,";"))!=NULL) {
@@ -1333,8 +1355,10 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						row=1;
 					if(col<1)
 						col=1;
-					if(row>cterm->height)
-						row=cterm->height;
+					if(row>max_row)
+						row=max_row;
+					if(cterm->origin_mode)
+						row += cterm->top_margin - 1;
 					if(col>cterm->width)
 						col=cterm->width;
 					GOTOXY(col,row);
@@ -1389,13 +1413,15 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				case 'L':		/* Insert line */
 					row=WHEREY();
 					col=WHEREX();
+					if(row < cterm->top_margin || row > cterm->bottom_margin)
+						break;
 					i=strtoul(cterm->escbuf+1,NULL,10);
 					if(i==0)
 						i=1;
-					if(i>cterm->height-row)
-						i=cterm->height-row;
+					if(i>cterm->bottom_margin-row)
+						i=cterm->bottom_margin-row;
 					if(i)
-						MOVETEXT(cterm->x,cterm->y+row-1,cterm->x+cterm->width-1,cterm->y+cterm->height-1-i,cterm->x,cterm->y+row-1+i);
+						MOVETEXT(cterm->x,cterm->y+row-1,cterm->x+cterm->width-1,cterm->y+cterm->bottom_margin-1-i,cterm->x,cterm->y+row-1+i);
 					for(j=0;j<i;j++) {
 						GOTOXY(1,row+j);
 						CLREOL();
@@ -1407,10 +1433,13 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						cterm->music=1;
 					}
 					else {
-						i=strtoul(cterm->escbuf+1,NULL,10);
-						if(i<1)
-							i=1;
-						dellines(cterm, i);
+						row=WHEREY();
+						if(row >= cterm->top_margin && row <= cterm->bottom_margin) {
+							i=strtoul(cterm->escbuf+1,NULL,10);
+							if(i<1)
+								i=1;
+							dellines(cterm, i);
+						}
 					}
 					break;
 				case 'N':
@@ -1429,7 +1458,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					if(i>cterm->width-col+1)
 						i=cterm->width-col+1;
 					MOVETEXT(cterm->x+col-1+i,cterm->y+row-1,cterm->x+cterm->width-1,cterm->y+row-1,cterm->x+col-1,cterm->y+row-1);
-					GOTOXY(cterm->width-i,col);
+					GOTOXY(cterm->width-i,row);
 					CLREOL();
 					GOTOXY(col,row);
 					break;
@@ -1451,7 +1480,10 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				case 'U':
 					GETTEXTINFO(&ti);
 					cterm_clearscreen(cterm, ti.normattr);
-					GOTOXY(1,1);
+					if(cterm->origin_mode)
+						GOTOXY(1,cterm->top_margin);
+					else
+						GOTOXY(1,1);
 					break;
 #endif
 				case 'X':
@@ -1495,12 +1527,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					break;
 				case 'g':	/* ToDo?  VT100 Tabs */
 					break;
-				case 'h':	/* ToDo?  Scrolling region, word-wrap */
-					
-					break;
 				case 'i':	/* ToDo?  Printing */
-					break;
-				case 'l':	/* ToDo?  Scrolling region, word-wrap */
 					break;
 				case 'm':
 					*(p--)=0;
@@ -1628,14 +1655,20 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							break;
 						case 6:
 							if(retbuf!=NULL) {
-								sprintf(tmp,"%c[%d;%dR",27,WHEREY(),WHEREX());
+								row = WHEREY();
+								if(cterm->origin_mode)
+									row = row - cterm->top_margin + 1;
+								sprintf(tmp,"%c[%d;%dR",27,row,WHEREX());
 								if(strlen(retbuf)+strlen(tmp) < retsize)
 									strcat(retbuf,tmp);
 							}
 							break;
 						case 255:
 							if(retbuf!=NULL) {
-								sprintf(tmp,"%c[%d;%dR",27,cterm->height,cterm->width);
+								row = cterm->height;
+								if(cterm->origin_mode)
+									row = (cterm->bottom_margin - cterm->top_margin) + 1;
+								sprintf(tmp,"%c[%d;%dR",27,row,cterm->width);
 								if(strlen(retbuf)+strlen(tmp) < retsize)
 									strcat(retbuf,tmp);
 							}
@@ -1724,6 +1757,22 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						if(newspeed >= 0)
 							*speed = newspeed;
 					}
+					else {
+						row = 1;
+						max_row = cterm->height;
+						if(strlen(cterm->escbuf)>2) {
+							if((p=strtok(cterm->escbuf+1,";"))!=NULL) {
+								row=strtoul(p,NULL,10);
+								if((p=strtok(NULL,";"))!=NULL) {
+									max_row=strtoul(p,NULL,10);
+								}
+							}
+						}
+						if(row >= 1 && max_row > row && max_row <= cterm->height) {
+							cterm->top_margin = row;
+							cterm->bottom_margin = max_row;
+						}
+					}
 					break;
 				case 's':
 					cterm->save_xpos=WHEREX();
@@ -1732,6 +1781,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				case 'u':
 					if(cterm->save_ypos>0 && cterm->save_ypos<=cterm->height
 							&& cterm->save_xpos>0 && cterm->save_xpos<=cterm->width) {
+						if(cterm->origin_mode && (cterm->save_ypos < cterm->top_margin || cterm->save_ypos > cterm->bottom_margin))
+							break;
 						GOTOXY(cterm->save_xpos,cterm->save_ypos);
 					}
 					break;
@@ -1760,9 +1811,9 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 	cterm->sequence=0;
 }
 
-struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
+struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.142 $";
+	char	*revision="$Revision: 1.151 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1775,6 +1826,8 @@ struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int back
 	cterm->y=ypos;
 	cterm->height=height;
 	cterm->width=width;
+	cterm->top_margin=1;
+	cterm->bottom_margin=height;
 	cterm->save_xpos=0;
 	cterm->save_ypos=0;
 	cterm->escbuf[0]=0;
@@ -1794,6 +1847,7 @@ struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int back
 	cterm->emulation=emulation;
 	cterm->cursor=_NORMALCURSOR;
 	cterm->autowrap=true;
+	cterm->origin_mode=false;
 	if(cterm->scrollback!=NULL)
 		memset(cterm->scrollback,0,cterm->width*2*cterm->backlines);
 	strcpy(cterm->DA,"\x1b[=67;84;101;114;109;");
@@ -1835,6 +1889,8 @@ struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int back
 	cterm->ciolib_clrscr=ciolib_clrscr;
 	cterm->ciolib_setvideoflags=ciolib_setvideoflags;
 	cterm->ciolib_getvideoflags=ciolib_getvideoflags;
+	cterm->ciolib_setscaling=ciolib_setscaling;
+	cterm->ciolib_getscaling=ciolib_getscaling;
 	cterm->ciolib_putch=ciolib_putch;
 	cterm->ciolib_puttext=ciolib_puttext;
 	cterm->ciolib_window=ciolib_window;
@@ -1848,7 +1904,7 @@ struct cterminal *cterm_init(int height, int width, int xpos, int ypos, int back
 	return cterm;
 }
 
-void cterm_start(struct cterminal *cterm)
+void CIOLIBCALL cterm_start(struct cterminal *cterm)
 {
 	struct text_info ti;
 
@@ -1890,9 +1946,9 @@ static void ctputs(struct cterminal *cterm, char *buf)
 				*p=0;
 				CPUTS(outp);
 				outp=p+1;
-				if(cy==cterm->height)
+				if(cy==cterm->bottom_margin)
 					scrollup(cterm);
-				else
+				else if(cy < cterm->height)
 					cy++;
 				GOTOXY(cx,cy);
 				break;
@@ -1918,9 +1974,9 @@ static void ctputs(struct cterminal *cterm, char *buf)
 				}
 				if(cx>cterm->width) {
 					cx=1;
-					if(cy==cterm->height)
+					if(cy==cterm->bottom_margin)
 						scrollup(cterm);
-					else
+					else if(cy < cterm->height)
 						cy++;
 				}
 				GOTOXY(cx,cy);
@@ -1936,7 +1992,7 @@ static void ctputs(struct cterminal *cterm, char *buf)
 					GOTOXY(cx,cy);
 				}
 				else {
-					if(cy==cterm->height
+					if(cy==cterm->bottom_margin
 							&& cx==cterm->width) {
 						char ch;
 						ch=*(p+1);
@@ -1949,7 +2005,7 @@ static void ctputs(struct cterminal *cterm, char *buf)
 						GOTOXY(cx,cy);
 					}
 					else {
-						if(cx==cterm->width) {
+						if(cx==cterm->width && cy < cterm->height) {
 							cx=1;
 							cy++;
 						}
@@ -1965,7 +2021,7 @@ static void ctputs(struct cterminal *cterm, char *buf)
 	*cterm->_wscroll=oldscroll;
 }
 
-char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed)
+char* CIOLIBCALL cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen, char *retbuf, size_t retsize, int *speed)
 {
 	unsigned char ch[2];
 	unsigned char prn[BUFSIZE];
@@ -2032,6 +2088,9 @@ char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen
 										conio_fontdata[cterm->font_slot].eight_by_eight=buf2;
 										FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
 										conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
+										break;
+									default:
+										FREE_AND_NULL(buf2);
 										break;
 								}
 							}
@@ -2609,10 +2668,12 @@ char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen
 							PUTTEXT(cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,ch);
 							ch[1]=0;
 							if(WHEREX()==cterm->width) {
-								if(WHEREY()==cterm->height) {
+								if(WHEREY()==cterm->bottom_margin) {
 									scrollup(cterm);
 									GOTOXY(1,WHEREY());
 								}
+								else if(WHEREY()==cterm->height)
+									GOTOXY(1,WHEREY());
 								else
 									GOTOXY(1,WHEREY()+1);
 							}
@@ -2645,7 +2706,10 @@ char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen
 									if(cterm->log==CTERM_LOG_ASCII && cterm->logfile != NULL)
 										fputs("\x0c", cterm->logfile);
 									cterm_clearscreen(cterm, (char)cterm->attr);
-									GOTOXY(1,1);
+									if(cterm->origin_mode)
+										GOTOXY(1,cterm->top_margin);
+									else
+										GOTOXY(1,1);
 									break;
 								case 27:		/* ESC */
 									ctputs(cterm, prn);
@@ -2679,7 +2743,7 @@ char *cterm_write(struct cterminal * cterm, const unsigned char *buf, int buflen
 	return(retbuf);
 }
 
-int cterm_openlog(struct cterminal *cterm, char *logfile, int logtype)
+int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype)
 {
 	if(!cterm->started)
 		cterm_start(cterm);
@@ -2691,7 +2755,7 @@ int cterm_openlog(struct cterminal *cterm, char *logfile, int logtype)
 	return(1);
 }
 
-void cterm_closelog(struct cterminal *cterm)
+void CIOLIBCALL cterm_closelog(struct cterminal *cterm)
 {
 	if(!cterm->started)
 		cterm_start(cterm);
@@ -2702,7 +2766,7 @@ void cterm_closelog(struct cterminal *cterm)
 	cterm->log=CTERM_LOG_NONE;
 }
 
-void cterm_end(struct cterminal *cterm)
+void CIOLIBCALL cterm_end(struct cterminal *cterm)
 {
 	int i;
 
