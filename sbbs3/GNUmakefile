@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.228 2015/11/26 13:24:25 sbbs Exp $
+# $Id: GNUmakefile,v 1.224 2014/06/23 11:51:42 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -53,8 +53,7 @@ endif
 ifdef BUILD_JSDOCS
  CFLAGS += -DBUILD_JSDOCS
  SBBS_LIBS += ${UIFC-MT_LDFLAGS} ${UIFC-MT_LIBS} $(CIOLIB-MT_LDFLAGS) ${CIOLIB-MT_LIBS}
- OBJS += $(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_conio$(OFILE)
+ OBJS += $(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE)
  EXTRA_SBBS_DEPENDS += $(CIOLIB-MT) $(UIFCLIB-MT)
 endif
 
@@ -102,11 +101,10 @@ else
  endif
 endif
 
-CFLAGS	+=	$(JS_CFLAGS) $(CRYPT_CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS)
+CFLAGS	+=	$(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) $(JS_CFLAGS) $(CRYPT_CFLAGS)
 CFLAGS	+=	-I../comio
 vpath %.c ../comio
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-JSDOOR_OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS) $(CRYPT_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
@@ -187,7 +185,7 @@ $(ECHOCFG): $(ECHOCFG_OBJS)
 # ADDFILES
 $(ADDFILES): $(ADDFILES_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(ADDFILES_OBJS) $(XPDEV_LIBS) $(SMBLIB_LIBS)
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(ADDFILES_OBJS) $(XPDEV_LIBS)
 
 # FILELIST
 $(FILELIST): $(FILELIST_OBJS)
@@ -197,12 +195,7 @@ $(FILELIST): $(FILELIST_OBJS)
 # MAKEUSER
 $(MAKEUSER): $(MAKEUSER_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(MAKEUSER_OBJS) $(XPDEV_LIBS) $(SMBLIB_LIBS)
-
-# JSDOOR
-$(JSDOOR): $(JSDOOR_OBJS) $(SBBS)
-	@echo Linking $@
-	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSDOOR_OBJS) $(JS_LIBS) $(CRYPT_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(MAKEUSER_OBJS) $(XPDEV_LIBS)
 
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
