@@ -2,13 +2,13 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.250 2012/03/01 08:18:54 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.252 2014/11/12 10:50:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -183,7 +183,6 @@ static const char* telnet_usage  = "Terminal server settings:\n\n"
 							"\ttl<node>   set last node number\n"
 							"\ttp<port>   set Telnet server port\n"
 							"\trp<port>   set RLogin server port (and enable RLogin server)\n"
-							"\tr2         use second RLogin name in BSD RLogin\n"
 							"\tto<value>  set Terminal server options value (advanced)\n"
 							"\tta         enable auto-logon via IP address\n"
 							"\ttd         enable Telnet command debug output\n"
@@ -1202,6 +1201,8 @@ int main(int argc, char** argv)
 #ifdef __unix__
 	setsid();	/* Disassociate from controlling terminal */
 	umask(077);
+#elif defined(_WIN32)
+	CreateMutex(NULL, FALSE, "sbbs_running");	/* For use by Inno Setup */
 #endif
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
@@ -1462,9 +1463,6 @@ int main(int argc, char** argv)
 				switch(toupper(*(arg++))) {
 					case 'P':
 						bbs_startup.rlogin_port=atoi(arg);
-						break;
-					case '2':
-						bbs_startup.options|=BBS_OPT_USE_2ND_RLOGIN;
 						break;
 					default:
 						show_usage(argv[0]);
