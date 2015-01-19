@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.574 2014/10/30 08:46:41 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.579 2014/12/11 11:11:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1360,8 +1360,6 @@ static void send_error(http_session_t * session, const char* message)
 
 void http_logon(http_session_t * session, user_t *usr)
 {
-	char	str[128];
-
 	if(usr==NULL)
 		getuserdat(&scfg, &session->user);
 	else
@@ -1381,10 +1379,11 @@ void http_logon(http_session_t * session, user_t *usr)
 	else {
 		SAFECOPY(session->username,session->user.alias);
 		/* Adjust Connect and host */
-		putuserrec(&scfg,session->user.number,U_MODEM,LEN_MODEM,"HTTP");
-		putuserrec(&scfg,session->user.number,U_COMP,LEN_COMP,session->host_name);
-		putuserrec(&scfg,session->user.number,U_NOTE,LEN_NOTE,session->host_ip);
-		putuserrec(&scfg,session->user.number,U_LOGONTIME,0,ultoa((ulong)session->logon_time,str,16));
+		SAFECOPY(session->user.modem, session->client.protocol);
+		SAFECOPY(session->user.comp, session->host_name);
+		SAFECOPY(session->user.note, session->host_ip);
+		session->user.logontime = (time32_t)session->logon_time;
+		putuserdat(&scfg, &session->user);
 	}
 	session->client.user=session->username;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
@@ -1634,8 +1633,8 @@ static void badlogin(SOCKET sock, const char* prot, const char* user, const char
 	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
 		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
 			,host, inet_ntoa(addr->sin_addr), user, /* fname: */NULL);
-
-	mswait(startup->login_attempt_delay);
+	if(count>1)
+		mswait(startup->login_attempt_delay);
 }
 
 static BOOL check_ars(http_session_t * session)
@@ -1725,7 +1724,7 @@ static BOOL check_ars(http_session_t * session)
 			if(!digest_authentication(session, auth_allowed, thisuser, &reason)) {
 				lprintf(LOG_NOTICE,"%04d !DIGEST AUTHENTICATION FAILURE (reason: %s) for user '%s'"
 						,session->socket,reason,session->req.auth.username);
-				badlogin(session->socket,session->client.protocol, session->req.auth.username, session->req.auth.password, session->host_name, &session->addr);
+				badlogin(session->socket,session->client.protocol, session->req.auth.username, "<digest>", session->host_name, &session->addr);
 				return(FALSE);
 			}
 			break;
@@ -1762,6 +1761,9 @@ static BOOL check_ars(http_session_t * session)
 		}
 		/* Should use real name if set to do so somewhere ToDo */
 		add_env(session,"REMOTE_USER",session->user.alias);
+
+		if(thisuser.pass[0])
+			loginSuccess(startup->login_attempt_list, &session->addr);
 
 		return(TRUE);
 	}
@@ -3150,7 +3152,7 @@ static BOOL check_request(http_session_t * session)
 					break;
 				case AUTHENTICATION_DIGEST:
 					snprintf(p,sizeof(str)-(p-str),"%s%s: Digest realm=\"%s\", nonce=\"%s@%u\", qop=\"auth\"%s"
-							,newline,get_header(HEAD_WWWAUTH),session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name),session->client.addr,time(NULL),session->req.auth.stale?", stale=true":"");
+							,newline,get_header(HEAD_WWWAUTH),session->req.digest_realm?session->req.digest_realm:(session->req.realm?session->req.realm:scfg.sys_name),session->client.addr,(unsigned)time(NULL),session->req.auth.stale?", stale=true":"");
 					str[sizeof(str)-1]=0;
 					break;
 			}
@@ -5108,6 +5110,7 @@ void http_session_thread(void* arg)
 	char			*redirp;
 	http_session_t	session;
 	int				loop_count;
+	ulong			login_attempts=0;
 	BOOL			init_error;
 	int32_t			clients_remain;
 
@@ -5209,6 +5212,13 @@ void http_session_thread(void* arg)
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
+
+	if(startup->login_attempt_throttle
+		&& (login_attempts=loginAttempts(startup->login_attempt_list, &session.addr)) > 1) {
+		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
+			,socket, session.client.protocol, session.host_ip, login_attempts);
+		mswait(login_attempts*startup->login_attempt_throttle);
+	}
 
 	session.last_user_num=-1;
 	session.last_js_user_num=-1;
@@ -5389,7 +5399,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.574 $", "%*s %s", revision);
+	sscanf("$Revision: 1.579 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5572,8 +5582,8 @@ void DLLCALL web_server(void* arg)
 	if(startup->default_auth_list[0]==0)	SAFECOPY(startup->default_auth_list,WEB_DEFAULT_AUTH_LIST);
 	if(startup->cgi_dir[0]==0)				SAFECOPY(startup->cgi_dir,WEB_DEFAULT_CGI_DIR);
 	if(startup->default_cgi_content[0]==0)	SAFECOPY(startup->default_cgi_content,WEB_DEFAULT_CGI_CONTENT);
-	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
-	if(startup->max_cgi_inactivity==0) 		startup->max_cgi_inactivity=120; /* seconds */
+	if(startup->max_inactivity==0) 			startup->max_inactivity=WEB_DEFAULT_MAX_INACTIVITY; /* seconds */
+	if(startup->max_cgi_inactivity==0) 		startup->max_cgi_inactivity=WEB_DEFAULT_MAX_CGI_INACTIVITY; /* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2; /* seconds */
 	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
