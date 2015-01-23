@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.150 2015/11/26 10:30:28 rswindell Exp $ */
+/* $Id: smblib.c,v 1.148 2012/03/07 03:10:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -368,7 +368,6 @@ int SMBCALL smb_getstatus(smb_t* smb)
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
 		return(SMB_ERR_NOT_OPEN);
 	}
-	fflush(smb->shd_fp);
 	clearerr(smb->shd_fp);
 	if(fseek(smb->shd_fp,sizeof(smbhdr_t),SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
@@ -1780,7 +1779,7 @@ ulong SMBCALL smb_hdrblocks(ulong length)
 }
 
 /****************************************************************************/
-/* Returns difference from specified timezone and UTC/GMT (in minutes)		*/
+/* Returns difference from specified timezone and UTC/GMT					*/
 /****************************************************************************/
 int SMBCALL smb_tzutc(short zone)
 {
