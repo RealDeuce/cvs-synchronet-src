@@ -39,7 +39,6 @@
     <Import Project="..\build\undeprecate.props" />
     <Import Project="..\build\target_ia32.props" />
     <Import Project="..\xpdev\xpdev_mt.props" />
-    <Import Project="..\..\3rdp\win32.release\cryptlib\cryptlib.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -51,7 +50,6 @@
     <Import Project="..\build\undeprecate.props" />
     <Import Project="..\build\target_ia32.props" />
     <Import Project="..\xpdev\xpdev_mt.props" />
-    <Import Project="..\..\3rdp\win32.release\cryptlib\cryptlib.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -86,7 +84,7 @@
       <ProgramDataBaseFileName>.\msvc.win32.debug\mailsrvr/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -106,7 +104,6 @@
       </DataExecutionPrevention>
       <ImportLibrary>.\msvc.win32.dll.debug/mailsrvr.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
-      <SubSystem>Windows</SubSystem>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -154,7 +151,6 @@
       </DataExecutionPrevention>
       <ImportLibrary>.\msvc.win32.dll.release/mailsrvr.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
-      <SubSystem>Windows</SubSystem>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -192,7 +188,6 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <ClCompile Include="nopen.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\xpdev\xpdev_mt.vcxproj">

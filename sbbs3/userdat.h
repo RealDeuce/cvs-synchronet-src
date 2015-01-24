@@ -2,13 +2,13 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.54 2015/11/24 16:28:01 rswindell Exp $ */
+/* $Id: userdat.h,v 1.49 2014/10/30 08:39:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -115,7 +115,7 @@ DLLEXPORT int	DLLCALL user_rec_len(int offset);
 DLLEXPORT BOOL	DLLCALL can_user_access_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL can_user_read_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason);
-DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t* cfg, enum smb_net_type, uint usernumber, user_t* user, uint* reason);
+DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint* reason);
 DLLEXPORT BOOL	DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const char* host
@@ -135,7 +135,7 @@ DLLEXPORT BOOL	DLLCALL check_name(scfg_t* cfg, const char* name);
 
 /* Login attempt/hack tracking */
 typedef struct {
-	union xp_sockaddr addr;	/* host with consecutive failed login attmepts */
+	IN_ADDR		addr;	/* host with consecutive failed login attmepts */
 	ulong		count;	/* number of consecutive failed login attempts */
 	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
 	time32_t	time;	/* time of last attempt */
@@ -147,9 +147,9 @@ typedef struct {
 DLLEXPORT link_list_t*		DLLCALL	loginAttemptListInit(link_list_t*);
 DLLEXPORT BOOL				DLLCALL	loginAttemptListFree(link_list_t*);
 DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
-DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const union xp_sockaddr*);
-DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const union xp_sockaddr*);
-DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, const union xp_sockaddr*, const char* prot, const char* user, const char* pass);
+DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const SOCKADDR_IN*);
+DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const SOCKADDR_IN*);
+DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, const SOCKADDR_IN*, const char* prot, const char* user, const char* pass);
 
 #ifdef __cplusplus
 }

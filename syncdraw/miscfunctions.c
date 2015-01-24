@@ -5,6 +5,7 @@
 
 #include <ciolib.h>
 #include <gen_defs.h>
+#include <genwrap.h>	// For alloca()
 
 #include "crt.h"
 #include "syncdraw.h"
@@ -101,9 +102,7 @@ CoolWrite(int x, int y, char *a)
 	int             b = 0, i = 0, j = 0;
 	char			*buf;
 
-	buf=(char *)malloc(strlen(a)*2);
-	if (!buf)
-		exit(1);
+	buf=(char *)alloca(strlen(a)*2);
 	while (a[b] != 0) {
 		i++;
 		if (a[b] == 32)
@@ -123,7 +122,6 @@ CoolWrite(int x, int y, char *a)
 		}
 	}
 	puttext(x, y, x+strlen(a)-1,y,buf);
-	free(buf);
 }
 void 
 CodeWrite(int x, int y, char *a)
@@ -131,9 +129,7 @@ CodeWrite(int x, int y, char *a)
 	int             b = 0, i = 0, attr=15;
 	char			*buf;
 
-	buf=(char *)malloc(strlen(a)*2);
-	if (!buf)
-		exit(1);
+	buf=(char *)alloca(strlen(a)*2);
 	while (a[b] != 0) {
 		if (a[b] == ']')
 			attr=15;
@@ -144,7 +140,6 @@ CodeWrite(int x, int y, char *a)
 		b++;
 	}
 	puttext(x,y,x+strlen(a)-1,y,buf);
-	free(buf);
 }
 
 unsigned char
@@ -456,9 +451,7 @@ inputfield(char *Str, int length, int x1, int y)
 	char		*buf;
 	int			oldx,oldy;
 
-	buf=(char *)malloc(length*2);
-	if (!buf)
-		exit(1);
+	buf=(char *)alloca(length*2);
 	strcpy(nul,Str);
 	oldx=wherex();
 	oldy=wherey();
@@ -512,7 +505,6 @@ inputfield(char *Str, int length, int x1, int y)
 		}
 	} while ((ch != 13) & (ch != 27));
 
-	free(buf);
 	gotoxy(oldx,oldy);
 	if (ch == 27)
 		return Str;
@@ -554,7 +546,7 @@ int bufprintf(char *buf, int attr, char *fmat, ...)
 	ret=_vsnprintf(str,sizeof(str)-1,fmat,argptr);
 #else
     ret=vsnprintf(NULL,0,fmat,argptr);
-	str=(char *)malloc(ret+1);
+	str=(char *)alloca(ret+1);
 	if(str==NULL)
 		return(EOF);
 	ret=vsprintf(str,fmat,argptr);
@@ -568,8 +560,5 @@ int bufprintf(char *buf, int attr, char *fmat, ...)
 	}
 	else
 		i=EOF;
-#ifndef _WIN32
-	free(str);
-#endif
     return(i);
 }
