@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.33 2012/10/18 17:48:16 deuce Exp $ */
+/* $Id: x_cio.c,v 1.35 2014/04/24 07:44:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,6 @@
 #endif
 
 #include "ciolib.h"
-#include "keys.h"
 #include "x_cio.h"
 #include "x_events.h"
 
@@ -350,18 +349,23 @@ int x_init(void)
 		return(-1);
 	}
 
-	if(sem_init(&pastebuf_set, 0, 0))
+	if(sem_init(&pastebuf_set, 0, 0)) {
+		xp_dlclose(dl);
 		return(-1);
+	}
 	if(sem_init(&pastebuf_used, 0, 0)) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		return(-1);
 	}
 	if(sem_init(&init_complete, 0, 0)) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		return(-1);
 	}
 	if(sem_init(&mode_set, 0, 0)) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		sem_destroy(&init_complete);
@@ -369,6 +373,7 @@ int x_init(void)
 	}
 
 	if(pthread_mutex_init(&copybuf_mutex, 0)) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		sem_destroy(&init_complete);
@@ -380,6 +385,7 @@ int x_init(void)
 	_beginthread(x11_mouse_thread,1<<16,NULL);
 	sem_wait(&init_complete);
 	if(!x11_initialized) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		sem_destroy(&init_complete);

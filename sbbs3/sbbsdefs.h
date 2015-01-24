@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.182 2012/12/19 07:02:19 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.190 2014/03/13 07:17:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2012 Rob Swindell"
-#define COPYRIGHT_CRC		0x413D3832
+#define COPYRIGHT_NOTICE	"Copyright 2014 Rob Swindell"
+#define COPYRIGHT_CRC		0xB9FF7384
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -79,12 +79,12 @@
 #define JAVASCRIPT_LOAD_PATH_LIST	"load_path_list"
 
 typedef struct {
-	ulong	counter;
-	ulong	limit;
-	ulong	yield_interval;
-	ulong	gc_interval;
-	ulong	gc_attempts;
-	BOOL	auto_terminate;
+	uint32_t		counter;
+	uint32_t		limit;
+	uint32_t		yield_interval;
+	uint32_t		gc_interval;
+	uint32_t		gc_attempts;
+	BOOL			auto_terminate;
 	volatile BOOL*	terminated;
 } js_callback_t;
 
@@ -118,7 +118,7 @@ typedef struct {
 #define LEN_SSNAME	25		/* Sub/Dir short name						*/
 #define LEN_SLNAME	40		/* Sub/Dir long name						*/
 						
-									/* User Questions						*/
+									/* User Questions (e.g. for new users)	*/
 #define UQ_ALIASES		(1L<<0) 	/* Ask for alias						*/
 #define UQ_LOCATION		(1L<<1) 	/* Ask for location 					*/
 #define UQ_ADDRESS		(1L<<2) 	/* Ask for address						*/
@@ -139,6 +139,7 @@ typedef struct {
 #define UQ_NOCOMMAS		(1L<<17)	/* Do not require commas in location	*/
 #define UQ_NONETMAIL	(1L<<18)	/* Don't ask for e-mail/netmail address	*/
 #define UQ_NOUPRLWR		(1L<<19)	/* Don't force upper/lower case strings */
+#define UQ_COLORTERM	(1L<<20)	/* Ask if new user has color terminal	*/
 						
 						
 									/* Different bits in sys_misc				*/
@@ -356,6 +357,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 	,EVENT_POST						/* Execute after posting a message		*/
 	,EVENT_UPLOAD					/* Execute after uploading a file		*/
 	,EVENT_DOWNLOAD					/* Execute after downloading a file		*/
+	,EVENT_LOCAL_CHAT				/* Execute upon local/sysop chat		*/
 } user_event_t;																
 																			
 									/* Misc bits for event_t.misc			*/
@@ -777,7 +779,8 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_RLOGIN		(1<<6)	/* Use BSD RLogin protocol					*/
 #define TG_NOCHKTIME	(1<<7)	/* Don't check time left while gated		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
-#define TG_SENDPASS	(1<<9)	/* Send password instead of real name (RLogin)	*/
+#define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin) - DEPRECATED	(it sent the password as the server user name) */
+#define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
