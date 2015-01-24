@@ -5,7 +5,7 @@
 
 #include <ciolib.h>
 #include <gen_defs.h>
-#include <keys.h>
+#include <genwrap.h>	// For alloca()
 
 #include "crt.h"
 #include "syncdraw.h"
