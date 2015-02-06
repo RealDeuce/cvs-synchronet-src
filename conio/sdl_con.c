@@ -553,12 +553,16 @@ void sdl_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 
 	if(sdl_init_good) {
 		rect=(struct update_rect *)malloc(sizeof(struct update_rect));
-		rect->x=xoffset;
-		rect->y=yoffset;
-		rect->width=width;
-		rect->height=height;
-		rect->data=data;
-		sdl_user_func(SDL_USEREVENT_UPDATERECT, rect);
+		if(rect) {
+			rect->x=xoffset;
+			rect->y=yoffset;
+			rect->width=width;
+			rect->height=height;
+			rect->data=data;
+			sdl_user_func(SDL_USEREVENT_UPDATERECT, rect);
+		}
+		else
+			free(data);
 	}
 	else
 		free(data);
@@ -1243,7 +1247,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 						expect=sdl_keyval[i].shift;
 				}
 				else {
-					if(mod & KMOD_CAPS)
+					if(mod & KMOD_CAPS && (toupper(sdl_keyval[i].key) == expect=sdl_keyval[i].shift))
 						expect=sdl_keyval[i].shift;
 					else
 						expect=sdl_keyval[i].key;
