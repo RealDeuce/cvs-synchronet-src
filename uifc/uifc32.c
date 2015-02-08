@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.203 2014/04/23 10:02:07 deuce Exp $ */
+/* $Id: uifc32.c,v 1.205 2014/04/29 09:23:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,9 +45,9 @@
 #elif defined(_WIN32)
 	#include <share.h>
 	#include <windows.h>
-	#include <malloc.h>
 	#define mswait(x) Sleep(x)
 #endif
+#include <genwrap.h>	// for alloca()
 
 #include "ciolib.h"
 #include "uifc.h"
@@ -476,7 +476,7 @@ static void timedisplay(BOOL force)
 /****************************************************************************/
 /* Truncates white-space chars off end of 'str'								*/
 /****************************************************************************/
-static void truncsp(char *str)
+static void truncspctrl(char *str)
 {
 	uint c;
 
@@ -579,7 +579,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		width=title_len+hbrdrsize+2;
 		for(i=0;i<opts;i++) {
 			if(option[i]!=NULL) {
-				truncsp(option[i]);
+				truncspctrl(option[i]);
 				if((j=strlen(option[i])+hbrdrsize+2+1)>width)
 					width=j;
 			}
@@ -1893,7 +1893,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	str[0]=0;
 	if(mode&K_EDIT && outstr[0]) {
 	/***
-		truncsp(outstr);
+		truncspctrl(outstr);
 	***/
 		outstr[max]=0;
 		i=j=strlen(outstr);
@@ -2174,7 +2174,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	str[j]=0;
 	if(mode&K_EDIT)
 	{
-		truncsp(str);
+		truncspctrl(str);
 		if(strcmp(outstr,str))
 			api->changes=1;
 	}
@@ -2719,7 +2719,8 @@ static void help(void)
                 if(fread(str,12,1,fp)!=1)
                     break;
                 str[12]=0;
-                if(fread(&line,2,1,fp)!=1);
+                if(fread(&line,2,1,fp)!=1)
+					break;
                 if(stricmp(str,p) || line!=helpline) {
                     if(fseek(fp,4,SEEK_CUR)==0)
 						break;

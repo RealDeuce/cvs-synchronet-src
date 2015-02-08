@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.93 2014/04/23 10:59:03 deuce Exp $ */
+/* $Id: genwrap.c,v 1.96 2014/04/28 05:19:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +49,8 @@
 	#include <sys/utsname.h>	/* uname() */
 	#include <signal.h>
 #elif defined(_WIN32)
-	#include <Windows.h>
-	#include <LM.h>		/* NetWkstaGetInfo() */
+	#include <windows.h>
+	#include <lm.h>		/* NetWkstaGetInfo() */
 #endif
 
 #include "genwrap.h"	/* Verify prototypes */
@@ -281,15 +281,17 @@ char* DLLCALL strtok_r(char *str, const char *delim, char **last)
 /****************************************************************************/
 void DLLCALL xp_randomize(void)
 {
+#if !(defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC))
 	unsigned seed=~0;
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	int		rf;
+#endif
 #endif
 
 #if defined(HAS_SRANDOMDEV_FUNC) && defined(HAS_RANDOM_FUNC)
 	srandomdev();
 	return;
-#endif
+#else
 
 #if defined(HAS_DEV_URANDOM) && defined(URANDOM_DEV)
 	if((rf=open(URANDOM_DEV, O_RDONLY))!=-1) {
@@ -315,6 +317,7 @@ void DLLCALL xp_randomize(void)
  	srandom(seed);
 #else
  	srand(seed);
+#endif
 #endif
 }
 
