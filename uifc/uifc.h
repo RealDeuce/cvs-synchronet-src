@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.80 2011/04/23 17:42:19 deuce Exp $ */
+/* $Id: uifc.h,v 1.82 2014/02/10 04:52:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,30 @@
 #endif
 #if defined(__unix__)
 	#include <sys/param.h>	/* PATH_MAX */
+#endif
+
+#ifdef _WIN32
+        #ifdef __BORLANDC__
+                #define UIFCCALL __stdcall
+        #else
+                #define UIFCCALL
+        #endif
+        #if defined(UIFC_IMPORTS) || defined(UIFC_EXPORTS)
+                #if defined(UIFC_IMPORTS)
+                        #define UIFCEXPORT __declspec( dllimport )
+                        #define UIFCEXPORTVAR __declspec( dllimport )
+                #else
+                        #define UIFCEXPORT __declspec( dllexport )
+                        #define UIFCEXPORTVAR __declspec( dllexport )
+                #endif
+        #else   /* self-contained executable */
+                #define UIFCEXPORT
+                #define UIFCEXPORTVAR	extern
+        #endif
+#else
+        #define UIFCCALL
+        #define UIFCEXPORT
+        #define UIFCEXPORTVAR	extern
 #endif
 
 #if defined(__unix__) && !defined(stricmp)
@@ -417,15 +441,15 @@ enum {
 	uifcNo=1
 };
 
-extern char* uifcYesNoOpts[];
+UIFCEXPORTVAR char* uifcYesNoOpts[];
 
 /****************************************************************************/
 /* Initialization routines for each UIFC implementation.					*/
 /* Returns 0 on success, non-zero on failure.								*/
 /****************************************************************************/
 int uifcini(uifcapi_t*);	/* Original implementation based on conio		*/
-int uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
-int uifcini32(uifcapi_t*);	/* conio/curses implementation					*/
+UIFCEXPORT int UIFCCALL uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
+UIFCEXPORT int UIFCCALL uifcini32(uifcapi_t*);	/* modern implementation	*/
 /****************************************************************************/
 
 #ifdef __cplusplus
