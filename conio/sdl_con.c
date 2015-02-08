@@ -24,9 +24,7 @@
 #endif
 
 #include "ciolib.h"
-#include "keys.h"
 #include "vidmodes.h"
-#include "allfonts.h"
 #include "bitmap_con.h"
 
 #include "SDL.h"
@@ -321,6 +319,7 @@ void yuv_fillrect(SDL_Overlay *overlay, SDL_Rect *r, int dac_entry)
 	return;
 
 planar:
+	sdl.LockYUVOverlay(overlay);
 	{
 		int y;
 		Uint8 *Y,*U,*V;
@@ -349,8 +348,10 @@ planar:
 			odd_line = !odd_line;
 		}
 	}
+	sdl.UnlockYUVOverlay(overlay);
 	return;
 packed:
+	sdl.LockYUVOverlay(overlay);
 	{
 		int x,y;
 		Uint32 colour;
@@ -370,6 +371,7 @@ packed:
 			offset+=overlay->pitches[0]>>2;
 		}
 	}
+	sdl.UnlockYUVOverlay(overlay);
 	return;
 }
 
@@ -391,7 +393,8 @@ void sdl_user_func(int func, ...)
 				return;
 			}
 			*(unsigned long *)ev.user.data2=va_arg(argptr, unsigned long);
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1);
+			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+				YIELD();
 			break;
 		case SDL_USEREVENT_SETNAME:
 		case SDL_USEREVENT_SETTITLE:
@@ -399,17 +402,20 @@ void sdl_user_func(int func, ...)
 				va_end(argptr);
 				return;
 			}
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1);
+			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+				YIELD();
 			break;
 		case SDL_USEREVENT_UPDATERECT:
 			ev.user.data1=va_arg(argptr, struct update_rect *);
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1);
+			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+				YIELD();
 			break;
 		case SDL_USEREVENT_COPY:
 		case SDL_USEREVENT_PASTE:
 		case SDL_USEREVENT_SHOWMOUSE:
 		case SDL_USEREVENT_HIDEMOUSE:
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1);
+			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+				YIELD();
 			break;
 	}
 	va_end(argptr);
@@ -428,20 +434,26 @@ int sdl_user_func_ret(int func, ...)
 	ev.user.data2=NULL;
 	ev.user.code=func;
 	va_start(argptr, func);
-	switch(func) {
-		case SDL_USEREVENT_SETVIDMODE:
-		case SDL_USEREVENT_FLUSH:
-		case SDL_USEREVENT_INIT:
-		case SDL_USEREVENT_QUIT:
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1);
-			passed=TRUE;
+	while(1) {
+		switch(func) {
+			case SDL_USEREVENT_SETVIDMODE:
+			case SDL_USEREVENT_FLUSH:
+			case SDL_USEREVENT_INIT:
+			case SDL_USEREVENT_QUIT:
+				while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+					YIELD();
+				passed=TRUE;
+				break;
+		}
+		if(passed) {
+			if(sdl.SemWaitTimeout(sdl_ufunc_ret, 100)==0)
+				break;
+		}
+		else {
+			sdl_ufunc_retval=-1;
 			break;
+		}
 	}
-	if(passed) {
-		sdl.SemWait(sdl_ufunc_ret);
-	}
-	else
-		sdl_ufunc_retval=-1;
 	va_end(argptr);
 	sdl.mutexV(funcret_mutex);
 	return(sdl_ufunc_retval);
@@ -545,12 +557,16 @@ void sdl_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 
 	if(sdl_init_good) {
 		rect=(struct update_rect *)malloc(sizeof(struct update_rect));
-		rect->x=xoffset;
-		rect->y=yoffset;
-		rect->width=width;
-		rect->height=height;
-		rect->data=data;
-		sdl_user_func(SDL_USEREVENT_UPDATERECT, rect);
+		if(rect) {
+			rect->x=xoffset;
+			rect->y=yoffset;
+			rect->width=width;
+			rect->height=height;
+			rect->data=data;
+			sdl_user_func(SDL_USEREVENT_UPDATERECT, rect);
+		}
+		else
+			free(data);
 	}
 	else
 		free(data);
@@ -842,7 +858,6 @@ void setup_surfaces(void)
 		}
 		if(yuv.enabled) {
 			if(yuv.overlay) {
-				sdl.UnlockYUVOverlay(yuv.overlay);
 				sdl.mutexV(yuv.mutex);
 				sdl.FreeYUVOverlay(yuv.overlay);
 			}
@@ -851,22 +866,26 @@ void setup_surfaces(void)
 				if(yuv.overlay)
 					yuv.best_format=yuv.overlay->format;
 				if(yuv.overlay==NULL || !yuv.overlay->hw_overlay) {
-					sdl.FreeYUVOverlay(yuv.overlay);
+					if (yuv.overlay)
+						sdl.FreeYUVOverlay(yuv.overlay);
 					yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_YUY2_OVERLAY, win);
 					if(yuv.overlay)
 						yuv.best_format=yuv.overlay->format;
 					if(yuv.overlay==NULL || !yuv.overlay->hw_overlay) {
-						sdl.FreeYUVOverlay(yuv.overlay);
+						if (yuv.overlay)
+							sdl.FreeYUVOverlay(yuv.overlay);
 						yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_YVYU_OVERLAY, win);
 						if(yuv.overlay)
 							yuv.best_format=yuv.overlay->format;
 						if(yuv.overlay==NULL || !yuv.overlay->hw_overlay) {
-							sdl.FreeYUVOverlay(yuv.overlay);
+							if (yuv.overlay)
+								sdl.FreeYUVOverlay(yuv.overlay);
 							yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_UYVY_OVERLAY, win);
 							if(yuv.overlay)
 								yuv.best_format=yuv.overlay->format;
 							if(yuv.overlay==NULL || !yuv.overlay->hw_overlay) {
-								sdl.FreeYUVOverlay(yuv.overlay);
+								if (yuv.overlay)
+									sdl.FreeYUVOverlay(yuv.overlay);
 								yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_IYUV_OVERLAY, win);
 								if(yuv.overlay)
 									yuv.best_format=yuv.overlay->format;
@@ -879,7 +898,6 @@ void setup_surfaces(void)
 			}
 			yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, yuv.best_format, win);
 			sdl.mutexP(yuv.mutex);
-			sdl.LockYUVOverlay(yuv.overlay);
 			sdl_setup_yuv_colours();
 		}
 		sdl_setup_colours(new_rect);
@@ -1235,7 +1253,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 						expect=sdl_keyval[i].shift;
 				}
 				else {
-					if(mod & KMOD_CAPS)
+					if(mod & KMOD_CAPS && (toupper(sdl_keyval[i].key) == sdl_keyval[i].shift))
 						expect=sdl_keyval[i].shift;
 					else
 						expect=sdl_keyval[i].key;
@@ -1357,6 +1375,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 /* Mouse event/keyboard thread */
 int sdl_mouse_thread(void *data)
 {
+	SetThreadName("SDL Mouse");
 	while(1) {
 		if(mouse_wait())
 			sdl_add_key(CIO_KEY_MOUSE);
@@ -1474,13 +1493,15 @@ int sdl_video_event_thread(void *data)
 								force_redraws=1;
 							}
 							else {
-								upd_rects[0].x=0;
-								upd_rects[0].y=0;
-								upd_rects[0].w=new_rect->w;
-								upd_rects[0].h=new_rect->h;
-								sdl.BlitSurface(new_rect, upd_rects, win, upd_rects);
-								sdl.UpdateRects(win,1,upd_rects);
-								rectsused=0;
+								if(upd_rects) {
+									upd_rects[0].x=0;
+									upd_rects[0].y=0;
+									upd_rects[0].w=new_rect->w;
+									upd_rects[0].h=new_rect->h;
+									sdl.BlitSurface(new_rect, upd_rects, win, upd_rects);
+									sdl.UpdateRects(win,1,upd_rects);
+									rectsused=0;
+								}
 							}
 						}
 						break;
@@ -1516,6 +1537,11 @@ int sdl_video_event_thread(void *data)
 										}
 									}
 									if(!yuv.enabled) {
+										if (!upd_rects) {
+											free(rect->data);
+											free(rect);
+											break;
+										}
 										upd_rects[rectsused].x=rect->x*vstat.scaling;
 										upd_rects[rectsused].y=rect->y*vstat.scaling;
 										upd_rects[rectsused].w=rect->width*vstat.scaling;
@@ -1542,11 +1568,9 @@ int sdl_video_event_thread(void *data)
 											dstrect.h=win->h;
 											dstrect.x=0;
 											dstrect.y=0;
-											sdl.UnlockYUVOverlay(yuv.overlay);
 											sdl.mutexV(yuv.mutex);
 											sdl.DisplayYUVOverlay(yuv.overlay, &dstrect);
 											sdl.mutexP(yuv.mutex);
-											sdl.LockYUVOverlay(yuv.overlay);
 										}
 									}
 									else {
