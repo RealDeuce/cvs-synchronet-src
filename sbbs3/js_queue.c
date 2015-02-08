@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.51 2015/08/22 05:41:17 deuce Exp $ */
+/* $Id: js_queue.c,v 1.45 2013/05/10 18:10:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -66,17 +66,20 @@ static void js_finalize_queue(JSContext *cx, JSObject *obj)
 	JS_SetPrivate(cx, obj, NULL);
 }
 
-static void js_decode_value(JSContext *cx, JSObject *parent
-							   ,queued_value_t* v, jsval* rval)
+static size_t js_decode_value(JSContext *cx, JSObject *parent
+							   ,queued_value_t* v, jsval* rval, BOOL peek)
 {
+	size_t			count=1;
+
 	*rval = JSVAL_VOID;
 
 	if(v==NULL)
-		return;
+		return(count);
 
 	JS_ReadStructuredClone(cx, v->value, v->size, JS_STRUCTURED_CLONE_VERSION, rval, NULL, NULL);
+	free(v->value);
 
-	return;
+	return(count);
 }
 
 /* Queue Object Methods */
@@ -108,7 +111,7 @@ js_poll(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	if(v==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
-	else if(v->name[0])
+	else if(v->name!=NULL && v->name[0])
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,v->name)));
 	else
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
@@ -153,8 +156,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	if(v!=NULL) {
 		jsval	rval;
 
-		js_decode_value(cx, obj, v, &rval);
-		free(v->value);
+		js_decode_value(cx, obj, v, &rval, /* peek */FALSE);
 		free(v);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
@@ -189,33 +191,42 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	if(v!=NULL) {
 		jsval	rval;
-		js_decode_value(cx, obj, v, &rval);
+		js_decode_value(cx, obj, v, &rval, /* peek */TRUE);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
 
 	return(JS_TRUE);
 }
 
-static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name)
+static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
+									   ,queued_value_t* v, size_t* count)
 {
-	queued_value_t	*v;
-	uint64			*serialized;
+	queued_value_t* nv;
+	uint64			*nval;
 
-	if((v=malloc(sizeof(queued_value_t)))==NULL)
+	if((nv=realloc(v,((*count)+1)*sizeof(queued_value_t)))==NULL) {
+		if(v) free(v);
 		return(NULL);
-	memset(v,0,sizeof(queued_value_t));
+	}
+	v=nv;
+	nv=v+(*count);
+	memset(nv,0,sizeof(queued_value_t));
+	(*count)++;
 
 	if(name!=NULL)
-		SAFECOPY(v->name,name);
+		SAFECOPY(nv->name,name);
 
-	if(!JS_WriteStructuredClone(cx, val, &serialized, &v->size, NULL, NULL))
-		return NULL;
-	if((v->value=(uint64 *)malloc(v->size))==NULL) {
-		JS_free(cx, serialized);
+	if(!JS_WriteStructuredClone(cx, val, &nval, &nv->size, NULL, NULL)) {
+		free(v);
 		return NULL;
 	}
-	memcpy(v->value, serialized, v->size);
-	JS_free(cx, serialized);
+	if((nv->value=(uint64 *)malloc(nv->size))==NULL) {
+		JS_free(cx, nval);
+		free(v);
+		return NULL;
+	}
+	memcpy(nv->value, nval, nv->size);
+	JS_free(cx, nval);
 
 	return(v);
 }
@@ -223,14 +234,15 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name)
 BOOL js_enqueue_value(JSContext *cx, msg_queue_t* q, jsval val, char* name)
 {
 	queued_value_t* v;
+	size_t			count=0;
 	BOOL			result;
 	jsrefcount		rc;
 
-	if((v=js_encode_value(cx,val,name))==NULL)
+	if((v=js_encode_value(cx,val,name,NULL,&count))==NULL || count<1)
 		return(FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	result=msgQueueWrite(q,v,sizeof(queued_value_t));
+	result=msgQueueWrite(q,v,count*sizeof(queued_value_t));
 	free(v);
 	JS_RESUMEREQUEST(cx, rc);
 	return(result);
@@ -274,7 +286,6 @@ enum {
 	,QUEUE_PROP_DATA_WAITING
 	,QUEUE_PROP_READ_LEVEL
 	,QUEUE_PROP_WRITE_LEVEL
-	,QUEUE_PROP_OWNER
 };
 
 #ifdef BUILD_JSDOCS
@@ -283,7 +294,6 @@ static char* queue_prop_desc[] = {
 	,"<i>true</i> if data is waiting to be read from queue"
 	,"number of values in the read queue"
 	,"number of values in the write qeueue"
-	,"<i>true</i> if current thread is the owner/creator of the queue"
 	,NULL
 };
 #endif
@@ -303,7 +313,7 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
 	switch(tiny) {
 		case QUEUE_PROP_NAME:
-			if(q->name[0])
+			if(q->name!=NULL && q->name[0])
 				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,q->name));
 			break;
 		case QUEUE_PROP_DATA_WAITING:
@@ -321,11 +331,6 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			*vp = INT_TO_JSVAL(msgQueueWriteLevel(q));
 			JS_RESUMEREQUEST(cx, rc);
 			break;
-		case QUEUE_PROP_OWNER:
-			rc=JS_SUSPENDREQUEST(cx);
-			*vp = BOOLEAN_TO_JSVAL(INT_TO_BOOL(msgQueueOwner(q)));
-			JS_RESUMEREQUEST(cx, rc);
-			break;
 	}
 	return(JS_TRUE);
 }
@@ -339,7 +344,6 @@ static jsSyncPropertySpec js_queue_properties[] = {
 	{	"data_waiting"		,QUEUE_PROP_DATA_WAITING,QUEUE_PROP_FLAGS,	312 },
 	{	"read_level"		,QUEUE_PROP_READ_LEVEL	,QUEUE_PROP_FLAGS,	312 },
 	{	"write_level"		,QUEUE_PROP_WRITE_LEVEL	,QUEUE_PROP_FLAGS,	312 },
-	{	"owner"				,QUEUE_PROP_OWNER		,QUEUE_PROP_FLAGS,	316 },
 	{0}
 };
 
