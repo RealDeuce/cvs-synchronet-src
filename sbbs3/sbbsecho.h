@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.31 2016/01/01 09:56:25 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.28 2014/04/17 07:08:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
 #define SBBSECHO_VERSION_MAJOR		2
-#define SBBSECHO_VERSION_MINOR		31
+#define SBBSECHO_VERSION_MINOR		27
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -82,23 +82,21 @@
 #define SEND_NOTIFY 	(1<<4)			/* Send Notify Lists */
 
 
-#define LOG_AREAFIX 	(1<<0) 		/* Log areafix messages */
-#define LOG_IMPORTED	(1<<1) 		/* Log imported netmail messages */
-#define LOG_PACKETS 	(1<<2) 		/* Log imported packet names/types */
-#define LOG_SECURE		(1<<3) 		/* Log security violations */
-#define LOG_GRUNGED 	(1<<4) 		/* Log grunged messages */
-#define LOG_PRIVATE 	(1<<5) 		/* Log disallowed private msgs */
-#define LOG_AREA_TOTALS (1<<6) 		/* Log totals for each area */
-#define LOG_TOTALS		(1<<7) 		/* Log over-all totals */
-#define LOG_PACKING 	(1<<8) 		/* Log packing of out-bound netmail */
-#define LOG_ROUTING 	(1<<9) 		/* Log routing of out-bound netmail */
-#define LOG_NETMAIL		(1<<10)		/* Log creation/export of netmail */
-#define LOG_BSO_FLO		(1<<11)		/* Log Binkley-Style-Outbound/FLO operations */
+#define LOG_AREAFIX 	(1L<<0) 		/* Log areafix messages */
+#define LOG_IMPORTED	(1L<<1) 		/* Log imported netmail messages */
+#define LOG_PACKETS 	(1L<<2) 		/* Log imported packet names/types */
+#define LOG_SECURE		(1L<<3) 		/* Log security violations */
+#define LOG_GRUNGED 	(1L<<4) 		/* Log grunged messages */
+#define LOG_PRIVATE 	(1L<<5) 		/* Log disallowed private msgs */
+#define LOG_AREA_TOTALS (1L<<6) 		/* Log totals for each area */
+#define LOG_TOTALS		(1L<<7) 		/* Log over-all totals */
+#define LOG_PACKING 	(1L<<8) 		/* Log packing of out-bound netmail */
+#define LOG_ROUTING 	(1L<<9) 		/* Log routing of out-bound netmail */
 
-#define LOG_DUPES		(1<<24)		/* Log individual dupe messages */
-#define LOG_CIRCULAR	(1<<25)		/* Log individual circ paths */
-#define LOG_IGNORED 	(1<<26)		/* Log ignored netmail */
-#define LOG_UNKNOWN 	(1<<27)		/* Log netmail for unknown users */
+#define LOG_DUPES		(1L<<24)		 /* Log individual dupe messages */
+#define LOG_CIRCULAR	(1L<<25)		 /* Log individual circ paths */
+#define LOG_IGNORED 	(1L<<26)		 /* Log ignored netmail */
+#define LOG_UNKNOWN 	(1L<<27)		 /* Log netmail for unknown users */
 
 #define LOG_DEFAULTS	0xffffffL		/* Low 24 bits default to ON */
 
@@ -238,7 +236,6 @@ typedef struct {
 	echolist_t *listcfg;			/* Each echolist configuration */
 	areasbbs_t *area;				/* Each area configuration */
 	BOOL		check_path;			/* Enable circular path detection */
-	BOOL		fwd_circular;		/* Allow the forwrarding of circular messages to links (defaults to true, only applicable if check_path is also true) */
 	BOOL		zone_blind;			/* Pretend zones don't matter when parsing and constructing PATH and SEEN-BY lines (per Wilfred van Velzen, 2:280/464) */
 	uint16_t	zone_blind_threshold;	/* Zones below this number (e.g. 4) will be treated as the same zone when zone_blind is enabled */
 	} config_t;
