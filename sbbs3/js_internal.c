@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.81 2013/10/03 00:36:13 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.82 2013/10/08 02:09:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,8 +220,8 @@ static char* prop_desc[] = {
 		"mods/somefile.js<br>"
 		"exec/somefile.js<br>"
 	,"full path and filename of JS file executed"
-	,"directory of executed JS file"
 	,"JS filename executed (with no path)"
+	,"directory of executed JS file"
 	,"Either the configured startup directory in SCFG (for externals) or the cwd when jsexec is started"
 	,NULL
 };
