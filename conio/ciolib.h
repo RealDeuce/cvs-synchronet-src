@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: ciolib.h,v 1.67 2015/02/08 09:26:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -238,7 +238,7 @@ struct conio_font_data_struct {
 
 CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
 
-#define CONIO_FIRST_FREE_FONT	41
+#define CONIO_FIRST_FREE_FONT	43
 
 typedef struct {
 	int		mode;
