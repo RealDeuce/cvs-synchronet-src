@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.72 2015/02/27 10:42:08 deuce Exp $ */
+/* $Id: ciolib.h,v 1.67 2015/02/08 09:26:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,11 +116,9 @@ enum {
 #define BLINK 128
 #endif
 
-#define CIOLIB_VIDEO_ALTCHARS		(1<<0)	// Attribute bit 3 selects alternate char set
-#define CIOLIB_VIDEO_NOBRIGHT		(1<<1)	// Attribute bit 3 does not increase intensity
-#define CIOLIB_VIDEO_BGBRIGHT		(1<<2)	// Attribute bit 7 selects high intensity background, not blink
-#define CIOLIB_VIDEO_BLINKALTCHARS	(1<<3)	// Attribute bit 7 selects alternate char set
-#define CIOLIB_VIDEO_NOBLINK		(1<<4)	// Attribute bit 7 has no effect
+#define CIOLIB_VIDEO_ALTCHARS	(1<<0)	// Attribute bit 3 selects alternate char set
+#define CIOLIB_VIDEO_NOBRIGHT	(1<<1)	// Attribute bit 3 does not increase intensity
+#define CIOLIB_VIDEO_BGBRIGHT	(1<<2)	// Attribute bit 7 selects high intensity background, not blink
 
 enum text_modes
 {
@@ -232,11 +230,10 @@ struct mouse_event {
 };
 
 struct conio_font_data_struct {
-        char 	*eight_by_sixteen;
-        char 	*eight_by_fourteen;
-        char 	*eight_by_eight;
-        char	*put_xlat;
-        char 	*desc;
+        char *eight_by_sixteen;
+        char *eight_by_fourteen;
+        char *eight_by_eight;
+        char *desc;
 };
 
 CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
@@ -308,8 +305,6 @@ CIOLIBEXPORTVAR int _wscroll;
 CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
-CIOLIBEXPORTVAR int ciolib_xlat;
-CIOLIBEXPORTVAR int ciolib_reaper;
 
 #define _conio_kbhit()		kbhit()
 
@@ -525,10 +520,9 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)
 #define CIO_KEY_NPAGE     (0x51 << 8)
-#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
+#define CIO_KEY_ALT_F(x)      ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
 
-#define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards "F-14"
-#define CIO_KEY_QUIT	  0x7e00	// "F-15"
+#define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards
 #define CIO_KEY_ABORTED   0x01E0	// ESC key by scancode
 
 #endif	/* Do not add anything after this line */
