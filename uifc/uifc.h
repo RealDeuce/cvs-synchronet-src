@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.84 2015/02/17 07:28:33 deuce Exp $ */
+/* $Id: uifc.h,v 1.82 2014/02/10 04:52:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -206,9 +206,6 @@
 #define BL_EDIT     (1<<4)  /* Edit key */
 #define BL_HELP     (1<<5)  /* Help key */
 
-						/* Extra exit flags */
-#define UIFC_XF_QUIT	(1<<0)	/* Returned -1 due to CIO_KEY_QUIT */
-
 #define HELPBUF_SIZE 4000
 
 #ifndef _GEN_DEFS_H
@@ -281,60 +278,6 @@ typedef struct {
 } win_t;
 
 typedef struct {
-	char	background;
-	char	help_char;
-	char	close_char;
-	char	up_arrow;
-	char	down_arrow;
-	char	button_left;
-	char	button_right;
-
-	char	list_top_left;
-	char	list_top;
-	char	list_top_right;
-	char	list_separator_left;
-	char	list_separator_right;
-	char	list_horizontal_separator;
-	char	list_left;
-	char	list_right;
-	char	list_bottom_left;
-	char	list_bottom_right;
-	char	list_bottom;
-	char	list_scrollbar_separator;
-
-	char	input_top_left;
-	char	input_top;
-	char	input_top_right;
-	char	input_left;
-	char	input_right;
-	char	input_bottom_left;
-	char	input_bottom_right;
-	char	input_bottom;
-
-	char	popup_top_left;
-	char	popup_top;
-	char	popup_top_right;
-	char	popup_left;
-	char	popup_right;
-	char	popup_bottom_left;
-	char	popup_bottom_right;
-	char	popup_bottom;
-
-	char	help_top_left;
-	char	help_top;
-	char	help_top_right;
-	char	help_left;
-	char	help_right;
-	char	help_bottom_left;
-	char	help_bottom_right;
-	char	help_bottom;
-	char	help_titlebreak_left;
-	char	help_titlebreak_right;
-	char	help_hitanykey_left;
-	char	help_hitanykey_right;
-} uifc_graphics_t;
-
-typedef struct {
 /****************************************************************************/
 /* Size of the structure (for version compatibility verification).			*/
 /****************************************************************************/
@@ -398,16 +341,6 @@ typedef struct {
 /* Have we initialized successfully?										*/
 /****************************************************************************/
 	BOOL	initialized;
-
-/****************************************************************************/
-/* UIFC_XF_* bits for extra exit status										*/
-/****************************************************************************/
-	uint	exit_flags;
-
-/****************************************************************************/
-/* Custom drawing characters												*/
-/****************************************************************************/
-	uifc_graphics_t	*chars;
 
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
