@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.162 2015/11/30 09:07:45 rswindell Exp $ */
+/* $Id: userdat.c,v 1.153 2015/01/23 02:55:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -263,7 +263,6 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	getrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	getrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	getrec(userdat,U_MODEM,LEN_MODEM,user->modem);
-	getrec(userdat,U_IPADDR,LEN_IPADDR,user->ipaddr);
 	getrec(userdat,U_LASTON,8,str); user->laston=ahtoul(str);
 	getrec(userdat,U_FIRSTON,8,str); user->firston=ahtoul(str);
 	getrec(userdat,U_EXPIRE,8,str); user->expire=ahtoul(str);
@@ -322,7 +321,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	getrec(userdat,U_XEDIT,8,str);
 	for(i=0;i<cfg->total_xedits;i++)
-		if(!stricmp(str,cfg->xedit[i]->code))
+		if(!stricmp(str,cfg->xedit[i]->code) && chk_ar(cfg,cfg->xedit[i]->ar,user,/* client: */NULL))
 			break;
 	user->xedit=i+1;
 	if(user->xedit>cfg->total_xedits)
@@ -434,7 +433,6 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	putrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	putrec(userdat,U_MODEM,LEN_MODEM,user->modem);
-	putrec(userdat,U_IPADDR,LEN_IPADDR,user->ipaddr);
 	putrec(userdat,U_LASTON,8,ultoa((ulong)user->laston,str,16));
 	putrec(userdat,U_FIRSTON,8,ultoa((ulong)user->firston,str,16));
 	putrec(userdat,U_EXPIRE,8,ultoa((ulong)user->expire,str,16));
@@ -483,7 +481,7 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 
 	putrec(userdat,U_XFER_CMD+LEN_XFER_CMD,2,crlf);
 
-	putrec(userdat,U_IPADDR+LEN_IPADDR,2,crlf);
+	putrec(userdat,U_MAIL_CMD+LEN_MAIL_CMD,2,crlf);
 
 	putrec(userdat,U_FREECDT,10,ultoa(user->freecdt,str,10));
 
@@ -845,33 +843,29 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 		return(buf);
 	}
 
-	str[0]=0;
     switch(node->status) {
         case NODE_WFC:
-            SAFECOPY(str,"Waiting for connection");
+            strcpy(str,"Waiting for connection");
             break;
         case NODE_OFFLINE:
             strcpy(str,"Offline");
             break;
         case NODE_NETTING:	/* Obsolete */
-            SAFECOPY(str,"Networking");
+            strcpy(str,"Networking");
             break;
         case NODE_LOGON:
-            SAFEPRINTF(str,"At login prompt %s"
+            SAFEPRINTF(str,"At logon prompt %s"
 				,node_connection_desc(node->connection, tmp));
             break;
-		case NODE_LOGOUT:
-			SAFEPRINTF(str,"Logging out %s", username(cfg,node->useron,tmp));
-			break;
         case NODE_EVENT_WAITING:
-            SAFECOPY(str,"Waiting for all nodes to become inactive");
+            strcpy(str,"Waiting for all nodes to become inactive");
             break;
         case NODE_EVENT_LIMBO:
             SAFEPRINTF(str,"Waiting for node %d to finish external event"
                 ,node->aux);
             break;
         case NODE_EVENT_RUNNING:
-            SAFECOPY(str,"Running external event");
+            strcpy(str,"Running external event");
             break;
         case NODE_NEWUSER:
             SAFEPRINTF(str,"New user applying for access %s"
@@ -1841,7 +1835,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				if(client!=NULL)
 					p=client->addr;
 				else if(user!=NULL)
-					p=user->ipaddr;
+					p=user->note;
 				else
 					p=NULL;
 				if(!findstr_in_string(p,(char*)*ptrptr))
@@ -2201,15 +2195,12 @@ void DLLCALL resetdailyuserdat(scfg_t* cfg, user_t* user, BOOL write)
 }
 
 /****************************************************************************/
-/* Get dotted-equivalent email address for user 'name'.						*/ 
-/* 'addr' is the target buffer for the full address.						*/
-/* Pass cfg=NULL to NOT have "@address" portion appended.					*/
 /****************************************************************************/
 char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, const char* name)
 {
 	int i;
 
-	if(addr==NULL || name==NULL)
+	if(!VALID_CFG(cfg) || addr==NULL || name==NULL)
 		return(NULL);
 
 	if(strchr(name,'@')!=NULL) { /* Avoid double-@ */
@@ -2229,10 +2220,8 @@ char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, const char* name)
 				addr[i]='.';
 		strlwr(addr);
 	}
-	if(VALID_CFG(cfg)) {
-		strcat(addr,"@");
-		strcat(addr,cfg->sys_inetaddr);
-	}
+	strcat(addr,"@");
+	strcat(addr,cfg->sys_inetaddr);
 	return(addr);
 }
 
@@ -2418,7 +2407,6 @@ int DLLCALL user_rec_len(int offset)
 		case U_PHONE:		return(LEN_PHONE);
 		case U_BIRTH:		return(LEN_BIRTH);
 		case U_MODEM:		return(LEN_MODEM);
-		case U_IPADDR:		return(LEN_IPADDR);
 
 		/* Internal codes (16 chars) */
 		case U_CURSUB:
@@ -2556,25 +2544,21 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 /* 'reason' is an (optional) pointer to a text.dat item number				*/
 /* usernumber==0 for netmail												*/
 /****************************************************************************/
-BOOL DLLCALL can_user_send_mail(scfg_t* cfg, enum smb_net_type net_type, uint usernumber, user_t* user, uint* reason)
+BOOL DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint* reason)
 {
 	if(reason!=NULL)
 		*reason=R_Email;
 	if(user==NULL || user->number==0)
 		return FALSE;
-	if(net_type==NET_NONE && usernumber>1 && user->rest&FLAG('E'))			/* local mail restriction? */
+	if(usernumber>1 && user->rest&FLAG('E'))			/* local mail restriction? */
 		return FALSE;
 	if(reason!=NULL)
 		*reason=NoNetMailAllowed;
-	if(net_type!=NET_NONE && user->rest&FLAG('M'))							/* netmail restriction */
-		return FALSE;
-	if(net_type==NET_FIDO && !(cfg->netmail_misc&NMAIL_ALLOW))				/* Fido netmail globally disallowed */
-		return FALSE;
-	if(net_type==NET_INTERNET && !(cfg->inetmail_misc&NMAIL_ALLOW))			/* Internet mail globally disallowed */
+	if(usernumber==0 && user->rest&FLAG('M'))			/* netmail restriction */
 		return FALSE;
 	if(reason!=NULL)
 		*reason=R_Feedback;
-	if(net_type==NET_NONE && usernumber==1 && user->rest&FLAG('S'))			/* feedback restriction? */
+	if(usernumber==1 && user->rest&FLAG('S'))			/* feedback restriction? */
 		return FALSE;
 	if(reason!=NULL)
 		*reason=TooManyEmailsToday;
@@ -2750,39 +2734,27 @@ long DLLCALL loginAttemptListClear(link_list_t* list)
 }
 
 /****************************************************************************/
-static list_node_t* login_attempted(link_list_t* list, const union xp_sockaddr* addr)
+static list_node_t* login_attempted(link_list_t* list, const SOCKADDR_IN* addr)
 {
 	list_node_t*		node;
 	login_attempt_t*	attempt;
-	struct in6_addr		ia;
 
 	if(list==NULL)
 		return NULL;
 	for(node=list->first; node!=NULL; node=node->next) {
 		attempt=node->data;
-		switch(addr->addr.sa_family) {
-			case AF_INET:
-				memset(&ia, 0, sizeof(ia));
-				memcpy(&ia, &addr->in.sin_addr, sizeof(addr->in.sin_addr));
-				break;
-			case AF_INET6:
-				ia = addr->in6.sin6_addr;
-				break;
-		}
-		if(memcmp(&attempt->addr,&ia,sizeof(attempt->addr))==0)
+		if(memcmp(&attempt->addr,&addr->sin_addr,sizeof(attempt->addr))==0)
 			break;
 	}
 	return node;
 }
 
 /****************************************************************************/
-long DLLCALL loginAttempts(link_list_t* list, const union xp_sockaddr* addr)
+long DLLCALL loginAttempts(link_list_t* list, const SOCKADDR_IN* addr)
 {
 	long				count=0;
 	list_node_t*		node;
 
-	if(addr->addr.sa_family != AF_INET && addr->addr.sa_family != AF_INET6)
-		return 0;
 	listLock(list);
 	if((node=login_attempted(list, addr))!=NULL)
 		count = ((login_attempt_t*)node->data)->count - ((login_attempt_t*)node->data)->dupes;
@@ -2792,12 +2764,10 @@ long DLLCALL loginAttempts(link_list_t* list, const union xp_sockaddr* addr)
 }
 
 /****************************************************************************/
-void DLLCALL loginSuccess(link_list_t* list, const union xp_sockaddr* addr)
+void DLLCALL loginSuccess(link_list_t* list, const SOCKADDR_IN* addr)
 {
 	list_node_t*		node;
 
-	if(addr->addr.sa_family != AF_INET && addr->addr.sa_family != AF_INET6)
-		return;
 	listLock(list);
 	if((node=login_attempted(list, addr)) != NULL)
 		listRemoveNode(list, node, /* freeData: */TRUE);
@@ -2807,15 +2777,13 @@ void DLLCALL loginSuccess(link_list_t* list, const union xp_sockaddr* addr)
 /****************************************************************************/
 /* Returns number of *unique* login attempts (excludes consecutive dupes)	*/
 /****************************************************************************/
-ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, const char* prot, const char* user, const char* pass)
+ulong DLLCALL loginFailure(link_list_t* list, const SOCKADDR_IN* addr, const char* prot, const char* user, const char* pass)
 {
 	list_node_t*		node;
 	login_attempt_t		first;
 	login_attempt_t*	attempt=&first;
 	ulong				count=0;
 
-	if(addr->addr.sa_family != AF_INET && addr->addr.sa_family != AF_INET6)
-		return 0;
 	if(list==NULL)
 		return 0;
 	memset(&first, 0, sizeof(first));
@@ -2828,7 +2796,7 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	}
 	SAFECOPY(attempt->prot,prot);
 	attempt->time=time32(NULL);
-	memcpy(&attempt->addr, addr, sizeof(*addr));
+	attempt->addr=addr->sin_addr;
 	SAFECOPY(attempt->user, user);
 	SAFECOPY(attempt->pass, pass);
 	attempt->count++;
@@ -2838,175 +2806,4 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	listUnlock(list);
 
 	return count;
-}
-
-/****************************************************************************/
-/* Message-new-scan pointer/configuration functions							*/
-/****************************************************************************/
-BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
-{
-	char		path[MAX_PATH+1];
-	uint		i;
-	int 		file;
-	long		length;
-	FILE*		stream;
-
-	/* Initialize to configured defaults */
-	for(i=0;i<cfg->total_subs;i++) {
-		subscan[i].ptr=subscan[i].sav_ptr=0;
-		subscan[i].last=subscan[i].sav_last=0;
-		subscan[i].cfg=0xff;
-		if(!(cfg->sub[i]->misc&SUB_NSDEF))
-			subscan[i].cfg&=~SUB_CFG_NSCAN;
-		if(!(cfg->sub[i]->misc&SUB_SSDEF))
-			subscan[i].cfg&=~SUB_CFG_SSCAN;
-		subscan[i].sav_cfg=subscan[i].cfg; 
-	}
-
-	if(user->number == 0)
-		return 0;
-
-	if(user->rest&FLAG('G'))
-		return initmsgptrs(cfg, subscan, cfg->guest_msgscan_init);
-	
-	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
-	if((stream=fnopen(&file,path,O_RDONLY))==NULL) {
-		if(fexist(path))
-			return(FALSE);	/* file exists, but couldn't be opened? */
-		return initmsgptrs(cfg, subscan, cfg->new_msgscan_init);
-	}
-
-	length=(long)filelength(file);
-	for(i=0;i<cfg->total_subs;i++) {
-		if(length>=(cfg->sub[i]->ptridx+1)*10L) {
-			fseek(stream,(long)cfg->sub[i]->ptridx*10L,SEEK_SET);
-			fread(&subscan[i].ptr,sizeof(subscan[i].ptr),1,stream);
-			fread(&subscan[i].last,sizeof(subscan[i].last),1,stream);
-			fread(&subscan[i].cfg,sizeof(subscan[i].cfg),1,stream);
-		}
-		subscan[i].sav_ptr=subscan[i].ptr;
-		subscan[i].sav_last=subscan[i].last;
-		subscan[i].sav_cfg=subscan[i].cfg; 
-	}
-	fclose(stream);
-	return(TRUE);
-}
-
-/****************************************************************************/
-/* Writes to data/user/ptrs/*.ixb the msgptr array for the current user		*/
-/* Pass usernumber value of 0 to indicate "Guest" login						*/
-/****************************************************************************/
-BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
-{
-	char		path[MAX_PATH+1];
-	ushort		idx;
-	uint16_t	scancfg;
-	uint		i,j;
-	int 		file;
-	ulong		length;
-	uint32_t	l=0L;
-
-	if(user->number==0 || (user->rest&FLAG('G')))	/* Guest */
-		return(TRUE);
-	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
-	if((file=nopen(path,O_WRONLY|O_CREAT))==-1) {
-		return(FALSE); 
-	}
-	fixmsgptrs(cfg, subscan);
-	length=(ulong)filelength(file);
-	for(i=0;i<cfg->total_subs;i++) {
-		if(subscan[i].sav_ptr==subscan[i].ptr 
-			&& subscan[i].sav_last==subscan[i].last
-			&& length>=((cfg->sub[i]->ptridx+1)*10UL)
-			&& subscan[i].sav_cfg==subscan[i].cfg)
-			continue;
-		while(filelength(file)<(long)(cfg->sub[i]->ptridx)*10) {
-			lseek(file,0L,SEEK_END);
-			idx=(ushort)(tell(file)/10);
-			for(j=0;j<cfg->total_subs;j++)
-				if(cfg->sub[j]->ptridx==idx)
-					break;
-			write(file,&l,sizeof(l));
-			write(file,&l,sizeof(l));
-			scancfg=0xff;					
-			if(j<cfg->total_subs) {
-				if(!(cfg->sub[j]->misc&SUB_NSDEF))
-					scancfg&=~SUB_CFG_NSCAN;
-				if(!(cfg->sub[j]->misc&SUB_SSDEF))
-					scancfg&=~SUB_CFG_SSCAN; 
-			} else	/* default to scan OFF for unknown sub */
-				scancfg&=~(SUB_CFG_NSCAN|SUB_CFG_SSCAN);
-			write(file,&scancfg,sizeof(scancfg)); 
-		}
-		lseek(file,(long)((long)(cfg->sub[i]->ptridx)*10),SEEK_SET);
-		write(file,&(subscan[i].ptr),sizeof(subscan[i].ptr));
-		write(file,&(subscan[i].last),sizeof(subscan[i].last));
-		write(file,&(subscan[i].cfg),sizeof(subscan[i].cfg));
-	}
-	close(file);
-	if(!flength(path))			/* Don't leave 0 byte files */
-		remove(path);
-
-	return(TRUE);
-}
-
-/****************************************************************************/
-/* Initialize new-msg-scan pointers (e.g. for new users)					*/
-/* If 'days' is specified as 0, just set pointer to last message (faster)	*/
-/****************************************************************************/
-BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
-{
-	uint		i;
-	smb_t		smb;
-	idxrec_t	idx;
-	time_t		t = time(NULL) - (days * 24 * 60 * 60);
-
-	for(i=0;i<cfg->total_subs;i++) {
-		if(days == 0) {
-			/* This value will be "fixed" (changed to the last msg) when saving */
-			subscan[i].ptr = ~0;
-			continue;
-		}
-		ZERO_VAR(smb);
-		SAFEPRINTF2(smb.file,"%s%s",cfg->sub[i]->data_dir,cfg->sub[i]->code);
-		smb.retry_time=cfg->smb_retry_time;
-		smb.subnum=i;
-		if(smb_open(&smb) != SMB_SUCCESS)
-			continue;
-		if(days == 0)
-			subscan[i].ptr = smb.status.last_msg;
-		else if(smb_getmsgidx_by_time(&smb, &idx, t) == SMB_SUCCESS)
-			subscan[i].ptr = idx.number;
-		smb_close(&smb);
-	}
-	return TRUE;
-}
-
-/****************************************************************************/
-/* Insure message new-scan pointers are within the range of the msgs in		*/
-/* the sub-board.															*/
-/****************************************************************************/
-BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
-{
-	uint		i;
-	smb_t		smb;
-
-	for(i=0;i<cfg->total_subs;i++) {
-		if(subscan[i].ptr == 0)
-			continue;
-		if(subscan[i].sav_ptr == subscan[i].ptr)
-			continue;
-		ZERO_VAR(smb);
-		SAFEPRINTF2(smb.file,"%s%s",cfg->sub[i]->data_dir,cfg->sub[i]->code);
-		smb.retry_time=cfg->smb_retry_time;
-		smb.subnum=i;
-		if(smb_open(&smb) != SMB_SUCCESS)
-			continue;
-		if(subscan[i].ptr > smb.status.last_msg)
-			subscan[i].ptr = smb.status.last_msg;
-		if(subscan[i].last > smb.status.last_msg)
-			subscan[i].last = smb.status.last_msg;
-		smb_close(&smb);
-	}
-	return TRUE;
 }
