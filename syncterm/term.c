@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.310 2015/02/16 07:57:01 deuce Exp $ */
+/* $Id: term.c,v 1.304 2015/02/09 07:42:12 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -82,24 +82,17 @@ void mousedrag(unsigned char *scrollback)
 	int	key;
 	struct mouse_event mevent;
 	unsigned char *screen;
-	unsigned char *tscreen;
 	unsigned char *sbuffer;
 	int sbufsize;
 	int pos, startpos,endpos, lines;
 	int outpos;
-	char *copybuf=NULL;
-	char *newcopybuf;
+	char *copybuf;
 	int lastchar;
-	int old_xlat = ciolib_xlat;
 
 	sbufsize=term.width*2*term.height;
-	screen=(unsigned char*)malloc(sbufsize);
-	sbuffer=(unsigned char*)malloc(sbufsize);
-	tscreen=(unsigned char*)malloc(sbufsize);
+	screen=(unsigned char*)alloca(sbufsize);
+	sbuffer=(unsigned char*)alloca(sbufsize);
 	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
-	ciolib_xlat = TRUE;
-	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
-	ciolib_xlat = old_xlat;
 	while(1) {
 		key=getch();
 		if(key==0 || key==0xff)
@@ -134,16 +127,12 @@ void mousedrag(unsigned char *scrollback)
 						break;
 					default:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						newcopybuf=realloc(copybuf, endpos-startpos+4+lines*2);
-						if (newcopybuf)
-							copybuf = newcopybuf;
-						else
-							goto cleanup;
+						copybuf=alloca(endpos-startpos+4+lines*2);
 						outpos=0;
 						lastchar=0;
 						for(pos=startpos;pos<=endpos;pos++) {
-							copybuf[outpos++]=tscreen[pos*2];
-							if(tscreen[pos*2]!=' ' && tscreen[pos*2])
+							copybuf[outpos++]=screen[pos*2];
+							if(screen[pos*2]!=' ' && screen[pos*2])
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
@@ -157,23 +146,15 @@ void mousedrag(unsigned char *scrollback)
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
 						puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
-						goto cleanup;
+						return;
 				}
 				break;
 			default:
 				puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
 				ungetch(key);
-				goto cleanup;
+				return;
 		}
 	}
-
-cleanup:
-	free(screen);
-	free(sbuffer);
-	free(tscreen);
-	if(copybuf)
-		free(copybuf);
-	return;
 }
 
 void update_status(struct bbslist *bbs, int speed, int ooii_mode)
@@ -188,7 +169,6 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	static int oldspeed=0;
 	int	timeon;
 	char sep;
-	int old_xlat = ciolib_xlat;
 
 	switch(getfont()) {
 			case 0:
@@ -264,7 +244,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
-	ciolib_xlat = old_xlat;
+	ciolib_xlat = FALSE;
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -725,7 +705,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
-		uifcmsg("Error opening file",str);
+		uifcmsg("ERROR",str);
 		uifcbail();
 		setup_mouse_events();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
@@ -1246,24 +1226,23 @@ static BOOL xmodem_check_abort(void* vp)
 	time_t					now=time(NULL);
 	int						key;
 
-	if (xm == NULL)
-		return FALSE;
-
 	if(last_check != now) {
 		last_check=now;
-		while(kbhit()) {
-			switch((key=getch())) {
-				case ESC:
-				case CTRL_C:
-				case CTRL_X:
-					xm->cancelled=TRUE;
-					break;
-				case 0:
-				case 0xff:
-					key |= (getch() << 8);
-					if(key==CIO_KEY_MOUSE)
-						getmouse(NULL);
-					break;
+		if(xm!=NULL) {
+			while(kbhit()) {
+				switch((key=getch())) {
+					case ESC:
+					case CTRL_C:
+					case CTRL_X:
+						xm->cancelled=TRUE;
+						break;
+					case 0:
+					case 0xff:
+						key |= (getch() << 8);
+						if(key==CIO_KEY_MOUSE)
+							getmouse(NULL);
+						break;
+				}
 			}
 		}
 	}
@@ -1588,7 +1567,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 	int64_t	file_bytes=0,file_bytes_left=0;
 	int64_t	total_bytes=0;
 	FILE*	fp=NULL;
-	time_t	t,startfile,ftime=0;
+	time_t	t,startfile,ftime;
 	int		old_hold=hold_update;
 
 	if(safe_mode)
@@ -1917,7 +1896,6 @@ void font_control(struct bbslist *bbs)
 	char *buf;
 	struct	text_info txtinfo;
 	int i,j,k;
-	int enable_xlat = 0;
 
 	if(safe_mode)
 		return;
@@ -1949,18 +1927,12 @@ void font_control(struct bbslist *bbs)
 						loadfont(fpick.selected[0]);
 					filepick_free(&fpick);
 				}
-				else {
+				else
 					setfont(i,FALSE,1);
-					if (i >=32 && i<= 35 && cterm->emulation != CTERM_EMULATION_PETASCII)
-						enable_xlat = TRUE;
-					if (i==36 && cterm->emulation != CTERM_EMULATION_ATASCII)
-						enable_xlat = TRUE;
-				}
 			}
 		break;
 	}
 	uifcbail();
-	ciolib_xlat = enable_xlat;
 	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
@@ -2586,7 +2558,6 @@ BOOL doterm(struct bbslist *bbs)
 						break;
 					}
 					/* FALLTHROUGH for curses/ansi modes */
-				case CIO_KEY_QUIT:
 				case 0x2d00:	/* Alt-X - Exit */
 				case 0x2300:	/* Alt-H - Hangup */
 					{
@@ -2598,7 +2569,7 @@ BOOL doterm(struct bbslist *bbs)
 						char *buf;
 
    						gettextinfo(&txtinfo);
-						buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+						buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
 						gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						i=0;
 						init_uifc(FALSE, FALSE);
@@ -2619,13 +2590,11 @@ BOOL doterm(struct bbslist *bbs)
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
-							free(buf);
-							return(key==0x2d00 /* Alt-X? */ || key == CIO_KEY_QUIT);
+							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
 						setup_mouse_events();
 						puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-						free(buf);
 						window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 						textattr(txtinfo.attribute);
 						gotoxy(txtinfo.curx,txtinfo.cury);

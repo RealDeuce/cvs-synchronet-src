@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.52 2015/02/10 10:41:11 deuce Exp $ */
+/* $Id: menu.c,v 1.51 2015/02/09 07:34:23 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -23,7 +23,6 @@ void viewscroll(void)
 	struct	text_info txtinfo;
 	int	x,y;
 	struct mouse_event mevent;
-	int old_xlat=ciolib_xlat;
 
 	x=wherex();
 	y=wherey();
@@ -50,7 +49,7 @@ void viewscroll(void)
 		cputs("Scrollback");
 		gotoxy(cterm->width-9,1);
 		cputs("Scrollback");
-		ciolib_xlat = old_xlat;
+		ciolib_xlat = FALSE;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
