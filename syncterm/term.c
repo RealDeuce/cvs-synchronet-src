@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.302 2015/02/09 07:18:57 deuce Exp $ */
+/* $Id: term.c,v 1.303 2015/02/09 07:34:23 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1906,16 +1906,12 @@ void font_control(struct bbslist *bbs)
 					struct file_pick fpick;
 					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-					if(j!=-1 && fpick.files>=1) {
+					if(j!=-1 && fpick.files>=1)
 						loadfont(fpick.selected[0]);
-						uifc_old_font=getfont();
-					}
 					filepick_free(&fpick);
 				}
-				else {
+				else
 					setfont(i,FALSE,1);
-					uifc_old_font=getfont();
-				}
 			}
 		break;
 	}

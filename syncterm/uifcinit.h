@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id$ */
+/* $Id: uifcinit.h,v 1.11 2015/02/09 07:34:23 deuce Exp $ */
 
 #ifndef _UIFCINIT_H_
 #define _UIFCINIT_H_
@@ -8,7 +8,6 @@
 #include <uifc.h>
 
 extern	uifcapi_t uifc; /* User Interface (UIFC) Library API */
-extern	int uifc_old_font;	/* Font to return to after exiting uifc */
 int	init_uifc(BOOL scrn, BOOL bottom);
 void uifcbail(void);
 void uifcmsg(char *msg, char *helpbuf);
