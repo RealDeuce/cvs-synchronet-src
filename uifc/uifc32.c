@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.213 2015/02/17 07:33:49 deuce Exp $ */
+/* $Id: uifc32.c,v 1.207 2015/02/09 04:13:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,44 +166,44 @@ static uifc_graphics_t ascii_chars = {
 	.button_left='[',
 	.button_right=']',
 
-	.list_top_left=',',
+	.list_top_left='+',
 	.list_top='-',
-	.list_top_right='.',
+	.list_top_right='+',
 	.list_separator_left='+',
 	.list_separator_right='+',
 	.list_horizontal_separator='-',
 	.list_left='|',
 	.list_right='|',
-	.list_bottom_left='`',
-	.list_bottom_right='\'',
+	.list_bottom_left='+',
+	.list_bottom_right='+',
 	.list_bottom='-',
 	.list_scrollbar_separator='|',
 
-	.input_top_left=',',
+	.input_top_left='+',
 	.input_top='-',
-	.input_top_right='.',
+	.input_top_right='+',
 	.input_left='|',
 	.input_right='|',
-	.input_bottom_left='`',
-	.input_bottom_right='\'',
+	.input_bottom_left='+',
+	.input_bottom_right='+',
 	.input_bottom='-',
 
-	.popup_top_left=',',
+	.popup_top_left='+',
 	.popup_top='-',
-	.popup_top_right='.',
+	.popup_top_right='+',
 	.popup_left='|',
 	.popup_right='|',
-	.popup_bottom_left='`',
-	.popup_bottom_right='\'',
+	.popup_bottom_left='+',
+	.popup_bottom_right='+',
 	.popup_bottom='-',
 
-	.help_top_left=',',
+	.help_top_left='+',
 	.help_top='-',
-	.help_top_right='.',
+	.help_top_right='+',
 	.help_left='|',
 	.help_right='|',
-	.help_bottom_left='`',
-	.help_bottom_right='\'',
+	.help_bottom_left='+',
+	.help_bottom_right='+',
 	.help_bottom='-',
 	.help_titlebreak_left='|',
 	.help_titlebreak_right='|',
@@ -265,7 +265,6 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
     api=uifcapi;
     if (api->chars == NULL) {
 		switch(getfont()) {
-			case -1:
 			case 0:
 			case 17:
 			case 18:
@@ -487,7 +486,7 @@ void docopy(void)
 						outpos=0;
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
-								copybuf[outpos++]=screen[(y*api->scrn_width+x)*2]?screen[(y*api->scrn_width+x)*2]:' ';
+								copybuf[outpos++]=screen[(y*api->scrn_width+x)*2];
 							}
 							#ifdef _WIN32
 								copybuf[outpos++]='\r';
@@ -644,7 +643,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int gotkey;
 	uchar	hclr,lclr,bclr,cclr,lbclr;
 
-	api->exit_flags = 0;
 	hclr=api->hclr;
 	lclr=api->lclr;
 	bclr=api->bclr;
@@ -1048,7 +1046,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		else
 			y=top+tbrdrwidth+(*cur);
 		i=(*cur)+(top+tbrdrwidth-y);
-		j=tbrdrwidth-1;
+		j=2;
 
 		longopt=0;
 		while(j<height-bbrdrwidth-1) {
@@ -1108,10 +1106,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		gotkey=0;
 		textattr(((api->lbclr)&0x0f)|((api->lbclr >> 4)&0x0f));
 		gotoxy(s_left+lbrdrwidth+2+left, s_top+y);
-		if((api->exit_flags & UIFC_XF_QUIT) || kbwait() || (mode&(WIN_POP|WIN_SEL))) {
-			if(api->exit_flags & UIFC_XF_QUIT)
-				gotkey = CIO_KEY_QUIT;
-			else if(mode&WIN_POP)
+		if(kbwait() || (mode&(WIN_POP|WIN_SEL))) {
+			if(mode&WIN_POP)
 				gotkey=ESC;
 			else if(mode&WIN_SEL)
 				gotkey=CR;
@@ -1243,11 +1239,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					break;
 				case CIO_KEY_ABORTED:
 					gotkey=ESC;
-					break;
-				case CIO_KEY_QUIT:
-					api->exit_flags |= UIFC_XF_QUIT;
-					if(!(mode&WIN_EXTKEYS))
-						gotkey=ESC;
 					break;
 			}
 			if(gotkey>255) {
@@ -2017,7 +2008,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	char	*pastebuf=NULL;
 	unsigned char	*pb=NULL;
 
-	api->exit_flags = 0;
 	if((str=alloca(max+1))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(max+1));
@@ -2050,11 +2040,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		}
 #endif
 		f=inkey();
-		if(f==CIO_KEY_QUIT) {
-			api->exit_flags |= UIFC_XF_QUIT;
-			return -1;
-		}
-
 		if(f==CIO_KEY_MOUSE) {
 			f=uifc_getmouse(&mevnt);
 			if(f==0 || (f==ESC && mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
@@ -2174,8 +2159,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				case CTRL_Z:
 				case CIO_KEY_F(1):	/* F1 Help */
 					api->showhelp();
-					if(api->exit_flags & UIFC_XF_QUIT)
-						f = CIO_KEY_QUIT;
 					continue;
 				case CIO_KEY_LEFT:	/* left arrow */
 					if(i)
@@ -2242,8 +2225,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						j--;
 					}
 					continue;
-				case CIO_KEY_QUIT:
-					api->exit_flags |= UIFC_XF_QUIT;
 				case CIO_KEY_ABORTED:
 				case CTRL_C:
 				case ESC:
@@ -2571,7 +2552,6 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	uint title_len=0;
 	struct mouse_event	mevnt;
 
-	api->exit_flags = 0;
 	_setcursortype(_NOCURSOR);
 	
 	title_len=strlen(title);
@@ -2818,9 +2798,6 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 						p = p+((width-2-pad-pad)*2);
 						break;
 
-					case CIO_KEY_QUIT:
-						api->exit_flags |= UIFC_XF_QUIT;
-						// Fall-through
 					default:
 						i=1;
 				}
@@ -2847,7 +2824,6 @@ static void help(void)
 	long l;
 	FILE *fp;
 
-	api->exit_flags = 0;
 	if(api->helpbuf==NULL && api->helpixbfile[0]==0)
 		return;
 
