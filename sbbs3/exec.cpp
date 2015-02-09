@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.100 2015/08/20 05:19:40 deuce Exp $ */
+/* $Id: exec.cpp,v 1.98 2011/11/03 21:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -578,7 +578,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	JSObject*	js_scope=scope;
 	JSObject*	js_script=NULL;
 	jsval		rval;
-	int32_t		result=0;
+	int32		result=0;
 
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
@@ -665,7 +665,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
 #endif
 
-		js_PrepareToExecute(js_cx, js_glob, path, startup_dir, js_scope);
+		js_PrepareToExecute(js_cx, js_glob, path, startup_dir);
 	}
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
 
@@ -1655,12 +1655,6 @@ int sbbs_t::exec(csi_t *csi)
 					case USER_STRING_MODEM:
 						sprintf(useron.modem,"%.*s",LEN_MODEM,csi->str);
 						putuserrec(&cfg,useron.number,U_MODEM,LEN_MODEM
-							,useron.phone);
-						csi->logic=LOGIC_TRUE;
-						break;
-					case USER_STRING_IPADDR:
-						sprintf(useron.ipaddr,"%.*s",LEN_IPADDR,csi->str);
-						putuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR
 							,useron.phone);
 						csi->logic=LOGIC_TRUE;
 						break;
