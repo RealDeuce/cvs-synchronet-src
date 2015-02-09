@@ -2,13 +2,13 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.13 2015/11/25 07:27:07 sbbs Exp $ */
+/* $Id: xpdatetime.c,v 1.8 2014/02/10 09:20:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -84,12 +84,11 @@ xpDateTime_t DLLCALL xpDateTime_now(void)
 #endif
 }
 
-/* Return local timezone offset (in minutes) */
 xpTimeZone_t DLLCALL xpTimeZone_local(void)
 {
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__) || defined(__linux__)
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__)
 	struct tm tm;
-	time_t t=time(NULL);
+	time_t t;
 
 	localtime_r(&t, &tm);
 	return(tm.tm_gmtoff/60);
@@ -124,7 +123,6 @@ xpTimeZone_t DLLCALL xpTimeZone_local(void)
 #endif
 }
 
-/* TODO: Supports local timezone and UTC only, currently */
 time_t DLLCALL xpDateTime_to_time(xpDateTime_t xpDateTime)
 {
 	struct tm tm;
@@ -142,18 +140,7 @@ time_t DLLCALL xpDateTime_to_time(xpDateTime_t xpDateTime)
 	tm.tm_min	= xpDateTime.time.minute;
 	tm.tm_sec	= (int)xpDateTime.time.second;
 
-	if(xpDateTime.zone == xpTimeZone_UTC)
-		return sane_timegm(&tm);
-	if(xpDateTime.zone == xpTimeZone_LOCAL || xpDateTime.zone == xpTimeZone_local())
-		return sane_mktime(&tm);
-	return INVALID_TIME;
-}
-
-/* This version ignores the timezone in xpDateTime and always uses mktime() */
-time_t DLLCALL xpDateTime_to_localtime(xpDateTime_t xpDateTime)
-{
-	xpDateTime.zone = xpTimeZone_LOCAL;
-	return xpDateTime_to_time(xpDateTime);
+	return sane_mktime(&tm);
 }
 
 xpDateTime_t DLLCALL time_to_xpDateTime(time_t ti, xpTimeZone_t zone)
