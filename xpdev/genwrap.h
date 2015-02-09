@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.102 2014/04/29 08:51:26 deuce Exp $ */
+/* $Id: genwrap.h,v 1.104 2014/06/23 11:04:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,6 +91,8 @@ extern "C" {
 #if __GNUC__ >= 2 || defined(__INTEL_COMPILER)
 #undef  alloca  /* some GNU bits try to get cute and define this on their own */
 #define alloca(sz) __builtin_alloca(sz)
+#elif defined(_WIN32)
+#include <malloc.h>
 #endif
 
 /*********************/
@@ -275,7 +277,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#if !defined(_MSC_VER)	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
+	#if !(defined(_MSC_VER) || defined(__MSVCRT__))	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
 		#define tzname			_tzname
 	#endif
 
