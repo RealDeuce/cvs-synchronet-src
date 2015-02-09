@@ -2,7 +2,7 @@
 #
 # Global build system setup file for Borland Make/BCC
 #
-# $Id: Common.bmake,v 1.52 2011/07/14 17:19:00 rswindell Exp $
+# $Id: Common.bmake,v 1.53 2014/10/06 21:46:53 deuce Exp $
 #
 #############################################################################
 #																			#
@@ -17,7 +17,7 @@
 #					  (Mutually exclusive, if both are set, RELEASE 		#
 #						is cleared)											#
 #  DONT_CLOBBER_CC	- Do not change the default setting of CC				#
-#  OBJPATH_SUFFIX	- Suffix appended to OBJPATH usefull for compiling 		#
+#  OBJPATH_SUFFIX	- Suffix appended to OBJPATH useful for compiling 		#
 #					  different options of the same source file				#
 #																			#
 # Common Build Macros Defined:												#

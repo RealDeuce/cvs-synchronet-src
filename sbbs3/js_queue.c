@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.44 2013/02/08 05:30:31 deuce Exp $ */
+/* $Id: js_queue.c,v 1.45 2013/05/10 18:10:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -268,7 +268,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	val = argv[argn++];
 
 	if(argn < argc) {
-		JSVALUE_TO_MSTRING(cx, argv[argn++], name, NULL);
+		JSVALUE_TO_MSTRING(cx, argv[argn], name, NULL);
+		argn++;
 		HANDLE_PENDING(cx);
 	}
 
@@ -435,8 +436,10 @@ js_queue_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	memset(q,0,sizeof(msg_queue_t));
 #endif
 
-	if(argn<argc && JSVAL_IS_STRING(argv[argn]))
-		JSVALUE_TO_ASTRING(cx, argv[argn++], name, sizeof(q->name), NULL);
+	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
+		JSVALUE_TO_ASTRING(cx, argv[argn], name, sizeof(q->name), NULL);
+		argn++;
+	}
 
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn])) {
 		if(!JS_ValueToInt32(cx,argv[argn++],&flags))
