@@ -2,7 +2,7 @@
 
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.26 2012/04/25 08:22:54 deuce Exp $ */
+/* $Id: uifcx.c,v 1.29 2014/04/24 07:32:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@ static void sethelp(int line, char* file);
 /* Initialization function, see uifc.h for details.							*/
 /* Returns 0 on success.													*/
 /****************************************************************************/
-int uifcinix(uifcapi_t* uifcapi)
+int UIFCCALL uifcinix(uifcapi_t* uifcapi)
 {
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
@@ -121,7 +121,8 @@ static int getstr(char* str, int maxlen)
 	istty=isatty(fileno(stdin));
 #endif
     while(1) {
-		fread(&ch,1,1,stdin);
+		if(fread(&ch,1,1,stdin)!=1)
+			break;
 #ifdef __unix__
 		if(!istty)  {
 			printf("%c",ch);
@@ -411,15 +412,20 @@ void help()
                 p++;
             l=-1L;
             while(!feof(fp)) {
-                if(!fread(str,12,1,fp))
+                if(fread(str,12,1,fp)!=1)
                     break;
                 str[12]=0;
-                fread(&line,2,1,fp);
+                if(fread(&line,2,1,fp)!=1)
+					break;
                 if(stricmp(str,p) || line!=helpline) {
-                    fseek(fp,4,SEEK_CUR);
-                    continue; }
-                fread(&l,4,1,fp);
-                break; }
+                    if(fseek(fp,4,SEEK_CUR)==0)
+						break;
+                    continue;
+                }
+                if(fread(&l,4,1,fp)!=1)
+					l=-1L;
+                break;
+            }
             fclose(fp);
             if(l==-1L)
                 sprintf(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
@@ -429,21 +435,31 @@ void help()
                     sprintf(hbuf,"ERROR: Cannot open help file: %s"
                         ,api->helpdatfile);
                 else {
-                    fseek(fp,l,SEEK_SET);
-                    fread(hbuf,HELPBUF_SIZE,1,fp);
-                    fclose(fp); 
-				} 
-			} 
-		} 
+                    if(fseek(fp,l,SEEK_SET)!=0) {
+						sprintf(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %s"
+							,p,helpline,l,api->helpixbfile);
+					}
+					else {
+						if(fread(hbuf,1,HELPBUF_SIZE,fp)<1) {
+							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
+								,p,helpline,l,api->helpixbfile);
+						}
+					}
+					fclose(fp); 
+				}
+			}
+		}
+		uputs(hbuf);
+		if(strlen(hbuf)>200) {
+			printf("Hit enter");
+			getstr(str,sizeof(str)-1);
+		}
 	}
-    else
-        strcpy(hbuf,api->helpbuf);
-
-    uputs(hbuf);
-    if(strlen(hbuf)>200) {
-        printf("Hit enter");
-        getstr(str,sizeof(str)-1);
-    }
+    else {
+		uputs(api->helpbuf);
+		if(strlen(api->helpbuf)>200) {
+			printf("Hit enter");
+			getstr(str,sizeof(str)-1);
+		}
+	}
 }
-
-
