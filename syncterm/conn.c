@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.74 2015/02/27 10:44:47 deuce Exp $ */
+/* $Id: conn.c,v 1.72 2015/02/09 08:29:21 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -44,8 +44,16 @@
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types_enum[]={"Unknown","RLogin","RLoginReversed","Telnet","Raw","SSH","Modem","Serial","Shell",NULL};
-char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial","Shell",NULL};
+char *conn_types_enum[]={"Unknown","RLogin","RLoginReversed","Telnet","Raw","SSH","Modem","Serial"
+#ifdef __unix__
+,"Shell"
+#endif
+,NULL};
+char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial"
+#ifdef __unix__
+,"Shell"
+#endif
+,NULL};
 short unsigned int conn_ports[]={0,513,513,23,0,22,0,0
 #ifdef __unix__
 ,65535
@@ -117,9 +125,8 @@ size_t conn_buf_free(struct conn_buffer *buf)
  * leaving them in the buffer.  Returns the number of bytes
  * copied out of the buffer
  */
-size_t conn_buf_peek(struct conn_buffer *buf, void *voutbuf, size_t outlen)
+size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen)
 {
-	unsigned char *outbuf = (unsigned char *)voutbuf;
 	size_t copy_bytes;
 	size_t chunk;
 
@@ -143,9 +150,8 @@ size_t conn_buf_peek(struct conn_buffer *buf, void *voutbuf, size_t outlen)
  * removing them from the buffer.  Returns the number of
  * bytes removed from the buffer.
  */
-size_t conn_buf_get(struct conn_buffer *buf, void *voutbuf, size_t outlen)
+size_t conn_buf_get(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen)
 {
-	unsigned char *outbuf = (unsigned char *)voutbuf;
 	size_t ret;
 	size_t atstart;
 
@@ -166,9 +172,8 @@ size_t conn_buf_get(struct conn_buffer *buf, void *voutbuf, size_t outlen)
  * Places up to outlen bytes from outbuf into the buffer
  * returns the number of bytes written into the buffer
  */
-size_t conn_buf_put(struct conn_buffer *buf, const void *voutbuf, size_t outlen)
+size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t outlen)
 {
-	const unsigned char *outbuf = (unsigned char *)voutbuf;
 	size_t write_bytes;
 	size_t chunk;
 
@@ -263,9 +268,8 @@ BOOL conn_connected(void)
 	return(FALSE);
 }
 
-int conn_recv_upto(void *vbuffer, size_t buflen, unsigned timeout)
+int conn_recv_upto(char *buffer, size_t buflen, unsigned timeout)
 {
-	char *buffer = (char *)vbuffer;
 	size_t	found=0;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -276,9 +280,8 @@ int conn_recv_upto(void *vbuffer, size_t buflen, unsigned timeout)
 }
 
 
-int conn_recv(void *vbuffer, size_t buflen, unsigned timeout)
+int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 {
-	char *buffer = (char *)vbuffer;
 	size_t found;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -289,9 +292,8 @@ int conn_recv(void *vbuffer, size_t buflen, unsigned timeout)
 	return(found);
 }
 
-int conn_peek(void *vbuffer, size_t buflen)
+int conn_peek(char *buffer, size_t buflen)
 {
-	char *buffer = (char *)vbuffer;
 	size_t found;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -302,9 +304,8 @@ int conn_peek(void *vbuffer, size_t buflen)
 	return(found);
 }
 
-int conn_send(void *vbuffer, size_t buflen, unsigned int timeout)
+int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 {
-	char *buffer = (char *)vbuffer;
 	size_t found;
 
 	pthread_mutex_lock(&(conn_outbuf.mutex));
@@ -317,8 +318,6 @@ int conn_send(void *vbuffer, size_t buflen, unsigned int timeout)
 
 int conn_connect(struct bbslist *bbs)
 {
-	char	str[64];
-
 	memset(&conn_api, 0, sizeof(conn_api));
 
 	switch(bbs->conn_type) {
@@ -337,8 +336,15 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=raw_connect;
 			conn_api.close=raw_close;
 			break;
-#ifndef WITHOUT_CRYPTLIB
 		case CONN_TYPE_SSH:
+#ifdef WITHOUT_CRYPTLIB
+			init_uifc(TRUE, TRUE);
+			uifcmsg("SSH inoperative",	"`Compiled without cryptlib`\n\n"
+					"This binary was compiled without Cryptlib,\n"
+					"which is required for SSH support."
+					);
+			return(-1);
+#else
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
 			break;
@@ -360,11 +366,6 @@ int conn_connect(struct bbslist *bbs)
 			break;
 #endif
 		default:
-			sprintf(str,"%s connections not supported.",conn_types[bbs->conn_type]);
-			uifcmsg(str,	"`Connection type not supported`\n\n"
-							"The connection type of this entry is not supported by this build.\n"
-							"Either the protocol was disabled at compile time, or is\n"
-							"unsupported on this plattform.");
 			conn_api.terminate=1;
 	}
 	if(conn_api.connect) {
@@ -411,6 +412,7 @@ enum failure_reason {
 int conn_socket_connect(struct bbslist *bbs)
 {
 	SOCKET			sock=INVALID_SOCKET;
+	char			*p;
 	int				nonblock;
 	struct timeval	tv;
 	fd_set			wfd;
