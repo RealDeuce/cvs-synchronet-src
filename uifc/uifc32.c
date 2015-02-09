@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.211 2015/02/14 10:29:01 deuce Exp $ */
+/* $Id: uifc32.c,v 1.206 2015/02/09 03:43:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,7 +103,7 @@ static void reset_dynamic(void) {
 	save_menu_opts=-1;
 }
 
-static uifc_graphics_t cp437_chars = {
+static uifc_graphics_t default_chars = {
 	.background=0xb0,
 	.help_char='?',
 	.close_char=0xfe,
@@ -155,60 +155,6 @@ static uifc_graphics_t cp437_chars = {
 	.help_titlebreak_right=0xc3,
 	.help_hitanykey_left=0xb4,
 	.help_hitanykey_right=0xc3,
-};
-
-static uifc_graphics_t ascii_chars = {
-	.background='#',
-	.help_char='?',
-	.close_char='X',
-	.up_arrow='^',
-	.down_arrow='V',
-	.button_left='[',
-	.button_right=']',
-
-	.list_top_left=',',
-	.list_top='-',
-	.list_top_right='.',
-	.list_separator_left='+',
-	.list_separator_right='+',
-	.list_horizontal_separator='-',
-	.list_left='|',
-	.list_right='|',
-	.list_bottom_left='`',
-	.list_bottom_right='\'',
-	.list_bottom='-',
-	.list_scrollbar_separator='|',
-
-	.input_top_left=',',
-	.input_top='-',
-	.input_top_right='.',
-	.input_left='|',
-	.input_right='|',
-	.input_bottom_left='`',
-	.input_bottom_right='\'',
-	.input_bottom='-',
-
-	.popup_top_left=',',
-	.popup_top='-',
-	.popup_top_right='.',
-	.popup_left='|',
-	.popup_right='|',
-	.popup_bottom_left='`',
-	.popup_bottom_right='\'',
-	.popup_bottom='-',
-
-	.help_top_left=',',
-	.help_top='-',
-	.help_top_right='.',
-	.help_left='|',
-	.help_right='|',
-	.help_bottom_left='`',
-	.help_bottom_right='\'',
-	.help_bottom='-',
-	.help_titlebreak_left='|',
-	.help_titlebreak_right='|',
-	.help_hitanykey_left='|',
-	.help_hitanykey_right='|',
 };
 
 /****************************************************************************/
@@ -263,26 +209,8 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
         return(-1);
 
     api=uifcapi;
-    if (api->chars == NULL) {
-		switch(getfont()) {
-			case -1:
-			case 0:
-			case 17:
-			case 18:
-			case 19:
-			case 25:
-			case 26:
-			case 27:
-			case 28:
-			case 29:
-			case 31:
-				api->chars = &cp437_chars;
-				break;
-			default:
-				api->chars = &ascii_chars;
-				break;
-		}
-	}
+    if (api->chars == NULL)
+		api->chars = &default_chars;
 
     /* install function handlers */
     api->bail=uifcbail;
@@ -487,7 +415,7 @@ void docopy(void)
 						outpos=0;
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
-								copybuf[outpos++]=screen[(y*api->scrn_width+x)*2]?screen[(y*api->scrn_width+x)*2]:' ';
+								copybuf[outpos++]=screen[(y*api->scrn_width+x)*2];
 							}
 							#ifdef _WIN32
 								copybuf[outpos++]='\r';
@@ -1047,7 +975,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		else
 			y=top+tbrdrwidth+(*cur);
 		i=(*cur)+(top+tbrdrwidth-y);
-		j=tbrdrwidth-1;
+		j=2;
 
 		longopt=0;
 		while(j<height-bbrdrwidth-1) {
