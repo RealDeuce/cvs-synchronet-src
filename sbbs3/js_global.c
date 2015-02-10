@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.337 2014/05/04 07:09:19 rswindell Exp $ */
+/* $Id: js_global.c,v 1.339 2014/11/18 06:11:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -839,7 +839,7 @@ js_ascii(JSContext *cx, uintN argc, jsval *arglist)
 	str[0]=(uchar)i;
 	str[1]=0;
 
-	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
+	if((js_str = JS_NewStringCopyN(cx, str, 1))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
@@ -4277,6 +4277,10 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* COM Class */
 		if(js_CreateCOMClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptContext Class */
+		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */

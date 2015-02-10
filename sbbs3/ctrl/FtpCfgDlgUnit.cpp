@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.cpp,v 1.9 2005/05/07 07:44:49 rswindell Exp $ */
+/* $Id: FtpCfgDlgUnit.cpp,v 1.11 2014/11/20 05:18:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -85,6 +85,7 @@ void __fastcall TFtpCfgDlg::FormShow(TObject *Sender)
     AutoStartCheckBox->Checked=MainForm->FtpAutoStart;
     LogFileCheckBox->Checked=MainForm->FtpLogFile;
 
+    PasvIpLookupCheckBox->Checked=MainForm->ftp_startup.options&FTP_OPT_LOOKUP_PASV_IP;
 	PasvPortLowEdit->Text=AnsiString((int)MainForm->ftp_startup.pasv_port_low);
   	PasvPortHighEdit->Text=AnsiString((int)MainForm->ftp_startup.pasv_port_high);
 
@@ -109,6 +110,7 @@ void __fastcall TFtpCfgDlg::FormShow(TObject *Sender)
 	HtmlIndexCheckBox->Checked
         =MainForm->ftp_startup.options&FTP_OPT_HTML_INDEX_FILE;
 	HtmlIndexCheckBoxClick(Sender);
+    PasvIpLookupCheckBoxClick(Sender);
 
     PageControl->ActivePage=GeneralTabSheet;
 }
@@ -154,10 +156,10 @@ void __fastcall TFtpCfgDlg::OKBtnClick(TObject *Sender)
     } else
         MainForm->ftp_startup.pasv_ip_addr=0;
 
-    MainForm->ftp_startup.max_clients=MaxClientsEdit->Text.ToIntDef(10);
-    MainForm->ftp_startup.max_inactivity=MaxInactivityEdit->Text.ToIntDef(300);
-    MainForm->ftp_startup.qwk_timeout=QwkTimeoutEdit->Text.ToIntDef(600);
-    MainForm->ftp_startup.port=PortEdit->Text.ToIntDef(23);
+    MainForm->ftp_startup.max_clients=MaxClientsEdit->Text.ToIntDef(FTP_DEFAULT_MAX_CLIENTS);
+    MainForm->ftp_startup.max_inactivity=MaxInactivityEdit->Text.ToIntDef(FTP_DEFAULT_MAX_INACTIVITY);
+    MainForm->ftp_startup.qwk_timeout=QwkTimeoutEdit->Text.ToIntDef(FTP_DEFAULT_QWK_TIMEOUT);
+    MainForm->ftp_startup.port=PortEdit->Text.ToIntDef(IPPORT_FTP);
     MainForm->FtpAutoStart=AutoStartCheckBox->Checked;
     MainForm->FtpLogFile=LogFileCheckBox->Checked;
 
@@ -214,6 +216,10 @@ void __fastcall TFtpCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->ftp_startup.options|=FTP_OPT_HTML_INDEX_FILE;
     else
 	    MainForm->ftp_startup.options&=~FTP_OPT_HTML_INDEX_FILE;
+    if(PasvIpLookupCheckBox->Checked==true)
+        MainForm->ftp_startup.options|=FTP_OPT_LOOKUP_PASV_IP;
+    else
+        MainForm->ftp_startup.options&=~FTP_OPT_LOOKUP_PASV_IP;
 
     MainForm->SaveIniSettings(Sender);
 }
@@ -272,4 +278,9 @@ void __fastcall TFtpCfgDlg::HtmlIndexCheckBoxClick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
+void __fastcall TFtpCfgDlg::PasvIpLookupCheckBoxClick(TObject *Sender)
+{
+    PasvIpAddrEdit->Enabled = !PasvIpLookupCheckBox->Checked;
+}
+//---------------------------------------------------------------------------
 
