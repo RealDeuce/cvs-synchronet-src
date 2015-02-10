@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.50 2016/10/06 06:47:39 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.47 2014/10/04 09:01:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -107,7 +107,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			backspace();
 		return(0); 
 	}
-	if(ch==CTRL_Z && !(mode&(K_MSG|K_GETSTR))
+	if(ch==CTRL_Z && !(mode&K_MSG|K_GETSTR)
 		&& action!=NODE_PCHT) {	 /* Ctrl-Z toggle raw input mode */
 		if(hotkey_inside>1)	/* only allow so much recursion */
 			return(0);
@@ -236,7 +236,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			attr(LIGHTGRAY);
 			now=time(NULL);
 			bprintf(text[TiLogon],timestr(logontime));
-			bprintf(text[TiNow],timestr(now),smb_zonestr(sys_timezone(&cfg),NULL));
+			bprintf(text[TiNow],timestr(now));
 			bprintf(text[TiTimeon]
 				,sectostr((uint)(now-logontime),tmp));
 			bprintf(text[TiTimeLeft]
@@ -290,7 +290,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					j++;
 					continue;
 				}
-				if(ch!=';' && !isdigit((uchar)ch) && ch!='R') {    /* other ANSI */
+				if(ch!=';' && !isdigit(ch) && ch!='R') {    /* other ANSI */
 					switch(ch) {
 						case 'A':
 							return(0x1e);	/* ctrl-^ (up arrow) */
