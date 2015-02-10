@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.207 2015/02/09 04:13:12 deuce Exp $ */
+/* $Id: uifc32.c,v 1.208 2015/02/10 08:41:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,44 +166,44 @@ static uifc_graphics_t ascii_chars = {
 	.button_left='[',
 	.button_right=']',
 
-	.list_top_left='+',
+	.list_top_left=',',
 	.list_top='-',
-	.list_top_right='+',
+	.list_top_right='.',
 	.list_separator_left='+',
 	.list_separator_right='+',
 	.list_horizontal_separator='-',
 	.list_left='|',
 	.list_right='|',
-	.list_bottom_left='+',
-	.list_bottom_right='+',
+	.list_bottom_left='`',
+	.list_bottom_right='\'',
 	.list_bottom='-',
 	.list_scrollbar_separator='|',
 
-	.input_top_left='+',
+	.input_top_left=',',
 	.input_top='-',
-	.input_top_right='+',
+	.input_top_right='.',
 	.input_left='|',
 	.input_right='|',
-	.input_bottom_left='+',
-	.input_bottom_right='+',
+	.input_bottom_left='`',
+	.input_bottom_right='\'',
 	.input_bottom='-',
 
-	.popup_top_left='+',
+	.popup_top_left=',',
 	.popup_top='-',
-	.popup_top_right='+',
+	.popup_top_right='.',
 	.popup_left='|',
 	.popup_right='|',
-	.popup_bottom_left='+',
-	.popup_bottom_right='+',
+	.popup_bottom_left='`',
+	.popup_bottom_right='\'',
 	.popup_bottom='-',
 
-	.help_top_left='+',
+	.help_top_left=',',
 	.help_top='-',
-	.help_top_right='+',
+	.help_top_right='.',
 	.help_left='|',
 	.help_right='|',
-	.help_bottom_left='+',
-	.help_bottom_right='+',
+	.help_bottom_left='`',
+	.help_bottom_right='\'',
 	.help_bottom='-',
 	.help_titlebreak_left='|',
 	.help_titlebreak_right='|',
