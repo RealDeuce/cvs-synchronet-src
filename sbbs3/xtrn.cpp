@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.223 2015/02/09 05:05:18 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.224 2015/02/10 03:04:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2263,7 +2263,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
                     break;
                 case 'I':   /* IP address */
 					if(user!=NULL)
-						strcat(cmd,user->ipaddr);
+						strcat(cmd,user->note);
                     break;
                 case 'J':
                     strcat(cmd,cfg->data_dir);
