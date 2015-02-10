@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.208 2015/02/10 08:41:17 deuce Exp $ */
+/* $Id: uifc32.c,v 1.209 2015/02/10 09:40:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,6 +265,7 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
     api=uifcapi;
     if (api->chars == NULL) {
 		switch(getfont()) {
+			case -1:
 			case 0:
 			case 17:
 			case 18:
