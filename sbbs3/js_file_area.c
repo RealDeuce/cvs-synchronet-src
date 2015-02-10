@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.49 2011/10/08 23:50:45 deuce Exp $ */
+/* $Id: js_file_area.c,v 1.50 2014/11/12 00:06:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -414,7 +414,9 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 				is_op=FALSE;
 
 			if(user==NULL 
-				|| ((is_op || user->exempt&FLAG('U') || chk_ar(cfg,cfg->dir[d]->ul_ar,user,client)) && !(user->rest&FLAG('U'))))
+				|| ((is_op || user->exempt&FLAG('U')
+				|| chk_ar(cfg,cfg->dir[d]->ul_ar,user,client))
+				&& !(user->rest&FLAG('T')) && !(user->rest&FLAG('U'))))
 				val=JSVAL_TRUE;
 			else
 				val=JSVAL_FALSE;
@@ -422,7 +424,8 @@ JSObject* DLLCALL js_CreateFileAreaObject(JSContext* cx, JSObject* parent, scfg_
 				return(NULL);
 
 			if(user==NULL 
-				|| (chk_ar(cfg,cfg->dir[d]->dl_ar,user,client) && !(user->rest&FLAG('D'))))
+				|| (chk_ar(cfg,cfg->dir[d]->dl_ar,user,client)
+				&& !(user->rest&FLAG('T')) && !(user->rest&FLAG('D'))))
 				val=JSVAL_TRUE;
 			else
 				val=JSVAL_FALSE;
