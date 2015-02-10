@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.33 2015/02/12 05:44:13 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.32 2014/02/06 10:58:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -241,9 +241,6 @@ static int _putch(unsigned char ch, BOOL refresh_now)
 				break;
 			case 219:
 				cha=ACS_BLOCK;
-				break;
-			case 254:
-				cha=ACS_BULLET;
 				break;
 			default:
 				cha=ch;
