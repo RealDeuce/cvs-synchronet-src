@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: xpbeep.c,v 1.91 2015/02/11 08:02:39 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -734,7 +734,9 @@ void DLLCALL xp_play_sample_thread(void *data)
 			sdl_audio_buf_pos=0;
 			sdl_audio_buf_len=this_sample_size;
 			sdl.UnlockAudio();
+			sdl.PauseAudio(FALSE);
 			sdl.SemWait(sdlToneDone);
+			sdl.PauseAudio(TRUE);
 		}
 	#endif
 
@@ -898,7 +900,9 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 		sdl_audio_buf_pos=0;
 		sdl_audio_buf_len=sample_size;
 		sdl.UnlockAudio();
+		sdl.PauseAudio(FALSE);
 		sdl.SemWait(sdlToneDone);
+		sdl.PauseAudio(TRUE);
 		if(must_close)
 			xptone_close();
 		return TRUE;
