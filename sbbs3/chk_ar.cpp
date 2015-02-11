@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.25 2015/08/20 05:19:40 deuce Exp $ */
+/* $Id: chk_ar.cpp,v 1.23 2011/10/26 00:55:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -631,7 +631,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				if(client!=NULL)
 					p=client->addr;
 				else
-					p=user->ipaddr;
+					p=user->note;
 				if(!findstr_in_string(p,(char*)*ptrptr))
 					result=_not;
 				else
@@ -742,7 +742,7 @@ uint sbbs_t::getusrsub(uint subnum)
 	ugrp = getusrgrp(subnum);
 	if(ugrp<=0)
 		return(0);
-	ugrp--;
+	
 	for(usub=0;usub<usrsubs[ugrp];usub++)
 		if(usrsub[ugrp][usub]==subnum)
 			break;
