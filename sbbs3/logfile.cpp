@@ -2,13 +2,13 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.54 2011/10/19 07:08:31 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.55 2014/12/11 11:05:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -278,6 +278,8 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 		eprintf(LOG_ERR,"%s",str);
 	else {
 		int savatr=curatr;
+		if(useron.number)
+			safe_snprintf(str+strlen(str),sizeof(str)-strlen(str)," (useron=%s)", useron.alias);
 		lprintf(LOG_ERR,"Node %d !%s",cfg.node_num, str);
 		attr(cfg.color[clr_err]);
 		bprintf("\7\r\n!ERROR %s %s\r\n", action, object);   /* tell user about error */
