@@ -1,12 +1,14 @@
+/* msgtoqwk.cpp */
+
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.42 2016/11/10 10:06:30 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.39 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,7 +45,7 @@
 /* mode determines how to handle Ctrl-A codes								*/
 /****************************************************************************/
 ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
-	, int conf, FILE* hdrs, FILE* voting)
+	, int conf, FILE* hdrs)
 {
 	char	str[512],from[512],to[512],ch=0,tear=0,tearwatch=0,*buf,*p;
 	char	asc;
@@ -56,40 +58,14 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 	smbmsg_t	remsg;
 	time_t	tt;
 
-	get_msgid(&cfg, subnum, msg, msgid, sizeof(msgid));
-
-	if(msg->hdr.attr&(MSG_VOTE|MSG_POLL)) {
-		if(voting == NULL)
-			return 0;
-		if(msg->hdr.attr&MSG_VOTE) {
-			fprintf(voting, "[vote:%s]\n", msgid);
-			if((p = msg->reply_id) != NULL)
-				fprintf(voting, "%s: %s\n", smb_hfieldtype(RFC822REPLYID), p);
-			if((msg->hdr.attr&MSG_VOTE) == MSG_VOTE)
-				fprintf(voting, "Vote = %hd\n", msg->hdr.vote);
-			else
-				fprintf(voting, "%sVote = true\n", msg->hdr.attr&MSG_UPVOTE ? "Up" : "Down");
-		} else {
-			fprintf(voting, "[poll:%s]\n", msgid);
-		}
-		if(msg->subj && *msg->subj)
-			fprintf(voting, "%s: %s\n",smb_hfieldtype(SUBJECT), msg->subj);
-		/* SENDER */
-		fprintf(voting, "%s: %s\n", smb_hfieldtype(SENDER), msg->from);
-		if(msg->from_net.type)
-			fprintf(voting, "%s: %s\n", smb_hfieldtype(SENDERNETADDR), smb_netaddrstr(&msg->from_net, tmp));
-		fprintf(voting, "Conference: %u\n", conf);
-		fputc('\n', voting);
-		return 0;
-	}
 	offset=(long)ftell(qwk_fp);
 	if(hdrs!=NULL) {
 		fprintf(hdrs,"[%lx]\n",offset);
 
 		/* Message-IDs */
-		fprintf(hdrs,"%s: %s\n", smb_hfieldtype(RFC822MSGID), msgid);
+		fprintf(hdrs,"Message-ID:  %s\n",get_msgid(&cfg,subnum,msg,msgid,sizeof(msgid)));
 		if(msg->reply_id!=NULL)
-			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(RFC822REPLYID), msg->reply_id);
+			fprintf(hdrs,"In-Reply-To: %s\n",msg->reply_id);
 
 		/* Time/Date/Zone info */
 		fprintf(hdrs,"WhenWritten:  %-20s %04hx\n"
@@ -149,7 +125,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 
 		/* RECIPIENT */
 		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(RECIPIENT),msg->to);
-		if(msg->to_net.type!=NET_NONE && subnum==INVALID_SUB)
+		if(msg->to_net.type)
 			fprintf(hdrs,"%s: %s\n",smb_hfieldtype(RECIPIENTNETADDR),smb_netaddrstr(&msg->to_net,tmp));
 
 		/* FidoNet */
@@ -204,7 +180,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 	}
 	if(msg->hdr.attr&MSG_ANONYMOUS && !SYSOP)
 		SAFECOPY(from,text[Anonymous]); 
-	else if((mode&QM_EXT) && strlen(from) > QWK_HFIELD_LEN) {
+	else if((subnum==INVALID_SUB || (useron.qwk&QWK_EXT)) && strlen(from) > QWK_HFIELD_LEN) {
 		size+=fprintf(qwk_fp,"From: %.128s%c", from, QWK_NEWLINE);
 		SAFECOPY(from,msg->from); 
 	} 
@@ -232,14 +208,14 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 		else
 			sprintf(to,"%.128s@%.128s",msg->to,(char*)msg->to_net.addr);
 	}
-	if((mode&QM_EXT) && strlen(to) > QWK_HFIELD_LEN) {
+	if((subnum==INVALID_SUB || (useron.qwk&QWK_EXT)) && strlen(to) > QWK_HFIELD_LEN) {
 		size+=fprintf(qwk_fp,"To: %.128s%c", to, QWK_NEWLINE);
 		if(msg->to_net.type==NET_QWK)
 			SAFECOPY(to,"NETMAIL");
 		else
 			SAFECOPY(to,msg->to); 
 	}
-	if((mode&QM_EXT) && strlen(msg->subj) > QWK_HFIELD_LEN)
+	if((useron.qwk&QWK_EXT) && strlen(msg->subj) > QWK_HFIELD_LEN)
 		size+=fprintf(qwk_fp,"Subject: %.128s%c", msg->subj, QWK_NEWLINE);
 
 	if(msg->from_net.type==NET_QWK && mode&QM_VIA && !msg->forwarded)
@@ -248,7 +224,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 	
 	if(mode&QM_MSGID && (uint)subnum!=INVALID_SUB) {
 		size+=fprintf(qwk_fp,"@MSGID: %s%c"
-			,msgid,QWK_NEWLINE);
+			,get_msgid(&cfg,subnum,msg,msgid,sizeof(msgid)),QWK_NEWLINE);
 
 		if(msg->reply_id) {
 			SAFECOPY(tmp,msg->reply_id);
@@ -491,7 +467,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 		,(ushort)conf>>8		/*					 hi byte */
 		,' '                     /* not used */
 		,' '                     /* not used */
-		,(mode&QM_TO_QNET) ? '*' : ' '     /* Net tag line */
+		,useron.rest&FLAG('Q') ? '*' : ' '     /* Net tag line */
 		);
 
 	fseek(qwk_fp,offset,SEEK_SET);
