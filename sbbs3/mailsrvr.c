@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.569 2014/03/12 09:36:28 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.574 2014/12/11 00:11:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -905,10 +905,10 @@ static void pop3_thread(void* arg)
 		user.number=matchuser(&scfg,username,FALSE /*sysop_alias*/);
 		if(!user.number) {
 			if(scfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: %s (password: %s)"
+				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: '%s' (password: %s)"
 					,socket, username, password);
 			else
-				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: %s"
+				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: '%s'"
 					,socket, username);
 			badlogin(socket, client.protocol, pop_err, username, password, host_name, &pop3.client_addr);
 			break;
@@ -1712,6 +1712,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%04d %s %s %s"
 			,p->sock,p->log_prefix,p->proc_name,lstr);
+		JS_SET_RVAL(cx, arglist, argv[i]);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -2635,55 +2636,51 @@ static void smtp_thread(void* arg)
 					SAFEPRINTF2(proc_err_fname,"%sSBBS_SMTP.%s.err", scfg.temp_dir, session_id);
 					remove(proc_err_fname);
 
-					for(i=0;i<mailproc_count;i++) {
-	
-						mailproc=&mailproc_list[i];
-						if(mailproc->disabled)
+					for(i=0;i<mailproc_count && !msg_handled;i++) {
+						struct mailproc* mp=&mailproc_list[i];
+						if(mp->disabled)
 							continue;
 
-						if(!mailproc->process_dnsbl && dnsbl_result.s_addr)
+						if(!mp->process_dnsbl && dnsbl_result.s_addr)
 							continue;
 
-						if(!mailproc->process_spam && spam_bait_result)
+						if(!mp->process_spam && spam_bait_result)
 							continue;
 
-						if(!chk_ar(&scfg,mailproc->ar,&relay_user,&client))
+						if(!chk_ar(&scfg,mp->ar,&relay_user,&client))
 							continue;
 
-						if(mailproc->to!=NULL && !mailproc_to_match[i])
+						if(mp->to!=NULL && !mailproc_to_match[i])
 							continue;
 
-						if(mailproc->from!=NULL 
-							&& !findstr_in_list(sender_addr, mailproc->from))
+						if(mp->from!=NULL 
+							&& !findstr_in_list(sender_addr, mp->from))
 							continue;
 
-						if(!mailproc->passthru)
-							msg_handled=TRUE;
-
-						mailcmdstr(mailproc->cmdline
+						mailcmdstr(mp->cmdline
 							,msgtxt_fname, newtxt_fname, logtxt_fname
 							,rcptlst_fname, proc_err_fname
 							,host_name, host_ip, relay_user.number
 							,rcpt_addr
 							,sender, sender_addr, reverse_path, str);
 						lprintf(LOG_INFO,"%04d SMTP Executing external mail processor: %s"
-							,socket, mailproc->name);
+							,socket, mp->name);
 
-						if(mailproc->native) {
+						if(mp->native) {
 							lprintf(LOG_DEBUG,"%04d SMTP Executing external command: %s"
 								,socket, str);
 							if((j=system(str))!=0) {
 								lprintf(LOG_NOTICE,"%04d SMTP system(%s) returned %d (errno: %d)"
 									,socket, str, j, errno);
-								if(mailproc->ignore_on_error) {
+								if(mp->ignore_on_error) {
 									lprintf(LOG_WARNING,"%04d !SMTP IGNORED MAIL due to mail processor (%s) error: %d"
-										,socket, mailproc->name, j);
+										,socket, mp->name, j);
 									msg_handled=TRUE;
 								}
 							}
 						} else {  /* JavaScript */
 							if(!js_mailproc(socket, &client, &relay_user
-								,mailproc
+								,mp
 								,str /* cmdline */
 								,msgtxt_fname, newtxt_fname, logtxt_fname
 								,rcpt_addr
@@ -2702,13 +2699,16 @@ static void smtp_thread(void* arg)
 #endif
 							}
 						}
-						if(flength(proc_err_fname)>0)
+						if(!mp->passthru || flength(proc_err_fname)>0 || !fexist(msgtxt_fname) || !fexist(rcptlst_fname)) {
+							mailproc=mp;
+							msg_handled=TRUE;
 							break;
-						if(!fexist(msgtxt_fname) || !fexist(rcptlst_fname))
-							break;
+						}
 					}
 					if(flength(proc_err_fname)>0 
 						&& (proc_err=fopen(proc_err_fname,"r"))!=NULL) {
+						lprintf(LOG_WARNING,"%04d !SMTP External mail processor (%s) created: %s"
+								,socket, mailproc->name, proc_err_fname);
 						while(!feof(proc_err)) {
 							int n;
 							if(!fgets(str,sizeof(str),proc_err))
@@ -3341,10 +3341,10 @@ static void smtp_thread(void* arg)
 
 			if((relay_user.number=matchuser(&scfg,user_name,FALSE))==0) {
 				if(scfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s (password: %s)"
+					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s' (password: %s)"
 						,socket, user_name, user_pass);
 				else
-					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s"
+					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s'"
 						,socket, user_name);
 				badlogin(socket, client.protocol, badauth_rsp, user_name, user_pass, host_name, &smtp.client_addr);
 				break;
@@ -3414,7 +3414,7 @@ static void smtp_thread(void* arg)
 				p=response;
 			SAFECOPY(user_name,response);
 			if((relay_user.number=matchuser(&scfg,user_name,FALSE))==0) {
-				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s"
+				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s'"
 					,socket, user_name);
 				badlogin(socket, client.protocol, badauth_rsp, user_name, user_pass, host_name, &smtp.client_addr);
 				break;
@@ -3817,7 +3817,7 @@ static void smtp_thread(void* arg)
 				if(!chk_ar(&scfg,mailproc_list[i].ar,&relay_user,&client))
 					continue;
 
-				if(findstr_in_list(p, mailproc_list[i].to)) {
+				if(findstr_in_list(p, mailproc_list[i].to) || findstr_in_list(rcpt_addr, mailproc_list[i].to)) {
 					mailproc_to_match[i]=TRUE;
 					break;
 				}
@@ -3913,10 +3913,10 @@ static void smtp_thread(void* arg)
 			if(!usernum && startup->default_user[0]) {
 				usernum=matchuser(&scfg,startup->default_user,TRUE /* sysop_alias */);
 				if(usernum)
-					lprintf(LOG_INFO,"%04d SMTP Forwarding mail for UNKNOWN USER to default user: %s #%u"
+					lprintf(LOG_INFO,"%04d SMTP Forwarding mail for UNKNOWN USER to default user: '%s' #%u"
 						,socket,startup->default_user,usernum);
 				else
-					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN DEFAULT USER: %s"
+					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN DEFAULT USER: '%s'"
 						,socket,startup->default_user);
 			}
 
@@ -3926,7 +3926,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 			if(!usernum) {
-				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s", socket, rcpt_to);
+				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s'", socket, rcpt_to);
 				sockprintf(socket, "550 Unknown User: %s", rcpt_to);
 				continue;
 			}
@@ -4895,7 +4895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.569 $", "%*s %s", revision);
+	sscanf("$Revision: 1.574 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4967,9 +4967,9 @@ void DLLCALL mail_server(void* arg)
 	if(startup->submission_port==0)			startup->submission_port=IPPORT_SUBMISSION;
 	if(startup->smtp_port==0)				startup->smtp_port=IPPORT_SMTP;
 	if(startup->pop3_port==0)				startup->pop3_port=IPPORT_POP3;
-	if(startup->rescan_frequency==0)		startup->rescan_frequency=3600;	/* 60 minutes */
-	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=50;
-	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
+	if(startup->rescan_frequency==0)		startup->rescan_frequency=MAIL_DEFAULT_RESCAN_FREQUENCY;
+	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=MAIL_DEFAULT_MAX_DELIVERY_ATTEMPTS;
+	if(startup->max_inactivity==0) 			startup->max_inactivity=MAIL_DEFAULT_MAX_INACTIVITY; /* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 
 #ifdef JAVASCRIPT
