@@ -1,12 +1,14 @@
+/* smbdefs.h */
+
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.87 2016/11/10 09:52:05 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.81 2013/09/12 09:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -180,7 +182,7 @@
 #define SENDER				0x00
 #define SENDERAGENT 		0x01
 #define SENDERNETTYPE		0x02
-#define SENDERNETADDR		0x03		/* Note: SENDERNETTYPE may be NET_NONE and this field present and contain a valid string */
+#define SENDERNETADDR		0x03
 #define SENDEREXT			0x04
 #define SENDERPOS			0x05
 #define SENDERORG			0x06
@@ -214,7 +216,7 @@
 #define RECIPIENT			0x30
 #define RECIPIENTAGENT		0x31
 #define RECIPIENTNETTYPE	0x32
-#define RECIPIENTNETADDR	0x33	/* Note: RECIPIENTNETTYPE may be NET_NONE and this field present and contain a valid string */
+#define RECIPIENTNETADDR	0x33
 #define RECIPIENTEXT		0x34
 #define RECIPIENTPOS		0x35
 #define RECIPIENTORG		0x36
@@ -336,13 +338,8 @@
 #define MSG_VALIDATED		(1<<8)
 #define MSG_REPLIED			(1<<9)		/* User replied to this message */
 #define MSG_NOREPLY			(1<<10)		/* No replies (or bounces) should be sent to the sender */
-#define MSG_UPVOTE			(1<<11)		/* This message is an upvote */
-#define MSG_DOWNVOTE		(1<<12)		/* This message is a downvote */
-#define MSG_POLL			(1<<13)		/* This message is a poll */
 
-#define MSG_VOTE			(MSG_UPVOTE|MSG_DOWNVOTE)	/* this message is a poll-vote */
-
-										/* Auxiliary header attributes */
+										/* Auxillary header attributes */
 #define MSG_FILEREQUEST 	(1<<0)		/* File request */
 #define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg */
 #define MSG_TRUNCFILE		(1<<2)		/* Truncate file(s) when sent */
@@ -369,7 +366,7 @@
 #define MSG_TYPENET 		(1<<14) 	/* Msg is direct network mail */
 
 
-enum smb_net_type {
+enum {
      NET_NONE				/* Local message */
     ,NET_UNKNOWN			/* Unknown network type */
     ,NET_FIDO				/* FidoNet address, faddr_t format (4D) */
@@ -378,14 +375,14 @@ enum smb_net_type {
 	,NET_INTERNET			/* Internet e-mail, netnews, etc. */
 	,NET_WWIV				/* unused */
 	,NET_MHS				/* unused */
-	,NET_FIDO_ASCII			/* FidoNet address, ASCIIZ format (e.g. 5D) - unused and deprecated */
+	,NET_FIDO_ASCII			/* FidoNet address, ASCIIZ format (e.g. 5D) */
 
 /* Add new ones here */
 
     ,NET_TYPES
 };
 
-enum smb_agent_type {
+enum {
      AGENT_PERSON
     ,AGENT_PROCESS			/* unknown process type */
 	,AGENT_SMBUTIL			/* imported via Synchronet SMBUTIL */
@@ -396,7 +393,7 @@ enum smb_agent_type {
     ,AGENT_TYPES
 };
 
-enum smb_xlat_type {
+enum {
      XLAT_NONE              /* No translation/End of translation list */
     ,XLAT_ENCRYPT           /* Encrypted data */
     ,XLAT_ESCAPED           /* 7-bit ASCII escaping for ctrl and 8-bit data */
@@ -441,17 +438,9 @@ typedef struct _PACK {		/* Time with time-zone */
 
 typedef struct _PACK {		/* Index record */
 
-	union {
-		struct {
-			uint16_t	to; 		/* 16-bit CRC of recipient name (lower case) or user # */
-			uint16_t	from;		/* 16-bit CRC of sender name (lower case) or user # */
-			uint16_t	subj;		/* 16-bit CRC of subject (lower case, w/o RE:) */
-		};
-		struct {
-			uint16_t	vote;		/* vote value */
-			uint32_t	remsg;		/* number of message this vote is in response to */
-		};
-	};
+	uint16_t	to; 			/* 16-bit CRC of recipient name (lower case) */
+	uint16_t	from;			/* 16-bit CRC of sender name (lower case) */
+	uint16_t	subj;			/* 16-bit CRC of subject (lower case, w/o RE:) */
 	uint16_t	attr;			/* attributes (read, permanent, etc.) */
 	uint32_t	offset; 		/* offset into header file */
 	uint32_t	number; 		/* number of message (1 based) */
@@ -473,7 +462,7 @@ typedef struct _PACK {		/* Index record */
 #define SMB_HASH_PROC_MASK		(SMB_HASH_STRIP_CTRL_A|SMB_HASH_STRIP_WSP|SMB_HASH_LOWERCASE)
 #define SMB_HASH_PROC_COMP_MASK	(SMB_HASH_STRIP_WSP|SMB_HASH_LOWERCASE)
 
-enum smb_hash_source_type {
+enum {
 	 SMB_HASH_SOURCE_BODY
 	,SMB_HASH_SOURCE_MSG_ID
 	,SMB_HASH_SOURCE_FTN_ID
@@ -526,20 +515,14 @@ typedef struct _PACK {		/* Message base status header */
 
 } smbstatus_t;
 
-enum smb_msg_type {
-     SMB_MSG_TYPE_NORMAL		/* Classic message (for reading) */
-	,SMB_MSG_TYPE_POLL			/* A poll question  */
-	,SMB_MSG_TYPE_VOTE			/* Voter response to poll or normal message */
-};
-
 typedef struct _PACK {		/* Message header */
 
 	/* 00 */ uchar		id[LEN_HEADER_ID];	/* SHD<^Z> */
-    /* 04 */ uint16_t	type;				/* Message type (enum smb_msg_type) */
+    /* 04 */ uint16_t	type;				/* Message type (normally 0) */
     /* 06 */ uint16_t	version;			/* Version of type (initially 100h for 1.00) */
     /* 08 */ uint16_t	length;				/* Total length of fixed record + all fields */
 	/* 0a */ uint16_t	attr;				/* Attributes (bit field) (duped in SID) */
-	/* 0c */ uint32_t	auxattr;			/* Auxiliary attributes (bit field) */
+	/* 0c */ uint32_t	auxattr;			/* Auxillary attributes (bit field) */
     /* 10 */ uint32_t	netattr;			/* Network attributes */
 	/* 14 */ when_t		when_written;		/* Date/time/zone message was written */
 	/* 1a */ when_t		when_imported;		/* Date/time/zone message was imported */
@@ -548,7 +531,7 @@ typedef struct _PACK {		/* Message header */
     /* 28 */ uint32_t	thread_next;		/* Next message in thread */
     /* 2c */ uint32_t	thread_first;		/* First reply to this message */
 	/* 30 */ uint16_t	delivery_attempts;	/* Delivery attempt counter */
-	/* 32 */ int16_t	vote;				/* Vote value (response to poll) */
+	/* 32 */ uchar		reserved[2];		/* Reserved for future use */
 	/* 34 */ uint32_t	thread_id;			/* Number of original message in thread (or 0 if unknown) */
 	/* 38 */ uint32_t	times_downloaded;	/* Total number of times downloaded (moved Mar-6-2012) */
 	/* 3c */ uint32_t	last_downloaded;	/* Date/time of last download (moved Mar-6-2012) */
@@ -587,12 +570,10 @@ typedef struct _PACK {		/* FidoNet address (zone:net/node.point) */
 #pragma pack(pop)		/* original packing */
 #endif
 
-typedef uint16_t smb_net_type_t;
-
 typedef struct {		/* Network (type and address) */
 
-    smb_net_type_t	type;	// One of enum smb_net_type
-	void*			addr;
+    uint16_t	type;
+	void*		addr;
 
 } net_t;
 
@@ -643,12 +624,10 @@ typedef struct {				/* Message */
 	uint32_t	priority;		/* Message priority (0 is lowest) */
 	uint32_t	cost;			/* Cost to download/read */
 	uint32_t	flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
-	uint32_t	upvotes;		/* Vote tally for this message */
-	uint32_t	downvotes;		/* Vote tally for this message */
 
 } smbmsg_t;
 
-typedef struct {				/* Message base */
+typedef struct {			/* Message base */
 
     char		file[128];      /* Path and base filename (no extension) */
     FILE*		sdt_fp;			/* File pointer for data (.sdt) file */
@@ -659,7 +638,7 @@ typedef struct {				/* Message base */
 	FILE*		hash_fp;		/* File pointer for hash (.hash) file */
 	uint32_t	retry_time; 	/* Maximum number of seconds to retry opens/locks */
 	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
-	smbstatus_t status; 		/* Status header record */
+	smbstatus_t status; 	/* Status header record */
 	BOOL		locked;			/* SMB header is locked */
 	char		last_error[MAX_PATH*2];		/* Last error message */
 
