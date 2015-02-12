@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.307 2015/02/12 11:20:31 deuce Exp $ */
+/* $Id: term.c,v 1.308 2015/02/12 11:30:54 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1588,7 +1588,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 	int64_t	file_bytes=0,file_bytes_left=0;
 	int64_t	total_bytes=0;
 	FILE*	fp=NULL;
-	time_t	t,startfile,ftime;
+	time_t	t,startfile,ftime=0;
 	int		old_hold=hold_update;
 
 	if(safe_mode)
