@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.50 2014/02/06 11:46:50 deuce Exp $ */
+/* $Id: menu.c,v 1.52 2015/02/10 10:41:11 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -23,6 +23,7 @@ void viewscroll(void)
 	struct	text_info txtinfo;
 	int	x,y;
 	struct mouse_event mevent;
+	int old_xlat=ciolib_xlat;
 
 	x=wherex();
 	y=wherey();
@@ -45,27 +46,11 @@ void viewscroll(void)
 		if(top>cterm->backpos)
 			top=cterm->backpos;
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
-		switch(cterm->emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		ciolib_xlat = TRUE;
+		cputs("Scrollback");
 		gotoxy(cterm->width-9,1);
-		switch(cterm->emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		cputs("Scrollback");
+		ciolib_xlat = old_xlat;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {

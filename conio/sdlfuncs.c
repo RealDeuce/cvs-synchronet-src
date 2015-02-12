@@ -151,6 +151,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
+	if((sdlf->PollEvent=xp_dlsym(sdl_dll, SDL_PollEvent))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
 	if((sdlf->SetVideoMode=xp_dlsym(sdl_dll, SDL_SetVideoMode))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
@@ -328,7 +332,7 @@ void run_sdl_drawing_thread(int (*drawing_thread)(void *data), void (*exit_drawi
 
 static void QuitWrap(void)
 {
-	if(sdl.Quit)
+	if(sdl.Quit && sdl_initialized)
 		sdl.Quit();
 }
 
