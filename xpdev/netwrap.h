@@ -2,7 +2,7 @@
 
 /* Network related wrapper functions */
 
-/* $Id: netwrap.h,v 1.3 2009/08/17 07:46:49 rswindell Exp $ */
+/* $Id: netwrap.h,v 1.4 2014/02/10 09:20:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,7 @@
 
 #include <stddef.h>		/* size_t */
 #include "str_list.h"	/* string list functions and types */
+#include "wrapdll.h"
 
 #define IPv4_LOCALHOST	0x7f000001U	/* 127.0.0.1 */
 
@@ -47,9 +48,9 @@
 extern "C" {
 #endif
 
-const char* getHostNameByAddr(const char*);
-str_list_t	getNameServerList(void);
-void		freeNameServerList(str_list_t);
+DLLEXPORT const char* 	DLLCALL getHostNameByAddr(const char*);
+DLLEXPORT str_list_t	DLLCALL getNameServerList(void);
+DLLEXPORT void			DLLCALL freeNameServerList(str_list_t);
 
 #if defined(__cplusplus)
 }
