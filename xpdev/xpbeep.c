@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.94 2015/04/28 02:06:53 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.92 2015/02/11 11:16:50 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -275,7 +275,7 @@ void DLLCALL makewave(double freq, unsigned char *wave, int samples, enum WAVE_S
 				wave[i]=128+((wave[i]-128)/((numcross-crossings)*(numcross-crossings)));
 			}
 			crossings=0;
-			for(i=samples-1; i>0; i--) {
+			for(i=samples; i>0; i--) {
 				if(((wave[i]<128 && wave[i-1]>=128) || (wave[i]>128 && wave[i-1]<=128)) && i>2) {
 					crossings++;
 					if(crossings>=numcross)
@@ -360,7 +360,7 @@ BOOL DLLCALL xptone_open(void)
 #ifdef WITH_PORTAUDIO
 	if(!portaudio_device_open_failed) {
 		if(pa_api==NULL) {
-			dll_handle dl=NULL;
+			dll_handle dl;
 			const char *libnames[]={"portaudio",NULL};
 			if(((pa_api=(struct portaudio_api_struct *)malloc(sizeof(struct portaudio_api_struct)))==NULL)
 					|| ((dl=xp_dlopen(libnames,RTLD_LAZY,0))==NULL)
@@ -477,7 +477,7 @@ BOOL DLLCALL xptone_open(void)
 #ifdef USE_ALSA_SOUND
 	if(!alsa_device_open_failed) {
 		if(alsa_api==NULL) {
-			dll_handle dl=NULL;
+			dll_handle dl;
 			const char *libnames[]={"asound", NULL};
 			if(((alsa_api=(struct alsa_api_struct *)malloc(sizeof(struct alsa_api_struct)))==NULL)
 					|| ((dl=xp_dlopen(libnames,RTLD_LAZY,2))==NULL)
