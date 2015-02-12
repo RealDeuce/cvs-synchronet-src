@@ -1,6 +1,6 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.36 2014/08/25 21:44:57 deuce Exp $ */
+/* $Id: scfgsys.c,v 1.37 2014/08/25 23:59:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1394,11 +1394,11 @@ while(1) {
 					"\n"
 					"`Login`        Required module for interactive terminal logins (answer)\n"
 					"`Logon`        Executed during terminal logon procedure\n"
-					"`Sync          Executed when terminal nodes are periodically synchronized\n"
-					"`Logoff        Executed during terminal logoff procedure (interactive)\n"
-					"`Logout        Executed during terminal logout procedure (offline)\n"
-					"`New User      Executed at end of new terminal user creation process\n"
-					"`Expired User  Executed during daily event when user expires (offline)\n"
+					"`Sync`         Executed when terminal nodes are periodically synchronized\n"
+					"`Logoff`       Executed during terminal logoff procedure (interactive)\n"
+					"`Logout`       Executed during terminal logout procedure (offline)\n"
+					"`New User`     Executed at end of new terminal user creation process\n"
+					"`Expired User` Executed during daily event when user expires (offline)\n"
 					"\n"
 					"`Note:` JavaScript modules take precedence over Baja modules if both exist\n"
 					"in your `exec` or `mods` directories.\n"
