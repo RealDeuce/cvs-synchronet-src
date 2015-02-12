@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.67 2015/02/08 09:26:37 deuce Exp $ */
+/* $Id: ciolib.h,v 1.68 2015/02/09 07:16:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -230,10 +230,11 @@ struct mouse_event {
 };
 
 struct conio_font_data_struct {
-        char *eight_by_sixteen;
-        char *eight_by_fourteen;
-        char *eight_by_eight;
-        char *desc;
+        char 	*eight_by_sixteen;
+        char 	*eight_by_fourteen;
+        char 	*eight_by_eight;
+        char	*put_xlat;
+        char 	*desc;
 };
 
 CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
@@ -305,6 +306,7 @@ CIOLIBEXPORTVAR int _wscroll;
 CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
+CIOLIBEXPORTVAR int ciolib_xlat;
 
 #define _conio_kbhit()		kbhit()
 
