@@ -2,13 +2,13 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.29 2015/11/30 09:07:44 rswindell Exp $ */
+/* $Id: node.c,v 1.26 2013/10/05 14:30:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -260,10 +260,7 @@ void printnodedat(int number, node_t node)
 			printf("Networking");
 			break;
 		case NODE_LOGON:
-			printf("At login prompt");
-			break;
-		case NODE_LOGOUT:
-			printf("Logging out");
+			printf("At logon prompt");
 			break;
 		case NODE_EVENT_WAITING:
 			printf("Waiting for all nodes to become inactive");
@@ -372,7 +369,7 @@ void printnodedat(int number, node_t node)
 					printf("performing sysop activities");
 					break;
 				default:
-					fputs(itoa(node.action,tmp,10),stdout);
+					printf(itoa(node.action,tmp,10));
 					break;  }
 			printf(" %s",node_connection_desc(node.connection,tmp));
 			if(node.action==NODE_DLNG) {
@@ -444,12 +441,12 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.29 $", "%*s %s", revision);
+	sscanf("$Revision: 1.26 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
-		printf("COMPILER ERROR: sizeof(node_t)=%" XP_PRIsize_t "u instead of %d\n"
+		printf("COMPILER ERROR: sizeof(node_t)=%u instead of %d\n"
 			,sizeof(node_t),SIZEOF_NODE_T);
 		return(-1);
 	}
@@ -468,8 +465,6 @@ int main(int argc, char **argv)
 		printf("nopage      = page disable\n");
 		printf("noalerts    = activity alerts disable\n");
 		printf("status=#    = set status value\n");
-		printf("              %d = Waiting for connection\n", NODE_WFC);
-		printf("              %d = Offline\n", NODE_OFFLINE);
 		printf("useron=#    = set useron number\n");
 		printf("action=#    = set action value\n");
 		printf("errors=#    = set error counter\n");
