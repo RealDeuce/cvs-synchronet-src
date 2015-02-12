@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id$ */
+/* $Id: modem.c,v 1.27 2015/02/12 11:11:29 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -78,8 +78,6 @@ void modem_output_thread(void *args)
 				sent+=ret;
 				if(ret==COM_ERROR)
 					break;
-			}
-			if(ret==COM_ERROR) {
 			}
 		}
 		else
