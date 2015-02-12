@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.306 2015/02/12 07:49:55 deuce Exp $ */
+/* $Id: term.c,v 1.307 2015/02/12 11:20:31 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1246,23 +1246,24 @@ static BOOL xmodem_check_abort(void* vp)
 	time_t					now=time(NULL);
 	int						key;
 
+	if (xm == NULL)
+		return FALSE;
+
 	if(last_check != now) {
 		last_check=now;
-		if(xm!=NULL) {
-			while(kbhit()) {
-				switch((key=getch())) {
-					case ESC:
-					case CTRL_C:
-					case CTRL_X:
-						xm->cancelled=TRUE;
-						break;
-					case 0:
-					case 0xff:
-						key |= (getch() << 8);
-						if(key==CIO_KEY_MOUSE)
-							getmouse(NULL);
-						break;
-				}
+		while(kbhit()) {
+			switch((key=getch())) {
+				case ESC:
+				case CTRL_C:
+				case CTRL_X:
+					xm->cancelled=TRUE;
+					break;
+				case 0:
+				case 0xff:
+					key |= (getch() << 8);
+					if(key==CIO_KEY_MOUSE)
+						getmouse(NULL);
+					break;
 			}
 		}
 	}
