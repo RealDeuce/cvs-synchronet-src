@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.128 2015/02/11 06:40:12 deuce Exp $ */
+/* $Id: ciolib.c,v 1.129 2015/02/12 07:46:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1209,10 +1209,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e)
 				for (i=0; i<(c-a+1)*(d-b+1)*2; i+=2) {
 					if (conio_fontdata[font].put_xlat) {
 						xlat = ((char *)e)[i];
-						if (xlat > 31 && xlat < 127) {
-							if ((ch = memchr(conio_fontdata[font].put_xlat, ((char *)e)[i], 128))!=NULL)
-								xlat = (char)(ch-conio_fontdata[font].put_xlat)+32;
-						}
+						if ((ch = memchr(conio_fontdata[font].put_xlat, ((char *)e)[i], 128))!=NULL)
+							xlat = (char)(ch-conio_fontdata[font].put_xlat)+32;
 						((char *)e)[i] = xlat;
 					}
 					if (cio_textinfo.currmode == C64_40X25) {
