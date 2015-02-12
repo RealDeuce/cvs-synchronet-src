@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.46 2014/04/24 07:58:06 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.48 2014/10/06 21:45:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,9 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(_WIN32)
- #include <malloc.h>    /* alloca() on Win32 */
-#endif
+#include "genwrap.h"    /* alloca() */
 
 #include "xpprintf.h"
 #include "gen_defs.h"
@@ -282,7 +280,7 @@ int DLLCALL xp_printf_get_type(const char *format)
  *
  * Does not currently support the $ argument selector.
  *
- * Currently, the type is not overly usefull, but this could be used for
+ * Currently, the type is not overly useful, but this could be used for
  * automatic type conversions (ie: int to char *).  Right now it just assures
  * that the type passed to sprintf() is the type passed to
  * xp_asprintf_next().
