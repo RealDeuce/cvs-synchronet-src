@@ -2,7 +2,7 @@
 
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.56 2015/12/06 11:18:50 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.55 2014/01/08 10:33:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -208,10 +208,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			blocks=1;
 			continue; 
 		}
-
-		long confnum = atol((char *)block+1);
-
-		qwk_new_msg(confnum, &msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
+		qwk_new_msg(&msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
@@ -247,7 +244,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		if(confnum==0) {						/**********/
+		if(atoi(block+1)==0) {					/**********/
 			if(useron.rest&FLAG('E')) {         /* E-mail */
 				bputs(text[R_Email]);			/**********/
 				continue; 
@@ -384,6 +381,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				/**************************/
 		else {	/* message on a sub-board */
 				/**************************/
+			long confnum = atol((char *)block+1);
 			if((n=resolve_qwkconf(confnum))==INVALID_SUB) {
 				bprintf(text[QWKInvalidConferenceN],confnum);
 				SAFEPRINTF2(str,"%s: Invalid QWK conference number %ld",useron.alias,confnum);
