@@ -2,13 +2,13 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.84 2015/11/26 13:08:55 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.81 2013/09/12 09:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -366,7 +366,7 @@
 #define MSG_TYPENET 		(1<<14) 	/* Msg is direct network mail */
 
 
-enum smb_net_type {
+enum {
      NET_NONE				/* Local message */
     ,NET_UNKNOWN			/* Unknown network type */
     ,NET_FIDO				/* FidoNet address, faddr_t format (4D) */
@@ -375,14 +375,14 @@ enum smb_net_type {
 	,NET_INTERNET			/* Internet e-mail, netnews, etc. */
 	,NET_WWIV				/* unused */
 	,NET_MHS				/* unused */
-	,NET_FIDO_ASCII			/* FidoNet address, ASCIIZ format (e.g. 5D) - unused and deprecated */
+	,NET_FIDO_ASCII			/* FidoNet address, ASCIIZ format (e.g. 5D) */
 
 /* Add new ones here */
 
     ,NET_TYPES
 };
 
-enum smb_agent_type {
+enum {
      AGENT_PERSON
     ,AGENT_PROCESS			/* unknown process type */
 	,AGENT_SMBUTIL			/* imported via Synchronet SMBUTIL */
@@ -393,7 +393,7 @@ enum smb_agent_type {
     ,AGENT_TYPES
 };
 
-enum smb_xlat_type {
+enum {
      XLAT_NONE              /* No translation/End of translation list */
     ,XLAT_ENCRYPT           /* Encrypted data */
     ,XLAT_ESCAPED           /* 7-bit ASCII escaping for ctrl and 8-bit data */
@@ -462,7 +462,7 @@ typedef struct _PACK {		/* Index record */
 #define SMB_HASH_PROC_MASK		(SMB_HASH_STRIP_CTRL_A|SMB_HASH_STRIP_WSP|SMB_HASH_LOWERCASE)
 #define SMB_HASH_PROC_COMP_MASK	(SMB_HASH_STRIP_WSP|SMB_HASH_LOWERCASE)
 
-enum smb_hash_source_type {
+enum {
 	 SMB_HASH_SOURCE_BODY
 	,SMB_HASH_SOURCE_MSG_ID
 	,SMB_HASH_SOURCE_FTN_ID
@@ -572,7 +572,7 @@ typedef struct _PACK {		/* FidoNet address (zone:net/node.point) */
 
 typedef struct {		/* Network (type and address) */
 
-    uint16_t	type;	// One of enum smb_net_type
+    uint16_t	type;
 	void*		addr;
 
 } net_t;
@@ -627,7 +627,7 @@ typedef struct {				/* Message */
 
 } smbmsg_t;
 
-typedef struct {				/* Message base */
+typedef struct {			/* Message base */
 
     char		file[128];      /* Path and base filename (no extension) */
     FILE*		sdt_fp;			/* File pointer for data (.sdt) file */
@@ -638,7 +638,7 @@ typedef struct {				/* Message base */
 	FILE*		hash_fp;		/* File pointer for hash (.hash) file */
 	uint32_t	retry_time; 	/* Maximum number of seconds to retry opens/locks */
 	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
-	smbstatus_t status; 		/* Status header record */
+	smbstatus_t status; 	/* Status header record */
 	BOOL		locked;			/* SMB header is locked */
 	char		last_error[MAX_PATH*2];		/* Last error message */
 
