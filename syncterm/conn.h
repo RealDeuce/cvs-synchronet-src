@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.h,v 1.22 2010/03/03 06:34:11 deuce Exp $ */
+/* $Id: conn.h,v 1.24 2015/02/10 22:06:15 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -11,6 +11,7 @@
 #include "bbslist.h"
 
 extern char *conn_types[];
+extern char *conn_types_enum[];
 extern short unsigned int conn_ports[];
 
 enum {
@@ -22,9 +23,7 @@ enum {
 	,CONN_TYPE_SSH
 	,CONN_TYPE_MODEM
 	,CONN_TYPE_SERIAL
-#ifdef __unix__
 	,CONN_TYPE_SHELL
-#endif
 	,CONN_TYPE_TERMINATOR
 };
 
