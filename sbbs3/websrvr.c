@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.581 2015/05/06 01:51:25 deuce Exp $ */
+/* $Id: websrvr.c,v 1.579 2014/12/11 11:11:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3451,8 +3451,7 @@ static BOOL exec_cgi(http_session_t *session)
 					else  {
 						if(!no_chunked && session->http_ver>=HTTP_1_1) {
 							session->req.keep_alive=orig_keep;
-							if (session->req.method != HTTP_HEAD)
-								set_chunked=TRUE;
+							set_chunked=TRUE;
 						}
 						if(got_valid_headers)  {
 							session->req.dynamic=IS_CGI;
@@ -3826,8 +3825,7 @@ static BOOL exec_cgi(http_session_t *session)
 			session->req.dynamic=IS_CGI;
 			if(!no_chunked && session->http_ver>=HTTP_1_1) {
 				session->req.keep_alive=orig_keep;
-				if (session->req.method != HTTP_HEAD)
-					set_chunked=TRUE;
+				set_chunked=TRUE;
 			}
 			strListPush(&session->req.dynamic_heads,content_type);
 			send_headers(session,cgi_status,set_chunked);
@@ -4738,7 +4736,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=xp_timer();
-		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL, session->js_glob);
+		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_callback);
 		JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
@@ -5401,7 +5399,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.581 $", "%*s %s", revision);
+	sscanf("$Revision: 1.579 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
