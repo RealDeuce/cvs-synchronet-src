@@ -1,12 +1,14 @@
+/* smbhash.c */
+
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.32 2016/11/12 21:37:28 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.30 2014/04/23 10:12:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -128,10 +130,8 @@ int SMBCALL smb_addhashes(smb_t* smb, hash_t** hashes, BOOL skip_marked)
 	size_t	h;
 
 	COUNT_LIST_ITEMS(hashes, h);
-	if(!h) { /* nothing to add */
-		smb_close_hash(smb);
+	if(!h)	/* nothing to add */
 		return(SMB_SUCCESS);
-	}
 
 	if((retval=smb_open_hash(smb))!=SMB_SUCCESS)
 		return(retval);
@@ -303,7 +303,7 @@ int SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL updat
 	hash_t		found;
 	hash_t**	hashes;	/* This is a NULL-terminated list of hashes */
 
-	if(smb->status.attr&(SMB_EMAIL|SMB_NOHASH) || (msg->hdr.attr&MSG_VOTE))
+	if(smb->status.attr&(SMB_EMAIL|SMB_NOHASH))
 		return(SMB_SUCCESS);
 
 	hashes=smb_msghashes(msg,text,SMB_HASH_SOURCE_DUPE);
