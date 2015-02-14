@@ -2,13 +2,13 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.26 2013/10/05 08:12:14 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.28 2014/06/10 00:56:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -809,6 +809,8 @@ int main(int argc, char **argv)
 						,cfg.check_path ? "Enabled" : "Disabled");
 					sprintf(opt[i++],"%-50.50s%s","Bundle Attachments"
 						,misc&TRUNC_BUNDLES ? "Truncate" : "Kill");
+					sprintf(opt[i++],"%-50.50s%s","Zone Blind SEEN-BY and PATH Lines"
+						,cfg.zone_blind ? "Enabled" : "Disabled");
 					opt[i][0]=0;
 					j=uifc.list(0,0,0,65,&j,0,"Toggle Options",opt);
 					if(j==-1)
@@ -847,6 +849,10 @@ int main(int argc, char **argv)
 						case 10:
 							misc^=TRUNC_BUNDLES;
 							break;
+						case 11:
+							cfg.zone_blind=!cfg.zone_blind;
+							break;
+
 					} 
 				}
 				break;
@@ -1155,6 +1161,12 @@ int main(int argc, char **argv)
 				}
 				if(!cfg.check_path)
 					fprintf(stream,"NOPATHCHECK\n");
+				if(cfg.zone_blind) {
+					fprintf(stream,"ZONE_BLIND");
+					if(cfg.zone_blind_threshold != 0xffff)
+						fprintf(stream," %u", cfg.zone_blind_threshold);
+					fprintf(stream,"\n");
+				}
 				if(cfg.notify)
 					fprintf(stream,"NOTIFY %u\n",cfg.notify);
 				if(misc&CONVERT_TEAR)
