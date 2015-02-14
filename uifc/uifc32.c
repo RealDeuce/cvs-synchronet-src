@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.210 2015/02/12 07:24:36 deuce Exp $ */
+/* $Id: uifc32.c,v 1.211 2015/02/14 10:29:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1047,7 +1047,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		else
 			y=top+tbrdrwidth+(*cur);
 		i=(*cur)+(top+tbrdrwidth-y);
-		j=2;
+		j=tbrdrwidth-1;
 
 		longopt=0;
 		while(j<height-bbrdrwidth-1) {
