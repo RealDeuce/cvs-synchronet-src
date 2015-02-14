@@ -161,7 +161,7 @@ char *getdirname(char *path)
 #endif
 	p2 = path;
 	if(p1 > path) {
-		for(p2=p1-1; p2>path && !IS_PATH_DELIM(*p2); p2--);
+		for(p2=p1-1; p2>=path && !IS_PATH_DELIM(*p2); p2--);
 		if(IS_PATH_DELIM(*p2) && *(p2+1))
 			p2++;
 	}
@@ -219,8 +219,6 @@ void display_current_path(uifcapi_t *api, char *path)
 		if(*p=='/')
 			*p='\\';
 	}
-	if (strncmp(dpath, "\\\\?\\", 4)==0)
-		memmove(dpath, dpath+4, strlen(dpath+3));
 #endif
 
 	api->printf(SCRN_LEFT+2, SCRN_TOP+height-2, api->lclr|(api->bclr<<4), "%-*s", width, dpath);
@@ -372,18 +370,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 		hold_update = TRUE;
 		api->printf(SCRN_LEFT+8, SCRN_TOP+height-3, api->lclr|(api->bclr<<4), "%-*s", width-7, cmsk);
 		tmppath=strdup(cpath);
-		if(tmppath != NULL) {
-#ifdef _WIN32
-			if (tmppath[0] == 0 || (tmppath[5]==0 && tmppath[3]=='.' && tmppath[4]=='.' && tmppath[1]==':' && IS_PATH_DELIM(tmppath[2])))
-				strcpy(cpath, "\\\\?\\");
-			else if(strncmp(tmppath, "\\\\?\\", 4)==0 && tmppath[4])
-				strcpy(cpath, tmppath+4);
-			else
-#endif
-			{
-				FULLPATH(cpath,tmppath,sizeof(cpath));
-			}
-		}
+		if(tmppath != NULL)
+			FULLPATH(cpath,tmppath,sizeof(cpath));
 		FREE_AND_NULL(tmppath);
 
 #ifdef __unix__
@@ -411,52 +399,21 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 			root=TRUE;
 		else
 			root=FALSE;
+#else
+/* #error Need to do something about root paths (in get_file_opt_list() too!) */
 #endif
-
-#ifdef _WIN32
-		if (strcmp(cpath, "\\\\?\\")==0)
-			root = TRUE;
-		else
-			root = FALSE;
-#endif
-
-#ifdef _WIN32
-		// Hack together some hawtness
-		if (root) {
-			unsigned long drives = _getdrives();
-			int j;
-			char path[4];
-
-			memset(&dgl, 0, sizeof(dgl));
-			strcpy(path, "A:\\");
-			dgl.gl_pathv=malloc(sizeof(char *)*('Z'-'A'+2));
-			for (j=0; j<='Z'-'A'; j++) {
-				if(drives & (1<<j)) {
-					path[0]='A'+j;
-					dgl.gl_pathv[dgl.gl_pathc++]=strdup(path);
-				}
+		if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0 && !isdir(cpath)) {
+			if(lastpath==NULL) {
+				fp->files=0;
+				retval=-1;
+				goto cleanup;
 			}
-		}
-		else 
-#endif
-		{
-			if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0 && !isdir(cpath)) {
-				if(lastpath==NULL) {
-					fp->files=0;
-					retval=-1;
-					goto cleanup;
-				}
-				hold_update=FALSE;
-				api->msg("Cannot read directory!");
-				if (api->exit_flags & UIFC_XF_QUIT) {
-					retval=fp->files=0;
-					goto cleanup;
-				}
-				SAFECOPY(cpath, lastpath);
-				FREE_AND_NULL(lastpath);
-				currfield=lastfield;
-				continue;
-			}
+			hold_update=FALSE;
+			api->msg("Cannot read directory!");
+			SAFECOPY(cpath, lastpath);
+			FREE_AND_NULL(lastpath);
+			currfield=lastfield;
+			continue;
 		}
 		if(glob(cglob, 0, NULL, &fgl)!=0)
 			fgl.gl_pathc=0;
@@ -535,48 +492,24 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 				case CURRENT_PATH:
 					FREE_AND_NULL(tmplastpath);
 					tmplastpath=strdup(cpath);
-#ifdef _WIN32
-					if (strncmp(tmplastpath, "\\\\?\\", 4)==0)
-						memmove(tmplastpath, tmplastpath+4, strlen(tmplastpath+3));
-					if (strncmp(cfile, "\\\\?\\", 4)==0)
-						memmove(cfile, cfile+4, strlen(cfile+3));
-#endif
 					api->getstrxy(SCRN_LEFT+2, SCRN_TOP+height-2, width-1, cfile, sizeof(cfile)-1, K_EDIT|K_TABEXIT|K_MOUSEEXIT, &i);
 					if(i==ESC) {
 						retval=fp->files=0;
 						goto cleanup;
 					}
 					if((opts & (UIFC_FP_FILEEXIST|UIFC_FP_PATHEXIST)) && !fexist(cfile)) {
-#ifdef _WIN32
-						if (cfile[0])	// Allow zero-length path to mean "Drive list"
-#endif
-						{
-							FREE_AND_NULL(tmplastpath);
-							api->msg("No such path/file!");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
-							continue;
-						}
+						FREE_AND_NULL(tmplastpath);
+						api->msg("No such path/file!");
+						continue;
 					}
-					if(isdir(cfile) && cfile[0])
+					if(isdir(cfile))
 						backslash(cfile);
 					_splitpath(cfile, drive, tdir, fname, ext);
 					sprintf(cpath,"%s%s",drive,tdir);
 					if(!isdir(cpath)) {
-#ifdef _WIN32
-						if (cfile[0] && strcmp(cfile, cmsk))	// Allow zero-length path to mean "Drive list"
-#endif
-						{
-							FREE_AND_NULL(tmplastpath);
-							api->msg("No such path!");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
-							continue;
-						}
+						FREE_AND_NULL(tmplastpath);
+						api->msg("No such path!");
+						continue;
 					}
 					if(i==CIO_KEY_MOUSE)
 						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
@@ -589,20 +522,16 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					sprintf(cfile,"%s%s%s%s",drive,tdir,fname,ext);
 					if(strchr(fname,'*') !=NULL || strchr(fname,'?') !=NULL
 						|| strchr(ext,'*') !=NULL || strchr(ext,'?') !=NULL
-						|| ((isdir(cfile) || cfile[0]==0) && !(opts & UIFC_FP_DIRSEL) && (i=='\r' || i=='\n'))
+						|| (isdir(cfile) && !(opts & UIFC_FP_DIRSEL) && (i=='\r' || i=='\n'))
 						|| (!isdir(cfile) && i!='\r' && i!='\n')) {
 						if(opts & UIFC_FP_MSKNOCHG) {
 							sprintf(cfile,"%s%s%s",drive,tdir,cmsk);
 							FREE_AND_NULL(tmplastpath);
 							api->msg("File mask cannot be changed");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
 							continue;
 						}
 						else {
-							if((!isdir(cfile)) && cpath[0] != 0)
+							if(!isdir(cfile))
 								sprintf(cmsk, "%s%s", fname, ext);
 							reread=TRUE;
 						}
@@ -647,7 +576,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 						}
 					}
 					FREE_AND_NULL(tmplastpath);
-					if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && i!='\t' && i!=3840 && cpath[0]) {
+					if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && i!='\t' && i!=3840) {
 						retval=fp->files=1;
 						fp->selected=(char **)malloc(sizeof(char *));
 						if(fp->selected==NULL) {
@@ -670,11 +599,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					api->getstrxy(SCRN_LEFT+8, SCRN_TOP+height-3, width-7, cmsk, sizeof(cmsk)-1, K_EDIT|K_TABEXIT|K_MOUSEEXIT, &i);
 					if(i==CIO_KEY_MOUSE)
 						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
-					if(i==ESC || i==CIO_KEY_QUIT) {
-						if (api->exit_flags & UIFC_XF_QUIT) {
-							retval=fp->files=0;
-							goto cleanup;
-						}
+					if(i==ESC) {
 						retval=fp->files=0;
 						goto cleanup;
 					}
@@ -710,22 +635,12 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 		free_opt_list(&dir_list);
 		if(finished) {
 			if((opts & UIFC_FP_OVERPROMPT) && fexist(cfile)) {
-				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File exists, overwrite?", YesNo)!=0) {
-					if (api->exit_flags & UIFC_XF_QUIT) {
-						retval=fp->files=0;
-						goto cleanup;
-					}
+				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File exists, overwrite?", YesNo)!=0)
 					finished=FALSE;
-				}
 			}
 			if((opts & UIFC_FP_CREATPROMPT) && !fexist(cfile)) {
-				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File does not exist, create?", YesNo)!=0) {
-					if (api->exit_flags & UIFC_XF_QUIT) {
-						retval=fp->files=0;
-						goto cleanup;
-					}
+				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File does not exist, create?", YesNo)!=0)
 					finished=FALSE;
-				}
 			}
 		}
 	}
