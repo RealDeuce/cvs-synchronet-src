@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.308 2015/02/12 11:30:54 deuce Exp $ */
+/* $Id: term.c,v 1.309 2015/02/14 13:03:01 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -725,7 +725,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
-		uifcmsg("ERROR",str);
+		uifcmsg("Error opening file",str);
 		uifcbail();
 		setup_mouse_events();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
