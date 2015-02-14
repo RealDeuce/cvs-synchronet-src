@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications I/O Library Common Functions */
 
-/* $Id: comio.c,v 1.1 2007/04/21 01:36:35 rswindell Exp $ */
+/* $Id: comio.c,v 1.2 2014/02/14 12:05:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 #include "comio.h"
 #include "genwrap.h"	/* msclock */
 
-size_t comReadBuf(COM_HANDLE handle, char* buf, size_t buflen, const char* terminators, int timeout)
+size_t COMIOCALL comReadBuf(COM_HANDLE handle, char* buf, size_t buflen, const char* terminators, int timeout)
 {
 	BYTE		ch;
 	size_t		len=0;
@@ -59,7 +59,7 @@ size_t comReadBuf(COM_HANDLE handle, char* buf, size_t buflen, const char* termi
 	return len;
 }
 
-size_t comReadLine(COM_HANDLE handle, char* buf, size_t buflen, int timeout)
+size_t COMIOCALL comReadLine(COM_HANDLE handle, char* buf, size_t buflen, int timeout)
 {
 	size_t	len;
 
