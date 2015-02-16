@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.19 2015/04/03 10:12:04 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.17 2009/02/10 09:15:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,6 @@ struct  video_params {
 	int curs_end;
 	int charheight;
 	int charwidth;
-	int	vmultiplier;
 };
 
 struct video_stats {
@@ -81,12 +80,9 @@ struct video_stats {
 	int bright_background;
 	int blink;
 	int no_bright;
-	int no_blink;
 	int bright_altcharset;
-	int blink_altcharset;
 	int currattr;
 	int scaling;
-	int	vmultiplier;
 	struct dac_colors dac_colors[256];
 	unsigned char palette[16];
 	unsigned short *vmem;
