@@ -2,7 +2,7 @@
 
 /* Rob Swindell's Text-mode User Interface Library */
 
-/* $Id: uifc.h,v 1.80 2011/04/23 17:42:19 deuce Exp $ */
+/* $Id: uifc.h,v 1.83 2015/02/09 03:43:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,30 @@
 #endif
 #if defined(__unix__)
 	#include <sys/param.h>	/* PATH_MAX */
+#endif
+
+#ifdef _WIN32
+        #ifdef __BORLANDC__
+                #define UIFCCALL __stdcall
+        #else
+                #define UIFCCALL
+        #endif
+        #if defined(UIFC_IMPORTS) || defined(UIFC_EXPORTS)
+                #if defined(UIFC_IMPORTS)
+                        #define UIFCEXPORT __declspec( dllimport )
+                        #define UIFCEXPORTVAR __declspec( dllimport )
+                #else
+                        #define UIFCEXPORT __declspec( dllexport )
+                        #define UIFCEXPORTVAR __declspec( dllexport )
+                #endif
+        #else   /* self-contained executable */
+                #define UIFCEXPORT
+                #define UIFCEXPORTVAR	extern
+        #endif
+#else
+        #define UIFCCALL
+        #define UIFCEXPORT
+        #define UIFCEXPORTVAR	extern
 #endif
 
 #if defined(__unix__) && !defined(stricmp)
@@ -254,6 +278,60 @@ typedef struct {
 } win_t;
 
 typedef struct {
+	char	background;
+	char	help_char;
+	char	close_char;
+	char	up_arrow;
+	char	down_arrow;
+	char	button_left;
+	char	button_right;
+
+	char	list_top_left;
+	char	list_top;
+	char	list_top_right;
+	char	list_separator_left;
+	char	list_separator_right;
+	char	list_horizontal_separator;
+	char	list_left;
+	char	list_right;
+	char	list_bottom_left;
+	char	list_bottom_right;
+	char	list_bottom;
+	char	list_scrollbar_separator;
+
+	char	input_top_left;
+	char	input_top;
+	char	input_top_right;
+	char	input_left;
+	char	input_right;
+	char	input_bottom_left;
+	char	input_bottom_right;
+	char	input_bottom;
+
+	char	popup_top_left;
+	char	popup_top;
+	char	popup_top_right;
+	char	popup_left;
+	char	popup_right;
+	char	popup_bottom_left;
+	char	popup_bottom_right;
+	char	popup_bottom;
+
+	char	help_top_left;
+	char	help_top;
+	char	help_top_right;
+	char	help_left;
+	char	help_right;
+	char	help_bottom_left;
+	char	help_bottom_right;
+	char	help_bottom;
+	char	help_titlebreak_left;
+	char	help_titlebreak_right;
+	char	help_hitanykey_left;
+	char	help_hitanykey_right;
+} uifc_graphics_t;
+
+typedef struct {
 /****************************************************************************/
 /* Size of the structure (for version compatibility verification).			*/
 /****************************************************************************/
@@ -317,6 +395,11 @@ typedef struct {
 /* Have we initialized successfully?										*/
 /****************************************************************************/
 	BOOL	initialized;
+
+/****************************************************************************/
+/* Custom drawing characters												*/
+/****************************************************************************/
+	uifc_graphics_t	*chars;
 
 /****************************************************************************/
 /* Exit/uninitialize function.												*/
@@ -417,15 +500,15 @@ enum {
 	uifcNo=1
 };
 
-extern char* uifcYesNoOpts[];
+UIFCEXPORTVAR char* uifcYesNoOpts[];
 
 /****************************************************************************/
 /* Initialization routines for each UIFC implementation.					*/
 /* Returns 0 on success, non-zero on failure.								*/
 /****************************************************************************/
 int uifcini(uifcapi_t*);	/* Original implementation based on conio		*/
-int uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
-int uifcini32(uifcapi_t*);	/* conio/curses implementation					*/
+UIFCEXPORT int UIFCCALL uifcinix(uifcapi_t*);	/* Standard I/O implementation					*/
+UIFCEXPORT int UIFCCALL uifcini32(uifcapi_t*);	/* modern implementation	*/
 /****************************************************************************/
 
 #ifdef __cplusplus
