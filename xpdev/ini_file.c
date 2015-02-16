@@ -2,13 +2,13 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.136 2014/04/24 06:04:59 deuce Exp $ */
+/* $Id: ini_file.c,v 1.139 2015/02/12 23:11:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -401,9 +401,11 @@ BOOL DLLCALL iniRenameSection(str_list_t* list, const char* section, const char*
 	if(section==ROOT_SECTION)
 		return(FALSE);
 
-	i=find_section_index(*list,newname);
-	if((*list)[i]!=NULL)	/* duplicate */
-		return(FALSE);
+	if(stricmp(section, newname)!=0) {
+		i=find_section_index(*list,newname);
+		if((*list)[i]!=NULL)	/* duplicate */
+			return(FALSE);
+	}
 
 	i=find_section_index(*list,section);
 	if((*list)[i]==NULL)	/* not found */
@@ -1294,7 +1296,7 @@ int DLLCALL iniGetSocketOptions(str_list_t list, const char* section, SOCKET soc
 	int			option;
 	int			level;
 	int			value;
-	int			type;
+	int			type=0;	// Assignment is to silence Valgrind.
 	LINGER		linger;
 	socket_option_t* socket_options=getSocketOptionList();
 	union xp_sockaddr	addr;
