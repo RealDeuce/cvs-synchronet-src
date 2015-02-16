@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.333 2013/05/13 15:40:18 rswindell Exp $ */
+/* $Id: js_global.c,v 1.339 2014/11/18 06:11:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,33 +239,6 @@ static jsval* js_CopyValue(JSContext* cx, jsrefcount *cx_rc, jsval val, JSContex
 	*cx_rc=JS_SUSPENDREQUEST(cx);
 
 	return rval;
-}
-
-JSBool BGContextCallback(JSContext *cx, uintN contextOp)
-{
-	JSObject	*gl=JS_GetGlobalObject(cx);
-	global_private_t*	p;
-
-	if(!gl)
-		return JS_TRUE;
-
-	if((p=(global_private_t*)JS_GetPrivate(cx,gl))==NULL)
-		return(JS_TRUE);
-
-	switch(contextOp) {
-		case JSCONTEXT_DESTROY:
-			while(p->bg_count) {
-				while(p->bg_count && sem_trywait(&p->bg_sem)==0)
-					p->bg_count--;
-				if(!p->bg_count)
-					break;
-
-				if(sem_wait(&p->bg_sem)==0)
-					p->bg_count--;
-			}
-			break;
-	}
-	return JS_TRUE;
 }
 
 static JSBool
@@ -613,7 +586,6 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		success = _beginthread(background_thread,0,bg)!=-1;
 		JS_RESUMEREQUEST(cx, rc);
 		if(success) {
-			JS_SetContextCallback(JS_GetRuntime(cx), BGContextCallback);
 			p->bg_count++;
 		}
 
@@ -867,7 +839,7 @@ js_ascii(JSContext *cx, uintN argc, jsval *arglist)
 	str[0]=(uchar)i;
 	str[1]=0;
 
-	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
+	if((js_str = JS_NewStringCopyN(cx, str, 1))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
@@ -2468,17 +2440,16 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 	if(str==NULL) 
 		return(JS_TRUE);
 	if(extra_bytes) {
-		rastr=realloc(str, strlen+extra_bytes);
-		if(rastr==NULL)
+		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
+		if(rastr==NULL) {
+			free(str);
 			return JS_TRUE;
+		}
+		str=rastr;
 	}
 
 	js_str = JS_NewStringCopyZ(cx, func(str));
-	free(str);	/* MSVC detected heap corruption here (again):
- 	sbbs.dll!free(void * pUserData=0x08cdc6b0)  Line 49 + 0xb bytes	C++
->	sbbs.dll!js_internal_charfunc(JSContext * cx=0x0a594488, unsigned int argc=1, unsigned __int64 * arglist=0x0c3a0150, char * (char *)* func=0x10153fb0, unsigned int extra_bytes=1)  Line 2477 + 0x9 bytes	C
- 	sbbs.dll!js_backslash(JSContext * cx=0x0a594488, unsigned int argc=1, unsigned __int64 * arglist=0x0c3a0150)  Line 2506 + 0x18 bytes	C
-	*/
+	free(str);
 	if(js_str==NULL)
 		return(JS_FALSE);
 
@@ -4129,8 +4100,14 @@ static void js_global_finalize(JSContext *cx, JSObject *obj)
 
 	p=(global_private_t*)JS_GetPrivate(cx,obj);
 
-	if(p!=NULL)
+	if(p!=NULL) {
+		while(p->bg_count) { 
+			if(sem_wait(&p->bg_sem)==0) 
+				p->bg_count--; 
+		}
+		sem_destroy(&p->bg_sem);
 		free(p);
+	}
 
 	p=NULL;
 	JS_SetPrivate(cx,obj,p);
@@ -4187,6 +4164,10 @@ static JSClass js_global_class = {
 BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t* startup, JSObject**glob)
 {
 	global_private_t*	p;
+	JSRuntime*			rt;
+
+	if((rt=JS_GetRuntime(cx)) != NULL)
+		JS_SetRuntimePrivate(rt, cfg);
 
 	if((p = (global_private_t*)malloc(sizeof(global_private_t)))==NULL)
 		return(FALSE);
@@ -4296,6 +4277,10 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* COM Class */
 		if(js_CreateCOMClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptContext Class */
+		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
