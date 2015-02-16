@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.309 2015/02/14 13:03:01 deuce Exp $ */
+/* $Id: term.c,v 1.310 2015/02/16 07:57:01 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2586,6 +2586,7 @@ BOOL doterm(struct bbslist *bbs)
 						break;
 					}
 					/* FALLTHROUGH for curses/ansi modes */
+				case CIO_KEY_QUIT:
 				case 0x2d00:	/* Alt-X - Exit */
 				case 0x2300:	/* Alt-H - Hangup */
 					{
@@ -2619,7 +2620,7 @@ BOOL doterm(struct bbslist *bbs)
 							hidemouse();
 							hold_update=oldmc;
 							free(buf);
-							return(key==0x2d00 /* Alt-X? */);
+							return(key==0x2d00 /* Alt-X? */ || key == CIO_KEY_QUIT);
 						}
 						uifcbail();
 						setup_mouse_events();

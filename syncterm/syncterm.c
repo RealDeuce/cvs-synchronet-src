@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.187 2015/02/12 12:02:58 deuce Exp $ */
+/* $Id: syncterm.c,v 1.188 2015/02/16 07:57:01 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1452,6 +1452,7 @@ int main(int argc, char **argv)
 
 	if(initciolib(ciolib_mode))
 		return(1);
+	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
 	textmode(text_mode);
 
