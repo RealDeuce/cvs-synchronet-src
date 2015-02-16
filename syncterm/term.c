@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.300 2014/09/24 04:12:19 deuce Exp $ */
+/* $Id: term.c,v 1.309 2015/02/14 13:03:01 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -82,17 +82,24 @@ void mousedrag(unsigned char *scrollback)
 	int	key;
 	struct mouse_event mevent;
 	unsigned char *screen;
+	unsigned char *tscreen;
 	unsigned char *sbuffer;
 	int sbufsize;
 	int pos, startpos,endpos, lines;
 	int outpos;
-	char *copybuf;
+	char *copybuf=NULL;
+	char *newcopybuf;
 	int lastchar;
+	int old_xlat = ciolib_xlat;
 
 	sbufsize=term.width*2*term.height;
-	screen=(unsigned char*)alloca(sbufsize);
-	sbuffer=(unsigned char*)alloca(sbufsize);
+	screen=(unsigned char*)malloc(sbufsize);
+	sbuffer=(unsigned char*)malloc(sbufsize);
+	tscreen=(unsigned char*)malloc(sbufsize);
 	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
+	ciolib_xlat = TRUE;
+	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
+	ciolib_xlat = old_xlat;
 	while(1) {
 		key=getch();
 		if(key==0 || key==0xff)
@@ -127,12 +134,16 @@ void mousedrag(unsigned char *scrollback)
 						break;
 					default:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						copybuf=alloca(endpos-startpos+4+lines*2);
+						newcopybuf=realloc(copybuf, endpos-startpos+4+lines*2);
+						if (newcopybuf)
+							copybuf = newcopybuf;
+						else
+							goto cleanup;
 						outpos=0;
 						lastchar=0;
 						for(pos=startpos;pos<=endpos;pos++) {
-							copybuf[outpos++]=screen[pos*2];
-							if(screen[pos*2]!=' ' && screen[pos*2])
+							copybuf[outpos++]=tscreen[pos*2];
+							if(tscreen[pos*2]!=' ' && tscreen[pos*2])
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
@@ -146,15 +157,23 @@ void mousedrag(unsigned char *scrollback)
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
 						puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
-						return;
+						goto cleanup;
 				}
 				break;
 			default:
 				puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
 				ungetch(key);
-				return;
+				goto cleanup;
 		}
 	}
+
+cleanup:
+	free(screen);
+	free(sbuffer);
+	free(tscreen);
+	if(copybuf)
+		free(copybuf);
+	return;
 }
 
 void update_status(struct bbslist *bbs, int speed, int ooii_mode)
@@ -168,10 +187,29 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	static int lastupd=0;
 	static int oldspeed=0;
 	int	timeon;
+	char sep;
+	int old_xlat = ciolib_xlat;
 
+	switch(getfont()) {
+			case 0:
+			case 17:
+			case 18:
+			case 19:
+			case 25:
+			case 26:
+			case 27:
+			case 28:
+			case 29:
+			case 31:
+				sep = 0xb3;
+				break;
+			default:
+				sep = '|';
+	}
 	now=time(NULL);
 	if(now==lastupd && speed==oldspeed)
 		return;
+	ciolib_xlat = TRUE;
 	lastupd=now;
 	oldspeed=speed;
 	timeon=now - bbs->connected;
@@ -208,15 +246,15 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 		case CIOLIB_MODE_CURSES_IBM:
 		case CIOLIB_MODE_ANSI:
 			if(timeon>359999)
-				cprintf(" %-29.29s \263 %-6.6s \263 Connected: Too Long \263 CTRL-S for menu ",nbuf,conn_types[bbs->conn_type]);
+				cprintf(" %-29.29s %c %-6.6s %c Connected: Too Long %c CTRL-S for menu ",nbuf,sep,conn_types[bbs->conn_type],sep,sep);
 			else
-				cprintf(" %-29.29s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 CTRL-S for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
+				cprintf(" %-29.29s %c %-6.6s %c Connected: %02d:%02d:%02d %c CTRL-S for menu ",nbuf,sep,conn_types[bbs->conn_type],sep,timeon/3600,(timeon/60)%60,timeon%60,sep);
 			break;
 		default:
 			if(timeon>359999)
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: Too Long \263 "ALT_KEY_NAME3CH"-Z for menu ",nbuf,conn_types[bbs->conn_type]);
+				cprintf(" %-30.30s %c %-6.6s %c Connected: Too Long %c "ALT_KEY_NAME3CH"-Z for menu ",nbuf,sep,conn_types[bbs->conn_type],sep,sep);
 			else
-				cprintf(" %-30.30s \263 %-6.6s \263 Connected: %02d:%02d:%02d \263 "ALT_KEY_NAME3CH"-Z for menu ",nbuf,conn_types[bbs->conn_type],timeon/3600,(timeon/60)%60,timeon%60);
+				cprintf(" %-30.30s %c %-6.6s %c Connected: %02d:%02d:%02d %c "ALT_KEY_NAME3CH"-Z for menu ",nbuf,sep,conn_types[bbs->conn_type],sep,timeon/3600,(timeon/60)%60,timeon%60,sep);
 			break; /*    1+29     +3    +6    +3    +11        +3+3+2        +3    +6    +4  +5 */
 	}
 	if(wherex()>=80)
@@ -226,6 +264,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
+	ciolib_xlat = old_xlat;
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -686,7 +725,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
-		uifcmsg("ERROR",str);
+		uifcmsg("Error opening file",str);
 		uifcbail();
 		setup_mouse_events();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
@@ -787,7 +826,7 @@ static BOOL is_connected(void* unused)
 static int guts_lputs(void* cbdata, int level, const char* str)
 {
 	struct GUTS_info *gi=cbdata;
-	/* ToDo: Do something usefull here. */
+	/* ToDo: Do something useful here. */
 	/* fprintf(stderr,"%s\n",str); */
 	return(0);
 }
@@ -795,7 +834,7 @@ static int guts_lputs(void* cbdata, int level, const char* str)
 void guts_zmodem_progress(void* cbdata, ulong current_pos)
 {
 	struct GUTS_info *gi=cbdata;
-	/* ToDo: Do something usefull here. */
+	/* ToDo: Do something useful here. */
 	return;
 }
 
@@ -1207,23 +1246,24 @@ static BOOL xmodem_check_abort(void* vp)
 	time_t					now=time(NULL);
 	int						key;
 
+	if (xm == NULL)
+		return FALSE;
+
 	if(last_check != now) {
 		last_check=now;
-		if(xm!=NULL) {
-			while(kbhit()) {
-				switch((key=getch())) {
-					case ESC:
-					case CTRL_C:
-					case CTRL_X:
-						xm->cancelled=TRUE;
-						break;
-					case 0:
-					case 0xff:
-						key |= (getch() << 8);
-						if(key==CIO_KEY_MOUSE)
-							getmouse(NULL);
-						break;
-				}
+		while(kbhit()) {
+			switch((key=getch())) {
+				case ESC:
+				case CTRL_C:
+				case CTRL_X:
+					xm->cancelled=TRUE;
+					break;
+				case 0:
+				case 0xff:
+					key |= (getch() << 8);
+					if(key==CIO_KEY_MOUSE)
+						getmouse(NULL);
+					break;
 			}
 		}
 	}
@@ -1548,7 +1588,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 	int64_t	file_bytes=0,file_bytes_left=0;
 	int64_t	total_bytes=0;
 	FILE*	fp=NULL;
-	time_t	t,startfile,ftime;
+	time_t	t,startfile,ftime=0;
 	int		old_hold=hold_update;
 
 	if(safe_mode)
@@ -1877,6 +1917,7 @@ void font_control(struct bbslist *bbs)
 	char *buf;
 	struct	text_info txtinfo;
 	int i,j,k;
+	int enable_xlat = 0;
 
 	if(safe_mode)
 		return;
@@ -1904,20 +1945,22 @@ void font_control(struct bbslist *bbs)
 					struct file_pick fpick;
 					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
 
-					if(j!=-1 && fpick.files>=1) {
+					if(j!=-1 && fpick.files>=1)
 						loadfont(fpick.selected[0]);
-						uifc_old_font=getfont();
-					}
 					filepick_free(&fpick);
 				}
 				else {
 					setfont(i,FALSE,1);
-					uifc_old_font=getfont();
+					if (i >=32 && i<= 35 && cterm->emulation != CTERM_EMULATION_PETASCII)
+						enable_xlat = TRUE;
+					if (i==36 && cterm->emulation != CTERM_EMULATION_ATASCII)
+						enable_xlat = TRUE;
 				}
 			}
 		break;
 	}
 	uifcbail();
+	ciolib_xlat = enable_xlat;
 	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
@@ -1950,7 +1993,7 @@ void capture_control(struct bbslist *bbs)
 		uifc.helpbuf="`Capture Type`\n\n"
 					"~ ASCII ~ Strips out ANSI sequences\n"
 					"~ Raw ~   Leaves ANSI sequences in\n\n"
-					"Raw is usefull for stealing ANSI screens from other systems.\n"
+					"Raw is useful for stealing ANSI screens from other systems.\n"
 					"Don't do that though.  :-)";
 		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Type",opts)!=-1) {
 			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, NULL, UIFC_FP_ALLOWENTRY);
@@ -2554,7 +2597,7 @@ BOOL doterm(struct bbslist *bbs)
 						char *buf;
 
    						gettextinfo(&txtinfo);
-						buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+						buf=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 						gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						i=0;
 						init_uifc(FALSE, FALSE);
@@ -2575,11 +2618,13 @@ BOOL doterm(struct bbslist *bbs)
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
+							free(buf);
 							return(key==0x2d00 /* Alt-X? */);
 						}
 						uifcbail();
 						setup_mouse_events();
 						puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+						free(buf);
 						window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 						textattr(txtinfo.attribute);
 						gotoxy(txtinfo.curx,txtinfo.cury);
