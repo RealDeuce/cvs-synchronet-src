@@ -469,6 +469,7 @@ int read_config(void)
 }
 
 int main(int argc, char *argv[]) {
+	GError* error = NULL;
 	GtkWindow*	xml;
 
     gtk_init(&argc, &argv);
