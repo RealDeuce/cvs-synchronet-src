@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.215 2015/02/26 01:03:05 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.212 2015/02/17 07:28:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,7 +162,7 @@ static uifc_graphics_t ascii_chars = {
 	.help_char='?',
 	.close_char='X',
 	.up_arrow='^',
-	.down_arrow='v',
+	.down_arrow='V',
 	.button_left='[',
 	.button_right=']',
 
@@ -1108,10 +1108,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		gotkey=0;
 		textattr(((api->lbclr)&0x0f)|((api->lbclr >> 4)&0x0f));
 		gotoxy(s_left+lbrdrwidth+2+left, s_top+y);
-		if((api->exit_flags & UIFC_XF_QUIT) || kbwait() || (mode&(WIN_POP|WIN_SEL))) {
-			if(api->exit_flags & UIFC_XF_QUIT)
-				gotkey = CIO_KEY_QUIT;
-			else if(mode&WIN_POP)
+		if(kbwait() || (mode&(WIN_POP|WIN_SEL))) {
+			if(mode&WIN_POP)
 				gotkey=ESC;
 			else if(mode&WIN_SEL)
 				gotkey=CR;
@@ -1246,7 +1244,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					break;
 				case CIO_KEY_QUIT:
 					api->exit_flags |= UIFC_XF_QUIT;
-					gotkey=ESC;
+					if(!(mode&WIN_EXTKEYS))
+						gotkey=ESC;
 					break;
 			}
 			if(gotkey>255) {
@@ -2173,8 +2172,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				case CTRL_Z:
 				case CIO_KEY_F(1):	/* F1 Help */
 					api->showhelp();
-					if(api->exit_flags & UIFC_XF_QUIT)
-						f = CIO_KEY_QUIT;
 					continue;
 				case CIO_KEY_LEFT:	/* left arrow */
 					if(i)
