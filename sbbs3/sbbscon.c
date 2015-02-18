@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.251 2014/03/08 00:54:13 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.252 2014/11/12 10:50:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1201,6 +1201,8 @@ int main(int argc, char** argv)
 #ifdef __unix__
 	setsid();	/* Disassociate from controlling terminal */
 	umask(077);
+#elif defined(_WIN32)
+	CreateMutex(NULL, FALSE, "sbbs_running");	/* For use by Inno Setup */
 #endif
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
