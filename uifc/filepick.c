@@ -448,10 +448,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 				}
 				hold_update=FALSE;
 				api->msg("Cannot read directory!");
-				if (api->exit_flags & UIFC_XF_QUIT) {
-					retval=fp->files=0;
-					goto cleanup;
-				}
 				SAFECOPY(cpath, lastpath);
 				FREE_AND_NULL(lastpath);
 				currfield=lastfield;
@@ -553,10 +549,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 						{
 							FREE_AND_NULL(tmplastpath);
 							api->msg("No such path/file!");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
 							continue;
 						}
 					}
@@ -571,10 +563,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 						{
 							FREE_AND_NULL(tmplastpath);
 							api->msg("No such path!");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
 							continue;
 						}
 					}
@@ -595,10 +583,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 							sprintf(cfile,"%s%s%s",drive,tdir,cmsk);
 							FREE_AND_NULL(tmplastpath);
 							api->msg("File mask cannot be changed");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
 							continue;
 						}
 						else {
@@ -670,11 +654,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					api->getstrxy(SCRN_LEFT+8, SCRN_TOP+height-3, width-7, cmsk, sizeof(cmsk)-1, K_EDIT|K_TABEXIT|K_MOUSEEXIT, &i);
 					if(i==CIO_KEY_MOUSE)
 						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
-					if(i==ESC || i==CIO_KEY_QUIT) {
-						if (api->exit_flags & UIFC_XF_QUIT) {
-							retval=fp->files=0;
-							goto cleanup;
-						}
+					if(i==ESC) {
 						retval=fp->files=0;
 						goto cleanup;
 					}
@@ -710,22 +690,12 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 		free_opt_list(&dir_list);
 		if(finished) {
 			if((opts & UIFC_FP_OVERPROMPT) && fexist(cfile)) {
-				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File exists, overwrite?", YesNo)!=0) {
-					if (api->exit_flags & UIFC_XF_QUIT) {
-						retval=fp->files=0;
-						goto cleanup;
-					}
+				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File exists, overwrite?", YesNo)!=0)
 					finished=FALSE;
-				}
 			}
 			if((opts & UIFC_FP_CREATPROMPT) && !fexist(cfile)) {
-				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File does not exist, create?", YesNo)!=0) {
-					if (api->exit_flags & UIFC_XF_QUIT) {
-						retval=fp->files=0;
-						goto cleanup;
-					}
+				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File does not exist, create?", YesNo)!=0)
 					finished=FALSE;
-				}
 			}
 		}
 	}
