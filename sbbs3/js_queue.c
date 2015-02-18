@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.45 2013/05/10 18:10:31 deuce Exp $ */
+/* $Id: js_queue.c,v 1.48 2015/02/18 10:49:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,19 +67,16 @@ static void js_finalize_queue(JSContext *cx, JSObject *obj)
 }
 
 static size_t js_decode_value(JSContext *cx, JSObject *parent
-							   ,queued_value_t* v, jsval* rval, BOOL peek)
+							   ,queued_value_t* v, jsval* rval)
 {
-	size_t			count=1;
-
 	*rval = JSVAL_VOID;
 
 	if(v==NULL)
-		return(count);
+		return(1);
 
 	JS_ReadStructuredClone(cx, v->value, v->size, JS_STRUCTURED_CLONE_VERSION, rval, NULL, NULL);
-	free(v->value);
 
-	return(count);
+	return(1);
 }
 
 /* Queue Object Methods */
@@ -156,7 +153,8 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	if(v!=NULL) {
 		jsval	rval;
 
-		js_decode_value(cx, obj, v, &rval, /* peek */FALSE);
+		js_decode_value(cx, obj, v, &rval);
+		free(v->value);
 		free(v);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
@@ -191,42 +189,33 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	if(v!=NULL) {
 		jsval	rval;
-		js_decode_value(cx, obj, v, &rval, /* peek */TRUE);
+		js_decode_value(cx, obj, v, &rval);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
 
 	return(JS_TRUE);
 }
 
-static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
-									   ,queued_value_t* v, size_t* count)
+static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name)
 {
-	queued_value_t* nv;
-	uint64			*nval;
+	queued_value_t	*v;
+	uint64			*serialized;
 
-	if((nv=realloc(v,((*count)+1)*sizeof(queued_value_t)))==NULL) {
-		if(v) free(v);
+	if((v=malloc(sizeof(queued_value_t)))==NULL)
 		return(NULL);
-	}
-	v=nv;
-	nv=v+(*count);
-	memset(nv,0,sizeof(queued_value_t));
-	(*count)++;
+	memset(v,0,sizeof(queued_value_t));
 
 	if(name!=NULL)
-		SAFECOPY(nv->name,name);
+		SAFECOPY(v->name,name);
 
-	if(!JS_WriteStructuredClone(cx, val, &nval, &nv->size, NULL, NULL)) {
-		free(v);
+	if(!JS_WriteStructuredClone(cx, val, &serialized, &v->size, NULL, NULL))
+		return NULL;
+	if((v->value=(uint64 *)malloc(v->size))==NULL) {
+		JS_free(cx, serialized);
 		return NULL;
 	}
-	if((nv->value=(uint64 *)malloc(nv->size))==NULL) {
-		JS_free(cx, nval);
-		free(v);
-		return NULL;
-	}
-	memcpy(nv->value, nval, nv->size);
-	JS_free(cx, nval);
+	memcpy(v->value, serialized, v->size);
+	JS_free(cx, serialized);
 
 	return(v);
 }
@@ -234,15 +223,14 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name
 BOOL js_enqueue_value(JSContext *cx, msg_queue_t* q, jsval val, char* name)
 {
 	queued_value_t* v;
-	size_t			count=0;
 	BOOL			result;
 	jsrefcount		rc;
 
-	if((v=js_encode_value(cx,val,name,NULL,&count))==NULL || count<1)
+	if((v=js_encode_value(cx,val,name))==NULL)
 		return(FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	result=msgQueueWrite(q,v,count*sizeof(queued_value_t));
+	result=msgQueueWrite(q,v,sizeof(queued_value_t));
 	free(v);
 	JS_RESUMEREQUEST(cx, rc);
 	return(result);
