@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.185 2014/06/27 10:28:36 deuce Exp $ */
+/* $Id: syncterm.c,v 1.188 2015/02/16 07:57:01 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -80,17 +80,13 @@ char	*usage =
 		"\n"
 		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
 		"raw:// URLs MUST include a port.\n"
-#ifdef __unix__
-		"shell:command URLs are also supported.\n"
-#endif
+		"shell:command URLs are supported on *nix.\n"
 		"examples: rlogin://deuce:password@nix.synchro.net:5885\n"
 		"          telnet://deuce@nix.synchro.net\n"
 		"          nix.synchro.net\n"
 		"          telnet://nix.synchro.net\n"
 		"          raw://nix.synchro.net:23\n"
-#ifdef __unix__
 		"          shell:/usr/bin/sh\n"
-#endif
 		;
 
 char *inpath=NULL;
@@ -816,13 +812,11 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
-#ifdef __unix__
 	else if(!strnicmp("shell:",url,6)) {
 		bbs->conn_type=CONN_TYPE_SHELL;
 		bbs->port=conn_ports[bbs->conn_type];
 		p1=url+6;
 	}
-#endif
 	/* ToDo: RFC2806 */
 	p3=strchr(p1,'@');
 	if(p3!=NULL) {
@@ -898,7 +892,7 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 		if(FSRefMakePath(&ref, (unsigned char*)fn, fnlen)!=noErr)
 			return(NULL);
 		backslash(fn);
-		strncat(fn, "SyncTERM", fnlen);
+		strncat(fn, "SyncTERM", fnlen-strlen(fn)-1);
 		backslash(fn);
 		if(!isdir(fn)) {
 			if(MKDIR(fn))
@@ -929,10 +923,10 @@ static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 	case SYNCTERM_PATH_INI:
-		strncat(fn, "SyncTERM.ini", fnlen);
+		strncat(fn, "SyncTERM.ini", fnlen-strlen(fn)-1);
 		return(fn);
 	case SYNCTERM_PATH_LIST:
-		strncat(fn, "SyncTERM.lst", fnlen);
+		strncat(fn, "SyncTERM.lst", fnlen-strlen(fn)-1);
 		return(fn);
 	}
 	return(NULL);
@@ -1064,15 +1058,15 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	switch(type) {
 		case SYNCTERM_PATH_INI:
 			backslash(fn);
-			strncat(fn,"syncterm.ini",fnlen);
+			strncat(fn,"syncterm.ini",fnlen-strlen(fn)-1);
 			break;
 		case SYNCTERM_PATH_LIST:
 			backslash(fn);
-			strncat(fn,"syncterm.lst",fnlen);
+			strncat(fn,"syncterm.lst",fnlen-strlen(fn)-1);
 			break;
 		case SYNCTERM_PATH_CACHE:
 			backslash(fn);
-			strncat(fn,"SyncTERM",fnlen);
+			strncat(fn,"SyncTERM",fnlen-strlen(fn)-1);
 			backslash(fn);
 			if(!isdir(fn)) {
 				if(MKDIR(fn)) {
@@ -1080,7 +1074,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 				}
 			}
-			strncat(fn,"cache",fnlen);
+			strncat(fn,"cache",fnlen-strlen(fn)-1);
 			backslash(fn);
 			if(!isdir(fn)) {
 				if(MKDIR(fn))
@@ -1123,7 +1117,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 		backslash(oldlst);
 		strcat(oldlst,"syncterm.lst");
 		sprintf(fn,"%.*s",fnlen,home);
-		strncat(fn, "/.syncterm", fnlen);
+		strncat(fn, "/.syncterm", fnlen-strlen(fn)-1);
 		backslash(fn);
 	}
 
@@ -1146,13 +1140,13 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 
 	switch(type) {
 		case SYNCTERM_PATH_INI:
-			strncat(fn,"syncterm.ini",fnlen);
+			strncat(fn,"syncterm.ini",fnlen-strlen(fn)-1);
 			break;
 		case SYNCTERM_PATH_LIST:
-			strncat(fn,"syncterm.lst",fnlen);
+			strncat(fn,"syncterm.lst",fnlen-strlen(fn)-1);
 			break;
 		case SYNCTERM_PATH_CACHE:
-			strncat(fn,"cache",fnlen);
+			strncat(fn,"cache",fnlen-strlen(fn)-1);
 			backslash(fn);
 #if !(defined(__APPLE__) && defined(__MACH__))
 			if(!isdir(fn)) {
@@ -1458,6 +1452,7 @@ int main(int argc, char **argv)
 
 	if(initciolib(ciolib_mode))
 		return(1);
+	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
 	textmode(text_mode);
 
