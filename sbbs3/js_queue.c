@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.45 2013/05/10 18:10:31 deuce Exp $ */
+/* $Id: js_queue.c,v 1.47 2015/02/18 10:36:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ static void js_finalize_queue(JSContext *cx, JSObject *obj)
 }
 
 static size_t js_decode_value(JSContext *cx, JSObject *parent
-							   ,queued_value_t* v, jsval* rval, BOOL peek)
+							   ,queued_value_t* v, jsval* rval)
 {
 	size_t			count=1;
 
@@ -77,7 +77,6 @@ static size_t js_decode_value(JSContext *cx, JSObject *parent
 		return(count);
 
 	JS_ReadStructuredClone(cx, v->value, v->size, JS_STRUCTURED_CLONE_VERSION, rval, NULL, NULL);
-	free(v->value);
 
 	return(count);
 }
@@ -156,7 +155,8 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	if(v!=NULL) {
 		jsval	rval;
 
-		js_decode_value(cx, obj, v, &rval, /* peek */FALSE);
+		js_decode_value(cx, obj, v, &rval);
+		free(v->value);
 		free(v);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
@@ -191,7 +191,7 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	if(v!=NULL) {
 		jsval	rval;
-		js_decode_value(cx, obj, v, &rval, /* peek */TRUE);
+		js_decode_value(cx, obj, v, &rval);
 		JS_SET_RVAL(cx, arglist, rval);
 	}
 
