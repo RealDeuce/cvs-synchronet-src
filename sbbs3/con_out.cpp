@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.72 2016/11/16 05:41:07 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.69 2011/11/13 01:17:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -211,8 +211,8 @@ void sbbs_t::outchar(char ch)
 
 	if(online==ON_REMOTE && console&CON_R_ECHO) {
 		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
-			ch=text[YNQP][3];
-			if(text[YNQP][2]==0 || ch==0) ch='X';
+			ch=text[YN][3];
+			if(text[YN][2]==0 || ch==0) ch='X';
 		}
 		if(ch==FF && term_supports(ANSI)) {
 			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
@@ -301,8 +301,6 @@ void sbbs_t::cursor_home(void)
 		rputs("\x1b[H");
 	else
 		outchar(FF);	/* this will clear some terminals, do nothing with others */
-	tos=1;
-	column=0;
 }
 
 void sbbs_t::cursor_up(int count)
@@ -621,23 +619,4 @@ bool sbbs_t::msgabort()
 	return(false);
 }
 
-int sbbs_t::backfill(const char* str, float pct)
-{
-	uint8_t	atr;
-	int len;
 
-	if(!term_supports(ANSI))
-		return bputs(str);
-
-	len = strlen(str);
-	for(int i=0; i<len; i++) {
-		if(((float)i / len)*100.0 <= pct)
-			atr = cfg.color[clr_backfill];
-		else
-			atr = cfg.color[clr_unfill];
-		if(curatr != atr) attr(atr);
-		outchar(str[i]);
-	}
-	attr(LIGHTGRAY);
-	return len;
-}

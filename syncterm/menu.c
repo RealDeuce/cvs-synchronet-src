@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.54 2015/02/24 08:41:37 deuce Exp $ */
+/* $Id: menu.c,v 1.53 2015/02/19 10:03:27 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -163,21 +163,18 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						"`Scrollback`     Allows to you to view the scrollback buffer\n"
 						"`Disconnect`     Disconnects the current connection\n"
 						"`Send Login`     Sends the username and password pair separated by CR\n"
-						"`Upload`         Initiates a file upload\n"
-						"`Download`       Initiates a file download\n"
+						"`Upload`         Initiates a file upload (ZMODEM or ASCII)\n"
+						"`Download`       Initiates a file download (ZMODEM)\n"
+						"`Log Level`      Changes the minimum log level for ZMODEM information\n"
 						"`Output Rate`    Changes the speed characters are output to the screen\n"
-						"`Log Level`      Changes the minimum log level for transfer information\n"
 						"`Capture`        Enables/Disables screen capture\n"
 						"`ANSI Music`     Enables/Disables ANSI Music\n"
 						"`Font`           Changes the current font (when supported)\n"
 						"`Doorway Mode`   Toggles the current DoorWay (keyboard input) setting\n"
 #ifndef WITHOUT_OOII
-						"`Operation Overkill ][ Mode`\n"
-						"               Toggles the current Operation Overkill ][ setting\n"
+						"`Operation Overkill ][ Mode`   Toggles the current Operation Overkill ][ setting\n"
 #endif
-						"`Exit`           Disconnects and closes Syncterm\n"
-						"`Edit Dialing Directory`\n"
-						"               Opens the directory/setting menu\n";
+						"`Exit`           Disconnects and closes Syncterm";
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
 		switch(i) {
 			case -1:	/* Cancel */
