@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.35 2015/02/27 11:27:07 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.32 2015/02/10 10:41:11 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -20,9 +20,6 @@ static int uifc_initialized=0;
 
 static void (*bottomfunc)(int);
 int orig_ciolib_xlat;
-int orig_vidflags;
-int orig_x;
-int orig_y;
 
 int	init_uifc(BOOL scrn, BOOL bottom) {
 	int	i;
@@ -34,10 +31,6 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 		/* Set scrn_len to 0 to prevent textmode() call */
 		uifc.scrn_len=0;
 		orig_ciolib_xlat = ciolib_xlat;
-		orig_vidflags = getvideoflags();
-		orig_x=wherex();
-		orig_y=wherey();
-		setvideoflags(orig_vidflags&(CIOLIB_VIDEO_NOBLINK|CIOLIB_VIDEO_BGBRIGHT));
 		ciolib_xlat = TRUE;
 		uifc.chars = NULL;
 		if((i=uifcini32(&uifc))!=0) {
@@ -82,9 +75,6 @@ void uifcbail(void)
 	if(uifc_initialized) {
 		uifc.bail();
 		ciolib_xlat = orig_ciolib_xlat;
-		setvideoflags(orig_vidflags);
-		loadfont(NULL);
-		gotoxy(orig_x, orig_y);
 	}
 	uifc_initialized=0;
 }
@@ -105,7 +95,6 @@ void uifcmsg(char *msg, char *helpbuf)
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
 		uifc.msg(msg);
-		check_exit(FALSE);
 	}
 	else
 		fprintf(stderr,"%s\n",msg);
@@ -131,7 +120,6 @@ void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
 		uifc.input(WIN_MID|WIN_SAV, 0, 0, title, msg, len, mode);
-		check_exit(FALSE);
 	}
 	else
 		fprintf(stderr,"%s\n",msg);
@@ -162,10 +150,8 @@ int confirm(char *msg, char *helpbuf)
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
-		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,msg,options)!=0) {
-			check_exit(FALSE);
+		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,msg,options)!=0)
 			ret=FALSE;
-		}
 	}
 	if(!i) {
 		uifcbail();
