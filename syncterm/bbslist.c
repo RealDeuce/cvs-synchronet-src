@@ -413,7 +413,40 @@ int listcmp(const void *aptr, const void *bptr)
 
 void sort_list(struct bbslist **list, int *listcount, int *cur, int *bar, char *current)  {
 	int i;
+#if 0
+	struct bbslist *tmp;
+	unsigned int	i,j,swapped=1;
+
+	while(swapped) {
+		swapped=0;
+		for(i=1;list[i]!=NULL && list[i-1]->name[0] && list[i]->name[0];i++) {
+			int	cmp=stricmp(list[i-1]->name,list[i]->name);
+			if(cmp>0 || (cmp==0 && list[i-1]->type==SYSTEM_BBSLIST && list[i]->type==USER_BBSLIST)) {
+				tmp=list[i];
+				list[i]=list[i-1];
+				list[i-1]=tmp;
+				swapped=1;
+			}
+			if(cmp==0) {
+				/* Duplicate.  Remove the one from system BBS list */
+				tmp=list[i];
+				for(j=i;list[j]!=NULL && list[j]->name[0];j++) {
+					list[j]=list[j+1];
+				}
+				if(tmp)
+					free(tmp);
+				for(j=0;list[j]!=NULL && list[j]->name[0];j++) {
+					list[j]->id=j;
+				}
+				(*listcount)--;
+				swapped=1;
+				break;
+			}
+		}
+	}
+#else
 	qsort(list, *listcount, sizeof(struct bbslist *), listcmp);
+#endif
 	if(cur && current) {
 		for(i=0; i<*listcount; i++) {
 			if(strcmp(list[i]->name,current)==0) {
@@ -497,11 +530,8 @@ void edit_sorting(struct bbslist **list, int *listcount, int *ocur, int *obar, c
 		ret=uifc.list(WIN_XTR|WIN_DEL|WIN_INS|WIN_INSACT|WIN_ACT|WIN_SAV
 					,0,0,0,&curr,&bar,"Sort Order",opts);
 		if(ret==-1) {
-			if (uifc.exit_flags & UIFC_XF_QUIT) {
-				if (!check_exit(FALSE))
-					continue;
-			}
-			break;
+			if(check_exit(FALSE))
+				break;
 		}
 		if(ret & MSK_INS) {		/* Insert sorting */
 			j=0;
@@ -776,45 +806,13 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 
 		uifc.helpbuf=	"`Edit Directory Entry`\n\n"
 						"Select item to edit.\n\n"
-						"~ Name ~\n"
-						"        The name of the BBS entry\n\n"
-						"~ Phone Number / Device Name / Command / Address ~\n"
-						"        Required information to establish the connection (type specific)\n\n"
-						"~ Conection Type ~\n"
-						"        Type of connection\n\n"
-						"~ TCP Port ~ (if applicable)\n"
-						"        TCP port to connect to (applicable types only)\n\n"
-						"~ Username ~\n"
-						"        Username sent by the auto-login command\n\n"
-						"~ Password ~\n"
-						"        Password sent by auto-login command (not securely stored)\n\n"
-						"~ System Password ~\n"
-						"        System Password sent by auto-login command (not securely stored)\n\n"
-						"~ Screen Mode ~\n"
-						"        Display mode to use\n\n"
 						"~ Hide Status Line ~\n"
 						"        Selects if the status line should be hidden, giving an extra\n"
 						"        display row\n\n"
-						"~ Download Path ~\n"
-						"        Default path to store downloaded files\n\n"
-						"~ Upload Path ~\n"
-						"        Default path for uploads\n\n"
-						"~ Log File ~\n"
-						"        Log file name when logging is enabled\n\n"
 						"~ Log Transfers ~\n"
 						"        Cycles through the various transfer log settings.\n\n"
 						"~ Log Telnet Cmds ~\n"
 						"        Cycles through the various telnet command log settings.\n\n"
-						"~ Append Log File ~\n"
-						"        Append log file (instead of overwrite) on each connection\n\n"
-						"~ Comm Rate ~\n"
-						"        Display speed\n\n"
-						"~ ANSI Music ~\n"
-						"        ANSI music type selection\n\n"
-						"~ Address Family ~\n"
-						"        IPv4 or IPv6\n\n"
-						"~ Font ~\n"
-						"        Select font to use for the entry\n\n"
 						;
 		i=uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&copt,&bar
 			,isdefault ? "Edit Default Connection":"Edit Directory Entry"
@@ -1137,8 +1135,6 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 		if(uifc.changes)
 			changed=1;
 	}
-	strListFree(&inifile);
-	return (changed);
 }
 
 void add_bbs(char *listpath, struct bbslist *bbs)
@@ -1252,9 +1248,7 @@ void change_settings(void)
 						"~ Modem Dial String ~\n"
 						"        The command string to use to dial the modem.\n\n"
 						"~ List Path ~\n"
-						"        The complete path to the user's BBS list.\n\n"
-						"~ TERM For Shell ~\n"
-						"        The value to set the TERM envirnonment variable to goes here.\n\n";
+						"        The complete path to the users BBS list.\n\n";
 		sprintf(opts[0],"Confirm Program Exit    %s",settings.confirm_close?"Yes":"No");
 		sprintf(opts[1],"Prompt to Save          %s",settings.prompt_save?"Yes":"No");
 		sprintf(opts[2],"Startup Screen Mode     %s",screen_modes[settings.startup_mode]);
@@ -1490,7 +1484,6 @@ write_ini:
 			fclose(inifile);
 		}
 	}
-	strListFree(&inicontents);
 }
 
 void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaults, char *listpath, size_t listpathsize, char *shared_list, size_t shared_listsize, int *listcount, int *cur, int *bar, char *current)
@@ -1667,9 +1660,8 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							break;
 						case -1:		/* ESC */
-							if(!connected)
-								if (!check_exit(TRUE))
-									continue;
+							if (!check_exit(TRUE))
+								continue;
 							free_list(&list[0],listcount);
 							return(NULL);
 					}
@@ -1887,9 +1879,8 @@ struct bbslist *show_bbslist(char *current, int connected)
 						at_settings=!at_settings;
 						break;
 					case -1:		/* ESC */
-						if (!connected)
-							if (!check_exit(TRUE))
-								continue;
+						if (!check_exit(TRUE))
+							continue;
 						free_list(&list[0],listcount);
 						return(NULL);
 					case 0:			/* Edit default connection settings */
@@ -1932,14 +1923,11 @@ struct bbslist *show_bbslist(char *current, int connected)
 						}
 						break;
 					case 2:			/* Font management */
-						if(!safe_mode) {
-							font_management();
-							load_font_files();
-						}
+						if(!safe_mode) font_management();
 						break;
 					case 3:			/* Program settings */
 						change_settings();
-						load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+						load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, listcount && list[listcount-1]?strdup(list[listcount-1]->name):NULL);
 						oldopt=-1;
 						break;
 				}
