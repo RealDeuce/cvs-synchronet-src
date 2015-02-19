@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.614 2015/08/17 07:05:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.608 2014/09/01 07:01:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -297,15 +297,15 @@ DLLEXPORT void DLLCALL sbbs_srand()
 
 	xp_randomize();
 #if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
-	int     rf,rd=0;
+	int     rf;
 
-	if((rf=open(RANDOM_DEV, O_RDONLY|O_NONBLOCK))!=-1) {
-		rd=read(rf, &seed, sizeof(seed));
+	if((rf=open(RANDOM_DEV, O_RDONLY))!=-1) {
+		read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
-	if(rd != sizeof(seed))
+#else
+	seed = time32(NULL) ^ (DWORD)GetCurrentThreadId();
 #endif
-		seed = time32(NULL) ^ (uintmax_t)GetCurrentThreadId();
 
  	srand(seed);
 	sbbs_random(10);	/* Throw away first number */
@@ -2983,9 +2983,6 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	nodesync_inside = false;
 	errormsg_inside = false;
 	gettimeleft_inside = false;
-	readmail_inside = false;
-	scanposts_inside = false;
-	scansubs_inside = false;
 	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
 	uselect_total = 0;
 	lbuflen = 0;
@@ -3042,7 +3039,6 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	sysvar_pi=0;
 
 	cursub=NULL;
-	cursubnum=INVALID_SUB;
 	usrgrp=NULL;
 	usrsubs=NULL;
 	usrsub=NULL;
@@ -3051,7 +3047,6 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	subscan=NULL;
 
 	curdir=NULL;
-	curdirnum=INVALID_SUB;
 	usrlib=NULL;
 	usrdirs=NULL;
 	usrdir=NULL;
@@ -3737,10 +3732,7 @@ int sbbs_t::putcom(const char *str, size_t len)
 	return i;
 }
 
-/* Legacy Remote I/O Control Interface:
- * This function mimics the RCIOL MS-DOS library written in 8086 assembler by Steven B. Deppe (1958-2014).
- * This function prototype shall remain the same in tribute to Steve (Ille Homine Albe).
- */
+/* Legacy Remote I/O Control Interface */
 int sbbs_t::rioctl(ushort action)
 {
 	int		mode;
@@ -4144,9 +4136,6 @@ void node_thread(void* arg)
 	sbbs->putnodedat(sbbs->cfg.node_num,&node);
 
 	{
-		/* crash here on Aug-4-2015:
-		node_thread_running already destroyed
-		bbs_thread() timed out waiting for 1 node thread(s) to terminate */
 		int32_t remain = protected_uint32_adjust(&node_threads_running, -1);
 		lprintf(LOG_INFO,"Node %d thread terminated (%u node threads remain, %lu clients served)"
 			,sbbs->cfg.node_num, remain, served);
@@ -5191,9 +5180,6 @@ NO_SSH:
 		if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
-
-		/* Purge (flush) any pending input or output data */
-		sbbs->rioctl(IOFB);
 
 		/* Do SSH stuff here */
 #ifdef USE_CRYPTLIB
