@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: x_cio.c,v 1.36 2015/02/19 10:29:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -345,6 +345,14 @@ int x_init(void)
 		return(-1);
 	}
 	if((x11.XSetWMProperties=xp_dlsym(dl,XSetWMProperties))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XSetWMProtocols=xp_dlsym(dl,XSetWMProtocols))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XInternAtom=xp_dlsym(dl,XInternAtom))==NULL) {
 		xp_dlclose(dl);
 		return(-1);
 	}
