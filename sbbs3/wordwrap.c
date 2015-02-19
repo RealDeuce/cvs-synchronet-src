@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.26 2015/07/12 23:00:28 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.18 2015/02/10 08:34:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,7 +178,7 @@ int get_word_len(char *buf, int starting_pos)
 			return 0;
 		if (!buf[starting_pos+pos])
 			break;
-		else if (isspace((unsigned char)buf[starting_pos+pos]))
+		else if (isspace(buf[starting_pos+pos]))
 			break;
 		else if (buf[starting_pos+pos]=='\x1f')
 			continue;
@@ -196,19 +196,6 @@ int get_word_len(char *buf, int starting_pos)
 	}
 
 	return next_len;
-}
-
-#define HARD_CR { \
-	linebuf[l++]='\r'; \
-	linebuf[l++]='\n'; \
-	outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size); \
-	if(prefix) \
-		memcpy(linebuf,prefix,prefix_bytes); \
-	l=prefix_bytes; \
-	ocol=prefix_len+1; \
-	icol=prefix_len+1; \
-	chopped = FALSE; \
-	continue; \
 }
 
 char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
@@ -229,7 +216,6 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 	int			outbuf_size=0;
 	int			inbuf_len=strlen(inbuf);
 	unsigned	next_len;
-	BOOL		chopped = FALSE;
 
 	outbuf_size=inbuf_len*3+1;
 	if((outbuf=(char*)malloc(outbuf_size))==NULL)
@@ -327,8 +313,14 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 					/* Move the input pointer offset to the last char of the prefix */
 					i+=prefix_bytes;
 				}
-				if(!inbuf[i+1])	/* EOF */
-					HARD_CR
+				if(!inbuf[i+1]) {			/* EOF */
+					linebuf[l++]='\r';
+					linebuf[l++]='\n';
+					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
+					l=0;
+					ocol=1;
+					continue;
+				}
 				/* If there's a new prefix, it is a hardcr */
 				else if(compare_prefix(prefix, old_prefix_bytes, inbuf+i+1-prefix_bytes, prefix_bytes)!=0) {
 					if(prefix_len>len/3*2) {
@@ -344,33 +336,54 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 						/* Terminate prefix */
 						prefix[prefix_bytes]=0;
 					}
-					HARD_CR
+					linebuf[l++]='\r';
+					linebuf[l++]='\n';
+					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
+					memcpy(linebuf,prefix,prefix_bytes);
+					l=prefix_bytes;
+					ocol=prefix_len+1;
+					old_prefix_bytes=prefix_bytes;
+					icol=prefix_len+1;
+					continue;
 				}
-				else if(chopped || isspace((unsigned char)inbuf[i+1]))	/* Next line starts with whitespace.  This is a "hard" CR. */
-					HARD_CR
-				else if(strspn(linebuf+prefix_bytes, " \t\r") == l-prefix_bytes)	/* Lines made entirely of whitespace always end with a "hard" CR */
-					HARD_CR
+				else if(isspace((unsigned char)inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
+					linebuf[l++]='\r';
+					linebuf[l++]='\n';
+					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
+					l=prefix_bytes;
+					ocol=prefix_len+1;
+					icol=prefix_len+1;
+					continue;
+				}
 				else {
 					if(icol < oldlen) {			/* If this line is overly long, It's impossible for the next word to fit */
 						/* k will equal the length of the first word on the next line */
 						k = get_word_len(inbuf, i+1);
-						if(icol+k <= oldlen)	/* The next word would have fit but isn't here.  Must be a hard CR */
-							HARD_CR
+						if(icol+k+1 < oldlen) {	/* The next word would have fit but isn't here.  Must be a hard CR */
+							linebuf[l++]='\r';
+							linebuf[l++]='\n';
+							outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
+							if(prefix)
+								memcpy(linebuf,prefix,prefix_bytes);
+							l=prefix_bytes;
+							ocol=prefix_len+1;
+							icol=prefix_len+1;
+							continue;
+						}
 						else {		/* Not a hard CR... add space if needed */
-							if(ocol > prefix_len+1 && (l<1 || !isspace((unsigned char)linebuf[l-1]))) {
+							if(l<1 || !isspace((unsigned char)linebuf[l-1])) {
 								linebuf[l++]=' ';
 								ocol++;
 							}
 						}
 					}
 					else {			/* Not a hard CR... add space if needed */
-						if(ocol > prefix_len+1 && (l<1 || !isspace((unsigned char)linebuf[l-1]))) {
+						if(l<1 || !isspace((unsigned char)linebuf[l-1])) {
 							linebuf[l++]=' ';
 							ocol++;
 						}
 					}
 				}
-				icol=prefix_len+1;
 				/* Fall-through soft CRs for wrapping! */
 			default:
 				if (inbuf[i] != '\n') {
@@ -378,7 +391,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 					ocol++;
 					icol++;
 				}
-				if(ocol>len && inbuf[i+1] && !isspace((unsigned char)inbuf[i+1])) {		/* Need to wrap here */
+				if(ocol>len && inbuf[i+1] && !isspace(inbuf[i+1])) {		/* Need to wrap here */
 					/* Find the start of the last word */
 					k=l;									/* Original next char */
 					l--;									/* Move back to the last char */
@@ -398,7 +411,6 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 							l--;
 						if(l>0)
 							l--;
-						chopped = TRUE;
 					}
 					t=l+1;									/* Store start position of next line */
 					/* Move to start of whitespace */
