@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.58 2012/10/24 19:02:38 deuce Exp $ */
+/* $Id: ciolib.h,v 1.71 2015/02/16 07:52:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
 #define _CIOLIB_H_
 
 #include <string.h>	/* size_t */
-#include "mouse.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -218,7 +217,29 @@ struct text_info {
 	unsigned char cury;           /* y-coordinate in current window */
 };
 
-extern struct text_info cio_textinfo;
+CIOLIBEXPORTVAR struct text_info cio_textinfo;
+
+struct mouse_event {
+	int event;
+	int bstate;
+	int kbsm;
+	int startx;
+	int starty;
+	int endx;
+	int endy;
+};
+
+struct conio_font_data_struct {
+        char 	*eight_by_sixteen;
+        char 	*eight_by_fourteen;
+        char 	*eight_by_eight;
+        char	*put_xlat;
+        char 	*desc;
+};
+
+CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
+
+#define CONIO_FIRST_FREE_FONT	43
 
 typedef struct {
 	int		mode;
@@ -275,6 +296,8 @@ typedef struct {
 	void	(*setcustomcursor)	(int startline, int endline, int range, int blink, int visible);
 	void	(*setvideoflags)	(int flags);
 	int		(*getvideoflags)	(void);
+	void	(*setscaling)	(int new_value);
+	int		(*getscaling)	(void);
 	int		*ESCDELAY;
 } cioapi_t;
 
@@ -283,6 +306,8 @@ CIOLIBEXPORTVAR int _wscroll;
 CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
+CIOLIBEXPORTVAR int ciolib_xlat;
+CIOLIBEXPORTVAR int ciolib_reaper;
 
 #define _conio_kbhit()		kbhit()
 
@@ -340,6 +365,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_getcustomcursor(int *startline, int *endline
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcustomcursor(int startline, int endline, int range, int blink, int visible);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int flags);
+CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -399,6 +426,8 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define setcustomcursor(a,b,c,d,e)	ciolib_setcustomcursor(a,b,c,d,e)
 	#define setvideoflags(a)		ciolib_setvideoflags(a)
 	#define getvideoflags()			ciolib_getvideoflags()
+	#define setscaling(a)			ciolib_setscaling(a)
+	#define getscaling()			ciolib_getscaling()
 #endif
 
 #ifdef WITH_SDL
@@ -410,5 +439,94 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#endif
 	#define	main	CIOLIB_main
 #endif
+
+#define CIOLIB_BUTTON_1	1
+#define CIOLIB_BUTTON_2	2
+#define CIOLIB_BUTTON_3	4
+
+#define CIOLIB_BUTTON(x)	(1<<(x-1))
+
+enum {
+	 CIOLIB_MOUSE_MOVE				/* 0 */
+	,CIOLIB_BUTTON_1_PRESS
+	,CIOLIB_BUTTON_1_RELEASE
+	,CIOLIB_BUTTON_1_CLICK
+	,CIOLIB_BUTTON_1_DBL_CLICK
+	,CIOLIB_BUTTON_1_TRPL_CLICK
+	,CIOLIB_BUTTON_1_QUAD_CLICK
+	,CIOLIB_BUTTON_1_DRAG_START
+	,CIOLIB_BUTTON_1_DRAG_MOVE
+	,CIOLIB_BUTTON_1_DRAG_END
+	,CIOLIB_BUTTON_2_PRESS			/* 10 */
+	,CIOLIB_BUTTON_2_RELEASE
+	,CIOLIB_BUTTON_2_CLICK
+	,CIOLIB_BUTTON_2_DBL_CLICK
+	,CIOLIB_BUTTON_2_TRPL_CLICK
+	,CIOLIB_BUTTON_2_QUAD_CLICK
+	,CIOLIB_BUTTON_2_DRAG_START
+	,CIOLIB_BUTTON_2_DRAG_MOVE
+	,CIOLIB_BUTTON_2_DRAG_END
+	,CIOLIB_BUTTON_3_PRESS
+	,CIOLIB_BUTTON_3_RELEASE		/* 20 */
+	,CIOLIB_BUTTON_3_CLICK
+	,CIOLIB_BUTTON_3_DBL_CLICK
+	,CIOLIB_BUTTON_3_TRPL_CLICK
+	,CIOLIB_BUTTON_3_QUAD_CLICK
+	,CIOLIB_BUTTON_3_DRAG_START
+	,CIOLIB_BUTTON_3_DRAG_MOVE
+	,CIOLIB_BUTTON_3_DRAG_END		/* 27 */
+};
+
+#define CIOLIB_BUTTON_PRESS(x)		((x-1)*9+1)
+#define CIOLIB_BUTTON_RELEASE(x)	((x-1)*9+2)
+#define CIOLIB_BUTTON_CLICK(x)		((x-1)*9+3)
+#define CIOLIB_BUTTON_DBL_CLICK(x)	((x-1)*9+4)
+#define CIOLIB_BUTTON_TRPL_CLICK(x)	((x-1)*9+5)
+#define CIOLIB_BUTTON_QUAD_CLICK(x)	((x-1)*9+6)
+#define CIOLIB_BUTTON_DRAG_START(x)	((x-1)*9+7)
+#define CIOLIB_BUTTON_DRAG_MOVE(x)	((x-1)*9+8)
+#define CIOLIB_BUTTON_DRAG_END(x)	((x-1)*9+9)
+
+#define CIOLIB_BUTTON_NUMBER(x)		((x+8)/9)
+
+#define CIOLIB_BUTTON_BASE(x)		(x!=CIOLIB_MOUSE_MOVE?x-9*(CIOLIB_BUTTON_NUMBER(x)-1):CIOLIB_MOUSE_MOVE)
+
+extern int ciolib_mouse_initialized;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+CIOLIBEXPORT void CIOLIBCALL ciomouse_gotevent(int event, int x, int y);
+CIOLIBEXPORT int CIOLIBCALL mouse_trywait(void);
+CIOLIBEXPORT int CIOLIBCALL mouse_wait(void);
+CIOLIBEXPORT int CIOLIBCALL mouse_pending(void);
+CIOLIBEXPORT int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent);
+CIOLIBEXPORT int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent);
+CIOLIBEXPORT void CIOLIBCALL ciolib_mouse_thread(void *data);
+CIOLIBEXPORT int CIOLIBCALL ciomouse_setevents(int events);
+CIOLIBEXPORT int CIOLIBCALL ciomouse_addevents(int events);
+CIOLIBEXPORT int CIOLIBCALL ciomouse_delevents(int events);
+CIOLIBEXPORT int CIOLIBCALL ciomouse_addevent(int event);
+CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
+#ifdef __cplusplus
+}
+#endif
+
+#define CIO_KEY_HOME      (0x47 << 8)
+#define CIO_KEY_UP        (72   << 8)
+#define CIO_KEY_END       (0x4f << 8)
+#define CIO_KEY_DOWN      (80   << 8)
+#define CIO_KEY_F(x)      ((x<11)?((0x3a+x) << 8):((0x7a+x) << 8))
+#define CIO_KEY_IC        (0x52 << 8)
+#define CIO_KEY_DC        (0x53 << 8)
+#define CIO_KEY_LEFT      (0x4b << 8)
+#define CIO_KEY_RIGHT     (0x4d << 8)
+#define CIO_KEY_PPAGE     (0x49 << 8)
+#define CIO_KEY_NPAGE     (0x51 << 8)
+#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
+
+#define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards "F-14"
+#define CIO_KEY_QUIT	  0x7e00	// "F-15"
+#define CIO_KEY_ABORTED   0x01E0	// ESC key by scancode
 
 #endif	/* Do not add anything after this line */

@@ -1,11 +1,10 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.49 2012/07/19 06:24:15 deuce Exp $ */
+/* $Id: menu.c,v 1.53 2015/02/19 10:03:27 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
-#include <keys.h>
 
 #include "cterm.h"
 #include "term.h"
@@ -24,6 +23,7 @@ void viewscroll(void)
 	struct	text_info txtinfo;
 	int	x,y;
 	struct mouse_event mevent;
+	int old_xlat=ciolib_xlat;
 
 	x=wherex();
 	y=wherey();
@@ -40,39 +40,26 @@ void viewscroll(void)
 	top=cterm->backpos;
 	gotoxy(1,1);
 	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
-	for(i=0;!i;) {
+	for(i=0;(!i) && (!quitting);) {
 		if(top<1)
 			top=1;
 		if(top>cterm->backpos)
 			top=cterm->backpos;
 		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
-		switch(cterm->emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		ciolib_xlat = TRUE;
+		cputs("Scrollback");
 		gotoxy(cterm->width-9,1);
-		switch(cterm->emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		cputs("Scrollback");
+		ciolib_xlat = old_xlat;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
 			case 0xff:
 			case 0:
 				switch(key|getch()<<8) {
+					case CIO_KEY_QUIT:
+						check_exit(TRUE);
+						break;
 					case CIO_KEY_MOUSE:
 						getmouse(&mevent);
 						switch(mevent.event) {
@@ -101,6 +88,7 @@ void viewscroll(void)
 										"~ H ~ or ~ Page Up ~    Scrolls up one screen\n"
 										"~ L ~ or ~ Page Down ~  Scrolls down one screen\n";
 						uifc.showhelp();
+						check_exit(FALSE);
 						uifcbail();
 						drawwin();
 						break;
@@ -169,7 +157,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 		opts[1]="Disconnect ("ALT_KEY_NAMEP"-H)";
 	}
 
-	for(ret=0;!ret;) {
+	for(ret=0;(!ret) && (!quitting);) {
 		init_uifc(FALSE, !(bbs->nostatus));
 		uifc.helpbuf=	"`Online Menu`\n\n"
 						"`Scrollback`     Allows to you to view the scrollback buffer\n"
@@ -190,6 +178,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
 		switch(i) {
 			case -1:	/* Cancel */
+				check_exit(FALSE);
 				ret=1;
 				break;
 			case 0:		/* Scrollback */
@@ -214,9 +203,10 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				}
 				break;
 			case 5:		/* Output rate */
-				if(bbs->conn_type==CONN_TYPE_MODEM || bbs->conn_type==CONN_TYPE_SERIAL)
+				if(bbs->conn_type==CONN_TYPE_MODEM || bbs->conn_type==CONN_TYPE_SERIAL) {
 					uifcmsg("Not supported for this connection type"
 						,"Cannot change the display rate for Modem/Serial connections.");
+				}
 				else if(speed != NULL) {
 					j=get_rate_num(*speed);
 					uifc.helpbuf="`Output Rate`\n\n"
@@ -224,6 +214,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 							"data on the screen.  This rate is a maximum, not guaranteed to be attained\n"
 							"In general, you will only use this option for ANSI animations.";
 					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,NULL,"Output Rate",rate_names);
+					if (i==-1)
+						check_exit(FALSE);
 					if(i>=0)
 						*speed = rates[i];
 				}
@@ -236,6 +228,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						"window.  For the selected log level, messages of that level and those above\n"
 						"it will be displayed.";
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,NULL,"Log Level",log_levels);
+				if (i==-1)
+					check_exit(FALSE);
 				if(i>=0)
 					log_level = j;
 				ret=6;
