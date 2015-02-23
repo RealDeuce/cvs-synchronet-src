@@ -1,5 +1,10 @@
 Version 1.0
 -----------
+Handle the close window button gracefully
+Allow left/right to switch dir/file columns in file picker
+Allow case-only changes to directory entries
+Translate copies from non-ASCII screens screen modes to ASCII
+Add copy/paste support back into OS X builds using Pasteboard
 Don't conditionally compile shell support, just treat it as disabled
 Support Commodore and Atari fonts when not using their native emulation
 Properly save/restore the RLogin Reversed connection mode
