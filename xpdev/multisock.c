@@ -3,13 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gen_defs.h>
-#include <sockwrap.h>
-#include <dirwrap.h>
-#include <multisock.h>
+#include "gen_defs.h"
+#include "sockwrap.h"
+#include "dirwrap.h"
+#include "multisock.h"
 #include <stdarg.h>
 
-struct xpms_set *xpms_create(unsigned int retries, unsigned int wait_secs,
+struct xpms_set* DLLCALL xpms_create(unsigned int retries, unsigned int wait_secs,
 	int (*lprintf)(int level, const char *fmt, ...))
 {
 	struct xpms_set *ret=(struct xpms_set *)calloc(1, sizeof(struct xpms_set));
@@ -22,7 +22,7 @@ struct xpms_set *xpms_create(unsigned int retries, unsigned int wait_secs,
 	return ret;
 }
 
-void xpms_destroy(struct xpms_set *xpms_set)
+void DLLCALL xpms_destroy(struct xpms_set *xpms_set, void (*sock_destroy)(SOCKET, void *), void *cbdata)
 {
 	int		i;
 
@@ -35,6 +35,8 @@ void xpms_destroy(struct xpms_set *xpms_set)
 						, xpms_set->socks[i].sock, xpms_set->socks[i].prot?xpms_set->socks[i].prot:"unknown"
 						, xpms_set->socks[i].port);
 			closesocket(xpms_set->socks[i].sock);
+			if(sock_destroy)
+				sock_destroy(xpms_set->socks[i].sock, cbdata);
 		}
 		xpms_set->socks[i].sock = INVALID_SOCKET;
 		FREE_AND_NULL(xpms_set->socks[i].address);
@@ -44,7 +46,7 @@ void xpms_destroy(struct xpms_set *xpms_set)
 	free(xpms_set);
 }
 
-BOOL xpms_add(struct xpms_set *xpms_set, int domain, int type,
+BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 	int protocol, const char *addr, uint16_t port, const char *prot, 
 	void (*sock_init)(SOCKET, void *), int(*bind_init)(BOOL), void *cbdata)
 {
@@ -62,6 +64,7 @@ BOOL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 
 	if(domain == AF_UNIX) {
 		memset(&dummy, 0, sizeof(dummy));
+		memset(&un_addr, 0, sizeof(un_addr));
 		dummy.ai_family = AF_UNIX;
 		dummy.ai_socktype = type;
 		dummy.ai_addr = (struct sockaddr *)&un_addr;
@@ -69,13 +72,17 @@ BOOL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 
 		if(strlen(addr) >= sizeof(un_addr.sun_path)) {
 			if(xpms_set->lprintf)
-				xpms_set->lprintf(LOG_ERR, "!ERROR %s is too long for a AF_UNIX socket", addr);
+				xpms_set->lprintf(LOG_ERR, "!ERROR %s is too long for a portable AF_UNIX socket", addr);
 			return FALSE;
 		}
 		strcpy(un_addr.sun_path,addr);
+#ifdef SUN_LEN
+		dummy.ai_addrlen = SUN_LEN(&un_addr);
+#else
+		dummy.ai_addrlen = offsetof(struct sockaddr_un, un_addr.sun_path) + strlen(addr) + 1;
+#endif
 		if(fexist(addr))
 			unlink(addr);
-		dummy.ai_addrlen = sizeof(un_addr);
 		res = &dummy;
 	}
 #endif
@@ -166,7 +173,7 @@ BOOL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 	return FALSE;
 }
 
-BOOL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
+BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 	int protocol, str_list_t list, uint16_t default_port, const char *prot, 
 	void (*sock_init)(SOCKET, void *), int(*bind_init)(BOOL), void *cbdata)
 {
@@ -210,7 +217,7 @@ BOOL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 	return one_good;
 }
 
-SOCKET xpms_accept(struct xpms_set *xpms_set, union xp_sockaddr * addr, 
+SOCKET DLLCALL xpms_accept(struct xpms_set *xpms_set, union xp_sockaddr * addr, 
 	socklen_t * addrlen, unsigned int timeout, void **cb_data)
 {
 	fd_set			read_fs;
