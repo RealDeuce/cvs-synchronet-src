@@ -2,13 +2,13 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.43 2013/10/29 20:10:44 deuce Exp $ */
+/* $Id: filewrap.c,v 1.45 2014/01/04 09:38:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -303,11 +303,11 @@ static int expandtofit(char **linep, size_t len, size_t *linecapp)
 	char	*newline;
 	size_t	newcap;
 
-	if(len > LONG_MAX + 1)
+	if(len+1 >= LONG_MAX)
 		return -1;
 	if(len > *linecapp) {
-		if(len == LONG_MAX + 1)
-			newcap = LONG_MAX + 1;
+		if(len == LONG_MAX)
+			newcap = LONG_MAX;
 		else
 			newcap = p2roundup(len);
 		newline = (char *)realloc(*linep, newcap);

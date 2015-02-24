@@ -2,7 +2,7 @@
 
 /* Synchronet LZH compression library */
 
-/* $Id: lzh.c,v 1.12 2014/01/03 00:39:46 deuce Exp $ */
+/* $Id: lzh.c,v 1.13 2014/01/03 01:23:50 deuce Exp $ */
 
 /**************************************************************************** 
  * @format.tab-size 4		(Plain Text/Source Code File Header)			* 
@@ -449,7 +449,7 @@ static void lzh_update(lzh_t* lzh, short int c)
 		k = ++lzh->freq[c];
 
 		/* swap nodes to keep the tree freq-ordered */
-		if (k > lzh->freq[l = c + 1]) {
+		if (((unsigned)k) > ((unsigned)lzh->freq[l = c + 1])) {
 			while (k > lzh->freq[++l]);
 			l--;
 			lzh->freq[c] = lzh->freq[l];
