@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.10 2015/08/27 00:25:58 deuce Exp $
+# $Id: GNUmakefile,v 1.9 2014/10/14 04:58:58 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -42,4 +42,4 @@ endif
 $(GTKMONITOR): $(OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ -lsbbs $(EXTRA_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
-	$(QUIET)cd $(EXEODIR) && ln -fs ../gtkmonitor.glade .
+	$(QUIET)cd $(EXEODIR) && ln -s ../gtkmonitor.glade .
