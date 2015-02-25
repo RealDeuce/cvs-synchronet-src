@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.149 2015/04/29 22:09:48 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.148 2014/03/07 22:51:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,7 +188,6 @@ enum {
 	,"remote connection type"
 	,"login name given during RLogin negotiation"
 	,"password specified during RLogin negotiation"
-	,"terminal specified during RLogin negotiation"
 	,"client name"
 
 	,"current alternate upload path number"
