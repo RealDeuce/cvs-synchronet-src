@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.69 2014/01/23 08:46:56 deuce Exp $ */
+/* $Id: conn.c,v 1.73 2015/02/10 22:06:15 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -44,11 +44,8 @@
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial"
-#ifdef __unix__
-,"Shell"
-#endif
-,NULL};
+char *conn_types_enum[]={"Unknown","RLogin","RLoginReversed","Telnet","Raw","SSH","Modem","Serial","Shell",NULL};
+char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial","Shell",NULL};
 short unsigned int conn_ports[]={0,513,513,23,0,22,0,0
 #ifdef __unix__
 ,65535
@@ -313,6 +310,8 @@ int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 
 int conn_connect(struct bbslist *bbs)
 {
+	char	str[64];
+
 	memset(&conn_api, 0, sizeof(conn_api));
 
 	switch(bbs->conn_type) {
@@ -331,15 +330,8 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=raw_connect;
 			conn_api.close=raw_close;
 			break;
+#ifndef WITHOUT_CRYPTLIB
 		case CONN_TYPE_SSH:
-#ifdef WITHOUT_CRYPTLIB
-			init_uifc(TRUE, TRUE);
-			uifcmsg("SSH inoperative",	"`Compiled without cryptlib`\n\n"
-					"This binary was compiled without Cryptlib,\n"
-					"which is required for SSH support."
-					);
-			return(-1);
-#else
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
 			break;
@@ -361,6 +353,11 @@ int conn_connect(struct bbslist *bbs)
 			break;
 #endif
 		default:
+			sprintf(str,"%s connections not supported.",conn_types[bbs->conn_type]);
+			uifcmsg(str,	"`Connection type not supported`\n\n"
+							"The connection type of this entry is not supported by this build.\n"
+							"Either the protocol was disabled at compile time, or is\n"
+							"unsupported on this plattform.");
 			conn_api.terminate=1;
 	}
 	if(conn_api.connect) {
@@ -411,6 +408,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	int				nonblock;
 	struct timeval	tv;
 	fd_set			wfd;
+	fd_set			efd;
 	int				failcode=FAILURE_WHAT_FAILURE;
 	struct addrinfo	hints;
 	struct addrinfo	*res=NULL;
@@ -451,7 +449,6 @@ int conn_socket_connect(struct bbslist *bbs)
 	while(kbhit())
 		getch();
 	for(cur=res; cur && failcode==FAILURE_WHAT_FAILURE; cur=cur->ai_next) {
-fprintf(stderr, "Looping...\n");
 		if(sock==INVALID_SOCKET) {
 			sock=socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
 			if(sock==INVALID_SOCKET) {
@@ -477,7 +474,9 @@ fprintf(stderr, "Looping...\n");
 
 						FD_ZERO(&wfd);
 						FD_SET(sock, &wfd);
-						switch(select(sock+1, NULL, &wfd, NULL, &tv)) {
+						FD_ZERO(&efd);
+						FD_SET(sock, &efd);
+						switch(select(sock+1, NULL, &wfd, &efd, &tv)) {
 							case 0:
 								if(kbhit()) {
 									failcode=FAILURE_ABORTED;
@@ -489,11 +488,18 @@ fprintf(stderr, "Looping...\n");
 								sock=INVALID_SOCKET;
 								continue;
 							case 1:
-								if(socket_check(sock, NULL, NULL, 0))
-									goto connected;
-								closesocket(sock);
-								sock=INVALID_SOCKET;
-								continue;
+								if(FD_ISSET(sock, &efd)) {
+									closesocket(sock);
+									sock=INVALID_SOCKET;
+									continue;
+								}
+								else {
+									if(socket_check(sock, NULL, NULL, 0))
+										goto connected;
+									closesocket(sock);
+									sock=INVALID_SOCKET;
+									continue;
+								}
 							default:
 								break;
 						}
