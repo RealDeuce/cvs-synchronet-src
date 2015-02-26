@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.214 2015/02/19 09:57:05 deuce Exp $ */
+/* $Id: uifc32.c,v 1.215 2015/02/26 01:03:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,7 +162,7 @@ static uifc_graphics_t ascii_chars = {
 	.help_char='?',
 	.close_char='X',
 	.up_arrow='^',
-	.down_arrow='V',
+	.down_arrow='v',
 	.button_left='[',
 	.button_right=']',
 
