@@ -1,8 +1,9 @@
+/* $Id: js_cryptcon.c,v 1.4 2014/11/19 09:23:22 deuce Exp $ */
+
 // Cyrptlib encryption context...
 
-#include <jsapi.h>
-#include <cryptlib.h>
 #include "sbbs.h"
+#include <cryptlib.h>
 #include "js_request.h"
 #include "js_socket.h"
 
