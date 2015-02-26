@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.570 2014/09/01 08:48:08 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.574 2014/12/11 00:11:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -905,10 +905,10 @@ static void pop3_thread(void* arg)
 		user.number=matchuser(&scfg,username,FALSE /*sysop_alias*/);
 		if(!user.number) {
 			if(scfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: %s (password: %s)"
+				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: '%s' (password: %s)"
 					,socket, username, password);
 			else
-				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: %s"
+				lprintf(LOG_NOTICE,"%04d !POP3 UNKNOWN USER: '%s'"
 					,socket, username);
 			badlogin(socket, client.protocol, pop_err, username, password, host_name, &pop3.client_addr);
 			break;
@@ -1712,6 +1712,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%04d %s %s %s"
 			,p->sock,p->log_prefix,p->proc_name,lstr);
+		JS_SET_RVAL(cx, arglist, argv[i]);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -3340,10 +3341,10 @@ static void smtp_thread(void* arg)
 
 			if((relay_user.number=matchuser(&scfg,user_name,FALSE))==0) {
 				if(scfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s (password: %s)"
+					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s' (password: %s)"
 						,socket, user_name, user_pass);
 				else
-					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s"
+					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s'"
 						,socket, user_name);
 				badlogin(socket, client.protocol, badauth_rsp, user_name, user_pass, host_name, &smtp.client_addr);
 				break;
@@ -3413,7 +3414,7 @@ static void smtp_thread(void* arg)
 				p=response;
 			SAFECOPY(user_name,response);
 			if((relay_user.number=matchuser(&scfg,user_name,FALSE))==0) {
-				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s"
+				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s'"
 					,socket, user_name);
 				badlogin(socket, client.protocol, badauth_rsp, user_name, user_pass, host_name, &smtp.client_addr);
 				break;
@@ -3816,7 +3817,7 @@ static void smtp_thread(void* arg)
 				if(!chk_ar(&scfg,mailproc_list[i].ar,&relay_user,&client))
 					continue;
 
-				if(findstr_in_list(p, mailproc_list[i].to)) {
+				if(findstr_in_list(p, mailproc_list[i].to) || findstr_in_list(rcpt_addr, mailproc_list[i].to)) {
 					mailproc_to_match[i]=TRUE;
 					break;
 				}
@@ -3912,10 +3913,10 @@ static void smtp_thread(void* arg)
 			if(!usernum && startup->default_user[0]) {
 				usernum=matchuser(&scfg,startup->default_user,TRUE /* sysop_alias */);
 				if(usernum)
-					lprintf(LOG_INFO,"%04d SMTP Forwarding mail for UNKNOWN USER to default user: %s #%u"
+					lprintf(LOG_INFO,"%04d SMTP Forwarding mail for UNKNOWN USER to default user: '%s' #%u"
 						,socket,startup->default_user,usernum);
 				else
-					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN DEFAULT USER: %s"
+					lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN DEFAULT USER: '%s'"
 						,socket,startup->default_user);
 			}
 
@@ -3925,7 +3926,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 			if(!usernum) {
-				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: %s", socket, rcpt_to);
+				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s'", socket, rcpt_to);
 				sockprintf(socket, "550 Unknown User: %s", rcpt_to);
 				continue;
 			}
@@ -4894,7 +4895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.570 $", "%*s %s", revision);
+	sscanf("$Revision: 1.574 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -4966,9 +4967,9 @@ void DLLCALL mail_server(void* arg)
 	if(startup->submission_port==0)			startup->submission_port=IPPORT_SUBMISSION;
 	if(startup->smtp_port==0)				startup->smtp_port=IPPORT_SMTP;
 	if(startup->pop3_port==0)				startup->pop3_port=IPPORT_POP3;
-	if(startup->rescan_frequency==0)		startup->rescan_frequency=3600;	/* 60 minutes */
-	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=50;
-	if(startup->max_inactivity==0) 			startup->max_inactivity=120; /* seconds */
+	if(startup->rescan_frequency==0)		startup->rescan_frequency=MAIL_DEFAULT_RESCAN_FREQUENCY;
+	if(startup->max_delivery_attempts==0)	startup->max_delivery_attempts=MAIL_DEFAULT_MAX_DELIVERY_ATTEMPTS;
+	if(startup->max_inactivity==0) 			startup->max_inactivity=MAIL_DEFAULT_MAX_INACTIVITY; /* seconds */
 	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
 
 #ifdef JAVASCRIPT
