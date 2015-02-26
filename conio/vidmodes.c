@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: vidmodes.c,v 1.15 2015/02/26 03:13:33 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -98,7 +98,7 @@ struct video_params vparams[49] = {
 	/* VESA 34x132 mode */
 	{VESA_132X34, COLOUR_PALETTE, 132, 34, 12, 13, 14, 8},
 	/* VESA 43x132 mode */
-	{VESA_132X43, COLOUR_PALETTE, 132, 34, 7, 7, 8, 8},
+	{VESA_132X43, COLOUR_PALETTE, 132, 43, 7, 7, 8, 8},
 	/* VESA 50x132 mode */
 	{VESA_132X50, COLOUR_PALETTE, 132, 50, 7, 7, 8, 8},
 	/* VESA 60x132 mode */
