@@ -33,6 +33,11 @@ static SDL_sem *sdl_main_sem;
 SDL_sem *sdl_exit_sem;
 
 int CIOLIB_main(int argc, char **argv, char **enviro);
+int XPDEV_main(int argc, char **argv, char **enviro)
+{
+	return CIOLIB_main(argc, argv, enviro);
+}
+
 
 int load_sdl_funcs(struct sdlfuncs *sdlf)
 {
@@ -75,6 +80,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->SemWait=xp_dlsym(sdl_dll, SDL_SemWait))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SemWaitTimeout=xp_dlsym(sdl_dll, SDL_SemWaitTimeout))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -139,6 +148,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->WaitEvent=xp_dlsym(sdl_dll, SDL_WaitEvent))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->PollEvent=xp_dlsym(sdl_dll, SDL_PollEvent))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -319,7 +332,7 @@ void run_sdl_drawing_thread(int (*drawing_thread)(void *data), void (*exit_drawi
 
 static void QuitWrap(void)
 {
-	if(sdl.Quit)
+	if(sdl.Quit && sdl_initialized)
 		sdl.Quit();
 }
 
@@ -332,7 +345,7 @@ int SDL_main_env(int argc, char **argv, char **env)
 	char	drivername[64];
 	struct main_args ma;
 	SDL_Thread	*main_thread;
-	int		main_ret;
+	int		main_ret=0;
 	int		use_sdl_video=FALSE;
 #ifdef _WIN32
 	char		*driver_env=NULL;
