@@ -2,7 +2,7 @@
 
 /* Convert ANSI messages to Synchronet .asc (Ctrl-A code) format */
 
-/* $Id: ans2asc.c,v 1.8 2014/01/05 02:34:14 rswindell Exp $ */
+/* $Id: ans2asc.c,v 1.9 2014/01/05 05:20:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@ static void print_usage(const char* prog)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.8 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet ANSI-Terminal-Sequence to Ctrl-A-Code Conversion Utility v%s\n",revision);
 	fprintf(stderr,"\nusage: %s infile.ans [outfile.asc] [[option] [...]]\n",prog);
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
 	for(i=1; i<argc; i++)  {
 		if(argv[i][0]=='-') {
-			if(stricmp(argv[i], "-delay") == 0) {
+			if(strcmp(argv[i], "-delay") == 0) {
 				if(i+1 == argc) {
 					print_usage(argv[0]);
 					return -1;
@@ -82,9 +82,9 @@ int main(int argc, char **argv)
 					return -1;
 				}
 			}
-			else if(stricmp(argv[i], "-clear") == 0)
+			else if(strcmp(argv[i], "-clear") == 0)
 				clear = 1;
-			else if(stricmp(argv[i], "-pause") == 0)
+			else if(strcmp(argv[i], "-pause") == 0)
 				pause = 1;
 			else {
 				print_usage(argv[0]);
