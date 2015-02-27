@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.135 2015/08/05 09:24:48 deuce Exp $ */
+/* $Id: ciolib.c,v 1.131 2015/02/16 07:52:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
  #include "sdl_con.h"
- #include "sdlfuncs.h"
 #endif
 #ifdef _WIN32
  #include "win32cio.h"
@@ -119,10 +118,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int 
 CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int new_value);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
 
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-int sdl_video_initialized = 0;
-#endif
-
 #define CIOLIB_INIT()		{ if(initialized != 1) initciolib(CIOLIB_MODE_AUTO); }
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
@@ -161,8 +156,8 @@ int try_sdl_init(int mode)
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
 		cio_api.get_window_info=sdl_get_window_info;
-		cio_api.setscaling=sdl_setscaling;
-		cio_api.getscaling=sdl_getscaling;
+		cio_api.setscaling=bitmap_setscaling;
+		cio_api.getscaling=bitmap_getscaling;
 		return(1);
 	}
 	return(0);
@@ -173,13 +168,6 @@ int try_sdl_init(int mode)
  #ifndef NO_X
 int try_x_init(int mode)
 {
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-	if (sdl_video_initialized) {
-		sdl.QuitSubSystem(SDL_INIT_VIDEO);
-		sdl_video_initialized = FALSE;
-	}
-#endif
-
 	if(!x_init()) {
 		cio_api.mode=CIOLIB_MODE_X;
 		cio_api.mouse=1;
@@ -217,13 +205,6 @@ int try_x_init(int mode)
 
 int try_curses_init(int mode)
 {
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-	if (sdl_video_initialized) {
-		sdl.QuitSubSystem(SDL_INIT_VIDEO);
-		sdl_video_initialized = FALSE;
-	}
-#endif
-
 	if(curs_initciolib(mode)) {
 		if(mode==CIOLIB_MODE_AUTO)
 			mode=CIOLIB_MODE_CURSES;
@@ -252,13 +233,6 @@ int try_curses_init(int mode)
 
 int try_ansi_init(int mode)
 {
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-	if (sdl_video_initialized) {
-		sdl.QuitSubSystem(SDL_INIT_VIDEO);
-		sdl_video_initialized = FALSE;
-	}
-#endif
-
 	if(ansi_initciolib(mode)) {
 		cio_api.mode=CIOLIB_MODE_ANSI;
 		cio_api.mouse=0;
@@ -283,13 +257,6 @@ int try_ansi_init(int mode)
 #endif
 int try_conio_init(int mode)
 {
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-	if (sdl_video_initialized) {
-		sdl.QuitSubSystem(SDL_INIT_VIDEO);
-		sdl_video_initialized = FALSE;
-	}
-#endif
-
 	/* This should test for something or other */
 	if(win32_initciolib(mode)) {
 		if(mode==CIOLIB_MODE_AUTO)
