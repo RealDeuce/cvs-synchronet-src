@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.71 2014/01/04 10:41:06 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.72 2014/11/20 05:13:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,19 +48,27 @@ typedef struct {
 	WORD	pop3_port;
 	WORD	submission_port;
 	WORD	max_clients;
+#define MAIL_DEFAULT_MAX_CLIENTS			10
 	WORD	max_inactivity;
+#define MAIL_DEFAULT_MAX_INACTIVITY			120
 	WORD	max_delivery_attempts;
+#define MAIL_DEFAULT_MAX_DELIVERY_ATTEMPTS	50
 	WORD	rescan_frequency;	/* In seconds */
+#define MAIL_DEFAULT_RESCAN_FREQUENCY		3600
 	WORD	relay_port;
-	WORD	lines_per_yield;
+	WORD	lines_per_yield;	/* 0=none */
+#define MAIL_DEFAULT_LINES_PER_YIELD		10
 	WORD	max_recipients;
+#define MAIL_DEFAULT_MAX_RECIPIENTS			100
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
     DWORD   interface_addr;
     DWORD	options;			/* See MAIL_OPT definitions */
     DWORD	max_msg_size;		/* Max msg size in bytes (0=unlimited) */
+#define MAIL_DEFAULT_MAX_MSG_SIZE			(20*1024*1024)	/* 20MB */
 	DWORD	max_msgs_waiting;	/* Max msgs in user's inbox (0=unlimited) */
+#define MAIL_DEFAULT_MAX_MSGS_WAITING		100
 	DWORD	connect_timeout;	/* in seconds, for non-blocking connect (0=blocking socket) */
-
+#define MAIL_DEFAULT_CONNECT_TIMEOUT		30		/* seconds */
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
 	/* Callbacks (NULL if unused) */
