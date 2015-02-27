@@ -90,6 +90,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 install(TARGETS syncterm DESTINATION bin)
+install(TARGETS xpdev DESTINATION lib EXPORT XPDevConfig)
 if(UNIX)
 	install(FILES syncterm.desktop DESTINATION share/applications)
         install(FILES syncterm.png DESTINATION share/icons/hicolor/64x64/apps)
