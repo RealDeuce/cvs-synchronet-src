@@ -1,4 +1,4 @@
-/* $Id: vidmodes.c,v 1.15 2015/02/26 03:13:33 rswindell Exp $ */
+/* $Id: vidmodes.c,v 1.16 2015/02/27 10:42:09 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -181,6 +181,8 @@ int load_vmode(struct video_stats *vs, int mode)
 	vs->bright_background=0;
 	vs->no_bright=0;
 	vs->bright_altcharset=0;
+	vs->no_blink=0;
+	vs->blink_altcharset=0;
 	if(vs->curs_row < 0)
 		vs->curs_row=0;
 	if(vs->curs_row >= vparams[i].rows)
