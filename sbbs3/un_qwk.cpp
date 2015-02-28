@@ -2,13 +2,13 @@
 
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.45 2015/12/06 11:18:50 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.43 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -145,13 +145,14 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		/*********************************/
 		n=(uint)block[123]|(((uint)block[124])<<8);  /* conference number */
 
-		qwk_new_msg(n, &msg,(char*)block,/* offset: */l,headers,/* parse_sender_hfields: */true);
+		qwk_new_msg(&msg,(char*)block,/* offset: */l,headers,/* parse_sender_hfields: */true);
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
 			eprintf(LOG_NOTICE,"!Filtering QWK message from %s due to age: %u days"
 				,msg.from
 				,(now-msg.hdr.when_written.time)/(24*60*60)); 
+			logline(LOG_NOTICE,"P!",str);
 			continue;
 		}
 
