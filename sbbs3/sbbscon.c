@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.255 2015/08/20 05:19:43 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.253 2015/02/23 07:12:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ static const char* telnet_usage  = "Terminal server settings:\n\n"
 							"\tto<value>  set Terminal server options value (advanced)\n"
 							"\tta         enable auto-logon via IP address\n"
 							"\ttd         enable Telnet command debug output\n"
-							"\ttc         enable sysop availability for chat\n"
+							"\ttc         emabble sysop availability for chat\n"
 							"\ttq         disable QWK events\n"
 							"\tt-         disable Terminal server\n"
 							"\n"
@@ -1165,11 +1165,7 @@ static void show_usage(char *cmd)
 /****************************************************************************/
 /* Main Entry Point															*/
 /****************************************************************************/
-#ifdef BUILD_JSDOCS
-int CIOLIB_main(int argc, char** argv)
-#else
 int main(int argc, char** argv)
-#endif
 {
 	int		i;
 	int		n;
@@ -2067,19 +2063,16 @@ int main(int argc, char** argv)
 						struct tm			tm;
 						list_node_t*		node;
 						login_attempt_t*	login_attempt;
-						char				ip_addr[INET6_ADDRSTRLEN];
 
 					    listLock(&login_attempt_list);
 						count=0;
 						for(node=login_attempt_list.first; node!=NULL; node=node->next) {
 							login_attempt=node->data;
 							localtime32(&login_attempt->time,&tm);
-							if(inet_addrtop(&login_attempt->addr, ip_addr, sizeof(ip_addr))==NULL)
-								strcpy(ip_addr, "<invalid address>");
 							printf("%lu attempts (%lu duplicate) from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
 								,login_attempt->count
 								,login_attempt->dupes
-								,ip_addr
+								,inet_ntoa(login_attempt->addr)
 								,login_attempt->prot
 								,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec
 								,login_attempt->user
