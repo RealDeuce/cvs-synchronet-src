@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.24 2015/05/01 04:05:48 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.23 2014/04/28 00:12:11 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -502,7 +502,6 @@ int pty_connect(struct bbslist *bbs)
 int pty_close(void)
 {
 	time_t	start;
-	char garbage[1024];
 
 	conn_api.terminate=1;
 	start=time(NULL);
@@ -516,10 +515,8 @@ int pty_close(void)
 	kill(child_pid, SIGKILL);
 	waitpid(child_pid, &status, 0);
 
-	while(conn_api.input_thread_running || conn_api.output_thread_running) {
-		conn_recv_upto(garbage, sizeof(garbage), 0);
+	while(conn_api.input_thread_running || conn_api.output_thread_running)
 		SLEEP(1);
-	}
 	destroy_conn_buf(&conn_inbuf);
 	destroy_conn_buf(&conn_outbuf);
 	FREE_AND_NULL(conn_api.rd_buf);
