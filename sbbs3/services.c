@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.272 2014/01/07 11:43:08 rswindell Exp $ */
+/* $Id: services.c,v 1.275 2014/11/18 06:11:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -902,6 +902,10 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateCOMClass(js_cx, *glob)==NULL)
 			break;
 
+		/* CryptContext Class */
+		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
+			break;
+
 		/* user-specific objects */
 		if(!js_CreateUserObjects(js_cx, *glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
@@ -1664,8 +1668,8 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 
 static void cleanup(int code)
 {
-	while(threads_pending_start.value) {
-		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",threads_pending_start.value);
+	while(protected_uint32_value(threads_pending_start)) {
+		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
 		SLEEP(1000);
 	}
 	protected_uint32_destroy(threads_pending_start);
@@ -1703,7 +1707,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.272 $", "%*s %s", revision);
+	sscanf("$Revision: 1.275 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1805,6 +1809,8 @@ void DLLCALL services_thread(void* arg)
 
 		sbbs_srand();	/* Seed random number generator */
 
+		protected_uint32_init(&threads_pending_start,0);
+
 		if(!winsock_startup()) {
 			cleanup(1);
 			return;
@@ -1863,9 +1869,10 @@ void DLLCALL services_thread(void* arg)
 
 		/* Open and Bind Listening Sockets */
 		total_sockets=0;
-		for(i=0;i<(int)services;i++) {
-
+		for(i=0;i<(int)services;i++)
 			service[i].socket=INVALID_SOCKET;
+
+		for(i=0;i<(int)services && !startup->shutdown_now;i++) {
 
 			if((socket = open_socket(
 				(service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
@@ -1942,8 +1949,6 @@ void DLLCALL services_thread(void* arg)
 			return;
 		}
 
-		protected_uint32_init(&threads_pending_start,0);
-
 		/* Setup static service threads */
 		for(i=0;i<(int)services;i++) {
 			if(!(service[i].options&SERVICE_OPT_STATIC))
@@ -1983,7 +1988,7 @@ void DLLCALL services_thread(void* arg)
 		/* Main Server Loop */
 		while(!terminated) {
 
-			if(active_clients()==0 && threads_pending_start.value==0) {
+			if(active_clients()==0 && protected_uint32_value(threads_pending_start)==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
