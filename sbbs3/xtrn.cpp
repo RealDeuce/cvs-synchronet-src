@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.220 2014/01/09 12:40:47 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.224 2015/02/10 03:04:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -415,6 +415,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	attr(cfg.color[clr_external]);		/* setup default attributes */
 
 	native = native_executable(&cfg, cmdline, mode);
+
+	if(!native && (startup->options&BBS_OPT_NO_DOS)) {
+		bprintf("Sorry, DOS programs are not supported on this node.\r\n");
+		return -1;
+	}
 
 	if(mode&EX_SH || strcspn(cmdline,"<>|")!=strlen(cmdline)) 
 		sprintf(comspec_str,"%s /C ", comspec);
@@ -1364,6 +1369,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
         	errormsg(WHERE,ERR_WRITE,"environment",0);
 
 	} else {
+		if(startup->options&BBS_OPT_NO_DOS) {
+			bprintf("Sorry, DOS programs are not supported on this node.\r\n");
+			return -1;
+		}
 #if defined(__FreeBSD__)
 		/* ToDo: This seems to work for every door except Iron Ox
 		   ToDo: Iron Ox is unique in that it runs perfectly from
@@ -1925,8 +1934,14 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				}
 				else
    	       			bp=telnet_expand(buf, rd, output_buf, output_len);
-			} else			/* LF to CRLF expansion */
+			} else if ((mode & EX_STDIO) != EX_STDIO) {
+				/* LF to CRLF expansion */
 				bp=lf_expand(buf, rd, output_buf, output_len);
+			}
+			else {
+				bp=buf;
+				output_len=rd;
+			}
 
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
