@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.40 2015/02/27 10:42:08 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.41 2015/03/03 11:15:50 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -143,6 +143,8 @@ int bitmap_init_mode(int mode, int *width, int *height)
 		pthread_mutex_unlock(&vstatlock);
 		return(-1);
 	}
+	if(damaged)
+		free(damaged);
 	damaged=newdamaged;
 
 	/* Initialize video memory with black background, white foreground */
