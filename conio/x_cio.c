@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.34 2014/02/06 10:58:00 deuce Exp $ */
+/* $Id: x_cio.c,v 1.36 2015/02/19 10:29:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -348,19 +348,32 @@ int x_init(void)
 		xp_dlclose(dl);
 		return(-1);
 	}
-
-	if(sem_init(&pastebuf_set, 0, 0))
+	if((x11.XSetWMProtocols=xp_dlsym(dl,XSetWMProtocols))==NULL) {
+		xp_dlclose(dl);
 		return(-1);
+	}
+	if((x11.XInternAtom=xp_dlsym(dl,XInternAtom))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+
+	if(sem_init(&pastebuf_set, 0, 0)) {
+		xp_dlclose(dl);
+		return(-1);
+	}
 	if(sem_init(&pastebuf_used, 0, 0)) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		return(-1);
 	}
 	if(sem_init(&init_complete, 0, 0)) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		return(-1);
 	}
 	if(sem_init(&mode_set, 0, 0)) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		sem_destroy(&init_complete);
@@ -368,6 +381,7 @@ int x_init(void)
 	}
 
 	if(pthread_mutex_init(&copybuf_mutex, 0)) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		sem_destroy(&init_complete);
@@ -379,6 +393,7 @@ int x_init(void)
 	_beginthread(x11_mouse_thread,1<<16,NULL);
 	sem_wait(&init_complete);
 	if(!x11_initialized) {
+		xp_dlclose(dl);
 		sem_destroy(&pastebuf_set);
 		sem_destroy(&pastebuf_used);
 		sem_destroy(&init_complete);
