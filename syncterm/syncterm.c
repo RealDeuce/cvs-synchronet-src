@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.187 2015/02/12 12:02:58 deuce Exp $ */
+/* $Id: syncterm.c,v 1.191 2015/02/28 09:36:22 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -100,6 +100,7 @@ unsigned int  scrollback_cols=80;
 int	safe_mode=0;
 FILE* log_fp;
 extern ini_style_t ini_style;
+BOOL quitting=FALSE;
 
 #ifdef _WINSOCKAPI_
 
@@ -770,6 +771,19 @@ char *output_enum[]={
 	,"SDLOverlayFullscreen"
 ,NULL};
 
+BOOL check_exit(BOOL force)
+{
+	if (force || (uifc.exit_flags & UIFC_XF_QUIT)) {
+		if (settings.confirm_close) {
+			if (!confirm("Are you sure you want to exit?",NULL))
+				return false;
+		}
+		quitting=TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
@@ -1202,7 +1216,6 @@ void load_settings(struct syncterm_settings *set)
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
-	setscaling(set->scaling_factor);
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1452,8 +1465,10 @@ int main(int argc, char **argv)
 
 	if(initciolib(ciolib_mode))
 		return(1);
+	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
 	textmode(text_mode);
+	setscaling(settings.scaling_factor);
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1505,7 +1520,7 @@ int main(int argc, char **argv)
 		return(1);
 
 	load_font_files();
-	while(bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL) {
+	while((!quitting) && (bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL)) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		FREE_AND_NULL(last_bbs);
 		if(!conn_connect(bbs)) {
@@ -1547,7 +1562,8 @@ int main(int argc, char **argv)
 				fprintf(log_fp,"%.15s Log opened\n", ctime(&now)+4);
 			}
 
-			exit_now=doterm(bbs);
+			if(doterm(bbs))
+				quitting=TRUE;
 			setvideoflags(0);
 
 			if(log_fp!=NULL) {
@@ -1557,7 +1573,6 @@ int main(int argc, char **argv)
 				fclose(log_fp);
 				log_fp=NULL;
 			}
-			load_font_files();
 			textmode(txtinfo.currmode);
 			for(i=CONIO_FIRST_FREE_FONT; i<256; i++) {
 				FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
@@ -1565,9 +1580,10 @@ int main(int argc, char **argv)
 				FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
 				FREE_AND_NULL(conio_fontdata[i].desc);
 			}
+			load_font_files();
 			settitle("SyncTERM");
 		}
-		if(exit_now || url[0]) {
+		if(quitting || url[0]) {
 			if(bbs != NULL && bbs->id==-1) {
 				if(!safe_mode) {
 					if(settings.prompt_save) {
