@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.18 2015/02/10 08:34:27 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.19 2015/03/06 16:00:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,7 +178,7 @@ int get_word_len(char *buf, int starting_pos)
 			return 0;
 		if (!buf[starting_pos+pos])
 			break;
-		else if (isspace(buf[starting_pos+pos]))
+		else if (isspace((unsigned char)buf[starting_pos+pos]))
 			break;
 		else if (buf[starting_pos+pos]=='\x1f')
 			continue;
@@ -391,7 +391,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 					ocol++;
 					icol++;
 				}
-				if(ocol>len && inbuf[i+1] && !isspace(inbuf[i+1])) {		/* Need to wrap here */
+				if(ocol>len && inbuf[i+1] && !isspace((unsigned char)inbuf[i+1])) {		/* Need to wrap here */
 					/* Find the start of the last word */
 					k=l;									/* Original next char */
 					l--;									/* Move back to the last char */
