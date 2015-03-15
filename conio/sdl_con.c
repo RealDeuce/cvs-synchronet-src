@@ -647,8 +647,6 @@ int sdl_init_mode(int mode)
 
 	if(vstat.scaling < 1)
 		vstat.scaling = 1;
-	if(vstat.vmultiplier < 1)
-		vstat.vmultiplier = 1;
 
 	sdl_user_func_ret(SDL_USEREVENT_SETVIDMODE);
 
@@ -739,22 +737,6 @@ int sdl_init(int mode)
 	}
 
 	return(-1);
-}
-
-/* Called from main thread only */
-void sdl_setscaling(int new_value)
-{
-	if (yuv.enabled)
-		return;
-	bitmap_setscaling(new_value);
-}
-
-/* Called from main thread only */
-int sdl_getscaling(void)
-{
-	if (yuv.enabled)
-		return 1;
-	return bitmap_getscaling();
 }
 
 /* Called from main thread only */
@@ -882,7 +864,7 @@ int sdl_setup_yuv_colours(void)
 void setup_surfaces(void)
 {
 	int		char_width=vstat.charwidth*vstat.cols*vstat.scaling;
-	int		char_height=vstat.charheight*vstat.rows*vstat.scaling*vstat.vmultiplier;
+	int		char_height=vstat.charheight*vstat.rows*vstat.scaling;
 	int		flags=SDL_HWSURFACE|SDL_ANYFORMAT;
 	SDL_Surface	*tmp_rect;
 	SDL_Event	ev;
@@ -1489,7 +1471,7 @@ int win_to_text_ypos(int winpos)
 		return(ret);
 	}
 	else
-		return(winpos/(vstat.charheight*vstat.scaling*vstat.vmultiplier)+1);
+		return(winpos/(vstat.charheight*vstat.scaling)+1);
 }
 
 int sdl_video_event_thread(void *data)
@@ -1592,7 +1574,6 @@ int sdl_video_event_thread(void *data)
 							if(yuv.enabled) {
 								yuv.win_width=ev.resize.w;
 								yuv.win_height=ev.resize.h;
-								new_scaling = 2;
 							}
 							else
 								new_scaling = (int)(ev.resize.w/(vstat.charwidth*vstat.cols));
@@ -1627,8 +1608,6 @@ int sdl_video_event_thread(void *data)
 							case SDL_USEREVENT_QUIT:
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
-								if (upd_rects)
-									free(upd_rects);
 								return(0);
 							case SDL_USEREVENT_UPDATERECT:
 								{
@@ -1648,9 +1627,9 @@ int sdl_video_event_thread(void *data)
 										offset=y*rect->width;
 										for(x=0; x<rect->width; x++) {
 											r.w=vstat.scaling;
-											r.h=vstat.scaling*vstat.vmultiplier;
+											r.h=vstat.scaling;
 											r.x=(rect->x+x)*vstat.scaling;
-											r.y=(rect->y+y)*vstat.scaling*vstat.vmultiplier;
+											r.y=(rect->y+y)*vstat.scaling;
 											if(yuv.enabled)
 												yuv_fillrect(yuv.overlay, &r, rect->data[offset++]);
 											else
@@ -1666,9 +1645,9 @@ int sdl_video_event_thread(void *data)
 											break;
 										}
 										upd_rects[rectsused].x=rect->x*vstat.scaling;
-										upd_rects[rectsused].y=rect->y*vstat.scaling*vstat.vmultiplier;
+										upd_rects[rectsused].y=rect->y*vstat.scaling;
 										upd_rects[rectsused].w=rect->width*vstat.scaling;
-										upd_rects[rectsused].h=rect->height*vstat.scaling*vstat.vmultiplier;
+										upd_rects[rectsused].h=rect->height*vstat.scaling;
 										sdl.BlitSurface(new_rect, &(upd_rects[rectsused]), win, &(upd_rects[rectsused]));
 										rectsused++;
 										if(rectsused==rectspace) {
@@ -1747,8 +1726,6 @@ int sdl_video_event_thread(void *data)
 										sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff);
 									}
 								}
-								new_scaling = -1;
-								old_scaling = vstat.scaling;
 								setup_surfaces();
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
@@ -1921,8 +1898,6 @@ int sdl_video_event_thread(void *data)
 			}
 		}
 	}
-	if (upd_rects)
-		free(upd_rects);
 	return(0);
 }
 

@@ -211,7 +211,7 @@ static int init_window()
 
     /* Create window, but defer setting a size and GC. */
     win = x11.XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0,
-			      640*vstat.scaling, 400*vstat.scaling*vstat.vmultiplier, 2, black, black);
+			      640*vstat.scaling, 400*vstat.scaling, 2, black, black);
 
 	wmhints=x11.XAllocWMHints();
 	if(wmhints) {
@@ -266,7 +266,7 @@ static void map_window()
 	}
 
 	sh->base_width = bitmap_width*vstat.scaling;
-	sh->base_height = bitmap_height*vstat.scaling*vstat.vmultiplier;
+	sh->base_height = bitmap_height*vstat.scaling;
 
     sh->min_width = sh->width_inc = sh->min_aspect.x = sh->max_aspect.x = bitmap_width;
     sh->min_height = sh->height_inc = sh->min_aspect.y = sh->max_aspect.y = bitmap_height;
@@ -285,7 +285,7 @@ static void map_window()
 /* Resize the window. This function is called after a mode change. */
 static void resize_window()
 {
-    x11.XResizeWindow(dpy, win, bitmap_width*vstat.scaling, bitmap_height*vstat.scaling*vstat.vmultiplier);
+    x11.XResizeWindow(dpy, win, bitmap_width*vstat.scaling, bitmap_height*vstat.scaling);
     return;
 }
 
@@ -325,8 +325,6 @@ static int video_init()
        lot easier. */
 	if(vstat.scaling<1)
 		vstat.scaling=1;
-	if(vstat.vmultiplier<1)
-		vstat.vmultiplier=1;
     if(init_window())
 		return(-1);
 
@@ -373,28 +371,28 @@ static void local_draw_rect(struct update_rect *rect)
 				memset(rect->data+((y+y2)*rect->width+x),255,rectw);
 
 			/* Draw it */
-			x11.XFillRectangle(dpy, win, gca[rectc], (rect->x+x)*vstat.scaling, (rect->y+y)*vstat.scaling*vstat.vmultiplier, rectw*vstat.scaling, recth*vstat.scaling*vstat.vmultiplier);
+			x11.XFillRectangle(dpy, win, gca[rectc], (rect->x+x)*vstat.scaling, (rect->y+y)*vstat.scaling, rectw*vstat.scaling, recth*vstat.scaling);
 		}
 	}
 #else
 #if 1	/* XImage */
-	xim=x11.XCreateImage(dpy,&visual,depth,ZPixmap,0,NULL,rect->width*vstat.scaling,rect->height*vstat.scaling*vstat.vmultiplier,32,0);
-	xim->data=(char *)malloc(xim->bytes_per_line*rect->height*vstat.scaling*vstat.vmultiplier);
+	xim=x11.XCreateImage(dpy,&visual,depth,ZPixmap,0,NULL,rect->width*vstat.scaling,rect->height*vstat.scaling,32,0);
+	xim->data=(char *)malloc(xim->bytes_per_line*rect->height*vstat.scaling);
 	for(y=0;y<rect->height;y++) {
 		for(x=0; x<rect->width; x++) {
-			for(yscale=0; yscale<vstat.scaling*vstat.vmultiplier; yscale++) {
+			for(yscale=0; yscale<vstat.scaling; yscale++) {
 				for(xscale=0; xscale<vstat.scaling; xscale++) {
 #ifdef XPutPixel
-					XPutPixel(xim,x*vstat.scaling+xscale,y*vstat.scaling*vstat.vmultiplier+yscale,pixel[rect->data[y*rect->width+x]]);
+					XPutPixel(xim,x*vstat.scaling+xscale,y*vstat.scaling+yscale,pixel[rect->data[y*rect->width+x]]);
 #else
-					x11.XPutPixel(xim,x*vstat.scaling+xscale,y*vstat.scaling*vstat.vmultiplier+yscale,pixel[rect->data[y*rect->width+x]]);
+					x11.XPutPixel(xim,x*vstat.scaling+xscale,y*vstat.scaling+yscale,pixel[rect->data[y*rect->width+x]]);
 #endif
 				}
 			}
 		}
 	}
 
-	x11.XPutImage(dpy,win,gca[0],xim,0,0,rect->x*vstat.scaling,rect->y*vstat.scaling*vstat.vmultiplier,rect->width*vstat.scaling,rect->height*vstat.scaling*vstat.vmultiplier);
+	x11.XPutImage(dpy,win,gca[0],xim,0,0,rect->x*vstat.scaling,rect->y*vstat.scaling,rect->width*vstat.scaling,rect->height*vstat.scaling);
 #ifdef XDestroyImage
 	XDestroyImage(xim);
 #else
@@ -404,7 +402,7 @@ static void local_draw_rect(struct update_rect *rect)
 #else	/* XFillRectangle */
 	for(y=0;y<rect->height;y++) {
 		for(x=0; x<rect->width; x++) {
-			x11.XFillRectangle(dpy, win, gca[rect->data[y*rect->width+x]], (rect->x+x)*vstat.scaling, (rect->y+y)*vstat.scaling*vstat.vmultiplier, vstat.scaling, vstat.scaling*vstat.vmultiplier);
+			x11.XFillRectangle(dpy, win, gca[rect->data[y*rect->width+x]], (rect->x+x)*vstat.scaling, (rect->y+y)*vstat.scaling, vstat.scaling, vstat.scaling);
 		}
 	}
 #endif
@@ -419,7 +417,7 @@ static void handle_resize_event(int width, int height)
 
 	// No change
 	if((width == vstat.charwidth * vstat.cols * vstat.scaling)
-			&& (height == vstat.charheight * vstat.rows * vstat.scaling*vstat.vmultiplier))
+			&& (height == vstat.charheight * vstat.rows * vstat.scaling))
 		return;
 
 	newFSH=width/bitmap_width;
@@ -450,18 +448,18 @@ static void expose_rect(x,y,width,height)
 	int sx,sy,ex,ey;
 
 	sx=x/vstat.scaling;
-	sy=y/(vstat.scaling*vstat.vmultiplier);
+	sy=y/vstat.scaling;
 
 	ex=x+width-1;
 	ey=y+height-1;
 	if((ex+1)%vstat.scaling) {
 		ex += vstat.scaling-(ex%vstat.scaling);
 	}
-	if((ey+1)%(vstat.scaling*vstat.vmultiplier)) {
-		ey += vstat.scaling*vstat.vmultiplier-(ey%(vstat.scaling*vstat.vmultiplier));
+	if((ey+1)%vstat.scaling) {
+		ey += vstat.scaling-(ey%vstat.scaling);
 	}
 	ex=ex/vstat.scaling;
-	ey=ey/(vstat.scaling*vstat.vmultiplier);
+	ey=ey/vstat.scaling;
 
 	send_rectangle(sx, sy, ex-sx+1, ey-sy+1, TRUE);
 }
@@ -568,7 +566,6 @@ static int x11_event(XEvent *ev)
 				me->x/=vstat.scaling;
 				me->x/=vstat.charwidth;
 				me->y/=vstat.scaling;
-				me->y/=vstat.vmultiplier;
 				me->y/=vstat.charheight;
 				me->x++;
 				me->y++;
@@ -590,7 +587,6 @@ static int x11_event(XEvent *ev)
 				be->x/=vstat.scaling;
 				be->x/=vstat.charwidth;
 				be->y/=vstat.scaling;
-				be->y/=vstat.vmultiplier;
 				be->y/=vstat.charheight;
 				be->x++;
 				be->y++;
@@ -614,7 +610,6 @@ static int x11_event(XEvent *ev)
 				be->x/=vstat.scaling;
 				be->x/=vstat.charwidth;
 				be->y/=vstat.scaling;
-				be->y/=vstat.vmultiplier;
 				be->y/=vstat.charheight;
 				be->x++;
 				be->y++;
