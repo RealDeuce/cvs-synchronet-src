@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.191 2015/02/28 09:36:22 deuce Exp $ */
+/* $Id: syncterm.c,v 1.192 2015/03/15 09:07:45 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1021,9 +1021,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 			}
 			if(we_got_this) {
-				// Convert unicode to string.
-				if(snprintf(fn, fnlen, "%S\\SyncTERM", path) >= fnlen) {
-					we_got_this=FALSE;
+				if (type != SYNCTERM_DEFAULT_TRANSFER_PATH) {
+					// Convert unicode to string.
+					if(snprintf(fn, fnlen, "%S\\SyncTERM", path) >= fnlen) {
+						we_got_this=FALSE;
+					}
 				}
 				CTMF(path);
 			}
