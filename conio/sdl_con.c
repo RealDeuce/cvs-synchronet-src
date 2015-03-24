@@ -1,5 +1,7 @@
 #if (defined(__MACH__) && defined(__APPLE__))
 #include <Carbon/Carbon.h>
+#define USE_PASTEBOARD
+#include "pasteboard.h"
 #endif
 
 #include <stdarg.h>
@@ -42,8 +44,10 @@ unsigned char		sdl_keynext=0;			/* Index into keybuf for next free position */
 int sdl_exitcode=0;
 
 SDL_Surface	*win=NULL;
+SDL_mutex	*win_mutex;
 SDL_Surface	*sdl_icon=NULL;
 SDL_Surface	*new_rect=NULL;
+SDL_mutex	*newrect_mutex;
 
 /* *nix copy/paste stuff */
 SDL_sem	*sdl_pastebuf_set;
@@ -54,23 +58,20 @@ char *sdl_copybuf=NULL;
 char *sdl_pastebuf=NULL;
 
 SDL_sem *sdl_ufunc_ret;
+SDL_sem *sdl_ufunc_rec;
+SDL_mutex *sdl_ufunc_mtx;
 int sdl_ufunc_retval;
-SDL_mutex	*funcret_mutex;
 
 SDL_sem	*sdl_flush_sem;
 int pending_updates=0;
 
 int fullscreen=0;
 
-SDL_sem	*sdl_init_complete;
 int	sdl_init_good=0;
 SDL_mutex *sdl_keylock;
 SDL_sem *sdl_key_pending;
 static unsigned int sdl_pending_mousekeys=0;
 Uint32	sdl_dac_default[sizeof(dac_default)/sizeof(struct dac_colors)];
-SDL_Rect	*upd_rects=NULL;
-int			rectspace=0;
-int			rectsused=0;
 
 struct yuv_settings {
 	int			enabled;
@@ -81,11 +82,10 @@ struct yuv_settings {
 	int			changed;
 	int			best_format;
 	SDL_Overlay	*overlay;
-	SDL_mutex	*mutex;
 	Uint8		colours[sizeof(dac_default)/sizeof(struct dac_colors)][3];
 };
 
-static struct yuv_settings yuv={0,0,0,0,0,0,0,NULL,NULL};
+static struct yuv_settings yuv={0,0,0,0,0,0,0,NULL};
 
 struct sdl_keyvals {
 	int	keysym
@@ -319,6 +319,7 @@ void yuv_fillrect(SDL_Overlay *overlay, SDL_Rect *r, int dac_entry)
 	return;
 
 planar:
+	sdl.LockYUVOverlay(overlay);
 	{
 		int y;
 		Uint8 *Y,*U,*V;
@@ -347,8 +348,10 @@ planar:
 			odd_line = !odd_line;
 		}
 	}
+	sdl.UnlockYUVOverlay(overlay);
 	return;
 packed:
+	sdl.LockYUVOverlay(overlay);
 	{
 		int x,y;
 		Uint32 colour;
@@ -368,6 +371,7 @@ packed:
 			offset+=overlay->pitches[0]>>2;
 		}
 	}
+	sdl.UnlockYUVOverlay(overlay);
 	return;
 }
 
@@ -381,39 +385,63 @@ void sdl_user_func(int func, ...)
 	ev.user.data2=NULL;
 	ev.user.code=func;
 	va_start(argptr, func);
+	sdl.mutexP(sdl_ufunc_mtx);
 	switch(func) {
 		case SDL_USEREVENT_SETICON:
 			ev.user.data1=va_arg(argptr, void *);
 			if((ev.user.data2=(unsigned long *)malloc(sizeof(unsigned long)))==NULL) {
+				sdl.mutexV(sdl_ufunc_mtx);
 				va_end(argptr);
 				return;
 			}
 			*(unsigned long *)ev.user.data2=va_arg(argptr, unsigned long);
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
-				YIELD();
+			while(1) {
+				while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+					YIELD();
+				if (sdl.SemWaitTimeout(sdl_ufunc_rec, 1000) != 0)
+					continue;
+				break;
+			}
 			break;
 		case SDL_USEREVENT_SETNAME:
 		case SDL_USEREVENT_SETTITLE:
 			if((ev.user.data1=strdup(va_arg(argptr, char *)))==NULL) {
+				sdl.mutexV(sdl_ufunc_mtx);
 				va_end(argptr);
 				return;
 			}
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
-				YIELD();
+			while(1) {
+				while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+					YIELD();
+				if (sdl.SemWaitTimeout(sdl_ufunc_rec, 1000) != 0)
+					continue;
+				break;
+			};
 			break;
 		case SDL_USEREVENT_UPDATERECT:
 			ev.user.data1=va_arg(argptr, struct update_rect *);
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
-				YIELD();
+			while(1) {
+				while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+					YIELD();
+				if (sdl.SemWaitTimeout(sdl_ufunc_rec, 1000) != 0)
+					continue;
+				break;
+			}
 			break;
 		case SDL_USEREVENT_COPY:
 		case SDL_USEREVENT_PASTE:
 		case SDL_USEREVENT_SHOWMOUSE:
 		case SDL_USEREVENT_HIDEMOUSE:
-			while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
-				YIELD();
+			while(1) {
+				while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
+					YIELD();
+				if (sdl.SemWaitTimeout(sdl_ufunc_rec, 1000) != 0)
+					continue;
+				break;
+			}
 			break;
 	}
+	sdl.mutexV(sdl_ufunc_mtx);
 	va_end(argptr);
 }
 
@@ -424,12 +452,12 @@ int sdl_user_func_ret(int func, ...)
 	SDL_Event	ev;
 	int		passed=FALSE;
 
-	sdl.mutexP(funcret_mutex);
 	ev.type=SDL_USEREVENT;
 	ev.user.data1=NULL;
 	ev.user.data2=NULL;
 	ev.user.code=func;
 	va_start(argptr, func);
+	sdl.mutexP(sdl_ufunc_mtx);
 	while(1) {
 		switch(func) {
 			case SDL_USEREVENT_SETVIDMODE:
@@ -442,7 +470,15 @@ int sdl_user_func_ret(int func, ...)
 				break;
 		}
 		if(passed) {
-			if(sdl.SemWaitTimeout(sdl_ufunc_ret, 100)==0)
+			/*
+			 * This is needed for lost event detection.
+			 * Lost events only occur on SYSWMEVENT which is what
+			 * we need for copy/paste on X11.
+			 * This hack can be removed for SDL2
+			 */
+			if(sdl.SemWaitTimeout(sdl_ufunc_rec, 1000)!=0)
+				continue;
+			if(sdl.SemWait(sdl_ufunc_ret)==0)
 				break;
 		}
 		else {
@@ -450,8 +486,8 @@ int sdl_user_func_ret(int func, ...)
 			break;
 		}
 	}
+	sdl.mutexV(sdl_ufunc_mtx);
 	va_end(argptr);
-	sdl.mutexV(funcret_mutex);
 	return(sdl_ufunc_retval);
 }
 
@@ -468,16 +504,22 @@ void sdl_copytext(const char *text, size_t buflen)
 {
 #if (defined(__MACH__) && defined(__APPLE__))
 	if(!sdl_using_x11) {
-		sdl.mutexP(sdl_copybuf_mutex);
-		FREE_AND_NULL(sdl_copybuf);
-
-		sdl_copybuf=(char *)malloc(buflen+1);
-		if(sdl_copybuf!=NULL) {
-			strcpy(sdl_copybuf, text);
-			sdl_user_func(SDL_USEREVENT_COPY,0,0,0,0);
-		}
-		sdl.mutexV(sdl_copybuf_mutex);
+#if defined(USE_PASTEBOARD)
+		if (text && buflen)
+			OSX_copytext(text, buflen);
 		return;
+#endif
+#if defined(USE_SCRAP_MANAGER)
+		ScrapRef	scrap;
+		if(text && buflen) {
+			if(!ClearCurrentScrap()) {		/* purge the current contents of the scrap. */
+				if(!GetCurrentScrap(&scrap)) {		/* obtain a reference to the current scrap. */
+					PutScrapFlavor(scrap, kScrapFlavorTypeText, /* kScrapFlavorMaskTranslated */ kScrapFlavorMaskNone, buflen, text); 		/* write the data to the scrap */
+				}
+			}
+		}
+		return;
+#endif
 	}
 #endif
 
@@ -510,18 +552,27 @@ char *sdl_getcliptext(void)
 
 #if (defined(__MACH__) && defined(__APPLE__))
 	if(!sdl_using_x11) {
-		sdl_user_func(SDL_USEREVENT_PASTE,0,0,0,0);
-		sdl.SemWait(sdl_pastebuf_set);
-		if(sdl_pastebuf!=NULL) {
-			ret=(char *)malloc(strlen(sdl_pastebuf)+1);
-			if(ret!=NULL)
-				strcpy(ret,sdl_pastebuf);
-		}
-		else
-			ret=NULL;
-		sdl.SemPost(sdl_pastebuf_copied);
-		return(ret);
+#if defined(USE_PASTEBOARD)
+		return OSX_getcliptext();
+#endif
+#if defined(USE_SCRAP_MANAGER)
+		ScrapRef	scrap;
+		UInt32	fl;
+		Size		scraplen;
 
+		if(!GetCurrentScrap(&scrap)) {		/* obtain a reference to the current scrap. */
+			if(!GetScrapFlavorFlags(scrap, kScrapFlavorTypeText, &fl) /* && (fl & kScrapFlavorMaskTranslated) */) {
+				if(!GetScrapFlavorSize(scrap, kScrapFlavorTypeText, &scraplen)) {
+					ret=(char *)malloc(scraplen+1);
+					if(ret!=NULL) {
+						if(GetScrapFlavorData(scrap, kScrapFlavorTypeText, &scraplen, sdl_pastebuf))
+							ret[scraplen]=0;
+					}
+				}
+			}
+		}
+		return ret;
+#endif
 	}
 #endif
 
@@ -570,8 +621,7 @@ void sdl_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 
 void sdl_flush(void)
 {
-	if(rectsused || yuv.enabled)
-		sdl_user_func_ret(SDL_USEREVENT_FLUSH);
+	sdl_user_func_ret(SDL_USEREVENT_FLUSH);
 }
 
 int sdl_init_mode(int mode)
@@ -764,6 +814,7 @@ int sdl_hidemouse(void)
 
 int sdl_get_window_info(int *width, int *height, int *xpos, int *ypos)
 {
+	sdl.mutexP(win_mutex);
 	if(width)
 		*width=win->h;
 	if(height)
@@ -772,6 +823,7 @@ int sdl_get_window_info(int *width, int *height, int *xpos, int *ypos)
 		*xpos=-1;
 	if(ypos)
 		*ypos=-1;
+	sdl.mutexV(win_mutex);
 	
 	return(0);
 }
@@ -822,6 +874,7 @@ void setup_surfaces(void)
 	else
 		flags |= SDL_RESIZABLE;
 
+	sdl.mutexP(win_mutex);
 	if(yuv.enabled) {
 		if(!yuv.win_width)
 			yuv.win_width=vstat.charwidth*vstat.cols;
@@ -835,7 +888,21 @@ void setup_surfaces(void)
 	else
 		win=sdl.SetVideoMode(char_width,char_height,8,flags);
 
+#if !defined(NO_X) && defined(__unix__)
+	if(sdl_x11available && sdl_using_x11) {
+		XEvent respond;
+		SDL_SysWMinfo	wmi;
+		SDL_VERSION(&(wmi.version));
+		sdl.GetWMInfo(&wmi);
+		respond.type=ConfigureNotify;
+		respond.xconfigure.height = win->h;
+		respond.xconfigure.width = win->w;
+		sdl_x11.XSendEvent(wmi.info.x11.display,wmi.info.x11.window,0,0,&respond);
+	}
+#endif
+
 	if(win!=NULL) {
+		sdl.mutexP(newrect_mutex);
 		if(new_rect)
 			sdl.FreeSurface(new_rect);
 		new_rect=NULL;
@@ -852,33 +919,35 @@ void setup_surfaces(void)
 				sdl.FreeSurface(tmp_rect);
 			}
 		}
+		sdl.mutexV(newrect_mutex);
 		if(yuv.enabled) {
-			if(yuv.overlay) {
-				sdl.UnlockYUVOverlay(yuv.overlay);
-				sdl.mutexV(yuv.mutex);
+			if(yuv.overlay)
 				sdl.FreeYUVOverlay(yuv.overlay);
-			}
 			if(yuv.best_format==0) {
 				yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_YV12_OVERLAY, win);
 				if(yuv.overlay)
 					yuv.best_format=yuv.overlay->format;
 				if(yuv.overlay==NULL || !yuv.overlay->hw_overlay) {
-					sdl.FreeYUVOverlay(yuv.overlay);
+					if (yuv.overlay)
+						sdl.FreeYUVOverlay(yuv.overlay);
 					yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_YUY2_OVERLAY, win);
 					if(yuv.overlay)
 						yuv.best_format=yuv.overlay->format;
 					if(yuv.overlay==NULL || !yuv.overlay->hw_overlay) {
-						sdl.FreeYUVOverlay(yuv.overlay);
+						if (yuv.overlay)
+							sdl.FreeYUVOverlay(yuv.overlay);
 						yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_YVYU_OVERLAY, win);
 						if(yuv.overlay)
 							yuv.best_format=yuv.overlay->format;
 						if(yuv.overlay==NULL || !yuv.overlay->hw_overlay) {
-							sdl.FreeYUVOverlay(yuv.overlay);
+							if (yuv.overlay)
+								sdl.FreeYUVOverlay(yuv.overlay);
 							yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_UYVY_OVERLAY, win);
 							if(yuv.overlay)
 								yuv.best_format=yuv.overlay->format;
 							if(yuv.overlay==NULL || !yuv.overlay->hw_overlay) {
-								sdl.FreeYUVOverlay(yuv.overlay);
+								if (yuv.overlay)
+									sdl.FreeYUVOverlay(yuv.overlay);
 								yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, SDL_IYUV_OVERLAY, win);
 								if(yuv.overlay)
 									yuv.best_format=yuv.overlay->format;
@@ -890,18 +959,20 @@ void setup_surfaces(void)
 					sdl.FreeYUVOverlay(yuv.overlay);
 			}
 			yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, yuv.best_format, win);
-			sdl.mutexP(yuv.mutex);
-			sdl.LockYUVOverlay(yuv.overlay);
 			sdl_setup_yuv_colours();
 		}
+		sdl.mutexP(newrect_mutex);
 		sdl_setup_colours(new_rect);
+		sdl.mutexV(newrect_mutex);
 		sdl_setup_colours(win);
+		force_redraws++;
 	}
 	else if(sdl_init_good) {
 		ev.type=SDL_QUIT;
 		sdl_exitcode=1;
 		sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff);
 	}
+	sdl.mutexV(win_mutex);
 }
 
 /* Called from event thread only */
@@ -914,7 +985,6 @@ void sdl_add_key(unsigned int keyval)
 		else
 			cio_api.mode=fullscreen?CIOLIB_MODE_SDL_FULLSCREEN:CIOLIB_MODE_SDL;
 		setup_surfaces();
-		force_redraws++;
 		return;
 	}
 	if(keyval <= 0xffff) {
@@ -1247,7 +1317,7 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 						expect=sdl_keyval[i].shift;
 				}
 				else {
-					if(mod & KMOD_CAPS)
+					if(mod & KMOD_CAPS && (toupper(sdl_keyval[i].key) == sdl_keyval[i].shift))
 						expect=sdl_keyval[i].shift;
 					else
 						expect=sdl_keyval[i].key;
@@ -1378,24 +1448,40 @@ int sdl_mouse_thread(void *data)
 
 int win_to_text_xpos(int winpos)
 {
-	if(yuv.enabled)
-		return(winpos*vstat.cols/win->w+1);
+	if(yuv.enabled) {
+		int ret;
+
+		sdl.mutexP(win_mutex);
+		ret = winpos*vstat.cols/win->w+1;
+		sdl.mutexV(win_mutex);
+		return(ret);
+	}
 	else
 		return(winpos/(vstat.charwidth*vstat.scaling)+1);
 }
 
 int win_to_text_ypos(int winpos)
 {
-	if(yuv.enabled)
-		return(winpos*vstat.rows/win->h+1);
+	if(yuv.enabled) {
+		int ret;
+
+		sdl.mutexP(win_mutex);
+		ret = winpos*vstat.rows/win->h+1;
+		sdl.mutexV(win_mutex);
+		return(ret);
+	}
 	else
 		return(winpos/(vstat.charheight*vstat.scaling)+1);
 }
 
-/* Event Thread */
 int sdl_video_event_thread(void *data)
 {
 	SDL_Event	ev;
+	int			new_scaling = -1;
+	int			old_scaling = vstat.scaling;
+	SDL_Rect	*upd_rects=NULL;
+	int			rectspace=0;
+	int			rectsused=0;
 
 	if(!init_sdl_video()) {
 		char	driver[16];
@@ -1417,7 +1503,23 @@ int sdl_video_event_thread(void *data)
 		}
 
 		while(1) {
-			if(sdl.WaitEvent(&ev)==1) {
+			if(sdl.PollEvent(&ev)!=1) {
+				if (new_scaling != -1 || vstat.scaling != old_scaling) {
+					if (new_scaling == -1)
+						new_scaling = vstat.scaling;
+					if (pthread_mutex_trylock(&vstatlock) == 0) {
+						vstat.scaling=new_scaling;
+						new_scaling = -1;
+						if(vstat.scaling < 1)
+							vstat.scaling=1;
+						pthread_mutex_unlock(&vstatlock);
+						setup_surfaces();
+					}
+					old_scaling = vstat.scaling;
+				}
+				SLEEP(1);
+			}
+			else {
 				switch (ev.type) {
 					case SDL_ACTIVEEVENT:		/* Focus change */
 						break;
@@ -1462,23 +1564,19 @@ int sdl_video_event_thread(void *data)
 						}
 						break;
 					case SDL_QUIT:
-						sdl.SemPost(sdl_exit_sem);
-						return(sdl_exitcode);
+						if (ciolib_reaper)
+							exit(0);
+						else
+							sdl_add_key(CIO_KEY_QUIT);
+						break;
 					case SDL_VIDEORESIZE:
 						if(ev.resize.w > 0 && ev.resize.h > 0) {
 							if(yuv.enabled) {
 								yuv.win_width=ev.resize.w;
 								yuv.win_height=ev.resize.h;
 							}
-							else {
-								pthread_mutex_lock(&vstatlock);
-								vstat.scaling=(int)(ev.resize.w/(vstat.charwidth*vstat.cols));
-								if(vstat.scaling < 1)
-									vstat.scaling=1;
-								pthread_mutex_unlock(&vstatlock);
-							}
-							setup_surfaces();
-							force_redraws++;
+							else
+								new_scaling = (int)(ev.resize.w/(vstat.charwidth*vstat.cols));
 						}
 						break;
 					case SDL_VIDEOEXPOSE:
@@ -1490,10 +1588,14 @@ int sdl_video_event_thread(void *data)
 								if(upd_rects) {
 									upd_rects[0].x=0;
 									upd_rects[0].y=0;
+									sdl.mutexP(win_mutex);
+									sdl.mutexP(newrect_mutex);
 									upd_rects[0].w=new_rect->w;
 									upd_rects[0].h=new_rect->h;
 									sdl.BlitSurface(new_rect, upd_rects, win, upd_rects);
+									sdl.mutexV(newrect_mutex);
 									sdl.UpdateRects(win,1,upd_rects);
+									sdl.mutexV(win_mutex);
 									rectsused=0;
 								}
 							}
@@ -1501,6 +1603,7 @@ int sdl_video_event_thread(void *data)
 						break;
 					case SDL_USEREVENT: {
 						/* Tell SDL to do various stuff... */
+						sdl.SemPost(sdl_ufunc_rec);
 						switch(ev.user.code) {
 							case SDL_USEREVENT_QUIT:
 								sdl_ufunc_retval=0;
@@ -1512,11 +1615,14 @@ int sdl_video_event_thread(void *data)
 									SDL_Rect r;
 									int x,y,offset;
 
-									if(!win || !upd_rects) {
+									sdl.mutexP(win_mutex);
+									if(!win) {
+										sdl.mutexV(win_mutex);
 										free(rect->data);
 										free(rect);
 										break;
 									}
+									sdl.mutexP(newrect_mutex);
 									for(y=0; y<rect->height; y++) {
 										offset=y*rect->width;
 										for(x=0; x<rect->width; x++) {
@@ -1531,6 +1637,13 @@ int sdl_video_event_thread(void *data)
 										}
 									}
 									if(!yuv.enabled) {
+										if (!upd_rects) {
+											free(rect->data);
+											free(rect);
+											sdl.mutexV(newrect_mutex);
+											sdl.mutexV(win_mutex);
+											break;
+										}
 										upd_rects[rectsused].x=rect->x*vstat.scaling;
 										upd_rects[rectsused].y=rect->y*vstat.scaling;
 										upd_rects[rectsused].w=rect->width*vstat.scaling;
@@ -1542,14 +1655,18 @@ int sdl_video_event_thread(void *data)
 											rectsused=0;
 										}
 									}
+									sdl.mutexV(newrect_mutex);
+									sdl.mutexV(win_mutex);
 									free(rect->data);
 									free(rect);
-									break;
 								}
+								break;
 							case SDL_USEREVENT_FLUSH:
+								sdl.mutexP(win_mutex);
+								sdl.mutexP(newrect_mutex);
 								if(win && new_rect) {
 									if(yuv.enabled) {
-										if(new_rect && yuv.overlay && yuv.changed) {
+										if(yuv.overlay && yuv.changed) {
 											SDL_Rect	dstrect;
 	
 											yuv.changed=0;
@@ -1557,11 +1674,7 @@ int sdl_video_event_thread(void *data)
 											dstrect.h=win->h;
 											dstrect.x=0;
 											dstrect.y=0;
-											sdl.UnlockYUVOverlay(yuv.overlay);
-											sdl.mutexV(yuv.mutex);
 											sdl.DisplayYUVOverlay(yuv.overlay, &dstrect);
-											sdl.mutexP(yuv.mutex);
-											sdl.LockYUVOverlay(yuv.overlay);
 										}
 									}
 									else {
@@ -1571,6 +1684,8 @@ int sdl_video_event_thread(void *data)
 										}
 									}
 								}
+								sdl.mutexP(newrect_mutex);
+								sdl.mutexV(win_mutex);
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
 								break;
@@ -1612,7 +1727,6 @@ int sdl_video_event_thread(void *data)
 									}
 								}
 								setup_surfaces();
-								force_redraws++;
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
 								break;
@@ -1625,36 +1739,21 @@ int sdl_video_event_thread(void *data)
 							case SDL_USEREVENT_INIT:
 								if(!sdl_init_good) {
 									if(sdl.WasInit(SDL_INIT_VIDEO)==SDL_INIT_VIDEO) {
+										sdl.mutexP(win_mutex);
 										if(win != NULL) {
 											sdl.EnableUNICODE(1);
 											sdl.EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 											mouse_thread=sdl.CreateThread(sdl_mouse_thread, NULL);
 											sdl_init_good=1;
 										}
+										sdl.mutexV(win_mutex);
 									}
 								}
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
 								break;
 							case SDL_USEREVENT_COPY:
-	#if (defined(__MACH__) && defined(__APPLE__)) && defined(USE_SCRAP_MANAGER)
-								if(!sdl_using_x11) {
-									ScrapRef	scrap;
-									sdl.mutexP(sdl_copybuf_mutex);
-									if(sdl_copybuf!=NULL) {
-										if(!ClearCurrentScrap()) {		/* purge the current contents of the scrap. */
-											if(!GetCurrentScrap(&scrap)) {		/* obtain a reference to the current scrap. */
-												PutScrapFlavor(scrap, kScrapFlavorTypeText, /* kScrapFlavorMaskTranslated */ kScrapFlavorMaskNone, strlen(sdl_copybuf), sdl_copybuf); 		/* write the data to the scrap */
-											}
-										}
-									}
-									FREE_AND_NULL(sdl_copybuf);
-									sdl.mutexV(sdl_copybuf_mutex);
-									break;
-								}
-	#endif
-
-	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
+#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 								if(sdl_x11available && sdl_using_x11) {
 									SDL_SysWMinfo	wmi;
 
@@ -1663,36 +1762,10 @@ int sdl_video_event_thread(void *data)
 									sdl_x11.XSetSelectionOwner(wmi.info.x11.display, CONSOLE_CLIPBOARD, wmi.info.x11.window, CurrentTime);
 									break;
 								}
-	#endif
+#endif
 								break;
 							case SDL_USEREVENT_PASTE:
-	#if (defined(__MACH__) && defined(__APPLE__)) && defined(USE_SCRAP_MANAGER)
-								if(!sdl_using_x11) {
-									ScrapRef	scrap;
-									UInt32	fl;
-									Size		scraplen;
-
-									FREE_AND_NULL(sdl_pastebuf);
-									if(!GetCurrentScrap(&scrap)) {		/* obtain a reference to the current scrap. */
-										if(!GetScrapFlavorFlags(scrap, kScrapFlavorTypeText, &fl) /* && (fl & kScrapFlavorMaskTranslated) */) {
-											if(!GetScrapFlavorSize(scrap, kScrapFlavorTypeText, &scraplen)) {
-												sdl_pastebuf=(char *)malloc(scraplen+1);
-												if(sdl_pastebuf!=NULL) {
-													if(GetScrapFlavorData(scrap, kScrapFlavorTypeText, &scraplen, sdl_pastebuf)) {
-														sdl_pastebuf[scraplen]=0;
-														FREE_AND_NULL(sdl_pastebuf);
-													}
-												}
-											}
-										}
-									}
-									sdl.SemPost(sdl_pastebuf_set);
-									sdl.SemWait(sdl_pastebuf_copied);
-									break;
-								}
-	#endif
-
-	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
+#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 								if(sdl_x11available && sdl_using_x11) {
 									Window sowner=None;
 									SDL_SysWMinfo	wmi;
@@ -1726,14 +1799,14 @@ int sdl_video_event_thread(void *data)
 									}
 									break;
 								}
-	#else
+#else
 								break;
-	#endif
+#endif
 						}
 						break;
 					}
 					case SDL_SYSWMEVENT:			/* ToDo... This is where Copy/Paste needs doing */
-	#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
+#if !defined(NO_X) && defined(__unix__) && defined(SDL_VIDEO_DRIVER_X11)
 						if(sdl_x11available && sdl_using_x11) {
 							XEvent *e;
 							e=&ev.syswm.msg->event.xevent;
@@ -1811,7 +1884,7 @@ int sdl_video_event_thread(void *data)
 								}
 							}	/* switch */
 						}	/* usingx11 */
-	#endif				
+#endif
 
 					/* Ignore this stuff */
 					case SDL_JOYAXISMOTION:
@@ -1836,14 +1909,16 @@ int sdl_initciolib(int mode)
 	}
 	sdl_key_pending=sdl.SDL_CreateSemaphore(0);
 	sdl_ufunc_ret=sdl.SDL_CreateSemaphore(0);
+	sdl_ufunc_rec=sdl.SDL_CreateSemaphore(0);
+	sdl_ufunc_mtx=sdl.SDL_CreateMutex();
+	newrect_mutex=sdl.SDL_CreateMutex();
+	win_mutex=sdl.SDL_CreateMutex();
 	sdl_keylock=sdl.SDL_CreateMutex();
 #if !defined(NO_X) && defined(__unix__)
 	sdl_pastebuf_set=sdl.SDL_CreateSemaphore(0);
 	sdl_pastebuf_copied=sdl.SDL_CreateSemaphore(0);
 	sdl_copybuf_mutex=sdl.SDL_CreateMutex();
 #endif
-	funcret_mutex=sdl.SDL_CreateMutex();
-	yuv.mutex=sdl.SDL_CreateMutex();
 	run_sdl_drawing_thread(sdl_video_event_thread, exit_sdl_con);
 	return(sdl_init(mode));
 }
