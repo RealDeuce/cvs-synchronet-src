@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.574 2014/12/11 00:11:30 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.575 2015/03/03 20:53:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -703,7 +703,7 @@ static u_long resolve_ip(char *inaddr)
 		return((u_long)INADDR_NONE);
 
 	for(p=addr;*p;p++)
-		if(*p!='.' && !isdigit(*p))
+		if(*p!='.' && !isdigit((uchar)*p))
 			break;
 	if(!(*p))
 		return(inet_addr(addr));
@@ -1077,7 +1077,7 @@ static void pop3_thread(void* arg)
 			if(!strnicmp(buf, "LIST",4) || !strnicmp(buf,"UIDL",4)) {
 				p=buf+4;
 				SKIP_WHITESPACE(p);
-				if(isdigit(*p)) {
+				if(isdigit((uchar)*p)) {
 					msgnum=atol(p);
 					if(msgnum<1 || msgnum>msgs) {
 						lprintf(LOG_NOTICE,"%04d !POP3 INVALID message #%ld"
@@ -3882,7 +3882,7 @@ static void smtp_thread(void* arg)
 			}
 
 			if((p==alias_buf || p==name_alias_buf || startup->options&MAIL_OPT_ALLOW_RX_BY_NUMBER)
-				&& isdigit(*p)) {
+				&& isdigit((uchar)*p)) {
 				usernum=atoi(p);			/* RX by user number */
 				/* verify usernum */
 				username(&scfg,usernum,str);
@@ -4895,7 +4895,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.574 $", "%*s %s", revision);
+	sscanf("$Revision: 1.575 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
