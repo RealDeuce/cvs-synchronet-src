@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.43 2015/04/30 00:14:38 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.41 2015/03/03 11:15:50 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -267,7 +267,6 @@ int bitmap_getvideoflags(void)
 {
 	int flags=0;
 
-	pthread_mutex_lock(&vstatlock);
 	if(vstat.bright_background)
 		flags |= CIOLIB_VIDEO_BGBRIGHT;
 	if(vstat.no_bright)
@@ -278,13 +277,11 @@ int bitmap_getvideoflags(void)
 		flags |= CIOLIB_VIDEO_NOBLINK;
 	if(vstat.blink_altcharset)
 		flags |= CIOLIB_VIDEO_BLINKALTCHARS;
-	pthread_mutex_unlock(&vstatlock);
 	return(flags);
 }
 
 void bitmap_setvideoflags(int flags)
 {
-	pthread_mutex_lock(&vstatlock);
 	if(flags & CIOLIB_VIDEO_BGBRIGHT)
 		vstat.bright_background=1;
 	else
@@ -309,7 +306,6 @@ void bitmap_setvideoflags(int flags)
 		vstat.blink_altcharset=1;
 	else
 		vstat.blink_altcharset=0;
-	pthread_mutex_unlock(&vstatlock);
 }
 
 int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
@@ -605,20 +601,13 @@ int bitmap_getfont(void)
 
 void bitmap_setscaling(int new_value)
 {
-	pthread_mutex_lock(&vstatlock);
 	if(new_value > 0)
 		vstat.scaling = new_value;
-	pthread_mutex_unlock(&vstatlock);
 }
 
 int bitmap_getscaling(void)
 {
-	int ret;
-
-	pthread_mutex_lock(&vstatlock);
-	ret = vstat.scaling;
-	pthread_mutex_unlock(&vstatlock);
-	return ret;
+	return vstat.scaling;
 }
 
 /* Called from event thread only */
@@ -648,11 +637,13 @@ int bitmap_loadfont(char *filename)
 	else if(conio_fontdata[current_font[0]].desc==NULL)
 		return(-1);
 
-	for (i=1; i<sizeof(current_font)/sizeof(current_font[0]); i++) {
-		if(current_font[i] == -1)
-			;
-		else if (current_font[i] < 0)
+	if(current_font[0]==-99) {
+		for (i=1; i<sizeof(current_font)/sizeof(current_font[0]); i++)
 			current_font[i]=current_font[0];
+	}
+	for (i=1; i<sizeof(current_font)/sizeof(current_font[0]); i++) {
+		if(current_font[i]==-1)
+			;
 		else if(conio_fontdata[current_font[i]].desc==NULL)
 			current_font[i]=current_font[0];
 	}
@@ -688,7 +679,7 @@ int bitmap_loadfont(char *filename)
 		}
 	}
 	for (i=0; i<sizeof(font)/sizeof(font[0]); i++) {
-		if (current_font[i] < 0)
+		if (current_font[i] == -1)
 			continue;
 		switch(vstat.charwidth) {
 			case 8:

@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.21 2015/04/27 00:38:47 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.19 2015/03/06 16:00:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -216,7 +216,6 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 	int			outbuf_size=0;
 	int			inbuf_len=strlen(inbuf);
 	unsigned	next_len;
-	BOOL		chopped = FALSE;
 
 	outbuf_size=inbuf_len*3+1;
 	if((outbuf=(char*)malloc(outbuf_size))==NULL)
@@ -347,16 +346,13 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 					icol=prefix_len+1;
 					continue;
 				}
-				else if(chopped || isspace((unsigned char)inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
+				else if(isspace((unsigned char)inbuf[i+1])) {	/* Next line starts with whitespace.  This is a "hard" CR. */
 					linebuf[l++]='\r';
 					linebuf[l++]='\n';
 					outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
-					if(prefix)
-						memcpy(linebuf,prefix,prefix_bytes);
 					l=prefix_bytes;
 					ocol=prefix_len+1;
 					icol=prefix_len+1;
-					chopped = FALSE;
 					continue;
 				}
 				else {
@@ -388,7 +384,6 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 						}
 					}
 				}
-				icol=prefix_len+1;
 				/* Fall-through soft CRs for wrapping! */
 			default:
 				if (inbuf[i] != '\n') {
@@ -416,7 +411,6 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 							l--;
 						if(l>0)
 							l--;
-						chopped = TRUE;
 					}
 					t=l+1;									/* Store start position of next line */
 					/* Move to start of whitespace */
