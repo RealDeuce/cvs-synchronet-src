@@ -1,6 +1,3 @@
-Version 1.1
------------
-
 Version 1.0
 -----------
 New ability to use the blink attribute to select alternate font
@@ -25,9 +22,6 @@ Windows console mode resize fixes
 SSH stability fixes
 Paginate help output
 Statically link Cryptlib
-Varous crashes at startup and during resize fixed
-Don't add "SyncTERM" to the end of the Windows Download path
-Fix NumLock behaviour on Windows
 
 Version 0.9.5
 -------------
