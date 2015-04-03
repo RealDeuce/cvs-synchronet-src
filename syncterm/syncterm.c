@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.194 2015/03/15 20:56:18 deuce Exp $ */
+/* $Id: syncterm.c,v 1.195 2015/04/03 08:59:39 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1391,11 +1391,11 @@ int main(int argc, char **argv)
 						case 'S':
 							switch(toupper(argv[i][3])) {
 								case 0:
-								case 'F':
-									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
-									break;
 								case 'W':
 									ciolib_mode=CIOLIB_MODE_SDL;
+									break;
+								case 'F':
+									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
 									break;
 							}
 							break;
