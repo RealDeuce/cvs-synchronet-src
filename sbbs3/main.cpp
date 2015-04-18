@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.612 2015/08/06 00:43:18 rswindell Exp $ */
+/* $Id: main.cpp,v 1.609 2015/04/10 22:50:49 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -305,7 +305,7 @@ DLLEXPORT void DLLCALL sbbs_srand()
 	}
 	if(rd != sizeof(seed))
 #endif
-		seed = time32(NULL) ^ (uintmax_t)GetCurrentThreadId();
+		seed = time32(NULL) ^ (DWORD)GetCurrentThreadId();
 
  	srand(seed);
 	sbbs_random(10);	/* Throw away first number */
@@ -2983,9 +2983,6 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	nodesync_inside = false;
 	errormsg_inside = false;
 	gettimeleft_inside = false;
-	readmail_inside = false;
-	scanposts_inside = false;
-	scansubs_inside = false;
 	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
 	uselect_total = 0;
 	lbuflen = 0;
@@ -3735,10 +3732,7 @@ int sbbs_t::putcom(const char *str, size_t len)
 	return i;
 }
 
-/* Legacy Remote I/O Control Interface:
- * This function mimics the RCIOL MS-DOS library written in 8086 assembler by Steven B. Deppe (1958-2014).
- * This function prototype shall remain the same in tribute to Steve (Ille Homine Albe).
- */
+/* Legacy Remote I/O Control Interface */
 int sbbs_t::rioctl(ushort action)
 {
 	int		mode;
@@ -5186,9 +5180,6 @@ NO_SSH:
 		if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
-
-		/* Purge (flush) any pending input or output data */
-		sbbs->rioctl(IOFB);
 
 		/* Do SSH stuff here */
 #ifdef USE_CRYPTLIB
