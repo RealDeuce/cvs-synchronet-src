@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.33 2015/04/24 05:47:41 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.32 2014/01/15 02:28:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -202,7 +202,6 @@ void read_echo_cfg()
 	cfg.log=LOG_DEFAULTS;
 	cfg.log_level=LOG_INFO;
 	cfg.check_path=TRUE;
-	cfg.fwd_circular=TRUE;
 	cfg.zone_blind=FALSE;
 	cfg.zone_blind_threshold=0xffff;
 	SAFECOPY(cfg.sysop_alias,"SYSOP");
@@ -270,10 +269,6 @@ void read_echo_cfg()
 
 		if(!stricmp(tmp,"NOPATHCHECK")) {
 			cfg.check_path=FALSE;
-			continue;
-		}
-		if(!stricmp(tmp,"NOCIRCULARFWD")) {
-			cfg.fwd_circular=FALSE;
 			continue;
 		}
 
