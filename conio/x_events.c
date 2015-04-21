@@ -48,8 +48,6 @@ int x11_window_ypos;
 int x11_window_width;
 int x11_window_height;
 int x11_initialized=0;
-sem_t	event_thread_complete;
-int	terminate = 0;
 /*
  * Local variables
  */
@@ -212,10 +210,8 @@ static int init_window()
 	white=WhitePixel(dpy, DefaultScreen(dpy));
 
     /* Create window, but defer setting a size and GC. */
-	pthread_mutex_lock(&vstatlock);
     win = x11.XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0,
 			      640*vstat.scaling, 400*vstat.scaling*vstat.vmultiplier, 2, black, black);
-	pthread_mutex_unlock(&vstatlock);
 
 	wmhints=x11.XAllocWMHints();
 	if(wmhints) {
@@ -269,10 +265,8 @@ static void map_window()
 		exit(1);
 	}
 
-	pthread_mutex_lock(&vstatlock);
 	sh->base_width = bitmap_width*vstat.scaling;
 	sh->base_height = bitmap_height*vstat.scaling*vstat.vmultiplier;
-	pthread_mutex_unlock(&vstatlock);
 
     sh->min_width = sh->width_inc = sh->min_aspect.x = sh->max_aspect.x = bitmap_width;
     sh->min_height = sh->height_inc = sh->min_aspect.y = sh->max_aspect.y = bitmap_height;
@@ -283,7 +277,7 @@ static void map_window()
 
     x11.XFree(sh);
 
-	send_rectangle(&vstat, 0,0,bitmap_width,bitmap_height,TRUE);
+	send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
 
     return;
 }
@@ -291,26 +285,18 @@ static void map_window()
 /* Resize the window. This function is called after a mode change. */
 static void resize_window()
 {
-	pthread_mutex_lock(&vstatlock);
     x11.XResizeWindow(dpy, win, bitmap_width*vstat.scaling, bitmap_height*vstat.scaling*vstat.vmultiplier);
-	pthread_mutex_unlock(&vstatlock);
-    
     return;
 }
 
 static int init_mode(int mode)
 {
-    int oldcols;
+    int oldcols=vstat.cols;
 	int oldwidth=bitmap_width;
 	int oldheight=bitmap_height;
 
-	pthread_mutex_lock(&vstatlock);
-	oldcols=vstat.cols;
-	pthread_mutex_unlock(&vstatlock);
-
 	bitmap_init_mode(mode, &bitmap_width, &bitmap_height);
 
-	pthread_mutex_lock(&vstatlock);
 	/* Deal with 40 col doubling */
 	if(oldcols != vstat.cols) {
 		if(oldcols == 40)
@@ -321,13 +307,12 @@ static int init_mode(int mode)
 
 	if(vstat.scaling < 1)
 		vstat.scaling = 1;
-	pthread_mutex_unlock(&vstatlock);
 
     map_window();
     /* Resize window if necessary. */
 	if((!(bitmap_width == 0 && bitmap_height == 0)) && (oldwidth != bitmap_width || oldheight != bitmap_height))
 		resize_window();
-	send_rectangle(&vstat, 0,0,bitmap_width,bitmap_height,TRUE);
+	send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
 
 	sem_post(&mode_set);
     return(0);
@@ -338,12 +323,10 @@ static int video_init()
     /* If we are running under X, get a connection to the X server and create
        an empty window of size (1, 1). It makes a couple of init functions a
        lot easier. */
-	pthread_mutex_lock(&vstatlock);
 	if(vstat.scaling<1)
 		vstat.scaling=1;
 	if(vstat.vmultiplier<1)
 		vstat.vmultiplier=1;
-	pthread_mutex_unlock(&vstatlock);
     if(init_window())
 		return(-1);
 
@@ -366,8 +349,6 @@ static void local_draw_rect(struct update_rect *rect)
 
 #if 0 /* Draw solid colour rectangles... */
 	int rectw, recth, rectc, y2;
-
-	pthread_mutex_lock(&vstatlock);
 	for(y=0; y<rect->height; y++) {
 		for(x=0; x<rect->width; x++) {
 			rectc=rect->data[y*rect->width+x];
@@ -395,10 +376,8 @@ static void local_draw_rect(struct update_rect *rect)
 			x11.XFillRectangle(dpy, win, gca[rectc], (rect->x+x)*vstat.scaling, (rect->y+y)*vstat.scaling*vstat.vmultiplier, rectw*vstat.scaling, recth*vstat.scaling*vstat.vmultiplier);
 		}
 	}
-	pthread_mutex_unlock(&vstatlock);
 #else
 #if 1	/* XImage */
-	pthread_mutex_lock(&vstatlock);
 	xim=x11.XCreateImage(dpy,&visual,depth,ZPixmap,0,NULL,rect->width*vstat.scaling,rect->height*vstat.scaling*vstat.vmultiplier,32,0);
 	xim->data=(char *)malloc(xim->bytes_per_line*rect->height*vstat.scaling*vstat.vmultiplier);
 	for(y=0;y<rect->height;y++) {
@@ -416,7 +395,6 @@ static void local_draw_rect(struct update_rect *rect)
 	}
 
 	x11.XPutImage(dpy,win,gca[0],xim,0,0,rect->x*vstat.scaling,rect->y*vstat.scaling*vstat.vmultiplier,rect->width*vstat.scaling,rect->height*vstat.scaling*vstat.vmultiplier);
-	pthread_mutex_unlock(&vstatlock);
 #ifdef XDestroyImage
 	XDestroyImage(xim);
 #else
@@ -424,13 +402,11 @@ static void local_draw_rect(struct update_rect *rect)
 #endif
 
 #else	/* XFillRectangle */
-	pthread_mutex_lock(&vstatlock);
 	for(y=0;y<rect->height;y++) {
 		for(x=0; x<rect->width; x++) {
 			x11.XFillRectangle(dpy, win, gca[rect->data[y*rect->width+x]], (rect->x+x)*vstat.scaling, (rect->y+y)*vstat.scaling*vstat.vmultiplier, vstat.scaling, vstat.scaling*vstat.vmultiplier);
 		}
 	}
-	pthread_mutex_unlock(&vstatlock);
 #endif
 #endif
 	free(rect->data);
@@ -442,12 +418,9 @@ static void handle_resize_event(int width, int height)
 	int newFSW=1;
 
 	// No change
-	pthread_mutex_lock(&vstatlock);
 	if((width == vstat.charwidth * vstat.cols * vstat.scaling)
-			&& (height == vstat.charheight * vstat.rows * vstat.scaling*vstat.vmultiplier)) {
-		pthread_mutex_unlock(&vstatlock);
+			&& (height == vstat.charheight * vstat.rows * vstat.scaling*vstat.vmultiplier))
 		return;
-	}
 
 	newFSH=width/bitmap_width;
 	newFSW=height/bitmap_height;
@@ -467,20 +440,15 @@ static void handle_resize_event(int width, int height)
 	 * Otherwise, we can simply resend everything
 	 */
 	if((width % (vstat.charwidth * vstat.cols) != 0)
-			|| (height % (vstat.charheight * vstat.rows) != 0)) {
-		pthread_mutex_unlock(&vstatlock);
+			|| (height % (vstat.charheight * vstat.rows) != 0))
 		resize_window();
-	}
-	else
-		pthread_mutex_unlock(&vstatlock);
-	send_rectangle(&vstat, 0,0,bitmap_width,bitmap_height,TRUE);
+	send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
 }
 
-static void expose_rect(int x, int y, int width, int height)
+static void expose_rect(x,y,width,height)
 {
 	int sx,sy,ex,ey;
 
-	pthread_mutex_lock(&vstatlock);
 	sx=x/vstat.scaling;
 	sy=y/(vstat.scaling*vstat.vmultiplier);
 
@@ -494,9 +462,8 @@ static void expose_rect(int x, int y, int width, int height)
 	}
 	ex=ex/vstat.scaling;
 	ey=ey/(vstat.scaling*vstat.vmultiplier);
-	pthread_mutex_unlock(&vstatlock);
 
-	send_rectangle(&vstat, sx, sy, ex-sx+1, ey-sy+1, TRUE);
+	send_rectangle(sx, sy, ex-sx+1, ey-sy+1, TRUE);
 }
 
 static int x11_event(XEvent *ev)
@@ -598,7 +565,6 @@ static int x11_event(XEvent *ev)
 			{
 				XMotionEvent *me = (XMotionEvent *)ev;
 
-				pthread_mutex_lock(&vstatlock);
 				me->x/=vstat.scaling;
 				me->x/=vstat.charwidth;
 				me->y/=vstat.scaling;
@@ -614,7 +580,6 @@ static int x11_event(XEvent *ev)
 					me->x=vstat.cols;
 				if(me->y>vstat.rows+1)
 					me->y=vstat.rows+1;
-				pthread_mutex_unlock(&vstatlock);
 				ciomouse_gotevent(CIOLIB_MOUSE_MOVE,me->x,me->y);
 	    	}
 			break;
@@ -622,7 +587,6 @@ static int x11_event(XEvent *ev)
 			{
 				XButtonEvent *be = (XButtonEvent *)ev;
 
-				pthread_mutex_lock(&vstatlock);
 				be->x/=vstat.scaling;
 				be->x/=vstat.charwidth;
 				be->y/=vstat.scaling;
@@ -638,7 +602,6 @@ static int x11_event(XEvent *ev)
 					be->x=vstat.cols;
 				if(be->y>vstat.rows+1)
 					be->y=vstat.rows+1;
-				pthread_mutex_unlock(&vstatlock);
 				if (be->button <= 3) {
 					ciomouse_gotevent(CIOLIB_BUTTON_RELEASE(be->button),be->x,be->y);
 				}
@@ -648,7 +611,6 @@ static int x11_event(XEvent *ev)
 			{
 				XButtonEvent *be = (XButtonEvent *)ev;
 
-				pthread_mutex_lock(&vstatlock);
 				be->x/=vstat.scaling;
 				be->x/=vstat.charwidth;
 				be->y/=vstat.scaling;
@@ -664,7 +626,6 @@ static int x11_event(XEvent *ev)
 					be->x=vstat.cols;
 				if(be->y>vstat.rows+1)
 					be->y=vstat.rows+1;
-				pthread_mutex_unlock(&vstatlock);
 				if (be->button <= 3) {
 					ciomouse_gotevent(CIOLIB_BUTTON_PRESS(be->button),be->x,be->y);
 				}
@@ -676,10 +637,11 @@ static int x11_event(XEvent *ev)
 			{
 				static char buf[128];
 				KeySym ks;
+				int n;
 				int nlock = 0;
 				WORD scan = 0xffff;
 
-				x11.XLookupString((XKeyEvent *)ev, buf, sizeof(buf), &ks, 0);
+				n = x11.XLookupString((XKeyEvent *)ev, buf, sizeof(buf), &ks, 0);
 
 				switch (ks) {
 				
@@ -862,20 +824,10 @@ static int x11_event(XEvent *ev)
 
 void check_scaling(void)
 {
-	pthread_mutex_lock(&vstatlock);
 	if (old_scaling != vstat.scaling) {
-		pthread_mutex_unlock(&vstatlock);
 		resize_window();
-		pthread_mutex_lock(&vstatlock);
 		old_scaling = vstat.scaling;
 	}
-	pthread_mutex_unlock(&vstatlock);
-}
-
-static void x11_terminate_event_thread(void)
-{
-	terminate = 1;
-	sem_wait(&event_thread_complete);
 }
 
 void x11_event_thread(void *args)
@@ -892,8 +844,6 @@ void x11_event_thread(void *args)
 		return;
 	}
 	x11_initialized=1;
-	sem_init(&event_thread_complete, 0, 0);
-	atexit(x11_terminate_event_thread);
 	sem_post(&init_complete);
 
 	if(local_pipe[0] > xfd)
@@ -901,7 +851,7 @@ void x11_event_thread(void *args)
 	else
 		high_fd=xfd;
 
-	for (;!terminate;) {
+	for (;;) {
 		check_scaling();
 
 		tv.tv_sec=0;
@@ -1006,6 +956,4 @@ void x11_event_thread(void *args)
 				}
 		}
 	}
-	x11.XCloseDisplay(dpy);
-	sem_post(&event_thread_complete);
 }
