@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.609 2015/04/10 22:50:49 sbbs Exp $ */
+/* $Id: main.cpp,v 1.610 2015/04/25 06:12:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -305,7 +305,7 @@ DLLEXPORT void DLLCALL sbbs_srand()
 	}
 	if(rd != sizeof(seed))
 #endif
-		seed = time32(NULL) ^ (DWORD)GetCurrentThreadId();
+		seed = time32(NULL) ^ (uintmax_t)GetCurrentThreadId();
 
  	srand(seed);
 	sbbs_random(10);	/* Throw away first number */
