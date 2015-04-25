@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.408 2014/11/18 06:11:30 deuce Exp $ */
+/* $Id: sbbs.h,v 1.409 2015/04/25 06:10:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1194,7 +1194,7 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_callback_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonOperationCallback(JSContext*, js_callback_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_callback_t*);
-	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir, JSObject *);
 	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
 
 	/* js_system.c */
