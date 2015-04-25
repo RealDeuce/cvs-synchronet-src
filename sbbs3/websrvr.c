@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.577 2014/11/20 05:13:39 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.580 2015/04/25 06:10:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1360,8 +1360,6 @@ static void send_error(http_session_t * session, const char* message)
 
 void http_logon(http_session_t * session, user_t *usr)
 {
-	char	str[128];
-
 	if(usr==NULL)
 		getuserdat(&scfg, &session->user);
 	else
@@ -1381,10 +1379,11 @@ void http_logon(http_session_t * session, user_t *usr)
 	else {
 		SAFECOPY(session->username,session->user.alias);
 		/* Adjust Connect and host */
-		putuserrec(&scfg,session->user.number,U_MODEM,LEN_MODEM,"HTTP");
-		putuserrec(&scfg,session->user.number,U_COMP,LEN_COMP,session->host_name);
-		putuserrec(&scfg,session->user.number,U_NOTE,LEN_NOTE,session->host_ip);
-		putuserrec(&scfg,session->user.number,U_LOGONTIME,0,ultoa((ulong)session->logon_time,str,16));
+		SAFECOPY(session->user.modem, session->client.protocol);
+		SAFECOPY(session->user.comp, session->host_name);
+		SAFECOPY(session->user.note, session->host_ip);
+		session->user.logontime = (time32_t)session->logon_time;
+		putuserdat(&scfg, &session->user);
 	}
 	session->client.user=session->username;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
@@ -4737,7 +4736,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=xp_timer();
-		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL);
+		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL, session->js_glob);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_callback);
 		JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
@@ -5400,7 +5399,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.577 $", "%*s %s", revision);
+	sscanf("$Revision: 1.580 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
