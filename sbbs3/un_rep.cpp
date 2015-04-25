@@ -1,12 +1,14 @@
+/* un_rep.cpp */
+
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.60 2016/11/19 21:14:32 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.55 2014/01/08 10:33:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -35,6 +37,40 @@
 
 #include "sbbs.h"
 #include "qwk.h"
+
+/****************************************************************************/
+/* Convert a QWK conference number into a sub-board offset					*/
+/* Return INVALID_SUB upon failure to convert								*/
+/****************************************************************************/
+uint sbbs_t::resolve_qwkconf(uint n)
+{
+	uint	j,k;
+
+	for	(j=0;j<usrgrps;j++) {
+		for(k=0;k<usrsubs[j];k++)
+			if(cfg.sub[usrsub[j][k]]->qwkconf==n)
+				break;
+		if(k<usrsubs[j])
+			break; 
+	}
+
+	if(j>=usrgrps) {
+		if(n<1000) {			 /* version 1 method, start at 101 */
+			j=n/100;
+			k=n-(j*100); 
+		}
+		else {					 /* version 2 method, start at 1001 */
+			j=n/1000;
+			k=n-(j*1000); 
+		}
+		j--;	/* j is group */
+		k--;	/* k is sub */
+		if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf)
+			return INVALID_SUB;
+	}
+
+	return usrsub[j][k];
+}
 
 /****************************************************************************/
 /* Unpacks .REP packet, 'repname' is the path and filename of the packet    */
@@ -124,7 +160,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 	fread(block,QWK_BLOCK_LEN,1,rep);
 	if(strnicmp((char *)block,cfg.sys_id,strlen(cfg.sys_id))) {
-		iniFreeStringList(headers);
+		if(headers!=NULL)
+			iniFreeStringList(headers);
 		fclose(rep);
 		bputs(text[QWKReplyNotReceived]);
 		logline(LOG_NOTICE,"U!",AttemptedToUploadREPpacket);
@@ -171,10 +208,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			blocks=1;
 			continue; 
 		}
-
-		long confnum = atol((char *)block+1);
-
-		qwk_new_msg(confnum, &msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
+		qwk_new_msg(&msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
@@ -210,7 +244,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		if(confnum==0) {						/**********/
+		if(atoi(block+1)==0) {					/**********/
 			if(useron.rest&FLAG('E')) {         /* E-mail */
 				bputs(text[R_Email]);			/**********/
 				continue; 
@@ -347,6 +381,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				/**************************/
 		else {	/* message on a sub-board */
 				/**************************/
+			long confnum = atol((char *)block+1);
 			if((n=resolve_qwkconf(confnum))==INVALID_SUB) {
 				bprintf(text[QWKInvalidConferenceN],confnum);
 				SAFEPRINTF2(str,"%s: Invalid QWK conference number %ld",useron.alias,confnum);
@@ -502,20 +537,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 	update_qwkroute(NULL);			/* Write ROUTE.DAT */
 
-	smb_freemsgmem(&msg);
-
 	iniFreeStringList(headers);
-
-	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
-	if(fexistcase(fname)) {
-		if(useron.rest&FLAG('V'))
-			bputs(text[R_Voting]);
-		else {
-			set_qwk_flag(QWK_VOTING);
-			qwk_voting(fname, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias);
-		}
-		remove(fname);
-	}
 
 	strListFree(&ip_can);
 	strListFree(&host_can);
@@ -529,7 +551,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	/* QWKE support */
 	SAFEPRINTF(fname,"%sTODOOR.EXT",cfg.temp_dir);
 	if(fexistcase(fname)) {
-		set_qwk_flag(QWK_EXT);
+		useron.qwk|=QWK_EXT;
 		FILE* fp=fopen(fname,"r");
 		char* p;
 		if(fp!=NULL) {
