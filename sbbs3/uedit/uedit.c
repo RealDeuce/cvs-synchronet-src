@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.49 2012/06/15 21:14:49 deuce Exp $ */
+/* $Id: uedit.c,v 1.50 2014/02/13 08:08:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,8 +35,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "ciolib.h"
-#include "sbbs.h"
 #include <sys/types.h>
 #include <time.h>
 #ifdef __QNX__
@@ -48,6 +46,9 @@
 #include <sys/time.h>
 #include <signal.h>
 #endif
+
+#include "ciolib.h"
+#include "sbbs.h"
 
 #include "genwrap.h"
 #include "uifc.h"
@@ -201,12 +202,14 @@ int do_cmd(char *cmd)
 {
 	int i;
 
-#ifdef __unix__
-	endwin();
+#ifdef HAS_CURSES
+	if(cio_api.mode == CIOLIB_MODE_CURSES || cio_api.mode == CIOLIB_MODE_CURSES_IBM)
+		endwin();
 #endif
 	i=system(cmd);
-#ifdef __unix__
-	refresh();
+#ifdef HAS_CURSES
+	if(cio_api.mode == CIOLIB_MODE_CURSES || cio_api.mode == CIOLIB_MODE_CURSES_IBM)
+		refresh();
 #endif
 	return(i);
 }
@@ -1898,7 +1901,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.49 $", "%*s %s", revision);
+	sscanf("$Revision: 1.50 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
