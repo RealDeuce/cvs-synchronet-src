@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.20 2015/04/26 22:33:23 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.21 2015/04/27 00:38:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -388,6 +388,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 						}
 					}
 				}
+				icol=prefix_len+1;
 				/* Fall-through soft CRs for wrapping! */
 			default:
 				if (inbuf[i] != '\n') {
