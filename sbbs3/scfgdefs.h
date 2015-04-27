@@ -2,13 +2,13 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id$ */
+/* $Id: scfgdefs.h,v 1.36 2015/04/27 10:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -314,8 +314,8 @@ typedef struct {							/* QWK Network Hub */
 				node,						/* Node to do the call-out */
 				freq,						/* Frequency of call-outs */
 				subs,						/* Number Sub-boards carried */
-				*sub,						/* Number of local sub-board for ea. */
 				*conf;						/* Conference number of ea. */
+	ulong		*sub;						/* Number of local sub-board for ea. */
 	time32_t	last;						/* Last network attempt */
 
 } qhub_t;
@@ -576,6 +576,9 @@ typedef struct
 	char			logout_mod[LEN_MODNAME+1];			/* Logout module */
 	char			sync_mod[LEN_MODNAME+1];			/* Synchronization module */
 	char			expire_mod[LEN_MODNAME+1];			/* User expiration module */
+	char			readmail_mod[LEN_CMD+1];	/* Reading mail module */
+	char			scanposts_mod[LEN_CMD+1];	/* Scanning posts (in a single sub) module */
+	char			scansubs_mod[LEN_CMD+1];	/* Scanning sub-boards module */
 	char			scfg_cmd[LEN_CMD+1];	/* SCFG command line */
 	uchar			smb_retry_time; 		/* Seconds to retry on SMBs */
 	uint16_t		sec_warn;				/* Seconds before inactivity warning */

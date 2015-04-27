@@ -2,13 +2,13 @@
 
 /* Synchronet public message reading function */
 
-/* $Id$ */
+/* $Id: readmsgs.cpp,v 1.69 2015/04/27 10:45:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -372,6 +372,15 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	post_t	*post;
 	smbmsg_t	msg;
 
+	if(cfg.scanposts_mod[0] && !scanposts_inside) {
+		char cmdline[256];
+
+		scanposts_inside = true;
+		safe_snprintf(cmdline, sizeof(cmdline), "%s %u %u %s", cfg.scanposts_mod, subnum, mode, find);
+		i=exec_bin(cmdline, &main_csi);
+		scanposts_inside = false;
+		return i;
+	}
 	find_buf[0]=0;
 	cursubnum=subnum;	/* for ARS */
 	if(!chk_ar(cfg.sub[subnum]->read_ar,&useron,&client)) {
