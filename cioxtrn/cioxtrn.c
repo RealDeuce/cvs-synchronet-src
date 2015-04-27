@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include "genwrap.h"
 #include "ciolib.h"
-#include "keys.h"
 
 HANDLE				console_output;
 HANDLE				console_input;
@@ -33,7 +32,7 @@ struct keyvals {
 };
 
 /* Get this from win32cio.c */
-extern const struct keyvals keyval[];
+CIOLIBEXPORTVAR const struct keyvals keyval[];
 
 void frobkey(int press, int release, int scan, int key, int ascii)
 {
