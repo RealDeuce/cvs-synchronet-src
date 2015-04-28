@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.40 2015/02/27 10:42:08 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.42 2015/04/27 09:10:00 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -143,6 +143,8 @@ int bitmap_init_mode(int mode, int *width, int *height)
 		pthread_mutex_unlock(&vstatlock);
 		return(-1);
 	}
+	if(damaged)
+		free(damaged);
 	damaged=newdamaged;
 
 	/* Initialize video memory with black background, white foreground */
@@ -635,13 +637,11 @@ int bitmap_loadfont(char *filename)
 	else if(conio_fontdata[current_font[0]].desc==NULL)
 		return(-1);
 
-	if(current_font[0]==-99) {
-		for (i=1; i<sizeof(current_font)/sizeof(current_font[0]); i++)
-			current_font[i]=current_font[0];
-	}
 	for (i=1; i<sizeof(current_font)/sizeof(current_font[0]); i++) {
-		if(current_font[i]==-1)
+		if(current_font[i] == -1)
 			;
+		else if (current_font[i] < 0)
+			current_font[i]=current_font[0];
 		else if(conio_fontdata[current_font[i]].desc==NULL)
 			current_font[i]=current_font[0];
 	}
@@ -677,7 +677,7 @@ int bitmap_loadfont(char *filename)
 		}
 	}
 	for (i=0; i<sizeof(font)/sizeof(font[0]); i++) {
-		if (current_font[i] == -1)
+		if (current_font[i] < 0)
 			continue;
 		switch(vstat.charwidth) {
 			case 8:
