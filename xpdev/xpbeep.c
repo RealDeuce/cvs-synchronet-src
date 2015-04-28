@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.93 2015/02/12 11:33:57 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.94 2015/04/28 02:06:53 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -275,7 +275,7 @@ void DLLCALL makewave(double freq, unsigned char *wave, int samples, enum WAVE_S
 				wave[i]=128+((wave[i]-128)/((numcross-crossings)*(numcross-crossings)));
 			}
 			crossings=0;
-			for(i=samples; i>0; i--) {
+			for(i=samples-1; i>0; i--) {
 				if(((wave[i]<128 && wave[i-1]>=128) || (wave[i]>128 && wave[i-1]<=128)) && i>2) {
 					crossings++;
 					if(crossings>=numcross)
