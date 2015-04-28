@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id$ */
+/* $Id: download.cpp,v 1.46 2015/04/28 10:55:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -462,14 +462,14 @@ bool sbbs_t::sendfile(char* fname, char prot)
 	else {
 		xfer_prot_menu(XFER_DOWNLOAD);
 		mnemonics(text[ProtocolOrQuit]);
-		strcpy(keys,"Q");
+		sprintf(keys,"%c",text[YNQP][2]);
 		for(i=0;i<cfg.total_prots;i++)
 			if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client))
 				sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
 
 		ch=(char)getkeys(keys,0);
 
-		if(ch=='Q' || sys_status&SS_ABORT)
+		if(ch==text[YNQP][2] || sys_status&SS_ABORT)
 			return(false); 
 	}
 	for(i=0;i<cfg.total_prots;i++)
