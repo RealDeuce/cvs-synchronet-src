@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.131 2015/02/16 07:52:32 deuce Exp $ */
+/* $Id: ciolib.c,v 1.132 2015/04/29 07:28:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,8 +156,8 @@ int try_sdl_init(int mode)
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
 		cio_api.get_window_info=sdl_get_window_info;
-		cio_api.setscaling=bitmap_setscaling;
-		cio_api.getscaling=bitmap_getscaling;
+		cio_api.setscaling=sdl_setscaling;
+		cio_api.getscaling=sdl_getscaling;
 		return(1);
 	}
 	return(0);
