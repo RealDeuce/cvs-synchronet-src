@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.408 2014/11/18 06:11:30 deuce Exp $ */
+/* $Id: sbbs.h,v 1.410 2015/04/27 10:45:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -650,6 +650,7 @@ public:
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
+	bool	readmail_inside;
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -746,6 +747,7 @@ public:
 
 	/* readmsgs.cpp */
 	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
+	bool	scanposts_inside;
 	long	listsub(uint subnum, long mode, long start, const char* search);
 	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
@@ -927,6 +929,7 @@ public:
 
 	/* scansubs.cpp */
 	void	scansubs(long mode);
+	bool	scansubs_inside;
 	void	scanallsubs(long mode);
 	void	new_scan_cfg(ulong misc);
 	void	new_scan_ptr_cfg(void);
@@ -1194,7 +1197,7 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_callback_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonOperationCallback(JSContext*, js_callback_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_callback_t*);
-	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir, JSObject *);
 	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
 
 	/* js_system.c */
