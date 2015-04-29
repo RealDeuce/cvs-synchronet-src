@@ -1,12 +1,14 @@
+/* pack_rep.cpp */
+
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.42 2016/11/10 10:06:30 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.40 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,7 +60,6 @@ bool sbbs_t::pack_rep(uint hubnum)
 	mail_t*		mail;
 	FILE*		rep;
 	FILE*		hdrs=NULL;
-	FILE*		voting=NULL;
 	DIR*		dir;
 	DIRENT*		dirent;
 	smbmsg_t	msg;
@@ -99,10 +100,6 @@ bool sbbs_t::pack_rep(uint hubnum)
 	fexistcase(str);
 	if((hdrs=fopen(str,"a"))==NULL)
 		errormsg(WHERE,ERR_CREATE,str,0);
-	SAFEPRINTF(str,"%sVOTING.DAT",cfg.temp_dir);
-	fexistcase(str);
-	if((voting=fopen(str,"a"))==NULL)
-		errormsg(WHERE,ERR_CREATE,str,0);
 
 	/*********************/
 	/* Pack new messages */
@@ -114,8 +111,6 @@ bool sbbs_t::pack_rep(uint hubnum)
 		fclose(rep);
 		if(hdrs!=NULL)
 			fclose(hdrs);
-		if(voting!=NULL)
-			fclose(voting);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return(false); 
 	}
@@ -183,7 +178,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			continue; 
 		}
 
-		post=loadposts(&posts,j,subscan[j].ptr,LP_BYSELF|LP_OTHERS|LP_PRIVATE|LP_REP|LP_VOTES|LP_POLLS,NULL);
+		post=loadposts(&posts,j,subscan[j].ptr,LP_BYSELF|LP_OTHERS|LP_PRIVATE|LP_REP,NULL);
 		eprintf(LOG_INFO,remove_ctrl_a(text[NScanStatusFmt],tmp)
 			,cfg.grp[cfg.sub[j]->grp]->sname
 			,cfg.sub[j]->lname,posts,msgs);
@@ -199,8 +194,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 	//		bprintf("\b\b\b\b\b%-5lu",u+1);
 
 			memset(&msg,0,sizeof(msg));
-			msg.idx=post[u].idx;
-			if(!loadmsg(&msg,post[u].idx.number))
+			msg.idx=post[u];
+			if(!loadmsg(&msg,post[u].number))
 				continue;
 
 			if(msg.from_net.type && msg.from_net.type!=NET_QWK &&
@@ -222,7 +217,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			if(msg.from_net.type!=NET_QWK)
 				mode|=QM_TAGLINE;
 
-			msgtoqwk(&msg,rep,mode,j,cfg.qhub[hubnum]->conf[i],hdrs,voting);
+			msgtoqwk(&msg,rep,mode,j,cfg.qhub[hubnum]->conf[i],hdrs);
 
 			smb_freemsgmem(&msg);
 			smb_unlockmsghdr(&smb,&msg);
@@ -239,8 +234,6 @@ bool sbbs_t::pack_rep(uint hubnum)
 
 	if(hdrs!=NULL)
 		fclose(hdrs);
-	if(voting!=NULL)
-		fclose(voting);
 	fclose(rep);			/* close HUB_ID.MSG */
 	CRLF;
 							/* Look for extra files to send out */

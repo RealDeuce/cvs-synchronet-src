@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.637 2016/10/17 21:54:28 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.580 2015/04/25 06:10:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,12 +45,10 @@
  *      This would allow people to run apache and Synchronet as the same site.
  * 
  * Add support for multipart/form-data
- *
- * Add support for UNIX-domain sockets for FastCGI
- *
- * Improved Win32 support for POST data... currently will read past Content-Length
  * 
  */
+
+//#define ONE_JS_RUNTIME
 
 /* Headers for CGI stuff */
 #if defined(__unix__)
@@ -67,20 +65,15 @@
 #include "sbbs.h"
 #include "sbbsdefs.h"
 #include "sockwrap.h"		/* sendfilesocket() */
-#include "multisock.h"
 #include "threadwrap.h"
 #include "semwrap.h"
-#include "xpendian.h"
 #include "websrvr.h"
 #include "base64.h"
 #include "md5.h"
 #include "js_rtpool.h"
 #include "js_request.h"
-#include "js_socket.h"
 #include "xpmap.h"
 #include "xpprintf.h"
-#include "ssl.h"
-#include "fastcgi.h"
 
 static const char*	server_name="Synchronet Web Server";
 static const char*	newline="\r\n";
@@ -91,9 +84,7 @@ static const char*	error_302="302 Moved Temporarily";
 static const char*	error_404="404 Not Found";
 static const char*	error_416="416 Requested Range Not Satisfiable";
 static const char*	error_500="500 Internal Server Error";
-static const char*	error_503="503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
 static const char*	unknown="<unknown>";
-static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 #define MAX_REQUEST_LINE		1024	/* NOT including terminator */
@@ -115,9 +106,8 @@ static protected_uint32_t active_clients;
 static protected_uint32_t thread_count;
 static volatile ulong	sockets=0;
 static volatile BOOL	terminate_server=FALSE;
-static volatile BOOL	terminated=FALSE;
 static volatile BOOL	terminate_http_logging_thread=FALSE;
-static struct xpms_set	*ws_set=NULL;
+static SOCKET	server_socket=INVALID_SOCKET;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
@@ -156,14 +146,12 @@ enum auth_type {
 	 AUTHENTICATION_UNKNOWN
 	,AUTHENTICATION_BASIC
 	,AUTHENTICATION_DIGEST
-	,AUTHENTICATION_TLS_PSK
 };
 
-char *auth_type_names[] = {
+char *auth_type_names[4] = {
 	 "Unknown"
 	,"Basic"
 	,"Digest"
-	,"TLS-PSK"
 	,NULL
 };
 
@@ -217,7 +205,6 @@ typedef struct  {
 	char		xjs_handler[MAX_PATH+1];
 	struct log_data	*ld;
 	char		request_line[MAX_REQUEST_LINE+1];
-	char		orig_request_line[MAX_REQUEST_LINE+1];
 	BOOL		finished;				/* Done processing request. */
 	BOOL		read_chunked;
 	BOOL		write_chunked;
@@ -232,7 +219,6 @@ typedef struct  {
 	char		extra_path_info[MAX_REQUEST_LINE+1];
 	str_list_t	cgi_env;
 	str_list_t	dynamic_heads;
-	BOOL		got_extra_path;
 
 	/* Dynamically (sever-side JS) generated HTML parameters */
 	FILE*	fp;
@@ -246,15 +232,15 @@ typedef struct  {
 	char	*auth_list;
 	char	*realm;
 	char	*digest_realm;
-	char	*fastcgi_socket;
 } http_request_t;
 
 typedef struct  {
 	SOCKET			socket;
-	union xp_sockaddr	addr;
-	socklen_t		addr_len;
+	SOCKADDR_IN		addr;
+	SOCKET			socket6;
+	SOCKADDR_IN		addr6;
 	http_request_t	req;
-	char			host_ip[INET6_ADDRSTRLEN];
+	char			host_ip[64];
 	char			host_name[128];	/* Resolved remote host */
 	int				http_ver;       /* HTTP version.  0 = HTTP/0.9, 1=HTTP/1.0, 2=HTTP/1.1 */
 	BOOL			finished;		/* Do not accept any more imput from client */
@@ -263,7 +249,6 @@ typedef struct  {
 	time_t			logon_time;
 	char			username[LEN_NAME+1];
 	int				last_js_user_num;
-	char			redir_req[MAX_REQUEST_LINE+1];
 
 	/* JavaScript parameters */
 	JSRuntime*		js_runtime;
@@ -287,18 +272,9 @@ typedef struct  {
 
 	/* Synchronization stuff */
 	pthread_mutex_t	struct_filled;
-
-	/* TLS Stuff */
-	BOOL			is_tls;
-	CRYPT_SESSION	tls_sess;
-	BOOL			tls_pending;
-	BOOL			peeked_valid;
-	char			peeked;
 } http_session_t;
 
-static CRYPT_CONTEXT tls_context = -1;
-
-enum {
+enum { 
 	 HTTP_0_9
 	,HTTP_1_0
 	,HTTP_1_1
@@ -330,10 +306,9 @@ enum {
 	,IS_CGI
 	,IS_JS
 	,IS_SSJS
-	,IS_FASTCGI
 };
 
-enum {
+enum { 
 	 HEAD_DATE
 	,HEAD_HOST
 	,HEAD_IFMODIFIED
@@ -401,13 +376,11 @@ static char	*days[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static char	*months[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 
 static void respond(http_session_t * session);
-static BOOL js_setup_cx(http_session_t* session);
 static BOOL js_setup(http_session_t* session);
 static char *find_last_slash(char *str);
 static BOOL check_extra_path(http_session_t * session);
 static BOOL exec_ssjs(http_session_t* session, char* script);
 static BOOL ssjs_send_headers(http_session_t* session, int chunked);
-static int sess_recv(http_session_t *session, char *buf, size_t length, int flags);
 
 static time_t
 sub_mkgmt(struct tm *tm)
@@ -522,11 +495,9 @@ static int lprintf(int level, const char *fmt, ...)
     va_end(argptr);
 
 	if(level <= LOG_ERR) {
-		char errmsg[sizeof(sbuf)+16];
-		SAFEPRINTF(errmsg, "web %s", sbuf);
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, errmsg);
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,errmsg);
+			startup->errormsg(startup->cbdata,level,sbuf);
 	}
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
@@ -546,10 +517,9 @@ static int writebuf(http_session_t	*session, const char *buf, size_t len)
 	size_t	avail;
 
 	while(sent < len) {
-		ResetEvent(session->outbuf.empty_event);
 		avail=RingBufFree(&session->outbuf);
 		if(!avail) {
-			WaitForEvent(session->outbuf.empty_event, 1);
+			SLEEP(1);
 			continue;
 		}
 		if(avail > len-sent)
@@ -559,115 +529,47 @@ static int writebuf(http_session_t	*session, const char *buf, size_t len)
 	return(sent);
 }
 
-#define HANDLE_CRYPT_CALL(status, session)  handle_crypt_call(status, session, __FILE__, __LINE__)
-
-static BOOL handle_crypt_call(int status, http_session_t *session, const char *file, int line)
-{
-	char	*estr = NULL;
-	int		sock = 0;
-
-	if (status == CRYPT_OK)
-		return TRUE;
-	if (session != NULL) {
-		if (session->is_tls)
-			estr = get_crypt_error(session->tls_sess);
-		sock = session->socket;
-	}
-	if (estr) {
-		lprintf(LOG_WARNING, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
-		free_crypt_attrstr(estr);
-	}
-	else
-		lprintf(LOG_WARNING, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
-	return FALSE;
-}
-
-static BOOL session_check(http_session_t *session, BOOL *rd, BOOL *wr, unsigned timeout)
-{
-	BOOL	ret = FALSE;
-	BOOL	lcl_rd;
-	BOOL	*rd_ptr = rd?rd:&lcl_rd;
-
-	if (session->is_tls) {
-		if(wr)
-			*wr=1;
-		if(rd) {
-			if(session->tls_pending) {
-				*rd = TRUE;
-				return TRUE;
-			}
-		}
-		ret = socket_check(session->socket, rd_ptr, wr, timeout);
-		if (ret && *rd_ptr) {
-			session->tls_pending = TRUE;
-			return TRUE;
-		}
-		return ret;
-	}
-	return socket_check(session->socket, rd, wr, timeout);
-}
-
-static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BOOL *failed)
+static int sock_sendbuf(SOCKET *sock, const char *buf, size_t len, BOOL *failed)
 {
 	size_t sent=0;
-	int	tls_sent;
 	int result;
 	int sel;
 	fd_set	wr_set;
 	struct timeval tv;
-	int status;
 
-	while(sent<len && session->socket!=INVALID_SOCKET) {
+	while(sent<len && *sock!=INVALID_SOCKET) {
 		FD_ZERO(&wr_set);
-		FD_SET(session->socket,&wr_set);
+		FD_SET(*sock,&wr_set);
 		/* Convert timeout from ms to sec/usec */
 		tv.tv_sec=startup->max_inactivity;
 		tv.tv_usec=0;
-		sel=select(session->socket+1,NULL,&wr_set,NULL,&tv);
+		sel=select(*sock+1,NULL,&wr_set,NULL,&tv);
 		switch(sel) {
 			case 1:
-				if (session->is_tls) {
-					status = cryptPushData(session->tls_sess, buf+sent, len-sent, &tls_sent);
-					if (status == CRYPT_ERROR_TIMEOUT) {
-						tls_sent = 0;
-						if(!cryptStatusOK(cryptPopData(session->tls_sess, "", 0, &status)))
-							lprintf(LOG_NOTICE,"%04d Cryptlib error popping data after timeout",session->socket);
-						status = CRYPT_OK;
-					}
-					if(!HANDLE_CRYPT_CALL(status, session)) {
-						HANDLE_CRYPT_CALL(cryptFlushData(session->tls_sess), session);
-						if (failed)
-							*failed=TRUE;
-						return tls_sent;
-					}
-					result = tls_sent;
-				}
-				else {
-					result=sendsocket(session->socket,buf+sent,len-sent);
-					if(result==SOCKET_ERROR) {
-						if(ERROR_VALUE==ECONNRESET) 
-							lprintf(LOG_NOTICE,"%04d Connection reset by peer on send",session->socket);
-						else if(ERROR_VALUE==ECONNABORTED) 
-							lprintf(LOG_NOTICE,"%04d Connection aborted by peer on send",session->socket);
+				result=sendsocket(*sock,buf+sent,len-sent);
+				if(result==SOCKET_ERROR) {
+					if(ERROR_VALUE==ECONNRESET) 
+						lprintf(LOG_NOTICE,"%04d Connection reset by peer on send",*sock);
+					else if(ERROR_VALUE==ECONNABORTED) 
+						lprintf(LOG_NOTICE,"%04d Connection aborted by peer on send",*sock);
 #ifdef EPIPE
-						else if(ERROR_VALUE==EPIPE) 
-							lprintf(LOG_NOTICE,"%04d Unable to send to peer",session->socket);
+					else if(ERROR_VALUE==EPIPE) 
+						lprintf(LOG_NOTICE,"%04d Unable to send to peer",*sock);
 #endif
-						else
-							lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",session->socket,ERROR_VALUE);
-						if(failed)
-							*failed=TRUE;
-						return(sent);
-					}
+					else
+						lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",*sock,ERROR_VALUE);
+					if(failed)
+						*failed=TRUE;
+					return(sent);
 				}
 				break;
 			case 0:
-				lprintf(LOG_WARNING,"%04d Timeout selecting socket for write",session->socket);
+				lprintf(LOG_WARNING,"%04d Timeout selecting socket for write",*sock);
 				if(failed)
 					*failed=TRUE;
 				return(sent);
 			case -1:
-				lprintf(LOG_WARNING,"%04d !ERROR %d selecting socket for write",session->socket,ERROR_VALUE);
+				lprintf(LOG_WARNING,"%04d !ERROR %d selecting socket for write",*sock,ERROR_VALUE);
 				if(failed)
 					*failed=TRUE;
 				return(sent);
@@ -676,8 +578,6 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 	}
 	if(failed && sent<len)
 		*failed=TRUE;
-	if(session->is_tls)
-		HANDLE_CRYPT_CALL(cryptFlushData(session->tls_sess), session);
 	return(sent);
 }
 
@@ -777,18 +677,15 @@ static void add_env(http_session_t *session, const char *name,const char *value)
 /***************************************/
 static void init_enviro(http_session_t *session)  {
 	char	str[128];
-	union xp_sockaddr sockaddr;
-	socklen_t socklen = sizeof(sockaddr);
 
 	add_env(session,"SERVER_SOFTWARE",VERSION_NOTICE);
-	getsockname(session->socket, &sockaddr.addr, &socklen);
-	sprintf(str,"%d",inet_addrport(&sockaddr));
+	sprintf(str,"%d",startup->port);
 	add_env(session,"SERVER_PORT",str);
 	add_env(session,"GATEWAY_INTERFACE","CGI/1.1");
 	if(!strcmp(session->host_name,session->host_ip))
 		add_env(session,"REMOTE_HOST",session->host_name);
 	add_env(session,"REMOTE_ADDR",session->host_ip);
-	add_env(session,"REQUEST_URI",session->req.orig_request_line);
+	add_env(session,"REQUEST_URI",session->req.request_line);
 }
 
 /*
@@ -904,57 +801,32 @@ static time_t decode_date(char *date)
 	return(t);
 }
 
-static void open_socket(SOCKET sock, void *cbdata)
+static SOCKET open_socket(int type)
 {
 	char	error[256];
-#ifdef SO_ACCEPTFILTER
-	struct accept_filter_arg afa;
-#endif
+	SOCKET	sock;
 
-	startup->socket_open(startup->cbdata,TRUE);
-	if (cbdata != NULL && !strcmp(cbdata, "TLS")) {
-		if(set_socket_options(&scfg, sock, "web|http|tls", error, sizeof(error)))
-			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
-	}
-	else {
+	sock=socket(AF_INET, type, IPPROTO_IP);
+	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
+		startup->socket_open(startup->cbdata,TRUE);
+	if(sock!=INVALID_SOCKET) {
 		if(set_socket_options(&scfg, sock, "web|http", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
+
+		sockets++;
 	}
-#ifdef SO_ACCEPTFILTER
-	memset(&afa, 0, sizeof(afa));
-	strcpy(afa.af_name, "httpready");
-	setsockopt(sock, SOL_SOCKET, SO_ACCEPTFILTER, &afa, sizeof(afa));
-#endif
-
-	sockets++;
-}
-
-static void close_socket_cb(SOCKET sock, void *cbdata)
-{
-	startup->socket_open(startup->cbdata,FALSE);
-	sockets--;
+	return(sock);
 }
 
 static int close_socket(SOCKET *sock)
 {
 	int		result;
-	char	ch;
-	time_t	end = time(NULL) + startup->max_inactivity;
-	BOOL	rd;
 
 	if(sock==NULL || *sock==INVALID_SOCKET)
-		return -1;
+		return(-1);
 
-	/* required to ensure all data is sent */
-	shutdown(*sock,SHUT_WR);
-	while(socket_check(*sock, &rd, NULL, startup->max_inactivity*1000))  {
-		if (rd) {
-			if (recv(*sock,&ch,1,0) <= 0)
-				break;
-		}
-		if (time(NULL) >= end)
-			break;
-	}
+	/* required to ensure all data is send when SO_LINGER is off (Not functional on Win32) */
+	shutdown(*sock,SHUT_RDWR);
 	result=closesocket(*sock);
 	*sock=INVALID_SOCKET;
 	if(startup!=NULL && startup->socket_open!=NULL) {
@@ -967,31 +839,6 @@ static int close_socket(SOCKET *sock)
 	}
 
 	return(result);
-}
-
-static int close_session_socket(http_session_t *session)
-{
-	char	buf[1];
-	int		len;
-
-	if(session==NULL || session->socket==INVALID_SOCKET)
-		return(-1);
-
-	if (session->is_tls) {
-		// First, wait for the ringbuffer to drain...
-		while(RingBufFull(&session->outbuf) && session->socket!=INVALID_SOCKET) {
-			HANDLE_CRYPT_CALL(cryptPopData(session->tls_sess, buf, 1, &len), session);
-			SLEEP(1);
-		}
-		// Now wait for tranmission to complete
-		while(pthread_mutex_trylock(&session->outbuf_write) == EBUSY) {
-			HANDLE_CRYPT_CALL(cryptPopData(session->tls_sess, buf, 1, &len), session);
-			SLEEP(1);
-		}
-		pthread_mutex_unlock(&session->outbuf_write);
-		HANDLE_CRYPT_CALL(cryptDestroySession(session->tls_sess), session);
-	}
-	return close_socket(&session->socket);
 }
 
 /* Waits for the outbuf to drain */
@@ -1061,7 +908,6 @@ static void close_request(http_session_t * session)
 	FREE_AND_NULL(session->req.auth_list);
 	FREE_AND_NULL(session->req.realm);
 	FREE_AND_NULL(session->req.digest_realm);
-	FREE_AND_NULL(session->req.fastcgi_socket);
 
 	FREE_AND_NULL(session->req.auth_list);
 	FREE_AND_NULL(session->req.auth.digest_uri);
@@ -1075,7 +921,7 @@ static void close_request(http_session_t * session)
 	 */
 	if((!session->req.keep_alive) || terminate_server) {
 		drain_outbuf(session);
-		close_session_socket(session);
+		close_socket(&session->socket);
 	}
 	if(session->socket==INVALID_SOCKET)
 		session->finished=TRUE;
@@ -1086,7 +932,7 @@ static void close_request(http_session_t * session)
 		JS_ENDREQUEST(session->js_cx);
 	}
 	if(session->subscan!=NULL)
-		putmsgptrs(&scfg, &session->user, session->subscan);
+		putmsgptrs(&scfg, session->user.number, session->subscan);
 
 	if(session->req.fp!=NULL)
 		fclose(session->req.fp);
@@ -1316,7 +1162,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 
 		/* DO NOT send a content-length for chunked */
 		if(send_entity) {
-			if((session->req.keep_alive || session->req.method == HTTP_HEAD) && session->req.dynamic!=IS_CGI&& session->req.dynamic!=IS_FASTCGI && (!chunked)) {
+			if(session->req.keep_alive && session->req.dynamic!=IS_CGI && (!chunked)) {
 				if(ret)  {
 					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
 					safecat(headers,header,MAX_HEADERS_SIZE);
@@ -1416,7 +1262,7 @@ static int sock_sendfile(http_session_t *session,char *path,unsigned long start,
 /* Sends a specified error message, closes the request, */
 /* and marks the session to be closed 					*/
 /********************************************************/
-static void send_error(http_session_t * session, unsigned line, const char* message)
+static void send_error(http_session_t * session, const char* message)
 {
 	char	error_code[4];
 	struct stat	sb;
@@ -1427,7 +1273,7 @@ static void send_error(http_session_t * session, unsigned line, const char* mess
 	if(session->socket==INVALID_SOCKET)
 		return;
 	session->req.if_modified_since=0;
-	lprintf(LOG_INFO,"%04d !ERROR: %s (line %u)",session->socket,message,line);
+	lprintf(LOG_INFO,"%04d !ERROR: %s",session->socket,message);
 	session->req.keep_alive=FALSE;
 	session->req.send_location=NO_LOCATION;
 	SAFECOPY(error_code,message);
@@ -1525,7 +1371,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	lprintf(LOG_DEBUG,"%04d HTTP Logon (user #%d)",session->socket,session->user.number);
 
 	if(session->subscan!=NULL)
-		getmsgptrs(&scfg,&session->user,session->subscan);
+		getmsgptrs(&scfg,session->user.number,session->subscan);
 
 	session->logon_time=time(NULL);
 	if(session->user.number==0)
@@ -1535,7 +1381,7 @@ void http_logon(http_session_t * session, user_t *usr)
 		/* Adjust Connect and host */
 		SAFECOPY(session->user.modem, session->client.protocol);
 		SAFECOPY(session->user.comp, session->host_name);
-		SAFECOPY(session->user.ipaddr, session->host_ip);
+		SAFECOPY(session->user.note, session->host_ip);
 		session->user.logontime = (time32_t)session->logon_time;
 		putuserdat(&scfg, &session->user);
 	}
@@ -1572,7 +1418,7 @@ BOOL http_checkuser(http_session_t * session)
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				JS_ENDREQUEST(session->js_cx);
 				lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
-				send_error(session,__LINE__,"500 Error initializing JavaScript User Objects");
+				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
 			}
 		}
@@ -1581,7 +1427,7 @@ BOOL http_checkuser(http_session_t * session)
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				JS_ENDREQUEST(session->js_cx);
 				lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript User Objects",session->socket);
-				send_error(session,__LINE__,"500 Error initializing JavaScript User Objects");
+				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
 			}
 		}
@@ -1613,8 +1459,6 @@ static void calculate_digest(http_session_t * session, char *ha1, char *ha2, uns
 				break;
 			case QOP_AUTH_INT:
 				MD5_digest(&ctx, "auth-int", 7);
-				break;
-			default:
 				break;
 		}
 		MD5_digest(&ctx, ":", 1);
@@ -1772,26 +1616,25 @@ static BOOL digest_authentication(http_session_t* session, int auth_allowed, use
 	return(TRUE);
 }
 
-static void badlogin(SOCKET sock, const char* prot, const char* user, const char* passwd, const char* host, union xp_sockaddr* addr)
+static void badlogin(SOCKET sock, const char* prot, const char* user, const char* passwd, const char* host, const SOCKADDR_IN* addr)
 {
 	char reason[128];
-	char addrstr[INET6_ADDRSTRLEN];
 	ulong count;
 
 	SAFEPRINTF(reason,"%s LOGIN", prot);
 	count=loginFailure(startup->login_attempt_list, addr, prot, user, passwd);
-	if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold) {
+	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold) {
 		hacklog(&scfg, reason, user, passwd, host, addr);
 #ifdef _WIN32
 		if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 	}
-	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold)
+	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
 		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
-			,host, inet_addrtop(addr, addrstr, sizeof(addrstr)), user, /* fname: */NULL);
+			,host, inet_ntoa(addr->sin_addr), user, /* fname: */NULL);
 	if(count>1)
-		mswait(startup->login_attempt.delay);
+		mswait(startup->login_attempt_delay);
 }
 
 static BOOL check_ars(http_session_t * session)
@@ -1853,18 +1696,6 @@ static BOOL check_ars(http_session_t * session)
 	thisuser.number=i;
 	getuserdat(&scfg, &thisuser);
 	switch(session->req.auth.type) {
-		case AUTHENTICATION_TLS_PSK:
-			if((auth_allowed & (1<<AUTHENTICATION_TLS_PSK))==0)
-				return(FALSE);
-			if(session->last_user_num!=0) {
-				if(session->last_user_num>0)
-					http_logoff(session,session->socket,__LINE__);
-				session->user.number=0;
-				http_logon(session,NULL);
-			}
-			if(!http_checkuser(session))
-				return(FALSE);
-			break;
 		case AUTHENTICATION_BASIC:
 			if((auth_allowed & (1<<AUTHENTICATION_BASIC))==0)
 				return(FALSE);
@@ -1898,8 +1729,6 @@ static BOOL check_ars(http_session_t * session)
 			}
 			break;
 		}
-		default:
-			break;
 	}
 
 	if(i != session->last_user_num) {
@@ -1923,16 +1752,11 @@ static BOOL check_ars(http_session_t * session)
 
 	if(authorized)  {
 		switch(session->req.auth.type) {
-			case AUTHENTICATION_TLS_PSK:
-				add_env(session,"AUTH_TYPE","TLS-PSK");
-				break;
 			case AUTHENTICATION_BASIC:
 				add_env(session,"AUTH_TYPE","Basic");
 				break;
 			case AUTHENTICATION_DIGEST:
 				add_env(session,"AUTH_TYPE","Digest");
-				break;
-			default:
 				break;
 		}
 		/* Should use real name if set to do so somewhere ToDo */
@@ -1971,49 +1795,8 @@ static named_string_t** read_ini_list(char* path, char* section, char* desc
 		if(i)
 			lprintf(LOG_DEBUG,"Read %u %s from %s section of %s"
 				,i,desc,section==NULL ? "root":section,path);
-	} else
-		lprintf(LOG_WARNING, "Error %d opening %s", errno, path);
+	}
 	return(list);
-}
-
-static int sess_recv(http_session_t *session, char *buf, size_t length, int flags)
-{
-	int len;
-	
-	if (session->is_tls) {
-		if (flags == MSG_PEEK) {
-			if (session->peeked_valid) {
-				buf[0] = session->peeked;
-				return 1;
-			}
-			if (HANDLE_CRYPT_CALL(cryptPopData(session->tls_sess, &session->peeked, 1, &len), session)) {
-				if (len == 1) {
-					session->peeked_valid = TRUE;
-					buf[0] = session->peeked;
-					return 1;
-				}
-				return 0;
-			}
-			return -1;
-		}
-		else {
-			if (session->peeked_valid) {
-				buf[0] = session->peeked;
-				session->peeked_valid = FALSE;
-				return 1;
-			}
-			if (HANDLE_CRYPT_CALL(cryptPopData(session->tls_sess, buf, length, &len), session)) {
-				if (len == 0) {
-					session->tls_pending = FALSE;
-				}
-				return len;
-			}
-			return -1;
-		}
-	}
-	else {
-		return recv(session->socket, buf, length, flags);
-	}
 }
 
 static int sockreadline(http_session_t * session, char *buf, size_t length)
@@ -2028,41 +1811,37 @@ static int sockreadline(http_session_t * session, char *buf, size_t length)
 	for(i=0;TRUE;) {
 		if(session->socket==INVALID_SOCKET)
 			return(-1);
-		if ((!session->is_tls) || (!session->tls_pending)) {
-			FD_ZERO(&rd_set);
-			FD_SET(session->socket,&rd_set);
-			/* Convert timeout from ms to sec/usec */
-			tv.tv_sec=startup->max_inactivity;
-			tv.tv_usec=0;
-			sel=select(session->socket+1,&rd_set,NULL,NULL,&tv);
-			switch(sel) {
-				case 1:
-					if (session->is_tls)
-						session->tls_pending=TRUE;
-					break;
-				case -1:
-					close_session_socket(session);
-					lprintf(LOG_DEBUG,"%04d !ERROR %d selecting socket for read",session->socket,ERROR_VALUE);
-					return(-1);
-				default:
-					/* Timeout */
-					lprintf(LOG_NOTICE,"%04d Session timeout due to inactivity (%d seconds)",session->socket,startup->max_inactivity);
-					return(-1);
-			}
+		FD_ZERO(&rd_set);
+		FD_SET(session->socket,&rd_set);
+		/* Convert timeout from ms to sec/usec */
+		tv.tv_sec=startup->max_inactivity;
+		tv.tv_usec=0;
+		sel=select(session->socket+1,&rd_set,NULL,NULL,&tv);
+		switch(sel) {
+			case 1:
+				break;
+			case -1:
+				close_socket(&session->socket);
+				lprintf(LOG_DEBUG,"%04d !ERROR %d selecting socket for read",session->socket,ERROR_VALUE);
+				return(-1);
+			default:
+				/* Timeout */
+				lprintf(LOG_NOTICE,"%04d Session timeout due to inactivity (%d seconds)",session->socket,startup->max_inactivity);
+				return(-1);
 		}
 
-		switch(sess_recv(session, &ch, 1, 0)) {
+		switch(recv(session->socket, &ch, 1, 0)) {
 			case -1:
-				if(session->is_tls || ERROR_VALUE!=EAGAIN) {
+				if(ERROR_VALUE!=EAGAIN) {
 					if(startup->options&WEB_OPT_DEBUG_RX)
 						lprintf(LOG_DEBUG,"%04d !ERROR %d receiving on socket",session->socket,ERROR_VALUE);
-					close_session_socket(session);
+					close_socket(&session->socket);
 					return(-1);
 				}
 				break;
 			case 0:
 				/* Socket has been closed */
-				close_session_socket(session);
+				close_socket(&session->socket);
 				return(-1);
 		}
 
@@ -2156,29 +1935,31 @@ static int pipereadline(int pipe, char *buf, size_t length, char *fullbuf, size_
 	return(i);
 }
 
-static int recvbufsocket(http_session_t *session, char *buf, long count)
+int recvbufsocket(SOCKET *sock, char *buf, long count)
 {
 	int		rd=0;
 	int		i;
+	time_t	start;
 
 	if(count<1) {
 		errno=ERANGE;
 		return(0);
 	}
 
-	while(rd<count && session_check(session,NULL,NULL,startup->max_inactivity*1000))  {
-		i=sess_recv(session,buf+rd,count-rd,0);
+	while(rd<count && socket_check(*sock,NULL,NULL,startup->max_inactivity*1000))  {
+		i=recv(*sock,buf+rd,count-rd,0);
 		switch(i) {
 			case -1:
-				if(session->is_tls || ERROR_VALUE!=EAGAIN)
-					close_session_socket(session);
+				if(ERROR_VALUE!=EAGAIN)
+					close_socket(sock);
 			case 0:
-				close_session_socket(session);
+				close_socket(sock);
 				*buf=0;
 				return(0);
 		}
 
 		rd+=i;
+		start=time(NULL);
 	}
 
 	if(rd==count)  {
@@ -2273,20 +2054,6 @@ static void js_add_cookieval(http_session_t * session, char *key, char *value)
 	lprintf(LOG_DEBUG,"%04d Adding cookie value %s=%s at pos %d",session->socket,key,value,alen);
 	val=STRING_TO_JSVAL(JS_NewStringCopyZ(session->js_cx,value));
 	JS_SetElement(session->js_cx, keyarray, alen, &val);
-}
-
-static void js_add_request_prop_writeable(http_session_t * session, char *key, char *value)
-{
-	JSString*	js_str;
-
-	if(session->js_cx==NULL || session->js_request==NULL)
-		return;
-	if(key==NULL || value==NULL)
-		return;
-	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
-		return;
-	JS_DefineProperty(session->js_cx, session->js_request, key, STRING_TO_JSVAL(js_str)
-		,NULL,NULL,JSPROP_ENUMERATE);
 }
 
 static void js_add_request_prop(http_session_t * session, char *key, char *value)
@@ -2482,127 +2249,124 @@ static BOOL parse_headers(http_session_t * session)
 			while(*value && *value<=' ') value++;
 			switch(i) {
 				case HEAD_AUTH:
-					/* If you're authenticated via TLS-PSK, you can't use basic or digest */
-					if (session->req.auth.type != AUTHENTICATION_TLS_PSK) {
-						if((p=strtok_r(value," ",&last))!=NULL) {
-							if(stricmp(p, "Basic")==0) {
-								p=strtok_r(NULL," ",&last);
-								if(p==NULL)
+					if((p=strtok_r(value," ",&last))!=NULL) {
+						if(stricmp(p, "Basic")==0) {
+							p=strtok_r(NULL," ",&last);
+							if(p==NULL)
+								break;
+							while(*p && *p<' ') p++;
+							b64_decode(p,strlen(p),p,strlen(p));
+							p=strtok_r(p,":",&last);
+							if(p) {
+								if(strlen(p) >= sizeof(session->req.auth.username))
 									break;
-								while(*p && *p<' ') p++;
-								b64_decode(p,strlen(p),p,strlen(p));
-								p=strtok_r(p,":",&last);
+								SAFECOPY(session->req.auth.username, p);
+								p=strtok_r(NULL,":",&last);
 								if(p) {
-									if(strlen(p) >= sizeof(session->req.auth.username))
+									if(strlen(p) >= sizeof(session->req.auth.password))
 										break;
-									SAFECOPY(session->req.auth.username, p);
-									p=strtok_r(NULL,":",&last);
-									if(p) {
-										if(strlen(p) >= sizeof(session->req.auth.password))
-											break;
-										SAFECOPY(session->req.auth.password, p);
-										session->req.auth.type=AUTHENTICATION_BASIC;
-									}
+									SAFECOPY(session->req.auth.password, p);
+									session->req.auth.type=AUTHENTICATION_BASIC;
 								}
 							}
-							else if(stricmp(p, "Digest")==0) {
-								p=strtok_r(NULL, "", &last);
-								/* Defaults */
-								session->req.auth.algorithm=ALGORITHM_MD5;
-								session->req.auth.type=AUTHENTICATION_DIGEST;
-								/* Parse out values one at a time and store */
-								while(*p) {
-									while(isspace(*p))
-										p++;
-									if(strnicmp(p,"username=",9)==0) {
-										p+=9;
-										tvalue=get_token_value(&p);
-										if(strlen(tvalue) >= sizeof(session->req.auth.username))
-											break;
-										SAFECOPY(session->req.auth.username, tvalue);
-									}
-									else if(strnicmp(p,"realm=",6)==0) {
-										p+=6;
-										session->req.auth.realm=strdup(get_token_value(&p));
-									}
-									else if(strnicmp(p,"nonce=",6)==0) {
-										p+=6;
-										session->req.auth.nonce=strdup(get_token_value(&p));
-									}
-									else if(strnicmp(p,"uri=",4)==0) {
-										p+=4;
-										session->req.auth.digest_uri=strdup(get_token_value(&p));
-									}
-									else if(strnicmp(p,"response=",9)==0) {
-										p+=9;
-										tvalue=get_token_value(&p);
-										if(strlen(tvalue)==32) {
-											for(i=0; i<16; i++) {
-												session->req.auth.digest[i]=hexval(tvalue[i*2])<<4 | hexval(tvalue[i*2+1]);
-											}
+						}
+						else if(stricmp(p, "Digest")==0) {
+							p=strtok_r(NULL, "", &last);
+							/* Defaults */
+							session->req.auth.algorithm=ALGORITHM_MD5;
+							session->req.auth.type=AUTHENTICATION_DIGEST;
+							/* Parse out values one at a time and store */
+							while(*p) {
+								while(isspace(*p))
+									p++;
+								if(strnicmp(p,"username=",9)==0) {
+									p+=9;
+									tvalue=get_token_value(&p);
+									if(strlen(tvalue) >= sizeof(session->req.auth.username))
+										break;
+									SAFECOPY(session->req.auth.username, tvalue);
+								}
+								else if(strnicmp(p,"realm=",6)==0) {
+									p+=6;
+									session->req.auth.realm=strdup(get_token_value(&p));
+								}
+								else if(strnicmp(p,"nonce=",6)==0) {
+									p+=6;
+									session->req.auth.nonce=strdup(get_token_value(&p));
+								}
+								else if(strnicmp(p,"uri=",4)==0) {
+									p+=4;
+									session->req.auth.digest_uri=strdup(get_token_value(&p));
+								}
+								else if(strnicmp(p,"response=",9)==0) {
+									p+=9;
+									tvalue=get_token_value(&p);
+									if(strlen(tvalue)==32) {
+										for(i=0; i<16; i++) {
+											session->req.auth.digest[i]=hexval(tvalue[i*2])<<4 | hexval(tvalue[i*2+1]);
 										}
 									}
-									else if(strnicmp(p,"algorithm=",10)==0) {
-										p+=10;
-										tvalue=get_token_value(&p);
-										if(stricmp(tvalue,"MD5")==0) {
-											session->req.auth.algorithm=ALGORITHM_MD5;
-										}
-										else {
-											session->req.auth.algorithm=ALGORITHM_UNKNOWN;
-										}
-									}
-									else if(strnicmp(p,"cnonce=",7)==0) {
-										p+=7;
-										session->req.auth.cnonce=strdup(get_token_value(&p));
-									}
-									else if(strnicmp(p,"qop=",4)==0) {
-										p+=4;
-										tvalue=get_token_value(&p);
-										if(stricmp(tvalue,"auth")==0) {
-											session->req.auth.qop_value=QOP_AUTH;
-										}
-										else if (stricmp(tvalue,"auth-int")==0) {
-											session->req.auth.qop_value=QOP_AUTH_INT;
-										}
-										else {
-											session->req.auth.qop_value=QOP_UNKNOWN;
-										}
-									}
-									else if(strnicmp(p,"nc=",3)==0) {
-										p+=3;
-										session->req.auth.nonce_count=strdup(get_token_value(&p));
+								}
+								else if(strnicmp(p,"algorithm=",10)==0) {
+									p+=10;
+									tvalue=get_token_value(&p);
+									if(stricmp(tvalue,"MD5")==0) {
+										session->req.auth.algorithm=ALGORITHM_MD5;
 									}
 									else {
-										while(*p && *p != '=')
-											p++;
-										if(*p == '=')
-											get_token_value(&p);
+										session->req.auth.algorithm=ALGORITHM_UNKNOWN;
 									}
 								}
-								if(session->req.auth.digest_uri==NULL)
-									session->req.auth.digest_uri=strdup(session->req.request_line);
-								/* Validate that we have the required values... */
-								switch(session->req.auth.qop_value) {
-									case QOP_NONE:
-										if(session->req.auth.realm==NULL
-												|| session->req.auth.nonce==NULL
-												|| session->req.auth.digest_uri==NULL)
-											send_error(session,__LINE__,"400 Bad Request");
-										break;
-									case QOP_AUTH:
-									case QOP_AUTH_INT:
-										if(session->req.auth.realm==NULL
-												|| session->req.auth.nonce==NULL
-												|| session->req.auth.nonce_count==NULL
-												|| session->req.auth.cnonce==NULL
-												|| session->req.auth.digest_uri==NULL)
-											send_error(session,__LINE__,"400 Bad Request");
-										break;
-									default:
-										send_error(session,__LINE__,"400 Bad Request");
-										break;
+								else if(strnicmp(p,"cnonce=",7)==0) {
+									p+=7;
+									session->req.auth.cnonce=strdup(get_token_value(&p));
 								}
+								else if(strnicmp(p,"qop=",4)==0) {
+									p+=4;
+									tvalue=get_token_value(&p);
+									if(stricmp(tvalue,"auth")==0) {
+										session->req.auth.qop_value=QOP_AUTH;
+									}
+									else if (stricmp(tvalue,"auth-int")==0) {
+										session->req.auth.qop_value=QOP_AUTH_INT;
+									}
+									else {
+										session->req.auth.qop_value=QOP_UNKNOWN;
+									}
+								}
+								else if(strnicmp(p,"nc=",3)==0) {
+									p+=3;
+									session->req.auth.nonce_count=strdup(get_token_value(&p));
+								}
+								else {
+									while(*p && *p != '=')
+										p++;
+									if(*p == '=')
+										get_token_value(&p);
+								}
+							}
+							if(session->req.auth.digest_uri==NULL)
+								session->req.auth.digest_uri=strdup(session->req.request_line);
+							/* Validate that we have the required values... */
+							switch(session->req.auth.qop_value) {
+								case QOP_NONE:
+									if(session->req.auth.realm==NULL
+											|| session->req.auth.nonce==NULL
+											|| session->req.auth.digest_uri==NULL)
+										send_error(session,"400 Bad Request");
+									break;
+								case QOP_AUTH:
+								case QOP_AUTH_INT:
+									if(session->req.auth.realm==NULL
+											|| session->req.auth.nonce==NULL
+											|| session->req.auth.nonce_count==NULL
+											|| session->req.auth.cnonce==NULL
+											|| session->req.auth.digest_uri==NULL)
+										send_error(session,"400 Bad Request");
+									break;
+								default:
+									send_error(session,"400 Bad Request");
+									break;
 							}
 						}
 					}
@@ -2640,16 +2404,16 @@ static BOOL parse_headers(http_session_t * session)
 					if(!stricmp(value,"chunked"))
 						session->req.read_chunked=TRUE;
 					else
-						send_error(session,__LINE__,"501 Not Implemented");
+						send_error(session,"501 Not Implemented");
 					break;
 				case HEAD_RANGE:
 					if(!stricmp(value,"bytes=")) {
-						send_error(session,__LINE__,error_416);
+						send_error(session,error_416);
 						break;
 					}
 					value+=6;
 					if(strchr(value,',')!=NULL) {	/* We don't do multiple ranges yet - TODO */
-						send_error(session,__LINE__,error_416);
+						send_error(session,error_416);
 						break;
 					}
 					/* Check for offset from end. */
@@ -2666,7 +2430,7 @@ static BOOL parse_headers(http_session_t * session)
 							session->req.range_end=-1;
 					}
 					else {
-						send_error(session,__LINE__,error_416);
+						send_error(session,error_416);
 						break;
 					}
 					break;
@@ -2792,13 +2556,6 @@ static int is_dynamic_req(http_session_t* session)
 	check_extra_path(session);
 	_splitpath(session->req.physical_path, drive, dir, fname, ext);
 
-	if(!(startup->options&WEB_OPT_NO_CGI)) {
-		if (session->req.fastcgi_socket) {
-			init_enviro(session);
-			return IS_FASTCGI;
-		}
-	}
-
 	if(stricmp(ext,startup->ssjs_ext)==0)
 		i=IS_SSJS;
 	else if(get_xjs_handler(ext,session))
@@ -2809,7 +2566,7 @@ static int is_dynamic_req(http_session_t* session)
 		lprintf(LOG_DEBUG,"%04d Setting up JavaScript support", session->socket);
 		if(!js_setup(session)) {
 			lprintf(LOG_ERR,"%04d !ERROR setting up JavaScript support", session->socket);
-			send_error(session,__LINE__,error_500);
+			send_error(session,error_500);
 			return(IS_STATIC);
 		}
 		return(i);
@@ -2832,45 +2589,6 @@ static int is_dynamic_req(http_session_t* session)
 	return(IS_STATIC);
 }
 
-static char * split_port_part(char *host)
-{
-	char *ret = NULL;
-	char *p=strchr(host, 0)-1;
-
-	if (isdigit(*p)) {
-		/*
-		 * If the first and last : are not the same, and it doesn't
-		 * start with '[', there's no port part.
-		 */
-		if (host[0] != '[') {
-			if (strchr(host, ':') != strrchr(host, ':'))
-				return NULL;
-		}
-		for(; p >= host; p--) {
-			if (*p == ':') {
-				*p = 0;
-				ret = p+1;
-				break;
-			}
-			if (!isdigit(*p))
-				break;
-		}
-	}
-	// Now, remove []s...
-	if (host[0] == '[') {
-		memmove(host, host+1, strlen(host));
-		p=strchr(host, ']');
-		if (p)
-			*p = 0;
-	}
-	return ret;
-}
-
-static void remove_port_part(char *host)
-{
-	split_port_part(host);
-}
-
 static char *get_request(http_session_t * session, char *req_line)
 {
 	char*	p;
@@ -2886,8 +2604,6 @@ static char *get_request(http_session_t * session, char *req_line)
 	else
 		retval=NULL;
 	SAFECOPY(session->req.request_line,session->req.virtual_path);
-	if (!session->req.orig_request_line[0])
-		SAFECOPY(session->req.orig_request_line,session->req.virtual_path);
 	if(strtok_r(session->req.virtual_path,"?",&last))
 		query=strtok_r(NULL,"",&last);
 	else
@@ -2907,14 +2623,11 @@ static char *get_request(http_session_t * session, char *req_line)
 		/* Remove path if present (everything after the first /) */
 		strtok_r(session->req.host,"/",&last);
 
-		/* Lower-case the host */
-		strlwr(session->req.host);
-
 		/* Set vhost value to host value */
 		SAFECOPY(session->req.vhost,session->req.host);
 
 		/* Remove port specification from vhost (if present) */
-		remove_port_part(session->req.vhost);
+		strtok_r(session->req.vhost,":",&last);
 
 		/* Sets p to point to the first character after the first slash */
 		p=strchr(session->req.physical_path, '/');
@@ -2948,14 +2661,14 @@ static char *get_method(http_session_t * session, char *req_line)
 		if(!strnicmp(req_line,methods[i],strlen(methods[i]))) {
 			session->req.method=i;
 			if(strlen(req_line)<strlen(methods[i])+2) {
-				send_error(session,__LINE__,"400 Bad Request");
+				send_error(session,"400 Bad Request");
 				return(NULL);
 			}
 			return(req_line+strlen(methods[i])+1);
 		}
 	}
 	if(req_line!=NULL && *req_line>=' ')
-		send_error(session,__LINE__,"501 Not Implemented");
+		send_error(session,"501 Not Implemented");
 	return(NULL);
 }
 
@@ -2969,10 +2682,10 @@ static BOOL get_request_headers(http_session_t * session)
 
 	while(sockreadline(session,head_line,sizeof(head_line)-1)>0) {
 		/* Multi-line headers */
-		while((i=sess_recv(session,&next_char,1,MSG_PEEK))>0
+		while((i=recv(session->socket,&next_char,1,MSG_PEEK))>0
 			&& (next_char=='\t' || next_char==' ')) {
-			if(i==-1 && (session->is_tls || ERROR_VALUE != EAGAIN))
-				close_session_socket(session);
+			if(i==-1 && ERROR_VALUE != EAGAIN)
+				close_socket(&session->socket);
 			i=strlen(head_line);
 			if(i>sizeof(head_line)-1) {
 				lprintf(LOG_ERR,"%04d !ERROR long multi-line header. The web server is broken!", session->socket);
@@ -2989,14 +2702,12 @@ static BOOL get_request_headers(http_session_t * session)
 			switch(i) {
 				case HEAD_HOST:
 					if(session->req.host[0]==0) {
-						/* Lower-case for normalization */
-						strlwr(value);
 						SAFECOPY(session->req.host,value);
 						SAFECOPY(session->req.vhost,value);
 						/* Remove port part of host (Win32 doesn't allow : in dir names) */
 						/* Either an existing : will be replaced with a null, or nothing */
 						/* Will happen... the return value is not relevent here */
-						remove_port_part(session->req.vhost);
+						strtok_r(session->req.vhost,":",&last);
 					}
 					break;
 				default:
@@ -3005,16 +2716,10 @@ static BOOL get_request_headers(http_session_t * session)
 		}
 	}
 
-	if(!(session->req.vhost[0])) {
+	if(!(session->req.vhost[0]))
 		SAFECOPY(session->req.vhost, startup->host_name);
-		/* Lower-case for normalization */
-		strlwr(session->req.vhost);
-	}
-	if(!(session->req.host[0])) {
+	if(!(session->req.host[0]))
 		SAFECOPY(session->req.host, startup->host_name);
-		/* Lower-case for normalization */
-		strlwr(session->req.host);
-	}
 	return TRUE;
 }
 
@@ -3035,27 +2740,6 @@ static BOOL get_fullpath(http_session_t * session)
 		return(FALSE);
 
 	return(isabspath(session->req.physical_path));
-}
-
-static BOOL is_legal_hostname(const char *host, BOOL strip_port)
-{
-	char * stripped = NULL;
-
-	if (strip_port) {
-		stripped = strdup(host);
-		remove_port_part(stripped);
-		host = stripped;
-	}
-	if (host[0] == '-' || host[0] == '.' || host[0] == 0) {
-		FREE_AND_NULL(stripped);
-		return FALSE;
-	}
-	if (strspn(host, "abcdefghijklmnopqrstuvwxyz0123456789-.") != strlen(host)) {
-		FREE_AND_NULL(stripped);
-		return FALSE;
-	}
-	FREE_AND_NULL(stripped);
-	return TRUE;
 }
 
 static BOOL get_req(http_session_t * session, char *request_line)
@@ -3085,7 +2769,6 @@ static BOOL get_req(http_session_t * session, char *request_line)
 	}
 	else {
 		lprintf(LOG_DEBUG,"%04d Handling Internal Redirect to: %s",session->socket,request_line);
-		session->req.extra_path_info[0]=0;
 		SAFECOPY(req_line,request_line);
 		is_redir=1;
 	}
@@ -3097,19 +2780,10 @@ static BOOL get_req(http_session_t * session, char *request_line)
 			session->http_ver=get_version(p);
 			if(session->http_ver>=HTTP_1_1)
 				session->req.keep_alive=TRUE;
-			if(!is_redir) {
+			if(!is_redir)
 				get_request_headers(session);
-			}
-			if (!is_legal_hostname(session->req.host, TRUE)) {
-				send_error(session,__LINE__,"400 Bad Request");
-				return FALSE;
-			}
-			if (!is_legal_hostname(session->req.vhost, FALSE)) {
-				send_error(session,__LINE__,"400 Bad Request");
-				return FALSE;
-			}
 			if(!get_fullpath(session)) {
-				send_error(session,__LINE__,error_500);
+				send_error(session,error_500);
 				return(FALSE);
 			}
 			if(session->req.ld!=NULL && session->req.ld->vhost==NULL)
@@ -3126,7 +2800,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 		}
 	}
 	session->req.keep_alive=FALSE;
-	send_error(session,__LINE__,"400 Bad Request");
+	send_error(session,"400 Bad Request");
 	return FALSE;
 }
 
@@ -3184,8 +2858,6 @@ static BOOL check_extra_path(http_session_t * session)
 	int		i;
 	char	*end;
 
-	if(session->req.got_extra_path)
-		return TRUE;
 	epath[0]=0;
 	epath[1]=0;
 	if(IS_PATH_DELIM(*lastchar(session->req.physical_path)) || stat(session->req.physical_path,&sb)==-1 /* && errno==ENOTDIR */)
@@ -3210,11 +2882,10 @@ static BOOL check_extra_path(http_session_t * session)
 						*end=0;
 						strcat(rpath,startup->index_file_name[i]);
 						if(!stat(rpath,&sb)) {
-							sprintf(vp_slash, "/%s", startup->index_file_name[i]);
 							SAFECOPY(session->req.extra_path_info,epath);
 							SAFECOPY(session->req.virtual_path,vpath);
+							strcat(session->req.virtual_path,"/");
 							SAFECOPY(session->req.physical_path,rpath);
-							session->req.got_extra_path = TRUE;
 							return(TRUE);
 						}
 					}
@@ -3239,146 +2910,12 @@ static BOOL check_extra_path(http_session_t * session)
 					SAFECOPY(session->req.extra_path_info,epath);
 					SAFECOPY(session->req.virtual_path,vpath);
 					SAFECOPY(session->req.physical_path,rpath);
-					session->req.got_extra_path = TRUE;
 					return(TRUE);
 				}
 			}
 		}
 	}
 	return(FALSE);
-}
-
-static BOOL exec_js_webctrl(http_session_t* session, char *name, char* script, char *curdir, BOOL rewrite)  {
-	jsval		rval;
-	jsval		val;
-	JSString*	js_str;
-	BOOL		retval=TRUE;
-	char		redir_req[MAX_REQUEST_LINE+1];
-
-	if(!js_setup_cx(session)) {
-		lprintf(LOG_ERR,"%04d !ERROR setting up JavaScript support for %s", session->socket, name);
-		return FALSE;
-	}
-
-	JS_BEGINREQUEST(session->js_cx);
-	js_add_request_prop(session,"real_path",session->req.physical_path);
-	js_add_request_prop(session,"virtual_path",session->req.virtual_path);
-	js_add_request_prop(session,"ars",session->req.ars);
-	if (rewrite)
-		js_add_request_prop_writeable(session,"request_string",session->req.request_line);
-	else
-		js_add_request_prop(session,"request_string",session->req.request_line);
-	js_add_request_prop(session,"host",session->req.host);
-	js_add_request_prop(session,"vhost",session->req.vhost);
-	js_add_request_prop(session,"http_ver",http_vers[session->http_ver]);
-	js_add_request_prop(session,"remote_ip",session->host_ip);
-	js_add_request_prop(session,"remote_host",session->host_name);
-	if(session->req.query_str[0]) {
-		js_add_request_prop(session,"query_string",session->req.query_str);
-		js_parse_query(session,session->req.query_str);
-	}
-	if(session->req.post_data && session->req.post_data[0]) {
-		if(session->req.post_len <= MAX_POST_LEN) {
-			js_add_request_prop(session,"post_data",session->req.post_data);
-			js_parse_query(session,session->req.post_data);
-		}
-	}
-	JS_GetProperty(session->js_cx,session->js_glob,"js",&val);
-	if (JSVAL_IS_OBJECT(val)) {
-		if((js_str=JS_NewStringCopyZ(session->js_cx, curdir))!=NULL) {
-			JS_DefineProperty(session->js_cx, JSVAL_TO_OBJECT(val), "startup_dir", STRING_TO_JSVAL(js_str)
-				,NULL,NULL,JSPROP_ENUMERATE);
-			JS_DefineProperty(session->js_cx, JSVAL_TO_OBJECT(val), "exec_dir", STRING_TO_JSVAL(js_str)
-				,NULL,NULL,JSPROP_ENUMERATE);
-		}
-	}
-	parse_js_headers(session);
-
-	do {
-		/* RUN SCRIPT */
-		JS_ClearPendingException(session->js_cx);
-
-		session->js_callback.counter=0;
-
-		lprintf(LOG_DEBUG,"%04d JavaScript: Compiling %s", session->socket, name);
-		if(!JS_EvaluateScript(session->js_cx, session->js_glob, script, strlen(script), name, 1, &rval)) {
-			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile rewrite %s:%s"
-				,session->socket,name,script);
-			JS_ReportPendingException(session->js_cx);
-			JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
-			JS_ENDREQUEST(session->js_cx);
-			return(FALSE);
-		}
-		JS_ReportPendingException(session->js_cx);
-		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_callback);
-		JS_ReportPendingException(session->js_cx);
-		if (rewrite && JSVAL_IS_BOOLEAN(rval) && JSVAL_TO_BOOLEAN(rval)) {
-			session->req.send_location = MOVED_STAT;
-			JS_GetProperty(session->js_cx,session->js_request,"request_string",&val);
-			JSVALUE_TO_STRBUF(session->js_cx, val, redir_req, sizeof(redir_req), NULL);
-			safe_snprintf(session->redir_req,sizeof(session->redir_req),"%s %s%s%s",methods[session->req.method]
-				,redir_req,session->http_ver<HTTP_1_0?"":" ",http_vers[session->http_ver]);
-		}
-		JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
-	} while(0);
-
-	JS_ENDREQUEST(session->js_cx);
-
-	return(retval);
-}
-
-static void read_webctrl_section(FILE *file, char *section, http_session_t *session, char *curdir, BOOL *recheck_dynamic)
-{
-	int i;
-	char str[MAX_PATH+1];
-	named_string_t **values;
-
-	if(iniReadString(file, section, "AccessRequirements", session->req.ars,str)==str)
-		SAFECOPY(session->req.ars,str);
-	if(iniReadString(file, section, "Realm", scfg.sys_name,str)==str) {
-		FREE_AND_NULL(session->req.realm);
-		/* FREE()d in close_request() */
-		session->req.realm=strdup(str);
-	}
-	if(iniReadString(file, section, "DigestRealm", scfg.sys_name,str)==str) {
-		FREE_AND_NULL(session->req.digest_realm);
-		/* FREE()d in close_request() */
-		session->req.digest_realm=strdup(str);
-	}
-	if(iniReadString(file, section, "ErrorDirectory", error_dir,str)==str) {
-		prep_dir(root_dir, str, sizeof(str));
-		FREE_AND_NULL(session->req.error_dir);
-		/* FREE()d in close_request() */
-		session->req.error_dir=strdup(str);
-	}
-	if(iniReadString(file, section, "CGIDirectory", cgi_dir,str)==str) {
-		prep_dir(root_dir, str, sizeof(str));
-		FREE_AND_NULL(session->req.cgi_dir);
-		/* FREE()d in close_request() */
-		session->req.cgi_dir=strdup(str);
-		*recheck_dynamic=TRUE;
-	}
-	if(iniReadString(file, section, "Authentication", default_auth_list,str)==str) {
-		FREE_AND_NULL(session->req.auth_list);
-		/* FREE()d in close_request() */
-		session->req.auth_list=strdup(str);
-	}
-	if((session->req.path_info_index=iniReadBool(file, section, "PathInfoIndex", FALSE)))
-		check_extra_path(session);
-	if(iniReadString(file, section, "FastCGISocket", "", str)==str) {
-		FREE_AND_NULL(session->req.fastcgi_socket);
-		session->req.fastcgi_socket=strdup(str);
-		*recheck_dynamic=TRUE;
-	}
-	if(iniReadString(file, section, "JSPreExec", "", str)==str) {
-		exec_js_webctrl(session, "JSPreExec", str, curdir, TRUE);
-	}
-	values = iniReadNamedStringList(file, section);
-	for (i=0; values && values[i]; i++) {
-		if (strnicmp(values[i]->name, "Rewrite", 7)==0)
-			exec_js_webctrl(session, values[i]->name, values[i]->value, curdir, TRUE);
-	}
-	iniFreeNamedStringList(values);
 }
 
 static BOOL check_request(http_session_t * session)
@@ -3397,9 +2934,6 @@ static BOOL check_request(http_session_t * session)
 	char	*spec;
 	str_list_t	specs;
 	BOOL	recheck_dynamic=FALSE;
-	char	*spath, *sp, *nsp, *pspec;
-	size_t	len;
-	BOOL	old_path_info_index;
 
 	if(session->req.finished)
 		return(FALSE);
@@ -3422,7 +2956,7 @@ static BOOL check_request(http_session_t * session)
 		}
 		last_slash=find_last_slash(path);
 		if(last_slash==NULL) {
-			send_error(session,__LINE__,error_500);
+			send_error(session,error_500);
 			return(FALSE);
 		}
 		last_slash++;
@@ -3454,10 +2988,9 @@ static BOOL check_request(http_session_t * session)
 			last_slash++;
 		strcpy(filename,last_slash);
 	}
-
 	if(strnicmp(path,root_dir,strlen(root_dir))) {
 		session->req.keep_alive=FALSE;
-		send_error(session,__LINE__,"400 Bad Request");
+		send_error(session,"400 Bad Request");
 		lprintf(LOG_NOTICE,"%04d !ERROR Request for %s is outside of web root %s"
 			,session->socket,path,root_dir);
 		return(FALSE);
@@ -3472,7 +3005,6 @@ static BOOL check_request(http_session_t * session)
 	p=last_slash;
 
 	while((last_slash=find_first_slash(p+1))!=NULL) {
-		old_path_info_index = session->req.path_info_index;
 		p=last_slash;
 		/* Terminate the path after the slash */
 		*(last_slash+1)=0;
@@ -3482,7 +3014,7 @@ static BOOL check_request(http_session_t * session)
 			lprintf(LOG_WARNING,"%04d !WARNING! access.ars support is depreciated and will be REMOVED very soon.",session->socket);
 			lprintf(LOG_WARNING,"%04d !WARNING! access.ars found at %s.",session->socket,str);
 			if(!strcmp(path,str)) {
-				send_error(session,__LINE__,"403 Forbidden");
+				send_error(session,"403 Forbidden");
 				return(FALSE);
 			}
 			/* Read access.ars file */
@@ -3502,7 +3034,7 @@ static BOOL check_request(http_session_t * session)
 		if(!stat(str,&sb)) {
 			/* NEVER serve up a webctrl.ini file */
 			if(!strcmp(path,str)) {
-				send_error(session,__LINE__,"403 Forbidden");
+				send_error(session,"403 Forbidden");
 				return(FALSE);
 			}
 			/* Read webctrl.ini file */
@@ -3510,33 +3042,71 @@ static BOOL check_request(http_session_t * session)
 				/* FREE()d in this block */
 				specs=iniReadSectionList(file,NULL);
 				/* Read in globals */
-				read_webctrl_section(file, NULL, session, curdir, &recheck_dynamic);
-				/* Now, PathInfoIndex may have been set, so we need to re-expand the index so it will match here. */
-				if (old_path_info_index != session->req.path_info_index) {
-					// Now that we may have gotten a new filename, we need to use that to compare with.
-					strcpy(filename, getfname(session->req.physical_path));
+				if(iniReadString(file, NULL, "AccessRequirements", session->req.ars,str)==str)
+					SAFECOPY(session->req.ars,str);
+				if(iniReadString(file, NULL, "Realm", scfg.sys_name,str)==str) {
+					FREE_AND_NULL(session->req.realm);
+					/* FREE()d in close_request() */
+					session->req.realm=strdup(str);
 				}
+				if(iniReadString(file, NULL, "DigestRealm", scfg.sys_name,str)==str) {
+					FREE_AND_NULL(session->req.digest_realm);
+					/* FREE()d in close_request() */
+					session->req.digest_realm=strdup(str);
+				}
+				if(iniReadString(file, NULL, "ErrorDirectory", error_dir,str)==str) {
+					prep_dir(root_dir, str, sizeof(str));
+					FREE_AND_NULL(session->req.error_dir);
+					/* FREE()d in close_request() */
+					session->req.error_dir=strdup(str);
+				}
+				if(iniReadString(file, NULL, "CGIDirectory", cgi_dir,str)==str) {
+					prep_dir(root_dir, str, sizeof(str));
+					FREE_AND_NULL(session->req.cgi_dir);
+					/* FREE()d in close_request() */
+					session->req.cgi_dir=strdup(str);
+					recheck_dynamic=TRUE;
+				}
+				if(iniReadString(file, NULL, "Authentication", default_auth_list,str)==str) {
+					FREE_AND_NULL(session->req.auth_list);
+					/* FREE()d in close_request() */
+					session->req.auth_list=strdup(str);
+				}
+				session->req.path_info_index=iniReadBool(file, NULL, "PathInfoIndex", FALSE);
 				/* Read in per-filespec */
 				while((spec=strListPop(&specs))!=NULL) {
-					len=strlen(spec);
-					if(spec[0] && IS_PATH_DELIM(spec[len-1])) {
-						/* Search for matching path elements... */
-						spath=strdup(path+(p-curdir+1));
-						pspec=strdup(spec);
-						pspec[len-1]=0;
-						for(sp=spath, nsp=find_first_slash(sp+1); nsp; nsp=find_first_slash(sp+1)) {
-							*nsp=0;
-							nsp++;
-							if(wildmatch(sp, pspec, TRUE)) {
-								read_webctrl_section(file, spec, session, curdir, &recheck_dynamic);
-							}
-							sp=nsp;
+					if(wildmatch(filename,spec,TRUE)) {
+						if(iniReadString(file, spec, "AccessRequirements", session->req.ars,str)==str)
+							SAFECOPY(session->req.ars,str);
+						if(iniReadString(file, spec, "Realm", scfg.sys_name,str)==str) {
+							FREE_AND_NULL(session->req.realm);
+							/* FREE()d in close_request() */
+							session->req.realm=strdup(str);
 						}
-						free(spath);
-						free(pspec);
-					}
-					else if(wildmatch(filename,spec,TRUE)) {
-						read_webctrl_section(file, spec, session, curdir, &recheck_dynamic);
+						if(iniReadString(file, spec, "DigestRealm", scfg.sys_name,str)==str) {
+							FREE_AND_NULL(session->req.digest_realm);
+							/* FREE()d in close_request() */
+							session->req.digest_realm=strdup(str);
+						}
+						if(iniReadString(file, spec, "ErrorDirectory", error_dir,str)==str) {
+							FREE_AND_NULL(session->req.error_dir);
+							prep_dir(root_dir, str, sizeof(str));
+							/* FREE()d in close_request() */
+							session->req.error_dir=strdup(str);
+						}
+						if(iniReadString(file, spec, "CGIDirectory", cgi_dir,str)==str) {
+							FREE_AND_NULL(session->req.cgi_dir);
+							prep_dir(root_dir, str, sizeof(str));
+							/* FREE()d in close_request() */
+							session->req.cgi_dir=strdup(str);
+							recheck_dynamic=TRUE;
+						}
+						if(iniReadString(file, spec, "Authentication", default_auth_list,str)==str) {
+							FREE_AND_NULL(session->req.auth_list);
+							/* FREE()d in close_request() */
+							session->req.auth_list=strdup(str);
+						}
+						session->req.path_info_index=iniReadBool(file, spec, "PathInfoIndex", FALSE);
 					}
 					free(spec);
 				}
@@ -3589,7 +3159,7 @@ static BOOL check_request(http_session_t * session)
 		}
 		if(auth_list)
 			free(auth_list);
-		send_error(session,__LINE__,str);
+		send_error(session,str);
 		return(FALSE);
 	}
 
@@ -3600,7 +3170,7 @@ static BOOL check_request(http_session_t * session)
 				lprintf(LOG_DEBUG,"%04d 404 - %s does not exist",session->socket,path);
 			strcat(session->req.physical_path,session->req.extra_path_info);
 			strcat(session->req.virtual_path,session->req.extra_path_info);
-			send_error(session,__LINE__,error_404);
+			send_error(session,error_404);
 			return(FALSE);
 		}
 	}
@@ -3612,15 +3182,15 @@ static BOOL check_request(http_session_t * session)
 		if(session->req.range_end >= sb.st_size)
 			session->req.range_end=sb.st_size-1;
 		if(session->req.range_end < session->req.range_start || session->req.dynamic) {
-			send_error(session,__LINE__,error_416);
+			send_error(session,error_416);
 			return(FALSE);
 		}
 		if(session->req.range_start < 0 || session->req.range_end < 0) {
-			send_error(session,__LINE__,error_416);
+			send_error(session,error_416);
 			return(FALSE);
 		}
 		if(session->req.range_start >= sb.st_size) {
-			send_error(session,__LINE__,error_416);
+			send_error(session,error_416);
 			return(FALSE);
 		}
 		SAFECOPY(session->req.status,"206 Partial Content");
@@ -3680,873 +3250,12 @@ static str_list_t get_cgi_env(http_session_t *session)
 	return(env_list);
 }
 
-static SOCKET fastcgi_connect(const char *orig_path, SOCKET client_sock)
-{
-	int result;
-	char *path = strdup(orig_path);
-	char *port = split_port_part(path);
-	ulong val;
-	fd_set socket_set;
-	SOCKET sock;
-	struct addrinfo	hints,*res,*cur;
-	struct timeval tv;
-
-	// TODO: UNIX-domain sockets...
-	if (strncmp(path, "unix:", 5) == 0) {
-		lprintf(LOG_ERR, "%04d UNIX-domain FastCGI sockets not supported (yet)", client_sock);
-		return INVALID_SOCKET;
-	}
-
-	// TCP Socket
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_ADDRCONFIG;
-	result = getaddrinfo(path, port, &hints, &res);
-	if(result != 0) {
-		lprintf(LOG_ERR, "%04d ERROR resolving FastCGI address %s port %s", client_sock, path, port);
-		return INVALID_SOCKET;
-	}
-	for(cur=res,result=1; result && cur; cur=cur->ai_next) {
-		tv.tv_sec = 1;	/* TODO: Make configurable! */
-		tv.tv_usec = 0;
-
-		sock = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
-		if (sock == INVALID_SOCKET)
-			continue;
-		val=1;
-		ioctlsocket(sock,FIONBIO,&val);
-		result=connect(sock, cur->ai_addr, cur->ai_addrlen);
-
-		if (result==SOCKET_ERROR) {
-			if((ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
-				FD_ZERO(&socket_set);
-				FD_SET(sock,&socket_set);
-				if(select(sock+1,NULL,&socket_set,NULL,&tv)==1)
-					result=0;	/* success */
-			}
-			else
-				closesocket(sock);
-		}
-		if(result==0)
-			break;
-	}
-
-	freeaddrinfo(res);
-	if(sock == INVALID_SOCKET) {
-		lprintf(LOG_ERR, "%04d ERROR unable to make FastCGI connection to %s", client_sock, orig_path);
-		return sock;
-	}
-
-	val = 0;
-	ioctlsocket(sock,FIONBIO,&val);
-	return sock;
-}
-
-static void fastcgi_init_header(struct fastcgi_header *head, uint8_t type)
-{
-	head->ver = FCGI_VERSION_1;
-	head->type = type;
-	head->id = htons(1);
-	head->len = 0;
-	head->padlen = 0;
-	head->reserved = 0;
-}
-
-static BOOL fastcgi_add_param(struct fastcgi_message **msg, size_t *end, size_t *size, const char *env)
-{
-	char *sep;
-	void *p;
-	size_t namelen, vallen, new_len;
-	size_t need_bytes;
-	uint32_t l;
-
-	sep = strchr(env, '=');
-	if (sep == NULL)
-		return FALSE;
-	namelen = (sep - env);
-	vallen = strlen(sep+1);
-	need_bytes = namelen + vallen;
-
-	if (namelen > 127)
-		need_bytes += 4;
-	else
-		need_bytes ++;
-
-	if (vallen > 127)
-		need_bytes += 4;
-	else
-		need_bytes ++;
-
-	new_len = *end + need_bytes;
-	if (new_len > *size) {
-		// Realloc
-		while (new_len > *size)
-			*size *= 2;
-		p = realloc(*msg, *size + sizeof(struct fastcgi_header));
-		if (p == NULL)
-			return FALSE;
-		*msg = p;
-	}
-	if (namelen > 127) {
-		l = htonl(namelen | 0x80000000);
-		memcpy((*msg)->body + *end, &l, 4);
-		*end += 4;
-	}
-	else {
-		(*msg)->body[(*end)++] = namelen;
-	}
-	if (vallen > 127) {
-		l = htonl(vallen | 0x80000000);
-		memcpy((*msg)->body + *end, &l, 4);
-		*end += 4;
-	}
-	else {
-		(*msg)->body[(*end)++] = vallen;
-	}
-	memcpy((*msg)->body + *end, env, namelen);
-	*end += namelen;
-	memcpy((*msg)->body + *end, sep+1, vallen);
-	*end += vallen;
-
-	return TRUE;
-}
-
-static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
-{
-	int i;
-	size_t	end = 0;
-	size_t	size = 1024 + sizeof(struct fastcgi_header);
-	struct fastcgi_message *msg = (struct fastcgi_message *)malloc(size + sizeof(struct fastcgi_header));
-
-	if (msg == NULL)
-		return FALSE;
-	fastcgi_init_header(&msg->head, FCGI_PARAMS);
-	str_list_t env = get_cgi_env(session);
-	for(i=0; env[i]; i++) {
-		if (!fastcgi_add_param(&msg, &end, &size, env[i])) {
-			free(msg);
-			return FALSE;
-		}
-		if (end > 32000) {
-			msg->head.len = htons(end);
-			if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
-				lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
-				free(msg);
-				return FALSE;
-			}
-			end = 0;
-		}
-	}
-	if (end) {
-		msg->head.len = htons(end);
-		if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
-			lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
-			free(msg);
-			return FALSE;
-		}
-		end = 0;
-	}
-	msg->head.len = htons(end);
-	if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
-		lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
-		free(msg);
-		return FALSE;
-	}
-	free(msg);
-	return TRUE;
-}
-
-#define CGI_OUTPUT_READY		(1<<0)
-#define CGI_ERROR_READY			(1<<1)
-#define CGI_PROCESS_TERMINATED	(1<<2)
-#define CGI_INPUT_READY			(1<<3)
-
-struct fastcgi_body {
-	uint16_t	len;
-	char		data[];
-};
-
-struct fastcgi_data {
-	SOCKET	sock;
-	struct fastcgi_header header;
-	struct fastcgi_body *body;
-	size_t used;
-};
-
-static struct fastcgi_body * fastcgi_read_body(SOCKET sock)
-{
-	char padding[255];
-	struct fastcgi_header header;
-	struct fastcgi_body *body;
-
-	if (recv(sock, (char*)&header.len
-			,sizeof(header) - offsetof(struct fastcgi_header, len), MSG_WAITALL)
-				!= sizeof(header) - offsetof(struct fastcgi_header, len)) {
-		lprintf(LOG_ERR, "Error reading FastCGI message header");
-		return NULL;
-	}
-	body = (struct fastcgi_body *)malloc(offsetof(struct fastcgi_body, data) + htons(header.len));
-	body->len = htons(header.len);
-	if (recv(sock, body->data, body->len, MSG_WAITALL) != body->len) {
-		free(body);
-		lprintf(LOG_ERR, "Error reading FastCGI message");
-		return NULL;
-	}
-	if (recv(sock, padding, header.padlen, MSG_WAITALL) != header.padlen) {
-		free(body);
-		lprintf(LOG_ERR, "Error reading FastCGI padding");
-		return NULL;
-	}
-	return body;
-}
-
-static int fastcgi_read_wait_timeout(void *arg)
-{
-	int ret = 0;
-	BOOL rd;
-	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
-	struct fastcgi_body *body;
-
-	switch (cd->header.type) {
-		case FCGI_STDOUT:
-			return CGI_OUTPUT_READY;
-			break;
-		case FCGI_STDERR:
-			return CGI_ERROR_READY;
-			break;
-	}
-
-	if (socket_check(cd->sock, &rd, NULL, startup->max_cgi_inactivity*1000)) {
-		if (rd) {
-			if (recv(cd->sock, (void *)&cd->header, offsetof(struct fastcgi_header, len), MSG_WAITALL) != offsetof(struct fastcgi_header, len)) {
-				lprintf(LOG_ERR, "FastCGI failed to read header");
-				return ret;
-			}
-			if (cd->header.ver != FCGI_VERSION_1) {
-				lprintf(LOG_ERR, "Unknown FastCGI version %d", cd->header.ver);
-				return ret;
-			}
-			if (htons(cd->header.id) != 1) {
-				lprintf(LOG_ERR, "Unknown FastCGI session ID %d", htons(cd->header.id));
-				return ret;
-			}
-			switch(cd->header.type) {
-				case FCGI_STDOUT:
-					ret |= CGI_OUTPUT_READY;
-					break;
-				case FCGI_STDERR:
-					ret |= CGI_OUTPUT_READY;
-					break;
-				case FCGI_END_REQUEST:
-					ret |= CGI_PROCESS_TERMINATED;
-					// Fall-through
-				case FCGI_BEGIN_REQUEST:
-				case FCGI_ABORT_REQUEST:
-				case FCGI_PARAMS:
-				case FCGI_STDIN:
-				case FCGI_DATA:
-				case FCGI_GET_VALUES:
-				case FCGI_GET_VALUES_RESULT:
-				case FCGI_UNKNOWN_TYPE:
-					// Read and discard the entire message...
-					body = fastcgi_read_body(cd->sock);
-					if (body == NULL)
-						return ret;
-					free(body);
-					break;
-				default:
-					lprintf(LOG_ERR, "Unhandled FastCGI message type %d", cd->header.type);
-					// Read and discard the entire message...
-					body = fastcgi_read_body(cd->sock);
-					if (body == NULL)
-						return ret;
-					free(body);
-					break;
-			}
-		}
-	}
-	else
-		ret |= CGI_PROCESS_TERMINATED;
-
-	return ret;
-}
-
-static int fastcgi_read(void *arg, char *buf, size_t sz)
-{
-	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
-
-	if (cd->body == NULL) {
-		cd->body = fastcgi_read_body(cd->sock);
-		if (cd->body == NULL)
-			return -1;
-	}
-
-	if (sz > (cd->body->len - cd->used))
-		sz = cd->body->len - cd->used;
-
-	memcpy(buf, cd->body->data + cd->used, sz);
-	cd->used += sz;
-	if (cd->used >= cd->body->len) {
-		FREE_AND_NULL(cd->body);
-		cd->header.type = 0;
-		cd->used = 0;
-	}
-	return sz;
-}
-
-/*
- * This one is extra tricky since it may need multiple messages to fill...
- * and those messages may not follow each other in the stream.
- * For now, we just hack and hope.
- */
-static int fastcgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, size_t fbufsz)
-{
-	size_t inpos, outpos;
-	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
-
-	outpos = 0;
-
-	if (cd->body == NULL) {
-		cd->body = fastcgi_read_body(cd->sock);
-		if (cd->body == NULL)
-			return -1;
-	}
-
-	for (outpos = 0, inpos = cd->used; inpos < cd->body->len && outpos < bufsz; inpos++) {
-		if (cd->body->data[inpos] == '\n') {
-			inpos++;
-			break;
-		}
-		buf[outpos++] = cd->body->data[inpos];
-	}
-	if (outpos > 0 && buf[outpos - 1] == '\r')
-		outpos--;
-	// Terminate... even if we need to truncate.
-	if (outpos >= bufsz)
-		outpos--;
-	buf[outpos] = 0;
-
-	cd->used = inpos;
-
-	if (cd->used >= cd->body->len) {
-		FREE_AND_NULL(cd->body);
-		cd->header.type = 0;
-		cd->used = 0;
-	}
-	return outpos;
-}
-
-static int fastcgi_write_in(void *arg, char *buf, size_t bufsz)
-{
-	struct fastcgi_header head;
-	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
-	size_t pos;
-	size_t chunk_size;
-
-	fastcgi_init_header(&head, FCGI_STDIN);
-	for (pos = 0; pos < bufsz;) {
-		chunk_size = bufsz - pos;
-		if (chunk_size > UINT16_MAX)
-			chunk_size = UINT16_MAX;
-		head.len = htons(chunk_size);
-		if (sendsocket(cd->sock, (void *)&head, sizeof(head)) != sizeof(head))
-			return -1;
-		if (sendsocket(cd->sock, buf+pos, chunk_size) != chunk_size)
-			return -1;
-		pos += chunk_size;
-	}
-	return bufsz;
-}
-
-static int fastcgi_done_wait(void *arg)
-{
-	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
-
-	return (!socket_check(cd->sock, NULL, NULL, /* timeout: */0));
-}
-
-#ifdef __unix__
-struct cgi_data {
-	int out_pipe;	// out_pipe[0]
-	int err_pipe;	// err_pipe[0]
-	pid_t child;	// child
-};
-
-static int cgi_read_wait_timeout(void *arg)
-{
-	int ret = 0;
-	int status=0;
-	int high_fd;
-	fd_set read_set;
-	fd_set write_set;
-	struct cgi_data *cd = (struct cgi_data *)arg;
-	struct timeval tv;
-
-	high_fd = cd->err_pipe;
-	if (cd->out_pipe > cd->err_pipe)
-		high_fd = cd->out_pipe;
-	tv.tv_sec=startup->max_cgi_inactivity;
-	tv.tv_usec=0;
-
-	FD_ZERO(&read_set);
-	FD_SET(cd->out_pipe,&read_set);
-	FD_SET(cd->err_pipe,&read_set);
-	FD_ZERO(&write_set);
-
-	if(select(high_fd+1,&read_set,&write_set,NULL,&tv)>0)  {
-		if (FD_ISSET(cd->out_pipe,&read_set))
-			ret |= CGI_OUTPUT_READY;
-		if(FD_ISSET(cd->err_pipe,&read_set))
-			ret |= CGI_ERROR_READY;
-	}
-
-	if (waitpid(cd->child,&status,WNOHANG)==cd->child)
-		ret |= CGI_PROCESS_TERMINATED;
-	return ret;
-}
-
-static int cgi_read_out(void *arg, char *buf, size_t sz)
-{
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	return read(cd->out_pipe,buf,sz);
-}
-
-static int cgi_read_err(void *arg, char *buf, size_t sz)
-{
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	return read(cd->err_pipe,buf,sz);
-}
-
-static int cgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, size_t fbufsz)
-{
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	return pipereadline(cd->out_pipe, buf, bufsz, fbuf, fbufsz);
-}
-
-static int cgi_write_in(void *arg, char *buf, size_t bufsz)
-{
-	// *nix doesn't have an input pipe
-	return 0;
-}
-
-static int cgi_done_wait(void *arg)
-{
-	int		status=0;
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	return waitpid(cd->child,&status,WNOHANG)==cd->child;
-}
-#else
-struct cgi_data {
-	HANDLE rdpipe;
-	HANDLE wrpipe;
-	HANDLE child;
-	http_session_t *session;
-};
-
-static int cgi_read_wait_timeout(void *arg)
-{
-	int ret = 0;
-	int rd;
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	DWORD waiting;
-	time_t end = time(NULL) + startup->max_cgi_inactivity;
-
-	while(ret == 0) {
-		if(WaitForSingleObject(cd->child,0)==WAIT_OBJECT_0)
-			ret |= CGI_PROCESS_TERMINATED;
-		waiting = 0;
-		PeekNamedPipe(
-			cd->rdpipe,         /* handle to pipe to copy from */
-			NULL,               /* pointer to data buffer */
-			0,					/* size, in bytes, of data buffer */
-			NULL,				/* pointer to number of bytes read */
-			&waiting,			/* pointer to total number of bytes available */
-			NULL				/* pointer to unread bytes in this message */
-		);
-		if(waiting)
-			ret |= CGI_OUTPUT_READY;
-		if(!session_check(cd->session, &rd, NULL, /* timeout: */0))
-			ret |= CGI_INPUT_READY;
-		if (rd)
-			ret |= CGI_INPUT_READY;
-		if (time(NULL) >= end)
-			break;
-		if (ret == 0)
-			Sleep(1);
-	}
-	return ret;
-}
-
-static int cgi_read_out(void *arg, char *buf, size_t sz)
-{
-	DWORD msglen = 0;
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	if(ReadFile(cd->rdpipe,buf,sz,&msglen,NULL)==FALSE) {
-		lprintf(LOG_ERR,"%04d !ERROR %d reading from pipe"
-			,cd->session->socket,GetLastError());
-		return -1;
-	}
-
-	return msglen;
-}
-
-static int cgi_read_err(void *arg, char *buf, size_t sz)
-{
-	// Win32 doesn't have an error pipe
-	return 0;
-}
-
-static int cgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, size_t fbufsz)
-{
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	return pipereadline(cd->rdpipe, buf, bufsz, NULL, 0);
-}
-
-static int cgi_write_in(void *arg, char *buf, size_t bufsz)
-{
-	int wr;
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	WriteFile(cd->wrpipe, buf, bufsz, &wr, /* Overlapped: */NULL);
-	return wr;
-}
-
-static int cgi_done_wait(void *arg)
-{
-	struct cgi_data *cd = (struct cgi_data *)arg;
-
-	return (WaitForSingleObject(cd->child,0)==WAIT_OBJECT_0);
-}
-#endif
-
-struct cgi_api {
-	int (*read_wait_timeout)(void *arg);
-	int (*read_out)(void *arg, char *buf, size_t sz);
-	int (*read_err)(void *arg, char *buf, size_t sz);
-	int (*readln_out)(void *arg, char *buf, size_t bufsz, char *fbuf, size_t fbufsz);
-	int (*write_in)(void *arg, char *buf, size_t bufsz);
-	int (*done_wait)(void *arg);
-	void *arg;
-};
-
-/*
- * Need to return:
- * Success/fail
- * Timeout out or not
- * Done parsing headers or not
- * Got valid headers or not
- * Process exited or not.
- */
-
-static int do_cgi_stuff(http_session_t *session, struct cgi_api *cgi, BOOL orig_keep)
-{
-	int ret = 0;
-#define CGI_STUFF_FAILED			(1<<0)
-#define CGI_STUFF_TIMEDOUT			(1<<1)
-#define CGI_STUFF_DONE_PARSING		(1<<2)
-#define CGI_STUFF_VALID_HEADERS		(1<<3)
-#define CGI_STUFF_PROCESS_EXITED	(1<<4)
-	int ready;
-	int i;
-	char cgi_status[MAX_REQUEST_LINE+1];
-	char header[MAX_REQUEST_LINE+1];
-	char buf[1024];
-	char fbuf[1026];
-	char *directive=NULL;
-	char *value=NULL;
-	char *last;
-	BOOL done_reading=FALSE;
-	BOOL done_wait=FALSE;
-	BOOL no_chunked=FALSE;
-	BOOL set_chunked=FALSE;
-	time_t start;
-	str_list_t	tmpbuf;
-
-	start=time(NULL);
-
-	/* ToDo: Magically set done_parsing_headers for nph-* scripts */
-	cgi_status[0]=0;
-	/* FREE()d following this block */
-	tmpbuf=strListInit();
-	while(!done_reading) {
-		ready = cgi->read_wait_timeout(cgi->arg);
-		if(ready)  {
-			if(ready & CGI_OUTPUT_READY) {
-				if((ret & CGI_STUFF_DONE_PARSING) && (ret & CGI_STUFF_VALID_HEADERS))  {
-					i=cgi->read_out(cgi->arg,buf,sizeof(buf));
-					if(i!=-1 && i!=0)  {
-						int snt=0;
-						start=time(NULL);
-						if(session->req.method!=HTTP_HEAD) {
-							snt=writebuf(session,buf,i);
-							if(session->req.ld!=NULL) {
-								session->req.ld->size+=snt;
-							}
-						}
-					}
-					else
-						done_reading=TRUE;
-				}
-				else  {
-					/* This is the tricky part */
-					i=cgi->readln_out(cgi->arg, buf, sizeof(buf), fbuf, sizeof(fbuf));
-					if(i==-1) {
-						done_reading=TRUE;
-						ret |= CGI_STUFF_VALID_HEADERS;
-					}
-					else
-						start=time(NULL);
-
-					if(!(ret & CGI_STUFF_DONE_PARSING) && *buf)  {
-						if(tmpbuf != NULL)
-							strListPush(&tmpbuf, fbuf);
-						SAFECOPY(header,buf);
-						directive=strtok_r(header,":",&last);
-						if(directive != NULL)  {
-							value=strtok_r(NULL,"",&last);
-							i=get_header_type(directive);
-							switch (i)  {
-								case HEAD_LOCATION:
-									ret |= CGI_STUFF_VALID_HEADERS;
-									if(*value=='/')  {
-										unescape(value);
-										SAFECOPY(session->req.virtual_path,value);
-										session->req.send_location=MOVED_STAT;
-										if(cgi_status[0]==0)
-											SAFECOPY(cgi_status,error_302);
-									} else  {
-										SAFECOPY(session->req.virtual_path,value);
-										session->req.send_location=MOVED_TEMP;
-										if(cgi_status[0]==0)
-											SAFECOPY(cgi_status,error_302);
-									}
-									break;
-								case HEAD_STATUS:
-									SAFECOPY(cgi_status,value);
-									break;
-								case HEAD_LENGTH:
-									session->req.keep_alive=orig_keep;
-									strListPush(&session->req.dynamic_heads,buf);
-									no_chunked=TRUE;
-									break;
-								case HEAD_TYPE:
-									ret |= CGI_STUFF_VALID_HEADERS;
-									strListPush(&session->req.dynamic_heads,buf);
-									break;
-								case HEAD_TRANSFER_ENCODING:
-									no_chunked=TRUE;
-									break;
-								default:
-									strListPush(&session->req.dynamic_heads,buf);
-							}
-						}
-						if(directive == NULL || value == NULL) {
-							/* Invalid header line */
-							ret |= CGI_STUFF_DONE_PARSING;
-						}
-					}
-					else  {
-						if(!no_chunked && session->http_ver>=HTTP_1_1) {
-							session->req.keep_alive=orig_keep;
-							if (session->req.method != HTTP_HEAD)
-								set_chunked=TRUE;
-						}
-						if(ret & CGI_STUFF_VALID_HEADERS)  {
-							session->req.dynamic=IS_CGI;
-							if(cgi_status[0]==0)
-								SAFECOPY(cgi_status,session->req.status);
-							send_headers(session,cgi_status,set_chunked);
-						}
-						else {
-							/* Invalid headers... send 'er all as plain-text */
-							char    content_type[MAX_REQUEST_LINE+1];
-							int snt;
-
-							lprintf(LOG_DEBUG,"%04d Recieved invalid CGI headers, sending result as plain-text",session->socket);
-
-							/* free() the non-headers so they don't get sent, then recreate the list */
-							strListFreeStrings(session->req.dynamic_heads);
-
-							/* Copy current status */
-							SAFECOPY(cgi_status,session->req.status);
-
-							/* Add the content-type header (REQUIRED) */
-							SAFEPRINTF2(content_type,"%s: %s",get_header(HEAD_TYPE),startup->default_cgi_content);
-							strListPush(&session->req.dynamic_heads,content_type);
-							send_headers(session,cgi_status,FALSE);
-
-							/* Now send the tmpbuf */
-							for(i=0; tmpbuf != NULL && tmpbuf[i] != NULL; i++) {
-								if(strlen(tmpbuf[i])>0) {
-									snt=writebuf(session,tmpbuf[i],strlen(tmpbuf[i]));
-									if(session->req.ld!=NULL) {
-										session->req.ld->size+=snt;
-									}
-								}
-							}
-							if(strlen(fbuf)>0) {
-								snt=writebuf(session,fbuf,strlen(fbuf));
-								if(session->req.ld!=NULL && snt>0) {
-									session->req.ld->size+=snt;
-								}
-							}
-							ret |= CGI_STUFF_VALID_HEADERS;
-						}
-						ret |= CGI_STUFF_DONE_PARSING;
-					}
-				}
-			}
-			if(ready & CGI_ERROR_READY)  {
-				i=cgi->read_err(cgi->arg,buf,sizeof(buf)-1);
-				if(i>0) {
-					buf[i]=0;
-					lprintf(LOG_ERR,"%04d CGI Error: %s",session->socket,buf);
-					start=time(NULL);
-				}
-			}
-			if(ready & CGI_INPUT_READY) {
-				/* Send received POST Data to stdin of CGI process */
-				if((i=sess_recv(session, buf, sizeof(buf), 0)) > 0)  {
-					lprintf(LOG_DEBUG,"%04d CGI Received %d bytes of POST data"
-						,session->socket, i);
-					cgi->write_in(cgi->arg, buf, i);
-				}
-			}
-			if (ready & CGI_PROCESS_TERMINATED) {
-				ret |= CGI_STUFF_PROCESS_EXITED;
-				done_wait = TRUE;
-			}
-			if(!done_wait)
-				done_wait = cgi->done_wait(cgi->arg);
-			if((!(ready & (CGI_OUTPUT_READY|CGI_ERROR_READY))) && done_wait)
-				done_reading=TRUE;
-		}
-		else  {
-			if((time(NULL)-start) >= startup->max_cgi_inactivity)  {
-				lprintf(LOG_ERR,"%04d CGI Process %s Timed out",session->socket,getfname(session->req.physical_path));
-				done_reading=TRUE;
-				start=0;
-				ret |= CGI_STUFF_TIMEDOUT;
-			}
-		}
-	}
-
-	if(tmpbuf != NULL)
-		strListFree(&tmpbuf);
-
-	return ret;
-}
-
-static BOOL exec_fastcgi(http_session_t *session)
-{
-	int msglen;
-	BOOL orig_keep=FALSE;
-	SOCKET sock;
-	struct fastcgi_message *msg;
-	struct fastcgi_begin_request *br;
-	struct fastcgi_data cd;
-	struct cgi_api cgi = {
-		.read_wait_timeout = fastcgi_read_wait_timeout,
-		.read_out = fastcgi_read,
-		.read_err = fastcgi_read,
-		.readln_out = fastcgi_readln_out,
-		.write_in = fastcgi_write_in,
-		.done_wait = fastcgi_done_wait,
-		.arg = &cd
-	};
-
-	lprintf(LOG_INFO,"%04d Executing FastCGI: %s",session->socket,session->req.physical_path);
-	if (session->req.fastcgi_socket == NULL) {
-		lprintf(LOG_ERR, "%04d No FastCGI socket configured!",session->socket);
-		return FALSE;
-	}
-
-	orig_keep=session->req.keep_alive;
-	session->req.keep_alive=FALSE;
-
-	sock = fastcgi_connect(session->req.fastcgi_socket, session->socket);
-	if (sock == INVALID_SOCKET)
-		return FALSE;
-
-	// Set up request...
-	msglen = sizeof(struct fastcgi_header) + sizeof(struct fastcgi_begin_request);
-	msg = (struct fastcgi_message *)malloc(msglen);
-	if (msg == NULL) {
-		closesocket(sock);
-		lprintf(LOG_ERR, "%04d Failure to allocate memory for FastCGI message!", session->socket);
-		return FALSE;
-	}
-	fastcgi_init_header(&msg->head, FCGI_BEGIN_REQUEST);
-	msg->head.len = htons(sizeof(struct fastcgi_begin_request));
-	br = (struct fastcgi_begin_request *)&msg->body;
-	br->role = htons(FCGI_RESPONDER);
-	br->flags = 0;
-	memset(br->reserved, 0, sizeof(br->reserved));
-	if (sendsocket(sock, (void *)msg, msglen) != msglen) {
-		free(msg);
-		closesocket(sock);
-		lprintf(LOG_WARNING, "%04d Failure to send to FastCGI socket!", session->socket);
-		return FALSE;
-	}
-	if (!fastcgi_send_params(sock, session)) {
-		free(msg);
-		closesocket(sock);
-		return FALSE;
-	}
-
-	// TODO handle stdin better
-	memset(&cd, 0, sizeof(cd));
-	cd.sock = sock;
-	fastcgi_write_in(&cd, session->req.post_data, session->req.post_len);
-	msg->head.len = 0;
-	msg->head.type = FCGI_STDIN;
-	if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header)) != sizeof(struct fastcgi_header)) {
-		free(msg);
-		closesocket(sock);
-		lprintf(LOG_WARNING, "%04d Failure to send stdin to FastCGI socket!", session->socket);
-		return FALSE;
-	}
-	free(msg);
-
-	// Now handle stuff coming back from the FastCGI socket...
-	int ret = do_cgi_stuff(session, &cgi, orig_keep);
-	FREE_AND_NULL(cd.body);
-	closesocket(sock);
-
-	if(!(ret & CGI_STUFF_VALID_HEADERS)) {
-		lprintf(LOG_ERR,"%04d FastCGI Process did not generate valid headers");
-		return(FALSE);
-	}
-
-	if(!(ret & CGI_STUFF_DONE_PARSING)) {
-		lprintf(LOG_ERR,"%04d FastCGI Process did not send data header termination");
-		return(FALSE);
-	}
-
-	return TRUE;
-}
 
 static BOOL exec_cgi(http_session_t *session)
 {
-	struct cgi_data cd;
-	struct cgi_api cgi = {
-		.read_wait_timeout = cgi_read_wait_timeout,
-		.read_out = cgi_read_out,
-		.read_err = cgi_read_err,
-		.readln_out = cgi_readln_out,
-		.write_in = cgi_write_in,
-		.done_wait = cgi_done_wait,
-		.arg = &cd
-	};
 #ifdef __unix__
 	char	cmdline[MAX_PATH+256];
+	/* ToDo: Damn, that's WAY too many variables */
 	int		i=0;
 	int		status=0;
 	pid_t	child=0;
@@ -4554,15 +3263,26 @@ static BOOL exec_cgi(http_session_t *session)
 	int		err_pipe[2];
 	struct timeval tv={0,0};
 	fd_set	read_set;
+	fd_set	write_set;
 	int		high_fd=0;
 	char	buf[1024];
+	char	fbuf[1026];
 	BOOL	done_parsing_headers=FALSE;
+	BOOL	done_reading=FALSE;
+	char	cgi_status[MAX_REQUEST_LINE+1];
+	char	header[MAX_REQUEST_LINE+1];
+	char	*directive=NULL;
+	char	*value=NULL;
+	char	*last;
 	BOOL	done_wait=FALSE;
 	BOOL	got_valid_headers=FALSE;
 	time_t	start;
 	char	cgipath[MAX_PATH+1];
 	char	*p;
 	BOOL	orig_keep=FALSE;
+	str_list_t	tmpbuf;
+	BOOL	no_chunked=FALSE;
+	BOOL	set_chunked=FALSE;
 
 	SAFECOPY(cmdline,session->req.physical_path);
 
@@ -4640,19 +3360,168 @@ static BOOL exec_cgi(http_session_t *session)
 	if(err_pipe[0]>high_fd)
 		high_fd=err_pipe[0];
 
-	cd.out_pipe = out_pipe[0];
-	cd.err_pipe = err_pipe[0];
-	cd.child = child;
+	/* ToDo: Magically set done_parsing_headers for nph-* scripts */
+	cgi_status[0]=0;
+	/* FREE()d following this block */
+	tmpbuf=strListInit();
+	while(!done_reading)  {
+		tv.tv_sec=startup->max_cgi_inactivity;
+		tv.tv_usec=0;
 
-	int ret = do_cgi_stuff(session, &cgi, orig_keep);
-	if (ret & CGI_STUFF_DONE_PARSING)
-		done_parsing_headers = TRUE;
-	if (ret & CGI_STUFF_PROCESS_EXITED)
-		done_wait = TRUE;
-	if (ret & CGI_STUFF_TIMEDOUT)
-		start = 1;
-	if (ret & CGI_STUFF_VALID_HEADERS)
-		got_valid_headers = TRUE;
+		FD_ZERO(&read_set);
+		FD_SET(out_pipe[0],&read_set);
+		FD_SET(err_pipe[0],&read_set);
+		FD_ZERO(&write_set);
+
+		if(select(high_fd+1,&read_set,&write_set,NULL,&tv)>0)  {
+			if(FD_ISSET(out_pipe[0],&read_set))  {
+				if(done_parsing_headers && got_valid_headers)  {
+					i=read(out_pipe[0],buf,sizeof(buf));
+					if(i!=-1 && i!=0)  {
+						int snt=0;
+						start=time(NULL);
+						if(session->req.method!=HTTP_HEAD) {
+							snt=writebuf(session,buf,i);
+							if(session->req.ld!=NULL) {
+								session->req.ld->size+=snt;
+							}
+						}
+					}
+					else
+						done_reading=TRUE;
+				}
+				else  {
+					/* This is the tricky part */
+					i=pipereadline(out_pipe[0],buf,sizeof(buf), fbuf, sizeof(fbuf));
+					if(i==-1)  {
+						done_reading=TRUE;
+						got_valid_headers=FALSE;
+					}
+					else
+						start=time(NULL);
+
+					if(!done_parsing_headers && *buf)  {
+						if(tmpbuf != NULL)
+							strListPush(&tmpbuf, fbuf);
+						SAFECOPY(header,buf);
+						directive=strtok_r(header,":",&last);
+						if(directive != NULL)  {
+							value=strtok_r(NULL,"",&last);
+							i=get_header_type(directive);
+							switch (i)  {
+								case HEAD_LOCATION:
+									got_valid_headers=TRUE;
+									if(*value=='/')  {
+										unescape(value);
+										SAFECOPY(session->req.virtual_path,value);
+										session->req.send_location=MOVED_STAT;
+										if(cgi_status[0]==0)
+											SAFECOPY(cgi_status,error_302);
+									} else  {
+										SAFECOPY(session->req.virtual_path,value);
+										session->req.send_location=MOVED_TEMP;
+										if(cgi_status[0]==0)
+											SAFECOPY(cgi_status,error_302);
+									}
+									break;
+								case HEAD_STATUS:
+									SAFECOPY(cgi_status,value);
+									break;
+								case HEAD_LENGTH:
+									session->req.keep_alive=orig_keep;
+									strListPush(&session->req.dynamic_heads,buf);
+									no_chunked=TRUE;
+									break;
+								case HEAD_TYPE:
+									got_valid_headers=TRUE;
+									strListPush(&session->req.dynamic_heads,buf);
+									break;
+								case HEAD_TRANSFER_ENCODING:
+									no_chunked=TRUE;
+									break;
+								default:
+									strListPush(&session->req.dynamic_heads,buf);
+							}
+						}
+						if(directive == NULL || value == NULL) {
+							/* Invalid header line */
+							done_parsing_headers=TRUE;
+						}
+					}
+					else  {
+						if(!no_chunked && session->http_ver>=HTTP_1_1) {
+							session->req.keep_alive=orig_keep;
+							set_chunked=TRUE;
+						}
+						if(got_valid_headers)  {
+							session->req.dynamic=IS_CGI;
+							if(cgi_status[0]==0)
+								SAFECOPY(cgi_status,session->req.status);
+							send_headers(session,cgi_status,set_chunked);
+						}
+						else {
+							/* Invalid headers... send 'er all as plain-text */
+							char    content_type[MAX_REQUEST_LINE+1];
+							int snt;
+
+							lprintf(LOG_DEBUG,"%04d Recieved invalid CGI headers, sending result as plain-text",session->socket);
+
+							/* free() the non-headers so they don't get sent, then recreate the list */
+							strListFreeStrings(session->req.dynamic_heads);
+
+							/* Copy current status */
+							SAFECOPY(cgi_status,session->req.status);
+
+							/* Add the content-type header (REQUIRED) */
+							SAFEPRINTF2(content_type,"%s: %s",get_header(HEAD_TYPE),startup->default_cgi_content);
+							strListPush(&session->req.dynamic_heads,content_type);
+							send_headers(session,cgi_status,FALSE);
+
+							/* Now send the tmpbuf */
+							for(i=0; tmpbuf != NULL && tmpbuf[i] != NULL; i++) {
+								if(strlen(tmpbuf[i])>0) {
+									snt=writebuf(session,tmpbuf[i],strlen(tmpbuf[i]));
+									if(session->req.ld!=NULL) {
+										session->req.ld->size+=snt;
+									}
+								}
+							}
+							if(strlen(fbuf)>0) {
+								snt=writebuf(session,fbuf,strlen(fbuf));
+								if(session->req.ld!=NULL && snt>0) {
+									session->req.ld->size+=snt;
+								}
+							}
+							got_valid_headers=TRUE;
+						}
+						done_parsing_headers=TRUE;
+					}
+				}
+			}
+			if(FD_ISSET(err_pipe[0],&read_set))  {
+				i=read(err_pipe[0],buf,sizeof(buf)-1);
+				if(i>0) {
+					buf[i]=0;
+					lprintf(LOG_ERR,"%04d CGI Error: %s",session->socket,buf);
+					start=time(NULL);
+				}
+			}
+			if(!done_wait)
+				done_wait = (waitpid(child,&status,WNOHANG)==child);
+			if(!FD_ISSET(err_pipe[0],&read_set) && !FD_ISSET(out_pipe[0],&read_set) && done_wait)
+				done_reading=TRUE;
+		}
+		else  {
+			if((time(NULL)-start) >= startup->max_cgi_inactivity)  {
+				lprintf(LOG_ERR,"%04d CGI Process %s Timed out",session->socket,getfname(cmdline));
+				done_reading=TRUE;
+				start=0;
+			}
+		}
+	}
+
+	if(tmpbuf != NULL)
+		strListFree(&tmpbuf);
 
 	if(!done_wait)
 		done_wait = (waitpid(child,&status,WNOHANG)==child);
@@ -4729,23 +3598,33 @@ static BOOL exec_cgi(http_session_t *session)
 
 	/* These are (more or less) copied from the Unix version */
 	char*	p;
+	char	*last;
 	char	cmdline[MAX_PATH+256];
 	char	buf[4096];
+	int		i;
 	BOOL	orig_keep;
 	BOOL	done_parsing_headers=FALSE;
 	BOOL	got_valid_headers=FALSE;
+	char	cgi_status[MAX_REQUEST_LINE+1];
+	char	content_type[MAX_REQUEST_LINE+1];
+	char	header[MAX_REQUEST_LINE+1];
 	char	*directive=NULL;
 	char	*value=NULL;
+	time_t	start;
 	BOOL	no_chunked=FALSE;
 	int		set_chunked=FALSE;
 
 	/* Win32-specific */
 	char*	env_block;
 	char	startup_dir[MAX_PATH+1];
+	int		wr;
+	BOOL	rd;
 	HANDLE	rdpipe=INVALID_HANDLE_VALUE;
 	HANDLE	wrpipe=INVALID_HANDLE_VALUE;
 	HANDLE	rdoutpipe;
 	HANDLE	wrinpipe;
+	DWORD	waiting;
+	DWORD	msglen;
 	DWORD	retval;
 	BOOL	success;
 	BOOL	process_terminated=FALSE;
@@ -4829,16 +3708,137 @@ static BOOL exec_cgi(http_session_t *session)
 		return(FALSE);
     }
 
-	cd.wrpipe = wrpipe;
-	cd.rdpipe = rdpipe;
-	cd.child = process_info.hProcess;
-	cd.session = session;
+	start=time(NULL);
 
-	int ret = do_cgi_stuff(session, &cgi, orig_keep);
-	if (ret & CGI_STUFF_DONE_PARSING)
-		done_parsing_headers = TRUE;
-	if (ret & CGI_STUFF_VALID_HEADERS)
-		got_valid_headers = TRUE;
+	SAFECOPY(cgi_status,session->req.status);
+	SAFEPRINTF2(content_type,"%s: %s",get_header(HEAD_TYPE),startup->default_cgi_content);
+	while(server_socket!=INVALID_SOCKET) {
+
+		if(WaitForSingleObject(process_info.hProcess,0)==WAIT_OBJECT_0)
+			process_terminated=TRUE;	/* handle remaining data in pipe before breaking */
+
+		if((time(NULL)-start) >= startup->max_cgi_inactivity)  {
+			lprintf(LOG_WARNING,"%04d CGI Process %s timed out after %u seconds of inactivity"
+				,session->socket,getfname(cmdline),startup->max_cgi_inactivity);
+			break;
+		}
+
+		/* Check socket for received POST Data */
+		if(!socket_check(session->socket, &rd, NULL, /* timeout: */0)) {
+			lprintf(LOG_WARNING,"%04d CGI Socket disconnected", session->socket);
+			break;
+		}
+		if(rd) {
+			/* Send received POST Data to stdin of CGI process */
+			if((i=recv(session->socket, buf, sizeof(buf), 0)) > 0)  {
+				lprintf(LOG_DEBUG,"%04d CGI Received %d bytes of POST data"
+					,session->socket, i);
+				WriteFile(wrpipe, buf, i, &wr, /* Overlapped: */NULL);
+			}
+		}
+
+		waiting = 0;
+		PeekNamedPipe(
+			rdpipe,             /* handle to pipe to copy from */
+			NULL,               /* pointer to data buffer */
+			0,					/* size, in bytes, of data buffer */
+			NULL,				/* pointer to number of bytes read */
+			&waiting,			/* pointer to total number of bytes available */
+			NULL				/* pointer to unread bytes in this message */
+			);
+		if(!waiting) {
+			if(process_terminated)
+				break;
+			Sleep(1);
+			continue;
+		}
+		/* reset inactivity timer */
+		start=time(NULL);	
+
+		msglen=0;
+		if(done_parsing_headers) {
+			if(ReadFile(rdpipe,buf,sizeof(buf),&msglen,NULL)==FALSE) {
+				lprintf(LOG_ERR,"%04d !ERROR %d reading from pipe"
+					,session->socket,GetLastError());
+				break;
+			}
+		}
+		else  {
+			/* This is the tricky part */
+			buf[0]=0;
+			i=pipereadline(rdpipe,buf,sizeof(buf),NULL,0);
+			if(i<0)  {
+				lprintf(LOG_WARNING,"%04d CGI pipereadline returned %d",session->socket,i);
+				got_valid_headers=FALSE;
+				break;
+			}
+			lprintf(LOG_DEBUG,"%04d CGI header line: %s"
+				,session->socket, buf);
+			SAFECOPY(header,buf);
+			if(strchr(header,':')!=NULL) {
+				if((directive=strtok_r(header,":",&last))!=NULL)
+					value=strtok_r(NULL,"",&last);
+				else
+					value="";
+				i=get_header_type(directive);
+				switch (i)  {
+					case HEAD_LOCATION:
+						got_valid_headers=TRUE;
+						if(*value=='/')  {
+							unescape(value);
+							SAFECOPY(session->req.virtual_path,value);
+							session->req.send_location=MOVED_STAT;
+							if(cgi_status[0]==0)
+								SAFECOPY(cgi_status,error_302);
+						} else  {
+							SAFECOPY(session->req.virtual_path,value);
+							session->req.send_location=MOVED_TEMP;
+							if(cgi_status[0]==0)
+								SAFECOPY(cgi_status,error_302);
+						}
+						break;
+					case HEAD_STATUS:
+						SAFECOPY(cgi_status,value);
+						break;
+					case HEAD_LENGTH:
+						session->req.keep_alive=orig_keep;
+						strListPush(&session->req.dynamic_heads,buf);
+						no_chunked=TRUE;
+						break;
+					case HEAD_TYPE:
+						got_valid_headers=TRUE;
+						SAFECOPY(content_type,buf);
+						break;
+					case HEAD_TRANSFER_ENCODING:
+						no_chunked=TRUE;
+						break;
+					default:
+						strListPush(&session->req.dynamic_heads,buf);
+				}
+				continue;
+			}
+			if(i) {
+				strcat(buf,"\r\n");	/* Add back the missing line terminator */
+				msglen=strlen(buf);	/* we will send this text later */
+			}
+			done_parsing_headers = TRUE;	/* invalid header */
+			session->req.dynamic=IS_CGI;
+			if(!no_chunked && session->http_ver>=HTTP_1_1) {
+				session->req.keep_alive=orig_keep;
+				set_chunked=TRUE;
+			}
+			strListPush(&session->req.dynamic_heads,content_type);
+			send_headers(session,cgi_status,set_chunked);
+		}
+		if(msglen) {
+			lprintf(LOG_DEBUG,"%04d Sending %d bytes: %.*s"
+				,session->socket,msglen,msglen,buf);
+			wr=writebuf(session,buf,msglen);
+			/* log actual bytes sent */
+			if(session->req.ld!=NULL && wr>0)
+				session->req.ld->size+=wr;	
+		}
+	}
 
     if(GetExitCodeProcess(process_info.hProcess, &retval)==FALSE)
 	    lprintf(LOG_ERR,"%04d !ERROR GetExitCodeProcess(%s) returned %d"
@@ -5283,7 +4283,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user, &session->client
 		,NULL /* ftp index file */, session->subscan /* subscan */)) {
 		lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
-		send_error(session,__LINE__,"500 Error initializing JavaScript User Objects");
+		send_error(session,"500 Error initializing JavaScript User Objects");
 		return(FALSE);
 	}
 
@@ -5547,7 +4547,6 @@ js_initcx(http_session_t *session)
 									,&startup->js				/* js */
 									,&session->client			/* client */
 									,session->socket			/* client */
-									,session->tls_sess			/* client */
 									,&js_server_props			/* server */
 									,&session->js_glob
 		)
@@ -5561,10 +4560,11 @@ js_initcx(http_session_t *session)
 	return(js_cx);
 }
 
-static BOOL js_setup_cx(http_session_t* session)
+static BOOL js_setup(http_session_t* session)
 {
 	JSObject*	argv;
 
+#ifndef ONE_JS_RUNTIME
 	if(session->js_runtime == NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
 			,session->socket,startup->js.max_bytes);
@@ -5574,6 +4574,7 @@ static BOOL js_setup_cx(http_session_t* session)
 			return(FALSE);
 		}
 	}
+#endif
 
 	if(session->js_cx==NULL) {	/* Context not yet created, create it now */
 		/* js_initcx() begins a context */
@@ -5594,11 +4595,11 @@ static BOOL js_setup_cx(http_session_t* session)
 		JS_DefineProperty(session->js_cx, session->js_glob, "web_error_dir",
 			STRING_TO_JSVAL(JS_NewStringCopyZ(session->js_cx, session->req.error_dir?session->req.error_dir:error_dir))
 			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
-		JS_ENDREQUEST(session->js_cx);
+
 	}
 	else
 		JS_BEGINREQUEST(session->js_cx);
-	
+
 	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing HttpRequest object",session->socket);
 	if(js_CreateHttpRequestObject(session->js_cx, session->js_glob, session)==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript HttpRequest object",session->socket);
@@ -5606,22 +4607,15 @@ static BOOL js_setup_cx(http_session_t* session)
 		return(FALSE);
 	}
 
-	JS_SetContextPrivate(session->js_cx, session);
-
-	return TRUE;
-}
-
-static BOOL js_setup(http_session_t* session)
-{
-	if(!js_setup_cx(session))
-		return FALSE;
-
 	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing HttpReply object",session->socket);
 	if(js_CreateHttpReplyObject(session->js_cx, session->js_glob, session)==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript HttpReply object",session->socket);
 		JS_ENDREQUEST(session->js_cx);
 		return(FALSE);
 	}
+
+	JS_SetContextPrivate(session->js_cx, session);
+	JS_ENDREQUEST(session->js_cx);
 
 	return(TRUE);
 }
@@ -5712,7 +4706,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	js_add_request_prop(session,"http_ver",http_vers[session->http_ver]);
 	js_add_request_prop(session,"remote_ip",session->host_ip);
 	js_add_request_prop(session,"remote_host",session->host_name);
-	if(session->req.query_str[0])  {
+	if(session->req.query_str && session->req.query_str[0])  {
 		js_add_request_prop(session,"query_string",session->req.query_str);
 		js_parse_query(session,session->req.query_str);
 	}
@@ -5778,18 +4772,9 @@ static void respond(http_session_t * session)
 		send_headers(session,session->req.status,FALSE);
 	}
 	else {
-		if(session->req.dynamic==IS_FASTCGI)  {
-			if(!exec_fastcgi(session)) {
-				send_error(session,__LINE__,error_500);
-				return;
-			}
-			session->req.finished=TRUE;
-			return;
-		}
-
 		if(session->req.dynamic==IS_CGI)  {
 			if(!exec_cgi(session))  {
-				send_error(session,__LINE__,error_500);
+				send_error(session,error_500);
 				return;
 			}
 			session->req.finished=TRUE;
@@ -5798,7 +4783,7 @@ static void respond(http_session_t * session)
 
 		if(session->req.dynamic==IS_SSJS) {	/* Server-Side JavaScript */
 			if(!exec_ssjs(session,session->req.physical_path))  {
-				send_error(session,__LINE__,error_500);
+				send_error(session,error_500);
 				return;
 			}
 			sprintf(session->req.physical_path
@@ -5835,14 +4820,14 @@ BOOL post_to_file(http_session_t *session, FILE*fp, size_t ch_len)
 	int			bytes_read;
 
 	for(k=0; k<ch_len;) {
-		bytes_read=recvbufsocket(session,buf,(ch_len-k)>sizeof(buf)?sizeof(buf):(ch_len-k));
+		bytes_read=recvbufsocket(&session->socket,buf,(ch_len-k)>sizeof(buf)?sizeof(buf):(ch_len-k));
 		if(!bytes_read) {
-			send_error(session,__LINE__,error_500);
+			send_error(session,error_500);
 			fclose(fp);
 			return(FALSE);
 		}
 		if(fwrite(buf, bytes_read, 1, fp)!=1) {
-			send_error(session,__LINE__,error_500);
+			send_error(session,error_500);
 			fclose(fp);
 			return(FALSE);
 		}
@@ -5880,10 +4865,10 @@ FILE *open_post_file(http_session_t *session)
 
 int read_post_data(http_session_t * session)
 {
-	size_t		s = 0;
+	unsigned	i=0;
 	FILE		*fp=NULL;
 
-	if(session->req.dynamic!=IS_CGI && (session->req.post_len || session->req.read_chunked)) {
+	if(session->req.dynamic!=IS_CGI && (session->req.post_len || session->req.read_chunked))  {
 		if(session->req.read_chunked) {
 			char *p;
 			size_t	ch_len=0;
@@ -5897,17 +4882,17 @@ int read_post_data(http_session_t * session)
 					ch_len=strtol(ch_lstr,NULL,16);
 				}
 				else {
-					send_error(session,__LINE__,error_500);
+					send_error(session,error_500);
 					if(fp) fclose(fp);
 					return(FALSE);
 				}
 				if(ch_len==0)
 					break;
 				/* Check size */
-				s += ch_len;
-				if(s > MAX_POST_LEN) {
-					if(s > SIZE_MAX) {
-						send_error(session,__LINE__,"413 Request entity too large");
+				i += ch_len;
+				if(i > MAX_POST_LEN) {
+					if(i > SIZE_MAX) {
+						send_error(session,"413 Request entity too large");
 						if(fp) fclose(fp);
 						return(FALSE);
 					}
@@ -5922,25 +4907,25 @@ int read_post_data(http_session_t * session)
 				else {
 					/* realloc() to new size */
 					/* FREE()d in close_request */
-					p=realloc(session->req.post_data, s);
+					p=realloc(session->req.post_data, i);
 					if(p==NULL) {
 						lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,session->req.post_len);
-						send_error(session,__LINE__,"413 Request entity too large");
+						send_error(session,"413 Request entity too large");
 						if(fp) fclose(fp);
 						return(FALSE);
 					}
 					session->req.post_data=p;
 					/* read new data */
-					bytes_read=recvbufsocket(session,session->req.post_data+session->req.post_len,ch_len);
+					bytes_read=recvbufsocket(&session->socket,session->req.post_data+session->req.post_len,ch_len);
 					if(!bytes_read) {
-						send_error(session,__LINE__,error_500);
+						send_error(session,error_500);
 						if(fp) fclose(fp);
 						return(FALSE);
 					}
 					session->req.post_len+=bytes_read;
 					/* Read chunk terminator */
 					if(sockreadline(session,ch_lstr,sizeof(ch_lstr)-1)>0)
-						send_error(session,__LINE__,error_500);
+						send_error(session,error_500);
 				}
 			}
 			if(fp) {
@@ -5954,21 +4939,17 @@ int read_post_data(http_session_t * session)
 			/* Read more headers! */
 			if(!get_request_headers(session))
 				return(FALSE);
-			if (!is_legal_hostname(session->req.vhost, FALSE)) {
-				send_error(session,__LINE__,"400 Bad Request");
-				return FALSE;
-			}
 			if(!parse_headers(session))
 				return(FALSE);
 		}
 		else {
-			s = session->req.post_len;
+			i = session->req.post_len;
 			FREE_AND_NULL(session->req.post_data);
-			if(s > MAX_POST_LEN) {
+			if(i > MAX_POST_LEN) {
 				fp=open_post_file(session);
 				if(fp==NULL)
 					return(FALSE);
-				if(!post_to_file(session, fp, s))
+				if(!post_to_file(session, fp, i))
 					return(FALSE);
 				fclose(fp);
 				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_READ);
@@ -5978,19 +4959,19 @@ int read_post_data(http_session_t * session)
 			}
 			else {
 				/* FREE()d in close_request()  */
-				if(s < (MAX_POST_LEN+1) && (session->req.post_data=malloc((size_t)(s+1))) != NULL)
-					session->req.post_len=recvbufsocket(session,session->req.post_data,s);
+				if(i < (MAX_POST_LEN+1) && (session->req.post_data=malloc(i+1)) != NULL)
+					session->req.post_len=recvbufsocket(&session->socket,session->req.post_data,i);
 				else  {
-					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,s);
-					send_error(session,__LINE__,"413 Request entity too large");
+					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,i);
+					send_error(session,"413 Request entity too large");
 					return(FALSE);
 				}
 			}
 		}
-		if(session->req.post_len != s)
-				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,s,session->req.post_len);
-		if(session->req.post_len > s)
-			session->req.post_len = s;
+		if(session->req.post_len != i)
+				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,i,session->req.post_len);
+		if(session->req.post_len > i)
+			session->req.post_len = i;
 		session->req.post_data[session->req.post_len]=0;
 	}
 	return(TRUE);
@@ -6017,7 +4998,7 @@ void http_output_thread(void *arg)
 	/* Destroyed at end of function */
 	if((i=pthread_mutex_init(&session->outbuf_write,NULL))!=0) {
 		lprintf(LOG_DEBUG,"Error %d initializing outbuf mutex",i);
-		close_session_socket(session);
+		close_socket(&session->socket);
 		thread_down();
 		return;
 	}
@@ -6108,7 +5089,7 @@ void http_output_thread(void *arg)
 		}
 
 		if(!failed)
-			sess_sendbuf(session, buf, len, &failed);
+			sock_sendbuf(&session->socket, buf, len, &failed);
 		pthread_mutex_unlock(&session->outbuf_write);
     }
 	thread_down();
@@ -6120,31 +5101,18 @@ void http_output_thread(void *arg)
 	sem_post(&session->output_thread_terminated);
 }
 
-static int close_session_no_rb(http_session_t *session)
-{
-	if (session) {
-		if (session->is_tls)
-			HANDLE_CRYPT_CALL(cryptDestroySession(session->tls_sess), session);
-		return close_socket(&session->socket);
-	}
-	return 0;
-}
-
 void http_session_thread(void* arg)
 {
+	char*			host_name;
+	HOSTENT*		host;
 	SOCKET			socket;
+	char			redir_req[MAX_REQUEST_LINE+1];
 	char			*redirp;
 	http_session_t	session;
 	int				loop_count;
 	ulong			login_attempts=0;
 	BOOL			init_error;
 	int32_t			clients_remain;
-#if 0
-	int				i;
-	int				last;
-	user_t			user;
-	char			*uname;
-#endif
 
 	SetThreadName("HTTP Session");
 	pthread_mutex_lock(&((http_session_t*)arg)->struct_filled);
@@ -6173,46 +5141,11 @@ void http_session_thread(void* arg)
 
 	session.finished=FALSE;
 
-	if (session.is_tls) {
-		/* Create and initialize the TLS session */
-		if (!HANDLE_CRYPT_CALL(cryptCreateSession(&session.tls_sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER), &session)) {
-			close_session_no_rb(&session);
-			thread_down();
-			return;
-		}
-		/* Add all the user/password combinations */
-#if 0 // TLS-PSK is currently broken in cryptlib
-		last = lastuser(&scfg);
-		for (i=1; i <= last; i++) {
-			user.number = i;
-			getuserdat(&scfg,&user);
-			if(user.misc&(DELETED|INACTIVE))
-				continue;
-			if (user.alias[0] && user.pass[0]) {
-				if(HANDLE_CRYPT_CALL(cryptSetAttributeString(session.tls_sess, CRYPT_SESSINFO_USERNAME, user.alias, strlen(user.alias)), &session))
-					HANDLE_CRYPT_CALL(cryptSetAttributeString(session.tls_sess, CRYPT_SESSINFO_PASSWORD, user.pass, strlen(user.pass)), &session);
-			}
-		}
-#endif
-		if (tls_context != -1) {
-			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &session);
-		}
-		BOOL nodelay=TRUE;
-		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
-
-		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session);
-		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session)) {
-			close_session_no_rb(&session);
-			thread_down();
-			return;
-		}
-	}
-
 	/* Start up the output buffer */
 	/* FREE()d in this block (RingBufDispose before all returns) */
 	if(RingBufInit(&(session.outbuf), OUTBUF_LEN)) {
 		lprintf(LOG_ERR,"%04d Canot create output ringbuffer!", session.socket);
-		close_session_no_rb(&session);
+		close_socket(&session.socket);
 		thread_down();
 		return;
 	}
@@ -6224,8 +5157,18 @@ void http_session_thread(void* arg)
 
 	sbbs_srand();	/* Seed random number generator */
 
-	if(getnameinfo(&session.addr.addr, session.addr_len, session.host_name, sizeof(session.host_name), NULL, 0, (startup->options&BBS_OPT_NO_HOST_LOOKUP)?NI_NUMERICHOST:0)!=0)
-		SAFECOPY(session.host_name, session.host_ip);
+	if(startup->options&BBS_OPT_NO_HOST_LOOKUP)
+		host=NULL;
+	else
+		host=gethostbyaddr ((char *)&session.addr.sin_addr
+			,sizeof(session.addr.sin_addr),AF_INET);
+
+	if(host!=NULL && host->h_name!=NULL)
+		host_name=host->h_name;
+	else
+		host_name=session.host_ip;
+
+	SAFECOPY(session.host_name,host_name);
 
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
 		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, session.host_name);
@@ -6237,7 +5180,7 @@ void http_session_thread(void* arg)
 #endif
 		if(trashcan(&scfg,session.host_name,"host")) {
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, session.host_name);
-			close_session_socket(&session);
+			close_socket(&session.socket);
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
 			RingBufDispose(&session.outbuf);
@@ -6246,18 +5189,10 @@ void http_session_thread(void* arg)
 		}
 	}
 
-	login_attempt_t attempted;
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, session.host_name, startup->login_attempt, &attempted);
-
 	/* host_ip wasn't defined in http_session_thread */
-	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
-		if(banned) {
-			char ban_duration[128];
-			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,session.socket, session.host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
-		} else
-			lprintf(LOG_NOTICE, "%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
-		close_session_socket(&session);
+	if(trashcan(&scfg,session.host_ip,"ip")) {
+		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
+		close_socket(&session.socket);
 		sem_wait(&session.output_thread_terminated);
 		sem_destroy(&session.output_thread_terminated);
 		RingBufDispose(&session.outbuf);
@@ -6271,18 +5206,18 @@ void http_session_thread(void* arg)
 
 	SAFECOPY(session.client.addr,session.host_ip);
 	SAFECOPY(session.client.host,session.host_name);
-	session.client.port=inet_addrport(&session.addr);
+	session.client.port=ntohs(session.addr.sin_port);
 	session.client.time=time32(NULL);
-	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
+	session.client.protocol="HTTP";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
 
-	if(startup->login_attempt.throttle
+	if(startup->login_attempt_throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &session.addr)) > 1) {
 		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
 			,socket, session.client.protocol, session.host_ip, login_attempts);
-		mswait(login_attempts*startup->login_attempt.throttle);
+		mswait(login_attempts*startup->login_attempt_throttle);
 	}
 
 	session.last_user_num=-1;
@@ -6294,16 +5229,6 @@ void http_session_thread(void* arg)
 	while(!session.finished) {
 		init_error=FALSE;
 	    memset(&(session.req), 0, sizeof(session.req));
-	    if (session.is_tls) {
-#if 0 // TLS-PSK is currently broken in cryptlib
-			uname = get_crypt_attribute(session.tls_sess, CRYPT_SESSINFO_USERNAME);
-			if (uname) {
-				SAFECOPY(session.req.auth.username, uname);
-				free_crypt_attrstr(uname);
-				session.req.auth.type = AUTHENTICATION_TLS_PSK;
-			}
-#endif
-		}
 		redirp=NULL;
 		loop_count=0;
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
@@ -6344,10 +5269,8 @@ void http_session_thread(void* arg)
 			}
 
 			if(get_req(&session,redirp)) {
-				if (redirp)
-					redirp[0]=0;
 				if(init_error) {
-					send_error(&session, __LINE__, error_500);
+					send_error(&session, error_500);
 				}
 				/* At this point, if redirp is non-NULL then the headers have already been parsed */
 				if((session.http_ver<HTTP_1_0)||redirp!=NULL||parse_headers(&session)) {
@@ -6357,12 +5280,10 @@ void http_session_thread(void* arg)
 								respond(&session);
 						}
 						else {
-							if (!session.redir_req[0]) {
-								safe_snprintf(session.redir_req,sizeof(session.redir_req),"%s %s%s%s",methods[session.req.method]
-									,session.req.virtual_path,session.http_ver<HTTP_1_0?"":" ",http_vers[session.http_ver]);
-							}
-							lprintf(LOG_DEBUG,"%04d Internal Redirect to: %s",socket,session.redir_req);
-							redirp=session.redir_req;
+							safe_snprintf(redir_req,sizeof(redir_req),"%s %s%s%s",methods[session.req.method]
+								,session.req.virtual_path,session.http_ver<HTTP_1_0?"":" ",http_vers[session.http_ver]);
+							lprintf(LOG_DEBUG,"%04d Internal Redirect to: %s",socket,redir_req);
+							redirp=redir_req;
 						}
 					}
 				}
@@ -6386,18 +5307,20 @@ void http_session_thread(void* arg)
 		session.js_cx=NULL;
 	}
 
+#ifndef ONE_JS_RUNTIME
 	if(session.js_runtime!=NULL) {
 		lprintf(LOG_DEBUG,"%04d JavaScript: Destroying runtime",socket);
 		jsrt_Release(session.js_runtime);
 		session.js_runtime=NULL;
 	}
+#endif
 
 #ifdef _WIN32
 	if(startup->hangup_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 		PlaySound(startup->hangup_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
-	close_session_socket(&session);
+	close_socket(&session.socket);
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
@@ -6419,7 +5342,7 @@ void http_session_thread(void* arg)
 
 void DLLCALL web_terminate(void)
 {
-   	lprintf(LOG_INFO,"Web Server terminate");
+   	lprintf(LOG_INFO,"%04d Web Server terminate",server_socket);
 	terminate_server=TRUE;
 }
 
@@ -6444,16 +5367,9 @@ static void cleanup(int code)
 
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
-	
-	if (tls_context != -1) {
-		cryptDestroyContext(tls_context);
-		tls_context = -1;
-	}
 
-	if(!terminated) {	/* Can this be changed to a if(ws_set!=NULL) check instead? */
-		xpms_destroy(ws_set, close_socket_cb, NULL);
-		ws_set=NULL;
-		terminated=TRUE;
+	if(server_socket!=INVALID_SOCKET) {
+		close_socket(&server_socket);
 	}
 
 	update_clients();	/* active_clients is destroyed below */
@@ -6483,7 +5399,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.637 $", "%*s %s", revision);
+	sscanf("$Revision: 1.580 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6518,7 +5434,7 @@ void http_logging_thread(void* arg)
 
 	thread_up(TRUE /* setuid */);
 
-	lprintf(LOG_INFO,"HTTP logging thread started");
+	lprintf(LOG_INFO,"%04d HTTP logging thread started", server_socket);
 
 	for(;;) {
 		struct log_data *ld;
@@ -6539,11 +5455,12 @@ void http_logging_thread(void* arg)
 		if(ld==NULL) {
 			if(terminate_http_logging_thread)
 				break;
-			lprintf(LOG_ERR,"HTTP logging thread received NULL linked list log entry");
+			lprintf(LOG_ERR,"%04d HTTP logging thread received NULL linked list log entry"
+				,server_socket);
 			continue;
 		}
 		SAFECOPY(newfilename,base);
-		if((startup->options&WEB_OPT_VIRTUAL_HOSTS) && ld->vhost!=NULL) {
+		if(startup->options&WEB_OPT_VIRTUAL_HOSTS && ld->vhost!=NULL) {
 			strcat(newfilename,ld->vhost);
 			if(ld->vhost[0])
 				strcat(newfilename,"-");
@@ -6555,7 +5472,7 @@ void http_logging_thread(void* arg)
 			SAFECOPY(filename,newfilename);
 			logfile=fopen(filename,"ab");
 			if(logfile)
-				lprintf(LOG_INFO,"HTTP logfile is now: %s",filename);
+				lprintf(LOG_INFO,"%04d HTTP logfile is now: %s",server_socket,filename);
 		}
 		if(logfile!=NULL) {
 			if(ld->status) {
@@ -6582,7 +5499,7 @@ void http_logging_thread(void* arg)
 			}
 		}
 		else {
-			lprintf(LOG_ERR,"HTTP server failed to open logfile %s (%d)!",filename,errno);
+			lprintf(LOG_ERR,"%04d HTTP server failed to open logfile %s (%d)!",server_socket,filename,errno);
 		}
 		FREE_AND_NULL(ld->hostname);
 		FREE_AND_NULL(ld->ident);
@@ -6598,31 +5515,41 @@ void http_logging_thread(void* arg)
 		logfile=NULL;
 	}
 	thread_down();
-	lprintf(LOG_INFO,"HTTP logging thread terminated");
+	lprintf(LOG_INFO,"%04d HTTP logging thread terminated",server_socket);
 
 	http_logging_thread_running=FALSE;
 }
 
 void DLLCALL web_server(void* arg)
 {
+	int				i;
+	int				result;
 	time_t			start;
 	WORD			host_port;
-	char			host_ip[INET6_ADDRSTRLEN];
+	char			host_ip[32];
 	char			path[MAX_PATH+1];
 	char			logstr[256];
 	char			mime_types_ini[MAX_PATH+1];
 	char			web_handler_ini[MAX_PATH+1];
-	union xp_sockaddr	client_addr;
+	SOCKADDR_IN		server_addr={0};
+	SOCKADDR_IN		client_addr;
 	socklen_t		client_addr_len;
 	SOCKET			client_socket;
+	SOCKET			high_socket_set;
+	fd_set			socket_set;
 	time_t			t;
 	time_t			initialized=0;
 	FILE*			fp;
 	char*			p;
 	char			compiler[32];
 	http_session_t *	session=NULL;
-	void			*acc_type;
-	char			ssl_estr[SSL_ESTR_LEN];
+	struct timeval tv;
+#ifdef ONE_JS_RUNTIME
+	JSRuntime*      js_runtime;
+#endif
+#ifdef SO_ACCEPTFILTER
+	struct accept_filter_arg afa;
+#endif
 
 	startup=(web_startup_t*)arg;
 
@@ -6668,7 +5595,7 @@ void DLLCALL web_server(void* arg)
 	js_server_props.version_detail=web_ver();
 	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
-	js_server_props.interfaces=&startup->interfaces;
+	js_server_props.interface_addr=&startup->interface_addr;
 
 	uptime=0;
 	served=0;
@@ -6754,13 +5681,6 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		if(startup->options&WEB_OPT_ALLOW_TLS) {
-			lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
-			tls_context = get_ssl_cert(&scfg, ssl_estr);
-			if (tls_context == -1)
-				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
-		}
-
 		iniFileName(mime_types_ini,sizeof(mime_types_ini),scfg.ctrl_dir,"mime_types.ini");
 		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
 			,mime_types);
@@ -6789,24 +5709,65 @@ void DLLCALL web_server(void* arg)
 		update_clients();
 
 		/* open a socket and wait for a client */
-		ws_set = xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
-		
-		if(ws_set == NULL) {
-			lprintf(LOG_CRIT,"!ERROR %d creating HTTP socket set", ERROR_VALUE);
+
+		server_socket = open_socket(SOCK_STREAM);
+
+		if(server_socket == INVALID_SOCKET) {
+			lprintf(LOG_CRIT,"!ERROR %d creating HTTP socket", ERROR_VALUE);
 			cleanup(1);
 			return;
 		}
-		terminated=FALSE;
-		lprintf(LOG_DEBUG,"Web Server socket set created");
+		
+/*
+ *		i=1;
+ *		if(setsockopt(server_socket, IPPROTO_TCP, TCP_NOPUSH, &i, sizeof(i)))
+ *			lprintf("Cannot set TCP_NOPUSH socket option");
+ */
 
-		/*
-		 * Add interfaces
-		 */
-		xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "Web Server", open_socket, startup->seteuid, NULL);
-		if(tls_context != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
-			if(do_cryptInit())
-				xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
+#ifdef SO_ACCEPTFILTER
+		memset(&afa, 0, sizeof(afa));
+		strcpy(afa.af_name, "httpready");
+		setsockopt(server_socket, SOL_SOCKET, SO_ACCEPTFILTER, &afa, sizeof(afa));
+#endif
+
+		lprintf(LOG_DEBUG,"%04d Web Server socket opened",server_socket);
+
+		/*****************************/
+		/* Listen for incoming calls */
+		/*****************************/
+		memset(&server_addr, 0, sizeof(server_addr));
+
+		server_addr.sin_addr.s_addr = htonl(startup->interface_addr);
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_port   = htons(startup->port);
+
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
 		}
+		result = retry_bind(server_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
+			,startup->bind_retry_count,startup->bind_retry_delay,"Web Server",lprintf);
+		if(startup->port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
+		if(result != 0) {
+			lprintf(LOG_CRIT,"%s",BIND_FAILURE_HELP);
+			cleanup(1);
+			return;
+		}
+
+		result = listen(server_socket, 64);
+
+		if(result != 0) {
+			lprintf(LOG_CRIT,"%04d !ERROR %d (%d) listening on socket"
+				,server_socket, result, ERROR_VALUE);
+			cleanup(1);
+			return;
+		}
+		lprintf(LOG_INFO,"%04d Web Server listening on port %u"
+			,server_socket, startup->port);
+		status("Listening");
 
 		listInit(&log_list,/* flags */ LINK_LIST_MUTEX|LINK_LIST_SEMAPHORE);
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
@@ -6817,6 +5778,21 @@ void DLLCALL web_server(void* arg)
 			protected_uint32_adjust(&thread_count,1);
 			_beginthread(http_logging_thread, 0, startup->logfile_base);
 		}
+
+#ifdef ONE_JS_RUNTIME
+	    if(js_runtime == NULL) {
+    	    lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
+        	    ,server_socket,startup->js.max_bytes);
+
+    	    if((js_runtime=jsrt_GetNew(startup->js.max_bytes, 0, __FILE__, __LINE__))==NULL) {
+        	    lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",server_socket);
+				/* Sleep 15 seconds then try again */
+				/* ToDo: Something better should be used here. */
+				SLEEP(15000);
+				continue;
+        	}
+    	}
+#endif
 
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","web");
@@ -6836,16 +5812,16 @@ void DLLCALL web_server(void* arg)
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
 
-		lprintf(LOG_INFO,"Web Server thread started");
-		status("Listening");
+		lprintf(LOG_INFO,"%04d Web Server thread started", server_socket);
 
-		while(!terminated && !terminate_server) {
+		while(server_socket!=INVALID_SOCKET && !terminate_server) {
 
 			/* check for re-cycle/shutdown semaphores */
-			if(protected_uint32_value(thread_count) <= (unsigned int)(2 /* web_server() and http_output_thread() */ + (http_logging_thread_running?1:0))) {
+			if(protected_uint32_value(thread_count) <= (2 /* web_server() and http_output_thread() */ + http_logging_thread_running)) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
-						lprintf(LOG_INFO,"Recycle semaphore file (%s) detected",p);
+						lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
+							,server_socket,p);
 						if(session!=NULL) {
 							pthread_mutex_unlock(&session->struct_filled);
 							session=NULL;
@@ -6853,7 +5829,7 @@ void DLLCALL web_server(void* arg)
 						break;
 					}
 					if(startup->recycle_now==TRUE) {
-						lprintf(LOG_INFO,"Recycle semaphore signaled");
+						lprintf(LOG_INFO,"%04d Recycle semaphore signaled",server_socket);
 						startup->recycle_now=FALSE;
 						if(session!=NULL) {
 							pthread_mutex_unlock(&session->struct_filled);
@@ -6863,9 +5839,11 @@ void DLLCALL web_server(void* arg)
 					}
 				}
 				if(((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL
-						&& lprintf(LOG_INFO,"Shutdown semaphore file (%s) detected",p))
+						&& lprintf(LOG_INFO,"%04d Shutdown semaphore file (%s) detected"
+							,server_socket,p))
 					|| (startup->shutdown_now==TRUE
-						&& lprintf(LOG_INFO,"Shutdown semaphore signaled"))) {
+						&& lprintf(LOG_INFO,"%04d Shutdown semaphore signaled"
+							,server_socket))) {
 					startup->shutdown_now=FALSE;
 					terminate_server=TRUE;
 					if(session!=NULL) {
@@ -6880,7 +5858,9 @@ void DLLCALL web_server(void* arg)
 			if(session==NULL) {
 				/* FREE()d at the start of the session thread */
 				if((session=malloc(sizeof(http_session_t)))==NULL) {
-					lprintf(LOG_CRIT,"!ERROR allocating %u bytes of memory for http_session_t", sizeof(http_session_t));
+					lprintf(LOG_CRIT,"%04d !ERROR allocating %u bytes of memory for http_session_t"
+						,server_socket, sizeof(http_session_t));
+					mswait(3000);
 					continue;
 				}
 				memset(session, 0, sizeof(http_session_t));
@@ -6893,22 +5873,60 @@ void DLLCALL web_server(void* arg)
 			}
 
 			/* now wait for connection */
-			client_addr_len = sizeof(client_addr);
-			client_socket = xpms_accept(ws_set, &client_addr, &client_addr_len, startup->sem_chk_freq*1000, &acc_type);
 
-			if(client_socket == INVALID_SOCKET)
+			FD_ZERO(&socket_set);
+			FD_SET(server_socket,&socket_set);
+			high_socket_set=server_socket+1;
+
+			tv.tv_sec=startup->sem_chk_freq;
+			tv.tv_usec=0;
+
+			if((i=select(high_socket_set,&socket_set,NULL,NULL,&tv))<1) {
+				if(i==0)
+					continue;
+				if(ERROR_VALUE==EINTR)
+					lprintf(LOG_DEBUG,"Web Server listening interrupted");
+				else if(ERROR_VALUE == ENOTSOCK)
+            		lprintf(LOG_INFO,"Web Server socket closed");
+				else
+					lprintf(LOG_WARNING,"!ERROR %d selecting socket",ERROR_VALUE);
 				continue;
+			}
 
-			if(terminated) {	/* terminated */
+			if(server_socket==INVALID_SOCKET) {	/* terminated */
 				pthread_mutex_unlock(&session->struct_filled);
 				session=NULL;
 				break;
 			}
 
+			client_addr_len = sizeof(client_addr);
+
+			if(server_socket!=INVALID_SOCKET
+				&& FD_ISSET(server_socket,&socket_set)) {
+				client_socket = accept(server_socket, (struct sockaddr *)&client_addr
+	        		,&client_addr_len);
+			}
+			else {
+				lprintf(LOG_NOTICE,"!NO SOCKETS set by select");
+				continue;
+			}
+
+			if(client_socket == INVALID_SOCKET)	{
+				lprintf(LOG_WARNING,"!ERROR %d accepting connection", ERROR_VALUE);
+#ifdef _WIN32
+				if(WSAGetLastError()==WSAENOBUFS) {	/* recycle (re-init WinSock) on this error */
+					pthread_mutex_unlock(&session->struct_filled);
+					session=NULL;
+					break;
+				}
+#endif
+				continue;
+			}
+
 			if(startup->socket_open!=NULL)
 				startup->socket_open(startup->cbdata,TRUE);
 
-			inet_addrtop(&client_addr, host_ip, sizeof(host_ip));
+			SAFECOPY(host_ip,inet_ntoa(client_addr.sin_addr));
 
 			if(trashcan(&scfg,host_ip,"ip-silent")) {
 				close_socket(&client_socket);
@@ -6918,31 +5936,29 @@ void DLLCALL web_server(void* arg)
 			if(startup->max_clients && protected_uint32_value(active_clients)>=startup->max_clients) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
-				if (!len_503)
-					len_503 = strlen(error_503);
-				sendsocket(client_socket, error_503, len_503);
+				mswait(3000);
 				close_socket(&client_socket);
 				continue;
-            }
+			}
 
-			host_port=inet_addrport(&client_addr);
+			host_port=ntohs(client_addr.sin_port);
 
-			if (acc_type != NULL && !strcmp(acc_type, "TLS"))
-				session->is_tls=TRUE;
-			lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
+			lprintf(LOG_INFO,"%04d HTTP connection accepted from: %s port %u"
 				,client_socket
-				,session->is_tls ? "HTTPS":"HTTP"
 				,host_ip, host_port);
 
 			SAFECOPY(session->host_ip,host_ip);
-			memcpy(&session->addr, &client_addr, sizeof(session->addr));
-			session->addr_len=client_addr_len;
+			session->addr=client_addr;
    			session->socket=client_socket;
 			session->js_callback.auto_terminate=TRUE;
 			session->js_callback.terminated=&terminate_server;
 			session->js_callback.limit=startup->js.time_limit;
 			session->js_callback.gc_interval=startup->js.gc_interval;
 			session->js_callback.yield_interval=startup->js.yield_interval;
+#ifdef ONE_JS_RUNTIME
+			session->js_runtime=js_runtime;
+#endif
+
 			pthread_mutex_unlock(&session->struct_filled);
 			session=NULL;
 			served++;
@@ -6955,13 +5971,13 @@ void DLLCALL web_server(void* arg)
 
 		/* Wait for active clients to terminate */
 		if(protected_uint32_value(active_clients)) {
-			lprintf(LOG_DEBUG,"Waiting for %d active clients to disconnect..."
-				, protected_uint32_value(active_clients));
+			lprintf(LOG_DEBUG,"%04d Waiting for %d active clients to disconnect..."
+				,server_socket, protected_uint32_value(active_clients));
 			start=time(NULL);
 			while(protected_uint32_value(active_clients)) {
 				if(time(NULL)-start>startup->max_inactivity) {
-					lprintf(LOG_WARNING,"!TIMEOUT waiting for %d active clients"
-						, protected_uint32_value(active_clients));
+					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for %d active clients"
+						,server_socket, protected_uint32_value(active_clients));
 					break;
 				}
 				mswait(100);
@@ -6974,17 +5990,26 @@ void DLLCALL web_server(void* arg)
 			mswait(100);
 		}
 		if(http_logging_thread_running) {
-			lprintf(LOG_DEBUG,"Waiting for HTTP logging thread to terminate...");
+			lprintf(LOG_DEBUG,"%04d Waiting for HTTP logging thread to terminate..."
+				,server_socket);
 			start=time(NULL);
 			while(http_logging_thread_running) {
 				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-					lprintf(LOG_WARNING,"!TIMEOUT waiting for HTTP logging thread to "
-            			"terminate");
+					lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for HTTP logging thread to "
+            			"terminate", server_socket);
 					break;
 				}
 				mswait(100);
 			}
 		}
+
+#ifdef ONE_JS_RUNTIME
+    	if(js_runtime!=NULL) {
+        	lprintf(LOG_DEBUG,"%04d JavaScript: Destroying runtime",server_socket);
+        	jsrt_Release(js_runtime);
+    	    js_runtime=NULL;
+	    }
+#endif
 
 		cleanup(0);
 
