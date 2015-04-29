@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.67 2015/11/16 10:04:11 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.65 2014/03/19 04:10:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -430,7 +430,7 @@ void sbbs_t::multinodechat(int channel)
 							? text[AnonUserChatHandle]
 							: useron.handle
 							,cfg.node_num,':',nulstr);
-						sprintf(tmp,"%*s",(int)bstrlen(str),nulstr);
+						sprintf(tmp,"%*s",bstrlen(str),nulstr);
 						strcat(pgraph,tmp); 
 					}
 					strcat(pgraph,line);
@@ -1792,9 +1792,6 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1)
 				errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
 			else {
-				xpDateTime_to_isoDateTimeStr(xpDateTime_now(), "-", " ", ":", 0, str, sizeof(str)-3);
-				strcat(str,"\r\n");
-				write(file,str,strlen(str));
 				if(action==NODE_MCHT) {
 					sprintf(str,"[Multi] ");
 					write(file,str,strlen(str)); 
