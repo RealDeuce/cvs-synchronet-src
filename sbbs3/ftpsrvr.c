@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.408 2014/12/11 01:09:34 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.409 2015/04/25 06:10:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1010,7 +1010,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL);
+		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL, parent);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
 			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
@@ -4536,7 +4536,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.408 $", "%*s %s", revision);
+	sscanf("$Revision: 1.409 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
