@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.135 2015/08/05 09:24:48 deuce Exp $ */
+/* $Id: ciolib.c,v 1.133 2015/04/30 00:53:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,10 +119,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int 
 CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int new_value);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
 
-#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-int sdl_video_initialized = 0;
-#endif
-
 #define CIOLIB_INIT()		{ if(initialized != 1) initciolib(CIOLIB_MODE_AUTO); }
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
@@ -174,10 +170,8 @@ int try_sdl_init(int mode)
 int try_x_init(int mode)
 {
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-	if (sdl_video_initialized) {
+	if (sdl_video_initialized)
 		sdl.QuitSubSystem(SDL_INIT_VIDEO);
-		sdl_video_initialized = FALSE;
-	}
 #endif
 
 	if(!x_init()) {
@@ -218,10 +212,8 @@ int try_x_init(int mode)
 int try_curses_init(int mode)
 {
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-	if (sdl_video_initialized) {
+	if (sdl_video_initialized)
 		sdl.QuitSubSystem(SDL_INIT_VIDEO);
-		sdl_video_initialized = FALSE;
-	}
 #endif
 
 	if(curs_initciolib(mode)) {
@@ -253,10 +245,8 @@ int try_curses_init(int mode)
 int try_ansi_init(int mode)
 {
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-	if (sdl_video_initialized) {
+	if (sdl_video_initialized)
 		sdl.QuitSubSystem(SDL_INIT_VIDEO);
-		sdl_video_initialized = FALSE;
-	}
 #endif
 
 	if(ansi_initciolib(mode)) {
@@ -284,10 +274,8 @@ int try_ansi_init(int mode)
 int try_conio_init(int mode)
 {
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
-	if (sdl_video_initialized) {
+	if (sdl_video_initialized)
 		sdl.QuitSubSystem(SDL_INIT_VIDEO);
-		sdl_video_initialized = FALSE;
-	}
 #endif
 
 	/* This should test for something or other */
