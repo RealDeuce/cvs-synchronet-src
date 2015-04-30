@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.38 2015/08/22 06:29:20 deuce Exp $ */
+/* $Id: fixsmb.c,v 1.37 2015/03/24 03:35:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@
 smb_t	smb;
 BOOL	renumber=FALSE;
 BOOL	smb_undelete=FALSE;
-char*	usage="usage: fixsmb [-renumber] [-undelete] <smb_file> [[smb_file] [...]]";
+char*	usage="usage: fixsmb [-renumber] [-undelete] <smb_file> [[smb_file] [...]]\n";
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
 {
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
 	int 		i;
 	str_list_t	list;
 
-	sscanf("$Revision: 1.38 $", "%*s %s", revision);
+	sscanf("$Revision: 1.37 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
 	}
 
 	if(!strListCount(list)) {
-		puts(usage);
+		printf(usage);
 		exit(1); 
 	}
 
