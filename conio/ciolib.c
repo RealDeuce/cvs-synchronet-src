@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.132 2015/04/29 07:28:54 deuce Exp $ */
+/* $Id: ciolib.c,v 1.133 2015/04/30 00:53:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,7 @@
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
  #include "sdl_con.h"
+ #include "sdlfuncs.h"
 #endif
 #ifdef _WIN32
  #include "win32cio.h"
@@ -168,6 +169,11 @@ int try_sdl_init(int mode)
  #ifndef NO_X
 int try_x_init(int mode)
 {
+#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
+	if (sdl_video_initialized)
+		sdl.QuitSubSystem(SDL_INIT_VIDEO);
+#endif
+
 	if(!x_init()) {
 		cio_api.mode=CIOLIB_MODE_X;
 		cio_api.mouse=1;
@@ -205,6 +211,11 @@ int try_x_init(int mode)
 
 int try_curses_init(int mode)
 {
+#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
+	if (sdl_video_initialized)
+		sdl.QuitSubSystem(SDL_INIT_VIDEO);
+#endif
+
 	if(curs_initciolib(mode)) {
 		if(mode==CIOLIB_MODE_AUTO)
 			mode=CIOLIB_MODE_CURSES;
@@ -233,6 +244,11 @@ int try_curses_init(int mode)
 
 int try_ansi_init(int mode)
 {
+#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
+	if (sdl_video_initialized)
+		sdl.QuitSubSystem(SDL_INIT_VIDEO);
+#endif
+
 	if(ansi_initciolib(mode)) {
 		cio_api.mode=CIOLIB_MODE_ANSI;
 		cio_api.mouse=0;
@@ -257,6 +273,11 @@ int try_ansi_init(int mode)
 #endif
 int try_conio_init(int mode)
 {
+#if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
+	if (sdl_video_initialized)
+		sdl.QuitSubSystem(SDL_INIT_VIDEO);
+#endif
+
 	/* This should test for something or other */
 	if(win32_initciolib(mode)) {
 		if(mode==CIOLIB_MODE_AUTO)
