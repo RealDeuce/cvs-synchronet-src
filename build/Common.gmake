@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.104 2015/09/02 08:04:45 deuce Exp $
+# $Id: Common.gmake,v 1.101 2015/04/18 01:44:24 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -158,15 +158,6 @@ endif
 CFLAGS	+=	-MMD
 CC		?=	gcc
 CCPRE	?= ${shell if [ `echo __clang__ | $(CC) -E - | grep -v '^\#'` != __clang__ ] ; then echo clang ; elif [ `echo __INTEL_COMPILER | $(CC) -E - | grep -v '^\#'` != __INTEL_COMPILER ] ; then echo icc ; else echo gcc ; fi}
-ifeq ($(CCPRE),clang)
- ifeq ($(CC),cc)
-  CXX	:=	c++
- else
-  ifeq ($(CC),clang)
-   CXX	:=	clang++
-  endif
- endif
-endif
 ifdef BUILD_DEPENDS
  CC				:=	$(SRC_ROOT)/build/mkdep -a
  CXX			:=	$(SRC_ROOT)/build/mkdep -a
@@ -193,7 +184,6 @@ BUILDPATH	?=	$(BUILD)
 gcc_machine		:= $(shell ${CC} -dumpmachine)
 ifeq ($(gcc_machine),mingw32)
  os		:= Win32
- CFLAGS	+=	-DMSVCRT_VERSION=0x0800
 endif
 
 # Get OS
@@ -243,9 +233,6 @@ else
 endif
 
 CCPRE := $(lastword $(subst /, ,$(CCPRE)))
-ifeq ($(CCPRE),clang)
- CFLAGS += -Wno-invalid-source-encoding
-endif
 LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
 OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)
 MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
