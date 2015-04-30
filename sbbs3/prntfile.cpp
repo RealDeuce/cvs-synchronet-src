@@ -2,7 +2,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.21 2016/05/18 10:20:17 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.20 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -193,16 +193,12 @@ void sbbs_t::menu(const char *code)
 	if(menu_file[0])
 		strcpy(path,menu_file);
 	else {
-		if(isfullpath(code))
-			SAFECOPY(str, code);
-		else {
-			sprintf(str,"%smenu/",cfg.text_dir);
-			if(menu_dir[0]) {
-				strcat(str,menu_dir);
-				strcat(str,"/"); 
-			}
-			strcat(str,code);
+		sprintf(str,"%smenu/",cfg.text_dir);
+		if(menu_dir[0]) {
+			strcat(str,menu_dir);
+			strcat(str,"/"); 
 		}
+		strcat(str,code);
 		strcat(str,".");
 		sprintf(path,"%s%s",str,term_supports(WIP) ? "wip": term_supports(RIP) ? "rip" : "html");
 		if(!(term_supports()&(RIP|WIP|HTML)) || !fexistcase(path)) {
