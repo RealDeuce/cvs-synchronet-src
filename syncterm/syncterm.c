@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.195 2015/04/03 08:59:39 deuce Exp $ */
+/* $Id: syncterm.c,v 1.196 2015/05/01 04:05:49 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1612,6 +1612,8 @@ int main(int argc, char **argv)
 			last_bbs=strdup(bbs->name);
 		bbs=NULL;
 	}
+	if (last_bbs)
+		free(last_bbs);
 	// Save changed settings
 	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
 		char	inipath[MAX_PATH+1];
