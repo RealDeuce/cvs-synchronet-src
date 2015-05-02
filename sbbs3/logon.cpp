@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.60 2015/05/02 03:20:54 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.59 2014/03/08 04:40:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -521,7 +521,7 @@ bool sbbs_t::logon()
 	if(usrgrps && useron.misc&ASK_NSCAN && text[NScanAllGrpsQ][0] && yesno(text[NScanAllGrpsQ]))
 		scanallsubs(SCAN_NEW);
 	if(usrgrps && useron.misc&ASK_SSCAN && text[SScanAllGrpsQ][0] && yesno(text[SScanAllGrpsQ]))
-		scanallsubs(SCAN_TOYOU|SCAN_UNREAD);
+		scanallsubs(SCAN_TOYOU);
 	return(true);
 }
 
