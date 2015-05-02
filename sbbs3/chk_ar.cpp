@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id$ */
+/* $Id: chk_ar.cpp,v 1.24 2015/05/02 02:36:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -742,7 +742,7 @@ uint sbbs_t::getusrsub(uint subnum)
 	ugrp = getusrgrp(subnum);
 	if(ugrp<=0)
 		return(0);
-	
+	ugrp--;
 	for(usub=0;usub<usrsubs[ugrp];usub++)
 		if(usrsub[ugrp][usub]==subnum)
 			break;
