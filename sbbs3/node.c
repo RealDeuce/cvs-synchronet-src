@@ -2,7 +2,7 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.25 2013/09/15 08:39:47 rswindell Exp $ */
+/* $Id: node.c,v 1.27 2015/05/02 01:00:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -441,12 +441,12 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.25 $", "%*s %s", revision);
+	sscanf("$Revision: 1.27 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
-		printf("COMPILER ERROR: sizeof(node_t)=%u instead of %lu\n"
+		printf("COMPILER ERROR: sizeof(node_t)=%u instead of %d\n"
 			,sizeof(node_t),SIZEOF_NODE_T);
 		return(-1);
 	}
@@ -465,6 +465,8 @@ int main(int argc, char **argv)
 		printf("nopage      = page disable\n");
 		printf("noalerts    = activity alerts disable\n");
 		printf("status=#    = set status value\n");
+		printf("              %d = Waiting for connection\n", NODE_WFC);
+		printf("              %d = Offline\n", NODE_OFFLINE);
 		printf("useron=#    = set useron number\n");
 		printf("action=#    = set action value\n");
 		printf("errors=#    = set error counter\n");
