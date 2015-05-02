@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.616 2015/08/22 00:58:29 deuce Exp $ */
+/* $Id: main.cpp,v 1.611 2015/04/27 10:45:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,11 +42,13 @@
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "js_socket.h"
-#include <multisock.h>
-#include <limits.h>		// HOST_NAME_MAX
 
 #ifdef __unix__
 	#include <sys/un.h>
+	#ifndef SUN_LEN
+		#define SUN_LEN(su) \
+	        (sizeof(*(su)) - sizeof((su)->sun_path) + strlen((su)->sun_path))
+	#endif
 #endif
 
 //#define SBBS_TELNET_ENVIRON_SUPPORT 1
@@ -88,7 +90,11 @@ SOCKET	spy_socket[MAX_NODES];
 SOCKET	uspy_socket[MAX_NODES];	  /* UNIX domain spy sockets */
 #endif
 SOCKET	node_socket[MAX_NODES];
-struct xpms_set				*ts_set;
+static	SOCKET telnet_socket=INVALID_SOCKET;
+static	SOCKET rlogin_socket=INVALID_SOCKET;
+#ifdef USE_CRYPTLIB
+static	SOCKET ssh_socket=INVALID_SOCKET;
+#endif
 static	sbbs_t*	sbbs=NULL;
 static	scfg_t	scfg;
 static	char *	text[TOTAL_TEXT];
@@ -196,30 +202,6 @@ int eprintf(int level, const char *fmt, ...)
     return(startup->event_lputs(startup->event_cbdata,level,sbuf));
 }
 
-struct main_sock_cb_data {
-	bbs_startup_t	*startup;
-	const char		*protocol;
-};
-
-void sock_cb(SOCKET sock, void *cb_data)
-{
-	char	error_str[256];
-	struct main_sock_cb_data *cb=(struct main_sock_cb_data *)cb_data;
-
-	if(cb->startup && cb->startup->socket_open)
-		cb->startup->socket_open(cb->startup->cbdata, TRUE);
-	if(set_socket_options(&scfg, sock, cb->protocol, error_str, sizeof(error_str)))
-		lprintf(LOG_ERR,"%04d !ERROR %s",sock,error_str);
-}
-
-void sock_close_cb(SOCKET sock, void *cb_data)
-{
-	bbs_startup_t	*su=(bbs_startup_t *)cb_data;
-
-	if(su && su->socket_open)
-		su->socket_open(su->cbdata, FALSE);
-}
-
 SOCKET open_socket(int type, const char* protocol)
 {
 	SOCKET	sock;
@@ -234,12 +216,12 @@ SOCKET open_socket(int type, const char* protocol)
 	return(sock);
 }
 
-SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
+SOCKET accept_socket(SOCKET s, SOCKADDR* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
 
-	sock=accept(s,&addr->addr,addrlen);
-	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL)
+	sock=accept(s,addr,addrlen);
+	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,TRUE);
 
 	return(sock);
@@ -261,7 +243,7 @@ int close_socket(SOCKET sock)
 	return(result);
 }
 
-/* TODO: IPv6 */
+
 u_long resolve_ip(char *addr)
 {
 	HOSTENT*	host;
@@ -321,7 +303,7 @@ DLLEXPORT void DLLCALL sbbs_srand()
 		rd=read(rf, &seed, sizeof(seed));
 		close(rf);
 	}
-	if (rd != sizeof(seed))
+	if(rd != sizeof(seed))
 #endif
 		seed = time32(NULL) ^ (uintmax_t)GetCurrentThreadId();
 
@@ -459,7 +441,7 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 }
 
 JSBool 
-DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *funcs)
+DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *funcs, BOOL append)
 {
 	int			i;
 	jsuint		len=0;
@@ -468,33 +450,21 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 	JSObject*	method;
 	JSObject*	method_array;
 	JSString*	js_str;
-	size_t		str_len=0;
-	char		*str=NULL;
 
 	/* Return existing method_list array if it's already been created */
-	if(JS_GetProperty(cx,obj,method_array_name,&val) && val!=JSVAL_VOID) {
+	if(JS_GetProperty(cx,obj,method_array_name,&val) && val!=JSVAL_VOID)
 		method_array=JSVAL_TO_OBJECT(val);
-		// If the first item is already in the list, don't do anything.
-		if(!JS_GetArrayLength(cx, method_array, &len))
-			return(JS_FALSE);
-		for(i=0; i<len; i++) {
-			if(JS_GetElement(cx, method_array, i, &val)!=JS_TRUE || val == JSVAL_VOID)
-				continue;
-			JS_GetProperty(cx, JSVAL_TO_OBJECT(val), "name", &val);
-			JSVALUE_TO_RASTRING(cx, val, str, &str_len, NULL);
-			if(str==NULL)
-				continue;
-			if(strcmp(str, funcs[0].name)==0)
-				return(JS_TRUE);
-		}
-	}
-	else {
+	else
 		if((method_array=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 			return(JS_FALSE);
-		if(!JS_DefineProperty(cx, obj, method_array_name, OBJECT_TO_JSVAL(method_array)
-				, NULL, NULL, 0))
+
+	if(!JS_DefineProperty(cx, obj, method_array_name, OBJECT_TO_JSVAL(method_array)
+		, NULL, NULL, 0))
+		return(JS_FALSE);
+
+	if(append)
+		if(!JS_GetArrayLength(cx, method_array, &len))
 			return(JS_FALSE);
-	}
 
 	for(i=0;funcs[i].name;i++) {
 
@@ -570,7 +540,7 @@ DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertyS
 	}
 		
 	if(funcs) {
-		if(!js_DefineSyncMethods(cx, obj, funcs))
+		if(!js_DefineSyncMethods(cx, obj, funcs, 0))
 			ret=JS_FALSE;
 	}
 
@@ -599,7 +569,7 @@ DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec
 
 
 JSBool 
-DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *funcs)
+DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *funcs, BOOL append)
 {
 	uint i;
 
@@ -1183,10 +1153,6 @@ bool sbbs_t::js_init(ulong* stack_frame)
 			))
 			break;
 		rooted=true;
-
-#ifdef BUILD_JSDOCS
-		js_CreateUifcObject(js_cx, js_glob);
-#endif
 
 		/* BBS Object */
 		if(js_CreateBbsObject(js_cx, js_glob)==NULL)
@@ -2037,7 +2003,7 @@ void output_thread(void* arg)
 	char		node[128];
 	char		stats[128];
     BYTE		buf[IO_THREAD_BUF_SIZE];
-	int			i=0;	// Assignment to silence Valgrind
+	int			i;
     ulong		avail;
 	ulong		total_sent=0;
 	ulong		total_pkts=0;
@@ -2596,7 +2562,7 @@ void event_thread(void* arg)
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 						remove(str);
-					}
+					} 
 				}
 				globfree(&g);
 			}
@@ -2932,7 +2898,7 @@ void event_thread(void* arg)
 
 
 //****************************************************************************
-sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const char* name, SOCKET sd,
+sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
 	char	nodestr[32];
@@ -2983,7 +2949,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 		memset(&client,0,sizeof(client));
 	else
 		memcpy(&client,client_info,sizeof(client));
-	client_addr.store = addr->store;
+	client_addr = addr;
 	client_socket = sd;
 	SAFECOPY(client_name, name);
 	client_socket_dup=INVALID_SOCKET;
@@ -3076,7 +3042,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	sysvar_pi=0;
 
 	cursub=NULL;
-	cursubnum=INVALID_SUB;
 	usrgrp=NULL;
 	usrsubs=NULL;
 	usrsub=NULL;
@@ -3085,7 +3050,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	subscan=NULL;
 
 	curdir=NULL;
-	curdirnum=INVALID_SUB;
 	usrlib=NULL;
 	usrdirs=NULL;
 	usrdir=NULL;
@@ -3120,7 +3084,7 @@ bool sbbs_t::init()
 	uint		i,j,k,l;
 	node_t		node;
 	socklen_t	addr_len;
-	union xp_sockaddr	addr;
+	SOCKADDR_IN	addr;
 
 	RingBufInit(&inbuf, IO_THREAD_BUF_SIZE);
 	if(cfg.node_num>0)
@@ -3148,16 +3112,15 @@ bool sbbs_t::init()
 #endif
 
 		addr_len=sizeof(addr);
-		if((result=getsockname(client_socket, &addr.addr, &addr_len))!=0) {
+		if((result=getsockname(client_socket, (struct sockaddr *)&addr,&addr_len))!=0) {
 			lprintf(LOG_ERR,"Node %d !ERROR %d (%d) getting address/port"
 				,cfg.node_num, result, ERROR_VALUE);
 			return(false);
 		} 
-		inet_addrtop(&addr, local_addr, sizeof(local_addr));
-		inet_addrtop(&client_addr, client_ipaddr, sizeof(client_ipaddr));
 		lprintf(LOG_INFO,"Node %d attached to local interface %s port %u"
-			,cfg.node_num, local_addr, inet_addrport(&addr));
+			,cfg.node_num, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
 
+		local_addr=addr.sin_addr.s_addr;
 	}
 
 	if((comspec=os_cmdshell())==NULL) {
@@ -3588,7 +3551,7 @@ void sbbs_t::spymsg(const char* msg)
 		return;
 
 	SAFEPRINTF4(str,"\r\n\r\n*** Spy Message ***\r\nNode %d: %s [%s]\r\n*** %s ***\r\n\r\n"
-		,cfg.node_num,client_name,client_ipaddr,msg);
+		,cfg.node_num,client_name,inet_ntoa(client_addr.sin_addr),msg);
 	if(startup->node_spybuf!=NULL 
 		&& startup->node_spybuf[cfg.node_num-1]!=NULL) {
 		RingBufWrite(startup->node_spybuf[cfg.node_num-1],(uchar*)str,strlen(str));
@@ -3726,11 +3689,6 @@ void sbbs_t::hangup(void)
 	if(client_socket!=INVALID_SOCKET) {
 		mswait(1000);	/* Give socket output buffer time to flush */
 		client_off(client_socket);
-		if(ssh_mode) {
-			pthread_mutex_lock(&sbbs->ssh_mutex);
-			cryptDestroySession(sbbs->ssh_session);
-			pthread_mutex_unlock(&sbbs->ssh_mutex);
-		}
 		close_socket(client_socket);
 		client_socket=INVALID_SOCKET;
 	}
@@ -3777,10 +3735,7 @@ int sbbs_t::putcom(const char *str, size_t len)
 	return i;
 }
 
-/* Legacy Remote I/O Control Interface:
- * This function mimics the RCIOL MS-DOS library written in 8086 assembler by Steven B. Deppe (1958-2014).
- * This function prototype shall remain the same in tribute to Steve (Ille Homine Albe).
- */
+/* Legacy Remote I/O Control Interface */
 int sbbs_t::rioctl(ushort action)
 {
 	int		mode;
@@ -4046,7 +4001,7 @@ void node_thread(void* arg)
 	if(startup->login_attempt_throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &sbbs->client_addr)) > 1) {
 		lprintf(LOG_DEBUG,"Node %d Throttling suspicious connection from: %s (%u login attempts)"
-			,sbbs->cfg.node_num, sbbs->client_ipaddr, login_attempts);
+			,sbbs->cfg.node_num, inet_ntoa(sbbs->client_addr.sin_addr), login_attempts);
 		mswait(login_attempts*startup->login_attempt_throttle);
 	}
 
@@ -4184,9 +4139,6 @@ void node_thread(void* arg)
 	sbbs->putnodedat(sbbs->cfg.node_num,&node);
 
 	{
-		/* crash here on Aug-4-2015:
-		node_thread_running already destroyed
-		bbs_thread() timed out waiting for 1 node thread(s) to terminate */
 		int32_t remain = protected_uint32_adjust(&node_threads_running, -1);
 		lprintf(LOG_INFO,"Node %d thread terminated (%u node threads remain, %lu clients served)"
 			,sbbs->cfg.node_num, remain, served);
@@ -4409,12 +4361,25 @@ void DLLCALL bbs_terminate(void)
 	terminate_server=true;
 }
 
-extern bbs_startup_t bbs_startup;
 static void cleanup(int code)
 {
     lputs(LOG_INFO,"Terminal Server thread terminating");
 
-	xpms_destroy(ts_set, sock_close_cb, startup);
+	if(telnet_socket!=INVALID_SOCKET) {
+		close_socket(telnet_socket);
+		telnet_socket=INVALID_SOCKET;
+	}
+	if(rlogin_socket!=INVALID_SOCKET) {
+		close_socket(rlogin_socket);
+		rlogin_socket=INVALID_SOCKET;
+	}
+#ifdef USE_CRYPTLIB
+	if(ssh_socket!=INVALID_SOCKET) {
+		close_socket(ssh_socket);
+		ssh_socket=INVALID_SOCKET;
+	}
+#endif
+
 
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0) 
@@ -4460,15 +4425,17 @@ static void cleanup(int code)
 
 void DLLCALL bbs_thread(void* arg)
 {
-	char			host_name[256];
+	const char*		host_name;
 	char*			identity;
 	char*			p;
     char			str[MAX_PATH+1];
 	char			logstr[256];
-	union xp_sockaddr	server_addr={0};
-	union xp_sockaddr	client_addr;
+	SOCKADDR_IN		server_addr={0};
+	SOCKADDR_IN		client_addr;
 	socklen_t		client_addr_len;
 	SOCKET			client_socket=INVALID_SOCKET;
+	fd_set			socket_set;
+	SOCKET			high_socket_set;
 	int				i;
     int				file;
 	int				result;
@@ -4482,17 +4449,12 @@ void DLLCALL bbs_thread(void* arg)
 	BOOL			is_client=FALSE;
 #ifdef __unix__
 	SOCKET	uspy_listen_socket[MAX_NODES];
-	struct main_sock_cb_data	uspy_cb[MAX_NODES]={};
-	union xp_sockaddr uspy_addr;
+	struct sockaddr_un uspy_addr;
+	socklen_t		uspy_addr_len;
 #endif
 #ifdef USE_CRYPTLIB
 	CRYPT_CONTEXT	ssh_context;
 #endif
-	struct main_sock_cb_data	telnet_cb;
-	struct main_sock_cb_data	ssh_cb;
-	struct main_sock_cb_data	rlogin_cb;
-	void						*ts_cb;
-	struct in_addr				iaddr;
 
     if(startup==NULL) {
     	sbbs_beep(100,500);
@@ -4528,8 +4490,7 @@ void DLLCALL bbs_thread(void* arg)
 	js_server_props.version_detail=bbs_ver();
 	js_server_props.clients=&node_threads_running.value;
 	js_server_props.options=&startup->options;
-	/* TODO: IPv6 */
-	js_server_props.interface_addr=(uint32_t *)&startup->outgoing4.s_addr;
+	js_server_props.interface_addr=&startup->telnet_interface;
 
 	uptime=0;
 	served=0;
@@ -4684,27 +4645,97 @@ void DLLCALL bbs_thread(void* arg)
 	startup->node_inbuf=node_inbuf;
 
     /* open a socket and wait for a client */
-    ts_set = xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
-    if(ts_set==NULL) {
-		lprintf(LOG_CRIT,"!ERROR %d creating Terminal Server socket set", ERROR_VALUE);
+
+    telnet_socket = open_socket(SOCK_STREAM, "telnet");
+
+	if(telnet_socket == INVALID_SOCKET) {
+		lprintf(LOG_CRIT,"!ERROR %d creating Telnet socket", ERROR_VALUE);
 		cleanup(1);
 		return;
 	}
-    telnet_cb.protocol="telnet";
-    telnet_cb.startup=startup;
 
-	/*
-	 * Add interfaces
-	 */
-	xpms_add_chararray_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->telnet_interfaces, startup->telnet_port, "Telnet Server", sock_cb, startup->seteuid, &telnet_cb);
+    lprintf(LOG_DEBUG,"Telnet socket %d opened",telnet_socket);
 
+	/*****************************/
+	/* Listen for incoming calls */
+	/*****************************/
+    memset(&server_addr, 0, sizeof(server_addr));
+
+	server_addr.sin_addr.s_addr = htonl(startup->telnet_interface);
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port   = htons(startup->telnet_port);
+
+	if(startup->telnet_port < IPPORT_RESERVED) {
+		if(startup->seteuid!=NULL)
+			startup->seteuid(FALSE);
+	}
+    result = retry_bind(telnet_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
+		,startup->bind_retry_count,startup->bind_retry_delay,"Telnet Server",lprintf);
+	if(startup->telnet_port < IPPORT_RESERVED) {
+		if(startup->seteuid!=NULL)
+			startup->seteuid(TRUE);
+	}
+	if(result != 0) {
+		lprintf(LOG_CRIT,"%s",BIND_FAILURE_HELP);
+		cleanup(1);
+		return;
+	}
+
+    result = listen(telnet_socket, 1);
+
+	if(result != 0) {
+		lprintf(LOG_CRIT,"!ERROR %d (%d) listening on Telnet socket", result, ERROR_VALUE);
+		cleanup(1);
+		return;
+	}
 	lprintf(LOG_INFO,"Telnet Server listening on port %u",startup->telnet_port);
 
 	if(startup->options&BBS_OPT_ALLOW_RLOGIN) {
+
 		/* open a socket and wait for a client */
-		rlogin_cb.protocol="rlogin";
-		rlogin_cb.startup=startup;
-		xpms_add_chararray_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->rlogin_interfaces, startup->rlogin_port, "RLogin Server", sock_cb, startup->seteuid, &rlogin_cb);
+
+		rlogin_socket = open_socket(SOCK_STREAM, "rlogin");
+
+		if(rlogin_socket == INVALID_SOCKET) {
+			lprintf(LOG_CRIT,"!ERROR %d creating RLogin socket", ERROR_VALUE);
+			cleanup(1);
+			return;
+		}
+
+		lprintf(LOG_DEBUG,"RLogin socket %d opened",rlogin_socket);
+
+		/*****************************/
+		/* Listen for incoming calls */
+		/*****************************/
+		memset(&server_addr, 0, sizeof(server_addr));
+
+		server_addr.sin_addr.s_addr = htonl(startup->rlogin_interface);
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_port   = htons(startup->rlogin_port);
+
+		if(startup->rlogin_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
+		result = retry_bind(rlogin_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
+			,startup->bind_retry_count,startup->bind_retry_delay,"RLogin Server",lprintf);
+		if(startup->rlogin_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
+		if(result != 0) {
+			lprintf(LOG_CRIT,"%s",BIND_FAILURE_HELP);
+			cleanup(1);
+			return;
+		}
+
+		result = listen(rlogin_socket, 1);
+
+		if(result != 0) {
+			lprintf(LOG_CRIT,"!ERROR %d (%d) listening on RLogin socket", result, ERROR_VALUE);
+			cleanup(1);
+			return;
+		}
 		lprintf(LOG_INFO,"RLogin Server listening on port %u",startup->rlogin_port);
 	}
 
@@ -4722,10 +4753,15 @@ void DLLCALL bbs_thread(void* arg)
 		/* Get the private key... first try loading it from a file... */
 		SAFEPRINTF2(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
 		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
-			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass)))
-				goto NO_SSH;
+			if(cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass)))
+				loaded_key=true;
+			cryptKeysetClose(ssh_keyset);
+			/* Failed to load the key... delete the keyfile and create a new one */
+			if(!loaded_key)
+				remove(str);
 		}
-		else {
+
+		if(!loaded_key) {
 			/* Couldn't do that... create a new context and use the key from there... */
 
 			if(!cryptStatusOK(i=cryptCreateContext(&ssh_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
@@ -4749,16 +4785,56 @@ void DLLCALL bbs_thread(void* arg)
 		}
 
 		/* open a socket and wait for a client */
-		ssh_cb.protocol="ssh";
-		ssh_cb.startup=startup;
-		xpms_add_chararray_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->ssh_interfaces, startup->ssh_port, "SSH Server", sock_cb, startup->seteuid, &ssh_cb);
+
+		ssh_socket = open_socket(SOCK_STREAM, "ssh");
+
+		if(ssh_socket == INVALID_SOCKET) {
+			lprintf(LOG_CRIT,"!ERROR %d creating SSH socket", ERROR_VALUE);
+			cleanup(1);
+			return;
+		}
+
+		lprintf(LOG_DEBUG,"SSH socket %d opened",ssh_socket);
+
+		/*****************************/
+		/* Listen for incoming calls */
+		/*****************************/
+		memset(&server_addr, 0, sizeof(server_addr));
+
+		server_addr.sin_addr.s_addr = htonl(startup->ssh_interface);
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_port   = htons(startup->ssh_port);
+
+		if(startup->ssh_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(FALSE);
+		}
+		result = retry_bind(ssh_socket,(struct sockaddr *)&server_addr,sizeof(server_addr)
+			,startup->bind_retry_count,startup->bind_retry_delay,"SSH Server",lprintf);
+		if(startup->ssh_port < IPPORT_RESERVED) {
+			if(startup->seteuid!=NULL)
+				startup->seteuid(TRUE);
+		}
+		if(result != 0) {
+			lprintf(LOG_CRIT,"%s",BIND_FAILURE_HELP);
+			cleanup(1);
+			return;
+		}
+
+		result = listen(ssh_socket, 1);
+
+		if(result != 0) {
+			lprintf(LOG_CRIT,"!ERROR %d (%d) listening on SSH socket", result, ERROR_VALUE);
+			cleanup(1);
+			return;
+		}
 		lprintf(LOG_INFO,"SSH Server listening on port %u",startup->ssh_port);
 	}
 NO_SSH:
 #endif
 
-	sbbs = new sbbs_t(0, &server_addr, sizeof(server_addr)
-		,"Terminal Server", ts_set->socks[0].sock, &scfg, text, NULL);
+	sbbs = new sbbs_t(0, server_addr
+		,"Terminal Server", telnet_socket, &scfg, text, NULL);
 	if(sbbs->init()==false) {
 		lputs(LOG_CRIT,"!BBS initialization failed");
 		cleanup(1);
@@ -4768,7 +4844,7 @@ NO_SSH:
 	_beginthread(output_thread, 0, sbbs);
 
 	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
-		events = new sbbs_t(0, &server_addr, sizeof(server_addr)
+		events = new sbbs_t(0, server_addr
 			,"BBS Events", INVALID_SOCKET, &scfg, text, NULL);
 		if(events->init()==false) {
 			lputs(LOG_CRIT,"!Events initialization failed");
@@ -4838,19 +4914,44 @@ NO_SSH:
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
-	    if((unsigned int)snprintf(str,sizeof(uspy_addr.un.sun_path),
+	    if((uspy_listen_socket[i-1]=socket(PF_UNIX,SOCK_STREAM,0))==INVALID_SOCKET)
+	        lprintf(LOG_ERR,"Node %d !ERROR %d creating local spy socket"
+	            , i, errno);
+	    else {
+	        lprintf(LOG_INFO,"Node %d local spy using socket %d", i, uspy_listen_socket[i-1]);
+	        if(startup!=NULL && startup->socket_open!=NULL)
+	            startup->socket_open(startup->cbdata,TRUE);
+	    }
+	
+	    uspy_addr.sun_family=AF_UNIX;
+	    if((unsigned int)snprintf(str,sizeof(uspy_addr.sun_path),
 	            "%slocalspy%d.sock", startup->temp_dir, i)
-	            >=sizeof(uspy_addr.un.sun_path)) {
-			lprintf(LOG_ERR,"Node %d !ERROR local spy socket path \"%slocalspy%d.sock\" too long."
-				, i, startup->temp_dir, i);
-			continue;
-		}
+	            >=sizeof(uspy_addr.sun_path))
+	        uspy_listen_socket[i-1]=INVALID_SOCKET;
 	    else  {
-			if(xpms_add(ts_set, PF_UNIX, SOCK_STREAM, 0, str, 0, "Spy Socket", sock_cb, NULL, &uspy_cb[i-1]))
-				lprintf(LOG_INFO,"Node %d local spy using socket %s", i, str);
-			else
-				lprintf(LOG_ERR,"Node %d !ERROR %d creating local spy socket %s"
-					, i, errno, str);
+	        strcpy(uspy_addr.sun_path,str);
+	        if(fexist(str))
+	            unlink(str);
+	    }
+	    if(uspy_listen_socket[i-1]!=INVALID_SOCKET) {
+	        uspy_addr_len=SUN_LEN(&uspy_addr);
+	        if(bind(uspy_listen_socket[i-1], (struct sockaddr *) &uspy_addr, uspy_addr_len)) {
+	            lprintf(LOG_ERR,"Node %d !ERROR %d binding local spy socket %d to %s"
+	                , i, errno, uspy_listen_socket[i-1], uspy_addr.sun_path);
+	            close_socket(uspy_listen_socket[i-1]);
+				uspy_listen_socket[i-1]=INVALID_SOCKET;
+	            continue;
+	        }
+            lprintf(LOG_INFO,"Node %d local spy socket %d bound to %s"
+                , i, uspy_listen_socket[i-1], uspy_addr.sun_path);
+	        if(listen(uspy_listen_socket[i-1],1))  {
+	            lprintf(LOG_ERR,"Node %d !ERROR %d listening local spy socket %d"
+					,i, errno, uspy_listen_socket[i-1]);
+	            close_socket(uspy_listen_socket[i-1]);
+				uspy_listen_socket[i-1]=INVALID_SOCKET;
+	            continue;
+			}
+	        uspy_addr_len=sizeof(uspy_addr);
 	    }
 	}
 #endif // __unix__ (unix-domain spy sockets)
@@ -4883,21 +4984,22 @@ NO_SSH:
 					break;
 
 				if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
-					lprintf(LOG_INFO,"Recycle semaphore file (%s) detected"
-						,p);
+					lprintf(LOG_INFO,"%04d Recycle semaphore file (%s) detected"
+						,telnet_socket,p);
 					break;
 				}
 				if(startup->recycle_now==TRUE) {
-					lprintf(LOG_INFO,"Recycle semaphore signaled");
+					lprintf(LOG_INFO,"%04d Recycle semaphore signaled",telnet_socket);
 					startup->recycle_now=FALSE;
 					break;
 				}
 			}
 			if(((p=semfile_list_check(&initialized,shutdown_semfiles))!=NULL
-					&& lprintf(LOG_INFO,"Shutdown semaphore file (%s) detected"
-						,p))
+					&& lprintf(LOG_INFO,"%04d Shutdown semaphore file (%s) detected"
+						,telnet_socket,p))
 				|| (startup->shutdown_now==TRUE
-					&& lprintf(LOG_INFO,"Shutdown semaphore signaled"))) {
+					&& lprintf(LOG_INFO,"%04d Shutdown semaphore signaled"
+						,telnet_socket))) {
 				startup->shutdown_now=FALSE;
 				terminate_server=TRUE;
 				break;
@@ -4911,15 +5013,62 @@ NO_SSH:
 #endif
 
 		/* now wait for connection */
-		client_addr_len = sizeof(client_addr);
-		client_socket=xpms_accept(ts_set, &client_addr
-	        	,&client_addr_len, startup->sem_chk_freq*1000, &ts_cb);
+
+		FD_ZERO(&socket_set);
+		high_socket_set=0;
+		if(telnet_socket!=INVALID_SOCKET) {
+			FD_SET(telnet_socket,&socket_set);
+			high_socket_set=telnet_socket+1;
+		}
+		if(startup->options&BBS_OPT_ALLOW_RLOGIN 
+			&& rlogin_socket!=INVALID_SOCKET) {
+			FD_SET(rlogin_socket,&socket_set);
+			if(rlogin_socket+1>high_socket_set)
+				high_socket_set=rlogin_socket+1;
+		}
+#ifdef USE_CRYPTLIB
+		if(startup->options&BBS_OPT_ALLOW_SSH
+			&& ssh_socket!=INVALID_SOCKET) {
+			FD_SET(ssh_socket,&socket_set);
+			if(ssh_socket+1>high_socket_set)
+				high_socket_set=ssh_socket+1;
+		}
+#endif
+#ifdef __unix__
+		for(i=first_node;i<=last_node;i++)  {
+			if(uspy_listen_socket[i-1]!=INVALID_SOCKET)  {
+				FD_SET(uspy_listen_socket[i-1],&socket_set);
+				if(uspy_listen_socket[i-1]+1>high_socket_set)
+					high_socket_set=uspy_listen_socket[i-1]+1;
+			}
+			if(uspy_socket[i-1]!=INVALID_SOCKET)  {
+				FD_SET(uspy_socket[i-1],&socket_set);
+				if(uspy_socket[i-1]+1>high_socket_set)
+					high_socket_set=uspy_listen_socket[i-1]+1;
+			}
+		}
+#endif
+
+		struct timeval tv;
+		tv.tv_sec=startup->sem_chk_freq;
+		tv.tv_usec=0;
+
+		if((i=select(high_socket_set,&socket_set,NULL,NULL,&tv))<1) {
+			if(i==0)
+				continue;
+			if(ERROR_VALUE==EINTR)
+				lprintf(LOG_DEBUG,"Terminal Server listening interrupted");
+			else if(ERROR_VALUE == ENOTSOCK)
+            	lprintf(LOG_NOTICE,"Terminal Server sockets closed");
+			else
+				lprintf(LOG_WARNING,"!ERROR %d selecting sockets",ERROR_VALUE);
+			continue;
+		}
 
 		if(terminate_server)	/* terminated */
 			break;
 
-		if(client_socket == INVALID_SOCKET)
-			continue;
+		client_addr_len = sizeof(client_addr);
 
 		bool rlogin = false;
 #ifdef USE_CRYPTLIB
@@ -4927,13 +5076,23 @@ NO_SSH:
 #endif
 
 		is_client=FALSE;
-		if(ts_cb == &telnet_cb) {
+		if(telnet_socket!=INVALID_SOCKET 
+			&& FD_ISSET(telnet_socket,&socket_set)) {
+			client_socket = accept_socket(telnet_socket, (struct sockaddr *)&client_addr
+	        	,&client_addr_len);
 	        is_client=TRUE;
-		} else if(ts_cb == &rlogin_cb) {
+		} else if(rlogin_socket!=INVALID_SOCKET 
+			&& FD_ISSET(rlogin_socket,&socket_set)) {
+			client_socket = accept_socket(rlogin_socket, (struct sockaddr *)&client_addr
+	        	,&client_addr_len);
 			rlogin = true;
 			is_client=TRUE;
 #ifdef USE_CRYPTLIB
-		} else if(ts_cb == &ssh_cb) {
+		} else if(ssh_socket!=INVALID_SOCKET 
+			&& FD_ISSET(ssh_socket,&socket_set)) {
+
+			client_socket = accept_socket(ssh_socket, (struct sockaddr *)&client_addr
+	        	,&client_addr_len);
 			ssh = true;
 			is_client=TRUE;
 			sbbs->ssh_mode=true;
@@ -4941,7 +5100,8 @@ NO_SSH:
 		} else {
 #ifdef __unix__
 			for(i=first_node;i<=last_node;i++)  {
-				if(&uspy_cb[i-1] == ts_cb) {
+				if(uspy_socket[i-1]!=INVALID_SOCKET
+				&& FD_ISSET(uspy_socket[i-1],&socket_set)) {
 					if(node_socket[i-1]==INVALID_SOCKET)
 						read(uspy_socket[i-1],str,sizeof(str));
 					if(!socket_check(uspy_socket[i-1],NULL,NULL,0)) {
@@ -4950,17 +5110,25 @@ NO_SSH:
 						uspy_socket[i-1]=INVALID_SOCKET;
 					}
 				}
-				if(&uspy_cb[i-1] == ts_cb) {
+				if(uspy_listen_socket[i-1]!=INVALID_SOCKET
+				&& FD_ISSET(uspy_listen_socket[i-1],&socket_set)) {
 					BOOL already_connected=(uspy_socket[i-1]!=INVALID_SOCKET);
-					SOCKET new_socket=client_socket;
+					SOCKET new_socket=INVALID_SOCKET;
+					new_socket = accept(uspy_listen_socket[i-1], (struct sockaddr *)&uspy_addr
+						,&uspy_addr_len);
+					if(new_socket < 0)  {
+						lprintf(LOG_ERR,"!ERROR Spy socket for node %d unable to accept()",i);
+						close_socket(uspy_listen_socket[i-1]);
+						uspy_listen_socket[i-1]=INVALID_SOCKET;
+					}
 					fcntl(new_socket,F_SETFL,fcntl(new_socket,F_GETFL)|O_NONBLOCK);
 					if(already_connected)  {
-						lprintf(LOG_ERR,"!ERROR Spy socket %s already in use",uspy_addr.un.sun_path);
+						lprintf(LOG_ERR,"!ERROR Spy socket %s already in use",uspy_addr.sun_path);
 						send(new_socket,"Spy socket already in use.\r\n",27,0);
 						close_socket(new_socket);
 					}
 					else  {
-						lprintf(LOG_ERR,"!Spy socket %s (%d) connected",uspy_addr.un.sun_path,new_socket);
+						lprintf(LOG_ERR,"!Spy socket %s (%d) connected",uspy_addr.sun_path,new_socket);
 						uspy_socket[i-1]=new_socket;
 						SAFEPRINTF(str,"Spy connection established to node %d\r\n",i);
 						send(uspy_socket[i-1],str,strlen(str),0);
@@ -4986,15 +5154,15 @@ NO_SSH:
 #endif
 			lprintf(LOG_ERR,"!ERROR %d accepting connection", ERROR_VALUE);
 #ifdef _WIN32
-			if(WSAGetLastError()==WSAENOBUFS) {	/* recycle (re-init WinSock) on this error */
+			if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
 				break;
-			}
 #endif
+			SSH_END();
 			continue;
 		}
-		char host_ip[INET6_ADDRSTRLEN];
+		char host_ip[32];
 
-		inet_addrtop(&client_addr, host_ip, sizeof(host_ip));
+		strcpy(host_ip,inet_ntoa(client_addr.sin_addr));
 
 		if(trashcan(&scfg,host_ip,"ip-silent")) {
 			SSH_END();
@@ -5009,15 +5177,12 @@ NO_SSH:
 #else
 			,rlogin ? "RLogin" : "Telnet"
 #endif
-			, host_ip, inet_addrport(&client_addr));
+			, host_ip, ntohs(client_addr.sin_port));
 
 #ifdef _WIN32
 		if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
-
-		/* Purge (flush) any pending input or output data */
-		sbbs->rioctl(IOFB);
 
 		/* Do SSH stuff here */
 #ifdef USE_CRYPTLIB
@@ -5108,14 +5273,19 @@ NO_SSH:
 
 		sbbs->bprintf("Connection from: %s\r\n", host_ip);
 
-		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
+		struct hostent* h;
+		if(startup->options&BBS_OPT_NO_HOST_LOOKUP)
+			h=NULL;
+		else {
 			sbbs->bprintf("Resolving hostname...");
-			if(getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD))
-				strcpy(host_name, "<no name>");
+			h=gethostbyaddr((char *)&client_addr.sin_addr
+				,sizeof(client_addr.sin_addr),AF_INET);
 			sbbs->putcom(crlf);
 		}
+		if(h!=NULL && h->h_name!=NULL)
+			host_name=h->h_name;
 		else
-			strcpy(host_name, "<no name>");
+			host_name="<no name>";
 
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
 			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
@@ -5134,7 +5304,7 @@ NO_SSH:
 		if(startup->options&BBS_OPT_GET_IDENT) {
 			sbbs->bprintf("Resolving identity...");
 			/* ToDo: Make ident timeout configurable */
-			if(identify(&client_addr, inet_addrport(&client_addr), str, sizeof(str)-1, /* timeout: */1)) {
+			if(identify(&client_addr, startup->telnet_port, str, sizeof(str)-1, /* timeout: */1)) {
 				lprintf(LOG_DEBUG,"%04d Ident Response: %s",client_socket, str);
 				identity=strrchr(str,':');
 				if(identity!=NULL) {
@@ -5151,7 +5321,7 @@ NO_SSH:
 		client.time=time32(NULL);
 		SAFECOPY(client.addr,host_ip);
 		SAFECOPY(client.host,host_name);
-		client.port=inet_addrport(&client_addr);
+		client.port=ntohs(client_addr.sin_port);
 #ifdef USE_CRYPTLIB
 		client.protocol=rlogin ? "RLogin":(ssh ? "SSH" : "Telnet");
 #else
@@ -5201,7 +5371,7 @@ NO_SSH:
 
         node_socket[i-1]=client_socket;
 
-		sbbs_t* new_node = new sbbs_t(i, &client_addr, client_addr_len, host_name
+		sbbs_t* new_node = new sbbs_t(i, client_addr, host_name
         	,client_socket
 			,&scfg, text, &client);
 
@@ -5245,7 +5415,6 @@ NO_SSH:
 		}
 #ifdef USE_CRYPTLIB
 		if(ssh) {
-			/* TODO: IPv6? */
 			SOCKET	tmp_sock;
 			SOCKADDR_IN		tmp_addr={0};
 			socklen_t		tmp_addr_len;
@@ -5365,7 +5534,7 @@ NO_PASSTHRU:
 		if(uspy_listen_socket[i]!=INVALID_SOCKET) {
 			close_socket(uspy_listen_socket[i]);
 			uspy_listen_socket[i]=INVALID_SOCKET;
-			snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
+			snprintf(str,sizeof(uspy_addr.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
 			if(fexist(str))
 				unlink(str);
 		}
