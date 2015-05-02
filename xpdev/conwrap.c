@@ -2,7 +2,7 @@
 
 /* DOS's kbhit and getch functions for Unix - Casey Martin 2000 */
 
-/* $Id: conwrap.c,v 1.13 2007/09/17 17:23:58 rswindell Exp $ */
+/* $Id: conwrap.c,v 1.14 2014/04/24 05:33:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,8 @@ int getch(void)
     	_termios_setup();
 
     /* get a char out of stdin */
-    read(STDIN_FILENO, &c, 1);
+    if(read(STDIN_FILENO, &c, 1)==-1)
+		return 0;
 
     return c;
 }
