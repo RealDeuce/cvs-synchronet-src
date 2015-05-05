@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.271 2013/02/11 22:52:13 deuce Exp $ */
+/* $Id: services.c,v 1.276 2015/04/25 06:10:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -75,6 +75,7 @@ static ulong	served=0;
 static char		revision[16];
 static str_list_t recycle_semfiles;
 static str_list_t shutdown_semfiles;
+static protected_uint32_t threads_pending_start;
 
 typedef struct {
 	/* These are sysop-configurable */
@@ -901,6 +902,10 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateCOMClass(js_cx, *glob)==NULL)
 			break;
 
+		/* CryptContext Class */
+		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
+			break;
+
 		/* user-specific objects */
 		if(!js_CreateUserObjects(js_cx, *glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
@@ -1075,6 +1080,7 @@ static void js_service_thread(void* arg)
 
 	SetThreadName("JS Service");
 	thread_up(TRUE /* setuid */);
+	protected_uint32_adjust(&threads_pending_start, -1);
 
 	/* Host name lookup and filtering */
 	if(service->options&BBS_OPT_NO_HOST_LOOKUP 
@@ -1193,7 +1199,7 @@ static void js_service_thread(void* arg)
 	if(js_script==NULL) 
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
-		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
+		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL, js_glob);
 		JS_SetOperationCallback(js_cx, js_OperationCallback);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.callback);
@@ -1256,6 +1262,7 @@ static void js_static_service_thread(void* arg)
 
 	SetThreadName("JS Static Service");
 	thread_up(TRUE /* setuid */);
+	protected_uint32_adjust(&threads_pending_start, -1);
 
 	memset(&service_client,0,sizeof(service_client));
 	service_client.socket = service->socket;
@@ -1300,7 +1307,7 @@ static void js_static_service_thread(void* arg)
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
+		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL, js_glob);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.callback);
 		JS_RemoveObjectRoot(js_cx, &js_glob);
@@ -1350,6 +1357,7 @@ static void native_static_service_thread(void* arg)
 
 	SetThreadName("Static Service");
 	thread_up(TRUE /* setuid */);
+	protected_uint32_adjust(&threads_pending_start, -1);
 
 #ifdef _WIN32
 	if(!DuplicateHandle(GetCurrentProcess(),
@@ -1414,6 +1422,7 @@ static void native_service_thread(void* arg)
 
 	SetThreadName("Native Service");
 	thread_up(TRUE /* setuid */);
+	protected_uint32_adjust(&threads_pending_start, -1);
 
 	/* Host name lookup and filtering */
 	if(service->options&BBS_OPT_NO_HOST_LOOKUP 
@@ -1659,6 +1668,12 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 
 static void cleanup(int code)
 {
+	while(protected_uint32_value(threads_pending_start)) {
+		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
+		SLEEP(1000);
+	}
+	protected_uint32_destroy(threads_pending_start);
+
 	FREE_AND_NULL(service);
 	services=0;
 
@@ -1670,8 +1685,11 @@ static void cleanup(int code)
 	update_clients();
 
 #ifdef _WINSOCKAPI_	
-	if(WSAInitialized && WSACleanup()!=0) 
-		lprintf(LOG_ERR,"0000 !WSACleanup ERROR %d",ERROR_VALUE);
+	if(WSAInitialized) {
+		if(WSACleanup()!=0) 
+			lprintf(LOG_ERR,"0000 !WSACleanup ERROR %d",ERROR_VALUE);
+		WSAInitialized = FALSE;
+	}
 #endif
 
 	thread_down();
@@ -1689,7 +1707,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.271 $", "%*s %s", revision);
+	sscanf("$Revision: 1.276 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1791,6 +1809,8 @@ void DLLCALL services_thread(void* arg)
 
 		sbbs_srand();	/* Seed random number generator */
 
+		protected_uint32_init(&threads_pending_start,0);
+
 		if(!winsock_startup()) {
 			cleanup(1);
 			return;
@@ -1849,9 +1869,10 @@ void DLLCALL services_thread(void* arg)
 
 		/* Open and Bind Listening Sockets */
 		total_sockets=0;
-		for(i=0;i<(int)services;i++) {
-
+		for(i=0;i<(int)services;i++)
 			service[i].socket=INVALID_SOCKET;
+
+		for(i=0;i<(int)services && !startup->shutdown_now;i++) {
 
 			if((socket = open_socket(
 				(service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
@@ -1936,6 +1957,7 @@ void DLLCALL services_thread(void* arg)
 				continue;
 
 			/* start thread here */
+			protected_uint32_adjust(&threads_pending_start, 1);
 			if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
 				_beginthread(native_static_service_thread, service[i].stack_size, &service[i]);
 			else										/* JavaScript */
@@ -1966,7 +1988,7 @@ void DLLCALL services_thread(void* arg)
 		/* Main Server Loop */
 		while(!terminated) {
 
-			if(active_clients()==0) {
+			if(active_clients()==0 && protected_uint32_value(threads_pending_start)==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"0000 Recycle semaphore file (%s) detected",p);
@@ -2195,6 +2217,7 @@ void DLLCALL services_thread(void* arg)
 
 				udp_buf = NULL;
 
+				protected_uint32_adjust(&threads_pending_start, 1);
 				if(service[i].options&SERVICE_OPT_NATIVE)	/* Native */
 					_beginthread(native_service_thread, service[i].stack_size, client);
 				else										/* JavaScript */
