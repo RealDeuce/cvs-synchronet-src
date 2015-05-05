@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.72 2015/05/05 02:02:26 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.73 2015/05/05 06:20:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -377,17 +377,17 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	post_t	*post;
 	smbmsg_t	msg;
 
+	cursubnum=subnum;	/* for ARS */
 	if(cfg.scanposts_mod[0] && !scanposts_inside) {
 		char cmdline[256];
 
 		scanposts_inside = true;
-		safe_snprintf(cmdline, sizeof(cmdline), "%s %u %u %s", cfg.scanposts_mod, subnum, mode, find);
+		safe_snprintf(cmdline, sizeof(cmdline), "%s %s %u %s", cfg.scanposts_mod, cfg.sub[subnum]->code, mode, find);
 		i=exec_bin(cmdline, &main_csi);
 		scanposts_inside = false;
 		return i;
 	}
 	find_buf[0]=0;
-	cursubnum=subnum;	/* for ARS */
 	if(!chk_ar(cfg.sub[subnum]->read_ar,&useron,&client)) {
 		bprintf(text[CantReadSub]
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
