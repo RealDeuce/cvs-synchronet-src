@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.581 2015/05/06 01:51:25 deuce Exp $ */
+/* $Id: websrvr.c,v 1.582 2015/05/06 01:54:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1162,7 +1162,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 
 		/* DO NOT send a content-length for chunked */
 		if(send_entity) {
-			if(session->req.keep_alive && session->req.dynamic!=IS_CGI && (!chunked)) {
+			if((session->req.keep_alive || session->req.method == HTTP_HEAD) && session->req.dynamic!=IS_CGI && (!chunked)) {
 				if(ret)  {
 					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
 					safecat(headers,header,MAX_HEADERS_SIZE);
@@ -5401,7 +5401,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.581 $", "%*s %s", revision);
+	sscanf("$Revision: 1.582 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
