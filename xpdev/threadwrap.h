@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.49 2015/10/04 22:09:00 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.48 2014/12/31 22:38:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,14 +122,6 @@ DLLEXPORT int DLLCALL pthread_mutex_unlock(pthread_mutex_t*);
 DLLEXPORT int DLLCALL pthread_mutex_destroy(pthread_mutex_t*);
 
 #define SetThreadName(c)
-
-// A structure in case we need to add an event or something...
-typedef struct {
-	uint32_t	state;
-} pthread_once_t;
-
-#define PTHREAD_ONCE_INIT	{0};
-DLLEXPORT int DLLCALL pthread_once(pthread_once_t *oc, void (*init)(void));
 
 #endif
 
