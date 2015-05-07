@@ -1,12 +1,14 @@
+/* scfglib1.c */
+
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.69 2016/11/15 21:38:12 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.65 2015/04/27 10:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -274,9 +276,7 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	if(cfg->new_prot<' ')
 		cfg->new_prot=' ';
 	get_int(cfg->new_install,instream);
-	get_int(cfg->new_msgscan_init,instream);
-	get_int(cfg->guest_msgscan_init,instream);
-	for(i=0;i<5;i++)
+	for(i=0;i<7;i++)
 		get_int(n,instream);
 
 	/*************************/
@@ -845,45 +845,3 @@ void make_data_dirs(scfg_t* cfg)
 	}
 #endif
 }
-
-int smb_storage_mode(scfg_t* cfg, smb_t* smb)
-{
-	if(smb->subnum == INVALID_SUB)
-		return (cfg->sys_misc&SM_FASTMAIL) ? SMB_FASTALLOC : SMB_SELFPACK;
-	if(smb->subnum >= cfg->total_subs)
-		return -1;
-	if(cfg->sub[smb->subnum]->misc&SUB_HYPER) {
-		smb->status.attr |= SMB_HYPERALLOC;
-		return SMB_HYPERALLOC;
-	}
-	if(cfg->sub[smb->subnum]->misc&SUB_FAST)
-		return SMB_FASTALLOC;
-	return SMB_SELFPACK;
-}
-
-int smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
-{
-	int retval;
-
-	if(subnum != INVALID_SUB && subnum >= cfg->total_subs)
-		return SMB_FAILURE;
-	memset(smb, 0, sizeof(smb_t));
-	if(subnum == INVALID_SUB) {
-		SAFEPRINTF(smb->file, "%smail", cfg->data_dir);
-		smb->status.max_crcs	= cfg->mail_maxcrcs;
-		smb->status.max_msgs	= 0;
-		smb->status.max_age		= cfg->mail_maxage;
-		smb->status.attr		= SMB_EMAIL;
-	} else {
-		SAFEPRINTF2(smb->file, "%s%s", cfg->sub[subnum]->data_dir, cfg->sub[subnum]->code);
-		smb->status.max_crcs	= cfg->sub[subnum]->maxcrcs;
-		smb->status.max_msgs	= cfg->sub[subnum]->maxmsgs;
-		smb->status.max_age		= cfg->sub[subnum]->maxage;
-		smb->status.attr		= cfg->sub[subnum]->misc&SUB_HYPER ? SMB_HYPERALLOC :0;
-	}
-	smb->retry_time = cfg->smb_retry_time;
-	if((retval = smb_open(smb)) == SMB_SUCCESS)
-		smb->subnum = subnum;
-	return retval;
-}
-
