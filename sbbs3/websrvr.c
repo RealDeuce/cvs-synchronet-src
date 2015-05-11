@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.579 2014/12/11 11:11:29 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.582 2015/05/06 01:54:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1162,7 +1162,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 
 		/* DO NOT send a content-length for chunked */
 		if(send_entity) {
-			if(session->req.keep_alive && session->req.dynamic!=IS_CGI && (!chunked)) {
+			if((session->req.keep_alive || session->req.method == HTTP_HEAD) && session->req.dynamic!=IS_CGI && (!chunked)) {
 				if(ret)  {
 					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
 					safecat(headers,header,MAX_HEADERS_SIZE);
@@ -3451,7 +3451,8 @@ static BOOL exec_cgi(http_session_t *session)
 					else  {
 						if(!no_chunked && session->http_ver>=HTTP_1_1) {
 							session->req.keep_alive=orig_keep;
-							set_chunked=TRUE;
+							if (session->req.method != HTTP_HEAD)
+								set_chunked=TRUE;
 						}
 						if(got_valid_headers)  {
 							session->req.dynamic=IS_CGI;
@@ -3825,7 +3826,8 @@ static BOOL exec_cgi(http_session_t *session)
 			session->req.dynamic=IS_CGI;
 			if(!no_chunked && session->http_ver>=HTTP_1_1) {
 				session->req.keep_alive=orig_keep;
-				set_chunked=TRUE;
+				if (session->req.method != HTTP_HEAD)
+					set_chunked=TRUE;
 			}
 			strListPush(&session->req.dynamic_heads,content_type);
 			send_headers(session,cgi_status,set_chunked);
@@ -4736,7 +4738,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Executing script: %s",session->socket,script);
 		start=xp_timer();
-		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL);
+		js_PrepareToExecute(session->js_cx, session->js_glob, script, /* startup_dir */NULL, session->js_glob);
 		JS_ExecuteScript(session->js_cx, session->js_glob, js_script, &rval);
 		js_EvalOnExit(session->js_cx, session->js_glob, &session->js_callback);
 		JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
@@ -5399,7 +5401,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.579 $", "%*s %s", revision);
+	sscanf("$Revision: 1.582 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
