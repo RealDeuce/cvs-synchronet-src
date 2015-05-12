@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.79 2014/02/10 00:48:01 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.80 2014/02/10 02:18:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@
 	struct termios tio_default;				/* Initial term settings */
 #endif
 
-#include <ciolib.h>
+#include "ciolib.h"
 #include "ansi_cio.h"
 
 int	CIOLIB_ANSI_TIMEOUT=500;
