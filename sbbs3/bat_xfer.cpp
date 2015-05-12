@@ -2,13 +2,13 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.36 2015/08/20 07:08:25 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.35 2015/04/28 10:55:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -723,7 +723,7 @@ void sbbs_t::batch_add_list(char *list)
 				break;
 			if(!fgets(str,127,stream))
 				break;
-			truncnl(str);
+			truncsp(str);
 			sprintf(f.name,"%.12s",str);
 			lncntr=0;
 			for(i=j=k=0;i<usrlibs;i++) {

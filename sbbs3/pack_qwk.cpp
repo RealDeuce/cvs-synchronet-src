@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.69 2016/04/12 00:43:27 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.66 2015/05/02 03:20:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,8 +105,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		mode|=QM_VIA;
 	if(useron.qwk&QWK_MSGID)
 		mode|=QM_MSGID;
-	if(useron.qwk&QWK_EXT)
-		mode|=QM_EXT;
 
 	(*msgcnt)=0L;
 	if(/* !prepack && */ !(useron.qwk&QWK_NOCTRL)) {
@@ -427,10 +425,11 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				subs_scanned++;
 				msgs=getlastmsg(usrsub[i][j],&lastmsg,0);
 				if(!msgs || lastmsg<=subscan[usrsub[i][j]].ptr) { /* no msgs */
-					if(subscan[usrsub[i][j]].ptr>lastmsg)	/* corrupted ptr */
-						subscan[usrsub[i][j]].ptr=lastmsg;	/* so fix automatically */
-					if(subscan[usrsub[i][j]].last>lastmsg)
+					if(subscan[usrsub[i][j]].ptr>lastmsg)	{ /* corrupted ptr */
+						outchar('*');
+						subscan[usrsub[i][j]].ptr=lastmsg; /* so fix automatically */
 						subscan[usrsub[i][j]].last=lastmsg; 
+					}
 					bprintf(text[NScanStatusFmt]
 						,cfg.grp[cfg.sub[usrsub[i][j]]->grp]->sname
 						,cfg.sub[usrsub[i][j]]->lname,0L,msgs);
@@ -447,7 +446,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				}
 
 				k=0;
-				if(useron.rest&FLAG('Q') ||  (useron.qwk&QWK_BYSELF))
+				if(useron.qwk&QWK_BYSELF)
 					k|=LP_BYSELF;
 				if(useron.rest&FLAG('Q') || !(subscan[usrsub[i][j]].cfg&SUB_CFG_YSCAN))
 					k|=LP_OTHERS;
