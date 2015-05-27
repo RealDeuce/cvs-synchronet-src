@@ -2,13 +2,13 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.63 2009/11/12 04:34:41 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.65 2015/04/27 10:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -303,9 +303,12 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	get_str(cfg->mods_dir,instream);
 	get_str(cfg->logs_dir,instream);
 	if(!cfg->logs_dir[0]) SAFECOPY(cfg->logs_dir,cfg->data_dir);
+	get_str(cfg->readmail_mod, instream);
+	get_str(cfg->scanposts_mod, instream);
+	get_str(cfg->scansubs_mod, instream);
 
 	get_int(c,instream);
-	for(i=0;i<158;i++)					/* unused - initialized to NULL */
+	for(i=0;i<62;i++)					/* unused - initialized to NULL */
 		get_int(n,instream);
 	for(i=0;i<254;i++)					/* unused - initialized to 0xff */
 		get_int(n,instream);
@@ -730,6 +733,7 @@ void free_main_cfg(scfg_t* cfg)
 		}
 		FREE_AND_NULL(cfg->shell);
 	}
+	cfg->total_shells=0;
 }
 
 void free_msgs_cfg(scfg_t* cfg)
@@ -744,6 +748,7 @@ void free_msgs_cfg(scfg_t* cfg)
 		}
 		FREE_AND_NULL(cfg->grp);
 	}
+	cfg->total_grps=0;
 
 	if(cfg->sub!=NULL) {
 		for(i=0;i<cfg->total_subs;i++) {
@@ -756,6 +761,7 @@ void free_msgs_cfg(scfg_t* cfg)
 		}
 		FREE_AND_NULL(cfg->sub);
 	}
+	cfg->total_subs=0;
 
 	FREE_AND_NULL(cfg->faddr);
 	cfg->total_faddrs=0;
@@ -769,6 +775,7 @@ void free_msgs_cfg(scfg_t* cfg)
 		}
 		FREE_AND_NULL(cfg->qhub);
 	}
+	cfg->total_qhubs=0;
 
 	if(cfg->phub!=NULL) {
 		for(i=0;i<cfg->total_phubs;i++) {
@@ -776,6 +783,7 @@ void free_msgs_cfg(scfg_t* cfg)
 		}
 		FREE_AND_NULL(cfg->phub);
 	}
+	cfg->total_phubs=0;
 }
 
 /************************************************************/
