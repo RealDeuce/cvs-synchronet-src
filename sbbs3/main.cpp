@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.612 2015/08/06 00:43:18 rswindell Exp $ */
+/* $Id: main.cpp,v 1.611 2015/04/27 10:45:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3735,10 +3735,7 @@ int sbbs_t::putcom(const char *str, size_t len)
 	return i;
 }
 
-/* Legacy Remote I/O Control Interface:
- * This function mimics the RCIOL MS-DOS library written in 8086 assembler by Steven B. Deppe (1958-2014).
- * This function prototype shall remain the same in tribute to Steve (Ille Homine Albe).
- */
+/* Legacy Remote I/O Control Interface */
 int sbbs_t::rioctl(ushort action)
 {
 	int		mode;
@@ -5186,9 +5183,6 @@ NO_SSH:
 		if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
-
-		/* Purge (flush) any pending input or output data */
-		sbbs->rioctl(IOFB);
 
 		/* Do SSH stuff here */
 #ifdef USE_CRYPTLIB
