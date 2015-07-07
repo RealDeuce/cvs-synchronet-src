@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.213 2015/02/17 07:33:49 deuce Exp $ */
+/* $Id: uifc32.c,v 1.215 2015/02/26 01:03:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,7 +162,7 @@ static uifc_graphics_t ascii_chars = {
 	.help_char='?',
 	.close_char='X',
 	.up_arrow='^',
-	.down_arrow='V',
+	.down_arrow='v',
 	.button_left='[',
 	.button_right=']',
 
@@ -1246,8 +1246,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					break;
 				case CIO_KEY_QUIT:
 					api->exit_flags |= UIFC_XF_QUIT;
-					if(!(mode&WIN_EXTKEYS))
-						gotkey=ESC;
+					gotkey=ESC;
 					break;
 			}
 			if(gotkey>255) {
