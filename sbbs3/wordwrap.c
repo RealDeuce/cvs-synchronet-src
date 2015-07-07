@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.21 2015/04/27 00:38:47 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.22 2015/05/07 11:02:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -363,7 +363,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 					if(icol < oldlen) {			/* If this line is overly long, It's impossible for the next word to fit */
 						/* k will equal the length of the first word on the next line */
 						k = get_word_len(inbuf, i+1);
-						if(icol+k+1 < oldlen) {	/* The next word would have fit but isn't here.  Must be a hard CR */
+						if(icol+k < oldlen) {	/* The next word would have fit but isn't here.  Must be a hard CR */
 							linebuf[l++]='\r';
 							linebuf[l++]='\n';
 							outbuf_append(&outbuf, &outp, linebuf, l, &outbuf_size);
