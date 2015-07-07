@@ -41,6 +41,7 @@ struct sdlfuncs {
 	void	(HACK_HACK_HACK *KillThread)	(SDL_Thread *thread);
 	void	(HACK_HACK_HACK *WaitThread)	(SDL_Thread *thread, int *status);
 	int	(HACK_HACK_HACK *WaitEvent)	(SDL_Event *event);
+	int	(HACK_HACK_HACK *PollEvent)	(SDL_Event *event);
 	SDL_Surface	*(HACK_HACK_HACK *SetVideoMode)	(int width, int height, int bpp, Uint32 flags);
 	void	(HACK_HACK_HACK *FreeSurface)	(SDL_Surface *surface);
 	void	(HACK_HACK_HACK *WM_SetCaption)	(const char *title, const char *icon);
@@ -78,6 +79,7 @@ struct sdlfuncs {
 /* Defined in SDL_win32_main.c for Win32 */
 extern struct sdlfuncs	sdl;
 extern SDL_sem *sdl_exit_sem;
+extern int sdl_video_initialized;
 
 #ifdef __cplusplus
 extern "C" {

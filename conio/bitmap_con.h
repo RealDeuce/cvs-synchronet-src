@@ -17,7 +17,7 @@ int bitmap_setfont(int font, int force, int font_no);
 int bitmap_getfont(void);
 int bitmap_loadfont(char *filename);
 
-void send_rectangle(int xoffset, int yoffset, int width, int height, int force);
+void send_rectangle(struct video_stats *vs, int xoffset, int yoffset, int width, int height, int force);
 int bitmap_init_mode(int mode, int *width, int *height);
 int bitmap_init(void (*drawrect_cb) (int xpos, int ypos, int width, int height, unsigned char *data)
 				,void (*flush) (void));
@@ -28,5 +28,7 @@ void bitmap_getcustomcursor(int *s, int *e, int *r, int *b, int *v);
 void bitmap_setcustomcursor(int s, int e, int r, int b, int v);
 int bitmap_getvideoflags(void);
 void bitmap_setvideoflags(int flags);
+void bitmap_setscaling(int new_value);
+int bitmap_getscaling(void);
 
 #endif
