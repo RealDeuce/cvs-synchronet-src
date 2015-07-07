@@ -2,13 +2,13 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.580 2015/04/25 06:10:17 deuce Exp $ */
+/* $Id: websrvr.c,v 1.583 2015/05/13 00:13:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1162,7 +1162,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 
 		/* DO NOT send a content-length for chunked */
 		if(send_entity) {
-			if(session->req.keep_alive && session->req.dynamic!=IS_CGI && (!chunked)) {
+			if((session->req.keep_alive || session->req.method == HTTP_HEAD) && session->req.dynamic!=IS_CGI && (!chunked)) {
 				if(ret)  {
 					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
 					safecat(headers,header,MAX_HEADERS_SIZE);
@@ -1795,7 +1795,8 @@ static named_string_t** read_ini_list(char* path, char* section, char* desc
 		if(i)
 			lprintf(LOG_DEBUG,"Read %u %s from %s section of %s"
 				,i,desc,section==NULL ? "root":section,path);
-	}
+	} else
+		lprintf(LOG_WARNING, "Error %d opening %s", errno, path);
 	return(list);
 }
 
@@ -3451,7 +3452,8 @@ static BOOL exec_cgi(http_session_t *session)
 					else  {
 						if(!no_chunked && session->http_ver>=HTTP_1_1) {
 							session->req.keep_alive=orig_keep;
-							set_chunked=TRUE;
+							if (session->req.method != HTTP_HEAD)
+								set_chunked=TRUE;
 						}
 						if(got_valid_headers)  {
 							session->req.dynamic=IS_CGI;
@@ -3825,7 +3827,8 @@ static BOOL exec_cgi(http_session_t *session)
 			session->req.dynamic=IS_CGI;
 			if(!no_chunked && session->http_ver>=HTTP_1_1) {
 				session->req.keep_alive=orig_keep;
-				set_chunked=TRUE;
+				if (session->req.method != HTTP_HEAD)
+					set_chunked=TRUE;
 			}
 			strListPush(&session->req.dynamic_heads,content_type);
 			send_headers(session,cgi_status,set_chunked);
@@ -5399,7 +5402,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.580 $", "%*s %s", revision);
+	sscanf("$Revision: 1.583 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
