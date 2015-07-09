@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.22 2015/05/07 11:02:06 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.23 2015/07/09 06:53:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -310,6 +310,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 					break;
 				}
 			case '\n':
+fprintf(stderr, "CR\n");
 				if(handle_quotes && (quote_count=get_prefix(inbuf+i+1, &prefix_bytes, &prefix_len, len*2+2))!=0) {
 					/* Move the input pointer offset to the last char of the prefix */
 					i+=prefix_bytes;
@@ -375,14 +376,14 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 							continue;
 						}
 						else {		/* Not a hard CR... add space if needed */
-							if(l<1 || !isspace((unsigned char)linebuf[l-1])) {
+							if(ocol > 1 && (l<1 || !isspace((unsigned char)linebuf[l-1]))) {
 								linebuf[l++]=' ';
 								ocol++;
 							}
 						}
 					}
 					else {			/* Not a hard CR... add space if needed */
-						if(l<1 || !isspace((unsigned char)linebuf[l-1])) {
+						if(ocol > 1 && (l<1 || !isspace((unsigned char)linebuf[l-1]))) {
 							linebuf[l++]=' ';
 							ocol++;
 						}
