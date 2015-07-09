@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.23 2015/07/09 06:53:49 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.24 2015/07/09 06:57:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -376,14 +376,14 @@ fprintf(stderr, "CR\n");
 							continue;
 						}
 						else {		/* Not a hard CR... add space if needed */
-							if(ocol > 1 && (l<1 || !isspace((unsigned char)linebuf[l-1]))) {
+							if(ocol > prefix_len+1 && (l<1 || !isspace((unsigned char)linebuf[l-1]))) {
 								linebuf[l++]=' ';
 								ocol++;
 							}
 						}
 					}
 					else {			/* Not a hard CR... add space if needed */
-						if(ocol > 1 && (l<1 || !isspace((unsigned char)linebuf[l-1]))) {
+						if(ocol > prefix_len+1 && (l<1 || !isspace((unsigned char)linebuf[l-1]))) {
 							linebuf[l++]=' ';
 							ocol++;
 						}
