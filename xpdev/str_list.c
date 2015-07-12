@@ -2,13 +2,13 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.46 2016/01/29 20:09:04 deuce Exp $ */
+/* $Id: str_list.c,v 1.42 2014/04/28 05:17:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -78,26 +78,6 @@ int DLLCALL strListIndexOf(const str_list_t list, const char* str)
 	return -1;
 }
 
-int DLLCALL strListFind(const str_list_t list, const char* str, BOOL case_sensistive)
-{
-	size_t		i;
-
-	if(list==NULL)
-		return -1;
-
-	for(i=0; list[i]!=NULL; i++) {
-		if(case_sensistive) {
-			if(strcmp(list[i],str) == 0)
-				return i;
-		} else {
-			if(stricmp(list[i],str) == 0)
-				return i;
-		}
-	}
-	
-	return -1;
-}
-
 static char* str_list_append(str_list_t* list, char* str, size_t index)
 {
 	str_list_t lp;
@@ -118,8 +98,6 @@ static char* str_list_insert(str_list_t* list, char* str, size_t index)
 	size_t	count;
 	str_list_t lp;
 
-	if(*list == NULL)
-		*list = strListInit();
 	count = strListCount(*list);
 	if(index > count)	/* invalid index, do nothing */
 		return(NULL);
@@ -340,17 +318,14 @@ char* DLLCALL strListCombine(str_list_t list, char* buf, size_t maxlen, const ch
 	char*	end;
 	char*	ptr;
 
-	if(maxlen<1)
+	if(list==NULL || maxlen<1)
 		return(NULL);
 
 	if(buf==NULL)
 		if((buf=(char*)malloc(maxlen))==NULL)
 			return(NULL);
 
-	memset(buf, 0, maxlen);
-	if(list==NULL)
-		return buf;
-
+	*buf=0;
 	end=buf+maxlen;
 	for(i=0, ptr=buf; list[i]!=NULL && buf<end; i++)
 		ptr += safe_snprintf(ptr, end-ptr, "%s%s", i ? delimit:"", list[i]);
