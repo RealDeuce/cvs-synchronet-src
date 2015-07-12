@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.151 2015/08/22 05:32:50 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.149 2015/04/29 22:09:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -373,8 +373,6 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case BBS_PROP_CURSUB_CODE:
 			if(sbbs->cursubnum<sbbs->cfg.total_subs)
 				p=sbbs->cfg.sub[sbbs->cursubnum]->code;
-			else
-				p=nulstr;
 			break;
 
 		case BBS_PROP_CURLIB:
@@ -387,8 +385,6 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case BBS_PROP_CURDIR_CODE:
 			if(sbbs->curdirnum<sbbs->cfg.total_dirs)
 				p=sbbs->cfg.dir[sbbs->curdirnum]->code;
-			else
-				p=nulstr;
 			break;
 
 		case BBS_PROP_CONNECTION:
@@ -1462,9 +1458,9 @@ js_atcode(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 	else {
 		if(padded_left)
-			sprintf(str,"%-*.*s",(int)disp_len,(int)disp_len,cp);
+			sprintf(str,"%-*.*s",disp_len,disp_len,cp);
 		else if(padded_right)
-			sprintf(str,"%*.*s",(int)disp_len,(int)disp_len,cp);
+			sprintf(str,"%*.*s",disp_len,disp_len,cp);
 		else
 			SAFECOPY(str,cp);
 
