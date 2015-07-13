@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.100 2015/08/20 05:19:42 deuce Exp $ */
+/* $Id: js_user.c,v 1.99 2014/04/06 06:18:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,6 @@ enum {
 	,USER_PROP_NAME		
 	,USER_PROP_HANDLE	
 	,USER_PROP_NOTE		
-	,USER_PROP_IPADDR
 	,USER_PROP_COMP		
 	,USER_PROP_COMMENT	
 	,USER_PROP_NETMAIL	
@@ -173,9 +172,6 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case USER_PROP_NOTE:
 			s=p->user->note;
-			break;
-		case USER_PROP_IPADDR:
-			s=p->user->ipaddr;
 			break;
 		case USER_PROP_COMP:
 			s=p->user->comp;
@@ -469,10 +465,6 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 			SAFECOPY(p->user->note,str);
 			putuserrec(scfg,p->user->number,U_NOTE,LEN_NOTE,str);
 			break;
-		case USER_PROP_IPADDR:		 
-			SAFECOPY(p->user->ipaddr,str);
-			putuserrec(scfg,p->user->number,U_IPADDR,LEN_IPADDR,str);
-			break;
 		case USER_PROP_COMP:
 			SAFECOPY(p->user->comp,str);
 			putuserrec(scfg,p->user->number,U_COMP,LEN_COMP,str);
@@ -741,7 +733,7 @@ static jsSyncPropertySpec js_user_properties[] = {
 	{	"alias"				,USER_PROP_ALIAS 		,USER_PROP_FLAGS,		310},
 	{	"name"				,USER_PROP_NAME		 	,USER_PROP_FLAGS,		310},
 	{	"handle"			,USER_PROP_HANDLE	 	,USER_PROP_FLAGS,		310},
-	{	"ip_address"		,USER_PROP_IPADDR	 	,USER_PROP_FLAGS,		310},
+	{	"ip_address"		,USER_PROP_NOTE		 	,USER_PROP_FLAGS,		310},
 	{	"note"				,USER_PROP_NOTE		 	,USER_PROP_FLAGS,		310},
 	{	"host_name"			,USER_PROP_COMP		 	,USER_PROP_FLAGS,		310},
 	{	"computer"			,USER_PROP_COMP		 	,USER_PROP_FLAGS,		310},
@@ -784,7 +776,7 @@ static char* user_prop_desc[] = {
 	,"real name"
 	,"chat handle"
 	,"IP address last logged on from"
-	,"Sysop note (AKA ip_address on 3.16 and before)"
+	,"AKA ip_address"
 	,"host name last logged on from"
 	,"AKA host_name"
 	,"sysop's comment"
