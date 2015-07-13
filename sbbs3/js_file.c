@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.158 2015/08/22 05:36:55 deuce Exp $ */
+/* $Id: js_file.c,v 1.157 2014/01/06 06:09:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1447,7 +1447,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cp;
 	char*		uubuf=NULL;
 	size_t		len;	/* string length */
-	int		decoded_len;
 	size_t		tlen;	/* total length to write (may be greater than len) */
 	int32		i;
 	JSString*	str;
@@ -1476,12 +1475,12 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	if((p->uuencoded || p->b64encoded || p->yencoded)
 		&& len && (uubuf=malloc(len))!=NULL) {
 		if(p->uuencoded)
-			decoded_len=uudecode(uubuf,len,cp,len);
+			len=uudecode(uubuf,len,cp,len);
 		else if(p->yencoded)
-			decoded_len=ydecode(uubuf,len,cp,len);
+			len=ydecode(uubuf,len,cp,len);
 		else
-			decoded_len=b64_decode(uubuf,len,cp,len);
-		if(decoded_len<0) {
+			len=b64_decode(uubuf,len,cp,len);
+		if(len<0) {
 			free(uubuf);
 			free(cp);
 			JS_RESUMEREQUEST(cx, rc);
@@ -1489,7 +1488,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		free(cp);
 		cp=uubuf;
-		len = decoded_len;
 	}
 
 	if(p->rot13)
