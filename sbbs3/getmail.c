@@ -2,13 +2,13 @@
 
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.13 2015/08/26 06:13:04 rswindell Exp $ */
+/* $Id: getmail.c,v 1.12 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,26 +44,24 @@
 /****************************************************************************/
 int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
 {
-    char    path[MAX_PATH+1];
+    char    str[128];
     int     i=0;
     long    l;
     idxrec_t idx;
 	smb_t	smb;
 
 	ZERO_VAR(smb);
-	SAFEPRINTF(smb.file,"%smail",cfg->data_dir);
+	sprintf(smb.file,"%smail",cfg->data_dir);
 	smb.retry_time=cfg->smb_retry_time;
-	SAFEPRINTF(path,"%s.sid",smb.file);
-	l=(long)flength(path);
+	sprintf(str,"%s.sid",smb.file);
+	l=(long)flength(str);
 	if(l<(long)sizeof(idxrec_t))
 		return(0);
 	if(!usernumber) 
 		return(l/sizeof(idxrec_t)); 	/* Total system e-mail */
 	smb.subnum=INVALID_SUB;
-
-	if(smb_open_fp(&smb,&smb.sid_fp,SH_DENYNO)!=0) 
+	if(smb_open(&smb)!=0) 
 		return(0); 
-
 	while(!smb_feof(smb.sid_fp)) {
 		if(smb_fread(&smb,&idx,sizeof(idx),smb.sid_fp) != sizeof(idx))
 			break;
@@ -90,16 +88,16 @@ void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 	char *tp,*sp,*p;
 
 	if(msg->idx.to==0) {	/* netmail */
-		SAFEPRINTF3(str,"%sfile/%04u.out/%s"
+		sprintf(str,"%sfile/%04u.out/%s"
 			,cfg->data_dir,msg->idx.from,getfname(msg->subj));
 		remove(str);
-		SAFEPRINTF2(str,"%sfile/%04u.out"
+		sprintf(str,"%sfile/%04u.out"
 			,cfg->data_dir,msg->idx.from);
 		rmdir(str);
 		return;
 	}
 		
-	SAFECOPY(str,msg->subj);
+	strcpy(str,msg->subj);
 	tp=str;
 	while(1) {
 		p=strchr(tp,' ');
@@ -107,7 +105,7 @@ void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 		sp=strrchr(tp,'/');              /* sp is slash pointer */
 		if(!sp) sp=strrchr(tp,'\\');
 		if(sp) tp=sp+1;
-		SAFEPRINTF3(str2,"%sfile/%04u.in/%s"  /* str2 is path/fname */
+		sprintf(str2,"%sfile/%04u.in/%s"  /* str2 is path/fname */
 			,cfg->data_dir,msg->idx.to,tp);
 		remove(str2);
 		if(!p)
@@ -115,7 +113,7 @@ void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 		tp=p+1; 
 
 	}
-	SAFEPRINTF2(str,"%sfile/%04u.in",cfg->data_dir,msg->idx.to);
+	sprintf(str,"%sfile/%04u.in",cfg->data_dir,msg->idx.to);
 	rmdir(str);                     /* remove the dir if it's empty */
 }
 
