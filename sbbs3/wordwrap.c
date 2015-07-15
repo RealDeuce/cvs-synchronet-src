@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.32 2015/07/14 21:34:47 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.33 2015/07/15 00:55:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -546,7 +546,7 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 		fprintf(stderr, "PREFIX: '%s'\nTEXT: '%s'\n\n", paragraphs[i].prefix.bytes, paragraphs[i].text);
 #endif
 
-	outbuf = wrap_paragraphs(paragraphs, oldlen, handle_quotes);
+	outbuf = wrap_paragraphs(paragraphs, len, handle_quotes);
 	free_paragraphs(paragraphs, -1);
 	free(paragraphs);
 	return outbuf;
