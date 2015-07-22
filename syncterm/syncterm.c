@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.199 2015/10/28 02:01:20 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.196 2015/05/01 04:05:49 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -48,7 +48,7 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 1.1b"
+char* syncterm_version = "SyncTERM 1.0b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -1214,8 +1214,6 @@ void load_settings(struct syncterm_settings *set)
 	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
-	set->xfer_success_keypress_timeout=iniReadInteger(inifile,"SyncTERM", "TransferSuccessKeypressTimeout", /* seconds: */0);
-	set->xfer_failure_keypress_timeout=iniReadInteger(inifile,"SyncTERM", "TransferFailureKeypressTimeout", /* seconds: */60);
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
