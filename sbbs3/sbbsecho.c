@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.256 2014/09/05 02:08:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.259 2015/07/22 01:01:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -2054,7 +2054,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 		if((idx.attr&MSG_MODERATED) && !(idx.attr&MSG_VALIDATED))
 			break;
 
-		(*post)[l++]=idx;
+		(*post)[l++].idx=idx;
 	}
 	smb_unlocksmbhdr(&smb[cur_smb]);
 	if(!l)
@@ -3827,18 +3827,18 @@ void export_echomail(char *sub_code,faddr_t addr)
 			printf("\r%8s %5lu of %-5"PRIu32"  "
 				,scfg.sub[i]->code,m+1,posts);
 			memset(&msg,0,sizeof(msg));
-			msg.idx=post[m];
+			msg.idx=post[m].idx;
 			if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
 				lprintf(LOG_ERR,"ERROR %d (%s) line %d locking %s msghdr"
 					,k,smb[cur_smb].last_error,__LINE__,smb[cur_smb].file);
 				continue; 
 			}
 			k=smb_getmsghdr(&smb[cur_smb],&msg);
-			if(k || msg.hdr.number!=post[m].number) {
+			if(k || msg.hdr.number!=post[m].idx.number) {
 				smb_unlockmsghdr(&smb[cur_smb],&msg);
 				smb_freemsgmem(&msg);
 
-				msg.hdr.number=post[m].number;
+				msg.hdr.number=post[m].idx.number;
 				if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
 					lprintf(LOG_ERR,"ERROR %d line %d reading %s index",k,__LINE__
 						,smb[cur_smb].file);
@@ -4167,7 +4167,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.256 $", "%*s %s", revision);
+	sscanf("$Revision: 1.259 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4756,7 +4756,7 @@ int main(int argc, char **argv)
 					continue; 
 				} 						/* On to the next message */
 
-
+				/* TODO: Should circular path detection occur before processing pass-through areas? */
 				if(cfg.check_path) {
 					for(j=0;j<scfg.total_faddrs;j++)
 						if(check_psb(&msg_path,scfg.faddr[j]))
@@ -4768,8 +4768,10 @@ int main(int argc, char **argv)
 						if(cfg.log&LOG_CIRCULAR)
 							logprintf("%s: Circular path detected for %s"
 								,areatagstr,smb_faddrtoa(&scfg.faddr[j],NULL));
-						strip_psb(fmsgbuf);
-						pkt_to_pkt(fmsgbuf,curarea,pkt_faddr,hdr,msg_seen,msg_path,0);
+						if(cfg.fwd_circular) {
+							strip_psb(fmsgbuf);
+							pkt_to_pkt(fmsgbuf,curarea,pkt_faddr,hdr,msg_seen,msg_path,0);
+						}
 						printf("\n");
 						continue; 
 					}
@@ -5048,6 +5050,15 @@ int main(int argc, char **argv)
 				continue;
 			}
 			printf("\n%s to %s ",getfname(path),smb_faddrtoa(&addr,NULL));
+			if(hdr.attr&MSG_SENT) {
+				printf("already sent\n");
+				fclose(fidomsg);
+				continue;
+			}
+			hdr.attr|=FIDO_SENT;
+			fseek(fidomsg,offsetof(fmsghdr_t,attr),SEEK_SET);
+			fwrite(&hdr.attr,sizeof(hdr.attr),1,fidomsg);
+
 			if(cfg.log&LOG_PACKING)
 				logprintf("Packing %s (%s) attr=%04hX",path,smb_faddrtoa(&addr,NULL),hdr.attr);
 			fmsgbuf=getfmsg(fidomsg,NULL);
