@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.258 2015/05/02 13:59:47 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.259 2015/07/22 01:01:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4167,7 +4167,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.258 $", "%*s %s", revision);
+	sscanf("$Revision: 1.259 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5050,6 +5050,15 @@ int main(int argc, char **argv)
 				continue;
 			}
 			printf("\n%s to %s ",getfname(path),smb_faddrtoa(&addr,NULL));
+			if(hdr.attr&MSG_SENT) {
+				printf("already sent\n");
+				fclose(fidomsg);
+				continue;
+			}
+			hdr.attr|=FIDO_SENT;
+			fseek(fidomsg,offsetof(fmsghdr_t,attr),SEEK_SET);
+			fwrite(&hdr.attr,sizeof(hdr.attr),1,fidomsg);
+
 			if(cfg.log&LOG_PACKING)
 				logprintf("Packing %s (%s) attr=%04hX",path,smb_faddrtoa(&addr,NULL),hdr.attr);
 			fmsgbuf=getfmsg(fidomsg,NULL);
