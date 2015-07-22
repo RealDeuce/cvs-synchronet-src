@@ -497,8 +497,11 @@ void edit_sorting(struct bbslist **list, int *listcount, int *ocur, int *obar, c
 		ret=uifc.list(WIN_XTR|WIN_DEL|WIN_INS|WIN_INSACT|WIN_ACT|WIN_SAV
 					,0,0,0,&curr,&bar,"Sort Order",opts);
 		if(ret==-1) {
-			if(check_exit(FALSE))
-				break;
+			if (uifc.exit_flags & UIFC_XF_QUIT) {
+				if (!check_exit(FALSE))
+					continue;
+			}
+			break;
 		}
 		if(ret & MSK_INS) {		/* Insert sorting */
 			j=0;
@@ -1134,6 +1137,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 		if(uifc.changes)
 			changed=1;
 	}
+	strListFree(&inifile);
 	return (changed);
 }
 
@@ -1486,6 +1490,7 @@ write_ini:
 			fclose(inifile);
 		}
 	}
+	strListFree(&inicontents);
 }
 
 void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaults, char *listpath, size_t listpathsize, char *shared_list, size_t shared_listsize, int *listcount, int *cur, int *bar, char *current)
@@ -1662,8 +1667,9 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							break;
 						case -1:		/* ESC */
-							if (!check_exit(TRUE))
-								continue;
+							if(!connected)
+								if (!check_exit(TRUE))
+									continue;
 							free_list(&list[0],listcount);
 							return(NULL);
 					}
@@ -1881,8 +1887,9 @@ struct bbslist *show_bbslist(char *current, int connected)
 						at_settings=!at_settings;
 						break;
 					case -1:		/* ESC */
-						if (!check_exit(TRUE))
-							continue;
+						if (!connected)
+							if (!check_exit(TRUE))
+								continue;
 						free_list(&list[0],listcount);
 						return(NULL);
 					case 0:			/* Edit default connection settings */
@@ -1932,7 +1939,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						break;
 					case 3:			/* Program settings */
 						change_settings();
-						load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, listcount && list[listcount-1]?strdup(list[listcount-1]->name):NULL);
+						load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
 						oldopt=-1;
 						break;
 				}
