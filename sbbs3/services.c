@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.275 2014/11/18 06:11:30 deuce Exp $ */
+/* $Id: services.c,v 1.276 2015/04/25 06:10:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1199,7 +1199,7 @@ static void js_service_thread(void* arg)
 	if(js_script==NULL) 
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
-		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
+		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL, js_glob);
 		JS_SetOperationCallback(js_cx, js_OperationCallback);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.callback);
@@ -1307,7 +1307,7 @@ static void js_static_service_thread(void* arg)
 			break;
 		}
 
-		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL);
+		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL, js_glob);
 		JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 		js_EvalOnExit(js_cx, js_glob, &service_client.callback);
 		JS_RemoveObjectRoot(js_cx, &js_glob);
@@ -1707,7 +1707,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.275 $", "%*s %s", revision);
+	sscanf("$Revision: 1.276 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
