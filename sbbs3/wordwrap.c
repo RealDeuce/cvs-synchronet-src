@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.35 2015/07/24 07:28:24 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.36 2015/07/24 23:46:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -211,7 +211,7 @@ static struct section_len get_ws_len(char *buf, int col)
 	for(ret.bytes=0; ; ret.bytes++) {
 		if (!buf[ret.bytes])
 			break;
-		if (!isspace(buf[ret.bytes]))
+		if (!isspace((unsigned char)buf[ret.bytes]))
 			break;
 		if(buf[ret.bytes] == '\t') {
 			ret.len++;
