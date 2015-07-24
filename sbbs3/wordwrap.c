@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.34 2015/07/15 08:22:28 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.35 2015/07/24 07:28:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 #include "wordwrap.h"
 
 struct prefix {
-	int cols;
+	size_t cols;
 	char *bytes;
 };
 
@@ -194,8 +194,8 @@ static void outbuf_append(char **outbuf, char **outp, char *append, int len, int
  * Length is in bytes and "len" (the number of columns)
  */
 struct section_len {
-	int bytes;
-	int len;
+	size_t bytes;
+	size_t len;
 };
 
 /*
