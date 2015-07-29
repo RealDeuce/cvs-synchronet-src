@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.85 2014/02/09 23:48:59 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.89 2014/04/28 05:17:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 /* This code _may_ work on other DOS-based platforms (e.g. OS/2)			*/
 /****************************************************************************/
 #if !defined(__unix__)
-static int _cdecl glob_compare( const void *arg1, const void *arg2 )
+static int __cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
    return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
@@ -703,18 +703,26 @@ int removecase(const char *path)
 /****************************************************************************/
 ulong DLLCALL delfiles(const char *inpath, const char *spec)
 {
-	char	path[MAX_PATH+1];
+	char	*path;
 	char	lastch;
     uint	i,files=0;
 	glob_t	g;
+	size_t	inpath_len=strlen(inpath);
 
-	lastch=*lastchar(inpath);
+	if(inpath_len==0)
+		lastch=0;
+	else
+		lastch=inpath[inpath_len-1];
+	path=(char *)malloc(inpath_len+1/*Delim*/+strlen(spec)+1/*Terminator*/);
+	if(path==NULL)
+		return 0;
 	if(!IS_PATH_DELIM(lastch) && lastch)
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
 		strcpy(path,inpath);
 	strcat(path,spec);
 	glob(path,0,NULL,&g);
+	free(path);
 	for(i=0;i<g.gl_pathc;i++) {
 		if(isdir(g.gl_pathv[i]))
 			continue;
@@ -870,11 +878,13 @@ ulong DLLCALL getdisksize(const char* path, ulong unit)
 char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	char	*out;
 	char	*p;
+	BOOL	target_alloced=FALSE;
 
 	if(target==NULL)  {
 		if((target=malloc(MAX_PATH+1))==NULL) {
 			return(NULL);
 		}
+		target_alloced=TRUE;
 	}
 	out=target;
 	*out=0;
@@ -882,16 +892,22 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	if(*path != '/')  {
 		if(*path == '~') {
 			p=getenv("HOME");
-			if(p==NULL || strlen(p)+strlen(path)>=size)
+			if(p==NULL || strlen(p)+strlen(path)>=size) {
+				if(target_alloced)
+					free(target);
 				return(NULL);
+			}
 			strcpy(target,p);
 			out=strrchr(target,'\0');
 			path++;
 		}
 		else {
 			p=getcwd(NULL,size);
-			if(p==NULL || strlen(p)+strlen(path)>=size)
+			if(p==NULL || strlen(p)+strlen(path)>=size) {
+				if(target_alloced)
+					free(target);
 				return(NULL);
+			}
 			strcpy(target,p);
 			free(p);
 			out=strrchr(target,'\0');
