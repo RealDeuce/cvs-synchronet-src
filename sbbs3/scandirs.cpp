@@ -1,12 +1,14 @@
+/* scandirs.cpp */
+
 /* Synchronet file database scanning routines */
 
-/* $Id: scandirs.cpp,v 1.6 2016/11/28 00:15:59 rswindell Exp $ */
+/* $Id: scandirs.cpp,v 1.5 2011/07/21 11:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -89,7 +91,10 @@ void sbbs_t::scandirs(long mode)
 	if(ch=='L') {
 		k=0;
 		for(i=0;i<usrdirs[curlib] && !msgabort();i++) {
-			progress("Scanning", i, usrdirs[curlib]);
+			attr(LIGHTGRAY);
+			outchar('.');
+			if(i && !(i%5))
+				bputs("\b\b\b\b\b     \b\b\b\b\b");
 			if(mode&FL_ULTIME	/* New-scan */
 				&& (cfg.lib[usrlib[curlib]]->offline_dir==usrdir[curlib][i]
 				|| cfg.dir[usrdir[curlib][i]]->misc&DIR_NOSCAN))
@@ -98,7 +103,6 @@ void sbbs_t::scandirs(long mode)
 				return;
 			else k+=s; 
 		}
-		progress("Done", i, usrdirs[curlib]);
 		bputs("\r\1>");
 		if(k>1)
 			bprintf(text[NFilesListed],k);
@@ -144,26 +148,23 @@ void sbbs_t::scanalldirs(long mode)
 			return; 
 		}
 	}
-	unsigned total_dirs = 0;
-	for(i=0; i < usrlibs ;i++)
-		total_dirs += usrdirs[i];
 	for(i=d=0;i<usrlibs;i++) {
 		for(j=0;j<usrdirs[i] && !msgabort();j++,d++) {
-			progress("Scanning", d, total_dirs);
+			attr(LIGHTGRAY);
+			outchar('.');
+			if(d && !(d%5))
+				bputs("\b\b\b\b\b     \b\b\b\b\b");
 			if(mode&FL_ULTIME /* New-scan */
 				&& (cfg.lib[usrlib[i]]->offline_dir==usrdir[i][j]
 				|| cfg.dir[usrdir[i][j]]->misc&DIR_NOSCAN))
 				continue;
-			else if((s=listfiles(usrdir[i][j],str,0,mode))==-1) {
-				bputs("\r\1>");
+			else if((s=listfiles(usrdir[i][j],str,0,mode))==-1)
 				return;
-			}
 			else k+=s; 
 		}
 		if(j<usrdirs[i])   /* aborted */
 			break; 
 	}
-	progress("Done", d, total_dirs);
 	bputs("\r\1>");
 	if(k>1)
 		bprintf(text[NFilesListed],k);
