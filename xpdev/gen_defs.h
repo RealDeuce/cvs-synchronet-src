@@ -1,13 +1,14 @@
+/* gen_defs.h */
+
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.70 2016/11/19 09:21:37 sbbs Exp $ */
-// vi: tabstop=4
+/* $Id: gen_defs.h,v 1.66 2014/04/04 00:17:52 deuce Exp $ */
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
  * @format.use-tabs true        (see http://www.synchro.net/ptsc_hdr.html)  *
  *                                                                          *
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html      *
  *                                                                          *
  * This library is free software; you can redistribute it and/or            *
  * modify it under the terms of the GNU Lesser General Public License       *
@@ -58,7 +59,7 @@
         #endif
 #endif
 
-#include <ctype.h>
+
 #include <sys/types.h>
 #ifdef HAS_INTTYPES_H
 #if defined __cplusplus
@@ -142,13 +143,6 @@ enum {
 	#define ushort  unsigned short
 	typedef unsigned int uint;			/* Incompatible with Spidermonkey header files when #define'd */
 	#define ulong   unsigned long
-#endif
-
-/* Printf format specifiers... */
-#if defined(_MSC_VER) || defined(__WATCOMC__) || defined(__BORLANDC__)
-#define XP_PRIsize_t					"I"
-#else
-#define XP_PRIsize_t					"z"
 #endif
 
 #if !defined(HAS_INTTYPES_H) && !defined(XPDEV_DONT_DEFINE_INTTYPES)
