@@ -2,13 +2,13 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.67 2012/06/15 21:52:14 deuce Exp $ */
+/* $Id: newuser.cpp,v 1.69 2014/03/13 07:17:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,20 +51,7 @@ BOOL sbbs_t::newuser()
 	long	kmode;
 	bool	usa;
 
-#if 0
-	if(cur_rate<cfg.node_minbps) {
-		bprintf(text[MinimumModemSpeed],cfg.node_minbps);
-		sprintf(str,"%stooslow.msg",cfg.text_dir);
-		if(fexist(str))
-			printfile(str,0);
-		sprintf(str,"New user modem speed: %lu<%u"
-			,cur_rate,cfg.node_minbps);
-		logline("N!",str);
-		hangup();
-		return(FALSE); 
-	}
-#endif
-
+	bputs(text[StartingNewUserRegistration]);
 	getnodedat(cfg.node_num,&thisnode,0);
 	if(thisnode.misc&NODE_LOCK) {
 		bputs(text[NodeLocked]);
@@ -175,7 +162,7 @@ BOOL sbbs_t::newuser()
 
 		if(useron.misc&ANSI) {
 			useron.rows=0;	/* Auto-rows */
-			if(useron.misc&(RIP|WIP|HTML) || text[ColorTerminalQ][0]==0 || yesno(text[ColorTerminalQ]))
+			if(!(cfg.uq&UQ_COLORTERM) || useron.misc&(RIP|WIP|HTML) || text[ColorTerminalQ][0]==0 || yesno(text[ColorTerminalQ]))
 				useron.misc|=COLOR; 
 			else
 				useron.misc&=~COLOR;
@@ -187,11 +174,7 @@ BOOL sbbs_t::newuser()
 		else
 			useron.misc&=~NO_EXASCII;
 
-#ifdef USE_CRYPTLIB
-		if((sys_status&SS_RLOGIN || sys_status&SS_SSH) && rlogin_name[0])
-#else
-		if(sys_status&SS_RLOGIN && rlogin_name[0])
-#endif
+		if(rlogin_name[0])
 			SAFECOPY(useron.alias,rlogin_name);
 
 		while(online) {
@@ -306,7 +289,7 @@ BOOL sbbs_t::newuser()
 				break; 
 		}
 		if(!online) return(FALSE);
-		while(!(sys_status&SS_RLOGIN) && !(cfg.uq&UQ_NONETMAIL) && online) {
+		while(!(cfg.uq&UQ_NONETMAIL) && online) {
 			bputs(text[EnterNetMailAddress]);
 			if(getstr(useron.netmail,LEN_NETMAIL,K_EDIT|K_AUTODEL|K_LINE)
 				&& !trashcan(useron.netmail,"email"))
