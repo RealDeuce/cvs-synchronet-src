@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.37 2015/07/29 03:46:59 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.38 2015/07/29 03:52:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -526,7 +526,7 @@ static char *wrap_paragraphs(struct paragraph *paragraph, int outlen, BOOL handl
 				ws_len = get_ws_len(inp, outcol);
 				word_len = get_word_len(inp+ws_len.bytes, -1);
 				// Do we need to chop a long word?
-				if (word_len.len > (outlen - prefix_cols)))
+				if (word_len.len > (outlen - prefix_cols))
 					word_len = get_word_len(inp + ws_len.bytes, outlen - ws_len.bytes - outcol);
 				if (outcol + ws_len.len + word_len.len > outlen) {
 					inp += ws_len.bytes;
