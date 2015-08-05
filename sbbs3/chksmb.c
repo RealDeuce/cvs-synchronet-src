@@ -1,12 +1,14 @@
+/* chksmb.c */
+
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.54 2016/11/16 05:32:50 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.52 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -146,7 +148,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.54 $", "%*s %s", revision);
+	sscanf("$Revision: 1.52 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -430,8 +432,7 @@ int main(int argc, char **argv)
 							"index import date/time\n");
 					timeerr++; 
 				}
-				if(msg.hdr.type != SMB_MSG_TYPE_BALLOT
-					&& msg.idx.subj!=smb_subject_crc(msg.subj)) {
+				if(msg.idx.subj!=smb_subject_crc(msg.subj)) {
 					fprintf(stderr,"%sSubject CRC mismatch\n",beep);
 					msgerr=TRUE;
 					if(extinfo)
@@ -452,7 +453,6 @@ int main(int argc, char **argv)
 					fromcrc++; 
 				}
 				if(!(smb.status.attr&SMB_EMAIL) 
-					&& msg.hdr.type != SMB_MSG_TYPE_BALLOT
 					&& msg.idx.from!=smb_name_crc(msg.from)) {
 					fprintf(stderr,"%sFrom CRC mismatch\n",beep);
 					msgerr=TRUE;
@@ -474,7 +474,6 @@ int main(int argc, char **argv)
 					tocrc++; 
 				}
 				if(!(smb.status.attr&SMB_EMAIL) 
-					&& msg.hdr.type != SMB_MSG_TYPE_BALLOT
 					&& msg.to_ext==NULL && msg.idx.to!=smb_name_crc(msg.to)) {
 					fprintf(stderr,"%sTo CRC mismatch\n",beep);
 					msgerr=TRUE;

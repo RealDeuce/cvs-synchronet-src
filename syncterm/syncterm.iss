@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "SyncTERM"
-#define MyAppVersion "1.1b"
+#define MyAppVersion "1.0"
 #define MyAppPublisher "SyncTERM"
 #define MyAppURL "http://www.syncterm.net/"
 #define MyAppExeName "syncterm.exe"
@@ -31,15 +31,14 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "systemlist"; Description: "Use the Official Synchronet BBS List as your System BBS List"; GroupDescription: "Options:";
 
 [Files]
-Source: "c:\bin\syncterm.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "e:\Users\Rob\Downloads\syncterm.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\bin\SDL.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "c:\bin\fonts\*"; DestDir: "{app}\fonts"; Flags: ignoreversion
-Source: "e:\src\syncterm\syncterm.ini"; DestDir: "{userappdata}\{#MyAppName}"; Flags: ignoreversion confirmoverwrite
+Source: "e:\src\syncterm\syncterm.ini"; DestDir: "{userappdata}\{#MyAppName}"; Flags: ignoreversion
 Source: "e:\src\syncterm\getlist.ftp"; DestDir: "{app}"; Flags: ignoreversion
-Source: "s:\xfer\sbbs\syncterm.lst"; DestDir: "{commonappdata}\{#MyAppName}"; Tasks: systemlist; Flags: ignoreversion confirmoverwrite
+Source: "s:\xfer\sbbs\syncterm.lst"; DestDir: "{commonappdata}\{#MyAppName}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [INI]
