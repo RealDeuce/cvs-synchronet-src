@@ -2,6 +2,7 @@ project (SyncDraw C)
 
 cmake_minimum_required(VERSION 2.8.11)
 
+INCLUDE (../build/SynchronetMacros.cmake)
 INCLUDE (CheckIncludeFiles)
 
 set(SOURCE
@@ -37,34 +38,12 @@ set(BF_SOURCE
 )
 
 add_executable(syncdraw ${SOURCE})
+require_libs(syncdraw xpdev ciolib)
+
 add_executable(fontutil ${FU_SOURCE})
+require_libs(fontutil xpdev ciolib)
+
 add_executable(buildfont ${BF_SOURCE})
-
-if(NOT ${PARENT_DIRECTORY})
-	find_package(XPDev REQUIRED)
-	include(${XPDev_CONFIG})
-ENDIF()
-add_dependencies(syncdraw xpdev)
-add_dependencies(fontutil xpdev)
-add_dependencies(buildfont xpdev)
-include_directories("${XPDev_DIR}/../../../include/xpdev")
-set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<TARGET_PROPERTY:xpdev,INTERFACE_COMPILE_DEFINITIONS>)
-include_directories($<TARGET_PROPERTY:xpdev,INTERFACE_INCLUDE_DIRECTORIES>)
-target_link_libraries(syncdraw xpdev)
-target_link_libraries(fontutil xpdev)
-target_link_libraries(buildfont xpdev)
-
-if(NOT ${PARENT_DIRECTORY})
-	find_package(CIOLib REQUIRED)
-	include(${CIOLib_CONFIG})
-ENDIF()
-add_dependencies(syncdraw ciolib)
-add_dependencies(fontutil ciolib)
-add_dependencies(syncdraw ciolib)
-include_directories(syncdraw PRIVATE "${CIOLib_DIR}/../../../include")
-set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<TARGET_PROPERTY:ciolib,INTERFACE_COMPILE_DEFINITIONS>)
-include_directories($<TARGET_PROPERTY:ciolib,INTERFACE_INCLUDE_DIRECTORIES>)
-target_link_libraries(syncdraw ciolib)
-target_link_libraries(fontutil ciolib)
+require_libs(buildfont xpdev)
 
 install(TARGETS syncdraw fontutil buildfont DESTINATION bin)
