@@ -2,13 +2,13 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.138 2015/02/12 09:26:33 deuce Exp $ */
+/* $Id: ini_file.c,v 1.140 2015/04/18 11:02:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -401,7 +401,7 @@ BOOL DLLCALL iniRenameSection(str_list_t* list, const char* section, const char*
 	if(section==ROOT_SECTION)
 		return(FALSE);
 
-	if (stricmp(section, newname)) {
+	if(stricmp(section, newname)!=0) {
 		i=find_section_index(*list,newname);
 		if((*list)[i]!=NULL)	/* duplicate */
 			return(FALSE);
@@ -1140,7 +1140,25 @@ iniGetNamedStringList(str_list_t list, const char* section)
 
 static BOOL isTrue(const char* value)
 {
-	return(stricmp(value,"TRUE")==0 || stricmp(value,"YES")==0 || stricmp(value,"ON")==0);
+	char*	str;
+	char*	p;
+	BOOL	is_true;
+	
+	if(!isalpha(*value))
+		return FALSE;
+
+	if((str=strdup(value)) == NULL)
+		return FALSE;
+
+	/* Truncate value at first space, tab or semicolon for purposes of checking for special boolean words. */
+	/* This allows comments or white-space to immediately follow a special boolean word: "True", "Yes", or "On" */
+	p=str;
+	FIND_CHARSET(p, "; \t");
+	*p=0;
+	
+	is_true = (stricmp(str,"TRUE")==0 || stricmp(str,"YES")==0 || stricmp(str,"ON")==0);
+	free(str);
+	return is_true;
 }
 
 static long parseInteger(const char* value)
