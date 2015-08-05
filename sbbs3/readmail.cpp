@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.61 2013/05/12 07:34:56 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.63 2015/05/05 02:02:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -56,6 +56,16 @@ void sbbs_t::readmail(uint usernumber, int which)
 	file_t	fd;
 	mail_t	*mail;
 	smbmsg_t msg;
+
+	if(cfg.readmail_mod[0] && !readmail_inside) {
+		char cmdline[256];
+
+		readmail_inside = true;
+		safe_snprintf(cmdline, sizeof(cmdline), "%s %d %u", cfg.readmail_mod, which, usernumber);
+		exec_bin(cmdline, &main_csi);
+		readmail_inside = false;
+		return;
+	}
 
 	if(which==MAIL_SENT && useron.rest&FLAG('K')) {
 		bputs(text[R_ReadSentMail]);
@@ -577,8 +587,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 						break;
 				if(u<smb.msgs)
 					smb.curmsg=u;
-				else
+				else {
 					domsg=0;
+					bputs(text[NoMessagesFound]);
+				}
 				break;
 			case '<':   /* Search Title backward */
 				for(i=smb.curmsg-1;i>-1;i--)
@@ -586,8 +598,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 						break;
 				if(i>-1)
 					smb.curmsg=i;
-				else
+				else {
 					domsg=0;
+					bputs(text[NoMessagesFound]);
+				}
 				break;
 			case '}':   /* Search Author forward */
 				strcpy(str,msg.from);
@@ -596,8 +610,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 						break;
 				if(u<smb.msgs)
 					smb.curmsg=u;
-				else
+				else {
 					domsg=0;
+					bputs(text[NoMessagesFound]);
+				}
 				break;
 			case 'N':   /* Got to next un-read message */
 				for(u=smb.curmsg+1;u<smb.msgs;u++)
@@ -605,8 +621,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 						break;
 				if(u<smb.msgs)
 					smb.curmsg=u;
-				else
+				else {
 					domsg=0;
+					bputs(text[NoMessagesFound]);
+				}
 				break;
 			case '{':   /* Search Author backward */
 				strcpy(str,msg.from);
@@ -618,6 +636,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 						}
 						if(u==0) {
 							domsg=0;
+							bputs(text[NoMessagesFound]);
 							break;
 						}
 					}
@@ -630,8 +649,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 						break;
 				if(u<smb.msgs)
 					smb.curmsg=u;
-				else
+				else {
 					domsg=0;
+					bputs(text[NoMessagesFound]);
+				}
 				break;
 			case '[':   /* Search To User backward */
 				strcpy(str,msg.to);
@@ -643,6 +664,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 						}
 						if(u==0) {
 							domsg=0;
+							bputs(text[NoMessagesFound]);
 							break;
 						}
 					}
