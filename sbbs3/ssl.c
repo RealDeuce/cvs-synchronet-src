@@ -5,52 +5,27 @@
 
 static scfg_t	scfg;
 
-void DLLCALL free_crypt_attrstr(char *attr)
-{
-	free(attr);
-}
-
-char* DLLCALL get_crypt_attribute(CRYPT_SESSION sess, C_IN CRYPT_ATTRIBUTE_TYPE attr)
-{
-	int		len = 0;
-	char	*estr = NULL;
-
-	if (cryptStatusOK(cryptGetAttributeString(sess, attr, NULL, &len))) {
-		estr = malloc(len + 1);
-		if (estr) {
-			cryptGetAttributeString(sess, attr, estr, &len);
-			estr[len] = 0;
-			return estr;
-		}
-	}
-	return NULL;
-}
-
-char* DLLCALL get_crypt_error(CRYPT_SESSION sess)
-{
-	return get_crypt_attribute(sess, CRYPT_ATTRIBUTE_ERRORMESSAGE);
-}
-
 static bool get_error_string(int status, CRYPT_SESSION sess, char *estr, char *file, int line)
 {
-	char	*emsg;
+	int		ret;
+	int		len = 0;
+	char	tmpstr[CRYPT_MAX_TEXTSIZE+1];
 
 	if (cryptStatusOK(status))
 		return true;
 
-	emsg = get_crypt_error(sess);
-	if (emsg) {
-		safe_snprintf(estr, SSL_ESTR_LEN, "cryptlib error %d at %s:%d (%s)", status, file, line, emsg);
-		free_crypt_attrstr(emsg);
-	}
+	ret = cryptGetAttributeString(sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, tmpstr, &len);
+	estr[len]=0;
+	if (cryptStatusOK(ret) && len)
+		sprintf(estr, "cryptlib error %d at %s:%d (%s)", status, file, line, tmpstr);
 	else
-		safe_snprintf(estr, SSL_ESTR_LEN, "cryptlib error %d at %s:%d", status, file, line);
+		sprintf(estr, "cryptlib error %d at %s:%d", status, file, line);
 	return false;
 }
 
 #define DO(x)	get_error_string(x, ssl_context, estr, __FILE__, __LINE__)
 
-CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char *estr)
+CRYPT_CONTEXT get_ssl_cert(scfg_t *cfg, char *estr)
 {
 	CRYPT_KEYSET		ssl_keyset;
 	CRYPT_CONTEXT		ssl_context;
@@ -61,7 +36,6 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char *estr)
 
 	if(!do_cryptInit())
 		return -1;
-	memset(&ssl_context, 0, sizeof(ssl_context));
 	/* Get the certificate... first try loading it from a file... */
 	SAFEPRINTF2(str,"%s%s",cfg->ctrl_dir,"ssl.cert");
 	if(cryptStatusOK(cryptKeysetOpen(&ssl_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
