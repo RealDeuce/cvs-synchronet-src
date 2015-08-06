@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.411 2015/05/02 03:20:55 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.412 2015/07/04 23:44:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -623,7 +623,7 @@ public:
 	void	quotemsg(smbmsg_t* msg, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum, const char *dest, const char *title, long mode
-				,uint subnum);
+				,uint subnum, const char* tagfile);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
