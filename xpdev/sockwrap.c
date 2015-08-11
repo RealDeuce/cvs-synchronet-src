@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.63 2015/08/22 08:04:53 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.61 2014/04/24 06:22:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -425,12 +425,7 @@ union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr,
         freeaddrinfo(res);
         return NULL;
     }
-    if (size < sizeof(struct sockaddr_in6)) {
-        freeaddrinfo(res);
-        return NULL;
-	}
-	size = sizeof(struct sockaddr_in6);
-    memcpy(addr, ((struct sockaddr_in6 *)(cur->ai_addr)), size);
+    memcpy(&addr, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, size);
     freeaddrinfo(res);
     return addr;
 }
@@ -438,7 +433,7 @@ union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr,
 const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
 {
 #ifdef _WIN32
-	if(getnameinfo(&addr->addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
+	if(getnameinfo(addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
 		strncpy(dest, "<Unable to convert address>", size);
 	return dest;
 #else
