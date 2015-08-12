@@ -1,12 +1,14 @@
+/* smbadd.c */
+
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.31 2016/11/12 21:54:14 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.27 2012/10/23 07:59:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -316,46 +318,4 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	FREE_LIST(hashes,n);
 
 	return(retval);
-}
-
-int SMBCALL smb_addvote(smb_t* smb, smbmsg_t* msg, int storage)
-{
-	int			retval;
-	smbmsg_t	remsg;
-
-	if(!SMB_IS_OPEN(smb)) {
-		safe_snprintf(smb->last_error, sizeof(smb->last_error), "msgbase not open");
-		return SMB_ERR_NOT_OPEN;
-	}
-
-	if(filelength(fileno(smb->shd_fp)) < 1)
-		return SMB_ERR_NOT_FOUND;
-
-	if(!(msg->hdr.attr&MSG_VOTE))
-		return SMB_ERR_HDR_ATTR;
-
-	msg->hdr.type = SMB_MSG_TYPE_VOTE;
-
-	if(msg->hdr.when_imported.time == 0) {
-		msg->hdr.when_imported.time = (uint32_t)time(NULL);
-		msg->hdr.when_imported.zone = 0;	/* how do we detect system TZ? */
-	}
-	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
-		msg->hdr.when_written = msg->hdr.when_imported;
-
-	/* Look-up thread_back if RFC822 Reply-ID was specified */
-	if(msg->hdr.thread_back == 0 && msg->reply_id != NULL) {
-		if(smb_getmsgidx_by_msgid(smb, &remsg, msg->reply_id) == SMB_SUCCESS)
-			msg->hdr.thread_back = remsg.idx.number;	/* needed for threading backward */
-	}
-
-	/* Look-up thread_back if FTN REPLY was specified */
-	if(msg->hdr.thread_back == 0 && msg->ftn_reply != NULL) {
-		if(smb_getmsgidx_by_ftnid(smb, &remsg, msg->ftn_reply) == SMB_SUCCESS)
-			msg->hdr.thread_back = remsg.idx.number;	/* needed for threading backward */
-	}
-
-	retval = smb_addmsghdr(smb, msg, storage);
-
-	return retval;
 }
