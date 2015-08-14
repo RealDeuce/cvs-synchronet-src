@@ -2,33 +2,17 @@ project (SExPOTS C)
 
 cmake_minimum_required(VERSION 2.8.11)
 
+INCLUDE(../build/SynchronetMacros.cmake)
 INCLUDE (CheckIncludeFiles)
 
 set(SOURCE
-	../comio/comio.c
 	../sbbs3/telnet.c
 	sexpots.c
 )
 
-if(WIN32)
-	list(APPEND SOURCE ../comio/comio_win32.c)
-else()
-	list(APPEND SOURCE ../comio/comio_nix.c)
-endif()
-
 add_executable(sexpots ${SOURCE})
-
-if(NOT ${PARENT_DIRECTORY})
-	find_package(XPDev REQUIRED)
-	include(${XPDev_CONFIG})
-ENDIF()
-add_dependencies(sexpots xpdev)
-target_include_directories(sexpots PRIVATE "${XPDev_DIR}/../../../include/xpdev")
-target_compile_definitions(sexpots PRIVATE $<TARGET_PROPERTY:xpdev,INTERFACE_COMPILE_DEFINITIONS>)
-target_include_directories(sexpots PRIVATE $<TARGET_PROPERTY:xpdev,INTERFACE_INCLUDE_DIRECTORIES>)
-target_link_libraries(sexpots xpdev)
+require_libs(sexpots xpdev comio)
 
 target_include_directories(sexpots PRIVATE ../sbbs3)
-target_include_directories(sexpots PRIVATE ../comio)
 
 install(TARGETS sexpots DESTINATION bin)

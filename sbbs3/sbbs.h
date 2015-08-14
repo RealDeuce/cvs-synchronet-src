@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.404 2013/08/06 02:01:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.412 2015/07/04 23:44:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -335,7 +335,9 @@ public:
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
 	bool	input_thread_mutex_locked;	// by someone other than the input_thread
+	bool	input_thread_mutex_created;
 	pthread_mutex_t	ssh_mutex;
+	bool	ssh_mutex_created;
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
@@ -385,6 +387,7 @@ public:
 	smb_t	smb;			/* Currently open message base */
 	char	rlogin_name[LEN_ALIAS+1];
 	char	rlogin_pass[LEN_PASS+1];
+	char	rlogin_term[TELNET_TERM_MAXLEN+1];	/* RLogin passed terminal type/speed (e.g. "xterm/57600") */
 
 	uint	temp_dirnum;
 
@@ -565,9 +568,6 @@ public:
 	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
-	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
-	time_t	getmsgtime(uint subnum, ulong ptr);
-	ulong	getmsgnum(uint subnum, time_t t);
 
 	int		dir_op(uint dirnum);
 	int		getuserxfers(int fromuser, int destuser, char *fname);
@@ -619,16 +619,11 @@ public:
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
 	bool	editfile(char *path, bool msg=false);
-	int		loadmsg(smbmsg_t *msg, ulong number);
 	ushort	chmsgattr(ushort attr);
-	void	show_msgattr(ushort attr);
-	void	show_msghdr(smbmsg_t* msg);
-	void	show_msg(smbmsg_t* msg, long mode);
-	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
 	void	quotemsg(smbmsg_t* msg, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum, const char *dest, const char *title, long mode
-				,uint subnum);
+				,uint subnum, const char* tagfile);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
@@ -643,10 +638,18 @@ public:
 	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
-	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num);
+	int		loadmsg(smbmsg_t *msg, ulong number);
+	void	show_msgattr(ushort attr);
+	void	show_msghdr(smbmsg_t* msg);
+	void	show_msg(smbmsg_t* msg, long mode);
+	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
+	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
+	time_t	getmsgtime(uint subnum, ulong ptr);
+	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
+	bool	readmail_inside;
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -742,11 +745,13 @@ public:
 	int		text_sec(void);						/* Text sections */
 
 	/* readmsgs.cpp */
+	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num, uint32_t* visible=NULL);
 	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
+	bool	scanposts_inside;
 	long	listsub(uint subnum, long mode, long start, const char* search);
 	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
-	long	showposts_toyou(post_t* post, ulong start, long posts);
+	long	showposts_toyou(post_t* post, ulong start, long posts, long mode=0);
 	void	msghdr(smbmsg_t* msg);
 
 	/* chat.cpp */
@@ -924,6 +929,7 @@ public:
 
 	/* scansubs.cpp */
 	void	scansubs(long mode);
+	bool	scansubs_inside;
 	void	scanallsubs(long mode);
 	void	new_scan_cfg(ulong misc);
 	void	new_scan_ptr_cfg(void);
@@ -938,7 +944,7 @@ public:
 	void	catsyslog(int crash);
 
 	/* telgate.cpp */
-	void	telnet_gate(char* addr, ulong mode, char* name=NULL, char* passwd=NULL);	// See TG_* for mode bits
+	void	telnet_gate(char* addr, ulong mode, char* client_user_name=NULL, char* server_user_name=NULL, char* term_type=NULL);	// See TG_* for mode bits
 
 };
 
@@ -1191,7 +1197,7 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_callback_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonOperationCallback(JSContext*, js_callback_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_callback_t*);
-	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir, JSObject *);
 	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
 
 	/* js_system.c */
@@ -1263,6 +1269,9 @@ extern "C" {
 	/* js_com.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCOMClass(JSContext* cx, JSObject* parent);
 	DLLEXPORT JSObject* DLLCALL js_CreateCOMObject(JSContext* cx, JSObject* parent, const char *name, COM_HANDLE sock);
+
+	/* js_cryptcon.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
 
 #endif
 
