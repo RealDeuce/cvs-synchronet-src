@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.31 2016/05/27 08:55:03 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.29 2015/08/14 08:01:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,12 +73,17 @@ void __fastcall TMailCfgDlg::OutboundSoundButtonClick(TObject *Sender)
 
 void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
 {
-    char str[256];
+    char str[128];
 
-    if(MainForm->mail_startup.interfaces==NULL)
+    if(MainForm->mail_startup.interface_addr==0)
         NetworkInterfaceEdit->Text="<ANY>";
     else {
-        strListCombine(MainForm->mail_startup.interfaces, str, sizeof(str)-1, ",");
+        sprintf(str,"%d.%d.%d.%d"
+            ,(MainForm->mail_startup.interface_addr>>24)&0xff
+            ,(MainForm->mail_startup.interface_addr>>16)&0xff
+            ,(MainForm->mail_startup.interface_addr>>8)&0xff
+            ,MainForm->mail_startup.interface_addr&0xff
+        );
         NetworkInterfaceEdit->Text=AnsiString(str);
     }
     MaxClientsEdit->Text=AnsiString(MainForm->mail_startup.max_clients);
@@ -211,8 +216,26 @@ static void setBit(unsigned long* l, long bit, bool yes)
 //---------------------------------------------------------------------------
 void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
 {
-    iniFreeStringList(MainForm->mail_startup.interfaces);
-    MainForm->mail_startup.interfaces = strListSplitCopy(NULL, NetworkInterfaceEdit->Text.c_str(), ",");
+    char    str[128],*p;
+    DWORD   addr;
+
+    SAFECOPY(str,NetworkInterfaceEdit->Text.c_str());
+    p=str;
+    while(*p && *p<=' ') p++;
+    if(*p && isdigit(*p)) {
+        addr=atoi(p)<<24;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<16;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<8;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p);
+        MainForm->mail_startup.interface_addr=addr;
+    } else
+        MainForm->mail_startup.interface_addr=0;
 
 	MainForm->mail_startup.smtp_port=SMTPPortEdit->Text.ToIntDef(IPPORT_SMTP);
    	MainForm->mail_startup.submission_port=SubPortEdit->Text.ToIntDef(IPPORT_SUBMISSION);
