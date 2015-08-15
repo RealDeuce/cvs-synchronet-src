@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.612 2015/08/06 00:43:18 rswindell Exp $ */
+/* $Id: main.cpp,v 1.613 2015/08/15 09:55:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4142,6 +4142,9 @@ void node_thread(void* arg)
 	sbbs->putnodedat(sbbs->cfg.node_num,&node);
 
 	{
+		/* crash here on Aug-4-2015:
+		node_thread_running already destroyed
+		bbs_thread() timed out waiting for 1 node thread(s) to terminate */
 		int32_t remain = protected_uint32_adjust(&node_threads_running, -1);
 		lprintf(LOG_INFO,"Node %d thread terminated (%u node threads remain, %lu clients served)"
 			,sbbs->cfg.node_num, remain, served);
