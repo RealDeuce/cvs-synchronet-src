@@ -1,12 +1,14 @@
+/* scansubs.cpp */
+
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.23 2016/11/28 00:16:00 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.19 2015/05/02 03:20:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -116,21 +118,15 @@ void sbbs_t::scansubs(long mode)
 			menu("msgscan"); 
 		}
 		for(i=0;i<usrsubs[curgrp] && !msgabort();i++) {
-			if((mode&SCAN_NEW) && !(subscan[usrsub[curgrp][i]].cfg&SUB_CFG_NSCAN) && !(cfg.sub[usrsub[curgrp][i]]->misc&SUB_FORCED))
-				continue;
-			if((mode&SCAN_TOYOU) && !(subscan[usrsub[curgrp][i]].cfg&SUB_CFG_SSCAN))
-				continue;
-			if((mode&SCAN_POLLS) && cfg.sub[usrsub[curgrp][i]]->misc&SUB_NOVOTING)
-				continue;
-			if(mode&SCAN_POLLS)
-				progress("Scanning", i, usrsubs[curgrp]);
-			if(scanposts(usrsub[curgrp][i],mode,str)) 
-				break;
-			subs_scanned++;
-		}
-		if(mode&SCAN_POLLS) {
-			progress("Done", subs_scanned, usrsubs[curgrp]);
-			cleartoeol();
+			if(((mode&SCAN_NEW &&
+				(subscan[usrsub[curgrp][i]].cfg&SUB_CFG_NSCAN
+					|| cfg.sub[usrsub[curgrp][i]]->misc&SUB_FORCED))
+				|| (mode&SCAN_TOYOU && subscan[usrsub[curgrp][i]].cfg&SUB_CFG_SSCAN)
+				|| mode&SCAN_FIND)) {
+				if(scanposts(usrsub[curgrp][i],mode,str)) 
+					break;
+				subs_scanned++;
+			}
 		}
 		bputs(text[MessageScan]);
 		if(i==usrsubs[curgrp]) bprintf(text[MessageScanComplete],subs_scanned);
@@ -142,7 +138,7 @@ void sbbs_t::scansubs(long mode)
 }
 
 /****************************************************************************/
-/* Performs a new message scan of all sub-boards							*/
+/* Performs a new message scan all all sub-boards							*/
 /****************************************************************************/
 void sbbs_t::scanallsubs(long mode)
 {
@@ -150,8 +146,6 @@ void sbbs_t::scanallsubs(long mode)
 	char 	tmp[512];
 	uint	i,j,found=0;
 	ulong	subs_scanned=0;
-	uint*	sub;
-	ulong	total_subs=0;
 	bool	subj_only=false;
 
 	if(cfg.scansubs_mod[0] && !scansubs_inside) {
@@ -207,40 +201,27 @@ void sbbs_t::scanallsubs(long mode)
 	if(useron.misc&(RIP|WIP|HTML) && !(useron.misc&EXPERT)) {
 		menu("msgscan"); 
 	}
-	if((sub = (uint*)malloc(sizeof(uint) * cfg.total_subs)) == NULL) {
-		errormsg(WHERE, ERR_ALLOC, "subs", sizeof(uint)*cfg.total_subs);
-		return;
-	}
-
-	for(i=0; i<usrgrps; i++)
-		for(j=0; j<usrsubs[i]; j++) {
-			if((mode&SCAN_NEW) && !(subscan[usrsub[i][j]].cfg&SUB_CFG_NSCAN) && !(cfg.sub[usrsub[i][j]]->misc&SUB_FORCED))
-				continue;
-			if((mode&SCAN_TOYOU) && !(subscan[usrsub[i][j]].cfg&SUB_CFG_SSCAN))
-				continue;
-			if((mode&SCAN_POLLS) && cfg.sub[usrsub[i][j]]->misc&SUB_NOVOTING)
-				continue;
-			sub[total_subs++] = usrsub[i][j];
+	for(i=0;i<usrgrps;i++) {
+		for(j=0;j<usrsubs[i] && !msgabort();j++) {
+			if(((mode&SCAN_NEW && subscan[usrsub[i][j]].cfg&SUB_CFG_NSCAN)
+				|| cfg.sub[usrsub[i][j]]->misc&SUB_FORCED
+				|| mode&SCAN_FIND
+				|| (mode&SCAN_TOYOU && subscan[usrsub[i][j]].cfg&SUB_CFG_SSCAN))) {
+				if(scanposts(usrsub[i][j],mode,str)) 
+					break;
+				subs_scanned++;
+				}
 		}
-	for(i=0; i<total_subs && !msgabort(); i++) {
-		if(mode&SCAN_POLLS)
-			progress("Scanning", i, total_subs);
-		if(scanposts(sub[i],mode,str)) 
-			break;
-	}
-	subs_scanned = i;
-	free(sub);
-	if(mode&SCAN_POLLS) {
-		progress("Done", subs_scanned, total_subs);
-		cleartoeol();
+		if(j<usrsubs[i])
+			break; 
 	}
 	bputs(text[MessageScan]);
-	if(subs_scanned<total_subs) {
+	if(i<usrgrps) {
 		bputs(text[MessageScanAborted]);
 		return; 
 	}
 	bprintf(text[MessageScanComplete],subs_scanned);
-	if(mode&SCAN_NEW && !(mode&(SCAN_MSGSONLY|SCAN_BACK|SCAN_TOYOU))
+	if(mode&SCAN_NEW && !(mode&(SCAN_BACK|SCAN_TOYOU))
 		&& useron.misc&ANFSCAN && !(useron.rest&FLAG('T'))) {
 		xfer_cmds++;
 		scanalldirs(FL_ULTIME); 
@@ -253,8 +234,6 @@ void sbbs_t::new_scan_ptr_cfg()
 	long	s;
 	uint32_t	l;
 	time_t	t;
-	ulong	total_subs;
-	ulong	subs;
 
 	while(online) {
 		bputs(text[CfgGrpLstHdr]);
@@ -277,17 +256,13 @@ void sbbs_t::new_scan_ptr_cfg()
 				continue;
 			if(s=='D') {
 				t=time(NULL);
-				for(i=0, total_subs=0; i<usrgrps; i++)
-					total_subs += usrsubs[i];
 				if(inputnstime(&t) && !(sys_status&SS_ABORT)) {
-					for(i=0, subs=0; i<usrgrps && online; i++) {
+					bputs(text[LoadingMsgPtrs]);
+					for(i=0;i<usrgrps && online;i++)
 						for(j=0;j<usrsubs[i] && online;j++) {
-							progress(text[LoadingMsgPtrs], subs++, total_subs);
 							checkline();
 							subscan[usrsub[i][j]].ptr=getmsgnum(usrsub[i][j],t); 
-						}
-					}
-					progress(text[LoadingMsgPtrs], subs, total_subs);
+						} 
 				}
 				continue; 
 			}
@@ -295,11 +270,9 @@ void sbbs_t::new_scan_ptr_cfg()
 				s=0;
 			if(s)
 				s&=~0x80000000L;
-			for(i=0, total_subs=0; i<usrgrps; i++)
-				total_subs += usrsubs[i];
-			for(i=0, subs=0; i<usrgrps; i++)
+			bputs(text[LoadingMsgPtrs]);
+			for(i=0;i<usrgrps;i++)
 				for(j=0;j<usrsubs[i] && online;j++) {
-					progress(text[LoadingMsgPtrs], subs++, total_subs);
 					checkline();
 					getlastmsg(usrsub[i][j],&l,0);
 					if(s>(long)l)
@@ -307,7 +280,6 @@ void sbbs_t::new_scan_ptr_cfg()
 					else
 						subscan[usrsub[i][j]].ptr=l-s; 
 				}
-			progress(text[LoadingMsgPtrs], subs, total_subs);
 			continue; 
 		}
 		i=(s&~0x80000000L)-1;
@@ -342,12 +314,11 @@ void sbbs_t::new_scan_ptr_cfg()
 				if(s=='D') {
 					t=l;
 					if(inputnstime(&t) && !(sys_status&SS_ABORT)) {
+						bputs(text[LoadingMsgPtrs]);
 						for(j=0;j<usrsubs[i] && online;j++) {
-							progress(text[LoadingMsgPtrs], j, usrsubs[i]);
 							checkline();
 							subscan[usrsub[i][j]].ptr=getmsgnum(usrsub[i][j],t); 
-						}
-						progress(text[LoadingMsgPtrs], j, usrsubs[i]);
+						} 
 					}
 					continue; 
 				}
@@ -355,8 +326,8 @@ void sbbs_t::new_scan_ptr_cfg()
 					s=0;
 				if(s)
 					s&=~0x80000000L;
+				bputs(text[LoadingMsgPtrs]);
 				for(j=0;j<usrsubs[i] && online;j++) {
-					progress(text[LoadingMsgPtrs], j, usrsubs[i]);
 					checkline();
 					getlastmsg(usrsub[i][j],&l,0);
 					if(s>(long)l)
@@ -364,7 +335,6 @@ void sbbs_t::new_scan_ptr_cfg()
 					else
 						subscan[usrsub[i][j]].ptr=l-s; 
 				}
-				progress(text[LoadingMsgPtrs], j, usrsubs[i]);
 				continue; 
 			}
 			else {
