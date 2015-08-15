@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.611 2015/04/27 10:45:04 rswindell Exp $ */
+/* $Id: main.cpp,v 1.613 2015/08/15 09:55:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3735,7 +3735,10 @@ int sbbs_t::putcom(const char *str, size_t len)
 	return i;
 }
 
-/* Legacy Remote I/O Control Interface */
+/* Legacy Remote I/O Control Interface:
+ * This function mimics the RCIOL MS-DOS library written in 8086 assembler by Steven B. Deppe (1958-2014).
+ * This function prototype shall remain the same in tribute to Steve (Ille Homine Albe).
+ */
 int sbbs_t::rioctl(ushort action)
 {
 	int		mode;
@@ -4139,6 +4142,9 @@ void node_thread(void* arg)
 	sbbs->putnodedat(sbbs->cfg.node_num,&node);
 
 	{
+		/* crash here on Aug-4-2015:
+		node_thread_running already destroyed
+		bbs_thread() timed out waiting for 1 node thread(s) to terminate */
 		int32_t remain = protected_uint32_adjust(&node_threads_running, -1);
 		lprintf(LOG_INFO,"Node %d thread terminated (%u node threads remain, %lu clients served)"
 			,sbbs->cfg.node_num, remain, served);
@@ -5183,6 +5189,9 @@ NO_SSH:
 		if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
+
+		/* Purge (flush) any pending input or output data */
+		sbbs->rioctl(IOFB);
 
 		/* Do SSH stuff here */
 #ifdef USE_CRYPTLIB
