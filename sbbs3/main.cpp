@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.613 2015/08/15 09:55:25 rswindell Exp $ */
+/* $Id: main.cpp,v 1.614 2015/08/17 07:05:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3042,6 +3042,7 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	sysvar_pi=0;
 
 	cursub=NULL;
+	cursubnum=INVALID_SUB;
 	usrgrp=NULL;
 	usrsubs=NULL;
 	usrsub=NULL;
@@ -3050,6 +3051,7 @@ sbbs_t::sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* name, SOCKET sd,
 	subscan=NULL;
 
 	curdir=NULL;
+	curdirnum=INVALID_SUB;
 	usrlib=NULL;
 	usrdirs=NULL;
 	usrdir=NULL;
