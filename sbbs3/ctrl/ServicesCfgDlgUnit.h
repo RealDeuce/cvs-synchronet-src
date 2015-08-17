@@ -38,14 +38,13 @@ __published:	// IDE-managed Components
     TButton *CancelButton;
     TButton *ApplyButton;
     TOpenDialog *OpenDialog;
-    TTabSheet *ServicesTabSheet;
+    TTabSheet *EnableTabSheet;
     TCheckListBox *CheckListBox;
     TValueListEditor *ValueListEditor;
     TPopupMenu *ServicesCfgPopupMenu;
     TMenuItem *ServiceAdd;
     TMenuItem *ServiceRemove;
     TValueListEditor *GlobalValueListEditor;
-    TLabel *GlobalSettingsLabel;
     void __fastcall FormShow(TObject *Sender);
     void __fastcall OKButtonClick(TObject *Sender);
     void __fastcall AnswerSoundButtonClick(TObject *Sender);

@@ -1,12 +1,14 @@
+/* qwk.cpp */
+
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.68 2016/11/15 21:48:43 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.62 2015/04/28 11:13:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -79,9 +81,9 @@ bool route_circ(char *via, char *id)
 	return(false);
 }
 
-extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr, size_t maxlen)
+int sbbs_t::qwk_route(char *inaddr, char *fulladdr)
 {
-	char node[10],str[256],path[MAX_PATH+1],*p;
+	char node[10],str[256],*p;
 	int file,i;
 	FILE *stream;
 
@@ -90,47 +92,47 @@ extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr
 	p=strrchr(str,'/');
 	if(p) p++;
 	else p=str;
-	SAFECOPY(node,p);                 /* node = destination node */
+	sprintf(node,"%.8s",p);                 /* node = destination node */
 	truncsp(node);
 
-	for(i=0;i<cfg->total_qhubs;i++)			/* Check if destination is our hub */
-		if(!stricmp(cfg->qhub[i]->id,node))
+	for(i=0;i<cfg.total_qhubs;i++)			/* Check if destination is our hub */
+		if(!stricmp(cfg.qhub[i]->id,node))
 			break;
-	if(i<cfg->total_qhubs) {
-		strncpy(fulladdr,node,maxlen);
+	if(i<cfg.total_qhubs) {
+		strcpy(fulladdr,node);
 		return(0); 
 	}
 
-	i=matchuser(cfg,node,FALSE);			/* Check if destination is a node */
+	i=matchuser(&cfg,node,FALSE);			/* Check if destination is a node */
 	if(i) {
-		getuserrec(cfg,i,U_REST,8,str);
+		getuserrec(&cfg,i,U_REST,8,str);
 		if(ahtoul(str)&FLAG('Q')) {
-			strncpy(fulladdr,node,maxlen);
+			strcpy(fulladdr,node);
 			return(i); 
 		}
 		
 	}
 
-	SAFECOPY(node,inaddr);            /* node = next hop */
+	sprintf(node,"%.8s",inaddr);            /* node = next hop */
 	p=strchr(node,'/');
 	if(p) *p=0;
 	truncsp(node);							
 
 	if(strchr(inaddr,'/')) {                /* Multiple hops */
 
-		for(i=0;i<cfg->total_qhubs;i++)			/* Check if next hop is our hub */
-			if(!stricmp(cfg->qhub[i]->id,node))
+		for(i=0;i<cfg.total_qhubs;i++)			/* Check if next hop is our hub */
+			if(!stricmp(cfg.qhub[i]->id,node))
 				break;
-		if(i<cfg->total_qhubs) {
-			strncpy(fulladdr,inaddr,maxlen);
+		if(i<cfg.total_qhubs) {
+			strcpy(fulladdr,inaddr);
 			return(0); 
 		}
 
-		i=matchuser(cfg,node,FALSE);			/* Check if next hop is a node */
+		i=matchuser(&cfg,node,FALSE);			/* Check if next hop is a node */
 		if(i) {
-			getuserrec(cfg,i,U_REST,8,str);
+			getuserrec(&cfg,i,U_REST,8,str);
 			if(ahtoul(str)&FLAG('Q')) {
-				strncpy(fulladdr,inaddr,maxlen);
+				strcpy(fulladdr,inaddr);
 				return(i); 
 			}
 		}
@@ -139,18 +141,18 @@ extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr
 	p=strchr(node,' ');
 	if(p) *p=0;
 
-	SAFEPRINTF(path,"%sqnet/route.dat",cfg->data_dir);
-	if((stream=fnopen(&file,path,O_RDONLY))==NULL)
+	sprintf(str,"%sqnet/route.dat",cfg.data_dir);
+	if((stream=fnopen(&file,str,O_RDONLY))==NULL)
 		return(0);
 
 	strcat(node,":");
 	fulladdr[0]=0;
 	while(!feof(stream)) {
-		if(!fgets(str,sizeof(str),stream))
+		if(!fgets(str,256,stream))
 			break;
 		if(!strnicmp(str+9,node,strlen(node))) {
 			truncsp(str);
-			safe_snprintf(fulladdr,maxlen,"%s/%s",str+9+strlen(node),inaddr);
+			sprintf(fulladdr,"%s/%s",str+9+strlen(node),inaddr);
 			break; 
 		}
 		
@@ -160,26 +162,27 @@ extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr
 	if(!fulladdr[0])			/* First hop not found in ROUTE.DAT */
 		return(0);
 
-	SAFECOPY(node, fulladdr);
+	sprintf(node,"%.8s",fulladdr);
 	p=strchr(node,'/');
 	if(p) *p=0;
 	truncsp(node);
 
-	for(i=0;i<cfg->total_qhubs;i++)				/* Check if first hop is our hub */
-		if(!stricmp(cfg->qhub[i]->id,node))
+	for(i=0;i<cfg.total_qhubs;i++)				/* Check if first hop is our hub */
+		if(!stricmp(cfg.qhub[i]->id,node))
 			break;
-	if(i<cfg->total_qhubs)
+	if(i<cfg.total_qhubs)
 		return(0);
 
-	i=matchuser(cfg,node,FALSE);				/* Check if first hop is a node */
+	i=matchuser(&cfg,node,FALSE);				/* Check if first hop is a node */
 	if(i) {
-		getuserrec(cfg,i,U_REST,8,str);
+		getuserrec(&cfg,i,U_REST,8,str);
 		if(ahtoul(str)&FLAG('Q'))
 			return(i); 
 	}
 	fulladdr[0]=0;
 	return(0);
 }
+
 
 /* Via is in format: NODE/NODE/... */
 void sbbs_t::update_qwkroute(char *via)
@@ -214,7 +217,7 @@ void sbbs_t::update_qwkroute(char *via)
 		sprintf(str,"%sqnet/route.dat",cfg.data_dir);
 		if((stream=fnopen(&file,str,O_RDONLY))!=NULL) {
 			while(!feof(stream)) {
-				if(!fgets(str,sizeof(str),stream))
+				if(!fgets(str,255,stream))
 					break;
 				truncsp(str);
 				t=dstrtounix(&cfg,str);
@@ -376,6 +379,7 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 		if(msgs)
 			free(mail); 
 	}
+
 }
 
 /****************************************************************************/
@@ -466,8 +470,6 @@ void sbbs_t::qwk_sec()
 					,useron.qwk&QWK_NOINDEX ? text[No]:text[Yes]);
 				bprintf(text[QWKSettingsControl]
 					,useron.qwk&QWK_NOCTRL ? text[No]:text[Yes]);
-				bprintf(text[QWKSettingsVoting]
-					,useron.qwk&QWK_VOTING ? text[Yes]:text[No]);
 				bprintf(text[QWKSettingsHeaders]
 					,useron.qwk&QWK_HEADERS ? text[Yes]:text[No]);
 				bprintf(text[QWKSettingsBySelf]
@@ -481,7 +483,7 @@ void sbbs_t::qwk_sec()
 				bprintf(text[QWKSettingsExtended]
 					,useron.qwk&QWK_EXT ? text[Yes]:text[No]);
 				bputs(text[QWKSettingsWhich]);
-				ch=(char)getkeys("AEDFHIOPQTYMNCXZV",0);
+				ch=(char)getkeys("AEDFHIOQTYMNCXZV",0);
 				if(sys_status&SS_ABORT || !ch || ch=='Q' || !online)
 					break;
 				switch(ch) {
@@ -536,9 +538,6 @@ void sbbs_t::qwk_sec()
 						useron.qwk^=QWK_TZ;
 						break;
 					case 'V':
-						useron.qwk^=QWK_VOTING;
-						break;
-					case 'P':
 						useron.qwk^=QWK_VIA;
 						break;
 					case 'M':
@@ -1002,67 +1001,3 @@ int sbbs_t::set_qwk_flag(ulong flag)
 	return putuserrec(&cfg,useron.number,U_QWK,8,ultoa(useron.qwk,str,16));
 }
 
-bool sbbs_t::qwk_voting(const char* fname, smb_net_type_t net_type, const char* qnet_id)
-{
-	FILE *fp;
-	str_list_t ini;
-	str_list_t votes;
-
-	if((fp=fopen(fname,"r")) == NULL) {
-		errormsg(WHERE, ERR_OPEN, fname, 0);
-		return false;
-	}
-	ini = iniReadFile(fp);
-	fclose(fp);
-	if((votes = iniGetSectionList(ini, "vote:")) != NULL) {
-		smb_t smb;
-		unsigned u;
-
-		ZERO_VAR(smb);
-		smb.subnum = INVALID_SUB;
-
-		for(u = 0; votes[u] != NULL; u++) {
-			smbmsg_t msg;
-
-			ZERO_VAR(msg);
-			smb_hfield_str(&msg, RFC822MSGID, votes[u] + 5);
-			smb_hfield_str(&msg, RFC822REPLYID, iniGetString(ini, votes[u], smb_hfieldtype(RFC822REPLYID), NULL, NULL));
-			smb_hfield_str(&msg, SENDER, iniGetString(ini, votes[u], smb_hfieldtype(SENDER), NULL, NULL)); 
-			if(iniGetBool(ini, votes[u], "upvote", FALSE))
-				msg.hdr.attr = MSG_UPVOTE;
-			else if(iniGetBool(ini, votes[u], "downvote", FALSE))
-				msg.hdr.attr = MSG_DOWNVOTE;
-			else {
-				msg.hdr.attr = MSG_VOTE;
-				msg.hdr.vote = iniGetShortInt(ini, votes[u], "vote", 0);
-			}
-			if(net_type != NET_NONE) {
-				char* netaddr = iniGetString(ini,votes[u], smb_hfieldtype(SENDERNETADDR), NULL, NULL);
-				if(netaddr == NULL)
-					netaddr = qnet_id;
-				smb_hfield_netaddr(&msg, SENDERNETADDR, netaddr, &net_type);
-			}
-			uint subnum = resolve_qwkconf(iniGetInteger(ini, votes[u], "Conference", 0));
-			if(subnum == INVALID_SUB)
-				continue;
-			if(cfg.sub[subnum]->misc&SUB_NOVOTING)
-				continue;
-			if(subnum != smb.subnum) {
-				if(smb.subnum != INVALID_SUB) {
-					smb_close(&smb);
-					smb.subnum = INVALID_SUB;
-				}
-				if(smb_open_sub(&cfg, &smb, subnum) != SMB_SUCCESS)
-					continue;
-			}
-			int i;
-			if((i=votemsg(&cfg, &smb, &msg, text[msg.hdr.attr == MSG_UPVOTE ? MsgUpVoteNotice:MsgDownVoteNotice])) != SMB_SUCCESS)
-				errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-		}
-		if(smb.subnum != INVALID_SUB)
-			smb_close(&smb);
-		iniFreeStringList(votes);
-	}
-	iniFreeStringList(ini);
-	return true;
-}
