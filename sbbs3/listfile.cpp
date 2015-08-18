@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.58 2015/08/18 00:41:10 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.59 2015/08/18 00:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -434,6 +434,7 @@ bool sbbs_t::listfile(const char *fname, const char *buf, uint dirnum
     int		i,j;
     ulong	cdt;
 	off_t	size;
+	int		size_attr=clr_filecdt;
 
 	if(buf[F_MISC]!=ETX && (buf[F_MISC]-' ')&FM_EXTDESC && useron.misc&EXTDESC) {
 		getextdesc(&cfg,dirnum,datoffset,ext);
@@ -466,13 +467,12 @@ bool sbbs_t::listfile(const char *fname, const char *buf, uint dirnum
 	if(cfg.dir[dirnum]->misc&DIR_FCHK) {
 		if(!fexistcase(path)) {
 			exist=0;
-			attr(cfg.color[clr_err]); 
+			size_attr = clr_err; 
 		}
 		else if((cfg.dir[dirnum]->misc&DIR_FREE) && (size=flength(path)) >= 0)
 			cdt = size;
 	}
-	else
-		attr(cfg.color[clr_filecdt]);
+	attr(cfg.color[size_attr]);
 	if(useron.misc&BATCHFLAG) {
 		if(!cdt && !(cfg.dir[dirnum]->misc&DIR_FREE)) {
 			attr(curatr^(HIGH|BLINK));
