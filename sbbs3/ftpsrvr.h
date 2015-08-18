@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.56 2016/05/18 10:15:12 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.51 2015/08/18 02:16:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,16 +51,13 @@ typedef struct {
 	WORD	qwk_timeout;
 #define FTP_DEFAULT_QWK_TIMEOUT		600
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
-	struct in_addr outgoing4;
-	struct in6_addr	outgoing6;
-    str_list_t	interfaces;
-	struct in_addr pasv_ip_addr;
-	struct in6_addr	pasv_ip6_addr;
+    DWORD   interface_addr;
+	DWORD	pasv_ip_addr;
 	WORD	pasv_port_low;
 	WORD	pasv_port_high;
     DWORD	options;			/* See FTP_OPT definitions */
-	uint64_t	min_fsize;		/* Minimum file size accepted for upload */
-	uint64_t	max_fsize;		/* Maximum file size accepted for upload (0=unlimited) */
+	uint32_t	min_fsize;		/* Minimum file size accepted for upload */
+	uint32_t	max_fsize;		/* Maximum file size accepted for upload (0=unlimited) */
 
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
@@ -100,7 +97,10 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	struct login_attempt_settings login_attempt;
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
 
 } ftp_startup_t;
@@ -109,7 +109,7 @@ typedef struct {
 #if defined(STARTUP_INIT_FIELD_TABLES)
 static struct init_field ftp_init_fields[] = { 
 	 OFFSET_AND_SIZE(ftp_startup_t,port)
-	,OFFSET_AND_SIZE(ftp_startup_t,interfaces)
+	,OFFSET_AND_SIZE(ftp_startup_t,interface_addr)
 	,OFFSET_AND_SIZE(ftp_startup_t,ctrl_dir)
 	,OFFSET_AND_SIZE(ftp_startup_t,temp_dir)
 	,{ 0,0 }	/* terminator */
