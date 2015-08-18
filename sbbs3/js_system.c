@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.161 2015/08/25 01:59:47 deuce Exp $ */
+/* $Id: js_system.c,v 1.158 2015/07/29 02:48:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1206,7 +1206,7 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 	char*		user=NULL;
 	char*		text=NULL;
 	char*		host=NULL;
-	union xp_sockaddr	addr;
+	SOCKADDR_IN	addr;
 	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
@@ -1220,10 +1220,10 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			JS_ValueToInt32(cx,argv[i],&i32);
-			if(addr.in.sin_addr.s_addr==0)
-				addr.in.sin_addr.s_addr=i32;
+			if(addr.sin_addr.s_addr==0)
+				addr.sin_addr.s_addr=i32;
 			else
-				addr.in.sin_port=(ushort)i32;
+				addr.sin_port=(ushort)i32;
 			continue;
 		}
 		if(!JSVAL_IS_STRING(argv[i]))
@@ -1550,7 +1550,7 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 	if(client!=NULL) {
 		SAFECOPY(user.modem,client->protocol);
 		SAFECOPY(user.comp,client->host);
-		SAFECOPY(user.ipaddr,client->addr);
+		SAFECOPY(user.note,client->addr);
 	}
 
 	user.sex=' ';
@@ -1969,7 +1969,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,sysobj))==NULL)
 		return(JS_FALSE);
 
-	node_num=(uintptr_t)JS_GetPrivate(cx,obj)>>1;
+	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
@@ -2035,7 +2035,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,sysobj))==NULL)
 		return(JS_FALSE);
 
-	node_num=(uintptr_t)JS_GetPrivate(cx,obj)>>1;
+	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
@@ -2324,7 +2324,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 
 			/* Store node number */
 			/* We have to shift it to make it look like a pointer to JS. :-( */
-			if(!JS_SetPrivate(cx, nodeobj, (char*)(((uintptr_t)i+1)<<1)))
+			if(!JS_SetPrivate(cx, nodeobj, (char*)((i+1)<<1)))
 				return(JS_FALSE);
 
 	#ifdef BUILD_JSDOCS
