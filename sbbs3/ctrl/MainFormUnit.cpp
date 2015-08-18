@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.185 2014/01/07 22:51:50 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.187 2015/08/14 11:12:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1151,7 +1151,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     if(TelnetStop->Enabled && !bbsServiceEnabled()) {
      	if(!terminating && TelnetForm->ProgressBar->Position
 	        && Application->MessageBox("Shut down the Terminal Server?"
-        	,"Terminal Server In Use", MB_OKCANCEL)!=IDOK)
+        	,"Synchronet Terminal Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         TelnetStopExecute(Sender);
 	}
@@ -1159,7 +1159,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     if(MailStop->Enabled && !mailServiceEnabled()) {
     	if(!terminating && MailForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Mail Server?"
-        	,"Mail Server In Use", MB_OKCANCEL)!=IDOK)
+        	,"Synchronet Mail Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         MailStopExecute(Sender);
     }
@@ -1167,7 +1167,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     if(FtpStop->Enabled && !ftpServiceEnabled()) {
     	if(!terminating && FtpForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the FTP Server?"
-	       	,"FTP Server In Use", MB_OKCANCEL)!=IDOK)
+	       	,"Synchronet FTP Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         FtpStopExecute(Sender);
     }
@@ -1175,7 +1175,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     if(WebStop->Enabled && !webServiceEnabled()) {
     	if(!terminating && WebForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Web Server?"
-	       	,"Web Server In Use", MB_OKCANCEL)!=IDOK)
+	       	,"Synchronet Web Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         WebStopExecute(Sender);
     }
@@ -3188,6 +3188,12 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->JS_YieldIntervalEdit->Text=IntToStr(global.js.yield_interval);
     PropertiesDlg->JS_LoadPathEdit->Text=global.js.load_path;
     PropertiesDlg->ErrorSoundEdit->Text=ErrorSoundFile;
+    PropertiesDlg->LoginAttemptDelayEdit->Text=IntToStr(global.login_attempt_delay);
+    PropertiesDlg->LoginAttemptThrottleEdit->Text=IntToStr(global.login_attempt_throttle);
+    PropertiesDlg->LoginAttemptHackThresholdEdit->Text
+        =global.login_attempt_hack_threshold ? IntToStr(global.login_attempt_hack_threshold) : AnsiString("<disabled>");
+    PropertiesDlg->LoginAttemptFilterThresholdEdit->Text
+        =global.login_attempt_filter_threshold ? IntToStr(global.login_attempt_filter_threshold) : AnsiString("<disabled>");
 
     if(MaxLogLen==0)
 		PropertiesDlg->MaxLogLenEdit->Text="<unlimited>";
@@ -3257,6 +3263,12 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         if(memcmp(&web_startup.js,&js,sizeof(js))==0)       web_startup.js=global.js;
         if(memcmp(&mail_startup.js,&js,sizeof(js))==0)      mail_startup.js=global.js;
         if(memcmp(&services_startup.js,&js,sizeof(js))==0)  services_startup.js=global.js;
+
+        /* Security parameters */
+        global.login_attempt_delay = PropertiesDlg->LoginAttemptDelayEdit->Text.ToIntDef(0);
+        global.login_attempt_throttle = PropertiesDlg->LoginAttemptThrottleEdit->Text.ToIntDef(0);
+        global.login_attempt_hack_threshold = PropertiesDlg->LoginAttemptHackThresholdEdit->Text.ToIntDef(0);
+        global.login_attempt_filter_threshold = PropertiesDlg->LoginAttemptFilterThresholdEdit->Text.ToIntDef(0);
 
         MaxLogLen
         	=PropertiesDlg->MaxLogLenEdit->Text.ToIntDef(0);
