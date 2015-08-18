@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: LoginAttemptsFormUnit.cpp,v 1.6 2015/08/26 09:17:38 deuce Exp $ */
+/* $Id: LoginAttemptsFormUnit.cpp,v 1.4 2014/10/30 09:03:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,10 +77,8 @@ void __fastcall TLoginAttemptsForm::FillListView(TObject *Sender)
         Item=ListView->Items->Add();
         Item->Caption=AnsiString(attempt->count-attempt->dupes);
         Item->Data=(void*)attempt->time;
-        Item->SubItems->Add(attempt->dupes);
-		if(inet_addrtop(&attempt->addr, str, sizeof(str))==NULL)
-			strcpy(str, "<invalid address>");
-        Item->SubItems->Add(str);
+        Item->SubItems->Add(attempt->dupes);        
+        Item->SubItems->Add(inet_ntoa(attempt->addr));
         Item->SubItems->Add(attempt->prot);
         Item->SubItems->Add(attempt->user);
         Item->SubItems->Add(attempt->pass);
