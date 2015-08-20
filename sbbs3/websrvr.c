@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.590 2015/08/20 10:05:32 deuce Exp $ */
+/* $Id: websrvr.c,v 1.591 2015/08/20 10:24:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -761,9 +761,12 @@ static void add_env(http_session_t *session, const char *name,const char *value)
 /***************************************/
 static void init_enviro(http_session_t *session)  {
 	char	str[128];
+	union xp_sockaddr sockaddr;
+	socklen_t socklen = sizeof(sockaddr);
 
 	add_env(session,"SERVER_SOFTWARE",VERSION_NOTICE);
-	sprintf(str,"%d",startup->port);
+	getsockname(session->socket, &sockaddr.addr, &socklen);
+	sprintf(str,"%d",inet_addrport(&sockaddr));
 	add_env(session,"SERVER_PORT",str);
 	add_env(session,"GATEWAY_INTERFACE","CGI/1.1");
 	if(!strcmp(session->host_name,session->host_ip))
@@ -5647,7 +5650,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.590 $", "%*s %s", revision);
+	sscanf("$Revision: 1.591 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
