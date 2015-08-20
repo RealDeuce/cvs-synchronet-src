@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.404 2013/08/06 02:01:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.413 2015/08/20 05:19:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -264,6 +264,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "filewrap.h"
 #include "datewrap.h"
 #include "sockwrap.h"
+#include "multisock.h"
 #include "eventwrap.h"
 #include "link_list.h"
 #include "msg_queue.h"
@@ -299,7 +300,7 @@ class sbbs_t
 
 public:
 
-	sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* host_name, SOCKET
+	sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const char* host_name, SOCKET
 		,scfg_t*, char* text[], client_t* client_info);
 	~sbbs_t();
 
@@ -311,10 +312,11 @@ public:
 	client_t client;
 	SOCKET	client_socket;
 	SOCKET	client_socket_dup;
-	SOCKADDR_IN	client_addr;
+	union xp_sockaddr	client_addr;
 	char	client_name[128];
 	char	client_ident[128];
-	DWORD	local_addr;
+	char	client_ipaddr[INET6_ADDRSTRLEN];
+	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
 	bool	ssh_mode;
@@ -335,7 +337,9 @@ public:
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
 	bool	input_thread_mutex_locked;	// by someone other than the input_thread
+	bool	input_thread_mutex_created;
 	pthread_mutex_t	ssh_mutex;
+	bool	ssh_mutex_created;
 
 	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
@@ -385,6 +389,7 @@ public:
 	smb_t	smb;			/* Currently open message base */
 	char	rlogin_name[LEN_ALIAS+1];
 	char	rlogin_pass[LEN_PASS+1];
+	char	rlogin_term[TELNET_TERM_MAXLEN+1];	/* RLogin passed terminal type/speed (e.g. "xterm/57600") */
 
 	uint	temp_dirnum;
 
@@ -565,9 +570,6 @@ public:
 	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
-	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
-	time_t	getmsgtime(uint subnum, ulong ptr);
-	ulong	getmsgnum(uint subnum, time_t t);
 
 	int		dir_op(uint dirnum);
 	int		getuserxfers(int fromuser, int destuser, char *fname);
@@ -619,16 +621,11 @@ public:
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
 	bool	editfile(char *path, bool msg=false);
-	int		loadmsg(smbmsg_t *msg, ulong number);
 	ushort	chmsgattr(ushort attr);
-	void	show_msgattr(ushort attr);
-	void	show_msghdr(smbmsg_t* msg);
-	void	show_msg(smbmsg_t* msg, long mode);
-	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
 	void	quotemsg(smbmsg_t* msg, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum, const char *dest, const char *title, long mode
-				,uint subnum);
+				,uint subnum, const char* tagfile);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
@@ -643,10 +640,18 @@ public:
 	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
-	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num);
+	int		loadmsg(smbmsg_t *msg, ulong number);
+	void	show_msgattr(ushort attr);
+	void	show_msghdr(smbmsg_t* msg);
+	void	show_msg(smbmsg_t* msg, long mode);
+	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
+	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
+	time_t	getmsgtime(uint subnum, ulong ptr);
+	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
+	bool	readmail_inside;
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -742,11 +747,13 @@ public:
 	int		text_sec(void);						/* Text sections */
 
 	/* readmsgs.cpp */
+	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num, uint32_t* visible=NULL);
 	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
+	bool	scanposts_inside;
 	long	listsub(uint subnum, long mode, long start, const char* search);
 	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
-	long	showposts_toyou(post_t* post, ulong start, long posts);
+	long	showposts_toyou(post_t* post, ulong start, long posts, long mode=0);
 	void	msghdr(smbmsg_t* msg);
 
 	/* chat.cpp */
@@ -924,6 +931,7 @@ public:
 
 	/* scansubs.cpp */
 	void	scansubs(long mode);
+	bool	scansubs_inside;
 	void	scanallsubs(long mode);
 	void	new_scan_cfg(ulong misc);
 	void	new_scan_ptr_cfg(void);
@@ -938,7 +946,7 @@ public:
 	void	catsyslog(int crash);
 
 	/* telgate.cpp */
-	void	telnet_gate(char* addr, ulong mode, char* name=NULL, char* passwd=NULL);	// See TG_* for mode bits
+	void	telnet_gate(char* addr, ulong mode, char* client_user_name=NULL, char* server_user_name=NULL, char* term_type=NULL);	// See TG_* for mode bits
 
 };
 
@@ -1081,7 +1089,7 @@ extern "C" {
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
 
 	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text
-										,char* host, SOCKADDR_IN* addr);
+										,char* host, union xp_sockaddr* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
 										,char* host, char* ip_addr, char* to, char* from);
 
@@ -1105,7 +1113,7 @@ extern "C" {
 	typedef struct {
 		const char*		name;
 		JSNative        call;
-		uint8           nargs;
+		uint8_t         nargs;
 		int				type;		/* return type */
 		const char*		args;		/* arguments */
 		const char*		desc;		/* description */
@@ -1114,8 +1122,8 @@ extern "C" {
 
 	typedef struct {
 		const char      *name;
-		int8            tinyid;
-		uint8           flags;
+		int8_t          tinyid;
+		uint8_t         flags;
 		int				ver;		/* version added/modified */
 	} jsSyncPropertySpec;
 
@@ -1150,12 +1158,12 @@ extern "C" {
 	/* main.cpp */
 	DLLEXPORT JSBool	DLLCALL js_DescribeSyncObject(JSContext* cx, JSObject* obj, const char*, int ver);
 	DLLEXPORT JSBool	DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char*);
-	DLLEXPORT JSBool	DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec*, BOOL append);
+	DLLEXPORT JSBool	DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec*);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncProperties(JSContext* cx, JSObject* obj, jsSyncPropertySpec*);
 	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
-														,const char* name, char* str[], uintN flags);
+														,const char* name, char* str[], unsigned flags);
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1170,7 +1178,7 @@ extern "C" {
 		sem_t				bg_sem;
 		str_list_t			exit_func;
 	} global_private_t;
-	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, uintN argc, uintN min);
+	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, unsigned argc, unsigned min);
 	DLLEXPORT BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*, JSObject**);
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
@@ -1191,7 +1199,7 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_callback_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonOperationCallback(JSContext*, js_callback_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_callback_t*);
-	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir, JSObject *);
 	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
 
 	/* js_system.c */
@@ -1232,8 +1240,13 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent
 													,char *name, SOCKET sock);
+	DLLEXPORT JSObject* DLLCALL js_CreateSocketObjectFromSet(JSContext* cx, JSObject* parent
+													,char *name, struct xpms_set *set);
+
 	DLLEXPORT void		DLLCALL js_timeval(JSContext* cx, jsval val, struct timeval* tv);
 	DLLEXPORT SOCKET	DLLCALL js_socket(JSContext *cx, jsval val);
+    DLLEXPORT SOCKET	DLLCALL js_socket_add(JSContext *cx, jsval val, fd_set *fds);
+	DLLEXPORT BOOL		DLLCALL js_socket_isset(JSContext *cx, jsval val, fd_set *fds);
 
 	/* js_queue.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateQueueClass(JSContext* cx, JSObject* parent);
@@ -1245,7 +1258,7 @@ extern "C" {
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
 
 	/* js_sprintf.c */
-	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, uintN argc, jsval *argv);
+	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);
 	DLLEXPORT void		DLLCALL js_sprintf_free(char *);
 
 	/* js_console.cpp */
@@ -1263,6 +1276,9 @@ extern "C" {
 	/* js_com.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCOMClass(JSContext* cx, JSObject* parent);
 	DLLEXPORT JSObject* DLLCALL js_CreateCOMObject(JSContext* cx, JSObject* parent, const char *name, COM_HANDLE sock);
+
+	/* js_cryptcon.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
 
 #endif
 
@@ -1285,7 +1301,7 @@ BOOL 	md(char *path);
 	int 	lprintf(int level, const char *fmt, ...);	/* log output */
 	int 	eprintf(int level, const char *fmt, ...);	/* event log */
 	SOCKET	open_socket(int type, const char* protocol);
-	SOCKET	accept_socket(SOCKET s, SOCKADDR* addr, socklen_t* addrlen);
+	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
 
