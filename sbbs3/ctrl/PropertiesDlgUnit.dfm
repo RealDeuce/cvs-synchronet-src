@@ -1,6 +1,6 @@
 object PropertiesDlg: TPropertiesDlg
-  Left = 688
-  Top = 261
+  Left = 631
+  Top = 219
   BorderStyle = bsDialog
   Caption = 'Control Panel Properties'
   ClientHeight = 234
@@ -43,9 +43,9 @@ object PropertiesDlg: TPropertiesDlg
     Top = 7
     Width = 254
     Height = 221
-    ActivePage = SettingsTabSheet
+    ActivePage = SecurityTabSheet
     Anchors = [akLeft, akTop, akBottom]
-    TabIndex = 0
+    TabIndex = 1
     TabOrder = 2
     object SettingsTabSheet: TTabSheet
       Caption = 'Settings'
@@ -217,50 +217,36 @@ object PropertiesDlg: TPropertiesDlg
         Left = 8
         Top = 8
         Width = 225
-        Height = 177
+        Height = 129
         Caption = 'Failed Login Attempts'
         TabOrder = 0
         object LoginAttemptDelayLabel: TLabel
           Left = 8
           Top = 24
           Width = 92
-          Height = 13
+          Height = 19
           Caption = 'Delay (milliseconds)'
         end
         object LoginAttemptThrottleLabel: TLabel
           Left = 8
           Top = 48
           Width = 101
-          Height = 13
+          Height = 19
           Caption = 'Throttle (milliseconds)'
         end
         object LoginAttemptHackThreshold: TLabel
           Left = 8
           Top = 72
           Width = 97
-          Height = 13
+          Height = 19
           Caption = 'Hack Log Threshold'
-        end
-        object LoginAttemptTempBanThresholdLabel: TLabel
-          Left = 8
-          Top = 96
-          Width = 99
-          Height = 13
-          Caption = 'Temp Ban Threshold'
-        end
-        object LoginAttemptTempBanDurationLabel: TLabel
-          Left = 8
-          Top = 120
-          Width = 92
-          Height = 13
-          Caption = 'Temp Ban Duration'
         end
         object LoginAttemptFilterThresholdLabel: TLabel
           Left = 8
-          Top = 144
-          Width = 99
+          Top = 96
+          Width = 85
           Height = 13
-          Caption = 'Perm Filter Threshold'
+          Caption = 'IP Filter Threshold'
         end
         object LoginAttemptDelayEdit: TEdit
           Left = 128
@@ -275,7 +261,9 @@ object PropertiesDlg: TPropertiesDlg
           Top = 48
           Width = 65
           Height = 21
-          Hint = 'Delay successive connections after a failed login attempt'
+          Hint = 
+            'Delay successive connections after a failed logi' +
+            'n attempt'
           TabOrder = 1
         end
         object LoginAttemptHackThresholdEdit: TEdit
@@ -283,36 +271,20 @@ object PropertiesDlg: TPropertiesDlg
           Top = 72
           Width = 65
           Height = 21
-          Hint = 'Consecutive failed login attempts before logging hack attempt'
+          Hint = 
+            'Consecutive failed login attempts before logging ' +
+            'hack attempt'
           TabOrder = 2
         end
-        object LoginAttemptTempBanThresholdEdit: TEdit
+        object LoginAttemptFilterThresholdEdit: TEdit
           Left = 128
           Top = 96
           Width = 65
           Height = 21
           Hint = 
-            'Consecutive failed login attempts before temporary ban of client' +
-            ' IP'
+            'Consecutive failed login attempts before client IP is ' +
+            'blocked'
           TabOrder = 3
-        end
-        object LoginAttemptTempBanDurationEdit: TEdit
-          Left = 128
-          Top = 120
-          Width = 65
-          Height = 21
-          Hint = 'Duration of temporary ban of client IP'
-          TabOrder = 4
-        end
-        object LoginAttemptFilterThresholdEdit: TEdit
-          Left = 128
-          Top = 144
-          Width = 65
-          Height = 21
-          Hint = 
-            'Consecutive failed login attempts before client IP is filtered (' +
-            'permanently blocked )'
-          TabOrder = 5
         end
       end
     end
@@ -691,17 +663,6 @@ object PropertiesDlg: TPropertiesDlg
         TabOrder = 5
       end
     end
-  end
-  object HelpBtn: TButton
-    Left = 267
-    Top = 70
-    Width = 76
-    Height = 25
-    Anchors = [akTop, akRight]
-    Cancel = True
-    Caption = 'Help'
-    TabOrder = 3
-    OnClick = HelpBtnClick
   end
   object FontDialog1: TFontDialog
     Font.Charset = DEFAULT_CHARSET
