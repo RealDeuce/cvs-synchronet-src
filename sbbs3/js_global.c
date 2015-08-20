@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.344 2015/08/22 05:39:49 deuce Exp $ */
+/* $Id: js_global.c,v 1.341 2015/08/20 05:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2437,7 +2437,7 @@ static JSBool
 js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *), unsigned extra_bytes)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char		*str, *rastr, *funcret;
+	char*		str, *rastr;
 	JSString*	js_str;
 	size_t		strlen;
 
@@ -2452,25 +2452,20 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 		return(JS_TRUE);
 	if(extra_bytes) {
 		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
-		if(rastr==NULL)
-			goto error;
+		if(rastr==NULL) {
+			free(str);
+			return JS_TRUE;
+		}
 		str=rastr;
 	}
 
-	funcret = func(str);
-	if (funcret) {
-		js_str = JS_NewStringCopyZ(cx, funcret);
-		if (js_str == NULL)
-			goto error;
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
-	}
+	js_str = JS_NewStringCopyZ(cx, func(str));
 	free(str);
+	if(js_str==NULL)
+		return(JS_FALSE);
 
+	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
 	return(JS_TRUE);
-
-error:
-	free(str);
-	return JS_FALSE;
 }
 
 static JSBool
@@ -2497,26 +2492,16 @@ js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 	return js_internal_charfunc(cx, argc, arglist, backslash, 1);
 }
 
-static char *nonconst_getfname(char *c)
-{
-	return(getfname(c));
-}
-
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, nonconst_getfname, 0);
-}
-
-static char *nonconst_getfext(char *c)
-{
-	return(getfext(c));
+	return js_internal_charfunc(cx, argc, arglist, getfname, 0);
 }
 
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, nonconst_getfext, 0);
+	return js_internal_charfunc(cx, argc, arglist, getfext, 0);
 }
 
 static JSBool
