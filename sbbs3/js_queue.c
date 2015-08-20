@@ -1,6 +1,8 @@
+/* js_queue.c */
+
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.52 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.50 2015/05/11 03:35:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +48,7 @@ typedef struct
 
 link_list_t named_queues;
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 /* Queue Destructor */
 
@@ -106,7 +108,7 @@ js_poll(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	if(v==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
-	else if(v->name[0])
+	else if(v->name!=NULL && v->name[0])
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,v->name)));
 	else
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
@@ -301,7 +303,7 @@ static JSBool js_queue_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
 	switch(tiny) {
 		case QUEUE_PROP_NAME:
-			if(q->name[0])
+			if(q->name!=NULL && q->name[0])
 				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,q->name));
 			break;
 		case QUEUE_PROP_DATA_WAITING:
