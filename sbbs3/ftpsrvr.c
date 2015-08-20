@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.419 2015/08/22 06:19:08 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.413 2015/08/20 07:55:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1872,7 +1872,7 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, SOCKET pasv_sock
 	} else {	/* PASV */
 
 		if(startup->options&FTP_OPT_DEBUG_DATA) {
-			addr_len=sizeof(*addr);
+			addr_len=sizeof(addr);
 			if((result=getsockname(pasv_sock, &addr->addr,&addr_len))!=0)
 				lprintf(LOG_ERR,"%04d !ERROR %d (%d) getting address/port of passive socket (%u)"
 					,ctrl_sock,result,ERROR_VALUE,pasv_sock);
@@ -1904,7 +1904,7 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, SOCKET pasv_sock
 			return;
 		}
 			
-		addr_len=sizeof(*addr);
+		addr_len=sizeof(addr);
 #ifdef SOCKET_DEBUG_ACCEPT
 		socket_debug[ctrl_sock]|=SOCKET_DEBUG_ACCEPT;
 #endif
@@ -2821,7 +2821,7 @@ static void ctrl_thread(void* arg)
 				sscanf(p,"%u,%u,%u,%u,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
 				data_addr.in.sin_family=AF_INET;
 				data_addr.in.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
-				data_port = (p1<<8)|p2;
+				data_port = (p2<<8)|p1;
 			} else if(strnicmp(cmd, "EPRT ", 5)==0) { /* EPRT */
 				char	delim = *p;
 				int		prot;
@@ -4732,7 +4732,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.419 $", "%*s %s", revision);
+	sscanf("$Revision: 1.413 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4763,6 +4763,7 @@ void DLLCALL ftp_server(void* arg)
 	time_t			start;
 	time_t			initialized=0;
 	ftp_t*			ftp;
+	struct in_addr	iaddr;
 	char			client_ip[INET6_ADDRSTRLEN];
 
 	ftp_ver();
@@ -4812,7 +4813,8 @@ void DLLCALL ftp_server(void* arg)
 	js_server_props.version_detail=ftp_ver();
 	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
-	js_server_props.interfaces=&startup->interfaces;
+	/* TODO: IPv6 */
+	js_server_props.interface_addr=&startup->outgoing4;
 #endif
 
 	uptime=0;

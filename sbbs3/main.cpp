@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.618 2015/08/22 04:31:35 deuce Exp $ */
+/* $Id: main.cpp,v 1.615 2015/08/20 05:19:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4528,7 +4528,8 @@ void DLLCALL bbs_thread(void* arg)
 	js_server_props.version_detail=bbs_ver();
 	js_server_props.clients=&node_threads_running.value;
 	js_server_props.options=&startup->options;
-	js_server_props.interfaces=&startup->telnet_interfaces;
+	/* TODO: IPv6 */
+	js_server_props.interface_addr=(uint32_t *)&startup->outgoing4.s_addr;
 
 	uptime=0;
 	served=0;
