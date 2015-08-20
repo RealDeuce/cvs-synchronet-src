@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.87 2015/08/23 11:16:14 deuce Exp $ */
+/* $Id: answer.cpp,v 1.86 2015/08/20 05:19:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,15 +37,14 @@
 
 #include "sbbs.h"
 #include "telnet.h"
-#include "ssl.h"
 
 extern "C" void client_on(SOCKET sock, client_t* client, BOOL update);
 
 bool sbbs_t::answer()
 {
 	char	str[MAX_PATH+1],str2[MAX_PATH+1],c;
-	char 	tmp[MAX_PATH];
-	char 	*ctmp;
+	char 	tmp[(MAX_PATH > CRYPT_MAX_TEXTSIZE ? MAX_PATH:CRYPT_MAX_TEXTSIZE)+1];
+	char 	tmpname[CRYPT_MAX_TEXTSIZE+1];
 	char 	path[MAX_PATH+1];
 	int		i,l,in;
 	struct tm tm;
@@ -192,26 +191,16 @@ bool sbbs_t::answer()
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
 		pthread_mutex_lock(&ssh_mutex);
-		ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_USERNAME);
-		if (ctmp) {
-			SAFECOPY(rlogin_name, ctmp);
-			free_crypt_attrstr(ctmp);
-			ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_PASSWORD);
-			if (ctmp) {
-				SAFECOPY(tmp, ctmp);
-				free_crypt_attrstr(ctmp);
-			}
-			else
-				tmp[0] = 0;
-			pthread_mutex_unlock(&ssh_mutex);
-			lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
-				,cfg.node_num, rlogin_name);
-		}
-		else {
-			rlogin_name[0] = 0;
-			pthread_mutex_unlock(&ssh_mutex);
-		}
-		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name);
+		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, tmpname, &i);
+		tmpname[i]=0;
+		SAFECOPY(rlogin_name, tmpname);
+		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_PASSWORD, tmp, &i);
+		tmp[i]=0;
+		SAFECOPY(rlogin_pass, tmp);
+		pthread_mutex_unlock(&ssh_mutex);
+		lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
+			,cfg.node_num, tmpname);
+		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, tmpname);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
 			useron.misc&=~TERM_FLAGS;
@@ -233,7 +222,6 @@ bool sbbs_t::answer()
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
 				}
 				else {
-					SAFECOPY(rlogin_pass, tmp);
 					if(REALSYSOP) {
 						rioctl(IOFI);       /* flush input buffer */
 						if(!chksyspass())
@@ -265,10 +253,10 @@ bool sbbs_t::answer()
 		}
 		else {
 			if(cfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, tmp);
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,tmpname, rlogin_pass);
 			else
-				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
-			badlogin(rlogin_name, tmp);
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,tmpname);
+			badlogin(tmpname, rlogin_pass);
 		}
 	}
 #endif

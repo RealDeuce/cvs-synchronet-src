@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.170 2015/08/23 11:16:14 deuce Exp $ */
+/* $Id: js_socket.c,v 1.167 2015/08/20 05:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,6 @@
 #include "js_socket.h"
 #include "js_request.h"
 #include "multisock.h"
-#include "ssl.h"
 
 #ifdef JAVASCRIPT
 
@@ -107,16 +106,16 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 static void do_CryptFlush(const CRYPT_CONTEXT session)
 {
 	int ret=cryptFlushData(session);
-	char	*estr;
+	int		len = 0;
+	char	estr[CRYPT_MAX_TEXTSIZE+1];
 
 	ret = cryptFlushData(session);
 
 	if(ret!=CRYPT_OK) {
-		estr = get_crypt_error(session);
-		if (estr) {
+		cryptGetAttributeString(session, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len);
+		estr[len]=0;
+		if (len)
 			lprintf(LOG_ERR, "cryptFlushData() returned %d (%s)", ret, estr);
-			free_crypt_attrstr(estr);
-		}
 		else
 			lprintf(LOG_ERR, "cryptFlushData() returned %d", ret);
 	}
@@ -377,8 +376,7 @@ SOCKET DLLCALL js_socket_add(JSContext *cx, jsval val, fd_set *fds)
 	js_socket_private_t	*p;
 	JSClass*	cl;
 	SOCKET		sock=INVALID_SOCKET;
-	size_t		i;
-	int32_t		intval;
+	int32		i;
 
 	if(JSVAL_IS_OBJECT(val) && (cl=JS_GetClass(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
 		if(cl->flags&JSCLASS_HAS_PRIVATE) {
@@ -400,8 +398,8 @@ SOCKET DLLCALL js_socket_add(JSContext *cx, jsval val, fd_set *fds)
 			}
 		}
 	} else if(val!=JSVAL_VOID) {
-		if(JS_ValueToInt32(cx,val,&intval)) {
-			sock = intval;
+		if(JS_ValueToInt32(cx,val,&i)) {
+			sock = i;
 			FD_SET(sock, fds);
 		}
 	}
@@ -412,8 +410,7 @@ BOOL DLLCALL  js_socket_isset(JSContext *cx, jsval val, fd_set *fds)
 {
 	js_socket_private_t	*p;
 	JSClass*	cl;
-	size_t		i;
-	int			intval;
+	int			i;
 
 	if(JSVAL_IS_OBJECT(val) && (cl=JS_GetClass(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
 		if(cl->flags&JSCLASS_HAS_PRIVATE) {
@@ -433,8 +430,8 @@ BOOL DLLCALL  js_socket_isset(JSContext *cx, jsval val, fd_set *fds)
 			}
 		}
 	} else if(val!=JSVAL_VOID) {
-		if(JS_ValueToInt32(cx,val,&intval)) {
-			if(FD_ISSET(intval, fds))
+		if(JS_ValueToInt32(cx,val,&i)) {
+			if(FD_ISSET(i, fds))
 				return TRUE;
 		}
 	}
@@ -1546,7 +1543,7 @@ js_poll(JSContext *cx, uintN argc, jsval *arglist)
 	int		result;
 	struct	timeval tv = {0, 0};
 	jsrefcount	rc;
-	size_t	i;
+	int		i;
 	SOCKET	high=0;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -2170,13 +2167,11 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 	p->network_byte_order = TRUE;
 	p->session=-1;
 
-	if (p->sock != INVALID_SOCKET) {
-		len=sizeof(p->remote_addr);
-		if(getpeername(p->sock, &p->remote_addr.addr,&len)==0)
-			p->is_connected=TRUE;
-		else
-			lprintf(LOG_ERR, "Error %d calling getpeername()",errno);
-	}
+	len=sizeof(p->remote_addr);
+	if(getpeername(p->sock, &p->remote_addr.addr,&len)==0)
+		p->is_connected=TRUE;
+	else
+		lprintf(LOG_ERR, "Error %d calling getpeername()",errno);
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
