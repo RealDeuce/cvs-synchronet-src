@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.621 2015/08/25 06:13:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.615 2015/08/20 05:19:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2187,13 +2187,8 @@ void output_thread(void* arg)
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
 			}
-			else {
-				if(!cryptStatusOK((err=cryptFlushData(sbbs->ssh_session)))) {
-					lprintf(LOG_WARNING,"%s !ERROR %d flushing Cryptlib session", node, err);
-					sbbs->online=FALSE;
-					i=buftop-bufbot;	// Pretend we sent it all
-				}
-			}
+			else
+				cryptFlushData(sbbs->ssh_session);
 			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		else
@@ -2610,12 +2605,13 @@ void event_thread(void* arg)
 			tmptime=sbbs->cfg.qhub[i]->last;
 			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
-			if(sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
-				|| (((sbbs->cfg.qhub[i]->freq && (now-sbbs->cfg.qhub[i]->last)/60>=sbbs->cfg.qhub[i]->freq)
+			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
+				|| ((sbbs->cfg.qhub[i]->freq
+					&& (now-sbbs->cfg.qhub[i]->last)/60>=sbbs->cfg.qhub[i]->freq)
 					|| (sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
-					&& sbbs->cfg.qhub[i]->days&(1<<now_tm.tm_wday))) {
+						&& sbbs->cfg.qhub[i]->days&(1<<now_tm.tm_wday))) {
 				SAFEPRINTF2(str,"%sqnet/%s.now"
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				if(fexistcase(str))
@@ -3465,7 +3461,7 @@ sbbs_t::~sbbs_t()
 
 	/* Reset text.dat */
 
-	for(i=0;i<TOTAL_TEXT;i++)
+	for(i=0;i<TOTAL_TEXT && text!=NULL;i++)
 		if(text[i]!=text_sav[i]) {
 			if(text[i]!=nulstr)
 				free(text[i]); 
@@ -4496,7 +4492,7 @@ void DLLCALL bbs_thread(void* arg)
 	struct main_sock_cb_data	ssh_cb;
 	struct main_sock_cb_data	rlogin_cb;
 	void						*ts_cb;
-	int							err;
+	struct in_addr				iaddr;
 
     if(startup==NULL) {
     	sbbs_beep(100,500);
@@ -4532,7 +4528,8 @@ void DLLCALL bbs_thread(void* arg)
 	js_server_props.version_detail=bbs_ver();
 	js_server_props.clients=&node_threads_running.value;
 	js_server_props.options=&startup->options;
-	js_server_props.interfaces=&startup->telnet_interfaces;
+	/* TODO: IPv6 */
+	js_server_props.interface_addr=(uint32_t *)&startup->outgoing4.s_addr;
 
 	uptime=0;
 	served=0;
@@ -4701,14 +4698,14 @@ void DLLCALL bbs_thread(void* arg)
 	 */
 	xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->telnet_interfaces, startup->telnet_port, "Telnet Server", sock_cb, startup->seteuid, &telnet_cb);
 
-	lprintf(LOG_INFO,"Telnet Server listening");
+	lprintf(LOG_INFO,"Telnet Server listening on port %u",startup->telnet_port);
 
 	if(startup->options&BBS_OPT_ALLOW_RLOGIN) {
 		/* open a socket and wait for a client */
 		rlogin_cb.protocol="rlogin";
 		rlogin_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->rlogin_interfaces, startup->rlogin_port, "RLogin Server", sock_cb, startup->seteuid, &rlogin_cb);
-		lprintf(LOG_INFO,"RLogin Server listening");
+		lprintf(LOG_INFO,"RLogin Server listening on port %u",startup->rlogin_port);
 	}
 
 #ifdef USE_CRYPTLIB
@@ -4716,6 +4713,8 @@ void DLLCALL bbs_thread(void* arg)
 	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
 #endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
+		bool			loaded_key=false;
+
 		CRYPT_KEYSET	ssh_keyset;
 
 		if(!do_cryptInit())
@@ -4744,10 +4743,8 @@ void DLLCALL bbs_thread(void* arg)
 
 			/* Ok, now try saving this one... use the syspass to enctrpy it. */
 			if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
-				if(!cryptStatusOK(cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
-					lprintf(LOG_ERR,"SSH Cryptlib error %d saving key",i);
-				if(!cryptStatusOK(cryptKeysetClose(ssh_keyset)))
-					lprintf(LOG_ERR,"SSH Cryptlib error %d closing keyset",i);
+				cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass);
+				cryptKeysetClose(ssh_keyset);
 			}
 		}
 
@@ -4755,7 +4752,7 @@ void DLLCALL bbs_thread(void* arg)
 		ssh_cb.protocol="ssh";
 		ssh_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->ssh_interfaces, startup->ssh_port, "SSH Server", sock_cb, startup->seteuid, &ssh_cb);
-		lprintf(LOG_INFO,"SSH Server listening");
+		lprintf(LOG_INFO,"SSH Server listening on port %u",startup->ssh_port);
 	}
 NO_SSH:
 #endif
@@ -5086,10 +5083,7 @@ NO_SSH:
 				close_socket(client_socket);
 				continue;
 			}
-			if(!cryptStatusOK(err=cryptPopData(sbbs->ssh_session, str, sizeof(str), &i))) {
-				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
-				i=0;
-			}
+			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 		}
 #endif
    		sbbs->client_socket=client_socket;	// required for output to the user
@@ -5346,10 +5340,7 @@ NO_PASSTHRU:
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
 			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
-			if(!cryptStatusOK(err=cryptPopData(sbbs->ssh_session, str, sizeof(str), &i))) {
-				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
-				i=0;
-			}
+			cryptPopData(sbbs->ssh_session, str, sizeof(str), &i);
 			sbbs->ssh_mode=false;
 		}
 #endif
