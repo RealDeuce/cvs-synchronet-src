@@ -1,12 +1,14 @@
+/* logfile.cpp */
+
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.60 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.56 2015/08/20 05:19:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -35,38 +37,36 @@
 
 #include "sbbs.h"
 
-const char* log_line_ending = "\r\n";
-
-extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, const char* prot, const char* user, const char* text, const char* host, union xp_sockaddr* addr)
+extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text, char* host, union xp_sockaddr* addr)
 {
+	char	hdr[1024];
 	char	tstr[64];
 	char	fname[MAX_PATH+1];
-	FILE*	fp;
+	int		file;
 	char	ip[INET6_ADDRSTRLEN];
 	time32_t now=time32(NULL);
 
-	SAFEPRINTF(fname, "%shack.log", cfg->logs_dir);
+	sprintf(fname,"%shack.log",cfg->logs_dir);
 
-	if((fp = fnopen(NULL, fname, O_WRONLY|O_CREAT|O_APPEND)) == NULL)
-		return false;
+	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,DEFFILEMODE))==-1)
+		return(FALSE);
 
 	inet_addrtop(addr, ip, sizeof(ip));
-	fprintf(fp,"SUSPECTED %s HACK ATTEMPT for user '%s' on %.24s%sUsing port %u at %s [%s]%s"
+	sprintf(hdr,"SUSPECTED %s HACK ATTEMPT for user '%s' on %.24s\r\nUsing port %u at %s [%s]\r\nDetails: "
 		,prot
 		,user
 		,timestr(cfg,now,tstr)
-		,log_line_ending
 		,inet_addrport(addr)
 		,host
 		,ip
-		,log_line_ending
 		);
-	if(text != NULL)
-		fprintf(fp, "Details: %s%s", text, log_line_ending);
-	fputs(log_line_ending, fp);
-	fclose(fp);
+	write(file,hdr,strlen(hdr));
+	write(file,text,strlen(text));
+	write(file,crlf,2);
+	write(file,crlf,2);
+	close(file);
 
-	return true;
+	return(TRUE);
 }
 
 BOOL sbbs_t::hacklog(char* prot, char* text)
@@ -78,43 +78,43 @@ extern "C" BOOL DLLCALL spamlog(scfg_t* cfg, char* prot, char* action
 								,char* reason, char* host, char* ip_addr
 								,char* to, char* from)
 {
+	char	hdr[1024];
 	char	to_user[256];
 	char	tstr[64];
 	char	fname[MAX_PATH+1];
-	FILE*	fp;
+	int		file;
 	time32_t now=time32(NULL);
 
-	SAFEPRINTF(fname, "%sspam.log", cfg->logs_dir);
+	sprintf(fname,"%sspam.log",cfg->logs_dir);
 
-	if((fp = fnopen(NULL, fname, O_WRONLY|O_CREAT|O_APPEND)) == NULL)
-		return false;
+	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,DEFFILEMODE))==-1)
+		return(FALSE);
 
 	if(to==NULL)
 		to_user[0]=0;
 	else
-		SAFEPRINTF(to_user,"to: %.128s",to);
+		sprintf(to_user,"to: %.128s",to);
 
 	if(from==NULL)
 		from=host;
 		
-	fprintf(fp, "SUSPECTED %s SPAM %s on %.24s%sHost: %s [%s]%sFrom: %.128s %s%s"
+	sprintf(hdr,"SUSPECTED %s SPAM %s on %.24s\r\nHost: %s [%s]\r\nFrom: %.128s %s\r\nReason: "
 		,prot
 		,action
 		,timestr(cfg,now,tstr)
-		,log_line_ending
 		,host
 		,ip_addr
-		,log_line_ending
 		,from
 		,to_user
-		,log_line_ending
 		);
-	if(reason != NULL)
-		fprintf(fp, "Reason: %s%s", reason, log_line_ending);
-	fputs(log_line_ending, fp);
-	fclose(fp);
+	write(file,hdr,strlen(hdr));
+	if(reason!=NULL)
+		write(file,reason,strlen(reason));
+	write(file,crlf,2);
+	write(file,crlf,2);
+	close(file);
 
-	return true;
+	return(TRUE);
 }
 
 extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text)
@@ -123,17 +123,10 @@ extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text)
 	char	buf[128];
 	char	path[MAX_PATH+1];
 
-	SAFEPRINTF(path, "%serror.log", cfg->logs_dir);
-	if((fp = fnopen(NULL,path,O_WRONLY|O_CREAT|O_APPEND))==NULL)
+	sprintf(path,"%serror.log",cfg->logs_dir);
+	if((fp=fnopen(NULL,path,O_WRONLY|O_CREAT|O_APPEND))==NULL)
 		return -1; 
-	fprintf(fp,"%s %s%s%s%s%s"
-		,timestr(cfg,time32(NULL),buf)
-		,host==NULL ? "":host
-		,log_line_ending
-		,text
-		,log_line_ending
-		,log_line_ending
-		);
+	fprintf(fp,"%s %s\r\n%s\r\n\r\n", timestr(cfg,time32(NULL),buf), host==NULL ? "":host, text);
 	fclose(fp);
 	return 0;
 }
@@ -143,7 +136,7 @@ void sbbs_t::logentry(const char *code, const char *entry)
 	char str[512];
 
 	now=time(NULL);
-	SAFEPRINTF4(str, "Node %2d  %s%s   %s", cfg.node_num, timestr(now), log_line_ending, entry);
+	sprintf(str,"Node %2d  %s\r\n   %s",cfg.node_num,timestr(now),entry);
 	logline(code,str);
 }
 
@@ -154,14 +147,14 @@ void sbbs_t::log(char *str)
 {
 	if(logfile_fp==NULL || online==ON_LOCAL) return;
 	if(logcol>=78 || (78-logcol)<strlen(str)) {
-		fputs(log_line_ending, logfile_fp);
+		fprintf(logfile_fp,"\r\n");
 		logcol=1; 
 	}
 	if(logcol==1) {
-		fputs("   ",logfile_fp);
+		fprintf(logfile_fp,"   ");
 		logcol=4; 
 	}
-	fputs(str,logfile_fp);
+	fprintf(logfile_fp,str);
 	if(*lastchar(str)==LF) {
 		logcol=1;
 		fflush(logfile_fp);
@@ -173,31 +166,26 @@ void sbbs_t::log(char *str)
 bool sbbs_t::syslog(const char* code, const char *entry)
 {		
 	char	fname[MAX_PATH+1];
+	char	str[128];
 	char	tmp[64];
-	FILE*	fp;
+	int		file;
 	struct tm tm;
 
 	now=time(NULL);
 	if(localtime_r(&now,&tm)==NULL)
-		return false;
-	safe_snprintf(fname, sizeof(fname), "%slogs/%2.2d%2.2d%2.2d.log"
-		,cfg.logs_dir
-		,tm.tm_mon+1
-		,tm.tm_mday
+		return(false);
+	sprintf(fname,"%slogs/%2.2d%2.2d%2.2d.log",cfg.logs_dir,tm.tm_mon+1,tm.tm_mday
 		,TM_YEAR(tm.tm_year));
-	if((fp = fnopen(NULL, fname,O_WRONLY|O_APPEND|O_CREAT)) == NULL) {
+	if((file=nopen(fname,O_WRONLY|O_APPEND|O_CREAT))==-1) {
 		lprintf(LOG_ERR,"!ERRROR %d opening/creating %s",errno,fname); 
-		return false;
+		return(false);
 	}
-	fprintf(fp, "%-2.2s %s  %s%s%s"
-		,code
-		,hhmmtostr(&cfg,&tm,tmp)
-		,entry
-		,log_line_ending
-		,log_line_ending);
-	fclose(fp);
 
-	return true;
+	sprintf(str,"%-2.2s %s  %s\r\n\r\n",code, hhmmtostr(&cfg,&tm,tmp), entry);
+	write(file,str,strlen(str));
+	close(file);
+
+	return(true);
 }
 
 /****************************************************************************/
@@ -221,8 +209,8 @@ void sbbs_t::logline(int level, const char *code, const char *str)
 	}
 	if(logfile_fp==NULL || (online==ON_LOCAL && strcmp(code,"!!"))) return;
 	if(logcol!=1)
-		fputs(log_line_ending, logfile_fp);
-	fprintf(logfile_fp,"%-2.2s %s%s", code, str, log_line_ending);
+		fprintf(logfile_fp,"\r\n");
+	fprintf(logfile_fp,"%-2.2s %s\r\n",code,str);
 	logcol=1;
 	fflush(logfile_fp);
 }
@@ -242,7 +230,7 @@ void sbbs_t::logch(char ch, bool comma)
 	}
 	else if(logcol>=78) {
 		logcol=4;
-		fprintf(logfile_fp, "%s   ", log_line_ending); 
+		fprintf(logfile_fp,"\r\n   "); 
 	}
 	if(comma && logcol!=4) {
 		fprintf(logfile_fp,",");
@@ -263,9 +251,10 @@ void sbbs_t::logch(char ch, bool comma)
 /* information, function, action, object and access and then attempts to    */
 /* write the error information into the file ERROR.LOG and NODE.LOG         */
 /****************************************************************************/
-void sbbs_t::errormsg(int line, const char* function, const char *src, const char* action, const char *object
-					  ,long access, const char *extinfo)
+void sbbs_t::errormsg(int line, const char *source, const char* action, const char *object
+					  ,ulong access, const char *extinfo)
 {
+	const char*	src;
     char	str[2048];
 
 	/* prevent recursion */
@@ -273,16 +262,18 @@ void sbbs_t::errormsg(int line, const char* function, const char *src, const cha
 		return;
 	errormsg_inside=true;
 
+	/* Don't log path to source code */
+	src=getfname(source);
 	safe_snprintf(str,sizeof(str),"ERROR %d (%s) "
 #ifdef _WIN32
 		"(WinError %u) "
 #endif
-		"in %s line %u (%s) %s \"%s\" access=%ld %s%s"
+		"in %s line %u %s \"%s\" access=%ld %s%s"
 		,errno,STRERROR(errno)
 #ifdef _WIN32
 		,GetLastError()
 #endif
-		,src, line, function, action, object, access
+		,src, line, action, object, access
 		,extinfo==NULL ? "":"info="
 		,extinfo==NULL ? "":extinfo);
 	if(online==ON_LOCAL)
@@ -311,8 +302,8 @@ void sbbs_t::errormsg(int line, const char* function, const char *src, const cha
 
 	if(logfile_fp!=NULL) {
 		if(logcol!=1)
-			fputs(log_line_ending, logfile_fp);
-		fprintf(logfile_fp,"!! %s%s", str, log_line_ending);
+			fprintf(logfile_fp,"\r\n");
+		fprintf(logfile_fp,"!! %s\r\n",str);
 		logcol=1;
 		fflush(logfile_fp);
 	}
