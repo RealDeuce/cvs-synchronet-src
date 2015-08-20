@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.58 2014/11/18 06:11:30 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.59 2015/08/20 05:19:43 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -114,7 +114,7 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)xtrn$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)xtrn_sec$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)yenc$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)ver$(OFILE)
+			$(MTOBJODIR)$(DIRSEP)ver$(OFILE)\
 
 # Must add new additions to MONO_OBJS too!
 CON_OBJS	= $(MTOBJODIR)$(DIRSEP)sbbscon$(OFILE) \
@@ -133,6 +133,7 @@ MAIL_OBJS	= $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE) \
 
 # Must add new additions to MONO_OBJS too!
 WEB_OBJS	= $(MTOBJODIR)$(DIRSEP)websrvr$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)ssl$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)base64$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ringbuf$(OFILE)
@@ -150,7 +151,8 @@ MONO_OBJS	= \
 			$(MTOBJODIR)$(DIRSEP)sbbs_ini$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)sbbscon$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)services$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)websrvr$(OFILE)
+			$(MTOBJODIR)$(DIRSEP)websrvr$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)ssl$(OFILE)
 
 BAJA_OBJS = \
 			$(OBJODIR)$(DIRSEP)baja$(OFILE) \

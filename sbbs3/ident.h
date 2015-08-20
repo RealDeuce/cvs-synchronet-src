@@ -2,7 +2,7 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id$ */
+/* $Id: ident.h,v 1.5 2015/08/20 05:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@
 extern "C" {   
 #endif   
 
-BOOL identify(SOCKADDR_IN* client_addr, u_short local_port, char* buf
+BOOL identify(union xp_sockaddr* client_addr, u_short local_port, char* buf
 			   ,size_t maxlen, int timeout /* in seconds */);
 
 #ifdef __cplusplus

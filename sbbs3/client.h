@@ -2,7 +2,7 @@
 
 /* Synchronet client information to share with SBBSCTRL */
 
-/* $Id$ */
+/* $Id: client.h,v 1.8 2015/08/20 05:19:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,18 +39,18 @@
 #define _CLIENT_H
 
 #include "gen_defs.h"	/* WORD, DWORD */
+#include "sockwrap.h"	/* INET6_ADDRSTRLEN */
 #include <time.h>		/* time_t */
 
 /* Used for sbbsctrl->client window */
 typedef struct {
 	size_t		size;		/* size of this struct */
-	char		addr[16];	/* IP address */
-	char		host[64];	/* host name */
+	char		addr[INET6_ADDRSTRLEN];	/* IP address */
+	char		host[256];	/* host name */
 	WORD		port;		/* TCP port number */
 	time32_t	time;		/* connect time */
 	const char*	protocol;	/* protocol description */
 	const char*	user;		/* user name */
-	char		pad[32];	/* padding for future expansion */
 } client_t;
 
 /* Used for ctrl/client.dab */

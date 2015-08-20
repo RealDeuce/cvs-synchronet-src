@@ -2,7 +2,7 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id$ */
+/* $Id: str.cpp,v 1.70 2015/08/20 05:19:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,14 +95,14 @@ void sbbs_t::userlist(long mode)
 			}
 			sprintf(name,"%s #%d",user.alias,i);
 			sprintf(line[j],text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
 		else {
 			sprintf(name,"%s #%u",user.alias,i);
 			bprintf(text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}

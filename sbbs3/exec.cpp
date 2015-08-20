@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.99 2015/04/25 06:10:15 deuce Exp $ */
+/* $Id: exec.cpp,v 1.100 2015/08/20 05:19:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1655,6 +1655,12 @@ int sbbs_t::exec(csi_t *csi)
 					case USER_STRING_MODEM:
 						sprintf(useron.modem,"%.*s",LEN_MODEM,csi->str);
 						putuserrec(&cfg,useron.number,U_MODEM,LEN_MODEM
+							,useron.phone);
+						csi->logic=LOGIC_TRUE;
+						break;
+					case USER_STRING_IPADDR:
+						sprintf(useron.ipaddr,"%.*s",LEN_IPADDR,csi->str);
+						putuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR
 							,useron.phone);
 						csi->logic=LOGIC_TRUE;
 						break;

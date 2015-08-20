@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module constants and structure definitions */
 
-/* $Id$ */
+/* $Id: cmdshell.h,v 1.13 2015/08/20 05:19:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -596,6 +596,7 @@ enum {
 	,USER_STRING_MODEM
 	,USER_STRING_COMMENT
 	,USER_STRING_NETMAIL
+	,USER_STRING_IPADDR
 
 	};
 

@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id$ */
+/* $Id: LoginAttemptsFormUnit.cpp,v 1.5 2015/08/20 05:20:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,7 @@ void __fastcall TLoginAttemptsForm::FillListView(TObject *Sender)
         Item->Caption=AnsiString(attempt->count-attempt->dupes);
         Item->Data=(void*)attempt->time;
         Item->SubItems->Add(attempt->dupes);        
-        Item->SubItems->Add(inet_ntoa(attempt->addr));
+        Item->SubItems->Add("TODO: Add addresses");
         Item->SubItems->Add(attempt->prot);
         Item->SubItems->Add(attempt->user);
         Item->SubItems->Add(attempt->pass);
