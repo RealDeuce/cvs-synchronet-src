@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.413 2015/08/20 07:55:34 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.414 2015/08/20 09:31:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1872,7 +1872,7 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, SOCKET pasv_sock
 	} else {	/* PASV */
 
 		if(startup->options&FTP_OPT_DEBUG_DATA) {
-			addr_len=sizeof(addr);
+			addr_len=sizeof(*addr);
 			if((result=getsockname(pasv_sock, &addr->addr,&addr_len))!=0)
 				lprintf(LOG_ERR,"%04d !ERROR %d (%d) getting address/port of passive socket (%u)"
 					,ctrl_sock,result,ERROR_VALUE,pasv_sock);
@@ -1904,7 +1904,7 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, SOCKET pasv_sock
 			return;
 		}
 			
-		addr_len=sizeof(addr);
+		addr_len=sizeof(*addr);
 #ifdef SOCKET_DEBUG_ACCEPT
 		socket_debug[ctrl_sock]|=SOCKET_DEBUG_ACCEPT;
 #endif
@@ -4732,7 +4732,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.413 $", "%*s %s", revision);
+	sscanf("$Revision: 1.414 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
