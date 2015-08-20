@@ -44,8 +44,12 @@ unsigned char		sdl_keynext=0;			/* Index into keybuf for next free position */
 int sdl_exitcode=0;
 
 SDL_Surface	*win=NULL;
+SDL_mutex	*win_mutex;
 SDL_Surface	*sdl_icon=NULL;
 SDL_Surface	*new_rect=NULL;
+SDL_mutex	*newrect_mutex;
+SDL_mutex	*bitmap_init_mutex;
+static int bitmap_initialized = 0;
 
 /* *nix copy/paste stuff */
 SDL_sem	*sdl_pastebuf_set;
@@ -70,9 +74,6 @@ SDL_mutex *sdl_keylock;
 SDL_sem *sdl_key_pending;
 static unsigned int sdl_pending_mousekeys=0;
 Uint32	sdl_dac_default[sizeof(dac_default)/sizeof(struct dac_colors)];
-SDL_Rect	*upd_rects=NULL;
-int			rectspace=0;
-int			rectsused=0;
 
 struct yuv_settings {
 	int			enabled;
@@ -622,19 +623,23 @@ void sdl_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *da
 
 void sdl_flush(void)
 {
-	if(rectsused || yuv.enabled)
-		sdl_user_func_ret(SDL_USEREVENT_FLUSH);
+	sdl_user_func_ret(SDL_USEREVENT_FLUSH);
 }
 
 int sdl_init_mode(int mode)
 {
-    int oldcols=vstat.cols;
+    int oldcols;
+
+	pthread_mutex_lock(&vstatlock);
+	oldcols = vstat.cols;
+	pthread_mutex_unlock(&vstatlock);
 
 	sdl_user_func_ret(SDL_USEREVENT_FLUSH);
 
 	bitmap_init_mode(mode, &bitmap_width, &bitmap_height);
 
 	/* Deal with 40 col doubling */
+	pthread_mutex_lock(&vstatlock);
 	if(yuv.enabled) {
 		vstat.scaling=2;
 	}
@@ -649,6 +654,9 @@ int sdl_init_mode(int mode)
 
 	if(vstat.scaling < 1)
 		vstat.scaling = 1;
+	if(vstat.vmultiplier < 1)
+		vstat.vmultiplier = 1;
+	pthread_mutex_unlock(&vstatlock);
 
 	sdl_user_func_ret(SDL_USEREVENT_SETVIDMODE);
 
@@ -669,6 +677,9 @@ int sdl_init(int mode)
 	}
 
 	bitmap_init(sdl_drawrect, sdl_flush);
+	sdl.mutexP(bitmap_init_mutex);
+	bitmap_initialized=1;
+	sdl.mutexV(bitmap_init_mutex);
 
 	if(mode==CIOLIB_MODE_SDL_FULLSCREEN)
 		fullscreen=1;
@@ -739,6 +750,22 @@ int sdl_init(int mode)
 	}
 
 	return(-1);
+}
+
+/* Called from main thread only */
+void sdl_setscaling(int new_value)
+{
+	if (yuv.enabled)
+		return;
+	bitmap_setscaling(new_value);
+}
+
+/* Called from main thread only */
+int sdl_getscaling(void)
+{
+	if (yuv.enabled)
+		return 1;
+	return bitmap_getscaling();
 }
 
 /* Called from main thread only */
@@ -816,6 +843,7 @@ int sdl_hidemouse(void)
 
 int sdl_get_window_info(int *width, int *height, int *xpos, int *ypos)
 {
+	sdl.mutexP(win_mutex);
 	if(width)
 		*width=win->h;
 	if(height)
@@ -824,6 +852,7 @@ int sdl_get_window_info(int *width, int *height, int *xpos, int *ypos)
 		*xpos=-1;
 	if(ypos)
 		*ypos=-1;
+	sdl.mutexV(win_mutex);
 	
 	return(0);
 }
@@ -863,22 +892,36 @@ int sdl_setup_yuv_colours(void)
 
 void setup_surfaces(void)
 {
-	int		char_width=vstat.charwidth*vstat.cols*vstat.scaling;
-	int		char_height=vstat.charheight*vstat.rows*vstat.scaling;
+	int		char_width;
+	int		char_height;
 	int		flags=SDL_HWSURFACE|SDL_ANYFORMAT;
 	SDL_Surface	*tmp_rect;
 	SDL_Event	ev;
+	int charwidth, charheight, cols, scaling, rows, vmultiplier;
 
 	if(fullscreen)
 		flags |= SDL_FULLSCREEN;
 	else
 		flags |= SDL_RESIZABLE;
 
+	sdl.mutexP(win_mutex);
+	pthread_mutex_lock(&vstatlock);
+	charwidth = vstat.charwidth;
+	charheight = vstat.charheight;
+	cols = vstat.cols;
+	scaling = vstat.scaling;
+	rows = vstat.rows;
+	vmultiplier = vstat.vmultiplier;
+	pthread_mutex_unlock(&vstatlock);
+	
+	char_width=charwidth*cols*scaling;
+	char_height=charheight*rows*scaling*vmultiplier;
+
 	if(yuv.enabled) {
 		if(!yuv.win_width)
-			yuv.win_width=vstat.charwidth*vstat.cols;
+			yuv.win_width=charwidth*cols;
 		if(!yuv.win_height)
-			yuv.win_height=vstat.charheight*vstat.rows;
+			yuv.win_height=charheight*rows;
 		if(fullscreen && yuv.screen_width && yuv.screen_height)
 			win=sdl.SetVideoMode(yuv.screen_width,yuv.screen_height,0,flags);
 		else
@@ -901,6 +944,7 @@ void setup_surfaces(void)
 #endif
 
 	if(win!=NULL) {
+		sdl.mutexP(newrect_mutex);
 		if(new_rect)
 			sdl.FreeSurface(new_rect);
 		new_rect=NULL;
@@ -917,6 +961,7 @@ void setup_surfaces(void)
 				sdl.FreeSurface(tmp_rect);
 			}
 		}
+		sdl.mutexV(newrect_mutex);
 		if(yuv.enabled) {
 			if(yuv.overlay)
 				sdl.FreeYUVOverlay(yuv.overlay);
@@ -958,7 +1003,9 @@ void setup_surfaces(void)
 			yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, yuv.best_format, win);
 			sdl_setup_yuv_colours();
 		}
+		sdl.mutexP(newrect_mutex);
 		sdl_setup_colours(new_rect);
+		sdl.mutexV(newrect_mutex);
 		sdl_setup_colours(win);
 		force_redraws++;
 	}
@@ -967,6 +1014,7 @@ void setup_surfaces(void)
 		sdl_exitcode=1;
 		sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff);
 	}
+	sdl.mutexV(win_mutex);
 }
 
 /* Called from event thread only */
@@ -1332,53 +1380,60 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 				}
 
 				/*
-				 * Apparently, Win32 SDL doesn't interpret keypad with numlock...
-				 * So, do that here. *sigh*
-				 */
-
-				/*
 				 * If the keysym is a keypad one
 				 * AND numlock is locked
 				 * AND none of Control, Shift, ALT, or Meta are pressed
 				 */
-				if(keysym >= SDLK_KP0 && keysym <= SDLK_KP_EQUALS 
-						&& (mod & KMOD_NUM)
-						&& (!(mod & (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META) ))) {
-					switch(keysym) {
-						case SDLK_KP0:
-							return('0');
-						case SDLK_KP1:
-							return('1');
-						case SDLK_KP2:
-							return('2');
-						case SDLK_KP3:
-							return('3');
-						case SDLK_KP4:
-							return('4');
-						case SDLK_KP5:
-							return('5');
-						case SDLK_KP6:
-							return('6');
-						case SDLK_KP7:
-							return('7');
-						case SDLK_KP8:
-							return('8');
-						case SDLK_KP9:
-							return('9');
-						case SDLK_KP_PERIOD:
-							return('.');
-						case SDLK_KP_DIVIDE:
-							return('/');
-						case SDLK_KP_MULTIPLY:
-							return('*');
-						case SDLK_KP_MINUS:
-							return('-');
-						case SDLK_KP_PLUS:
-							return('+');
-						case SDLK_KP_ENTER:
-							return('\r');
-						case SDLK_KP_EQUALS:
-							return('=');
+				if(keysym >= SDLK_KP0 && keysym <= SDLK_KP_EQUALS && 
+						(!(mod & (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META) ))) {
+#if defined(_WIN32)
+					/*
+					 * Apparently, Win32 SDL doesn't interpret keypad with numlock...
+					 * and doesn't know the state of numlock either...
+					 * So, do that here. *sigh*
+					 */
+
+					mod &= ~KMOD_NUM;	// Ignore "current" mod state
+					if (GetKeyState(VK_NUMLOCK) & 1)
+						mod |= KMOD_NUM;
+#endif
+					if (mod & KMOD_NUM) {
+						switch(keysym) {
+							case SDLK_KP0:
+								return('0');
+							case SDLK_KP1:
+								return('1');
+							case SDLK_KP2:
+								return('2');
+							case SDLK_KP3:
+								return('3');
+							case SDLK_KP4:
+								return('4');
+							case SDLK_KP5:
+								return('5');
+							case SDLK_KP6:
+								return('6');
+							case SDLK_KP7:
+								return('7');
+							case SDLK_KP8:
+								return('8');
+							case SDLK_KP9:
+								return('9');
+							case SDLK_KP_PERIOD:
+								return('.');
+							case SDLK_KP_DIVIDE:
+								return('/');
+							case SDLK_KP_MULTIPLY:
+								return('*');
+							case SDLK_KP_MINUS:
+								return('-');
+							case SDLK_KP_PLUS:
+								return('+');
+							case SDLK_KP_ENTER:
+								return('\r');
+							case SDLK_KP_EQUALS:
+								return('=');
+						}
 					}
 				}
 
@@ -1442,26 +1497,67 @@ int sdl_mouse_thread(void *data)
 
 int win_to_text_xpos(int winpos)
 {
-	if(yuv.enabled)
-		return(winpos*vstat.cols/win->w+1);
-	else
-		return(winpos/(vstat.charwidth*vstat.scaling)+1);
+	int ret;
+
+	if(yuv.enabled) {
+
+		sdl.mutexP(win_mutex);
+		pthread_mutex_lock(&vstatlock);
+		ret = winpos*vstat.cols/win->w+1;
+		pthread_mutex_unlock(&vstatlock);
+		sdl.mutexV(win_mutex);
+		return(ret);
+	}
+	else {
+		pthread_mutex_lock(&vstatlock);
+		ret = winpos/(vstat.charwidth*vstat.scaling)+1;
+		pthread_mutex_unlock(&vstatlock);
+		return ret;
+	}
 }
 
 int win_to_text_ypos(int winpos)
 {
-	if(yuv.enabled)
-		return(winpos*vstat.rows/win->h+1);
-	else
-		return(winpos/(vstat.charheight*vstat.scaling)+1);
+	int ret;
+
+	if(yuv.enabled) {
+		sdl.mutexP(win_mutex);
+		pthread_mutex_lock(&vstatlock);
+		ret = winpos*vstat.rows/win->h+1;
+		pthread_mutex_unlock(&vstatlock);
+		sdl.mutexV(win_mutex);
+		return(ret);
+	}
+	else {
+		pthread_mutex_lock(&vstatlock);
+		ret = winpos/(vstat.charheight*vstat.scaling*vstat.vmultiplier)+1;
+		pthread_mutex_unlock(&vstatlock);
+		return ret;
+	}
 }
 
 int sdl_video_event_thread(void *data)
 {
 	SDL_Event	ev;
 	int			new_scaling = -1;
-	int			old_scaling = vstat.scaling;
+	int			old_scaling;
+	SDL_Rect	*upd_rects=NULL;
+	int			rectspace=0;
+	int			rectsused=0;
 
+	while(1) {
+		sdl.mutexP(bitmap_init_mutex);
+		if(bitmap_initialized) {
+			sdl.mutexV(bitmap_init_mutex);
+			break;
+		}
+		sdl.mutexV(bitmap_init_mutex);
+		SLEEP(1);
+	}
+	pthread_mutex_lock(&vstatlock);
+	old_scaling = vstat.scaling;
+	pthread_mutex_unlock(&vstatlock);
+	
 	if(!init_sdl_video()) {
 		char	driver[16];
 		if(sdl.VideoDriverName(driver, sizeof(driver))!=NULL) {
@@ -1483,18 +1579,20 @@ int sdl_video_event_thread(void *data)
 
 		while(1) {
 			if(sdl.PollEvent(&ev)!=1) {
-				if (new_scaling != -1 || vstat.scaling != old_scaling) {
-					if (new_scaling == -1)
-						new_scaling = vstat.scaling;
-					if (pthread_mutex_trylock(&vstatlock) == 0) {
+				if(pthread_mutex_trylock(&vstatlock)==0) {
+					if (new_scaling != -1 || vstat.scaling != old_scaling) {
+						if (new_scaling == -1)
+							new_scaling = vstat.scaling;
 						vstat.scaling=new_scaling;
 						new_scaling = -1;
 						if(vstat.scaling < 1)
 							vstat.scaling=1;
 						pthread_mutex_unlock(&vstatlock);
 						setup_surfaces();
+						pthread_mutex_lock(&vstatlock);
+						old_scaling = vstat.scaling;
 					}
-					old_scaling = vstat.scaling;
+					pthread_mutex_unlock(&vstatlock);
 				}
 				SLEEP(1);
 			}
@@ -1553,9 +1651,13 @@ int sdl_video_event_thread(void *data)
 							if(yuv.enabled) {
 								yuv.win_width=ev.resize.w;
 								yuv.win_height=ev.resize.h;
+								new_scaling = 2;
 							}
-							else
+							else {
+								pthread_mutex_lock(&vstatlock);
 								new_scaling = (int)(ev.resize.w/(vstat.charwidth*vstat.cols));
+								pthread_mutex_unlock(&vstatlock);
+							}
 						}
 						break;
 					case SDL_VIDEOEXPOSE:
@@ -1567,10 +1669,14 @@ int sdl_video_event_thread(void *data)
 								if(upd_rects) {
 									upd_rects[0].x=0;
 									upd_rects[0].y=0;
+									sdl.mutexP(win_mutex);
+									sdl.mutexP(newrect_mutex);
 									upd_rects[0].w=new_rect->w;
 									upd_rects[0].h=new_rect->h;
 									sdl.BlitSurface(new_rect, upd_rects, win, upd_rects);
+									sdl.mutexV(newrect_mutex);
 									sdl.UpdateRects(win,1,upd_rects);
+									sdl.mutexV(win_mutex);
 									rectsused=0;
 								}
 							}
@@ -1583,25 +1689,35 @@ int sdl_video_event_thread(void *data)
 							case SDL_USEREVENT_QUIT:
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
+								if (upd_rects)
+									free(upd_rects);
 								return(0);
 							case SDL_USEREVENT_UPDATERECT:
 								{
 									struct update_rect *rect=(struct update_rect *)ev.user.data1;
 									SDL_Rect r;
 									int x,y,offset;
+									int scaling, vmultiplier;
 
+									sdl.mutexP(win_mutex);
 									if(!win) {
+										sdl.mutexV(win_mutex);
 										free(rect->data);
 										free(rect);
 										break;
 									}
+									sdl.mutexP(newrect_mutex);
+									pthread_mutex_lock(&vstatlock);
+									scaling = vstat.scaling;
+									vmultiplier = vstat.vmultiplier;
+									pthread_mutex_unlock(&vstatlock);
 									for(y=0; y<rect->height; y++) {
 										offset=y*rect->width;
 										for(x=0; x<rect->width; x++) {
-											r.w=vstat.scaling;
-											r.h=vstat.scaling;
-											r.x=(rect->x+x)*vstat.scaling;
-											r.y=(rect->y+y)*vstat.scaling;
+											r.w=scaling;
+											r.h=scaling*vmultiplier;
+											r.x=(rect->x+x)*scaling;
+											r.y=(rect->y+y)*scaling*vmultiplier;
 											if(yuv.enabled)
 												yuv_fillrect(yuv.overlay, &r, rect->data[offset++]);
 											else
@@ -1612,12 +1728,15 @@ int sdl_video_event_thread(void *data)
 										if (!upd_rects) {
 											free(rect->data);
 											free(rect);
+											sdl.mutexV(newrect_mutex);
+											sdl.mutexV(win_mutex);
+											pthread_mutex_unlock(&vstatlock);
 											break;
 										}
-										upd_rects[rectsused].x=rect->x*vstat.scaling;
-										upd_rects[rectsused].y=rect->y*vstat.scaling;
-										upd_rects[rectsused].w=rect->width*vstat.scaling;
-										upd_rects[rectsused].h=rect->height*vstat.scaling;
+										upd_rects[rectsused].x=rect->x*scaling;
+										upd_rects[rectsused].y=rect->y*scaling*vmultiplier;
+										upd_rects[rectsused].w=rect->width*scaling;
+										upd_rects[rectsused].h=rect->height*scaling*vmultiplier;
 										sdl.BlitSurface(new_rect, &(upd_rects[rectsused]), win, &(upd_rects[rectsused]));
 										rectsused++;
 										if(rectsused==rectspace) {
@@ -1625,14 +1744,18 @@ int sdl_video_event_thread(void *data)
 											rectsused=0;
 										}
 									}
+									sdl.mutexV(newrect_mutex);
+									sdl.mutexV(win_mutex);
 									free(rect->data);
 									free(rect);
 								}
 								break;
 							case SDL_USEREVENT_FLUSH:
+								sdl.mutexP(win_mutex);
+								sdl.mutexP(newrect_mutex);
 								if(win && new_rect) {
 									if(yuv.enabled) {
-										if(new_rect && yuv.overlay && yuv.changed) {
+										if(yuv.overlay && yuv.changed) {
 											SDL_Rect	dstrect;
 	
 											yuv.changed=0;
@@ -1650,6 +1773,8 @@ int sdl_video_event_thread(void *data)
 										}
 									}
 								}
+								sdl.mutexP(newrect_mutex);
+								sdl.mutexV(win_mutex);
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
 								break;
@@ -1678,6 +1803,7 @@ int sdl_video_event_thread(void *data)
 								free(ev.user.data1);
 								break;
 							case SDL_USEREVENT_SETVIDMODE:
+								pthread_mutex_lock(&vstatlock);
 								if(!yuv.enabled) {
 									rectspace=vstat.cols*vstat.rows+vstat.cols;
 									rectsused=0;
@@ -1690,6 +1816,9 @@ int sdl_video_event_thread(void *data)
 										sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff);
 									}
 								}
+								new_scaling = -1;
+								old_scaling = vstat.scaling;
+								pthread_mutex_unlock(&vstatlock);
 								setup_surfaces();
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
@@ -1703,12 +1832,14 @@ int sdl_video_event_thread(void *data)
 							case SDL_USEREVENT_INIT:
 								if(!sdl_init_good) {
 									if(sdl.WasInit(SDL_INIT_VIDEO)==SDL_INIT_VIDEO) {
+										sdl.mutexP(win_mutex);
 										if(win != NULL) {
 											sdl.EnableUNICODE(1);
 											sdl.EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 											mouse_thread=sdl.CreateThread(sdl_mouse_thread, NULL);
 											sdl_init_good=1;
 										}
+										sdl.mutexV(win_mutex);
 									}
 								}
 								sdl_ufunc_retval=0;
@@ -1860,6 +1991,8 @@ int sdl_video_event_thread(void *data)
 			}
 		}
 	}
+	if (upd_rects)
+		free(upd_rects);
 	return(0);
 }
 
@@ -1873,7 +2006,10 @@ int sdl_initciolib(int mode)
 	sdl_ufunc_ret=sdl.SDL_CreateSemaphore(0);
 	sdl_ufunc_rec=sdl.SDL_CreateSemaphore(0);
 	sdl_ufunc_mtx=sdl.SDL_CreateMutex();
+	newrect_mutex=sdl.SDL_CreateMutex();
+	win_mutex=sdl.SDL_CreateMutex();
 	sdl_keylock=sdl.SDL_CreateMutex();
+	bitmap_init_mutex=sdl.SDL_CreateMutex();
 #if !defined(NO_X) && defined(__unix__)
 	sdl_pastebuf_set=sdl.SDL_CreateSemaphore(0);
 	sdl_pastebuf_copied=sdl.SDL_CreateSemaphore(0);
