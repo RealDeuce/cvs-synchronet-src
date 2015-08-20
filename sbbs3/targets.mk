@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.40 2015/10/28 02:00:58 deuce Exp $
+# $Id: targets.mk,v 1.37 2015/02/27 01:40:50 sbbs Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -14,7 +14,6 @@ SERVICES	= $(LIBODIR)$(DIRSEP)$(LIBPREFIX)services$(SOFILE)
 SBBSCON		= $(EXEODIR)$(DIRSEP)sbbs$(EXEFILE)
 SBBSMONO	= $(EXEODIR)$(DIRSEP)sbbsmono$(EXEFILE)
 JSEXEC		= $(EXEODIR)$(DIRSEP)jsexec$(EXEFILE)
-JSDOOR		= $(EXEODIR)$(DIRSEP)jsdoor$(EXEFILE)
 NODE		= $(EXEODIR)$(DIRSEP)node$(EXEFILE)
 BAJA		= $(EXEODIR)$(DIRSEP)baja$(EXEFILE)
 UNBAJA		= $(EXEODIR)$(DIRSEP)unbaja$(EXEFILE)
@@ -68,8 +67,6 @@ mono:	xpdev-mt smblib \
 .PHONY: sexyz
 sexyz:	$(SEXYZ)
 
-.PHONY: jsdoor
-jsdoor: $(JSDOOR)
 
 # Library dependencies
 $(SBBS): 
@@ -80,7 +77,6 @@ $(SERVICES):
 $(SBBSCON): $(XPDEV-MT_LIB) $(SMBLIB)
 $(SBBSMONO): $(XPDEV-MT_LIB) $(SMBLIB)
 $(JSEXEC): $(XPDEV-MT_LIB) $(SMBLIB)
-$(JSDOOR): $(XPDEV-MT_LIB)
 $(NODE): $(XPDEV_LIB)
 $(BAJA): $(XPDEV_LIB) $(SMBLIB)
 $(UNBAJA): $(XPDEV_LIB)

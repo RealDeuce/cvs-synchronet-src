@@ -2,13 +2,13 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.39 2016/04/20 02:18:37 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.36 2015/04/27 10:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -498,8 +498,6 @@ typedef struct
 	uint32_t		new_misc;			/* New User Miscellaneous Defaults */
 	uint16_t		new_expire; 		/* Expiration days for new user */
 	uchar			new_prot;			/* New User Default Download Protocol */
-	uint16_t		new_msgscan_init;	/* Uew User new-scan pointers initialized to msgs this old (in days) */
-	uint16_t		guest_msgscan_init;	/* Guest new-scan pointers initialized to msgs this old (in days) */
 	char 			val_level[10];		/* Validation User Main Level */
 	uint32_t		val_flags1[10]; 	/* Validation User Flags from set #1*/
 	uint32_t		val_flags2[10]; 	/* Validation User Flags from set #2*/
@@ -562,7 +560,7 @@ typedef struct
 	char			smtpmail_sem[LEN_DIR+1];	/* Inbound Internet Mail semaphore file */
 	char			inetmail_sem[LEN_DIR+1];	/* Outbound Internet Mail semaphore file */
 	char			echomail_dir[LEN_DIR+1];	/* Directory to store echomail in */
-	char 			fidofile_dir[LEN_DIR+1];	/* Directory where inbound files go (deprecated and not used) */
+	char 			fidofile_dir[LEN_DIR+1];	/* Directory where inbound files go */
 	char			netmail_sem[LEN_DIR+1];		/* FidoNet NetMail semaphore */
 	char 			echomail_sem[LEN_DIR+1];	/* FidoNet EchoMail semaphore  */
 	char		 	origline[51];		/* Default EchoMail origin line */
