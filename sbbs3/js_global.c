@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.347 2015/09/26 05:06:38 deuce Exp $ */
+/* $Id: js_global.c,v 1.341 2015/08/20 05:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -255,7 +255,6 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 	jsval		val;
 	JSObject*	js_argv;
 	JSObject*	exec_obj;
-	JSObject*	js_internal;
 	JSContext*	exec_cx=cx;
 	JSBool		success;
 	JSBool		background=JS_FALSE;
@@ -292,19 +291,6 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		bg->cb.terminated=NULL;	/* could be bad pointer at any time */
 		bg->cb.counter=0;
 		bg->cb.gc_attempts=0;
-		bg->cb.bg = TRUE;
-
-		// Get the js.internal private data since it's the parents js_callback_t...
-		if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "js", &val) && !JSVAL_NULL_OR_VOID(val)) {
-			js_internal = JSVAL_TO_OBJECT(val);
-			bg->cb.parent_cb = (js_callback_t*)JS_GetPrivate(cx,js_internal);
-			if (bg->cb.parent_cb == NULL) {
-				lprintf(LOG_ERR, "!ERROR parent CB is NULL");
-			}
-		}
-		else {
-			lprintf(LOG_ERR, "!ERROR unabled to locate global js object");
-		}
 
 		if((bg->runtime = jsrt_GetNew(JAVASCRIPT_MAX_BYTES, 1000, __FILE__, __LINE__))==NULL) {
 			free(bg);
@@ -1394,28 +1380,28 @@ static struct {
 	char*	name;
 } lowasctbl[32] = {
 	{ 160	,"nbsp"		}, /* NULL non-breaking space */
-	{ 9786	,NULL		}, /* 0x263a white smiling face (^A, 1) */
-	{ 9787	,NULL		}, /* 0x263b black smiling face (^B, 2) */
+	{ 9786	,NULL		}, /* white smiling face */
+	{ 9787	,NULL		}, /* black smiling face */
 	{ 9829	,"hearts"	}, /* black heart suit */
 	{ 9830	,"diams"	}, /* black diamond suit */
 	{ 9827	,"clubs"	}, /* black club suit */
 	{ 9824	,"spades"	}, /* black spade suit */
-	{ 8226	,"bull"		}, /* bullet (beep, 7) */
-	{ 9688	,NULL		}, /* inverse bullet (backspace, 8) */
-	{ 9702	,NULL		}, /* white bullet (tab, 9) */
+	{ 8226	,"bull"		}, /* bullet */
+	{ 9688	,NULL		}, /* inverse bullet */
+	{ 9702	,NULL		}, /* white bullet */
 	{ 9689	,NULL		}, /* inverse white circle */
 	{ 9794	,NULL		}, /* male sign */
 	{ 9792	,NULL		}, /* female sign */
 	{ 9834	,NULL		}, /* eighth note */
 	{ 9835	,NULL		}, /* beamed eighth notes */
 	{ 9788	,NULL		}, /* white sun with rays */
-	{ 9658	,NULL		}, /* 0x25BA black right-pointing pointer */
-	{ 9668	,NULL		}, /* 0x25C4 black left-pointing pointer */
+	{ 9654	,NULL		}, /* black right-pointing triangle */
+	{ 9664	,NULL		}, /* black left-pointing triangle */
 	{ 8597	,NULL		}, /* up down arrow */
 	{ 8252	,NULL		}, /* double exclamation mark */
 	{ 182	,"para"		}, /* pilcrow sign */
 	{ 167	,"sect"		}, /* section sign */
-	{ 9644	,NULL		}, /* 0x25AC black rectangle */
+	{ 9644	,NULL		}, /* black rectangle */
 	{ 8616	,NULL		}, /* up down arrow with base */
 	{ 8593	,"uarr"		}, /* upwards arrow */
 	{ 8595	,"darr"		}, /* downwards arrow */
@@ -1423,8 +1409,8 @@ static struct {
 	{ 8592	,"larr"		}, /* leftwards arrow */
 	{ 8985	,NULL		}, /* turned not sign */
 	{ 8596	,"harr"		}, /* left right arrow */
-	{ 9650	,NULL		}, /* 0x25B2 black up-pointing triangle */
-	{ 9660	,NULL		}  /* 0x25BC black down-pointing triangle */
+	{ 9650	,NULL		}, /* black up-pointing triangle */
+	{ 9660	,NULL		}  /* black down-pointing triangle */
 };
 
 static JSBool
@@ -2451,7 +2437,7 @@ static JSBool
 js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *), unsigned extra_bytes)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char		*str, *rastr, *funcret;
+	char*		str, *rastr;
 	JSString*	js_str;
 	size_t		strlen;
 
@@ -2466,25 +2452,20 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 		return(JS_TRUE);
 	if(extra_bytes) {
 		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
-		if(rastr==NULL)
-			goto error;
+		if(rastr==NULL) {
+			free(str);
+			return JS_TRUE;
+		}
 		str=rastr;
 	}
 
-	funcret = func(str);
-	if (funcret) {
-		js_str = JS_NewStringCopyZ(cx, funcret);
-		if (js_str == NULL)
-			goto error;
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
-	}
+	js_str = JS_NewStringCopyZ(cx, func(str));
 	free(str);
+	if(js_str==NULL)
+		return(JS_FALSE);
 
+	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
 	return(JS_TRUE);
-
-error:
-	free(str);
-	return JS_FALSE;
 }
 
 static JSBool
@@ -2511,26 +2492,16 @@ js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 	return js_internal_charfunc(cx, argc, arglist, backslash, 1);
 }
 
-static char *nonconst_getfname(char *c)
-{
-	return(getfname(c));
-}
-
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, nonconst_getfname, 0);
-}
-
-static char *nonconst_getfext(char *c)
-{
-	return(getfext(c));
+	return js_internal_charfunc(cx, argc, arglist, getfname, 0);
 }
 
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, nonconst_getfext, 0);
+	return js_internal_charfunc(cx, argc, arglist, getfext, 0);
 }
 
 static JSBool
