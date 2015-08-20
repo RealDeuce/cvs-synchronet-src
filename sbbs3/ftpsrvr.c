@@ -1,13 +1,14 @@
+/* ftpsrvr.c */
+
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.431 2017/06/04 00:57:03 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: ftpsrvr.c,v 1.412 2015/08/20 05:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -139,11 +140,9 @@ static int lprintf(int level, const char *fmt, ...)
     va_end(argptr);
 
 	if(level <= LOG_ERR) {
-		char errmsg[sizeof(sbuf)+16];
-		SAFEPRINTF(errmsg, "ftp %s", sbuf);
-		errorlog(&scfg, startup==NULL ? NULL:startup->host_name, errmsg);
+		errorlog(&scfg, startup==NULL ? NULL:startup->host_name, sbuf);
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,errmsg);
+			startup->errormsg(startup->cbdata,level,sbuf);
 	}
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
@@ -1250,7 +1249,7 @@ static void send_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/ftpSend");
+	SetThreadName("FTP Send");
 	thread_up(TRUE /* setuid */);
 
 	length=flength(xfer.filename);
@@ -1375,7 +1374,7 @@ static void send_thread(void* arg)
 		}
 		total+=wr;
 		*xfer.lastactive=time(NULL);
-		//YIELD();
+		YIELD();
 	}
 
 	if((i=ferror(fp))!=0) 
@@ -1510,7 +1509,7 @@ static void receive_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/ftpReceive");
+	SetThreadName("FTP RECV");
 	thread_up(TRUE /* setuid */);
 
 	if((fp=fopen(xfer.filename,xfer.append ? "ab" : "wb"))==NULL) {
@@ -1873,7 +1872,7 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, SOCKET pasv_sock
 	} else {	/* PASV */
 
 		if(startup->options&FTP_OPT_DEBUG_DATA) {
-			addr_len=sizeof(*addr);
+			addr_len=sizeof(addr);
 			if((result=getsockname(pasv_sock, &addr->addr,&addr_len))!=0)
 				lprintf(LOG_ERR,"%04d !ERROR %d (%d) getting address/port of passive socket (%u)"
 					,ctrl_sock,result,ERROR_VALUE,pasv_sock);
@@ -1905,7 +1904,7 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, SOCKET pasv_sock
 			return;
 		}
 			
-		addr_len=sizeof(*addr);
+		addr_len=sizeof(addr);
 #ifdef SOCKET_DEBUG_ACCEPT
 		socket_debug[ctrl_sock]|=SOCKET_DEBUG_ACCEPT;
 #endif
@@ -2242,9 +2241,9 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts, char* user, char* passw
 
 	if(addr!=NULL) {
 		count=loginFailure(startup->login_attempt_list, addr, "FTP", user, passwd);
-		if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold)
+		if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold)
 			ftp_hacklog("FTP LOGIN", user, passwd, host, addr);
-		if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
+		if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold) {
 			inet_addrtop(addr, host_ip, sizeof(host_ip));
 			filter_ip(&scfg, "FTP", "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
 				,host, host_ip, user, /* fname: */NULL);
@@ -2254,7 +2253,7 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts, char* user, char* passw
 	} else
 		(*login_attempts)++;
 
-	mswait(startup->login_attempt.delay);	/* As recommended by RFC2577 */
+	mswait(startup->login_attempt_delay);	/* As recommended by RFC2577 */
 
 	if((*login_attempts)>=3) {
 		sockprintf(sock,"421 Too many failed login attempts.");
@@ -2281,10 +2280,8 @@ static void ctrl_thread(void* arg)
 	char*		np;
 	char*		tp;
 	char*		dp;
-	char*		ap;
 	char*		filespec;
 	char*		mode="active";
-	char		old_char;
 	char		password[64];
 	char		fname[MAX_PATH+1];
 	char		qwkfile[MAX_PATH+1];
@@ -2368,9 +2365,8 @@ static void ctrl_thread(void* arg)
 	JSString*	js_str;
 	js_callback_t	js_callback;
 #endif
-	login_attempt_t attempted;
 
-	SetThreadName("sbbs/ftpControl");
+	SetThreadName("FTP CTRL");
 	thread_up(TRUE /* setuid */);
 
 	lastactive=time(NULL);
@@ -2421,14 +2417,8 @@ static void ctrl_thread(void* arg)
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
-	if(banned || trashcan(&scfg,host_ip,"ip")) {
-		if(banned) {
-			char ban_duration[128];
-			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,sock, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
-		} else
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
+	if(trashcan(&scfg,host_ip,"ip")) {
+		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
 		sockprintf(sock,"550 Access denied.");
 		ftp_close_socket(&sock,__LINE__);
 		thread_down();
@@ -2463,14 +2453,14 @@ static void ctrl_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&ftp.client_addr);
 	client.protocol="FTP";
-	client.user=STR_UNKNOWN_USER;
+	client.user="<unknown>";
 	client_on(sock,&client,FALSE /* update */);
 
-	if(startup->login_attempt.throttle
+	if(startup->login_attempt_throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &ftp.client_addr)) > 1) {
 		lprintf(LOG_DEBUG,"%04d Throttling suspicious connection from: %s (%u login attempts)"
 			,sock, host_ip, login_attempts);
-		mswait(login_attempts*startup->login_attempt.throttle);
+		mswait(login_attempts*startup->login_attempt_throttle);
 	}
 
 	sockprintf(sock,"220-%s (%s)",scfg.sys_name, startup->host_name);
@@ -2694,7 +2684,7 @@ static void ctrl_thread(void* arg)
 				if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", user.number, &client)==NULL) 
 					lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
-				if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock, -1)==NULL) 
+				if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
 					lprintf(LOG_ERR,"%04d !JavaScript ERROR creating client object",sock);
 
 				if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user
@@ -2721,7 +2711,7 @@ static void ctrl_thread(void* arg)
 			SAFECOPY(user.modem,"FTP");
 			SAFECOPY(user.comp,host_name);
 			SAFECOPY(user.ipaddr,host_ip);
-			user.logontime=(time32_t)logintime;
+			user.logontime=logintime;
 			putuserdat(&scfg, &user);
 
 			continue;
@@ -2829,7 +2819,7 @@ static void ctrl_thread(void* arg)
 				sscanf(p,"%u,%u,%u,%u,%hd,%hd",&h1,&h2,&h3,&h4,&p1,&p2);
 				data_addr.in.sin_family=AF_INET;
 				data_addr.in.sin_addr.s_addr=htonl((h1<<24)|(h2<<16)|(h3<<8)|h4);
-				data_port = (p1<<8)|p2;
+				data_port = (p2<<8)|p1;
 			} else if(strnicmp(cmd, "EPRT ", 5)==0) { /* EPRT */
 				char	delim = *p;
 				int		prot;
@@ -2844,13 +2834,9 @@ static void ctrl_thread(void* arg)
 						FIND_CHAR(p,delim);
 						if(*p)
 							p++;
-						ap = p;
+						data_addr.in.sin_addr.s_addr=inet_addr(p);
 						FIND_CHAR(p,delim);
-						old_char = *p;
-						*p = 0;
-						data_addr.in.sin_addr.s_addr=inet_addr(ap);
-						*p = old_char;
-						if (*p)
+						if(*p)
 							p++;
 						data_port=atoi(p);
 						data_addr.in.sin_family=AF_INET;
@@ -4064,7 +4050,7 @@ static void ctrl_thread(void* arg)
 						if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", &user, &client, /* global_user: */TRUE)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
-						if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock, -1)==NULL) 
+						if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating client object",sock);
 
 						if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user, &client
@@ -4740,7 +4726,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.431 $", "%*s %s", revision);
+	sscanf("$Revision: 1.412 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4771,12 +4757,13 @@ void DLLCALL ftp_server(void* arg)
 	time_t			start;
 	time_t			initialized=0;
 	ftp_t*			ftp;
+	struct in_addr	iaddr;
 	char			client_ip[INET6_ADDRSTRLEN];
 
 	ftp_ver();
 
 	startup=(ftp_startup_t*)arg;
-	SetThreadName("sbbs/ftpServer");
+	SetThreadName("FTP Server");
 
 #ifdef _THREAD_SUID_BROKEN
 	if(thread_suid_broken)
@@ -4797,12 +4784,32 @@ void DLLCALL ftp_server(void* arg)
 		return;
 	}
 
+	/* Setup intelligent defaults */
+	if(startup->port==0)					startup->port=IPPORT_FTP;
+	if(startup->qwk_timeout==0)				startup->qwk_timeout=FTP_DEFAULT_QWK_TIMEOUT;		/* seconds */
+	if(startup->max_inactivity==0)			startup->max_inactivity=FTP_DEFAULT_MAX_INACTIVITY;	/* seconds */
+	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;		/* seconds */
+	if(startup->index_file_name[0]==0)		SAFECOPY(startup->index_file_name,"00index");
+	if(startup->html_index_file[0]==0)		SAFECOPY(startup->html_index_file,"00index.html");
+	if(startup->html_index_script[0]==0) {	SAFECOPY(startup->html_index_script,"ftp-html.js");
+											startup->options|=FTP_OPT_HTML_INDEX_FILE;
+	}
+	if(startup->options&FTP_OPT_HTML_INDEX_FILE)
+		startup->options&=~FTP_OPT_NO_JAVASCRIPT;
+	else
+		startup->options|=FTP_OPT_NO_JAVASCRIPT;
+#ifdef JAVASCRIPT
+	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
+
 	ZERO_VAR(js_server_props);
 	SAFEPRINTF2(js_server_props.version,"%s %s",FTP_SERVER,revision);
 	js_server_props.version_detail=ftp_ver();
 	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
-	js_server_props.interfaces=&startup->interfaces;
+	/* TODO: IPv6 */
+	js_server_props.interface_addr=&startup->outgoing4;
+#endif
 
 	uptime=0;
 	served=0;
@@ -4812,20 +4819,6 @@ void DLLCALL ftp_server(void* arg)
 	protected_uint32_init(&thread_count, 0);
 
 	do {
-		/* Setup intelligent defaults */
-		if(startup->port==0)					startup->port=IPPORT_FTP;
-		if(startup->qwk_timeout==0)				startup->qwk_timeout=FTP_DEFAULT_QWK_TIMEOUT;		/* seconds */
-		if(startup->max_inactivity==0)			startup->max_inactivity=FTP_DEFAULT_MAX_INACTIVITY;	/* seconds */
-		if(startup->sem_chk_freq==0)			startup->sem_chk_freq=DEFAULT_SEM_CHK_FREQ;		/* seconds */
-		if(startup->index_file_name[0]==0)		SAFECOPY(startup->index_file_name,"00index");
-		if(startup->html_index_file[0]==0)		SAFECOPY(startup->html_index_file,"00index.html");
-		if(startup->html_index_script[0]==0)	SAFECOPY(startup->html_index_script,"ftp-html.js");
-		if(startup->options&FTP_OPT_HTML_INDEX_FILE)
-			startup->options&=~FTP_OPT_NO_JAVASCRIPT;
-		else
-			startup->options|=FTP_OPT_NO_JAVASCRIPT;
-		if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
-		if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
 		protected_uint32_adjust(&thread_count,1);
 		thread_up(FALSE /* setuid */);
@@ -4950,7 +4943,6 @@ void DLLCALL ftp_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","ftp");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","ftp");
-		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
@@ -4965,7 +4957,7 @@ void DLLCALL ftp_server(void* arg)
 		lprintf(LOG_INFO,"FTP Server thread started");
 
 		while(ftp_set!=NULL && !terminate_server) {
-			YIELD();
+
 			if(protected_uint32_value(thread_count) <= 1) {
 				if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.17 2015/11/23 01:56:33 deuce Exp $ */
+/* $Id: js_server.c,v 1.13 2013/02/08 05:32:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,12 +48,11 @@ enum {
 
 static JSBool js_server_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-	jsval				idval;
-    jsint				tiny;
+	jsval idval;
+	char*		ip;
+    jsint       tiny;
+	struct in_addr in_addr;
 	js_server_props_t*	p;
-	char * *			interface;
-	char *				ipv4;
-	char *				colon;
 
 	if((p=(js_server_props_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -63,24 +62,20 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
 	switch(tiny) {
 		case SERVER_PROP_VER:
-			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,p->version));
+			if(p->version!=NULL)
+				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,p->version));
 			break;
 		case SERVER_PROP_VER_DETAIL:
 			if(p->version_detail!=NULL)
 				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,p->version_detail));
 			break;
 		case SERVER_PROP_INTERFACE:
-			for (interface = *p->interfaces; *interface; interface++) {
-				if (strchr(*interface, '.')) {
-					ipv4 = strdup(*interface);
-					if ((colon = strchr(ipv4, ':')))
-						*colon = 0;
-					*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,ipv4));
-					free(ipv4);
-					return JS_TRUE;
-				}
+			if(p->interface_addr!=NULL) {
+				in_addr.s_addr=*(p->interface_addr);
+				in_addr.s_addr=htonl(in_addr.s_addr);
+				if((ip=inet_ntoa(in_addr))!=NULL)
+					*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,ip));
 			}
-			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,"255.255.255.255"));
 			break;
 		case SERVER_PROP_OPTIONS:
 			if(p->options!=NULL)
@@ -138,54 +133,17 @@ static char* server_prop_desc[] = {
 
 	 "server name and version number"
 	,"detailed version/build information"
-	,"First bound IPv4 address (<tt>0.0.0.0</tt> = <i>ANY</i>) (obsolete since 3.17, see interface_ip_addr_list)"
+	,"IP address of bound network interface (<tt>0.0.0.0</tt> = <i>ANY</i>)"
 	,"bit-field of server-specific startup options"
 	,"number of active clients (if available)"
-	,"Array of IP addresses of bound network interface (<tt>0.0.0.0</tt> = <i>ANY</i>)"
 	,NULL
 };
 #endif
-
-static void remove_port_part(char *host)
-{
-	char *p=strchr(host, 0)-1;
-
-	if (isdigit(*p)) {
-		/*
-		 * If the first and last : are not the same, and it doesn't
-		 * start with '[', there's no port part.
-		 */
-		if (host[0] != '[') {
-			if (strchr(host, ':') != strrchr(host, ':'))
-				return;
-		}
-		for(; p >= host; p--) {
-			if (*p == ':') {
-				*p = 0;
-				break;
-			}
-			if (!isdigit(*p))
-				break;
-		}
-	}
-	// Now, remove []s...
-	if (host[0] == '[') {
-		memmove(host, host+1, strlen(host));
-		p=strchr(host, ']');
-		if (p)
-			*p = 0;
-	}
-}
 
 static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsid id)
 {
 	char*			name=NULL;
 	JSBool			ret;
-	jsval			val;
-	char			*str;
-	JSObject*		newobj;
-	uint			i;
-	js_server_props_t*	props;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
@@ -195,36 +153,6 @@ static JSBool js_server_resolve(JSContext *cx, JSObject *obj, jsid id)
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
 			HANDLE_PENDING(cx);
 		}
-	}
-
-	/* interface_ip_address property */
-	if(name==NULL || strcmp(name, "interface_ip_addr_list")==0) {
-		if(name) free(name);
-
-		if((props=(js_server_props_t*)JS_GetPrivate(cx,obj))==NULL)
-			return(JS_FALSE);
-
-		if((newobj=JS_NewArrayObject(cx, 0, NULL))==NULL)
-			return(JS_FALSE);
-
-		if(!JS_SetParent(cx, newobj, obj))
-			return(JS_FALSE);
-
-		if(!JS_DefineProperty(cx, obj, "interface_ip_addr_list", OBJECT_TO_JSVAL(newobj)
-				, NULL, NULL, JSPROP_ENUMERATE))
-			return(JS_FALSE);
-
-		for (i=0; (*props->interfaces)[i]; i++) {
-			str = strdup((*props->interfaces)[i]);
-			if (str == NULL)
-				return JS_FALSE;
-			remove_port_part(str);
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,str));
-			free(str);
-			JS_SetElement(cx, newobj, i, &val);
-		}
-		JS_DeepFreezeObject(cx, newobj);
-		if(name) return(JS_TRUE);
 	}
 
 	ret = js_SyncResolve(cx, obj, name, js_server_properties, NULL, NULL, 0);
