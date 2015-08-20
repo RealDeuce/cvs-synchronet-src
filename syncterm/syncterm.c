@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.191 2015/02/28 09:36:22 deuce Exp $ */
+/* $Id: syncterm.c,v 1.198 2015/08/05 09:49:32 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -48,7 +48,7 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 1.0b"
+char* syncterm_version = "SyncTERM 1.1b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -1021,10 +1021,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 			}
 			if(we_got_this) {
-				// Convert unicode to string.
-				if(snprintf(fn, fnlen, "%S\\SyncTERM", path) >= fnlen) {
-					we_got_this=FALSE;
+				if (type != SYNCTERM_DEFAULT_TRANSFER_PATH) {
+					if(snprintf(fn, fnlen, "%S\\SyncTERM", path) >= fnlen)
+						we_got_this=FALSE;
 				}
+				// Convert unicode to string.
 				CTMF(path);
 			}
 		}
@@ -1390,11 +1391,11 @@ int main(int argc, char **argv)
 						case 'S':
 							switch(toupper(argv[i][3])) {
 								case 0:
-								case 'F':
-									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
-									break;
 								case 'W':
 									ciolib_mode=CIOLIB_MODE_SDL;
+									break;
+								case 'F':
+									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
 									break;
 							}
 							break;
@@ -1611,6 +1612,8 @@ int main(int argc, char **argv)
 			last_bbs=strdup(bbs->name);
 		bbs=NULL;
 	}
+	if (last_bbs)
+		free(last_bbs);
 	// Save changed settings
 	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
 		char	inipath[MAX_PATH+1];
