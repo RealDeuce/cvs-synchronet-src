@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.584 2015/08/20 05:19:45 deuce Exp $ */
+/* $Id: websrvr.c,v 1.585 2015/08/20 09:48:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2775,6 +2775,20 @@ static int is_dynamic_req(http_session_t* session)
 	return(IS_STATIC);
 }
 
+static void remove_port_part(char *host)
+{
+	void *p;
+
+	for(p=strchr(host, 0); p >= host; p--) {
+		if (!isdigit(*p))
+			return;
+		if (*p == ':') {
+			*p0;
+			return;
+		}
+	}
+}
+
 static char *get_request(http_session_t * session, char *req_line)
 {
 	char*	p;
@@ -2813,7 +2827,7 @@ static char *get_request(http_session_t * session, char *req_line)
 		SAFECOPY(session->req.vhost,session->req.host);
 
 		/* Remove port specification from vhost (if present) */
-		strtok_r(session->req.vhost,":",&last);
+		remove_port_part(session->req.vhost);
 
 		/* Sets p to point to the first character after the first slash */
 		p=strchr(session->req.physical_path, '/');
@@ -2893,7 +2907,7 @@ static BOOL get_request_headers(http_session_t * session)
 						/* Remove port part of host (Win32 doesn't allow : in dir names) */
 						/* Either an existing : will be replaced with a null, or nothing */
 						/* Will happen... the return value is not relevent here */
-						strtok_r(session->req.vhost,":",&last);
+						remove_port_part(session->req.vhost);
 					}
 					break;
 				default:
@@ -5631,7 +5645,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.584 $", "%*s %s", revision);
+	sscanf("$Revision: 1.585 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
