@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.586 2015/08/20 09:51:32 deuce Exp $ */
+/* $Id: websrvr.c,v 1.587 2015/08/20 09:53:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2779,7 +2779,7 @@ static void remove_port_part(char *host)
 {
 	char *p;
 
-	for(p=strchr(host, 0); p >= host; p--) {
+	for(p=strchr(host, 0)-1; p >= host; p--) {
 		if (!isdigit(*p))
 			return;
 		if (*p == ':') {
@@ -5645,7 +5645,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.586 $", "%*s %s", revision);
+	sscanf("$Revision: 1.587 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
