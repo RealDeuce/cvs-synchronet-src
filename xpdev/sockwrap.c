@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id$ */
+/* $Id: sockwrap.c,v 1.62 2015/08/20 07:23:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -425,7 +425,12 @@ union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr,
         freeaddrinfo(res);
         return NULL;
     }
-    memcpy(&addr, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, size);
+    if (size < sizeof(struct sockaddr_in6)) {
+        freeaddrinfo(res);
+        return NULL;
+	}
+	size = sizeof(struct sockaddr_in6);
+    memcpy(addr, ((struct sockaddr_in6 *)(cur->ai_addr)), size);
     freeaddrinfo(res);
     return addr;
 }
