@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.149 2015/04/29 22:09:48 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.150 2015/08/17 07:04:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -373,6 +373,8 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case BBS_PROP_CURSUB_CODE:
 			if(sbbs->cursubnum<sbbs->cfg.total_subs)
 				p=sbbs->cfg.sub[sbbs->cursubnum]->code;
+			else
+				p=nulstr;
 			break;
 
 		case BBS_PROP_CURLIB:
@@ -385,6 +387,8 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case BBS_PROP_CURDIR_CODE:
 			if(sbbs->curdirnum<sbbs->cfg.total_dirs)
 				p=sbbs->cfg.dir[sbbs->curdirnum]->code;
+			else
+				p=nulstr;
 			break;
 
 		case BBS_PROP_CONNECTION:
