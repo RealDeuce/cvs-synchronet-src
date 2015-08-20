@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.75 2015/08/22 01:37:50 deuce Exp $ */
+/* $Id: mailsrvr.h,v 1.73 2015/08/20 05:19:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
