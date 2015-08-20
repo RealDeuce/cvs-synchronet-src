@@ -2,7 +2,7 @@
 
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.50 2015/08/22 06:55:59 deuce Exp $ */
+/* $Id: addfiles.c,v 1.49 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -656,6 +656,7 @@ char *usage="\nusage: addfiles code [.alt_path] [-opts] +list "
 	"\nAuto-ADD:   use - in place of code for Auto-ADD of FILES.BBS"
 	"\n            use -filename to Auto-ADD a different filename"
 	"\n            use -l \"libname\" to only Auto-ADD files to a specific library"
+	"\n"
 	;
 
 /*********************/
@@ -675,7 +676,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.50 $", "%*s %s", revision);
+	sscanf("$Revision: 1.49 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -685,7 +686,7 @@ int main(int argc, char **argv)
 		);
 
 	if(argc<2) {
-		puts(usage);
+		printf(usage);
 		return(1); 
 	}
 
@@ -713,7 +714,7 @@ int main(int argc, char **argv)
 
 	if(argv[1][0]=='*' || argv[1][0]=='-') {
 		if(argv[1][1]=='?') {
-			puts(usage);
+			printf(usage);
 			exit(0);
 		}
 		if(argv[1][1])
@@ -722,7 +723,7 @@ int main(int argc, char **argv)
 		i=0; 
 	} else {
 		if(!isalnum((uchar)argv[1][0]) && argc==2) {
-			puts(usage);
+			printf(usage);
 			return(1); 
 		}
 
@@ -770,7 +771,7 @@ int main(int argc, char **argv)
 					case 'L':
 						j++;
 						if(argv[j]==NULL) {
-							puts(usage);
+							printf(usage);
 							return(-1);
 						}
 						SAFECOPY(lib,argv[j]);
@@ -779,7 +780,7 @@ int main(int argc, char **argv)
 					case 'X':
 						j++;
 						if(argv[j]==NULL) {
-							puts(usage);
+							printf(usage);
 							return(-1);
 						}
 						SAFECOPY(f.uler,argv[j]);
@@ -810,7 +811,7 @@ int main(int argc, char **argv)
 						mode|=SEARCH_DIR;
 						break;
 					default:
-						puts(usage);
+						printf(usage);
 						return(1); 
 			} 
 		}
