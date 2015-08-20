@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.167 2015/08/20 05:19:41 deuce Exp $ */
+/* $Id: js_socket.c,v 1.168 2015/08/20 10:57:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2167,11 +2167,13 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 	p->network_byte_order = TRUE;
 	p->session=-1;
 
-	len=sizeof(p->remote_addr);
-	if(getpeername(p->sock, &p->remote_addr.addr,&len)==0)
-		p->is_connected=TRUE;
-	else
-		lprintf(LOG_ERR, "Error %d calling getpeername()",errno);
+	if (p->sock != INVALID_SOCKET) {
+		len=sizeof(p->remote_addr);
+		if(getpeername(p->sock, &p->remote_addr.addr,&len)==0)
+			p->is_connected=TRUE;
+		else
+			lprintf(LOG_ERR, "Error %d calling getpeername()",errno);
+	}
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");

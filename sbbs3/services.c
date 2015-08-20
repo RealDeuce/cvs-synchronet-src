@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.277 2015/08/20 05:19:44 deuce Exp $ */
+/* $Id: services.c,v 1.278 2015/08/20 10:57:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1203,7 +1203,7 @@ static void js_static_service_thread(void* arg)
 		sprintf(spath,"%s%s",scfg.exec_dir,fname);
 
 	do {
-		if((js_cx=js_initcx(js_runtime,0,&service_client,&js_glob))==NULL) {
+		if((js_cx=js_initcx(js_runtime,INVALID_SOCKET,&service_client,&js_glob))==NULL) {
 			lprintf(LOG_ERR,"!%s ERROR initializing JavaScript context"
 				,service->protocol);
 			break;
@@ -1629,7 +1629,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.277 $", "%*s %s", revision);
+	sscanf("$Revision: 1.278 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
