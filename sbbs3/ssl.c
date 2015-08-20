@@ -25,7 +25,7 @@ static bool get_error_string(int status, CRYPT_SESSION sess, char *estr, char *f
 
 #define DO(x)	get_error_string(x, ssl_context, estr, __FILE__, __LINE__)
 
-CRYPT_CONTEXT get_ssl_cert(scfg_t *cfg, char *estr)
+CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char *estr)
 {
 	CRYPT_KEYSET		ssl_keyset;
 	CRYPT_CONTEXT		ssl_context;
@@ -36,6 +36,7 @@ CRYPT_CONTEXT get_ssl_cert(scfg_t *cfg, char *estr)
 
 	if(!do_cryptInit())
 		return -1;
+	memset(&ssl_context, 0, sizeof(ssl_context));
 	/* Get the certificate... first try loading it from a file... */
 	SAFEPRINTF2(str,"%s%s",cfg->ctrl_dir,"ssl.cert");
 	if(cryptStatusOK(cryptKeysetOpen(&ssl_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
