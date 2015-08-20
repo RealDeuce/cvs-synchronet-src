@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.412 2015/08/20 05:19:41 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.413 2015/08/20 07:55:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2280,8 +2280,10 @@ static void ctrl_thread(void* arg)
 	char*		np;
 	char*		tp;
 	char*		dp;
+	char*		ap;
 	char*		filespec;
 	char*		mode="active";
+	char		old_char;
 	char		password[64];
 	char		fname[MAX_PATH+1];
 	char		qwkfile[MAX_PATH+1];
@@ -2834,9 +2836,13 @@ static void ctrl_thread(void* arg)
 						FIND_CHAR(p,delim);
 						if(*p)
 							p++;
-						data_addr.in.sin_addr.s_addr=inet_addr(p);
+						ap = p;
 						FIND_CHAR(p,delim);
-						if(*p)
+						old_char = *p;
+						*p = 0;
+						data_addr.in.sin_addr.s_addr=inet_addr(ap);
+						*p = old_char;
+						if (*p)
 							p++;
 						data_port=atoi(p);
 						data_addr.in.sin_family=AF_INET;
@@ -4726,7 +4732,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.412 $", "%*s %s", revision);
+	sscanf("$Revision: 1.413 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
