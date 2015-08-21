@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.583 2015/08/22 10:48:32 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.577 2015/08/20 05:19:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -763,12 +763,12 @@ static void pop3_thread(void* arg)
 	int			rd;
 	BOOL		activity=TRUE;
 	BOOL		apop=FALSE;
-	uint32_t	l;
+	long		l;
 	ulong		lines;
 	ulong		lines_sent;
 	ulong		login_attempts;
 	uint32_t	msgs;
-	uint32_t	msgnum;
+	long		msgnum;
 	ulong		bytes;
 	SOCKET		socket;
 	smb_t		smb;
@@ -1072,9 +1072,9 @@ static void pop3_thread(void* arg)
 				p=buf+4;
 				SKIP_WHITESPACE(p);
 				if(isdigit((uchar)*p)) {
-					msgnum=strtoul(p, NULL, 10);
+					msgnum=atol(p);
 					if(msgnum<1 || msgnum>msgs) {
-						lprintf(LOG_NOTICE,"%04d !POP3 INVALID message #%" PRIu32
+						lprintf(LOG_NOTICE,"%04d !POP3 INVALID message #%ld"
 							,socket, msgnum);
 						sockprintf(socket,"-ERR no such message");
 						continue;
@@ -1108,9 +1108,9 @@ static void pop3_thread(void* arg)
 						continue;
 					}
 					if(!strnicmp(buf, "LIST",4)) {
-						sockprintf(socket,"+OK %" PRIu32 " %lu",msgnum,smb_getmsgtxtlen(&msg));
+						sockprintf(socket,"+OK %lu %lu",msgnum,smb_getmsgtxtlen(&msg));
 					} else /* UIDL */
-						sockprintf(socket,"+OK %" PRIu32 " %lu",msgnum,msg.hdr.number);
+						sockprintf(socket,"+OK %lu %lu",msgnum,msg.hdr.number);
 
 					smb_freemsgmem(&msg);
 					continue;
@@ -1157,7 +1157,7 @@ static void pop3_thread(void* arg)
 				lines=-1;
 				p=buf+4;
 				SKIP_WHITESPACE(p);
-				msgnum=strtoul(p, NULL, 10);
+				msgnum=atol(p);
 
 				if(!strnicmp(buf,"TOP ",4)) {
 					SKIP_DIGIT(p);
@@ -1165,7 +1165,7 @@ static void pop3_thread(void* arg)
 					lines=atol(p);
 				}
 				if(msgnum<1 || msgnum>msgs) {
-					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to retrieve an INVALID message #%" PRIu32
+					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to retrieve an INVALID message #%ld"
 						,socket, user.alias, msgnum);
 					sockprintf(socket,"-ERR no such message");
 					continue;
@@ -1257,10 +1257,10 @@ static void pop3_thread(void* arg)
 			if(!strnicmp(buf, "DELE ",5)) {
 				p=buf+5;
 				SKIP_WHITESPACE(p);
-				msgnum=strtoul(p, NULL, 10);
+				msgnum=atol(p);
 
 				if(msgnum<1 || msgnum>msgs) {
-					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to delete an INVALID message #%" PRIu32
+					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to delete an INVALID message #%ld"
 						,socket, user.alias, msgnum);
 					sockprintf(socket,"-ERR no such message");
 					continue;
@@ -1926,7 +1926,7 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 		JS_DefineProperty(*js_cx, js_scope, "argc", INT_TO_JSVAL(argc)
 			,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-		if(*mailproc->eval!=0) {
+		if(mailproc->eval!=NULL && *mailproc->eval!=0) {
 			lprintf(LOG_DEBUG,"%04d %s Evaluating: %s"
 				,sock, log_prefix, mailproc->eval);
 			js_script=JS_CompileScript(*js_cx, js_scope, mailproc->eval, strlen(mailproc->eval), NULL, 1);
@@ -1989,7 +1989,7 @@ static char* get_header_field(char* buf, char* name, size_t maxlen)
 	len = p-buf;
 	if(len >= maxlen)
 		len = maxlen-1;
-	sprintf(name,"%.*s",(int)len,buf);
+	sprintf(name,"%.*s",len,buf);
 	truncsp(name);
 
 	p++;	/* skip colon */
@@ -2154,7 +2154,7 @@ static void parse_mail_address(char* p
 	else
 		tp=p;
 	SKIP_WHITESPACE(tp);
-	sprintf(addr,"%.*s",(int)addr_len,tp);
+	sprintf(addr,"%.*s",addr_len,tp);
 	truncstr(addr,">( ");
 
 	SAFECOPY(tmp,p);
@@ -2172,7 +2172,7 @@ static void parse_mail_address(char* p
 	} else									/* name, then address in brackets */
 		tp=strchr(p,'<');
 	if(tp) *tp=0;
-	sprintf(name,"%.*s",(int)name_len,p);
+	sprintf(name,"%.*s",name_len,p);
 	truncsp(name);
 }
 
@@ -4300,11 +4300,11 @@ void get_dns_server(char* dns_server, size_t len)
 	str_list_t	list;
 	size_t		count;
 
-	sprintf(dns_server,"%.*s",(int)len,startup->dns_server);
+	sprintf(dns_server,"%.*s",len,startup->dns_server);
 	if(!isalnum(dns_server[0])) {
 		if((list=getNameServerList())!=NULL) {
 			if((count=strListCount(list))>0) {
-				sprintf(dns_server,"%.*s",(int)len,list[xp_random(count)]);
+				sprintf(dns_server,"%.*s",len,list[xp_random(count)]);
 				lprintf(LOG_DEBUG,"0000 SEND using auto-detected DNS server address: %s"
 					,dns_server);
 			}
@@ -4351,7 +4351,7 @@ static void sendmail_thread(void* arg)
 	BOOL		first_cycle=TRUE;
 	SOCKET		sock=INVALID_SOCKET;
 	SOCKADDR_IN	addr;
-	union xp_sockaddr	server_addr;
+	SOCKADDR_IN	server_addr;
 	char		server_ip[INET6_ADDRSTRLEN];
 	time_t		last_scan=0;
 	smb_t		smb;
@@ -4628,9 +4628,9 @@ static void sendmail_thread(void* arg)
 				}
 
 				memset(&server_addr,0,sizeof(server_addr));
-				server_addr.in.sin_addr.s_addr = ip_addr;
-				server_addr.in.sin_family = AF_INET;
-				server_addr.in.sin_port = htons(port);
+				server_addr.sin_addr.s_addr = ip_addr;
+				server_addr.sin_family = AF_INET;
+				server_addr.sin_port = htons(port);
 				inet_addrtop(&server_addr,server_ip,sizeof(server_ip));
 
 				if((node=listFindNode(&failed_server_list,&server_addr,sizeof(server_addr))) != NULL) {
@@ -4961,7 +4961,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.583 $", "%*s %s", revision);
+	sscanf("$Revision: 1.577 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5000,6 +5000,7 @@ void DLLCALL mail_server(void* arg)
 	smtp_t*			smtp;
 	FILE*			fp;
 	str_list_t		sec_list;
+	struct in_addr	iaddr;
 	void			*cbdata;
 
 	mail_ver();
@@ -5045,7 +5046,8 @@ void DLLCALL mail_server(void* arg)
 	js_server_props.version_detail=mail_ver();
 	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
-	js_server_props.interfaces=&startup->interfaces;
+	/* TODO: IPv6 */
+	js_server_props.interface_addr=&startup->outgoing4;
 
 	uptime=0;
 	memset(&stats,0,sizeof(stats));
@@ -5197,7 +5199,8 @@ void DLLCALL mail_server(void* arg)
 
 		if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT) {
 			if(xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->submission_port, "SMTP Submission Agent", mail_open_socket, startup->seteuid, "submission"))
-				lprintf(LOG_INFO,"SUBMISSION Server listening");
+				lprintf(LOG_INFO,"SUBMISSION Server listening on port %u"
+					,startup->submission_port);
 		}
 
 		if(startup->options&MAIL_OPT_ALLOW_POP3) {
@@ -5237,7 +5240,7 @@ void DLLCALL mail_server(void* arg)
 
 		while(!terminated && !terminate_server) {
 
-			if(protected_uint32_value(thread_count) <= (unsigned int)(1+(sendmail_running?1:0))) {
+			if(protected_uint32_value(thread_count) <= 1+sendmail_running) {
 				if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"Recycle semaphore file (%s) detected",p);
