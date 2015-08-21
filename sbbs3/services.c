@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.279 2015/08/21 07:52:49 deuce Exp $ */
+/* $Id: services.c,v 1.280 2015/08/21 07:59:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -492,6 +492,10 @@ js_logout(JSContext *cx, uintN argc, jsval *arglist)
 	return(JS_TRUE);
 }
 
+/*
+ * This macro is used to expose a function from the global
+ * client.socket object in the global namespace.
+ */
 #define SOCKET_WRAPPER(funcname) \
 static JSBool \
 js_##funcname (JSContext *cx, uintN argc, jsval *arglist) \
@@ -506,7 +510,6 @@ js_##funcname (JSContext *cx, uintN argc, jsval *arglist) \
 \
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE)); \
 \
-	/* Copy client socket stuff into the global context */ \
 	if (!JS_GetProperty(cx, obj, "client", &val) || val == JSVAL_VOID) \
 		return JS_FALSE; \
 	tmpobj=JSVAL_TO_OBJECT(val); \
@@ -1633,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.279 $", "%*s %s", revision);
+	sscanf("$Revision: 1.280 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
