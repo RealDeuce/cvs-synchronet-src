@@ -2,7 +2,7 @@
 
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.149 2015/08/22 01:37:51 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.147 2015/08/20 05:19:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,7 +214,6 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
         SAFECOPY(global->host_name,value);
 
 	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,0);
-	iniFreeStringList(global->interfaces);
 	global->interfaces=iniGetStringList(list,section,strInterfaces, ",", "0.0.0.0,::");
 	global->outgoing4.s_addr=iniGetIpAddress(list,section,strOutgoing4,0);
 	global->outgoing6=iniGetIp6Address(list,section,strOutgoing6,wildcard6);
@@ -297,19 +296,16 @@ void sbbs_read_ini(
 
 		bbs->telnet_port
 			=iniGetShortInt(list,section,"TelnetPort",IPPORT_TELNET);
-		iniFreeStringList(bbs->telnet_interfaces);
 		bbs->telnet_interfaces
 			=iniGetStringList(list,section,"TelnetInterface",",",global_interfaces);
 
 		bbs->rlogin_port
 			=iniGetShortInt(list,section,"RLoginPort",513);
-		iniFreeStringList(bbs->rlogin_interfaces);
 		bbs->rlogin_interfaces
 			=iniGetStringList(list,section,"RLoginInterface",",",global_interfaces);
 
 		bbs->ssh_port
 			=iniGetShortInt(list,section,"SSHPort",22);
-		iniFreeStringList(bbs->ssh_interfaces);
 		bbs->ssh_interfaces
 			=iniGetStringList(list,section,"SSHInterface",",",global_interfaces);
 
@@ -395,7 +391,6 @@ void sbbs_read_ini(
 			=iniGetIp6Address(list,section,strOutgoing6,global->outgoing6);
 		ftp->port
 			=iniGetShortInt(list,section,strPort,IPPORT_FTP);
-		iniFreeStringList(ftp->interfaces);
 		ftp->interfaces
 			=iniGetStringList(list,section,strInterfaces,",",global_interfaces);
 		ftp->max_clients
@@ -467,7 +462,6 @@ void sbbs_read_ini(
 
 	if(mail!=NULL) {
 
-		iniFreeStringList(mail->interfaces);
 		mail->interfaces
 			=iniGetStringList(list,section,"SMTPInterface",",",global_interfaces);
 		mail->outgoing4.s_addr
@@ -478,7 +472,6 @@ void sbbs_read_ini(
 			=iniGetShortInt(list,section,"SMTPPort",IPPORT_SMTP);
 		mail->submission_port
 			=iniGetShortInt(list,section,"SubmissionPort",IPPORT_SUBMISSION);
-		iniFreeStringList(mail->pop3_interfaces);
 		mail->pop3_interfaces
 			=iniGetStringList(list,section,"POP3Interface",",",global_interfaces);
 		mail->pop3_port
@@ -565,7 +558,6 @@ void sbbs_read_ini(
 
 	if(services!=NULL) {
 
-		iniFreeStringList(services->interfaces);
 		services->interfaces
 			=iniGetStringList(list,section,strInterfaces,",",global_interfaces);
 		services->outgoing4.s_addr
@@ -612,10 +604,8 @@ void sbbs_read_ini(
 
 	if(web!=NULL) {
 
-		iniFreeStringList(web->interfaces);
 		web->interfaces
 			=iniGetStringList(list,section,strInterfaces,",",global_interfaces);
-		iniFreeStringList(web->tls_interfaces);
 		web->tls_interfaces
 			=iniGetStringList(list,section,"TLSInterface",",",global_interfaces);
 		web->outgoing4.s_addr

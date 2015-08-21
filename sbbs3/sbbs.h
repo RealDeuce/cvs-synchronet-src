@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.416 2015/09/01 03:19:42 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.413 2015/08/20 05:19:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -982,8 +982,6 @@ public:
 #ifdef __cplusplus
 extern "C" {
 #endif
-	/* ansiterm.cpp */
-	DLLEXPORT char*		DLLCALL ansi_attr(int attr, int curattr, char* str, BOOL color);
 
 	/* main.cpp */
 	DLLEXPORT int		DLLCALL sbbs_random(int);
@@ -1090,8 +1088,8 @@ extern "C" {
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
 
-	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, const char* prot, const char* user, const char* text
-										,const char* host, union xp_sockaddr* addr);
+	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text
+										,char* host, union xp_sockaddr* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
 										,char* host, char* ip_addr, char* to, char* from);
 
@@ -1137,7 +1135,7 @@ extern "C" {
 	typedef struct {
 		char		version[128];
 		const char*	version_detail;
-		str_list_t*	interfaces;
+		uint32_t*	interface_addr;
 		uint32_t*	options;
 		uint32_t*	clients;
 	} js_server_props_t;
