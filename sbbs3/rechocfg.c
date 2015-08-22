@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 1.33 2015/04/24 05:47:41 rswindell Exp $ */
+/* $Id: rechocfg.c,v 1.34 2015/08/22 06:47:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -232,7 +232,7 @@ void read_echo_cfg()
 		if(!stricmp(tmp,"PACKER")) {             /* Archive Definition */
 			if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
 				,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
-				printf("\nError allocating %u bytes of memory for arcdef #%u.\n"
+				printf("\nError allocating %" XP_PRIsize_t "u bytes of memory for arcdef #%u.\n"
 					,sizeof(arcdef_t)*(cfg.arcdefs+1),cfg.arcdefs+1);
 				bail(1); }
 			SAFECOPY(cfg.arcdef[cfg.arcdefs].name,p);
