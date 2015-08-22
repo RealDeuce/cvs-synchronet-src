@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.64 2013/09/18 16:24:39 deuce Exp $ */
+/* $Id: chat.cpp,v 1.66 2015/08/22 05:30:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -430,7 +430,7 @@ void sbbs_t::multinodechat(int channel)
 							? text[AnonUserChatHandle]
 							: useron.handle
 							,cfg.node_num,':',nulstr);
-						sprintf(tmp,"%*s",bstrlen(str),nulstr);
+						sprintf(tmp,"%*s",(int)bstrlen(str),nulstr);
 						strcat(pgraph,tmp); 
 					}
 					strcat(pgraph,line);
@@ -1823,8 +1823,9 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 /****************************************************************************/
 bool sbbs_t::guruexp(char **ptrptr, char *line)
 {
-	char	c,*cp,str[256];
+	char	*cp,str[256];
 	int		nest;
+	unsigned c;
 	bool	result=false,_and=false,_or=false;
 	uchar	*ar;
 
