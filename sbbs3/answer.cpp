@@ -2,13 +2,13 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.79 2014/02/28 19:25:49 deuce Exp $ */
+/* $Id: answer.cpp,v 1.86 2015/08/20 05:19:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -52,7 +52,7 @@ bool sbbs_t::answer()
 	useron.number=0;
 	answertime=logontime=starttime=now=time(NULL);
 	/* Caller ID is IP address */
-	SAFECOPY(cid,inet_ntoa(client_addr.sin_addr));
+	SAFECOPY(cid,client_ipaddr);
 
 	memset(&tm,0,sizeof(tm));
     localtime_r(&now,&tm); 
@@ -71,9 +71,6 @@ bool sbbs_t::answer()
 		logline("@*",str);
 	}
 
-	online=ON_REMOTE;
-
-	rlogin_name[0]=0;
 	if(sys_status&SS_RLOGIN) {
 		if(incom(1000)==0) {
 			for(i=0;i<(int)sizeof(str)-1;i++) {
@@ -97,29 +94,26 @@ bool sbbs_t::answer()
 				terminal[i]=in;
 			}
 			terminal[i]=0;
-			truncstr(terminal,"/");
 			lprintf(LOG_DEBUG,"Node %d RLogin: '%.*s' / '%.*s' / '%s'"
 				,cfg.node_num
 				,LEN_ALIAS*2,str
 				,LEN_ALIAS*2,str2
 				,terminal);
-			SAFECOPY(rlogin_name
-				,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str2 : str);
-			SAFECOPY(rlogin_pass
-				,startup->options&BBS_OPT_USE_2ND_RLOGIN ? str : str2);
+			SAFECOPY(rlogin_term, terminal);
+			SAFECOPY(rlogin_name, str2);
+			SAFECOPY(rlogin_pass, str);
+			/* Truncate terminal speed (e.g. "/57600") from terminal-type string 
+			   (but keep full terminal type/speed string in rlogin_term): */
+			truncstr(terminal,"/");	
 			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
 				useron.misc&=~TERM_FLAGS;
 				SAFEPRINTF(path,"%srlogin.cfg",cfg.ctrl_dir);
 				if(!findstr(client.addr,path)) {
-					SAFECOPY(tmp
-						,rlogin_pass);
-					for(i=0;i<3;i++) {
+					SAFECOPY(tmp, rlogin_pass);
+					for(i=0;i<3 && online;i++) {
 						if(stricmp(tmp,useron.pass)) {
-							badlogin(useron.alias, tmp);
-							rioctl(IOFI);       /* flush input buffer */
-							bputs(text[InvalidLogon]);
 							if(cfg.sys_misc&SM_ECHO_PW)
 								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
 									,0,useron.alias,tmp);
@@ -127,6 +121,9 @@ bool sbbs_t::answer()
 								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
 							logline(LOG_NOTICE,"+!",str);
+							badlogin(useron.alias, tmp);
+							rioctl(IOFI);       /* flush input buffer */
+							bputs(text[InvalidLogon]);
 							bputs(text[PasswordPrompt]);
 							console|=CON_R_ECHOX;
 							getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
@@ -148,8 +145,6 @@ bool sbbs_t::answer()
 					}
 					if(i) {
 						if(stricmp(tmp,useron.pass)) {
-							badlogin(useron.alias, tmp);
-							bputs(text[InvalidLogon]);
 							if(cfg.sys_misc&SM_ECHO_PW)
 								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
 									,0,useron.alias,tmp);
@@ -157,6 +152,8 @@ bool sbbs_t::answer()
 								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
 									,0,useron.alias);
 							logline(LOG_NOTICE,"+!",str);
+							badlogin(useron.alias, tmp);
+							bputs(text[InvalidLogon]);
 						}
 						lprintf(LOG_WARNING,"Node %d !CLIENT IP NOT LISTED in %s"
 							,cfg.node_num,path);
@@ -165,8 +162,13 @@ bool sbbs_t::answer()
 					}
 				}
 			}
-			else
-				lprintf(LOG_INFO,"Node %d RLogin: Unknown user: %s",cfg.node_num,rlogin_name);
+			else {
+				if(cfg.sys_misc&SM_ECHO_PW)
+					lprintf(LOG_INFO,"Node %d RLogin: UNKNOWN USER: '%s' (password: %s)",cfg.node_num, rlogin_name, rlogin_pass);
+				else
+					lprintf(LOG_INFO,"Node %d RLogin: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
+				badlogin(rlogin_name, rlogin_pass);
+			}
 		}
 		if(rlogin_name[0]==0) {
 			lprintf(LOG_NOTICE,"Node %d !RLogin: No user name received",cfg.node_num);
@@ -184,9 +186,7 @@ bool sbbs_t::answer()
 		request_telnet_opt(TELNET_DO,TELNET_TERM_SPEED);
 		request_telnet_opt(TELNET_DO,TELNET_SEND_LOCATION);
 		request_telnet_opt(TELNET_DO,TELNET_NEGOTIATE_WINDOW_SIZE);
-#ifdef SBBS_TELNET_ENVIRON_SUPPORT
 		request_telnet_opt(TELNET_DO,TELNET_NEW_ENVIRON);
-#endif
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
@@ -204,24 +204,18 @@ bool sbbs_t::answer()
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
 			useron.misc&=~TERM_FLAGS;
-			for(i=0;i<3;i++) {
+			for(i=0;i<3 && online;i++) {
 				if(stricmp(tmp,useron.pass)) {
-					badlogin(useron.alias, tmp);
-					rioctl(IOFI);       /* flush input buffer */
-					bputs(text[InvalidLogon]);
 					if(cfg.sys_misc&SM_ECHO_PW)
 						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
 							,0,useron.alias,tmp);
 					else
 						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
 							,0,useron.alias);
-					/* crash here Sept-12-2010
-					   str	0x06b3fc4c "(0000)  Guest                      FAILED Password attempt: 'alex2010@sdf.lonestar.org'"
-
-					   and Oct-6-2010
-					   str	0x070ffc4c "(0000)  Woot903                    FAILED Password attempt: 'p67890pppsdsjhsdfhhfhnhnfhfhfdhjksdjkfdskw3902391=`'"	char [261]
-					*/
 					logline(LOG_NOTICE,"+!",str);
+					badlogin(useron.alias, tmp);
+					rioctl(IOFI);       /* flush input buffer */
+					bputs(text[InvalidLogon]);
 					bputs(text[PasswordPrompt]);
 					console|=CON_R_ECHOX;
 					getstr(tmp,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
@@ -243,8 +237,6 @@ bool sbbs_t::answer()
 			}
 			if(i) {
 				if(stricmp(tmp,useron.pass)) {
-					badlogin(useron.alias, tmp);
-					bputs(text[InvalidLogon]);
 					if(cfg.sys_misc&SM_ECHO_PW)
 						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
 							,0,useron.alias,tmp);
@@ -252,13 +244,20 @@ bool sbbs_t::answer()
 						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
 							,0,useron.alias);
 					logline(LOG_NOTICE,"+!",str);
+					badlogin(useron.alias, tmp);
+					bputs(text[InvalidLogon]);
 				}
 				useron.number=0;
 				hangup();
 			}
 		}
-		else
-			lprintf(LOG_INFO,"Node %d SSH: Unknown user: %s",cfg.node_num,rlogin_name);
+		else {
+			if(cfg.sys_misc&SM_ECHO_PW)
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,tmpname, rlogin_pass);
+			else
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,tmpname);
+			badlogin(tmpname, rlogin_pass);
+		}
 	}
 #endif
 
@@ -306,7 +305,7 @@ bool sbbs_t::answer()
 	str[l]=0;
 
     if(l) {
-		c_escape_str(str,tmp,sizeof(tmp),TRUE);
+		c_escape_str(str,tmp,sizeof(tmp)-1,TRUE);
 		lprintf(LOG_DEBUG,"Node %d received terminal auto-detection response: '%s'"
 			,cfg.node_num,tmp);
         if(str[0]==ESC && str[1]=='[' && str[l-1]=='R') {
@@ -342,15 +341,15 @@ bool sbbs_t::answer()
 	rioctl(IOFI); /* flush left-over or late response chars */
 
 	if(!autoterm && str[0]) {
-		c_escape_str(str,tmp,sizeof(tmp),TRUE);
+		c_escape_str(str,tmp,sizeof(tmp)-1,TRUE);
 		lprintf(LOG_NOTICE,"Node %d terminal auto-detection failed, response: '%s'"
 			,cfg.node_num, tmp);
 	}
 
 	/* AutoLogon via IP or Caller ID here */
 	if(!useron.number && !(sys_status&SS_RLOGIN)
-		&& startup->options&BBS_OPT_AUTO_LOGON && cid[0]) {
-		useron.number=userdatdupe(0, U_NOTE, LEN_NOTE, cid);
+		&& (startup->options&BBS_OPT_AUTO_LOGON) && cid[0]) {
+		useron.number=userdatdupe(0, U_IPADDR, LEN_IPADDR, cid);
 		if(useron.number) {
 			getuserdat(&cfg, &useron);
 			if(!(useron.misc&AUTOLOGON) || !(useron.exempt&FLAG('V')))
@@ -395,8 +394,9 @@ bool sbbs_t::answer()
 	useron.misc|=autoterm;
 	SAFECOPY(useron.comp,client_name);
 
-	if(!useron.number && sys_status&SS_RLOGIN) {
-		CRLF;
+	if(!useron.number && rlogin_name[0]!=0 && !(cfg.sys_misc&SM_CLOSED) && !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)) {
+		lprintf(LOG_INFO,"Node %d UNKNOWN %s-specified username: '%s', starting new user signup",cfg.node_num,client.protocol,rlogin_name);
+		bprintf("%s: %s\r\n", text[UNKNOWN_USER], rlogin_name);
 		newuser();
 	}
 
@@ -436,8 +436,8 @@ bool sbbs_t::answer()
 
 	/* Save the IP to the user's note */
 	if(cid[0]) {
-		SAFECOPY(useron.note,cid);
-		putuserrec(&cfg,useron.number,U_NOTE,LEN_NOTE,useron.note);
+		SAFECOPY(useron.ipaddr,cid);
+		putuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR,useron.ipaddr);
 	}
 
 	/* Save host name to the user's computer description */
