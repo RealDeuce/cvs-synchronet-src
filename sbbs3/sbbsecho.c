@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.257 2015/04/24 05:47:42 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.262 2015/08/22 06:38:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -584,7 +584,7 @@ void notify_list(void)
 {
 	FILE *	tmpf;
 	char	str[256];
-	uint	i,j,k;
+	uint	i,k;
 
 	for(k=0;k<cfg.nodecfgs;k++) {
 
@@ -2054,7 +2054,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 		if((idx.attr&MSG_MODERATED) && !(idx.attr&MSG_VALIDATED))
 			break;
 
-		(*post)[l++]=idx;
+		(*post)[l++].idx=idx;
 	}
 	smb_unlocksmbhdr(&smb[cur_smb]);
 	if(!l)
@@ -3748,6 +3748,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 	int		i,j,k=0;
 	ulong	f,l,m,exp,exported=0;
 	uint32_t ptr,msgs,lastmsg,posts;
+	long	tmp_msgs;
 	float	export_time;
 	smbmsg_t msg;
 	smbmsg_t orig_msg;
@@ -3791,15 +3792,16 @@ void export_echomail(char *sub_code,faddr_t addr)
 		if(!addr.zone && !(misc&IGNORE_MSGPTRS))
 			ptr=read_export_ptr(i, tag);
 
-		msgs=getlastmsg(i,&lastmsg,0);
-		if(msgs<1 || (!addr.zone && !(misc&IGNORE_MSGPTRS) && ptr>=lastmsg)) {
+		tmp_msgs=getlastmsg(i,&lastmsg,0);
+		if(tmp_msgs<1 || (!addr.zone && !(misc&IGNORE_MSGPTRS) && ptr>=lastmsg)) {
 			lprintf(LOG_DEBUG,"No new messages.");
-			if(msgs>=0 && ptr>lastmsg && !addr.zone && !(misc&LEAVE_MSGPTRS)) {
+			if(tmp_msgs>=0 && ptr>lastmsg && !addr.zone && !(misc&LEAVE_MSGPTRS)) {
 				lprintf(LOG_DEBUG,"Fixing new-scan pointer (%u, lastmsg=%u).", ptr, lastmsg);
 				write_export_ptr(i, lastmsg, tag);
 			}
 			continue; 
 		}
+		msgs = tmp_msgs;
 
 		sprintf(smb[cur_smb].file,"%s%s"
 			,scfg.sub[i]->data_dir,scfg.sub[i]->code);
@@ -3827,18 +3829,18 @@ void export_echomail(char *sub_code,faddr_t addr)
 			printf("\r%8s %5lu of %-5"PRIu32"  "
 				,scfg.sub[i]->code,m+1,posts);
 			memset(&msg,0,sizeof(msg));
-			msg.idx=post[m];
+			msg.idx=post[m].idx;
 			if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
 				lprintf(LOG_ERR,"ERROR %d (%s) line %d locking %s msghdr"
 					,k,smb[cur_smb].last_error,__LINE__,smb[cur_smb].file);
 				continue; 
 			}
 			k=smb_getmsghdr(&smb[cur_smb],&msg);
-			if(k || msg.hdr.number!=post[m].number) {
+			if(k || msg.hdr.number!=post[m].idx.number) {
 				smb_unlockmsghdr(&smb[cur_smb],&msg);
 				smb_freemsgmem(&msg);
 
-				msg.hdr.number=post[m].number;
+				msg.hdr.number=post[m].idx.number;
 				if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
 					lprintf(LOG_ERR,"ERROR %d line %d reading %s index",k,__LINE__
 						,smb[cur_smb].file);
@@ -4144,7 +4146,7 @@ int main(int argc, char **argv)
 	"o: import all netmail regardless of destination address\n"
 	"s: import private echomail override (strip private status)\n"
 	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n"
-	"                                         W: prompt for key upon abnormal exit\n";
+	"                                         W: prompt for key upon abnormal exit";
 
 	if((email=(smb_t *)malloc(sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for email.\n");
@@ -4167,7 +4169,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.257 $", "%*s %s", revision);
+	sscanf("$Revision: 1.262 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4268,7 +4270,7 @@ int main(int argc, char **argv)
 					case 'Q':
 						bail(0);
 					default:
-						printf(usage);
+						puts(usage);
 						bail(0); 
 				}
 				j++; 
@@ -4796,7 +4798,7 @@ int main(int argc, char **argv)
 					if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
 						sprintf(str,"ERROR %d opening %s area #%d, sub #%d)"
 							,j,smb[cur_smb].file,i+1,cfg.area[i].sub+1);
-						printf(str);
+						fputs(str,stdout);
 						logprintf(str);
 						strip_psb(fmsgbuf);
 						pkt_to_pkt(fmsgbuf,curarea,pkt_faddr,hdr,msg_seen
@@ -4812,7 +4814,7 @@ int main(int argc, char **argv)
 								? SMB_HYPERALLOC:0;
 						if((j=smb_create(&smb[cur_smb]))!=SMB_SUCCESS) {
 							sprintf(str,"ERROR %d creating %s",j,smb[cur_smb].file);
-							printf(str);
+							fputs(str,stdout);
 							logprintf(str);
 							smb_close(&smb[cur_smb]);
 							strip_psb(fmsgbuf);
@@ -5050,6 +5052,19 @@ int main(int argc, char **argv)
 				continue;
 			}
 			printf("\n%s to %s ",getfname(path),smb_faddrtoa(&addr,NULL));
+			if(hdr.attr&FIDO_SENT) {
+				printf("already sent\n");
+				fclose(fidomsg);
+				continue;
+			}
+			if(!(misc&DELETE_NETMAIL)) {
+				hdr.attr|=FIDO_SENT;
+				rewind(fidomsg);
+				fseek(fidomsg,offsetof(fmsghdr_t,attr),SEEK_SET);
+				fwrite(&hdr.attr,sizeof(hdr.attr),1,fidomsg);
+				fseek(fidomsg,sizeof(fmsghdr_t),SEEK_SET);
+			}
+
 			if(cfg.log&LOG_PACKING)
 				logprintf("Packing %s (%s) attr=%04hX",path,smb_faddrtoa(&addr,NULL),hdr.attr);
 			fmsgbuf=getfmsg(fidomsg,NULL);
