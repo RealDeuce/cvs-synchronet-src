@@ -1,4 +1,4 @@
-/* $Id: qwknodes.c,v 1.22 2015/08/22 07:03:40 deuce Exp $ */
+/* $Id: qwknodes.c,v 1.21 2012/10/24 19:03:13 deuce Exp $ */
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
@@ -161,7 +161,8 @@ char *usage="\nusage: qwknodes [-opts] cmds"
 			"\n       a  =  append existing output files"
 			"\n       t  =  include tag lines in nodes.dat"
 			"\n       l  =  include local users in users.dat"
-			"\n       m# =  maximum message age set to # days";
+			"\n       m# =  maximum message age set to # days"
+			"\n";
 
 int main(int argc, char **argv)
 {
@@ -175,7 +176,7 @@ int main(int argc, char **argv)
 	char		*ctrl_dir;
 	char		revision[16];
 
-	sscanf("$Revision: 1.22 $", "%*s %s", revision);
+	sscanf("$Revision: 1.21 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List Generator v%s-%s\n"
 		,revision, PLATFORM_DESC);
@@ -205,7 +206,7 @@ int main(int argc, char **argv)
 								while(isdigit(argv[i][j+1])) j++;
 								break;
 							default:
-								puts(usage);
+								printf(usage);
 								return(1); 
 					}
 					j--;
@@ -220,12 +221,12 @@ int main(int argc, char **argv)
 					cmd|=NODES;
 					break;
 				default:
-					puts(usage);
+					printf(usage);
 					return(1); 
 		}
 
 	if(!cmd) {
-		puts(usage);
+		printf(usage);
 		return(1); 
 	}
 
