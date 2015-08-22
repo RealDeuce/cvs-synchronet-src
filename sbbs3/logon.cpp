@@ -2,13 +2,13 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.58 2011/10/19 07:08:31 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.61 2015/08/20 05:19:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -363,8 +363,7 @@ bool sbbs_t::logon()
 						break; 
 				} 
 			}
-			if(!(sys_status&SS_RLOGIN) 
-				&& !(cfg.uq&UQ_NONETMAIL) && !useron.netmail[0]) {
+			if(!(cfg.uq&UQ_NONETMAIL) && !useron.netmail[0]) {
 				while(online) {
 					bputs(text[EnterNetMailAddress]);
 					if(getstr(useron.netmail,LEN_NETMAIL,K_EDIT|K_AUTODEL|K_LINE)
@@ -419,11 +418,11 @@ bool sbbs_t::logon()
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_CREAT|O_APPEND);
 			return(false); 
 		}
-		getuserrec(&cfg,useron.number,U_NOTE,LEN_NOTE,useron.note);
+		getuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR,useron.ipaddr);
 		getuserrec(&cfg,useron.number,U_LOCATION,LEN_LOCATION,useron.location);
 		sprintf(str,text[LastFewCallersFmt],cfg.node_num
 			,totallogons,useron.alias
-			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.note
+			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.ipaddr
 			,tm.tm_hour,tm.tm_min
 			,connection,useron.ltoday > 999 ? 999 : useron.ltoday);
 		write(file,str,strlen(str));
@@ -522,7 +521,7 @@ bool sbbs_t::logon()
 	if(usrgrps && useron.misc&ASK_NSCAN && text[NScanAllGrpsQ][0] && yesno(text[NScanAllGrpsQ]))
 		scanallsubs(SCAN_NEW);
 	if(usrgrps && useron.misc&ASK_SSCAN && text[SScanAllGrpsQ][0] && yesno(text[SScanAllGrpsQ]))
-		scanallsubs(SCAN_TOYOU);
+		scanallsubs(SCAN_TOYOU|SCAN_UNREAD);
 	return(true);
 }
 
