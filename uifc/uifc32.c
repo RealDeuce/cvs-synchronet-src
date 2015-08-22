@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.215 2015/02/26 01:03:05 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.216 2015/08/22 06:28:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1994,7 +1994,8 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 
 	gotoxy(left,top);
 	if(mode&K_PASSWORD)
-		cprintf("%-*.*s",width,width,"********************************************************************************"+(80-strlen(outstr+*scrnoffset)));
+		// This typecast is to suppress a clang warning "adding 'unsigned long' to a string does not append to the string [-Wstring-plus-int]"
+		cprintf("%-*.*s",width,width,((char *)"********************************************************************************")+(80-strlen(outstr+*scrnoffset)));
 	else
 		cprintf("%-*.*s",width,width,outstr+*scrnoffset);
 	gotoxy(left+(cursoffset-*scrnoffset),top);
