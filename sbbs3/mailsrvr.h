@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.74 2015/08/22 00:58:29 deuce Exp $ */
+/* $Id: mailsrvr.h,v 1.75 2015/08/22 01:37:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,8 +63,8 @@ typedef struct {
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
 	struct in_addr outgoing4;
 	struct in6_addr	outgoing6;
-    char   interfaces[INI_MAX_VALUE_LEN];
-    char   pop3_interfaces[INI_MAX_VALUE_LEN];
+    str_list_t   interfaces;
+    str_list_t   pop3_interfaces;
     DWORD	options;			/* See MAIL_OPT definitions */
     DWORD	max_msg_size;		/* Max msg size in bytes (0=unlimited) */
 #define MAIL_DEFAULT_MAX_MSG_SIZE			(20*1024*1024)	/* 20MB */

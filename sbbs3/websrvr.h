@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.47 2015/08/22 00:58:31 deuce Exp $ */
+/* $Id: websrvr.h,v 1.48 2015/08/22 01:37:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,8 +56,8 @@ typedef struct {
 	WORD		tls_port;
 	struct in_addr outgoing4;
 	struct in6_addr	outgoing6;
-    char	interfaces[INI_MAX_VALUE_LEN];
-    char	tls_interfaces[INI_MAX_VALUE_LEN];
+    str_list_t	interfaces;
+    str_list_t	tls_interfaces;
 	
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
