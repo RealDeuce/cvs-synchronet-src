@@ -1,12 +1,14 @@
+/* str_util.c */
+
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.51 2016/11/29 20:25:44 rswindell Exp $ */
+/* $Id: str_util.c,v 1.50 2012/06/30 13:31:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -539,7 +541,7 @@ char DLLCALL exascii_to_ascii_char(uchar ch)
 	/* Seven bit table for EXASCII to ASCII conversion */
 	const char *sbtbl="CUeaaaaceeeiiiAAEaAooouuyOUcLYRfaiounNao?--24!<>"
 			"###||||++||++++++--|-+||++--|-+----++++++++##[]#"
-			"abrpEout*ono%0ENE+><rj%=o*.+n2* ";
+			"abrpEout*ono%0ENE+><rj%=o..+n2* ";
 
 	if(ch&0x80)
 		return sbtbl[ch^0x80];
