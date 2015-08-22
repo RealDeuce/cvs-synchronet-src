@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.285 2015/08/23 11:16:14 deuce Exp $ */
+/* $Id: services.c,v 1.283 2015/08/22 04:31:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -921,20 +921,20 @@ static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline
 
 static BOOL handle_crypt_call(int status, service_client_t *service_client, const char *file, int line)
 {
-	char	*estr = NULL;
+	int		len = 0;
+	char	estr[CRYPT_MAX_TEXTSIZE+1];
 	int		sock = 0;
 
 	if (status == CRYPT_OK)
 		return TRUE;
 	if (service_client != NULL) {
 		if (service_client->service->options & SERVICE_OPT_TLS)
-			estr = get_crypt_error(service_client->tls_sess);
+			cryptGetAttributeString(service_client->tls_sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len);
 		sock = service_client->socket;
 	}
-	if (estr) {
+	estr[len]=0;
+	if (len)
 		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
-		free_crypt_attrstr(estr);
-	}
 	else
 		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
 	return FALSE;
@@ -1635,7 +1635,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.285 $", "%*s %s", revision);
+	sscanf("$Revision: 1.283 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1691,8 +1691,7 @@ void DLLCALL services_thread(void* arg)
 	SOCKET			client_socket;
 	BYTE*			udp_buf = NULL;
 	int				udp_len;
-	int				i;
-	size_t			j;
+	int				i,j;
 	int				result;
 	int				optval;
 	ulong			total_running;

@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.601 2015/08/23 11:16:14 deuce Exp $ */
+/* $Id: websrvr.c,v 1.595 2015/08/22 07:25:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -548,20 +548,20 @@ static int writebuf(http_session_t	*session, const char *buf, size_t len)
 
 static BOOL handle_crypt_call(int status, http_session_t *session, const char *file, int line)
 {
-	char	*estr = NULL;
+	int		len = 0;
+	char	estr[CRYPT_MAX_TEXTSIZE+1];
 	int		sock = 0;
 
 	if (status == CRYPT_OK)
 		return TRUE;
 	if (session != NULL) {
 		if (session->is_tls)
-			estr = get_crypt_error(session->tls_sess);
+			cryptGetAttributeString(session->tls_sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len);
 		sock = session->socket;
 	}
-	if (estr) {
+	estr[len]=0;
+	if (len)
 		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
-		free_crypt_attrstr(estr);
-	}
 	else
 		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
 	return FALSE;
@@ -5085,7 +5085,7 @@ FILE *open_post_file(http_session_t *session)
 
 int read_post_data(http_session_t * session)
 {
-	size_t		s = 0;
+	uint64_t	i=0;
 	FILE		*fp=NULL;
 
 	if(session->req.dynamic!=IS_CGI && (session->req.post_len || session->req.read_chunked))  {
@@ -5109,9 +5109,9 @@ int read_post_data(http_session_t * session)
 				if(ch_len==0)
 					break;
 				/* Check size */
-				s += ch_len;
-				if(s > MAX_POST_LEN) {
-					if(s > SIZE_MAX) {
+				i += ch_len;
+				if(i > MAX_POST_LEN) {
+					if(i > SIZE_MAX) {
 						send_error(session,"413 Request entity too large");
 						if(fp) fclose(fp);
 						return(FALSE);
@@ -5127,7 +5127,7 @@ int read_post_data(http_session_t * session)
 				else {
 					/* realloc() to new size */
 					/* FREE()d in close_request */
-					p=realloc(session->req.post_data, s);
+					p=realloc(session->req.post_data, i);
 					if(p==NULL) {
 						lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,session->req.post_len);
 						send_error(session,"413 Request entity too large");
@@ -5163,13 +5163,13 @@ int read_post_data(http_session_t * session)
 				return(FALSE);
 		}
 		else {
-			s = session->req.post_len;
+			i = session->req.post_len;
 			FREE_AND_NULL(session->req.post_data);
-			if(s > MAX_POST_LEN) {
+			if(i > MAX_POST_LEN) {
 				fp=open_post_file(session);
 				if(fp==NULL)
 					return(FALSE);
-				if(!post_to_file(session, fp, s))
+				if(!post_to_file(session, fp, i))
 					return(FALSE);
 				fclose(fp);
 				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_READ);
@@ -5179,19 +5179,19 @@ int read_post_data(http_session_t * session)
 			}
 			else {
 				/* FREE()d in close_request()  */
-				if(s < (MAX_POST_LEN+1) && (session->req.post_data=malloc((size_t)(s+1))) != NULL)
-					session->req.post_len=recvbufsocket(session,session->req.post_data,s);
+				if(i < (MAX_POST_LEN+1) && (session->req.post_data=malloc(i+1)) != NULL)
+					session->req.post_len=recvbufsocket(session,session->req.post_data,i);
 				else  {
-					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,s);
+					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,i);
 					send_error(session,"413 Request entity too large");
 					return(FALSE);
 				}
 			}
 		}
-		if(session->req.post_len != s)
-				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,s,session->req.post_len);
-		if(session->req.post_len > s)
-			session->req.post_len = s;
+		if(session->req.post_len != i)
+				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,i,session->req.post_len);
+		if(session->req.post_len > i)
+			session->req.post_len = i;
 		session->req.post_data[session->req.post_len]=0;
 	}
 	return(TRUE);
@@ -5335,7 +5335,6 @@ void http_session_thread(void* arg)
 	int				i;
 	int				last;
 	user_t			user;
-	char			*uname;
 #endif
 
 	SetThreadName("HTTP Session");
@@ -5480,10 +5479,8 @@ void http_session_thread(void* arg)
 	    memset(&(session.req), 0, sizeof(session.req));
 	    if (session.is_tls) {
 #if 0 // TLS-PSK is currently broken in cryptlib
-			uname = get_crypt_attribute(session.tls_sess, CRYPT_SESSINFO_USERNAME);
-			if (uname) {
-				SAFECOPY(session.req.auth.username, uname);
-				free_crypt_attrstr(uname);
+			if (cryptGetAttributeString(session.tls_sess, CRYPT_SESSINFO_USERNAME, session.req.auth.username, &i)==CRYPT_OK) {
+				session.req.auth.username[i]=0;
 				session.req.auth.type = AUTHENTICATION_TLS_PSK;
 			}
 #endif
@@ -5663,7 +5660,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.601 $", "%*s %s", revision);
+	sscanf("$Revision: 1.595 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6016,7 +6013,7 @@ void DLLCALL web_server(void* arg)
 		while(!terminated && !terminate_server) {
 
 			/* check for re-cycle/shutdown semaphores */
-			if(protected_uint32_value(thread_count) <= (unsigned int)(2 /* web_server() and http_output_thread() */ + (http_logging_thread_running?1:0))) {
+			if(protected_uint32_value(thread_count) <= (2 /* web_server() and http_output_thread() */ + http_logging_thread_running)) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"Recycle semaphore file (%s) detected",p);
