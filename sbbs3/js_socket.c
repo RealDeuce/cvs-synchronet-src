@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.169 2015/08/22 10:16:56 deuce Exp $ */
+/* $Id: js_socket.c,v 1.168 2015/08/20 10:57:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -376,8 +376,7 @@ SOCKET DLLCALL js_socket_add(JSContext *cx, jsval val, fd_set *fds)
 	js_socket_private_t	*p;
 	JSClass*	cl;
 	SOCKET		sock=INVALID_SOCKET;
-	size_t		i;
-	int32_t		intval;
+	int32		i;
 
 	if(JSVAL_IS_OBJECT(val) && (cl=JS_GetClass(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
 		if(cl->flags&JSCLASS_HAS_PRIVATE) {
@@ -399,8 +398,8 @@ SOCKET DLLCALL js_socket_add(JSContext *cx, jsval val, fd_set *fds)
 			}
 		}
 	} else if(val!=JSVAL_VOID) {
-		if(JS_ValueToInt32(cx,val,&intval)) {
-			sock = intval;
+		if(JS_ValueToInt32(cx,val,&i)) {
+			sock = i;
 			FD_SET(sock, fds);
 		}
 	}
@@ -411,8 +410,7 @@ BOOL DLLCALL  js_socket_isset(JSContext *cx, jsval val, fd_set *fds)
 {
 	js_socket_private_t	*p;
 	JSClass*	cl;
-	size_t		i;
-	int			intval;
+	int			i;
 
 	if(JSVAL_IS_OBJECT(val) && (cl=JS_GetClass(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
 		if(cl->flags&JSCLASS_HAS_PRIVATE) {
@@ -432,8 +430,8 @@ BOOL DLLCALL  js_socket_isset(JSContext *cx, jsval val, fd_set *fds)
 			}
 		}
 	} else if(val!=JSVAL_VOID) {
-		if(JS_ValueToInt32(cx,val,&intval)) {
-			if(FD_ISSET(intval, fds))
+		if(JS_ValueToInt32(cx,val,&i)) {
+			if(FD_ISSET(i, fds))
 				return TRUE;
 		}
 	}
@@ -1545,7 +1543,7 @@ js_poll(JSContext *cx, uintN argc, jsval *arglist)
 	int		result;
 	struct	timeval tv = {0, 0};
 	jsrefcount	rc;
-	size_t	i;
+	int		i;
 	SOCKET	high=0;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
