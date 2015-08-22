@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.251 2014/03/08 00:54:13 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.255 2015/08/20 05:19:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ static const char* telnet_usage  = "Terminal server settings:\n\n"
 							"\tto<value>  set Terminal server options value (advanced)\n"
 							"\tta         enable auto-logon via IP address\n"
 							"\ttd         enable Telnet command debug output\n"
-							"\ttc         emabble sysop availability for chat\n"
+							"\ttc         enable sysop availability for chat\n"
 							"\ttq         disable QWK events\n"
 							"\tt-         disable Terminal server\n"
 							"\n"
@@ -1162,17 +1162,14 @@ static void show_usage(char *cmd)
 		printf(web_usage);
 }
 
-#if SBBS_MAGIC_FILENAMES
-static int command_is(char *cmdline, char *cmd)
-{
-	return(strnicmp(getfname(cmdline),cmd,strlen(cmd))==0);
-}
-#endif
-
 /****************************************************************************/
 /* Main Entry Point															*/
 /****************************************************************************/
+#ifdef BUILD_JSDOCS
+int CIOLIB_main(int argc, char** argv)
+#else
 int main(int argc, char** argv)
+#endif
 {
 	int		i;
 	int		n;
@@ -1201,6 +1198,8 @@ int main(int argc, char** argv)
 #ifdef __unix__
 	setsid();	/* Disassociate from controlling terminal */
 	umask(077);
+#elif defined(_WIN32)
+	CreateMutex(NULL, FALSE, "sbbs_running");	/* For use by Inno Setup */
 #endif
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
@@ -1350,44 +1349,7 @@ int main(int argc, char** argv)
 
 	read_startup_ini(/* recycle? */FALSE
 		,&bbs_startup, &ftp_startup, &web_startup, &mail_startup, &services_startup);
-
-#if SBBS_MAGIC_FILENAMES	/* This stuff is just broken */
-
-	if(!command_is(argv[0],"sbbs"))  {
-		run_bbs=has_bbs=FALSE;
-		run_ftp=has_ftp=FALSE;
-		run_mail=has_mail=FALSE;
-		run_services=has_services=FALSE;
-		run_web=has_web=FALSE;
-	}
-	if(command_is(argv[0],"sbbs_ftp"))
-		run_ftp=has_ftp=TRUE;
-	else if(command_is(argv[0],"sbbs_mail"))
-		run_mail=has_mail=TRUE;
-	else if(command_is(argv[0],"sbbs_bbs"))
-		run_bbs=has_bbs=TRUE;
-#ifndef NO_SERVICES
-	else if(command_is(argv[0],"sbbs_srvc"))
-		run_services=has_services=TRUE;
-#endif
-#ifndef NO_WEB_SERVER
-	else if(command_is(argv[0],"sbbs_web"))
-		run_web=has_web=TRUE;
-#endif
-	else {
-		run_bbs=has_bbs=TRUE;
-		run_ftp=has_ftp=TRUE;
-		run_mail=has_mail=TRUE;
-#ifndef NO_SERVICES
-		run_services=has_services=TRUE;
-#endif
-#ifndef NO_WEB_SERVER
-		run_web=has_web=TRUE;
-#endif
-	}
-#else
 	has_web=has_bbs=has_ftp=has_mail=has_services=TRUE;
-#endif	/* Removed broken stuff */
 
 	/* Post-INI command-line switches */
 	for(i=1;i<argc;i++) {
@@ -2105,16 +2067,19 @@ int main(int argc, char** argv)
 						struct tm			tm;
 						list_node_t*		node;
 						login_attempt_t*	login_attempt;
+						char				ip_addr[INET6_ADDRSTRLEN];
 
 					    listLock(&login_attempt_list);
 						count=0;
 						for(node=login_attempt_list.first; node!=NULL; node=node->next) {
 							login_attempt=node->data;
 							localtime32(&login_attempt->time,&tm);
+							if(inet_addrtop(&login_attempt->addr, ip_addr, sizeof(ip_addr))==NULL)
+								strcpy(ip_addr, "<invalid address>");
 							printf("%lu attempts (%lu duplicate) from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
 								,login_attempt->count
 								,login_attempt->dupes
-								,inet_ntoa(login_attempt->addr)
+								,ip_addr
 								,login_attempt->prot
 								,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec
 								,login_attempt->user

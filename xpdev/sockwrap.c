@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.59 2014/03/07 23:55:07 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.62 2015/08/20 07:23:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -260,9 +260,12 @@ int DLLCALL recvfilesocket(int sock, int file, off_t *offset, off_t count)
 		return(-1);
 	}
 
-	if(offset!=NULL)
-		if(lseek(file,*offset,SEEK_SET)<0)
+	if(offset!=NULL) {
+		if(lseek(file,*offset,SEEK_SET)<0) {
+			free(buf);
 			return(-1);
+		}
+	}
 
 	rd=read(sock,buf,(size_t)count);
 	if(rd!=count) {
@@ -375,20 +378,31 @@ int DLLCALL nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size,
 
 	result=connect(sock, addr, size);
 
-	if(result==SOCKET_ERROR
-		&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
-		fd_set		wsocket_set;
-		fd_set		esocket_set;
-		struct		timeval tv;
-		socklen_t	optlen=sizeof(result);
-		tv.tv_sec = timeout;
-		tv.tv_usec = 0;
-		FD_ZERO(&wsocket_set);
-		FD_SET(sock,&wsocket_set);
-		FD_ZERO(&esocket_set);
-		FD_SET(sock,&esocket_set);
-		if(select(sock+1,NULL,&wsocket_set,&esocket_set,&tv)==1)
-			getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen);
+	if(result==SOCKET_ERROR) {
+		result=ERROR_VALUE;
+		if(result==EWOULDBLOCK || result==EINPROGRESS) {
+			fd_set		wsocket_set;
+			fd_set		esocket_set;
+			struct		timeval tv;
+			socklen_t	optlen=sizeof(result);
+			tv.tv_sec = timeout;
+			tv.tv_usec = 0;
+			FD_ZERO(&wsocket_set);
+			FD_SET(sock,&wsocket_set);
+			FD_ZERO(&esocket_set);
+			FD_SET(sock,&esocket_set);
+			switch(select(sock+1,NULL,&wsocket_set,&esocket_set,&tv)) {
+				case 1:
+					if(getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&result, &optlen)==SOCKET_ERROR)
+						result=ERROR_VALUE;
+					break;
+				case 0:
+					break;
+				case SOCKET_ERROR:
+					result=ERROR_VALUE;
+					break;
+			}
+		}
 	}
 	return result;
 }
@@ -411,7 +425,12 @@ union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr,
         freeaddrinfo(res);
         return NULL;
     }
-    memcpy(&addr, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, size);
+    if (size < sizeof(struct sockaddr_in6)) {
+        freeaddrinfo(res);
+        return NULL;
+	}
+	size = sizeof(struct sockaddr_in6);
+    memcpy(addr, ((struct sockaddr_in6 *)(cur->ai_addr)), size);
     freeaddrinfo(res);
     return addr;
 }
