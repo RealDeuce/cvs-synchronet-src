@@ -4,7 +4,6 @@
 #include "sbbs.h"	// For DLLEXPORT
 #include <cryptlib.h>
 #include "scfgdefs.h"
-#include "wrapdll.h"
 
 #define SSL_ESTR_LEN	CRYPT_MAX_TEXTSIZE + 1024 /* File name, line number, status code, and some static text */
 
