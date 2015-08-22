@@ -1,10 +1,12 @@
-/* $Id: scfgchat.c,v 1.16 2017/10/10 23:07:52 rswindell Exp $ */
+/* scfgchat.c */
+
+/* $Id: scfgchat.c,v 1.14 2014/02/16 06:28:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,7 +41,6 @@ void page_cfg()
 	char str[81],done=0;
 	int j,k;
 	uint i;
-	uint u;
 	static page_t savpage;
 
 while(1) {
@@ -86,8 +87,8 @@ while(1) {
             continue; 
 		}
 		if(cfg.total_pages)
-			for(u=cfg.total_pages;u>i;u--)
-				cfg.page[u]=cfg.page[u-1];
+			for(j=cfg.total_pages;j>i;j--)
+				cfg.page[j]=cfg.page[j-1];
 		if((cfg.page[i]=(page_t *)malloc(sizeof(page_t)))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(page_t));
 			continue; 
@@ -98,11 +99,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savpage = *cfg.page[i];
 		free(cfg.page[i]);
 		cfg.total_pages--;
 		for(j=i;j<cfg.total_pages;j++)
@@ -205,7 +203,7 @@ void chan_cfg()
 	static int chan_dflt,chan_bar,opt_dflt;
 	char str[128],code[128],done=0;
 	int j,k;
-	uint i,u;
+	uint i;
 	static chan_t savchan;
 
 while(1) {
@@ -271,8 +269,8 @@ while(1) {
             continue; 
 		}
 		if(cfg.total_chans)
-			for(u=cfg.total_chans;u>i;u--)
-				cfg.chan[u]=cfg.chan[u-1];
+			for(j=cfg.total_chans;j>i;j--)
+				cfg.chan[j]=cfg.chan[j-1];
 		if((cfg.chan[i]=(chan_t *)malloc(sizeof(chan_t)))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(chan_t));
 			continue; 
@@ -284,11 +282,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savchan = *cfg.chan[i];
 		free(cfg.chan[i]);
 		cfg.total_chans--;
 		for(j=i;j<cfg.total_chans;j++)
@@ -549,11 +544,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savchatact = *cfg.chatact[chatnum[i]];
 		free(cfg.chatact[chatnum[i]]);
 		cfg.total_chatacts--;
 		for(j=chatnum[i];j<cfg.total_chatacts && j<MAX_OPTS;j++)
@@ -601,7 +593,7 @@ void guru_cfg()
 	static int guru_dflt,guru_bar,opt_dflt;
 	char str[128],code[128],done=0;
 	int j,k;
-	uint i,u;
+	uint i;
 	static guru_t savguru;
 
 while(1) {
@@ -665,8 +657,8 @@ while(1) {
             continue; 
 		}
 		if(cfg.total_gurus)
-			for(u=cfg.total_gurus;u>i;u--)
-				cfg.guru[u]=cfg.guru[u-1];
+			for(j=cfg.total_gurus;j>i;j--)
+				cfg.guru[j]=cfg.guru[j-1];
 		if((cfg.guru[i]=(guru_t *)malloc(sizeof(guru_t)))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(guru_t));
 			continue; 
@@ -678,11 +670,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savguru = *cfg.guru[i];
 		free(cfg.guru[i]);
 		cfg.total_gurus--;
 		for(j=i;j<cfg.total_gurus;j++)
@@ -762,7 +751,7 @@ void actsets_cfg()
     static int actset_dflt,actset_bar,opt_dflt;
     char str[81];
     int j,k,done;
-    uint i,u;
+    uint i;
     static actset_t savactset;
 
 while(1) {
@@ -810,8 +799,8 @@ while(1) {
             continue; 
 		}
         if(cfg.total_actsets)
-            for(u=cfg.total_actsets;u>i;u--)
-                cfg.actset[u]=cfg.actset[u-1];
+            for(j=cfg.total_actsets;j>i;j--)
+                cfg.actset[j]=cfg.actset[j-1];
         if((cfg.actset[i]=(actset_t *)malloc(sizeof(actset_t)))==NULL) {
             errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(actset_t));
             continue; 
@@ -822,11 +811,8 @@ while(1) {
         uifc.changes=1;
         continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savactset = *cfg.actset[i];
         free(cfg.actset[i]);
         cfg.total_actsets--;
         for(j=i;j<cfg.total_actsets;j++)

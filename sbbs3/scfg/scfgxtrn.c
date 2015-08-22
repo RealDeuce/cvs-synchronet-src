@@ -1,6 +1,6 @@
 /* scfgxtrn.c */
 
-/* $Id: scfgxtrn.c,v 1.52 2017/10/10 23:07:52 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.50 2014/02/16 06:28:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,11 +356,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savevent = *cfg.event[i];
 		free(cfg.event[i]);
 		cfg.total_events--;
 		for(j=i;j<cfg.total_events;j++)
@@ -848,11 +845,8 @@ while(1) {
 		uifc.changes=TRUE;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savxtrn = *cfg.xtrn[xtrnnum[i]];
 		free(cfg.xtrn[xtrnnum[i]]);
 		cfg.total_xtrns--;
 		for(j=xtrnnum[i];j<cfg.total_xtrns;j++)
@@ -1464,7 +1458,6 @@ void xedit_cfg()
 	char str[81],code[81],done=0;
 	int j,k;
 	uint i;
-	uint u;
 	static xedit_t savxedit;
 
 while(1) {
@@ -1527,8 +1520,8 @@ while(1) {
             continue; 
 		}
 		if(cfg.total_xedits)
-			for(u=cfg.total_xedits;u>i;u--)
-				cfg.xedit[u]=cfg.xedit[u-1];
+			for(j=cfg.total_xedits;j>i;j--)
+				cfg.xedit[j]=cfg.xedit[j-1];
 		if((cfg.xedit[i]=(xedit_t *)malloc(sizeof(xedit_t)))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(xedit_t));
 			continue; 
@@ -1540,11 +1533,8 @@ while(1) {
 		uifc.changes=TRUE;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savxedit = *cfg.xedit[i];
 		free(cfg.xedit[i]);
 		cfg.total_xedits--;
 		for(j=i;j<cfg.total_xedits;j++)
@@ -1935,7 +1925,7 @@ int natvpgm_cfg()
 	static int dflt,bar;
 	char str[81];
 	int j;
-	uint i,u;
+	uint i;
 
 while(1) {
 	for(i=0;i<MAX_OPTS && i<cfg.total_natvpgms;i++)
@@ -1979,8 +1969,8 @@ while(1) {
             continue; 
 		}
 		if(cfg.total_natvpgms)
-			for(u=cfg.total_natvpgms;u>i;u--)
-				cfg.natvpgm[u]=cfg.natvpgm[u-1];
+			for(j=cfg.total_natvpgms;j>i;j--)
+				cfg.natvpgm[j]=cfg.natvpgm[j-1];
 		if((cfg.natvpgm[i]=(natvpgm_t *)malloc(sizeof(natvpgm_t)))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(natvpgm_t));
 			continue; 
@@ -2020,7 +2010,6 @@ void xtrnsec_cfg()
 	char str[128],code[128],done=0;
 	int j,k;
 	uint i;
-	uint u;
 	static xtrnsec_t savxtrnsec;
 
 while(1) {
@@ -2085,8 +2074,8 @@ while(1) {
 			continue; 
 		}
 		if(cfg.total_xtrnsecs) {
-			for(u=cfg.total_xtrnsecs;u>i;u--)
-				cfg.xtrnsec[u]=cfg.xtrnsec[u-1];
+			for(j=cfg.total_xtrnsecs;j>i;j--)
+				cfg.xtrnsec[j]=cfg.xtrnsec[j-1];
 			for(j=0;j<cfg.total_xtrns;j++)
 				if(cfg.xtrn[j]->sec>=i)
 					cfg.xtrn[j]->sec++; 
@@ -2104,11 +2093,8 @@ while(1) {
 		uifc.changes=TRUE;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savxtrnsec = *cfg.xtrnsec[i];
 		free(cfg.xtrnsec[i]);
 		for(j=0;j<cfg.total_xtrns;) {
 			if(cfg.xtrn[j]->sec==i) {	 /* delete xtrns of this group */
@@ -2207,7 +2193,6 @@ void hotkey_cfg(void)
 	char str[81],done=0;
 	int j,k;
 	uint i;
-	uint u;
 	static hotkey_t savhotkey;
 
 while(1) {
@@ -2258,8 +2243,8 @@ while(1) {
             continue; 
 		}
 		if(cfg.total_hotkeys)
-			for(u=cfg.total_hotkeys;u>i;u--)
-				cfg.hotkey[u]=cfg.hotkey[u-1];
+			for(j=cfg.total_hotkeys;j>i;j--)
+				cfg.hotkey[j]=cfg.hotkey[j-1];
 		if((cfg.hotkey[i]=(hotkey_t *)malloc(sizeof(hotkey_t)))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(hotkey_t));
 			continue; 
@@ -2270,11 +2255,8 @@ while(1) {
 		uifc.changes=TRUE;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savhotkey = *cfg.hotkey[i];
 		free(cfg.hotkey[i]);
 		cfg.total_hotkeys--;
 		for(j=i;j<cfg.total_hotkeys;j++)
