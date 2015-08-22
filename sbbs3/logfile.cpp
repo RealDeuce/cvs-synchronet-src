@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.58 2015/08/22 08:43:36 deuce Exp $ */
+/* $Id: logfile.cpp,v 1.56 2015/08/20 05:19:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 
 #include "sbbs.h"
 
-extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, const char* prot, const char* user, const char* text, const char* host, union xp_sockaddr* addr)
+extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text, char* host, union xp_sockaddr* addr)
 {
 	char	hdr[1024];
 	char	tstr[64];
@@ -147,14 +147,14 @@ void sbbs_t::log(char *str)
 {
 	if(logfile_fp==NULL || online==ON_LOCAL) return;
 	if(logcol>=78 || (78-logcol)<strlen(str)) {
-		fputs("\r\n",logfile_fp);
+		fprintf(logfile_fp,"\r\n");
 		logcol=1; 
 	}
 	if(logcol==1) {
-		fputs("   ",logfile_fp);
+		fprintf(logfile_fp,"   ");
 		logcol=4; 
 	}
-	fputs(str,logfile_fp);
+	fprintf(logfile_fp,str);
 	if(*lastchar(str)==LF) {
 		logcol=1;
 		fflush(logfile_fp);
