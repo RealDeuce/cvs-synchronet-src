@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.55 2015/08/22 10:21:45 deuce Exp $ */
+/* $Id: ftpsrvr.h,v 1.53 2015/08/22 00:58:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,14 +53,14 @@ typedef struct {
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
 	struct in_addr outgoing4;
 	struct in6_addr	outgoing6;
-    str_list_t	interfaces;
+    char	interfaces[INI_MAX_VALUE_LEN];
 	struct in_addr pasv_ip_addr;
 	struct in6_addr	pasv_ip6_addr;
 	WORD	pasv_port_low;
 	WORD	pasv_port_high;
     DWORD	options;			/* See FTP_OPT definitions */
-	uint64_t	min_fsize;		/* Minimum file size accepted for upload */
-	uint64_t	max_fsize;		/* Maximum file size accepted for upload (0=unlimited) */
+	uint32_t	min_fsize;		/* Minimum file size accepted for upload */
+	uint32_t	max_fsize;		/* Maximum file size accepted for upload (0=unlimited) */
 
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
