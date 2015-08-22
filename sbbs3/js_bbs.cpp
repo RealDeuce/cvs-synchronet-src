@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.150 2015/08/17 07:04:04 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.151 2015/08/22 05:32:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1462,9 +1462,9 @@ js_atcode(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 	else {
 		if(padded_left)
-			sprintf(str,"%-*.*s",disp_len,disp_len,cp);
+			sprintf(str,"%-*.*s",(int)disp_len,(int)disp_len,cp);
 		else if(padded_right)
-			sprintf(str,"%*.*s",disp_len,disp_len,cp);
+			sprintf(str,"%*.*s",(int)disp_len,(int)disp_len,cp);
 		else
 			SAFECOPY(str,cp);
 
