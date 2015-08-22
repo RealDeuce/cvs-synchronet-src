@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.34 2015/07/15 08:22:28 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.39 2015/07/29 03:58:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,7 @@
 #include "wordwrap.h"
 
 struct prefix {
-	int cols;
+	size_t cols;
 	char *bytes;
 };
 
@@ -155,7 +155,7 @@ int cmp_prefix(struct prefix *p1, struct prefix *p2)
 {
 	if (p1->cols != p2->cols)
 		return p1->cols-p2->cols;
-	return strcmp(p1->bytes, p2->bytes);
+	return strcmp(p1->bytes ? p1->bytes : "", p2->bytes ? p2->bytes : "");
 }
 
 /*
@@ -194,8 +194,8 @@ static void outbuf_append(char **outbuf, char **outp, char *append, int len, int
  * Length is in bytes and "len" (the number of columns)
  */
 struct section_len {
-	int bytes;
-	int len;
+	size_t bytes;
+	size_t len;
 };
 
 /*
@@ -211,7 +211,7 @@ static struct section_len get_ws_len(char *buf, int col)
 	for(ret.bytes=0; ; ret.bytes++) {
 		if (!buf[ret.bytes])
 			break;
-		if (!isspace(buf[ret.bytes]))
+		if (!isspace((unsigned char)buf[ret.bytes]))
 			break;
 		if(buf[ret.bytes] == '\t') {
 			ret.len++;
@@ -328,6 +328,7 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 	struct paragraph *newret = NULL;
 	BOOL paragraph_done;
 	int next_word_len;
+	size_t new_prefix_len;
 
 	if(has_crs)
 		*has_crs = FALSE;
@@ -353,6 +354,8 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 			inpos += strlen(ret[paragraph].prefix.bytes);
 			incol = ret[paragraph].prefix.cols;
 		}
+		else
+			memset(&ret[paragraph].prefix, 0, sizeof(ret[paragraph].prefix));
 		paragraph_done = FALSE;
 		while(!paragraph_done) {
 			switch(inbuf[inpos]) {
@@ -382,14 +385,21 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 						break;
 					}
 					// Now, if the prefix changes, it's hard.
-					new_prefix = parse_prefix(&inbuf[inpos+1]);
+					if (handle_quotes) {
+						new_prefix = parse_prefix(&inbuf[inpos+1]);
+						new_prefix_len = strlen(new_prefix.bytes);
+					}
+					else {
+						memset(&new_prefix, 0, sizeof(new_prefix));
+						new_prefix_len = 0;
+					}
 					if (cmp_prefix(&new_prefix, &ret[paragraph].prefix) != 0) {
 						paragraph_done = TRUE;
 						FREE_AND_NULL(new_prefix.bytes);
 						break;
 					}
 					// If the next line start with whitespace, it's hard
-					switch(inbuf[inpos+1+strlen(new_prefix.bytes)]) {
+					switch(inbuf[inpos+1+new_prefix_len]) {
 						case 0:
 						case ' ':
 						case '\t':
@@ -412,14 +422,14 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 					}
 
 					// If the first word on the next line would have fit here, it's hard
-					next_word_len = get_word_len(inbuf+inpos+1+strlen(new_prefix.bytes), -1).len;
+					next_word_len = get_word_len(inbuf+inpos+1+new_prefix_len, -1).len;
 					if ((incol + next_word_len + 1 - 1) < oldlen) {
 						FREE_AND_NULL(new_prefix.bytes);
 						paragraph_done = TRUE;
 						break;
 					}
 					// Skip the new prefix...
-					inpos += strlen(new_prefix.bytes);
+					inpos += new_prefix_len;
 					incol = new_prefix.cols;
 					FREE_AND_NULL(new_prefix.bytes);
 					if (!paragraph_append(&ret[paragraph], " ", 1))
@@ -498,6 +508,8 @@ static char *wrap_paragraphs(struct paragraph *paragraph, int outlen, BOOL handl
 				prefix_bytes = strlen(prefix_copy);
 			}
 		}
+		else
+			prefix_cols = 0;
 		inp = paragraph->text;
 		if (*inp == 0) {
 			if (has_crs)

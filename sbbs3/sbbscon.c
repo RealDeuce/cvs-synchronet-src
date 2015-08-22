@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.254 2015/03/02 21:16:18 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.256 2015/08/22 07:07:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -189,14 +189,12 @@ static const char* telnet_usage  = "Terminal server settings:\n\n"
 							"\ttc         enable sysop availability for chat\n"
 							"\ttq         disable QWK events\n"
 							"\tt-         disable Terminal server\n"
-							"\n"
 							;
 static const char* ftp_usage  = "FTP server settings:\n"
 							"\n"
 							"\tfp<port>   set FTP server port\n"
 							"\tfo<value>  set FTP server options value (advanced)\n"
 							"\tf-         disable FTP server\n"
-							"\n"
 							;
 static const char* mail_usage  = "Mail server settings:\n"
 							"\n"
@@ -209,20 +207,17 @@ static const char* mail_usage  = "Mail server settings:\n"
 							"\tm-         disable Mail server (entirely)\n"
 							"\tmp-        disable POP3 server\n"
 							"\tms-        disable SendMail thread\n"
-							"\n"
 							;
 static const char* services_usage  = "Services settings:\n"
 							"\n"
 							"\tso<value>  set Services option value (advanced)\n"
 							"\ts-         disable Services (no services module)\n"
-							"\n"
 							;
 static const char* web_usage  = "Web server settings:\n"
 							"\n"
 							"\twp<port>   set HTTP server port\n"
 							"\two<value>  set Web server option value (advanced)\n"
 							"\tw-         disable Web server (no services module)\n"
-							"\n"
 							;
 static int lputs(int level, char *str)
 {
@@ -1151,21 +1146,25 @@ static void show_usage(char *cmd)
 {
 	printf(usage,cmd);
 	if(has_bbs)
-		printf(telnet_usage);
+		puts(telnet_usage);
 	if(has_ftp)
-		printf(ftp_usage);
+		puts(ftp_usage);
 	if(has_mail)
-		printf(mail_usage);
+		puts(mail_usage);
 	if(has_services)
-		printf(services_usage);
+		puts(services_usage);
 	if(has_web)
-		printf(web_usage);
+		puts(web_usage);
 }
 
 /****************************************************************************/
 /* Main Entry Point															*/
 /****************************************************************************/
+#ifdef BUILD_JSDOCS
+int CIOLIB_main(int argc, char** argv)
+#else
 int main(int argc, char** argv)
+#endif
 {
 	int		i;
 	int		n;
@@ -2063,16 +2062,19 @@ int main(int argc, char** argv)
 						struct tm			tm;
 						list_node_t*		node;
 						login_attempt_t*	login_attempt;
+						char				ip_addr[INET6_ADDRSTRLEN];
 
 					    listLock(&login_attempt_list);
 						count=0;
 						for(node=login_attempt_list.first; node!=NULL; node=node->next) {
 							login_attempt=node->data;
 							localtime32(&login_attempt->time,&tm);
+							if(inet_addrtop(&login_attempt->addr, ip_addr, sizeof(ip_addr))==NULL)
+								strcpy(ip_addr, "<invalid address>");
 							printf("%lu attempts (%lu duplicate) from %s, last via %s on %u/%u %02u:%02u:%02u (user: %s, password: %s)\n"
 								,login_attempt->count
 								,login_attempt->dupes
-								,inet_ntoa(login_attempt->addr)
+								,ip_addr
 								,login_attempt->prot
 								,tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec
 								,login_attempt->user
