@@ -2,13 +2,13 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.54 2011/10/19 07:08:31 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.57 2015/08/22 05:49:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,12 +37,13 @@
 
 #include "sbbs.h"
 
-extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text, char* host, SOCKADDR_IN* addr)
+extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text, char* host, union xp_sockaddr* addr)
 {
 	char	hdr[1024];
 	char	tstr[64];
 	char	fname[MAX_PATH+1];
 	int		file;
+	char	ip[INET6_ADDRSTRLEN];
 	time32_t now=time32(NULL);
 
 	sprintf(fname,"%shack.log",cfg->logs_dir);
@@ -50,13 +51,14 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,DEFFILEMODE))==-1)
 		return(FALSE);
 
+	inet_addrtop(addr, ip, sizeof(ip));
 	sprintf(hdr,"SUSPECTED %s HACK ATTEMPT for user '%s' on %.24s\r\nUsing port %u at %s [%s]\r\nDetails: "
 		,prot
 		,user
 		,timestr(cfg,now,tstr)
-		,addr->sin_port
+		,inet_addrport(addr)
 		,host
-		,inet_ntoa(addr->sin_addr)
+		,ip
 		);
 	write(file,hdr,strlen(hdr));
 	write(file,text,strlen(text));
@@ -145,14 +147,14 @@ void sbbs_t::log(char *str)
 {
 	if(logfile_fp==NULL || online==ON_LOCAL) return;
 	if(logcol>=78 || (78-logcol)<strlen(str)) {
-		fprintf(logfile_fp,"\r\n");
+		fputs("\r\n",logfile_fp);
 		logcol=1; 
 	}
 	if(logcol==1) {
-		fprintf(logfile_fp,"   ");
+		fputs("   ",logfile_fp);
 		logcol=4; 
 	}
-	fprintf(logfile_fp,str);
+	fputs(str,logfile_fp);
 	if(*lastchar(str)==LF) {
 		logcol=1;
 		fflush(logfile_fp);
@@ -278,6 +280,8 @@ void sbbs_t::errormsg(int line, const char *source, const char* action, const ch
 		eprintf(LOG_ERR,"%s",str);
 	else {
 		int savatr=curatr;
+		if(useron.number)
+			safe_snprintf(str+strlen(str),sizeof(str)-strlen(str)," (useron=%s)", useron.alias);
 		lprintf(LOG_ERR,"Node %d !%s",cfg.node_num, str);
 		attr(cfg.color[clr_err]);
 		bprintf("\7\r\n!ERROR %s %s\r\n", action, object);   /* tell user about error */
