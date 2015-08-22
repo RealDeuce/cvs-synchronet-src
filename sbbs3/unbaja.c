@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.46 2015/08/22 10:16:57 deuce Exp $ */
+/* $Id: unbaja.c,v 1.45 2015/08/22 07:02:31 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -218,7 +218,7 @@ void add_bruted(unsigned long name, char good, char *val, int save)
 
 int check_bruted(long name,unsigned char *val)
 {
-	size_t i;
+	int i;
 
 	for(i=0; i<bruted_len; i++) {
 		if(*(int32_t *)bruted[i]==name) {
@@ -231,7 +231,7 @@ int check_bruted(long name,unsigned char *val)
 
 char *find_bruted(long name)
 {
-	size_t i;
+	int i;
 
 	for(i=0; i<bruted_len; i++) {
 		if(*(int32_t *)bruted[i]==name && *(bruted[i]+4))
@@ -2329,7 +2329,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.46 $", "%*s %s", revision);
+	sscanf("$Revision: 1.45 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
@@ -2355,7 +2355,7 @@ int main(int argc, char **argv)
 							if(good!=NULL) {
 								str=strtok(NULL,",");
 								if(str!=NULL) {
-									add_bruted(strtoul(crc,NULL,16),(char)strtoul(good,NULL,10),str,0);
+									add_bruted(strtoul(crc,NULL,16),strtoul(good,NULL,10),str,0);
 								}
 							}
 						}

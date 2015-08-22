@@ -106,7 +106,6 @@
       </DataExecutionPrevention>
       <ImportLibrary>.\msvc.win32.dll.debug/mailsrvr.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
-      <SubSystem>Windows</SubSystem>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -154,7 +153,6 @@
       </DataExecutionPrevention>
       <ImportLibrary>.\msvc.win32.dll.release/mailsrvr.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
-      <SubSystem>Windows</SubSystem>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -192,7 +190,6 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <ClCompile Include="nopen.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\xpdev\xpdev_mt.vcxproj">
