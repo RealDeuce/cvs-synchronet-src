@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.65 2014/03/19 04:10:56 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.66 2015/08/22 05:30:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -430,7 +430,7 @@ void sbbs_t::multinodechat(int channel)
 							? text[AnonUserChatHandle]
 							: useron.handle
 							,cfg.node_num,':',nulstr);
-						sprintf(tmp,"%*s",bstrlen(str),nulstr);
+						sprintf(tmp,"%*s",(int)bstrlen(str),nulstr);
 						strcat(pgraph,tmp); 
 					}
 					strcat(pgraph,line);
