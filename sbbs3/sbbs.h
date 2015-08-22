@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.417 2015/10/28 01:38:41 deuce Exp $ */
+/* $Id: sbbs.h,v 1.415 2015/08/22 08:43:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -982,8 +982,6 @@ public:
 #ifdef __cplusplus
 extern "C" {
 #endif
-	/* ansiterm.cpp */
-	DLLEXPORT char*		DLLCALL ansi_attr(int attr, int curattr, char* str, BOOL color);
 
 	/* main.cpp */
 	DLLEXPORT int		DLLCALL sbbs_random(int);
@@ -1166,20 +1164,6 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
-	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
-													,scfg_t* cfg				/* common */
-													,scfg_t* node_cfg			/* node-specific */
-													,jsSyncMethodSpec* methods	/* global */
-													,time_t uptime				/* system */
-													,char* host_name			/* system */
-													,char* socklib_desc			/* system */
-													,js_callback_t*				/* js */
-													,js_startup_t*				/* js */
-													,client_t* client			/* client */
-													,SOCKET client_socket		/* client */
-													,js_server_props_t* props	/* server */
-													,JSObject** glob
-													);
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1196,6 +1180,20 @@ extern "C" {
 	} global_private_t;
 	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, unsigned argc, unsigned min);
 	DLLEXPORT BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*, JSObject**);
+	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
+													,scfg_t* cfg				/* common */
+													,scfg_t* node_cfg			/* node-specific */
+													,jsSyncMethodSpec* methods	/* global */
+													,time_t uptime				/* system */
+													,char* host_name			/* system */
+													,char* socklib_desc			/* system */
+													,js_callback_t*				/* js */
+													,js_startup_t*				/* js */
+													,client_t* client			/* client */
+													,SOCKET client_socket		/* client */
+													,js_server_props_t* props	/* server */
+													,JSObject** glob
+													);
 
 	/* js_internal.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_callback_t*, js_startup_t*);
@@ -1212,7 +1210,7 @@ extern "C" {
 
 	/* js_client.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
-													,const char* name, client_t* client, SOCKET sock);
+													,char* name, client_t* client, SOCKET sock);
 	/* js_user.c */
 	DLLEXPORT JSObject*	DLLCALL js_CreateUserClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg
