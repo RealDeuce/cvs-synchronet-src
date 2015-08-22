@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.171 2015/08/29 09:33:17 deuce Exp $ */
+/* $Id: js_socket.c,v 1.169 2015/08/22 10:16:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,6 @@
 #include "js_socket.h"
 #include "js_request.h"
 #include "multisock.h"
-#include "ssl.h"
 
 #ifdef JAVASCRIPT
 
@@ -107,18 +106,18 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 static void do_CryptFlush(const CRYPT_CONTEXT session)
 {
 	int ret=cryptFlushData(session);
-	char	*estr;
+	int		len = 0;
+	char	estr[CRYPT_MAX_TEXTSIZE+1];
 
 	ret = cryptFlushData(session);
 
 	if(ret!=CRYPT_OK) {
-		estr = get_crypt_error(session);
-		if (estr) {
-			lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
-			free_crypt_attrstr(estr);
-		}
+		cryptGetAttributeString(session, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len);
+		estr[len]=0;
+		if (len)
+			lprintf(LOG_ERR, "cryptFlushData() returned %d (%s)", ret, estr);
 		else
-			lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
+			lprintf(LOG_ERR, "cryptFlushData() returned %d", ret);
 	}
 }
 
@@ -158,7 +157,7 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			buf=((uint8_t *)buf) + copied;
 		}
 		else {
-			lprintf(LOG_WARNING,"cryptPopData() returned %d", ret);
+			lprintf(LOG_ERR,"cryptPopData() returned %d", ret);
 			if (total > 0)
 				return total;
 			do_js_close(p);
@@ -190,7 +189,7 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 			msg=((uint8_t *)msg) + copied;
 		}
 		else {
-			lprintf(LOG_WARNING,"cryptPushData() returned %d", ret);
+			lprintf(LOG_ERR,"cryptPushData() returned %d", ret);
 			if(flush) do_CryptFlush(p->session);
 			return total;
 		}
