@@ -1,12 +1,14 @@
+/* qwk.h */
+
 /* Synchronet QWK-related structures, constants, and prototypes */ 
 
-/* $Id: qwk.h,v 1.8 2016/11/10 10:06:31 rswindell Exp $ */
+/* $Id: qwk.h,v 1.6 2012/03/07 06:41:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,15 +39,14 @@
 #define QWK_BLOCK_LEN	128
 #define QWK_HFIELD_LEN	25		/* Header field (To/From/Subject) length */
 
-/* QWK mode bits for qwktomsg() and msgtoqwk() */
-#define QM_TAGLINE 	(1<<5)	/* Place tagline at end of QWK message */
-#define QM_TO_QNET 	(1<<6)	/* Sending to QWKnet hub */
+/* QWK mode bits */
+#define QM_TAGLINE 	(1<<5)	/* Place tagline at end of qwk message */
+#define QM_TO_QNET 	(1<<6)	/* Sending to hub */
 #define QM_REP 		(1<<7)	/* It's a REP packet */
-#define QM_VIA 		(1<<8)	/* Include @VIA kludge */
-#define QM_TZ		(1<<9)	/* Include @TZ kludge */
-#define QM_MSGID	(1<<10)	/* Include @MSGID and @REPLY kludges */
-#define QM_REPLYTO	(1<<11)	/* Include @REPLYTO kludge */
-#define QM_EXT		(1<<12)	/* QWK Extended (QWKE) mode */
+#define QM_VIA 		(1<<8)	/* Include VIA */
+#define QM_TZ		(1<<9)	/* Include TZ */
+#define QM_MSGID	(1<<10)	/* Include MSGID and REPLY */
+#define QM_REPLYTO	(1<<11)	/* Include REPLYTO */
 
 float	ltomsbin(long val);
 bool	route_circ(char *via, char *id);
