@@ -1,13 +1,14 @@
+/* umonitor.c */
+
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.76 2016/11/28 18:57:50 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: umonitor.c,v 1.74 2014/02/13 08:50:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -803,7 +804,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.76 $", "%*s %s", revision);
+	sscanf("$Revision: 1.74 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -834,7 +835,7 @@ int main(int argc, char** argv)  {
 		printf("Reading %s\n",ini_file);
 	}
 	/* We call this function to set defaults, even if there's no .ini file */
-	sbbs_read_ini(fp, ini_file,
+	sbbs_read_ini(fp,
 		NULL,		/* global_startup */
 		NULL, &bbs_startup,
 		NULL, NULL, /* ftp_startup */
@@ -1023,7 +1024,7 @@ int main(int argc, char** argv)  {
 			                "`------------`\n\n"
 							"`Run SCFG              : `Run the Synchronet Configuration Utility.\n"
 							"`Run User Editor       : `Call up the User Editor.\n"
-							"`Run SyncTERM          : `Run SyncTERM for RLogin.  SyncTERM must be\n"
+							"`Run SynchTERM         : `Run SyncTERM for RLogin.  SyncTERM must be\n"
 							"                        in the exec directory.\n"
 							"`View logs             : `View the various system logs.\n"
 							"`Force QWK Net callout : `Force a callout to QWK Net Hub.  Select which\n"
