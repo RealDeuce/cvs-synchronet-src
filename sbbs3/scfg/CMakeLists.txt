@@ -29,32 +29,4 @@ target_include_directories(scfg PRIVATE ..)
 double_require_libs(scfg xpdev ciolib uifc smblib)
 target_compile_definitions(scfg PRIVATE SCFG)
 
-add_executable(makehelp makehelp.c)
-double_require_lib(makehelp xpdev)
-
-add_custom_command(OUTPUT
-		${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/scfghelp.dat
-		${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/scfghelp.ixb
-	COMMAND makehelp "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}"
-	DEPENDS makehelp
-		scfg.c
-		scfgsys.c
-		scfgmsg.c
-		scfgsub.c
-		scfgnode.c
-		scfgchat.c
-		scfgxfr1.c
-		scfgxfr2.c
-		scfgnet.c
-		scfgxtrn.c
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-add_custom_target(help ALL 
-	DEPENDS
-		${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/scfghelp.dat
-		${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/scfghelp.ixb
-)
-
 install(TARGETS scfg DESTINATION bin)
-install(FILES scfghelp.dat scfghelp.ixb DESTINATION share/scfg)
