@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.169 2015/04/25 06:10:16 deuce Exp $ */
+/* $Id: jsexec.c,v 1.170 2015/08/22 07:12:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -796,7 +796,7 @@ static const char* js_ext(const char* fname)
 
 void dbg_puts(const char *msg)
 {
-	fprintf(stderr, msg);
+	fputs(msg, stderr);
 }
 
 char *dbg_getline(void)
@@ -1043,7 +1043,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.169 $", "%*s %s", revision);
+	sscanf("$Revision: 1.170 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
