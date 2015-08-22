@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.39 2015/07/29 03:58:35 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.40 2015/08/22 10:16:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,7 +255,7 @@ static struct section_len get_word_len(char *buf, int maxlen)
 			ret.len--;
 			continue;
 		}
-		if (maxlen > 0 && ret.len >= maxlen)
+		if (maxlen > 0 && ret.len >= (size_t)maxlen)
 			break;
 		ret.len++;
 	}
@@ -476,7 +476,7 @@ fail_return:
  * 
  * Returns a malloc()ed string.
  */
-static char *wrap_paragraphs(struct paragraph *paragraph, int outlen, BOOL handle_quotes, BOOL has_crs)
+static char *wrap_paragraphs(struct paragraph *paragraph, size_t outlen, BOOL handle_quotes, BOOL has_crs)
 {
 	int outcol;
 	char *outbuf = NULL;

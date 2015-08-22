@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.595 2015/08/22 07:25:28 deuce Exp $ */
+/* $Id: websrvr.c,v 1.596 2015/08/22 10:16:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5086,6 +5086,7 @@ FILE *open_post_file(http_session_t *session)
 int read_post_data(http_session_t * session)
 {
 	uint64_t	i=0;
+	size_t		s = 0;
 	FILE		*fp=NULL;
 
 	if(session->req.dynamic!=IS_CGI && (session->req.post_len || session->req.read_chunked))  {
@@ -5109,9 +5110,9 @@ int read_post_data(http_session_t * session)
 				if(ch_len==0)
 					break;
 				/* Check size */
-				i += ch_len;
-				if(i > MAX_POST_LEN) {
-					if(i > SIZE_MAX) {
+				s += ch_len;
+				if(s > MAX_POST_LEN) {
+					if(s > SIZE_MAX) {
 						send_error(session,"413 Request entity too large");
 						if(fp) fclose(fp);
 						return(FALSE);
@@ -5127,7 +5128,7 @@ int read_post_data(http_session_t * session)
 				else {
 					/* realloc() to new size */
 					/* FREE()d in close_request */
-					p=realloc(session->req.post_data, i);
+					p=realloc(session->req.post_data, s);
 					if(p==NULL) {
 						lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,session->req.post_len);
 						send_error(session,"413 Request entity too large");
@@ -5163,13 +5164,13 @@ int read_post_data(http_session_t * session)
 				return(FALSE);
 		}
 		else {
-			i = session->req.post_len;
+			s = session->req.post_len;
 			FREE_AND_NULL(session->req.post_data);
-			if(i > MAX_POST_LEN) {
+			if(s > MAX_POST_LEN) {
 				fp=open_post_file(session);
 				if(fp==NULL)
 					return(FALSE);
-				if(!post_to_file(session, fp, i))
+				if(!post_to_file(session, fp, s))
 					return(FALSE);
 				fclose(fp);
 				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_READ);
@@ -5179,19 +5180,19 @@ int read_post_data(http_session_t * session)
 			}
 			else {
 				/* FREE()d in close_request()  */
-				if(i < (MAX_POST_LEN+1) && (session->req.post_data=malloc(i+1)) != NULL)
-					session->req.post_len=recvbufsocket(session,session->req.post_data,i);
+				if(s < (MAX_POST_LEN+1) && (session->req.post_data=malloc((size_t)(s+1))) != NULL)
+					session->req.post_len=recvbufsocket(session,session->req.post_data,s);
 				else  {
-					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,i);
+					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,s);
 					send_error(session,"413 Request entity too large");
 					return(FALSE);
 				}
 			}
 		}
-		if(session->req.post_len != i)
-				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,i,session->req.post_len);
-		if(session->req.post_len > i)
-			session->req.post_len = i;
+		if(session->req.post_len != s)
+				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,s,session->req.post_len);
+		if(session->req.post_len > s)
+			session->req.post_len = s;
 		session->req.post_data[session->req.post_len]=0;
 	}
 	return(TRUE);
@@ -5660,7 +5661,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.595 $", "%*s %s", revision);
+	sscanf("$Revision: 1.596 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6013,7 +6014,7 @@ void DLLCALL web_server(void* arg)
 		while(!terminated && !terminate_server) {
 
 			/* check for re-cycle/shutdown semaphores */
-			if(protected_uint32_value(thread_count) <= (2 /* web_server() and http_output_thread() */ + http_logging_thread_running)) {
+			if(protected_uint32_value(thread_count) <= (unsigned int)(2 /* web_server() and http_output_thread() */ + (http_logging_thread_running?1:0))) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"Recycle semaphore file (%s) detected",p);
