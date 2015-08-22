@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.343 2015/08/21 08:38:08 deuce Exp $ */
+/* $Id: js_global.c,v 1.344 2015/08/22 05:39:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2497,16 +2497,26 @@ js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 	return js_internal_charfunc(cx, argc, arglist, backslash, 1);
 }
 
+static char *nonconst_getfname(char *c)
+{
+	return(getfname(c));
+}
+
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfname, 0);
+	return js_internal_charfunc(cx, argc, arglist, nonconst_getfname, 0);
+}
+
+static char *nonconst_getfext(char *c)
+{
+	return(getfext(c));
 }
 
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfext, 0);
+	return js_internal_charfunc(cx, argc, arglist, nonconst_getfext, 0);
 }
 
 static JSBool
