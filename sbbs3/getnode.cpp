@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.47 2016/01/10 07:10:22 deuce Exp $ */
+/* $Id: getnode.cpp,v 1.45 2015/05/27 08:57:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,11 +60,9 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 	if(node!=&thisnode)
 		memset(node,0,sizeof(node_t));
 	sprintf(str,"%snode.dab",cfg.ctrl_dir);
-	pthread_mutex_lock(&nodefile_mutex);
 	if(nodefile==-1) {
 		if((nodefile=nopen(str,O_RDWR|O_DENYNONE))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE);
-			pthread_mutex_unlock(&nodefile_mutex);
 			return(errno); 
 		}
 	}
@@ -96,10 +94,8 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 		if(nodefile!=-1)
 			close(nodefile);
 		nodefile=-1;
-		pthread_mutex_unlock(&nodefile_mutex);
 		return(-2);
 	}
-	pthread_mutex_unlock(&nodefile_mutex);
 	if(count>(LOOP_NODEDAB/2)) {
 		sprintf(str,"NODE.DAB (node %d) COLLISION - Count: %d"
 			,number+1, count);
@@ -450,10 +446,6 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 		case NODE_LOGON:
 			bputs(text[NodeStatusLogon]);
 			bputs(node_connection_desc(this, node->connection, tmp));
-			break;
-		case NODE_LOGOUT:
-			bprintf(text[NodeStatusLogout]
-				,(node->misc&NODE_ANON) && !SYSOP ? text[UNKNOWN_USER] : username(&cfg,node->useron,tmp));
 			break;
 		case NODE_EVENT_WAITING:
 			bputs(text[NodeStatusEventWaiting]);
