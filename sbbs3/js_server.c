@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.14 2015/08/22 04:31:35 deuce Exp $ */
+/* $Id: js_server.c,v 1.15 2015/08/22 05:41:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,8 +59,7 @@ static JSBool js_server_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
 	switch(tiny) {
 		case SERVER_PROP_VER:
-			if(p->version!=NULL)
-				*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,p->version));
+			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(cx,p->version));
 			break;
 		case SERVER_PROP_VER_DETAIL:
 			if(p->version_detail!=NULL)
