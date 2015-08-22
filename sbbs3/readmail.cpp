@@ -2,13 +2,13 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.64 2015/09/20 07:29:00 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.63 2015/05/05 02:02:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,7 +44,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 {
 	char	str[256],str2[256],str3[256],done=0,domsg=1
 			,*p,*tp,*sp,ch;
-	char	path[MAX_PATH+1];
 	char 	tmp[512];
 	int		i;
 	uint32_t u,v;
@@ -246,7 +245,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 
 			if(msg.hdr.auxattr&MSG_FILEATTACH) {  /* Attached file */
 				smb_getmsgidx(&smb,&msg);
-				SAFECOPY(str, msg.subj);					/* filenames (multiple?) in title */
+				strcpy(str,msg.subj);					/* filenames in title */
+//				strupr(str);
 				tp=str;
 				while(online) {
 					p=strchr(tp,' ');
@@ -255,11 +255,11 @@ void sbbs_t::readmail(uint usernumber, int which)
 					if(!sp) sp=strrchr(tp,'\\');
 					if(sp) tp=sp+1;
 					padfname(tp,fd.name);
-					SAFEPRINTF3(path,"%sfile/%04u.in/%s"  /* path is path/fname */
+					sprintf(str2,"%sfile/%04u.in/%s"  /* str2 is path/fname */
 						,cfg.data_dir,msg.idx.to,tp);
-					length=(long)flength(path);
+					length=(long)flength(str2);
 					if(length<1)
-						bprintf(text[FileDoesNotExist], tp);
+						bputs(text[FileNotFound]);
 					else if(!(useron.exempt&FLAG('T')) && cur_cps && !SYSOP
 						&& length/(long)cur_cps>(time_t)timeleft)
 						bputs(text[NotEnoughTimeToDl]);
@@ -283,10 +283,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 										&& chk_ar(cfg.prot[i]->ar,&useron,&client))
 										break;
 								if(i<cfg.total_prots) {
-									error=protocol(cfg.prot[i],XFER_DOWNLOAD,path,nulstr,false);
+									error=protocol(cfg.prot[i],XFER_DOWNLOAD,str2,nulstr,false);
 									if(checkprotresult(cfg.prot[i],error,&fd)) {
 										if(which==MAIL_YOUR)
-											remove(path);
+											remove(str2);
 										logon_dlb+=length;	/* Update stats */
 										logon_dls++;
 										useron.dls=(ushort)adjustuserrec(&cfg,useron.number
