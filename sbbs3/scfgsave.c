@@ -1,12 +1,14 @@
+/* scfgsave.c */
+
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.65 2016/11/23 10:07:05 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.58 2015/04/27 10:45:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -209,6 +211,12 @@ BOOL DLLCALL write_node_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->node_misc,stream);
 	put_int(cfg->node_ivt,stream);
 	put_int(cfg->node_swap,stream);
+#if 0
+	if(cfg->node_swapdir[0]) {
+		backslash(cfg->node_swapdir);
+		md(cfg->node_swapdir);               /* make sure it's a valid directory */
+	}
+#endif
 	put_str(cfg->node_swapdir,stream);
 	put_int(cfg->node_valuser,stream);
 	put_int(cfg->node_minbps,stream);
@@ -343,10 +351,8 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->new_misc,stream);
 	put_int(cfg->new_prot,stream);
 	put_int(cfg->new_install,stream);
-	put_int(cfg->new_msgscan_init, stream);
-	put_int(cfg->guest_msgscan_init, stream);
 	n=0;
-	for(i=0;i<5;i++)
+	for(i=0;i<7;i++)
 		put_int(n,stream);
 
 	put_int(cfg->expired_level,stream);
@@ -443,8 +449,6 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 
 	if(cfg->prepped)
 		return(FALSE);
-
-	ZERO_VAR(smb);
 
 	SAFEPRINTF(str,"%smsgs.cnf",cfg->ctrl_dir);
 	backup(str, backup_level, TRUE);
@@ -604,7 +608,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	put_str(cfg->echomail_sem,stream);
 	backslash(cfg->netmail_dir);
 	put_str(cfg->netmail_dir,stream);
-	put_str(cfg->echomail_dir,stream);	/* not used */
+	put_str(cfg->echomail_dir,stream);
 	backslash(cfg->fidofile_dir);
 	put_str(cfg->fidofile_dir,stream);
 	put_int(cfg->netmail_misc,stream);
@@ -613,7 +617,6 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	n=0;
 	for(i=0;i<28;i++)
 		put_int(n,stream);
-	md(cfg->netmail_dir);
 
 	/* QWKnet Config */
 
@@ -634,13 +637,10 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 			put_int(cfg->qhub[i]->conf[j],stream);
 			n=(uint16_t)cfg->qhub[i]->sub[j];
 			put_int(n,stream);
-			put_int(cfg->qhub[i]->mode[j],stream); 
-		}
-		put_int(cfg->qhub[i]->misc, stream);
+			put_int(cfg->qhub[i]->mode[j],stream); }
 		n=0;
-		for(j=0;j<30;j++)
-			put_int(n,stream); 
-	}
+		for(j=0;j<32;j++)
+			put_int(n,stream); }
 	n=0;
 	for(i=0;i<32;i++)
 		put_int(n,stream);
@@ -696,10 +696,14 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 		}
 		if(smb_locksmbhdr(&smb)!=0) {
 			smb_close(&smb);
+			/* errormsg disabled.  Why?  ToDo */
+			/* errormsg(WHERE,ERR_LOCK,smb.file,x); */
 			return(FALSE); 
 		}
 		if(smb_getstatus(&smb)!=0) {
 			smb_close(&smb);
+			/* errormsg disabled.  Why?  ToDo */
+			/* errormsg(WHERE,ERR_READ,smb.file,x); */
 			return(FALSE); 
 		}
 		smb.status.max_msgs=0;
@@ -707,6 +711,8 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 		smb.status.max_age=cfg->mail_maxage;
 		if(smb_putstatus(&smb)!=0) {
 			smb_close(&smb);
+			/* errormsg disabled.  Why?  ToDo */
+			/* errormsg(WHERE,ERR_WRITE,smb.file,x); */
 			return(FALSE); 
 		}
 		smb_close(&smb); 
@@ -966,7 +972,7 @@ BOOL DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level)
 	if(cfg->prepped)
 		return(FALSE);
 
-	SAFEPRINTF(str,"%schat.cnf",cfg->ctrl_dir);
+	sprintf(str,"%schat.cnf",cfg->ctrl_dir);
 	backup(str, backup_level, TRUE);
 
 	if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1
@@ -1159,45 +1165,3 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
 
 	SAFEPRINTF(str,"%srecycle",cfg->ctrl_dir);		ftouch(str);
 }
-
-int smb_storage_mode(scfg_t* cfg, smb_t* smb)
-{
-	if(smb->subnum == INVALID_SUB)
-		return (cfg->sys_misc&SM_FASTMAIL) ? SMB_FASTALLOC : SMB_SELFPACK;
-	if(smb->subnum >= cfg->total_subs)
-		return -1;
-	if(cfg->sub[smb->subnum]->misc&SUB_HYPER) {
-		smb->status.attr |= SMB_HYPERALLOC;
-		return SMB_HYPERALLOC;
-	}
-	if(cfg->sub[smb->subnum]->misc&SUB_FAST)
-		return SMB_FASTALLOC;
-	return SMB_SELFPACK;
-}
-
-int smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
-{
-	int retval;
-
-	if(subnum != INVALID_SUB && subnum >= cfg->total_subs)
-		return SMB_FAILURE;
-	memset(smb, 0, sizeof(smb_t));
-	if(subnum == INVALID_SUB) {
-		SAFEPRINTF(smb->file, "%smail", cfg->data_dir);
-		smb->status.max_crcs	= cfg->mail_maxcrcs;
-		smb->status.max_msgs	= 0;
-		smb->status.max_age		= cfg->mail_maxage;
-		smb->status.attr		= SMB_EMAIL;
-	} else {
-		SAFEPRINTF2(smb->file, "%s%s", cfg->sub[subnum]->data_dir, cfg->sub[subnum]->code);
-		smb->status.max_crcs	= cfg->sub[subnum]->maxcrcs;
-		smb->status.max_msgs	= cfg->sub[subnum]->maxmsgs;
-		smb->status.max_age		= cfg->sub[subnum]->maxage;
-		smb->status.attr		= cfg->sub[subnum]->misc&SUB_HYPER ? SMB_HYPERALLOC :0;
-	}
-	smb->retry_time = cfg->smb_retry_time;
-	if((retval = smb_open(smb)) == SMB_SUCCESS)
-		smb->subnum = subnum;
-	return retval;
-}
-
