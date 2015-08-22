@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.73 2015/05/05 06:20:39 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.74 2015/08/22 06:16:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -337,9 +337,10 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 	return(post);
 }
 
-static uint32_t get_start_msg(sbbs_t* sbbs, smb_t* smb)
+static int64_t get_start_msg(sbbs_t* sbbs, smb_t* smb)
 {
-	uint32_t	i,j=smb->curmsg+1;
+	uint32_t	j=smb->curmsg+1;
+	int64_t		i;
 
 	if(j<smb->msgs)
 		j++;
@@ -367,6 +368,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
+	int64_t	i64;
 	int		quit=0;
 	uint 	usub,ugrp,reads=0;
 	uint	lp=0;
@@ -858,8 +860,9 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			case 'F':   /* find text in messages */
 				domsg=0;
 				mode&=~SCAN_FIND;	/* turn off find mode */
-				if((i=get_start_msg(this,&smb))<0)
+				if((i64=get_start_msg(this,&smb))<0)
 					break;
+				i=64;
 				bputs(text[SearchStringPrompt]);
 				if(!getstr(find_buf,40,K_LINE|K_UPPER|K_EDIT|K_AUTODEL))
 					break;
@@ -878,8 +881,9 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case 'L':   /* List messages */
 				domsg=0;
-				if((i=get_start_msg(this,&smb))<0)
+				if((i64=get_start_msg(this,&smb))<0)
 					break;
+				i=i64;
 				listmsgs(subnum,0,post,i,smb.msgs);
 				sys_status&=~SS_ABORT;
 				break;
