@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.582 2015/08/22 10:16:56 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.583 2015/08/22 10:48:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4961,7 +4961,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.582 $", "%*s %s", revision);
+	sscanf("$Revision: 1.583 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5197,8 +5197,7 @@ void DLLCALL mail_server(void* arg)
 
 		if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT) {
 			if(xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->submission_port, "SMTP Submission Agent", mail_open_socket, startup->seteuid, "submission"))
-				lprintf(LOG_INFO,"SUBMISSION Server listening on port %u"
-					,startup->submission_port);
+				lprintf(LOG_INFO,"SUBMISSION Server listening");
 		}
 
 		if(startup->options&MAIL_OPT_ALLOW_POP3) {

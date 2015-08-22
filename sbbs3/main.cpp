@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.619 2015/08/22 07:11:56 deuce Exp $ */
+/* $Id: main.cpp,v 1.620 2015/08/22 10:48:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4702,14 +4702,14 @@ void DLLCALL bbs_thread(void* arg)
 	 */
 	xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->telnet_interfaces, startup->telnet_port, "Telnet Server", sock_cb, startup->seteuid, &telnet_cb);
 
-	lprintf(LOG_INFO,"Telnet Server listening on port %u",startup->telnet_port);
+	lprintf(LOG_INFO,"Telnet Server listening");
 
 	if(startup->options&BBS_OPT_ALLOW_RLOGIN) {
 		/* open a socket and wait for a client */
 		rlogin_cb.protocol="rlogin";
 		rlogin_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->rlogin_interfaces, startup->rlogin_port, "RLogin Server", sock_cb, startup->seteuid, &rlogin_cb);
-		lprintf(LOG_INFO,"RLogin Server listening on port %u",startup->rlogin_port);
+		lprintf(LOG_INFO,"RLogin Server listening");
 	}
 
 #ifdef USE_CRYPTLIB
@@ -4756,7 +4756,7 @@ void DLLCALL bbs_thread(void* arg)
 		ssh_cb.protocol="ssh";
 		ssh_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->ssh_interfaces, startup->ssh_port, "SSH Server", sock_cb, startup->seteuid, &ssh_cb);
-		lprintf(LOG_INFO,"SSH Server listening on port %u",startup->ssh_port);
+		lprintf(LOG_INFO,"SSH Server listening");
 	}
 NO_SSH:
 #endif
