@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.414 2015/08/22 04:31:35 deuce Exp $ */
+/* $Id: sbbs.h,v 1.415 2015/08/22 08:43:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1088,8 +1088,8 @@ extern "C" {
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
 
-	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text
-										,char* host, union xp_sockaddr* addr);
+	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, const char* prot, const char* user, const char* text
+										,const char* host, union xp_sockaddr* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
 										,char* host, char* ip_addr, char* to, char* from);
 
