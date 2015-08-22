@@ -198,6 +198,39 @@ int main(int argc, char **argv)
 	fputs("\n",text_h);
 	fputs("/* Synchronet static text string constants */\n",text_h);
 	fputs("\n",text_h);
+	fputs("/* $Id: textgen.c,v 1.6 2014/02/13 09:09:18 deuce Exp $ */\n",text_h);
+	fputs("\n",text_h);
+	fputs("/****************************************************************************\n",text_h);
+	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_h);
+	fputs(" * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*\n",text_h);
+	fputs(" *																			*\n",text_h);
+	fputs(" * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*\n",text_h);
+	fputs(" *																			*\n",text_h);
+	fputs(" * This program is free software; you can redistribute it and/or			*\n",text_h);
+	fputs(" * modify it under the terms of the GNU General Public License				*\n",text_h);
+	fputs(" * as published by the Free Software Foundation; either version 2			*\n",text_h);
+	fputs(" * of the License, or (at your option) any later version.					*\n",text_h);
+	fputs(" * See the GNU General Public License for more details: gpl.txt or			*\n",text_h);
+	fputs(" * http://www.fsf.org/copyleft/gpl.html										*\n",text_h);
+	fputs(" *																			*\n",text_h);
+	fputs(" * Anonymous FTP access to the most recent released source is available at	*\n",text_h);
+	fputs(" * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*\n",text_h);
+	fputs(" *																			*\n",text_h);
+	fputs(" * Anonymous CVS access to the development source and modification history	*\n",text_h);
+	fputs(" * is available at cvs.synchro.net:/cvsroot/sbbs, example:					*\n",text_h);
+	fputs(" * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs login			*\n",text_h);
+	fputs(" *     (just hit return, no password is necessary)							*\n",text_h);
+	fputs(" * cvs -d :pserver:anonymous@cvs.synchro.net:/cvsroot/sbbs checkout src		*\n",text_h);
+	fputs(" *																			*\n",text_h);
+	fputs(" * For Synchronet coding style and modification guidelines, see				*\n",text_h);
+	fputs(" * http://www.synchro.net/source.html										*\n",text_h);
+	fputs(" *																			*\n",text_h);
+	fputs(" * You are encouraged to submit any modifications (preferably in Unix diff	*\n",text_h);
+	fputs(" * format) via e-mail to mods@synchro.net									*\n",text_h);
+	fputs(" *																			*\n",text_h);
+	fputs(" * Note: If this box doesn't appear square, then you need to fix your tabs.	*\n",text_h);
+	fputs(" ****************************************************************************/\n",text_h);
+	fputs("\n",text_h);
 	fputs("/****************************************************************************/\n",text_h);
 	fputs("/* Macros for elements of the array of pointers (text[]) to static text		*/\n",text_h);
 	fputs("/* Auto-generated from CTRL\\TEXT.DAT										*/\n",text_h);
@@ -215,7 +248,7 @@ int main(int argc, char **argv)
 		perror(path);
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.10 2017/08/09 20:05:48 rswindell Exp $ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.6 2014/02/13 09:09:18 deuce Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
@@ -230,7 +263,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Can't open text_defaults.c!\n");
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.10 2017/08/09 20:05:48 rswindell Exp $ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.6 2014/02/13 09:09:18 deuce Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
@@ -255,7 +288,7 @@ int main(int argc, char **argv)
 			}
 			fprintf(text_h, "\t%c%s\n", i==1?' ':',', macro);
 			fprintf(text_js, "var %s=%d;\n", macro, i);
-			fprintf(text_defaults_c, "\t%c%s // %s\n", i==1?' ':',', cstr, comment);
+			fprintf(text_defaults_c, "\t%c%s\n", i==1?' ':',', cstr);
 		}
 	} while(p != NULL);
 	fclose(text_dat);
@@ -266,8 +299,8 @@ int main(int argc, char **argv)
 	fputs("\n",text_h);
 	fputs("#endif\n",text_h);
 	fclose(text_h);
-	fputs("\n",text_js);
-	fprintf(text_js, "var TOTAL_TEXT=%d;\n",i);
+	fputs("\n",text_h);
+	fprintf(text_h, "var TOTAL_TEXT=%d;\n",i);
 	fclose(text_js);
 	fputs("};\n",text_defaults_c);
 	fclose(text_defaults_c);
