@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.264 2015/09/08 01:41:39 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.261 2015/07/22 23:46:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -323,25 +323,6 @@ faddr_t getsysfaddr(short zone)
 	return(sys_faddr);
 }
 
-int get_flo_outbound(faddr_t dest, char* outbound, size_t maxlen)
-{
-	char* last;
-	if(dest.zone==sys_faddr.zone)		/* Default zone, use default outbound */
-		strncpy(outbound,cfg.outbound,maxlen);
-	else {								/* Inter-zone outbound is OUTBOUND.XXX */
-		safe_snprnitf(outbound,maxlen,"%.*s.%03x"
-			,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
-	}
-	if(dest.point) {					/* Point destination is OUTBOUND\*.PNT */
-		char point[128];
-		SAFEPRINTF2(point,"%04x%04x.pnt"
-			,dest.net,dest.node);
-		strncat(outbound,point,maxlen); 
-	}
-	backslash(outbound);
-	return mkpath(outbound);
-}
-
 /******************************************************************************
  This function creates or appends on existing Binkley compatible .?LO file
  attach file.
@@ -366,8 +347,24 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 	else if(attr&ATTR_HOLD) ch='h';
 	else if(attr&ATTR_DIRECT) ch='d';
 	else ch='f';
-
-	get_flo_outbound(dest, outbound, sizeof(outbound)-2);
+	if(dest.zone==sys_faddr.zone)		/* Default zone, use default outbound */
+		SAFECOPY(outbound,cfg.outbound);
+	else {								/* Inter-zone outbound is OUTBOUND.XXX */
+		SAFEPRINTF3(outbound,"%.*s.%03x"
+			,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
+		MKDIR(outbound);
+		backslash(outbound);
+	}
+	if(dest.point) {					/* Point destination is OUTBOUND\*.PNT */
+		sprintf(str,"%04x%04x.pnt"
+			,dest.net,dest.node);
+		strcat(outbound,str); 
+	}
+	if(outbound[strlen(outbound)-1]=='\\'
+		|| outbound[strlen(outbound)-1]=='/')
+		outbound[strlen(outbound)-1]=0;
+	MKDIR(outbound);
+	backslash(outbound);
 	if(dest.point)
 		sprintf(fname,"%s%08x.%clo",outbound,dest.point,ch);
 	else
@@ -587,7 +584,7 @@ void notify_list(void)
 {
 	FILE *	tmpf;
 	char	str[256];
-	uint	i,k;
+	uint	i,j,k;
 
 	for(k=0;k<cfg.nodecfgs;k++) {
 
@@ -1694,7 +1691,7 @@ int attachment(char *bundlename,faddr_t dest, int mode)
 ******************************************************************************/
 void pack_bundle(char *infile,faddr_t dest)
 {
-	char str[MAX_PATH+1],fname[MAX_PATH+1],outbound[MAX_PATH+1],day[3],*p;
+	char str[256],fname[256],outbound[128],day[3],*p;
 	int i,j,file,node;
 	time_t now;
 
@@ -1719,10 +1716,28 @@ void pack_bundle(char *infile,faddr_t dest)
 			if(cfg.log&LOG_ROUTING)
 				lprintf(LOG_NOTICE,"Routing %s to %s",infile,smb_faddrtoa(&dest,NULL));
 		}
-		get_flo_outbound(dest, outbound, sizeof(outbound));
-	}
+
+		if(dest.zone==sys_faddr.zone)	/* Default zone, use default outbound */
+			SAFECOPY(outbound,cfg.outbound);
+		else {							/* Inter-zone outbound is OUTBOUND.XXX */
+			SAFEPRINTF3(outbound,"%.*s.%03x"
+				,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
+			MKDIR(outbound);
+			backslash(outbound);
+		}
+		if(dest.point) {				/* Point destination is OUTBOUND\*.PNT */
+			sprintf(str,"%04x%04x.pnt"
+				,dest.net,dest.node);
+			strcat(outbound,str); 
+		}
+		}
 	else
 		strcpy(outbound,cfg.outbound);
+	if(outbound[strlen(outbound)-1]=='\\'
+		|| outbound[strlen(outbound)-1]=='/')
+		outbound[strlen(outbound)-1]=0;
+	MKDIR(outbound);
+	backslash(outbound);
 
 	if(node<cfg.nodecfgs)
 		if(cfg.nodecfg[node].arctype==0xffff) {    /* Uncompressed! */
@@ -3732,8 +3747,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 	int		area;
 	int		i,j,k=0;
 	ulong	f,l,m,exp,exported=0;
-	uint32_t ptr,lastmsg,posts;
-	long	msgs;
+	uint32_t ptr,msgs,lastmsg,posts;
 	float	export_time;
 	smbmsg_t msg;
 	smbmsg_t orig_msg;
@@ -4130,7 +4144,7 @@ int main(int argc, char **argv)
 	"o: import all netmail regardless of destination address\n"
 	"s: import private echomail override (strip private status)\n"
 	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n"
-	"                                         W: prompt for key upon abnormal exit";
+	"                                         W: prompt for key upon abnormal exit\n";
 
 	if((email=(smb_t *)malloc(sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for email.\n");
@@ -4153,7 +4167,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.264 $", "%*s %s", revision);
+	sscanf("$Revision: 1.261 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4254,7 +4268,7 @@ int main(int argc, char **argv)
 					case 'Q':
 						bail(0);
 					default:
-						puts(usage);
+						printf(usage);
 						bail(0); 
 				}
 				j++; 
@@ -4782,7 +4796,7 @@ int main(int argc, char **argv)
 					if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
 						sprintf(str,"ERROR %d opening %s area #%d, sub #%d)"
 							,j,smb[cur_smb].file,i+1,cfg.area[i].sub+1);
-						fputs(str,stdout);
+						printf(str);
 						logprintf(str);
 						strip_psb(fmsgbuf);
 						pkt_to_pkt(fmsgbuf,curarea,pkt_faddr,hdr,msg_seen
@@ -4798,7 +4812,7 @@ int main(int argc, char **argv)
 								? SMB_HYPERALLOC:0;
 						if((j=smb_create(&smb[cur_smb]))!=SMB_SUCCESS) {
 							sprintf(str,"ERROR %d creating %s",j,smb[cur_smb].file);
-							fputs(str,stdout);
+							printf(str);
 							logprintf(str);
 							smb_close(&smb[cur_smb]);
 							strip_psb(fmsgbuf);
@@ -5048,28 +5062,6 @@ int main(int argc, char **argv)
 				fwrite(&hdr.attr,sizeof(hdr.attr),1,fidomsg);
 				fseek(fidomsg,sizeof(fmsghdr_t),SEEK_SET);
 			}
-			if((misc&FLO_MAILER) && (hdr.attr&FIDO_FREQ)) {
-				char req[MAX_PATH+1];
-				FILE* fp;
-
-				printf("file request: %s\n", hdr.subj);
-				fclose(fidomsg);
-
-				get_flo_outbound(addr, outbound, sizeof(outbound));
-				if(addr.point)
-					SAFEPRINTF2(req,"%s%08x.req",outbound,addr.point);
-				else
-					SAFEPRINTF3(req,"%s%04x%04x.req",outbound,addr.net,addr.node);
-				if((fp=fopen(req,"w")) == NULL)
-					lprintf(LOG_ERR,"ERROR %d creating/opening %s", errno, req);
-				else {
-					fprintf(fp,"%s",getfname(hdr.subj));
-					fclose(fp);
-					if(write_flofile(req, addr, /* bundle: */FALSE))
-						bail(1);
-				}
-				continue;
-			}
 
 			if(cfg.log&LOG_PACKING)
 				logprintf("Packing %s (%s) attr=%04hX",path,smb_faddrtoa(&addr,NULL),hdr.attr);
@@ -5103,7 +5095,24 @@ int main(int argc, char **argv)
 				else if(attr&ATTR_HOLD) ch='h';
 				else if(attr&ATTR_DIRECT) ch='d';
 				else ch='o';
-				get_flo_outbound(addr, outbound, sizeof(outbound));
+				if(addr.zone==sys_faddr.zone) { /* Default zone, use default outbound */
+					SAFECOPY(outbound,cfg.outbound);
+				} else {						 /* Inter-zone outbound is OUTBOUND.XXX */
+					SAFEPRINTF3(outbound,"%.*s.%03x"
+						,(int)strlen(cfg.outbound)-1,cfg.outbound,addr.zone);
+					MKDIR(outbound);
+					backslash(outbound);
+				}
+				if(addr.point) {			/* Point destination is OUTBOUND.PNT */
+					sprintf(str,"%04x%04x.pnt"
+						,addr.net,addr.node);
+					strcat(outbound,str); 
+				}
+				if(outbound[strlen(outbound)-1]=='\\'
+					|| outbound[strlen(outbound)-1]=='/')
+					outbound[strlen(outbound)-1]=0;
+				MKDIR(outbound);
+				backslash(outbound);
 				if(addr.point)
 					SAFEPRINTF3(packet,"%s%08x.%cut",outbound,addr.point,ch);
 				else
