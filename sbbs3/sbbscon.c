@@ -1,13 +1,14 @@
+/* sbbscon.c */
+
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.261 2016/11/19 11:04:15 sbbs Exp $ */
-// vi: tabstop=4
+/* $Id: sbbscon.c,v 1.256 2015/08/22 07:07:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * CopyrightRob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -128,7 +129,6 @@ BOOL				std_facilities=FALSE;
 FILE *				pidf;
 char				pid_fname[MAX_PATH+1];
 BOOL                capabilities_set=FALSE;
-BOOL				syslog_always=FALSE;
 
 #ifdef USE_LINUX_CAPS
 /*
@@ -166,7 +166,6 @@ static const char* usage  = "\nusage: %s [[setting] [...]] [path/ini_file]\n"
 							"\t           x is the optional LOCALx facility to use\n"
 							"\t           if none is specified, uses USER\n"
 							"\t           if 'S' is specified, uses standard facilities\n"
-							"\tsyslog     log to syslog (even when not daemonized)\n"
 #endif
 							"\tgi         get user identity (using IDENT protocol)\n"
 							"\tnh         disable hostname lookups\n"
@@ -228,15 +227,14 @@ static int lputs(int level, char *str)
 
 #ifdef __unix__
 
-	if (is_daemon || syslog_always)  {
+	if (is_daemon)  {
 		if(str!=NULL) {
 			if (std_facilities)
 				syslog(level|LOG_AUTH,"%s",str);
 			else
 				syslog(level,"%s",str);
 		}
-		if(is_daemon)
-			return(0);
+		return(0);
 	}
 #endif
 	if(!mutex_initialized) {
@@ -264,7 +262,7 @@ static int lputs(int level, char *str)
     return(prompt_len);
 }
 
-static void errormsg(void* cbdata, int level, const char* msg)
+static void errormsg(void* cbdata, int level, const char* fmt)
 {
 	error_count++;
 }
@@ -616,15 +614,14 @@ static int bbs_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon || syslog_always)  {
+	if (is_daemon)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_AUTH,"%s",str);
 		else
 			syslog(level,"term %s",str);
-		if(is_daemon)
-			return(strlen(str));
+		return(strlen(str));
 	}
 #endif
 
@@ -675,7 +672,7 @@ static int ftp_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon || syslog_always)  {
+	if (is_daemon)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
@@ -686,8 +683,7 @@ static int ftp_lputs(void* p, int level, const char *str)
 #endif
 		else
 			syslog(level,"ftp  %s",str);
-		if(is_daemon)
-			return(strlen(str));
+		return(strlen(str));
 	}
 #endif
 
@@ -738,15 +734,14 @@ static int mail_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon || syslog_always)  {
+	if (is_daemon)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_MAIL,"%s",str);
 		else
 			syslog(level,"mail %s",str);
-		if(is_daemon)
-			return(strlen(str));
+		return(strlen(str));
 	}
 #endif
 
@@ -797,15 +792,14 @@ static int services_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon || syslog_always)  {
+	if (is_daemon)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_DAEMON,"%s",str);
 		else
 			syslog(level,"srvc %s",str);
-		if(is_daemon)
-			return(strlen(str));
+		return(strlen(str));
 	}
 #endif
 
@@ -856,15 +850,14 @@ static int event_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon || syslog_always)  {
+	if (is_daemon)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_CRON,"%s",str);
 		else
 			syslog(level,"evnt %s",str);
-		if(is_daemon)
-			return(strlen(str));
+		return(strlen(str));
 	}
 #endif
 
@@ -897,15 +890,14 @@ static int web_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon || syslog_always)  {
+	if (is_daemon)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_DAEMON,"%s",str);
 		else
 			syslog(level,"web  %s",str);
-		if(is_daemon)
-			return(strlen(str));
+		return(strlen(str));
 	}
 #endif
 
@@ -1101,7 +1093,7 @@ static void handle_sigs(void)
 	int			sig=0;
 	sigset_t	sigs;
 
-	SetThreadName("sbbs/sigHandler");
+	SetThreadName("Signal Handler");
 	thread_up(NULL,TRUE,TRUE);
 
 	/* Write the standard .pid file if created/open */
@@ -1207,7 +1199,7 @@ int main(int argc, char** argv)
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
-	SetThreadName("sbbs");
+	SetThreadName("Main");
 	listInit(&client_list, LINK_LIST_MUTEX);
 	loginAttemptListInit(&login_attempt_list);
 	atexit(cleanup);
@@ -1379,12 +1371,6 @@ int main(int argc, char** argv)
 			printf("Web server options:\t0x%08"PRIX32"\n",web_startup.options);
 			return(0);
 		}
-#ifdef __unix__
-		if(!stricmp(arg,"syslog")) {
-			syslog_always=TRUE;
-			continue;
-		}
-#endif
 		switch(toupper(*(arg++))) {
 #ifdef __unix__
 				case 'D': /* Run as daemon */
