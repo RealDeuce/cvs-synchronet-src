@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.345 2015/09/03 01:24:37 rswindell Exp $ */
+/* $Id: js_global.c,v 1.343 2015/08/21 08:38:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1380,28 +1380,28 @@ static struct {
 	char*	name;
 } lowasctbl[32] = {
 	{ 160	,"nbsp"		}, /* NULL non-breaking space */
-	{ 9786	,NULL		}, /* 0x263a white smiling face (^A, 1) */
-	{ 9787	,NULL		}, /* 0x263b black smiling face (^B, 2) */
+	{ 9786	,NULL		}, /* white smiling face */
+	{ 9787	,NULL		}, /* black smiling face */
 	{ 9829	,"hearts"	}, /* black heart suit */
 	{ 9830	,"diams"	}, /* black diamond suit */
 	{ 9827	,"clubs"	}, /* black club suit */
 	{ 9824	,"spades"	}, /* black spade suit */
-	{ 8226	,"bull"		}, /* bullet (beep, 7) */
-	{ 9688	,NULL		}, /* inverse bullet (backspace, 8) */
-	{ 9702	,NULL		}, /* white bullet (tab, 9) */
+	{ 8226	,"bull"		}, /* bullet */
+	{ 9688	,NULL		}, /* inverse bullet */
+	{ 9702	,NULL		}, /* white bullet */
 	{ 9689	,NULL		}, /* inverse white circle */
 	{ 9794	,NULL		}, /* male sign */
 	{ 9792	,NULL		}, /* female sign */
 	{ 9834	,NULL		}, /* eighth note */
 	{ 9835	,NULL		}, /* beamed eighth notes */
 	{ 9788	,NULL		}, /* white sun with rays */
-	{ 9658	,NULL		}, /* 0x25BA black right-pointing pointer */
-	{ 9668	,NULL		}, /* 0x25C4 black left-pointing pointer */
+	{ 9654	,NULL		}, /* black right-pointing triangle */
+	{ 9664	,NULL		}, /* black left-pointing triangle */
 	{ 8597	,NULL		}, /* up down arrow */
 	{ 8252	,NULL		}, /* double exclamation mark */
 	{ 182	,"para"		}, /* pilcrow sign */
 	{ 167	,"sect"		}, /* section sign */
-	{ 9604	,NULL		}, /* 0x2584 lower half block */
+	{ 9644	,NULL		}, /* black rectangle */
 	{ 8616	,NULL		}, /* up down arrow with base */
 	{ 8593	,"uarr"		}, /* upwards arrow */
 	{ 8595	,"darr"		}, /* downwards arrow */
@@ -1409,8 +1409,8 @@ static struct {
 	{ 8592	,"larr"		}, /* leftwards arrow */
 	{ 8985	,NULL		}, /* turned not sign */
 	{ 8596	,"harr"		}, /* left right arrow */
-	{ 9650	,NULL		}, /* 0x25B2 black up-pointing triangle */
-	{ 9660	,NULL		}  /* 0x25BC black down-pointing triangle */
+	{ 9650	,NULL		}, /* black up-pointing triangle */
+	{ 9660	,NULL		}  /* black down-pointing triangle */
 };
 
 static JSBool
@@ -2497,26 +2497,16 @@ js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 	return js_internal_charfunc(cx, argc, arglist, backslash, 1);
 }
 
-static char *nonconst_getfname(char *c)
-{
-	return(getfname(c));
-}
-
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, nonconst_getfname, 0);
-}
-
-static char *nonconst_getfext(char *c)
-{
-	return(getfext(c));
+	return js_internal_charfunc(cx, argc, arglist, getfname, 0);
 }
 
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, nonconst_getfext, 0);
+	return js_internal_charfunc(cx, argc, arglist, getfext, 0);
 }
 
 static JSBool
