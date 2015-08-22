@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.586 2015/10/30 01:42:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.581 2015/08/22 06:24:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -763,12 +763,12 @@ static void pop3_thread(void* arg)
 	int			rd;
 	BOOL		activity=TRUE;
 	BOOL		apop=FALSE;
-	uint32_t	l;
+	long		l;
 	ulong		lines;
 	ulong		lines_sent;
 	ulong		login_attempts;
 	uint32_t	msgs;
-	uint32_t	msgnum;
+	long		msgnum;
 	ulong		bytes;
 	SOCKET		socket;
 	smb_t		smb;
@@ -1072,9 +1072,9 @@ static void pop3_thread(void* arg)
 				p=buf+4;
 				SKIP_WHITESPACE(p);
 				if(isdigit((uchar)*p)) {
-					msgnum=strtoul(p, NULL, 10);
+					msgnum=atol(p);
 					if(msgnum<1 || msgnum>msgs) {
-						lprintf(LOG_NOTICE,"%04d !POP3 INVALID message #%" PRIu32
+						lprintf(LOG_NOTICE,"%04d !POP3 INVALID message #%ld"
 							,socket, msgnum);
 						sockprintf(socket,"-ERR no such message");
 						continue;
@@ -1108,9 +1108,9 @@ static void pop3_thread(void* arg)
 						continue;
 					}
 					if(!strnicmp(buf, "LIST",4)) {
-						sockprintf(socket,"+OK %" PRIu32 " %lu",msgnum,smb_getmsgtxtlen(&msg));
+						sockprintf(socket,"+OK %lu %lu",msgnum,smb_getmsgtxtlen(&msg));
 					} else /* UIDL */
-						sockprintf(socket,"+OK %" PRIu32 " %lu",msgnum,msg.hdr.number);
+						sockprintf(socket,"+OK %lu %lu",msgnum,msg.hdr.number);
 
 					smb_freemsgmem(&msg);
 					continue;
@@ -1157,7 +1157,7 @@ static void pop3_thread(void* arg)
 				lines=-1;
 				p=buf+4;
 				SKIP_WHITESPACE(p);
-				msgnum=strtoul(p, NULL, 10);
+				msgnum=atol(p);
 
 				if(!strnicmp(buf,"TOP ",4)) {
 					SKIP_DIGIT(p);
@@ -1165,7 +1165,7 @@ static void pop3_thread(void* arg)
 					lines=atol(p);
 				}
 				if(msgnum<1 || msgnum>msgs) {
-					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to retrieve an INVALID message #%" PRIu32
+					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to retrieve an INVALID message #%ld"
 						,socket, user.alias, msgnum);
 					sockprintf(socket,"-ERR no such message");
 					continue;
@@ -1257,10 +1257,10 @@ static void pop3_thread(void* arg)
 			if(!strnicmp(buf, "DELE ",5)) {
 				p=buf+5;
 				SKIP_WHITESPACE(p);
-				msgnum=strtoul(p, NULL, 10);
+				msgnum=atol(p);
 
 				if(msgnum<1 || msgnum>msgs) {
-					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to delete an INVALID message #%" PRIu32
+					lprintf(LOG_NOTICE,"%04d !POP3 %s ATTEMPTED to delete an INVALID message #%ld"
 						,socket, user.alias, msgnum);
 					sockprintf(socket,"-ERR no such message");
 					continue;
@@ -1765,41 +1765,11 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     return(JS_TRUE);
 }
 
-static JSBool
-js_alert(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	private_t*	p;
-	jsrefcount	rc;
-	char		*line;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if((p=(private_t*)JS_GetContextPrivate(cx))==NULL)
-		return(JS_FALSE);
-
-	JSVALUE_TO_MSTRING(cx, argv[0], line, NULL);
-	if(line==NULL)
-	    return(JS_FALSE);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	lprintf(LOG_ERR,"%04d %s %s %s"
-		,p->sock, p->log_prefix, p->proc_name, line);
-	free(line);
-	JS_RESUMEREQUEST(cx, rc);
-
-	JS_SET_RVAL(cx, arglist, argv[0]);
-
-    return(JS_TRUE);
-}
-
-
 static JSFunctionSpec js_global_functions[] = {
 	{"write",			js_log,				0},
 	{"writeln",			js_log,				0},
 	{"print",			js_log,				0},
 	{"log",				js_log,				0},
-	{"alert",			js_alert,			1},
     {0}
 };
 
@@ -3399,27 +3369,23 @@ static void smtp_thread(void* arg)
 			if(auth_login) {
 				sockprintf(socket,"334 VXNlcm5hbWU6");	/* Base64-encoded "Username:" */
 				if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
-					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH LOGIN username argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
 					lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 				if(b64_decode(user_name,sizeof(user_name),buf,rd)<1) {
-					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH LOGIN username argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				sockprintf(socket,"334 UGFzc3dvcmQ6");	/* Base64-encoded "Password:" */
 				if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
-					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH LOGIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
 					lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 				if(b64_decode(user_pass,sizeof(user_pass),buf,rd)<1) {
-					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH LOGIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3427,13 +3393,11 @@ static void smtp_thread(void* arg)
 				p=buf+10;
 				SKIP_WHITESPACE(p);
 				if(*p==0) {
-					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				ZERO_VAR(tmp);
 				if(b64_decode(tmp,sizeof(tmp),p,strlen(p))<1) {
-					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH PLAIN argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3441,7 +3405,6 @@ static void smtp_thread(void* arg)
 				while(*p) p++;	/* skip username */
 				p++;			/* skip NULL */
 				if(*p==0) {
-					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN user-id argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3449,7 +3412,6 @@ static void smtp_thread(void* arg)
 				while(*p) p++;	/* skip user-id */
 				p++;			/* skip NULL */
 				if(*p==0) {
-					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3511,7 +3473,6 @@ static void smtp_thread(void* arg)
 			b64_encode(str,sizeof(str),challenge,0);
 			sockprintf(socket,"334 %s",str);
 			if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
-				lprintf(LOG_WARNING,"%04d !SMTP missing AUTH CRAM-MD5 response", socket);
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -3519,7 +3480,6 @@ static void smtp_thread(void* arg)
 				lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 
 			if(b64_decode(response,sizeof(response),buf,rd)<1) {
-				lprintf(LOG_WARNING,"%04d !SMTP bad AUTH CRAM-MD5 response", socket);
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -4951,7 +4911,6 @@ static void cleanup(int code)
 		FREE_AND_NULL(mailproc_list);
 	}
 
-	/* Check a if(mail_set!=NULL) check be performed here? */
 	xpms_destroy(mail_set, mail_close_socket_cb, NULL);
 	mail_set=NULL;
 	terminated=TRUE;
@@ -5002,7 +4961,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.586 $", "%*s %s", revision);
+	sscanf("$Revision: 1.581 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5232,14 +5191,14 @@ void DLLCALL mail_server(void* arg)
 			cleanup(1);
 			return;
 		}
-		terminated=FALSE;
 		if(!xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->smtp_port, "SMTP Server", mail_open_socket, startup->seteuid, "smtp"))
 			lprintf(LOG_INFO,"SMTP No extra interfaces listening");
 		lprintf(LOG_INFO,"SMTP Server listening");
 
 		if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT) {
 			if(xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->submission_port, "SMTP Submission Agent", mail_open_socket, startup->seteuid, "submission"))
-				lprintf(LOG_INFO,"SUBMISSION Server listening");
+				lprintf(LOG_INFO,"SUBMISSION Server listening on port %u"
+					,startup->submission_port);
 		}
 
 		if(startup->options&MAIL_OPT_ALLOW_POP3) {
@@ -5279,7 +5238,7 @@ void DLLCALL mail_server(void* arg)
 
 		while(!terminated && !terminate_server) {
 
-			if(protected_uint32_value(thread_count) <= (unsigned int)(1+(sendmail_running?1:0))) {
+			if(protected_uint32_value(thread_count) <= 1+sendmail_running) {
 				if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
 						lprintf(LOG_INFO,"Recycle semaphore file (%s) detected",p);
