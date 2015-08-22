@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.417 2015/08/22 01:37:49 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.418 2015/08/22 04:31:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4732,7 +4732,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.417 $", "%*s %s", revision);
+	sscanf("$Revision: 1.418 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4813,8 +4813,7 @@ void DLLCALL ftp_server(void* arg)
 	js_server_props.version_detail=ftp_ver();
 	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
-	/* TODO: IPv6 */
-	js_server_props.interface_addr=&startup->outgoing4;
+	js_server_props.interfaces=&startup->interfaces;
 #endif
 
 	uptime=0;

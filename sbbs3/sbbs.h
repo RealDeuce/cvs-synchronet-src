@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.413 2015/08/20 05:19:43 deuce Exp $ */
+/* $Id: sbbs.h,v 1.414 2015/08/22 04:31:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1135,7 +1135,7 @@ extern "C" {
 	typedef struct {
 		char		version[128];
 		const char*	version_detail;
-		uint32_t*	interface_addr;
+		str_list_t*	interfaces;
 		uint32_t*	options;
 		uint32_t*	clients;
 	} js_server_props_t;

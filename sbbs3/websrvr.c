@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.593 2015/08/22 01:37:51 deuce Exp $ */
+/* $Id: websrvr.c,v 1.594 2015/08/22 04:31:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5650,7 +5650,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.593 $", "%*s %s", revision);
+	sscanf("$Revision: 1.594 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5836,8 +5836,7 @@ void DLLCALL web_server(void* arg)
 	js_server_props.version_detail=web_ver();
 	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
-	/* TODO IPv6 */
-	js_server_props.interface_addr=&startup->outgoing4;
+	js_server_props.interfaces=&startup->interfaces;
 
 	uptime=0;
 	served=0;
