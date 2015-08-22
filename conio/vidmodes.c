@@ -1,6 +1,9 @@
-/* $Id: vidmodes.c,v 1.18 2015/07/05 09:07:34 deuce Exp $ */
+/* $Id: vidmodes.c,v 1.19 2015/07/15 08:02:14 rswindell Exp $ */
 
 #include <stdlib.h>
+
+/* xpdev: */
+#include <gen_defs.h>	/* FREE_AND_NULL */
 
 #include "vidmodes.h"
 
