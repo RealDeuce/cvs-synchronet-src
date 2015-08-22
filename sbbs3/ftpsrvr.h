@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.52 2015/08/20 05:19:41 deuce Exp $ */
+/* $Id: ftpsrvr.h,v 1.54 2015/08/22 01:37:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
