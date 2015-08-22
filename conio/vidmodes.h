@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.19 2015/04/03 10:12:04 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.20 2015/07/05 09:07:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,6 +64,11 @@ struct  video_params {
 	int	vmultiplier;
 };
 
+struct vstat_vmem {
+	unsigned refcount;
+	unsigned short *vmem;
+};
+
 struct video_stats {
 	int rows;
 	int cols;
@@ -89,7 +94,7 @@ struct video_stats {
 	int	vmultiplier;
 	struct dac_colors dac_colors[256];
 	unsigned char palette[16];
-	unsigned short *vmem;
+	struct vstat_vmem *vmem;
 };
 
 enum {
@@ -112,6 +117,8 @@ extern char vga_font_bitmap8[2048];
 extern "C" {
 #endif
 int find_vmode(int mode);
+struct vstat_vmem *get_vmem(struct video_stats *vs);
+void release_vmem(struct vstat_vmem *vm);
 int load_vmode(struct video_stats *vs, int mode);
 #ifdef __cplusplus
 }
