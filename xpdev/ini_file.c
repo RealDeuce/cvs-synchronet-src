@@ -2,13 +2,13 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.142 2015/08/29 10:37:45 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.140 2015/04/18 11:02:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -1317,9 +1317,7 @@ int DLLCALL iniGetSocketOptions(str_list_t list, const char* section, SOCKET soc
 	int			type=0;	// Assignment is to silence Valgrind.
 	LINGER		linger;
 	socket_option_t* socket_options=getSocketOptionList();
-#ifdef IPPROTO_IPV6
 	union xp_sockaddr	addr;
-#endif
 
 	len=sizeof(type);
 	if((result=getsockopt(sock, SOL_SOCKET, SO_TYPE, (char*)&type, &len)) != 0) {
@@ -1663,9 +1661,6 @@ static time_t parseDateTime(const char* value)
 		&& (tm.tm_mon=getMonth(month))!=0
 		&& validDate(&tm))
 		return(fixedDateTime(&tm,tstr,0));
-
-	if((t=xpDateTime_to_time(isoDateTimeStr_parse(value))) != INVALID_TIME)
-		return t;
 
 	return(strtoul(value,NULL,0));
 }
