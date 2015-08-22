@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.157 2014/08/19 01:14:24 rswindell Exp $ */
+/* $Id: js_system.c,v 1.159 2015/08/20 05:19:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1206,7 +1206,7 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 	char*		user=NULL;
 	char*		text=NULL;
 	char*		host=NULL;
-	SOCKADDR_IN	addr;
+	union xp_sockaddr	addr;
 	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
@@ -1220,10 +1220,10 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			JS_ValueToInt32(cx,argv[i],&i32);
-			if(addr.sin_addr.s_addr==0)
-				addr.sin_addr.s_addr=i32;
+			if(addr.in.sin_addr.s_addr==0)
+				addr.in.sin_addr.s_addr=i32;
 			else
-				addr.sin_port=(ushort)i32;
+				addr.in.sin_port=(ushort)i32;
 			continue;
 		}
 		if(!JSVAL_IS_STRING(argv[i]))
@@ -1504,8 +1504,11 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 	scfg_t*		cfg;
 	user_t		user;
 	JSObject*	userobj;
+	JSObject*	objarg;
+	JSClass*	cl;
 	jsrefcount	rc;
 	client_t*	client=NULL;
+	jsval		val;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -1529,18 +1532,25 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 	memset(&user,0,sizeof(user));
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_OBJECT(argv[n])) {
-			JSClass*	cl;
-			JSObject*	objarg = JSVAL_TO_OBJECT(argv[n]);
+			objarg = JSVAL_TO_OBJECT(argv[n]);
 			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0) {
 				client=JS_GetPrivate(cx,objarg);
 				continue;
 			}
 		}
 	}
+	// Find and use the global client object if possible...
+	if(client==NULL) {
+		if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "client", &val) && !JSVAL_NULL_OR_VOID(val)) {
+			objarg = JSVAL_TO_OBJECT(val);
+			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0)
+				client=JS_GetPrivate(cx,objarg);
+		}
+	}
 	if(client!=NULL) {
 		SAFECOPY(user.modem,client->protocol);
 		SAFECOPY(user.comp,client->host);
-		SAFECOPY(user.note,client->addr);
+		SAFECOPY(user.ipaddr,client->addr);
 	}
 
 	user.sex=' ';
@@ -1865,7 +1875,8 @@ static jsSyncMethodSpec js_system_functions[] = {
 	{"newuser",			js_new_user,		1,	JSTYPE_ALIAS },
 	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias [,client object]")
 	,JSDOCSTR("creates a new user record, returns a new <a href=#User>User</a> object representing the new user account, on success.<br>"
-	"returns an numeric error code on failure (optional <i>client</i> object argument added in v3.15a)")
+	"returns an numeric error code on failure (optional <i>client</i> object argument added in v3.15a.  As of 3.16c, the global "
+	"client object is used if the argument is omitted)")
 	,310
 	},
 	{"del_user",		js_del_user,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("number")
