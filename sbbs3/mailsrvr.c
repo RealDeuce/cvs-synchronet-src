@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.577 2015/08/20 05:19:42 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.578 2015/08/22 00:58:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4961,7 +4961,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.577 $", "%*s %s", revision);
+	sscanf("$Revision: 1.578 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5193,12 +5193,12 @@ void DLLCALL mail_server(void* arg)
 			cleanup(1);
 			return;
 		}
-		if(!xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->smtp_port, "SMTP Server", mail_open_socket, startup->seteuid, "smtp"))
+		if(!xpms_add_chararray_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->smtp_port, "SMTP Server", mail_open_socket, startup->seteuid, "smtp"))
 			lprintf(LOG_INFO,"SMTP No extra interfaces listening");
 		lprintf(LOG_INFO,"SMTP Server listening");
 
 		if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT) {
-			if(xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->submission_port, "SMTP Submission Agent", mail_open_socket, startup->seteuid, "submission"))
+			if(xpms_add_chararray_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->submission_port, "SMTP Submission Agent", mail_open_socket, startup->seteuid, "submission"))
 				lprintf(LOG_INFO,"SUBMISSION Server listening on port %u"
 					,startup->submission_port);
 		}
@@ -5206,7 +5206,7 @@ void DLLCALL mail_server(void* arg)
 		if(startup->options&MAIL_OPT_ALLOW_POP3) {
 
 			/* open a socket and wait for a client */
-			if(!xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->pop3_interfaces, startup->pop3_port, "POP3 Server", mail_open_socket, startup->seteuid, "pop3"))
+			if(!xpms_add_chararray_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->pop3_interfaces, startup->pop3_port, "POP3 Server", mail_open_socket, startup->seteuid, "pop3"))
 				lprintf(LOG_INFO,"SMTP No extra interfaces listening");
 			lprintf(LOG_INFO,"POP3 Server listening");
 		}

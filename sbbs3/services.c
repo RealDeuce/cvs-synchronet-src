@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.280 2015/08/21 07:59:27 deuce Exp $ */
+/* $Id: services.c,v 1.281 2015/08/22 00:58:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,7 @@ typedef struct {
 	/* These are sysop-configurable */
 	uint32_t		interface_addr;
 	uint16_t		port;
-	str_list_t		interfaces;
+	char		interfaces[INI_MAX_VALUE_LEN];
 	struct in_addr		outgoing4;
 	struct in6_addr	outgoing6;
 	char			protocol[34];
@@ -1511,7 +1511,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 
 	/* Enumerate and parse each service configuration */
 	sec_list = iniGetSectionList(list,"");
-	default_interfaces = strListCombine(startup->interfaces, NULL, 16384, ",");
+	default_interfaces = strdup(startup->interfaces);
     for(i=0; sec_list!=NULL && sec_list[i]!=NULL; i++) {
 		if(!iniGetBool(list,sec_list[i],"Enabled",TRUE)) {
 			lprintf(LOG_WARNING,"Ignoring disabled service: %s",sec_list[i]);
@@ -1520,7 +1520,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		memset(&serv,0,sizeof(service_t));
 		SAFECOPY(serv.protocol,iniGetString(list,sec_list[i],"Protocol",sec_list[i],prot));
 		serv.set = NULL;
-		serv.interfaces=iniGetStringList(list,sec_list[i],"Interface",",",default_interfaces);
+		SAFECOPY(serv.interfaces,iniGetString(list,sec_list[i],"Interface",default_interfaces,host));
 		serv.outgoing4.s_addr=iniGetIpAddress(list,sec_list[i],"OutgoingV4",startup->outgoing4.s_addr);
 		serv.outgoing6=iniGetIp6Address(list,sec_list[i],"OutgoingV6",startup->outgoing6);
 		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",max_clients);
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.280 $", "%*s %s", revision);
+	sscanf("$Revision: 1.281 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1853,7 +1853,7 @@ void DLLCALL services_thread(void* arg)
 				cleanup(1);
 				return;
 			}
-			xpms_add_list(service[i].set, PF_UNSPEC, (service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
+			xpms_add_chararray_list(service[i].set, PF_UNSPEC, (service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
 					, IPPROTO_IP, service[i].interfaces, service[i].port, service[i].protocol
 					, (service[i].options&SERVICE_OPT_UDP) ? service_udp_sock_cb : open_socket_cb, startup->seteuid, &service[i]);
 			total_sockets += service[i].set->sock_count;
