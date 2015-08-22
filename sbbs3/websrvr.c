@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.584 2015/08/20 05:19:45 deuce Exp $ */
+/* $Id: websrvr.c,v 1.594 2015/08/22 04:31:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -761,9 +761,12 @@ static void add_env(http_session_t *session, const char *name,const char *value)
 /***************************************/
 static void init_enviro(http_session_t *session)  {
 	char	str[128];
+	union xp_sockaddr sockaddr;
+	socklen_t socklen = sizeof(sockaddr);
 
 	add_env(session,"SERVER_SOFTWARE",VERSION_NOTICE);
-	sprintf(str,"%d",startup->port);
+	getsockname(session->socket, &sockaddr.addr, &socklen);
+	sprintf(str,"%d",inet_addrport(&sockaddr));
 	add_env(session,"SERVER_PORT",str);
 	add_env(session,"GATEWAY_INTERFACE","CGI/1.1");
 	if(!strcmp(session->host_name,session->host_ip))
@@ -2775,6 +2778,22 @@ static int is_dynamic_req(http_session_t* session)
 	return(IS_STATIC);
 }
 
+static void remove_port_part(char *host)
+{
+	char *p=strchr(host, 0)-1;
+
+	if (!isdigit(*p))
+		return;
+	for(; p >= host; p--) {
+		if (*p == ':') {
+			*p = 0;
+			return;
+		}
+		if (!isdigit(*p))
+			return;
+	}
+}
+
 static char *get_request(http_session_t * session, char *req_line)
 {
 	char*	p;
@@ -2813,7 +2832,7 @@ static char *get_request(http_session_t * session, char *req_line)
 		SAFECOPY(session->req.vhost,session->req.host);
 
 		/* Remove port specification from vhost (if present) */
-		strtok_r(session->req.vhost,":",&last);
+		remove_port_part(session->req.vhost);
 
 		/* Sets p to point to the first character after the first slash */
 		p=strchr(session->req.physical_path, '/');
@@ -2893,7 +2912,7 @@ static BOOL get_request_headers(http_session_t * session)
 						/* Remove port part of host (Win32 doesn't allow : in dir names) */
 						/* Either an existing : will be replaced with a null, or nothing */
 						/* Will happen... the return value is not relevent here */
-						strtok_r(session->req.vhost,":",&last);
+						remove_port_part(session->req.vhost);
 					}
 					break;
 				default:
@@ -5631,7 +5650,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.584 $", "%*s %s", revision);
+	sscanf("$Revision: 1.594 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5817,8 +5836,7 @@ void DLLCALL web_server(void* arg)
 	js_server_props.version_detail=web_ver();
 	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
-	/* TODO IPv6 */
-	js_server_props.interface_addr=&startup->outgoing4;
+	js_server_props.interfaces=&startup->interfaces;
 
 	uptime=0;
 	served=0;

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.159 2015/08/20 05:19:42 deuce Exp $ */
+/* $Id: js_system.c,v 1.160 2015/08/22 05:44:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2324,7 +2324,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 
 			/* Store node number */
 			/* We have to shift it to make it look like a pointer to JS. :-( */
-			if(!JS_SetPrivate(cx, nodeobj, (char*)((i+1)<<1)))
+			if(!JS_SetPrivate(cx, nodeobj, (char*)(((uintptr_t)i+1)<<1)))
 				return(JS_FALSE);
 
 	#ifdef BUILD_JSDOCS
