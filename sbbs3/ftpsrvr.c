@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.419 2015/08/22 06:19:08 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.420 2015/08/22 10:16:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2713,7 +2713,7 @@ static void ctrl_thread(void* arg)
 			SAFECOPY(user.modem,"FTP");
 			SAFECOPY(user.comp,host_name);
 			SAFECOPY(user.ipaddr,host_ip);
-			user.logontime=logintime;
+			user.logontime=(time32_t)logintime;
 			putuserdat(&scfg, &user);
 
 			continue;
@@ -4732,7 +4732,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.419 $", "%*s %s", revision);
+	sscanf("$Revision: 1.420 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
