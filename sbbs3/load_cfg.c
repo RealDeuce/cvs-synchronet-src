@@ -1,12 +1,14 @@
+/* load_cfg.c */
+
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.70 2017/10/23 03:38:59 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.65 2015/08/22 05:45:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -137,6 +139,13 @@ void prep_cfg(scfg_t* cfg)
 {
 	int i;
 
+#if 0 /* def __unix__ */
+	strlwr(cfg->text_dir);	/* temporary Unix-compatibility hack */
+	strlwr(cfg->temp_dir);	/* temporary Unix-compatibility hack */
+	strlwr(cfg->data_dir);	/* temporary Unix-compatibility hack */
+	strlwr(cfg->exec_dir);	/* temporary Unix-compatibility hack */
+#endif
+
 	/* Fix-up paths */
 	prep_dir(cfg->ctrl_dir, cfg->data_dir, sizeof(cfg->data_dir));
 	prep_dir(cfg->ctrl_dir, cfg->logs_dir, sizeof(cfg->logs_dir));
@@ -151,6 +160,17 @@ void prep_cfg(scfg_t* cfg)
 	prep_path(cfg->netmail_sem);
 	prep_path(cfg->echomail_sem);
 	prep_path(cfg->inetmail_sem);
+
+#if 0 /* def __unix__ */
+	/* temporary hack for Unix compatibility */
+	strlwr(cfg->logon_mod);
+	strlwr(cfg->logoff_mod);
+	strlwr(cfg->newuser_mod);
+	strlwr(cfg->login_mod);
+	strlwr(cfg->logout_mod);
+	strlwr(cfg->sync_mod);
+	strlwr(cfg->expire_mod);
+#endif
 
 	for(i=0;i<cfg->total_subs;i++) {
 
@@ -202,48 +222,6 @@ void prep_cfg(scfg_t* cfg)
 			prep_dir(cfg->ctrl_dir, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 
 		prep_path(cfg->dir[i]->upload_sem);
-	}
-
-	for(i=0;i<cfg->total_libs;i++) {
-		if((cfg->lib[i]->misc&LIB_DIRS) == 0 || cfg->lib[i]->parent_path[0] == 0)
-			continue;
-		char path[MAX_PATH+1];
-		SAFECOPY(path, cfg->lib[i]->parent_path);
-		backslash(path);
-		strcat(path, ALLFILES);
-		glob_t g;
-		if(glob(path, GLOB_MARK, NULL, &g))
-			continue;
-   		for(uint gi=0;gi<g.gl_pathc;gi++) {
-			char* p = g.gl_pathv[gi];
-			char* tp = lastchar(p);
-			if(*tp != '/')
-				continue;
-			*tp = 0;
-			dir_t dir;
-			memset(&dir, 0, sizeof(dir));
-			dir.lib = i;
-			dir.misc = DIR_FILES;
-			SAFECOPY(dir.path, p);
-			backslash(dir.path);
-			SAFECOPY(dir.lname, getfname(p));
-			SAFECOPY(dir.sname, dir.lname);
-			char code_suffix[LEN_EXTCODE+1];
-			SAFECOPY(code_suffix, dir.lname);
-			prep_code(code_suffix, cfg->lib[i]->code_prefix);
-			SAFECOPY(dir.code_suffix, code_suffix);
-			SAFEPRINTF2(dir.code,"%s%s"
-				,cfg->lib[i]->code_prefix
-				,dir.code_suffix);
-
-			dir_t** new_dirs;
-			if((new_dirs=(dir_t **)realloc(cfg->dir, sizeof(dir_t *)*(cfg->total_dirs+2)))==NULL)
-				continue;
-			cfg->dir  = new_dirs;
-			if((cfg->dir[cfg->total_dirs] = malloc(sizeof(dir_t))) == NULL)
-				continue;
-			*cfg->dir[cfg->total_dirs++] = dir;
-		}
 	}
 
 
@@ -303,6 +281,7 @@ void DLLCALL free_text(char* text[])
 /****************************************************************************/
 BOOL md(char *inpath)
 {
+	DIR*	dir;
 	char	path[MAX_PATH+1];
 
 	if(inpath[0]==0)
@@ -318,13 +297,16 @@ BOOL md(char *inpath)
 	if(path[strlen(path)-1]=='\\' || path[strlen(path)-1]=='/')
 		path[strlen(path)-1]=0;
 
-	if(!isdir(path)) {
+	dir=opendir(path);
+	if(dir==NULL) {
 		/* lprintf("Creating directory: %s",path); */
-		if(mkpath(path)) {
+		if(MKDIR(path)) {
 			lprintf(LOG_WARNING,"!ERROR %d creating directory: %s",errno,path);
 			return(FALSE); 
 		} 
 	}
+	else
+		closedir(dir);
 	
 	return(TRUE);
 }
@@ -351,10 +333,7 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 			,MIN_COLORS);
 		return(FALSE);
 	}
-	/* Setup default colors here: */
-	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);
-	cfg->color[clr_votes_full] = WHITE|BG_MAGENTA;
-	cfg->color[clr_progress_full] = CYAN|HIGH|BG_BLUE;
+	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);	
 	for(cfg->total_colors=0;!feof(instream) && !ferror(instream);cfg->total_colors++) {
 		if(readline(&offset,str,4,instream)==NULL)
 			break;
@@ -426,35 +405,6 @@ char* prep_path(char* path)
 	return(path);
 }
 
-/* Prepare a string to be used as an internal code */
-/* Return the usable code */
-char* prep_code(char *str, const char* prefix)
-{
-	char tmp[1024];
-	int i,j;
-
-	if(prefix!=NULL) {	/* skip the grp/lib prefix, if specified */
-		i=strlen(prefix);
-		if(i && strnicmp(str,prefix,i)==0 && strlen(str)!=i)
-			str+=i;
-	}
-	for(i=j=0;str[i] && i<sizeof(tmp);i++)
-		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?'
-			&& strchr(ILLEGAL_FILENAME_CHARS,str[i])==NULL)
-			tmp[j++]=toupper(str[i]);
-	tmp[j]=0;
-	strcpy(str,tmp);
-	if(j>LEN_CODE) {	/* Extra chars? Strip symbolic chars */
-		for(i=j=0;str[i];i++)
-			if(isalnum(str[i]))
-				tmp[j++]=str[i];
-		tmp[j]=0;
-		strcpy(str,tmp);
-	}
-	str[LEN_CODE]=0;
-	return(str);
-}
-
 /****************************************************************************/
 /* Auto-toggle daylight savings time in US time-zones						*/
 /****************************************************************************/
@@ -463,7 +413,7 @@ ushort DLLCALL sys_timezone(scfg_t* cfg)
 	time_t	now;
 	struct tm tm;
 
-	if(cfg->sys_misc&SM_AUTO_DST && SMB_TZ_HAS_DST(cfg->sys_timezone)) {
+	if(cfg->sys_misc&SM_AUTO_DST && !OTHER_ZONE(cfg->sys_timezone) && cfg->sys_timezone&US_ZONE) {
 		now=time(NULL);
 		if(localtime_r(&now,&tm)!=NULL) {
 			if(tm.tm_isdst>0)
