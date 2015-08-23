@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.598 2015/08/23 06:20:04 deuce Exp $ */
+/* $Id: websrvr.c,v 1.599 2015/08/23 06:25:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -567,8 +567,10 @@ static BOOL handle_crypt_call(int status, http_session_t *session, const char *f
 		}
 		sock = session->socket;
 	}
-	if (estr)
+	if (estr) {
 		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
+		free(estr);
+	}
 	else
 		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
 	return FALSE;
@@ -5667,7 +5669,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.598 $", "%*s %s", revision);
+	sscanf("$Revision: 1.599 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
