@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.73 2014/02/06 20:35:15 deuce Exp $ */
+/* $Id: umonitor.c,v 1.74 2014/02/13 08:50:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,12 +38,10 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <time.h>
-#include <sys/time.h>
 #ifdef __QNX__
 #include <string.h>
 #endif
 #include <stdio.h>
-#include <unistd.h>
 
 #include "ciolib.h"
 #define __COLORS		/* Disable the colour macros in sbbsdefs.h ToDo */
@@ -806,7 +804,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.73 $", "%*s %s", revision);
+	sscanf("$Revision: 1.74 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -934,7 +932,9 @@ int main(int argc, char** argv)  {
            }
     }
 
+#ifdef SIGPIPE
 	signal(SIGPIPE, SIG_IGN);
+#endif
 
 	uifc.size=sizeof(uifc);
 	i=initciolib(ciolib_mode);

@@ -2,13 +2,13 @@
 
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.38 2013/08/09 05:13:00 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.42 2015/08/22 06:18:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "telnet.h" 
 
-void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* name, char* passwd)
+void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, char* server_user_name, char* term_type)
 {
 	char*	p;
 	uchar	buf[512];
@@ -77,7 +77,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* name, char* passwd)
 	}
 
 	memset(&addr,0,sizeof(addr));
-	addr.sin_addr.s_addr = htonl(startup->telnet_interface);
+	addr.sin_addr.s_addr = htonl(startup->outgoing4.s_addr);
 	addr.sin_family = AF_INET;
 
 	if((i=bind(remote_socket, (struct sockaddr *) &addr, sizeof (addr)))!=0) {
@@ -121,20 +121,18 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* name, char* passwd)
 	if(mode&TG_RLOGIN) {
 		p=(char*)buf;
 		*(p++)=0;
-		p+=sprintf(p,"%s",name==NULL ? useron.alias : name);
+		p+=sprintf(p,"%s",client_user_name==NULL ? useron.alias : client_user_name);
 		p++;	// Add NULL
-		if(passwd!=NULL)
-			p+=sprintf(p,"%s",passwd);
-		else if(mode&TG_SENDPASS) {
-			p+=sprintf(p,"%s",useron.pass);
-		} else {
-			p+=sprintf(p,"%s",useron.name);
-		}
+		p+=sprintf(p,"%s",server_user_name==NULL ? useron.name : server_user_name);
 		p++;	// Add NULL
-		p+=sprintf(p,"%s/57600",terminal);
+		if(term_type!=NULL)
+			p+=sprintf(p,"%s",term_type);
+		else
+			p+=sprintf(p,"%s/%lu",terminal, cur_rate);
 		p++;	// Add NULL
 		l=p-(char*)buf;
 		sendsocket(remote_socket,(char*)buf,l);
+		mode|=TG_NOLF;	/* Send LF (to remote host) when Telnet client sends CRLF (when not in binary mode) */
 	}
 
 	/* This is required for gating to Unix telnetd */
@@ -194,10 +192,10 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* name, char* passwd)
 					attr(LIGHTGRAY);
 					console=save_console;
 				}
-				else if(*buf<' ' && mode&TG_CTRLKEYS)
+				else if(*buf<' ' && (mode&TG_CTRLKEYS))
 					handle_ctrlkey(*buf, K_NONE);
 				gotline=false;
-				if(mode&TG_LINEMODE && buf[0]!='\r') {
+				if((mode&TG_LINEMODE) && buf[0]!='\r') {
 					ungetkey(buf[0]);
 					l=K_CHAT;
 					if(!(mode&TG_ECHO))
@@ -209,14 +207,14 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* name, char* passwd)
 					rd+=2;
 					gotline=true;
 				}
-				if(mode&TG_CRLF && buf[rd-1]=='\r')
+				if((mode&TG_CRLF) && buf[rd-1]=='\r')
 					buf[rd++]='\n';
-				else if(mode&TG_NOLF && buf[rd-1]=='\n')
+				else if((mode&TG_NOLF) && buf[rd-1]=='\n')
 					rd--;
 				if(!gotline && (mode&TG_ECHO) && rd) {
 					RingBufWrite(&outbuf,buf,rd);
 				}
-			}
+			} /* Not Telnet Binary mode */
 			if(rd > 0) {
 				for(attempts=0;attempts<60 && online; attempts++) /* added retry loop here, Jan-20-2003 */
 				{
