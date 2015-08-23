@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.597 2015/08/23 06:18:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.598 2015/08/23 06:20:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -559,7 +559,7 @@ static BOOL handle_crypt_call(int status, http_session_t *session, const char *f
 			if (cryptStatusOK(cryptGetAttributeString(session->tls_sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, NULL, &len))) {
 				estr = malloc(len + 1);
 				if (estr) {
-					cryptGetAttributeString(session->tls_sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len)
+					cryptGetAttributeString(session->tls_sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len);
 					estr[len+1] = 0;
 				}
 			}
@@ -5092,7 +5092,6 @@ FILE *open_post_file(http_session_t *session)
 
 int read_post_data(http_session_t * session)
 {
-	uint64_t	i=0;
 	size_t		s = 0;
 	FILE		*fp=NULL;
 
@@ -5668,7 +5667,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.597 $", "%*s %s", revision);
+	sscanf("$Revision: 1.598 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
