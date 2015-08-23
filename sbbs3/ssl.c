@@ -1,10 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
-
-#include <threadwrap.h>
-
 #include "ssl.h"
-//#include "js_socket.h"	// TODO... move this stuff in here?
+#include "js_socket.h"	// TODO... move this stuff in here?
 
 static scfg_t	scfg;
 
@@ -34,56 +31,28 @@ char* DLLCALL get_crypt_error(CRYPT_SESSION sess)
 	return get_crypt_attribute(sess, CRYPT_ATTRIBUTE_ERRORMESSAGE);
 }
 
-static bool get_error_string(int status, CRYPT_SESSION sess, char estr[SSL_ESTR_LEN], char *file, int line)
+static bool get_error_string(int status, CRYPT_SESSION sess, char *estr, char *file, int line)
 {
-	char	*emsg;
+	int		ret;
+	int		len = 0;
+	char	tmpstr[CRYPT_MAX_TEXTSIZE+1];
 
 	if (cryptStatusOK(status))
 		return true;
 
-	emsg = get_crypt_error(sess);
-	if (emsg) {
-		safe_snprintf(estr, SSL_ESTR_LEN, "cryptlib error %d at %s:%d (%s)", status, file, line, emsg);
-		free_crypt_attrstr(emsg);
+	estr = get_crypt_error(sess);
+	if (estr) {
+		sprintf(estr, "cryptlib error %d at %s:%d (%s)", status, file, line, tmpstr);
+		free_crypt_attrstr(estr);
 	}
 	else
-		safe_snprintf(estr, SSL_ESTR_LEN, "cryptlib error %d at %s:%d", status, file, line);
+		sprintf(estr, "cryptlib error %d at %s:%d", status, file, line);
 	return false;
-}
-
-static pthread_once_t crypt_init_once = PTHREAD_ONCE_INIT;
-static pthread_mutex_t ssl_cert_mutex;
-
-static void do_cryptEnd(void)
-{
-	cryptEnd();
-}
-
-static void internal_do_cryptInit(void)
-{
-	int ret;
-
-	if((ret=cryptInit())==CRYPT_OK) {
-		cryptAddRandom(NULL,CRYPT_RANDOM_SLOWPOLL);
-		atexit(do_cryptEnd);
-	}
-	else {
-		lprintf(LOG_ERR,"cryptInit() returned %d", ret);
-	}
-	pthread_mutex_init(&ssl_cert_mutex, NULL);
-	return;
-}
-
-int DLLCALL do_cryptInit(void)
-{
-	if(pthread_once(&crypt_init_once, internal_do_cryptInit) == 0)
-		return 1;
-	return 0;
 }
 
 #define DO(x)	get_error_string(x, ssl_context, estr, __FILE__, __LINE__)
 
-CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char estr[SSL_ESTR_LEN])
+CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char *estr)
 {
 	CRYPT_KEYSET		ssl_keyset;
 	CRYPT_CONTEXT		ssl_context;
@@ -94,20 +63,16 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char estr[SSL_ESTR_LEN])
 
 	if(!do_cryptInit())
 		return -1;
-	pthread_mutex_lock(&ssl_cert_mutex);
 	memset(&ssl_context, 0, sizeof(ssl_context));
 	/* Get the certificate... first try loading it from a file... */
 	SAFEPRINTF2(str,"%s%s",cfg->ctrl_dir,"ssl.cert");
 	if(cryptStatusOK(cryptKeysetOpen(&ssl_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
-		if(!DO(cryptGetPrivateKey(ssl_keyset, &ssl_context, CRYPT_KEYID_NAME, "ssl_cert", cfg->sys_pass))) {
-			pthread_mutex_unlock(&ssl_cert_mutex);
+		if(!DO(cryptGetPrivateKey(ssl_keyset, &ssl_context, CRYPT_KEYID_NAME, "ssl_cert", cfg->sys_pass)))
 			return -1;
-		}
 	}
 	else {
 		/* Couldn't do that... create a new context and use the cert from there... */
 		if(!cryptStatusOK(i=cryptCreateContext(&ssl_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
-			pthread_mutex_unlock(&ssl_cert_mutex);
 			sprintf(estr, "cryptlib error %d creating SSL context",i);
 			return -1;
 		}
@@ -138,7 +103,6 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char estr[SSL_ESTR_LEN])
 	}
 
 	cryptKeysetClose(ssl_keyset);
-	pthread_mutex_unlock(&ssl_cert_mutex);
 	return ssl_context;
 
 failure_return_3:
@@ -147,6 +111,5 @@ failure_return_2:
 	cryptKeysetClose(ssl_keyset);
 failure_return_1:
 	cryptDestroyContext(ssl_context);
-	pthread_mutex_unlock(&ssl_cert_mutex);
 	return -1;
 }
