@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.285 2015/08/23 11:16:14 deuce Exp $ */
+/* $Id: services.c,v 1.286 2015/08/25 01:45:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1164,7 +1164,6 @@ static void js_static_service_thread(void* arg)
 	char					fname[MAX_PATH+1];
 	service_t*				service;
 	service_client_t		service_client;
-	struct xpms_set			*set;
 	/* JavaScript-specific */
 	JSObject*				js_glob;
 	JSObject*				js_script;
@@ -1177,7 +1176,6 @@ static void js_static_service_thread(void* arg)
 	service=(service_t*)arg;
 
 	service->running=TRUE;
-	set = service->set;
 
 	lprintf(LOG_DEBUG,"%s static JavaScript service thread started", service->protocol);
 
@@ -1635,7 +1633,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.285 $", "%*s %s", revision);
+	sscanf("$Revision: 1.286 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
