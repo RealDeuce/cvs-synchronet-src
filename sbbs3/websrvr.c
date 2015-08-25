@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.602 2015/08/25 01:44:38 deuce Exp $ */
+/* $Id: websrvr.c,v 1.603 2015/08/25 11:01:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5319,6 +5319,16 @@ void http_output_thread(void *arg)
 	sem_post(&session->output_thread_terminated);
 }
 
+static int close_session_no_rb(http_session_t *session)
+{
+	if (session) {
+		if (session->is_tls)
+			HANDLE_CRYPT_CALL(cryptDestroySession(session->tls_sess), session);
+		return close_socket(&session->socket);
+	}
+	return 0;
+}
+
 void http_session_thread(void* arg)
 {
 	SOCKET			socket;
@@ -5366,7 +5376,7 @@ void http_session_thread(void* arg)
 	if (session.is_tls) {
 		/* Create and initialize the TLS session */
 		if (!HANDLE_CRYPT_CALL(cryptCreateSession(&session.tls_sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER), &session)) {
-			close_session_socket(&session);
+			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
@@ -5392,7 +5402,7 @@ void http_session_thread(void* arg)
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session);
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session)) {
-			close_session_socket(&session);
+			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
@@ -5402,7 +5412,7 @@ void http_session_thread(void* arg)
 	/* FREE()d in this block (RingBufDispose before all returns) */
 	if(RingBufInit(&(session.outbuf), OUTBUF_LEN)) {
 		lprintf(LOG_ERR,"%04d Canot create output ringbuffer!", session.socket);
-		close_session_socket(&session);
+		close_session_no_rb(&session);
 		thread_down();
 		return;
 	}
@@ -5661,7 +5671,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.602 $", "%*s %s", revision);
+	sscanf("$Revision: 1.603 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
