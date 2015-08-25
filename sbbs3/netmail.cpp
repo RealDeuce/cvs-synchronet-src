@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.47 2015/11/26 08:34:34 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.45 2015/04/28 10:55:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,8 +96,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,/* from: */your_addr,&editor)) {
+	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
+	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -350,8 +350,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,/* from: */useron.alias,&editor)) {
+	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
+	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
