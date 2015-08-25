@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id$ */
+/* $Id: sexyz.c,v 2.1 2015/08/25 01:43:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -893,7 +893,6 @@ static int send_files(char** fname, uint fnames)
 {
 	char		path[MAX_PATH+1];
 	int			i;
-	uint		errors;
 	uint		fnum;
 	uint		cps;
 	glob_t		g;
@@ -958,7 +957,6 @@ static int send_files(char** fname, uint fnames)
 
 			fsize=filelength(fileno(fp));
 
-			errors=0;
 			startfile=time(NULL);
 
 			lprintf(LOG_INFO,"Sending %s (%"PRId64" KB) via %cMODEM"
@@ -1516,7 +1514,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision$", "%*s %s", revision);
+	sscanf("$Revision: 2.1 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"

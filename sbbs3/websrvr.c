@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.601 2015/08/23 11:16:14 deuce Exp $ */
+/* $Id: websrvr.c,v 1.602 2015/08/25 01:44:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2133,7 +2133,6 @@ static int recvbufsocket(http_session_t *session, char *buf, long count)
 {
 	int		rd=0;
 	int		i;
-	time_t	start;
 
 	if(count<1) {
 		errno=ERANGE;
@@ -2153,7 +2152,6 @@ static int recvbufsocket(http_session_t *session, char *buf, long count)
 		}
 
 		rd+=i;
-		start=time(NULL);
 	}
 
 	if(rd==count)  {
@@ -5663,7 +5661,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.601 $", "%*s %s", revision);
+	sscanf("$Revision: 1.602 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
