@@ -2,13 +2,13 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.48 2011/11/11 04:30:58 rswindell Exp $ */
+/* $Id: userdat.h,v 1.51 2015/08/22 07:11:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -135,7 +135,8 @@ DLLEXPORT BOOL	DLLCALL check_name(scfg_t* cfg, const char* name);
 
 /* Login attempt/hack tracking */
 typedef struct {
-	IN_ADDR		addr;	/* host with consecutive failed login attmepts */
+	union xp_sockaddr addr;	/* host with consecutive failed login attmepts */
+	sa_family_t	family;
 	ulong		count;	/* number of consecutive failed login attempts */
 	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
 	time32_t	time;	/* time of last attempt */
@@ -147,9 +148,9 @@ typedef struct {
 DLLEXPORT link_list_t*		DLLCALL	loginAttemptListInit(link_list_t*);
 DLLEXPORT BOOL				DLLCALL	loginAttemptListFree(link_list_t*);
 DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
-DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, SOCKADDR_IN*);
-DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, SOCKADDR_IN*);
-DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, SOCKADDR_IN*, const char* prot, const char* user, const char* pass);
+DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const union xp_sockaddr*);
+DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const union xp_sockaddr*);
+DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, const union xp_sockaddr*, const char* prot, const char* user, const char* pass);
 
 #ifdef __cplusplus
 }
