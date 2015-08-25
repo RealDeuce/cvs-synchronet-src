@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.164 2017/10/23 03:18:57 rswindell Exp $ */
+/* $Id: js_system.c,v 1.160 2015/08/22 05:44:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -130,7 +130,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
     tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
-#ifndef JSDOOR
 		case SYS_PROP_NAME:
 	        p=cfg->sys_name;
 			break;
@@ -177,7 +176,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case SYS_PROP_LASTUSERON:
 			p=lastuseron;
 			break;
-#endif
 		case SYS_PROP_FREEDISKSPACE:
 		case SYS_PROP_FREEDISKSPACEK:
 			rc=JS_SUSPENDREQUEST(cx);
@@ -188,7 +186,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			JS_RESUMEREQUEST(cx, rc);
 			*vp=DOUBLE_TO_JSVAL((double)val);
 			break;
-#ifndef JSDOOR
+
 		case SYS_PROP_NEW_PASS:
 			p=cfg->new_pass;
 			break;
@@ -267,7 +265,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case SYS_PROP_NODE_DIR:
 			p=cfg->node_dir;
 			break;
-#endif
 		case SYS_PROP_CTRL_DIR:
 			p=cfg->ctrl_dir;
 			break;
@@ -342,13 +339,11 @@ static JSBool js_system_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
 
-#ifndef JSDOOR
 	switch(tiny) {
 		case SYS_PROP_MISC:
 			JS_ValueToInt32(cx, *vp, &cfg->sys_misc);
 			break;
 	}
-#endif
 
 	return(TRUE);
 }
@@ -359,7 +354,6 @@ static JSBool js_system_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 static jsSyncPropertySpec js_system_properties[] = {
 /*		 name,						tinyid,				flags,				ver	*/
 
-#ifndef JSDOOR
 	{	"name",						SYS_PROP_NAME,		SYSOBJ_FLAGS,		310  },
 	{	"operator",					SYS_PROP_OP,		SYSOBJ_FLAGS,		310  },
 	{	"qwk_id",					SYS_PROP_ID,		SYSOBJ_FLAGS,		310  },
@@ -375,11 +369,9 @@ static jsSyncPropertySpec js_system_properties[] = {
 
 	{	"lastuser",					SYS_PROP_LASTUSER		,SYSOBJ_FLAGS,	311  },
 	{	"lastuseron",				SYS_PROP_LASTUSERON		,SYSOBJ_FLAGS,	310  },
-#endif
 	{	"freediskspace",			SYS_PROP_FREEDISKSPACE	,SYSOBJ_FLAGS,	310  },
 	{	"freediskspacek",			SYS_PROP_FREEDISKSPACEK	,SYSOBJ_FLAGS,	310  },
 
-#ifndef JSDOOR
 	{	"nodes",					SYS_PROP_NODES,		SYSOBJ_FLAGS,		310  },
 	{	"lastnode",					SYS_PROP_LASTNODE,	SYSOBJ_FLAGS,		310  },
 
@@ -411,7 +403,6 @@ static jsSyncPropertySpec js_system_properties[] = {
 
 	/* directories */
 	{	"node_dir",					SYS_PROP_NODE_DIR		,SYSOBJ_FLAGS,	310  },	
-#endif
 	{	"ctrl_dir",					SYS_PROP_CTRL_DIR		,SYSOBJ_FLAGS,	310  },	
 	{	"data_dir",					SYS_PROP_DATA_DIR		,SYSOBJ_FLAGS,	310  },	
 	{	"text_dir",					SYS_PROP_TEXT_DIR		,SYSOBJ_FLAGS,	310  },	
@@ -553,7 +544,6 @@ enum {
 	,SYSSTAT_PROP_FEEDBACK
 };
 
-#ifndef JSDOOR
 static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
 	jsval idval;
@@ -676,7 +666,7 @@ static jsSyncPropertySpec js_sysstats_properties[] = {
 	{0}
 };
 
-#if !defined(JSDOOR) && defined(BUILD_JSDOCS)
+#ifdef BUILD_JSDOCS
 static char* sysstat_prop_desc[] = {
 	 "total logons"
 	,"logons today"
@@ -888,11 +878,10 @@ js_matchuserdata(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next,NULL,NULL)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
-#endif
 
 static JSBool
 js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
@@ -1119,7 +1108,6 @@ js_secondstr(JSContext *cx, uintN argc, jsval *arglist)
 	return(JS_TRUE);
 }
 
-#ifndef JSDOOR
 static JSBool
 js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -1644,10 +1632,9 @@ js_del_user(JSContext *cx, uintN argc, jsval *arglist)
 	
 	return(JS_TRUE);
 }
-#endif
 
 static JSBool
-js_sys_exec(JSContext *cx, uintN argc, jsval *arglist)
+js_exec(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
@@ -1658,11 +1645,6 @@ js_sys_exec(JSContext *cx, uintN argc, jsval *arglist)
 	HANDLE_PENDING(cx);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
-		return JS_FALSE;
-	}
-	if(*cmd == 0) {
-		free(cmd);
-		JS_ReportError(cx, "Missing or invalid argument");
 		return JS_FALSE;
 	}
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1731,7 +1713,6 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
     return(JS_TRUE);
 }
 
-#ifndef JSDOOR
 static JSBool
 js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -1772,7 +1753,6 @@ js_chkname(JSContext *cx, uintN argc, jsval *arglist)
 
 	return(JS_TRUE);
 }
-#endif
 
 static JSBool 
 js_chkpid(JSContext *cx, uintN argc, jsval *arglist)
@@ -1818,7 +1798,6 @@ js_killpid(JSContext *cx, uintN argc, jsval *arglist)
 
 
 static jsSyncMethodSpec js_system_functions[] = {
-#ifndef JSDOOR
 	{"username",		js_username,		1,	JSTYPE_STRING,	JSDOCSTR("number")
 	,JSDOCSTR("returns name of user in specified user record <i>number</i>, or empty string if not found")
 	,311
@@ -1838,7 +1817,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"or record at which to begin searching if optional <i>match_next</i> is <tt>true</tt>")
 	,310
 	},
-#endif
 	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("basename, find_string")
 	,JSDOCSTR("search <tt>text/<i>basename</i>.can</tt> for pseudo-regexp")
 	,310
@@ -1866,7 +1844,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,JSDOCSTR("convert elapsed time in seconds into a string in <tt>hh:mm:ss</tt> format")
 	,310
 	},		
-#ifndef JSDOOR
 	{"spamlog",			js_spamlog,			6,	JSTYPE_BOOLEAN,	JSDOCSTR("[protocol, action, reason, host, ip, to, from]")
 	,JSDOCSTR("log a suspected SPAM attempt")
 	,310
@@ -1906,8 +1883,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,JSDOCSTR("delete the specified user account")
 	,316
 	},
-#endif
-	{"exec",			js_sys_exec,		0,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
+	{"exec",			js_exec,			1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
 	,JSDOCSTR("executes a native system/shell command-line, returns <i>0</i> on success")
 	,311
 	},
@@ -1916,7 +1892,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"(<b>only functional on UNIX systems</b>)")
 	,311
 	},
-#ifndef JSDOOR
 	{"check_syspass",	js_chksyspass,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("password")
 	,JSDOCSTR("compares the supplied <i>password</i> against the system password and returns <i>true</i> if it matches")
 	,311
@@ -1926,7 +1901,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"returns <i>true</i> if it is valid")
 	,315
 	},
-#endif
 	{"check_pid",		js_chkpid,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("process-ID")
 	,JSDOCSTR("checks that the provided process ID is a valid executing process on the system, "
 		"returns <i>true</i> if it is valid")
@@ -1995,7 +1969,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,sysobj))==NULL)
 		return(JS_FALSE);
 
-	node_num=(uintptr_t)JS_GetPrivate(cx,obj)>>1;
+	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
@@ -2061,7 +2035,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,sysobj))==NULL)
 		return(JS_FALSE);
 
-	node_num=(uintptr_t)JS_GetPrivate(cx,obj)>>1;
+	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
@@ -2228,13 +2202,11 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 	jsval		val;
 	char		str[256];
 	JSString*	js_str;
-	JSBool		ret;
-#ifndef JSDOOR
 	JSObject*	newobj;
 	JSObject*	nodeobj;
 	scfg_t* 	cfg;
 	uint		i;
-#endif
+	JSBool		ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
@@ -2282,7 +2254,6 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_STRING("js_version", (char *)JS_GetImplementationVersion());
 	LAZY_STRING("os_version", os_version(str));
 
-#ifndef JSDOOR
 	/* fido_addr_list property */
 	if(name==NULL || strcmp(name, "fido_addr_list")==0) {
 		if(name) free(name);
@@ -2369,7 +2340,6 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		}
 		if(name) return(JS_TRUE);
 	}
-#endif
 
 	ret = js_SyncResolve(cx, obj, name, js_system_properties, js_system_functions, NULL, 0);
 	if(name) free(name);
@@ -2413,13 +2383,11 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	/****************************/
 	/* static string properties */
-#ifndef JSDOOR
 	if((js_str=JS_NewStringCopyZ(cx, host_name))==NULL)
 		return(NULL);
 	val = STRING_TO_JSVAL(js_str);
 	if(!JS_SetProperty(cx, sysobj, "host_name", &val))
 		return(NULL);
-#endif
 
 	if((js_str=JS_NewStringCopyZ(cx, socklib_version(str, socklib_desc)))==NULL)
 		return(NULL);
@@ -2429,11 +2397,9 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	/***********************/
 
-#ifndef JSDOOR
 	val=DOUBLE_TO_JSVAL((double)uptime);
 	if(!JS_SetProperty(cx, sysobj, "uptime", &val))
 		return(NULL);
-#endif
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,sysobj,"Global system-related properties and methods",310);
