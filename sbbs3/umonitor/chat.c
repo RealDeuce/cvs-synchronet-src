@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.14 2006/05/08 18:58:21 deuce Exp $ */
+/* $Id: chat.c,v 1.15 2014/02/13 08:50:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,8 +36,8 @@
  ****************************************************************************/
 
 #include <sys/types.h>
-#include <utime.h>
 
+#include <genwrap.h>
 #include "ciolib.h"
 #define __COLORS
 #include "sbbs.h"
