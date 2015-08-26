@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.63 2015/08/22 08:04:53 deuce Exp $ */
+/* $Id: sockwrap.c,v 1.64 2015/08/26 07:32:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * CopyrightRob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -439,7 +439,7 @@ const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t siz
 {
 #ifdef _WIN32
 	if(getnameinfo(&addr->addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
-		strncpy(dest, "<Unable to convert address>", size);
+		safe_snprintf(dest, size, "<Error %u converting address, family=%u>", WSAGetLastError(), addr->addr.sa_family);
 	return dest;
 #else
 	switch(addr->addr.sa_family) {
@@ -452,7 +452,7 @@ const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t siz
 			dest[size-1]=0;
 			return dest;
 		default:
-			safe_snprintf(dest, size, "<unknown address>");
+			safe_snprintf(dest, size, "<unknown address family: %u>", addr->addr.sa_family);
 			return NULL;
 	}
 #endif
