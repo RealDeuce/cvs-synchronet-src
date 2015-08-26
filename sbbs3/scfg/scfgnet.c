@@ -1,10 +1,12 @@
-/* $Id: scfgnet.c,v 1.31 2016/11/23 10:30:15 rswindell Exp $ */
+/* scfgnet.c */
+
+/* $Id: scfgnet.c,v 1.28 2014/02/16 06:28:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -262,6 +264,10 @@ while(1) {
 			sprintf(opt[i++],"%-27.27s%.40s"
 				,"EchoMail Semaphore",cfg.echomail_sem);
 			sprintf(opt[i++],"%-27.27s%.40s"
+				,"Inbound File Directory",cfg.fidofile_dir);
+			sprintf(opt[i++],"%-27.27s%.40s"
+				,"EchoMail Base Directory",cfg.echomail_dir);
+			sprintf(opt[i++],"%-27.27s%.40s"
 				,"NetMail Directory",cfg.netmail_dir);
 			sprintf(opt[i++],"%-27.27s%s"
 				,"Allow Sending of NetMail"
@@ -445,21 +451,48 @@ while(1) {
                     break;
 				case 5:
 					uifc.helpbuf=
+						"`Inbound File Directory:`\n"
+						"\n"
+						"This directory is where inbound files are placed. This directory is\n"
+						"only used when an incoming message has a file attached.\n"
+					;
+					uifc.input(WIN_MID|WIN_SAV,0,0,"Inbound Files"
+						,cfg.fidofile_dir,sizeof(cfg.fidofile_dir)-1,K_EDIT);
+                    break;
+				case 6:
+					uifc.helpbuf=
+						"`EchoMail Base Directory:`\n"
+						"\n"
+						"This is an optional field used as a base directory for the location\n"
+						"of EchoMail messages for sub-boards that do not have a specified\n"
+						"`EchoMail Storage Directory`. If a sub-board does not have a specified\n"
+						"storage directory for EchoMail, its messages will be imported from and\n"
+						"exported to a sub-directory off of this base directory. The name of the\n"
+						"sub-directory is the same as the internal code for the sub-directory.\n"
+						"\n"
+						"If all EchoMail sub-boards have specified EchoMail storage directories,\n"
+						"this option is not used at all.\n"
+					;
+					uifc.input(WIN_MID|WIN_SAV,0,0,"EchoMail Base"
+						,cfg.echomail_dir,sizeof(cfg.echomail_dir)-1,K_EDIT);
+                    break;
+				case 7:
+					uifc.helpbuf=
 						"`NetMail Directory:`\n"
 						"\n"
-						"This is the directory where FidoNet NetMail will be imported from\n"
-						"and exported to (in FTS-1, *.MSG format).\n"
+						"This is the directory where NetMail will be imported from and exported\n"
+						"to.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,0,"NetMail"
 						,cfg.netmail_dir,sizeof(cfg.netmail_dir)-1,K_EDIT);
                     break;
-				case 6:
+				case 8:
 					i=0;
 					uifc.helpbuf=
 						"`Allow Users to Send NetMail:`\n"
 						"\n"
 						"If you are on a FidoNet style network and want your users to be allowed\n"
-						"to send FidoNet NetMail, set this option to `Yes`.\n"
+						"to send NetMail, set this option to `Yes`.\n"
 					;
 					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
 						,"Allow Users to Send NetMail",uifcYesNoOpts);
@@ -472,7 +505,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_ALLOW; 
 					}
 					break;
-				case 7:
+				case 9:
 					i=0;
 					uifc.helpbuf=
 						"`Allow Users to Send NetMail File Attachments:`\n"
@@ -491,7 +524,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_FILE; 
 					}
                     break;
-				case 8:
+				case 10:
 					i=1;
 					uifc.helpbuf=
 						"`Use Aliases in NetMail:`\n"
@@ -512,7 +545,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_ALIAS; 
 					}
                     break;
-				case 9:
+				case 11:
 					i=1;
 					uifc.helpbuf=
 						"`NetMail Defaults to Crash Status:`\n"
@@ -531,7 +564,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_CRASH; 
 					}
                     break;
-				case 10:
+				case 12:
 					i=1;
 					uifc.helpbuf=
 						"`NetMail Defaults to Direct Status:`\n"
@@ -550,7 +583,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_DIRECT; 
 					}
                     break;
-				case 11:
+				case 13:
 					i=1;
 					uifc.helpbuf=
 						"`NetMail Defaults to Hold Status:`\n"
@@ -569,7 +602,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_HOLD; 
 					}
                     break;
-				case 12:
+				case 14:
 					i=0;
 					uifc.helpbuf=
 						"`Kill NetMail After it is Sent:`\n"
@@ -588,7 +621,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_KILL; 
 					}
                     break;
-				case 13:
+				case 15:
 					ultoa(cfg.netmail_cost,str,10);
 					uifc.helpbuf=
 						"`Cost in Credits to Send NetMail:`\n"
@@ -906,48 +939,14 @@ while(!done) {
 		sprintf(str,"%2.2u:%2.2u",cfg.qhub[num]->time/60,cfg.qhub[num]->time%60);
 		sprintf(opt[i++],"%-27.27s%s","Call-out Time",str); 
 	}
-	sprintf(opt[i++],"%-27.27s%s","Include Kludge Lines", cfg.qhub[num]->misc&QHUB_NOKLUDGES ? "No":"Yes");
-	sprintf(opt[i++],"%-27.27s%s","Include VOTING.DAT File", cfg.qhub[num]->misc&QHUB_NOVOTING ? "No":"Yes");
-	sprintf(opt[i++],"%-27.27s%s","Include HEADERS.DAT File", cfg.qhub[num]->misc&QHUB_NOHEADERS ? "No":"Yes");
-	sprintf(opt[i++],"%-27.27s%s","Extended (QWKE) Packets", cfg.qhub[num]->misc&QHUB_EXT ? "Yes":"No");
-	sprintf(opt[i++],"%-27.27s%s","Exported Ctrl-A Codes"
-		,cfg.qhub[num]->misc&QHUB_EXPCTLA ? "Expand" : cfg.qhub[num]->misc&QHUB_RETCTLA ? "Leave in" : "Strip");
 	strcpy(opt[i++],"Networked Sub-boards...");
 	opt[i][0]=0;
 	sprintf(str,"%s Network Hub",cfg.qhub[num]->id);
 	uifc.helpbuf=
 		"`QWK Network Hub Configuration:`\n"
 		"\n"
-		"This menu allows you to configure options specific to this QWKnet hub.\n"
-		"\n"
-		"The `Hub System ID` must match the QWK System ID of this network hub.\n"
-		"\n"
-		"The `Pack` and `Unpack Command Lines` are used for creating and extracting\n"
-		"REP (reply) and QWK message packets (files, usually in PKZIP format).\n"
-		"\n"
-		"The `Call-out Command Line` is executed when your system attempts a packet\n"
-		"exchange with the QWKnet hub (e.g. executes a script).\n"
-		"\n"
-		"`Kludge Lines` (e.g. @TZ, @VIA, @MSGID, @REPLY) provide information not\n"
-		"available in standard QWK message headers, but are superfluous when the\n"
-		"HEADERS.DAT file is supported and used.\n"
-		"\n"
-		"The `VOTING.DAT` file is the distributed QWKnet voting system supported\n"
-		"in Synchronet v3.17 and later\n"
-		"\n"
-		"The `HEADERS.DAT` file provides all the same information that can be\n"
-		"found in Kludge Lines and also addresses the 25-character QWK field\n"
-		"length limits. HEADERS.DAT is supported in Synchronet v3.15 and later.\n"
-		"\n"
-		"`Extended (QWKE) Packets` are not normally used in QWK Networking.\n"
-		"Setting this to `Yes` enables some QWKE-specific Kludge Lines that are\n"
-		"superfluous when the HEADERS.DAT file is supported and used.\n"
-		"\n"
-		"`Exported Ctrl-A Codes` determines how Synchronet attribute/color\n"
-		"codes in messages are exported into the QWK network packets. This\n"
-		"may be set to `Leave in` (retain), `Expand` (to ANSI), or `Strip` (remove).\n"
-		"This setting is used for QWKnet NetMail messages and may over-ride the\n"
-		"equivalent setting for each sub-board."
+		"This menu allows you to configure options specific to this QWK network\n"
+		"hub.\n"
 	;
 	switch(uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&qhub_dflt,0
 		,str,opt)) {
@@ -1084,30 +1083,6 @@ while(!done) {
 			}
 			break;
 		case 7:
-			cfg.qhub[num]->misc^=QHUB_NOKLUDGES;
-			uifc.changes=1;
-			break;
-		case 8:
-			cfg.qhub[num]->misc^=QHUB_NOVOTING;
-			uifc.changes=1;
-			break;
-		case 9:
-			cfg.qhub[num]->misc^=QHUB_NOHEADERS;
-			uifc.changes=1;
-			break;
-		case 10:
-			cfg.qhub[num]->misc^=QHUB_EXT;
-			uifc.changes=1;
-			break;
-		case 11:
-			i = cfg.qhub[num]->misc&QHUB_CTRL_A;
-			i++;
-			if(i == QHUB_CTRL_A) i = 0;
-			cfg.qhub[num]->misc &= ~QHUB_CTRL_A;
-			cfg.qhub[num]->misc |= i;
-			uifc.changes=1;
-			break;
-		case 12:
 			qhub_sub_edit(num);
 			break; 
 		} 
@@ -1206,11 +1181,11 @@ while(1) {
 				cfg.qhub[num]->mode[n]=cfg.qhub[num]->mode[n-1]; 
 			}
 		if(!m)
-			cfg.qhub[num]->mode[j]=QHUB_STRIP;
+			cfg.qhub[num]->mode[j]=A_STRIP;
 		else if(m==1)
-			cfg.qhub[num]->mode[j]=QHUB_RETCTLA;
+			cfg.qhub[num]->mode[j]=A_LEAVE;
 		else
-			cfg.qhub[num]->mode[j]=QHUB_EXPCTLA;
+			cfg.qhub[num]->mode[j]=A_EXPAND;
 		cfg.qhub[num]->sub[j]=l;
 		cfg.qhub[num]->conf[j]=atoi(str);
 		cfg.qhub[num]->subs++;
@@ -1241,8 +1216,8 @@ while(1) {
 		sprintf(opt[n++],"%-22.22s%u"
 			,"Conference Number",cfg.qhub[num]->conf[j]);
 		sprintf(opt[n++],"%-22.22s%s"
-			,"Ctrl-A Codes",cfg.qhub[num]->mode[j]==QHUB_STRIP ?
-			"Strip out" : cfg.qhub[num]->mode[j]==QHUB_RETCTLA ?
+			,"Ctrl-A Codes",cfg.qhub[num]->mode[j]==A_STRIP ?
+			"Strip out" : cfg.qhub[num]->mode[j]==A_LEAVE ?
 			"Leave in" : "Expand to ANSI");
 		opt[n][0]=0;
 		uifc.helpbuf=
@@ -1302,11 +1277,11 @@ while(1) {
 				,"Ctrl-A Codes",opt);
 			uifc.changes=1;
 			if(!m)
-				cfg.qhub[num]->mode[j]=QHUB_STRIP;
+				cfg.qhub[num]->mode[j]=A_STRIP;
 			else if(m==1)
-				cfg.qhub[num]->mode[j]=QHUB_RETCTLA;
+				cfg.qhub[num]->mode[j]=A_LEAVE;
 			else if(m==2)
-				cfg.qhub[num]->mode[j]=QHUB_EXPCTLA; 
+				cfg.qhub[num]->mode[j]=A_EXPAND; 
 			} 
 		} 
 	}
