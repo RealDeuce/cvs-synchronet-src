@@ -2,7 +2,7 @@
 
 /* Synchronet BBS Node control program */
 
-/* $Id: node.c,v 1.27 2015/05/02 01:00:13 deuce Exp $ */
+/* $Id: node.c,v 1.28 2015/08/22 06:33:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -369,7 +369,7 @@ void printnodedat(int number, node_t node)
 					printf("performing sysop activities");
 					break;
 				default:
-					printf(itoa(node.action,tmp,10));
+					fputs(itoa(node.action,tmp,10),stdout);
 					break;  }
 			printf(" %s",node_connection_desc(node.connection,tmp));
 			if(node.action==NODE_DLNG) {
@@ -441,12 +441,12 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.27 $", "%*s %s", revision);
+	sscanf("$Revision: 1.28 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
-		printf("COMPILER ERROR: sizeof(node_t)=%u instead of %d\n"
+		printf("COMPILER ERROR: sizeof(node_t)=%" XP_PRIsize_t "u instead of %d\n"
 			,sizeof(node_t),SIZEOF_NODE_T);
 		return(-1);
 	}
