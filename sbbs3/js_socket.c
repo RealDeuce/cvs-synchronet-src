@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.173 2015/10/04 22:09:46 deuce Exp $ */
+/* $Id: js_socket.c,v 1.170 2015/08/23 11:16:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,14 @@
 
 #ifdef JAVASCRIPT
 
+int cryptInitialized=0;
+
 static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
+
+static void do_cryptEnd(void)
+{
+	cryptEnd();
+}
 
 static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val)
 {
@@ -69,6 +76,26 @@ static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE a
 	return ret;
 }
 
+int DLLCALL do_cryptInit(void)
+{
+	int ret;
+
+	if(!cryptInitialized) {
+		if((ret=cryptInit())==CRYPT_OK) {
+			cryptAddRandom(NULL,CRYPT_RANDOM_SLOWPOLL);
+			cryptInitialized=1;
+			atexit(do_cryptEnd);
+		}
+		else {
+			if (ret == -12)	// This is a bit of a hack...
+				cryptInitialized=1;
+			else
+				lprintf(LOG_ERR,"cryptInit() returned %d", ret);
+		}
+	}
+	return cryptInitialized;
+}
+
 static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, void *val, int len)
 {
 	int ret=cryptSetAttributeString(session, attr, val, len);
@@ -87,11 +114,11 @@ static void do_CryptFlush(const CRYPT_CONTEXT session)
 	if(ret!=CRYPT_OK) {
 		estr = get_crypt_error(session);
 		if (estr) {
-			lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
+			lprintf(LOG_ERR, "cryptFlushData() returned %d (%s)", ret, estr);
 			free_crypt_attrstr(estr);
 		}
 		else
-			lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
+			lprintf(LOG_ERR, "cryptFlushData() returned %d", ret);
 	}
 }
 
@@ -131,7 +158,7 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			buf=((uint8_t *)buf) + copied;
 		}
 		else {
-			lprintf(LOG_WARNING,"cryptPopData() returned %d", ret);
+			lprintf(LOG_ERR,"cryptPopData() returned %d", ret);
 			if (total > 0)
 				return total;
 			do_js_close(p);
@@ -163,7 +190,7 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 			msg=((uint8_t *)msg) + copied;
 		}
 		else {
-			lprintf(LOG_WARNING,"cryptPushData() returned %d", ret);
+			lprintf(LOG_ERR,"cryptPushData() returned %d", ret);
 			if(flush) do_CryptFlush(p->session);
 			return total;
 		}
@@ -2147,6 +2174,8 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 		len=sizeof(p->remote_addr);
 		if(getpeername(p->sock, &p->remote_addr.addr,&len)==0)
 			p->is_connected=TRUE;
+		else
+			lprintf(LOG_ERR, "Error %d calling getpeername()",errno);
 	}
 
 	if(!JS_SetPrivate(cx, obj, p)) {
