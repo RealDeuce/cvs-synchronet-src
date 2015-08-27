@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.52 2015/08/27 00:13:27 deuce Exp $ */
+/* $Id: uedit.c,v 1.53 2015/08/27 00:36:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,8 @@
 #endif
 
 #include "ciolib.h"
+#include "curs_cio.h"
+#undef OK
 #include "sbbs.h"
 
 #include "genwrap.h"
@@ -1908,7 +1910,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.52 $", "%*s %s", revision);
+	sscanf("$Revision: 1.53 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
