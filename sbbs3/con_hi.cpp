@@ -2,13 +2,13 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.23 2017/08/10 17:44:36 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.21 2011/10/19 08:20:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -101,7 +101,7 @@ int sbbs_t::uselect(int add, uint n, const char *title, const char *item, const 
 /****************************************************************************/
 /* Prompts user for System Password. Returns 1 if user entered correct PW	*/
 /****************************************************************************/
-bool sbbs_t::chksyspass(const char* sys_pw)
+bool sbbs_t::chksyspass()
 {
 	char	str[256],str2[256];
 
@@ -109,14 +109,10 @@ bool sbbs_t::chksyspass(const char* sys_pw)
 		logline(LOG_NOTICE,"S!","Remote sysop access disabled");
 		return(false);
 	}
-	if(sys_pw != NULL)
-		SAFECOPY(str, sys_pw);
-	else {
-		bputs(text[SystemPassword]);
-		getstr(str, 40, K_UPPER | K_NOECHO);
-		CRLF;
-	}
-	if(stricmp(cfg.sys_pass,str)) {
+	bputs(text[SystemPassword]);
+	getstr(str,40,K_UPPER|K_NOECHO);
+	CRLF;
+	if(strcmp(cfg.sys_pass,str)) {
 		if(cfg.sys_misc&SM_ECHO_PW) 
 			SAFEPRINTF3(str2,"%s #%u System password attempt: '%s'"
 				,useron.alias,useron.number,str);
