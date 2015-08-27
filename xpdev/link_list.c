@@ -1,12 +1,14 @@
+/* link_list.c */
+
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.58 2017/11/06 07:05:13 rswindell Exp $ */
+/* $Id: link_list.c,v 1.56 2015/02/18 08:32:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -58,6 +60,7 @@ link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_MUTEX) {
 		list->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+		memset(&list->tid, 0xff, sizeof(list->tid));
 	}
 
 	if(list->flags&LINK_LIST_SEMAPHORE) 
@@ -308,33 +311,6 @@ list_node_t* DLLCALL listFindNode(link_list_t* list, const void* data, size_t le
 	listUnlock(list);
 
 	return(node);
-}
-
-ulong DLLCALL listCountMatches(link_list_t* list, const void* data, size_t length)
-{
-	list_node_t* node;
-	ulong matches = 0;
-
-	if(list==NULL)
-		return 0;
-
-	listLock(list);
-
-	for(node=list->first; node!=NULL; node=node->next) {
-		if(length==0) {
-			if(node->data!=data)
-				continue;
-		} else if(data==NULL) {
-			if(node->tag==(list_node_tag_t)length)
-				continue;
-		} else if(node->data==NULL || memcmp(node->data,data,length)!=0)
-			continue;
-		matches++;
-	}
-
-	listUnlock(list);
-
-	return matches;
 }
 
 str_list_t DLLCALL listStringList(link_list_t* list)
