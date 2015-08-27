@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node spy */
 
-/* $Id$ */
+/* $Id: spyon.c,v 1.11 2015/08/27 00:38:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,8 +67,6 @@ int spyon(char *sockname)  {
 	fd_set	rd;
 	BOOL	b;
 	int		retval=0;
-	char	ANSIbuf[32];
-	int		parsing=0;
 	int		telnet_strip=0;
 	struct text_info ti;
 	char *scrn;
