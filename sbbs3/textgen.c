@@ -198,13 +198,13 @@ int main(int argc, char **argv)
 	fputs("\n",text_h);
 	fputs("/* Synchronet static text string constants */\n",text_h);
 	fputs("\n",text_h);
-	fputs("/* $Id$ */\n",text_h);
+	fputs("/* $Id: textgen.c,v 1.7 2015/08/27 00:19:29 rswindell Exp $ */\n",text_h);
 	fputs("\n",text_h);
 	fputs("/****************************************************************************\n",text_h);
 	fputs(" * @format.tab-size 4		(Plain Text/Source Code File Header)			*\n",text_h);
 	fputs(" * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*\n",text_h);
 	fputs(" *																			*\n",text_h);
-	fputs(" * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*\n",text_h);
+	fputs(" * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*\n",text_h);
 	fputs(" *																			*\n",text_h);
 	fputs(" * This program is free software; you can redistribute it and/or			*\n",text_h);
 	fputs(" * modify it under the terms of the GNU General Public License				*\n",text_h);
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 		perror(path);
 		return(1);
 	}
-	fputs("/* $Id$ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.7 2015/08/27 00:19:29 rswindell Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Can't open text_defaults.c!\n");
 		return(1);
 	}
-	fputs("/* $Id$ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.7 2015/08/27 00:19:29 rswindell Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
