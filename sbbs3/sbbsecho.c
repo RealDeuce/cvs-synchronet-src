@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.261 2015/07/22 23:46:14 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.263 2015/08/25 01:41:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -584,7 +584,7 @@ void notify_list(void)
 {
 	FILE *	tmpf;
 	char	str[256];
-	uint	i,j,k;
+	uint	i,k;
 
 	for(k=0;k<cfg.nodecfgs;k++) {
 
@@ -3747,7 +3747,8 @@ void export_echomail(char *sub_code,faddr_t addr)
 	int		area;
 	int		i,j,k=0;
 	ulong	f,l,m,exp,exported=0;
-	uint32_t ptr,msgs,lastmsg,posts;
+	uint32_t ptr,lastmsg,posts;
+	long	msgs;
 	float	export_time;
 	smbmsg_t msg;
 	smbmsg_t orig_msg;
@@ -4144,7 +4145,7 @@ int main(int argc, char **argv)
 	"o: import all netmail regardless of destination address\n"
 	"s: import private echomail override (strip private status)\n"
 	"!: notify users of received echomail     @: prompt for key upon exiting (debug)\n"
-	"                                         W: prompt for key upon abnormal exit\n";
+	"                                         W: prompt for key upon abnormal exit";
 
 	if((email=(smb_t *)malloc(sizeof(smb_t)))==NULL) {
 		printf("ERROR allocating memory for email.\n");
@@ -4167,7 +4168,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.261 $", "%*s %s", revision);
+	sscanf("$Revision: 1.263 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4268,7 +4269,7 @@ int main(int argc, char **argv)
 					case 'Q':
 						bail(0);
 					default:
-						printf(usage);
+						puts(usage);
 						bail(0); 
 				}
 				j++; 
@@ -4796,7 +4797,7 @@ int main(int argc, char **argv)
 					if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
 						sprintf(str,"ERROR %d opening %s area #%d, sub #%d)"
 							,j,smb[cur_smb].file,i+1,cfg.area[i].sub+1);
-						printf(str);
+						fputs(str,stdout);
 						logprintf(str);
 						strip_psb(fmsgbuf);
 						pkt_to_pkt(fmsgbuf,curarea,pkt_faddr,hdr,msg_seen
@@ -4812,7 +4813,7 @@ int main(int argc, char **argv)
 								? SMB_HYPERALLOC:0;
 						if((j=smb_create(&smb[cur_smb]))!=SMB_SUCCESS) {
 							sprintf(str,"ERROR %d creating %s",j,smb[cur_smb].file);
-							printf(str);
+							fputs(str,stdout);
 							logprintf(str);
 							smb_close(&smb[cur_smb]);
 							strip_psb(fmsgbuf);
