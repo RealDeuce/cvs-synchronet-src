@@ -1,6 +1,8 @@
+/* ftpsrvr.h */
+
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.57 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: ftpsrvr.h,v 1.55 2015/08/22 10:21:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +87,6 @@ typedef struct {
 	char	answer_sound[128];
 	char	hangup_sound[128];
     char	hack_sound[128];
-	char	ini_fname[128];
 
 	/* Misc */
     char	host_name[128];
@@ -99,7 +100,10 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	struct login_attempt_settings login_attempt;
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
 
 } ftp_startup_t;
