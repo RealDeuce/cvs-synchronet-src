@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id$ */
+/* $Id: uedit.c,v 1.51 2015/08/27 00:09:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1429,9 +1429,9 @@ int edit_personal(scfg_t *cfg, user_t *user)
 	char	onech[2];
 	char	str[256];
 
-	if((opt=(char **)alloca(sizeof(char *)*(15+1)))==NULL)
-		allocfail(sizeof(char *)*(15+1));
-	for(i=0;i<(15+1);i++)
+	if((opt=(char **)alloca(sizeof(char *)*(16+1)))==NULL)
+		allocfail(sizeof(char *)*(16+1));
+	for(i=0;i<(16+1);i++)
 		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
@@ -1451,6 +1451,7 @@ int edit_personal(scfg_t *cfg, user_t *user)
 		sprintf(opt[i++],"Phone       %s",user->phone);
 		sprintf(opt[i++],"Computer    %s",user->comp);
 		sprintf(opt[i++],"Connection  %s",user->modem);
+		sprintf(opt[i++],"IP Address  %s",user->ipaddr);
 		sprintf(opt[i++],"Password    %s",user->pass);
 		sprintf(opt[i++],"Note        %s",user->note);
 		sprintf(opt[i++],"Comment     %s",user->comment);
@@ -1549,6 +1550,13 @@ int edit_personal(scfg_t *cfg, user_t *user)
 					putuserrec(cfg,user->number,U_MODEM,LEN_MODEM,user->modem);
 				break;
 			case 12:
+				/* IP Address */
+				getuserdat(cfg,user);
+				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"IP Address",user->modem,LEN_IPADDR,K_EDIT);
+				if(uifc.changes)
+					putuserrec(cfg,user->number,U_IPADDR,LEN_IPADDR,user->ipaddr);
+				break;
+			case 13:
 				/* Password */
 				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Password",user->pass,LEN_PASS,K_EDIT);
@@ -1558,14 +1566,14 @@ int edit_personal(scfg_t *cfg, user_t *user)
 					putuserrec(cfg,user->number,U_PWMOD,8,ultoa(user->pwmod,str,16));
 				}
 				break;
-			case 13:
+			case 14:
 				/* Note */
 				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Note",user->note,LEN_NOTE,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_NOTE,LEN_NOTE,user->note);
 				break;
-			case 14:
+			case 15:
 			    /* Comment */
 				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Comment",user->comment,LEN_COMMENT,K_EDIT);
@@ -1901,7 +1909,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision$", "%*s %s", revision);
+	sscanf("$Revision: 1.51 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
