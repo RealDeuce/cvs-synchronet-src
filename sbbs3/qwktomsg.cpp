@@ -2,13 +2,13 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.57 2015/11/23 08:48:50 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.55 2011/11/04 03:23:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -50,7 +50,7 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 	if((p=iniPopKey(headers,ROOT_SECTION,"WhenWritten",value))!=NULL) {
 		xpDateTime_t dt=isoDateTimeStr_parse(p);
 
-		msg->hdr.when_written.time=(uint32_t)xpDateTime_to_localtime(dt);
+		msg->hdr.when_written.time=(uint32_t)xpDateTime_to_time(dt);
 		msg->hdr.when_written.zone=dt.zone;
 		sscanf(p,"%*s %s",zone);
 		if(zone[0])
@@ -66,7 +66,7 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 	if((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=RECIPIENTNETADDR),value))!=NULL) {
 		if(parse_recipient_hfields) {
 			net_type=NET_UNKNOWN;
-			smb_hfield_add_netaddr(msg,hfield_type,p,&net_type);
+			smb_hfield_netaddr(msg,hfield_type,p,&net_type);
 			smb_hfield_bin(msg,RECIPIENTNETTYPE,net_type);
 		}
 	}
@@ -83,7 +83,7 @@ static void qwk_parse_header_list(smbmsg_t* msg, str_list_t* headers, bool parse
 		if(parse_sender_hfields) {
 			smb_hfield_str(msg,hfield_type,p);
 			net_type=NET_UNKNOWN;
-			smb_hfield_add_netaddr(msg,hfield_type,p,&net_type);
+			smb_hfield_netaddr(msg,hfield_type,p,&net_type);
 			smb_hfield_bin(msg,SENDERNETTYPE,net_type);
 		}
 	}
@@ -408,7 +408,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 		/* From network type & address: */
 		strupr(str);
 		net_type=NET_QWK;
-		smb_hfield_add_netaddr(msg, SENDERNETADDR, str, &net_type);
+		smb_hfield_netaddr(msg, SENDERNETADDR, str, &net_type);
 		smb_hfield_bin(msg,SENDERNETTYPE,net_type);
 
 	} else {
