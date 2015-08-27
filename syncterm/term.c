@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.313 2015/10/28 02:01:20 rswindell Exp $ */
+/* $Id: term.c,v 1.312 2015/02/26 09:20:50 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1100,31 +1100,8 @@ void ascii_upload(FILE *fp)
 	fclose(fp);
 }
 
-static void transfer_complete(BOOL success)
-{
-	int timeout = success ? settings.xfer_success_keypress_timeout : settings.xfer_failure_keypress_timeout;
-
-	conn_binary_mode_off();
-	if(log_fp!=NULL)
-		fflush(log_fp);
-	/* TODO: Make this pretty (countdown timer) and don't delay a second between keyboard polls */
-	lprintf(LOG_NOTICE,"Hit any key or wait %u seconds to continue...", timeout);
-	while(timeout > 0) {
-		if (kbhit()) {
-			if(getch()==0 && getch()<<8 == CIO_KEY_QUIT)
-				check_exit(FALSE);
-			break;
-		}
-		timeout--;
-		SLEEP(1000);
-	}
-
-	erase_transfer_window();
-}
-
 void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 {
-	BOOL		success;
 	zmodem_t	zm;
 	int64_t		fsize;
 	struct zmodem_cbdata cbdata;
@@ -1154,13 +1131,22 @@ void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 	lprintf(LOG_INFO,"Sending %s (%"PRId64" KB) via ZMODEM"
 		,path,fsize/1024);
 
-	if((success=zmodem_send_file(&zm, path, fp
-		,/* ZRQINIT? */TRUE, /* start_time */NULL, /* sent_bytes */ NULL)) == TRUE)
+	if(zmodem_send_file(&zm, path, fp
+		,/* ZRQINIT? */TRUE, /* start_time */NULL, /* sent_bytes */ NULL))
 		zmodem_get_zfin(&zm);
 
 	fclose(fp);
 
-	transfer_complete(success);
+	conn_binary_mode_off();
+	lprintf(LOG_NOTICE,"Hit any key to continue...");
+	if(log_fp!=NULL)
+		fflush(log_fp);
+	if (getch()==0) {
+		if (getch()<<8 == CIO_KEY_QUIT)
+			check_exit(FALSE);
+	}
+
+	erase_transfer_window();
 }
 
 BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
@@ -1264,7 +1250,16 @@ void zmodem_download(struct bbslist *bbs)
 	if(files_received>1)
 		lprintf(LOG_INFO,"Received %u files (%"PRId64" bytes) successfully", files_received, bytes_received);
 
-	transfer_complete(files_received);
+	conn_binary_mode_off();
+	lprintf(LOG_NOTICE,"Hit any key to continue...");
+	if(log_fp!=NULL)
+		fflush(log_fp);
+	if (getch()==0) {
+		if (getch()<<8 == CIO_KEY_QUIT)
+			check_exit(FALSE);
+	}
+
+	erase_transfer_window();
 }
 /* End of Zmodem Stuff */
 
@@ -1464,7 +1459,6 @@ static int recv_nak(void *cbdata, unsigned timeout)
 
 void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int lastch)
 {
-	BOOL		success;
 	xmodem_t	xm;
 	ulong		fsize;
 
@@ -1524,8 +1518,8 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 		return;
 	}
 
-	if((success=xmodem_send_file(&xm, path, fp
-		,/* start_time */NULL, /* sent_bytes */ NULL)) == TRUE) {
+	if(xmodem_send_file(&xm, path, fp
+		,/* start_time */NULL, /* sent_bytes */ NULL)) {
 		if(mode&YMODEM) {
 
 			if(xmodem_get_mode(&xm)) {
@@ -1543,7 +1537,16 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 
 	fclose(fp);
 
-	transfer_complete(success);
+	conn_binary_mode_off();
+	lprintf(LOG_NOTICE,"Hit any key to continue...");
+	if(log_fp!=NULL)
+		fflush(log_fp);
+	if (getch()==0) {
+		if (getch()<<8 == CIO_KEY_QUIT)
+			check_exit(FALSE);
+	}
+
+	erase_transfer_window();
 }
 
 BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t pathsize, char *fname)
@@ -1899,7 +1902,16 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 end:
 	if(fp)
 		fclose(fp);
-	transfer_complete(success);
+	conn_binary_mode_off();
+	lprintf(LOG_NOTICE,"Hit any key to continue...");
+	if(log_fp!=NULL)
+		fflush(log_fp);
+	if (getch()==0) {
+		if (getch()<<8 == CIO_KEY_QUIT)
+			check_exit(FALSE);
+	}
+
+	erase_transfer_window();
 }
 
 /* End of X/Y-MODEM stuff */
