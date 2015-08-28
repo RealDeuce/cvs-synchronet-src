@@ -1,13 +1,14 @@
+/* chksmb.c */
+
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.57 2016/12/01 21:22:12 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: chksmb.c,v 1.52 2012/10/24 19:03:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -103,18 +104,6 @@ char* DLLCALL strip_ctrl(char *str)
 	return(str);
 }
 
-BOOL contains_ctrl_chars(char* str)
-{
-	uchar* p;
-
-	if(str==NULL)
-		return FALSE;
-	for(p = (uchar *)str; *p; p++)
-		if(*p < ' ')
-			return TRUE;
-	return FALSE;
-}
-
 char *usage="\nusage: chksmb [-opts] <filespec.SHD>\n"
 			"\n"
 			" opts:\n"
@@ -151,9 +140,7 @@ int main(int argc, char **argv)
 				,intransit,unvalidated
 				,zeronum,idxzeronum,idxnumerr,packable=0L,totallzhsaved=0L
 				,totalmsgs=0,totallzhmsgs=0,totaldelmsgs=0,totalmsgbytes=0L
-				,lzhblocks,lzhsaved
-				,ctrl_chars;
-	ulong		msgids = 0;
+				,lzhblocks,lzhsaved;
 	smb_t		smb;
 	idxrec_t	idx;
 	smbmsg_t	msg;
@@ -161,7 +148,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.57 $", "%*s %s", revision);
+	sscanf("$Revision: 1.52 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -288,8 +275,6 @@ int main(int argc, char **argv)
 	intransit=0;
 	acthdrblocks=actdatblocks=0;
 	dfieldlength=dfieldoffset=0;
-	msgids = 0;
-	ctrl_chars = 0;
 
 	for(l=smb.status.header_offset;l<length;l+=size) {
 		size=SHD_BLOCK_LEN;
@@ -331,16 +316,6 @@ int main(int argc, char **argv)
 		strip_ctrl(from);
 		fprintf(stderr,"#%-5"PRIu32" (%06lX) %-25.25s ",msg.hdr.number,l,from);
 
-		if(contains_ctrl_chars(msg.to) 
-			|| (msg.to_net.type != NET_FIDO && contains_ctrl_chars(msg.to_net.addr))
-			|| contains_ctrl_chars(msg.from)
-			|| (msg.from_net.type != NET_FIDO && contains_ctrl_chars(msg.from_net.addr))
-			|| contains_ctrl_chars(msg.subj)) {
-			fprintf(stderr,"%sHeader field contains control characters\n", beep);
-			msgerr=TRUE;
-			ctrl_chars++;
-		}
-	
 		if(msg.hdr.length!=smb_getmsghdrlen(&msg)) {
 			fprintf(stderr,"%sHeader length mismatch\n",beep);
 			msgerr=TRUE;
@@ -348,14 +323,6 @@ int main(int argc, char **argv)
 				printf("MSGERR: Header length (%hu) does not match calculcated length (%lu)\n"
 					,msg.hdr.length,smb_getmsghdrlen(&msg));
 			hdrlenerr++; 
-		}
-
-		if(msg.from_net.type == NET_NONE && msg.id == NULL) {
-			fprintf(stderr,"%sNo Message-ID\n",beep);
-			msgerr=TRUE;
-			if(extinfo)
-				printf("MSGERR: Header missing Message-ID\n");
-			msgids++;
 		}
 
 		/* Test reading of the message text (body and tails) */
@@ -439,7 +406,7 @@ int main(int argc, char **argv)
 						,msg.hdr.number,smb.status.last_msg);
 				hdrnumerr++; 
 			}
-			if(smb_getmsgidx(&smb,&msg) || msg.idx.offset != l) {
+			if(smb_getmsgidx(&smb,&msg)) {
 				fprintf(stderr,"%sNot found in index\n",beep);
 				msgerr=TRUE;
 				if(extinfo)
@@ -465,8 +432,7 @@ int main(int argc, char **argv)
 							"index import date/time\n");
 					timeerr++; 
 				}
-				if(msg.hdr.type != SMB_MSG_TYPE_BALLOT
-					&& msg.idx.subj!=smb_subject_crc(msg.subj)) {
+				if(msg.idx.subj!=smb_subject_crc(msg.subj)) {
 					fprintf(stderr,"%sSubject CRC mismatch\n",beep);
 					msgerr=TRUE;
 					if(extinfo)
@@ -487,7 +453,6 @@ int main(int argc, char **argv)
 					fromcrc++; 
 				}
 				if(!(smb.status.attr&SMB_EMAIL) 
-					&& msg.hdr.type != SMB_MSG_TYPE_BALLOT
 					&& msg.idx.from!=smb_name_crc(msg.from)) {
 					fprintf(stderr,"%sFrom CRC mismatch\n",beep);
 					msgerr=TRUE;
@@ -509,7 +474,6 @@ int main(int argc, char **argv)
 					tocrc++; 
 				}
 				if(!(smb.status.attr&SMB_EMAIL) 
-					&& msg.hdr.type != SMB_MSG_TYPE_BALLOT
 					&& msg.to_ext==NULL && msg.idx.to!=smb_name_crc(msg.to)) {
 					fprintf(stderr,"%sTo CRC mismatch\n",beep);
 					msgerr=TRUE;
@@ -955,10 +919,6 @@ int main(int argc, char **argv)
 		printf("%-35.35s (!): %lu\n"
 			,"Missing Hash Records"
 			,hasherr);
-	if(msgids)
-		printf("%-35.35s (!): %lu\n"
-			,"Missing Message-IDs"
-			,msgids);
 	if(datactalloc)
 		printf("%-35.35s (!): %lu\n"
 			,"Misallocated Active Data Blocks"
@@ -989,11 +949,6 @@ int main(int argc, char **argv)
 			,"Invalid Hash Entries"
 			,badhash);
 
-	if(ctrl_chars)
-		printf("%-35.35s (!): %lu\n"
-			,"Control Characters in Header Fields"
-			,ctrl_chars);
-
 	printf("\n%s Message Base ",smb.file);
 	if(/* (headers-deleted)!=smb.status.total_msgs || */
 		total!=smb.status.total_msgs
@@ -1004,7 +959,7 @@ int main(int argc, char **argv)
 		|| orphan || dupenumhdr || dupenum || dupeoff || attr
 		|| lockerr || hdrerr || hdrnumerr || idxnumerr || idxofferr
 		|| actalloc || datactalloc || misnumbered || timeerr 
-		|| intransit || unvalidated || ctrl_chars
+		|| intransit || unvalidated
 		|| subjcrc || fromcrc || tocrc
 		|| dfieldoffset || dfieldlength || xlaterr || idxerr) {
 		printf("%shas Errors!\n",beep);
