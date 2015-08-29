@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.611 2015/09/11 03:06:19 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.606 2015/08/29 06:23:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1389,7 +1389,7 @@ static int sock_sendfile(http_session_t *session,char *path,unsigned long start,
 /* Sends a specified error message, closes the request, */
 /* and marks the session to be closed 					*/
 /********************************************************/
-static void send_error(http_session_t * session, unsigned line, const char* message)
+static void send_error(http_session_t * session, const char* message)
 {
 	char	error_code[4];
 	struct stat	sb;
@@ -1400,7 +1400,7 @@ static void send_error(http_session_t * session, unsigned line, const char* mess
 	if(session->socket==INVALID_SOCKET)
 		return;
 	session->req.if_modified_since=0;
-	lprintf(LOG_INFO,"%04d !ERROR: %s (line %u)",session->socket,message,line);
+	lprintf(LOG_INFO,"%04d !ERROR: %s",session->socket,message);
 	session->req.keep_alive=FALSE;
 	session->req.send_location=NO_LOCATION;
 	SAFECOPY(error_code,message);
@@ -1545,7 +1545,7 @@ BOOL http_checkuser(http_session_t * session)
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				JS_ENDREQUEST(session->js_cx);
 				lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
-				send_error(session,__LINE__,"500 Error initializing JavaScript User Objects");
+				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
 			}
 		}
@@ -1554,7 +1554,7 @@ BOOL http_checkuser(http_session_t * session)
 				,NULL /* ftp index file */, session->subscan /* subscan */)) {
 				JS_ENDREQUEST(session->js_cx);
 				lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript User Objects",session->socket);
-				send_error(session,__LINE__,"500 Error initializing JavaScript User Objects");
+				send_error(session,"500 Error initializing JavaScript User Objects");
 				return(FALSE);
 			}
 		}
@@ -2547,7 +2547,7 @@ static BOOL parse_headers(http_session_t * session)
 										if(session->req.auth.realm==NULL
 												|| session->req.auth.nonce==NULL
 												|| session->req.auth.digest_uri==NULL)
-											send_error(session,__LINE__,"400 Bad Request");
+											send_error(session,"400 Bad Request");
 										break;
 									case QOP_AUTH:
 									case QOP_AUTH_INT:
@@ -2556,10 +2556,10 @@ static BOOL parse_headers(http_session_t * session)
 												|| session->req.auth.nonce_count==NULL
 												|| session->req.auth.cnonce==NULL
 												|| session->req.auth.digest_uri==NULL)
-											send_error(session,__LINE__,"400 Bad Request");
+											send_error(session,"400 Bad Request");
 										break;
 									default:
-										send_error(session,__LINE__,"400 Bad Request");
+										send_error(session,"400 Bad Request");
 										break;
 								}
 							}
@@ -2599,16 +2599,16 @@ static BOOL parse_headers(http_session_t * session)
 					if(!stricmp(value,"chunked"))
 						session->req.read_chunked=TRUE;
 					else
-						send_error(session,__LINE__,"501 Not Implemented");
+						send_error(session,"501 Not Implemented");
 					break;
 				case HEAD_RANGE:
 					if(!stricmp(value,"bytes=")) {
-						send_error(session,__LINE__,error_416);
+						send_error(session,error_416);
 						break;
 					}
 					value+=6;
 					if(strchr(value,',')!=NULL) {	/* We don't do multiple ranges yet - TODO */
-						send_error(session,__LINE__,error_416);
+						send_error(session,error_416);
 						break;
 					}
 					/* Check for offset from end. */
@@ -2625,7 +2625,7 @@ static BOOL parse_headers(http_session_t * session)
 							session->req.range_end=-1;
 					}
 					else {
-						send_error(session,__LINE__,error_416);
+						send_error(session,error_416);
 						break;
 					}
 					break;
@@ -2761,7 +2761,7 @@ static int is_dynamic_req(http_session_t* session)
 		lprintf(LOG_DEBUG,"%04d Setting up JavaScript support", session->socket);
 		if(!js_setup(session)) {
 			lprintf(LOG_ERR,"%04d !ERROR setting up JavaScript support", session->socket);
-			send_error(session,__LINE__,error_500);
+			send_error(session,error_500);
 			return(IS_STATIC);
 		}
 		return(i);
@@ -2875,14 +2875,14 @@ static char *get_method(http_session_t * session, char *req_line)
 		if(!strnicmp(req_line,methods[i],strlen(methods[i]))) {
 			session->req.method=i;
 			if(strlen(req_line)<strlen(methods[i])+2) {
-				send_error(session,__LINE__,"400 Bad Request");
+				send_error(session,"400 Bad Request");
 				return(NULL);
 			}
 			return(req_line+strlen(methods[i])+1);
 		}
 	}
 	if(req_line!=NULL && *req_line>=' ')
-		send_error(session,__LINE__,"501 Not Implemented");
+		send_error(session,"501 Not Implemented");
 	return(NULL);
 }
 
@@ -2964,24 +2964,12 @@ static BOOL get_fullpath(http_session_t * session)
 	return(isabspath(session->req.physical_path));
 }
 
-static BOOL is_legal_hostname(const char *host, BOOL strip_port)
+static BOOL is_legal_hostname(const char *host)
 {
-	char * stripped = NULL;
-
-	if (strip_port) {
-		stripped = strdup(host);
-		remove_port_part(stripped);
-		host = stripped;
-	}
-	if (host[0] == '-' || host[0] == '.' || host[0] == 0) {
-		FREE_AND_NULL(stripped);
+	if (host[0] == '-' || host[0] == '.')
 		return FALSE;
-	}
-	if (strspn(host, "abcdefghijklmnopqrstuvwxyz0123456789-.") != strlen(host)) {
-		FREE_AND_NULL(stripped);
+	if (strspn(host, "abcdefghijklmnopqrstuvwxyz0123456789-.") != strlen(host))
 		return FALSE;
-	}
-	FREE_AND_NULL(stripped);
 	return TRUE;
 }
 
@@ -3026,16 +3014,16 @@ static BOOL get_req(http_session_t * session, char *request_line)
 			if(!is_redir) {
 				get_request_headers(session);
 			}
-			if (!is_legal_hostname(session->req.host, TRUE)) {
-				send_error(session,__LINE__,"400 Bad Request");
+			if (!is_legal_hostname(session->req.host)) {
+				send_error(session,"400 Bad Request");
 				return FALSE;
 			}
-			if (!is_legal_hostname(session->req.vhost, FALSE)) {
-				send_error(session,__LINE__,"400 Bad Request");
+			if (!is_legal_hostname(session->req.vhost)) {
+				send_error(session,"400 Bad Request");
 				return FALSE;
 			}
 			if(!get_fullpath(session)) {
-				send_error(session,__LINE__,error_500);
+				send_error(session,error_500);
 				return(FALSE);
 			}
 			if(session->req.ld!=NULL && session->req.ld->vhost==NULL)
@@ -3052,7 +3040,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 		}
 	}
 	session->req.keep_alive=FALSE;
-	send_error(session,__LINE__,"400 Bad Request");
+	send_error(session,"400 Bad Request");
 	return FALSE;
 }
 
@@ -3247,7 +3235,7 @@ static BOOL check_request(http_session_t * session)
 		}
 		last_slash=find_last_slash(path);
 		if(last_slash==NULL) {
-			send_error(session,__LINE__,error_500);
+			send_error(session,error_500);
 			return(FALSE);
 		}
 		last_slash++;
@@ -3281,7 +3269,7 @@ static BOOL check_request(http_session_t * session)
 	}
 	if(strnicmp(path,root_dir,strlen(root_dir))) {
 		session->req.keep_alive=FALSE;
-		send_error(session,__LINE__,"400 Bad Request");
+		send_error(session,"400 Bad Request");
 		lprintf(LOG_NOTICE,"%04d !ERROR Request for %s is outside of web root %s"
 			,session->socket,path,root_dir);
 		return(FALSE);
@@ -3305,7 +3293,7 @@ static BOOL check_request(http_session_t * session)
 			lprintf(LOG_WARNING,"%04d !WARNING! access.ars support is depreciated and will be REMOVED very soon.",session->socket);
 			lprintf(LOG_WARNING,"%04d !WARNING! access.ars found at %s.",session->socket,str);
 			if(!strcmp(path,str)) {
-				send_error(session,__LINE__,"403 Forbidden");
+				send_error(session,"403 Forbidden");
 				return(FALSE);
 			}
 			/* Read access.ars file */
@@ -3325,7 +3313,7 @@ static BOOL check_request(http_session_t * session)
 		if(!stat(str,&sb)) {
 			/* NEVER serve up a webctrl.ini file */
 			if(!strcmp(path,str)) {
-				send_error(session,__LINE__,"403 Forbidden");
+				send_error(session,"403 Forbidden");
 				return(FALSE);
 			}
 			/* Read webctrl.ini file */
@@ -3407,7 +3395,7 @@ static BOOL check_request(http_session_t * session)
 		}
 		if(auth_list)
 			free(auth_list);
-		send_error(session,__LINE__,str);
+		send_error(session,str);
 		return(FALSE);
 	}
 
@@ -3418,7 +3406,7 @@ static BOOL check_request(http_session_t * session)
 				lprintf(LOG_DEBUG,"%04d 404 - %s does not exist",session->socket,path);
 			strcat(session->req.physical_path,session->req.extra_path_info);
 			strcat(session->req.virtual_path,session->req.extra_path_info);
-			send_error(session,__LINE__,error_404);
+			send_error(session,error_404);
 			return(FALSE);
 		}
 	}
@@ -3430,15 +3418,15 @@ static BOOL check_request(http_session_t * session)
 		if(session->req.range_end >= sb.st_size)
 			session->req.range_end=sb.st_size-1;
 		if(session->req.range_end < session->req.range_start || session->req.dynamic) {
-			send_error(session,__LINE__,error_416);
+			send_error(session,error_416);
 			return(FALSE);
 		}
 		if(session->req.range_start < 0 || session->req.range_end < 0) {
-			send_error(session,__LINE__,error_416);
+			send_error(session,error_416);
 			return(FALSE);
 		}
 		if(session->req.range_start >= sb.st_size) {
-			send_error(session,__LINE__,error_416);
+			send_error(session,error_416);
 			return(FALSE);
 		}
 		SAFECOPY(session->req.status,"206 Partial Content");
@@ -4533,7 +4521,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	if(!js_CreateUserObjects(session->js_cx, session->js_glob, &scfg, &session->user, &session->client
 		,NULL /* ftp index file */, session->subscan /* subscan */)) {
 		lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user objects",session->socket);
-		send_error(session,__LINE__,"500 Error initializing JavaScript User Objects");
+		send_error(session,"500 Error initializing JavaScript User Objects");
 		return(FALSE);
 	}
 
@@ -5033,7 +5021,7 @@ static void respond(http_session_t * session)
 	else {
 		if(session->req.dynamic==IS_CGI)  {
 			if(!exec_cgi(session))  {
-				send_error(session,__LINE__,error_500);
+				send_error(session,error_500);
 				return;
 			}
 			session->req.finished=TRUE;
@@ -5042,7 +5030,7 @@ static void respond(http_session_t * session)
 
 		if(session->req.dynamic==IS_SSJS) {	/* Server-Side JavaScript */
 			if(!exec_ssjs(session,session->req.physical_path))  {
-				send_error(session,__LINE__,error_500);
+				send_error(session,error_500);
 				return;
 			}
 			sprintf(session->req.physical_path
@@ -5081,12 +5069,12 @@ BOOL post_to_file(http_session_t *session, FILE*fp, size_t ch_len)
 	for(k=0; k<ch_len;) {
 		bytes_read=recvbufsocket(session,buf,(ch_len-k)>sizeof(buf)?sizeof(buf):(ch_len-k));
 		if(!bytes_read) {
-			send_error(session,__LINE__,error_500);
+			send_error(session,error_500);
 			fclose(fp);
 			return(FALSE);
 		}
 		if(fwrite(buf, bytes_read, 1, fp)!=1) {
-			send_error(session,__LINE__,error_500);
+			send_error(session,error_500);
 			fclose(fp);
 			return(FALSE);
 		}
@@ -5141,7 +5129,7 @@ int read_post_data(http_session_t * session)
 					ch_len=strtol(ch_lstr,NULL,16);
 				}
 				else {
-					send_error(session,__LINE__,error_500);
+					send_error(session,error_500);
 					if(fp) fclose(fp);
 					return(FALSE);
 				}
@@ -5151,7 +5139,7 @@ int read_post_data(http_session_t * session)
 				s += ch_len;
 				if(s > MAX_POST_LEN) {
 					if(s > SIZE_MAX) {
-						send_error(session,__LINE__,"413 Request entity too large");
+						send_error(session,"413 Request entity too large");
 						if(fp) fclose(fp);
 						return(FALSE);
 					}
@@ -5169,7 +5157,7 @@ int read_post_data(http_session_t * session)
 					p=realloc(session->req.post_data, s);
 					if(p==NULL) {
 						lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,session->req.post_len);
-						send_error(session,__LINE__,"413 Request entity too large");
+						send_error(session,"413 Request entity too large");
 						if(fp) fclose(fp);
 						return(FALSE);
 					}
@@ -5177,14 +5165,14 @@ int read_post_data(http_session_t * session)
 					/* read new data */
 					bytes_read=recvbufsocket(session,session->req.post_data+session->req.post_len,ch_len);
 					if(!bytes_read) {
-						send_error(session,__LINE__,error_500);
+						send_error(session,error_500);
 						if(fp) fclose(fp);
 						return(FALSE);
 					}
 					session->req.post_len+=bytes_read;
 					/* Read chunk terminator */
 					if(sockreadline(session,ch_lstr,sizeof(ch_lstr)-1)>0)
-						send_error(session,__LINE__,error_500);
+						send_error(session,error_500);
 				}
 			}
 			if(fp) {
@@ -5198,8 +5186,8 @@ int read_post_data(http_session_t * session)
 			/* Read more headers! */
 			if(!get_request_headers(session))
 				return(FALSE);
-			if (!is_legal_hostname(session->req.vhost, FALSE)) {
-				send_error(session,__LINE__,"400 Bad Request");
+			if (!is_legal_hostname(session->req.vhost)) {
+				send_error(session,"400 Bad Request");
 				return FALSE;
 			}
 			if(!parse_headers(session))
@@ -5226,7 +5214,7 @@ int read_post_data(http_session_t * session)
 					session->req.post_len=recvbufsocket(session,session->req.post_data,s);
 				else  {
 					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,s);
-					send_error(session,__LINE__,"413 Request entity too large");
+					send_error(session,"413 Request entity too large");
 					return(FALSE);
 				}
 			}
@@ -5510,7 +5498,7 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.client.host,session.host_name);
 	session.client.port=inet_addrport(&session.addr);
 	session.client.time=time32(NULL);
-	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
+	session.client.protocol=session.is_tls ? "HTTP":"HTTPS";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
@@ -5582,7 +5570,7 @@ void http_session_thread(void* arg)
 
 			if(get_req(&session,redirp)) {
 				if(init_error) {
-					send_error(&session, __LINE__, error_500);
+					send_error(&session, error_500);
 				}
 				/* At this point, if redirp is non-NULL then the headers have already been parsed */
 				if((session.http_ver<HTTP_1_0)||redirp!=NULL||parse_headers(&session)) {
@@ -5683,7 +5671,7 @@ static void cleanup(int code)
 		tls_context = -1;
 	}
 
-	if(!terminated) {	/* Can this be changed to a if(ws_set!=NULL) check instead? */
+	if(!terminated) {
 		xpms_destroy(ws_set, close_socket_cb, NULL);
 		ws_set=NULL;
 		terminated=TRUE;
@@ -5716,7 +5704,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.611 $", "%*s %s", revision);
+	sscanf("$Revision: 1.606 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5987,12 +5975,10 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		if(startup->options&WEB_OPT_ALLOW_TLS) {
-			lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
-			tls_context = get_ssl_cert(&scfg, ssl_estr);
-			if (tls_context == -1)
-				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
-		}
+		lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
+		tls_context = get_ssl_cert(&scfg, ssl_estr);
+		if (tls_context == -1)
+			lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
 
 		iniFileName(mime_types_ini,sizeof(mime_types_ini),scfg.ctrl_dir,"mime_types.ini");
 		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
@@ -6029,14 +6015,13 @@ void DLLCALL web_server(void* arg)
 			cleanup(1);
 			return;
 		}
-		terminated=FALSE;
 		lprintf(LOG_DEBUG,"Web Server socket set created");
 
 		/*
 		 * Add interfaces
 		 */
 		xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "Web Server", open_socket, startup->seteuid, NULL);
-		if(tls_context != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
+		if(startup->options&WEB_OPT_ALLOW_TLS) {
 			if(do_cryptInit())
 				xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
 		}
@@ -6070,7 +6055,6 @@ void DLLCALL web_server(void* arg)
     		startup->started(startup->cbdata);
 
 		lprintf(LOG_INFO,"Web Server thread started");
-		status("Listening");
 
 		while(!terminated && !terminate_server) {
 
@@ -6164,7 +6148,7 @@ void DLLCALL web_server(void* arg)
 				session->is_tls=TRUE;
 			lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
 				,client_socket
-				,session->is_tls ? "HTTPS":"HTTP"
+				,session->is_tls ? "HTTP":"HTTPS"
 				,host_ip, host_port);
 
 			SAFECOPY(session->host_ip,host_ip);
