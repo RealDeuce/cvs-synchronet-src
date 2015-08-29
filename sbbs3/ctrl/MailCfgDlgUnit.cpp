@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.26 2009/08/14 08:58:15 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.30 2015/08/20 05:20:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -75,22 +75,35 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
 {
     char str[128];
 
-    if(MainForm->mail_startup.interface_addr==0)
+    if(MainForm->mail_startup.outgoing4.s_addr==0)
         NetworkInterfaceEdit->Text="<ANY>";
     else {
         sprintf(str,"%d.%d.%d.%d"
-            ,(MainForm->mail_startup.interface_addr>>24)&0xff
-            ,(MainForm->mail_startup.interface_addr>>16)&0xff
-            ,(MainForm->mail_startup.interface_addr>>8)&0xff
-            ,MainForm->mail_startup.interface_addr&0xff
+            ,(MainForm->mail_startup.outgoing4.s_addr>>24)&0xff
+            ,(MainForm->mail_startup.outgoing4.s_addr>>16)&0xff
+            ,(MainForm->mail_startup.outgoing4.s_addr>>8)&0xff
+            ,MainForm->mail_startup.outgoing4.s_addr&0xff
         );
         NetworkInterfaceEdit->Text=AnsiString(str);
     }
     MaxClientsEdit->Text=AnsiString(MainForm->mail_startup.max_clients);
     MaxInactivityEdit->Text=AnsiString(MainForm->mail_startup.max_inactivity);
-	MaxRecipientsEdit->Text=AnsiString(MainForm->mail_startup.max_recipients);
-	MaxMsgSizeEdit->Text=AnsiString(MainForm->mail_startup.max_msg_size);
-    LinesPerYieldEdit->Text=AnsiString(MainForm->mail_startup.lines_per_yield);
+    if(MainForm->mail_startup.max_recipients == 0)
+        MaxRecipientsEdit->Text="N/A";
+    else
+    	MaxRecipientsEdit->Text=AnsiString(MainForm->mail_startup.max_recipients);
+    if(MainForm->mail_startup.max_msg_size == 0)
+        MaxMsgSizeEdit->Text="N/A";
+    else
+    	MaxMsgSizeEdit->Text=AnsiString(MainForm->mail_startup.max_msg_size);
+    if(MainForm->mail_startup.max_msgs_waiting == 0)
+        MaxMsgsWaitingEdit->Text="N/A";
+    else
+        MaxMsgsWaitingEdit->Text=AnsiString(MainForm->mail_startup.max_msgs_waiting);
+    if(MainForm->mail_startup.lines_per_yield == 0)
+        LinesPerYieldEdit->Text="N/A";
+    else
+        LinesPerYieldEdit->Text=AnsiString(MainForm->mail_startup.lines_per_yield);
 
     AutoStartCheckBox->Checked=MainForm->MailAutoStart;
     LogFileCheckBox->Checked=MainForm->MailLogFile;
@@ -110,6 +123,7 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
         DNSServerEdit->Text=AnsiString(MainForm->mail_startup.dns_server);
     else
         DNSServerEdit->Text="<auto>";
+    ConnectTimeoutEdit->Text=AnsiString(MainForm->mail_startup.connect_timeout);
     InboundSoundEdit->Text=AnsiString(MainForm->mail_startup.inbound_sound);
     OutboundSoundEdit->Text=AnsiString(MainForm->mail_startup.outbound_sound);
     POP3SoundEdit->Text=AnsiString(MainForm->mail_startup.pop3_sound);
@@ -219,23 +233,22 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
         while(*p && *p!='.') p++;
         if(*p=='.') p++;
         addr|=atoi(p);
-        MainForm->mail_startup.interface_addr=addr;
+        MainForm->mail_startup.outgoing4.s_addr=addr;
     } else
-        MainForm->mail_startup.interface_addr=0;
+        MainForm->mail_startup.outgoing4.s_addr=0;
 
 	MainForm->mail_startup.smtp_port=SMTPPortEdit->Text.ToIntDef(IPPORT_SMTP);
    	MainForm->mail_startup.submission_port=SubPortEdit->Text.ToIntDef(IPPORT_SUBMISSION);
     MainForm->mail_startup.pop3_port=POP3PortEdit->Text.ToIntDef(IPPORT_POP3);
     MainForm->mail_startup.relay_port=RelayPortEdit->Text.ToIntDef(IPPORT_SMTP);
-    MainForm->mail_startup.max_clients=MaxClientsEdit->Text.ToIntDef(10);
-    MainForm->mail_startup.max_inactivity=MaxInactivityEdit->Text.ToIntDef(120);
-    MainForm->mail_startup.max_recipients=MaxRecipientsEdit->Text.ToIntDef(100);
-    MainForm->mail_startup.max_msg_size
-    	=MaxMsgSizeEdit->Text.ToIntDef(MainForm->mail_startup.max_msg_size);
-    MainForm->mail_startup.max_delivery_attempts
-        =DeliveryAttemptsEdit->Text.ToIntDef(10);
-    MainForm->mail_startup.rescan_frequency=RescanFreqEdit->Text.ToIntDef(300);
-    MainForm->mail_startup.lines_per_yield=LinesPerYieldEdit->Text.ToIntDef(10);
+    MainForm->mail_startup.max_clients=MaxClientsEdit->Text.ToIntDef(MAIL_DEFAULT_MAX_CLIENTS);
+    MainForm->mail_startup.max_inactivity=MaxInactivityEdit->Text.ToIntDef(MAIL_DEFAULT_MAX_INACTIVITY);
+    MainForm->mail_startup.max_recipients=MaxRecipientsEdit->Text.ToIntDef(MAIL_DEFAULT_MAX_RECIPIENTS);
+    MainForm->mail_startup.max_msg_size=MaxMsgSizeEdit->Text.ToIntDef(0);
+    MainForm->mail_startup.max_msgs_waiting=MaxMsgsWaitingEdit->Text.ToIntDef(0);
+    MainForm->mail_startup.max_delivery_attempts=DeliveryAttemptsEdit->Text.ToIntDef(MAIL_DEFAULT_MAX_DELIVERY_ATTEMPTS);
+    MainForm->mail_startup.rescan_frequency=RescanFreqEdit->Text.ToIntDef(MAIL_DEFAULT_RESCAN_FREQUENCY);
+    MainForm->mail_startup.lines_per_yield=LinesPerYieldEdit->Text.ToIntDef(0);
 
     SAFECOPY(MainForm->mail_startup.default_charset
         ,DefCharsetEdit->Text.c_str());
@@ -246,6 +259,7 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
             ,DNSServerEdit->Text.c_str());
     else
         MainForm->mail_startup.dns_server[0]=0;
+    MainForm->mail_startup.connect_timeout=ConnectTimeoutEdit->Text.ToIntDef(0);
     SAFECOPY(MainForm->mail_startup.relay_server
         ,RelayServerEdit->Text.c_str());
     SAFECOPY(MainForm->mail_startup.relay_user
@@ -421,6 +435,8 @@ void __fastcall TMailCfgDlg::SendMailCheckBoxClick(TObject *Sender)
     OutboundSoundButton->Enabled=checked;
     DefCharsetLabel->Enabled=checked;
     DefCharsetEdit->Enabled=checked;
+    ConnectTimeoutLabel->Enabled=checked;
+    ConnectTimeoutEdit->Enabled=checked;
 
     DNSRadioButtonClick(Sender);
 }
@@ -445,7 +461,7 @@ void __fastcall TMailCfgDlg::DNSBLServersButtonClick(TObject *Sender)
     sprintf(filename,"%sdns_blacklist.cfg",MainForm->cfg.ctrl_dir);
 	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
 	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption="Services Configuration";
+    TextFileEditForm->Caption="DNS-Blacklist Services";
 	TextFileEditForm->ShowModal();
     delete TextFileEditForm;
 }
@@ -459,7 +475,7 @@ void __fastcall TMailCfgDlg::DNSBLExemptionsButtonClick(TObject *Sender)
     sprintf(filename,"%sdnsbl_exempt.cfg",MainForm->cfg.ctrl_dir);
 	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
 	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption="Services Configuration";
+    TextFileEditForm->Caption="DNS-Blacklist Exemptions";
 	TextFileEditForm->ShowModal();
     delete TextFileEditForm;
 }
