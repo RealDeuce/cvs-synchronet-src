@@ -2,13 +2,13 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.68 2016/11/27 23:13:06 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.65 2015/08/22 05:45:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -281,6 +281,7 @@ void DLLCALL free_text(char* text[])
 /****************************************************************************/
 BOOL md(char *inpath)
 {
+	DIR*	dir;
 	char	path[MAX_PATH+1];
 
 	if(inpath[0]==0)
@@ -296,13 +297,16 @@ BOOL md(char *inpath)
 	if(path[strlen(path)-1]=='\\' || path[strlen(path)-1]=='/')
 		path[strlen(path)-1]=0;
 
-	if(!isdir(path)) {
+	dir=opendir(path);
+	if(dir==NULL) {
 		/* lprintf("Creating directory: %s",path); */
-		if(mkpath(path)) {
+		if(MKDIR(path)) {
 			lprintf(LOG_WARNING,"!ERROR %d creating directory: %s",errno,path);
 			return(FALSE); 
 		} 
 	}
+	else
+		closedir(dir);
 	
 	return(TRUE);
 }
@@ -329,10 +333,7 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 			,MIN_COLORS);
 		return(FALSE);
 	}
-	/* Setup default colors here: */
-	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);
-	cfg->color[clr_votes_full] = WHITE|BG_MAGENTA;
-	cfg->color[clr_progress_full] = CYAN|HIGH|BG_BLUE;
+	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);	
 	for(cfg->total_colors=0;!feof(instream) && !ferror(instream);cfg->total_colors++) {
 		if(readline(&offset,str,4,instream)==NULL)
 			break;
