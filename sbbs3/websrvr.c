@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.606 2015/08/29 06:23:50 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.607 2015/08/29 06:57:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5498,7 +5498,7 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.client.host,session.host_name);
 	session.client.port=inet_addrport(&session.addr);
 	session.client.time=time32(NULL);
-	session.client.protocol=session.is_tls ? "HTTP":"HTTPS";
+	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
@@ -5704,7 +5704,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.606 $", "%*s %s", revision);
+	sscanf("$Revision: 1.607 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6148,7 +6148,7 @@ void DLLCALL web_server(void* arg)
 				session->is_tls=TRUE;
 			lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
 				,client_socket
-				,session->is_tls ? "HTTP":"HTTPS"
+				,session->is_tls ? "HTTPS":"HTTP"
 				,host_ip, host_port);
 
 			SAFECOPY(session->host_ip,host_ip);
