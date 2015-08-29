@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.621 2015/08/25 06:13:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.622 2015/08/29 11:10:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2138,6 +2138,8 @@ void output_thread(void* arg)
 				avail=mss;
            	buftop=RingBufRead(&sbbs->outbuf, buf, avail);
            	bufbot=0;
+			if (buftop == 0)
+				continue;
 		}
 
 		/* Check socket for writability (using select) */
