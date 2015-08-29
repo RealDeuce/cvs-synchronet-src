@@ -2,12 +2,12 @@ project (ConIOLib C)
 
 cmake_minimum_required(VERSION 2.8.11)
 
+INCLUDE(../build/SynchronetMacros.cmake)
 INCLUDE (CheckFunctionExists)
 INCLUDE (FindSDL)
 INCLUDE (FindX11)
 INCLUDE (FindCurses)
 INCLUDE (FindThreads)
-find_package(XPDev QUIET CONFIG PATHS lib/cmake/XPDev)
 
 set(SOURCE
 	ansi_cio.c
@@ -50,12 +50,7 @@ if(NEED_BITMAP)
 endif()
 
 add_library(ciolib SHARED ${SOURCE})
-if(XPDev_FOUND)
-	target_link_libraries(ciolib xpdev)
-else()
-	INCLUDE(../build/SynchronetMacros.cmake)
-	require_lib(ciolib xpdev)
-endif()
+require_lib(ciolib xpdev)
 target_compile_definitions(ciolib PRIVATE CIOLIB_EXPORTS)
 target_compile_definitions(ciolib INTERFACE CIOLIB_IMPORTS)
 
