@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.605 2015/08/26 10:02:35 deuce Exp $ */
+/* $Id: websrvr.c,v 1.606 2015/08/29 06:23:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -559,11 +559,11 @@ static BOOL handle_crypt_call(int status, http_session_t *session, const char *f
 		sock = session->socket;
 	}
 	if (estr) {
-		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
+		lprintf(LOG_WARNING, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
 		free_crypt_attrstr(estr);
 	}
 	else
-		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
+		lprintf(LOG_WARNING, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
 	return FALSE;
 }
 
@@ -5704,7 +5704,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.605 $", "%*s %s", revision);
+	sscanf("$Revision: 1.606 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6021,8 +6021,10 @@ void DLLCALL web_server(void* arg)
 		 * Add interfaces
 		 */
 		xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "Web Server", open_socket, startup->seteuid, NULL);
-		if(do_cryptInit())
-			xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
+		if(startup->options&WEB_OPT_ALLOW_TLS) {
+			if(do_cryptInit())
+				xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
+		}
 
 		listInit(&log_list,/* flags */ LINK_LIST_MUTEX|LINK_LIST_SEMAPHORE);
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
