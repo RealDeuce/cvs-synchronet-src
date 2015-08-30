@@ -2,7 +2,7 @@
 
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.46 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.45 2015/01/23 02:57:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -392,7 +392,7 @@ static void read_ini(sbbs_ntsvc_t* svc)
 	}
 
 	/* We call this function to set defaults, even if there's no .ini file */
-	sbbs_read_ini(fp, ini_file
+	sbbs_read_ini(fp 
 		,NULL	/* global_startup */
 		,NULL	,bbs_startup
 		,NULL	,ftp_startup 
@@ -1285,7 +1285,7 @@ int main(int argc, char** argv)
 	}
 
 	/* We call this function to set defaults, even if there's no .ini file */
-	sbbs_read_ini(fp, ini_file
+	sbbs_read_ini(fp 
 		,NULL	/* global_startup */
 		,&bbs.autostart			,NULL
 		,&ftp.autostart			,NULL
