@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.171 2015/08/29 09:33:17 deuce Exp $ */
+/* $Id: js_socket.c,v 1.172 2015/08/30 03:02:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2174,8 +2174,6 @@ JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *n
 		len=sizeof(p->remote_addr);
 		if(getpeername(p->sock, &p->remote_addr.addr,&len)==0)
 			p->is_connected=TRUE;
-		else
-			lprintf(LOG_ERR, "Error %d calling getpeername()",errno);
 	}
 
 	if(!JS_SetPrivate(cx, obj, p)) {
