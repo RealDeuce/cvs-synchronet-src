@@ -2,7 +2,7 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.h,v 1.25 2015/08/29 10:40:15 rswindell Exp $ */
+/* $Id: datewrap.h,v 1.26 2015/08/30 01:12:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,6 +82,9 @@ DLLEXPORT struct tm*	DLLCALL		localtime32(const time32_t* t, struct tm* tm);
 /***********************************/
 
 #if defined(__BORLANDC__)
+
+/* Borland C++ doesn't come with a timegm() or mkgmtime() equivalent */
+#define timegm	mktime
 
 #include <dos.h>
 
