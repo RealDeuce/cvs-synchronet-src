@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id$ */
+/* $Id: js_console.cpp,v 1.108 2015/09/01 03:17:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1350,7 +1350,7 @@ js_ansi(JSContext *cx, uintN argc, jsval *arglist)
 		int32	curattr=0;
 		char	buf[16];
 
-		if(!JS_ValueToInt32(cx,argv[0],&curattr))
+		if(!JS_ValueToInt32(cx,argv[1],&curattr))
 			return JS_FALSE;
 		if((js_str=JS_NewStringCopyZ(cx,sbbs->ansi(attr,curattr,buf)))==NULL)
 			return(JS_FALSE);
