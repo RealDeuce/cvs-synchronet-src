@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.622 2015/08/29 11:10:23 deuce Exp $ */
+/* $Id: main.cpp,v 1.623 2015/09/02 06:39:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1186,6 +1186,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 
 #ifdef BUILD_JSDOCS
 		js_CreateUifcObject(js_cx, js_glob);
+		js_CreateConioObject(js_cx, js_glob);
 #endif
 
 		/* BBS Object */
