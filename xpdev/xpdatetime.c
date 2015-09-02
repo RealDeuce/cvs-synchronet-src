@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.9 2015/08/29 10:46:05 rswindell Exp $ */
+/* $Id: xpdatetime.c,v 1.10 2015/09/02 07:45:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,6 +146,13 @@ time_t DLLCALL xpDateTime_to_time(xpDateTime_t xpDateTime)
 	if(xpDateTime.zone == xpTimeZone_LOCAL || xpDateTime.zone == xpTimeZone_local())
 		return sane_mktime(&tm);
 	return INVALID_TIME;
+}
+
+/* This version ignores the timezone in xpDateTime and always uses mktime() */
+time_t DLLCALL xpDateTime_to_localtime(xpDateTime_t xpDateTime)
+{
+	xpDateTime.zone = xpTimeZone_LOCAL;
+	return xpDateTime_to_time(xpDateTime);
 }
 
 xpDateTime_t DLLCALL time_to_xpDateTime(time_t ti, xpTimeZone_t zone)
