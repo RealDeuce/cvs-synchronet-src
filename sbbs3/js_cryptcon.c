@@ -1,17 +1,17 @@
-/* $Id: js_cryptcon.c,v 1.7 2016/12/01 21:42:08 rswindell Exp $ */
+/* $Id: js_cryptcon.c,v 1.4 2014/11/19 09:23:22 deuce Exp $ */
 
 // Cyrptlib encryption context...
 
 #include "sbbs.h"
 #include <cryptlib.h>
 #include "js_request.h"
-#include "ssl.h"
+#include "js_socket.h"
 
 struct private_data {
 	CRYPT_CONTEXT	ctx;
 };
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 // Helpers
 static void
@@ -243,33 +243,7 @@ enum {
 
 #ifdef BUILD_JSDOCS
 static char* cryptcon_prop_desc[] = {
-	 "Algorithm constant (CryptContext.ALGO.XXX):<ul class=\"showList\">\n"
-	 "<li>CryptContext.ALGO.NONE</li>\n"
-	 "<li>CryptContext.ALGO.DES</li>\n"
-	 "<li>CryptContext.ALGO.3DES</li>\n"
-	 "<li>CryptContext.ALGO.IDEA</li>\n"
-	 "<li>CryptContext.ALGO.CAST</li>\n"
-	 "<li>CryptContext.ALGO.RC2</li>\n"
-	 "<li>CryptContext.ALGO.RC4</li>\n"
-	 "<li>CryptContext.ALGO.RC5</li>\n"
-	 "<li>CryptContext.ALGO.AES</li>\n"
-	 "<li>CryptContext.ALGO.Blowfish</li>\n"
-	 "<li>CryptContext.ALGO.DH</li>\n"
-	 "<li>CryptContext.ALGO.RSA</li>\n"
-	 "<li>CryptContext.ALGO.DSA</li>\n"
-	 "<li>CryptContext.ALGO.ELGAMAL</li>\n"
-	 "<li>CryptContext.ALGO.ECDSA</li>\n"
-	 "<li>CryptContext.ALGO.ECDH</li>\n"
-	 "<li>CryptContext.ALGO.MD5</li>\n"
-	 "<li>CryptContext.ALGO.SHA1</li>\n"
-	 "<li>CryptContext.ALGO.SHA2</li>\n"
-	 "<li>CryptContext.ALGO.RIPEMD160</li>\n"
-	 "<li>CryptContext.ALGO.SHAng</li>\n"
-	 "<li>CryptContext.ALGO.HMAC-MD5</li>\n"
-	 "<li>CryptContext.ALGO.HMAC-SHA1</li>\n"
-	 "<li>CryptContext.ALGO.HMAC-SHA2</li>\n"
-	 "<li>CryptContext.ALGO.HMAC-RIPEMD160</li>\n"
-	 "<li>CryptContext.ALGO.HMAC-SHAng</li></ul>"
+	 "Algorithm constant (CryptContext.ALGO.XXX)"
 	,"Cipher block size in bytes"
 	,"Output of hasing algorithms (ie: MD5, SHA1, etc)"
 	,"Cipher IV"
@@ -279,13 +253,7 @@ static char* cryptcon_prop_desc[] = {
 	,"The salt value used to derive an encryption key from a key (Length must be between 8 and 64)"
 	,"Key size in bytes"
 	,"Key label"
-	,"Mode constant (CryptContext.MODE.XXX):<ul class=\"showList\">\n"
-	 "<li>CryptContext.MODE.None</li>\n"
-	 "<li>CryptContext.MODE.ECB</li>\n"
-	 "<li>CryptContext.MODE.CBC</li>\n"
-	 "<li>CryptContext.MODE.CFB</li>\n"
-	 "<li>CryptContext.MODE.OFB</li>\n"
-	 "<li>CryptContext.MODE.GCM</li></ul>"
+	,"Mode constant (CryptContext.MODE.XXX)"
 	,"Algorithm name"
 	,"Mode name"
 	,NULL
