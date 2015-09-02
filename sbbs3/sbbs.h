@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.415 2015/08/22 08:43:36 deuce Exp $ */
+/* $Id: sbbs.h,v 1.416 2015/09/01 03:19:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -982,6 +982,8 @@ public:
 #ifdef __cplusplus
 extern "C" {
 #endif
+	/* ansiterm.cpp */
+	DLLEXPORT char*		DLLCALL ansi_attr(int attr, int curattr, char* str, BOOL color);
 
 	/* main.cpp */
 	DLLEXPORT int		DLLCALL sbbs_random(int);
