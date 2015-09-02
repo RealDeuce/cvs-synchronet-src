@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.24 2017/07/20 22:23:57 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.22 2015/08/20 05:20:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,26 +53,40 @@ __fastcall TTelnetCfgDlg::TTelnetCfgDlg(TComponent* AOwner)
 //---------------------------------------------------------------------
 void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
 {
-    char str[256];
+    char str[128];
 
-    if(MainForm->bbs_startup.telnet_interfaces==NULL)
+    if(MainForm->bbs_startup.outgoing4.s_addr==0)
         TelnetInterfaceEdit->Text="<ANY>";
     else {
-        strListCombine(MainForm->bbs_startup.telnet_interfaces, str, sizeof(str)-1, ",");
+        sprintf(str,"%d.%d.%d.%d"
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>24)&0xff
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>16)&0xff
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>8)&0xff
+            ,MainForm->bbs_startup.outgoing4.s_addr&0xff
+        );
         TelnetInterfaceEdit->Text=AnsiString(str);
     }
-
-    if(MainForm->bbs_startup.rlogin_interfaces==NULL)
+    if(MainForm->bbs_startup.outgoing4.s_addr==0)
         RLoginInterfaceEdit->Text="<ANY>";
     else {
-        strListCombine(MainForm->bbs_startup.rlogin_interfaces, str, sizeof(str)-1, ",");
+        sprintf(str,"%d.%d.%d.%d"
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>24)&0xff
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>16)&0xff
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>8)&0xff
+            ,MainForm->bbs_startup.outgoing4.s_addr&0xff
+        );
         RLoginInterfaceEdit->Text=AnsiString(str);
     }
 
-    if(MainForm->bbs_startup.ssh_interfaces==NULL)
+    if(MainForm->bbs_startup.outgoing4.s_addr==0)
         SshInterfaceEdit->Text="<ANY>";
     else {
-        strListCombine(MainForm->bbs_startup.ssh_interfaces, str, sizeof(str)-1, ",");
+        sprintf(str,"%d.%d.%d.%d"
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>24)&0xff
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>16)&0xff
+            ,(MainForm->bbs_startup.outgoing4.s_addr>>8)&0xff
+            ,MainForm->bbs_startup.outgoing4.s_addr&0xff
+        );
         SshInterfaceEdit->Text=AnsiString(str);
     }
 
@@ -82,7 +96,6 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
 
 	FirstNodeEdit->Text=AnsiString((int)MainForm->bbs_startup.first_node);
 	LastNodeEdit->Text=AnsiString((int)MainForm->bbs_startup.last_node);
-    MaxConConEdit->Text=AnsiString((int)MainForm->bbs_startup.max_concurrent_connections);
     AutoStartCheckBox->Checked=MainForm->SysAutoStart;
     AnswerSoundEdit->Text=AnsiString(MainForm->bbs_startup.answer_sound);
     HangupSoundEdit->Text=AnsiString(MainForm->bbs_startup.hangup_sound);
@@ -93,6 +106,8 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
     AutoLogonCheckBox->Checked=MainForm->bbs_startup.options&BBS_OPT_AUTO_LOGON;
     HostnameCheckBox->Checked
         =!(MainForm->bbs_startup.options&BBS_OPT_NO_HOST_LOOKUP);
+    IdentityCheckBox->Checked
+        =MainForm->bbs_startup.options&BBS_OPT_GET_IDENT;
     DosSupportCheckBox->Checked
         =!(MainForm->bbs_startup.options&BBS_OPT_NO_DOS);
 
@@ -116,14 +131,62 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
 
 void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
 {
-    iniFreeStringList(MainForm->bbs_startup.telnet_interfaces);
-    MainForm->bbs_startup.telnet_interfaces = strListSplitCopy(NULL, TelnetInterfaceEdit->Text.c_str(), ",");
+    char    str[128],*p;
+    DWORD   addr;
 
-    iniFreeStringList(MainForm->bbs_startup.rlogin_interfaces);
-    MainForm->bbs_startup.rlogin_interfaces = strListSplitCopy(NULL, RLoginInterfaceEdit->Text.c_str(), ",");
+    SAFECOPY(str,TelnetInterfaceEdit->Text.c_str());
+    p=str;
+    while(*p && *p<=' ') p++;
+    if(*p && isdigit(*p)) {
+        addr=atoi(p)<<24;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<16;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<8;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p);
+        MainForm->bbs_startup.outgoing4.s_addr=addr;
+    } else
+        MainForm->bbs_startup.outgoing4.s_addr=0;
 
-    iniFreeStringList(MainForm->bbs_startup.ssh_interfaces);
-    MainForm->bbs_startup.ssh_interfaces = strListSplitCopy(NULL, SshInterfaceEdit->Text.c_str(), ",");
+    SAFECOPY(str,RLoginInterfaceEdit->Text.c_str());
+    p=str;
+    while(*p && *p<=' ') p++;
+    if(*p && isdigit(*p)) {
+        addr=atoi(p)<<24;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<16;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<8;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p);
+        MainForm->bbs_startup.outgoing4.s_addr=addr;
+    } else
+        MainForm->bbs_startup.outgoing4.s_addr=0;
+
+    SAFECOPY(str,SshInterfaceEdit->Text.c_str());
+    p=str;
+    while(*p && *p<=' ') p++;
+    if(*p && isdigit(*p)) {
+        addr=atoi(p)<<24;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<16;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<8;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p);
+        MainForm->bbs_startup.outgoing4.s_addr=addr;
+    } else
+        MainForm->bbs_startup.outgoing4.s_addr=0;
 
     MainForm->bbs_startup.telnet_port=TelnetPortEdit->Text.ToIntDef(23);
     MainForm->bbs_startup.rlogin_port=RLoginPortEdit->Text.ToIntDef(513);
@@ -131,7 +194,6 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
 
     MainForm->bbs_startup.first_node=FirstNodeEdit->Text.ToIntDef(1);
     MainForm->bbs_startup.last_node=LastNodeEdit->Text.ToIntDef(1);
-    MainForm->bbs_startup.max_concurrent_connections=MaxConConEdit->Text.ToIntDef(0);
 
     MainForm->SysAutoStart=AutoStartCheckBox->Checked;
     SAFECOPY(MainForm->bbs_startup.answer_sound
@@ -175,6 +237,10 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->bbs_startup.options|=BBS_OPT_NO_HOST_LOOKUP;
     else
 	    MainForm->bbs_startup.options&=~BBS_OPT_NO_HOST_LOOKUP;
+	if(IdentityCheckBox->Checked==true)
+    	MainForm->bbs_startup.options|=BBS_OPT_GET_IDENT;
+    else
+	    MainForm->bbs_startup.options&=~BBS_OPT_GET_IDENT;
 
 	if(RLoginEnabledCheckBox->Checked==true)
     	MainForm->bbs_startup.options|=BBS_OPT_ALLOW_RLOGIN;
@@ -242,7 +308,5 @@ void __fastcall TTelnetCfgDlg::SshEnabledCheckBoxClick(TObject *Sender)
     SshInterfaceLabel->Enabled = SshEnabledCheckBox->Checked;
 }
 //---------------------------------------------------------------------------
-
-
 
 
