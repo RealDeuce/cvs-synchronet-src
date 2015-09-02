@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.54 2015/11/25 12:31:49 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.51 2015/04/28 10:55:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -162,7 +162,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	truncsp(to);				/* Truncate off space */
 
 	memset(&hdr,0,sizeof(hdr));   /* Initialize header to null */
-	SAFECOPY(hdr.from, cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
+	strcpy(hdr.from,cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
 	SAFECOPY(hdr.to,to);
 
 	/* Look-up in nodelist? */
@@ -214,9 +214,9 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(mode&WM_FILE) hdr.attr|=FIDO_FILE;
 
 	sprintf(str,"%sNETMAIL.MSG", cfg.node_dir);
-	removecase(str);	/* Just incase it's already there */
+	remove(str);	/* Just incase it's already there */
 	// mode&=~WM_FILE;
-	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into,hdr.from)) {
+	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -330,19 +330,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		}
 		write(fido,&hdr,sizeof(hdr));
 
-		SAFEPRINTF(str,"\1PID: %s\r", msg_program_id(tmp));
-		write(fido, str, strlen(str));
-
 		pt_zone_kludge(hdr,fido);
-		/* TZUTC (FSP-1001) */
-		int tzone=smb_tzutc(sys_timezone(&cfg));
-		const char* minus="";
-		if(tzone<0) {
-			minus="-";
-			tzone=-tzone;
-		}
-		SAFEPRINTF3(str,"\1TZUTC: %s%02d%02u\r", minus, tzone/60, tzone%60);
-		write(fido, str, strlen(str));
 
 		if(cfg.netmail_misc&NMAIL_DIRECT) {
 			SAFECOPY(str,"\1FLAGS DIR\r\n");
