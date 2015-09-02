@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.598 2015/08/23 06:20:04 deuce Exp $ */
+/* $Id: websrvr.c,v 1.609 2015/09/01 20:46:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -548,29 +548,22 @@ static int writebuf(http_session_t	*session, const char *buf, size_t len)
 
 static BOOL handle_crypt_call(int status, http_session_t *session, const char *file, int line)
 {
-	int		len = 0;
 	char	*estr = NULL;
 	int		sock = 0;
 
 	if (status == CRYPT_OK)
 		return TRUE;
 	if (session != NULL) {
-		if (session->is_tls) {
-			if (cryptStatusOK(cryptGetAttributeString(session->tls_sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, NULL, &len))) {
-				estr = malloc(len + 1);
-				if (estr) {
-					cryptGetAttributeString(session->tls_sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len);
-					estr[len+1] = 0;
-				}
-			}
-			
-		}
+		if (session->is_tls)
+			estr = get_crypt_error(session->tls_sess);
 		sock = session->socket;
 	}
-	if (estr)
-		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
+	if (estr) {
+		lprintf(LOG_WARNING, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
+		free_crypt_attrstr(estr);
+	}
 	else
-		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
+		lprintf(LOG_WARNING, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
 	return FALSE;
 }
 
@@ -2140,7 +2133,6 @@ static int recvbufsocket(http_session_t *session, char *buf, long count)
 {
 	int		rd=0;
 	int		i;
-	time_t	start;
 
 	if(count<1) {
 		errno=ERANGE;
@@ -2160,7 +2152,6 @@ static int recvbufsocket(http_session_t *session, char *buf, long count)
 		}
 
 		rd+=i;
-		start=time(NULL);
 	}
 
 	if(rd==count)  {
@@ -2843,6 +2834,9 @@ static char *get_request(http_session_t * session, char *req_line)
 		/* Remove path if present (everything after the first /) */
 		strtok_r(session->req.host,"/",&last);
 
+		/* Lower-case the host */
+		strlwr(session->req.host);
+
 		/* Set vhost value to host value */
 		SAFECOPY(session->req.vhost,session->req.host);
 
@@ -2922,6 +2916,8 @@ static BOOL get_request_headers(http_session_t * session)
 			switch(i) {
 				case HEAD_HOST:
 					if(session->req.host[0]==0) {
+						/* Lower-case for normalization */
+						strlwr(value);
 						SAFECOPY(session->req.host,value);
 						SAFECOPY(session->req.vhost,value);
 						/* Remove port part of host (Win32 doesn't allow : in dir names) */
@@ -2936,10 +2932,16 @@ static BOOL get_request_headers(http_session_t * session)
 		}
 	}
 
-	if(!(session->req.vhost[0]))
+	if(!(session->req.vhost[0])) {
 		SAFECOPY(session->req.vhost, startup->host_name);
-	if(!(session->req.host[0]))
+		/* Lower-case for normalization */
+		strlwr(session->req.vhost);
+	}
+	if(!(session->req.host[0])) {
 		SAFECOPY(session->req.host, startup->host_name);
+		/* Lower-case for normalization */
+		strlwr(session->req.host);
+	}
 	return TRUE;
 }
 
@@ -2960,6 +2962,27 @@ static BOOL get_fullpath(http_session_t * session)
 		return(FALSE);
 
 	return(isabspath(session->req.physical_path));
+}
+
+static BOOL is_legal_hostname(const char *host, BOOL strip_port)
+{
+	char * stripped = NULL;
+
+	if (strip_port) {
+		stripped = strdup(host);
+		remove_port_part(stripped);
+		host = stripped;
+	}
+	if (host[0] == '-' || host[0] == '.' || host[0] == 0) {
+		FREE_AND_NULL(stripped);
+		return FALSE;
+	}
+	if (strspn(host, "abcdefghijklmnopqrstuvwxyz0123456789-.") != strlen(host)) {
+		FREE_AND_NULL(stripped);
+		return FALSE;
+	}
+	FREE_AND_NULL(stripped);
+	return TRUE;
 }
 
 static BOOL get_req(http_session_t * session, char *request_line)
@@ -3000,8 +3023,17 @@ static BOOL get_req(http_session_t * session, char *request_line)
 			session->http_ver=get_version(p);
 			if(session->http_ver>=HTTP_1_1)
 				session->req.keep_alive=TRUE;
-			if(!is_redir)
+			if(!is_redir) {
 				get_request_headers(session);
+			}
+			if (!is_legal_hostname(session->req.host, TRUE)) {
+				send_error(session,"400 Bad Request");
+				return FALSE;
+			}
+			if (!is_legal_hostname(session->req.vhost, FALSE)) {
+				send_error(session,"400 Bad Request");
+				return FALSE;
+			}
 			if(!get_fullpath(session)) {
 				send_error(session,error_500);
 				return(FALSE);
@@ -5166,6 +5198,10 @@ int read_post_data(http_session_t * session)
 			/* Read more headers! */
 			if(!get_request_headers(session))
 				return(FALSE);
+			if (!is_legal_hostname(session->req.vhost, FALSE)) {
+				send_error(session,"400 Bad Request");
+				return FALSE;
+			}
 			if(!parse_headers(session))
 				return(FALSE);
 		}
@@ -5328,6 +5364,16 @@ void http_output_thread(void *arg)
 	sem_post(&session->output_thread_terminated);
 }
 
+static int close_session_no_rb(http_session_t *session)
+{
+	if (session) {
+		if (session->is_tls)
+			HANDLE_CRYPT_CALL(cryptDestroySession(session->tls_sess), session);
+		return close_socket(&session->socket);
+	}
+	return 0;
+}
+
 void http_session_thread(void* arg)
 {
 	SOCKET			socket;
@@ -5342,6 +5388,7 @@ void http_session_thread(void* arg)
 	int				i;
 	int				last;
 	user_t			user;
+	char			*uname;
 #endif
 
 	SetThreadName("HTTP Session");
@@ -5374,7 +5421,7 @@ void http_session_thread(void* arg)
 	if (session.is_tls) {
 		/* Create and initialize the TLS session */
 		if (!HANDLE_CRYPT_CALL(cryptCreateSession(&session.tls_sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER), &session)) {
-			close_session_socket(&session);
+			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
@@ -5400,7 +5447,7 @@ void http_session_thread(void* arg)
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session);
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session)) {
-			close_session_socket(&session);
+			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
@@ -5410,7 +5457,7 @@ void http_session_thread(void* arg)
 	/* FREE()d in this block (RingBufDispose before all returns) */
 	if(RingBufInit(&(session.outbuf), OUTBUF_LEN)) {
 		lprintf(LOG_ERR,"%04d Canot create output ringbuffer!", session.socket);
-		close_session_socket(&session);
+		close_session_no_rb(&session);
 		thread_down();
 		return;
 	}
@@ -5463,7 +5510,7 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.client.host,session.host_name);
 	session.client.port=inet_addrport(&session.addr);
 	session.client.time=time32(NULL);
-	session.client.protocol=session.is_tls ? "HTTP":"HTTPS";
+	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
@@ -5486,8 +5533,10 @@ void http_session_thread(void* arg)
 	    memset(&(session.req), 0, sizeof(session.req));
 	    if (session.is_tls) {
 #if 0 // TLS-PSK is currently broken in cryptlib
-			if (cryptGetAttributeString(session.tls_sess, CRYPT_SESSINFO_USERNAME, session.req.auth.username, &i)==CRYPT_OK) {
-				session.req.auth.username[i]=0;
+			uname = get_crypt_attribute(session.tls_sess, CRYPT_SESSINFO_USERNAME);
+			if (uname) {
+				SAFECOPY(session.req.auth.username, uname);
+				free_crypt_attrstr(uname);
 				session.req.auth.type = AUTHENTICATION_TLS_PSK;
 			}
 #endif
@@ -5667,7 +5716,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.598 $", "%*s %s", revision);
+	sscanf("$Revision: 1.609 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5727,7 +5776,7 @@ void http_logging_thread(void* arg)
 			continue;
 		}
 		SAFECOPY(newfilename,base);
-		if(startup->options&WEB_OPT_VIRTUAL_HOSTS && ld->vhost!=NULL) {
+		if((startup->options&WEB_OPT_VIRTUAL_HOSTS) && ld->vhost!=NULL) {
 			strcat(newfilename,ld->vhost);
 			if(ld->vhost[0])
 				strcat(newfilename,"-");
@@ -5938,10 +5987,12 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_DEBUG,"Error directory: %s", error_dir);
 		lprintf(LOG_DEBUG,"CGI directory: %s", cgi_dir);
 
-		lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
-		tls_context = get_ssl_cert(&scfg, ssl_estr);
-		if (tls_context == -1)
-			lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
+		if(startup->options&WEB_OPT_ALLOW_TLS) {
+			lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
+			tls_context = get_ssl_cert(&scfg, ssl_estr);
+			if (tls_context == -1)
+				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
+		}
 
 		iniFileName(mime_types_ini,sizeof(mime_types_ini),scfg.ctrl_dir,"mime_types.ini");
 		mime_types=read_ini_list(mime_types_ini,NULL /* root section */,"MIME types"
@@ -5984,8 +6035,10 @@ void DLLCALL web_server(void* arg)
 		 * Add interfaces
 		 */
 		xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "Web Server", open_socket, startup->seteuid, NULL);
-		if(do_cryptInit())
-			xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
+		if(tls_context != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
+			if(do_cryptInit())
+				xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
+		}
 
 		listInit(&log_list,/* flags */ LINK_LIST_MUTEX|LINK_LIST_SEMAPHORE);
 		if(startup->options&WEB_OPT_HTTP_LOGGING) {
@@ -6109,7 +6162,7 @@ void DLLCALL web_server(void* arg)
 				session->is_tls=TRUE;
 			lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
 				,client_socket
-				,session->is_tls ? "HTTP":"HTTPS"
+				,session->is_tls ? "HTTPS":"HTTP"
 				,host_ip, host_port);
 
 			SAFECOPY(session->host_ip,host_ip);
