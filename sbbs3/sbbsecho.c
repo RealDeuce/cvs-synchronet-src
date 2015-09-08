@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.265 2015/09/08 02:15:05 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.266 2015/09/08 20:18:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -329,7 +329,7 @@ int get_flo_outbound(faddr_t dest, char* outbound, size_t maxlen)
 	if(dest.zone==sys_faddr.zone)		/* Default zone, use default outbound */
 		strncpy(outbound,cfg.outbound,maxlen);
 	else {								/* Inter-zone outbound is OUTBOUND.XXX */
-		safe_snprnitf(outbound,maxlen,"%.*s.%03x"
+		safe_snprintf(outbound,maxlen,"%.*s.%03x"
 			,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
 	}
 	if(dest.point) {					/* Point destination is OUTBOUND\*.PNT */
@@ -4153,7 +4153,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.265 $", "%*s %s", revision);
+	sscanf("$Revision: 1.266 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
