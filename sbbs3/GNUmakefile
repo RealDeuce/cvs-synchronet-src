@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.227 2015/10/28 01:38:40 deuce Exp $
+# $Id: GNUmakefile,v 1.226 2015/09/02 06:39:36 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -106,7 +106,6 @@ CFLAGS	+=	$(JS_CFLAGS) $(CRYPT_CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SM
 CFLAGS	+=	-I../comio
 vpath %.c ../comio
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-JSDOOR_OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS) $(CRYPT_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
@@ -198,11 +197,6 @@ $(FILELIST): $(FILELIST_OBJS)
 $(MAKEUSER): $(MAKEUSER_OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(MAKEUSER_OBJS) $(XPDEV_LIBS)
-
-# JSDOOR
-$(JSDOOR): $(JSDOOR_OBJS) $(SBBS)
-	@echo Linking $@
-	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSDOOR_OBJS) $(JS_LIBS) $(CRYPT_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
