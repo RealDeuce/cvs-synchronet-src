@@ -2,7 +2,7 @@
 
 /* Set socket options based on contents of ctrl/sockopts.ini */
 
-/* $Id: sockopts.c,v 1.23 2005/10/19 09:06:23 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.24 2015/08/20 05:19:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* protocol, c
 {
 	char		cfgfile[MAX_PATH+1];
 	FILE*		fp;
-	int			type;
+	int			type=0;		// Assignment is to silence Valgrind
 	int			result=0;
 	str_list_t	list;
 	socklen_t	len;
