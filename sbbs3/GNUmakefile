@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.225 2015/02/07 07:58:29 deuce Exp $
+# $Id: GNUmakefile,v 1.226 2015/09/02 06:39:36 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -53,7 +53,8 @@ endif
 ifdef BUILD_JSDOCS
  CFLAGS += -DBUILD_JSDOCS
  SBBS_LIBS += ${UIFC-MT_LDFLAGS} ${UIFC-MT_LIBS} $(CIOLIB-MT_LDFLAGS) ${CIOLIB-MT_LIBS}
- OBJS += $(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE)
+ OBJS += $(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)js_conio$(OFILE)
  EXTRA_SBBS_DEPENDS += $(CIOLIB-MT) $(UIFCLIB-MT)
 endif
 
