@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.268 2015/10/31 07:30:15 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.265 2015/09/08 02:15:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -329,7 +329,7 @@ int get_flo_outbound(faddr_t dest, char* outbound, size_t maxlen)
 	if(dest.zone==sys_faddr.zone)		/* Default zone, use default outbound */
 		strncpy(outbound,cfg.outbound,maxlen);
 	else {								/* Inter-zone outbound is OUTBOUND.XXX */
-		safe_snprintf(outbound,maxlen,"%.*s.%03x"
+		safe_snprnitf(outbound,maxlen,"%.*s.%03x"
 			,(int)strlen(cfg.outbound)-1,cfg.outbound,dest.zone);
 	}
 	if(dest.point) {					/* Point destination is OUTBOUND\*.PNT */
@@ -2732,7 +2732,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 {
 	char str[256],seenby[256];
 	short i,j,lastlen=0,net_exists=0;
-	faddr_t addr,sysaddr,lasthop={0,0,0,0};
+	faddr_t addr,sysaddr;
 	fpkdmsg_t pkdmsg;
 	time_t t;
 	size_t len;
@@ -2883,7 +2883,6 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 				strcpy(seenby," ");
 				if(foreign_zone(addr.zone, paths.addr[i].zone) || paths.addr[i].point)
 					continue;
-				lasthop=paths.addr[i];
 				if(paths.addr[i].net!=addr.net || !net_exists) {
 					net_exists=1;
 					addr.net=paths.addr[i].net;
@@ -2906,8 +2905,7 @@ void putfmsg(FILE *stream,char *fbuf,fmsghdr_t fmsghdr,areasbbs_t area
 
 			strcpy(seenby," ");         /* Add first address with same zone to PATH */
 			sysaddr=getsysfaddr(fmsghdr.destzone);
-			if(sysaddr.net!=0 && sysaddr.point==0 
-				&& (paths.addrs==0 || lasthop.net!=sysaddr.net || lasthop.node!=sysaddr.node)) {
+			if(sysaddr.net!=0 && sysaddr.point==0) {
 				if(sysaddr.net!=addr.net || !net_exists) {
 					net_exists=1;
 					addr.net=sysaddr.net;
@@ -4155,7 +4153,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.268 $", "%*s %s", revision);
+	sscanf("$Revision: 1.265 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4398,6 +4396,12 @@ int main(int argc, char **argv)
 	fclose(stream);
 
 	printf("\n");
+
+	if(!cfg.areas) {
+		lprintf(LOG_ERR,"No areas defined in %s", cfg.areafile);
+		bail(1); 
+		return -1;
+	}
 
 	#if 0	/* AREAS.BBS DEBUG */
 		for(i=0;i<cfg.areas;i++) {
@@ -4739,7 +4743,7 @@ int main(int argc, char **argv)
 				} 						/* On to the next message */
 
 				/* TODO: Should circular path detection occur before processing pass-through areas? */
-				if(cfg.check_path && msg_path.addrs > 1) {
+				if(cfg.check_path) {
 					for(j=0;j<scfg.total_faddrs;j++)
 						if(check_psb(&msg_path,scfg.faddr[j]))
 							break;
