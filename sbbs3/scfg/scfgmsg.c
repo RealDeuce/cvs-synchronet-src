@@ -1,12 +1,12 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.40 2015/08/27 00:29:26 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.41 2015/09/08 22:14:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -694,6 +694,7 @@ while(1) {
 						if(!stricmp(cfg.sub[u]->code_suffix,tmpsub.code_suffix))
 							break; 
 					}
+					j=u;
 					if(j==total_subs) {
 						j=cfg.total_subs;
 						if((cfg.sub=(sub_t **)realloc(cfg.sub
