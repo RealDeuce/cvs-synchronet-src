@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.39 2015/08/22 10:33:24 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.40 2015/08/27 00:29:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -569,7 +569,7 @@ while(1) {
 						memset(&tmpsub,0,sizeof(sub_t));
 						tmpsub.misc|=
 							(SUB_FIDO|SUB_NAME|SUB_TOUSER|SUB_QUOTE|SUB_HYPER);
-						if(k==1) {		/* AREAS.BBS Generic/*.MSG */
+						if(k==1) {		/* AREAS.BBS Generic/.MSG */
 							p=str;
 							SKIP_WHITESPACE(p);			/* Find path	*/
 							FIND_WHITESPACE(p);			/* Skip path	*/
