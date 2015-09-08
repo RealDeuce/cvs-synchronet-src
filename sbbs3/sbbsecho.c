@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.264 2015/09/08 01:41:39 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.265 2015/09/08 02:15:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4153,7 +4153,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.264 $", "%*s %s", revision);
+	sscanf("$Revision: 1.265 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5060,10 +5060,10 @@ int main(int argc, char **argv)
 					SAFEPRINTF2(req,"%s%08x.req",outbound,addr.point);
 				else
 					SAFEPRINTF3(req,"%s%04x%04x.req",outbound,addr.net,addr.node);
-				if((fp=fopen(req,"w")) == NULL)
+				if((fp=fopen(req,"a")) == NULL)
 					lprintf(LOG_ERR,"ERROR %d creating/opening %s", errno, req);
 				else {
-					fprintf(fp,"%s",getfname(hdr.subj));
+					fprintf(fp,"%s\n",getfname(hdr.subj));
 					fclose(fp);
 					if(write_flofile(req, addr, /* bundle: */FALSE))
 						bail(1);
