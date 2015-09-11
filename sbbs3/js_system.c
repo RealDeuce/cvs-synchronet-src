@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.159 2015/08/20 05:19:42 deuce Exp $ */
+/* $Id: js_system.c,v 1.161 2015/08/25 01:59:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1969,7 +1969,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,sysobj))==NULL)
 		return(JS_FALSE);
 
-	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
+	node_num=(uintptr_t)JS_GetPrivate(cx,obj)>>1;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
@@ -2035,7 +2035,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	if((cfg=(scfg_t*)JS_GetPrivate(cx,sysobj))==NULL)
 		return(JS_FALSE);
 
-	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
+	node_num=(uintptr_t)JS_GetPrivate(cx,obj)>>1;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
@@ -2324,7 +2324,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 
 			/* Store node number */
 			/* We have to shift it to make it look like a pointer to JS. :-( */
-			if(!JS_SetPrivate(cx, nodeobj, (char*)((i+1)<<1)))
+			if(!JS_SetPrivate(cx, nodeobj, (char*)(((uintptr_t)i+1)<<1)))
 				return(JS_FALSE);
 
 	#ifdef BUILD_JSDOCS
