@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.610 2015/09/04 09:11:18 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.611 2015/09/11 03:06:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5683,7 +5683,7 @@ static void cleanup(int code)
 		tls_context = -1;
 	}
 
-	if(!terminated) {
+	if(!terminated) {	/* Can this be changed to a if(ws_set!=NULL) check instead? */
 		xpms_destroy(ws_set, close_socket_cb, NULL);
 		ws_set=NULL;
 		terminated=TRUE;
@@ -5716,7 +5716,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.610 $", "%*s %s", revision);
+	sscanf("$Revision: 1.611 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6029,6 +6029,7 @@ void DLLCALL web_server(void* arg)
 			cleanup(1);
 			return;
 		}
+		terminated=FALSE;
 		lprintf(LOG_DEBUG,"Web Server socket set created");
 
 		/*
@@ -6069,6 +6070,7 @@ void DLLCALL web_server(void* arg)
     		startup->started(startup->cbdata);
 
 		lprintf(LOG_INFO,"Web Server thread started");
+		status("Listening");
 
 		while(!terminated && !terminate_server) {
 
