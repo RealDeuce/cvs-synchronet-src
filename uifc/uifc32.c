@@ -1,12 +1,14 @@
+/* uifc32.c */
+
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.221 2017/10/10 22:45:00 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.217 2015/08/25 01:38:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -635,7 +637,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int tbrdrwidth=3;
 	int bbrdrwidth=1;
 	int title_len;
-	int tmpcur=0;
 	struct mouse_event mevnt;
 	char	*title=NULL;
 	int	a,b,c,longopt;
@@ -643,7 +644,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int gotkey;
 	uchar	hclr,lclr,bclr,cclr,lbclr;
 
-	if(cur==NULL) cur=&tmpcur;
 	api->exit_flags = 0;
 	hclr=api->hclr;
 	lclr=api->lclr;
@@ -1161,10 +1161,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							api->savnum--;
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if(sav[api->savnum].buf != NULL)
-								puttext(sav[api->savnum].left,sav[api->savnum].top
-									,sav[api->savnum].right,sav[api->savnum].bot
-									,sav[api->savnum].buf);
+							puttext(sav[api->savnum].left,sav[api->savnum].top
+								,sav[api->savnum].right,sav[api->savnum].bot
+								,sav[api->savnum].buf);
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_enable();
 							FREE_AND_NULL(sav[api->savnum].buf);
@@ -1237,10 +1236,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				case CTRL_C:
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_F(5);	/* copy */
-					break;
-				case CTRL_X:
-					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_SHIFT_DC;	/* cut */
 					break;
 				case CTRL_V:
 					if(!(api->mode&UIFC_NOCTRL))
@@ -1527,32 +1522,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						break;
 					case CIO_KEY_F(1):	/* F1 - Help */
-					{
-						uint8_t* save = malloc(width*height*2);
-						if(save != NULL) {
-							gettext(s_left+left,s_top+top,s_left
-								+left+width-1,s_top+top+height-1,save);
-							uint8_t* copy = malloc(width*height*2);
-							if(copy != NULL) {
-								memcpy(copy, save, width*height*2);
-								for(i=1;i<(width*height*2);i+=2)
-									copy[i]=lclr|(cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									copy[i]=hclr|(cclr<<4);
-								puttext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,copy);
-								free(copy);
-							}
-						}
 						api->showhelp();
-						if(save != NULL) {
-							puttext(s_left+left,s_top+top,s_left
-								+left+width-1,s_top+top+height-1,save);
-							free(save);
-						}
 						break;
-					}
 					case CIO_KEY_F(2):	/* F2 - Edit */
 						if(mode&WIN_XTR && (*cur)==opts-1)	/* can't edit */
 							break;							/* extra line */
@@ -1573,27 +1544,20 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if(sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return((*cur)|MSK_EDIT); 
 						}
 						break;
-					case CIO_KEY_F(5):		/* F5 - Copy */
-					case CIO_KEY_CTRL_IC:	/* Ctrl-Insert */
+					case CIO_KEY_F(5):	/* F5 - Copy */
 						if(mode&WIN_GET && !(mode&WIN_XTR && (*cur)==opts-1))
 							return((*cur)|MSK_GET);
 						break;
-					case CIO_KEY_SHIFT_DC:	/* Shift-Del: Cut */
-						if(mode&WIN_GET && !(mode&WIN_XTR && (*cur) == opts - 1))
-							return((*cur) | MSK_CUT);
-						break;
-					case CIO_KEY_F(6):		/* F6 - Paste */
-					case CIO_KEY_SHIFT_IC:	/* Shift-Insert */
-						if(mode&WIN_PUT && (mode&WIN_PUTXTR || !(mode&WIN_XTR && (*cur)==opts-1)))
+					case CIO_KEY_F(6):	/* F6 - Paste */
+						if(mode&WIN_PUT && !(mode&WIN_XTR && (*cur)==opts-1))
 							return((*cur)|MSK_PUT);
 						break;
 					case CIO_KEY_IC:	/* insert */
@@ -1614,10 +1578,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if(sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							if(!opts) {
@@ -1646,10 +1609,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if (sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return((*cur)|MSK_DEL); 
@@ -1777,10 +1739,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if (sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							if(mode&WIN_XTR && (*cur)==opts-1)
@@ -1800,10 +1761,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if (sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return(-1);
