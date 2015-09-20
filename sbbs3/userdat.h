@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.50 2015/08/20 05:19:45 deuce Exp $ */
+/* $Id: userdat.h,v 1.52 2015/08/26 08:36:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,8 +135,7 @@ DLLEXPORT BOOL	DLLCALL check_name(scfg_t* cfg, const char* name);
 
 /* Login attempt/hack tracking */
 typedef struct {
-	struct in6_addr addr;	/* host with consecutive failed login attmepts */
-	sa_family_t	family;
+	union xp_sockaddr addr;	/* host with consecutive failed login attmepts */
 	ulong		count;	/* number of consecutive failed login attempts */
 	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
 	time32_t	time;	/* time of last attempt */
