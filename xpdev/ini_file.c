@@ -2,13 +2,13 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.141 2015/08/22 08:04:52 deuce Exp $ */
+/* $Id: ini_file.c,v 1.142 2015/08/29 10:37:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -1663,6 +1663,9 @@ static time_t parseDateTime(const char* value)
 		&& (tm.tm_mon=getMonth(month))!=0
 		&& validDate(&tm))
 		return(fixedDateTime(&tm,tstr,0));
+
+	if((t=xpDateTime_to_time(isoDateTimeStr_parse(value))) != INVALID_TIME)
+		return t;
 
 	return(strtoul(value,NULL,0));
 }

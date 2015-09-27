@@ -2,13 +2,13 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.8 2014/02/10 09:20:44 deuce Exp $ */
+/* $Id: xpdatetime.c,v 1.10 2015/09/02 07:45:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -123,6 +123,7 @@ xpTimeZone_t DLLCALL xpTimeZone_local(void)
 #endif
 }
 
+/* TODO: Supports local timezone and UTC only, currently */
 time_t DLLCALL xpDateTime_to_time(xpDateTime_t xpDateTime)
 {
 	struct tm tm;
@@ -140,7 +141,18 @@ time_t DLLCALL xpDateTime_to_time(xpDateTime_t xpDateTime)
 	tm.tm_min	= xpDateTime.time.minute;
 	tm.tm_sec	= (int)xpDateTime.time.second;
 
-	return sane_mktime(&tm);
+	if(xpDateTime.zone == xpTimeZone_UTC)
+		return sane_timegm(&tm);
+	if(xpDateTime.zone == xpTimeZone_LOCAL || xpDateTime.zone == xpTimeZone_local())
+		return sane_mktime(&tm);
+	return INVALID_TIME;
+}
+
+/* This version ignores the timezone in xpDateTime and always uses mktime() */
+time_t DLLCALL xpDateTime_to_localtime(xpDateTime_t xpDateTime)
+{
+	xpDateTime.zone = xpTimeZone_LOCAL;
+	return xpDateTime_to_time(xpDateTime);
 }
 
 xpDateTime_t DLLCALL time_to_xpDateTime(time_t ti, xpTimeZone_t zone)
