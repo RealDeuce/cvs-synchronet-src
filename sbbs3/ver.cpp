@@ -2,7 +2,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.27 2015/11/10 22:53:28 deuce Exp $ */
+/* $Id: ver.cpp,v 1.26 2010/03/19 19:43:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,7 +69,6 @@ char* socklib_version(char* str, char* winsock_ver)
 	return(str);
 }
 
-#ifndef JSDOOR
 void sbbs_t::ver()
 {
 	char str[128],compiler[32];
@@ -110,4 +109,4 @@ void sbbs_t::ver()
 
 	center(os_version(str));
 }
-#endif
+
