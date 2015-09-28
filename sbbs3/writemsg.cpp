@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.106 2015/07/04 23:43:36 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.107 2015/09/20 07:33:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,6 +391,11 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 			&& useron_level && useron.logons) {
 			free(buf);
 			return(false); 
+		}
+		if((mode&WM_FILE) && !checkfname(title)) {
+			free(buf);
+			bputs(text[BadFilename]);
+			return(false);
 		}
 		if(!(mode&(WM_EMAIL|WM_NETMAIL)) && cfg.sub[subnum]->misc&SUB_QNET
 			&& !SYSOP

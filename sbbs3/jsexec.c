@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.170 2015/08/22 07:12:35 deuce Exp $ */
+/* $Id: jsexec.c,v 1.171 2015/09/28 07:01:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1043,7 +1043,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.170 $", "%*s %s", revision);
+	sscanf("$Revision: 1.171 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1111,7 +1111,7 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'm':
 					if(*p==0) p=argv[++argn];
-					js_max_bytes=strtoul(p,NULL,0);
+					js_max_bytes=parse_byte_count(p, /* units: */1);
 					break;
 				case 'n':
 					statfp=nulfp;
@@ -1131,7 +1131,7 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 's':
 					if(*p==0) p=argv[++argn];
-					js_cx_stack=strtoul(p,NULL,0);
+					js_cx_stack=parse_byte_count(p, /* units: */1);
 					break;
 				case 't':
 					if(*p==0) p=argv[++argn];
