@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.42 2014/04/24 05:46:55 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.49 2015/09/28 06:05:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,9 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(_WIN32)
- #include <malloc.h>    /* alloca() on Win32 */
-#endif
+#include "genwrap.h"    /* alloca() */
 
 #include "xpprintf.h"
 #include "gen_defs.h"
@@ -65,7 +63,7 @@ int DLLCALL xp_printf_get_type(const char *format)
 	const char	*p;
 	int		modifier=0;
 	int		j;
-	int		correct_type;
+	int		correct_type=0;
 
 	if(!*(size_t *)format)
 		return(0);
@@ -124,7 +122,7 @@ int DLLCALL xp_printf_get_type(const char *format)
 			}
 			break;
 		case 'l':
-			modifier='h';
+			modifier='l';
 			p++;
 			if(*p=='l') {
 				p++;
@@ -282,7 +280,7 @@ int DLLCALL xp_printf_get_type(const char *format)
  *
  * Does not currently support the $ argument selector.
  *
- * Currently, the type is not overly usefull, but this could be used for
+ * Currently, the type is not overly useful, but this could be used for
  * automatic type conversions (ie: int to char *).  Right now it just assures
  * that the type passed to sprintf() is the type passed to
  * xp_asprintf_next().
@@ -292,19 +290,19 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	va_list vars;
 	char			*p;
 	char			*newbuf;
-	int				i,j;
-	unsigned int	ui;
-	long int		l;
-	unsigned long int	ul;
+	int				i=0,j;
+	unsigned int	ui=0;
+	long int		l=0;
+	unsigned long int	ul=0;
 #if defined(XP_PRINTF_TYPE_LONGLONG)
-	long long int	ll;
-	unsigned long long int	ull;
+	long long int	ll=0;
+	unsigned long long int	ull=0;
 #endif
-	double			d;
-	long double		ld;
-	char*			cp;
-	void*			pntr;
-	size_t			s;
+	double			d=0;
+	long double		ld=0;
+	char*			cp=NULL;
+	void*			pntr=NULL;
+	size_t			s=0;
 	unsigned long	offset=0;
 	unsigned long	offset2=0;
 	size_t			format_len;
@@ -1210,6 +1208,11 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		case XP_PRINTF_TYPE_SIZET:
 			j=sprintf(entry, this_format, s);
 			break;
+	}
+
+	if (j<0) {
+		strcmp(entry, "<error>");
+		j=strlen(entry);
 	}
 
 	this_format_len=strlen(this_format);
