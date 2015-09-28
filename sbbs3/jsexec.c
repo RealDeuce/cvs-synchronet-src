@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.171 2015/09/28 07:01:17 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.172 2015/09/28 08:20:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -314,13 +314,13 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%s",logstr);
 		JS_RESUMEREQUEST(cx, rc);
+		FREE_AND_NULL(logstr);
 	}
 
-	if(logstr==NULL)
+	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
-	free(logstr);
 
     return(JS_TRUE);
 }
@@ -397,13 +397,14 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
     for (i = 0; i < argc; i++) {
-		if((str=JS_ValueToString(cx, argv[0]))==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 		    return(JS_FALSE);
 		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(confp,"%s",line);
+		FREE_AND_NULL(line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -411,8 +412,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
-	if(line)
-		free(line);
     return(JS_TRUE);
 }
 
@@ -1043,7 +1042,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.171 $", "%*s %s", revision);
+	sscanf("$Revision: 1.172 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
