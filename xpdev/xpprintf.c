@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.51 2015/09/28 20:26:51 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.52 2015/09/28 20:31:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,17 +48,21 @@
 int asprintf(char **strptr, char *format, ...)
 {
 	va_list	va;
+	va_list	va2;
 	int		ret;
 
 	if (strptr == NULL)
 		return -1;
 	va_start(va, format);
+	va_copy(va2, va);
 	ret = _vscprintf(format, va);
 	*strptr = (char *)malloc(ret+1);
 	if (*strptr == NULL)
 		return -1;
-	ret = sprintf(*strptr, format, va);
+	ret = vsprintf(*strptr, format, va2);
 	va_end(va);
+	va_end(va2);
+	return ret;
 }
 #endif
 
