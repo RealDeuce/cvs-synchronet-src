@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.57 2015/09/29 00:48:52 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.52 2015/09/28 20:31:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#define _GNU_SOURCE	// asprintf() on Linux
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -46,36 +45,32 @@
 #include "gen_defs.h"
 
 #if defined(_MSC_VER) || defined(__MSVCRT__)
-int DLLCALL vasprintf(char **strptr, char *format, va_list va)
+int asprintf(char **strptr, char *format, ...)
 {
+	va_list	va;
 	va_list	va2;
 	int		ret;
 
 	if (strptr == NULL)
 		return -1;
+	va_start(va, format);
 	va_copy(va2, va);
 	ret = _vscprintf(format, va);
 	*strptr = (char *)malloc(ret+1);
 	if (*strptr == NULL)
 		return -1;
 	ret = vsprintf(*strptr, format, va2);
+	va_end(va);
 	va_end(va2);
 	return ret;
 }
-
-int DLLCALL asprintf(char **strptr, char *format, ...)
-{
-	va_list	va;
-	int		ret;
-
-	if (strptr == NULL)
-		return -1;
-	va_start(va, format);
-	ret=vasprintf(strptr, format, va);
-	va_end(va);
-	return ret;
-}
 #endif
+
+/* MSVC Sucks - can't tell the required len of a *printf() */
+#define MAX_ARG_LEN		1024			/* MAX_ARG_LEN is the maximum length
+										 * possible as a result of a format
+										 * which is not %s
+										 */
 
 /* Maximum length of a format specifier including the % */
 #define MAX_FORMAT_LEN	256
@@ -334,13 +329,15 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	unsigned long	offset2=0;
 	size_t			format_len;
 	size_t			this_format_len;
-	char			int_buf[MAX_FORMAT_LEN];
+	char			entry_buf[MAX_ARG_LEN];
 	char			*entry;
 	char			this_format[MAX_FORMAT_LEN];
 	char			*fmt;
 	int				modifier=0;
 	int				correct_type=0;
 	char			num_str[128];		/* More than enough room for a 256-bit int */
+	size_t			width=0;
+	size_t			precision=0;
 
 	/*
 	 * Check if we're already done...
@@ -391,7 +388,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	 */
 	if(*p=='*') {		/* The argument is this width */
 		va_start(vars, type);
-		i=sprintf(int_buf,"%d", va_arg(vars, int));
+		i=sprintf(entry_buf,"%d", va_arg(vars, int));
 		va_end(vars);
 		if(i > 1) {
 			/*
@@ -408,17 +405,19 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 			 * Move trailing end to make space... leaving the * where it
 			 * is so it can be overwritten
 			 */
-			memmove(p+i, p+1, format-p+format_len-1);
-			memcpy(p, int_buf, i);
+			memmove(p+i, p+1, format-p+format_len);
+			memcpy(p, entry_buf, i);
 			*(size_t *)(format+sizeof(size_t))+=i-1;
 		}
 		else
-			*p=int_buf[0];
+			*p=entry_buf[0];
 		p=format+offset;
 		*(size_t *)format=p-format;
 		return(format);
 	}
 	/* Skip width */
+	if(*p >= '0' && *p <= '9')
+		width=strtoul(p, NULL, 10);
 	while(*p >= '0' && *p <= '9')
 		*(fmt++)=*(p++);
 	/* Check for precision */
@@ -430,7 +429,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		 */
 		if(*p=='*') {
 			va_start(vars, type);
-			i=sprintf(int_buf,"%d", va_arg(vars, int));
+			i=sprintf(entry_buf,"%d", va_arg(vars, int));
 			va_end(vars);
 			if(i > 1) {
 				/*
@@ -447,17 +446,19 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 				 * Move trailing end to make space... leaving the * where it
 				 * is so it can be overwritten
 				 */
-				memmove(p+i, p+1, format-p+format_len-1);
-				memcpy(p, int_buf, i);
+				memmove(p+i, p+1, format-p+format_len);
+				memcpy(p, entry_buf, i);
 				*(size_t *)(format+sizeof(size_t))+=i-1;
 			}
 			else
-				*p=int_buf[0];
+				*p=entry_buf[0];
 			p=format+offset;
 			*(size_t *)format=p-format;
 			return(format);
 		}
 		/* Skip precision */
+		if(*p >= '0' && *p <= '9')
+			precision=strtoul(p, NULL, 10);
 		while(*p >= '0' && *p <= '9')
 			*(fmt++)=*(p++);
 	}
@@ -1204,8 +1205,18 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		case XP_PRINTF_TYPE_CHARP:
 			if(cp==NULL)
 				j=asprintf(&entry, this_format, "<null>");
-			else
+			else {
+				/*s=strlen(cp);
+				if(s<width)
+					s=width;
+				if(s<precision)
+					s=precision;
+				if(s>=MAX_ARG_LEN)
+					entry=(char *)alloca(s+1);
+				if(entry==NULL)
+					return(NULL);*/
 				j=asprintf(&entry, this_format, cp);
+			}
 			break;
 		case XP_PRINTF_TYPE_DOUBLE:
 			j=asprintf(&entry, this_format, d);
