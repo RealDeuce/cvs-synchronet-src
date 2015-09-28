@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.63 2015/12/06 11:20:35 rswindell Exp $ */
+/* $Id: email.cpp,v 1.60 2015/09/20 07:33:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,8 +50,9 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	char 		tmp[512];
 	char		pid[128];
 	char*		editor=NULL;
-	uint16_t	msgattr=0;
+	ushort		msgattr=0;
 	uint16_t	xlat=XLAT_NONE;
+	ushort		nettype;
 	int 		i,j,x,file;
 	long		l;
 	long		length;
@@ -106,17 +107,15 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	}
 
 	if(cfg.sys_misc&SM_ANON_EM && useron.exempt&FLAG('A')
-		&& !noyes(text[AnonymousQ])) {
+		&& !noyes(text[AnonymousQ]))
 		msgattr|=MSG_ANONYMOUS;
-		mode|=WM_ANON;
-	}
 
 	if(cfg.sys_misc&SM_DELREADM)
 		msgattr|=MSG_KILLREAD;
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top, /* subj: */title,mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor)) {
+	if(!writemsg(msgpath,top,title,mode,INVALID_SUB,str2,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -300,7 +299,11 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	if(useron.misc&NETMAIL) {
 		if(useron.rest&FLAG('G'))
 			smb_hfield_str(&msg,REPLYTO,useron.name);
-		smb_hfield_netaddr(&msg,REPLYTONETADDR,useron.netmail,NULL);
+		nettype=smb_netaddr_type(useron.netmail);
+		if(nettype!=NET_NONE && nettype!=NET_UNKNOWN) {
+			smb_hfield(&msg,REPLYTONETTYPE,sizeof(nettype),&nettype);
+			smb_hfield_str(&msg,REPLYTONETADDR,useron.netmail);
+		}
 	}
 
 	/* Security logging */
