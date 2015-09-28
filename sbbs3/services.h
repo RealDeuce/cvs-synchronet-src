@@ -2,7 +2,7 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.40 2015/08/20 05:19:44 deuce Exp $ */
+/* $Id: services.h,v 1.42 2015/08/22 01:37:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
