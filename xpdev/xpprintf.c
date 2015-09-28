@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.57 2015/09/29 00:48:52 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.54 2015/09/28 20:51:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#define _GNU_SOURCE	// asprintf() on Linux
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -341,6 +340,8 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	int				modifier=0;
 	int				correct_type=0;
 	char			num_str[128];		/* More than enough room for a 256-bit int */
+	size_t			width=0;
+	size_t			precision=0;
 
 	/*
 	 * Check if we're already done...
@@ -408,7 +409,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 			 * Move trailing end to make space... leaving the * where it
 			 * is so it can be overwritten
 			 */
-			memmove(p+i, p+1, format-p+format_len-1);
+			memmove(p+i, p+1, format-p+format_len);
 			memcpy(p, int_buf, i);
 			*(size_t *)(format+sizeof(size_t))+=i-1;
 		}
@@ -419,6 +420,8 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		return(format);
 	}
 	/* Skip width */
+	if(*p >= '0' && *p <= '9')
+		width=strtoul(p, NULL, 10);
 	while(*p >= '0' && *p <= '9')
 		*(fmt++)=*(p++);
 	/* Check for precision */
@@ -447,7 +450,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 				 * Move trailing end to make space... leaving the * where it
 				 * is so it can be overwritten
 				 */
-				memmove(p+i, p+1, format-p+format_len-1);
+				memmove(p+i, p+1, format-p+format_len);
 				memcpy(p, int_buf, i);
 				*(size_t *)(format+sizeof(size_t))+=i-1;
 			}
@@ -458,6 +461,8 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 			return(format);
 		}
 		/* Skip precision */
+		if(*p >= '0' && *p <= '9')
+			precision=strtoul(p, NULL, 10);
 		while(*p >= '0' && *p <= '9')
 			*(fmt++)=*(p++);
 	}
