@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.h,v 1.52 2015/08/20 05:19:41 deuce Exp $ */
+/* $Id: ftpsrvr.h,v 1.55 2015/08/22 10:21:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,8 +59,8 @@ typedef struct {
 	WORD	pasv_port_low;
 	WORD	pasv_port_high;
     DWORD	options;			/* See FTP_OPT definitions */
-	uint32_t	min_fsize;		/* Minimum file size accepted for upload */
-	uint32_t	max_fsize;		/* Maximum file size accepted for upload (0=unlimited) */
+	uint64_t	min_fsize;		/* Minimum file size accepted for upload */
+	uint64_t	max_fsize;		/* Maximum file size accepted for upload (0=unlimited) */
 
 	void*	cbdata;				/* Private data passed to callbacks */ 
 
