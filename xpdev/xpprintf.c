@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.49 2015/09/28 06:05:20 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.50 2015/09/28 06:09:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1211,7 +1211,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	}
 
 	if (j<0) {
-		strcmp(entry, "<error>");
+		strcpy(entry, "<error>");
 		j=strlen(entry);
 	}
 
