@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id$ */
+/* $Id: xpprintf.c,v 1.49 2015/09/28 06:05:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1208,6 +1208,11 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		case XP_PRINTF_TYPE_SIZET:
 			j=sprintf(entry, this_format, s);
 			break;
+	}
+
+	if (j<0) {
+		strcmp(entry, "<error>");
+		j=strlen(entry);
 	}
 
 	this_format_len=strlen(this_format);
