@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.57 2015/12/04 08:23:02 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.51 2015/04/28 10:55:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -162,7 +162,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	truncsp(to);				/* Truncate off space */
 
 	memset(&hdr,0,sizeof(hdr));   /* Initialize header to null */
-	SAFECOPY(hdr.from, cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
+	strcpy(hdr.from,cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
 	SAFECOPY(hdr.to,to);
 
 	/* Look-up in nodelist? */
@@ -213,10 +213,10 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(cfg.netmail_misc&NMAIL_KILL)  hdr.attr|=FIDO_KILLSENT;
 	if(mode&WM_FILE) hdr.attr|=FIDO_FILE;
 
-	SAFEPRINTF(str,"%snetmail.msg", cfg.node_dir);
-	removecase(str);	/* Just incase it's already there */
+	sprintf(str,"%sNETMAIL.MSG", cfg.node_dir);
+	remove(str);	/* Just incase it's already there */
 	// mode&=~WM_FILE;
-	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into,hdr.from)) {
+	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -298,8 +298,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 
 	SAFECOPY(hdr.subj,p);
 
-	SAFEPRINTF(str,"%snetmail.msg", cfg.node_dir);
-	fexistcase(str);
+	sprintf(str,"%sNETMAIL.MSG", cfg.node_dir);
 	if((file=nopen(str,O_RDONLY))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 		return(false); 
@@ -331,19 +330,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		}
 		write(fido,&hdr,sizeof(hdr));
 
-		SAFEPRINTF(str,"\1PID: %s\r", msg_program_id(tmp));
-		write(fido, str, strlen(str));
-
 		pt_zone_kludge(hdr,fido);
-		/* TZUTC (FSP-1001) */
-		int tzone=smb_tzutc(sys_timezone(&cfg));
-		const char* minus="";
-		if(tzone<0) {
-			minus="-";
-			tzone=-tzone;
-		}
-		SAFEPRINTF3(str,"\1TZUTC: %s%02d%02u\r", minus, tzone/60, tzone%60);
-		write(fido, str, strlen(str));
 
 		if(cfg.netmail_misc&NMAIL_DIRECT) {
 			SAFECOPY(str,"\1FLAGS DIR\r\n");
@@ -446,7 +433,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 {
 	char	*qwkbuf,to[129],name[129],sender[129],senderaddr[129]
 			   ,str[256],*p,*cp,*addr,fulladdr[129],ch;
-	char*	sender_id = fromhub ? cfg.qhub[fromhub-1]->id : useron.alias;
 	char 	tmp[512];
 	int 	i,fido,inet=0,qnet=0;
 	ushort	net;
@@ -559,12 +545,16 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 				l+=strlen(str)+1;
 				cp=str;
 				while(*cp && *cp<=' ') cp++;
-				sprintf(senderaddr,"%s/%s",sender_id,cp);
+				sprintf(senderaddr,"%s/%s"
+					,fromhub ? cfg.qhub[fromhub-1]->id : useron.alias,cp);
 				strupr(senderaddr);
 				smb_hfield(&msg,SENDERNETADDR,strlen(senderaddr),senderaddr); 
 			}
 			else {
-				SAFECOPY(senderaddr, sender_id);
+				if(fromhub)
+					SAFECOPY(senderaddr, cfg.qhub[fromhub-1]->id);
+				else
+					SAFECOPY(senderaddr, useron.alias);
 				strupr(senderaddr);
 				smb_hfield(&msg,SENDERNETADDR,strlen(senderaddr),senderaddr); 
 			}
@@ -616,7 +606,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 		p++;
 		addr=p;
-		msg.idx.to=qwk_route(&cfg,addr,fulladdr, sizeof(fulladdr)-1);
+		msg.idx.to=qwk_route(addr,fulladdr);
 		if(!fulladdr[0]) {		/* Invalid address, so BOUNCE it */
 		/**
 			errormsg(WHERE,ERR_CHK,addr,0);
@@ -787,8 +777,8 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			useron.etoday++;
 			putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
-			safe_snprintf(str,sizeof(str), "%s (%s) sent %s NetMail to %s (%s) via QWK"
-				,sender, sender_id
+			sprintf(str,"%s sent %s NetMail to %s (%s) via QWK"
+				,useron.alias
 				,qnet ? "QWK":"Internet",name,qnet ? fulladdr : to);
 			logline("EN",str); 
 		}
@@ -811,7 +801,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	if(fromhub || useron.rest&FLAG('Q')) {
 		sprintf(str,"%.25s",block+46);              /* From */
 		truncsp(str);
-		sprintf(tmp,"@%s",sender_id);
+		sprintf(tmp,"@%s",fromhub ? cfg.qhub[fromhub-1]->id : useron.alias);
 		strupr(tmp);
 		strcat(str,tmp); 
 	}
@@ -970,7 +960,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
 	sprintf(str,"%s sent NetMail to %s @%s via QWK"
-		,sender_id
+		,useron.alias
 		,hdr.to,smb_faddrtoa(&fidoaddr,tmp));
 	logline("EN",str);
 }
