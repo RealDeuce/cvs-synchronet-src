@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.64 2017/06/09 04:32:46 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.60 2015/08/23 11:16:14 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -129,7 +129,6 @@ FTP_OBJS	= $(MTOBJODIR)$(DIRSEP)ftpsrvr$(OFILE) \
 MAIL_OBJS	= $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)mxlookup$(OFILE) \
  		  	$(MTOBJODIR)$(DIRSEP)mime$(OFILE) \
- 		  	$(MTOBJODIR)$(DIRSEP)nopen$(OFILE) \
  		  	$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)base64$(OFILE)
 
@@ -182,14 +181,12 @@ SBBSECHO_OBJS = \
 			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE) \
 			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
 			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
-			$(OBJODIR)$(DIRSEP)scfgsave$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE) \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE) \
 			$(OBJODIR)$(DIRSEP)rechocfg$(OFILE) \
 			$(OBJODIR)$(DIRSEP)msg_id$(OFILE) \
-			$(OBJODIR)$(DIRSEP)getmail$(OFILE) \
 			$(SMB_OBJS)
 
 ECHOCFG_OBJS = \
@@ -240,43 +237,6 @@ JSEXEC_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)jsexec$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_conio$(OFILE)
-
-JSDOOR_OBJS = \
-			$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)base64$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)date_str$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)dat_rec$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)jsdoor$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)jsdebug$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_conio$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_request$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_socket$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)comio$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_client$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_com$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_cryptcon$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_global$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_rtpool$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_sprintf$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_file$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_internal$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_queue$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_server$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)nopen$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)str_util$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)sockopts$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)ssl$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)load_cfg$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)readtext$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)text_defaults$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)scfgsave$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)scfglib1$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)scfglib2$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)wordwrap$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)userdat$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)uucode$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)yenc$(OFILE)\
 
 SEXYZ_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)sexyz$(OFILE) \
