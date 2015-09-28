@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.53 2015/09/28 20:34:54 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.54 2015/09/28 20:51:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,23 +45,33 @@
 #include "gen_defs.h"
 
 #if defined(_MSC_VER) || defined(__MSVCRT__)
-int asprintf(char **strptr, char *format, ...)
+int DLLCALL vasprintf(char **strptr, char *format, va_list va)
 {
-	va_list	va;
 	va_list	va2;
 	int		ret;
 
 	if (strptr == NULL)
 		return -1;
-	va_start(va, format);
 	va_copy(va2, va);
 	ret = _vscprintf(format, va);
 	*strptr = (char *)malloc(ret+1);
 	if (*strptr == NULL)
 		return -1;
 	ret = vsprintf(*strptr, format, va2);
-	va_end(va);
 	va_end(va2);
+	return ret;
+}
+
+int DLLCALL asprintf(char **strptr, char *format, ...)
+{
+	va_list	va;
+	int		ret;
+
+	if (strptr == NULL)
+		return -1;
+	va_start(va, format);
+	ret=vasprintf(strptr, format, va);
+	va_end(va);
 	return ret;
 }
 #endif
