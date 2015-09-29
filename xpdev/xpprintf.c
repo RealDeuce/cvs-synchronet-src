@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.55 2015/09/29 00:44:19 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.56 2015/09/29 00:47:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -340,8 +340,6 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 	int				modifier=0;
 	int				correct_type=0;
 	char			num_str[128];		/* More than enough room for a 256-bit int */
-	size_t			width=0;
-	size_t			precision=0;
 
 	/*
 	 * Check if we're already done...
@@ -420,8 +418,6 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		return(format);
 	}
 	/* Skip width */
-	if(*p >= '0' && *p <= '9')
-		width=strtoul(p, NULL, 10);
 	while(*p >= '0' && *p <= '9')
 		*(fmt++)=*(p++);
 	/* Check for precision */
@@ -461,8 +457,6 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 			return(format);
 		}
 		/* Skip precision */
-		if(*p >= '0' && *p <= '9')
-			precision=strtoul(p, NULL, 10);
 		while(*p >= '0' && *p <= '9')
 			*(fmt++)=*(p++);
 	}
