@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.619 2015/08/22 07:11:56 deuce Exp $ */
+/* $Id: main.cpp,v 1.624 2015/09/27 12:07:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -988,16 +988,18 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
     JSString *	str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
-    char 		*prompt;
+    char*		prompt=NULL;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], prompt, NULL);
-	if(prompt==NULL)
-	    return(JS_FALSE);
+	if(argc) {
+		JSVALUE_TO_MSTRING(cx, argv[0], prompt, NULL);
+		if(prompt==NULL)
+			return(JS_FALSE);
+	}
 
 	if(argc>1) {
 		JSVALUE_TO_STRBUF(cx, argv[1], instr, sizeof(instr), NULL);
@@ -1005,8 +1007,10 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 		instr[0]=0;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->bprintf("\1n\1y\1h%s\1w: ",prompt);
-	free(prompt);
+	if(prompt != NULL) {
+		sbbs->bprintf("\1n\1y\1h%s\1w: ",prompt);
+		free(prompt);
+	}
 
 	if(!sbbs->getstr(instr,sizeof(instr)-1,K_EDIT)) {
 		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
@@ -1186,6 +1190,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 
 #ifdef BUILD_JSDOCS
 		js_CreateUifcObject(js_cx, js_glob);
+		js_CreateConioObject(js_cx, js_glob);
 #endif
 
 		/* BBS Object */
@@ -2138,6 +2143,8 @@ void output_thread(void* arg)
 				avail=mss;
            	buftop=RingBufRead(&sbbs->outbuf, buf, avail);
            	bufbot=0;
+			if (buftop == 0)
+				continue;
 		}
 
 		/* Check socket for writability (using select) */
@@ -2610,13 +2617,12 @@ void event_thread(void* arg)
 			tmptime=sbbs->cfg.qhub[i]->last;
 			if(localtime_r(&tmptime,&tm)==NULL)
 				memset(&tm,0,sizeof(tm));
-			if((sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
-				|| ((sbbs->cfg.qhub[i]->freq
-					&& (now-sbbs->cfg.qhub[i]->last)/60>=sbbs->cfg.qhub[i]->freq)
+			if(sbbs->cfg.qhub[i]->last==-1L					/* or frequency */
+				|| (((sbbs->cfg.qhub[i]->freq && (now-sbbs->cfg.qhub[i]->last)/60>=sbbs->cfg.qhub[i]->freq)
 					|| (sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_hour*60)+now_tm.tm_min>=sbbs->cfg.qhub[i]->time
 						&& (now_tm.tm_mday!=tm.tm_mday || now_tm.tm_mon!=tm.tm_mon)))
-						&& sbbs->cfg.qhub[i]->days&(1<<now_tm.tm_wday))) {
+					&& sbbs->cfg.qhub[i]->days&(1<<now_tm.tm_wday))) {
 				SAFEPRINTF2(str,"%sqnet/%s.now"
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				if(fexistcase(str))
@@ -4702,14 +4708,14 @@ void DLLCALL bbs_thread(void* arg)
 	 */
 	xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->telnet_interfaces, startup->telnet_port, "Telnet Server", sock_cb, startup->seteuid, &telnet_cb);
 
-	lprintf(LOG_INFO,"Telnet Server listening on port %u",startup->telnet_port);
+	lprintf(LOG_INFO,"Telnet Server listening");
 
 	if(startup->options&BBS_OPT_ALLOW_RLOGIN) {
 		/* open a socket and wait for a client */
 		rlogin_cb.protocol="rlogin";
 		rlogin_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->rlogin_interfaces, startup->rlogin_port, "RLogin Server", sock_cb, startup->seteuid, &rlogin_cb);
-		lprintf(LOG_INFO,"RLogin Server listening on port %u",startup->rlogin_port);
+		lprintf(LOG_INFO,"RLogin Server listening");
 	}
 
 #ifdef USE_CRYPTLIB
@@ -4756,7 +4762,7 @@ void DLLCALL bbs_thread(void* arg)
 		ssh_cb.protocol="ssh";
 		ssh_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->ssh_interfaces, startup->ssh_port, "SSH Server", sock_cb, startup->seteuid, &ssh_cb);
-		lprintf(LOG_INFO,"SSH Server listening on port %u",startup->ssh_port);
+		lprintf(LOG_INFO,"SSH Server listening");
 	}
 NO_SSH:
 #endif
