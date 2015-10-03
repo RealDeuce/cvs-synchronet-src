@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.156 2015/08/26 23:43:50 rswindell Exp $ */
+/* $Id: userdat.c,v 1.157 2015/10/03 04:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -322,7 +322,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	getrec(userdat,U_XEDIT,8,str);
 	for(i=0;i<cfg->total_xedits;i++)
-		if(!stricmp(str,cfg->xedit[i]->code) && chk_ar(cfg,cfg->xedit[i]->ar,user,/* client: */NULL))
+		if(!stricmp(str,cfg->xedit[i]->code))
 			break;
 	user->xedit=i+1;
 	if(user->xedit>cfg->total_xedits)
