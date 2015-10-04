@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.624 2015/09/27 12:07:10 rswindell Exp $ */
+/* $Id: main.cpp,v 1.625 2015/10/04 22:09:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,7 @@
 #include "netwrap.h"
 #include "js_rtpool.h"
 #include "js_request.h"
-#include "js_socket.h"
+#include "ssl.h"
 #include <multisock.h>
 #include <limits.h>		// HOST_NAME_MAX
 
