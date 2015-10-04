@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.34 2015/10/04 22:09:00 deuce Exp $ */
+/* $Id: threadwrap.c,v 1.35 2015/10/04 22:20:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 	#define _WIN32_WINNT 0x0400	/* Needed for TryEnterCriticalSection */
 #endif
 
+#include "genwrap.h"	/* SLEEP() */
 #include "threadwrap.h"	/* DLLCALL */
 
 /****************************************************************************/
@@ -146,6 +147,7 @@ int DLLCALL pthread_once(pthread_once_t *oc, void (*init)(void))
 		case 2:	// Done.
 			return 0;
 	}
+	return EINVAL;
 }
 
 int DLLCALL pthread_mutex_init(pthread_mutex_t* mutex, void* attr)
