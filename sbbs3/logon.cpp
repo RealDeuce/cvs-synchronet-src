@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.62 2015/12/16 08:13:58 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.61 2015/08/20 05:19:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,8 +389,6 @@ bool sbbs_t::logon()
 		return(false); 
 	}
 	SAFECOPY(useron.modem,connection);
-	SAFECOPY(useron.ipaddr, client_ipaddr);
-	SAFECOPY(useron.comp, client_name);
 	useron.logons++;
 	putuserdat(&cfg,&useron);
 	getmsgptrs();
