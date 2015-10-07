@@ -2,13 +2,13 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.92 2017/08/26 06:44:14 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.89 2014/04/28 05:17:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -300,10 +300,6 @@ void DLLCALL globfree(glob_t* glob)
 
 #endif /* !defined(__unix__) */
 
-/****************************************************************************/
-/* Returns number of files and/or sub-directories in directory (path)		*/
-/* Similar, but not identical, to getfilecount()							*/
-/****************************************************************************/
 long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only)
 {
 	char		match[MAX_PATH+1];
@@ -698,13 +694,12 @@ int removecase(const char *path)
 	}
 	*p=0;
 
-	return(delfiles(inpath,fname) >=1 ? 0 : -1);
+	return(delfiles(inpath,fname)?-1:0);
 }
 #endif
 
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
-/* Returns number of files deleted or negative on error						*/
 /****************************************************************************/
 ulong DLLCALL delfiles(const char *inpath, const char *spec)
 {
@@ -720,7 +715,7 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 		lastch=inpath[inpath_len-1];
 	path=(char *)malloc(inpath_len+1/*Delim*/+strlen(spec)+1/*Terminator*/);
 	if(path==NULL)
-		return -1;
+		return 0;
 	if(!IS_PATH_DELIM(lastch) && lastch)
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
@@ -737,31 +732,6 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 	}
 	globfree(&g);
 	return(files);
-}
-
-/****************************************************************************/
-/* Returns number of files in a directory (inpath) matching 'pattern'		*/
-/* Similar, but not identical, to getdirsize(), e.g. subdirs never counted	*/
-/****************************************************************************/
-ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
-{
-	char path[MAX_PATH+1];
-	glob_t	g;
-	uint	gi;
-	ulong	count = 0;
-
-	SAFECOPY(path, inpath);
-	backslash(path);
-	strcat(path, pattern);
-	if(glob(path, GLOB_MARK, NULL, &g))
-		return 0;
-	for(gi = 0; gi < g.gl_pathc; ++gi) {
-		if(*lastchar(g.gl_pathv[gi]) == '/')
-			continue;
-		count++;
-	}
-	globfree(&g);
-	return count;
 }
 
 /****************************************************************************/
@@ -902,7 +872,7 @@ ulong DLLCALL getdisksize(const char* path, ulong unit)
 }
 
 /****************************************************************************/
-/* Resolves //, /./, and /../ in a path. Should work identically to Windows */
+/* Resolves //, /./, and /../ in a path. Should work indetically to Windows */
 /****************************************************************************/
 #if defined(__unix__)
 char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
