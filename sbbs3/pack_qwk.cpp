@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.66 2015/05/02 03:20:54 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.67 2015/10/17 03:40:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -446,7 +446,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				}
 
 				k=0;
-				if(useron.qwk&QWK_BYSELF)
+				if(useron.rest&FLAG('Q') ||  (useron.qwk&QWK_BYSELF))
 					k|=LP_BYSELF;
 				if(useron.rest&FLAG('Q') || !(subscan[usrsub[i][j]].cfg&SUB_CFG_YSCAN))
 					k|=LP_OTHERS;
