@@ -1,12 +1,14 @@
+/* mailsrvr.h */
+
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.78 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.76 2015/08/29 20:53:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -89,7 +91,6 @@ typedef struct {
 	/* Paths */
     char    ctrl_dir[128];
 	char    temp_dir[128];
-	char	ini_fname[128];
 
 	/* Strings */
     char	dns_server[128];
@@ -119,7 +120,10 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	struct login_attempt_settings login_attempt;
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
 
 } mail_startup_t;
