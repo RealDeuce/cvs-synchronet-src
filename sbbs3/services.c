@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.281 2015/08/22 00:58:29 deuce Exp $ */
+/* $Id: services.c,v 1.286 2015/08/25 01:45:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,7 @@ typedef struct {
 	/* These are sysop-configurable */
 	uint32_t		interface_addr;
 	uint16_t		port;
-	char		interfaces[INI_MAX_VALUE_LEN];
+	str_list_t		interfaces;
 	struct in_addr		outgoing4;
 	struct in6_addr	outgoing6;
 	char			protocol[34];
@@ -816,8 +816,8 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 				services_ver();
 			service_client->service->js_server_props.clients=
 				&service_client->service->clients;
-			service_client->service->js_server_props.interface_addr=
-				&service_client->service->interface_addr;
+			service_client->service->js_server_props.interfaces=
+				&service_client->service->interfaces;
 			service_client->service->js_server_props.options=
 				&service_client->service->options;
 		}
@@ -921,20 +921,20 @@ static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline
 
 static BOOL handle_crypt_call(int status, service_client_t *service_client, const char *file, int line)
 {
-	int		len = 0;
-	char	estr[CRYPT_MAX_TEXTSIZE+1];
+	char	*estr = NULL;
 	int		sock = 0;
 
 	if (status == CRYPT_OK)
 		return TRUE;
 	if (service_client != NULL) {
 		if (service_client->service->options & SERVICE_OPT_TLS)
-			cryptGetAttributeString(service_client->tls_sess, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len);
+			estr = get_crypt_error(service_client->tls_sess);
 		sock = service_client->socket;
 	}
-	estr[len]=0;
-	if (len)
+	if (estr) {
 		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
+		free_crypt_attrstr(estr);
+	}
 	else
 		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
 	return FALSE;
@@ -1164,7 +1164,6 @@ static void js_static_service_thread(void* arg)
 	char					fname[MAX_PATH+1];
 	service_t*				service;
 	service_client_t		service_client;
-	struct xpms_set			*set;
 	/* JavaScript-specific */
 	JSObject*				js_glob;
 	JSObject*				js_script;
@@ -1177,7 +1176,6 @@ static void js_static_service_thread(void* arg)
 	service=(service_t*)arg;
 
 	service->running=TRUE;
-	set = service->set;
 
 	lprintf(LOG_DEBUG,"%s static JavaScript service thread started", service->protocol);
 
@@ -1511,7 +1509,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 
 	/* Enumerate and parse each service configuration */
 	sec_list = iniGetSectionList(list,"");
-	default_interfaces = strdup(startup->interfaces);
+	default_interfaces = strListCombine(startup->interfaces, NULL, 16384, ",");
     for(i=0; sec_list!=NULL && sec_list[i]!=NULL; i++) {
 		if(!iniGetBool(list,sec_list[i],"Enabled",TRUE)) {
 			lprintf(LOG_WARNING,"Ignoring disabled service: %s",sec_list[i]);
@@ -1520,9 +1518,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		memset(&serv,0,sizeof(service_t));
 		SAFECOPY(serv.protocol,iniGetString(list,sec_list[i],"Protocol",sec_list[i],prot));
 		serv.set = NULL;
-		SAFECOPY(serv.interfaces,iniGetString(list,sec_list[i],"Interface",default_interfaces,host));
-		serv.outgoing4.s_addr=iniGetIpAddress(list,sec_list[i],"OutgoingV4",startup->outgoing4.s_addr);
-		serv.outgoing6=iniGetIp6Address(list,sec_list[i],"OutgoingV6",startup->outgoing6);
+		serv.interfaces=iniGetStringList(list,sec_list[i],"Interface",",",default_interfaces);
 		serv.max_clients=iniGetInteger(list,sec_list[i],"MaxClients",max_clients);
 		serv.listen_backlog=iniGetInteger(list,sec_list[i],"ListenBacklog",listen_backlog);
 		serv.stack_size=(uint32_t)iniGetBytes(list,sec_list[i],"StackSize",1,stack_size);
@@ -1554,6 +1550,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		/* JavaScript operating parameters */
 		sbbs_get_js_settings(list, sec_list[i], &serv.js, &startup->js);
 
+		/* TODO: Fix this up for IPv6 stuff etc... this is going to be ugly! */
 		for(j=0;j<*services;j++)
 			if(service[j].interface_addr==serv.interface_addr && service[j].port==serv.port
 				&& (service[j].options&SERVICE_OPT_UDP)==(serv.options&SERVICE_OPT_UDP))
@@ -1636,7 +1633,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.281 $", "%*s %s", revision);
+	sscanf("$Revision: 1.286 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1692,7 +1689,8 @@ void DLLCALL services_thread(void* arg)
 	SOCKET			client_socket;
 	BYTE*			udp_buf = NULL;
 	int				udp_len;
-	int				i,j;
+	int				i;
+	size_t			j;
 	int				result;
 	int				optval;
 	ulong			total_running;
@@ -1829,8 +1827,6 @@ void DLLCALL services_thread(void* arg)
 		total_sockets=0;
 
 		for(i=0;i<(int)services && !startup->shutdown_now;i++) {
-			struct in_addr	iaddr;
-
 			if (service[i].options & SERVICE_OPT_TLS) {
 				if (tls_context == -1)
 					continue;
@@ -1853,7 +1849,7 @@ void DLLCALL services_thread(void* arg)
 				cleanup(1);
 				return;
 			}
-			xpms_add_chararray_list(service[i].set, PF_UNSPEC, (service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
+			xpms_add_list(service[i].set, PF_UNSPEC, (service[i].options&SERVICE_OPT_UDP) ? SOCK_DGRAM : SOCK_STREAM
 					, IPPROTO_IP, service[i].interfaces, service[i].port, service[i].protocol
 					, (service[i].options&SERVICE_OPT_UDP) ? service_udp_sock_cb : open_socket_cb, startup->seteuid, &service[i]);
 			total_sockets += service[i].set->sock_count;
