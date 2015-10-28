@@ -1,11 +1,12 @@
-/* $Id: scfg.h,v 1.22 2017/10/12 07:06:07 rswindell Exp $ */
-// vi: tabstop=4
+/* scfg.h */
+
+/* $Id: scfg.h,v 1.19 2011/06/30 03:07:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -34,7 +35,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <limits.h>	/* USHRT_MAX */
 
 #include "gen_defs.h"
@@ -76,7 +76,7 @@ extern BOOL new_install;
 /***********************/
 
 void bail(int code);
-void errormsg(int line, const char* function, const char *source, const char* action, const char *object, ulong access);
+void errormsg(int line, char *source,  char* action, char *object, ulong access);
 void clearptrs(int subnum);
 int  save_changes(int mode);
 void node_menu(void);
