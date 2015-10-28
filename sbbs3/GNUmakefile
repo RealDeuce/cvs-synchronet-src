@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.223 2013/09/30 02:10:07 deuce Exp $
+# $Id: GNUmakefile,v 1.226 2015/09/02 06:39:36 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -53,7 +53,9 @@ endif
 ifdef BUILD_JSDOCS
  CFLAGS += -DBUILD_JSDOCS
  SBBS_LIBS += ${UIFC-MT_LDFLAGS} ${UIFC-MT_LIBS} $(CIOLIB-MT_LDFLAGS) ${CIOLIB-MT_LIBS}
- OBJS += $(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE)
+ OBJS += $(MTOBJODIR)$(DIRSEP)js_uifc$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)js_conio$(OFILE)
+ EXTRA_SBBS_DEPENDS += $(CIOLIB-MT) $(UIFCLIB-MT)
 endif
 
 ifeq ($(os),linux)
@@ -100,7 +102,7 @@ else
  endif
 endif
 
-CFLAGS	+=	$(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) $(JS_CFLAGS) $(CRYPT_CFLAGS)
+CFLAGS	+=	$(JS_CFLAGS) $(CRYPT_CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS)
 CFLAGS	+=	-I../comio
 vpath %.c ../comio
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
@@ -112,7 +114,7 @@ $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $(MONO_OBJS) $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS) $(JS_LIBS) $(CRYPT_LIBS)
 
 # Synchronet BBS library Link Rule
-$(SBBS): $(JS_DEPS) $(CRYPT_DEPS) $(OBJS) $(LIBS) | $(LIBODIR)
+$(SBBS): $(JS_DEPS) $(CRYPT_DEPS) $(OBJS) $(LIBS) $(EXTRA_SBBS_DEPENDS) | $(LIBODIR)
 	@echo Linking $@
 	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS) $(JS_LIBS) $(CRYPT_LIBS) $(XPDEV-MT_LIBS)
 
