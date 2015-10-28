@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.40 2015/10/28 02:00:58 deuce Exp $
+# $Id: targets.mk,v 1.39 2015/10/28 01:57:52 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -69,7 +69,7 @@ mono:	xpdev-mt smblib \
 sexyz:	$(SEXYZ)
 
 .PHONY: jsdoor
-jsdoor: $(JSDOOR)
+hsdoor: $(JSDOOR)
 
 # Library dependencies
 $(SBBS): 
