@@ -1,8 +1,8 @@
-/* jsexec.c */
+/* jsdoor.c */
 
-/* Execute a Synchronet JavaScript module from the command-line */
+/* Execute a BBS JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.173 2015/10/07 04:01:45 rswindell Exp $ */
+/* $Id: jsdoor.c,v 1.1 2015/10/28 01:38:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,10 +84,139 @@ BOOL		daemonize=FALSE;
 char		orig_cwd[MAX_PATH+1];
 BOOL		debugger=FALSE;
 
+SOCKET open_socket(int type, const char* protocol)
+{
+	SOCKET	sock;
+	char	error[256];
+
+	sock=socket(AF_INET, type, IPPROTO_IP);
+	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
+		lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
+
+	return(sock);
+}
+
+SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
+{
+	SOCKET	sock;
+
+	sock=accept(s,&addr->addr,addrlen);
+
+	return(sock);
+}
+
+int close_socket(SOCKET sock)
+{
+	int		result;
+
+	if(sock==INVALID_SOCKET || sock==0)
+		return(0);
+
+	shutdown(sock,SHUT_RDWR);	/* required on Unix */
+	result=closesocket(sock);
+	if(result!=0 && ERROR_VALUE!=ENOTSOCK)
+		lprintf(LOG_WARNING,"!ERROR %d closing socket %d",ERROR_VALUE,sock);
+	return(result);
+}
+
+DLLEXPORT void DLLCALL sbbs_srand()
+{
+	DWORD seed;
+
+	xp_randomize();
+#if defined(HAS_DEV_RANDOM) && defined(RANDOM_DEV)
+	int     rf,rd=0;
+
+	if((rf=open(RANDOM_DEV, O_RDONLY|O_NONBLOCK))!=-1) {
+		rd=read(rf, &seed, sizeof(seed));
+		close(rf);
+	}
+	if (rd != sizeof(seed))
+#endif
+		seed = time32(NULL) ^ (uintmax_t)GetCurrentThreadId();
+
+ 	srand(seed);
+	sbbs_random(10);	/* Throw away first number */
+}
+
+int DLLCALL sbbs_random(int n)
+{
+	return(xp_random(n));
+}
+
+JSBool
+DLLCALL js_DefineSyncProperties(JSContext *cx, JSObject *obj, jsSyncPropertySpec* props)
+{
+	uint i;
+
+	for(i=0;props[i].name;i++) 
+		if(!JS_DefinePropertyWithTinyId(cx, obj, 
+			props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+			return(JS_FALSE);
+
+	return(JS_TRUE);
+}
+
+
+JSBool 
+DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *funcs)
+{
+	uint i;
+
+	for(i=0;funcs[i].name;i++)
+		if(!JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0))
+			return(JS_FALSE);
+	return(JS_TRUE);
+}
+
+JSBool
+DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags)
+{
+	uint i;
+	jsval	val;
+
+	if(props) {
+		for(i=0;props[i].name;i++) {
+			if(name==NULL || strcmp(name, props[i].name)==0) {
+				if(!JS_DefinePropertyWithTinyId(cx, obj, 
+						props[i].name,props[i].tinyid, JSVAL_VOID, NULL, NULL, props[i].flags|JSPROP_SHARED))
+					return(JS_FALSE);
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+	if(funcs) {
+		for(i=0;funcs[i].name;i++) {
+			if(name==NULL || strcmp(name, funcs[i].name)==0) {
+				if(!JS_DefineFunction(cx, obj, funcs[i].name, funcs[i].call, funcs[i].nargs, 0))
+					return(JS_FALSE);
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+	if(consts) {
+		for(i=0;consts[i].name;i++) {
+			if(name==NULL || strcmp(name, consts[i].name)==0) {
+				val=INT_TO_JSVAL(consts[i].val);
+
+				if(!JS_DefineProperty(cx, obj, consts[i].name, val ,NULL, NULL, flags))
+					return(JS_FALSE);
+
+				if(name)
+					return(JS_TRUE);
+			}
+		}
+	}
+
+	return(JS_TRUE);
+}
+
 void banner(FILE* fp)
 {
-	fprintf(fp,"\nJSexec v%s%c-%s (rev %s)%s - "
-		"Execute Synchronet JavaScript Module\n"
+	fprintf(fp,"\nJSDoor v%s%c-%s (rev %s)%s - "
+		"Execute BBS JavaScript Module\n"
 		,VERSION,REVISION
 		,PLATFORM_DESC
 		,revision
@@ -106,7 +235,7 @@ void usage(FILE* fp)
 {
 	banner(fp);
 
-	fprintf(fp,"\nusage: jsexec [-opts] [path]module[.js] [args]\n"
+	fprintf(fp,"\nusage: jsdoor [-opts] [path]module[.js] [args]\n"
 		"\navailable opts:\n\n"
 		"\t-c<ctrl_dir>   specify path to Synchronet CTRL directory\n"
 #if defined(__unix__)
@@ -733,6 +862,71 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 	return(TRUE);
 }
 
+BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
+										,scfg_t *unused1
+										,scfg_t *unused2
+										,jsSyncMethodSpec* methods	/* global */
+										,time_t uptime				/* system */
+										,char* host_name			/* system */
+										,char* socklib_desc			/* system */
+										,js_callback_t* cb			/* js */
+										,js_startup_t* js_startup	/* js */
+										,client_t* client			/* client */
+										,SOCKET client_socket		/* client */
+										,js_server_props_t* props	/* server */
+										,JSObject** glob
+										)
+{
+	BOOL	success=FALSE;
+
+	/* Global Object */
+	if(!js_CreateGlobalObject(js_cx, &scfg, methods, js_startup, glob))
+		return(FALSE);
+
+	do {
+		/* Internal JS Object */
+		if(cb!=NULL 
+			&& js_CreateInternalJsObject(js_cx, *glob, cb, js_startup)==NULL)
+			break;
+
+		/* Client Object */
+		if(client!=NULL 
+			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
+			break;
+
+		/* Server */
+		if(props!=NULL
+			&& js_CreateServerObject(js_cx, *glob, props)==NULL)
+			break;
+
+		/* Socket Class */
+		if(js_CreateSocketClass(js_cx, *glob)==NULL)
+			break;
+
+		/* Queue Class */
+		if(js_CreateQueueClass(js_cx, *glob)==NULL)
+			break;
+
+		/* File Class */
+		if(js_CreateFileClass(js_cx, *glob)==NULL)
+			break;
+
+		/* COM Class */
+		if(js_CreateCOMClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptContext Class */
+		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
+			break;
+
+		success=TRUE;
+	} while(0);
+
+	if(!success)
+		JS_RemoveObjectRoot(js_cx, glob);
+
+	return(success);
+}
 static BOOL js_init(char** environ)
 {
 	memset(&startup,0,sizeof(startup));
@@ -756,7 +950,7 @@ static BOOL js_init(char** environ)
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
 
 	/* Global Object */
-	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
+	if(!js_CreateCommonObjects(js_cx, NULL, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
 		,&cb,&startup						/* js */
 		,NULL,INVALID_SOCKET					/* client */
@@ -879,11 +1073,11 @@ long js_exec(const char *fname, char** args)
 	JS_DefineProperty(js_cx, js_glob, "argc", INT_TO_JSVAL(argc)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_DefineProperty(js_cx, js_glob, "jsexec_revision"
+	JS_DefineProperty(js_cx, js_glob, "jsdoor_revision"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,revision))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	sprintf(rev_detail,"JSexec %s%s  "
+	sprintf(rev_detail,"JSDoor %s%s  "
 		"Compiled %s %s with %s"
 		,revision
 #ifdef _DEBUG
@@ -894,7 +1088,7 @@ long js_exec(const char *fname, char** args)
 		,__DATE__, __TIME__, compiler
 		);
 
-	JS_DefineProperty(js_cx, js_glob, "jsexec_revision_detail"
+	JS_DefineProperty(js_cx, js_glob, "jsdoor_revision_detail"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
@@ -912,7 +1106,7 @@ long js_exec(const char *fname, char** args)
 		if(!fgets(line,sizeof(line),fp))
 			break;
 		line_no++;
-		/* Support Unix Shell Scripts that start with #!/path/to/jsexec */
+		/* Support Unix Shell Scripts that start with #!/path/to/jsdoor */
 		if(line_no==1 && strncmp(line,"#!",2)==0)
 			strcpy(line,"\n");	/* To keep line count correct */
 		len=strlen(line);
@@ -1016,7 +1210,6 @@ int parseLogLevel(const char* p)
 /*********************/
 int main(int argc, char **argv, char** environ)
 {
-	char	error[512];
 	char*	module=NULL;
 	char*	p;
 	char*	omode="w";
@@ -1042,7 +1235,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.173 $", "%*s %s", revision);
+	sscanf("$Revision: 1.1 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1053,6 +1246,10 @@ int main(int argc, char **argv, char** environ)
 
 	getcwd(orig_cwd, sizeof(orig_cwd));
 	backslash(orig_cwd);
+	SAFECOPY(scfg.exec_dir, orig_cwd);
+	SAFECOPY(scfg.ctrl_dir, orig_cwd);
+	SAFECOPY(scfg.mods_dir, orig_cwd);
+	scfg.sys_misc = 0; /* SM_EURODATE and SM_MILITARY are used */
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
@@ -1165,16 +1362,6 @@ int main(int argc, char **argv, char** environ)
 		module=argv[argn];
 	}
 
-	if(scfg.ctrl_dir[0]==0) {
-		if((p=getenv("SBBSCTRL"))==NULL) {
-			fprintf(errfp,"\nSBBSCTRL environment variable not set and -c option not specified.\n");
-			fprintf(errfp,"\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
-			fprintf(errfp,"\n     or: %s -c /sbbs/ctrl [module]\n",argv[0]);
-			return(do_bail(1)); 
-		}
-		SAFECOPY(scfg.ctrl_dir,p);
-	}	
-
 	if(module==NULL && isatty(fileno(stdin))) {
 		fprintf(errfp,"\n!Module name not specified\n");
 		usage(errfp);
@@ -1186,13 +1373,7 @@ int main(int argc, char **argv, char** environ)
 	if(chdir(scfg.ctrl_dir)!=0)
 		fprintf(errfp,"!ERROR changing directory to: %s\n", scfg.ctrl_dir);
 
-	fprintf(statfp,"\nLoading configuration files from %s\n",scfg.ctrl_dir);
-	if(!load_cfg(&scfg,NULL,TRUE,error)) {
-		fprintf(errfp,"!ERROR loading configuration files: %s\n",error);
-		return(do_bail(1));
-	}
 	SAFECOPY(scfg.temp_dir,"../temp");
-	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 	if(host_name==NULL)
 		host_name=scfg.sys_inetaddr;
