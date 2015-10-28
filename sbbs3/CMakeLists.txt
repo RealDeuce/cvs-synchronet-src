@@ -313,7 +313,6 @@ add_executable(sbbsecho
 	userdat.c
 	rechocfg.c
 	msg_id.c
-	getmail.c
 )
 require_libs(sbbsecho xpdev smblib)
 

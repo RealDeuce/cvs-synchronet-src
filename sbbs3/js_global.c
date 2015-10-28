@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.354 2015/11/18 00:59:17 rswindell Exp $ */
+/* $Id: js_global.c,v 1.347 2015/09/26 05:06:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -323,7 +323,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		if(!js_CreateCommonObjects(bg->cx
 				,p->cfg			/* common config */
 				,NULL			/* node-specific config */
-				,p->methods		/* additional global methods */
+				,NULL			/* additional global methods */
 				,0				/* uptime */
 				,""				/* hostname */
 				,""				/* socklib_desc */
@@ -387,20 +387,6 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 				JS_RESUMEREQUEST(cx, rc);
 			}
 		}
-
-		// These js_Create*Object() functions use GetContextPrivate() for the sbbs_t.
-		JS_SetContextPrivate(bg->cx, JS_GetContextPrivate(bg->parent_cx));
-		if (JS_HasProperty(cx, obj, "bbs", &success) && success)
-			js_CreateBbsObject(bg->cx, bg->obj);
-		if (JS_HasProperty(cx, obj, "console", &success) && success)
-			js_CreateConsoleObject(bg->cx, bg->obj);
-		if (JS_HasProperty(cx, obj, "stdin", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stdin", stdin);
-		if (JS_HasProperty(cx, obj, "stdout", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stdout", stdout);
-		if (JS_HasProperty(cx, obj, "stderr", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stderr", stderr);
-		JS_SetContextPrivate(bg->cx, bg);
 
 		exec_cx = bg->cx;
 		exec_obj = bg->obj;
@@ -608,7 +594,6 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(js_CreateQueueObject(cx, obj, NULL, bg->msg_queue)));
 		rc=JS_SUSPENDREQUEST(cx);
 		JS_RESUMEREQUEST(bg->cx, brc);
-		js_PrepareToExecute(bg->cx, bg->obj, path, NULL, bg->obj);
 		JS_ENDREQUEST(bg->cx);
 		JS_ClearContextThread(bg->cx);
 		bg->sem=&p->bg_sem;
@@ -2306,15 +2291,6 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			outbuf[j++]=CTRL_U;
 			continue;
 		}
-		if(strcmp(token,"lrm")==0		/* left-to-right mark, not printable */
-			|| strcmp(token,"rlm")==0)	/* right-to-left mark, not printable */
-			continue;
-
-		if(strcmp(token,"hellip")==0) {	/* horizontal ellipsis  */
-			j+=sprintf(outbuf+j,"...");
-			continue;
-		}
-
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
 		
@@ -4324,5 +4300,90 @@ BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec*
 #endif
 
 	return(TRUE);
+}
+
+BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
+										,scfg_t* cfg				/* common */
+										,scfg_t* node_cfg			/* node-specific */
+										,jsSyncMethodSpec* methods	/* global */
+										,time_t uptime				/* system */
+										,char* host_name			/* system */
+										,char* socklib_desc			/* system */
+										,js_callback_t* cb			/* js */
+										,js_startup_t* js_startup	/* js */
+										,client_t* client			/* client */
+										,SOCKET client_socket		/* client */
+										,js_server_props_t* props	/* server */
+										,JSObject** glob
+										)
+{
+	BOOL	success=FALSE;
+
+	if(node_cfg==NULL)
+		node_cfg=cfg;
+
+	/* Global Object */
+	if(!js_CreateGlobalObject(js_cx, cfg, methods, js_startup, glob))
+		return(FALSE);
+
+	do {
+		/* System Object */
+		if(js_CreateSystemObject(js_cx, *glob, node_cfg, uptime, host_name, socklib_desc)==NULL)
+			break;
+
+		/* Internal JS Object */
+		if(cb!=NULL 
+			&& js_CreateInternalJsObject(js_cx, *glob, cb, js_startup)==NULL)
+			break;
+
+		/* Client Object */
+		if(client!=NULL 
+			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
+			break;
+
+		/* Server */
+		if(props!=NULL
+			&& js_CreateServerObject(js_cx, *glob, props)==NULL)
+			break;
+
+		/* Socket Class */
+		if(js_CreateSocketClass(js_cx, *glob)==NULL)
+			break;
+
+		/* Queue Class */
+		if(js_CreateQueueClass(js_cx, *glob)==NULL)
+			break;
+
+		/* MsgBase Class */
+		if(js_CreateMsgBaseClass(js_cx, *glob, cfg)==NULL)
+			break;
+
+		/* File Class */
+		if(js_CreateFileClass(js_cx, *glob)==NULL)
+			break;
+
+		/* User class */
+		if(js_CreateUserClass(js_cx, *glob, cfg)==NULL) 
+			break;
+
+		/* COM Class */
+		if(js_CreateCOMClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptContext Class */
+		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
+			break;
+
+		/* Area Objects */
+		if(!js_CreateUserObjects(js_cx, *glob, cfg, /* user: */NULL, client, /* html_index_fname: */NULL, /* subscan: */NULL)) 
+			break;
+
+		success=TRUE;
+	} while(0);
+
+	if(!success)
+		JS_RemoveObjectRoot(js_cx, glob);
+
+	return(success);
 }
 #endif	/* JAVSCRIPT */
