@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.174 2015/10/28 02:23:21 deuce Exp $ */
+/* $Id: jsexec.c,v 1.175 2015/10/29 21:21:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -887,7 +887,7 @@ long js_exec(const char *fname, char** args)
 	JS_DefineProperty(js_cx, js_glob, "argc", INT_TO_JSVAL(argc)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_DefineProperty(js_cx, js_glob, "jsexec_revision"
+	JS_DefineProperty(js_cx, js_glob, PROG_NAME_LC "_revision"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,revision))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
@@ -902,7 +902,7 @@ long js_exec(const char *fname, char** args)
 		,__DATE__, __TIME__, compiler
 		);
 
-	JS_DefineProperty(js_cx, js_glob, "jsexec_revision_detail"
+	JS_DefineProperty(js_cx, js_glob, PROG_NAME_LC "_revision_detail"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
@@ -1052,7 +1052,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.174 $", "%*s %s", revision);
+	sscanf("$Revision: 1.175 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
