@@ -2,7 +2,7 @@
 
 /* Execute a BBS JavaScript module from the command-line */
 
-/* $Id: jsdoor.c,v 1.4 2016/01/21 09:52:59 deuce Exp $ */
+/* $Id: jsdoor.c,v 1.2 2015/10/28 02:23:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,16 +182,6 @@ DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertyS
 	return(JS_TRUE);
 }
 
-// Needed for load()
-JSObject* js_CreateBbsObject(JSContext* cx, JSObject* parent)
-{
-	return NULL;
-}
-JSObject* js_CreateConsoleObject(JSContext* cx, JSObject* parent)
-{
-	return NULL;
-}
-
 BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,scfg_t *unused1
 										,scfg_t *unused2
@@ -203,7 +193,6 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,js_startup_t* js_startup	/* js */
 										,client_t* client			/* client */
 										,SOCKET client_socket		/* client */
-										,CRYPT_CONTEXT session		/* client */
 										,js_server_props_t* props	/* server */
 										,JSObject** glob
 										)
@@ -215,10 +204,6 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		return(FALSE);
 
 	do {
-		/* System Object */
-		if(js_CreateSystemObject(js_cx, *glob, &scfg, uptime, host_name, socklib_desc)==NULL)
-			break;
-
 		/* Internal JS Object */
 		if(cb!=NULL 
 			&& js_CreateInternalJsObject(js_cx, *glob, cb, js_startup)==NULL)
@@ -226,7 +211,7 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* Client Object */
 		if(client!=NULL 
-			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket, session)==NULL)
+			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
 			break;
 
 		/* Server */
@@ -268,5 +253,3 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 #define JSDOOR
 
 #include "jsexec.c"
-#include "js_system.c"
-#include "ver.cpp"
