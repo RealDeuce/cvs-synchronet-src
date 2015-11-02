@@ -2,7 +2,7 @@
 
 /* Synchronet data access routines */
 
-/* $Id: data.cpp,v 1.29 2015/04/28 10:55:11 rswindell Exp $ */
+/* $Id: data.cpp,v 1.30 2015/10/29 21:39:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -268,7 +268,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 				&& !(useron.exempt&FLAG('E'))) {
 												/* set to expired values */
 				bputs(text[AccountHasExpired]);
-				SAFEPRINTF(str,"%s Expired",useron.alias);
+				SAFEPRINTF2(str,"%s #%u Expired",useron.alias,useron.number);
 				logentry("!%",str);
 				if(cfg.level_misc[useron.level]&LEVEL_EXPTOVAL
 					&& cfg.level_expireto[useron.level]<10) {
