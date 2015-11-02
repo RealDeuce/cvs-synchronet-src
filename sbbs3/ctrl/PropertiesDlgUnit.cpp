@@ -1,10 +1,10 @@
-/* $Id: PropertiesDlgUnit.cpp,v 1.8 2009/10/25 05:05:54 rswindell Exp $ */
+/* $Id: PropertiesDlgUnit.cpp,v 1.9 2014/10/30 08:56:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -207,4 +207,5 @@ void __fastcall TPropertiesDlg::ErrorSoundButtonClick(TObject *Sender)
     }
 }
 //---------------------------------------------------------------------------
+
 
