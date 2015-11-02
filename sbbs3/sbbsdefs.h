@@ -2,7 +2,7 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.195 2015/08/20 05:19:44 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.196 2015/09/26 05:06:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,7 +78,8 @@
 #define JAVASCRIPT_LOAD_PATH		"load"
 #define JAVASCRIPT_LOAD_PATH_LIST	"load_path_list"
 
-typedef struct {
+struct js_callback;
+typedef struct js_callback {
 	uint32_t		counter;
 	uint32_t		limit;
 	uint32_t		yield_interval;
@@ -86,6 +87,8 @@ typedef struct {
 	uint32_t		gc_attempts;
 	BOOL			auto_terminate;
 	volatile BOOL*	terminated;
+	BOOL			bg;
+	struct js_callback	*parent_cb;
 } js_callback_t;
 
 #define JSVAL_NULL_OR_VOID(val)		(JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val))
