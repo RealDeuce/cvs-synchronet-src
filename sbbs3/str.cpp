@@ -2,13 +2,13 @@
 
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.68 2011/10/23 01:48:42 deuce Exp $ */
+/* $Id: str.cpp,v 1.71 2015/09/24 01:43:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -95,14 +95,14 @@ void sbbs_t::userlist(long mode)
 			}
 			sprintf(name,"%s #%d",user.alias,i);
 			sprintf(line[j],text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
 		else {
 			sprintf(name,"%s #%u",user.alias,i);
 			bprintf(text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
@@ -817,7 +817,7 @@ void sbbs_t::dirinfo(uint dirnum)
 /****************************************************************************/
 /* Searches the file <name>.can in the TEXT directory for matches			*/
 /* Returns TRUE if found in list, FALSE if not.								*/
-/* Displays bad<name>.can in text directory if found.						*/
+/* Displays bad<name>.msg in text directory if found.						*/
 /****************************************************************************/
 bool sbbs_t::trashcan(const char *insearchof, const char *name)
 {
@@ -1100,7 +1100,8 @@ bool sbbs_t::spy(uint i /* node_num */)
 			}
 			ansi_seq[ansi_len++]=ch;
 			if(isalpha(ch)) {
-				RingBufWrite(node_inbuf[i-1],(uchar*)ansi_seq,ansi_len);
+				if(node_inbuf[i-1]!=NULL) 
+					RingBufWrite(node_inbuf[i-1],(uchar*)ansi_seq,ansi_len);
 				ansi_len=0;
 			}
 			continue;
