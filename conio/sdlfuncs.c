@@ -11,6 +11,7 @@
  #undef main
 #endif
 #include "sdlfuncs.h"
+extern int sdl_video_initialized;
 
 #ifndef _WIN32
 struct sdlfuncs sdl;
@@ -25,7 +26,6 @@ struct sdlfuncs sdl;
 static int sdl_funcs_loaded=0;
 static int sdl_initialized=0;
 static int sdl_audio_initialized=0;
-static int sdl_video_initialized=0;
 static int (*sdl_drawing_thread)(void *data)=NULL;
 static void (*sdl_exit_drawing_thread)(void)=NULL;
 static int main_returned=0;
@@ -148,6 +148,10 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		return(-1);
 	}
 	if((sdlf->WaitEvent=xp_dlsym(sdl_dll, SDL_WaitEvent))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->PollEvent=xp_dlsym(sdl_dll, SDL_PollEvent))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
