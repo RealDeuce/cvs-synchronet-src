@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.74 2015/08/22 06:16:58 deuce Exp $ */
+/* $Id: readmsgs.cpp,v 1.75 2015/08/22 10:16:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -883,7 +883,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				domsg=0;
 				if((i64=get_start_msg(this,&smb))<0)
 					break;
-				i=i64;
+				i=(int)i64;
 				listmsgs(subnum,0,post,i,smb.msgs);
 				sys_status&=~SS_ABORT;
 				break;
