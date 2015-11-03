@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.146 2016/01/21 20:35:52 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.143 2015/09/28 06:58:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -570,28 +570,6 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 	return iniSetString(list, section, key, str, style);
 }
 
-char* DLLCALL iniSetDuration(str_list_t* list, const char* section, const char* key
-					,double value, ini_style_t* style)
-{
-	char	str[INI_MAX_VALUE_LEN];
-
-	if(fmod(value,365.0*24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gY",value/(365.0*24.0*60.0*60.0));
-	else if(fmod(value,7.0*24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gW",value/(7.0*24.0*60.0*60.0));
-	else if(fmod(value,24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gD",value/(24.0*60.0*60.0));
-	else if(fmod(value,60.0*60.0)==0)
-		SAFEPRINTF(str,"%gH",value/(60.0*60.0));
-	else if(fmod(value,60.0)==0)
-		SAFEPRINTF(str,"%gM",value/60.0);
-	else
-		SAFEPRINTF(str,"%gS",value);
-
-	return iniSetString(list, section, key, str, style);
-}
-
-
 #if !defined(NO_SOCKET_SUPPORT)
 char* DLLCALL iniSetIpAddress(str_list_t* list, const char* section, const char* key, ulong value
 					,ini_style_t* style)
@@ -687,30 +665,6 @@ char* DLLCALL iniSetNamedInt(str_list_t* list, const char* section, const char* 
 	return iniSetInteger(list, section, key, value, style);
 }
 
-char* DLLCALL iniSetNamedHexInt(str_list_t* list, const char* section, const char* key, named_ulong_t* names
-					 ,ulong value, ini_style_t* style)
-{
-	size_t	i;
-
-	for(i=0;names[i].name!=NULL;i++)
-		if(names[i].value==value)
-			return iniSetString(list, section, key, names[i].name, style);
-
-	return iniSetHexInt(list, section, key, value, style);
-}
-
-char* DLLCALL iniSetNamedLongInt(str_list_t* list, const char* section, const char* key, named_ulong_t* names
-					 ,ulong value, ini_style_t* style)
-{
-	size_t	i;
-
-	for(i=0;names[i].name!=NULL;i++)
-		if(names[i].value==value)
-			return iniSetString(list, section, key, names[i].name, style);
-
-	return iniSetLongInt(list, section, key, value, style);
-}
-
 char* DLLCALL iniSetNamedFloat(str_list_t* list, const char* section, const char* key, named_double_t* names
 					 ,double value, ini_style_t* style)
 {
@@ -785,9 +739,6 @@ char* DLLCALL iniGetString(str_list_t list, const char* section, const char* key
 
 	if(vp==NULL || *vp==0 /* blank value or missing key */)
 		return default_value(deflt,value);
-
-	if(value != NULL)	/* return the modified (trimmed) value */
-		return value;
 
 	return(vp);
 }
@@ -1317,32 +1268,6 @@ int64_t DLLCALL iniGetBytes(str_list_t list, const char* section, const char* ke
 		return(deflt);
 
 	return(parse_byte_count(vp,unit));
-}
-
-double DLLCALL iniReadDuration(FILE* fp, const char* section, const char* key, double deflt)
-{
-	char*	value;
-	char	buf[INI_MAX_VALUE_LEN];
-
-	if((value=read_value(fp,section,key,buf))==NULL)
-		return(deflt);
-
-	if(*value==0)		/* blank value */
-		return(deflt);
-
-	return(parse_duration(value));
-}
-
-double DLLCALL iniGetDuration(str_list_t list, const char* section, const char* key, double deflt)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, NULL, &vp);
-
-	if(vp==NULL || *vp==0)	/* blank value or missing key */
-		return(deflt);
-
-	return(parse_duration(vp));
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
@@ -1914,51 +1839,6 @@ long DLLCALL iniGetNamedInt(str_list_t list, const char* section, const char* ke
 		return(deflt);
 
 	return(parseNamedInt(vp,names));
-}
-
-static ulong parseNamedLongInt(const char* value, named_ulong_t* names)
-{
-	unsigned i;
-
-	/* Look for exact matches first */
-	for(i=0; names[i].name!=NULL; i++)
-		if(stricmp(names[i].name,value)==0)
-			return(names[i].value);
-
-	/* Look for partial matches second */
-	for(i=0; names[i].name!=NULL; i++)
-		if(strnicmp(names[i].name,value,strlen(value))==0)
-			return(names[i].value);
-
-	return(parseLongInteger(value));
-}
-
-ulong DLLCALL iniReadNamedLongInt(FILE* fp, const char* section, const char* key
-					 ,named_ulong_t* names, ulong deflt)
-{
-	char	buf[INI_MAX_VALUE_LEN];
-	char*	value;
-
-	if((value=read_value(fp,section,key,buf))==NULL)
-		return(deflt);
-
-	if(*value==0)		/* blank value */
-		return(deflt);
-
-	return(parseNamedLongInt(value,names));
-}
-
-ulong DLLCALL iniGetNamedLongInt(str_list_t list, const char* section, const char* key
-					,named_ulong_t* names, ulong deflt)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, NULL, &vp);
-
-	if(vp==NULL || *vp==0)		/* blank value or missing key */
-		return(deflt);
-
-	return(parseNamedLongInt(vp,names));
 }
 
 static double parseNamedFloat(const char* value, named_double_t* names)
