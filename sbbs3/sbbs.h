@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.419 2015/11/25 02:38:22 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.417 2015/10/28 01:38:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -589,7 +589,6 @@ public:
 	/* str.cpp */
 	char*	timestr(time_t intime);
     char	timestr_output[60];
-	char*	age_of_posted_item(char* buf, size_t max, time_t);
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, const char *tmplt, long mode);
 	void	sif(char *fname, char *answers, long len);	/* Synchronet Interface File */
@@ -1259,7 +1258,6 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
-	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp);
 
 	/* js_sprintf.c */
 	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);

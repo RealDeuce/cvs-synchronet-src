@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.627 2015/11/23 01:56:33 deuce Exp $ */
+/* $Id: websrvr.c,v 1.622 2015/11/03 09:08:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,6 @@ typedef struct  {
 	char		xjs_handler[MAX_PATH+1];
 	struct log_data	*ld;
 	char		request_line[MAX_REQUEST_LINE+1];
-	char		orig_request_line[MAX_REQUEST_LINE+1];
 	BOOL		finished;				/* Done processing request. */
 	BOOL		read_chunked;
 	BOOL		write_chunked;
@@ -785,7 +784,7 @@ static void init_enviro(http_session_t *session)  {
 	if(!strcmp(session->host_name,session->host_ip))
 		add_env(session,"REMOTE_HOST",session->host_name);
 	add_env(session,"REMOTE_ADDR",session->host_ip);
-	add_env(session,"REQUEST_URI",session->req.orig_request_line);
+	add_env(session,"REQUEST_URI",session->req.request_line);
 }
 
 /*
@@ -2820,36 +2819,19 @@ static int is_dynamic_req(http_session_t* session)
 
 static char * split_port_part(char *host)
 {
-	char *ret = NULL;
 	char *p=strchr(host, 0)-1;
 
-	if (isdigit(*p)) {
-		/*
-		 * If the first and last : are not the same, and it doesn't
-		 * start with '[', there's no port part.
-		 */
-		if (host[0] != '[') {
-			if (strchr(host, ':') != strrchr(host, ':'))
-				return NULL;
-		}
-		for(; p >= host; p--) {
-			if (*p == ':') {
-				*p = 0;
-				ret = p+1;
-				break;
-			}
-			if (!isdigit(*p))
-				break;
-		}
-	}
-	// Now, remove []s...
-	if (host[0] == '[') {
-		memmove(host, host+1, strlen(host));
-		p=strchr(host, ']');
-		if (p)
+	if (!isdigit(*p))
+		return NULL;
+	for(; p >= host; p--) {
+		if (*p == ':') {
 			*p = 0;
+			return p+1;
+		}
+		if (!isdigit(*p))
+			return NULL;
 	}
-	return ret;
+	return NULL;
 }
 
 static void remove_port_part(char *host)
@@ -2872,8 +2854,6 @@ static char *get_request(http_session_t * session, char *req_line)
 	else
 		retval=NULL;
 	SAFECOPY(session->req.request_line,session->req.virtual_path);
-	if (!session->req.orig_request_line[0])
-		SAFECOPY(session->req.orig_request_line,session->req.virtual_path);
 	if(strtok_r(session->req.virtual_path,"?",&last))
 		query=strtok_r(NULL,"",&last);
 	else
@@ -3071,7 +3051,6 @@ static BOOL get_req(http_session_t * session, char *request_line)
 	}
 	else {
 		lprintf(LOG_DEBUG,"%04d Handling Internal Redirect to: %s",session->socket,request_line);
-		session->req.extra_path_info[0]=0;
 		SAFECOPY(req_line,request_line);
 		is_redir=1;
 	}
@@ -3349,8 +3328,7 @@ static void read_webctrl_section(FILE *file, char *section, http_session_t *sess
 		/* FREE()d in close_request() */
 		session->req.auth_list=strdup(str);
 	}
-	if((session->req.path_info_index=iniReadBool(file, section, "PathInfoIndex", FALSE)))
-		check_extra_path(session);
+	session->req.path_info_index=iniReadBool(file, section, "PathInfoIndex", FALSE);
 	if(iniReadString(file, section, "FastCGISocket", "", str)==str) {
 		FREE_AND_NULL(session->req.fastcgi_socket);
 		session->req.fastcgi_socket=strdup(str);
@@ -3499,8 +3477,10 @@ static BOOL check_request(http_session_t * session)
 				read_webctrl_section(file, NULL, session, curdir, &recheck_dynamic);
 				/* Now, PathInfoIndex may have been set, so we need to re-expand the index so it will match here. */
 				if (old_path_info_index != session->req.path_info_index) {
-					// Now that we may have gotten a new filename, we need to use that to compare with.
-					strcpy(filename, getfname(session->req.physical_path));
+					if(check_extra_path(session)) {
+						// Now that we may have gotten a new filename, we need to use that to compare with.
+						strcpy(filename, getfname(session->req.physical_path));
+					}
 				}
 				/* Read in per-filespec */
 				while((spec=strListPop(&specs))!=NULL) {
@@ -3865,7 +3845,7 @@ static struct fastcgi_body * fastcgi_read_body(SOCKET sock)
 	struct fastcgi_header header;
 	struct fastcgi_body *body;
 
-	if (recv(sock, (char*)&header.len
+	if (recv(sock, &header.len
 			,sizeof(header) - offsetof(struct fastcgi_header, len), MSG_WAITALL)
 				!= sizeof(header) - offsetof(struct fastcgi_header, len)) {
 		lprintf(LOG_ERR, "Error reading FastCGI message header");
@@ -3916,6 +3896,7 @@ static int fastcgi_read_wait_timeout(void *arg)
 				lprintf(LOG_ERR, "Unknown FastCGI session ID %d", htons(cd->header.id));
 				return ret;
 			}
+			lprintf(LOG_DEBUG, "Got FastCGI type %d", cd->header.type);
 			switch(cd->header.type) {
 				case FCGI_STDOUT:
 					ret |= CGI_OUTPUT_READY;
@@ -3962,17 +3943,21 @@ static int fastcgi_read(void *arg, char *buf, size_t sz)
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 
 	if (cd->body == NULL) {
+		lprintf(LOG_DEBUG, "Reading new FastCGI body");
 		cd->body = fastcgi_read_body(cd->sock);
 		if (cd->body == NULL)
 			return -1;
+		lprintf(LOG_DEBUG, "FastCGI got %u bytes", cd->body->len);
 	}
 
 	if (sz > (cd->body->len - cd->used))
 		sz = cd->body->len - cd->used;
 
 	memcpy(buf, cd->body->data + cd->used, sz);
+	lprintf(LOG_DEBUG, "FastCGI read consumed %u bytes (%u->%u of %u)", sz, cd->used, cd->used + sz, cd->body->len);
 	cd->used += sz;
 	if (cd->used >= cd->body->len) {
+		lprintf(LOG_DEBUG, "FastCGI free()ing old body");
 		FREE_AND_NULL(cd->body);
 		cd->header.type = 0;
 		cd->used = 0;
@@ -3993,9 +3978,11 @@ static int fastcgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, si
 	outpos = 0;
 
 	if (cd->body == NULL) {
+		lprintf(LOG_DEBUG, "Reading new FastCGI body");
 		cd->body = fastcgi_read_body(cd->sock);
 		if (cd->body == NULL)
 			return -1;
+		lprintf(LOG_DEBUG, "FastCGI got %u bytes", cd->body->len);
 	}
 
 	for (outpos = 0, inpos = cd->used; inpos < cd->body->len && outpos < bufsz; inpos++) {
@@ -4012,9 +3999,11 @@ static int fastcgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, si
 		outpos--;
 	buf[outpos] = 0;
 
+	lprintf(LOG_DEBUG, "FastCGI readln consumed %u bytes (%u->%u of %u) \"%.*s\"", inpos - cd->used, cd->used, inpos, cd->body->len, outpos, buf);
 	cd->used = inpos;
 
 	if (cd->used >= cd->body->len) {
+		lprintf(LOG_DEBUG, "FastCGI free()ing old body");
 		FREE_AND_NULL(cd->body);
 		cd->header.type = 0;
 		cd->used = 0;
@@ -6471,7 +6460,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.627 $", "%*s %s", revision);
+	sscanf("$Revision: 1.622 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
