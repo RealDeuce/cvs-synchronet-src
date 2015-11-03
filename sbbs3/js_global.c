@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.336 2014/04/06 06:18:28 rswindell Exp $ */
+/* $Id: js_global.c,v 1.348 2015/10/28 01:38:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -241,33 +241,6 @@ static jsval* js_CopyValue(JSContext* cx, jsrefcount *cx_rc, jsval val, JSContex
 	return rval;
 }
 
-JSBool BGContextCallback(JSContext *cx, uintN contextOp)
-{
-	JSObject	*gl=JS_GetGlobalObject(cx);
-	global_private_t*	p;
-
-	if(!gl)
-		return JS_TRUE;
-
-	if((p=(global_private_t*)JS_GetPrivate(cx,gl))==NULL)
-		return(JS_TRUE);
-
-	switch(contextOp) {
-		case JSCONTEXT_DESTROY:
-			while(p->bg_count) {
-				while(p->bg_count && sem_trywait(&p->bg_sem)==0)
-					p->bg_count--;
-				if(!p->bg_count)
-					break;
-
-				if(sem_wait(&p->bg_sem)==0)
-					p->bg_count--;
-			}
-			break;
-	}
-	return JS_TRUE;
-}
-
 static JSBool
 js_load(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -282,6 +255,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 	jsval		val;
 	JSObject*	js_argv;
 	JSObject*	exec_obj;
+	JSObject*	js_internal;
 	JSContext*	exec_cx=cx;
 	JSBool		success;
 	JSBool		background=JS_FALSE;
@@ -318,6 +292,19 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		bg->cb.terminated=NULL;	/* could be bad pointer at any time */
 		bg->cb.counter=0;
 		bg->cb.gc_attempts=0;
+		bg->cb.bg = TRUE;
+
+		// Get the js.internal private data since it's the parents js_callback_t...
+		if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "js", &val) && !JSVAL_NULL_OR_VOID(val)) {
+			js_internal = JSVAL_TO_OBJECT(val);
+			bg->cb.parent_cb = (js_callback_t*)JS_GetPrivate(cx,js_internal);
+			if (bg->cb.parent_cb == NULL) {
+				lprintf(LOG_ERR, "!ERROR parent CB is NULL");
+			}
+		}
+		else {
+			lprintf(LOG_ERR, "!ERROR unabled to locate global js object");
+		}
 
 		if((bg->runtime = jsrt_GetNew(JAVASCRIPT_MAX_BYTES, 1000, __FILE__, __LINE__))==NULL) {
 			free(bg);
@@ -613,7 +600,6 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		success = _beginthread(background_thread,0,bg)!=-1;
 		JS_RESUMEREQUEST(cx, rc);
 		if(success) {
-			JS_SetContextCallback(JS_GetRuntime(cx), BGContextCallback);
 			p->bg_count++;
 		}
 
@@ -747,9 +733,20 @@ js_exit(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	if(argc)
+	jsval val;
+
+	if(argc) {
+		if(JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val)) {
+			obj = JSVAL_TO_OBJECT(val);
+			if(JS_GetProperty(cx, obj, "scope", &val) && JSVAL_IS_OBJECT(val))
+				obj = JSVAL_TO_OBJECT(val);
+			else
+				obj = JS_THIS_OBJECT(cx, arglist);
+		}
+
 		JS_DefineProperty(cx, obj, "exit_code", argv[0]
 			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+	}
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -867,7 +864,7 @@ js_ascii(JSContext *cx, uintN argc, jsval *arglist)
 	str[0]=(uchar)i;
 	str[1]=0;
 
-	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
+	if((js_str = JS_NewStringCopyN(cx, str, 1))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
@@ -1397,28 +1394,28 @@ static struct {
 	char*	name;
 } lowasctbl[32] = {
 	{ 160	,"nbsp"		}, /* NULL non-breaking space */
-	{ 9786	,NULL		}, /* white smiling face */
-	{ 9787	,NULL		}, /* black smiling face */
+	{ 9786	,NULL		}, /* 0x263a white smiling face (^A, 1) */
+	{ 9787	,NULL		}, /* 0x263b black smiling face (^B, 2) */
 	{ 9829	,"hearts"	}, /* black heart suit */
 	{ 9830	,"diams"	}, /* black diamond suit */
 	{ 9827	,"clubs"	}, /* black club suit */
 	{ 9824	,"spades"	}, /* black spade suit */
-	{ 8226	,"bull"		}, /* bullet */
-	{ 9688	,NULL		}, /* inverse bullet */
-	{ 9702	,NULL		}, /* white bullet */
+	{ 8226	,"bull"		}, /* bullet (beep, 7) */
+	{ 9688	,NULL		}, /* inverse bullet (backspace, 8) */
+	{ 9702	,NULL		}, /* white bullet (tab, 9) */
 	{ 9689	,NULL		}, /* inverse white circle */
 	{ 9794	,NULL		}, /* male sign */
 	{ 9792	,NULL		}, /* female sign */
 	{ 9834	,NULL		}, /* eighth note */
 	{ 9835	,NULL		}, /* beamed eighth notes */
 	{ 9788	,NULL		}, /* white sun with rays */
-	{ 9654	,NULL		}, /* black right-pointing triangle */
-	{ 9664	,NULL		}, /* black left-pointing triangle */
+	{ 9658	,NULL		}, /* 0x25BA black right-pointing pointer */
+	{ 9668	,NULL		}, /* 0x25C4 black left-pointing pointer */
 	{ 8597	,NULL		}, /* up down arrow */
 	{ 8252	,NULL		}, /* double exclamation mark */
 	{ 182	,"para"		}, /* pilcrow sign */
 	{ 167	,"sect"		}, /* section sign */
-	{ 9644	,NULL		}, /* black rectangle */
+	{ 9644	,NULL		}, /* 0x25AC black rectangle */
 	{ 8616	,NULL		}, /* up down arrow with base */
 	{ 8593	,"uarr"		}, /* upwards arrow */
 	{ 8595	,"darr"		}, /* downwards arrow */
@@ -1426,8 +1423,8 @@ static struct {
 	{ 8592	,"larr"		}, /* leftwards arrow */
 	{ 8985	,NULL		}, /* turned not sign */
 	{ 8596	,"harr"		}, /* left right arrow */
-	{ 9650	,NULL		}, /* black up-pointing triangle */
-	{ 9660	,NULL		}  /* black down-pointing triangle */
+	{ 9650	,NULL		}, /* 0x25B2 black up-pointing triangle */
+	{ 9660	,NULL		}  /* 0x25BC black down-pointing triangle */
 };
 
 static JSBool
@@ -2454,7 +2451,7 @@ static JSBool
 js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(char *), unsigned extra_bytes)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		str, *rastr;
+	char		*str, *rastr, *funcret;
 	JSString*	js_str;
 	size_t		strlen;
 
@@ -2469,20 +2466,25 @@ js_internal_charfunc(JSContext *cx, uintN argc, jsval *arglist, char *(*func)(ch
 		return(JS_TRUE);
 	if(extra_bytes) {
 		rastr=realloc(str, strlen+extra_bytes+1 /* for terminator */);
-		if(rastr==NULL) {
-			free(str);
-			return JS_TRUE;
-		}
+		if(rastr==NULL)
+			goto error;
 		str=rastr;
 	}
 
-	js_str = JS_NewStringCopyZ(cx, func(str));
+	funcret = func(str);
+	if (funcret) {
+		js_str = JS_NewStringCopyZ(cx, funcret);
+		if (js_str == NULL)
+			goto error;
+		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
+	}
 	free(str);
-	if(js_str==NULL)
-		return(JS_FALSE);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
 	return(JS_TRUE);
+
+error:
+	free(str);
+	return JS_FALSE;
 }
 
 static JSBool
@@ -2509,16 +2511,26 @@ js_backslash(JSContext *cx, uintN argc, jsval *arglist)
 	return js_internal_charfunc(cx, argc, arglist, backslash, 1);
 }
 
+static char *nonconst_getfname(char *c)
+{
+	return(getfname(c));
+}
+
 static JSBool
 js_getfname(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfname, 0);
+	return js_internal_charfunc(cx, argc, arglist, nonconst_getfname, 0);
+}
+
+static char *nonconst_getfext(char *c)
+{
+	return(getfext(c));
 }
 
 static JSBool
 js_getfext(JSContext *cx, uintN argc, jsval *arglist)
 {
-	return js_internal_charfunc(cx, argc, arglist, getfext, 0);
+	return js_internal_charfunc(cx, argc, arglist, nonconst_getfext, 0);
 }
 
 static JSBool
@@ -3396,7 +3408,6 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 	struct		timeval tv = {0, 0};
 	jsuint		i;
     jsuint      limit;
-	SOCKET*		index;
 	jsval		val;
 	int			len=0;
 	jsrefcount	rc;
@@ -3422,9 +3433,6 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
     if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
 		return(JS_FALSE);
 
-	if((index=(SOCKET *)malloc(sizeof(SOCKET)*limit))==NULL)
-		return(JS_FALSE);
-
 	FD_ZERO(&socket_set);
 	if(poll_for_write)
 		wr_set=&socket_set;
@@ -3434,10 +3442,8 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
     for(i=0;i<limit;i++) {
         if(!JS_GetElement(cx, inarray, i, &val))
 			break;
-		sock=js_socket(cx,val);
-		index[i]=sock;
+		sock=js_socket_add(cx,val,&socket_set);
 		if(sock!=INVALID_SOCKET) {
-			FD_SET(sock,&socket_set);
 			if(sock>maxsock)
 				maxsock=sock;
 		}
@@ -3445,9 +3451,10 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(select(maxsock+1,rd_set,wr_set,NULL,&tv) >= 0) {
-
 		for(i=0;i<limit;i++) {
-			if(index[i]!=INVALID_SOCKET && FD_ISSET(index[i],&socket_set)) {
+        	if(!JS_GetElement(cx, inarray, i, &val))
+				break;
+			if(js_socket_isset(cx,val,&socket_set)) {
 				val=INT_TO_JSVAL(i);
 				JS_RESUMEREQUEST(cx, rc);
    				if(!JS_SetElement(cx, rarray, len++, &val)) {
@@ -3460,7 +3467,6 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 
 		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(rarray));
 	}
-	free(index);
 	JS_RESUMEREQUEST(cx, rc);
 
     return(JS_TRUE);
@@ -3589,36 +3595,80 @@ js_strftime(JSContext *cx, uintN argc, jsval *arglist)
 	return(JS_TRUE);
 }
 
+/* TODO: IPv6 */
 static JSBool
 js_resolve_ip(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	struct in_addr addr;
 	JSString*	str;
-	char*		p;
+	char*		p=NULL;
 	jsrefcount	rc;
+	struct addrinfo	hints,*res,*cur;
+	char		ip_str[INET6_ADDRSTRLEN];
+	BOOL		want_array=FALSE;
+	JSObject	*rarray;
+	unsigned	alen=0;
+	uintN		argn;
+	jsval		val;
+	int			result;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL)
-	HANDLE_PENDING(cx);
-	if(p==NULL) 
+	for(argn=0; argn < argc; argn++) {
+		if(JSVAL_IS_BOOLEAN(argv[argn]))
+			want_array = JSVAL_TO_BOOLEAN(argv[argn]);
+		else if(JSVAL_IS_STRING(argv[argn])) {
+			if(p)
+				free(p);
+			JSVALUE_TO_MSTRING(cx, argv[argn], p, NULL)
+			HANDLE_PENDING(cx);
+		}
+	}
+	if(p==NULL)
 		return(JS_TRUE);
 
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_ADDRCONFIG;
+	hints.ai_socktype = SOCK_STREAM;
 	rc=JS_SUSPENDREQUEST(cx);
-	addr.s_addr=resolve_ip(p);
+	if((result=getaddrinfo(p, NULL, &hints, &res))!=0) {
+		lprintf(LOG_ERR, "!ERROR resolve_ip %s failed with error %d",p, result);
+		JS_RESUMEREQUEST(cx, rc);
+		free(p);
+		return JS_TRUE;
+	}
 	free(p);
-	JS_RESUMEREQUEST(cx, rc);
-	if(addr.s_addr==INADDR_NONE)
-		return(JS_TRUE);
-	
-	if((str=JS_NewStringCopyZ(cx, inet_ntoa(addr)))==NULL)
-		return(JS_FALSE);
 
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	if(want_array) {
+		JS_RESUMEREQUEST(cx, rc);
+		if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
+			return(JS_FALSE);
+		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(rarray));
+		for(cur=res; cur; cur=cur->ai_next) {
+			inet_addrtop((void *)cur->ai_addr, ip_str, sizeof(ip_str));
+			if((str=JS_NewStringCopyZ(cx, ip_str))==NULL) {
+				freeaddrinfo(res);
+				return(JS_FALSE);
+			}
+			val = STRING_TO_JSVAL(str);
+			if(!JS_SetElement(cx, rarray, alen++, &val))
+				break;
+		}
+		freeaddrinfo(res);
+	}
+	else {
+		inet_addrtop((void *)res->ai_addr, ip_str, sizeof(ip_str));
+		freeaddrinfo(res);
+		JS_RESUMEREQUEST(cx, rc);
+
+		if((str=JS_NewStringCopyZ(cx, ip_str))==NULL)
+			return(JS_FALSE);
+
+		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	}
 	return(JS_TRUE);
 }
 
@@ -3627,10 +3677,10 @@ static JSBool
 js_resolve_host(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	struct in_addr addr;
-	HOSTENT*	h;
 	char*		p;
 	jsrefcount	rc;
+	struct addrinfo	hints,*res;
+	char		host_name[256];
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
@@ -3639,17 +3689,29 @@ js_resolve_host(JSContext *cx, uintN argc, jsval *arglist)
 
 	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL)
 	HANDLE_PENDING(cx);
-	if(p==NULL) 
+	if(p==NULL)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	addr.s_addr=inet_addr(p);
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_NUMERICHOST;
+	if(getaddrinfo(p, NULL, NULL, &res)!=0) {
+		free(p);
+		JS_RESUMEREQUEST(cx, rc);
+		return(JS_TRUE);
+	}
 	free(p);
-	h=gethostbyaddr((char *)&addr,sizeof(addr),AF_INET);
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = NI_NAMEREQD;
+	if(getnameinfo(res->ai_addr, res->ai_addrlen, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD)!=0) {
+		JS_RESUMEREQUEST(cx, rc);
+		return(JS_TRUE);
+	}
 	JS_RESUMEREQUEST(cx, rc);
 
-	if(h!=NULL && h->h_name!=NULL)
-		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,h->h_name)));
+	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(JS_NewStringCopyZ(cx,host_name)));
+	freeaddrinfo(res);
 
 	return(JS_TRUE);
 
@@ -4017,8 +4079,9 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,311
 	},
 	{"gethostbyname",	js_resolve_ip,		1,	JSTYPE_ALIAS },
-	{"resolve_ip",		js_resolve_ip,		1,	JSTYPE_STRING,	JSDOCSTR("hostname")
-	,JSDOCSTR("resolve IP address of specified hostname (AKA gethostbyname)")
+	{"resolve_ip",		js_resolve_ip,		1,	JSTYPE_STRING,	JSDOCSTR("hostname [,array=<tt>false</tt>]")
+	,JSDOCSTR("resolve IP address of specified hostname (AKA gethostbyname).  If array is true (added in 3.17), will return "
+	"an array of all addresses rather than just the first one")
 	,311
 	},
 	{"gethostbyaddr",	js_resolve_host,	1,	JSTYPE_ALIAS },
@@ -4128,8 +4191,14 @@ static void js_global_finalize(JSContext *cx, JSObject *obj)
 
 	p=(global_private_t*)JS_GetPrivate(cx,obj);
 
-	if(p!=NULL)
+	if(p!=NULL) {
+		while(p->bg_count) { 
+			if(sem_wait(&p->bg_sem)==0) 
+				p->bg_count--; 
+		}
+		sem_destroy(&p->bg_sem);
 		free(p);
+	}
 
 	p=NULL;
 	JS_SetPrivate(cx,obj,p);
@@ -4231,86 +4300,5 @@ BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec*
 #endif
 
 	return(TRUE);
-}
-
-BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
-										,scfg_t* cfg				/* common */
-										,scfg_t* node_cfg			/* node-specific */
-										,jsSyncMethodSpec* methods	/* global */
-										,time_t uptime				/* system */
-										,char* host_name			/* system */
-										,char* socklib_desc			/* system */
-										,js_callback_t* cb			/* js */
-										,js_startup_t* js_startup	/* js */
-										,client_t* client			/* client */
-										,SOCKET client_socket		/* client */
-										,js_server_props_t* props	/* server */
-										,JSObject** glob
-										)
-{
-	BOOL	success=FALSE;
-
-	if(node_cfg==NULL)
-		node_cfg=cfg;
-
-	/* Global Object */
-	if(!js_CreateGlobalObject(js_cx, cfg, methods, js_startup, glob))
-		return(FALSE);
-
-	do {
-		/* System Object */
-		if(js_CreateSystemObject(js_cx, *glob, node_cfg, uptime, host_name, socklib_desc)==NULL)
-			break;
-
-		/* Internal JS Object */
-		if(cb!=NULL 
-			&& js_CreateInternalJsObject(js_cx, *glob, cb, js_startup)==NULL)
-			break;
-
-		/* Client Object */
-		if(client!=NULL 
-			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
-			break;
-
-		/* Server */
-		if(props!=NULL
-			&& js_CreateServerObject(js_cx, *glob, props)==NULL)
-			break;
-
-		/* Socket Class */
-		if(js_CreateSocketClass(js_cx, *glob)==NULL)
-			break;
-
-		/* Queue Class */
-		if(js_CreateQueueClass(js_cx, *glob)==NULL)
-			break;
-
-		/* MsgBase Class */
-		if(js_CreateMsgBaseClass(js_cx, *glob, cfg)==NULL)
-			break;
-
-		/* File Class */
-		if(js_CreateFileClass(js_cx, *glob)==NULL)
-			break;
-
-		/* User class */
-		if(js_CreateUserClass(js_cx, *glob, cfg)==NULL) 
-			break;
-
-		/* COM Class */
-		if(js_CreateCOMClass(js_cx, *glob)==NULL)
-			break;
-
-		/* Area Objects */
-		if(!js_CreateUserObjects(js_cx, *glob, cfg, /* user: */NULL, client, /* html_index_fname: */NULL, /* subscan: */NULL)) 
-			break;
-
-		success=TRUE;
-	} while(0);
-
-	if(!success)
-		JS_RemoveObjectRoot(js_cx, glob);
-
-	return(success);
 }
 #endif	/* JAVSCRIPT */
