@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.618 2015/11/03 02:46:14 deuce Exp $ */
+/* $Id: websrvr.c,v 1.619 2015/11/03 04:15:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -231,6 +231,7 @@ typedef struct  {
 	char		extra_path_info[MAX_REQUEST_LINE+1];
 	str_list_t	cgi_env;
 	str_list_t	dynamic_heads;
+	BOOL		got_extra_path;
 
 	/* Dynamically (sever-side JS) generated HTML parameters */
 	FILE*	fp;
@@ -3132,6 +3133,8 @@ static BOOL check_extra_path(http_session_t * session)
 	int		i;
 	char	*end;
 
+	if(session->req.got_extra_path)
+		return TRUE;
 	epath[0]=0;
 	epath[1]=0;
 	if(IS_PATH_DELIM(*lastchar(session->req.physical_path)) || stat(session->req.physical_path,&sb)==-1 /* && errno==ENOTDIR */)
@@ -3156,10 +3159,11 @@ static BOOL check_extra_path(http_session_t * session)
 						*end=0;
 						strcat(rpath,startup->index_file_name[i]);
 						if(!stat(rpath,&sb)) {
+							sprintf(vp_slash, "/%s", startup->index_file_name[i]);
 							SAFECOPY(session->req.extra_path_info,epath);
 							SAFECOPY(session->req.virtual_path,vpath);
-							strcat(session->req.virtual_path,"/");
 							SAFECOPY(session->req.physical_path,rpath);
+							session->req.got_extra_path = TRUE;
 							return(TRUE);
 						}
 					}
@@ -3184,6 +3188,7 @@ static BOOL check_extra_path(http_session_t * session)
 					SAFECOPY(session->req.extra_path_info,epath);
 					SAFECOPY(session->req.virtual_path,vpath);
 					SAFECOPY(session->req.physical_path,rpath);
+					session->req.got_extra_path = TRUE;
 					return(TRUE);
 				}
 			}
@@ -6339,7 +6344,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.618 $", "%*s %s", revision);
+	sscanf("$Revision: 1.619 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
