@@ -1,12 +1,12 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.38 2014/02/16 06:28:52 deuce Exp $ */
+/* $Id: scfgmsg.c,v 1.41 2015/09/08 22:14:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -68,7 +68,8 @@ void clearptrs(int subnum)
 {
 	char str[256];
 	ushort idx,scancfg;
-	int file,i,gi;
+	int file, i;
+	size_t gi;
 	long l=0L;
 	glob_t g;
 
@@ -85,7 +86,7 @@ void clearptrs(int subnum)
             }
             while(filelength(file)<(long)(cfg.sub[subnum]->ptridx)*10) {
                 lseek(file,0L,SEEK_END);
-                idx=tell(file)/10;
+                idx=(ushort)(tell(file)/10);
                 for(i=0;i<cfg.total_subs;i++)
                     if(cfg.sub[i]->ptridx==idx)
                         break;
@@ -127,6 +128,7 @@ void msgs_cfg()
 	char	tmp_code[32];
 	int		j,k,q,s;
 	int		i,file,ptridx,n;
+	unsigned u;
 	unsigned total_subs;
 	long	ported;
 	sub_t	tmpsub;
@@ -567,7 +569,7 @@ while(1) {
 						memset(&tmpsub,0,sizeof(sub_t));
 						tmpsub.misc|=
 							(SUB_FIDO|SUB_NAME|SUB_TOUSER|SUB_QUOTE|SUB_HYPER);
-						if(k==1) {		/* AREAS.BBS Generic/*.MSG */
+						if(k==1) {		/* AREAS.BBS Generic/.MSG */
 							p=str;
 							SKIP_WHITESPACE(p);			/* Find path	*/
 							FIND_WHITESPACE(p);			/* Skip path	*/
@@ -686,12 +688,13 @@ while(1) {
 						|| tmpsub.qwkname[0]==0)
 						continue;
 
-					for(j=0;j<total_subs;j++) {
-						if(cfg.sub[j]->grp!=i)
+					for(u=0;u<total_subs;u++) {
+						if(cfg.sub[u]->grp!=i)
 							continue;
-						if(!stricmp(cfg.sub[j]->code_suffix,tmpsub.code_suffix))
+						if(!stricmp(cfg.sub[u]->code_suffix,tmpsub.code_suffix))
 							break; 
 					}
+					j=u;
 					if(j==total_subs) {
 						j=cfg.total_subs;
 						if((cfg.sub=(sub_t **)realloc(cfg.sub
@@ -727,10 +730,10 @@ while(1) {
 					}
 					if(j==cfg.total_subs) {	/* adding new sub-board */
 						for(;ptridx<USHRT_MAX;ptridx++) {
-							for(n=0;n<total_subs;n++)
-								if(cfg.sub[n]->ptridx==ptridx)
+							for(u=0;u<total_subs;u++)
+								if(cfg.sub[u]->ptridx==ptridx)
 									break;
-							if(n==total_subs)
+							if(u==total_subs)
 								break; 
 						}
 						cfg.sub[j]->ptridx=ptridx;	/* use new ptridx */
