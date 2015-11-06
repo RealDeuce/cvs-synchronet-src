@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.584 2015/09/11 03:06:19 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.586 2015/10/30 01:42:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1765,11 +1765,41 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     return(JS_TRUE);
 }
 
+static JSBool
+js_alert(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	private_t*	p;
+	jsrefcount	rc;
+	char		*line;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if((p=(private_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	JSVALUE_TO_MSTRING(cx, argv[0], line, NULL);
+	if(line==NULL)
+	    return(JS_FALSE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	lprintf(LOG_ERR,"%04d %s %s %s"
+		,p->sock, p->log_prefix, p->proc_name, line);
+	free(line);
+	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, argv[0]);
+
+    return(JS_TRUE);
+}
+
+
 static JSFunctionSpec js_global_functions[] = {
 	{"write",			js_log,				0},
 	{"writeln",			js_log,				0},
 	{"print",			js_log,				0},
 	{"log",				js_log,				0},
+	{"alert",			js_alert,			1},
     {0}
 };
 
@@ -3369,23 +3399,27 @@ static void smtp_thread(void* arg)
 			if(auth_login) {
 				sockprintf(socket,"334 VXNlcm5hbWU6");	/* Base64-encoded "Username:" */
 				if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH LOGIN username argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
 					lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 				if(b64_decode(user_name,sizeof(user_name),buf,rd)<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH LOGIN username argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				sockprintf(socket,"334 UGFzc3dvcmQ6");	/* Base64-encoded "Password:" */
 				if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH LOGIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
 					lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 				if(b64_decode(user_pass,sizeof(user_pass),buf,rd)<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH LOGIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3393,11 +3427,13 @@ static void smtp_thread(void* arg)
 				p=buf+10;
 				SKIP_WHITESPACE(p);
 				if(*p==0) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				ZERO_VAR(tmp);
 				if(b64_decode(tmp,sizeof(tmp),p,strlen(p))<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH PLAIN argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3405,6 +3441,7 @@ static void smtp_thread(void* arg)
 				while(*p) p++;	/* skip username */
 				p++;			/* skip NULL */
 				if(*p==0) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN user-id argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3412,6 +3449,7 @@ static void smtp_thread(void* arg)
 				while(*p) p++;	/* skip user-id */
 				p++;			/* skip NULL */
 				if(*p==0) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3473,6 +3511,7 @@ static void smtp_thread(void* arg)
 			b64_encode(str,sizeof(str),challenge,0);
 			sockprintf(socket,"334 %s",str);
 			if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
+				lprintf(LOG_WARNING,"%04d !SMTP missing AUTH CRAM-MD5 response", socket);
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -3480,6 +3519,7 @@ static void smtp_thread(void* arg)
 				lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 
 			if(b64_decode(response,sizeof(response),buf,rd)<1) {
+				lprintf(LOG_WARNING,"%04d !SMTP bad AUTH CRAM-MD5 response", socket);
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -4962,7 +5002,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.584 $", "%*s %s", revision);
+	sscanf("$Revision: 1.586 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
