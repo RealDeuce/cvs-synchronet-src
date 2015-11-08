@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.348 2015/10/28 01:38:40 deuce Exp $ */
+/* $Id: js_global.c,v 1.349 2015/11/08 04:57:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -387,6 +387,14 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 				JS_RESUMEREQUEST(cx, rc);
 			}
 		}
+
+		// These js_Create*Object() functions use GetContextPrivate() for the sbbs_t.
+		JS_SetContextPrivate(bg->cx, JS_GetContextPrivate(bg->parent_cx));
+		if (JS_HasProperty(cx, obj, "bbs", &success) && success)
+			js_CreateBbsObject(bg->cx, bg->obj);
+		if (JS_HasProperty(cx, obj, "console", &success) && success)
+			js_CreateConsoleObject(bg->cx, bg->obj);
+		JS_SetContextPrivate(bg->cx, bg);
 
 		exec_cx = bg->cx;
 		exec_obj = bg->obj;
