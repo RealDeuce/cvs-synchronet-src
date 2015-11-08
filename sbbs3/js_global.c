@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.349 2015/11/08 04:57:26 deuce Exp $ */
+/* $Id: js_global.c,v 1.350 2015/11/08 07:52:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -323,7 +323,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		if(!js_CreateCommonObjects(bg->cx
 				,p->cfg			/* common config */
 				,NULL			/* node-specific config */
-				,NULL			/* additional global methods */
+				,p->methods		/* additional global methods */
 				,0				/* uptime */
 				,""				/* hostname */
 				,""				/* socklib_desc */
