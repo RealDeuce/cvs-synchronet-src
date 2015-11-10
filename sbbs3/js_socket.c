@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.169 2015/08/22 10:16:56 deuce Exp $ */
+/* $Id: js_socket.c,v 1.174 2015/11/08 08:34:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,17 +41,11 @@
 #include "js_socket.h"
 #include "js_request.h"
 #include "multisock.h"
+#include "ssl.h"
 
 #ifdef JAVASCRIPT
 
-int cryptInitialized=0;
-
 static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
-
-static void do_cryptEnd(void)
-{
-	cryptEnd();
-}
 
 static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val)
 {
@@ -75,26 +69,6 @@ static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE a
 	return ret;
 }
 
-int DLLCALL do_cryptInit(void)
-{
-	int ret;
-
-	if(!cryptInitialized) {
-		if((ret=cryptInit())==CRYPT_OK) {
-			cryptAddRandom(NULL,CRYPT_RANDOM_SLOWPOLL);
-			cryptInitialized=1;
-			atexit(do_cryptEnd);
-		}
-		else {
-			if (ret == -12)	// This is a bit of a hack...
-				cryptInitialized=1;
-			else
-				lprintf(LOG_ERR,"cryptInit() returned %d", ret);
-		}
-	}
-	return cryptInitialized;
-}
-
 static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, void *val, int len)
 {
 	int ret=cryptSetAttributeString(session, attr, val, len);
@@ -106,18 +80,18 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 static void do_CryptFlush(const CRYPT_CONTEXT session)
 {
 	int ret=cryptFlushData(session);
-	int		len = 0;
-	char	estr[CRYPT_MAX_TEXTSIZE+1];
+	char	*estr;
 
 	ret = cryptFlushData(session);
 
 	if(ret!=CRYPT_OK) {
-		cryptGetAttributeString(session, CRYPT_ATTRIBUTE_ERRORMESSAGE, estr, &len);
-		estr[len]=0;
-		if (len)
-			lprintf(LOG_ERR, "cryptFlushData() returned %d (%s)", ret, estr);
+		estr = get_crypt_error(session);
+		if (estr) {
+			lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
+			free_crypt_attrstr(estr);
+		}
 		else
-			lprintf(LOG_ERR, "cryptFlushData() returned %d", ret);
+			lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
 	}
 }
 
@@ -157,7 +131,7 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			buf=((uint8_t *)buf) + copied;
 		}
 		else {
-			lprintf(LOG_ERR,"cryptPopData() returned %d", ret);
+			lprintf(LOG_WARNING,"cryptPopData() returned %d", ret);
 			if (total > 0)
 				return total;
 			do_js_close(p);
@@ -189,7 +163,7 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 			msg=((uint8_t *)msg) + copied;
 		}
 		else {
-			lprintf(LOG_ERR,"cryptPushData() returned %d", ret);
+			lprintf(LOG_WARNING,"cryptPushData() returned %d", ret);
 			if(flush) do_CryptFlush(p->session);
 			return total;
 		}
@@ -2062,28 +2036,91 @@ static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type)
 
 /* Socket Constructor (creates socket descriptor) */
 
+JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock)
+{
+	JSObject*	obj;
+	js_socket_private_t*	p;
+	int			type=SOCK_STREAM;
+	socklen_t	len;
+
+	obj=JS_NewObject(cx, &js_socket_class, NULL, NULL);
+
+	if(obj==NULL)
+		return(NULL);
+
+	len = sizeof(type);
+	getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
+
+	if(!js_DefineSocketOptionsArray(cx, obj, type))
+		return(NULL);
+
+	if((p=(js_socket_private_t*)malloc(sizeof(js_socket_private_t)))==NULL)
+		return(NULL);
+	memset(p,0,sizeof(js_socket_private_t));
+
+	p->sock = sock;
+	p->external = TRUE;
+	p->network_byte_order = TRUE;
+	p->session=-1;
+
+	if (p->sock != INVALID_SOCKET) {
+		len=sizeof(p->remote_addr);
+		if(getpeername(p->sock, &p->remote_addr.addr,&len)==0)
+			p->is_connected=TRUE;
+	}
+
+	if(!JS_SetPrivate(cx, obj, p)) {
+		dbprintf(TRUE, p, "JS_SetPrivate failed");
+		return(NULL);
+	}
+
+	dbprintf(FALSE, p, "object created");
+
+	return(obj);
+}
+
 static JSBool
 js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 {
+	SOCKET sock;
 	JSObject *obj;
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32	type=SOCK_STREAM;	/* default = TCP */
 	uintN	i;
 	js_socket_private_t* p;
 	char*	protocol=NULL;
-
-	obj=JS_NewObject(cx, &js_socket_class, NULL, NULL);
-	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
+	BOOL	from_descriptor=FALSE;
 
 	for(i=0;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i]))
-			JS_ValueToInt32(cx,argv[i],&type);
+		if(JSVAL_IS_NUMBER(argv[i])) {
+			if (from_descriptor) {
+#ifdef WIN32
+				JS_ValueToECMAUint32(cx,argv[i],&sock);
+#else
+				JS_ValueToInt32(cx,argv[i],&sock);
+#endif
+				obj = js_CreateSocketObjectWithoutParent(cx, sock);
+				if (obj == NULL) {
+					JS_ReportError(cx, "Failed to create external socket object");
+					return JS_FALSE;
+				}
+				JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
+				return JS_TRUE;
+			}
+			else
+				JS_ValueToInt32(cx,argv[i],&type);
+		}
+		else if(JSVAL_IS_BOOLEAN(argv[i]))
+			from_descriptor = TRUE;
 		else if(protocol==NULL) {
 			JSVALUE_TO_MSTRING(cx, argv[i], protocol, NULL);
 			HANDLE_PENDING(cx);
 		}
 	}
-		
+
+	obj=JS_NewObject(cx, &js_socket_class, NULL, NULL);
+	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
+
 	if((p=(js_socket_private_t*)malloc(sizeof(js_socket_private_t)))==NULL) {
 		JS_ReportError(cx,"malloc failed");
 		if(protocol)
@@ -2117,7 +2154,10 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	js_DescribeSyncConstructor(cx,obj,"To create a new Socket object: "
 		"<tt>load('sockdefs.js'); var s = new Socket(<i>type</i>, <i>protocol</i>)</tt><br>"
 		"where <i>type</i> = <tt>SOCK_STREAM</tt> for TCP (default) or <tt>SOCK_DGRAM</tt> for UDP<br>"
-		"and <i>protocol</i> (optional) = the name of the protocol or service the socket is to be used for"
+		"and <i>protocol</i> (optional) = the name of the protocol or service the socket is to be used for<br>"
+		"To create a socket from a socket descriptor: "
+		"<tt>var s = new Socket(true, <i>descriptor</i>)</tt><br>"
+		"where <i>descriptor</i> is the numerical value of an existing valid socket descriptor"
 		);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", socket_prop_desc, JSPROP_READONLY);
 #endif
@@ -2144,45 +2184,11 @@ JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent)
 JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *name, SOCKET sock)
 {
 	JSObject*	obj;
-	js_socket_private_t*	p;
-	int			type=SOCK_STREAM;
-	socklen_t	len;
 
-	obj = JS_DefineObject(cx, parent, name, &js_socket_class, NULL
-		,JSPROP_ENUMERATE|JSPROP_READONLY);
-
+	obj = js_CreateSocketObjectWithoutParent(cx, sock);
 	if(obj==NULL)
 		return(NULL);
-
-	len = sizeof(type);
-	getsockopt(sock,SOL_SOCKET,SO_TYPE,(void*)&type,&len);
-
-	if(!js_DefineSocketOptionsArray(cx, obj, type))
-		return(NULL);
-
-	if((p=(js_socket_private_t*)malloc(sizeof(js_socket_private_t)))==NULL)
-		return(NULL);
-	memset(p,0,sizeof(js_socket_private_t));
-
-	p->sock = sock;
-	p->external = TRUE;
-	p->network_byte_order = TRUE;
-	p->session=-1;
-
-	if (p->sock != INVALID_SOCKET) {
-		len=sizeof(p->remote_addr);
-		if(getpeername(p->sock, &p->remote_addr.addr,&len)==0)
-			p->is_connected=TRUE;
-		else
-			lprintf(LOG_ERR, "Error %d calling getpeername()",errno);
-	}
-
-	if(!JS_SetPrivate(cx, obj, p)) {
-		dbprintf(TRUE, p, "JS_SetPrivate failed");
-		return(NULL);
-	}
-
-	dbprintf(FALSE, p, "object created");
+	JS_DefineProperty(cx, parent, name, OBJECT_TO_JSVAL(obj), NULL, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	return(obj);
 }
