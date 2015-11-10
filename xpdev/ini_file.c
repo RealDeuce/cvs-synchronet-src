@@ -1,7 +1,8 @@
+/* ini_file.c */
+
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.149 2017/08/26 01:37:45 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: ini_file.c,v 1.143 2015/09/28 06:58:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -216,17 +217,9 @@ static char* key_name(char* p, char** vp)
 	/* Parse value */
 	(*vp)++;
 	SKIP_WHITESPACE(*vp);
-	if(colon!=NULL) {		/* string literal value */
+	if(colon!=NULL)
 		truncnl(*vp);		/* "key : value" - truncate new-line chars only */
-		if(*(*vp) == '"') {	/* handled quoted-strings here */
-			(*vp)++;
-			char* tp = strrchr(*vp, '"');
-			if(tp != NULL) {
-				*tp = 0;
-			}
-		}
-		c_unescape_str(*vp);
-	} else
+	else
 		truncsp(*vp);		/* "key = value" - truncate all white-space chars */
 
 	return(p);
@@ -400,20 +393,6 @@ BOOL DLLCALL iniRemoveSection(str_list_t* list, const char* section)
 	return(TRUE);
 }
 
-BOOL DLLCALL iniRemoveSections(str_list_t* list, const char* prefix)
-{
-	str_list_t sections = iniGetSectionList(*list, prefix);
-	const char* section;
-
-	while((section = strListPop(&sections)) != NULL)
-		if(!iniRemoveSection(list, section))
-			return(FALSE);
-
-	strListFree(&sections);
-
-	return(TRUE);
-}
-
 BOOL DLLCALL iniRenameSection(str_list_t* list, const char* section, const char* newname)
 {
 	char	str[INI_MAX_LINE_LEN];
@@ -473,23 +452,11 @@ size_t DLLCALL iniAppendSection(str_list_t* list, const char* section, ini_style
 	return ini_add_section(list,section,style,strListCount(*list));
 }
 
-static BOOL str_contains_ctrl_char(const char* str)
-{
-	while(*str) {
-		if(*(unsigned char*)str < ' ')
-			return TRUE;
-		str++;
-	}
-	return FALSE;
-}
-
-static char* ini_set_string(str_list_t* list, const char* section, const char* key, const char* value, BOOL literal
+char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* key, const char* value
 				 ,ini_style_t* style)
 {
 	char	str[INI_MAX_LINE_LEN];
-	char	litstr[INI_MAX_VALUE_LEN];
 	char	curval[INI_MAX_VALUE_LEN];
-	const char*	value_separator;
 	size_t	i;
 
 	if(style==NULL)
@@ -503,19 +470,10 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 		style->key_prefix="";
 	if(style->value_separator==NULL)
 		style->value_separator="=";
-	if(style->literal_separator==NULL)
-		style->literal_separator=":";
 	if(value==NULL)
 		value="";
-	if(literal) {
-		char cstr[INI_MAX_VALUE_LEN];
-		SAFEPRINTF(litstr, "\"%s\"", c_escape_str(value, cstr, sizeof(cstr)-1, /* ctrl_only: */FALSE));
-		value = litstr;
-		value_separator = style->literal_separator;
-	} else
-		value_separator = style->value_separator;
 	safe_snprintf(str, sizeof(str), "%s%-*s%s%s"
-		,style->key_prefix, style->key_len, key, value_separator, value);
+		, style->key_prefix, style->key_len, key, style->value_separator, value);
 	i=get_value(*list, section, key, curval, NULL);
 	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
         while(i && *(*list)[i-1]==0) i--;   /* Insert before blank lines, not after */
@@ -526,19 +484,6 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 		return((*list)[i]);	/* no change */
 
 	return strListReplace(*list, i, str);
-}
-char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* key, const char* value
-				 ,ini_style_t* style)
-{
-	BOOL literal = value != NULL && (str_contains_ctrl_char(value) || *value==' ' || *lastchar(value)==' ');
-		
-	return ini_set_string(list, section, key, value, literal, style);
-}
-
-char* DLLCALL iniSetStringLiteral(str_list_t* list, const char* section, const char* key, const char* value
-				 ,ini_style_t* style)
-{
-	return ini_set_string(list, section, key, value, /* literal: */TRUE, style);
 }
 
 char* DLLCALL iniSetInteger(str_list_t* list, const char* section, const char* key, long value
@@ -590,6 +535,7 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 					,int64_t value, ini_style_t* style)
 {
 	char	str[INI_MAX_VALUE_LEN];
+	double	bytes;
 
 	if(value==0)
 		SAFECOPY(str,"0");
@@ -607,20 +553,22 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 			default:
 				if(unit<1)
 					unit=1;
-				byte_count_to_str(value*unit, str, sizeof(str));
+				bytes=(double)(value*unit);
+
+				if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
+					SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+				else if(fmod(bytes,1024*1024*1024)==0)
+					SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
+				else if(fmod(bytes,1024*1024)==0)
+					SAFEPRINTF(str,"%gM",bytes/(1024*1024));
+				else if(fmod(bytes,1024)==0)
+					SAFEPRINTF(str,"%gK",bytes/1024);
+				else
+					SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
 		}
 
 	return iniSetString(list, section, key, str, style);
 }
-
-char* DLLCALL iniSetDuration(str_list_t* list, const char* section, const char* key
-					,double value, ini_style_t* style)
-{
-	char	str[INI_MAX_VALUE_LEN];
-
-	return iniSetString(list, section, key, duration_to_str(value, str, sizeof(str)), style);
-}
-
 
 #if !defined(NO_SOCKET_SUPPORT)
 char* DLLCALL iniSetIpAddress(str_list_t* list, const char* section, const char* key, ulong value
@@ -717,30 +665,6 @@ char* DLLCALL iniSetNamedInt(str_list_t* list, const char* section, const char* 
 	return iniSetInteger(list, section, key, value, style);
 }
 
-char* DLLCALL iniSetNamedHexInt(str_list_t* list, const char* section, const char* key, named_ulong_t* names
-					 ,ulong value, ini_style_t* style)
-{
-	size_t	i;
-
-	for(i=0;names[i].name!=NULL;i++)
-		if(names[i].value==value)
-			return iniSetString(list, section, key, names[i].name, style);
-
-	return iniSetHexInt(list, section, key, value, style);
-}
-
-char* DLLCALL iniSetNamedLongInt(str_list_t* list, const char* section, const char* key, named_ulong_t* names
-					 ,ulong value, ini_style_t* style)
-{
-	size_t	i;
-
-	for(i=0;names[i].name!=NULL;i++)
-		if(names[i].value==value)
-			return iniSetString(list, section, key, names[i].name, style);
-
-	return iniSetLongInt(list, section, key, value, style);
-}
-
 char* DLLCALL iniSetNamedFloat(str_list_t* list, const char* section, const char* key, named_double_t* names
 					 ,double value, ini_style_t* style)
 {
@@ -815,9 +739,6 @@ char* DLLCALL iniGetString(str_list_t list, const char* section, const char* key
 
 	if(vp==NULL || *vp==0 /* blank value or missing key */)
 		return default_value(deflt,value);
-
-	if(value != NULL)	/* return the modified (trimmed) value */
-		return value;
 
 	return(vp);
 }
@@ -1347,32 +1268,6 @@ int64_t DLLCALL iniGetBytes(str_list_t list, const char* section, const char* ke
 		return(deflt);
 
 	return(parse_byte_count(vp,unit));
-}
-
-double DLLCALL iniReadDuration(FILE* fp, const char* section, const char* key, double deflt)
-{
-	char*	value;
-	char	buf[INI_MAX_VALUE_LEN];
-
-	if((value=read_value(fp,section,key,buf))==NULL)
-		return(deflt);
-
-	if(*value==0)		/* blank value */
-		return(deflt);
-
-	return(parse_duration(value));
-}
-
-double DLLCALL iniGetDuration(str_list_t list, const char* section, const char* key, double deflt)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, NULL, &vp);
-
-	if(vp==NULL || *vp==0)	/* blank value or missing key */
-		return(deflt);
-
-	return(parse_duration(vp));
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
@@ -1944,51 +1839,6 @@ long DLLCALL iniGetNamedInt(str_list_t list, const char* section, const char* ke
 		return(deflt);
 
 	return(parseNamedInt(vp,names));
-}
-
-static ulong parseNamedLongInt(const char* value, named_ulong_t* names)
-{
-	unsigned i;
-
-	/* Look for exact matches first */
-	for(i=0; names[i].name!=NULL; i++)
-		if(stricmp(names[i].name,value)==0)
-			return(names[i].value);
-
-	/* Look for partial matches second */
-	for(i=0; names[i].name!=NULL; i++)
-		if(strnicmp(names[i].name,value,strlen(value))==0)
-			return(names[i].value);
-
-	return(parseLongInteger(value));
-}
-
-ulong DLLCALL iniReadNamedLongInt(FILE* fp, const char* section, const char* key
-					 ,named_ulong_t* names, ulong deflt)
-{
-	char	buf[INI_MAX_VALUE_LEN];
-	char*	value;
-
-	if((value=read_value(fp,section,key,buf))==NULL)
-		return(deflt);
-
-	if(*value==0)		/* blank value */
-		return(deflt);
-
-	return(parseNamedLongInt(value,names));
-}
-
-ulong DLLCALL iniGetNamedLongInt(str_list_t list, const char* section, const char* key
-					,named_ulong_t* names, ulong deflt)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, NULL, &vp);
-
-	if(vp==NULL || *vp==0)		/* blank value or missing key */
-		return(deflt);
-
-	return(parseNamedLongInt(vp,names));
 }
 
 static double parseNamedFloat(const char* value, named_double_t* names)
