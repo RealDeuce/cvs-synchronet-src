@@ -2,13 +2,13 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.421 2015/11/26 08:34:35 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.417 2015/10/28 01:38:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -589,7 +589,6 @@ public:
 	/* str.cpp */
 	char*	timestr(time_t intime);
     char	timestr_output[60];
-	char*	age_of_posted_item(char* buf, size_t max, time_t);
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, const char *tmplt, long mode);
 	void	sif(char *fname, char *answers, long len);	/* Synchronet Interface File */
@@ -611,8 +610,8 @@ public:
 
 	/* writemsg.cpp */
 	void	automsg(void);
-	bool	writemsg(const char *str, const char *top, char *subj, long mode, uint subnum
-				,const char *to, const char* from, char** editor=NULL);
+	bool	writemsg(const char *str, const char *top, char *title, long mode, uint subnum
+				,const char *dest, char** editor=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode);
@@ -625,7 +624,7 @@ public:
 	ushort	chmsgattr(ushort attr);
 	void	quotemsg(smbmsg_t* msg, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
-	void	editor_inf(int xeditnum, const char *to, const char* from, const char *subj, long mode
+	void	editor_inf(int xeditnum, const char *dest, const char *title, long mode
 				,uint subnum, const char* tagfile);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
@@ -754,9 +753,8 @@ public:
 	long	listsub(uint subnum, long mode, long start, const char* search);
 	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
-	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
+	long	showposts_toyou(post_t* post, ulong start, long posts, long mode=0);
 	void	msghdr(smbmsg_t* msg);
-	char	msg_listing_flag(uint subnum, smbmsg_t*);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -855,7 +853,7 @@ public:
 
 	/* xtrn_sec.cpp */
 	int		xtrn_sec(void);					/* The external program section  */
-	void	xtrndat(const char* name, const char* dropdir, uchar type, ulong tleft
+	void	xtrndat(char* name, char* dropdir, uchar type, ulong tleft
 				,ulong misc);
 	bool	exec_xtrn(uint xtrnnum);			/* Executes online external program */
 	bool	user_event(user_event_t);			/* Executes user event(s) */
@@ -1260,7 +1258,6 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
-	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp);
 
 	/* js_sprintf.c */
 	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);
