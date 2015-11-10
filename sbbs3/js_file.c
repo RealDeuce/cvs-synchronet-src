@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.159 2015/11/10 10:04:07 deuce Exp $ */
+/* $Id: js_file.c,v 1.160 2015/11/10 11:49:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2126,26 +2126,32 @@ static JSBool js_file_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case FILE_PROP_BUFSIZE:
 			if(!JS_ValueToECMAUint32(cx,*vp,&u))
 				return(JS_FALSE);
-			p->bufsize = u;
-			setvbuf(p->fp, NULL, p->bufmode, p->bufsize);
+			if (setvbuf(p->fp, NULL, p->bufmode, p->bufsize) == -1)
+				JS_ReportError(cx, "Unable to set buffer size to %u", u);
+			else
+				p->bufsize = u;
 			break;
 		case FILE_PROP_BUFMODE:
 			if(!JS_ValueToInt32(cx,*vp,&i))
 				return(JS_FALSE);
 			switch(i) {
 				case 0:
-					p->bufmode = _IONBF;
+					i = _IONBF;
 					break;
 				case 1:
-					p->bufmode = _IOLBF;
+					i = _IOLBF;
 					break;
 				case 2:
-					p->bufmode = _IOFBF;
+					i = _IOFBF;
 					break;
 				default:
-					JS_ReportError(cx,"Invalid buffer mode",WHERE);
+					JS_ReportError(cx,"Invalid buffer mode");
 					return JS_FALSE;
 			}
+			if (setvbuf(p->fp, NULL, i, p->bufsize) == -1)
+				JS_ReportError(cx, "Unable to set buffer mode to %d", p->bufmode);
+			else
+				p->bufmode = i;
 			break;
 	}
 
@@ -2369,7 +2375,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 					*vp = INT_TO_JSVAL(2);
 					break;
 				default:
-					JS_ReportError(cx,"Invalid buffer mode",WHERE);
+					JS_ReportError(cx,"Invalid buffer mode");
 					return JS_FALSE;
 			}
 			break;
