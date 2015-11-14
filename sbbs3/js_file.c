@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.158 2015/08/22 05:36:55 deuce Exp $ */
+/* $Id: js_file.c,v 1.162 2015/11/10 12:46:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
