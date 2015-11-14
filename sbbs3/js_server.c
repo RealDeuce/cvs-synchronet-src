@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "server" Object */
 
-/* $Id: js_server.c,v 1.17 2015/11/23 01:56:33 deuce Exp $ */
+/* $Id: js_server.c,v 1.16 2015/08/26 05:11:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,30 +150,15 @@ static void remove_port_part(char *host)
 {
 	char *p=strchr(host, 0)-1;
 
-	if (isdigit(*p)) {
-		/*
-		 * If the first and last : are not the same, and it doesn't
-		 * start with '[', there's no port part.
-		 */
-		if (host[0] != '[') {
-			if (strchr(host, ':') != strrchr(host, ':'))
-				return;
-		}
-		for(; p >= host; p--) {
-			if (*p == ':') {
-				*p = 0;
-				break;
-			}
-			if (!isdigit(*p))
-				break;
-		}
-	}
-	// Now, remove []s...
-	if (host[0] == '[') {
-		memmove(host, host+1, strlen(host));
-		p=strchr(host, ']');
-		if (p)
+	if (!isdigit(*p))
+		return;
+	for(; p >= host; p--) {
+		if (*p == ':') {
 			*p = 0;
+			return;
+		}
+		if (!isdigit(*p))
+			return;
 	}
 }
 
