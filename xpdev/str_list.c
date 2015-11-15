@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.41 2014/04/24 06:19:08 deuce Exp $ */
+/* $Id: str_list.c,v 1.42 2014/04/28 05:17:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,7 +334,7 @@ char* DLLCALL strListCombine(str_list_t list, char* buf, size_t maxlen, const ch
 }
 
 #if defined(_WIN32)
-	#define QSORT_CALLBACK_TYPE	_cdecl
+	#define QSORT_CALLBACK_TYPE	__cdecl
 #else
 	#define QSORT_CALLBACK_TYPE
 #endif
