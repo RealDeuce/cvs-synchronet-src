@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.344 2015/08/22 05:39:49 deuce Exp $ */
+/* $Id: js_global.c,v 1.351 2015/11/15 02:36:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -255,6 +255,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 	jsval		val;
 	JSObject*	js_argv;
 	JSObject*	exec_obj;
+	JSObject*	js_internal;
 	JSContext*	exec_cx=cx;
 	JSBool		success;
 	JSBool		background=JS_FALSE;
@@ -291,6 +292,19 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		bg->cb.terminated=NULL;	/* could be bad pointer at any time */
 		bg->cb.counter=0;
 		bg->cb.gc_attempts=0;
+		bg->cb.bg = TRUE;
+
+		// Get the js.internal private data since it's the parents js_callback_t...
+		if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "js", &val) && !JSVAL_NULL_OR_VOID(val)) {
+			js_internal = JSVAL_TO_OBJECT(val);
+			bg->cb.parent_cb = (js_callback_t*)JS_GetPrivate(cx,js_internal);
+			if (bg->cb.parent_cb == NULL) {
+				lprintf(LOG_ERR, "!ERROR parent CB is NULL");
+			}
+		}
+		else {
+			lprintf(LOG_ERR, "!ERROR unabled to locate global js object");
+		}
 
 		if((bg->runtime = jsrt_GetNew(JAVASCRIPT_MAX_BYTES, 1000, __FILE__, __LINE__))==NULL) {
 			free(bg);
@@ -309,7 +323,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		if(!js_CreateCommonObjects(bg->cx
 				,p->cfg			/* common config */
 				,NULL			/* node-specific config */
-				,NULL			/* additional global methods */
+				,p->methods		/* additional global methods */
 				,0				/* uptime */
 				,""				/* hostname */
 				,""				/* socklib_desc */
@@ -373,6 +387,14 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 				JS_RESUMEREQUEST(cx, rc);
 			}
 		}
+
+		// These js_Create*Object() functions use GetContextPrivate() for the sbbs_t.
+		JS_SetContextPrivate(bg->cx, JS_GetContextPrivate(bg->parent_cx));
+		if (JS_HasProperty(cx, obj, "bbs", &success) && success)
+			js_CreateBbsObject(bg->cx, bg->obj);
+		if (JS_HasProperty(cx, obj, "console", &success) && success)
+			js_CreateConsoleObject(bg->cx, bg->obj);
+		JS_SetContextPrivate(bg->cx, bg);
 
 		exec_cx = bg->cx;
 		exec_obj = bg->obj;
@@ -1380,28 +1402,28 @@ static struct {
 	char*	name;
 } lowasctbl[32] = {
 	{ 160	,"nbsp"		}, /* NULL non-breaking space */
-	{ 9786	,NULL		}, /* white smiling face */
-	{ 9787	,NULL		}, /* black smiling face */
+	{ 9786	,NULL		}, /* 0x263a white smiling face (^A, 1) */
+	{ 9787	,NULL		}, /* 0x263b black smiling face (^B, 2) */
 	{ 9829	,"hearts"	}, /* black heart suit */
 	{ 9830	,"diams"	}, /* black diamond suit */
 	{ 9827	,"clubs"	}, /* black club suit */
 	{ 9824	,"spades"	}, /* black spade suit */
-	{ 8226	,"bull"		}, /* bullet */
-	{ 9688	,NULL		}, /* inverse bullet */
-	{ 9702	,NULL		}, /* white bullet */
+	{ 8226	,"bull"		}, /* bullet (beep, 7) */
+	{ 9688	,NULL		}, /* inverse bullet (backspace, 8) */
+	{ 9702	,NULL		}, /* white bullet (tab, 9) */
 	{ 9689	,NULL		}, /* inverse white circle */
 	{ 9794	,NULL		}, /* male sign */
 	{ 9792	,NULL		}, /* female sign */
 	{ 9834	,NULL		}, /* eighth note */
 	{ 9835	,NULL		}, /* beamed eighth notes */
 	{ 9788	,NULL		}, /* white sun with rays */
-	{ 9654	,NULL		}, /* black right-pointing triangle */
-	{ 9664	,NULL		}, /* black left-pointing triangle */
+	{ 9658	,NULL		}, /* 0x25BA black right-pointing pointer */
+	{ 9668	,NULL		}, /* 0x25C4 black left-pointing pointer */
 	{ 8597	,NULL		}, /* up down arrow */
 	{ 8252	,NULL		}, /* double exclamation mark */
 	{ 182	,"para"		}, /* pilcrow sign */
 	{ 167	,"sect"		}, /* section sign */
-	{ 9644	,NULL		}, /* black rectangle */
+	{ 9644	,NULL		}, /* 0x25AC black rectangle */
 	{ 8616	,NULL		}, /* up down arrow with base */
 	{ 8593	,"uarr"		}, /* upwards arrow */
 	{ 8595	,"darr"		}, /* downwards arrow */
@@ -1409,8 +1431,8 @@ static struct {
 	{ 8592	,"larr"		}, /* leftwards arrow */
 	{ 8985	,NULL		}, /* turned not sign */
 	{ 8596	,"harr"		}, /* left right arrow */
-	{ 9650	,NULL		}, /* black up-pointing triangle */
-	{ 9660	,NULL		}  /* black down-pointing triangle */
+	{ 9650	,NULL		}, /* 0x25B2 black up-pointing triangle */
+	{ 9660	,NULL		}  /* 0x25BC black down-pointing triangle */
 };
 
 static JSBool
@@ -2277,6 +2299,10 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			outbuf[j++]=CTRL_U;
 			continue;
 		}
+		if(strcmp(token,"lrm")==0		/* left-to-right mark, not printable */
+			|| strcmp(token,"rlm")==0)	/* right-to-left mark, not printable */
+			continue;
+
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
 		
@@ -4286,90 +4312,5 @@ BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec*
 #endif
 
 	return(TRUE);
-}
-
-BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
-										,scfg_t* cfg				/* common */
-										,scfg_t* node_cfg			/* node-specific */
-										,jsSyncMethodSpec* methods	/* global */
-										,time_t uptime				/* system */
-										,char* host_name			/* system */
-										,char* socklib_desc			/* system */
-										,js_callback_t* cb			/* js */
-										,js_startup_t* js_startup	/* js */
-										,client_t* client			/* client */
-										,SOCKET client_socket		/* client */
-										,js_server_props_t* props	/* server */
-										,JSObject** glob
-										)
-{
-	BOOL	success=FALSE;
-
-	if(node_cfg==NULL)
-		node_cfg=cfg;
-
-	/* Global Object */
-	if(!js_CreateGlobalObject(js_cx, cfg, methods, js_startup, glob))
-		return(FALSE);
-
-	do {
-		/* System Object */
-		if(js_CreateSystemObject(js_cx, *glob, node_cfg, uptime, host_name, socklib_desc)==NULL)
-			break;
-
-		/* Internal JS Object */
-		if(cb!=NULL 
-			&& js_CreateInternalJsObject(js_cx, *glob, cb, js_startup)==NULL)
-			break;
-
-		/* Client Object */
-		if(client!=NULL 
-			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
-			break;
-
-		/* Server */
-		if(props!=NULL
-			&& js_CreateServerObject(js_cx, *glob, props)==NULL)
-			break;
-
-		/* Socket Class */
-		if(js_CreateSocketClass(js_cx, *glob)==NULL)
-			break;
-
-		/* Queue Class */
-		if(js_CreateQueueClass(js_cx, *glob)==NULL)
-			break;
-
-		/* MsgBase Class */
-		if(js_CreateMsgBaseClass(js_cx, *glob, cfg)==NULL)
-			break;
-
-		/* File Class */
-		if(js_CreateFileClass(js_cx, *glob)==NULL)
-			break;
-
-		/* User class */
-		if(js_CreateUserClass(js_cx, *glob, cfg)==NULL) 
-			break;
-
-		/* COM Class */
-		if(js_CreateCOMClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptContext Class */
-		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
-			break;
-
-		/* Area Objects */
-		if(!js_CreateUserObjects(js_cx, *glob, cfg, /* user: */NULL, client, /* html_index_fname: */NULL, /* subscan: */NULL)) 
-			break;
-
-		success=TRUE;
-	} while(0);
-
-	if(!success)
-		JS_RemoveObjectRoot(js_cx, glob);
-
-	return(success);
 }
 #endif	/* JAVSCRIPT */
