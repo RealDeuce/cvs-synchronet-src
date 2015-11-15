@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.218 2016/04/11 07:17:48 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.217 2015/08/25 01:38:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -637,7 +637,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int tbrdrwidth=3;
 	int bbrdrwidth=1;
 	int title_len;
-	int tmpcur=0;
 	struct mouse_event mevnt;
 	char	*title=NULL;
 	int	a,b,c,longopt;
@@ -645,7 +644,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int gotkey;
 	uchar	hclr,lclr,bclr,cclr,lbclr;
 
-	if(cur==NULL) cur=&tmpcur;
 	api->exit_flags = 0;
 	hclr=api->hclr;
 	lclr=api->lclr;
