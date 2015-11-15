@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.350 2015/11/08 07:52:12 deuce Exp $ */
+/* $Id: js_global.c,v 1.351 2015/11/15 02:36:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2299,6 +2299,10 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			outbuf[j++]=CTRL_U;
 			continue;
 		}
+		if(strcmp(token,"lrm")==0		/* left-to-right mark, not printable */
+			|| strcmp(token,"rlm")==0)	/* right-to-left mark, not printable */
+			continue;
+
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
 		
