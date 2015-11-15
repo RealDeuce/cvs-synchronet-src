@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.351 2015/11/15 02:36:43 rswindell Exp $ */
+/* $Id: js_global.c,v 1.352 2015/11/15 06:59:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,6 +394,12 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 			js_CreateBbsObject(bg->cx, bg->obj);
 		if (JS_HasProperty(cx, obj, "console", &success) && success)
 			js_CreateConsoleObject(bg->cx, bg->obj);
+		if (JS_HasProperty(cx, obj, "stdin", &success) && success)
+			js_CreateFileObject(bg->cx, bg->obj, "stdin", stdin);
+		if (JS_HasProperty(cx, obj, "stdout", &success) && success)
+			js_CreateFileObject(bg->cx, bg->obj, "stdout", stdout);
+		if (JS_HasProperty(cx, obj, "stderr", &success) && success)
+			js_CreateFileObject(bg->cx, bg->obj, "stderr", stderr);
 		JS_SetContextPrivate(bg->cx, bg);
 
 		exec_cx = bg->cx;
