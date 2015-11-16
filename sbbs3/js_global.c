@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.352 2015/11/15 06:59:11 deuce Exp $ */
+/* $Id: js_global.c,v 1.353 2015/11/16 05:32:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -608,6 +608,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(js_CreateQueueObject(cx, obj, NULL, bg->msg_queue)));
 		rc=JS_SUSPENDREQUEST(cx);
 		JS_RESUMEREQUEST(bg->cx, brc);
+		js_PrepareToExecute(bg->cx, bg->obj, path, NULL, bg->obj);
 		JS_ENDREQUEST(bg->cx);
 		JS_ClearContextThread(bg->cx);
 		bg->sem=&p->bg_sem;
