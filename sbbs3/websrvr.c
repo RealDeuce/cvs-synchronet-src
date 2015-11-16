@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.624 2015/11/03 18:07:20 deuce Exp $ */
+/* $Id: websrvr.c,v 1.625 2015/11/16 10:03:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3845,7 +3845,7 @@ static struct fastcgi_body * fastcgi_read_body(SOCKET sock)
 	struct fastcgi_header header;
 	struct fastcgi_body *body;
 
-	if (recv(sock, &header.len
+	if (recv(sock, (char*)&header.len
 			,sizeof(header) - offsetof(struct fastcgi_header, len), MSG_WAITALL)
 				!= sizeof(header) - offsetof(struct fastcgi_header, len)) {
 		lprintf(LOG_ERR, "Error reading FastCGI message header");
@@ -6451,7 +6451,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.624 $", "%*s %s", revision);
+	sscanf("$Revision: 1.625 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
