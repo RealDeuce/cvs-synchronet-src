@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.80 2015/11/26 08:34:35 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.78 2015/11/06 01:54:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,7 +198,7 @@ const char *hungupstr="\1n\1h%s\1n hung up on \1h%s\1n %s\r\n";
 /****************************************************************************/
 /* Convert C string to pascal string										*/
 /****************************************************************************/
-void str2pas(const char *instr, char *outstr)
+void str2pas(char *instr, char *outstr)
 {
 	int i;
 
@@ -294,7 +294,7 @@ static void lfexpand(char *str, ulong misc)
 /****************************************************************************/
 /* Creates various types of xtrn (Doors, Chains, etc.) data (drop) files.	*/
 /****************************************************************************/
-void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tleft
+void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 					,ulong misc)
 {
 	char	str[1024],tmp2[128],c,*p;
@@ -1704,11 +1704,14 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 
 	sprintf(str,"%sINTRSBBS.DAT"
 			,cfg.xtrn[xtrnnum]->path[0] ? cfg.xtrn[xtrnnum]->path : cfg.node_dir);
-	removecase(str);
+	if(fexistcase(str))
+		remove(str);
 	sprintf(str,"%shangup.now",cfg.node_dir);
-	removecase(str);
+	if(fexistcase(str))
+		remove(str);
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
-	removecase(str);
+	if(fexistcase(str))
+		remove(str);
 
 	mode=0; 	
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_SH)
@@ -1719,8 +1722,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		mode|=EX_CONIO;
 	mode|=(cfg.xtrn[xtrnnum]->misc&(XTRN_CHKTIME|XTRN_NATIVE|XTRN_NOECHO|WWIVCOLOR));
 	if(cfg.xtrn[xtrnnum]->misc&MODUSERDAT) {		/* Delete MODUSER.DAT */
-		SAFEPRINTF(str,"%sMODUSER.DAT",dropdir);	/* if for some weird  */
-		removecase(str);							/* reason it's there  */
+		sprintf(str,"%sMODUSER.DAT",dropdir);       /* if for some weird  */
+		remove(str); 								/* reason it's there  */
 	}
 
 	start=time(NULL);
@@ -1750,7 +1753,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	if(fexistcase(str)) {
 		lprintf(LOG_NOTICE,"Node %d External program requested hangup (%s signaled)"
 			,cfg.node_num, str);
-		removecase(str);
+		remove(str);
 		hangup(); 
 	}
 	else if(!online) {
