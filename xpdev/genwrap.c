@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.98 2016/01/18 09:59:29 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.97 2015/09/28 06:58:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -229,28 +229,6 @@ int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
 		}
 	}
 	return((int64_t)(unit>1 ? (bytes/unit):bytes));
-}
-
-/* Parse a duration string, default unit is in seconds */
-/* (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes */
-/* suffixes/multipliers are supported.
-/* Return value is in seconds */
-double DLLCALL parse_duration(const char* str)
-{
-	char*	p=NULL;
-	double	t;
-
-	t=strtod(str,&p);
-	if(p!=NULL) {
-		switch(toupper(*p)) {
-			case 'Y':	t*=365.0*24.0*60.0*60.0; break;
-			case 'W':	t*=  7.0*24.0*60.0*60.0; break;
-			case 'D':	t*=		 24.0*60.0*60.0; break;
-			case 'H':	t*=			  60.0*60.0; break;
-			case 'M':	t*=				   60.0; break;
-		}
-	}
-	return t;
 }
 
 /****************************************************************************/
