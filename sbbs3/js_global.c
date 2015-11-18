@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.353 2015/11/16 05:32:56 deuce Exp $ */
+/* $Id: js_global.c,v 1.354 2015/11/18 00:59:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2309,6 +2309,11 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 		if(strcmp(token,"lrm")==0		/* left-to-right mark, not printable */
 			|| strcmp(token,"rlm")==0)	/* right-to-left mark, not printable */
 			continue;
+
+		if(strcmp(token,"hellip")==0) {	/* horizontal ellipsis  */
+			j+=sprintf(outbuf+j,"...");
+			continue;
+		}
 
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
