@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.627 2015/11/23 01:56:33 deuce Exp $ */
+/* $Id: websrvr.c,v 1.625 2015/11/16 10:03:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,6 @@ typedef struct  {
 	char		xjs_handler[MAX_PATH+1];
 	struct log_data	*ld;
 	char		request_line[MAX_REQUEST_LINE+1];
-	char		orig_request_line[MAX_REQUEST_LINE+1];
 	BOOL		finished;				/* Done processing request. */
 	BOOL		read_chunked;
 	BOOL		write_chunked;
@@ -785,7 +784,7 @@ static void init_enviro(http_session_t *session)  {
 	if(!strcmp(session->host_name,session->host_ip))
 		add_env(session,"REMOTE_HOST",session->host_name);
 	add_env(session,"REMOTE_ADDR",session->host_ip);
-	add_env(session,"REQUEST_URI",session->req.orig_request_line);
+	add_env(session,"REQUEST_URI",session->req.request_line);
 }
 
 /*
@@ -2820,36 +2819,19 @@ static int is_dynamic_req(http_session_t* session)
 
 static char * split_port_part(char *host)
 {
-	char *ret = NULL;
 	char *p=strchr(host, 0)-1;
 
-	if (isdigit(*p)) {
-		/*
-		 * If the first and last : are not the same, and it doesn't
-		 * start with '[', there's no port part.
-		 */
-		if (host[0] != '[') {
-			if (strchr(host, ':') != strrchr(host, ':'))
-				return NULL;
-		}
-		for(; p >= host; p--) {
-			if (*p == ':') {
-				*p = 0;
-				ret = p+1;
-				break;
-			}
-			if (!isdigit(*p))
-				break;
-		}
-	}
-	// Now, remove []s...
-	if (host[0] == '[') {
-		memmove(host, host+1, strlen(host));
-		p=strchr(host, ']');
-		if (p)
+	if (!isdigit(*p))
+		return NULL;
+	for(; p >= host; p--) {
+		if (*p == ':') {
 			*p = 0;
+			return p+1;
+		}
+		if (!isdigit(*p))
+			return NULL;
 	}
-	return ret;
+	return NULL;
 }
 
 static void remove_port_part(char *host)
@@ -2872,8 +2854,6 @@ static char *get_request(http_session_t * session, char *req_line)
 	else
 		retval=NULL;
 	SAFECOPY(session->req.request_line,session->req.virtual_path);
-	if (!session->req.orig_request_line[0])
-		SAFECOPY(session->req.orig_request_line,session->req.virtual_path);
 	if(strtok_r(session->req.virtual_path,"?",&last))
 		query=strtok_r(NULL,"",&last);
 	else
@@ -6471,7 +6451,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.627 $", "%*s %s", revision);
+	sscanf("$Revision: 1.625 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
