@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.22 2015/11/30 09:07:44 rswindell Exp $ */
+/* $Id: text.h,v 1.20 2015/08/26 23:58:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -812,16 +812,6 @@ enum {
 	,DisplayUnreadMessagesOnlyQ
 	,NoMessagesFound
 	,UserIpAddr
-	,Seconds
-	,Minutes
-	,Hours
-	,Days
-	,Months
-	,Years
-	,InThePast
-	,InTheFuture
-	,AgeOfPostedItem
-	,NodeStatusLogout
 
 	,TOTAL_TEXT
 };
