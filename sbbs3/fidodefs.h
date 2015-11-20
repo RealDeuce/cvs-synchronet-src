@@ -2,13 +2,13 @@
 
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.15 2016/04/11 10:03:35 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.13 2013/10/05 08:03:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,13 +40,10 @@
 
 #include "gen_defs.h"
 
-#define FIDO_TLD		".fidonet"	/* Fake TLD for gating netmail through SMTP  */
-
 #define FIDO_NAME_LEN	36			/* Includes '\0' terminator				*/
 #define FIDO_SUBJ_LEN	72			/* Includes '\0' terminator				*/
 #define FIDO_TIME_LEN	20			/* Includes '\0' terminator				*/
 #define FIDO_PASS_LEN	8			/* Does NOT include '\0' terminator		*/
-#define FIDO_AREATAG_LEN	35		/* Echo "areatag" (NOT including '\0')	*/
 
 									/* Attribute bits for fmsghdr_t.attr	*/
 #define FIDO_PRIVATE	(1<<0)		/* Private message						*/
