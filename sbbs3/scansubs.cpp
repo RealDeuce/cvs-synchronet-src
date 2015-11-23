@@ -2,7 +2,7 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.21 2016/01/07 01:30:13 deuce Exp $ */
+/* $Id: scansubs.cpp,v 1.19 2015/05/02 03:20:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,7 +138,7 @@ void sbbs_t::scansubs(long mode)
 }
 
 /****************************************************************************/
-/* Performs a new message scan of all sub-boards							*/
+/* Performs a new message scan all all sub-boards							*/
 /****************************************************************************/
 void sbbs_t::scanallsubs(long mode)
 {
@@ -221,7 +221,7 @@ void sbbs_t::scanallsubs(long mode)
 		return; 
 	}
 	bprintf(text[MessageScanComplete],subs_scanned);
-	if(mode&SCAN_NEW && !(mode&(SCAN_MSGSONLY|SCAN_BACK|SCAN_TOYOU))
+	if(mode&SCAN_NEW && !(mode&(SCAN_BACK|SCAN_TOYOU))
 		&& useron.misc&ANFSCAN && !(useron.rest&FLAG('T'))) {
 		xfer_cmds++;
 		scanalldirs(FL_ULTIME); 
