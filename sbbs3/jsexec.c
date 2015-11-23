@@ -1,7 +1,8 @@
+/* jsexec.c */
+
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.188 2017/11/28 09:42:56 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: jsexec.c,v 1.179 2015/11/16 17:52:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -127,11 +128,7 @@ void usage(FILE* fp)
 		"\t-t<limit>      set time limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
-#ifdef JSDOOR
-		"\t-h[hostname]   use local or specified host name\n"
-#else
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
-#endif
 		"\t-u<mask>       set file creation permissions mask (in octal)\n"
 		"\t-L<level>      set log level (default=%u)\n"
 		"\t-E<level>      set error log level threshold (default=%u)\n"
@@ -207,11 +204,11 @@ int lprintf(int level, const char *fmt, ...)
 
 	if(level<=err_level) {
 		ret=fprintf(errfp,"%s\n",sbuf);
-		if(errfp!=stderr)
+		if(errfp!=stderr && confp!=stdout)
 			ret=fprintf(statfp,"%s\n",sbuf);
 	}
-	if(level>err_level)
-		ret=fprintf(statfp,"%s\n",sbuf);
+	if(level>err_level || errfp!=stderr)
+		ret=fprintf(confp,"%s\n",sbuf);
 
 	pthread_mutex_unlock(&output_mutex);
     return(ret);
@@ -781,7 +778,7 @@ static BOOL js_init(char** environ)
 	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
 		,&cb,&startup						/* js */
-		,NULL,INVALID_SOCKET,-1					/* client */
+		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
 		,&js_glob
 		)) {
@@ -876,7 +873,6 @@ long js_exec(const char *fname, char** args)
 	int32		result=0;
 	long double	start;
 	long double	diff;
-	JSBool		exec_result;
 
 	if(fname!=NULL) {
 		if(isfullpath(fname)) {
@@ -982,7 +978,7 @@ long js_exec(const char *fname, char** args)
 	start=xp_timer();
 	if(debugger)
 		debug_prompt(js_cx, js_script);
-	exec_result = JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
 		char	*p;
@@ -991,8 +987,7 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
 		free(p);
 		JS_ValueToInt32(js_cx,rval,&result);
-	} else if(!exec_result)
-		result = EXIT_FAILURE;
+	}
 	js_EvalOnExit(js_cx, js_glob, &cb);
 
 	JS_ReportPendingException(js_cx);
@@ -1054,13 +1049,8 @@ int parseLogLevel(const char* p)
 #ifdef __unix__
 void raw_input(struct termios *t)
 {
-#ifdef JSDOOR
 	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
 	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-#else
-	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
-#endif
 }
 #endif
 
@@ -1083,10 +1073,6 @@ int main(int argc, char **argv, char** environ)
 
 	confp=stdout;
 	errfp=stderr;
-	if((nulfp=fopen(_PATH_DEVNULL,"w+"))==NULL) {
-		perror(_PATH_DEVNULL);
-		return(do_bail(-1));
-	}
 	if(isatty(fileno(stdin))) {
 #ifdef __unix__
 		struct termios term;
@@ -1096,20 +1082,23 @@ int main(int argc, char **argv, char** environ)
 		raw_input(&term);
 		tcsetattr(fileno(stdin), TCSANOW, &term);
 #else
-	//	This completely disabled console input on Windows:
-	//	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 #endif
 		statfp=stderr;
 	}
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
+	if((nulfp=fopen(_PATH_DEVNULL,"w+"))==NULL) {
+		perror(_PATH_DEVNULL);
+		return(do_bail(-1));
+	}
 
 	cb.limit=JAVASCRIPT_TIME_LIMIT;
 	cb.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.188 $", "%*s %s", revision);
+	sscanf("$Revision: 1.179 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1134,9 +1123,6 @@ int main(int argc, char **argv, char** environ)
  	SAFECOPY(scfg.logs_dir, orig_cwd);
 	prep_dir(scfg.ctrl_dir, scfg.text_dir, sizeof(scfg.text_dir));
  	scfg.sys_misc = 0; /* SM_EURODATE and SM_MILITARY are used */
-	gethostname(host_name=host_name_buf,sizeof(host_name_buf));
-	statfp = nulfp;
-	errfp = fopen("error.log", "a");
 #endif
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
@@ -1164,8 +1150,6 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'e':
 					if(*p==0) p=argv[++argn];
-					if (errfp != stderr)
-						fclose(errfp);
 					if((errfp=fopen(p,omode))==NULL) {
 						perror(p);
 						return(do_bail(1));

@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.226 2017/12/05 04:26:52 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.224 2015/02/10 03:04:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -528,7 +528,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "SBBSDATA=%s\n", data_dir);
 		fprintf(fp, "SBBSEXEC=%s\n", exec_dir);
         fprintf(fp, "SBBSNNUM=%d\n", cfg.node_num);
-		fprintf(fp, "PCBNODE=%d\n", cfg.node_num);
 		/* date/time env vars */
 		fprintf(fp, "DAY=%02u\n", tm.tm_mday);
 		fprintf(fp, "WEEKDAY=%s\n",wday[tm.tm_wday]);
@@ -1410,7 +1409,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(doscmdrc,"SBBSDATA=E:\\data\\\n");
 		fprintf(doscmdrc,"SBBSEXEC=E:\\exec\\\n");
 		fprintf(doscmdrc,"SBBSNNUM=%d\n",cfg.node_num);
-		fprintf(doscmdrc,"PCBNODE=%d\n",cfg.node_num);
 
 		fclose(doscmdrc);
 		SAFECOPY(str,fullcmdline);
@@ -1544,7 +1542,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(dosemubat,"set SBBSCTRL=%s\r\n",ctrldrive);
 		fprintf(dosemubat,"set SBBSDATA=%s\r\n",datadrive);
 		fprintf(dosemubat,"set SBBSEXEC=%s\r\n",execdrive);
-		fprintf(dosemubat,"set PCBNODE=%d\r\n",cfg.node_num);
 
 		/* clear existing redirections on dos side */
 		fprintf(dosemubat,"lredir del %s\r\nlredir del %s\r\nlredir del %s\r\nlredir del %s\r\n",xtrndrive,ctrldrive,datadrive,execdrive);
@@ -2232,9 +2229,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 {
 	char	str[MAX_PATH+1];
     int		i,j,len;
-	static char	buf[512];
 
-	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
     for(i=j=0;i<len && j<MAX_PATH;i++) {
         if(instr[i]=='%') {
