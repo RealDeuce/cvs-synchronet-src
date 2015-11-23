@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.190 2015/10/28 01:24:09 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.191 2015/11/23 08:48:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -211,7 +211,7 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 			JS_ReportError(cx, "Invalid \"to_net_addr\" string in recipient object");
 			return(FALSE);
 		}
-		if((p->status=smb_hfield_netaddr(msg, RECIPIENTNETADDR, cp, &nettype))!=SMB_SUCCESS) {
+		if((p->status=smb_hfield_add_netaddr(msg, RECIPIENTNETADDR, cp, &nettype))!=SMB_SUCCESS) {
 			free(cp);
 			JS_ReportError(cx, "Error %d adding RECIPIENTADDR field to message header", p->status);
 			return(FALSE);
@@ -345,7 +345,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"from_net_addr\" string in header object");
 			goto err;
 		}
-		if((p->status=smb_hfield_netaddr(msg, SENDERNETADDR, cp, &nettype))!=SMB_SUCCESS) {
+		if((p->status=smb_hfield_add_netaddr(msg, SENDERNETADDR, cp, &nettype))!=SMB_SUCCESS) {
 			JS_ReportError(cx, "Error %d adding SENDERNETADDR field to message header", p->status);
 			goto err;
 		}
@@ -513,7 +513,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"replyto_net_addr\" string in header object");
 			goto err;
 		}
-		if((p->status=smb_hfield_netaddr(msg, REPLYTONETADDR, cp, &nettype))!=SMB_SUCCESS) {
+		if((p->status=smb_hfield_add_netaddr(msg, REPLYTONETADDR, cp, &nettype))!=SMB_SUCCESS) {
 			JS_ReportError(cx, "Error %d adding REPLYTONETADDR field to message header", p->status);
 			goto err;
 		}
