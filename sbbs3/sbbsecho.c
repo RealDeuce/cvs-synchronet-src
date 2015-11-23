@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.269 2015/11/23 09:13:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.270 2015/11/23 10:04:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3407,6 +3407,7 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, char* info)
 		printf("Empty NetMail");
 	else {
 		printf("Exporting: ");
+		MKDIR(scfg.netmail_dir);
 		for(i=1;i;i++) {
 			sprintf(path,"%s%u.msg",scfg.netmail_dir,i);
 			if(!fexistcase(path))
@@ -4227,7 +4228,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.269 $", "%*s %s", revision);
+	sscanf("$Revision: 1.270 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
