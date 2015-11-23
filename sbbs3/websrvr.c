@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.626 2015/11/20 10:32:00 deuce Exp $ */
+/* $Id: websrvr.c,v 1.627 2015/11/23 01:56:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2820,19 +2820,36 @@ static int is_dynamic_req(http_session_t* session)
 
 static char * split_port_part(char *host)
 {
+	char *ret = NULL;
 	char *p=strchr(host, 0)-1;
 
-	if (!isdigit(*p))
-		return NULL;
-	for(; p >= host; p--) {
-		if (*p == ':') {
-			*p = 0;
-			return p+1;
+	if (isdigit(*p)) {
+		/*
+		 * If the first and last : are not the same, and it doesn't
+		 * start with '[', there's no port part.
+		 */
+		if (host[0] != '[') {
+			if (strchr(host, ':') != strrchr(host, ':'))
+				return NULL;
 		}
-		if (!isdigit(*p))
-			return NULL;
+		for(; p >= host; p--) {
+			if (*p == ':') {
+				*p = 0;
+				ret = p+1;
+				break;
+			}
+			if (!isdigit(*p))
+				break;
+		}
 	}
-	return NULL;
+	// Now, remove []s...
+	if (host[0] == '[') {
+		memmove(host, host+1, strlen(host));
+		p=strchr(host, ']');
+		if (p)
+			*p = 0;
+	}
+	return ret;
 }
 
 static void remove_port_part(char *host)
@@ -6454,7 +6471,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.626 $", "%*s %s", revision);
+	sscanf("$Revision: 1.627 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
