@@ -2,13 +2,13 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.155 2015/08/26 08:36:16 deuce Exp $ */
+/* $Id: userdat.c,v 1.157 2015/10/03 04:04:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -322,7 +322,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 
 	getrec(userdat,U_XEDIT,8,str);
 	for(i=0;i<cfg->total_xedits;i++)
-		if(!stricmp(str,cfg->xedit[i]->code) && chk_ar(cfg,cfg->xedit[i]->ar,user,/* client: */NULL))
+		if(!stricmp(str,cfg->xedit[i]->code))
 			break;
 	user->xedit=i+1;
 	if(user->xedit>cfg->total_xedits)
@@ -434,7 +434,7 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	putrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	putrec(userdat,U_MODEM,LEN_MODEM,user->modem);
-	putrec(userdat,U_IPADDR,LEN_IPADDR,user->modem);
+	putrec(userdat,U_IPADDR,LEN_IPADDR,user->ipaddr);
 	putrec(userdat,U_LASTON,8,ultoa((ulong)user->laston,str,16));
 	putrec(userdat,U_FIRSTON,8,ultoa((ulong)user->firston,str,16));
 	putrec(userdat,U_EXPIRE,8,ultoa((ulong)user->expire,str,16));
