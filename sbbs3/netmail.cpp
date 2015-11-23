@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.49 2017/11/24 21:53:39 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.45 2015/04/28 10:55:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,8 +96,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,/* from: */your_addr,&editor)) {
+	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
+	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -267,7 +267,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
-	i=smb_addmsghdr(&smb,&msg,smb_storage_mode(&cfg, &smb));	// calls smb_unlocksmbhdr() 
+	i=smb_addmsghdr(&smb,&msg,SMB_SELFPACK);	// calls smb_unlocksmbhdr() 
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
 
@@ -334,7 +334,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	addr++;
 	strupr(addr);
 	truncsp(addr);
-	touser=qwk_route(&cfg,addr,fulladdr,sizeof(fulladdr)-1);
+	touser=qwk_route(addr,fulladdr);
 	if(!fulladdr[0]) {
 		bputs(text[InvalidNetMailAddr]);
 		return(false); 
@@ -350,8 +350,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,/* from: */useron.alias,&editor)) {
+	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
+	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -474,7 +474,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
-	i=smb_addmsghdr(&smb,&msg,smb_storage_mode(&cfg, &smb)); // calls smb_unlocksmbhdr() 
+	i=smb_addmsghdr(&smb,&msg,SMB_SELFPACK); // calls smb_unlocksmbhdr() 
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
 
