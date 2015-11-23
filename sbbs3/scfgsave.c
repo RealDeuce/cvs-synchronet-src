@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.58 2015/04/27 10:45:05 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.59 2015/11/23 10:03:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -608,7 +608,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	put_str(cfg->echomail_sem,stream);
 	backslash(cfg->netmail_dir);
 	put_str(cfg->netmail_dir,stream);
-	put_str(cfg->echomail_dir,stream);
+	put_str(cfg->echomail_dir,stream);	/* not used */
 	backslash(cfg->fidofile_dir);
 	put_str(cfg->fidofile_dir,stream);
 	put_int(cfg->netmail_misc,stream);
@@ -617,6 +617,8 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	n=0;
 	for(i=0;i<28;i++)
 		put_int(n,stream);
+	md(cfg->netmail_dir);
+	md(cfg->fidofile_dir);
 
 	/* QWKnet Config */
 
