@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.585 2015/09/25 05:59:09 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.587 2015/11/15 07:01:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1765,11 +1765,41 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     return(JS_TRUE);
 }
 
+static JSBool
+js_alert(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	private_t*	p;
+	jsrefcount	rc;
+	char		*line;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if((p=(private_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	JSVALUE_TO_MSTRING(cx, argv[0], line, NULL);
+	if(line==NULL)
+	    return(JS_FALSE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	lprintf(LOG_ERR,"%04d %s %s %s"
+		,p->sock, p->log_prefix, p->proc_name, line);
+	free(line);
+	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, argv[0]);
+
+    return(JS_TRUE);
+}
+
+
 static JSFunctionSpec js_global_functions[] = {
 	{"write",			js_log,				0},
 	{"writeln",			js_log,				0},
 	{"print",			js_log,				0},
 	{"log",				js_log,				0},
+	{"alert",			js_alert,			1},
     {0}
 };
 
@@ -4665,7 +4695,7 @@ static void sendmail_thread(void* arg)
 					,sock
 					,inet_addrport(&server_addr)
 					,server,server_ip);
-				if((i=nonblocking_connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr), startup->connect_timeout))!=0) {
+				if((i=nonblocking_connect(sock, (struct sockaddr *)&server_addr, xp_sockaddr_len(&server_addr), startup->connect_timeout))!=0) {
 					lprintf(LOG_WARNING,"%04d !SEND ERROR %d connecting to SMTP server: %s"
 						,sock
 						,i, server);
@@ -4972,7 +5002,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.585 $", "%*s %s", revision);
+	sscanf("$Revision: 1.587 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
