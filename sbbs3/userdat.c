@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.157 2015/10/03 04:04:07 rswindell Exp $ */
+/* $Id: userdat.c,v 1.158 2015/11/24 11:05:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2197,12 +2197,15 @@ void DLLCALL resetdailyuserdat(scfg_t* cfg, user_t* user, BOOL write)
 }
 
 /****************************************************************************/
+/* Get dotted-equivalent email address for user 'name'.						*/ 
+/* 'addr' is the target buffer for the full address.						*/
+/* Pass cfg=NULL to NOT have "@address" portion appended.					*/
 /****************************************************************************/
 char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, const char* name)
 {
 	int i;
 
-	if(!VALID_CFG(cfg) || addr==NULL || name==NULL)
+	if(addr==NULL || name==NULL)
 		return(NULL);
 
 	if(strchr(name,'@')!=NULL) { /* Avoid double-@ */
@@ -2222,8 +2225,10 @@ char* DLLCALL usermailaddr(scfg_t* cfg, char* addr, const char* name)
 				addr[i]='.';
 		strlwr(addr);
 	}
-	strcat(addr,"@");
-	strcat(addr,cfg->sys_inetaddr);
+	if(VALID_CFG(cfg)) {
+		strcat(addr,"@");
+		strcat(addr,cfg->sys_inetaddr);
+	}
 	return(addr);
 }
 
@@ -2547,21 +2552,25 @@ BOOL DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 /* 'reason' is an (optional) pointer to a text.dat item number				*/
 /* usernumber==0 for netmail												*/
 /****************************************************************************/
-BOOL DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint* reason)
+BOOL DLLCALL can_user_send_mail(scfg_t* cfg, enum SMB_NET_TYPE net_type, uint usernumber, user_t* user, uint* reason)
 {
 	if(reason!=NULL)
 		*reason=R_Email;
 	if(user==NULL || user->number==0)
 		return FALSE;
-	if(usernumber>1 && user->rest&FLAG('E'))			/* local mail restriction? */
+	if(net_type==NET_NONE && usernumber>1 && user->rest&FLAG('E'))			/* local mail restriction? */
 		return FALSE;
 	if(reason!=NULL)
 		*reason=NoNetMailAllowed;
-	if(usernumber==0 && user->rest&FLAG('M'))			/* netmail restriction */
+	if(net_type!=NET_NONE && user->rest&FLAG('M'))							/* netmail restriction */
+		return FALSE;
+	if(net_type==NET_FIDO && !(cfg->netmail_misc&NMAIL_ALLOW))				/* Fido netmail globally disallowed */
+		return FALSE;
+	if(net_type==NET_INTERNET && !(cfg->inetmail_misc&NMAIL_ALLOW))			/* Internet mail globally disallowed */
 		return FALSE;
 	if(reason!=NULL)
 		*reason=R_Feedback;
-	if(usernumber==1 && user->rest&FLAG('S'))			/* feedback restriction? */
+	if(net_type==NET_NONE && usernumber==1 && user->rest&FLAG('S'))			/* feedback restriction? */
 		return FALSE;
 	if(reason!=NULL)
 		*reason=TooManyEmailsToday;
