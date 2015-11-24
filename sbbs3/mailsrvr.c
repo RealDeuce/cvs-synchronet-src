@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.588 2015/11/24 11:05:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.589 2015/11/24 22:36:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -600,7 +600,24 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 
 	originator_info(socket, msg);
 
-    for(i=0;i<msg->total_hfields;i++) { 
+	/* Include all possible FidoNet header fields here */
+	for(i=0;i<msg->total_hfields;i++) {
+		switch(msg->hfield[i].type) {
+			case FIDOCTRL:
+			case FIDOAREA:	
+			case FIDOSEENBY:
+			case FIDOPATH:
+			case FIDOMSGID:
+			case FIDOREPLYID:
+			case FIDOPID:
+			case FIDOFLAGS:
+			case FIDOTID:
+				if(!sockprintf(socket, "%s: %s", smb_hfieldtype(msg->hfield[i].type), (char*)msg->hfield_dat[i]))
+					return(0);
+				break;
+		}
+	}
+	for(i=0;i<msg->total_hfields;i++) { 
 		if(msg->hfield[i].type==RFC822HEADER) { 
 			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0)
 				content_type=msg->hfield_dat[i];
@@ -5071,7 +5088,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.588 $", "%*s %s", revision);
+	sscanf("$Revision: 1.589 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
