@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.108 2015/10/03 04:04:07 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.109 2015/11/02 03:16:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1227,7 +1227,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 		,useron.alias
 		,username(&cfg,usernumber,tmp)
 		,usernumber);
-	logline("E",str);
+	logline("E+",str);
 	msg->idx=idx;
 	msg->hdr=hdr;
 

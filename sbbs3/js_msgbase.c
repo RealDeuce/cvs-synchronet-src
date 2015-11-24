@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.190 2015/10/28 01:24:09 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.192 2015/11/23 10:31:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
