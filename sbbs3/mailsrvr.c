@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.591 2016/01/21 09:52:59 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.588 2015/11/24 11:05:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,11 +152,9 @@ static int lprintf(int level, const char *fmt, ...)
     va_end(argptr);
 
 	if(level <= LOG_ERR) {
-		char errmsg[sizeof(sbuf)+16];
-		SAFEPRINTF(errmsg, "mail %s", sbuf);
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name,errmsg), stats.errors++;
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name,sbuf), stats.errors++;
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,errmsg);
+			startup->errormsg(startup->cbdata,level,sbuf);
 	}
 
 	if(level <= LOG_CRIT)
@@ -602,24 +600,7 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 
 	originator_info(socket, msg);
 
-	/* Include all possible FidoNet header fields here */
-	for(i=0;i<msg->total_hfields;i++) {
-		switch(msg->hfield[i].type) {
-			case FIDOCTRL:
-			case FIDOAREA:	
-			case FIDOSEENBY:
-			case FIDOPATH:
-			case FIDOMSGID:
-			case FIDOREPLYID:
-			case FIDOPID:
-			case FIDOFLAGS:
-			case FIDOTID:
-				if(!sockprintf(socket, "%s: %s", smb_hfieldtype(msg->hfield[i].type), (char*)msg->hfield_dat[i]))
-					return(0);
-				break;
-		}
-	}
-	for(i=0;i<msg->total_hfields;i++) { 
+    for(i=0;i<msg->total_hfields;i++) { 
 		if(msg->hfield[i].type==RFC822HEADER) { 
 			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0)
 				content_type=msg->hfield_dat[i];
@@ -1923,9 +1904,9 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 			/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
 			if(!js_CreateCommonObjects(*js_cx, &scfg, &scfg, NULL
 						,uptime, startup->host_name, SOCKLIB_DESC	/* system */
-						,&js_callback								/* js */
+						,&js_callback									/* js */
 						,&startup->js
-						,client, sock, -1							/* client */
+						,client, sock								/* client */
 						,&js_server_props							/* server */
 						,js_glob
 				))
@@ -5090,7 +5071,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.591 $", "%*s %s", revision);
+	sscanf("$Revision: 1.588 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
