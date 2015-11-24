@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.95 2015/11/24 11:05:07 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.96 2015/11/24 22:37:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,7 @@
 #include "sbbs.h"
 
 /****************************************************************************/
+/* FTN-compliant "Program Identifier"/PID									*/
 /****************************************************************************/
 extern "C" char* DLLCALL msg_program_id(char* pid)
 {
