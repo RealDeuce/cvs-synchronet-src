@@ -2,13 +2,13 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.91 2012/10/20 20:49:37 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.94 2015/05/06 04:02:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -56,23 +56,71 @@ extern "C" char* DLLCALL msg_program_id(char* pid)
 	return(pid);
 }
 
+int msgbase_open(scfg_t* cfg, smb_t* smb, int* storage, long* dupechk_hashes, uint16_t* xlat)
+{
+	int i;
+
+	*storage=SMB_SELFPACK;
+	*dupechk_hashes=SMB_HASH_SOURCE_DUPE;
+	*xlat=XLAT_NONE;
+
+	smb->retry_time=cfg->smb_retry_time;
+	if(smb->subnum==INVALID_SUB) {
+		safe_snprintf(smb->file,sizeof(smb->file),"%smail",cfg->data_dir);
+		smb->status.max_crcs=cfg->mail_maxcrcs;
+		smb->status.max_age=cfg->mail_maxage;
+		smb->status.max_msgs=0;	/* unlimited */
+		smb->status.attr=SMB_EMAIL;
+		if(cfg->sys_misc&SM_FASTMAIL)
+			*storage = SMB_FASTALLOC;
+		/* duplicate message-IDs must be allowed in mail database */
+		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
+	} else {
+		safe_snprintf(smb->file,sizeof(smb->file),"%s%s",cfg->sub[smb->subnum]->data_dir,cfg->sub[smb->subnum]->code);
+		smb->status.max_crcs=cfg->sub[smb->subnum]->maxcrcs;
+		smb->status.max_msgs=cfg->sub[smb->subnum]->maxmsgs;
+		smb->status.max_age=cfg->sub[smb->subnum]->maxage;
+		smb->status.attr=0;
+		if(cfg->sub[smb->subnum]->misc&SUB_HYPER)
+			*storage = smb->status.attr = SMB_HYPERALLOC;
+		else if(cfg->sub[smb->subnum]->misc&SUB_FAST)
+			*storage = SMB_FASTALLOC;
+
+		if(cfg->sub[smb->subnum]->misc&SUB_LZH)
+			*xlat=XLAT_LZH;
+	}
+	if(smb->status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
+		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
+
+	if((i=smb_open(smb)) != SMB_SUCCESS)
+		return i;
+
+	if(filelength(fileno(smb->shd_fp)) < 1) /* MsgBase doesn't exist yet, create it */
+		i=smb_create(smb);
+
+	return i;
+}
+
+
 /****************************************************************************/
 /* Posts a message on subboard number sub, with 'top' as top of message.    */
 /* Returns 1 if posted, 0 if not.                                           */
 /****************************************************************************/
 bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 {
-	char	str[256],title[LEN_TITLE+1],buf[SDT_BLOCK_LEN],top[256];
+	char	str[256],title[LEN_TITLE+1],top[256];
 	char	msg_id[256];
 	char	touser[64];
 	char	from[64];
 	char	pid[128];
 	char*	editor=NULL;
+	char*	msgbuf=NULL;
 	uint16_t xlat;
 	ushort	msgattr;
-	int 	i,j,x,file,storage;
-	ulong	length,offset,crc=0xffffffff;
-	FILE*	instream;
+	int 	i,storage;
+	long	dupechk_hashes;
+	long	length;
+	FILE*	fp;
 	smbmsg_t msg;
 	uint	reason;
 
@@ -131,7 +179,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			i=FIDO_NAME_LEN-1;
 		if(cfg.sub[subnum]->misc&(SUB_PNET|SUB_INET))
 			i=60;
-		getstr(touser,i,K_UPRLWR|K_LINE|K_EDIT|K_AUTODEL);
+		getstr(touser,i,K_LINE|K_EDIT|K_AUTODEL);
 		if(stricmp(touser,"ALL")
 		&& !(cfg.sub[subnum]->misc&(SUB_PNET|SUB_FIDO|SUB_QNET|SUB_INET|SUB_ANON))) {
 			if(cfg.sub[subnum]->misc&SUB_NAME) {
@@ -185,7 +233,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	msg_tmp_fname(useron.xedit, str, sizeof(str));
 	if(!writemsg(str,top,title,wm_mode,subnum,touser,&editor)
-		|| (long)(length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
+		|| (length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -197,26 +245,11 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		return(false); 
 	}
 
-	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
-	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
-	if((i=smb_open(&smb))!=SMB_SUCCESS) {
+	if((i=msgbase_open(&cfg,&smb,&storage,&dupechk_hashes,&xlat))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
-	}
-
-	if(filelength(fileno(smb.shd_fp))<1) {	 /* Create it if it doesn't exist */
-		smb.status.max_crcs=cfg.sub[subnum]->maxcrcs;
-		smb.status.max_msgs=cfg.sub[subnum]->maxmsgs;
-		smb.status.max_age=cfg.sub[subnum]->maxage;
-		smb.status.attr=cfg.sub[subnum]->misc&SUB_HYPER ? SMB_HYPERALLOC : 0;
-		if((i=smb_create(&smb))!=SMB_SUCCESS) {
-			smb_close(&smb);
-			errormsg(WHERE,ERR_CREATE,smb.file,i,smb.last_error);
-			smb_stack(&smb,SMB_STACK_POP);
-			return(false); 
-		} 
 	}
 
 	if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
@@ -233,85 +266,35 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		return(false); 
 	}
 
-	length+=sizeof(xlat);	 /* +2 for translation string */
-
-	if(length&0xfff00000UL) {
+	if((msgbuf=(char*)calloc(length+1,sizeof(char))) == NULL) {
 		smb_close(&smb);
-		errormsg(WHERE,ERR_LEN,str,length,smb.last_error);
+		errormsg(WHERE,ERR_ALLOC,"msgbuf",length+1);
 		smb_stack(&smb,SMB_STACK_POP);
-		return(false); 
+		return(false);
 	}
 
-	if(smb.status.attr&SMB_HYPERALLOC) {
-		offset=smb_hallocdat(&smb);
-		storage=SMB_HYPERALLOC; 
-	}
-	else {
-		if((i=smb_open_da(&smb))!=SMB_SUCCESS) {
-			smb_close(&smb);
-			errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-			smb_stack(&smb,SMB_STACK_POP);
-			return(false); 
-		}
-		if(cfg.sub[subnum]->misc&SUB_FAST) {
-			offset=smb_fallocdat(&smb,length,1);
-			storage=SMB_FASTALLOC; 
-		}
-		else {
-			offset=smb_allocdat(&smb,length,1);
-			storage=SMB_SELFPACK; 
-		}
-		smb_close_da(&smb); 
-	}
-
-	if((instream=fnopen(&file,str,O_RDONLY|O_BINARY))==NULL) {
-		smb_freemsgdat(&smb,offset,length,1);
+	if((fp=fopen(str,"rb"))==NULL) {
+		free(msgbuf);
 		smb_close(&smb);
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY|O_BINARY);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
 	}
 
+	i=fread(msgbuf,1,length,fp);
+	fclose(fp);
+	if(i != length) {
+		free(msgbuf);
+		smb_close(&smb);
+		errormsg(WHERE,ERR_READ,str,length);
+		smb_stack(&smb,SMB_STACK_POP);
+		return(false);
+	}
+	truncsp(msgbuf);
+
 	/* ToDo: split body/tail */
-	/* ToDo: use smb_addmsg instead of the stuff below: */
 
-	setvbuf(instream,NULL,_IOFBF,2*1024);
-	fseek(smb.sdt_fp,offset,SEEK_SET);
-	xlat=XLAT_NONE;
-	fwrite(&xlat,2,1,smb.sdt_fp);
-	x=SDT_BLOCK_LEN-2;				/* Don't read/write more than 255 */
-	while(!feof(instream)) {
-		memset(buf,0,x);
-		j=fread(buf,1,x,instream);
-		if(j<1)
-			break;
-		if(j>1 && (j!=x || feof(instream)) && buf[j-1]==LF && buf[j-2]==CR)
-			buf[j-1]=buf[j-2]=0;	/* Convert to NULL */
-		if(cfg.sub[subnum]->maxcrcs) {
-			for(i=0;i<j;i++)
-				crc=ucrc32(buf[i],crc); 
-		}
-		fwrite(buf,j,1,smb.sdt_fp);
-		x=SDT_BLOCK_LEN; 
-	}
-	fflush(smb.sdt_fp);
-	fclose(instream);
-	crc=~crc;
-
-	if(cfg.sub[subnum]->maxcrcs) {
-		i=smb_addcrc(&smb,crc);
-		if(i) {
-			smb_freemsgdat(&smb,offset,length,1);
-			smb_close(&smb);
-			smb_stack(&smb,SMB_STACK_POP);
-			attr(cfg.color[clr_err]);
-			bputs(text[CantPostMsg]);
-			return(false); 
-		} 
-	}
-
-	memset(&msg,0,sizeof(smbmsg_t));
-	msg.hdr.version=smb_ver();
+	memset(&msg,0,sizeof(msg));
 	msg.hdr.attr=msgattr;
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
@@ -336,8 +319,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
 			errormsg(WHERE,"updating thread",smb.file,i,smb.last_error); 
 	}
-
-	msg.hdr.offset=offset;
 
 	smb_hfield_str(&msg,RECIPIENT,touser);
 
@@ -369,18 +350,20 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
 
-	smb_dfield(&msg,TEXT_BODY,length);
+	i=smb_addmsg(&smb,&msg,storage,dupechk_hashes,xlat,(uchar*)msgbuf,NULL);
+	free(msgbuf);
 
-	i=smb_addmsghdr(&smb,&msg,storage);	// calls smb_unlocksmbhdr() 
+	if(i==SMB_DUPE_MSG) {
+		attr(cfg.color[clr_err]);
+		bprintf(text[CantPostMsg], smb.last_error);
+	} else if(i!=SMB_SUCCESS)
+		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
-
 	smb_freemsgmem(&msg);
-	if(i!=SMB_SUCCESS) {
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-		smb_freemsgdat(&smb,offset,length,1);
+	if(i!=SMB_SUCCESS)
 		return(false); 
-	}
 
 	logon_posts++;
 	user_posted_msg(&cfg, &useron, 1);
