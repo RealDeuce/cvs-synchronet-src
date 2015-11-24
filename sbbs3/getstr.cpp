@@ -2,13 +2,13 @@
 
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.26 2009/02/19 10:51:09 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.29 2015/08/22 05:31:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,13 +58,15 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 		console&=~CON_INSERT;
 	sys_status&=~SS_ABORT;
 	if(mode&K_LINE && term_supports(ANSI) && !(mode&K_NOECHO)) {
+		if(column + (long)maxlen >= cols)	/* Don't cause the terminal to line-wrap, just shorten the max input string length instead */
+			maxlen = cols-column-1;
 		attr(cfg.color[clr_inputline]);
 		for(i=0;i<maxlen;i++)
 			outchar(' ');
 		cursor_left(maxlen); 
 	}
 	if(wordwrap[0]) {
-		strcpy(str1,wordwrap);
+		SAFECOPY(str1,wordwrap);
 		wordwrap[0]=0; 
 	}
 	else str1[0]=0;
@@ -406,9 +408,13 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 				console|=CON_DELETELINE;
 				break;
 			case CTRL_Z:	/* Undo */
+				if(!(mode&K_NOECHO)) {
+					while(i--)
+						backspace();
+				}
 				SAFECOPY(str1,undo);
 				i=l=strlen(str1);
-				rprintf("\r%s",str1);
+				rputs(str1);
 				cleartoeol();
 				break;
 			case 28:    /* Ctrl-\ Previous word */
@@ -510,12 +516,13 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 					return(x); 
 				}
 				if(i<maxlen && ch>=' ') {
-					if(mode&K_UPRLWR)
+					if(mode&K_UPRLWR) {
 						if(!i || (i && (str1[i-1]==' ' || str1[i-1]=='-'
 							|| str1[i-1]=='.' || str1[i-1]=='_')))
 							ch=toupper(ch);
 						else
 							ch=tolower(ch);
+					}
 					if(console&CON_INSERT && i!=l) {
 						if(l<maxlen)    /* l<maxlen */
 							l++;
@@ -567,7 +574,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 /****************************************************************************/
 /* Hot keyed number input routine.                                          */
 /* Returns a valid number between 1 and max, 0 if no number entered, or -1  */
-/* if the user hit 'Q' or ctrl-c                                            */
+/* if the user hit the quit key (e.g. 'Q') or ctrl-c                        */
 /****************************************************************************/
 long sbbs_t::getnum(ulong max, ulong dflt)
 {
@@ -578,8 +585,8 @@ long sbbs_t::getnum(ulong max, ulong dflt)
 		ch=getkey(K_UPPER);
 		if(ch>0x7f)
 			continue;
-		if(ch=='Q') {
-			outchar('Q');
+		if(ch==text[YNQP][2]) {
+			outchar(text[YNQP][2]);
 			if(useron.misc&COLDKEYS)
 				ch=getkey(K_UPPER);
 			if(ch==BS || ch==DEL) {
