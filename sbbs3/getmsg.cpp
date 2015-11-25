@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id$ */
+/* $Id: getmsg.cpp,v 1.46 2015/11/25 02:38:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,6 +119,7 @@ void sbbs_t::show_msgattr(ushort attr)
 void sbbs_t::show_msghdr(smbmsg_t* msg)
 {
 	char	str[MAX_PATH+1];
+	char	age[64];
 	char	*sender=NULL;
 	int 	i;
 
@@ -152,7 +153,8 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	}
 	bprintf(text[MsgDate]
 		,timestr(msg->hdr.when_written.time)
-		,smb_zonestr(msg->hdr.when_written.zone,NULL));
+		,smb_zonestr(msg->hdr.when_written.zone,NULL)
+		,age_of_posted_item(age, sizeof(age), msg->hdr.when_written.time - (smb_tzutc(msg->hdr.when_written.zone) * 60)));
 
 	CRLF;
 
