@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.44 2012/10/24 19:03:14 deuce Exp $ */
+/* $Id: unbaja.c,v 1.46 2015/08/22 10:16:57 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -218,7 +218,7 @@ void add_bruted(unsigned long name, char good, char *val, int save)
 
 int check_bruted(long name,unsigned char *val)
 {
-	int i;
+	size_t i;
 
 	for(i=0; i<bruted_len; i++) {
 		if(*(int32_t *)bruted[i]==name) {
@@ -231,7 +231,7 @@ int check_bruted(long name,unsigned char *val)
 
 char *find_bruted(long name)
 {
-	int i;
+	size_t i;
 
 	for(i=0; i<bruted_len; i++) {
 		if(*(int32_t *)bruted[i]==name && *(bruted[i]+4))
@@ -1213,7 +1213,7 @@ char *decompile_ars(uchar *ars, int len)
 				
 				break;
 			default:
-				printf("Error decoding AR: %02Xh, offset: %u\n", *in, in-ars);
+				printf("Error decoding AR: %02Xh, offset: %ld\n", *in, (long)(in-ars));
 				return("Unknown ARS String");
 		}
 		switch(*in) {
@@ -1351,7 +1351,7 @@ void decompile(FILE *bin, FILE *srcfile)
 		}
 		src[0]=0;
 		if(labels[currpos])
-			sprintf(src,":label_%04x\n",currpos);
+			sprintf(src,":label_%04" XP_PRIsize_t "x\n",currpos);
 		switch(uch) {
 			case CS_USE_INT_VAR:
 				usevar=TRUE;
@@ -2329,7 +2329,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.44 $", "%*s %s", revision);
+	sscanf("$Revision: 1.46 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
@@ -2355,7 +2355,7 @@ int main(int argc, char **argv)
 							if(good!=NULL) {
 								str=strtok(NULL,",");
 								if(str!=NULL) {
-									add_bruted(strtoul(crc,NULL,16),strtoul(good,NULL,10),str,0);
+									add_bruted(strtoul(crc,NULL,16),(char)strtoul(good,NULL,10),str,0);
 								}
 							}
 						}
@@ -2363,7 +2363,7 @@ int main(int argc, char **argv)
 					fclose(cache);
 				}
 			}
-			printf("Will brute-force up to %d chars\n",brute_len);
+			printf("Will brute-force up to %" XP_PRIsize_t "d chars\n",brute_len);
 			continue;
 		}
 		bin=fopen(argv[f],"rb");
