@@ -2,7 +2,7 @@
 
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.98 2015/11/26 08:34:34 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.96 2015/11/24 22:37:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -214,10 +214,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	if(cfg.sub[subnum]->misc&SUB_AONLY
 		|| (cfg.sub[subnum]->misc&SUB_ANON && useron.exempt&FLAG('A')
-			&& !noyes(text[AnonymousQ]))) {
+			&& !noyes(text[AnonymousQ])))
 		msgattr|=MSG_ANONYMOUS;
-		wm_mode|=WM_ANON;
-	}
 
 	if(cfg.sub[subnum]->mod_ar[0] && chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
 		msgattr|=MSG_MODERATED;
@@ -230,13 +228,12 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	if(msgattr&MSG_ANONYMOUS)
 		bputs(text[PostingAnonymously]);
-	else if(cfg.sub[subnum]->misc&SUB_NAME)
+
+	if(cfg.sub[subnum]->misc&SUB_NAME)
 		bputs(text[UsingRealName]);
 
 	msg_tmp_fname(useron.xedit, str, sizeof(str));
-	if(!writemsg(str,top,title,wm_mode,subnum,touser
-		,/* from: */cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias
-		,&editor)
+	if(!writemsg(str,top,title,wm_mode,subnum,touser,&editor)
 		|| (length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
 		return(false); 
