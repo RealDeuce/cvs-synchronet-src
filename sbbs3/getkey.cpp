@@ -1,12 +1,14 @@
+/* getkey.cpp */
+
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.46 2017/10/12 08:56:49 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.44 2015/04/28 10:55:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,7 +46,7 @@
 /****************************************************************************/
 char sbbs_t::getkey(long mode)
 {
-	uchar	ch,coldkey,c=0,spin=sbbs_random(5);
+	char	ch,coldkey,c=0,spin=sbbs_random(5);
 	time_t	last_telnet_cmd=0;
 
 	if(online==ON_REMOTE && !input_thread_running)
@@ -438,8 +440,7 @@ long sbbs_t::getkeys(const char *keys, ulong max)
 			return(-1); 
 		}
 		if(ch && !n && (strchr(str,ch))) {  /* return character if in string */
-			if(ch > ' ')
-				outchar(ch);
+			outchar(ch);
 			if(useron.misc&COLDKEYS && ch>' ') {
 				while(online && !(sys_status&SS_ABORT)) {
 					c=getkey(0);
