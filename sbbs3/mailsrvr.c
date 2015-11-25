@@ -2,13 +2,13 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.582 2015/08/22 10:16:56 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.589 2015/11/24 22:36:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -452,6 +452,32 @@ static BOOL sockgetrsp(SOCKET socket, char* rsp, char *buf, int len)
 	return(TRUE);
 }
 
+/* non-standard, but documented (mostly) in draft-newman-msgheader-originfo-05 */
+void originator_info(SOCKET socket, smbmsg_t* msg)
+{
+	char* user		= msg->from_ext;
+	char* login		= smb_get_hfield(msg,SENDERUSERID,NULL);
+	char* server	= smb_get_hfield(msg,SENDERSERVER,NULL);
+	char* client	= smb_get_hfield(msg,SENDERHOSTNAME,NULL);
+	char* addr		= smb_get_hfield(msg,SENDERIPADDR,NULL);
+	char* prot		= smb_get_hfield(msg,SENDERPROTOCOL,NULL);
+	char* port		= smb_get_hfield(msg,SENDERPORT,NULL);
+	char* time		= smb_get_hfield(msg,SENDERTIME,NULL);
+
+	if(user || login || server || client || addr || prot || port || time)
+		sockprintf(socket
+			,"X-Originator-Info: account=%s; login-id=%s; server=%s; client=%s; addr=%s; prot=%s; port=%s; time=%s"
+			,user
+			,login
+			,server
+			,client
+			,addr
+			,prot
+			,port
+			,time
+			);
+}
+
 /* RFC822: The maximum total length of a text line including the
    <CRLF> is 1000 characters (but not counting the leading
    dot duplicated for transparency). 
@@ -493,20 +519,31 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 	if((p=smb_get_hfield(msg,RFC822FROM,NULL))!=NULL)
 		s=sockprintf(socket,"From: %s",p);	/* use original RFC822 header field */
 	else {
+		char fromname[256];
+		SAFECOPY(fromname, msg->from);
 		if(msg->from_net.type==NET_QWK && msg->from_net.addr!=NULL)
 			SAFEPRINTF2(fromaddr,"%s!%s"
 				,(char*)msg->from_net.addr
 				,usermailaddr(&scfg,fromhost,msg->from));
-		else if(msg->from_net.type==NET_FIDO && msg->from_net.addr!=NULL)
-			SAFECOPY(fromaddr,smb_faddrtoa((faddr_t *)msg->from_net.addr,NULL));
-		else if(msg->from_net.type!=NET_NONE && msg->from_net.addr!=NULL)
+		else if(msg->from_net.type==NET_FIDO && msg->from_net.addr!=NULL) {
+			faddr_t* faddr = (faddr_t *)msg->from_net.addr;
+			char faddrstr[128];
+			SAFEPRINTF2(fromname,"%s (%s)", msg->from, smb_faddrtoa(faddr, NULL));
+			if(faddr->point)
+				SAFEPRINTF4(faddrstr,"p%hu.f%hu.n%hu.z%hu"FIDO_TLD
+					,faddr->point, faddr->node, faddr->net, faddr->zone);
+			else
+				SAFEPRINTF3(faddrstr,"f%hu.n%hu.z%hu"FIDO_TLD
+					,faddr->node, faddr->net, faddr->zone);
+			SAFEPRINTF2(fromaddr,"%s@%s", usermailaddr(NULL,fromhost,msg->from), faddrstr);
+		} else if(msg->from_net.type!=NET_NONE && msg->from_net.addr!=NULL)
 			SAFECOPY(fromaddr,(char*)msg->from_net.addr);
 		else 
 			usermailaddr(&scfg,fromaddr,msg->from);
 		if(fromaddr[0]=='<')
-			s=sockprintf(socket,"From: \"%s\" %s",msg->from,fromaddr);
+			s=sockprintf(socket,"From: \"%s\" %s",fromname,fromaddr);
 		else
-			s=sockprintf(socket,"From: \"%s\" <%s>",msg->from,fromaddr);
+			s=sockprintf(socket,"From: \"%s\" <%s>",fromname,fromaddr);
 	}
 	if(!s)
 		return(0);
@@ -529,6 +566,8 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 				s=sockprintf(socket,"To: %s",(char*)msg->to_net.addr);
 			else
 				s=sockprintf(socket,"To: \"%s\" <%s>",msg->to,(char*)msg->to_net.addr);
+		} else if(msg->to_net.type==NET_FIDO) {
+			s=sockprintf(socket,"To: \"%s (%s)\"",msg->to, smb_faddrtoa((fidoaddr_t*)msg->to_net.addr, NULL));
 		} else {
 			usermailaddr(&scfg,toaddr,msg->to);
 			s=sockprintf(socket,"To: \"%s\" <%s>",msg->to,toaddr);
@@ -559,19 +598,26 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
 		if(!sockprintf(socket,"In-Reply-To: %s",msg->reply_id))
 			return(0);
 
-	/* non-standard, but documented (mostly) in draft-newman-msgheader-originfo-05 */
-	sockprintf(socket,"Originator-Info: account=%s; login-id=%s; server=%s; client=%s; addr=%s; prot=%s; port=%s; time=%s"
-		,msg->from_ext
-		,smb_get_hfield(msg,SENDERUSERID,NULL)
-		,smb_get_hfield(msg,SENDERSERVER,NULL)
-		,smb_get_hfield(msg,SENDERHOSTNAME,NULL)
-		,smb_get_hfield(msg,SENDERIPADDR,NULL)
-		,smb_get_hfield(msg,SENDERPROTOCOL,NULL)
-		,smb_get_hfield(msg,SENDERPORT,NULL)
-		,smb_get_hfield(msg,SENDERTIME,NULL)
-		);
+	originator_info(socket, msg);
 
-    for(i=0;i<msg->total_hfields;i++) { 
+	/* Include all possible FidoNet header fields here */
+	for(i=0;i<msg->total_hfields;i++) {
+		switch(msg->hfield[i].type) {
+			case FIDOCTRL:
+			case FIDOAREA:	
+			case FIDOSEENBY:
+			case FIDOPATH:
+			case FIDOMSGID:
+			case FIDOREPLYID:
+			case FIDOPID:
+			case FIDOFLAGS:
+			case FIDOTID:
+				if(!sockprintf(socket, "%s: %s", smb_hfieldtype(msg->hfield[i].type), (char*)msg->hfield_dat[i]))
+					return(0);
+				break;
+		}
+	}
+	for(i=0;i<msg->total_hfields;i++) { 
 		if(msg->hfield[i].type==RFC822HEADER) { 
 			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0)
 				content_type=msg->hfield_dat[i];
@@ -1765,11 +1811,41 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
     return(JS_TRUE);
 }
 
+static JSBool
+js_alert(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	private_t*	p;
+	jsrefcount	rc;
+	char		*line;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if((p=(private_t*)JS_GetContextPrivate(cx))==NULL)
+		return(JS_FALSE);
+
+	JSVALUE_TO_MSTRING(cx, argv[0], line, NULL);
+	if(line==NULL)
+	    return(JS_FALSE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	lprintf(LOG_ERR,"%04d %s %s %s"
+		,p->sock, p->log_prefix, p->proc_name, line);
+	free(line);
+	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, argv[0]);
+
+    return(JS_TRUE);
+}
+
+
 static JSFunctionSpec js_global_functions[] = {
 	{"write",			js_log,				0},
 	{"writeln",			js_log,				0},
 	{"print",			js_log,				0},
 	{"log",				js_log,				0},
+	{"alert",			js_alert,			1},
     {0}
 };
 
@@ -3198,7 +3274,7 @@ static void smtp_thread(void* arg)
 					}
 					if(nettype!=NET_NONE) {
 						smb_hfield(&newmsg, RECIPIENTNETTYPE, sizeof(nettype), &nettype);
-						smb_hfield_str(&newmsg, RECIPIENTNETADDR, rcpt_addr);
+						smb_hfield_netaddr(&newmsg, RECIPIENTNETADDR, rcpt_addr, &nettype);
 					}
 					if(agent!=newmsg.to_agent)
 						smb_hfield(&newmsg, RECIPIENTAGENT, sizeof(agent), &agent);
@@ -3217,6 +3293,15 @@ static void smtp_thread(void* arg)
 						,socket, newmsg.hdr.number, sender, sender_ext, smb_netaddrstr(&msg.from_net,tmp), rcpt_name, rcpt_addr);
 					if(relay_user.number!=0)
 						user_sent_email(&scfg, &relay_user, 1, usernum==1);
+
+					if(nettype == NET_FIDO && scfg.netmail_sem[0])
+						ftouch(mailcmdstr(scfg.netmail_sem
+							,msgtxt_fname, newtxt_fname, logtxt_fname
+							,rcptlst_fname, proc_err_fname
+							,host_name, host_ip, relay_user.number
+							,rcpt_addr
+							,sender, sender_addr, reverse_path, str));
+
 					if(!(startup->options&MAIL_OPT_NO_NOTIFY) && usernum) {
 						if(newmsg.idx.to)
 							for(i=1;i<=scfg.sys_nodes;i++) {
@@ -3369,23 +3454,27 @@ static void smtp_thread(void* arg)
 			if(auth_login) {
 				sockprintf(socket,"334 VXNlcm5hbWU6");	/* Base64-encoded "Username:" */
 				if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH LOGIN username argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
 					lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 				if(b64_decode(user_name,sizeof(user_name),buf,rd)<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH LOGIN username argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				sockprintf(socket,"334 UGFzc3dvcmQ6");	/* Base64-encoded "Password:" */
 				if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH LOGIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				if(startup->options&MAIL_OPT_DEBUG_RX_RSP) 
 					lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 				if(b64_decode(user_pass,sizeof(user_pass),buf,rd)<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH LOGIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3393,11 +3482,13 @@ static void smtp_thread(void* arg)
 				p=buf+10;
 				SKIP_WHITESPACE(p);
 				if(*p==0) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
 				ZERO_VAR(tmp);
 				if(b64_decode(tmp,sizeof(tmp),p,strlen(p))<1) {
+					lprintf(LOG_WARNING,"%04d !SMTP bad AUTH PLAIN argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3405,6 +3496,7 @@ static void smtp_thread(void* arg)
 				while(*p) p++;	/* skip username */
 				p++;			/* skip NULL */
 				if(*p==0) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN user-id argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3412,6 +3504,7 @@ static void smtp_thread(void* arg)
 				while(*p) p++;	/* skip user-id */
 				p++;			/* skip NULL */
 				if(*p==0) {
+					lprintf(LOG_WARNING,"%04d !SMTP missing AUTH PLAIN password argument", socket);
 					sockprintf(socket,badarg_rsp);
 					continue;
 				}
@@ -3473,6 +3566,7 @@ static void smtp_thread(void* arg)
 			b64_encode(str,sizeof(str),challenge,0);
 			sockprintf(socket,"334 %s",str);
 			if((rd=sockreadline(socket, buf, sizeof(buf)))<1) {
+				lprintf(LOG_WARNING,"%04d !SMTP missing AUTH CRAM-MD5 response", socket);
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -3480,6 +3574,7 @@ static void smtp_thread(void* arg)
 				lprintf(LOG_DEBUG,"%04d RX: %s",socket,buf);
 
 			if(b64_decode(response,sizeof(response),buf,rd)<1) {
+				lprintf(LOG_WARNING,"%04d !SMTP bad AUTH CRAM-MD5 response", socket);
 				sockprintf(socket,badarg_rsp);
 				continue;
 			}
@@ -3804,6 +3899,37 @@ static void smtp_thread(void* arg)
 				/* RELAY */
 				dest_port=inet_addrport(&server_addr);
 				SAFECOPY(dest_host,tp+1);
+				if(relay_user.number && scfg.total_faddrs) {
+					char* ftn_tld = strstr(dest_host, FIDO_TLD);
+					if(ftn_tld != NULL && ftn_tld[strlen(FIDO_TLD)] == 0) {
+						fidoaddr_t faddr = scfg.faddr[0];
+						faddr.point = 0;
+						if((sscanf(dest_host,"p%hu.f%hu.n%hu.z%hu.fidonet"
+							,&faddr.point
+							,&faddr.node
+							,&faddr.net
+							,&faddr.zone)==4
+							||
+							sscanf(dest_host,"f%hu.n%hu.z%hu.fidonet"
+							,&faddr.node
+							,&faddr.net
+							,&faddr.zone)==3
+							) && faddr.zone) {
+
+							lprintf(LOG_INFO,"%04d SMTP %s relaying to FidoNet address: %s (%s)"
+								,socket, relay_user.alias, tp+1, smb_faddrtoa(&faddr, NULL));
+
+							fprintf(rcptlst,"[%u]\n",rcpt_count++);
+							fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
+							fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_FIDO);
+							fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),smb_faddrtoa(&faddr,NULL));
+
+							sockprintf(socket,ok_rsp);
+							state=SMTP_STATE_RCPT_TO;
+							continue;
+						}
+					}
+				}
 				cp=strrchr(dest_host,':');
 				if(cp!=NULL) {
 					*cp=0;
@@ -3876,7 +4002,7 @@ static void smtp_thread(void* arg)
 			}
 
 			FIND_ALPHANUMERIC(p);				/* Skip '<' or '"' */
-			truncstr(p,"\"");	
+			truncstr(p,"\"");
 
 			p=alias(&scfg,p,name_alias_buf);
 			if(p==name_alias_buf) 
@@ -4655,7 +4781,7 @@ static void sendmail_thread(void* arg)
 					,sock
 					,inet_addrport(&server_addr)
 					,server,server_ip);
-				if((i=nonblocking_connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr), startup->connect_timeout))!=0) {
+				if((i=nonblocking_connect(sock, (struct sockaddr *)&server_addr, xp_sockaddr_len(&server_addr), startup->connect_timeout))!=0) {
 					lprintf(LOG_WARNING,"%04d !SEND ERROR %d connecting to SMTP server: %s"
 						,sock
 						,i, server);
@@ -4911,6 +5037,7 @@ static void cleanup(int code)
 		FREE_AND_NULL(mailproc_list);
 	}
 
+	/* Check a if(mail_set!=NULL) check be performed here? */
 	xpms_destroy(mail_set, mail_close_socket_cb, NULL);
 	mail_set=NULL;
 	terminated=TRUE;
@@ -4961,7 +5088,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.582 $", "%*s %s", revision);
+	sscanf("$Revision: 1.589 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5191,14 +5318,14 @@ void DLLCALL mail_server(void* arg)
 			cleanup(1);
 			return;
 		}
+		terminated=FALSE;
 		if(!xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->smtp_port, "SMTP Server", mail_open_socket, startup->seteuid, "smtp"))
 			lprintf(LOG_INFO,"SMTP No extra interfaces listening");
 		lprintf(LOG_INFO,"SMTP Server listening");
 
 		if(startup->options&MAIL_OPT_USE_SUBMISSION_PORT) {
 			if(xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->submission_port, "SMTP Submission Agent", mail_open_socket, startup->seteuid, "submission"))
-				lprintf(LOG_INFO,"SUBMISSION Server listening on port %u"
-					,startup->submission_port);
+				lprintf(LOG_INFO,"SUBMISSION Server listening");
 		}
 
 		if(startup->options&MAIL_OPT_ALLOW_POP3) {
