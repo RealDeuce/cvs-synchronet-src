@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.10 2015/09/02 07:45:18 rswindell Exp $ */
+/* $Id: xpdatetime.c,v 1.11 2015/11/25 01:34:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,7 @@ xpDateTime_t DLLCALL xpDateTime_now(void)
 #endif
 }
 
+/* Return local timezone offset (in minutes) */
 xpTimeZone_t DLLCALL xpTimeZone_local(void)
 {
 #if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__)
