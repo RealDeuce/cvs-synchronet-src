@@ -2,13 +2,13 @@
 
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.43 2016/05/18 10:15:13 rswindell Exp $ */
+/* $Id: services.h,v 1.42 2015/08/22 01:37:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -83,7 +83,10 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	struct login_attempt_settings login_attempt;
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
 
 } services_startup_t;
