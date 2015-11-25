@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.75 2015/08/22 01:37:50 deuce Exp $ */
+/* $Id: mailsrvr.h,v 1.76 2015/08/29 20:53:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -241,6 +241,10 @@ extern "C" {
 DLLEXPORT void			DLLCALL mail_server(void* arg);
 DLLEXPORT void			DLLCALL mail_terminate(void);
 DLLEXPORT const	char*	DLLCALL mail_ver(void);
+
+/* for mxlookup.c: */
+void mail_open_socket(SOCKET sock, void* cb_protocol);
+int mail_close_socket(SOCKET sock);
 #ifdef __cplusplus
 }
 #endif
