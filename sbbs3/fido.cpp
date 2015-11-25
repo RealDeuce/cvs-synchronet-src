@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.53 2015/11/25 07:39:20 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.54 2015/11/25 12:31:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,7 +162,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	truncsp(to);				/* Truncate off space */
 
 	memset(&hdr,0,sizeof(hdr));   /* Initialize header to null */
-	strcpy(hdr.from,cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
+	SAFECOPY(hdr.from, cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
 	SAFECOPY(hdr.to,to);
 
 	/* Look-up in nodelist? */
@@ -214,9 +214,9 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(mode&WM_FILE) hdr.attr|=FIDO_FILE;
 
 	sprintf(str,"%sNETMAIL.MSG", cfg.node_dir);
-	remove(str);	/* Just incase it's already there */
+	removecase(str);	/* Just incase it's already there */
 	// mode&=~WM_FILE;
-	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into)) {
+	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into,hdr.from)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
