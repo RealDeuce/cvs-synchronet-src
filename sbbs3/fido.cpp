@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.52 2015/11/24 22:34:32 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.53 2015/11/25 07:39:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -336,7 +336,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		pt_zone_kludge(hdr,fido);
 		/* TZUTC (FSP-1001) */
 		int tzone=smb_tzutc(sys_timezone(&cfg));
-		char* minus="";
+		const char* minus="";
 		if(tzone<0) {
 			minus="-";
 			tzone=-tzone;
