@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.182 2015/12/05 10:27:39 deuce Exp $ */
+/* $Id: jsexec.c,v 1.181 2015/11/25 08:03:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,11 +128,7 @@ void usage(FILE* fp)
 		"\t-t<limit>      set time limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
-#ifdef JSDOOR
-		"\t-h[hostname]   use local or specified host name\n"
-#else
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
-#endif
 		"\t-u<mask>       set file creation permissions mask (in octal)\n"
 		"\t-L<level>      set log level (default=%u)\n"
 		"\t-E<level>      set error log level threshold (default=%u)\n"
@@ -208,11 +204,11 @@ int lprintf(int level, const char *fmt, ...)
 
 	if(level<=err_level) {
 		ret=fprintf(errfp,"%s\n",sbuf);
-		if(errfp!=stderr)
+		if(errfp!=stderr && confp!=stdout)
 			ret=fprintf(statfp,"%s\n",sbuf);
 	}
-	if(level>err_level)
-		ret=fprintf(statfp,"%s\n",sbuf);
+	if(level>err_level || errfp!=stderr)
+		ret=fprintf(confp,"%s\n",sbuf);
 
 	pthread_mutex_unlock(&output_mutex);
     return(ret);
@@ -1107,7 +1103,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.182 $", "%*s %s", revision);
+	sscanf("$Revision: 1.181 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1132,9 +1128,6 @@ int main(int argc, char **argv, char** environ)
  	SAFECOPY(scfg.logs_dir, orig_cwd);
 	prep_dir(scfg.ctrl_dir, scfg.text_dir, sizeof(scfg.text_dir));
  	scfg.sys_misc = 0; /* SM_EURODATE and SM_MILITARY are used */
-	gethostname(host_name=host_name_buf,sizeof(host_name_buf));
-	statfp = nulfp;
-	errfp = fopen("error.log", "a");
 #endif
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
@@ -1162,8 +1155,6 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'e':
 					if(*p==0) p=argv[++argn];
-					if (errfp != stderr)
-						fclose(errfp);
 					if((errfp=fopen(p,omode))==NULL) {
 						perror(p);
 						return(do_bail(1));
