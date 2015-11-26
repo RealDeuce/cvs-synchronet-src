@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.71 2015/11/26 10:33:45 rswindell Exp $ */
+/* $Id: smblib.h,v 1.72 2015/11/26 13:08:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,6 +190,7 @@ SMBEXPORT int		SMBCALL smb_addhashes(smb_t* smb, hash_t** hash_list, BOOL skip_m
 SMBEXPORT uint16_t	SMBCALL smb_name_crc(const char* name);
 SMBEXPORT uint16_t	SMBCALL smb_subject_crc(const char *subj);
 SMBEXPORT void		SMBCALL smb_freehashes(hash_t**);
+SMBEXPORT int		SMBCALL	smb_getmsgidx_by_time(smb_t*, idxrec_t*, time_t);
 
 /* Fast look-up functions (using hashes) */
 SMBEXPORT int 		SMBCALL smb_getmsgidx_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
