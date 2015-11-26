@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 594
-  Top = 347
+  Left = 290
+  Top = 545
   Width = 640
   Height = 400
   Caption = 'Synchronet Control Panel'
@@ -14298,12 +14298,6 @@ object MainForm: TMainForm
         ImageIndex = 31
         OnClick = ViewLogClick
       end
-      object ViewGuruChatLogMenuItem: TMenuItem
-        Caption = 'Guru Chat Log...'
-        Hint = 'GURU.LOG'
-        ImageIndex = 33
-        OnClick = ViewLogClick
-      end
     end
     object HelpMenuItem: TMenuItem
       Caption = '&Help'
@@ -17261,18 +17255,6 @@ object MainForm: TMainForm
     end
     object ClearErrorCounter: TMenuItem
       Action = ClearErrors
-    end
-  end
-  object LogPopupMenu: TPopupMenu
-    Left = 336
-    Top = 40
-    object LogPopupCopy: TMenuItem
-      Caption = '&Copy Selected'
-      OnClick = LogPopupCopyClick
-    end
-    object LogPopupCopyAll: TMenuItem
-      Caption = 'Copy &All'
-      OnClick = LogPopupCopyAllClick
     end
   end
 end
