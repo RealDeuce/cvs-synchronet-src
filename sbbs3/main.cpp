@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.626 2015/10/28 01:38:41 deuce Exp $ */
+/* $Id: main.cpp,v 1.627 2015/11/25 02:36:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4733,6 +4733,10 @@ void DLLCALL bbs_thread(void* arg)
 		lprintf(LOG_ERR,"!TIME PROBLEM (%ld)",t);
 	}
 
+	if(smb_tzutc(sys_timezone(&scfg)) != xpTimeZone_local()) { 
+		lprintf(LOG_WARNING,"Configured timezone (0x%04hX, UTC offset: %d) does not match local timezone offset: %d"
+			,scfg.sys_timezone, smb_tzutc(sys_timezone(&scfg)), xpTimeZone_local());
+	}
 	if(uptime==0)
 		uptime=time(NULL);	/* this must be done *after* setting the timezone */
 
