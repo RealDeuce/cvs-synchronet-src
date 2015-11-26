@@ -141,7 +141,7 @@ object FtpForm: TFtpForm
     Left = 0
     Top = 25
     Width = 509
-    Height = 86
+    Height = 87
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -150,7 +150,6 @@ object FtpForm: TFtpForm
     Font.Style = []
     HideScrollBars = False
     ParentFont = False
-    PopupMenu = MainForm.LogPopupMenu
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 1

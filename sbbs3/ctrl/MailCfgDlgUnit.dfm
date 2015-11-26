@@ -64,7 +64,7 @@ object MailCfgDlg: TMailCfgDlg
         Width = 85
         Height = 19
         AutoSize = False
-        Caption = 'Interfaces (IPs)'
+        Caption = 'Interface (IP)'
         ParentShowHint = False
         ShowHint = True
       end
@@ -117,8 +117,8 @@ object MailCfgDlg: TMailCfgDlg
         Width = 150
         Height = 21
         Hint = 
-          'Comma-separated list of IP addresses to accept incoming connecti' +
-          'ons'
+          'Enter your Network adapter'#39's static IP address here or blank for' +
+          ' <ANY>'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 2
