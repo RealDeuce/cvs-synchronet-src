@@ -2,13 +2,13 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.32 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.35 2015/11/25 12:31:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -64,7 +64,9 @@ bool sbbs_t::bulkmail(uchar *ar)
 		msg.hdr.attr|=MSG_ANONYMOUS;
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
-	if(!writemsg(msgpath,nulstr,title,WM_EMAIL,INVALID_SUB,"Bulk Mailing",&editor)) {
+	if(!writemsg(msgpath,nulstr,title,WM_EMAIL,INVALID_SUB,"Bulk Mailing"
+		,/* From: */msg.hdr.attr&MSG_ANONYMOUS ? text[Anonymous] : useron.alias
+		,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}

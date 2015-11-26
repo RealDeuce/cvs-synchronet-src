@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.56 2015/09/02 07:46:35 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.58 2015/11/23 10:31:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
