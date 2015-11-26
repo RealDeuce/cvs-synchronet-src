@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.149 2015/07/15 23:43:31 rswindell Exp $ */
+/* $Id: smblib.c,v 1.150 2015/11/26 10:30:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1780,7 +1780,7 @@ ulong SMBCALL smb_hdrblocks(ulong length)
 }
 
 /****************************************************************************/
-/* Returns difference from specified timezone and UTC/GMT					*/
+/* Returns difference from specified timezone and UTC/GMT (in minutes)		*/
 /****************************************************************************/
 int SMBCALL smb_tzutc(short zone)
 {
