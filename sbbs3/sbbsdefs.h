@@ -2,13 +2,13 @@
 
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.197 2015/12/04 21:38:01 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.196 2015/09/26 05:06:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -85,7 +85,6 @@ typedef struct js_callback {
 	uint32_t		yield_interval;
 	uint32_t		gc_interval;
 	uint32_t		gc_attempts;
-	uint32_t		offline_counter;
 	BOOL			auto_terminate;
 	volatile BOOL*	terminated;
 	BOOL			bg;
