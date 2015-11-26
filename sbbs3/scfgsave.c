@@ -2,13 +2,13 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.59 2015/11/23 10:03:19 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.60 2015/11/26 13:15:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -351,8 +351,9 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->new_misc,stream);
 	put_int(cfg->new_prot,stream);
 	put_int(cfg->new_install,stream);
+	put_int(cfg->new_msgscan_init, stream);
 	n=0;
-	for(i=0;i<7;i++)
+	for(i=0;i<6;i++)
 		put_int(n,stream);
 
 	put_int(cfg->expired_level,stream);
