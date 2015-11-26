@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet SCFG project
 
-# $Id: targets.mk,v 1.8 2017/08/17 19:45:25 rswindell Exp $
+# $Id: targets.mk,v 1.7 2014/02/16 06:28:52 deuce Exp $
 
 # LIBODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -15,6 +15,6 @@ all:		xpdev-mt \
 		$(EXEODIR) \
 		$(MTOBJODIR) \
 		$(LIBODIR) \
-		$(SCFG)
+		$(SCFG) $(SCFGHELP)
 
 $(SCFG):	$(XPDEV-MT_LIB) $(UIFCLIB-MT) $(CIOLIB-MT)
