@@ -1,12 +1,14 @@
+/* js_file.c */
+
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.168 2018/01/12 22:23:07 rswindell Exp $ */
+/* $Id: js_file.c,v 1.164 2015/11/16 18:34:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,10 +42,6 @@
 #include "yenc.h"
 #include "ini_file.h"
 
-#if !defined(__unix__)
-	#include <conio.h>		/* for kbhit() */
-#endif
-
 #ifdef JAVASCRIPT
 
 #include "js_request.h"
@@ -65,7 +63,7 @@ typedef struct
 
 } private_t;
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 {
@@ -2472,7 +2470,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 					*vp=UINT_TO_JSVAL(c16);
 					break;
 				case FILE_PROP_CRC32:
-					*vp=UINT_TO_JSVAL(~c32);
+					*vp=UINT_TO_JSVAL(c32);
 					break;
 				case FILE_PROP_MD5_HEX:
 				case FILE_PROP_MD5_B64:
@@ -2666,8 +2664,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,317
 	},
 	{"write",			js_write,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("text [,length=<i>text_length</i>]")
-	,JSDOCSTR("write a string to the file (optionally unix-to-unix or base64 decoding in the process). "
-		"If the specified <i>length</i> is longer than the <i>text</i>, the remaining length will be written as NUL bytes.")
+	,JSDOCSTR("write a string to the file (optionally unix-to-unix or base64 decoding in the process)")
 	,310
 	},
 	{"writeln",			js_writeln,			0,	JSTYPE_BOOLEAN, JSDOCSTR("[text]")
