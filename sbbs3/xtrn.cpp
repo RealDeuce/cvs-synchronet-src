@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.224 2015/02/10 03:04:02 deuce Exp $ */
+/* $Id: xtrn.cpp,v 1.225 2015/11/24 11:05:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -2229,7 +2229,9 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 {
 	char	str[MAX_PATH+1];
     int		i,j,len;
+	static char	buf[512];
 
+	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
     for(i=j=0;i<len && j<MAX_PATH;i++) {
         if(instr[i]=='%') {
