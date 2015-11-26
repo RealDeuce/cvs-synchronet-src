@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.228 2015/11/26 13:24:25 sbbs Exp $
+# $Id: GNUmakefile,v 1.227 2015/10/28 01:38:40 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -187,7 +187,7 @@ $(ECHOCFG): $(ECHOCFG_OBJS)
 # ADDFILES
 $(ADDFILES): $(ADDFILES_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(ADDFILES_OBJS) $(XPDEV_LIBS) $(SMBLIB_LIBS)
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(ADDFILES_OBJS) $(XPDEV_LIBS)
 
 # FILELIST
 $(FILELIST): $(FILELIST_OBJS)
@@ -197,7 +197,7 @@ $(FILELIST): $(FILELIST_OBJS)
 # MAKEUSER
 $(MAKEUSER): $(MAKEUSER_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(MAKEUSER_OBJS) $(XPDEV_LIBS) $(SMBLIB_LIBS)
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(MAKEUSER_OBJS) $(XPDEV_LIBS)
 
 # JSDOOR
 $(JSDOOR): $(JSDOOR_OBJS) $(SBBS)

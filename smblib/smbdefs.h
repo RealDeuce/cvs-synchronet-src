@@ -1,7 +1,8 @@
+/* smbdefs.h */
+
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.99 2017/11/12 00:03:00 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: smbdefs.h,v 1.83 2015/11/24 10:26:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,12 +97,37 @@
 #define SMB_HYPERALLOC		2			/* No allocation (also storage value for smb_addmsghdr) */
 #define SMB_NOHASH			4			/* Do not calculate or store hashes */
 
+#define SMB_SUCCESS			0			/* Successful result/return code */
+#define SMB_FAILURE			-1			/* Generic error (discouraged) */
+
+										/* Standard smblib errors values */
+#define SMB_ERR_NOT_OPEN	-100		/* Message base not open */
+#define SMB_ERR_HDR_LEN		-101		/* Invalid message header length (>64k) */
+#define SMB_ERR_HDR_OFFSET	-102		/* Invalid message header offset */
+#define SMB_ERR_HDR_ID		-103		/* Invalid header ID */
+#define SMB_ERR_HDR_VER		-104		/* Unsupported version */
+#define SMB_ERR_HDR_FIELD	-105		/* Missing header field */
+#define SMB_ERR_NOT_FOUND	-110		/* Item not found */
+#define SMB_ERR_DAT_OFFSET	-120		/* Invalid data offset (>2GB) */
+#define SMB_ERR_DAT_LEN		-121		/* Invalid data length (>2GB) */
+#define SMB_ERR_OPEN		-200		/* File open error */
+#define SMB_ERR_SEEK		-201		/* File seek/setpos error */
+#define SMB_ERR_LOCK		-202		/* File lock error */
+#define SMB_ERR_READ		-203		/* File read error */
+#define SMB_ERR_WRITE		-204		/* File write error */
+#define SMB_ERR_TIMEOUT		-205		/* File operation timed-out */
+#define SMB_ERR_FILE_LEN	-206		/* File length invalid */
+#define SMB_ERR_DELETE		-207		/* File deletion error */
+#define SMB_ERR_UNLOCK		-208		/* File unlock error */
+#define SMB_ERR_MEM			-300		/* Memory allocation error */
+
+#define SMB_DUPE_MSG		1			/* Duplicate message detected by smb_addcrc() */
+
 										/* Time zone macros for when_t.zone */
 #define DAYLIGHT			0x8000		/* Daylight savings is active */
 #define US_ZONE 			0x4000		/* U.S. time zone */
 #define WESTERN_ZONE		0x2000		/* Non-standard zone west of UT */
 #define EASTERN_ZONE		0x1000		/* Non-standard zone east of UT */
-#define SMB_DST_OFFSET		60			/* Daylight Saving Time offset, in minutes */
 
 										/* US Time Zones (standard) */
 #define AST 				0x40F0		/* Atlantic 			(-04:00) */
@@ -133,12 +159,9 @@
 #define RIO 				0x20B4		/* Rio de Janeiro		(-03:00) */
 #define FER 				0x2078		/* Fernando de Noronha	(-02:00) */
 #define AZO 				0x203C		/* Azores				(-01:00) */
-#define WET 				0x1000		/* Western European		(+00:00) */
-#define WEST 				0x9000		/* WE Summer Time		(+01:00) AKA BST */
-#define CET 				0x103C		/* Central European		(+01:00) */
-#define CEST 				0x903C		/* CE Summer Time		(+02:00) */
-#define EET 				0x1078		/* Eastern European		(+02:00) */
-#define EEST				0x9078		/* EE Summer Time		(+03:00) */
+#define LON 				0x1000		/* London				(+00:00) */
+#define BER 				0x103C		/* Berlin				(+01:00) */
+#define ATH 				0x1078		/* Athens				(+02:00) */
 #define MOS 				0x10B4		/* Moscow				(+03:00) */
 #define DUB 				0x10F0		/* Dubai				(+04:00) */
 #define KAB 				0x110E		/* Kabul				(+04:30) */
@@ -155,13 +178,11 @@
 
 #define OTHER_ZONE(zone) (zone<=1000 && zone>=-1000)
 
-#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==WET || zone==CET || zone==EET))
-
 										/* Valid hfield_t.types */
 #define SENDER				0x00
 #define SENDERAGENT 		0x01
 #define SENDERNETTYPE		0x02
-#define SENDERNETADDR		0x03		/* Note: SENDERNETTYPE may be NET_NONE and this field present and contain a valid string */
+#define SENDERNETADDR		0x03
 #define SENDEREXT			0x04
 #define SENDERPOS			0x05
 #define SENDERORG			0x06
@@ -195,7 +216,7 @@
 #define RECIPIENT			0x30
 #define RECIPIENTAGENT		0x31
 #define RECIPIENTNETTYPE	0x32
-#define RECIPIENTNETADDR	0x33	/* Note: RECIPIENTNETTYPE may be NET_NONE and this field present and contain a valid string */
+#define RECIPIENTNETADDR	0x33
 #define RECIPIENTEXT		0x34
 #define RECIPIENTPOS		0x35
 #define RECIPIENTORG		0x36
@@ -286,8 +307,6 @@
 
 #define SMTPSYSMSG			0xd8		/* for delivery failure notification */
 
-#define SMB_POLL_ANSWER		0xe0		/* the subject is the question */
-
 #define UNKNOWN 			0xf1
 #define UNKNOWNASCII		0xf2
 #define UNUSED				0xff
@@ -319,18 +338,8 @@
 #define MSG_VALIDATED		(1<<8)
 #define MSG_REPLIED			(1<<9)		/* User replied to this message */
 #define MSG_NOREPLY			(1<<10)		/* No replies (or bounces) should be sent to the sender */
-#define MSG_UPVOTE			(1<<11)		/* This message is an upvote */
-#define MSG_DOWNVOTE		(1<<12)		/* This message is a downvote */
-#define MSG_POLL			(1<<13)		/* This message is a poll */
-#define MSG_SPAM			(1<<14)		/* This message has been flagged as SPAM */
 
-#define MSG_VOTE			(MSG_UPVOTE|MSG_DOWNVOTE)	/* This message is a poll-vote */
-#define MSG_POLL_CLOSURE	(MSG_POLL|MSG_VOTE)			/* This message is a poll-closure */
-#define MSG_POLL_VOTE_MASK	MSG_POLL_CLOSURE
-
-#define MSG_POLL_MAX_ANSWERS	16
-
-										/* Auxiliary header attributes */
+										/* Auxillary header attributes */
 #define MSG_FILEREQUEST 	(1<<0)		/* File request */
 #define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg */
 #define MSG_TRUNCFILE		(1<<2)		/* Truncate file(s) when sent */
@@ -338,13 +347,6 @@
 #define MSG_RECEIPTREQ		(1<<4)		/* Return receipt requested */
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
 #define MSG_NODISP			(1<<6)		/* Msg may not be displayed to user */
-#define POLL_CLOSED			(1<<24)		/* Closed to voting */
-#define POLL_RESULTS_MASK	(3U<<30)	/* 4 possible values: */
-#define POLL_RESULTS_SECRET	(3U<<30)	/* No one but pollster can see results */
-#define POLL_RESULTS_CLOSED	(2U<<30)	/* No one but pollster can see results until poll is closed */
-#define POLL_RESULTS_OPEN	(1U<<30)	/* Results are visible to everyone always */
-#define POLL_RESULTS_VOTERS	(0U<<30)	/* Voters can see results right away, everyone else when closed */
-#define POLL_RESULTS_SHIFT	30
 
 										/* Message network attributes */
 #define MSG_LOCAL			(1<<0)		/* Msg created locally */
@@ -436,19 +438,11 @@ typedef struct _PACK {		/* Time with time-zone */
 
 typedef struct _PACK {		/* Index record */
 
-	union {
-		struct _PACK {
-			uint16_t	to; 		/* 16-bit CRC of recipient name (lower case) or user # */
-			uint16_t	from;		/* 16-bit CRC of sender name (lower case) or user # */
-			uint16_t	subj;		/* 16-bit CRC of subject (lower case, w/o RE:) */
-		};
-		struct _PACK {
-			uint16_t	votes;		/* votes value */
-			uint32_t	remsg;		/* number of message this vote is in response to */
-		};
-	};
+	uint16_t	to; 			/* 16-bit CRC of recipient name (lower case) */
+	uint16_t	from;			/* 16-bit CRC of sender name (lower case) */
+	uint16_t	subj;			/* 16-bit CRC of subject (lower case, w/o RE:) */
 	uint16_t	attr;			/* attributes (read, permanent, etc.) */
-	uint32_t	offset; 		/* byte-offset of msghdr in header file */
+	uint32_t	offset; 		/* offset into header file */
 	uint32_t	number; 		/* number of message (1 based) */
 	uint32_t	time;			/* time/date message was imported/posted */
 
@@ -521,21 +515,14 @@ typedef struct _PACK {		/* Message base status header */
 
 } smbstatus_t;
 
-enum smb_msg_type {
-     SMB_MSG_TYPE_NORMAL		/* Classic message (for reading) */
-	,SMB_MSG_TYPE_POLL			/* A poll question  */
-	,SMB_MSG_TYPE_BALLOT		/* Voter response to poll or normal message */
-	,SMB_MSG_TYPE_POLL_CLOSURE	/* Closure of an existing poll */
-};
-
 typedef struct _PACK {		/* Message header */
 
 	/* 00 */ uchar		id[LEN_HEADER_ID];	/* SHD<^Z> */
-    /* 04 */ uint16_t	type;				/* Message type (enum smb_msg_type) */
+    /* 04 */ uint16_t	type;				/* Message type (normally 0) */
     /* 06 */ uint16_t	version;			/* Version of type (initially 100h for 1.00) */
     /* 08 */ uint16_t	length;				/* Total length of fixed record + all fields */
 	/* 0a */ uint16_t	attr;				/* Attributes (bit field) (duped in SID) */
-	/* 0c */ uint32_t	auxattr;			/* Auxiliary attributes (bit field) */
+	/* 0c */ uint32_t	auxattr;			/* Auxillary attributes (bit field) */
     /* 10 */ uint32_t	netattr;			/* Network attributes */
 	/* 14 */ when_t		when_written;		/* Date/time/zone message was written */
 	/* 1a */ when_t		when_imported;		/* Date/time/zone message was imported */
@@ -544,7 +531,7 @@ typedef struct _PACK {		/* Message header */
     /* 28 */ uint32_t	thread_next;		/* Next message in thread */
     /* 2c */ uint32_t	thread_first;		/* First reply to this message */
 	/* 30 */ uint16_t	delivery_attempts;	/* Delivery attempt counter */
-	/* 32 */ int16_t	votes;				/* Votes value (response to poll) or maximum votes per ballot (poll) */
+	/* 32 */ uchar		reserved[2];		/* Reserved for future use */
 	/* 34 */ uint32_t	thread_id;			/* Number of original message in thread (or 0 if unknown) */
 	/* 38 */ uint32_t	times_downloaded;	/* Total number of times downloaded (moved Mar-6-2012) */
 	/* 3c */ uint32_t	last_downloaded;	/* Date/time of last download (moved Mar-6-2012) */
@@ -583,12 +570,10 @@ typedef struct _PACK {		/* FidoNet address (zone:net/node.point) */
 #pragma pack(pop)		/* original packing */
 #endif
 
-typedef uint16_t smb_net_type_t;
-
 typedef struct {		/* Network (type and address) */
 
-    smb_net_type_t	type;	// One of enum smb_net_type
-	void*			addr;
+    uint16_t	type;	// One of enum smb_net_type
+	void*		addr;
 
 } net_t;
 
@@ -639,14 +624,10 @@ typedef struct {				/* Message */
 	uint32_t	priority;		/* Message priority (0 is lowest) */
 	uint32_t	cost;			/* Cost to download/read */
 	uint32_t	flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
-	uint16_t	user_voted;		/* How the current user viewing this message, voted on it */
-	uint32_t	upvotes;		/* Vote tally for this message */
-	uint32_t	downvotes;		/* Vote tally for this message */
-	uint32_t	total_votes;	/* Total votes for this message or poll */
 
 } smbmsg_t;
 
-typedef struct {				/* Message base */
+typedef struct {			/* Message base */
 
     char		file[128];      /* Path and base filename (no extension) */
     FILE*		sdt_fp;			/* File pointer for data (.sdt) file */
@@ -657,14 +638,14 @@ typedef struct {				/* Message base */
 	FILE*		hash_fp;		/* File pointer for hash (.hash) file */
 	uint32_t	retry_time; 	/* Maximum number of seconds to retry opens/locks */
 	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
-	smbstatus_t status; 		/* Status header record */
+	smbstatus_t status; 	/* Status header record */
 	BOOL		locked;			/* SMB header is locked */
 	char		last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */
 	uint32_t	subnum;			/* Sub-board number */
 	uint32_t	msgs;			/* Number of messages loaded (for user) */
-	uint32_t	curmsg;			/* Current message number (for user, 0-based) */
+	uint32_t	curmsg;			/* Current message number (for user) */
 
 } smb_t;
 
