@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.80 2015/12/16 06:55:11 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.76 2015/11/26 08:34:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,21 +117,10 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	CRLF;
 
 	/* variable fields */
-	for(i=0;i<msg->total_hfields;i++) {
-		char *p;
-		bprintf("%-16.16s ",smb_hfieldtype(msg->hfield[i].type));
-		switch(msg->hfield[i].type) {
-			case SENDERNETTYPE:
-			case RECIPIENTNETTYPE:
-			case REPLYTONETTYPE:
-				p = smb_nettype((enum smb_net_type)*(uint16_t*)msg->hfield_dat[i]);
-				break;
-			default:
-				p = binstr((uchar *)msg->hfield_dat[i],msg->hfield[i].length,str);
-				break;
-		}
-		bprintf("%s\r\n", p);
-	}
+	for(i=0;i<msg->total_hfields;i++)
+		bprintf("%-16.16s %s\r\n"
+			,smb_hfieldtype(msg->hfield[i].type)
+			,binstr((uchar *)msg->hfield_dat[i],msg->hfield[i].length,str));
 
 	/* fixed fields */
 	bprintf("%-16.16s %08lX %04hX %.24s %s\r\n","when_written"	
@@ -424,9 +413,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	}
 	if(mode&SCAN_NEW && subscan[subnum].ptr>=last && !(mode&SCAN_BACK)) {
 		if(subscan[subnum].ptr>last)
-			subscan[subnum].ptr=last;
-		if(subscan[subnum].last>last)
-			subscan[subnum].last=last;
+			subscan[subnum].ptr=subscan[subnum].last=last;
 		bprintf(text[NScanStatusFmt]
 			,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,0L,msgs);
 		return(0); 
@@ -879,7 +866,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				mode&=~SCAN_FIND;	/* turn off find mode */
 				if((i64=get_start_msg(this,&smb))<0)
 					break;
-				i=(int)i64;
+				i=64;
 				bputs(text[SearchStringPrompt]);
 				if(!getstr(find_buf,40,K_LINE|K_UPPER|K_EDIT|K_AUTODEL))
 					break;
@@ -1081,8 +1068,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 								break;
 	*/
 							bputs(text[FileToWriteTo]);
-							if(getstr(str,50,K_LINE))
-								msgtotxt(&msg,str, /* header: */true, /* mode: */GETMSGTXT_ALL);
+							if(getstr(str,40,K_LINE))
+								msgtotxt(&msg,str,1,1);
 							break;
 						case 'U':   /* User edit */
 							useredit(cfg.sub[subnum]->misc&SUB_NAME

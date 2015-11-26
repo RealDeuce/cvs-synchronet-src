@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.53 2015/12/10 20:01:15 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.48 2015/11/26 10:35:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 		return(0); 
 	}
 	if((i=smb_getmsghdr(&smb,msg))!=SMB_SUCCESS) {
-		SAFEPRINTF4(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
+		sprintf(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
 			,number,smb.file);
 		smb_unlockmsghdr(&smb,msg);
 		errormsg(WHERE,ERR_READ,str,i,smb.last_error);
@@ -129,7 +129,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	else
 		CRLF;
 
-	SAFEPRINTF(str,"%smenu/msghdr.*", cfg.text_dir);
+	sprintf(str,"%smenu/msghdr.*", cfg.text_dir);
 	if(fexist(str)) {
 		menu("msghdr");
 		return; 
@@ -140,15 +140,15 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 		show_msgattr(msg->hdr.attr);
 
 	bprintf(text[MsgTo],msg->to);
-	if(msg->to_net.addr!=NULL)
-		bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 	if(msg->to_ext)
 		bprintf(text[MsgToExt],msg->to_ext);
+	if(msg->to_net.addr)
+		bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 	if(!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP) {
 		bprintf(text[MsgFrom],msg->from);
 		if(msg->from_ext)
 			bprintf(text[MsgFromExt],msg->from_ext);
-		if(msg->from_net.addr!=NULL && strchr(msg->from,'@')==NULL)
+		if(msg->from_net.addr && !strchr(msg->from,'@'))
 			bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str)); 
 	}
 	bprintf(text[MsgDate]
@@ -192,7 +192,7 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 /****************************************************************************/
 /* Writes message header and text data to a text file						*/
 /****************************************************************************/
-void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode)
+void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 {
 	char	*buf;
 	char	tmp[128];
@@ -207,10 +207,10 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode)
 		fprintf(out,"\r\n");
 		fprintf(out,"Subj : %s\r\n",msg->subj);
 		fprintf(out,"To   : %s",msg->to);
-		if(msg->to_net.addr)
-			fprintf(out," (%s)",smb_netaddrstr(&msg->to_net,tmp));
 		if(msg->to_ext)
 			fprintf(out," #%s",msg->to_ext);
+		if(msg->to_net.addr)
+			fprintf(out," (%s)",smb_netaddrstr(&msg->to_net,tmp));
 		fprintf(out,"\r\nFrom : %s",msg->from);
 		if(msg->from_ext && !(msg->hdr.attr&MSG_ANONYMOUS))
 			fprintf(out," #%s",msg->from_ext);
@@ -222,7 +222,7 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode)
 		fprintf(out,"\r\n\r\n"); 
 	}
 
-	buf=smb_getmsgtxt(&smb,msg,mode);
+	buf=smb_getmsgtxt(&smb,msg,tails);
 	if(buf!=NULL) {
 		strip_invalid_attr(buf);
 		fputs(buf,out);
@@ -237,25 +237,69 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode)
 /****************************************************************************/
 ulong sbbs_t::getmsgnum(uint subnum, time_t t)
 {
-    int			i;
-	smb_t		smb;
-	idxrec_t	idx;
+    int     i;
+	ulong	l,total,bot,top;
+	smbmsg_t msg;
 
 	if(!t)
 		return(0);
 
-	ZERO_VAR(smb);
-	SAFEPRINTF2(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
-	if((i=smb_open(&smb)) != SMB_SUCCESS) {
+	if((i=smb_open(&smb))!=0) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return(0); 
 	}
-	smb_getmsgidx_by_time(&smb, &idx, t);
 
+	total=(long)filelength(fileno(smb.sid_fp))/sizeof(idxrec_t);
+
+	if(!total) {		   /* Empty base */
+		smb_close(&smb);
+		return(0); 
+	}
+
+	if((i=smb_locksmbhdr(&smb))!=0) {
+		smb_close(&smb);
+		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
+		return(0); 
+	}
+
+	if((i=smb_getlastidx(&smb,&msg.idx))!=0) {
+		smb_close(&smb);
+		errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
+		return(0); 
+	}
+
+	if((time_t)msg.idx.time<=t) {
+		smb_close(&smb);
+		return(msg.idx.number); 
+	}
+
+	bot=0;
+	top=total;
+	l=total/2; /* Start at middle index */
+	clearerr(smb.sid_fp);
+	while(1) {
+		fseek(smb.sid_fp,l*sizeof(idxrec_t),SEEK_SET);
+		if(!fread(&msg.idx,sizeof(idxrec_t),1,smb.sid_fp))
+			break;
+		if(bot==top-1)
+			break;
+		if((time_t)msg.idx.time>t) {
+			top=l;
+			l=bot+((top-bot)/2);
+			continue; 
+		}
+		if((time_t)msg.idx.time<t) {
+			bot=l;
+			l=top-((top-bot)/2);
+			continue; 
+		}
+		break; 
+	}
 	smb_close(&smb);
-	return idx.number;
+	return(msg.idx.number);
 }
 
 /****************************************************************************/
@@ -263,13 +307,11 @@ ulong sbbs_t::getmsgnum(uint subnum, time_t t)
 /****************************************************************************/
 time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 {
-	int 		i;
-	smb_t		smb;
-	smbmsg_t	msg;
-	idxrec_t	lastidx;
+	int 	i;
+	smbmsg_t msg;
+	idxrec_t lastidx;
 
-	ZERO_VAR(smb);
-	SAFEPRINTF2(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
@@ -340,7 +382,6 @@ ulong sbbs_t::getlastmsg(uint subnum, uint32_t *ptr, time_t *t)
 {
 	int 		i;
 	ulong		total;
-	smb_t		smb;
 	idxrec_t	idx;
 
 	if(ptr)
@@ -350,8 +391,7 @@ ulong sbbs_t::getlastmsg(uint subnum, uint32_t *ptr, time_t *t)
 	if(subnum>=cfg.total_subs)
 		return(0);
 
-	ZERO_VAR(smb);
-	SAFEPRINTF2(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
