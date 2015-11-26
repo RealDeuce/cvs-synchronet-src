@@ -1,6 +1,8 @@
+/* scfgdefs.h */
+
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.41 2017/10/23 03:38:59 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.37 2015/11/26 13:15:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,8 +43,8 @@
 typedef struct {							/* Message sub board info */
 	char		code[LEN_EXTCODE+1];		/* Internal code (with optional lib prefix) */
 	char		code_suffix[LEN_CODE+1];	/* Eight character code suffix */
-	char		lname[LEN_SLNAME+1],		/* Long name - used for listing */
-				sname[LEN_SSNAME+1],		/* Short name - used for prompts */
+	char		lname[LEN_SLNAME+1],		/* Short name - used for prompts */
+				sname[LEN_SSNAME+1],		/* Long name - used for listing */
 				arstr[LEN_ARSTR+1],			/* Access requirements */
 				read_arstr[LEN_ARSTR+1],	/* Read requirements */
 				post_arstr[LEN_ARSTR+1],	/* Post requirements */
@@ -62,8 +64,7 @@ typedef struct {							/* Message sub board info */
 	uint16_t	grp,						/* Which group this sub belongs to */
 				ptridx, 					/* Index into pointer file */
 				qwkconf,					/* QWK conference number */
-				maxage, 					/* Max age of messages (in days) */
-				subnum;						/* ephemeral index of this sub in cfg.sub[] */
+				maxage; 					/* Max age of messages (in days) */
 	uint32_t	misc,						/* Miscellaneous flags */
 				maxmsgs,					/* Max number of messages allowed */
 				maxcrcs;					/* Max number of CRCs to keep */
@@ -72,20 +73,19 @@ typedef struct {							/* Message sub board info */
 } sub_t;
 
 typedef struct {							/* Message group info */
-	char		lname[LEN_GLNAME+1],		/* Long name */
-				sname[LEN_GSNAME+1],		/* Short name */
+	char		lname[LEN_GLNAME+1],		/* Short name */
+				sname[LEN_GSNAME+1],		/* Long name */
 				arstr[LEN_ARSTR+1],			/* Access requirements */
 				code_prefix[LEN_CODE+1];	/* Prefix for internal code */
 	uchar		*ar;
-	enum area_sort sort;
 
 } grp_t;
 
 typedef struct {							/* Transfer Directory Info */
 	char		code[LEN_EXTCODE+1];		/* Internal code (with optional lib prefix) */
 	char		code_suffix[LEN_CODE+1];	/* Eight character code suffix */
-	char		lname[LEN_SLNAME+1],		/* Long name - used for listing */
-				sname[LEN_SSNAME+1],		/* Short name - used for prompts */
+	char		lname[LEN_SLNAME+1],		/* Short name - used for prompts */
+				sname[LEN_SSNAME+1],		/* Long name - used for listing */
 				arstr[LEN_ARSTR+1],			/* Access Requirements */
 				ul_arstr[LEN_ARSTR+1], 		/* Upload Requirements */
 				dl_arstr[LEN_ARSTR+1], 		/* Download Requirements */
@@ -106,22 +106,19 @@ typedef struct {							/* Transfer Directory Info */
 				maxage, 					/* Max age of files (in days) */
 				up_pct, 					/* Percentage of credits on uloads */
 				dn_pct, 					/* Percentage of credits on dloads */
-				lib,						/* Which library this dir is in */
-				dirnum;						/* ephemeral index of this dir in cfg.dir[] */
+				lib;						/* Which library this dir is in */
 	uint32_t	misc;						/* Miscellaneous bits */
 
 } dir_t;
 
 typedef struct {							/* Transfer Library Information */
-	char		lname[LEN_GLNAME+1],		/* Long Name - used for listings */
-				sname[LEN_GSNAME+1],		/* Short Name - used for prompts */
+	char		lname[LEN_GLNAME+1],		/* Short Name - used for prompts */
+				sname[LEN_GSNAME+1],		/* Long Name - used for listings */
 				arstr[LEN_ARSTR+1],			/* Access Requirements */
 				code_prefix[LEN_CODE+1],	/* Prefix for internal code */
 				parent_path[48];			/* Parent for dir paths */
 	uchar		*ar;
 	uint32_t	offline_dir;				/* Offline file directory */
-	uint32_t	misc;						/* Miscellaneous bits */
-	enum area_sort sort;
 
 } lib_t;
 
@@ -318,9 +315,8 @@ typedef struct {							/* QWK Network Hub */
 				freq,						/* Frequency of call-outs */
 				subs,						/* Number Sub-boards carried */
 				*conf;						/* Conference number of ea. */
-	sub_t**		sub;
+	ulong		*sub;						/* Number of local sub-board for ea. */
 	time32_t	last;						/* Last network attempt */
-	uint32_t	misc;						/* QHUB_* flags */
 
 } qhub_t;
 
@@ -503,7 +499,6 @@ typedef struct
 	uint16_t		new_expire; 		/* Expiration days for new user */
 	uchar			new_prot;			/* New User Default Download Protocol */
 	uint16_t		new_msgscan_init;	/* Uew User new-scan pointers initialized to msgs this old (in days) */
-	uint16_t		guest_msgscan_init;	/* Guest new-scan pointers initialized to msgs this old (in days) */
 	char 			val_level[10];		/* Validation User Main Level */
 	uint32_t		val_flags1[10]; 	/* Validation User Flags from set #1*/
 	uint32_t		val_flags2[10]; 	/* Validation User Flags from set #2*/
@@ -566,7 +561,7 @@ typedef struct
 	char			smtpmail_sem[LEN_DIR+1];	/* Inbound Internet Mail semaphore file */
 	char			inetmail_sem[LEN_DIR+1];	/* Outbound Internet Mail semaphore file */
 	char			echomail_dir[LEN_DIR+1];	/* Directory to store echomail in */
-	char 			fidofile_dir[LEN_DIR+1];	/* Directory where inbound files go (deprecated and not used) */
+	char 			fidofile_dir[LEN_DIR+1];	/* Directory where inbound files go */
 	char			netmail_sem[LEN_DIR+1];		/* FidoNet NetMail semaphore */
 	char 			echomail_sem[LEN_DIR+1];	/* FidoNet EchoMail semaphore  */
 	char		 	origline[51];		/* Default EchoMail origin line */
