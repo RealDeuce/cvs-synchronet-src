@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.17 2015/11/26 13:15:21 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.18 2015/11/27 11:17:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,13 +47,13 @@ void sbbs_t::getmsgptrs()
 	if(!useron.number)
 		return;
 	bputs(text[LoadingMsgPtrs]);
-	::getmsgptrs(&cfg,useron.number,subscan);
+	::getmsgptrs(&cfg,(useron.rest&FLAG('G')) ? 0:useron.number,subscan);
 	bputs(text[LoadedMsgPtrs]);
 }
 
 void sbbs_t::putmsgptrs()
 {
-	::putmsgptrs(&cfg,useron.number,subscan);
+	::putmsgptrs(&cfg,(useron.rest&FLAG('G')) ? 0:useron.number,subscan);
 }
 
 /****************************************************************************/
