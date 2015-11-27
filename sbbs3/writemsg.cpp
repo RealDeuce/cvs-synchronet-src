@@ -1,6 +1,8 @@
+/* writemsg.cpp */
+
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.116 2017/11/15 10:39:53 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.111 2015/11/26 08:34:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1334,7 +1336,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 	removecase(msgtmp);
-	msgtotxt(msg,msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
+	msgtotxt(msg,msgtmp,0,1);
 	if(!editfile(msgtmp, /* msg: */true))
 		return;
 	length=(long)flength(msgtmp);
@@ -1535,57 +1537,48 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 	return(true);
 }
 
-ushort sbbs_t::chmsgattr(smbmsg_t msg)
+ushort sbbs_t::chmsgattr(ushort attr)
 {
 	int ch;
 
 	while(online && !(sys_status&SS_ABORT)) {
 		CRLF;
-		show_msgattr(&msg);
+		show_msgattr(attr);
 		menu("msgattr");
 		ch=getkey(K_UPPER);
 		if(ch)
 			bprintf("%c\r\n",ch);
 		switch(ch) {
 			case 'P':
-				msg.hdr.attr^=MSG_PRIVATE;
-				break;
-			case 'S':
-				msg.hdr.attr^=MSG_SPAM;
+				attr^=MSG_PRIVATE;
 				break;
 			case 'R':
-				msg.hdr.attr^=MSG_READ;
+				attr^=MSG_READ;
 				break;
 			case 'K':
-				msg.hdr.attr^=MSG_KILLREAD;
+				attr^=MSG_KILLREAD;
 				break;
 			case 'A':
-				msg.hdr.attr^=MSG_ANONYMOUS;
+				attr^=MSG_ANONYMOUS;
 				break;
 			case 'N':   /* Non-purgeable */
-				msg.hdr.attr^=MSG_PERMANENT;
+				attr^=MSG_PERMANENT;
 				break;
 			case 'M':
-				msg.hdr.attr^=MSG_MODERATED;
+				attr^=MSG_MODERATED;
 				break;
 			case 'V':
-				msg.hdr.attr^=MSG_VALIDATED;
+				attr^=MSG_VALIDATED;
 				break;
 			case 'D':
-				msg.hdr.attr^=MSG_DELETE;
+				attr^=MSG_DELETE;
 				break;
 			case 'L':
-				msg.hdr.attr^=MSG_LOCKED;
-				break;
-			case 'C':
-				msg.hdr.attr^=MSG_NOREPLY;
-				break;
-			case 'E':
-				msg.hdr.attr^=MSG_REPLIED;
+				attr^=MSG_LOCKED;
 				break;
 			default:
-				return(msg.hdr.attr); 
+				return(attr); 
 		} 
 	}
-	return(msg.hdr.attr);
+	return(attr);
 }
