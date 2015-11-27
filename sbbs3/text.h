@@ -2,13 +2,13 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.17 2014/10/04 09:01:12 rswindell Exp $ */
+/* $Id: text.h,v 1.21 2015/11/25 02:38:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -763,7 +763,7 @@ enum {
 	,NodeActionPrivateChat
 	,NodeActionPaging
 	,NodeActionRetrieving
-	,YN /* (Yes/No/Quit/Password chars) */
+	,YNQP /* (Yes/No/Quit/Password chars) */
 	,ViewSignatureQ
 	,DeleteSignatureQ
 	,CreateEditSignatureQ
@@ -809,6 +809,18 @@ enum {
 	,UnvalidatedWarning
 	,StartingNewUserRegistration
 	,GetStrMenu
+	,DisplayUnreadMessagesOnlyQ
+	,NoMessagesFound
+	,UserIpAddr
+	,Seconds
+	,Minutes
+	,Hours
+	,Days
+	,Months
+	,Years
+	,InThePast
+	,InTheFuture
+	,AgeOfPostedItem
 
 	,TOTAL_TEXT
 };
