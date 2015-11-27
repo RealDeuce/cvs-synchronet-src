@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.45 2016/06/30 22:43:00 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.43 2015/11/25 02:34:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -460,20 +460,16 @@ while(1) {
 						continue;
 					ported++;
 					if(k==1) {		/* AREAS.BBS SBBSecho */
-						char extcode[LEN_EXTCODE+1];
-						SAFEPRINTF2(extcode,"%s%s"
+						fprintf(stream,"%s%-30s %-20s %s\r\n"
 							,cfg.grp[cfg.sub[j]->grp]->code_prefix
-							,cfg.sub[j]->code_suffix);
-
-						fprintf(stream,"%-*s %-*s %s\r\n"
-							,LEN_EXTCODE, extcode
-							,FIDO_AREATAG_LEN, stou(cfg.sub[j]->sname)
+							,cfg.sub[j]->code_suffix
+							,stou(cfg.sub[j]->sname)
 							,str2);
 						continue; 
 					}
 					if(k==2) {		/* FIDONET.NA */
-						fprintf(stream,"%-*s %s\r\n"
-							,FIDO_AREATAG_LEN, stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
+						fprintf(stream,"%-20s %s\r\n"
+							,stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
 						continue; 
 					}
 					fprintf(stream,"%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
@@ -807,7 +803,6 @@ void msg_opts()
 		sprintf(opt[i++],"%-33.33s%s","Users Can View Deleted Messages"
 			,cfg.sys_misc&SM_USRVDELM ? "Yes" : cfg.sys_misc&SM_SYSVDELM
 				? "Sysops Only":"No");
-		sprintf(opt[i++],"%-33.33s%hu","Days of New Messages for Guest", cfg.guest_msgscan_init);
 		strcpy(opt[i++],"Extra Attribute Codes...");
 		opt[i][0]=0;
 		uifc.helpbuf=
@@ -1168,21 +1163,6 @@ void msg_opts()
 				}
                 break;
 			case 16:
-				uifc.helpbuf=
-					"`Days of New Messages for Guest:`\n"
-					"\n"
-					"This option allows you to set the number of days worth of messages\n"
-					"which will be included in a Guest login's `new message scan`.\n"
-					"\n"
-					"The value `0` means there will be `no` new messages for the Guest account.\n"
-				;
-				sprintf(str,"%hu",cfg.guest_msgscan_init);
-				uifc.input(WIN_SAV|WIN_MID,0,0
-					,"Days of New Messages for Guest's new message scan"
-					,str,4,K_EDIT|K_NUMBER);
-				cfg.guest_msgscan_init=atoi(str);
-                break;
-			case 17:
 				uifc.helpbuf=
 					"`Extra Attribute Codes...`\n"
 					"\n"

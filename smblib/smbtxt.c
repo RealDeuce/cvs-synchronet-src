@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.21 2015/12/04 10:03:15 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.20 2015/11/26 10:33:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,15 +190,13 @@ char* SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf)
 		content_type +=16;
 	else
 		return buf;
-	p = strstr(content_type, "boundary=");
+	p = strstr(content_type, "boundary=\"");
 	if(p == NULL)
 		return buf;
-	p += 9;
-	if(*p == '"')
-		p++;
-	SAFEPRINTF(boundary, "--%s", p);
-	if((p = strchr(boundary,'"')) != NULL)
-		*p = 0;
+	SAFEPRINTF(boundary, "--%s", p + 10);
+	if((p = strchr(boundary,'"')) == NULL)
+		return buf;
+	*p = 0;
 	txt = buf;
 	while((p = strstr(txt, boundary)) != NULL) {
 		txt = p+strlen(boundary);
