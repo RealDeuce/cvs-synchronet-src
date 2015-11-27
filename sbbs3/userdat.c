@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.164 2015/12/07 09:16:05 rswindell Exp $ */
+/* $Id: userdat.c,v 1.161 2015/11/27 11:17:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -193,79 +193,15 @@ BOOL DLLCALL del_lastuser(scfg_t* cfg)
 	return(TRUE);
 }
 
+
 /****************************************************************************/
-/* Opens the user database returning the file descriptor or -1 on error		*/
+/* Fills the structure 'user' with info for user.number	from user.dat		*/
+/* Called from functions useredit, waitforcall and main_sec					*/
 /****************************************************************************/
-int DLLCALL openuserdat(scfg_t* cfg)
+int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 {
-	char path[MAX_PATH+1];
-
-	if(!VALID_CFG(cfg))
-		return(-1); 
-
-	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
-	return nopen(path,O_RDONLY|O_DENYNONE); 
-}
-
-/****************************************************************************/
-/* Locks and reads a single user record from an open user.dat file into a	*/
-/* buffer of U_LEN+1 in size.												*/
-/* Returns 0 on success.													*/
-/****************************************************************************/
-int DLLCALL readuserdat(scfg_t* cfg, unsigned user_number, char* userdat, int infile)
-{
+	char userdat[U_LEN+1],str[U_LEN+1];
 	int i,file;
-
-	if(!VALID_CFG(cfg) || user_number<1)
-		return(-1); 
-
-	if(infile > 0)
-		file = infile;
-	else {
-		if((file = openuserdat(cfg)) < 0)
-			return file;
-	}
-
-	if(user_number > (unsigned)(filelength(file)/U_LEN)) {
-		if(file != infile)
-			close(file);
-		return(-1);	/* no such user record */
-	}
-
-	lseek(file,(long)((long)(user_number-1)*U_LEN),SEEK_SET);
-	i=0;
-	while(i<LOOP_NODEDAB
-		&& lock(file,(long)((long)(user_number-1)*U_LEN),U_LEN)==-1) {
-		if(i)
-			mswait(100);
-		i++; 
-	}
-	if(i>=LOOP_NODEDAB) {
-		if(file != infile)
-			close(file);
-		return(-2); 
-	}
-
-	if(read(file,userdat,U_LEN)!=U_LEN) {
-		unlock(file,(long)((long)(user_number-1)*U_LEN),U_LEN);
-		if(file != infile)
-			close(file);
-		return(-3); 
-	}
-	unlock(file,(long)((long)(user_number-1)*U_LEN),U_LEN);
-	if(file != infile)
-		close(file);
-	return 0;
-}
-
-/****************************************************************************/
-/* Fills the structure 'user' with info for user.number	from userdat		*/
-/* (a buffer representing a single user 'record' from the user.dat file		*/
-/****************************************************************************/
-int DLLCALL parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
-{
-	char str[U_LEN+1];
-	int i;
 	unsigned user_number;
 
 	if(user==NULL)
@@ -274,9 +210,40 @@ int DLLCALL parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
 	user_number=user->number;
 	memset(user,0,sizeof(user_t));
 
-	if(!VALID_CFG(cfg) || user_number < 1)
+	if(!VALID_CFG(cfg) || user_number<1)
 		return(-1); 
-	
+
+	SAFEPRINTF(userdat,"%suser/user.dat",cfg->data_dir);
+	if((file=nopen(userdat,O_RDONLY|O_DENYNONE))==-1)
+		return(errno); 
+
+	if(user_number > (unsigned)(filelength(file)/U_LEN)) {
+		close(file);
+		return(-1);	/* no such user record */
+	}
+	lseek(file,(long)((long)(user_number-1)*U_LEN),SEEK_SET);
+	i=0;
+	while(i<LOOP_NODEDAB
+		&& lock(file,(long)((long)(user_number-1)*U_LEN),U_LEN)==-1) {
+		if(i)
+			mswait(100);
+		i++; 
+	}
+
+	if(i>=LOOP_NODEDAB) {
+		close(file);
+		return(-2); 
+	}
+
+	if(read(file,userdat,U_LEN)!=U_LEN) {
+		unlock(file,(long)((long)(user_number-1)*U_LEN),U_LEN);
+		close(file);
+		return(-3); 
+	}
+
+	unlock(file,(long)((long)(user_number-1)*U_LEN),U_LEN);
+	close(file);
+
 	/* The user number needs to be set here
 	   before calling chk_ar() below for user-number comparisons in AR strings to function correctly */
 	user->number=user_number;	/* Signal of success */
@@ -385,6 +352,7 @@ int DLLCALL parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
 
 	getrec(userdat,U_CHAT,8,str);
 	user->chat=ahtoul(str);
+
 	/* Reset daily stats if not already logged on today */
 	if(user->ltoday || user->etoday || user->ptoday || user->ttoday) {
 		time_t		now;
@@ -400,32 +368,8 @@ int DLLCALL parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
 				resetdailyuserdat(cfg,user,/* write: */FALSE);
 		}
 	}
+
 	return(0);
-}
-
-/****************************************************************************/
-/* Fills the structure 'user' with info for user.number	from user.dat file	*/
-/****************************************************************************/
-int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
-{
-	int		retval;
-	int		file;
-	char	userdat[U_LEN+1];
-
-	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
-		return(-1); 
-
-	if((file = openuserdat(cfg)) < 0)
-		return file;
-
-	memset(userdat, 0, sizeof(userdat));
-	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
-		close(file);
-		return retval;
-	}
-	retval = parseuserdat(cfg, userdat, user);
-	close(file);
-	return retval;
 }
 
 /****************************************************************************/
@@ -901,33 +845,29 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 		return(buf);
 	}
 
-	str[0]=0;
     switch(node->status) {
         case NODE_WFC:
-            SAFECOPY(str,"Waiting for connection");
+            strcpy(str,"Waiting for connection");
             break;
         case NODE_OFFLINE:
             strcpy(str,"Offline");
             break;
         case NODE_NETTING:	/* Obsolete */
-            SAFECOPY(str,"Networking");
+            strcpy(str,"Networking");
             break;
         case NODE_LOGON:
-            SAFEPRINTF(str,"At login prompt %s"
+            SAFEPRINTF(str,"At logon prompt %s"
 				,node_connection_desc(node->connection, tmp));
             break;
-		case NODE_LOGOUT:
-			SAFEPRINTF(str,"Logging out %s", username(cfg,node->useron,tmp));
-			break;
         case NODE_EVENT_WAITING:
-            SAFECOPY(str,"Waiting for all nodes to become inactive");
+            strcpy(str,"Waiting for all nodes to become inactive");
             break;
         case NODE_EVENT_LIMBO:
             SAFEPRINTF(str,"Waiting for node %d to finish external event"
                 ,node->aux);
             break;
         case NODE_EVENT_RUNNING:
-            SAFECOPY(str,"Running external event");
+            strcpy(str,"Running external event");
             break;
         case NODE_NEWUSER:
             SAFEPRINTF(str,"New user applying for access %s"
@@ -2898,8 +2838,9 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 
 /****************************************************************************/
 /* Message-new-scan pointer/configuration functions							*/
+/* Pass usernumber value of 0 to indicate "Guest" login						*/
 /****************************************************************************/
-BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
+BOOL DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan)
 {
 	char		path[MAX_PATH+1];
 	uint		i;
@@ -2919,13 +2860,10 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 		subscan[i].sav_cfg=subscan[i].cfg; 
 	}
 
-	if(user->number == 0)
-		return 0;
-
-	if(user->rest&FLAG('G'))
+	if(usernumber == 0) /* guest */
 		return initmsgptrs(cfg, subscan, cfg->guest_msgscan_init);
 	
-	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
+	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, usernumber);
 	if((stream=fnopen(&file,path,O_RDONLY))==NULL) {
 		if(fexist(path))
 			return(FALSE);	/* file exists, but couldn't be opened? */
@@ -2949,10 +2887,10 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 }
 
 /****************************************************************************/
-/* Writes to data/user/ptrs/####.ixb the msgptr array for the current user	*/
+/* Writes to data/user/ptrs/*.ixb the msgptr array for the current user		*/
 /* Pass usernumber value of 0 to indicate "Guest" login						*/
 /****************************************************************************/
-BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
+BOOL DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan)
 {
 	char		path[MAX_PATH+1];
 	ushort		idx;
@@ -2962,13 +2900,12 @@ BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 	ulong		length;
 	uint32_t	l=0L;
 
-	if(user->number==0 || (user->rest&FLAG('G')))	/* Guest */
+	if(usernumber == 0)	/* Guest */
 		return(TRUE);
-	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
+	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, usernumber);
 	if((file=nopen(path,O_WRONLY|O_CREAT))==-1) {
 		return(FALSE); 
 	}
-	fixmsgptrs(cfg, subscan);
 	length=(ulong)filelength(file);
 	for(i=0;i<cfg->total_subs;i++) {
 		if(subscan[i].sav_ptr==subscan[i].ptr 
@@ -3019,8 +2956,7 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
 
 	for(i=0;i<cfg->total_subs;i++) {
 		if(days == 0) {
-			/* This value will be "fixed" (changed to the last msg) when saving */
-			subscan[i].ptr = ~0;
+			subscan[i].sav_ptr = subscan[i].ptr = ~0;
 			continue;
 		}
 		ZERO_VAR(smb);
@@ -3030,38 +2966,9 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
 		if(smb_open(&smb) != SMB_SUCCESS)
 			continue;
 		if(days == 0)
-			subscan[i].ptr = smb.status.last_msg;
+			subscan[i].sav_ptr = subscan[i].ptr = smb.status.last_msg;
 		else if(smb_getmsgidx_by_time(&smb, &idx, t) == SMB_SUCCESS)
-			subscan[i].ptr = idx.number;
-		smb_close(&smb);
-	}
-	return TRUE;
-}
-
-/****************************************************************************/
-/* Insure message new-scan pointers are within the range of the msgs in		*/
-/* the sub-board.															*/
-/****************************************************************************/
-BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
-{
-	uint		i;
-	smb_t		smb;
-
-	for(i=0;i<cfg->total_subs;i++) {
-		if(subscan[i].ptr == 0)
-			continue;
-		if(subscan[i].sav_ptr == subscan[i].ptr)
-			continue;
-		ZERO_VAR(smb);
-		SAFEPRINTF2(smb.file,"%s%s",cfg->sub[i]->data_dir,cfg->sub[i]->code);
-		smb.retry_time=cfg->smb_retry_time;
-		smb.subnum=i;
-		if(smb_open(&smb) != SMB_SUCCESS)
-			continue;
-		if(subscan[i].ptr > smb.status.last_msg)
-			subscan[i].ptr = smb.status.last_msg;
-		if(subscan[i].last > smb.status.last_msg)
-			subscan[i].last = smb.status.last_msg;
+			subscan[i].sav_ptr = subscan[i].ptr = idx.number;
 		smb_close(&smb);
 	}
 	return TRUE;

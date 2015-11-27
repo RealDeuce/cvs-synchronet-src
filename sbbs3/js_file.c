@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.166 2015/12/14 08:16:53 rswindell Exp $ */
+/* $Id: js_file.c,v 1.164 2015/11/16 18:34:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,10 +41,6 @@
 #include "uucode.h"
 #include "yenc.h"
 #include "ini_file.h"
-
-#if !defined(__unix__)
-	#include <conio.h>		/* for kbhit() */
-#endif
 
 #ifdef JAVASCRIPT
 
@@ -2474,7 +2470,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 					*vp=UINT_TO_JSVAL(c16);
 					break;
 				case FILE_PROP_CRC32:
-					*vp=UINT_TO_JSVAL(~c32);
+					*vp=UINT_TO_JSVAL(c32);
 					break;
 				case FILE_PROP_MD5_HEX:
 				case FILE_PROP_MD5_B64:
