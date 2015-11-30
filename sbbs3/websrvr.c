@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.627 2015/11/23 01:56:33 deuce Exp $ */
+/* $Id: websrvr.c,v 1.628 2015/11/30 09:07:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1072,7 +1072,7 @@ static void close_request(http_session_t * session)
 		JS_ENDREQUEST(session->js_cx);
 	}
 	if(session->subscan!=NULL)
-		putmsgptrs(&scfg, session->user.number, session->subscan);
+		putmsgptrs(&scfg, &session->user, session->subscan);
 
 	if(session->req.fp!=NULL)
 		fclose(session->req.fp);
@@ -1511,7 +1511,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	lprintf(LOG_DEBUG,"%04d HTTP Logon (user #%d)",session->socket,session->user.number);
 
 	if(session->subscan!=NULL)
-		getmsgptrs(&scfg,session->user.number,session->subscan);
+		getmsgptrs(&scfg,&session->user,session->subscan);
 
 	session->logon_time=time(NULL);
 	if(session->user.number==0)
@@ -6471,7 +6471,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.627 $", "%*s %s", revision);
+	sscanf("$Revision: 1.628 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
