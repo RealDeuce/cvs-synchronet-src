@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.258 2015/12/04 21:38:49 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.257 2015/08/31 03:03:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -265,7 +265,7 @@ static int lputs(int level, char *str)
     return(prompt_len);
 }
 
-static void errormsg(void* cbdata, int level, const char* msg)
+static void errormsg(void* cbdata, int level, const char* fmt)
 {
 	error_count++;
 }

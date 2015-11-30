@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.144 2016/01/18 10:01:10 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.143 2015/09/28 06:58:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -569,28 +569,6 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 
 	return iniSetString(list, section, key, str, style);
 }
-
-char* DLLCALL iniSetDuration(str_list_t* list, const char* section, const char* key
-					,double value, ini_style_t* style)
-{
-	char	str[INI_MAX_VALUE_LEN];
-
-	if(fmod(value,365.0*24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gY",value/(365.0*24.0*60.0*60.0));
-	else if(fmod(value,7.0*24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gW",value/(7.0*24.0*60.0*60.0));
-	else if(fmod(value,24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gD",value/(24.0*60.0*60.0));
-	else if(fmod(value,60.0*60.0)==0)
-		SAFEPRINTF(str,"%gH",value/(60.0*60.0));
-	else if(fmod(value,60.0)==0)
-		SAFEPRINTF(str,"%gM",value/60.0);
-	else
-		SAFEPRINTF(str,"%gS",value);
-
-	return iniSetString(list, section, key, str, style);
-}
-
 
 #if !defined(NO_SOCKET_SUPPORT)
 char* DLLCALL iniSetIpAddress(str_list_t* list, const char* section, const char* key, ulong value
@@ -1290,32 +1268,6 @@ int64_t DLLCALL iniGetBytes(str_list_t list, const char* section, const char* ke
 		return(deflt);
 
 	return(parse_byte_count(vp,unit));
-}
-
-double DLLCALL iniReadDuration(FILE* fp, const char* section, const char* key, double deflt)
-{
-	char*	value;
-	char	buf[INI_MAX_VALUE_LEN];
-
-	if((value=read_value(fp,section,key,buf))==NULL)
-		return(deflt);
-
-	if(*value==0)		/* blank value */
-		return(deflt);
-
-	return(parse_duration(value));
-}
-
-double DLLCALL iniGetDuration(str_list_t list, const char* section, const char* key, double deflt)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, NULL, &vp);
-
-	if(vp==NULL || *vp==0)	/* blank value or missing key */
-		return(deflt);
-
-	return(parse_duration(vp));
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
