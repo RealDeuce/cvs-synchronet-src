@@ -2,7 +2,7 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.69 2015/12/10 20:01:14 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.67 2015/11/25 12:25:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -924,7 +924,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(nulstr);
 		if(current_msg->to_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg->to,current_msg->to_ext);
-		else if(current_msg->to_net.addr != NULL) {
+		else if(current_msg->to_net.type!=NET_NONE) {
 			char tmp[128];
 			safe_snprintf(str,maxlen,"%s (%s)",current_msg->to
 				,smb_netaddrstr(&current_msg->to_net,tmp));
@@ -939,16 +939,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(nulstr);
 		return(current_msg->to_ext);
 	}
-	if(!strcmp(sp,"MSG_TO_NET") && current_msg!=NULL) {
-		if(current_msg->to_net.addr == NULL)
-			return nulstr;
+	if(!strcmp(sp,"MSG_TO_NET") && current_msg!=NULL)
 		return(smb_netaddrstr(&current_msg->to_net,str));
-	}
-	if(!strcmp(sp,"MSG_TO_NETTYPE") && current_msg!=NULL) {
-		if(current_msg->to_net.type==NET_NONE)
-			return nulstr;
-		return(smb_nettype((enum smb_net_type)current_msg->to_net.type));
-	}
 	if(!strcmp(sp,"MSG_FROM") && current_msg!=NULL) {
 		if(current_msg->from==NULL)
 			return(nulstr);
@@ -956,7 +948,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(text[Anonymous]);
 		if(current_msg->from_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg->from,current_msg->from_ext);
-		else if(current_msg->from_net.addr != NULL) {
+		else if(current_msg->from_net.type!=NET_NONE) {
 			char tmp[128];
 			safe_snprintf(str,maxlen,"%s (%s)",current_msg->from
 				,smb_netaddrstr(&current_msg->from_net,tmp));
@@ -978,15 +970,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 	if(!strcmp(sp,"MSG_FROM_NET") && current_msg!=NULL) {
-		if(current_msg->from_net.addr!=NULL
+		if(current_msg->from_net.type!=NET_NONE
 			&& (!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP))
 			return(smb_netaddrstr(&current_msg->from_net,str));
 		return(nulstr);
-	}
-	if(!strcmp(sp,"MSG_FROM_NETTYPE") && current_msg!=NULL) {
-		if(current_msg->from_net.type==NET_NONE)
-			return nulstr;
-		return(smb_nettype((enum smb_net_type)current_msg->from_net.type));
 	}
 	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
 		return(current_msg->subj==NULL ? nulstr : current_msg->subj);
