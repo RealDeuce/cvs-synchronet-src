@@ -2,7 +2,7 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.53 2015/12/10 20:01:15 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.49 2015/11/26 13:15:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,15 +140,15 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 		show_msgattr(msg->hdr.attr);
 
 	bprintf(text[MsgTo],msg->to);
-	if(msg->to_net.addr!=NULL)
-		bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 	if(msg->to_ext)
 		bprintf(text[MsgToExt],msg->to_ext);
+	if(msg->to_net.addr)
+		bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 	if(!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP) {
 		bprintf(text[MsgFrom],msg->from);
 		if(msg->from_ext)
 			bprintf(text[MsgFromExt],msg->from_ext);
-		if(msg->from_net.addr!=NULL && strchr(msg->from,'@')==NULL)
+		if(msg->from_net.addr && !strchr(msg->from,'@'))
 			bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str)); 
 	}
 	bprintf(text[MsgDate]
@@ -192,7 +192,7 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 /****************************************************************************/
 /* Writes message header and text data to a text file						*/
 /****************************************************************************/
-void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode)
+void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 {
 	char	*buf;
 	char	tmp[128];
@@ -207,10 +207,10 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode)
 		fprintf(out,"\r\n");
 		fprintf(out,"Subj : %s\r\n",msg->subj);
 		fprintf(out,"To   : %s",msg->to);
-		if(msg->to_net.addr)
-			fprintf(out," (%s)",smb_netaddrstr(&msg->to_net,tmp));
 		if(msg->to_ext)
 			fprintf(out," #%s",msg->to_ext);
+		if(msg->to_net.addr)
+			fprintf(out," (%s)",smb_netaddrstr(&msg->to_net,tmp));
 		fprintf(out,"\r\nFrom : %s",msg->from);
 		if(msg->from_ext && !(msg->hdr.attr&MSG_ANONYMOUS))
 			fprintf(out," #%s",msg->from_ext);
@@ -222,7 +222,7 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode)
 		fprintf(out,"\r\n\r\n"); 
 	}
 
-	buf=smb_getmsgtxt(&smb,msg,mode);
+	buf=smb_getmsgtxt(&smb,msg,tails);
 	if(buf!=NULL) {
 		strip_invalid_attr(buf);
 		fputs(buf,out);
