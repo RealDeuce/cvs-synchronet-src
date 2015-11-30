@@ -1,4 +1,4 @@
-/* $Id: js_cryptcon.c,v 1.7 2016/12/01 21:42:08 rswindell Exp $ */
+/* $Id: js_cryptcon.c,v 1.6 2015/10/06 00:11:07 deuce Exp $ */
 
 // Cyrptlib encryption context...
 
@@ -11,7 +11,7 @@ struct private_data {
 	CRYPT_CONTEXT	ctx;
 };
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 // Helpers
 static void
