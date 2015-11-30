@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.60 2015/09/20 07:33:09 rswindell Exp $ */
+/* $Id: email.cpp,v 1.62 2015/11/26 08:34:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,15 +107,17 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	}
 
 	if(cfg.sys_misc&SM_ANON_EM && useron.exempt&FLAG('A')
-		&& !noyes(text[AnonymousQ]))
+		&& !noyes(text[AnonymousQ])) {
 		msgattr|=MSG_ANONYMOUS;
+		mode|=WM_ANON;
+	}
 
 	if(cfg.sys_misc&SM_DELREADM)
 		msgattr|=MSG_KILLREAD;
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top,title,mode,INVALID_SUB,str2,&editor)) {
+	if(!writemsg(msgpath,top, /* subj: */title,mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
