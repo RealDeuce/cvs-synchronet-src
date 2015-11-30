@@ -1,13 +1,14 @@
+/* sbbsdefs.h */
+
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.215 2017/10/23 04:29:51 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: sbbsdefs.h,v 1.196 2015/09/26 05:06:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -57,8 +58,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
-#define COPYRIGHT_CRC		0x5891b729
+#define COPYRIGHT_NOTICE	"Copyright 2015 Rob Swindell"
+#define COPYRIGHT_CRC		0x24F092F2
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -68,8 +69,6 @@
 
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
-
-#define STR_UNKNOWN_USER	"<unknown user>"
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
@@ -86,7 +85,6 @@ typedef struct js_callback {
 	uint32_t		yield_interval;
 	uint32_t		gc_interval;
 	uint32_t		gc_attempts;
-	uint32_t		offline_counter;
 	BOOL			auto_terminate;
 	volatile BOOL*	terminated;
 	BOOL			bg;
@@ -100,9 +98,6 @@ typedef struct js_callback {
 /************/
 
 #define MAX_NODES		250
-#define MAX_SUBS		65534
-#define MAX_DIRS		65534
-#define MAX_XTRNS		65534
 
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
@@ -192,7 +187,18 @@ typedef struct js_callback {
 #define NM_7BITONLY		(1L<<16)	/* Except 7-bit input only (E71 terminals)	*/
 #define NM_NOPAUSESPIN	(1L<<18)	/* No spinning cursor at pause prompt		*/
 #define NM_CLOSENODEDAB	(1L<<19)	/* Keep node.dab file closed (for Samba)	*/
-					
+
+									/* Miscellaneous Modem Settings (mdm_misc)  */
+#define MDM_CTS 		(1<<0)		/* Use hardware send flow control			*/
+#define MDM_RTS 		(1<<1)		/* Use hardware recv flow control			*/
+#define MDM_STAYHIGH	(1<<2)		/* Stay at highest DTE rate 				*/
+#define MDM_CALLERID	(1<<3)		/* Supports Caller ID						*/
+#define MDM_DUMB		(1<<4)		/* Just watch DCD for answer - dumb modem	*/
+#define MDM_NODTR		(1<<5)		/* Don't drop DTR for hang-up               */
+#define MDM_KNOWNRES	(1<<6)		/* Allow known result codes only			*/
+#define MDM_VERBAL		(1<<7)		/* Use verbal result codes					*/
+
+						
 									/* Bit values for level_misc[x] 	*/
 #define LEVEL_EXPTOLVL	(1<<0)		/* Expire to level_expireto[x]		*/
 #define LEVEL_EXPTOVAL	(1<<1)		/* Expire to val[level_expireto[x]] */
@@ -219,8 +225,6 @@ typedef struct js_callback {
 									/* (bits 8-15 default to off)				*/
 
 									/* Bit values for sub[x].misc */
-#define SUB_NOVOTING	(1L<<0)		/* No voting allowed in this sub-board */
-#define SUB_TEMPLATE	(1L<<1)		/* Use this sub as template for new subs (in this group) */
 #define SUB_QNET		(1L<<3) 	/* Sub-board is netted via QWK network */
 #define SUB_PNET		(1L<<4) 	/* Sub-board is netted via PostLink */
 #define SUB_FIDO		(1L<<5) 	/* Sub-board is netted via FidoNet */
@@ -239,9 +243,9 @@ typedef struct js_callback {
 #define SUB_NSDEF		(1L<<18)	/* New-Scan on by default */
 #define SUB_INET		(1L<<19)	/* Sub-board is netted via Internet */
 #define SUB_FAST		(1L<<20)	/* Fast storage mode */
-#define SUB_KILL		(1L<<21)	/* Kill read messages automatically (NOT IMPLEMENTED) */
-#define SUB_KILLP		(1L<<22)	/* Kill read pvt messages automatically (NOT IMPLEMENTED) */
-#define SUB_SYSPERM		(1L<<23)	/* Sysop messages are permanent */
+#define SUB_KILL		(1L<<21)	/* Kill read messages automatically */
+#define SUB_KILLP		(1L<<22)	/* Kill read pvt messages automatically */
+#define SUB_SYSPERM		(1L<<23)	/* Sysop messages are permament */
 #define SUB_GATE		(1L<<24)	/* Gateway between Network types */
 #define SUB_LZH 		(1L<<25)	/* Use LZH compression for msgs */
 #define SUB_SSDEF		(1L<<26)	/* Default ON for Scan for Your msgs */
@@ -251,32 +255,27 @@ typedef struct js_callback {
 #define SUB_NOUSERSIG	(1L<<30)	/* Suppress user signatures */
 #define SUB_HDRMOD		(1L<<31)	/* Modified sub-board header info (SCFG) */
 
-                                    /* Bit values for lib[x].misc */
-#define LIB_DIRS	(1<<0) 			/* Local directory (sub-directory of lib parent) access */
-
                                     /* Bit values for dir[x].misc */
-#define DIR_FCHK		(1<<0) 		/* Check for file existence */
-#define DIR_RATE		(1<<1) 		/* Force uploads to be rated G,R, or X */
-#define DIR_MULT		(1<<2) 		/* Ask for multi-disk numbering */
-#define DIR_DUPES		(1<<3) 		/* Search this dir for upload dupes */
-#define DIR_FREE		(1<<4) 		/* Free downloads */
-#define DIR_TFREE		(1<<5) 		/* Time to download is free */
-#define DIR_CDTUL		(1<<6) 		/* Credit Uploads */
-#define DIR_CDTDL		(1<<7) 		/* Credit Downloads */
-#define DIR_ANON		(1<<8) 		/* Anonymous uploads */
-#define DIR_AONLY		(1<<9) 		/* Anonymous only */
-#define DIR_ULDATE		(1<<10)		/* Include upload date in listing */
-#define DIR_DIZ 		(1<<11)		/* FILE_ID.DIZ and DESC.SDI support */
-#define DIR_NOSCAN		(1<<12)		/* Don't new-scan this directory */
-#define DIR_NOAUTO		(1<<13)		/* Don't auto-add this directory */
-#define DIR_ULTIME		(1<<14)		/* Deduct time during uploads */
-#define DIR_CDTMIN		(1<<15)		/* Give uploader minutes instead of cdt */
-#define DIR_SINCEDL		(1<<16)		/* Purge based on days since last dl */
-#define DIR_MOVENEW		(1<<17)		/* Files marked as new when moved */
-#define DIR_QUIET		(1<<18)		/* Do not notify uploader of downloads */
-#define DIR_NOSTAT		(1<<19)		/* Do not include transfers in system stats */
-#define DIR_FILES		(1<<20)		/* List/access files not in database */
-#define DIR_TEMPLATE	(1<<21)		/* Use this dir as template for new dirs (in this lib) */
+#define DIR_FCHK	(1<<0) 			/* Check for file existance */
+#define DIR_RATE	(1<<1) 			/* Force uploads to be rated G,R, or X */
+#define DIR_MULT	(1<<2) 			/* Ask for multi-disk numbering */
+#define DIR_DUPES	(1<<3) 			/* Search this dir for upload dupes */
+#define DIR_FREE	(1<<4) 			/* Free downloads */
+#define DIR_TFREE	(1<<5) 			/* Time to download is free */
+#define DIR_CDTUL	(1<<6) 			/* Credit Uploads */
+#define DIR_CDTDL	(1<<7) 			/* Credit Downloads */
+#define DIR_ANON	(1<<8) 			/* Anonymous uploads */
+#define DIR_AONLY	(1<<9) 			/* Anonymous only */
+#define DIR_ULDATE	(1<<10)			/* Include upload date in listing */
+#define DIR_DIZ 	(1<<11)			/* FILE_ID.DIZ and DESC.SDI support */
+#define DIR_NOSCAN	(1<<12)			/* Don't new-scan this directory */
+#define DIR_NOAUTO	(1<<13)			/* Don't auto-add this directory */
+#define DIR_ULTIME	(1<<14)			/* Deduct time during uploads */
+#define DIR_CDTMIN	(1<<15)			/* Give uploader minutes instead of cdt */
+#define DIR_SINCEDL (1<<16)			/* Purge based on days since last dl */
+#define DIR_MOVENEW (1<<17)			/* Files marked as new when moved */
+#define DIR_QUIET	(1<<18)			/* Do not notify uploader of downloads */
+#define DIR_NOSTAT	(1<<19)			/* Do not include transfers in system stats */
 
                                     /* Bit values for file_t.misc */
 #define FM_EXTDESC  (1<<0)          /* Extended description exists */
@@ -315,15 +314,6 @@ enum {                              /* Values for dir[x].sort */
     ,SORT_DATE_D                    /* Sort by upload date, descending */
     };
 
-/* Values for grp[x].sort */
-enum area_sort {
-	AREA_SORT_NONE,
-	AREA_SORT_LNAME,
-	AREA_SORT_SNAME,
-	AREA_SORT_CODE,
-	AREA_SORT_TYPES,
-};
-
 enum {
 	 clr_mnehigh
 	,clr_mnelow
@@ -342,10 +332,6 @@ enum {
 	,clr_chatremote
 	,clr_multichat
 	,clr_external
-	,clr_votes_full
-	,clr_votes_empty
-	,clr_progress_full
-	,clr_progress_empty
 	,MIN_COLORS 
 };
 
@@ -382,7 +368,12 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define EVENT_FORCE		(1<<1) 		/* Force users off-line for event		*/
 #define EVENT_INIT		(1<<2)		/* Always run event after init			*/
 #define EVENT_DISABLED	(1<<3)		/* Disabled								*/
-
+																			
+									/* Mode bits for QWK stuff */			
+#define A_EXPAND		(1<<0)		/* Expand to ANSI sequences */			
+#define A_LEAVE 		(1<<1)		/* Leave in */							
+#define A_STRIP 		(1<<2)		/* Strip out */							
+																			
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
 #define XTRN_ANSI		(1<<1)		/* LEGACY (not used)                    */
@@ -434,18 +425,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_EXT		(1L<<13)		/* QWK Extended (QWKE) format			*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
 #define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
-#define QWK_VOTING	(1L<<17)		/* Include VOTING.DAT					*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
-
-#define QHUB_EXPCTLA	(1<<0)		/* Same as QM_EXPCTLA */
-#define QHUB_RETCTLA	(1<<1)		/* Same as QM_RETCTLA */
-#define QHUB_CTRL_A		(QHUB_EXPCTLA|QHUB_RETCTLA)
-#define QHUB_STRIP		0
-#define QHUB_EXT		(1<<13)		/* Use QWKE format */
-#define QHUB_NOKLUDGES	(1<<14)		/* Don't include @-kludges */
-#define QHUB_NOHEADERS	(1<<16)		/* Don't include HEADERS.DAT */
-#define QHUB_NOVOTING	(1<<17)		/* Don't include VOTING.DAT */
 																			
 							/* Bits in user.chat							*/
 #define CHAT_ECHO	(1<<0)	/* Multinode chat echo							*/
@@ -464,7 +445,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 																			
 																			
 #define EDIT_TABSIZE 4		/* Tab size for internal message/line editor	*/
-																		
+																			
+#define SWAP_NONE	0x80	/* Allow no swapping for executables			*/
+																			
 #define DSTSDABLEN	50		/* Length of dsts.dab file						*/
 																			
 								/* Console I/O Bits	(console)				*/
@@ -650,17 +633,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
 
 #define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML)
-
-									/* Special terminal key mappings */
-#define TERM_KEY_HOME	CTRL_B
-#define TERM_KEY_END	CTRL_E
-#define TERM_KEY_UP		CTRL_CARET
-#define TERM_KEY_DOWN	CTRL_J
-#define TERM_KEY_LEFT	CTRL_CLOSE_BRACKET
-#define TERM_KEY_RIGHT	CTRL_F
-#define TERM_KEY_INSERT	CTRL_V
-#define TERM_KEY_DELETE	DEL
-#define TERM_KEY_ABORT	CTRL_C
+																			
+#define CLREOL      256     /* Character to erase to end of line 			*/
 																			
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
@@ -734,7 +708,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_HTML		(1<<5)		/* Message is HTML							*/
 #define P_NOCRLF	(1<<6)		/* Don't prepend a CRLF	in printfile()		*/
 #define P_WORDWRAP	(1<<7)		/* Word-wrap long lines for user's terminal	*/
-#define P_CPM_EOF	(1<<8)		/* Ignore Ctrl-Z chars (CPM End-of-File)	*/
 								
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -764,9 +737,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LP_UNREAD	(1<<2)		/* Un-read messages only					*/
 #define LP_PRIVATE	(1<<3)		/* Include all private messages 			*/
 #define LP_REP		(1<<4)		/* Packing REP packet						*/
-#define LP_POLLS	(1<<5)		/* Include polls							*/
-#define LP_VOTES	(1<<6)		/* Include votes							*/
-#define LP_NOMSGS	(1<<7)		/* Don't include regular messages			*/
 								
 								/* Bits in the mode of loadmail()			*/
 #define LM_UNREAD	(1<<0)		/* Include un-read mail only				*/
@@ -814,7 +784,6 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
 #define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin) - DEPRECATED	(it sent the password as the server user name) */
 #define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
-#define TG_RLOGINSWAP	(1<<11)	/* Swap the RLogin alias/real-names			*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
@@ -839,16 +808,13 @@ enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
 #define LOL_SIZE    81			/* Length of each logon list entry          */
 								
 								/* Bits in mode of scanposts() function 	*/
-#define SCAN_CONST		(1<<0)	/* Continuous message scanning				*/
-#define SCAN_NEW		(1<<1)	/* New scanning								*/
-#define SCAN_BACK		(1<<2)	/* Scan the last message if no new			*/
-#define SCAN_TOYOU		(1<<3)	/* Scan for messages to you 				*/
-#define SCAN_FIND		(1<<4)	/* Scan for text in messages				*/
-#define SCAN_UNREAD		(1<<5)	/* Display un-read messages only			*/
-#define SCAN_MSGSONLY	(1<<6)	/* Do not do a new file scan even if the    
-								 * user enabled Automatic New File Scan		*/
-#define SCAN_POLLS		(1<<7)	/* Scan for polls (only)					*/
-
+#define SCAN_CONST	(1<<0)		/* Continuous message scanning				*/
+#define SCAN_NEW	(1<<1)		/* New scanning								*/
+#define SCAN_BACK	(1<<2)		/* Scan the last message if no new			*/
+#define SCAN_TOYOU	(1<<3)		/* Scan for messages to you 				*/
+#define SCAN_FIND	(1<<4)		/* Scan for text in messages				*/
+#define SCAN_UNREAD	(1<<5)		/* Display un-read messages only			*/
+								
 								/* Bits in misc of chan_t					*/
 #define CHAN_PW 	(1<<0)		/* Can be password protected				*/
 #define CHAN_GURU	(1<<1)		/* Guru joins empty channel 				*/
@@ -874,7 +840,7 @@ enum {							/* Values of mode for userlist function     */
 #define REALSYSOP		(useron.level>=SYSOP_LEVEL)
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
-#define WHERE       	__LINE__,__FUNCTION__,getfname(__FILE__)
+#define WHERE       	__LINE__,getfname(__FILE__)
 #define SAVELINE		{ if(slcnt<SAVE_LINES) { \
 							slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \
@@ -1028,14 +994,6 @@ typedef struct {						/* File (transfers) Data */
 typedef struct {
 	idxrec_t	idx;					/* defined in smbdefs.h */
 	uint32_t	num;					/* 1-based offset */
-	union {
-		struct {
-			uint32_t	upvotes;
-			uint32_t	downvotes;
-		};
-		uint32_t	votes[MSG_POLL_MAX_ANSWERS];
-	};
-	uint32_t	total_votes;
 } post_t;
 typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
