@@ -1,10 +1,10 @@
-/* $Id: ciolib.h,v 1.74 2018/01/22 09:31:41 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.72 2015/02/27 10:42:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -504,7 +504,7 @@ CIOLIBEXPORT int CIOLIBCALL mouse_wait(void);
 CIOLIBEXPORT int CIOLIBCALL mouse_pending(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent);
 CIOLIBEXPORT int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent);
-CIOLIBEXPORT void ciolib_mouse_thread(void *data);
+CIOLIBEXPORT void CIOLIBCALL ciolib_mouse_thread(void *data);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_setevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_addevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_delevents(int events);
@@ -521,10 +521,6 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_F(x)      ((x<11)?((0x3a+x) << 8):((0x7a+x) << 8))
 #define CIO_KEY_IC        (0x52 << 8)
 #define CIO_KEY_DC        (0x53 << 8)
-#define CIO_KEY_SHIFT_IC  (0x30 << 8)	/* Shift-Insert */
-#define CIO_KEY_SHIFT_DC  (0x2e << 8)	/* Shift-Delete */
-#define CIO_KEY_CTRL_IC   (0x92 << 8)	/* Ctrl-Insert */
-#define CIO_KEY_CTRL_DC   (0x93 << 8)	/* Ctrl-Delete */
 #define CIO_KEY_LEFT      (0x4b << 8)
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)
