@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.629 2015/12/02 04:38:19 deuce Exp $ */
+/* $Id: websrvr.c,v 1.630 2015/12/02 04:50:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -941,6 +941,7 @@ static int close_socket(SOCKET *sock)
 	BOOL	rd;
 
 	if(sock==NULL || *sock==INVALID_SOCKET)
+		return -1;
 
 	/* required to ensure all data is sent */
 	shutdown(*sock,SHUT_WR);
@@ -6482,7 +6483,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.629 $", "%*s %s", revision);
+	sscanf("$Revision: 1.630 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
