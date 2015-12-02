@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.6 2014/10/14 05:01:35 deuce Exp $
+# $Id: GNUmakefile,v 1.7 2015/08/27 00:28:11 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -42,4 +42,4 @@ endif
 $(GTKUSERLIST): $(OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ $(EXTRA_LIBS) -lsbbs $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
-	$(QUIET)cd $(EXEODIR) && ln -s ../gtkuserlist.glade .
+	$(QUIET)cd $(EXEODIR) && ln -fs ../gtkuserlist.glade .
