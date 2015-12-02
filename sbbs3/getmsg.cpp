@@ -2,13 +2,13 @@
 
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.45 2013/05/12 07:34:56 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.49 2015/11/26 13:15:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -80,7 +80,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 		return(0); 
 	}
 	if((i=smb_getmsghdr(&smb,msg))!=SMB_SUCCESS) {
-		sprintf(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
+		SAFEPRINTF4(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
 			,number,smb.file);
 		smb_unlockmsghdr(&smb,msg);
 		errormsg(WHERE,ERR_READ,str,i,smb.last_error);
@@ -119,6 +119,7 @@ void sbbs_t::show_msgattr(ushort attr)
 void sbbs_t::show_msghdr(smbmsg_t* msg)
 {
 	char	str[MAX_PATH+1];
+	char	age[64];
 	char	*sender=NULL;
 	int 	i;
 
@@ -128,7 +129,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	else
 		CRLF;
 
-	sprintf(str,"%smenu/msghdr.*", cfg.text_dir);
+	SAFEPRINTF(str,"%smenu/msghdr.*", cfg.text_dir);
 	if(fexist(str)) {
 		menu("msghdr");
 		return; 
@@ -152,7 +153,8 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	}
 	bprintf(text[MsgDate]
 		,timestr(msg->hdr.when_written.time)
-		,smb_zonestr(msg->hdr.when_written.zone,NULL));
+		,smb_zonestr(msg->hdr.when_written.zone,NULL)
+		,age_of_posted_item(age, sizeof(age), msg->hdr.when_written.time - (smb_tzutc(msg->hdr.when_written.zone) * 60)));
 
 	CRLF;
 
@@ -175,7 +177,7 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode)
 
 	show_msghdr(msg);
 
-	if((text=smb_getmsgtxt(&smb,msg,/* body and hfields: */0))!=NULL) {
+	if((text=smb_getmsgtxt(&smb,msg,(console&CON_RAW_IN) ? 0:GETMSGTXT_PLAIN)) != NULL) {
 		if(!(console&CON_RAW_IN))
 			mode|=P_WORDWRAP;
 		putmsg(text, mode);
@@ -235,69 +237,25 @@ void sbbs_t::msgtotxt(smbmsg_t* msg, char *str, int header, int tails)
 /****************************************************************************/
 ulong sbbs_t::getmsgnum(uint subnum, time_t t)
 {
-    int     i;
-	ulong	l,total,bot,top;
-	smbmsg_t msg;
+    int			i;
+	smb_t		smb;
+	idxrec_t	idx;
 
 	if(!t)
 		return(0);
 
-	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	ZERO_VAR(smb);
+	SAFEPRINTF2(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
-	if((i=smb_open(&smb))!=0) {
+	if((i=smb_open(&smb)) != SMB_SUCCESS) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return(0); 
 	}
+	smb_getmsgidx_by_time(&smb, &idx, t);
 
-	total=(long)filelength(fileno(smb.sid_fp))/sizeof(idxrec_t);
-
-	if(!total) {		   /* Empty base */
-		smb_close(&smb);
-		return(0); 
-	}
-
-	if((i=smb_locksmbhdr(&smb))!=0) {
-		smb_close(&smb);
-		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
-		return(0); 
-	}
-
-	if((i=smb_getlastidx(&smb,&msg.idx))!=0) {
-		smb_close(&smb);
-		errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
-		return(0); 
-	}
-
-	if((time_t)msg.idx.time<=t) {
-		smb_close(&smb);
-		return(msg.idx.number); 
-	}
-
-	bot=0;
-	top=total;
-	l=total/2; /* Start at middle index */
-	clearerr(smb.sid_fp);
-	while(1) {
-		fseek(smb.sid_fp,l*sizeof(idxrec_t),SEEK_SET);
-		if(!fread(&msg.idx,sizeof(idxrec_t),1,smb.sid_fp))
-			break;
-		if(bot==top-1)
-			break;
-		if((time_t)msg.idx.time>t) {
-			top=l;
-			l=bot+((top-bot)/2);
-			continue; 
-		}
-		if((time_t)msg.idx.time<t) {
-			bot=l;
-			l=top-((top-bot)/2);
-			continue; 
-		}
-		break; 
-	}
 	smb_close(&smb);
-	return(msg.idx.number);
+	return idx.number;
 }
 
 /****************************************************************************/
@@ -305,11 +263,13 @@ ulong sbbs_t::getmsgnum(uint subnum, time_t t)
 /****************************************************************************/
 time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 {
-	int 	i;
-	smbmsg_t msg;
-	idxrec_t lastidx;
+	int 		i;
+	smb_t		smb;
+	smbmsg_t	msg;
+	idxrec_t	lastidx;
 
-	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	ZERO_VAR(smb);
+	SAFEPRINTF2(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
@@ -380,6 +340,7 @@ ulong sbbs_t::getlastmsg(uint subnum, uint32_t *ptr, time_t *t)
 {
 	int 		i;
 	ulong		total;
+	smb_t		smb;
 	idxrec_t	idx;
 
 	if(ptr)
@@ -389,7 +350,8 @@ ulong sbbs_t::getlastmsg(uint subnum, uint32_t *ptr, time_t *t)
 	if(subnum>=cfg.total_subs)
 		return(0);
 
-	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	ZERO_VAR(smb);
+	SAFEPRINTF2(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
