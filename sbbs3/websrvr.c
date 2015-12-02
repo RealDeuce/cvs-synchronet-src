@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.630 2015/12/02 04:50:03 deuce Exp $ */
+/* $Id: websrvr.c,v 1.631 2015/12/02 05:11:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -6108,7 +6108,6 @@ void http_output_thread(void *arg)
 
 		pthread_mutex_lock(&session->outbuf_write);
         RingBufRead(obuf, (uchar*)bufdata, avail);
-		pthread_mutex_unlock(&session->outbuf_write);
 		if(chunked) {
 			bufdata+=avail;
 			*(bufdata++)='\r';
@@ -6118,6 +6117,7 @@ void http_output_thread(void *arg)
 
 		if(!failed)
 			sess_sendbuf(session, buf, len, &failed);
+		pthread_mutex_unlock(&session->outbuf_write);
     }
 	thread_down();
 	/* Ensure outbuf isn't currently being drained */
@@ -6483,7 +6483,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.630 $", "%*s %s", revision);
+	sscanf("$Revision: 1.631 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
