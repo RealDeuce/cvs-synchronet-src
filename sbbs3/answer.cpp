@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.88 2015/08/27 00:35:51 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.89 2015/12/03 10:30:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -369,8 +369,10 @@ bool sbbs_t::answer()
 		}
 	}
 
-	if(!online) 
+	if(!online) {
+		useron.number=0;
 		return(false); 
+	}
 
 	if(stricmp(terminal,"sexpots")==0) {	/* dial-up connection (via SexPOTS) */
 		SAFEPRINTF2(str,"%s connection detected at %lu bps", terminal, cur_rate);
