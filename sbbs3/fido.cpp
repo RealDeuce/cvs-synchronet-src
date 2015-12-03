@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.52 2015/11/24 22:34:32 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.56 2015/12/03 10:40:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,7 +162,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	truncsp(to);				/* Truncate off space */
 
 	memset(&hdr,0,sizeof(hdr));   /* Initialize header to null */
-	strcpy(hdr.from,cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
+	SAFECOPY(hdr.from, cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
 	SAFECOPY(hdr.to,to);
 
 	/* Look-up in nodelist? */
@@ -213,10 +213,10 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(cfg.netmail_misc&NMAIL_KILL)  hdr.attr|=FIDO_KILLSENT;
 	if(mode&WM_FILE) hdr.attr|=FIDO_FILE;
 
-	sprintf(str,"%sNETMAIL.MSG", cfg.node_dir);
-	remove(str);	/* Just incase it's already there */
+	SAFEPRINTF(str,"%snetmail.msg", cfg.node_dir);
+	removecase(str);	/* Just incase it's already there */
 	// mode&=~WM_FILE;
-	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into)) {
+	if(!writemsg(str,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into,hdr.from)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -298,7 +298,8 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 
 	SAFECOPY(hdr.subj,p);
 
-	sprintf(str,"%sNETMAIL.MSG", cfg.node_dir);
+	SAFEPRINTF(str,"%snetmail.msg", cfg.node_dir);
+	fexistcase(str);
 	if((file=nopen(str,O_RDONLY))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 		return(false); 
@@ -336,7 +337,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		pt_zone_kludge(hdr,fido);
 		/* TZUTC (FSP-1001) */
 		int tzone=smb_tzutc(sys_timezone(&cfg));
-		char* minus="";
+		const char* minus="";
 		if(tzone<0) {
 			minus="-";
 			tzone=-tzone;
@@ -618,7 +619,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 		p++;
 		addr=p;
-		msg.idx.to=qwk_route(addr,fulladdr);
+		msg.idx.to=qwk_route(&cfg,addr,fulladdr, sizeof(fulladdr)-1);
 		if(!fulladdr[0]) {		/* Invalid address, so BOUNCE it */
 		/**
 			errormsg(WHERE,ERR_CHK,addr,0);

@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.159 2015/11/24 16:28:01 rswindell Exp $ */
+/* $Id: userdat.c,v 1.163 2015/11/30 10:24:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -845,29 +845,33 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 		return(buf);
 	}
 
+	str[0]=0;
     switch(node->status) {
         case NODE_WFC:
-            strcpy(str,"Waiting for connection");
+            SAFECOPY(str,"Waiting for connection");
             break;
         case NODE_OFFLINE:
             strcpy(str,"Offline");
             break;
         case NODE_NETTING:	/* Obsolete */
-            strcpy(str,"Networking");
+            SAFECOPY(str,"Networking");
             break;
         case NODE_LOGON:
-            SAFEPRINTF(str,"At logon prompt %s"
+            SAFEPRINTF(str,"At login prompt %s"
 				,node_connection_desc(node->connection, tmp));
             break;
+		case NODE_LOGOUT:
+			SAFEPRINTF(str,"Logging out %s", username(cfg,node->useron,tmp));
+			break;
         case NODE_EVENT_WAITING:
-            strcpy(str,"Waiting for all nodes to become inactive");
+            SAFECOPY(str,"Waiting for all nodes to become inactive");
             break;
         case NODE_EVENT_LIMBO:
             SAFEPRINTF(str,"Waiting for node %d to finish external event"
                 ,node->aux);
             break;
         case NODE_EVENT_RUNNING:
-            strcpy(str,"Running external event");
+            SAFECOPY(str,"Running external event");
             break;
         case NODE_NEWUSER:
             SAFEPRINTF(str,"New user applying for access %s"
@@ -2834,4 +2838,175 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	listUnlock(list);
 
 	return count;
+}
+
+/****************************************************************************/
+/* Message-new-scan pointer/configuration functions							*/
+/****************************************************************************/
+BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
+{
+	char		path[MAX_PATH+1];
+	uint		i;
+	int 		file;
+	long		length;
+	FILE*		stream;
+
+	/* Initialize to configured defaults */
+	for(i=0;i<cfg->total_subs;i++) {
+		subscan[i].ptr=subscan[i].sav_ptr=0;
+		subscan[i].last=subscan[i].sav_last=0;
+		subscan[i].cfg=0xff;
+		if(!(cfg->sub[i]->misc&SUB_NSDEF))
+			subscan[i].cfg&=~SUB_CFG_NSCAN;
+		if(!(cfg->sub[i]->misc&SUB_SSDEF))
+			subscan[i].cfg&=~SUB_CFG_SSCAN;
+		subscan[i].sav_cfg=subscan[i].cfg; 
+	}
+
+	if(user->number == 0)
+		return 0;
+
+	if(user->rest&FLAG('G'))
+		return initmsgptrs(cfg, subscan, cfg->guest_msgscan_init);
+	
+	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
+	if((stream=fnopen(&file,path,O_RDONLY))==NULL) {
+		if(fexist(path))
+			return(FALSE);	/* file exists, but couldn't be opened? */
+		return initmsgptrs(cfg, subscan, cfg->new_msgscan_init);
+	}
+
+	length=(long)filelength(file);
+	for(i=0;i<cfg->total_subs;i++) {
+		if(length>=(cfg->sub[i]->ptridx+1)*10L) {
+			fseek(stream,(long)cfg->sub[i]->ptridx*10L,SEEK_SET);
+			fread(&subscan[i].ptr,sizeof(subscan[i].ptr),1,stream);
+			fread(&subscan[i].last,sizeof(subscan[i].last),1,stream);
+			fread(&subscan[i].cfg,sizeof(subscan[i].cfg),1,stream);
+		}
+		subscan[i].sav_ptr=subscan[i].ptr;
+		subscan[i].sav_last=subscan[i].last;
+		subscan[i].sav_cfg=subscan[i].cfg; 
+	}
+	fclose(stream);
+	return(TRUE);
+}
+
+/****************************************************************************/
+/* Writes to data/user/ptrs/####.ixb the msgptr array for the current user	*/
+/* Pass usernumber value of 0 to indicate "Guest" login						*/
+/****************************************************************************/
+BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
+{
+	char		path[MAX_PATH+1];
+	ushort		idx;
+	uint16_t	scancfg;
+	uint		i,j;
+	int 		file;
+	ulong		length;
+	uint32_t	l=0L;
+
+	if(user->number==0 || (user->rest&FLAG('G')))	/* Guest */
+		return(TRUE);
+	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
+	if((file=nopen(path,O_WRONLY|O_CREAT))==-1) {
+		return(FALSE); 
+	}
+	fixmsgptrs(cfg, subscan);
+	length=(ulong)filelength(file);
+	for(i=0;i<cfg->total_subs;i++) {
+		if(subscan[i].sav_ptr==subscan[i].ptr 
+			&& subscan[i].sav_last==subscan[i].last
+			&& length>=((cfg->sub[i]->ptridx+1)*10UL)
+			&& subscan[i].sav_cfg==subscan[i].cfg)
+			continue;
+		while(filelength(file)<(long)(cfg->sub[i]->ptridx)*10) {
+			lseek(file,0L,SEEK_END);
+			idx=(ushort)(tell(file)/10);
+			for(j=0;j<cfg->total_subs;j++)
+				if(cfg->sub[j]->ptridx==idx)
+					break;
+			write(file,&l,sizeof(l));
+			write(file,&l,sizeof(l));
+			scancfg=0xff;					
+			if(j<cfg->total_subs) {
+				if(!(cfg->sub[j]->misc&SUB_NSDEF))
+					scancfg&=~SUB_CFG_NSCAN;
+				if(!(cfg->sub[j]->misc&SUB_SSDEF))
+					scancfg&=~SUB_CFG_SSCAN; 
+			} else	/* default to scan OFF for unknown sub */
+				scancfg&=~(SUB_CFG_NSCAN|SUB_CFG_SSCAN);
+			write(file,&scancfg,sizeof(scancfg)); 
+		}
+		lseek(file,(long)((long)(cfg->sub[i]->ptridx)*10),SEEK_SET);
+		write(file,&(subscan[i].ptr),sizeof(subscan[i].ptr));
+		write(file,&(subscan[i].last),sizeof(subscan[i].last));
+		write(file,&(subscan[i].cfg),sizeof(subscan[i].cfg));
+	}
+	close(file);
+	if(!flength(path))			/* Don't leave 0 byte files */
+		remove(path);
+
+	return(TRUE);
+}
+
+/****************************************************************************/
+/* Initialize new-msg-scan pointers (e.g. for new users)					*/
+/* If 'days' is specified as 0, just set pointer to last message (faster)	*/
+/****************************************************************************/
+BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
+{
+	uint		i;
+	smb_t		smb;
+	idxrec_t	idx;
+	time_t		t = time(NULL) - (days * 24 * 60 * 60);
+
+	for(i=0;i<cfg->total_subs;i++) {
+		if(days == 0) {
+			/* This value will be "fixed" (changed to the last msg) when saving */
+			subscan[i].ptr = ~0;
+			continue;
+		}
+		ZERO_VAR(smb);
+		SAFEPRINTF2(smb.file,"%s%s",cfg->sub[i]->data_dir,cfg->sub[i]->code);
+		smb.retry_time=cfg->smb_retry_time;
+		smb.subnum=i;
+		if(smb_open(&smb) != SMB_SUCCESS)
+			continue;
+		if(days == 0)
+			subscan[i].ptr = smb.status.last_msg;
+		else if(smb_getmsgidx_by_time(&smb, &idx, t) == SMB_SUCCESS)
+			subscan[i].ptr = idx.number;
+		smb_close(&smb);
+	}
+	return TRUE;
+}
+
+/****************************************************************************/
+/* Insure message new-scan pointers are within the range of the msgs in		*/
+/* the sub-board.															*/
+/****************************************************************************/
+BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
+{
+	uint		i;
+	smb_t		smb;
+
+	for(i=0;i<cfg->total_subs;i++) {
+		if(subscan[i].ptr == 0)
+			continue;
+		if(subscan[i].sav_ptr == subscan[i].ptr)
+			continue;
+		ZERO_VAR(smb);
+		SAFEPRINTF2(smb.file,"%s%s",cfg->sub[i]->data_dir,cfg->sub[i]->code);
+		smb.retry_time=cfg->smb_retry_time;
+		smb.subnum=i;
+		if(smb_open(&smb) != SMB_SUCCESS)
+			continue;
+		if(subscan[i].ptr > smb.status.last_msg)
+			subscan[i].ptr = smb.status.last_msg;
+		if(subscan[i].last > smb.status.last_msg)
+			subscan[i].last = smb.status.last_msg;
+		smb_close(&smb);
+	}
+	return TRUE;
 }

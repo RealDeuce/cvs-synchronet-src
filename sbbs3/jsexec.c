@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.179 2015/11/16 17:52:33 deuce Exp $ */
+/* $Id: jsexec.c,v 1.181 2015/11/25 08:03:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1049,8 +1049,13 @@ int parseLogLevel(const char* p)
 #ifdef __unix__
 void raw_input(struct termios *t)
 {
+#ifdef JSDOOR
 	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
 	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+#else
+	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
+#endif
 }
 #endif
 
@@ -1073,6 +1078,10 @@ int main(int argc, char **argv, char** environ)
 
 	confp=stdout;
 	errfp=stderr;
+	if((nulfp=fopen(_PATH_DEVNULL,"w+"))==NULL) {
+		perror(_PATH_DEVNULL);
+		return(do_bail(-1));
+	}
 	if(isatty(fileno(stdin))) {
 #ifdef __unix__
 		struct termios term;
@@ -1088,17 +1097,13 @@ int main(int argc, char **argv, char** environ)
 	}
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
-	if((nulfp=fopen(_PATH_DEVNULL,"w+"))==NULL) {
-		perror(_PATH_DEVNULL);
-		return(do_bail(-1));
-	}
 
 	cb.limit=JAVASCRIPT_TIME_LIMIT;
 	cb.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.179 $", "%*s %s", revision);
+	sscanf("$Revision: 1.181 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
