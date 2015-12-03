@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.55 2015/11/26 08:34:34 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.56 2015/12/03 10:40:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -619,7 +619,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 
 		p++;
 		addr=p;
-		msg.idx.to=qwk_route(addr,fulladdr);
+		msg.idx.to=qwk_route(&cfg,addr,fulladdr, sizeof(fulladdr)-1);
 		if(!fulladdr[0]) {		/* Invalid address, so BOUNCE it */
 		/**
 			errormsg(WHERE,ERR_CHK,addr,0);

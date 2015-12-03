@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.422 2015/11/26 13:15:21 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.423 2015/12/03 10:40:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -879,7 +879,6 @@ public:
 	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
-	int		qwk_route(char *inaddr, char *fulladdr);
 	uint	total_qwknodes;
 	struct qwknode {
 		char	id[LEN_QWKID+1];
@@ -1107,6 +1106,9 @@ extern "C" {
 	/* xtrn.cpp */
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
+
+	/* qwk.cpp */
+	DLLEXPORT int		qwk_route(scfg_t*, const char *inaddr, char *fulladdr, size_t maxlen);
 
 #ifdef JAVASCRIPT
 
