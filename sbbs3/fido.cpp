@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.57 2015/12/04 08:23:02 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.56 2015/12/03 10:40:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -446,7 +446,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 {
 	char	*qwkbuf,to[129],name[129],sender[129],senderaddr[129]
 			   ,str[256],*p,*cp,*addr,fulladdr[129],ch;
-	char*	sender_id = fromhub ? cfg.qhub[fromhub-1]->id : useron.alias;
 	char 	tmp[512];
 	int 	i,fido,inet=0,qnet=0;
 	ushort	net;
@@ -559,12 +558,16 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 				l+=strlen(str)+1;
 				cp=str;
 				while(*cp && *cp<=' ') cp++;
-				sprintf(senderaddr,"%s/%s",sender_id,cp);
+				sprintf(senderaddr,"%s/%s"
+					,fromhub ? cfg.qhub[fromhub-1]->id : useron.alias,cp);
 				strupr(senderaddr);
 				smb_hfield(&msg,SENDERNETADDR,strlen(senderaddr),senderaddr); 
 			}
 			else {
-				SAFECOPY(senderaddr, sender_id);
+				if(fromhub)
+					SAFECOPY(senderaddr, cfg.qhub[fromhub-1]->id);
+				else
+					SAFECOPY(senderaddr, useron.alias);
 				strupr(senderaddr);
 				smb_hfield(&msg,SENDERNETADDR,strlen(senderaddr),senderaddr); 
 			}
@@ -787,8 +790,8 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			useron.etoday++;
 			putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
-			safe_snprintf(str,sizeof(str), "%s (%s) sent %s NetMail to %s (%s) via QWK"
-				,sender, sender_id
+			sprintf(str,"%s sent %s NetMail to %s (%s) via QWK"
+				,useron.alias
 				,qnet ? "QWK":"Internet",name,qnet ? fulladdr : to);
 			logline("EN",str); 
 		}
@@ -811,7 +814,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	if(fromhub || useron.rest&FLAG('Q')) {
 		sprintf(str,"%.25s",block+46);              /* From */
 		truncsp(str);
-		sprintf(tmp,"@%s",sender_id);
+		sprintf(tmp,"@%s",fromhub ? cfg.qhub[fromhub-1]->id : useron.alias);
 		strupr(tmp);
 		strcat(str,tmp); 
 	}
@@ -970,7 +973,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
 	sprintf(str,"%s sent NetMail to %s @%s via QWK"
-		,sender_id
+		,useron.alias
 		,hdr.to,smb_faddrtoa(&fidoaddr,tmp));
 	logline("EN",str);
 }

@@ -1,13 +1,14 @@
+/* mailsrvr.h */
+
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.80 2017/11/15 09:57:59 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: mailsrvr.h,v 1.76 2015/08/29 20:53:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -90,7 +91,6 @@ typedef struct {
 	/* Paths */
     char    ctrl_dir[128];
 	char    temp_dir[128];
-	char	ini_fname[128];
 
 	/* Strings */
     char	dns_server[128];
@@ -101,8 +101,6 @@ typedef struct {
 	char	outbound_sound[128];
     char	pop3_sound[128];
 	char	default_charset[128];
-	char	newmail_notice[256];
-	char	forward_notice[256];
 
 	/* Misc */
     char	host_name[128];
@@ -122,7 +120,10 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	struct login_attempt_settings login_attempt;
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
 
 } mail_startup_t;
@@ -166,7 +167,6 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_RELAY_AUTH_CRAM_MD5	(1<<25)
 #define MAIL_OPT_NO_AUTO_EXEMPT			(1<<26)	/* Do not auto DNSBL-exempt recipient e-mail addresses */
 #define MAIL_OPT_NO_RECYCLE				(1<<27)	/* Disable recycling of server		*/
-#define MAIL_OPT_KILL_READ_SPAM			(1<<28)	/* Set the KILLREAD flag on SPAM msgs */
 #define MAIL_OPT_MUTE					(1<<31)
 
 #define MAIL_OPT_RELAY_AUTH_MASK		(MAIL_OPT_RELAY_AUTH_PLAIN|MAIL_OPT_RELAY_AUTH_LOGIN|MAIL_OPT_RELAY_AUTH_CRAM_MD5)
@@ -205,7 +205,6 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
 	{ MAIL_OPT_NO_AUTO_EXEMPT		,"NO_AUTO_EXEMPT"		},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ MAIL_OPT_KILL_READ_SPAM		,"KILL_READ_SPAM"		},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
 	/* terminator */
 	{ 0 							,NULL					}
