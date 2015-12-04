@@ -2,13 +2,13 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 1.28 2014/06/10 00:56:20 rswindell Exp $ */
+/* $Id: echocfg.c,v 1.30 2015/08/22 10:16:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -120,6 +120,7 @@ int main(int argc, char **argv)
 	arcdef_t savarcdef;
 	BOOL door_mode=FALSE;
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
+	unsigned int u, u2;
 
 	fprintf(stderr,"\nSBBSecho Configuration  Version %u.%02u  Copyright %s "
 		"Rob Swindell\n\n",SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR, __DATE__+7);
@@ -327,9 +328,9 @@ int main(int argc, char **argv)
 	"uplink nodes.\r\n";
 				i=0;
 				while(1) {
-					for(j=0;j<cfg.nodecfgs;j++)
-						strcpy(opt[j],wcfaddrtoa(&cfg.nodecfg[j].faddr));
-					opt[j][0]=0;
+					for(u=0;u<cfg.nodecfgs;u++)
+						strcpy(opt[u],wcfaddrtoa(&cfg.nodecfg[u].faddr));
+					opt[u][0]=0;
 					i=uifc.list(WIN_ORG|WIN_INS|WIN_DEL|WIN_ACT|WIN_GET|WIN_PUT
 						|WIN_INSACT|WIN_DELACT|WIN_XTR
 						,0,0,0,&i,0,"Nodes",opt);
@@ -363,8 +364,8 @@ int main(int argc, char **argv)
 						if(cfg.nodecfgs<=0) {
 							cfg.nodecfgs=0;
 							continue; }
-						for(j=i;j<cfg.nodecfgs;j++)
-							memcpy(&cfg.nodecfg[j],&cfg.nodecfg[j+1]
+						for(u=i;u<cfg.nodecfgs;u++)
+							memcpy(&cfg.nodecfg[u],&cfg.nodecfg[u+1]
 								,sizeof(nodecfg_t));
 						if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
 							,sizeof(nodecfg_t)*(cfg.nodecfgs)))==NULL) {
@@ -435,17 +436,17 @@ int main(int argc, char **argv)
 	"~ Archive Type ~\r\n\r\n"
 	"This is the compression type that will be used for compressing packets\r\n"
 	"to and decompressing packets from this node.\r\n";
-								for(j=0;j<cfg.arcdefs;j++)
-									strcpy(opt[j],cfg.arcdef[j].name);
-								strcpy(opt[j++],"None");
-								opt[j][0]=0;
-								if(cfg.nodecfg[i].arctype<j)
-									j=cfg.nodecfg[i].arctype;
-								k=uifc.list(WIN_RHT|WIN_SAV,0,0,0,&j,0
+								for(u=0;u<cfg.arcdefs;u++)
+									strcpy(opt[u],cfg.arcdef[u].name);
+								strcpy(opt[u++],"None");
+								opt[u][0]=0;
+								if(cfg.nodecfg[i].arctype<u)
+									u=cfg.nodecfg[i].arctype;
+								k=uifc.list(WIN_RHT|WIN_SAV,0,0,0,&u,0
 									,"Archive Type",opt);
 								if(k==-1)
 									break;
-								if(k>=cfg.arcdefs)
+								if((unsigned)k>=cfg.arcdefs)
 									cfg.nodecfg[i].arctype=0xffff;
 								else
 									cfg.nodecfg[i].arctype=k;
@@ -772,18 +773,47 @@ int main(int argc, char **argv)
 	uifc.helpbuf=
 	"`Secure Operation` tells SBBSecho to check the AREAS.BBS file to insure\r\n"
 	"    that the packet origin exists there as well as check the password of\r\n"
-	"    that node (if configured).\r\n\r\n"
+	"    that node (if configured).\r\n"
+	"\r\n"
 	"`Convert Existing Tear Lines` tells SBBSecho to convert any tear lines\r\n"
-	"    (`---`) existing in the message text to to `===`.\r\n\r\n"
-	"`Fuzzy Zone Operation` when set to yes if SBBSecho receives an inbound\r\n"
+	"    (`---`) existing in the message text to to `===`.\r\n"
+	"\r\n"
+	"`Fuzzy Zone Operation` when set to `Yes`, if SBBSecho receives an inbound\r\n"
 	"    netmail with no international zone information, it will compare the\r\n"
 	"    net/node of the destination to the net/node information in your AKAs\r\n"
-	"    and assume the zone of a matching AKA.\r\n\r\n"
+	"    and assume the zone of a matching AKA.\r\n"
+	"\r\n"
 	"`Store PATH/SEEN-BY/Unkown Kludge Lines in Message Base` allows you to\r\n"
 	"    determine whether or not SBBSecho will store this information from\r\n"
-	"    incoming messages in the Synchronet message base.\r\n\r\n"
-	"`Allow Nodes to Add Areas in the AREAS.BBS List` when set to `YES` allows\r\n"
-	"    uplinks to add areas listed in the AREAS.BBS file\r\n";
+	"    incoming messages in the Synchronet message base (for debugging).\r\n"
+	"\r\n"
+	"`Allow Nodes to Add Areas in the AREAS.BBS List` when set to `Yes` allows\r\n"
+	"    uplinks to add areas listed in the AREAS.BBS file\r\n"
+	"\r\n"
+	"`Strip Line Feeds From Outgoing Messages` when set to `Yes` instructs\r\n"
+	"    SBBSecho to remove any line-feed (ASCII 10) characters from the body\r\n"
+	"    text of messages being exported to FidoNet EchoMail.\r\n"
+	"\r\n"
+	"`Kill/Ignore Empty NetMail Messages` will instruct SBBSecho to simply\r\n"
+	"    discard (not import or export) NetMail messages without any body.\r\n"
+	"\r\n"
+	"`Circular Path Detection` when `Enabled` will cause SBBSecho, during\r\n"
+	"    EchoMail import, to check the PATH kludge lines for any of the\r\n"
+	"    system's AKAs and if found (indicating a message loop), not import\r\n"
+	"    the message.\r\n"
+	"\r\n"
+	"`Forward Circular Messages To Links` is only valid when `Circular Path\r\n"
+	"    Detection` is enabled. When set to `No`, SBBSecho will discard\r\n"
+	"    the circular/looped message and not forward to any linked nodes.\r\n"
+	"\r\n"
+	"`Bundle Attachments` may be either `Killed` (deleted) or `Truncated` (set\r\n"
+	"    to 0-bytes in length).\r\n"
+	"\r\n"
+	"`Zone Blind SEEN-BY and PATH Lines` when `Enabled` will cause SBBSecho\r\n"
+	"    to assume that node numbers are not duplicated across zones and\r\n"
+	"    that a net/node combination in either of these Kludge lines should\r\n"
+	"    be used to identify a specific node regardless of which zone that\r\n"
+	"    node is located (thus breaking the rules of FidoNet 3D addressing).\r\n";
 				j=0;
 				while(1) {
 					i=0;
@@ -807,6 +837,8 @@ int main(int argc, char **argv)
 						"Messages",misc&KILL_EMPTY_MAIL ? "Yes":"No");
 					sprintf(opt[i++],"%-50.50s%s","Circular Path Detection"
 						,cfg.check_path ? "Enabled" : "Disabled");
+					sprintf(opt[i++],"%-50.50s%s","Forward Circular Messages to Links"
+						,cfg.check_path ? (cfg.fwd_circular ? "Yes" : "No") : "N/A");
 					sprintf(opt[i++],"%-50.50s%s","Bundle Attachments"
 						,misc&TRUNC_BUNDLES ? "Truncate" : "Kill");
 					sprintf(opt[i++],"%-50.50s%s","Zone Blind SEEN-BY and PATH Lines"
@@ -847,12 +879,14 @@ int main(int argc, char **argv)
 							cfg.check_path=!cfg.check_path;
 							break;
 						case 10:
-							misc^=TRUNC_BUNDLES;
+							cfg.fwd_circular=!cfg.fwd_circular;
 							break;
 						case 11:
+							misc^=TRUNC_BUNDLES;
+							break;
+						case 12:
 							cfg.zone_blind=!cfg.zone_blind;
 							break;
-
 					} 
 				}
 				break;
@@ -863,9 +897,9 @@ int main(int argc, char **argv)
 	"compressing outgoing packets.\r\n";
 				i=0;
 				while(1) {
-					for(j=0;j<cfg.arcdefs;j++)
-						sprintf(opt[j],"%-30.30s",cfg.arcdef[j].name);
-					opt[j][0]=0;
+					for(u=0;u<cfg.arcdefs;u++)
+						sprintf(opt[u],"%-30.30s",cfg.arcdef[u].name);
+					opt[u][0]=0;
 					i=uifc.list(WIN_ORG|WIN_INS|WIN_DEL|WIN_ACT|WIN_GET|WIN_PUT
 						|WIN_INSACT|WIN_DELACT|WIN_XTR
 						,0,0,0,&i,0,"Archive Programs",opt);
@@ -900,8 +934,8 @@ int main(int argc, char **argv)
 						if(cfg.arcdefs<=0) {
 							cfg.arcdefs=0;
 							continue; }
-						for(j=i;j<cfg.arcdefs;j++)
-							memcpy(&cfg.arcdef[j],&cfg.arcdef[j+1]
+						for(u=i;u<cfg.arcdefs;u++)
+							memcpy(&cfg.arcdef[u],&cfg.arcdef[u+1]
 								,sizeof(arcdef_t));
 						if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
 							,sizeof(arcdef_t)*(cfg.arcdefs)))==NULL) {
@@ -970,9 +1004,9 @@ int main(int argc, char **argv)
 	"AREAS.BBS file) for SBBSecho to search for area add requests.\r\n";
 				i=0;
 				while(1) {
-					for(j=0;j<cfg.listcfgs;j++)
-						sprintf(opt[j],"%-50.50s",cfg.listcfg[j].listpath);
-					opt[j][0]=0;
+					for(u=0;u<cfg.listcfgs;u++)
+						sprintf(opt[u],"%-50.50s",cfg.listcfg[u].listpath);
+					opt[u][0]=0;
 					i=uifc.list(WIN_ORG|WIN_INS|WIN_DEL|WIN_ACT|WIN_GET|WIN_PUT
 						|WIN_INSACT|WIN_DELACT|WIN_XTR
 						,0,0,0,&i,0,"Additional Echo Lists",opt);
@@ -1006,8 +1040,8 @@ int main(int argc, char **argv)
 						if(cfg.listcfgs<=0) {
 							cfg.listcfgs=0;
 							continue; }
-						for(j=i;j<cfg.listcfgs;j++)
-							memcpy(&cfg.listcfg[j],&cfg.listcfg[j+1]
+						for(u=i;u<cfg.listcfgs;u++)
+							memcpy(&cfg.listcfg[u],&cfg.listcfg[u+1]
 								,sizeof(echolist_t));
 						if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
 							,sizeof(echolist_t)*(cfg.listcfgs)))==NULL) {
@@ -1035,8 +1069,8 @@ int main(int argc, char **argv)
 						sprintf(opt[j++],"%-20.20s %s","Forward Requests"
 							,(cfg.listcfg[i].misc&NOFWD) ? "No" : "Yes");
 						str[0]=0;
-						for(k=0;k<cfg.listcfg[i].numflags;k++) {
-							strcat(str,cfg.listcfg[i].flag[k].flag);
+						for(u=0;u<cfg.listcfg[i].numflags;u++) {
+							strcat(str,cfg.listcfg[i].flag[u].flag);
 							strcat(str," "); }
 						sprintf(opt[j++],"%-20.20s %s","Echo List Flags",str);
 						opt[j][0]=0;
@@ -1078,9 +1112,9 @@ int main(int argc, char **argv)
 								break;
 							case 4:
 								while(1) {
-									for(j=0;j<cfg.listcfg[i].numflags;j++)
-										strcpy(opt[j],cfg.listcfg[i].flag[j].flag);
-									opt[j][0]=0;
+									for(u=0;u<cfg.listcfg[i].numflags;u++)
+										strcpy(opt[u],cfg.listcfg[i].flag[u].flag);
+									opt[u][0]=0;
 									x=uifc.list(WIN_SAV|WIN_INS|WIN_DEL|WIN_ACT|
 										WIN_XTR|WIN_INSACT|WIN_DELACT|WIN_RHT
 										,0,0,0,&x,0,"Echo List Flags",opt);
@@ -1119,9 +1153,9 @@ int main(int argc, char **argv)
 										if(cfg.listcfg[i].numflags<=0) {
 											cfg.listcfg[i].numflags=0;
 											continue; }
-										for(j=x;j<cfg.listcfg[i].numflags;j++)
-											strcpy(cfg.listcfg[i].flag[j].flag
-												,cfg.listcfg[i].flag[j+1].flag);
+										for(u=x;u<cfg.listcfg[i].numflags;u++)
+											strcpy(cfg.listcfg[i].flag[u].flag
+												,cfg.listcfg[i].flag[u+1].flag);
 										if((cfg.listcfg[i].flag=(flag_t *)
 											realloc(cfg.listcfg[i].flag
 											,sizeof(flag_t)*
@@ -1161,6 +1195,8 @@ int main(int argc, char **argv)
 				}
 				if(!cfg.check_path)
 					fprintf(stream,"NOPATHCHECK\n");
+				if(!cfg.fwd_circular)
+					fprintf(stream,"NOCIRCULARFWD\n");
 				if(cfg.zone_blind) {
 					fprintf(stream,"ZONE_BLIND");
 					if(cfg.zone_blind_threshold != 0xffff)
@@ -1215,113 +1251,113 @@ int main(int argc, char **argv)
 					fprintf(stream,"ARCSIZE %lu\n",cfg.maxbdlsize);
 				if(cfg.maxpktsize!=DFLT_PKT_SIZE)
 					fprintf(stream,"PKTSIZE %lu\n",cfg.maxpktsize);
-				for(i=j=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].attr&SEND_NOTIFY) {
+				for(u=j=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].attr&SEND_NOTIFY) {
 						if(!j) fprintf(stream,"SEND_NOTIFY");
-						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[i].faddr));
+						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[u].faddr));
 						j++; }
 				if(j) fprintf(stream,"\n");
-				for(i=j=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].attr&ATTR_HOLD) {
+				for(u=j=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].attr&ATTR_HOLD) {
 						if(!j) fprintf(stream,"HOLD");
-						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[i].faddr));
+						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[u].faddr));
 						j++; }
 				if(j) fprintf(stream,"\n");
-				for(i=j=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].attr&ATTR_DIRECT) {
+				for(u=j=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].attr&ATTR_DIRECT) {
 						if(!j) fprintf(stream,"DIRECT");
-						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[i].faddr));
+						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[u].faddr));
 						j++; }
 				if(j) fprintf(stream,"\n");
-				for(i=j=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].attr&ATTR_CRASH) {
+				for(u=j=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].attr&ATTR_CRASH) {
 						if(!j) fprintf(stream,"CRASH");
-						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[i].faddr));
+						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[u].faddr));
 						j++; }
 				if(j) fprintf(stream,"\n");
-				for(i=j=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].attr&ATTR_PASSIVE) {
+				for(u=j=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].attr&ATTR_PASSIVE) {
 						if(!j) fprintf(stream,"PASSIVE");
-						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[i].faddr));
+						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[u].faddr));
 						j++; }
 				if(j) fprintf(stream,"\n");
 
-				for(i=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].pktpwd[0])
+				for(u=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].pktpwd[0])
 						fprintf(stream,"PKTPWD %s %s\n"
-							,wcfaddrtoa(&cfg.nodecfg[i].faddr),cfg.nodecfg[i].pktpwd);
+							,wcfaddrtoa(&cfg.nodecfg[u].faddr),cfg.nodecfg[u].pktpwd);
 
-				for(i=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].pkt_type)
+				for(u=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].pkt_type)
 						fprintf(stream,"PKTTYPE %s %s\n"
-							,cfg.nodecfg[i].pkt_type==PKT_TWO_TWO ? "2.2":"2"
-							,wcfaddrtoa(&cfg.nodecfg[i].faddr));
+							,cfg.nodecfg[u].pkt_type==PKT_TWO_TWO ? "2.2":"2"
+							,wcfaddrtoa(&cfg.nodecfg[u].faddr));
 
-				for(i=0;i<cfg.arcdefs;i++)
+				for(u=0;u<cfg.arcdefs;u++)
 					fprintf(stream,"PACKER %s %u %s\n  PACK %s\n"
 						"  UNPACK %s\nEND\n"
-						,cfg.arcdef[i].name
-						,cfg.arcdef[i].byteloc
-						,cfg.arcdef[i].hexid
-						,cfg.arcdef[i].pack
-						,cfg.arcdef[i].unpack
+						,cfg.arcdef[u].name
+						,cfg.arcdef[u].byteloc
+						,cfg.arcdef[u].hexid
+						,cfg.arcdef[u].pack
+						,cfg.arcdef[u].unpack
 						);
-				for(i=0;i<cfg.arcdefs;i++) {
-					for(j=k=0;j<cfg.nodecfgs;j++)
-						if(cfg.nodecfg[j].arctype==i) {
+				for(u=0;u<cfg.arcdefs;u++) {
+					for(u2=k=0;u2<cfg.nodecfgs;u2++)
+						if(cfg.nodecfg[u2].arctype==u) {
 							if(!k)
 								fprintf(stream,"%-10s %s","USEPACKER"
-									,cfg.arcdef[i].name);
+									,cfg.arcdef[u].name);
 							k++;
-							fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[j].faddr)); }
+							fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[u2].faddr)); }
 					if(k)
 						fprintf(stream,"\n"); }
 
-				for(i=j=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].arctype==0xffff) {
+				for(u=j=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].arctype==0xffff) {
 						if(!j)
 							fprintf(stream,"%-10s %s","USEPACKER","NONE");
 						j++;
-						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[i].faddr)); }
+						fprintf(stream," %s",wcfaddrtoa(&cfg.nodecfg[u].faddr)); }
 				if(j)
 					fprintf(stream,"\n");
 
-				for(i=0;i<cfg.listcfgs;i++) {
+				for(u=0;u<cfg.listcfgs;u++) {
 					fprintf(stream,"%-10s","ECHOLIST");
-					if(cfg.listcfg[i].password[0])
+					if(cfg.listcfg[u].password[0])
 						fprintf(stream," FORWARD %s %s"
-							,wcfaddrtoa(&cfg.listcfg[i].forward)
-							,cfg.listcfg[i].password);
-					else if(cfg.listcfg[i].misc&NOFWD &&
-						cfg.listcfg[i].forward.zone)
+							,wcfaddrtoa(&cfg.listcfg[u].forward)
+							,cfg.listcfg[u].password);
+					else if(cfg.listcfg[u].misc&NOFWD &&
+						cfg.listcfg[u].forward.zone)
 						fprintf(stream," HUB %s"
-							,wcfaddrtoa(&cfg.listcfg[i].forward));
-					fprintf(stream," %s",cfg.listcfg[i].listpath);
-					for(j=0;j<cfg.listcfg[i].numflags;j++)
-						fprintf(stream," %s",cfg.listcfg[i].flag[j].flag);
+							,wcfaddrtoa(&cfg.listcfg[u].forward));
+					fprintf(stream," %s",cfg.listcfg[u].listpath);
+					for(u2=0;u2<cfg.listcfg[u].numflags;u2++)
+						fprintf(stream," %s",cfg.listcfg[u].flag[u2].flag);
 					fprintf(stream,"\n"); }
 
-				for(i=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].password[0]) {
+				for(u=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].password[0]) {
 						fprintf(stream,"%-10s %s %s","AREAFIX"
-							,wcfaddrtoa(&cfg.nodecfg[i].faddr)
-							,cfg.nodecfg[i].password);
-						for(j=0;j<cfg.nodecfg[i].numflags;j++)
-							fprintf(stream," %s",cfg.nodecfg[i].flag[j].flag);
+							,wcfaddrtoa(&cfg.nodecfg[u].faddr)
+							,cfg.nodecfg[u].password);
+						for(u2=0;u2<cfg.nodecfg[u].numflags;u2++)
+							fprintf(stream," %s",cfg.nodecfg[u].flag[u2].flag);
 						fprintf(stream,"\n"); }
 
-				for(i=0;i<cfg.nodecfgs;i++)
-					if(cfg.nodecfg[i].route.zone) {
+				for(u=0;u<cfg.nodecfgs;u++)
+					if(cfg.nodecfg[u].route.zone) {
 						fprintf(stream,"%-10s %s","ROUTE_TO"
-							,wcfaddrtoa(&cfg.nodecfg[i].route));
+							,wcfaddrtoa(&cfg.nodecfg[u].route));
 						fprintf(stream," %s"
-							,wcfaddrtoa(&cfg.nodecfg[i].faddr));
-						for(j=i+1;j<cfg.nodecfgs;j++)
-							if(!memcmp(&cfg.nodecfg[j].route,&cfg.nodecfg[i].route
+							,wcfaddrtoa(&cfg.nodecfg[u].faddr));
+						for(u2=u+1;u2<cfg.nodecfgs;u2++)
+							if(!memcmp(&cfg.nodecfg[u2].route,&cfg.nodecfg[u].route
 								,sizeof(faddr_t))) {
 								fprintf(stream," %s"
-									,wcfaddrtoa(&cfg.nodecfg[j].faddr));
-								cfg.nodecfg[j].route.zone=0; }
+									,wcfaddrtoa(&cfg.nodecfg[u2].faddr));
+								cfg.nodecfg[u2].route.zone=0; }
 						fprintf(stream,"\n"); }
 
 				fclose(stream);
