@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.164 2015/11/16 18:34:40 deuce Exp $ */
+/* $Id: js_file.c,v 1.165 2015/12/04 10:36:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,6 +41,10 @@
 #include "uucode.h"
 #include "yenc.h"
 #include "ini_file.h"
+
+#if !defined(__unix__)
+	#include <conio.h>		/* for kbhit() */
+#endif
 
 #ifdef JAVASCRIPT
 
