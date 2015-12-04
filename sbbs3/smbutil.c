@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.106 2014/08/26 01:59:25 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.107 2015/08/22 06:30:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -678,7 +678,7 @@ void maint(void)
 	if((idx=(idxrec_t *)malloc(sizeof(idxrec_t)*smb.status.total_msgs))
 		==NULL) {
 		smb_unlocksmbhdr(&smb);
-		fprintf(errfp,"\n%s!Error allocating %u bytes of memory\n"
+		fprintf(errfp,"\n%s!Error allocating %" XP_PRIsize_t "u bytes of memory\n"
 			,beep,sizeof(idxrec_t)*smb.status.total_msgs);
 		return; 
 	}
@@ -1482,7 +1482,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.106 $", "%*s %s", revision);
+	sscanf("$Revision: 1.107 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
