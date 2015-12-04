@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.627 2015/11/23 01:56:33 deuce Exp $ */
+/* $Id: websrvr.c,v 1.631 2015/12/02 05:11:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -407,6 +407,7 @@ static char *find_last_slash(char *str);
 static BOOL check_extra_path(http_session_t * session);
 static BOOL exec_ssjs(http_session_t* session, char* script);
 static BOOL ssjs_send_headers(http_session_t* session, int chunked);
+static int sess_recv(http_session_t *session, char *buf, size_t length, int flags);
 
 static time_t
 sub_mkgmt(struct tm *tm)
@@ -935,12 +936,23 @@ static void close_socket_cb(SOCKET sock, void *cbdata)
 static int close_socket(SOCKET *sock)
 {
 	int		result;
+	char	ch;
+	time_t	end = time(NULL) + startup->max_inactivity;
+	BOOL	rd;
 
 	if(sock==NULL || *sock==INVALID_SOCKET)
-		return(-1);
+		return -1;
 
-	/* required to ensure all data is send when SO_LINGER is off (Not functional on Win32) */
-	shutdown(*sock,SHUT_RDWR);
+	/* required to ensure all data is sent */
+	shutdown(*sock,SHUT_WR);
+	while(socket_check(*sock, &rd, NULL, startup->max_inactivity*1000))  {
+		if (rd) {
+			if (recv(*sock,&ch,1,0) <= 0)
+				break;
+		}
+		if (time(NULL) >= end)
+			break;
+	}
 	result=closesocket(*sock);
 	*sock=INVALID_SOCKET;
 	if(startup!=NULL && startup->socket_open!=NULL) {
@@ -1072,7 +1084,7 @@ static void close_request(http_session_t * session)
 		JS_ENDREQUEST(session->js_cx);
 	}
 	if(session->subscan!=NULL)
-		putmsgptrs(&scfg, session->user.number, session->subscan);
+		putmsgptrs(&scfg, &session->user, session->subscan);
 
 	if(session->req.fp!=NULL)
 		fclose(session->req.fp);
@@ -1511,7 +1523,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	lprintf(LOG_DEBUG,"%04d HTTP Logon (user #%d)",session->socket,session->user.number);
 
 	if(session->subscan!=NULL)
-		getmsgptrs(&scfg,session->user.number,session->subscan);
+		getmsgptrs(&scfg,&session->user,session->subscan);
 
 	session->logon_time=time(NULL);
 	if(session->user.number==0)
@@ -6096,7 +6108,6 @@ void http_output_thread(void *arg)
 
 		pthread_mutex_lock(&session->outbuf_write);
         RingBufRead(obuf, (uchar*)bufdata, avail);
-		pthread_mutex_unlock(&session->outbuf_write);
 		if(chunked) {
 			bufdata+=avail;
 			*(bufdata++)='\r';
@@ -6106,6 +6117,7 @@ void http_output_thread(void *arg)
 
 		if(!failed)
 			sess_sendbuf(session, buf, len, &failed);
+		pthread_mutex_unlock(&session->outbuf_write);
     }
 	thread_down();
 	/* Ensure outbuf isn't currently being drained */
@@ -6471,7 +6483,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.627 $", "%*s %s", revision);
+	sscanf("$Revision: 1.631 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
