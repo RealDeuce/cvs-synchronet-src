@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.47 2013/09/03 23:35:50 deuce Exp $ */
+/* $Id: baja.c,v 1.48 2015/08/22 06:31:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3401,7 +3401,7 @@ char *usage=	"\n"
 				"       -o set output directory (e.g. -o/sbbs/exec)\n"
 				"       -i set include directory (e.g. -i/sbbs/exec)\n"
 				"       -q quiet mode (no banner)\n"
-				"       -p pause on error\n"
+				"       -p pause on error"
 				;
 
 int main(int argc, char **argv)
@@ -3412,7 +3412,7 @@ int main(int argc, char **argv)
 	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision: 1.47 $", "%*s %s", revision);
+	sscanf("$Revision: 1.48 $", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
@@ -3443,16 +3443,16 @@ int main(int argc, char **argv)
 					break;
 				default:
 					printf(banner,PLATFORM_DESC,revision);
-					printf(usage);
+					puts(usage);
 					bail(1); }
 		else
-			sprintf(src,"%.*s",sizeof(src)-5,argv[i]);	/* leave room for '.src' to be appended */
+			sprintf(src,"%.*s",(int)(sizeof(src)-5),argv[i]);	/* leave room for '.src' to be appended */
 
 	if(show_banner)
 		printf(banner,PLATFORM_DESC,revision);
 
 	if(!src[0]) {
-		printf(usage);
+		puts(usage);
 		bail(1); 
 	}
 
