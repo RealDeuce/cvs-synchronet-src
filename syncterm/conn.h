@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.h,v 1.23 2015/02/09 08:29:21 deuce Exp $ */
+/* $Id: conn.h,v 1.25 2015/02/27 10:44:47 deuce Exp $ */
 
 #ifndef _CONN_H_
 #define _CONN_H_
@@ -23,9 +23,7 @@ enum {
 	,CONN_TYPE_SSH
 	,CONN_TYPE_MODEM
 	,CONN_TYPE_SERIAL
-#ifdef __unix__
 	,CONN_TYPE_SHELL
-#endif
 	,CONN_TYPE_TERMINATOR
 };
 
@@ -59,10 +57,10 @@ struct conn_buffer {
 /*
  * Functions for stuff using connections
  */
-int conn_recv_upto(char *buffer, size_t buflen, unsigned int timeout);
-int conn_recv(char *buffer, size_t buflen, unsigned int timeout);
-int conn_peek(char *buffer, size_t buflen);
-int conn_send(char *buffer, size_t buflen, unsigned int timeout);
+int conn_recv_upto(void *buffer, size_t buflen, unsigned int timeout);
+int conn_recv(void *buffer, size_t buflen, unsigned int timeout);
+int conn_peek(void *buffer, size_t buflen);
+int conn_send(void *buffer, size_t buflen, unsigned int timeout);
 int conn_connect(struct bbslist *bbs);
 int conn_close(void);
 BOOL conn_connected(void);
@@ -83,9 +81,9 @@ extern struct conn_api conn_api;
 struct conn_buffer *create_conn_buf(struct conn_buffer *buf, size_t size);
 void destroy_conn_buf(struct conn_buffer *buf);
 size_t conn_buf_bytes(struct conn_buffer *buf);
-size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen);
-size_t conn_buf_get(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen);
-size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t outlen);
+size_t conn_buf_peek(struct conn_buffer *buf, void *voutbuf, size_t outlen);
+size_t conn_buf_get(struct conn_buffer *buf, void *outbuf, size_t outlen);
+size_t conn_buf_put(struct conn_buffer *buf, const void *outbuf, size_t outlen);
 size_t conn_buf_wait_cond(struct conn_buffer *buf, size_t bcount, unsigned long timeout, int do_free);
 #define conn_buf_wait_bytes(buf, count, timeout)	conn_buf_wait_cond(buf, count, timeout, 0)
 #define conn_buf_wait_free(buf, count, timeout)	conn_buf_wait_cond(buf, count, timeout, 1)
