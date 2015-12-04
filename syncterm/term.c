@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.304 2015/02/09 07:42:12 deuce Exp $ */
+/* $Id: term.c,v 1.313 2015/10/28 02:01:20 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -82,17 +82,24 @@ void mousedrag(unsigned char *scrollback)
 	int	key;
 	struct mouse_event mevent;
 	unsigned char *screen;
+	unsigned char *tscreen;
 	unsigned char *sbuffer;
 	int sbufsize;
 	int pos, startpos,endpos, lines;
 	int outpos;
-	char *copybuf;
+	char *copybuf=NULL;
+	char *newcopybuf;
 	int lastchar;
+	int old_xlat = ciolib_xlat;
 
 	sbufsize=term.width*2*term.height;
-	screen=(unsigned char*)alloca(sbufsize);
-	sbuffer=(unsigned char*)alloca(sbufsize);
+	screen=(unsigned char*)malloc(sbufsize);
+	sbuffer=(unsigned char*)malloc(sbufsize);
+	tscreen=(unsigned char*)malloc(sbufsize);
 	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
+	ciolib_xlat = TRUE;
+	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
+	ciolib_xlat = old_xlat;
 	while(1) {
 		key=getch();
 		if(key==0 || key==0xff)
@@ -127,12 +134,16 @@ void mousedrag(unsigned char *scrollback)
 						break;
 					default:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						copybuf=alloca(endpos-startpos+4+lines*2);
+						newcopybuf=realloc(copybuf, endpos-startpos+4+lines*2);
+						if (newcopybuf)
+							copybuf = newcopybuf;
+						else
+							goto cleanup;
 						outpos=0;
 						lastchar=0;
 						for(pos=startpos;pos<=endpos;pos++) {
-							copybuf[outpos++]=screen[pos*2];
-							if(screen[pos*2]!=' ' && screen[pos*2])
+							copybuf[outpos++]=tscreen[pos*2];
+							if(tscreen[pos*2]!=' ' && tscreen[pos*2])
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
@@ -146,15 +157,23 @@ void mousedrag(unsigned char *scrollback)
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
 						puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
-						return;
+						goto cleanup;
 				}
 				break;
 			default:
 				puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
 				ungetch(key);
-				return;
+				goto cleanup;
 		}
 	}
+
+cleanup:
+	free(screen);
+	free(sbuffer);
+	free(tscreen);
+	if(copybuf)
+		free(copybuf);
+	return;
 }
 
 void update_status(struct bbslist *bbs, int speed, int ooii_mode)
@@ -169,6 +188,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	static int oldspeed=0;
 	int	timeon;
 	char sep;
+	int old_xlat = ciolib_xlat;
 
 	switch(getfont()) {
 			case 0:
@@ -244,7 +264,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
-	ciolib_xlat = FALSE;
+	ciolib_xlat = old_xlat;
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -282,6 +302,11 @@ static BOOL zmodem_check_abort(void* vp)
 	time_t					now=time(NULL);
 	int						key;
 
+	if (quitting) {
+		zm->cancelled=TRUE;
+		zm->local_abort=TRUE;
+		return TRUE;
+	}
 	if(last_check != now) {
 		last_check=now;
 		if(zm!=NULL) {
@@ -298,6 +323,12 @@ static BOOL zmodem_check_abort(void* vp)
 						key |= (getch() << 8);
 						if(key==CIO_KEY_MOUSE)
 							getmouse(NULL);
+						if (key==CIO_KEY_QUIT) {
+							if (check_exit(FALSE)) {
+								zm->cancelled=TRUE;
+								zm->local_abort=TRUE;
+							}
+						}
 						break;
 				}
 			}
@@ -692,6 +723,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 	result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
 	
 	if(result==-1 || fpick.files<1) {
+		check_exit(FALSE);
 		filepick_free(&fpick);
 		uifcbail();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
@@ -705,7 +737,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
-		uifcmsg("ERROR",str);
+		uifcmsg("Error opening file",str);
 		uifcbail();
 		setup_mouse_events();
 		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
@@ -771,6 +803,9 @@ void begin_download(struct bbslist *bbs)
 	uifc.helpbuf="Select Protocol";
 	hold_update=FALSE;
 	switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Protocol",opts)) {
+		case -1:
+			check_exit(FALSE);
+			break;
 		case 0:
 			zmodem_download(bbs);
 			break;
@@ -979,6 +1014,7 @@ void guts_transfer(struct bbslist *bbs)
 			result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
 
 			if(result==-1 || fpick.files<1) {
+				check_exit(FALSE);
 				filepick_free(&fpick);
 				uifcbail();
 				setup_mouse_events();
@@ -1064,8 +1100,31 @@ void ascii_upload(FILE *fp)
 	fclose(fp);
 }
 
+static void transfer_complete(BOOL success)
+{
+	int timeout = success ? settings.xfer_success_keypress_timeout : settings.xfer_failure_keypress_timeout;
+
+	conn_binary_mode_off();
+	if(log_fp!=NULL)
+		fflush(log_fp);
+	/* TODO: Make this pretty (countdown timer) and don't delay a second between keyboard polls */
+	lprintf(LOG_NOTICE,"Hit any key or wait %u seconds to continue...", timeout);
+	while(timeout > 0) {
+		if (kbhit()) {
+			if(getch()==0 && getch()<<8 == CIO_KEY_QUIT)
+				check_exit(FALSE);
+			break;
+		}
+		timeout--;
+		SLEEP(1000);
+	}
+
+	erase_transfer_window();
+}
+
 void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 {
+	BOOL		success;
 	zmodem_t	zm;
 	int64_t		fsize;
 	struct zmodem_cbdata cbdata;
@@ -1095,19 +1154,13 @@ void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 	lprintf(LOG_INFO,"Sending %s (%"PRId64" KB) via ZMODEM"
 		,path,fsize/1024);
 
-	if(zmodem_send_file(&zm, path, fp
-		,/* ZRQINIT? */TRUE, /* start_time */NULL, /* sent_bytes */ NULL))
+	if((success=zmodem_send_file(&zm, path, fp
+		,/* ZRQINIT? */TRUE, /* start_time */NULL, /* sent_bytes */ NULL)) == TRUE)
 		zmodem_get_zfin(&zm);
 
 	fclose(fp);
 
-	conn_binary_mode_off();
-	lprintf(LOG_NOTICE,"Hit any key to continue...");
-	if(log_fp!=NULL)
-		fflush(log_fp);
-	getch();
-
-	erase_transfer_window();
+	transfer_complete(success);
 }
 
 BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
@@ -1140,6 +1193,13 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 		i=0;
 		uifc.helpbuf="Duplicate file... choose action\n";
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Duplicate File Name",opts)) {
+			case -1:
+				if (check_exit(FALSE)) {
+					ret=FALSE;
+					break;
+				}
+				loop=TRUE;
+				break;
 			case 0:	/* Overwrite */
 				sprintf(fpath,"%s/%s",cb->bbs->dldir,zm->current_file_name);
 				unlink(fpath);
@@ -1204,13 +1264,7 @@ void zmodem_download(struct bbslist *bbs)
 	if(files_received>1)
 		lprintf(LOG_INFO,"Received %u files (%"PRId64" bytes) successfully", files_received, bytes_received);
 
-	conn_binary_mode_off();
-	lprintf(LOG_NOTICE,"Hit any key to continue...");
-	if(log_fp!=NULL)
-		fflush(log_fp);
-	getch();
-
-	erase_transfer_window();
+	transfer_complete(files_received);
 }
 /* End of Zmodem Stuff */
 
@@ -1226,23 +1280,33 @@ static BOOL xmodem_check_abort(void* vp)
 	time_t					now=time(NULL);
 	int						key;
 
+	if (xm == NULL)
+		return FALSE;
+
+	if (quitting) {
+		xm->cancelled=TRUE;
+		return TRUE;
+	}
+
 	if(last_check != now) {
 		last_check=now;
-		if(xm!=NULL) {
-			while(kbhit()) {
-				switch((key=getch())) {
-					case ESC:
-					case CTRL_C:
-					case CTRL_X:
-						xm->cancelled=TRUE;
-						break;
-					case 0:
-					case 0xff:
-						key |= (getch() << 8);
-						if(key==CIO_KEY_MOUSE)
-							getmouse(NULL);
-						break;
-				}
+		while(kbhit()) {
+			switch((key=getch())) {
+				case ESC:
+				case CTRL_C:
+				case CTRL_X:
+					xm->cancelled=TRUE;
+					break;
+				case 0:
+				case 0xff:
+					key |= (getch() << 8);
+					if(key==CIO_KEY_MOUSE)
+						getmouse(NULL);
+					if (key==CIO_KEY_QUIT) {
+						if (check_exit(FALSE))
+							xm->cancelled=TRUE;
+					}
+					break;
 			}
 		}
 	}
@@ -1400,6 +1464,7 @@ static int recv_nak(void *cbdata, unsigned timeout)
 
 void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int lastch)
 {
+	BOOL		success;
 	xmodem_t	xm;
 	ulong		fsize;
 
@@ -1459,8 +1524,8 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 		return;
 	}
 
-	if(xmodem_send_file(&xm, path, fp
-		,/* start_time */NULL, /* sent_bytes */ NULL)) {
+	if((success=xmodem_send_file(&xm, path, fp
+		,/* start_time */NULL, /* sent_bytes */ NULL)) == TRUE) {
 		if(mode&YMODEM) {
 
 			if(xmodem_get_mode(&xm)) {
@@ -1478,13 +1543,7 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 
 	fclose(fp);
 
-	conn_binary_mode_off();
-	lprintf(LOG_NOTICE,"Hit any key to continue...");
-	if(log_fp!=NULL)
-		fflush(log_fp);
-	getch();
-
-	erase_transfer_window();
+	transfer_complete(success);
 }
 
 BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t pathsize, char *fname)
@@ -1516,6 +1575,13 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 		i=0;
 		uifc.helpbuf="Duplicate file... choose action\n";
 		switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Duplicate File Name",opts)) {
+			case -1:
+				if (check_exit(FALSE)) {
+					ret=FALSE;
+					break;
+				}
+				loop=TRUE;
+				break;
 			case 0:	/* Overwrite */
 				unlink(path);
 				ret=TRUE;
@@ -1567,7 +1633,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 	int64_t	file_bytes=0,file_bytes_left=0;
 	int64_t	total_bytes=0;
 	FILE*	fp=NULL;
-	time_t	t,startfile,ftime;
+	time_t	t,startfile,ftime=0;
 	int		old_hold=hold_update;
 
 	if(safe_mode)
@@ -1833,13 +1899,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 end:
 	if(fp)
 		fclose(fp);
-	conn_binary_mode_off();
-	lprintf(LOG_NOTICE,"Hit any key to continue...");
-	if(log_fp!=NULL)
-		fflush(log_fp);
-	getch();
-
-	erase_transfer_window();
+	transfer_complete(success);
 }
 
 /* End of X/Y-MODEM stuff */
@@ -1883,6 +1943,8 @@ void music_control(struct bbslist *bbs)
 				"according to the ANSI spec.  Specifically ESC[|.";
 	if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"ANSI Music Setup",opts)!=-1)
 		cterm->music_enable=i;
+	else
+		check_exit(FALSE);
 	uifcbail();
 	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
@@ -1896,6 +1958,7 @@ void font_control(struct bbslist *bbs)
 	char *buf;
 	struct	text_info txtinfo;
 	int i,j,k;
+	int enable_xlat = 0;
 
 	if(safe_mode)
 		return;
@@ -1912,27 +1975,40 @@ void font_control(struct bbslist *bbs)
 		case CIOLIB_MODE_ANSI:
 			uifcmsg("Not supported in this video output mode."
 				,"Font cannot be changed in the current video output mode");
+			check_exit(FALSE);
 			break;
 		default:
 			i=j=getfont();
 			uifc.helpbuf="`Font Setup`\n\n"
-						"Change the current font.  Must support the current video mode.";
+						"Change the current font.  Font must support the current video mode:\n\n"
+						"`8x8`  Used for screen modes with 35 or more lines and all C64/C128 modes\n"
+						"`8x14` Used for screen modes with 28 and 34 lines\n"
+						"`8x16` Used for screen modes with 30 lines or fewer than 28 lines.";
 			k=uifc.list(WIN_MID|WIN_SAV|WIN_INS,0,0,0,&i,&j,"Font Setup",font_names);
 			if(k!=-1) {
 				if(k & MSK_INS) {
 					struct file_pick fpick;
 					j=filepick(&uifc, "Load Font From File", &fpick, ".", NULL, 0);
+					check_exit(FALSE);
 
 					if(j!=-1 && fpick.files>=1)
 						loadfont(fpick.selected[0]);
 					filepick_free(&fpick);
 				}
-				else
+				else {
 					setfont(i,FALSE,1);
+					if (i >=32 && i<= 35 && cterm->emulation != CTERM_EMULATION_PETASCII)
+						enable_xlat = TRUE;
+					if (i==36 && cterm->emulation != CTERM_EMULATION_ATASCII)
+						enable_xlat = TRUE;
+				}
 			}
+			else
+				check_exit(FALSE);
 		break;
 	}
 	uifcbail();
+	ciolib_xlat = enable_xlat;
 	setup_mouse_events();
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
@@ -1969,11 +2045,14 @@ void capture_control(struct bbslist *bbs)
 					"Don't do that though.  :-)";
 		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Type",opts)!=-1) {
 			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, NULL, UIFC_FP_ALLOWENTRY);
+			check_exit(FALSE);
 
 			if(j!=-1 && fpick.files>=1)
 				cterm_openlog(cterm, fpick.selected[0], i?CTERM_LOG_RAW:CTERM_LOG_ASCII);
 			filepick_free(&fpick);
 		}
+		else
+			check_exit(FALSE);
 	}
 	else {
 		if(cterm->log & CTERM_LOG_PAUSED) {
@@ -1987,6 +2066,9 @@ void capture_control(struct bbslist *bbs)
 						"~ Close ~   Closes the log\n\n";
 			if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Control",opts)!=-1) {
 				switch(i) {
+					case -1:
+						check_exit(FALSE);
+						break;
 					case 0:
 						cterm->log=cterm->log & CTERM_LOG_MASK;
 						break;
@@ -2007,6 +2089,9 @@ void capture_control(struct bbslist *bbs)
 						"~ Close ~ Closes the log\n\n";
 			if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Control",opts)!=-1) {
 				switch(i) {
+					case -1:
+						check_exit(FALSE);
+						break;
 					case 0:
 						cterm->log=cterm->log |= CTERM_LOG_PAUSED;
 						break;
@@ -2239,7 +2324,7 @@ BOOL doterm(struct bbslist *bbs)
 	/* Main input loop */
 	oldmc=hold_update;
 	showmouse();
-	for(;;) {
+	for(;!quitting;) {
 		hold_update=TRUE;
 		sleep=TRUE;
 		if(!term.nostatus)
@@ -2265,6 +2350,7 @@ BOOL doterm(struct bbslist *bbs)
 							}
 #endif
 							uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
+							check_exit(FALSE);
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
@@ -2433,20 +2519,24 @@ BOOL doterm(struct bbslist *bbs)
 		hold_update=oldmc;
 
 		/* Get local input */
-		while(kbhit()) {
+		while(quitting || kbhit()) {
 			struct mouse_event mevent;
 
 			updated=TRUE;
 			gotoxy(wherex(), wherey());
-			key=getch();
-			if(key==0 || key==0xff) {
-				key|=getch()<<8;
-				if(cterm->doorway_mode && ((key & 0xff) == 0) && key != 0x2c00 /* ALT-Z */) {
-					ch[0]=0;
-					ch[1]=key>>8;
-					conn_send(ch,2,0);
-					key=0;
-					continue;
+			if (quitting)
+				key = CIO_KEY_QUIT;
+			else {
+				key=getch();
+				if(key==0 || key==0xff) {
+					key|=getch()<<8;
+					if(cterm->doorway_mode && ((key & 0xff) == 0) && key != 0x2c00 /* ALT-Z */) {
+						ch[0]=0;
+						ch[1]=key>>8;
+						conn_send(ch,2,0);
+						key=0;
+						continue;
+					}
 				}
 			}
 
@@ -2559,22 +2649,13 @@ BOOL doterm(struct bbslist *bbs)
 					}
 					/* FALLTHROUGH for curses/ansi modes */
 				case 0x2d00:	/* Alt-X - Exit */
+				case CIO_KEY_QUIT:
+					if(!check_exit(TRUE))
+						break;
+					// Fallthrough
 				case 0x2300:	/* Alt-H - Hangup */
 					{
-						char *opts[3]={
-										 "Yes"
-										,"No"
-										,""
-									  };
-						char *buf;
-
-   						gettextinfo(&txtinfo);
-						buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-						gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-						i=0;
-						init_uifc(FALSE, FALSE);
-						uifc.helpbuf="Selecting Yes closes the connection\n";
-						if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Disconnect... Are you sure?",opts)==0) {
+						if(quitting || confirm("Disconnect... Are you sure?", "Selecting Yes closes the connection\n")) {
 #ifdef WITH_WXWIDGETS
 							if(html_mode != HTML_MODE_HIDDEN) {
 								hide_html();
@@ -2582,7 +2663,6 @@ BOOL doterm(struct bbslist *bbs)
 								html_mode=HTML_MODE_HIDDEN;
 							}
 #endif
-							uifcbail();
 							setup_mouse_events();
 							cterm_clearscreen(cterm,cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
@@ -2590,11 +2670,9 @@ BOOL doterm(struct bbslist *bbs)
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
-							return(key==0x2d00 /* Alt-X? */);
+							return(key==0x2d00 /* Alt-X? */ || key == CIO_KEY_QUIT);
 						}
-						uifcbail();
 						setup_mouse_events();
-						puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 						window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 						textattr(txtinfo.attribute);
 						gotoxy(txtinfo.curx,txtinfo.cury);
