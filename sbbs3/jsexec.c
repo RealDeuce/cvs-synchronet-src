@@ -2,7 +2,7 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.175 2015/10/29 21:21:26 deuce Exp $ */
+/* $Id: jsexec.c,v 1.181 2015/11/25 08:03:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,6 +42,7 @@
 #ifdef __unix__
 #define _WITH_GETLINE
 #include <signal.h>
+#include <termios.h>
 #endif
 
 #include "sbbs.h"
@@ -114,7 +115,9 @@ void usage(FILE* fp)
 
 	fprintf(fp,"\nusage: " PROG_NAME_LC " [-opts] [path]module[.js] [args]\n"
 		"\navailable opts:\n\n"
-#ifndef JSDOOR
+#ifdef JSDOOR
+		"\t-c<ctrl_dir>   specify path to CTRL directory\n"
+#else
 		"\t-c<ctrl_dir>   specify path to Synchronet CTRL directory\n"
 #endif
 #if defined(__unix__)
@@ -273,6 +276,10 @@ static BOOL winsock_startup(void)
 
 #endif
 
+#ifdef __unix__
+struct termios orig_term;
+#endif
+
 static int do_bail(int code)
 {
 #if defined(_WINSOCKAPI_)
@@ -287,6 +294,10 @@ static int do_bail(int code)
 
 	if(code)
 		fprintf(statfp,"\nReturning error code: %d\n",code);
+#ifdef __unix__
+	if(isatty(fileno(stdin)))
+		tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
+#endif
 	return(code);
 }
 
@@ -791,6 +802,22 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 	}
 
+	/* STDIO objects */
+	if(!js_CreateFileObject(js_cx, js_glob, "stdout", stdout)) {
+		JS_ENDREQUEST(js_cx);
+		return(FALSE);
+	}
+
+	if(!js_CreateFileObject(js_cx, js_glob, "stdin", stdin)) {
+		JS_ENDREQUEST(js_cx);
+		return(FALSE);
+	}
+
+	if(!js_CreateFileObject(js_cx, js_glob, "stderr", stderr)) {
+		JS_ENDREQUEST(js_cx);
+		return(FALSE);
+	}
+
 	return(TRUE);
 }
 
@@ -1019,6 +1046,19 @@ int parseLogLevel(const char* p)
 	return DEFAULT_LOG_LEVEL;
 }
 
+#ifdef __unix__
+void raw_input(struct termios *t)
+{
+#ifdef JSDOOR
+	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+#else
+	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
+#endif
+}
+#endif
+
 /*********************/
 /* Entry point (duh) */
 /*********************/
@@ -1042,8 +1082,19 @@ int main(int argc, char **argv, char** environ)
 		perror(_PATH_DEVNULL);
 		return(do_bail(-1));
 	}
-	if(isatty(fileno(stderr)))
+	if(isatty(fileno(stdin))) {
+#ifdef __unix__
+		struct termios term;
+
+		tcgetattr(fileno(stdin), &orig_term);
+		term = orig_term;
+		raw_input(&term);
+		tcsetattr(fileno(stdin), TCSANOW, &term);
+#else
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+#endif
 		statfp=stderr;
+	}
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
@@ -1052,7 +1103,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.175 $", "%*s %s", revision);
+	sscanf("$Revision: 1.181 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1064,8 +1115,18 @@ int main(int argc, char **argv, char** environ)
 	getcwd(orig_cwd, sizeof(orig_cwd));
 	backslash(orig_cwd);
 #ifdef JSDOOR
+ 	SAFECOPY(scfg.ctrl_dir, orig_cwd);
+	prep_dir("", scfg.ctrl_dir, sizeof(scfg.ctrl_dir));
  	SAFECOPY(scfg.exec_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.exec_dir, sizeof(scfg.exec_dir));
  	SAFECOPY(scfg.mods_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.mods_dir, sizeof(scfg.mods_dir));
+ 	SAFECOPY(scfg.data_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.data_dir, sizeof(scfg.data_dir));
+ 	SAFECOPY(scfg.text_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.text_dir, sizeof(scfg.text_dir));
+ 	SAFECOPY(scfg.logs_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.text_dir, sizeof(scfg.text_dir));
  	scfg.sys_misc = 0; /* SM_EURODATE and SM_MILITARY are used */
 #endif
 
@@ -1076,12 +1137,10 @@ int main(int argc, char **argv, char** environ)
 				case 'a':
 					omode="a";
 					break;
-#ifndef JSDOOR
 				case 'c':
 					if(*p==0) p=argv[++argn];
 					SAFECOPY(scfg.ctrl_dir,p);
 					break;
-#endif
 #if defined(__unix__)
 				case 'd':
 					daemonize=TRUE;
