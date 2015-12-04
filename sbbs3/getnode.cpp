@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.44 2011/10/19 06:53:03 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.46 2015/11/30 09:07:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -135,6 +135,7 @@ void sbbs_t::nodesync()
 			lprintf(LOG_ERR, "Node %d NODE STATUS FIXUP", cfg.node_num);
 			if(getnodedat(cfg.node_num,&thisnode,true)==0) {
 				thisnode.status=NODE_INUSE;
+				thisnode.useron=useron.number;
 				putnodedat(cfg.node_num,&thisnode); 
 			}
 		}
@@ -445,6 +446,10 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 		case NODE_LOGON:
 			bputs(text[NodeStatusLogon]);
 			bputs(node_connection_desc(this, node->connection, tmp));
+			break;
+		case NODE_LOGOUT:
+			bprintf(text[NodeStatusLogout]
+				,(node->misc&NODE_ANON) && !SYSOP ? text[UNKNOWN_USER] : username(&cfg,node->useron,tmp));
 			break;
 		case NODE_EVENT_WAITING:
 			bputs(text[NodeStatusEventWaiting]);
