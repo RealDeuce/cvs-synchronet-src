@@ -2,13 +2,13 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.52 2015/08/26 08:36:16 deuce Exp $ */
+/* $Id: userdat.h,v 1.56 2015/11/30 09:07:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -115,11 +115,18 @@ DLLEXPORT int	DLLCALL user_rec_len(int offset);
 DLLEXPORT BOOL	DLLCALL can_user_access_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL can_user_read_sub(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL can_user_post(scfg_t* cfg, uint subnum, user_t* user, client_t* client, uint* reason);
-DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t* cfg, uint usernumber, user_t* user, uint* reason);
+DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t* cfg, enum smb_net_type, uint usernumber, user_t* user, uint* reason);
 DLLEXPORT BOOL	DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* client);
 DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const char* host
 								  ,const char* ip_addr, const char* username, const char* fname);
+
+/* New-message-scan pointer functions: */
+DLLEXPORT BOOL	DLLCALL getmsgptrs(scfg_t*, user_t*, subscan_t*);
+DLLEXPORT BOOL	DLLCALL putmsgptrs(scfg_t*, user_t*, subscan_t*);
+DLLEXPORT BOOL	DLLCALL fixmsgptrs(scfg_t*, subscan_t*);
+DLLEXPORT BOOL	DLLCALL initmsgptrs(scfg_t*, subscan_t*, unsigned days);
+
 
 /* New atomic numeric user field adjustment functions: */
 DLLEXPORT BOOL	DLLCALL user_posted_msg(scfg_t* cfg, user_t* user, int count);
