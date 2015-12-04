@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.316 2018/01/30 03:04:20 rswindell Exp $ */
+/* $Id: term.c,v 1.313 2015/10/28 02:01:20 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -21,7 +21,6 @@
 #include "zmodem.h"
 #include "xmodem.h"
 #include "telnet_io.h"
-#include "saucedefs.h"
 #ifdef WITH_WXWIDGETS
 #include "htmlwin.h"
 #endif
@@ -37,10 +36,6 @@
 #define	ANSI_REPLY_BUFSIZE	2048
 
 #define DUMP
-
-#ifndef MIN
-#define MIN(a,b)	((a) < (b) ? (a) : (b))
-#endif
 
 struct terminal term;
 struct cterminal	*cterm;
@@ -2024,7 +2019,6 @@ void font_control(struct bbslist *bbs)
 void capture_control(struct bbslist *bbs)
 {
 	char *buf;
-	char *cap;
 	struct	text_info txtinfo;
 	int i,j;
 
@@ -2033,82 +2027,28 @@ void capture_control(struct bbslist *bbs)
    	gettextinfo(&txtinfo);
 	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	cap=(char *)alloca(cterm->height*cterm->width*2);
-	gettext(cterm->x, cterm->y, cterm->x+cterm->width-1, cterm->y+cterm->height-1, cap);
-
 	init_uifc(FALSE, FALSE);
 
 	if(!cterm->log) {
 		struct file_pick fpick;
-		char *opts[]={
+		char *opts[3]={
 						 "ASCII"
 						,"Raw"
-						,"Binary"
-						,"Binary with SAUCE"
 						,""
 					  };
 
 		i=0;
-		uifc.helpbuf="~ Capture Type ~\n\n"
-			"`ASCII`              ASCII only (no ANSI escape sequences)\n"
-			"`Raw`                Preserves ANSI sequences\n"
-			"`Binary`             Saves current screen in IBM-CGA/BinaryText format\n"
-			"`Binary with SAUCE`  Saves current screen in BinaryText format with SAUCE\n"
-			"\n"
-			"Raw is useful for stealing ANSI screens from other systems.\n"
-			"Don't do that though.  :-)";
+		uifc.helpbuf="`Capture Type`\n\n"
+					"~ ASCII ~ Strips out ANSI sequences\n"
+					"~ Raw ~   Leaves ANSI sequences in\n\n"
+					"Raw is useful for stealing ANSI screens from other systems.\n"
+					"Don't do that though.  :-)";
 		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Type",opts)!=-1) {
-			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, i >= 2 ? "*.bin" : NULL
-				, UIFC_FP_ALLOWENTRY|UIFC_FP_OVERPROMPT);
+			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, NULL, UIFC_FP_ALLOWENTRY);
 			check_exit(FALSE);
 
-			if(j!=-1 && fpick.files>=1) {
-				if(i >= 2) {
-					FILE* fp = fopen(fpick.selected[0], "wb");
-					if(fp == NULL) {
-						char err[256];
-						sprintf(err, "Error %u opening file '%s'", errno, fpick.selected[0]);
-						uifc.msg(err);
-					} else {
-						char msg[256];
-						uifc.pop("Writing to file");
-						fwrite(cap, sizeof(uint8_t), cterm->width * cterm->height * 2, fp);
-						if(i > 2) {
-							time_t t = time(NULL);
-							struct tm* tm;
-							struct sauce sauce;
-
-							memset(&sauce, 0, sizeof(sauce));
-							memcpy(sauce.id, SAUCE_ID, sizeof(sauce.id));
-							memcpy(sauce.ver, SAUCE_VERSION, sizeof(sauce.ver));
-							memset(sauce.title, ' ', sizeof(sauce.title));
-							memset(sauce.author, ' ', sizeof(sauce.author));
-							memset(sauce.group, ' ', sizeof(sauce.group));
-							if(bbs != NULL) {
-								memcpy(sauce.title, bbs->name, MIN(strlen(bbs->name), sizeof(sauce.title)));
-								memcpy(sauce.author, bbs->user, MIN(strlen(bbs->user), sizeof(sauce.author)));
-							}
-							if((tm=localtime(&t)) != NULL)	// The null-terminator overwrites the first byte of filesize
-								sprintf(sauce.date, "%04u%02u%02u"
-									,1900 + tm->tm_year, 1 + tm->tm_mon, tm->tm_mday);
-							sauce.filesize = ftell(fp);	// LE
-							sauce.datatype = sauce_datatype_bin;
-							sauce.filetype = cterm->width / 2;
-							if(ciolib_getvideoflags() & CIOLIB_VIDEO_BGBRIGHT)
-								sauce.tflags |= sauce_ansiflag_nonblink;
-
-							fputc(SAUCE_SEPARATOR, fp);
-							/* No comment block (no comments) */
-							fwrite(&sauce, sizeof(sauce), 1, fp);
-						}
-						fclose(fp);
-						uifc.pop(NULL);
-						sprintf(msg, "Screen saved to '%s'", getfname(fpick.selected[0]));
-						uifc.msg(msg);
-					}
-				} else
-					cterm_openlog(cterm, fpick.selected[0], i?CTERM_LOG_RAW:CTERM_LOG_ASCII);
-			}
+			if(j!=-1 && fpick.files>=1)
+				cterm_openlog(cterm, fpick.selected[0], i?CTERM_LOG_RAW:CTERM_LOG_ASCII);
 			filepick_free(&fpick);
 		}
 		else
@@ -3100,6 +3040,6 @@ BOOL doterm(struct bbslist *bbs)
 /*
 	hidemouse();
 	hold_update=oldmc;
- */
 	return(FALSE);
+ */
 }
