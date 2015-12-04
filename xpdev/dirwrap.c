@@ -1,13 +1,14 @@
-/* Directory-related system-call wrappers */
-// vi: tabstop=4
+/* dirwrap.c */
 
-/* $Id: dirwrap.c,v 1.95 2018/01/13 06:11:56 rswindell Exp $ */
+/* Directory-related system-call wrappers */
+
+/* $Id: dirwrap.c,v 1.90 2015/11/26 08:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -152,7 +153,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 static int __cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
-   return strcmp( * ( char** ) arg1, * ( char** ) arg2 );
+   return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
 }
 
 #if defined(__BORLANDC__)
@@ -299,10 +300,6 @@ void DLLCALL globfree(glob_t* glob)
 
 #endif /* !defined(__unix__) */
 
-/****************************************************************************/
-/* Returns number of files and/or sub-directories in directory (path)		*/
-/* Similar, but not identical, to getfilecount()							*/
-/****************************************************************************/
 long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only)
 {
 	char		match[MAX_PATH+1];
@@ -387,22 +384,6 @@ void DLLCALL rewinddir(DIR* dir)
 	dir->handle=_findfirst(dir->filespec,&dir->finddata);
 }
 #endif /* defined(_MSC_VER) */
-
-/****************************************************************************/
-/* Returns the creation time of the file 'filename' in time_t format		*/
-/****************************************************************************/
-time_t DLLCALL fcdate(const char* filename)
-{
-	struct stat st;
-
-	if(access(filename, 0) < 0)
-		return -1;
-
-	if(stat(filename, &st) != 0)
-		return -1;
-
-	return st.st_ctime;
-}
 
 /****************************************************************************/
 /* Returns the time/date of the file in 'filename' in time_t (unix) format  */
@@ -755,31 +736,6 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 }
 
 /****************************************************************************/
-/* Returns number of files in a directory (inpath) matching 'pattern'		*/
-/* Similar, but not identical, to getdirsize(), e.g. subdirs never counted	*/
-/****************************************************************************/
-ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
-{
-	char path[MAX_PATH+1];
-	glob_t	g;
-	uint	gi;
-	ulong	count = 0;
-
-	SAFECOPY(path, inpath);
-	backslash(path);
-	strcat(path, pattern);
-	if(glob(path, GLOB_MARK, NULL, &g))
-		return 0;
-	for(gi = 0; gi < g.gl_pathc; ++gi) {
-		if(*lastchar(g.gl_pathv[gi]) == '/')
-			continue;
-		count++;
-	}
-	globfree(&g);
-	return count;
-}
-
-/****************************************************************************/
 /* Return free disk space in bytes (up to a maximum of 4GB)					*/
 /****************************************************************************/
 #if defined(_WIN32)
@@ -886,7 +842,7 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	struct statfs fs;
 	unsigned long blocks;
 
-	if(statfs(path, &fs) < 0)
+    if (statfs(path, &fs) < 0)
     	return 0;
 
 	if(freespace)
@@ -917,7 +873,7 @@ ulong DLLCALL getdisksize(const char* path, ulong unit)
 }
 
 /****************************************************************************/
-/* Resolves //, /./, and /../ in a path. Should work identically to Windows */
+/* Resolves //, /./, and /../ in a path. Should work indetically to Windows */
 /****************************************************************************/
 #if defined(__unix__)
 char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
