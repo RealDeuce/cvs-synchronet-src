@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.77 2015/11/30 09:07:44 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.78 2015/12/04 10:06:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1070,8 +1070,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 								break;
 	*/
 							bputs(text[FileToWriteTo]);
-							if(getstr(str,40,K_LINE))
-								msgtotxt(&msg,str,1,1);
+							if(getstr(str,50,K_LINE))
+								msgtotxt(&msg,str, /* header: */true, /* mode: */GETMSGTXT_ALL);
 							break;
 						case 'U':   /* User edit */
 							useredit(cfg.sub[subnum]->misc&SUB_NAME

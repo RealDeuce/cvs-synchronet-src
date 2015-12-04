@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.423 2015/12/03 10:40:15 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.424 2015/12/04 10:06:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -645,7 +645,7 @@ public:
 	void	show_msgattr(ushort attr);
 	void	show_msghdr(smbmsg_t* msg);
 	void	show_msg(smbmsg_t* msg, long mode);
-	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
+	void	msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode);
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
