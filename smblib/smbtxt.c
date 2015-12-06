@@ -1,6 +1,8 @@
+/* smbtxt.c */
+
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.30 2017/11/28 02:20:06 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.21 2015/12/04 10:03:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +41,6 @@
 
 /* SMB-specific */
 #include "smblib.h"
-#include "base64.h"
 
 char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 {
@@ -54,8 +55,8 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 
 	if((buf=(char*)malloc(sizeof(char)))==NULL) {
 		sprintf(smb->last_error
-			,"%s malloc failure of %" XP_PRIsize_t "u bytes for buffer"
-			,__FUNCTION__, sizeof(char));
+			,"malloc failure of %" XP_PRIsize_t "u bytes for buffer"
+			,sizeof(char));
 		return(NULL);
 	}
 	*buf=0;
@@ -68,42 +69,12 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 			length=strlen(str)+2;	/* +2 for crlf */
 			if((p=(char*)realloc(buf,l+length+1))==NULL) {
 				sprintf(smb->last_error
-					,"%s realloc failure of %ld bytes for comment buffer"
-					, __FUNCTION__, l+length+1);
-				free(buf);
-				return(NULL);
+					,"realloc failure of %ld bytes for comment buffer"
+					,l+length+1);
+				return(buf);
 			}
 			buf=p;
 			l+=sprintf(buf+l,"%s\r\n",str);
-		}
-		if(l) {	/* Add a blank line after comments */
-			if((p=(char*)realloc(buf,l+3))==NULL) {
-				sprintf(smb->last_error
-					,"%s realloc failure of %ld bytes for comment buffer"
-					, __FUNCTION__, l+3);
-				free(buf);
-				return(NULL);
-			}
-			buf=p;
-			l+=sprintf(buf+l,"\r\n");
-		}
-		unsigned answers = 0;
-		for(i=0;i<(uint)msg->total_hfields;i++) {			/* Poll Answers are part of text */
-			if(msg->hfield[i].type!=SMB_POLL_ANSWER)
-				continue;
-			char tmp[128];
-			length = safe_snprintf(tmp, sizeof(tmp), "%2u: %s\r\n", ++answers, (char*)msg->hfield_dat[i]);
-			if((p=(char*)realloc(buf,l+length+1))==NULL) {
-				sprintf(smb->last_error
-					,"%s realloc failure of %ld bytes for comment buffer"
-					, __FUNCTION__, l+length+1);
-				free(buf);
-				return(NULL);
-			}
-			buf=p;
-			memcpy(buf+l, tmp, length);
-			l += length;
-			buf[l] = 0;
 		}
 	}
 
@@ -140,20 +111,18 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 				continue;
 			if((lzhbuf=(char*)malloc(length))==NULL) {
 				sprintf(smb->last_error
-					,"%s malloc failure of %ld bytes for LZH buffer"
-					, __FUNCTION__, length);
-				free(buf);
-				return(NULL);
+					,"malloc failure of %ld bytes for LZH buffer"
+					,length);
+				return(buf);
 			}
 			smb_fread(smb,lzhbuf,length,smb->sdt_fp);
 			lzhlen=*(int32_t*)lzhbuf;
 			if((p=(char*)realloc(buf,l+lzhlen+3L))==NULL) {
 				sprintf(smb->last_error
-					,"%s realloc failure of %ld bytes for text buffer"
-					, __FUNCTION__, l+lzhlen+3L);
+					,"realloc failure of %ld bytes for text buffer"
+					,l+lzhlen+3L);
 				free(lzhbuf);
-				free(buf);
-				return(NULL); 
+				return(buf); 
 			}
 			buf=p;
 			lzh_decode((uint8_t *)lzhbuf,length,(uint8_t *)buf+l);
@@ -163,10 +132,9 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 		else {
 			if((p=(char*)realloc(buf,l+length+3L))==NULL) {
 				sprintf(smb->last_error
-					,"%s realloc failure of %ld bytes for text buffer"
-					, __FUNCTION__, l+length+3L);
-				free(buf);
-				return(NULL);
+					,"realloc failure of %ld bytes for text buffer"
+					,l+length+3L);
+				return(buf);
 			}
 			buf=p;
 			p=buf+l;
@@ -195,137 +163,25 @@ void SMBCALL smb_freemsgtxt(char* buf)
 		free(buf);
 }
 
-enum content_transfer_encoding {
-	CONTENT_TRANFER_ENCODING_NONE,
-	CONTENT_TRANFER_ENCODING_BASE64,
-	CONTENT_TRANFER_ENCODING_QUOTED_PRINTABLE,
-	CONTENT_TRANFER_ENCODING_OTHER
-};
-
-/* Decode quoted-printable content-transfer-encoded text */
-/* Ignores (strips) unsupported ctrl chars and non-ASCII chars */
-/* Does not enforce 76 char line length limit */
-char* qp_decode(char* buf)
+/* Get just the plain-text portion of a MIME-encoded message body */
+char* SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf)
 {
-	uchar*	p=(uchar*)buf;
-	uchar*	dest=p;
-
-	for(;*p != 0; p++) {
-		if(*p==' ' || (*p>='!' && *p<='~' && *p!='=') || *p=='\t'|| *p=='\r'|| *p=='\n')
-			*dest++=*p;
-		else if(*p=='=') {
-			p++;
-			if(*p == '\r')	/* soft link break */
-				p++;
-			if(*p == 0)
-				break;
-			if(*p == '\n')
-				continue;
-			if(isxdigit(*p) && isxdigit(*(p+1))) {
-				uchar ch = HEX_CHAR_TO_INT(*p) << 4;
-				p++;
-				ch |= HEX_CHAR_TO_INT(*p);
-				if(ch == '\t' || ch >= ' ')
-					*dest++=ch;
-			} else {	/* bad encoding */
-				*dest++='=';
-				*dest++=*p;
-			}
-		}
-	}
-	*dest++='\r';
-	*dest++='\n';
-	*dest=0;
-	return buf;
-}
-
-static enum content_transfer_encoding mime_getxferencoding(char* beg, char* end)
-{
-	char* p = beg;
-
-	while(p < end) {
-		SKIP_WHITESPACE(p);
-		if(strnicmp(p, "content-transfer-encoding:", 26) != 0) {
-			FIND_CHAR(p, '\n');
-			continue;
-		}
-		p += 26;
-		SKIP_WHITESPACE(p);
-		if(strnicmp(p, "base64", 6) == 0)
-			return CONTENT_TRANFER_ENCODING_BASE64;
-		if(strnicmp(p, "quoted-printable", 16) == 0)
-			return CONTENT_TRANFER_ENCODING_QUOTED_PRINTABLE;
-		if(strnicmp(p, "7bit", 4) == 0 || strnicmp(p, "8bit", 4) == 0 || strnicmp(p, "binary", 6) == 0)
-			return CONTENT_TRANFER_ENCODING_NONE;
-		return CONTENT_TRANFER_ENCODING_OTHER;
-	}
-
-	return CONTENT_TRANFER_ENCODING_NONE;
-}
-
-/* ToDo: parse and return the "modification-date" value */
-static BOOL mime_getattachment(char* beg, char* end, char* attachment)
-{
-	char fname[MAX_PATH+1];
-	char* p = beg;
-
-	while(p < end) {
-		SKIP_WHITESPACE(p);
-		if(strnicmp(p, "content-disposition:", 20) != 0) {
-			FIND_CHAR(p, '\n');
-			continue;
-		}
-		p += 20;
-		SKIP_WHITESPACE(p);
-		if(strnicmp(p, "inline", 6) == 0) {
-			FIND_CHAR(p, '\n');
-			continue;
-		}
-		char* filename = strstr(p, "filename=");
-		if(filename == NULL) {
-			FIND_CHAR(p, '\n');
-			continue;
-		}
-		filename += 9;
-		char* term;
-		if(*filename == '"') {
-			filename++;
-			term = strchr(filename, '"');
-		} else
-			term = strchr(filename, ';');
-		if(term == NULL) {
-			term = filename;
-			FIND_WHITESPACE(term);
-		}
-		memcpy(fname, filename, term - filename);
-		fname[term - filename] = 0;
-		strcpy(attachment, getfname(fname));
-		return TRUE;
-	}
-	return FALSE;
-}
-
-/* Find the specified content-type in a MIME-encoded message body, recursively */
-static char* mime_getcontent(char* buf, const char* content_type, const char* content_match
-	,int depth, enum content_transfer_encoding* encoding, char* attachment, int index)
-{
+	int		i;
 	char*	txt;
 	char*	p;
+	char*	content_type = NULL;
 	char	boundary[256];
-	char	match1[128];
-	char	match2[128];
-	int		match_len = 0;
-	int		found = 0;
-	
-	if(content_match != NULL) {
-		match_len = sprintf(match1, "Content-Type: %s;", content_match);
-					sprintf(match2, "Content-Type: %s\r", content_match);
-	}
 
-	if(depth > 2)
-		return NULL;
+	for(i=0;i<msg->total_hfields;i++) { 
+		if(msg->hfield[i].type==RFC822HEADER) { 
+			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0) {
+				content_type=msg->hfield_dat[i];
+				break;
+			}
+        }
+    }
 	if(content_type == NULL)	/* Not MIME-encoded */
-		return NULL;
+		return buf;
 	content_type += 13;
 	SKIP_WHITESPACE(content_type);
 	if(strstr(content_type, "multipart/alternative;") == content_type)
@@ -333,10 +189,10 @@ static char* mime_getcontent(char* buf, const char* content_type, const char* co
 	else if(strstr(content_type, "multipart/mixed;") == content_type)
 		content_type +=16;
 	else
-		return NULL;
+		return buf;
 	p = strstr(content_type, "boundary=");
 	if(p == NULL)
-		return NULL;
+		return buf;
 	p += 9;
 	if(*p == '"')
 		p++;
@@ -347,106 +203,18 @@ static char* mime_getcontent(char* buf, const char* content_type, const char* co
 	while((p = strstr(txt, boundary)) != NULL) {
 		txt = p+strlen(boundary);
 		SKIP_WHITESPACE(txt);
+		if(strncmp(txt, "Content-Type: text/plain;", 25) 
+			&& strncmp(txt,"Content-Type: text/plain\r", 25))
+			continue;
 		p = strstr(txt, "\r\n\r\n");	/* End of header */
 		if(p==NULL)
 			continue;
-		for(content_type = txt; content_type < p; content_type++) {
-			SKIP_WHITESPACE(content_type);
-			if(strnicmp(content_type, "Content-Type:", 13) == 0)
-				break;
-			FIND_CHAR(content_type, '\r');
-		}
-		if(content_type >= p)
-			continue;
-		if((match_len && strnicmp(content_type, match1, match_len) && strnicmp(content_type, match2, match_len))
-			|| (attachment != NULL && !mime_getattachment(txt, p, attachment))) {
-			if((p = mime_getcontent(p, content_type, content_match, depth + 1, encoding, attachment, index)) != NULL)
-				return p;
-			continue;
-		}
-		if(found++ != index) {
-			if((p = mime_getcontent(p, content_type, content_match, depth + 1, encoding, attachment, index)) != NULL)
-				return p;
-			continue;
-		}
-		if(encoding != NULL)
-			*encoding = mime_getxferencoding(txt, p);
 		txt = p;
 		SKIP_WHITESPACE(txt);
 		if((p = strstr(txt, boundary)) != NULL)
 			*p = 0;
-		return txt;
-	}
-	return NULL;
-}
-
-/* Get just the plain-text portion of a MIME-encoded message body */
-char* SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf)
-{
-	int		i;
-	char*	txt;
-	char*	content_type = NULL;
-	enum content_transfer_encoding xfer_encoding = CONTENT_TRANFER_ENCODING_NONE;
-
-	for(i=0;i<msg->total_hfields;i++) { 
-		if(msg->hfield[i].type==RFC822HEADER) { 
-			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0) {
-				content_type=msg->hfield_dat[i];
-				break;
-			}
-        }
-    }
-	if(content_type == NULL)	/* not MIME */
-		return buf;
-	txt = mime_getcontent(buf, content_type, "text/plain", 0, &xfer_encoding
-		,/* attachment: */NULL, /* index: */0);
-	if(txt != NULL) {
 		memmove(buf, txt, strlen(txt)+1);
-		if(*buf == 0)
-			return buf;
-		if(xfer_encoding == CONTENT_TRANFER_ENCODING_QUOTED_PRINTABLE)
-			qp_decode(buf);
-		else if(xfer_encoding == CONTENT_TRANFER_ENCODING_BASE64) {
-			char* decoded = strdup(buf);
-			if(decoded == NULL)
-				return buf;
-			if(b64_decode(decoded, strlen(decoded), buf, strlen(buf)) > 0)
-				strcpy(buf, decoded);
-			free(decoded);
-		}
+		break;
 	}
-
 	return buf;
-}
-
-/* Get just an attachment (just one) from MIME-encoded message body */
-uint8_t* SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, uint32_t* filelen, int index)
-{
-	int		i;
-	char*	txt;
-	char*	content_type = NULL;
-	enum content_transfer_encoding xfer_encoding = CONTENT_TRANFER_ENCODING_NONE;
-
-	for(i=0;i<msg->total_hfields;i++) { 
-		if(msg->hfield[i].type==RFC822HEADER) { 
-			if(strnicmp((char*)msg->hfield_dat[i],"Content-Type:",13)==0) {
-				content_type=msg->hfield_dat[i];
-				break;
-			}
-        }
-    }
-	if(content_type == NULL)	/* not MIME */
-		return NULL;
-	txt = mime_getcontent(buf, content_type, /* match-type: */NULL, 0, &xfer_encoding
-		,/* attachment: */filename, index);
-	if(txt != NULL && xfer_encoding == CONTENT_TRANFER_ENCODING_BASE64) {
-		memmove(buf, txt, strlen(txt)+1);
-		int result = b64_decode(buf, strlen(buf), buf, strlen(buf));
-		if(result < 1)
-			return NULL;
-		*filelen = result;
-		return (uint8_t*)buf;
-	}
-
-	return NULL;	/* No attachment */
 }
