@@ -2,7 +2,7 @@
 
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.80 2015/12/16 06:55:11 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.79 2015/12/07 03:41:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -879,7 +879,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				mode&=~SCAN_FIND;	/* turn off find mode */
 				if((i64=get_start_msg(this,&smb))<0)
 					break;
-				i=(int)i64;
+				i=64;
 				bputs(text[SearchStringPrompt]);
 				if(!getstr(find_buf,40,K_LINE|K_UPPER|K_EDIT|K_AUTODEL))
 					break;

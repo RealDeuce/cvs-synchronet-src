@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.153 2015/12/10 19:45:33 rswindell Exp $ */
+/* $Id: smblib.c,v 1.152 2015/12/06 11:08:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1252,11 +1252,10 @@ int	SMBCALL smb_hfield_add_netaddr(smbmsg_t* msg, uint16_t type, const char* add
 	SKIP_WHITESPACE(addr);
 	if(net_type==NULL)
 		net_type=&tmp_net_type;
-	if(*net_type==NET_UNKNOWN) {
+	if(*net_type==NET_UNKNOWN)
 		*net_type=smb_netaddr_type(addr);
-		if(*net_type==NET_NONE)
-			return SMB_ERR_NOT_FOUND;
-	}
+	if(*net_type==NET_NONE)
+		return SMB_ERR_NOT_FOUND;
 	if(*net_type!=NET_INTERNET) {	/* Only Internet net-addresses are allowed to have '@' in them */
 		const char* p = strchr(addr, '@');
 		if(p != NULL) {
