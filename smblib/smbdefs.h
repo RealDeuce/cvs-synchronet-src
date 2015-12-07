@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.83 2015/11/24 10:26:49 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.84 2015/11/26 13:08:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -627,7 +627,7 @@ typedef struct {				/* Message */
 
 } smbmsg_t;
 
-typedef struct {			/* Message base */
+typedef struct {				/* Message base */
 
     char		file[128];      /* Path and base filename (no extension) */
     FILE*		sdt_fp;			/* File pointer for data (.sdt) file */
@@ -638,7 +638,7 @@ typedef struct {			/* Message base */
 	FILE*		hash_fp;		/* File pointer for hash (.hash) file */
 	uint32_t	retry_time; 	/* Maximum number of seconds to retry opens/locks */
 	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
-	smbstatus_t status; 	/* Status header record */
+	smbstatus_t status; 		/* Status header record */
 	BOOL		locked;			/* SMB header is locked */
 	char		last_error[MAX_PATH*2];		/* Last error message */
 
