@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.55 2018/01/24 04:41:51 rswindell Exp $ */
+/* $Id: bitmap_con.c,v 1.53 2015/08/25 01:33:08 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -184,17 +184,8 @@ int bitmap_init_mode(int mode, int *width, int *height)
 	cio_textinfo.attribute=7;
 	cio_textinfo.normattr=7;
 	cio_textinfo.currmode=mode;
-
-	if (vstat.rows > 0xff)
-		cio_textinfo.screenheight = 0xff;
-	else
-		cio_textinfo.screenheight = vstat.rows;
-
-	if (vstat.cols > 0xff)
-		cio_textinfo.screenwidth = 0xff;
-	else
-		cio_textinfo.screenwidth = vstat.cols;
-
+	cio_textinfo.screenheight=vstat.rows;
+	cio_textinfo.screenwidth=vstat.cols;
 	cio_textinfo.curx=1;
 	cio_textinfo.cury=1;
 	cio_textinfo.winleft=1;
@@ -503,12 +494,11 @@ int bitmap_setfont(int font, int force, int font_num)
 	int		attr;
 	char	*pold;
 	char	*pnew;
-	int		result = CIOLIB_SETFONT_CHARHEIGHT_NOT_SUPPORTED;
 
 	if(!bitmap_initialized)
-		return(CIOLIB_SETFONT_NOT_INITIALIZED);
+		return(-1);
 	if(font < 0 || font>(sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)-2))
-		return(CIOLIB_SETFONT_INVALID_FONT);
+		return(-1);
 
 	if(conio_fontdata[font].eight_by_sixteen!=NULL)
 		newmode=C80;
@@ -544,10 +534,8 @@ int bitmap_setfont(int font, int force, int font_num)
 			}
 			break;
 	}
-	if(changemode && (newmode==-1 || font_num > 1)) {
-		result = CIOLIB_SETFONT_ILLEGAL_VIDMODE_CHANGE;
+	if(changemode && (newmode==-1 || font_num > 1))
 		goto error_return;
-	}
 	switch(font_num) {
 		case 0:
 			default_font=font;
@@ -581,7 +569,7 @@ int bitmap_setfont(int font, int force, int font_num)
 			new=malloc(ti.screenwidth*ti.screenheight*2);
 			if(!new) {
 				free(old);
-				return CIOLIB_SETFONT_MALLOC_FAILURE;
+				return -1;
 			}
 			pold=old;
 			pnew=new;
@@ -615,11 +603,11 @@ int bitmap_setfont(int font, int force, int font_num)
 		}
 	}
 	bitmap_loadfont(NULL);
-	return(CIOLIB_SETFONT_SUCCESS);
+	return(0);
 
 error_return:
 	pthread_mutex_unlock(&vstatlock);
-	return(result);
+	return(-1);
 }
 
 int bitmap_getfont(void)
