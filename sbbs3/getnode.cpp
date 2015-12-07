@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.45 2015/05/27 08:57:13 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.46 2015/11/30 09:07:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -446,6 +446,10 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 		case NODE_LOGON:
 			bputs(text[NodeStatusLogon]);
 			bputs(node_connection_desc(this, node->connection, tmp));
+			break;
+		case NODE_LOGOUT:
+			bprintf(text[NodeStatusLogout]
+				,(node->misc&NODE_ANON) && !SYSOP ? text[UNKNOWN_USER] : username(&cfg,node->useron,tmp));
 			break;
 		case NODE_EVENT_WAITING:
 			bputs(text[NodeStatusEventWaiting]);

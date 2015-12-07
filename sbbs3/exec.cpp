@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.100 2015/08/20 05:19:40 deuce Exp $ */
+/* $Id: exec.cpp,v 1.101 2015/12/04 21:38:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -548,7 +548,8 @@ js_OperationCallback(JSContext *cx)
 		return(JS_FALSE);
 	}
 
-	if(sbbs->js_callback.auto_terminate && !sbbs->online) {
+	if(sbbs->js_callback.auto_terminate && !sbbs->online 
+		&& ++sbbs->js_callback.offline_counter >= 10) {
 		JS_ReportWarning(cx,"Disconnected");
 		sbbs->js_callback.counter=0;
 		JS_SetOperationCallback(cx, js_OperationCallback);
