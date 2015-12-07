@@ -24,7 +24,7 @@ struct xpms_set* DLLCALL xpms_create(unsigned int retries, unsigned int wait_sec
 
 void DLLCALL xpms_destroy(struct xpms_set *xpms_set, void (*sock_destroy)(SOCKET, void *), void *cbdata)
 {
-	int		i;
+	size_t		i;
 
 	if(!xpms_set)
 		return;
@@ -76,6 +76,11 @@ BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 			return FALSE;
 		}
 		strcpy(un_addr.sun_path,addr);
+#ifdef SUN_LEN
+		dummy.ai_addrlen = SUN_LEN(&un_addr);
+#else
+		dummy.ai_addrlen = offsetof(struct sockaddr_un, un_addr.sun_path) + strlen(addr) + 1;
+#endif
 		if(fexist(addr))
 			unlink(addr);
 		res = &dummy;
@@ -184,8 +189,6 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 		host=strdup(*iface);
 
 		host_str=host;
-		if(xpms_set->lprintf)
-			xpms_set->lprintf(LOG_INFO, "Adding %s listening socket on %s", prot, host);
 		p = strrchr(host, ':');
 		/*
 		 * If there isn't a [, and the first and last colons aren't the same
@@ -205,6 +208,8 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 			*(p++)=0;
 			sscanf(p, "%hu", &port);
 		}
+		if(xpms_set->lprintf)
+			xpms_set->lprintf(LOG_INFO, "Adding %s listening socket on %s port %hu", prot, host_str, port);
 		if(xpms_add(xpms_set, domain, type, protocol, host_str, port, prot, sock_init, bind_init, cbdata))
 			one_good=TRUE;
 		free(host);
@@ -212,11 +217,27 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 	return one_good;
 }
 
+BOOL DLLCALL xpms_add_chararray_list(struct xpms_set *xpms_set, int domain, int type,
+	int protocol, const char *list, uint16_t default_port, const char *prot,
+	void (*sock_init)(SOCKET, void *), int(*bind_init)(BOOL), void *cbdata)
+{
+	str_list_t slist;
+	BOOL ret;
+
+	slist = strListSplitCopy(NULL, list, ", \t\r\n");
+	if (slist == NULL)
+		return FALSE;
+	ret = xpms_add_list(xpms_set, domain, type, protocol, slist, default_port, prot,
+			sock_init, bind_init, cbdata);
+	strListFree(&slist);
+	return ret;
+}
+
 SOCKET DLLCALL xpms_accept(struct xpms_set *xpms_set, union xp_sockaddr * addr, 
 	socklen_t * addrlen, unsigned int timeout, void **cb_data)
 {
 	fd_set			read_fs;
-	int				i;
+	size_t			i;
 	struct timeval	tv;
 	struct timeval	*tvp;
 	SOCKET			max_sock=0;
