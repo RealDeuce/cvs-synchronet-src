@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.40 2015/08/22 10:16:57 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.41 2015/12/04 09:23:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,6 +272,7 @@ struct paragraph {
 	struct prefix prefix;
 	char *text;
 	size_t alloc_size;
+	size_t len;
 };
 
 /*
@@ -296,18 +297,18 @@ static void free_paragraphs(struct paragraph *paragraph, int count)
  */
 static BOOL paragraph_append(struct paragraph *paragraph, const char *bytes, size_t count)
 {
-	size_t len = strlen(paragraph->text);
 	char *new_text;
 
-	while (len + count + 1 > paragraph->alloc_size) {
+	while (paragraph->len + count + 1 > paragraph->alloc_size) {
 		new_text = realloc(paragraph->text, paragraph->alloc_size * 2);
 		if (new_text == NULL)
 			return FALSE;
 		paragraph->text = new_text;
 		paragraph->alloc_size *= 2;
 	}
-	memcpy(paragraph->text + len, bytes, count);
-	paragraph->text[len+count] = 0;
+	memcpy(paragraph->text + paragraph->len, bytes, count);
+	paragraph->text[paragraph->len+count] = 0;
+	paragraph->len += count;
 	return TRUE;
 }
 
@@ -342,6 +343,7 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 		}
 		ret = newret;
 		ret[paragraph].text = (char *)malloc(oldlen+1);
+		ret[paragraph].len = 0;
 		ret[paragraph].prefix.bytes = NULL;
 		if (ret[paragraph].text == NULL) {
 			free_paragraphs(ret, paragraph+1);
