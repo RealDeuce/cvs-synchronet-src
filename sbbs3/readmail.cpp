@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.65 2015/11/26 08:34:34 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.67 2015/12/04 10:06:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,7 +155,10 @@ void sbbs_t::readmail(uint usernumber, int which)
 		}
 
 		ASYNC;
-		if(!(sys_status&SS_ABORT)) {
+		if(sys_status&SS_ABORT) {
+			domsg=0;
+			smb.curmsg=0;
+		} else {
 			bprintf(text[StartWithN],1L);
 			l=getnum(smb.msgs);
 			if(l>0)
@@ -693,8 +696,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 					break;
 	*/
 				bputs(text[FileToWriteTo]);
-				if(getstr(str,40,K_LINE))
-					msgtotxt(&msg,str,1,1);
+				if(getstr(str,50,K_LINE))
+					msgtotxt(&msg,str, /* header: */true, /* mode: */GETMSGTXT_ALL);
 				break;
 			case 'E':
 				editmsg(&msg,INVALID_SUB);
