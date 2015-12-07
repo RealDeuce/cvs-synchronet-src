@@ -1,15 +1,14 @@
 /* ver.cpp */
-// vi: tabstop=4
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.29 2018/01/18 01:21:58 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.27 2015/11/10 22:53:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -106,20 +105,7 @@ void sbbs_t::ver()
 	}
 #endif
 
-	socklib_version(str,SOCKLIB_DESC);
-
-#ifdef USE_CRYPTLIB
-	{
-		int cl_major=0, cl_minor=0, cl_step=0;
-		int result;
-		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MAJORVERSION, &cl_major);
-		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MINORVERSION, &cl_minor);
-		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_STEPPING, &cl_step);
-		(void)result;
-		sprintf(str + strlen(str), "  cryptlib %u.%u.%u (%u)", cl_major, cl_minor, cl_step, CRYPTLIB_VERSION);
-	}
-#endif
-	center(str);
+	center(socklib_version(str,SOCKLIB_DESC));
 	CRLF;
 
 	center(os_version(str));
