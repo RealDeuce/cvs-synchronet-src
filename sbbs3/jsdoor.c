@@ -2,7 +2,7 @@
 
 /* Execute a BBS JavaScript module from the command-line */
 
-/* $Id: jsdoor.c,v 1.4 2016/01/21 09:52:59 deuce Exp $ */
+/* $Id: jsdoor.c,v 1.3 2015/11/10 22:53:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -203,7 +203,6 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,js_startup_t* js_startup	/* js */
 										,client_t* client			/* client */
 										,SOCKET client_socket		/* client */
-										,CRYPT_CONTEXT session		/* client */
 										,js_server_props_t* props	/* server */
 										,JSObject** glob
 										)
@@ -226,7 +225,7 @@ BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* Client Object */
 		if(client!=NULL 
-			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket, session)==NULL)
+			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
 			break;
 
 		/* Server */
