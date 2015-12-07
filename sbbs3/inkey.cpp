@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.50 2016/10/06 06:47:39 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.49 2015/11/25 02:38:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -290,7 +290,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					j++;
 					continue;
 				}
-				if(ch!=';' && !isdigit((uchar)ch) && ch!='R') {    /* other ANSI */
+				if(ch!=';' && !isdigit(ch) && ch!='R') {    /* other ANSI */
 					switch(ch) {
 						case 'A':
 							return(0x1e);	/* ctrl-^ (up arrow) */
