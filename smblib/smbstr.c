@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.23 2015/12/06 11:08:41 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.24 2015/12/07 02:33:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -384,6 +384,6 @@ char* SMBCALL smb_nettype(enum smb_net_type type)
 		case NET_QWK:		return "QWKnet";
 		case NET_FIDO:		return "Fidonet";
 		case NET_INTERNET:	return "Internet";
+		default:			return "Unsupported net type";
 	}
-	return "Unsupported net type";
 }
