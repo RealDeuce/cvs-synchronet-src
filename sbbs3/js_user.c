@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.101 2017/11/13 08:31:24 rswindell Exp $ */
+/* $Id: js_user.c,v 1.100 2015/08/20 05:19:42 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -374,10 +374,10 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			val=scfg->level_freecdtperday[p->user->level];
 			break;
 		case USER_PROP_MAIL_WAITING:
-			val=getmail(scfg,p->user->number,/* sent? */FALSE, /* SPAM: */FALSE);
+			val=getmail(scfg,p->user->number,/* sent? */FALSE);
 			break;
 		case USER_PROP_MAIL_PENDING:
-			val=getmail(scfg,p->user->number,/* sent? */TRUE, /* SPAM: */FALSE);
+			val=getmail(scfg,p->user->number,/* sent? */TRUE);
 			break;
 
 		case USER_PROP_CACHED:
