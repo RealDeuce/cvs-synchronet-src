@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.272 2015/12/07 09:10:01 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.273 2015/12/10 05:15:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -428,6 +428,8 @@ size_t fwrite_crlf(char* buf, size_t len, FILE* fp)
 
 BOOL fidoctrl_line_exists(smbmsg_t* msg, const char* prefix)
 {
+	if(msg==NULL || prefix==NULL)
+		return FALSE;
 	for(int i=0; i<msg->total_hfields; i++) {
 		if(msg->hfield[i].type == FIDOCTRL
 			&& strncmp((char*)msg->hfield_dat[i], prefix, strlen(prefix)) == 0)
@@ -4275,7 +4277,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.272 $", "%*s %s", revision);
+	sscanf("$Revision: 1.273 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
