@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.64 2015/09/20 07:29:00 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.67 2015/12/04 10:06:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,20 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+
+static char mail_listing_flag(smbmsg_t* msg)
+{
+	if(msg->hdr.attr&MSG_DELETE)				return '-';
+	if(msg->hdr.attr&MSG_REPLIED)				return 'R';
+	if(msg->hdr.attr&MSG_READ)					return ' ';
+	if(msg->hdr.attr&MSG_PERMANENT)				return 'p';
+	if(msg->hdr.attr&MSG_LOCKED)				return 'L';
+	if(msg->hdr.attr&MSG_KILLREAD)				return 'K';
+	if(msg->hdr.attr&MSG_NOREPLY)				return '#';
+	if(msg->from_net.type || msg->to_net.type)	return 'N';
+	if(msg->hdr.attr&MSG_ANONYMOUS)				return 'A';
+	return '*';
+}
 
 /****************************************************************************/
 /* Reads mail waiting for usernumber.                                       */
@@ -134,16 +148,17 @@ void sbbs_t::readmail(uint usernumber, int which)
 				,which==MAIL_SENT ? msg.to
 				: (msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP ? text[Anonymous]
 				: msg.from
-				,msg.hdr.attr&MSG_DELETE ? '-' : msg.hdr.attr&MSG_REPLIED ? 'R'
-					: msg.hdr.attr&MSG_READ ? ' '
-					: msg.from_net.type || msg.to_net.type ? 'N':'*'
+				,mail_listing_flag(&msg)
 				,msg.subj);
 			smb_freemsgmem(&msg);
 			msg.total_hfields=0; 
 		}
 
 		ASYNC;
-		if(!(sys_status&SS_ABORT)) {
+		if(sys_status&SS_ABORT) {
+			domsg=0;
+			smb.curmsg=0;
+		} else {
 			bprintf(text[StartWithN],1L);
 			l=getnum(smb.msgs);
 			if(l>0)
@@ -543,18 +558,14 @@ void sbbs_t::readmail(uint usernumber, int which)
 					if(which==MAIL_ALL)
 						bprintf(text[MailOnSystemLstFmt]
 							,u+1,msg.from,msg.to
-							,msg.hdr.attr&MSG_DELETE ? '-' : msg.hdr.attr&MSG_REPLIED ? 'R'
-								: msg.hdr.attr&MSG_READ ? ' '
-								: msg.from_net.type || msg.to_net.type ? 'N':'*'
+							,mail_listing_flag(&msg)
 							,msg.subj);
 					else
 						bprintf(text[MailWaitingLstFmt],u+1
 							,which==MAIL_SENT ? msg.to
 							: (msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP
 							? text[Anonymous] : msg.from
-							,msg.hdr.attr&MSG_DELETE ? '-' : msg.hdr.attr&MSG_REPLIED ? 'R'
-								: msg.hdr.attr&MSG_READ ? ' '
-								: msg.from_net.type || msg.to_net.type ? 'N':'*'
+							,mail_listing_flag(&msg)
 							,msg.subj);
 					smb_freemsgmem(&msg);
 					msg.total_hfields=0; 
@@ -685,8 +696,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 					break;
 	*/
 				bputs(text[FileToWriteTo]);
-				if(getstr(str,40,K_LINE))
-					msgtotxt(&msg,str,1,1);
+				if(getstr(str,50,K_LINE))
+					msgtotxt(&msg,str, /* header: */true, /* mode: */GETMSGTXT_ALL);
 				break;
 			case 'E':
 				editmsg(&msg,INVALID_SUB);
@@ -716,18 +727,14 @@ void sbbs_t::readmail(uint usernumber, int which)
 					if(which==MAIL_ALL)
 						bprintf(text[MailOnSystemLstFmt]
 							,u+1,msg.from,msg.to
-							,msg.hdr.attr&MSG_DELETE ? '-' : msg.hdr.attr&MSG_REPLIED ? 'R'
-								: msg.hdr.attr&MSG_READ ? ' ' 
-								: msg.from_net.type || msg.to_net.type ? 'N':'*'
+							,mail_listing_flag(&msg)
 							,msg.subj);
 					else
 						bprintf(text[MailWaitingLstFmt],u+1
 							,which==MAIL_SENT ? msg.to
 							: (msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP
 							? text[Anonymous] : msg.from
-							,msg.hdr.attr&MSG_DELETE ? '-' : msg.hdr.attr&MSG_REPLIED ? 'R'
-								: msg.hdr.attr&MSG_READ ? ' '
-								: msg.from_net.type || msg.to_net.type ? 'N':'*'
+							,mail_listing_flag(&msg)
 							,msg.subj);
 					smb_freemsgmem(&msg);
 					msg.total_hfields=0; 
