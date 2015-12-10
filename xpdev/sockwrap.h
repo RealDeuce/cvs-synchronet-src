@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.53 2016/05/21 02:21:40 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.52 2014/11/16 02:58:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -233,7 +233,6 @@ DLLEXPORT union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_socka
 DLLEXPORT const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size);
 DLLEXPORT uint16_t DLLCALL inet_addrport(union xp_sockaddr *addr);
 DLLEXPORT void DLLCALL inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
-DLLEXPORT BOOL DLLCALL inet_addrmatch(union xp_sockaddr* addr1, union xp_sockaddr* addr2);
 
 #ifdef __cplusplus
 }
