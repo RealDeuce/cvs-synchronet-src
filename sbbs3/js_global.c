@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.350 2015/11/08 07:52:12 deuce Exp $ */
+/* $Id: js_global.c,v 1.354 2015/11/18 00:59:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,6 +394,12 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 			js_CreateBbsObject(bg->cx, bg->obj);
 		if (JS_HasProperty(cx, obj, "console", &success) && success)
 			js_CreateConsoleObject(bg->cx, bg->obj);
+		if (JS_HasProperty(cx, obj, "stdin", &success) && success)
+			js_CreateFileObject(bg->cx, bg->obj, "stdin", stdin);
+		if (JS_HasProperty(cx, obj, "stdout", &success) && success)
+			js_CreateFileObject(bg->cx, bg->obj, "stdout", stdout);
+		if (JS_HasProperty(cx, obj, "stderr", &success) && success)
+			js_CreateFileObject(bg->cx, bg->obj, "stderr", stderr);
 		JS_SetContextPrivate(bg->cx, bg);
 
 		exec_cx = bg->cx;
@@ -602,6 +608,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(js_CreateQueueObject(cx, obj, NULL, bg->msg_queue)));
 		rc=JS_SUSPENDREQUEST(cx);
 		JS_RESUMEREQUEST(bg->cx, brc);
+		js_PrepareToExecute(bg->cx, bg->obj, path, NULL, bg->obj);
 		JS_ENDREQUEST(bg->cx);
 		JS_ClearContextThread(bg->cx);
 		bg->sem=&p->bg_sem;
@@ -2299,6 +2306,15 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			outbuf[j++]=CTRL_U;
 			continue;
 		}
+		if(strcmp(token,"lrm")==0		/* left-to-right mark, not printable */
+			|| strcmp(token,"rlm")==0)	/* right-to-left mark, not printable */
+			continue;
+
+		if(strcmp(token,"hellip")==0) {	/* horizontal ellipsis  */
+			j+=sprintf(outbuf+j,"...");
+			continue;
+		}
+
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
 		
