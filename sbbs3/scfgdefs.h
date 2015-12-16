@@ -2,13 +2,13 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.35 2009/11/11 05:34:09 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.38 2015/11/27 11:17:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -498,6 +498,8 @@ typedef struct
 	uint32_t		new_misc;			/* New User Miscellaneous Defaults */
 	uint16_t		new_expire; 		/* Expiration days for new user */
 	uchar			new_prot;			/* New User Default Download Protocol */
+	uint16_t		new_msgscan_init;	/* Uew User new-scan pointers initialized to msgs this old (in days) */
+	uint16_t		guest_msgscan_init;	/* Guest new-scan pointers initialized to msgs this old (in days) */
 	char 			val_level[10];		/* Validation User Main Level */
 	uint32_t		val_flags1[10]; 	/* Validation User Flags from set #1*/
 	uint32_t		val_flags2[10]; 	/* Validation User Flags from set #2*/
@@ -576,6 +578,9 @@ typedef struct
 	char			logout_mod[LEN_MODNAME+1];			/* Logout module */
 	char			sync_mod[LEN_MODNAME+1];			/* Synchronization module */
 	char			expire_mod[LEN_MODNAME+1];			/* User expiration module */
+	char			readmail_mod[LEN_CMD+1];	/* Reading mail module */
+	char			scanposts_mod[LEN_CMD+1];	/* Scanning posts (in a single sub) module */
+	char			scansubs_mod[LEN_CMD+1];	/* Scanning sub-boards module */
 	char			scfg_cmd[LEN_CMD+1];	/* SCFG command line */
 	uchar			smb_retry_time; 		/* Seconds to retry on SMBs */
 	uint16_t		sec_warn;				/* Seconds before inactivity warning */
