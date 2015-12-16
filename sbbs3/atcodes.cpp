@@ -2,13 +2,13 @@
 
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.64 2015/01/01 22:33:22 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.69 2015/12/10 20:01:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -55,6 +55,7 @@ int sbbs_t::show_atcode(const char *instr)
 	int		disp_len;
 	bool	padded_left=false;
 	bool	padded_right=false;
+	bool	centered=false;
 	const char *cp;
 
 	SAFECOPY(str,instr);
@@ -73,6 +74,8 @@ int sbbs_t::show_atcode(const char *instr)
 		padded_left=true;
 	else if((p=strstr(sp,"-R"))!=NULL)
 		padded_right=true;
+	else if((p=strstr(sp,"-C"))!=NULL)
+		centered=true;
 	if(p!=NULL) {
 		if(*(p+2) && isdigit(*(p+2)))
 			disp_len=atoi(p+2);
@@ -87,7 +90,14 @@ int sbbs_t::show_atcode(const char *instr)
 		bprintf("%-*.*s",disp_len,disp_len,cp);
 	else if(padded_right)
 		bprintf("%*.*s",disp_len,disp_len,cp);
-	else
+	else if(centered) {
+		int vlen = strlen(cp);
+		if(vlen < disp_len) {
+			int left = (disp_len - vlen) / 2;
+			bprintf("%*s%-*s", left, "", disp_len - left, cp);
+		} else
+			bputs(cp);
+	} else
 		bputs(cp);
 
 	return(len);
@@ -636,11 +646,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"CID") || !strcmp(sp,"IP"))
 		return(cid);
 
-	if(!strcmp(sp,"LOCAL-IP")) {
-		struct in_addr in_addr;
-		in_addr.s_addr=local_addr;
-		return(inet_ntoa(in_addr));
-	}
+	if(!strcmp(sp,"LOCAL-IP"))
+		return(local_addr);
 
 	if(!strcmp(sp,"CRLF"))
 		return("\r\n");
@@ -917,7 +924,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(nulstr);
 		if(current_msg->to_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg->to,current_msg->to_ext);
-		else if(current_msg->to_net.type!=NET_NONE) {
+		else if(current_msg->to_net.addr != NULL) {
 			char tmp[128];
 			safe_snprintf(str,maxlen,"%s (%s)",current_msg->to
 				,smb_netaddrstr(&current_msg->to_net,tmp));
@@ -932,8 +939,16 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(nulstr);
 		return(current_msg->to_ext);
 	}
-	if(!strcmp(sp,"MSG_TO_NET") && current_msg!=NULL)
+	if(!strcmp(sp,"MSG_TO_NET") && current_msg!=NULL) {
+		if(current_msg->to_net.addr == NULL)
+			return nulstr;
 		return(smb_netaddrstr(&current_msg->to_net,str));
+	}
+	if(!strcmp(sp,"MSG_TO_NETTYPE") && current_msg!=NULL) {
+		if(current_msg->to_net.type==NET_NONE)
+			return nulstr;
+		return(smb_nettype((enum smb_net_type)current_msg->to_net.type));
+	}
 	if(!strcmp(sp,"MSG_FROM") && current_msg!=NULL) {
 		if(current_msg->from==NULL)
 			return(nulstr);
@@ -941,7 +956,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(text[Anonymous]);
 		if(current_msg->from_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg->from,current_msg->from_ext);
-		else if(current_msg->from_net.type!=NET_NONE) {
+		else if(current_msg->from_net.addr != NULL) {
 			char tmp[128];
 			safe_snprintf(str,maxlen,"%s (%s)",current_msg->from
 				,smb_netaddrstr(&current_msg->from_net,tmp));
@@ -963,15 +978,23 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 	if(!strcmp(sp,"MSG_FROM_NET") && current_msg!=NULL) {
-		if(current_msg->from_net.type!=NET_NONE
+		if(current_msg->from_net.addr!=NULL
 			&& (!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP))
 			return(smb_netaddrstr(&current_msg->from_net,str));
 		return(nulstr);
+	}
+	if(!strcmp(sp,"MSG_FROM_NETTYPE") && current_msg!=NULL) {
+		if(current_msg->from_net.type==NET_NONE)
+			return nulstr;
+		return(smb_nettype((enum smb_net_type)current_msg->from_net.type));
 	}
 	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
 		return(current_msg->subj==NULL ? nulstr : current_msg->subj);
 	if(!strcmp(sp,"MSG_DATE") && current_msg!=NULL)
 		return(timestr(current_msg->hdr.when_written.time));
+	if(!strcmp(sp,"MSG_AGE") && current_msg!=NULL)
+		return age_of_posted_item(str, maxlen
+			, current_msg->hdr.when_written.time - (smb_tzutc(current_msg->hdr.when_written.zone) * 60));
 	if(!strcmp(sp,"MSG_TIMEZONE") && current_msg!=NULL)
 		return(smb_zonestr(current_msg->hdr.when_written.zone,NULL));
 	if(!strcmp(sp,"MSG_ATTR") && current_msg!=NULL) {
@@ -1036,6 +1059,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			safe_snprintf(str,maxlen,"%s %s"
 				,cfg.grp[cfg.sub[smb.subnum]->grp]->sname
 				,cfg.sub[smb.subnum]->sname);
+		else
+			strncpy(str, "Email", maxlen);
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_AREA_DESC")) {
@@ -1043,6 +1068,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			safe_snprintf(str,maxlen,"%s %s"
 				,cfg.grp[cfg.sub[smb.subnum]->grp]->lname
 				,cfg.sub[smb.subnum]->lname);
+		else
+			strncpy(str, "Personal Email", maxlen);
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_GROUP")) {
