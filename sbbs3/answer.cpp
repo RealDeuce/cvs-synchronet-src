@@ -1,6 +1,8 @@
+/* answer.cpp */
+
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.93 2018/01/22 04:01:46 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.90 2015/12/16 08:13:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -189,7 +191,6 @@ bool sbbs_t::answer()
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
-		tmp[0]=0;
 		pthread_mutex_lock(&ssh_mutex);
 		ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_USERNAME);
 		if (ctmp) {
@@ -200,6 +201,8 @@ bool sbbs_t::answer()
 				SAFECOPY(tmp, ctmp);
 				free_crypt_attrstr(ctmp);
 			}
+			else
+				tmp[0] = 0;
 			pthread_mutex_unlock(&ssh_mutex);
 			lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
 				,cfg.node_num, rlogin_name);
@@ -262,7 +265,7 @@ bool sbbs_t::answer()
 		}
 		else {
 			if(cfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, truncsp(tmp));
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, tmp);
 			else
 				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
 			badlogin(rlogin_name, tmp);
@@ -281,9 +284,7 @@ bool sbbs_t::answer()
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
-#ifdef SUPPORT_ZUULTERM
 			"\x1b[30;40m\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm? */
-#endif
 			"\x1b[0m_"	/* "Normal" colors */
 			"\x1b[2J"	/* clear screen */
 			"\x1b[H"	/* home cursor */
@@ -338,16 +339,13 @@ bool sbbs_t::answer()
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"RIP");
 			logline("@R",strstr(str,"RIPSCRIP"));
-			autoterm|=(RIP|COLOR|ANSI); 
-		}
-#ifdef SUPPORT_ZUULTERM
+			autoterm|=(RIP|COLOR|ANSI); }
 		else if(strstr(str,"Are you the gatekeeper?"))  {
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"HTML");
 			logline("@H",strstr(str,"Are you the gatekeeper?"));
 			autoterm|=HTML;
 		} 
-#endif
 	}
 	else if(terminal[0]==0)
 		SAFECOPY(terminal,"DUMB");
