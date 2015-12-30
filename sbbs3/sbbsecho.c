@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.271 2015/11/24 22:34:32 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.274 2015/12/30 18:44:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -400,6 +400,8 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 	}
 	fprintf(stream,"%s\n",searchstr);
 	fclose(stream);
+	lprintf(LOG_DEBUG, "Attachment %s for %s added to BSO/FLO file: %s"
+		,attachment, smb_faddrtoa(&dest,NULL), fname);
 	return(0);
 }
 
@@ -424,6 +426,18 @@ size_t fwrite_crlf(char* buf, size_t len, FILE* fp)
 	}
 
 	return(wr);
+}
+
+BOOL fidoctrl_line_exists(smbmsg_t* msg, const char* prefix)
+{
+	if(msg==NULL || prefix==NULL)
+		return FALSE;
+	for(int i=0; i<msg->total_hfields; i++) {
+		if(msg->hfield[i].type == FIDOCTRL
+			&& strncmp((char*)msg->hfield_dat[i], prefix, strlen(prefix)) == 0)
+			return TRUE;
+	}
+	return FALSE;
 }
 
 /******************************************************************************
@@ -518,15 +532,16 @@ int create_netmail(char *to, smbmsg_t* msg, char *subject, char *body, faddr_t d
 		,hdr.destzone,hdr.destnet,hdr.destnode
 		,hdr.origzone,hdr.orignet,hdr.orignode);
 
-	/* TZUTC (FSP-1001) */
-	int tzone=smb_tzutc(when_written.zone);
-	char* minus="";
-	if(tzone<0) {
-		minus="-";
-		tzone=-tzone;
+	if(!fidoctrl_line_exists(msg, "TZUTC:")) {
+		/* TZUTC (FSP-1001) */
+		int tzone=smb_tzutc(when_written.zone);
+		char* minus="";
+		if(tzone<0) {
+			minus="-";
+			tzone=-tzone;
+		}
+		fprintf(fp,"\1TZUTC: %s%02d%02u\r", minus, tzone/60, tzone%60);
 	}
-	fprintf(fp,"\1TZUTC: %s%02d%02u\r", minus, tzone/60, tzone%60);
-
 	/* Add FSC-53 FLAGS kludge */
 	fprintf(fp,"\1FLAGS");
 	if(attr&ATTR_DIRECT)
@@ -554,7 +569,8 @@ int create_netmail(char *to, smbmsg_t* msg, char *subject, char *body, faddr_t d
 		fwrite_crlf(body,strlen(body)+1,fp);	/* Write additional NULL */
 	else
 		fwrite("\0",1,1,fp);               /* Write NULL */
-	printf("Created %s\n", fname);
+	lprintf(LOG_DEBUG, "Created NetMail (%s)%s from: %s, to: %s@%s, subject: %s"
+		,fname, file_attached ? " with attachment" : "", from, to, smb_faddrtoa(&dest, NULL), subject);
 	return fclose(fp);
 }
 
@@ -3935,15 +3951,16 @@ void export_echomail(char *sub_code,faddr_t addr)
 			tear=0;
 			f=0;
 
-			tzone=smb_tzutc(msg.hdr.when_written.zone);
-			if(tzone<0) {
-				minus="-";
-				tzone=-tzone;
-			} else
-				minus="";
-			f+=sprintf(fmsgbuf+f,"\1TZUTC: %s%02d%02u\r"		/* TZUTC (FSP-1001) */
-				,minus,tzone/60,tzone%60);
-
+			if(!fidoctrl_line_exists(&msg, "TZUTC:")) {
+				tzone=smb_tzutc(msg.hdr.when_written.zone);
+				if(tzone<0) {
+					minus="-";
+					tzone=-tzone;
+				} else
+					minus="";
+				f+=sprintf(fmsgbuf+f,"\1TZUTC: %s%02d%02u\r"		/* TZUTC (FSP-1001) */
+					,minus,tzone/60,tzone%60);
+			}
 			if(msg.ftn_flags!=NULL)
 				f+=sprintf(fmsgbuf+f,"\1FLAGS %.256s\r", msg.ftn_flags);
 
@@ -4005,7 +4022,7 @@ void export_echomail(char *sub_code,faddr_t addr)
 						else
 							tear=1; 
 					}
-					else if(!strncmp(tp," * Origin: ",11))
+					else if(!(scfg.sub[i]->misc&SUB_NOTAG) && !strncmp(tp," * Origin: ",11))
 						*(tp+1)='#'; 
 				} /* Convert * Origin into # Origin */
 
@@ -4263,7 +4280,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.271 $", "%*s %s", revision);
+	sscanf("$Revision: 1.274 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5226,7 +5243,7 @@ int main(int argc, char **argv)
 				SAFECOPY(packet,pktname(/* Temp? */ FALSE));
 			}
 
-			lprintf(LOG_DEBUG,"NetMail packet: %s", packet);
+			lprintf(LOG_DEBUG,"Creating NetMail packet for %s: %s", smb_faddrtoa(&addr,NULL), packet);
 			now=time(NULL);
 			tm=localtime(&now);
 			if((stream=fnopen(&file,packet,O_RDWR|O_CREAT))==NULL) {
