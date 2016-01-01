@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.275 2016/01/01 09:56:25 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.276 2016/01/01 21:24:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,13 +100,6 @@ const char* sbbsecho_pid(void)
 	return str;
 }
 
-void delfile(const char *filename, int line)
-{
-	if(remove(filename) != 0)
-		lprintf(LOG_ERR, "ERROR %u (%s) line %u removing file %s"
-			,errno, strerror(errno), line, filename);
-}
-
 #if defined(__unix__)	/* borrowed from MSVC */
 unsigned _rotr (
         unsigned val,
@@ -175,6 +168,13 @@ void logprintf(char *str, ...)
 		,1900+gm->tm_year, gm->tm_mon+1, gm->tm_mday
 		,gm->tm_hour, gm->tm_min, gm->tm_sec
 		,buf);
+}
+
+void delfile(const char *filename, int line)
+{
+	if(remove(filename) != 0)
+		lprintf(LOG_ERR, "ERROR %u (%s) line %u removing file %s"
+			,errno, strerror(errno), line, filename);
 }
 
 /*****************************************************************************/
@@ -336,7 +336,6 @@ faddr_t getsysfaddr(short zone)
 
 int get_flo_outbound(faddr_t dest, char* outbound, size_t maxlen)
 {
-	char* last;
 	if(dest.zone==sys_faddr.zone)		/* Default zone, use default outbound */
 		strncpy(outbound,cfg.outbound,maxlen);
 	else {								/* Inter-zone outbound is OUTBOUND.XXX */
@@ -362,7 +361,6 @@ int write_flofile(char *attachment, faddr_t dest, BOOL bundle)
 {
 	char fname[MAX_PATH+1];
 	char outbound[MAX_PATH+1];
-	char str[MAX_PATH+1];
 	char ch;
 	char searchstr[MAX_PATH+1];
 	ushort attr=0;
@@ -4286,7 +4284,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.275 $", "%*s %s", revision);
+	sscanf("$Revision: 1.276 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
