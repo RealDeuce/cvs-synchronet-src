@@ -2,7 +2,7 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.14 2016/04/28 03:19:59 deuce Exp $ */
+/* $Id: msg_queue.c,v 1.13 2015/05/11 03:32:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,8 +57,8 @@ msg_queue_t* DLLCALL msgQueueInit(msg_queue_t* q, long flags)
 	q->owner_thread_id = pthread_self();
 
 	if(q->flags&MSG_QUEUE_BIDIR)
-		listInit(&q->in,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
-	listInit(&q->out,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
+		listInit(&q->in,LINK_LIST_SEMAPHORE);
+	listInit(&q->out,LINK_LIST_SEMAPHORE);
 
 	return(q);
 }
