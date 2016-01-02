@@ -1,7 +1,8 @@
+/* jsexec.c */
+
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.186 2017/11/13 19:50:14 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: jsexec.c,v 1.182 2015/12/05 10:27:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -781,7 +782,7 @@ static BOOL js_init(char** environ)
 	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
 		,&cb,&startup						/* js */
-		,NULL,INVALID_SOCKET,-1					/* client */
+		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
 		,&js_glob
 		)) {
@@ -1094,8 +1095,7 @@ int main(int argc, char **argv, char** environ)
 		raw_input(&term);
 		tcsetattr(fileno(stdin), TCSANOW, &term);
 #else
-	//	This completely disabled console input on Windows:
-	//	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 #endif
 		statfp=stderr;
 	}
@@ -1107,7 +1107,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.186 $", "%*s %s", revision);
+	sscanf("$Revision: 1.182 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
