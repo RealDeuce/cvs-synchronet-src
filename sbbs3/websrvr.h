@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.50 2016/05/18 10:15:13 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.49 2015/08/29 06:23:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,7 +106,10 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	struct login_attempt_settings login_attempt;
+	uint32_t	login_attempt_delay;
+	uint32_t	login_attempt_throttle;
+	uint32_t	login_attempt_hack_threshold;
+	uint32_t	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
 
 } web_startup_t;
