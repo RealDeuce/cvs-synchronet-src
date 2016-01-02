@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.631 2016/03/09 11:01:23 rswindell Exp $ */
+/* $Id: main.cpp,v 1.628 2015/12/04 21:33:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1181,7 +1181,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
 					,&js_callback								/* js */
 					,&startup->js
-					,&client, client_socket, -1					/* client */
+					,&client, client_socket						/* client */
 					,&js_server_props							/* server */
 					,&js_glob
 			))
@@ -1260,7 +1260,6 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,js_startup_t* js_startup	/* js */
 										,client_t* client			/* client */
 										,SOCKET client_socket		/* client */
-										,CRYPT_CONTEXT session		/* client */
 										,js_server_props_t* props	/* server */
 										,JSObject** glob
 										)
@@ -1286,7 +1285,7 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* Client Object */
 		if(client!=NULL 
-			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket, session)==NULL)
+			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
 			break;
 
 		/* Server */
@@ -2991,7 +2990,7 @@ void event_thread(void* arg)
 							,ex_mode
 							,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
-							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
+							eprintf(LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
 					}
 					sbbs->cfg.event[i]->last=time32(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
@@ -3140,7 +3139,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	logcol=1;
 	logfile_fp=NULL;
 	nodefile=-1;
-	pthread_mutex_init(&nodefile_mutex, NULL);
 	node_ext=-1;
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
@@ -3267,10 +3265,8 @@ bool sbbs_t::init()
 
 	/* Shared NODE files */
 	SAFEPRINTF2(str,"%s%s",cfg.ctrl_dir,"node.dab");
-	pthread_mutex_lock(&nodefile_mutex);
 	if((nodefile=nopen(str,O_DENYNONE|O_RDWR|O_CREAT))==-1) {
 		errormsg(WHERE, ERR_OPEN, str, cfg.node_num);
-		pthread_mutex_unlock(&nodefile_mutex);
 		return(false); 
 	}
 	memset(&node,0,sizeof(node_t));  /* write NULL to node struct */
@@ -3293,7 +3289,6 @@ bool sbbs_t::init()
 		close(nodefile);
 		nodefile=-1;
 	}
-	pthread_mutex_unlock(&nodefile_mutex);
 
 	if(i>=LOOP_NODEDAB) {
 		errormsg(WHERE, ERR_LOCK, str, cfg.node_num);
@@ -3541,11 +3536,9 @@ sbbs_t::~sbbs_t()
 		CloseEvent(telnet_ack_event);
 
 	/* Close all open files */
-	pthread_mutex_lock(&nodefile_mutex);
 	if(nodefile!=-1) {
 		close(nodefile);
 		nodefile=-1;
-		pthread_mutex_unlock(&nodefile_mutex);
 	}
 	if(node_ext!=-1) {
 		close(node_ext);
@@ -4821,17 +4814,13 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
 		CRYPT_KEYSET	ssh_keyset;
 
-		if(!do_cryptInit()) {
-			lprintf(LOG_ERR, "SSH cryptInit failure");
+		if(!do_cryptInit())
 			goto NO_SSH;
-		}
 		/* Get the private key... first try loading it from a file... */
 		SAFEPRINTF2(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
 		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
-			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass))) {
-				lprintf(LOG_ERR, "SSH cryptGetPrivateKey failure");
+			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass)))
 				goto NO_SSH;
-			}
 		}
 		else {
 			/* Couldn't do that... create a new context and use the key from there... */
