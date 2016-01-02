@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.105 2016/11/16 07:58:21 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.102 2016/01/02 22:02:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -578,8 +578,6 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	char		path[MAX_PATH+1];
 	JSObject*	js_scope=scope;
 	JSObject*	js_script=NULL;
-	jsval		old_js_argv = JSVAL_VOID;
-	jsval		old_js_argc = JSVAL_VOID;
 	jsval		rval;
 	int32_t		result=0;
 
@@ -620,13 +618,6 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 
 	if(js_scope!=NULL) {
 
-		if (scope != NULL) {
-			JS_GetProperty(js_cx, scope, "argv", &old_js_argv);
-			JS_AddValueRoot(js_cx, &old_js_argv);
-			JS_GetProperty(js_cx, scope, "argc", &old_js_argc);
-			JS_AddValueRoot(js_cx, &old_js_argc);
-		}
-
 		JSObject* argv=JS_NewArrayObject(js_cx, 0, NULL);
 
 		JS_DefineProperty(js_cx, js_scope, "argv", OBJECT_TO_JSVAL(argv)
@@ -663,20 +654,6 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		JS_ReportPendingException(js_cx);	/* Added Feb-2-2006, rswindell */
 		JS_ENDREQUEST(js_cx);
 		errormsg(WHERE,"compiling",path,0);
-		if (scope != NULL) {
-			if (old_js_argv == JSVAL_VOID) {
-				JS_DeleteProperty(js_cx, scope, "argv");
-				JS_DeleteProperty(js_cx, scope, "argc");
-			}
-			else {
-				JS_DefineProperty(js_cx, scope, "argv", old_js_argv
-					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-				JS_DefineProperty(js_cx, scope, "argc", old_js_argc
-					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-			}
-			JS_RemoveValueRoot(js_cx, &old_js_argv);
-			JS_RemoveValueRoot(js_cx, &old_js_argc);
-		}
 		return -1;
 	}
 
@@ -708,20 +685,6 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 
 	if(scope==NULL)
 		JS_ClearScope(js_cx, js_scope);
-	else {
-		if (old_js_argv == JSVAL_VOID) {
-			JS_DeleteProperty(js_cx, scope, "argv");
-			JS_DeleteProperty(js_cx, scope, "argc");
-		}
-		else {
-			JS_DefineProperty(js_cx, scope, "argv", old_js_argv
-				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-			JS_DefineProperty(js_cx, scope, "argc", old_js_argc
-				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-		}
-		JS_RemoveValueRoot(js_cx, &old_js_argv);
-		JS_RemoveValueRoot(js_cx, &old_js_argc);
-	}
 
 	JS_GC(js_cx);
 
@@ -819,7 +782,7 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 	freevars(&bin);
 	free(bin.cs);
 	csi->logic=bin.logic;
-//	sys_status &=~ SS_ABORT;
+	sys_status &=~ SS_ABORT;
 	return(bin.retval);
 }
 
