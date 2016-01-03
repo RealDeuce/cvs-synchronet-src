@@ -1,13 +1,14 @@
+/* umonitor.c */
+
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.77 2017/11/13 19:44:18 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: umonitor.c,v 1.74 2014/02/13 08:50:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -350,14 +351,14 @@ int drawstats(scfg_t *cfg, int nodenum, node_t *node, int *curp, int *barp) {
 		getnumstr(str[1][1],sstats.logons);
 		snprintf(str[1][2],12,"%s/%s",getnumstr(str[3][2],nstats.ttoday),getnumstr(str[3][3],sstats.ttoday));
 		getnumstr(str[1][3],sstats.timeon);
-		snprintf(str[2][0],12,"%s/%s",getnumstr(str[3][2],sstats.etoday),getnumstr(str[3][3],getmail(cfg,0,0,0)));
+		snprintf(str[2][0],12,"%s/%s",getnumstr(str[3][2],sstats.etoday),getnumstr(str[3][3],getmail(cfg,0,0)));
 		l=m=0;
 		for(i=0;i<cfg->total_subs;i++)
 			l+=getposts(cfg,i); 			/* l=total posts */
 		for(i=0;i<cfg->total_dirs;i++)
 			m+=getfiles(cfg,i); 			/* m=total files */
 		snprintf(str[2][1],12,"%s/%s",getnumstr(str[3][2],sstats.ptoday),getnumstr(str[3][3],l));
-		snprintf(str[2][2],12,"%s/%s",getnumstr(str[3][2],sstats.ftoday),getnumstr(str[3][3],getmail(cfg,1,0,0)));
+		snprintf(str[2][2],12,"%s/%s",getnumstr(str[3][2],sstats.ftoday),getnumstr(str[3][3],getmail(cfg,1,0)));
 		snprintf(str[2][3],12,"%s/%s",getnumstr(str[3][2],sstats.nusers),getnumstr(str[3][3],total_users(cfg)));
 		getsizestr(str[3][0],sstats.ulb,TRUE);
 		snprintf(str[3][1],12,"%s/%s",getnumstr(str[3][2],sstats.uls),getnumstr(str[3][3],m));
@@ -369,14 +370,14 @@ int drawstats(scfg_t *cfg, int nodenum, node_t *node, int *curp, int *barp) {
 		getnumstr(str[1][1],sstats.logons);
 		snprintf(str[1][2],12,"%s",getnumstr(str[3][3],sstats.ttoday));
 		getnumstr(str[1][3],sstats.timeon);
-		snprintf(str[2][0],12,"%s/%s",getnumstr(str[3][2],sstats.etoday),getnumstr(str[3][3],getmail(cfg,0,0,0)));
+		snprintf(str[2][0],12,"%s/%s",getnumstr(str[3][2],sstats.etoday),getnumstr(str[3][3],getmail(cfg,0,0)));
 		l=m=0;
 		for(i=0;i<cfg->total_subs;i++)
 			l+=getposts(cfg,i); 			/* l=total posts */
 		for(i=0;i<cfg->total_dirs;i++)
 			m+=getfiles(cfg,i); 			/* m=total files */
 		snprintf(str[2][1],12,"%s/%s",getnumstr(str[3][2],sstats.ptoday),getnumstr(str[3][3],l));
-		snprintf(str[2][2],12,"%s/%s",getnumstr(str[3][2],sstats.ftoday),getnumstr(str[3][3],getmail(cfg,1,0,0)));
+		snprintf(str[2][2],12,"%s/%s",getnumstr(str[3][2],sstats.ftoday),getnumstr(str[3][3],getmail(cfg,1,0)));
 		snprintf(str[2][3],12,"%s/%s",getnumstr(str[3][2],sstats.nusers),getnumstr(str[3][3],total_users(cfg)));
 		getsizestr(str[3][0],sstats.ulb,TRUE);
 		snprintf(str[3][1],12,"%s/%s",getnumstr(str[3][2],sstats.uls),getnumstr(str[3][3],m));
@@ -803,7 +804,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.77 $", "%*s %s", revision);
+	sscanf("$Revision: 1.74 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -834,7 +835,7 @@ int main(int argc, char** argv)  {
 		printf("Reading %s\n",ini_file);
 	}
 	/* We call this function to set defaults, even if there's no .ini file */
-	sbbs_read_ini(fp, ini_file,
+	sbbs_read_ini(fp,
 		NULL,		/* global_startup */
 		NULL, &bbs_startup,
 		NULL, NULL, /* ftp_startup */
@@ -1023,7 +1024,7 @@ int main(int argc, char** argv)  {
 			                "`------------`\n\n"
 							"`Run SCFG              : `Run the Synchronet Configuration Utility.\n"
 							"`Run User Editor       : `Call up the User Editor.\n"
-							"`Run SyncTERM          : `Run SyncTERM for RLogin.  SyncTERM must be\n"
+							"`Run SynchTERM         : `Run SyncTERM for RLogin.  SyncTERM must be\n"
 							"                        in the exec directory.\n"
 							"`View logs             : `View the various system logs.\n"
 							"`Force QWK Net callout : `Force a callout to QWK Net Hub.  Select which\n"
