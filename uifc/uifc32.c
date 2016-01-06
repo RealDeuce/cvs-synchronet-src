@@ -2,7 +2,7 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.212 2015/02/17 07:28:33 deuce Exp $ */
+/* $Id: uifc32.c,v 1.217 2015/08/25 01:38:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,7 +162,7 @@ static uifc_graphics_t ascii_chars = {
 	.help_char='?',
 	.close_char='X',
 	.up_arrow='^',
-	.down_arrow='V',
+	.down_arrow='v',
 	.button_left='[',
 	.button_right=']',
 
@@ -1108,8 +1108,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		gotkey=0;
 		textattr(((api->lbclr)&0x0f)|((api->lbclr >> 4)&0x0f));
 		gotoxy(s_left+lbrdrwidth+2+left, s_top+y);
-		if(kbwait() || (mode&(WIN_POP|WIN_SEL))) {
-			if(mode&WIN_POP)
+		if((api->exit_flags & UIFC_XF_QUIT) || kbwait() || (mode&(WIN_POP|WIN_SEL))) {
+			if(api->exit_flags & UIFC_XF_QUIT)
+				gotkey = CIO_KEY_QUIT;
+			else if(mode&WIN_POP)
 				gotkey=ESC;
 			else if(mode&WIN_SEL)
 				gotkey=CR;
@@ -1244,8 +1246,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					break;
 				case CIO_KEY_QUIT:
 					api->exit_flags |= UIFC_XF_QUIT;
-					if(!(mode&WIN_EXTKEYS))
-						gotkey=ESC;
+					gotkey=ESC;
 					break;
 			}
 			if(gotkey>255) {
@@ -1801,13 +1802,8 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 	int s_top=SCRN_TOP;
 	int s_left=SCRN_LEFT;
 	int s_right=SCRN_RIGHT;
-	int s_bottom=api->scrn_len-3;
 	int hbrdrsize=2;
-	int lbrdrwidth=1;
-	int rbrdrwidth=1;
-	int vbrdrsize=4;
 	int tbrdrwidth=1;
-	int bbrdrwidth=1;
 
 	reset_dynamic();
 
@@ -1815,15 +1811,10 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 		s_top=1;
 		s_left=2;
 		s_right=api->scrn_width-3;  /* Leave space for the shadow */
-		s_bottom=api->scrn_len-1;   /* Leave one for the shadow */
 	}
 	if(mode&WIN_NOBRDR) {
 		hbrdrsize=0;
-		vbrdrsize=0;
-		lbrdrwidth=0;
-		rbrdrwidth=0;
 		tbrdrwidth=0;
-		bbrdrwidth=0;
 		height=1;
 	}
 
@@ -1993,7 +1984,8 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 
 	gotoxy(left,top);
 	if(mode&K_PASSWORD)
-		cprintf("%-*.*s",width,width,"********************************************************************************"+(80-strlen(outstr+*scrnoffset)));
+		// This typecast is to suppress a clang warning "adding 'unsigned long' to a string does not append to the string [-Wstring-plus-int]"
+		cprintf("%-*.*s",width,width,((char *)"********************************************************************************")+(80-strlen(outstr+*scrnoffset)));
 	else
 		cprintf("%-*.*s",width,width,outstr+*scrnoffset);
 	gotoxy(left+(cursoffset-*scrnoffset),top);
@@ -2172,6 +2164,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				case CTRL_Z:
 				case CIO_KEY_F(1):	/* F1 Help */
 					api->showhelp();
+					if(api->exit_flags & UIFC_XF_QUIT)
+						f = CIO_KEY_QUIT;
 					continue;
 				case CIO_KEY_LEFT:	/* left arrow */
 					if(i)
