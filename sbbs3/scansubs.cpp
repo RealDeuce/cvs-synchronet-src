@@ -2,7 +2,7 @@
 
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.19 2015/05/02 03:20:55 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.20 2016/01/06 22:11:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,7 +138,7 @@ void sbbs_t::scansubs(long mode)
 }
 
 /****************************************************************************/
-/* Performs a new message scan all all sub-boards							*/
+/* Performs a new message scan of all sub-boards							*/
 /****************************************************************************/
 void sbbs_t::scanallsubs(long mode)
 {
