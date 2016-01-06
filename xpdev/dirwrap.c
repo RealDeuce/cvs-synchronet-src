@@ -2,7 +2,7 @@
 
 /* Directory-related system-call wrappers */
 
-/* $Id: dirwrap.c,v 1.89 2014/04/28 05:17:54 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.90 2015/11/26 08:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -694,12 +694,13 @@ int removecase(const char *path)
 	}
 	*p=0;
 
-	return(delfiles(inpath,fname)?-1:0);
+	return(delfiles(inpath,fname) >=1 ? 0 : -1);
 }
 #endif
 
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
+/* Returns number of files deleted or negative on error						*/
 /****************************************************************************/
 ulong DLLCALL delfiles(const char *inpath, const char *spec)
 {
@@ -715,7 +716,7 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 		lastch=inpath[inpath_len-1];
 	path=(char *)malloc(inpath_len+1/*Delim*/+strlen(spec)+1/*Terminator*/);
 	if(path==NULL)
-		return 0;
+		return -1;
 	if(!IS_PATH_DELIM(lastch) && lastch)
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
