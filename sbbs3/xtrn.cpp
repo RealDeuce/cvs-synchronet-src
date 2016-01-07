@@ -2,13 +2,13 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.221 2014/03/12 09:37:59 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.225 2015/11/24 11:05:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1934,8 +1934,14 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				}
 				else
    	       			bp=telnet_expand(buf, rd, output_buf, output_len);
-			} else			/* LF to CRLF expansion */
+			} else if ((mode & EX_STDIO) != EX_STDIO) {
+				/* LF to CRLF expansion */
 				bp=lf_expand(buf, rd, output_buf, output_len);
+			}
+			else {
+				bp=buf;
+				output_len=rd;
+			}
 
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
@@ -2223,7 +2229,9 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 {
 	char	str[MAX_PATH+1];
     int		i,j,len;
+	static char	buf[512];
 
+	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
     for(i=j=0;i<len && j<MAX_PATH;i++) {
         if(instr[i]=='%') {
