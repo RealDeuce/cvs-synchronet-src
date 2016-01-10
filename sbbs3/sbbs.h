@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.425 2015/12/06 11:18:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.426 2016/01/10 07:10:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -398,6 +398,7 @@ public:
 			*logfile_fp;
 
 	int 	nodefile;		/* File handle for node.dab */
+	pthread_mutex_t	nodefile_mutex;
 	int		node_ext;		/* File handle for node.exb */
 	int 	inputfile;		/* File handle to use for input */
 
