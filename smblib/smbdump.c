@@ -2,13 +2,13 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.13 2012/03/07 03:10:50 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.15 2015/12/07 03:37:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,7 +39,7 @@
 #include <string.h>		/* strcat */
 #include "smblib.h"
 
-static char *binstr(uchar *buf, ushort length)
+static char *binstr(uchar *buf, uint16_t length)
 {
 	static char str[512];
 	int i;
@@ -74,18 +74,18 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		fprintf(fp,"%-20.20s \"%s\"\n"	,"subject"			,msg->subj);
 	if(msg->to) {
 		fprintf(fp,"%-20.20s %s"	,"to"				,msg->to);
+		if(msg->to_net.type)
+			fprintf(fp," (%s: %s)",smb_nettype(msg->to_net.type), smb_netaddr(&msg->to_net));
 		if(msg->to_ext)
 			fprintf(fp," #%s",msg->to_ext);
-		if(msg->to_net.type)
-			fprintf(fp," <%s>",smb_netaddr(&msg->to_net));
 		fprintf(fp,"\n");
 	}
 	if(msg->from) {
 		fprintf(fp,"%-20.20s \"%s\""	,"from"				,msg->from);
+		if(msg->from_net.type)
+			fprintf(fp," (%s: %s)",smb_nettype(msg->from_net.type), smb_netaddr(&msg->from_net));
 		if(msg->from_ext)
 			fprintf(fp," #%s",msg->from_ext);
-		if(msg->from_net.type)
-			fprintf(fp," <%s>",smb_netaddr(&msg->from_net));
 		fprintf(fp,"\n");
 	}
 	if(msg->replyto) {
@@ -93,7 +93,7 @@ void SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg)
 		if(msg->replyto_ext)
 			fprintf(fp," #%s",msg->replyto_ext);
 		if(msg->replyto_net.type)
-			fprintf(fp," <%s>",smb_netaddr(&msg->replyto_net));
+			fprintf(fp," (%s: %s)",smb_nettype(msg->replyto_net.type), smb_netaddr(&msg->replyto_net));
 		fprintf(fp,"\n");
 	}
 	if(msg->summary)
