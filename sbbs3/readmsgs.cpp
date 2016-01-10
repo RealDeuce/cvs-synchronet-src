@@ -1,6 +1,8 @@
+/* readmsgs.cpp */
+
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.86 2016/11/15 21:51:45 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.80 2015/12/16 06:55:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +42,7 @@ int sbbs_t::sub_op(uint subnum)
 	return(is_user_subop(&cfg, subnum, &useron, &client));
 }
 
-char sbbs_t::msg_listing_flag(uint subnum, smbmsg_t* msg, post_t* post)
+char sbbs_t::msg_listing_flag(uint subnum, smbmsg_t* msg)
 {
 	if(msg->hdr.attr&MSG_DELETE)						return '-';
 	if((stricmp(msg->to,useron.alias)==0 || stricmp(msg->to,useron.name)==0)
@@ -48,14 +50,10 @@ char sbbs_t::msg_listing_flag(uint subnum, smbmsg_t* msg, post_t* post)
 	if(msg->hdr.attr&MSG_PERMANENT)						return 'p';
 	if(msg->hdr.attr&MSG_LOCKED)						return 'L';
 	if(msg->hdr.attr&MSG_KILLREAD)						return 'K';
-	if(msg->hdr.attr&MSG_NOREPLY)						return '#';
+	if(msg->hdr.attr&MSG_NOREPLY)						return 'r';
 	if(msg->hdr.number > subscan[subnum].ptr)			return '*';
-	if(msg->hdr.attr&MSG_PRIVATE)						return 'P';
-	if(msg->hdr.attr&MSG_POLL)							return '?'; 
-	if(post->upvotes > post->downvotes)					return 'V';
-	if(post->upvotes || post->downvotes)				return 'v';
-	if(msg->hdr.attr&MSG_REPLIED)						return 'R';
-	if(sub_op(subnum) && msg->hdr.attr&MSG_ANONYMOUS)	return 'A';
+	if(msg->hdr.attr&MSG_PRIVATE)						return 'P'; 
+	if(sub_op(subnum) && msg->hdr.attr&MSG_ANONYMOUS)	return 'A'; 
 	return ' ';
 }
 
@@ -77,7 +75,7 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long i, long posts)
 			,msg.hdr.attr&MSG_ANONYMOUS && !sub_op(subnum)
 			? text[Anonymous] : msg.from
 			,msg.to
-			,msg_listing_flag(subnum, &msg, &post[i])
+			,msg_listing_flag(subnum, &msg)
 			,msg.subj);
 		smb_freemsgmem(&msg);
 		msg.total_hfields=0;
@@ -231,12 +229,15 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 	rewind(smb.sid_fp);
 
 	alloc_len=sizeof(post_t)*total;
+	#ifdef __OS2__
+		while(alloc_len%4096)
+			alloc_len++;
+	#endif
 	if((post=(post_t *)malloc(alloc_len))==NULL) {	/* alloc for max */
 		smb_unlocksmbhdr(&smb);
-		errormsg(WHERE,ERR_ALLOC,smb.file,alloc_len);
+		errormsg(WHERE,ERR_ALLOC,smb.file,sizeof(post_t *)*cfg.sub[subnum]->maxmsgs);
 		return(NULL); 
 	}
-	memset(post, 0, alloc_len);
 
 	if(unvalidated_num)
 		*unvalidated_num=ULONG_MAX;
@@ -265,34 +266,6 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 		if(idx.attr&MSG_MODERATED && !(idx.attr&MSG_VALIDATED)) {
 			if(mode&LP_REP || !sub_op(subnum))
 				break;
-		}
-
-		if(idx.attr&MSG_VOTE) {
-			ulong u;
-			for(u = 0; u < l; u++)
-				if(post[u].idx.number == idx.remsg)
-					break;
-			if(u < l) {
-				switch(idx.attr&MSG_VOTE) {
-				case MSG_UPVOTE:
-					post[u].upvotes++;
-					break;
-				case MSG_DOWNVOTE:
-					post[u].downvotes++;
-					break;
-				default:
-					for(int b=0; b < 16; b++) {
-						if(idx.vote&(1<<b))
-							post[u].votes[b]++;
-					}
-				}
-			}
-			if(!(mode&LP_VOTES))
-				continue;
-		}
-		if(idx.attr&MSG_POLL) {
-			if(!(mode&LP_POLLS))
-				continue;
 		}
 
 		if(idx.attr&MSG_PRIVATE && !(mode&LP_PRIVATE)
@@ -477,8 +450,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		lp=LP_BYSELF|LP_OTHERS;
 	if(mode&SCAN_TOYOU && mode&SCAN_UNREAD)
 		lp|=LP_UNREAD;
-	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
-		lp|=LP_POLLS;
 	post=loadposts(&smb.msgs,subnum,0,lp,&unvalidated);
 	if(mode&SCAN_NEW) { 		  /* Scanning for new messages */
 		for(smb.curmsg=0;smb.curmsg<smb.msgs;smb.curmsg++)
@@ -672,13 +643,9 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			if(!reads && mode)
 				CRLF;
 
-			msg.upvotes = post[smb.curmsg].upvotes;
-			msg.downvotes = post[smb.curmsg].downvotes;
-			msg.total_votes = total_votes(&post[smb.curmsg]);
 			show_msg(&msg
 				,msg.from_ext && !strcmp(msg.from_ext,"1") && !msg.from_net.type
-					? 0:P_NOATCODES
-				,&post[smb.curmsg]);
+					? 0:P_NOATCODES);
 
 			reads++;	/* number of messages actually read during this sub-scan */
 
@@ -770,7 +737,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			bprintf(text[UnvalidatedWarning],unvalidated+1);
 		bprintf(text[ReadingSub],ugrp,cfg.grp[cfg.sub[subnum]->grp]->sname
 			,usub,cfg.sub[subnum]->sname,smb.curmsg+1,smb.msgs);
-		sprintf(str,"ABCDEFILMNPQRTUVY?<>[]{}-+()");
+		sprintf(str,"ABCDEFILMNPQRTUY?<>[]{}-+()");
 		if(sub_op(subnum))
 			strcat(str,"O");
 		do_find=true;
@@ -1032,68 +999,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				if(!showposts_toyou(subnum, post,0,smb.msgs, SCAN_UNREAD))
 					bputs(text[NoMessagesFound]);
 				break;
-			case 'V':	/* Vote in reply to message */
-			{
-				smbmsg_t vote;
-
-				if(cfg.sub[subnum]->misc&SUB_NOVOTING) {
-					bputs(text[VotingNotAllowed]);
-					domsg = false;
-					break;
-				}
-				if(smb_voted_already(&smb, msg.hdr.number
-					,cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL)) {
-					bputs(text[VotedAlready]);
-					domsg = false;
-					break;
-				}
-				if(useron.rest&FLAG('V')) {
-					bputs(text[R_Voting]);
-					domsg = false;
-					break;
-				}
-				ZERO_VAR(vote);
-				if(msg.hdr.attr&MSG_POLL) {
-					unsigned answers=0;
-					for(i=0; i<msg.total_hfields; i++) {
-						if(msg.hfield[i].type != SMB_POLL_ANSWER)
-							continue;
-						uselect(1, answers++, msg.subj, (char*)msg.hfield_dat[i], NULL);
-					}
-					i = uselect(0, 0, NULL, NULL, NULL);
-					if(i < 0) {
-						domsg = false;
-						break;
-					}
-					vote.hdr.vote = (1<<i);
-					vote.hdr.attr = MSG_VOTE;
-				} else {
-					mnemonics(text[VoteMsgUpDownOrQuit]);
-					long cmd = getkeys("UDQ", 0);
-					if(cmd != 'U' && cmd != 'D')
-						break;
-					vote.hdr.attr = (cmd == 'U' ? MSG_UPVOTE : MSG_DOWNVOTE);
-				}
-				vote.hdr.thread_back = msg.hdr.number;
-				vote.hdr.when_written.time = vote.hdr.when_imported.time = time32(NULL);
-				vote.hdr.when_written.zone = vote.hdr.when_imported.zone = sys_timezone(&cfg);
-
-				smb_hfield_str(&vote, SENDER, (cfg.sub[subnum]->misc&SUB_NAME) ? useron.name : useron.alias);
-				if(msg.id != NULL)
-					smb_hfield_str(&vote, RFC822REPLYID, msg.id);
-				
-				sprintf(str, "%u", useron.number);
-				smb_hfield_str(&vote, SENDEREXT, str);
-
-				/* Security logging */
-				msg_client_hfields(&vote, &client);
-				smb_hfield_str(&vote, SENDERSERVER, startup->host_name);
-
-				if((i=votemsg(&cfg, &smb, &vote, text[vote.hdr.attr&MSG_UPVOTE ? MsgUpVoteNotice : MsgDownVoteNotice])) != SMB_SUCCESS)
-					errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-
-				break;
-			}
 			case '-':
 				if(smb.curmsg>0) smb.curmsg--;
 				do_find=false;
@@ -1434,7 +1339,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 				,(msg.hdr.attr&MSG_ANONYMOUS) && !sub_op(subnum) ? text[Anonymous]
 				: msg.from
 				,msg.to
-				,msg_listing_flag(subnum, &msg, &post[l])
+				,msg_listing_flag(subnum, &msg)
 				,msg.subj);
 			found++; 
 		}
@@ -1489,7 +1394,7 @@ long sbbs_t::showposts_toyou(uint subnum, post_t *post, ulong start, long posts,
 				,(msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP
 				? text[Anonymous] : msg.from
 				,msg.to
-				,msg_listing_flag(subnum, &msg, &post[l])
+				,msg_listing_flag(subnum, &msg)
 				,msg.subj); 
 		} 
 	}
