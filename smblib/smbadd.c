@@ -1,6 +1,8 @@
+/* smbadd.c */
+
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.34 2016/11/16 05:31:07 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.28 2015/12/06 11:08:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,9 +60,6 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	hash_t		found;
 	hash_t**	hashes=NULL;	/* This is a NULL-terminated list of hashes */
 	smbmsg_t	remsg;
-
-	if(msg->subj == NULL)
-		return SMB_ERR_HDR_FIELD;
 
 	if(!SMB_IS_OPEN(smb)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
@@ -319,69 +318,4 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	FREE_LIST(hashes,n);
 
 	return(retval);
-}
-
-int SMBCALL smb_addvote(smb_t* smb, smbmsg_t* msg, int storage)
-{
-	int			retval;
-
-	if(!SMB_IS_OPEN(smb)) {
-		safe_snprintf(smb->last_error, sizeof(smb->last_error), "msgbase not open");
-		return SMB_ERR_NOT_OPEN;
-	}
-
-	if(filelength(fileno(smb->shd_fp)) < 1)
-		return SMB_ERR_NOT_FOUND;
-
-	if(!(msg->hdr.attr&MSG_VOTE))
-		return SMB_ERR_HDR_ATTR;
-
-	if(msg->hdr.thread_back == 0)
-		return SMB_ERR_HDR_FIELD;
-
-	msg->hdr.type = SMB_MSG_TYPE_BALLOT;
-
-	if(msg->hdr.when_imported.time == 0) {
-		msg->hdr.when_imported.time = (uint32_t)time(NULL);
-		msg->hdr.when_imported.zone = 0;
-	}
-	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
-		msg->hdr.when_written = msg->hdr.when_imported;
-
-	retval = smb_addmsghdr(smb, msg, storage);
-
-	return retval;
-}
-
-int SMBCALL smb_addpoll(smb_t* smb, smbmsg_t* msg, int storage)
-{
-	int			retval;
-
-	if(!SMB_IS_OPEN(smb)) {
-		safe_snprintf(smb->last_error, sizeof(smb->last_error), "msgbase not open");
-		return SMB_ERR_NOT_OPEN;
-	}
-
-	if(msg->subj == NULL || smb_get_hfield(msg, SMB_POLL_ANSWER, NULL) == NULL)
-		return SMB_ERR_HDR_FIELD;
-
-	if(filelength(fileno(smb->shd_fp)) < 1) {	 /* Create it if it doesn't exist */
-		/* smb->status.max_crcs, max_msgs, max_age, and attr should be pre-initialized */
-		if((retval=smb_create(smb)) != SMB_SUCCESS) 
-			return retval;
-	}
-
-	msg->hdr.attr |= MSG_POLL;
-	msg->hdr.type = SMB_MSG_TYPE_POLL;
-
-	if(msg->hdr.when_imported.time == 0) {
-		msg->hdr.when_imported.time = (uint32_t)time(NULL);
-		msg->hdr.when_imported.zone = 0;
-	}
-	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
-		msg->hdr.when_written = msg->hdr.when_imported;
-
-	retval = smb_addmsghdr(smb, msg, storage);
-
-	return retval;
 }
