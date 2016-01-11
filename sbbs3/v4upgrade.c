@@ -1,6 +1,6 @@
 /* Upgrade Synchronet files from v3 to v4 */
 
-/* $Id: v4upgrade.c,v 1.14 2007/07/10 20:06:36 deuce Exp $ */
+/* $Id: v4upgrade.c,v 1.15 2015/08/20 05:19:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -136,11 +136,12 @@ BOOL upgrade_users(void)
 		}
 		/******************************************/
 		/* personal info */
-		len=sprintf(rec,"%s\t%s\t%s\t%s\t%s\t%s\t"
+		len=sprintf(rec,"%s\t%s\t%s\t%s\t%s\t%s\t%s\t"
 			,user.alias
 			,user.name
 			,user.handle
 			,user.note
+			,user.ipaddr
 			,user.comp
 			,user.comment
 			);
@@ -1124,7 +1125,7 @@ int main(int argc, char** argv)
 	char*	p;
 	int		first_arg=1;
 
-	sscanf("$Revision: 1.14 $", "%*s %s", revision);
+	sscanf("$Revision: 1.15 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nV4upgrade v%s-%s - Upgrade Synchronet files from v3 to v4\n"
 		,revision
