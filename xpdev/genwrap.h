@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.105 2015/09/28 06:58:12 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.106 2016/01/11 12:23:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,9 +294,9 @@ DLLEXPORT int DLLCALL	get_errno(void);
 								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
 								pth_nap(tv); })
 	#else
-		#define SLEEP(x)		({	int sleep_msecs=x; struct timeval tv; \
-								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
-								select(0,NULL,NULL,NULL,&tv); })
+		#define SLEEP(x)		({	int sleep_msecs=x; struct timespec ts={0}; \
+								ts.tv_sec=(sleep_msecs/1000); ts.tv_nsec=((sleep_msecs%1000)*1000000); \
+								nanosleep(&ts, NULL); })
 	#endif
 
 	#define YIELD()			SLEEP(1)
