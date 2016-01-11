@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.36 2016/01/10 07:15:37 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.37 2016/01/11 06:59:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -497,6 +497,24 @@ js_uifc_bail(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
+js_uifc_showhelp(JSContext *cx, uintN argc, jsval *arglist)
+{
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	uifcapi_t* uifc;
+	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if((uifc=get_uifc(cx,obj))==NULL)
+		return(JS_FALSE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	uifc->showhelp();
+	JS_RESUMEREQUEST(cx, rc);
+	return(JS_TRUE);
+}
+
+static JSBool
 js_uifc_msg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
@@ -772,6 +790,10 @@ static jsSyncMethodSpec js_functions[] = {
 		"The context object has the following properties:<br>cur, bar, top, left, width"
 	)
 	,314
+	},
+	{"showhelp",		js_uifc_showhelp,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	,JSDOCSTR("Shows the current help text")
+	,317
 	},
 	{0}
 };
