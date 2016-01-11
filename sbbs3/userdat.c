@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.165 2016/05/09 05:50:06 rswindell Exp $ */
+/* $Id: userdat.c,v 1.164 2015/12/07 09:16:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2810,25 +2810,25 @@ static list_node_t* login_attempted(link_list_t* list, const union xp_sockaddr* 
 {
 	list_node_t*		node;
 	login_attempt_t*	attempt;
+	struct in6_addr		ia;
 
 	if(list==NULL)
 		return NULL;
 	for(node=list->first; node!=NULL; node=node->next) {
 		attempt=node->data;
-		if(attempt->addr.addr.sa_family != addr->addr.sa_family)
-			continue;
 		switch(addr->addr.sa_family) {
 			case AF_INET:
-				if(memcmp(&attempt->addr.in.sin_addr, &addr->in.sin_addr, sizeof(addr->in.sin_addr)) == 0)
-					return node;
+				memset(&ia, 0, sizeof(ia));
+				memcpy(&ia, &addr->in.sin_addr, sizeof(addr->in.sin_addr));
 				break;
 			case AF_INET6:
-				if(memcmp(&attempt->addr.in6.sin6_addr, &addr->in6.sin6_addr, sizeof(addr->in6.sin6_addr)) == 0)
-					return node;
+				ia = addr->in6.sin6_addr;
 				break;
 		}
+		if(memcmp(&attempt->addr,&ia,sizeof(attempt->addr))==0)
+			break;
 	}
-	return NULL;
+	return node;
 }
 
 /****************************************************************************/
