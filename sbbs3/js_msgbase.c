@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.190 2015/10/28 01:24:09 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.194 2015/12/03 10:40:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,7 +141,10 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	ushort		agent;
 	int32		i32;
 	jsval		val;
+	scfg_t*		scfg;
 
+	scfg = JS_GetRuntimePrivate(JS_GetRuntime(cx));
+	
 	if(JS_GetProperty(cx, hdr, "to", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
 		HANDLE_PENDING(cx);
@@ -220,8 +223,32 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	free(cp);
 
 	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE) {
-		if(p->smb.status.attr&SMB_EMAIL)
-			msg->idx.to=0;
+		if(p->smb.status.attr&SMB_EMAIL) {
+			if(nettype==NET_QWK && msg->idx.to==0) {
+				char fulladdr[128];
+				msg->idx.to = qwk_route(scfg, msg->to_net.addr, fulladdr, sizeof(fulladdr)-1);
+				if(fulladdr[0]==0) {
+					JS_ReportError(cx, "Unrouteable QWKnet \"to_net_addr\" (%s) in recipient object"
+						,msg->to_net.addr);
+					return(FALSE);
+				}
+				if((p->status=smb_hfield_str(msg, RECIPIENTNETADDR, fulladdr))!=SMB_SUCCESS) {
+					JS_ReportError(cx, "Error %d adding RECIPIENTADDR field to message header"
+						,p->status);
+					return(FALSE);
+				}
+				if(msg->idx.to != 0) {
+					char ext[32];
+					sprintf(ext,"%u",msg->idx.to);
+					if((p->status=smb_hfield_str(msg, RECIPIENTEXT, ext))!=SMB_SUCCESS) {
+						JS_ReportError(cx, "Error %d adding RECIPIENTEXT field to message header"
+							,p->status);
+						return(FALSE);
+					}
+				}
+			} else
+				msg->idx.to=0;
+		}
 		if((p->status=smb_hfield_bin(msg, RECIPIENTNETTYPE, nettype))!=SMB_SUCCESS) {
 			JS_ReportError(cx, "Error %d adding RECIPIENTNETTYPE field to message header", p->status);
 			return(FALSE);
@@ -1829,9 +1856,11 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 	uintN		n;
 	smbmsg_t	msg;
 	smbmsg_t	*msgptr;
+	long		getmsgtxtmode = 0;
 	JSBool		by_offset=JS_FALSE;
 	JSBool		strip_ctrl_a=JS_FALSE;
 	JSBool		tails=JS_TRUE;
+	JSBool		plain=JS_FALSE;
 	JSBool		rfc822=JS_FALSE;
 	JSBool		msg_specified=JS_FALSE;
 	JSBool		existing_msg=JS_FALSE;
@@ -1913,8 +1942,17 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 	if(n<argc && JSVAL_IS_BOOLEAN(argv[n]))
 		tails=JSVAL_TO_BOOLEAN(argv[n++]);
 
+	if(n<argc && JSVAL_IS_BOOLEAN(argv[n]))
+		plain=JSVAL_TO_BOOLEAN(argv[n++]);
+
+	if(tails)
+		getmsgtxtmode |= GETMSGTXT_TAILS;
+
+	if(plain)
+		getmsgtxtmode |= GETMSGTXT_PLAIN;
+
 	rc=JS_SUSPENDREQUEST(cx);
-	buf = get_msg_text(p, msgptr, strip_ctrl_a, rfc822, tails ? GETMSGTXT_TAILS : 0, existing_msg);
+	buf = get_msg_text(p, msgptr, strip_ctrl_a, rfc822, getmsgtxtmode, existing_msg);
 	JS_RESUMEREQUEST(cx, rc);
 	if(buf==NULL)
 		return(JS_TRUE);
@@ -2385,10 +2423,10 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,310
 	},
 	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [, message_header] [,strip_ctrl_a=<tt>false</tt>] "
-		"[,rfc822_encoded=<tt>false</tt>] [,include_tails=<tt>true</tt>]")
+		"[,rfc822_encoded=<tt>false</tt>] [,include_tails=<tt>true</tt>] [,plain_text=<tt>false</tt>]")
 	,JSDOCSTR("returns the entire body text of a specific message as a single String, <i>null</i> on failure. "
 		"The default behavior is to leave Ctrl-A codes intact, perform no RFC-822 encoding, and to include tails (if any) in the "
-		"returned body text."
+		"returned body text. When <i>plain_text</i> is true, only the first plain-text portion of a multi-part MIME encoded message body is returned."
 	)
 	,310
 	},
