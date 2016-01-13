@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.40 2017/11/17 10:03:07 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.38 2016/01/13 00:26:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -439,16 +439,10 @@ js_uifc_init(JSContext *cx, uintN argc, jsval *arglist)
 				ciolib_mode=CIOLIB_MODE_AUTO;
 			else if(!stricmp(mode,"X"))
 				ciolib_mode=CIOLIB_MODE_X;
-			else if(!stricmp(mode,"CURSES"))
-				ciolib_mode=CIOLIB_MODE_CURSES;
 			else if(!stricmp(mode,"ANSI"))
 				ciolib_mode=CIOLIB_MODE_ANSI;
 			else if(!stricmp(mode,"CONIO"))
 				ciolib_mode=CIOLIB_MODE_CONIO;
-			else if(!stricmp(mode,"SDL"))
-				ciolib_mode=CIOLIB_MODE_SDL;
-			else if(!stricmp(mode,"OVERLAY"))
-				ciolib_mode=CIOLIB_MODE_SDL_YUV;
 		}
 	}
 
@@ -711,15 +705,13 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
 		&& !JS_ValueToInt32(cx,argv[argn++],&mode))
 		return(JS_FALSE);
-	for(; argn<argc; argn++) {
-		if(JSVAL_IS_STRING(argv[argn])) {
-			JSVALUE_TO_MSTRING(cx, argv[argn], title, NULL);
-			HANDLE_PENDING(cx);
-			continue;
-		}
-		if(!JSVAL_IS_OBJECT(argv[argn]))
-			continue;
-		if((objarg = JSVAL_TO_OBJECT(argv[argn]))==NULL)
+	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
+		JSVALUE_TO_MSTRING(cx, argv[argn], title, NULL);
+		argn++;
+		HANDLE_PENDING(cx);
+	}
+	while(argn<argc && JSVAL_IS_OBJECT(argv[argn])) {
+		if((objarg = JSVAL_TO_OBJECT(argv[argn++]))==NULL)
 			return(JS_FALSE);
 		if(JS_IsArrayObject(cx, objarg)) {
 			if(!JS_GetArrayLength(cx, objarg, &numopts))
@@ -749,14 +741,11 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 			}
 		}
 	}
-	if(title == NULL || opts == NULL) {
-		JS_SET_RVAL(cx, arglist, JS_FALSE);
-	} else {
-		rc=JS_SUSPENDREQUEST(cx);
-		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(uifc->list(mode,left,top,width,(int*)dptr,(int*)bptr,title,opts)));
-		JS_RESUMEREQUEST(cx, rc);
-	}
+
+	rc=JS_SUSPENDREQUEST(cx);
+    JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(uifc->list(mode,left,top,width,(int*)dptr,(int*)bptr,title,opts)));
 	strListFree(&opts);
+	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
@@ -775,9 +764,8 @@ js_finalize(JSContext *cx, JSObject *obj)
 }
 
 static jsSyncMethodSpec js_functions[] = {
-	{"init",            js_uifc_init,       1,	JSTYPE_BOOLEAN,	JSDOCSTR("string title [, string mode]")
-	,JSDOCSTR("initialize.  <tt>mode</tt> is a string representing the desired conio mode... one of STDIO, AUTO, "
-	"X, CURSES, ANSI, CONIO, SDL, or OVERLAY.")
+	{"init",            js_uifc_init,       1,	JSTYPE_BOOLEAN,	JSDOCSTR("string title, [number mode]")
+	,JSDOCSTR("initialize")
 	,314
 	},		
 	{"bail",			js_uifc_bail,		0,	JSTYPE_VOID,	JSDOCSTR("")
