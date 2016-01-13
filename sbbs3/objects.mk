@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.64 2017/06/09 04:32:46 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.63 2015/11/24 11:05:07 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -182,7 +182,6 @@ SBBSECHO_OBJS = \
 			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE) \
 			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
 			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
-			$(OBJODIR)$(DIRSEP)scfgsave$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE) \
