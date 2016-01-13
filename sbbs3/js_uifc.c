@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.37 2016/01/11 06:59:55 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.38 2016/01/13 00:26:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -764,7 +764,7 @@ js_finalize(JSContext *cx, JSObject *obj)
 }
 
 static jsSyncMethodSpec js_functions[] = {
-	{"init",            js_uifc_init,       1,	JSTYPE_BOOLEAN,	JSDOCSTR("string title")
+	{"init",            js_uifc_init,       1,	JSTYPE_BOOLEAN,	JSDOCSTR("string title, [number mode]")
 	,JSDOCSTR("initialize")
 	,314
 	},		
