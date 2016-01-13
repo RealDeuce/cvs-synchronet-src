@@ -1,6 +1,6 @@
 /* scfgnet.c */
 
-/* $Id: scfgnet.c,v 1.30 2016/04/20 02:21:36 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.29 2015/11/23 09:59:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,6 +264,8 @@ while(1) {
 			sprintf(opt[i++],"%-27.27s%.40s"
 				,"EchoMail Semaphore",cfg.echomail_sem);
 			sprintf(opt[i++],"%-27.27s%.40s"
+				,"Inbound File Directory",cfg.fidofile_dir);
+			sprintf(opt[i++],"%-27.27s%.40s"
 				,"NetMail Directory",cfg.netmail_dir);
 			sprintf(opt[i++],"%-27.27s%s"
 				,"Allow Sending of NetMail"
@@ -447,6 +449,16 @@ while(1) {
                     break;
 				case 5:
 					uifc.helpbuf=
+						"`Inbound File Directory:`\n"
+						"\n"
+						"This directory is where inbound files are placed. This directory is\n"
+						"typically used for incoming bundles, packets, and attached files.\n"
+					;
+					uifc.input(WIN_MID|WIN_SAV,0,0,"Inbound Files"
+						,cfg.fidofile_dir,sizeof(cfg.fidofile_dir)-1,K_EDIT);
+                    break;
+				case 6:
+					uifc.helpbuf=
 						"`NetMail Directory:`\n"
 						"\n"
 						"This is the directory where FidoNet NetMail will be imported from\n"
@@ -455,7 +467,7 @@ while(1) {
 					uifc.input(WIN_MID|WIN_SAV,0,0,"NetMail"
 						,cfg.netmail_dir,sizeof(cfg.netmail_dir)-1,K_EDIT);
                     break;
-				case 6:
+				case 7:
 					i=0;
 					uifc.helpbuf=
 						"`Allow Users to Send NetMail:`\n"
@@ -474,7 +486,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_ALLOW; 
 					}
 					break;
-				case 7:
+				case 8:
 					i=0;
 					uifc.helpbuf=
 						"`Allow Users to Send NetMail File Attachments:`\n"
@@ -493,7 +505,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_FILE; 
 					}
                     break;
-				case 8:
+				case 9:
 					i=1;
 					uifc.helpbuf=
 						"`Use Aliases in NetMail:`\n"
@@ -514,7 +526,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_ALIAS; 
 					}
                     break;
-				case 9:
+				case 10:
 					i=1;
 					uifc.helpbuf=
 						"`NetMail Defaults to Crash Status:`\n"
@@ -533,7 +545,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_CRASH; 
 					}
                     break;
-				case 10:
+				case 11:
 					i=1;
 					uifc.helpbuf=
 						"`NetMail Defaults to Direct Status:`\n"
@@ -552,7 +564,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_DIRECT; 
 					}
                     break;
-				case 11:
+				case 12:
 					i=1;
 					uifc.helpbuf=
 						"`NetMail Defaults to Hold Status:`\n"
@@ -571,7 +583,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_HOLD; 
 					}
                     break;
-				case 12:
+				case 13:
 					i=0;
 					uifc.helpbuf=
 						"`Kill NetMail After it is Sent:`\n"
@@ -590,7 +602,7 @@ while(1) {
 						cfg.netmail_misc&=~NMAIL_KILL; 
 					}
                     break;
-				case 13:
+				case 14:
 					ultoa(cfg.netmail_cost,str,10);
 					uifc.helpbuf=
 						"`Cost in Credits to Send NetMail:`\n"
