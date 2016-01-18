@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.16 2014/06/21 03:44:13 deuce Exp $ */
+/* $Id: ssh.c,v 1.19 2015/05/01 04:05:49 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -77,6 +77,7 @@ void ssh_input_thread(void *args)
 					break;
 				}
 				cryptlib_error_message(status, "recieving data");
+				ssh_active=FALSE;
 				break;
 			}
 			else {
@@ -119,6 +120,7 @@ void ssh_output_thread(void *args)
 						break;
 					}
 					cryptlib_error_message(status, "sending data");
+					ssh_active=FALSE;
 					break;
 				}
 				sent += ret;
@@ -141,7 +143,7 @@ int ssh_connect(struct bbslist *bbs)
 	int status;
 	char password[MAX_PASSWD_LEN+1];
 	char username[MAX_USER_LEN+1];
-	struct winsize ws;
+	int	rows,cols;
 	struct text_info ti;
 
 	init_uifc(TRUE, TRUE);
@@ -239,28 +241,28 @@ int ssh_connect(struct bbslist *bbs)
 
 	gettextinfo(&ti);
 	if(ti.screenwidth < 80)
-		ws.ws_col=40;
+		cols=40;
 	else {
 		if(ti.screenwidth < 132)
-			ws.ws_col=80;
+			cols=80;
 		else
-			ws.ws_col=132;
+			cols=132;
 	}
-	ws.ws_row=ti.screenheight;
+	rows=ti.screenheight;
 	if(!bbs->nostatus)
-		ws.ws_row--;
-	if(ws.ws_row<24)
-		ws.ws_row=24;
+		rows--;
+	if(rows<24)
+		rows=24;
 
 	uifc.pop(NULL);
 	uifc.pop("Setting Terminal Width");
 	/* Pass socket to cryptlib */
-	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_WIDTH, ws.ws_col);
+	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_WIDTH, cols);
 
 	uifc.pop(NULL);
 	uifc.pop("Setting Terminal Height");
 	/* Pass socket to cryptlib */
-	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_HEIGHT, ws.ws_row);
+	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_HEIGHT, rows);
 
 	/* Activate the session */
 	uifc.pop(NULL);
@@ -293,11 +295,15 @@ int ssh_connect(struct bbslist *bbs)
 
 int ssh_close(void)
 {
+	char garbage[1024];
+
 	conn_api.terminate=1;
 	ssh_active=FALSE;
 	cl.SetAttribute(ssh_session, CRYPT_SESSINFO_ACTIVE, 0);
-	while(conn_api.input_thread_running || conn_api.output_thread_running)
+	while(conn_api.input_thread_running || conn_api.output_thread_running) {
+		conn_recv_upto(garbage, sizeof(garbage), 0);
 		SLEEP(1);
+	}
 	cl.DestroySession(ssh_session);
 	closesocket(sock);
 	sock=INVALID_SOCKET;
