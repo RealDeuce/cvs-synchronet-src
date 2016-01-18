@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.589 2015/11/24 22:36:37 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.590 2015/12/04 21:31:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,9 +152,11 @@ static int lprintf(int level, const char *fmt, ...)
     va_end(argptr);
 
 	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name,sbuf), stats.errors++;
+		char errmsg[sizeof(sbuf)+16];
+		SAFEPRINTF(errmsg, "mail %s", sbuf);
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name,errmsg), stats.errors++;
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
+			startup->errormsg(startup->cbdata,level,errmsg);
 	}
 
 	if(level <= LOG_CRIT)
@@ -5088,7 +5090,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.589 $", "%*s %s", revision);
+	sscanf("$Revision: 1.590 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
