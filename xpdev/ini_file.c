@@ -1,7 +1,8 @@
+/* ini_file.c */
+
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.154 2018/01/31 23:42:30 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: ini_file.c,v 1.143 2015/09/28 06:58:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,7 +99,7 @@ static char* section_name(char* p)
 	return(p);
 }
 
-static BOOL section_match(const char* name, const char* compare, BOOL case_sensitive)
+static BOOL section_match(const char* name, const char* compare)
 {
 	BOOL found=FALSE;
 	str_list_t names=strListSplitCopy(NULL,name,INI_SECTION_NAME_SEP);
@@ -107,7 +108,7 @@ static BOOL section_match(const char* name, const char* compare, BOOL case_sensi
 	char*	n;
 	char*	c;
 
-	/* Ignore trailing whitespace */
+	/* Ignore trailing whitepsace */
 	for(i=0; names[i]!=NULL; i++)
 		truncsp(names[i]);
 	for(i=0; comps[i]!=NULL; i++)
@@ -120,10 +121,8 @@ static BOOL section_match(const char* name, const char* compare, BOOL case_sensi
 			SKIP_WHITESPACE(n);
 			c=comps[j];
 			SKIP_WHITESPACE(c);
-			if (case_sensitive)
-				found = strcmp(n, c) == 0;
-			else
-				found = stricmp(n, c) == 0;
+			if(stricmp(n,c)==0)
+				found=TRUE;
 		}
 
 	strListFree(&names);
@@ -142,7 +141,6 @@ static BOOL seek_section(FILE* fp, const char* section)
 	if(section==ROOT_SECTION)
 		return(TRUE);
 
-	/* Perform case-sensitive search first */
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
@@ -150,23 +148,9 @@ static BOOL seek_section(FILE* fp, const char* section)
 			break;
 		if((p=section_name(str))==NULL)
 			continue;
-		if(section_match(p, section, /* case-sensitive */TRUE))
+		if(section_match(p,section))
 			return(TRUE);
 	}
-
-	/* Then perform case-insensitive search */
-	rewind(fp);
-	while (!feof(fp)) {
-		if (fgets(str, sizeof(str), fp) == NULL)
-			break;
-		if (is_eof(str))
-			break;
-		if ((p = section_name(str)) == NULL)
-			continue;
-		if (section_match(p, section, /* case-sensitive */FALSE))
-			return(TRUE);
-	}
-
 	return(FALSE);
 }
 
@@ -176,21 +160,11 @@ static size_t find_section_index(str_list_t list, const char* section)
 	char	str[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	/* Perform case-sensitive search first */
-	for (i = 0; list[i] != NULL; i++) {
-		SAFECOPY(str, list[i]);
+	for(i=0; list[i]!=NULL; i++) {
+		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			return(strListCount(list));
-		if((p=section_name(str))!=NULL && section_match(p, section, /* case-sensitive */TRUE))
-			return(i);
-	}
-
-	/* Then perform case-insensitive search */
-	for (i = 0; list[i] != NULL; i++) {
-		SAFECOPY(str, list[i]);
-		if (is_eof(str))
-			return(strListCount(list));
-		if ((p = section_name(str)) != NULL && section_match(p, section, /* case-sensitive */FALSE))
+		if((p=section_name(str))!=NULL && section_match(p,section))
 			return(i);
 	}
 
@@ -210,11 +184,10 @@ static size_t find_section(str_list_t list, const char* section)
 	return(i);
 }
 
-static char* key_name(char* p, char** vp, BOOL literals_supported)
+static char* key_name(char* p, char** vp)
 {
 	char* equal;
 	char* colon;
-	char* tp;
 
     *vp=NULL;
 
@@ -244,23 +217,15 @@ static char* key_name(char* p, char** vp, BOOL literals_supported)
 	/* Parse value */
 	(*vp)++;
 	SKIP_WHITESPACE(*vp);
-	if(literals_supported && colon!=NULL) {		/* string literal value */
+	if(colon!=NULL)
 		truncnl(*vp);		/* "key : value" - truncate new-line chars only */
-		if(*(*vp) == '"') {	/* handled quoted-strings here */
-			(*vp)++;
-			tp = strrchr(*vp, '"');
-			if(tp != NULL) {
-				*tp = 0;
-			}
-		}
-		c_unescape_str(*vp);
-	} else
+	else
 		truncsp(*vp);		/* "key = value" - truncate all white-space chars */
 
 	return(p);
 }
 
-static char* read_value(FILE* fp, const char* section, const char* key, char* value, BOOL literals_supported)
+static char* read_value(FILE* fp, const char* section, const char* key, char* value)
 {
 	char*	p;
 	char*	vp=NULL;
@@ -277,7 +242,7 @@ static char* read_value(FILE* fp, const char* section, const char* key, char* va
 			break;
 		if(is_eof(str))
 			break;
-		if((p=key_name(str, &vp, literals_supported))==NULL)
+		if((p=key_name(str,&vp))==NULL)
 			continue;
 		if(p==INI_NEW_SECTION)
 			break;
@@ -293,7 +258,7 @@ static char* read_value(FILE* fp, const char* section, const char* key, char* va
 	return(NULL);
 }
 
-static size_t get_value(str_list_t list, const char* section, const char* key, char* value, char** vpp, BOOL literals_supported)
+static size_t get_value(str_list_t list, const char* section, const char* key, char* value, char** vpp)
 {
 	char    str[INI_MAX_LINE_LEN];
 	char*	p;
@@ -311,7 +276,7 @@ static size_t get_value(str_list_t list, const char* section, const char* key, c
 		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			break;
-		if((p=key_name(str, &vp, literals_supported))==NULL)
+		if((p=key_name(str,&vp))==NULL)
 			continue;
 		if(p==INI_NEW_SECTION)
 			break;
@@ -371,7 +336,7 @@ BOOL DLLCALL iniKeyExists(str_list_t list, const char* section, const char* key)
 	if(list==NULL)
 		return(FALSE);
 
-	i=get_value(list, section, key, NULL, NULL, /* literals_supported: */FALSE);
+	i=get_value(list, section, key, NULL, NULL);
 
 	if(list[i]==NULL || *(list[i])==INI_OPEN_SECTION_CHAR)
 		return(FALSE);
@@ -383,7 +348,7 @@ BOOL DLLCALL iniValueExists(str_list_t list, const char* section, const char* ke
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	return(vp!=NULL && *vp!=0);
 }
@@ -393,7 +358,7 @@ BOOL DLLCALL iniRemoveKey(str_list_t* list, const char* section, const char* key
 	size_t	i;
 	char*	vp=NULL;
 
-	i=get_value(*list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	i=get_value(*list, section, key, NULL, &vp);
 
 	if(vp==NULL)
 		return(FALSE);
@@ -405,7 +370,7 @@ BOOL DLLCALL iniRemoveValue(str_list_t* list, const char* section, const char* k
 {
 	char*	vp=NULL;
 
-	get_value(*list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(*list, section, key, NULL, &vp);
 
 	if(vp==NULL)
 		return(FALSE);
@@ -424,20 +389,6 @@ BOOL DLLCALL iniRemoveSection(str_list_t* list, const char* section)
 	do {
 		strListDelete(list,i);
 	} while((*list)[i]!=NULL && *(*list)[i]!=INI_OPEN_SECTION_CHAR);
-
-	return(TRUE);
-}
-
-BOOL DLLCALL iniRemoveSections(str_list_t* list, const char* prefix)
-{
-	str_list_t sections = iniGetSectionList(*list, prefix);
-	const char* section;
-
-	while((section = strListPop(&sections)) != NULL)
-		if(!iniRemoveSection(list, section))
-			return(FALSE);
-
-	strListFree(&sections);
 
 	return(TRUE);
 }
@@ -501,23 +452,11 @@ size_t DLLCALL iniAppendSection(str_list_t* list, const char* section, ini_style
 	return ini_add_section(list,section,style,strListCount(*list));
 }
 
-static BOOL str_contains_ctrl_char(const char* str)
-{
-	while(*str) {
-		if(*(unsigned char*)str < ' ')
-			return TRUE;
-		str++;
-	}
-	return FALSE;
-}
-
-static char* ini_set_string(str_list_t* list, const char* section, const char* key, const char* value, BOOL literal
+char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* key, const char* value
 				 ,ini_style_t* style)
 {
 	char	str[INI_MAX_LINE_LEN];
-	char	litstr[INI_MAX_VALUE_LEN];
 	char	curval[INI_MAX_VALUE_LEN];
-	const char*	value_separator;
 	size_t	i;
 
 	if(style==NULL)
@@ -531,20 +470,11 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 		style->key_prefix="";
 	if(style->value_separator==NULL)
 		style->value_separator="=";
-	if(style->literal_separator==NULL)
-		style->literal_separator=":";
 	if(value==NULL)
 		value="";
-	if(literal) {
-		char cstr[INI_MAX_VALUE_LEN];
-		SAFEPRINTF(litstr, "\"%s\"", c_escape_str(value, cstr, sizeof(cstr)-1, /* ctrl_only: */FALSE));
-		value = litstr;
-		value_separator = style->literal_separator;
-	} else
-		value_separator = style->value_separator;
 	safe_snprintf(str, sizeof(str), "%s%-*s%s%s"
-		,style->key_prefix, style->key_len, key, value_separator, value);
-	i=get_value(*list, section, key, curval, NULL, /* literals_supported: */literal);
+		, style->key_prefix, style->key_len, key, style->value_separator, value);
+	i=get_value(*list, section, key, curval, NULL);
 	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
         while(i && *(*list)[i-1]==0) i--;   /* Insert before blank lines, not after */
 		return strListInsert(list, str, i);
@@ -554,19 +484,6 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 		return((*list)[i]);	/* no change */
 
 	return strListReplace(*list, i, str);
-}
-char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* key, const char* value
-				 ,ini_style_t* style)
-{
-	BOOL literal = value != NULL && (str_contains_ctrl_char(value) || *value==' ' || *lastchar(value)==' ');
-		
-	return ini_set_string(list, section, key, value, literal, style);
-}
-
-char* DLLCALL iniSetStringLiteral(str_list_t* list, const char* section, const char* key, const char* value
-				 ,ini_style_t* style)
-{
-	return ini_set_string(list, section, key, value, /* literal: */TRUE, style);
 }
 
 char* DLLCALL iniSetInteger(str_list_t* list, const char* section, const char* key, long value
@@ -618,6 +535,7 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 					,int64_t value, ini_style_t* style)
 {
 	char	str[INI_MAX_VALUE_LEN];
+	double	bytes;
 
 	if(value==0)
 		SAFECOPY(str,"0");
@@ -635,20 +553,22 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 			default:
 				if(unit<1)
 					unit=1;
-				byte_count_to_str(value*unit, str, sizeof(str));
+				bytes=(double)(value*unit);
+
+				if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
+					SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+				else if(fmod(bytes,1024*1024*1024)==0)
+					SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
+				else if(fmod(bytes,1024*1024)==0)
+					SAFEPRINTF(str,"%gM",bytes/(1024*1024));
+				else if(fmod(bytes,1024)==0)
+					SAFEPRINTF(str,"%gK",bytes/1024);
+				else
+					SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
 		}
 
 	return iniSetString(list, section, key, str, style);
 }
-
-char* DLLCALL iniSetDuration(str_list_t* list, const char* section, const char* key
-					,double value, ini_style_t* style)
-{
-	char	str[INI_MAX_VALUE_LEN];
-
-	return iniSetString(list, section, key, duration_to_str(value, str, sizeof(str)), style);
-}
-
 
 #if !defined(NO_SOCKET_SUPPORT)
 char* DLLCALL iniSetIpAddress(str_list_t* list, const char* section, const char* key, ulong value
@@ -663,7 +583,7 @@ char* DLLCALL iniSetIp6Address(str_list_t* list, const char* section, const char
 					,ini_style_t* style)
 {
 	char				addrstr[INET6_ADDRSTRLEN];
-	union xp_sockaddr	addr = {{0}};
+	union xp_sockaddr	addr = {0};
 
 	addr.in6.sin6_addr = value;
 	addr.in6.sin6_family = AF_INET6;
@@ -745,30 +665,6 @@ char* DLLCALL iniSetNamedInt(str_list_t* list, const char* section, const char* 
 	return iniSetInteger(list, section, key, value, style);
 }
 
-char* DLLCALL iniSetNamedHexInt(str_list_t* list, const char* section, const char* key, named_ulong_t* names
-					 ,ulong value, ini_style_t* style)
-{
-	size_t	i;
-
-	for(i=0;names[i].name!=NULL;i++)
-		if(names[i].value==value)
-			return iniSetString(list, section, key, names[i].name, style);
-
-	return iniSetHexInt(list, section, key, value, style);
-}
-
-char* DLLCALL iniSetNamedLongInt(str_list_t* list, const char* section, const char* key, named_ulong_t* names
-					 ,ulong value, ini_style_t* style)
-{
-	size_t	i;
-
-	for(i=0;names[i].name!=NULL;i++)
-		if(names[i].value==value)
-			return iniSetString(list, section, key, names[i].name, style);
-
-	return iniSetLongInt(list, section, key, value, style);
-}
-
 char* DLLCALL iniSetNamedFloat(str_list_t* list, const char* section, const char* key, named_double_t* names
 					 ,double value, ini_style_t* style)
 {
@@ -827,57 +723,26 @@ static char* default_value(const char* deflt, char* value)
 	return((char*)deflt);
 }
 
-/* Supports string literals: */
 char* DLLCALL iniReadString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
 {
-	if(read_value(fp, section, key, value, /* literals_supported: */TRUE)==NULL || *value==0 /* blank */)
+	if(read_value(fp,section,key,value)==NULL || *value==0 /* blank */)
 		return default_value(deflt,value);
 
 	return(value);
 }
 
-/* Does NOT support string literals: */
-char* DLLCALL iniReadValue(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
-{
-	if(read_value(fp, section, key, value, /* literals_supported: */FALSE)==NULL || *value==0 /* blank */)
-		return default_value(deflt,value);
-
-	return(value);
-}
-
-/* Supports string literals: */
 char* DLLCALL iniGetString(str_list_t list, const char* section, const char* key, const char* deflt, char* value)
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, value, &vp, /* literals_supported: */TRUE);
+	get_value(list, section, key, value, &vp);
 
 	if(vp==NULL || *vp==0 /* blank value or missing key */)
 		return default_value(deflt,value);
 
-	if(value != NULL)	/* return the modified (trimmed) value */
-		return value;
-
 	return(vp);
 }
 
-/* Does NOT support string literals: */
-char* DLLCALL iniGetValue(str_list_t list, const char* section, const char* key, const char* deflt, char* value)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, value, &vp, /* literals_supported: */FALSE);
-
-	if(vp==NULL || *vp==0 /* blank value or missing key */)
-		return default_value(deflt,value);
-
-	if(value != NULL)	/* return the modified (trimmed) value */
-		return value;
-
-	return(vp);
-}
-
-/* Does NOT support string literals: */
 char* DLLCALL iniPopKey(str_list_t* list, const char* section, const char* key, char* value)
 {
 	size_t i;
@@ -885,25 +750,7 @@ char* DLLCALL iniPopKey(str_list_t* list, const char* section, const char* key, 
 	if(list==NULL || *list==NULL)
 		return NULL;
 
-	i=get_value(*list, section, key, value, NULL, /* literals_supported: */FALSE);
-
-	if((*list)[i]==NULL)
-		return NULL;
-
-	strListDelete(list,i);
-
-	return(value);
-}
-
-/* Supports string literals: */
-char* DLLCALL iniPopString(str_list_t* list, const char* section, const char* key, char* value)
-{
-	size_t i;
-
-	if(list==NULL || *list==NULL)
-		return NULL;
-
-	i=get_value(*list, section, key, value, NULL, /* literals_supported: */TRUE);
+	i=get_value(*list, section, key, value, NULL);
 
 	if((*list)[i]==NULL)
 		return NULL;
@@ -915,7 +762,7 @@ char* DLLCALL iniPopString(str_list_t* list, const char* section, const char* ke
 
 char* DLLCALL iniReadExistingString(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
 {
-	if(read_value(fp,section,key,value, /* literals_supported: */TRUE)==NULL)
+	if(read_value(fp,section,key,value)==NULL)
 		return(NULL);
 
 	if(*value==0 /* blank */)
@@ -931,26 +778,6 @@ char* DLLCALL iniGetExistingString(str_list_t list, const char* section, const c
 
 	return iniGetString(list, section, key, deflt, value);
 }
-
-char* DLLCALL iniReadExistingValue(FILE* fp, const char* section, const char* key, const char* deflt, char* value)
-{
-	if(read_value(fp,section,key,value, /* literals_supported: */FALSE)==NULL)
-		return(NULL);
-
-	if(*value==0 /* blank */)
-		return default_value(deflt,value);
-
-	return(value);
-}
-
-char* DLLCALL iniGetExistingValue(str_list_t list, const char* section, const char* key, const char* deflt, char* value)
-{
-	if(!iniKeyExists(list, section, key))
-		return(NULL);
-
-	return iniGetValue(list, section, key, deflt, value);
-}
-
 
 static str_list_t splitList(char* list, const char* sep)
 {
@@ -984,7 +811,7 @@ str_list_t DLLCALL iniReadStringList(FILE* fp, const char* section, const char* 
 	char	buf[INI_MAX_VALUE_LEN];
 	char	list[INI_MAX_VALUE_LEN];
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */TRUE))==NULL || *value==0 /* blank */)
+	if((value=read_value(fp,section,key,buf))==NULL || *value==0 /* blank */)
 		value=(char*)deflt;
 
 	if(value==NULL)
@@ -1000,7 +827,7 @@ str_list_t DLLCALL iniGetStringList(str_list_t list, const char* section, const 
 {
 	char	value[INI_MAX_VALUE_LEN];
 
-	get_value(list, section, key, value, NULL, /* literals_supported: */TRUE);
+	get_value(list, section, key, value, NULL);
 
 	if(*value==0 /* blank value or missing key */) {
 		if(deflt==NULL)
@@ -1173,7 +1000,7 @@ str_list_t DLLCALL iniReadKeyList(FILE* fp, const char* section)
 			break;
 		if(is_eof(str))
 			break;
-		if((p=key_name(str, &vp, /* literals_supported: */FALSE))==NULL)
+		if((p=key_name(str,&vp))==NULL)
 			continue;
 		if(p==INI_NEW_SECTION)
 			break;
@@ -1202,7 +1029,7 @@ str_list_t DLLCALL iniGetKeyList(str_list_t list, const char* section)
 		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			break;
-		if((p=key_name(str, &vp, /* literals_supported: */FALSE))==NULL)
+		if((p=key_name(str,&vp))==NULL)
 			continue;
 		if(p==INI_NEW_SECTION)
 			break;
@@ -1241,7 +1068,7 @@ iniReadNamedStringList(FILE* fp, const char* section)
 			break;
 		if(is_eof(str))
 			break;
-		if((name=key_name(str, &value, /* literals_supported: */TRUE))==NULL)
+		if((name=key_name(str,&value))==NULL)
 			continue;
 		if(name==INI_NEW_SECTION)
 			break;
@@ -1287,7 +1114,7 @@ iniGetNamedStringList(str_list_t list, const char* section)
 		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			break;
-		if((name=key_name(str, &value, /* literals_supported: */TRUE))==NULL)
+		if((name=key_name(str,&value))==NULL)
 			continue;
 		if(name==INI_NEW_SECTION)
 			break;
@@ -1360,7 +1187,7 @@ long DLLCALL iniReadInteger(FILE* fp, const char* section, const char* key, long
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1373,7 +1200,7 @@ long DLLCALL iniGetInteger(str_list_t list, const char* section, const char* key
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)	/* blank value or missing key */
 		return(deflt);
@@ -1396,7 +1223,7 @@ ulong DLLCALL iniReadLongInt(FILE* fp, const char* section, const char* key, ulo
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1409,7 +1236,7 @@ ulong DLLCALL iniGetLongInt(str_list_t list, const char* section, const char* ke
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)	/* blank value or missing key */
 		return(deflt);
@@ -1422,7 +1249,7 @@ int64_t DLLCALL iniReadBytes(FILE* fp, const char* section, const char* key, ulo
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1435,38 +1262,12 @@ int64_t DLLCALL iniGetBytes(str_list_t list, const char* section, const char* ke
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)	/* blank value or missing key */
 		return(deflt);
 
 	return(parse_byte_count(vp,unit));
-}
-
-double DLLCALL iniReadDuration(FILE* fp, const char* section, const char* key, double deflt)
-{
-	char*	value;
-	char	buf[INI_MAX_VALUE_LEN];
-
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
-		return(deflt);
-
-	if(*value==0)		/* blank value */
-		return(deflt);
-
-	return(parse_duration(value));
-}
-
-double DLLCALL iniGetDuration(str_list_t list, const char* section, const char* key, double deflt)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
-
-	if(vp==NULL || *vp==0)	/* blank value or missing key */
-		return(deflt);
-
-	return(parse_duration(vp));
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
@@ -1553,7 +1354,7 @@ static struct in6_addr parseIp6Address(const char* value)
 {
 	struct addrinfo hints = {0};
 	struct addrinfo *res, *cur;
-	struct in6_addr ret = {{{0}}};
+	struct in6_addr ret = {0};
 
 	hints.ai_flags = AI_NUMERICHOST|AI_PASSIVE;
 	if(getaddrinfo(value, NULL, &hints, &res))
@@ -1577,7 +1378,7 @@ ulong DLLCALL iniReadIpAddress(FILE* fp, const char* section, const char* key, u
 	char	buf[INI_MAX_VALUE_LEN];
 	char*	value;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1591,7 +1392,7 @@ struct in6_addr DLLCALL iniReadIp6Address(FILE* fp, const char* section, const c
 	char	buf[INI_MAX_VALUE_LEN];
 	char*	value;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1604,7 +1405,7 @@ ulong DLLCALL iniGetIpAddress(str_list_t list, const char* section, const char* 
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
@@ -1616,7 +1417,7 @@ struct in6_addr DLLCALL iniGetIp6Address(str_list_t list, const char* section, c
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
@@ -1674,7 +1475,7 @@ double DLLCALL iniReadFloat(FILE* fp, const char* section, const char* key, doub
 	char	buf[INI_MAX_VALUE_LEN];
 	char*	value;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1687,7 +1488,7 @@ double DLLCALL iniGetFloat(str_list_t list, const char* section, const char* key
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
@@ -1700,7 +1501,7 @@ BOOL DLLCALL iniReadBool(FILE* fp, const char* section, const char* key, BOOL de
 	char	buf[INI_MAX_VALUE_LEN];
 	char*	value;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1713,7 +1514,7 @@ BOOL DLLCALL iniGetBool(str_list_t list, const char* section, const char* key, B
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
@@ -1843,7 +1644,7 @@ time_t DLLCALL iniReadDateTime(FILE* fp, const char* section, const char* key, t
 	char	buf[INI_MAX_VALUE_LEN];
 	char*	value;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1856,7 +1657,7 @@ time_t DLLCALL iniGetDateTime(str_list_t list, const char* section, const char* 
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
@@ -1876,8 +1677,8 @@ static unsigned parseEnum(const char* value, str_list_t names)
 	FIND_WHITESPACE(p);
 	*p=0;
 
-	if((count=strListCount(names)) == 0)
-		return 0;
+    if((count=strListCount(names)) == 0)
+        return 0;
 
 	/* Look for exact matches first */
 	for(i=0; i<count; i++)
@@ -1890,8 +1691,8 @@ static unsigned parseEnum(const char* value, str_list_t names)
 			return(i);
 
     i=strtoul(val,NULL,0);
-	if(i>=count)
-		i=count-1;
+    if(i>=count)
+        i=count-1;
 	return i;
 }
 
@@ -1934,7 +1735,7 @@ unsigned DLLCALL iniReadEnum(FILE* fp, const char* section, const char* key, str
 	char	buf[INI_MAX_VALUE_LEN];
 	char*	value;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -1956,7 +1757,7 @@ unsigned* DLLCALL iniReadEnumList(FILE* fp, const char* section, const char* key
 
 	*cp=0;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL || *value==0 /* blank */)
+	if((value=read_value(fp,section,key,buf))==NULL || *value==0 /* blank */)
 		value=(char*)deflt;
 
 	return(parseEnumList(value, sep, names, cp));
@@ -1966,7 +1767,7 @@ unsigned DLLCALL iniGetEnum(str_list_t list, const char* section, const char* ke
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
@@ -1985,7 +1786,7 @@ unsigned* DLLCALL iniGetEnumList(str_list_t list, const char* section, const cha
 
 	*cp=0;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0 /* blank value or missing key */) {
 		if(deflt==NULL)
@@ -2018,7 +1819,7 @@ long DLLCALL iniReadNamedInt(FILE* fp, const char* section, const char* key
 	char	buf[INI_MAX_VALUE_LEN];
 	char*	value;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -2032,57 +1833,12 @@ long DLLCALL iniGetNamedInt(str_list_t list, const char* section, const char* ke
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
 
 	return(parseNamedInt(vp,names));
-}
-
-static ulong parseNamedLongInt(const char* value, named_ulong_t* names)
-{
-	unsigned i;
-
-	/* Look for exact matches first */
-	for(i=0; names[i].name!=NULL; i++)
-		if(stricmp(names[i].name,value)==0)
-			return(names[i].value);
-
-	/* Look for partial matches second */
-	for(i=0; names[i].name!=NULL; i++)
-		if(strnicmp(names[i].name,value,strlen(value))==0)
-			return(names[i].value);
-
-	return(parseLongInteger(value));
-}
-
-ulong DLLCALL iniReadNamedLongInt(FILE* fp, const char* section, const char* key
-					 ,named_ulong_t* names, ulong deflt)
-{
-	char	buf[INI_MAX_VALUE_LEN];
-	char*	value;
-
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
-		return(deflt);
-
-	if(*value==0)		/* blank value */
-		return(deflt);
-
-	return(parseNamedLongInt(value,names));
-}
-
-ulong DLLCALL iniGetNamedLongInt(str_list_t list, const char* section, const char* key
-					,named_ulong_t* names, ulong deflt)
-{
-	char*	vp=NULL;
-
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
-
-	if(vp==NULL || *vp==0)		/* blank value or missing key */
-		return(deflt);
-
-	return(parseNamedLongInt(vp,names));
 }
 
 static double parseNamedFloat(const char* value, named_double_t* names)
@@ -2108,7 +1864,7 @@ double DLLCALL iniReadNamedFloat(FILE* fp, const char* section, const char* key
 	char	buf[INI_MAX_VALUE_LEN];
 	char*	value;
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)
+	if((value=read_value(fp,section,key,buf))==NULL)
 		return(deflt);
 
 	if(*value==0)		/* blank value */
@@ -2122,7 +1878,7 @@ double DLLCALL iniGetNamedFloat(str_list_t list, const char* section, const char
 {
 	char*	vp=NULL;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
@@ -2168,7 +1924,7 @@ ulong DLLCALL iniReadBitField(FILE* fp, const char* section, const char* key,
 	char*	value;
 	char	buf[INI_MAX_VALUE_LEN];
 
-	if((value=read_value(fp,section,key,buf, /* literals_supported: */FALSE))==NULL)	/* missing key */
+	if((value=read_value(fp,section,key,buf))==NULL)	/* missing key */
 		return(deflt);
 
 	return(parseBitField(value,bitdesc));
@@ -2179,7 +1935,7 @@ ulong DLLCALL iniGetBitField(str_list_t list, const char* section, const char* k
 {
 	char*	vp=NULL;;
 
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
+	get_value(list, section, key, NULL, &vp);
 
 	if(vp==NULL)		/* missing key */
 		return(deflt);
