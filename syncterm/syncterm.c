@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.189 2015/02/19 10:03:27 deuce Exp $ */
+/* $Id: syncterm.c,v 1.199 2015/10/28 02:01:20 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -48,7 +48,7 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include "uifcinit.h"
 #include "window.h"
 
-char* syncterm_version = "SyncTERM 1.0b"
+char* syncterm_version = "SyncTERM 1.1b"
 #ifdef _DEBUG
 	" Debug ("__DATE__")"
 #endif
@@ -1021,10 +1021,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 			}
 			if(we_got_this) {
-				// Convert unicode to string.
-				if(snprintf(fn, fnlen, "%S\\SyncTERM", path) >= fnlen) {
-					we_got_this=FALSE;
+				if (type != SYNCTERM_DEFAULT_TRANSFER_PATH) {
+					if(snprintf(fn, fnlen, "%S\\SyncTERM", path) >= fnlen)
+						we_got_this=FALSE;
 				}
+				// Convert unicode to string.
 				CTMF(path);
 			}
 		}
@@ -1213,10 +1214,11 @@ void load_settings(struct syncterm_settings *set)
 	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
+	set->xfer_success_keypress_timeout=iniReadInteger(inifile,"SyncTERM", "TransferSuccessKeypressTimeout", /* seconds: */0);
+	set->xfer_failure_keypress_timeout=iniReadInteger(inifile,"SyncTERM", "TransferFailureKeypressTimeout", /* seconds: */60);
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
-	setscaling(set->scaling_factor);
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1391,11 +1393,11 @@ int main(int argc, char **argv)
 						case 'S':
 							switch(toupper(argv[i][3])) {
 								case 0:
-								case 'F':
-									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
-									break;
 								case 'W':
 									ciolib_mode=CIOLIB_MODE_SDL;
+									break;
+								case 'F':
+									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
 									break;
 							}
 							break;
@@ -1469,6 +1471,7 @@ int main(int argc, char **argv)
 	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
 	textmode(text_mode);
+	setscaling(settings.scaling_factor);
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1573,7 +1576,6 @@ int main(int argc, char **argv)
 				fclose(log_fp);
 				log_fp=NULL;
 			}
-			load_font_files();
 			textmode(txtinfo.currmode);
 			for(i=CONIO_FIRST_FREE_FONT; i<256; i++) {
 				FREE_AND_NULL(conio_fontdata[i].eight_by_sixteen);
@@ -1581,6 +1583,7 @@ int main(int argc, char **argv)
 				FREE_AND_NULL(conio_fontdata[i].eight_by_eight);
 				FREE_AND_NULL(conio_fontdata[i].desc);
 			}
+			load_font_files();
 			settitle("SyncTERM");
 		}
 		if(quitting || url[0]) {
@@ -1611,6 +1614,8 @@ int main(int argc, char **argv)
 			last_bbs=strdup(bbs->name);
 		bbs=NULL;
 	}
+	if (last_bbs)
+		free(last_bbs);
 	// Save changed settings
 	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
 		char	inipath[MAX_PATH+1];

@@ -2,13 +2,13 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.139 2015/02/12 23:11:29 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.144 2016/01/18 10:01:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -569,6 +569,28 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 
 	return iniSetString(list, section, key, str, style);
 }
+
+char* DLLCALL iniSetDuration(str_list_t* list, const char* section, const char* key
+					,double value, ini_style_t* style)
+{
+	char	str[INI_MAX_VALUE_LEN];
+
+	if(fmod(value,365.0*24.0*60.0*60.0)==0)
+		SAFEPRINTF(str,"%gY",value/(365.0*24.0*60.0*60.0));
+	else if(fmod(value,7.0*24.0*60.0*60.0)==0)
+		SAFEPRINTF(str,"%gW",value/(7.0*24.0*60.0*60.0));
+	else if(fmod(value,24.0*60.0*60.0)==0)
+		SAFEPRINTF(str,"%gD",value/(24.0*60.0*60.0));
+	else if(fmod(value,60.0*60.0)==0)
+		SAFEPRINTF(str,"%gH",value/(60.0*60.0));
+	else if(fmod(value,60.0)==0)
+		SAFEPRINTF(str,"%gM",value/60.0);
+	else
+		SAFEPRINTF(str,"%gS",value);
+
+	return iniSetString(list, section, key, str, style);
+}
+
 
 #if !defined(NO_SOCKET_SUPPORT)
 char* DLLCALL iniSetIpAddress(str_list_t* list, const char* section, const char* key, ulong value
@@ -1140,7 +1162,25 @@ iniGetNamedStringList(str_list_t list, const char* section)
 
 static BOOL isTrue(const char* value)
 {
-	return(stricmp(value,"TRUE")==0 || stricmp(value,"YES")==0 || stricmp(value,"ON")==0);
+	char*	str;
+	char*	p;
+	BOOL	is_true;
+	
+	if(!isalpha(*value))
+		return FALSE;
+
+	if((str=strdup(value)) == NULL)
+		return FALSE;
+
+	/* Truncate value at first space, tab or semicolon for purposes of checking for special boolean words. */
+	/* This allows comments or white-space to immediately follow a special boolean word: "True", "Yes", or "On" */
+	p=str;
+	FIND_CHARSET(p, "; \t");
+	*p=0;
+	
+	is_true = (stricmp(str,"TRUE")==0 || stricmp(str,"YES")==0 || stricmp(str,"ON")==0);
+	free(str);
+	return is_true;
 }
 
 static long parseInteger(const char* value)
@@ -1226,37 +1266,6 @@ ulong DLLCALL iniGetLongInt(str_list_t list, const char* section, const char* ke
 	return(parseLongInteger(vp));
 }
 
-static int64_t parseBytes(const char* value, ulong unit)
-{
-	char*	p=NULL;
-	double	bytes;
-
-	bytes=strtod(value,&p);
-	if(p!=NULL) {
-		switch(toupper(*p)) {
-			case 'E':
-				bytes*=1024;
-				/* fall-through */
-			case 'P':
-				bytes*=1024;
-				/* fall-through */
-			case 'T':
-				bytes*=1024;
-				/* fall-through */
-			case 'G':
-				bytes*=1024;
-				/* fall-through */
-			case 'M':
-				bytes*=1024;
-				/* fall-through */
-			case 'K':
-				bytes*=1024;
-				break;
-		}
-	}
-	return((int64_t)(unit>1 ? (bytes/unit):bytes));
-}
-
 int64_t DLLCALL iniReadBytes(FILE* fp, const char* section, const char* key, ulong unit, int64_t deflt)
 {
 	char*	value;
@@ -1268,7 +1277,7 @@ int64_t DLLCALL iniReadBytes(FILE* fp, const char* section, const char* key, ulo
 	if(*value==0)		/* blank value */
 		return(deflt);
 
-	return(parseBytes(value,unit));
+	return(parse_byte_count(value,unit));
 }
 
 int64_t DLLCALL iniGetBytes(str_list_t list, const char* section, const char* key, ulong unit, int64_t deflt)
@@ -1280,7 +1289,33 @@ int64_t DLLCALL iniGetBytes(str_list_t list, const char* section, const char* ke
 	if(vp==NULL || *vp==0)	/* blank value or missing key */
 		return(deflt);
 
-	return(parseBytes(vp,unit));
+	return(parse_byte_count(vp,unit));
+}
+
+double DLLCALL iniReadDuration(FILE* fp, const char* section, const char* key, double deflt)
+{
+	char*	value;
+	char	buf[INI_MAX_VALUE_LEN];
+
+	if((value=read_value(fp,section,key,buf))==NULL)
+		return(deflt);
+
+	if(*value==0)		/* blank value */
+		return(deflt);
+
+	return(parse_duration(value));
+}
+
+double DLLCALL iniGetDuration(str_list_t list, const char* section, const char* key, double deflt)
+{
+	char*	vp=NULL;
+
+	get_value(list, section, key, NULL, &vp);
+
+	if(vp==NULL || *vp==0)	/* blank value or missing key */
+		return(deflt);
+
+	return(parse_duration(vp));
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
@@ -1299,7 +1334,9 @@ int DLLCALL iniGetSocketOptions(str_list_t list, const char* section, SOCKET soc
 	int			type=0;	// Assignment is to silence Valgrind.
 	LINGER		linger;
 	socket_option_t* socket_options=getSocketOptionList();
+#ifdef IPPROTO_IPV6
 	union xp_sockaddr	addr;
+#endif
 
 	len=sizeof(type);
 	if((result=getsockopt(sock, SOL_SOCKET, SO_TYPE, (char*)&type, &len)) != 0) {
@@ -1643,6 +1680,9 @@ static time_t parseDateTime(const char* value)
 		&& (tm.tm_mon=getMonth(month))!=0
 		&& validDate(&tm))
 		return(fixedDateTime(&tm,tstr,0));
+
+	if((t=xpDateTime_to_time(isoDateTimeStr_parse(value))) != INVALID_TIME)
+		return t;
 
 	return(strtoul(value,NULL,0));
 }
