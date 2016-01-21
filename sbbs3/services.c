@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.289 2016/01/21 09:53:00 deuce Exp $ */
+/* $Id: services.c,v 1.290 2016/01/21 10:03:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1041,6 +1041,8 @@ static void js_service_thread(void* arg)
 			return;
 		}
 	}
+	else
+		service_client.tls_sess = -1;
 
 #if 0	/* Need to export from SBBS.DLL */
 	identity=NULL;
@@ -1635,7 +1637,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.289 $", "%*s %s", revision);
+	sscanf("$Revision: 1.290 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
