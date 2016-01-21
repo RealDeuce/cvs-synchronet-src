@@ -2,7 +2,7 @@
 
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.259 2016/11/16 07:53:32 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.258 2015/12/04 21:38:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1208,7 +1208,7 @@ int main(int argc, char** argv)
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
-	SetThreadName("sbbs");
+	SetThreadName("Main");
 	listInit(&client_list, LINK_LIST_MUTEX);
 	loginAttemptListInit(&login_attempt_list);
 	atexit(cleanup);
