@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.589 2015/11/24 22:36:37 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.591 2016/01/21 09:52:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,9 +152,11 @@ static int lprintf(int level, const char *fmt, ...)
     va_end(argptr);
 
 	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name,sbuf), stats.errors++;
+		char errmsg[sizeof(sbuf)+16];
+		SAFEPRINTF(errmsg, "mail %s", sbuf);
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name,errmsg), stats.errors++;
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
+			startup->errormsg(startup->cbdata,level,errmsg);
 	}
 
 	if(level <= LOG_CRIT)
@@ -1921,9 +1923,9 @@ js_mailproc(SOCKET sock, client_t* client, user_t* user, struct mailproc* mailpr
 			/* Global Objects (including system, js, client, Socket, MsgBase, File, User, etc. */
 			if(!js_CreateCommonObjects(*js_cx, &scfg, &scfg, NULL
 						,uptime, startup->host_name, SOCKLIB_DESC	/* system */
-						,&js_callback									/* js */
+						,&js_callback								/* js */
 						,&startup->js
-						,client, sock								/* client */
+						,client, sock, -1							/* client */
 						,&js_server_props							/* server */
 						,js_glob
 				))
@@ -5088,7 +5090,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.589 $", "%*s %s", revision);
+	sscanf("$Revision: 1.591 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
