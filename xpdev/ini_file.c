@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.145 2016/01/19 08:10:30 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.146 2016/01/21 20:35:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -785,6 +785,9 @@ char* DLLCALL iniGetString(str_list_t list, const char* section, const char* key
 
 	if(vp==NULL || *vp==0 /* blank value or missing key */)
 		return default_value(deflt,value);
+
+	if(value != NULL)	/* return the modified (trimmed) value */
+		return value;
 
 	return(vp);
 }
