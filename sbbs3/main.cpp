@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.627 2015/11/25 02:36:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.630 2016/01/21 09:53:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1181,7 +1181,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
 					,&js_callback								/* js */
 					,&startup->js
-					,&client, client_socket						/* client */
+					,&client, client_socket, -1					/* client */
 					,&js_server_props							/* server */
 					,&js_glob
 			))
@@ -1260,6 +1260,7 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,js_startup_t* js_startup	/* js */
 										,client_t* client			/* client */
 										,SOCKET client_socket		/* client */
+										,CRYPT_CONTEXT session		/* client */
 										,js_server_props_t* props	/* server */
 										,JSObject** glob
 										)
@@ -1285,7 +1286,7 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* Client Object */
 		if(client!=NULL 
-			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
+			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket, session)==NULL)
 			break;
 
 		/* Server */
@@ -3139,6 +3140,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	logcol=1;
 	logfile_fp=NULL;
 	nodefile=-1;
+	pthread_mutex_init(&nodefile_mutex, NULL);
 	node_ext=-1;
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
@@ -3265,8 +3267,10 @@ bool sbbs_t::init()
 
 	/* Shared NODE files */
 	SAFEPRINTF2(str,"%s%s",cfg.ctrl_dir,"node.dab");
+	pthread_mutex_lock(&nodefile_mutex);
 	if((nodefile=nopen(str,O_DENYNONE|O_RDWR|O_CREAT))==-1) {
 		errormsg(WHERE, ERR_OPEN, str, cfg.node_num);
+		pthread_mutex_unlock(&nodefile_mutex);
 		return(false); 
 	}
 	memset(&node,0,sizeof(node_t));  /* write NULL to node struct */
@@ -3289,6 +3293,7 @@ bool sbbs_t::init()
 		close(nodefile);
 		nodefile=-1;
 	}
+	pthread_mutex_unlock(&nodefile_mutex);
 
 	if(i>=LOOP_NODEDAB) {
 		errormsg(WHERE, ERR_LOCK, str, cfg.node_num);
@@ -3536,9 +3541,11 @@ sbbs_t::~sbbs_t()
 		CloseEvent(telnet_ack_event);
 
 	/* Close all open files */
+	pthread_mutex_lock(&nodefile_mutex);
 	if(nodefile!=-1) {
 		close(nodefile);
 		nodefile=-1;
+		pthread_mutex_unlock(&nodefile_mutex);
 	}
 	if(node_ext!=-1) {
 		close(node_ext);
@@ -4734,8 +4741,8 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 	if(smb_tzutc(sys_timezone(&scfg)) != xpTimeZone_local()) { 
-		lprintf(LOG_WARNING,"Configured timezone (0x%04hX, UTC offset: %d) does not match local timezone offset: %d"
-			,scfg.sys_timezone, smb_tzutc(sys_timezone(&scfg)), xpTimeZone_local());
+		lprintf(LOG_WARNING,"Configured time zone (%s, 0x%04hX, offset: %d) does not match system-local time zone offset: %d"
+			,smb_zonestr(scfg.sys_timezone,str), scfg.sys_timezone, smb_tzutc(scfg.sys_timezone), xpTimeZone_local());
 	}
 	if(uptime==0)
 		uptime=time(NULL);	/* this must be done *after* setting the timezone */
