@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.355 2016/01/03 01:20:05 rswindell Exp $ */
+/* $Id: js_global.c,v 1.356 2016/01/21 09:52:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,6 +331,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 				,p->startup		/* js */
 				,NULL			/* client */
 				,INVALID_SOCKET	/* client_socket */
+				,-1				/* client TLS session */
 				,NULL			/* server props */
 				,&bg->obj
 				)) {
