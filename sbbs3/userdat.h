@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.58 2016/05/18 10:15:13 rswindell Exp $ */
+/* $Id: userdat.h,v 1.57 2015/12/07 09:16:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,9 +145,9 @@ DLLEXPORT BOOL	DLLCALL check_name(scfg_t*, const char* name);
 
 /* Login attempt/hack tracking */
 typedef struct {
-	union xp_sockaddr addr;	/* host with consecutive failed login attempts */
+	union xp_sockaddr addr;	/* host with consecutive failed login attmepts */
 	ulong		count;	/* number of consecutive failed login attempts */
-	ulong		dupes;	/* number of consecutive duplicate login attempts (same name and password) */
+	ulong		dupes;	/* number of consecutive dupliate login attempts (same name and password) */
 	time32_t	time;	/* time of last attempt */
 	char		prot[32];	/* protocol used in last attempt */
 	char		user[128];
@@ -160,7 +160,6 @@ DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
 DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, const union xp_sockaddr*, const char* prot, const char* user, const char* pass);
-DLLEXPORT ulong				DLLCALL loginBanned(scfg_t*, link_list_t*, const union xp_sockaddr*, struct login_attempt_settings);
 
 #ifdef __cplusplus
 }
