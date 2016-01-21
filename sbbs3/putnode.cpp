@@ -2,7 +2,7 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.18 2009/11/09 02:54:55 rswindell Exp $ */
+/* $Id: putnode.cpp,v 1.20 2016/01/10 07:10:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,7 +69,7 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 				,getage(&cfg,useron.birth)
 				,useron.sex
 				,useron.comp
-				,useron.note
+				,useron.ipaddr
 				,unixtodstr(&cfg,useron.firston,firston)
 				,node->aux&0xff
 				,node->connection
@@ -81,9 +81,11 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 	}
 
 	sprintf(path,"%snode.dab",cfg.ctrl_dir);
+	pthread_mutex_lock(&nodefile_mutex);
 	if(nodefile==-1) {
 		if((nodefile=nopen(path,O_CREAT|O_RDWR|O_DENYNONE))==-1) {
 			errormsg(WHERE,ERR_OPEN,path,O_CREAT|O_RDWR|O_DENYNONE);
+			pthread_mutex_unlock(&nodefile_mutex);
 			return(errno); 
 		}
 	}
@@ -103,6 +105,7 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 		close(nodefile);
 		nodefile=-1;
 	}
+	pthread_mutex_unlock(&nodefile_mutex);
 
 	if(wr!=sizeof(node_t)) {
 		errno=wrerr;
