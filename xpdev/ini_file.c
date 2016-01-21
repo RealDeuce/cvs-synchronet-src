@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.147 2016/01/27 06:16:29 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.145 2016/01/19 08:10:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,20 +389,6 @@ BOOL DLLCALL iniRemoveSection(str_list_t* list, const char* section)
 	do {
 		strListDelete(list,i);
 	} while((*list)[i]!=NULL && *(*list)[i]!=INI_OPEN_SECTION_CHAR);
-
-	return(TRUE);
-}
-
-BOOL DLLCALL iniRemoveSections(str_list_t* list, const char* prefix)
-{
-	str_list_t sections = iniGetSectionList(*list, prefix);
-	const char* section;
-
-	while((section = strListPop(&sections)) != NULL)
-		if(!iniRemoveSection(list, section))
-			return(FALSE);
-
-	strListFree(&sections);
 
 	return(TRUE);
 }
@@ -799,9 +785,6 @@ char* DLLCALL iniGetString(str_list_t list, const char* section, const char* key
 
 	if(vp==NULL || *vp==0 /* blank value or missing key */)
 		return default_value(deflt,value);
-
-	if(value != NULL)	/* return the modified (trimmed) value */
-		return value;
 
 	return(vp);
 }
