@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 1.278 2016/01/03 01:19:17 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 1.279 2016/01/21 01:36:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2827,6 +2827,7 @@ void seektonull(FILE *stream)
 char *pktname(BOOL temp)
 {
 	static char str[128];
+	static char tmp[128];
 	int i;
     time_t now;
     struct tm *tm;
@@ -2835,10 +2836,12 @@ char *pktname(BOOL temp)
 	for(i=0;i>=0;i++) {
 		now++;
 		tm=localtime(&now);
-		sprintf(str,"%s%02u%02u%02u%02u.%s",cfg.outbound,tm->tm_mday,tm->tm_hour
-			,tm->tm_min,tm->tm_sec,temp ? "pk_" : "pkt");
-		if(!fexist(str))				/* Add 1 second if name exists */
-			return(str); 
+		sprintf(str,"%s%02u%02u%02u%02u.pkt",cfg.outbound,tm->tm_mday,tm->tm_hour
+			,tm->tm_min,tm->tm_sec);
+		sprintf(tmp,"%s%02u%02u%02u%02u.pk_",cfg.outbound,tm->tm_mday,tm->tm_hour
+			,tm->tm_min,tm->tm_sec);
+		if(!fexist(str) && !fexist(tmp))				/* Add 1 second if name exists */
+			return(temp ? tmp : str); 
 	}
 	return(NULL);	/* This should never happen */
 }
@@ -4394,7 +4397,7 @@ int main(int argc, char **argv)
 	memset(&msg_path,0,sizeof(addrlist_t));
 	memset(&fakearea,0,sizeof(areasbbs_t));
 
-	sscanf("$Revision: 1.278 $", "%*s %s", revision);
+	sscanf("$Revision: 1.279 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
