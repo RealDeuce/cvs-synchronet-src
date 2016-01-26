@@ -2,7 +2,7 @@
 
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.109 2015/11/02 03:16:20 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.112 2015/12/04 10:06:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,8 +198,8 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 /* message and 'title' is the title (70chars max) for the message.          */
 /* 'dest' contains a text description of where the message is going.        */
 /****************************************************************************/
-bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode, uint subnum
-	,const char *dest, char** editor)
+bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode, uint subnum
+	,const char *to, const char* from, char** editor)
 {
 	char	str[256],quote[128],c,*buf,*p,*tp
 				,useron_level;
@@ -251,7 +251,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 				free(buf);
 				return(false); 
 			}
-
+			removecase(msgtmp);
 			if((file=nopen(msgtmp,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 				errormsg(WHERE,ERR_OPEN,msgtmp,O_WRONLY|O_CREAT|O_TRUNC);
 				free(buf);
@@ -401,20 +401,20 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 		max_title_len=cols-column-1;
 		if(max_title_len > LEN_TITLE)
 			max_title_len = LEN_TITLE;
-		if(!getstr(title,max_title_len,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
+		if(!getstr(subj,max_title_len,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
 			&& useron_level && useron.logons) {
 			free(buf);
 			return(false); 
 		}
-		if((mode&WM_FILE) && !checkfname(title)) {
+		if((mode&WM_FILE) && !checkfname(subj)) {
 			free(buf);
 			bputs(text[BadFilename]);
 			return(false);
 		}
 		if(!(mode&(WM_EMAIL|WM_NETMAIL)) && cfg.sub[subnum]->misc&SUB_QNET
 			&& !SYSOP
-			&& (!stricmp(title,"DROP") || !stricmp(title,"ADD")
-			|| !strnicmp(dest,"SBBS",4))) {
+			&& (!stricmp(subj,"DROP") || !stricmp(subj,"ADD")
+			|| !strnicmp(to,"SBBS",4))) {
 			free(buf);   /* Users can't post DROP or ADD in QWK netted subs */
 			return(false); /* or messages to "SBBS" */
 		}
@@ -463,10 +463,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 		if(editor!=NULL)
 			*editor=cfg.xedit[useron_xedit-1]->name;
 
-		editor_inf(useron_xedit,dest,title,mode,subnum,tagfile);
+		editor_inf(useron_xedit,to,from,subj,mode,subnum,tagfile);
 		if(cfg.xedit[useron_xedit-1]->type) {
 			gettimeleft();
-			xtrndat(useron.alias,cfg.node_dir,cfg.xedit[useron_xedit-1]->type
+			xtrndat(mode&WM_ANON ? text[Anonymous]:from,cfg.node_dir,cfg.xedit[useron_xedit-1]->type
  			   ,timeleft,cfg.xedit[useron_xedit-1]->misc); 
 		}
 
@@ -506,7 +506,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 				fgets(str,sizeof(str),fp);
 				fgets(str,sizeof(str),fp);
 				truncsp(str);
-				safe_snprintf(title,LEN_TITLE,"%s",str);
+				safe_snprintf(subj,LEN_TITLE,"%s",str);
 				fclose(fp);
 			}
 		}
@@ -544,7 +544,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 				// remove(msgtmp);
 			} 
 		}
-		if(!(msgeditor((char *)buf,mode&WM_NOTOP ? nulstr : top,title))) {
+		if(!(msgeditor((char *)buf,mode&WM_NOTOP ? nulstr : top, subj))) {
 			free(buf);	/* Assertion here Dec-17-2003, think I fixed in block above (rev 1.52) */
 			return(false); 
 		} 
@@ -552,6 +552,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 
 	now=time(NULL);
 	bputs(text[Saving]);
+	removecase(fname);
 	if((stream=fnopen(NULL,fname,O_WRONLY|O_CREAT|O_TRUNC))==NULL) {
 		errormsg(WHERE,ERR_OPEN,fname,O_WRONLY|O_CREAT|O_TRUNC);
 		free(buf);
@@ -559,13 +560,13 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *title, long mode
 	}
 	l=process_edited_text(buf,stream,mode,&lines,cfg.level_linespermsg[useron_level]);
 
-	if(!(mode&WM_EXTDESC)) {
+	if(!(mode&(WM_EXTDESC|WM_ANON))) {
 		/* Signature file */
 		if((subnum==INVALID_SUB && cfg.msg_misc&MM_EMAILSIG)
 			|| (subnum!=INVALID_SUB && !(cfg.sub[subnum]->misc&SUB_NOUSERSIG))) {
 			SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,useron.number);
 			FILE* sig;
-			if(fexist(str) && (sig=fopen(str,"r"))!=NULL) {
+			if(fexistcase(str) && (sig=fopen(str,"r"))!=NULL) {
 				while(!feof(sig)) {
 					if(!fgets(str,sizeof(str),sig))
 						break;
@@ -609,32 +610,27 @@ void quotestr(char *str)
 
 /****************************************************************************/
 /****************************************************************************/
-void sbbs_t::editor_inf(int xeditnum, const char *dest, const char *title, long mode
+void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const char *subj, long mode
 	,uint subnum, const char* tagfile)
 {
 	char	path[MAX_PATH+1];
-	char	fname[32];
 	FILE*	fp;
 
 	xeditnum--;
 
 	if(cfg.xedit[xeditnum]->misc&QUICKBBS) {
-		strcpy(fname,"MSGINF");
-		if(cfg.xedit[xeditnum]->misc&XTRN_LWRCASE)
-			strlwr(fname);
-		SAFEPRINTF2(path,"%s%s",cfg.node_dir,fname);
+		SAFEPRINTF2(path,"%s%s",cfg.node_dir, cfg.xedit[xeditnum]->misc&XTRN_LWRCASE ? "msginf":"MSGINF");
+		removecase(path);
 		if((fp=fopen(path,"wb"))==NULL) {
 			errormsg(WHERE,ERR_OPEN,path,O_WRONLY|O_CREAT|O_TRUNC);
 			return; 
 		}
 		fprintf(fp,"%s\r\n%s\r\n%s\r\n%u\r\n%s\r\n%s\r\n"
-			,(subnum!=INVALID_SUB && cfg.sub[subnum]->misc&SUB_NAME) ? useron.name
-				: useron.alias
-				,dest,title,1
-				,mode&WM_NETMAIL ? "NetMail"
+			,mode&WM_ANON ? text[Anonymous]:from,to,subj,1
+			,mode&WM_NETMAIL ? "NetMail"
 				:mode&WM_EMAIL ? "Electronic Mail"
-				:subnum==INVALID_SUB ? nulstr
-				:cfg.sub[subnum]->sname
+					:subnum==INVALID_SUB ? nulstr
+						:cfg.sub[subnum]->sname
 			,mode&WM_PRIVATE ? "YES":"NO");
 		/* the 7th line (the tag-line file) is a Synchronet extension, for SlyEdit */
 		if((mode&WM_EXTDESC)==0 && tagfile!=NULL)
@@ -643,21 +639,21 @@ void sbbs_t::editor_inf(int xeditnum, const char *dest, const char *title, long 
 		fclose(fp);
 	}
 	else {
-		SAFEPRINTF(path,"%sRESULT.ED",cfg.node_dir);
+		SAFEPRINTF(path,"%sresult.ed",cfg.node_dir);
 		removecase(path);
-		strcpy(fname,"EDITOR.INF");
-		if(cfg.xedit[xeditnum]->misc&XTRN_LWRCASE)
-			strlwr(fname);
-		SAFEPRINTF2(path,"%s%s",cfg.node_dir,fname);
+		SAFEPRINTF2(path,"%s%s",cfg.node_dir,cfg.xedit[xeditnum]->misc&XTRN_LWRCASE ? "editor.inf" : "EDITOR.INF");
+		removecase(path);
 		if((fp=fopen(path,"wb"))==NULL) {
 			errormsg(WHERE,ERR_OPEN,path,O_WRONLY|O_CREAT|O_TRUNC);
 			return; 
 		}
 		fprintf(fp,"%s\r\n%s\r\n%u\r\n%s\r\n%s\r\n%u\r\n"
-			,title,dest,useron.number
-			,(subnum!=INVALID_SUB && cfg.sub[subnum]->misc&SUB_NAME) ? useron.name
-			: useron.alias
-			,useron.name,useron.level);
+			,subj
+			,to
+			,useron.number
+			,mode&WM_ANON ? text[Anonymous]:from
+			,useron.name
+			,useron.level);
 		fclose(fp);
 	}
 }
@@ -1051,7 +1047,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 				fcopy(path, msgtmp);
 		}
 
-		editor_inf(useron_xedit,fname,nulstr,0,INVALID_SUB,/* tagfile: */NULL);
+		editor_inf(useron_xedit,/* to: */fname,/* from: */nulstr,/* subj: */nulstr,/* mode: */0,INVALID_SUB,/* tagfile: */NULL);
 		if(cfg.xedit[useron_xedit-1]->misc&XTRN_NATIVE)
 			mode|=EX_NATIVE;
 		if(cfg.xedit[useron_xedit-1]->misc&XTRN_SH)
@@ -1340,7 +1336,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 	removecase(msgtmp);
-	msgtotxt(msg,msgtmp,0,1);
+	msgtotxt(msg,msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
 	if(!editfile(msgtmp, /* msg: */true))
 		return;
 	length=(long)flength(msgtmp);
