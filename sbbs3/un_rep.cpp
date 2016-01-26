@@ -1,12 +1,14 @@
+/* un_rep.cpp */
+
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.59 2016/11/18 00:31:39 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.56 2015/12/06 11:18:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -158,7 +160,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 	fread(block,QWK_BLOCK_LEN,1,rep);
 	if(strnicmp((char *)block,cfg.sys_id,strlen(cfg.sys_id))) {
-		iniFreeStringList(headers);
+		if(headers!=NULL)
+			iniFreeStringList(headers);
 		fclose(rep);
 		bputs(text[QWKReplyNotReceived]);
 		logline(LOG_NOTICE,"U!",AttemptedToUploadREPpacket);
@@ -536,20 +539,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 	update_qwkroute(NULL);			/* Write ROUTE.DAT */
 
-	smb_freemsgmem(&msg);
-
 	iniFreeStringList(headers);
-
-	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
-	if(fexistcase(fname)) {
-		if(useron.rest&FLAG('V'))
-			bputs(text[R_Voting]);
-		else {
-			set_qwk_flag(QWK_VOTING);
-			qwk_voting(fname, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias);
-		}
-		remove(fname);
-	}
 
 	strListFree(&ip_can);
 	strListFree(&host_can);
@@ -563,7 +553,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	/* QWKE support */
 	SAFEPRINTF(fname,"%sTODOOR.EXT",cfg.temp_dir);
 	if(fexistcase(fname)) {
-		set_qwk_flag(QWK_EXT);
+		useron.qwk|=QWK_EXT;
 		FILE* fp=fopen(fname,"r");
 		char* p;
 		if(fp!=NULL) {
