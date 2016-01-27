@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.26 2013/08/20 07:36:04 deuce Exp $ */
+/* $Id: modem.c,v 1.28 2015/05/01 04:05:49 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -78,8 +78,6 @@ void modem_output_thread(void *args)
 				sent+=ret;
 				if(ret==COM_ERROR)
 					break;
-			}
-			if(ret==COM_ERROR) {
 			}
 		}
 		else
@@ -315,6 +313,7 @@ int serial_close(void)
 int modem_close(void)
 {
 	time_t start;
+	char garbage[1024];
 
 	conn_api.terminate=1;
 
@@ -335,8 +334,10 @@ int modem_close(void)
 	}
 
 CLOSEIT:
-	while(conn_api.input_thread_running || conn_api.output_thread_running)
+	while(conn_api.input_thread_running || conn_api.output_thread_running) {
+		conn_recv_upto(garbage, sizeof(garbage), 0);
 		SLEEP(1);
+	}
 	comClose(com);
 
 	destroy_conn_buf(&conn_inbuf);
