@@ -1,7 +1,8 @@
+/* smbutil.c */
+
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.115 2017/11/16 09:41:04 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: smbutil.c,v 1.108 2015/12/06 11:13:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,6 +70,8 @@ const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
 #include "conwrap.h"	/* getch */
 #include "filewrap.h"
 #include "smblib.h"
+#include "crc16.h"
+#include "crc32.h"
 #include "gen_defs.h"	/* MAX_PATH */
 
 #ifdef __WATCOMC__
@@ -163,32 +166,6 @@ ulong lf_expand(uchar* inbuf, uchar* outbuf)
 	}
 	outbuf[j]=0;
 	return(j);
-}
-
-char* gen_msgid(smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen)
-{
-	char* host = getenv(
-#if defined(_WIN32)
-		"COMPUTERNAME"
-#else
-		"HOSTNAME"
-#endif
-	);
-	if(host == NULL)
-		host = getenv(
-#if defined(_WIN32)
-		"USERNAME"
-#else
-		"USER"
-#endif
-	);
-	safe_snprintf(msgid, maxlen
-		,"<%08lX.%lu.%s@%s>"
-		,msg->hdr.when_imported.time
-		,smb->status.last_msg + 1
-		,getfname(smb->file)
-		,host);
-	return msgid;
 }
 
 /****************************************************************************/
@@ -350,8 +327,6 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 			,beep,FIDOPID,i,smb.last_error);
 		bail(1); 
 	}
-
-	smb_hfield_str(&msg, RFC822MSGID, gen_msgid(&smb, &msg, str, sizeof(str)-1));
 
 	if(mode&NOCRC || smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
@@ -557,14 +532,10 @@ void dumpindex(ulong start, ulong count)
 	while(l<count) {
 		if(!fread(&idx,1,sizeof(idx),smb.sid_fp))
 			break;
-		printf("%10"PRIu32"  ", idx.number);
-		if(idx.attr&MSG_VOTE && !(idx.attr&MSG_POLL))
-			printf("V  %04hX  %-10"PRIu32, idx.votes,idx.remsg);
-		else
-			printf("%c  %04hX  %04hX  %04X"
-				,(idx.attr&MSG_POLL_VOTE_MASK) == MSG_POLL_CLOSURE ? 'C' : (idx.attr&MSG_POLL ? 'P':'M')
-				,idx.from, idx.to, idx.subj);
-		printf("  %04X  %06X  %s\n", idx.attr, idx.offset, my_timestr(idx.time));
+
+		printf("%4"PRIu32" %04hX %04hX %04Xh %04Xh %06X %s\n"
+			,idx.number,idx.from,idx.to,idx.subj,idx.attr
+			,idx.offset,my_timestr(idx.time));
 		l++; 
 	}
 }
@@ -679,7 +650,7 @@ void maint(void)
 			,beep,i,smb.last_error);
 		return; 
 	}
-	if((smb.status.max_msgs || smb.status.max_crcs) && smb_open_hash(&smb) == SMB_SUCCESS)
+	if(smb_open_hash(&smb) == SMB_SUCCESS)
 	{
 		ulong max_hashes=0;
 
@@ -881,7 +852,7 @@ typedef struct {
 void packmsgs(ulong packable)
 {
 	uchar	buf[SDT_BLOCK_LEN],ch;
-	char	fname[MAX_PATH+1],tmpfname[MAX_PATH+1];
+	char	str[128],fname[128],tmpfname[128];
 	int i,size;
 	ulong l,m,n,datoffsets=0,length,total;
 	FILE *tmp_sdt,*tmp_shd,*tmp_sid;
@@ -1095,7 +1066,7 @@ void packmsgs(ulong packable)
 		if(!fread(&msg.idx,1,sizeof(idxrec_t),smb.sid_fp))
 			break;
 		if(msg.idx.attr&MSG_DELETE) {
-			printf("\nDeleted index %lu: msg number %lu\n", l,(ulong) msg.idx.number);
+			printf("\nDeleted index.\n");
 			continue; 
 		}
 		i=smb_lockmsghdr(&smb,&msg);
@@ -1174,7 +1145,28 @@ void packmsgs(ulong packable)
 			msg.idx.offset=ftell(tmp_shd);
 		else
 			msg.idx.offset=smb_fallochdr(&smb,length)+smb.status.header_offset;
-		smb_init_idx(&smb, &msg);
+		msg.idx.number=msg.hdr.number;
+		msg.idx.attr=msg.hdr.attr;
+		msg.idx.time=msg.hdr.when_imported.time;
+		msg.idx.subj=smb_subject_crc(msg.subj);
+		if(smb.status.attr&SMB_EMAIL) {
+			if(msg.to_ext)
+				msg.idx.to=atoi(msg.to_ext);
+			else
+				msg.idx.to=0;
+			if(msg.from_ext)
+				msg.idx.from=atoi(msg.from_ext);
+			else
+				msg.idx.from=0; 
+		}
+		else {
+			SAFECOPY(str,msg.to);
+			strlwr(str);
+			msg.idx.to=crc16(str,0);
+			SAFECOPY(str,msg.from);
+			strlwr(str);
+			msg.idx.from=crc16(str,0); 
+		}
 		fwrite(&msg.idx,1,sizeof(idxrec_t),tmp_sid);
 
 		/* Write the new header entry */
@@ -1320,33 +1312,6 @@ void delmsgs(void)
 	printf("\nDone.\n\n");
 }
 
-int setmsgattr(smb_t* smb, ulong number, uint16_t attr)
-{
-	int i;
-	smbmsg_t msg;
-	ZERO_VAR(msg);
-
-	if((i = smb_locksmbhdr(smb) != SMB_SUCCESS))
-		return i;
-
-	msg.hdr.number=number;
-	do {
-		if((i=smb_getmsgidx(smb, &msg))!=SMB_SUCCESS)				 /* Message is deleted */
-			break;
-		if((i=smb_lockmsghdr(smb, &msg))!=SMB_SUCCESS)
-			break;
-		if((i=smb_getmsghdr(smb, &msg))!=SMB_SUCCESS)
-			break;
-		msg.hdr.attr = attr;
-		i=smb_putmsg(smb, &msg);
-	} while(0);
-
-	smb_freemsgmem(&msg);
-	smb_unlockmsghdr(smb, &msg);
-	smb_unlocksmbhdr(smb);
-
-	return i;
-}
 /****************************************************************************/
 /* Read messages in message base											*/
 /****************************************************************************/
@@ -1375,13 +1340,11 @@ void readmsgs(ulong start)
 			if(i) {
 				fprintf(errfp,"\n%s!smb_getmsghdr returned %d: %s\n"
 					,beep,i,smb.last_error);
-				smb_unlockmsghdr(&smb, &msg);
 				break; 
 			}
 
 			printf("\n%"PRIu32" (%d)\n",msg.hdr.number,msg.offset+1);
 			printf("Subj : %s\n",msg.subj);
-			printf("Attr : %04hX\n", msg.hdr.attr);
 			printf("To   : %s",msg.to);
 			if(msg.to_net.type)
 				printf(" (%s)",smb_netaddr(&msg.to_net));
@@ -1417,7 +1380,6 @@ void readmsgs(ulong start)
 					   "(L)ist messages\n"
 					   "(T)en more titles\n"
 					   "(V)iew message headers\n"
-					   "(D)elete message\n"
 					   "(Q)uit\n"
 					   "(+/-) Forward/Backward\n"
 					   "\n");
@@ -1450,10 +1412,6 @@ void readmsgs(ulong start)
 				printf("View message headers\n");
 				viewmsgs(1,-1, FALSE);
 				domsg=0;
-				break;
-			case 'D':
-				printf("Deleting message\n");
-				setmsgattr(&smb, msg.hdr.number, msg.hdr.attr^MSG_DELETE);
 				break;
 			case CR:
 			case '+':
@@ -1533,7 +1491,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.115 $", "%*s %s", revision);
+	sscanf("$Revision: 1.108 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
