@@ -2,13 +2,13 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.57 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: scfgsave.c,v 1.61 2015/11/27 11:17:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -351,8 +351,10 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->new_misc,stream);
 	put_int(cfg->new_prot,stream);
 	put_int(cfg->new_install,stream);
+	put_int(cfg->new_msgscan_init, stream);
+	put_int(cfg->guest_msgscan_init, stream);
 	n=0;
-	for(i=0;i<7;i++)
+	for(i=0;i<5;i++)
 		put_int(n,stream);
 
 	put_int(cfg->expired_level,stream);
@@ -373,10 +375,13 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->ctrlkey_passthru,stream);
 	put_str(cfg->mods_dir,stream);
 	put_str(cfg->logs_dir,stream);
+	put_str(cfg->readmail_mod, stream);
+	put_str(cfg->scanposts_mod, stream);
+	put_str(cfg->scansubs_mod, stream);
 
 	put_int(c,stream);
 	n=0;
-	for(i=0;i<158;i++)
+	for(i=0;i<62;i++)
 		put_int(n,stream);
 	n=0xffff;
 	for(i=0;i<254;i++)
@@ -605,7 +610,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	put_str(cfg->echomail_sem,stream);
 	backslash(cfg->netmail_dir);
 	put_str(cfg->netmail_dir,stream);
-	put_str(cfg->echomail_dir,stream);
+	put_str(cfg->echomail_dir,stream);	/* not used */
 	backslash(cfg->fidofile_dir);
 	put_str(cfg->fidofile_dir,stream);
 	put_int(cfg->netmail_misc,stream);
@@ -614,6 +619,8 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	n=0;
 	for(i=0;i<28;i++)
 		put_int(n,stream);
+	md(cfg->netmail_dir);
+	md(cfg->fidofile_dir);
 
 	/* QWKnet Config */
 

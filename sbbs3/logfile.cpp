@@ -2,7 +2,7 @@
 
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.55 2014/12/11 11:05:22 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.58 2015/08/22 08:43:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,12 +37,13 @@
 
 #include "sbbs.h"
 
-extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text, char* host, SOCKADDR_IN* addr)
+extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, const char* prot, const char* user, const char* text, const char* host, union xp_sockaddr* addr)
 {
 	char	hdr[1024];
 	char	tstr[64];
 	char	fname[MAX_PATH+1];
 	int		file;
+	char	ip[INET6_ADDRSTRLEN];
 	time32_t now=time32(NULL);
 
 	sprintf(fname,"%shack.log",cfg->logs_dir);
@@ -50,13 +51,14 @@ extern "C" BOOL DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text,
 	if((file=sopen(fname,O_CREAT|O_RDWR|O_BINARY|O_APPEND,SH_DENYWR,DEFFILEMODE))==-1)
 		return(FALSE);
 
+	inet_addrtop(addr, ip, sizeof(ip));
 	sprintf(hdr,"SUSPECTED %s HACK ATTEMPT for user '%s' on %.24s\r\nUsing port %u at %s [%s]\r\nDetails: "
 		,prot
 		,user
 		,timestr(cfg,now,tstr)
-		,addr->sin_port
+		,inet_addrport(addr)
 		,host
-		,inet_ntoa(addr->sin_addr)
+		,ip
 		);
 	write(file,hdr,strlen(hdr));
 	write(file,text,strlen(text));
@@ -145,14 +147,14 @@ void sbbs_t::log(char *str)
 {
 	if(logfile_fp==NULL || online==ON_LOCAL) return;
 	if(logcol>=78 || (78-logcol)<strlen(str)) {
-		fprintf(logfile_fp,"\r\n");
+		fputs("\r\n",logfile_fp);
 		logcol=1; 
 	}
 	if(logcol==1) {
-		fprintf(logfile_fp,"   ");
+		fputs("   ",logfile_fp);
 		logcol=4; 
 	}
-	fprintf(logfile_fp,str);
+	fputs(str,logfile_fp);
 	if(*lastchar(str)==LF) {
 		logcol=1;
 		fflush(logfile_fp);
