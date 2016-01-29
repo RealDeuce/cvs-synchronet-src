@@ -1,12 +1,14 @@
+/* js_socket.c */
+
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.182 2018/01/09 06:48:26 deuce Exp $ */
+/* $Id: js_socket.c,v 1.178 2016/01/21 09:52:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,7 +45,7 @@
 
 #ifdef JAVASCRIPT
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val)
 {
@@ -75,26 +77,21 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 	return ret;
 }
 
-static void do_CryptFlush(js_socket_private_t *p)
+static void do_CryptFlush(const CRYPT_CONTEXT session)
 {
-	int ret;
+	int ret=cryptFlushData(session);
 	char	*estr;
 
-	if (p->unflushed) {
-		ret = cryptFlushData(p->session);
+	ret = cryptFlushData(session);
 
-		if(ret==CRYPT_OK) {
-			p->unflushed = 0;
+	if(ret!=CRYPT_OK) {
+		estr = get_crypt_error(session);
+		if (estr) {
+			lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
+			free_crypt_attrstr(estr);
 		}
-		else {
-			estr = get_crypt_error(p->session);
-			if (estr) {
-				lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
-				free_crypt_attrstr(estr);
-			}
-			else
-				lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
-		}
+		else
+			lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
 	}
 }
 
@@ -153,24 +150,25 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 		return sendsocket(p->sock, msg, len);
 	do {
 		if((ret=cryptPushData(p->session, msg, len, &copied))==CRYPT_OK) {
-			p->unflushed += copied;
-			if(flush) do_CryptFlush(p);
-			if(p->nonblocking)
+			if(p->nonblocking) {
+				if(flush) do_CryptFlush(p->session);
 				return copied;
+			}
 			total += copied;
-			if(total >= (ptrdiff_t)len)
+			if(total >= (ptrdiff_t)len) {
+				if(flush) do_CryptFlush(p->session);
 				return total;
-			do_CryptFlush(p);
+			}
 			len -= copied;
 			msg=((uint8_t *)msg) + copied;
 		}
 		else {
 			lprintf(LOG_WARNING,"cryptPushData() returned %d", ret);
-			if(flush) do_CryptFlush(p);
+			if(flush) do_CryptFlush(p->session);
 			return total;
 		}
 	} while(len);
-	if(flush) do_CryptFlush(p);
+	if(flush) do_CryptFlush(p->session);
 	return total; // shouldn't happen...
 }
 
@@ -205,7 +203,7 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 	while(total<count) {
 		rd=read(file,buf,sizeof(buf));
 		if(rd==-1) {
-			do_CryptFlush(p);
+			do_CryptFlush(p->session);
 			return(-1);
 		}
 		if(rd==0)
@@ -219,11 +217,11 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 				SLEEP(1);
 				continue;
 			}
-			do_CryptFlush(p);
+			do_CryptFlush(p->session);
 			return(wr);
 		}
 		if(i!=rd) {
-			do_CryptFlush(p);
+			do_CryptFlush(p->session);
 			return(-1);
 		}
 		total+=rd;
@@ -232,7 +230,7 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 	if(offset!=NULL)
 		(*offset)+=total;
 
-	do_CryptFlush(p);
+	do_CryptFlush(p->session);
 	return(total);
 }
 
@@ -248,6 +246,7 @@ static void dbprintf(BOOL error, js_socket_private_t* p, char* fmt, ...)
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
+	
 	lprintf(LOG_DEBUG,"%04d Socket %s%s",p->sock,error ? "ERROR: ":"",sbuf);
 }
 
@@ -454,7 +453,7 @@ js_bind(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc)
 		port = js_port(cx,argv[0],p->type);
-	if(argc > 1 && argv[1] != JSVAL_VOID) {
+	if(argc > 1) {
 		JSVALUE_TO_ASTRING(cx, argv[1], cstr, INET6_ADDRSTRLEN, NULL);
 	}
 
@@ -467,8 +466,7 @@ js_bind(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if((ret=getaddrinfo(cstr, portstr, &hints, &res)) != 0) {
 		JS_RESUMEREQUEST(cx,rc);
-		dbprintf(TRUE, p, "getaddrinfo (%s %s) failed with error %d", cstr, portstr, ret);
-		p->last_error=ERROR_VALUE;
+		dbprintf(TRUE, p, "getaddrinfo failed with error %d",ret);
 		return(JS_TRUE);
 	}
 	for(tres=res; tres; tres=tres->ai_next) {
@@ -684,7 +682,6 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 	JSString*	str;
 	js_socket_private_t*	p;
 	jsrefcount	rc;
-	int		ret;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -702,10 +699,9 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_TRUE;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	ret = js_socket_sendsocket(p,cp,len,TRUE);
-	if(ret >= 0) {
-		dbprintf(FALSE, p, "sent %d of %u bytes",ret,len);
-		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(ret));
+	if(js_socket_sendsocket(p,cp,len,TRUE)==len) {
+		dbprintf(FALSE, p, "sent %u bytes",len);
+		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes failed",len);
@@ -1910,9 +1906,8 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	,310
 	},
 	{"write",		js_send,		1,	JSTYPE_ALIAS },
-	{"send",		js_send,		1,	JSTYPE_NUMBER,	JSDOCSTR("data")
-	,JSDOCSTR("send a string (AKA write).  Returns the number of bytes sent or null if an error occured.  "
-	"Versions before 3.17 returned a bool true if all bytes were sent and false otherwise.")
+	{"send",		js_send,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("data")
+	,JSDOCSTR("send a string (AKA write)")
 	,310
 	},
 	{"writeln",		js_sendline,		1,	JSTYPE_ALIAS },
@@ -2075,7 +2070,6 @@ JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock,
 	p->external = TRUE;
 	p->network_byte_order = TRUE;
 	p->session=session;
-	p->unflushed = 0;
 
 	if (p->sock != INVALID_SOCKET) {
 		len=sizeof(p->remote_addr);
@@ -2154,7 +2148,6 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	p->type = type;
 	p->network_byte_order = TRUE;
 	p->session=-1;
-	p->unflushed = 0;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
@@ -2239,7 +2232,6 @@ JSObject* DLLCALL js_CreateSocketObjectFromSet(JSContext* cx, JSObject* parent, 
 	p->external = TRUE;
 	p->network_byte_order = TRUE;
 	p->session=-1;
-	p->unflushed = 0;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
