@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix node activity monitor */
 
-/* $Id$ */
+/* $Id: umonitor.c,v 1.75 2016/02/03 03:40:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -804,7 +804,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision$", "%*s %s", revision);
+	sscanf("$Revision: 1.75 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -1024,7 +1024,7 @@ int main(int argc, char** argv)  {
 			                "`------------`\n\n"
 							"`Run SCFG              : `Run the Synchronet Configuration Utility.\n"
 							"`Run User Editor       : `Call up the User Editor.\n"
-							"`Run SynchTERM         : `Run SyncTERM for RLogin.  SyncTERM must be\n"
+							"`Run SyncTERM          : `Run SyncTERM for RLogin.  SyncTERM must be\n"
 							"                        in the exec directory.\n"
 							"`View logs             : `View the various system logs.\n"
 							"`Force QWK Net callout : `Force a callout to QWK Net Hub.  Select which\n"
