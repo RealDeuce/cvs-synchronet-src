@@ -1,5 +1,16 @@
+Version 1.1
+-----------
+
 Version 1.0
 -----------
+New ability to use the blink attribute to select alternate font
+Fixes for user font management
+Help text cleanup
+Handle the close window button gracefully
+Allow left/right to switch dir/file columns in file picker
+Allow case-only changes to directory entries
+Translate copies from non-ASCII screens screen modes to ASCII
+Add copy/paste support back into OS X builds using Pasteboard
 Don't conditionally compile shell support, just treat it as disabled
 Support Commodore and Atari fonts when not using their native emulation
 Properly save/restore the RLogin Reversed connection mode
@@ -14,6 +25,9 @@ Windows console mode resize fixes
 SSH stability fixes
 Paginate help output
 Statically link Cryptlib
+Varous crashes at startup and during resize fixed
+Don't add "SyncTERM" to the end of the Windows Download path
+Fix NumLock behaviour on Windows
 
 Version 0.9.5
 -------------
