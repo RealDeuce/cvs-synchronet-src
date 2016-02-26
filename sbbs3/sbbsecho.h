@@ -2,13 +2,13 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 1.28 2014/04/17 07:08:02 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 1.33 2016/01/26 09:05:02 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
 #define SBBSECHO_VERSION_MAJOR		2
-#define SBBSECHO_VERSION_MINOR		27
+#define SBBSECHO_VERSION_MINOR		33
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -82,21 +82,23 @@
 #define SEND_NOTIFY 	(1<<4)			/* Send Notify Lists */
 
 
-#define LOG_AREAFIX 	(1L<<0) 		/* Log areafix messages */
-#define LOG_IMPORTED	(1L<<1) 		/* Log imported netmail messages */
-#define LOG_PACKETS 	(1L<<2) 		/* Log imported packet names/types */
-#define LOG_SECURE		(1L<<3) 		/* Log security violations */
-#define LOG_GRUNGED 	(1L<<4) 		/* Log grunged messages */
-#define LOG_PRIVATE 	(1L<<5) 		/* Log disallowed private msgs */
-#define LOG_AREA_TOTALS (1L<<6) 		/* Log totals for each area */
-#define LOG_TOTALS		(1L<<7) 		/* Log over-all totals */
-#define LOG_PACKING 	(1L<<8) 		/* Log packing of out-bound netmail */
-#define LOG_ROUTING 	(1L<<9) 		/* Log routing of out-bound netmail */
+#define LOG_AREAFIX 	(1<<0) 		/* Log areafix messages */
+#define LOG_IMPORTED	(1<<1) 		/* Log imported netmail messages */
+#define LOG_PACKETS 	(1<<2) 		/* Log imported packet names/types */
+#define LOG_SECURE		(1<<3) 		/* Log security violations */
+#define LOG_GRUNGED 	(1<<4) 		/* Log grunged messages */
+#define LOG_PRIVATE 	(1<<5) 		/* Log disallowed private msgs */
+#define LOG_AREA_TOTALS (1<<6) 		/* Log totals for each area */
+#define LOG_TOTALS		(1<<7) 		/* Log over-all totals */
+#define LOG_PACKING 	(1<<8) 		/* Log packing of out-bound netmail */
+#define LOG_ROUTING 	(1<<9) 		/* Log routing of out-bound netmail */
+#define LOG_NETMAIL		(1<<10)		/* Log creation/export of netmail */
+#define LOG_BSO_FLO		(1<<11)		/* Log Binkley-Style-Outbound/FLO operations */
 
-#define LOG_DUPES		(1L<<24)		 /* Log individual dupe messages */
-#define LOG_CIRCULAR	(1L<<25)		 /* Log individual circ paths */
-#define LOG_IGNORED 	(1L<<26)		 /* Log ignored netmail */
-#define LOG_UNKNOWN 	(1L<<27)		 /* Log netmail for unknown users */
+#define LOG_DUPES		(1<<24)		/* Log individual dupe messages */
+#define LOG_CIRCULAR	(1<<25)		/* Log individual circ paths */
+#define LOG_IGNORED 	(1<<26)		/* Log ignored netmail */
+#define LOG_UNKNOWN 	(1<<27)		/* Log netmail for unknown users */
 
 #define LOG_DEFAULTS	0xffffffL		/* Low 24 bits default to ON */
 
@@ -108,56 +110,56 @@
 
 #define NOFWD			(1<<0)			/* Do not forward requests */
 
-typedef struct {                        /* Fidonet Packet Header */
-    short orignode,                     /* Origination Node of Packet */
-          destnode,                     /* Destination Node of Packet */
-          year,                         /* Year of Packet Creation e.g. 1995 */
-          month,                        /* Month of Packet Creation 0-11 */
-          day,                          /* Day of Packet Creation 1-31 */
-          hour,                         /* Hour of Packet Creation 0-23 */
-          min,                          /* Minute of Packet Creation 0-59 */
-          sec,                          /* Second of Packet Creation 0-59 */
-          baud,                         /* Max Baud Rate of Orig & Dest */
-          pkttype,                      /* Packet Type (-1 is obsolete) */
-          orignet,                      /* Origination Net of Packet */
-          destnet;                      /* Destination Net of Packet */
-    uchar prodcode,                     /* Product Code (00h is Fido) */
-          sernum,                       /* Binary Serial Number or NULL */
-          password[8];                  /* Session Password or NULL */
-    short origzone,                     /* Origination Zone of Packet or NULL */
-          destzone;                     /* Destination Zone of Packet or NULL */
-    uchar empty[20];                    /* Fill Characters */
+typedef struct {							/* Fidonet Packet Header */
+    int16_t	orignode,						/* Origination Node of Packet */
+			destnode,						/* Destination Node of Packet */
+			year,							/* Year of Packet Creation e.g. 1995 */
+			month,							/* Month of Packet Creation 0-11 */
+			day,							/* Day of Packet Creation 1-31 */
+			hour,							/* Hour of Packet Creation 0-23 */
+			min,							/* Minute of Packet Creation 0-59 */
+			sec,							/* Second of Packet Creation 0-59 */
+			baud,							/* Max Baud Rate of Orig & Dest */
+			pkttype,						/* Packet Type (-1 is obsolete) */
+			orignet,						/* Origination Net of Packet */
+			destnet;						/* Destination Net of Packet */
+    uint8_t	prodcode,						/* Product Code (00h is Fido) */
+			sernum,							/* Binary Serial Number or NULL */
+			password[8];					/* Session Password or NULL */
+    int16_t	origzone,						/* Origination Zone of Packet or NULL */
+			destzone;						/* Destination Zone of Packet or NULL */
+    uint8_t	empty[20];						/* Fill Characters */
 	} pkthdr_t;
 
-typedef struct {						/* Type 2+ Packet Header Info */
-	short auxnet,						/* Orig Net if Origin is a Point */
-		  cwcopy;						/* Must be Equal to cword */
-	uchar prodcode, 					/* Product Code */
-		  revision; 					/* Revision */
-	short cword,						/* Compatibility Word */
-		  origzone, 					/* Zone of Packet Sender or NULL */
-		  destzone, 					/* Zone of Packet Receiver or NULL */
-		  origpoint,					/* Origination Point of Packet */
-		  destpoint;					/* Destination Point of Packet */
-	uchar empty[4];
+typedef struct {							/* Type 2+ Packet Header Info */
+	int16_t	auxnet,							/* Orig Net if Origin is a Point */
+			cwcopy;							/* Must be Equal to cword */
+	uint8_t	prodcode, 						/* Product Code */
+			revision; 						/* Revision */
+	int16_t	cword,							/* Compatibility Word */
+			origzone, 						/* Zone of Packet Sender or NULL */
+			destzone, 						/* Zone of Packet Receiver or NULL */
+			origpoint,						/* Origination Point of Packet */
+			destpoint;						/* Destination Point of Packet */
+	uint8_t	empty[4];
 	} two_plus_t;
 
-typedef struct {						/* Type 2.2 Packet Header Info */
-	char origdomn[8],					/* Origination Domain */
-		  destdomn[8];					/* Destination Domain */
-	uchar	  empty[4]; 					/* Product Specific Data */
+typedef struct {							/* Type 2.2 Packet Header Info */
+	char	origdomn[8],					/* Origination Domain */
+			destdomn[8];					/* Destination Domain */
+	uint8_t	empty[4]; 						/* Product Specific Data */
 	} two_two_t;
 
 typedef struct {
-    uint  sub;                  /* Set to INVALID_SUB if pass-thru */
-	ulong tag;					/* CRC-32 of tag name */
-    char *name;                 /* Area tag name */
-    uint  uplinks;              /* Total number of uplinks for this echo */
-	uint  imported; 			/* Total messages imported this run */
-	uint  exported; 			/* Total messages exported this run */
-	uint  circular; 			/* Total circular paths detected */
-	uint  dupes;				/* Total duplicate messages detected */
-    faddr_t *uplink;            /* Each uplink */
+    uint		sub;						/* Set to INVALID_SUB if pass-thru */
+	uint32_t	tag;						/* CRC-32 of tag name */
+    char*		name;						/* Area tag name */
+    uint		uplinks;					/* Total number of uplinks for this echo */
+	uint		imported; 					/* Total messages imported this run */
+	uint		exported; 					/* Total messages exported this run */
+	uint		circular; 					/* Total circular paths detected */
+	uint		dupes;						/* Total duplicate messages detected */
+    faddr_t*	uplink;						/* Each uplink */
     } areasbbs_t;
 
 typedef struct {
@@ -171,8 +173,8 @@ typedef struct {
     } outpkt_t;
 
 typedef struct {
-	uint addrs; 				/* Total number of uplinks */
-	faddr_t *addr;				/* Each uplink */
+	uint		addrs; 			/* Total number of uplinks */
+	faddr_t *	addr;			/* Each uplink */
 	} addrlist_t;
 
 typedef struct {
@@ -184,28 +186,29 @@ typedef struct {
 	} arcdef_t;
 
 typedef struct {
-	faddr_t 	faddr				/* Fido address of this node */
-			   ,route;				/* Address to route FLO stuff through */
-	ushort		arctype 			/* De/archiver to use for this node */
-			   ,numflags			/* Number of flags defined for this node */
-			   ,pkt_type;			/* Packet type to use for outgoing PKTs */
-									/* Packet types for nodecfg_t.pkt_type value ONLY: */
-#define PKT_TWO_PLUS	0			/* Type 2+ Packet Header				*/
-#define PKT_TWO_TWO 	1			/* Type 2.2 Packet Header				*/
-#define PKT_TWO 		2			/* Old Type Packet Header				*/
+	faddr_t 	faddr			/* Fido address of this node */
+			   ,route;			/* Address to route FLO stuff through */
+#define SBBSECHO_ARCTYPE_NONE	0xffff
+	uint16_t	arctype 		/* De/archiver to use for this node */
+			   ,numflags		/* Number of flags defined for this node */
+			   ,pkt_type;		/* Packet type to use for outgoing PKTs */
+								/* Packet types for nodecfg_t.pkt_type value ONLY: */
+#define PKT_TWO_PLUS	0		/* Type 2+ Packet Header				*/
+#define PKT_TWO_TWO 	1		/* Type 2.2 Packet Header				*/
+#define PKT_TWO 		2		/* Old Type Packet Header				*/
 
-	ushort		attr;				/* Message bits to set for this node */
-	char		password[26];		/* Areafix password for this node */
-	char		pktpwd[9];			/* Packet password for this node */
-	flag_t		*flag;				/* Areafix flags for this node */
+	int16_t	attr;				/* Message bits to set for this node */
+	char		password[26];	/* Areafix password for this node */
+	char		pktpwd[9];		/* Packet password for this node */
+	flag_t		*flag;			/* Areafix flags for this node */
 	} nodecfg_t;
 
 typedef struct {
-	char		listpath[129];		/* Path to this echolist */
-	uint		numflags,misc;		/* Number of flags for this echolist */
-	flag_t		*flag;				/* Flags to access this echolist */
-	faddr_t 	forward;			/* Where to forward requests */
-	char		password[72];		/* Password to use for forwarding req's */
+	char		listpath[129];	/* Path to this echolist */
+	uint		numflags,misc;	/* Number of flags for this echolist */
+	flag_t		*flag;			/* Flags to access this echolist */
+	faddr_t 	forward;		/* Where to forward requests */
+	char		password[72];	/* Password to use for forwarding req's */
 	} echolist_t;
 
 typedef struct {
@@ -236,6 +239,7 @@ typedef struct {
 	echolist_t *listcfg;			/* Each echolist configuration */
 	areasbbs_t *area;				/* Each area configuration */
 	BOOL		check_path;			/* Enable circular path detection */
+	BOOL		fwd_circular;		/* Allow the forwrarding of circular messages to links (defaults to true, only applicable if check_path is also true) */
 	BOOL		zone_blind;			/* Pretend zones don't matter when parsing and constructing PATH and SEEN-BY lines (per Wilfred van Velzen, 2:280/464) */
 	uint16_t	zone_blind_threshold;	/* Zones below this number (e.g. 4) will be treated as the same zone when zone_blind is enabled */
 	} config_t;
