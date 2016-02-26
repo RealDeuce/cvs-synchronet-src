@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.356 2016/01/21 09:52:59 deuce Exp $ */
+/* $Id: js_global.c,v 1.357 2016/02/26 07:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2313,6 +2313,21 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 
 		if(strcmp(token,"hellip")==0) {	/* horizontal ellipsis  */
 			j+=sprintf(outbuf+j,"...");
+			continue;
+		}
+
+		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
+			outbuf[j++]='\'';	/* single quotation mark */
+			continue;
+		}
+
+		if(strcmp(token,"ldquo")==0 || strcmp(token,"rdquo")==0) {
+			outbuf[j++]='"';	/* double quotation mark */
+			continue;
+		}
+
+		if(strcmp(token,"ndash")==0 || strcmp(token,"mdash")==0) {
+			outbuf[j++]='-';	/* dash */
 			continue;
 		}
 
