@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.153 2015/02/27 10:42:08 deuce Exp $ */
+/* $Id: cterm.c,v 1.155 2015/07/08 00:56:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1408,7 +1408,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						max_row = cterm->bottom_margin - cterm->top_margin + 1;
 					col=1;
 					*p=0;
-					if(strlen(cterm->escbuf)>2) {
+					if(strlen(cterm->escbuf)>1) {	// Remember, we truncated the 'H' or 'f'
 						if((p=strtok(cterm->escbuf+1,";"))!=NULL) {
 							row=strtoul(p,NULL,10);
 							if((p=strtok(NULL,";"))!=NULL) {
@@ -1879,7 +1879,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.153 $";
+	char	*revision="$Revision: 1.155 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2815,7 +2815,7 @@ int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype
 	if(!cterm->started)
 		cterm_start(cterm);
 
-	cterm->logfile=fopen(logfile, "a");
+	cterm->logfile=fopen(logfile, "ab");
 	if(cterm->logfile==NULL)
 		return(0);
 	cterm->log=logtype;
