@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.112 2018/01/15 02:33:24 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.109 2015/11/08 04:57:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,7 +47,6 @@ enum {
 	 CON_PROP_STATUS
 	,CON_PROP_LNCNTR 
 	,CON_PROP_COLUMN
-	,CON_PROP_LASTLINELEN
 	,CON_PROP_ATTR
 	,CON_PROP_TOS
 	,CON_PROP_ROWS
@@ -95,9 +94,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_COLUMN:
 			val=sbbs->column;
-			break;
-		case CON_PROP_LASTLINELEN:
-			val=sbbs->lastlinelen;
 			break;
 		case CON_PROP_ATTR:
 			val=sbbs->curatr;
@@ -210,9 +206,6 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 		case CON_PROP_COLUMN:
 			sbbs->column=val;
 			break;
-		case CON_PROP_LASTLINELEN:
-			sbbs->lastlinelen=val;
-			break;
 		case CON_PROP_ATTR:
 			if(JSVAL_IS_STRING(*vp)) {
 				JSVALUE_TO_MSTRING(cx, *vp, sval, NULL);
@@ -309,7 +302,6 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"status"			,CON_PROP_STATUS			,CON_PROP_FLAGS	,310},
 	{	"line_counter"		,CON_PROP_LNCNTR 			,CON_PROP_FLAGS	,310},
 	{	"current_column"	,CON_PROP_COLUMN			,CON_PROP_FLAGS ,315},
-	{	"last_line_length"	,CON_PROP_LASTLINELEN		,CON_PROP_FLAGS	,317},
 	{	"attributes"		,CON_PROP_ATTR				,CON_PROP_FLAGS	,310},
 	{	"top_of_screen"		,CON_PROP_TOS				,CON_PROP_FLAGS	,310},
 	{	"screen_rows"		,CON_PROP_ROWS				,CON_PROP_FLAGS	,310},
@@ -336,15 +328,14 @@ static jsSyncPropertySpec js_console_properties[] = {
 
 #ifdef BUILD_JSDOCS
 static char* con_prop_desc[] = {
-	 "status bit-field (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
+	 "status bitfield (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current 0-based line counter (used for automatic screen pause)"
 	,"current 0-based column counter (used to auto-increment <i>line_counter</i> when screen wraps)"
-	,"length of last line sent to terminal (before a carriage-return or line-wrap)"
 	,"current display attributes (set with number or string value)"
 	,"set to <i>true</i> if the terminal cursor is already at the top of the screen"
 	,"number of remote terminal screen rows (in lines)"
 	,"number of remote terminal screen columns (in character cells)"
-	,"bit-field of automatically detected terminal settings "
+	,"bitfield of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"terminal type description (e.g. 'ANSI')"
 	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
@@ -353,11 +344,11 @@ static char* con_prop_desc[] = {
 	,"number of low time-left (5 or fewer minutes remaining) warnings displayed to user"
 	,"input/output has been aborted"
 	,"remote output can be asynchronously aborted with Ctrl-C"
-	,"current Telnet mode bit-field (see <tt>TELNET_MODE_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
+	,"current Telnet mode bitfield (see <tt>TELNET_MODE_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"word-wrap buffer (used by getstr) - <small>READ ONLY</small>"
 	,"current yes/no question (set by yesno and noyes)"
 	,"cursor position offset for use with <tt>getstr(K_USEOFFSET)</tt>"
-	,"control key pass-through bit-mask, set bits represent control key combinations "
+	,"control key pass-through bitmask, set bits represent control key combinations "
 		"<i>not</i> handled by <tt>inkey()</tt> method "
 		"This may optionally be specified as a string of characters. "
 		"The format of this string is [+-][@-_]. If neither plus nor minus is "
@@ -1742,8 +1733,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("get a string based on template")
 	,310
 	},		
-	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("keys")
-	,JSDOCSTR("put a data (e.g. a string of characters) in the keyboard input buffer")
+	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("")
+	,JSDOCSTR("put a string in the keyboard buffer")
 	,310
 	},		
 	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
@@ -1858,8 +1849,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_gotoxy",		js_gotoxy,			1, JSTYPE_ALIAS },
 	{"gotoxy",			js_gotoxy,			1, JSTYPE_VOID,		JSDOCSTR("[x,y] or [object { x,y }]")
-	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI, 1-based values), "
-	"arguments can be separate x and y coordinates or an object with x and y properties "
+	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI), "
+	"arguments can be separate x and y cooridinates or an object with x and y properites "
 	"(like that returned from <tt>console.getxy()</tt>)")
 	,311
 	},
