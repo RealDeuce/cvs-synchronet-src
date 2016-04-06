@@ -3,15 +3,16 @@
 
 #include <stddef.h>
 
-void OSX_copytext(const char *text)
+void OSX_copytext(const char *text, size_t len)
 {
-	NSString *cp = [NSString stringWithCString:text encoding:NSUTF8StringEncoding];
+	NSString *cp = [[NSString alloc] initWithBytes:text length:len encoding:CFStringConvertEncodingToNSStringEncoding(CFStringConvertWindowsCodepageToEncoding(437))];
 	if (cp != nil) {
 		NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 		[pasteboard clearContents];
 		NSArray *copiedObjects = [NSArray arrayWithObject:cp];
 		[pasteboard writeObjects:copiedObjects];
 	}
+	[cp release];
 }
 
 char *OSX_getcliptext(void)
@@ -24,7 +25,7 @@ char *OSX_getcliptext(void)
 		NSArray *objectsToPaste = [pasteboard readObjectsForClasses:classArray options:options];
 		NSString *ct = [objectsToPaste objectAtIndex:0];
 		if (ct != nil) {
-			const char *ptr = [ct cStringUsingEncoding:NSASCIIStringEncoding];
+			const char *ptr = [ct cStringUsingEncoding:CFStringConvertEncodingToNSStringEncoding(CFStringConvertWindowsCodepageToEncoding(437))];
 			if (ptr)
 				return strdup(ptr);
 		}
