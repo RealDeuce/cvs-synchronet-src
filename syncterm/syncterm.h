@@ -57,6 +57,8 @@ struct syncterm_settings {
 	char	TERM[INI_MAX_VALUE_LEN+1];
 	char	list_path[MAX_PATH+1];
 	int		scaling_factor;
+	int		xfer_failure_keypress_timeout;	/* wait for user acknowledgement via keypress, in seconds */
+	int		xfer_success_keypress_timeout;	/* wait for user acknowledgement via keypress, in seconds */
 };
 
 extern char *inpath;
@@ -66,17 +68,20 @@ extern unsigned int   scrollback_lines;
 extern unsigned int  scrollback_mode;
 extern unsigned int  scrollback_cols;
 extern struct syncterm_settings settings;
-void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults);
+extern BOOL quitting;
 extern int default_font;
 extern char *font_names[];
 extern int safe_mode;
-char *get_syncterm_filename(char *fn, int fnlen, int type, int shared);
-void load_settings(struct syncterm_settings *set);
 extern char *output_types[];
 extern int output_map[];
 extern char *output_descrs[];
 extern char *output_enum[];
+
+void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults);
+char *get_syncterm_filename(char *fn, int fnlen, int type, int shared);
+void load_settings(struct syncterm_settings *set);
 int ciolib_to_screen(int screen);
 int screen_to_ciolib(int ciolib);
+BOOL check_exit(BOOL force);
 
 #endif
