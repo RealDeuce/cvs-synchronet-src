@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.0 2016/04/11 11:22:40 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.1 2016/04/11 11:40:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -491,7 +491,7 @@ int main(int argc, char **argv)
 							case 1:
 	uifc.helpbuf=
 	"~ Comment ~\r\n\r\n"
-	"This is an optional comment for the node (e.g. the sysop's name).\r\n";
+	"This is an optional comment for the node (e.g. the sysop's name).\r\n"
 	"This is used for informational purposes only.\r\n";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Comment"

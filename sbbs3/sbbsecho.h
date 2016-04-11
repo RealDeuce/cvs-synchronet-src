@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.0 2016/04/11 11:22:40 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.1 2016/04/11 11:40:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,8 +169,8 @@ typedef struct {
 	ulong		max_echomail_age;
 } sbbsecho_cfg_t;
 
-char* pktTypeStringList[];
-char* mailStatusStringList[];
+char* pktTypeStringList[4];
+char* mailStatusStringList[4];
 
 /***********************/
 /* Function prototypes */
