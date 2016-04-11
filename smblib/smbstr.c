@@ -1,6 +1,8 @@
+/* smbstr.c */
+
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.26 2016/11/16 10:53:54 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.24 2015/12/07 02:33:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,8 +110,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case SMTPRECEIVED:		return("Received");				/* RFC-compliant */
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
-
-		case SMB_POLL_ANSWER:	return("PollAnswer");
 
 		case UNKNOWN:			return("UNKNOWN");
 		case UNKNOWNASCII:		return("UNKNOWNASCII");
@@ -269,8 +269,7 @@ char* SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* str)
 /****************************************************************************/
 fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 {
-	char*		p;
-	const char*	terminator;
+	char *p;
 	fidoaddr_t addr;
 	fidoaddr_t tmp_addr={1,1,1,0};	/* Default system address: 1:1/1.0 */
 
@@ -278,9 +277,7 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 		sys_addr=&tmp_addr;
 
 	ZERO_VAR(addr);
-	terminator = str;
-	FIND_WHITESPACE(terminator);
-	if((p=strchr(str,':'))!=NULL && p < terminator) {
+	if((p=strchr(str,':'))!=NULL) {
 		addr.zone=atoi(str);
 		addr.net=atoi(p+1); 
 	} else {
@@ -289,14 +286,14 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 	}
 	if(addr.zone==0)              /* no such thing as zone 0 */
 		addr.zone=1;
-	if((p=strchr(str,'/'))!=NULL && p < terminator)
+	if((p=strchr(str,'/'))!=NULL)
 		addr.node=atoi(p+1);
 	else {
 		if(addr.zone==sys_addr->zone)
 			addr.net=sys_addr->net;
 		addr.node=atoi(str); 
 	}
-	if((p=strchr(str,'.'))!=NULL && p < terminator)
+	if((p=strchr(str,'.'))!=NULL)
 		addr.point=atoi(p+1);
 	return(addr);
 }
