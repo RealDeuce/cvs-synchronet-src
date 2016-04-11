@@ -2,13 +2,13 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.85 2015/01/19 05:10:47 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.91 2015/12/19 03:35:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,22 +37,23 @@
 
 #include "sbbs.h"
 #include "telnet.h"
+#include "ssl.h"
 
 extern "C" void client_on(SOCKET sock, client_t* client, BOOL update);
 
 bool sbbs_t::answer()
 {
 	char	str[MAX_PATH+1],str2[MAX_PATH+1],c;
-	char 	tmp[(MAX_PATH > CRYPT_MAX_TEXTSIZE ? MAX_PATH:CRYPT_MAX_TEXTSIZE)+1];
-	char 	tmpname[CRYPT_MAX_TEXTSIZE+1];
+	char 	tmp[MAX_PATH];
+	char 	*ctmp;
 	char 	path[MAX_PATH+1];
 	int		i,l,in;
 	struct tm tm;
 
 	useron.number=0;
 	answertime=logontime=starttime=now=time(NULL);
-	/* Caller ID is IP address */
-	SAFECOPY(cid,inet_ntoa(client_addr.sin_addr));
+	/* Caller ID string is client IP address, by default (may be overridden later) */
+	SAFECOPY(cid,client_ipaddr);
 
 	memset(&tm,0,sizeof(tm));
     localtime_r(&now,&tm); 
@@ -63,7 +64,7 @@ bool sbbs_t::answer()
         ,mon[tm.tm_mon],tm.tm_mday,tm.tm_year+1900,cfg.node_num);
 	logline("@ ",str);
 
-	safe_snprintf(str,sizeof(str),"%s  %s [%s]", connection, client_name, cid);
+	safe_snprintf(str,sizeof(str),"%s  %s [%s]", connection, client_name, client_ipaddr);
 	logline("@+:",str);
 
 	if(client_ident[0]) {
@@ -190,17 +191,26 @@ bool sbbs_t::answer()
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
+		tmp[0]=0;
 		pthread_mutex_lock(&ssh_mutex);
-		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_USERNAME, tmpname, &i);
-		tmpname[i]=0;
-		SAFECOPY(rlogin_name, tmpname);
-		cryptGetAttributeString(ssh_session, CRYPT_SESSINFO_PASSWORD, tmp, &i);
-		tmp[i]=0;
-		SAFECOPY(rlogin_pass, tmp);
-		pthread_mutex_unlock(&ssh_mutex);
-		lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
-			,cfg.node_num, tmpname);
-		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, tmpname);
+		ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_USERNAME);
+		if (ctmp) {
+			SAFECOPY(rlogin_name, ctmp);
+			free_crypt_attrstr(ctmp);
+			ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_PASSWORD);
+			if (ctmp) {
+				SAFECOPY(tmp, ctmp);
+				free_crypt_attrstr(ctmp);
+			}
+			pthread_mutex_unlock(&ssh_mutex);
+			lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
+				,cfg.node_num, rlogin_name);
+		}
+		else {
+			rlogin_name[0] = 0;
+			pthread_mutex_unlock(&ssh_mutex);
+		}
+		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
 			useron.misc&=~TERM_FLAGS;
@@ -222,6 +232,7 @@ bool sbbs_t::answer()
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
 				}
 				else {
+					SAFECOPY(rlogin_pass, tmp);
 					if(REALSYSOP) {
 						rioctl(IOFI);       /* flush input buffer */
 						if(!chksyspass())
@@ -253,10 +264,10 @@ bool sbbs_t::answer()
 		}
 		else {
 			if(cfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,tmpname, rlogin_pass);
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, tmp);
 			else
-				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,tmpname);
-			badlogin(tmpname, rlogin_pass);
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
+			badlogin(rlogin_name, tmp);
 		}
 	}
 #endif
@@ -348,8 +359,8 @@ bool sbbs_t::answer()
 
 	/* AutoLogon via IP or Caller ID here */
 	if(!useron.number && !(sys_status&SS_RLOGIN)
-		&& (startup->options&BBS_OPT_AUTO_LOGON) && cid[0]) {
-		useron.number=userdatdupe(0, U_NOTE, LEN_NOTE, cid);
+		&& (startup->options&BBS_OPT_AUTO_LOGON) && client_ipaddr[0]) {
+		useron.number=userdatdupe(0, U_IPADDR, LEN_IPADDR, client_ipaddr);
 		if(useron.number) {
 			getuserdat(&cfg, &useron);
 			if(!(useron.misc&AUTOLOGON) || !(useron.exempt&FLAG('V')))
@@ -357,8 +368,10 @@ bool sbbs_t::answer()
 		}
 	}
 
-	if(!online) 
+	if(!online) {
+		useron.number=0;
 		return(false); 
+	}
 
 	if(stricmp(terminal,"sexpots")==0) {	/* dial-up connection (via SexPOTS) */
 		SAFEPRINTF2(str,"%s connection detected at %lu bps", terminal, cur_rate);
@@ -392,6 +405,7 @@ bool sbbs_t::answer()
 
 	useron.misc&=~TERM_FLAGS;
 	useron.misc|=autoterm;
+	SAFECOPY(client_ipaddr, cid);	/* Over-ride IP address with Caller-ID info */
 	SAFECOPY(useron.comp,client_name);
 
 	if(!useron.number && rlogin_name[0]!=0 && !(cfg.sys_misc&SM_CLOSED) && !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)) {
@@ -430,21 +444,8 @@ bool sbbs_t::answer()
 		if(logon()==false)
 			return(false);
 
-
 	if(!useron.number)
 		hangup();
-
-	/* Save the IP to the user's note */
-	if(cid[0]) {
-		SAFECOPY(useron.note,cid);
-		putuserrec(&cfg,useron.number,U_NOTE,LEN_NOTE,useron.note);
-	}
-
-	/* Save host name to the user's computer description */
-	if(client_name[0]) {
-		SAFECOPY(useron.comp,client_name);
-		putuserrec(&cfg,useron.number,U_COMP,LEN_COMP,useron.comp);
-	}
 
 	if(!online) 
 		return(false); 
