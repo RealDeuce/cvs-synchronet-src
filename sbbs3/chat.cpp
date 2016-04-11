@@ -1,7 +1,8 @@
-/* Synchronet real-time chat functions */
-// vi: tabstop=4
+/* chat.cpp */
 
-/* $Id: chat.cpp,v 1.70 2017/11/16 20:40:18 rswindell Exp $ */
+/* Synchronet real-time chat functions */
+
+/* $Id: chat.cpp,v 1.67 2015/11/16 10:04:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -713,7 +714,6 @@ bool sbbs_t::sysop_page(void)
 		sprintf(str,"%s paged sysop for chat",useron.alias);
 		logline("C",str);
 
-		ftouch(syspage_semfile);
 		for(i=0;i<cfg.total_pages;i++)
 			if(chk_ar(cfg.page[i]->ar,&useron,&client))
 				break;
@@ -737,8 +737,6 @@ bool sbbs_t::sysop_page(void)
 				,sys_status&SS_SYSPAGE ? text[ON] : text[OFF]);
 			nosound();	
 		}
-		if(!(sys_status&SS_SYSPAGE))
-			remove(syspage_semfile);
 
 		return(true);
 	}
@@ -899,14 +897,14 @@ void sbbs_t::privchat(bool local)
 		mswait(2000);
 	if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,DEFFILEMODE))==-1) {
 		close(out);
-		errormsg(WHERE,ERR_OPEN,inpath,O_RDWR|O_DENYNONE|O_CREAT);
+		errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE|O_CREAT);
 		return; 
 	}
 
 	if((p=(char *)malloc(PCHAT_LEN))==NULL) {
 		close(in);
 		close(out);
-		errormsg(WHERE,ERR_ALLOC,nulstr,PCHAT_LEN);
+		errormsg(WHERE,ERR_ALLOC,str,PCHAT_LEN);
 		return; 
 	}
 	memset(p,0,PCHAT_LEN);
@@ -1554,7 +1552,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 	j=strlen(line);
 	k=0;
 	for(i=0;i<j;i++) {
-		if(line[i]<0 || !isalnum((uchar)line[i])) {
+		if(line[i]<0 || !isalnum(line[i])) {
 			if(!k)	/* beginning non-alphanumeric */
 				continue;
 			if(line[i]==line[i+1])	/* redundant non-alnum */
@@ -1567,7 +1565,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 	cstr[k]=0;
 	while(k) {
 		k--;
-		if(!isalnum((uchar)cstr[k]))
+		if(!isalnum(cstr[k]))
 			continue;
 		break; 
 	}
@@ -1756,8 +1754,8 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			if(action!=NODE_MCHT) {
 				for(i=0;i<k;i++) {
 					if(i && mistakes && theanswer[i]!=theanswer[i-1] &&
-						((!isalnum((uchar)theanswer[i]) && !sbbs_random(100))
-						|| (isalnum((uchar)theanswer[i]) && !sbbs_random(30)))) {
+						((!isalnum(theanswer[i]) && !sbbs_random(100))
+						|| (isalnum(theanswer[i]) && !sbbs_random(30)))) {
 						c=j=((uint)sbbs_random(3)+1);	/* 1 to 3 chars */
 						if(c<strcspn(theanswer+(i+1),"\0., "))
 							c=j=1;
@@ -1919,13 +1917,13 @@ bool sbbs_t::guruexp(char **ptrptr, char *line)
 		else {
 			cp=strstr(line,str);
 			if(cp && c) {
-				if(cp!=line || isalnum((uchar)*(cp+strlen(str))))
+				if(cp!=line || isalnum(*(cp+strlen(str))))
 					cp=0; 
 			}
 			else {	/* must be isolated word */
 				while(cp)
-					if((cp!=line && isalnum((uchar)*(cp-1)))
-						|| isalnum((uchar)*(cp+strlen(str))))
+					if((cp!=line && isalnum(*(cp-1)))
+						|| isalnum(*(cp+strlen(str))))
 						cp=strstr(cp+strlen(str),str);
 					else
 						break; 
