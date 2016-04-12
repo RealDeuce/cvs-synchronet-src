@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.7 2016/10/19 03:55:52 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.1 2016/04/11 11:40:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
                     break;
                 default:
 					USAGE:
-                    printf("\nusage: echocfg [path/to/sbbsecho.ini] [options]"
+                    printf("\nusage: echocfg [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
                         "-c  =  force color mode\r\n"
 						"-m  =  force monochrome mode\r\n"
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 		if(!p) {
 			p=getenv("SBBSNODE");
 			if(!p) {
-				goto USAGE;
+				printf("usage: echocfg [cfg_file]\n");
 				exit(1); 
 			}
 			strcpy(str,p);
@@ -253,10 +253,10 @@ int main(int argc, char **argv)
 	"programs (a.k.a. \"packers\") used for the packing and unpacking of\r\n"
 	"EchoMail bundle files (usually in 'zip' format).\r\n"
 	"\r\n"
-	"The `NetMail Settings` sub-menu is where you configure NetMail-specific\r\n"
+	"The `NetMail Options` sub-menu is where you configure NetMail-specific\r\n"
 	"settings.\r\n"
 	"\r\n"
-	"The `EchoMail Settings` sub-menu is where you configure EchoMail-specific\r\n"
+	"The `EchoMail Options` sub-menu is where you configure EchoMail-specific\r\n"
 	"settings.\r\n"
 	"\r\n"
 	"The `Paths and Filenames` sub-menu is where you configure your system's\r\n"
@@ -273,8 +273,8 @@ int main(int argc, char **argv)
 		sprintf(opt[i++],"%-25s %s","Log Level",logLevelStringList[cfg.log_level]);
 		sprintf(opt[i++],"Linked Nodes...");
 		sprintf(opt[i++],"Archive Types...");
-		sprintf(opt[i++],"NetMail Settings...");
-		sprintf(opt[i++],"EchoMail Settings...");
+		sprintf(opt[i++],"NetMail Options...");
+		sprintf(opt[i++],"EchoMail Options...");
 		sprintf(opt[i++],"Paths and Filenames...");
 		sprintf(opt[i++],"Additional EchoLists...");
 		if(uifc.changes)
@@ -670,7 +670,7 @@ int main(int argc, char **argv)
 				j=0;
 				while(1) {
 					i=0;
-					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Non-secure Inbound Directory"
+					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Insecure Inbound Directory"
 						,cfg.inbound);
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Secure Inbound Directory"
 						,cfg.secure_inbound[0] ? cfg.secure_inbound : "<None>");
@@ -693,12 +693,11 @@ int main(int argc, char **argv)
 					switch(j) {
 						case 0:
 	uifc.helpbuf=
-	"~ Non-secure Inbound Directory ~\r\n\r\n"
+	"~ Insecure Inbound Directory ~\r\n\r\n"
 	"This is the complete path (drive and directory) where your FTN\r\n"
-	"mailer stores, and where SBBSecho will look for, incoming files\r\n"
-	"(potentially including message bundles and packets) from unauthenticated\r\n"
-	"(non-secure) mailer sessions.";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Non-secure Inbound Directory"
+	"mailer stores, and where SBBSecho will look for, incoming message\r\n"
+	"bundles and packets.";
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Insecure Inbound Directory"
 								,cfg.inbound,sizeof(cfg.inbound)-1
 								,K_EDIT);
 							break;
@@ -755,12 +754,10 @@ int main(int argc, char **argv)
 				}
 				break;
 
-			case 4:	/* NetMail Settings */
+			case 4:	/* NetMail options */
 				j=0;
 				while(1) {
 					uifc.helpbuf=
-	"~ NetMail Settings ~\r\n"
-	"\r\n"
 	"`Sysop Aliases` is a comma-separated list of names by which the sysop\r\n"
 	"    (user #1) may receive NetMail messages, in addition to the alias\r\n"
 	"    and real name associated with their BBS user account.\r\n"
@@ -825,7 +822,7 @@ int main(int argc, char **argv)
 						strcpy(str, "None");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%s","Maximum Age of Imported NetMail"	, str);
 					opt[i][0]=0;
-					j=uifc.list(WIN_ACT,0,0,60,&j,0,"NetMail Settings",opt);
+					j=uifc.list(WIN_ACT,0,0,60,&j,0,"NetMail Options",opt);
 					if(j==-1)
 						break;
 					switch(j) {
@@ -917,12 +914,10 @@ int main(int argc, char **argv)
 				}
 				break;
 
-			case 5:	/* EchoMail Settings */
+			case 5:	/* EchoMail options */
 				j=0;
 				while(1) {
 					uifc.helpbuf=
-	"~ EchoMail Settings ~\r\n"
-	"\r\n"
 	"`Area Manager` is the BBS user name or alias to notify (via email) of\r\n"
 	"    AreaFix activities and errors.  This setting defaults to `SYSOP`.\r\n"
 	"\r\n"
@@ -938,11 +933,6 @@ int main(int argc, char **argv)
 	"    to insure that the packet origin (FTN address) of EchoMail messages\r\n"
 	"    is already linked to the EchoMail area where the message was posted.\r\n"
 	"    This setting defaults to `No`.\r\n"
-	"\r\n"
-	"`Notify Users of Received EchoMail` tells SBBSecho to send telegrams\r\n"
-	"    (short messages) to BBS users when EchoMail addressed to their name\r\n"
-	"    or alias has been imported into a message base that the user has\r\n"
-	"    access to read.\r\n"
 	"\r\n"
 	"`Convert Existing Tear Lines` tells SBBSecho to convert any tear lines\r\n"
 	"    (`---`) existing in the message text to `===`.\r\n"
@@ -984,8 +974,6 @@ int main(int argc, char **argv)
 						,cfg.maxbdlsize/1024UL);
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Secure Operation"
 						,cfg.secure_echomail ? "Yes":"No");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Notify Users of Received EchoMail"
-						,cfg.echomail_notify ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Convert Existing Tear Lines"
 						,cfg.convert_tear ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Allow Nodes to Add Areas "
@@ -1007,7 +995,7 @@ int main(int argc, char **argv)
 						strcpy(str, "None");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Maximum Age of Imported EchoMail", str);
 					opt[i][0]=0;
-					j=uifc.list(WIN_ACT|WIN_RHT|WIN_BOT,0,0,64,&j,0,"EchoMail Settings",opt);
+					j=uifc.list(WIN_ACT|WIN_RHT|WIN_BOT,0,0,64,&j,0,"EchoMail Options",opt);
 					if(j==-1)
 						break;
 					switch(j) {
@@ -1041,6 +1029,7 @@ int main(int argc, char **argv)
 								,9,K_EDIT|K_NUMBER);
 							cfg.maxbdlsize=atol(str);
 							break;
+
 						case 3:
 							k = !cfg.secure_echomail;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
@@ -1050,14 +1039,6 @@ int main(int argc, char **argv)
 							}
 							break;
 						case 4:
-							k = !cfg.echomail_notify;
-							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Notify Users",uifcYesNoOpts)) {
-								case 0:	cfg.echomail_notify = true;		break;
-								case 1:	cfg.echomail_notify = false;	break;
-							}
-							break;
-						case 5:
 							k = !cfg.convert_tear;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Convert Tear Lines",uifcYesNoOpts)) {
@@ -1065,7 +1046,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.convert_tear = false;	break;
 							}
 							break;
-						case 6:
+						case 5:
 							k = cfg.add_from_echolists_only;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Allow Add from Area File",uifcYesNoOpts)) {
@@ -1073,7 +1054,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.add_from_echolists_only = true;		break;
 							}
 							break;
-						case 7:
+						case 6:
 							k = !cfg.strip_lf;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Strip Line Feeds",uifcYesNoOpts)) {
@@ -1081,7 +1062,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.strip_lf = false;	break;
 							}
 							break;
-						case 8:
+						case 7:
 							k = !cfg.check_path;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Circular Path Detection",uifcYesNoOpts)) {
@@ -1089,7 +1070,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.check_path = false;	break;
 							}
 							break;
-						case 9:
+						case 8:
 						{
 							k = cfg.trunc_bundles;
 							char* opt[] = {"Delete after Sent", "Truncate after Sent", NULL };
@@ -1100,7 +1081,7 @@ int main(int argc, char **argv)
 							}
 							break;
 						}
-						case 10:
+						case 9:
 							k = !cfg.zone_blind;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Zone Blind",uifcYesNoOpts)) {
 								case 0:
@@ -1118,7 +1099,7 @@ int main(int argc, char **argv)
 									break;
 							}
 							break;
-						case 11:
+						case 10:
 							uifc.helpbuf=
 							"~ Maximum Age of Imported EchoMail ~\r\n\r\n"
 							"Maximum age (in days) of EchoMail that may be imported. The age is based\r\n"
