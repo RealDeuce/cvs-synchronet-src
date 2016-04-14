@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.352 2015/11/15 06:59:11 deuce Exp $ */
+/* $Id: js_global.c,v 1.357 2016/02/26 07:19:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,6 +331,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 				,p->startup		/* js */
 				,NULL			/* client */
 				,INVALID_SOCKET	/* client_socket */
+				,-1				/* client TLS session */
 				,NULL			/* server props */
 				,&bg->obj
 				)) {
@@ -608,6 +609,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(js_CreateQueueObject(cx, obj, NULL, bg->msg_queue)));
 		rc=JS_SUSPENDREQUEST(cx);
 		JS_RESUMEREQUEST(bg->cx, brc);
+		js_PrepareToExecute(bg->cx, bg->obj, path, NULL, bg->obj);
 		JS_ENDREQUEST(bg->cx);
 		JS_ClearContextThread(bg->cx);
 		bg->sem=&p->bg_sem;
@@ -757,9 +759,9 @@ js_exit(JSContext *cx, uintN argc, jsval *arglist)
 			else
 				obj = JS_THIS_OBJECT(cx, arglist);
 		}
-
-		JS_DefineProperty(cx, obj, "exit_code", argv[0]
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+		if(JSVAL_IS_NUMBER(argv[0]))
+			JS_DefineProperty(cx, obj, "exit_code", argv[0]
+				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -2309,6 +2311,26 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			|| strcmp(token,"rlm")==0)	/* right-to-left mark, not printable */
 			continue;
 
+		if(strcmp(token,"hellip")==0) {	/* horizontal ellipsis  */
+			j+=sprintf(outbuf+j,"...");
+			continue;
+		}
+
+		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
+			outbuf[j++]='\'';	/* single quotation mark */
+			continue;
+		}
+
+		if(strcmp(token,"ldquo")==0 || strcmp(token,"rdquo")==0) {
+			outbuf[j++]='"';	/* double quotation mark */
+			continue;
+		}
+
+		if(strcmp(token,"ndash")==0 || strcmp(token,"mdash")==0) {
+			outbuf[j++]='-';	/* dash */
+			continue;
+		}
+
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
 		
@@ -3807,7 +3829,44 @@ js_flags_str(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
 	return(JS_TRUE);
 }
-	
+#if 0
+static JSBool
+js_qwknet_route(JSContext *cx, uintN argc, jsval *arglist)
+{
+	JSObject *	obj=JS_THIS_OBJECT(cx, arglist);
+	jsval *		argv=JS_ARGV(cx, arglist);
+	char		path[MAX_PATH+1];
+	char*		str;
+	JSString*	js_str;
+	jsrefcount	rc;
+	global_private_t* p;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if(argc==0 || JSVAL_IS_VOID(argv[0]))
+		return(JS_TRUE);
+
+	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
+		return(JS_FALSE);
+
+	JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
+	HANDLE_PENDING(cx);
+	if(str==NULL)
+		return(JS_TRUE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	qwk_route(&p->cfg, str, path, sizeof(path));
+	free(str);
+	JS_RESUMEREQUEST(cx, rc);
+
+	if((js_str = JS_NewStringCopyZ(cx, path))==NULL)
+		return(JS_FALSE);
+
+	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
+	return(JS_TRUE);
+}
+#endif
+
 static jsSyncMethodSpec js_global_functions[] = {
 	{"exit",			js_exit,			0,	JSTYPE_VOID,	"[exit_code]"
 	,JSDOCSTR("stop script execution, "
