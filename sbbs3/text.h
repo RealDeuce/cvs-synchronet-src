@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.23 2016/11/10 10:06:31 rswindell Exp $ */
+/* $Id: text.h,v 1.22 2015/11/30 09:07:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -822,13 +822,6 @@ enum {
 	,InTheFuture
 	,AgeOfPostedItem
 	,NodeStatusLogout
-	,VotingNotAllowed
-	,VotedAlready
-	,QWKSettingsVoting
-	,VoteMsgUpDownOrQuit
-	,MsgVotes
-	,MsgVoteNotice
-	,R_Voting
 
 	,TOTAL_TEXT
 };
