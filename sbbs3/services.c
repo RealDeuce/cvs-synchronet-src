@@ -2,13 +2,13 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.286 2015/08/25 01:45:53 deuce Exp $ */
+/* $Id: services.c,v 1.290 2016/01/21 10:03:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -134,9 +134,11 @@ static int lprintf(int level, const char *fmt, ...)
     va_end(argptr);
 
 	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
+		char errmsg[sizeof(sbuf)+16];
+		SAFEPRINTF(errmsg, "srvc %s", sbuf);
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, errmsg);
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
+			startup->errormsg(startup->cbdata,level,errmsg);
 	}
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
@@ -373,7 +375,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	/* ToDo Deuce: did you mean to do this *before* the above memset(0) ? */
 	if(client->user.number) {
 		if(client->subscan!=NULL)
-			putmsgptrs(&scfg, client->user.number, client->subscan);
+			putmsgptrs(&scfg, &client->user, client->subscan);
 	}
 
 	if(isdigit(*user))
@@ -428,7 +430,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 	}
 	if(client->subscan!=NULL) {
-		getmsgptrs(&scfg,client->user.number,client->subscan);
+		getmsgptrs(&scfg,&client->user,client->subscan);
 	}
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -770,7 +772,7 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		/* Client Object */
 		if(service_client->client!=NULL) {
-			if(js_CreateClientObject(js_cx, *glob, "client", service_client->client, sock)==NULL)
+			if(js_CreateClientObject(js_cx, *glob, "client", service_client->client, sock, service_client->tls_sess)==NULL)
 				break;
 		}
 
@@ -1039,6 +1041,8 @@ static void js_service_thread(void* arg)
 			return;
 		}
 	}
+	else
+		service_client.tls_sess = -1;
 
 #if 0	/* Need to export from SBBS.DLL */
 	identity=NULL;
@@ -1133,7 +1137,7 @@ static void js_service_thread(void* arg)
 
 	if(service_client.user.number) {
 		if(service_client.subscan!=NULL)
-			putmsgptrs(&scfg, service_client.user.number, service_client.subscan);
+			putmsgptrs(&scfg, &service_client.user, service_client.subscan);
 		lprintf(LOG_INFO,"%04d %s Logging out %s"
 			,socket, service->protocol, service_client.user.alias);
 		logoutuserdat(&scfg,&service_client.user,time(NULL),service_client.logintime);
@@ -1633,7 +1637,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.286 $", "%*s %s", revision);
+	sscanf("$Revision: 1.290 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
