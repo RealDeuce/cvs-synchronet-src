@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.0 2016/04/11 11:22:40 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.1 2016/04/15 01:48:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,9 @@ faddr_t atofaddr(const char *instr)
     faddr_t addr;
 
 	SAFECOPY(str, instr);
-	truncsp(str);
+	p=str;
+	FIND_WHITESPACE(p);
+	*p=0;
 	if(!stricmp(str,"ALL")) {
 		addr.zone=addr.net=addr.node=addr.point=0xffff;
 		return(addr); 
