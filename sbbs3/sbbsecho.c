@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.2 2016/04/14 02:08:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.3 2016/04/16 01:22:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4838,7 +4838,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.2 $", "%*s %s", revision);
+	sscanf("$Revision: 3.3 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5077,6 +5077,10 @@ int main(int argc, char **argv)
 		SKIP_WHITESPACE(p);		/* Skip white space */
 
 		while(*p && *p!=';') {
+			if(!isdigit(*p)) {
+				lprintf(LOG_WARNING, "Invalid Area File line, expected link address(es) after echo-tag: '%s'", str);
+				break;
+			}
 			if((cfg.area[cfg.areas].link=(fidoaddr_t *)
 				realloc(cfg.area[cfg.areas].link
 				,sizeof(fidoaddr_t)*(cfg.area[cfg.areas].links+1)))==NULL) {
