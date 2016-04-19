@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.421 2015/12/04 21:31:07 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.422 2016/01/21 09:52:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2688,7 +2688,7 @@ static void ctrl_thread(void* arg)
 				if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", user.number, &client)==NULL) 
 					lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
-				if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
+				if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock, -1)==NULL) 
 					lprintf(LOG_ERR,"%04d !JavaScript ERROR creating client object",sock);
 
 				if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user
@@ -4058,7 +4058,7 @@ static void ctrl_thread(void* arg)
 						if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", &user, &client, /* global_user: */TRUE)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
-						if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock)==NULL) 
+						if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock, -1)==NULL) 
 							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating client object",sock);
 
 						if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user, &client
@@ -4734,7 +4734,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.421 $", "%*s %s", revision);
+	sscanf("$Revision: 1.422 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
