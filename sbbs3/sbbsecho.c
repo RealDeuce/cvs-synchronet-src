@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.3 2016/04/16 01:22:17 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.4 2016/04/19 05:04:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <malloc.h>
 
 #include "conwrap.h"		/* getch() */
 #include "sbbs.h"			/* load_cfg() */
@@ -4838,7 +4837,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.3 $", "%*s %s", revision);
+	sscanf("$Revision: 3.4 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
