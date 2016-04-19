@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.4 2016/04/19 05:04:55 deuce Exp $ */
+/* $Id: sbbsecho.c,v 3.5 2016/04/19 05:05:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1438,7 +1438,7 @@ void command(char* instr, fidoaddr_t addr, const char* to)
 		return; 
 	}
 
-	if((p=strstr(instr,"FROM"))!=NULL);
+	//if((p=strstr(instr,"FROM"))!=NULL);
 
 	if((p=strstr(instr,"+ALL"))!=NULL) {
 		str_list_t add_area=strListInit();
@@ -4837,7 +4837,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.4 $", "%*s %s", revision);
+	sscanf("$Revision: 3.5 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
