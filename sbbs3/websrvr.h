@@ -1,6 +1,8 @@
+/* websrvr.h */
+
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.52 2016/11/28 11:12:35 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.49 2015/08/29 06:23:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +54,8 @@ typedef struct {
     uint32_t	options;
 	uint16_t	port;
 	uint16_t	tls_port;
+	struct in_addr outgoing4;
+	struct in6_addr	outgoing6;
     str_list_t	interfaces;
     str_list_t	tls_interfaces;
 	
@@ -73,7 +77,7 @@ typedef struct {
 
 	/* Paths */
 	char	ssjs_ext[16];			/* Server-Side JavaScript file extension */
-	char	js_ext[16];				/* Embedded JavaScript file extension */
+	char	js_ext[16];			/* Embedded JavaScript file extension */
 	char**	cgi_ext;				/* CGI Extensions */
 	char	cgi_dir[128];			/* relative to root_dir (all files executable) */
     char    ctrl_dir[128];
@@ -85,7 +89,6 @@ typedef struct {
 	char	answer_sound[128];
 	char	hangup_sound[128];
     char	hack_sound[128];
-	char	ini_fname[128];
 
 	/* Misc */
     char	host_name[128];
@@ -96,13 +99,17 @@ typedef struct {
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 	char	default_cgi_content[128];
 	char	default_auth_list[128];
+	uint16_t	outbuf_highwater_mark;	/* output block size control */
 	uint16_t	outbuf_drain_timeout;
 
 	/* JavaScript operating parameters */
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	struct login_attempt_settings login_attempt;
+	uint32_t	login_attempt_delay;
+	uint32_t	login_attempt_throttle;
+	uint32_t	login_attempt_hack_threshold;
+	uint32_t	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
 
 } web_startup_t;
@@ -112,6 +119,8 @@ typedef struct {
 static struct init_field web_init_fields[] = { 
 	 OFFSET_AND_SIZE(web_startup_t,port)
 	,OFFSET_AND_SIZE(web_startup_t,interfaces)
+	,OFFSET_AND_SIZE(web_startup_t,outgoing4)
+	,OFFSET_AND_SIZE(web_startup_t,outgoing6)
 	,OFFSET_AND_SIZE(web_startup_t,ctrl_dir)
 	,OFFSET_AND_SIZE(web_startup_t,root_dir)
 	,OFFSET_AND_SIZE(web_startup_t,error_dir)
