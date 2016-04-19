@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.4 2016/04/21 01:51:02 deuce Exp $ */
+/* $Id: echocfg.c,v 3.2 2016/04/15 01:58:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
