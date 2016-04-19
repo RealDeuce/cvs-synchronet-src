@@ -144,10 +144,18 @@ CSI ? 25 h
 
 CSI ? 31 h
 	NON-STANDARD EXTENSION
-	Enable alt character set
+	Enable bright alt character set
 
 	With this mode set, the bright (1) graphic rendition selects characters
 	from an alternate character set.
+
+CSI ? 32 h
+	NON-STANDARD EXTENSION
+	Bright Intensity Disable
+
+	This makes the bright intensity bit not control the intesnity.
+	Mostly for use with CSI ? 31 h to permit fonts in the same
+	colours.
 
 CSI ? 33 h
 	NON-STANDARD EXTENSION
@@ -156,17 +164,35 @@ CSI ? 33 h
 	With this mode set, the blink (5,6) graphic renditions cause the
 	background colour to be high intensity rather than causing blink
 
+CSI ? 34 h
+	NON-STANDARD EXTENSION
+	Enable blink alt character set
+
+	With this mode set, the blink (5,6) graphic renditions selects
+	characters from an alternate character set.
+
+CSI ? 35 h
+	NON-STANDARD EXTENSION
+	Blink Disabled
+
+	This makes the blink bit not cause the character to blink.
+	Mostly for use with CSI ? 34 h to permit fonts to be used without
+	blinking.
+
 CSI = 255 l
 	NON-STANDARD EXTENSION
 	Disable DoorWay Mode
 
 	SOURCE: BANSI.TXT
 
-CSI ? 25 l
+CSI ? 6 h
 	NON-STANDARD EXTENSION
-	Hide the cursor
-
-	SOURCE: "Installing and Using the VT320 Video Terminal"
+    Disable origin mode.
+    
+    In this mode, position parameters are relative to the top left of the
+    screen, not the scrolling region.
+    
+    SOURCE: Digital VT102 User Guide
 
 CSI ? 7 l
 	NON-STANDARD EXTENSION
@@ -178,14 +204,11 @@ CSI ? 7 l
     
     SOURCE: Digital VT102 User Guide
 
-CSI ? 6 h
+CSI ? 25 l
 	NON-STANDARD EXTENSION
-    Disable origin mode.
-    
-    In this mode, position parameters are relative to the top left of the
-    screen, not the scrolling region.
-    
-    SOURCE: Digital VT102 User Guide
+	Hide the cursor
+
+	SOURCE: "Installing and Using the VT320 Video Terminal"
 
 CSI ? 31 l
 	NON-STANDARD EXTENSION
@@ -195,8 +218,9 @@ CSI ? 31 l
 
 CSI ? 32 l
 	NON-STANDARD EXTENSION
-	Bright Intensity Disable
+	Bright Intensity Enable
 
+	Causes "bright" foreground characters to be bright.
 	Reverses CSI ? 32 h
 
 CSI ? 33 l
@@ -204,6 +228,18 @@ CSI ? 33 l
 	Blink Normal
 
 	Reverses CSI ? 33 h
+
+CSI ? 34 l
+	NON-STANDARD EXTENSION
+	Disable alt character set
+
+	Reverses CSI ? 34 h
+
+CSI ? 35 l
+	NON-STANDARD EXTENSION
+	Blink Enabled
+
+	Reverses CSI ? 35 h
 
 CSI [ p1 [ ; p2 ] ] * r
 	NON-STANDARD EXTENSION.
@@ -288,10 +324,17 @@ CSI [ p1 [ ; p2 ] ] sp D
 	Font Selection
 	Defaults: p1 = 0  p2 = 0
 	"sp" indicates a single space character.
-	Sets font p1 to be the one indicated bu p2.  Currently only the primary
-	font (Font zero) and secondary font (Font one) are supported.  p2 must 
-	be between 0 and 255.  Not all output types support font selection.  Only
-	X11 and SDL currently do.
+	Sets font p1 to be the one indicated bu p2.  Currently four fonts are
+	supported.  p2 must be between 0 and 255.  Not all output types support
+	font selection.  Only X11 and SDL currently do.
+	Supported p1 values:
+		0  - Default font
+		1  - Font selected by the high intensity bit when CSI [ ? 31 h is
+			 enabled
+		2  - Font selected by the blink intensity bit when CSI [ ? 34 h is
+			 enabled
+		3  - Font selected by both the high intensity and blink bits when
+			 both CSI [ ? 31 h and CSI [ ? 34 h are enabled
 	Currently included fonts are:
 		0  - Codepage 437 English
 		1  - Codepage 1251 Cyrillic, (swiss)
@@ -332,8 +375,10 @@ CSI [ p1 [ ; p2 ] ] sp D
 		36 - Atari
 		37 - P0T NOoDLE (Amiga) 
 		38 - mO'sOul (Amiga)    
-		39 - MicroKnight (Amiga)
-		40 - Topaz (Amiga)      
+		39 - MicroKnight Plus (Amiga)
+		40 - Topaz Plus (Amiga)      
+		41 - MicroKnight (Amiga)
+		42 - Topaz (Amiga)      
 	Not all fonts are supported in all modes.  If a font is not supported in
 	the current mode, no action is taken.
 
@@ -604,7 +649,7 @@ line) they assumed it was unused and blissfully broke the spec.  They defined
 CSI M <music string> 0x0e
 
 They used a subset of IBM BASICs PLAY statement functionality for ANSI music
-strings which oftem start with "MF" or "MB", so the M after the CSI was often
+strings which often start with "MF" or "MB", so the M after the CSI was often
 considered as part of the music string.  You would see things such as:
 CSI MFABCD 0x0e and the F would not be played as a note.  This just added
 further confusion to the mess.
@@ -614,7 +659,7 @@ added *another* broken code CSI N (Properly, erase in field... not implemented
 in many BBS clients) which was to provide an "unbroken" method of playing music
 strings.  They also used CSI Y to disambiguate delete line, CSI Y is supposed
 to be a vertical tab (also not implemented in very many clients).  BananaCom
-also introduced many more non-standard and stardard-breaking control sequences
+also introduced many more non-standard and standard-breaking control sequences
 which are not supported by CTerm.
 
 CTerm has further introduced a standard compliant ANSI music introducer CSI |
@@ -622,7 +667,7 @@ CTerm has further introduced a standard compliant ANSI music introducer CSI |
 By default, CTerm allows both CSI N and CSI | to introduce a music string.
 Allowed introducers are set by CSI = p1 M as defined above.
 
-The details of ANSI music are as follows then:
+The details of ANSI music then are as follows:
 The following characters are allowed in music strings:
 "aAbBcCdDeEfFgGlLmMnNoOpPsStT0123456789.-+#<> "
 If any character not in this list is present, the music string is ignored as
@@ -634,7 +679,7 @@ digit, then the music string is treated as though an M is located in front
 of the first character.
 
 The music string is then parsed with the following sequences supported:
-Mx sets misc music parameters where x is one of the following:
+Mx sets misc. music parameters where x is one of the following:
 	F - Plays music in the foreground, waiting for music to complete
 	    playing before more characters are processed.
 	B - Play music in the background, allowing normal processing to
@@ -653,7 +698,7 @@ O### Sets the octave of the music where ### is one or more decimal digits.
 N### Plays a single note by number.  Valid values are 0 - 71.  Invalid
 	values are played as silence.  Note zero is C in octave 0.
 	See following section for valid note modifiers.
-A, B, C, D, E, G, or P Plays the named note or pause from the current
+A, B, C, D, E, F, G, or P Plays the named note or pause from the current
 	octave.  An "Octave" is the rising sequence of the following notes:
 	C, C#, D, D#, E, F, F#, G, G#, A, A#, B
 	This is contrary to normal music terminology.
@@ -676,8 +721,8 @@ A, B, C, D, E, G, or P Plays the named note or pause from the current
 		play the note for.  For example, 4 would indicate a 1/4 note.
 		The default note length is 4.
 L### Set the notelength parameter for all following notes which do not have
-	one specified (ie: override the quarter-note default)  Leval note lengths
-	are 1-64 indicating the recibrical of the fraction (ie: 4 indicates a 1/4
+	one specified (ie: override the quarter-note default)  Legal note lengths
+	are 1-64 indicating the reciprical of the fraction (ie: 4 indicates a 1/4
 	note).
 <	Move the the next lowest octave.
 	Octave cannot go above six or below zero.
@@ -686,7 +731,7 @@ L### Set the notelength parameter for all following notes which do not have
 
 The lowest playable character is C in octave zero.  The frequencies for the
 six C notes for the seven octaves in rising order are:
-65406, 130810, 261620, 523250, 1046500, 2093000, 4186000
+65.406, 130.810, 261.620, 523.250, 1046.500, 2093.000, 4186.000
 
 Purists will note that the lower three octaves are not exactly one half of
 the next higher octave in frequency.  This is due to lost resolution of
