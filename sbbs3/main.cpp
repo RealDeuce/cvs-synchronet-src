@@ -1,7 +1,8 @@
+/* main.cpp */
+
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.639 2016/11/19 09:44:04 sbbs Exp $ */
-// vi: tabstop=4
+/* $Id: main.cpp,v 1.631 2016/03/09 11:01:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1663,7 +1664,7 @@ void input_thread(void *arg)
 	SOCKET		high_socket;
 	SOCKET		sock;
 
-	SetThreadName("sbbs/Terminal Input");
+	SetThreadName("Node Input");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _DEBUG
@@ -1934,7 +1935,7 @@ void passthru_output_thread(void* arg)
 	int		rd;
 	int		wr;
 
-	SetThreadName("sbbs/Passthrough Output");
+	SetThreadName("Passthrough Output");
 	thread_up(FALSE /* setuid */);
 
 	while(sbbs->client_socket!=INVALID_SOCKET && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
@@ -2048,7 +2049,7 @@ void passthru_input_thread(void* arg)
 	BYTE	ch;
 	int		i;
 
-	SetThreadName("sbbs/Passthrough Input");
+	SetThreadName("Passthrough Input");
 	thread_up(FALSE /* setuid */);
 
 	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
@@ -2139,7 +2140,7 @@ void output_thread(void* arg)
 	struct timeval tv;
 	ulong		mss=IO_THREAD_BUF_SIZE;
 
-	SetThreadName("sbbs/Terminal Output");
+	SetThreadName("Node Output");
 	thread_up(TRUE /* setuid */);
 
     if(sbbs->cfg.node_num)
@@ -2244,7 +2245,7 @@ void output_thread(void* arg)
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
 		if(i==SOCKET_ERROR) {
 			if(sbbs->client_socket!=INVALID_SOCKET)
-				lprintf(LOG_WARNING,"%s !ERROR %d selecting socket %u for send"
+				lprintf(LOG_ERR,"%s !ERROR %d selecting socket %u for send"
 					,node,ERROR_VALUE,sbbs->client_socket);
 			if(sbbs->cfg.node_num)	/* Only break if node output (not server) */
 				break;
@@ -2379,7 +2380,7 @@ void event_thread(void* arg)
 
 	sbbs_srand();	/* Seed random number generator */
 
-	SetThreadName("sbbs/Events");
+	SetThreadName("BBS Events");
 	thread_up(TRUE /* setuid */);
 
 #ifdef JAVASCRIPT
@@ -2543,13 +2544,12 @@ void event_thread(void* arg)
 				&& (fexistcase(semfile) || (now-lastprepack)/60>(60*24))) {
 				j=lastuser(&sbbs->cfg);
 				eprintf(LOG_INFO,"Pre-packing QWK Message packets...");
-				int userfile = openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 				for(i=1;i<=j;i++) {
 
 					SAFEPRINTF2(str,"%5u of %-5u",i,j);
 					//status(str);
 					sbbs->useron.number=i;
-					fgetuserdat(&sbbs->cfg,&sbbs->useron, userfile);
+					getuserdat(&sbbs->cfg,&sbbs->useron);
 
 					if(sbbs->useron.number
 						&& !(sbbs->useron.misc&(DELETED|INACTIVE))	 /* Pre-QWK */
@@ -2578,7 +2578,6 @@ void event_thread(void* arg)
 						sbbs->online=FALSE;
 					} 
 				}
-				close(userfile);
 				lastprepack=(time32_t)now;
 				SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
@@ -4131,7 +4130,7 @@ void node_thread(void* arg)
 	sbbs_t*			sbbs = (sbbs_t*) arg;
 
 	update_clients();
-	SetThreadName("sbbs/Terminal Node");
+	SetThreadName("Node");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _DEBUG
@@ -4147,11 +4146,11 @@ void node_thread(void* arg)
 	}
 #endif
 
-	if(startup->login_attempt.throttle
+	if(startup->login_attempt_throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &sbbs->client_addr)) > 1) {
 		lprintf(LOG_DEBUG,"Node %d Throttling suspicious connection from: %s (%u login attempts)"
 			,sbbs->cfg.node_num, sbbs->client_ipaddr, login_attempts);
-		mswait(login_attempts*startup->login_attempt.throttle);
+		mswait(login_attempts*startup->login_attempt_throttle);
 	}
 
 	if(sbbs->answer()) {
@@ -4351,14 +4350,14 @@ void sbbs_t::daily_maint(void)
 
 	lputs(LOG_INFO,status("Checking for inactive/expired user records..."));
 	lastusernum=lastuser(&sbbs->cfg);
-	int userfile=openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 	for(usernum=1;usernum<=lastusernum;usernum++) {
+
 		SAFEPRINTF2(str,"%5u of %-5u",usernum,lastusernum);
 		status(str);
-		user.number = usernum;
-		if((i=fgetuserdat(&sbbs->cfg, &user, userfile)) != 0) {
+		user.number=usernum;
+		if((i=getuserdat(&sbbs->cfg,&user))!=0) {
 			SAFEPRINTF(str,"user record %u",usernum);
-			sbbs->errormsg(WHERE, ERR_READ, str, i);
+			sbbs->errormsg(WHERE,ERR_READ,str,i);
 			continue;
 		}
 
@@ -4441,7 +4440,6 @@ void sbbs_t::daily_maint(void)
 			putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
 		}
 	}
-	close(userfile);
 
 	lputs(LOG_INFO,status("Purging deleted/expired e-mail"));
 	SAFEPRINTF(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
@@ -4642,7 +4640,7 @@ void DLLCALL bbs_thread(void* arg)
 	startup->shutdown_now=FALSE;
 	terminate_server=false;
 
-	SetThreadName("sbbs/Terminal Server");
+	SetThreadName("BBS");
 
 	do {
 
@@ -4944,8 +4942,6 @@ NO_SSH:
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
-	SAFEPRINTF(str,"%sattr.cfg",scfg.ctrl_dir);
-	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
 	semfile_list_check(&initialized,recycle_semfiles);
@@ -4976,7 +4972,7 @@ NO_SSH:
 	lprintf(LOG_INFO,"Terminal Server thread started for nodes %d through %d", first_node, last_node);
 
 	while(!terminate_server) {
-		YIELD();
+
 		if(protected_uint32_value(node_threads_running)==0) {	/* check for re-run flags and recycle/shutdown sem files */
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 
@@ -5125,22 +5121,6 @@ NO_SSH:
 #endif
 			, host_ip, inet_addrport(&client_addr));
 
-		login_attempt_t attempted;
-		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
-		if(banned || sbbs->trashcan(host_ip,"ip")) {
-			if(banned) {
-				char ban_duration[128];
-				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-					,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
-			} else
-				lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip);
-			SSH_END();
-			close_socket(client_socket);
-			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
-			sbbs->syslog("@!",logstr);
-			continue;
-		}
-
 #ifdef _WIN32
 		if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
@@ -5222,6 +5202,16 @@ NO_SSH:
    		sbbs->client_socket=client_socket;	// required for output to the user
         sbbs->online=ON_REMOTE;
 
+		if(sbbs->trashcan(host_ip,"ip")) {
+			SSH_END();
+			close_socket(client_socket);
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s"
+				,client_socket, host_ip);
+			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
+			sbbs->syslog("@!",logstr);
+			continue;
+		}
+
 		if(rlogin)
 			sbbs->outcom(0); /* acknowledge RLogin per RFC 1282 */
 
@@ -5231,13 +5221,17 @@ NO_SSH:
 
 		sbbs->bprintf("Connection from: %s\r\n", host_ip);
 
-		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
-			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
+			if(getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD))
+				strcpy(host_name, "<no name>");
 			sbbs->putcom(crlf);
-			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
 		}
+		else
+			strcpy(host_name, "<no name>");
+
+		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
+			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
