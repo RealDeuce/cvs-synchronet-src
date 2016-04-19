@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.1 2016/04/15 01:48:28 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.2 2016/04/19 05:51:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -448,6 +448,10 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 		iniSetBool(&ini		,section,	"Notify"		,node->send_notify	,&style);
 		iniSetStringList(&ini,section,	"Keys", ","		,node->keys			,&style);
 		iniSetEnum(&ini		,section,	"Status"		,mailStatusStringList, node->status, &style);
+		if(node->route.zone)
+			iniSetString(&ini,section,	"Route"			,faddrtoa(&node->route), &style);
+		else
+			iniRemoveKey(&ini,section,	"Route");
 	}
 
 	/**************/
