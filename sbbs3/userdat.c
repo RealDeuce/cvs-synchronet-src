@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.168 2016/05/27 15:41:16 rswindell Exp $ */
+/* $Id: userdat.c,v 1.164 2015/12/07 09:16:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2810,25 +2810,25 @@ static list_node_t* login_attempted(link_list_t* list, const union xp_sockaddr* 
 {
 	list_node_t*		node;
 	login_attempt_t*	attempt;
+	struct in6_addr		ia;
 
 	if(list==NULL)
 		return NULL;
 	for(node=list->first; node!=NULL; node=node->next) {
 		attempt=node->data;
-		if(attempt->addr.addr.sa_family != addr->addr.sa_family)
-			continue;
 		switch(addr->addr.sa_family) {
 			case AF_INET:
-				if(memcmp(&attempt->addr.in.sin_addr, &addr->in.sin_addr, sizeof(addr->in.sin_addr)) == 0)
-					return node;
+				memset(&ia, 0, sizeof(ia));
+				memcpy(&ia, &addr->in.sin_addr, sizeof(addr->in.sin_addr));
 				break;
 			case AF_INET6:
-				if(memcmp(&attempt->addr.in6.sin6_addr, &addr->in6.sin6_addr, sizeof(addr->in6.sin6_addr)) == 0)
-					return node;
+				ia = addr->in6.sin6_addr;
 				break;
 		}
+		if(memcmp(&attempt->addr,&ia,sizeof(attempt->addr))==0)
+			break;
 	}
-	return NULL;
+	return node;
 }
 
 /****************************************************************************/
@@ -2888,56 +2888,13 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	SAFECOPY(attempt->user, user);
 	SAFECOPY(attempt->pass, pass);
 	attempt->count++;
-	count = attempt->count - attempt->dupes;
+	count = attempt->count-attempt->dupes;
 	if(node==NULL)
 		listPushNodeData(list, attempt, sizeof(login_attempt_t));
 	listUnlock(list);
 
 	return count;
 }
-
-#if !defined(NO_SOCKET_SUPPORT)
-ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
-	,struct login_attempt_settings settings, login_attempt_t* details)
-{
-	list_node_t*		node;
-	login_attempt_t*	attempt;
-	BOOL				result = FALSE;
-	time32_t			now = time32(NULL);
-	union xp_sockaddr	client_addr;
-	union xp_sockaddr	server_addr;
-	socklen_t			addr_len;
-
-	if(list==NULL)
-		return 0;
-
-	addr_len=sizeof(server_addr);
-	if((result=getsockname(sock, &server_addr.addr, &addr_len)) != 0)
-		return 0;
-
-	addr_len=sizeof(client_addr);
-	if((result=getpeername(sock, &client_addr.addr, &addr_len)) != 0)
-		return 0;
-
-	/* Don't ban connections from the server back to itself */
-	if(inet_addrmatch(&server_addr, &client_addr))
-		return 0;
-
-	listLock(list);
-	node = login_attempted(list, &client_addr);
-	listUnlock(list);
-	if(node == NULL)
-		return 0;
-	attempt = node->data;
-	if(((settings.tempban_threshold && (attempt->count - attempt->dupes) >= settings.tempban_threshold)
-		|| trashcan(cfg, attempt->user, "name")) && now < (time32_t)(attempt->time + settings.tempban_duration)) {
-		if(details != NULL)
-			*details = *attempt;
-		return settings.tempban_duration - (now - attempt->time);
-	}
-	return 0;
-}
-#endif
 
 /****************************************************************************/
 /* Message-new-scan pointer/configuration functions							*/
