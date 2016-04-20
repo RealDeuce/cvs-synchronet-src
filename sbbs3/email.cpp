@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.62 2015/11/26 08:34:34 rswindell Exp $ */
+/* $Id: email.cpp,v 1.63 2015/12/06 11:20:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,9 +50,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	char 		tmp[512];
 	char		pid[128];
 	char*		editor=NULL;
-	ushort		msgattr=0;
+	uint16_t	msgattr=0;
 	uint16_t	xlat=XLAT_NONE;
-	ushort		nettype;
 	int 		i,j,x,file;
 	long		l;
 	long		length;
@@ -301,11 +300,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	if(useron.misc&NETMAIL) {
 		if(useron.rest&FLAG('G'))
 			smb_hfield_str(&msg,REPLYTO,useron.name);
-		nettype=smb_netaddr_type(useron.netmail);
-		if(nettype!=NET_NONE && nettype!=NET_UNKNOWN) {
-			smb_hfield(&msg,REPLYTONETTYPE,sizeof(nettype),&nettype);
-			smb_hfield_str(&msg,REPLYTONETADDR,useron.netmail);
-		}
+		smb_hfield_netaddr(&msg,REPLYTONETADDR,useron.netmail,NULL);
 	}
 
 	/* Security logging */
