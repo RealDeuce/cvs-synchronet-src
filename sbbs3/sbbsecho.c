@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.8 2016/04/21 01:51:02 deuce Exp $ */
+/* $Id: sbbsecho.c,v 3.9 2016/04/21 02:24:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4867,7 +4867,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.8 $", "%*s %s", revision);
+	sscanf("$Revision: 3.9 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5294,6 +5294,10 @@ int main(int argc, char **argv)
 	free(smb);
 	free(email);
 
+	if(cfg.outgoing_sem[0]) {
+		if (exported_netmail || exported_echomail || packed_netmail)
+			ftouch(cfg.outgoing_sem);
+	}
 	bail(0);
 	return(0);
 }

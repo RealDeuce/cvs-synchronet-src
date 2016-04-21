@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.4 2016/04/21 01:57:23 deuce Exp $ */
+/* $Id: sbbsecho.h,v 3.5 2016/04/21 02:24:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -136,6 +136,7 @@ typedef struct {
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
 	char		temp_dir[MAX_PATH+1];	/* Temporary file directory */
+	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to creat when there's outgoing data */
 	str_list_t	sysop_alias_list;		/* List of sysop aliases */
 	ulong		maxpktsize				/* Maximum size for packets */
 			   ,maxbdlsize;				/* Maximum size for bundles */
