@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.4 2016/04/21 01:51:02 deuce Exp $ */
+/* $Id: rechocfg.c,v 3.5 2016/04/21 01:57:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -378,6 +378,17 @@ bool sbbsecho_read_ftn_domains(sbbsecho_cfg_t* cfg, const char * ctrl_dir)
 	str_list_t	zones;
 	const char *	zone;
 	struct zone_mapping * mapping;
+	struct zone_mapping * old_mapping;
+
+	// First, free any old mappings...
+	for (mapping = cfg->zone_map; mapping;) {
+		FREE_AND_NULL(mapping->domain);
+		FREE_AND_NULL(mapping->root);
+		old_mapping = mapping;
+		mapping = old_mapping->next;
+		FREE_AND_NULL(old_mapping);
+	}
+	cfg->zone_map = NULL;
 
 	if(cfg->use_ftn_domains) {
 		SAFEPRINTF(path, "%sftn_domains.ini", ctrl_dir);

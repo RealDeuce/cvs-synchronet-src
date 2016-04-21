@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.3 2016/04/21 01:51:02 deuce Exp $ */
+/* $Id: sbbsecho.h,v 3.4 2016/04/21 01:57:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,8 +123,8 @@ typedef struct {
 
 struct zone_mapping {
 	uint16_t	zone;
-	const char*	root;
-	const char* domain;
+	char *		root;
+	char *		domain;
 	struct zone_mapping *next;
 };
 
