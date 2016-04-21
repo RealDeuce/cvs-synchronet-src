@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.9 2016/04/21 02:24:32 deuce Exp $ */
+/* $Id: sbbsecho.c,v 3.10 2016/04/21 05:29:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2520,7 +2520,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		&& (now - msg.hdr.when_written.time) > max_msg_age) {
 		lprintf(LOG_INFO, "Filtering message from %s due to age: %1.1f days"
 			,fmsghdr.from
-			,(now - msg.hdr.when_written.time) / 24.0*60.0*60.0);
+			,(now - msg.hdr.when_written.time) / (24.0*60.0*60.0));
 		return 4;
 	}
 
@@ -4867,7 +4867,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.9 $", "%*s %s", revision);
+	sscanf("$Revision: 3.10 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
