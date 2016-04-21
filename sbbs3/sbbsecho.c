@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.7 2016/04/21 01:29:35 deuce Exp $ */
+/* $Id: sbbsecho.c,v 3.8 2016/04/21 01:51:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4867,7 +4867,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.7 $", "%*s %s", revision);
+	sscanf("$Revision: 3.8 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5015,11 +5015,12 @@ int main(int argc, char **argv)
 	if(!cfg.cfgfile[0])
 		SAFEPRINTF(cfg.cfgfile,"%ssbbsecho.ini",scfg.ctrl_dir);
 
-	if(!cfg.ftndomainsfile[0])
-		SAFEPRINTF(cfg.ftndomainsfile,"%sftn_domains.ini",scfg.ctrl_dir);
-
 	if(!sbbsecho_read_ini(&cfg)) {
 		fprintf(stderr, "ERROR %d (%s) reading %s\n", errno, strerror(errno), cfg.cfgfile);
+		bail(1);
+	}
+	if(!sbbsecho_read_ftn_domains(&cfg, scfg.ctrl_dir)) {
+		fprintf(stderr, "ERROR %d (%s) reading %sftn_domains.ini\n", errno, strerror(errno), scfg.ctrl_dir);
 		bail(1);
 	}
 

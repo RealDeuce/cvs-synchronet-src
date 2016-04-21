@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.2 2016/04/21 01:29:35 deuce Exp $ */
+/* $Id: sbbsecho.h,v 3.3 2016/04/21 01:51:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,7 +135,6 @@ typedef struct {
 	char		areafile[MAX_PATH+1];	/* AREAS.BBS path/filename */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
-	char		ftndomainsfile[MAX_PATH+1];	/* ftn_domains.ini path/filename */
 	char		temp_dir[MAX_PATH+1];	/* Temporary file directory */
 	str_list_t	sysop_alias_list;		/* List of sysop aliases */
 	ulong		maxpktsize				/* Maximum size for packets */
@@ -186,6 +185,7 @@ char* mailStatusStringList[4];
 /* Function prototypes */
 /***********************/
 bool sbbsecho_read_ini(sbbsecho_cfg_t*);
+bool sbbsecho_read_ftn_domains(sbbsecho_cfg_t*, const char*);
 bool sbbsecho_write_ini(sbbsecho_cfg_t*);
 void bail(int code);
 fidoaddr_t atofaddr(const char *str);

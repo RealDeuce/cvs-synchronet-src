@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.3 2016/04/21 01:29:35 deuce Exp $ */
+/* $Id: echocfg.c,v 3.4 2016/04/21 01:51:02 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,24 +179,6 @@ int main(int argc, char **argv)
 		} 
 	}
 	SAFECOPY(cfg.cfgfile,str);
-
-	p=getenv("SBBSCTRL");
-	if(!p) {
-		p=getenv("SBBSNODE");
-		if(!p) {
-			printf("usage: echocfg [cfg_file]\n");
-			exit(1); 
-		}
-		strcpy(str,p);
-		backslash(str);
-		strcat(str,"../ctrl/ftn_domains.ini"); 
-	}
-	else {
-		strcpy(str,p);
-		backslash(str);
-		strcat(str,"ftn_domains.ini"); 
-	} 
-	SAFECOPY(cfg.ftndomainsfile,str);
 
 	if(!sbbsecho_read_ini(&cfg)) {
 		fprintf(stderr, "ERROR %d (%s) reading %s\n", errno, strerror(errno), cfg.cfgfile);
