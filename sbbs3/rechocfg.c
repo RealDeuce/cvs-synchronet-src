@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.7 2016/04/21 18:28:50 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.8 2016/04/21 22:01:11 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -417,8 +417,8 @@ bool sbbsecho_read_ftn_domains(sbbsecho_cfg_t* cfg, const char * ctrl_dir)
 			strListFree(&zones);
 		}
 		strListFree(&domains);
+		strListFree(&ini);
 	}
-	strListFree(&ini);
 	return true;
 }
 
