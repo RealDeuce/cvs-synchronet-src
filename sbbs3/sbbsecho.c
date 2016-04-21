@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.6 2016/04/19 06:13:39 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.7 2016/04/21 01:29:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,6 +99,36 @@ str_list_t	locked_bso_nodes;
 
 int mv(const char *insrc, const char *indest, bool copy);
 void export_echomail(const char *sub_code, const nodecfg_t*, bool rescan);
+
+const char default_domain[] = "fidonet";
+
+const char* zone_domain(uint16_t zone)
+{
+	struct zone_mapping *i;
+
+	if (!cfg.use_ftn_domains)
+		return default_domain;
+
+	for (i=cfg.zone_map; i; i=i->next)
+		if (i->zone == zone)
+			return i->domain;
+
+	return default_domain;
+}
+
+const char* zone_root_outbound(uint16_t zone)
+{
+	struct zone_mapping *i;
+
+	if (!cfg.use_ftn_domains)
+		return cfg.outbound;
+
+	for (i=cfg.zone_map; i; i=i->next)
+		if (i->zone == zone)
+			return i->root;
+
+	return cfg.outbound;
+}
 
 /* FTN-compliant "Program Identifier"/PID (also used as a "Tosser Identifier"/TID) */
 const char* sbbsecho_pid(void)
@@ -311,7 +341,7 @@ int get_outbound(fidoaddr_t dest, char* outbound, size_t maxlen, bool fileboxes)
 {
 	nodecfg_t*	nodecfg;
 
-	strncpy(outbound,cfg.outbound,maxlen);
+	strncpy(outbound,zone_root_outbound(dest.zone),maxlen);
 	if(fileboxes &&
 		(nodecfg = findnodecfg(&cfg, dest, /* exact */true)) != NULL
 		&& nodecfg->outbox[0])
@@ -604,8 +634,8 @@ bool new_pkthdr(fpkthdr_t* hdr, fidoaddr_t orig, fidoaddr_t dest, const nodecfg_
 
 	if(pkt_type == PKT_TYPE_2_2) {
 		hdr->type2_2.subversion = 2;	/* 2.2 */
-		strncpy((char*)hdr->type2_2.origdomn,"fidonet",sizeof(hdr->type2_2.origdomn));
-		strncpy((char*)hdr->type2_2.destdomn,"fidonet",sizeof(hdr->type2_2.destdomn));
+		strncpy((char*)hdr->type2_2.origdomn,zone_domain(orig.zone),sizeof(hdr->type2_2.origdomn));
+		strncpy((char*)hdr->type2_2.destdomn,zone_domain(dest.zone),sizeof(hdr->type2_2.destdomn));
 		return true;
 	}
 	
@@ -4837,7 +4867,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.6 $", "%*s %s", revision);
+	sscanf("$Revision: 3.7 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -4984,6 +5014,9 @@ int main(int argc, char **argv)
 
 	if(!cfg.cfgfile[0])
 		SAFEPRINTF(cfg.cfgfile,"%ssbbsecho.ini",scfg.ctrl_dir);
+
+	if(!cfg.ftndomainsfile[0])
+		SAFEPRINTF(cfg.ftndomainsfile,"%sftn_domains.ini",scfg.ctrl_dir);
 
 	if(!sbbsecho_read_ini(&cfg)) {
 		fprintf(stderr, "ERROR %d (%s) reading %s\n", errno, strerror(errno), cfg.cfgfile);
