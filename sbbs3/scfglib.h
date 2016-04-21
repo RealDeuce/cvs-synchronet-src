@@ -1,12 +1,14 @@
+/* scfglib.h */
+
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.22 2017/11/24 21:35:10 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.19 2004/09/08 03:39:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
