@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.15 2014/02/13 08:50:02 deuce Exp $ */
+/* $Id: chat.c,v 1.16 2016/04/06 02:15:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,7 +269,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 		close(out);
 	togglechat(cfg,nodenum,node,FALSE);
 	puttext(1,1,ti.screenwidth,ti.screenheight,buf);
-	window(ti.winleft,ti.wintop,ti.winright,ti.wintop);
+	window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
 	gotoxy(ti.curx,ti.cury);
 	textattr(ti.attribute);
 	return(0);
