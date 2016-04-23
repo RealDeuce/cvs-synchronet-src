@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.355 2016/01/03 01:20:05 rswindell Exp $ */
+/* $Id: js_global.c,v 1.359 2016/04/23 02:58:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,6 +254,9 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 	global_private_t*	p;
 	jsval		val;
 	JSObject*	js_argv;
+	jsval		old_js_argv = JSVAL_VOID;
+	jsval		old_js_argc = JSVAL_VOID;
+	BOOL		restore_args = FALSE;
 	JSObject*	exec_obj;
 	JSObject*	js_internal;
 	JSContext*	exec_cx=cx;
@@ -331,6 +334,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 				,p->startup		/* js */
 				,NULL			/* client */
 				,INVALID_SOCKET	/* client_socket */
+				,-1				/* client TLS session */
 				,NULL			/* server props */
 				,&bg->obj
 				)) {
@@ -446,6 +450,13 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		if(background) {
 			rc=JS_SUSPENDREQUEST(cx);
 			JS_RESUMEREQUEST(bg->cx, brc);
+		}
+		else {
+			JS_GetProperty(exec_cx, exec_obj, "argv", &old_js_argv);
+			JS_AddValueRoot(exec_cx, &old_js_argv);
+			JS_GetProperty(exec_cx, exec_obj, "argc", &old_js_argc);
+			JS_AddValueRoot(exec_cx, &old_js_argc);
+			restore_args = TRUE;
 		}
 
 		if((js_argv=JS_NewArrayObject(exec_cx, 0, NULL)) == NULL) {
@@ -597,6 +608,21 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 			free(bg);
 			JS_RESUMEREQUEST(cx, rc);
 		}
+		// Restore args
+		if (restore_args) {
+			if (old_js_argv == JSVAL_VOID) {
+				JS_DeleteProperty(exec_cx, exec_obj, "argv");
+				JS_DeleteProperty(exec_cx, exec_obj, "argc");
+			}
+			else {
+				JS_DefineProperty(exec_cx, exec_obj, "argv", old_js_argv
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+				JS_DefineProperty(exec_cx, exec_obj, "argc", old_js_argc
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+			}
+		}
+		JS_RemoveValueRoot(exec_cx, &old_js_argv);
+		JS_RemoveValueRoot(exec_cx, &old_js_argc);
 		return(JS_FALSE);
 	}
 
@@ -623,6 +649,20 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 
 		success = JS_ExecuteScript(exec_cx, exec_obj, script, &rval);
 		JS_SET_RVAL(cx, arglist, rval);
+		if (restore_args) {
+			if (old_js_argv == JSVAL_VOID) {
+				JS_DeleteProperty(exec_cx, exec_obj, "argv");
+				JS_DeleteProperty(exec_cx, exec_obj, "argc");
+			}
+			else {
+				JS_DefineProperty(exec_cx, exec_obj, "argv", old_js_argv
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+				JS_DefineProperty(exec_cx, exec_obj, "argc", old_js_argc
+					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
+			}
+			JS_RemoveValueRoot(exec_cx, &old_js_argv);
+			JS_RemoveValueRoot(exec_cx, &old_js_argc);
+		}
 	}
 
     return(success);
@@ -2312,6 +2352,21 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 
 		if(strcmp(token,"hellip")==0) {	/* horizontal ellipsis  */
 			j+=sprintf(outbuf+j,"...");
+			continue;
+		}
+
+		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
+			outbuf[j++]='\'';	/* single quotation mark */
+			continue;
+		}
+
+		if(strcmp(token,"ldquo")==0 || strcmp(token,"rdquo")==0) {
+			outbuf[j++]='"';	/* double quotation mark */
+			continue;
+		}
+
+		if(strcmp(token,"ndash")==0 || strcmp(token,"mdash")==0) {
+			outbuf[j++]='-';	/* dash */
 			continue;
 		}
 
