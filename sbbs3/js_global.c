@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.358 2016/04/23 01:51:09 deuce Exp $ */
+/* $Id: js_global.c,v 1.359 2016/04/23 02:58:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -621,6 +621,8 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 			}
 		}
+		JS_RemoveValueRoot(exec_cx, &old_js_argv);
+		JS_RemoveValueRoot(exec_cx, &old_js_argc);
 		return(JS_FALSE);
 	}
 
@@ -658,6 +660,8 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 				JS_DefineProperty(exec_cx, exec_obj, "argc", old_js_argc
 					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 			}
+			JS_RemoveValueRoot(exec_cx, &old_js_argv);
+			JS_RemoveValueRoot(exec_cx, &old_js_argc);
 		}
 	}
 

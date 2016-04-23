@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.103 2016/04/23 01:51:09 deuce Exp $ */
+/* $Id: exec.cpp,v 1.104 2016/04/23 02:58:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -674,6 +674,8 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 				JS_DefineProperty(js_cx, scope, "argc", old_js_argc
 					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 			}
+			JS_RemoveValueRoot(js_cx, &old_js_argv);
+			JS_RemoveValueRoot(js_cx, &old_js_argc);
 		}
 		return -1;
 	}
@@ -717,6 +719,8 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 			JS_DefineProperty(js_cx, scope, "argc", old_js_argc
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 		}
+		JS_RemoveValueRoot(js_cx, &old_js_argv);
+		JS_RemoveValueRoot(js_cx, &old_js_argc);
 	}
 
 	JS_GC(js_cx);
