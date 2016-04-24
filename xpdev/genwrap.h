@@ -1,7 +1,8 @@
+/* genwrap.h */
+
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.110 2017/11/05 04:20:05 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: genwrap.h,v 1.107 2016/01/18 09:59:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -369,9 +370,6 @@ DLLEXPORT char		DLLCALL c_unescape_char(char ch);
 /* Power-of-2 byte count string parser (e.g. "100K" returns 102400 if unit is 1) */
 DLLEXPORT int64_t	DLLCALL	parse_byte_count(const char*, ulong unit);
 DLLEXPORT double	DLLCALL parse_duration(const char*);
-DLLEXPORT char*		DLLCALL duration_to_str(double value, char* str, size_t size);
-DLLEXPORT char*		DLLCALL duration_to_vstr(double value, char* str, size_t size);
-DLLEXPORT char*		DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
 typedef		clock_t				msclock_t;
