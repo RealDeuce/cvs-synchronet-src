@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.83 2015/04/25 06:10:16 deuce Exp $ */
+/* $Id: js_internal.c,v 1.85 2015/09/26 05:06:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,6 +64,7 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	jsval idval;
     jsint			tiny;
 	js_callback_t*	cb;
+	js_callback_t*	top_cb;
 
 	if((cb=(js_callback_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -76,10 +77,16 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			*vp=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,(char *)JS_GetImplementationVersion()));
 			break;
 		case PROP_TERMINATED:
-			if(cb->terminated==NULL)
+			for(top_cb=cb; top_cb->bg && top_cb->parent_cb; top_cb=top_cb->parent_cb) {
+				if(top_cb->terminated && *top_cb->terminated) {
+					*vp=BOOLEAN_TO_JSVAL(TRUE);
+					return JS_TRUE;
+				}
+			}
+			if(top_cb->terminated==NULL)
 				*vp=JSVAL_FALSE;
 			else
-				*vp=BOOLEAN_TO_JSVAL(*cb->terminated);
+				*vp=BOOLEAN_TO_JSVAL(*top_cb->terminated);
 			break;
 		case PROP_AUTO_TERMINATE:
 			*vp=BOOLEAN_TO_JSVAL(cb->auto_terminate);
@@ -223,6 +230,7 @@ static char* prop_desc[] = {
 	,"JS filename executed (with no path)"
 	,"directory of executed JS file"
 	,"Either the configured startup directory in SCFG (for externals) or the cwd when jsexec is started"
+	,"global scope for this script"
 	,NULL
 };
 #endif
@@ -230,14 +238,19 @@ static char* prop_desc[] = {
 JSBool DLLCALL
 js_CommonOperationCallback(JSContext *cx, js_callback_t* cb)
 {
+	js_callback_t *top_cb;
+
 	cb->counter++;
 
 	/* Terminated? */
-	if(cb->auto_terminate &&
-		(cb->terminated!=NULL && *cb->terminated)) {
-		JS_ReportWarning(cx,"Terminated");
-		cb->counter=0;
-		return(JS_FALSE);
+	if(cb->auto_terminate) {
+		for(top_cb=cb; top_cb; top_cb=top_cb->parent_cb) {
+			if (top_cb->terminated!=NULL && *top_cb->terminated) {
+				JS_ReportWarning(cx,"Terminated");
+				cb->counter=0;
+				return(JS_FALSE);
+			}
+		}
 	}
 
 	/* Infinite loop? */
