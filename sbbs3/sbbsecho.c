@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.10 2016/04/21 05:29:15 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.11 2016/04/27 21:15:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -961,8 +961,10 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 								for(y=0;y<cfg.areas;y++)
 									if(!stricmp(cfg.area[y].name,p))
 										break;
-								if(y>=cfg.areas || !area_is_linked(y,&addr))
-									strListPush(&area_list, p); 
+								if(y>=cfg.areas || !area_is_linked(y,&addr)) {
+									if(strListFind(area_list, p, /* case_sensitive */false) < 0)
+										strListPush(&area_list, p);
+								}
 							}
 							fclose(fp);
 							match=1;
@@ -4867,7 +4869,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.10 $", "%*s %s", revision);
+	sscanf("$Revision: 3.11 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
