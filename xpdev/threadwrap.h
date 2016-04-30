@@ -2,7 +2,7 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.47 2014/02/09 11:37:07 deuce Exp $ */
+/* $Id: threadwrap.h,v 1.49 2015/10/04 22:09:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,6 +123,14 @@ DLLEXPORT int DLLCALL pthread_mutex_destroy(pthread_mutex_t*);
 
 #define SetThreadName(c)
 
+// A structure in case we need to add an event or something...
+typedef struct {
+	uint32_t	state;
+} pthread_once_t;
+
+#define PTHREAD_ONCE_INIT	{0};
+DLLEXPORT int DLLCALL pthread_once(pthread_once_t *oc, void (*init)(void));
+
 #endif
 
 #if !defined(PTHREAD_MUTEX_INITIALIZER_NP)
@@ -168,13 +176,17 @@ DLLEXPORT int DLLCALL protected_int64_init(protected_int64_t*,	int64_t value);
 #define protected_uint64_init(i, val)	protected_int64_init((protected_int64_t*)i, val)
 
 /* Return new value: */
-DLLEXPORT int32_t DLLCALL protected_int32_adjust(protected_int32_t*,	int32_t adjustment);
+DLLEXPORT int32_t DLLCALL protected_int32_adjust(protected_int32_t*, int32_t adjustment);
+DLLEXPORT int32_t DLLCALL protected_int32_set(protected_int32_t*, int32_t val);
 #define protected_int32_value(i)		protected_int32_adjust(&i,0)
-DLLEXPORT uint32_t DLLCALL protected_uint32_adjust(protected_uint32_t*,int32_t adjustment);
+DLLEXPORT uint32_t DLLCALL protected_uint32_adjust(protected_uint32_t*, int32_t adjustment);
+DLLEXPORT uint32_t DLLCALL protected_uint32_set(protected_uint32_t*, uint32_t val);
 #define protected_uint32_value(i)		protected_uint32_adjust(&i,0)
-DLLEXPORT int64_t DLLCALL protected_int64_adjust(protected_int64_t*,	int64_t adjustment);
+DLLEXPORT int64_t DLLCALL protected_int64_adjust(protected_int64_t*, int64_t adjustment);
+DLLEXPORT int64_t DLLCALL protected_int64_set(protected_int64_t*, int64_t val);
 #define protected_int64_value(i)		protected_int64_adjust(&i,0)
-DLLEXPORT uint64_t DLLCALL protected_uint64_adjust(protected_uint64_t*,int64_t adjustment);
+DLLEXPORT uint64_t DLLCALL protected_uint64_adjust(protected_uint64_t*, int64_t adjustment);
+DLLEXPORT uint64_t DLLCALL protected_uint64_set(protected_uint64_t*, uint64_t adjustment);
 #define protected_uint64_value(i)		protected_uint64_adjust(&i,0)
 
 /* Return 0 on success, non-zero on failure (see pthread_mutex_destroy): */
