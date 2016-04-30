@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.171 2016/10/17 21:54:28 rswindell Exp $ */
+/* $Id: userdat.c,v 1.164 2015/12/07 09:16:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,8 +44,6 @@
 /* convenient space-saving global variables */
 char* crlf="\r\n";
 char* nulstr="";
-
-static const char* strIpFilterExemptConfigFile = "ipfilter_exempt.cfg";
 
 #define VALID_CFG(cfg)	(cfg!=NULL && cfg->size==sizeof(scfg_t))
 
@@ -221,7 +219,7 @@ int DLLCALL readuserdat(scfg_t* cfg, unsigned user_number, char* userdat, int in
 	if(!VALID_CFG(cfg) || user_number<1)
 		return(-1); 
 
-	if(infile >= 0)
+	if(infile > 0)
 		file = infile;
 	else {
 		if((file = openuserdat(cfg)) < 0)
@@ -450,22 +448,6 @@ static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 			break; 
 		} 
 	}
-}
-
-/****************************************************************************/
-/****************************************************************************/
-int DLLCALL is_user_online(scfg_t* cfg, uint usernumber)
-{
-	int i;
-	node_t	node;
-
-	for(i=1; i<=cfg->sys_nodes; i++) {
-		getnodedat(cfg, i, &node, 0);
-		if((node.status==NODE_INUSE || node.status==NODE_QUIET
-			|| node.status==NODE_LOGON) && node.useron==usernumber)
-			return i; 
-	}
-	return 0;
 }
 
 /****************************************************************************/
@@ -2708,18 +2690,11 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const 
 					   ,const char* ip_addr, const char* username, const char* fname)
 {
 	char	ip_can[MAX_PATH+1];
-	char	exempt[MAX_PATH+1];
 	char	tstr[64];
     FILE*	fp;
     time32_t now=time32(NULL);
 
 	if(ip_addr==NULL)
-		return(FALSE);
-
-	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
-	if(findstr(ip_addr, exempt))
-		return(FALSE);
-	if(findstr(host, exempt))
 		return(FALSE);
 
 	SAFEPRINTF(ip_can,"%sip.can",cfg->text_dir);
@@ -2835,25 +2810,25 @@ static list_node_t* login_attempted(link_list_t* list, const union xp_sockaddr* 
 {
 	list_node_t*		node;
 	login_attempt_t*	attempt;
+	struct in6_addr		ia;
 
 	if(list==NULL)
 		return NULL;
 	for(node=list->first; node!=NULL; node=node->next) {
 		attempt=node->data;
-		if(attempt->addr.addr.sa_family != addr->addr.sa_family)
-			continue;
 		switch(addr->addr.sa_family) {
 			case AF_INET:
-				if(memcmp(&attempt->addr.in.sin_addr, &addr->in.sin_addr, sizeof(addr->in.sin_addr)) == 0)
-					return node;
+				memset(&ia, 0, sizeof(ia));
+				memcpy(&ia, &addr->in.sin_addr, sizeof(addr->in.sin_addr));
 				break;
 			case AF_INET6:
-				if(memcmp(&attempt->addr.in6.sin6_addr, &addr->in6.sin6_addr, sizeof(addr->in6.sin6_addr)) == 0)
-					return node;
+				ia = addr->in6.sin6_addr;
 				break;
 		}
+		if(memcmp(&attempt->addr,&ia,sizeof(attempt->addr))==0)
+			break;
 	}
-	return NULL;
+	return node;
 }
 
 /****************************************************************************/
@@ -2913,67 +2888,13 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	SAFECOPY(attempt->user, user);
 	SAFECOPY(attempt->pass, pass);
 	attempt->count++;
-	count = attempt->count - attempt->dupes;
+	count = attempt->count-attempt->dupes;
 	if(node==NULL)
 		listPushNodeData(list, attempt, sizeof(login_attempt_t));
 	listUnlock(list);
 
 	return count;
 }
-
-#if !defined(NO_SOCKET_SUPPORT)
-ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const char* host_name
-	,struct login_attempt_settings settings, login_attempt_t* details)
-{
-	char				ip_addr[128];
-	list_node_t*		node;
-	login_attempt_t*	attempt;
-	BOOL				result = FALSE;
-	time32_t			now = time32(NULL);
-	union xp_sockaddr	client_addr;
-	union xp_sockaddr	server_addr;
-	socklen_t			addr_len;
-	char				exempt[MAX_PATH+1];
-
-	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
-
-	if(list==NULL)
-		return 0;
-
-	addr_len=sizeof(server_addr);
-	if((result=getsockname(sock, &server_addr.addr, &addr_len)) != 0)
-		return 0;
-
-	addr_len=sizeof(client_addr);
-	if((result=getpeername(sock, &client_addr.addr, &addr_len)) != 0)
-		return 0;
-
-	/* Don't ban connections from the server back to itself */
-	if(inet_addrmatch(&server_addr, &client_addr))
-		return 0;
-
-	if(inet_addrtop(&client_addr, ip_addr, sizeof(ip_addr)) != NULL 
-		&& findstr(ip_addr, exempt))
-		return 0;
-	if(host_name != NULL
-		&& findstr(host_name, exempt))
-		return 0;
-
-	listLock(list);
-	node = login_attempted(list, &client_addr);
-	listUnlock(list);
-	if(node == NULL)
-		return 0;
-	attempt = node->data;
-	if(((settings.tempban_threshold && (attempt->count - attempt->dupes) >= settings.tempban_threshold)
-		|| trashcan(cfg, attempt->user, "name")) && now < (time32_t)(attempt->time + settings.tempban_duration)) {
-		if(details != NULL)
-			*details = *attempt;
-		return settings.tempban_duration - (now - attempt->time);
-	}
-	return 0;
-}
-#endif
 
 /****************************************************************************/
 /* Message-new-scan pointer/configuration functions							*/
