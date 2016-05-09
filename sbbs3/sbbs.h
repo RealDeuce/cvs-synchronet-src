@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.422 2015/11/26 13:15:21 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.427 2016/01/21 09:53:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -398,6 +398,7 @@ public:
 			*logfile_fp;
 
 	int 	nodefile;		/* File handle for node.dab */
+	pthread_mutex_t	nodefile_mutex;
 	int		node_ext;		/* File handle for node.exb */
 	int 	inputfile;		/* File handle to use for input */
 
@@ -645,7 +646,7 @@ public:
 	void	show_msgattr(ushort attr);
 	void	show_msghdr(smbmsg_t* msg);
 	void	show_msg(smbmsg_t* msg, long mode);
-	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
+	void	msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode);
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
@@ -879,7 +880,6 @@ public:
 	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
-	int		qwk_route(char *inaddr, char *fulladdr);
 	uint	total_qwknodes;
 	struct qwknode {
 		char	id[LEN_QWKID+1];
@@ -909,7 +909,7 @@ public:
 	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat);
 
 	/* qwktomsg.cpp */
-	void	qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
+	void	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
 	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, uint subnum
 				,uint touser, smbmsg_t* msg);
 
@@ -1108,6 +1108,9 @@ extern "C" {
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
 
+	/* qwk.cpp */
+	DLLEXPORT int		qwk_route(scfg_t*, const char *inaddr, char *fulladdr, size_t maxlen);
+
 #ifdef JAVASCRIPT
 
 	typedef struct {
@@ -1164,6 +1167,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1175,9 +1179,11 @@ extern "C" {
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
+													,CRYPT_CONTEXT session		/* client */
 													,js_server_props_t* props	/* server */
 													,JSObject** glob
 													);
+#endif
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1209,8 +1215,10 @@ extern "C" {
 													,char* socklib_desc);
 
 	/* js_client.c */
+#ifdef USE_CRYPTLIB
 	DLLEXPORT JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
-													,const char* name, client_t* client, SOCKET sock);
+													,const char* name, client_t* client, SOCKET sock, CRYPT_CONTEXT session);
+#endif
 	/* js_user.c */
 	DLLEXPORT JSObject*	DLLCALL js_CreateUserClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg
@@ -1238,8 +1246,10 @@ extern "C" {
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent
-													,char *name, SOCKET sock);
+													,char *name, SOCKET sock, CRYPT_CONTEXT session);
+#endif
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketObjectFromSet(JSContext* cx, JSObject* parent
 													,char *name, struct xpms_set *set);
 
