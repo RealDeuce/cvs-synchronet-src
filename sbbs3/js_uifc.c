@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.36 2016/01/10 07:15:37 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.39 2016/01/13 00:54:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -439,10 +439,16 @@ js_uifc_init(JSContext *cx, uintN argc, jsval *arglist)
 				ciolib_mode=CIOLIB_MODE_AUTO;
 			else if(!stricmp(mode,"X"))
 				ciolib_mode=CIOLIB_MODE_X;
+			else if(!stricmp(mode,"CURSES"))
+				ciolib_mode=CIOLIB_MODE_CURSES;
 			else if(!stricmp(mode,"ANSI"))
 				ciolib_mode=CIOLIB_MODE_ANSI;
 			else if(!stricmp(mode,"CONIO"))
 				ciolib_mode=CIOLIB_MODE_CONIO;
+			else if(!stricmp(mode,"SDL"))
+				ciolib_mode=CIOLIB_MODE_SDL;
+			else if(!stricmp(mode,"OVERLAY"))
+				ciolib_mode=CIOLIB_MODE_SDL_YUV;
 		}
 	}
 
@@ -492,6 +498,24 @@ js_uifc_bail(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	uifc->bail();
+	JS_RESUMEREQUEST(cx, rc);
+	return(JS_TRUE);
+}
+
+static JSBool
+js_uifc_showhelp(JSContext *cx, uintN argc, jsval *arglist)
+{
+	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
+	uifcapi_t* uifc;
+	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if((uifc=get_uifc(cx,obj))==NULL)
+		return(JS_FALSE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	uifc->showhelp();
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -746,8 +770,9 @@ js_finalize(JSContext *cx, JSObject *obj)
 }
 
 static jsSyncMethodSpec js_functions[] = {
-	{"init",            js_uifc_init,       1,	JSTYPE_BOOLEAN,	JSDOCSTR("string title")
-	,JSDOCSTR("initialize")
+	{"init",            js_uifc_init,       1,	JSTYPE_BOOLEAN,	JSDOCSTR("string title [, string mode]")
+	,JSDOCSTR("initialize.  <tt>mode</tt> is a string representing the desired conio mode... one of STDIO, AUTO, "
+	"X, CURSES, ANSI, CONIO, SDL, or OVERLAY.")
 	,314
 	},		
 	{"bail",			js_uifc_bail,		0,	JSTYPE_VOID,	JSDOCSTR("")
@@ -772,6 +797,10 @@ static jsSyncMethodSpec js_functions[] = {
 		"The context object has the following properties:<br>cur, bar, top, left, width"
 	)
 	,314
+	},
+	{"showhelp",		js_uifc_showhelp,	0,	JSTYPE_VOID,	JSDOCSTR("")
+	,JSDOCSTR("Shows the current help text")
+	,317
 	},
 	{0}
 };
