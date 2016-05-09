@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.5 2016/04/21 02:24:32 deuce Exp $ */
+/* $Id: sbbsecho.h,v 3.6 2016/05/09 09:28:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,6 +157,7 @@ typedef struct {
 	bool		zone_blind;				/* Pretend zones don't matter when parsing and constructing PATH and SEEN-BY lines (per Wilfred van Velzen, 2:280/464) */
 	uint16_t	zone_blind_threshold;	/* Zones below this number (e.g. 4) will be treated as the same zone when zone_blind is enabled */
 	bool		secure_echomail;
+	bool		strict_packet_passwords;	/* Packet passwords must always match the configured linked-node */
 	bool		strip_lf;
 	bool		convert_tear;
 	bool		fuzzy_zone;
