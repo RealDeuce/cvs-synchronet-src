@@ -125,7 +125,7 @@ object ServicesForm: TServicesForm
     Left = 0
     Top = 25
     Width = 721
-    Height = 144
+    Height = 145
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -134,7 +134,6 @@ object ServicesForm: TServicesForm
     Font.Style = []
     HideScrollBars = False
     ParentFont = False
-    PopupMenu = MainForm.LogPopupMenu
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 1
