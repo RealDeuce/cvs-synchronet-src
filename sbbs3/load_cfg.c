@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.67 2016/11/16 05:37:31 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.66 2016/01/06 06:29:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -329,9 +329,7 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 			,MIN_COLORS);
 		return(FALSE);
 	}
-	/* Setup default colors here: */
-	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);
-	cfg->color[clr_backfill] = WHITE|BG_MAGENTA;
+	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);	
 	for(cfg->total_colors=0;!feof(instream) && !ferror(instream);cfg->total_colors++) {
 		if(readline(&offset,str,4,instream)==NULL)
 			break;
