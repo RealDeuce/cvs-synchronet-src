@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.631 2015/12/02 05:11:24 deuce Exp $ */
+/* $Id: websrvr.c,v 1.634 2016/05/18 10:15:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -522,9 +522,11 @@ static int lprintf(int level, const char *fmt, ...)
     va_end(argptr);
 
 	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, sbuf);
+		char errmsg[sizeof(sbuf)+16];
+		SAFEPRINTF(errmsg, "web %s", sbuf);
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, errmsg);
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,sbuf);
+			startup->errormsg(startup->cbdata,level,errmsg);
 	}
 
     if(startup==NULL || startup->lputs==NULL || level > startup->log_level)
@@ -1778,18 +1780,18 @@ static void badlogin(SOCKET sock, const char* prot, const char* user, const char
 
 	SAFEPRINTF(reason,"%s LOGIN", prot);
 	count=loginFailure(startup->login_attempt_list, addr, prot, user, passwd);
-	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold) {
+	if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold) {
 		hacklog(&scfg, reason, user, passwd, host, addr);
 #ifdef _WIN32
 		if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 	}
-	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
+	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold)
 		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
 			,host, inet_addrtop(addr, addrstr, sizeof(addrstr)), user, /* fname: */NULL);
 	if(count>1)
-		mswait(startup->login_attempt_delay);
+		mswait(startup->login_attempt.delay);
 }
 
 static BOOL check_ars(http_session_t * session)
@@ -5521,9 +5523,6 @@ static JSContext*
 js_initcx(http_session_t *session)
 {
 	JSContext*	js_cx;
-	jsval		val;
-	JSObject*	obj;
-	js_socket_private_t* p;
 
 	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing context (stack: %lu bytes)"
 		,session->socket,startup->js.cx_stack);
@@ -5548,6 +5547,7 @@ js_initcx(http_session_t *session)
 									,&startup->js				/* js */
 									,&session->client			/* client */
 									,session->socket			/* client */
+									,session->tls_sess			/* client */
 									,&js_server_props			/* server */
 									,&session->js_glob
 		)
@@ -5556,14 +5556,6 @@ js_initcx(http_session_t *session)
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		return(NULL);
-	}
-	if (session->is_tls) {
-		JS_GetProperty(js_cx, session->js_glob, "client", &val);
-		obj=JSVAL_TO_OBJECT(val);
-		JS_GetProperty(js_cx, obj, "socket", &val);
-		obj=JSVAL_TO_OBJECT(val);
-		p=(js_socket_private_t*)JS_GetPrivate(js_cx,obj);
-		p->session=session->tls_sess;
 	}
 
 	return(js_cx);
@@ -6254,9 +6246,11 @@ void http_session_thread(void* arg)
 		}
 	}
 
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, &session.addr,  startup->login_attempt);
+
 	/* host_ip wasn't defined in http_session_thread */
-	if(trashcan(&scfg,session.host_ip,"ip")) {
-		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
+	if((banned && lprintf(LOG_NOTICE, "%04d %s is TEMPORARILY BANNED (%lu more seconds)", socket, session.host_ip, banned))
+		|| (trashcan(&scfg,session.host_ip,"ip") && lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip))) {
 		close_session_socket(&session);
 		sem_wait(&session.output_thread_terminated);
 		sem_destroy(&session.output_thread_terminated);
@@ -6278,11 +6272,11 @@ void http_session_thread(void* arg)
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
 
-	if(startup->login_attempt_throttle
+	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &session.addr)) > 1) {
 		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
 			,socket, session.client.protocol, session.host_ip, login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
+		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
 	session.last_user_num=-1;
@@ -6483,7 +6477,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.631 $", "%*s %s", revision);
+	sscanf("$Revision: 1.634 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
