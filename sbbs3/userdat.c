@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.165 2016/05/09 05:50:06 rswindell Exp $ */
+/* $Id: userdat.c,v 1.166 2016/05/18 10:15:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2888,12 +2888,32 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	SAFECOPY(attempt->user, user);
 	SAFECOPY(attempt->pass, pass);
 	attempt->count++;
-	count = attempt->count-attempt->dupes;
+	count = attempt->count - attempt->dupes;
 	if(node==NULL)
 		listPushNodeData(list, attempt, sizeof(login_attempt_t));
 	listUnlock(list);
 
 	return count;
+}
+
+ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, const union xp_sockaddr* addr, struct login_attempt_settings settings)
+{
+	list_node_t*		node;
+	login_attempt_t*	attempt;
+	BOOL				result = FALSE;
+	long				diff;
+	time32_t			now = time32(NULL);
+
+	listLock(list);
+	node = login_attempted(list, addr);
+	listUnlock(list);
+	if(node == NULL)
+		return 0;
+	attempt = node->data;
+	if(((settings.tempban_threshold && (attempt->count - attempt->dupes) >= settings.tempban_threshold)
+		|| trashcan(cfg, attempt->user, "name")) && now < (attempt->time + settings.tempban_duration))
+		return settings.tempban_duration - (now - attempt->time);
+	return 0;
 }
 
 /****************************************************************************/
