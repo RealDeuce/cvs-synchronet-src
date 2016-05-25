@@ -1,11 +1,12 @@
 /* pktdump.c */
 
-/* $Id$ */
+/* $Id: pktdump.c,v 1.9 2016/05/25 01:49:16 sbbs Exp $ */
 
 #include "fidodefs.h"
 #include "xpendian.h"	/* swap */
 #include "dirwrap.h"	/* _PATH_DEVNULL */
 #include <stdio.h>
+#include <string.h>
 
 FILE* nulfp;
 FILE* bodyfp;
@@ -63,7 +64,7 @@ int pktdump(FILE* fp, const char* fname)
 	fpkdmsg_t	pkdmsg;
 
 	if(fread(&pkthdr,sizeof(pkthdr),1,fp) != 1) {
-		fprintf(stderr,"%s !Error reading pkthdr (%u bytes)\n"
+		fprintf(stderr,"%s !Error reading pkthdr (%lu bytes)\n"
 			,fname,sizeof(pkthdr));
 		return(-1);
 	}
@@ -175,7 +176,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision$", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
@@ -193,15 +194,15 @@ int main(int argc, char** argv)
 	bodyfp=nulfp;
 
 	if(sizeof(fpkthdr_t)!=FIDO_PACKET_HDR_LEN) {
-		printf("sizeof(fpkthdr_t)=%d, expected: %d\n",sizeof(fpkthdr_t),FIDO_PACKET_HDR_LEN);
+		printf("sizeof(fpkthdr_t)=%lu, expected: %d\n",sizeof(fpkthdr_t),FIDO_PACKET_HDR_LEN);
 		return(-1);
 	}
 	if(sizeof(fpkdmsg_t)!=FIDO_PACKED_MSG_HDR_LEN) {
-		printf("sizeof(fpkdmsg_t)=%d, expected: %d\n",sizeof(fpkdmsg_t),FIDO_PACKED_MSG_HDR_LEN);
+		printf("sizeof(fpkdmsg_t)=%lu, expected: %d\n",sizeof(fpkdmsg_t),FIDO_PACKED_MSG_HDR_LEN);
 		return(-1);
 	}
 	if(sizeof(fmsghdr_t)!=FIDO_STORED_MSG_HDR_LEN) {
-		printf("sizeof(fmsghdr_t)=%d, expected: %d\n",sizeof(fmsghdr_t),FIDO_STORED_MSG_HDR_LEN);
+		printf("sizeof(fmsghdr_t)=%lu, expected: %d\n",sizeof(fmsghdr_t),FIDO_STORED_MSG_HDR_LEN);
 		return(-1);
 	}
 
