@@ -1,7 +1,8 @@
+/* jsexec.c */
+
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.188 2017/11/28 09:42:56 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: jsexec.c,v 1.183 2016/01/21 09:52:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -876,7 +877,6 @@ long js_exec(const char *fname, char** args)
 	int32		result=0;
 	long double	start;
 	long double	diff;
-	JSBool		exec_result;
 
 	if(fname!=NULL) {
 		if(isfullpath(fname)) {
@@ -982,7 +982,7 @@ long js_exec(const char *fname, char** args)
 	start=xp_timer();
 	if(debugger)
 		debug_prompt(js_cx, js_script);
-	exec_result = JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
 		char	*p;
@@ -991,8 +991,7 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
 		free(p);
 		JS_ValueToInt32(js_cx,rval,&result);
-	} else if(!exec_result)
-		result = EXIT_FAILURE;
+	}
 	js_EvalOnExit(js_cx, js_glob, &cb);
 
 	JS_ReportPendingException(js_cx);
@@ -1096,8 +1095,7 @@ int main(int argc, char **argv, char** environ)
 		raw_input(&term);
 		tcsetattr(fileno(stdin), TCSANOW, &term);
 #else
-	//	This completely disabled console input on Windows:
-	//	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 #endif
 		statfp=stderr;
 	}
@@ -1109,7 +1107,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.188 $", "%*s %s", revision);
+	sscanf("$Revision: 1.183 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
