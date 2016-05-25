@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.38 2015/11/27 11:17:53 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.39 2016/04/20 02:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -562,7 +562,7 @@ typedef struct
 	char			smtpmail_sem[LEN_DIR+1];	/* Inbound Internet Mail semaphore file */
 	char			inetmail_sem[LEN_DIR+1];	/* Outbound Internet Mail semaphore file */
 	char			echomail_dir[LEN_DIR+1];	/* Directory to store echomail in */
-	char 			fidofile_dir[LEN_DIR+1];	/* Directory where inbound files go */
+	char 			fidofile_dir[LEN_DIR+1];	/* Directory where inbound files go (deprecated and not used) */
 	char			netmail_sem[LEN_DIR+1];		/* FidoNet NetMail semaphore */
 	char 			echomail_sem[LEN_DIR+1];	/* FidoNet EchoMail semaphore  */
 	char		 	origline[51];		/* Default EchoMail origin line */
