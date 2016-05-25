@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetFormUnit.cpp,v 1.6 2017/11/28 05:21:28 rswindell Exp $ */
+/* $Id: TelnetFormUnit.cpp,v 1.4 2009/01/24 22:23:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -61,6 +61,7 @@ void __fastcall TTelnetForm::LogLevelUpDownChangingEx(TObject *Sender,
     else {
         MainForm->bbs_startup.log_level = NewValue;
         LogLevelText->Caption = LogLevelDesc[NewValue];
+        MainForm->SaveIniSettings(Sender);
     }
 }
 //---------------------------------------------------------------------------

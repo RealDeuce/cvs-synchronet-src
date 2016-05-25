@@ -1,7 +1,8 @@
+/* js_global.c */
+
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.366 2017/11/16 07:22:54 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: js_global.c,v 1.362 2016/04/24 00:41:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,7 +124,7 @@ static void background_thread(void* arg)
 	jsval result=JSVAL_VOID;
 	jsval exit_code;
 
-	SetThreadName("sbbs/jsBackgrnd");
+	SetThreadName("JS Background");
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
 	JS_BEGINREQUEST(bg->cx);
@@ -2418,11 +2419,6 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			continue;
 		}
 
-		if(strcmp(token,"bull")==0) {	/* bullet  */
-			outbuf[j++] = 249;
-			continue;
-		}
-
 		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
 			outbuf[j++]='\'';	/* single quotation mark */
 			continue;
@@ -3168,32 +3164,6 @@ js_fdate(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	fd=fdate(p);
-	free(p);
-	JS_RESUMEREQUEST(cx, rc);
-	JS_SET_RVAL(cx, arglist,DOUBLE_TO_JSVAL((double)fd));
-	return(JS_TRUE);
-}
-
-static JSBool
-js_fcdate(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p;
-	time_t		fd;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if(argc==0 || JSVAL_IS_VOID(argv[0]))
-		return(JS_TRUE);
-
-	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL)
-	HANDLE_PENDING(cx);
-	if(p==NULL) 
-		return(JS_TRUE);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	fd=fcdate(p);
 	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 	JS_SET_RVAL(cx, arglist,DOUBLE_TO_JSVAL((double)fd));
@@ -4168,10 +4138,6 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
 	,JSDOCSTR("get a file's last modified date/time (in time_t format)")
 	,310
-	},
-	{"file_cdate",		js_fcdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's creation date/time (in time_t format)")
-	,317
 	},
 	{"file_size",		js_flength,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
 	,JSDOCSTR("get a file's length (in bytes)")
