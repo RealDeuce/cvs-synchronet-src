@@ -1,7 +1,8 @@
-/* Directory-related system-call wrappers */
-// vi: tabstop=4
+/* dirwrap.c */
 
-/* $Id: dirwrap.c,v 1.93 2017/11/16 07:16:28 rswindell Exp $ */
+/* Directory-related system-call wrappers */
+
+/* $Id: dirwrap.c,v 1.91 2016/01/21 12:04:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -299,10 +300,6 @@ void DLLCALL globfree(glob_t* glob)
 
 #endif /* !defined(__unix__) */
 
-/****************************************************************************/
-/* Returns number of files and/or sub-directories in directory (path)		*/
-/* Similar, but not identical, to getfilecount()							*/
-/****************************************************************************/
 long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only)
 {
 	char		match[MAX_PATH+1];
@@ -387,22 +384,6 @@ void DLLCALL rewinddir(DIR* dir)
 	dir->handle=_findfirst(dir->filespec,&dir->finddata);
 }
 #endif /* defined(_MSC_VER) */
-
-/****************************************************************************/
-/* Returns the creation time of the file 'filename' in time_t format		*/
-/****************************************************************************/
-time_t DLLCALL fcdate(const char* filename)
-{
-	struct stat st;
-
-	if(access(filename, 0) < 0)
-		return -1;
-
-	if(stat(filename, &st) != 0)
-		return -1;
-
-	return st.st_ctime;
-}
 
 /****************************************************************************/
 /* Returns the time/date of the file in 'filename' in time_t (unix) format  */
@@ -752,31 +733,6 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 	}
 	globfree(&g);
 	return(files);
-}
-
-/****************************************************************************/
-/* Returns number of files in a directory (inpath) matching 'pattern'		*/
-/* Similar, but not identical, to getdirsize(), e.g. subdirs never counted	*/
-/****************************************************************************/
-ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
-{
-	char path[MAX_PATH+1];
-	glob_t	g;
-	uint	gi;
-	ulong	count = 0;
-
-	SAFECOPY(path, inpath);
-	backslash(path);
-	strcat(path, pattern);
-	if(glob(path, GLOB_MARK, NULL, &g))
-		return 0;
-	for(gi = 0; gi < g.gl_pathc; ++gi) {
-		if(*lastchar(g.gl_pathv[gi]) == '/')
-			continue;
-		count++;
-	}
-	globfree(&g);
-	return count;
 }
 
 /****************************************************************************/

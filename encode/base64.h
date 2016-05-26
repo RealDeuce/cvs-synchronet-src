@@ -1,12 +1,14 @@
+/* base64.c */
+
 /* Base64 encoding/decoding exported function prototypes */
 
-/* $Id: base64.h,v 1.7 2017/11/26 00:36:50 rswindell Exp $ */
+/* $Id: base64.h,v 1.6 2003/04/02 00:49:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -33,34 +35,13 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _base64_h_
-#define _base64_h_
-
-#if defined(_WIN32) && (defined(B64_IMPORTS) || defined(B64_EXPORTS))
-	#if defined(B64_IMPORTS)
-		#define B64EXPORT	__declspec(dllimport)
-	#else
-		#define B64EXPORT	__declspec(dllexport)
-	#endif
-	#if defined(__BORLANDC__)
-		#define B64CALL __stdcall
-	#else
-		#define B64CALL
-	#endif
-#else	/* !_WIN32 */
-	#define B64EXPORT
-	#define B64CALL
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-B64EXPORT int B64CALL b64_encode(char *target, size_t tlen, const char *source, size_t slen);
-B64EXPORT int B64CALL b64_decode(char *target, size_t tlen, const char *source, size_t slen);
+int b64_encode(char *target, size_t tlen, const char *source, size_t slen);
+int b64_decode(char *target, size_t tlen, const char *source, size_t slen);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* Don't add anything after this line */
