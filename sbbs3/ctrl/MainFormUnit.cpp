@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.191 2016/11/19 10:15:41 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.189 2016/05/19 05:18:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -818,7 +818,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     global.js.time_limit=JAVASCRIPT_TIME_LIMIT;
     global.js.gc_interval=JAVASCRIPT_GC_INTERVAL;
     global.js.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
-    global.sem_chk_freq=DEFAULT_SEM_CHK_FREQ;		/* seconds */
+    global.sem_chk_freq=5;		/* seconds */
 
     /* These are SBBSCTRL-specific */
     LoginCommand="telnet://127.0.0.1";
@@ -3167,7 +3167,6 @@ void __fastcall TMainForm::TrayIconRestore(TObject *Sender)
 
 void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
 {
-    char str[128];
     static inside;
     if(inside) return;
     inside=true;
@@ -3185,8 +3184,8 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->UndockableCheckBox->Checked=UndockableForms;
     PropertiesDlg->FileAssociationsCheckBox->Checked=UseFileAssociations;
     PropertiesDlg->PasswordEdit->Text=Password;
-    PropertiesDlg->JS_MaxBytesEdit->Text=byte_count_to_str(global.js.max_bytes, str, sizeof(str));
-    PropertiesDlg->JS_ContextStackEdit->Text=byte_count_to_str(global.js.cx_stack, str, sizeof(str));
+    PropertiesDlg->JS_MaxBytesEdit->Text=IntToStr(global.js.max_bytes);
+    PropertiesDlg->JS_ContextStackEdit->Text=IntToStr(global.js.cx_stack);
     PropertiesDlg->JS_TimeLimitEdit->Text=IntToStr(global.js.time_limit);
     PropertiesDlg->JS_GcIntervalEdit->Text=IntToStr(global.js.gc_interval);
     PropertiesDlg->JS_YieldIntervalEdit->Text=IntToStr(global.js.yield_interval);
@@ -3198,11 +3197,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         =global.login_attempt.hack_threshold ? IntToStr(global.login_attempt.hack_threshold) : AnsiString("<disabled>");
     PropertiesDlg->LoginAttemptFilterThresholdEdit->Text
         =global.login_attempt.filter_threshold ? IntToStr(global.login_attempt.filter_threshold) : AnsiString("<disabled>");
-    PropertiesDlg->LoginAttemptTempBanThresholdEdit->Text
-        =global.login_attempt.tempban_threshold ? IntToStr(global.login_attempt.tempban_threshold) : AnsiString("<disabled>");
-    PropertiesDlg->LoginAttemptTempBanDurationEdit->Text
-        =global.login_attempt.tempban_duration ? AnsiString(duration_to_str(global.login_attempt.tempban_duration, str, sizeof(str)))
-            : AnsiString("<disabled>");
 
     if(MaxLogLen==0)
 		PropertiesDlg->MaxLogLenEdit->Text="<unlimited>";
@@ -3255,9 +3249,9 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         /* JavaScript operating parameters */
         js_startup_t js=global.js; // save for later comparison
         global.js.max_bytes
-        	=parse_byte_count(PropertiesDlg->JS_MaxBytesEdit->Text.c_str(), 1);
+        	=PropertiesDlg->JS_MaxBytesEdit->Text.ToIntDef(JAVASCRIPT_MAX_BYTES);
         global.js.cx_stack
-        	=parse_byte_count(PropertiesDlg->JS_ContextStackEdit->Text.c_str(), 1);
+        	=PropertiesDlg->JS_ContextStackEdit->Text.ToIntDef(JAVASCRIPT_CONTEXT_STACK);
         global.js.time_limit
         	=PropertiesDlg->JS_TimeLimitEdit->Text.ToIntDef(JAVASCRIPT_TIME_LIMIT);
         global.js.gc_interval
@@ -3278,8 +3272,6 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         global.login_attempt.throttle = PropertiesDlg->LoginAttemptThrottleEdit->Text.ToIntDef(0);
         global.login_attempt.hack_threshold = PropertiesDlg->LoginAttemptHackThresholdEdit->Text.ToIntDef(0);
         global.login_attempt.filter_threshold = PropertiesDlg->LoginAttemptFilterThresholdEdit->Text.ToIntDef(0);
-        global.login_attempt.tempban_threshold = PropertiesDlg->LoginAttemptTempBanThresholdEdit->Text.ToIntDef(0);
-        global.login_attempt.tempban_duration = parse_duration(PropertiesDlg->LoginAttemptTempBanDurationEdit->Text.c_str());
 
         MaxLogLen
         	=PropertiesDlg->MaxLogLenEdit->Text.ToIntDef(0);
@@ -3890,30 +3882,6 @@ void __fastcall TMainForm::ViewErrorLogExecute(TObject *Sender)
 void __fastcall TMainForm::ViewLoginAttemptsMenuItemClick(TObject *Sender)
 {
     LoginAttemptsForm->Show();
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TMainForm::LogPopupPauseClick(TObject *Sender)
-{
-    if(/*(TRichEdit*)*/Sender == TelnetForm->Log) {
-        TelnetPause->Execute();
-    }
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TMainForm::LogPopupCopyAllClick(TObject *Sender)
-{
-    TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
-    Log->SelectAll();
-    Log->CopyToClipboard();
-    Log->SelLength=0;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TMainForm::LogPopupCopyClick(TObject *Sender)
-{
-    TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
-    Log->CopyToClipboard();
 }
 //---------------------------------------------------------------------------
 
