@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.33 2015/02/19 10:03:28 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.35 2015/02/27 11:27:07 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -20,6 +20,9 @@ static int uifc_initialized=0;
 
 static void (*bottomfunc)(int);
 int orig_ciolib_xlat;
+int orig_vidflags;
+int orig_x;
+int orig_y;
 
 int	init_uifc(BOOL scrn, BOOL bottom) {
 	int	i;
@@ -31,6 +34,10 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 		/* Set scrn_len to 0 to prevent textmode() call */
 		uifc.scrn_len=0;
 		orig_ciolib_xlat = ciolib_xlat;
+		orig_vidflags = getvideoflags();
+		orig_x=wherex();
+		orig_y=wherey();
+		setvideoflags(orig_vidflags&(CIOLIB_VIDEO_NOBLINK|CIOLIB_VIDEO_BGBRIGHT));
 		ciolib_xlat = TRUE;
 		uifc.chars = NULL;
 		if((i=uifcini32(&uifc))!=0) {
@@ -75,6 +82,9 @@ void uifcbail(void)
 	if(uifc_initialized) {
 		uifc.bail();
 		ciolib_xlat = orig_ciolib_xlat;
+		setvideoflags(orig_vidflags);
+		loadfont(NULL);
+		gotoxy(orig_x, orig_y);
 	}
 	uifc_initialized=0;
 }
