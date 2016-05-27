@@ -1,6 +1,8 @@
+/* answer.cpp */
+
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.94 2018/02/03 23:39:27 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.91 2015/12/19 03:35:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -262,7 +264,7 @@ bool sbbs_t::answer()
 		}
 		else {
 			if(cfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, truncsp(tmp));
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, tmp);
 			else
 				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
 			badlogin(rlogin_name, tmp);
@@ -275,16 +277,13 @@ bool sbbs_t::answer()
 	rioctl(IOFI);		/* flush input buffer */
 	putcom( "\r\n"		/* locate cursor at column 1 */
 			"\x1b[s"	/* save cursor position (necessary for HyperTerm auto-ANSI) */
-			"\x1b[0c"	/* Request CTerm version */
     		"\x1b[255B"	/* locate cursor as far down as possible */
 			"\x1b[255C"	/* locate cursor as far right as possible */
 			"\b_"		/* need a printable at this location to actually move cursor */
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
-#ifdef SUPPORT_ZUULTERM
 			"\x1b[30;40m\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm? */
-#endif
 			"\x1b[0m_"	/* "Normal" colors */
 			"\x1b[2J"	/* clear screen */
 			"\x1b[H"	/* home cursor */
@@ -317,49 +316,35 @@ bool sbbs_t::answer()
 	str[l]=0;
 
     if(l) {
-		truncsp(str);
 		c_escape_str(str,tmp,sizeof(tmp)-1,TRUE);
 		lprintf(LOG_DEBUG,"Node %d received terminal auto-detection response: '%s'"
 			,cfg.node_num,tmp);
+        if(str[0]==ESC && str[1]=='[' && str[l-1]=='R') {
+			int	x,y;
 
+			if(terminal[0]==0)
+				SAFECOPY(terminal,"ANSI");
+			autoterm|=(ANSI|COLOR);
+			if(sscanf(str+2,"%u;%u",&y,&x)==2) {
+				lprintf(LOG_DEBUG,"Node %d received ANSI cursor position report: %ux%u"
+					,cfg.node_num, x, y);
+				/* Sanity check the coordinates in the response: */
+				if(x>=40 && x<=255) cols=x; 
+				if(y>=10 && y<=255) rows=y;
+			}
+		}
+		truncsp(str);
 		if(strstr(str,"RIPSCRIP")) {
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"RIP");
 			logline("@R",strstr(str,"RIPSCRIP"));
-			autoterm|=(RIP|COLOR|ANSI); 
-		}
-#ifdef SUPPORT_ZUULTERM
+			autoterm|=(RIP|COLOR|ANSI); }
 		else if(strstr(str,"Are you the gatekeeper?"))  {
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"HTML");
 			logline("@H",strstr(str,"Are you the gatekeeper?"));
 			autoterm|=HTML;
 		} 
-#endif
-
-		char* tokenizer = NULL;
-		char* p = strtok_r(str, "\x1b", &tokenizer);
-		while(p != NULL) {
-			int	x,y;
-
-			if(terminal[0]==0)
-				SAFECOPY(terminal,"ANSI");
-			autoterm|=(ANSI|COLOR);
-			if(sscanf(p, "[%u;%uR", &y, &x) == 2) {
-				lprintf(LOG_DEBUG,"Node %d received ANSI cursor position report: %ux%u"
-					,cfg.node_num, x, y);
-				/* Sanity check the coordinates in the response: */
-				if(x>=40 && x<=255) cols=x; 
-				if(y>=10 && y<=255) rows=y;
-			} else if(sscanf(p, "[=67;84;101;114;109;%u;%u", &x, &y) == 2 && *lastchar(p) == 'c') {
-				lprintf(LOG_INFO,"Node %d received CTerm version report: %u.%u"
-					,cfg.node_num, x, y);
-				cterm_version = (x*1000) + y;
-				if(cterm_version >= 1061)
-					autoterm |= CTERM_FONTS;
-			}
-			p = strtok_r(NULL, "\x1b", &tokenizer);
-		}
 	}
 	else if(terminal[0]==0)
 		SAFECOPY(terminal,"DUMB");
