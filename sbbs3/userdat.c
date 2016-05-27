@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.167 2016/05/27 07:44:46 rswindell Exp $ */
+/* $Id: userdat.c,v 1.168 2016/05/27 15:41:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2896,6 +2896,7 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	return count;
 }
 
+#if !defined(NO_SOCKET_SUPPORT)
 ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
 	,struct login_attempt_settings settings, login_attempt_t* details)
 {
@@ -2936,6 +2937,7 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
 	}
 	return 0;
 }
+#endif
 
 /****************************************************************************/
 /* Message-new-scan pointer/configuration functions							*/
