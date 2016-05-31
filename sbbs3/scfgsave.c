@@ -2,7 +2,7 @@
 
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.60 2015/11/26 13:15:22 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.63 2016/05/18 10:16:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -352,8 +352,9 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->new_prot,stream);
 	put_int(cfg->new_install,stream);
 	put_int(cfg->new_msgscan_init, stream);
+	put_int(cfg->guest_msgscan_init, stream);
 	n=0;
-	for(i=0;i<6;i++)
+	for(i=0;i<5;i++)
 		put_int(n,stream);
 
 	put_int(cfg->expired_level,stream);
@@ -619,7 +620,6 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	for(i=0;i<28;i++)
 		put_int(n,stream);
 	md(cfg->netmail_dir);
-	md(cfg->fidofile_dir);
 
 	/* QWKnet Config */
 
@@ -975,7 +975,7 @@ BOOL DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level)
 	if(cfg->prepped)
 		return(FALSE);
 
-	sprintf(str,"%schat.cnf",cfg->ctrl_dir);
+	SAFEPRINTF(str,"%schat.cnf",cfg->ctrl_dir);
 	backup(str, backup_level, TRUE);
 
 	if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1

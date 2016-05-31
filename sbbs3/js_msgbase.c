@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.193 2015/11/26 10:56:06 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.194 2015/12/03 10:40:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,7 +141,10 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	ushort		agent;
 	int32		i32;
 	jsval		val;
+	scfg_t*		scfg;
 
+	scfg = JS_GetRuntimePrivate(JS_GetRuntime(cx));
+	
 	if(JS_GetProperty(cx, hdr, "to", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
 		HANDLE_PENDING(cx);
@@ -220,8 +223,32 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	free(cp);
 
 	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE) {
-		if(p->smb.status.attr&SMB_EMAIL)
-			msg->idx.to=0;
+		if(p->smb.status.attr&SMB_EMAIL) {
+			if(nettype==NET_QWK && msg->idx.to==0) {
+				char fulladdr[128];
+				msg->idx.to = qwk_route(scfg, msg->to_net.addr, fulladdr, sizeof(fulladdr)-1);
+				if(fulladdr[0]==0) {
+					JS_ReportError(cx, "Unrouteable QWKnet \"to_net_addr\" (%s) in recipient object"
+						,msg->to_net.addr);
+					return(FALSE);
+				}
+				if((p->status=smb_hfield_str(msg, RECIPIENTNETADDR, fulladdr))!=SMB_SUCCESS) {
+					JS_ReportError(cx, "Error %d adding RECIPIENTADDR field to message header"
+						,p->status);
+					return(FALSE);
+				}
+				if(msg->idx.to != 0) {
+					char ext[32];
+					sprintf(ext,"%u",msg->idx.to);
+					if((p->status=smb_hfield_str(msg, RECIPIENTEXT, ext))!=SMB_SUCCESS) {
+						JS_ReportError(cx, "Error %d adding RECIPIENTEXT field to message header"
+							,p->status);
+						return(FALSE);
+					}
+				}
+			} else
+				msg->idx.to=0;
+		}
 		if((p->status=smb_hfield_bin(msg, RECIPIENTNETTYPE, nettype))!=SMB_SUCCESS) {
 			JS_ReportError(cx, "Error %d adding RECIPIENTNETTYPE field to message header", p->status);
 			return(FALSE);
