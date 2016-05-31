@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.293 2016/10/17 21:54:27 rswindell Exp $ */
+/* $Id: services.c,v 1.292 2016/05/27 07:44:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1637,7 +1637,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.293 $", "%*s %s", revision);
+	sscanf("$Revision: 1.292 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -2105,7 +2105,7 @@ void DLLCALL services_thread(void* arg)
 					}
 
 					login_attempt_t attempted;
-					ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
+					ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket,  startup->login_attempt, &attempted);
 					if(banned || trashcan(&scfg,host_ip,"ip")) {
 						if(banned) {
 							char ban_duration[128];
