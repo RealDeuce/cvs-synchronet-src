@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.6 2016/05/09 09:28:44 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.7 2016/05/31 02:01:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,7 @@ typedef struct {
 	char		outbound[MAX_PATH+1];	/* Outbound directory */
 	char		areafile[MAX_PATH+1];	/* AREAS.BBS path/filename */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
+	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
 	char		temp_dir[MAX_PATH+1];	/* Temporary file directory */
 	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to creat when there's outgoing data */
