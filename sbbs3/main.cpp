@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.634 2016/10/17 21:54:27 rswindell Exp $ */
+/* $Id: main.cpp,v 1.633 2016/05/27 07:44:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5122,7 +5122,7 @@ NO_SSH:
 			, host_ip, inet_addrport(&client_addr));
 
 		login_attempt_t attempted;
-		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, host_name, startup->login_attempt, &attempted);
+		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket,  startup->login_attempt, &attempted);
 		if(banned || sbbs->trashcan(host_ip,"ip")) {
 			if(banned) {
 				char ban_duration[128];

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.12 2016/08/03 07:24:43 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.11 2016/05/31 02:01:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,7 +220,6 @@ void get_default_echocfg(sbbsecho_cfg_t* cfg)
 	cfg->kill_empty_netmail			= true;
 	cfg->use_ftn_domains			= false;
 	cfg->strict_packet_passwords	= true;
-	cfg->relay_filtered_msgs		= false;
 }
 
 char* pktTypeStringList[] = {"2+", "2.2", "2", NULL};
@@ -259,7 +258,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->bso_lock_delay			= (ulong)iniGetDuration(ini, ROOT_SECTION, "BsoLockDelay", cfg->bso_lock_delay);
 	cfg->use_ftn_domains		= iniGetBool(ini, ROOT_SECTION, "UseFTNDomains", cfg->use_ftn_domains);
 	cfg->strict_packet_passwords= iniGetBool(ini, ROOT_SECTION, "StrictPacketPasswords", cfg->strict_packet_passwords);
-	cfg->relay_filtered_msgs	= iniGetBool(ini, ROOT_SECTION, "RelayFilteredMsgs", cfg->relay_filtered_msgs);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -474,7 +472,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetLongInt(&ini,		ROOT_SECTION, "BsoLockAttempts"			,cfg->bso_lock_attempts			,NULL);
 	iniSetDuration(&ini,	ROOT_SECTION, "MaxEchomailAge"			,cfg->max_echomail_age			,NULL);
 	iniSetDuration(&ini,	ROOT_SECTION, "MaxNetmailAge"			,cfg->max_netmail_age			,NULL);
-	iniSetBool(&ini,		ROOT_SECTION, "RelayFilteredMsgs"		,cfg->relay_filtered_msgs		,NULL);
 
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailDestAddr"	,cfg->ignore_netmail_dest_addr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailRecvAttr"	,cfg->ignore_netmail_recv_attr	,NULL);

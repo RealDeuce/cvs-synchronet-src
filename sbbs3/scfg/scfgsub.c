@@ -1,10 +1,12 @@
-/* $Id: scfgsub.c,v 1.35 2016/11/10 10:08:38 rswindell Exp $ */
+/* scfgsub.c */
+
+/* $Id: scfgsub.c,v 1.34 2015/08/22 10:33:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright ob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -186,6 +188,9 @@ while(1) {
 			"If you want to delete all the messages for this sub-board, select `Yes`.\n"
 		;
 		j=1;
+		strcpy(opt[0],"Yes");
+		strcpy(opt[1],"No");
+		opt[2][0]=0;
 		SAFEPRINTF2(str,"%s%s.*"
 			,cfg.grp[cfg.sub[subnum[i]]->grp]->code_prefix
 			,cfg.sub[subnum[i]]->code_suffix);
@@ -199,7 +204,7 @@ while(1) {
 		if(fexist(path)) {
 			SAFEPRINTF(str2,"Delete %s",path);
 			j=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0
-				,str2,uifcYesNoOpts);
+				,str2,opt);
 			if(j==-1)
 				continue;
 			if(j==0) {
@@ -433,19 +438,15 @@ while(1) {
 						,cfg.sub[i]->misc&SUB_SSDEF ? "Yes":"No");
 					sprintf(opt[n++],"%-27.27s%s","Public 'To' User"
 						,cfg.sub[i]->misc&SUB_TOUSER ? "Yes":"No");
-					sprintf(opt[n++],"%-27.27s%s","Allow Message Voting"
-						,cfg.sub[i]->misc&SUB_NOVOTING ? "No":"Yes");
 					sprintf(opt[n++],"%-27.27s%s","Allow Message Quoting"
 						,cfg.sub[i]->misc&SUB_QUOTE ? "Yes":"No");
 					sprintf(opt[n++],"%-27.27s%s","Suppress User Signatures"
 						,cfg.sub[i]->misc&SUB_NOUSERSIG ? "Yes":"No");
 					sprintf(opt[n++],"%-27.27s%s","Permanent Operator Msgs"
 						,cfg.sub[i]->misc&SUB_SYSPERM ? "Yes":"No");
-#if 0 /* this is not actually implemented (yet?) */
 					sprintf(opt[n++],"%-27.27s%s","Kill Read Messages"
 						,cfg.sub[i]->misc&SUB_KILL ? "Yes"
 						: (cfg.sub[i]->misc&SUB_KILLP ? "Pvt" : "No"));
-#endif
 					sprintf(opt[n++],"%-27.27s%s","Compress Messages (LZH)"
 						,cfg.sub[i]->misc&SUB_LZH ? "Yes" : "No");
 
@@ -535,6 +536,9 @@ while(1) {
                             break;
 						case 2:
 							n=(cfg.sub[i]->misc&SUB_NAME) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`User Real Names in Posts on Sub-board:`\n"
 								"\n"
@@ -543,7 +547,7 @@ while(1) {
 								"this option to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Use Real Names in Posts",uifcYesNoOpts);
+								,"Use Real Names in Posts",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_NAME)) {
@@ -642,6 +646,9 @@ while(1) {
                             break;
 						case 5:
 							n=(cfg.sub[i]->misc&SUB_NSDEF) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Default On for New Scan:`\n"
 								"\n"
@@ -649,7 +656,7 @@ while(1) {
 								"by default, set this option to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Default On for New Scan",uifcYesNoOpts);
+								,"Default On for New Scan",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_NSDEF)) {
@@ -662,6 +669,9 @@ while(1) {
                             break;
 						case 6:
 							n=(cfg.sub[i]->misc&SUB_FORCED) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Forced On for New Scan:`\n"
 								"\n"
@@ -670,7 +680,7 @@ while(1) {
 								"this option to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Forced New Scan",uifcYesNoOpts);
+								,"Forced New Scan",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_FORCED)) {
@@ -683,6 +693,9 @@ while(1) {
                             break;
 						case 7:
 							n=(cfg.sub[i]->misc&SUB_SSDEF) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Default On for Your Scan:`\n"
 								"\n"
@@ -690,7 +703,7 @@ while(1) {
 								"scans by default, set this option to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Default On for Your Scan",uifcYesNoOpts);
+								,"Default On for Your Scan",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_SSDEF)) {
@@ -703,6 +716,9 @@ while(1) {
                             break;
 						case 8:
 							n=(cfg.sub[i]->misc&SUB_TOUSER) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Prompt for 'To' User on Public Posts:`\n"
 								"\n"
@@ -711,7 +727,7 @@ while(1) {
 								"are on a network that does not allow private posts.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Prompt for 'To' User on Public Posts",uifcYesNoOpts);
+								,"Prompt for 'To' User on Public Posts",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_TOUSER)) {
@@ -723,29 +739,10 @@ while(1) {
 								cfg.sub[i]->misc&=~SUB_TOUSER; }
 							break;
 						case 9:
-							n=(cfg.sub[i]->misc&SUB_NOVOTING) ? 1:0;
-							uifc.helpbuf=
-								"`Allow Message Voting:`\n"
-								"\n"
-								"If you want users to be allowed to Up-Vote or Down-Vote messages on this\n"
-								"sub-board, set this option to `Yes`.\n"
-							;
-							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Allow Message Voting",uifcYesNoOpts);
-							if(n==-1)
-                                break;
-							if(!n && (cfg.sub[i]->misc&SUB_NOVOTING)) {
-								uifc.changes=1;
-								cfg.sub[i]->misc ^= SUB_NOVOTING;
-								break; 
-							}
-							if(n==1 && !(cfg.sub[i]->misc&SUB_NOVOTING)) {
-								uifc.changes=1;
-								cfg.sub[i]->misc ^= SUB_NOVOTING; 
-							}
-                            break;
-						case 10:
 							n=(cfg.sub[i]->misc&SUB_QUOTE) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Allow Message Quoting:`\n"
 								"\n"
@@ -753,7 +750,7 @@ while(1) {
 								"this option to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Allow Message Quoting",uifcYesNoOpts);
+								,"Allow Message Quoting",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_QUOTE)) {
@@ -764,8 +761,11 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_QUOTE; }
                             break;
-						case 11:
+						case 10:
 							n=(cfg.sub[i]->misc&SUB_NOUSERSIG) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"Suppress User Signatures:\n"
 								"\n"
@@ -773,7 +773,7 @@ while(1) {
 								"messages posted in this sub-board, set this option to Yes.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Suppress User Signatures",uifcYesNoOpts);
+								,"Suppress User Signatures",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_NOUSERSIG)) {
@@ -784,8 +784,11 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_NOUSERSIG; }
                             break;
-						case 12:
+						case 11:
 							n=(cfg.sub[i]->misc&SUB_SYSPERM) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Operator Messages Automatically Permanent:`\n"
 								"\n"
@@ -794,7 +797,7 @@ while(1) {
 								"option to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Permanent Operator Messages",uifcYesNoOpts);
+								,"Permanent Operator Messages",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_SYSPERM)) {
@@ -805,7 +808,6 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_SYSPERM; }
                             break;
-#if 0 /* This is not actually imlemented (yet?) */
 						case 12:
 							if(cfg.sub[i]->misc&SUB_KILLP)
 								n=2;
@@ -840,9 +842,11 @@ while(1) {
 								cfg.sub[i]->misc&=~SUB_KILL;
                                 break; }
                             break;
-#endif
 						case 13:
 							n=(cfg.sub[i]->misc&SUB_LZH) ? 0:1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Compress Messages with LZH Encoding:`\n"
 								"\n"
@@ -857,7 +861,7 @@ while(1) {
 								"compatible mail programs you use support the `LZH` translation.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Compress Messages (LZH)",uifcYesNoOpts);
+								,"Compress Messages (LZH)",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_LZH)) {
@@ -906,6 +910,9 @@ while(1) {
                     switch(n) {
 						case 0:
 							n=0;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Append Tag/Origin Line to Posts:`\n"
 								"\n"
@@ -914,7 +921,7 @@ while(1) {
 								"sub-board, set this option to `No`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Append Tag/Origin Line to Posts",uifcYesNoOpts);
+								,"Append Tag/Origin Line to Posts",opt);
 							if(n==-1)
                                 break;
 							if(!n && cfg.sub[i]->misc&SUB_NOTAG) {
@@ -927,6 +934,9 @@ while(1) {
                             break;
 						case 1:
 							n=0;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Export ASCII Characters Only:`\n"
 								"\n"
@@ -935,7 +945,7 @@ while(1) {
 								"to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Export ASCII Characters Only",uifcYesNoOpts);
+								,"Export ASCII Characters Only",opt);
 							if(n==-1)
                                 break;
 							if(n && cfg.sub[i]->misc&SUB_ASCII) {
@@ -948,6 +958,9 @@ while(1) {
                             break;
 						case 2:
 							n=1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Gate Between Net Types:`\n"
 								"\n"
@@ -965,7 +978,7 @@ while(1) {
 								"BBS.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Gate Between Net Types",uifcYesNoOpts);
+								,"Gate Between Net Types",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_GATE)) {
@@ -978,6 +991,9 @@ while(1) {
                             break;
 						case 3:
 							n=1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Sub-board Networked via QWK Packets:`\n"
 								"\n"
@@ -988,7 +1004,7 @@ while(1) {
 								"properly.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Networked via QWK Packets",uifcYesNoOpts);
+								,"Networked via QWK Packets",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_QNET)) {
@@ -1012,6 +1028,9 @@ while(1) {
 							break;
 						case 5:
 							n=1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Sub-board Networked via Internet:`\n"
 								"\n"
@@ -1021,7 +1040,7 @@ while(1) {
 								"It will allow the `N`etwork user restriction to function properly.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Networked via Internet",uifcYesNoOpts);
+								,"Networked via Internet",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_INET)) {
@@ -1034,6 +1053,9 @@ while(1) {
                             break;
 						case 6:
                             n=1;
+                            strcpy(opt[0],"Yes");
+                            strcpy(opt[1],"No");
+                            opt[2][0]=0;
                             uifc.helpbuf=
 	                            "`Sub-board Networked via PostLink or PCRelay:`\n"
 	                            "\n"
@@ -1044,7 +1066,7 @@ while(1) {
 	                            "restriction to function properly.\n"
                             ;
                             n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-                                ,"Networked via PostLink or PCRelay",uifcYesNoOpts);
+                                ,"Networked via PostLink or PCRelay",opt);
                             if(n==-1)
                                 break;
                             if(!n && !(cfg.sub[i]->misc&SUB_PNET)) {
@@ -1057,6 +1079,9 @@ while(1) {
                             break;
 						case 7:
 							n=1;
+							strcpy(opt[0],"Yes");
+							strcpy(opt[1],"No");
+							opt[2][0]=0;
 							uifc.helpbuf=
 								"`Sub-board Networked via FidoNet EchoMail:`\n"
 								"\n"
@@ -1064,7 +1089,7 @@ while(1) {
 								"option to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-								,"Networked via FidoNet EchoMail",uifcYesNoOpts);
+								,"Networked via FidoNet EchoMail",opt);
 							if(n==-1)
                                 break;
 							if(!n && !(cfg.sub[i]->misc&SUB_FIDO)) {
