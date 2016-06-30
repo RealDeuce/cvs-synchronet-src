@@ -2,7 +2,7 @@
 
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.37 2015/11/26 13:15:22 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.39 2016/04/20 02:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -499,6 +499,7 @@ typedef struct
 	uint16_t		new_expire; 		/* Expiration days for new user */
 	uchar			new_prot;			/* New User Default Download Protocol */
 	uint16_t		new_msgscan_init;	/* Uew User new-scan pointers initialized to msgs this old (in days) */
+	uint16_t		guest_msgscan_init;	/* Guest new-scan pointers initialized to msgs this old (in days) */
 	char 			val_level[10];		/* Validation User Main Level */
 	uint32_t		val_flags1[10]; 	/* Validation User Flags from set #1*/
 	uint32_t		val_flags2[10]; 	/* Validation User Flags from set #2*/
@@ -561,7 +562,7 @@ typedef struct
 	char			smtpmail_sem[LEN_DIR+1];	/* Inbound Internet Mail semaphore file */
 	char			inetmail_sem[LEN_DIR+1];	/* Outbound Internet Mail semaphore file */
 	char			echomail_dir[LEN_DIR+1];	/* Directory to store echomail in */
-	char 			fidofile_dir[LEN_DIR+1];	/* Directory where inbound files go */
+	char 			fidofile_dir[LEN_DIR+1];	/* Directory where inbound files go (deprecated and not used) */
 	char			netmail_sem[LEN_DIR+1];		/* FidoNet NetMail semaphore */
 	char 			echomail_sem[LEN_DIR+1];	/* FidoNet EchoMail semaphore  */
 	char		 	origline[51];		/* Default EchoMail origin line */
