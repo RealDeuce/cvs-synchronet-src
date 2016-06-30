@@ -1,7 +1,8 @@
+/* services.c */
+
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.294 2016/11/19 09:44:04 sbbs Exp $ */
-// vi: tabstop=4
+/* $Id: services.c,v 1.292 2016/05/27 07:44:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -979,7 +980,7 @@ static void js_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread started", socket, service->protocol);
 
-	SetThreadName("sbbs/JS Service");
+	SetThreadName("JS Service");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1182,7 +1183,7 @@ static void js_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%s static JavaScript service thread started", service->protocol);
 
-	SetThreadName("sbbs/JS Static Service");
+	SetThreadName("JS Static Service");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1281,7 +1282,7 @@ static void native_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static service thread started", inst.socket, inst.service->protocol);
 
-	SetThreadName("sbbs/Static Service");
+	SetThreadName("Static Service");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1344,7 +1345,7 @@ static void native_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s service thread started", socket, service->protocol);
 
-	SetThreadName("sbbs/Native Service");
+	SetThreadName("Native Service");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1636,7 +1637,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.294 $", "%*s %s", revision);
+	sscanf("$Revision: 1.292 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1739,7 +1740,7 @@ void DLLCALL services_thread(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 
-	SetThreadName("sbbs/Services");
+	SetThreadName("Services");
 
 	do {
 
@@ -1912,7 +1913,7 @@ void DLLCALL services_thread(void* arg)
 
 		/* Main Server Loop */
 		while(!terminated) {
-			YIELD();
+
 			if(active_clients()==0 && protected_uint32_value(threads_pending_start)==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
@@ -1952,8 +1953,10 @@ void DLLCALL services_thread(void* arg)
 						high_socket=service[i].set->socks[j].sock;
 				}
 			}
-			if(high_socket==0) 	/* No dynamic services? */
+			if(high_socket==0) {	/* No dynamic services? */
+				YIELD();
 				continue;
+			}
 			tv.tv_sec=startup->sem_chk_freq;
 			tv.tv_usec=0;
 			if((result=select(high_socket+1,&socket_set,NULL,NULL,&tv))<1) {
@@ -2102,7 +2105,7 @@ void DLLCALL services_thread(void* arg)
 					}
 
 					login_attempt_t attempted;
-					ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
+					ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket,  startup->login_attempt, &attempted);
 					if(banned || trashcan(&scfg,host_ip,"ip")) {
 						if(banned) {
 							char ban_duration[128];
