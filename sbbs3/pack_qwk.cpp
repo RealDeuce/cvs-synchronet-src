@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.68 2015/11/30 09:07:44 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.69 2016/04/12 00:43:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,6 +105,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		mode|=QM_VIA;
 	if(useron.qwk&QWK_MSGID)
 		mode|=QM_MSGID;
+	if(useron.qwk&QWK_EXT)
+		mode|=QM_EXT;
 
 	(*msgcnt)=0L;
 	if(/* !prepack && */ !(useron.qwk&QWK_NOCTRL)) {
