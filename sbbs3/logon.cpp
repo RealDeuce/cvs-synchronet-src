@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.60 2015/05/02 03:20:54 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.62 2015/12/16 08:13:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,6 +389,8 @@ bool sbbs_t::logon()
 		return(false); 
 	}
 	SAFECOPY(useron.modem,connection);
+	SAFECOPY(useron.ipaddr, client_ipaddr);
+	SAFECOPY(useron.comp, client_name);
 	useron.logons++;
 	putuserdat(&cfg,&useron);
 	getmsgptrs();
@@ -418,11 +420,11 @@ bool sbbs_t::logon()
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_CREAT|O_APPEND);
 			return(false); 
 		}
-		getuserrec(&cfg,useron.number,U_NOTE,LEN_NOTE,useron.note);
+		getuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR,useron.ipaddr);
 		getuserrec(&cfg,useron.number,U_LOCATION,LEN_LOCATION,useron.location);
 		sprintf(str,text[LastFewCallersFmt],cfg.node_num
 			,totallogons,useron.alias
-			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.note
+			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.ipaddr
 			,tm.tm_hour,tm.tm_min
 			,connection,useron.ltoday > 999 ? 999 : useron.ltoday);
 		write(file,str,strlen(str));
