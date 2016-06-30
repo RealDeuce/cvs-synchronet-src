@@ -2,13 +2,13 @@
 
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.70 2015/04/28 10:55:11 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.71 2015/10/07 04:00:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -301,6 +301,8 @@ void sbbs_t::cursor_home(void)
 		rputs("\x1b[H");
 	else
 		outchar(FF);	/* this will clear some terminals, do nothing with others */
+	tos=1;
+	column=0;
 }
 
 void sbbs_t::cursor_up(int count)
