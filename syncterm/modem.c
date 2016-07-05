@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.29 2018/01/30 05:12:22 deuce Exp $ */
+/* $Id: modem.c,v 1.28 2015/05/01 04:05:49 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -104,11 +104,7 @@ int modem_response(char *str, size_t maxlen, int timeout)
 	while(1){
 		/* Abort with keystroke */
 		if(kbhit()) {
-			switch(getch()) {
-				case 0:
-				case 0xe0:
-					getch();
-			}
+			getch();
 			return(1);
 		}
 
