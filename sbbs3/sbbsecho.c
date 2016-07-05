@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.16 2016/06/30 22:40:45 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.17 2016/07/05 08:46:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4419,7 +4419,7 @@ void find_stray_packets(void)
 
 		printf("%21s: %s ","Stray Outbound Packet", packet);
 
-		if((fp=fopen(path,"rb"))==NULL) {
+		if((fp=fopen(packet,"rb"))==NULL) {
 			lprintf(LOG_ERR,"ERROR %u (%s) opening stray packet: %s"
 				,errno, strerror(errno), packet);
 			continue; 
@@ -4900,7 +4900,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.16 $", "%*s %s", revision);
+	sscanf("$Revision: 3.17 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
