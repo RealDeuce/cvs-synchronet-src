@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.1 2016/04/11 11:40:52 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.7 2016/05/31 02:01:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,14 +121,23 @@ typedef struct {
 	char		filename[MAX_PATH+1];	/* The full path to the attached file */
 } attach_t;
 
+struct zone_mapping {
+	uint16_t	zone;
+	char *		root;
+	char *		domain;
+	struct zone_mapping *next;
+};
+
 typedef struct {
 	char		inbound[MAX_PATH+1]; 	/* Inbound directory */
 	char		secure_inbound[MAX_PATH+1];		/* Secure Inbound directory */
 	char		outbound[MAX_PATH+1];	/* Outbound directory */
 	char		areafile[MAX_PATH+1];	/* AREAS.BBS path/filename */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
+	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
 	char		temp_dir[MAX_PATH+1];	/* Temporary file directory */
+	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to creat when there's outgoing data */
 	str_list_t	sysop_alias_list;		/* List of sysop aliases */
 	ulong		maxpktsize				/* Maximum size for packets */
 			   ,maxbdlsize;				/* Maximum size for bundles */
@@ -149,6 +158,7 @@ typedef struct {
 	bool		zone_blind;				/* Pretend zones don't matter when parsing and constructing PATH and SEEN-BY lines (per Wilfred van Velzen, 2:280/464) */
 	uint16_t	zone_blind_threshold;	/* Zones below this number (e.g. 4) will be treated as the same zone when zone_blind is enabled */
 	bool		secure_echomail;
+	bool		strict_packet_passwords;	/* Packet passwords must always match the configured linked-node */
 	bool		strip_lf;
 	bool		convert_tear;
 	bool		fuzzy_zone;
@@ -162,11 +172,13 @@ typedef struct {
 	bool		ignore_netmail_dest_addr;
 	bool		ignore_netmail_recv_attr;
 	bool		ignore_netmail_local_attr;
+	bool		use_ftn_domains;
 	ulong		bsy_timeout;
 	ulong		bso_lock_attempts;
 	ulong		bso_lock_delay;			/* in seconds */
 	ulong		max_netmail_age;
 	ulong		max_echomail_age;
+	struct zone_mapping *zone_map;	// 
 } sbbsecho_cfg_t;
 
 char* pktTypeStringList[4];
@@ -176,6 +188,7 @@ char* mailStatusStringList[4];
 /* Function prototypes */
 /***********************/
 bool sbbsecho_read_ini(sbbsecho_cfg_t*);
+bool sbbsecho_read_ftn_domains(sbbsecho_cfg_t*, const char*);
 bool sbbsecho_write_ini(sbbsecho_cfg_t*);
 void bail(int code);
 fidoaddr_t atofaddr(const char *str);
