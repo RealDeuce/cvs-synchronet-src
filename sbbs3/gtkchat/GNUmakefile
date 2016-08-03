@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.8 2014/10/14 05:01:22 deuce Exp $
+# $Id: GNUmakefile,v 1.9 2015/08/27 00:23:30 deuce Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -29,4 +29,4 @@ EXTRA_LIBS += `pkg-config gtk+-2.0 --libs`
 $(GTKCHAT): $(OBJS)
 	@echo Linking $@
 	$(QUIET)$(CC) $(LDFLAGS) $(OBJS) -o $@ $(EXTRA_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
-	$(QUIET)cd $(EXEODIR) && ln -s ../gtk-chat.glade .
+	$(QUIET)cd $(EXEODIR) && ln -fs ../gtk-chat.glade .
