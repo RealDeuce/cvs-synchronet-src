@@ -2,7 +2,7 @@
 
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.290 2016/01/21 10:03:16 deuce Exp $ */
+/* $Id: services.c,v 1.292 2016/05/27 07:44:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,15 +331,15 @@ static void badlogin(SOCKET sock, char* prot, char* user, char* passwd, char* ho
 
 	SAFEPRINTF(reason,"%s LOGIN", prot);
 	count=loginFailure(startup->login_attempt_list, addr, prot, user, passwd);
-	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold)
+	if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold)
 		hacklog(&scfg, reason, user, passwd, host, addr);
-	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold) {
+	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
 		inet_addrtop(addr, addr_ip, sizeof(addr_ip));
 		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
 			,host, addr_ip, user, /* fname: */NULL);
 	}
 
-	mswait(startup->login_attempt_delay);
+	mswait(startup->login_attempt.delay);
 }
 
 static JSBool
@@ -1085,11 +1085,11 @@ static void js_service_thread(void* arg)
 
 	update_clients();
 
-	if(startup->login_attempt_throttle
+	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &service_client.addr)) > 1) {
 		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
 			,socket, service->protocol, client.addr, login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
+		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
 	/* RUN SCRIPT */
@@ -1427,11 +1427,11 @@ static void native_service_thread(void* arg)
 	/* Initialize client display */
 	client_on(socket,&client,FALSE /* update */);
 
-	if(startup->login_attempt_throttle
+	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &service_client.addr)) > 1) {
 		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
 			,socket, service->protocol, client.addr, login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
+		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
 	/* RUN SCRIPT */
@@ -1637,7 +1637,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.290 $", "%*s %s", revision);
+	sscanf("$Revision: 1.292 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -2104,20 +2104,27 @@ void DLLCALL services_thread(void* arg)
 						continue;
 					}
 
+					login_attempt_t attempted;
+					ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket,  startup->login_attempt, &attempted);
+					if(banned || trashcan(&scfg,host_ip,"ip")) {
+						if(banned) {
+							char ban_duration[128];
+							lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
+								,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+						} else
+							lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
+								,client_socket, service[i].protocol, host_ip);
+						FREE_AND_NULL(udp_buf);
+						mswait(3000);
+						close_socket(client_socket);
+						continue;
+					}
+
 	#ifdef _WIN32
 					if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)
 						&& !(service[i].options&BBS_OPT_MUTE))
 						PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 	#endif
-
-					if(trashcan(&scfg,host_ip,"ip")) {
-						FREE_AND_NULL(udp_buf);
-						lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
-							,client_socket, service[i].protocol, host_ip);
-						mswait(3000);
-						close_socket(client_socket);
-						continue;
-					}
 
 					if((client=malloc(sizeof(service_client_t)))==NULL) {
 						FREE_AND_NULL(udp_buf);
