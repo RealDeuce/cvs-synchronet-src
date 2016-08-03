@@ -1,6 +1,8 @@
-/* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
+/* sbbsecho.h */
 
-/* $Id: sbbsecho.h,v 3.21 2017/11/24 22:06:41 rswindell Exp $ */
+/* Synchronet FidoNet Echomail tosser/scanner/areafix program */
+
+/* $Id: sbbsecho.h,v 3.8 2016/08/03 07:24:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,21 +44,9 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		3
+#define SBBSECHO_VERSION_MINOR		00
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
-
-#define SBBSECHO_AREAMGR_NAME		"AreaFix"
-
-#define DEFAULT_INBOUND				"../fido/nonsecure"
-#define DEFAULT_SECURE_INBOUND		"../fido/inbound"
-#define DEFAULT_OUTBOUND			"../fido/outbound"
-#define DEFAULT_AREA_FILE			"../data/areas.bbs"
-#define DEFAULT_BAD_AREA_FILE		"../data/badareas.lst"
-#define DEFAULT_ECHOSTATS_FILE		"../data/echostats.ini"
-#define DEFAULT_LOG_FILE			"../data/sbbsecho.log"
-#define DEFAULT_LOG_TIME_FMT		"%Y-%m-%d %H:%M:%S"
-#define DEFAULT_TEMP_DIR			"../temp/sbbsecho"
 
 enum mail_status {
 	 MAIL_STATUS_NORMAL
@@ -65,11 +55,9 @@ enum mail_status {
 };
 
 enum pkt_type {
-	 PKT_TYPE_2_PLUS				/* Type-2+  Packet Header (FSC-48)		*/
-	,PKT_TYPE_2_EXT					/* Type-2e  Packet Header (FSC-39)		*/
-	,PKT_TYPE_2_2					/* Type-2.2 Packet Header (FSC-45)		*/
-	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/	
-	,PKT_TYPES_SUPPORTED
+	 PKT_TYPE_2_PLUS				/* Type 2+ Packet Header  (FSC-48)		*/
+	,PKT_TYPE_2_2					/* Type 2.2 Packet Header (FSC-45)		*/
+	,PKT_TYPE_2_0 					/* Old Type Packet Header (FTS-1)		*/	
 };
 
 #define DFLT_PKT_SIZE   (250*1024L)
@@ -79,7 +67,8 @@ enum pkt_type {
 
 typedef struct {
     uint		sub;						/* Set to INVALID_SUB if pass-thru */
-    char*		tag;						/* AreaTag, a.k.a. 'EchoTag' */
+	uint32_t	tag;						/* CRC-32 of tag name */
+    char*		name;						/* Area tag name */
 	uint		imported; 					/* Total messages imported this run */
 	uint		exported; 					/* Total messages exported this run */
 	uint		circular; 					/* Total circular paths detected */
@@ -107,20 +96,16 @@ typedef struct {
 	enum pkt_type pkt_type;		/* Packet type to use for outgoing PKTs */
 	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
 	char		pktpwd[FIDO_PASS_LEN+1];	/* Packet password for this node */
-	char		ticpwd[FIDO_PASS_LEN+1];	/* TIC File password for this node */
 	char		comment[64];	/* Comment for this node */
-	char		name[FIDO_NAME_LEN];
 	char		inbox[MAX_PATH+1];
 	char		outbox[MAX_PATH+1];
 	str_list_t	keys;
-	bool		areafix;
 	bool		send_notify;
 	bool		passive;
 	bool		direct;
 	enum mail_status status;
 #define SBBSECHO_ARCHIVE_NONE	NULL
 	arcdef_t*	archive;
-	str_list_t	grphub;			/* This link is hub of these groups (short names */
 } nodecfg_t;
 
 typedef struct {
@@ -129,7 +114,6 @@ typedef struct {
 	fidoaddr_t 	hub;			/* Where to forward requests */
 	bool		forward;
 	char		password[FIDO_SUBJ_LEN];	/* Password to use for forwarding req's */
-	char		areamgr[FIDO_NAME_LEN];		/* Destination name for Area Manager req's */
 } echolist_t;
 
 typedef struct {
@@ -148,16 +132,12 @@ typedef struct {
 	char		inbound[MAX_PATH+1]; 	/* Inbound directory */
 	char		secure_inbound[MAX_PATH+1];		/* Secure Inbound directory */
 	char		outbound[MAX_PATH+1];	/* Outbound directory */
-	char		areafile[MAX_PATH+1];	/* Area file (default: data/areas.bbs) */
-	uint		areafile_backups;		/* Number of backups to keep of area file */
-	char		badareafile[MAX_PATH+1];/* Bad area file (default: data/badareas.lst) */
-	char		echostats[MAX_PATH+1];	/* Echo statistics (default: data/echostats.ini) */
+	char		areafile[MAX_PATH+1];	/* AREAS.BBS path/filename */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
-	uint		cfgfile_backups;		/* Number of backups to keep of cfg file */
 	char		temp_dir[MAX_PATH+1];	/* Temporary file directory */
-	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to create/touch when there's outgoing data */
+	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to creat when there's outgoing data */
 	str_list_t	sysop_alias_list;		/* List of sysop aliases */
 	ulong		maxpktsize				/* Maximum size for packets */
 			   ,maxbdlsize;				/* Maximum size for bundles */
@@ -168,7 +148,6 @@ typedef struct {
 			   ,listcfgs				/* Number of echolists defined */
 			   ,areas					/* Number of areas defined */
 			   ;
-	uint		umask;
 	char		default_recipient[LEN_ALIAS+1];
 	char		areamgr[LEN_ALIAS+1];	/* User to notify of areafix activity */
 	arcdef_t*	arcdef; 				/* Each archive definition */
@@ -191,13 +170,10 @@ typedef struct {
 	bool		delete_packets;
 	bool		echomail_notify;
 	bool		ignore_netmail_dest_addr;
-	bool		ignore_netmail_sent_attr;
-	bool		ignore_netmail_kill_attr;
 	bool		ignore_netmail_recv_attr;
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
 	bool		relay_filtered_msgs;
-	bool		auto_add_subs;
 	ulong		bsy_timeout;
 	ulong		bso_lock_attempts;
 	ulong		bso_lock_delay;			/* in seconds */
@@ -206,7 +182,7 @@ typedef struct {
 	struct zone_mapping *zone_map;	// 
 } sbbsecho_cfg_t;
 
-char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
+char* pktTypeStringList[4];
 char* mailStatusStringList[4];
 
 /***********************/
@@ -218,7 +194,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t*);
 void bail(int code);
 fidoaddr_t atofaddr(const char *str);
 const char *faddrtoa(const fidoaddr_t*);
-bool faddr_contains_wildcard(const fidoaddr_t*);
 int  matchnode(sbbsecho_cfg_t*, fidoaddr_t, int exact);
 nodecfg_t* findnodecfg(sbbsecho_cfg_t*, fidoaddr_t, int exact);
 
