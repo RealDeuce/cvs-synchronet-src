@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.168 2016/05/27 15:41:16 rswindell Exp $ */
+/* $Id: userdat.c,v 1.169 2016/08/06 19:07:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -219,7 +219,7 @@ int DLLCALL readuserdat(scfg_t* cfg, unsigned user_number, char* userdat, int in
 	if(!VALID_CFG(cfg) || user_number<1)
 		return(-1); 
 
-	if(infile > 0)
+	if(infile >= 0)
 		file = infile;
 	else {
 		if((file = openuserdat(cfg)) < 0)
