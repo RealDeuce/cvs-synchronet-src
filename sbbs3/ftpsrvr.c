@@ -1,7 +1,8 @@
+/* ftpsrvr.c */
+
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.427 2016/11/19 10:21:15 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: ftpsrvr.c,v 1.424 2016/05/27 07:44:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1250,7 +1251,7 @@ static void send_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/FTP Send");
+	SetThreadName("FTP Send");
 	thread_up(TRUE /* setuid */);
 
 	length=flength(xfer.filename);
@@ -1375,7 +1376,7 @@ static void send_thread(void* arg)
 		}
 		total+=wr;
 		*xfer.lastactive=time(NULL);
-		//YIELD();
+		YIELD();
 	}
 
 	if((i=ferror(fp))!=0) 
@@ -1510,7 +1511,7 @@ static void receive_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/FTP Receive");
+	SetThreadName("FTP RECV");
 	thread_up(TRUE /* setuid */);
 
 	if((fp=fopen(xfer.filename,xfer.append ? "ab" : "wb"))==NULL) {
@@ -2370,7 +2371,7 @@ static void ctrl_thread(void* arg)
 #endif
 	login_attempt_t attempted;
 
-	SetThreadName("sbbs/FTP Control");
+	SetThreadName("FTP CTRL");
 	thread_up(TRUE /* setuid */);
 
 	lastactive=time(NULL);
@@ -2421,7 +2422,7 @@ static void ctrl_thread(void* arg)
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock,  startup->login_attempt, &attempted);
 	if(banned || trashcan(&scfg,host_ip,"ip")) {
 		if(banned) {
 			char ban_duration[128];
@@ -4740,7 +4741,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.427 $", "%*s %s", revision);
+	sscanf("$Revision: 1.424 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4776,7 +4777,7 @@ void DLLCALL ftp_server(void* arg)
 	ftp_ver();
 
 	startup=(ftp_startup_t*)arg;
-	SetThreadName("sbbs/FTP Server");
+	SetThreadName("FTP Server");
 
 #ifdef _THREAD_SUID_BROKEN
 	if(thread_suid_broken)
@@ -4797,12 +4798,31 @@ void DLLCALL ftp_server(void* arg)
 		return;
 	}
 
+	/* Setup intelligent defaults */
+	if(startup->port==0)					startup->port=IPPORT_FTP;
+	if(startup->qwk_timeout==0)				startup->qwk_timeout=FTP_DEFAULT_QWK_TIMEOUT;		/* seconds */
+	if(startup->max_inactivity==0)			startup->max_inactivity=FTP_DEFAULT_MAX_INACTIVITY;	/* seconds */
+	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;		/* seconds */
+	if(startup->index_file_name[0]==0)		SAFECOPY(startup->index_file_name,"00index");
+	if(startup->html_index_file[0]==0)		SAFECOPY(startup->html_index_file,"00index.html");
+	if(startup->html_index_script[0]==0) {	SAFECOPY(startup->html_index_script,"ftp-html.js");
+											startup->options|=FTP_OPT_HTML_INDEX_FILE;
+	}
+	if(startup->options&FTP_OPT_HTML_INDEX_FILE)
+		startup->options&=~FTP_OPT_NO_JAVASCRIPT;
+	else
+		startup->options|=FTP_OPT_NO_JAVASCRIPT;
+#ifdef JAVASCRIPT
+	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
+
 	ZERO_VAR(js_server_props);
 	SAFEPRINTF2(js_server_props.version,"%s %s",FTP_SERVER,revision);
 	js_server_props.version_detail=ftp_ver();
 	js_server_props.clients=&active_clients.value;
 	js_server_props.options=&startup->options;
 	js_server_props.interfaces=&startup->interfaces;
+#endif
 
 	uptime=0;
 	served=0;
@@ -4812,20 +4832,6 @@ void DLLCALL ftp_server(void* arg)
 	protected_uint32_init(&thread_count, 0);
 
 	do {
-		/* Setup intelligent defaults */
-		if(startup->port==0)					startup->port=IPPORT_FTP;
-		if(startup->qwk_timeout==0)				startup->qwk_timeout=FTP_DEFAULT_QWK_TIMEOUT;		/* seconds */
-		if(startup->max_inactivity==0)			startup->max_inactivity=FTP_DEFAULT_MAX_INACTIVITY;	/* seconds */
-		if(startup->sem_chk_freq==0)			startup->sem_chk_freq=DEFAULT_SEM_CHK_FREQ;		/* seconds */
-		if(startup->index_file_name[0]==0)		SAFECOPY(startup->index_file_name,"00index");
-		if(startup->html_index_file[0]==0)		SAFECOPY(startup->html_index_file,"00index.html");
-		if(startup->html_index_script[0]==0)	SAFECOPY(startup->html_index_script,"ftp-html.js");
-		if(startup->options&FTP_OPT_HTML_INDEX_FILE)
-			startup->options&=~FTP_OPT_NO_JAVASCRIPT;
-		else
-			startup->options|=FTP_OPT_NO_JAVASCRIPT;
-		if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
-		if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
 		protected_uint32_adjust(&thread_count,1);
 		thread_up(FALSE /* setuid */);
@@ -4964,7 +4970,7 @@ void DLLCALL ftp_server(void* arg)
 		lprintf(LOG_INFO,"FTP Server thread started");
 
 		while(ftp_set!=NULL && !terminate_server) {
-			YIELD();
+
 			if(protected_uint32_value(thread_count) <= 1) {
 				if(!(startup->options&FTP_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {

@@ -1,6 +1,8 @@
+/* userdat.c */
+
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.174 2016/11/17 23:54:01 rswindell Exp $ */
+/* $Id: userdat.c,v 1.169 2016/08/06 19:07:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,8 +44,6 @@
 /* convenient space-saving global variables */
 char* crlf="\r\n";
 char* nulstr="";
-
-static const char* strIpFilterExemptConfigFile = "ipfilter_exempt.cfg";
 
 #define VALID_CFG(cfg)	(cfg!=NULL && cfg->size==sizeof(scfg_t))
 
@@ -133,7 +133,8 @@ uint DLLCALL total_users(scfg_t* cfg)
 	if(!VALID_CFG(cfg))
 		return(0);
 
-	if((file=openuserdat(cfg, /* for_modify: */FALSE)) < 0)
+	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
+	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
 		return(0);
 	length=(long)filelength(file);
 	for(l=0;l<length;l+=U_LEN) {
@@ -168,17 +169,19 @@ uint DLLCALL lastuser(scfg_t* cfg)
 }
 
 /****************************************************************************/
-/* Deletes (completely removes) last user record in user.dat				*/
+/* Deletes last user record in user.dat										*/
 /****************************************************************************/
 BOOL DLLCALL del_lastuser(scfg_t* cfg)
 {
+	char	str[256];
 	int		file;
 	long	length;
 
 	if(!VALID_CFG(cfg))
 		return(FALSE);
 
-	if((file=openuserdat(cfg, /* for_modify: */TRUE)) < 0)
+	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
+	if((file=nopen(str,O_RDWR|O_DENYNONE))==-1)
 		return(FALSE);
 	length=(long)filelength(file);
 	if(length<U_LEN) {
@@ -193,7 +196,7 @@ BOOL DLLCALL del_lastuser(scfg_t* cfg)
 /****************************************************************************/
 /* Opens the user database returning the file descriptor or -1 on error		*/
 /****************************************************************************/
-int DLLCALL openuserdat(scfg_t* cfg, BOOL for_modify)
+int DLLCALL openuserdat(scfg_t* cfg)
 {
 	char path[MAX_PATH+1];
 
@@ -201,7 +204,7 @@ int DLLCALL openuserdat(scfg_t* cfg, BOOL for_modify)
 		return(-1); 
 
 	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
-	return nopen(path, for_modify ? (O_RDWR|O_CREAT|O_DENYNONE) : (O_RDONLY|O_DENYNONE)); 
+	return nopen(path,O_RDONLY|O_DENYNONE); 
 }
 
 /****************************************************************************/
@@ -219,7 +222,7 @@ int DLLCALL readuserdat(scfg_t* cfg, unsigned user_number, char* userdat, int in
 	if(infile >= 0)
 		file = infile;
 	else {
-		if((file = openuserdat(cfg, /* for_modify: */FALSE)) < 0)
+		if((file = openuserdat(cfg)) < 0)
 			return file;
 	}
 
@@ -412,35 +415,17 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
 		return(-1); 
 
-	if((file = openuserdat(cfg, /* for_modify: */FALSE)) < 0)
+	if((file = openuserdat(cfg)) < 0)
 		return file;
 
 	memset(userdat, 0, sizeof(userdat));
 	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
 		close(file);
-		user->number = 0;
 		return retval;
 	}
 	retval = parseuserdat(cfg, userdat, user);
 	close(file);
 	return retval;
-}
-
-/* Fast getuserdat() (leaves user.dat file open) */
-int DLLCALL fgetuserdat(scfg_t* cfg, user_t *user, int file)
-{
-	int		retval;
-	char	userdat[U_LEN+1];
-
-	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
-		return(-1); 
-
-	memset(userdat, 0, sizeof(userdat));
-	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
-		user->number = 0;
-		return retval;
-	}
-	return parseuserdat(cfg, userdat, user);
 }
 
 /****************************************************************************/
@@ -463,22 +448,6 @@ static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 			break; 
 		} 
 	}
-}
-
-/****************************************************************************/
-/****************************************************************************/
-int DLLCALL is_user_online(scfg_t* cfg, uint usernumber)
-{
-	int i;
-	node_t	node;
-
-	for(i=1; i<=cfg->sys_nodes; i++) {
-		getnodedat(cfg, i, &node, 0);
-		if((node.status==NODE_INUSE || node.status==NODE_QUIET
-			|| node.status==NODE_LOGON) && node.useron==usernumber)
-			return i; 
-	}
-	return 0;
 }
 
 /****************************************************************************/
@@ -593,8 +562,10 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_UNUSED,U_LEN-(U_UNUSED)-2,crlf);
 	putrec(userdat,U_UNUSED+(U_LEN-(U_UNUSED)-2),2,crlf);
 
-	if((file=openuserdat(cfg, /* for_modify: */TRUE)) < 0)
+	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
+	if((file=nopen(str,O_RDWR|O_CREAT|O_DENYNONE))==-1) {
 		return(errno);
+	}
 
 	if(filelength(file)<((long)user->number-1)*U_LEN) {
 		close(file);
@@ -2719,18 +2690,11 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const 
 					   ,const char* ip_addr, const char* username, const char* fname)
 {
 	char	ip_can[MAX_PATH+1];
-	char	exempt[MAX_PATH+1];
 	char	tstr[64];
     FILE*	fp;
     time32_t now=time32(NULL);
 
 	if(ip_addr==NULL)
-		return(FALSE);
-
-	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
-	if(findstr(ip_addr, exempt))
-		return(FALSE);
-	if(findstr(host, exempt))
 		return(FALSE);
 
 	SAFEPRINTF(ip_can,"%sip.can",cfg->text_dir);
@@ -2922,9 +2886,7 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	attempt->time=time32(NULL);
 	memcpy(&attempt->addr, addr, sizeof(*addr));
 	SAFECOPY(attempt->user, user);
-	memset(attempt->pass, 0, sizeof(attempt->pass));
-	if(pass != NULL)
-		SAFECOPY(attempt->pass, pass);
+	SAFECOPY(attempt->pass, pass);
 	attempt->count++;
 	count = attempt->count - attempt->dupes;
 	if(node==NULL)
@@ -2935,10 +2897,9 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
-ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const char* host_name
+ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
 	,struct login_attempt_settings settings, login_attempt_t* details)
 {
-	char				ip_addr[128];
 	list_node_t*		node;
 	login_attempt_t*	attempt;
 	BOOL				result = FALSE;
@@ -2946,9 +2907,6 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const cha
 	union xp_sockaddr	client_addr;
 	union xp_sockaddr	server_addr;
 	socklen_t			addr_len;
-	char				exempt[MAX_PATH+1];
-
-	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
 
 	if(list==NULL)
 		return 0;
@@ -2963,13 +2921,6 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const cha
 
 	/* Don't ban connections from the server back to itself */
 	if(inet_addrmatch(&server_addr, &client_addr))
-		return 0;
-
-	if(inet_addrtop(&client_addr, ip_addr, sizeof(ip_addr)) != NULL 
-		&& findstr(ip_addr, exempt))
-		return 0;
-	if(host_name != NULL
-		&& findstr(host_name, exempt))
 		return 0;
 
 	listLock(list);
