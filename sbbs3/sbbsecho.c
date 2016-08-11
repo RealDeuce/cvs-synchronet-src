@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.19 2016/08/03 08:03:36 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.20 2016/08/11 00:49:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -350,7 +350,9 @@ int get_outbound(fidoaddr_t dest, char* outbound, size_t maxlen, bool fileboxes)
 		strncpy(outbound, nodecfg->outbox, maxlen);
 	else if(cfg.flo_mailer) {
 		if(dest.zone != sys_faddr.zone)	{ /* Inter-zone outbound is "OUTBOUND.ZZZ/" */
-			*lastchar(outbound) = 0;
+			char* p = lastchar(outbound);
+			if(IS_PATH_DELIM(*p))
+				*p = 0;
 			safe_snprintf(outbound+strlen(outbound), maxlen,".%03x", dest.zone);
 		}
 		if(dest.point != 0) {			/* Point destination is "OUTBOUND[.ZZZ]/NNNNnnnn.pnt/" */
@@ -359,8 +361,9 @@ int get_outbound(fidoaddr_t dest, char* outbound, size_t maxlen, bool fileboxes)
 		}
 	}
 	backslash(outbound);
-	if(!isdir(outbound))
-		lprintf(LOG_DEBUG, "Creating outbound directory for %s: %s", smb_faddrtoa(&dest, NULL), outbound);
+	if(isdir(outbound))
+		return 0;
+	lprintf(LOG_DEBUG, "Creating outbound directory for %s: %s", smb_faddrtoa(&dest, NULL), outbound);
 	return mkpath(outbound);
 }
 
@@ -4920,7 +4923,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.19 $", "%*s %s", revision);
+	sscanf("$Revision: 3.20 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
