@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.3 2016/04/21 01:29:35 deuce Exp $ */
+/* $Id: echocfg.c,v 3.5 2016/08/03 07:21:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,24 +179,6 @@ int main(int argc, char **argv)
 		} 
 	}
 	SAFECOPY(cfg.cfgfile,str);
-
-	p=getenv("SBBSCTRL");
-	if(!p) {
-		p=getenv("SBBSNODE");
-		if(!p) {
-			printf("usage: echocfg [cfg_file]\n");
-			exit(1); 
-		}
-		strcpy(str,p);
-		backslash(str);
-		strcat(str,"../ctrl/ftn_domains.ini"); 
-	}
-	else {
-		strcpy(str,p);
-		backslash(str);
-		strcat(str,"ftn_domains.ini"); 
-	} 
-	SAFECOPY(cfg.ftndomainsfile,str);
 
 	if(!sbbsecho_read_ini(&cfg)) {
 		fprintf(stderr, "ERROR %d (%s) reading %s\n", errno, strerror(errno), cfg.cfgfile);
@@ -776,6 +758,8 @@ int main(int argc, char **argv)
 				j=0;
 				while(1) {
 					uifc.helpbuf=
+	"~ NetMail Settings ~\r\n"
+	"\r\n"
 	"`Sysop Aliases` is a comma-separated list of names by which the sysop\r\n"
 	"    (user #1) may receive NetMail messages, in addition to the alias\r\n"
 	"    and real name associated with their BBS user account.\r\n"
@@ -936,6 +920,8 @@ int main(int argc, char **argv)
 				j=0;
 				while(1) {
 					uifc.helpbuf=
+	"~ EchoMail Settings ~\r\n"
+	"\r\n"
 	"`Area Manager` is the BBS user name or alias to notify (via email) of\r\n"
 	"    AreaFix activities and errors.  This setting defaults to `SYSOP`.\r\n"
 	"\r\n"
