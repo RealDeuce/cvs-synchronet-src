@@ -1,6 +1,8 @@
+/* userdat.h */
+
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.66 2017/10/12 09:11:57 rswindell Exp $ */
+/* $Id: userdat.h,v 1.59 2016/05/27 07:44:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,12 +77,10 @@ extern "C" {
 extern char* crlf;
 extern char* nulstr;
 
-DLLEXPORT int	DLLCALL openuserdat(scfg_t*, BOOL for_modify);
-DLLEXPORT int	DLLCALL closeuserdat(int);
+DLLEXPORT int	DLLCALL openuserdat(scfg_t*);
 DLLEXPORT int	DLLCALL readuserdat(scfg_t*, unsigned user_number, char* userdat, int infile);
 DLLEXPORT int	DLLCALL parseuserdat(scfg_t*, char* userdat, user_t*);
 DLLEXPORT int	DLLCALL getuserdat(scfg_t*, user_t*); 	/* Fill userdat struct with user data   */
-DLLEXPORT int	DLLCALL fgetuserdat(scfg_t*, user_t*, int file);
 DLLEXPORT int	DLLCALL putuserdat(scfg_t*, user_t*);	/* Put userdat struct into user file	*/
 DLLEXPORT int	DLLCALL newuserdat(scfg_t*, user_t*);	/* Create new userdat in user file */
 DLLEXPORT uint	DLLCALL matchuser(scfg_t*, const char *str, BOOL sysop_alias); /* Checks for a username match */
@@ -96,7 +96,6 @@ DLLEXPORT int	DLLCALL getnodedat(scfg_t*, uint number, node_t *node, int* file);
 DLLEXPORT int	DLLCALL putnodedat(scfg_t*, uint number, node_t *node, int file);
 DLLEXPORT char* DLLCALL nodestatus(scfg_t*, node_t* node, char* buf, size_t buflen);
 DLLEXPORT void	DLLCALL printnodedat(scfg_t*, uint number, node_t* node);
-DLLEXPORT int	DLLCALL is_user_online(scfg_t*, uint usernumber);
 DLLEXPORT void	DLLCALL packchatpass(char *pass, node_t* node);
 DLLEXPORT char* DLLCALL unpackchatpass(char *pass, node_t* node);
 DLLEXPORT char* DLLCALL getsmsg(scfg_t*, int usernumber);
@@ -105,7 +104,7 @@ DLLEXPORT char* DLLCALL getnmsg(scfg_t*, int node_num);
 DLLEXPORT int	DLLCALL putnmsg(scfg_t*, int num, char *strin);
 
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t*, uint usernumber, uint offset, uint datlen, char *dat
-							,BOOL del, BOOL next, void (*progress)(void*, int, int), void* cbdata);
+							,BOOL del, BOOL next);
 
 DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t*, uchar* str, user_t*, client_t*); /* checks access requirements */
 
@@ -122,15 +121,14 @@ DLLEXPORT BOOL	DLLCALL can_user_post(scfg_t*, uint subnum, user_t*, client_t* cl
 DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t*, enum smb_net_type, uint usernumber, user_t*, uint* reason);
 DLLEXPORT BOOL	DLLCALL is_user_subop(scfg_t*, uint subnum, user_t*, client_t* client);
 DLLEXPORT BOOL	DLLCALL is_download_free(scfg_t*, uint dirnum, user_t*, client_t* client);
-DLLEXPORT BOOL	DLLCALL is_host_exempt(scfg_t*, const char* ip_addr, const char* host_name);
 DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t*, const char* prot, const char* reason, const char* host
 								  ,const char* ip_addr, const char* username, const char* fname);
 
 /* New-message-scan pointer functions: */
-DLLEXPORT BOOL	DLLCALL getmsgptrs(scfg_t*, user_t*, subscan_t*, void (*progress)(void*, int, int), void* cbdata);
+DLLEXPORT BOOL	DLLCALL getmsgptrs(scfg_t*, user_t*, subscan_t*);
 DLLEXPORT BOOL	DLLCALL putmsgptrs(scfg_t*, user_t*, subscan_t*);
 DLLEXPORT BOOL	DLLCALL fixmsgptrs(scfg_t*, subscan_t*);
-DLLEXPORT BOOL	DLLCALL initmsgptrs(scfg_t*, subscan_t*, unsigned days, void (*progress)(void*, int, int), void* cbdata);
+DLLEXPORT BOOL	DLLCALL initmsgptrs(scfg_t*, subscan_t*, unsigned days);
 
 
 /* New atomic numeric user field adjustment functions: */
@@ -162,7 +160,7 @@ DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
 DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, const union xp_sockaddr*, const char* prot, const char* user, const char* pass);
-DLLEXPORT ulong				DLLCALL loginBanned(scfg_t*, link_list_t*, SOCKET, const char* host_name, struct login_attempt_settings, login_attempt_t*);
+DLLEXPORT ulong				DLLCALL loginBanned(scfg_t*, link_list_t*, SOCKET, struct login_attempt_settings, login_attempt_t*);
 
 #ifdef __cplusplus
 }
