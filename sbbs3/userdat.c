@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.169 2016/08/06 19:07:43 rswindell Exp $ */
+/* $Id: userdat.c,v 1.170 2016/10/06 06:35:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -448,6 +448,22 @@ static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 			break; 
 		} 
 	}
+}
+
+/****************************************************************************/
+/****************************************************************************/
+int DLLCALL is_user_online(scfg_t* cfg, uint usernumber)
+{
+	int i;
+	node_t	node;
+
+	for(i=1; i<=cfg->sys_nodes; i++) {
+		getnodedat(cfg, i, &node, 0);
+		if((node.status==NODE_INUSE || node.status==NODE_QUIET
+			|| node.status==NODE_LOGON) && node.useron==usernumber)
+			return i; 
+	}
+	return 0;
 }
 
 /****************************************************************************/
