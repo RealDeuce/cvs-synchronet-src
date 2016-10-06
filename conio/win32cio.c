@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.105 2018/02/05 17:56:52 deuce Exp $ */
+/* $Id: win32cio.c,v 1.101 2014/11/13 07:40:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,8 +101,8 @@ CIOLIBEXPORTVAR const struct keyvals keyval[] =
 	{VK_UP, 0x4800, 0x4800, 0x8d00, 0x9800},
 	{VK_RIGHT, 0x4d00, 0x4d00, 0x7400, 0x9d00},
 	{VK_DOWN, 0x5000, 0x5000, 0x9100, 0xa000},
-	{VK_INSERT, CIO_KEY_IC, CIO_KEY_SHIFT_IC, CIO_KEY_CTRL_IC, 0xa200},
-	{VK_DELETE, CIO_KEY_DC, CIO_KEY_SHIFT_DC, CIO_KEY_CTRL_DC, 0xa300},
+	{VK_INSERT, 0x5200, 0x5200, 0x9200, 0xa200},
+	{VK_DELETE, 0x5300, 0x5300, 0x9300, 0xa300},
 	{VK_NUMPAD0, '0', 0x5200, 0x9200, 0},
 	{VK_NUMPAD1, '1', 0x4f00, 0x7500, 0},
 	{VK_NUMPAD2, '2', 0x5000, 0x9100, 0},
@@ -548,17 +548,8 @@ int win32_initciolib(long inmode)
 	}
 	else {
 		/* Switch to closest mode to current screen size */
-		unsigned screenwidth = sbuff.srWindow.Right - sbuff.srWindow.Left + 1;
-		unsigned screenheight = sbuff.srWindow.Bottom - sbuff.srWindow.Top + 1;
-		if (screenwidth > 0xff)
-			cio_textinfo.screenwidth = 0xff;
-		else
-			cio_textinfo.screenwidth = screenwidth;
-		if (screenheight > 0xff)
-			cio_textinfo.screenheight = 0xff;
-		else
-			cio_textinfo.screenheight = screenheight;
-
+		cio_textinfo.screenwidth=sbuff.srWindow.Right-sbuff.srWindow.Left+1;
+		cio_textinfo.screenheight=sbuff.srWindow.Bottom-sbuff.srWindow.Top+1;
 		if(cio_textinfo.screenwidth>=132) {
 			if(cio_textinfo.screenheight<25)
 				win32_textmode(VESA_132X21);
@@ -617,7 +608,6 @@ int win32_initciolib(long inmode)
 		atexit(RestoreDisplayMode);
 	}
 	cio_api.mouse=1;
-	cio_api.options = CONIO_OPT_BRIGHT_BACKGROUND | CONIO_OPT_CUSTOM_CURSOR | CONIO_OPT_SET_TITLE;
 	return(1);
 }
 
@@ -639,7 +629,6 @@ void win32_textmode(int mode)
 	HANDLE	h;
 	COORD	sz;
 	SMALL_RECT	rc;
-	CONSOLE_SCREEN_BUFFER_INFOEX	bi;
 
 	for(i=0;i<NUMMODES;i++) {
 		if(vparams[i].mode==mode)
@@ -655,7 +644,7 @@ void win32_textmode(int mode)
 	if ((h=GetStdHandle(STD_OUTPUT_HANDLE)) == INVALID_HANDLE_VALUE)
 		return;
 	if (!SetConsoleScreenBufferSize(h,sz))
-		return;	// Note: This fails and returns here with large windows (e.g. width > 255)
+		return;
 	if (!SetConsoleWindowInfo(h,TRUE,&rc))
 		return;
 	sz.X=vparams[modeidx].cols;
@@ -674,14 +663,6 @@ void win32_textmode(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-	if (GetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi)) {
-		for (i = 0; i < 16; i++) {
-			bi.ColorTable[] = RGB(dac_default[vparams[modeidx].palette[i].red, dac_default[vparams[modeidx].palette[i].green, dac_default[vparams[modeidx].palette[i].blue);
-		}
-		if (SetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi)) {
-			cio_api.options |= CONIO_OPT_PALETTE_SETTING;
-		}
-	}
 }
 
 int win32_gettext(int left, int top, int right, int bottom, void* buf)
@@ -823,7 +804,7 @@ char *win32_getcliptext(void)
 {
 	HGLOBAL	clipbuf;
 	LPTSTR	clip;
-	char *ret = NULL;
+	char *ret;
 
 	if(!IsClipboardFormatAvailable(CF_OEMTEXT))
 		return(NULL);
@@ -891,21 +872,4 @@ int win32_getvideoflags(void)
 	if(mode==CONSOLE_FULLSCREEN_MODE)
 		return(0);
 	return(CIOLIB_VIDEO_BGBRIGHT);
-}
-
-int win32_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
-{
-	CONSOLE_SCREEN_BUFFER_INFOEX	bi;
-
-	if (entry > 15)
-		return 0;
-
-	if (!GetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi))
-		return 0;
-
-	bi.ColorTable[entry] = RGB(r >> 8, g >> 8, b >> 8);
-	if (!SetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi))
-		return 0;
-
-	return 1;
 }
