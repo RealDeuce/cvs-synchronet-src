@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.637 2016/10/17 21:54:28 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.636 2016/05/31 01:56:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -6247,7 +6247,7 @@ void http_session_thread(void* arg)
 	}
 
 	login_attempt_t attempted;
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, session.host_name, startup->login_attempt, &attempted);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket,  startup->login_attempt, &attempted);
 
 	/* host_ip wasn't defined in http_session_thread */
 	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
@@ -6483,7 +6483,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.637 $", "%*s %s", revision);
+	sscanf("$Revision: 1.636 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
