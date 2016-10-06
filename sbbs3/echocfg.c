@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.4 2016/04/21 01:51:02 deuce Exp $ */
+/* $Id: echocfg.c,v 3.5 2016/08/03 07:21:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -758,6 +758,8 @@ int main(int argc, char **argv)
 				j=0;
 				while(1) {
 					uifc.helpbuf=
+	"~ NetMail Settings ~\r\n"
+	"\r\n"
 	"`Sysop Aliases` is a comma-separated list of names by which the sysop\r\n"
 	"    (user #1) may receive NetMail messages, in addition to the alias\r\n"
 	"    and real name associated with their BBS user account.\r\n"
@@ -918,6 +920,8 @@ int main(int argc, char **argv)
 				j=0;
 				while(1) {
 					uifc.helpbuf=
+	"~ EchoMail Settings ~\r\n"
+	"\r\n"
 	"`Area Manager` is the BBS user name or alias to notify (via email) of\r\n"
 	"    AreaFix activities and errors.  This setting defaults to `SYSOP`.\r\n"
 	"\r\n"
