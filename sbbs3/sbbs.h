@@ -2,7 +2,7 @@
 
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.426 2016/01/10 07:10:22 deuce Exp $ */
+/* $Id: sbbs.h,v 1.428 2016/05/27 07:44:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1061,6 +1061,7 @@ extern "C" {
 	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, const char *str);
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time32_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
+	DLLEXPORT char *	DLLCALL seconds_to_str(uint, char*);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
@@ -1167,6 +1168,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1178,9 +1180,11 @@ extern "C" {
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
+													,CRYPT_CONTEXT session		/* client */
 													,js_server_props_t* props	/* server */
 													,JSObject** glob
 													);
+#endif
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1212,8 +1216,10 @@ extern "C" {
 													,char* socklib_desc);
 
 	/* js_client.c */
+#ifdef USE_CRYPTLIB
 	DLLEXPORT JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
-													,const char* name, client_t* client, SOCKET sock);
+													,const char* name, client_t* client, SOCKET sock, CRYPT_CONTEXT session);
+#endif
 	/* js_user.c */
 	DLLEXPORT JSObject*	DLLCALL js_CreateUserClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg
@@ -1241,8 +1247,10 @@ extern "C" {
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent
-													,char *name, SOCKET sock);
+													,char *name, SOCKET sock, CRYPT_CONTEXT session);
+#endif
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketObjectFromSet(JSContext* cx, JSObject* parent
 													,char *name, struct xpms_set *set);
 
