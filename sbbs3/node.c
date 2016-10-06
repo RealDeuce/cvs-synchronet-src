@@ -1,7 +1,8 @@
-/* Synchronet BBS Node control program */
-// vi: tabstop=4
+/* node.c */
 
-/* $Id: node.c,v 1.30 2017/11/15 07:12:52 rswindell Exp $ */
+/* Synchronet BBS Node control program */
+
+/* $Id: node.c,v 1.29 2015/11/30 09:07:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -443,7 +444,7 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.30 $", "%*s %s", revision);
+	sscanf("$Revision: 1.29 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
@@ -533,28 +534,28 @@ int main(int argc, char **argv)
 				onoff=2;
 			else if(!strnicmp(argv[i],"STATUS=",7)) {
 				mode=MODE_STATUS;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			else if(!strnicmp(argv[i],"ERRORS=",7)) {
 				mode=MODE_ERRORS;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			else if(!strnicmp(argv[i],"USERON=",7)) {
 				mode=MODE_USERON;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			else if(!strnicmp(argv[i],"ACTION=",7)) {
 				mode=MODE_ACTION;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			else if(!strnicmp(argv[i],"CONN=",5)) {
 				mode=MODE_CONN;
-				value=strtoul(argv[i]+5, NULL, 0); }
+				value=atoi(argv[i]+5); }
 			else if(!strnicmp(argv[i],"MISC=",5)) {
 				mode=MODE_MISC;
-				value=strtoul(argv[i]+5, NULL, 0); }
+				value=atoi(argv[i]+5); }
 			else if(!strnicmp(argv[i],"AUX=",4)) {
 				mode=MODE_AUX;
-				value=strtoul(argv[i]+4, NULL, 0); }
+				value=atoi(argv[i]+4); }
 			else if(!strnicmp(argv[i],"EXTAUX=",7)) {
 				mode=MODE_EXTAUX;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			}
 		if(mode!=MODE_LIST)
 			modify=1;
@@ -603,16 +604,16 @@ int main(int argc, char **argv)
 								node.action=(uchar)value;
 								break;
 							case MODE_USERON:
-								node.useron=(uint16_t)value;
+								node.useron=(uchar)value;
 								break;
 							case MODE_MISC:
-								node.misc=(uint16_t)value;
+								node.misc=(uchar)value;
 								break;
 							case MODE_CONN:
-								node.connection=(uint16_t)value;
+								node.connection=(uchar)value;
 								break;
 							case MODE_AUX:
-								node.aux=(uint16_t)value;
+								node.aux=(uchar)value;
 								break;
 							case MODE_EXTAUX:
 								node.extaux=value;

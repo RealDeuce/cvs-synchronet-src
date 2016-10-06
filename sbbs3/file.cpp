@@ -1,7 +1,8 @@
+/* file.cpp */
+
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.33 2018/01/12 22:15:42 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: file.cpp,v 1.30 2015/05/13 00:11:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,11 +45,9 @@ void sbbs_t::fileinfo(file_t* f)
 	char	ext[513];
 	char 	tmp[512];
 	char	path[MAX_PATH+1];
-	char	fname[MAX_PATH+1];
-	char*	real_fname;
+	char	fpath[MAX_PATH+1];
 	uint	i,j;
 
-	current_file = f;
 	for(i=0;i<usrlibs;i++)
 		if(usrlib[i]==cfg.dir[f->dir]->lib)
 			break;
@@ -57,13 +56,13 @@ void sbbs_t::fileinfo(file_t* f)
 			break;
 
 	getfilepath(&cfg,f,path);
-	real_fname = getfname(path);
-	unpadfname(f->name, fname);
 	bprintf(text[FiLib],i+1,cfg.lib[cfg.dir[f->dir]->lib]->lname);
 	bprintf(text[FiDir],j+1,cfg.dir[f->dir]->lname);
-	bprintf(text[FiFilename],fname);
-	if(strcmp(real_fname, fname) && strcmp(f->desc, real_fname))	/* Different "actual" filename */
-		bprintf(text[FiFilename], real_fname);
+	bprintf(text[FiFilename],getfname(path));
+	SAFECOPY(fpath,path);
+	fexistcase(fpath);
+	if(strcmp(path,fpath) && strcmp(f->desc,getfname(fpath)))	/* Different "actual" filename */
+		bprintf(text[FiFilename],getfname(fpath));
 
 	if(f->size!=-1L)
 		bprintf(text[FiFileSize],ultoac(f->size,tmp));
@@ -86,20 +85,21 @@ void sbbs_t::fileinfo(file_t* f)
 		else
 			bprintf(text[InvalidAlternatePathN],f->altpath); 
 	}
-	bputs(text[FileHdrDescSeparator]);
+	CRLF;
 	if(f->misc&FM_EXTDESC) {
 		getextdesc(&cfg,f->dir,f->datoffset,ext);
+		CRLF;
 		putmsg(ext,P_NOATCODES);
 		CRLF; 
 	}
 	if(f->size==-1L) {
 		bprintf(text[FileIsNotOnline],f->name);
 		if(SYSOP)
-			bprintf("%s\r\n",path);
+			bprintf("%s\r\n",fpath);
 	}
 	if(f->opencount)
 		bprintf(text[FileIsOpen],f->opencount,f->opencount>1 ? "s" : nulstr);
-	current_file = NULL;
+
 }
 
 
