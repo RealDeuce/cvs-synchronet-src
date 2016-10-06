@@ -1,6 +1,8 @@
+/* data_ovl.cpp */
+
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.22 2016/12/10 21:29:04 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.19 2015/11/30 09:07:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,12 +37,6 @@
 
 #include "sbbs.h"
 
-static void ProgressLoadingMsgPtrs(void* cbdata, int count, int total)
-{
-	sbbs_t* sbbs = ((sbbs_t*)cbdata);
-	sbbs->progress(sbbs->text[LoadingMsgPtrs], count, total, 10);
-}
-
 /****************************************************************************/
 /* Fills the 'ptr' element of the each element of the cfg.sub[] array of sub_t  */
 /* and the sub_cfg and sub_ptr global variables                            */
@@ -50,19 +46,14 @@ void sbbs_t::getmsgptrs()
 {
 	if(!useron.number)
 		return;
-	::getmsgptrs(&cfg,&useron,subscan,ProgressLoadingMsgPtrs,this);
+	bputs(text[LoadingMsgPtrs]);
+	::getmsgptrs(&cfg,&useron,subscan);
 	bputs(text[LoadedMsgPtrs]);
 }
 
 void sbbs_t::putmsgptrs()
 {
 	::putmsgptrs(&cfg,&useron,subscan);
-}
-
-static void ProgressSearchingUsers(void* cbdata, int count, int total)
-{
-	sbbs_t* sbbs = ((sbbs_t*)cbdata);
-	sbbs->progress(sbbs->text[SearchingForDupes], count, total, U_LEN*10);
 }
 
 /****************************************************************************/
@@ -76,7 +67,8 @@ static void ProgressSearchingUsers(void* cbdata, int count, int total)
 uint sbbs_t::userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
     ,bool del, bool next)
 {
-	uint i=::userdatdupe(&cfg, usernumber, offset, datlen, dat, del, next, ProgressSearchingUsers, this);
+	bputs(text[SearchingForDupes]);
+	uint i=::userdatdupe(&cfg, usernumber, offset, datlen, dat, del, next);
 	bputs(text[SearchedForDupes]);
 	return(i);
 }

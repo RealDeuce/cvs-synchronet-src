@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.105 2016/11/16 07:58:21 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.104 2016/04/23 02:58:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -819,7 +819,7 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 	freevars(&bin);
 	free(bin.cs);
 	csi->logic=bin.logic;
-//	sys_status &=~ SS_ABORT;
+	sys_status &=~ SS_ABORT;
 	return(bin.retval);
 }
 

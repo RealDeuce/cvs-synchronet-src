@@ -2,7 +2,7 @@
 
 /* Convert ANSI messages to Synchronet .asc (Ctrl-A code) format */
 
-/* $Id: ans2asc.c,v 1.11 2017/10/18 07:52:22 rswindell Exp $ */
+/* $Id: ans2asc.c,v 1.10 2015/11/25 12:32:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@ static void print_usage(const char* prog)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.11 $", "%*s %s", revision);
+	sscanf("$Revision: 1.10 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet ANSI-Terminal-Sequence to Ctrl-A-Code Conversion Utility v%s\n",revision);
 	fprintf(stderr,"\nusage: %s infile.ans [outfile.asc] [[option] [...]]\n",prog);
@@ -151,6 +151,7 @@ int main(int argc, char **argv)
 						for(i=0;i<ni;i++) {
 							fputc(1,out);				/* ctrl-ax */
 							switch(n[i]) {
+								default:
 								case 0:
 								case 2: 				/* no attribute */
 									fputc('n',out);
@@ -215,12 +216,7 @@ int main(int argc, char **argv)
 									break;
 								case 47:
 									fputc('7',out);
-									break; 
-								default:
-									fprintf(stderr,"Unsupported ANSI color code: %u\n", (unsigned int)n[i]);
-									break;
-							} 
-						}
+									break; } }
 						break;
 					case 'B':	/* cursor down */
 						while(n[0]) {
