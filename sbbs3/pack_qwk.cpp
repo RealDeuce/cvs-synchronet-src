@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.71 2016/11/10 10:06:30 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.69 2016/04/12 00:43:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,12 +58,12 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	ulong	subs_scanned=0;
 	float	f;	/* Sparky is responsible */
 	time_t	start;
+	node_t	node;
 	mail_t	*mail;
 	post_t	*post;
 	glob_t	g;
 	FILE	*stream,*qwk,*personal,*ndx;
 	FILE*	hdrs=NULL;
-	FILE*	voting=NULL;
 	DIR*	dir;
 	DIRENT*	dirent;
 	struct	tm tm;
@@ -72,13 +72,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	const char* fmode;
 
 	ex=EX_STDOUT;
-	if(prepack) {
+	if(prepack)
 		ex|=EX_OFFLINE;
-		if(is_user_online(&cfg, useron.number)) { /* Don't pre-pack with user online */
-			eprintf(LOG_NOTICE, "User #%u is concurrently logged-in, QWK packet creation aborted", useron.number);
-			return(false); 
-		}
-	}
 
 	delfiles(cfg.temp_dir,ALLFILES);
 	SAFEPRINTF2(str,"%sfile/%04u.qwk",cfg.data_dir,useron.number);
@@ -125,10 +120,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		}
 
 		now=time(NULL);
-		if(localtime_r(&now,&tm)==NULL) {
-			errormsg(WHERE, ERR_CHK, "time", (ulong)now);
+		if(localtime_r(&now,&tm)==NULL)
 			return(false);
-		}
 
 		fprintf(stream,"%s\r\n%s\r\n%s\r\n%s, Sysop\r\n0000,%s\r\n"
 			"%02u-%02u-%u,%02u:%02u:%02u\r\n"
@@ -295,16 +288,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			return(false); 
 		}
 	}
-	if(useron.qwk&QWK_VOTING) {
-		SAFEPRINTF(str,"%sVOTING.DAT",cfg.temp_dir);
-		if((voting=fopen(str,"a"))==NULL) {
-			fclose(qwk);
-			if(hdrs!=NULL)
-				fclose(hdrs);
-			errormsg(WHERE,ERR_OPEN,str,0);
-			return(false); 
-		}
-	}
 	l=(long)filelength(fileno(qwk));
 	if(l<1) {
 		fprintf(qwk,"%-128.128s","Produced by " VERSION_NOTICE "  " COPYRIGHT_NOTICE);
@@ -331,8 +314,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			fclose(qwk);
 			if(hdrs!=NULL)
 				fclose(hdrs);
-			if(voting!=NULL)
-				fclose(voting);
 			errormsg(WHERE,ERR_OPEN,str,0);
 			return(false); 
 		}
@@ -348,8 +329,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			fclose(qwk);
 			if(hdrs!=NULL)
 				fclose(hdrs);
-			if(voting!=NULL)
-				fclose(voting);
 			if(personal)
 				fclose(personal);
 			errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
@@ -370,8 +349,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					fclose(qwk);
 					if(hdrs!=NULL)
 						fclose(hdrs);
-					if(voting!=NULL)
-						fclose(voting);
 					if(personal)
 						fclose(personal);
 					smb_close(&smb);
@@ -410,7 +387,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				size=msgtoqwk(&msg,qwk,mode,INVALID_SUB,0,hdrs);
 				smb_unlockmsghdr(&smb,&msg);
 				smb_freemsgmem(&msg);
-				if(ndx && size) {
+				if(ndx) {
 					msgndx++;
 					f=ltomsbin(msgndx); 	/* Record number */
 					ch=0;					/* Sub number, not used */
@@ -474,8 +451,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					k|=LP_BYSELF;
 				if(useron.rest&FLAG('Q') || !(subscan[usrsub[i][j]].cfg&SUB_CFG_YSCAN))
 					k|=LP_OTHERS;
-				if(useron.qwk&QWK_VOTING)
-					k|=LP_POLLS|LP_VOTES;
 				post=loadposts(&posts,usrsub[i][j],subscan[usrsub[i][j]].ptr,k,NULL);
 
 				bprintf(text[NScanStatusFmt]
@@ -497,8 +472,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						fclose(qwk);
 						if(hdrs!=NULL)
 							fclose(hdrs);
-						if(voting!=NULL)
-							fclose(voting);
 						if(personal)
 							fclose(personal);
 						smb_close(&smb);
@@ -542,10 +515,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					else
 						mode&=~(QM_TAGLINE|QM_TO_QNET);
 
-					size=msgtoqwk(&msg,qwk,mode,usrsub[i][j],conf,hdrs,voting);
+					size=msgtoqwk(&msg,qwk,mode,usrsub[i][j],conf,hdrs);
 					smb_unlockmsghdr(&smb,&msg);
 
-					if(ndx && size) {
+					if(ndx) {
 						msgndx++;
 						f=ltomsbin(msgndx); 	/* Record number */
 						ch=0;					/* Sub number, not used */
@@ -561,10 +534,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					}
 
 					smb_freemsgmem(&msg);
-					if(size) {
-						(*msgcnt)++;
-						submsgs++;
-					}
+					(*msgcnt)++;
+					submsgs++;
 					if(cfg.max_qwkmsgs
 						&& !(useron.exempt&FLAG('O')) && (*msgcnt)>=cfg.max_qwkmsgs) {
 						bputs(text[QWKmsgLimitReached]);
@@ -620,8 +591,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	fclose(qwk);			/* close MESSAGE.DAT */
 	if(hdrs!=NULL)
 		fclose(hdrs);		/* close HEADERS.DAT */
-	if(voting!=NULL)
-		fclose(voting);
 	if(personal) {
 		fclose(personal);		 /* close PERSONAL.NDX */
 		SAFEPRINTF(str,"%sPERSONAL.NDX",cfg.temp_dir);
@@ -740,10 +709,14 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	}
 
 	if(prepack) {
-		if(is_user_online(&cfg, useron.number)) { /* Don't pre-pack with user online */
-			eprintf(LOG_NOTICE, "User #%u is concurrently logged-in, QWK packet creation aborted", useron.number);
-			return(false); 
+		for(i=1;i<=cfg.sys_nodes;i++) {
+			getnodedat(i,&node,0);
+			if((node.status==NODE_INUSE || node.status==NODE_QUIET
+				|| node.status==NODE_LOGON) && node.useron==useron.number)
+				break; 
 		}
+		if(i<=cfg.sys_nodes)	/* Don't pre-pack with user online */
+			return(false); 
 	}
 
 	/*******************/

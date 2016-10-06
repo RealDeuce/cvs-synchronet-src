@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.7 2016/10/19 03:55:52 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.5 2016/08/03 07:21:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
                     break;
                 default:
 					USAGE:
-                    printf("\nusage: echocfg [path/to/sbbsecho.ini] [options]"
+                    printf("\nusage: echocfg [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
                         "-c  =  force color mode\r\n"
 						"-m  =  force monochrome mode\r\n"
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 		if(!p) {
 			p=getenv("SBBSNODE");
 			if(!p) {
-				goto USAGE;
+				printf("usage: echocfg [cfg_file]\n");
 				exit(1); 
 			}
 			strcpy(str,p);
@@ -670,7 +670,7 @@ int main(int argc, char **argv)
 				j=0;
 				while(1) {
 					i=0;
-					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Non-secure Inbound Directory"
+					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Insecure Inbound Directory"
 						,cfg.inbound);
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Secure Inbound Directory"
 						,cfg.secure_inbound[0] ? cfg.secure_inbound : "<None>");
@@ -693,12 +693,11 @@ int main(int argc, char **argv)
 					switch(j) {
 						case 0:
 	uifc.helpbuf=
-	"~ Non-secure Inbound Directory ~\r\n\r\n"
+	"~ Insecure Inbound Directory ~\r\n\r\n"
 	"This is the complete path (drive and directory) where your FTN\r\n"
-	"mailer stores, and where SBBSecho will look for, incoming files\r\n"
-	"(potentially including message bundles and packets) from unauthenticated\r\n"
-	"(non-secure) mailer sessions.";
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Non-secure Inbound Directory"
+	"mailer stores, and where SBBSecho will look for, incoming message\r\n"
+	"bundles and packets.";
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Insecure Inbound Directory"
 								,cfg.inbound,sizeof(cfg.inbound)-1
 								,K_EDIT);
 							break;
