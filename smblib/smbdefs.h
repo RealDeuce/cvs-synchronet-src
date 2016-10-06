@@ -2,7 +2,7 @@
 
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.84 2015/11/26 13:08:55 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.85 2016/09/07 23:28:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -182,7 +182,7 @@
 #define SENDER				0x00
 #define SENDERAGENT 		0x01
 #define SENDERNETTYPE		0x02
-#define SENDERNETADDR		0x03
+#define SENDERNETADDR		0x03		/* Note: SENDERNETTYPE may be NET_NONE and this field present and contain a valid string */
 #define SENDEREXT			0x04
 #define SENDERPOS			0x05
 #define SENDERORG			0x06
@@ -216,7 +216,7 @@
 #define RECIPIENT			0x30
 #define RECIPIENTAGENT		0x31
 #define RECIPIENTNETTYPE	0x32
-#define RECIPIENTNETADDR	0x33
+#define RECIPIENTNETADDR	0x33	/* Note: RECIPIENTNETTYPE may be NET_NONE and this field present and contain a valid string */
 #define RECIPIENTEXT		0x34
 #define RECIPIENTPOS		0x35
 #define RECIPIENTORG		0x36
