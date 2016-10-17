@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.5 2016/08/03 07:21:09 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.6 2016/10/17 21:44:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
                     break;
                 default:
 					USAGE:
-                    printf("\nusage: echocfg [ctrl_dir] [options]"
+                    printf("\nusage: echocfg [path/to/sbbsecho.ini] [options]"
                         "\n\noptions:\n\n"
                         "-c  =  force color mode\r\n"
 						"-m  =  force monochrome mode\r\n"
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 		if(!p) {
 			p=getenv("SBBSNODE");
 			if(!p) {
-				printf("usage: echocfg [cfg_file]\n");
+				goto USAGE;
 				exit(1); 
 			}
 			strcpy(str,p);
