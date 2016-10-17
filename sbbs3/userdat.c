@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.170 2016/10/06 06:35:29 rswindell Exp $ */
+/* $Id: userdat.c,v 1.171 2016/10/17 21:54:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,8 @@
 /* convenient space-saving global variables */
 char* crlf="\r\n";
 char* nulstr="";
+
+static const char* strIpFilterExemptConfigFile = "ipfilter_exempt.cfg";
 
 #define VALID_CFG(cfg)	(cfg!=NULL && cfg->size==sizeof(scfg_t))
 
@@ -2706,11 +2708,18 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const 
 					   ,const char* ip_addr, const char* username, const char* fname)
 {
 	char	ip_can[MAX_PATH+1];
+	char	exempt[MAX_PATH+1];
 	char	tstr[64];
     FILE*	fp;
     time32_t now=time32(NULL);
 
 	if(ip_addr==NULL)
+		return(FALSE);
+
+	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
+	if(findstr(ip_addr, exempt))
+		return(FALSE);
+	if(findstr(host, exempt))
 		return(FALSE);
 
 	SAFEPRINTF(ip_can,"%sip.can",cfg->text_dir);
@@ -2913,9 +2922,10 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
-ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
+ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const char* host_name
 	,struct login_attempt_settings settings, login_attempt_t* details)
 {
+	char				ip_addr[128];
 	list_node_t*		node;
 	login_attempt_t*	attempt;
 	BOOL				result = FALSE;
@@ -2923,6 +2933,9 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
 	union xp_sockaddr	client_addr;
 	union xp_sockaddr	server_addr;
 	socklen_t			addr_len;
+	char				exempt[MAX_PATH+1];
+
+	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
 
 	if(list==NULL)
 		return 0;
@@ -2937,6 +2950,13 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
 
 	/* Don't ban connections from the server back to itself */
 	if(inet_addrmatch(&server_addr, &client_addr))
+		return 0;
+
+	if(inet_addrtop(&client_addr, ip_addr, sizeof(ip_addr)) != NULL 
+		&& findstr(ip_addr, exempt))
+		return 0;
+	if(host_name != NULL
+		&& findstr(host_name, exempt))
 		return 0;
 
 	listLock(list);
