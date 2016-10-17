@@ -2,7 +2,7 @@
 
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.66 2015/05/02 03:20:54 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.70 2016/10/06 06:44:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	ulong	subs_scanned=0;
 	float	f;	/* Sparky is responsible */
 	time_t	start;
-	node_t	node;
 	mail_t	*mail;
 	post_t	*post;
 	glob_t	g;
@@ -72,8 +71,13 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	const char* fmode;
 
 	ex=EX_STDOUT;
-	if(prepack)
+	if(prepack) {
 		ex|=EX_OFFLINE;
+		if(is_user_online(&cfg, useron.number)) { /* Don't pre-pack with user online */
+			eprintf(LOG_NOTICE, "User #%u is concurrently logged-in, QWK packet creation aborted", useron.number);
+			return(false); 
+		}
+	}
 
 	delfiles(cfg.temp_dir,ALLFILES);
 	SAFEPRINTF2(str,"%sfile/%04u.qwk",cfg.data_dir,useron.number);
@@ -105,6 +109,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		mode|=QM_VIA;
 	if(useron.qwk&QWK_MSGID)
 		mode|=QM_MSGID;
+	if(useron.qwk&QWK_EXT)
+		mode|=QM_EXT;
 
 	(*msgcnt)=0L;
 	if(/* !prepack && */ !(useron.qwk&QWK_NOCTRL)) {
@@ -118,8 +124,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		}
 
 		now=time(NULL);
-		if(localtime_r(&now,&tm)==NULL)
+		if(localtime_r(&now,&tm)==NULL) {
+			errormsg(WHERE, ERR_CHK, "time", (ulong)now);
 			return(false);
+		}
 
 		fprintf(stream,"%s\r\n%s\r\n%s\r\n%s, Sysop\r\n0000,%s\r\n"
 			"%02u-%02u-%u,%02u:%02u:%02u\r\n"
@@ -425,11 +433,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				subs_scanned++;
 				msgs=getlastmsg(usrsub[i][j],&lastmsg,0);
 				if(!msgs || lastmsg<=subscan[usrsub[i][j]].ptr) { /* no msgs */
-					if(subscan[usrsub[i][j]].ptr>lastmsg)	{ /* corrupted ptr */
-						outchar('*');
-						subscan[usrsub[i][j]].ptr=lastmsg; /* so fix automatically */
+					if(subscan[usrsub[i][j]].ptr>lastmsg)	/* corrupted ptr */
+						subscan[usrsub[i][j]].ptr=lastmsg;	/* so fix automatically */
+					if(subscan[usrsub[i][j]].last>lastmsg)
 						subscan[usrsub[i][j]].last=lastmsg; 
-					}
 					bprintf(text[NScanStatusFmt]
 						,cfg.grp[cfg.sub[usrsub[i][j]]->grp]->sname
 						,cfg.sub[usrsub[i][j]]->lname,0L,msgs);
@@ -446,7 +453,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				}
 
 				k=0;
-				if(useron.qwk&QWK_BYSELF)
+				if(useron.rest&FLAG('Q') ||  (useron.qwk&QWK_BYSELF))
 					k|=LP_BYSELF;
 				if(useron.rest&FLAG('Q') || !(subscan[usrsub[i][j]].cfg&SUB_CFG_YSCAN))
 					k|=LP_OTHERS;
@@ -708,14 +715,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	}
 
 	if(prepack) {
-		for(i=1;i<=cfg.sys_nodes;i++) {
-			getnodedat(i,&node,0);
-			if((node.status==NODE_INUSE || node.status==NODE_QUIET
-				|| node.status==NODE_LOGON) && node.useron==useron.number)
-				break; 
-		}
-		if(i<=cfg.sys_nodes)	/* Don't pre-pack with user online */
+		if(is_user_online(&cfg, useron.number)) { /* Don't pre-pack with user online */
+			eprintf(LOG_NOTICE, "User #%u is concurrently logged-in, QWK packet creation aborted", useron.number);
 			return(false); 
+		}
 	}
 
 	/*******************/

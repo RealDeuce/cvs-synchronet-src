@@ -2,13 +2,13 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.65 2015/04/27 10:45:05 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.67 2015/11/27 11:17:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -276,7 +276,9 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	if(cfg->new_prot<' ')
 		cfg->new_prot=' ';
 	get_int(cfg->new_install,instream);
-	for(i=0;i<7;i++)
+	get_int(cfg->new_msgscan_init,instream);
+	get_int(cfg->guest_msgscan_init,instream);
+	for(i=0;i<5;i++)
 		get_int(n,instream);
 
 	/*************************/

@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.49 2015/07/07 03:49:00 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.53 2015/08/25 01:33:08 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -33,7 +33,6 @@ static int current_font[4]={-99, -99, -99, -99};
 static int bitmap_initialized=0;
 pthread_mutex_t vmem_lock;
 struct video_stats vstat;
-static int *damaged=NULL;
 
 struct bitmap_callbacks {
 	void	(*drawrect)		(int xpos, int ypos, int width, int height, unsigned char *data);
@@ -142,33 +141,22 @@ int bitmap_init_mode(int mode, int *width, int *height)
 {
     int i;
 	char *newscreen;
-	int *newdamaged;
 
 	if(!bitmap_initialized)
 		return(-1);
 
 	pthread_mutex_lock(&screenlock);
 	pthread_mutex_lock(&vstatlock);
+	pthread_mutex_lock(&vmem_lock);
 
 	if(load_vmode(&vstat, mode)) {
+		pthread_mutex_unlock(&vmem_lock);
 		pthread_mutex_unlock(&vstatlock);
 		pthread_mutex_unlock(&screenlock);
 		return(-1);
 	}
 
-	/* Initialize the damaged array */
-
-	newdamaged=(int *)malloc(sizeof(int)*vstat.rows);
-	if(newdamaged==NULL) {
-		pthread_mutex_unlock(&vstatlock);
-		return(-1);
-	}
-	if(damaged)
-		free(damaged);
-	damaged=newdamaged;
-
 	/* Initialize video memory with black background, white foreground */
-	pthread_mutex_lock(&vmem_lock);
 	for (i = 0; i < vstat.cols*vstat.rows; ++i)
 	    vstat.vmem->vmem[i] = 0x0700;
 	pthread_mutex_unlock(&vmem_lock);
@@ -367,7 +355,6 @@ int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 
 	vmem_ptr = lock_vmem(&vstat);
 	for(cy=(direction==-1?(height-1):0); cy<height && cy>=0; cy+=direction) {
-		damaged[toy+cy-1]=1;
 		sourcepos=((y-1)+cy)*cio_textinfo.screenwidth+(x-1);
 		memmove(&(vmem_ptr->vmem[sourcepos+destoffset]), &(vmem_ptr->vmem[sourcepos]), sizeof(vmem_ptr->vmem[0])*width);
 	}
@@ -383,7 +370,6 @@ void bitmap_clreol(void)
 
 	pos=(cio_textinfo.cury+cio_textinfo.wintop-2)*cio_textinfo.screenwidth;
 	vmem_ptr = lock_vmem(&vstat);
-	damaged[cio_textinfo.cury-1]=1;
 	for(x=cio_textinfo.curx+cio_textinfo.winleft-2; x<cio_textinfo.winright; x++)
 		vmem_ptr->vmem[pos+x]=fill;
 	unlock_vmem(vmem_ptr);
@@ -397,7 +383,6 @@ void bitmap_clrscr(void)
 
 	vmem_ptr = lock_vmem(&vstat);
 	for(y=cio_textinfo.wintop-1; y<cio_textinfo.winbottom; y++) {
-		damaged[y]=1;
 		for(x=cio_textinfo.winleft-1; x<cio_textinfo.winright; x++)
 			vmem_ptr->vmem[y*cio_textinfo.screenwidth+x]=fill;
 	}
@@ -429,7 +414,6 @@ int bitmap_puttext(int sx, int sy, int ex, int ey, void *fill)
 	vmem_ptr = lock_vmem(&vstat);
 	out=fill;
 	for(y=sy-1;y<ey;y++) {
-		damaged[y]=1;
 		for(x=sx-1;x<ex;x++) {
 			sch=*(out++);
 			sch |= (*(out++))<<8;
@@ -780,12 +764,10 @@ static void bitmap_draw_cursor(struct video_stats *vs)
 	char attr;
 	int pixel;
 	int xoffset,yoffset;
-	int width;
 	int yo, xw, yw;
 
 	if(!bitmap_initialized)
 		return;
-	pthread_mutex_lock(&screenlock);
 	if(vs->curs_visible) {
 		if(vs->blink || (!vs->curs_blink)) {
 			if(vs->curs_start<=vs->curs_end) {
@@ -794,26 +776,25 @@ static void bitmap_draw_cursor(struct video_stats *vs)
 				if(xoffset < 0 || yoffset < 0)
 					return;
 				attr=cio_textinfo.attribute&0x0f;
-				width=vs->charwidth;
 	
+				pthread_mutex_lock(&screenlock);
 				for(y=vs->curs_start; y<=vs->curs_end; y++) {
 					if(xoffset < screenwidth && (yoffset+y) < screenheight) {
 						pixel=PIXEL_OFFSET(xoffset, yoffset+y);
 						for(x=0;x<vs->charwidth;x++)
 							screen[pixel++]=attr;
-						//memset(screen+pixel,attr,width);
+						//memset(screen+pixel,attr,vs->charwidth);
 					}
 				}
+				pthread_mutex_unlock(&screenlock);
 				yo = yoffset+vs->curs_start;
 				xw = vs->charwidth;
 				yw = vs->curs_end-vs->curs_start+1;
-				pthread_mutex_unlock(&screenlock);
 				send_rectangle(vs, xoffset, yo, xw, yw,FALSE);
 				return;
 			}
 		}
 	}
-	pthread_mutex_unlock(&screenlock);
 }
 
 /* Called from main thread only */
@@ -909,7 +890,6 @@ static int update_rect(int sx, int sy, int width, int height, int force)
 	unsigned int pos;
 	int	redraw_cursor=0;
 	int	lastcharupdated=0;
-	int fullredraw=0;
 	static unsigned short *last_vmem=NULL;
 	static unsigned short *this_vmem=NULL;
 	static struct video_stats vs;
@@ -923,9 +903,6 @@ static int update_rect(int sx, int sy, int width, int height, int force)
 
 	if(!bitmap_initialized)
 		return(-1);
-
-	if(sx==0 && sy==0 && width==0 && height==0)
-		fullredraw=1;
 
 	if(sx<=0)
 		sx=1;
@@ -976,53 +953,47 @@ static int update_rect(int sx, int sy, int width, int height, int force)
 	pthread_mutex_unlock(&vmem_lock);
 
 	for(y=0;y<height;y++) {
-		if(force 
-				|| (cvstat.blink != vs.blink )
-				|| (redraw_cursor && (vs.curs_row==sy+y || cvstat.curs_row==sy+y))
-				|| damaged[sy+y-1]) {
-			damaged[sy+y-1]=0;
-			pos=(sy+y-1)*cvstat.cols+(sx-1);
-			for(x=0;x<width;x++) {
-				if(force
-						|| (last_vmem[pos] != cvstat.vmem->vmem[pos]) 					/* Different char */
-						|| ((cvstat.blink != vs.blink) && (cvstat.vmem->vmem[pos]>>15) && (!cvstat.no_blink)) 	/* Blinking char */
-						|| (redraw_cursor && ((vs.curs_col==sx+x && vs.curs_row==sy+y) || (cvstat.curs_col==sx+x && cvstat.curs_row==sy+y)))	/* Cursor */
-						) {
-					last_vmem[pos] = cvstat.vmem->vmem[pos];
-					bitmap_draw_one_char(&cvstat, sx+x,sy+y);
+		pos=(sy+y-1)*cvstat.cols+(sx-1);
+		for(x=0;x<width;x++) {
+			if(force
+					|| (last_vmem[pos] != cvstat.vmem->vmem[pos]) 					/* Different char */
+					|| ((cvstat.blink != vs.blink) && (cvstat.vmem->vmem[pos]>>15) && (!cvstat.no_blink)) 	/* Blinking char */
+					|| (redraw_cursor && ((vs.curs_col==sx+x && vs.curs_row==sy+y) || (cvstat.curs_col==sx+x && cvstat.curs_row==sy+y)))	/* Cursor */
+					) {
+				last_vmem[pos] = cvstat.vmem->vmem[pos];
+				bitmap_draw_one_char(&cvstat, sx+x,sy+y);
 
-					if(!redraw_cursor && sx+x==cvstat.curs_col && sy+y==cvstat.curs_row)
-						redraw_cursor=1;
+				if(!redraw_cursor && sx+x==cvstat.curs_col && sy+y==cvstat.curs_row)
+					redraw_cursor=1;
 
-					if(lastcharupdated) {
-						this_rect.width+=cvstat.charwidth;
-						lastcharupdated++;
-					}
-					else {
-						if(this_rect_used) {
-							send_rectangle(&cvstat, this_rect.x, this_rect.y, this_rect.width, this_rect.height,FALSE);
-						}
-						this_rect.x=(sx+x-1)*cvstat.charwidth;
-						this_rect.y=(sy+y-1)*cvstat.charheight;
-						this_rect.width=cvstat.charwidth;
-						this_rect.height=cvstat.charheight;
-						this_rect_used=1;
-						lastcharupdated++;
-					}
+				if(lastcharupdated) {
+					this_rect.width+=cvstat.charwidth;
+					lastcharupdated++;
 				}
 				else {
 					if(this_rect_used) {
 						send_rectangle(&cvstat, this_rect.x, this_rect.y, this_rect.width, this_rect.height,FALSE);
-						this_rect_used=0;
 					}
-					if(last_rect_used) {
-						send_rectangle(&cvstat, last_rect.x, last_rect.y, last_rect.width, last_rect.height, FALSE);
-						last_rect_used=0;
-					}
-					lastcharupdated=0;
+					this_rect.x=(sx+x-1)*cvstat.charwidth;
+					this_rect.y=(sy+y-1)*cvstat.charheight;
+					this_rect.width=cvstat.charwidth;
+					this_rect.height=cvstat.charheight;
+					this_rect_used=1;
+					lastcharupdated++;
 				}
-				pos++;
 			}
+			else {
+				if(last_rect_used) {
+					send_rectangle(&cvstat, last_rect.x, last_rect.y, last_rect.width, last_rect.height, FALSE);
+					last_rect_used=0;
+				}
+				if(this_rect_used) {
+					send_rectangle(&cvstat, this_rect.x, this_rect.y, this_rect.width, this_rect.height,FALSE);
+					this_rect_used=0;
+				}
+				lastcharupdated=0;
+			}
+			pos++;
 		}
 		/* If ALL chars in the line were used, add to last_rect */
 		if(lastcharupdated==width) {
