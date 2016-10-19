@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.21 2016/10/06 06:57:00 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.22 2016/10/19 03:59:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4943,7 +4943,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.21 $", "%*s %s", revision);
+	sscanf("$Revision: 3.22 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5257,19 +5257,19 @@ int main(int argc, char **argv)
 		for(i=0; i<cfg.nodecfgs && !terminated; i++) {
 			if(cfg.nodecfg[i].inbox[0] == 0)
 				continue;
-			printf("Scanning %s\n", cfg.nodecfg[i].inbox);
+			printf("Scanning %s inbox: %s\n", faddrtoa(&cfg.nodecfg[i].addr), cfg.nodecfg[i].inbox);
 			do {
 				import_packets(cfg.nodecfg[i].inbox, &cfg.nodecfg[i], /* secure: */true);
 			} while(unpack_bundle(cfg.nodecfg[i].inbox));
 		}
 		if(cfg.secure_inbound[0] && !terminated) {
-			printf("Scanning %s\n", cfg.secure_inbound);
+			printf("Scanning secure inbound: %s\n", cfg.secure_inbound);
 			do { 
 				import_packets(cfg.secure_inbound, NULL, /* secure: */true);
 			} while(unpack_bundle(cfg.secure_inbound));
 		}
 		if(cfg.inbound[0] && !terminated) {
-			printf("Scanning %s\n", cfg.inbound);
+			printf("Scanning non-secure inbound: %s\n", cfg.inbound);
 			do {
 				import_packets(cfg.inbound, NULL, /* secure: */false);
 			} while(unpack_bundle(cfg.inbound));
