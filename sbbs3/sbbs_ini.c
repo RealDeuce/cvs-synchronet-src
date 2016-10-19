@@ -1,7 +1,8 @@
+/* sbbs_ini.c */
+
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.155 2016/11/28 10:17:14 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: sbbs_ini.c,v 1.151 2016/05/27 07:41:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -233,7 +234,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	if(*p)
         SAFECOPY(global->host_name,value);
 
-	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,DEFAULT_SEM_CHK_FREQ);
+	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,0);
 	iniFreeStringList(global->interfaces);
 	global->interfaces=iniGetStringList(list,section,strInterfaces, ",", "0.0.0.0,::");
 	global->outgoing4.s_addr=iniGetIpAddress(list,section,strOutgoing4,0);
@@ -258,7 +259,6 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 
 void sbbs_read_ini(
 	 FILE*					fp
-	,const char*			ini_fname
 	,global_startup_t*		global
 	,BOOL*					run_bbs
 	,bbs_startup_t*			bbs
@@ -296,14 +296,6 @@ void sbbs_read_ini(
 		if(web!=NULL)		SAFECOPY(web->ctrl_dir,global->ctrl_dir);
 		if(mail!=NULL)		SAFECOPY(mail->ctrl_dir,global->ctrl_dir);
 		if(services!=NULL)	SAFECOPY(services->ctrl_dir,global->ctrl_dir);
-	}
-
-	if(ini_fname!=NULL && ini_fname[0]) {
-		if(bbs!=NULL)		SAFECOPY(bbs->ini_fname, ini_fname);
-		if(ftp!=NULL)		SAFECOPY(ftp->ini_fname, ini_fname);
-		if(web!=NULL)		SAFECOPY(web->ini_fname, ini_fname);
-		if(mail!=NULL)		SAFECOPY(mail->ini_fname, ini_fname);
-		if(services!=NULL)	SAFECOPY(services->ini_fname, ini_fname);
 	}
 
 	global_interfaces = strListCombine(global->interfaces, NULL, 16384, ",");
@@ -403,7 +395,6 @@ void sbbs_read_ini(
 		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
 
 		bbs->login_attempt = get_login_attempt_settings(list, section, global);
-		bbs->max_concurrent_connections = iniGetInteger(list, section, "MaxConcurrentConnections", 0);
 	}
 
 	/***********************************************************************/
