@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.191 2016/11/19 10:15:41 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.190 2016/05/27 08:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -818,7 +818,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     global.js.time_limit=JAVASCRIPT_TIME_LIMIT;
     global.js.gc_interval=JAVASCRIPT_GC_INTERVAL;
     global.js.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
-    global.sem_chk_freq=DEFAULT_SEM_CHK_FREQ;		/* seconds */
+    global.sem_chk_freq=5;		/* seconds */
 
     /* These are SBBSCTRL-specific */
     LoginCommand="telnet://127.0.0.1";
