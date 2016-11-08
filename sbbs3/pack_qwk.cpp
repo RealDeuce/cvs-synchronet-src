@@ -1,6 +1,8 @@
+/* pack_qwk.cpp */
+
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.73 2016/11/20 11:18:55 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.70 2016/10/06 06:44:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +63,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	glob_t	g;
 	FILE	*stream,*qwk,*personal,*ndx;
 	FILE*	hdrs=NULL;
-	FILE*	voting=NULL;
 	DIR*	dir;
 	DIRENT*	dirent;
 	struct	tm tm;
@@ -293,16 +294,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			return(false); 
 		}
 	}
-	if(useron.qwk&QWK_VOTING) {
-		SAFEPRINTF(str,"%sVOTING.DAT",cfg.temp_dir);
-		if((voting=fopen(str,"a"))==NULL) {
-			fclose(qwk);
-			if(hdrs!=NULL)
-				fclose(hdrs);
-			errormsg(WHERE,ERR_OPEN,str,0);
-			return(false); 
-		}
-	}
 	l=(long)filelength(fileno(qwk));
 	if(l<1) {
 		fprintf(qwk,"%-128.128s","Produced by " VERSION_NOTICE "  " COPYRIGHT_NOTICE);
@@ -329,8 +320,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			fclose(qwk);
 			if(hdrs!=NULL)
 				fclose(hdrs);
-			if(voting!=NULL)
-				fclose(voting);
 			errormsg(WHERE,ERR_OPEN,str,0);
 			return(false); 
 		}
@@ -346,8 +335,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			fclose(qwk);
 			if(hdrs!=NULL)
 				fclose(hdrs);
-			if(voting!=NULL)
-				fclose(voting);
 			if(personal)
 				fclose(personal);
 			errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
@@ -368,8 +355,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					fclose(qwk);
 					if(hdrs!=NULL)
 						fclose(hdrs);
-					if(voting!=NULL)
-						fclose(voting);
 					if(personal)
 						fclose(personal);
 					smb_close(&smb);
@@ -394,7 +379,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				msg.idx=mail[u];
 				if(msg.idx.number>qwkmail_last)
 					qwkmail_last=msg.idx.number;
-				if(loadmsg(&msg,mail[u].number) < 1)
+				if(!loadmsg(&msg,mail[u].number))
 					continue;
 
 				if(msg.hdr.auxattr&MSG_FILEATTACH && useron.qwk&QWK_ATTACH) {
@@ -408,7 +393,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				size=msgtoqwk(&msg,qwk,mode,INVALID_SUB,0,hdrs);
 				smb_unlockmsghdr(&smb,&msg);
 				smb_freemsgmem(&msg);
-				if(ndx && size) {
+				if(ndx) {
 					msgndx++;
 					f=ltomsbin(msgndx); 	/* Record number */
 					ch=0;					/* Sub number, not used */
@@ -472,8 +457,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					k|=LP_BYSELF;
 				if(useron.rest&FLAG('Q') || !(subscan[usrsub[i][j]].cfg&SUB_CFG_YSCAN))
 					k|=LP_OTHERS;
-				if(useron.qwk&QWK_VOTING)
-					k|=LP_POLLS|LP_VOTES;
 				post=loadposts(&posts,usrsub[i][j],subscan[usrsub[i][j]].ptr,k,NULL);
 
 				bprintf(text[NScanStatusFmt]
@@ -495,8 +478,6 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						fclose(qwk);
 						if(hdrs!=NULL)
 							fclose(hdrs);
-						if(voting!=NULL)
-							fclose(voting);
 						if(personal)
 							fclose(personal);
 						smb_close(&smb);
@@ -516,7 +497,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 
 					memset(&msg,0,sizeof(msg));
 					msg.idx=post[u].idx;
-					if(loadmsg(&msg,post[u].idx.number) < 1)
+					if(!loadmsg(&msg,post[u].idx.number))
 						continue;
 
 					if(useron.rest&FLAG('Q')) {
@@ -540,10 +521,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					else
 						mode&=~(QM_TAGLINE|QM_TO_QNET);
 
-					size=msgtoqwk(&msg,qwk,mode,usrsub[i][j],conf,hdrs,voting);
+					size=msgtoqwk(&msg,qwk,mode,usrsub[i][j],conf,hdrs);
 					smb_unlockmsghdr(&smb,&msg);
 
-					if(ndx && size) {
+					if(ndx) {
 						msgndx++;
 						f=ltomsbin(msgndx); 	/* Record number */
 						ch=0;					/* Sub number, not used */
@@ -559,10 +540,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					}
 
 					smb_freemsgmem(&msg);
-					if(size) {
-						(*msgcnt)++;
-						submsgs++;
-					}
+					(*msgcnt)++;
+					submsgs++;
 					if(cfg.max_qwkmsgs
 						&& !(useron.exempt&FLAG('O')) && (*msgcnt)>=cfg.max_qwkmsgs) {
 						bputs(text[QWKmsgLimitReached]);
@@ -615,14 +594,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			lprintf(LOG_INFO,"%s",str);
 	}
 
-	BOOL voting_data = FALSE;
 	fclose(qwk);			/* close MESSAGE.DAT */
 	if(hdrs!=NULL)
 		fclose(hdrs);		/* close HEADERS.DAT */
-	if(voting!=NULL) {
-		voting_data = ftell(voting);
-		fclose(voting);
-	}
 	if(personal) {
 		fclose(personal);		 /* close PERSONAL.NDX */
 		SAFEPRINTF(str,"%sPERSONAL.NDX",cfg.temp_dir);
@@ -701,7 +675,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		} 
 	}
 
-	if(!(*msgcnt) && !mailmsgs && !files && !netfiles && !batdn_total && !voting_data
+	if(!(*msgcnt) && !mailmsgs && !files && !netfiles && !batdn_total
 		&& (prepack || !preqwk)) {
 		bputs(text[QWKNoNewMessages]);
 		return(false); 

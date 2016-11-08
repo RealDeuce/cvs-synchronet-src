@@ -1,6 +1,8 @@
+/* smbstr.c */
+
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.26 2016/11/16 10:53:54 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.25 2016/04/15 02:01:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,8 +110,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case SMTPRECEIVED:		return("Received");				/* RFC-compliant */
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
-
-		case SMB_POLL_ANSWER:	return("PollAnswer");
 
 		case UNKNOWN:			return("UNKNOWN");
 		case UNKNOWNASCII:		return("UNKNOWNASCII");
