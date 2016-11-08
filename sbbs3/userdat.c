@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.171 2016/10/17 21:54:28 rswindell Exp $ */
+/* $Id: userdat.c,v 1.172 2016/11/08 19:49:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2911,7 +2911,9 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	attempt->time=time32(NULL);
 	memcpy(&attempt->addr, addr, sizeof(*addr));
 	SAFECOPY(attempt->user, user);
-	SAFECOPY(attempt->pass, pass);
+	memset(attempt->pass, 0, sizeof(attempt->pass));
+	if(pass != NULL)
+		SAFECOPY(attempt->pass, pass);
 	attempt->count++;
 	count = attempt->count - attempt->dupes;
 	if(node==NULL)
