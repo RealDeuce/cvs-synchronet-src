@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.158 2016/11/16 05:31:07 rswindell Exp $ */
+/* $Id: smblib.c,v 1.154 2016/11/08 20:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1246,9 +1246,7 @@ int	SMBCALL smb_hfield_add_netaddr(smbmsg_t* msg, uint16_t type, const char* add
 	fidoaddr_t	sys_addr = {0,0,0,0};	/* replace unspecified fields with 0 (don't assume 1:1/1) */
 	fidoaddr_t	fidoaddr;
 	uint16_t	tmp_net_type=NET_UNKNOWN;
-
-	if(addr == NULL)
-		return SMB_ERR_HDR_FIELD;
+	
 	SKIP_WHITESPACE(addr);
 	if(net_type==NULL)
 		net_type=&tmp_net_type;
@@ -1636,9 +1634,9 @@ int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
 			msg->idx.from=atoi(msg->from_ext);
 		else
 			msg->idx.from=0; 
-	} else if(msg->hdr.type == SMB_MSG_TYPE_BALLOT) {
-		msg->idx.votes = msg->hdr.votes;
-		msg->idx.remsg = msg->hdr.thread_back;
+	} else if(msg->hdr.type == SMB_MSG_TYPE_VOTE) {
+		msg->idx.vote = msg->hdr.vote;
+		msg->idx.msgnum = msg->hdr.thread_back;
 	} else {
 		msg->idx.to=smb_name_crc(msg->to);
 		msg->idx.from=smb_name_crc(msg->from);
@@ -1652,9 +1650,9 @@ int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
 	return(SMB_SUCCESS);
 }
 
-uint16_t SMBCALL smb_voted_already(smb_t* smb, uint32_t msgnum, const char* name, enum smb_net_type net_type, void* net_addr)
+BOOL SMBCALL smb_voted_already(smb_t* smb, uint32_t msgnum, const char* name, enum smb_net_type net_type, void* net_addr)
 {
-	uint16_t votes = 0;
+	BOOL result = FALSE;
 	smbmsg_t msg;
 
 	if(smb->sid_fp==NULL) {
@@ -1668,15 +1666,14 @@ uint16_t SMBCALL smb_voted_already(smb_t* smb, uint32_t msgnum, const char* name
 			,get_errno(), STRERROR(get_errno()));
 		return SMB_ERR_SEEK;
 	}
-	while(!votes && smb_fread(smb, &msg.idx, sizeof(msg.idx), smb->sid_fp) == sizeof(msg.idx)) {
-		if(!(msg.idx.attr&MSG_VOTE))
+	while(!result && smb_fread(smb, &msg.idx, sizeof(msg.idx), smb->sid_fp) == sizeof(msg.idx)) {
+		if(!(msg.idx.attr&(MSG_UPVOTE|MSG_DOWNVOTE)))
 			continue;
-		if(msg.idx.remsg != msgnum)
+		if(msg.idx.msgnum != msgnum)
 			continue;
 		if(smb_getmsghdr(smb, &msg) != SMB_SUCCESS)
 			continue;
 		if(stricmp(msg.from, name) == 0) {
-			BOOL result = FALSE;
 			if(msg.from_net.type == net_type)
 				switch(net_type) {
 				case NET_NONE:
@@ -1689,16 +1686,10 @@ uint16_t SMBCALL smb_voted_already(smb_t* smb, uint32_t msgnum, const char* name
 					result = stricmp(msg.from_net.addr, net_addr) == 0;
 					break;
 			}
-			if(result) {
-				if((msg.idx.attr&MSG_VOTE) == MSG_VOTE)
-					votes = msg.hdr.votes;
-				else
-					votes++;
-			}
 		}
 		smb_freemsgmem(&msg);
 	}
-	return votes;
+	return result;
 }
 
 /****************************************************************************/
@@ -1949,7 +1940,6 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 			return(retval);
 
 		remsg->hdr.thread_first=newmsgnum;
-		remsg->hdr.attr |= MSG_REPLIED;
 		retval=smb_putmsghdr(smb,remsg);
 		smb_unlockmsghdr(smb,remsg);
 		return(retval);
@@ -1959,7 +1949,7 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 	memset(&nextmsg,0,sizeof(nextmsg));
 	nextmsgnum=remsg->hdr.thread_first;	/* start with first reply */
 
-	while(nextmsgnum > nextmsg.hdr.number) {
+	while(1) {
 		nextmsg.idx.offset=0;
 		nextmsg.hdr.number=nextmsgnum;
 		if(smb_getmsgidx(smb, &nextmsg)!=SMB_SUCCESS) /* invalid thread origin */
