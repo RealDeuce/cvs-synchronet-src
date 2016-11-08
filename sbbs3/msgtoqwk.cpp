@@ -2,13 +2,13 @@
 
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.39 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.41 2016/04/12 00:43:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -125,7 +125,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 
 		/* RECIPIENT */
 		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(RECIPIENT),msg->to);
-		if(msg->to_net.type)
+		if(msg->to_net.type!=NET_NONE && subnum==INVALID_SUB)
 			fprintf(hdrs,"%s: %s\n",smb_hfieldtype(RECIPIENTNETADDR),smb_netaddrstr(&msg->to_net,tmp));
 
 		/* FidoNet */
@@ -180,7 +180,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 	}
 	if(msg->hdr.attr&MSG_ANONYMOUS && !SYSOP)
 		SAFECOPY(from,text[Anonymous]); 
-	else if((subnum==INVALID_SUB || (useron.qwk&QWK_EXT)) && strlen(from) > QWK_HFIELD_LEN) {
+	else if((mode&QM_EXT) && strlen(from) > QWK_HFIELD_LEN) {
 		size+=fprintf(qwk_fp,"From: %.128s%c", from, QWK_NEWLINE);
 		SAFECOPY(from,msg->from); 
 	} 
@@ -208,14 +208,14 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 		else
 			sprintf(to,"%.128s@%.128s",msg->to,(char*)msg->to_net.addr);
 	}
-	if((subnum==INVALID_SUB || (useron.qwk&QWK_EXT)) && strlen(to) > QWK_HFIELD_LEN) {
+	if((mode&QM_EXT) && strlen(to) > QWK_HFIELD_LEN) {
 		size+=fprintf(qwk_fp,"To: %.128s%c", to, QWK_NEWLINE);
 		if(msg->to_net.type==NET_QWK)
 			SAFECOPY(to,"NETMAIL");
 		else
 			SAFECOPY(to,msg->to); 
 	}
-	if((useron.qwk&QWK_EXT) && strlen(msg->subj) > QWK_HFIELD_LEN)
+	if((mode&QM_EXT) && strlen(msg->subj) > QWK_HFIELD_LEN)
 		size+=fprintf(qwk_fp,"Subject: %.128s%c", msg->subj, QWK_NEWLINE);
 
 	if(msg->from_net.type==NET_QWK && mode&QM_VIA && !msg->forwarded)
@@ -467,7 +467,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 		,(ushort)conf>>8		/*					 hi byte */
 		,' '                     /* not used */
 		,' '                     /* not used */
-		,useron.rest&FLAG('Q') ? '*' : ' '     /* Net tag line */
+		,(mode&QM_TO_QNET) ? '*' : ' '     /* Net tag line */
 		);
 
 	fseek(qwk_fp,offset,SEEK_SET);
