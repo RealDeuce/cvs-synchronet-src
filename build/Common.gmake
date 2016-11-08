@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.102 2015/05/12 19:25:58 deuce Exp $
+# $Id: Common.gmake,v 1.104 2015/09/02 08:04:45 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -193,6 +193,7 @@ BUILDPATH	?=	$(BUILD)
 gcc_machine		:= $(shell ${CC} -dumpmachine)
 ifeq ($(gcc_machine),mingw32)
  os		:= Win32
+ CFLAGS	+=	-DMSVCRT_VERSION=0x0800
 endif
 
 # Get OS
@@ -242,6 +243,9 @@ else
 endif
 
 CCPRE := $(lastword $(subst /, ,$(CCPRE)))
+ifeq ($(CCPRE),clang)
+ CFLAGS += -Wno-invalid-source-encoding
+endif
 LIBODIR :=	$(CCPRE).$(machine).lib.$(BUILDPATH)
 OBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)
 MTOBJODIR :=	$(CCPRE).$(machine).obj.$(BUILDPATH)-mt
