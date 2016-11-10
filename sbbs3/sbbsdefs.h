@@ -1,14 +1,12 @@
-/* sbbsdefs.h */
-
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.196 2015/09/26 05:06:38 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.199 2016/11/08 20:17:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -85,6 +83,7 @@ typedef struct js_callback {
 	uint32_t		yield_interval;
 	uint32_t		gc_interval;
 	uint32_t		gc_attempts;
+	uint32_t		offline_counter;
 	BOOL			auto_terminate;
 	volatile BOOL*	terminated;
 	BOOL			bg;
@@ -814,7 +813,9 @@ enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
 #define SCAN_TOYOU	(1<<3)		/* Scan for messages to you 				*/
 #define SCAN_FIND	(1<<4)		/* Scan for text in messages				*/
 #define SCAN_UNREAD	(1<<5)		/* Display un-read messages only			*/
-								
+#define SCAN_MSGSONLY	(1<<6)	/* Do not do a new file scan even if the    
+								 * user enabled Automatic New File Scan		*/
+
 								/* Bits in misc of chan_t					*/
 #define CHAN_PW 	(1<<0)		/* Can be password protected				*/
 #define CHAN_GURU	(1<<1)		/* Guru joins empty channel 				*/
@@ -994,6 +995,8 @@ typedef struct {						/* File (transfers) Data */
 typedef struct {
 	idxrec_t	idx;					/* defined in smbdefs.h */
 	uint32_t	num;					/* 1-based offset */
+	uint32_t	upvotes;
+	uint32_t	downvotes;
 } post_t;
 typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
