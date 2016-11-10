@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.422 2016/01/21 09:52:59 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.425 2016/10/17 21:54:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2243,9 +2243,9 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts, char* user, char* passw
 
 	if(addr!=NULL) {
 		count=loginFailure(startup->login_attempt_list, addr, "FTP", user, passwd);
-		if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold)
+		if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold)
 			ftp_hacklog("FTP LOGIN", user, passwd, host, addr);
-		if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold) {
+		if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
 			inet_addrtop(addr, host_ip, sizeof(host_ip));
 			filter_ip(&scfg, "FTP", "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
 				,host, host_ip, user, /* fname: */NULL);
@@ -2255,7 +2255,7 @@ static BOOL badlogin(SOCKET sock, ulong* login_attempts, char* user, char* passw
 	} else
 		(*login_attempts)++;
 
-	mswait(startup->login_attempt_delay);	/* As recommended by RFC2577 */
+	mswait(startup->login_attempt.delay);	/* As recommended by RFC2577 */
 
 	if((*login_attempts)>=3) {
 		sockprintf(sock,"421 Too many failed login attempts.");
@@ -2369,6 +2369,7 @@ static void ctrl_thread(void* arg)
 	JSString*	js_str;
 	js_callback_t	js_callback;
 #endif
+	login_attempt_t attempted;
 
 	SetThreadName("FTP CTRL");
 	thread_up(TRUE /* setuid */);
@@ -2421,8 +2422,14 @@ static void ctrl_thread(void* arg)
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 
-	if(trashcan(&scfg,host_ip,"ip")) {
-		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
+	if(banned || trashcan(&scfg,host_ip,"ip")) {
+		if(banned) {
+			char ban_duration[128];
+			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
+				,sock, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+		} else
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
 		sockprintf(sock,"550 Access denied.");
 		ftp_close_socket(&sock,__LINE__);
 		thread_down();
@@ -2460,11 +2467,11 @@ static void ctrl_thread(void* arg)
 	client.user="<unknown>";
 	client_on(sock,&client,FALSE /* update */);
 
-	if(startup->login_attempt_throttle
+	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &ftp.client_addr)) > 1) {
 		lprintf(LOG_DEBUG,"%04d Throttling suspicious connection from: %s (%u login attempts)"
 			,sock, host_ip, login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
+		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
 	sockprintf(sock,"220-%s (%s)",scfg.sys_name, startup->host_name);
@@ -4734,7 +4741,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.422 $", "%*s %s", revision);
+	sscanf("$Revision: 1.425 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
