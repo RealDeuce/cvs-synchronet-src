@@ -1,8 +1,6 @@
-/* smblib.h */
-
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.73 2015/12/06 11:08:41 rswindell Exp $ */
+/* $Id: smblib.h,v 1.74 2016/11/08 20:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,10 +154,12 @@ SMBEXPORT int		SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newms
 SMBEXPORT int		SMBCALL smb_updatemsg(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT BOOL		SMBCALL smb_valid_hdr_offset(smb_t* smb, ulong offset);
 SMBEXPORT int		SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg);
+SMBEXPORT BOOL		SMBCALL	smb_voted_already(smb_t*, uint32_t msgnum, const char* name, enum smb_net_type, void* net_addr);
 
 /* smbadd.c */
 SMBEXPORT int		SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
 						,uint16_t xlat, const uchar* body, const uchar* tail);
+SMBEXPORT int		SMBCALL smb_addvote(smb_t* smb, smbmsg_t* msg, int storage);
 
 /* smballoc.c */
 SMBEXPORT long		SMBCALL smb_allochdr(smb_t* smb, ulong length);

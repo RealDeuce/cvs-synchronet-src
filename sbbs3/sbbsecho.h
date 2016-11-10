@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.6 2016/05/09 09:28:44 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.9 2016/08/03 08:03:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,6 @@ enum pkt_type {
 
 typedef struct {
     uint		sub;						/* Set to INVALID_SUB if pass-thru */
-	uint32_t	tag;						/* CRC-32 of tag name */
     char*		name;						/* Area tag name */
 	uint		imported; 					/* Total messages imported this run */
 	uint		exported; 					/* Total messages exported this run */
@@ -134,6 +133,7 @@ typedef struct {
 	char		outbound[MAX_PATH+1];	/* Outbound directory */
 	char		areafile[MAX_PATH+1];	/* AREAS.BBS path/filename */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
+	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
 	char		temp_dir[MAX_PATH+1];	/* Temporary file directory */
 	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to creat when there's outgoing data */
@@ -172,6 +172,7 @@ typedef struct {
 	bool		ignore_netmail_recv_attr;
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
+	bool		relay_filtered_msgs;
 	ulong		bsy_timeout;
 	ulong		bso_lock_attempts;
 	ulong		bso_lock_delay;			/* in seconds */

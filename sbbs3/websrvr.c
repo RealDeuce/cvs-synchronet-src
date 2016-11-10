@@ -2,7 +2,7 @@
 
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.634 2016/05/18 10:15:13 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.637 2016/10/17 21:54:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4492,7 +4492,7 @@ static BOOL exec_fastcgi(http_session_t *session)
 	if (sendsocket(sock, (void *)msg, msglen) != msglen) {
 		free(msg);
 		closesocket(sock);
-		lprintf(LOG_ERR, "%04d Failure to send to FastCGI socket!", session->socket);
+		lprintf(LOG_WARNING, "%04d Failure to send to FastCGI socket!", session->socket);
 		return FALSE;
 	}
 	if (!fastcgi_send_params(sock, session)) {
@@ -4510,7 +4510,7 @@ static BOOL exec_fastcgi(http_session_t *session)
 	if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header)) != sizeof(struct fastcgi_header)) {
 		free(msg);
 		closesocket(sock);
-		lprintf(LOG_ERR, "%04d Failure to send stdin to FastCGI socket!", session->socket);
+		lprintf(LOG_WARNING, "%04d Failure to send stdin to FastCGI socket!", session->socket);
 		return FALSE;
 	}
 	free(msg);
@@ -6246,11 +6246,17 @@ void http_session_thread(void* arg)
 		}
 	}
 
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, &session.addr,  startup->login_attempt);
+	login_attempt_t attempted;
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, session.host_name, startup->login_attempt, &attempted);
 
 	/* host_ip wasn't defined in http_session_thread */
-	if((banned && lprintf(LOG_NOTICE, "%04d %s is TEMPORARILY BANNED (%lu more seconds)", socket, session.host_ip, banned))
-		|| (trashcan(&scfg,session.host_ip,"ip") && lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip))) {
+	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
+		if(banned) {
+			char ban_duration[128];
+			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
+				,session.socket, session.host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+		} else
+			lprintf(LOG_NOTICE, "%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		close_session_socket(&session);
 		sem_wait(&session.output_thread_terminated);
 		sem_destroy(&session.output_thread_terminated);
@@ -6477,7 +6483,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.634 $", "%*s %s", revision);
+	sscanf("$Revision: 1.637 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

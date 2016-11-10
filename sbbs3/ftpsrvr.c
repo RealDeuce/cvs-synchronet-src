@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.423 2016/05/18 10:15:12 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.425 2016/10/17 21:54:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2369,6 +2369,7 @@ static void ctrl_thread(void* arg)
 	JSString*	js_str;
 	js_callback_t	js_callback;
 #endif
+	login_attempt_t attempted;
 
 	SetThreadName("FTP CTRL");
 	thread_up(TRUE /* setuid */);
@@ -2421,9 +2422,14 @@ static void ctrl_thread(void* arg)
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, &ftp.client_addr,  startup->login_attempt);
-	if((banned && lprintf(LOG_NOTICE, "%04d %s is TEMPORARILY BANNED (%lu more seconds)", socket, host_ip, banned))
-		|| (trashcan(&scfg,host_ip,"ip") && lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip))) {
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
+	if(banned || trashcan(&scfg,host_ip,"ip")) {
+		if(banned) {
+			char ban_duration[128];
+			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
+				,sock, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+		} else
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
 		sockprintf(sock,"550 Access denied.");
 		ftp_close_socket(&sock,__LINE__);
 		thread_down();
@@ -4735,7 +4741,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.423 $", "%*s %s", revision);
+	sscanf("$Revision: 1.425 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
