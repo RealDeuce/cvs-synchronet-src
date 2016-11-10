@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.93 2016/11/18 10:37:26 sbbs Exp $ */
+/* $Id: smbdefs.h,v 1.87 2016/11/10 09:52:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,6 +94,32 @@
 #define SMB_EMAIL			1			/* User numbers stored in Indexes */
 #define SMB_HYPERALLOC		2			/* No allocation (also storage value for smb_addmsghdr) */
 #define SMB_NOHASH			4			/* Do not calculate or store hashes */
+
+#define SMB_SUCCESS			0			/* Successful result/return code */
+#define SMB_FAILURE			-1			/* Generic error (discouraged) */
+
+										/* Standard smblib errors values */
+#define SMB_ERR_NOT_OPEN	-100		/* Message base not open */
+#define SMB_ERR_HDR_LEN		-101		/* Invalid message header length (>64k) */
+#define SMB_ERR_HDR_OFFSET	-102		/* Invalid message header offset */
+#define SMB_ERR_HDR_ID		-103		/* Invalid header ID */
+#define SMB_ERR_HDR_VER		-104		/* Unsupported version */
+#define SMB_ERR_HDR_FIELD	-105		/* Missing header field */
+#define SMB_ERR_NOT_FOUND	-110		/* Item not found */
+#define SMB_ERR_DAT_OFFSET	-120		/* Invalid data offset (>2GB) */
+#define SMB_ERR_DAT_LEN		-121		/* Invalid data length (>2GB) */
+#define SMB_ERR_OPEN		-200		/* File open error */
+#define SMB_ERR_SEEK		-201		/* File seek/setpos error */
+#define SMB_ERR_LOCK		-202		/* File lock error */
+#define SMB_ERR_READ		-203		/* File read error */
+#define SMB_ERR_WRITE		-204		/* File write error */
+#define SMB_ERR_TIMEOUT		-205		/* File operation timed-out */
+#define SMB_ERR_FILE_LEN	-206		/* File length invalid */
+#define SMB_ERR_DELETE		-207		/* File deletion error */
+#define SMB_ERR_UNLOCK		-208		/* File unlock error */
+#define SMB_ERR_MEM			-300		/* Memory allocation error */
+
+#define SMB_DUPE_MSG		1			/* Duplicate message detected by smb_addcrc() */
 
 										/* Time zone macros for when_t.zone */
 #define DAYLIGHT			0x8000		/* Daylight savings is active */
@@ -279,8 +305,6 @@
 
 #define SMTPSYSMSG			0xd8		/* for delivery failure notification */
 
-#define SMB_POLL_ANSWER		0xe0		/* the subject is the question */
-
 #define UNKNOWN 			0xf1
 #define UNKNOWNASCII		0xf2
 #define UNUSED				0xff
@@ -316,11 +340,7 @@
 #define MSG_DOWNVOTE		(1<<12)		/* This message is a downvote */
 #define MSG_POLL			(1<<13)		/* This message is a poll */
 
-#define MSG_VOTE			(MSG_UPVOTE|MSG_DOWNVOTE)	/* This message is a poll-vote */
-#define MSG_POLL_CLOSURE	(MSG_POLL|MSG_VOTE)			/* This message is a poll-closure */
-#define MSG_POLL_VOTE_MASK	MSG_POLL_CLOSURE
-
-#define MSG_POLL_MAX_ANSWERS	16
+#define MSG_VOTE			(MSG_UPVOTE|MSG_DOWNVOTE)	/* this message is a poll-vote */
 
 										/* Auxiliary header attributes */
 #define MSG_FILEREQUEST 	(1<<0)		/* File request */
@@ -330,13 +350,6 @@
 #define MSG_RECEIPTREQ		(1<<4)		/* Return receipt requested */
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
 #define MSG_NODISP			(1<<6)		/* Msg may not be displayed to user */
-#define POLL_CLOSED			(1<<24)		/* Closed to voting */
-#define POLL_RESULTS_MASK	(3U<<30)	/* 4 possible values: */
-#define POLL_RESULTS_SECRET	(3U<<30)	/* No one but pollster can see results */
-#define POLL_RESULTS_CLOSED	(2U<<30)	/* No one but pollster can see results until poll is closed */
-#define POLL_RESULTS_OPEN	(1U<<30)	/* Results are visible to everyone always */
-#define POLL_RESULTS_VOTERS	(0U<<30)	/* Voters can see results right away, everyone else when closed */
-#define POLL_RESULTS_SHIFT	30
 
 										/* Message network attributes */
 #define MSG_LOCAL			(1<<0)		/* Msg created locally */
@@ -429,13 +442,13 @@ typedef struct _PACK {		/* Time with time-zone */
 typedef struct _PACK {		/* Index record */
 
 	union {
-		struct _PACK {
+		struct {
 			uint16_t	to; 		/* 16-bit CRC of recipient name (lower case) or user # */
 			uint16_t	from;		/* 16-bit CRC of sender name (lower case) or user # */
 			uint16_t	subj;		/* 16-bit CRC of subject (lower case, w/o RE:) */
 		};
-		struct _PACK {
-			uint16_t	votes;		/* votes value */
+		struct {
+			uint16_t	vote;		/* vote value */
 			uint32_t	remsg;		/* number of message this vote is in response to */
 		};
 	};
@@ -516,8 +529,7 @@ typedef struct _PACK {		/* Message base status header */
 enum smb_msg_type {
      SMB_MSG_TYPE_NORMAL		/* Classic message (for reading) */
 	,SMB_MSG_TYPE_POLL			/* A poll question  */
-	,SMB_MSG_TYPE_BALLOT		/* Voter response to poll or normal message */
-	,SMB_MSG_TYPE_POLL_CLOSURE	/* Closure of an existing poll */
+	,SMB_MSG_TYPE_VOTE			/* Voter response to poll or normal message */
 };
 
 typedef struct _PACK {		/* Message header */
@@ -536,7 +548,7 @@ typedef struct _PACK {		/* Message header */
     /* 28 */ uint32_t	thread_next;		/* Next message in thread */
     /* 2c */ uint32_t	thread_first;		/* First reply to this message */
 	/* 30 */ uint16_t	delivery_attempts;	/* Delivery attempt counter */
-	/* 32 */ int16_t	votes;				/* Votes value (response to poll) or maximum votes per ballot (poll) */
+	/* 32 */ int16_t	vote;				/* Vote value (response to poll) */
 	/* 34 */ uint32_t	thread_id;			/* Number of original message in thread (or 0 if unknown) */
 	/* 38 */ uint32_t	times_downloaded;	/* Total number of times downloaded (moved Mar-6-2012) */
 	/* 3c */ uint32_t	last_downloaded;	/* Date/time of last download (moved Mar-6-2012) */
@@ -633,7 +645,6 @@ typedef struct {				/* Message */
 	uint32_t	flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
 	uint32_t	upvotes;		/* Vote tally for this message */
 	uint32_t	downvotes;		/* Vote tally for this message */
-	uint32_t	total_votes;	/* Total votes for this message or poll */
 
 } smbmsg_t;
 
