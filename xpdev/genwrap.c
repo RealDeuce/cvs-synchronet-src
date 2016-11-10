@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.99 2016/05/26 08:36:14 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.100 2016/07/13 09:31:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,7 +254,7 @@ char* DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size)
 
 /* Parse a duration string, default unit is in seconds */
 /* (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes */
-/* suffixes/multipliers are supported.
+/* suffixes/multipliers are supported. */
 /* Return value is in seconds */
 double DLLCALL parse_duration(const char* str)
 {
