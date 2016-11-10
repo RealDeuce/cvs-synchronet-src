@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.632 2016/05/18 10:15:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.634 2016/10/17 21:54:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5121,9 +5121,15 @@ NO_SSH:
 #endif
 			, host_ip, inet_addrport(&client_addr));
 
-		ulong banned = loginBanned(&scfg, startup->login_attempt_list, &client_addr,  startup->login_attempt);
-		if((banned && lprintf(LOG_NOTICE, "%04d %s is TEMPORARILY BANNED (%lu more seconds)", client_socket, host_ip, banned))
-			|| (sbbs->trashcan(host_ip,"ip") && lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip))) {
+		login_attempt_t attempted;
+		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, host_name, startup->login_attempt, &attempted);
+		if(banned || sbbs->trashcan(host_ip,"ip")) {
+			if(banned) {
+				char ban_duration[128];
+				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
+					,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+			} else
+				lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip);
 			SSH_END();
 			close_socket(client_socket);
 			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
