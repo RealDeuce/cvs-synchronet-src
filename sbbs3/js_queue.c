@@ -1,6 +1,8 @@
+/* js_queue.c */
+
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.52 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.51 2015/08/22 05:41:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +48,7 @@ typedef struct
 
 link_list_t named_queues;
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 /* Queue Destructor */
 
