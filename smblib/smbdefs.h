@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.87 2016/11/10 09:52:05 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.88 2016/11/11 09:53:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -442,12 +442,12 @@ typedef struct _PACK {		/* Time with time-zone */
 typedef struct _PACK {		/* Index record */
 
 	union {
-		struct {
+		struct _PACK {
 			uint16_t	to; 		/* 16-bit CRC of recipient name (lower case) or user # */
 			uint16_t	from;		/* 16-bit CRC of sender name (lower case) or user # */
 			uint16_t	subj;		/* 16-bit CRC of subject (lower case, w/o RE:) */
 		};
-		struct {
+		struct _PACK {
 			uint16_t	vote;		/* vote value */
 			uint32_t	remsg;		/* number of message this vote is in response to */
 		};
