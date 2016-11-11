@@ -2,7 +2,7 @@
 
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.97 2015/09/28 06:58:12 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.100 2016/07/13 09:31:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,7 @@
 #include <errno.h>		/* errno */
 #include <ctype.h>		/* toupper/tolower */
 #include <limits.h>		/* CHAR_BIT */
+#include <math.h>		/* fmod */
 
 #if defined(__unix__)
 	#include <sys/ioctl.h>		/* ioctl() */
@@ -229,6 +230,70 @@ int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
 		}
 	}
 	return((int64_t)(unit>1 ? (bytes/unit):bytes));
+}
+
+/* Convert a byte count to a string with a floating point value
+   and a single letter multiplier/suffix.
+   For values evenly divisible by 1024, no suffix otherwise.
+*/
+char* DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size)
+{
+	if(fmod((double)bytes,1024.0*1024.0*1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+	else if(fmod((double)bytes,1024.0*1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gG",bytes/(1024.0*1024.0*1024.0));
+	else if(fmod((double)bytes,1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gM",bytes/(1024.0*1024.0));
+	else if(fmod((double)bytes,1024.0)==0)
+		safe_snprintf(str, size, "%gK",bytes/1024.0);
+	else
+		safe_snprintf(str, size, "%"PRIi64, bytes);
+
+	return str;
+}
+
+/* Parse a duration string, default unit is in seconds */
+/* (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes */
+/* suffixes/multipliers are supported. */
+/* Return value is in seconds */
+double DLLCALL parse_duration(const char* str)
+{
+	char*	p=NULL;
+	double	t;
+
+	t=strtod(str,&p);
+	if(p!=NULL) {
+		switch(toupper(*p)) {
+			case 'Y':	t*=365.0*24.0*60.0*60.0; break;
+			case 'W':	t*=  7.0*24.0*60.0*60.0; break;
+			case 'D':	t*=		 24.0*60.0*60.0; break;
+			case 'H':	t*=			  60.0*60.0; break;
+			case 'M':	t*=				   60.0; break;
+		}
+	}
+	return t;
+}
+
+/* Convert a duration (in seconds) to a string
+ * with a single letter multiplier/suffix: 
+ * (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes
+ */
+char* DLLCALL duration_to_str(double value, char* str, size_t size)
+{
+	if(fmod(value,365.0*24.0*60.0*60.0)==0)
+		safe_snprintf(str, size, "%gY",value/(365.0*24.0*60.0*60.0));
+	else if(fmod(value,7.0*24.0*60.0*60.0)==0)
+		safe_snprintf(str, size, "%gW",value/(7.0*24.0*60.0*60.0));
+	else if(fmod(value,24.0*60.0*60.0)==0)
+		safe_snprintf(str, size, "%gD",value/(24.0*60.0*60.0));
+	else if(fmod(value,60.0*60.0)==0)
+		safe_snprintf(str, size, "%gH",value/(60.0*60.0));
+	else if(fmod(value,60.0)==0)
+		safe_snprintf(str, size, "%gM",value/60.0);
+	else
+		safe_snprintf(str, size, "%gS",value);
+
+	return str;
 }
 
 /****************************************************************************/
