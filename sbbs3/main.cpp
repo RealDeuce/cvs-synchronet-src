@@ -1,6 +1,8 @@
+/* main.cpp */
+
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.638 2016/11/16 09:05:38 rswindell Exp $ */
+/* $Id: main.cpp,v 1.634 2016/10/17 21:54:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2243,7 +2245,7 @@ void output_thread(void* arg)
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
 		if(i==SOCKET_ERROR) {
 			if(sbbs->client_socket!=INVALID_SOCKET)
-				lprintf(LOG_WARNING,"%s !ERROR %d selecting socket %u for send"
+				lprintf(LOG_ERR,"%s !ERROR %d selecting socket %u for send"
 					,node,ERROR_VALUE,sbbs->client_socket);
 			if(sbbs->cfg.node_num)	/* Only break if node output (not server) */
 				break;
@@ -2542,13 +2544,12 @@ void event_thread(void* arg)
 				&& (fexistcase(semfile) || (now-lastprepack)/60>(60*24))) {
 				j=lastuser(&sbbs->cfg);
 				eprintf(LOG_INFO,"Pre-packing QWK Message packets...");
-				int userfile = openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 				for(i=1;i<=j;i++) {
 
 					SAFEPRINTF2(str,"%5u of %-5u",i,j);
 					//status(str);
 					sbbs->useron.number=i;
-					fgetuserdat(&sbbs->cfg,&sbbs->useron, userfile);
+					getuserdat(&sbbs->cfg,&sbbs->useron);
 
 					if(sbbs->useron.number
 						&& !(sbbs->useron.misc&(DELETED|INACTIVE))	 /* Pre-QWK */
@@ -2577,7 +2578,6 @@ void event_thread(void* arg)
 						sbbs->online=FALSE;
 					} 
 				}
-				close(userfile);
 				lastprepack=(time32_t)now;
 				SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
@@ -4350,14 +4350,14 @@ void sbbs_t::daily_maint(void)
 
 	lputs(LOG_INFO,status("Checking for inactive/expired user records..."));
 	lastusernum=lastuser(&sbbs->cfg);
-	int userfile=openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 	for(usernum=1;usernum<=lastusernum;usernum++) {
+
 		SAFEPRINTF2(str,"%5u of %-5u",usernum,lastusernum);
 		status(str);
-		user.number = usernum;
-		if((i=fgetuserdat(&sbbs->cfg, &user, userfile)) != 0) {
+		user.number=usernum;
+		if((i=getuserdat(&sbbs->cfg,&user))!=0) {
 			SAFEPRINTF(str,"user record %u",usernum);
-			sbbs->errormsg(WHERE, ERR_READ, str, i);
+			sbbs->errormsg(WHERE,ERR_READ,str,i);
 			continue;
 		}
 
@@ -4440,7 +4440,6 @@ void sbbs_t::daily_maint(void)
 			putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
 		}
 	}
-	close(userfile);
 
 	lputs(LOG_INFO,status("Purging deleted/expired e-mail"));
 	SAFEPRINTF(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
@@ -4943,8 +4942,6 @@ NO_SSH:
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
-	SAFEPRINTF(str,"%sattr.cfg",scfg.ctrl_dir);
-	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
 	semfile_list_check(&initialized,recycle_semfiles);
@@ -5125,7 +5122,7 @@ NO_SSH:
 			, host_ip, inet_addrport(&client_addr));
 
 		login_attempt_t attempted;
-		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
+		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, host_name, startup->login_attempt, &attempted);
 		if(banned || sbbs->trashcan(host_ip,"ip")) {
 			if(banned) {
 				char ban_duration[128];
@@ -5230,13 +5227,17 @@ NO_SSH:
 
 		sbbs->bprintf("Connection from: %s\r\n", host_ip);
 
-		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
-			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
+			if(getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD))
+				strcpy(host_name, "<no name>");
 			sbbs->putcom(crlf);
-			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
 		}
+		else
+			strcpy(host_name, "<no name>");
+
+		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
+			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
