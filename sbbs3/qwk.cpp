@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.64 2016/11/10 10:06:30 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.65 2016/11/12 18:56:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1038,7 +1038,7 @@ bool sbbs_t::qwk_voting(const char* fname, smb_net_type_t net_type)
 			}
 			if(net_type != NET_NONE)
 				smb_hfield_netaddr(&msg
-					,SENDERNETADDR, iniGetString(ini,votes[u], smb_hfieldtype(SENDERNETTYPE), NULL, NULL), &net_type);
+					,SENDERNETADDR, iniGetString(ini,votes[u], smb_hfieldtype(SENDERNETADDR), NULL, NULL), &net_type);
 			uint subnum = resolve_qwkconf(iniGetInteger(ini, votes[u], "Conference", 0));
 			if(subnum == INVALID_SUB)
 				continue;
