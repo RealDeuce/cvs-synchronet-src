@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.597 2016/11/18 09:58:13 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.596 2016/11/08 19:49:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4425,7 +4425,7 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	strcpy(str,"Reason:");
 	smb_hfield_str(&newmsg, SMB_COMMENT, str);
 	smb_hfield_str(&newmsg, SMB_COMMENT, err);
-	smb_hfield_str(&newmsg, SMB_COMMENT, "\r\nOriginal message text follows:");
+	smb_hfield_str(&newmsg, SMB_COMMENT, "\r\nOriginal message text follows:\r\n");
 
 	if((i=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK))!=SMB_SUCCESS)
 		lprintf(LOG_ERR,"%04d !BOUNCE ERROR %d (%s) adding message header"
@@ -5132,7 +5132,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.597 $", "%*s %s", revision);
+	sscanf("$Revision: 1.596 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
