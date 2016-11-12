@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.83 2011/09/01 06:37:25 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.86 2016/05/27 08:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -214,7 +214,6 @@ __published:	// IDE-managed Components
     TPopupMenu *TrayPopupMenu;
     TMenuItem *RestoreTrayMenuItem;
     TMenuItem *CloseTrayMenuItem;
-    TMenuItem *HelpSysopMenuItem;
     TAction *ViewEvents;
     TMenuItem *ViewEventsMenuItem;
     TMenuItem *ConfigureTrayMenuItem;
@@ -228,6 +227,7 @@ __published:	// IDE-managed Components
     TMenuItem *BBSEditEmailFilterMenuItem;
     TMenuItem *BBSEditBadEmailMessageMenuItem;
     TMenuItem *ViewHackAttemptLogMenuItem;
+	TMenuItem *ViewGuruChatLogMenuItem;
     TMenuItem *ConfigureBBSTrayMenuItem;
     TMenuItem *ConfigureTelnetTrayMenuItem;
     TMenuItem *ConfigureFtpTrayMenuItem;
@@ -326,6 +326,10 @@ __published:	// IDE-managed Components
     TMenuItem *BBSEditPasswordFilterMenuItem;
     TMenuItem *BBSEditBadPasswordMessageMenuItem;
     TMenuItem *ViewLoginAttemptsMenuItem;
+    TMenuItem *HelpDonateMenuItem;
+        TPopupMenu *LogPopupMenu;
+    TMenuItem *LogPopupCopyAll;
+    TMenuItem *LogPopupCopy;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -417,6 +421,9 @@ __published:	// IDE-managed Components
     void __fastcall ClearErrorsExecute(TObject *Sender);
     void __fastcall ViewErrorLogExecute(TObject *Sender);
     void __fastcall ViewLoginAttemptsMenuItemClick(TObject *Sender);
+        void __fastcall LogPopupPauseClick(TObject *Sender);
+    void __fastcall LogPopupCopyAllClick(TObject *Sender);
+    void __fastcall LogPopupCopyClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
