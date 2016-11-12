@@ -1,6 +1,6 @@
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.44 2016/11/20 11:18:55 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.42 2016/11/10 10:06:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,7 +135,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			msg.idx=mail[u];
 			if(msg.idx.number>qwkmail_last)
 				qwkmail_last=msg.idx.number;
-			if(loadmsg(&msg,mail[u].number) < 1)
+			if(!loadmsg(&msg,mail[u].number))
 				continue;
 
 			SAFEPRINTF(str,"%s/",cfg.qhub[hubnum]->id);
@@ -200,7 +200,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 
 			memset(&msg,0,sizeof(msg));
 			msg.idx=post[u].idx;
-			if(loadmsg(&msg,post[u].idx.number) < 1)
+			if(!loadmsg(&msg,post[u].idx.number))
 				continue;
 
 			if(msg.from_net.type && msg.from_net.type!=NET_QWK &&
@@ -237,13 +237,10 @@ bool sbbs_t::pack_rep(uint hubnum)
 		YIELD();	/* yield */
 	}
 
-	BOOL voting_data = FALSE;
 	if(hdrs!=NULL)
 		fclose(hdrs);
-	if(voting!=NULL) {
-		voting_data = ftell(voting);
+	if(voting!=NULL)
 		fclose(voting);
-	}
 	fclose(rep);			/* close HUB_ID.MSG */
 	CRLF;
 							/* Look for extra files to send out */
@@ -263,7 +260,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	if(netfiles)
 		CRLF;
 
-	if(!msgcnt && !netfiles && !packedmail && !voting_data) {
+	if(!msgcnt && !netfiles && !packedmail) {
 		eprintf(LOG_INFO,remove_ctrl_a(text[QWKNoNewMessages],tmp));
 		return(true);	// Changed from false Mar-11-2005 (needs to be true to save updated ptrs)
 	}
@@ -320,7 +317,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue;
 			memset(&msg,0,sizeof(msg));
 			/* !IMPORTANT: search by number (do not initialize msg.idx.offset) */
-			if(loadmsg(&msg,mail[u].number) < 1)
+			if(!loadmsg(&msg,mail[u].number))
 				continue;
 
 			SAFEPRINTF(str,"%s/",cfg.qhub[hubnum]->id);
