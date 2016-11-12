@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.75 2016/11/12 18:51:42 rswindell Exp $ */
+/* $Id: smblib.h,v 1.76 2016/11/12 21:54:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,6 +77,7 @@
 #define SMB_ERR_HDR_ID		-103		/* Invalid header ID */
 #define SMB_ERR_HDR_VER		-104		/* Unsupported version */
 #define SMB_ERR_HDR_FIELD	-105		/* Missing header field */
+#define SMB_ERR_HDR_ATTR	-106		/* Invalid message attributes */
 #define SMB_ERR_NOT_FOUND	-110		/* Item not found */
 #define SMB_ERR_DAT_OFFSET	-120		/* Invalid data offset (>2GB) */
 #define SMB_ERR_DAT_LEN		-121		/* Invalid data length (>2GB) */
