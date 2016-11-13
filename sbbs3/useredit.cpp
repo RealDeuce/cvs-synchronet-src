@@ -2,13 +2,13 @@
 
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.44 2011/10/19 21:57:06 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.47 2015/12/04 08:46:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -100,10 +100,6 @@ void sbbs_t::useredit(int usernumber)
 			user.freecdt=cfg.level_freecdtperday[user.level];
 			putuserdat(&cfg,&user); 	/* Leave alone */
 		}
-		if(user.misc&DELETED)
-			bputs(text[Deleted]);
-		else if(user.misc&INACTIVE)
-			bputs(text[Inactive]);
 		bprintf(text[UeditAliasPassword]
 			,user.alias, (user.level>useron.level && console&CON_R_ECHO)
 			|| !(cfg.sys_misc&SM_ECHO_PW) ? "XXXXXXXX" : user.pass
@@ -118,6 +114,7 @@ void sbbs_t::useredit(int usernumber)
 		bprintf(text[UeditLocationZipcode],user.location,user.zipcode);
 		bprintf(text[UeditNoteHandle],user.note,user.handle);
 		bprintf(text[UeditComputerModem],user.comp,user.modem);
+		bprintf(text[UserIpAddr],user.ipaddr);
 		if(user.netmail[0])
 			bprintf(text[UserNetMail],user.netmail);
 
@@ -161,10 +158,16 @@ void sbbs_t::useredit(int usernumber)
 		bprintf(text[UeditFlags],ltoaf(user.flags1,tmp),ltoaf(user.flags3,tmp2)
 			,ltoaf(user.flags2,tmp3),ltoaf(user.flags4,str));
 		bprintf(text[UeditExempts],ltoaf(user.exempt,tmp),ltoaf(user.rest,tmp2));
-		l=lastuser(&cfg);
-		ASYNC;
 		if(lncntr>=rows-2)
 			lncntr=0;
+		if(user.misc&DELETED)
+			center(text[Deleted]);
+		else if(user.misc&INACTIVE)
+			center(text[Inactive]);
+		else
+			CRLF;
+		l=lastuser(&cfg);
+		ASYNC;
 		bprintf(text[UeditPrompt],user.number,l);
 		if(user.level>useron.level && console&CON_R_INPUT)
 			SAFECOPY(str,"QG[]?/{},");
@@ -834,7 +837,8 @@ void sbbs_t::maindflts(user_t* user)
 			,user->misc&BATCHFLAG ? text[On] : text[Off]);
 		if(cfg.sys_misc&SM_FWDTONET)
 			bprintf(text[UserDefaultsNetMail]
-				,user->misc&NETMAIL ? text[On] : text[Off]);
+				,user->misc&NETMAIL ? text[On] : text[Off]
+				,user->netmail);
 		if(startup->options&BBS_OPT_AUTO_LOGON && user->exempt&FLAG('V'))
 			bprintf(text[UserDefaultsAutoLogon]
 			,user->misc&AUTOLOGON ? text[On] : text[Off]);
@@ -1053,14 +1057,14 @@ void sbbs_t::maindflts(user_t* user)
 				xfer_prot_menu(XFER_DOWNLOAD);
 				SYNC;
 				mnemonics(text[ProtocolOrQuit]);
-				SAFECOPY(str,"Q");
+				sprintf(str,"%c",text[YNQP][2]);
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 						SAFEPRINTF(tmp,"%c",cfg.prot[i]->mnemonic);
 						strcat(str,tmp); 
 					}
 				ch=(char)getkeys(str,0);
-				if(ch=='Q' || sys_status&SS_ABORT) {
+				if(ch==text[YNQP][2] || sys_status&SS_ABORT) {
 					ch=' ';
 					putuserrec(&cfg,user->number,U_PROT,1,&ch); 
 				}
