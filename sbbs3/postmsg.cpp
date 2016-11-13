@@ -1,6 +1,8 @@
+/* postmsg.cpp */
+
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.108 2017/11/24 21:53:39 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.99 2016/11/13 06:00:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,6 +61,7 @@ int msgbase_open(scfg_t* cfg, smb_t* smb, int* storage, long* dupechk_hashes, ui
 {
 	int i;
 
+	*storage=SMB_SELFPACK;
 	*dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	*xlat=XLAT_NONE;
 
@@ -69,6 +72,8 @@ int msgbase_open(scfg_t* cfg, smb_t* smb, int* storage, long* dupechk_hashes, ui
 		smb->status.max_age=cfg->mail_maxage;
 		smb->status.max_msgs=0;	/* unlimited */
 		smb->status.attr=SMB_EMAIL;
+		if(cfg->sys_misc&SM_FASTMAIL)
+			*storage = SMB_FASTALLOC;
 		/* duplicate message-IDs must be allowed in mail database */
 		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
 	} else {
@@ -77,6 +82,11 @@ int msgbase_open(scfg_t* cfg, smb_t* smb, int* storage, long* dupechk_hashes, ui
 		smb->status.max_msgs=cfg->sub[smb->subnum]->maxmsgs;
 		smb->status.max_age=cfg->sub[smb->subnum]->maxage;
 		smb->status.attr=0;
+		if(cfg->sub[smb->subnum]->misc&SUB_HYPER)
+			*storage = smb->status.attr = SMB_HYPERALLOC;
+		else if(cfg->sub[smb->subnum]->misc&SUB_FAST)
+			*storage = SMB_FASTALLOC;
+
 		if(cfg->sub[smb->subnum]->misc&SUB_LZH)
 			*xlat=XLAT_LZH;
 	}
@@ -88,8 +98,6 @@ int msgbase_open(scfg_t* cfg, smb_t* smb, int* storage, long* dupechk_hashes, ui
 
 	if(filelength(fileno(smb->shd_fp)) < 1) /* MsgBase doesn't exist yet, create it */
 		i=smb_create(smb);
-
-	*storage=smb_storage_mode(cfg, smb);
 
 	return i;
 }
@@ -211,7 +219,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		wm_mode|=WM_ANON;
 	}
 
-	if(cfg.sub[subnum]->mod_ar!=NULL && cfg.sub[subnum]->mod_ar[0] && chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
+	if(cfg.sub[subnum]->mod_ar[0] && chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
 		msgattr|=MSG_MODERATED;
 
 	if(cfg.sub[subnum]->misc&SUB_SYSPERM && sub_op(subnum))
@@ -298,8 +306,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	msg.hdr.number=smb.status.last_msg+1; /* this *should* be the new message number */
 
 	if(remsg) {
-		char* p;
-		char replyid[256];
 
 		msg.hdr.thread_back=remsg->hdr.number;	/* needed for threading backward */
 
@@ -307,12 +313,15 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			msg.hdr.thread_id=remsg->hdr.number;
 
 		/* Add RFC-822 Reply-ID (generate if necessary) */
-		if((p = get_replyid(&cfg, &smb, &msg, replyid, sizeof(replyid))) != NULL)
-			smb_hfield_str(&msg, RFC822REPLYID, p);
+		if(remsg->id!=NULL)
+			smb_hfield_str(&msg,RFC822REPLYID,remsg->id);
 
 		/* Add FidoNet Reply if original message has FidoNet MSGID */
 		if(remsg->ftn_msgid!=NULL)
 			smb_hfield_str(&msg,FIDOREPLYID,remsg->ftn_msgid);
+
+		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
+			errormsg(WHERE,"updating thread",smb.file,i,smb.last_error); 
 	}
 
 	smb_hfield_str(&msg,RECIPIENT,touser);
@@ -414,13 +423,13 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 	return smb_hfield_str(msg,SENDERPORT,port);
 }
 
-/* Note: support MSG_BODY only, no tails or other data fields (dfields) */
 extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, const char* server, char* msgbuf)
 {
 	char	pid[128];
 	char	msg_id[256];
 	ushort	xlat=XLAT_NONE;
 	int 	i;
+	int		storage=SMB_SELFPACK;
 	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 
 	if(msg==NULL)
@@ -448,10 +457,28 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 
 	if(smb->subnum==INVALID_SUB) {	/* e-mail */
 
+		/* exception here during recycle:
+
+	sbbs.dll!savemsg(scfg_t * cfg, smb_t * smb, smbmsg_t * msg, client_t * client, char * msgbuf)  Line 473 + 0xf bytes	C++
+ 	sbbs.dll!js_save_msg(JSContext * cx, JSObject * obj, unsigned int argc, long * argv, long * rval)  Line 1519 + 0x25 bytes	C
+ 	js32.dll!js_Invoke(JSContext * cx, unsigned int argc, unsigned int flags)  Line 1375 + 0x17 bytes	C
+ 	js32.dll!js_Interpret(JSContext * cx, unsigned char * pc, long * result)  Line 3944 + 0xf bytes	C
+ 	js32.dll!js_Execute(JSContext * cx, JSObject * chain, JSObject * script, JSStackFrame * down, unsigned int flags, long * result)  Line 1633 + 0x13 bytes	C
+ 	js32.dll!JS_ExecuteScript(JSContext * cx, JSObject * obj, JSObject * script, long * rval)  Line 4188 + 0x19 bytes	C
+ 	sbbs.dll!sbbs_t::js_execfile(const char * cmd, const char * startup_dir)  Line 686 + 0x27 bytes	C++
+ 	sbbs.dll!sbbs_t::external(const char * cmdline, long mode, const char * startup_dir)  Line 413 + 0x1e bytes	C++
+ 	sbbs.dll!event_thread(void * arg)  Line 2745 + 0x71 bytes	C++
+
+	apparently the event_thread is sharing an scfg_t* with another thread! */
+
+
 		smb->status.max_crcs=cfg->mail_maxcrcs;
 		smb->status.max_age=cfg->mail_maxage;
 		smb->status.max_msgs=0;	/* unlimited */
 		smb->status.attr=SMB_EMAIL;
+
+		if(cfg->sys_misc&SM_FASTMAIL)
+			storage=SMB_FASTALLOC;
 
 		/* duplicate message-IDs must be allowed in mail database */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
@@ -462,6 +489,11 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 		smb->status.max_msgs=cfg->sub[smb->subnum]->maxmsgs;
 		smb->status.max_age=cfg->sub[smb->subnum]->maxage;
 		smb->status.attr=0;
+
+		if(cfg->sub[smb->subnum]->misc&SUB_HYPER)
+			storage = smb->status.attr = SMB_HYPERALLOC;
+		else if(cfg->sub[smb->subnum]->misc&SUB_FAST)
+			storage = SMB_FASTALLOC;
 
 		if(cfg->sub[smb->subnum]->misc&SUB_LZH)
 			xlat=XLAT_LZH;
@@ -507,7 +539,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
  	if(msg->ftn_pid==NULL) 	
  		smb_hfield_str(msg,FIDOPID,msg_program_id(pid));
 
-	if((i=smb_addmsg(smb,msg,smb_storage_mode(cfg, smb),dupechk_hashes,xlat,(uchar*)msgbuf, /* tail: */NULL))==SMB_SUCCESS
+	if((i=smb_addmsg(smb,msg,storage,dupechk_hashes,xlat,(uchar*)msgbuf,NULL))==SMB_SUCCESS
 		&& msg->to!=NULL	/* no recipient means no header created at this stage */) {
 		if(smb->subnum == INVALID_SUB) {
 			if(msg->to_net.type == NET_FIDO)
@@ -525,105 +557,44 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 
 	ZERO_VAR(remsg);
 
-	if(msg->hdr.when_imported.time == 0) {
-		msg->hdr.when_imported.time = time32(NULL);
-		msg->hdr.when_imported.zone = sys_timezone(cfg);
-	}
-	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
-		msg->hdr.when_written = msg->hdr.when_imported;
-
-	if(msg->hdr.number == 0)
-		msg->hdr.number = get_new_msg_number(smb);
-
- 	if(msg->id==NULL) {
-		char msg_id[256];
- 		get_msgid(cfg, smb->subnum, msg, msg_id, sizeof(msg_id));
- 		smb_hfield_str(msg, RFC822MSGID, msg_id);
- 	}
-
 	/* Look-up thread_back if RFC822 Reply-ID was specified */
 	if(msg->hdr.thread_back == 0 && msg->reply_id != NULL) {
 		if(smb_getmsgidx_by_msgid(smb, &remsg, msg->reply_id) == SMB_SUCCESS)
-			msg->hdr.thread_back = remsg.idx.number;	/* poll or message being voted on */
+			msg->hdr.thread_back = remsg.idx.number;	/* needed for threading backward */
 	}
 	if(smb_voted_already(smb, msg->hdr.thread_back, msg->from, (enum smb_net_type)msg->from_net.type, msg->from_net.addr))
 		return SMB_DUPE_MSG;
-	remsg.hdr.number = msg->hdr.thread_back;
-	if((result = smb_getmsgidx(smb, &remsg)) != SMB_SUCCESS)
-		return result;
-	if((result = smb_getmsghdr(smb, &remsg)) != SMB_SUCCESS)
-		return result;
-	if(remsg.hdr.auxattr&POLL_CLOSED)
-		result = SMB_CLOSED;
-	else
-		result = smb_addvote(smb, msg, smb_storage_mode(cfg, smb));
-	if(result == SMB_SUCCESS && smsgfmt != NULL && remsg.from_ext != NULL) {
-		user_t user;
-		ZERO_VAR(user);
-		user.number = atoi(remsg.from_ext);
-		if(getuserdat(cfg, &user) == 0 && 
-			(stricmp(remsg.from, user.alias) == 0 || stricmp(remsg.from, user.name) == 0)) {
-			char from[256];
-			char tstr[128];
-			char smsg[256];
-			if(msg->from_net.type)
-				safe_snprintf(from, sizeof(from), "%s (%s)", msg->from, smb_netaddr(&msg->from_net));
-			else
-				SAFECOPY(from, msg->from);
-			safe_snprintf(smsg, sizeof(smsg), smsgfmt
-				,timestr(cfg, msg->hdr.when_written.time, tstr)
-				,cfg->grp[cfg->sub[smb->subnum]->grp]->sname
-				,cfg->sub[smb->subnum]->sname
-				,from
-				,remsg.subj);
-			putsmsg(cfg, user.number, smsg);
+	result = smb_addvote(smb, msg, smb_storage_mode(cfg, smb));
+	if(result == SMB_SUCCESS && smsgfmt != NULL) {
+		remsg.hdr.number = msg->hdr.thread_back;
+		if(smb_getmsgidx(smb, &remsg) == SMB_SUCCESS
+			&& smb_getmsghdr(smb, &remsg) == SMB_SUCCESS) {
+			if(remsg.from_ext != NULL) {
+				user_t user;
+				ZERO_VAR(user);
+				user.number = atoi(remsg.from_ext);
+				if(getuserdat(cfg, &user) == 0 && 
+					(stricmp(remsg.from, user.alias) == 0 || stricmp(remsg.from, user.name) == 0)) {
+					char from[256];
+					char tstr[128];
+					char smsg[256];
+					if(msg->from_net.type)
+						safe_snprintf(from, sizeof(from), "%s (%s)", msg->from, smb_netaddr(&msg->from_net));
+					else
+						SAFECOPY(from, msg->from);
+					safe_snprintf(smsg, sizeof(smsg), smsgfmt
+						,timestr(cfg, msg->hdr.when_written.time, tstr)
+						,cfg->grp[cfg->sub[smb->subnum]->grp]->sname
+						,cfg->sub[smb->subnum]->sname
+						,from
+						,(msg->hdr.attr&MSG_UPVOTE) ? "Up":"Down"
+						,remsg.subj);
+					putsmsg(cfg, user.number, smsg);
+				}
+			}
+			smb_freemsgmem(&remsg);
 		}
 	}
-	smb_freemsgmem(&remsg);
+
 	return result;
-}
-
-extern "C" int DLLCALL closepoll(scfg_t* cfg, smb_t* smb, uint32_t msgnum, const char* username)
-{
-	int result;
-	smbmsg_t msg;
-	char msg_id[256];
-
-	ZERO_VAR(msg);
-
-	msg.hdr.when_imported.time = time32(NULL);
-	msg.hdr.when_imported.zone = sys_timezone(cfg);
-	msg.hdr.when_written = msg.hdr.when_imported;
-	msg.hdr.thread_back = msgnum;
-	smb_hfield_str(&msg, SENDER, username);
-
-	msg.hdr.number = get_new_msg_number(smb);
-
-	get_msgid(cfg, smb->subnum, &msg, msg_id, sizeof(msg_id));
-	smb_hfield_str(&msg,RFC822MSGID, msg_id);
-
-	result = smb_addpollclosure(smb, &msg, smb_storage_mode(cfg, smb));
-
-	smb_freemsgmem(&msg);
-	return result;
-}
-
-extern "C" int DLLCALL postpoll(scfg_t* cfg, smb_t* smb, smbmsg_t* msg)
-{
-	if(msg->hdr.when_imported.time == 0) {
-		msg->hdr.when_imported.time = time32(NULL);
-		msg->hdr.when_imported.zone = sys_timezone(cfg);
-	}
-	if(msg->hdr.when_written.time == 0)
-		msg->hdr.when_written = msg->hdr.when_imported;
-
-	if(msg->hdr.number == 0)
-		msg->hdr.number = get_new_msg_number(smb);
-
- 	if(msg->id==NULL) {
-		char msg_id[256];
- 		get_msgid(cfg, smb->subnum, msg, msg_id, sizeof(msg_id));
- 		smb_hfield_str(msg, RFC822MSGID, msg_id);
- 	}
-	return smb_addpoll(smb, msg, smb_storage_mode(cfg, smb));
 }
