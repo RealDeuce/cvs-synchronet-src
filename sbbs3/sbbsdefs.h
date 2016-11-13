@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.200 2016/11/10 10:06:31 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.201 2016/11/13 05:52:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -425,7 +425,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_EXT		(1L<<13)		/* QWK Extended (QWKE) format			*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
 #define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
-#define QWK_VOTING	(1L<<17)		/* Include POLLS.DAT and VOTES.DAT		*/
+#define QWK_VOTING	(1L<<17)		/* Include VOTING.DAT					*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
 																			
