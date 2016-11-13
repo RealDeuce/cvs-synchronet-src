@@ -1,6 +1,6 @@
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.71 2016/11/23 10:28:53 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.68 2016/11/08 19:59:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -643,10 +643,8 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 			else
 				continue;
 			if(cfg->qhub[i]->sub[cfg->qhub[i]->subs]!=INVALID_SUB)
-				cfg->qhub[i]->subs++;
-		}
-		get_int(cfg->qhub[i]->misc, instream);
-		for(j=0;j<30;j++)
+				cfg->qhub[i]->subs++; }
+		for(j=0;j<32;j++)
 			get_int(n,instream);
 	}
 
@@ -846,4 +844,19 @@ void make_data_dirs(scfg_t* cfg)
 		md(str);
 	}
 #endif
+}
+
+int smb_storage_mode(scfg_t* cfg, smb_t* smb)
+{
+	if(smb->subnum == INVALID_SUB)
+		return (cfg->sys_misc&SM_FASTMAIL) ? SMB_FASTALLOC : SMB_SELFPACK;
+	if(smb->subnum >= cfg->total_subs)
+		return -1;
+	if(cfg->sub[smb->subnum]->misc&SUB_HYPER) {
+		smb->status.attr |= SMB_HYPERALLOC;
+		return SMB_HYPERALLOC;
+	}
+	if(cfg->sub[smb->subnum]->misc&SUB_FAST)
+		return SMB_FASTALLOC;
+	return SMB_SELFPACK;
 }
