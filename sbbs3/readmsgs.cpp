@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.83 2016/11/13 06:00:39 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.84 2016/11/13 11:31:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -229,7 +229,7 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 	alloc_len=sizeof(post_t)*total;
 	if((post=(post_t *)malloc(alloc_len))==NULL) {	/* alloc for max */
 		smb_unlocksmbhdr(&smb);
-		errormsg(WHERE,ERR_ALLOC,smb.file,sizeof(post_t *)*cfg.sub[subnum]->maxmsgs);
+		errormsg(WHERE,ERR_ALLOC,smb.file,alloc_len);
 		return(NULL); 
 	}
 	memset(post, 0, alloc_len);
