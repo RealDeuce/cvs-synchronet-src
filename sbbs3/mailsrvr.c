@@ -1,7 +1,8 @@
+/* mailsrvr.c */
+
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.598 2016/11/19 09:44:03 sbbs Exp $ */
-// vi: tabstop=4
+/* $Id: mailsrvr.c,v 1.596 2016/11/08 19:49:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -826,7 +827,7 @@ static void pop3_thread(void* arg)
 	pop3_t		pop3=*(pop3_t*)arg;
 	login_attempt_t attempted;
 
-	SetThreadName("sbbs/POP3");
+	SetThreadName("POP3");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -2498,7 +2499,7 @@ static void smtp_thread(void* arg)
 			,ENCODING_QUOTED_PRINTABLE
 	} content_encoding = ENCODING_NONE;
 
-	SetThreadName("sbbs/SMTP");
+	SetThreadName("SMTP");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -4424,7 +4425,7 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	strcpy(str,"Reason:");
 	smb_hfield_str(&newmsg, SMB_COMMENT, str);
 	smb_hfield_str(&newmsg, SMB_COMMENT, err);
-	smb_hfield_str(&newmsg, SMB_COMMENT, "\r\nOriginal message text follows:");
+	smb_hfield_str(&newmsg, SMB_COMMENT, "\r\nOriginal message text follows:\r\n");
 
 	if((i=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK))!=SMB_SUCCESS)
 		lprintf(LOG_ERR,"%04d !BOUNCE ERROR %d (%s) adding message header"
@@ -4532,7 +4533,7 @@ static void sendmail_thread(void* arg)
 	BOOL		sending_locally=FALSE;
 	link_list_t	failed_server_list;
 
-	SetThreadName("sbbs/SendMail");
+	SetThreadName("SendMail");
 	thread_up(TRUE /* setuid */);
 
 	terminate_sendmail=FALSE;
@@ -4545,7 +4546,7 @@ static void sendmail_thread(void* arg)
 	listInit(&failed_server_list, /* flags: */0);
 
 	while((!terminated) && !terminate_sendmail) {
-		YIELD();
+
 		if(startup->options&MAIL_OPT_NO_SENDMAIL) {
 			sem_trywait_block(&sendmail_wakeup_sem,1000);
 			continue;
@@ -5131,7 +5132,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.598 $", "%*s %s", revision);
+	sscanf("$Revision: 1.596 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5223,7 +5224,7 @@ void DLLCALL mail_server(void* arg)
 	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
 
-	SetThreadName("sbbs/Mail Server");
+	SetThreadName("Mail Server");
 	protected_uint32_init(&thread_count, 0);
 
 	do {
@@ -5407,7 +5408,6 @@ void DLLCALL mail_server(void* arg)
 		lprintf(LOG_INFO,"Mail Server thread started");
 
 		while(!terminated && !terminate_server) {
-			YIELD();
 
 			if(protected_uint32_value(thread_count) <= (unsigned int)(1+(sendmail_running?1:0))) {
 				if(!(startup->options&MAIL_OPT_NO_RECYCLE)) {
