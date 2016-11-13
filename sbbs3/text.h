@@ -2,13 +2,13 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.18 2015/04/28 10:55:12 rswindell Exp $ */
+/* $Id: text.h,v 1.23 2016/11/10 10:06:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -809,6 +809,26 @@ enum {
 	,UnvalidatedWarning
 	,StartingNewUserRegistration
 	,GetStrMenu
+	,DisplayUnreadMessagesOnlyQ
+	,NoMessagesFound
+	,UserIpAddr
+	,Seconds
+	,Minutes
+	,Hours
+	,Days
+	,Months
+	,Years
+	,InThePast
+	,InTheFuture
+	,AgeOfPostedItem
+	,NodeStatusLogout
+	,VotingNotAllowed
+	,VotedAlready
+	,QWKSettingsVoting
+	,VoteMsgUpDownOrQuit
+	,MsgVotes
+	,MsgVoteNotice
+	,R_Voting
 
 	,TOTAL_TEXT
 };
