@@ -1,14 +1,12 @@
-/* scfglib1.c */
-
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.65 2015/04/27 10:45:05 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.68 2016/11/08 19:59:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -276,7 +274,9 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	if(cfg->new_prot<' ')
 		cfg->new_prot=' ';
 	get_int(cfg->new_install,instream);
-	for(i=0;i<7;i++)
+	get_int(cfg->new_msgscan_init,instream);
+	get_int(cfg->guest_msgscan_init,instream);
+	for(i=0;i<5;i++)
 		get_int(n,instream);
 
 	/*************************/
@@ -844,4 +844,19 @@ void make_data_dirs(scfg_t* cfg)
 		md(str);
 	}
 #endif
+}
+
+int smb_storage_mode(scfg_t* cfg, smb_t* smb)
+{
+	if(smb->subnum == INVALID_SUB)
+		return (cfg->sys_misc&SM_FASTMAIL) ? SMB_FASTALLOC : SMB_SELFPACK;
+	if(smb->subnum >= cfg->total_subs)
+		return -1;
+	if(cfg->sub[smb->subnum]->misc&SUB_HYPER) {
+		smb->status.attr |= SMB_HYPERALLOC;
+		return SMB_HYPERALLOC;
+	}
+	if(cfg->sub[smb->subnum]->misc&SUB_FAST)
+		return SMB_FASTALLOC;
+	return SMB_SELFPACK;
 }
