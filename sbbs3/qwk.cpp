@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.66 2016/11/13 06:00:39 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.67 2016/11/13 21:29:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1054,7 +1054,7 @@ bool sbbs_t::qwk_voting(const char* fname, smb_net_type_t net_type)
 				smb.subnum = subnum;
 			}
 			int i;
-			if((i=votemsg(&cfg, &smb, &msg, text[MsgVoteNotice])) != SMB_SUCCESS)
+			if((i=votemsg(&cfg, &smb, &msg, text[msg.hdr.attr == MSG_UPVOTE ? MsgUpVoteNotice:MsgDownVoteNotice])) != SMB_SUCCESS)
 				errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 		}
 		if(smb.subnum != INVALID_SUB)

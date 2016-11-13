@@ -1,8 +1,6 @@
-/* postmsg.cpp */
-
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.99 2016/11/13 06:00:39 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.100 2016/11/13 21:29:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -587,7 +585,6 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 						,cfg->grp[cfg->sub[smb->subnum]->grp]->sname
 						,cfg->sub[smb->subnum]->sname
 						,from
-						,(msg->hdr.attr&MSG_UPVOTE) ? "Up":"Down"
 						,remsg.subj);
 					putsmsg(cfg, user.number, smsg);
 				}

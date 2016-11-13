@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.430 2016/11/13 06:00:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.431 2016/11/13 21:29:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -755,7 +755,7 @@ public:
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
 	void	msghdr(smbmsg_t* msg);
-	char	msg_listing_flag(uint subnum, smbmsg_t*);
+	char	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
 
 	/* chat.cpp */
 	void	chatsection(void);
