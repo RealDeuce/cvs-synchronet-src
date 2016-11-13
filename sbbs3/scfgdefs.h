@@ -1,6 +1,8 @@
+/* scfgdefs.h */
+
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.43 2018/01/07 23:11:03 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.39 2016/04/20 02:18:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,8 +43,8 @@
 typedef struct {							/* Message sub board info */
 	char		code[LEN_EXTCODE+1];		/* Internal code (with optional lib prefix) */
 	char		code_suffix[LEN_CODE+1];	/* Eight character code suffix */
-	char		lname[LEN_SLNAME+1],		/* Long name - used for listing */
-				sname[LEN_SSNAME+1],		/* Short name - used for prompts */
+	char		lname[LEN_SLNAME+1],		/* Short name - used for prompts */
+				sname[LEN_SSNAME+1],		/* Long name - used for listing */
 				arstr[LEN_ARSTR+1],			/* Access requirements */
 				read_arstr[LEN_ARSTR+1],	/* Read requirements */
 				post_arstr[LEN_ARSTR+1],	/* Post requirements */
@@ -62,8 +64,7 @@ typedef struct {							/* Message sub board info */
 	uint16_t	grp,						/* Which group this sub belongs to */
 				ptridx, 					/* Index into pointer file */
 				qwkconf,					/* QWK conference number */
-				maxage, 					/* Max age of messages (in days) */
-				subnum;						/* ephemeral index of this sub in cfg.sub[] */
+				maxage; 					/* Max age of messages (in days) */
 	uint32_t	misc,						/* Miscellaneous flags */
 				maxmsgs,					/* Max number of messages allowed */
 				maxcrcs;					/* Max number of CRCs to keep */
@@ -72,20 +73,19 @@ typedef struct {							/* Message sub board info */
 } sub_t;
 
 typedef struct {							/* Message group info */
-	char		lname[LEN_GLNAME+1],		/* Long name */
-				sname[LEN_GSNAME+1],		/* Short name */
+	char		lname[LEN_GLNAME+1],		/* Short name */
+				sname[LEN_GSNAME+1],		/* Long name */
 				arstr[LEN_ARSTR+1],			/* Access requirements */
 				code_prefix[LEN_CODE+1];	/* Prefix for internal code */
 	uchar		*ar;
-	enum area_sort sort;
 
 } grp_t;
 
 typedef struct {							/* Transfer Directory Info */
 	char		code[LEN_EXTCODE+1];		/* Internal code (with optional lib prefix) */
 	char		code_suffix[LEN_CODE+1];	/* Eight character code suffix */
-	char		lname[LEN_SLNAME+1],		/* Long name - used for listing */
-				sname[LEN_SSNAME+1],		/* Short name - used for prompts */
+	char		lname[LEN_SLNAME+1],		/* Short name - used for prompts */
+				sname[LEN_SSNAME+1],		/* Long name - used for listing */
 				arstr[LEN_ARSTR+1],			/* Access Requirements */
 				ul_arstr[LEN_ARSTR+1], 		/* Upload Requirements */
 				dl_arstr[LEN_ARSTR+1], 		/* Download Requirements */
@@ -106,22 +106,19 @@ typedef struct {							/* Transfer Directory Info */
 				maxage, 					/* Max age of files (in days) */
 				up_pct, 					/* Percentage of credits on uloads */
 				dn_pct, 					/* Percentage of credits on dloads */
-				lib,						/* Which library this dir is in */
-				dirnum;						/* ephemeral index of this dir in cfg.dir[] */
+				lib;						/* Which library this dir is in */
 	uint32_t	misc;						/* Miscellaneous bits */
 
 } dir_t;
 
 typedef struct {							/* Transfer Library Information */
-	char		lname[LEN_GLNAME+1],		/* Long Name - used for listings */
-				sname[LEN_GSNAME+1],		/* Short Name - used for prompts */
+	char		lname[LEN_GLNAME+1],		/* Short Name - used for prompts */
+				sname[LEN_GSNAME+1],		/* Long Name - used for listings */
 				arstr[LEN_ARSTR+1],			/* Access Requirements */
 				code_prefix[LEN_CODE+1],	/* Prefix for internal code */
 				parent_path[48];			/* Parent for dir paths */
 	uchar		*ar;
 	uint32_t	offline_dir;				/* Offline file directory */
-	uint32_t	misc;						/* Miscellaneous bits */
-	enum area_sort sort;
 
 } lib_t;
 
@@ -318,9 +315,8 @@ typedef struct {							/* QWK Network Hub */
 				freq,						/* Frequency of call-outs */
 				subs,						/* Number Sub-boards carried */
 				*conf;						/* Conference number of ea. */
-	sub_t**		sub;
+	ulong		*sub;						/* Number of local sub-board for ea. */
 	time32_t	last;						/* Last network attempt */
-	uint32_t	misc;						/* QHUB_* flags */
 
 } qhub_t;
 
@@ -536,7 +532,6 @@ typedef struct
 	uint32_t		max_minutes;	/* Maximum minutes a user can have */
 	uint32_t		max_qwkmsgs;	/* Maximum messages per QWK packet */
 	uint16_t		max_qwkmsgage;	/* Maximum age (in days) of QWK messages to be imported */
-	uint16_t		max_spamage;	/* Maximum age (in days) of SPAM-tagged messages */
 	char			preqwk_arstr[LEN_ARSTR+1]; /* pre pack QWK */
 	uchar*			preqwk_ar;
 	uint16_t		cdt_min_value;	/* Minutes per 100k credits */
@@ -586,7 +581,7 @@ typedef struct
 	char			readmail_mod[LEN_CMD+1];	/* Reading mail module */
 	char			scanposts_mod[LEN_CMD+1];	/* Scanning posts (in a single sub) module */
 	char			scansubs_mod[LEN_CMD+1];	/* Scanning sub-boards module */
-	char			scfg_cmd[LEN_CMD+1];	/* SCFG command line - unused! */
+	char			scfg_cmd[LEN_CMD+1];	/* SCFG command line */
 	uchar			smb_retry_time; 		/* Seconds to retry on SMBs */
 	uint16_t		sec_warn;				/* Seconds before inactivity warning */
 	uint16_t		sec_hangup; 			/* Seconds before inactivity hang-up */
