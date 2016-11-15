@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.68 2016/11/15 21:48:43 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.69 2016/11/15 21:54:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1037,7 +1037,7 @@ bool sbbs_t::qwk_voting(const char* fname, smb_net_type_t net_type, const char* 
 				msg.hdr.vote = iniGetShortInt(ini, votes[u], "vote", 0);
 			}
 			if(net_type != NET_NONE) {
-				char* netaddr = iniGetString(ini,votes[u], smb_hfieldtype(SENDERNETADDR), NULL, NULL);
+				const char* netaddr = iniGetString(ini,votes[u], smb_hfieldtype(SENDERNETADDR), NULL, NULL);
 				if(netaddr == NULL)
 					netaddr = qnet_id;
 				smb_hfield_netaddr(&msg, SENDERNETADDR, netaddr, &net_type);
