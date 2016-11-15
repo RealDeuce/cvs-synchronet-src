@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.70 2016/11/08 20:17:12 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.71 2016/11/15 21:51:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1061,6 +1061,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 	if(!strcmp(sp,"MSG_DOWNVOTES") && current_msg!=NULL) {
 		safe_snprintf(str, maxlen, "%lu", current_msg->downvotes);
+		return(str);
+	}
+	if(!strcmp(sp,"MSG_TOTAL_VOTES") && current_msg!=NULL) {
+		safe_snprintf(str, maxlen, "%lu", current_msg->total_votes);
 		return(str);
 	}
 
