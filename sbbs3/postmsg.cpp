@@ -1,8 +1,6 @@
-/* postmsg.cpp */
-
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.98 2015/11/26 08:34:34 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.100 2016/11/13 21:29:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -548,4 +546,52 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 			signal_sub_sem(cfg,smb->subnum);
 	}
 	return(i);
+}
+
+extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const char* smsgfmt)
+{
+	int result;
+	smbmsg_t remsg;
+
+	ZERO_VAR(remsg);
+
+	/* Look-up thread_back if RFC822 Reply-ID was specified */
+	if(msg->hdr.thread_back == 0 && msg->reply_id != NULL) {
+		if(smb_getmsgidx_by_msgid(smb, &remsg, msg->reply_id) == SMB_SUCCESS)
+			msg->hdr.thread_back = remsg.idx.number;	/* needed for threading backward */
+	}
+	if(smb_voted_already(smb, msg->hdr.thread_back, msg->from, (enum smb_net_type)msg->from_net.type, msg->from_net.addr))
+		return SMB_DUPE_MSG;
+	result = smb_addvote(smb, msg, smb_storage_mode(cfg, smb));
+	if(result == SMB_SUCCESS && smsgfmt != NULL) {
+		remsg.hdr.number = msg->hdr.thread_back;
+		if(smb_getmsgidx(smb, &remsg) == SMB_SUCCESS
+			&& smb_getmsghdr(smb, &remsg) == SMB_SUCCESS) {
+			if(remsg.from_ext != NULL) {
+				user_t user;
+				ZERO_VAR(user);
+				user.number = atoi(remsg.from_ext);
+				if(getuserdat(cfg, &user) == 0 && 
+					(stricmp(remsg.from, user.alias) == 0 || stricmp(remsg.from, user.name) == 0)) {
+					char from[256];
+					char tstr[128];
+					char smsg[256];
+					if(msg->from_net.type)
+						safe_snprintf(from, sizeof(from), "%s (%s)", msg->from, smb_netaddr(&msg->from_net));
+					else
+						SAFECOPY(from, msg->from);
+					safe_snprintf(smsg, sizeof(smsg), smsgfmt
+						,timestr(cfg, msg->hdr.when_written.time, tstr)
+						,cfg->grp[cfg->sub[smb->subnum]->grp]->sname
+						,cfg->sub[smb->subnum]->sname
+						,from
+						,remsg.subj);
+					putsmsg(cfg, user.number, smsg);
+				}
+			}
+			smb_freemsgmem(&remsg);
+		}
+	}
+
+	return result;
 }
