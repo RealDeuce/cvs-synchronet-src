@@ -2,7 +2,7 @@
 
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.594 2016/05/31 01:56:53 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.596 2016/11/08 19:49:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -854,7 +854,7 @@ static void pop3_thread(void* arg)
 	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP) && (startup->options&MAIL_OPT_DEBUG_POP3))
 		lprintf(LOG_INFO,"%04d POP3 Hostname: %s", socket, host_name);
 
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, socket,  startup->login_attempt, &attempted);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, socket, host_name, startup->login_attempt, &attempted);
 	if(banned || trashcan(&scfg,host_ip,"ip")) {
 		if(banned) {
 			char ban_duration[128];
@@ -2564,7 +2564,7 @@ static void smtp_thread(void* arg)
 		/* local connection */
 		dnsbl_result.s_addr=0;
 	} else {
-		ulong banned = loginBanned(&scfg, startup->login_attempt_list, socket,  startup->login_attempt, &attempted);
+		ulong banned = loginBanned(&scfg, startup->login_attempt_list, socket, host_name, startup->login_attempt, &attempted);
 		if(banned) {
 			char ban_duration[128];
 			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
@@ -3493,6 +3493,7 @@ static void smtp_thread(void* arg)
 			subnum=INVALID_SUB;
 			continue;
 		}
+		ZERO_VAR(user_pass);
 		if((auth_login=(stricmp(buf,"AUTH LOGIN")==0))==TRUE 
 			|| strnicmp(buf,"AUTH PLAIN",10)==0) {
 			if(auth_login) {
@@ -3634,7 +3635,7 @@ static void smtp_thread(void* arg)
 			if((relay_user.number=matchuser(&scfg,user_name,FALSE))==0) {
 				lprintf(LOG_WARNING,"%04d !SMTP UNKNOWN USER: '%s'"
 					,socket, user_name);
-				badlogin(socket, client.protocol, badauth_rsp, user_name, user_pass, host_name, &smtp.client_addr);
+				badlogin(socket, client.protocol, badauth_rsp, user_name, NULL, host_name, &smtp.client_addr);
 				break;
 			}
 			if((i=getuserdat(&scfg, &relay_user))!=0) {
@@ -4992,10 +4993,10 @@ static void sendmail_thread(void* arg)
 			lprintf(LOG_DEBUG,"%04d SEND sending message text (%u bytes) begin"
 				,sock, bytes);
 			lines=sockmsgtxt(sock,&msg,msgtxt,-1);
-			lprintf(LOG_DEBUG,"%04d SEND send of message text (%u bytes, %u lines) complete, waiting for acknowledgement (250)"
+			lprintf(LOG_DEBUG,"%04d SEND send of message text (%u bytes, %u lines) complete, waiting for acknowledgment (250)"
 				,sock, bytes, lines);
 			if(!sockgetrsp(sock,"250", buf, sizeof(buf))) {
-				/* Wait doublely-long for the acknowledgement */
+				/* Wait doublely-long for the acknowledgment */
 				if(buf[0] || !sockgetrsp(sock,"250", buf, sizeof(buf))) {
 					remove_msg_intransit(&smb,&msg);
 					SAFEPRINTF3(err,badrsp_err,server,buf,"250");
@@ -5131,7 +5132,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.594 $", "%*s %s", revision);
+	sscanf("$Revision: 1.596 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
