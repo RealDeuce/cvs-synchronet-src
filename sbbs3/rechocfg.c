@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.8 2016/04/21 22:01:11 deuce Exp $ */
+/* $Id: rechocfg.c,v 3.12 2016/08/03 07:24:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,23 +202,25 @@ nodecfg_t* findnodecfg(sbbsecho_cfg_t* cfg, faddr_t addr, int exact)
 
 void get_default_echocfg(sbbsecho_cfg_t* cfg)
 {
-	cfg->maxpktsize				= DFLT_PKT_SIZE;
-	cfg->maxbdlsize				= DFLT_BDL_SIZE;
-	cfg->badecho				= -1;
-	cfg->log_level				= LOG_INFO;
-	cfg->check_path				= true;
-	cfg->zone_blind				= false;
-	cfg->zone_blind_threshold	= 0xffff;
-	cfg->sysop_alias_list		= strListSplitCopy(NULL, "SYSOP", ",");
-	cfg->max_echomail_age		= 60*24*60*60;
-	cfg->bsy_timeout			= 12*60*60;
-	cfg->bso_lock_attempts		= 60;
-	cfg->bso_lock_delay			= 10;
-	cfg->delete_packets			= true;
-	cfg->delete_netmail			= true;
-	cfg->echomail_notify		= true;
-	cfg->kill_empty_netmail		= true;
-	cfg->use_ftn_domains		= false;
+	cfg->maxpktsize					= DFLT_PKT_SIZE;
+	cfg->maxbdlsize					= DFLT_BDL_SIZE;
+	cfg->badecho					= -1;
+	cfg->log_level					= LOG_INFO;
+	cfg->check_path					= true;
+	cfg->zone_blind					= false;
+	cfg->zone_blind_threshold		= 0xffff;
+	cfg->sysop_alias_list			= strListSplitCopy(NULL, "SYSOP", ",");
+	cfg->max_echomail_age			= 60*24*60*60;
+	cfg->bsy_timeout				= 12*60*60;
+	cfg->bso_lock_attempts			= 60;
+	cfg->bso_lock_delay				= 10;
+	cfg->delete_packets				= true;
+	cfg->delete_netmail				= true;
+	cfg->echomail_notify			= true;
+	cfg->kill_empty_netmail			= true;
+	cfg->use_ftn_domains			= false;
+	cfg->strict_packet_passwords	= true;
+	cfg->relay_filtered_msgs		= false;
 }
 
 char* pktTypeStringList[] = {"2+", "2.2", "2", NULL};
@@ -246,6 +248,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	SAFECOPY(cfg->outbound		, iniGetString(ini, ROOT_SECTION, "Outbound",		"../fido/outbound", value));
 	SAFECOPY(cfg->areafile		, iniGetString(ini, ROOT_SECTION, "AreaFile",		"../data/areas.bbs", value));
 	SAFECOPY(cfg->logfile		, iniGetString(ini, ROOT_SECTION, "LogFile",		"../data/sbbsecho.log", value));
+	SAFECOPY(cfg->logtime		, iniGetString(ini, ROOT_SECTION, "LogTimeFormat",	"%Y-%m-%d %H:%M:%S", value));
 	SAFECOPY(cfg->temp_dir		, iniGetString(ini, ROOT_SECTION, "TempDirectory",	"../temp/sbbsecho", value));
 	SAFECOPY(cfg->outgoing_sem	, iniGetString(ini, ROOT_SECTION, "OutgoingSemaphore",	"", value));
 	cfg->log_level				= iniGetLogLevel(ini, ROOT_SECTION, "LogLevel", cfg->log_level);
@@ -255,6 +258,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->bso_lock_attempts		= iniGetLongInt(ini, ROOT_SECTION, "BsoLockAttempts", cfg->bso_lock_attempts);
 	cfg->bso_lock_delay			= (ulong)iniGetDuration(ini, ROOT_SECTION, "BsoLockDelay", cfg->bso_lock_delay);
 	cfg->use_ftn_domains		= iniGetBool(ini, ROOT_SECTION, "UseFTNDomains", cfg->use_ftn_domains);
+	cfg->strict_packet_passwords= iniGetBool(ini, ROOT_SECTION, "StrictPacketPasswords", cfg->strict_packet_passwords);
+	cfg->relay_filtered_msgs	= iniGetBool(ini, ROOT_SECTION, "RelayFilteredMsgs", cfg->relay_filtered_msgs);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -271,7 +276,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	SAFECOPY(cfg->areamgr,		  iniGetString(ini, ROOT_SECTION, "AreaManager", "SYSOP", value));
 
 	/* NetMail options: */
-	SAFECOPY(cfg->default_recipient, iniGetString(ini, ROOT_SECTION, "DefaultRecipient", "SYSOP", value));
+	SAFECOPY(cfg->default_recipient, iniGetString(ini, ROOT_SECTION, "DefaultRecipient", "", value));
 	cfg->sysop_alias_list			= iniGetStringList(ini, ROOT_SECTION, "SysopAliasList", ",", "SYSOP");
 	cfg->fuzzy_zone					= iniGetBool(ini, ROOT_SECTION, "FuzzyNetmailZones", cfg->fuzzy_zone);
 	cfg->ignore_netmail_dest_addr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailDestAddr", cfg->ignore_netmail_dest_addr);
@@ -444,6 +449,8 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetString(&ini,		ROOT_SECTION, "AreaFile"				,cfg->areafile					,NULL);
 	if(cfg->logfile[0])
 	iniSetString(&ini,		ROOT_SECTION, "LogFile"					,cfg->logfile					,NULL);
+	if(cfg->logtime[0])
+	iniSetString(&ini,		ROOT_SECTION, "LogTimeFormat"			,cfg->logtime					,NULL);
 	if(cfg->temp_dir[0])
 	iniSetString(&ini,		ROOT_SECTION, "TempDirectory"			,cfg->temp_dir					,NULL);
 	iniSetBytes(&ini,		ROOT_SECTION, "BundleSize"				,1,cfg->maxbdlsize				,NULL);
@@ -453,6 +460,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetShortInt(&ini,	ROOT_SECTION, "ZoneBlindThreshold"		,cfg->zone_blind_threshold		,NULL);
 	iniSetLogLevel(&ini,	ROOT_SECTION, "LogLevel"				,cfg->log_level					,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "CheckPathsForDupes"		,cfg->check_path				,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "StrictPacketPasswords"	,cfg->strict_packet_passwords	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "SecureEchomail"			,cfg->secure_echomail			,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "EchomailNotify"			,cfg->echomail_notify			,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "StripLineFeeds"			,cfg->strip_lf					,NULL);
@@ -466,6 +474,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetLongInt(&ini,		ROOT_SECTION, "BsoLockAttempts"			,cfg->bso_lock_attempts			,NULL);
 	iniSetDuration(&ini,	ROOT_SECTION, "MaxEchomailAge"			,cfg->max_echomail_age			,NULL);
 	iniSetDuration(&ini,	ROOT_SECTION, "MaxNetmailAge"			,cfg->max_netmail_age			,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "RelayFilteredMsgs"		,cfg->relay_filtered_msgs		,NULL);
 
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailDestAddr"	,cfg->ignore_netmail_dest_addr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailRecvAttr"	,cfg->ignore_netmail_recv_attr	,NULL);
