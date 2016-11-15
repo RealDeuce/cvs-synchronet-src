@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.203 2016/11/16 05:35:53 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.202 2016/11/15 21:51:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,8 +332,6 @@ enum {
 	,clr_chatremote
 	,clr_multichat
 	,clr_external
-	,clr_backfill
-	,clr_unfill
 	,MIN_COLORS 
 };
 

@@ -1,6 +1,8 @@
+/* writemsg.cpp */
+
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.113 2016/11/18 09:58:14 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.112 2015/12/04 10:06:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1535,14 +1537,13 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 	return(true);
 }
 
-ushort sbbs_t::chmsgattr(smbmsg_t msg)
+ushort sbbs_t::chmsgattr(ushort attr)
 {
 	int ch;
-	uint16_t attr = msg.hdr.attr;
 
 	while(online && !(sys_status&SS_ABORT)) {
 		CRLF;
-		show_msgattr(&msg);
+		show_msgattr(attr);
 		menu("msgattr");
 		ch=getkey(K_UPPER);
 		if(ch)
@@ -1574,9 +1575,6 @@ ushort sbbs_t::chmsgattr(smbmsg_t msg)
 				break;
 			case 'L':
 				attr^=MSG_LOCKED;
-				break;
-			case 'C':
-				attr^=MSG_NOREPLY;
 				break;
 			default:
 				return(attr); 
