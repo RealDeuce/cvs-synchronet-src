@@ -1,8 +1,6 @@
-/* smblib.h */
-
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.73 2015/12/06 11:08:41 rswindell Exp $ */
+/* $Id: smblib.h,v 1.77 2016/11/15 21:50:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,6 +66,33 @@
 #endif
 
 #include "smbdefs.h"
+
+#define SMB_SUCCESS			0			/* Successful result/return code */
+#define SMB_FAILURE			-1			/* Generic error (discouraged) */
+
+										/* Standard smblib errors values */
+#define SMB_ERR_NOT_OPEN	-100		/* Message base not open */
+#define SMB_ERR_HDR_LEN		-101		/* Invalid message header length (>64k) */
+#define SMB_ERR_HDR_OFFSET	-102		/* Invalid message header offset */
+#define SMB_ERR_HDR_ID		-103		/* Invalid header ID */
+#define SMB_ERR_HDR_VER		-104		/* Unsupported version */
+#define SMB_ERR_HDR_FIELD	-105		/* Missing header field */
+#define SMB_ERR_HDR_ATTR	-106		/* Invalid message attributes */
+#define SMB_ERR_NOT_FOUND	-110		/* Item not found */
+#define SMB_ERR_DAT_OFFSET	-120		/* Invalid data offset (>2GB) */
+#define SMB_ERR_DAT_LEN		-121		/* Invalid data length (>2GB) */
+#define SMB_ERR_OPEN		-200		/* File open error */
+#define SMB_ERR_SEEK		-201		/* File seek/setpos error */
+#define SMB_ERR_LOCK		-202		/* File lock error */
+#define SMB_ERR_READ		-203		/* File read error */
+#define SMB_ERR_WRITE		-204		/* File write error */
+#define SMB_ERR_TIMEOUT		-205		/* File operation timed-out */
+#define SMB_ERR_FILE_LEN	-206		/* File length invalid */
+#define SMB_ERR_DELETE		-207		/* File deletion error */
+#define SMB_ERR_UNLOCK		-208		/* File unlock error */
+#define SMB_ERR_MEM			-300		/* Memory allocation error */
+
+#define SMB_DUPE_MSG		1			/* Duplicate message detected by smb_addcrc() */
 
 #define SMB_STACK_LEN		4			/* Max msg bases in smb_stack() 	*/
 #define SMB_STACK_POP       0           /* Pop a msg base off of smb_stack()*/
@@ -156,10 +181,13 @@ SMBEXPORT int		SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newms
 SMBEXPORT int		SMBCALL smb_updatemsg(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT BOOL		SMBCALL smb_valid_hdr_offset(smb_t* smb, ulong offset);
 SMBEXPORT int		SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg);
+SMBEXPORT BOOL		SMBCALL	smb_voted_already(smb_t*, uint32_t msgnum, const char* name, enum smb_net_type, void* net_addr);
 
 /* smbadd.c */
 SMBEXPORT int		SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
 						,uint16_t xlat, const uchar* body, const uchar* tail);
+SMBEXPORT int		SMBCALL smb_addvote(smb_t* smb, smbmsg_t* msg, int storage);
+SMBEXPORT int		SMBCALL smb_addpoll(smb_t* smb, smbmsg_t* msg, int storage);
 
 /* smballoc.c */
 SMBEXPORT long		SMBCALL smb_allochdr(smb_t* smb, ulong length);
