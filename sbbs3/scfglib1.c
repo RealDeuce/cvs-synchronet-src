@@ -1,14 +1,12 @@
-/* scfglib1.c */
-
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.64 2014/03/14 05:37:38 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.69 2016/11/15 21:38:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -276,7 +274,9 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	if(cfg->new_prot<' ')
 		cfg->new_prot=' ';
 	get_int(cfg->new_install,instream);
-	for(i=0;i<7;i++)
+	get_int(cfg->new_msgscan_init,instream);
+	get_int(cfg->guest_msgscan_init,instream);
+	for(i=0;i<5;i++)
 		get_int(n,instream);
 
 	/*************************/
@@ -303,9 +303,12 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	get_str(cfg->mods_dir,instream);
 	get_str(cfg->logs_dir,instream);
 	if(!cfg->logs_dir[0]) SAFECOPY(cfg->logs_dir,cfg->data_dir);
+	get_str(cfg->readmail_mod, instream);
+	get_str(cfg->scanposts_mod, instream);
+	get_str(cfg->scansubs_mod, instream);
 
 	get_int(c,instream);
-	for(i=0;i<158;i++)					/* unused - initialized to NULL */
+	for(i=0;i<62;i++)					/* unused - initialized to NULL */
 		get_int(n,instream);
 	for(i=0;i<254;i++)					/* unused - initialized to 0xff */
 		get_int(n,instream);
@@ -842,3 +845,45 @@ void make_data_dirs(scfg_t* cfg)
 	}
 #endif
 }
+
+int smb_storage_mode(scfg_t* cfg, smb_t* smb)
+{
+	if(smb->subnum == INVALID_SUB)
+		return (cfg->sys_misc&SM_FASTMAIL) ? SMB_FASTALLOC : SMB_SELFPACK;
+	if(smb->subnum >= cfg->total_subs)
+		return -1;
+	if(cfg->sub[smb->subnum]->misc&SUB_HYPER) {
+		smb->status.attr |= SMB_HYPERALLOC;
+		return SMB_HYPERALLOC;
+	}
+	if(cfg->sub[smb->subnum]->misc&SUB_FAST)
+		return SMB_FASTALLOC;
+	return SMB_SELFPACK;
+}
+
+int smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
+{
+	int retval;
+
+	if(subnum != INVALID_SUB && subnum >= cfg->total_subs)
+		return SMB_FAILURE;
+	memset(smb, 0, sizeof(smb_t));
+	if(subnum == INVALID_SUB) {
+		SAFEPRINTF(smb->file, "%smail", cfg->data_dir);
+		smb->status.max_crcs	= cfg->mail_maxcrcs;
+		smb->status.max_msgs	= 0;
+		smb->status.max_age		= cfg->mail_maxage;
+		smb->status.attr		= SMB_EMAIL;
+	} else {
+		SAFEPRINTF2(smb->file, "%s%s", cfg->sub[subnum]->data_dir, cfg->sub[subnum]->code);
+		smb->status.max_crcs	= cfg->sub[subnum]->maxcrcs;
+		smb->status.max_msgs	= cfg->sub[subnum]->maxmsgs;
+		smb->status.max_age		= cfg->sub[subnum]->maxage;
+		smb->status.attr		= cfg->sub[subnum]->misc&SUB_HYPER ? SMB_HYPERALLOC :0;
+	}
+	smb->retry_time = cfg->smb_retry_time;
+	if((retval = smb_open(smb)) == SMB_SUCCESS)
+		smb->subnum = subnum;
+	return retval;
+}
+
