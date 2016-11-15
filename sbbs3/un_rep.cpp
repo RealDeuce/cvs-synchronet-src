@@ -1,6 +1,6 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.57 2016/11/10 10:06:31 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.58 2016/11/15 21:48:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -544,7 +544,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			bputs(text[R_Voting]);
 		else {
 			set_qwk_flag(QWK_VOTING);
-			qwk_voting(fname, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE);
+			qwk_voting(fname, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias);
 		}
 		remove(fname);
 	}

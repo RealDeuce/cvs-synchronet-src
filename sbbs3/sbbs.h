@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.431 2016/11/13 21:29:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.432 2016/11/15 21:48:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -643,11 +643,12 @@ public:
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	void	show_msgattr(ushort attr);
 	void	show_msghdr(smbmsg_t* msg);
-	void	show_msg(smbmsg_t* msg, long mode);
+	void	show_msg(smbmsg_t* msg, long mode, post_t* post = NULL);
 	void	msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode);
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
+	ulong	total_votes(post_t* post);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -889,7 +890,7 @@ public:
 	void	qwksetptr(uint subnum, char *buf, int reset);
 	void	qwkcfgline(char *buf,uint subnum);
 	int		set_qwk_flag(ulong flag);
-	bool	qwk_voting(const char* fname, smb_net_type_t);
+	bool	qwk_voting(const char* fname, smb_net_type_t, const char* qnet_id);
 
 	/* pack_qwk.cpp */
 	bool	pack_qwk(char *packet, ulong *msgcnt, bool prepack);
