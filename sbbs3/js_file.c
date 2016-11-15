@@ -1,6 +1,8 @@
+/* js_file.c */
+
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.167 2016/12/01 21:42:08 rswindell Exp $ */
+/* $Id: js_file.c,v 1.166 2015/12/14 08:16:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,7 +67,7 @@ typedef struct
 
 } private_t;
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 {
