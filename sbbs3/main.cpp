@@ -2,13 +2,13 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.629 2016/01/10 07:10:22 deuce Exp $ */
+/* $Id: main.cpp,v 1.635 2016/11/15 22:25:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1181,7 +1181,7 @@ bool sbbs_t::js_init(ulong* stack_frame)
 					,uptime, startup->host_name, SOCKLIB_DESC	/* system */
 					,&js_callback								/* js */
 					,&startup->js
-					,&client, client_socket						/* client */
+					,&client, client_socket, -1					/* client */
 					,&js_server_props							/* server */
 					,&js_glob
 			))
@@ -1260,6 +1260,7 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 										,js_startup_t* js_startup	/* js */
 										,client_t* client			/* client */
 										,SOCKET client_socket		/* client */
+										,CRYPT_CONTEXT session		/* client */
 										,js_server_props_t* props	/* server */
 										,JSObject** glob
 										)
@@ -1285,7 +1286,7 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* Client Object */
 		if(client!=NULL 
-			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket)==NULL)
+			&& js_CreateClientObject(js_cx, *glob, "client", client, client_socket, session)==NULL)
 			break;
 
 		/* Server */
@@ -2244,7 +2245,7 @@ void output_thread(void* arg)
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
 		if(i==SOCKET_ERROR) {
 			if(sbbs->client_socket!=INVALID_SOCKET)
-				lprintf(LOG_ERR,"%s !ERROR %d selecting socket %u for send"
+				lprintf(LOG_WARNING,"%s !ERROR %d selecting socket %u for send"
 					,node,ERROR_VALUE,sbbs->client_socket);
 			if(sbbs->cfg.node_num)	/* Only break if node output (not server) */
 				break;
@@ -2990,7 +2991,7 @@ void event_thread(void* arg)
 							,ex_mode
 							,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
-							eprintf(LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
+							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
 					}
 					sbbs->cfg.event[i]->last=time32(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
@@ -4145,11 +4146,11 @@ void node_thread(void* arg)
 	}
 #endif
 
-	if(startup->login_attempt_throttle
+	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &sbbs->client_addr)) > 1) {
 		lprintf(LOG_DEBUG,"Node %d Throttling suspicious connection from: %s (%u login attempts)"
 			,sbbs->cfg.node_num, sbbs->client_ipaddr, login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
+		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
 	if(sbbs->answer()) {
@@ -4820,13 +4821,17 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
 		CRYPT_KEYSET	ssh_keyset;
 
-		if(!do_cryptInit())
+		if(!do_cryptInit()) {
+			lprintf(LOG_ERR, "SSH cryptInit failure");
 			goto NO_SSH;
+		}
 		/* Get the private key... first try loading it from a file... */
 		SAFEPRINTF2(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
 		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
-			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass)))
+			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass))) {
+				lprintf(LOG_ERR, "SSH cryptGetPrivateKey failure");
 				goto NO_SSH;
+			}
 		}
 		else {
 			/* Couldn't do that... create a new context and use the key from there... */
@@ -5116,6 +5121,22 @@ NO_SSH:
 #endif
 			, host_ip, inet_addrport(&client_addr));
 
+		login_attempt_t attempted;
+		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, host_name, startup->login_attempt, &attempted);
+		if(banned || sbbs->trashcan(host_ip,"ip")) {
+			if(banned) {
+				char ban_duration[128];
+				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
+					,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+			} else
+				lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip);
+			SSH_END();
+			close_socket(client_socket);
+			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
+			sbbs->syslog("@!",logstr);
+			continue;
+		}
+
 #ifdef _WIN32
 		if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
@@ -5196,16 +5217,6 @@ NO_SSH:
 #endif
    		sbbs->client_socket=client_socket;	// required for output to the user
         sbbs->online=ON_REMOTE;
-
-		if(sbbs->trashcan(host_ip,"ip")) {
-			SSH_END();
-			close_socket(client_socket);
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s"
-				,client_socket, host_ip);
-			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
-			sbbs->syslog("@!",logstr);
-			continue;
-		}
 
 		if(rlogin)
 			sbbs->outcom(0); /* acknowledge RLogin per RFC 1282 */

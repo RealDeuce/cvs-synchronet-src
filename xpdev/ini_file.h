@@ -2,7 +2,7 @@
 
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.49 2016/01/18 10:01:10 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.51 2016/01/27 06:16:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,6 +108,8 @@ DLLEXPORT unsigned* DLLCALL	iniReadEnumList(FILE*, const char* section, const ch
 					,str_list_t names, unsigned* count, const char* sep, const char* deflt);
 DLLEXPORT long DLLCALL		iniReadNamedInt(FILE*, const char* section, const char* key
 					,named_long_t*, long deflt);
+DLLEXPORT ulong DLLCALL		iniReadNamedLongInt(FILE*, const char* section, const char* key
+					,named_ulong_t*, ulong deflt);
 DLLEXPORT double DLLCALL		iniReadNamedFloat(FILE*, const char* section, const char* key
 					,named_double_t*, double deflt);
 DLLEXPORT ulong DLLCALL		iniReadBitField(FILE*, const char* section, const char* key
@@ -164,6 +166,8 @@ DLLEXPORT unsigned* DLLCALL	iniGetEnumList(str_list_t, const char* section, cons
 					,str_list_t names, unsigned* count, const char* sep, const char* deflt);
 DLLEXPORT long DLLCALL		iniGetNamedInt(str_list_t, const char* section, const char* key
 					,named_long_t*, long deflt);
+DLLEXPORT ulong DLLCALL		iniGetNamedLongInt(str_list_t, const char* section, const char* key
+					,named_ulong_t*, ulong deflt);
 DLLEXPORT double DLLCALL		iniGetNamedFloat(str_list_t, const char* section, const char* key
 					,named_double_t*, double deflt);
 DLLEXPORT ulong DLLCALL		iniGetBitField(str_list_t, const char* section, const char* key
@@ -216,6 +220,10 @@ DLLEXPORT char* DLLCALL		iniSetEnumList(str_list_t*, const char* section, const 
 					,const char* sep, str_list_t names, unsigned* values, unsigned count, ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetNamedInt(str_list_t*, const char* section, const char* key, named_long_t*
 					,long value, ini_style_t*);
+DLLEXPORT char* DLLCALL		iniSetNamedHexInt(str_list_t*, const char* section, const char* key, named_ulong_t*
+					,ulong value, ini_style_t*);
+DLLEXPORT char* DLLCALL		iniSetNamedLongInt(str_list_t*, const char* section, const char* key, named_ulong_t*
+					,ulong value, ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetNamedFloat(str_list_t*, const char* section, const char* key, named_double_t*
 					,double value, ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetBitField(str_list_t*, const char* section, const char* key, ini_bitdesc_t*, ulong value
@@ -237,6 +245,7 @@ DLLEXPORT char* DLLCALL		iniPopKey(str_list_t*, const char* section, const char*
 DLLEXPORT BOOL DLLCALL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniRemoveSection(str_list_t*, const char* section);
+DLLEXPORT BOOL DLLCALL		iniRemoveSections(str_list_t*, const char* prefex);
 DLLEXPORT BOOL DLLCALL		iniRenameSection(str_list_t*, const char* section, const char* newname);
 
 /*
