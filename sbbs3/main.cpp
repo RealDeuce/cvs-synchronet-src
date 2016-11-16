@@ -1,7 +1,8 @@
+/* main.cpp */
+
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.644 2016/11/28 02:59:07 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: main.cpp,v 1.637 2016/11/16 07:51:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +57,6 @@
 
 #define TIMEOUT_THREAD_WAIT		60			// Seconds (was 15)
 #define IO_THREAD_BUF_SIZE	   	20000		// Bytes
-#define TIMEOUT_MUTEX_FILE		12*60*60
 
 // Globals
 #ifdef _WIN32
@@ -1664,7 +1664,7 @@ void input_thread(void *arg)
 	SOCKET		high_socket;
 	SOCKET		sock;
 
-	SetThreadName("sbbs/termInput");
+	SetThreadName("Node Input");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _DEBUG
@@ -1935,7 +1935,7 @@ void passthru_output_thread(void* arg)
 	int		rd;
 	int		wr;
 
-	SetThreadName("sbbs/ptOutput");
+	SetThreadName("Passthrough Output");
 	thread_up(FALSE /* setuid */);
 
 	while(sbbs->client_socket!=INVALID_SOCKET && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
@@ -2049,7 +2049,7 @@ void passthru_input_thread(void* arg)
 	BYTE	ch;
 	int		i;
 
-	SetThreadName("sbbs/ptInput");
+	SetThreadName("Passthrough Input");
 	thread_up(FALSE /* setuid */);
 
 	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
@@ -2140,7 +2140,7 @@ void output_thread(void* arg)
 	struct timeval tv;
 	ulong		mss=IO_THREAD_BUF_SIZE;
 
-	SetThreadName("sbbs/termOutput");
+	SetThreadName("Node Output");
 	thread_up(TRUE /* setuid */);
 
     if(sbbs->cfg.node_num)
@@ -2380,7 +2380,7 @@ void event_thread(void* arg)
 
 	sbbs_srand();	/* Seed random number generator */
 
-	SetThreadName("sbbs/events");
+	SetThreadName("BBS Events");
 	thread_up(TRUE /* setuid */);
 
 #ifdef JAVASCRIPT
@@ -2478,7 +2478,7 @@ void event_thread(void* arg)
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
-					if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
+					if(!fmutex(semfile,startup->host_name,24*60*60)) {
 						eprintf(LOG_INFO,"%s exists (unpack in progress?)", semfile);
 						continue;
 					}
@@ -2505,7 +2505,7 @@ void event_thread(void* arg)
 				eprintf(LOG_INFO,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
-				if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
+				if(!fmutex(semfile,startup->host_name,24*60*60)) {
 					eprintf(LOG_INFO,"%s exists (pack in progress?)", semfile);
 					continue;
 				}
@@ -2544,13 +2544,12 @@ void event_thread(void* arg)
 				&& (fexistcase(semfile) || (now-lastprepack)/60>(60*24))) {
 				j=lastuser(&sbbs->cfg);
 				eprintf(LOG_INFO,"Pre-packing QWK Message packets...");
-				int userfile = openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 				for(i=1;i<=j;i++) {
 
 					SAFEPRINTF2(str,"%5u of %-5u",i,j);
 					//status(str);
 					sbbs->useron.number=i;
-					fgetuserdat(&sbbs->cfg,&sbbs->useron, userfile);
+					getuserdat(&sbbs->cfg,&sbbs->useron);
 
 					if(sbbs->useron.number
 						&& !(sbbs->useron.misc&(DELETED|INACTIVE))	 /* Pre-QWK */
@@ -2579,7 +2578,6 @@ void event_thread(void* arg)
 						sbbs->online=FALSE;
 					} 
 				}
-				close(userfile);
 				lastprepack=(time32_t)now;
 				SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
@@ -4132,7 +4130,7 @@ void node_thread(void* arg)
 	sbbs_t*			sbbs = (sbbs_t*) arg;
 
 	update_clients();
-	SetThreadName("sbbs/termNode");
+	SetThreadName("Node");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _DEBUG
@@ -4352,14 +4350,14 @@ void sbbs_t::daily_maint(void)
 
 	lputs(LOG_INFO,status("Checking for inactive/expired user records..."));
 	lastusernum=lastuser(&sbbs->cfg);
-	int userfile=openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 	for(usernum=1;usernum<=lastusernum;usernum++) {
+
 		SAFEPRINTF2(str,"%5u of %-5u",usernum,lastusernum);
 		status(str);
-		user.number = usernum;
-		if((i=fgetuserdat(&sbbs->cfg, &user, userfile)) != 0) {
+		user.number=usernum;
+		if((i=getuserdat(&sbbs->cfg,&user))!=0) {
 			SAFEPRINTF(str,"user record %u",usernum);
-			sbbs->errormsg(WHERE, ERR_READ, str, i);
+			sbbs->errormsg(WHERE,ERR_READ,str,i);
 			continue;
 		}
 
@@ -4442,7 +4440,6 @@ void sbbs_t::daily_maint(void)
 			putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
 		}
 	}
-	close(userfile);
 
 	lputs(LOG_INFO,status("Purging deleted/expired e-mail"));
 	SAFEPRINTF(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
@@ -4619,6 +4616,16 @@ void DLLCALL bbs_thread(void* arg)
 		startup->seteuid(TRUE);
 #endif
 
+	/* Setup intelligent defaults */
+	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
+	if(startup->rlogin_port==0)				startup->rlogin_port=513;
+#ifdef USE_CRYPTLIB
+	if(startup->ssh_port==0)				startup->ssh_port=22;
+#endif
+	if(startup->outbuf_drain_timeout==0)	startup->outbuf_drain_timeout=10;
+	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
+	if(startup->temp_dir[0])				backslash(startup->temp_dir);
+
 	ZERO_VAR(js_server_props);
 	SAFEPRINTF3(js_server_props.version,"%s %s%c",TELNET_SERVER,VERSION,REVISION);
 	js_server_props.version_detail=bbs_ver();
@@ -4633,18 +4640,9 @@ void DLLCALL bbs_thread(void* arg)
 	startup->shutdown_now=FALSE;
 	terminate_server=false;
 
-	SetThreadName("sbbs/termServer");
+	SetThreadName("BBS");
 
 	do {
-	/* Setup intelligent defaults */
-	if(startup->telnet_port==0)				startup->telnet_port=IPPORT_TELNET;
-	if(startup->rlogin_port==0)				startup->rlogin_port=513;
-#ifdef USE_CRYPTLIB
-	if(startup->ssh_port==0)				startup->ssh_port=22;
-#endif
-	if(startup->outbuf_drain_timeout==0)	startup->outbuf_drain_timeout=10;
-	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=DEFAULT_SEM_CHK_FREQ;
-	if(startup->temp_dir[0])				backslash(startup->temp_dir);
 
 	protected_uint32_init(&node_threads_running,0);
 
@@ -4940,7 +4938,6 @@ NO_SSH:
 	/* Setup recycle/shutdown semaphore file lists */
 	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
-	semfile_list_add(&recycle_semfiles,startup->ini_fname);
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
@@ -4977,7 +4974,7 @@ NO_SSH:
 	lprintf(LOG_INFO,"Terminal Server thread started for nodes %d through %d", first_node, last_node);
 
 	while(!terminate_server) {
-		YIELD();
+
 		if(protected_uint32_value(node_threads_running)==0) {	/* check for re-run flags and recycle/shutdown sem files */
 			if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 
@@ -5132,7 +5129,7 @@ NO_SSH:
 			if(banned) {
 				char ban_duration[128];
 				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-					,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
+					,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
 			} else
 				lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip);
 			SSH_END();
