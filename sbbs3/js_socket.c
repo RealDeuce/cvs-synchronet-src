@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.176 2016/01/21 05:22:38 deuce Exp $ */
+/* $Id: js_socket.c,v 1.180 2016/05/13 16:25:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -246,7 +246,6 @@ static void dbprintf(BOOL error, js_socket_private_t* p, char* fmt, ...)
     vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
-	
 	lprintf(LOG_DEBUG,"%04d Socket %s%s",p->sock,error ? "ERROR: ":"",sbuf);
 }
 
@@ -453,7 +452,7 @@ js_bind(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc)
 		port = js_port(cx,argv[0],p->type);
-	if(argc > 1) {
+	if(argc > 1 && argv[1] != JSVAL_VOID) {
 		JSVALUE_TO_ASTRING(cx, argv[1], cstr, INET6_ADDRSTRLEN, NULL);
 	}
 
@@ -466,10 +465,11 @@ js_bind(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if((ret=getaddrinfo(cstr, portstr, &hints, &res)) != 0) {
 		JS_RESUMEREQUEST(cx,rc);
-		dbprintf(TRUE, p, "getaddrinfo failed with error %d",ret);
+		dbprintf(TRUE, p, "getaddrinfo (%s %s) failed with error %d", cstr, portstr, ret);
+		p->last_error=ERROR_VALUE;
 		return(JS_TRUE);
 	}
-	for(tres=res; tres->ai_next; tres=tres->ai_next) {
+	for(tres=res; tres; tres=tres->ai_next) {
 		if(bind(p->sock, tres->ai_addr, tres->ai_addrlen)!=0) {
 			if (tres->ai_next == NULL) {
 				p->last_error=ERROR_VALUE;
@@ -562,7 +562,7 @@ js_accept(JSContext *cx, uintN argc, jsval *arglist)
 		}
 	}
 
-	if((sockobj=js_CreateSocketObject(cx, obj, "new_socket", new_socket))==NULL) {
+	if((sockobj=js_CreateSocketObject(cx, obj, "new_socket", new_socket, -1))==NULL) {
 		closesocket(new_socket);
 		JS_RESUMEREQUEST(cx, rc);
 		JS_ReportError(cx,"Error creating new socket object");
@@ -682,6 +682,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 	JSString*	str;
 	js_socket_private_t*	p;
 	jsrefcount	rc;
+	int		ret;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -699,9 +700,10 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_TRUE;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(js_socket_sendsocket(p,cp,len,TRUE)==len) {
-		dbprintf(FALSE, p, "sent %u bytes",len);
-		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+	ret = js_socket_sendsocket(p,cp,len,TRUE);
+	if(ret >= 0) {
+		dbprintf(FALSE, p, "sent %d of %u bytes",ret,len);
+		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(ret));
 	} else {
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes failed",len);
@@ -1906,8 +1908,9 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	,310
 	},
 	{"write",		js_send,		1,	JSTYPE_ALIAS },
-	{"send",		js_send,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("data")
-	,JSDOCSTR("send a string (AKA write)")
+	{"send",		js_send,		1,	JSTYPE_NUMBER,	JSDOCSTR("data")
+	,JSDOCSTR("send a string (AKA write).  Returns the number of bytes sent or null if an error occured.  "
+	"Versions before 3.17 returned a bool true if all bytes were sent and false otherwise.")
 	,310
 	},
 	{"writeln",		js_sendline,		1,	JSTYPE_ALIAS },
@@ -2044,7 +2047,7 @@ static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type)
 
 /* Socket Constructor (creates socket descriptor) */
 
-JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock)
+JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock, CRYPT_CONTEXT session)
 {
 	JSObject*	obj;
 	js_socket_private_t*	p;
@@ -2069,7 +2072,7 @@ JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock)
 	p->sock = sock;
 	p->external = TRUE;
 	p->network_byte_order = TRUE;
-	p->session=-1;
+	p->session=session;
 
 	if (p->sock != INVALID_SOCKET) {
 		len=sizeof(p->remote_addr);
@@ -2107,7 +2110,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 #else
 				JS_ValueToInt32(cx,argv[i],&sock);
 #endif
-				obj = js_CreateSocketObjectWithoutParent(cx, sock);
+				obj = js_CreateSocketObjectWithoutParent(cx, sock, -1);
 				if (obj == NULL) {
 					JS_ReportError(cx, "Failed to create external socket object");
 					return JS_FALSE;
@@ -2189,11 +2192,11 @@ JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent)
 	return(sockobj);
 }
 
-JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *name, SOCKET sock)
+JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent, char *name, SOCKET sock, CRYPT_CONTEXT session)
 {
 	JSObject*	obj;
 
-	obj = js_CreateSocketObjectWithoutParent(cx, sock);
+	obj = js_CreateSocketObjectWithoutParent(cx, sock, session);
 	if(obj==NULL)
 		return(NULL);
 	JS_DefineProperty(cx, parent, name, OBJECT_TO_JSVAL(obj), NULL, NULL, JSPROP_ENUMERATE|JSPROP_READONLY);
