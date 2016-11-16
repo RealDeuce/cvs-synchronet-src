@@ -2,7 +2,7 @@
 
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.424 2016/05/27 07:44:46 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.425 2016/10/17 21:54:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2422,7 +2422,7 @@ static void ctrl_thread(void* arg)
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock,  startup->login_attempt, &attempted);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
 	if(banned || trashcan(&scfg,host_ip,"ip")) {
 		if(banned) {
 			char ban_duration[128];
@@ -4741,7 +4741,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.424 $", "%*s %s", revision);
+	sscanf("$Revision: 1.425 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
