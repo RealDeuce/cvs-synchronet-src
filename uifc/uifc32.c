@@ -2,13 +2,13 @@
 
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.214 2015/02/19 09:57:05 deuce Exp $ */
+/* $Id: uifc32.c,v 1.219 2016/04/15 05:06:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -162,7 +162,7 @@ static uifc_graphics_t ascii_chars = {
 	.help_char='?',
 	.close_char='X',
 	.up_arrow='^',
-	.down_arrow='V',
+	.down_arrow='v',
 	.button_left='[',
 	.button_right=']',
 
@@ -637,6 +637,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int tbrdrwidth=3;
 	int bbrdrwidth=1;
 	int title_len;
+	int tmpcur=0;
 	struct mouse_event mevnt;
 	char	*title=NULL;
 	int	a,b,c,longopt;
@@ -644,6 +645,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	int gotkey;
 	uchar	hclr,lclr,bclr,cclr,lbclr;
 
+	if(cur==NULL) cur=&tmpcur;
 	api->exit_flags = 0;
 	hclr=api->hclr;
 	lclr=api->lclr;
@@ -1522,8 +1524,32 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						}
 						break;
 					case CIO_KEY_F(1):	/* F1 - Help */
+					{
+						uint8_t* save = malloc(width*height*2);
+						if(save != NULL) {
+							gettext(s_left+left,s_top+top,s_left
+								+left+width-1,s_top+top+height-1,save);
+							uint8_t* copy = malloc(width*height*2);
+							if(copy != NULL) {
+								memcpy(copy, save, width*height*2);
+								for(i=1;i<(width*height*2);i+=2)
+									copy[i]=lclr|(cclr<<4);
+								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
+								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
+									copy[i]=hclr|(cclr<<4);
+								puttext(s_left+left,s_top+top,s_left
+									+left+width-1,s_top+top+height-1,copy);
+								free(copy);
+							}
+						}
 						api->showhelp();
+						if(save != NULL) {
+							puttext(s_left+left,s_top+top,s_left
+								+left+width-1,s_top+top+height-1,save);
+							free(save);
+						}
 						break;
+					}
 					case CIO_KEY_F(2):	/* F2 - Edit */
 						if(mode&WIN_XTR && (*cur)==opts-1)	/* can't edit */
 							break;							/* extra line */
@@ -1802,13 +1828,8 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 	int s_top=SCRN_TOP;
 	int s_left=SCRN_LEFT;
 	int s_right=SCRN_RIGHT;
-	int s_bottom=api->scrn_len-3;
 	int hbrdrsize=2;
-	int lbrdrwidth=1;
-	int rbrdrwidth=1;
-	int vbrdrsize=4;
 	int tbrdrwidth=1;
-	int bbrdrwidth=1;
 
 	reset_dynamic();
 
@@ -1816,15 +1837,10 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 		s_top=1;
 		s_left=2;
 		s_right=api->scrn_width-3;  /* Leave space for the shadow */
-		s_bottom=api->scrn_len-1;   /* Leave one for the shadow */
 	}
 	if(mode&WIN_NOBRDR) {
 		hbrdrsize=0;
-		vbrdrsize=0;
-		lbrdrwidth=0;
-		rbrdrwidth=0;
 		tbrdrwidth=0;
-		bbrdrwidth=0;
 		height=1;
 	}
 
@@ -1994,7 +2010,8 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 
 	gotoxy(left,top);
 	if(mode&K_PASSWORD)
-		cprintf("%-*.*s",width,width,"********************************************************************************"+(80-strlen(outstr+*scrnoffset)));
+		// This typecast is to suppress a clang warning "adding 'unsigned long' to a string does not append to the string [-Wstring-plus-int]"
+		cprintf("%-*.*s",width,width,((char *)"********************************************************************************")+(80-strlen(outstr+*scrnoffset)));
 	else
 		cprintf("%-*.*s",width,width,outstr+*scrnoffset);
 	gotoxy(left+(cursoffset-*scrnoffset),top);
