@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.33 2016/11/15 21:50:43 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.34 2016/11/16 05:31:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -339,7 +339,7 @@ int SMBCALL smb_addvote(smb_t* smb, smbmsg_t* msg, int storage)
 	if(msg->hdr.thread_back == 0)
 		return SMB_ERR_HDR_FIELD;
 
-	msg->hdr.type = SMB_MSG_TYPE_VOTE;
+	msg->hdr.type = SMB_MSG_TYPE_BALLOT;
 
 	if(msg->hdr.when_imported.time == 0) {
 		msg->hdr.when_imported.time = (uint32_t)time(NULL);
