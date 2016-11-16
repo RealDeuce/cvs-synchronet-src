@@ -1,13 +1,14 @@
+/* startup.h */
+
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.80 2017/11/15 10:39:53 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: startup.h,v 1.76 2016/05/18 10:15:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -92,7 +93,6 @@ typedef struct {
 	WORD	telnet_port;
 	WORD	rlogin_port;
 	WORD	ssh_port;
-	WORD	ssh_connect_timeout;
 	WORD	outbuf_highwater_mark;	/* output block size control */
 	WORD	outbuf_drain_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
@@ -130,7 +130,6 @@ typedef struct {
     char	temp_dir[128];
 	char	answer_sound[128];
 	char	hangup_sound[128];
-	char	ini_fname[128];
 
 	/* Miscellaneous */
 	char	xtrn_term_ansi[32];		/* external ANSI terminal type (e.g. "ansi-bbs") */
@@ -147,11 +146,8 @@ typedef struct {
 
 	struct login_attempt_settings login_attempt;
 	link_list_t* login_attempt_list;
-	uint	max_concurrent_connections;
 
 } bbs_startup_t;
-
-#define DEFAULT_SEM_CHK_FREQ	2
 
 /* startup options that requires re-initialization/recycle when changed */
 #define OFFSET_AND_SIZE(s, f)	{ offsetof(s,f), sizeof(((s *)0)->f) }
