@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.635 2016/11/15 22:25:10 rswindell Exp $ */
+/* $Id: main.cpp,v 1.636 2016/11/16 05:56:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4941,6 +4941,8 @@ NO_SSH:
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
+	semfile_list_add(&recycle_semfiles,str);
+	SAFEPRINTF(str,"%sattr.cfg",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
