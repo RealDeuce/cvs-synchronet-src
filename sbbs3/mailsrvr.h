@@ -1,6 +1,8 @@
+/* mailsrvr.h */
+
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.78 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.77 2016/05/18 10:15:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,7 +91,6 @@ typedef struct {
 	/* Paths */
     char    ctrl_dir[128];
 	char    temp_dir[128];
-	char	ini_fname[128];
 
 	/* Strings */
     char	dns_server[128];
