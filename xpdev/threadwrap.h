@@ -1,7 +1,8 @@
+/* threadwrap.h */
+
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.50 2016/11/19 09:21:37 sbbs Exp $ */
-// vi: tabstop=4
+/* $Id: threadwrap.h,v 1.49 2015/10/04 22:09:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
