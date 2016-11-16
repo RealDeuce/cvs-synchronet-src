@@ -1,6 +1,6 @@
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.100 2016/11/13 21:29:57 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.101 2016/11/16 05:43:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -554,6 +554,13 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 	smbmsg_t remsg;
 
 	ZERO_VAR(remsg);
+
+	if(msg->hdr.when_imported.time == 0) {
+		msg->hdr.when_imported.time = time32(NULL);
+		msg->hdr.when_imported.zone = sys_timezone(cfg);
+	}
+	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
+		msg->hdr.when_written = msg->hdr.when_imported;
 
 	/* Look-up thread_back if RFC822 Reply-ID was specified */
 	if(msg->hdr.thread_back == 0 && msg->reply_id != NULL) {
