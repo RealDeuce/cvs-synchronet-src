@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.636 2016/11/16 05:56:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.637 2016/11/16 07:51:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -5124,7 +5124,7 @@ NO_SSH:
 			, host_ip, inet_addrport(&client_addr));
 
 		login_attempt_t attempted;
-		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, host_name, startup->login_attempt, &attempted);
+		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
 		if(banned || sbbs->trashcan(host_ip,"ip")) {
 			if(banned) {
 				char ban_duration[128];
@@ -5229,17 +5229,13 @@ NO_SSH:
 
 		sbbs->bprintf("Connection from: %s\r\n", host_ip);
 
+		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
-			if(getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD))
-				strcpy(host_name, "<no name>");
+			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 			sbbs->putcom(crlf);
-		}
-		else
-			strcpy(host_name, "<no name>");
-
-		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
 			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
+		}
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
