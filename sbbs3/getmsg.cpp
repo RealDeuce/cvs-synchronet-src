@@ -1,7 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.64 2016/11/27 23:13:05 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: getmsg.cpp,v 1.55 2016/11/15 21:51:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +42,7 @@
 /****************************************************************************/
 /* Loads an SMB message from the open msg base the fastest way possible 	*/
 /* first by offset, and if that's the wrong message, then by number.        */
-/* Returns >=0 if the message was loaded and left locked, otherwise < 0.	*/
+/* Returns 1 if the message was loaded and left locked, otherwise			*/
 /* !WARNING!: If you're going to write the msg index back to disk, you must */
 /* Call this function with a msg->idx.offset of 0 (so msg->offset will be	*/
 /* initialized correctly)													*/
@@ -55,15 +54,15 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 
 	if(msg->idx.offset) {				/* Load by offset if specified */
 
-		if((i=smb_lockmsghdr(&smb,msg)) != SMB_SUCCESS) {
+		if((i=smb_lockmsghdr(&smb,msg))!=0) {
 			errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
-			return i; 
+			return(0); 
 		}
 
 		i=smb_getmsghdr(&smb,msg);
 		if(i==SMB_SUCCESS) {
 			if(msg->hdr.number==number)
-				return msg->total_hfields;
+				return(1);
 			/* Wrong offset  */
 			smb_freemsgmem(msg);
 		}
@@ -73,27 +72,24 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 
 	msg->hdr.number=number;
 	if((i=smb_getmsgidx(&smb,msg))!=SMB_SUCCESS)				 /* Message is deleted */
-		return i;
+		return(0);
 	if((i=smb_lockmsghdr(&smb,msg))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
-		return i;
+		return(0); 
 	}
 	if((i=smb_getmsghdr(&smb,msg))!=SMB_SUCCESS) {
 		SAFEPRINTF4(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
 			,number,smb.file);
 		smb_unlockmsghdr(&smb,msg);
 		errormsg(WHERE,ERR_READ,str,i,smb.last_error);
-		return i;
+		return(0); 
 	}
-	return msg->total_hfields;
+	return(msg->total_hfields);
 }
 
 
-void sbbs_t::show_msgattr(smbmsg_t* msg)
+void sbbs_t::show_msgattr(ushort attr)
 {
-	uint16_t attr = msg->hdr.attr;
-	uint16_t poll = attr&MSG_POLL_VOTE_MASK;
-	uint32_t auxattr = msg->hdr.auxattr;
 
 	bprintf(text[MsgAttr]
 		,attr&MSG_PRIVATE	? "Private  "   :nulstr
@@ -107,8 +103,7 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 		,attr&MSG_VALIDATED ? "Validated  " :nulstr
 		,attr&MSG_REPLIED	? "Replied  "	:nulstr
 		,attr&MSG_NOREPLY	? "NoReply  "	:nulstr
-		,poll == MSG_POLL	? "Poll  "		:nulstr
-		,poll == MSG_POLL && auxattr&POLL_CLOSED ? "(Closed)  "	:nulstr
+		,attr&MSG_POLL	    ? "Poll  "		:nulstr
 		,nulstr
 		,nulstr
 		,nulstr
@@ -140,7 +135,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 
 	bprintf(text[MsgSubj],msg->subj);
 	if(msg->hdr.attr)
-		show_msgattr(msg);
+		show_msgattr(msg->hdr.attr);
 	if(msg->to && *msg->to) {
 		bprintf(text[MsgTo],msg->to);
 		if(msg->to_net.addr!=NULL)
@@ -155,11 +150,8 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 		if(msg->from_net.addr!=NULL && strchr(msg->from,'@')==NULL)
 			bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str)); 
 	}
-	if(!(msg->hdr.attr&MSG_POLL) && (msg->upvotes || msg->downvotes))
-		bprintf(text[MsgVotes]
-			,msg->upvotes, msg->user_voted==1 ? text[PollAnswerChecked] : nulstr
-			,msg->downvotes, msg->user_voted==2 ? text[PollAnswerChecked] : nulstr
-			,msg->upvotes - msg->downvotes);
+	if(msg->upvotes || msg->downvotes)
+		bprintf(text[MsgVotes], msg->upvotes, msg->downvotes);
 	bprintf(text[MsgDate]
 		,timestr(msg->hdr.when_written.time)
 		,smb_zonestr(msg->hdr.when_written.zone,NULL)
@@ -177,33 +169,26 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	CRLF;
 }
 
+ulong sbbs_t::total_votes(post_t* post)
+{
+	ulong total = 0;
+	for(int i = 0; i < MSG_POLL_MAX_ANSWERS; i++)
+		total += post->votes[i];
+	return total;
+}
+
 /****************************************************************************/
 /* Displays message header and text (if not deleted)                        */
 /****************************************************************************/
 void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 {
-	char*	txt;
-
-	if((msg->hdr.type == SMB_MSG_TYPE_NORMAL && post != NULL && (post->upvotes || post->downvotes))
-		|| msg->hdr.type == SMB_MSG_TYPE_POLL)
-		msg->user_voted = smb_voted_already(&smb, msg->hdr.number
-					,cfg.sub[smb.subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL);
+	char*	text;
 
 	show_msghdr(msg);
 
-	if(msg->hdr.type == SMB_MSG_TYPE_POLL && post != NULL && smb.subnum < cfg.total_subs) {
+	if(msg->hdr.type == SMB_MSG_TYPE_POLL && post != NULL) {
 		char* answer;
 		int longest_answer = 0;
-
-		int comments=0;
-		for(int i = 0; i < msg->total_hfields; i++)
-			if(msg->hfield[i].type == SMB_COMMENT) {
-				bprintf("%s\r\n", (char*)msg->hfield_dat[i]);
-				comments++;
-			}
-		if(comments)
-			CRLF;
-
 		for(int i = 0; i < msg->total_hfields; i++) {
 			if(msg->hfield[i].type != SMB_POLL_ANSWER)
 				continue;
@@ -217,49 +202,22 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 			if(msg->hfield[i].type != SMB_POLL_ANSWER)
 				continue;
 			answer = (char*)msg->hfield_dat[i];
-			float pct = post->total_votes ? ((float)post->votes[answers] / post->total_votes)*100.0F : 0.0F;
-			char str[128];
-			int width = longest_answer;
-			if(width < cols/3) width = cols/3;
-			else if(width > cols-20)
-				width = cols-20;
-			bprintf(text[PollAnswerNumber], answers+1);
-			bool results_visible = false;
-			if((msg->hdr.auxattr&POLL_RESULTS_MASK) == POLL_RESULTS_OPEN)
-				results_visible = true;
-			else if((msg->from_net.type == NET_NONE && sub_op(smb.subnum)) 
-				|| smb_msg_is_from(msg, cfg.sub[smb.subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL))
-				results_visible = true;
-			else if((msg->hdr.auxattr&POLL_RESULTS_MASK) == POLL_RESULTS_CLOSED)
-				results_visible = (msg->hdr.auxattr&POLL_CLOSED) ? true : false;
-			else if((msg->hdr.auxattr&POLL_RESULTS_MASK) != POLL_RESULTS_SECRET)
-				results_visible = msg->user_voted ? true : false;
-			if(results_visible) {
-				safe_snprintf(str, sizeof(str), text[PollAnswerFmt]
-					,width, width, answer, post->votes[answers], pct);
-				backfill(str, pct, cfg.color[clr_votes_full], cfg.color[clr_votes_empty]);
-				if(msg->user_voted&(1<<answers))
-					bputs(text[PollAnswerChecked]);
-			} else {
-				attr(cfg.color[clr_votes_empty]);
-				bputs(answer);
-			}
-			CRLF;
+			ulong total = total_votes(post);
+			bprintf("%2u: %-*s [%-4u %3g%%]\r\n", answers+1, longest_answer, answer, post->votes[answers]
+				,total ? ((float)post->votes[answers] / total)*100.0 : 0.0);
 			answers++;
 		}
-		if(!msg->user_voted && !(useron.misc&EXPERT) && !(msg->hdr.auxattr&POLL_CLOSED) && !(useron.rest&FLAG('V')))
-			mnemonics("\r\nTo vote in this poll, hit ~V now.\r\n");
 		return;
 	}
-	if((txt=smb_getmsgtxt(&smb,msg,(console&CON_RAW_IN) ? 0:GETMSGTXT_PLAIN)) != NULL) {
+	if((text=smb_getmsgtxt(&smb,msg,(console&CON_RAW_IN) ? 0:GETMSGTXT_PLAIN)) != NULL) {
 		if(!(console&CON_RAW_IN))
 			mode|=P_WORDWRAP;
-		putmsg(txt, mode);
-		smb_freemsgtxt(txt);
+		putmsg(text, mode);
+		smb_freemsgtxt(text);
 	}
-	if((txt=smb_getmsgtxt(&smb,msg,GETMSGTXT_TAIL_ONLY))!=NULL) {
-		putmsg(txt, mode&(~P_WORDWRAP));
-		smb_freemsgtxt(txt);
+	if((text=smb_getmsgtxt(&smb,msg,GETMSGTXT_TAIL_ONLY))!=NULL) {
+		putmsg(text, mode&(~P_WORDWRAP));
+		smb_freemsgtxt(text);
 	}
 }
 

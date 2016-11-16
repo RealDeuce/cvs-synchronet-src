@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.10 2017/03/01 05:25:38 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.9 2016/08/03 08:03:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,10 +55,9 @@ enum mail_status {
 };
 
 enum pkt_type {
-	 PKT_TYPE_2_PLUS				/* Type-2+  Packet Header (FSC-48)		*/
-	,PKT_TYPE_2_EXT					/* Type-2e  Packet Header (FSC-39)		*/
-	,PKT_TYPE_2_2					/* Type-2.2 Packet Header (FSC-45)		*/
-	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/	
+	 PKT_TYPE_2_PLUS				/* Type 2+ Packet Header  (FSC-48)		*/
+	,PKT_TYPE_2_2					/* Type 2.2 Packet Header (FSC-45)		*/
+	,PKT_TYPE_2_0 					/* Old Type Packet Header (FTS-1)		*/	
 };
 
 #define DFLT_PKT_SIZE   (250*1024L)
@@ -148,7 +147,6 @@ typedef struct {
 			   ,listcfgs				/* Number of echolists defined */
 			   ,areas					/* Number of areas defined */
 			   ;
-	uint		umask;
 	char		default_recipient[LEN_ALIAS+1];
 	char		areamgr[LEN_ALIAS+1];	/* User to notify of areafix activity */
 	arcdef_t*	arcdef; 				/* Each archive definition */
@@ -183,7 +181,7 @@ typedef struct {
 	struct zone_mapping *zone_map;	// 
 } sbbsecho_cfg_t;
 
-char* pktTypeStringList[];
+char* pktTypeStringList[4];
 char* mailStatusStringList[4];
 
 /***********************/
