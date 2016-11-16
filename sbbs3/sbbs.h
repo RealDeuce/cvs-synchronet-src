@@ -1,8 +1,6 @@
-/* sbbs.h */
-
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.428 2016/05/27 07:44:46 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.432 2016/11/15 21:48:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -645,11 +643,12 @@ public:
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	void	show_msgattr(ushort attr);
 	void	show_msghdr(smbmsg_t* msg);
-	void	show_msg(smbmsg_t* msg, long mode);
+	void	show_msg(smbmsg_t* msg, long mode, post_t* post = NULL);
 	void	msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode);
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
+	ulong	total_votes(post_t* post);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -757,7 +756,7 @@ public:
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
 	void	msghdr(smbmsg_t* msg);
-	char	msg_listing_flag(uint subnum, smbmsg_t*);
+	char	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -891,6 +890,7 @@ public:
 	void	qwksetptr(uint subnum, char *buf, int reset);
 	void	qwkcfgline(char *buf,uint subnum);
 	int		set_qwk_flag(ulong flag);
+	bool	qwk_voting(const char* fname, smb_net_type_t, const char* qnet_id);
 
 	/* pack_qwk.cpp */
 	bool	pack_qwk(char *packet, ulong *msgcnt, bool prepack);
@@ -906,7 +906,7 @@ public:
 	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
 
 	/* qwktomsg.cpp */
 	void	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
@@ -1005,6 +1005,7 @@ extern "C" {
 
 	/* postmsg.cpp */
 	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
+	DLLEXPORT int		DLLCALL votemsg(scfg_t*, smb_t*, smbmsg_t*, const char* msgfmt);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
 	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
