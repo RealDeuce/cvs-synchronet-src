@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.22 2016/10/19 03:59:26 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.23 2016/11/10 10:19:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -939,7 +939,7 @@ enum arealist_type {
 void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 {
 	char str[256],title[128],match,*p,*tp;
-	unsigned k,x,y;
+	unsigned k,x;
 	unsigned u;
 	str_list_t	area_list;
 
@@ -2226,6 +2226,9 @@ ulong loadmsgs(post_t** post, ulong ptr)
 			break;
 
 		if(idx.number==0)	/* invalid message number, ignore */
+			continue;
+
+		if(idx.attr&(MSG_VOTE|MSG_POLL))
 			continue;
 
 		if(idx.number<=ptr || (idx.attr&MSG_DELETE))
@@ -3936,6 +3939,9 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 				continue; 
 			}
 
+			if(msg.hdr.type != SMB_MSG_TYPE_NORMAL)
+				continue;
+
 			memset(&hdr,0,sizeof(fmsghdr_t));	 /* Zero the header */
 			hdr.origzone=scfg.sub[i]->faddr.zone;
 			hdr.orignet=scfg.sub[i]->faddr.net;
@@ -4943,7 +4949,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.22 $", "%*s %s", revision);
+	sscanf("$Revision: 3.23 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
