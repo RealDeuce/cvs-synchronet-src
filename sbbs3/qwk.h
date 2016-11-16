@@ -1,8 +1,6 @@
-/* qwk.h */
-
 /* Synchronet QWK-related structures, constants, and prototypes */ 
 
-/* $Id: qwk.h,v 1.7 2016/04/12 00:43:27 rswindell Exp $ */
+/* $Id: qwk.h,v 1.8 2016/11/10 10:06:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
