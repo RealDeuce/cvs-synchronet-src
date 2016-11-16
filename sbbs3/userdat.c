@@ -2,7 +2,7 @@
 
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.169 2016/08/06 19:07:43 rswindell Exp $ */
+/* $Id: userdat.c,v 1.172 2016/11/08 19:49:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,8 @@
 /* convenient space-saving global variables */
 char* crlf="\r\n";
 char* nulstr="";
+
+static const char* strIpFilterExemptConfigFile = "ipfilter_exempt.cfg";
 
 #define VALID_CFG(cfg)	(cfg!=NULL && cfg->size==sizeof(scfg_t))
 
@@ -448,6 +450,22 @@ static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 			break; 
 		} 
 	}
+}
+
+/****************************************************************************/
+/****************************************************************************/
+int DLLCALL is_user_online(scfg_t* cfg, uint usernumber)
+{
+	int i;
+	node_t	node;
+
+	for(i=1; i<=cfg->sys_nodes; i++) {
+		getnodedat(cfg, i, &node, 0);
+		if((node.status==NODE_INUSE || node.status==NODE_QUIET
+			|| node.status==NODE_LOGON) && node.useron==usernumber)
+			return i; 
+	}
+	return 0;
 }
 
 /****************************************************************************/
@@ -2690,11 +2708,18 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const 
 					   ,const char* ip_addr, const char* username, const char* fname)
 {
 	char	ip_can[MAX_PATH+1];
+	char	exempt[MAX_PATH+1];
 	char	tstr[64];
     FILE*	fp;
     time32_t now=time32(NULL);
 
 	if(ip_addr==NULL)
+		return(FALSE);
+
+	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
+	if(findstr(ip_addr, exempt))
+		return(FALSE);
+	if(findstr(host, exempt))
 		return(FALSE);
 
 	SAFEPRINTF(ip_can,"%sip.can",cfg->text_dir);
@@ -2886,7 +2911,9 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	attempt->time=time32(NULL);
 	memcpy(&attempt->addr, addr, sizeof(*addr));
 	SAFECOPY(attempt->user, user);
-	SAFECOPY(attempt->pass, pass);
+	memset(attempt->pass, 0, sizeof(attempt->pass));
+	if(pass != NULL)
+		SAFECOPY(attempt->pass, pass);
 	attempt->count++;
 	count = attempt->count - attempt->dupes;
 	if(node==NULL)
@@ -2897,9 +2924,10 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 }
 
 #if !defined(NO_SOCKET_SUPPORT)
-ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
+ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const char* host_name
 	,struct login_attempt_settings settings, login_attempt_t* details)
 {
+	char				ip_addr[128];
 	list_node_t*		node;
 	login_attempt_t*	attempt;
 	BOOL				result = FALSE;
@@ -2907,6 +2935,9 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
 	union xp_sockaddr	client_addr;
 	union xp_sockaddr	server_addr;
 	socklen_t			addr_len;
+	char				exempt[MAX_PATH+1];
+
+	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
 
 	if(list==NULL)
 		return 0;
@@ -2921,6 +2952,13 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock
 
 	/* Don't ban connections from the server back to itself */
 	if(inet_addrmatch(&server_addr, &client_addr))
+		return 0;
+
+	if(inet_addrtop(&client_addr, ip_addr, sizeof(ip_addr)) != NULL 
+		&& findstr(ip_addr, exempt))
+		return 0;
+	if(host_name != NULL
+		&& findstr(host_name, exempt))
 		return 0;
 
 	listLock(list);
