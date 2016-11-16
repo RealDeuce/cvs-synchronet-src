@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: UserListFormUnit.cpp,v 1.10 2016/11/16 09:07:07 rswindell Exp $ */
+/* $Id: UserListFormUnit.cpp,v 1.9 2015/12/07 09:27:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,7 @@ __fastcall TUserListForm::TUserListForm(TComponent* Owner)
 void __fastcall TUserListForm::FormShow(TObject *Sender)
 {
     char    str[128];
+	char	data[U_LEN+1];
     int     i,last;
 	int		file;
     user_t  user;
@@ -64,7 +65,7 @@ void __fastcall TUserListForm::FormShow(TObject *Sender)
     SortBackwards=false;
     Screen->Cursor=crAppStart;
 
-	if((file = openuserdat(&MainForm->cfg, /* for modify: */FALSE)) < 0) {
+	if((file = openuserdat(&MainForm->cfg)) < 0) {
 		Screen->Cursor=crDefault;
 		return;
 	}
@@ -74,7 +75,9 @@ void __fastcall TUserListForm::FormShow(TObject *Sender)
     ListView->Items->BeginUpdate();
     for(i=0;i<last;i++) {
         user.number=i+1;
-		if(fgetuserdat(&MainForm->cfg, &user, file)!=0)
+        if(readuserdat(&MainForm->cfg, user.number, data, file)!=0)
+            continue;
+		if(parseuserdat(&MainForm->cfg, data, &user)!=0)
 			continue;
         if(user.misc&DELETED)
             continue;
