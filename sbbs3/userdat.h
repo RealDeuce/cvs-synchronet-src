@@ -2,7 +2,7 @@
 
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.60 2016/10/06 06:35:29 rswindell Exp $ */
+/* $Id: userdat.h,v 1.61 2016/10/17 21:54:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -161,7 +161,7 @@ DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
 DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, const union xp_sockaddr*, const char* prot, const char* user, const char* pass);
-DLLEXPORT ulong				DLLCALL loginBanned(scfg_t*, link_list_t*, SOCKET, struct login_attempt_settings, login_attempt_t*);
+DLLEXPORT ulong				DLLCALL loginBanned(scfg_t*, link_list_t*, SOCKET, const char* host_name, struct login_attempt_settings, login_attempt_t*);
 
 #ifdef __cplusplus
 }
