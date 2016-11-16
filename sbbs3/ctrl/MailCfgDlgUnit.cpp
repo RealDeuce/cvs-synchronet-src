@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.28 2014/11/20 05:18:51 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.31 2016/05/27 08:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,17 +73,12 @@ void __fastcall TMailCfgDlg::OutboundSoundButtonClick(TObject *Sender)
 
 void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
 {
-    char str[128];
+    char str[256];
 
-    if(MainForm->mail_startup.interface_addr==0)
+    if(MainForm->mail_startup.interfaces==NULL)
         NetworkInterfaceEdit->Text="<ANY>";
     else {
-        sprintf(str,"%d.%d.%d.%d"
-            ,(MainForm->mail_startup.interface_addr>>24)&0xff
-            ,(MainForm->mail_startup.interface_addr>>16)&0xff
-            ,(MainForm->mail_startup.interface_addr>>8)&0xff
-            ,MainForm->mail_startup.interface_addr&0xff
-        );
+        strListCombine(MainForm->mail_startup.interfaces, str, sizeof(str)-1, ",");
         NetworkInterfaceEdit->Text=AnsiString(str);
     }
     MaxClientsEdit->Text=AnsiString(MainForm->mail_startup.max_clients);
@@ -216,26 +211,8 @@ static void setBit(unsigned long* l, long bit, bool yes)
 //---------------------------------------------------------------------------
 void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
 {
-    char    str[128],*p;
-    DWORD   addr;
-
-    SAFECOPY(str,NetworkInterfaceEdit->Text.c_str());
-    p=str;
-    while(*p && *p<=' ') p++;
-    if(*p && isdigit(*p)) {
-        addr=atoi(p)<<24;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p)<<16;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p)<<8;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p);
-        MainForm->mail_startup.interface_addr=addr;
-    } else
-        MainForm->mail_startup.interface_addr=0;
+    iniFreeStringList(MainForm->mail_startup.interfaces);
+    MainForm->mail_startup.interfaces = strListSplitCopy(NULL, NetworkInterfaceEdit->Text.c_str(), ",");
 
 	MainForm->mail_startup.smtp_port=SMTPPortEdit->Text.ToIntDef(IPPORT_SMTP);
    	MainForm->mail_startup.submission_port=SubPortEdit->Text.ToIntDef(IPPORT_SUBMISSION);
@@ -461,7 +438,7 @@ void __fastcall TMailCfgDlg::DNSBLServersButtonClick(TObject *Sender)
     sprintf(filename,"%sdns_blacklist.cfg",MainForm->cfg.ctrl_dir);
 	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
 	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption="Services Configuration";
+    TextFileEditForm->Caption="DNS-Blacklist Services";
 	TextFileEditForm->ShowModal();
     delete TextFileEditForm;
 }
@@ -475,7 +452,7 @@ void __fastcall TMailCfgDlg::DNSBLExemptionsButtonClick(TObject *Sender)
     sprintf(filename,"%sdnsbl_exempt.cfg",MainForm->cfg.ctrl_dir);
 	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
 	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption="Services Configuration";
+    TextFileEditForm->Caption="DNS-Blacklist Exemptions";
 	TextFileEditForm->ShowModal();
     delete TextFileEditForm;
 }
