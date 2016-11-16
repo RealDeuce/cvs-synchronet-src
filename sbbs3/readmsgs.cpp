@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.89 2016/11/18 09:58:14 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.86 2016/11/15 21:51:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,7 @@ int sbbs_t::sub_op(uint subnum)
 	return(is_user_subop(&cfg, subnum, &useron, &client));
 }
 
-uchar sbbs_t::msg_listing_flag(uint subnum, smbmsg_t* msg, post_t* post)
+char sbbs_t::msg_listing_flag(uint subnum, smbmsg_t* msg, post_t* post)
 {
 	if(msg->hdr.attr&MSG_DELETE)						return '-';
 	if((stricmp(msg->to,useron.alias)==0 || stricmp(msg->to,useron.name)==0)
@@ -52,7 +52,7 @@ uchar sbbs_t::msg_listing_flag(uint subnum, smbmsg_t* msg, post_t* post)
 	if(msg->hdr.number > subscan[subnum].ptr)			return '*';
 	if(msg->hdr.attr&MSG_PRIVATE)						return 'P';
 	if(msg->hdr.attr&MSG_POLL)							return '?'; 
-	if(post->upvotes > post->downvotes)					return 251;
+	if(post->upvotes > post->downvotes)					return 'V';
 	if(post->upvotes || post->downvotes)				return 'v';
 	if(msg->hdr.attr&MSG_REPLIED)						return 'R';
 	if(sub_op(subnum) && msg->hdr.attr&MSG_ANONYMOUS)	return 'A';
@@ -68,7 +68,7 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long i, long posts)
 		if(mode&SCAN_NEW && post[i].idx.number<=subscan[subnum].ptr)
 			continue;
 		msg.idx.offset=post[i].idx.offset;
-		if(loadmsg(&msg,post[i].idx.number) < 0)
+		if(!loadmsg(&msg,post[i].idx.number))
 			break;
 		smb_unlockmsghdr(&smb,&msg);
 		if(listed==0)
@@ -266,12 +266,8 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 			if(mode&LP_REP || !sub_op(subnum))
 				break;
 		}
-		
-		switch(idx.attr&MSG_POLL_VOTE_MASK) {
-		case MSG_VOTE:
-		case MSG_UPVOTE:
-		case MSG_DOWNVOTE:
-		{
+
+		if(idx.attr&MSG_VOTE) {
 			ulong u;
 			for(u = 0; u < l; u++)
 				if(post[u].idx.number == idx.remsg)
@@ -286,23 +282,17 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 					break;
 				default:
 					for(int b=0; b < 16; b++) {
-						if(idx.votes&(1<<b))
+						if(idx.vote&(1<<b))
 							post[u].votes[b]++;
 					}
 				}
 			}
 			if(!(mode&LP_VOTES))
 				continue;
-			break;
 		}
-		case MSG_POLL:
+		if(idx.attr&MSG_POLL) {
 			if(!(mode&LP_POLLS))
 				continue;
-			break;
-		case MSG_POLL_CLOSURE:
-			if(!(mode&LP_VOTES))
-				continue;
-			break;
 		}
 
 		if(idx.attr&MSG_PRIVATE && !(mode&LP_PRIVATE)
@@ -627,7 +617,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			smb_freemsgmem(&msg);
 		msg.total_hfields=0;
 
-		if(loadmsg(&msg,post[smb.curmsg].idx.number) < 0) {
+		if(!loadmsg(&msg,post[smb.curmsg].idx.number)) {
 			if(mismatches>5) {	/* We can't do this too many times in a row */
 				errormsg(WHERE,ERR_CHK,smb.file,post[smb.curmsg].idx.number);
 				break; 
@@ -702,7 +692,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				msg.total_hfields=0;
 				msg.idx.offset=0;
 				if(!smb_locksmbhdr(&smb)) { 			  /* Lock the entire base */
-					if(loadmsg(&msg,msg.idx.number) >= 0) {
+					if(loadmsg(&msg,msg.idx.number)) {
 						msg.hdr.attr|=MSG_READ;
 						msg.idx.attr=msg.hdr.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
@@ -740,7 +730,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					msg.total_hfields=0;
 					msg.idx.offset=0;
 					if(!smb_locksmbhdr(&smb)) { 			  /* Lock the entire base */
-						if(loadmsg(&msg,msg.idx.number) >= 0) {
+						if(loadmsg(&msg,msg.idx.number)) {
 							msg.hdr.attr=msg.idx.attr=msg_attr;
 							if((i=smb_putmsg(&smb,&msg))!=0)
 								errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
@@ -834,18 +824,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				else done=1;
 				break;
 			case 'D':       /* Delete message on sub-board */
-				if(!(msg.hdr.attr&MSG_DELETE) && msg.hdr.type == SMB_MSG_TYPE_POLL 
-					&& smb_msg_is_from(&msg, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL)
-					&& !(msg.hdr.auxattr&POLL_CLOSED)) {
-					if(noyes("Close Poll")) {
-						domsg=false;
-						break;
-					}
-					i=closepoll(&cfg, &smb, msg.hdr.number, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
-					if(i != SMB_SUCCESS)
-						errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-					break;
-				}
 				domsg=0;
 				if(!sub_op(subnum)) {
 					if(!(cfg.sub[subnum]->misc&SUB_DEL)) {
@@ -879,7 +857,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				msg.total_hfields=0;
 				msg.idx.offset=0;
 				if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-					if(loadmsg(&msg,msg.idx.number) >=0 ) {
+					if(loadmsg(&msg,msg.idx.number)) {
 						msg.idx.attr^=MSG_DELETE;
 						msg.hdr.attr=msg.idx.attr;
 						if((i=smb_putmsg(&smb,&msg))!=0)
@@ -1057,35 +1035,25 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			case 'V':	/* Vote in reply to message */
 			{
 				smbmsg_t vote;
-				const char* notice=NULL;
 
 				if(cfg.sub[subnum]->misc&SUB_NOVOTING) {
 					bputs(text[VotingNotAllowed]);
 					domsg = false;
 					break;
 				}
-
 				if(smb_voted_already(&smb, msg.hdr.number
 					,cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL)) {
 					bputs(text[VotedAlready]);
 					domsg = false;
 					break;
 				}
-
 				if(useron.rest&FLAG('V')) {
 					bputs(text[R_Voting]);
 					domsg = false;
 					break;
 				}
-
-				if(msg.hdr.auxattr&POLL_CLOSED) {
-					bputs(text[CantReplyToMsg]);
-					domsg = false;
-					break; 
-				}
-
 				ZERO_VAR(vote);
-				if(msg.hdr.type == SMB_MSG_TYPE_POLL) {
+				if(msg.hdr.attr&MSG_POLL) {
 					unsigned answers=0;
 					for(i=0; i<msg.total_hfields; i++) {
 						if(msg.hfield[i].type != SMB_POLL_ANSWER)
@@ -1097,18 +1065,18 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 						domsg = false;
 						break;
 					}
-					vote.hdr.votes = (1<<i);
+					vote.hdr.vote = (1<<i);
 					vote.hdr.attr = MSG_VOTE;
-					notice = text[PollVoteNotice];
 				} else {
 					mnemonics(text[VoteMsgUpDownOrQuit]);
 					long cmd = getkeys("UDQ", 0);
 					if(cmd != 'U' && cmd != 'D')
 						break;
 					vote.hdr.attr = (cmd == 'U' ? MSG_UPVOTE : MSG_DOWNVOTE);
-					notice = text[vote.hdr.attr&MSG_UPVOTE ? MsgUpVoteNotice : MsgDownVoteNotice];
 				}
 				vote.hdr.thread_back = msg.hdr.number;
+				vote.hdr.when_written.time = vote.hdr.when_imported.time = time32(NULL);
+				vote.hdr.when_written.zone = vote.hdr.when_imported.zone = sys_timezone(&cfg);
 
 				smb_hfield_str(&vote, SENDER, (cfg.sub[subnum]->misc&SUB_NAME) ? useron.name : useron.alias);
 				if(msg.id != NULL)
@@ -1121,7 +1089,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				msg_client_hfields(&vote, &client);
 				smb_hfield_str(&vote, SENDERSERVER, startup->host_name);
 
-				if((i=votemsg(&cfg, &smb, &vote, notice)) != SMB_SUCCESS)
+				if((i=votemsg(&cfg, &smb, &vote, text[vote.hdr.attr&MSG_UPVOTE ? MsgUpVoteNotice : MsgDownVoteNotice])) != SMB_SUCCESS)
 					errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 
 				break;
@@ -1135,7 +1103,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					if(!(useron.misc&EXPERT))
 						menu("sysmscan");
 					bputs(text[OperatorPrompt]);
-					strcpy(str,"?ACEHMQUV");
+					strcpy(str,"?CEHMQUV");
 					if(SYSOP)
 						strcat(str,"SP");
 					switch(getkeys(str,0)) {
@@ -1143,15 +1111,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							if(useron.misc&EXPERT)
 								menu("sysmscan");
 							continue;
-						case 'A':	/* Add comment */
-							bputs(text[UeditComment]);
-							if(!getstr(str, LEN_TITLE, K_LINE))
-								break;
-							smb_hfield_str(&msg, SMB_COMMENT, str);
-							msg.idx.offset=0;
-							if((i=smb_updatemsg(&smb, &msg)) != SMB_SUCCESS)
-								errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-							break;
 						case 'P':   /* Purge user */
 							if(noyes(text[AreYouSureQ]))
 								break;
@@ -1160,7 +1119,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 								: matchuser(&cfg,msg.from,FALSE));
 							break;
 						case 'C':   /* Change message attributes */
-							i=chmsgattr(msg);
+							i=chmsgattr(msg.hdr.attr);
 							if(msg.hdr.attr==i)
 								break;
 							if(msg.total_hfields)
@@ -1168,7 +1127,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							msg.total_hfields=0;
 							msg.idx.offset=0;
 							if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-								if(loadmsg(&msg,msg.idx.number) >= 0) {
+								if(loadmsg(&msg,msg.idx.number)) {
 									msg.hdr.attr=msg.idx.attr=i;
 									if((i=smb_putmsg(&smb,&msg))!=0)
 										errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
@@ -1193,7 +1152,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							msg.total_hfields=0;
 							msg.idx.offset=0;
 							if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-								if(loadmsg(&msg,msg.idx.number) < 0) {
+								if(!loadmsg(&msg,msg.idx.number)) {
 									errormsg(WHERE,ERR_READ,smb.file,msg.idx.number);
 									break; 
 								}
@@ -1231,7 +1190,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							msg.total_hfields=0;
 							msg.idx.offset=0;
 							if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-								if(loadmsg(&msg,msg.idx.number) >= 0) {
+								if(loadmsg(&msg,msg.idx.number)) {
 									msg.idx.attr|=MSG_VALIDATED;
 									msg.hdr.attr=msg.idx.attr;
 									if((i=smb_putmsg(&smb,&msg))!=0)
@@ -1456,7 +1415,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 	msg.total_hfields=0;
 	for(l=start;l<posts && !msgabort();l++) {
 		msg.idx.offset=post[l].idx.offset;
-		if(loadmsg(&msg,post[l].idx.number) < 0)
+		if(!loadmsg(&msg,post[l].idx.number))
 			continue;
 		smb_unlockmsghdr(&smb,&msg);
 		buf=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL);
@@ -1518,7 +1477,7 @@ long sbbs_t::showposts_toyou(uint subnum, post_t *post, ulong start, long posts,
 			smb_freemsgmem(&msg);
 		msg.total_hfields=0;
 		msg.idx.offset=post[l].idx.offset;
-		if(loadmsg(&msg,post[l].idx.number) < 0)
+		if(!loadmsg(&msg,post[l].idx.number))
 			continue;
 		smb_unlockmsghdr(&smb,&msg);
 		if((useron.number==1 && !stricmp(msg.to,"sysop") && !msg.from_net.type)
