@@ -1,7 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.85 2017/11/27 06:29:56 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: smblib.h,v 1.78 2016/11/16 05:31:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,8 +93,6 @@
 #define SMB_ERR_MEM			-300		/* Memory allocation error */
 
 #define SMB_DUPE_MSG		1			/* Duplicate message detected by smb_addcrc() */
-#define SMB_CLOSED			2			/* Poll/thread is closed to replies/votes */
-#define SMB_UNAUTHORIZED	3			/* Poll was posted by someone else */
 
 #define SMB_STACK_LEN		4			/* Max msg bases in smb_stack() 	*/
 #define SMB_STACK_POP       0           /* Pop a msg base off of smb_stack()*/
@@ -132,14 +129,12 @@ SMBEXPORT int 		SMBCALL smb_ver(void);
 SMBEXPORT char*		SMBCALL smb_lib_ver(void);
 SMBEXPORT int 		SMBCALL smb_open(smb_t* smb);
 SMBEXPORT void		SMBCALL smb_close(smb_t* smb);
-SMBEXPORT int 		SMBCALL smb_initsmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_create(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_stack(smb_t* smb, int op);
 SMBEXPORT int 		SMBCALL smb_trunchdr(smb_t* smb);
 SMBEXPORT int		SMBCALL smb_lock(smb_t* smb);
 SMBEXPORT int		SMBCALL smb_unlock(smb_t* smb);
 SMBEXPORT BOOL		SMBCALL smb_islocked(smb_t* smb);
-SMBEXPORT int		SMBCALL Smb_initsmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_locksmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_getstatus(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_putstatus(smb_t* smb);
@@ -187,18 +182,12 @@ SMBEXPORT int		SMBCALL smb_updatemsg(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT BOOL		SMBCALL smb_valid_hdr_offset(smb_t* smb, ulong offset);
 SMBEXPORT int		SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT uint16_t	SMBCALL	smb_voted_already(smb_t*, uint32_t msgnum, const char* name, enum smb_net_type, void* net_addr);
-SMBEXPORT BOOL		SMBCALL smb_msg_is_from(smbmsg_t* msg, const char* name, enum smb_net_type net_type, const void* net_addr);
-SMBEXPORT uint32_t	SMBCALL smb_first_in_thread(smb_t*, smbmsg_t*, msghdr_t*);
-SMBEXPORT uint32_t	SMBCALL smb_next_in_thread(smb_t*, smbmsg_t*, msghdr_t*);
-SMBEXPORT uint32_t	SMBCALL smb_last_in_branch(smb_t*, smbmsg_t*);
-SMBEXPORT uint32_t	SMBCALL smb_last_in_thread(smb_t*, smbmsg_t*);
 
 /* smbadd.c */
 SMBEXPORT int		SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
 						,uint16_t xlat, const uchar* body, const uchar* tail);
 SMBEXPORT int		SMBCALL smb_addvote(smb_t* smb, smbmsg_t* msg, int storage);
 SMBEXPORT int		SMBCALL smb_addpoll(smb_t* smb, smbmsg_t* msg, int storage);
-SMBEXPORT int		SMBCALL smb_addpollclosure(smb_t* smb, smbmsg_t* msg, int storage);
 
 /* smballoc.c */
 SMBEXPORT long		SMBCALL smb_allochdr(smb_t* smb, ulong length);
@@ -273,7 +262,6 @@ SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
 /* smbtxt.c */
 SMBEXPORT char*		SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode);
 SMBEXPORT char*		SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf);
-SMBEXPORT uint8_t*	SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, uint32_t* filelen, int index);
 
 /* smbfile.c */
 SMBEXPORT int 		SMBCALL smb_feof(FILE* fp);
