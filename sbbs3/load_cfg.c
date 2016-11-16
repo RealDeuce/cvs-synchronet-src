@@ -2,13 +2,13 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.64 2014/01/02 09:42:38 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.67 2016/11/16 05:37:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -56,7 +56,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 #endif
 
 	if(cfg->size!=sizeof(scfg_t)) {
-		sprintf(error,"cfg->size (%"PRIu32") != sizeof(scfg_t) (%d)"
+		sprintf(error,"cfg->size (%"PRIu32") != sizeof(scfg_t) (%" XP_PRIsize_t "d)"
 			,cfg->size,sizeof(scfg_t));
 		return(FALSE);
 	}
@@ -281,7 +281,6 @@ void DLLCALL free_text(char* text[])
 /****************************************************************************/
 BOOL md(char *inpath)
 {
-	DIR*	dir;
 	char	path[MAX_PATH+1];
 
 	if(inpath[0]==0)
@@ -297,16 +296,13 @@ BOOL md(char *inpath)
 	if(path[strlen(path)-1]=='\\' || path[strlen(path)-1]=='/')
 		path[strlen(path)-1]=0;
 
-	dir=opendir(path);
-	if(dir==NULL) {
+	if(!isdir(path)) {
 		/* lprintf("Creating directory: %s",path); */
-		if(MKDIR(path)) {
+		if(mkpath(path)) {
 			lprintf(LOG_WARNING,"!ERROR %d creating directory: %s",errno,path);
 			return(FALSE); 
 		} 
 	}
-	else
-		closedir(dir);
 	
 	return(TRUE);
 }
@@ -333,7 +329,9 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 			,MIN_COLORS);
 		return(FALSE);
 	}
-	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);	
+	/* Setup default colors here: */
+	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);
+	cfg->color[clr_backfill] = WHITE|BG_MAGENTA;
 	for(cfg->total_colors=0;!feof(instream) && !ferror(instream);cfg->total_colors++) {
 		if(readline(&offset,str,4,instream)==NULL)
 			break;
