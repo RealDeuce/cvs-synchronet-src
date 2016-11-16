@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.201 2017/01/25 06:33:10 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.199 2015/10/28 02:01:20 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -951,7 +951,6 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 {
 	char	oldlst[MAX_PATH+1];
 
-	memset(fn, 0, fnlen);
 #ifdef _WIN32
 	char	*home;
 	static	dll_handle	shell32=NULL;
@@ -1066,7 +1065,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	}
 
 	/* Create if it doesn't exist */
-	if(*fn && !isdir(fn)) {
+	if(!isdir(fn)) {
 		if(MKDIR(fn))
 			fn[0]=0;
 	}
@@ -1331,12 +1330,10 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-#if !defined(WITHOUT_CRYPTLIB)
 	/* Cryptlib initialization MUST be done before ciolib init */
 	if(!crypt_loaded)
 		init_crypt();
 	atexit(exit_crypt);
-#endif
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
