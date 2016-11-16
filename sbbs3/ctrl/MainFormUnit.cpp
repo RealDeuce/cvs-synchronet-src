@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.192 2016/11/28 10:18:34 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.190 2016/05/27 08:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -362,7 +362,7 @@ static void bbs_start(void)
     bbs_status(NULL,"Starting");
 
     FILE* fp=fopen(MainForm->ini_file,"r");
-    sbbs_read_ini(fp, MainForm->ini_file
+    sbbs_read_ini(fp
         ,&MainForm->global
         ,NULL   ,&MainForm->bbs_startup
         ,NULL   ,NULL
@@ -543,7 +543,7 @@ static void mail_start(void)
     mail_status(NULL, "Starting");
 
     FILE* fp=fopen(MainForm->ini_file,"r");
-    sbbs_read_ini(fp, MainForm->ini_file
+    sbbs_read_ini(fp
         ,&MainForm->global
         ,NULL   ,NULL
         ,NULL   ,NULL
@@ -659,7 +659,7 @@ static void ftp_start(void)
     ftp_status(NULL, "Starting");
 
     FILE* fp=fopen(MainForm->ini_file,"r");
-    sbbs_read_ini(fp, MainForm->ini_file
+    sbbs_read_ini(fp
         ,&MainForm->global
         ,NULL   ,NULL
         ,NULL   ,&MainForm->ftp_startup
@@ -750,7 +750,7 @@ static void web_start(void)
     web_status(NULL, "Starting");
 
     FILE* fp=fopen(MainForm->ini_file,"r");
-    sbbs_read_ini(fp, MainForm->ini_file
+    sbbs_read_ini(fp
         ,&MainForm->global
         ,NULL   ,NULL
         ,NULL   ,NULL
@@ -795,7 +795,7 @@ static void recycle(void* cbdata)
     }
 
     fp=fopen(MainForm->ini_file,"r");
-    sbbs_read_ini(fp, MainForm->ini_file
+    sbbs_read_ini(fp
         ,&MainForm->global
         ,NULL   ,bbs
         ,NULL   ,ftp
@@ -818,7 +818,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     global.js.time_limit=JAVASCRIPT_TIME_LIMIT;
     global.js.gc_interval=JAVASCRIPT_GC_INTERVAL;
     global.js.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
-    global.sem_chk_freq=DEFAULT_SEM_CHK_FREQ;		/* seconds */
+    global.sem_chk_freq=5;		/* seconds */
 
     /* These are SBBSCTRL-specific */
     LoginCommand="telnet://127.0.0.1";
@@ -1218,7 +1218,7 @@ void __fastcall TMainForm::ServicesStartExecute(TObject *Sender)
     services_status(NULL, "Starting");
 
     FILE* fp=fopen(ini_file,"r");
-    sbbs_read_ini(fp, MainForm->ini_file
+    sbbs_read_ini(fp
         ,&MainForm->global
         ,NULL   ,NULL
         ,NULL   ,NULL
@@ -1951,7 +1951,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
             Application->Terminate();
             return;
         }
-        sbbs_read_ini(fp, MainForm->ini_file
+        sbbs_read_ini(fp
             ,&global
             ,&SysAutoStart   		,&bbs_startup
             ,&FtpAutoStart 			,&ftp_startup
@@ -3360,7 +3360,7 @@ void __fastcall TMainForm::reload_config(void)
         Application->Terminate();
     }
     FILE* fp=fopen(MainForm->ini_file,"r");
-    sbbs_read_ini(fp, MainForm->ini_file
+    sbbs_read_ini(fp
         ,&MainForm->global
         ,NULL   ,&MainForm->bbs_startup
         ,NULL   ,NULL
