@@ -2,7 +2,7 @@
 
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.633 2016/05/27 07:44:46 rswindell Exp $ */
+/* $Id: main.cpp,v 1.635 2016/11/15 22:25:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2245,7 +2245,7 @@ void output_thread(void* arg)
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
 		if(i==SOCKET_ERROR) {
 			if(sbbs->client_socket!=INVALID_SOCKET)
-				lprintf(LOG_ERR,"%s !ERROR %d selecting socket %u for send"
+				lprintf(LOG_WARNING,"%s !ERROR %d selecting socket %u for send"
 					,node,ERROR_VALUE,sbbs->client_socket);
 			if(sbbs->cfg.node_num)	/* Only break if node output (not server) */
 				break;
@@ -5122,7 +5122,7 @@ NO_SSH:
 			, host_ip, inet_addrport(&client_addr));
 
 		login_attempt_t attempted;
-		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket,  startup->login_attempt, &attempted);
+		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, host_name, startup->login_attempt, &attempted);
 		if(banned || sbbs->trashcan(host_ip,"ip")) {
 			if(banned) {
 				char ban_duration[128];
