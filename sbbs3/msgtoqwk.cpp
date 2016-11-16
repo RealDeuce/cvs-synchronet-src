@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.43 2016/11/16 05:50:19 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.44 2016/11/16 11:11:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,10 +73,13 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 			fprintf(voting, "[poll:%s]\n", msgid);
 			if(msg->hdr.votes)
 				fprintf(voting, "MaxVotes = %hd\n", msg->hdr.votes);
+			unsigned comments = 0;
 			unsigned answers = 0;
 			for(i=0; i < msg->total_hfields; i++) {
-				if(msg->hfield[i].type == SMB_POLL_ANSWER)
-					fprintf(voting, "Answer%u = %s\n", answers++, (char*)msg->hfield_dat[i]);
+				if(msg->hfield[i].type == SMB_COMMENT)
+					fprintf(voting, "%s%u = %s\n", smb_hfieldtype(msg->hfield[i].type), comments++, (char*)msg->hfield_dat[i]);
+				else if(msg->hfield[i].type == SMB_POLL_ANSWER)
+					fprintf(voting, "%s%u = %s\n", smb_hfieldtype(msg->hfield[i].type), answers++, (char*)msg->hfield_dat[i]);
 			}
 		}
 		if(msg->subj && *msg->subj)
