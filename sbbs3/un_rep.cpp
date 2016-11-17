@@ -1,14 +1,12 @@
-/* un_rep.cpp */
-
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.55 2014/01/08 10:33:43 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.58 2016/11/15 21:48:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -160,8 +158,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 	fread(block,QWK_BLOCK_LEN,1,rep);
 	if(strnicmp((char *)block,cfg.sys_id,strlen(cfg.sys_id))) {
-		if(headers!=NULL)
-			iniFreeStringList(headers);
+		iniFreeStringList(headers);
 		fclose(rep);
 		bputs(text[QWKReplyNotReceived]);
 		logline(LOG_NOTICE,"U!",AttemptedToUploadREPpacket);
@@ -208,7 +205,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 			blocks=1;
 			continue; 
 		}
-		qwk_new_msg(&msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
+
+		long confnum = atol((char *)block+1);
+
+		qwk_new_msg(confnum, &msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
@@ -244,7 +244,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		if(atoi(block+1)==0) {					/**********/
+		if(confnum==0) {						/**********/
 			if(useron.rest&FLAG('E')) {         /* E-mail */
 				bputs(text[R_Email]);			/**********/
 				continue; 
@@ -381,7 +381,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 				/**************************/
 		else {	/* message on a sub-board */
 				/**************************/
-			long confnum = atol((char *)block+1);
 			if((n=resolve_qwkconf(confnum))==INVALID_SUB) {
 				bprintf(text[QWKInvalidConferenceN],confnum);
 				SAFEPRINTF2(str,"%s: Invalid QWK conference number %ld",useron.alias,confnum);
@@ -538,6 +537,17 @@ bool sbbs_t::unpack_rep(char* repfile)
 	update_qwkroute(NULL);			/* Write ROUTE.DAT */
 
 	iniFreeStringList(headers);
+
+	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
+	if(fexistcase(fname)) {
+		if(useron.rest&FLAG('V'))
+			bputs(text[R_Voting]);
+		else {
+			set_qwk_flag(QWK_VOTING);
+			qwk_voting(fname, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias);
+		}
+		remove(fname);
+	}
 
 	strListFree(&ip_can);
 	strListFree(&host_can);
