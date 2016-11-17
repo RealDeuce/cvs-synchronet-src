@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.204 2016/11/21 10:03:05 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.203 2016/11/16 05:35:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1008,7 +1008,6 @@ typedef struct {
 		};
 		uint32_t	votes[MSG_POLL_MAX_ANSWERS];
 	};
-	uint32_t	total_votes;
 } post_t;
 typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
