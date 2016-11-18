@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.60 2015/05/02 03:20:54 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.63 2016/10/06 06:24:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,8 +71,10 @@ bool sbbs_t::logon()
 
 	if(useron.rest&FLAG('Q'))
 		qwklogon=1;
-	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP))
+	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP)) {
+		hangup();
 		return(false);
+	}
 
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
@@ -103,6 +105,7 @@ bool sbbs_t::logon()
 		sprintf(str,"(%04u)  %-25s  Insufficient node access"
 			,useron.number,useron.alias);
 		logline(LOG_NOTICE,"+!",str);
+		hangup();
 		return(false); 
 	}
 
@@ -114,6 +117,7 @@ bool sbbs_t::logon()
 			sprintf(str,"(%04u)  %-25s  Locked node logon attempt"
 				,useron.number,useron.alias);
 			logline(LOG_NOTICE,"+!",str);
+			hangup();
 			return(false); 
 		}
 		if(yesno(text[RemoveNodeLockQ])) {
@@ -389,6 +393,8 @@ bool sbbs_t::logon()
 		return(false); 
 	}
 	SAFECOPY(useron.modem,connection);
+	SAFECOPY(useron.ipaddr, client_ipaddr);
+	SAFECOPY(useron.comp, client_name);
 	useron.logons++;
 	putuserdat(&cfg,&useron);
 	getmsgptrs();
@@ -418,11 +424,11 @@ bool sbbs_t::logon()
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_CREAT|O_APPEND);
 			return(false); 
 		}
-		getuserrec(&cfg,useron.number,U_NOTE,LEN_NOTE,useron.note);
+		getuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR,useron.ipaddr);
 		getuserrec(&cfg,useron.number,U_LOCATION,LEN_LOCATION,useron.location);
 		sprintf(str,text[LastFewCallersFmt],cfg.node_num
 			,totallogons,useron.alias
-			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.note
+			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.ipaddr
 			,tm.tm_hour,tm.tm_min
 			,connection,useron.ltoday > 999 ? 999 : useron.ltoday);
 		write(file,str,strlen(str));
