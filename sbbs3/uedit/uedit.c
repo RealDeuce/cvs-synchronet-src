@@ -1,13 +1,14 @@
+/* uedit.c */
+
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.54 2016/11/28 21:45:49 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: uedit.c,v 1.53 2015/08/27 00:36:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1909,7 +1910,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.54 $", "%*s %s", revision);
+	sscanf("$Revision: 1.53 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -1939,7 +1940,7 @@ int main(int argc, char** argv)  {
 	if(ini_file[0]!=0 && (fp=fopen(ini_file,"r"))!=NULL) {
 		printf("Reading %s\n",ini_file);
 		/* We call this function to set defaults, even if there's no .ini file */
-		sbbs_read_ini(fp, ini_file,
+		sbbs_read_ini(fp,
 			NULL,		/* global_startup */
 			NULL, &bbs_startup,
 			NULL, NULL, /* ftp_startup */
