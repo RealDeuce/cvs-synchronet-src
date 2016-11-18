@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.18 2014/09/13 01:20:18 deuce Exp $ */
+/* $Id: ssh.c,v 1.19 2015/05/01 04:05:49 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -295,11 +295,15 @@ int ssh_connect(struct bbslist *bbs)
 
 int ssh_close(void)
 {
+	char garbage[1024];
+
 	conn_api.terminate=1;
 	ssh_active=FALSE;
 	cl.SetAttribute(ssh_session, CRYPT_SESSINFO_ACTIVE, 0);
-	while(conn_api.input_thread_running || conn_api.output_thread_running)
+	while(conn_api.input_thread_running || conn_api.output_thread_running) {
+		conn_recv_upto(garbage, sizeof(garbage), 0);
 		SLEEP(1);
+	}
 	cl.DestroySession(ssh_session);
 	closesocket(sock);
 	sock=INVALID_SOCKET;
