@@ -1,14 +1,12 @@
-/* str.cpp */
-
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.69 2014/09/04 04:29:35 rswindell Exp $ */
+/* $Id: str.cpp,v 1.73 2016/11/16 09:05:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,11 +56,12 @@ void sbbs_t::userlist(long mode)
 	}
 	j=0;
 	k=lastuser(&cfg);
+	int userfile = openuserdat(&cfg, /* for_modify: */FALSE);
 	for(i=1;i<=k && !msgabort();i++) {
 		if(sort && (online==ON_LOCAL || !rioctl(TXBC)))
 			bprintf("%-4d\b\b\b\b",i);
 		user.number=i;
-		getuserdat(&cfg,&user);
+		fgetuserdat(&cfg, &user, userfile);
 		if(user.misc&(DELETED|INACTIVE))
 			continue;
 		users++;
@@ -95,19 +94,20 @@ void sbbs_t::userlist(long mode)
 			}
 			sprintf(name,"%s #%d",user.alias,i);
 			sprintf(line[j],text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
 		else {
 			sprintf(name,"%s #%u",user.alias,i);
 			bprintf(text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
 		j++; 
 	}
+	close(userfile);
 	if(i<=k) {	/* aborted */
 		if(sort)
 			for(i=0;i<j;i++)
@@ -817,7 +817,7 @@ void sbbs_t::dirinfo(uint dirnum)
 /****************************************************************************/
 /* Searches the file <name>.can in the TEXT directory for matches			*/
 /* Returns TRUE if found in list, FALSE if not.								*/
-/* Displays bad<name>.can in text directory if found.						*/
+/* Displays bad<name>.msg in text directory if found.						*/
 /****************************************************************************/
 bool sbbs_t::trashcan(const char *insearchof, const char *name)
 {
@@ -857,6 +857,7 @@ void sbbs_t::sys_info()
 		bprintf(text[SiSysPsite],cfg.sys_psname,cfg.sys_psnum);
 	if(cfg.sys_location[0])
 		bprintf(text[SiSysLocation],cfg.sys_location);
+	bprintf(text[TiNow],timestr(now),smb_zonestr(sys_timezone(&cfg),NULL));
 	if(cfg.sys_op[0])
 		bprintf(text[SiSysop],cfg.sys_op);
 	bprintf(text[SiSysNodes],cfg.sys_nodes);
@@ -1226,4 +1227,39 @@ void sbbs_t::change_user(void)
 	else sys_status|=SS_TMPSYSOP;
 	sprintf(str,"Changed into %s #%u",useron.alias,useron.number);
 	logline("S+",str);
+}
+
+/* 't' value must be adjusted for timezone offset */
+char* sbbs_t::age_of_posted_item(char* buf, size_t max, time_t t)
+{
+	time_t	now = time(NULL) - (xpTimeZone_local()*60);
+	char*	past = text[InThePast];
+	char*	units = text[Years];
+	char	value[128];
+
+	double diff = difftime(now, t);
+	if(diff < 0) {
+		past = text[InTheFuture];
+		diff = -diff;
+	}
+
+	if(diff < 60) {
+		sprintf(value, "%.0f", diff);
+		units = text[Seconds];
+	} else if(diff < 60*60) {
+		sprintf(value, "%.0f", diff / 60.0);
+		units = text[Minutes];
+	} else if(diff < 60*60*24) {
+		sprintf(value, "%.1f", diff / (60.0 * 60.0));
+		units = text[Hours];
+	} else if(diff < 60*60*24*30) {
+		sprintf(value, "%.1f", diff / (60.0 * 60.0 * 24.0));
+		units = text[Days];
+	} else if(diff < 60*60*24*365) {
+		sprintf(value, "%.1f", diff / (60.0 * 60.0 * 24.0 * 30.0));
+		units = text[Months];
+	} else
+		sprintf(value, "%.1f", diff / (60.0 * 60.0 * 24.0 * 365.25));
+	safe_snprintf(buf, max, text[AgeOfPostedItem], value, units, past);
+	return buf;
 }
