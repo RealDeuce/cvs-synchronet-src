@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.74 2016/11/23 10:28:52 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.72 2016/11/16 11:11:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -94,13 +94,13 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			errormsg(WHERE,ERR_EXEC,p,i);
 	}
 
-	if(useron.rest&FLAG('Q'))
-		useron.qwk|=QWK_NOINDEX|QWK_NOCTRL;
+	if(useron.rest&FLAG('Q') && useron.qwk&QWK_RETCTLA)
+		useron.qwk|=(QWK_NOINDEX|QWK_NOCTRL|QWK_VIA|QWK_TZ|QWK_MSGID);
 
 	if(useron.qwk&QWK_EXPCTLA)
-		mode=QM_EXPCTLA;
+		mode=A_EXPAND;
 	else if(useron.qwk&QWK_RETCTLA)
-		mode=QM_RETCTLA;
+		mode=A_LEAVE;
 	else mode=0;
 	if(useron.qwk&QWK_TZ)
 		mode|=QM_TZ;
@@ -405,7 +405,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						mv(str,tmp,/* copy: */TRUE); 
 				}
 
-				size=msgtoqwk(&msg,qwk,mode|QM_REPLYTO,INVALID_SUB,0,hdrs);
+				size=msgtoqwk(&msg,qwk,mode,INVALID_SUB,0,hdrs);
 				smb_unlockmsghdr(&smb,&msg);
 				smb_freemsgmem(&msg);
 				if(ndx && size) {
@@ -615,14 +615,11 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			lprintf(LOG_INFO,"%s",str);
 	}
 
-	BOOL voting_data = FALSE;
 	fclose(qwk);			/* close MESSAGE.DAT */
 	if(hdrs!=NULL)
 		fclose(hdrs);		/* close HEADERS.DAT */
-	if(voting!=NULL) {
-		voting_data = ftell(voting);
+	if(voting!=NULL)
 		fclose(voting);
-	}
 	if(personal) {
 		fclose(personal);		 /* close PERSONAL.NDX */
 		SAFEPRINTF(str,"%sPERSONAL.NDX",cfg.temp_dir);
@@ -701,7 +698,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		} 
 	}
 
-	if(!(*msgcnt) && !mailmsgs && !files && !netfiles && !batdn_total && !voting_data
+	if(!(*msgcnt) && !mailmsgs && !files && !netfiles && !batdn_total
 		&& (prepack || !preqwk)) {
 		bputs(text[QWKNoNewMessages]);
 		return(false); 

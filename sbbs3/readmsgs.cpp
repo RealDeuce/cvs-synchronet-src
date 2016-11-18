@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.92 2016/11/23 21:02:07 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.89 2016/11/18 09:58:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,8 +168,6 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 		bprintf("%-16.16s %lu\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
 	if(msg->hdr.last_downloaded)
 		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr(msg->hdr.last_downloaded));
-	if(msg->hdr.votes)
-		bprintf("%-16.16s %hu\r\n"	,"votes"			,msg->hdr.votes);
 
 	/* convenience integers */
 	if(msg->expiration)
@@ -279,7 +277,6 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 				if(post[u].idx.number == idx.remsg)
 					break;
 			if(u < l) {
-				post[u].total_votes++;
 				switch(idx.attr&MSG_VOTE) {
 				case MSG_UPVOTE:
 					post[u].upvotes++;
@@ -288,7 +285,7 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 					post[u].downvotes++;
 					break;
 				default:
-					for(int b=0; b < MSG_POLL_MAX_ANSWERS; b++) {
+					for(int b=0; b < 16; b++) {
 						if(idx.votes&(1<<b))
 							post[u].votes[b]++;
 					}
@@ -450,7 +447,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 		return(0); 
 	}
-	ZERO_VAR(msg);				/* init to NULL, specify not-allocated */
+	msg.total_hfields=0;				/* init to NULL, specify not-allocated */
 	if(!(mode&SCAN_CONST))
 		lncntr=0;
 	if((msgs=getlastmsg(subnum,&last,0))==0) {
@@ -687,7 +684,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 			msg.upvotes = post[smb.curmsg].upvotes;
 			msg.downvotes = post[smb.curmsg].downvotes;
-			msg.total_votes = post[smb.curmsg].total_votes;
+			msg.total_votes = total_votes(&post[smb.curmsg]);
 			show_msg(&msg
 				,msg.from_ext && !strcmp(msg.from_ext,"1") && !msg.from_net.type
 					? 0:P_NOATCODES
@@ -840,17 +837,14 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				if(!(msg.hdr.attr&MSG_DELETE) && msg.hdr.type == SMB_MSG_TYPE_POLL 
 					&& smb_msg_is_from(&msg, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL)
 					&& !(msg.hdr.auxattr&POLL_CLOSED)) {
-					if(!noyes("Close Poll")) {
-						i=closepoll(&cfg, &smb, msg.hdr.number, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
-						if(i != SMB_SUCCESS)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+					if(noyes("Close Poll")) {
+						domsg=false;
 						break;
 					}
-					SAFEPRINTF(str, text[DeleteTextFileQ], "Poll");
-					if(!yesno(str)) {
-						domsg=0;
-						break;
-					}
+					i=closepoll(&cfg, &smb, msg.hdr.number, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
+					if(i != SMB_SUCCESS)
+						errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+					break;
 				}
 				domsg=0;
 				if(!sub_op(subnum)) {
