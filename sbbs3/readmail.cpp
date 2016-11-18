@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.69 2016/11/18 09:58:14 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.68 2016/11/16 11:11:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -575,7 +575,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				done=1;
 				break;
 			case 'C':   /* Change attributes of last piece */
-				i=chmsgattr(msg);
+				i=chmsgattr(msg.hdr.attr);
 				if(msg.hdr.attr==i)
 					break;
 				if(msg.total_hfields)
