@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.24 2016/11/18 06:24:01 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.25 2016/11/18 09:58:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2228,7 +2228,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 		if(idx.number==0)	/* invalid message number, ignore */
 			continue;
 
-		if(idx.attr&(MSG_VOTE|MSG_POLL))
+		if(idx.attr&MSG_POLL_VOTE_MASK)
 			continue;
 
 		if(idx.number<=ptr || (idx.attr&MSG_DELETE))
@@ -4949,7 +4949,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.24 $", "%*s %s", revision);
+	sscanf("$Revision: 3.25 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
