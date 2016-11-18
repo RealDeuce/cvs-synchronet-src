@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.27 2017/07/08 02:38:40 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.26 2016/11/16 10:53:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -211,8 +211,7 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case FER:   return("FER");
 		case AZO:   return("AZO");
 		case LON:   return("LON");
-		case CET:   return("CET");
-		case CEST:	return("CEST");
+		case BER:   return("BER");
 		case ATH:   return("ATH");
 		case MOS:   return("MOS");
 		case DUB:   return("DUB");
