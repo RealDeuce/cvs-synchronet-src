@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.163 2016/12/02 06:15:39 rswindell Exp $ */
+/* $Id: js_system.c,v 1.162 2015/11/10 22:53:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -888,7 +888,7 @@ js_matchuserdata(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next,NULL,NULL)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
