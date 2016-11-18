@@ -2,7 +2,7 @@
 
 /* Synchronet static text string constants */
 
-/* $Id: text.h,v 1.23 2016/11/10 10:06:31 rswindell Exp $ */
+/* $Id: text.h,v 1.25 2016/11/16 05:54:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -824,11 +824,16 @@ enum {
 	,NodeStatusLogout
 	,VotingNotAllowed
 	,VotedAlready
+	,R_Voting
 	,QWKSettingsVoting
 	,VoteMsgUpDownOrQuit
 	,MsgVotes
-	,MsgVoteNotice
-	,R_Voting
+	,MsgUpVoteNotice
+	,MsgDownVoteNotice
+	,PollVoteNotice
+	,PollAnswerNumber
+	,PollAnswerFmt
+	,PollAnswerChecked
 
 	,TOTAL_TEXT
 };

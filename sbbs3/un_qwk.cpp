@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.46 2016/11/10 10:06:31 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.47 2016/11/15 21:48:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,7 +332,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 
 	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
 	if(fexistcase(fname)) {
-		qwk_voting(fname, NET_QWK);
+		qwk_voting(fname, NET_QWK, cfg.qhub[hubnum]->id);
 		remove(fname);
 	}
 
