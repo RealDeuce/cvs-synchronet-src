@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.112 2016/11/21 10:04:57 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.111 2016/11/16 09:08:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -531,12 +531,11 @@ void dumpindex(ulong start, ulong count)
 		if(!fread(&idx,1,sizeof(idx),smb.sid_fp))
 			break;
 		printf("%10"PRIu32"  ", idx.number);
-		if(idx.attr&MSG_VOTE && !(idx.attr&MSG_POLL))
+		if(idx.attr&MSG_VOTE)
 			printf("V  %04hX  %-10"PRIu32, idx.votes,idx.remsg);
 		else
 			printf("%c  %04hX  %04hX  %04X"
-				,(idx.attr&MSG_POLL_VOTE_MASK) == MSG_POLL_CLOSURE ? 'C' : (idx.attr&MSG_POLL ? 'P':'M')
-				,idx.from, idx.to, idx.subj);
+				,idx.attr&MSG_POLL ? 'P':'M', idx.from, idx.to, idx.subj);
 		printf("  %04X  %06X  %s\n", idx.attr, idx.offset, my_timestr(idx.time));
 		l++; 
 	}
@@ -1493,7 +1492,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.112 $", "%*s %s", revision);
+	sscanf("$Revision: 1.111 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
