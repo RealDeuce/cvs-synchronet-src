@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.23 2016/11/10 10:19:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.24 2016/11/18 06:24:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4949,7 +4949,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.23 $", "%*s %s", revision);
+	sscanf("$Revision: 3.24 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5057,13 +5057,6 @@ int main(int argc, char **argv)
 	SAFECOPY(scfg.ctrl_dir,p);
 
 	backslash(scfg.ctrl_dir);
-	SAFEPRINTF(path,"%ssbbsecho.bsy", scfg.ctrl_dir);
-	if(!fmutex(path, program_id(), cfg.bsy_timeout)) {
-		lprintf(LOG_WARNING, "Mutex file exists (%s): SBBSecho appears to be already running", path);
-		bail(1);
-	}
-	mtxfile_locked = true;
-	atexit(cleanup);
 
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
@@ -5133,6 +5126,14 @@ int main(int argc, char **argv)
 
 	truncsp(cmdline);
 	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
+
+	SAFEPRINTF(path,"%ssbbsecho.bsy", scfg.ctrl_dir);
+	if(!fmutex(path, program_id(), cfg.bsy_timeout)) {
+		lprintf(LOG_WARNING, "Mutex file exists (%s): SBBSecho appears to be already running", path);
+		bail(1);
+	}
+	mtxfile_locked = true;
+	atexit(cleanup);
 
 	/******* READ IN AREAS.BBS FILE *********/
 
