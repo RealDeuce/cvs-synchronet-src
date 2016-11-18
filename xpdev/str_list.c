@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.44 2016/01/29 06:39:52 rswindell Exp $ */
+/* $Id: str_list.c,v 1.46 2016/01/29 20:09:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -343,15 +343,14 @@ char* DLLCALL strListCombine(str_list_t list, char* buf, size_t maxlen, const ch
 	if(maxlen<1)
 		return(NULL);
 
-	memset(buf, 0, maxlen);
-	if(list==NULL)
-		return buf;
-
 	if(buf==NULL)
 		if((buf=(char*)malloc(maxlen))==NULL)
 			return(NULL);
 
-	*buf=0;
+	memset(buf, 0, maxlen);
+	if(list==NULL)
+		return buf;
+
 	end=buf+maxlen;
 	for(i=0, ptr=buf; list[i]!=NULL && buf<end; i++)
 		ptr += safe_snprintf(ptr, end-ptr, "%s%s", i ? delimit:"", list[i]);

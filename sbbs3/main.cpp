@@ -1,14 +1,12 @@
-/* main.cpp */
-
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.630 2016/01/21 09:53:00 deuce Exp $ */
+/* $Id: main.cpp,v 1.638 2016/11/16 09:05:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -2245,7 +2243,7 @@ void output_thread(void* arg)
 		i=select(sbbs->client_socket+1,NULL,&socket_set,NULL,&tv);
 		if(i==SOCKET_ERROR) {
 			if(sbbs->client_socket!=INVALID_SOCKET)
-				lprintf(LOG_ERR,"%s !ERROR %d selecting socket %u for send"
+				lprintf(LOG_WARNING,"%s !ERROR %d selecting socket %u for send"
 					,node,ERROR_VALUE,sbbs->client_socket);
 			if(sbbs->cfg.node_num)	/* Only break if node output (not server) */
 				break;
@@ -2544,12 +2542,13 @@ void event_thread(void* arg)
 				&& (fexistcase(semfile) || (now-lastprepack)/60>(60*24))) {
 				j=lastuser(&sbbs->cfg);
 				eprintf(LOG_INFO,"Pre-packing QWK Message packets...");
+				int userfile = openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 				for(i=1;i<=j;i++) {
 
 					SAFEPRINTF2(str,"%5u of %-5u",i,j);
 					//status(str);
 					sbbs->useron.number=i;
-					getuserdat(&sbbs->cfg,&sbbs->useron);
+					fgetuserdat(&sbbs->cfg,&sbbs->useron, userfile);
 
 					if(sbbs->useron.number
 						&& !(sbbs->useron.misc&(DELETED|INACTIVE))	 /* Pre-QWK */
@@ -2578,6 +2577,7 @@ void event_thread(void* arg)
 						sbbs->online=FALSE;
 					} 
 				}
+				close(userfile);
 				lastprepack=(time32_t)now;
 				SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 				if((file=sbbs->nopen(str,O_WRONLY))==-1) {
@@ -2991,7 +2991,7 @@ void event_thread(void* arg)
 							,ex_mode
 							,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
-							eprintf(LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
+							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
 					}
 					sbbs->cfg.event[i]->last=time32(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
@@ -4146,11 +4146,11 @@ void node_thread(void* arg)
 	}
 #endif
 
-	if(startup->login_attempt_throttle
+	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &sbbs->client_addr)) > 1) {
 		lprintf(LOG_DEBUG,"Node %d Throttling suspicious connection from: %s (%u login attempts)"
 			,sbbs->cfg.node_num, sbbs->client_ipaddr, login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
+		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
 	if(sbbs->answer()) {
@@ -4350,14 +4350,14 @@ void sbbs_t::daily_maint(void)
 
 	lputs(LOG_INFO,status("Checking for inactive/expired user records..."));
 	lastusernum=lastuser(&sbbs->cfg);
+	int userfile=openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 	for(usernum=1;usernum<=lastusernum;usernum++) {
-
 		SAFEPRINTF2(str,"%5u of %-5u",usernum,lastusernum);
 		status(str);
-		user.number=usernum;
-		if((i=getuserdat(&sbbs->cfg,&user))!=0) {
+		user.number = usernum;
+		if((i=fgetuserdat(&sbbs->cfg, &user, userfile)) != 0) {
 			SAFEPRINTF(str,"user record %u",usernum);
-			sbbs->errormsg(WHERE,ERR_READ,str,i);
+			sbbs->errormsg(WHERE, ERR_READ, str, i);
 			continue;
 		}
 
@@ -4440,6 +4440,7 @@ void sbbs_t::daily_maint(void)
 			putuserrec(&sbbs->cfg,user.number,U_MISC,8,ultoa(user.misc|DELETED,str,16)); 
 		}
 	}
+	close(userfile);
 
 	lputs(LOG_INFO,status("Purging deleted/expired e-mail"));
 	SAFEPRINTF(sbbs->smb.file,"%smail",sbbs->cfg.data_dir);
@@ -4821,13 +4822,17 @@ void DLLCALL bbs_thread(void* arg)
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
 		CRYPT_KEYSET	ssh_keyset;
 
-		if(!do_cryptInit())
+		if(!do_cryptInit()) {
+			lprintf(LOG_ERR, "SSH cryptInit failure");
 			goto NO_SSH;
+		}
 		/* Get the private key... first try loading it from a file... */
 		SAFEPRINTF2(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
 		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
-			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass)))
+			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass))) {
+				lprintf(LOG_ERR, "SSH cryptGetPrivateKey failure");
 				goto NO_SSH;
+			}
 		}
 		else {
 			/* Couldn't do that... create a new context and use the key from there... */
@@ -4937,6 +4942,8 @@ NO_SSH:
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
+	semfile_list_add(&recycle_semfiles,str);
+	SAFEPRINTF(str,"%sattr.cfg",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
@@ -5117,6 +5124,22 @@ NO_SSH:
 #endif
 			, host_ip, inet_addrport(&client_addr));
 
+		login_attempt_t attempted;
+		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
+		if(banned || sbbs->trashcan(host_ip,"ip")) {
+			if(banned) {
+				char ban_duration[128];
+				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
+					,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+			} else
+				lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip);
+			SSH_END();
+			close_socket(client_socket);
+			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
+			sbbs->syslog("@!",logstr);
+			continue;
+		}
+
 #ifdef _WIN32
 		if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
@@ -5198,16 +5221,6 @@ NO_SSH:
    		sbbs->client_socket=client_socket;	// required for output to the user
         sbbs->online=ON_REMOTE;
 
-		if(sbbs->trashcan(host_ip,"ip")) {
-			SSH_END();
-			close_socket(client_socket);
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s"
-				,client_socket, host_ip);
-			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
-			sbbs->syslog("@!",logstr);
-			continue;
-		}
-
 		if(rlogin)
 			sbbs->outcom(0); /* acknowledge RLogin per RFC 1282 */
 
@@ -5217,17 +5230,13 @@ NO_SSH:
 
 		sbbs->bprintf("Connection from: %s\r\n", host_ip);
 
+		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
-			if(getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD))
-				strcpy(host_name, "<no name>");
+			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 			sbbs->putcom(crlf);
-		}
-		else
-			strcpy(host_name, "<no name>");
-
-		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))
 			lprintf(LOG_INFO,"%04d Hostname: %s", client_socket, host_name);
+		}
 
 		if(sbbs->trashcan(host_name,"host")) {
 			SSH_END();
