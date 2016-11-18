@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.72 2016/11/18 09:58:14 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.73 2016/11/18 10:37:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1181,7 +1181,6 @@ bool sbbs_t::qwk_voting(const char* fname, smb_net_type_t net_type, const char* 
 				continue;
 
 			smbmsg_t msg;
-			const char* notice = NULL;
 
 			ZERO_VAR(msg);
 			smb_hfield_str(&msg, RFC822MSGID, list[u] + 6);
