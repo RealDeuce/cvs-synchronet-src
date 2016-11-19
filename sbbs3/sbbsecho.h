@@ -1,6 +1,8 @@
+/* sbbsecho.h */
+
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.14 2017/06/09 04:32:46 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.9 2016/08/03 08:03:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +44,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		1
+#define SBBSECHO_VERSION_MINOR		00
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -53,11 +55,9 @@ enum mail_status {
 };
 
 enum pkt_type {
-	 PKT_TYPE_2_PLUS				/* Type-2+  Packet Header (FSC-48)		*/
-	,PKT_TYPE_2_EXT					/* Type-2e  Packet Header (FSC-39)		*/
-	,PKT_TYPE_2_2					/* Type-2.2 Packet Header (FSC-45)		*/
-	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/	
-	,PKT_TYPES_SUPPORTED
+	 PKT_TYPE_2_PLUS				/* Type 2+ Packet Header  (FSC-48)		*/
+	,PKT_TYPE_2_2					/* Type 2.2 Packet Header (FSC-45)		*/
+	,PKT_TYPE_2_0 					/* Old Type Packet Header (FTS-1)		*/	
 };
 
 #define DFLT_PKT_SIZE   (250*1024L)
@@ -131,9 +131,7 @@ typedef struct {
 	char		inbound[MAX_PATH+1]; 	/* Inbound directory */
 	char		secure_inbound[MAX_PATH+1];		/* Secure Inbound directory */
 	char		outbound[MAX_PATH+1];	/* Outbound directory */
-	char		areafile[MAX_PATH+1];	/* Area file (default: data/areas.bbs) */
-	uint		areafile_backups;		/* Number of backups to keep of area file */
-	char		badareafile[MAX_PATH+1];/* Bad area file (default: data/badareas.lst) */
+	char		areafile[MAX_PATH+1];	/* AREAS.BBS path/filename */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
@@ -149,7 +147,6 @@ typedef struct {
 			   ,listcfgs				/* Number of echolists defined */
 			   ,areas					/* Number of areas defined */
 			   ;
-	uint		umask;
 	char		default_recipient[LEN_ALIAS+1];
 	char		areamgr[LEN_ALIAS+1];	/* User to notify of areafix activity */
 	arcdef_t*	arcdef; 				/* Each archive definition */
@@ -172,7 +169,6 @@ typedef struct {
 	bool		delete_packets;
 	bool		echomail_notify;
 	bool		ignore_netmail_dest_addr;
-	bool		ignore_netmail_sent_attr;
 	bool		ignore_netmail_recv_attr;
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
@@ -185,7 +181,7 @@ typedef struct {
 	struct zone_mapping *zone_map;	// 
 } sbbsecho_cfg_t;
 
-char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
+char* pktTypeStringList[4];
 char* mailStatusStringList[4];
 
 /***********************/

@@ -1,13 +1,13 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.263 2017/06/04 00:54:14 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.260 2016/11/19 09:44:04 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * CopyrightRob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -228,14 +228,15 @@ static int lputs(int level, char *str)
 
 #ifdef __unix__
 
-	if (is_daemon)  {
+	if (is_daemon || syslog_always)  {
 		if(str!=NULL) {
 			if (std_facilities)
 				syslog(level|LOG_AUTH,"%s",str);
 			else
 				syslog(level,"%s",str);
 		}
-		return(0);
+		if(is_daemon)
+			return(0);
 	}
 #endif
 	if(!mutex_initialized) {
@@ -945,7 +946,6 @@ static void terminate(void)
 {
 	ulong count=0;
 
-	prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu  Errors: %lu] Terminating... ";
 	if(bbs_running)
 		bbs_terminate();
 	if(ftp_running)
@@ -966,11 +966,11 @@ static void terminate(void)
 			if(bbs_running)
 				lputs(LOG_INFO,"Terminal Server thread still running");
 			if(ftp_running)
-				lprintf(LOG_INFO,"FTP Server thread still running (inactivity timeout: %u seconds)", ftp_startup.max_inactivity);
+				lputs(LOG_INFO,"FTP Server thread still running");
 			if(web_running)
-				lprintf(LOG_INFO,"Web Server thread still running (inactivity timeout: %u seconds)", web_startup.max_inactivity);
+				lputs(LOG_INFO,"Web Server thread still running");
 			if(mail_running)
-				lprintf(LOG_INFO,"Mail Server thread still running (inactivity timeout: %u seconds)", mail_startup.max_inactivity);
+				lputs(LOG_INFO,"Mail Server thread still running");
 			if(services_running)
 				lputs(LOG_INFO,"Services thread still running");
 		}
@@ -998,7 +998,6 @@ static void read_startup_ini(BOOL recycle
 
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
-		ini_file,
 		NULL,			/* global_startup */
 		&run_bbs,		bbs,
 		&run_ftp,		ftp, 
@@ -1102,7 +1101,7 @@ static void handle_sigs(void)
 	int			sig=0;
 	sigset_t	sigs;
 
-	SetThreadName("sbbs/sigHandler");
+	SetThreadName("sbbs/Signal Handler");
 	thread_up(NULL,TRUE,TRUE);
 
 	/* Write the standard .pid file if created/open */
@@ -2120,7 +2119,7 @@ int main(int argc, char** argv)
 						for(node=client_list.first; node!=NULL; node=node->next) {
 							client=node->data;
 							localtime32(&client->time,&tm);
-							printf("%04ld %s %s [%s] %s port %u since %u/%u %02u:%02u:%02u\n"
+							printf("%04ld %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
 								,node->tag
 								,client->protocol
 								,client->user
