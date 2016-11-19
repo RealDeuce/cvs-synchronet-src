@@ -1,8 +1,7 @@
-/* sbbs_ini.c */
-
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.147 2015/08/20 05:19:43 deuce Exp $ */
+/* $Id: sbbs_ini.c,v 1.152 2016/11/19 09:39:11 sbbs Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,6 +63,8 @@ static const char*	strHackAttemptSound="HackAttemptSound";
 static const char*	strLoginAttemptDelay="LoginAttemptDelay";
 static const char*	strLoginAttemptThrottle="LoginAttemptThrottle";
 static const char*	strLoginAttemptHackThreshold="LoginAttemptHackThreshold";
+static const char*	strLoginAttemptTempBanThreshold="LoginAttemptTempBanThreshold";
+static const char*	strLoginAttemptTempBanDuration="LoginAttemptTempBanDuration";
 static const char*	strLoginAttemptFilterThreshold="LoginAttemptFilterThreshold";
 static const char*	strJavaScriptMaxBytes		="JavaScriptMaxBytes";
 static const char*	strJavaScriptContextStack	="JavaScriptContextStack";
@@ -76,10 +77,6 @@ static const char*	strSemFileCheckFrequency	="SemFileCheckFrequency";
 #define DEFAULT_LOG_LEVEL				LOG_DEBUG
 #define DEFAULT_BIND_RETRY_COUNT		2
 #define DEFAULT_BIND_RETRY_DELAY		15
-#define DEFAULT_LOGIN_ATTEMPT_DELAY		5000	/* milliseconds */
-#define DEFAULT_LOGIN_ATTEMPT_THROTTLE	1000	/* milliseconds */
-#define DEFAULT_LOGIN_ATTEMPT_HACKLOG	10		/* write to hack.log after this many consecutive unique attempts */
-#define DEFAULT_LOGIN_ATTEMPT_FILTER	0		/* filter client IP address after this many consecutive unique attempts */
 
 void sbbs_get_ini_fname(char* ini_file, char* ctrl_dir, char* pHostName)
 {
@@ -190,6 +187,29 @@ BOOL sbbs_set_js_settings(
 	return(!failure);
 }
 
+static struct login_attempt_settings get_login_attempt_settings(str_list_t list, const char* section, global_startup_t* global)
+{
+	struct login_attempt_settings settings;
+
+	settings.delay				=iniGetInteger(list,section,strLoginAttemptDelay			,global == NULL ? 5000 : global->login_attempt.delay);
+	settings.throttle			=iniGetInteger(list,section,strLoginAttemptThrottle			,global == NULL ? 1000 : global->login_attempt.throttle);
+	settings.hack_threshold		=iniGetInteger(list,section,strLoginAttemptHackThreshold	,global == NULL ? 10 : global->login_attempt.hack_threshold);
+	settings.tempban_threshold	=iniGetInteger(list,section,strLoginAttemptTempBanThreshold	,global == NULL ? 20 : global->login_attempt.tempban_threshold);
+	settings.tempban_duration	=(ulong)iniGetDuration(list,section,strLoginAttemptTempBanDuration	,global == NULL ? (10*60) : global->login_attempt.tempban_duration);
+	settings.filter_threshold	=iniGetInteger(list,section,strLoginAttemptFilterThreshold	,global == NULL ? 0 : global->login_attempt.filter_threshold);
+	return settings;
+}
+
+static void set_login_attempt_settings(str_list_t* lp, const char* section, struct login_attempt_settings settings, ini_style_t style)
+{
+	iniSetInteger(lp,section,strLoginAttemptDelay,settings.delay,&style);
+	iniSetInteger(lp,section,strLoginAttemptThrottle,settings.throttle,&style);
+	iniSetInteger(lp,section,strLoginAttemptHackThreshold,settings.hack_threshold,&style);
+	iniSetInteger(lp,section,strLoginAttemptTempBanThreshold,settings.tempban_threshold,&style);
+	iniSetDuration(lp,section,strLoginAttemptTempBanDuration,settings.tempban_duration,&style);
+	iniSetInteger(lp,section,strLoginAttemptFilterThreshold,settings.filter_threshold,&style);
+}
+
 static void get_ini_globals(str_list_t list, global_startup_t* global)
 {
 	const char* section = "Global";
@@ -213,17 +233,15 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	if(*p)
         SAFECOPY(global->host_name,value);
 
-	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,0);
+	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,2);
+	iniFreeStringList(global->interfaces);
 	global->interfaces=iniGetStringList(list,section,strInterfaces, ",", "0.0.0.0,::");
 	global->outgoing4.s_addr=iniGetIpAddress(list,section,strOutgoing4,0);
 	global->outgoing6=iniGetIp6Address(list,section,strOutgoing6,wildcard6);
 	global->log_level=iniGetLogLevel(list,section,strLogLevel,DEFAULT_LOG_LEVEL);
 	global->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,DEFAULT_BIND_RETRY_COUNT);
 	global->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,DEFAULT_BIND_RETRY_DELAY);
-	global->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,DEFAULT_LOGIN_ATTEMPT_DELAY);
-	global->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,DEFAULT_LOGIN_ATTEMPT_THROTTLE);
-	global->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,DEFAULT_LOGIN_ATTEMPT_HACKLOG);
-	global->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,DEFAULT_LOGIN_ATTEMPT_FILTER);
+	global->login_attempt = get_login_attempt_settings(list, section, NULL);
 
 	/* Setup default values here */
 	global->js.max_bytes		= JAVASCRIPT_MAX_BYTES;
@@ -296,16 +314,19 @@ void sbbs_read_ini(
 
 		bbs->telnet_port
 			=iniGetShortInt(list,section,"TelnetPort",IPPORT_TELNET);
+		iniFreeStringList(bbs->telnet_interfaces);
 		bbs->telnet_interfaces
 			=iniGetStringList(list,section,"TelnetInterface",",",global_interfaces);
 
 		bbs->rlogin_port
 			=iniGetShortInt(list,section,"RLoginPort",513);
+		iniFreeStringList(bbs->rlogin_interfaces);
 		bbs->rlogin_interfaces
 			=iniGetStringList(list,section,"RLoginInterface",",",global_interfaces);
 
 		bbs->ssh_port
 			=iniGetShortInt(list,section,"SSHPort",22);
+		iniFreeStringList(bbs->ssh_interfaces);
 		bbs->ssh_interfaces
 			=iniGetStringList(list,section,"SSHInterface",",",global_interfaces);
 
@@ -371,10 +392,8 @@ void sbbs_read_ini(
 
 		bbs->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		bbs->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		bbs->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		bbs->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		bbs->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
+
+		bbs->login_attempt = get_login_attempt_settings(list, section, global);
 	}
 
 	/***********************************************************************/
@@ -391,6 +410,7 @@ void sbbs_read_ini(
 			=iniGetIp6Address(list,section,strOutgoing6,global->outgoing6);
 		ftp->port
 			=iniGetShortInt(list,section,strPort,IPPORT_FTP);
+		iniFreeStringList(ftp->interfaces);
 		ftp->interfaces
 			=iniGetStringList(list,section,strInterfaces,",",global_interfaces);
 		ftp->max_clients
@@ -448,10 +468,7 @@ void sbbs_read_ini(
 
 		ftp->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		ftp->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		ftp->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		ftp->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		ftp->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		ftp->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
+		ftp->login_attempt = get_login_attempt_settings(list, section, global);
 	}
 
 	/***********************************************************************/
@@ -462,6 +479,7 @@ void sbbs_read_ini(
 
 	if(mail!=NULL) {
 
+		iniFreeStringList(mail->interfaces);
 		mail->interfaces
 			=iniGetStringList(list,section,"SMTPInterface",",",global_interfaces);
 		mail->outgoing4.s_addr
@@ -472,6 +490,7 @@ void sbbs_read_ini(
 			=iniGetShortInt(list,section,"SMTPPort",IPPORT_SMTP);
 		mail->submission_port
 			=iniGetShortInt(list,section,"SubmissionPort",IPPORT_SUBMISSION);
+		iniFreeStringList(mail->pop3_interfaces);
 		mail->pop3_interfaces
 			=iniGetStringList(list,section,"POP3Interface",",",global_interfaces);
 		mail->pop3_port
@@ -544,10 +563,7 @@ void sbbs_read_ini(
 
 		mail->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		mail->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		mail->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		mail->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		mail->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		mail->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
+		mail->login_attempt = get_login_attempt_settings(list, section, global);
 	}
 
 	/***********************************************************************/
@@ -558,6 +574,7 @@ void sbbs_read_ini(
 
 	if(services!=NULL) {
 
+		iniFreeStringList(services->interfaces);
 		services->interfaces
 			=iniGetStringList(list,section,strInterfaces,",",global_interfaces);
 		services->outgoing4.s_addr
@@ -590,10 +607,7 @@ void sbbs_read_ini(
 
 		services->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		services->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		services->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		services->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		services->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		services->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
+		services->login_attempt = get_login_attempt_settings(list, section, global);
 	}
 
 	/***********************************************************************/
@@ -604,8 +618,10 @@ void sbbs_read_ini(
 
 	if(web!=NULL) {
 
+		iniFreeStringList(web->interfaces);
 		web->interfaces
 			=iniGetStringList(list,section,strInterfaces,",",global_interfaces);
+		iniFreeStringList(web->tls_interfaces);
 		web->tls_interfaces
 			=iniGetStringList(list,section,"TLSInterface",",",global_interfaces);
 		web->outgoing4.s_addr
@@ -685,10 +701,7 @@ void sbbs_read_ini(
 
 		web->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		web->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
-		web->login_attempt_delay=iniGetInteger(list,section,strLoginAttemptDelay,global->login_attempt_delay);
-		web->login_attempt_throttle=iniGetInteger(list,section,strLoginAttemptThrottle,global->login_attempt_throttle);
-		web->login_attempt_hack_threshold=iniGetInteger(list,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold);
-		web->login_attempt_filter_threshold=iniGetInteger(list,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold);
+		web->login_attempt = get_login_attempt_settings(list, section, global);
 	}
 
 	free(global_interfaces);
@@ -748,10 +761,7 @@ BOOL sbbs_write_ini(
 		iniSetLogLevel(lp,section,strLogLevel,global->log_level,&style);
 		iniSetInteger(lp,section,strBindRetryCount,global->bind_retry_count,&style);
 		iniSetInteger(lp,section,strBindRetryDelay,global->bind_retry_delay,&style);
-		iniSetInteger(lp,section,strLoginAttemptDelay,global->login_attempt_delay,&style);
-		iniSetInteger(lp,section,strLoginAttemptThrottle,global->login_attempt_throttle,&style);
-		iniSetInteger(lp,section,strLoginAttemptHackThreshold,global->login_attempt_hack_threshold,&style);
-		iniSetInteger(lp,section,strLoginAttemptFilterThreshold,global->login_attempt_filter_threshold,&style);
+		set_login_attempt_settings(lp, section, global->login_attempt, style);
 
 		/* JavaScript operating parameters */
 		if(!sbbs_set_js_settings(lp,section,&global->js,NULL,&style))
