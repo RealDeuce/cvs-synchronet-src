@@ -1,6 +1,6 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.59 2016/11/18 00:31:39 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.60 2016/11/19 21:14:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,40 +35,6 @@
 
 #include "sbbs.h"
 #include "qwk.h"
-
-/****************************************************************************/
-/* Convert a QWK conference number into a sub-board offset					*/
-/* Return INVALID_SUB upon failure to convert								*/
-/****************************************************************************/
-uint sbbs_t::resolve_qwkconf(uint n)
-{
-	uint	j,k;
-
-	for	(j=0;j<usrgrps;j++) {
-		for(k=0;k<usrsubs[j];k++)
-			if(cfg.sub[usrsub[j][k]]->qwkconf==n)
-				break;
-		if(k<usrsubs[j])
-			break; 
-	}
-
-	if(j>=usrgrps) {
-		if(n<1000) {			 /* version 1 method, start at 101 */
-			j=n/100;
-			k=n-(j*100); 
-		}
-		else {					 /* version 2 method, start at 1001 */
-			j=n/1000;
-			k=n-(j*1000); 
-		}
-		j--;	/* j is group */
-		k--;	/* k is sub */
-		if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf)
-			return INVALID_SUB;
-	}
-
-	return usrsub[j][k];
-}
 
 /****************************************************************************/
 /* Unpacks .REP packet, 'repname' is the path and filename of the packet    */

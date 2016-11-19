@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.434 2016/11/18 09:58:14 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.435 2016/11/19 21:14:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -891,7 +891,8 @@ public:
 	void	qwksetptr(uint subnum, char *buf, int reset);
 	void	qwkcfgline(char *buf,uint subnum);
 	int		set_qwk_flag(ulong flag);
-	bool	qwk_voting(const char* fname, smb_net_type_t, const char* qnet_id);
+	uint	resolve_qwkconf(uint n, int hubnum=-1);
+	bool	qwk_voting(const char* fname, smb_net_type_t, const char* qnet_id, int hubnum = -1);
 
 	/* pack_qwk.cpp */
 	bool	pack_qwk(char *packet, ulong *msgcnt, bool prepack);
@@ -904,7 +905,6 @@ public:
 
 	/* un_rep.cpp */
 	bool	unpack_rep(char* repfile=NULL);
-	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
 	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
