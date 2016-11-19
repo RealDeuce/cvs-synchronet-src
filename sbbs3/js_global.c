@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.363 2016/11/19 09:44:03 sbbs Exp $ */
+/* $Id: js_global.c,v 1.364 2016/11/19 11:04:15 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -123,7 +123,7 @@ static void background_thread(void* arg)
 	jsval result=JSVAL_VOID;
 	jsval exit_code;
 
-	SetThreadName("sbbs/JS Background");
+	SetThreadName("sbbs/jsBackgrnd");
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
 	JS_BEGINREQUEST(bg->cx);

@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.599 2016/11/19 10:21:15 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.600 2016/11/19 11:04:15 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -826,7 +826,7 @@ static void pop3_thread(void* arg)
 	pop3_t		pop3=*(pop3_t*)arg;
 	login_attempt_t attempted;
 
-	SetThreadName("sbbs/POP3");
+	SetThreadName("sbbs/pop3");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -2498,7 +2498,7 @@ static void smtp_thread(void* arg)
 			,ENCODING_QUOTED_PRINTABLE
 	} content_encoding = ENCODING_NONE;
 
-	SetThreadName("sbbs/SMTP");
+	SetThreadName("sbbs/smtp");
 	thread_up(TRUE /* setuid */);
 
 	free(arg);
@@ -4532,7 +4532,7 @@ static void sendmail_thread(void* arg)
 	BOOL		sending_locally=FALSE;
 	link_list_t	failed_server_list;
 
-	SetThreadName("sbbs/SendMail");
+	SetThreadName("sbbs/sendMail");
 	thread_up(TRUE /* setuid */);
 
 	terminate_sendmail=FALSE;
@@ -5131,7 +5131,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.599 $", "%*s %s", revision);
+	sscanf("$Revision: 1.600 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5208,7 +5208,7 @@ void DLLCALL mail_server(void* arg)
 	startup->shutdown_now=FALSE;
 	terminate_server=FALSE;
 
-	SetThreadName("sbbs/Mail Server");
+	SetThreadName("sbbs/mailServer");
 	protected_uint32_init(&thread_count, 0);
 
 	do {

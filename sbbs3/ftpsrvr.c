@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.427 2016/11/19 10:21:15 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.428 2016/11/19 11:04:15 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1250,7 +1250,7 @@ static void send_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/FTP Send");
+	SetThreadName("sbbs/ftpSend");
 	thread_up(TRUE /* setuid */);
 
 	length=flength(xfer.filename);
@@ -1510,7 +1510,7 @@ static void receive_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/FTP Receive");
+	SetThreadName("sbbs/ftpReceive");
 	thread_up(TRUE /* setuid */);
 
 	if((fp=fopen(xfer.filename,xfer.append ? "ab" : "wb"))==NULL) {
@@ -2370,7 +2370,7 @@ static void ctrl_thread(void* arg)
 #endif
 	login_attempt_t attempted;
 
-	SetThreadName("sbbs/FTP Control");
+	SetThreadName("sbbs/ftpControl");
 	thread_up(TRUE /* setuid */);
 
 	lastactive=time(NULL);
@@ -4740,7 +4740,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.427 $", "%*s %s", revision);
+	sscanf("$Revision: 1.428 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4776,7 +4776,7 @@ void DLLCALL ftp_server(void* arg)
 	ftp_ver();
 
 	startup=(ftp_startup_t*)arg;
-	SetThreadName("sbbs/FTP Server");
+	SetThreadName("sbbs/ftpServer");
 
 #ifdef _THREAD_SUID_BROKEN
 	if(thread_suid_broken)

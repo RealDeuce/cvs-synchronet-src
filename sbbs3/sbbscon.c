@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.260 2016/11/19 09:44:04 sbbs Exp $ */
+/* $Id: sbbscon.c,v 1.261 2016/11/19 11:04:15 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1101,7 +1101,7 @@ static void handle_sigs(void)
 	int			sig=0;
 	sigset_t	sigs;
 
-	SetThreadName("sbbs/Signal Handler");
+	SetThreadName("sbbs/sigHandler");
 	thread_up(NULL,TRUE,TRUE);
 
 	/* Write the standard .pid file if created/open */

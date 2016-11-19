@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.295 2016/11/19 10:21:16 rswindell Exp $ */
+/* $Id: services.c,v 1.296 2016/11/19 11:04:15 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -979,7 +979,7 @@ static void js_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread started", socket, service->protocol);
 
-	SetThreadName("sbbs/JS Service");
+	SetThreadName("sbbs/jsService");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1182,7 +1182,7 @@ static void js_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%s static JavaScript service thread started", service->protocol);
 
-	SetThreadName("sbbs/JS Static Service");
+	SetThreadName("sbbs/jsStatic");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1281,7 +1281,7 @@ static void native_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static service thread started", inst.socket, inst.service->protocol);
 
-	SetThreadName("sbbs/Static Service");
+	SetThreadName("sbbs/static");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1344,7 +1344,7 @@ static void native_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s service thread started", socket, service->protocol);
 
-	SetThreadName("sbbs/Native Service");
+	SetThreadName("sbbs/native");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.295 $", "%*s %s", revision);
+	sscanf("$Revision: 1.296 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1734,7 +1734,7 @@ void DLLCALL services_thread(void* arg)
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 
-	SetThreadName("sbbs/Services");
+	SetThreadName("sbbs/services");
 
 	do {
 		/* Setup intelligent defaults */
