@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.154 2017/08/09 19:53:03 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.153 2016/01/10 07:06:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1679,13 +1679,9 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		name;
-	char*		pw_prompt = NULL;
-	char*		user_pw = NULL;
-	char*		sys_pw = NULL;
+	char*		pw;
 	JSString*	js_name;
-	JSString*	js_pw_prompt;
-	JSString*	js_user_pw;
-	JSString*	js_sys_pw;
+	JSString*	js_pw;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -1700,24 +1696,21 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_name=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	js_pw_prompt = JS_ValueToString(cx, argv[1]);
-	js_user_pw = JS_ValueToString(cx, argv[2]);
-	js_sys_pw = JS_ValueToString(cx, argv[3]);
+	if((js_pw=JS_ValueToString(cx, argv[1]))==NULL) 
+		return(JS_FALSE);
 
 	JSSTRING_TO_ASTRING(cx, js_name, name, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
 	if(name==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_pw_prompt, pw_prompt, NULL);
-	JSSTRING_TO_MSTRING(cx, js_user_pw, user_pw, NULL);
-	JSSTRING_TO_MSTRING(cx, js_sys_pw, sys_pw, NULL);
+	JSSTRING_TO_MSTRING(cx, js_pw, pw, NULL);
+	if(pw==NULL) 
+		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->login(name,pw_prompt,user_pw,sys_pw)==LOGIC_TRUE ? JS_TRUE:JS_FALSE));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->login(name,pw)==LOGIC_TRUE ? JS_TRUE:JS_FALSE));
 	JS_RESUMEREQUEST(cx, rc);
-	FREE_AND_NULL(pw_prompt);
-	FREE_AND_NULL(user_pw);
-	FREE_AND_NULL(sys_pw);
+	free(pw);
 	return(JS_TRUE);
 }
 
@@ -3528,9 +3521,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("interactive new user procedure")
 	,310
 	},
-	{"login",			js_login,			4,	JSTYPE_BOOLEAN,	JSDOCSTR("user_name [,password_prompt] [,user_password] [,system_password]")
-	,JSDOCSTR("login with <i>user_name</i>, displaying <i>password_prompt</i> for user's password (if required), "
-	"optionally supplying the user's password and the system password as arguments so as to not be prompted")
+	{"login",			js_login,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("user_name, password_prompt")
+	,JSDOCSTR("login with <i>user_name</i>, displaying <i>password_prompt</i> for password (if required)")
 	,310
 	},
 	{"logon",			js_logon,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
