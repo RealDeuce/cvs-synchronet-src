@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.65 2016/11/23 10:07:05 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.64 2016/11/15 22:00:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -209,6 +209,12 @@ BOOL DLLCALL write_node_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->node_misc,stream);
 	put_int(cfg->node_ivt,stream);
 	put_int(cfg->node_swap,stream);
+#if 0
+	if(cfg->node_swapdir[0]) {
+		backslash(cfg->node_swapdir);
+		md(cfg->node_swapdir);               /* make sure it's a valid directory */
+	}
+#endif
 	put_str(cfg->node_swapdir,stream);
 	put_int(cfg->node_valuser,stream);
 	put_int(cfg->node_minbps,stream);
@@ -444,8 +450,6 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	if(cfg->prepped)
 		return(FALSE);
 
-	ZERO_VAR(smb);
-
 	SAFEPRINTF(str,"%smsgs.cnf",cfg->ctrl_dir);
 	backup(str, backup_level, TRUE);
 
@@ -634,13 +638,10 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 			put_int(cfg->qhub[i]->conf[j],stream);
 			n=(uint16_t)cfg->qhub[i]->sub[j];
 			put_int(n,stream);
-			put_int(cfg->qhub[i]->mode[j],stream); 
-		}
-		put_int(cfg->qhub[i]->misc, stream);
+			put_int(cfg->qhub[i]->mode[j],stream); }
 		n=0;
-		for(j=0;j<30;j++)
-			put_int(n,stream); 
-	}
+		for(j=0;j<32;j++)
+			put_int(n,stream); }
 	n=0;
 	for(i=0;i<32;i++)
 		put_int(n,stream);
@@ -696,10 +697,14 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 		}
 		if(smb_locksmbhdr(&smb)!=0) {
 			smb_close(&smb);
+			/* errormsg disabled.  Why?  ToDo */
+			/* errormsg(WHERE,ERR_LOCK,smb.file,x); */
 			return(FALSE); 
 		}
 		if(smb_getstatus(&smb)!=0) {
 			smb_close(&smb);
+			/* errormsg disabled.  Why?  ToDo */
+			/* errormsg(WHERE,ERR_READ,smb.file,x); */
 			return(FALSE); 
 		}
 		smb.status.max_msgs=0;
@@ -707,6 +712,8 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 		smb.status.max_age=cfg->mail_maxage;
 		if(smb_putstatus(&smb)!=0) {
 			smb_close(&smb);
+			/* errormsg disabled.  Why?  ToDo */
+			/* errormsg(WHERE,ERR_WRITE,smb.file,x); */
 			return(FALSE); 
 		}
 		smb_close(&smb); 
