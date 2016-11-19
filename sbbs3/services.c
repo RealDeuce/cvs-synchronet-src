@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.294 2016/11/19 09:44:04 sbbs Exp $ */
+/* $Id: services.c,v 1.295 2016/11/19 10:21:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.294 $", "%*s %s", revision);
+	sscanf("$Revision: 1.295 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1729,11 +1729,6 @@ void DLLCALL services_thread(void* arg)
 		startup->seteuid(TRUE);
 #endif
 
-	/* Setup intelligent defaults */
-	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
-	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
-
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
@@ -1742,6 +1737,10 @@ void DLLCALL services_thread(void* arg)
 	SetThreadName("sbbs/Services");
 
 	do {
+		/* Setup intelligent defaults */
+		if(startup->sem_chk_freq==0)			startup->sem_chk_freq=DEFAULT_SEM_CHK_FREQ;
+		if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+		if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
 		thread_up(FALSE /* setuid */);
 
