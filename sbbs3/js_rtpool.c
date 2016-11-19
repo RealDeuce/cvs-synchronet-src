@@ -1,4 +1,4 @@
-/* $Id: js_rtpool.c,v 1.31 2016/11/19 11:04:15 sbbs Exp $ */
+/* $Id: js_rtpool.c,v 1.30 2016/11/19 09:44:03 sbbs Exp $ */
 // vi: tabstop=4
 
 #include "js_rtpool.h"
@@ -26,7 +26,7 @@ static link_list_t	rt_list;
 #define TRIGGER_THREAD_STACK_SIZE       (256*1024)
 static void trigger_thread(void *args)
 {
-	SetThreadName("sbbs/jsRTtrig");
+	SetThreadName("sbbs/JSRT Trigger");
 	for(;;) {
 		list_node_t *node;
 		pthread_mutex_lock(&jsrt_mutex);
