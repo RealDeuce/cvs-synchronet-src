@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.435 2017/10/12 08:55:00 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.427 2016/11/19 10:21:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -125,7 +125,7 @@ BOOL direxist(char *dir)
 BOOL dir_op(scfg_t* cfg, user_t* user, client_t* client, uint dirnum)
 {
 	return(user->level>=SYSOP_LEVEL
-		|| (cfg->dir[dirnum]->op_ar!=NULL && cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user,client)));
+		|| (cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user,client)));
 }
 
 static int lprintf(int level, const char *fmt, ...)
@@ -1193,10 +1193,8 @@ int ftp_remove(SOCKET sock, int line, const char* fname)
 {
 	int ret=0;
 
-	if(fexist(fname) && (ret=remove(fname))!=0) {
-		if(fexist(fname))	// In case there was a race condition (other host deleted file first)
-			lprintf(LOG_ERR,"%04d !ERROR %d (%s) (line %d) removing file: %s", sock, errno, STRERROR(errno), line, fname);
-	}
+	if(fexist(fname) && (ret=remove(fname))!=0)
+		lprintf(LOG_ERR,"%04d !ERROR %d (line %d) removing file: %s", sock, ret, line, fname);
 	return ret;
 }
 
@@ -1252,7 +1250,7 @@ static void send_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/ftpSend");
+	SetThreadName("sbbs/FTP Send");
 	thread_up(TRUE /* setuid */);
 
 	length=flength(xfer.filename);
@@ -1512,7 +1510,7 @@ static void receive_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/ftpReceive");
+	SetThreadName("sbbs/FTP Receive");
 	thread_up(TRUE /* setuid */);
 
 	if((fp=fopen(xfer.filename,xfer.append ? "ab" : "wb"))==NULL) {
@@ -2372,7 +2370,7 @@ static void ctrl_thread(void* arg)
 #endif
 	login_attempt_t attempted;
 
-	SetThreadName("sbbs/ftpControl");
+	SetThreadName("sbbs/FTP Control");
 	thread_up(TRUE /* setuid */);
 
 	lastactive=time(NULL);
@@ -2428,7 +2426,7 @@ static void ctrl_thread(void* arg)
 		if(banned) {
 			char ban_duration[128];
 			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,sock, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
+				,sock, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
 		} else
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
 		sockprintf(sock,"550 Access denied.");
@@ -2465,7 +2463,7 @@ static void ctrl_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&ftp.client_addr);
 	client.protocol="FTP";
-	client.user=STR_UNKNOWN_USER;
+	client.user="<unknown>";
 	client_on(sock,&client,FALSE /* update */);
 
 	if(startup->login_attempt.throttle
@@ -2577,7 +2575,7 @@ static void ctrl_thread(void* arg)
 			truncsp(p);
 			SAFECOPY(user.alias,p);
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
-			if(!user.number && (stricmp(user.alias,"anonymous") == 0 || stricmp(user.alias, "ftp") == 0))
+			if(!user.number && !stricmp(user.alias,"anonymous"))	
 				user.number=matchuser(&scfg,"guest",FALSE);
 			if(user.number && getuserdat(&scfg, &user)==0 && user.pass[0]==0) 
 				sockprintf(sock,"331 User name okay, give your full e-mail address as password.");
@@ -2975,7 +2973,7 @@ static void ctrl_thread(void* arg)
 		}
 
 		if(stricmp(cmd, "PASV")==0 || stricmp(cmd, "P@SW")==0	/* Kludge required for SMC Barricade V1.2 */
-			|| stricmp(cmd, "EPSV")==0 || strnicmp(cmd, "EPSV ", 5)==0 || stricmp(cmd, "LPSV")==0) {
+			|| stricmp(cmd, "EPSV")==0 || stricmp(cmd, "LPSV")==0) {	
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -3038,7 +3036,7 @@ static void ctrl_thread(void* arg)
 			}
 
 			port=inet_addrport(&addr);
-			if(strnicmp(cmd, "EPSV", 4)==0)
+			if(stricmp(cmd, "EPSV")==0)
 				sockprintf(sock,"229 Entering Extended Passive Mode (|||%hu|)", port);
 			else if (stricmp(cmd,"LPSV")==0) {
 				switch(addr.addr.sa_family) {
@@ -3734,8 +3732,7 @@ static void ctrl_thread(void* arg)
 					padfname(getfname(str),f.name);
 					f.dir=dir;
 					if((filedat=getfileixb(&scfg,&f))==FALSE
-						&& !(startup->options&FTP_OPT_DIR_FILES)
-						&& !(scfg.dir[dir]->misc&DIR_FILES))
+						&& !(startup->options&FTP_OPT_DIR_FILES))
 						continue;
 					if(detail) {
 						f.size=flength(g.gl_pathv[i]);
@@ -4186,7 +4183,7 @@ static void ctrl_thread(void* arg)
 				f.cdt=0;
 				f.size=-1;
 				filedat=getfileixb(&scfg,&f);
-				if(!filedat && !(startup->options&FTP_OPT_DIR_FILES) && !(scfg.dir[dir]->misc&DIR_FILES)) {
+				if(!filedat && !(startup->options&FTP_OPT_DIR_FILES)) {
 					sockprintf(sock,"550 File not found: %s",p);
 					lprintf(LOG_WARNING,"%04d !%s file (%s%s) not in database for %.4s command"
 						,sock,user.alias,genvpath(lib,dir,str),p,cmd);
@@ -4743,7 +4740,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.435 $", "%*s %s", revision);
+	sscanf("$Revision: 1.427 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4779,7 +4776,7 @@ void DLLCALL ftp_server(void* arg)
 	ftp_ver();
 
 	startup=(ftp_startup_t*)arg;
-	SetThreadName("sbbs/ftpServer");
+	SetThreadName("sbbs/FTP Server");
 
 #ifdef _THREAD_SUID_BROKEN
 	if(thread_suid_broken)
@@ -4953,7 +4950,6 @@ void DLLCALL ftp_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","ftp");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","ftp");
-		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
