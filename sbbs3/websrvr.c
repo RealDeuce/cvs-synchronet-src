@@ -1,8 +1,7 @@
-/* websrvr.c */
-
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.636 2016/05/31 01:56:53 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.638 2016/11/19 09:44:04 sbbs Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -6010,7 +6009,7 @@ void http_output_thread(void *arg)
 	int		i;
 	unsigned mss=OUTBUF_LEN;
 
-	SetThreadName("HTTP Output");
+	SetThreadName("sbbs/HTTP Output");
 	thread_up(TRUE /* setuid */);
 
 	obuf=&(session->outbuf);
@@ -6146,7 +6145,7 @@ void http_session_thread(void* arg)
 	char			*uname;
 #endif
 
-	SetThreadName("HTTP Session");
+	SetThreadName("sbbs/HTTP Session");
 	pthread_mutex_lock(&((http_session_t*)arg)->struct_filled);
 	pthread_mutex_unlock(&((http_session_t*)arg)->struct_filled);
 	pthread_mutex_destroy(&((http_session_t*)arg)->struct_filled);
@@ -6247,7 +6246,7 @@ void http_session_thread(void* arg)
 	}
 
 	login_attempt_t attempted;
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket,  startup->login_attempt, &attempted);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, session.host_name, startup->login_attempt, &attempted);
 
 	/* host_ip wasn't defined in http_session_thread */
 	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
@@ -6483,7 +6482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.636 $", "%*s %s", revision);
+	sscanf("$Revision: 1.638 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6512,7 +6511,7 @@ void http_logging_thread(void* arg)
 	if(!base[0])
 		SAFEPRINTF(base,"%slogs/http-",scfg.logs_dir);
 
-	SetThreadName("HTTP Logging");
+	SetThreadName("sbbs/HTTP Logging");
 	filename[0]=0;
 	newfilename[0]=0;
 
@@ -6626,7 +6625,7 @@ void DLLCALL web_server(void* arg)
 
 	startup=(web_startup_t*)arg;
 
-	SetThreadName("Web Server");
+	SetThreadName("sbbs/Web Server");
 	web_ver();	/* get CVS revision */
 
     if(startup==NULL) {
@@ -6840,7 +6839,7 @@ void DLLCALL web_server(void* arg)
 		status("Listening");
 
 		while(!terminated && !terminate_server) {
-
+			YIELD();
 			/* check for re-cycle/shutdown semaphores */
 			if(protected_uint32_value(thread_count) <= (unsigned int)(2 /* web_server() and http_output_thread() */ + (http_logging_thread_running?1:0))) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
