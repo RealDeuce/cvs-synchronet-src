@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.430 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.427 2016/11/19 10:21:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1250,7 +1250,7 @@ static void send_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/ftpSend");
+	SetThreadName("sbbs/FTP Send");
 	thread_up(TRUE /* setuid */);
 
 	length=flength(xfer.filename);
@@ -1510,7 +1510,7 @@ static void receive_thread(void* arg)
 	xfer=*(xfer_t*)arg;
 	free(arg);
 
-	SetThreadName("sbbs/ftpReceive");
+	SetThreadName("sbbs/FTP Receive");
 	thread_up(TRUE /* setuid */);
 
 	if((fp=fopen(xfer.filename,xfer.append ? "ab" : "wb"))==NULL) {
@@ -2370,7 +2370,7 @@ static void ctrl_thread(void* arg)
 #endif
 	login_attempt_t attempted;
 
-	SetThreadName("sbbs/ftpControl");
+	SetThreadName("sbbs/FTP Control");
 	thread_up(TRUE /* setuid */);
 
 	lastactive=time(NULL);
@@ -2426,7 +2426,7 @@ static void ctrl_thread(void* arg)
 		if(banned) {
 			char ban_duration[128];
 			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,sock, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
+				,sock, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
 		} else
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
 		sockprintf(sock,"550 Access denied.");
@@ -4740,7 +4740,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.430 $", "%*s %s", revision);
+	sscanf("$Revision: 1.427 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4776,7 +4776,7 @@ void DLLCALL ftp_server(void* arg)
 	ftp_ver();
 
 	startup=(ftp_startup_t*)arg;
-	SetThreadName("sbbs/ftpServer");
+	SetThreadName("sbbs/FTP Server");
 
 #ifdef _THREAD_SUID_BROKEN
 	if(thread_suid_broken)
@@ -4950,7 +4950,6 @@ void DLLCALL ftp_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","ftp");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","ftp");
-		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
