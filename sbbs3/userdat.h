@@ -1,8 +1,6 @@
-/* userdat.h */
-
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.60 2016/10/06 06:35:29 rswindell Exp $ */
+/* $Id: userdat.h,v 1.62 2016/11/16 09:05:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,10 +75,11 @@ extern "C" {
 extern char* crlf;
 extern char* nulstr;
 
-DLLEXPORT int	DLLCALL openuserdat(scfg_t*);
+DLLEXPORT int	DLLCALL openuserdat(scfg_t*, BOOL for_modify);
 DLLEXPORT int	DLLCALL readuserdat(scfg_t*, unsigned user_number, char* userdat, int infile);
 DLLEXPORT int	DLLCALL parseuserdat(scfg_t*, char* userdat, user_t*);
 DLLEXPORT int	DLLCALL getuserdat(scfg_t*, user_t*); 	/* Fill userdat struct with user data   */
+DLLEXPORT int	DLLCALL fgetuserdat(scfg_t*, user_t*, int file);
 DLLEXPORT int	DLLCALL putuserdat(scfg_t*, user_t*);	/* Put userdat struct into user file	*/
 DLLEXPORT int	DLLCALL newuserdat(scfg_t*, user_t*);	/* Create new userdat in user file */
 DLLEXPORT uint	DLLCALL matchuser(scfg_t*, const char *str, BOOL sysop_alias); /* Checks for a username match */
@@ -161,7 +160,7 @@ DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
 DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT ulong				DLLCALL loginFailure(link_list_t*, const union xp_sockaddr*, const char* prot, const char* user, const char* pass);
-DLLEXPORT ulong				DLLCALL loginBanned(scfg_t*, link_list_t*, SOCKET, struct login_attempt_settings, login_attempt_t*);
+DLLEXPORT ulong				DLLCALL loginBanned(scfg_t*, link_list_t*, SOCKET, const char* host_name, struct login_attempt_settings, login_attempt_t*);
 
 #ifdef __cplusplus
 }
