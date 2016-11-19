@@ -1,8 +1,7 @@
-/* sbbs_ini.c */
-
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.151 2016/05/27 07:41:45 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.152 2016/11/19 09:39:11 sbbs Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,7 +233,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	if(*p)
         SAFECOPY(global->host_name,value);
 
-	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,0);
+	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,2);
 	iniFreeStringList(global->interfaces);
 	global->interfaces=iniGetStringList(list,section,strInterfaces, ",", "0.0.0.0,::");
 	global->outgoing4.s_addr=iniGetIpAddress(list,section,strOutgoing4,0);
