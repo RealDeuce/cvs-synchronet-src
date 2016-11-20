@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.447 2016/12/10 08:02:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.438 2016/11/20 11:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -648,6 +648,7 @@ public:
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
+	ulong	total_votes(post_t* post);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
@@ -667,15 +668,13 @@ public:
 	void	center(char *str);
 	void	clearline(void);
 	void	cleartoeol(void);
-	void	cleartoeos(void);
 	void	cursor_home(void);
 	void	cursor_up(int count=1);
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
 	long	term_supports(long cmp_flags=0);
-	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
-	void	progress(const char* str, int count, int total, int interval=1);
+	int		backfill(const char* str, float pct);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -757,7 +756,6 @@ public:
 	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
-	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
 	void	msghdr(smbmsg_t* msg);
 	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
 
@@ -874,8 +872,8 @@ public:
 	void	logofflist(void);              /* List of users logon activity */
 	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
-	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
-				,long access, const char *extinfo=NULL);
+	void	errormsg(int line, const char *file, const char* action, const char *object
+				,ulong access, const char *extinfo=NULL);
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
@@ -894,9 +892,7 @@ public:
 	void	qwkcfgline(char *buf,uint subnum);
 	int		set_qwk_flag(ulong flag);
 	uint	resolve_qwkconf(uint n, int hubnum=-1);
-	bool	qwk_vote(str_list_t ini, const char* section, smb_net_type_t, const char* qnet_id, int hubnum);
-	bool	qwk_voting(str_list_t* ini, long offset, smb_net_type_t, const char* qnet_id, int hubnum = -1);
-	void	qwk_handle_remaining_votes(str_list_t* ini, smb_net_type_t, const char* qnet_id, int hubnum = -1);
+	bool	qwk_voting(str_list_t ini, long offset, smb_net_type_t, const char* qnet_id, int hubnum = -1);
 
 	/* pack_qwk.cpp */
 	bool	pack_qwk(char *packet, ulong *msgcnt, bool prepack);
