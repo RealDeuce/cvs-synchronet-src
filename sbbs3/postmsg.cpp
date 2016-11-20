@@ -1,6 +1,6 @@
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.103 2016/11/19 22:51:51 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.104 2016/11/20 03:37:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -304,6 +304,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	msg.hdr.number=smb.status.last_msg+1; /* this *should* be the new message number */
 
 	if(remsg) {
+		char* p;
+		char replyid[256];
 
 		msg.hdr.thread_back=remsg->hdr.number;	/* needed for threading backward */
 
@@ -311,8 +313,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			msg.hdr.thread_id=remsg->hdr.number;
 
 		/* Add RFC-822 Reply-ID (generate if necessary) */
-		if(remsg->id!=NULL)
-			smb_hfield_str(&msg,RFC822REPLYID,remsg->id);
+		if((p = get_replyid(&cfg, &smb, &msg, replyid, sizeof(replyid))) != NULL)
+			smb_hfield_str(&msg, RFC822REPLYID, p);
 
 		/* Add FidoNet Reply if original message has FidoNet MSGID */
 		if(remsg->ftn_msgid!=NULL)
