@@ -1,6 +1,6 @@
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.6 2016/11/20 03:37:20 rswindell Exp $ */
+/* $Id: msg_id.c,v 1.7 2016/11/20 11:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +40,20 @@ static uint32_t msg_number(smbmsg_t* msg)
 	if(msg->idx.number)
 		return(msg->idx.number);
 	return(msg->hdr.number);
+}
+
+uint32_t get_new_msg_number(smb_t* smb)
+{
+	BOOL locked = smb->locked;
+
+	if(!locked && smb_locksmbhdr(smb) != SMB_SUCCESS)
+		return 0;
+
+	if(smb_getstatus(smb)!=SMB_SUCCESS)
+		return 0;
+
+	if(!locked) smb_unlocksmbhdr(smb);
+	return smb->status.last_msg + 1;
 }
 
 static uint32_t msg_time(smbmsg_t* msg)
