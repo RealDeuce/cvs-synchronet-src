@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.644 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: main.cpp,v 1.641 2016/11/19 11:04:15 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -56,7 +56,6 @@
 
 #define TIMEOUT_THREAD_WAIT		60			// Seconds (was 15)
 #define IO_THREAD_BUF_SIZE	   	20000		// Bytes
-#define TIMEOUT_MUTEX_FILE		12*60*60
 
 // Globals
 #ifdef _WIN32
@@ -2478,7 +2477,7 @@ void event_thread(void* arg)
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
-					if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
+					if(!fmutex(semfile,startup->host_name,24*60*60)) {
 						eprintf(LOG_INFO,"%s exists (unpack in progress?)", semfile);
 						continue;
 					}
@@ -2505,7 +2504,7 @@ void event_thread(void* arg)
 				eprintf(LOG_INFO,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
-				if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
+				if(!fmutex(semfile,startup->host_name,24*60*60)) {
 					eprintf(LOG_INFO,"%s exists (pack in progress?)", semfile);
 					continue;
 				}
@@ -4940,7 +4939,6 @@ NO_SSH:
 	/* Setup recycle/shutdown semaphore file lists */
 	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
-	semfile_list_add(&recycle_semfiles,startup->ini_fname);
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
@@ -5132,7 +5130,7 @@ NO_SSH:
 			if(banned) {
 				char ban_duration[128];
 				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-					,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
+					,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
 			} else
 				lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip);
 			SSH_END();

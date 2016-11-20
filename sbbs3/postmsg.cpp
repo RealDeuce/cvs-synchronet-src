@@ -1,6 +1,6 @@
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.106 2016/11/27 23:07:39 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.104 2016/11/20 03:37:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -319,6 +319,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		/* Add FidoNet Reply if original message has FidoNet MSGID */
 		if(remsg->ftn_msgid!=NULL)
 			smb_hfield_str(&msg,FIDOREPLYID,remsg->ftn_msgid);
+
+		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
+			errormsg(WHERE,"updating thread",smb.file,i,smb.last_error); 
 	}
 
 	smb_hfield_str(&msg,RECIPIENT,touser);
@@ -561,9 +564,6 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
 		msg->hdr.when_written = msg->hdr.when_imported;
 
-	if(msg->hdr.number == 0)
-		msg->hdr.number = get_new_msg_number(smb);
-
  	if(msg->id==NULL) {
 		char msg_id[256];
  		get_msgid(cfg, smb->subnum, msg, msg_id, sizeof(msg_id));
@@ -626,8 +626,6 @@ extern "C" int DLLCALL closepoll(scfg_t* cfg, smb_t* smb, uint32_t msgnum, const
 	msg.hdr.thread_back = msgnum;
 	smb_hfield_str(&msg, SENDER, username);
 
-	msg.hdr.number = get_new_msg_number(smb);
-
 	get_msgid(cfg, smb->subnum, &msg, msg_id, sizeof(msg_id));
 	smb_hfield_str(&msg,RFC822MSGID, msg_id);
 
@@ -645,9 +643,6 @@ extern "C" int DLLCALL postpoll(scfg_t* cfg, smb_t* smb, smbmsg_t* msg)
 	}
 	if(msg->hdr.when_written.time == 0)
 		msg->hdr.when_written = msg->hdr.when_imported;
-
-	if(msg->hdr.number == 0)
-		msg->hdr.number = get_new_msg_number(smb);
 
  	if(msg->id==NULL) {
 		char msg_id[256];
