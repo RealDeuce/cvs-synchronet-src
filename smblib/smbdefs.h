@@ -1,7 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.96 2016/12/05 12:01:20 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: smbdefs.h,v 1.93 2016/11/18 10:37:26 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -441,7 +440,7 @@ typedef struct _PACK {		/* Index record */
 		};
 	};
 	uint16_t	attr;			/* attributes (read, permanent, etc.) */
-	uint32_t	offset; 		/* byte-offset of msghdr in header file */
+	uint32_t	offset; 		/* offset into header file */
 	uint32_t	number; 		/* number of message (1 based) */
 	uint32_t	time;			/* time/date message was imported/posted */
 
@@ -632,7 +631,6 @@ typedef struct {				/* Message */
 	uint32_t	priority;		/* Message priority (0 is lowest) */
 	uint32_t	cost;			/* Cost to download/read */
 	uint32_t	flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
-	uint16_t	user_voted;		/* How the current user viewing this message, voted on it */
 	uint32_t	upvotes;		/* Vote tally for this message */
 	uint32_t	downvotes;		/* Vote tally for this message */
 	uint32_t	total_votes;	/* Total votes for this message or poll */
@@ -657,7 +655,7 @@ typedef struct {				/* Message base */
 	/* Private member variables (not initialized by or used by smblib) */
 	uint32_t	subnum;			/* Sub-board number */
 	uint32_t	msgs;			/* Number of messages loaded (for user) */
-	uint32_t	curmsg;			/* Current message number (for user, 0-based) */
+	uint32_t	curmsg;			/* Current message number (for user) */
 
 } smb_t;
 
