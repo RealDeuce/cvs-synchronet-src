@@ -63,9 +63,7 @@ struct syncterm_settings {
 
 extern char *inpath;
 extern char *syncterm_version;
-extern struct vmem_cell *scrollback_buf;
-extern uint32_t *scrollback_fbuf;
-extern uint32_t *scrollback_bbuf;
+extern unsigned char *scrollback_buf;
 extern unsigned int   scrollback_lines;
 extern unsigned int  scrollback_mode;
 extern unsigned int  scrollback_cols;
