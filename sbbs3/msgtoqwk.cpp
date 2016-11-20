@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.50 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.47 2016/11/20 11:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,14 +98,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 			fprintf(voting, "%s: %s\n",smb_hfieldtype(SUBJECT), msg->subj);
 		if((p = get_replyid(&cfg, &smb, msg, reply_id, sizeof(reply_id))) != NULL)
 			fprintf(voting, "%s: %s\n", smb_hfieldtype(RFC822REPLYID), p);
-		/* Time/Date/Zone info */
-		fprintf(voting,"WhenWritten:  %-20s %04hx\n"
-			,xpDateTime_to_isoDateTimeStr(
-				time_to_xpDateTime(msg->hdr.when_written.time,smb_tzutc(msg->hdr.when_written.zone))
-				,/* separators: */"","","", /* precision: */0
-				,str,sizeof(str))
-			,msg->hdr.when_written.zone
-			);
 
 		/* SENDER */
 		fprintf(voting, "%s: %s\n", smb_hfieldtype(SENDER), msg->from);
@@ -144,7 +136,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 				,str,sizeof(str))
 			,sys_timezone(&cfg)
 			);
-		fprintf(hdrs,"ExportedFrom: %s %s %" PRIu32 "\n"
+		fprintf(hdrs,"ExportedFrom: %s %s %"PRIu32"\n"
 			,cfg.sys_id
 			,subnum==INVALID_SUB ? "mail":cfg.sub[subnum]->code
 			,msg->hdr.number
@@ -384,7 +376,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 					size++;
 					continue;
 				}
-				if(mode&QM_EXPCTLA) {
+				if(mode&A_EXPAND) {
 					str[0]=0;
 					switch(toupper(ch)) {
 						case 'W':
@@ -451,7 +443,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 						size+=fwrite(str,sizeof(char),strlen(str),qwk_fp);
 					continue; 
 				} 						/* End Expand */
-				if(mode&QM_RETCTLA && valid_ctrl_a_code(ch)) {
+				if(mode&A_LEAVE && valid_ctrl_a_code(ch)) {
 					fputc(CTRL_A,qwk_fp);
 					fputc(ch,qwk_fp);
 					size+=2L; 
@@ -478,7 +470,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 			safe_snprintf(tmp,sizeof(tmp)," %c \1g%.10s\1n %c %.127s%c"
 				,ch,VERSION_NOTICE,ch,cfg.sub[subnum]->tagline,QWK_NEWLINE);
 			strcat(str,tmp);
-			if(!(mode&QM_RETCTLA))
+			if(!(mode&A_LEAVE))
 				remove_ctrl_a(str,str);
 			size+=fwrite(str,sizeof(char),strlen(str),qwk_fp);
 		}
