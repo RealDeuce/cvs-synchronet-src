@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.47 2016/11/15 21:48:43 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.48 2016/11/19 21:14:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,16 +247,11 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			continue;
 		}
 
-		for(j=0;j<cfg.qhub[hubnum]->subs;j++)
-			if(cfg.qhub[hubnum]->conf[j]==n)
-				break;
-		if(j>=cfg.qhub[hubnum]->subs) {	/* ignore messages for subs not in config */
+		if((j = resolve_qwkconf(n, hubnum)) == INVALID_SUB) {	/* ignore messages for subs not in config */
 			eprintf(LOG_NOTICE,"!Message from %s on UNKNOWN QWK CONFERENCE NUMBER: %u"
 				,cfg.qhub[hubnum]->id, n);
 			continue;
 		}
-
-		j=cfg.qhub[hubnum]->sub[j];
 
 		/* TWIT FILTER */
 		if(findstr_in_list(msg.from,twit_list) || findstr_in_list(msg.to,twit_list)) {
@@ -332,7 +327,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 
 	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
 	if(fexistcase(fname)) {
-		qwk_voting(fname, NET_QWK, cfg.qhub[hubnum]->id);
+		qwk_voting(fname, NET_QWK, cfg.qhub[hubnum]->id, hubnum);
 		remove(fname);
 	}
 

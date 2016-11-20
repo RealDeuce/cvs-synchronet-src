@@ -1,6 +1,6 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.58 2016/11/15 21:48:43 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.60 2016/11/19 21:14:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,40 +35,6 @@
 
 #include "sbbs.h"
 #include "qwk.h"
-
-/****************************************************************************/
-/* Convert a QWK conference number into a sub-board offset					*/
-/* Return INVALID_SUB upon failure to convert								*/
-/****************************************************************************/
-uint sbbs_t::resolve_qwkconf(uint n)
-{
-	uint	j,k;
-
-	for	(j=0;j<usrgrps;j++) {
-		for(k=0;k<usrsubs[j];k++)
-			if(cfg.sub[usrsub[j][k]]->qwkconf==n)
-				break;
-		if(k<usrsubs[j])
-			break; 
-	}
-
-	if(j>=usrgrps) {
-		if(n<1000) {			 /* version 1 method, start at 101 */
-			j=n/100;
-			k=n-(j*100); 
-		}
-		else {					 /* version 2 method, start at 1001 */
-			j=n/1000;
-			k=n-(j*1000); 
-		}
-		j--;	/* j is group */
-		k--;	/* k is sub */
-		if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf)
-			return INVALID_SUB;
-	}
-
-	return usrsub[j][k];
-}
 
 /****************************************************************************/
 /* Unpacks .REP packet, 'repname' is the path and filename of the packet    */
@@ -536,6 +502,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 	update_qwkroute(NULL);			/* Write ROUTE.DAT */
 
+	smb_freemsgmem(&msg);
+
 	iniFreeStringList(headers);
 
 	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
@@ -561,7 +529,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	/* QWKE support */
 	SAFEPRINTF(fname,"%sTODOOR.EXT",cfg.temp_dir);
 	if(fexistcase(fname)) {
-		useron.qwk|=QWK_EXT;
+		set_qwk_flag(QWK_EXT);
 		FILE* fp=fopen(fname,"r");
 		char* p;
 		if(fp!=NULL) {

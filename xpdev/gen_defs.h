@@ -1,8 +1,7 @@
-/* gen_defs.h */
-
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.69 2015/12/04 09:23:17 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.70 2016/11/19 09:21:37 sbbs Exp $ */
+// vi: tabstop=4
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
