@@ -1,8 +1,7 @@
-/* js_global.c */
-
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.361 2016/04/24 00:26:21 deuce Exp $ */
+/* $Id: js_global.c,v 1.364 2016/11/19 11:04:15 sbbs Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,7 +123,7 @@ static void background_thread(void* arg)
 	jsval result=JSVAL_VOID;
 	jsval exit_code;
 
-	SetThreadName("JS Background");
+	SetThreadName("sbbs/jsBackgrnd");
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
 	JS_BEGINREQUEST(bg->cx);
@@ -679,10 +678,13 @@ static JSBool
 js_require(JSContext *cx, uintN argc, jsval *arglist)
 {
 	uintN argn = 0;
+	uintN fnarg;
 	JSObject*	exec_obj;
 	JSObject*	tmp_obj;
     char*		property;
+    char*		filename;
     JSBool		found = JS_FALSE;
+    JSBool		ret;
 	jsval *argv=JS_ARGV(cx, arglist);
 
 	exec_obj=JS_GetScopeChain(cx);
@@ -698,7 +700,7 @@ js_require(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	// Skip filename
-	argn++;
+	fnarg = argn++;
 
 	if(argn==argc) {
 		JS_ReportError(cx,"no symbol name specified");
@@ -712,13 +714,21 @@ js_require(JSContext *cx, uintN argc, jsval *arglist)
 		free(property);
 		return JS_TRUE;
 	}
-	free(property);
 
 	// Remove symbol name from args
 	if (argc > argn+1)
 		memmove(&arglist[argn+JS_ARGS_OFFSET], &arglist[argn+JS_ARGS_OFFSET+1], sizeof(arglist[0]) * (argc - argn - 1));
 
-	return js_load(cx, argc-1, arglist);
+	ret = js_load(cx, argc-1, arglist);
+
+	if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
+		JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
+		JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
+		free(filename);
+		return(JS_FALSE);
+	}
+	free(property);
+	return ret;
 }
 
 static JSBool
