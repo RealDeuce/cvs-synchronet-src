@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.82 2018/01/07 23:00:26 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.80 2015/11/26 08:34:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,8 @@ int sbbs_t::xtrn_sec()
 			return(1); 
 		}
 		if(usrxsecs>1) {
-			if(menu_exists("xtrn_sec")) {
+			sprintf(str,"%smenu/xtrn_sec.*",cfg.text_dir);
+			if(fexist(str)) {
 				menu("xtrn_sec");
 				xsec=getnum(usrxsecs);
 				if(xsec<=0)
@@ -124,8 +125,9 @@ int sbbs_t::xtrn_sec()
 				pause();
 				break; 
 			}
-			sprintf(str,"xtrn%u",xsec+1);
-			if(menu_exists(str)) {
+			sprintf(str,"%smenu/xtrn%u.*",cfg.text_dir,xsec+1);
+			if(fexist(str)) {
+				sprintf(str,"xtrn%u",xsec+1);
 				menu(str); 
 			}
 			else {
@@ -171,8 +173,9 @@ int sbbs_t::xtrn_sec()
 			if((l=getnum(usrxtrns))<1)
 				break;
 			l--;
-			sprintf(str,"xtrn/%s",cfg.xtrn[usrxtrn[l]]->code);
-			if(menu_exists(str)) {
+			sprintf(str,"%smenu/xtrn/%s.*",cfg.text_dir,cfg.xtrn[usrxtrn[l]]->code);
+			if(fexist(str)) {
+				sprintf(str,"xtrn/%s",cfg.xtrn[usrxtrn[l]]->code);
 				menu(str);
 				lncntr=0;
 			}
@@ -427,7 +430,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		write(file,str,strlen(str));
 
 		sprintf(str,"%s\n%s\n%d\n%s\n%lu\n%s\n%s\n%s\n%s\n"
-			"%" PRIx32 "\n%d\n"
+			"%"PRIx32"\n%d\n"
 			,ltoaf(useron.flags3,tmp)			/* Flag set #3 */
 			,ltoaf(useron.flags4,tmp2)			/* Flag set #4 */
 			,0									/* Time-slice type */
@@ -1158,7 +1161,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if((p=strchr(tmp,' '))!=NULL)
 			*p=0;
 
-		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%" PRId32 "\n"
+		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%"PRId32"\n"
 			,useron.number						/* User number */
 			,name								/* User name */
 			,useron.pass						/* Password */
@@ -1177,7 +1180,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 			l=((((long)tm.tm_hour*60L)+(long)tm.tm_min)*60L)
 				+(long)tm.tm_sec;
 
-		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%" PRId32 "\n%lu\n%s\n"
+		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%"PRId32"\n%lu\n%s\n"
 			"%s\n%s\n%lu\n%s\n%u\n%u\n%u\n%u\n%u\n%lu\n%u\n"
 			"%lu\n%lu\n%s\n%s\n"
 			,dropdir
