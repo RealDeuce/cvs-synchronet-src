@@ -2,7 +2,7 @@
 
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.147 2016/01/27 06:16:29 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.148 2016/05/26 08:36:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -549,7 +549,6 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 					,int64_t value, ini_style_t* style)
 {
 	char	str[INI_MAX_VALUE_LEN];
-	double	bytes;
 
 	if(value==0)
 		SAFECOPY(str,"0");
@@ -567,18 +566,7 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 			default:
 				if(unit<1)
 					unit=1;
-				bytes=(double)(value*unit);
-
-				if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
-					SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
-				else if(fmod(bytes,1024*1024*1024)==0)
-					SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
-				else if(fmod(bytes,1024*1024)==0)
-					SAFEPRINTF(str,"%gM",bytes/(1024*1024));
-				else if(fmod(bytes,1024)==0)
-					SAFEPRINTF(str,"%gK",bytes/1024);
-				else
-					SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
+				byte_count_to_str(value*unit, str, sizeof(str));
 		}
 
 	return iniSetString(list, section, key, str, style);
@@ -589,20 +577,7 @@ char* DLLCALL iniSetDuration(str_list_t* list, const char* section, const char* 
 {
 	char	str[INI_MAX_VALUE_LEN];
 
-	if(fmod(value,365.0*24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gY",value/(365.0*24.0*60.0*60.0));
-	else if(fmod(value,7.0*24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gW",value/(7.0*24.0*60.0*60.0));
-	else if(fmod(value,24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gD",value/(24.0*60.0*60.0));
-	else if(fmod(value,60.0*60.0)==0)
-		SAFEPRINTF(str,"%gH",value/(60.0*60.0));
-	else if(fmod(value,60.0)==0)
-		SAFEPRINTF(str,"%gM",value/60.0);
-	else
-		SAFEPRINTF(str,"%gS",value);
-
-	return iniSetString(list, section, key, str, style);
+	return iniSetString(list, section, key, duration_to_str(value, str, sizeof(str)), style);
 }
 
 
