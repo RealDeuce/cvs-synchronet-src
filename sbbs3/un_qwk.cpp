@@ -1,14 +1,12 @@
-/* un_qwk.cpp */
-
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.43 2011/10/19 07:08:32 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.50 2016/11/20 20:23:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -63,6 +61,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	FILE*	fp;
 	smbmsg_t	msg;
 	str_list_t	headers=NULL;
+	str_list_t	voting=NULL;
 	str_list_t	ip_can=NULL;
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
@@ -95,10 +94,22 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 
 	SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
 	if(fexistcase(str)) {
+		lprintf(LOG_DEBUG, "Reading %s", fname);
 		if((fp=fopen(str,"r")) == NULL)
 			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
 		else {
 			headers=iniReadFile(fp);
+			fclose(fp);
+		}
+		remove(str);
+	}
+	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
+	if(fexistcase(fname)) {
+		lprintf(LOG_DEBUG, "Reading %s", fname);
+		if((fp=fopen(str,"r")) == NULL)
+			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
+		else {
+			voting=iniReadFile(fp);
 			fclose(fp);
 		}
 		remove(str);
@@ -135,6 +146,10 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		sprintf(tmp,"%.6s",block+116);
 		blocks=atoi(tmp);  /* i = number of blocks */
 		if(blocks<2) {
+			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
+				qwk_voting(&voting, l, NET_QWK, cfg.qhub[hubnum]->id, hubnum);
+				continue;
+			}
 			eprintf(LOG_NOTICE,"!Invalid number of QWK blocks (%d) at offset %lu in %s"
 				,blocks, l+116, packet);
 			blocks=1;
@@ -145,14 +160,13 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		/*********************************/
 		n=(uint)block[123]|(((uint)block[124])<<8);  /* conference number */
 
-		qwk_new_msg(&msg,(char*)block,/* offset: */l,headers,/* parse_sender_hfields: */true);
+		qwk_new_msg(n, &msg,(char*)block,/* offset: */l,headers,/* parse_sender_hfields: */true);
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
 			eprintf(LOG_NOTICE,"!Filtering QWK message from %s due to age: %u days"
 				,msg.from
 				,(now-msg.hdr.when_written.time)/(24*60*60)); 
-			logline(LOG_NOTICE,"P!",str);
 			continue;
 		}
 
@@ -250,16 +264,11 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			continue;
 		}
 
-		for(j=0;j<cfg.qhub[hubnum]->subs;j++)
-			if(cfg.qhub[hubnum]->conf[j]==n)
-				break;
-		if(j>=cfg.qhub[hubnum]->subs) {	/* ignore messages for subs not in config */
+		if((j = resolve_qwkconf(n, hubnum)) == INVALID_SUB) {	/* ignore messages for subs not in config */
 			eprintf(LOG_NOTICE,"!Message from %s on UNKNOWN QWK CONFERENCE NUMBER: %u"
 				,cfg.qhub[hubnum]->id, n);
 			continue;
 		}
-
-		j=cfg.qhub[hubnum]->sub[j];
 
 		/* TWIT FILTER */
 		if(findstr_in_list(msg.from,twit_list) || findstr_in_list(msg.to,twit_list)) {
@@ -326,12 +335,15 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		}
 	}
 
+	qwk_handle_remaining_votes(&voting, NET_QWK, cfg.qhub[hubnum]->id, hubnum);
+
 	update_qwkroute(NULL);		/* Write ROUTE.DAT */
 
 	smb_freemsgmem(&msg);
 	fclose(qwk);
 
 	iniFreeStringList(headers);
+	iniFreeStringList(voting);
 
 	strListFree(&ip_can);
 	strListFree(&host_can);

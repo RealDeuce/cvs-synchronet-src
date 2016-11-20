@@ -1,14 +1,12 @@
-/* postmsg.cpp */
-
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.93 2014/09/06 10:37:48 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.105 2016/11/20 11:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,6 +36,7 @@
 #include "sbbs.h"
 
 /****************************************************************************/
+/* FTN-compliant "Program Identifier"/PID									*/
 /****************************************************************************/
 extern "C" char* DLLCALL msg_program_id(char* pid)
 {
@@ -179,7 +178,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			i=FIDO_NAME_LEN-1;
 		if(cfg.sub[subnum]->misc&(SUB_PNET|SUB_INET))
 			i=60;
-		getstr(touser,i,K_UPRLWR|K_LINE|K_EDIT|K_AUTODEL);
+		getstr(touser,i,K_LINE|K_EDIT|K_AUTODEL);
 		if(stricmp(touser,"ALL")
 		&& !(cfg.sub[subnum]->misc&(SUB_PNET|SUB_FIDO|SUB_QNET|SUB_INET|SUB_ANON))) {
 			if(cfg.sub[subnum]->misc&SUB_NAME) {
@@ -213,8 +212,10 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	if(cfg.sub[subnum]->misc&SUB_AONLY
 		|| (cfg.sub[subnum]->misc&SUB_ANON && useron.exempt&FLAG('A')
-			&& !noyes(text[AnonymousQ])))
+			&& !noyes(text[AnonymousQ]))) {
 		msgattr|=MSG_ANONYMOUS;
+		wm_mode|=WM_ANON;
+	}
 
 	if(cfg.sub[subnum]->mod_ar[0] && chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
 		msgattr|=MSG_MODERATED;
@@ -227,12 +228,13 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	if(msgattr&MSG_ANONYMOUS)
 		bputs(text[PostingAnonymously]);
-
-	if(cfg.sub[subnum]->misc&SUB_NAME)
+	else if(cfg.sub[subnum]->misc&SUB_NAME)
 		bputs(text[UsingRealName]);
 
 	msg_tmp_fname(useron.xedit, str, sizeof(str));
-	if(!writemsg(str,top,title,wm_mode,subnum,touser,&editor)
+	if(!writemsg(str,top,title,wm_mode,subnum,touser
+		,/* from: */cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias
+		,&editor)
 		|| (length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
 		return(false); 
@@ -302,6 +304,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	msg.hdr.number=smb.status.last_msg+1; /* this *should* be the new message number */
 
 	if(remsg) {
+		char* p;
+		char replyid[256];
 
 		msg.hdr.thread_back=remsg->hdr.number;	/* needed for threading backward */
 
@@ -309,8 +313,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			msg.hdr.thread_id=remsg->hdr.number;
 
 		/* Add RFC-822 Reply-ID (generate if necessary) */
-		if(remsg->id!=NULL)
-			smb_hfield_str(&msg,RFC822REPLYID,remsg->id);
+		if((p = get_replyid(&cfg, &smb, &msg, replyid, sizeof(replyid))) != NULL)
+			smb_hfield_str(&msg, RFC822REPLYID, p);
 
 		/* Add FidoNet Reply if original message has FidoNet MSGID */
 		if(remsg->ftn_msgid!=NULL)
@@ -536,9 +540,122 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
  		smb_hfield_str(msg,FIDOPID,msg_program_id(pid));
 
 	if((i=smb_addmsg(smb,msg,storage,dupechk_hashes,xlat,(uchar*)msgbuf,NULL))==SMB_SUCCESS
-		&& msg->to!=NULL	/* no recipient means no header created at this stage */)
-		signal_sub_sem(cfg,smb->subnum);
-
+		&& msg->to!=NULL	/* no recipient means no header created at this stage */) {
+		if(smb->subnum == INVALID_SUB) {
+			if(msg->to_net.type == NET_FIDO)
+				ftouch(cmdstr(cfg,NULL,cfg->netmail_sem,nulstr,nulstr,NULL));
+		} else
+			signal_sub_sem(cfg,smb->subnum);
+	}
 	return(i);
 }
 
+extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const char* smsgfmt)
+{
+	int result;
+	smbmsg_t remsg;
+
+	ZERO_VAR(remsg);
+
+	if(msg->hdr.when_imported.time == 0) {
+		msg->hdr.when_imported.time = time32(NULL);
+		msg->hdr.when_imported.zone = sys_timezone(cfg);
+	}
+	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
+		msg->hdr.when_written = msg->hdr.when_imported;
+
+	if(msg->hdr.number == 0)
+		msg->hdr.number = get_new_msg_number(smb);
+
+ 	if(msg->id==NULL) {
+		char msg_id[256];
+ 		get_msgid(cfg, smb->subnum, msg, msg_id, sizeof(msg_id));
+ 		smb_hfield_str(msg, RFC822MSGID, msg_id);
+ 	}
+
+	/* Look-up thread_back if RFC822 Reply-ID was specified */
+	if(msg->hdr.thread_back == 0 && msg->reply_id != NULL) {
+		if(smb_getmsgidx_by_msgid(smb, &remsg, msg->reply_id) == SMB_SUCCESS)
+			msg->hdr.thread_back = remsg.idx.number;	/* poll or message being voted on */
+	}
+	if(smb_voted_already(smb, msg->hdr.thread_back, msg->from, (enum smb_net_type)msg->from_net.type, msg->from_net.addr))
+		return SMB_DUPE_MSG;
+	remsg.hdr.number = msg->hdr.thread_back;
+	if((result = smb_getmsgidx(smb, &remsg)) != SMB_SUCCESS)
+		return result;
+	if((result = smb_getmsghdr(smb, &remsg)) != SMB_SUCCESS)
+		return result;
+	if(remsg.hdr.auxattr&POLL_CLOSED)
+		result = SMB_CLOSED;
+	else
+		result = smb_addvote(smb, msg, smb_storage_mode(cfg, smb));
+	if(result == SMB_SUCCESS && smsgfmt != NULL && remsg.from_ext != NULL) {
+		user_t user;
+		ZERO_VAR(user);
+		user.number = atoi(remsg.from_ext);
+		if(getuserdat(cfg, &user) == 0 && 
+			(stricmp(remsg.from, user.alias) == 0 || stricmp(remsg.from, user.name) == 0)) {
+			char from[256];
+			char tstr[128];
+			char smsg[256];
+			if(msg->from_net.type)
+				safe_snprintf(from, sizeof(from), "%s (%s)", msg->from, smb_netaddr(&msg->from_net));
+			else
+				SAFECOPY(from, msg->from);
+			safe_snprintf(smsg, sizeof(smsg), smsgfmt
+				,timestr(cfg, msg->hdr.when_written.time, tstr)
+				,cfg->grp[cfg->sub[smb->subnum]->grp]->sname
+				,cfg->sub[smb->subnum]->sname
+				,from
+				,remsg.subj);
+			putsmsg(cfg, user.number, smsg);
+		}
+	}
+	smb_freemsgmem(&remsg);
+	return result;
+}
+
+extern "C" int DLLCALL closepoll(scfg_t* cfg, smb_t* smb, uint32_t msgnum, const char* username)
+{
+	int result;
+	smbmsg_t msg;
+	char msg_id[256];
+
+	ZERO_VAR(msg);
+
+	msg.hdr.when_imported.time = time32(NULL);
+	msg.hdr.when_imported.zone = sys_timezone(cfg);
+	msg.hdr.when_written = msg.hdr.when_imported;
+	msg.hdr.thread_back = msgnum;
+	smb_hfield_str(&msg, SENDER, username);
+
+	msg.hdr.number = get_new_msg_number(smb);
+
+	get_msgid(cfg, smb->subnum, &msg, msg_id, sizeof(msg_id));
+	smb_hfield_str(&msg,RFC822MSGID, msg_id);
+
+	result = smb_addpollclosure(smb, &msg, smb_storage_mode(cfg, smb));
+
+	smb_freemsgmem(&msg);
+	return result;
+}
+
+extern "C" int DLLCALL postpoll(scfg_t* cfg, smb_t* smb, smbmsg_t* msg)
+{
+	if(msg->hdr.when_imported.time == 0) {
+		msg->hdr.when_imported.time = time32(NULL);
+		msg->hdr.when_imported.zone = sys_timezone(cfg);
+	}
+	if(msg->hdr.when_written.time == 0)
+		msg->hdr.when_written = msg->hdr.when_imported;
+
+	if(msg->hdr.number == 0)
+		msg->hdr.number = get_new_msg_number(smb);
+
+ 	if(msg->id==NULL) {
+		char msg_id[256];
+ 		get_msgid(cfg, smb->subnum, msg, msg_id, sizeof(msg_id));
+ 		smb_hfield_str(msg, RFC822MSGID, msg_id);
+ 	}
+	return smb_addpoll(smb, msg, smb_storage_mode(cfg, smb));
+}
