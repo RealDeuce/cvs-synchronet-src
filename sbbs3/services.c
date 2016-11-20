@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.299 2016/11/28 02:59:08 rswindell Exp $ */
+/* $Id: services.c,v 1.296 2016/11/19 11:04:15 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -429,7 +429,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 	}
 	if(client->subscan!=NULL) {
-		getmsgptrs(&scfg,&client->user,client->subscan,NULL,NULL);
+		getmsgptrs(&scfg,&client->user,client->subscan);
 	}
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.299 $", "%*s %s", revision);
+	sscanf("$Revision: 1.296 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1893,7 +1893,6 @@ void DLLCALL services_thread(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","services");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","services");
-		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,services_ini);
@@ -2107,7 +2106,7 @@ void DLLCALL services_thread(void* arg)
 						if(banned) {
 							char ban_duration[128];
 							lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-								,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
+								,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
 						} else
 							lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
 								,client_socket, service[i].protocol, host_ip);
