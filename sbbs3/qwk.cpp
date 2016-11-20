@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.74 2016/11/19 21:14:32 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.75 2016/11/20 06:20:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1056,6 +1056,9 @@ static void parse_common_header_fields(str_list_t ini, const char* section, smbm
 
 	if((p=iniGetString(ini, section, smb_hfieldtype(SENDER), NULL, NULL)) != NULL)
 		smb_hfield_str(msg, SENDER, p);
+
+	if((p=iniGetString(ini, section, smb_hfieldtype(SUBJECT), NULL, NULL)) != NULL)
+		smb_hfield_str(msg, SUBJECT, p);
 
 	if(net_type == NET_QWK) {
 		char fulladdr[256];
