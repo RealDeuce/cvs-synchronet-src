@@ -1,14 +1,13 @@
-/* gen_defs.h */
-
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.68 2015/08/22 04:41:15 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.70 2016/11/19 09:21:37 sbbs Exp $ */
+// vi: tabstop=4
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
  * @format.use-tabs true        (see http://www.synchro.net/ptsc_hdr.html)  *
  *                                                                          *
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html      *
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *                                                                          *
  * This library is free software; you can redistribute it and/or            *
  * modify it under the terms of the GNU Lesser General Public License       *
@@ -59,7 +58,7 @@
         #endif
 #endif
 
-
+#include <ctype.h>
 #include <sys/types.h>
 #ifdef HAS_INTTYPES_H
 #if defined __cplusplus

@@ -1,4 +1,4 @@
-/* $Id: PropertiesDlgUnit.h,v 1.18 2014/10/30 08:56:22 rswindell Exp $ */
+/* $Id: PropertiesDlgUnit.h,v 1.19 2016/05/27 08:55:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,8 +121,13 @@ __published:
     TEdit *LoginAttemptThrottleEdit;
     TLabel *LoginAttemptHackThreshold;
     TEdit *LoginAttemptHackThresholdEdit;
-    TLabel *LoginAttemptFilterThresholdLabel;
-    TEdit *LoginAttemptFilterThresholdEdit;
+        TLabel *LoginAttemptTempBanThresholdLabel;
+        TEdit *LoginAttemptTempBanThresholdEdit;
+        TLabel *LoginAttemptTempBanDurationLabel;
+        TEdit *LoginAttemptTempBanDurationEdit;
+        TLabel *LoginAttemptFilterThresholdLabel;
+        TEdit *LoginAttemptFilterThresholdEdit;
+    TButton *HelpBtn;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall TrayIconCheckBoxClick(TObject *Sender);
 	void __fastcall SourceComboBoxChange(TObject *Sender);
@@ -132,6 +137,7 @@ __published:
     void __fastcall LogLevelComboBoxChange(TObject *Sender);
     void __fastcall LogFontButtonClick(TObject *Sender);
     void __fastcall ErrorSoundButtonClick(TObject *Sender);
+    void __fastcall HelpBtnClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TPropertiesDlg(TComponent* AOwner);
