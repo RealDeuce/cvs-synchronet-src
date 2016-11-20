@@ -1,14 +1,12 @@
-/* un_rep.cpp */
-
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.56 2015/12/06 11:18:50 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.61 2016/11/20 11:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,40 +37,6 @@
 #include "qwk.h"
 
 /****************************************************************************/
-/* Convert a QWK conference number into a sub-board offset					*/
-/* Return INVALID_SUB upon failure to convert								*/
-/****************************************************************************/
-uint sbbs_t::resolve_qwkconf(uint n)
-{
-	uint	j,k;
-
-	for	(j=0;j<usrgrps;j++) {
-		for(k=0;k<usrsubs[j];k++)
-			if(cfg.sub[usrsub[j][k]]->qwkconf==n)
-				break;
-		if(k<usrsubs[j])
-			break; 
-	}
-
-	if(j>=usrgrps) {
-		if(n<1000) {			 /* version 1 method, start at 101 */
-			j=n/100;
-			k=n-(j*100); 
-		}
-		else {					 /* version 2 method, start at 1001 */
-			j=n/1000;
-			k=n-(j*1000); 
-		}
-		j--;	/* j is group */
-		k--;	/* k is sub */
-		if(j>=usrgrps || k>=usrsubs[j] || cfg.sub[usrsub[j][k]]->qwkconf)
-			return INVALID_SUB;
-	}
-
-	return usrsub[j][k];
-}
-
-/****************************************************************************/
 /* Unpacks .REP packet, 'repname' is the path and filename of the packet    */
 /****************************************************************************/
 bool sbbs_t::unpack_rep(char* repfile)
@@ -97,6 +61,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	DIRENT*	dirent;
 	smbmsg_t	msg;
 	str_list_t	headers=NULL;
+	str_list_t	voting=NULL;
 	str_list_t	ip_can=NULL;
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
@@ -157,11 +122,27 @@ bool sbbs_t::unpack_rep(char* repfile)
 		}
 		remove(fname);
 	}
+	SAFEPRINTF(fname,"%sVOTING.DAT",cfg.temp_dir);
+	if(fexistcase(fname)) {
+		if(useron.rest&FLAG('V'))
+			bputs(text[R_Voting]);
+		else {
+			FILE* fp;
+			set_qwk_flag(QWK_VOTING);
+			if((fp=fopen(fname,"r")) == NULL)
+				errormsg(WHERE,ERR_OPEN,fname,0);
+			else {
+				voting=iniReadFile(fp);
+				fclose(fp);
+			}
+		}
+		remove(fname);
+	}
 
 	fread(block,QWK_BLOCK_LEN,1,rep);
 	if(strnicmp((char *)block,cfg.sys_id,strlen(cfg.sys_id))) {
-		if(headers!=NULL)
-			iniFreeStringList(headers);
+		iniFreeStringList(headers);
+		iniFreeStringList(voting);
 		fclose(rep);
 		bputs(text[QWKReplyNotReceived]);
 		logline(LOG_NOTICE,"U!",AttemptedToUploadREPpacket);
@@ -203,6 +184,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 		sprintf(tmp,"%.6s",block+116);
 		blocks=atoi(tmp);  /* i = number of blocks */
 		if(blocks<2) {
+			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
+				qwk_voting(voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias);
+				continue;
+			}
 			SAFEPRINTF3(str,"%s blocks (read '%s' at offset %ld)", msg_fname, tmp, l);
 			errormsg(WHERE,ERR_CHK,str,blocks);
 			blocks=1;
@@ -539,7 +524,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 	update_qwkroute(NULL);			/* Write ROUTE.DAT */
 
+	smb_freemsgmem(&msg);
+
 	iniFreeStringList(headers);
+	iniFreeStringList(voting);
 
 	strListFree(&ip_can);
 	strListFree(&host_can);
@@ -553,7 +541,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	/* QWKE support */
 	SAFEPRINTF(fname,"%sTODOOR.EXT",cfg.temp_dir);
 	if(fexistcase(fname)) {
-		useron.qwk|=QWK_EXT;
+		set_qwk_flag(QWK_EXT);
 		FILE* fp=fopen(fname,"r");
 		char* p;
 		if(fp!=NULL) {
