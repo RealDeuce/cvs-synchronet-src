@@ -1,7 +1,8 @@
+/* sbbsecho.c */
+
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.31 2017/03/06 20:48:02 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: sbbsecho.c,v 3.25 2016/11/18 09:58:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,9 +46,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#if defined(__unix__)
-	#include <signal.h>
-#endif
 
 #include "conwrap.h"		/* getch() */
 #include "sbbs.h"			/* load_cfg() */
@@ -559,40 +557,11 @@ const char* fmsghdr_destaddr_str(const fmsghdr_t* hdr)
 	return smb_faddrtoa(&addr, buf);
 }
 
-bool parse_origin(const char* fmsgbuf, fmsghdr_t* hdr)
-{
-	char* p;
-	fidoaddr_t origaddr;
-	
-	if((p = strstr(fmsgbuf, FIDO_ORIGIN_PREFIX_FORM_1)) == NULL)
-		p = strstr(fmsgbuf, FIDO_ORIGIN_PREFIX_FORM_2);
-	if(p == NULL)
-		return false;
-
-	p += FIDO_ORIGIN_PREFIX_LEN;
-	p = strrchr(p, '(');
-	if(p == NULL)
-		return false;
-	p++;
-	origaddr = atofaddr(p);
-	if(origaddr.zone == 0 
-		|| origaddr.zone == 0xffff
-		|| origaddr.net == 0xffff
-		|| origaddr.node == 0xffff
-		|| origaddr.point == 0xffff)
-		return false;
-	hdr->origzone	= origaddr.zone;
-	hdr->orignet	= origaddr.net;
-	hdr->orignode	= origaddr.node;
-	hdr->origpoint	= origaddr.point;
-	return true;
-}
-
 bool parse_pkthdr(const fpkthdr_t* hdr, fidoaddr_t* orig_addr, fidoaddr_t* dest_addr, enum pkt_type* pkt_type)
 {
 	fidoaddr_t	orig;
 	fidoaddr_t	dest;
-	enum pkt_type type = PKT_TYPE_2;
+	enum pkt_type type = PKT_TYPE_2_0;
 
 	if(hdr->type2.pkttype != 2)
 		return false;
@@ -607,17 +576,13 @@ bool parse_pkthdr(const fpkthdr_t* hdr, fidoaddr_t* orig_addr, fidoaddr_t* dest_
 	dest.node	= hdr->type2.destnode;
 	dest.point	= 0;				/* No point info in the 2.0 hdr! */
 
-	if(hdr->type2plus.cword == BYTE_SWAP_16(hdr->type2plus.cwcopy)  /* 2e Packet Header (FSC-39) */
-		&& (hdr->type2plus.cword&1)) {	/* Some call this a Type-2+ packet, but it's not (yet) FSC-48 conforming */
-		type = PKT_TYPE_2_EXT;
-		orig.point = hdr->type2plus.origpoint;
+	if(hdr->type2plus.cword == BYTE_SWAP_16(hdr->type2plus.cwcopy)  /* 2+ Packet Header (FSC-39) */
+		&& (hdr->type2plus.cword&1)) {
+		type = PKT_TYPE_2_PLUS;
 		dest.point = hdr->type2plus.destpoint;
-		if(orig.zone == 0) orig.zone = hdr->type2plus.origzone;
-		if(dest.zone == 0) dest.zone = hdr->type2plus.destzone;
-		if(hdr->type2plus.auxnet != 0) {	/* strictly speaking, auxnet may be 0 and a valid 2+ packet */
-			type = PKT_TYPE_2_PLUS;
-			if(orig.point != 0 && orig.net == 0xffff) 	/* see FSC-0048 for details */
-				orig.net = hdr->type2plus.auxnet;
+		if(hdr->type2plus.origpoint!=0 && orig.net == 0xffff) {	/* see FSC-0048 for details */
+			orig.net = hdr->type2plus.auxnet;
+			orig.point = hdr->type2plus.origpoint;
 		}
 	} else if(hdr->type2_2.subversion==2) {					/* Type 2.2 Packet Header (FSC-45) */
 		type = PKT_TYPE_2_2;
@@ -637,7 +602,7 @@ bool parse_pkthdr(const fpkthdr_t* hdr, fidoaddr_t* orig_addr, fidoaddr_t* dest_
 
 bool new_pkthdr(fpkthdr_t* hdr, fidoaddr_t orig, fidoaddr_t dest, const nodecfg_t* nodecfg)
 {
-	enum pkt_type pkt_type = PKT_TYPE_2;
+	enum pkt_type pkt_type = PKT_TYPE_2_0;
 	struct tm* tm;
 	time_t now = time(NULL);
 
@@ -669,7 +634,7 @@ bool new_pkthdr(fpkthdr_t* hdr, fidoaddr_t orig, fidoaddr_t dest, const nodecfg_
 	if(nodecfg != NULL && nodecfg->pktpwd[0] != 0)
 		strncpy((char*)hdr->type2.password, nodecfg->pktpwd, sizeof(hdr->type2.password));
 
-	if(pkt_type == PKT_TYPE_2)
+	if(pkt_type == PKT_TYPE_2_0)
 		return true;
 
 	if(pkt_type == PKT_TYPE_2_2) {
@@ -679,16 +644,15 @@ bool new_pkthdr(fpkthdr_t* hdr, fidoaddr_t orig, fidoaddr_t dest, const nodecfg_
 		return true;
 	}
 	
-	/* 2e and 2+ */
-	if(pkt_type != PKT_TYPE_2_EXT && pkt_type != PKT_TYPE_2_PLUS) {
+	/* 2+ */
+	if(pkt_type != PKT_TYPE_2_PLUS) {
 		lprintf(LOG_ERR, "UNSUPPORTED PACKET TYPE: %u", pkt_type);
 		return false;
 	}
 
-	if(pkt_type == PKT_TYPE_2_PLUS) {
-		if(orig.point != 0)
-			hdr->type2plus.orignet	= 0xffff;
-		hdr->type2plus.auxnet	= orig.net; /* Squish always copies the orignet here */
+	if(orig.point != 0) {
+		hdr->type2plus.orignet	= 0xffff;
+		hdr->type2plus.auxnet	= orig.net; 
 	}
 	hdr->type2plus.cword		= 0x0001;
 	hdr->type2plus.cwcopy		= 0x0100;
@@ -904,16 +868,15 @@ bool area_is_valid(uint areanum)
 	return areanum < cfg.areas;
 }
 
-/* Returns subnum (INVALID_SUB if pass-through) or SUB_NOT_FOUND */
-#define SUB_NOT_FOUND ((uint)-2)
+/* Returns subnum */
 uint find_linked_area(const char* echotag, fidoaddr_t addr)
 {
 	unsigned area;
 
 	if(area_is_valid(area = find_area(echotag)) && area_is_linked(area, &addr))
-		return cfg.area[area].sub;
+			return cfg.area[area].sub;
 
-	return SUB_NOT_FOUND;
+	return INVALID_SUB;
 }
 
 /******************************************************************************
@@ -1030,7 +993,7 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 								tp=p;
 								FIND_WHITESPACE(tp);
 								*tp=0;
-								if(find_linked_area(p, addr) == SUB_NOT_FOUND) {
+								if(find_linked_area(p, addr) == INVALID_SUB) {
 									if(strListFind(area_list, p, /* case_sensitive */false) < 0)
 										strListPush(&area_list, p);
 								}
@@ -1526,10 +1489,8 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		char* p = instr + 7;
 		SKIP_WHITESPACE(p);
 		int subnum = find_linked_area(p, addr);
-		if(subnum == SUB_NOT_FOUND)
+		if(subnum == INVALID_SUB)
 			SAFEPRINTF(str, "Echo-tag '%s' not linked or not found.", p);
-		else if(subnum == INVALID_SUB)
-			SAFEPRINTF(str, "Connected area '%s' is pass-through: cannot be rescanned", p);
 		else {
 			export_echomail(scfg.sub[subnum]->code, nodecfg, true);
 			SAFEPRINTF(str, "Connected area '%s' has been rescanned.", p);
@@ -2665,7 +2626,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		return IMPORT_FAILURE; 
 	}
 
-	for(col=0,l=0,esc=0,done=0,bodylen=0,taillen=0,cr=1;l<length;l++) {
+	for(col=l=esc=done=bodylen=taillen=0,cr=1;l<length;l++) {
 
 		if(!l && !strncmp((char *)fbuf,"AREA:",5)) {
 			save=l;
@@ -3235,9 +3196,9 @@ void gen_psb(addrlist_t *seenbys, addrlist_t *paths, const char *inbuf, uint16_t
 
 	if(!inbuf)
 		return;
-	fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_1);
+	fbuf=strstr((char *)inbuf,"\r * Origin: ");
 	if(!fbuf)
-		fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_2);
+		fbuf=strstr((char *)inbuf,"\n * Origin: ");
 	if(!fbuf)
 		fbuf=inbuf;
 	FREE_AND_NULL(seenbys->addr);
@@ -3394,9 +3355,7 @@ void strip_psb(char *inbuf)
 
 	if(!inbuf)
 		return;
-	fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_1);
-	if(!fbuf)
-		fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_2);
+	fbuf=strstr((char *)inbuf,"\r * Origin: ");
 	if(!fbuf)
 		fbuf=inbuf;
 	if((p=strstr((char *)fbuf,"\rSEEN-BY:"))!=NULL)
@@ -3504,11 +3463,6 @@ void pkt_to_pkt(const char *fbuf, area_t area, const fidoaddr_t* faddr
 			continue;
 		if(check_psb(&seenbys, area.link[u]))
 			continue;
-		if(fmsghdr.origzone == area.link[u].zone
-			&& fmsghdr.orignet == area.link[u].net
-			&& fmsghdr.orignode == area.link[u].node
-			&& fmsghdr.origpoint == area.link[u].point)
-			continue;	/* Don't loop messages back to originator */
 		nodecfg_t* nodecfg = findnodecfg(&cfg, area.link[u],0);
 		if(nodecfg != NULL && nodecfg->passive)
 			continue;
@@ -4794,10 +4748,6 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 				} 
 			}
 
-			if(!parse_origin(fmsgbuf, &hdr))
-				lprintf(LOG_WARNING, "%s: Failed to parse Origin Line in message from %s (%s) in packet from %s: %s"
-					,areatag, hdr.from, fmsghdr_srcaddr_str(&hdr), smb_faddrtoa(&pkt_orig,NULL), packet);
-
 			if(cfg.secure_echomail && cfg.area[i].sub!=INVALID_SUB) {
 				if(!area_is_linked(i,&pkt_orig)) {
 					lprintf(LOG_WARNING, "%s: Security violation - %s not in AREAS.BBS"
@@ -4999,7 +4949,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.31 $", "%*s %s", revision);
+	sscanf("$Revision: 3.25 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5144,7 +5094,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, "ERROR %d (%s) reading %s\n", errno, strerror(errno), cfg.cfgfile);
 		bail(1);
 	}
-
 	if(!sbbsecho_read_ftn_domains(&cfg, scfg.ctrl_dir)) {
 		fprintf(stderr, "ERROR %d (%s) reading %sftn_domains.ini\n", errno, strerror(errno), scfg.ctrl_dir);
 		bail(1);
@@ -5154,10 +5103,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Invalid node address: %s\n", argv[i]);
 		bail(1);
 	}
-
-#if defined(__unix__)
-	umask(cfg.umask);
-#endif
 
 	if((fidologfile=fopen(cfg.logfile,"a"))==NULL) {
 		fprintf(stderr,"ERROR %u (%s) line %d opening %s\n",errno,strerror(errno),__LINE__,cfg.logfile);
@@ -5181,7 +5126,6 @@ int main(int argc, char **argv)
 
 	truncsp(cmdline);
 	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
-	lprintf(LOG_DEBUG, "%u packers, %u linked-nodes, %u echolists configured", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
 
 	SAFEPRINTF(path,"%ssbbsecho.bsy", scfg.ctrl_dir);
 	if(!fmutex(path, program_id(), cfg.bsy_timeout)) {
@@ -5193,7 +5137,6 @@ int main(int argc, char **argv)
 
 	/******* READ IN AREAS.BBS FILE *********/
 
-	fexistcase(cfg.areafile);
 	printf("Reading %s",cfg.areafile);
 	if((stream=fopen(cfg.areafile,"r"))==NULL) {
 		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.areafile);
