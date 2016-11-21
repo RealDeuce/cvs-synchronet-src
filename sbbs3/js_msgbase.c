@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.206 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.204 2016/11/21 10:03:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@ typedef struct
 
 } privatemsg_t;
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 /* Destructor */
 
@@ -2464,7 +2464,6 @@ js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	char*		name;
 	uint16_t	votes;
-	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	
@@ -2479,14 +2478,10 @@ js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
 	if(!JS_ValueToInt32(cx, argv[0], &msgnum))
 		return JS_FALSE;
 
-	JSVALUE_TO_MSTRING(cx, argv[1], name, NULL)
-	HANDLE_PENDING(cx);
-	if(name==NULL)
-		return JS_TRUE;
+	if((name = (char*)JS_GetStringCharsZ(cx, JSVAL_TO_STRING(argv[1]))) == NULL)
+		return JS_FALSE;
 
-	rc=JS_SUSPENDREQUEST(cx);
 	votes = smb_voted_already(&(p->smb), msgnum, name, NET_NONE, NULL);
-	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL(votes));
 
