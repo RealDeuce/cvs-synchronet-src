@@ -1,8 +1,6 @@
-/* con_out.cpp */
-
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.72 2016/11/16 05:41:07 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.73 2016/11/16 11:05:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -631,7 +629,7 @@ int sbbs_t::backfill(const char* str, float pct)
 
 	len = strlen(str);
 	for(int i=0; i<len; i++) {
-		if(((float)i / len)*100.0 <= pct)
+		if(((float)(i+1) / len)*100.0 <= pct)
 			atr = cfg.color[clr_backfill];
 		else
 			atr = cfg.color[clr_unfill];
