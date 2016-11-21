@@ -1,7 +1,8 @@
+/* mailsrvr.h */
+
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.79 2017/08/26 01:57:24 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: mailsrvr.h,v 1.77 2016/05/18 10:15:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,7 +91,6 @@ typedef struct {
 	/* Paths */
     char    ctrl_dir[128];
 	char    temp_dir[128];
-	char	ini_fname[128];
 
 	/* Strings */
     char	dns_server[128];
@@ -101,8 +101,6 @@ typedef struct {
 	char	outbound_sound[128];
     char	pop3_sound[128];
 	char	default_charset[128];
-	char	newmail_notice[256];
-	char	forward_notice[256];
 
 	/* Misc */
     char	host_name[128];
