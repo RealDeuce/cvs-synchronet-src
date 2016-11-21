@@ -1,8 +1,6 @@
-/* scfglib1.c */
-
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.67 2015/11/27 11:17:53 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.70 2016/11/15 22:00:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
