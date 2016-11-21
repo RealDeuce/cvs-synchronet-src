@@ -1,6 +1,6 @@
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.173 2016/11/16 09:05:39 rswindell Exp $ */
+/* $Id: userdat.c,v 1.174 2016/11/17 23:54:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -418,6 +418,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	memset(userdat, 0, sizeof(userdat));
 	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
 		close(file);
+		user->number = 0;
 		return retval;
 	}
 	retval = parseuserdat(cfg, userdat, user);
@@ -431,9 +432,14 @@ int DLLCALL fgetuserdat(scfg_t* cfg, user_t *user, int file)
 	int		retval;
 	char	userdat[U_LEN+1];
 
+	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
+		return(-1); 
+
 	memset(userdat, 0, sizeof(userdat));
-	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0)
+	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
+		user->number = 0;
 		return retval;
+	}
 	return parseuserdat(cfg, userdat, user);
 }
 
