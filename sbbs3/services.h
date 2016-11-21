@@ -1,6 +1,8 @@
+/* services.h */
+
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.44 2016/11/28 02:59:08 rswindell Exp $ */
+/* $Id: services.h,v 1.43 2016/05/18 10:15:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +70,6 @@ typedef struct {
 	char    temp_dir[128];
 	char	answer_sound[128];
 	char	hangup_sound[128];
-	char	ini_fname[128];
 
 	/* Misc */
     char	host_name[128];
