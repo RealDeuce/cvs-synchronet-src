@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.428 2016/11/19 11:04:15 sbbs Exp $ */
+/* $Id: ftpsrvr.c,v 1.429 2016/11/21 05:43:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2426,7 +2426,7 @@ static void ctrl_thread(void* arg)
 		if(banned) {
 			char ban_duration[128];
 			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,sock, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+				,sock, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 		} else
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
 		sockprintf(sock,"550 Access denied.");
@@ -4740,7 +4740,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.428 $", "%*s %s", revision);
+	sscanf("$Revision: 1.429 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

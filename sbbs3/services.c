@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.296 2016/11/19 11:04:15 sbbs Exp $ */
+/* $Id: services.c,v 1.297 2016/11/21 05:44:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.296 $", "%*s %s", revision);
+	sscanf("$Revision: 1.297 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -2106,7 +2106,7 @@ void DLLCALL services_thread(void* arg)
 						if(banned) {
 							char ban_duration[128];
 							lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-								,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+								,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 						} else
 							lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
 								,client_socket, service[i].protocol, host_ip);

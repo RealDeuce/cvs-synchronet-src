@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.642 2016/11/20 20:26:05 rswindell Exp $ */
+/* $Id: main.cpp,v 1.643 2016/11/21 05:44:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5131,7 +5131,7 @@ NO_SSH:
 			if(banned) {
 				char ban_duration[128];
 				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-					,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+					,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 			} else
 				lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip);
 			SSH_END();

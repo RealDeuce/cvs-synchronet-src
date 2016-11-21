@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.640 2016/11/19 11:04:15 sbbs Exp $ */
+/* $Id: websrvr.c,v 1.641 2016/11/21 05:44:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6253,7 +6253,7 @@ void http_session_thread(void* arg)
 		if(banned) {
 			char ban_duration[128];
 			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,session.socket, session.host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+				,session.socket, session.host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 		} else
 			lprintf(LOG_NOTICE, "%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		close_session_socket(&session);
@@ -6482,7 +6482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.640 $", "%*s %s", revision);
+	sscanf("$Revision: 1.641 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

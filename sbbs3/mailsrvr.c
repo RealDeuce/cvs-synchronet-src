@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.600 2016/11/19 11:04:15 sbbs Exp $ */
+/* $Id: mailsrvr.c,v 1.601 2016/11/21 05:44:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -858,7 +858,7 @@ static void pop3_thread(void* arg)
 		if(banned) {
 			char ban_duration[128];
 			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+				,socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 		}
 		else
 			lprintf(LOG_NOTICE,"%04d !POP3 CLIENT IP ADDRESS BLOCKED: %s",socket, host_ip);
@@ -2567,7 +2567,7 @@ static void smtp_thread(void* arg)
 		if(banned) {
 			char ban_duration[128];
 			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+				,socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 			mail_close_socket(socket);
 			thread_down();
 			protected_uint32_adjust(&active_clients, -1);
@@ -5131,7 +5131,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.600 $", "%*s %s", revision);
+	sscanf("$Revision: 1.601 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
