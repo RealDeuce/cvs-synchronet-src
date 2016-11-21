@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.93 2016/11/18 10:37:26 sbbs Exp $ */
+/* $Id: smbdefs.h,v 1.94 2016/11/21 09:25:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -631,6 +631,7 @@ typedef struct {				/* Message */
 	uint32_t	priority;		/* Message priority (0 is lowest) */
 	uint32_t	cost;			/* Cost to download/read */
 	uint32_t	flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
+	uint16_t	user_voted;		/* How the current user viewing this message, voted on it */
 	uint32_t	upvotes;		/* Vote tally for this message */
 	uint32_t	downvotes;		/* Vote tally for this message */
 	uint32_t	total_votes;	/* Total votes for this message or poll */
