@@ -1,7 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.64 2016/11/27 23:13:05 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: getmsg.cpp,v 1.60 2016/11/21 09:03:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,7 +118,7 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 /****************************************************************************/
 /* Displays a message header to the screen                                  */
 /****************************************************************************/
-void sbbs_t::show_msghdr(smbmsg_t* msg)
+void sbbs_t::show_msghdr(smbmsg_t* msg, uint16_t votes)
 {
 	char	str[MAX_PATH+1];
 	char	age[64];
@@ -156,10 +155,8 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 			bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str)); 
 	}
 	if(!(msg->hdr.attr&MSG_POLL) && (msg->upvotes || msg->downvotes))
-		bprintf(text[MsgVotes]
-			,msg->upvotes, msg->user_voted==1 ? text[PollAnswerChecked] : nulstr
-			,msg->downvotes, msg->user_voted==2 ? text[PollAnswerChecked] : nulstr
-			,msg->upvotes - msg->downvotes);
+		bprintf(text[MsgVotes], msg->upvotes, votes==1 ? text[PollAnswerChecked] : nulstr
+			,msg->downvotes, votes==2 ? text[PollAnswerChecked] : nulstr, msg->upvotes - msg->downvotes);
 	bprintf(text[MsgDate]
 		,timestr(msg->hdr.when_written.time)
 		,smb_zonestr(msg->hdr.when_written.zone,NULL)
@@ -177,6 +174,14 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	CRLF;
 }
 
+ulong sbbs_t::total_votes(post_t* post)
+{
+	ulong total = 0;
+	for(int i = 0; i < MSG_POLL_MAX_ANSWERS; i++)
+		total += post->votes[i];
+	return total;
+}
+
 /****************************************************************************/
 /* Displays message header and text (if not deleted)                        */
 /****************************************************************************/
@@ -184,12 +189,14 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 {
 	char*	txt;
 
-	if((msg->hdr.type == SMB_MSG_TYPE_NORMAL && post != NULL && (post->upvotes || post->downvotes))
+	uint16_t votes = 0;
+	
+	if((msg->hdr.type == SMB_MSG_TYPE_NORMAL && (post->upvotes || post->downvotes))
 		|| msg->hdr.type == SMB_MSG_TYPE_POLL)
-		msg->user_voted = smb_voted_already(&smb, msg->hdr.number
+		votes = smb_voted_already(&smb, msg->hdr.number
 					,cfg.sub[smb.subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL);
 
-	show_msghdr(msg);
+	show_msghdr(msg, votes);
 
 	if(msg->hdr.type == SMB_MSG_TYPE_POLL && post != NULL && smb.subnum < cfg.total_subs) {
 		char* answer;
@@ -217,7 +224,8 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 			if(msg->hfield[i].type != SMB_POLL_ANSWER)
 				continue;
 			answer = (char*)msg->hfield_dat[i];
-			float pct = post->total_votes ? ((float)post->votes[answers] / post->total_votes)*100.0F : 0.0F;
+			ulong total = total_votes(post);
+			float pct = total ? ((float)post->votes[answers] / total)*100.0F : 0.0F;
 			char str[128];
 			int width = longest_answer;
 			if(width < cols/3) width = cols/3;
@@ -233,21 +241,21 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 			else if((msg->hdr.auxattr&POLL_RESULTS_MASK) == POLL_RESULTS_CLOSED)
 				results_visible = (msg->hdr.auxattr&POLL_CLOSED) ? true : false;
 			else if((msg->hdr.auxattr&POLL_RESULTS_MASK) != POLL_RESULTS_SECRET)
-				results_visible = msg->user_voted ? true : false;
+				results_visible = votes ? true : false;
 			if(results_visible) {
 				safe_snprintf(str, sizeof(str), text[PollAnswerFmt]
 					,width, width, answer, post->votes[answers], pct);
-				backfill(str, pct, cfg.color[clr_votes_full], cfg.color[clr_votes_empty]);
-				if(msg->user_voted&(1<<answers))
+				backfill(str, pct);
+				if(votes&(1<<answers))
 					bputs(text[PollAnswerChecked]);
 			} else {
-				attr(cfg.color[clr_votes_empty]);
+				attr(cfg.color[clr_unfill]);
 				bputs(answer);
 			}
 			CRLF;
 			answers++;
 		}
-		if(!msg->user_voted && !(useron.misc&EXPERT) && !(msg->hdr.auxattr&POLL_CLOSED) && !(useron.rest&FLAG('V')))
+		if(!votes && !(useron.misc&EXPERT) && !(msg->hdr.auxattr&POLL_CLOSED) && !(useron.rest&FLAG('V')))
 			mnemonics("\r\nTo vote in this poll, hit ~V now.\r\n");
 		return;
 	}
