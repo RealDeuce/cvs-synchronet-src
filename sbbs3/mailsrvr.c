@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.603 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.601 2016/11/21 05:44:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3354,18 +3354,11 @@ static void smtp_thread(void* arg)
 									break;
 							}
 						if(!newmsg.idx.to || i<=scfg.sys_nodes) {
-							p=sender_addr;
-							if(stricmp(sender, sender_addr) == 0) {
-								if((p = strchr(sender_addr, '@')) == NULL)
-									p = sender_addr;
-								else
-									p++;
-							}
 							safe_snprintf(str,sizeof(str)
-								,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you \1h\1we-mail\1n\1m from: "
+								,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you e-mail from: "
 								"\1h%s\1n\r\n"
 								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
-								,sender, p);
+								,sender,sender_addr);
 							if(!newmsg.idx.to) {	/* Forwarding */
 								strcat(str,"\1mand it was automatically forwarded to: \1h");
 								strcat(str,rcpt_addr);
@@ -5138,7 +5131,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.603 $", "%*s %s", revision);
+	sscanf("$Revision: 1.601 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5395,7 +5388,6 @@ void DLLCALL mail_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","mail");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","mail");
-		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mailproc_ini);
