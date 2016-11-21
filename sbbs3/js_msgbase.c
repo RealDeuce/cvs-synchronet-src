@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.199 2016/11/16 05:45:53 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.203 2016/11/21 08:58:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -956,7 +956,7 @@ js_get_msg_index(JSContext *cx, uintN argc, jsval *arglist)
 	JS_DefineProperty(cx, idxobj, "number"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	if(msg.idx.attr&MSG_VOTE) {
+	if(msg.idx.attr&MSG_VOTE && !(msg.idx.attr&MSG_POLL)) {
 		val=UINT_TO_JSVAL(msg.idx.votes);
 		JS_DefineProperty(cx, idxobj, "votes"	,val
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -1169,6 +1169,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER("times_downloaded", p->msg.hdr.times_downloaded, JSPROP_ENUMERATE);
 	LAZY_UINTEGER("data_length", smb_getmsgdatlen(&(p->msg)), JSPROP_ENUMERATE);
 	LAZY_STRING("date", msgdate((p->msg).hdr.when_written,date), JSPROP_ENUMERATE);
+	LAZY_UINTEGER("votes", p->msg.hdr.votes, JSPROP_ENUMERATE);
 
 	if(name==NULL || strcmp(name,"reply_id")==0) {
 		if(name) free(name);
@@ -1242,6 +1243,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 			for(i=0;i<(p->msg).total_hfields;i++) {
 				switch((p->msg).hfield[i].type) {
 					case SMB_COMMENT:
+					case SMB_POLL_ANSWER:
 					case SMB_CARBONCOPY:
 					case SMB_GROUP:
 					case FILEATTACH:
@@ -1607,7 +1609,7 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_TRUE;
 		}
 		post[off].idx = msg.idx;
-		if(msg.idx.attr&MSG_VOTE) {
+		if(msg.idx.attr&MSG_VOTE && !(msg.idx.attr&MSG_POLL)) {
 			ulong u;
 			for(u = 0; u < off; u++)
 				if(post[u].idx.number == msg.idx.remsg)
@@ -2424,15 +2426,8 @@ js_add_poll(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(parse_header_object(cx, p, hdr, &msg, FALSE)) {
 
-		if(msg.hdr.when_imported.time == 0) {
-			msg.hdr.when_imported.time = time32(NULL);
-			msg.hdr.when_imported.zone = sys_timezone(scfg);
-		}
-		if(msg.hdr.when_written.time == 0)
-			msg.hdr.when_written = msg.hdr.when_imported;
-
 		rc=JS_SUSPENDREQUEST(cx);
-		if((p->status=smb_addpoll(&(p->smb), &msg, smb_storage_mode(scfg, &(p->smb)))) == SMB_SUCCESS) {
+		if((p->status=postpoll(scfg, &(p->smb), &msg)) == SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
 			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 		}
@@ -2447,6 +2442,40 @@ js_add_poll(JSContext *cx, uintN argc, jsval *arglist)
 
 	return ret;
 }
+
+static JSBool
+js_get_user_votes(JSContext *cx, uintN argc, jsval *arglist)
+{
+	JSObject*	obj=JS_THIS_OBJECT(cx, arglist);
+	jsval*		argv=JS_ARGV(cx, arglist);
+	int32		msgnum;
+	private_t*	p;
+	char*		name;
+	uint16_t	votes;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return JS_FALSE;
+	}
+
+	if(!SMB_IS_OPEN(&(p->smb)))
+		return JS_TRUE;
+
+	if(!JS_ValueToInt32(cx, argv[0], &msgnum))
+		return JS_FALSE;
+
+	if((name = (char*)JS_GetStringCharsZ(cx, JSVAL_TO_STRING(argv[1]))) == NULL)
+		return JS_FALSE;
+
+	votes = smb_voted_already(&(p->smb), msgnum, name, NET_NONE, NULL);
+
+	JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL(votes));
+
+	return JS_TRUE;
+}
+
 
 
 /* MsgBase Object Properties */
@@ -2785,6 +2814,10 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>from_net_addr</tt><td>Sender's network address"
 	"</table>"
 	)
+	,317
+	},
+	{"get_user_votes",		js_get_user_votes,		2, JSTYPE_NUMBER,	JSDOCSTR("message number, user name or alias")
+	,JSDOCSTR("Returns 0 for no votes, 1 for an up-vote, 2 for a down-vote, or in the case of a poll-response: a bit-field of votes.")
 	,317
 	},
 
