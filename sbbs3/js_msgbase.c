@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.200 2016/11/19 22:51:51 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.201 2016/11/21 04:20:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1242,6 +1242,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 			for(i=0;i<(p->msg).total_hfields;i++) {
 				switch((p->msg).hfield[i].type) {
 					case SMB_COMMENT:
+					case SMB_POLL_ANSWER:
 					case SMB_CARBONCOPY:
 					case SMB_GROUP:
 					case FILEATTACH:
