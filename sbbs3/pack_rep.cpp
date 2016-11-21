@@ -1,6 +1,6 @@
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.46 2017/10/23 03:38:59 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.44 2016/11/20 11:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,18 +93,17 @@ bool sbbs_t::pack_rep(uint hubnum)
 	}
 	fseek(rep,0L,SEEK_END);
 
-	if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) {
-		SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
-		fexistcase(str);
-		if((hdrs=fopen(str,"a"))==NULL)
-			errormsg(WHERE,ERR_CREATE,str,0);
-	}
-	if(!(cfg.qhub[hubnum]->misc&QHUB_NOVOTING)) {
-		SAFEPRINTF(str,"%sVOTING.DAT",cfg.temp_dir);
-		fexistcase(str);
-		if((voting=fopen(str,"a"))==NULL)
-			errormsg(WHERE,ERR_CREATE,str,0);
-	}
+	/* Always includes HEADERS.DAT in .REP packets which are only for QWKnet hubs */
+	/* And *usually* a Synchronet system */
+	SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
+	fexistcase(str);
+	if((hdrs=fopen(str,"a"))==NULL)
+		errormsg(WHERE,ERR_CREATE,str,0);
+	SAFEPRINTF(str,"%sVOTING.DAT",cfg.temp_dir);
+	fexistcase(str);
+	if((voting=fopen(str,"a"))==NULL)
+		errormsg(WHERE,ERR_CREATE,str,0);
+
 	/*********************/
 	/* Pack new messages */
 	/*********************/
@@ -148,11 +147,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue; 
 			}
 
-			mode = QM_TO_QNET|QM_REP;
-			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT|QHUB_CTRL_A));
-			/* For an unclear reason, kludge lines (including @VIA and @TZ) were not included in NetMail previously */
-			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
-			msgtoqwk(&msg, rep, mode, INVALID_SUB, 0, hdrs);
+			msgtoqwk(&msg,rep,QM_TO_QNET|QM_REP|A_LEAVE,INVALID_SUB,0,hdrs);
 			packedmail++;
 			smb_unlockmsghdr(&smb,&msg);
 			smb_freemsgmem(&msg); 
@@ -165,7 +160,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 		free(mail);
 
 	for(i=0;i<cfg.qhub[hubnum]->subs;i++) {
-		j=cfg.qhub[hubnum]->sub[i]->subnum; 			/* j now equals the real sub num */
+		j=cfg.qhub[hubnum]->sub[i]; 			/* j now equals the real sub num */
 		msgs=getlastmsg(j,&last,0);
 		lncntr=0;						/* defeat pause */
 		if(!msgs || last<=subscan[j].ptr) {
@@ -222,9 +217,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue; 
 			}
 
-			mode = cfg.qhub[hubnum]->mode[i]|QM_TO_QNET|QM_REP;
-			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT|QHUB_CTRL_A));
-			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
+			mode=cfg.qhub[hubnum]->mode[i]|QM_TO_QNET|QM_REP;
+			if(mode&A_LEAVE) mode|=(QM_VIA|QM_TZ|QM_MSGID);
 			if(msg.from_net.type!=NET_QWK)
 				mode|=QM_TAGLINE;
 
