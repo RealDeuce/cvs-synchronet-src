@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.103 2015/08/22 05:29:08 deuce Exp $
+# $Id: Common.gmake,v 1.104 2015/09/02 08:04:45 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -193,6 +193,7 @@ BUILDPATH	?=	$(BUILD)
 gcc_machine		:= $(shell ${CC} -dumpmachine)
 ifeq ($(gcc_machine),mingw32)
  os		:= Win32
+ CFLAGS	+=	-DMSVCRT_VERSION=0x0800
 endif
 
 # Get OS

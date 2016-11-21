@@ -1,8 +1,6 @@
-/* smblib.c */
-
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.149 2015/07/15 23:43:31 rswindell Exp $ */
+/* $Id: smblib.c,v 1.160 2016/11/21 09:20:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -649,6 +647,63 @@ int SMBCALL smb_getlastidx(smb_t* smb, idxrec_t *idx)
 }
 
 /****************************************************************************/
+/* Finds index of last message imported at or after specified time			*/
+/****************************************************************************/
+int	SMBCALL	smb_getmsgidx_by_time(smb_t* smb, idxrec_t* idx, time_t t)
+{
+    int     i;
+	ulong	l,total,bot,top;
+
+	if(idx == NULL)
+		return SMB_FAILURE;
+
+	memset(idx, 0, sizeof(idxrec_t));
+
+	if(t <= 0)
+		return SMB_FAILURE;
+
+	total = filelength(fileno(smb->sid_fp))/sizeof(idxrec_t);
+
+	if(!total)	/* Empty base */
+		return SMB_ERR_NOT_FOUND; 
+
+	if((i=smb_locksmbhdr(smb)) != SMB_SUCCESS)
+		return i; 
+
+	if((i=smb_getlastidx(smb,idx)) != SMB_SUCCESS) {
+		smb_unlocksmbhdr(smb);
+		return i;
+	}
+
+	if((time_t)idx->time > t) {
+		bot=0;
+		top=total;
+		l=total/2; /* Start at middle index */
+		clearerr(smb->sid_fp);
+		while(1) {
+			fseek(smb->sid_fp,l*sizeof(idxrec_t),SEEK_SET);
+			if(!fread(idx,sizeof(idxrec_t),1,smb->sid_fp))
+				break;
+			if(bot==top-1)
+				break;
+			if((time_t)idx->time > t) {
+				top=l;
+				l=bot+((top-bot)/2);
+				continue; 
+			}
+			if((time_t)idx->time < t) {
+				bot=l;
+				l=top-((top-bot)/2);
+				continue; 
+			}
+			break; 
+		}
+	}
+	smb_unlocksmbhdr(smb);
+	return SMB_SUCCESS;
+}
+
+/****************************************************************************/
 /* Figures out the total length of the header record for 'msg'              */
 /* Returns length 															*/
 /****************************************************************************/
@@ -692,16 +747,22 @@ ulong SMBCALL smb_getmsgtxtlen(smbmsg_t* msg)
 	int i;
 	ulong length=0L;
 
-	for(i=0;i<msg->total_hfields;i++)
-		if(msg->hfield[i].type==SMB_COMMENT || msg->hfield[i].type==SMTPSYSMSG)
+	for(i=0;i<msg->total_hfields;i++) {
+		switch(msg->hfield[i].type) {
+		case SMB_COMMENT:
+		case SMTPSYSMSG:
+		case SMB_POLL_ANSWER:
 			length+=msg->hfield[i].length+2;
+			break;
+		}
+	}
 	for(i=0;i<msg->hdr.total_dfields;i++)
 		if(msg->dfield[i].type==TEXT_BODY || msg->dfield[i].type==TEXT_TAIL)
 			length+=msg->dfield[i].length;
 	return(length);
 }
 
-static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_dat)
+static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfield_dat)
 {
 	switch(hfield_type) {	/* convenience variables */
 		case AUTHOR:
@@ -717,7 +778,7 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 			break;
 		case SENDERAGENT:
 			if(!msg->forwarded)
-				msg->from_agent=*(ushort *)hfield_dat;
+				msg->from_agent=*(uint16_t *)hfield_dat;
 			break;
 		case SENDEREXT:
 			if(!msg->forwarded)
@@ -729,7 +790,7 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 			break;
 		case SENDERNETTYPE:
 			if(!msg->forwarded)
-				msg->from_net.type=*(ushort *)hfield_dat;
+				msg->from_net.type=*(uint16_t *)hfield_dat;
 			break;
 		case SENDERNETADDR:
 			if(!msg->forwarded)
@@ -751,10 +812,10 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 			msg->replyto_ext=(char*)hfield_dat;
 			break;
 		case REPLYTOAGENT:
-			msg->replyto_agent=*(ushort *)hfield_dat;
+			msg->replyto_agent=*(uint16_t *)hfield_dat;
 			break;
 		case REPLYTONETTYPE:
-			msg->replyto_net.type=*(ushort *)hfield_dat;
+			msg->replyto_net.type=*(uint16_t *)hfield_dat;
 			break;
 		case REPLYTONETADDR:
 			msg->replyto_net.addr=(char*)hfield_dat;
@@ -766,10 +827,10 @@ static void set_convenience_ptr(smbmsg_t* msg, ushort hfield_type, void* hfield_
 			msg->to_ext=(char*)hfield_dat;
 			break;
 		case RECIPIENTAGENT:
-			msg->to_agent=*(ushort *)hfield_dat;
+			msg->to_agent=*(uint16_t *)hfield_dat;
 			break;
 		case RECIPIENTNETTYPE:
-			msg->to_net.type=*(ushort *)hfield_dat;
+			msg->to_net.type=*(uint16_t *)hfield_dat;
 			break;
 		case RECIPIENTNETADDR:
 			msg->to_net.addr=(char*)hfield_dat;
@@ -868,7 +929,7 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 {
 	void	*vp,**vpp;
-	ushort	i;
+	uint16_t	i;
 	ulong	l,offset;
 	idxrec_t idx;
 
@@ -1007,7 +1068,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 /****************************************************************************/
 void SMBCALL smb_freemsghdrmem(smbmsg_t* msg)
 {
-	ushort	i;
+	uint16_t	i;
 
 	for(i=0;i<msg->total_hfields;i++)
 		if(msg->hfield_dat[i]) {
@@ -1114,7 +1175,7 @@ int SMBCALL smb_unlockmsghdr(smb_t* smb, smbmsg_t* msg)
 /****************************************************************************/
 /* Adds a header field to the 'msg' structure (in memory only)              */
 /****************************************************************************/
-int SMBCALL smb_hfield_add(smbmsg_t* msg, ushort type, size_t length, void* data, BOOL insert)
+int SMBCALL smb_hfield_add(smbmsg_t* msg, uint16_t type, size_t length, void* data, BOOL insert)
 {
 	void**		vpp;
 	hfield_t*	hp;
@@ -1175,35 +1236,60 @@ int	SMBCALL smb_hfield_add_list(smbmsg_t* msg, hfield_t** hfield_list, void** hf
 /****************************************************************************/
 /* Convenience function to add an ASCIIZ string header field				*/
 /****************************************************************************/
-int SMBCALL smb_hfield_add_str(smbmsg_t* msg, ushort type, const char* str, BOOL insert)
+int SMBCALL smb_hfield_add_str(smbmsg_t* msg, uint16_t type, const char* str, BOOL insert)
 {
 	return smb_hfield_add(msg, type, str==NULL ? 0:strlen(str), (void*)str, insert);
 }
 
 /****************************************************************************/
-/* Convenience function to add an ASCIIZ string header field				*/
+/* Convenience function to a network address header field to msg			*/
+/* Pass NULL for net_type to have the auto-detected net_type hfield	added	*/
+/* as well.																	*/
 /****************************************************************************/
-int	SMBCALL smb_hfield_add_netaddr(smbmsg_t* msg, ushort type, const char* str, ushort* nettype, BOOL insert)
+int	SMBCALL smb_hfield_add_netaddr(smbmsg_t* msg, uint16_t type, const char* addr, uint16_t* net_type, BOOL insert)
 {
+	int			result;
 	fidoaddr_t	sys_addr = {0,0,0,0};	/* replace unspecified fields with 0 (don't assume 1:1/1) */
 	fidoaddr_t	fidoaddr;
-	ushort		tmp_nettype=NET_UNKNOWN;
+	uint16_t	tmp_net_type=NET_UNKNOWN;
 
-	if(nettype==NULL)
-		nettype=&tmp_nettype;
-	if(*nettype==NET_UNKNOWN)
-		*nettype=smb_netaddr_type(str);
-	if(*nettype==NET_FIDO) {
-		fidoaddr=smb_atofaddr(&sys_addr,str);
-		return smb_hfield_add(msg,type,sizeof(fidoaddr),&fidoaddr,insert);
-	} else
-		return smb_hfield_add_str(msg,type,str,insert);
+	if(addr == NULL)
+		return SMB_ERR_HDR_FIELD;
+	SKIP_WHITESPACE(addr);
+	if(net_type==NULL)
+		net_type=&tmp_net_type;
+	if(*net_type==NET_UNKNOWN) {
+		*net_type=smb_netaddr_type(addr);
+		if(*net_type==NET_NONE)
+			return SMB_ERR_NOT_FOUND;
+	}
+	if(*net_type!=NET_INTERNET) {	/* Only Internet net-addresses are allowed to have '@' in them */
+		const char* p = strchr(addr, '@');
+		if(p != NULL) {
+			p++;
+			SKIP_WHITESPACE(p);
+			if(*p == 0)
+				return SMB_ERR_NOT_FOUND;;
+			addr = p;
+		}
+	}
+	if(*net_type==NET_FIDO) {
+		fidoaddr=smb_atofaddr(&sys_addr,addr);
+		result = smb_hfield_add(msg,type,sizeof(fidoaddr),&fidoaddr,insert);
+	} else {
+		result = smb_hfield_add_str(msg,type,addr,insert);
+	}
+	if(result==SMB_SUCCESS && net_type == &tmp_net_type) {
+		// *NETTYPE is always *NETADDR-1
+		result = smb_hfield_add(msg,type-1,sizeof(*net_type),net_type,insert);
+	}
+	return result;
 }
 
 /****************************************************************************/
 /* Appends data to an existing header field (in memory only)				*/
 /****************************************************************************/
-int SMBCALL smb_hfield_append(smbmsg_t* msg, ushort type, size_t length, void* data)
+int SMBCALL smb_hfield_append(smbmsg_t* msg, uint16_t type, size_t length, void* data)
 {
 	int		i;
 	BYTE*	p;
@@ -1240,7 +1326,7 @@ int SMBCALL smb_hfield_append(smbmsg_t* msg, ushort type, size_t length, void* d
 /****************************************************************************/
 /* Appends data to an existing ASCIIZ header field (in memory only)			*/
 /****************************************************************************/
-int SMBCALL smb_hfield_append_str(smbmsg_t* msg, ushort type, const char* str)
+int SMBCALL smb_hfield_append_str(smbmsg_t* msg, uint16_t type, const char* str)
 {
 	return smb_hfield_append(msg, type, str==NULL ? 0:strlen(str), (void*)str);
 }
@@ -1248,7 +1334,7 @@ int SMBCALL smb_hfield_append_str(smbmsg_t* msg, ushort type, const char* str)
 /****************************************************************************/
 /* Replaces an header field value (in memory only)							*/
 /****************************************************************************/
-int SMBCALL smb_hfield_replace(smbmsg_t* msg, ushort type, size_t length, void* data)
+int SMBCALL smb_hfield_replace(smbmsg_t* msg, uint16_t type, size_t length, void* data)
 {
 	int		i;
 	void*	p;
@@ -1278,7 +1364,7 @@ int SMBCALL smb_hfield_replace(smbmsg_t* msg, ushort type, size_t length, void* 
 /****************************************************************************/
 /* Replace an existing ASCIIZ header field value (in memory only)			*/
 /****************************************************************************/
-int SMBCALL smb_hfield_replace_str(smbmsg_t* msg, ushort type, const char* str)
+int SMBCALL smb_hfield_replace_str(smbmsg_t* msg, uint16_t type, const char* str)
 {
 	return smb_hfield_replace(msg, type, str==NULL ? 0:strlen(str), (void*)str);
 }
@@ -1286,7 +1372,7 @@ int SMBCALL smb_hfield_replace_str(smbmsg_t* msg, ushort type, const char* str)
 /****************************************************************************/
 /* Searches for a specific header field (by type) and returns it			*/
 /****************************************************************************/
-void* SMBCALL smb_get_hfield(smbmsg_t* msg, ushort type, hfield_t* hfield)
+void* SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t* hfield)
 {
 	int i;
 
@@ -1305,7 +1391,7 @@ void* SMBCALL smb_get_hfield(smbmsg_t* msg, ushort type, hfield_t* hfield)
 /* Automatically figures out the offset into the data buffer from existing	*/
 /* dfield lengths															*/
 /****************************************************************************/
-int SMBCALL smb_dfield(smbmsg_t* msg, ushort type, ulong length)
+int SMBCALL smb_dfield(smbmsg_t* msg, uint16_t type, ulong length)
 {
 	dfield_t* dp;
 	int i,j;
@@ -1474,7 +1560,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 
 	if(msg->hdr.version==0)
 		msg->hdr.version=SMB_VERSION;
-	msg->hdr.length=(ushort)hdrlen;
+	msg->hdr.length=(uint16_t)hdrlen;
 	if(storage==SMB_HYPERALLOC)
 		l=smb_hallochdr(smb);
 	else if(storage==SMB_FASTALLOC)
@@ -1556,6 +1642,9 @@ int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
 			msg->idx.from=atoi(msg->from_ext);
 		else
 			msg->idx.from=0; 
+	} else if(msg->hdr.type == SMB_MSG_TYPE_BALLOT) {
+		msg->idx.votes = msg->hdr.votes;
+		msg->idx.remsg = msg->hdr.thread_back;
 	} else {
 		msg->idx.to=smb_name_crc(msg->to);
 		msg->idx.from=smb_name_crc(msg->from);
@@ -1567,6 +1656,66 @@ int SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg)
 	msg->idx.time	= msg->hdr.when_imported.time;
 
 	return(SMB_SUCCESS);
+}
+
+BOOL SMBCALL smb_msg_is_from(smbmsg_t* msg, const char* name, enum smb_net_type net_type, const void* net_addr)
+{
+	if(stricmp(msg->from, name) != 0)
+		return FALSE;
+
+	if(msg->from_net.type != net_type)
+		return FALSE;
+
+	switch(net_type) {
+		case NET_NONE:
+			return TRUE;
+		case NET_FIDO:
+			return memcmp(msg->from_net.addr, net_addr, sizeof(fidoaddr_t)) == 0;
+		default:
+			return stricmp(msg->from_net.addr, net_addr) == 0;
+	}
+}
+
+
+uint16_t SMBCALL smb_voted_already(smb_t* smb, uint32_t msgnum, const char* name, enum smb_net_type net_type, void* net_addr)
+{
+	uint16_t votes = 0;
+	smbmsg_t msg;
+
+	if(smb->sid_fp==NULL) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "index not open");
+		return SMB_ERR_NOT_OPEN;
+	}
+	clearerr(smb->sid_fp);
+	if(fseek(smb->sid_fp,0,SEEK_SET)) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error)
+			,"%d '%s' seeking to beginning of index file"
+			,get_errno(), STRERROR(get_errno()));
+		return SMB_ERR_SEEK;
+	}
+	while(!votes && smb_fread(smb, &msg.idx, sizeof(msg.idx), smb->sid_fp) == sizeof(msg.idx)) {
+		if(!(msg.idx.attr&MSG_VOTE) || msg.idx.attr&MSG_POLL)
+			continue;
+		if(msg.idx.remsg != msgnum)
+			continue;
+		if(smb_getmsghdr(smb, &msg) != SMB_SUCCESS)
+			continue;
+		if(smb_msg_is_from(&msg, name, net_type, net_addr)) {
+			switch(msg.idx.attr&MSG_VOTE) {
+			case MSG_VOTE:
+				votes = msg.hdr.votes;
+				break;
+			case MSG_UPVOTE:
+				votes = 1;
+				break;
+			case MSG_DOWNVOTE:
+				votes = 2;
+				break;
+			}
+		}
+		smb_freemsgmem(&msg);
+	}
+	return votes;
 }
 
 /****************************************************************************/
@@ -1616,7 +1765,7 @@ int SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg)
 /****************************************************************************/
 int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 {
-	ushort	i;
+	uint16_t	i;
 	ulong	hdrlen;
 
 	if(smb->shd_fp==NULL) {
@@ -1650,7 +1799,7 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 			,msg->hdr.length, smb_hdrblocks(msg->hdr.length));
 		return(SMB_ERR_HDR_LEN);
 	}
-	msg->hdr.length=(ushort)hdrlen; /* store the actual header length */
+	msg->hdr.length=(uint16_t)hdrlen; /* store the actual header length */
 	/**********************************/
 	/* Set the message header ID here */
 	/**********************************/
@@ -1780,9 +1929,9 @@ ulong SMBCALL smb_hdrblocks(ulong length)
 }
 
 /****************************************************************************/
-/* Returns difference from specified timezone and UTC/GMT					*/
+/* Returns difference from specified timezone and UTC/GMT (in minutes)		*/
 /****************************************************************************/
-int SMBCALL smb_tzutc(short zone)
+int SMBCALL smb_tzutc(int16_t zone)
 {
 	int tz;
 
@@ -1817,6 +1966,7 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 			return(retval);
 
 		remsg->hdr.thread_first=newmsgnum;
+		remsg->hdr.attr |= MSG_REPLIED;
 		retval=smb_putmsghdr(smb,remsg);
 		smb_unlockmsghdr(smb,remsg);
 		return(retval);
@@ -1826,7 +1976,7 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 	memset(&nextmsg,0,sizeof(nextmsg));
 	nextmsgnum=remsg->hdr.thread_first;	/* start with first reply */
 
-	while(1) {
+	while(nextmsgnum > nextmsg.hdr.number) {
 		nextmsg.idx.offset=0;
 		nextmsg.hdr.number=nextmsgnum;
 		if(smb_getmsgidx(smb, &nextmsg)!=SMB_SUCCESS) /* invalid thread origin */
