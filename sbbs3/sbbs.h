@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.441 2016/11/21 09:30:16 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.442 2016/11/21 10:03:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -648,7 +648,6 @@ public:
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
-	ulong	total_votes(post_t* post);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int sent);
