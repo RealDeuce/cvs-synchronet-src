@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.365 2016/11/29 20:24:23 rswindell Exp $ */
+/* $Id: js_global.c,v 1.364 2016/11/19 11:04:15 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2415,11 +2415,6 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 
 		if(strcmp(token,"hellip")==0) {	/* horizontal ellipsis  */
 			j+=sprintf(outbuf+j,"...");
-			continue;
-		}
-
-		if(strcmp(token,"bull")==0) {	/* bullet  */
-			outbuf[j++] = 249;
 			continue;
 		}
 

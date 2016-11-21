@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.13 2017/03/01 05:25:38 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.12 2016/08/03 07:24:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,10 +221,9 @@ void get_default_echocfg(sbbsecho_cfg_t* cfg)
 	cfg->use_ftn_domains			= false;
 	cfg->strict_packet_passwords	= true;
 	cfg->relay_filtered_msgs		= false;
-	cfg->umask						= 077;
 }
 
-char* pktTypeStringList[] = {"2+", "2e", "2.2", "2", NULL};		// Must match enum pkt_type
+char* pktTypeStringList[] = {"2+", "2.2", "2", NULL};
 char* mailStatusStringList[] = {"Normal", "Hold", "Crash", NULL};
 
 bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
@@ -261,7 +260,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->use_ftn_domains		= iniGetBool(ini, ROOT_SECTION, "UseFTNDomains", cfg->use_ftn_domains);
 	cfg->strict_packet_passwords= iniGetBool(ini, ROOT_SECTION, "StrictPacketPasswords", cfg->strict_packet_passwords);
 	cfg->relay_filtered_msgs	= iniGetBool(ini, ROOT_SECTION, "RelayFilteredMsgs", cfg->relay_filtered_msgs);
-	cfg->umask					= iniGetInteger(ini, ROOT_SECTION, "umask", cfg->umask);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
