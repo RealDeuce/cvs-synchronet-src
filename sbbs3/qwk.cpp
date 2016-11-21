@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.80 2017/08/14 10:03:00 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.77 2016/11/20 20:23:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,7 @@ bool route_circ(char *via, char *id)
 
 extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr, size_t maxlen)
 {
-	char node[64],str[256],path[MAX_PATH+1],*p;
+	char node[10],str[256],path[MAX_PATH+1],*p;
 	int file,i;
 	FILE *stream;
 
@@ -138,9 +138,6 @@ extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr
 
 	p=strchr(node,' ');
 	if(p) *p=0;
-
-	if(strlen(node) > LEN_QWKID)
-		return 0;
 
 	SAFEPRINTF(path,"%sqnet/route.dat",cfg->data_dir);
 	if((stream=fnopen(&file,path,O_RDONLY))==NULL)
@@ -1051,7 +1048,7 @@ bool sbbs_t::qwk_voting(str_list_t* ini, long offset, smb_net_type_t net_type, c
 	int found;
 	str_list_t section_list = iniGetSectionList(*ini, /* prefix: */NULL);
 	
-	sprintf(location, "%lx", offset);
+	sprintf(location, "[%lx]", offset);
 	if((found = strListFind(section_list, location, /* case_sensitive: */FALSE)) < 0) {
 		strListFree(&section_list);
 		return false;
@@ -1072,7 +1069,7 @@ void sbbs_t::qwk_handle_remaining_votes(str_list_t* ini, smb_net_type_t net_type
 {
 	str_list_t section_list = iniGetSectionList(*ini, /* prefix: */NULL);
 
-	for(int i=0; section_list != NULL && section_list[i] != NULL; i++)
+	for(int i=0; section_list[i] != NULL; i++)
 		qwk_vote(*ini, section_list[i], net_type, qnet_id, hubnum);
 	strListFree(&section_list);
 }
@@ -1145,8 +1142,8 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 	if(strnicmp(section, "poll:", 5) == 0) {
 
 		smb_hfield_str(&msg, RFC822MSGID, section + 5);
-		msg.hdr.votes = iniGetShortInt(ini, section, "MaxVotes", 0);
-		ulong results = iniGetLongInt(ini, section, "Results", 0);
+		msg.hdr.votes = iniGetShortInt(ini, section, "votes", 0);
+		ulong results = iniGetLongInt(ini, section, "results", 0);
 		msg.hdr.auxattr = (results << POLL_RESULTS_SHIFT) & POLL_RESULTS_MASK;
 		for(int i=0;;i++) {
 			char str[128];
@@ -1170,6 +1167,7 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 	else if(strnicmp(section, "vote:", 5) == 0) {
 		const char* notice = NULL;
 
+		ZERO_VAR(msg);
 		smb_hfield_str(&msg, RFC822MSGID, section + 5);
 		if(iniGetBool(ini, section, "upvote", FALSE)) {
 			msg.hdr.attr = MSG_UPVOTE;
