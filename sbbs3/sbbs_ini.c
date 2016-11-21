@@ -1,8 +1,7 @@
-/* sbbs_ini.c */
-
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.150 2016/05/18 10:15:12 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.153 2016/11/19 10:13:37 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,7 +195,7 @@ static struct login_attempt_settings get_login_attempt_settings(str_list_t list,
 	settings.throttle			=iniGetInteger(list,section,strLoginAttemptThrottle			,global == NULL ? 1000 : global->login_attempt.throttle);
 	settings.hack_threshold		=iniGetInteger(list,section,strLoginAttemptHackThreshold	,global == NULL ? 10 : global->login_attempt.hack_threshold);
 	settings.tempban_threshold	=iniGetInteger(list,section,strLoginAttemptTempBanThreshold	,global == NULL ? 20 : global->login_attempt.tempban_threshold);
-	settings.tempban_duration	=iniGetInteger(list,section,strLoginAttemptTempBanDuration	,global == NULL ? (10*60) : global->login_attempt.tempban_duration);
+	settings.tempban_duration	=(ulong)iniGetDuration(list,section,strLoginAttemptTempBanDuration	,global == NULL ? (10*60) : global->login_attempt.tempban_duration);
 	settings.filter_threshold	=iniGetInteger(list,section,strLoginAttemptFilterThreshold	,global == NULL ? 0 : global->login_attempt.filter_threshold);
 	return settings;
 }
@@ -207,7 +206,7 @@ static void set_login_attempt_settings(str_list_t* lp, const char* section, stru
 	iniSetInteger(lp,section,strLoginAttemptThrottle,settings.throttle,&style);
 	iniSetInteger(lp,section,strLoginAttemptHackThreshold,settings.hack_threshold,&style);
 	iniSetInteger(lp,section,strLoginAttemptTempBanThreshold,settings.tempban_threshold,&style);
-	iniSetInteger(lp,section,strLoginAttemptTempBanDuration,settings.tempban_duration,&style);
+	iniSetDuration(lp,section,strLoginAttemptTempBanDuration,settings.tempban_duration,&style);
 	iniSetInteger(lp,section,strLoginAttemptFilterThreshold,settings.filter_threshold,&style);
 }
 
@@ -234,7 +233,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	if(*p)
         SAFECOPY(global->host_name,value);
 
-	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,0);
+	global->sem_chk_freq=iniGetShortInt(list,section,strSemFileCheckFrequency,DEFAULT_SEM_CHK_FREQ);
 	iniFreeStringList(global->interfaces);
 	global->interfaces=iniGetStringList(list,section,strInterfaces, ",", "0.0.0.0,::");
 	global->outgoing4.s_addr=iniGetIpAddress(list,section,strOutgoing4,0);

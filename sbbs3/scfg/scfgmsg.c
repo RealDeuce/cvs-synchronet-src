@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.44 2015/11/27 11:18:51 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.45 2016/06/30 22:43:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -460,16 +460,20 @@ while(1) {
 						continue;
 					ported++;
 					if(k==1) {		/* AREAS.BBS SBBSecho */
-						fprintf(stream,"%s%-30s %-20s %s\r\n"
+						char extcode[LEN_EXTCODE+1];
+						SAFEPRINTF2(extcode,"%s%s"
 							,cfg.grp[cfg.sub[j]->grp]->code_prefix
-							,cfg.sub[j]->code_suffix
-							,stou(cfg.sub[j]->sname)
+							,cfg.sub[j]->code_suffix);
+
+						fprintf(stream,"%-*s %-*s %s\r\n"
+							,LEN_EXTCODE, extcode
+							,FIDO_AREATAG_LEN, stou(cfg.sub[j]->sname)
 							,str2);
 						continue; 
 					}
 					if(k==2) {		/* FIDONET.NA */
-						fprintf(stream,"%-20s %s\r\n"
-							,stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
+						fprintf(stream,"%-*s %s\r\n"
+							,FIDO_AREATAG_LEN, stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
 						continue; 
 					}
 					fprintf(stream,"%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
