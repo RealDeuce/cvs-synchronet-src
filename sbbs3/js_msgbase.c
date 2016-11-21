@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.201 2016/11/21 04:20:13 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.202 2016/11/21 05:49:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1169,6 +1169,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER("times_downloaded", p->msg.hdr.times_downloaded, JSPROP_ENUMERATE);
 	LAZY_UINTEGER("data_length", smb_getmsgdatlen(&(p->msg)), JSPROP_ENUMERATE);
 	LAZY_STRING("date", msgdate((p->msg).hdr.when_written,date), JSPROP_ENUMERATE);
+	LAZY_UINTEGER("votes", p->msg.hdr.votes, JSPROP_ENUMERATE);
 
 	if(name==NULL || strcmp(name,"reply_id")==0) {
 		if(name) free(name);
