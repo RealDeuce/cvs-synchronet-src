@@ -2,13 +2,13 @@
 
 /* Synchronet client information to share with SBBSCTRL */
 
-/* $Id: client.h,v 1.8 2015/08/20 05:19:40 deuce Exp $ */
+/* $Id: client.h,v 1.9 2015/08/26 06:54:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,9 +45,9 @@
 /* Used for sbbsctrl->client window */
 typedef struct {
 	size_t		size;		/* size of this struct */
-	char		addr[INET6_ADDRSTRLEN];	/* IP address */
+	char		addr[128];	/* IP address */
 	char		host[256];	/* host name */
-	WORD		port;		/* TCP port number */
+	uint16_t	port;		/* TCP port number */
 	time32_t	time;		/* connect time */
 	const char*	protocol;	/* protocol description */
 	const char*	user;		/* user name */
