@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.47 2016/11/20 11:18:55 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.48 2016/11/22 07:56:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,6 +98,14 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 			fprintf(voting, "%s: %s\n",smb_hfieldtype(SUBJECT), msg->subj);
 		if((p = get_replyid(&cfg, &smb, msg, reply_id, sizeof(reply_id))) != NULL)
 			fprintf(voting, "%s: %s\n", smb_hfieldtype(RFC822REPLYID), p);
+		/* Time/Date/Zone info */
+		fprintf(voting,"WhenWritten:  %-20s %04hx\n"
+			,xpDateTime_to_isoDateTimeStr(
+				time_to_xpDateTime(msg->hdr.when_written.time,smb_tzutc(msg->hdr.when_written.zone))
+				,/* separators: */"","","", /* precision: */0
+				,str,sizeof(str))
+			,msg->hdr.when_written.zone
+			);
 
 		/* SENDER */
 		fprintf(voting, "%s: %s\n", smb_hfieldtype(SENDER), msg->from);
