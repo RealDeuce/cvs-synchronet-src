@@ -1,7 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.80 2016/11/24 02:56:34 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: smblib.h,v 1.79 2016/11/18 09:52:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
