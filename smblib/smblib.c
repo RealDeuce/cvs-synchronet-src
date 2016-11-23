@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.160 2016/11/21 09:20:19 rswindell Exp $ */
+/* $Id: smblib.c,v 1.161 2016/11/23 07:35:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1966,8 +1966,8 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 			return(retval);
 
 		remsg->hdr.thread_first=newmsgnum;
-		remsg->hdr.attr |= MSG_REPLIED;
-		retval=smb_putmsghdr(smb,remsg);
+		remsg->idx.attr = (remsg->hdr.attr |= MSG_REPLIED);
+		retval=smb_putmsg(smb,remsg);
 		smb_unlockmsghdr(smb,remsg);
 		return(retval);
 	}
