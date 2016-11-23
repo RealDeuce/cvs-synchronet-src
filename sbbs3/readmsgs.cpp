@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.90 2016/11/21 10:03:05 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.91 2016/11/23 07:40:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,6 +168,8 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 		bprintf("%-16.16s %lu\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
 	if(msg->hdr.last_downloaded)
 		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr(msg->hdr.last_downloaded));
+	if(msg->hdr.votes)
+		bprintf("%-16.16s %hu\r\n"	,"votes"			,msg->hdr.votes);
 
 	/* convenience integers */
 	if(msg->expiration)
@@ -838,14 +840,17 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				if(!(msg.hdr.attr&MSG_DELETE) && msg.hdr.type == SMB_MSG_TYPE_POLL 
 					&& smb_msg_is_from(&msg, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL)
 					&& !(msg.hdr.auxattr&POLL_CLOSED)) {
-					if(noyes("Close Poll")) {
-						domsg=false;
+					if(!noyes("Close Poll")) {
+						i=closepoll(&cfg, &smb, msg.hdr.number, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
+						if(i != SMB_SUCCESS)
+							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 						break;
 					}
-					i=closepoll(&cfg, &smb, msg.hdr.number, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
-					if(i != SMB_SUCCESS)
-						errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-					break;
+					SAFEPRINTF(str, text[DeleteTextFileQ], "Poll");
+					if(!yesno(str)) {
+						domsg=0;
+						break;
+					}
 				}
 				domsg=0;
 				if(!sub_op(subnum)) {
