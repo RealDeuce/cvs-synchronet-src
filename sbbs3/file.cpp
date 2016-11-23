@@ -1,7 +1,8 @@
+/* file.cpp */
+
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.31 2017/06/03 23:29:03 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: file.cpp,v 1.30 2015/05/13 00:11:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +45,7 @@ void sbbs_t::fileinfo(file_t* f)
 	char	ext[513];
 	char 	tmp[512];
 	char	path[MAX_PATH+1];
-	char	fname[MAX_PATH+1];
+	char	fpath[MAX_PATH+1];
 	uint	i,j;
 
 	for(i=0;i<usrlibs;i++)
@@ -57,9 +58,11 @@ void sbbs_t::fileinfo(file_t* f)
 	getfilepath(&cfg,f,path);
 	bprintf(text[FiLib],i+1,cfg.lib[cfg.dir[f->dir]->lib]->lname);
 	bprintf(text[FiDir],j+1,cfg.dir[f->dir]->lname);
-	bprintf(text[FiFilename],unpadfname(f->name, fname));
-	if(strcmp(getfname(path),fname) && strcmp(f->desc,getfname(path)))	/* Different "actual" filename */
-		bprintf(text[FiFilename],getfname(path));
+	bprintf(text[FiFilename],getfname(path));
+	SAFECOPY(fpath,path);
+	fexistcase(fpath);
+	if(strcmp(path,fpath) && strcmp(f->desc,getfname(fpath)))	/* Different "actual" filename */
+		bprintf(text[FiFilename],getfname(fpath));
 
 	if(f->size!=-1L)
 		bprintf(text[FiFileSize],ultoac(f->size,tmp));
@@ -92,7 +95,7 @@ void sbbs_t::fileinfo(file_t* f)
 	if(f->size==-1L) {
 		bprintf(text[FileIsNotOnline],f->name);
 		if(SYSOP)
-			bprintf("%s\r\n",path);
+			bprintf("%s\r\n",fpath);
 	}
 	if(f->opencount)
 		bprintf(text[FileIsOpen],f->opencount,f->opencount>1 ? "s" : nulstr);
