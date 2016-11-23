@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.91 2016/11/23 07:40:34 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.92 2016/11/23 21:02:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -450,7 +450,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 		return(0); 
 	}
-	msg.total_hfields=0;				/* init to NULL, specify not-allocated */
+	ZERO_VAR(msg);				/* init to NULL, specify not-allocated */
 	if(!(mode&SCAN_CONST))
 		lncntr=0;
 	if((msgs=getlastmsg(subnum,&last,0))==0) {
