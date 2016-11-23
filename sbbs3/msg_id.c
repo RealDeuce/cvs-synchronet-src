@@ -1,6 +1,6 @@
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.8 2016/11/23 04:26:34 rswindell Exp $ */
+/* $Id: msg_id.c,v 1.9 2016/11/23 04:27:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +132,6 @@ char* DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, si
 
 char* DLLCALL get_replyid(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen)
 {
-	char* replyid;
 	smbmsg_t remsg;
 
 	if(msg->reply_id)
