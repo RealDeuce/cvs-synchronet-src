@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.649 2018/02/15 18:17:54 deuce Exp $ */
+/* $Id: websrvr.c,v 1.641 2016/11/21 05:44:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -91,7 +91,7 @@ static const char*	error_404="404 Not Found";
 static const char*	error_416="416 Requested Range Not Satisfiable";
 static const char*	error_500="500 Internal Server Error";
 static const char*	error_503="503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
-static const char*	unknown=STR_UNKNOWN_USER;
+static const char*	unknown="<unknown>";
 static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
@@ -558,21 +558,15 @@ static int writebuf(http_session_t	*session, const char *buf, size_t len)
 	return(sent);
 }
 
-#define HANDLE_CRYPT_CALL(status, session)  handle_crypt_call_except2(status, session, CRYPT_OK, CRYPT_OK, __FILE__, __LINE__)
-#define HANDLE_CRYPT_CALL_EXCEPT(status, ignore, session)  handle_crypt_call_except2(status, session, ignore, ignore, __FILE__, __LINE__)
-#define HANDLE_CRYPT_CALL_EXCEPT2(status, ignore, ignore2, session)  handle_crypt_call_except2(status, session, ignore, ignore2, __FILE__, __LINE__)
+#define HANDLE_CRYPT_CALL(status, session)  handle_crypt_call(status, session, __FILE__, __LINE__)
 
-static BOOL handle_crypt_call_except2(int status, http_session_t *session, int ignore, int ignore2, const char *file, int line)
+static BOOL handle_crypt_call(int status, http_session_t *session, const char *file, int line)
 {
 	char	*estr = NULL;
 	int		sock = 0;
 
 	if (status == CRYPT_OK)
 		return TRUE;
-	if (status == ignore)
-		return FALSE;
-	if (status == ignore2)
-		return FALSE;
 	if (session != NULL) {
 		if (session->is_tls)
 			estr = get_crypt_error(session->tls_sess);
@@ -635,14 +629,12 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 					status = cryptPushData(session->tls_sess, buf+sent, len-sent, &tls_sent);
 					if (status == CRYPT_ERROR_TIMEOUT) {
 						tls_sent = 0;
-						if(!cryptStatusOK(status=cryptPopData(session->tls_sess, "", 0, &status))) {
-							if (status != CRYPT_ERROR_TIMEOUT && status != CRYPT_ERROR_PARAM2)
-								lprintf(LOG_NOTICE,"%04d Cryptlib error %d popping data after timeout",session->socket, status);
-						}
+						if(!cryptStatusOK(cryptPopData(session->tls_sess, "", 0, &status)))
+							lprintf(LOG_NOTICE,"%04d Cryptlib error popping data after timeout",session->socket);
 						status = CRYPT_OK;
 					}
 					if(!HANDLE_CRYPT_CALL(status, session)) {
-						HANDLE_CRYPT_CALL_EXCEPT(cryptFlushData(session->tls_sess), CRYPT_ERROR_COMPLETE, session);
+						HANDLE_CRYPT_CALL(cryptFlushData(session->tls_sess), session);
 						if (failed)
 							*failed=TRUE;
 						return tls_sent;
@@ -662,6 +654,8 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 #endif
 						else
 							lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",session->socket,ERROR_VALUE);
+						if(failed)
+							*failed=TRUE;
 						return(sent);
 					}
 				}
@@ -916,8 +910,7 @@ static void open_socket(SOCKET sock, void *cbdata)
 	struct accept_filter_arg afa;
 #endif
 
-	if(startup!=NULL && startup->socket_open!=NULL)
-		startup->socket_open(startup->cbdata,TRUE);
+	startup->socket_open(startup->cbdata,TRUE);
 	if (cbdata != NULL && !strcmp(cbdata, "TLS")) {
 		if(set_socket_options(&scfg, sock, "web|http|tls", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
@@ -937,8 +930,7 @@ static void open_socket(SOCKET sock, void *cbdata)
 
 static void close_socket_cb(SOCKET sock, void *cbdata)
 {
-	if(startup!=NULL && startup->socket_open!=NULL)
-		startup->socket_open(startup->cbdata,FALSE);
+	startup->socket_open(startup->cbdata,FALSE);
 	sockets--;
 }
 
@@ -986,21 +978,13 @@ static int close_session_socket(http_session_t *session)
 
 	if (session->is_tls) {
 		// First, wait for the ringbuffer to drain...
-		len = 1;
 		while(RingBufFull(&session->outbuf) && session->socket!=INVALID_SOCKET) {
-			if (len) {
-				if (cryptPopData(session->tls_sess, buf, 1, &len) != CRYPT_OK)
-					len = 0;
-			}
+			HANDLE_CRYPT_CALL(cryptPopData(session->tls_sess, buf, 1, &len), session);
 			SLEEP(1);
 		}
 		// Now wait for tranmission to complete
-		len = 1;
 		while(pthread_mutex_trylock(&session->outbuf_write) == EBUSY) {
-			if (len) {
-				if (cryptPopData(session->tls_sess, buf, 1, &len) != CRYPT_OK)
-					len = 0;
-			}
+			HANDLE_CRYPT_CALL(cryptPopData(session->tls_sess, buf, 1, &len), session);
 			SLEEP(1);
 		}
 		pthread_mutex_unlock(&session->outbuf_write);
@@ -1540,7 +1524,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	lprintf(LOG_DEBUG,"%04d HTTP Logon (user #%d)",session->socket,session->user.number);
 
 	if(session->subscan!=NULL)
-		getmsgptrs(&scfg,&session->user,session->subscan,NULL,NULL);
+		getmsgptrs(&scfg,&session->user,session->subscan);
 
 	session->logon_time=time(NULL);
 	if(session->user.number==0)
@@ -1993,15 +1977,15 @@ static named_string_t** read_ini_list(char* path, char* section, char* desc
 
 static int sess_recv(http_session_t *session, char *buf, size_t length, int flags)
 {
-	int len=0;
-
+	int len;
+	
 	if (session->is_tls) {
 		if (flags == MSG_PEEK) {
 			if (session->peeked_valid) {
 				buf[0] = session->peeked;
 				return 1;
 			}
-			if (HANDLE_CRYPT_CALL_EXCEPT2(cryptPopData(session->tls_sess, &session->peeked, 1, &len), CRYPT_ERROR_TIMEOUT, CRYPT_ERROR_COMPLETE, session)) {
+			if (HANDLE_CRYPT_CALL(cryptPopData(session->tls_sess, &session->peeked, 1, &len), session)) {
 				if (len == 1) {
 					session->peeked_valid = TRUE;
 					buf[0] = session->peeked;
@@ -2017,10 +2001,9 @@ static int sess_recv(http_session_t *session, char *buf, size_t length, int flag
 				session->peeked_valid = FALSE;
 				return 1;
 			}
-			if (HANDLE_CRYPT_CALL_EXCEPT2(cryptPopData(session->tls_sess, buf, length, &len), CRYPT_ERROR_TIMEOUT, CRYPT_ERROR_COMPLETE, session)) {
+			if (HANDLE_CRYPT_CALL(cryptPopData(session->tls_sess, buf, length, &len), session)) {
 				if (len == 0) {
 					session->tls_pending = FALSE;
-					len = -1;
 				}
 				return len;
 			}
@@ -5199,8 +5182,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(startup==NULL || startup->lputs==NULL)
-		return(JS_FALSE);
+    if(startup==NULL || startup->lputs==NULL)
+        return(JS_FALSE);
 
 	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
 		if(!JS_ValueToInt32(cx,argv[i++],&level))
@@ -6211,14 +6194,12 @@ void http_session_thread(void* arg)
 		}
 #endif
 		if (tls_context != -1) {
-			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session);
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &session);
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session);
-		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 1), &session);
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session)) {
 			close_session_no_rb(&session);
 			thread_down();
@@ -6501,7 +6482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.649 $", "%*s %s", revision);
+	sscanf("$Revision: 1.641 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6838,7 +6819,6 @@ void DLLCALL web_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","web");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","web");
-		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%swebsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mime_types_ini);
