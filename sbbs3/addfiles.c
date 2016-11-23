@@ -1,12 +1,14 @@
+/* addfiles.c */
+
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.52 2017/07/07 07:21:38 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.50 2015/08/22 06:55:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -35,7 +37,7 @@
 
 #include "sbbs.h"
 
-#define ADDFILES_VER "3.03"
+#define ADDFILES_VER "3.02"
 
 scfg_t scfg;
 
@@ -219,7 +221,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 	DIRENT*	dirent;
 
 	if(mode&SEARCH_DIR) {
-		SAFECOPY(str,cur_altpath ? scfg.altpath[cur_altpath-1] : scfg.dir[f.dir]->path);
+		strcpy(str,cur_altpath ? scfg.altpath[cur_altpath-1] : scfg.dir[f.dir]->path);
 		printf("Searching %s\n\n",str);
 		dir=opendir(str);
 
@@ -232,7 +234,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 #ifdef _WIN32
 			GetShortPathName(tmp, filepath, sizeof(filepath));
 #else
-			SAFECOPY(filepath,tmp);
+			strcpy(filepath,tmp);
 #endif
 			f.misc=0;
 			f.desc[0]=0;
@@ -327,7 +329,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 	}
 
 
-	SAFECOPY(listpath,inpath);
+	strcpy(listpath,inpath);
 	fexistcase(listpath);
 	if((stream=fopen(listpath,"r"))==NULL) {
 		fprintf(stderr,"Error %d (%s) opening %s\n"
@@ -346,42 +348,29 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		,listpath,scfg.lib[scfg.dir[f.dir]->lib]->sname,scfg.dir[f.dir]->sname);
 
 	fgets(nextline,255,stream);
-	do {
+	while(!feof(stream) && !ferror(stream)) {
 		f.misc=0;
 		f.desc[0]=0;
-		SAFECOPY(curline,nextline);
+		strcpy(curline,nextline);
 		nextline[0]=0;
 		fgets(nextline,255,stream);
 		truncsp(curline);
 		if(curline[0]<=' ' || (mode&ASCII_ONLY && (uchar)curline[0]>=0x7e))
 			continue;
 		printf("%s\n",curline);
-		SAFECOPY(fname,curline);
+		strcpy(fname,curline);
 
-#if 0	/* Files without dots are valid on modern systems */
 		p=strchr(fname,'.');
 		if(!p || p==fname || p>fname+8)    /* no dot or invalid dot location */
 			continue;
-#endif
-		p=strchr(fname,' ');
+		p=strchr(p,' ');
 		if(p) *p=0;
 		else				   /* no space after filename? */
 			continue;
 #if 0
 		strupr(fname);
 #endif
-		SAFECOPY(fname,unpadfname(fname,tmp));
-
-		sprintf(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
-			: scfg.dir[f.dir]->path,fname);
-
-#ifdef _WIN32
-		{
-			char shortpath[MAX_PATH+1];
-			GetShortPathName(filepath, shortpath, sizeof(shortpath));
-			SAFECOPY(fname, getfname(shortpath));
-		}
-#endif
+		strcpy(fname,unpadfname(fname,tmp));
 
 		padfname(fname,f.name);
 		if(strcspn(f.name,"\\/|<>+[]:=\";,")!=strlen(f.name))
@@ -405,6 +394,9 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			} 
 		}
 
+		sprintf(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
+			: scfg.dir[f.dir]->path,fname);
+
 		if(mode&FILE_DATE) {		/* get the file date and put into desc */
 			l=(time32_t)fdate(filepath);
 			unixtodstr(&scfg,l,f.desc);
@@ -419,9 +411,8 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 		if(dskip && strlen(curline)>=dskip) p=curline+dskip;
 		else {
-			p = curline;
-			FIND_WHITESPACE(p);
-			SKIP_WHITESPACE(p); 
+			p++;
+			while(*p==' ') p++; 
 		}
 		SAFECOPY(tmp,p);
 		prep_desc(tmp);
@@ -435,7 +426,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			}
 
 			if(nextline[0]==' ') {
-				SAFECOPY(str,nextline);				   /* tack on to end of desc */
+				strcpy(str,nextline);				   /* tack on to end of desc */
 				p=str+dskip;
 				while(*p>0 && *p<=' ') p++;
 				i=LEN_FDESC-strlen(f.desc);
@@ -470,12 +461,8 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		if(sskip) l=atol(fname+sskip);
 		else {
 			l=flength(filepath);
-			if(l<0L) {
+			if(l<1L) {
 				printf("%s not found.\n",filepath);
-				continue; 
-			} 
-			if(l == 0L) {
-				printf("%s is a zero-0length file.\n",filepath);
 				continue; 
 			} 
 		}
@@ -541,7 +528,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		if(mode&UL_STATS)
 			updatestats(l);
 		files++; 
-	} while(!feof(stream) && !ferror(stream));
+	}
 	fclose(stream);
 	if(mode&DEL_LIST && !(mode&SYNC_LIST)) {
 		printf("\nDeleting %s\n",listpath);
@@ -586,7 +573,7 @@ void synclist(char *inpath, int dirnum)
 	}
 	close(file);
 
-	SAFECOPY(listpath,inpath);
+	strcpy(listpath,inpath);
 	if((stream=fopen(listpath,"r"))==NULL) {
 		sprintf(listpath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 				: scfg.dir[dirnum]->path,inpath);
@@ -688,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.52 $", "%*s %s", revision);
+	sscanf("$Revision: 1.50 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -751,7 +738,7 @@ int main(int argc, char **argv)
 
 	memset(&f,0,sizeof(file_t));
 	f.dir=i;
-	SAFECOPY(f.uler,"-> ADDFILES <-");
+	strcpy(f.uler,"-> ADDFILES <-");
 
 	for(j=2;j<argc;j++) {
 		if(argv[j][0]=='*')     /* set the uploader name (legacy) */
@@ -878,7 +865,7 @@ int main(int argc, char **argv)
 			if(mode&TODAYS_DATE)
 				sprintf(f.desc,"%s  ",unixtodstr(&scfg,time32(NULL),tmp));
 			sprintf(tmp,"%.*s",(int)(LEN_FDESC-strlen(f.desc)),argv[++j]);
-			SAFECOPY(f.desc,tmp);
+			strcpy(f.desc,tmp);
 			l=flength(str);
 			if(l==-1) {
 				printf("%s not found.\n",str);

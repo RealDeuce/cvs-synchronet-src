@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.79 2017/02/21 05:19:26 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.78 2016/11/23 04:22:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,7 @@ bool route_circ(char *via, char *id)
 
 extern "C" int DLLCALL qwk_route(scfg_t* cfg, const char *inaddr, char *fulladdr, size_t maxlen)
 {
-	char node[64],str[256],path[MAX_PATH+1],*p;
+	char node[10],str[256],path[MAX_PATH+1],*p;
 	int file,i;
 	FILE *stream;
 

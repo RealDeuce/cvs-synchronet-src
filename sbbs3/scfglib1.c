@@ -1,6 +1,6 @@
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.72 2016/11/27 22:58:41 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.71 2016/11/23 10:28:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -527,8 +527,6 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		cfg->sub[i]->op_ar=ARSTR(cfg->sub[i]->op_arstr,cfg);
 
 		get_int(cfg->sub[i]->misc,instream);
-		if((cfg->sub[i]->misc&(SUB_FIDO|SUB_INET)) && !(cfg->sub[i]->misc&SUB_QNET))
-			cfg->sub[i]->misc|=SUB_NOVOTING;
 
 		get_str(cfg->sub[i]->tagline,instream);
 		get_str(cfg->sub[i]->origline,instream);
