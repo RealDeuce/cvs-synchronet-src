@@ -1,4 +1,4 @@
-/* $Id: scfgnet.c,v 1.32 2017/10/12 07:06:07 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.31 2016/11/23 10:30:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,9 +183,8 @@ while(1) {
 							,"QWK Network Hubs",opt);
 						if(i==-1)
 							break;
-						int msk = i & MSK_ON;
-						i &= MSK_OFF;
-						if (msk == MSK_INS) {
+						if((i&MSK_ON)==MSK_INS) {
+							i&=MSK_OFF;
 							if((cfg.qhub=(qhub_t **)realloc(cfg.qhub
                                 ,sizeof(qhub_t *)*(cfg.total_qhubs+1)))==NULL) {
                                 errormsg(WHERE,ERR_ALLOC,nulstr
@@ -224,7 +223,8 @@ while(1) {
 							uifc.changes=1;
 							continue; 
 						}
-						if (msk == MSK_DEL) {
+						if((i&MSK_ON)==MSK_DEL) {
+							i&=MSK_OFF;
 							free(cfg.qhub[i]->mode);
 							free(cfg.qhub[i]->conf);
 							free(cfg.qhub[i]->sub);
@@ -328,9 +328,9 @@ while(1) {
 							,"System Addresses",opt);
 						if(i==-1)
 							break;
-						int msk = i & MSK_ON;
-						i &= MSK_OFF;
-						if (msk == MSK_INS) {
+						if((i&MSK_ON)==MSK_INS) {
+							i&=MSK_OFF;
+
 							if(!cfg.total_faddrs)
 								strcpy(str,"1:1/0");
 							else
@@ -356,7 +356,8 @@ while(1) {
 							uifc.changes=1;
 							continue; 
 						}
-						if (msk == MSK_DEL) {
+						if((i&MSK_ON)==MSK_DEL) {
+							i&=MSK_OFF;
 							cfg.total_faddrs--;
 							while(i<cfg.total_faddrs) {
 								cfg.faddr[i]=cfg.faddr[i+1];
@@ -671,9 +672,8 @@ while(1) {
 							,"PostLink Hubs",opt);
 						if(i==-1)
 							break;
-						int msk = i & MSK_ON;
-						i &= MSK_OFF;
-						if (msk == MSK_INS) {
+						if((i&MSK_ON)==MSK_INS) {
+							i&=MSK_OFF;
 							if((cfg.phub=(phub_t **)realloc(cfg.phub
                                 ,sizeof(phub_t *)*(cfg.total_phubs+1)))==NULL) {
                                 errormsg(WHERE,ERR_ALLOC,nulstr
@@ -710,7 +710,8 @@ while(1) {
 							uifc.changes=1;
 							continue; 
 						}
-						if (msk == MSK_DEL) {
+						if((i&MSK_ON)==MSK_DEL) {
+							i&=MSK_OFF;
 							free(cfg.phub[i]);
 							cfg.total_phubs--;
 							while(i<cfg.total_phubs) {

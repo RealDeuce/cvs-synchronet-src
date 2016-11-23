@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.69 2017/07/08 02:41:35 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.67 2016/11/16 05:37:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,8 +331,7 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 	}
 	/* Setup default colors here: */
 	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);
-	cfg->color[clr_votes_full] = WHITE|BG_MAGENTA;
-	cfg->color[clr_progress_full] = CYAN|HIGH|BG_BLUE;
+	cfg->color[clr_backfill] = WHITE|BG_MAGENTA;
 	for(cfg->total_colors=0;!feof(instream) && !ferror(instream);cfg->total_colors++) {
 		if(readline(&offset,str,4,instream)==NULL)
 			break;
@@ -412,7 +411,7 @@ ushort DLLCALL sys_timezone(scfg_t* cfg)
 	time_t	now;
 	struct tm tm;
 
-	if(cfg->sys_misc&SM_AUTO_DST && SMB_TZ_HAS_DST(cfg->sys_timezone)) {
+	if(cfg->sys_misc&SM_AUTO_DST && !OTHER_ZONE(cfg->sys_timezone) && cfg->sys_timezone&US_ZONE) {
 		now=time(NULL);
 		if(localtime_r(&now,&tm)!=NULL) {
 			if(tm.tm_isdst>0)
