@@ -1,14 +1,13 @@
-/* startup.h */
-
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.76 2016/05/18 10:15:13 rswindell Exp $ */
+/* $Id: startup.h,v 1.77 2016/11/19 10:13:37 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -148,6 +147,8 @@ typedef struct {
 	link_list_t* login_attempt_list;
 
 } bbs_startup_t;
+
+#define DEFAULT_SEM_CHK_FREQ	2
 
 /* startup options that requires re-initialization/recycle when changed */
 #define OFFSET_AND_SIZE(s, f)	{ offsetof(s,f), sizeof(((s *)0)->f) }

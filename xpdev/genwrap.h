@@ -1,8 +1,7 @@
-/* genwrap.h */
-
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.108 2016/05/26 08:36:14 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.109 2016/11/19 09:21:37 sbbs Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
