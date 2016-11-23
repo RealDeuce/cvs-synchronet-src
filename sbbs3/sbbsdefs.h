@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.200 2016/11/10 10:06:31 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.204 2016/11/21 10:03:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,6 +332,8 @@ enum {
 	,clr_chatremote
 	,clr_multichat
 	,clr_external
+	,clr_backfill
+	,clr_unfill
 	,MIN_COLORS 
 };
 
@@ -425,7 +427,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_EXT		(1L<<13)		/* QWK Extended (QWKE) format			*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
 #define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
-#define QWK_VOTING	(1L<<17)		/* Include POLLS.DAT and VOTES.DAT		*/
+#define QWK_VOTING	(1L<<17)		/* Include VOTING.DAT					*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
 																			
@@ -999,8 +1001,14 @@ typedef struct {						/* File (transfers) Data */
 typedef struct {
 	idxrec_t	idx;					/* defined in smbdefs.h */
 	uint32_t	num;					/* 1-based offset */
-	uint32_t	upvotes;
-	uint32_t	downvotes;
+	union {
+		struct {
+			uint32_t	upvotes;
+			uint32_t	downvotes;
+		};
+		uint32_t	votes[MSG_POLL_MAX_ANSWERS];
+	};
+	uint32_t	total_votes;
 } post_t;
 typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
