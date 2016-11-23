@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.201 2016/11/13 05:52:32 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.205 2016/11/23 10:28:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,6 +332,8 @@ enum {
 	,clr_chatremote
 	,clr_multichat
 	,clr_external
+	,clr_backfill
+	,clr_unfill
 	,MIN_COLORS 
 };
 
@@ -368,12 +370,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define EVENT_FORCE		(1<<1) 		/* Force users off-line for event		*/
 #define EVENT_INIT		(1<<2)		/* Always run event after init			*/
 #define EVENT_DISABLED	(1<<3)		/* Disabled								*/
-																			
-									/* Mode bits for QWK stuff */			
-#define A_EXPAND		(1<<0)		/* Expand to ANSI sequences */			
-#define A_LEAVE 		(1<<1)		/* Leave in */							
-#define A_STRIP 		(1<<2)		/* Strip out */							
-																			
+
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
 #define XTRN_ANSI		(1<<1)		/* LEGACY (not used)                    */
@@ -428,6 +425,15 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_VOTING	(1L<<17)		/* Include VOTING.DAT					*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
+
+#define QHUB_EXPCTLA	(1<<0)		/* Same as QM_EXPCTLA */
+#define QHUB_RETCTLA	(1<<1)		/* Same as QM_RETCTLA */
+#define QHUB_CTRL_A		(QHUB_EXPCTLA|QHUB_RETCTLA)
+#define QHUB_STRIP		0
+#define QHUB_EXT		(1<<13)		/* Use QWKE format */
+#define QHUB_NOKLUDGES	(1<<14)		/* Don't include @-kludges */
+#define QHUB_NOHEADERS	(1<<16)		/* Don't include HEADERS.DAT */
+#define QHUB_NOVOTING	(1<<17)		/* Don't include VOTING.DAT */
 																			
 							/* Bits in user.chat							*/
 #define CHAT_ECHO	(1<<0)	/* Multinode chat echo							*/
@@ -999,8 +1005,14 @@ typedef struct {						/* File (transfers) Data */
 typedef struct {
 	idxrec_t	idx;					/* defined in smbdefs.h */
 	uint32_t	num;					/* 1-based offset */
-	uint32_t	upvotes;
-	uint32_t	downvotes;
+	union {
+		struct {
+			uint32_t	upvotes;
+			uint32_t	downvotes;
+		};
+		uint32_t	votes[MSG_POLL_MAX_ANSWERS];
+	};
+	uint32_t	total_votes;
 } post_t;
 typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
