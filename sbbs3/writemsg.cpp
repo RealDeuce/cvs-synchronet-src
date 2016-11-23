@@ -1,8 +1,6 @@
-/* writemsg.cpp */
-
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.112 2015/12/04 10:06:05 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.114 2016/11/23 07:37:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1537,48 +1535,51 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 	return(true);
 }
 
-ushort sbbs_t::chmsgattr(ushort attr)
+ushort sbbs_t::chmsgattr(smbmsg_t msg)
 {
 	int ch;
 
 	while(online && !(sys_status&SS_ABORT)) {
 		CRLF;
-		show_msgattr(attr);
+		show_msgattr(&msg);
 		menu("msgattr");
 		ch=getkey(K_UPPER);
 		if(ch)
 			bprintf("%c\r\n",ch);
 		switch(ch) {
 			case 'P':
-				attr^=MSG_PRIVATE;
+				msg.hdr.attr^=MSG_PRIVATE;
 				break;
 			case 'R':
-				attr^=MSG_READ;
+				msg.hdr.attr^=MSG_READ;
 				break;
 			case 'K':
-				attr^=MSG_KILLREAD;
+				msg.hdr.attr^=MSG_KILLREAD;
 				break;
 			case 'A':
-				attr^=MSG_ANONYMOUS;
+				msg.hdr.attr^=MSG_ANONYMOUS;
 				break;
 			case 'N':   /* Non-purgeable */
-				attr^=MSG_PERMANENT;
+				msg.hdr.attr^=MSG_PERMANENT;
 				break;
 			case 'M':
-				attr^=MSG_MODERATED;
+				msg.hdr.attr^=MSG_MODERATED;
 				break;
 			case 'V':
-				attr^=MSG_VALIDATED;
+				msg.hdr.attr^=MSG_VALIDATED;
 				break;
 			case 'D':
-				attr^=MSG_DELETE;
+				msg.hdr.attr^=MSG_DELETE;
 				break;
 			case 'L':
-				attr^=MSG_LOCKED;
+				msg.hdr.attr^=MSG_LOCKED;
+				break;
+			case 'C':
+				msg.hdr.attr^=MSG_NOREPLY;
 				break;
 			default:
-				return(attr); 
+				return(msg.hdr.attr); 
 		} 
 	}
-	return(attr);
+	return(msg.hdr.attr);
 }
