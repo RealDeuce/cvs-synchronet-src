@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.94 2016/12/02 08:02:32 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.90 2016/11/21 10:03:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,8 +168,6 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 		bprintf("%-16.16s %lu\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
 	if(msg->hdr.last_downloaded)
 		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr(msg->hdr.last_downloaded));
-	if(msg->hdr.votes)
-		bprintf("%-16.16s %hu\r\n"	,"votes"			,msg->hdr.votes);
 
 	/* convenience integers */
 	if(msg->expiration)
@@ -196,6 +194,7 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 /****************************************************************************/
 post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num, uint32_t* visible)
 {
+	char name[128];
 	ushort aliascrc,namecrc,sysop;
 	int i,skip;
 	ulong l=0,total,alloc_len;
@@ -221,8 +220,12 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 		return(NULL); 
 	}
 
-	namecrc=smb_name_crc(useron.name);
-	aliascrc=smb_name_crc(useron.alias);
+	strcpy(name,useron.name);
+	strlwr(name);
+	namecrc=crc16(name,0);
+	strcpy(name,useron.alias);
+	strlwr(name);
+	aliascrc=crc16(name,0);
 	sysop=crc16("sysop",0);
 
 	rewind(smb.sid_fp);
@@ -244,9 +247,6 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 			break;
 
 		if(idx.number==0)	/* invalid message number, ignore */
-			continue;
-
-		if(mode&LP_NOMSGS && (idx.attr&MSG_POLL_VOTE_MASK) == 0)
 			continue;
 
 		if(idx.attr&MSG_DELETE) {		/* Pre-flagged */
@@ -407,23 +407,6 @@ static int64_t get_start_msg(sbbs_t* sbbs, smb_t* smb)
 	return(i-1);
 }
 
-static int score_post(post_t* post)
-{
-	if((post->idx.attr&MSG_POLL_VOTE_MASK) == MSG_POLL)
-		return 0;
-	return (post->upvotes*2) + ((post->idx.attr&MSG_REPLIED) ? 1:0) - (post->downvotes*2);
-}
-
-static int rank_post(const void* a1, const void* a2)
-{
-	post_t* p1 = (post_t*)a1;
-	post_t* p2 = (post_t*)a2;
-	int diff = score_post(p2) - score_post(p1);
-	if(diff == 0)
-		return p2->idx.time - p1->idx.time;
-	return diff;
-}
-
 /****************************************************************************/
 /* Reads posts on subboard sub. 'mode' determines new-posts only, browse,   */
 /* or continuous read.                                                      */
@@ -465,14 +448,14 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 		return(0); 
 	}
-	ZERO_VAR(msg);				/* init to NULL, specify not-allocated */
+	msg.total_hfields=0;				/* init to NULL, specify not-allocated */
 	if(!(mode&SCAN_CONST))
 		lncntr=0;
 	if((msgs=getlastmsg(subnum,&last,0))==0) {
 		if(mode&(SCAN_NEW|SCAN_TOYOU))
 			bprintf(text[NScanStatusFmt]
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,0L,0L);
-		else if(!(mode&SCAN_POLLS))
+		else
 			bprintf(text[NoMsgsOnSub]
 				,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 		return(0); 
@@ -507,8 +490,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		lp|=LP_UNREAD;
 	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
 		lp|=LP_POLLS;
-	if(mode&SCAN_POLLS)
-		lp|=LP_NOMSGS;
 	post=loadposts(&smb.msgs,subnum,0,lp,&unvalidated);
 	if(mode&SCAN_NEW) { 		  /* Scanning for new messages */
 		for(smb.curmsg=0;smb.curmsg<smb.msgs;smb.curmsg++)
@@ -533,12 +514,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		} 
 	}
 	else {
-		cleartoeol();
 		if(mode&SCAN_TOYOU)
 			bprintf(text[NScanStatusFmt]
 			   ,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,smb.msgs,msgs);
 		if(!smb.msgs) {
-			if(!(mode&SCAN_TOYOU|SCAN_POLLS))
+			if(!(mode&SCAN_TOYOU))
 				bprintf(text[NoMsgsOnSub]
 					,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 			smb_close(&smb);
@@ -551,7 +531,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			domsg=1;
 			smb.curmsg=0; 
 		}
-		else if(mode&(SCAN_TOYOU|SCAN_POLLS))
+		else if(mode&SCAN_TOYOU)
 			smb.curmsg=0;
 		else {
 			for(smb.curmsg=0;smb.curmsg<smb.msgs;smb.curmsg++)
@@ -801,7 +781,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			bprintf(text[UnvalidatedWarning],unvalidated+1);
 		bprintf(text[ReadingSub],ugrp,cfg.grp[cfg.sub[subnum]->grp]->sname
 			,usub,cfg.sub[subnum]->sname,smb.curmsg+1,smb.msgs);
-		sprintf(str,"ABCDEFHILMNPQRTUVY?<>[]{}-+()");
+		sprintf(str,"ABCDEFILMNPQRTUVY?<>[]{}-+()");
 		if(sub_op(subnum))
 			strcat(str,"O");
 		do_find=true;
@@ -858,17 +838,14 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				if(!(msg.hdr.attr&MSG_DELETE) && msg.hdr.type == SMB_MSG_TYPE_POLL 
 					&& smb_msg_is_from(&msg, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL)
 					&& !(msg.hdr.auxattr&POLL_CLOSED)) {
-					if(!noyes("Close Poll")) {
-						i=closepoll(&cfg, &smb, msg.hdr.number, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
-						if(i != SMB_SUCCESS)
-							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+					if(noyes("Close Poll")) {
+						domsg=false;
 						break;
 					}
-					SAFEPRINTF(str, text[DeleteTextFileQ], "Poll");
-					if(!yesno(str)) {
-						domsg=0;
-						break;
-					}
+					i=closepoll(&cfg, &smb, msg.hdr.number, cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
+					if(i != SMB_SUCCESS)
+						errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+					break;
 				}
 				domsg=0;
 				if(!sub_op(subnum)) {
@@ -971,20 +948,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					domsg=1;
 				}
 				break;
-			case 'H':	/* Highest ranked messages */
-			{
-				post_t* ranked = (post_t*)malloc(sizeof(post_t)*smb.msgs);
-				domsg = false;
-				if(ranked == NULL) {
-					errormsg(WHERE, ERR_ALLOC, "messages", smb.msgs);
-					break;
-				}
-				memcpy(ranked, post, sizeof(post_t)*smb.msgs);
-				qsort(ranked, smb.msgs, sizeof(post_t), rank_post);
-				listmsgs(subnum, 0, ranked, 0, 20);
-				free(ranked);
-				break;
-			}
 			case 'I':   /* Sub-board information */
 				domsg=0;
 				subinfo(subnum);
@@ -1413,7 +1376,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	if(post)
 		free(post);
 	if(!quit
-		&& !(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND|SCAN_POLLS)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
+		&& !(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
 		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron,&client) && text[Post][0]
 		&& !(useron.rest&FLAG('P'))) {
 		sprintf(str,text[Post],cfg.grp[cfg.sub[subnum]->grp]->sname

@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.430 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.429 2016/11/21 05:43:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4740,7 +4740,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.430 $", "%*s %s", revision);
+	sscanf("$Revision: 1.429 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4950,7 +4950,6 @@ void DLLCALL ftp_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","ftp");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","ftp");
-		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
