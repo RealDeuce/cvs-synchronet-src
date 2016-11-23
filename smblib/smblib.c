@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.161 2016/11/23 07:35:54 rswindell Exp $ */
+/* $Id: smblib.c,v 1.162 2016/11/23 20:59:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1955,8 +1955,8 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 	ulong		nextmsgnum;
 	smbmsg_t	nextmsg;
 
-	if(!remsg->hdr.thread_first) {	/* New msg is first reply */
-		if(remsg->idx.offset==0		/* index not read? */
+ 	if(!remsg->hdr.thread_first) {	/* New msg is first reply */
+		if(remsg->offset==0 || remsg->idx.offset==0		/* index not read? */
 			&& (retval=smb_getmsgidx(smb,remsg))!=SMB_SUCCESS)
 			return(retval);
 		if((retval=smb_lockmsghdr(smb,remsg))!=SMB_SUCCESS)
