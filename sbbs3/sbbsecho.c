@@ -1,8 +1,7 @@
-/* sbbsecho.c */
-
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.24 2016/11/18 06:24:01 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.26 2016/11/23 00:58:43 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +45,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#if defined(__unix__)
+	#include <signal.h>
+#endif
 
 #include "conwrap.h"		/* getch() */
 #include "sbbs.h"			/* load_cfg() */
@@ -2228,7 +2230,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 		if(idx.number==0)	/* invalid message number, ignore */
 			continue;
 
-		if(idx.attr&(MSG_VOTE|MSG_POLL))
+		if(idx.attr&MSG_POLL_VOTE_MASK)
 			continue;
 
 		if(idx.number<=ptr || (idx.attr&MSG_DELETE))
@@ -2626,7 +2628,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		return IMPORT_FAILURE; 
 	}
 
-	for(col=l=esc=done=bodylen=taillen=0,cr=1;l<length;l++) {
+	for(col=0,l=0,esc=0,done=0,bodylen=0,taillen=0,cr=1;l<length;l++) {
 
 		if(!l && !strncmp((char *)fbuf,"AREA:",5)) {
 			save=l;
@@ -4949,7 +4951,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.24 $", "%*s %s", revision);
+	sscanf("$Revision: 3.26 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
