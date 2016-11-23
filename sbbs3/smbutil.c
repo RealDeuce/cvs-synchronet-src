@@ -1,14 +1,12 @@
-/* smbutil.c */
-
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.107 2015/08/22 06:30:15 deuce Exp $ */
+/* $Id: smbutil.c,v 1.112 2016/11/21 10:04:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -532,10 +530,14 @@ void dumpindex(ulong start, ulong count)
 	while(l<count) {
 		if(!fread(&idx,1,sizeof(idx),smb.sid_fp))
 			break;
-
-		printf("%4"PRIu32" %04hX %04hX %04Xh %04Xh %06X %s\n"
-			,idx.number,idx.from,idx.to,idx.subj,idx.attr
-			,idx.offset,my_timestr(idx.time));
+		printf("%10"PRIu32"  ", idx.number);
+		if(idx.attr&MSG_VOTE && !(idx.attr&MSG_POLL))
+			printf("V  %04hX  %-10"PRIu32, idx.votes,idx.remsg);
+		else
+			printf("%c  %04hX  %04hX  %04X"
+				,(idx.attr&MSG_POLL_VOTE_MASK) == MSG_POLL_CLOSURE ? 'C' : (idx.attr&MSG_POLL ? 'P':'M')
+				,idx.from, idx.to, idx.subj);
+		printf("  %04X  %06X  %s\n", idx.attr, idx.offset, my_timestr(idx.time));
 		l++; 
 	}
 }
@@ -543,9 +545,9 @@ void dumpindex(ulong start, ulong count)
 /****************************************************************************/
 /* Displays message header information										*/
 /****************************************************************************/
-void viewmsgs(ulong start, ulong count)
+void viewmsgs(ulong start, ulong count, BOOL verbose)
 {
-	int i;
+	int i,j;
 	ulong l=0;
 	smbmsg_t msg;
 
@@ -574,6 +576,15 @@ void viewmsgs(ulong start, ulong count)
 		printf("--------------------\n");
 		printf("%-20.20s %ld\n"		,"index record",ftell(smb.sid_fp)/sizeof(idxrec_t));
 		smb_dump_msghdr(stdout,&msg);
+		if(verbose) {
+			for(i=0; i<msg.total_hfields; i++) {
+				printf("hdr field[%02u]        type %02Xh, length %u, data:"
+					,i, msg.hfield[i].type, msg.hfield[i].length);
+				for(j=0; j<msg.hfield[i].length; j++)
+					printf(" %02X", *((uint8_t*)msg.hfield_dat[i]+j));
+				printf("\n");
+			}
+		}
 		printf("\n");
 		smb_freemsgmem(&msg);
 		l++; 
@@ -1401,7 +1412,7 @@ void readmsgs(ulong start)
 				break;
 			case 'V':
 				printf("View message headers\n");
-				viewmsgs(1,-1);
+				viewmsgs(1,-1, FALSE);
 				domsg=0;
 				break;
 			case CR:
@@ -1482,7 +1493,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.107 $", "%*s %s", revision);
+	sscanf("$Revision: 1.112 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1621,9 +1632,12 @@ int main(int argc, char **argv)
 					} 
 				}
 				for(y=0;cmd[y];y++)
-					switch(toupper(cmd[y])) {
+					switch(cmd[y]) {
+						case 'i':
 						case 'I':
+						case 'e':
 						case 'E':
+						case 'n':
 						case 'N':
 							if(cmd[1]!=0) {
 								if((fp=fopen(cmd+1,"r"))==NULL) {
@@ -1643,22 +1657,22 @@ int main(int argc, char **argv)
 							fclose(fp);
 							y=strlen(cmd)-1;
 							break;
-						case 'S':
+						case 's':
 							showstatus();
 							break;
-						case 'C':
+						case 'c':
 							config();
 							break;
-						case 'L':
+						case 'l':
 							listmsgs(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
-						case 'X':
+						case 'x':
 							dumpindex(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
-						case 'P':
-						case 'D':
+						case 'p':
+						case 'd':
 							if((i=smb_lock(&smb))!=0) {
 								fprintf(errfp,"\n%s!smb_lock returned %d: %s\n"
 									,beep,i,smb.last_error);
@@ -1675,17 +1689,19 @@ int main(int argc, char **argv)
 							smb_unlock(&smb);
 							y=strlen(cmd)-1;
 							break;
-						case 'R':
+						case 'r':
 							readmsgs(atol(cmd+1));
 							y=strlen(cmd)-1;
 							break;
+						case 'v':
 						case 'V':
-							viewmsgs(atol(cmd+1),count);
+							viewmsgs(atol(cmd+1),count,cmd[y]=='V');
 							y=strlen(cmd)-1;
 							break;
-						case 'H':
+						case 'h':
 							dump_hashes();
 							break;
+						case 'm':
 						case 'M':
 							maint();
 							break;
