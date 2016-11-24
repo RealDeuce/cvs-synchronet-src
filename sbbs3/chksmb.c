@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.55 2016/11/23 07:41:40 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.56 2016/11/24 02:58:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.55 $", "%*s %s", revision);
+	sscanf("$Revision: 1.56 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
 		}
 
 		if(msg.from_net.type == NET_NONE && msg.id == NULL) {
-			fprintf(stderr,"%sNo Message ID\n",beep);
+			fprintf(stderr,"%sNo Message-ID\n",beep);
 			msgerr=TRUE;
 			if(extinfo)
 				printf("MSGERR: Header missing Message-ID\n");
@@ -415,7 +415,7 @@ int main(int argc, char **argv)
 						,msg.hdr.number,smb.status.last_msg);
 				hdrnumerr++; 
 			}
-			if(smb_getmsgidx(&smb,&msg)) {
+			if(smb_getmsgidx(&smb,&msg) || msg.idx.offset != l) {
 				fprintf(stderr,"%sNot found in index\n",beep);
 				msgerr=TRUE;
 				if(extinfo)
