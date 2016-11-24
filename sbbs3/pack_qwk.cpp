@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.75 2016/11/25 07:33:25 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.74 2016/11/23 10:28:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,6 +93,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		else 
 			errormsg(WHERE,ERR_EXEC,p,i);
 	}
+
+	if(useron.rest&FLAG('Q'))
+		useron.qwk|=QWK_NOINDEX|QWK_NOCTRL;
 
 	if(useron.qwk&QWK_EXPCTLA)
 		mode=QM_EXPCTLA;
@@ -316,6 +319,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		files=0;
 
 	start=time(NULL);
+
+	if(useron.rest&FLAG('Q'))
+		useron.qwk|=(QWK_EMAIL|QWK_ALLMAIL|QWK_DELMAIL);
 
 	if(!(useron.qwk&QWK_NOINDEX)) {
 		SAFEPRINTF(str,"%sPERSONAL.NDX",cfg.temp_dir);
